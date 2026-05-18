@@ -136,7 +136,7 @@ the `sources` table. **Status legend:** `pending` = no asset yet ·
 | `BRAND_PRIMARK` | Primark supplier list | `<BrandWordmark name="Primark" />` | reserved (MSS mirrored but names no factories — no per-supplier attribution; awaiting factory-map detail-card scrape) |
 | `BRAND_ASOS` | ASOS supplier list | `<BrandWordmark name="ASOS" />` | active (factory list April 2026 PDF, 44 BD suppliers named — `asosplc.com/sustainability/supply-chain-and-policies/` → `/media/cmzk3m5n/factory-list-april-2026.pdf`, refreshed quarterly; mirrored at `brand-disclosures/brand_asos/2026-04-01.pdf`) |
 | `BRAND_MS` | Marks & Spencer supplier list | `<BrandWordmark name="M&S" />` | reserved (interactive supplier-map widget — bespoke map-API client required) |
-| `BRAND_NEXT` | Next supplier list | `<BrandWordmark name="Next" />` | reserved (MSS mirrored but names no factories — no per-supplier attribution; awaiting Tier-1 supplier-list page scrape) |
+| `BRAND_NEXT` | Next supplier list | `<BrandWordmark name="Next" />` | active (Tier-1 Manufacturing Sites PDF, Produced August 2025, 153 BD suppliers named — `nextplc.co.uk/corporate-responsibility/our-suppliers` → `/~/media/Files/N/next-plc-v4/Tier 1 -2 - 3 lists/T1 2025.pdf`; mirrored at `brand-disclosures/brand_next/2025-08-01.pdf`) |
 
 ### Tier 5 — Regulatory / sanctions
 

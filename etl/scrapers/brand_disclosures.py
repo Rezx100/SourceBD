@@ -665,11 +665,184 @@ class BrandMsScraper(BrandDisclosureBase):
     )
 
 
+# --- Next plc Tier-1 PDF helpers ----------------------------------------- #
+#
+# Next's T1 PDF has an 8-column schema with NO country column. Country is a
+# section header row spanning the page; rows beneath belong to that country
+# until the next header. Schema:
+#   SUPPLIER NAME | MANUFACTURING SITE NAME | ADDRESS | PRODUCT TYPE |
+#   FEMALE EMPLOYEES | MALE EMPLOYEES | TRADE UNION IN FACTORY |
+#   FREELY ELECTED WORKERS COMMITTEE
+# We use MANUFACTURING SITE NAME (col 1) as company_name -- it's the actual
+# BD factory; col 0 is Next's UK vendor/importer.
+# Disclosure date comes from PDF page-1 text: "Produced <Month> <Year>".
+
+_NEXT_PRODUCED_RE = re.compile(r"Produced\s+([A-Za-z]+)\s+(\d{4})", re.IGNORECASE)
+_NEXT_T1_FILE_RE  = re.compile(r"/T1[ %]+20\d{2}\.pdf", re.IGNORECASE)
+_NEXT_T1_YEAR_RE  = re.compile(r"T1[ %]+20(\d{2})\.pdf", re.IGNORECASE)
+_NEXT_COUNTRY_NAMES = {
+    "albania", "bangladesh", "bulgaria", "cambodia", "china", "egypt",
+    "ethiopia", "france", "germany", "haiti", "honduras", "india",
+    "indonesia", "italy", "japan", "jordan", "kenya", "korea", "laos",
+    "lao pdr", "madagascar", "malaysia", "mauritius", "mexico", "moldova",
+    "morocco", "myanmar", "nepal", "nicaragua", "north macedonia", "pakistan",
+    "peru", "philippines", "portugal", "romania", "south korea", "spain",
+    "sri lanka", "taiwan", "thailand", "tunisia", "turkey", "uk",
+    "ukraine", "united kingdom", "united states", "usa", "uzbekistan",
+    "vietnam", "viet nam", "el salvador",
+}
+
+
+def _next_country_marker(row: list[Any]) -> str | None:
+    non_empty = [str(c).strip() for c in row if c is not None and str(c).strip()]
+    if len(non_empty) != 1:
+        return None
+    val = non_empty[0]
+    if val.lower() in _NEXT_COUNTRY_NAMES:
+        return val
+    return None
+
+
+def _next_disclosure_date(content: bytes, fallback_url: str) -> date:
+    try:
+        with pdfplumber.open(io.BytesIO(content)) as pdf:
+            txt = pdf.pages[0].extract_text() or ""
+    except Exception:  # noqa: BLE001
+        txt = ""
+    m = _NEXT_PRODUCED_RE.search(txt)
+    if m:
+        month = _ASOS_MONTHS.get(m.group(1).lower())
+        if month:
+            return date(int(m.group(2)), month, 1)
+    m2 = _NEXT_T1_YEAR_RE.search(fallback_url)
+    if m2:
+        return date(2000 + int(m2.group(1)), 1, 1)
+    return date.today()
+
+
+def parse_next_t1_pdf(content: bytes) -> list[dict[str, Any]]:
+    """Parse Next plc Tier-1 PDF; country tracked by section header rows."""
+    out: list[dict[str, Any]] = []
+    with pdfplumber.open(io.BytesIO(content)) as pdf:
+        for page in pdf.pages:
+            current_country: str | None = None
+            for table in page.extract_tables() or []:
+                if not table:
+                    continue
+                for row in table:
+                    if not row:
+                        continue
+                    cm = _next_country_marker(row)
+                    if cm:
+                        current_country = cm
+                        continue
+                    cell0 = str(row[0] or "").strip()
+                    cell1 = str(row[1] or "").strip() if len(row) > 1 else ""
+                    if not cell0 or not cell1:
+                        continue
+                    if cell0.upper().startswith("TIER "):
+                        continue
+                    if cell0.upper() == "SUPPLIER NAME":
+                        continue
+                    if not current_country:
+                        continue
+                    if current_country.lower() != "bangladesh":
+                        continue
+                    out.append({
+                        "factory_name": cell1,
+                        "supplier_vendor": cell0,
+                        "address": str(row[2] or "").strip() or None if len(row) > 2 else None,
+                        "country": current_country,
+                        "products": str(row[3] or "").strip() or None if len(row) > 3 else None,
+                        "female_workers": str(row[4] or "").strip() or None if len(row) > 4 else None,
+                        "male_workers": str(row[5] or "").strip() or None if len(row) > 5 else None,
+                        "trade_union": str(row[6] or "").strip() or None if len(row) > 6 else None,
+                        "workers_committee": str(row[7] or "").strip() or None if len(row) > 7 else None,
+                    })
+    return out
+
+
 class BrandNextScraper(BrandDisclosureBase):
     code = "brand_next"
     brand_code = "BRAND_NEXT"
-    landing_url = "https://www.nextplc.co.uk/corporate-responsibility/responsible-sourcing"
-    file_link_regex = re.compile(
-        r"(factory|supplier|supply[-_ ]?chain|modern[-_ ]?slavery|transparency).*\.(xlsx|xls|pdf|csv)(?:[?#]|$)",
-        re.IGNORECASE,
-    )
+    landing_url = "https://www.nextplc.co.uk/corporate-responsibility/our-suppliers"
+    # Match Next CDN path `/T1 2025.pdf` (raw or URL-encoded spaces). Excludes
+    # T2/T3 (those are downstream tiers; T1 = direct manufacturers, which is
+    # the per-factory authenticity-rule-compliant disclosure).
+    file_link_regex = _NEXT_T1_FILE_RE
+
+    async def fetch(self) -> AsyncIterator[ScrapedRecord]:
+        # Next's CDN requires a Referer matching the supplier landing page.
+        headers = dict(_BROWSER_HEADERS)
+        headers["Referer"] = self.landing_url
+        async with HttpClient(rps=0.5, headers=headers) as http:
+            # Discover ALL matching T1 candidates, pick the highest year.
+            html: str | None = None
+            try:
+                resp = await http.get(self.landing_url)
+                html = resp.text
+            except Exception as exc:  # noqa: BLE001
+                self.log.info("brand.http_failed", brand=self.brand_code, error=str(exc))
+            candidates = _collect_candidates(html or "", self.landing_url, self.file_link_regex)
+            if not candidates:
+                self.log.info("brand.fallback_playwright", brand=self.brand_code, url=self.landing_url)
+                html = await _render_playwright(self.landing_url)
+                candidates = _collect_candidates(html, self.landing_url, self.file_link_regex)
+            if not candidates:
+                raise RuntimeError(
+                    f"{self.brand_code}: no T1 PDF link found on {self.landing_url}"
+                )
+
+            def _year(u: str) -> int:
+                m = _NEXT_T1_YEAR_RE.search(u)
+                return int(m.group(1)) if m else 0
+            candidates.sort(key=lambda c: _year(c[0]), reverse=True)
+            url, ext = candidates[0]
+            ext = ext or "pdf"
+
+            try:
+                resp = await http.get(url)
+                content = resp.content
+                content_type = resp.headers.get("content-type")
+            except Exception as exc:  # noqa: BLE001
+                self.log.info("brand.file_http_failed", brand=self.brand_code, error=str(exc))
+                content = await _download_playwright(url)
+                content_type = None
+
+            disclosure_date = _next_disclosure_date(content, url)
+            self.log.info(
+                "brand.discovered", brand=self.brand_code, url=url,
+                ext=ext, date=disclosure_date.isoformat(),
+            )
+            mirror_path = _mirror_path(self.brand_code, disclosure_date, ext)
+            mirror_url = await bunny_upload(mirror_path, content, content_type=content_type)
+
+            rows = parse_next_t1_pdf(content)
+            self.log.info(
+                "brand.parsed", brand=self.brand_code,
+                bd_rows=len(rows), source_url=url,
+            )
+            for row in rows:
+                name = row["factory_name"]
+                payload = {
+                    "brand": self.brand_code,
+                    "source_url": url,
+                    "mirror_url": mirror_url,
+                    "disclosure_date": disclosure_date.isoformat(),
+                    "country": row.get("country"),
+                    "address": row.get("address"),
+                    "products": row.get("products"),
+                    "female_workers": row.get("female_workers"),
+                    "male_workers": row.get("male_workers"),
+                    "trade_union": row.get("trade_union"),
+                    "workers_committee": row.get("workers_committee"),
+                    "next_supplier_vendor": row.get("supplier_vendor"),
+                }
+                yield ScrapedRecord(
+                    source_code=self.brand_code,
+                    source_ref=_source_ref(self.brand_code, name, row.get("country") or "", None),
+                    company_name=name,
+                    address_raw=row.get("address") or None,
+                    city=None,
+                    payload={k: v for k, v in payload.items() if v is not None},
+                )
