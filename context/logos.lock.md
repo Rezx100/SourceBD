@@ -127,15 +127,25 @@ the `sources` table. **Status legend:** `pending` = no asset yet ·
 > or sustainability page mentioning the factory by name). A brand-wide
 > Modern Slavery Statement is **not** per-factory evidence and must not
 > attach to any supplier row, no matter how official the document.
+>
+> **Narrow OSH extension (2026-05-19):** the authenticity bar is also
+> satisfied when (a) the brand is the named Open Supply Hub contributor
+> AND (b) the OSH facility list is officially embedded on the brand's own
+> corporate domain (i.e. the brand publishes the OSH iframe as its
+> first-party disclosure surface). Both conditions are runtime-enforced —
+> the scraper must capture a live XHR from the brand's corporate page
+> referencing the contributor id before any record is upserted.
+>
 > **Render strategy:** typography wordmark, no SVG.
+
 
 | code | Display name | Render | Status |
 |---|---|---|---|
 | `BRAND_HM` | H&M Group supplier list | `<BrandWordmark name="H&M" />` | active (Spec 09, 188 BD suppliers named in published XLSX) |
 | `BRAND_INDITEX` | Inditex supplier list | `<BrandWordmark name="Inditex" />` | reserved (deep probe 2026-05-19 confirms inditex.com publishes no per-factory list: `/sustainability` hub enumerates 38 policy/report PDFs with zero supplier-list titles; sibling URLs `/transparency`, `/our-workers`, `/who-makes-our-products`, `/reporting`, `/people-in-our-supply-chain` all return generic SPA shells; deep PDF inspection of 2025 Sustainability Report (165pp), Workers at the Centre 2023 (84pp), MSS FY24 (15pp) yields 0 keyword hits for "list of suppliers / factory list / who makes our" and 0 tabular per-factory rows. Inditex discloses per-factory only via Open Supply Hub (third-party). Activation would require either a policy decision to accept OSH as authoritative, or a future inditex.com surface change.) |
-| `BRAND_PRIMARK` | Primark supplier list | `<BrandWordmark name="Primark" />` | reserved (MSS mirrored but names no factories — no per-supplier attribution; awaiting factory-map detail-card scrape) |
+| `BRAND_PRIMARK` | Primark supplier list | `<BrandWordmark name="Primark" />` | reserved (4-probe discovery 2026-05-19 confirms primark.com has zero per-factory disclosure: `/modern-slavery-act` returns the narrative MSS only with 0 BD tabular rows; `/global-supplier-map` is an Akamai-gated Next.js `__next_error__` 404; no own Open Supply Hub contributor identifiable. Activation requires either a future primark.com surface change or a broader extension of the authenticity rule.) |
 | `BRAND_ASOS` | ASOS supplier list | `<BrandWordmark name="ASOS" />` | active (factory list April 2026 PDF, 44 BD suppliers named — `asosplc.com/sustainability/supply-chain-and-policies/` → `/media/cmzk3m5n/factory-list-april-2026.pdf`, refreshed quarterly; mirrored at `brand-disclosures/brand_asos/2026-04-01.pdf`) |
-| `BRAND_MS` | Marks & Spencer supplier list | `<BrandWordmark name="M&S" />` | reserved (interactive supplier-map widget — bespoke map-API client required) |
+| `BRAND_MS` | Marks & Spencer supplier list | `<BrandWordmark name="M&S" />` | active (Open Supply Hub contributor 10061, embedded at `corporate.marksandspencer.com/sustainability/interactive-supplier-map`; published lists incl. "Fashion, Home and Beauty Tier 1 Facility List - February 2026" (1,853 global facilities); 68 BD suppliers upserted on first run; activates the narrow OSH extension to the authenticity rule and is gated by runtime capture of the M&S iframe's `x-oar-client-key` embed token. Snapshot mirrored to `brand-disclosures/brand_ms/<date>.json`.) |
 | `BRAND_NEXT` | Next supplier list | `<BrandWordmark name="Next" />` | active (Tier-1 Manufacturing Sites PDF, Produced August 2025, 153 BD suppliers named — `nextplc.co.uk/corporate-responsibility/our-suppliers` → `/~/media/Files/N/next-plc-v4/Tier 1 -2 - 3 lists/T1 2025.pdf`; mirrored at `brand-disclosures/brand_next/2025-08-01.pdf`) |
 
 ### Tier 5 — Regulatory / sanctions

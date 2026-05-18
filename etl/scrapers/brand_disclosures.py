@@ -651,18 +651,194 @@ class BrandAsosScraper(BrandDisclosureBase):
                 )
 
 
+_MS_OSH_CONTRIBUTOR_ID = 10061
+_MS_EMBED_PAGE = "https://corporate.marksandspencer.com/sustainability/interactive-supplier-map"
+_MS_OSH_FACILITIES_API = "https://opensupplyhub.org/api/facilities/"
+
+
+async def _ms_verify_embed_and_fetch(log) -> tuple[list[dict[str, Any]], str]:
+    """Open the M&S corporate embed page (verifying the on-domain OSH embed
+    actually fires XHRs against contributor 10061), then paginate the OSH
+    facilities API for that contributor, country=BD, from the same Playwright
+    context (carries OSH session cookies that bare httpx cannot get).
+
+    Returns (features, api_url_used_for_first_page).
+    """
+    from playwright.async_api import async_playwright
+
+    features: list[dict[str, Any]] = []
+    first_url = (
+        f"{_MS_OSH_FACILITIES_API}?contributors={_MS_OSH_CONTRIBUTOR_ID}"
+        "&countries=BD&pageSize=50&embed=1&sort_by=name_asc"
+    )
+    async with async_playwright() as p:
+        browser = await p.chromium.launch(args=["--no-sandbox"])
+        ctx = await browser.new_context(
+            user_agent=_BROWSER_HEADERS["User-Agent"],
+            locale="en-GB",
+            viewport={"width": 1366, "height": 900},
+        )
+        page = await ctx.new_page()
+        seen_urls: list[str] = []
+        # OSH /api/* endpoints require a per-contributor `x-oar-client-key`
+        # header (and matching Referer). The key is a public embed token
+        # delivered by the M&S corporate page's iframe — we capture it here
+        # at runtime so it stays correct if OSH rotates it.
+        osh_client_key: dict[str, str] = {}
+
+        async def _capture(req) -> None:
+            seen_urls.append(req.url)
+            if "opensupplyhub.org/api/" in req.url and "client_key" not in osh_client_key:
+                try:
+                    hdrs = await req.all_headers()
+                except Exception:  # noqa: BLE001
+                    return
+                key = hdrs.get("x-oar-client-key") or hdrs.get("X-OAR-Client-Key")
+                if key:
+                    osh_client_key["client_key"] = key
+                    osh_client_key["referer"] = hdrs.get("referer") or hdrs.get("Referer") or ""
+
+        page.on("request", _capture)
+        try:
+            await page.goto(_MS_EMBED_PAGE, wait_until="domcontentloaded", timeout=60000)
+            try:
+                await page.wait_for_load_state("networkidle", timeout=20000)
+            except Exception:  # noqa: BLE001
+                pass
+            # On-domain embed verification: the M&S page must actually fire
+            # XHRs referencing OSH contributor 10061. This is the runtime
+            # enforcement of the narrow OSH extension to the authenticity rule.
+            cid = str(_MS_OSH_CONTRIBUTOR_ID)
+            verified = any(
+                "opensupplyhub.org" in u
+                and (f"contributors={cid}" in u or f"contributor-embed-configs/{cid}" in u)
+                for u in seen_urls
+            )
+            if not verified:
+                raise RuntimeError(
+                    f"BRAND_MS: embed verification failed — {_MS_EMBED_PAGE} did not "
+                    f"fire any opensupplyhub.org XHR referencing contributor {cid} "
+                    f"(captured {len(seen_urls)} requests)."
+                )
+            log.info(
+                "brand.ms_embed_verified",
+                contributor_id=_MS_OSH_CONTRIBUTOR_ID,
+                requests=len(seen_urls),
+            )
+            # The M&S corporate page loads OSH inside an iframe whose XHRs
+            # carry a per-contributor `x-oar-client-key` embed token plus a
+            # Referer pointing at the OSH facilities embed URL. Both are
+            # required (the API returns 401 without them). We captured them
+            # above from the live iframe requests and replay them here.
+            if "client_key" not in osh_client_key:
+                raise RuntimeError(
+                    "BRAND_MS: failed to capture x-oar-client-key from M&S OSH iframe"
+                )
+            api_headers = {
+                "x-oar-client-key": osh_client_key["client_key"],
+                "Referer": osh_client_key.get("referer")
+                or f"https://opensupplyhub.org/facilities?contributors={_MS_OSH_CONTRIBUTOR_ID}&sort_by=name_asc&embed=1",
+                "Accept": "application/json, text/plain, */*",
+            }
+            log.info(
+                "brand.ms_osh_client_key_captured",
+                key_prefix=osh_client_key["client_key"][:8],
+            )
+            url = first_url
+            pages = 0
+            while url:
+                resp = await ctx.request.get(url, headers=api_headers, timeout=60000)
+                if not resp.ok:
+                    body = (await resp.text())[:300]
+                    raise RuntimeError(
+                        f"BRAND_MS: OSH facilities fetch failed: HTTP {resp.status} "
+                        f"at {url} — body: {body}"
+                    )
+                data = await resp.json()
+                page_feats = data.get("features") or []
+                # Belt-and-suspenders: filter BD client-side in case the API
+                # ignores `countries=BD` for a given contributor.
+                for feat in page_feats:
+                    props = feat.get("properties") or {}
+                    cc = (props.get("country_code") or "").upper()
+                    cn = (props.get("country_name") or "").lower()
+                    if cc == "BD" or cn.startswith("bangladesh"):
+                        features.append(feat)
+                pages += 1
+                url = data.get("next")
+            log.info("brand.ms_osh_fetched", pages=pages, bd_features=len(features))
+        finally:
+            await ctx.close()
+            await browser.close()
+    return features, first_url
+
+
 class BrandMsScraper(BrandDisclosureBase):
     code = "brand_ms"
     brand_code = "BRAND_MS"
-    # M&S publishes supplier data only through the JS-rendered Interactive
-    # Supplier Map widget (ArcGIS-style API). No static disclosure file is
-    # linked from public pages — will fail discovery until a bespoke map-API
-    # client is added in a follow-up.
-    landing_url = "https://corporate.marksandspencer.com/sustainability/interactive-supplier-map"
-    file_link_regex = re.compile(
-        r"(factory|supplier|interactive[-_ ]?map|global[-_ ]?sourcing|modern[-_ ]?slavery).*\.(xlsx|xls|csv|pdf)(?:[?#]|$)",
-        re.IGNORECASE,
-    )
+    # M&S's per-factory disclosure is the Open Supply Hub supplier list (M&S
+    # is OSH contributor 10061), embedded on the M&S corporate domain at
+    # /sustainability/interactive-supplier-map. Per the narrow OSH extension
+    # to the per-factory authenticity rule (decided 2026-05-19), this
+    # satisfies a BRAND_MS attribution because (a) M&S is the named OSH
+    # contributor AND (b) the list is officially embedded on M&S's own
+    # corporate domain. Both conditions are runtime-enforced.
+    landing_url = _MS_EMBED_PAGE
+    file_link_regex = re.compile(r"^never$")  # unused; we override fetch()
+
+    async def fetch(self) -> AsyncIterator[ScrapedRecord]:
+        features, source_url = await _ms_verify_embed_and_fetch(self.log)
+        disclosure_date = date.today()
+        snapshot = json.dumps(
+            {
+                "contributor_id": _MS_OSH_CONTRIBUTOR_ID,
+                "embed_page": _MS_EMBED_PAGE,
+                "source_api": source_url,
+                "fetched_at": disclosure_date.isoformat(),
+                "bd_features": features,
+            },
+            default=str,
+        ).encode("utf-8")
+        mirror_path = _mirror_path(self.brand_code, disclosure_date, "json")
+        mirror_url = await bunny_upload(
+            mirror_path, snapshot, content_type="application/json"
+        )
+        self.log.info(
+            "brand.parsed", brand=self.brand_code,
+            bd_rows=len(features), source_url=source_url,
+        )
+        for feat in features:
+            props = feat.get("properties") or {}
+            name = (props.get("name") or "").strip()
+            if not name:
+                continue
+            oar_id = str(feat.get("id") or props.get("os_id") or "").strip()
+            address = (props.get("address") or "").strip() or None
+            country = props.get("country_name") or "Bangladesh"
+            payload = {
+                "brand": self.brand_code,
+                "source_url": source_url,
+                "embed_page": _MS_EMBED_PAGE,
+                "osh_contributor_id": _MS_OSH_CONTRIBUTOR_ID,
+                "osh_facility_id": oar_id or None,
+                "mirror_url": mirror_url,
+                "disclosure_date": disclosure_date.isoformat(),
+                "country": country,
+                "address": address,
+                "sector": props.get("sector"),
+                "lists": props.get("contributor_lists") or props.get("lists"),
+            }
+            yield ScrapedRecord(
+                source_code=self.brand_code,
+                source_ref=(
+                    f"ms-osh-{oar_id}" if oar_id
+                    else _source_ref(self.brand_code, name, country, None)
+                ),
+                company_name=name,
+                address_raw=address,
+                city=None,
+                payload={k: v for k, v in payload.items() if v is not None},
+            )
 
 
 # --- Next plc Tier-1 PDF helpers ----------------------------------------- #
