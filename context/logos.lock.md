@@ -121,19 +121,22 @@ the `sources` table. **Status legend:** `pending` = no asset yet ·
 
 ### Tier 4 — Brand disclosures (RESERVED)
 
-> No `tier4_brand` rows in the `sources` table yet — added when spec 09
-> ingests H&M / Inditex / Primark / ASOS / M&S / Next supplier-list
-> publications. **Render strategy: typography wordmark, no SVG.** This
-> table is here so the entries are listed when activated.
+> **Authenticity rule (hard):** a `BRAND_*` source pill is permitted on a
+> supplier profile **only when the brand's own publication names that
+> specific factory** (tabular supplier list, interactive-map detail card,
+> or sustainability page mentioning the factory by name). A brand-wide
+> Modern Slavery Statement is **not** per-factory evidence and must not
+> attach to any supplier row, no matter how official the document.
+> **Render strategy:** typography wordmark, no SVG.
 
 | code | Display name | Render | Status |
 |---|---|---|---|
-| `BRAND_HM` | H&M Group supplier list | `<BrandWordmark name="H&M" />` | active (Spec 09, 188 BD suppliers) |
-| `BRAND_INDITEX` | Inditex supplier list | `<BrandWordmark name="Inditex" />` | document-mirrored (MSS only; Spec 09 follow-up for tabular list) |
-| `BRAND_PRIMARK` | Primark supplier list | `<BrandWordmark name="Primark" />` | document-mirrored (MSS only; Spec 09 follow-up for tabular list) |
-| `BRAND_ASOS` | ASOS supplier list | `<BrandWordmark name="ASOS" />` | document-mirrored (MSS only; Spec 09 follow-up for tabular list) |
-| `BRAND_MS` | Marks & Spencer supplier list | `<BrandWordmark name="M&S" />` | blocked (map-widget API; Spec 09 follow-up) |
-| `BRAND_NEXT` | Next supplier list | `<BrandWordmark name="Next" />` | document-mirrored (MSS only; Spec 09 follow-up for tabular list) |
+| `BRAND_HM` | H&M Group supplier list | `<BrandWordmark name="H&M" />` | active (Spec 09, 188 BD suppliers named in published XLSX) |
+| `BRAND_INDITEX` | Inditex supplier list | `<BrandWordmark name="Inditex" />` | reserved (MSS mirrored but names no factories — no per-supplier attribution; awaiting bespoke transparency-portal scrape) |
+| `BRAND_PRIMARK` | Primark supplier list | `<BrandWordmark name="Primark" />` | reserved (MSS mirrored but names no factories — no per-supplier attribution; awaiting factory-map detail-card scrape) |
+| `BRAND_ASOS` | ASOS supplier list | `<BrandWordmark name="ASOS" />` | reserved (MSS mirrored but names no factories — no per-supplier attribution; awaiting Fashion with Integrity Tier-1 Excel scrape) |
+| `BRAND_MS` | Marks & Spencer supplier list | `<BrandWordmark name="M&S" />` | reserved (interactive supplier-map widget — bespoke map-API client required) |
+| `BRAND_NEXT` | Next supplier list | `<BrandWordmark name="Next" />` | reserved (MSS mirrored but names no factories — no per-supplier attribution; awaiting Tier-1 supplier-list page scrape) |
 
 ### Tier 5 — Regulatory / sanctions
 
