@@ -98,6 +98,19 @@ def run(scraper: str) -> None:
 
 
 @app.command()
+def sbi(
+    limit: int = typer.Option(None, help="Score only the first N suppliers (debug)."),
+    force: bool = typer.Option(False, help="Recompute & upsert even when inputs_hash matches."),
+    batch_size: int = typer.Option(500, help="Upsert batch size."),
+) -> None:
+    """Backfill / recompute SBI scores across `public.suppliers` (Spec 11)."""
+    from etl.scoring.runner import run as run_sbi
+
+    result = run_sbi(limit=limit, force=force, batch_size=batch_size)
+    typer.echo(str(result))
+
+
+@app.command()
 def digest(period: str) -> None:
     """Generate monthly newsletter + blog drafts from rsc_industry_metrics.
 
