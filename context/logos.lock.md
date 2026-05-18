@@ -132,9 +132,9 @@ the `sources` table. **Status legend:** `pending` = no asset yet ·
 | code | Display name | Render | Status |
 |---|---|---|---|
 | `BRAND_HM` | H&M Group supplier list | `<BrandWordmark name="H&M" />` | active (Spec 09, 188 BD suppliers named in published XLSX) |
-| `BRAND_INDITEX` | Inditex supplier list | `<BrandWordmark name="Inditex" />` | reserved (MSS mirrored but names no factories — no per-supplier attribution; awaiting bespoke transparency-portal scrape) |
+| `BRAND_INDITEX` | Inditex supplier list | `<BrandWordmark name="Inditex" />` | reserved (deep probe 2026-05-19 confirms inditex.com publishes no per-factory list: `/sustainability` hub enumerates 38 policy/report PDFs with zero supplier-list titles; sibling URLs `/transparency`, `/our-workers`, `/who-makes-our-products`, `/reporting`, `/people-in-our-supply-chain` all return generic SPA shells; deep PDF inspection of 2025 Sustainability Report (165pp), Workers at the Centre 2023 (84pp), MSS FY24 (15pp) yields 0 keyword hits for "list of suppliers / factory list / who makes our" and 0 tabular per-factory rows. Inditex discloses per-factory only via Open Supply Hub (third-party). Activation would require either a policy decision to accept OSH as authoritative, or a future inditex.com surface change.) |
 | `BRAND_PRIMARK` | Primark supplier list | `<BrandWordmark name="Primark" />` | reserved (MSS mirrored but names no factories — no per-supplier attribution; awaiting factory-map detail-card scrape) |
-| `BRAND_ASOS` | ASOS supplier list | `<BrandWordmark name="ASOS" />` | reserved (MSS mirrored but names no factories — no per-supplier attribution; awaiting Fashion with Integrity Tier-1 Excel scrape) |
+| `BRAND_ASOS` | ASOS supplier list | `<BrandWordmark name="ASOS" />` | active (factory list April 2026 PDF, 44 BD suppliers named — `asosplc.com/sustainability/supply-chain-and-policies/` → `/media/cmzk3m5n/factory-list-april-2026.pdf`, refreshed quarterly; mirrored at `brand-disclosures/brand_asos/2026-04-01.pdf`) |
 | `BRAND_MS` | Marks & Spencer supplier list | `<BrandWordmark name="M&S" />` | reserved (interactive supplier-map widget — bespoke map-API client required) |
 | `BRAND_NEXT` | Next supplier list | `<BrandWordmark name="Next" />` | reserved (MSS mirrored but names no factories — no per-supplier attribution; awaiting Tier-1 supplier-list page scrape) |
 

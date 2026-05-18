@@ -528,14 +528,127 @@ class BrandPrimarkScraper(BrandDisclosureBase):
     )
 
 
+# --- ASOS-specific helpers (factory list PDF has a fixed 7-col schema with
+# the header row only on page 1; pages 2..N have NO header and `t[0]` is
+# already a data row. The shared `parse_pdf` would silently drop pages 2..N.
+# Filename pattern is stable: factory-list-<month-name>-<YYYY>.pdf.)
+
+_ASOS_MONTHS = {
+    "january": 1, "february": 2, "march": 3, "april": 4, "may": 5,
+    "june": 6, "july": 7, "august": 8, "september": 9,
+    "october": 10, "november": 11, "december": 12,
+}
+_ASOS_DATE_RE = re.compile(r"factory-list-([a-z]+)-(\d{4})\.pdf", re.IGNORECASE)
+
+
+def _asos_disclosure_date(url: str) -> date:
+    m = _ASOS_DATE_RE.search(url)
+    if not m:
+        return date.today()
+    month = _ASOS_MONTHS.get(m.group(1).lower())
+    if not month:
+        return date.today()
+    return date(int(m.group(2)), month, 1)
+
+
+def parse_asos_pdf(content: bytes) -> list[dict[str, Any]]:
+    """Parse ASOS factory-list PDF (fixed 7-column schema).
+
+    Columns: Factory Name | Address Line 1 | Country | Department |
+             Number of Workers | Male Workers | Female Workers.
+    """
+    out: list[dict[str, Any]] = []
+    with pdfplumber.open(io.BytesIO(content)) as pdf:
+        for page in pdf.pages:
+            for table in page.extract_tables() or []:
+                if not table:
+                    continue
+                first = table[0] or []
+                is_header = any(
+                    isinstance(c, str) and c.strip().lower() == "factory name"
+                    for c in first
+                )
+                start = 1 if is_header else 0
+                for row in table[start:]:
+                    if not row or len(row) < 3:
+                        continue
+                    country = (row[2] or "").strip() if row[2] else ""
+                    if not _bd_country(country):
+                        continue
+                    name = (row[0] or "").strip()
+                    if not name:
+                        continue
+                    out.append({
+                        "factory_name": name,
+                        "address": (row[1] or "").strip() or None if len(row) > 1 else None,
+                        "country": country,
+                        "products": (row[3] or "").strip() or None if len(row) > 3 else None,
+                        "workers": (row[4] or "").strip() or None if len(row) > 4 else None,
+                        "male_workers": (row[5] or "").strip() or None if len(row) > 5 else None,
+                        "female_workers": (row[6] or "").strip() or None if len(row) > 6 else None,
+                    })
+    return out
+
+
 class BrandAsosScraper(BrandDisclosureBase):
     code = "brand_asos"
     brand_code = "BRAND_ASOS"
-    landing_url = "https://www.asosplc.com/sustainability/operating-responsibly/our-supply-chain/"
-    file_link_regex = re.compile(
-        r"(factory|supplier|fashion[-_]?with[-_]?integrity|FwI|modern[-_ ]?slavery).*\.(xlsx|xls|pdf|csv)(?:[?#]|$)",
-        re.IGNORECASE,
-    )
+    landing_url = "https://www.asosplc.com/sustainability/supply-chain-and-policies/"
+    # Strict match for `factory-list-<month>-<YYYY>.pdf` only (avoids MSS,
+    # code-of-conduct, policy PDFs that also live on this page).
+    file_link_regex = re.compile(r"factory-list-[a-z]+-\d{4}\.pdf", re.IGNORECASE)
+
+    async def fetch(self) -> AsyncIterator[ScrapedRecord]:
+        async with HttpClient(rps=0.5, headers=_BROWSER_HEADERS) as http:
+            found = await self.discover(http)
+            # ASOS dates the file in the filename — use that, not today.
+            found = DiscoveredFile(
+                url=found.url, ext=found.ext,
+                disclosure_date=_asos_disclosure_date(found.url),
+            )
+            self.log.info(
+                "brand.discovered", brand=self.brand_code, url=found.url,
+                ext=found.ext, date=found.disclosure_date.isoformat(),
+            )
+            mirror_path = _mirror_path(self.brand_code, found.disclosure_date, found.ext)
+            if await bunny_exists(mirror_path):
+                self.log.info("brand.mirror_exists", path=mirror_path)
+            try:
+                resp = await http.get(found.url)
+                content = resp.content
+                content_type = resp.headers.get("content-type")
+            except Exception as exc:  # noqa: BLE001
+                self.log.info("brand.file_http_failed", brand=self.brand_code, error=str(exc))
+                content = await _download_playwright(found.url)
+                content_type = None
+            mirror_url = await bunny_upload(mirror_path, content, content_type=content_type)
+            rows = parse_asos_pdf(content)
+            self.log.info(
+                "brand.parsed", brand=self.brand_code,
+                bd_rows=len(rows), source_url=found.url,
+            )
+            for row in rows:
+                name = row["factory_name"]
+                payload = {
+                    "brand": self.brand_code,
+                    "source_url": found.url,
+                    "mirror_url": mirror_url,
+                    "disclosure_date": found.disclosure_date.isoformat(),
+                    "country": row.get("country"),
+                    "address": row.get("address"),
+                    "products": row.get("products"),
+                    "workers": row.get("workers"),
+                    "male_workers": row.get("male_workers"),
+                    "female_workers": row.get("female_workers"),
+                }
+                yield ScrapedRecord(
+                    source_code=self.brand_code,
+                    source_ref=_source_ref(self.brand_code, name, row.get("country") or "", None),
+                    company_name=name,
+                    address_raw=row.get("address") or None,
+                    city=None,
+                    payload={k: v for k, v in payload.items() if v is not None},
+                )
 
 
 class BrandMsScraper(BrandDisclosureBase):
