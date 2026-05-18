@@ -25,6 +25,14 @@ class Settings(BaseSettings):
     etl_retry_backoff_base: float = 2.0
     etl_playwright_headless: bool = True
 
+    # BunnyCDN (raw document mirror — brand disclosures, RSC PDFs, compliance docs)
+    bunny_api_key: str = Field(default="")
+    bunny_storage_zone: str = Field(default="")
+    bunny_storage_password: str = Field(default="")
+    bunny_storage_region: str = Field(default="")
+    bunny_storage_hostname: str = Field(default="storage.bunnycdn.com")
+    bunny_pull_zone_hostname: str = Field(default="")
+
     def ensure_dirs(self) -> None:
         self.etl_raw_dir.mkdir(parents=True, exist_ok=True)
         self.etl_parsed_dir.mkdir(parents=True, exist_ok=True)

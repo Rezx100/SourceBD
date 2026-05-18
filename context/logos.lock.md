@@ -128,12 +128,12 @@ the `sources` table. **Status legend:** `pending` = no asset yet ·
 
 | code | Display name | Render | Status |
 |---|---|---|---|
-| `BRAND_HM` | H&M Group supplier list | `<BrandWordmark name="H&M" />` | reserved |
-| `BRAND_INDITEX` | Inditex supplier list | `<BrandWordmark name="Inditex" />` | reserved |
-| `BRAND_PRIMARK` | Primark supplier list | `<BrandWordmark name="Primark" />` | reserved |
-| `BRAND_ASOS` | ASOS supplier list | `<BrandWordmark name="ASOS" />` | reserved |
-| `BRAND_MS` | Marks & Spencer supplier list | `<BrandWordmark name="M&S" />` | reserved |
-| `BRAND_NEXT` | Next supplier list | `<BrandWordmark name="Next" />` | reserved |
+| `BRAND_HM` | H&M Group supplier list | `<BrandWordmark name="H&M" />` | active (Spec 09, 188 BD suppliers) |
+| `BRAND_INDITEX` | Inditex supplier list | `<BrandWordmark name="Inditex" />` | document-mirrored (MSS only; Spec 09 follow-up for tabular list) |
+| `BRAND_PRIMARK` | Primark supplier list | `<BrandWordmark name="Primark" />` | document-mirrored (MSS only; Spec 09 follow-up for tabular list) |
+| `BRAND_ASOS` | ASOS supplier list | `<BrandWordmark name="ASOS" />` | document-mirrored (MSS only; Spec 09 follow-up for tabular list) |
+| `BRAND_MS` | Marks & Spencer supplier list | `<BrandWordmark name="M&S" />` | blocked (map-widget API; Spec 09 follow-up) |
+| `BRAND_NEXT` | Next supplier list | `<BrandWordmark name="Next" />` | document-mirrored (MSS only; Spec 09 follow-up for tabular list) |
 
 ### Tier 5 — Regulatory / sanctions
 

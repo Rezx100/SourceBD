@@ -193,14 +193,19 @@ def _apply_source_specific(cur, *, supplier_id: str, rec: ScrapedRecord) -> None
 
 
 def _maybe_publish(cur, supplier_id: str) -> None:
+    # Wrap in a savepoint: if the publish trigger refuses (no Tier 1-3
+    # evidence yet), the surrounding transaction must remain usable so the
+    # rest of the upsert (completeness refresh, commit) can proceed.
+    cur.execute("savepoint sp_publish")
     try:
         cur.execute(
             "update public.suppliers set is_published = true where id = %s and is_published = false",
             (supplier_id,),
         )
+        cur.execute("release savepoint sp_publish")
     except Exception:  # noqa: BLE001
         # Trigger refused publication (no Tier 1-3 evidence yet). That's fine.
-        pass
+        cur.execute("rollback to savepoint sp_publish")
 
 
 def _refresh_completeness(cur, supplier_id: str) -> None:
@@ -218,6 +223,9 @@ _TIER_MAP = {
     "BTMA": "tier2_industry", "BGAPMEA": "tier2_industry",
     "WRAP": "tier3_cert", "BSCI": "tier3_cert",
     "OEKO_TEX": "tier3_cert", "GOTS": "tier3_cert",
+    "BRAND_HM": "tier4_brand", "BRAND_INDITEX": "tier4_brand",
+    "BRAND_PRIMARK": "tier4_brand", "BRAND_ASOS": "tier4_brand",
+    "BRAND_MS": "tier4_brand", "BRAND_NEXT": "tier4_brand",
     "UFLPA": "tier5_regulatory", "OFAC": "tier5_regulatory",
     "UK_OFSI": "tier5_regulatory", "EU_SANC": "tier5_regulatory",
 }

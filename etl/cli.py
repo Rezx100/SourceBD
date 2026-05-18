@@ -30,6 +30,14 @@ from etl.scrapers.ofac_sdn import OfacSdnScraper
 from etl.scrapers.uk_ofsi import UkOfsiScraper
 from etl.scrapers.eu_sanctions import EuSanctionsScraper
 from etl.scrapers.ilab_tvpra import IlabTvpraScraper
+from etl.scrapers.brand_disclosures import (
+    BrandHmScraper,
+    BrandInditexScraper,
+    BrandPrimarkScraper,
+    BrandAsosScraper,
+    BrandMsScraper,
+    BrandNextScraper,
+)
 
 app = typer.Typer(add_completion=False, help="SourceBD ETL")
 log = get_logger("etl.cli")
@@ -50,6 +58,12 @@ SCRAPERS = {
     "uk_ofsi": UkOfsiScraper,
     "eu_sanctions": EuSanctionsScraper,
     "ilab_tvpra": IlabTvpraScraper,
+    "brand_hm": BrandHmScraper,
+    "brand_inditex": BrandInditexScraper,
+    "brand_primark": BrandPrimarkScraper,
+    "brand_asos": BrandAsosScraper,
+    "brand_ms": BrandMsScraper,
+    "brand_next": BrandNextScraper,
 }
 
 MIGRATIONS_DIR = Path(__file__).parent.parent / "supabase" / "migrations"
