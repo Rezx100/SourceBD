@@ -1,0 +1,64 @@
+# Env / secrets
+.env
+.env.*
+!.env.example
+
+# Agent debugging file (may contain leaked tokens from logs)
+context/current-issues.md
+
+# Node
+node_modules/
+.pnp/
+.pnp.js
+
+# Next.js
+.next/
+out/
+build/
+dist/
+
+# Caches
+.cache/
+.turbo/
+.eslintcache
+.parcel-cache
+
+# Python ETL
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*$py.class
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+
+# Raw scraped/downloaded source data (large, re-fetchable)
+etl/raw/
+data/raw/
+data/parsed/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Supabase
+supabase/.branches
+supabase/.temp
+
+# Scratch / debug artefacts (kept locally, never committed)
+ops/_*
+# Unrelated browser-saved help page
+API Access _ OneProvider.htm
+API Access _ OneProvider_files/

@@ -1,0 +1,10 @@
+services:
+  etl:
+    build: .
+    image: sourcebd-etl:latest
+    env_file: .env
+    volumes:
+      - ./etl/raw:/app/etl/raw
+      - ./etl/parsed:/app/etl/parsed
+      - ./etl/logs:/app/etl/logs
+    working_dir: /app

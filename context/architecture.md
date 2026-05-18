@@ -1,0 +1,101 @@
+# SourceBD — Architecture
+
+> The law. No tool not listed here may be added without a spec change approved by the user.
+
+## Tech stack
+
+### Data layer (built FIRST in Phase 0)
+- **Database**: PostgreSQL via **Supabase** (managed, with RLS, full-text search, `pg_trgm`, `pgvector` for future).
+- **ETL / scraping**: **Python 3.12** with `pdfplumber`, `requests`, `beautifulsoup4`, `playwright`, `rapidfuzz`, `python-slugify`, `unidecode`. One-off scripts in `etl/` directory of the monorepo.
+- **Object storage**: Supabase Storage (private bucket: `supplier-docs`; public bucket: `supplier-media`).
+
+### Web app (built in Phase 1+)
+- **Language**: TypeScript (strict).
+- **Framework**: **Next.js 15+ App Router** (single Next.js app serving both marketing site `/` and buyer app `/app/*` via route groups; supplier portal `/supplier/*`; admin `/admin/*`).
+- **Styling**: Tailwind CSS + shadcn/ui + Phosphor Icons (`@phosphor-icons/react`). Fonts: Bricolage Grotesque (display) + Plus Jakarta Sans (body).
+- **Auth**: Supabase Auth (email/password + magic link). Three roles: `buyer`, `supplier`, `admin`.
+- **Server-side data**: Supabase JS client + RLS-protected queries. No separate backend service.
+- **Forms / validation**: `react-hook-form` + `zod`.
+- **State**: React Server Components + URL state. No global client store unless a spec demands it.
+- **Email**: **Resend** (transactional only).
+- **Background jobs**: **Inngest** (only for: nightly score recompute, certificate-expiry alerts, scheduled scrapes).
+- **Payments**: **Stripe** (subscriptions only — Starter / Growth / Enterprise tiers).
+- **Error tracking**: **Sentry** (added at production launch).
+- **Analytics**: **PostHog** (added at production launch).
+
+### Hosting
+- **Web app**: **OneProvider VPS** (Ubuntu 22.04 LTS, Docker + Caddy reverse proxy, Next.js running under PM2 or as a systemd service in a container). Replaces Vercel.
+- **Database / storage / auth**: Supabase (Singapore region — closest to Bangladesh + good for UK latency). Project ref `stnrfxrxfonwexzcvvpv`.
+- **ETL scripts**: Same OneProvider VPS, separate Docker container. Triggered by cron + Inngest. Outputs land in Supabase via service-role key. Local dev uses identical Docker image.
+- **Approved infra tools**: Docker, docker-compose, Caddy, systemd, cron, Playwright (Chromium only). No new tools without spec change.
+
+## Repo layout (monorepo, single Next.js project)
+```
+/                            Next.js root
+├─ app/                      App Router
+│  ├─ (marketing)/           sourcebd.com — landing, pricing, blog, compliance pages
+│  ├─ (app)/app/             Buyer app
+│  ├─ (app)/supplier/        Supplier portal
+│  ├─ (app)/admin/           Admin panel
+│  └─ api/                   Route handlers (RFQs, match engine, webhooks)
+├─ components/               Shared UI (shadcn-style)
+├─ lib/
+│  ├─ supabase/              Server + client helpers
+│  ├─ scoring/               SBI score engine
+│  ├─ matching/              Smart Match scoring
+│  └─ utils/
+├─ etl/                      Python data pipeline (separate venv)
+│  ├─ raw/                   Source PDFs, HTML caches (gitignored)
+│  ├─ parsers/               One per source (BGMEA, BKMEA, RSC, …)
+│  ├─ dedup/                 Cross-source matching, merge logic
+│  ├─ enrich/                UFLPA, WRO, brand disclosure miners
+│  └─ load/                  Supabase upsert scripts
+├─ context/                  Spec & rules (this folder)
+├─ supabase/                 SQL migrations
+└─ public/
+```
+
+## System boundaries
+- **Marketing pages** are static / ISR; no auth.
+- **Buyer app** routes are server-rendered with Supabase auth + RLS.
+- **Supplier / Admin** routes are role-gated server-side.
+- **API routes** validate input with `zod`, authenticate via Supabase session, enforce ownership server-side.
+- **ETL scripts** never run inside Next.js. They write directly to Supabase using the service role key (kept out of the web app).
+- **Sanctions screening** runs as an Inngest job after every supplier upsert.
+
+## Storage model
+- **Persistent metadata**: PostgreSQL (suppliers, profiles, RFQs, conversations, messages, orders, certs, scores, reviews, sources, source_records).
+- **Large blobs**: Supabase Storage. `supplier-media` (public, photos/videos). `supplier-docs` (private, certs/uploads). Default = private; flip per spec.
+- **Cache / ephemeral**: Next.js fetch cache + RSC. No Redis in v1.
+
+## Source trust hierarchy (enforced in code)
+```
+Tier 1 — Gov/regulatory (RSC, EPB, RJSC, DIFE, BEPZA)        — overrides all
+Tier 2 — Industry registers (BGMEA, BKMEA, BTMA, BGAPMEA)
+Tier 3 — Cert bodies (WRAP, BSCI/amfori, OEKO-TEX, GOTS, GRS, BCI, Sedex)
+Tier 4 — Brand supplier disclosures (H&M, Inditex, Primark, ASOS, Gap, PVH, VF, Hanesbrands, Ralph Lauren, M&S, Next, Tesco, Sainsbury's, C&A)
+Tier 5 — US/UK/EU regulatory (UFLPA Entity List, US CBP WROs, ILAB TVPRA, SEC EDGAR, UK MSA Registry, UK Companies House, German LkSG/BAFA)
+Tier 6 — Cross-check only (third-party exporter PDFs, LinkedIn) — NEVER imported alone
+```
+Every record in the `suppliers` table tracks which sources verified which fields via the `source_records` join table.
+
+## Invariants (must never be broken)
+- Every supplier row has at least one row in `source_records` from Tier 1–3 before being marked `is_published = true`.
+- SBI score recalculation is idempotent; running it twice on the same data yields the same score.
+- A supplier flagged on UFLPA/WRO sanctions screen returns `sbi_score = 0` AND a red banner regardless of other pillars.
+- Contact details (email_primary, phone_primary) are NEVER returned to unauthenticated clients or `buyer_starter` plan users — gated server-side, not just hidden in UI.
+- `supplier-docs` bucket is private. Signed URLs only, max 10-minute TTL.
+- Admin actions on supplier records are append-only logged in `admin_audit_log`.
+- Currency is always stored in cents (USD) as integers. Never floats.
+- All timestamps are `timestamptz`, stored UTC.
+
+## What is explicitly NOT in the architecture
+- No Redis, no Memcached.
+- No separate Node/Express/Hono backend — Next.js route handlers only.
+- No GraphQL — REST + Supabase queries.
+- No microservices.
+- Docker IS used (single VPS, web + etl as separate compose services). No Kubernetes.
+- No web sockets — messaging uses Supabase Realtime channels (already part of Supabase, no new tool).
+- No AI/LLM in v1. Smart Match is rule-based scoring, not an LLM.
+- No third-party search (Algolia/Meilisearch) — Postgres FTS + `pg_trgm` for v1.
+- No CI beyond GitHub Actions running typecheck + lint + tests.
