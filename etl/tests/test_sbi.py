@@ -100,7 +100,7 @@ def test_pillar3_duplicate_kind_counts_once():
 
 
 def test_pillar3_caps_at_30():
-    kinds = ["wrap", "oeko_tex", "bsci", "gots", "sa8000", "iso9001"]
+    kinds = ["wrap", "oeko_tex", "sedex_smeta", "gots", "sa8000", "iso9001"]
     inp = _base(certs=tuple(Cert(kind=k, expires_on=None) for k in kinds))
     assert compute_pillar3_certs(inp, TODAY) == 30
 
@@ -152,7 +152,7 @@ def test_total_caps_at_100():
         rsc_structural_pct=100,
         certs=tuple(
             Cert(kind=k, expires_on=None)
-            for k in ("wrap", "oeko_tex", "bsci", "gots", "sa8000")
+            for k in ("wrap", "oeko_tex", "sedex_smeta", "gots", "sa8000")
         ),
         established_date=date(1990, 1, 1),
         employees_total=3000,

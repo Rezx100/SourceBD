@@ -133,7 +133,6 @@ def compute_pillar2_safety(inputs: SbiInputs) -> int:
 _CERT_POINTS: dict[str, int] = {
     "wrap": 10,
     "oeko_tex": 7,
-    "bsci": 6,
     "sedex_smeta": 6,
     "gots": 5,
     "grs": 5,

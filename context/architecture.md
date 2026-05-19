@@ -72,7 +72,7 @@
 ```
 Tier 1 — Gov/regulatory (RSC, EPB, RJSC, DIFE, BEPZA)        — overrides all
 Tier 2 — Industry registers (BGMEA, BKMEA, BTMA, BGAPMEA)
-Tier 3 — Cert bodies (WRAP, BSCI/amfori, OEKO-TEX, GOTS, GRS, BCI, Sedex)
+Tier 3 — Cert bodies (WRAP, OEKO-TEX, GOTS, GRS, BCI, Sedex)
 Tier 4 — Brand supplier disclosures (H&M, Inditex, Primark, ASOS, Gap, PVH, VF, Hanesbrands, Ralph Lauren, M&S, Next, Tesco, Sainsbury's, C&A)
 Tier 5 — US/UK/EU regulatory (UFLPA Entity List, US CBP WROs, ILAB TVPRA, SEC EDGAR, UK MSA Registry, UK Companies House, German LkSG/BAFA)
 Tier 6 — Cross-check only (third-party exporter PDFs, LinkedIn) — NEVER imported alone

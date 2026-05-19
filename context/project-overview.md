@@ -4,7 +4,7 @@
 SourceBD is a B2B intelligence SaaS that gives UK/US/EU/CA fashion buyers verified, compliance-scored data on every Bangladesh RMG factory and buying house — so they can discover, vet, and source with confidence.
 
 ## Why this wins
-The moat is **authoritative, deduplicated, cross-checked Bangladesh supplier data** — RSC remediation status, BGMEA/BKMEA/BTMA/BGAPMEA membership, WRAP/BSCI/OEKO-TEX/GOTS certifications, brand supplier-list disclosures (H&M, Inditex, Primark, ASOS…), UFLPA/WRO sanctions screening, and the unique buying-house ↔ factory relationship graph. No competitor has this in one place.
+The moat is **authoritative, deduplicated, cross-checked Bangladesh supplier data** — RSC remediation status, BGMEA/BKMEA/BTMA/BGAPMEA membership, WRAP/OEKO-TEX/GOTS certifications, brand supplier-list disclosures (H&M, Inditex, Primark, ASOS…), UFLPA/WRO sanctions screening, and the unique buying-house ↔ factory relationship graph. No competitor has this in one place.
 
 ## Goals (v1)
 1. Build the **data moat first**: 2,000+ verified suppliers with cross-source verified compliance scores before any paid user logs in.

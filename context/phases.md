@@ -10,7 +10,7 @@
 
 **Deliverables**:
 - Supabase project provisioned (Singapore region), schema migrated.
-- Python ETL workspace with parsers for: BGMEA buying houses, BGMEA factory register, BKMEA, BTMA, BGAPMEA, RSC, EPB exporter list, WRAP, amfori BSCI, OEKO-TEX, GOTS, H&M / Inditex / Primark / ASOS / M&S / Next supplier disclosures, UFLPA Entity List, US CBP WRO list.
+- Python ETL workspace with parsers for: BGMEA buying houses, BGMEA factory register, BKMEA, BTMA, BGAPMEA, RSC, EPB exporter list, WRAP, OEKO-TEX, GOTS, H&M / Inditex / Primark / ASOS / M&S / Next supplier disclosures, UFLPA Entity List, US CBP WRO list.
 - Cross-source dedup + merge engine (multi-pass: slug → email → phone → fuzzy name → address).
 - SBI score calculator (idempotent, unit-tested).
 - Sanctions screening (every supplier flagged on UFLPA/WRO → score = 0).

@@ -115,7 +115,7 @@ the `sources` table. **Status legend:** `pending` = no asset yet ·
 | code | Display name | Official URL (asset source) | Asset path (mono / colour) | Licence note | Status |
 |---|---|---|---|---|---|
 | `WRAP` | Worldwide Responsible Accredited Production | https://wrapcompliance.org | `sources/cert/wrap.svg` / `…-color.svg` | Cert mark, nominative fair use; do **not** display "WRAP-Certified" badge variants — use the corporate mark only | pending |
-| `BSCI` | amfori BSCI | https://www.amfori.org | `sources/cert/bsci.svg` / `…-color.svg` | "amfori BSCI" wordmark; cert is amfori's, used nominatively | pending |
+| `BSCI` | amfori BSCI | https://www.amfori.org | — | **KILLED 2026-05-19** — no public surface (amfori.org has no supplier directory; platform.amfori.org is SSO-gated; no embed/PDF/transparency page). Source row deleted in migration 0012; do not display this logo. | killed |
 | `OEKO_TEX` | OEKO-TEX | https://www.oeko-tex.com | `sources/cert/oeko-tex.svg` / `…-color.svg` | Cert wordmark, nominative use only — never the "STANDARD 100 by OEKO-TEX" hangtag | pending |
 | `GOTS` | Global Organic Textile Standard | https://global-standard.org | `sources/cert/gots.svg` / `…-color.svg` | Cert mark, nominative fair use | pending |
 

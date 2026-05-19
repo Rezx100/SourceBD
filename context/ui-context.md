@@ -105,5 +105,5 @@ We never hide records with sparse data — surfacing the gap is the trust signal
 
 ## Marketing site additions
 - Live counter ("2,159 verified suppliers indexed") increments on data updates.
-- Trust logo strip: RSC, BGMEA, BKMEA, WRAP, BSCI, OEKO-TEX (logos used in nominative-fair-use mode, ≤80px tall, monochrome).
+- Trust logo strip: RSC, BGMEA, BKMEA, WRAP, OEKO-TEX (logos used in nominative-fair-use mode, ≤80px tall, monochrome).
 - "Built by a Bangladeshi founder" callout on About page (founder photo, story, signature).

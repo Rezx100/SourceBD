@@ -1,0 +1,28 @@
+-- 0012_kill_bsci_source.sql
+-- 2026-05-19: Drop the 'BSCI' row from public.sources.
+--
+-- Rationale: amfori (the BSCI cert body) does not expose any public surface
+-- usable for SourceBD ingest. Four candidates probed and dead:
+--   1. amfori.org public site            — marketing only, no supplier directory.
+--   2. platform.amfori.org               — Keycloak SSO (member-only).
+--   3. Per-factory BSCI IDs in our existing brand_disclosures payloads
+--      — none of the ingested brand XLSX/CSV/HTML disclosures (H&M, ASOS, Next,
+--      M&S, Inditex, Primark) carry a BSCI/SMETA audit-id column.
+--   4. amfori annual report              — aggregate stats only.
+-- Additional surface check: amfori.org has no iframe embed of a public widget,
+-- no /our-members, /resource-hub, or /transparency page with per-factory data,
+-- and publishes no factory-list PDF. Their stated model is "shared pool" gated
+-- to paying members; per-supplier disclosure is a deliberate non-feature.
+--
+-- Spec 08c is therefore retired and the BSCI source is removed from active
+-- ingest paths (etl/scoring/sbi.py _CERT_POINTS, etl/core/upsert.py _TIER_MAP).
+-- The cert_kind enum value 'bsci' is intentionally retained as a tombstone
+-- (Postgres cannot safely drop enum values without recreating the type and
+-- every dependent column) — nothing in the code will ever produce a 'bsci'
+-- certifications row again.
+--
+-- Safe: pre-flight check on 2026-05-19 returned
+--   certifications where kind='bsci'  → 0 rows
+--   sources where code='BSCI'         → 1 row (this delete)
+
+delete from public.sources where code = 'BSCI';

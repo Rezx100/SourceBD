@@ -111,7 +111,7 @@ New file `etl/tests/test_gots.py`:
 
 ## Out of scope
 
-- BSCI / SEDEX-SMETA / SA8000 — queued as Specs 08c / 08d / 08e behind this spec. Each is a separate session.
+- SEDEX-SMETA / SA8000 — queued as Specs 08d / 08e behind this spec. Each is a separate session. (Spec 08c — BSCI — retired 2026-05-19; no public surface, see progress-tracker decision log.)
 - ISO 9001/14001/45001, BCI, GRS, RCS, Fairtrade — also in the "wired-but-not-ingested" set; not queued yet (lower priority than the three above for BD RMG).
 - Cert-document mirroring to Bunny CDN (the `scope_certificate_ref` PDFs). The DB stores the public URL; mirroring is a separate follow-on if/when origin takedown risk warrants.
 - Admin UI for any GOTS-specific review queue (no new queue type introduced; cert-only residual flows through the existing `fuzzy_match_review` queue per Spec 10).
