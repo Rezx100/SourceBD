@@ -32,6 +32,7 @@ from etl.scrapers.uk_ofsi import UkOfsiScraper
 from etl.scrapers.eu_sanctions import EuSanctionsScraper
 from etl.scrapers.ilab_tvpra import IlabTvpraScraper
 from etl.scrapers.gots import GotsScraper
+from etl.scrapers.sa8000 import Sa8000Scraper
 from etl.scrapers.brand_disclosures import (
     BrandHmScraper,
     BrandInditexScraper,
@@ -62,6 +63,7 @@ SCRAPERS = {
     "eu_sanctions": EuSanctionsScraper,
     "ilab_tvpra": IlabTvpraScraper,
     "gots": GotsScraper,
+    "sa8000": Sa8000Scraper,
     "brand_hm": BrandHmScraper,
     "brand_inditex": BrandInditexScraper,
     "brand_primark": BrandPrimarkScraper,

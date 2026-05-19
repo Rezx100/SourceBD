@@ -222,7 +222,7 @@ _TIER_MAP = {
     "BGMEA": "tier2_industry", "BKMEA": "tier2_industry",
     "BTMA": "tier2_industry", "BGAPMEA": "tier2_industry",
     "WRAP": "tier3_cert",  # BSCI removed 2026-05-19: no public surface (see progress-tracker decision log)
-    "OEKO_TEX": "tier3_cert", "GOTS": "tier3_cert",
+    "OEKO_TEX": "tier3_cert", "GOTS": "tier3_cert", "SA8000": "tier3_cert",
     "BRAND_HM": "tier4_brand", "BRAND_INDITEX": "tier4_brand",
     "BRAND_PRIMARK": "tier4_brand", "BRAND_ASOS": "tier4_brand",
     "BRAND_MS": "tier4_brand", "BRAND_NEXT": "tier4_brand",
