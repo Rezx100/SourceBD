@@ -19,11 +19,13 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import re
+import ssl
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
 from typing import AsyncIterator, Iterable
 
+import certifi
 import httpx
 import pdfplumber
 from bs4 import BeautifulSoup
@@ -37,6 +39,30 @@ log = get_logger("etl.scraper.rsc_reports")
 
 REPORTS_INDEX_URL = "https://rsc-bd.org/reports/"
 RAW_DIR = settings.etl_raw_dir / "rsc_reports"
+
+# rsc-bd.org serves only the leaf cert and omits the Sectigo intermediate, so
+# Python/httpx (no AIA chasing) fails verification even with certifi. We fetch
+# the intermediate via the AIA URL embedded in the leaf cert and append it to
+# a custom SSL context. The intermediate itself chains up to a root that IS in
+# certifi, so the resulting trust decision is still strict.
+_RSC_INTERMEDIATE_URL = (
+    "http://crt.sectigo.com/SectigoPublicServerAuthenticationCADVR36.crt"
+)
+
+
+def _build_rsc_ssl_context() -> ssl.SSLContext:
+    ctx = ssl.create_default_context(cafile=certifi.where())
+    try:
+        r = httpx.get(_RSC_INTERMEDIATE_URL, timeout=30)
+        r.raise_for_status()
+        try:
+            pem = ssl.DER_cert_to_PEM_cert(r.content)
+        except Exception:  # noqa: BLE001
+            pem = r.text
+        ctx.load_verify_locations(cadata=pem)
+    except Exception as exc:  # noqa: BLE001
+        log.warn("ssl.intermediate_fetch_failed", error=str(exc))
+    return ctx
 
 _MONTHS = {
     m.lower(): i + 1
@@ -360,6 +386,7 @@ class RscReportsScraper(BaseScraper):
             async with httpx.AsyncClient(
                 headers={"User-Agent": settings.etl_user_agent},
                 follow_redirects=True,
+                verify=_build_rsc_ssl_context(),
             ) as client:
                 refs = await discover_reports(client)
                 self.log.info("discover.done", n_pdfs=len(refs))
