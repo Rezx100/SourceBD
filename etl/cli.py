@@ -24,6 +24,7 @@ from etl.scrapers.epb_web import EpbScraper
 from etl.scrapers.rsc import RscScraper
 from etl.scrapers.rsc_reports import RscReportsScraper
 from etl.scrapers.rsc_updates import RscUpdatesScraper
+from etl.scrapers.rsc_documents import RscDocumentsScraper
 from etl.scrapers.uflpa import UflpaScraper
 from etl.scrapers.cbp_wro import CbpWroScraper
 from etl.scrapers.ofac_sdn import OfacSdnScraper
@@ -52,6 +53,7 @@ SCRAPERS = {
     "rsc": RscScraper,
     "rsc_reports": RscReportsScraper,
     "rsc_updates": RscUpdatesScraper,
+    "rsc_documents": RscDocumentsScraper,
     "uflpa": UflpaScraper,
     "cbp_wro": CbpWroScraper,
     "ofac_sdn": OfacSdnScraper,
@@ -108,6 +110,16 @@ def run(scraper: str) -> None:
         typer.echo(f"unknown scraper: {scraper}. Try `list`.")
         raise typer.Exit(1)
     result = asyncio.run(cls().run())
+    typer.echo(str(result))
+
+
+@app.command("rsc_documents")
+def rsc_documents_cmd(
+    supplier_slug: str = typer.Option(None, "--supplier-slug", help="Mirror docs for just this supplier slug."),
+    limit: int = typer.Option(None, "--limit", help="Mirror docs for only the first N suppliers (debug)."),
+) -> None:
+    """Mirror per-factory RSC compliance documents to Bunny CDN (Spec 13)."""
+    result = asyncio.run(RscDocumentsScraper(supplier_slug=supplier_slug, limit=limit).run())
     typer.echo(str(result))
 
 
