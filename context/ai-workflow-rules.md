@@ -59,6 +59,7 @@ These rules govern how the coding agent behaves on every task. They override con
 - Never SSH to or touch the pixelsport-backend VPS (37.49.227.151).
 - Never use an LLM in production logic in v1 (Smart Match is rule-based).
 - Never charge money in v1 outside Stripe subscriptions. SourceBD is not a transaction platform.
+- **Never render the SBI numeric score (or any pillar sub-score) in a user-facing surface.** Buyer app, supplier portal, marketing site, public Discover, supplier profile, RFQ payloads, email templates, OG images, social cards — none of them may display the integer total or pillar values from `public.sbi_scores`. This is the α/β/γ decision (2026-05-20). Admin panel is the only exception (gated by `role='admin'`, server-side). Sort-by-SBI on Discover is allowed because the sort happens server-side and the value is never sent to the client; the result is just an order, not a number. If you find yourself selecting `sbi_scores.total` in a non-admin server query, STOP and revisit the design — the user-facing surface should be reading `source_records` count / cert presence / RSC % / completeness, not a SourceBD-issued opinion.
 
 ## When in doubt
 Ask. Cheaper than rolling back.

@@ -46,6 +46,7 @@ Order: std lib → third-party → workspace alias (`@/…`) → relative. Auto-
 - Server-only env vars never imported in client components.
 - Authn + authz checked server-side on every protected route.
 - Storage buckets default private; flip with deliberate intent in a spec.
+- **`public.sbi_scores` is admin-only.** RLS denies `anon` and `authenticated` SELECT. Any API route, Server Component, Server Action, RPC, or background job that returns supplier data to a non-admin client MUST NOT include `sbi_scores.total` or any `pillar_*` column in its response shape. Reviewers will reject PRs that select these columns outside an `admin`-gated route. Server-side ordering by `sbi_scores.total` is allowed (the value is consumed in the query and never serialised). See `ai-workflow-rules.md` Hard Prohibitions for rationale.
 - Rate-limit every public route that hits expensive resources (Supabase queries, Resend, Stripe webhooks). Use `@upstash/ratelimit` if added in a future spec; until then, in-memory token bucket per route is acceptable for low-traffic admin endpoints.
 - Sanitize any user-rendered HTML with `isomorphic-dompurify`.
 - Stripe webhook endpoints verify signatures.

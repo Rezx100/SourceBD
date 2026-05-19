@@ -82,7 +82,8 @@ Every record in the `suppliers` table tracks which sources verified which fields
 ## Invariants (must never be broken)
 - Every supplier row has at least one row in `source_records` from Tier 1–3 before being marked `is_published = true`.
 - SBI score recalculation is idempotent; running it twice on the same data yields the same score.
-- A supplier flagged on UFLPA/WRO sanctions screen returns `sbi_score = 0` AND a red banner regardless of other pillars.
+- **SBI is an internal signal only** (α/β/γ decision, 2026-05-20). The numeric `total` / `pillar*` columns from `public.sbi_scores` MUST NOT be returned to unauthenticated clients, buyer surfaces, supplier surfaces, or any public API response. Server-side use only: default ranking, admin tooling, change-detection alerts, internal benchmarks. Public-facing supplier surfaces show **receipts** (cert badges, register links, RSC remediation %, source-pill provenance, completeness badge) — facts issued by named third-party authorities, not opinions issued by SourceBD. RLS on `public.sbi_scores` is `admin`-only; no `anon` or `authenticated` SELECT grant.
+- A supplier flagged on UFLPA/WRO sanctions screen returns `sbi_score = 0` AND a red banner regardless of other pillars (banner is the visible signal; the zero itself stays server-internal).
 - Contact details (email_primary, phone_primary) are NEVER returned to unauthenticated clients or `buyer_starter` plan users — gated server-side, not just hidden in UI.
 - `supplier-docs` bucket is private. Signed URLs only, max 10-minute TTL.
 - Admin actions on supplier records are append-only logged in `admin_audit_log`.
@@ -94,6 +95,7 @@ Every record in the `suppliers` table tracks which sources verified which fields
 - No separate Node/Express/Hono backend — Next.js route handlers only.
 - No GraphQL — REST + Supabase queries.
 - No microservices.
+- **No public-facing SourceBD-proprietary numeric score** (α/β/γ decision, 2026-05-20). SourceBD is a marketplace/intelligence platform (Foursource / Alibaba / Globalsources pattern), not a paid rater (EcoVadis / D&B / MSCI ESG pattern). The two models are economically incompatible: marketplaces show third-party receipts so the platform borrows trust from named authorities; raters charge the rated entity and own a methodology committee + appeals process. SourceBD has neither the capital nor the regulatory posture to defend a public numeric rating, and a public score creates platform liability (CSDDD / UFLPA / LkSG diligence duties on buyers are non-delegable — a published score can be relied on, then sued over). The internal SBI calculation is retained as a server-side sort signal; the public face is receipts.
 - Docker IS used (single VPS, web + etl as separate compose services). No Kubernetes.
 - No web sockets — messaging uses Supabase Realtime channels (already part of Supabase, no new tool).
 - No AI/LLM in v1. Smart Match is rule-based scoring, not an LLM.

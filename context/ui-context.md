@@ -34,7 +34,7 @@ Tailwind aliases: `bg-bg`, `bg-sf`, `bg-sb`, `text-tx`, `text-tx2`, `text-tx3`, 
 - Letter spacing: `-0.5px` on display headings.
 
 ## Radius & shadow
-- `--r` 12px (cards), `--rs` 8px (buttons/inputs), `rounded-full` for avatars + score rings.
+- `--r` 12px (cards), `--rs` 8px (buttons/inputs), `rounded-full` for avatars + Receipts Rings (formerly Score Rings — see § Receipts Ring below).
 - `--sh` baseline `0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04)`.
 - `--shm` hover `0 4px 20px rgba(0,0,0,.1)`.
 
@@ -55,10 +55,14 @@ Tailwind aliases: `bg-bg`, `bg-sf`, `bg-sb`, `text-tx`, `text-tx2`, `text-tx3`, 
 - **Page container**: `padding: 24px 27px` desktop, `14px 15px` mobile.
 - **Page header**: 22px Bricolage title + 12.5px subtitle, action buttons right-aligned.
 
-## Score Ring (signature element)
+## Receipts Ring (signature element — formerly "Score Ring")
+> **α/β/γ decision, 2026-05-20.** The ring's *visual primitive* is retained as the brand signature, but its *payload* is no longer the SBI numeric total. The SBI integer (and its pillar sub-values) is server-internal and MUST NOT appear in any ring centre-label, tooltip, or aria-label.
+
 - SVG circle, stroke-linecap round, animated `stroke-dashoffset`. Sizes: 40/46/56/120px.
-- Colors by grade: A (≥80) `#047857` · B (60–79) `#B45309` · C (40–59) `#B91C1C` · D (<40) `#7F1D1D`.
-- Center label: number in Bricolage 700 + grade letter below.
+- **Centre label & ring fill payload (v1):** the count of distinct Tier 1–3 sources backing the supplier (`source_records.source_id` distinct count, restricted to `sources.source_tier IN ('tier1_gov','tier2_industry','tier3_cert')`) rendered as the integer with the noun "sources" below (e.g. `5 sources`). Ring fill is `min(1, count / 5)` — saturated at 5+ sources.
+- **Tier letter band (Phase 1+, β, design TBD):** the placeholder grade letter slot at the ring base is reserved for a future tier label (Bronze / Silver / Gold / Platinum) derived from source counts + active-cert presence + RSC coverage. Until that spec ships, the slot stays empty or shows the completeness pill.
+- **Colours by source count:** 0 sources `#7F1D1D` · 1 `#B91C1C` · 2 `#B45309` · 3+ `#047857`. (Same tokens as the deprecated SBI grade ladder, re-mapped to the receipts axis.)
+- **Forbidden in centre label:** the SBI numeric total (0–100), any pillar value (0/15/25/30), the strings "SBI" / "Score" / "Rating" / any A/B/C/D letter grade. PR review will reject any component that selects `sbi_scores.total` for ring rendering.
 - **The ring IS the brand.** Used everywhere a supplier appears.
 
 ## Buttons
@@ -69,7 +73,7 @@ Tailwind aliases: `bg-bg`, `bg-sf`, `bg-sb`, `text-tx`, `text-tx2`, `text-tx3`, 
 ## Tags & badges
 - Tags `.tag`: 11px, 5px radius, soft category color (knitwear=green, woven=amber, denim=blue, sweater=purple, factory=green, buying-house=orange).
 - Badges `.badge`: 10.5px bold, 6px radius, status-colored pill.
-- "SBI Verified" tag uses gradient `#E8F8F0 → #D1FAE5` with seal-check icon.
+- "Source-verified" tag (formerly "SBI Verified") uses gradient `#E8F8F0 → #D1FAE5` with seal-check icon and labels the count of independent Tier 1–3 sources (e.g. `Verified · 5 sources`) — **never** the SBI integer. Renders only when source count ≥ 2.
 
 ## Visual rules (non-negotiable)
 - **No raw hex** in component code — tokens only.
@@ -87,7 +91,8 @@ Tailwind aliases: `bg-bg`, `bg-sf`, `bg-sb`, `text-tx`, `text-tx2`, `text-tx3`, 
 ## Data sensitivity in UI
 - Contact details (email/phone) shown blurred (`filter: blur(5px)`) for free / un-upgraded users with an "Upgrade to view" lock CTA.
 - Server still doesn't send the value — blur is a fallback, not a control.
-- Sanctioned suppliers show a red top-banner across the whole profile + score = 0.
+- Sanctioned suppliers show a red top-banner across the whole profile. The internal SBI is zeroed by the `enforce_sanctions_zero` DB trigger, but the *visible* signal is the banner + the absence of receipts, not a numeric "0/100".
+- **SBI numeric never rendered (α/β/γ decision, 2026-05-20).** No surface in the buyer app, supplier portal, marketing site, public Discover, email template, RFQ payload, OG image, or social card may show `sbi_scores.total` or any `pillar_*` value. Server-side ordering / filtering by SBI is allowed; the value never crosses the client boundary.
 
 ## Data completeness transparency (authenticity moat)
 We never hide records with sparse data — surfacing the gap is the trust signal.
@@ -106,4 +111,5 @@ We never hide records with sparse data — surfacing the gap is the trust signal
 ## Marketing site additions
 - Live counter ("2,159 verified suppliers indexed") increments on data updates.
 - Trust logo strip: RSC, BGMEA, BKMEA, WRAP, OEKO-TEX (logos used in nominative-fair-use mode, ≤80px tall, monochrome).
+- **"How we verify" methodology page** (replaces the prior "SBI methodology" copy): explains the Tier 1–6 source trust hierarchy, the per-factory authenticity rule for brand disclosures, the cross-source dedup engine, and the receipts-first product posture. The page must NOT describe a numeric scoring formula or use the word "score" in headlines — the lead is "every fact on this platform comes from a named third-party source".
 - "Built by a Bangladeshi founder" callout on About page (founder photo, story, signature).
