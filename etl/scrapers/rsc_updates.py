@@ -6,14 +6,15 @@ Scrapes the 4 program-area popups on https://rsc-bd.org/updates/ :
   - OSH Training Programme
   - OSH Complaints
 
-Each popup contains a 2-column "metric / current value" table that is updated
-roughly monthly. We snapshot it as the *current* month (today's 1st-of-month)
-under source = 'rsc_updates_page'. Re-runs are idempotent on
-(report_month, scope, metric_key, source).
+As of May 2026 each modal body contains a single dashboard image (JPG/PNG
+published monthly by RSC) rather than an HTML metric table. We therefore
+snapshot the image URL per (section × month) as a provenance row in
+`rsc_industry_metrics` with `metric_key='dashboard_snapshot_image_url'`,
+`value_num=1` (presence flag), `raw_label=<image src>`, `source_url=<image src>`.
+Structured numeric extraction from these images is deferred to a future
+OCR-enabled spec.
 
-Strategy: generic table extraction — every row with a numeric right cell becomes
-a metric, keyed by (section_slug, label_slug). No fixed dictionary so we don't
-silently drop anything when RSC adds rows.
+Re-runs are idempotent on (report_month, scope, metric_key, source).
 """
 from __future__ import annotations
 
@@ -64,7 +65,8 @@ def _section_for(title: str) -> str:
     return _slug(title) or "unknown"
 
 
-def _upsert(month: date, scope: str, key: str, value: float, unit: str, raw_label: str) -> None:
+def _upsert(month: date, scope: str, key: str, value: float, unit: str,
+            raw_label: str, source_url: str = UPDATES_URL) -> None:
     with db.conn() as c, c.cursor() as cur:
         cur.execute(
             """insert into public.rsc_industry_metrics
@@ -77,7 +79,7 @@ def _upsert(month: date, scope: str, key: str, value: float, unit: str, raw_labe
                  raw_label   = excluded.raw_label,
                  source_url  = excluded.source_url,
                  fetched_at  = now()""",
-            (month, scope, key, value, unit, raw_label[:300], UPDATES_URL),
+            (month, scope, key, value, unit, raw_label[:300], source_url),
         )
         c.commit()
 
@@ -106,49 +108,59 @@ class RscUpdatesScraper(BaseScraper):
                 page = await ctx.new_page()
                 await page.goto(UPDATES_URL, wait_until="networkidle", timeout=120_000)
 
-                # Each program area is a card with a clickable image/title.
-                cards = page.locator(".et_pb_blurb_container, .et_pb_image_container, h5, h4")
-                # Click through known section titles.
-                titles = [
-                    "INSPECTION AND REMEDIATION",
-                    "Boiler Safety",
-                    "OSH Training Programme",
-                    "OSH Complaints",
-                ]
-                for title in titles:
-                    seen += 1
-                    section = _section_for(title)
+                widgets = page.locator(".elementor-widget-premium-addon-modal-box")
+                n_widgets = await widgets.count()
+                self.log.info("updates.widgets_found", n=n_widgets)
+                for i in range(n_widgets):
+                    widget = widgets.nth(i)
+                    title_loc = widget.locator(".premium-modal-box-modal-title").first
                     try:
-                        # Click the card with this title (text-based locator).
-                        loc = page.get_by_text(title, exact=False).first
-                        await loc.scroll_into_view_if_needed(timeout=5_000)
-                        await loc.click(timeout=5_000)
+                        title = (await title_loc.inner_text()).strip()
+                    except Exception:  # noqa: BLE001
+                        title = f"section_{i}"
+                    section = _section_for(title)
+                    seen += 1
+                    trigger = widget.locator(".premium-modal-trigger-container").first
+                    modal = widget.locator(".premium-modal-box-modal").first
+                    body = widget.locator(".premium-modal-box-modal-body").first
+                    try:
+                        await trigger.scroll_into_view_if_needed(timeout=5_000)
+                        await trigger.click(timeout=5_000, force=True)
+                        # wait for the modal to enter the open state
+                        try:
+                            await modal.wait_for(state="visible", timeout=5_000)
+                        except Exception:  # noqa: BLE001
+                            pass
                         await page.wait_for_timeout(800)
-
-                        # Modal contains a table — grab all rows.
-                        modal = page.locator(".et_pb_module_inner, .pum-content, .modal, body").first
-                        html = await modal.inner_html()
-                        rows = _extract_rows(html)
-                        if not rows:
-                            self.log.warn("updates.no_rows", section=section)
+                        html = await body.inner_html()
+                        image_url = _extract_image_url(html)
+                        if image_url:
+                            _upsert(
+                                month, section,
+                                "dashboard_snapshot_image_url",
+                                1.0, "count", image_url, image_url,
+                            )
+                            upserted += 1
+                            self.log.info(
+                                "updates.snapshot",
+                                section=section, image=image_url,
+                            )
+                        else:
                             skipped += 1
-                            continue
-                        n = 0
-                        for label, val_txt in rows:
-                            value, unit = _to_num(val_txt)
-                            if value is None:
-                                continue
-                            _upsert(month, section, _slug(label), value, unit, label)
-                            n += 1
-                        upserted += 1
-                        self.log.info("updates.parsed", section=section, metrics=n)
-
-                        # Close modal (esc).
-                        await page.keyboard.press("Escape")
-                        await page.wait_for_timeout(300)
+                            self.log.warn("updates.no_image", section=section)
+                        # close: prefer the explicit close button
+                        try:
+                            close_btn = widget.locator(".premium-modal-box-modal-close").first
+                            await close_btn.click(timeout=2_000, force=True)
+                        except Exception:  # noqa: BLE001
+                            await page.keyboard.press("Escape")
+                        await page.wait_for_timeout(500)
                     except Exception as e:  # noqa: BLE001
                         skipped += 1
-                        self.log.error("updates.section_failed", section=section, error=str(e))
+                        self.log.error(
+                            "updates.section_failed",
+                            section=section, error=str(e)[:300],
+                        )
 
                 await browser.close()
             self._close_run(run_id, "success", seen, upserted, skipped, None)
@@ -158,23 +170,13 @@ class RscUpdatesScraper(BaseScraper):
         return {"seen": seen, "upserted": upserted, "skipped": skipped}
 
 
-def _extract_rows(html: str) -> list[tuple[str, str]]:
-    """Pull (label, value) tuples from any 2-col table in `html`."""
+def _extract_image_url(html: str) -> str | None:
+    """Return the first <img src> inside the modal body, if any."""
     from bs4 import BeautifulSoup
 
     soup = BeautifulSoup(html, "lxml")
-    out: list[tuple[str, str]] = []
-    for tbl in soup.find_all("table"):
-        for tr in tbl.find_all("tr"):
-            cells = [td.get_text(" ", strip=True) for td in tr.find_all(["td", "th"])]
-            if len(cells) < 2:
-                continue
-            label = cells[0]
-            value = cells[-1]
-            if not label or not value:
-                continue
-            # skip header rows
-            if value.lower().strip() in {"value", "total", "current"}:
-                continue
-            out.append((label, value))
-    return out
+    img = soup.find("img")
+    if not img:
+        return None
+    src = img.get("src")
+    return src.strip() if src else None

@@ -25,6 +25,8 @@ from datetime import date
 from pathlib import Path
 from typing import AsyncIterator, Iterable
 
+from urllib.parse import urljoin
+
 import certifi
 import httpx
 import pdfplumber
@@ -118,6 +120,7 @@ async def discover_reports(client: httpx.AsyncClient) -> list[ReportRef]:
         href = el.get("href") or ""
         if not href.lower().endswith(".pdf"):
             continue
+        href = urljoin(REPORTS_INDEX_URL, href)
         if href in seen_urls:
             continue
         seen_urls.add(href)
@@ -160,12 +163,20 @@ async def download_pdf(client: httpx.AsyncClient, ref: ReportRef) -> Path:
     dest = RAW_DIR / fname
     if dest.exists() and dest.stat().st_size > 1000:
         return dest
-    async with client.stream("GET", ref.url, timeout=120) as resp:
-        resp.raise_for_status()
-        with open(dest, "wb") as f:
-            async for chunk in resp.aiter_bytes(64 * 1024):
-                f.write(chunk)
-    return dest
+    last_exc: Exception | None = None
+    for attempt in range(3):
+        try:
+            async with client.stream("GET", ref.url, timeout=120) as resp:
+                resp.raise_for_status()
+                with open(dest, "wb") as f:
+                    async for chunk in resp.aiter_bytes(64 * 1024):
+                        f.write(chunk)
+            return dest
+        except (httpx.RemoteProtocolError, httpx.ReadError, httpx.ConnectError) as e:
+            last_exc = e
+            await asyncio.sleep(1.5 * (attempt + 1))
+    assert last_exc is not None
+    raise last_exc
 
 
 def _sha256(p: Path) -> str:
@@ -215,6 +226,35 @@ _NARRATIVE_PATTERNS: list[tuple[re.Pattern[str], str, str, str]] = [
         "fads", "fads_installation_completed_factories", "count"),
     (re.compile(r"([\d,]+)\s+factories?\s+are\s+undergoing\s+the\s+CAP\s+development", re.I),
         "fads", "fads_cap_development_factories", "count"),
+    # 2025 prose format ---------------------------------------------------- #
+    (re.compile(r"Covered\s+factor(?:y|ies)\s+account\s+number\s*[:\-]?\s*([\d,]+)", re.I),
+        "coverage", "covered_factories", "count"),
+    (re.compile(r"([\d,]+)\s+factories?\s+were\s+waiting\s+for\s+initial\s+inspection", re.I),
+        "coverage", "factories_waiting_for_inspection", "count"),
+    (re.compile(r"Total\s+number\s+of\s+inspections\s*[:\-]?\s*([\d,]+)", re.I),
+        "inspection_remediation", "total_inspections_month", "count"),
+    (re.compile(r"Number\s+of\s+unique\s+factories\s+inspected\s*[:\-]?\s*([\d,]+)", re.I),
+        "inspection_remediation", "unique_factories_inspected_month", "count"),
+    (re.compile(r"([\d,]+)\s+received\s+a\s+Letter\s+of\s+Recognition", re.I),
+        "inspection_remediation", "factories_recognition_letter", "count"),
+    (re.compile(r"([\d,]+)\s+factories?\s+that\s+have\s+completed\s+100%\s+of\s+their\s+initial\s+findings", re.I),
+        "inspection_remediation", "factories_100pct_initial_findings", "count"),
+    (re.compile(r"Number\s+of\s+factories\s+having\s+accepted\s*\(?D\)?EA\s*[:\-]?\s*([\d,]+)", re.I),
+        "structural", "factories_accepted_dea", "count"),
+    (re.compile(r"Number\s+of\s+factories\s+that\s+completed\s+the\s+structural\s+remediation\s*[:\-]?\s*\*?([\d,]+)", re.I),
+        "structural", "factories_structural_remediation_completed", "count"),
+    (re.compile(r"([\d,]+)\s+factories?\s+are\s+in\s+different\s+stages\s+of\s+the\s+escalation\s+process,\s+with\s+([\d,]+)\s+in\s+Stage\s+1\s+and\s+([\d,]+)\s+in\s+Stage\s+2", re.I),
+        "escalation", "_multi_escalation_overview", "count"),
+    (re.compile(r"([\d,]+)\s+factories?\s+have\s+been\s+de[- ]escalated", re.I),
+        "escalation", "factories_de_escalated", "count"),
+    (re.compile(r"([\d,]+)\s+have\s+never\s+gone\s+through\s+any\s+escalation\s+process", re.I),
+        "escalation", "factories_never_escalated", "count"),
+    (re.compile(r"Stage[- ]3\s+Escalation\s+was\s+issued\s+to\s+([\d,]+)\s+factor", re.I),
+        "escalation", "stage_3_factories_issued_month", "count"),
+    (re.compile(r"([\d,]+)\s+reported\s+incidents?\s+occurred\s+at\s+the\s+RSC[- ]covered\s+factor", re.I),
+        "incidents", "reported_incidents_month", "count"),
+    # Generic legacy "factories covered" fallback (matched LAST so the precise
+    # 2025 "Covered factory account number" pattern above wins when present).
     (re.compile(r"([\d,]+)\s+factories?\s+(?:are\s+)?covered", re.I),
         "coverage", "covered_factories", "count"),
 ]
@@ -302,7 +342,14 @@ def parse_pdf(path: Path) -> list[dict]:
         full_text = "\n".join((p.extract_text() or "") for p in pdf.pages)
         for pat, scope, key, unit in _NARRATIVE_PATTERNS:
             m = pat.search(full_text)
-            if m:
+            if not m:
+                continue
+            if key == "_multi_escalation_overview":
+                # "(total) factories ... with (stage1) in Stage 1 and (stage2) in Stage 2"
+                _add(scope, "factories_in_escalation_total", _to_num(m.group(1)), unit, m.group(0))
+                _add(scope, "stage_1_factories", _to_num(m.group(2)), unit, m.group(0))
+                _add(scope, "stage_2_factories", _to_num(m.group(3)), unit, m.group(0))
+            else:
                 _add(scope, key, _to_num(m.group(1)), unit, m.group(0))
 
         # 2) table parsing — flatten 2-col tables to (label, value) pairs
