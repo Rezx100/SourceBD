@@ -148,10 +148,15 @@ _CERT_POINTS: dict[str, int] = {
 
 def compute_pillar3_certs(inputs: SbiInputs, today: date) -> int:
     """Active certifications — max 30. Count each cert kind at most once
-    (highest-value live cert per kind)."""
+    (highest-value live cert per kind).
+
+    A cert with `expires_on IS NULL` is treated as **unknown**, not active —
+    no validity date in our raw payload means we cannot claim the cert is
+    currently valid. This avoids counting evidence we don't have.
+    """
     best: dict[str, int] = {}
     for cert in inputs.certs:
-        if cert.expires_on is not None and cert.expires_on < today:
+        if cert.expires_on is None or cert.expires_on < today:
             continue
         pts = _CERT_POINTS.get(cert.kind, 0)
         if pts > best.get(cert.kind, 0):

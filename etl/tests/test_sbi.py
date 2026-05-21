@@ -78,10 +78,16 @@ def test_pillar3_wrap_plus_oekotex():
     inp = _base(
         certs=(
             Cert(kind="wrap", expires_on=date(2027, 1, 1)),
-            Cert(kind="oeko_tex", expires_on=None),
+            Cert(kind="oeko_tex", expires_on=date(2027, 6, 1)),
         )
     )
     assert compute_pillar3_certs(inp, TODAY) == 10 + 7
+
+
+def test_pillar3_null_expiry_not_active():
+    """A cert with unknown expiry cannot be claimed as currently valid."""
+    inp = _base(certs=(Cert(kind="oeko_tex", expires_on=None),))
+    assert compute_pillar3_certs(inp, TODAY) == 0
 
 
 def test_pillar3_expired_cert_ignored():
@@ -92,7 +98,7 @@ def test_pillar3_expired_cert_ignored():
 def test_pillar3_duplicate_kind_counts_once():
     inp = _base(
         certs=(
-            Cert(kind="wrap", expires_on=None),
+            Cert(kind="wrap", expires_on=date(2027, 1, 1)),
             Cert(kind="wrap", expires_on=date(2030, 1, 1)),
         )
     )
@@ -101,7 +107,7 @@ def test_pillar3_duplicate_kind_counts_once():
 
 def test_pillar3_caps_at_30():
     kinds = ["wrap", "oeko_tex", "sedex_smeta", "gots", "sa8000", "iso9001"]
-    inp = _base(certs=tuple(Cert(kind=k, expires_on=None) for k in kinds))
+    inp = _base(certs=tuple(Cert(kind=k, expires_on=date(2030, 1, 1)) for k in kinds))
     assert compute_pillar3_certs(inp, TODAY) == 30
 
 
@@ -151,7 +157,7 @@ def test_total_caps_at_100():
         rsc_fire_pct=100,
         rsc_structural_pct=100,
         certs=tuple(
-            Cert(kind=k, expires_on=None)
+            Cert(kind=k, expires_on=date(2030, 1, 1))
             for k in ("wrap", "oeko_tex", "sedex_smeta", "gots", "sa8000")
         ),
         established_date=date(1990, 1, 1),
