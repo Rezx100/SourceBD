@@ -1,0 +1,48 @@
+{
+  "page": 1,
+  "section": "General Member",
+  "rows": [
+    {
+      "sl_no": "1",
+      "mill_name": "A.T & T Spinning Mills Ltd.",
+      "contact_person": "Md. Mukhlesur Rahman",
+      "head_office": "60 (Old), 86 (New), Bangabandhu Road, Narayanganj.",
+      "mill_site": "Jamairdia Masterbari, Valuka, Mymensingh.",
+      "telephone": "7633811, 7645958, 7634008; 880-2-7634003",
+      "fax": "8836347, 8836763-64",
+      "email": "masud@nrggroup-bd.com; www.nrggroup.com",
+      "installed_capacity": "22800 Spindles; 10 Autocone",
+      "annual_production": "5790888 Kgs.",
+      "needs_review": false,
+      "notes": ""
+    },
+    {
+      "sl_no": "4",
+      "mill_name": "AA Coarse Spun Ltd.",
+      "contact_person": "Solaiman Ahmed (MD)",
+      "head_office": "Level # 3 & 4, 47 Motijheel C/A, Dhaka-1000",
+      "mill_site": "Nagar Howla, Sreepur, Gazipur.",
+      "telephone": "880 9612888992",
+      "fax": "",
+      "email": "",
+      "installed_capacity": "70000 Spindles; 6 Autocone",
+      "annual_production": "12000000 Kgs.",
+      "needs_review": false,
+      "notes": "Source printed 'Spindless'; corrected to 'Spindles'"
+    },
+    {
+      "sl_no": "12",
+      "mill_name": "Abul Kalam Spinning Mills Ltd.",
+      "contact_person": "Md. Abul Kalam, MD; Rahmat Ara Begum, Chairman",
+      "head_office": "Chaity Group, House # 14, Lake Drive Road, Sector # 07, Uttara, Dhaka-1230.",
+      "mill_site": "Chotto, Shilmondi, Sonargaon, Narayangonj, Sonargaon-1440.",
+      "telephone": "55094261-5",
+      "fax": "",
+      "email": "kalam@chaity.com",
+      "installed_capacity": "109248 Spindles; 1800 Rotors",
+      "annual_production": "30240000 kgs.",
+      "needs_review": false,
+      "notes": ""
+    }
+  ]
+}

@@ -33,6 +33,7 @@ from etl.scrapers.eu_sanctions import EuSanctionsScraper
 from etl.scrapers.ilab_tvpra import IlabTvpraScraper
 from etl.scrapers.gots import GotsScraper
 from etl.scrapers.sa8000 import Sa8000Scraper
+from etl.scrapers.btma_spinning import BtmaSpinningScraper
 from etl.scrapers.brand_disclosures import (
     BrandHmScraper,
     BrandInditexScraper,
@@ -64,6 +65,7 @@ SCRAPERS = {
     "ilab_tvpra": IlabTvpraScraper,
     "gots": GotsScraper,
     "sa8000": Sa8000Scraper,
+    "btma_spinning": BtmaSpinningScraper,
     "brand_hm": BrandHmScraper,
     "brand_inditex": BrandInditexScraper,
     "brand_primark": BrandPrimarkScraper,
@@ -114,6 +116,15 @@ def run(scraper: str) -> None:
         typer.echo(f"unknown scraper: {scraper}. Try `list`.")
         raise typer.Exit(1)
     result = asyncio.run(cls().run())
+    typer.echo(str(result))
+
+
+@app.command("btma_spinning")
+def btma_spinning_cmd(
+    dry_run: bool = typer.Option(False, "--dry-run", help="Print cross-source match report without writing to DB."),
+) -> None:
+    """BTMA spinning-mills register ingestion (Spec 16)."""
+    result = asyncio.run(BtmaSpinningScraper(dry_run=dry_run).run())
     typer.echo(str(result))
 
 

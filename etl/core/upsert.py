@@ -1,6 +1,10 @@
 """Idempotent supplier + source_record upsert.
 
 Strategy:
+  0. If a source_record already exists for (source_code, source_ref), return its
+     supplier_id directly. This guarantees deterministic self-source idempotency:
+     re-ingesting the same scraper never remaps a row to a different supplier,
+     even when Pass 3 phone-overlap would otherwise pick an ambiguous sibling.
   1. Match against existing suppliers via slug -> email -> phone -> fuzzy name (spec §4.2).
   2. If matched, ENRICH (never overwrite non-null with null, add source_tag).
   3. If not matched, INSERT new supplier.
@@ -32,7 +36,10 @@ def upsert_supplier_with_source(rec: ScrapedRecord) -> str:
     email = (rec.email or "").strip().lower() or None
 
     with db.conn() as c, c.cursor() as cur:
-        supplier_id = _find_existing(cur, slug=slug, norm=norm, email=email, phones=phones)
+        supplier_id = _find_existing(
+            cur, slug=slug, norm=norm, email=email, phones=phones,
+            source_code=rec.source_code, source_ref=rec.source_ref,
+        )
 
         if supplier_id is None:
             supplier_id = _insert_supplier(
@@ -56,8 +63,23 @@ def upsert_supplier_with_source(rec: ScrapedRecord) -> str:
 
 # -----------------------------------------------------------------------------
 def _find_existing(
-    cur, *, slug: str, norm: str, email: str | None, phones: list[str]
+    cur, *, slug: str, norm: str, email: str | None, phones: list[str],
+    source_code: str | None = None, source_ref: str | None = None,
 ) -> str | None:
+    # Pass 0: self-source idempotency. If we have already ingested this exact
+    # (source_id, source_ref), reuse the same supplier_id deterministically.
+    if source_code and source_ref:
+        src_id = get_source_id(source_code)
+        cur.execute(
+            "select supplier_id from public.source_records "
+            "where source_id = %s and source_ref = %s "
+            "order by fetched_at asc limit 1",
+            (src_id, source_ref),
+        )
+        row = cur.fetchone()
+        if row:
+            return str(row["supplier_id"])
+
     # Pass 1: slug
     cur.execute("select id from public.suppliers where slug = %s", (slug,))
     row = cur.fetchone()
