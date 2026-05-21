@@ -185,7 +185,9 @@ def _upsert_source_record(cur, *, supplier_id: str, rec: ScrapedRecord) -> None:
 
 
 def _apply_source_specific(cur, *, supplier_id: str, rec: ScrapedRecord) -> None:
-    """Set BGMEA/BKMEA-specific verified flags + reg numbers."""
+    """Set register-specific verified flags + reg numbers, and upgrade
+    entity_type='unknown' to the source's default when a Tier 1-2
+    register attaches (BGMEA, BKMEA, BTMA, BGAPMEA, RSC, EPB)."""
     code = rec.source_code
     if code == "BGMEA":
         reg = rec.payload.get("bgmea_reg_number")
@@ -211,6 +213,29 @@ def _apply_source_specific(cur, *, supplier_id: str, rec: ScrapedRecord) -> None
                  entity_type = case when entity_type = 'unknown' then 'factory' else entity_type end
                where id = %s""",
             (reg, supplier_id),
+        )
+    elif code == "BTMA":
+        cur.execute(
+            """update public.suppliers set
+                 btma_verified = true,
+                 entity_type = case when entity_type = 'unknown' then 'factory' else entity_type end
+               where id = %s""",
+            (supplier_id,),
+        )
+    elif code == "BGAPMEA":
+        cur.execute(
+            """update public.suppliers set
+                 bgapmea_verified = true,
+                 entity_type = case when entity_type = 'unknown' then 'factory' else entity_type end
+               where id = %s""",
+            (supplier_id,),
+        )
+    elif code in ("EPB", "RSC"):
+        cur.execute(
+            """update public.suppliers set
+                 entity_type = case when entity_type = 'unknown' then 'factory' else entity_type end
+               where id = %s""",
+            (supplier_id,),
         )
 
 

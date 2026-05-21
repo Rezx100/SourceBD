@@ -17,6 +17,7 @@ keyed on `certificate_no = "{idx}-{oets_standard}"`, all under
 """
 from __future__ import annotations
 
+import asyncio
 import math
 import re
 from typing import AsyncIterator
@@ -51,6 +52,13 @@ OETS_STANDARDS: dict[str, str] = {
 _F_COUNT_RE = re.compile(r"F_COUNT:\s*(\d+)")
 _POSTAL_RE = re.compile(r"^\s*(\d{3,5})\s+(.+?)\s*$")
 _POSTAL_TRAIL_RE = re.compile(r"^\s*(.+?)\s*-\s*(\d{3,5})\s*$")
+_EMAIL_RE = re.compile(r"[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}")
+_URL_RE = re.compile(r"^(?:https?://)?(?:www\.)?[A-Za-z0-9\-]+(?:\.[A-Za-z0-9\-]+)+(?:/\S*)?$")
+
+# Polite delay between customer-profile fetches (seconds). The buying-guide
+# pages themselves are paginated already; this throttles the per-row profile
+# enrichment introduced in migration 0017's companion change (F4b).
+PROFILE_DELAY_SECONDS = 0.4
 
 
 def _build_body(oets: str, page: int) -> str:
@@ -144,6 +152,12 @@ class OekoTexScraper(BaseScraper):
             "Accept": "text/html, */*; q=0.01",
             "Accept-Language": "en-US,en;q=0.9",
         }
+        profile_headers = {
+            "User-Agent": settings.etl_user_agent,
+            "Referer": f"{BASE}/buying-guide/",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+            "Accept-Language": "en-US,en;q=0.9",
+        }
 
         async with httpx.AsyncClient(timeout=60.0, headers=headers, follow_redirects=True) as client:
             for oets, label in OETS_STANDARDS.items():
@@ -164,19 +178,35 @@ class OekoTexScraper(BaseScraper):
                         self.log.info("oeko.empty_page", oets=oets, page=page)
                         break
                     for r in rows:
+                        profile = await _fetch_profile(
+                            client, r.get("profile_url"), profile_headers, self.log,
+                            idx=r["idx"], oets=oets,
+                        )
+                        payload = {
+                            "oeko_customer_id": r["idx"],
+                            "oeko_standard": oets,
+                            "oeko_standard_label": label,
+                            "oeko_profile_url": r.get("profile_url"),
+                            "country": "Bangladesh",
+                        }
+                        if profile.get("address"):
+                            payload["oeko_profile_address"] = profile["address"]
+                        if profile.get("phone"):
+                            payload["oeko_profile_phone"] = profile["phone"]
+                        if profile.get("email"):
+                            payload["oeko_profile_email"] = profile["email"]
+                        if profile.get("website"):
+                            payload["oeko_profile_website"] = profile["website"]
                         yield ScrapedRecord(
                             source_code="OEKO_TEX",
                             source_ref=f"oeko-tex-{r['idx']}",
                             company_name=r["name"] or "",
                             city=r.get("city"),
-                            address_raw=r.get("location_raw"),
-                            payload={
-                                "oeko_customer_id": r["idx"],
-                                "oeko_standard": oets,
-                                "oeko_standard_label": label,
-                                "oeko_profile_url": r.get("profile_url"),
-                                "country": "Bangladesh",
-                            },
+                            address_raw=profile.get("address") or r.get("location_raw"),
+                            email=profile.get("email"),
+                            phone_raw=profile.get("phone"),
+                            website=profile.get("website"),
+                            payload=payload,
                         )
                     page += 1
 
@@ -207,6 +237,74 @@ class OekoTexScraper(BaseScraper):
             self._close_run(run_id, "failed", seen, upserted, skipped, str(exc))
             raise
         return {"seen": seen, "upserted": upserted, "skipped": skipped}
+
+
+async def _fetch_profile(
+    client: httpx.AsyncClient,
+    url: str | None,
+    headers: dict[str, str],
+    logger,
+    *,
+    idx: str,
+    oets: str,
+) -> dict[str, str | None]:
+    """GET a freshly-issued OEKO customer_profile URL and parse the public
+    contact block (address, phone, email, website). Profile keys expire
+    quickly so this MUST be called during the search pass that produced the
+    URL; reusing a stored URL yields 'Profile key has expired'."""
+    out: dict[str, str | None] = {"address": None, "phone": None, "email": None, "website": None}
+    if not url:
+        return out
+    await asyncio.sleep(PROFILE_DELAY_SECONDS)
+    try:
+        resp = await client.get(url, headers=headers)
+        resp.raise_for_status()
+    except httpx.HTTPError as exc:
+        logger.warning("oeko.profile.fetch_failed", idx=idx, oets=oets, error=str(exc))
+        return out
+    html = resp.text
+    if "Profile key has expired" in html or len(html) < 800:
+        logger.warning("oeko.profile.expired_or_empty", idx=idx, oets=oets, length=len(html))
+        return out
+    soup = BeautifulSoup(html, "html.parser")
+    text = soup.get_text("\n", strip=True)
+    lines = [ln.strip() for ln in text.split("\n") if ln.strip()]
+    try:
+        i = lines.index("Customer Profile")
+    except ValueError:
+        return out
+    label_idx = len(lines)
+    for j in range(i + 2, len(lines)):
+        if lines[j] in ("Phone", "Fax", "Email", "Certified products"):
+            label_idx = j
+            break
+    addr_lines = lines[i + 2:label_idx]
+    if addr_lines:
+        out["address"] = ", ".join(addr_lines)
+    j = label_idx
+    while j < len(lines):
+        ln = lines[j]
+        if ln == "Phone" and j + 1 < len(lines):
+            val = lines[j + 1]
+            if val and val != "--":
+                out["phone"] = val
+            j += 2
+            continue
+        if ln == "Fax" and j + 1 < len(lines):
+            j += 2
+            continue
+        if ln == "Email" and j + 1 < len(lines):
+            val = lines[j + 1]
+            if val and val != "--" and _EMAIL_RE.fullmatch(val):
+                out["email"] = val.lower()
+            j += 2
+            continue
+        if ln == "Certified products":
+            break
+        if _URL_RE.fullmatch(ln) and not out["website"]:
+            out["website"] = ln.lower()
+        j += 1
+    return out
 
 
 def _write_certification(supplier_id: str, rec: ScrapedRecord) -> None:
