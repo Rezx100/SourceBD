@@ -237,6 +237,51 @@ def _apply_source_specific(cur, *, supplier_id: str, rec: ScrapedRecord) -> None
                where id = %s""",
             (supplier_id,),
         )
+    elif code in ("OEKO_TEX", "WRAP", "SA8000"):
+        # Tier-3 cert bodies that audit producing sites only — never buying houses.
+        cur.execute(
+            """update public.suppliers set
+                 entity_type = case when entity_type = 'unknown' then 'factory' else entity_type end
+               where id = %s""",
+            (supplier_id,),
+        )
+    elif code == "GOTS":
+        # GOTS certifies producers (spinning/weaving/knitting/dyeing/...) and
+        # also a "Trading" / "No processing" scope. Pull the actual GOTS
+        # field-of-operation string and classify accordingly.
+        ops = (rec.payload.get("gots_field_of_operation") or "").lower()
+        production_markers = (
+            "manufactur", "processing", "spinning", "weaving", "knitting",
+            "dyeing", "printing", "finishing", "garment", "making",
+            "wet processing", "washing", "laundering", "pre-treatment",
+            "preparatory", "packing", "embroidery", "embellishment",
+        )
+        # Note: "no processing" contains the substring "processing", so it would
+        # falsely match. Strip it first.
+        ops_check = ops.replace("no processing", "")
+        if any(m in ops_check for m in production_markers):
+            cur.execute(
+                """update public.suppliers set
+                     entity_type = case when entity_type = 'unknown' then 'factory' else entity_type end
+                   where id = %s""",
+                (supplier_id,),
+            )
+        elif "trading" in ops or "trader" in ops:
+            cur.execute(
+                """update public.suppliers set
+                     entity_type = case when entity_type = 'unknown' then 'buying_house' else entity_type end
+                   where id = %s""",
+                (supplier_id,),
+            )
+    elif code.startswith("BRAND_"):
+        # Brand supplier-list disclosures publish direct manufacturing partners
+        # (Transparency Pledge / Higg). Brand offices are never on these lists.
+        cur.execute(
+            """update public.suppliers set
+                 entity_type = case when entity_type = 'unknown' then 'factory' else entity_type end
+               where id = %s""",
+            (supplier_id,),
+        )
 
 
 def _maybe_publish(cur, supplier_id: str) -> None:
