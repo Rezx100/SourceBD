@@ -33,6 +33,7 @@ from etl.scrapers.eu_sanctions import EuSanctionsScraper
 from etl.scrapers.ilab_tvpra import IlabTvpraScraper
 from etl.scrapers.gots import GotsScraper
 from etl.scrapers.sa8000 import Sa8000Scraper
+from etl.scrapers.oeko_tex import OekoTexScraper
 from etl.scrapers.btma_spinning import BtmaSpinningScraper
 from etl.scrapers.brand_disclosures import (
     BrandHmScraper,
@@ -65,6 +66,7 @@ SCRAPERS = {
     "ilab_tvpra": IlabTvpraScraper,
     "gots": GotsScraper,
     "sa8000": Sa8000Scraper,
+    "oeko_tex": OekoTexScraper,
     "btma_spinning": BtmaSpinningScraper,
     "brand_hm": BrandHmScraper,
     "brand_inditex": BrandInditexScraper,
