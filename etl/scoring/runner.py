@@ -34,8 +34,8 @@ select
   s.employees_total             as employees_total,
   s.production_capacity_pcs_day as capacity_pcs_day,
   s.production_capacity_dozen_yearly as capacity_dozen_yearly,
-  r.fire_pct                    as rsc_fire_pct,
-  r.structural_pct              as rsc_structural_pct,
+  null::numeric                 as rsc_fire_pct,
+  null::numeric                 as rsc_structural_pct,
   (r.supplier_id is not null)   as rsc_has_row,
   coalesce(
     (select jsonb_agg(jsonb_build_object('kind', c.kind, 'expires_on', c.expires_on))

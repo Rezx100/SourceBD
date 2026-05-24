@@ -219,18 +219,17 @@ def _write_remediation(supplier_id: str, rec: ScrapedRecord) -> None:
         sr_id = str(sr["id"]) if sr else None
         cur.execute(
             """insert into public.rsc_remediation
-                 (supplier_id, rsc_factory_id, rsc_factory_name, rsc_location,
+                 (supplier_id, rsc_factory_id, rsc_factory_name,
                   progress_pct, workers_count,
                   parent_group_name, parent_group_factory_count,
                   remediation_status, training_status,
                   fire_inspection_url, structural_inspection_url,
                   electrical_inspection_url, boiler_inspection_url, cap_url,
                   active, source_record_id)
-               values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+               values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
                on conflict (supplier_id) do update set
                  rsc_factory_id = excluded.rsc_factory_id,
                  rsc_factory_name = excluded.rsc_factory_name,
-                 rsc_location = excluded.rsc_location,
                  progress_pct = excluded.progress_pct,
                  workers_count = excluded.workers_count,
                  parent_group_name = excluded.parent_group_name,
@@ -247,7 +246,7 @@ def _write_remediation(supplier_id: str, rec: ScrapedRecord) -> None:
                  fetched_at = now()""",
             (
                 supplier_id,
-                p.get("rsc_factory_id"), p.get("rsc_factory_name"), p.get("rsc_location"),
+                p.get("rsc_factory_id"), p.get("rsc_factory_name"),
                 p.get("rsc_progress_pct"), p.get("rsc_workers_count"),
                 p.get("rsc_parent_group"), p.get("rsc_parent_group_factory_count"),
                 p.get("rsc_remediation_status"), p.get("rsc_training_status"),

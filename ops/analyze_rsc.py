@@ -19,10 +19,9 @@ print("\n=== rsc_remediation row stats ===")
 cur.execute("""
   SELECT
     COUNT(*) AS total,
-    COUNT(*) FILTER (WHERE fire_pct IS NOT NULL) AS has_fire,
-    COUNT(*) FILTER (WHERE structural_pct IS NOT NULL) AS has_struct,
-    COUNT(*) FILTER (WHERE electrical_pct IS NOT NULL) AS has_elec,
-    COUNT(*) FILTER (WHERE rsc_location IS NOT NULL) AS has_loc
+    COUNT(*) FILTER (WHERE progress_pct IS NOT NULL) AS has_progress,
+    COUNT(*) FILTER (WHERE workers_count IS NOT NULL) AS has_workers,
+    COUNT(*) FILTER (WHERE parent_group_name IS NOT NULL) AS has_parent_group
   FROM rsc_remediation;
 """)
 print(cur.fetchone())

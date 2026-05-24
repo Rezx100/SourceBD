@@ -17,7 +17,7 @@ with db.conn() as c, c.cursor() as cur:
     cur.execute(
         """select rsc_factory_id, rsc_factory_name, parent_group_name,
                   workers_count, progress_pct, remediation_status, training_status,
-                  rsc_location, active
+                  active
              from public.rsc_remediation
              where parent_group_name ilike '%biswas%'
              order by rsc_factory_id"""

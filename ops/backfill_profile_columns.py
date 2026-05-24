@@ -1,6 +1,6 @@
 """Backfill suppliers.{employees_*, production_capacity_pcs_day,
-production_capacity_dozen_yearly, machines_*, established_date,
-principal_products, factory_types, annual_turnover}
+production_capacity_dozen_yearly, machines_sewing, established_date,
+principal_products, factory_types}
 from source_records.fields JSONB (BGMEA web, BKMEA detail, EPB).
 
 Idempotent. Safe to rerun. Numeric fields use max-merge so reruns converge.
@@ -14,10 +14,9 @@ Trust-tier merge rules (per architecture.md "highest tier wins"):
   numbers, so we leave NULL when only BGMEA data exists.
 - production_capacity_dozen_yearly: BGMEA only (factory's self-declared annual
   output in dozens, exposed as-is with native unit; UI labels accordingly).
-- machines_sewing/knitting/dyeing: BKMEA only (BGMEA only has total `num_machines`).
+- machines_sewing: BKMEA only (BGMEA only has total `num_machines`).
 - established_date: BGMEA only (text, year strings vary).
 - factory_types: BGMEA `factory_types[].Type` (Woven / Knit / Sweater).
-- annual_turnover: BGMEA jsonb list as-is.
 - principal_products: union of BGMEA `principal_products[]`,
   EPB `epb_categories[].name`, and BKMEA `bkmea_products` string split.
 """
@@ -150,52 +149,6 @@ SQL_STATEMENTS: list[tuple[str, str]] = [
          where s.id = x.supplier_id
            and x.val is not null
            and x.val > coalesce(s.machines_sewing, 0);
-        """,
-    ),
-    (
-        "BKMEA machines_knitting",
-        """
-        with x as (
-          select sr.supplier_id,
-                 max(nullif((sr.fields ->> 'bkmea_machines_knitting')::int, 0)) as val
-            from source_records sr
-            join sources s on s.id = sr.source_id
-           where s.code = 'BKMEA'
-             and sr.status = 'active'
-             and (sr.fields ? 'bkmea_machines_knitting')
-             and (sr.fields ->> 'bkmea_machines_knitting') ~ '^[0-9]+$'
-           group by sr.supplier_id
-        )
-        update public.suppliers s
-           set machines_knitting = greatest(coalesce(s.machines_knitting, 0), x.val),
-               updated_at = now()
-          from x
-         where s.id = x.supplier_id
-           and x.val is not null
-           and x.val > coalesce(s.machines_knitting, 0);
-        """,
-    ),
-    (
-        "BKMEA machines_dyeing",
-        """
-        with x as (
-          select sr.supplier_id,
-                 max(nullif((sr.fields ->> 'bkmea_machines_dyeing')::int, 0)) as val
-            from source_records sr
-            join sources s on s.id = sr.source_id
-           where s.code = 'BKMEA'
-             and sr.status = 'active'
-             and (sr.fields ? 'bkmea_machines_dyeing')
-             and (sr.fields ->> 'bkmea_machines_dyeing') ~ '^[0-9]+$'
-           group by sr.supplier_id
-        )
-        update public.suppliers s
-           set machines_dyeing = greatest(coalesce(s.machines_dyeing, 0), x.val),
-               updated_at = now()
-          from x
-         where s.id = x.supplier_id
-           and x.val is not null
-           and x.val > coalesce(s.machines_dyeing, 0);
         """,
     ),
     # ---------------------------------------------------------------- BGMEA ints
@@ -491,29 +444,6 @@ SQL_STATEMENTS: list[tuple[str, str]] = [
            and x.val <= 200000000;
         """,
     ),
-    (
-        "BGMEA annual_turnover (latest payload as jsonb)",
-        """
-        with x as (
-          select sr.supplier_id,
-                 (array_agg(sr.fields -> 'annual_turnover' order by sr.fetched_at desc))[1] as val
-            from source_records sr
-            join sources s on s.id = sr.source_id
-           where s.code = 'BGMEA'
-             and sr.status = 'active'
-             and jsonb_typeof(sr.fields -> 'annual_turnover') = 'array'
-             and jsonb_array_length(sr.fields -> 'annual_turnover') > 0
-           group by sr.supplier_id
-        )
-        update public.suppliers s
-           set annual_turnover = x.val,
-               updated_at = now()
-          from x
-         where s.id = x.supplier_id
-           and x.val is not null
-           and (s.annual_turnover is distinct from x.val);
-        """,
-    ),
     # ---------------------------------------------------------------- principal_products union
     # Single statement that unions all six sources per supplier_id and writes
     # the deduped lower-trimmed product list. F10 added BGAPMEA + GOTS + WRAP
@@ -628,12 +558,9 @@ select
   count(*) filter (where production_capacity_pcs_day is not null)           as with_capacity_pcs_day,
   count(*) filter (where production_capacity_dozen_yearly is not null)      as with_capacity_dozen_yearly,
   count(*) filter (where machines_sewing is not null)                       as with_machines_sewing,
-  count(*) filter (where machines_knitting is not null)                     as with_machines_knitting,
-  count(*) filter (where machines_dyeing is not null)                       as with_machines_dyeing,
   count(*) filter (where established_date is not null)                      as with_established_date,
   count(*) filter (where array_length(principal_products, 1) > 0)           as with_principal_products,
-  count(*) filter (where array_length(factory_types, 1) > 0)                as with_factory_types,
-  count(*) filter (where annual_turnover is not null)                       as with_annual_turnover
+  count(*) filter (where array_length(factory_types, 1) > 0)                as with_factory_types
 from public.suppliers;
 """
 
