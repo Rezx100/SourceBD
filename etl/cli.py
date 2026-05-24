@@ -175,6 +175,16 @@ def merge_contacts_cmd(
     typer.echo(str(result))
 
 
+@app.command("rsc-crosslink")
+def rsc_crosslink_cmd() -> None:
+    """F6 — backfill district/city for RSC-only suppliers via name-stripped
+    cross-link against suppliers already known by Tier 1-3 sources."""
+    from etl.jobs.rsc_crosslink import run as run_xlink
+
+    result = run_xlink()
+    typer.echo(str(result))
+
+
 @app.command()
 def digest(period: str) -> None:
     """Generate monthly newsletter + blog drafts from rsc_industry_metrics.
