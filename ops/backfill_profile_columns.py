@@ -300,27 +300,171 @@ SQL_STATEMENTS: list[tuple[str, str]] = [
         """,
     ),
     (
-        "BGMEA factory_types (extract Type from list of dicts)",
+        "factory_types union (BGMEA + BKMEA + BGAPMEA + BTMA + GOTS + EPB + WRAP; F9)",
         """
-        with x as (
+        with bgmea as (
           select sr.supplier_id,
-                 array_agg(distinct nullif(trim(ft ->> 'Type'), '')) filter (where nullif(trim(ft ->> 'Type'), '') is not null) as vals
+                 nullif(trim(ft ->> 'Type'), '') as t
             from source_records sr
             join sources s on s.id = sr.source_id,
                  lateral jsonb_array_elements(sr.fields -> 'factory_types') ft
            where s.code = 'BGMEA'
              and sr.status = 'active'
              and jsonb_typeof(sr.fields -> 'factory_types') = 'array'
-           group by sr.supplier_id
+        ),
+        bkmea_prod as (
+          select sr.supplier_id,
+                 case
+                   when part ~* '\\msweater'                then 'Sweater'
+                   when part ~* '\\mwoven'                  then 'Woven'
+                   when part ~* '\\mdenim'                  then 'Woven'
+                   when part ~* '\\mknit'                   then 'Knit'
+                   when part ~* '\\m(t[- ]?shirt|polo|tank|tee)' then 'Knit'
+                   else null
+                 end as t
+            from source_records sr
+            join sources s on s.id = sr.source_id,
+                 lateral regexp_split_to_table(sr.fields ->> 'bkmea_products', '[,;/]+') part
+           where s.code = 'BKMEA'
+             and sr.status = 'active'
+             and nullif(trim(sr.fields ->> 'bkmea_products'), '') is not null
+        ),
+        bkmea_default as (
+          -- Every BKMEA member is by definition a knitwear factory; default
+          -- to 'Knit' when bkmea_products is absent or unparseable so no
+          -- BKMEA-tagged factory ends up with an empty factory_types array.
+          select sr.supplier_id, 'Knit'::text as t
+            from source_records sr
+            join sources s on s.id = sr.source_id
+           where s.code = 'BKMEA'
+             and sr.status = 'active'
+        ),
+        bgapmea as (
+          -- BGAPMEA = Garment Accessories & Packaging assoc; default Accessories,
+          -- promote to Packaging when bgapmea_products mentions packaging/box/carton.
+          select sr.supplier_id,
+                 case
+                   when (sr.fields ->> 'bgapmea_products') ~* '(packag|carton|\\mbox|hangtag|sticker|label\\M)' then 'Packaging'
+                   else 'Accessories'
+                 end as t
+            from source_records sr
+            join sources s on s.id = sr.source_id
+           where s.code = 'BGAPMEA'
+             and sr.status = 'active'
+        ),
+        btma as (
+          -- BTMA = Textile Mills Association; every member is a textile mill.
+          select sr.supplier_id, 'Textile Mill'::text as t
+            from source_records sr
+            join sources s on s.id = sr.source_id
+           where s.code = 'BTMA'
+             and sr.status = 'active'
+        ),
+        gots as (
+          -- GOTS gots_field_of_operation is a comma-list of processes; map process
+          -- tokens to canonical factory types.
+          select sr.supplier_id,
+                 case
+                   when part ~* 'knit'      then 'Knit'
+                   when part ~* 'weav'      then 'Woven'
+                   when part ~* 'spin'      then 'Spinning'
+                   when part ~* '(dye|print|finish)' then 'Dyeing'
+                   else null
+                 end as t
+            from source_records sr
+            join sources s on s.id = sr.source_id,
+                 lateral regexp_split_to_table(sr.fields ->> 'gots_field_of_operation', '[,;/]+') part
+           where s.code = 'GOTS'
+             and sr.status = 'active'
+             and nullif(trim(sr.fields ->> 'gots_field_of_operation'), '') is not null
+        ),
+        epb as (
+          -- EPB epb_categories[].name is itself a factory_type (Knit/Woven/Jute).
+          -- Split "Knit & Woven" into ["Knit","Woven"] and filter junk codes.
+          select sr.supplier_id,
+                 case
+                   when cat ->> 'name' ~* '(^|\\W)(\\(?nb\\)?|\\(?b\\)?)(\\W|$)' then null
+                   when cat ->> 'name' ~* 'jute'   then 'Jute'
+                   when cat ->> 'name' ~* 'sweater' then 'Sweater'
+                   when cat ->> 'name' ~* 'denim'  then 'Woven'
+                   when cat ->> 'name' ~* 'knit'   then 'Knit'
+                   when cat ->> 'name' ~* 'woven'  then 'Woven'
+                   else null
+                 end as t
+            from source_records sr
+            join sources s on s.id = sr.source_id,
+                 lateral jsonb_array_elements(sr.fields -> 'epb_categories') cat
+           where s.code = 'EPB'
+             and sr.status = 'active'
+             and jsonb_typeof(sr.fields -> 'epb_categories') = 'array'
+        ),
+        epb_split_kw as (
+          -- "Knit & Woven" expands to both tokens.
+          select sr.supplier_id, 'Knit'::text as t
+            from source_records sr
+            join sources s on s.id = sr.source_id,
+                 lateral jsonb_array_elements(sr.fields -> 'epb_categories') cat
+           where s.code = 'EPB' and sr.status = 'active'
+             and jsonb_typeof(sr.fields -> 'epb_categories') = 'array'
+             and (cat ->> 'name') ~* 'knit\\s*&\\s*woven'
+          union all
+          select sr.supplier_id, 'Woven'::text
+            from source_records sr
+            join sources s on s.id = sr.source_id,
+                 lateral jsonb_array_elements(sr.fields -> 'epb_categories') cat
+           where s.code = 'EPB' and sr.status = 'active'
+             and jsonb_typeof(sr.fields -> 'epb_categories') = 'array'
+             and (cat ->> 'name') ~* 'knit\\s*&\\s*woven'
+        ),
+        wrap as (
+          select sr.supplier_id,
+                 case
+                   when part ~* 'sweater'                    then 'Sweater'
+                   when part ~* '(denim|woven)'              then 'Woven'
+                   when part ~* '(knit|t[- ]?shirt|polo|tank|legging|boxer|pajama|nightgown|knitwear)' then 'Knit'
+                   else null
+                 end as t
+            from source_records sr
+            join sources s on s.id = sr.source_id,
+                 lateral regexp_split_to_table(sr.fields ->> 'wrap_products', '[,;/]+') part
+           where s.code = 'WRAP'
+             and sr.status = 'active'
+             and nullif(trim(sr.fields ->> 'wrap_products'), '') is not null
+        ),
+        existing as (
+          -- Carry existing factory_types so reruns/new-source additions are
+          -- strictly additive (never lose a previously-set value).
+          select id as supplier_id, unnest(factory_types) as t
+            from public.suppliers
+           where array_length(factory_types, 1) > 0
+        ),
+        all_t as (
+          select * from bgmea
+          union all select * from bkmea_prod
+          union all select * from bkmea_default
+          union all select * from bgapmea
+          union all select * from btma
+          union all select * from gots
+          union all select * from epb
+          union all select * from epb_split_kw
+          union all select * from wrap
+          union all select * from existing
+        ),
+        agg as (
+          select supplier_id,
+                 array_agg(distinct t order by t) as vals
+            from all_t
+           where t is not null and length(t) between 1 and 64
+           group by supplier_id
         )
         update public.suppliers s
-           set factory_types = x.vals,
+           set factory_types = agg.vals,
                updated_at = now()
-          from x
-         where s.id = x.supplier_id
-           and x.vals is not null
-           and array_length(x.vals, 1) > 0
-           and (s.factory_types is distinct from x.vals);
+          from agg
+         where s.id = agg.supplier_id
+           and agg.vals is not null
+           and array_length(agg.vals, 1) > 0
+           and (s.factory_types is distinct from agg.vals);
         """,
     ),
     (
