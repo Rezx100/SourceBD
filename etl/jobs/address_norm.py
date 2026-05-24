@@ -201,6 +201,13 @@ _CITY_ALIASES: dict[str, tuple[str, str]] = {
     "salna":         ("Salna", "Gazipur"),
     "purabari":      ("Purabari", "Gazipur"),
     "bsmrau":        ("Salna", "Gazipur"),
+    # ---- F8 additions: residual EPB / brand-disclosure tokens ----
+    "patiya":                          ("Patiya", "Chattogram"),
+    "nasirabad":                       ("Nasirabad", "Chattogram"),
+    "korean epz":                      ("Karnaphuli EPZ", "Chattogram"),
+    "korean export processing zone":   ("Karnaphuli EPZ", "Chattogram"),
+    "hemayetpur":                      ("Hemayetpur", "Dhaka"),
+    "azampur":                         ("Azampur", "Dhaka"),
 }
 
 
@@ -330,13 +337,27 @@ def _resolve(
         if not new_city:
             new_city = _derive_city_fallback_district(address_raw)
 
+    # F8: when nothing finer-grained is known (no address-derived city,
+    # no upazila/thana token, no trailing district token in address),
+    # default city to the canonical district name. This matches the
+    # empirical pattern that Bangladesh suppliers without a finer
+    # locality publish city == district, and handles RSC satellite
+    # buildings whose district was derived from a parent factory but
+    # whose address_raw is null.
+    if not new_city and new_district:
+        new_city = new_district
+
     return new_city, new_district
 
 
 def _list_target_ids(cur) -> Iterable[str]:
+    # F8: dropped the `address_raw is not null` filter so RSC satellite
+    # suppliers whose district was set by F6 cross-link but who carry no
+    # address_raw still flow through `_resolve` and pick up the
+    # district-as-city fallback.
     cur.execute(
         "select id from public.suppliers "
-        "where (district is null or city is null) and address_raw is not null"
+        "where district is null or city is null"
     )
     return [str(r["id"]) if isinstance(r, dict) else str(r[0]) for r in cur.fetchall()]
 
