@@ -515,10 +515,13 @@ SQL_STATEMENTS: list[tuple[str, str]] = [
         """,
     ),
     # ---------------------------------------------------------------- principal_products union
-    # Single statement that unions all three sources per supplier_id and writes
-    # the deduped lower-trimmed product list.
+    # Single statement that unions all six sources per supplier_id and writes
+    # the deduped lower-trimmed product list. F10 added BGAPMEA + GOTS + WRAP
+    # contributors and an `existing` CTE that union-includes the supplier's
+    # current array so reruns are strictly additive (never lose a previously-
+    # set value, satisfies Hard Rule #5 fill-only invariant per array).
     (
-        "principal_products union (BGMEA list + EPB categories + BKMEA split)",
+        "principal_products union (BGMEA + EPB + BKMEA + BGAPMEA + GOTS + WRAP; F10)",
         """
         with bgmea as (
           select sr.supplier_id,
@@ -550,12 +553,51 @@ SQL_STATEMENTS: list[tuple[str, str]] = [
              and sr.status = 'active'
              and nullif(trim(sr.fields ->> 'bkmea_products'), '') is not null
         ),
+        bgapmea as (
+          select sr.supplier_id,
+                 nullif(trim(regexp_replace(part, '\\.+\\s*$', '')), '') as p
+            from source_records sr
+            join sources s on s.id = sr.source_id,
+                 lateral regexp_split_to_table(sr.fields ->> 'bgapmea_products', '[,;/]+') part
+           where s.code = 'BGAPMEA'
+             and sr.status = 'active'
+             and nullif(trim(sr.fields ->> 'bgapmea_products'), '') is not null
+        ),
+        gots as (
+          -- gots_product_category is the curated short list; gots_product_details
+          -- is the verbose codes string (skipped — too noisy for buyer filtering).
+          select sr.supplier_id,
+                 nullif(trim(part), '') as p
+            from source_records sr
+            join sources s on s.id = sr.source_id,
+                 lateral regexp_split_to_table(sr.fields ->> 'gots_product_category', '[,;/]+') part
+           where s.code = 'GOTS'
+             and sr.status = 'active'
+             and nullif(trim(sr.fields ->> 'gots_product_category'), '') is not null
+        ),
+        wrap as (
+          select sr.supplier_id,
+                 nullif(trim(part), '') as p
+            from source_records sr
+            join sources s on s.id = sr.source_id,
+                 lateral regexp_split_to_table(sr.fields ->> 'wrap_products', '[,;/]+') part
+           where s.code = 'WRAP'
+             and sr.status = 'active'
+             and nullif(trim(sr.fields ->> 'wrap_products'), '') is not null
+        ),
+        existing as (
+          select id as supplier_id, unnest(principal_products) as p
+            from public.suppliers
+           where array_length(principal_products, 1) > 0
+        ),
         all_p as (
           select * from bgmea
-          union all
-          select * from epb
-          union all
-          select * from bkmea
+          union all select * from epb
+          union all select * from bkmea
+          union all select * from bgapmea
+          union all select * from gots
+          union all select * from wrap
+          union all select * from existing
         ),
         agg as (
           select supplier_id,
