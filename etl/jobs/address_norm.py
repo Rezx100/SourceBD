@@ -171,6 +171,36 @@ _CITY_ALIASES: dict[str, tuple[str, str]] = {
     # Narsingdi
     "madhabdi":      ("Madhabdi", "Narsingdi"),
     "ghorashal":     ("Ghorashal", "Narsingdi"),
+    # ---- F7 additions: BGAPMEA upazila / thana tokens ----
+    # Chattogram district
+    "sitakunda":     ("Sitakunda", "Chattogram"),
+    "sitakundu":     ("Sitakunda", "Chattogram"),
+    "bhatiary":      ("Bhatiary", "Chattogram"),
+    "mirsarai":      ("Mirsarai", "Chattogram"),
+    "mirsharai":     ("Mirsarai", "Chattogram"),
+    "kalurghat":     ("Kalurghat", "Chattogram"),
+    "bakalia":       ("Bakalia", "Chattogram"),
+    "fatikchhari":   ("Fatikchhari", "Chattogram"),
+    "raozan":        ("Raozan", "Chattogram"),
+    "boalkhali":     ("Boalkhali", "Chattogram"),
+    "asadgonj":      ("Asadganj", "Chattogram"),
+    "asadganj":      ("Asadganj", "Chattogram"),
+    # Dhaka district
+    "turag":         ("Turag", "Dhaka"),
+    "dhour":         ("Turag", "Dhaka"),
+    "keraneganj":    ("Keraniganj", "Dhaka"),
+    "rampura":       ("Rampura", "Dhaka"),
+    "banasree":      ("Rampura", "Dhaka"),
+    "azimpur":       ("Azimpur", "Dhaka"),
+    "lalbagh":       ("Lalbagh", "Dhaka"),
+    "shyampur":      ("Shyampur", "Dhaka"),
+    "demra":         ("Demra", "Dhaka"),
+    # Gazipur district
+    "mouchak":       ("Mouchak", "Gazipur"),
+    "chandana":      ("Chandana", "Gazipur"),
+    "salna":         ("Salna", "Gazipur"),
+    "purabari":      ("Purabari", "Gazipur"),
+    "bsmrau":        ("Salna", "Gazipur"),
 }
 
 
@@ -214,6 +244,21 @@ def _derive_city_from_text(text: str) -> str | None:
     for k in _CITY_RX:
         if _CITY_RX[k].search(text):
             return _CITY_ALIASES[k][0]
+    return None
+
+
+def _derive_city_fallback_district(text: str) -> str | None:
+    """F7 fallback: when no specific upazila/thana alias matched but the
+    address contains a known district token (typically as the trailing
+    component of a Bangladesh postal address — e.g. '..., Gazipur'),
+    use the canonical district name as the city. Empirically safe: the
+    majority of Bangladesh suppliers have city == district when no
+    finer-grained locality is specified in the source data."""
+    if not text:
+        return None
+    for canon, rx in _DISTRICT_RX.items():
+        if rx.search(text):
+            return canon
     return None
 
 
@@ -282,6 +327,8 @@ def _resolve(
 
     if not new_city and address_raw:
         new_city = _derive_city_from_text(address_raw)
+        if not new_city:
+            new_city = _derive_city_fallback_district(address_raw)
 
     return new_city, new_district
 
