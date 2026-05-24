@@ -175,6 +175,22 @@ def merge_contacts_cmd(
     typer.echo(str(result))
 
 
+@app.command("upgrade-addresses")
+def upgrade_addresses_cmd(
+    max_len: int = typer.Option(60, help="Only consider suppliers with address_raw shorter than this."),
+    limit: int = typer.Option(None, help="Process only the first N candidate suppliers (debug)."),
+    dry_run: bool = typer.Option(False, "--dry-run", help="Report candidates without writing."),
+) -> None:
+    """F11 — upgrade `address_raw` when a strictly-longer same-source
+    superstring value exists in the supplier's own source_records.
+    First authorised relaxation of Hard Rule #5 (fill-only); scoped to
+    `suppliers.address_raw` only and guarded by substring containment."""
+    from etl.jobs.address_upgrade import run_bulk
+
+    result = run_bulk(max_len=max_len, limit=limit, dry_run=dry_run)
+    typer.echo(str(result))
+
+
 @app.command("rsc-crosslink")
 def rsc_crosslink_cmd() -> None:
     """F6 — backfill district/city for RSC-only suppliers via name-stripped
