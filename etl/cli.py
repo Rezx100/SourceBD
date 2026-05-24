@@ -153,6 +153,28 @@ def sbi(
     typer.echo(str(result))
 
 
+@app.command("normalize-addresses")
+def normalize_addresses_cmd(
+    limit: int = typer.Option(None, help="Process only the first N candidate suppliers (debug)."),
+) -> None:
+    """F5a — derive `city` / `district` from EPB / GOTS / address_raw."""
+    from etl.jobs.address_norm import run as run_norm
+
+    result = run_norm(limit=limit)
+    typer.echo(str(result))
+
+
+@app.command("merge-contacts")
+def merge_contacts_cmd(
+    limit: int = typer.Option(None, help="Process only the first N candidate suppliers (debug)."),
+) -> None:
+    """F5b — cross-source contact merge (tier-ordered COALESCE fill)."""
+    from etl.jobs.contact_merge import run as run_merge
+
+    result = run_merge(limit=limit)
+    typer.echo(str(result))
+
+
 @app.command()
 def digest(period: str) -> None:
     """Generate monthly newsletter + blog drafts from rsc_industry_metrics.

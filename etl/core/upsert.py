@@ -58,6 +58,18 @@ def upsert_supplier_with_source(rec: ScrapedRecord) -> str:
         _refresh_completeness(cur, supplier_id)
         c.commit()
 
+    # F5 post-ingest enrichment: keep contacts merged and city/district
+    # derived for the supplier we just touched. Best-effort — never block
+    # an ingest on enrichment failure.
+    try:
+        from etl.jobs.contact_merge import run_for as _merge_for
+        from etl.jobs.address_norm import run_for as _norm_for
+
+        _merge_for(supplier_id)
+        _norm_for(supplier_id)
+    except Exception as exc:  # noqa: BLE001
+        log.error("upsert.post_enrich_failed", supplier_id=supplier_id, error=str(exc))
+
     return supplier_id
 
 
