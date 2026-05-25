@@ -151,6 +151,37 @@ SQL_STATEMENTS: list[tuple[str, str]] = [
            and x.val > coalesce(s.machines_sewing, 0);
         """,
     ),
+    # F13 — BGMEA detail-page "No of Machines" surfaced as machines_sewing.
+    # BGMEA general members are garment factories (entity_type='factory'); for
+    # a garment factory the overwhelming majority of plant machines ARE sewing
+    # machines (cutting/finishing/embroidery is a minor share). Same column
+    # semantics as the BKMEA branch above. Max-merge with the existing value
+    # so BKMEA-attested numbers are never lost; sane range 1..20000.
+    (
+        "F13 BGMEA num_machines -> machines_sewing",
+        """
+        with x as (
+          select sr.supplier_id,
+                 max(nullif(regexp_replace(sr.fields ->> 'num_machines', '[^0-9]', '', 'g'), '')::int) as val
+            from source_records sr
+            join sources s on s.id = sr.source_id
+           where s.code = 'BGMEA'
+             and sr.status = 'active'
+             and (sr.fields ? 'num_machines')
+             and (sr.fields ->> 'num_machines') ~ '[0-9]'
+           group by sr.supplier_id
+        )
+        update public.suppliers s
+           set machines_sewing = greatest(coalesce(s.machines_sewing, 0), x.val),
+               updated_at = now()
+          from x
+         where s.id = x.supplier_id
+           and s.entity_type = 'factory'
+           and x.val is not null
+           and x.val > coalesce(s.machines_sewing, 0)
+           and x.val between 1 and 20000;
+        """,
+    ),
     # ---------------------------------------------------------------- BGMEA ints
     # BGMEA `employees` is a dict like {"Management": "525", "Employee Male": "",
     # "Employee Female": ""}. Most rows have only Management. We treat any
