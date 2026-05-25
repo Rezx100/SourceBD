@@ -1,8 +1,13 @@
-"""F12 Phase 4: derive suppliers.bepza_zone from address text.
+"""F12 Phase 4 + F12.5: derive suppliers.bepza_zone.
 
-Closed list of the 8 active BEPZA Export Processing Zones. Case-insensitive
-regex on `address_raw` (fall-back to `city`). Idempotent. Fill-only (Hard Rule #5):
-never overwrites an existing bepza_zone value.
+Pass 1 (F12.4): Case-insensitive regex on suppliers.address_raw (fall-back city).
+Pass 2 (F12.5): For suppliers still NULL after Pass 1, scan their own
+source_records.fields::text payloads with the same regex, restricted to verified
+tiers (tier1_gov / tier2_industry / tier3_cert / tier4_brand / tier5_regulatory).
+Tier 6 cross-check is excluded (Hard Rule #6: no Tier 6 source alone).
+
+Closed list of the 8 active BEPZA Export Processing Zones. Idempotent. Fill-only
+(Hard Rule #5): never overwrites an existing bepza_zone value.
 
 Patterns are deliberately strict ("X EPZ" or the standard initialism) — we never
 guess from a zone-adjacent city alone (Savar/Narayanganj/Chittagong contain both
@@ -80,8 +85,55 @@ def main() -> int:
                     (zone, ids),
                 )
         conn.commit()
-        print(f"updated {total_updates} rows in {time.monotonic()-t0:.2f}s", flush=True)
+        print(f"pass1 updated {total_updates} rows in {time.monotonic()-t0:.2f}s", flush=True)
         for k, v in sorted(updates.items(), key=lambda x: -len(x[1])):
+            print(f"  {k:<20s} {len(v):>5d}")
+
+        # ---- Pass 2 (F12.5): scan source_records.fields of verified tiers --
+        with conn.cursor() as cur:
+            cur.execute("""
+                select sr.supplier_id, sr.fields::text
+                  from public.source_records sr
+                  join public.suppliers s on s.id = sr.supplier_id
+                 where s.bepza_zone is null
+                   and sr.status = 'active'
+                   and sr.source_tier in (
+                     'tier1_gov','tier2_industry','tier3_cert',
+                     'tier4_brand','tier5_regulatory'
+                   )
+            """)
+            t2 = time.monotonic()
+            picked: dict[str, str] = {}
+            scanned = 0
+            for sid, payload in cur:
+                scanned += 1
+                if sid in picked:
+                    continue
+                z = detect(payload)
+                if z:
+                    picked[sid] = z
+
+        pass2_updates: dict[str, list[str]] = {}
+        for sid, z in picked.items():
+            pass2_updates.setdefault(z, []).append(sid)
+        pass2_total = sum(len(v) for v in pass2_updates.values())
+        with conn.cursor() as cur:
+            for zone, ids in pass2_updates.items():
+                cur.execute(
+                    """update public.suppliers
+                          set bepza_zone = %s,
+                              updated_at = now()
+                        where id = any(%s)
+                          and bepza_zone is null""",
+                    (zone, ids),
+                )
+        conn.commit()
+        print(
+            f"pass2 scanned {scanned} verified source_records rows, "
+            f"updated {pass2_total} suppliers in {time.monotonic()-t2:.2f}s",
+            flush=True,
+        )
+        for k, v in sorted(pass2_updates.items(), key=lambda x: -len(x[1])):
             print(f"  {k:<20s} {len(v):>5d}")
 
         with conn.cursor() as cur:
