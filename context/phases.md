@@ -33,8 +33,8 @@ Three foundation specs (per master tutorial), in this order:
 
 **Spec F1 — Design system**
 - Next.js 15 App Router + TypeScript strict + Tailwind + shadcn/ui + Phosphor.
-- Tokens wired from `ui-context.md` into `tailwind.config.ts` + `globals.css`.
-- `cn()` helper, base components (Button, Card, Tabs, Tag, Badge, **Receipts Ring SVG** — per `ui-context.md`, payload is the count of distinct Tier 1–3 sources, NEVER the SBI numeric total).
+- Tokens wired from `frontend-design-spec.md` into `tailwind.config.ts` + `globals.css`.
+- `cn()` helper, base components (Button, Card, Tabs, Tag, Badge, **Receipts Ring SVG** — per `frontend-design-spec.md`, payload is the count of distinct Tier 1–3 sources, NEVER the SBI numeric total).
 - Storybook-style `/dev/components` route gated to dev only.
 
 **Spec F2 — App shell**
@@ -56,7 +56,7 @@ Three foundation specs (per master tutorial), in this order:
 ## Phase 2 — Buyer App MVP (weeks 11–14)
 
 Specs (one per session):
-- B1 — Discover page (filters: entity type, category, **source-count tier** (≥1 / ≥2 / ≥3 Tier 1–3 sources), certs, RSC remediation %, location; FTS + trigram search; results card list with the Receipts Ring per `ui-context.md`. **Default server-side sort uses the internal SBI total descending; the value itself is never serialised to the client**, only the resulting row order — see `ai-workflow-rules.md` Hard Prohibitions).
+- B1 — Discover page (filters: entity type, category, **source-count tier** (≥1 / ≥2 / ≥3 Tier 1–3 sources), certs, RSC remediation %, location; FTS + trigram search; results card list with the Receipts Ring per `frontend-design-spec.md`. **Default server-side sort uses the internal SBI total descending; the value itself is never serialised to the client**, only the resulting row order — see `ai-workflow-rules.md` Hard Prohibitions).
 - B2 — Factory profile (5 tabs: Overview, Compliance, Media, Reviews, Contact — gated).
 - B3 — Buying-house profile (5 tabs incl. Partner Factories tab using `bh_factory_relationships`).
 - B4 — Smart Match wizard (3-step form → POST `/api/v1/match` → ranked results with "why matched").
@@ -159,7 +159,7 @@ Specs (one per session):
 ## Cross-cutting principles (apply in every phase)
 
 1. **Data quality over feature count.** A wrong supplier kills more trust than a missing feature.
-2. **Every UI element that shows a supplier shows the Receipts Ring** (source-count payload per `ui-context.md`). Brand consistency. **Never render the SBI numeric total in any user-facing surface** (α/β/γ decision, 2026-05-20 — see `ai-workflow-rules.md` Hard Prohibitions).
+2. **Every UI element that shows a supplier shows the Receipts Ring** (source-count payload per `frontend-design-spec.md`). Brand consistency. **Never render the SBI numeric total in any user-facing surface** (α/β/γ decision, 2026-05-20 — see `ai-workflow-rules.md` Hard Prohibitions).
 3. **Every gated value is also gated server-side.** Hiding in CSS = vulnerability. The SBI integer is gated by RLS on `public.sbi_scores` (admin-only); CSS-hiding it is not a control.
 4. **Every spec ships behind a feature flag** (env var or DB row) until QA passes.
 5. **No spec ships without unit tests for business logic** (scoring, matching, dedup, sanctions). The SBI calculator stays unit-tested even though its output never reaches the user — it still drives default sort + admin alerting.

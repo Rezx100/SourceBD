@@ -16,7 +16,7 @@ These rules govern how the coding agent behaves on every task. They override con
 - **No new tools/packages** that aren't in `architecture.md`. If you believe one is needed → STOP, propose it, wait for approval.
 - If the spec is ambiguous → ask ONE clarifying question, wait. Do NOT guess.
 - Match `code-standards.md` exactly.
-- For UI work, only design tokens from `ui-context.md` — never raw hex colors.
+- For UI work, only design tokens from `frontend-design-spec.md` — never raw hex colors.
 - Validate data at every system boundary (API input via zod, ETL via pydantic, DB via constraints).
 
 ## After the work

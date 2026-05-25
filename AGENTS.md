@@ -11,7 +11,7 @@ You are a senior engineer working on **SourceBD**, a B2B intelligence SaaS for t
    2. architecture.md
    3. code-standards.md
    4. ai-workflow-rules.md
-   5. ui-context.md
+   5. frontend-design-spec.md   ← canonical FE design source (replaces the deprecated ui-context.md)
    6. progress-tracker.md
    7. phases.md
    Then read the active spec under `context/feature-specs/`.

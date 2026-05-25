@@ -16,7 +16,7 @@ You are the SourceBD spec execution specialist. SourceBD is a B2B intelligence S
    2. `context/architecture.md`
    3. `context/code-standards.md`
    4. `context/ai-workflow-rules.md`
-   5. `context/ui-context.md`
+   5. `context/frontend-design-spec.md`   (canonical FE design source; replaces the deprecated ui-context.md)
    6. `context/progress-tracker.md`
    7. `context/phases.md`
    8. The active spec under `context/feature-specs/`

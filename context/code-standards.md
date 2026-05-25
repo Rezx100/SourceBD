@@ -25,7 +25,7 @@ Order: std lib → third-party → workspace alias (`@/…`) → relative. Auto-
 
 ## Styling
 - Tailwind utility classes only. No raw CSS files except `globals.css` (resets + tokens).
-- Use design tokens from `ui-context.md` — never hex colors inline (`bg-bg`, `text-tx`, etc., mapped in `tailwind.config.ts`).
+- Use design tokens from `frontend-design-spec.md` — never hex colors inline (`bg-bg`, `text-tx`, etc., mapped in `tailwind.config.ts`).
 - Class composition via `cn()` helper (`clsx` + `tailwind-merge`).
 
 ## React / Next.js
