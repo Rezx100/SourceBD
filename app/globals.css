@@ -1,0 +1,111 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================================
+   SourceBD design tokens.
+   Source of truth: prototypes/_tokens.css + context/design-brief-phase1.md §21.
+   Forest green is the brand surface accent; indigo is interaction-only.
+   ============================================================ */
+
+:root {
+  /* Surfaces (§16.3) */
+  --bg-l0: #fafaf7;
+  --surface-l1: #ffffff;
+  --surface-l2: #ffffff;
+
+  /* Ink */
+  --ink-primary: #0f0f14;
+  --ink-secondary: #4a4a55;
+  --ink-tertiary: #8a8a95;
+  --ink-on-accent: #ffffff;
+
+  /* Hairlines + shadows */
+  --hairline: rgba(15, 15, 20, 0.06);
+  --hairline-strong: rgba(15, 15, 20, 0.1);
+  --shadow-l1: 0 1px 2px rgba(15, 15, 20, 0.04), 0 8px 24px rgba(15, 15, 20, 0.04);
+  --shadow-l2: 0 2px 4px rgba(15, 15, 20, 0.06), 0 16px 40px rgba(15, 15, 20, 0.08);
+
+  /* Interaction accent (§21.1 — buttons, links, focus rings, tab underline, T1/T2 tier text) */
+  --accent-indigo: #1e2a6b;
+  --accent-teal: #0e7c82;
+
+  /* Brand — forest green surface gradient (§21.1). 6-surface ceiling. */
+  --brand-forest: #1f4d3a;
+  --brand-forest-mid: #2d6a4f;
+  --brand-forest-soft: #ecf3ee;
+  --brand-forest-tint: rgba(31, 77, 58, 0.06);
+  --accent-grad: linear-gradient(135deg, #1f4d3a 0%, #2d6a4f 100%);
+
+  /* Semantic states */
+  --sem-red: #c8102e;
+  --sem-red-soft: #fdecee;
+  --sem-amber: #c7741a;
+  --sem-amber-soft: #fbf1e3;
+  --sem-green: #2d7a4f;
+  --sem-green-soft: #eaf5ee;
+
+  /* Categorical tier badges — admin only (no numeric SBI ever shown) */
+  --tier-bronze: #8c5a2b;
+  --tier-silver: #6a6e78;
+  --tier-gold: #b6892b;
+  --tier-platinum: #2c4e8a;
+
+  /* Fonts */
+  --font-display: "Bricolage Grotesque", ui-sans-serif, system-ui, sans-serif;
+  --font-body: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+
+  /* Radius (§16.3 — 6/8/12/20 family) */
+  --r-input: 6px;
+  --r-pill: 8px;
+  --r-card: 12px;
+  --r-hero: 20px;
+
+  /* Motion (§19 — 12-motion budget, all honour prefers-reduced-motion) */
+  --ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --dur-hover: 120ms;
+  --dur-tab: 160ms;
+  --dur-press: 80ms;
+}
+
+@layer base {
+  html,
+  body {
+    background: var(--bg-l0);
+    color: var(--ink-primary);
+    font-family: var(--font-body);
+    font-size: 14px;
+    line-height: 1.6;
+    letter-spacing: -0.005em;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--accent-indigo);
+    outline-offset: 2px;
+    border-radius: var(--r-input);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0ms !important;
+    scroll-behavior: auto !important;
+  }
+}
