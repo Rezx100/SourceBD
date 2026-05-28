@@ -25,6 +25,11 @@
 // `phases.md` line 60 lists "Overview, Compliance, Media, Reviews, Contact".
 // "Media" maps to the Documents tab per §4.6. "Reviews" is explicitly
 // out of scope per §4.2 ("No review table exists; do not stub a UI for it").
+//
+// Spec B3 (buying-house variant) shares this route and RPC per §3 IA table
+// (option (a)). When `entity_type === 'buying_house'` an extra Partner
+// Factories tab is rendered with a static empty state — `bh_factory_relationships`
+// does not exist in the DB yet (§4.8); reserving the slot is the spec.
 
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -188,6 +193,9 @@ export default async function FactoryProfilePage({
           {payload.documents.length > 0 ? (
             <TabsTrigger value="documents">Documents</TabsTrigger>
           ) : null}
+          {s.entity_type === "buying_house" ? (
+            <TabsTrigger value="partners">Partner factories</TabsTrigger>
+          ) : null}
           <TabsTrigger value="contact">Contact</TabsTrigger>
         </TabsList>
         <TabsContent value="compliance">
@@ -204,6 +212,11 @@ export default async function FactoryProfilePage({
         {payload.documents.length > 0 ? (
           <TabsContent value="documents">
             <DocumentsTab documents={payload.documents} />
+          </TabsContent>
+        ) : null}
+        {s.entity_type === "buying_house" ? (
+          <TabsContent value="partners">
+            <PartnerFactoriesTab />
           </TabsContent>
         ) : null}
         <TabsContent value="contact">
@@ -876,6 +889,31 @@ function DocumentsTab({ documents }: { documents: ComplianceDocument[] }) {
           );
         })}
     </div>
+  );
+}
+
+// ---------- Partner Factories tab (BH only, Spec B3) -----------------------
+//
+// `bh_factory_relationships` does not exist in the DB yet; per
+// frontend-design-spec.md §4.8 the slot is reserved with a static empty state
+// until the BH relationship graph ships in a later Phase-2 spec.
+
+function PartnerFactoriesTab() {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Partner factories</CardTitle>
+        <CardMeta>Reserved · Phase 2</CardMeta>
+      </CardHeader>
+      <CardContent className="flex flex-col items-start gap-3 py-6">
+        <p className="m-0 max-w-prose text-[14px] text-ink-secondary">
+          Partner-factory disclosures will land with the buying-house
+          relationship graph in a later Phase&nbsp;2 spec. We don&rsquo;t show a
+          list here until we have first-party evidence linking each factory to
+          this buying house.
+        </p>
+      </CardContent>
+    </Card>
   );
 }
 
