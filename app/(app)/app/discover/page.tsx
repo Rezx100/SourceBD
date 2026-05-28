@@ -20,6 +20,7 @@
 import Link from "next/link";
 
 import { ReceiptsRing } from "@/components/receipts-ring";
+import { SaveButton } from "@/components/save-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -158,6 +159,24 @@ export default async function BuyerDiscoverPage({
   const totalCount = rows[0]?.total_count ?? 0;
   const totalPages = Math.max(1, Math.ceil(Number(totalCount) / PAGE_SIZE));
 
+  // Saved-state lookup for the visible rows. RLS on `saved_suppliers`
+  // (policy `pol_saved_suppliers_select_self`) restricts the read to the
+  // caller's own rows, so we don't have to filter by owner_id manually.
+  const savedSet = new Set<string>();
+  if (rows.length > 0) {
+    const { data: savedRows } = await supabase
+      .from("saved_suppliers")
+      .select("supplier_id")
+      .in(
+        "supplier_id",
+        rows.map((r) => r.id),
+      );
+    if (savedRows) {
+      for (const r of savedRows as { supplier_id: string }[]) {
+        savedSet.add(r.supplier_id);
+      }
+    }
+  }
   const baseQuery = {
     q,
     entity: entityTypes,
@@ -244,7 +263,7 @@ export default async function BuyerDiscoverPage({
             <ul className="grid grid-cols-1 gap-4">
               {rows.map((row) => (
                 <li key={row.id}>
-                  <ResultCard row={row} />
+                  <ResultCard row={row} initialSaved={savedSet.has(row.id)} />
                 </li>
               ))}
             </ul>
@@ -263,7 +282,7 @@ export default async function BuyerDiscoverPage({
   );
 }
 
-function ResultCard({ row }: { row: DiscoverRow }) {
+function ResultCard({ row, initialSaved }: { row: DiscoverRow; initialSaved: boolean }) {
   const location = [row.city, row.district].filter(Boolean).join(", ");
   const entityLabel =
     ENTITY_TYPES.find((o) => o.value === row.entity_type)?.label ??
@@ -272,12 +291,12 @@ function ResultCard({ row }: { row: DiscoverRow }) {
   const extraPills = Math.max(0, row.source_tags.length - visiblePills.length);
 
   return (
-    <Link
-      href={`/app/suppliers/${row.slug}`}
-      className="block rounded-card transition focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-indigo"
-    >
-      <Card className="transition hover:shadow-l2">
-        <CardContent className="flex items-start gap-4 py-4">
+    <Card className="transition hover:shadow-l2">
+      <CardContent className="flex items-start gap-4 py-4">
+        <Link
+          href={`/app/suppliers/${row.slug}`}
+          className="flex flex-1 items-start gap-4 min-w-0 rounded-card focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-indigo"
+        >
           <ReceiptsRing sources={row.t13_source_count} size={48} />
           <div className="min-w-0 flex-1 space-y-2">
             <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
@@ -312,9 +331,10 @@ function ResultCard({ row }: { row: DiscoverRow }) {
 
             <StatLine row={row} />
           </div>
-        </CardContent>
-      </Card>
-    </Link>
+        </Link>
+        <SaveButton supplierId={row.id} initialSaved={initialSaved} shape="icon" />
+      </CardContent>
+    </Card>
   );
 }
 
