@@ -104,7 +104,14 @@ export default async function SupplierHome() {
                       {[s.city, s.district].filter(Boolean).join(", ") || "—"}
                     </p>
                   </div>
-                  <Tag>Owned</Tag>
+                  <div className="flex items-center gap-2">
+                    <Tag>Owned</Tag>
+                    <Button asChild variant="primary" size="sm">
+                      <Link href={`/supplier/profile/${s.id}`}>
+                        Edit profile
+                      </Link>
+                    </Button>
+                  </div>
                 </li>
               ))}
             </ul>
@@ -151,11 +158,19 @@ export default async function SupplierHome() {
       <Card>
         <CardHeader>
           <CardTitle>Profile editor & inbox</CardTitle>
-          <CardMeta>Specs S2–S5</CardMeta>
+          <CardMeta>Specs S3–S5</CardMeta>
         </CardHeader>
         <CardContent className="text-sm text-ink-secondary">
-          Profile editing, inquiries and the RFQ inbox ship in the remainder
-          of Phase 3.
+          Inquiries and the RFQ inbox ship in the remainder of Phase 3.
+          Profile editing is available now via &ldquo;Edit profile&rdquo;
+          on each claimed company above, or at{" "}
+          <Link
+            href="/supplier/profile"
+            className="font-semibold text-ink-primary hover:underline"
+          >
+            /supplier/profile
+          </Link>
+          .
         </CardContent>
       </Card>
     </div>
