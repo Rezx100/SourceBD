@@ -36,6 +36,7 @@ import { notFound } from "next/navigation";
 
 import { ReceiptsRing } from "@/components/receipts-ring";
 import { SaveButton } from "@/components/save-button";
+import { ClaimCtaButton } from "@/components/claim-cta-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardMeta, CardTitle } from "@/components/ui/card";
@@ -192,9 +193,24 @@ export default async function FactoryProfilePage({
     .maybeSingle();
   const isSaved = Boolean(savedRow);
 
+  // Spec S1: surface a Claim CTA on the buyer profile when the supplier
+  // is unclaimed and not sanctioned. The CTA component itself hides
+  // itself for buyer-role callers; only admins see it on this surface.
+  const { data: claimRow } = await supabase
+    .from("suppliers")
+    .select("claimed_by, is_sanctioned")
+    .eq("id", s.id)
+    .maybeSingle();
+  const showClaimCta =
+    !!claimRow && claimRow.claimed_by === null && !claimRow.is_sanctioned;
+
   return (
     <div className="mx-auto flex max-w-5xl flex-col gap-6 px-4 py-8 md:px-6">
-      <ProfileHeader payload={payload} isSaved={isSaved} />
+      <ProfileHeader
+        payload={payload}
+        isSaved={isSaved}
+        showClaimCta={showClaimCta}
+      />
       <Tabs defaultValue="compliance" className="flex flex-col gap-4">
         <TabsList aria-label="Profile sections">
           <TabsTrigger value="compliance">Compliance</TabsTrigger>
@@ -241,7 +257,15 @@ export default async function FactoryProfilePage({
 
 // ---------- header --------------------------------------------------------
 
-function ProfileHeader({ payload, isSaved }: { payload: ProfilePayload; isSaved: boolean }) {
+function ProfileHeader({
+  payload,
+  isSaved,
+  showClaimCta,
+}: {
+  payload: ProfilePayload;
+  isSaved: boolean;
+  showClaimCta: boolean;
+}) {
   const s = payload.supplier;
   const location =
     [s.city, s.district].filter((v) => v && v.trim()).join(", ") || "Unknown";
@@ -262,6 +286,7 @@ function ProfileHeader({ payload, isSaved }: { payload: ProfilePayload; isSaved:
                   </Link>
                 </Button>
                 <SaveButton supplierId={s.id} initialSaved={isSaved} shape="full" />
+                {showClaimCta ? <ClaimCtaButton slug={s.slug} /> : null}
               </div>
             </div>
             <div className="flex flex-wrap items-center gap-2 text-[13px] text-ink-secondary">

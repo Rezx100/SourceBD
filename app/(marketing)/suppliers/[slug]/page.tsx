@@ -17,6 +17,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Tag } from "@/components/ui/tag";
+import { ClaimCtaButton } from "@/components/claim-cta-button";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -35,6 +36,8 @@ type PublicSupplier = {
   bkmea_verified: boolean;
   bgapmea_verified: boolean;
   btma_verified: boolean;
+  claimed_by: string | null;
+  is_sanctioned: boolean;
 };
 
 export default async function SupplierProfilePage({
@@ -47,7 +50,7 @@ export default async function SupplierProfilePage({
   const { data, error } = await supabase
     .from("suppliers")
     .select(
-      "id, slug, company_name, entity_type, city, district, country, website, source_tags, bgmea_verified, bkmea_verified, bgapmea_verified, btma_verified",
+      "id, slug, company_name, entity_type, city, district, country, website, source_tags, bgmea_verified, bkmea_verified, bgapmea_verified, btma_verified, claimed_by, is_sanctioned",
     )
     .eq("slug", slug)
     .eq("is_published", true)
@@ -79,6 +82,11 @@ export default async function SupplierProfilePage({
           {s.entity_type.replace(/_/g, " ")} ·{" "}
           {[s.city, s.district, s.country].filter(Boolean).join(", ")}
         </p>
+        {s.claimed_by === null && !s.is_sanctioned ? (
+          <div className="mt-4">
+            <ClaimCtaButton slug={s.slug} />
+          </div>
+        ) : null}
       </header>
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
