@@ -27,9 +27,9 @@ const UUID_RE =
 const MAX_BODY = 8000;
 const MAX_SUBJECT = 200;
 
-async function requireBuyerOrAdmin() {
+async function requireAnyAuth() {
   const role = await getServerRole();
-  if (role !== "buyer" && role !== "admin") {
+  if (role !== "buyer" && role !== "supplier" && role !== "admin") {
     return {
       role: null,
       error: NextResponse.json({ error: "unauthorised" }, { status: 401 }),
@@ -39,7 +39,7 @@ async function requireBuyerOrAdmin() {
 }
 
 export async function GET(req: Request) {
-  const gate = await requireBuyerOrAdmin();
+  const gate = await requireAnyAuth();
   if (gate.error) return gate.error;
 
   const supabase = await createSupabaseServerClient();
@@ -94,7 +94,7 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
-  const gate = await requireBuyerOrAdmin();
+  const gate = await requireAnyAuth();
   if (gate.error) return gate.error;
 
   let body: unknown;
@@ -111,6 +111,9 @@ export async function POST(req: Request) {
   const supabase = await createSupabaseServerClient();
 
   if (action === "open") {
+    if (gate.role !== "buyer" && gate.role !== "admin") {
+      return NextResponse.json({ error: "unauthorised" }, { status: 403 });
+    }
     const supplierId = obj.supplier_id;
     if (typeof supplierId !== "string" || !UUID_RE.test(supplierId)) {
       return NextResponse.json({ error: "invalid supplier_id" }, { status: 400 });

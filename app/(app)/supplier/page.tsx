@@ -157,13 +157,19 @@ export default async function SupplierHome() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Profile editor & inbox</CardTitle>
-          <CardMeta>Specs S3–S5</CardMeta>
+          <CardTitle>RFQ inbox</CardTitle>
+          <CardMeta>Spec S4</CardMeta>
         </CardHeader>
         <CardContent className="text-sm text-ink-secondary">
-          Inquiries and the RFQ inbox ship in the remainder of Phase 3.
-          Profile editing is available now via &ldquo;Edit profile&rdquo;
-          on each claimed company above, or at{" "}
+          The RFQ inbox ships in the next Phase-3 spec. Buyer messages
+          already land at{" "}
+          <Link
+            href="/supplier/messages"
+            className="font-semibold text-ink-primary hover:underline"
+          >
+            /supplier/messages
+          </Link>
+          , and profile editing is available at{" "}
           <Link
             href="/supplier/profile"
             className="font-semibold text-ink-primary hover:underline"

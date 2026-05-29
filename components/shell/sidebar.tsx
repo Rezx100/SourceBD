@@ -42,7 +42,7 @@ const BUYER_SLOTS: Slot[] = [
 const SUPPLIER_SLOTS: Slot[] = [
   { label: "Dashboard", href: "/supplier", Icon: Gauge },
   { label: "Company profile", href: "/supplier/profile", Icon: Storefront },
-  { label: "Inquiries", href: "/supplier/inquiries", Icon: ChatCircleText },
+  { label: "Messages", href: "/supplier/messages", Icon: ChatCircleText },
   { label: "RFQs received", href: "/supplier/rfqs", Icon: Tray },
   { label: "Documents", href: "/supplier/documents", Icon: FileText },
   { label: "Settings", href: "/supplier/settings", Icon: GearSix },
