@@ -116,7 +116,7 @@ export default async function BuyerHome() {
 
       <section
         aria-label="Quick stats"
-        className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4"
+        className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5"
       >
         <StatTile
           label="Saved suppliers"
@@ -147,6 +147,16 @@ export default async function BuyerHome() {
               : "In production / shipping"
           }
           href="/app/orders"
+        />
+        <StatTile
+          label="Compliance alerts"
+          value={doc.alerts.length}
+          meta={
+            doc.alerts.length === 0
+              ? "All certifications current"
+              : "Certs expiring within 30 days"
+          }
+          href="/app/compliance"
         />
         <StatTile
           label="Unread messages"
