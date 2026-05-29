@@ -79,15 +79,21 @@ const EMPTY: DashboardDoc = {
 
 export default async function BuyerHome() {
   const supabase = await createSupabaseServerClient();
-  const [{ data, error }, { count: openRfqCount }] = await Promise.all([
-    supabase.rpc("buyer_dashboard"),
-    supabase
-      .from("rfqs")
-      .select("id", { count: "exact", head: true })
-      .eq("status", "open"),
-  ]);
+  const [{ data, error }, { count: openRfqCount }, { count: activeOrderCount }] =
+    await Promise.all([
+      supabase.rpc("buyer_dashboard"),
+      supabase
+        .from("rfqs")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "open"),
+      supabase
+        .from("orders")
+        .select("id", { count: "exact", head: true })
+        .in("status", ["draft", "in_production", "shipped", "in_transit"]),
+    ]);
   const doc: DashboardDoc = error || data == null ? EMPTY : (data as DashboardDoc);
   const activeRfqs = openRfqCount ?? 0;
+  const activeOrders = activeOrderCount ?? 0;
 
   return (
     <div className="mx-auto max-w-6xl space-y-6">
@@ -110,7 +116,7 @@ export default async function BuyerHome() {
 
       <section
         aria-label="Quick stats"
-        className="grid grid-cols-1 gap-4 sm:grid-cols-3"
+        className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4"
       >
         <StatTile
           label="Saved suppliers"
@@ -133,10 +139,20 @@ export default async function BuyerHome() {
           href="/app/rfqs"
         />
         <StatTile
+          label="Active orders"
+          value={activeOrders}
+          meta={
+            activeOrders === 0
+              ? "Accept an RFQ quote to seed an order."
+              : "In production / shipping"
+          }
+          href="/app/orders"
+        />
+        <StatTile
           label="Unread messages"
           value={0}
-          meta="Messaging ships in Spec B6"
-          muted
+          meta="Open Messages from the sidebar"
+          href="/app/messages"
         />
       </section>
 

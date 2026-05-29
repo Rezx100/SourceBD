@@ -223,6 +223,15 @@ export default async function RfqDetailPage({
                   {canAccept && q.status === "submitted" ? (
                     <AcceptQuoteButton quoteId={q.id} />
                   ) : null}
+                  {isBuyer &&
+                  rfq.status === "accepted" &&
+                  q.status === "accepted" ? (
+                    <Button asChild variant="primary" size="sm">
+                      <Link href={`/app/orders/new?from_quote=${q.id}`}>
+                        Create order from this quote
+                      </Link>
+                    </Button>
+                  ) : null}
                 </li>
               ))}
             </ul>
