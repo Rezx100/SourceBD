@@ -79,8 +79,15 @@ const EMPTY: DashboardDoc = {
 
 export default async function BuyerHome() {
   const supabase = await createSupabaseServerClient();
-  const { data, error } = await supabase.rpc("buyer_dashboard");
+  const [{ data, error }, { count: openRfqCount }] = await Promise.all([
+    supabase.rpc("buyer_dashboard"),
+    supabase
+      .from("rfqs")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "open"),
+  ]);
   const doc: DashboardDoc = error || data == null ? EMPTY : (data as DashboardDoc);
+  const activeRfqs = openRfqCount ?? 0;
 
   return (
     <div className="mx-auto max-w-6xl space-y-6">
@@ -117,9 +124,13 @@ export default async function BuyerHome() {
         />
         <StatTile
           label="Active RFQs"
-          value={0}
-          meta="RFQ Manager ships in Spec B7"
-          muted
+          value={activeRfqs}
+          meta={
+            activeRfqs === 0
+              ? "Compose your first RFQ from a supplier profile."
+              : "Awaiting quotes"
+          }
+          href="/app/rfqs"
         />
         <StatTile
           label="Unread messages"

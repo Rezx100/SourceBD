@@ -255,7 +255,14 @@ function ProfileHeader({ payload, isSaved }: { payload: ProfilePayload; isSaved:
               <h1 className="m-0 truncate font-display text-[28px] font-semibold leading-tight tracking-tight text-ink-primary md:text-[32px]">
                 {s.company_name}
               </h1>
-              <SaveButton supplierId={s.id} initialSaved={isSaved} shape="full" />
+              <div className="flex items-center gap-2">
+                <Button asChild variant="primary" size="sm">
+                  <Link href={`/app/rfqs/new?supplier=${s.id}`}>
+                    Request a quote
+                  </Link>
+                </Button>
+                <SaveButton supplierId={s.id} initialSaved={isSaved} shape="full" />
+              </div>
             </div>
             <div className="flex flex-wrap items-center gap-2 text-[13px] text-ink-secondary">
               <Badge tone={s.entity_type === "factory" ? "active" : "neutral"}>
