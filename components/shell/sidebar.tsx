@@ -9,6 +9,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   BookmarkSimple,
+  Certificate,
   ChatCircleText,
   Database,
   FileText,
@@ -55,6 +56,7 @@ const ADMIN_SLOTS: Slot[] = [
   { label: "Suppliers", href: "/admin/suppliers", Icon: Storefront },
   { label: "Supplier queue", href: "/admin/queue", Icon: Tray },
   { label: "Claim verification", href: "/admin/claims", Icon: IdentificationBadge },
+  { label: "Certification queue", href: "/admin/certifications", Icon: Certificate },
   { label: "Sources & ingestion", href: "/admin/sources", Icon: Database },
   { label: "Scoring", href: "/admin/scoring", Icon: ShieldCheck },
   { label: "Users & access", href: "/admin/users", Icon: Users },
