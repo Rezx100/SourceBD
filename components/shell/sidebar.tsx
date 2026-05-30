@@ -11,6 +11,7 @@ import {
   BookmarkSimple,
   Certificate,
   ChatCircleText,
+  ClockCounterClockwise,
   Database,
   FileText,
   GearSix,
@@ -60,6 +61,7 @@ const ADMIN_SLOTS: Slot[] = [
   { label: "Certification queue", href: "/admin/certifications", Icon: Certificate },
   { label: "Sanctions queue", href: "/admin/sanctions", Icon: Prohibit },
   { label: "Sources & ingestion", href: "/admin/sources", Icon: Database },
+  { label: "Audit log", href: "/admin/audit-log", Icon: ClockCounterClockwise },
   { label: "Scoring", href: "/admin/scoring", Icon: ShieldCheck },
   { label: "Users & access", href: "/admin/users", Icon: Users },
 ];
