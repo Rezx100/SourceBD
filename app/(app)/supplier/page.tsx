@@ -64,6 +64,16 @@ export default async function SupplierHome() {
     (c) => c.status === "pending_email" || c.status === "email_verified",
   );
 
+  type RfqRow = {
+    id: string;
+    status: "open" | "accepted" | "closed" | "cancelled";
+    viewer_role: "buyer" | "supplier" | "both";
+  };
+  const { data: rfqData } = await supabase.rpc("rfq_list", { p_status: null });
+  const allRfqs = (rfqData ?? []) as RfqRow[];
+  const supplierRfqs = allRfqs.filter((r) => r.viewer_role !== "buyer");
+  const openRfqCount = supplierRfqs.filter((r) => r.status === "open").length;
+
   return (
     <div className="mx-auto max-w-5xl space-y-6">
       <header>
@@ -158,25 +168,33 @@ export default async function SupplierHome() {
       <Card>
         <CardHeader>
           <CardTitle>RFQ inbox</CardTitle>
-          <CardMeta>Spec S4</CardMeta>
+          <CardMeta>
+            {supplierRfqs.length} total · {openRfqCount} open
+          </CardMeta>
         </CardHeader>
-        <CardContent className="text-sm text-ink-secondary">
-          The RFQ inbox ships in the next Phase-3 spec. Buyer messages
-          already land at{" "}
-          <Link
-            href="/supplier/messages"
-            className="font-semibold text-ink-primary hover:underline"
-          >
-            /supplier/messages
-          </Link>
-          , and profile editing is available at{" "}
-          <Link
-            href="/supplier/profile"
-            className="font-semibold text-ink-primary hover:underline"
-          >
-            /supplier/profile
-          </Link>
-          .
+        <CardContent className="space-y-3 text-sm text-ink-secondary">
+          {supplierRfqs.length === 0 ? (
+            <p>
+              No buyer RFQs yet. When a buyer addresses an RFQ to one of
+              your claimed companies it will land in your{" "}
+              <Link
+                href="/supplier/rfqs"
+                className="font-semibold text-ink-primary hover:underline"
+              >
+                RFQs received
+              </Link>{" "}
+              inbox.
+            </p>
+          ) : (
+            <p>
+              {openRfqCount > 0
+                ? `${openRfqCount} open ${openRfqCount === 1 ? "RFQ is" : "RFQs are"} awaiting your quote.`
+                : "All RFQs you have received are closed."}
+            </p>
+          )}
+          <Button asChild variant="primary" size="sm">
+            <Link href="/supplier/rfqs">Open RFQ inbox</Link>
+          </Button>
         </CardContent>
       </Card>
     </div>

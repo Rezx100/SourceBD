@@ -1,22 +1,23 @@
 // /api/v1/rfqs — Buyer composes an RFQ, suppliers submit quotes, buyer
-// accepts one. Spec B7.
+// accepts one. Spec B7 + Spec S4 (supplier-side surfaces).
 //
 // Endpoints:
 //   GET  /api/v1/rfqs?status=open                → { rfqs: [...] }
 //   GET  /api/v1/rfqs?id=<uuid>                  → { rfq:  {...} }
 //   POST /api/v1/rfqs
-//     { action: "create", product_title, quantity, quantity_unit,
-//       target_supplier_ids, ...optional }       → { rfq_id }
-//     { action: "submit_quote", rfq_id, unit_price, ...optional }
-//                                                → { quote_id }
-//     { action: "accept_quote", quote_id }       → { ok: true }
+//     { action: "create", ... }                  → { rfq_id }     (buyer/admin)
+//     { action: "submit_quote", rfq_id, ... }    → { quote_id }   (supplier/admin)
+//     { action: "accept_quote", quote_id }       → { ok: true }   (buyer/admin)
 //
-// Auth: any authenticated user. RPCs are SECURITY DEFINER and enforce
-// buyer/supplier-role gating + RLS visibility internally — this handler
-// is a thin input validator that forwards to them.
+// Auth: any authenticated user may hit GET + POST; per-action role gates
+// below mirror the S3 messages handler (read symmetric, writes gated by
+// the action's authoring side). RPCs are SECURITY DEFINER and re-enforce
+// the role check + RLS visibility — this handler is a thin input
+// validator that forwards to them.
 
 import { NextResponse } from "next/server";
 
+import { getServerRole } from "@/lib/auth";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
@@ -30,19 +31,15 @@ const MAX_DESC = 4000;
 const MAX_NOTES = 4000;
 const MAX_TARGETS = 50;
 
-type Sb = Awaited<ReturnType<typeof createSupabaseServerClient>>;
-
-async function requireAuth(): Promise<
-  { supabase: Sb; userId: string } | NextResponse
-> {
-  const supabase = await createSupabaseServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
-    return NextResponse.json({ error: "unauthorised" }, { status: 401 });
+async function requireAnyAuth() {
+  const role = await getServerRole();
+  if (role !== "buyer" && role !== "supplier" && role !== "admin") {
+    return {
+      role: null,
+      error: NextResponse.json({ error: "unauthorised" }, { status: 401 }),
+    } as const;
   }
-  return { supabase, userId: user.id };
+  return { role, error: null } as const;
 }
 
 function errStatus(message: string): number {
@@ -54,9 +51,9 @@ function errStatus(message: string): number {
 }
 
 export async function GET(req: Request) {
-  const gate = await requireAuth();
-  if (gate instanceof NextResponse) return gate;
-  const { supabase } = gate;
+  const gate = await requireAnyAuth();
+  if (gate.error) return gate.error;
+  const supabase = await createSupabaseServerClient();
 
   const url = new URL(req.url);
   const id = url.searchParams.get("id");
@@ -93,9 +90,9 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
-  const gate = await requireAuth();
-  if (gate instanceof NextResponse) return gate;
-  const { supabase } = gate;
+  const gate = await requireAnyAuth();
+  if (gate.error) return gate.error;
+  const supabase = await createSupabaseServerClient();
 
   let body: unknown;
   try {
@@ -110,6 +107,9 @@ export async function POST(req: Request) {
   const action = obj.action;
 
   if (action === "create") {
+    if (gate.role !== "buyer" && gate.role !== "admin") {
+      return NextResponse.json({ error: "buyer only" }, { status: 403 });
+    }
     const title = typeof obj.product_title === "string" ? obj.product_title.trim() : "";
     if (!title) {
       return NextResponse.json({ error: "product_title is required" }, { status: 400 });
@@ -219,6 +219,9 @@ export async function POST(req: Request) {
   }
 
   if (action === "submit_quote") {
+    if (gate.role !== "supplier" && gate.role !== "admin") {
+      return NextResponse.json({ error: "supplier only" }, { status: 403 });
+    }
     const rfqId = obj.rfq_id;
     if (typeof rfqId !== "string" || !UUID_RE.test(rfqId)) {
       return NextResponse.json({ error: "invalid rfq_id" }, { status: 400 });
@@ -298,6 +301,9 @@ export async function POST(req: Request) {
   }
 
   if (action === "accept_quote") {
+    if (gate.role !== "buyer" && gate.role !== "admin") {
+      return NextResponse.json({ error: "buyer only" }, { status: 403 });
+    }
     const quoteId = obj.quote_id;
     if (typeof quoteId !== "string" || !UUID_RE.test(quoteId)) {
       return NextResponse.json({ error: "invalid quote_id" }, { status: 400 });
