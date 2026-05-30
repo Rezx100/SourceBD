@@ -149,6 +149,16 @@ type ComplianceDocument = {
   file_size: number | null;
 };
 
+type PartnerSummary = {
+  id: string;
+  slug: string;
+  company_name: string;
+  entity_type: "factory" | "buying_house" | "unknown";
+  city: string | null;
+  district: string | null;
+  decided_at: string | null;
+};
+
 type ProfilePayload = {
   supplier: Supplier;
   t13_source_count: number;
@@ -160,6 +170,8 @@ type ProfilePayload = {
   provenance: Provenance[];
   addresses: AddressRow[];
   documents: ComplianceDocument[];
+  partner_factories: PartnerSummary[];
+  partner_buying_houses: PartnerSummary[];
 };
 
 // ---------- entry --------------------------------------------------------
@@ -244,7 +256,7 @@ export default async function FactoryProfilePage({
         ) : null}
         {s.entity_type === "buying_house" ? (
           <TabsContent value="partners">
-            <PartnerFactoriesTab />
+            <PartnerFactoriesTab partners={payload.partner_factories} />
           </TabsContent>
         ) : null}
         <TabsContent value="contact">
@@ -694,6 +706,12 @@ function OverviewTab({ payload }: { payload: ProfilePayload }) {
 
   return (
     <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+      {s.entity_type === "factory" &&
+      payload.partner_buying_houses.length > 0 ? (
+        <div className="md:col-span-2">
+          <PartnerBuyingHousesCard partners={payload.partner_buying_houses} />
+        </div>
+      ) : null}
       {primaryAddress ? (
         <Card className="md:col-span-2">
           <CardHeader>
@@ -939,26 +957,91 @@ function DocumentsTab({ documents }: { documents: ComplianceDocument[] }) {
   );
 }
 
-// ---------- Partner Factories tab (BH only, Spec B3) -----------------------
+// ---------- Partner Factories tab (BH only, Spec B3 reserve → S5 active) ---
 //
-// `bh_factory_relationships` does not exist in the DB yet; per
-// frontend-design-spec.md §4.8 the slot is reserved with a static empty state
-// until the BH relationship graph ships in a later Phase-2 spec.
+// Spec S5 activates this tab. Only accepted relationships are projected by
+// `buyer_supplier_profile.partner_factories[]`. No PII.
 
-function PartnerFactoriesTab() {
+function PartnerFactoriesTab({ partners }: { partners: PartnerSummary[] }) {
   return (
     <Card>
       <CardHeader>
         <CardTitle>Partner factories</CardTitle>
-        <CardMeta>Reserved · Phase 2</CardMeta>
+        <CardMeta>{partners.length} declared</CardMeta>
       </CardHeader>
-      <CardContent className="flex flex-col items-start gap-3 py-6">
-        <p className="m-0 max-w-prose text-[14px] text-ink-secondary">
-          Partner-factory disclosures will land with the buying-house
-          relationship graph in a later Phase&nbsp;2 spec. We don&rsquo;t show a
-          list here until we have first-party evidence linking each factory to
-          this buying house.
-        </p>
+      <CardContent>
+        {partners.length === 0 ? (
+          <p className="m-0 max-w-prose text-[14px] text-ink-secondary">
+            No partner factories declared. A buying house can declare
+            partnerships from its supplier portal; the factory must accept
+            before it surfaces here.
+          </p>
+        ) : (
+          <ul className="m-0 flex list-none flex-col divide-y divide-hairline p-0">
+            {partners.map((p) => (
+              <li
+                key={p.id}
+                className="flex flex-wrap items-center justify-between gap-3 py-3"
+              >
+                <div className="min-w-0">
+                  <Link
+                    href={`/app/suppliers/${p.slug}`}
+                    className="text-[14px] font-semibold text-ink-primary hover:underline"
+                  >
+                    {p.company_name}
+                  </Link>
+                  <p className="m-0 text-[12px] text-ink-tertiary">
+                    {[p.city, p.district].filter(Boolean).join(", ") || "\u2014"}
+                    {p.decided_at
+                      ? ` \u00b7 partnered ${new Date(p.decided_at).toLocaleDateString()}`
+                      : ""}
+                  </p>
+                </div>
+                <Tag>factory</Tag>
+              </li>
+            ))}
+          </ul>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+// ---------- Buying Houses card (factory pages, Spec S5) --------------------
+
+function PartnerBuyingHousesCard({ partners }: { partners: PartnerSummary[] }) {
+  if (partners.length === 0) return null;
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Partner buying houses</CardTitle>
+        <CardMeta>{partners.length} declared</CardMeta>
+      </CardHeader>
+      <CardContent>
+        <ul className="m-0 flex list-none flex-col divide-y divide-hairline p-0">
+          {partners.map((p) => (
+            <li
+              key={p.id}
+              className="flex flex-wrap items-center justify-between gap-3 py-3"
+            >
+              <div className="min-w-0">
+                <Link
+                  href={`/app/suppliers/${p.slug}`}
+                  className="text-[14px] font-semibold text-ink-primary hover:underline"
+                >
+                  {p.company_name}
+                </Link>
+                <p className="m-0 text-[12px] text-ink-tertiary">
+                  {[p.city, p.district].filter(Boolean).join(", ") || "\u2014"}
+                  {p.decided_at
+                    ? ` \u00b7 partnered ${new Date(p.decided_at).toLocaleDateString()}`
+                    : ""}
+                </p>
+              </div>
+              <Tag>buying house</Tag>
+            </li>
+          ))}
+        </ul>
       </CardContent>
     </Card>
   );

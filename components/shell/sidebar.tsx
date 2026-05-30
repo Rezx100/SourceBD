@@ -22,6 +22,7 @@ import {
   Storefront,
   Tray,
   Users,
+  UsersThree,
 } from "@phosphor-icons/react/dist/ssr";
 import type { Icon } from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
@@ -44,6 +45,7 @@ const SUPPLIER_SLOTS: Slot[] = [
   { label: "Company profile", href: "/supplier/profile", Icon: Storefront },
   { label: "Messages", href: "/supplier/messages", Icon: ChatCircleText },
   { label: "RFQs received", href: "/supplier/rfqs", Icon: Tray },
+  { label: "Partners", href: "/supplier/partners", Icon: UsersThree },
   { label: "Documents", href: "/supplier/documents", Icon: FileText },
   { label: "Settings", href: "/supplier/settings", Icon: GearSix },
 ];

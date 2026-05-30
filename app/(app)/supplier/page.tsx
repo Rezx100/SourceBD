@@ -74,6 +74,22 @@ export default async function SupplierHome() {
   const supplierRfqs = allRfqs.filter((r) => r.viewer_role !== "buyer");
   const openRfqCount = supplierRfqs.filter((r) => r.status === "open").length;
 
+  type RelRow = {
+    id: string;
+    status: "pending" | "accepted" | "rejected" | "revoked";
+    viewer_role: "buying_house" | "factory";
+    initiated_side: "buying_house" | "factory";
+  };
+  const { data: relData } = await supabase.rpc("supplier_relationship_list", {
+    p_supplier_id: null,
+    p_status: null,
+  });
+  const allRels = (relData ?? []) as RelRow[];
+  const pendingIncomingCount = allRels.filter(
+    (r) => r.status === "pending" && r.viewer_role !== r.initiated_side,
+  ).length;
+  const acceptedRelCount = allRels.filter((r) => r.status === "accepted").length;
+
   return (
     <div className="mx-auto max-w-5xl space-y-6">
       <header>
@@ -194,6 +210,37 @@ export default async function SupplierHome() {
           )}
           <Button asChild variant="primary" size="sm">
             <Link href="/supplier/rfqs">Open RFQ inbox</Link>
+          </Button>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Partners</CardTitle>
+          <CardMeta>
+            {acceptedRelCount} accepted · {pendingIncomingCount} awaiting you
+          </CardMeta>
+        </CardHeader>
+        <CardContent className="space-y-3 text-sm text-ink-secondary">
+          {allRels.length === 0 ? (
+            <p>
+              Declare partner factories or buying houses. Both sides must
+              accept before the relationship surfaces on buyer-side profiles.
+            </p>
+          ) : pendingIncomingCount > 0 ? (
+            <p>
+              {pendingIncomingCount} partnership{" "}
+              {pendingIncomingCount === 1 ? "request is" : "requests are"}{" "}
+              awaiting your decision.
+            </p>
+          ) : (
+            <p>
+              {acceptedRelCount} active partnership
+              {acceptedRelCount === 1 ? "" : "s"}.
+            </p>
+          )}
+          <Button asChild variant="primary" size="sm">
+            <Link href="/supplier/partners">Open partners</Link>
           </Button>
         </CardContent>
       </Card>
