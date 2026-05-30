@@ -52,6 +52,7 @@ const SUPPLIER_SLOTS: Slot[] = [
 
 const ADMIN_SLOTS: Slot[] = [
   { label: "Overview", href: "/admin", Icon: Gauge },
+  { label: "Suppliers", href: "/admin/suppliers", Icon: Storefront },
   { label: "Supplier queue", href: "/admin/queue", Icon: Tray },
   { label: "Claim verification", href: "/admin/claims", Icon: IdentificationBadge },
   { label: "Sources & ingestion", href: "/admin/sources", Icon: Database },
