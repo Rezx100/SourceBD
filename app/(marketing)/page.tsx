@@ -340,13 +340,7 @@ export default async function MarketingHome() {
         </p>
       </section>
 
-      {/* ─────────── 6. Footer (JC #7 — trademarks only) ─────────── */}
-      <footer className="mt-24 border-t border-ink-200 pt-6 text-xs text-ink-secondary flex flex-col md:flex-row items-start md:items-center justify-between gap-2">
-        <span>© 2026 SourceBD</span>
-        <Link href="/legal/trademarks" className="hover:text-ink-primary">
-          Trademarks
-        </Link>
-      </footer>
+      {/* Footer rendered by `app/(marketing)/layout.tsx` (M2). */}
     </main>
   );
 }

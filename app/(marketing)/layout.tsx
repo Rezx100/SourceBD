@@ -1,8 +1,21 @@
-// Marketing route-group layout. Anonymous surface — no sidebar, no auth chrome.
-// Per-section pages live under this group (`/`, `/buyers`, `/suppliers`, `/pricing`,
-// `/about`, `/legal/*`) per frontend-design-spec §2.4. F2 ships only `/`; the rest
-// arrive in their own Phase-1 marketing specs.
+// Marketing route-group layout. Anonymous surface — no app sidebar / app
+// chrome. M2 mounts the shared top-nav + footer here so every marketing
+// page (`/`, `/pricing`, `/legal/trademarks`) renders the same chrome.
+// Per-page `<main>` content sits between them.
 
-export default function MarketingLayout({ children }: { children: React.ReactNode }) {
-  return <div className="min-h-screen bg-bg-l0">{children}</div>;
+import { MarketingFooter } from "@/components/marketing/footer";
+import { MarketingTopNav } from "@/components/marketing/top-nav";
+
+export default function MarketingLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="flex min-h-screen flex-col bg-bg-l0">
+      <MarketingTopNav />
+      <div className="flex-1">{children}</div>
+      <MarketingFooter />
+    </div>
+  );
 }
