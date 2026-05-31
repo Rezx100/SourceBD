@@ -184,6 +184,21 @@ export default async function MarketingHome() {
 
   return (
     <main className="mx-auto max-w-5xl px-6 py-16">
+      {/* M4 — JSON-LD Organization. Inline (not next/script) — see spec
+          M4 hard constraint #4. */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "Organization",
+            name: "SourceBD",
+            url: SITE_URL,
+            description:
+              "Verified Bangladesh RMG supply-chain intelligence — discover, vet, and message factories and buying houses with receipts on every claim.",
+          }),
+        }}
+      />
       {/* ─────────── 1. Hero ─────────── */}
       <section className="text-center">
         <h1 className="font-display text-4xl md:text-5xl font-semibold tracking-tightish">

@@ -92,6 +92,26 @@ export default async function ComplianceDetailPage({
 
   return (
     <main className="mx-auto max-w-3xl px-6 py-16">
+      {/* M4 — JSON-LD Article. `datePublished` and `dateModified` both
+          derive from the single `last_reviewed_at` field (CompliancePage
+          has no separate publish date — the page is a living summary;
+          per spec M4 JC #7). */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "Article",
+            headline: page.title,
+            description: page.seo.description,
+            datePublished: page.last_reviewed_at,
+            dateModified: page.last_reviewed_at,
+            mainEntityOfPage: `${SITE_URL}/compliance/${page.slug}`,
+            author: { "@type": "Organization", name: "SourceBD" },
+            publisher: { "@type": "Organization", name: "SourceBD" },
+          }),
+        }}
+      />
       <nav aria-label="Breadcrumb" className="text-xs text-ink-tertiary">
         <Link href="/compliance" className="hover:text-ink-primary">
           Compliance

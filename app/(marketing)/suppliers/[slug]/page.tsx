@@ -5,6 +5,7 @@
 // blurred placeholder + sign-in CTA so the gate cannot be bypassed by the
 // client. `sbi_scores` is never selected here.
 
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
@@ -21,6 +22,8 @@ import { ClaimCtaButton } from "@/components/claim-cta-button";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
+
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://sourcebd.net";
 
 type PublicSupplier = {
   id: string;
@@ -39,6 +42,44 @@ type PublicSupplier = {
   claimed_by: string | null;
   is_sanctioned: boolean;
 };
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
+  const { slug } = await params;
+  try {
+    const supabase = await createSupabaseServerClient();
+    const { data } = await supabase
+      .from("suppliers")
+      .select("company_name, city, district, country")
+      .eq("slug", slug)
+      .eq("is_published", true)
+      .maybeSingle();
+    if (!data) return { title: "Supplier — SourceBD" };
+    const row = data as Pick<PublicSupplier, "company_name" | "city" | "district" | "country">;
+    const loc = [row.city, row.district, row.country].filter(Boolean).join(", ");
+    const title = `${row.company_name} — Bangladesh RMG supplier on SourceBD`;
+    const description = loc
+      ? `${row.company_name}, ${loc}. Verified registers, certifications, and source receipts on SourceBD.`
+      : `${row.company_name}. Verified registers, certifications, and source receipts on SourceBD.`;
+    return {
+      title,
+      description,
+      robots: { index: true, follow: true },
+      alternates: { canonical: `${SITE_URL}/suppliers/${slug}` },
+      openGraph: {
+        title,
+        description,
+        url: `${SITE_URL}/suppliers/${slug}`,
+        type: "profile",
+      },
+    };
+  } catch {
+    return { title: "Supplier — SourceBD" };
+  }
+}
 
 export default async function SupplierProfilePage({
   params,
@@ -66,8 +107,33 @@ export default async function SupplierProfilePage({
     s.btma_verified && "BTMA",
   ].filter(Boolean) as string[];
 
+  // M4 — JSON-LD. LocalBusiness when city or district present
+  // (postal locality is meaningful), else Organization. Only fields
+  // already in the page's SELECT (no contact PII) per spec M4 JC #8.
+  const hasLocality = !!(s.city || s.district);
+  const ldType = hasLocality ? "LocalBusiness" : "Organization";
+  const ld: Record<string, unknown> = {
+    "@context": "https://schema.org",
+    "@type": ldType,
+    name: s.company_name,
+    url: `${SITE_URL}/suppliers/${s.slug}`,
+  };
+  if (s.website) ld.sameAs = [s.website];
+  if (hasLocality || s.country) {
+    ld.address = {
+      "@type": "PostalAddress",
+      ...(s.city ? { addressLocality: s.city } : {}),
+      ...(s.district ? { addressRegion: s.district } : {}),
+      ...(s.country ? { addressCountry: s.country } : {}),
+    };
+  }
+
   return (
     <main className="mx-auto max-w-4xl px-6 py-12">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(ld) }}
+      />
       <header className="mb-8">
         <Link
           href="/discover"
