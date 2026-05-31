@@ -78,7 +78,7 @@ function rightLinks(role: Role | null) {
         Pricing
       </Link>
       <Link
-        href="/auth/sign-in"
+        href="/login"
         className="hidden text-sm text-ink-secondary hover:text-ink-primary sm:inline"
       >
         Sign in
