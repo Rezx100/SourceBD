@@ -1,30 +1,31 @@
-// Route protection — Spec F3 (Auth) + Spec A5 (suspension gate).
+// Route protection — Spec F3 (Auth) + Spec A5 (suspension gate) + Spec H2
+// (rate limiting).
 //
-// Reads the Supabase session via `@supabase/ssr` and gates the three
-// authenticated surfaces plus the public-shape JSON API:
+// Gates the three authenticated surfaces plus the public-shape JSON API:
 //
 //   /app/*       → role in {buyer, admin}; supplier → /supplier; anon → /login
 //   /supplier/*  → role in {supplier, admin}; other → /login
 //   /admin/*     → role === admin; other → /login
 //   /api/v1/*    → 401 anon / 403 if suspended; otherwise pass-through
 //
-// Public allow-list per `phases.md` F3 scope:
-//   - `(marketing)/*` (anonymous home + future legal/about/pricing)
-//   - `/discover` (limited shape, no contacts in payload)
-//   - `/suppliers/[slug]` (contacts server-blurred — never trust the client)
-//
-// Suspension model (Spec A5): `profiles.is_suspended=true` blocks all
-// gated UI (redirects to `/suspended`) and returns 403 JSON from any
-// `/api/v1/**` request. Suspended users can still reach `/suspended`
-// and `/auth/sign-out` (both deliberately outside the matcher). Per
-// `code-standards.md`, server enforces auth + ownership; middleware is
-// the UX-correct convenience that also doubles as an API gate.
+// Rate limiting (Spec H2) runs before auth gating so an unauthenticated
+// attacker cannot evade the auth-route limiter. Four route classes:
+// `auth` (IP), `api_write` (user), `api_read` (user), `public_marketing`
+// (IP). The internal health probe (`/api/health`) is excluded by the
+// matcher itself — no client-controllable allowlist header.
 //
 // `runtime='nodejs'` so the bundled supabase client + cookie store work the
 // same way as in Server Components.
 
 import { NextResponse, type NextRequest } from "next/server";
 import { createSupabaseMiddlewareClient } from "@/lib/supabase/middleware";
+import {
+  RATE_LIMITS,
+  classifyRoute,
+  leftmostIp,
+  type RateLimitClass,
+} from "@/lib/rate-limit/limits";
+import { rlCheck } from "@/lib/rate-limit/check";
 
 export const runtime = "nodejs";
 
@@ -33,9 +34,18 @@ type Role = "admin" | "buyer" | "supplier";
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
   const isApi = pathname.startsWith("/api/");
+  const needsAuthGate =
+    pathname === "/app" ||
+    pathname.startsWith("/app/") ||
+    pathname === "/admin" ||
+    pathname.startsWith("/admin/") ||
+    pathname === "/supplier" ||
+    pathname.startsWith("/supplier/") ||
+    pathname.startsWith("/api/v1/");
 
   // Local-dev admin bypass — mirrors `lib/auth.ts::getServerRole`. Never
-  // honoured in production; the `DEV_ADMIN_BYPASS` env var is unset there.
+  // honoured in production. Dev bypass also skips rate limiting so local
+  // iteration is not throttled.
   if (
     process.env.NODE_ENV !== "production" &&
     process.env.DEV_ADMIN_BYPASS === "1"
@@ -44,9 +54,50 @@ export async function middleware(req: NextRequest) {
   }
 
   const { supabase, res } = createSupabaseMiddlewareClient(req);
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+
+  const klass: RateLimitClass | null = classifyRoute(pathname, req.method);
+  let cachedUserId: string | null | undefined;
+
+  if (klass) {
+    const spec = RATE_LIMITS[klass];
+    let ident: string;
+    if (spec.identifier === "user") {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      cachedUserId = user?.id ?? null;
+      // Unauthed hits on /api/v1/* still get bucketed (by IP) so a logged-out
+      // attacker cannot bypass the gate by omitting cookies.
+      ident = cachedUserId ?? leftmostIp(req.headers);
+    } else {
+      ident = leftmostIp(req.headers);
+    }
+    const result = await rlCheck(supabase, klass, ident, spec.perMin);
+    if (!result.ok) {
+      return new NextResponse(
+        JSON.stringify({
+          error: "rate_limited",
+          retry_after_seconds: result.retryAfter,
+        }),
+        {
+          status: 429,
+          headers: {
+            "Retry-After": String(result.retryAfter),
+            "Content-Type": "application/json; charset=utf-8",
+          },
+        },
+      );
+    }
+  }
+
+  if (!needsAuthGate) return res;
+
+  const user =
+    cachedUserId === undefined
+      ? (await supabase.auth.getUser()).data.user
+      : cachedUserId
+        ? { id: cachedUserId }
+        : null;
 
   if (!user) {
     if (isApi) {
@@ -90,8 +141,6 @@ export async function middleware(req: NextRequest) {
   }
 
   if (isApi) {
-    // Role gating beyond suspension is the route handler's job; pass-through
-    // here so SECURITY DEFINER RPCs and `getServerRole()` can do role checks.
     return res;
   }
 
@@ -122,13 +171,10 @@ function redirectToLogin(req: NextRequest) {
 }
 
 export const config = {
-  // /suspended and /auth/* are deliberately excluded so suspended users
-  // can read the explainer and sign out. Public `(marketing)`, `/login`,
-  // `/discover`, `/suppliers/[slug]` are also excluded.
+  // Broad matcher so marketing + auth surfaces flow through the H2 limiter.
+  // Static assets, the Next runtime, and the internal health probe are
+  // excluded so we do not run middleware on every image / JS / CSS request.
   matcher: [
-    "/app/:path*",
-    "/admin/:path*",
-    "/supplier/:path*",
-    "/api/v1/:path*",
+    "/((?!_next/|api/health|favicon\\.ico|robots\\.txt|sitemap\\.xml|.*\\.(?:png|jpg|jpeg|svg|webp|gif|ico|css|js|woff|woff2|ttf|map|xml|txt)$).*)",
   ],
 };
