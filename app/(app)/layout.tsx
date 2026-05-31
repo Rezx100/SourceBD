@@ -6,15 +6,29 @@
 
 import { Sidebar } from "@/components/shell/sidebar";
 import { Topbar } from "@/components/shell/topbar";
+import { PostHogProvider } from "@/lib/posthog/provider";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 
-export default function AppShellLayout({ children }: { children: React.ReactNode }) {
+export default async function AppShellLayout({ children }: { children: React.ReactNode }) {
+  let userId: string | null = null;
+  try {
+    const supabase = await createSupabaseServerClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    userId = user?.id ?? null;
+  } catch {
+    userId = null;
+  }
   return (
-    <div className="flex min-h-screen flex-col bg-bg-l0">
-      <Topbar />
-      <div className="flex flex-1">
-        <Sidebar />
-        <main className="flex-1 px-4 py-6 md:px-8 md:py-8">{children}</main>
+    <PostHogProvider userId={userId}>
+      <div className="flex min-h-screen flex-col bg-bg-l0">
+        <Topbar />
+        <div className="flex flex-1">
+          <Sidebar />
+          <main className="flex-1 px-4 py-6 md:px-8 md:py-8">{children}</main>
+        </div>
       </div>
-    </div>
+    </PostHogProvider>
   );
 }

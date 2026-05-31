@@ -13,6 +13,7 @@ import type { Metadata } from "next";
 
 import { MarketingFooter } from "@/components/marketing/footer";
 import { MarketingTopNav } from "@/components/marketing/top-nav";
+import { PostHogProvider } from "@/lib/posthog/provider";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://sourcebd.net";
 
@@ -40,10 +41,12 @@ export default function MarketingLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex min-h-screen flex-col bg-bg-l0">
-      <MarketingTopNav />
-      <div className="flex-1">{children}</div>
-      <MarketingFooter />
-    </div>
+    <PostHogProvider userId={null}>
+      <div className="flex min-h-screen flex-col bg-bg-l0">
+        <MarketingTopNav />
+        <div className="flex-1">{children}</div>
+        <MarketingFooter />
+      </div>
+    </PostHogProvider>
   );
 }
