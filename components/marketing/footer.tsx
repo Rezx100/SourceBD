@@ -21,6 +21,9 @@ export function MarketingFooter() {
           <Link href="/pricing" className="hover:text-ink-primary">
             Pricing
           </Link>
+          <Link href="/compliance" className="hover:text-ink-primary">
+            Compliance
+          </Link>
           <Link href="/legal/trademarks" className="hover:text-ink-primary">
             Trademarks
           </Link>

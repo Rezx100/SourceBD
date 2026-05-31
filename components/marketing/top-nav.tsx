@@ -19,6 +19,12 @@ function rightLinks(role: Role | null) {
     return (
       <>
         <Link
+          href="/compliance"
+          className="text-sm text-ink-secondary hover:text-ink-primary"
+        >
+          Compliance
+        </Link>
+        <Link
           href="/pricing"
           className="text-sm text-ink-secondary hover:text-ink-primary"
         >
@@ -37,6 +43,12 @@ function rightLinks(role: Role | null) {
     return (
       <>
         <Link
+          href="/compliance"
+          className="text-sm text-ink-secondary hover:text-ink-primary"
+        >
+          Compliance
+        </Link>
+        <Link
           href="/pricing"
           className="text-sm text-ink-secondary hover:text-ink-primary"
         >
@@ -53,6 +65,12 @@ function rightLinks(role: Role | null) {
   }
   return (
     <>
+      <Link
+        href="/compliance"
+        className="hidden text-sm text-ink-secondary hover:text-ink-primary sm:inline"
+      >
+        Compliance
+      </Link>
       <Link
         href="/pricing"
         className="hidden text-sm text-ink-secondary hover:text-ink-primary sm:inline"
