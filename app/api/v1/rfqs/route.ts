@@ -19,6 +19,7 @@ import { NextResponse } from "next/server";
 
 import { getServerRole } from "@/lib/auth";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { notifyRfqTargets } from "@/lib/email/triggers/rfq-received";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -215,6 +216,16 @@ export async function POST(req: Request) {
         { status: errStatus(error.message) },
       );
     }
+    // H4 — fan out rfq_received emails to claimed-supplier owners.
+    // Best-effort: never block the RFQ response on mail.
+    void notifyRfqTargets({
+      rfqId: typeof data === "string" ? data : String(data),
+      productTitle: title,
+      quantity: quantityNum,
+      quantityUnit: unit,
+      shipBy,
+      targetSupplierIds: obj.target_supplier_ids as string[],
+    });
     return NextResponse.json({ rfq_id: data });
   }
 

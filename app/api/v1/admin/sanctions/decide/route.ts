@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 
 import { getServerRole } from "@/lib/auth";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { notifySanctionConfirmed } from "@/lib/email/triggers/sanction-alert";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -70,5 +71,31 @@ export async function POST(req: Request) {
       { status: code },
     );
   }
+
+  // H4 — sanction_alert fan-out (only on confirm, best-effort).
+  const result = (data ?? {}) as { supplier_id?: string; decision?: string };
+  if (result.decision === "confirm" && result.supplier_id) {
+    const supplierId = result.supplier_id;
+    const { data: supp } = await supabase
+      .from("suppliers")
+      .select("company_name, slug")
+      .eq("id", supplierId)
+      .maybeSingle();
+    const { data: q } = await supabase
+      .from("verification_queue")
+      .select("source_data")
+      .eq("id", queueId)
+      .maybeSingle();
+    const listName =
+      (q?.source_data as { list?: string } | null)?.list ?? "Sanctions list";
+    void notifySanctionConfirmed({
+      supplierId,
+      supplierName: supp?.company_name ?? "Saved supplier",
+      supplierSlug: supp?.slug ?? supplierId,
+      listName,
+      reason,
+    });
+  }
+
   return NextResponse.json(data);
 }

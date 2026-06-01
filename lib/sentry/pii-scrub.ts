@@ -37,6 +37,11 @@ const FORBIDDEN: ReadonlyArray<RegExp> = [
   /^customer_email$/i,
   /^receipt_email$/i,
   /^billing_details$/i,
+  // H4 — Resend transactional emails: redact the API key and the
+  // recipient address from any breadcrumb / extra / tag that may carry
+  // them through the sender wrapper.
+  /^resend[-_]?api[-_]?key$/i,
+  /^to[-_]?addr$/i,
 ];
 
 function isForbiddenKey(key: string): boolean {

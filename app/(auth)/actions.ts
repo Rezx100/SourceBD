@@ -9,6 +9,7 @@ import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { sendEmail, EmailError } from "@/lib/email/send";
 
 export type AuthActionState = { error?: string; info?: string };
 
@@ -89,6 +90,20 @@ export async function signUp(
     options: { emailRedirectTo, data: { role } },
   });
   if (error) return { error: error.message };
+
+  // H4 — best-effort welcome email. Never fail signup if mail breaks.
+  try {
+    await sendEmail({
+      to: email,
+      template: "welcome",
+      data: { appUrl: origin, role },
+      refId: `welcome:${email}`,
+    });
+  } catch (err) {
+    const msg = err instanceof EmailError ? err.message : String(err);
+    console.warn(`[signup] welcome email failed: ${msg}`);
+  }
+
   return {
     info: "Account created. Check your inbox to confirm the email address.",
   };
