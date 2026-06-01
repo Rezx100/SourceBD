@@ -172,9 +172,11 @@ function redirectToLogin(req: NextRequest) {
 
 export const config = {
   // Broad matcher so marketing + auth surfaces flow through the H2 limiter.
-  // Static assets, the Next runtime, and the internal health probe are
-  // excluded so we do not run middleware on every image / JS / CSS request.
+  // Static assets, the Next runtime, the internal health probe, and the
+  // Stripe webhook endpoint (H3) are excluded so we do not run middleware
+  // on every image / JS / CSS request — and so Stripe retries are not
+  // rate-limited or auth-gated.
   matcher: [
-    "/((?!_next/|api/health|favicon\\.ico|robots\\.txt|sitemap\\.xml|.*\\.(?:png|jpg|jpeg|svg|webp|gif|ico|css|js|woff|woff2|ttf|map|xml|txt)$).*)",
+    "/((?!_next/|api/health|api/stripe/webhook|favicon\\.ico|robots\\.txt|sitemap\\.xml|.*\\.(?:png|jpg|jpeg|svg|webp|gif|ico|css|js|woff|woff2|ttf|map|xml|txt)$).*)",
   ],
 };

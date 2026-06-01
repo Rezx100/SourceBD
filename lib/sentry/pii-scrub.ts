@@ -30,6 +30,13 @@ const FORBIDDEN: ReadonlyArray<RegExp> = [
   /^pillar(_.*)?$/i,
   /^internal_score$/i,
   /^supplier_score_internal$/i,
+  // H3 — Stripe webhook hardening: scrub the verification header and the
+  // PII-bearing fields Stripe puts on Checkout / Invoice / PaymentIntent
+  // payloads so neither makes it into a Sentry breadcrumb.
+  /^stripe-signature$/i,
+  /^customer_email$/i,
+  /^receipt_email$/i,
+  /^billing_details$/i,
 ];
 
 function isForbiddenKey(key: string): boolean {
