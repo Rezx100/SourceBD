@@ -7,7 +7,7 @@ import { Card } from "@/components/ui/card";
 // tokens, no new fonts.
 export default function AuthLayout({ children }: { children: ReactNode }) {
   return (
-    <main className="mx-auto flex min-h-[80vh] max-w-md items-center px-6 py-16">
+    <main id="main-content" tabIndex={-1} className="mx-auto flex min-h-[80vh] max-w-md items-center px-6 py-16 focus:outline-none">
       <Card className="w-full">{children}</Card>
     </main>
   );

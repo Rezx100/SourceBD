@@ -6,6 +6,7 @@
 
 import { Sidebar } from "@/components/shell/sidebar";
 import { Topbar } from "@/components/shell/topbar";
+import { SkipLink } from "@/components/ui/skip-link";
 import { PostHogProvider } from "@/lib/posthog/provider";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -23,10 +24,11 @@ export default async function AppShellLayout({ children }: { children: React.Rea
   return (
     <PostHogProvider userId={userId}>
       <div className="flex min-h-screen flex-col bg-bg-l0">
+        <SkipLink />
         <Topbar />
         <div className="flex flex-1">
           <Sidebar />
-          <main className="flex-1 px-4 py-6 md:px-8 md:py-8">{children}</main>
+          <main id="main-content" tabIndex={-1} className="flex-1 px-4 py-6 md:px-8 md:py-8 focus:outline-none">{children}</main>
         </div>
       </div>
     </PostHogProvider>

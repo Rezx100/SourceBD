@@ -13,6 +13,7 @@ import type { Metadata } from "next";
 
 import { MarketingFooter } from "@/components/marketing/footer";
 import { MarketingTopNav } from "@/components/marketing/top-nav";
+import { SkipLink } from "@/components/ui/skip-link";
 import { PostHogProvider } from "@/lib/posthog/provider";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://sourcebd.net";
@@ -43,8 +44,9 @@ export default function MarketingLayout({
   return (
     <PostHogProvider userId={null}>
       <div className="flex min-h-screen flex-col bg-bg-l0">
+        <SkipLink />
         <MarketingTopNav />
-        <div className="flex-1">{children}</div>
+        <div id="main-content" tabIndex={-1} className="flex-1 focus:outline-none">{children}</div>
         <MarketingFooter />
       </div>
     </PostHogProvider>
