@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Bricolage_Grotesque, JetBrains_Mono, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 
@@ -26,6 +26,14 @@ const mono = JetBrains_Mono({
 export const metadata: Metadata = {
   title: "SourceBD",
   description: "Verified Bangladesh RMG supplier intelligence.",
+};
+
+// Spec P1: explicit mobile viewport. Without this, mobile Safari renders
+// the site at desktop width and the entire responsive contract is moot.
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

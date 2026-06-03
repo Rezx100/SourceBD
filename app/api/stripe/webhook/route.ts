@@ -40,7 +40,15 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   const supabaseUrl = process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-  if (!secret || !apiKey) return serverError("stripe_not_configured");
+  // Spec P1: graceful no-op for the free-beta era. Stripe is intentionally
+  // unconfigured during the public beta (see phases.md "Deferred until
+  // post-beta"); the route stays mounted so the URL doesn't 404 on a stray
+  // scanner, but it returns 200 + {disabled:true} rather than 500 so any
+  // poller treats it as healthy. The H3 security perimeter behaviour is
+  // unchanged the moment the env vars are set.
+  if (!secret || !apiKey) {
+    return NextResponse.json({ disabled: true }, { status: 200 });
+  }
   if (!supabaseUrl || !serviceRoleKey) return serverError("supabase_not_configured");
 
   const sigHeader = req.headers.get("stripe-signature");
