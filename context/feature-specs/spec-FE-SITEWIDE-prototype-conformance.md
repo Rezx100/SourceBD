@@ -38,7 +38,7 @@ Phases run **in this order**. Each is a single-session unit per AGENTS.md rule 2
 | A2 | Sanctions-hit profile render | `profile-with-sanctions.html` | Both authenticated and public profiles: when `payload.sanctions_hits.length > 0`, render the full-width red `.sanctions-banner` above the header, switch Contact tab to disabled state, pin the dedicated Sanctions detail card at top of Compliance tab. Banner does NOT block scrolling. Tier reflects evidence breadth, NOT sanctions status. |
 | A3 | Thin-supplier render | `profile-thin-supplier.html` | Both profiles: when `t13_source_count == 1` AND completeness < 50%, render R1 thin variant (`.glyph .line:only-child`), amber completeness chip, omit empty tabs entirely. |
 
-### Phase B — Discover surfaces (authenticated + public)
+### Phase B — Discover surfaces (authenticated + public) ✅ shipped 4 Jun 2026
 
 | Step | File | Scope |
 | --- | --- | --- |

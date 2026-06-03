@@ -12,12 +12,7 @@
 
 import Link from "next/link";
 
-import { ReceiptsRing } from "@/components/receipts-ring";
 import { SaveButton } from "@/components/save-button";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Tag } from "@/components/ui/tag";
 import {
   CERT_KINDS,
   ENTITY_TYPES,
@@ -30,30 +25,15 @@ import {
   asStringArray,
   clampSort,
 } from "@/components/discover/filter-rail";
+import {
+  DiscoverResultCard,
+  type DiscoverRow,
+} from "@/components/discover/result-card";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
 const BASE_PATH = "/app/discover";
-
-type DiscoverRow = {
-  id: string;
-  slug: string;
-  company_name: string;
-  entity_type: string;
-  city: string | null;
-  district: string | null;
-  source_tags: string[];
-  t13_source_count: number;
-  completeness_pct: number;
-  employees_total: number | null;
-  established_date: string | null;
-  principal_products: string[];
-  factory_types: string[];
-  rsc_progress_pct: number | null;
-  parent_group_name: string | null;
-  total_count: number;
-};
 
 type SearchParams = Record<string, string | string[] | undefined>;
 
@@ -143,19 +123,19 @@ export default async function BuyerDiscoverPage({
   return (
     <div className="mx-auto max-w-7xl space-y-6">
       <header>
-        <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-ink-tertiary">
+        <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-tertiary">
           Buyer
         </p>
-        <h1 className="font-display text-2xl font-semibold tracking-tightish text-ink-primary">
+        <h1 className="mt-1 font-display text-3xl font-light tracking-tight text-ink-primary">
           Discover
         </h1>
-        <p className="mt-1 text-sm text-ink-secondary">
+        <p className="mt-2 text-sm text-ink-secondary">
           Verified Bangladesh garment factories and buying houses. Results
           ranked by source-backed evidence.
         </p>
       </header>
 
-      <div className="grid gap-6 md:grid-cols-[240px_minmax(0,1fr)]">
+      <div className="grid gap-6 md:grid-cols-[260px_minmax(0,1fr)]">
         <FilterRail
           basePath={BASE_PATH}
           q={q}
@@ -191,25 +171,33 @@ export default async function BuyerDiscoverPage({
           </div>
 
           {!error && rows.length === 0 ? (
-            <Card>
-              <CardContent className="space-y-3 py-8 text-center">
-                <p className="text-sm text-ink-secondary">
-                  {anyFilterActive
-                    ? "No suppliers match these filters. Try removing the most restrictive one."
-                    : "No published suppliers yet."}
-                </p>
-                {anyFilterActive ? (
-                  <Button asChild variant="outline" size="sm">
-                    <Link href={BASE_PATH}>Clear all filters</Link>
-                  </Button>
-                ) : null}
-              </CardContent>
-            </Card>
+            <div className="proto-card space-y-3 text-center">
+              <p className="text-sm text-ink-secondary">
+                {anyFilterActive
+                  ? "No suppliers match these filters. Try removing the most restrictive one."
+                  : "No published suppliers yet."}
+              </p>
+              {anyFilterActive ? (
+                <Link href={BASE_PATH} className="btn-proto inline-flex">
+                  Clear all filters
+                </Link>
+              ) : null}
+            </div>
           ) : (
             <ul className="grid grid-cols-1 gap-4">
               {rows.map((row) => (
                 <li key={row.id}>
-                  <ResultCard row={row} initialSaved={savedSet.has(row.id)} />
+                  <DiscoverResultCard
+                    row={row}
+                    hrefBase="/app/suppliers"
+                    actionSlot={
+                      <SaveButton
+                        supplierId={row.id}
+                        initialSaved={savedSet.has(row.id)}
+                        shape="icon"
+                      />
+                    }
+                  />
                 </li>
               ))}
             </ul>
@@ -227,81 +215,4 @@ export default async function BuyerDiscoverPage({
       </div>
     </div>
   );
-}
-
-function ResultCard({
-  row,
-  initialSaved,
-}: {
-  row: DiscoverRow;
-  initialSaved: boolean;
-}) {
-  const location = [row.city, row.district].filter(Boolean).join(", ");
-  const entityLabel =
-    ENTITY_TYPES.find((o) => o.value === row.entity_type)?.label ??
-    row.entity_type.replace(/_/g, " ");
-  const visiblePills = row.source_tags.slice(0, 4);
-  const extraPills = Math.max(0, row.source_tags.length - visiblePills.length);
-
-  return (
-    <Card className="transition hover:shadow-l2">
-      <CardContent className="flex items-start gap-4 py-4">
-        <Link
-          href={`/app/suppliers/${row.slug}`}
-          className="flex flex-1 items-start gap-4 min-w-0 rounded-card focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-indigo"
-        >
-          <ReceiptsRing sources={row.t13_source_count} size={48} />
-          <div className="min-w-0 flex-1 space-y-2">
-            <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-              <h2 className="font-display text-base font-semibold text-ink-primary">
-                {row.company_name}
-              </h2>
-              <span className="text-[12px] uppercase tracking-[0.04em] text-ink-tertiary">
-                {entityLabel}
-              </span>
-              {location ? (
-                <span className="text-[12px] text-ink-tertiary">· {location}</span>
-              ) : null}
-              {row.completeness_pct > 0 ? (
-                <Badge tone="neutral" className="ml-1">
-                  {row.completeness_pct}% complete
-                </Badge>
-              ) : null}
-            </div>
-
-            {visiblePills.length > 0 ? (
-              <div className="flex flex-wrap gap-1.5">
-                {visiblePills.map((tag) => (
-                  <Tag key={tag} tone="neutral">
-                    {tag}
-                  </Tag>
-                ))}
-                {extraPills > 0 ? (
-                  <Tag tone="muted">+ {extraPills} more</Tag>
-                ) : null}
-              </div>
-            ) : null}
-
-            <StatLine row={row} />
-          </div>
-        </Link>
-        <SaveButton supplierId={row.id} initialSaved={initialSaved} shape="icon" />
-      </CardContent>
-    </Card>
-  );
-}
-
-function StatLine({ row }: { row: DiscoverRow }) {
-  const parts: string[] = [];
-  if (row.established_date) parts.push(`Established ${row.established_date}`);
-  if (row.employees_total)
-    parts.push(`${row.employees_total.toLocaleString()} employees`);
-  if (row.factory_types.length > 0)
-    parts.push(row.factory_types.slice(0, 2).join(" · "));
-  if (row.principal_products.length > 0)
-    parts.push(row.principal_products.slice(0, 3).join(", "));
-  if (row.rsc_progress_pct !== null)
-    parts.push(`RSC ${Number(row.rsc_progress_pct).toFixed(0)}%`);
-  if (parts.length === 0) return null;
-  return <p className="text-[12px] text-ink-secondary">{parts.join(" · ")}</p>;
 }

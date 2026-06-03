@@ -8,7 +8,6 @@
 
 import Link from "next/link";
 
-import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 export const PAGE_SIZE = 24;
@@ -111,7 +110,7 @@ export function FilterRail({
       <form
         method="get"
         action={basePath}
-        className="space-y-5 rounded-card border border-hairline bg-surface-l1 p-4 shadow-l1"
+        className="proto-card space-y-4"
       >
         {sort && sort !== "default" ? (
           <input type="hidden" name="sort" value={sort} />
@@ -120,7 +119,7 @@ export function FilterRail({
         <div>
           <label
             htmlFor="discover-q"
-            className="mb-1.5 block font-mono text-[10px] uppercase tracking-[0.12em] text-ink-tertiary"
+            className="mb-1.5 block font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-ink-tertiary"
           >
             Search
           </label>
@@ -130,7 +129,7 @@ export function FilterRail({
             name="q"
             defaultValue={q}
             placeholder="Company name…"
-            className="w-full rounded-input border border-hairline bg-bg-l0 px-3 py-2 text-sm text-ink-primary outline-none focus:border-accent-indigo"
+            className="w-full rounded-input border border-hairline bg-bg-l0 px-3 py-2 text-sm text-ink-primary outline-none focus:border-brand-forest"
           />
         </div>
 
@@ -150,7 +149,7 @@ export function FilterRail({
           <select
             name="min_sources"
             defaultValue={minSources}
-            className="w-full rounded-input border border-hairline bg-bg-l0 px-2 py-1.5 text-sm text-ink-primary outline-none focus:border-accent-indigo"
+            className="w-full rounded-input border border-hairline bg-bg-l0 px-2 py-1.5 text-sm text-ink-primary outline-none focus:border-brand-forest"
           >
             {MIN_SOURCES_OPTIONS.map((o) => (
               <option key={o.label} value={o.value}>
@@ -182,7 +181,7 @@ export function FilterRail({
             inputMode="numeric"
             defaultValue={rscMin !== null ? String(rscMin) : ""}
             placeholder="e.g. 95"
-            className="w-full rounded-input border border-hairline bg-bg-l0 px-3 py-2 text-sm text-ink-primary outline-none focus:border-accent-indigo"
+            className="w-full rounded-input border border-hairline bg-bg-l0 px-3 py-2 text-sm text-ink-primary outline-none focus:border-brand-forest"
           />
         </FilterGroup>
 
@@ -192,14 +191,14 @@ export function FilterRail({
             name="city"
             defaultValue={city}
             placeholder="City"
-            className="w-full rounded-input border border-hairline bg-bg-l0 px-3 py-2 text-sm text-ink-primary outline-none focus:border-accent-indigo"
+            className="w-full rounded-input border border-hairline bg-bg-l0 px-3 py-2 text-sm text-ink-primary outline-none focus:border-brand-forest"
           />
           <input
             type="text"
             name="district"
             defaultValue={district}
             placeholder="District"
-            className="mt-2 w-full rounded-input border border-hairline bg-bg-l0 px-3 py-2 text-sm text-ink-primary outline-none focus:border-accent-indigo"
+            className="mt-2 w-full rounded-input border border-hairline bg-bg-l0 px-3 py-2 text-sm text-ink-primary outline-none focus:border-brand-forest"
           />
         </FilterGroup>
 
@@ -209,17 +208,17 @@ export function FilterRail({
             name="category"
             defaultValue={category}
             placeholder="e.g. knitwear"
-            className="w-full rounded-input border border-hairline bg-bg-l0 px-3 py-2 text-sm text-ink-primary outline-none focus:border-accent-indigo"
+            className="w-full rounded-input border border-hairline bg-bg-l0 px-3 py-2 text-sm text-ink-primary outline-none focus:border-brand-forest"
           />
         </FilterGroup>
 
         <div className="flex items-center gap-2 pt-1">
-          <Button type="submit" variant="primary" size="sm" className="flex-1">
+          <button type="submit" className="btn-proto primary flex-1 justify-center">
             Apply
-          </Button>
-          <Button asChild variant="ghost" size="sm">
-            <Link href={basePath}>Reset</Link>
-          </Button>
+          </button>
+          <Link href={basePath} className="btn-proto">
+            Reset
+          </Link>
         </div>
       </form>
     </aside>
@@ -235,7 +234,7 @@ function FilterGroup({
 }) {
   return (
     <fieldset className="space-y-2 border-0 p-0">
-      <legend className="font-mono text-[10px] uppercase tracking-[0.12em] text-ink-tertiary">
+      <legend className="font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-ink-tertiary">
         {label}
       </legend>
       <div className="space-y-1.5">{children}</div>
@@ -261,7 +260,7 @@ function CheckboxRow({
         name={name}
         value={value}
         defaultChecked={checked}
-        className="h-4 w-4 cursor-pointer accent-accent-indigo"
+        className="h-4 w-4 cursor-pointer accent-brand-forest"
       />
       <span>{label}</span>
     </label>
@@ -280,9 +279,9 @@ export function SortControl({
   return (
     <nav
       aria-label="Sort results"
-      className="flex flex-wrap items-center gap-1 text-[12px]"
+      className="flex flex-wrap items-center gap-1.5 text-[12px]"
     >
-      <span className="font-mono uppercase tracking-[0.12em] text-ink-tertiary">
+      <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-ink-tertiary">
         Sort
       </span>
       {SORT_OPTIONS.map((opt) => {
@@ -299,10 +298,8 @@ export function SortControl({
             key={opt.value}
             href={href}
             className={cn(
-              "rounded-pill border px-2.5 py-1 transition",
-              isActive
-                ? "border-accent-indigo bg-accent-indigo/10 text-ink-primary"
-                : "border-hairline text-ink-secondary hover:border-hairline-strong",
+              "proto-pill",
+              isActive && "border-brand-forest bg-brand-forest-soft text-brand-forest",
             )}
             aria-current={isActive ? "page" : undefined}
           >
@@ -340,27 +337,19 @@ export function Pagination({
       aria-label="Pagination"
       className="flex items-center justify-between border-t border-hairline pt-4 text-sm"
     >
-      <span className="text-ink-tertiary">
+      <span className="font-mono text-[11px] uppercase tracking-[0.08em] text-ink-tertiary">
         Page {page} of {totalPages}
       </span>
       <div className="flex items-center gap-2">
         {atFirst ? (
-          <Button variant="ghost" size="sm" disabled>
-            Previous
-          </Button>
+          <span className="btn-proto cursor-not-allowed opacity-50">Previous</span>
         ) : (
-          <Button asChild variant="outline" size="sm">
-            <Link href={prevHref}>Previous</Link>
-          </Button>
+          <Link href={prevHref} className="btn-proto">Previous</Link>
         )}
         {atLast ? (
-          <Button variant="ghost" size="sm" disabled>
-            Next
-          </Button>
+          <span className="btn-proto cursor-not-allowed opacity-50">Next</span>
         ) : (
-          <Button asChild variant="outline" size="sm">
-            <Link href={nextHref}>Next</Link>
-          </Button>
+          <Link href={nextHref} className="btn-proto">Next</Link>
         )}
       </div>
     </nav>
