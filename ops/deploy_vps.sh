@@ -46,11 +46,20 @@ die()  { printf '\033[1;31m✗ %s\033[0m\n' "$*" >&2; exit 1; }
 
 cd "$REPO_DIR" || die "REPO_DIR $REPO_DIR not found"
 
-step "Pulling latest $BRANCH"
-git fetch --quiet origin "$BRANCH"
-git checkout "$BRANCH"
-git pull --ff-only origin "$BRANCH"
-COMMIT_SHA="$(git rev-parse --short HEAD)"
+# The established VPS deploy pattern (ops/deploy-vps.ps1) syncs source via
+# tarball rsync rather than a git checkout, so /opt/sourcebd has no .git
+# directory. When that's the case, skip the pull step — the caller is
+# expected to have rsynced fresh source before invoking this script.
+if [ -d .git ]; then
+	step "Pulling latest $BRANCH"
+	git fetch --quiet origin "$BRANCH"
+	git checkout "$BRANCH"
+	git pull --ff-only origin "$BRANCH"
+	COMMIT_SHA="$(git rev-parse --short HEAD)"
+else
+	step "No .git found — assuming source was rsynced before invocation"
+	COMMIT_SHA="${COMMIT_SHA:-rsync}"
+fi
 export COMMIT_SHA
 echo "  head = $COMMIT_SHA"
 
