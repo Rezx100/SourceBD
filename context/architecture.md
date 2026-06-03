@@ -19,7 +19,7 @@
 - **State**: React Server Components + URL state. No global client store unless a spec demands it.
 - **Email**: **Resend** (transactional only).
 - **Background jobs**: **Inngest** (only for: nightly score recompute, certificate-expiry alerts, scheduled scrapes).
-- **Payments**: **Stripe** (subscriptions only — Starter / Growth / Enterprise tiers).
+- **Payments**: **Stripe** integration is **deferred to a post-beta phase** (3 Jun 2026 founder decision). The H3 idempotent webhook recorder is retained as harmless infrastructure; no live keys, no checkout, no tier structure committed. Plan-tier names and pricing will be decided after the free public beta validates product-market fit. See `phases.md` → "Deferred until post-beta".
 - **Error tracking**: **Sentry** (added at production launch).
 - **Analytics**: **PostHog** (added at production launch).
 

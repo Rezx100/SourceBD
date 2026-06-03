@@ -7,9 +7,9 @@ SourceBD is a B2B intelligence SaaS that gives UK/US/EU/CA fashion buyers **veri
 The moat is **authoritative, deduplicated, cross-checked Bangladesh supplier data** — RSC remediation status, BGMEA/BKMEA/BTMA/BGAPMEA membership, WRAP/OEKO-TEX/GOTS certifications, brand supplier-list disclosures (H&M, Inditex, Primark, ASOS…), UFLPA/WRO sanctions screening, and the unique buying-house ↔ factory relationship graph. No competitor has this in one place.
 
 ## Goals (v1)
-1. Build the **data moat first**: 2,000+ verified suppliers with cross-source verified compliance scores before any paid user logs in.
+1. Build the **data moat first**: 2,000+ verified suppliers with cross-source verified compliance evidence before any user logs in. *(Shipped — 10,186 suppliers as of Phase 0 close.)*
 2. Ship a buyer SaaS where a UK/US sourcing director can find a compliant Bangladesh supplier in <5 minutes via Smart Match.
-3. Launch publicly at **Source Fashion London (Jul 7–9, 2026)** and **SOURCING at MAGIC Las Vegas (Aug 10–12, 2026)**.
+3. Launch as a **free, online-first public beta of indefinite duration** — no trade-show attendance, no paid tiers — until usage signals warrant monetisation.
 
 ## Core user flow (buyer)
 1. Lands on marketing site → sees live "verified suppliers" counter + **evidence-verification methodology** (how we cross-check across Tier 1–3 sources).
@@ -41,7 +41,10 @@ The moat is **authoritative, deduplicated, cross-checked Bangladesh supplier dat
 - ≥ 1,500 factories cross-checked against RSC fire/structural data.
 - ≥ 90% of suppliers have a computed **internal** SBI score (server-side sort signal; not user-facing).
 - 100% of suppliers screened against UFLPA Entity List + US WROs.
-- 50+ UK or US buyer signups within 30 days of Source Fashion London.
+- **Free public beta live on production**, public status page + in-app feedback loop operational, 30 consecutive days of zero P1/P2 incidents.
+
+## Go-to-market
+Free, online-first public beta of indefinite duration. The platform is published at zero price while we gather end-to-end usage and quality signals; trade-show attendance, paid tiers, and Stripe checkout are deferred until validated product-market fit signals warrant monetisation. See `context/phases.md` → "Deferred until post-beta" for the exhaustive list of items that are explicitly off the roadmap.
 
 ## Audience
 Sourcing directors, ethical/compliance leads, and procurement managers at UK/US/EU/CA fashion brands and importers (£36M+ UK MSA threshold companies are the bullseye).
