@@ -9,7 +9,7 @@
 **Phase 7 cont. — beta polish + supplier outreach.** P1 (Production VPS deploy) shipped 3 Jun 2026. **FE-PROTO shipped 3 Jun 2026** — strict Naafco prototype conformance pass complete (R1 receipt-stack glyph, prototype-anatomy buyer profile, shell polish). P2 is next.
 
 ## In progress
-**FE-SITEWIDE — Prototype design language extended sitewide** (started 3 Jun 2026). 9-phase plan (A–H + new R) at [context/feature-specs/spec-FE-SITEWIDE-prototype-conformance.md](feature-specs/spec-FE-SITEWIDE-prototype-conformance.md). Phase A ✅ 3 Jun 2026 (deployed). Phase G ✅ 4 Jun 2026. **Phase B ✅ shipped + deployed 4 Jun 2026** — shared `DiscoverResultCard` (`.proto-card.hoverable` + R1 32-px receipt-stack glyph + `.completeness` chip + `.proto-pill` source tags) used by both `/app/discover` (auth, with SaveButton actionSlot) and `/discover` (public). Filter rail repainted as `.proto-card` with `.btn-proto` actions and brand-forest focus rings; sort tabs use `.proto-pill`; pagination uses `.btn-proto`. Next up: Phase C (buyer engagement surfaces). Phase R (responsive pass) queued at end of plan.
+**FE-SITEWIDE — Prototype design language extended sitewide** (started 3 Jun 2026). 9-phase plan (A–H + new R) at [context/feature-specs/spec-FE-SITEWIDE-prototype-conformance.md](feature-specs/spec-FE-SITEWIDE-prototype-conformance.md). Phase A ✅ 3 Jun 2026 (deployed). Phase G ✅ 4 Jun 2026. **Phase B ✅ shipped + deployed 4 Jun 2026** — shared `DiscoverResultCard` live at http://109.104.153.228/discover and /app/discover (served HTML carries 50× `proto-card`, 48× `header-name`, 248× `proto-pill`, 8× `btn-proto`). Next up: Phase C (buyer engagement surfaces). Phase R (responsive pass) queued at end of plan.
 
 ---
 
