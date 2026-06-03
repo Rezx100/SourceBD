@@ -9,7 +9,6 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
 import { OrderCreateForm, type OrderSeed } from "@/components/order-create-form";
-import { Button } from "@/components/ui/button";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -75,16 +74,16 @@ export default async function NewOrderPage({
       <div className="mx-auto max-w-3xl space-y-4">
         <div className="flex items-baseline justify-between gap-3">
           <div>
-            <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-ink-tertiary">
+            <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-tertiary">
               Buyer
             </p>
-            <h1 className="font-display text-2xl font-semibold tracking-tightish text-ink-primary">
+            <h1 className="font-display text-3xl font-light tracking-tight text-ink-primary">
               New order
             </h1>
           </div>
-          <Button asChild variant="ghost" size="sm">
-            <Link href={`/app/rfqs/${quoteRow.rfq_id}`}>← Back to RFQ</Link>
-          </Button>
+          <Link href={`/app/rfqs/${quoteRow.rfq_id}`} className="btn-proto">
+            ← Back to RFQ
+          </Link>
         </div>
         <OrderCreateForm seed={seed} />
       </div>
@@ -112,16 +111,16 @@ export default async function NewOrderPage({
       <div className="mx-auto max-w-3xl space-y-4">
         <div className="flex items-baseline justify-between gap-3">
           <div>
-            <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-ink-tertiary">
+            <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-tertiary">
               Buyer
             </p>
-            <h1 className="font-display text-2xl font-semibold tracking-tightish text-ink-primary">
+            <h1 className="font-display text-3xl font-light tracking-tight text-ink-primary">
               New order
             </h1>
           </div>
-          <Button asChild variant="ghost" size="sm">
-            <Link href={`/app/suppliers/${data.slug}`}>← Back to profile</Link>
-          </Button>
+          <Link href={`/app/suppliers/${data.slug}`} className="btn-proto">
+            ← Back to profile
+          </Link>
         </div>
         <OrderCreateForm seed={seed} />
       </div>
@@ -132,21 +131,23 @@ export default async function NewOrderPage({
   // supplier id, which the buyer picks from a supplier profile or by
   // accepting an RFQ quote.
   return (
-    <div className="mx-auto max-w-2xl space-y-3 py-12 text-center">
-      <h1 className="font-display text-xl font-semibold text-ink-primary">
-        Pick a supplier first
-      </h1>
-      <p className="text-sm text-ink-secondary">
-        Open a supplier profile from Discover and use &quot;Create
-        order&quot; — or accept an RFQ quote to seed an order automatically.
-      </p>
-      <div className="flex justify-center gap-2">
-        <Button asChild variant="outline" size="sm">
-          <Link href="/app/discover">Browse Discover</Link>
-        </Button>
-        <Button asChild variant="ghost" size="sm">
-          <Link href="/app/rfqs">View RFQs</Link>
-        </Button>
+    <div className="mx-auto max-w-2xl py-12">
+      <div className="proto-card space-y-3 text-center">
+        <h1 className="font-display text-2xl font-light tracking-tight text-ink-primary">
+          Pick a supplier first
+        </h1>
+        <p className="affiliation-disclaimer">
+          Open a supplier profile from Discover and use &quot;Create
+          order&quot; — or accept an RFQ quote to seed an order automatically.
+        </p>
+        <div className="flex justify-center gap-2">
+          <Link href="/app/discover" className="btn-proto">
+            Browse Discover
+          </Link>
+          <Link href="/app/rfqs" className="btn-proto">
+            View RFQs
+          </Link>
+        </div>
       </div>
     </div>
   );

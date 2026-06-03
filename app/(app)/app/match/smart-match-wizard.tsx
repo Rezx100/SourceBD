@@ -9,7 +9,6 @@
 // that Smart Match is a session-local brief.
 
 import { useState, useTransition } from "react";
-import Link from "next/link";
 import {
   ArrowLeft,
   ArrowRight,
@@ -17,11 +16,11 @@ import {
   Sparkle,
 } from "@phosphor-icons/react/dist/ssr";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardMeta, CardTitle } from "@/components/ui/card";
-import { Tag } from "@/components/ui/tag";
-import { ReceiptsRing } from "@/components/receipts-ring";
+import {
+  DiscoverResultCard,
+  type DiscoverRow,
+} from "@/components/discover/result-card";
 import { cn } from "@/lib/utils";
 
 // ----- form schema (mirrors /api/v1/match allow-lists) -----
@@ -163,9 +162,7 @@ export function SmartMatchWizard() {
       ) : null}
 
       {error ? (
-        <Card className="border-sem-red">
-          <CardContent className="text-sm text-sem-red">{error}</CardContent>
-        </Card>
+        <div className="proto-card border-sem-red text-sm text-sem-red">{error}</div>
       ) : null}
 
       {response ? <ResultsPanel data={response} onReset={reset} /> : null}
@@ -194,7 +191,7 @@ function StepBar({ step }: { step: 1 | 2 | 3 }) {
                 done
                   ? "border-sem-green bg-sem-green-soft text-sem-green"
                   : active
-                    ? "border-accent-indigo bg-accent-indigo/10 text-ink-primary"
+                    ? "border-brand-forest bg-brand-forest-soft text-brand-forest"
                     : "border-hairline text-ink-tertiary",
               )}
             >
@@ -230,45 +227,43 @@ function Step1Product({
   onNext: () => void;
 }) {
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Step 1 \u2014 Product</CardTitle>
-        <CardMeta>What are you sourcing?</CardMeta>
-      </CardHeader>
-      <CardContent className="space-y-5">
-        <Field
-          label="Product or category"
-          hint="Free-text. Matched against the supplier's declared principal products (e.g. knitwear, polo shirts, denim, accessories)."
-        >
-          <input
-            type="text"
-            value={form.product}
-            onChange={(e) => update("product", e.target.value)}
-            maxLength={80}
-            placeholder="e.g. knitwear"
-            className={inputClass}
-          />
-        </Field>
+    <section className="proto-card space-y-5">
+      <div className="proto-card-head">
+        <h2 className="proto-card-title">Step 1 — Product</h2>
+        <span className="proto-card-meta">What are you sourcing?</span>
+      </div>
+      <Field
+        label="Product or category"
+        hint="Free-text. Matched against the supplier's declared principal products (e.g. knitwear, polo shirts, denim, accessories)."
+      >
+        <input
+          type="text"
+          value={form.product}
+          onChange={(e) => update("product", e.target.value)}
+          maxLength={80}
+          placeholder="e.g. knitwear"
+          className={inputClass}
+        />
+      </Field>
 
-        <Field
-          label="Supplier type"
-          hint="Leave both unchecked to include any type."
-        >
-          <CheckboxGroup
-            options={ENTITY_TYPES}
-            values={form.entityTypes}
-            onChange={(v) => update("entityTypes", v as EntityType[])}
-          />
-        </Field>
+      <Field
+        label="Supplier type"
+        hint="Leave both unchecked to include any type."
+      >
+        <CheckboxGroup
+          options={ENTITY_TYPES}
+          values={form.entityTypes}
+          onChange={(v) => update("entityTypes", v as EntityType[])}
+        />
+      </Field>
 
-        <div className="flex justify-end pt-2">
-          <Button variant="primary" onClick={onNext}>
-            Next: requirements
-            <ArrowRight size={14} weight="bold" />
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
+      <div className="flex justify-end pt-2">
+        <Button variant="primary" onClick={onNext}>
+          Next: requirements
+          <ArrowRight size={14} weight="bold" />
+        </Button>
+      </div>
+    </section>
   );
 }
 
@@ -286,99 +281,97 @@ function Step2Requirements({
   onNext: () => void;
 }) {
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Step 2 \u2014 Requirements</CardTitle>
-        <CardMeta>Verified signals that matter for your order</CardMeta>
-      </CardHeader>
-      <CardContent className="space-y-5">
+    <section className="proto-card space-y-5">
+      <div className="proto-card-head">
+        <h2 className="proto-card-title">Step 2 — Requirements</h2>
+        <span className="proto-card-meta">Verified signals that matter for your order</span>
+      </div>
+      <Field
+        label="Certifications"
+        hint="Only valid (non-expired) certificates count."
+      >
+        <CheckboxGroup
+          options={CERT_OPTIONS}
+          values={form.certs}
+          onChange={(v) => update("certs", v as Cert[])}
+        />
+      </Field>
+
+      <Field
+        label="Registries / membership"
+        hint="Direct or RSC-inherited registry IDs."
+      >
+        <CheckboxGroup
+          options={REGISTRY_OPTIONS}
+          values={form.registries}
+          onChange={(v) => update("registries", v as Registry[])}
+        />
+      </Field>
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Field
-          label="Certifications"
-          hint="Only valid (non-expired) certificates count."
+          label="Minimum RSC remediation %"
+          hint="0\u2013100. Leave blank to skip."
         >
-          <CheckboxGroup
-            options={CERT_OPTIONS}
-            values={form.certs}
-            onChange={(v) => update("certs", v as Cert[])}
+          <input
+            type="number"
+            min={0}
+            max={100}
+            value={form.rscMin}
+            onChange={(e) => update("rscMin", e.target.value)}
+            placeholder="e.g. 80"
+            className={inputClass}
           />
         </Field>
 
         <Field
-          label="Registries / membership"
-          hint="Direct or RSC-inherited registry IDs."
+          label="Minimum sewing machines"
+          hint="Soft capacity floor."
         >
-          <CheckboxGroup
-            options={REGISTRY_OPTIONS}
-            values={form.registries}
-            onChange={(v) => update("registries", v as Registry[])}
+          <input
+            type="number"
+            min={0}
+            value={form.minMachines}
+            onChange={(e) => update("minMachines", e.target.value)}
+            placeholder="e.g. 200"
+            className={inputClass}
           />
         </Field>
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Field
-            label="Minimum RSC remediation %"
-            hint="0\u2013100. Leave blank to skip."
-          >
-            <input
-              type="number"
-              min={0}
-              max={100}
-              value={form.rscMin}
-              onChange={(e) => update("rscMin", e.target.value)}
-              placeholder="e.g. 80"
-              className={inputClass}
-            />
-          </Field>
+        <Field label="City" hint="Exact match (case-insensitive).">
+          <input
+            type="text"
+            value={form.city}
+            onChange={(e) => update("city", e.target.value)}
+            maxLength={80}
+            placeholder="e.g. Gazipur"
+            className={inputClass}
+          />
+        </Field>
 
-          <Field
-            label="Minimum sewing machines"
-            hint="Soft capacity floor."
-          >
-            <input
-              type="number"
-              min={0}
-              value={form.minMachines}
-              onChange={(e) => update("minMachines", e.target.value)}
-              placeholder="e.g. 200"
-              className={inputClass}
-            />
-          </Field>
+        <Field label="District" hint="Exact match (case-insensitive).">
+          <input
+            type="text"
+            value={form.district}
+            onChange={(e) => update("district", e.target.value)}
+            maxLength={80}
+            placeholder="e.g. Dhaka"
+            className={inputClass}
+          />
+        </Field>
+      </div>
 
-          <Field label="City" hint="Exact match (case-insensitive).">
-            <input
-              type="text"
-              value={form.city}
-              onChange={(e) => update("city", e.target.value)}
-              maxLength={80}
-              placeholder="e.g. Gazipur"
-              className={inputClass}
-            />
-          </Field>
-
-          <Field label="District" hint="Exact match (case-insensitive).">
-            <input
-              type="text"
-              value={form.district}
-              onChange={(e) => update("district", e.target.value)}
-              maxLength={80}
-              placeholder="e.g. Dhaka"
-              className={inputClass}
-            />
-          </Field>
-        </div>
-
-        <div className="flex items-center justify-between pt-2">
-          <Button variant="ghost" onClick={onBack}>
-            <ArrowLeft size={14} weight="bold" />
-            Back
-          </Button>
-          <Button variant="primary" onClick={onNext}>
-            Next: review
-            <ArrowRight size={14} weight="bold" />
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
+      <div className="flex items-center justify-between pt-2">
+        <Button variant="ghost" onClick={onBack}>
+          <ArrowLeft size={14} weight="bold" />
+          Back
+        </Button>
+        <Button variant="primary" onClick={onNext}>
+          Next: review
+          <ArrowRight size={14} weight="bold" />
+        </Button>
+      </div>
+    </section>
   );
 }
 
@@ -397,38 +390,36 @@ function Step3Review({
 }) {
   const summary = summarise(form);
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Step 3 \u2014 Review &amp; match</CardTitle>
-        <CardMeta>{summary.length} criteria</CardMeta>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {summary.length === 0 ? (
-          <p className="text-sm text-ink-secondary">
-            No criteria added. SourceBD will return the highest-quality verified
-            suppliers by receipt count.
-          </p>
-        ) : (
-          <ul className="flex flex-wrap gap-1.5">
-            {summary.map((s) => (
-              <li key={s}>
-                <Tag tone="neutral">{s}</Tag>
-              </li>
-            ))}
-          </ul>
-        )}
-        <div className="flex items-center justify-between pt-2">
-          <Button variant="ghost" onClick={onBack} disabled={pending}>
-            <ArrowLeft size={14} weight="bold" />
-            Back
-          </Button>
-          <Button variant="primary" onClick={onSubmit} disabled={pending}>
-            <Sparkle size={14} weight="fill" />
-            {pending ? "Matching\u2026" : "Find matches"}
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
+    <section className="proto-card space-y-4">
+      <div className="proto-card-head">
+        <h2 className="proto-card-title">Step 3 — Review &amp; match</h2>
+        <span className="proto-card-meta">{summary.length} criteria</span>
+      </div>
+      {summary.length === 0 ? (
+        <p className="affiliation-disclaimer">
+          No criteria added. SourceBD will return the highest-quality verified
+          suppliers by receipt count.
+        </p>
+      ) : (
+        <ul className="pill-row m-0 list-none p-0">
+          {summary.map((s) => (
+            <li key={s}>
+              <span className="proto-pill">{s}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+      <div className="flex items-center justify-between pt-2">
+        <Button variant="ghost" onClick={onBack} disabled={pending}>
+          <ArrowLeft size={14} weight="bold" />
+          Back
+        </Button>
+        <Button variant="primary" onClick={onSubmit} disabled={pending}>
+          <Sparkle size={14} weight="fill" />
+          {pending ? "Matching\u2026" : "Find matches"}
+        </Button>
+      </div>
+    </section>
   );
 }
 
@@ -444,33 +435,48 @@ function ResultsPanel({
   return (
     <section aria-label="Match results" className="space-y-3">
       <header className="flex items-baseline justify-between gap-3">
-        <h2 className="font-display text-base font-semibold text-ink-primary">
+        <h2 className="font-display text-lg font-light tracking-tight text-ink-primary">
           {data.total} {data.total === 1 ? "match" : "matches"}
           {data.criteria_count > 0 ? (
-            <span className="ml-2 text-[12px] font-normal text-ink-tertiary">
+            <span className="ml-2 font-mono text-[11px] uppercase tracking-[0.06em] text-ink-tertiary">
               against {data.criteria_count}{" "}
               {data.criteria_count === 1 ? "criterion" : "criteria"}
             </span>
           ) : null}
         </h2>
-        <Button variant="ghost" size="sm" onClick={onReset}>
+        <button type="button" onClick={onReset} className="btn-proto">
           Start over
-        </Button>
+        </button>
       </header>
 
       {data.results.length === 0 ? (
-        <Card>
-          <CardContent className="text-sm text-ink-secondary">
-            No verified suppliers satisfied your brief. Loosen one or two
-            criteria \u2014 try removing a specific city or lowering the RSC %
-            threshold.
-          </CardContent>
-        </Card>
+        <div className="proto-card text-sm text-ink-secondary">
+          No verified suppliers satisfied your brief. Loosen one or two
+          criteria \u2014 try removing a specific city or lowering the RSC %
+          threshold.
+        </div>
       ) : (
         <ul className="grid grid-cols-1 gap-4">
           {data.results.map((row) => (
             <li key={row.id}>
-              <ResultRow row={row} />
+              <DiscoverResultCard
+                row={matchToDiscoverRow(row)}
+                hrefBase="/app/suppliers"
+                footerSlot={
+                  row.match_reasons.length > 0 ? (
+                    <div className="pill-row">
+                      <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-ink-tertiary">
+                        Matched on:
+                      </span>
+                      {row.match_reasons.map((reason) => (
+                        <span key={reason} className="proto-pill">
+                          {reason}
+                        </span>
+                      ))}
+                    </div>
+                  ) : null
+                }
+              />
             </li>
           ))}
         </ul>
@@ -479,78 +485,31 @@ function ResultsPanel({
   );
 }
 
-function ResultRow({ row }: { row: MatchResult }) {
-  const location = [row.city, row.district].filter(Boolean).join(", ");
-  const entityLabel =
-    row.entity_type === "buying_house" ? "Buying house" : "Factory";
-  const visibleTags = row.source_tags.slice(0, 4);
-  const extraTags = Math.max(0, row.source_tags.length - visibleTags.length);
-
-  return (
-    <Link
-      href={`/app/suppliers/${row.slug}`}
-      className="block rounded-card transition focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-indigo"
-    >
-      <Card className="transition hover:shadow-l2">
-        <CardContent className="flex items-start gap-4 py-4">
-          <ReceiptsRing sources={row.t13_source_count} size={48} />
-          <div className="min-w-0 flex-1 space-y-2">
-            <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-              <h3 className="font-display text-base font-semibold text-ink-primary">
-                {row.company_name}
-              </h3>
-              <span className="text-[12px] uppercase tracking-[0.04em] text-ink-tertiary">
-                {entityLabel}
-              </span>
-              {location ? (
-                <span className="text-[12px] text-ink-tertiary">\u00b7 {location}</span>
-              ) : null}
-              {row.completeness_pct > 0 ? (
-                <Badge tone="neutral" className="ml-1">
-                  {row.completeness_pct}% complete
-                </Badge>
-              ) : null}
-              {row.match_score > 0 ? (
-                <Badge tone="active" className="ml-1">
-                  {row.match_score} match{row.match_score === 1 ? "" : "es"}
-                </Badge>
-              ) : null}
-            </div>
-
-            {visibleTags.length > 0 ? (
-              <div className="flex flex-wrap gap-1.5">
-                {visibleTags.map((tag) => (
-                  <Tag key={tag} tone="neutral">
-                    {tag}
-                  </Tag>
-                ))}
-                {extraTags > 0 ? <Tag tone="muted">+ {extraTags} more</Tag> : null}
-              </div>
-            ) : null}
-
-            {row.match_reasons.length > 0 ? (
-              <div className="flex flex-wrap items-center gap-1.5 pt-1">
-                <span className="font-mono text-[11px] uppercase tracking-[0.04em] text-ink-tertiary">
-                  Matched on:
-                </span>
-                {row.match_reasons.map((reason) => (
-                  <Tag key={reason} tone="green">
-                    {reason}
-                  </Tag>
-                ))}
-              </div>
-            ) : null}
-          </div>
-        </CardContent>
-      </Card>
-    </Link>
-  );
+function matchToDiscoverRow(r: MatchResult): DiscoverRow {
+  return {
+    id: r.id,
+    slug: r.slug,
+    company_name: r.company_name,
+    entity_type: r.entity_type,
+    city: r.city,
+    district: r.district,
+    source_tags: r.source_tags,
+    t13_source_count: r.t13_source_count,
+    completeness_pct: r.completeness_pct,
+    employees_total: null,
+    established_date: null,
+    principal_products: [],
+    factory_types: [],
+    rsc_progress_pct: null,
+    parent_group_name: null,
+    total_count: 0,
+  };
 }
 
 // ----- helpers -----
 
 const inputClass =
-  "block w-full rounded-input border border-hairline-strong bg-surface-l1 px-3 py-2 text-sm text-ink-primary placeholder:text-ink-tertiary focus:border-accent-indigo focus:outline-none focus:ring-2 focus:ring-accent-indigo/30";
+  "block w-full rounded-input border border-hairline-strong bg-surface-l1 px-3 py-2 text-sm text-ink-primary placeholder:text-ink-tertiary focus:border-brand-forest focus:outline-none focus:ring-2 focus:ring-brand-forest/30";
 
 function Field({
   label,
@@ -597,8 +556,8 @@ function CheckboxGroup<T extends string>({
             className={cn(
               "rounded-pill border px-3 py-1 text-[12px] font-medium transition",
               active
-                ? "border-accent-indigo bg-accent-indigo/10 text-ink-primary"
-                : "border-hairline-strong bg-surface-l1 text-ink-secondary hover:border-accent-indigo",
+                ? "border-brand-forest bg-brand-forest-soft text-brand-forest"
+                : "border-hairline-strong bg-surface-l1 text-ink-secondary hover:border-brand-forest",
             )}
           >
             {opt.label}

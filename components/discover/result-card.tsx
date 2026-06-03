@@ -34,10 +34,12 @@ export function DiscoverResultCard({
   row,
   hrefBase,
   actionSlot,
+  footerSlot,
 }: {
   row: DiscoverRow;
   hrefBase: "/app/suppliers" | "/suppliers";
   actionSlot?: React.ReactNode;
+  footerSlot?: React.ReactNode;
 }) {
   const location = [row.city, row.district].filter(Boolean).join(", ");
   const entityLabel =
@@ -99,6 +101,7 @@ export function DiscoverResultCard({
           ) : null}
 
           <StatLine row={row} />
+          {footerSlot}
         </div>
       </Link>
     </article>

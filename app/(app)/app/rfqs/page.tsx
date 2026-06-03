@@ -1,15 +1,13 @@
-// /app/rfqs — RFQ inbox (Spec B7).
+// /app/rfqs — RFQ inbox (Spec B7), FE-SITEWIDE Phase C4.
 //
 // Server component. Calls `public.rfq_list()` under the caller's session
-// and groups the result by status. Buyers and suppliers both land here;
-// the per-row `viewer_role` discriminator lets the UI label each entry.
+// and renders the result list inside a `.proto-card` with `.proto-nav-item`
+// rows. The per-row `viewer_role` discriminator lets the UI label each
+// entry (buyer vs supplier viewer).
 
 import Link from "next/link";
 import { FileText, Plus } from "@phosphor-icons/react/dist/ssr";
 
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -42,105 +40,96 @@ export default async function RfqsPage() {
     <div className="mx-auto max-w-5xl space-y-6">
       <header className="flex items-baseline justify-between gap-3">
         <div>
-          <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-ink-tertiary">
+          <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-tertiary">
             Buyer
           </p>
-          <h1 className="font-display text-2xl font-semibold tracking-tightish text-ink-primary">
+          <h1 className="font-display text-3xl font-light tracking-tight text-ink-primary">
             RFQ Manager
           </h1>
         </div>
-        <Button asChild variant="primary" size="sm">
-          <Link href="/app/discover">
-            <Plus size={14} aria-hidden /> Find suppliers
-          </Link>
-        </Button>
+        <Link
+          href="/app/discover"
+          className="btn-proto primary inline-flex items-center gap-1.5"
+        >
+          <Plus size={12} weight="bold" aria-hidden /> Find suppliers
+        </Link>
       </header>
 
       {error ? (
-        <Card>
-          <CardContent className="text-sm text-sem-red">
-            Could not load RFQs.
-          </CardContent>
-        </Card>
+        <div className="proto-card text-sm text-sem-red">Could not load RFQs.</div>
       ) : rfqs.length === 0 ? (
-        <Card>
-          <CardContent className="space-y-3 py-8 text-center">
-            <FileText
-              size={32}
-              weight="duotone"
-              className="mx-auto text-ink-tertiary"
-              aria-hidden
-            />
-            <p className="text-sm text-ink-secondary">
-              You haven&apos;t composed any RFQs yet.
-            </p>
-            <p className="text-[12px] text-ink-tertiary">
-              Open a supplier profile from Discover and use &quot;Request a
-              quote&quot; to start your first RFQ.
-            </p>
-            <Button asChild variant="outline" size="sm">
-              <Link href="/app/discover">Browse Discover</Link>
-            </Button>
-          </CardContent>
-        </Card>
+        <div className="proto-card space-y-3 text-center">
+          <FileText
+            size={32}
+            weight="duotone"
+            className="mx-auto text-ink-tertiary"
+            aria-hidden
+          />
+          <p className="affiliation-disclaimer">
+            You haven&apos;t composed any RFQs yet.
+          </p>
+          <p className="affiliation-disclaimer">
+            Open a supplier profile from Discover and use &quot;Request a quote&quot;
+            to start your first RFQ.
+          </p>
+          <Link href="/app/discover" className="btn-proto inline-flex">
+            Browse Discover
+          </Link>
+        </div>
       ) : (
-        <Card>
-          <CardContent className="px-0 py-0">
-            <ul className="m-0 flex list-none flex-col p-0">
-              {rfqs.map((r) => (
-                <li
-                  key={r.id}
-                  className="border-b border-hairline last:border-b-0"
+        <nav aria-label="RFQs" className="proto-card p-0">
+          <ul className="m-0 flex list-none flex-col p-0">
+            {rfqs.map((r) => (
+              <li key={r.id} className="border-b border-hairline last:border-b-0">
+                <Link
+                  href={`/app/rfqs/${r.id}`}
+                  className="proto-nav-item !rounded-none !px-5 !py-3"
                 >
-                  <Link
-                    href={`/app/rfqs/${r.id}`}
-                    className="flex items-center gap-3 px-4 py-3 transition hover:bg-brand-forest-tint focus:outline-none focus-visible:bg-brand-forest-tint"
-                  >
-                    <FileText
-                      size={20}
-                      weight="duotone"
-                      className="text-accent-indigo"
-                      aria-hidden
-                    />
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="truncate font-display text-sm font-semibold text-ink-primary">
-                          {r.product_title}
-                        </span>
-                        <Badge tone={statusTone(r.status)}>
-                          {statusLabel(r.status)}
-                        </Badge>
-                        {r.viewer_role !== "buyer" ? (
-                          <Badge tone="neutral">As supplier</Badge>
-                        ) : null}
-                      </div>
-                      <p className="truncate text-[12px] text-ink-tertiary">
-                        {fmtQty(r.quantity, r.quantity_unit)} ·{" "}
-                        {r.target_supplier_count}{" "}
-                        {r.target_supplier_count === 1 ? "supplier" : "suppliers"}{" "}
-                        · {r.quote_count}{" "}
-                        {r.quote_count === 1 ? "quote" : "quotes"}
-                      </p>
+                  <FileText
+                    size={18}
+                    weight="duotone"
+                    className="shrink-0 text-brand-forest"
+                    aria-hidden
+                  />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="truncate font-display text-sm font-medium text-ink-primary">
+                        {r.product_title}
+                      </span>
+                      <span className={statusChip(r.status)}>
+                        {statusLabel(r.status)}
+                      </span>
+                      {r.viewer_role !== "buyer" ? (
+                        <span className="chip">As supplier</span>
+                      ) : null}
                     </div>
-                    <span className="font-mono text-[11px] text-ink-tertiary">
-                      {fmtRelative(r.updated_at)}
-                    </span>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </CardContent>
-        </Card>
+                    <p className="mt-0.5 truncate text-[12px] text-ink-tertiary">
+                      {fmtQty(r.quantity, r.quantity_unit)} ·{" "}
+                      {r.target_supplier_count}{" "}
+                      {r.target_supplier_count === 1 ? "supplier" : "suppliers"} ·{" "}
+                      {r.quote_count}{" "}
+                      {r.quote_count === 1 ? "quote" : "quotes"}
+                    </p>
+                  </div>
+                  <span className="shrink-0 font-mono text-[11px] uppercase tracking-[0.06em] text-ink-tertiary">
+                    {fmtRelative(r.updated_at)}
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </nav>
       )}
     </div>
   );
 }
 
-function statusTone(s: Rfq["status"]): "active" | "neutral" | "alert" | "success" {
-  if (s === "open") return "active";
-  if (s === "accepted") return "success";
-  if (s === "cancelled") return "alert";
-  return "neutral";
+function statusChip(s: Rfq["status"]): string {
+  if (s === "open") return "chip";
+  if (s === "accepted") return "chip claim-verified";
+  if (s === "cancelled")
+    return "chip !bg-sem-red-soft !text-sem-red !border-sem-red";
+  return "chip";
 }
 
 function statusLabel(s: Rfq["status"]): string {

@@ -1,16 +1,13 @@
-// /app/messages — inbox list (Spec B6).
+// /app/messages — inbox list (Spec B6), FE-SITEWIDE Phase C3.
 //
 // Server component. Calls `public.thread_list()` under the caller's
-// session and renders the thread inbox. Message bodies are NOT included
-// in this surface — only metadata (counterpart, last_message_at, subject,
-// message_count). The body lives on `/app/messages/[thread]`.
+// session and renders the thread inbox using `.proto-card` shell + the
+// `.proto-nav-item`-style row pattern. Message bodies are NOT included
+// in this surface — only metadata. Bodies live on `/app/messages/[thread]`.
 
 import Link from "next/link";
 import { ChatCircleText } from "@phosphor-icons/react/dist/ssr";
 
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -39,94 +36,77 @@ export default async function MessagesPage() {
     <div className="mx-auto max-w-4xl space-y-6">
       <header className="flex items-baseline justify-between gap-3">
         <div>
-          <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-ink-tertiary">
+          <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-tertiary">
             Buyer
           </p>
-          <h1 className="font-display text-2xl font-semibold tracking-tightish text-ink-primary">
+          <h1 className="font-display text-3xl font-light tracking-tight text-ink-primary">
             Messages
           </h1>
         </div>
-        <Button asChild variant="outline" size="sm">
-          <Link href="/app/discover">Find a supplier</Link>
-        </Button>
+        <Link href="/app/discover" className="btn-proto">
+          Find a supplier
+        </Link>
       </header>
 
       {error ? (
-        <Card>
-          <CardContent className="text-sm text-sem-red">
-            Could not load your inbox.
-          </CardContent>
-        </Card>
+        <div className="proto-card text-sm text-sem-red">
+          Could not load your inbox.
+        </div>
       ) : threads.length === 0 ? (
-        <Card>
-          <CardContent className="space-y-3 py-8 text-center">
-            <ChatCircleText
-              size={32}
-              weight="duotone"
-              className="mx-auto text-ink-tertiary"
-              aria-hidden
-            />
-            <p className="text-sm text-ink-secondary">
-              You haven&apos;t started any conversations yet.
-            </p>
-            <p className="text-[12px] text-ink-tertiary">
-              Open a supplier profile and send the first message — your threads
-              will appear here.
-            </p>
-            <Button asChild variant="primary" size="sm">
-              <Link href="/app/discover">Browse Discover</Link>
-            </Button>
-          </CardContent>
-        </Card>
+        <div className="proto-card space-y-3 text-center">
+          <ChatCircleText
+            size={32}
+            weight="duotone"
+            className="mx-auto text-ink-tertiary"
+            aria-hidden
+          />
+          <p className="affiliation-disclaimer">
+            You haven&apos;t started any conversations yet.
+          </p>
+          <p className="affiliation-disclaimer">
+            Open a supplier profile and send the first message — your threads
+            will appear here.
+          </p>
+          <Link href="/app/discover" className="btn-proto primary inline-flex">
+            Browse Discover
+          </Link>
+        </div>
       ) : (
-        <Card>
-          <CardContent className="px-0 py-0">
-            <ul className="m-0 flex list-none flex-col p-0">
-              {threads.map((t) => (
-                <li
-                  key={t.id}
-                  className="border-b border-hairline last:border-b-0"
+        <nav aria-label="Threads" className="proto-card p-0">
+          <ul className="m-0 flex list-none flex-col p-0">
+            {threads.map((t) => (
+              <li key={t.id} className="border-b border-hairline last:border-b-0">
+                <Link
+                  href={`/app/messages/${t.id}`}
+                  className="proto-nav-item !rounded-none !px-5 !py-3"
                 >
-                  <Link
-                    href={`/app/messages/${t.id}`}
-                    className="flex items-center gap-3 px-4 py-3 transition hover:bg-brand-forest-tint focus:outline-none focus-visible:bg-brand-forest-tint"
-                  >
-                    <ChatCircleText
-                      size={20}
-                      weight="duotone"
-                      className="text-accent-indigo"
-                      aria-hidden
-                    />
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="truncate font-display text-sm font-semibold text-ink-primary">
-                          {t.supplier_name}
-                        </span>
-                        <Badge
-                          tone={
-                            t.supplier_entity_type === "factory"
-                              ? "active"
-                              : "neutral"
-                          }
-                        >
-                          {entityLabel(t.supplier_entity_type)}
-                        </Badge>
-                      </div>
-                      <p className="truncate text-[12px] text-ink-tertiary">
-                        {t.subject ?? "General inquiry"} ·{" "}
-                        {t.message_count.toLocaleString()}{" "}
-                        {t.message_count === 1 ? "message" : "messages"}
-                      </p>
+                  <ChatCircleText
+                    size={18}
+                    weight="duotone"
+                    className="shrink-0 text-brand-forest"
+                    aria-hidden
+                  />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="truncate font-display text-sm font-medium text-ink-primary">
+                        {t.supplier_name}
+                      </span>
+                      <span className="chip">{entityLabel(t.supplier_entity_type)}</span>
                     </div>
-                    <span className="font-mono text-[11px] text-ink-tertiary">
-                      {fmtRelative(t.last_message_at ?? t.created_at)}
-                    </span>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </CardContent>
-        </Card>
+                    <p className="mt-0.5 truncate text-[12px] text-ink-tertiary">
+                      {t.subject ?? "General inquiry"} ·{" "}
+                      {t.message_count.toLocaleString()}{" "}
+                      {t.message_count === 1 ? "message" : "messages"}
+                    </p>
+                  </div>
+                  <span className="shrink-0 font-mono text-[11px] uppercase tracking-[0.06em] text-ink-tertiary">
+                    {fmtRelative(t.last_message_at ?? t.created_at)}
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </nav>
       )}
     </div>
   );

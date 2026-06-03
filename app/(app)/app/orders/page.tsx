@@ -1,16 +1,12 @@
-// /app/orders — Order tracking inbox (Spec B8).
+// /app/orders — Order tracking inbox (Spec B8), FE-SITEWIDE Phase C5.
 //
 // Server component. Calls `public.order_list()` under the caller's
-// session and groups the result by status (active vs settled). Buyers
-// and suppliers both land here; the per-row `viewer_role` discriminator
-// lets the UI label each entry.
+// session and groups the result by status (active vs settled) inside
+// `.proto-card` containers with `.proto-nav-item` rows.
 
 import Link from "next/link";
 import { Package, Plus } from "@phosphor-icons/react/dist/ssr";
 
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardMeta, CardTitle } from "@/components/ui/card";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -69,47 +65,42 @@ export default async function OrdersPage() {
     <div className="mx-auto max-w-5xl space-y-6">
       <header className="flex items-baseline justify-between gap-3">
         <div>
-          <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-ink-tertiary">
+          <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-tertiary">
             Buyer
           </p>
-          <h1 className="font-display text-2xl font-semibold tracking-tightish text-ink-primary">
+          <h1 className="font-display text-3xl font-light tracking-tight text-ink-primary">
             Orders
           </h1>
         </div>
-        <Button asChild variant="primary" size="sm">
-          <Link href="/app/orders/new">
-            <Plus size={14} aria-hidden /> New order
-          </Link>
-        </Button>
+        <Link
+          href="/app/orders/new"
+          className="btn-proto primary inline-flex items-center gap-1.5"
+        >
+          <Plus size={12} weight="bold" aria-hidden /> New order
+        </Link>
       </header>
 
       {error ? (
-        <Card>
-          <CardContent className="text-sm text-sem-red">
-            Could not load orders.
-          </CardContent>
-        </Card>
+        <div className="proto-card text-sm text-sem-red">Could not load orders.</div>
       ) : orders.length === 0 ? (
-        <Card>
-          <CardContent className="space-y-3 py-8 text-center">
-            <Package
-              size={32}
-              weight="duotone"
-              className="mx-auto text-ink-tertiary"
-              aria-hidden
-            />
-            <p className="text-sm text-ink-secondary">
-              You don&apos;t have any orders yet.
-            </p>
-            <p className="text-[12px] text-ink-tertiary">
-              Accept an RFQ quote to seed an order, or create one manually from
-              a supplier profile.
-            </p>
-            <Button asChild variant="outline" size="sm">
-              <Link href="/app/rfqs">View RFQs</Link>
-            </Button>
-          </CardContent>
-        </Card>
+        <div className="proto-card space-y-3 text-center">
+          <Package
+            size={32}
+            weight="duotone"
+            className="mx-auto text-ink-tertiary"
+            aria-hidden
+          />
+          <p className="affiliation-disclaimer">
+            You don&apos;t have any orders yet.
+          </p>
+          <p className="affiliation-disclaimer">
+            Accept an RFQ quote to seed an order, or create one manually from a
+            supplier profile.
+          </p>
+          <Link href="/app/rfqs" className="btn-proto inline-flex">
+            View RFQs
+          </Link>
+        </div>
       ) : (
         <>
           <OrderGroup title="Active" meta={`${active.length}`} rows={active} />
@@ -133,79 +124,76 @@ function OrderGroup({
 }) {
   if (rows.length === 0) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>{title}</CardTitle>
-          <CardMeta>{meta}</CardMeta>
-        </CardHeader>
-        <CardContent className="py-6 text-center text-sm text-ink-secondary">
-          Nothing here.
-        </CardContent>
-      </Card>
+      <section className="proto-card">
+        <div className="proto-card-head">
+          <h2 className="proto-card-title">{title}</h2>
+          <span className="proto-card-meta">{meta}</span>
+        </div>
+        <p className="text-center text-sm text-ink-secondary">Nothing here.</p>
+      </section>
     );
   }
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{title}</CardTitle>
-        <CardMeta>{meta}</CardMeta>
-      </CardHeader>
-      <CardContent className="px-0 py-0">
-        <ul className="m-0 flex list-none flex-col p-0">
-          {rows.map((o) => (
-            <li key={o.id} className="border-b border-hairline last:border-b-0">
-              <Link
-                href={`/app/orders/${o.id}`}
-                className="flex items-center gap-3 px-4 py-3 transition hover:bg-brand-forest-tint focus:outline-none focus-visible:bg-brand-forest-tint"
-              >
-                <Package
-                  size={20}
-                  weight="duotone"
-                  className="text-accent-indigo"
-                  aria-hidden
-                />
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="truncate font-display text-sm font-semibold text-ink-primary">
-                      {o.product_title}
+    <section className="proto-card p-0">
+      <div className="proto-card-head px-5 pt-5">
+        <h2 className="proto-card-title">{title}</h2>
+        <span className="proto-card-meta pr-5">{meta}</span>
+      </div>
+      <ul className="m-0 flex list-none flex-col p-0">
+        {rows.map((o) => (
+          <li key={o.id} className="border-b border-hairline last:border-b-0">
+            <Link
+              href={`/app/orders/${o.id}`}
+              className="proto-nav-item !rounded-none !px-5 !py-3"
+            >
+              <Package
+                size={18}
+                weight="duotone"
+                className="shrink-0 text-brand-forest"
+                aria-hidden
+              />
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="truncate font-display text-sm font-medium text-ink-primary">
+                    {o.product_title}
+                  </span>
+                  <span className={statusChip(o.status)}>{statusLabel(o.status)}</span>
+                  {o.viewer_role !== "buyer" ? (
+                    <span className="chip">As supplier</span>
+                  ) : null}
+                  {o.po_number ? (
+                    <span className="font-mono text-[11px] uppercase tracking-[0.06em] text-ink-tertiary">
+                      PO {o.po_number}
                     </span>
-                    <Badge tone={statusTone(o.status)}>{statusLabel(o.status)}</Badge>
-                    {o.viewer_role !== "buyer" ? (
-                      <Badge tone="neutral">As supplier</Badge>
-                    ) : null}
-                    {o.po_number ? (
-                      <span className="font-mono text-[11px] text-ink-tertiary">
-                        PO {o.po_number}
-                      </span>
-                    ) : null}
-                  </div>
-                  <p className="truncate text-[12px] text-ink-tertiary">
-                    {o.supplier_name} · {fmtQty(o.quantity, o.quantity_unit)}
-                    {o.total_value != null
-                      ? ` · ${fmtMoney(o.total_value, o.currency)}`
-                      : ""}
-                    {o.latest_milestone
-                      ? ` · ${milestoneLabel(o.latest_milestone)}`
-                      : ""}
-                  </p>
+                  ) : null}
                 </div>
-                <span className="font-mono text-[11px] text-ink-tertiary">
-                  {fmtRelative(o.updated_at)}
-                </span>
-              </Link>
-            </li>
-          ))}
-        </ul>
-      </CardContent>
-    </Card>
+                <p className="mt-0.5 truncate text-[12px] text-ink-tertiary">
+                  {o.supplier_name} · {fmtQty(o.quantity, o.quantity_unit)}
+                  {o.total_value != null
+                    ? ` · ${fmtMoney(o.total_value, o.currency)}`
+                    : ""}
+                  {o.latest_milestone
+                    ? ` · ${milestoneLabel(o.latest_milestone)}`
+                    : ""}
+                </p>
+              </div>
+              <span className="shrink-0 font-mono text-[11px] uppercase tracking-[0.06em] text-ink-tertiary">
+                {fmtRelative(o.updated_at)}
+              </span>
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }
 
-function statusTone(s: OrderStatus): "active" | "neutral" | "alert" | "success" {
-  if (s === "delivered") return "success";
-  if (s === "cancelled") return "alert";
-  if (s === "draft") return "neutral";
-  return "active";
+function statusChip(s: OrderStatus): string {
+  if (s === "delivered") return "chip claim-verified";
+  if (s === "cancelled")
+    return "chip !bg-sem-red-soft !text-sem-red !border-sem-red";
+  if (s === "draft") return "chip";
+  return "chip";
 }
 function statusLabel(s: OrderStatus): string {
   if (s === "in_production") return "In production";

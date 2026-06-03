@@ -1,8 +1,9 @@
-// Compliance Hub landing — Spec B9 (/app/compliance).
+// Compliance Hub landing — Spec B9 (/app/compliance), FE-SITEWIDE Phase C7.
 //
 // Server component. Calls all three compliance RPCs in parallel under the
-// caller's session and renders three navigation cards (expiry / UFLPA /
-// MSA) with live counts pulled from each RPC's summary fields.
+// caller's session and renders three navigation tiles (expiry / UFLPA /
+// MSA) using `.proto-card.hoverable` with live counts from each RPC's
+// summary fields.
 
 import Link from "next/link";
 import {
@@ -13,14 +14,6 @@ import {
   WarningCircle,
 } from "@phosphor-icons/react/dist/ssr";
 
-import { Badge } from "@/components/ui/badge";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardMeta,
-  CardTitle,
-} from "@/components/ui/card";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -67,13 +60,13 @@ export default async function ComplianceHubPage() {
   return (
     <div className="mx-auto max-w-6xl space-y-6">
       <header>
-        <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-ink-tertiary">
+        <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-tertiary">
           Buyer
         </p>
-        <h1 className="font-display text-2xl font-semibold tracking-tightish text-ink-primary">
+        <h1 className="font-display text-3xl font-light tracking-tight text-ink-primary">
           Compliance Hub
         </h1>
-        <p className="mt-1 text-sm text-ink-secondary">
+        <p className="affiliation-disclaimer mt-2">
           Personalised compliance posture across your{" "}
           <span className="font-semibold text-ink-primary">
             {savedTotal.toLocaleString()}
@@ -84,41 +77,34 @@ export default async function ComplianceHubPage() {
       </header>
 
       {anyError ? (
-        <Card>
-          <CardContent className="text-sm text-sem-red">
-            Could not load one or more compliance views.
-          </CardContent>
-        </Card>
+        <div className="proto-card text-sm text-sem-red">
+          Could not load one or more compliance views.
+        </div>
       ) : null}
 
       {savedTotal === 0 ? (
-        <Card>
-          <CardContent className="space-y-3 py-8 text-center">
-            <p className="text-sm text-ink-secondary">
-              You haven&apos;t saved any suppliers yet — the Compliance Hub
-              draws from your saved list.
-            </p>
-            <Link
-              href="/app/discover"
-              className="inline-flex items-center gap-1 text-sm font-medium text-accent-indigo underline-offset-2 hover:underline"
-            >
-              Browse Discover <ArrowRight size={14} />
-            </Link>
-          </CardContent>
-        </Card>
+        <div className="proto-card space-y-3 text-center">
+          <p className="affiliation-disclaimer">
+            You haven&apos;t saved any suppliers yet — the Compliance Hub draws
+            from your saved list.
+          </p>
+          <Link href="/app/discover" className="btn-proto inline-flex items-center gap-1">
+            Browse Discover <ArrowRight size={12} weight="bold" />
+          </Link>
+        </div>
       ) : null}
 
       <section
         aria-label="Compliance surfaces"
         className="grid grid-cols-1 gap-4 md:grid-cols-3"
       >
-        <HubCard
+        <HubTile
           href="/app/compliance/expiry"
           Icon={Certificate}
           title="Certification expiry"
           meta="Next 90 days"
           value={expCount}
-          tone={
+          chip={
             (expiry?.bucket_30 ?? 0) > 0
               ? "alert"
               : expCount > 0
@@ -131,26 +117,26 @@ export default async function ComplianceHubPage() {
               : "No data"
           }
         />
-        <HubCard
+        <HubTile
           href="/app/compliance/uflpa"
           Icon={ShieldCheck}
           title="UFLPA tracker"
           meta="Forced-labour exposure"
           value={uflpaHits + uflpaFlags}
-          tone={uflpaHits > 0 ? "alert" : uflpaFlags > 0 ? "active" : "success"}
+          chip={uflpaHits > 0 ? "alert" : uflpaFlags > 0 ? "active" : "success"}
           subline={
             uflpa
               ? `${uflpa.hits} hit${uflpa.hits === 1 ? "" : "s"} · ${uflpa.flags} region flag${uflpa.flags === 1 ? "" : "s"} · ${uflpa.clear} clear`
               : "No data"
           }
         />
-        <HubCard
+        <HubTile
           href="/app/compliance/msa"
           Icon={FileText}
           title="MSA §54 generator"
           meta="Modern Slavery Act"
           value={msaIn?.total_published ?? 0}
-          tone="neutral"
+          chip="neutral"
           subline={
             msaIn
               ? `${msaIn.rsc_covered} RSC-covered · ${msaIn.expiring_certs_90d} certs expiring`
@@ -160,27 +146,27 @@ export default async function ComplianceHubPage() {
       </section>
 
       {expCount > 0 && (expiry?.bucket_30 ?? 0) > 0 ? (
-        <Card>
-          <CardHeader>
-            <CardTitle>Imminent renewals</CardTitle>
-            <CardMeta>Certifications expiring in under 30 days</CardMeta>
-          </CardHeader>
-          <CardContent className="pt-0 text-sm text-ink-secondary">
-            <p className="flex items-center gap-2">
-              <WarningCircle size={16} weight="fill" className="text-sem-amber" />
-              {expiry?.bucket_30}{" "}
-              {expiry?.bucket_30 === 1 ? "certification expires" : "certifications expire"}{" "}
-              within 30 days. Review under{" "}
-              <Link
-                href="/app/compliance/expiry"
-                className="font-medium text-accent-indigo underline-offset-2 hover:underline"
-              >
-                certification expiry
-              </Link>
-              .
-            </p>
-          </CardContent>
-        </Card>
+        <section className="proto-card space-y-2">
+          <div className="proto-card-head">
+            <h2 className="proto-card-title">Imminent renewals</h2>
+            <span className="proto-card-meta">
+              Certifications expiring in under 30 days
+            </span>
+          </div>
+          <p className="flex items-center gap-2 text-sm text-ink-secondary">
+            <WarningCircle size={16} weight="fill" className="text-sem-amber" />
+            {expiry?.bucket_30}{" "}
+            {expiry?.bucket_30 === 1 ? "certification expires" : "certifications expire"}{" "}
+            within 30 days. Review under{" "}
+            <Link
+              href="/app/compliance/expiry"
+              className="font-medium text-brand-forest underline-offset-2 hover:underline"
+            >
+              certification expiry
+            </Link>
+            .
+          </p>
+        </section>
       ) : null}
     </div>
   );
@@ -192,13 +178,13 @@ type IconCmp = React.ComponentType<{
   className?: string;
 }>;
 
-function HubCard({
+function HubTile({
   href,
   Icon,
   title,
   meta,
   value,
-  tone,
+  chip,
   subline,
 }: {
   href: string;
@@ -206,31 +192,39 @@ function HubCard({
   title: string;
   meta: string;
   value: number;
-  tone: "neutral" | "active" | "alert" | "success";
+  chip: "neutral" | "active" | "alert" | "success";
   subline: string;
 }) {
+  const chipClass =
+    chip === "alert"
+      ? "chip !bg-sem-red-soft !text-sem-red !border-sem-red"
+      : chip === "active"
+        ? "chip !bg-sem-amber-soft !text-sem-amber !border-sem-amber"
+        : chip === "success"
+          ? "chip claim-verified"
+          : "chip";
   return (
     <Link
       href={href}
-      className="block rounded-card transition focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-indigo"
+      className="block rounded-card focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-forest"
     >
-      <Card className="h-full transition hover:shadow-l2">
-        <CardContent className="space-y-3 py-5">
-          <div className="flex items-center gap-2">
-            <Icon size={20} weight="duotone" className="text-accent-indigo" />
-            <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-tertiary">
-              {meta}
-            </p>
-          </div>
-          <div className="flex items-baseline gap-3">
-            <p className="font-display text-3xl font-semibold tabular-nums text-ink-primary">
-              {value.toLocaleString()}
-            </p>
-            <Badge tone={tone}>{title}</Badge>
-          </div>
-          <p className="text-[12px] text-ink-tertiary">{subline}</p>
-        </CardContent>
-      </Card>
+      <article className="proto-card hoverable h-full space-y-3">
+        <div className="flex items-center gap-2">
+          <Icon size={18} weight="duotone" className="text-brand-forest" />
+          <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-ink-tertiary">
+            {meta}
+          </p>
+        </div>
+        <div className="flex items-baseline gap-3">
+          <p className="font-display text-3xl font-light tabular-nums text-ink-primary">
+            {value.toLocaleString()}
+          </p>
+          <span className={chipClass}>{title}</span>
+        </div>
+        <p className="font-mono text-[11px] uppercase tracking-[0.06em] text-ink-tertiary">
+          {subline}
+        </p>
+      </article>
     </Link>
   );
 }

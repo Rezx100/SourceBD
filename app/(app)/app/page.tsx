@@ -1,11 +1,10 @@
-// Buyer dashboard — Spec B5 (/app).
+// Buyer dashboard — Spec B5 (/app), FE-SITEWIDE Phase C1.
 //
 // Calls `public.buyer_dashboard()` (migration 0026) under the caller's
 // session and renders three surfaces per `context/frontend-design-spec.md`
-// §7: three stat tiles (Saved · Active RFQs · Unread messages — the last
-// two ship in B6 / B7 and display 0 with a meta note), the top 6
-// recently-saved suppliers as cards, and a unified recent-activity feed
-// (cert added, cert expired, RSC remediation update, save event).
+// §7: five stat tiles using `.metric-grid`/`.metric`, the top recently-saved
+// suppliers via the shared `DiscoverResultCard`, and a unified recent-activity
+// feed using `.prov-list`/`.prov-row`.
 //
 // SBI hard contract: the RPC excludes SBI from its payload entirely; this
 // file never references `sbi_*` keys. PII hard contract: the RPC excludes
@@ -21,11 +20,8 @@ import {
   WarningCircle,
 } from "@phosphor-icons/react/dist/ssr";
 
-import { ReceiptsRing } from "@/components/receipts-ring";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardMeta, CardTitle } from "@/components/ui/card";
-import { Tag } from "@/components/ui/tag";
+import { DiscoverResultCard, type DiscoverRow } from "@/components/discover/result-card";
+import { SaveButton } from "@/components/save-button";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -98,25 +94,23 @@ export default async function BuyerHome() {
   return (
     <div className="mx-auto max-w-6xl space-y-6">
       <header>
-        <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-ink-tertiary">
+        <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-tertiary">
           Buyer
         </p>
-        <h1 className="font-display text-2xl font-semibold tracking-tightish text-ink-primary">
+        <h1 className="font-display text-3xl font-light tracking-tight text-ink-primary">
           Dashboard
         </h1>
       </header>
 
       {error ? (
-        <Card>
-          <CardContent className="text-sm text-sem-red">
-            Could not load dashboard.
-          </CardContent>
-        </Card>
+        <div className="proto-card text-sm text-sem-red">
+          Could not load dashboard.
+        </div>
       ) : null}
 
       <section
         aria-label="Quick stats"
-        className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5"
+        className="grid grid-cols-1 gap-[14px] sm:grid-cols-2 lg:grid-cols-5"
       >
         <StatTile
           label="Saved suppliers"
@@ -167,66 +161,68 @@ export default async function BuyerHome() {
       </section>
 
       {doc.alerts.length > 0 ? (
-        <Card>
-          <CardHeader>
-            <CardTitle>Alerts</CardTitle>
-            <CardMeta>Certifications expiring in the next 30 days</CardMeta>
-          </CardHeader>
-          <CardContent className="pt-0">
-            <ul className="m-0 flex list-none flex-col gap-2 p-0">
-              {doc.alerts.map((a) => (
-                <li
-                  key={`${a.supplier_id}-${a.cert_kind}-${a.expires_on}`}
-                  className="flex items-center justify-between gap-3 rounded-input border border-sem-amber bg-sem-amber-soft px-3 py-2 text-[13px]"
-                >
-                  <span className="flex items-center gap-2 text-sem-amber">
-                    <WarningCircle size={16} weight="fill" aria-hidden />
-                    <Link
-                      href={`/app/suppliers/${a.supplier_slug}`}
-                      className="font-medium underline-offset-2 hover:underline"
-                    >
-                      {a.company_name}
-                    </Link>
-                    <span className="text-ink-secondary">
-                      · {prettyCert(a.cert_kind)} expires {fmtDate(a.expires_on)}
-                    </span>
+        <section aria-label="Alerts" className="proto-card space-y-3">
+          <div className="proto-card-head">
+            <h2 className="proto-card-title">Alerts</h2>
+            <span className="proto-card-meta">
+              Certifications expiring in the next 30 days
+            </span>
+          </div>
+          <ul className="m-0 flex list-none flex-col gap-2 p-0">
+            {doc.alerts.map((a) => (
+              <li
+                key={`${a.supplier_id}-${a.cert_kind}-${a.expires_on}`}
+                className="flex items-center justify-between gap-3 rounded-input border border-sem-amber bg-sem-amber-soft px-3 py-2 text-[13px]"
+              >
+                <span className="flex items-center gap-2 text-sem-amber">
+                  <WarningCircle size={16} weight="fill" aria-hidden />
+                  <Link
+                    href={`/app/suppliers/${a.supplier_slug}`}
+                    className="font-medium underline-offset-2 hover:underline"
+                  >
+                    {a.company_name}
+                  </Link>
+                  <span className="text-ink-secondary">
+                    · {prettyCert(a.cert_kind)} expires {fmtDate(a.expires_on)}
                   </span>
-                </li>
-              ))}
-            </ul>
-          </CardContent>
-        </Card>
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
       ) : null}
 
       <section aria-label="Saved suppliers" className="space-y-3">
         <div className="flex items-baseline justify-between gap-3">
-          <h2 className="font-display text-base font-semibold text-ink-primary">
+          <h2 className="font-display text-lg font-light tracking-tight text-ink-primary">
             Saved suppliers
           </h2>
           {doc.saved_count > 0 ? (
-            <Button asChild variant="ghost" size="sm">
-              <Link href="/app/saved">
-                View all <ArrowRight size={14} />
-              </Link>
-            </Button>
+            <Link href="/app/saved" className="btn-proto inline-flex items-center gap-1">
+              View all <ArrowRight size={12} weight="bold" />
+            </Link>
           ) : null}
         </div>
         {doc.recent_saved.length === 0 ? (
-          <Card>
-            <CardContent className="space-y-3 py-8 text-center">
-              <p className="text-sm text-ink-secondary">
-                You haven&apos;t saved any suppliers yet.
-              </p>
-              <Button asChild variant="outline" size="sm">
-                <Link href="/app/discover">Browse Discover</Link>
-              </Button>
-            </CardContent>
-          </Card>
+          <div className="proto-card space-y-3 text-center">
+            <p className="text-sm text-ink-secondary">
+              You haven&apos;t saved any suppliers yet.
+            </p>
+            <Link href="/app/discover" className="btn-proto inline-flex">
+              Browse Discover
+            </Link>
+          </div>
         ) : (
-          <ul className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+          <ul className="grid grid-cols-1 gap-4">
             {doc.recent_saved.map((c) => (
               <li key={c.id}>
-                <SavedMiniCard card={c} />
+                <DiscoverResultCard
+                  row={savedToDiscoverRow(c)}
+                  hrefBase="/app/suppliers"
+                  actionSlot={
+                    <SaveButton supplierId={c.id} initialSaved={true} shape="icon" />
+                  }
+                />
               </li>
             ))}
           </ul>
@@ -234,42 +230,37 @@ export default async function BuyerHome() {
       </section>
 
       <section aria-label="Recent activity" className="space-y-3">
-        <h2 className="font-display text-base font-semibold text-ink-primary">
+        <h2 className="font-display text-lg font-light tracking-tight text-ink-primary">
           Recent activity
         </h2>
         {doc.recent_activity.length === 0 ? (
-          <Card>
-            <CardContent className="py-6 text-center text-sm text-ink-secondary">
-              Activity on your saved suppliers will show up here.
-            </CardContent>
-          </Card>
+          <div className="proto-card text-center text-sm text-ink-secondary">
+            Activity on your saved suppliers will show up here.
+          </div>
         ) : (
-          <Card>
-            <CardContent className="px-0 py-0">
-              <ul className="m-0 flex list-none flex-col p-0">
-                {doc.recent_activity.map((ev, i) => (
-                  <li
-                    key={`${ev.supplier_id}-${ev.kind}-${ev.event_at}-${i}`}
-                    className="flex items-center gap-3 border-b border-hairline px-4 py-2.5 text-[13px] last:border-b-0"
-                  >
-                    <ActivityIcon kind={ev.kind} />
-                    <div className="min-w-0 flex-1 truncate">
-                      <Link
-                        href={`/app/suppliers/${ev.supplier_slug}`}
-                        className="font-medium text-ink-primary hover:underline"
-                      >
-                        {ev.company_name}
-                      </Link>
-                      <span className="text-ink-secondary"> · {activityLabel(ev)}</span>
-                    </div>
-                    <span className="font-mono text-[11px] text-ink-tertiary">
-                      {fmtRelative(ev.event_at)}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </CardContent>
-          </Card>
+          <div className="proto-card">
+            <ul className="prov-list m-0 list-none p-0">
+              {doc.recent_activity.map((ev, i) => (
+                <li
+                  key={`${ev.supplier_id}-${ev.kind}-${ev.event_at}-${i}`}
+                  className="prov-row"
+                  style={{ gridTemplateColumns: "28px 1fr auto" }}
+                >
+                  <ActivityIcon kind={ev.kind} />
+                  <div className="min-w-0 truncate">
+                    <Link
+                      href={`/app/suppliers/${ev.supplier_slug}`}
+                      className="prov-source hover:underline"
+                    >
+                      {ev.company_name}
+                    </Link>
+                    <span className="text-ink-secondary"> · {activityLabel(ev)}</span>
+                  </div>
+                  <span className="prov-ref">{fmtRelative(ev.event_at)}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
         )}
       </section>
     </div>
@@ -283,32 +274,24 @@ function StatTile({
   value,
   meta,
   href,
-  muted,
 }: {
   label: string;
   value: number;
   meta: string;
   href?: string;
-  muted?: boolean;
 }) {
   const body = (
-    <Card className={muted ? "opacity-80" : undefined}>
-      <CardContent className="space-y-1 py-4">
-        <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-tertiary">
-          {label}
-        </p>
-        <p className="font-display text-3xl font-semibold tabular-nums text-ink-primary">
-          {value.toLocaleString()}
-        </p>
-        <p className="text-[12px] text-ink-tertiary">{meta}</p>
-      </CardContent>
-    </Card>
+    <div className="metric h-full">
+      <p className="metric-label">{label}</p>
+      <p className="metric-val tabular-nums">{value.toLocaleString()}</p>
+      <p className="metric-sub">{meta}</p>
+    </div>
   );
   if (href) {
     return (
       <Link
         href={href}
-        className="block rounded-card transition focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-indigo"
+        className="block rounded-input transition focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-forest"
       >
         {body}
       </Link>
@@ -317,41 +300,25 @@ function StatTile({
   return body;
 }
 
-function SavedMiniCard({ card }: { card: SavedCard }) {
-  const location = [card.city, card.district].filter(Boolean).join(", ");
-  const tags = (card.source_tags ?? []).slice(0, 3);
-  return (
-    <Link
-      href={`/app/suppliers/${card.slug}`}
-      className="block rounded-card transition focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-indigo"
-    >
-      <Card className="h-full transition hover:shadow-l2">
-        <CardContent className="flex items-start gap-3 py-3">
-          <ReceiptsRing sources={card.t13_source_count} size={32} />
-          <div className="min-w-0 flex-1 space-y-1">
-            <p className="truncate font-display text-sm font-semibold text-ink-primary">
-              {card.company_name}
-            </p>
-            <p className="truncate text-[12px] text-ink-tertiary">
-              <Badge tone={card.entity_type === "factory" ? "active" : "neutral"}>
-                {entityLabel(card.entity_type)}
-              </Badge>
-              {location ? <span className="ml-2">{location}</span> : null}
-            </p>
-            {tags.length > 0 ? (
-              <div className="flex flex-wrap gap-1 pt-1">
-                {tags.map((t) => (
-                  <Tag key={t} tone="neutral">
-                    {t}
-                  </Tag>
-                ))}
-              </div>
-            ) : null}
-          </div>
-        </CardContent>
-      </Card>
-    </Link>
-  );
+function savedToDiscoverRow(c: SavedCard): DiscoverRow {
+  return {
+    id: c.id,
+    slug: c.slug,
+    company_name: c.company_name,
+    entity_type: c.entity_type,
+    city: c.city,
+    district: c.district,
+    source_tags: c.source_tags ?? [],
+    t13_source_count: c.t13_source_count,
+    completeness_pct: c.completeness_pct,
+    employees_total: null,
+    established_date: null,
+    principal_products: [],
+    factory_types: [],
+    rsc_progress_pct: null,
+    parent_group_name: null,
+    total_count: 0,
+  };
 }
 
 function ActivityIcon({ kind }: { kind: ActivityKind }) {
@@ -362,7 +329,7 @@ function ActivityIcon({ kind }: { kind: ActivityKind }) {
     return <Certificate size={sz} weight="fill" className="text-sem-green" aria-hidden />;
   if (kind === "cert_expired")
     return <Clock size={sz} weight="fill" className="text-sem-red" aria-hidden />;
-  return <ShieldCheck size={sz} weight="fill" className="text-accent-indigo" aria-hidden />;
+  return <ShieldCheck size={sz} weight="fill" className="text-brand-forest" aria-hidden />;
 }
 
 function activityLabel(ev: ActivityEvent): string {
@@ -392,12 +359,6 @@ function prettyCert(k: string): string {
     default:
       return k.toUpperCase();
   }
-}
-
-function entityLabel(t: string): string {
-  if (t === "factory") return "Factory";
-  if (t === "buying_house") return "Buying house";
-  return t.replace(/_/g, " ");
 }
 
 function fmtDate(iso: string): string {
