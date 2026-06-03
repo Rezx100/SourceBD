@@ -1,26 +1,27 @@
-// Public supplier profile — anonymous, demo-mode (Spec M5).
+// Spec FE-SITEWIDE Phase A — public Factory profile (anon, /suppliers/[slug]).
 //
-// Calls the anon-granted `public.buyer_supplier_profile` RPC
-// (migrations 0024 / 0034 / 0036) — same RPC the buyer surface uses.
-// The RPC payload excludes the internal score and the four direct
-// contact PII columns at the wire level by construction (Spec B2
-// contract).
+// Mirrors the prototype anatomy shipped by FE-PROTO on the authenticated
+// `/app/suppliers/[slug]` route, with three public-mode adaptations:
 //
-// Address-PII render gate (Spec M5 JC #12 (a)): the RPC's
-// `addresses[]` rows DO carry `phone` and `email` (registry-published
-// values, e.g. BGAPMEA). On this public surface those two fields are
-// stripped at render time via an inline mapper; only
-// `kind + address + source_code` is shown. A one-liner under the card
-// reads "Phone & email — sign up free to view." so the omission is
-// honest. The auth-gated `/app/suppliers/[slug]` is unchanged.
+//   1. No SaveButton, no ClaimCtaButton. Side-panel CTAs convert anon
+//      visitors via /signup?next=… and /login?next=… instead.
+//   2. Contact tab is always the gated card; its CTA links to
+//      /signup?next=/suppliers/<slug> (not /pricing — anon users have no
+//      plan yet; the conversion event is sign-up).
+//   3. Address rows are stripped of `phone` and `email` at render time
+//      (Spec M5 JC #12 (a) — registry-published PII is not exposed to
+//      anonymous traffic). Inline mapper, not promoted to lib/.
 //
-// No `SaveButton`, no `ClaimCtaButton`, no `Tabs` client island — this
-// is a fully server-rendered demo for anonymous visitors and SEO.
+// Hard contracts preserved:
+//   - RPC `public.buyer_supplier_profile` is unchanged (no DB migration).
+//   - R1 glyph payload = `t13_source_count`. No SBI / pillar / grade.
+//   - Sanctions banner overrides chrome when an active hit exists; the
+//     Contact CTA is disabled in that branch.
+//   - Tier hierarchy is law: Provenance tab footer reiterates it.
 //
-// M4 JSON-LD baseline: `Organization` / `LocalBusiness` inline JSON-LD
-// re-sourced from the RPC payload (not a second SELECT). `website` is
-// not in the RPC payload so `sameAs` is omitted — accepted regression
-// from M4 because the buyer profile already lives without `website`.
+// Demo-mode chrome:
+//   - DemoBanner (Spec M5) renders above the profile.
+//   - M4 JSON-LD Organization / LocalBusiness preserved.
 
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -28,21 +29,14 @@ import { notFound } from "next/navigation";
 
 import { DemoBanner } from "@/components/marketing/demo-banner";
 import { ReceiptsRing } from "@/components/receipts-ring";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardMeta,
-  CardTitle,
-} from "@/components/ui/card";
-import { Tag } from "@/components/ui/tag";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://sourcebd.net";
+
+// ---------- payload shape (mirrors RPC RETURNS jsonb document) -------------
 
 type Supplier = {
   id: string;
@@ -67,11 +61,6 @@ type Supplier = {
   production_capacity_pcs_day: number | null;
   production_capacity_dozen_yearly: number | null;
   source_tags: string[];
-  supplier_tagline: string | null;
-  supplier_about: string | null;
-  supplier_moq: string | null;
-  supplier_lead_time_days: number | null;
-  supplier_capabilities: string[];
 };
 
 type Pill = {
@@ -136,6 +125,8 @@ type Provenance = {
 type AddressRowRaw = {
   kind: string;
   address: string;
+  phone: string | null;
+  email: string | null;
   source_code: string;
   fetched_at: string;
 };
@@ -155,16 +146,6 @@ type ComplianceDocument = {
   file_size: number | null;
 };
 
-type PartnerSupplier = {
-  id: string;
-  slug: string;
-  company_name: string;
-  entity_type: string;
-  city: string | null;
-  district: string | null;
-  decided_at: string;
-};
-
 type ProfilePayload = {
   supplier: Supplier;
   t13_source_count: number;
@@ -176,12 +157,8 @@ type ProfilePayload = {
   provenance: Provenance[];
   addresses: AddressRowRaw[];
   documents: ComplianceDocument[];
-  partner_factories?: PartnerSupplier[];
-  partner_buying_houses?: PartnerSupplier[];
 };
 
-// Inline render-time mapper — strips phone+email per M5 JC #12 (a).
-// Local to this page file; not promoted to lib/.
 function publicAddresses(rows: AddressRowRaw[]): PublicAddress[] {
   return rows.map((r) => ({
     kind: r.kind,
@@ -190,6 +167,8 @@ function publicAddresses(rows: AddressRowRaw[]): PublicAddress[] {
     fetched_at: r.fetched_at,
   }));
 }
+
+// ---------- metadata ------------------------------------------------------
 
 export async function generateMetadata({
   params,
@@ -227,6 +206,8 @@ export async function generateMetadata({
   }
 }
 
+// ---------- entry --------------------------------------------------------
+
 export default async function PublicSupplierProfilePage({
   params,
 }: {
@@ -234,18 +215,15 @@ export default async function PublicSupplierProfilePage({
 }) {
   const { slug } = await params;
   const supabase = await createSupabaseServerClient();
+
   const { data, error } = await supabase.rpc("buyer_supplier_profile", {
     p_slug: slug,
   });
   if (error || data == null) notFound();
+
   const payload = data as ProfilePayload;
   const s = payload.supplier;
-
-  const addresses = publicAddresses(payload.addresses ?? []);
-  const partners =
-    s.entity_type === "buying_house"
-      ? payload.partner_factories ?? []
-      : payload.partner_buying_houses ?? [];
+  const nextPath = `/suppliers/${s.slug}`;
 
   const hasLocality = !!(s.city || s.district);
   const ldType = hasLocality ? "LocalBusiness" : "Organization";
@@ -264,566 +242,680 @@ export default async function PublicSupplierProfilePage({
     };
   }
 
-  const nextPath = `/suppliers/${s.slug}`;
-  const location =
-    [s.city, s.district, s.country].filter((v) => v && v.trim()).join(", ") ||
-    "Bangladesh";
-
   return (
     <>
       <DemoBanner next={nextPath} />
-      <main className="mx-auto flex max-w-5xl flex-col gap-6 px-4 py-8 md:px-6">
+      <div className="mx-auto flex max-w-[1180px] flex-col gap-4 px-6 py-8">
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(ld) }}
         />
 
-        <Link
-          href="/discover"
-          className="text-xs uppercase tracking-wide text-ink-tertiary hover:text-ink-primary"
-        >
-          ← Discover
-        </Link>
+        {s.is_sanctioned ? <SanctionsBanner /> : null}
 
-        <Card>
-          <div className="flex flex-col gap-5 px-6 py-5">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-              <ReceiptsRing sources={payload.t13_source_count} size={64} />
-              <div className="flex min-w-0 flex-1 flex-col gap-2">
-                <h1 className="m-0 truncate font-display text-[28px] font-semibold leading-tight tracking-tight text-ink-primary md:text-[32px]">
-                  {s.company_name}
-                </h1>
-                <div className="flex flex-wrap items-center gap-2 text-[13px] text-ink-secondary">
-                  <Badge tone={s.entity_type === "factory" ? "active" : "neutral"}>
-                    {entityLabel(s.entity_type)}
-                  </Badge>
-                  <span>·</span>
-                  <span>{location}</span>
-                  <span>·</span>
-                  <span className="font-mono text-[12px] text-ink-tertiary">
-                    Completeness {s.completeness_pct}%
-                  </span>
-                </div>
-                {s.parent_group_name ? (
-                  <div className="text-[13px] text-ink-secondary">
-                    Part of{" "}
-                    <span className="font-medium text-ink-primary">
-                      {s.parent_group_name}
-                    </span>
-                  </div>
-                ) : null}
-                {s.supplier_tagline ? (
-                  <p className="text-[14px] text-ink-secondary">
-                    {s.supplier_tagline}
-                  </p>
-                ) : null}
-              </div>
-            </div>
+        <ProfileHeader payload={payload} nextPath={nextPath} />
 
-            {payload.pills.length > 0 ? (
-              <div className="border-t border-hairline pt-4">
-                <PillRow pills={payload.pills} />
-              </div>
+        {s.principal_products.length > 0 ? (
+          <ProductsStrip products={s.principal_products} />
+        ) : null}
+
+        <Tabs defaultValue="compliance" className="mt-4 flex flex-col gap-4">
+          <TabsList
+            aria-label="Profile sections"
+            className="proto-tabs h-auto bg-transparent p-0"
+          >
+            <TabsTrigger value="overview" className="proto-tab">
+              Overview
+            </TabsTrigger>
+            <TabsTrigger value="compliance" className="proto-tab">
+              Compliance
+              <span className="proto-tab-count">{complianceCount(payload)}</span>
+            </TabsTrigger>
+            {hasCapacity(s) ? (
+              <TabsTrigger value="capacity" className="proto-tab">
+                Capacity
+              </TabsTrigger>
             ) : null}
-
-            {s.is_sanctioned ? (
-              <div className="flex items-center gap-2 rounded-input border border-sem-red bg-sem-red-soft px-3 py-2 text-[13px] text-sem-red">
-                <span aria-hidden>⚠</span>
-                <span>
-                  Listed on a sanctions / forced-labour list — see the
-                  Sanctions section below for details.
+            {payload.brand_attributions.length > 0 ? (
+              <TabsTrigger value="brands" className="proto-tab">
+                Brand attribution
+                <span className="proto-tab-count">
+                  {payload.brand_attributions.length}
                 </span>
-              </div>
+              </TabsTrigger>
             ) : null}
-          </div>
-        </Card>
+            <TabsTrigger value="contact" className="proto-tab">
+              Contact
+            </TabsTrigger>
+            <TabsTrigger value="provenance" className="proto-tab">
+              Provenance
+              <span className="proto-tab-count">{payload.provenance.length}</span>
+            </TabsTrigger>
+          </TabsList>
 
-        {payload.sanctions.length > 0 ? (
-          <SanctionsCard hits={payload.sanctions} />
-        ) : null}
+          <TabsContent value="overview">
+            <OverviewTab payload={payload} />
+          </TabsContent>
+          <TabsContent value="compliance" id="compliance">
+            <ComplianceTab payload={payload} />
+          </TabsContent>
+          {hasCapacity(s) ? (
+            <TabsContent value="capacity">
+              <CapacityTab supplier={s} />
+            </TabsContent>
+          ) : null}
+          {payload.brand_attributions.length > 0 ? (
+            <TabsContent value="brands">
+              <BrandsTab brands={payload.brand_attributions} />
+            </TabsContent>
+          ) : null}
+          <TabsContent value="contact">
+            <ContactTab nextPath={nextPath} disabled={s.is_sanctioned} />
+          </TabsContent>
+          <TabsContent value="provenance">
+            <ProvenanceTab provenance={payload.provenance} />
+          </TabsContent>
+        </Tabs>
 
-        {s.supplier_about ? (
-          <Card>
-            <CardHeader>
-              <CardTitle>About</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="whitespace-pre-line text-[14px] text-ink-secondary">
-                {s.supplier_about}
-              </p>
-            </CardContent>
-          </Card>
-        ) : null}
-
-        {payload.pills.length > 0 ? (
-          <Card>
-            <CardHeader>
-              <CardTitle>Registry pills</CardTitle>
-              <CardMeta>{payload.pills.length} entries</CardMeta>
-            </CardHeader>
-            <CardContent>
-              <PillRow pills={payload.pills} />
-              {payload.pills.some((p) => p.inherited_from != null) ? (
-                <p className="mt-3 text-[12px] text-ink-tertiary">
-                  Dashed pills are inherited from a parent factory (RSC
-                  sibling / extension rows).
-                </p>
-              ) : null}
-            </CardContent>
-          </Card>
-        ) : null}
-
-        {payload.certifications.length > 0 ? (
-          <Card>
-            <CardHeader>
-              <CardTitle>Certifications</CardTitle>
-              <CardMeta>{payload.certifications.length} certs</CardMeta>
-            </CardHeader>
-            <CardContent>
-              <ul className="m-0 flex list-none flex-col gap-3 p-0">
-                {payload.certifications.map((c, i) => (
-                  <li
-                    key={i}
-                    className="flex flex-col gap-1 border-b border-hairline pb-3 last:border-b-0 last:pb-0"
-                  >
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Badge tone="neutral">{certLabel(c.kind)}</Badge>
-                      {c.expires_on ? (
-                        <span className="font-mono text-[11px] text-ink-tertiary">
-                          expires {c.expires_on}
-                        </span>
-                      ) : null}
-                      {c.certificate_no ? (
-                        <span className="font-mono text-[12px] text-ink-tertiary">
-                          {c.certificate_no}
-                        </span>
-                      ) : null}
-                    </div>
-                    {c.issuer ? (
-                      <div className="text-[13px] text-ink-secondary">
-                        Issuer: {c.issuer}
-                      </div>
-                    ) : null}
-                    {c.scope ? (
-                      <div className="text-[12px] text-ink-tertiary">
-                        {c.scope}
-                      </div>
-                    ) : null}
-                    {c.document_url ? (
-                      <a
-                        href={c.document_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-[12px] font-medium text-accent-indigo hover:underline"
-                      >
-                        View certificate →
-                      </a>
-                    ) : null}
-                  </li>
-                ))}
-              </ul>
-            </CardContent>
-          </Card>
-        ) : null}
-
-        {payload.rsc_remediation ? (
-          <RscCard rsc={payload.rsc_remediation} />
-        ) : null}
-
-        {payload.brand_attributions.length > 0 ? (
-          <Card>
-            <CardHeader>
-              <CardTitle>Brand attribution</CardTitle>
-              <CardMeta>{payload.brand_attributions.length} brands</CardMeta>
-            </CardHeader>
-            <CardContent>
-              <p className="mb-3 text-[12px] text-ink-tertiary">
-                Disclosed on each brand’s public factory list. Disclosure does
-                not imply endorsement.
-              </p>
-              <ul className="m-0 flex list-none flex-wrap gap-2 p-0">
-                {payload.brand_attributions.map((b, i) => (
-                  <li key={i}>
-                    {b.source_url ? (
-                      <a
-                        href={b.source_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        <Tag tone="neutral">Disclosed on {b.display_name}</Tag>
-                      </a>
-                    ) : (
-                      <Tag tone="neutral">Disclosed on {b.display_name}</Tag>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            </CardContent>
-          </Card>
-        ) : null}
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Overview</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <dl className="grid grid-cols-1 gap-3 text-[13px] sm:grid-cols-2">
-              {s.established_date ? (
-                <Stat label="Established" value={s.established_date} />
-              ) : null}
-              {s.bepza_zone ? (
-                <Stat label="BEPZA zone" value={s.bepza_zone} />
-              ) : null}
-              {s.employees_total != null ? (
-                <Stat
-                  label="Employees"
-                  value={s.employees_total.toLocaleString()}
-                />
-              ) : null}
-              {s.machines_sewing != null ? (
-                <Stat
-                  label="Sewing machines"
-                  value={s.machines_sewing.toLocaleString()}
-                />
-              ) : null}
-              {s.production_capacity_pcs_day != null ? (
-                <Stat
-                  label="Capacity"
-                  value={`${s.production_capacity_pcs_day.toLocaleString()} pcs/day`}
-                />
-              ) : null}
-              {s.production_capacity_dozen_yearly != null ? (
-                <Stat
-                  label="Annual capacity"
-                  value={`${s.production_capacity_dozen_yearly.toLocaleString()} dozen/yr`}
-                />
-              ) : null}
-              {s.supplier_moq ? (
-                <Stat label="MOQ" value={s.supplier_moq} />
-              ) : null}
-              {s.supplier_lead_time_days != null ? (
-                <Stat
-                  label="Lead time"
-                  value={`${s.supplier_lead_time_days} days`}
-                />
-              ) : null}
-            </dl>
-            {s.factory_types.length > 0 ? (
-              <div className="mt-4">
-                <div className="mb-1.5 font-mono text-[10px] uppercase tracking-[0.12em] text-ink-tertiary">
-                  Factory types
-                </div>
-                <div className="flex flex-wrap gap-1.5">
-                  {s.factory_types.map((t) => (
-                    <Tag key={t} tone="neutral">
-                      {t}
-                    </Tag>
-                  ))}
-                </div>
-              </div>
-            ) : null}
-            {s.principal_products.length > 0 ? (
-              <div className="mt-4">
-                <div className="mb-1.5 font-mono text-[10px] uppercase tracking-[0.12em] text-ink-tertiary">
-                  Principal products
-                </div>
-                <div className="flex flex-wrap gap-1.5">
-                  {s.principal_products.map((t) => (
-                    <Tag key={t} tone="neutral">
-                      {t}
-                    </Tag>
-                  ))}
-                </div>
-              </div>
-            ) : null}
-            {s.supplier_capabilities.length > 0 ? (
-              <div className="mt-4">
-                <div className="mb-1.5 font-mono text-[10px] uppercase tracking-[0.12em] text-ink-tertiary">
-                  Capabilities
-                </div>
-                <div className="flex flex-wrap gap-1.5">
-                  {s.supplier_capabilities.map((t) => (
-                    <Tag key={t} tone="neutral">
-                      {t}
-                    </Tag>
-                  ))}
-                </div>
-              </div>
-            ) : null}
-          </CardContent>
-        </Card>
-
-        {addresses.length > 0 ? (
-          <Card>
-            <CardHeader>
-              <CardTitle>Addresses</CardTitle>
-              <CardMeta>{addresses.length} on record</CardMeta>
-            </CardHeader>
-            <CardContent>
-              <ul className="m-0 flex list-none flex-col gap-3 p-0">
-                {addresses.map((a, i) => (
-                  <li
-                    key={i}
-                    className="flex flex-col gap-1 border-b border-hairline pb-3 last:border-b-0 last:pb-0"
-                  >
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Badge tone="neutral">{a.kind.replace(/_/g, " ")}</Badge>
-                      <span className="font-mono text-[11px] text-ink-tertiary">
-                        {a.source_code}
-                      </span>
-                    </div>
-                    <p className="text-[13px] text-ink-secondary">
-                      {a.address}
-                    </p>
-                  </li>
-                ))}
-              </ul>
-              <p className="mt-3 text-[12px] text-ink-tertiary">
-                Phone &amp; email —{" "}
-                <Link
-                  href={`/signup?next=${encodeURIComponent(nextPath)}`}
-                  className="font-medium text-accent-indigo hover:underline"
-                >
-                  sign up free to view
-                </Link>
-                .
-              </p>
-            </CardContent>
-          </Card>
-        ) : null}
-
-        {payload.documents.length > 0 ? (
-          <Card>
-            <CardHeader>
-              <CardTitle>Compliance documents</CardTitle>
-              <CardMeta>{payload.documents.length} files</CardMeta>
-            </CardHeader>
-            <CardContent>
-              <ul className="m-0 flex list-none flex-wrap gap-2 p-0">
-                {payload.documents.map((d, i) => (
-                  <li key={i}>
-                    <a
-                      href={d.mirror_url ?? d.original_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 rounded-pill border border-hairline-strong bg-surface-l1 px-3 py-1.5 text-[12px] font-medium text-ink-secondary hover:text-accent-indigo"
-                    >
-                      📄 {d.doc_type}
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            </CardContent>
-          </Card>
-        ) : null}
-
-        {partners.length > 0 ? (
-          <Card>
-            <CardHeader>
-              <CardTitle>
-                {s.entity_type === "buying_house"
-                  ? "Partner factories"
-                  : "Partner buying houses"}
-              </CardTitle>
-              <CardMeta>{partners.length}</CardMeta>
-            </CardHeader>
-            <CardContent>
-              <ul className="m-0 flex list-none flex-col gap-2 p-0">
-                {partners.map((p) => (
-                  <li key={p.id}>
-                    <Link
-                      href={`/suppliers/${p.slug}`}
-                      className="flex items-center justify-between rounded-input border border-hairline px-3 py-2 text-[13px] hover:border-hairline-strong"
-                    >
-                      <span className="font-medium text-ink-primary">
-                        {p.company_name}
-                      </span>
-                      <span className="text-[12px] text-ink-tertiary">
-                        {[p.city, p.district].filter(Boolean).join(", ") ||
-                          "—"}
-                      </span>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </CardContent>
-          </Card>
-        ) : null}
-
-        {payload.provenance.length > 0 ? (
-          <Card>
-            <CardHeader>
-              <CardTitle>Provenance</CardTitle>
-              <CardMeta>
-                Receipts: {payload.provenance.length} records across{" "}
-                {distinctSources(payload.provenance)} sources
-              </CardMeta>
-            </CardHeader>
-            <CardContent>
-              <details className="text-[13px] text-ink-secondary">
-                <summary className="cursor-pointer text-[12px] font-medium text-ink-tertiary">
-                  Show all source records
-                </summary>
-                <ul className="mt-3 flex list-none flex-col gap-2 p-0">
-                  {payload.provenance.map((p, i) => (
-                    <li
-                      key={i}
-                      className="flex flex-wrap items-center gap-2 border-b border-hairline pb-2 last:border-b-0"
-                    >
-                      <Badge tone="neutral">{tierLabel(p.tier)}</Badge>
-                      <span className="font-mono text-[12px] text-ink-primary">
-                        {p.source_code}
-                      </span>
-                      {p.source_ref ? (
-                        <span className="font-mono text-[11px] text-ink-tertiary">
-                          {p.source_ref}
-                        </span>
-                      ) : null}
-                      <span className="text-[12px] text-ink-tertiary">
-                        last seen {fmtDate(p.last_seen_at)}
-                      </span>
-                      {p.source_url ? (
-                        <a
-                          href={p.source_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-[12px] text-accent-indigo hover:underline"
-                        >
-                          source
-                        </a>
-                      ) : null}
-                    </li>
-                  ))}
-                </ul>
-              </details>
-            </CardContent>
-          </Card>
-        ) : null}
-
-        <Card className="border-accent-indigo/40 bg-brand-forest-tint">
-          <CardContent className="flex flex-col items-start gap-3 py-5 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <h2 className="font-display text-lg font-semibold text-ink-primary">
-                Want to message {s.company_name}?
-              </h2>
-              <p className="text-[13px] text-ink-secondary">
-                Sign up free to unlock contacts, saved suppliers, RFQs, and
-                Smart Match.
-              </p>
-            </div>
-            <div className="flex items-center gap-2">
-              <Button asChild variant="primary" size="sm">
-                <Link href={`/signup?next=${encodeURIComponent(nextPath)}`}>
-                  Sign up free
-                </Link>
-              </Button>
-              <Button asChild variant="ghost" size="sm">
-                <Link href={`/login?next=${encodeURIComponent(nextPath)}`}>
-                  Sign in
-                </Link>
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </main>
+        <p className="affiliation-disclaimer mt-6">
+          Authority logos identify the data sources we aggregate from. SourceBD
+          is not affiliated with or endorsed by BGMEA, BKMEA, BTMA, EPB,
+          OEKO-TEX, WRAP, GOTS, RSC, or any of the brands named on this page.
+          Every datum traces to the issuing authority shown on the Provenance
+          tab.
+        </p>
+      </div>
     </>
   );
 }
 
-function PillRow({ pills }: { pills: Pill[] }) {
+// ---------- header --------------------------------------------------------
+
+function ProfileHeader({
+  payload,
+  nextPath,
+}: {
+  payload: ProfilePayload;
+  nextPath: string;
+}) {
+  const s = payload.supplier;
+  const addrs = publicAddresses(payload.addresses);
+  const primaryAddress = s.address_raw ?? addrs[0]?.address ?? null;
+  const cityLine = [s.city, s.district].filter(Boolean).join(", ");
+  const otherAddressCount = Math.max(0, addrs.length - 1);
+  const lastVerified = payload.provenance[0]?.last_seen_at ?? null;
+  const lastVerifiedSource = payload.provenance[0]?.display_name ?? null;
+
+  const entityBreadcrumb =
+    s.entity_type === "buying_house"
+      ? "Discover › Buying house"
+      : "Discover › Garment manufacturer";
+
+  const rjsc = pillByCode(payload.pills, "RJSC")?.value ?? null;
+  const bin = pillByCode(payload.pills, "BIN")?.value ?? null;
+  const epbExp = pillByCode(payload.pills, "EPB")?.value ?? null;
+  const established = s.established_date;
+
   return (
-    <ul className="m-0 flex list-none flex-wrap gap-2 p-0">
-      {pills.map((p, i) => {
-        const inherited = p.inherited_from != null;
-        const label = pillText(p);
-        const title = inherited
-          ? `via ${p.inherited_from_name ?? "parent factory"}`
-          : p.source_url ?? undefined;
-        const className =
-          "inline-flex items-center gap-1.5 rounded-pill border px-2.5 py-1 text-[12px] font-medium " +
-          (inherited
-            ? "border-dashed border-hairline-strong bg-transparent text-ink-tertiary"
-            : "border-hairline-strong bg-surface-l1 text-ink-secondary");
-        const dot = (
-          <span
-            aria-hidden
-            className={
-              "inline-block h-1.5 w-1.5 rounded-full " +
-              (inherited ? "bg-ink-tertiary/50" : "bg-accent-indigo")
-            }
-          />
-        );
-        return (
-          <li key={`${p.source_code}-${p.value ?? "x"}-${i}`}>
-            {p.source_url ? (
-              <a
-                href={p.source_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                title={title}
-                className={className}
-              >
-                {dot}
-                {label}
-              </a>
-            ) : (
-              <span className={className} title={title}>
-                {dot}
-                {label}
-              </span>
-            )}
-          </li>
-        );
-      })}
-    </ul>
+    <section className="header-card" aria-labelledby="company-name">
+      <ReceiptsRing sources={payload.t13_source_count} size={64} />
+
+      <div className="header-main min-w-0">
+        <div className="breadcrumb">{entityBreadcrumb}</div>
+        <h1 id="company-name" className="header-name">
+          {s.company_name}
+        </h1>
+        {s.parent_group_name ? (
+          <p className="header-parentline">
+            <span style={{ color: "var(--ink-tertiary)" }}>Member of</span>{" "}
+            <Link
+              href={`/discover?group=${encodeURIComponent(s.parent_group_name)}`}
+            >
+              {s.parent_group_name}
+            </Link>
+          </p>
+        ) : null}
+
+        <div className="header-chips">
+          <span className="chip">{entityLabel(s.entity_type)}</span>
+          {s.factory_types.slice(0, 2).map((t) => (
+            <span key={t} className="chip">
+              {t}
+            </span>
+          ))}
+          {pillByCode(payload.pills, "BGMEA") ? (
+            <span className="chip">Member of BGMEA</span>
+          ) : null}
+          {pillByCode(payload.pills, "BKMEA") ? (
+            <span className="chip">Member of BKMEA</span>
+          ) : null}
+        </div>
+
+        <dl className="header-meta-row">
+          <div>
+            <dt>Address</dt>
+            <dd>
+              {primaryAddress ?? "—"}
+              {cityLine ? (
+                <>
+                  <br />
+                  <span className="mono">{cityLine}</span>
+                </>
+              ) : null}
+            </dd>
+          </div>
+          <div>
+            <dt>Established</dt>
+            <dd>
+              {established ?? "—"}
+              {established ? (
+                <>
+                  <br />
+                  <span className="mono">{yearsSince(established)} yrs</span>
+                </>
+              ) : null}
+            </dd>
+          </div>
+          <div>
+            <dt>RJSC</dt>
+            <dd>{rjsc ? <span className="mono">{rjsc}</span> : "—"}</dd>
+          </div>
+          <div>
+            <dt>BIN / EPB</dt>
+            <dd>
+              {bin ? (
+                <span className="mono">{bin}</span>
+              ) : epbExp ? (
+                <span className="mono">{epbExp}</span>
+              ) : (
+                "—"
+              )}
+            </dd>
+          </div>
+          <div>
+            <dt>Last verified</dt>
+            <dd>
+              {lastVerified ? (
+                <>
+                  <span className="mono">{fmtDate(lastVerified)}</span>
+                  {lastVerifiedSource ? (
+                    <>
+                      <br />
+                      <span
+                        style={{
+                          fontSize: 10,
+                          color: "var(--ink-tertiary)",
+                          fontFamily: "var(--font-mono)",
+                        }}
+                      >
+                        {lastVerifiedSource}
+                      </span>
+                    </>
+                  ) : null}
+                </>
+              ) : (
+                "—"
+              )}
+            </dd>
+          </div>
+        </dl>
+        {otherAddressCount > 0 ? (
+          <p
+            style={{
+              margin: "8px 0 0",
+              fontSize: 11,
+              color: "var(--ink-tertiary)",
+            }}
+          >
+            <a
+              href="#provenance"
+              style={{ color: "var(--accent-indigo)", fontWeight: 600 }}
+            >
+              + {otherAddressCount} other address
+              {otherAddressCount === 1 ? "" : "es"} on file →
+            </a>
+          </p>
+        ) : null}
+      </div>
+
+      <div className="header-side">
+        <CompletenessChip pct={s.completeness_pct} />
+        <div className="btn-row">
+          <Link
+            href={`/signup?next=${encodeURIComponent(nextPath)}`}
+            className="btn-proto"
+          >
+            Sign up to save
+          </Link>
+          {s.is_sanctioned ? (
+            <span
+              className="btn-proto"
+              aria-disabled
+              style={{ opacity: 0.5, cursor: "not-allowed" }}
+              title="Contact disabled — sanctions flag active"
+            >
+              Contact disabled
+            </span>
+          ) : (
+            <Link
+              href={`/signup?next=${encodeURIComponent(nextPath)}`}
+              className="btn-proto primary"
+            >
+              Contact
+            </Link>
+          )}
+        </div>
+      </div>
+    </section>
   );
 }
 
-function pillText(p: Pill): string {
-  const base = p.value ? `${p.source_code} ${p.value}` : p.source_code;
-  return p.inherited_from ? `${base} (parent)` : base;
+function CompletenessChip({ pct }: { pct: number }) {
+  const thin = pct < 60;
+  return (
+    <span
+      className={`completeness${thin ? " thin" : ""}`}
+      title={`${pct}% of expected fields populated`}
+    >
+      {pct}% complete
+    </span>
+  );
 }
 
-function SanctionsCard({ hits }: { hits: SanctionsHit[] }) {
+function SanctionsBanner() {
   return (
-    <Card className="border-sem-red">
-      <CardHeader>
-        <CardTitle className="text-sem-red">Sanctions hits</CardTitle>
-        <CardMeta>{hits.length} active</CardMeta>
-      </CardHeader>
-      <CardContent>
-        <ul className="m-0 flex list-none flex-col gap-3 p-0">
-          {hits.map((h, i) => (
-            <li
-              key={i}
-              className="flex flex-col gap-1 border-b border-hairline pb-2 last:border-b-0 last:pb-0"
-            >
-              <div className="flex flex-wrap items-center gap-2">
-                <Badge tone="alert">{h.list}</Badge>
-                <span className="text-[13px] text-ink-primary">
-                  {h.matched_name}
-                </span>
-              </div>
-              <div className="text-[12px] text-ink-tertiary">
-                {h.list_entry_ref ? `Ref: ${h.list_entry_ref}` : null}
-                {h.listed_date ? ` · Listed ${fmtDate(h.listed_date)}` : null}
-                {` · Screened ${fmtDate(h.screened_at)}`}
-              </div>
-              {h.source_url ? (
-                <a
-                  href={h.source_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-[12px] font-medium text-accent-indigo hover:underline"
+    <div role="alert" className="sanctions-banner">
+      <svg
+        viewBox="0 0 24 24"
+        width={28}
+        height={28}
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={1.6}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        style={{ color: "var(--sem-red)" }}
+        aria-hidden
+      >
+        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+        <path d="M12 9v4M12 17h.01" />
+      </svg>
+      <div>
+        <p className="sanctions-banner-title">Sanctions / forced-labour flag</p>
+        <p className="sanctions-banner-body">
+          This supplier matches an active watchlist entry. See the Compliance
+          tab for the matched record and source link.
+        </p>
+      </div>
+      <a href="#compliance" className="btn-proto">
+        View matches
+      </a>
+    </div>
+  );
+}
+
+// ---------- Products strip ------------------------------------------------
+
+function ProductsStrip({ products }: { products: string[] }) {
+  const shown = products.slice(0, 5);
+  const overflow = Math.max(0, products.length - shown.length);
+  return (
+    <div className="products-strip">
+      <span className="products-label">Principal products</span>
+      <div className="product-list">
+        {shown.map((p) => (
+          <span key={p} className="product">
+            <span aria-hidden style={{ color: "var(--ink-tertiary)" }}>
+              ◆
+            </span>
+            {p}
+          </span>
+        ))}
+        {overflow > 0 ? (
+          <span className="product" style={{ color: "var(--ink-tertiary)" }}>
+            + {overflow} more
+          </span>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+// ---------- Overview tab --------------------------------------------------
+
+function OverviewTab({ payload }: { payload: ProfilePayload }) {
+  const s = payload.supplier;
+  const addrs = publicAddresses(payload.addresses);
+  return (
+    <div className="proto-grid">
+      <section className="proto-card hoverable span2">
+        <header className="proto-card-head">
+          <h2 className="proto-card-title">About</h2>
+          <span className="proto-card-meta">
+            {payload.provenance.length} source records
+          </span>
+        </header>
+        <p
+          style={{
+            margin: 0,
+            fontSize: 14,
+            lineHeight: 1.65,
+            color: "var(--ink-primary)",
+            fontWeight: 300,
+          }}
+        >
+          {entityNarrative(s)}
+        </p>
+        <dl
+          className="header-meta-row"
+          style={{ border: "none", padding: 0, marginTop: 16 }}
+        >
+          {s.parent_group_name ? (
+            <div>
+              <dt>Group</dt>
+              <dd>{s.parent_group_name}</dd>
+            </div>
+          ) : null}
+          {s.bepza_zone ? (
+            <div>
+              <dt>EPZ zone</dt>
+              <dd>{s.bepza_zone}</dd>
+            </div>
+          ) : null}
+          {s.country ? (
+            <div>
+              <dt>Country</dt>
+              <dd>{s.country}</dd>
+            </div>
+          ) : null}
+          {s.factory_types.length > 0 ? (
+            <div>
+              <dt>Factory type</dt>
+              <dd>{s.factory_types.slice(0, 3).join(" · ")}</dd>
+            </div>
+          ) : null}
+          <div>
+            <dt>Receipts</dt>
+            <dd>
+              <span className="mono">
+                {payload.t13_source_count} Tier 1–3 source
+                {payload.t13_source_count === 1 ? "" : "s"}
+              </span>
+            </dd>
+          </div>
+        </dl>
+      </section>
+
+      {addrs.length > 1 ? (
+        <section className="proto-card hoverable span2">
+          <header className="proto-card-head">
+            <h2 className="proto-card-title">Addresses on file</h2>
+            <span className="proto-card-meta">
+              {addrs.length} locations
+            </span>
+          </header>
+          <ul
+            className="m-0 flex list-none flex-col p-0"
+            style={{ borderTop: "1px solid var(--hairline)" }}
+          >
+            {addrs.map((a, i) => (
+              <li
+                key={i}
+                style={{
+                  padding: "12px 0",
+                  borderBottom: "1px solid var(--hairline)",
+                  display: "grid",
+                  gridTemplateColumns: "120px 1fr auto",
+                  gap: 16,
+                  alignItems: "baseline",
+                }}
+              >
+                <span
+                  className="mono"
+                  style={{
+                    fontSize: 11,
+                    color: "var(--ink-tertiary)",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.06em",
+                  }}
                 >
-                  View list entry →
-                </a>
-              ) : null}
-            </li>
-          ))}
-        </ul>
-      </CardContent>
-    </Card>
+                  {a.kind}
+                </span>
+                <span style={{ fontSize: 13, color: "var(--ink-primary)" }}>
+                  {a.address}
+                </span>
+                <span
+                  className="mono"
+                  style={{ fontSize: 11, color: "var(--ink-tertiary)" }}
+                >
+                  via {a.source_code}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+    </div>
+  );
+}
+
+function entityNarrative(s: Supplier): string {
+  const kind =
+    s.entity_type === "buying_house"
+      ? "buying house"
+      : s.factory_types[0] ?? "garment manufacturer";
+  const where = [s.city, s.district].filter(Boolean).join(", ");
+  const since = s.established_date
+    ? ` operating since ${s.established_date}`
+    : "";
+  const products =
+    s.principal_products.length > 0
+      ? ` Principal products: ${s.principal_products.slice(0, 4).join(", ")}.`
+      : "";
+  return `${s.company_name} is a ${kind}${
+    where ? ` based in ${where}` : ""
+  }${since}.${products}`;
+}
+
+// ---------- Compliance tab ------------------------------------------------
+
+function ComplianceTab({ payload }: { payload: ProfilePayload }) {
+  return (
+    <div className="proto-grid">
+      {payload.pills.length > 0 ? (
+        <section className="proto-card hoverable">
+          <header className="proto-card-head">
+            <h2 className="proto-card-title">Registries</h2>
+            <span className="proto-card-meta">
+              {countDirect(payload.pills)} direct ·{" "}
+              {countInherited(payload.pills)} inherited
+            </span>
+          </header>
+          <div className="registry-list">
+            {payload.pills.map((p, i) => (
+              <RegistryRow key={i} pill={p} />
+            ))}
+          </div>
+          {payload.pills.some((p) => p.inherited_from != null) ? (
+            <p
+              style={{
+                margin: "14px 0 0",
+                fontSize: 11,
+                color: "var(--ink-tertiary)",
+              }}
+            >
+              Inherited registries resolve from the parent group&apos;s records
+              and link back to the parent profile.
+            </p>
+          ) : null}
+        </section>
+      ) : null}
+
+      {payload.certifications.length > 0 ? (
+        <section className="proto-card hoverable">
+          <header className="proto-card-head">
+            <h2 className="proto-card-title">Certifications</h2>
+            <span className="proto-card-meta">
+              {countActiveCerts(payload.certifications)} active ·{" "}
+              {countExpiringCerts(payload.certifications)} expiring
+            </span>
+          </header>
+          <div className="cert-list">
+            {payload.certifications.map((c, i) => (
+              <CertRow key={i} cert={c} />
+            ))}
+          </div>
+        </section>
+      ) : null}
+
+      {payload.rsc_remediation ? (
+        <RscCard rsc={payload.rsc_remediation} />
+      ) : null}
+
+      {payload.sanctions.length > 0 ? (
+        <SanctionsHitsCard hits={payload.sanctions} />
+      ) : (
+        <SanctionsClearCard />
+      )}
+
+      {payload.brand_attributions.length > 0 ? (
+        <section className="proto-card hoverable">
+          <header className="proto-card-head">
+            <h2 className="proto-card-title">Brand attribution</h2>
+            <span className="proto-card-meta">
+              {payload.brand_attributions.length} brand
+              {payload.brand_attributions.length === 1 ? "" : "s"} disclosed
+            </span>
+          </header>
+          <div className="pill-row">
+            {payload.brand_attributions.map((b, i) => (
+              <BrandChip key={i} brand={b} />
+            ))}
+          </div>
+          <p
+            style={{
+              margin: "14px 0 0",
+              fontSize: 11,
+              color: "var(--ink-tertiary)",
+            }}
+          >
+            Each chip traces to the brand&apos;s own published supplier
+            disclosure. Full sources on the Brand attribution tab.
+          </p>
+        </section>
+      ) : null}
+
+      {payload.documents.length > 0 ? (
+        <section className="proto-card span2">
+          <header className="proto-card-head">
+            <h2 className="proto-card-title">Compliance documents</h2>
+            <span className="proto-card-meta">
+              {payload.documents.length} mirrored
+            </span>
+          </header>
+          <div className="docs-list">
+            {payload.documents.map((d, i) => (
+              <DocRow key={i} doc={d} />
+            ))}
+          </div>
+          <p
+            style={{
+              margin: "14px 0 0",
+              fontSize: 11,
+              color: "var(--ink-tertiary)",
+            }}
+          >
+            Mirror copies served from SourceBD&apos;s CDN for stable archival.
+            Originals link back to the issuing authority.
+          </p>
+        </section>
+      ) : null}
+    </div>
+  );
+}
+
+// ---------- Registry / cert / RSC / sanctions / brand / doc rows ---------
+
+function RegistryRow({ pill }: { pill: Pill }) {
+  const inherited = pill.inherited_from != null;
+  const logo = LOGO_BY_CODE[pill.source_code];
+  const meta = inherited
+    ? `Inherited via parent ${pill.inherited_from_name ?? ""}`.trim()
+    : pill.label;
+  return (
+    <div className="registry-row">
+      <div className="reg-logo">
+        {logo ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={logo} alt={pill.source_code} />
+        ) : (
+          <span className="reg-mark">{pill.source_code}</span>
+        )}
+      </div>
+      <div>
+        <div className="reg-name">
+          {sourceFullName(pill.source_code)}
+          {pill.value ? <span className="ref">{pill.value}</span> : null}
+        </div>
+        <div className="reg-meta">{meta}</div>
+      </div>
+      <span className={`reg-status${inherited ? " inherited" : ""}`}>
+        {inherited ? "↳ Inherited" : "Active"}
+      </span>
+      {pill.source_url ? (
+        <a
+          className="reg-action"
+          href={pill.source_url}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Open ↗
+        </a>
+      ) : (
+        <span style={{ width: 1 }} />
+      )}
+    </div>
+  );
+}
+
+function CertRow({ cert }: { cert: Cert }) {
+  const logo = LOGO_BY_CERT[cert.kind];
+  const status = certStatus(cert);
+  return (
+    <div className="cert">
+      {logo ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img className="auth-logo-color" src={logo} alt={certLabel(cert.kind)} />
+      ) : (
+        <span className="issuer-mark">
+          {certLabel(cert.kind).slice(0, 3).toUpperCase()}
+        </span>
+      )}
+      <div className="cert-main">
+        <p className="cert-name">{certLongName(cert.kind)}</p>
+        <p className="cert-meta">
+          {[cert.certificate_no, cert.issuer]
+            .filter(Boolean)
+            .join(" · ") || "—"}
+          {cert.expires_on && cert.kind !== "oeko_tex"
+            ? ` · expires ${fmtDate(cert.expires_on)}`
+            : ""}
+        </p>
+      </div>
+      <span className={`cert-status ${status.tone}`}>{status.label}</span>
+      {cert.document_url ? (
+        <a
+          className="cert-view"
+          href={cert.document_url}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          View ↗
+        </a>
+      ) : (
+        <span />
+      )}
+    </div>
   );
 }
 
@@ -832,140 +924,705 @@ function RscCard({ rsc }: { rsc: RscRemediation }) {
     rsc.progress_pct != null
       ? Math.max(0, Math.min(100, Number(rsc.progress_pct)))
       : null;
-  const docs: Array<{ label: string; url: string | null }> = [
-    { label: "Fire", url: rsc.fire_inspection_url },
-    { label: "Structural", url: rsc.structural_inspection_url },
-    { label: "Electrical", url: rsc.electrical_inspection_url },
-    { label: "Boiler", url: rsc.boiler_inspection_url },
-    { label: "CAP", url: rsc.cap_url },
-  ];
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>RSC remediation</CardTitle>
-        {pct != null ? <CardMeta>{pct.toFixed(0)}% complete</CardMeta> : null}
-      </CardHeader>
-      <CardContent>
+    <section className="proto-card hoverable">
+      <header className="proto-card-head">
+        <h2 className="proto-card-title">RSC remediation</h2>
+        <span className="proto-card-meta">
+          {pct != null ? `${pct.toFixed(0)}% complete` : "tracked"}
+        </span>
+      </header>
+      <div className="rsc-stack">
         {pct != null ? (
-          <div className="mb-4">
-            <div
-              role="progressbar"
-              aria-valuenow={pct}
-              aria-valuemin={0}
-              aria-valuemax={100}
-              aria-label="RSC remediation progress"
-              className="relative h-2 w-full overflow-hidden rounded-pill bg-surface-l2"
-            >
+          <>
+            <div>
+              <span className="rsc-headline">
+                {pct.toFixed(0)}
+                <span className="pct">%</span>
+              </span>
+              <span
+                style={{
+                  marginLeft: 8,
+                  fontSize: 11,
+                  color: "var(--ink-tertiary)",
+                  fontFamily: "var(--font-mono)",
+                }}
+              >
+                remediation completed
+              </span>
+            </div>
+            <div className="rsc-bar-wrap">
+              <div className="rsc-bar" style={{ width: `${pct}%` }} />
               <div
-                className="absolute inset-y-0 left-0 bg-sem-green"
-                style={{ width: `${pct}%` }}
+                className="rsc-tick"
+                style={{ left: "95%" }}
+                data-label="Industry median 95%"
               />
             </div>
-            <div className="mt-1 flex justify-between text-[11px] text-ink-tertiary">
-              <span>{pct.toFixed(1)}%</span>
-              <span>industry median 95%</span>
+            <div className="rsc-legend">
+              <span>0%</span>
+              <span>100%</span>
             </div>
-          </div>
+          </>
         ) : null}
-        <dl className="grid grid-cols-1 gap-3 text-[13px] sm:grid-cols-2">
-          {rsc.workers_count != null ? (
-            <Stat label="Workers" value={rsc.workers_count.toLocaleString()} />
-          ) : null}
-          {rsc.remediation_status ? (
-            <Stat label="Remediation status" value={rsc.remediation_status} />
-          ) : null}
-          {rsc.training_status ? (
-            <Stat label="Training status" value={rsc.training_status} />
-          ) : null}
-        </dl>
-        <ul className="m-0 mt-4 flex list-none flex-wrap gap-2 p-0">
-          {docs.map((d) =>
-            d.url ? (
-              <li key={d.label}>
-                <a
-                  href={d.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 rounded-pill border border-hairline-strong bg-surface-l1 px-3 py-1.5 text-[12px] font-medium text-ink-secondary hover:text-accent-indigo"
-                >
-                  📄 {d.label}
-                </a>
-              </li>
-            ) : null,
-          )}
-        </ul>
-      </CardContent>
-    </Card>
+        {rsc.workers_count != null || rsc.remediation_status ? (
+          <p
+            style={{
+              margin: "10px 0 0",
+              fontSize: 11,
+              color: "var(--ink-tertiary)",
+              fontFamily: "var(--font-mono)",
+            }}
+          >
+            {rsc.workers_count != null
+              ? `${rsc.workers_count.toLocaleString()} workers`
+              : ""}
+            {rsc.workers_count != null && rsc.remediation_status
+              ? " · "
+              : ""}
+            {rsc.remediation_status ?? ""}
+          </p>
+        ) : null}
+      </div>
+    </section>
   );
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
+function SanctionsClearCard() {
   return (
-    <div>
-      <dt className="font-mono text-[10px] uppercase tracking-[0.12em] text-ink-tertiary">
-        {label}
-      </dt>
-      <dd className="m-0 text-ink-primary">{value}</dd>
+    <section className="proto-card hoverable">
+      <header className="proto-card-head">
+        <h2 className="proto-card-title">Sanctions screening</h2>
+        <span className="proto-card-meta">
+          6 of 6 watchlists clear · re-screened weekly
+        </span>
+      </header>
+      <div className="sanctions-clear">
+        <svg
+          className="ico"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth={1.8}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden
+        >
+          <path d="M20 6L9 17l-5-5" />
+        </svg>
+        <div>
+          <p className="sanctions-clear-title">
+            No matches across any watchlist
+          </p>
+          <p className="sanctions-clear-body">
+            Name + address + registry IDs cross-checked against the 6
+            watchlists below.
+          </p>
+        </div>
+        <span className="cert-status valid">Clear</span>
+      </div>
+      <div className="sanctions-grid">
+        {SANCTIONS_TILES.map((t) => (
+          <div key={t.acronym} className="sanctions-tile">
+            <div className="tile-top">
+              <span className="tile-juris">{t.juris}</span>
+              <span className="tile-check">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth={3.5}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  width={11}
+                  height={11}
+                  aria-hidden
+                >
+                  <path d="M20 6L9 17l-5-5" />
+                </svg>
+              </span>
+            </div>
+            <span className="tile-acronym">{t.acronym}</span>
+            <span className="tile-auth">{t.auth}</span>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function SanctionsHitsCard({ hits }: { hits: SanctionsHit[] }) {
+  return (
+    <section
+      className="proto-card hoverable"
+      style={{ borderColor: "var(--sem-red)" }}
+    >
+      <header className="proto-card-head">
+        <h2 className="proto-card-title" style={{ color: "var(--sem-red)" }}>
+          Sanctions matches
+        </h2>
+        <span className="proto-card-meta">{hits.length} active</span>
+      </header>
+      <ul className="m-0 flex list-none flex-col p-0">
+        {hits.map((h, i) => (
+          <li
+            key={i}
+            style={{
+              padding: "12px 0",
+              borderBottom: "1px solid var(--hairline)",
+              display: "flex",
+              flexDirection: "column",
+              gap: 4,
+            }}
+          >
+            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              <span
+                className="cert-status"
+                style={{
+                  background: "var(--sem-red-soft)",
+                  color: "var(--sem-red)",
+                }}
+              >
+                {h.list}
+              </span>
+              <span style={{ fontSize: 13, color: "var(--ink-primary)" }}>
+                {h.matched_name}
+              </span>
+            </div>
+            <div
+              className="mono"
+              style={{ fontSize: 11, color: "var(--ink-tertiary)" }}
+            >
+              {h.list_entry_ref ? `Ref: ${h.list_entry_ref} · ` : ""}
+              Screened {fmtDate(h.screened_at)}
+            </div>
+            {h.source_url ? (
+              <a
+                href={h.source_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="cert-view"
+              >
+                View list entry ↗
+              </a>
+            ) : null}
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+function BrandChip({ brand }: { brand: BrandAttribution }) {
+  const node = (
+    <span
+      className="brand-pill"
+      title={`Disclosed on ${brand.display_name}'s published factory list (${fmtDate(brand.last_seen_at)})`}
+    >
+      {brand.display_name}
+      <span className="ref">{fmtDate(brand.last_seen_at)}</span>
+    </span>
+  );
+  if (!brand.source_url) return node;
+  return (
+    <a href={brand.source_url} target="_blank" rel="noopener noreferrer">
+      {node}
+    </a>
+  );
+}
+
+function DocRow({ doc }: { doc: ComplianceDocument }) {
+  return (
+    <div className="doc-row">
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={1.5}
+        width={18}
+        height={18}
+        style={{ color: "var(--ink-tertiary)" }}
+        aria-hidden
+      >
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+        <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8" />
+      </svg>
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <span className="doc-type">{doc.doc_type}</span>
+        <span className="doc-name">{DOC_TYPE_LONG[doc.doc_type]}</span>
+      </div>
+      <span className="doc-meta">
+        {doc.file_size ? fmtBytes(doc.file_size) : ""}
+      </span>
+      {doc.mirror_url ? (
+        <a
+          className="doc-action"
+          href={doc.mirror_url}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Mirror ↗
+        </a>
+      ) : (
+        <span />
+      )}
+      <a
+        className="doc-action secondary"
+        href={doc.original_url}
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        Original ↗
+      </a>
     </div>
   );
 }
 
-function entityLabel(e: Supplier["entity_type"]): string {
-  switch (e) {
-    case "factory":
-      return "Factory";
-    case "buying_house":
-      return "Buying house";
-    default:
-      return "Unknown";
-  }
+// ---------- Capacity / Brands / Contact / Provenance tabs ---------------
+
+function CapacityTab({ supplier: s }: { supplier: Supplier }) {
+  const femalePct =
+    s.employees_total && s.employees_female
+      ? Math.round((s.employees_female / s.employees_total) * 100)
+      : null;
+  return (
+    <div className="proto-grid">
+      <section className="proto-card hoverable span2">
+        <header className="proto-card-head">
+          <h2 className="proto-card-title">Workforce</h2>
+          <span className="proto-card-meta">self-disclosed</span>
+        </header>
+        <div className="metric-grid">
+          {s.employees_total != null ? (
+            <Metric
+              label="Total"
+              value={s.employees_total.toLocaleString()}
+              sub="workers + staff"
+            />
+          ) : null}
+          {femalePct != null ? (
+            <Metric
+              label="Female"
+              value={`${femalePct}%`}
+              sub={`${s.employees_female?.toLocaleString()} workers`}
+            />
+          ) : null}
+          {s.employees_male != null ? (
+            <Metric
+              label="Male"
+              value={s.employees_male.toLocaleString()}
+              sub="workers + staff"
+            />
+          ) : null}
+        </div>
+      </section>
+
+      {(s.machines_sewing != null ||
+        s.production_capacity_pcs_day != null ||
+        s.production_capacity_dozen_yearly != null) && (
+        <section className="proto-card hoverable">
+          <header className="proto-card-head">
+            <h2 className="proto-card-title">Lines &amp; output</h2>
+          </header>
+          <div className="metric-grid">
+            {s.machines_sewing != null ? (
+              <Metric
+                label="Sewing m/c"
+                value={s.machines_sewing.toLocaleString()}
+              />
+            ) : null}
+            {s.production_capacity_pcs_day != null ? (
+              <Metric
+                label="Per day"
+                value={s.production_capacity_pcs_day.toLocaleString()}
+                sub="pcs"
+              />
+            ) : null}
+            {s.production_capacity_dozen_yearly != null ? (
+              <Metric
+                label="Per year"
+                value={s.production_capacity_dozen_yearly.toLocaleString()}
+                sub="dozen"
+              />
+            ) : null}
+          </div>
+        </section>
+      )}
+
+      {s.bepza_zone || s.factory_types.length > 0 ? (
+        <section className="proto-card hoverable">
+          <header className="proto-card-head">
+            <h2 className="proto-card-title">Site</h2>
+          </header>
+          <dl
+            className="header-meta-row"
+            style={{
+              border: "none",
+              padding: 0,
+              margin: 0,
+              gridTemplateColumns: "1fr 1fr",
+            }}
+          >
+            {s.bepza_zone ? (
+              <div>
+                <dt>EPZ</dt>
+                <dd>{s.bepza_zone}</dd>
+              </div>
+            ) : null}
+            {s.factory_types.length > 0 ? (
+              <div>
+                <dt>Type</dt>
+                <dd>{s.factory_types.slice(0, 3).join(", ")}</dd>
+              </div>
+            ) : null}
+          </dl>
+        </section>
+      ) : null}
+    </div>
+  );
 }
 
+function Metric({
+  label,
+  value,
+  sub,
+}: {
+  label: string;
+  value: string;
+  sub?: string;
+}) {
+  return (
+    <div className="metric">
+      <p className="metric-label">{label}</p>
+      <div className="metric-val">{value}</div>
+      {sub ? <p className="metric-sub">{sub}</p> : null}
+    </div>
+  );
+}
+
+function BrandsTab({ brands }: { brands: BrandAttribution[] }) {
+  return (
+    <section className="proto-card span2">
+      <header className="proto-card-head">
+        <h2 className="proto-card-title">
+          Brand attribution — full history
+        </h2>
+        <span className="proto-card-meta">
+          {brands.length} brand{brands.length === 1 ? "" : "s"} ·
+          per-factory authenticity
+        </span>
+      </header>
+      <div className="brand-list">
+        {brands.map((b, i) => (
+          <div key={i} className="brand-row">
+            <div className="brand-id">
+              <div className="brand-mark">
+                {b.display_name.slice(0, 2).toUpperCase()}
+              </div>
+              <div className="brand-text">
+                <span className="brand-name">{b.display_name}</span>
+                <span className="brand-since">
+                  last seen {fmtDate(b.last_seen_at)}
+                </span>
+              </div>
+            </div>
+            <p className="brand-desc">
+              Named on{" "}
+              <strong>{b.display_name}&apos;s published BD supplier list</strong>
+              . Disclosure does not imply endorsement.
+            </p>
+            <span className="brand-meta">{fmtDate(b.last_seen_at)}</span>
+            <div className="brand-actions">
+              {b.source_url ? (
+                <a
+                  className="doc-action"
+                  href={b.source_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Brand source ↗
+                </a>
+              ) : null}
+            </div>
+          </div>
+        ))}
+      </div>
+      <p
+        style={{
+          margin: "14px 0 0",
+          fontSize: 11,
+          color: "var(--ink-tertiary)",
+        }}
+      >
+        Per-factory authenticity rule: a brand attribution attaches only when
+        the brand&apos;s own publication names this specific factory.
+      </p>
+    </section>
+  );
+}
+
+function ContactTab({
+  nextPath,
+  disabled,
+}: {
+  nextPath: string;
+  disabled: boolean;
+}) {
+  return (
+    <section className="proto-card">
+      <header className="proto-card-head">
+        <h2 className="proto-card-title">Contact</h2>
+        <span className="proto-card-meta">
+          {disabled
+            ? "Contact disabled — sanctions flag active"
+            : "Sign up free to unlock"}
+        </span>
+      </header>
+      <dl className="contact-list">
+        <dt>Phone</dt>
+        <dd className="masked">+880-2-XXXXXXXX</dd>
+        <dt>Email</dt>
+        <dd className="masked">XXXXXX@XXXXX.com</dd>
+        <dt>Website</dt>
+        <dd className="masked">XXXXXX.com</dd>
+        <dt>Contact</dt>
+        <dd className="masked">Mr. XXXXXX XXXXXX</dd>
+      </dl>
+      <div className="gated-cta">
+        <p className="gated-cta-title">
+          {disabled
+            ? "Contact disabled while a sanctions flag is active"
+            : "Sign up free to view verified contacts"}
+        </p>
+        <p className="gated-cta-body">
+          {disabled
+            ? "We render the profile so you can do diligence on the hit. Direct contact is held back until the listing clears."
+            : "Direct-dial phone, decision-maker email, and principal contact name + title for every supplier. Server-enforced; we never ship masked PII to the browser."}
+        </p>
+        {disabled ? null : (
+          <Link
+            className="btn-proto primary"
+            href={`/signup?next=${encodeURIComponent(nextPath)}`}
+          >
+            Sign up free →
+          </Link>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function ProvenanceTab({ provenance }: { provenance: Provenance[] }) {
+  const distinct = new Set(provenance.map((p) => p.source_code)).size;
+  return (
+    <section className="proto-card span2" id="provenance">
+      <header className="proto-card-head">
+        <h2 className="proto-card-title">
+          Source records — full timeline
+        </h2>
+        <span className="proto-card-meta">
+          {provenance.length} records · {distinct} sources
+        </span>
+      </header>
+      <div className="prov-list">
+        {provenance.map((p, i) => (
+          <div key={i} className="prov-row">
+            <span className="prov-source">{p.source_code}</span>
+            <span>{p.display_name}</span>
+            <span className="prov-ref">{p.source_ref ?? ""}</span>
+            <span className="prov-seen">
+              last seen {fmtDate(p.last_seen_at)}
+            </span>
+            <span className={`tier-badge ${tierShort(p.tier)}`}>
+              {tierShort(p.tier).toUpperCase()}
+            </span>
+          </div>
+        ))}
+      </div>
+      <p
+        style={{
+          margin: "16px 0 0",
+          fontSize: 11,
+          color: "var(--ink-tertiary)",
+        }}
+      >
+        Tier hierarchy: T1 (gov/regulatory) &gt; T2 (industry assoc.) &gt; T3
+        (cert bodies) &gt; T4 (brand disclosures). A T4 record never enters a
+        profile alone — every brand attribution is backed by at least one
+        Tier 1–3 corroboration.
+      </p>
+    </section>
+  );
+}
+
+// ---------- maps + helpers ------------------------------------------------
+
+const LOGO_BY_CODE: Record<string, string> = {
+  BGMEA: "/inapp-logos/bgmea.png",
+  BKMEA: "/inapp-logos/bkmea.png",
+  BTMA: "/inapp-logos/BTMA.webp",
+  RSC: "/inapp-logos/RSC.png",
+};
+
+const LOGO_BY_CERT: Record<string, string> = {
+  wrap: "/inapp-logos/wrap.png",
+  oeko_tex: "/inapp-logos/okeo100.png",
+  gots: "/inapp-logos/gost.png",
+  grs: "/inapp-logos/GRS.png",
+  rcs: "/inapp-logos/RCS.png",
+  ocs: "/inapp-logos/OCS.png",
+};
+
+const SOURCE_NAMES: Record<string, string> = {
+  BGMEA: "BGMEA",
+  BKMEA: "BKMEA",
+  BTMA: "BTMA",
+  BGAPMEA: "BGAPMEA",
+  EPB: "Export Promotion Bureau",
+  RJSC: "RJSC",
+  BIN: "BIN",
+  RSC: "RMG Sustainability Council",
+  BEPZA: "BEPZA",
+  DIFE: "DIFE",
+};
+function sourceFullName(code: string): string {
+  return SOURCE_NAMES[code] ?? code;
+}
+
+const CERT_LABELS: Record<string, string> = {
+  wrap: "WRAP",
+  oeko_tex: "OEKO-TEX®",
+  gots: "GOTS",
+  sa8000: "SA8000",
+  grs: "GRS",
+  rcs: "RCS",
+  ocs: "OCS",
+  bci: "BCI",
+  fairtrade: "Fairtrade",
+  iso9001: "ISO 9001",
+  iso14001: "ISO 14001",
+  iso45001: "ISO 45001",
+  sedex_smeta: "SMETA",
+  bsci: "BSCI",
+  other: "Other",
+};
+const CERT_LONG: Record<string, string> = {
+  wrap: "WRAP — Worldwide Responsible Accredited Production",
+  oeko_tex: "OEKO-TEX® STANDARD 100",
+  gots: "GOTS — Global Organic Textile Standard",
+  sa8000: "SA8000 — Social Accountability",
+  grs: "GRS — Global Recycled Standard",
+  rcs: "RCS — Recycled Claim Standard",
+  ocs: "OCS — Organic Content Standard",
+};
 function certLabel(kind: string): string {
-  switch (kind) {
-    case "wrap":
-      return "WRAP";
-    case "oeko_tex":
-      return "OEKO-TEX";
-    case "gots":
-      return "GOTS";
-    case "sa8000":
-      return "SA8000";
-    default:
-      return kind.toUpperCase();
-  }
+  return CERT_LABELS[kind] ?? kind.toUpperCase();
+}
+function certLongName(kind: string): string {
+  return CERT_LONG[kind] ?? certLabel(kind);
 }
 
-function tierLabel(tier: string): string {
-  switch (tier) {
-    case "tier1_gov":
-      return "Tier 1 · Gov";
-    case "tier2_industry":
-      return "Tier 2 · Industry";
-    case "tier3_cert":
-      return "Tier 3 · Cert";
-    case "tier4_brand":
-      return "Tier 4 · Brand";
-    case "tier5_regulatory":
-      return "Tier 5 · Reg";
-    case "tier6_crosscheck":
-      return "Tier 6 · X-check";
-    default:
-      return tier;
-  }
+function certStatus(c: Cert): {
+  label: string;
+  tone: "valid" | "expiring" | "expired" | "evergreen";
+} {
+  if (c.kind === "oeko_tex") return { label: "Evergreen", tone: "evergreen" };
+  if (!c.expires_on) return { label: "expiry n/a", tone: "evergreen" };
+  const now = Date.now();
+  const exp = new Date(c.expires_on).getTime();
+  if (Number.isNaN(exp)) return { label: "expiry n/a", tone: "evergreen" };
+  const daysLeft = Math.floor((exp - now) / (1000 * 60 * 60 * 24));
+  if (daysLeft < 0)
+    return { label: `Expired ${fmtDate(c.expires_on)}`, tone: "expired" };
+  if (daysLeft < 90)
+    return { label: `Expires in ${daysLeft} days`, tone: "expiring" };
+  return { label: `Valid · ${daysLeft} days`, tone: "valid" };
 }
 
-function distinctSources(rows: Provenance[]): number {
-  const set = new Set<string>();
-  for (const r of rows) set.add(r.source_code);
-  return set.size;
+const SANCTIONS_TILES = [
+  { juris: "US", acronym: "UFLPA", auth: "CBP Entity List" },
+  { juris: "US", acronym: "OFAC SDN", auth: "U.S. Treasury" },
+  { juris: "UK", acronym: "OFSI", auth: "HM Treasury" },
+  { juris: "EU", acronym: "EU FSF", auth: "European Commission" },
+  { juris: "US", acronym: "CBP WRO", auth: "U.S. Customs" },
+  { juris: "US", acronym: "DOL ILAB", auth: "U.S. Labor Dept." },
+];
+
+const DOC_TYPE_LONG: Record<ComplianceDocument["doc_type"], string> = {
+  fire: "RSC fire-safety inspection report",
+  structural: "RSC structural inspection report",
+  electrical: "RSC electrical inspection report",
+  boiler: "RSC boiler safety inspection",
+  cap: "Corrective Action Plan",
+};
+
+function pillByCode(pills: Pill[], code: string): Pill | undefined {
+  return pills.find((p) => p.source_code === code);
+}
+function countDirect(pills: Pill[]): number {
+  return pills.filter((p) => p.inherited_from == null).length;
+}
+function countInherited(pills: Pill[]): number {
+  return pills.filter((p) => p.inherited_from != null).length;
+}
+function countActiveCerts(certs: Cert[]): number {
+  return certs.filter((c) => certStatus(c).tone !== "expired").length;
+}
+function countExpiringCerts(certs: Cert[]): number {
+  return certs.filter((c) => certStatus(c).tone === "expiring").length;
 }
 
-function fmtDate(iso: string | null): string {
-  if (!iso) return "—";
-  try {
-    return new Date(iso).toISOString().slice(0, 10);
-  } catch {
-    return iso;
-  }
+function complianceCount(p: ProfilePayload): number {
+  let n = 0;
+  if (p.pills.length) n++;
+  if (p.certifications.length) n++;
+  if (p.rsc_remediation) n++;
+  n++; // sanctions card always rendered
+  if (p.brand_attributions.length) n++;
+  if (p.documents.length) n++;
+  return n;
+}
+
+function hasCapacity(s: Supplier): boolean {
+  return (
+    s.machines_sewing != null ||
+    s.production_capacity_dozen_yearly != null ||
+    s.production_capacity_pcs_day != null ||
+    s.employees_total != null ||
+    s.employees_male != null ||
+    s.employees_female != null
+  );
+}
+
+function entityLabel(e: Supplier["entity_type"]): string {
+  if (e === "factory") return "Garment manufacturer";
+  if (e === "buying_house") return "Buying house";
+  return "Supplier";
+}
+
+function tierShort(tier: string): "t1" | "t2" | "t3" | "t4" {
+  const t = tier.toLowerCase();
+  if (t.includes("1") || t.includes("gov") || t.includes("regulator"))
+    return "t1";
+  if (t.includes("2") || t.includes("assoc")) return "t2";
+  if (t.includes("3") || t.includes("cert")) return "t3";
+  return "t4";
+}
+
+function yearsSince(dateStr: string): number {
+  const t = new Date(dateStr).getTime();
+  if (Number.isNaN(t)) return 0;
+  return Math.max(0, Math.floor((Date.now() - t) / (365.25 * 24 * 3600 * 1000)));
+}
+
+function fmtDate(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  return d.toISOString().slice(0, 10);
+}
+
+function fmtBytes(n: number): string {
+  if (n < 1024) return `${n} B`;
+  if (n < 1024 * 1024) return `${Math.round(n / 1024)} KB`;
+  return `${(n / (1024 * 1024)).toFixed(1)} MB`;
 }
