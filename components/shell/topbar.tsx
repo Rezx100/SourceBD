@@ -8,10 +8,7 @@ import { Bell, MagnifyingGlass, UserCircle } from "@phosphor-icons/react/dist/ss
 export function Topbar() {
   return (
     <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-hairline bg-surface-l1/95 px-4 shadow-l1 backdrop-blur supports-[backdrop-filter]:bg-surface-l1/80">
-      <Link
-        href="/"
-        className="font-display text-base font-semibold tracking-tightish text-ink-primary"
-      >
+      <Link href="/" className="proto-wordmark">
         SourceBD
       </Link>
 
