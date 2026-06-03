@@ -70,15 +70,18 @@ export default function PricingPage() {
     <main className="mx-auto max-w-5xl px-6 py-16">
       {/* Hero */}
       <section className="text-center">
-        <h1 className="font-display text-4xl font-semibold tracking-tightish text-ink-primary md:text-5xl">
-          Pricing built for sourcing teams
+        <h1 className="font-display text-4xl font-light tracking-tight text-ink-primary md:text-5xl">
+          Pricing built for{" "}
+          <span className="proto-wordmark text-4xl md:text-5xl">
+            sourcing teams
+          </span>
         </h1>
-        <p className="mx-auto mt-4 max-w-2xl text-ink-secondary leading-relaxed">
+        <p className="mx-auto mt-4 max-w-2xl text-base text-ink-secondary leading-relaxed">
           Start free. Upgrade when you place repeat orders. Talk to us when
           your programme needs seats, API access, or a dedicated compliance
           reviewer.
         </p>
-        <p className="mt-3 text-xs text-ink-tertiary">
+        <p className="affiliation-disclaimer mx-auto mt-3 max-w-2xl">
           Prices shown in GBP. USD and EUR pricing arriving before MAGIC
           Las Vegas (August 2026).
         </p>
@@ -92,10 +95,8 @@ export default function PricingPage() {
             <div
               key={plan.key}
               className={
-                "flex flex-col rounded-lg border bg-bg-l0 p-6 shadow-l1 " +
-                (featured
-                  ? "border-accent-indigo ring-1 ring-accent-indigo/40"
-                  : "border-ink-200")
+                "proto-card hoverable flex flex-col " +
+                (featured ? "ring-2 ring-brand-forest" : "")
               }
             >
               <div className="flex items-center justify-between">
@@ -103,16 +104,16 @@ export default function PricingPage() {
                   {plan.label}
                 </h2>
                 {featured ? (
-                  <span className="rounded-full bg-accent-indigo/10 px-2 py-0.5 text-xs font-medium text-accent-indigo">
+                  <span className="rounded-pill bg-brand-forest-soft px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.08em] text-brand-forest">
                     Most popular
                   </span>
                 ) : null}
               </div>
               <p className="mt-2 text-sm text-ink-secondary">{plan.tagline}</p>
-              <p className="mt-6 font-display text-3xl font-semibold text-ink-primary">
+              <p className="mt-6 font-display text-3xl font-light tracking-tight text-ink-primary">
                 <PriceHeadline value={plan.priceHeadline} />
               </p>
-              <p className="mt-1 text-xs text-ink-tertiary">
+              <p className="mt-1 font-mono text-[11px] uppercase tracking-[0.06em] text-ink-tertiary">
                 {plan.priceSubline}
               </p>
               {plan.trialNote ? (
@@ -121,7 +122,7 @@ export default function PricingPage() {
               <ul className="mt-6 flex-1 space-y-2 text-sm text-ink-secondary">
                 {plan.features.map((f) => (
                   <li key={f} className="flex items-start gap-2">
-                    <span className="mt-0.5 shrink-0 text-sem-green">✓</span>
+                    <span className="mt-0.5 shrink-0 text-brand-forest">✓</span>
                     <span>{f}</span>
                   </li>
                 ))}
@@ -129,10 +130,7 @@ export default function PricingPage() {
               <Link
                 href={ctaHref(plan.ctaTarget)}
                 className={
-                  "mt-6 inline-flex items-center justify-center rounded-md px-4 py-2 text-sm font-medium " +
-                  (featured
-                    ? "bg-ink-primary text-bg-l0 hover:bg-ink-900"
-                    : "border border-ink-300 text-ink-primary hover:bg-bg-l1")
+                  "mt-6 " + (featured ? "btn-proto primary" : "btn-proto")
                 }
               >
                 {plan.ctaLabel}
@@ -144,28 +142,28 @@ export default function PricingPage() {
 
       {/* Comparison table */}
       <section className="mt-20">
-        <h2 className="font-display text-2xl font-semibold tracking-tightish text-ink-primary">
-          Compare plans
-        </h2>
-        <div className="mt-6 overflow-x-auto rounded-lg border border-ink-200">
+        <header className="proto-card-head">
+          <h2 className="proto-card-title">Compare plans</h2>
+        </header>
+        <div className="proto-card overflow-x-auto p-0">
           <table className="min-w-full text-sm">
-            <thead className="bg-bg-l1 text-left text-ink-primary">
+            <thead className="bg-brand-forest-soft text-left text-ink-primary">
               <tr>
-                <th scope="col" className="px-4 py-3 font-medium">
+                <th scope="col" className="px-4 py-3 font-mono text-[10px] uppercase tracking-[0.08em] text-ink-tertiary">
                   Feature
                 </th>
                 {PLANS.map((plan) => (
                   <th
                     key={plan.key}
                     scope="col"
-                    className="px-4 py-3 text-center font-medium"
+                    className="px-4 py-3 text-center font-mono text-[10px] uppercase tracking-[0.08em] text-ink-tertiary"
                   >
                     {plan.label}
                   </th>
                 ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-ink-200">
+            <tbody className="divide-y divide-hairline">
               {COMPARISON_ROWS.map((row) => (
                 <tr key={row.feature}>
                   <th
@@ -204,10 +202,10 @@ export default function PricingPage() {
 
       {/* FAQ */}
       <section className="mt-20">
-        <h2 className="font-display text-2xl font-semibold tracking-tightish text-ink-primary">
-          Frequently asked questions
-        </h2>
-        <div className="mt-6 divide-y divide-ink-200 rounded-lg border border-ink-200">
+        <header className="proto-card-head">
+          <h2 className="proto-card-title">Frequently asked questions</h2>
+        </header>
+        <div className="proto-card divide-y divide-hairline p-0">
           {PRICING_FAQS.map((faq) => (
             <details key={faq.q} className="group px-5 py-4">
               <summary className="cursor-pointer list-none font-medium text-ink-primary marker:hidden">
@@ -230,9 +228,10 @@ export default function PricingPage() {
       </section>
 
       {/* Enterprise CTA */}
-      <section className="mt-20 rounded-lg border border-ink-200 bg-bg-l1 p-8 text-center">
-        <h2 className="font-display text-2xl font-semibold tracking-tightish text-ink-primary">
-          Need something bespoke?
+      <section className="mt-20 rounded-hero border border-hairline-strong bg-brand-forest-soft p-10 text-center">
+        <h2 className="font-display text-2xl font-light tracking-tight text-ink-primary">
+          Need something{" "}
+          <span className="proto-wordmark text-2xl">bespoke</span>?
         </h2>
         <p className="mx-auto mt-3 max-w-xl text-sm text-ink-secondary">
           Enterprise programmes get seats, API access, bulk export, and a
@@ -241,7 +240,7 @@ export default function PricingPage() {
         </p>
         <Link
           href="mailto:sales@sourcebd.com?subject=SourceBD%20Enterprise%20enquiry"
-          className="mt-6 inline-flex items-center justify-center rounded-md bg-ink-primary px-5 py-2.5 text-sm font-medium text-bg-l0 hover:bg-ink-900"
+          className="btn-proto primary mt-6 inline-flex"
         >
           Contact sales
         </Link>

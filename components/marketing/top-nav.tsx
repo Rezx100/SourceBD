@@ -109,10 +109,7 @@ export async function MarketingTopNav() {
       className="sticky top-0 z-20 border-b border-ink-200 bg-bg-l0/90 backdrop-blur"
     >
       <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-3">
-        <Link
-          href="/"
-          className="font-display text-lg font-semibold tracking-tightish text-ink-primary"
-        >
+        <Link href="/" className="proto-wordmark">
           SourceBD
         </Link>
         <div className="flex items-center gap-3">{rightLinks(role)}</div>

@@ -14,8 +14,8 @@ export function MarketingFooter() {
       className="mt-24 border-t border-ink-200 bg-bg-l0"
     >
       <div className="mx-auto flex max-w-5xl flex-col gap-3 px-6 py-6 text-xs text-ink-secondary md:flex-row md:items-center md:justify-between">
-        <span className="font-display text-sm text-ink-primary">SourceBD</span>
-        <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+        <span className="proto-wordmark text-base">SourceBD</span>
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-2 font-mono text-[11px] uppercase tracking-[0.06em]">
           <Link href="/pricing" className="hover:text-ink-primary">
             Pricing
           </Link>

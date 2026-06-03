@@ -19,16 +19,22 @@ export const metadata = {
 
 export default function TrademarksPage() {
   return (
-    <main className="mx-auto max-w-2xl px-6 py-16">
-      <h1 className="font-display text-3xl font-semibold tracking-tightish">
-        Trademarks
-      </h1>
-      <p className="mt-6 text-ink-secondary leading-relaxed">
+    <main className="mx-auto max-w-3xl px-6 py-16">
+      <header className="mb-8 text-center">
+        <h1 className="font-display text-3xl font-light tracking-tight text-ink-primary md:text-4xl">
+          <span className="proto-wordmark text-3xl md:text-4xl">
+            Trademarks
+          </span>
+        </h1>
+      </header>
+      <div className="proto-card">
+      <p className="text-ink-secondary leading-relaxed">
         All third-party trademarks shown on supplier profiles belong to
         their respective owners and are used solely to identify the source
         of publicly available data. SourceBD is not affiliated with,
         endorsed by, or sponsored by any of these organisations.
       </p>
+      </div>
     </main>
   );
 }

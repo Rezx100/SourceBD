@@ -201,25 +201,23 @@ export default async function MarketingHome() {
       />
       {/* ─────────── 1. Hero ─────────── */}
       <section className="text-center">
-        <h1 className="font-display text-4xl md:text-5xl font-semibold tracking-tightish">
-          Verified Bangladesh garment factories
+        <h1 className="font-display text-4xl font-light tracking-tight text-ink-primary sm:text-5xl md:text-6xl">
+          Verified{" "}
+          <span className="proto-wordmark text-4xl sm:text-5xl md:text-6xl">
+            Bangladesh
+          </span>{" "}
+          garment factories
         </h1>
-        <p className="mt-4 max-w-2xl mx-auto text-ink-secondary text-lg leading-relaxed">
+        <p className="mx-auto mt-5 max-w-2xl text-base text-ink-secondary leading-relaxed sm:text-lg">
           A neutral, public-record index of the country&apos;s RMG sector — each
           supplier traceable to the regulator, association, certifier, or
           brand that named them.
         </p>
-        <div className="mt-8 flex items-center justify-center gap-3">
-          <Link
-            href="/signup"
-            className="inline-flex items-center rounded-md bg-ink-primary px-5 py-2.5 text-sm font-medium text-bg-l0 hover:bg-ink-900"
-          >
+        <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+          <Link href="/signup" className="btn-proto primary">
             Start free
           </Link>
-          <Link
-            href="/discover"
-            className="inline-flex items-center rounded-md border border-ink-200 px-5 py-2.5 text-sm font-medium text-ink-primary hover:bg-bg-l1"
-          >
+          <Link href="/discover" className="btn-proto">
             Browse the directory
           </Link>
         </div>
@@ -228,7 +226,7 @@ export default async function MarketingHome() {
       {/* ─────────── 2. Live counter strip ─────────── */}
       <section className="mt-16">
         <h2 className="sr-only">Live metrics</h2>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
           {COUNTER_TILES.map((tile) => {
             const value = stats[tile.key] as number | null;
             const formatted = fmtCount(value);
@@ -236,12 +234,12 @@ export default async function MarketingHome() {
               <div
                 key={tile.key}
                 aria-label={`${tile.label}: ${formatted}`}
-                className="rounded-lg border border-ink-200 bg-bg-l0 px-4 py-5"
+                className="proto-card hoverable"
               >
-                <div className="font-display text-3xl font-semibold tracking-tightish text-ink-primary">
+                <div className="font-display text-3xl font-light tracking-tight text-ink-primary">
                   {formatted}
                 </div>
-                <div className="mt-2 text-xs text-ink-secondary leading-snug">
+                <div className="mt-2 font-mono text-[10px] uppercase tracking-[0.08em] text-ink-tertiary">
                   {tile.label}
                 </div>
               </div>
@@ -249,7 +247,7 @@ export default async function MarketingHome() {
           })}
         </div>
         {lastUpdated && (
-          <p className="mt-3 text-xs text-ink-secondary">
+          <p className="mt-3 font-mono text-[11px] uppercase tracking-[0.06em] text-ink-tertiary">
             Last updated {lastUpdated}
           </p>
         )}
@@ -257,82 +255,83 @@ export default async function MarketingHome() {
 
       {/* ─────────── 3. How we verify ─────────── */}
       <section className="mt-20">
-        <h2 className="font-display text-2xl font-semibold tracking-tightish">
-          How we verify
-        </h2>
+        <header className="proto-card-head">
+          <h2 className="proto-card-title">How we verify</h2>
+        </header>
+        <div className="proto-card">
+          <h3 className="font-display text-lg font-semibold tracking-tight text-ink-primary">
+            Source trust hierarchy
+          </h3>
+          <dl className="mt-4 divide-y divide-hairline border-y border-hairline">
+            {TIER_HIERARCHY.map((row) => (
+              <div
+                key={row.dbValue}
+                className="grid grid-cols-1 gap-2 py-3 md:grid-cols-[220px_1fr]"
+              >
+                <dt className="text-sm font-medium text-ink-primary">
+                  {row.label}
+                </dt>
+                <dd className="text-sm text-ink-secondary">{row.meaning}</dd>
+              </div>
+            ))}
+          </dl>
 
-        <h3 className="mt-8 font-display text-lg font-semibold tracking-tightish">
-          Source trust hierarchy
-        </h3>
-        <dl className="mt-4 divide-y divide-ink-200 border-y border-ink-200">
-          {TIER_HIERARCHY.map((row) => (
-            <div
-              key={row.dbValue}
-              className="grid grid-cols-1 md:grid-cols-[200px_1fr] gap-2 py-3"
-            >
-              <dt className="text-sm font-medium text-ink-primary">
-                {row.label}
-              </dt>
-              <dd className="text-sm text-ink-secondary">{row.meaning}</dd>
-            </div>
-          ))}
-        </dl>
+          <h3 className="mt-10 font-display text-lg font-semibold tracking-tight text-ink-primary">
+            Per-factory authenticity rule
+          </h3>
+          <blockquote className="mt-4 space-y-4 border-l-2 border-brand-forest pl-4 text-sm text-ink-secondary leading-relaxed">
+            <p>
+              <strong>Authenticity rule (hard):</strong> a <code>BRAND_*</code>
+              {" "}source pill is permitted on a supplier profile <strong>only
+              when the brand&apos;s own publication names that specific
+              factory</strong> (tabular supplier list, interactive-map detail
+              card, or sustainability page mentioning the factory by name). A
+              brand-wide Modern Slavery Statement is <strong>not</strong>
+              {" "}per-factory evidence and must not attach to any supplier row,
+              no matter how official the document.
+            </p>
+            <p>
+              <strong>Narrow OSH extension (2026-05-19):</strong> the
+              authenticity bar is also satisfied when (a) the brand is the
+              named Open Supply Hub contributor AND (b) the OSH facility list
+              is officially embedded on the brand&apos;s own corporate domain
+              (i.e. the brand publishes the OSH iframe as its first-party
+              disclosure surface). Both conditions are runtime-enforced — the
+              scraper must capture a live XHR from the brand&apos;s corporate
+              page referencing the contributor id before any record is
+              upserted.
+            </p>
+          </blockquote>
 
-        <h3 className="mt-10 font-display text-lg font-semibold tracking-tightish">
-          Per-factory authenticity rule
-        </h3>
-        <blockquote className="mt-4 border-l-2 border-ink-200 pl-4 text-ink-secondary leading-relaxed space-y-4">
-          <p>
-            <strong>Authenticity rule (hard):</strong> a <code>BRAND_*</code>
-            {" "}source pill is permitted on a supplier profile <strong>only
-            when the brand&apos;s own publication names that specific
-            factory</strong> (tabular supplier list, interactive-map detail
-            card, or sustainability page mentioning the factory by name). A
-            brand-wide Modern Slavery Statement is <strong>not</strong>
-            {" "}per-factory evidence and must not attach to any supplier row,
-            no matter how official the document.
+          <h3 className="mt-10 font-display text-lg font-semibold tracking-tight text-ink-primary">
+            Receipts-first posture
+          </h3>
+          <p className="mt-4 text-sm text-ink-secondary leading-relaxed">
+            We publish what issuers have already certified — cert IDs,
+            register numbers, remediation percentages, brand-disclosure
+            attributions — and never a SourceBD-proprietary supplier score.
           </p>
-          <p>
-            <strong>Narrow OSH extension (2026-05-19):</strong> the
-            authenticity bar is also satisfied when (a) the brand is the
-            named Open Supply Hub contributor AND (b) the OSH facility list
-            is officially embedded on the brand&apos;s own corporate domain
-            (i.e. the brand publishes the OSH iframe as its first-party
-            disclosure surface). Both conditions are runtime-enforced — the
-            scraper must capture a live XHR from the brand&apos;s corporate
-            page referencing the contributor id before any record is
-            upserted.
-          </p>
-        </blockquote>
-
-        <h3 className="mt-10 font-display text-lg font-semibold tracking-tightish">
-          Receipts-first posture
-        </h3>
-        <p className="mt-4 text-ink-secondary leading-relaxed">
-          We publish what issuers have already certified — cert IDs,
-          register numbers, remediation percentages, brand-disclosure
-          attributions — and never a SourceBD-proprietary supplier score.
-        </p>
+        </div>
       </section>
 
-      {/* ─────────── 4. Trust sources (typography only) ─────────── */}
+      {/* ─────────── 4. Trust sources ─────────── */}
       <section className="mt-20">
-        <h2 className="font-display text-2xl font-semibold tracking-tightish">
-          The sources we draw on
-        </h2>
-        <div className="mt-8 space-y-8">
+        <header className="proto-card-head">
+          <h2 className="proto-card-title">The sources we draw on</h2>
+        </header>
+        <div className="proto-card space-y-8">
           {TIER_ORDER.map((tier) => {
             const bucket = sourcesByTier.get(tier) ?? [];
             if (bucket.length === 0) return null;
             return (
               <div key={tier}>
-                <h3 className="text-sm font-medium uppercase tracking-wide text-ink-secondary">
+                <h3 className="font-mono text-[10px] font-semibold uppercase tracking-[0.08em] text-ink-tertiary">
                   {TIER_LABELS[tier]}
                 </h3>
                 <ul className="mt-3 flex flex-wrap gap-x-6 gap-y-2">
                   {bucket.map((s) => (
                     <li key={s.code}>
-                      <span className="font-display text-base text-ink-primary">
+                      <span className="text-sm text-ink-primary">
                         {s.display_name}
                       </span>
                     </li>
@@ -346,14 +345,24 @@ export default async function MarketingHome() {
 
       {/* ─────────── 5. Founder story ─────────── */}
       <section className="mt-20">
-        <h2 className="font-display text-2xl font-semibold tracking-tightish">
-          Why we built this
-        </h2>
-        {/* FOUNDER: replace before launch */}
-        <p className="mt-4 max-w-3xl text-ink-secondary leading-relaxed">
-          {FOUNDER_STORY}
-        </p>
+        <header className="proto-card-head">
+          <h2 className="proto-card-title">Why we built this</h2>
+        </header>
+        <div className="proto-card">
+          {/* FOUNDER: replace before launch */}
+          <p className="max-w-3xl text-sm text-ink-secondary leading-relaxed">
+            {FOUNDER_STORY}
+          </p>
+        </div>
       </section>
+
+      <p className="affiliation-disclaimer mt-12">
+        Authority logos identify the data sources we aggregate from.
+        SourceBD is not affiliated with or endorsed by BGMEA, BKMEA, BTMA,
+        BGAPMEA, EPB, OEKO-TEX, WRAP, GOTS, RSC, or any of the brands
+        named on this page. Every datum traces to the issuing authority
+        shown on the Provenance tab.
+      </p>
 
       {/* Footer rendered by `app/(marketing)/layout.tsx` (M2). */}
     </main>

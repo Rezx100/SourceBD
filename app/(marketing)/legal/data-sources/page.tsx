@@ -21,15 +21,20 @@ export const metadata = {
 
 export default function DataSourcesPage() {
   return (
-    <main className="mx-auto max-w-2xl px-6 py-16">
-      <h1 className="font-display text-3xl font-semibold tracking-tightish">
-        Data Source Policy
-      </h1>
-      <p className="mt-2 text-sm text-ink-tertiary">
-        Last updated: {LAST_UPDATED}
-      </p>
+    <main className="mx-auto max-w-3xl px-6 py-16">
+      <header className="mb-8 text-center">
+        <h1 className="font-display text-3xl font-light tracking-tight text-ink-primary md:text-4xl">
+          <span className="proto-wordmark text-3xl md:text-4xl">
+            Data Source Policy
+          </span>
+        </h1>
+        <p className="affiliation-disclaimer mt-3">
+          Last updated: {LAST_UPDATED}
+        </p>
+      </header>
+      <div className="proto-card">
 
-      <section className="mt-8 space-y-4 text-ink-secondary leading-relaxed">
+      <section className="space-y-4 text-ink-secondary leading-relaxed">
         <h2 className="font-display text-xl font-semibold text-ink-primary">
           1. Where the data comes from
         </h2>
@@ -134,6 +139,7 @@ export default function DataSourcesPage() {
           terms-of-use restrictions.
         </p>
       </section>
+      </div>
     </main>
   );
 }

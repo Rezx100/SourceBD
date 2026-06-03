@@ -83,7 +83,7 @@ Phases run **in this order**. Each is a single-session unit per AGENTS.md rule 2
 | F2 | `/admin/suppliers`, `/admin/{claims,certifications,sanctions}` queues, `/admin/audit-log`, `/admin/users` | Table inside `.proto-card`; row → drawer detail. Decide buttons keep existing logic, restyled via `.btn-proto` variants. |
 | F3 | Admin editor forms (supplier editor, user edit, etc.) | Same form pattern as D1. |
 
-### Phase G — Marketing site
+### Phase G — Marketing site ✅ shipped 4 Jun 2026
 
 | Step | Routes | Scope |
 | --- | --- | --- |
@@ -92,6 +92,15 @@ Phases run **in this order**. Each is a single-session unit per AGENTS.md rule 2
 | G3 | `/compliance`, `/compliance/[slug]` | Hub tile grid + article body using `.proto-card.span2` for prose. Existing M3 content untouched, only the chrome. |
 | G4 | `/legal/{terms,privacy,cookies,data-sources,trademarks}` | Single `.proto-card.span2` centered, prose-styled. H7 content untouched. |
 | G5 | `components/marketing/top-nav.tsx` + `footer.tsx` | Top-nav uses `.proto-wordmark` (already done in topbar), footer columns use `.nav-section` headings. |
+
+### Phase R — Responsive pass (added 4 Jun 2026)
+
+| Step | Scope |
+| --- | --- |
+| R1 | Audit every surface ported in Phases A–H against the 8-width `RESPONSIVE_WIDTHS = [360,414,768,1024,1280,1440,1920,2560]` set (already exported by `lib/responsive/breakpoints.ts` from P1). Use the existing `/responsive-grid` dev page. |
+| R2 | Establish breakpoint defaults: (a) `.proto-grid` collapses to single column < 900px (already in CSS), (b) `.header-card` 5-col `<dl>` collapses to 2-col then 1-col, (c) `.metric-grid` 3-col → 2-col < 720px → 1-col < 480px, (d) `.proto-tabs` becomes horizontally scrollable < 720px with `overflow-x-auto`, (e) sidebar becomes off-canvas drawer < 1024px (use existing `<MobileSidebarToggle>` if present, else add minimal toggle in `components/shell/`). |
+| R3 | Marketing pages (Phase G output) honour the same set: hero `max-w-5xl` clamps + `text-4xl md:text-5xl` ladder kept, proto-card grids collapse via `md:grid-cols-2 lg:grid-cols-3`. |
+| R4 | No new dependencies. All work via Tailwind responsive utilities + the existing `@media (max-width: …)` blocks in `app/globals.css`. |
 
 ### Phase H — Shared components sweep
 

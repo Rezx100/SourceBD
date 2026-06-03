@@ -59,10 +59,10 @@ export default async function ComplianceHubPage() {
   return (
     <main className="mx-auto max-w-5xl px-6 py-16">
       <section className="text-center">
-        <h1 className="font-display text-4xl font-semibold tracking-tightish text-ink-primary md:text-5xl">
-          Compliance
+        <h1 className="font-display text-4xl font-light tracking-tight text-ink-primary md:text-5xl">
+          <span className="proto-wordmark text-4xl md:text-5xl">Compliance</span>
         </h1>
-        <p className="mx-auto mt-4 max-w-2xl text-ink-secondary leading-relaxed">
+        <p className="mx-auto mt-4 max-w-2xl text-base text-ink-secondary leading-relaxed">
           {HUB_METADATA.headline}
         </p>
         <p className="mx-auto mt-3 max-w-2xl text-sm text-ink-tertiary leading-relaxed">
@@ -75,7 +75,7 @@ export default async function ComplianceHubPage() {
           <Link
             key={page.slug}
             href={`/compliance/${page.slug}`}
-            className="flex flex-col rounded-lg border border-ink-200 bg-bg-l0 p-6 shadow-l1 transition hover:border-accent-indigo"
+            className="proto-card hoverable flex flex-col"
           >
             <h2 className="font-display text-lg font-semibold text-ink-primary">
               {page.shortName}
@@ -83,31 +83,30 @@ export default async function ComplianceHubPage() {
             <p className="mt-2 text-sm text-ink-secondary leading-relaxed">
               {page.headline}
             </p>
-            <span className="mt-4 inline-flex text-sm font-medium text-accent-indigo">
+            <span className="mt-4 inline-flex font-mono text-[11px] uppercase tracking-[0.08em] text-brand-forest">
               Read the guide →
             </span>
           </Link>
         ))}
       </section>
 
-      <section className="mt-16 rounded-lg border border-ink-200 bg-bg-l1 p-8 text-center">
-        <h2 className="font-display text-2xl font-semibold text-ink-primary">
-          Use SourceBD&apos;s receipts on every claim
+      <section className="mt-16 rounded-hero border border-hairline-strong bg-brand-forest-soft p-10 text-center">
+        <h2 className="font-display text-2xl font-light tracking-tight text-ink-primary">
+          Use SourceBD&apos;s{" "}
+          <span className="proto-wordmark text-2xl">receipts</span> on every
+          claim
         </h2>
         <p className="mx-auto mt-3 max-w-2xl text-sm text-ink-secondary leading-relaxed">
           Every supplier profile carries source pills with issuer, URL,
           and last-seen date — the same provenance trail your
           compliance team needs.
         </p>
-        <Link
-          href={cta.href}
-          className="mt-6 inline-flex items-center rounded-md bg-ink-primary px-5 py-2.5 text-sm font-medium text-bg-l0 hover:bg-ink-900"
-        >
+        <Link href={cta.href} className="btn-proto primary mt-6 inline-flex">
           {cta.label}
         </Link>
       </section>
 
-      <p className="mt-12 text-center text-xs text-ink-tertiary">
+      <p className="affiliation-disclaimer mx-auto mt-12 text-center">
         {DISCLAIMER} Last reviewed: {reviewedAt}.
       </p>
     </main>

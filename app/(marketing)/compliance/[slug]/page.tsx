@@ -112,7 +112,7 @@ export default async function ComplianceDetailPage({
           }),
         }}
       />
-      <nav aria-label="Breadcrumb" className="text-xs text-ink-tertiary">
+      <nav aria-label="Breadcrumb" className="font-mono text-[10px] uppercase tracking-[0.08em] text-ink-tertiary">
         <Link href="/compliance" className="hover:text-ink-primary">
           Compliance
         </Link>
@@ -121,7 +121,7 @@ export default async function ComplianceDetailPage({
       </nav>
 
       <header className="mt-4">
-        <h1 className="font-display text-3xl font-semibold tracking-tightish text-ink-primary md:text-4xl">
+        <h1 className="font-display text-3xl font-light tracking-tight text-ink-primary md:text-4xl">
           {page.title}
         </h1>
         <p className="mt-4 text-base text-ink-secondary leading-relaxed">
@@ -129,7 +129,7 @@ export default async function ComplianceDetailPage({
         </p>
       </header>
 
-      <article className="mt-10 space-y-10">
+      <article className="proto-card mt-10 space-y-10">
         {SECTION_ORDER.map((heading) => {
           const section = page.sections.find((s) => s.heading === heading);
           if (!section) return null;
@@ -163,7 +163,7 @@ export default async function ComplianceDetailPage({
               <li key={ref.url}>
                 <a
                   href={ref.url}
-                  className="text-accent-indigo underline hover:text-ink-primary"
+                  className="text-brand-forest underline hover:text-ink-primary"
                   rel="noopener noreferrer external"
                   target="_blank"
                 >
@@ -178,24 +178,21 @@ export default async function ComplianceDetailPage({
         </section>
       </article>
 
-      <section className="mt-16 rounded-lg border border-ink-200 bg-bg-l1 p-8 text-center">
-        <h2 className="font-display text-xl font-semibold text-ink-primary">
-          Receipts on every supplier
+      <section className="mt-12 rounded-hero border border-hairline-strong bg-brand-forest-soft p-8 text-center">
+        <h2 className="font-display text-xl font-light tracking-tight text-ink-primary">
+          <span className="proto-wordmark text-xl">Receipts</span> on every supplier
         </h2>
         <p className="mx-auto mt-3 max-w-xl text-sm text-ink-secondary leading-relaxed">
           Each SourceBD supplier profile carries source pills with
           issuer, URL, and last-seen date — the trail your auditor
           asks for.
         </p>
-        <Link
-          href={cta.href}
-          className="mt-5 inline-flex items-center rounded-md bg-ink-primary px-5 py-2.5 text-sm font-medium text-bg-l0 hover:bg-ink-900"
-        >
+        <Link href={cta.href} className="btn-proto primary mt-5 inline-flex">
           {cta.label}
         </Link>
       </section>
 
-      <p className="mt-12 text-center text-xs text-ink-tertiary">
+      <p className="affiliation-disclaimer mx-auto mt-12 text-center">
         {DISCLAIMER} Last reviewed: {page.last_reviewed_at}.
       </p>
     </main>
