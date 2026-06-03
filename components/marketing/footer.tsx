@@ -1,11 +1,9 @@
 // Spec M2 — Shared marketing footer.
+// Spec H7 — Adds the four statutory legal links (Terms, Privacy,
+// Cookies, Data sources) between Compliance and Trademarks. The
+// `_h7_smoke.py` check asserts the order is preserved.
 //
-// Server component. JC #9 ack: minimal layout — brand + © + trademarks +
-// pricing. Privacy + terms remain forbidden placeholders until H7 (M1 JC
-// #7 carry-forward; UK ICO posture).
-//
-// Mounted in `app/(marketing)/layout.tsx`; the M1 home page's inline
-// footer collapses into this component on the same PR.
+// Server component. Mounted in `app/(marketing)/layout.tsx`.
 
 import Link from "next/link";
 
@@ -23,6 +21,18 @@ export function MarketingFooter() {
           </Link>
           <Link href="/compliance" className="hover:text-ink-primary">
             Compliance
+          </Link>
+          <Link href="/legal/terms" className="hover:text-ink-primary">
+            Terms
+          </Link>
+          <Link href="/legal/privacy" className="hover:text-ink-primary">
+            Privacy
+          </Link>
+          <Link href="/legal/cookies" className="hover:text-ink-primary">
+            Cookies
+          </Link>
+          <Link href="/legal/data-sources" className="hover:text-ink-primary">
+            Data sources
           </Link>
           <Link href="/legal/trademarks" className="hover:text-ink-primary">
             Trademarks
