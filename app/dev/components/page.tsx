@@ -24,7 +24,7 @@ export default async function ComponentsPage() {
   return (
     <main className="mx-auto max-w-5xl px-6 py-12 space-y-12">
       <header>
-        <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-ink-tertiary">
+        <p className="text-[11px] text-ink-tertiary">
           Dev only · Spec F1
         </p>
         <h1 className="font-display text-3xl font-semibold tracking-tightish text-ink-primary">

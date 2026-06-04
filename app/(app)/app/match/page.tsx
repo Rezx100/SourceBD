@@ -19,7 +19,7 @@ export default function SmartMatchPage() {
   return (
     <div className="mx-auto max-w-5xl space-y-6">
       <header className="space-y-2">
-        <p className="flex items-center gap-1.5 font-mono text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-tertiary">
+        <p className="flex items-center gap-1.5 text-[11px] font-semibold text-ink-tertiary">
           <Sparkle size={12} weight="fill" className="text-brand-forest" />
           Find matches
         </p>

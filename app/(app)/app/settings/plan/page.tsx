@@ -89,7 +89,7 @@ export default async function SettingsPlanPage() {
       <header>
         <Link
           href="/app/settings"
-          className="inline-flex items-center gap-1 font-mono text-[11px] uppercase tracking-[0.14em] text-ink-tertiary hover:text-ink-primary"
+          className="inline-flex items-center gap-1 text-[11px] text-ink-tertiary hover:text-ink-primary"
         >
           <ArrowLeft size={12} />
           Back to settings

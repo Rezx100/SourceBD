@@ -165,13 +165,13 @@ export default function Tour({ flavour, initialStep = 0 }: TourProps) {
         className="w-full max-w-xl rounded-t-[var(--r-hero)] border border-hairline bg-bg-l1 p-5 shadow-l2 sm:rounded-[var(--r-card)] sm:p-6"
       >
         <div className="mb-3 flex items-center justify-between gap-3">
-          <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-ink-tertiary">
+          <p className="text-[11px] text-ink-tertiary">
             Step {stepIdx + 1} of {steps.length}
           </p>
           <button
             type="button"
             onClick={() => void close("dismissed")}
-            className="font-mono text-[11px] uppercase tracking-[0.14em] text-ink-tertiary hover:text-ink-primary"
+            className="text-[11px] text-ink-tertiary hover:text-ink-primary"
             aria-label="Skip tour"
           >
             Skip

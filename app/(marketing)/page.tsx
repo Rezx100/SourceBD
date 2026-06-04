@@ -239,7 +239,7 @@ export default async function MarketingHome() {
                 <div className="font-display text-3xl font-light tracking-tight text-ink-primary">
                   {formatted}
                 </div>
-                <div className="mt-2 font-mono text-[10px] uppercase tracking-[0.08em] text-ink-tertiary">
+                <div className="mt-2 text-[10px] text-ink-tertiary">
                   {tile.label}
                 </div>
               </div>
@@ -247,7 +247,7 @@ export default async function MarketingHome() {
           })}
         </div>
         {lastUpdated && (
-          <p className="mt-3 font-mono text-[11px] uppercase tracking-[0.06em] text-ink-tertiary">
+          <p className="mt-3 text-[11px] text-ink-tertiary">
             Last updated {lastUpdated}
           </p>
         )}
@@ -325,7 +325,7 @@ export default async function MarketingHome() {
             if (bucket.length === 0) return null;
             return (
               <div key={tier}>
-                <h3 className="font-mono text-[10px] font-semibold uppercase tracking-[0.08em] text-ink-tertiary">
+                <h3 className="text-[10px] font-semibold text-ink-tertiary">
                   {TIER_LABELS[tier]}
                 </h3>
                 <ul className="mt-3 flex flex-wrap gap-x-6 gap-y-2">

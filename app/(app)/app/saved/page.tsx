@@ -82,7 +82,7 @@ export default async function SavedSuppliersPage({
   return (
     <div className="mx-auto max-w-6xl space-y-6">
       <header>
-        <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-tertiary">
+        <p className="text-[11px] font-semibold text-ink-tertiary">
           Buyer
         </p>
         <h1 className="font-display text-3xl font-light tracking-tight text-ink-primary">
@@ -94,7 +94,7 @@ export default async function SavedSuppliersPage({
       </header>
 
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="font-mono text-[11px] uppercase tracking-[0.06em] text-ink-tertiary">
+        <p className="text-[11px] text-ink-tertiary">
           {error ? (
             <span className="text-sem-red">Could not load saved suppliers.</span>
           ) : (
@@ -167,7 +167,7 @@ function SortControl({ current }: { current: SortValue }) {
     <form method="get" className="flex items-center gap-2">
       <label
         htmlFor="sort"
-        className="font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-ink-tertiary"
+        className="text-[10px] font-semibold text-ink-tertiary"
       >
         Sort
       </label>
@@ -210,7 +210,7 @@ function Pagination({
   };
   return (
     <nav aria-label="Pagination" className="flex items-center justify-between gap-3">
-      <div className="font-mono text-[11px] uppercase tracking-[0.06em] text-ink-tertiary">
+      <div className="text-[11px] text-ink-tertiary">
         Page {page} of {totalPages}
       </div>
       <div className="flex gap-2">

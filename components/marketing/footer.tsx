@@ -15,7 +15,7 @@ export function MarketingFooter() {
     >
       <div className="mx-auto flex max-w-5xl flex-col gap-3 px-6 py-6 text-xs text-ink-secondary md:flex-row md:items-center md:justify-between">
         <span className="proto-wordmark text-base">SourceBD</span>
-        <div className="flex flex-wrap items-center gap-x-5 gap-y-2 font-mono text-[11px] uppercase tracking-[0.06em]">
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-[11px]">
           <Link href="/pricing" className="hover:text-ink-primary">
             Pricing
           </Link>

@@ -119,7 +119,7 @@ export function FilterRail({
         <div>
           <label
             htmlFor="discover-q"
-            className="mb-1.5 block font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-ink-tertiary"
+            className="mb-1.5 block text-[10px] font-semibold text-ink-tertiary"
           >
             Search
           </label>
@@ -234,7 +234,7 @@ function FilterGroup({
 }) {
   return (
     <fieldset className="space-y-2 border-0 p-0">
-      <legend className="font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-ink-tertiary">
+      <legend className="text-[10px] font-semibold text-ink-tertiary">
         {label}
       </legend>
       <div className="space-y-1.5">{children}</div>
@@ -281,7 +281,7 @@ export function SortControl({
       aria-label="Sort results"
       className="flex flex-wrap items-center gap-1.5 text-[12px]"
     >
-      <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-ink-tertiary">
+      <span className="text-[10px] font-semibold text-ink-tertiary">
         Sort
       </span>
       {SORT_OPTIONS.map((opt) => {
@@ -337,7 +337,7 @@ export function Pagination({
       aria-label="Pagination"
       className="flex items-center justify-between border-t border-hairline pt-4 text-sm"
     >
-      <span className="font-mono text-[11px] uppercase tracking-[0.08em] text-ink-tertiary">
+      <span className="text-[11px] text-ink-tertiary">
         Page {page} of {totalPages}
       </span>
       <div className="flex items-center gap-2">

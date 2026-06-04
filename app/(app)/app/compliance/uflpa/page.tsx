@@ -124,7 +124,7 @@ export default async function UflpaPage() {
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-hairline text-left font-mono text-[11px] uppercase tracking-[0.08em] text-ink-tertiary">
+                  <tr className="border-b border-hairline text-left text-[11px] text-ink-tertiary">
                     <th className="py-2 pr-4">Supplier</th>
                     <th className="py-2 pr-4">Location</th>
                     <th className="py-2 pr-4">Parent group</th>
@@ -237,7 +237,7 @@ function Stat({
       <CardContent className="flex items-center gap-3 py-4">
         <Icon size={24} weight="fill" className={color} />
         <div>
-          <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-tertiary">
+          <p className="text-[11px] text-ink-tertiary">
             {label}
           </p>
           <p className="font-display text-2xl font-semibold tabular-nums text-ink-primary">

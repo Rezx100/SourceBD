@@ -177,7 +177,7 @@ function Field({
 }) {
   return (
     <label className="flex flex-col gap-1 text-[12px] text-ink-secondary">
-      <span className="font-mono text-[11px] uppercase tracking-[0.1em] text-ink-tertiary">
+      <span className="text-[11px] text-ink-tertiary">
         {label}
       </span>
       {children}

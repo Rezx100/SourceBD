@@ -121,7 +121,7 @@ function StatLine({ row }: { row: DiscoverRow }) {
     parts.push(`RSC ${Number(row.rsc_progress_pct).toFixed(0)}%`);
   if (parts.length === 0) return null;
   return (
-    <p className="font-mono text-[11px] uppercase tracking-[0.06em] text-ink-tertiary">
+    <p className="text-[11px] text-ink-tertiary">
       {parts.join(" · ")}
     </p>
   );

@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 export default function SuspendedPage() {
   return (
     <main className="mx-auto flex max-w-lg flex-col gap-6 px-6 py-20 text-center">
-      <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-ink-tertiary">
+      <p className="text-[11px] text-ink-tertiary">
         Account suspended
       </p>
       <h1 className="font-display text-2xl font-semibold tracking-tightish text-ink-primary">

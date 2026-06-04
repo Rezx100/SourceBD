@@ -276,7 +276,7 @@ export default async function AdminUsersPage({
 function PageHeader({ total }: { total?: number }) {
   return (
     <header>
-      <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-ink-tertiary">
+      <p className="text-[11px] text-ink-tertiary">
         Admin
       </p>
       <h1 className="font-display text-2xl font-semibold tracking-tightish text-ink-primary">

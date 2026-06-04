@@ -676,7 +676,6 @@ function OverviewTab({ payload }: { payload: ProfilePayload }) {
                   style={{
                     fontSize: 11,
                     color: "var(--ink-tertiary)",
-                    textTransform: "uppercase",
                     letterSpacing: "0.06em",
                   }}
                 >

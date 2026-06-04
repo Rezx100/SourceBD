@@ -44,7 +44,7 @@ export default async function SupplierMessagesPage() {
   return (
     <div className="mx-auto max-w-4xl space-y-6">
       <header>
-        <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-ink-tertiary">
+        <p className="text-[11px] text-ink-tertiary">
           Supplier
         </p>
         <h1 className="font-display text-2xl font-semibold tracking-tightish text-ink-primary">

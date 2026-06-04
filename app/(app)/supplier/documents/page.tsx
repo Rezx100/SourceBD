@@ -15,7 +15,7 @@ export default function SupplierDocumentsPlaceholderPage() {
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <header>
-        <p className="font-mono text-[11px] uppercase tracking-[0.1em] text-ink-tertiary">
+        <p className="text-[11px] text-ink-tertiary">
           Supplier · documents
         </p>
         <h1 className="mt-2 font-display text-2xl font-semibold tracking-tightish text-ink-primary">

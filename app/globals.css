@@ -162,11 +162,9 @@
     align-items: start;
   }
   .breadcrumb {
-    font-size: 11px;
+    font-size: 12px;
     color: var(--ink-tertiary);
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    font-weight: 600;
+    font-weight: 500;
     margin-bottom: 6px;
   }
   .header-name {
@@ -227,10 +225,8 @@
     margin-top: 12px;
   }
   .header-meta-row dt {
-    font-size: 10px;
-    font-weight: 600;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
+    font-size: 11px;
+    font-weight: 500;
     color: var(--ink-tertiary);
     margin: 0 0 2px;
   }
@@ -317,10 +313,8 @@
     flex-wrap: wrap;
   }
   .products-label {
-    font-size: 10px;
-    font-weight: 600;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
+    font-size: 11px;
+    font-weight: 500;
     color: var(--ink-tertiary);
   }
   .product-list { display: flex; gap: 14px; flex-wrap: wrap; }
@@ -487,13 +481,10 @@
     gap: 4px;
     padding: 4px 10px;
     border-radius: var(--r-pill);
-    font-family: var(--font-mono);
-    font-size: 10px;
+    font-size: 11px;
     font-weight: 600;
     background: var(--sem-green-soft);
     color: var(--sem-green);
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
   }
   .registry-row .reg-status.inherited {
     background: transparent;
@@ -693,10 +684,8 @@
     justify-content: space-between;
   }
   .sanctions-tile .tile-juris {
-    font-family: var(--font-mono);
-    font-size: 10px;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
+    font-size: 11px;
+    font-weight: 500;
     color: var(--ink-tertiary);
     padding: 2px 6px;
     border: 1px solid var(--hairline);
@@ -911,12 +900,10 @@
     align-items: center;
     padding: 2px 6px;
     border-radius: 4px;
-    font-family: var(--font-mono);
-    font-size: 10px;
+    font-size: 11px;
     font-weight: 600;
     background: #ECEAE2;
     color: var(--ink-secondary);
-    text-transform: uppercase;
   }
   .doc-name { font-weight: 500; color: var(--ink-primary); }
   .doc-meta {
@@ -1005,10 +992,8 @@
     border-radius: var(--r-input);
   }
   .metric-label {
-    font-size: 10px;
-    font-weight: 600;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
+    font-size: 11px;
+    font-weight: 500;
     color: var(--ink-tertiary);
     margin: 0 0 4px;
   }
@@ -1037,10 +1022,8 @@
   }
   .contact-list dt {
     color: var(--ink-tertiary);
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
+    font-size: 12px;
+    font-weight: 500;
   }
   .contact-list dd {
     margin: 0;
@@ -1173,19 +1156,13 @@
     color: var(--ink-tertiary);
   }
   .sidebar-ws .ws-plan {
-    font-family: var(--font-mono);
-    font-size: 10px;
-    letter-spacing: 0.08em;
+    font-size: 11px;
     color: var(--ink-tertiary);
-    text-transform: uppercase;
     line-height: 1.2;
   }
   .nav-section {
-    font-family: var(--font-mono);
-    font-size: 10px;
-    font-weight: 500;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
+    font-size: 11px;
+    font-weight: 600;
     color: var(--ink-tertiary);
     opacity: 0.85;
     padding: 18px 12px 8px;
@@ -1315,10 +1292,7 @@
     background: linear-gradient(90deg, transparent, var(--hairline-strong), transparent);
   }
   .sidebar-freshness .fresh-label {
-    font-family: var(--font-mono);
-    font-size: 9.5px;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
+    font-size: 11px;
     color: var(--brand-forest);
     font-weight: 500;
   }

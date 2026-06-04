@@ -69,7 +69,7 @@ export function SettingsChangePasswordForm() {
       <CardContent className="pt-0">
         <form onSubmit={onSubmit} className="space-y-3">
           <label className="block">
-            <span className="mb-1 block font-mono text-[11px] uppercase tracking-[0.14em] text-ink-tertiary">
+            <span className="mb-1 block text-[11px] text-ink-tertiary">
               New password
             </span>
             <input
@@ -83,7 +83,7 @@ export function SettingsChangePasswordForm() {
             />
           </label>
           <label className="block">
-            <span className="mb-1 block font-mono text-[11px] uppercase tracking-[0.14em] text-ink-tertiary">
+            <span className="mb-1 block text-[11px] text-ink-tertiary">
               Confirm new password
             </span>
             <input

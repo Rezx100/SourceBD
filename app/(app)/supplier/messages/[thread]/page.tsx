@@ -84,7 +84,7 @@ export default async function SupplierThreadPage({
             </h1>
             <Badge tone="neutral">Buyer</Badge>
           </div>
-          <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-ink-tertiary">
+          <p className="text-[11px] text-ink-tertiary">
             {thread.subject ?? "General inquiry"} · {thread.supplier_name}
           </p>
         </div>

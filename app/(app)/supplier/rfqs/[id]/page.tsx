@@ -100,7 +100,7 @@ export default async function SupplierRfqDetailPage({
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <header className="space-y-1">
-        <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-ink-tertiary">
+        <p className="text-[11px] text-ink-tertiary">
           Supplier · RFQ {rfq.id.slice(0, 8)}
         </p>
         <div className="flex items-center gap-2">
@@ -137,7 +137,7 @@ export default async function SupplierRfqDetailPage({
           ) : null}
           {rfq.product_description ? (
             <div className="space-y-1">
-              <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-tertiary">
+              <p className="text-[11px] text-ink-tertiary">
                 Description
               </p>
               <p className="whitespace-pre-wrap text-ink-primary">
@@ -225,7 +225,7 @@ export default async function SupplierRfqDetailPage({
               ) : null}
               {myQuote.notes ? (
                 <div className="space-y-1">
-                  <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-tertiary">
+                  <p className="text-[11px] text-ink-tertiary">
                     Notes
                   </p>
                   <p className="whitespace-pre-wrap text-ink-primary">
@@ -274,7 +274,7 @@ function Row({
 }) {
   return (
     <div className="flex items-baseline gap-3">
-      <span className="w-40 shrink-0 font-mono text-[11px] uppercase tracking-[0.12em] text-ink-tertiary">
+      <span className="w-40 shrink-0 text-[11px] text-ink-tertiary">
         {label}
       </span>
       <span className="text-ink-primary">{children}</span>

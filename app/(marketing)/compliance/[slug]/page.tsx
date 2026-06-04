@@ -112,7 +112,7 @@ export default async function ComplianceDetailPage({
           }),
         }}
       />
-      <nav aria-label="Breadcrumb" className="font-mono text-[10px] uppercase tracking-[0.08em] text-ink-tertiary">
+      <nav aria-label="Breadcrumb" className="text-[10px] text-ink-tertiary">
         <Link href="/compliance" className="hover:text-ink-primary">
           Compliance
         </Link>

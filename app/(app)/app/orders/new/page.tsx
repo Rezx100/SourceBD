@@ -74,7 +74,7 @@ export default async function NewOrderPage({
       <div className="mx-auto max-w-3xl space-y-4">
         <div className="flex items-baseline justify-between gap-3">
           <div>
-            <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-tertiary">
+            <p className="text-[11px] font-semibold text-ink-tertiary">
               Buyer
             </p>
             <h1 className="font-display text-3xl font-light tracking-tight text-ink-primary">
@@ -111,7 +111,7 @@ export default async function NewOrderPage({
       <div className="mx-auto max-w-3xl space-y-4">
         <div className="flex items-baseline justify-between gap-3">
           <div>
-            <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-tertiary">
+            <p className="text-[11px] font-semibold text-ink-tertiary">
               Buyer
             </p>
             <h1 className="font-display text-3xl font-light tracking-tight text-ink-primary">

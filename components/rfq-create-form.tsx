@@ -197,7 +197,7 @@ function Field({
 }) {
   return (
     <label className="flex flex-col gap-1">
-      <span className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-tertiary">
+      <span className="text-[11px] text-ink-tertiary">
         {label}
         {required ? <span className="text-sem-red"> *</span> : null}
       </span>

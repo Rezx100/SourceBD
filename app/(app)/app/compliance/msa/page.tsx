@@ -123,7 +123,7 @@ export default async function MsaPage() {
 function Stat({ label, value }: { label: string; value: number }) {
   return (
     <div>
-      <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-tertiary">
+      <p className="text-[11px] text-ink-tertiary">
         {label}
       </p>
       <p className="font-display text-2xl font-semibold tabular-nums text-ink-primary">
@@ -142,7 +142,7 @@ function Block({
 }) {
   return (
     <div>
-      <p className="mb-2 font-mono text-[11px] uppercase tracking-[0.12em] text-ink-tertiary">
+      <p className="mb-2 text-[11px] text-ink-tertiary">
         {title}
       </p>
       {children}

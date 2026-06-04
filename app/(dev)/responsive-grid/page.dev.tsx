@@ -44,7 +44,7 @@ export default async function ResponsiveGridPage({
   return (
     <main className="mx-auto max-w-7xl px-6 py-8 space-y-6">
       <header className="space-y-2">
-        <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-ink-tertiary">
+        <p className="text-[11px] text-ink-tertiary">
           Dev only · Spec P1 responsive QA
         </p>
         <h1 className="font-display text-2xl font-semibold tracking-tightish text-ink-primary">
@@ -88,7 +88,7 @@ export default async function ResponsiveGridPage({
           const h = heightForWidth(w);
           return (
             <figure key={w} className="flex-none">
-              <figcaption className="font-mono text-[11px] uppercase tracking-[0.14em] text-ink-tertiary">
+              <figcaption className="text-[11px] text-ink-tertiary">
                 {w} × {h}
               </figcaption>
               <iframe

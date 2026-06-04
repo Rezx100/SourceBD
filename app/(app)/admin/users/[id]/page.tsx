@@ -118,7 +118,7 @@ export default async function AdminUserDrilldownPage({
             ← Users
           </Link>
         </p>
-        <p className="mt-3 font-mono text-[11px] uppercase tracking-[0.14em] text-ink-tertiary">
+        <p className="mt-3 text-[11px] text-ink-tertiary">
           Admin · user
         </p>
         <h1 className="font-display text-2xl font-semibold tracking-tightish text-ink-primary">

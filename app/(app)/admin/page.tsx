@@ -153,7 +153,7 @@ export default async function AdminHome() {
           </CardHeader>
           <CardContent className="pt-0 space-y-3">
             <div>
-              <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-tertiary">
+              <p className="text-[11px] text-ink-tertiary">
                 By entity type
               </p>
               <div className="mt-1 flex flex-wrap gap-2 text-[12px]">
@@ -167,7 +167,7 @@ export default async function AdminHome() {
               </div>
             </div>
             <div>
-              <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-tertiary">
+              <p className="text-[11px] text-ink-tertiary">
                 Tier-source coverage
               </p>
               <KvList
@@ -234,7 +234,7 @@ export default async function AdminHome() {
           </CardHeader>
           <CardContent className="pt-0 space-y-2">
             <div className="flex items-baseline justify-between">
-              <span className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-tertiary">
+              <span className="text-[11px] text-ink-tertiary">
                 Documents
               </span>
               <span className="font-display text-2xl font-semibold tabular-nums text-ink-primary">
@@ -242,7 +242,7 @@ export default async function AdminHome() {
               </span>
             </div>
             <div className="flex items-baseline justify-between">
-              <span className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-tertiary">
+              <span className="text-[11px] text-ink-tertiary">
                 Total mirrored
               </span>
               <span className="font-display text-base font-semibold tabular-nums text-ink-primary">
@@ -282,7 +282,7 @@ function AdminHeader({ generatedAt }: { generatedAt?: string }) {
   return (
     <header className="flex items-end justify-between gap-3">
       <div>
-        <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-ink-tertiary">
+        <p className="text-[11px] text-ink-tertiary">
           Admin
         </p>
         <h1 className="font-display text-2xl font-semibold tracking-tightish text-ink-primary">
@@ -310,7 +310,7 @@ function StatTile({
   return (
     <Card>
       <CardContent className="space-y-1 py-4">
-        <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-tertiary">
+        <p className="text-[11px] text-ink-tertiary">
           {label}
         </p>
         <p className="font-display text-3xl font-semibold tabular-nums text-ink-primary">

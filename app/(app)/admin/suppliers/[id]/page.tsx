@@ -121,7 +121,7 @@ export default async function AdminSupplierEditorPage({
     <div className="mx-auto max-w-5xl space-y-6">
       <header className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
         <div>
-          <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-ink-tertiary">
+          <p className="text-[11px] text-ink-tertiary">
             Admin · supplier
           </p>
           <h1 className="font-display text-2xl font-semibold tracking-tightish text-ink-primary">
@@ -365,7 +365,7 @@ function Kv({
 }) {
   return (
     <div className="flex flex-col">
-      <dt className="font-mono text-[11px] uppercase tracking-[0.1em] text-ink-tertiary">
+      <dt className="text-[11px] text-ink-tertiary">
         {k}
       </dt>
       <dd className={mono ? "font-mono text-ink-primary" : "text-ink-primary"}>

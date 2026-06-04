@@ -110,7 +110,7 @@ export default async function PublicDiscoverPage({
       <DemoBanner next={BASE_PATH} />
       <main className="mx-auto max-w-7xl space-y-6 px-6 py-8">
         <header>
-          <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-tertiary">
+          <p className="text-[11px] font-semibold text-ink-tertiary">
             Public preview
           </p>
           <h1 className="mt-1 font-display text-4xl font-light tracking-tight text-ink-primary">

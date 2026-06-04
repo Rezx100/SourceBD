@@ -177,7 +177,7 @@ function StepBar({ step }: { step: 1 | 2 | 3 }) {
   return (
     <ol
       aria-label="Wizard progress"
-      className="flex items-center gap-2 text-[12px] font-mono uppercase tracking-[0.04em]"
+      className="flex items-center gap-2 text-[12px]"
     >
       {labels.map((label, i) => {
         const n = (i + 1) as 1 | 2 | 3;
@@ -438,7 +438,7 @@ function ResultsPanel({
         <h2 className="font-display text-lg font-light tracking-tight text-ink-primary">
           {data.total} {data.total === 1 ? "match" : "matches"}
           {data.criteria_count > 0 ? (
-            <span className="ml-2 font-mono text-[11px] uppercase tracking-[0.06em] text-ink-tertiary">
+            <span className="ml-2 text-[11px] text-ink-tertiary">
               against {data.criteria_count}{" "}
               {data.criteria_count === 1 ? "criterion" : "criteria"}
             </span>
@@ -465,7 +465,7 @@ function ResultsPanel({
                 footerSlot={
                   row.match_reasons.length > 0 ? (
                     <div className="pill-row">
-                      <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-ink-tertiary">
+                      <span className="text-[10px] font-semibold text-ink-tertiary">
                         Matched on:
                       </span>
                       {row.match_reasons.map((reason) => (
@@ -522,7 +522,7 @@ function Field({
 }) {
   return (
     <label className="block space-y-1.5">
-      <span className="block font-mono text-[11px] uppercase tracking-[0.04em] text-ink-tertiary">
+      <span className="block text-[11px] text-ink-tertiary">
         {label}
       </span>
       {children}

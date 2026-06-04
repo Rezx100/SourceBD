@@ -140,7 +140,7 @@ export function SupplierPartnerRequestForm({
       <div className="flex flex-col gap-1">
         <label
           htmlFor="rel-mine"
-          className="font-mono text-[11px] uppercase tracking-[0.14em] text-ink-tertiary"
+          className="text-[11px] text-ink-tertiary"
         >
           From your company
         </label>
@@ -161,7 +161,7 @@ export function SupplierPartnerRequestForm({
       <div className="flex flex-col gap-1">
         <label
           htmlFor="rel-q"
-          className="font-mono text-[11px] uppercase tracking-[0.14em] text-ink-tertiary"
+          className="text-[11px] text-ink-tertiary"
         >
           {targetEntityType === "factory"
             ? "Find a partner factory"
@@ -209,7 +209,7 @@ export function SupplierPartnerRequestForm({
       <div className="flex flex-col gap-1">
         <label
           htmlFor="rel-note"
-          className="font-mono text-[11px] uppercase tracking-[0.14em] text-ink-tertiary"
+          className="text-[11px] text-ink-tertiary"
         >
           Note (optional)
         </label>

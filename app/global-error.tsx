@@ -29,7 +29,7 @@ export default function GlobalError({ error }: { error: Error & { digest?: strin
       <body className="bg-bg-l0 text-ink-primary">
         <main className="mx-auto flex min-h-screen max-w-xl items-center px-6 py-16">
           <div className="w-full rounded-card border border-hairline bg-surface-l1 p-6 shadow-l1">
-            <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-ink-tertiary">
+            <p className="text-[11px] text-ink-tertiary">
               {error.digest ?? "500"}
             </p>
             <h1 className="mt-1 font-display text-2xl font-semibold tracking-tightish">

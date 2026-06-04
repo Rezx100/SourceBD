@@ -271,7 +271,7 @@ export function Sidebar({
             key={v}
             href={VARIANT_HREF[v]}
             aria-current={active ? "page" : undefined}
-            className={`flex-1 rounded-pill px-2 py-1 text-center font-mono text-[10px] font-semibold uppercase tracking-[0.12em] transition-colors duration-hover ease-smooth ${
+            className={`flex-1 rounded-pill px-2 py-1 text-center text-[10px] font-semibold transition-colors duration-hover ease-smooth ${
               active
                 ? "bg-brand-forest-tint text-ink-primary shadow-l1"
                 : "text-ink-tertiary hover:bg-brand-forest-tint hover:text-ink-primary"
@@ -379,7 +379,7 @@ export function Sidebar({
             <ListIcon size={18} weight="bold" aria-hidden />
             {VARIANT_LABEL[variant]}
           </span>
-          <span className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-tertiary">
+          <span className="text-[11px] text-ink-tertiary">
             Menu
           </span>
         </summary>

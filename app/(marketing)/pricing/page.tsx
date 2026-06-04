@@ -104,7 +104,7 @@ export default function PricingPage() {
                   {plan.label}
                 </h2>
                 {featured ? (
-                  <span className="rounded-pill bg-brand-forest-soft px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.08em] text-brand-forest">
+                  <span className="rounded-pill bg-brand-forest-soft px-2 py-0.5 text-[10px] text-brand-forest">
                     Most popular
                   </span>
                 ) : null}
@@ -113,7 +113,7 @@ export default function PricingPage() {
               <p className="mt-6 font-display text-3xl font-light tracking-tight text-ink-primary">
                 <PriceHeadline value={plan.priceHeadline} />
               </p>
-              <p className="mt-1 font-mono text-[11px] uppercase tracking-[0.06em] text-ink-tertiary">
+              <p className="mt-1 text-[11px] text-ink-tertiary">
                 {plan.priceSubline}
               </p>
               {plan.trialNote ? (
@@ -149,14 +149,14 @@ export default function PricingPage() {
           <table className="min-w-full text-sm">
             <thead className="bg-brand-forest-soft text-left text-ink-primary">
               <tr>
-                <th scope="col" className="px-4 py-3 font-mono text-[10px] uppercase tracking-[0.08em] text-ink-tertiary">
+                <th scope="col" className="px-4 py-3 text-[10px] text-ink-tertiary">
                   Feature
                 </th>
                 {PLANS.map((plan) => (
                   <th
                     key={plan.key}
                     scope="col"
-                    className="px-4 py-3 text-center font-mono text-[10px] uppercase tracking-[0.08em] text-ink-tertiary"
+                    className="px-4 py-3 text-center text-[10px] text-ink-tertiary"
                   >
                     {plan.label}
                   </th>

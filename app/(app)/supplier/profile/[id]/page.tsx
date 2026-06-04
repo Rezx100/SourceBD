@@ -72,7 +72,7 @@ export default async function SupplierProfileEdit({
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <header>
-        <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-ink-tertiary">
+        <p className="text-[11px] text-ink-tertiary">
           Supplier · Profile · Edit
         </p>
         <h1 className="font-display text-2xl font-semibold tracking-tightish text-ink-primary">
@@ -97,19 +97,19 @@ export default async function SupplierProfileEdit({
         <CardContent>
           <dl className="grid grid-cols-1 gap-3 text-sm md:grid-cols-2">
             <div>
-              <dt className="text-xs uppercase tracking-wide text-ink-tertiary">
+              <dt className="text-xs text-ink-tertiary">
                 Address
               </dt>
               <dd className="text-ink-primary">{sup.address_raw ?? "—"}</dd>
             </div>
             <div>
-              <dt className="text-xs uppercase tracking-wide text-ink-tertiary">
+              <dt className="text-xs text-ink-tertiary">
                 Register email
               </dt>
               <dd className="text-ink-primary">{reg.email_primary ?? "—"}</dd>
             </div>
             <div>
-              <dt className="text-xs uppercase tracking-wide text-ink-tertiary">
+              <dt className="text-xs text-ink-tertiary">
                 Register phones
               </dt>
               <dd className="text-ink-primary">
@@ -117,7 +117,7 @@ export default async function SupplierProfileEdit({
               </dd>
             </div>
             <div>
-              <dt className="text-xs uppercase tracking-wide text-ink-tertiary">
+              <dt className="text-xs text-ink-tertiary">
                 Register website
               </dt>
               <dd className="text-ink-primary break-all">
@@ -125,13 +125,13 @@ export default async function SupplierProfileEdit({
               </dd>
             </div>
             <div>
-              <dt className="text-xs uppercase tracking-wide text-ink-tertiary">
+              <dt className="text-xs text-ink-tertiary">
                 Register contact name
               </dt>
               <dd className="text-ink-primary">{reg.contact_name ?? "—"}</dd>
             </div>
             <div>
-              <dt className="text-xs uppercase tracking-wide text-ink-tertiary">
+              <dt className="text-xs text-ink-tertiary">
                 Register contact role
               </dt>
               <dd className="text-ink-primary">{reg.contact_role ?? "—"}</dd>

@@ -77,7 +77,7 @@ export default async function ClaimStatusPage({
       <header>
         <Link
           href="/supplier/claim"
-          className="text-xs uppercase tracking-wide text-ink-tertiary hover:text-ink-primary"
+          className="text-xs text-ink-tertiary hover:text-ink-primary"
         >
           ← All claims
         </Link>

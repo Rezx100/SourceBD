@@ -83,7 +83,7 @@ export default async function ComplianceHubPage() {
             <p className="mt-2 text-sm text-ink-secondary leading-relaxed">
               {page.headline}
             </p>
-            <span className="mt-4 inline-flex font-mono text-[11px] uppercase tracking-[0.08em] text-brand-forest">
+            <span className="mt-4 inline-flex text-[11px] text-brand-forest">
               Read the guide →
             </span>
           </Link>

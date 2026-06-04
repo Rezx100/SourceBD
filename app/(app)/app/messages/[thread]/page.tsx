@@ -79,7 +79,7 @@ export default async function ThreadPage({
               <h1 className="header-name !text-xl">{thread.supplier_name}</h1>
               <span className="chip">{entityLabel(thread.supplier_entity_type)}</span>
             </div>
-            <p className="mt-1 font-mono text-[11px] uppercase tracking-[0.06em] text-ink-tertiary">
+            <p className="mt-1 text-[11px] text-ink-tertiary">
               {thread.subject ?? "General inquiry"}
             </p>
           </div>

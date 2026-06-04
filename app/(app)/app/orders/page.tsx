@@ -65,7 +65,7 @@ export default async function OrdersPage() {
     <div className="mx-auto max-w-5xl space-y-6">
       <header className="flex items-baseline justify-between gap-3">
         <div>
-          <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-tertiary">
+          <p className="text-[11px] font-semibold text-ink-tertiary">
             Buyer
           </p>
           <h1 className="font-display text-3xl font-light tracking-tight text-ink-primary">
@@ -162,7 +162,7 @@ function OrderGroup({
                     <span className="chip">As supplier</span>
                   ) : null}
                   {o.po_number ? (
-                    <span className="font-mono text-[11px] uppercase tracking-[0.06em] text-ink-tertiary">
+                    <span className="text-[11px] text-ink-tertiary">
                       PO {o.po_number}
                     </span>
                   ) : null}
@@ -177,7 +177,7 @@ function OrderGroup({
                     : ""}
                 </p>
               </div>
-              <span className="shrink-0 font-mono text-[11px] uppercase tracking-[0.06em] text-ink-tertiary">
+              <span className="shrink-0 text-[11px] text-ink-tertiary">
                 {fmtRelative(o.updated_at)}
               </span>
             </Link>

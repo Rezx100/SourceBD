@@ -123,7 +123,7 @@ export default async function BuyerDiscoverPage({
   return (
     <div className="mx-auto max-w-7xl space-y-6">
       <header>
-        <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-tertiary">
+        <p className="text-[11px] font-semibold text-ink-tertiary">
           Buyer
         </p>
         <h1 className="mt-1 font-display text-3xl font-light tracking-tight text-ink-primary">

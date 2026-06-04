@@ -130,7 +130,7 @@ export function MsaGeneratorForm({ inputs }: { inputs: MsaInputs }) {
         </div>
 
         <div>
-          <p className="mb-2 font-mono text-[11px] uppercase tracking-[0.12em] text-ink-tertiary">
+          <p className="mb-2 text-[11px] text-ink-tertiary">
             Preview
           </p>
           <textarea
@@ -161,7 +161,7 @@ function Field({
 }) {
   return (
     <label className="block space-y-1">
-      <span className="block font-mono text-[11px] uppercase tracking-[0.12em] text-ink-tertiary">
+      <span className="block text-[11px] text-ink-tertiary">
         {label}
       </span>
       {children}

@@ -172,7 +172,7 @@ export function SupplierProfileForm({
           <div>
             <label
               htmlFor="s2-tagline"
-              className="block text-xs font-medium uppercase tracking-wide text-ink-secondary"
+              className="block text-xs font-medium text-ink-secondary"
             >
               Tagline
             </label>
@@ -193,7 +193,7 @@ export function SupplierProfileForm({
           <div>
             <label
               htmlFor="s2-about"
-              className="block text-xs font-medium uppercase tracking-wide text-ink-secondary"
+              className="block text-xs font-medium text-ink-secondary"
             >
               About
             </label>
@@ -215,7 +215,7 @@ export function SupplierProfileForm({
             <div>
               <label
                 htmlFor="s2-moq"
-                className="block text-xs font-medium uppercase tracking-wide text-ink-secondary"
+                className="block text-xs font-medium text-ink-secondary"
               >
                 MOQ (pieces)
               </label>
@@ -232,7 +232,7 @@ export function SupplierProfileForm({
             <div>
               <label
                 htmlFor="s2-lead"
-                className="block text-xs font-medium uppercase tracking-wide text-ink-secondary"
+                className="block text-xs font-medium text-ink-secondary"
               >
                 Lead time (days, 0–{MAX_LEAD})
               </label>
@@ -250,7 +250,7 @@ export function SupplierProfileForm({
           </div>
 
           <div>
-            <span className="block text-xs font-medium uppercase tracking-wide text-ink-secondary">
+            <span className="block text-xs font-medium text-ink-secondary">
               Capabilities (≤ {MAX_CAPS})
             </span>
             <div className="mt-2 flex flex-wrap gap-2">
@@ -291,7 +291,7 @@ export function SupplierProfileForm({
             <div>
               <label
                 htmlFor="s2-cname"
-                className="block text-xs font-medium uppercase tracking-wide text-ink-secondary"
+                className="block text-xs font-medium text-ink-secondary"
               >
                 Contact name
               </label>
@@ -307,7 +307,7 @@ export function SupplierProfileForm({
             <div>
               <label
                 htmlFor="s2-crole"
-                className="block text-xs font-medium uppercase tracking-wide text-ink-secondary"
+                className="block text-xs font-medium text-ink-secondary"
               >
                 Contact role
               </label>
@@ -323,7 +323,7 @@ export function SupplierProfileForm({
             <div>
               <label
                 htmlFor="s2-cemail"
-                className="block text-xs font-medium uppercase tracking-wide text-ink-secondary"
+                className="block text-xs font-medium text-ink-secondary"
               >
                 Contact email
               </label>
@@ -338,7 +338,7 @@ export function SupplierProfileForm({
             <div>
               <label
                 htmlFor="s2-cphone"
-                className="block text-xs font-medium uppercase tracking-wide text-ink-secondary"
+                className="block text-xs font-medium text-ink-secondary"
               >
                 Contact phone
               </label>

@@ -60,7 +60,7 @@ export default async function ComplianceHubPage() {
   return (
     <div className="mx-auto max-w-6xl space-y-6">
       <header>
-        <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-tertiary">
+        <p className="text-[11px] font-semibold text-ink-tertiary">
           Buyer
         </p>
         <h1 className="font-display text-3xl font-light tracking-tight text-ink-primary">
@@ -211,7 +211,7 @@ function HubTile({
       <article className="proto-card hoverable h-full space-y-3">
         <div className="flex items-center gap-2">
           <Icon size={18} weight="duotone" className="text-brand-forest" />
-          <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-ink-tertiary">
+          <p className="text-[10px] font-semibold text-ink-tertiary">
             {meta}
           </p>
         </div>
@@ -221,7 +221,7 @@ function HubTile({
           </p>
           <span className={chipClass}>{title}</span>
         </div>
-        <p className="font-mono text-[11px] uppercase tracking-[0.06em] text-ink-tertiary">
+        <p className="text-[11px] text-ink-tertiary">
           {subline}
         </p>
       </article>

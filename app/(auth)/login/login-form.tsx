@@ -90,7 +90,7 @@ export function LoginForm({ next }: { next: string }) {
 
         <div className="flex items-center gap-3">
           <span className="h-px flex-1 bg-hairline" />
-          <span className="text-[10px] font-mono uppercase tracking-wide text-ink-tertiary">
+          <span className="text-[10px] text-ink-tertiary">
             or
           </span>
           <span className="h-px flex-1 bg-hairline" />

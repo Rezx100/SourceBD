@@ -86,7 +86,7 @@ export default async function AdminAuditLogDrilldownPage({
             ← Audit log
           </Link>
         </p>
-        <p className="mt-3 font-mono text-[11px] uppercase tracking-[0.14em] text-ink-tertiary">
+        <p className="mt-3 text-[11px] text-ink-tertiary">
           Admin · audit entry
         </p>
         <h1 className="font-display text-2xl font-semibold tracking-tightish text-ink-primary">

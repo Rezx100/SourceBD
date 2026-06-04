@@ -126,7 +126,7 @@ function Bucket({
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-hairline text-left font-mono text-[11px] uppercase tracking-[0.08em] text-ink-tertiary">
+              <tr className="border-b border-hairline text-left text-[11px] text-ink-tertiary">
                 <th className="py-2 pr-4">Supplier</th>
                 <th className="py-2 pr-4">Certification</th>
                 <th className="py-2 pr-4">Issuer</th>
