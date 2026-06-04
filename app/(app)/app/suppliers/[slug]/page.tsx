@@ -201,7 +201,7 @@ export default async function FactoryProfilePage({
   if (isAdminViewer) {
     const { data: contactRow } = await supabase
       .from("suppliers")
-      .select("email_primary, phones, contact_name, contact_role, website_url")
+      .select("email_primary, phones, contact_name, contact_role, website")
       .eq("id", s.id)
       .maybeSingle();
     if (contactRow) {
@@ -213,7 +213,7 @@ export default async function FactoryProfilePage({
         phones: Array.isArray(contactRow.phones) ? contactRow.phones : [],
         name: contactRow.contact_name ?? null,
         role: contactRow.contact_role ?? null,
-        website: contactRow.website_url ?? null,
+        website: contactRow.website ?? null,
       };
     }
   }
