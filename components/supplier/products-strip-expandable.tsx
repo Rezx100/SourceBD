@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 
+import { apparelIconUrl } from "@/lib/apparel-icons";
+
 export function ProductsStripExpandable({ products }: { products: string[] }) {
   const [expanded, setExpanded] = useState(false);
   const limit = 5;
@@ -12,12 +14,7 @@ export function ProductsStripExpandable({ products }: { products: string[] }) {
       <span className="products-label">Principal products</span>
       <div className="product-list">
         {shown.map((p) => (
-          <span key={p} className="product">
-            <span aria-hidden style={{ color: "var(--ink-tertiary)" }}>
-              ◆
-            </span>
-            {p}
-          </span>
+          <ProductChip key={p} product={p} />
         ))}
         {overflow > 0 && !expanded ? (
           <button
@@ -55,5 +52,29 @@ export function ProductsStripExpandable({ products }: { products: string[] }) {
         ) : null}
       </div>
     </div>
+  );
+}
+
+function ProductChip({ product }: { product: string }) {
+  const icon = apparelIconUrl(product);
+  return (
+    <span className="product">
+      {icon ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={icon}
+          alt=""
+          width={18}
+          height={18}
+          loading="lazy"
+          style={{ display: "inline-block", verticalAlign: "-3px" }}
+        />
+      ) : (
+        <span aria-hidden style={{ color: "var(--ink-tertiary)" }}>
+          ◆
+        </span>
+      )}
+      {product}
+    </span>
   );
 }

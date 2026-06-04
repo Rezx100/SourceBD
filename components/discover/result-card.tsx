@@ -10,6 +10,7 @@ import Link from "next/link";
 
 import { ReceiptsRing } from "@/components/receipts-ring";
 import { ENTITY_TYPES } from "@/components/discover/filter-rail";
+import { apparelIconUrl } from "@/lib/apparel-icons";
 
 export type DiscoverRow = {
   id: string;
@@ -100,11 +101,55 @@ export function DiscoverResultCard({
             </div>
           ) : null}
 
+          {row.principal_products.length > 0 ? (
+            <ProductsRow products={row.principal_products} />
+          ) : null}
+
           <StatLine row={row} />
           {footerSlot}
         </div>
       </Link>
     </article>
+  );
+}
+
+function ProductsRow({ products }: { products: string[] }) {
+  const limit = 6;
+  const shown = products.slice(0, limit);
+  const overflow = Math.max(0, products.length - shown.length);
+  return (
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[12px] text-ink-secondary">
+      {shown.map((p) => (
+        <ProductTag key={p} product={p} />
+      ))}
+      {overflow > 0 ? (
+        <span className="text-ink-tertiary">+ {overflow} more</span>
+      ) : null}
+    </div>
+  );
+}
+
+function ProductTag({ product }: { product: string }) {
+  const icon = apparelIconUrl(product);
+  return (
+    <span className="inline-flex items-center gap-1.5">
+      {icon ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={icon}
+          alt=""
+          width={16}
+          height={16}
+          loading="lazy"
+          className="inline-block opacity-80"
+        />
+      ) : (
+        <span aria-hidden className="text-ink-tertiary">
+          ◆
+        </span>
+      )}
+      <span>{product}</span>
+    </span>
   );
 }
 
@@ -115,8 +160,6 @@ function StatLine({ row }: { row: DiscoverRow }) {
     parts.push(`${row.employees_total.toLocaleString()} employees`);
   if (row.factory_types.length > 0)
     parts.push(row.factory_types.slice(0, 2).join(" · "));
-  if (row.principal_products.length > 0)
-    parts.push(row.principal_products.slice(0, 3).join(", "));
   if (row.rsc_progress_pct !== null)
     parts.push(`RSC ${Number(row.rsc_progress_pct).toFixed(0)}%`);
   if (parts.length === 0) return null;
