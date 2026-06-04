@@ -3,8 +3,8 @@ import { Slot } from "@radix-ui/react-slot";
 import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
-// Button (§21.1): indigo is interaction-only — primary uses --accent-indigo.
-// Forest green is reserved for brand surfaces, never interactive primitives.
+// Button (§21.1): primary action uses brand forest green per the platform
+// brand colour. Indigo is reserved for inline links.
 const buttonVariants = cva(
   "inline-flex items-center justify-center gap-1.5 rounded-pill font-semibold text-[13px] " +
     "border transition-[transform,box-shadow,background-color,color] " +
@@ -16,7 +16,7 @@ const buttonVariants = cva(
         default:
           "bg-surface-l1 text-ink-primary border-hairline-strong hover:shadow-l1",
         primary:
-          "bg-accent-indigo text-ink-on-accent border-accent-indigo hover:shadow-l1",
+          "bg-brand-forest text-ink-on-accent border-brand-forest hover:shadow-l1",
         outline:
           "bg-transparent text-ink-primary border-hairline-strong hover:bg-surface-l1 hover:shadow-l1",
         ghost:

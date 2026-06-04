@@ -218,8 +218,8 @@
   }
   .header-meta-row {
     display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
-    gap: 16px;
+    grid-template-columns: minmax(220px, 2fr) 1fr 1fr 1fr 1.4fr;
+    gap: 16px 24px;
     border-top: 1px solid var(--hairline);
     padding-top: 12px;
     margin-top: 12px;
@@ -293,9 +293,9 @@
   .btn-proto:hover { box-shadow: var(--shadow-l1); }
   .btn-proto:active { transform: scale(0.99); }
   .btn-proto.primary {
-    background: var(--accent-indigo);
+    background: var(--brand-forest);
     color: var(--ink-on-accent);
-    border-color: var(--accent-indigo);
+    border-color: var(--brand-forest);
   }
   .btn-proto.icon-only { padding: 8px; }
   .btn-row { display: flex; gap: 8px; }

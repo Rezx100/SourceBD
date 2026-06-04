@@ -30,6 +30,8 @@ import { notFound } from "next/navigation";
 import { DemoBanner } from "@/components/marketing/demo-banner";
 import { ReceiptsRing } from "@/components/receipts-ring";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ProductsStripExpandable } from "@/components/supplier/products-strip-expandable";
+import { AddressesJumpLink } from "@/components/supplier/addresses-jump-link";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { resolveRegistryUrl, resolveCertificateUrl } from "@/lib/source-links";
 
@@ -257,7 +259,7 @@ export default async function PublicSupplierProfilePage({
         <ProfileHeader payload={payload} nextPath={nextPath} />
 
         {s.principal_products.length > 0 ? (
-          <ProductsStrip products={s.principal_products} />
+          <ProductsStripExpandable products={s.principal_products} />
         ) : null}
 
         <Tabs defaultValue="compliance" className="mt-4 flex flex-col gap-4">
@@ -265,7 +267,7 @@ export default async function PublicSupplierProfilePage({
             aria-label="Profile sections"
             className="proto-tabs h-auto bg-transparent p-0"
           >
-            <TabsTrigger value="overview" className="proto-tab">
+            <TabsTrigger value="overview" id="tab-trigger-overview" className="proto-tab">
               Overview
             </TabsTrigger>
             <TabsTrigger value="compliance" className="proto-tab">
@@ -461,21 +463,7 @@ function ProfileHeader({
           </div>
         </dl>
         {otherAddressCount > 0 ? (
-          <p
-            style={{
-              margin: "8px 0 0",
-              fontSize: 11,
-              color: "var(--ink-tertiary)",
-            }}
-          >
-            <a
-              href="#provenance"
-              style={{ color: "var(--accent-indigo)", fontWeight: 600 }}
-            >
-              + {otherAddressCount} other address
-              {otherAddressCount === 1 ? "" : "es"} on file →
-            </a>
-          </p>
+          <AddressesJumpLink count={otherAddressCount} />
         ) : null}
       </div>
 
@@ -556,31 +544,8 @@ function SanctionsBanner() {
 }
 
 // ---------- Products strip ------------------------------------------------
-
-function ProductsStrip({ products }: { products: string[] }) {
-  const shown = products.slice(0, 5);
-  const overflow = Math.max(0, products.length - shown.length);
-  return (
-    <div className="products-strip">
-      <span className="products-label">Principal products</span>
-      <div className="product-list">
-        {shown.map((p) => (
-          <span key={p} className="product">
-            <span aria-hidden style={{ color: "var(--ink-tertiary)" }}>
-              ◆
-            </span>
-            {p}
-          </span>
-        ))}
-        {overflow > 0 ? (
-          <span className="product" style={{ color: "var(--ink-tertiary)" }}>
-            + {overflow} more
-          </span>
-        ) : null}
-      </div>
-    </div>
-  );
-}
+// Rendered via the client-side `ProductsStripExpandable` component so that
+// the "+ N more" affordance can expand inline.
 
 // ---------- Overview tab --------------------------------------------------
 
@@ -648,7 +613,7 @@ function OverviewTab({ payload }: { payload: ProfilePayload }) {
       </section>
 
       {addrs.length > 1 ? (
-        <section className="proto-card hoverable span2">
+        <section id="locations" className="proto-card hoverable span2">
           <header className="proto-card-head">
             <h2 className="proto-card-title">Addresses on file</h2>
             <span className="proto-card-meta">
