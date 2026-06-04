@@ -10,7 +10,7 @@ import { Sparkle } from "@phosphor-icons/react/dist/ssr";
 import { SmartMatchWizard } from "./smart-match-wizard";
 
 export const metadata = {
-  title: "Smart Match \u00b7 SourceBD",
+  title: "Find matches · SourceBD",
   description:
     "Describe your product and requirements; SourceBD ranks verified Bangladesh suppliers with the receipts behind each match.",
 };
@@ -21,7 +21,7 @@ export default function SmartMatchPage() {
       <header className="space-y-2">
         <p className="flex items-center gap-1.5 font-mono text-[11px] font-semibold uppercase tracking-[0.16em] text-ink-tertiary">
           <Sparkle size={12} weight="fill" className="text-brand-forest" />
-          Smart Match
+          Find matches
         </p>
         <h1 className="font-display text-3xl font-light tracking-tight text-ink-primary">
           Tell us what you need

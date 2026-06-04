@@ -64,7 +64,7 @@ export default async function ComplianceHubPage() {
           Buyer
         </p>
         <h1 className="font-display text-3xl font-light tracking-tight text-ink-primary">
-          Compliance Hub
+          Compliance
         </h1>
         <p className="affiliation-disclaimer mt-2">
           Personalised compliance posture across your{" "}
@@ -85,7 +85,7 @@ export default async function ComplianceHubPage() {
       {savedTotal === 0 ? (
         <div className="proto-card space-y-3 text-center">
           <p className="affiliation-disclaimer">
-            You haven&apos;t saved any suppliers yet — the Compliance Hub draws
+            You haven&apos;t saved any suppliers yet — the Compliance page draws
             from your saved list.
           </p>
           <Link href="/app/discover" className="btn-proto inline-flex items-center gap-1">

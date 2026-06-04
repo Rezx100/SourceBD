@@ -32,7 +32,7 @@ export default async function MsaPage() {
           href="/app/compliance"
           className="inline-flex items-center gap-1 text-[12px] text-ink-tertiary hover:text-ink-secondary"
         >
-          <ArrowLeft size={12} /> Compliance Hub
+          <ArrowLeft size={12} /> Compliance
         </Link>
         <h1 className="font-display text-2xl font-semibold text-ink-primary">
           Modern Slavery Act §54 statement generator

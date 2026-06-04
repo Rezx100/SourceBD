@@ -3,32 +3,150 @@
 // `context/frontend-design-spec.md` §2. Per-role sidebar slot list is
 // resolved client-side by `Sidebar` from the path. Auth enforcement lives in
 // `middleware.ts` (placeholder in F2; real Supabase session in F3).
+// Sidebar badge counts are fetched here (server) from existing RPCs
+// (`buyer_dashboard` migration 0026, `admin_dashboard` migration 0037,
+// `settings_get`) so the client component stays pure render.
 
-import { Sidebar } from "@/components/shell/sidebar";
+import { Sidebar, type SidebarBadges } from "@/components/shell/sidebar";
 import { Topbar } from "@/components/shell/topbar";
 import { SkipLink } from "@/components/ui/skip-link";
 import { PostHogProvider } from "@/lib/posthog/provider";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { getServerRole } from "@/lib/auth";
 
-export default async function AppShellLayout({ children }: { children: React.ReactNode }) {
+type SettingsDoc = {
+  email: string | null;
+  display_name: string | null;
+  plan_tier: string | null;
+};
+
+type BuyerDashboardDoc = {
+  saved_count?: number;
+  alerts?: unknown[];
+};
+
+type AdminDashboardDoc = {
+  suppliers?: { published?: number };
+  queues?: {
+    claims_pending?: number;
+    sanctions_active?: number;
+    verification_queue_total?: number;
+    verification_queue_by_type?: Record<string, number>;
+  };
+  generated_at?: string;
+};
+
+export default async function AppShellLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   let userId: string | null = null;
+  let email: string | null = null;
+  let displayName: string | null = null;
+  let planTier: string | null = null;
+  let moatTotal: number | null = null;
+  let moatRefreshedAt: string | null = null;
+  let badges: SidebarBadges = {};
+
+  let role: Awaited<ReturnType<typeof getServerRole>> = null;
   try {
     const supabase = await createSupabaseServerClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    userId = user?.id ?? null;
+    const [{ data: userData }, roleResolved] = await Promise.all([
+      supabase.auth.getUser(),
+      getServerRole(),
+    ]);
+    userId = userData.user?.id ?? null;
+    email = userData.user?.email ?? null;
+    role = roleResolved;
+
+    const moatPromise = supabase
+      .from("suppliers")
+      .select("id", { head: true, count: "exact" })
+      .eq("is_published", true);
+    const settingsPromise = userId
+      ? supabase.rpc("settings_get")
+      : Promise.resolve({ data: null });
+    const buyerPromise =
+      userId && role === "buyer"
+        ? supabase.rpc("buyer_dashboard")
+        : Promise.resolve({ data: null });
+    const adminPromise =
+      userId && role === "admin"
+        ? supabase.rpc("admin_dashboard")
+        : Promise.resolve({ data: null });
+
+    const [moatRes, settingsRes, buyerRes, adminRes] = await Promise.all([
+      moatPromise,
+      settingsPromise,
+      buyerPromise,
+      adminPromise,
+    ]);
+
+    moatTotal = typeof moatRes.count === "number" ? moatRes.count : null;
+    const settings = (settingsRes.data ?? null) as SettingsDoc | null;
+    if (settings) {
+      displayName = settings.display_name ?? displayName;
+      email = settings.email ?? email;
+      planTier = settings.plan_tier ?? planTier;
+    }
+    const buyerDoc = (buyerRes.data ?? null) as BuyerDashboardDoc | null;
+    if (buyerDoc) {
+      badges = {
+        ...badges,
+        discover: moatTotal ?? undefined,
+        saved: typeof buyerDoc.saved_count === "number" ? buyerDoc.saved_count : 0,
+        compliance: Array.isArray(buyerDoc.alerts) ? buyerDoc.alerts.length : 0,
+      };
+    }
+    const adminDoc = (adminRes.data ?? null) as AdminDashboardDoc | null;
+    if (adminDoc) {
+      const certBacklog =
+        adminDoc.queues?.verification_queue_by_type?.cert_doc_review ?? 0;
+      const claimBacklog =
+        adminDoc.queues?.verification_queue_by_type?.claim_review ??
+        adminDoc.queues?.claims_pending ??
+        0;
+      badges = {
+        ...badges,
+        discover: adminDoc.suppliers?.published ?? moatTotal ?? undefined,
+        adminClaims: claimBacklog,
+        adminCerts: certBacklog,
+        adminSanctions: adminDoc.queues?.sanctions_active ?? 0,
+      };
+      if (adminDoc.generated_at) moatRefreshedAt = adminDoc.generated_at;
+    }
+    // Buyer/admin variants always show the moat headline even when no role
+    // dashboard payload arrives (e.g. supplier users browsing /app/* drafts).
+    if (badges.discover == null && moatTotal != null) {
+      badges = { ...badges, discover: moatTotal };
+    }
   } catch {
-    userId = null;
+    // Fail-soft: render the shell with whatever we managed to collect.
   }
+
   return (
     <PostHogProvider userId={userId}>
       <div className="flex min-h-screen flex-col bg-bg-l0">
         <SkipLink />
         <Topbar />
-        <div className="flex flex-1">
-          <Sidebar />
-          <main id="main-content" tabIndex={-1} className="flex-1 px-4 py-6 md:px-8 md:py-8 focus:outline-none">{children}</main>
+        <div className="flex flex-1 flex-col md:flex-row">
+          <Sidebar
+            role={role}
+            email={email}
+            displayName={displayName}
+            planTier={planTier}
+            moatTotal={moatTotal}
+            moatRefreshedAt={moatRefreshedAt}
+            badges={badges}
+          />
+          <main
+            id="main-content"
+            tabIndex={-1}
+            className="flex-1 px-4 py-6 md:px-8 md:py-8 focus:outline-none"
+          >
+            {children}
+          </main>
         </div>
       </div>
     </PostHogProvider>

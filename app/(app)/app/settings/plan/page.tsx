@@ -17,7 +17,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { PLANS, type PlanKey } from "@/lib/marketing/pricing-plans";
 
 export const dynamic = "force-dynamic";
 
@@ -34,6 +33,40 @@ type SettingsDoc = {
   };
 };
 
+type TierKey = "starter" | "growth" | "enterprise";
+
+const TIERS: { key: TierKey; label: string; features: string[] }[] = [
+  {
+    key: "starter",
+    label: "Starter",
+    features: [
+      "Discover up to 50 suppliers per month",
+      "Saved-supplier dashboard",
+      "Compliance (UFLPA + MSA)",
+    ],
+  },
+  {
+    key: "growth",
+    label: "Growth",
+    features: [
+      "Unlimited Discover",
+      "Find-matches wizard",
+      "RFQs + order tracking",
+      "Contact reveal on verified suppliers",
+    ],
+  },
+  {
+    key: "enterprise",
+    label: "Enterprise",
+    features: [
+      "Everything in Growth",
+      "Team seats + role-based access",
+      "API access + bulk export",
+      "Dedicated compliance review",
+    ],
+  },
+];
+
 function planLabel(tier: string | null): string {
   if (tier === "growth") return "Growth";
   if (tier === "enterprise") return "Enterprise";
@@ -44,7 +77,7 @@ export default async function SettingsPlanPage() {
   const supabase = await createSupabaseServerClient();
   const { data } = await supabase.rpc("settings_get");
   const settings = (data ?? null) as SettingsDoc | null;
-  const current: PlanKey =
+  const current: TierKey =
     settings?.plan_tier === "growth"
       ? "growth"
       : settings?.plan_tier === "enterprise"
@@ -71,7 +104,7 @@ export default async function SettingsPlanPage() {
       </header>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-        {PLANS.map((tier) => {
+        {TIERS.map((tier) => {
           const isCurrent = tier.key === current;
           return (
             <Card

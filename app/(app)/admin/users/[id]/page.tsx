@@ -68,7 +68,7 @@ export default async function AdminUserDrilldownPage({
 }) {
   const { id } = await params;
   const supabase = await createSupabaseServerClient();
-  const [{ data: userData, error: userErr }, { data: auditData }] =
+  const [{ data: userData, error: userErr }, { data: auditData }, { data: authData }] =
     await Promise.all([
       supabase.rpc("admin_user_get", { p_user_id: id }),
       supabase.rpc("admin_user_audit", {
@@ -77,6 +77,7 @@ export default async function AdminUserDrilldownPage({
         p_limit: 50,
         p_offset: 0,
       }),
+      supabase.auth.getUser(),
     ]);
 
   if (userErr || userData == null) {
@@ -182,6 +183,12 @@ export default async function AdminUserDrilldownPage({
             initialRole={u.role}
             initialSuspended={u.is_suspended}
             initialReason={u.suspended_reason}
+            initialPlan={
+              (u.plan_tier === "growth" || u.plan_tier === "enterprise"
+                ? u.plan_tier
+                : "starter") as "starter" | "growth" | "enterprise"
+            }
+            isSelf={authData?.user?.id === u.user_id}
           />
         </CardContent>
       </Card>

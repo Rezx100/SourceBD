@@ -117,7 +117,7 @@ export const COMPLIANCE_PAGES: CompliancePage[] = [
           "Government registers (BGMEA, BKMEA, BTMA, BGAPMEA, EPB, RSC) with reg numbers per supplier.",
           "Independent certifications (WRAP, OEKO-TEX, GOTS, SA8000) with issuer, certificate number, and expiry where published.",
           "RSC remediation percentage on every covered factory, with mirrored CAP, fire, electrical, structural, and boiler inspection documents.",
-          "An MSA-statement aggregate generator in the Compliance Hub that compiles supplier counts by country, register, certification, and RSC coverage from your saved set.",
+          "An MSA-statement aggregate generator in the SourceBD Compliance workspace that compiles supplier counts by country, register, certification, and RSC coverage from your saved set.",
         ],
       },
     ],
@@ -201,7 +201,7 @@ export const COMPLIANCE_PAGES: CompliancePage[] = [
         bullets: [
           "Every published supplier in our index is screened against the UFLPA Entity List, the US CBP Withhold Release Orders, the OFAC SDN list, the UK OFSI consolidated list, the EU consolidated sanctions list, and the US DoL ILAB TVPRA goods-by-country catalogue.",
           "Suppliers flagged as active sanctions hits carry a top-of-profile red banner and a server-internal score of zero.",
-          "The Compliance Hub UFLPA tracker scans your saved suppliers for both Entity List matches and conservative region-flag heuristics (parent group or address text matching `xinjiang|uyghur|uighur|XUAR`) so you see flags before you book production.",
+          "The SourceBD UFLPA tracker scans your saved suppliers for both Entity List matches and conservative region-flag heuristics (parent group or address text matching `xinjiang|uyghur|uighur|XUAR`) so you see flags before you book production.",
         ],
       },
     ],
@@ -297,7 +297,7 @@ export const COMPLIANCE_PAGES: CompliancePage[] = [
       {
         heading: "How SourceBD's data helps",
         body: [
-          "CBAM is not currently a Bangladesh-RMG problem at the garment level. SourceBD's value here is signalling: if you import steel buttons, aluminium trim, or metallic hardware sourced from Bangladesh, the SourceBD supplier profile shows the principal products of each factory, so you can confirm whether the CN-code-bearing component originates with that supplier or is a downstream addition. The Compliance Hub does not currently issue CBAM reports; the regulation is monitored for scope expansion and this page will be revised when textiles enter the goods list.",
+          "CBAM is not currently a Bangladesh-RMG problem at the garment level. SourceBD's value here is signalling: if you import steel buttons, aluminium trim, or metallic hardware sourced from Bangladesh, the SourceBD supplier profile shows the principal products of each factory, so you can confirm whether the CN-code-bearing component originates with that supplier or is a downstream addition. SourceBD does not currently issue CBAM reports; the regulation is monitored for scope expansion and this page will be revised when textiles enter the goods list.",
         ],
       },
     ],

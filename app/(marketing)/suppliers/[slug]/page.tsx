@@ -31,6 +31,7 @@ import { DemoBanner } from "@/components/marketing/demo-banner";
 import { ReceiptsRing } from "@/components/receipts-ring";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { resolveRegistryUrl, resolveCertificateUrl } from "@/lib/source-links";
 
 export const dynamic = "force-dynamic";
 
@@ -720,23 +721,26 @@ function entityNarrative(s: Supplier): string {
 // ---------- Compliance tab ------------------------------------------------
 
 function ComplianceTab({ payload }: { payload: ProfilePayload }) {
+  const registryPills = payload.pills.filter((p) =>
+    REGISTRY_CODES.has(p.source_code),
+  );
   return (
     <div className="proto-grid">
-      {payload.pills.length > 0 ? (
+      {registryPills.length > 0 ? (
         <section className="proto-card hoverable">
           <header className="proto-card-head">
             <h2 className="proto-card-title">Registries</h2>
             <span className="proto-card-meta">
-              {countDirect(payload.pills)} direct ·{" "}
-              {countInherited(payload.pills)} inherited
+              {countDirect(registryPills)} direct ·{" "}
+              {countInherited(registryPills)} inherited
             </span>
           </header>
           <div className="registry-list">
-            {payload.pills.map((p, i) => (
+            {registryPills.map((p, i) => (
               <RegistryRow key={i} pill={p} />
             ))}
           </div>
-          {payload.pills.some((p) => p.inherited_from != null) ? (
+          {registryPills.some((p) => p.inherited_from != null) ? (
             <p
               style={{
                 margin: "14px 0 0",
@@ -842,6 +846,8 @@ function RegistryRow({ pill }: { pill: Pill }) {
   const meta = inherited
     ? `Inherited via parent ${pill.inherited_from_name ?? ""}`.trim()
     : pill.label;
+  const linkUrl =
+    resolveRegistryUrl(pill.source_code, pill.value) ?? pill.source_url ?? null;
   return (
     <div className="registry-row">
       <div className="reg-logo">
@@ -862,14 +868,14 @@ function RegistryRow({ pill }: { pill: Pill }) {
       <span className={`reg-status${inherited ? " inherited" : ""}`}>
         {inherited ? "↳ Inherited" : "Active"}
       </span>
-      {pill.source_url ? (
+      {linkUrl ? (
         <a
           className="reg-action"
-          href={pill.source_url}
+          href={linkUrl}
           target="_blank"
           rel="noopener noreferrer"
         >
-          Open ↗
+          Look up ↗
         </a>
       ) : (
         <span style={{ width: 1 }} />
@@ -881,6 +887,11 @@ function RegistryRow({ pill }: { pill: Pill }) {
 function CertRow({ cert }: { cert: Cert }) {
   const logo = LOGO_BY_CERT[cert.kind];
   const status = certStatus(cert);
+  const linkUrl = resolveCertificateUrl(
+    cert.kind,
+    cert.certificate_no,
+    cert.document_url,
+  );
   return (
     <div className="cert">
       {logo ? (
@@ -903,14 +914,14 @@ function CertRow({ cert }: { cert: Cert }) {
         </p>
       </div>
       <span className={`cert-status ${status.tone}`}>{status.label}</span>
-      {cert.document_url ? (
+      {linkUrl ? (
         <a
           className="cert-view"
-          href={cert.document_url}
+          href={linkUrl}
           target="_blank"
           rel="noopener noreferrer"
         >
-          View ↗
+          Verify ↗
         </a>
       ) : (
         <span />
@@ -1180,41 +1191,75 @@ function DocRow({ doc }: { doc: ComplianceDocument }) {
 
 // ---------- Capacity / Brands / Contact / Provenance tabs ---------------
 
+// Workforce sanity check — see I-008 / pickWorkforce in the (app) version.
+function pickWorkforce(
+  total: number | null,
+  female: number | null,
+  male: number | null,
+): {
+  total: number | null;
+  femaleCount: number | null;
+  maleCount: number | null;
+  femalePct: number | null;
+  showGenderSplit: boolean;
+  note: string | null;
+} {
+  const t = total != null && total > 0 ? total : null;
+  const f = female != null && female > 0 ? female : null;
+  const m = male != null && male > 0 ? male : null;
+  if (t == null && f == null && m == null)
+    return { total: null, femaleCount: null, maleCount: null, femalePct: null, showGenderSplit: false, note: null };
+  if (t != null && f != null && m != null) {
+    const r = (f + m) / t;
+    if (r < 0.9 || r > 1.1)
+      return { total: t, femaleCount: null, maleCount: null, femalePct: null, showGenderSplit: false, note: "gender split unavailable" };
+    return { total: t, femaleCount: f, maleCount: m, femalePct: Math.round((f / t) * 100), showGenderSplit: true, note: null };
+  }
+  if (t != null && f != null && m == null) {
+    if (f > t) return { total: t, femaleCount: null, maleCount: null, femalePct: null, showGenderSplit: false, note: "gender split unavailable" };
+    return { total: t, femaleCount: f, maleCount: t - f > 0 ? t - f : null, femalePct: Math.round((f / t) * 100), showGenderSplit: true, note: null };
+  }
+  if (t != null && m != null && f == null) {
+    if (m > t) return { total: t, femaleCount: null, maleCount: null, femalePct: null, showGenderSplit: false, note: "gender split unavailable" };
+    return { total: t, femaleCount: t - m > 0 ? t - m : null, maleCount: m, femalePct: t > 0 ? Math.round(((t - m) / t) * 100) : null, showGenderSplit: true, note: null };
+  }
+  if (t == null && f != null && m != null) {
+    const inf = f + m;
+    return { total: inf, femaleCount: f, maleCount: m, femalePct: Math.round((f / inf) * 100), showGenderSplit: true, note: "total inferred" };
+  }
+  return { total: t, femaleCount: null, maleCount: null, femalePct: null, showGenderSplit: false, note: null };
+}
+
 function CapacityTab({ supplier: s }: { supplier: Supplier }) {
-  const femalePct =
-    s.employees_total && s.employees_female
-      ? Math.round((s.employees_female / s.employees_total) * 100)
-      : null;
+  const wf = pickWorkforce(s.employees_total, s.employees_female, s.employees_male);
   return (
     <div className="proto-grid">
       <section className="proto-card hoverable span2">
         <header className="proto-card-head">
           <h2 className="proto-card-title">Workforce</h2>
-          <span className="proto-card-meta">self-disclosed</span>
+          <span className="proto-card-meta">
+            {wf.note ? wf.note : "self-disclosed"}
+          </span>
         </header>
-        <div className="metric-grid">
-          {s.employees_total != null ? (
-            <Metric
-              label="Total"
-              value={s.employees_total.toLocaleString()}
-              sub="workers + staff"
-            />
-          ) : null}
-          {femalePct != null ? (
-            <Metric
-              label="Female"
-              value={`${femalePct}%`}
-              sub={`${s.employees_female?.toLocaleString()} workers`}
-            />
-          ) : null}
-          {s.employees_male != null ? (
-            <Metric
-              label="Male"
-              value={s.employees_male.toLocaleString()}
-              sub="workers + staff"
-            />
-          ) : null}
-        </div>
+        {wf.total == null ? (
+          <p style={{ margin: 0, fontSize: 13, color: "var(--ink-tertiary)" }}>
+            Workforce data unavailable.
+          </p>
+        ) : (
+          <div className="metric-grid">
+            <Metric label="Total" value={wf.total.toLocaleString()} sub="workers + staff" />
+            {wf.showGenderSplit && wf.femalePct != null ? (
+              <Metric
+                label="Female"
+                value={`${wf.femalePct}%`}
+                sub={wf.femaleCount != null ? `${wf.femaleCount.toLocaleString()} workers` : undefined}
+              />
+            ) : null}
+            {wf.showGenderSplit && wf.maleCount != null ? (
+              <Metric label="Male" value={wf.maleCount.toLocaleString()} sub="workers + staff" />
+            ) : null}
+          </div>
+        )}
       </section>
 
       {(s.machines_sewing != null ||
@@ -1457,20 +1502,33 @@ function ProvenanceTab({ provenance }: { provenance: Provenance[] }) {
 
 // ---------- maps + helpers ------------------------------------------------
 
+// Registry / membership source codes emitted by `v_supplier_registry_ids`.
+// The view also unions in the typed certifications table (cert kind upcased
+// as `source_code`), so the UI filters those out and renders them under the
+// Certifications card instead.
+const REGISTRY_CODES: ReadonlySet<string> = new Set([
+  "BGMEA",
+  "BKMEA",
+  "BTMA",
+  "BGAPMEA",
+  "RSC",
+  "EPB",
+]);
+
 const LOGO_BY_CODE: Record<string, string> = {
-  BGMEA: "/inapp-logos/bgmea.png",
-  BKMEA: "/inapp-logos/bkmea.png",
-  BTMA: "/inapp-logos/BTMA.webp",
-  RSC: "/inapp-logos/RSC.png",
+  BGMEA: "https://sourcebd-docs.b-cdn.net/inapp-logos/bgmea.png",
+  BKMEA: "https://sourcebd-docs.b-cdn.net/inapp-logos/bkmea.png",
+  BTMA: "https://sourcebd-docs.b-cdn.net/inapp-logos/BTMA.webp",
+  RSC: "https://sourcebd-docs.b-cdn.net/inapp-logos/RSC.png",
 };
 
 const LOGO_BY_CERT: Record<string, string> = {
-  wrap: "/inapp-logos/wrap.png",
-  oeko_tex: "/inapp-logos/okeo100.png",
-  gots: "/inapp-logos/gost.png",
-  grs: "/inapp-logos/GRS.png",
-  rcs: "/inapp-logos/RCS.png",
-  ocs: "/inapp-logos/OCS.png",
+  wrap: "https://sourcebd-docs.b-cdn.net/inapp-logos/wrap.png",
+  oeko_tex: "https://sourcebd-docs.b-cdn.net/inapp-logos/okeo100.png",
+  gots: "https://sourcebd-docs.b-cdn.net/inapp-logos/gost.png",
+  grs: "https://sourcebd-docs.b-cdn.net/inapp-logos/GRS.png",
+  rcs: "https://sourcebd-docs.b-cdn.net/inapp-logos/RCS.png",
+  ocs: "https://sourcebd-docs.b-cdn.net/inapp-logos/OCS.png",
 };
 
 const SOURCE_NAMES: Record<string, string> = {

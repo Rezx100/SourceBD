@@ -44,7 +44,7 @@ export default async function RfqsPage() {
             Buyer
           </p>
           <h1 className="font-display text-3xl font-light tracking-tight text-ink-primary">
-            RFQ Manager
+            RFQs
           </h1>
         </div>
         <Link

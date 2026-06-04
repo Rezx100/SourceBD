@@ -397,9 +397,9 @@
   .proto-card-title {
     font-family: var(--font-display);
     font-weight: 500;
-    font-size: 14px;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
+    font-size: 13.5px;
+    letter-spacing: 0.02em;
+    text-transform: none;
     color: var(--ink-primary);
     margin: 0;
   }
@@ -407,6 +407,7 @@
     font-size: 11px;
     color: var(--ink-tertiary);
     font-family: var(--font-mono);
+    font-weight: 400;
     flex-shrink: 0;
   }
 
@@ -441,13 +442,19 @@
     max-width: 100%;
     max-height: 100%;
     object-fit: contain;
+    /* Hide the broken-image `alt` text if the CDN asset 404s — the source_code
+       text-mark fallback only renders when the map has no entry, so a runtime
+       load failure would otherwise leak raw alt text into the logo cell. */
+    color: transparent;
+    font-size: 0;
   }
   .registry-row .reg-logo .reg-mark {
     font-family: var(--font-mono);
-    font-weight: 700;
-    font-size: 11px;
+    font-weight: 500;
+    font-size: 10.5px;
     color: var(--ink-secondary);
-    letter-spacing: 0.03em;
+    letter-spacing: 0.02em;
+    text-transform: none;
   }
   .registry-row .reg-name {
     font-weight: 600;
@@ -526,6 +533,10 @@
     height: 40px;
     width: 40px;
     object-fit: contain;
+    /* See note on `.registry-row .reg-logo img` — hide broken-image alt text
+       so a CDN 404 doesn't leak the cert kind into the cell. */
+    color: transparent;
+    font-size: 0;
   }
   .cert .issuer-mark {
     height: 40px;
@@ -622,8 +633,7 @@
     content: attr(data-label);
     position: absolute;
     bottom: -16px;
-    left: 50%;
-    transform: translateX(-50%);
+    right: 0;
     font-size: 10px;
     color: var(--ink-tertiary);
     white-space: nowrap;
@@ -1078,6 +1088,27 @@
   }
 
   /* ---------- Sidebar (workspace + freshness + user) ---------- */
+  .proto-sidebar {
+    position: relative;
+    background: linear-gradient(180deg, #F3F1E8 0%, #ECEDE3 100%);
+    box-shadow:
+      inset -1px 0 0 rgba(255, 255, 255, 0.6),
+      1px 0 0 rgba(15, 15, 20, 0.02);
+  }
+  .proto-sidebar::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(120% 60% at 0% 0%, rgba(31, 77, 58, 0.07), transparent 60%),
+      radial-gradient(80% 50% at 100% 100%, rgba(45, 106, 79, 0.05), transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+  }
+  .proto-sidebar > * {
+    position: relative;
+    z-index: 1;
+  }
   .sidebar-ws {
     position: relative;
     display: grid;
@@ -1130,6 +1161,17 @@
     overflow: hidden;
     text-overflow: ellipsis;
   }
+  .sidebar-ws .ws-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+  .sidebar-ws .ws-chev {
+    width: 14px;
+    height: 14px;
+    color: var(--ink-tertiary);
+  }
   .sidebar-ws .ws-plan {
     font-family: var(--font-mono);
     font-size: 10px;
@@ -1141,10 +1183,11 @@
   .nav-section {
     font-family: var(--font-mono);
     font-size: 10px;
-    font-weight: 600;
-    letter-spacing: 0.16em;
+    font-weight: 500;
+    letter-spacing: 0.1em;
     text-transform: uppercase;
     color: var(--ink-tertiary);
+    opacity: 0.85;
     padding: 18px 12px 8px;
   }
   .nav-section:first-of-type { padding-top: 4px; }
@@ -1249,13 +1292,35 @@
     height: 2px;
     background: var(--accent-grad);
   }
+  .sidebar-freshness .fresh-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .sidebar-bottom {
+    position: relative;
+    margin-top: auto;
+    padding-top: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .sidebar-bottom::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 8px;
+    right: 8px;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--hairline-strong), transparent);
+  }
   .sidebar-freshness .fresh-label {
     font-family: var(--font-mono);
     font-size: 9.5px;
-    letter-spacing: 0.14em;
+    letter-spacing: 0.1em;
     text-transform: uppercase;
     color: var(--brand-forest);
-    font-weight: 600;
+    font-weight: 500;
   }
   .sidebar-freshness .fresh-dot {
     width: 8px;
@@ -1327,6 +1392,17 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+  }
+  .sidebar-user .user-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+  .sidebar-user .user-chev {
+    width: 14px;
+    height: 14px;
+    color: var(--ink-tertiary);
   }
   .sidebar-user .user-role {
     font-size: 10.5px;

@@ -11,12 +11,17 @@ import { useMemo, useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 
 type RoleVal = "buyer" | "supplier" | "admin";
+type PlanVal = "starter" | "growth" | "enterprise";
+
+const PLAN_OPTIONS: readonly PlanVal[] = ["starter", "growth", "enterprise"];
 
 type Props = {
   userId: string;
   initialRole: RoleVal;
   initialSuspended: boolean;
   initialReason: string | null;
+  initialPlan: PlanVal;
+  isSelf?: boolean;
 };
 
 export function AdminUserEditForm({
@@ -24,9 +29,12 @@ export function AdminUserEditForm({
   initialRole,
   initialSuspended,
   initialReason,
+  initialPlan,
+  isSelf = false,
 }: Props) {
   const router = useRouter();
   const [role, setRole] = useState<RoleVal>(initialRole);
+  const [plan, setPlan] = useState<PlanVal>(initialPlan);
   const [suspended, setSuspended] = useState<boolean>(initialSuspended);
   const [reason, setReason] = useState<string>(initialReason ?? "");
   const [reasonOpen, setReasonOpen] = useState<boolean>(false);
@@ -36,6 +44,7 @@ export function AdminUserEditForm({
   const diff = useMemo(() => {
     const out: Record<string, unknown> = {};
     if (role !== initialRole) out.role = role;
+    if (plan !== initialPlan) out.plan_tier = plan;
     if (suspended !== initialSuspended) {
       out.is_suspended = suspended;
       if (suspended) out.suspended_reason = reason.trim();
@@ -47,7 +56,7 @@ export function AdminUserEditForm({
       out.suspended_reason = reason.trim();
     }
     return out;
-  }, [role, suspended, reason, initialRole, initialSuspended, initialReason]);
+  }, [role, plan, suspended, reason, initialRole, initialPlan, initialSuspended, initialReason]);
 
   const isDirty = Object.keys(diff).length > 0;
 
@@ -123,12 +132,33 @@ export function AdminUserEditForm({
         <select
           value={role}
           onChange={(e) => setRole(e.target.value as RoleVal)}
-          disabled={pending}
-          className="rounded-input border border-hairline bg-bg-l0 px-2 py-1.5 text-sm outline-none focus:border-accent-indigo"
+          disabled={pending || isSelf}
+          className="rounded-input border border-hairline bg-bg-l0 px-2 py-1.5 text-sm outline-none focus:border-accent-indigo disabled:cursor-not-allowed disabled:opacity-60"
         >
           <option value="buyer">buyer</option>
           <option value="supplier">supplier</option>
           <option value="admin">admin</option>
+        </select>
+        {isSelf ? (
+          <span className="text-[11px] text-ink-tertiary">
+            You can&apos;t change your own role — ask another admin.
+          </span>
+        ) : null}
+      </label>
+
+      <label className="flex flex-col gap-1 text-[12px] text-ink-secondary">
+        Plan
+        <select
+          value={plan}
+          onChange={(e) => setPlan(e.target.value as PlanVal)}
+          disabled={pending}
+          className="rounded-input border border-hairline bg-bg-l0 px-2 py-1.5 text-sm outline-none focus:border-accent-indigo"
+        >
+          {PLAN_OPTIONS.map((p) => (
+            <option key={p} value={p}>
+              {p}
+            </option>
+          ))}
         </select>
       </label>
 
@@ -143,7 +173,7 @@ export function AdminUserEditForm({
             variant={suspended ? "primary" : "danger"}
             size="sm"
             onClick={onSuspendClick}
-            disabled={pending}
+            disabled={pending || isSelf}
           >
             {suspended
               ? "Un-suspend"
@@ -152,6 +182,11 @@ export function AdminUserEditForm({
                 : "Suspend"}
           </Button>
         </div>
+        {isSelf ? (
+          <p className="text-[11px] text-ink-tertiary">
+            You can&apos;t suspend your own account.
+          </p>
+        ) : null}
         {reasonOpen && !suspended ? (
           <input
             type="text"
