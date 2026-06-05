@@ -218,7 +218,9 @@
   }
   .header-meta-row {
     display: grid;
-    grid-template-columns: minmax(220px, 2fr) 1fr 1fr 1fr 1.4fr;
+    /* I-015 — was a fixed 5-col template that left holes when fields were null.
+       Auto-fit collapses to whatever cells are actually rendered. */
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
     gap: 16px 24px;
     border-top: 1px solid var(--hairline);
     padding-top: 12px;
@@ -244,7 +246,7 @@
   @media (max-width: 900px) {
     .header-card { grid-template-columns: 1fr; padding: 20px; }
     .header-name { font-size: 30px; }
-    .header-meta-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .header-meta-row { grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); }
   }
 
   .header-side {
@@ -317,15 +319,128 @@
     font-weight: 500;
     color: var(--ink-tertiary);
   }
-  .product-list { display: flex; gap: 14px; flex-wrap: wrap; }
+  /* I-011 — bigger gap so 22 px icons + 13 px text breathe. */
+  .product-list { display: flex; gap: 18px; flex-wrap: wrap; row-gap: 10px; }
   .product {
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 500;
     color: var(--ink-primary);
+    line-height: 1.2;
   }
+  .product .product-icon {
+    display: inline-block;
+    width: 22px;
+    height: 22px;
+    object-fit: contain;
+    flex-shrink: 0;
+  }
+  .product .product-icon-fallback {
+    color: var(--ink-tertiary);
+  }
+  .product .product-label {
+    display: inline-block;
+  }
+  .product-toggle {
+    background: transparent;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    color: var(--brand-forest);
+    font-weight: 600;
+    font-size: 13px;
+  }
+  .product-toggle.muted {
+    color: var(--ink-tertiary);
+  }
+
+  /* I-013 — phones-reveal disclosure inside ContactTab. */
+  .phones-reveal {
+    display: inline-flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .phones-reveal-toggle {
+    background: transparent;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    color: var(--brand-forest);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .phones-reveal-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    width: 100%;
+  }
+  .phones-reveal-list li {
+    margin: 0;
+  }
+
+  /* I-014 — sources-explainer disclosure (header + footer variants). */
+  .sources-explainer {
+    margin-top: 8px;
+    font-size: 12px;
+    color: var(--ink-secondary);
+    border: 1px solid var(--hairline);
+    border-radius: var(--r-card);
+    background: var(--surface-l1);
+    padding: 8px 12px;
+  }
+  .sources-explainer.footer {
+    margin: 16px 0 0;
+    background: transparent;
+    border: none;
+    padding: 0;
+  }
+  .sources-explainer > summary {
+    cursor: pointer;
+    list-style: none;
+    font-weight: 600;
+    color: var(--ink-primary);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .sources-explainer > summary::-webkit-details-marker { display: none; }
+  .sources-explainer > summary::before {
+    content: '?';
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--brand-forest);
+    color: var(--ink-on-accent);
+    font-size: 10px;
+    font-weight: 700;
+    font-family: var(--font-mono);
+  }
+  .sources-explainer[open] > summary::before { content: '×'; }
+  .sources-explainer-body {
+    margin-top: 10px;
+    color: var(--ink-secondary);
+    font-size: 12.5px;
+    line-height: 1.55;
+  }
+  .sources-explainer-body p { margin: 0 0 8px; }
+  .sources-explainer-body p:last-child { margin-bottom: 0; }
+  .sources-explainer-body ol {
+    margin: 0 0 8px;
+    padding-left: 20px;
+  }
+  .sources-explainer-body li { margin: 4px 0; }
+  .sources-explainer-body strong { color: var(--ink-primary); font-weight: 600; }
 
   /* ---------- Tabs ---------- */
   .proto-tabs {

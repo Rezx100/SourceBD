@@ -18,6 +18,7 @@
 //   * Contact fields excluded from RPC RETURNS. Contact tab renders a gated
 //     CTA; no payload to un-blur in the browser.
 
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
@@ -28,9 +29,12 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ProductsStripExpandable } from "@/components/supplier/products-strip-expandable";
 import { AddressesJumpLink } from "@/components/supplier/addresses-jump-link";
+import { PhonesReveal } from "@/components/supplier/phones-reveal";
+import { SourcesExplainer } from "@/components/supplier/sources-explainer";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getServerRole } from "@/lib/auth";
 import { resolveRegistryUrl, resolveCertificateUrl } from "@/lib/source-links";
+import { dedupAddresses, type DedupedAddress } from "@/lib/dedup-addresses";
 
 export const dynamic = "force-dynamic";
 
@@ -317,7 +321,8 @@ function ProfileHeader({
   const primaryAddress =
     s.address_raw ?? payload.addresses[0]?.address ?? null;
   const cityLine = [s.city, s.district].filter(Boolean).join(", ");
-  const otherAddressCount = Math.max(0, payload.addresses.length - 1);
+  const dedupedAddresses = dedupAddresses(payload.addresses);
+  const otherAddressCount = Math.max(0, dedupedAddresses.length - 1);
   const lastVerified = payload.provenance[0]?.last_seen_at ?? null;
   const lastVerifiedSource = payload.provenance[0]?.display_name ?? null;
 
@@ -331,9 +336,80 @@ function ProfileHeader({
   const epbExp = pillByCode(payload.pills, "EPB")?.value ?? null;
   const established = s.established_date;
 
+  // I-015 — build cells conditionally; never emit an em-dash placeholder.
+  const metaCells: { key: string; dt: string; dd: ReactNode }[] = [];
+  if (primaryAddress || cityLine) {
+    metaCells.push({
+      key: "address",
+      dt: "Address",
+      dd: (
+        <>
+          {primaryAddress}
+          {primaryAddress && cityLine ? <br /> : null}
+          {cityLine ? <span className="mono">{cityLine}</span> : null}
+        </>
+      ),
+    });
+  }
+  if (established) {
+    metaCells.push({
+      key: "established",
+      dt: "Established",
+      dd: (
+        <>
+          {established}
+          <br />
+          <span className="mono">{yearsSince(established)} yrs</span>
+        </>
+      ),
+    });
+  }
+  if (rjsc) {
+    metaCells.push({
+      key: "rjsc",
+      dt: "RJSC",
+      dd: <span className="mono">{rjsc}</span>,
+    });
+  }
+  if (bin || epbExp) {
+    metaCells.push({
+      key: "bin-epb",
+      dt: bin ? "BIN" : "EPB",
+      dd: <span className="mono">{bin ?? epbExp}</span>,
+    });
+  }
+  if (lastVerified) {
+    metaCells.push({
+      key: "last-verified",
+      dt: "Last verified",
+      dd: (
+        <>
+          <span className="mono">{fmtDate(lastVerified)}</span>
+          {lastVerifiedSource ? (
+            <>
+              <br />
+              <span
+                style={{
+                  fontSize: 10,
+                  color: "var(--ink-tertiary)",
+                  fontFamily: "var(--font-mono)",
+                }}
+              >
+                {lastVerifiedSource}
+              </span>
+            </>
+          ) : null}
+        </>
+      ),
+    });
+  }
+
   return (
     <section className="header-card" aria-labelledby="company-name">
-      <ReceiptsRing sources={payload.t13_source_count} size={64} />
+      <div style={{ display: "flex", flexDirection: "column", gap: 8, alignItems: "flex-start" }}>
+        <ReceiptsRing sources={payload.t13_source_count} size={64} />
+        <SourcesExplainer />
+      </div>
 
       <div className="header-main min-w-0">
         <div className="breadcrumb">{entityBreadcrumb}</div>
@@ -367,72 +443,12 @@ function ProfileHeader({
         </div>
 
         <dl className="header-meta-row">
-          <div>
-            <dt>Address</dt>
-            <dd>
-              {primaryAddress ?? "—"}
-              {cityLine ? (
-                <>
-                  <br />
-                  <span className="mono">{cityLine}</span>
-                </>
-              ) : null}
-            </dd>
-          </div>
-          <div>
-            <dt>Established</dt>
-            <dd>
-              {established ?? "—"}
-              {established ? (
-                <>
-                  <br />
-                  <span className="mono">{yearsSince(established)} yrs</span>
-                </>
-              ) : null}
-            </dd>
-          </div>
-          <div>
-            <dt>RJSC</dt>
-            <dd>{rjsc ? <span className="mono">{rjsc}</span> : "—"}</dd>
-          </div>
-          <div>
-            <dt>BIN / EPB</dt>
-            <dd>
-              {bin ? (
-                <span className="mono">{bin}</span>
-              ) : epbExp ? (
-                <span className="mono">{epbExp}</span>
-              ) : (
-                "—"
-              )}
-            </dd>
-          </div>
-          <div>
-            <dt>Last verified</dt>
-            <dd>
-              {lastVerified ? (
-                <>
-                  <span className="mono">{fmtDate(lastVerified)}</span>
-                  {lastVerifiedSource ? (
-                    <>
-                      <br />
-                      <span
-                        style={{
-                          fontSize: 10,
-                          color: "var(--ink-tertiary)",
-                          fontFamily: "var(--font-mono)",
-                        }}
-                      >
-                        {lastVerifiedSource}
-                      </span>
-                    </>
-                  ) : null}
-                </>
-              ) : (
-                "—"
-              )}
-            </dd>
-          </div>
+          {metaCells.map((cell) => (
+            <div key={cell.key}>
+              <dt>{cell.dt}</dt>
+              <dd>{cell.dd}</dd>
+            </div>
+          ))}
         </dl>
         {otherAddressCount > 0 ? (
           <AddressesJumpLink count={otherAddressCount} />
@@ -505,6 +521,7 @@ function SanctionsBanner() {
 
 function OverviewTab({ payload }: { payload: ProfilePayload }) {
   const s = payload.supplier;
+  const dedupedAddresses = dedupAddresses(payload.addresses);
   return (
     <div className="proto-grid">
       <section className="proto-card hoverable span2">
@@ -565,55 +582,60 @@ function OverviewTab({ payload }: { payload: ProfilePayload }) {
         </dl>
       </section>
 
-      {payload.addresses.length > 1 ? (
+      {dedupedAddresses.length > 1 ? (
         <section id="locations" className="proto-card hoverable span2">
           <header className="proto-card-head">
             <h2 className="proto-card-title">Addresses on file</h2>
             <span className="proto-card-meta">
-              {payload.addresses.length} locations
+              {dedupedAddresses.length} location{dedupedAddresses.length === 1 ? "" : "s"}
             </span>
           </header>
           <ul
             className="m-0 flex list-none flex-col p-0"
             style={{ borderTop: "1px solid var(--hairline)" }}
           >
-            {payload.addresses.map((a, i) => (
-              <li
-                key={i}
-                style={{
-                  padding: "12px 0",
-                  borderBottom: "1px solid var(--hairline)",
-                  display: "grid",
-                  gridTemplateColumns: "120px 1fr auto",
-                  gap: 16,
-                  alignItems: "baseline",
-                }}
-              >
-                <span
-                  className="mono"
-                  style={{
-                    fontSize: 11,
-                    color: "var(--ink-tertiary)",
-                    letterSpacing: "0.06em",
-                  }}
-                >
-                  {a.kind}
-                </span>
-                <span style={{ fontSize: 13, color: "var(--ink-primary)" }}>
-                  {a.address}
-                </span>
-                <span
-                  className="mono"
-                  style={{ fontSize: 11, color: "var(--ink-tertiary)" }}
-                >
-                  via {a.source_code}
-                </span>
-              </li>
+            {dedupedAddresses.map((a, i) => (
+              <AddressRow key={i} address={a} />
             ))}
           </ul>
         </section>
       ) : null}
     </div>
+  );
+}
+
+function AddressRow({ address }: { address: DedupedAddress }) {
+  return (
+    <li
+      style={{
+        padding: "12px 0",
+        borderBottom: "1px solid var(--hairline)",
+        display: "grid",
+        gridTemplateColumns: "120px 1fr auto",
+        gap: 16,
+        alignItems: "baseline",
+      }}
+    >
+      <span
+        className="mono"
+        style={{
+          fontSize: 11,
+          color: "var(--ink-tertiary)",
+          letterSpacing: "0.06em",
+        }}
+      >
+        {address.kind}
+      </span>
+      <span style={{ fontSize: 13, color: "var(--ink-primary)" }}>
+        {address.address}
+      </span>
+      <span
+        className="mono"
+        style={{ fontSize: 11, color: "var(--ink-tertiary)" }}
+      >
+        via {address.verified_by.join(" + ")}
+      </span>
+    </li>
   );
 }
 
@@ -1445,23 +1467,18 @@ function ContactTab({
         </header>
         {hasAny ? (
           <dl className="contact-list">
-            {unlocked.phone ? (
+            {unlocked.phones.length > 0 ? (
+              <>
+                <dt>Phone</dt>
+                <dd>
+                  <PhonesReveal phones={unlocked.phones} />
+                </dd>
+              </>
+            ) : unlocked.phone ? (
               <>
                 <dt>Phone</dt>
                 <dd>
                   <a href={`tel:${unlocked.phone}`}>{unlocked.phone}</a>
-                  {unlocked.phones.length > 1 ? (
-                    <span
-                      style={{
-                        marginLeft: 8,
-                        color: "var(--ink-tertiary)",
-                        fontFamily: "var(--font-mono)",
-                        fontSize: 11,
-                      }}
-                    >
-                      +{unlocked.phones.length - 1} more
-                    </span>
-                  ) : null}
                 </dd>
               </>
             ) : null}
@@ -1572,18 +1589,7 @@ function ProvenanceTab({ provenance }: { provenance: Provenance[] }) {
           </div>
         ))}
       </div>
-      <p
-        style={{
-          margin: "16px 0 0",
-          fontSize: 11,
-          color: "var(--ink-tertiary)",
-        }}
-      >
-        Tier hierarchy: T1 (gov/regulatory) &gt; T2 (industry assoc.) &gt; T3
-        (cert bodies) &gt; T4 (brand disclosures). A T4 record never enters a
-        profile alone — every brand attribution is backed by at least one
-        Tier 1–3 corroboration.
-      </p>
+      <SourcesExplainer variant="footer" />
     </section>
   );
 }
