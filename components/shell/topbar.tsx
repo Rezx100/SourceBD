@@ -12,9 +12,14 @@ import type { Role } from "@/lib/auth";
 type QuickLink = { href: string; label: string };
 
 const QUICK_LINKS: Record<"buyer" | "supplier" | "admin", QuickLink[]> = {
+  // I-024 — Surface the workflows buyers/suppliers actually live in. Buyers
+  // get the discovery + outreach loop (Discover · Saved · RFQs · Messages ·
+  // Compliance); suppliers get the inbound loop (Dashboard · RFQs ·
+  // Messages · Profile). Admin nav stays operational.
   buyer: [
     { href: "/app/discover", label: "Discover" },
     { href: "/app/saved", label: "Saved" },
+    { href: "/app/rfqs", label: "RFQs" },
     { href: "/app/messages", label: "Messages" },
     { href: "/app/compliance", label: "Compliance" },
   ],
@@ -22,7 +27,7 @@ const QUICK_LINKS: Record<"buyer" | "supplier" | "admin", QuickLink[]> = {
     { href: "/supplier", label: "Dashboard" },
     { href: "/supplier/rfqs", label: "RFQs" },
     { href: "/supplier/messages", label: "Messages" },
-    { href: "/supplier/documents", label: "Documents" },
+    { href: "/supplier/profile", label: "Profile" },
   ],
   admin: [
     { href: "/admin", label: "Overview" },

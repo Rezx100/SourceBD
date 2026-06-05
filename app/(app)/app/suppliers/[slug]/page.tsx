@@ -22,6 +22,8 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { ShieldCheck } from "@phosphor-icons/react/dist/ssr";
+
 import { ReceiptsRing } from "@/components/receipts-ring";
 import { SaveButton } from "@/components/save-button";
 import { ClaimCtaButton } from "@/components/claim-cta-button";
@@ -308,6 +310,44 @@ export default async function FactoryProfilePage({
 
 // ---------- header --------------------------------------------------------
 
+// I-023 — "Verified by" hero badge. Surfaces the Tier-1 (government) and
+// Tier-2 (industry-association) sources backing this supplier. Returns null
+// when no qualifying source is present (we never claim verification we
+// can't evidence).
+const VERIFIED_TIER_CODES: Record<string, string> = {
+  RJSC: "RJSC",
+  BIN: "BIN",
+  EPB: "EPB",
+  BGMEA: "BGMEA",
+  BKMEA: "BKMEA",
+  BTMA: "BTMA",
+  BGAPMEA: "BGAPMEA",
+};
+
+function VerifiedByChip({ pills }: { pills: Pill[] }) {
+  const codes: string[] = [];
+  for (const p of pills) {
+    const label = VERIFIED_TIER_CODES[p.source_code];
+    if (label && !codes.includes(label)) codes.push(label);
+  }
+  if (codes.length === 0) return null;
+  const shown = codes.slice(0, 4);
+  const overflow = codes.length - shown.length;
+  return (
+    <span
+      className="chip chip-verified"
+      title={`Verified by ${codes.join(", ")}`}
+    >
+      <ShieldCheck size={13} weight="fill" aria-hidden />
+      <span>Verified by</span>
+      <span className="chip-verified-sources">
+        {shown.join(" + ")}
+        {overflow > 0 ? ` +${overflow}` : ""}
+      </span>
+    </span>
+  );
+}
+
 function ProfileHeader({
   payload,
   isSaved,
@@ -428,18 +468,13 @@ function ProfileHeader({
         ) : null}
 
         <div className="header-chips">
+          <VerifiedByChip pills={payload.pills} />
           <span className="chip">{entityLabel(s.entity_type)}</span>
           {s.factory_types.slice(0, 2).map((t) => (
             <span key={t} className="chip">
               {t}
             </span>
           ))}
-          {pillByCode(payload.pills, "BGMEA") ? (
-            <span className="chip">Member of BGMEA</span>
-          ) : null}
-          {pillByCode(payload.pills, "BKMEA") ? (
-            <span className="chip">Member of BKMEA</span>
-          ) : null}
         </div>
 
         <dl className="header-meta-row">

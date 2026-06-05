@@ -163,12 +163,14 @@
     align-items: start;
   }
   /* I-021 — fixed-width left column so the inline "How we trust our
-     sources" disclosure cannot grow the header and push other cells. */
+     sources" disclosure cannot grow the header and push other cells.
+     I-023 — centre the ring + sources pill so the column reads as a
+     deliberate composition rather than a bag of left-aligned bits. */
   .header-glyph-col {
     display: flex;
     flex-direction: column;
-    align-items: flex-start;
-    gap: 8px;
+    align-items: center;
+    gap: 10px;
     width: 64px;
     position: relative;
   }
@@ -226,6 +228,24 @@
     background: var(--sem-green-soft);
     color: var(--sem-green);
     border-color: var(--sem-green);
+  }
+  /* I-023 — "Verified by <gov + association>" hero badge. Surfaces when the
+     supplier carries at least one Tier-1/Tier-2 register pill (RJSC, BIN,
+     EPB, BGMEA, BKMEA, BTMA, BGAPMEA). */
+  .chip.chip-verified {
+    background: var(--sem-green-soft);
+    color: var(--sem-green);
+    border-color: var(--sem-green);
+    font-weight: 600;
+    padding: 4px 10px 4px 8px;
+  }
+  .chip.chip-verified svg { flex-shrink: 0; }
+  .chip.chip-verified .chip-verified-sources {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    color: var(--sem-green);
   }
   .header-meta-row {
     display: grid;
@@ -397,7 +417,7 @@
     margin: 0;
   }
 
-  /* I-014 — sources-explainer disclosure (header + footer variants). */
+  /* I-014 — sources-explainer disclosure (header + footer + inline). */
   .sources-explainer {
     margin-top: 8px;
     font-size: 12px;
@@ -413,43 +433,84 @@
     border: none;
     padding: 0;
   }
-  /* I-021 — inline variant: tiny chip with an absolutely-positioned body so
-     opening the disclosure cannot push siblings (used in the supplier
-     profile header next to the ReceiptsRing). */
+  /* I-023 — inline pill: elegant compact chip with info icon + "Sources" label,
+     centred under the ReceiptsRing. The popover panel is absolutely positioned
+     so opening the disclosure never pushes layout. */
   .sources-explainer.inline {
-    margin-top: 6px;
+    margin: 0;
     padding: 0;
     background: transparent;
     border: none;
-    font-size: 11px;
-    color: var(--ink-secondary);
     position: relative;
     width: auto;
-    max-width: 96px;
+    max-width: none;
+    display: inline-flex;
+    align-self: center;
   }
   .sources-explainer.inline > summary {
-    font-size: 11px;
-    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 9px 3px 7px;
+    border-radius: var(--r-pill);
+    background: var(--surface-l1);
+    border: 1px solid var(--hairline-strong);
     color: var(--ink-secondary);
-    line-height: 1.3;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    line-height: 1;
+    cursor: pointer;
+    transition:
+      background var(--dur-hover) var(--ease),
+      color var(--dur-hover) var(--ease),
+      border-color var(--dur-hover) var(--ease);
   }
-  .sources-explainer.inline > summary::before {
-    width: 14px;
-    height: 14px;
-    font-size: 9px;
+  .sources-explainer.inline > summary:hover,
+  .sources-explainer.inline[open] > summary {
+    background: var(--brand-forest-tint);
+    border-color: var(--brand-forest);
+    color: var(--brand-forest);
+  }
+  .sources-explainer.inline > summary::before { content: none; }
+  .sources-explainer.inline > summary svg {
+    color: var(--brand-forest);
+    flex-shrink: 0;
+  }
+  .sources-explainer-inline-label {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
   }
   .sources-explainer.inline .sources-explainer-body {
     position: absolute;
     top: calc(100% + 8px);
-    left: 0;
-    z-index: 20;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 30;
     width: 320px;
-    max-width: calc(100vw - 48px);
-    padding: 12px 14px;
+    max-width: calc(100vw - 32px);
+    margin-top: 0;
+    padding: 14px 16px;
     background: var(--surface-l2);
     border: 1px solid var(--hairline-strong);
     border-radius: var(--r-card);
     box-shadow: var(--shadow-l2);
+    font-size: 12.5px;
+    line-height: 1.55;
+    color: var(--ink-secondary);
+    animation: sourcesPopIn 160ms var(--ease);
+  }
+  .sources-explainer-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ink-primary);
+    margin: 0 0 8px;
+  }
+  @keyframes sourcesPopIn {
+    from { opacity: 0; transform: translateX(-50%) translateY(-4px); }
+    to   { opacity: 1; transform: translateX(-50%) translateY(0); }
   }
   .sources-explainer > summary {
     cursor: pointer;
@@ -475,7 +536,7 @@
     font-weight: 700;
     font-family: var(--font-mono);
   }
-  .sources-explainer[open] > summary::before { content: '×'; }
+  .sources-explainer[open]:not(.inline) > summary::before { content: '×'; }
   .sources-explainer-body {
     margin-top: 10px;
     color: var(--ink-secondary);

@@ -1,15 +1,17 @@
 // I-014 — Plain-English explainer for the source-trust hierarchy.
-// Replaces the dev-jargon "Tier hierarchy: T1 > T2 > T3 > T4" string with a
-// disclosure a non-engineer can parse.
-//
 // Variants:
 //   - `header`  → card-style disclosure (legacy callers).
 //   - `footer`  → unstyled card-less disclosure for the page footer.
-//   - `inline`  → tiny link with an absolutely-positioned body, so opening
-//                 it never pushes header siblings around. Used next to the
-//                 ReceiptsRing (debug batch 2026-06-06 I-021).
+//   - `inline`  → compact icon+label pill with an absolutely-positioned
+//                 popover. Sits under the ReceiptsRing in the supplier
+//                 profile header without ever pushing siblings around
+//                 (debug batch 2026-06-06 I-021 + I-023 elegance pass).
+
+import { Info } from "@phosphor-icons/react/dist/ssr";
 
 type Variant = "header" | "footer" | "inline";
+
+const SUMMARY = "How we verify our sources";
 
 export function SourcesExplainer({ variant = "header" }: { variant?: Variant }) {
   const cls =
@@ -18,11 +20,26 @@ export function SourcesExplainer({ variant = "header" }: { variant?: Variant }) 
       : variant === "inline"
         ? "sources-explainer inline"
         : "sources-explainer";
+
   return (
     <details className={cls}>
-      <summary>How we trust our sources</summary>
-      <div className="sources-explainer-body">
-        <p>We rank sources by how official they are.</p>
+      <summary aria-label={SUMMARY} title={SUMMARY}>
+        {variant === "inline" ? (
+          <>
+            <Info size={13} weight="fill" aria-hidden />
+            <span className="sources-explainer-inline-label">Sources</span>
+          </>
+        ) : (
+          <span>{SUMMARY}</span>
+        )}
+      </summary>
+      <div className="sources-explainer-body" role="region" aria-label={SUMMARY}>
+        <p className="sources-explainer-title">{SUMMARY}</p>
+        <p>
+          We rank every source by how official it is. A factory only appears
+          here when at least one source from groups 1, 2 or 3 confirms it — a
+          brand mention alone is never enough.
+        </p>
         <ol>
           <li>
             <strong>Government registries</strong> — RJSC, BIN, EPB. The most
@@ -41,10 +58,6 @@ export function SourcesExplainer({ variant = "header" }: { variant?: Variant }) 
             enough on their own.
           </li>
         </ol>
-        <p>
-          A factory only appears here when at least one source from groups 1, 2
-          or 3 confirms it. A brand mention alone is never enough.
-        </p>
       </div>
     </details>
   );
