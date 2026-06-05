@@ -129,8 +129,8 @@ export default async function AppShellLayout({
     <PostHogProvider userId={userId}>
       <div className="flex min-h-screen flex-col bg-bg-l0">
         <SkipLink />
-        <Topbar />
-        <div className="flex flex-1 flex-col md:flex-row">
+        <Topbar role={role} moatTotal={moatTotal} />
+        <div className="flex flex-1 flex-col md:flex-row md:items-start">
           <Sidebar
             role={role}
             email={email}
@@ -143,7 +143,7 @@ export default async function AppShellLayout({
           <main
             id="main-content"
             tabIndex={-1}
-            className="flex-1 px-4 py-6 md:px-8 md:py-8 focus:outline-none"
+            className="flex-1 px-4 py-6 md:min-h-[calc(100vh-56px)] md:px-8 md:py-8 focus:outline-none"
           >
             {children}
           </main>

@@ -393,8 +393,7 @@ export function Sidebar({
 
       <aside
         aria-label={`${VARIANT_LABEL[variant]} navigation`}
-        className="proto-sidebar hidden md:flex md:w-[272px] md:shrink-0 md:flex-col md:gap-0.5 md:border-r md:border-hairline-strong md:px-[14px] md:pb-[14px] md:pt-[18px]"
-        style={{ minHeight: "calc(100vh - 56px)" }}
+        className="proto-sidebar hidden md:sticky md:top-14 md:flex md:h-[calc(100vh-56px)] md:w-[272px] md:shrink-0 md:flex-col md:gap-0.5 md:overflow-y-auto md:border-r md:border-hairline-strong md:px-[14px] md:pb-[14px] md:pt-[18px]"
       >
         {wsCard}
         {switcher}

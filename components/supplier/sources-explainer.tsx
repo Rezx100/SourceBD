@@ -1,14 +1,25 @@
 // I-014 — Plain-English explainer for the source-trust hierarchy.
 // Replaces the dev-jargon "Tier hierarchy: T1 > T2 > T3 > T4" string with a
-// disclosure a non-engineer can parse. Anchored next to the ReceiptsRing in
-// the profile header; also used at the Provenance tab footer.
+// disclosure a non-engineer can parse.
 //
-// Native <details>, no Radix dep needed (not installed).
+// Variants:
+//   - `header`  → card-style disclosure (legacy callers).
+//   - `footer`  → unstyled card-less disclosure for the page footer.
+//   - `inline`  → tiny link with an absolutely-positioned body, so opening
+//                 it never pushes header siblings around. Used next to the
+//                 ReceiptsRing (debug batch 2026-06-06 I-021).
 
-export function SourcesExplainer({ variant = "header" }: { variant?: "header" | "footer" }) {
-  const isFooter = variant === "footer";
+type Variant = "header" | "footer" | "inline";
+
+export function SourcesExplainer({ variant = "header" }: { variant?: Variant }) {
+  const cls =
+    variant === "footer"
+      ? "sources-explainer footer"
+      : variant === "inline"
+        ? "sources-explainer inline"
+        : "sources-explainer";
   return (
-    <details className={`sources-explainer${isFooter ? " footer" : ""}`}>
+    <details className={cls}>
       <summary>How we trust our sources</summary>
       <div className="sources-explainer-body">
         <p>We rank sources by how official they are.</p>

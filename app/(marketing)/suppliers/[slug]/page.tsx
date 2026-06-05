@@ -433,9 +433,9 @@ function ProfileHeader({
 
   return (
     <section className="header-card" aria-labelledby="company-name">
-      <div style={{ display: "flex", flexDirection: "column", gap: 8, alignItems: "flex-start" }}>
+      <div className="header-glyph-col">
         <ReceiptsRing sources={payload.t13_source_count} size={64} />
-        <SourcesExplainer />
+        <SourcesExplainer variant="inline" />
       </div>
 
       <div className="header-main min-w-0">
@@ -651,13 +651,14 @@ function OverviewTab({ payload }: { payload: ProfilePayload }) {
 }
 
 function AddressRow({ address }: { address: DedupedAddress<PublicAddress> }) {
+  const kindLabel = address.kinds.join(" · ");
   return (
     <li
       style={{
         padding: "12px 0",
         borderBottom: "1px solid var(--hairline)",
         display: "grid",
-        gridTemplateColumns: "120px 1fr auto",
+        gridTemplateColumns: "140px 1fr auto",
         gap: 16,
         alignItems: "baseline",
       }}
@@ -670,7 +671,7 @@ function AddressRow({ address }: { address: DedupedAddress<PublicAddress> }) {
           letterSpacing: "0.06em",
         }}
       >
-        {address.kind}
+        {kindLabel}
       </span>
       <span style={{ fontSize: 13, color: "var(--ink-primary)" }}>
         {address.address}

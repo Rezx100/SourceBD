@@ -157,9 +157,20 @@
     box-shadow: var(--shadow-l2);
     padding: 28px 32px;
     display: grid;
-    grid-template-columns: auto 1fr auto;
-    gap: 24px;
+    grid-template-columns: 64px 1fr auto;
+    column-gap: 24px;
+    row-gap: 24px;
     align-items: start;
+  }
+  /* I-021 — fixed-width left column so the inline "How we trust our
+     sources" disclosure cannot grow the header and push other cells. */
+  .header-glyph-col {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    width: 64px;
+    position: relative;
   }
   .breadcrumb {
     font-size: 12px;
@@ -401,6 +412,44 @@
     background: transparent;
     border: none;
     padding: 0;
+  }
+  /* I-021 — inline variant: tiny chip with an absolutely-positioned body so
+     opening the disclosure cannot push siblings (used in the supplier
+     profile header next to the ReceiptsRing). */
+  .sources-explainer.inline {
+    margin-top: 6px;
+    padding: 0;
+    background: transparent;
+    border: none;
+    font-size: 11px;
+    color: var(--ink-secondary);
+    position: relative;
+    width: auto;
+    max-width: 96px;
+  }
+  .sources-explainer.inline > summary {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--ink-secondary);
+    line-height: 1.3;
+  }
+  .sources-explainer.inline > summary::before {
+    width: 14px;
+    height: 14px;
+    font-size: 9px;
+  }
+  .sources-explainer.inline .sources-explainer-body {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    z-index: 20;
+    width: 320px;
+    max-width: calc(100vw - 48px);
+    padding: 12px 14px;
+    background: var(--surface-l2);
+    border: 1px solid var(--hairline-strong);
+    border-radius: var(--r-card);
+    box-shadow: var(--shadow-l2);
   }
   .sources-explainer > summary {
     cursor: pointer;
@@ -1512,5 +1561,69 @@
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
+  }
+
+  /* ---------- Topbar (I-022) ---------- */
+  /* The topbar shares the warm cream of the sidebar at its top so the two
+     surfaces read as one continuous chrome strip rather than two materials
+     glued together. A subtle bottom hairline + tint keeps it readable when
+     content scrolls underneath. */
+  .topbar {
+    background: linear-gradient(180deg, #F3F1E8 0%, #F6F4EC 100%);
+    box-shadow: 0 1px 0 rgba(15, 15, 20, 0.04);
+  }
+  @supports (backdrop-filter: blur(8px)) {
+    .topbar {
+      background: linear-gradient(
+        180deg,
+        rgba(243, 241, 232, 0.92) 0%,
+        rgba(246, 244, 236, 0.86) 100%
+      );
+    }
+  }
+  .topbar-quick-link {
+    padding: 6px 10px;
+    border-radius: var(--r-pill);
+    font-size: 12.5px;
+    font-weight: 500;
+    color: var(--ink-secondary);
+    transition: background-color var(--dur-hover) var(--ease),
+      color var(--dur-hover) var(--ease);
+  }
+  .topbar-quick-link:hover {
+    background: var(--brand-forest-tint);
+    color: var(--ink-primary);
+  }
+  .topbar-moat {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 10px;
+    border-radius: var(--r-pill);
+    background: var(--surface-l1);
+    border: 1px solid var(--hairline-strong);
+    font-size: 12px;
+    color: var(--ink-secondary);
+    transition: background-color var(--dur-hover) var(--ease);
+  }
+  .topbar-moat:hover {
+    background: var(--brand-forest-tint);
+  }
+  .topbar-moat-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--sem-green);
+    box-shadow: 0 0 0 2px var(--sem-green-soft);
+  }
+  .topbar-moat-count {
+    font-family: var(--font-mono);
+    font-weight: 600;
+    color: var(--ink-primary);
+    font-size: 12px;
+  }
+  .topbar-moat-label {
+    font-size: 11px;
+    color: var(--ink-tertiary);
   }
 }

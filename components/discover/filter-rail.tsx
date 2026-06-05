@@ -39,7 +39,6 @@ export const SORT_OPTIONS = [
 export const ENTITY_TYPES = [
   { value: "factory", label: "Factory" },
   { value: "buying_house", label: "Buying house" },
-  { value: "unknown", label: "Unknown" },
 ] as const;
 
 export const CERT_KINDS = [
