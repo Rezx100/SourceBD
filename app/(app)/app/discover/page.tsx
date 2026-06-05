@@ -14,11 +14,13 @@ import Link from "next/link";
 
 import { SaveButton } from "@/components/save-button";
 import {
+  BRAND_SOURCES,
   CERT_KINDS,
   ENTITY_TYPES,
   FilterRail,
   PAGE_SIZE,
   Pagination,
+  REGISTRY_SOURCES,
   SortControl,
   asInt,
   asString,
@@ -29,6 +31,7 @@ import {
   DiscoverResultCard,
   type DiscoverRow,
 } from "@/components/discover/result-card";
+import { fetchDiscoverFacets } from "@/lib/discover-facets";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -50,12 +53,21 @@ export default async function BuyerDiscoverPage({
   const certKinds = asStringArray(sp.cert).filter((v) =>
     CERT_KINDS.some((o) => o.value === v),
   );
+  const registries = asStringArray(sp.registry).filter((v) =>
+    REGISTRY_SOURCES.some((o) => o.value === v),
+  );
+  const brandCodes = asStringArray(sp.brand).filter((v) =>
+    BRAND_SOURCES.some((o) => o.value === v),
+  );
+  const factoryTypes = asStringArray(sp.ftype);
   const minSourcesRaw = asString(sp.min_sources);
   const minSources =
     minSourcesRaw && /^[1-5]$/.test(minSourcesRaw)
       ? Number.parseInt(minSourcesRaw, 10)
       : null;
   const rscMin = asInt(sp.rsc_min);
+  const completenessMin = asInt(sp.completeness_min);
+  const workersMin = asInt(sp.workers_min);
   const city = asString(sp.city).trim();
   const district = asString(sp.district).trim();
   const category = asString(sp.category).trim();
@@ -64,19 +76,34 @@ export default async function BuyerDiscoverPage({
   const offset = (pageNum - 1) * PAGE_SIZE;
 
   const supabase = await createSupabaseServerClient();
-  const { data, error } = await supabase.rpc("discover_suppliers", {
-    p_q: q || null,
-    p_entity_types: entityTypes.length ? entityTypes : null,
-    p_min_sources: minSources,
-    p_cert_kinds: certKinds.length ? certKinds : null,
-    p_rsc_min: rscMin !== null && rscMin >= 0 && rscMin <= 100 ? rscMin : null,
-    p_city: city || null,
-    p_district: district || null,
-    p_category: category || null,
-    p_sort: sort,
-    p_limit: PAGE_SIZE,
-    p_offset: offset,
-  });
+  const [{ data, error }, facets] = await Promise.all([
+    supabase.rpc("discover_suppliers", {
+      p_q: q || null,
+      p_entity_types: entityTypes.length ? entityTypes : null,
+      p_min_sources: minSources,
+      p_cert_kinds: certKinds.length ? certKinds : null,
+      p_rsc_min:
+        rscMin !== null && rscMin >= 0 && rscMin <= 100 ? rscMin : null,
+      p_city: city || null,
+      p_district: district || null,
+      p_category: category || null,
+      p_sort: sort,
+      p_limit: PAGE_SIZE,
+      p_offset: offset,
+      p_registries: registries.length ? registries : null,
+      p_factory_types: factoryTypes.length ? factoryTypes : null,
+      p_brand_codes: brandCodes.length ? brandCodes : null,
+      p_completeness_min:
+        completenessMin !== null &&
+        completenessMin >= 0 &&
+        completenessMin <= 100
+          ? completenessMin
+          : null,
+      p_workers_min:
+        workersMin !== null && workersMin >= 0 ? workersMin : null,
+    }),
+    fetchDiscoverFacets(supabase),
+  ]);
 
   const rows = (data ?? []) as DiscoverRow[];
   const totalCount = rows[0]?.total_count ?? 0;
@@ -101,9 +128,14 @@ export default async function BuyerDiscoverPage({
     q,
     entity: entityTypes,
     cert: certKinds,
+    registry: registries,
+    brand: brandCodes,
+    ftype: factoryTypes,
     min_sources:
       minSourcesRaw && /^[1-5]$/.test(minSourcesRaw) ? minSourcesRaw : "",
     rsc_min: rscMin !== null ? String(rscMin) : "",
+    completeness_min: completenessMin !== null ? String(completenessMin) : "",
+    workers_min: workersMin !== null ? String(workersMin) : "",
     city,
     district,
     category,
@@ -114,8 +146,13 @@ export default async function BuyerDiscoverPage({
     Boolean(q) ||
     entityTypes.length > 0 ||
     certKinds.length > 0 ||
+    registries.length > 0 ||
+    brandCodes.length > 0 ||
+    factoryTypes.length > 0 ||
     minSources !== null ||
     rscMin !== null ||
+    completenessMin !== null ||
+    workersMin !== null ||
     Boolean(city) ||
     Boolean(district) ||
     Boolean(category);
@@ -135,18 +172,25 @@ export default async function BuyerDiscoverPage({
         </p>
       </header>
 
-      <div className="grid gap-6 md:grid-cols-[260px_minmax(0,1fr)]">
+      <div className="space-y-6">
         <FilterRail
           basePath={BASE_PATH}
           q={q}
           entityTypes={entityTypes}
           certKinds={certKinds}
+          registries={registries}
+          brandCodes={brandCodes}
+          factoryTypes={factoryTypes}
           minSources={minSourcesRaw}
           rscMin={rscMin}
+          completenessMin={completenessMin}
+          workersMin={workersMin}
           city={city}
           district={district}
           category={category}
           sort={sort}
+          facets={facets}
+          baseQuery={baseQuery}
         />
 
         <section className="space-y-4">

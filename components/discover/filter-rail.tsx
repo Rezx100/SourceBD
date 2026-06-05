@@ -1,10 +1,27 @@
-// Shared Discover filter rail — used by both the buyer (`/app/discover`)
-// and the public anonymous (`/discover`) surfaces. Server module only;
-// no client island. `basePath` is the form action + Reset href + sort/
-// page link prefix.
+// Shared Discover filter rail — debug batch 6 (2026-06-06, I-016..I-019).
 //
-// Extracted from `app/(app)/app/discover/page.tsx` in Spec M5 to keep
-// public/buyer in parity without duplicating markup.
+// Replaces the previous left-aside sticky rail with a horizontal,
+// NON-FIXED bar that sits on top of the result list. Used by both
+// `/app/discover` (buyer) and `/discover` (public anonymous).
+//
+// Server module only; the only client interaction is native HTML
+// (form GET, <details>, <datalist> autocomplete). No JS island, so
+// no extra bundle cost and no hydration mismatch risk.
+//
+// Layout (top to bottom inside the bar):
+//   Row 1 — search input + Apply + Reset (always visible)
+//   Row 2 — quick-pick product chips (deep-links, preserve other filters)
+//   Row 3 — common compact filters: City · District · Category ·
+//           Receipts ≥ · RSC % ≥ · Min workforce
+//   Row 3b — Profile completeness ≥ %
+//   Row 4 — collapsible <details> "More filters":
+//           Entity type · Certifications · Registry membership ·
+//           Brand factory list · Factory type
+//
+// A filter is rendered with subtle brand-color emphasis (forest-soft
+// background + forest-50 border) when it has a non-empty value, so the
+// user can see at a glance which filters are active without us having
+// to render a separate "selected filters" chip row above the rail.
 
 import Link from "next/link";
 
@@ -32,6 +49,22 @@ export const CERT_KINDS = [
   { value: "sa8000", label: "SA8000" },
 ] as const;
 
+export const REGISTRY_SOURCES = [
+  { value: "BGMEA", label: "BGMEA member" },
+  { value: "BKMEA", label: "BKMEA member" },
+  { value: "BGAPMEA", label: "BGAPMEA member" },
+  { value: "BTMA", label: "BTMA member" },
+  { value: "EPB", label: "EPB exporter" },
+  { value: "RSC", label: "RSC inspected" },
+] as const;
+
+export const BRAND_SOURCES = [
+  { value: "BRAND_HM", label: "H&M factory list" },
+  { value: "BRAND_NEXT", label: "Next factory list" },
+  { value: "BRAND_MS", label: "M&S supplier map" },
+  { value: "BRAND_ASOS", label: "ASOS factory list" },
+] as const;
+
 export const MIN_SOURCES_OPTIONS = [
   { value: "", label: "Any" },
   { value: "1", label: "≥ 1" },
@@ -41,7 +74,42 @@ export const MIN_SOURCES_OPTIONS = [
   { value: "5", label: "≥ 5" },
 ] as const;
 
+// Curated quick-pick products. Each chip is a deep-link with
+// `category=<value>`. The existing `p_category` RPC param does ilike
+// substring match against `principal_products[]`, so 'denim' will
+// hit "Denim Pant", "Denim Shirt", "All Kinds of Denim Wear", etc.
+export const PRODUCT_QUICK_PICKS = [
+  "Denim",
+  "Knitwear",
+  "Woven",
+  "Sweater",
+  "T-Shirt",
+  "Polo",
+  "Jeans",
+  "Trouser",
+  "Jacket",
+  "Hoodie",
+  "Sportswear",
+  "Childrens",
+  "Lingerie",
+  "Shirt",
+] as const;
+
 export type SortValue = (typeof SORT_OPTIONS)[number]["value"];
+
+export type DiscoverFacets = {
+  cities: string[];
+  districts: string[];
+  products: string[];
+  factory_types: string[];
+};
+
+export const EMPTY_FACETS: DiscoverFacets = {
+  cities: [],
+  districts: [],
+  products: [],
+  factory_types: [],
+};
 
 export function asString(v: string | string[] | undefined): string {
   if (Array.isArray(v)) return v[0] ?? "";
@@ -87,145 +155,310 @@ export function FilterRail({
   q,
   entityTypes,
   certKinds,
+  registries,
+  brandCodes,
+  factoryTypes,
   minSources,
   rscMin,
+  completenessMin,
+  workersMin,
   city,
   district,
   category,
   sort,
+  facets,
+  baseQuery,
 }: {
   basePath: string;
   q: string;
   entityTypes: string[];
   certKinds: string[];
+  registries: string[];
+  brandCodes: string[];
+  factoryTypes: string[];
   minSources: string;
   rscMin: number | null;
+  completenessMin: number | null;
+  workersMin: number | null;
   city: string;
   district: string;
   category: string;
   sort: string;
+  facets: DiscoverFacets;
+  baseQuery: Record<string, string | string[]>;
 }) {
+  const hasAdvancedActive =
+    entityTypes.length > 0 ||
+    certKinds.length > 0 ||
+    registries.length > 0 ||
+    brandCodes.length > 0 ||
+    factoryTypes.length > 0;
+  const advancedCount =
+    entityTypes.length +
+    certKinds.length +
+    registries.length +
+    brandCodes.length +
+    factoryTypes.length;
+
+  const inputBase =
+    "w-full rounded-input border bg-bg-l0 px-3 py-2.5 text-sm text-ink-primary outline-none transition-colors focus:border-brand-forest focus:ring-2 focus:ring-brand-forest/15";
+
   return (
-    <aside className="md:sticky md:top-20 md:self-start">
-      <form
-        method="get"
-        action={basePath}
-        className="proto-card space-y-4"
-      >
+    <section
+      aria-label="Filter suppliers"
+      className="rounded-card border border-hairline bg-surface-l1 p-4 shadow-[0_1px_2px_rgba(15,15,20,0.03)] sm:p-5"
+    >
+      <form method="get" action={basePath} className="space-y-4">
         {sort && sort !== "default" ? (
           <input type="hidden" name="sort" value={sort} />
         ) : null}
 
+        {/* Row 1 — search + apply/reset, always visible */}
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+          <div className="flex-1">
+            <label
+              htmlFor="discover-q"
+              className="mb-1.5 block text-xs font-semibold text-ink-tertiary"
+            >
+              Search
+            </label>
+            <input
+              id="discover-q"
+              type="search"
+              name="q"
+              defaultValue={q}
+              placeholder="Company name, e.g. Naafco, Standard Group…"
+              className={cn(inputBase, activeRing(Boolean(q)))}
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="submit"
+              className="btn-proto primary justify-center px-5 py-2.5 text-sm"
+            >
+              Apply
+            </button>
+            <Link
+              href={basePath}
+              className="btn-proto justify-center px-4 py-2.5 text-sm"
+            >
+              Reset
+            </Link>
+          </div>
+        </div>
+
+        {/* Row 2 — quick product chips. Plain anchors that preserve
+            current filters but set category. No JS needed. */}
         <div>
-          <label
-            htmlFor="discover-q"
-            className="mb-1.5 block text-[10px] font-semibold text-ink-tertiary"
-          >
-            Search
-          </label>
-          <input
-            id="discover-q"
-            type="search"
-            name="q"
-            defaultValue={q}
-            placeholder="Company name…"
-            className="w-full rounded-input border border-hairline bg-bg-l0 px-3 py-2 text-sm text-ink-primary outline-none focus:border-brand-forest"
-          />
+          <div className="mb-1.5 text-xs font-semibold text-ink-tertiary">
+            Quick pick
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {PRODUCT_QUICK_PICKS.map((label) => {
+              const value = label.toLowerCase();
+              const isActive = category.trim().toLowerCase() === value;
+              const href =
+                basePath +
+                buildQuery({ ...baseQuery, category: value, page: "" });
+              return (
+                <Link
+                  key={label}
+                  href={href}
+                  className={cn(
+                    "proto-pill !text-[12px]",
+                    isActive &&
+                      "border-brand-forest bg-brand-forest-soft text-brand-forest",
+                  )}
+                  aria-current={isActive ? "true" : undefined}
+                >
+                  {label}
+                </Link>
+              );
+            })}
+            {category && !isQuickPickValue(category) ? (
+              <span className="proto-pill !text-[12px] border-brand-forest bg-brand-forest-soft text-brand-forest">
+                {category}
+              </span>
+            ) : null}
+          </div>
         </div>
 
-        <FilterGroup label="Entity type">
-          {ENTITY_TYPES.map((opt) => (
-            <CheckboxRow
-              key={opt.value}
+        {/* Row 3 — common compact filters */}
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+          <Field label="City">
+            <input
+              type="text"
+              name="city"
+              list="discover-cities"
+              defaultValue={city}
+              placeholder="e.g. Dhaka"
+              autoComplete="off"
+              className={cn(inputBase, activeRing(Boolean(city)))}
+            />
+          </Field>
+          <Field label="District">
+            <input
+              type="text"
+              name="district"
+              list="discover-districts"
+              defaultValue={district}
+              placeholder="e.g. Gazipur"
+              autoComplete="off"
+              className={cn(inputBase, activeRing(Boolean(district)))}
+            />
+          </Field>
+          <Field label="Category / product">
+            <input
+              type="text"
+              name="category"
+              list="discover-products"
+              defaultValue={category}
+              placeholder="e.g. knitwear"
+              autoComplete="off"
+              className={cn(inputBase, activeRing(Boolean(category)))}
+            />
+          </Field>
+          <Field label="Receipts (T1–3)">
+            <select
+              name="min_sources"
+              defaultValue={minSources}
+              className={cn(inputBase, activeRing(Boolean(minSources)))}
+            >
+              {MIN_SOURCES_OPTIONS.map((o) => (
+                <option key={o.label} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          </Field>
+          <Field label="RSC % ≥">
+            <input
+              type="number"
+              name="rsc_min"
+              min={0}
+              max={100}
+              step={1}
+              inputMode="numeric"
+              defaultValue={rscMin !== null ? String(rscMin) : ""}
+              placeholder="e.g. 95"
+              className={cn(inputBase, activeRing(rscMin !== null))}
+            />
+          </Field>
+          <Field label="Min workforce">
+            <input
+              type="number"
+              name="workers_min"
+              min={0}
+              step={50}
+              inputMode="numeric"
+              defaultValue={workersMin !== null ? String(workersMin) : ""}
+              placeholder="e.g. 500"
+              className={cn(inputBase, activeRing(workersMin !== null))}
+            />
+          </Field>
+        </div>
+
+        {/* Row 3b — profile completeness on its own line. */}
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+          <Field label="Profile completeness ≥ %">
+            <input
+              type="number"
+              name="completeness_min"
+              min={0}
+              max={100}
+              step={5}
+              inputMode="numeric"
+              defaultValue={
+                completenessMin !== null ? String(completenessMin) : ""
+              }
+              placeholder="e.g. 60"
+              className={cn(inputBase, activeRing(completenessMin !== null))}
+            />
+          </Field>
+        </div>
+
+        {/* Row 4 — disclosure for the long-tail checkbox groups, so
+            the bar stays uncluttered when buyers only need the
+            common filters. */}
+        <details
+          className="group rounded-card border border-hairline bg-bg-l0 px-4 py-3 open:bg-surface-l1"
+          open={hasAdvancedActive}
+        >
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-sm font-medium text-ink-primary">
+            <span className="flex items-center gap-2">
+              More filters
+              {hasAdvancedActive ? (
+                <span className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-brand-forest-soft px-1.5 text-[11px] font-semibold text-brand-forest">
+                  {advancedCount}
+                </span>
+              ) : null}
+            </span>
+            <span className="text-xs text-ink-tertiary transition-transform group-open:rotate-180">
+              ▾
+            </span>
+          </summary>
+
+          <div className="mt-4 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            <CheckboxGroup
+              label="Entity type"
               name="entity"
-              value={opt.value}
-              label={opt.label}
-              checked={entityTypes.includes(opt.value)}
+              options={ENTITY_TYPES}
+              selected={entityTypes}
             />
-          ))}
-        </FilterGroup>
-
-        <FilterGroup label="Receipts (Tier 1–3 sources)">
-          <select
-            name="min_sources"
-            defaultValue={minSources}
-            className="w-full rounded-input border border-hairline bg-bg-l0 px-2 py-1.5 text-sm text-ink-primary outline-none focus:border-brand-forest"
-          >
-            {MIN_SOURCES_OPTIONS.map((o) => (
-              <option key={o.label} value={o.value}>
-                {o.label}
-              </option>
-            ))}
-          </select>
-        </FilterGroup>
-
-        <FilterGroup label="Certifications">
-          {CERT_KINDS.map((opt) => (
-            <CheckboxRow
-              key={opt.value}
+            <CheckboxGroup
+              label="Certifications"
               name="cert"
-              value={opt.value}
-              label={opt.label}
-              checked={certKinds.includes(opt.value)}
+              options={CERT_KINDS}
+              selected={certKinds}
             />
-          ))}
-        </FilterGroup>
-
-        <FilterGroup label="RSC remediation ≥ %">
-          <input
-            type="number"
-            name="rsc_min"
-            min={0}
-            max={100}
-            step={1}
-            inputMode="numeric"
-            defaultValue={rscMin !== null ? String(rscMin) : ""}
-            placeholder="e.g. 95"
-            className="w-full rounded-input border border-hairline bg-bg-l0 px-3 py-2 text-sm text-ink-primary outline-none focus:border-brand-forest"
-          />
-        </FilterGroup>
-
-        <FilterGroup label="Location">
-          <input
-            type="text"
-            name="city"
-            defaultValue={city}
-            placeholder="City"
-            className="w-full rounded-input border border-hairline bg-bg-l0 px-3 py-2 text-sm text-ink-primary outline-none focus:border-brand-forest"
-          />
-          <input
-            type="text"
-            name="district"
-            defaultValue={district}
-            placeholder="District"
-            className="mt-2 w-full rounded-input border border-hairline bg-bg-l0 px-3 py-2 text-sm text-ink-primary outline-none focus:border-brand-forest"
-          />
-        </FilterGroup>
-
-        <FilterGroup label="Category / product">
-          <input
-            type="text"
-            name="category"
-            defaultValue={category}
-            placeholder="e.g. knitwear"
-            className="w-full rounded-input border border-hairline bg-bg-l0 px-3 py-2 text-sm text-ink-primary outline-none focus:border-brand-forest"
-          />
-        </FilterGroup>
-
-        <div className="flex items-center gap-2 pt-1">
-          <button type="submit" className="btn-proto primary flex-1 justify-center">
-            Apply
-          </button>
-          <Link href={basePath} className="btn-proto">
-            Reset
-          </Link>
-        </div>
+            <CheckboxGroup
+              label="Registry membership"
+              name="registry"
+              options={REGISTRY_SOURCES}
+              selected={registries}
+            />
+            <CheckboxGroup
+              label="Brand factory list"
+              name="brand"
+              options={BRAND_SOURCES}
+              selected={brandCodes}
+            />
+            {facets.factory_types.length > 0 ? (
+              <CheckboxGroup
+                label="Factory type"
+                name="ftype"
+                options={facets.factory_types
+                  .slice(0, 12)
+                  .map((t) => ({ value: t, label: t }))}
+                selected={factoryTypes}
+              />
+            ) : null}
+          </div>
+        </details>
       </form>
-    </aside>
+
+      {/* Datalists for native type-ahead, re-used across the City /
+          District / Category inputs above. Server-rendered from the
+          live database via `discover_facets()`. */}
+      <SuggestionList id="discover-cities" values={facets.cities} />
+      <SuggestionList id="discover-districts" values={facets.districts} />
+      <SuggestionList id="discover-products" values={facets.products} />
+    </section>
   );
 }
 
-function FilterGroup({
+function activeRing(active: boolean): string {
+  return active
+    ? "border-brand-forest/50 bg-brand-forest-tint"
+    : "border-hairline";
+}
+
+function isQuickPickValue(category: string): boolean {
+  const v = category.trim().toLowerCase();
+  return PRODUCT_QUICK_PICKS.some((p) => p.toLowerCase() === v);
+}
+
+function Field({
   label,
   children,
 }: {
@@ -233,37 +466,73 @@ function FilterGroup({
   children: React.ReactNode;
 }) {
   return (
-    <fieldset className="space-y-2 border-0 p-0">
-      <legend className="text-[10px] font-semibold text-ink-tertiary">
+    <label className="block">
+      <span className="mb-1.5 block text-xs font-semibold text-ink-tertiary">
         {label}
+      </span>
+      {children}
+    </label>
+  );
+}
+
+function CheckboxGroup({
+  label,
+  name,
+  options,
+  selected,
+}: {
+  label: string;
+  name: string;
+  options: ReadonlyArray<{ value: string; label: string }>;
+  selected: string[];
+}) {
+  return (
+    <fieldset className="space-y-2 border-0 p-0">
+      <legend className="text-xs font-semibold text-ink-tertiary">
+        {label}
+        {selected.length > 0 ? (
+          <span className="ml-1.5 inline-flex h-4 min-w-[16px] items-center justify-center rounded-full bg-brand-forest-soft px-1 text-[10px] font-semibold text-brand-forest">
+            {selected.length}
+          </span>
+        ) : null}
       </legend>
-      <div className="space-y-1.5">{children}</div>
+      <div className="grid grid-cols-1 gap-1.5">
+        {options.map((opt) => {
+          const checked = selected.includes(opt.value);
+          return (
+            <label
+              key={opt.value}
+              className={cn(
+                "flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors",
+                checked
+                  ? "bg-brand-forest-soft text-brand-forest"
+                  : "text-ink-secondary hover:bg-bg-l0",
+              )}
+            >
+              <input
+                type="checkbox"
+                name={name}
+                value={opt.value}
+                defaultChecked={checked}
+                className="h-[18px] w-[18px] cursor-pointer accent-brand-forest"
+              />
+              <span>{opt.label}</span>
+            </label>
+          );
+        })}
+      </div>
     </fieldset>
   );
 }
 
-function CheckboxRow({
-  name,
-  value,
-  label,
-  checked,
-}: {
-  name: string;
-  value: string;
-  label: string;
-  checked: boolean;
-}) {
+function SuggestionList({ id, values }: { id: string; values: string[] }) {
+  if (values.length === 0) return null;
   return (
-    <label className="flex cursor-pointer items-center gap-2 text-sm text-ink-secondary">
-      <input
-        type="checkbox"
-        name={name}
-        value={value}
-        defaultChecked={checked}
-        className="h-4 w-4 cursor-pointer accent-brand-forest"
-      />
-      <span>{label}</span>
-    </label>
+    <datalist id={id}>
+      {values.map((v) => (
+        <option key={v} value={v} />
+      ))}
+    </datalist>
   );
 }
 
@@ -281,9 +550,7 @@ export function SortControl({
       aria-label="Sort results"
       className="flex flex-wrap items-center gap-1.5 text-[12px]"
     >
-      <span className="text-[10px] font-semibold text-ink-tertiary">
-        Sort
-      </span>
+      <span className="text-xs font-semibold text-ink-tertiary">Sort</span>
       {SORT_OPTIONS.map((opt) => {
         const href =
           basePath +
@@ -299,7 +566,8 @@ export function SortControl({
             href={href}
             className={cn(
               "proto-pill",
-              isActive && "border-brand-forest bg-brand-forest-soft text-brand-forest",
+              isActive &&
+                "border-brand-forest bg-brand-forest-soft text-brand-forest",
             )}
             aria-current={isActive ? "page" : undefined}
           >
@@ -342,14 +610,20 @@ export function Pagination({
       </span>
       <div className="flex items-center gap-2">
         {atFirst ? (
-          <span className="btn-proto cursor-not-allowed opacity-50">Previous</span>
+          <span className="btn-proto cursor-not-allowed opacity-50">
+            Previous
+          </span>
         ) : (
-          <Link href={prevHref} className="btn-proto">Previous</Link>
+          <Link href={prevHref} className="btn-proto">
+            Previous
+          </Link>
         )}
         {atLast ? (
           <span className="btn-proto cursor-not-allowed opacity-50">Next</span>
         ) : (
-          <Link href={nextHref} className="btn-proto">Next</Link>
+          <Link href={nextHref} className="btn-proto">
+            Next
+          </Link>
         )}
       </div>
     </nav>
