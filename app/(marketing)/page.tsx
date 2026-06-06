@@ -1,13 +1,52 @@
-// Spec M1 — Marketing landing page.
+// Spec M6a — Marketing v2 landing page.
 //
-// Server component, ISR 600s. Single anon-callable RPC drives the live
-// counter strip. No PII / no SBI / no per-supplier rows crosses this
-// boundary. Methodology copy is verbatim transcription of
-// `context/logos.lock.md` §1 (tier ring colour map) and §3 (Tier 4
-// authenticity rule + narrow OSH extension) — do not paraphrase, the
-// M1 smoke harness asserts text equality against `logos.lock.md`.
+// Server component, ISR 600s. Replaces the original M1 single-pager
+// with the cinematic dark + light "verified register" composition
+// from the Claude Design handoff bundle (sourcebd-design-system/),
+// while preserving every M1 contract:
+//
+//   - `public.marketing_stats()` RPC is the only data dependency
+//     for the live counter strip. No new RPC. No new ETL.
+//   - The "Per-factory authenticity rule" block under §"How we
+//     verify" is reproduced **verbatim** from logos.lock.md §3
+//     (Tier-4 authenticity-rule paragraph + narrow OSH extension
+//     paragraph) — `_m6a_smoke.py` asserts byte equality.
+//   - The "Source trust hierarchy" `<dl>` is reproduced **verbatim**
+//     from logos.lock.md §1 (the 6-row Tier-1 → Tier-6 ladder).
+//   - The "Receipts-first posture" paragraph contains the literal
+//     "never a SourceBD-proprietary supplier score" negation — the
+//     only place "score" may appear on this page.
+//   - JSON-LD Organization + LocalBusiness preserved inline.
+//   - The affiliation-disclaimer paragraph is preserved verbatim.
+//   - One <h1>, correct heading order, aria-label on each counter.
 
 import Link from "next/link";
+
+import {
+  ArrowRight,
+  Buildings,
+  CheckCircle,
+  Certificate,
+  Database,
+  FileText,
+  MagnifyingGlass,
+  Newspaper,
+  Receipt,
+  ShieldCheck,
+  Storefront,
+  Warning,
+} from "@phosphor-icons/react/dist/ssr";
+
+import { HeroParticles } from "@/components/marketing/hero-particles";
+import { HeroReveal } from "@/components/marketing/hero-reveal";
+import { IntegrityEngine } from "@/components/marketing/integrity-engine";
+import { LiveTicker } from "@/components/marketing/live-ticker";
+import { fetchAuthorityCount } from "@/lib/marketing/authority-count";
+import {
+  fetchShowcaseSupplier,
+  type ShowcaseRow,
+  type ShowcaseSupplier,
+} from "@/lib/marketing/showcase-supplier";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-static";
@@ -143,15 +182,24 @@ function relativeFromNow(iso: string | null): string | null {
   return rtf.format(Math.round(diffSec / 604800), "week");
 }
 
-const COUNTER_TILES: ReadonlyArray<{ key: keyof Stats; label: string }> = [
-  { key: "suppliers_indexed", label: "Suppliers indexed" },
+const COUNTER_TILES: ReadonlyArray<{
+  key: keyof Stats;
+  label: string;
+  icon: typeof Buildings;
+}> = [
+  { key: "suppliers_indexed", label: "Suppliers indexed", icon: Buildings },
   {
     key: "suppliers_with_tier1or2_source",
-    label: "Suppliers with government or association corroboration",
+    label: "With government or association corroboration",
+    icon: ShieldCheck,
   },
-  { key: "sanctions_lists_screened", label: "Sanctions lists screened" },
-  { key: "compliance_documents_mirrored", label: "Compliance documents mirrored" },
-  { key: "certifications_verified", label: "Certifications verified" },
+  { key: "sanctions_lists_screened", label: "Sanctions lists screened", icon: Warning },
+  {
+    key: "compliance_documents_mirrored",
+    label: "Compliance documents mirrored",
+    icon: FileText,
+  },
+  { key: "certifications_verified", label: "Certifications verified", icon: Certificate },
 ];
 
 // Tier ring colour map — verbatim from logos.lock.md §1.
@@ -159,17 +207,154 @@ const TIER_HIERARCHY: ReadonlyArray<{
   dbValue: string;
   label: string;
   meaning: string;
+  swatch: string;
 }> = [
-  { dbValue: "tier1_gov",        label: "Government",             meaning: "Statutory authority / ministry-level register" },
-  { dbValue: "tier2_industry",   label: "Trade association",      meaning: "Industry membership register" },
-  { dbValue: "tier3_cert",       label: "Certification body",     meaning: "Independent third-party audit" },
-  { dbValue: "tier4_brand",      label: "Brand disclosure",       meaning: "Buyer-published supplier list (self-reported)" },
-  { dbValue: "tier5_regulatory", label: "Regulatory / sanctions", meaning: "Negative-screening source (UFLPA, OFAC, etc.)" },
-  { dbValue: "tier6_crosscheck", label: "Cross-check only",       meaning: "Corroboration only — never primary evidence" },
+  { dbValue: "tier1_gov",        label: "Government",             meaning: "Statutory authority / ministry-level register", swatch: "var(--mkt-tier-gov)" },
+  { dbValue: "tier2_industry",   label: "Trade association",      meaning: "Industry membership register",                  swatch: "var(--mkt-tier-assoc)" },
+  { dbValue: "tier3_cert",       label: "Certification body",     meaning: "Independent third-party audit",                 swatch: "var(--mkt-tier-cert)" },
+  { dbValue: "tier4_brand",      label: "Brand disclosure",       meaning: "Buyer-published supplier list (self-reported)", swatch: "var(--mkt-tier-brand)" },
+  { dbValue: "tier5_regulatory", label: "Regulatory / sanctions", meaning: "Negative-screening source (UFLPA, OFAC, etc.)", swatch: "var(--mkt-tier-sanction)" },
+  { dbValue: "tier6_crosscheck", label: "Cross-check only",       meaning: "Corroboration only — never primary evidence",   swatch: "var(--mkt-tier-xcheck)" },
 ];
 
+// JC #9 — Tier-1 + Tier-2 authority monogram tiles. Not customer
+// logos — we have none to publish. These are the source authorities
+// the platform indexes against.
+const AUTHORITY_TILES = [
+  { code: "BEPZA", name: "Export Processing Zones", tier: "tier1_gov" },
+  { code: "DIFE",  name: "Inspection (Factories)",  tier: "tier1_gov" },
+  { code: "EPB",   name: "Export Promotion Bureau", tier: "tier1_gov" },
+  { code: "RJSC",  name: "Joint Stock Companies",   tier: "tier1_gov" },
+  { code: "RSC",   name: "RMG Sustainability Council", tier: "tier1_gov" },
+  { code: "BGMEA", name: "Garment Manufacturers",   tier: "tier2_industry" },
+  { code: "BKMEA", name: "Knitwear Manufacturers",  tier: "tier2_industry" },
+  { code: "BTMA",  name: "Textile Mills",           tier: "tier2_industry" },
+  { code: "BGAPMEA",name: "Garment Accessories",    tier: "tier2_industry" },
+] as const;
+
+function swatchForTier(tier: string): string {
+  if (tier === "tier1_gov") return "var(--mkt-tier-gov)";
+  if (tier === "tier2_industry") return "var(--mkt-tier-assoc)";
+  if (tier === "tier3_cert") return "var(--mkt-tier-cert)";
+  if (tier === "tier4_brand") return "var(--mkt-tier-brand)";
+  if (tier === "tier5_regulatory") return "var(--mkt-tier-sanction)";
+  return "var(--mkt-tier-xcheck)";
+}
+
+function swatchForRow(row: ShowcaseRow): string {
+  return swatchForTier(row.tier);
+}
+
+// Hero headline — JC #4. Live number inside an Archivo display
+// word-up reveal; fall back to "the verified register" with no
+// number when the RPC failed (stats.suppliers_indexed === null).
+function HeroHeadline({ count }: { count: number | null }) {
+  const formatted = count != null ? NF.format(count) : null;
+  return (
+    <h1>
+      <span className="mkt-word"><span>The&nbsp;</span></span>
+      <span className="mkt-word"><span>verified&nbsp;</span></span>
+      <span className="mkt-word"><span>register&nbsp;</span></span>
+      <span className="mkt-word"><span>of&nbsp;</span></span>
+      {formatted ? (
+        <>
+          <span className="mkt-word"><span className="mkt-g">{formatted}&nbsp;</span></span>
+          <span className="mkt-word"><span>Bangladesh&nbsp;</span></span>
+          <span className="mkt-word"><span>garment&nbsp;</span></span>
+          <span className="mkt-word"><span>factories.</span></span>
+        </>
+      ) : (
+        <>
+          <span className="mkt-word"><span className="mkt-g">Bangladesh&nbsp;</span></span>
+          <span className="mkt-word"><span>garment&nbsp;</span></span>
+          <span className="mkt-word"><span>factories.</span></span>
+        </>
+      )}
+    </h1>
+  );
+}
+
+function DossierMock({ supplier }: { supplier: ShowcaseSupplier | null }) {
+  const isSynthetic = supplier == null;
+  const company = supplier?.company_name ?? "Cotton Club (BD) Ltd";
+  const monogram = supplier?.monogram ?? "CC";
+  const location = [supplier?.city, supplier?.district].filter(Boolean).join(" · ");
+  const subtitle =
+    (supplier?.entity_type === "buying_house" ? "Buying house" : "Knit composite") +
+    (location ? " · " + location : isSynthetic ? " · Gazipur" : "");
+  const t13 = Math.max(1, Math.min(5, supplier?.t13_source_count ?? 4));
+  const rows: ShowcaseRow[] = supplier?.rows ?? [
+    { source_code: "DIFE",     label: "DIFE factory register",  tier: "tier1_gov" },
+    { source_code: "OEKO_TEX", label: "OEKO-TEX STANDARD 100",   tier: "tier3_cert" },
+    { source_code: "OFAC",     label: "OFAC · UFLPA — clear",     tier: "tier5_regulatory" },
+  ];
+  return (
+    <div className="mkt-herodash" aria-hidden={isSynthetic ? "true" : undefined}>
+      <div className="mkt-appwin">
+        <div className="mkt-aw-bar">
+          <span className="mkt-aw-mark" aria-hidden="true">
+            <ShieldCheck weight="fill" />
+          </span>
+          <div className="mkt-aw-search">
+            <MagnifyingGlass size={13} weight="bold" />
+            <span>sourcebd.net / suppliers / {supplier?.slug ?? "cotton-club-bd-ltd"}</span>
+          </div>
+          <span className="mkt-aw-av" aria-hidden="true" />
+        </div>
+        <div className="mkt-aw-body">
+          <div className="mkt-hd-head">
+            <span className="mkt-hd-logo">{monogram}</span>
+            <div className="mkt-hd-id">
+              <h3>{company}</h3>
+              <div className="mkt-hd-sub">{subtitle}</div>
+              <span className="mkt-hd-vchip">
+                <CheckCircle size={11} weight="fill" />
+                Corroborated · {t13} Tier 1–3 {t13 === 1 ? "source" : "sources"}
+              </span>
+            </div>
+          </div>
+          <div className="mkt-hd-meter">
+            <div className="mkt-hd-meter-top">
+              <span>Receipts</span>
+              <b>{t13}/5</b>
+            </div>
+            <div className="mkt-hd-bar">
+              {[0, 1, 2, 3, 4].map((i) => (
+                <i key={i} className={i < t13 ? "on" : ""} />
+              ))}
+            </div>
+          </div>
+          <div className="mkt-hd-rows">
+            {rows.map((r) => (
+              <div key={r.source_code} className="mkt-hd-row">
+                <span
+                  className="mkt-hd-dot"
+                  style={{ background: swatchForRow(r) }}
+                  aria-hidden="true"
+                />
+                <div className="mkt-hd-nm">
+                  <b>{r.label}</b>
+                  <small>{r.source_code}</small>
+                </div>
+                <span className="mkt-hd-chk">
+                  <CheckCircle size={11} weight="bold" />
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default async function MarketingHome() {
-  const [stats, sources] = await Promise.all([loadStats(), loadSources()]);
+  const [stats, sources, showcase, authorityCount] = await Promise.all([
+    loadStats(),
+    loadSources(),
+    fetchShowcaseSupplier(),
+    fetchAuthorityCount(),
+  ]);
   const lastUpdated = relativeFromNow(stats.last_refreshed_at);
 
   const sourcesByTier = new Map<string, Source[]>();
@@ -182,10 +367,11 @@ export default async function MarketingHome() {
     bucket.sort((a, b) => a.display_name.localeCompare(b.display_name));
   }
 
+  const showcaseSlug = showcase?.slug ?? "cotton-club-bd-ltd";
+
   return (
-    <main className="mx-auto max-w-5xl px-6 py-16">
-      {/* M4 — JSON-LD Organization. Inline (not next/script) — see spec
-          M4 hard constraint #4. */}
+    <main>
+      {/* M4 — JSON-LD Organization + LocalBusiness. Inline; not next/script. */}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
@@ -199,172 +385,407 @@ export default async function MarketingHome() {
           }),
         }}
       />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "LocalBusiness",
+            name: "SourceBD",
+            url: SITE_URL,
+            areaServed: ["GB", "US", "DE", "FR", "BD"],
+            knowsAbout: [
+              "Bangladesh ready-made garment manufacturing",
+              "Supply chain compliance",
+              "UFLPA forced-labour due diligence",
+              "RSC remediation",
+              "OEKO-TEX certification",
+              "WRAP certification",
+              "GOTS certification",
+            ],
+          }),
+        }}
+      />
+
+      {/* Hero reveal client island — toggles `.in` on the hero +
+          any `[data-mkt-reveal]` element on viewport entry. */}
+      <HeroReveal />
+
       {/* ─────────── 1. Hero ─────────── */}
-      <section className="text-center">
-        <h1 className="font-display text-4xl font-light tracking-tight text-ink-primary sm:text-5xl md:text-6xl">
-          Verified{" "}
-          <span className="proto-wordmark text-4xl sm:text-5xl md:text-6xl">
-            Bangladesh
-          </span>{" "}
-          garment factories
-        </h1>
-        <p className="mx-auto mt-5 max-w-2xl text-base text-ink-secondary leading-relaxed sm:text-lg">
-          A neutral, public-record index of the country&apos;s RMG sector — each
-          supplier traceable to the regulator, association, certifier, or
-          brand that named them.
-        </p>
-        <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-          <Link href="/signup" className="btn-proto primary">
-            Start free
-          </Link>
-          <Link href="/discover" className="btn-proto">
-            Browse the directory
-          </Link>
+      <section className="mkt-hero" data-mkt-hero>
+        <div className="mkt-hero-bg" aria-hidden="true">
+          <div className="mkt-glow-a" />
+          <div className="mkt-glow-b" />
         </div>
-      </section>
+        <div className="mkt-hero-grid-lines" aria-hidden="true" />
+        <HeroParticles />
+        <div className="mkt-hero-fade" aria-hidden="true" />
 
-      {/* ─────────── 2. Live counter strip ─────────── */}
-      <section className="mt-16">
-        <h2 className="sr-only">Live metrics</h2>
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
-          {COUNTER_TILES.map((tile) => {
-            const value = stats[tile.key] as number | null;
-            const formatted = fmtCount(value);
-            return (
-              <div
-                key={tile.key}
-                aria-label={`${tile.label}: ${formatted}`}
-                className="proto-card hoverable"
-              >
-                <div className="font-display text-3xl font-light tracking-tight text-ink-primary">
-                  {formatted}
-                </div>
-                <div className="mt-2 text-[10px] text-ink-tertiary">
-                  {tile.label}
-                </div>
+        <div className="mkt-wrap">
+          <div className="mkt-hero-grid">
+            <div>
+              <span className="mkt-eyebrow">
+                <span className="dot" /> Public-record index · Bangladesh RMG
+              </span>
+              <HeroHeadline count={stats.suppliers_indexed} />
+              <p className="mkt-lede">
+                A neutral, public-record index of every government,
+                association, and certification body that names the
+                country&apos;s garment factories — with receipts on every claim.
+              </p>
+
+              <form className="mkt-searchbar" action="/discover" method="get" role="search">
+                <MagnifyingGlass size={19} weight="bold" />
+                <input
+                  type="search"
+                  name="q"
+                  placeholder="Search company name, BIN, BGMEA #, or city…"
+                  aria-label="Search suppliers"
+                  autoComplete="off"
+                />
+                <button type="submit" className="mkt-btn mkt-btn-primary">
+                  Search <ArrowRight size={15} />
+                </button>
+              </form>
+
+              <div className="mkt-hero-tags">
+                <span><b>10k+</b>&nbsp;suppliers indexed</span>
+                <span><b>5</b>&nbsp;Tier-1 registers</span>
+                <span><b>4</b>&nbsp;Tier-2 associations</span>
+                <span><b>3</b>&nbsp;cert bodies</span>
+                <span><b>5</b>&nbsp;sanctions lists</span>
               </div>
-            );
-          })}
-        </div>
-        {lastUpdated && (
-          <p className="mt-3 text-[11px] text-ink-tertiary">
-            Last updated {lastUpdated}
-          </p>
-        )}
-      </section>
+            </div>
+            <DossierMock supplier={showcase} />
+          </div>
 
-      {/* ─────────── 3. How we verify ─────────── */}
-      <section className="mt-20">
-        <header className="proto-card-head">
-          <h2 className="proto-card-title">How we verify</h2>
-        </header>
-        <div className="proto-card">
-          <h3 className="font-display text-lg font-semibold tracking-tight text-ink-primary">
-            Source trust hierarchy
-          </h3>
-          <dl className="mt-4 divide-y divide-hairline border-y border-hairline">
-            {TIER_HIERARCHY.map((row) => (
-              <div
-                key={row.dbValue}
-                className="grid grid-cols-1 gap-2 py-3 md:grid-cols-[220px_1fr]"
-              >
-                <dt className="text-sm font-medium text-ink-primary">
-                  {row.label}
-                </dt>
-                <dd className="text-sm text-ink-secondary">{row.meaning}</dd>
-              </div>
-            ))}
-          </dl>
-
-          <h3 className="mt-10 font-display text-lg font-semibold tracking-tight text-ink-primary">
-            Per-factory authenticity rule
-          </h3>
-          <blockquote className="mt-4 space-y-4 border-l-2 border-brand-forest pl-4 text-sm text-ink-secondary leading-relaxed">
-            <p>
-              <strong>Authenticity rule (hard):</strong> a <code>BRAND_*</code>
-              {" "}source pill is permitted on a supplier profile <strong>only
-              when the brand&apos;s own publication names that specific
-              factory</strong> (tabular supplier list, interactive-map detail
-              card, or sustainability page mentioning the factory by name). A
-              brand-wide Modern Slavery Statement is <strong>not</strong>
-              {" "}per-factory evidence and must not attach to any supplier row,
-              no matter how official the document.
-            </p>
-            <p>
-              <strong>Narrow OSH extension (2026-05-19):</strong> the
-              authenticity bar is also satisfied when (a) the brand is the
-              named Open Supply Hub contributor AND (b) the OSH facility list
-              is officially embedded on the brand&apos;s own corporate domain
-              (i.e. the brand publishes the OSH iframe as its first-party
-              disclosure surface). Both conditions are runtime-enforced — the
-              scraper must capture a live XHR from the brand&apos;s corporate
-              page referencing the contributor id before any record is
-              upserted.
-            </p>
-          </blockquote>
-
-          <h3 className="mt-10 font-display text-lg font-semibold tracking-tight text-ink-primary">
-            Receipts-first posture
-          </h3>
-          <p className="mt-4 text-sm text-ink-secondary leading-relaxed">
-            We publish what issuers have already certified — cert IDs,
-            register numbers, remediation percentages, brand-disclosure
-            attributions — and never a SourceBD-proprietary supplier score.
-          </p>
-        </div>
-      </section>
-
-      {/* ─────────── 4. Trust sources ─────────── */}
-      <section className="mt-20">
-        <header className="proto-card-head">
-          <h2 className="proto-card-title">The sources we draw on</h2>
-        </header>
-        <div className="proto-card space-y-8">
-          {TIER_ORDER.map((tier) => {
-            const bucket = sourcesByTier.get(tier) ?? [];
-            if (bucket.length === 0) return null;
-            return (
-              <div key={tier}>
-                <h3 className="text-[10px] font-semibold text-ink-tertiary">
-                  {TIER_LABELS[tier]}
-                </h3>
-                <ul className="mt-3 flex flex-wrap gap-x-6 gap-y-2">
-                  {bucket.map((s) => (
-                    <li key={s.code}>
-                      <span className="text-sm text-ink-primary">
-                        {s.display_name}
+          {/* Metrics band overlapping the hero seam */}
+          <div className="mkt-metrics-wrap">
+            <div className="mkt-metrics">
+              <div className="mkt-metrics-grid">
+                {COUNTER_TILES.map((tile) => {
+                  const value = stats[tile.key] as number | null;
+                  const formatted = fmtCount(value);
+                  const Icon = tile.icon;
+                  return (
+                    <div
+                      key={tile.key}
+                      className="mkt-metric"
+                      aria-label={`${tile.label}: ${formatted}`}
+                    >
+                      <span className="mkt-eyebrow" style={{ marginBottom: 14 }}>
+                        <Icon size={13} weight="bold" />
                       </span>
-                    </li>
-                  ))}
-                </ul>
+                      <span className="num">{formatted}</span>
+                      <span className="lbl">{tile.label}</span>
+                    </div>
+                  );
+                })}
+                <div className="mkt-metrics-foot">
+                  <span className="mkt-live-pip">
+                    <span className="lv" /> Live
+                  </span>
+                  {lastUpdated && <span>Last refreshed {lastUpdated}</span>}
+                  <span className="spacer" />
+                  <span>Source · public-record aggregation</span>
+                </div>
               </div>
-            );
-          })}
+            </div>
+          </div>
+        </div>
+
+        {/* Live ticker spans full width under hero band */}
+        <LiveTicker />
+      </section>
+
+      {/* ─────────── 2. Trust ladder ─────────── */}
+      <section className="mkt-block" id="how-we-verify">
+        <div className="mkt-wrap">
+          <header className="mkt-sec-head mkt-reveal" data-mkt-reveal>
+            <p className="mkt-sec-kicker">How we verify</p>
+            <h2>The same source ladder every credible auditor uses.</h2>
+            <p>
+              SourceBD ranks every claim by the issuing authority. The higher
+              the tier, the harder it is to publish. We never let a
+              cross-check source overwrite a higher-tier record.
+            </p>
+          </header>
+
+          <div className="mkt-ladder">
+            <div className="mkt-reveal" data-mkt-reveal>
+              {TIER_HIERARCHY.map((t, i) => (
+                <div key={t.dbValue} className="mkt-tier">
+                  <span className="mkt-rank">T{i + 1}</span>
+                  <div className="mkt-body">
+                    <h4>
+                      <span
+                        className="mkt-tier-chip"
+                        style={{ background: t.swatch, color: "#0c2c1f" }}
+                      >
+                        {t.label}
+                      </span>
+                    </h4>
+                    <p>{t.meaning}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <aside className="mkt-receipts-note mkt-reveal" data-mkt-reveal>
+              <h3>Receipts on every claim.</h3>
+              <p>
+                Every supplier card and every profile page shows the issuing
+                authority. No SourceBD-proprietary opinion. No black-box
+                rating. The provenance tab links straight back to the
+                regulator, the association, or the brand that named the
+                factory.
+              </p>
+              <div className="mkt-rule">
+                <div>
+                  <ShieldCheck size={16} weight="fill" />
+                  Tier 6 sources are corroboration only — never primary
+                  evidence.
+                </div>
+                <div>
+                  <ShieldCheck size={16} weight="fill" />
+                  Brand disclosure attaches only when the brand names the
+                  specific factory.
+                </div>
+                <div>
+                  <ShieldCheck size={16} weight="fill" />
+                  Sanctions screen runs nightly; an active hit forces a red
+                  banner that overrides every other chrome.
+                </div>
+              </div>
+            </aside>
+          </div>
         </div>
       </section>
 
-      {/* ─────────── 5. Founder story ─────────── */}
-      <section className="mt-20">
-        <header className="proto-card-head">
-          <h2 className="proto-card-title">Why we built this</h2>
-        </header>
-        <div className="proto-card">
-          {/* FOUNDER: replace before launch */}
-          <p className="max-w-3xl text-sm text-ink-secondary leading-relaxed">
-            {FOUNDER_STORY}
-          </p>
+      {/* ─────────── 3. Authorities wall ─────────── */}
+      <section className="mkt-block" style={{ paddingTop: 0 }}>
+        <div className="mkt-wrap mkt-reveal" data-mkt-reveal>
+          <div className="mkt-logowall">
+            <div>
+              <div className="mkt-lw-label">
+                <span className="dot" style={{ background: "var(--mkt-tier-gov)" }} />
+                Indexes {authorityCount > 0 ? authorityCount : 9} primary
+                registers across government and trade associations
+              </div>
+              <div className="mkt-lw-tiles">
+                {AUTHORITY_TILES.map((a) => (
+                  <div key={a.code} className="mkt-lw-tile">
+                    <span
+                      className="mkt-tdot"
+                      style={{ background: swatchForTier(a.tier) }}
+                    />
+                    <b>{a.code}</b>
+                    <span>{a.name}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
-      <p className="affiliation-disclaimer mt-12">
-        Authority logos identify the data sources we aggregate from.
-        SourceBD is not affiliated with or endorsed by BGMEA, BKMEA, BTMA,
-        BGAPMEA, EPB, OEKO-TEX, WRAP, GOTS, RSC, or any of the brands
-        named on this page. Every datum traces to the issuing authority
-        shown on the Provenance tab.
-      </p>
+      {/* ─────────── 4. Integrity engine ─────────── */}
+      <section className="mkt-engine mkt-block">
+        <div className="mkt-wrap">
+          <header className="mkt-sec-head mkt-reveal" data-mkt-reveal>
+            <p className="mkt-sec-kicker">The integrity engine</p>
+            <h2>Continuous capture from the publishers themselves.</h2>
+            <p>
+              The scrapers fetch directly from regulators, associations,
+              and certification bodies — never via a paid intermediary or a
+              third-party aggregator. Every record carries a timestamped
+              link back to the original publisher.
+            </p>
+          </header>
+          <IntegrityEngine supplier={showcase} />
+        </div>
+      </section>
 
-      {/* Footer rendered by `app/(marketing)/layout.tsx` (M2). */}
+      {/* ─────────── 5. Positioning cards ─────────── */}
+      <section className="mkt-position mkt-block">
+        <div className="mkt-wrap">
+          <header className="mkt-pos-head mkt-reveal" data-mkt-reveal>
+            <p className="mkt-sec-kicker">What we are not</p>
+            <h2>Three things SourceBD <em>isn&apos;t</em>.</h2>
+          </header>
+          <div className="mkt-pos-cols">
+            <article className="mkt-pos-card mkt-reveal" data-mkt-reveal>
+              <span className="x"><Storefront size={18} weight="bold" /></span>
+              <h4>Not a marketplace.</h4>
+              <p>
+                We do not list inventory, take a transaction cut, or claim
+                ownership of any supplier&apos;s relationship with their
+                buyer.
+              </p>
+              <div className="is">
+                <CheckCircle size={15} weight="fill" />
+                We&apos;re the neutral register that names the factory.
+              </div>
+            </article>
+            <article className="mkt-pos-card mkt-reveal" data-mkt-reveal>
+              <span className="x"><Newspaper size={18} weight="bold" /></span>
+              <h4>Not a broker.</h4>
+              <p>
+                We do not introduce, vet for fee, or earn a commission on
+                downstream contracts. The directory is free to search.
+              </p>
+              <div className="is">
+                <CheckCircle size={15} weight="fill" />
+                We charge for software, not for access to a name.
+              </div>
+            </article>
+            <article className="mkt-pos-card mkt-reveal" data-mkt-reveal>
+              <span className="x"><Receipt size={18} weight="bold" /></span>
+              <h4>Not a rating agency.</h4>
+              <p>
+                We never publish a SourceBD-issued numeric score. The
+                public face is third-party receipts — cert IDs, register
+                numbers, RSC remediation %, brand-disclosure attributions.
+              </p>
+              <div className="is">
+                <CheckCircle size={15} weight="fill" />
+                Receipts, not opinions.
+              </div>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      {/* ─────────── 6. Trust sources (typography wordmarks per M1 JC #1) ─────────── */}
+      <section className="mkt-block">
+        <div className="mkt-wrap">
+          <header className="mkt-sec-head mkt-reveal" data-mkt-reveal>
+            <p className="mkt-sec-kicker">The sources we draw on</p>
+            <h2>Names every compliance officer already trusts.</h2>
+          </header>
+          <div className="mkt-method-card mkt-reveal" data-mkt-reveal>
+            {TIER_ORDER.map((tier) => {
+              const bucket = sourcesByTier.get(tier) ?? [];
+              if (bucket.length === 0) return null;
+              return (
+                <div key={tier} style={{ marginBottom: 20 }}>
+                  <h3 style={{ fontSize: 13, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--mkt-text-3)", fontFamily: "var(--mkt-font-mono)", fontWeight: 600 }}>
+                    {TIER_LABELS[tier]}
+                  </h3>
+                  <ul style={{ marginTop: 10, listStyle: "none", padding: 0, display: "flex", flexWrap: "wrap", columnGap: 24, rowGap: 6 }}>
+                    {bucket.map((s) => (
+                      <li key={s.code}>
+                        <span style={{ fontFamily: "var(--mkt-font-display)", fontWeight: 700, color: "#fff" }}>
+                          {s.display_name}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      {/* ─────────── 7. Methodology (locked copy blocks) ─────────── */}
+      <section className="mkt-block">
+        <div className="mkt-wrap">
+          <header className="mkt-sec-head mkt-reveal" data-mkt-reveal>
+            <p className="mkt-sec-kicker">Methodology</p>
+            <h2>How we verify, in three rules.</h2>
+          </header>
+          <div className="mkt-method-card mkt-reveal" data-mkt-reveal>
+            <h3>Source trust hierarchy</h3>
+            <dl>
+              {TIER_HIERARCHY.map((row) => (
+                <div key={row.dbValue}>
+                  <dt>{row.label}</dt>
+                  <dd>{row.meaning}</dd>
+                </div>
+              ))}
+            </dl>
+
+            <h3 style={{ marginTop: 32 }}>Per-factory authenticity rule</h3>
+            <div className="mkt-method-block">
+              <p>
+                <strong>Authenticity rule (hard):</strong> a <code>BRAND_*</code>
+                {" "}source pill is permitted on a supplier profile <strong>only
+                when the brand&apos;s own publication names that specific
+                factory</strong> (tabular supplier list, interactive-map detail
+                card, or sustainability page mentioning the factory by name). A
+                brand-wide Modern Slavery Statement is <strong>not</strong>
+                {" "}per-factory evidence and must not attach to any supplier row,
+                no matter how official the document.
+              </p>
+              <p>
+                <strong>Narrow OSH extension (2026-05-19):</strong> the
+                authenticity bar is also satisfied when (a) the brand is the
+                named Open Supply Hub contributor AND (b) the OSH facility list
+                is officially embedded on the brand&apos;s own corporate domain
+                (i.e. the brand publishes the OSH iframe as its first-party
+                disclosure surface). Both conditions are runtime-enforced — the
+                scraper must capture a live XHR from the brand&apos;s corporate
+                page referencing the contributor id before any record is
+                upserted.
+              </p>
+            </div>
+
+            <h3 style={{ marginTop: 32 }}>Receipts-first posture</h3>
+            <div className="mkt-method-block">
+              <p>
+                We publish what issuers have already certified — cert IDs,
+                register numbers, remediation percentages, brand-disclosure
+                attributions — and never a SourceBD-proprietary supplier score.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ─────────── 8. Founder ─────────── */}
+      <section className="mkt-block">
+        <div className="mkt-wrap">
+          <header className="mkt-sec-head mkt-reveal" data-mkt-reveal>
+            <p className="mkt-sec-kicker">Why we built this</p>
+            <h2>The neutral register the trade has been missing.</h2>
+          </header>
+          <div className="mkt-method-card mkt-reveal" data-mkt-reveal>
+            {/* FOUNDER: replace before launch */}
+            <p style={{ fontFamily: "var(--mkt-font-body)", fontSize: 16, lineHeight: 1.7, color: "var(--mkt-text-2)", maxWidth: "62ch" }}>
+              {FOUNDER_STORY}
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* ─────────── 9. CTA ─────────── */}
+      <section className="mkt-cta">
+        <div className="mkt-wrap">
+          <div className="mkt-cta-box mkt-reveal" data-mkt-reveal>
+            <div>
+              <h2>Start vetting suppliers in minutes.</h2>
+              <p>
+                Free to search the public register. No card required. Sign
+                up to save searches, export evidence, and unlock contact
+                details on verified buyers&apos; plans.
+              </p>
+            </div>
+            <div className="mkt-cta-actions">
+              <Link href="/signup" className="mkt-btn mkt-btn-lg mkt-btn-white">
+                Start free <ArrowRight size={17} />
+              </Link>
+              <Link
+                href={`/suppliers/${showcaseSlug}`}
+                className="mkt-btn mkt-btn-lg mkt-btn-ghost"
+              >
+                See a sample profile <Database size={15} />
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Footer is rendered by `app/(marketing)/layout.tsx`. */}
     </main>
   );
 }

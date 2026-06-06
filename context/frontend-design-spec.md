@@ -30,8 +30,12 @@ These invariants from `ui-context.md` remain in force (preserved, not deprecated
 | Styling | Tailwind utility classes only, `cn()` helper |
 | Component primitives | shadcn/ui (Radix under the hood) |
 | Icons | Phosphor Icons (`@phosphor-icons/react`) |
-| Display font | Bricolage Grotesque |
-| Body font | Plus Jakarta Sans |
+| Display font (app) | Bricolage Grotesque — used on `/app`, `/supplier`, `/admin` |
+| Body font (app) | Plus Jakarta Sans — used on `/app`, `/supplier`, `/admin` |
+| Mono font (app) | JetBrains Mono — used on `/app`, `/supplier`, `/admin` |
+| Display font (marketing + auth) | Archivo — scoped to `(marketing)` + `(auth)` layouts only (Spec M6a) |
+| Body font (marketing + auth) | Hanken Grotesk — scoped to `(marketing)` + `(auth)` layouts only (Spec M6a) |
+| Mono font (marketing + auth) | IBM Plex Mono — scoped to `(marketing)` + `(auth)` layouts only (Spec M6a) |
 | Auth UI | Supabase Auth (buyer / supplier / admin) |
 | Data | Supabase JS + RLS — never bypass with a service role for buyer-facing reads |
 | Tables / virtual lists | TanStack Table + virtualisation for any list > 50 rows |
@@ -40,6 +44,18 @@ These invariants from `ui-context.md` remain in force (preserved, not deprecated
 | Errors | Sentry |
 
 Do not introduce a different component lib, icon set, font, table lib, or styling system without a Hard-Rule-4 exception.
+
+**Font-stack split rationale (Spec M6a, 6 Jun 2026).** The marketing
+and auth surfaces use a separate type stack from the buyer / supplier
+/ admin app surfaces. Marketing chrome must read as a public register
+(Archivo display authority, IBM Plex Mono data) while the app chrome
+stays in the calmer Bricolage / Plus Jakarta palette tuned for long
+sessions. The two stacks are wired through `next/font/google`
+declared per-layout, so font binaries are only delivered on the
+routes that use them, and the CSS variables (`--font-display` vs
+`--mkt-font-display`, etc.) coexist without collision. Marketing
+tokens including the font variables live under the
+`[data-surface="marketing"]` selector in `app/globals.css`.
 
 ---
 
