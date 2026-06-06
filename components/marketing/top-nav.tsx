@@ -1,18 +1,26 @@
 // Spec M2 — Shared marketing top-nav.
 //
-// Server component, role-aware. Mounted in `app/(marketing)/layout.tsx` so
-// every marketing surface (`/`, `/pricing`, `/legal/trademarks`) renders
-// the same chrome. JC #10 ack: brand-left, role-aware right side, no
-// hamburger (single nav link).
+// Client component, role-aware after hydration. Mounted in
+// `app/(marketing)/layout.tsx` so every marketing surface (`/`, `/pricing`,
+// `/legal/trademarks`, `/discover`, `/suppliers/[slug]`, `/compliance/*`)
+// renders the same chrome.
 //
-// Role detection uses the existing `getServerRole()` helper from
-// `lib/auth.ts` (cookie-aware Supabase server client). UI visibility is
-// never the security control — the helper resolves the same way every
-// authenticated surface does, including admin gates.
+// I-033: marketing pages are statically generated (`force-static` or
+// `revalidate=N`). A server component cannot detect the session under
+// static rendering — there is no request cookie — so the cached HTML
+// always rendered the anonymous CTAs even for logged-in visitors. This
+// component now SSRs the anon variant (matching the prerendered HTML,
+// so no hydration mismatch) and fetches `/api/session/me` once on mount
+// to swap to the role-aware variant. UI visibility is never the security
+// control — `middleware.ts` still gates `/app`, `/supplier`, `/admin`,
+// `/api/v1/*` on the server.
+
+"use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 
-import { getServerRole, type Role } from "@/lib/auth";
+type Role = "admin" | "buyer" | "supplier";
 
 function rightLinks(role: Role | null) {
   if (role === "supplier") {
@@ -93,16 +101,30 @@ function rightLinks(role: Role | null) {
   );
 }
 
-export async function MarketingTopNav() {
-  // Role detection is best-effort: if the cookie session or Supabase
-  // client throws (e.g. static prerender without runtime env), render the
-  // logged-out variant rather than crashing the build.
-  let role: Role | null = null;
-  try {
-    role = await getServerRole();
-  } catch {
-    role = null;
-  }
+export function MarketingTopNav() {
+  // SSR + first client render: anon variant. Matches the statically
+  // generated HTML so hydration is clean.
+  const [role, setRole] = useState<Role | null>(null);
+
+  useEffect(() => {
+    const ac = new AbortController();
+    fetch("/api/session/me", {
+      credentials: "include",
+      cache: "no-store",
+      signal: ac.signal,
+    })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (data && (data.role === "admin" || data.role === "buyer" || data.role === "supplier")) {
+          setRole(data.role as Role);
+        }
+      })
+      .catch(() => {
+        // Network/abort: leave anon nav in place.
+      });
+    return () => ac.abort();
+  }, []);
+
   return (
     <nav
       data-marketing-nav
@@ -117,3 +139,4 @@ export async function MarketingTopNav() {
     </nav>
   );
 }
+
