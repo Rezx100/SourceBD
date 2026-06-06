@@ -40,7 +40,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { resolveRegistryUrl, resolveCertificateUrl } from "@/lib/source-links";
 import { dedupAddresses, type DedupedAddress } from "@/lib/dedup-addresses";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 300;
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://sourcebd.net";
 

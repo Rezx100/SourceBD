@@ -1,9 +1,15 @@
 // /api/v1/admin/certifications/decide — approve/reject a queued cert (Spec A3).
 
 import { NextResponse } from "next/server";
+import { revalidateTag } from "next/cache";
 
 import { getServerRole } from "@/lib/auth";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import {
+  TAG_DISCOVER_FACETS,
+  TAG_DISCOVER_SUPPLIERS,
+  tagSupplier,
+} from "@/lib/cache/tags";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -69,6 +75,18 @@ export async function POST(req: Request) {
       { error: "admin_cert_decide failed", detail: error.message },
       { status: code },
     );
+  }
+  revalidateTag(TAG_DISCOVER_FACETS);
+  revalidateTag(TAG_DISCOVER_SUPPLIERS);
+  const supplierId = (data as { supplier_id?: string } | null)?.supplier_id;
+  if (supplierId) {
+    const { data: slugRow } = await supabase
+      .from("suppliers")
+      .select("slug")
+      .eq("id", supplierId)
+      .maybeSingle();
+    const slug = (slugRow as { slug?: string } | null)?.slug;
+    if (slug) revalidateTag(tagSupplier(slug));
   }
   return NextResponse.json(data);
 }

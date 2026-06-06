@@ -13,9 +13,15 @@
 // never aborts the batch.
 
 import { NextResponse } from "next/server";
+import { revalidateTag } from "next/cache";
 
 import { getServerRole } from "@/lib/auth";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import {
+  TAG_DISCOVER_FACETS,
+  TAG_DISCOVER_SUPPLIERS,
+  tagSupplier,
+} from "@/lib/cache/tags";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -254,6 +260,13 @@ export async function POST(req: Request) {
   const failed = outcomes.filter((o) => o.ok === false) as Array<
     Extract<Outcome, { ok: false }>
   >;
+  if (updated > 0) {
+    revalidateTag(TAG_DISCOVER_FACETS);
+    revalidateTag(TAG_DISCOVER_SUPPLIERS);
+    for (const o of outcomes) {
+      if (o.ok) revalidateTag(tagSupplier(o.slug));
+    }
+  }
   return NextResponse.json({
     processed: outcomes.length,
     updated,

@@ -76,41 +76,37 @@ export default async function BuyerDiscoverPage({
   const offset = (pageNum - 1) * PAGE_SIZE;
 
   const supabase = await createSupabaseServerClient();
-  const [{ data, error }, facets] = await Promise.all([
-    supabase.rpc("discover_suppliers", {
-      p_q: q || null,
-      p_entity_types: entityTypes.length ? entityTypes : null,
-      p_min_sources: minSources,
-      p_cert_kinds: certKinds.length ? certKinds : null,
-      p_rsc_min:
-        rscMin !== null && rscMin >= 0 && rscMin <= 100 ? rscMin : null,
-      p_city: city || null,
-      p_district: district || null,
-      p_category: category || null,
-      p_sort: sort,
-      p_limit: PAGE_SIZE,
-      p_offset: offset,
-      p_registries: registries.length ? registries : null,
-      p_factory_types: factoryTypes.length ? factoryTypes : null,
-      p_brand_codes: brandCodes.length ? brandCodes : null,
-      p_completeness_min:
-        completenessMin !== null &&
-        completenessMin >= 0 &&
-        completenessMin <= 100
-          ? completenessMin
-          : null,
-      p_workers_min:
-        workersMin !== null && workersMin >= 0 ? workersMin : null,
-    }),
-    fetchDiscoverFacets(supabase),
-  ]);
+  const rpcPromise = supabase.rpc("discover_suppliers", {
+    p_q: q || null,
+    p_entity_types: entityTypes.length ? entityTypes : null,
+    p_min_sources: minSources,
+    p_cert_kinds: certKinds.length ? certKinds : null,
+    p_rsc_min:
+      rscMin !== null && rscMin >= 0 && rscMin <= 100 ? rscMin : null,
+    p_city: city || null,
+    p_district: district || null,
+    p_category: category || null,
+    p_sort: sort,
+    p_limit: PAGE_SIZE,
+    p_offset: offset,
+    p_registries: registries.length ? registries : null,
+    p_factory_types: factoryTypes.length ? factoryTypes : null,
+    p_brand_codes: brandCodes.length ? brandCodes : null,
+    p_completeness_min:
+      completenessMin !== null &&
+      completenessMin >= 0 &&
+      completenessMin <= 100
+        ? completenessMin
+        : null,
+    p_workers_min:
+      workersMin !== null && workersMin >= 0 ? workersMin : null,
+  });
 
-  const rows = (data ?? []) as DiscoverRow[];
-  const totalCount = rows[0]?.total_count ?? 0;
-  const totalPages = Math.max(1, Math.ceil(Number(totalCount) / PAGE_SIZE));
-
-  const savedSet = new Set<string>();
-  if (rows.length > 0) {
+  // Chain the saved-set lookup onto the RPC promise so it runs in parallel
+  // with `fetchDiscoverFacets` (which is anon-cached and usually a hit).
+  const savedPromise = rpcPromise.then(async ({ data }) => {
+    const rows = (data ?? []) as DiscoverRow[];
+    if (rows.length === 0) return new Set<string>();
     const { data: savedRows } = await supabase
       .from("saved_suppliers")
       .select("supplier_id")
@@ -118,12 +114,24 @@ export default async function BuyerDiscoverPage({
         "supplier_id",
         rows.map((r) => r.id),
       );
+    const set = new Set<string>();
     if (savedRows) {
       for (const r of savedRows as { supplier_id: string }[]) {
-        savedSet.add(r.supplier_id);
+        set.add(r.supplier_id);
       }
     }
-  }
+    return set;
+  });
+
+  const [{ data, error }, facets, savedSet] = await Promise.all([
+    rpcPromise,
+    fetchDiscoverFacets(),
+    savedPromise,
+  ]);
+
+  const rows = (data ?? []) as DiscoverRow[];
+  const totalCount = rows[0]?.total_count ?? 0;
+  const totalPages = Math.max(1, Math.ceil(Number(totalCount) / PAGE_SIZE));
   const baseQuery = {
     q,
     entity: entityTypes,

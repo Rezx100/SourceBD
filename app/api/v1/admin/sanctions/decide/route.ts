@@ -1,10 +1,16 @@
 // /api/v1/admin/sanctions/decide — confirm/clear a queued sanctions hit (Spec A4).
 
 import { NextResponse } from "next/server";
+import { revalidateTag } from "next/cache";
 
 import { getServerRole } from "@/lib/auth";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { notifySanctionConfirmed } from "@/lib/email/triggers/sanction-alert";
+import {
+  TAG_DISCOVER_FACETS,
+  TAG_DISCOVER_SUPPLIERS,
+  tagSupplier,
+} from "@/lib/cache/tags";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -95,6 +101,9 @@ export async function POST(req: Request) {
       listName,
       reason,
     });
+    revalidateTag(TAG_DISCOVER_FACETS);
+    revalidateTag(TAG_DISCOVER_SUPPLIERS);
+    if (supp?.slug) revalidateTag(tagSupplier(supp.slug));
   }
 
   return NextResponse.json(data);

@@ -29,12 +29,11 @@ import {
 } from "@/components/discover/filter-rail";
 import {
   DiscoverResultCard,
-  type DiscoverRow,
 } from "@/components/discover/result-card";
 import { fetchDiscoverFacets } from "@/lib/discover-facets";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { fetchPublicDiscoverSuppliers } from "@/lib/discover-suppliers";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 300;
 
 const BASE_PATH = "/discover";
 
@@ -75,9 +74,8 @@ export default async function PublicDiscoverPage({
   const pageNum = Math.max(1, asInt(sp.page) ?? 1);
   const offset = (pageNum - 1) * PAGE_SIZE;
 
-  const supabase = await createSupabaseServerClient();
-  const [{ data, error }, facets] = await Promise.all([
-    supabase.rpc("discover_suppliers", {
+  const [{ rows, error }, facets] = await Promise.all([
+    fetchPublicDiscoverSuppliers({
       p_q: q || null,
       p_entity_types: entityTypes.length ? entityTypes : null,
       p_min_sources: minSources,
@@ -102,10 +100,9 @@ export default async function PublicDiscoverPage({
       p_workers_min:
         workersMin !== null && workersMin >= 0 ? workersMin : null,
     }),
-    fetchDiscoverFacets(supabase),
+    fetchDiscoverFacets(),
   ]);
 
-  const rows = (data ?? []) as DiscoverRow[];
   const totalCount = rows[0]?.total_count ?? 0;
   const totalPages = Math.max(1, Math.ceil(Number(totalCount) / PAGE_SIZE));
 

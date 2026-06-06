@@ -2,9 +2,15 @@
 // Dispatches to public.admin_supplier_update; whitelist enforced by RPC.
 
 import { NextResponse } from "next/server";
+import { revalidateTag } from "next/cache";
 
 import { getServerRole } from "@/lib/auth";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import {
+  TAG_DISCOVER_FACETS,
+  TAG_DISCOVER_SUPPLIERS,
+  tagSupplier,
+} from "@/lib/cache/tags";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -66,5 +72,14 @@ export async function PATCH(
       { status: rpcStatus(error.message) },
     );
   }
+  revalidateTag(TAG_DISCOVER_FACETS);
+  revalidateTag(TAG_DISCOVER_SUPPLIERS);
+  const { data: slugRow } = await supabase
+    .from("suppliers")
+    .select("slug")
+    .eq("id", id)
+    .maybeSingle();
+  const slug = (slugRow as { slug?: string } | null)?.slug;
+  if (slug) revalidateTag(tagSupplier(slug));
   return NextResponse.json(data ?? { ok: true, id });
 }
