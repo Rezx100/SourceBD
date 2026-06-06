@@ -1,19 +1,26 @@
 "use client";
 
-// Login form — email/password sign-in plus magic link option.
-// Both branches dispatch to server actions in `app/(auth)/actions.ts`
-// which talk to Supabase Auth.
+// Spec M6b — Login form.
+//
+// Uses the same Supabase server actions as the previous F3
+// implementation (`signInWithPassword`, `signInWithMagicLink` in
+// `app/(auth)/actions.ts`) — only the chrome changes. The split-pane
+// `AuthShell` is mounted here so the form panel can read `next` from
+// the page props and pass it as a hidden input on every form.
 
 import Link from "next/link";
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 
-import { Button } from "@/components/ui/button";
 import {
-  CardContent,
-  CardHeader,
-  CardMeta,
-  CardTitle,
-} from "@/components/ui/card";
+  ArrowRight,
+  Envelope,
+  Eye,
+  EyeSlash,
+  Lock,
+  ShieldCheck,
+} from "@phosphor-icons/react/dist/ssr";
+
+import { AuthShell } from "@/components/auth/auth-shell";
 
 import {
   signInWithMagicLink,
@@ -32,113 +39,134 @@ export function LoginForm({ next }: { next: string }) {
     signInWithMagicLink,
     INITIAL,
   );
+  const [showPw, setShowPw] = useState(false);
 
   return (
-    <>
-      <CardHeader>
-        <CardTitle>Sign in</CardTitle>
-        <CardMeta>SourceBD</CardMeta>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        <form action={pwAction} className="space-y-4">
-          <input type="hidden" name="next" value={next} />
-          <div className="space-y-1">
-            <label
-              htmlFor="login-email"
-              className="text-xs font-medium text-ink-secondary"
-            >
-              Email
-            </label>
+    <AuthShell
+      brandHeadline="Vet suppliers with"
+      brandHeadlineAccent="receipts on every claim."
+      brandSub="Sign in to search the verified register, open any factory's provenance trail and export the evidence your compliance team needs."
+      brandFooter="Trusted by sourcing & compliance teams in the UK, US & EU."
+      proofTitle="Cotton Club (BD) Ltd"
+      proofSubtitle="Knit composite · Gazipur"
+      topRight={
+        <>
+          New to SourceBD?{" "}
+          <Link href={`/signup?next=${encodeURIComponent(next)}`}>
+            Create an account
+          </Link>
+        </>
+      }
+    >
+      <h1>Welcome back</h1>
+      <p className="mkt-am-sub">Sign in to your workspace.</p>
+
+      <form action={pwAction} style={{ marginTop: 28 }}>
+        <input type="hidden" name="next" value={next} />
+        <div className="mkt-field">
+          <label htmlFor="login-email">Work email</label>
+          <div className="inp">
+            <Envelope size={17} weight="bold" />
             <input
               id="login-email"
               type="email"
               name="email"
               required
               autoComplete="email"
-              className="w-full rounded-input border border-hairline bg-bg-l0 px-3 py-2 text-sm outline-none focus:border-accent-indigo"
+              placeholder="you@company.com"
             />
           </div>
-          <div className="space-y-1">
-            <label
-              htmlFor="login-password"
-              className="text-xs font-medium text-ink-secondary"
-            >
-              Password
-            </label>
+        </div>
+        <div className="mkt-field">
+          <label htmlFor="login-password">Password</label>
+          <div className="inp">
+            <Lock size={17} weight="bold" />
             <input
               id="login-password"
-              type="password"
+              type={showPw ? "text" : "password"}
               name="password"
               required
               autoComplete="current-password"
               minLength={8}
-              className="w-full rounded-input border border-hairline bg-bg-l0 px-3 py-2 text-sm outline-none focus:border-accent-indigo"
+              placeholder="••••••••"
             />
-          </div>
-          {pwState.error ? (
-            <p className="text-xs text-sem-red">{pwState.error}</p>
-          ) : null}
-          <Button
-            type="submit"
-            variant="primary"
-            className="w-full"
-            disabled={pwPending}
-          >
-            {pwPending ? "Signing in…" : "Sign in"}
-          </Button>
-        </form>
-
-        <div className="flex items-center gap-3">
-          <span className="h-px flex-1 bg-hairline" />
-          <span className="text-[10px] text-ink-tertiary">
-            or
-          </span>
-          <span className="h-px flex-1 bg-hairline" />
-        </div>
-
-        <form action={magicAction} className="space-y-3">
-          <input type="hidden" name="next" value={next} />
-          <div className="space-y-1">
-            <label
-              htmlFor="magic-email"
-              className="text-xs font-medium text-ink-secondary"
+            <button
+              type="button"
+              onClick={() => setShowPw((v) => !v)}
+              aria-label={showPw ? "Hide password" : "Show password"}
+              style={{
+                background: "none",
+                border: 0,
+                cursor: "pointer",
+                color: "var(--mkt-ink-400)",
+                padding: 4,
+                display: "grid",
+                placeItems: "center",
+              }}
             >
-              Email for magic link
-            </label>
+              {showPw ? <EyeSlash size={17} /> : <Eye size={17} />}
+            </button>
+          </div>
+        </div>
+        {pwState.error ? <p className="mkt-err">{pwState.error}</p> : null}
+        <div className="mkt-form-row">
+          <label className="mkt-remember">
+            <input type="checkbox" defaultChecked />
+            <span className="box">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
+            </span>
+            Keep me signed in
+          </label>
+          <Link
+            className="mkt-forgot"
+            href={`/forgot-password${next !== "/app" ? `?next=${encodeURIComponent(next)}` : ""}`}
+          >
+            Forgot password?
+          </Link>
+        </div>
+        <button type="submit" className="mkt-btn-submit" disabled={pwPending}>
+          {pwPending ? "Signing in…" : <>Sign in <ArrowRight size={17} /></>}
+        </button>
+      </form>
+
+      <div className="mkt-divider">or sign in with a magic link</div>
+
+      <form action={magicAction}>
+        <input type="hidden" name="next" value={next} />
+        <div className="mkt-field">
+          <label htmlFor="magic-email">Email for sign-in link</label>
+          <div className="inp">
+            <Envelope size={17} weight="bold" />
             <input
               id="magic-email"
               type="email"
               name="email"
               required
               autoComplete="email"
-              className="w-full rounded-input border border-hairline bg-bg-l0 px-3 py-2 text-sm outline-none focus:border-accent-indigo"
+              placeholder="you@company.com"
             />
           </div>
-          {magicState.error ? (
-            <p className="text-xs text-sem-red">{magicState.error}</p>
-          ) : null}
-          {magicState.info ? (
-            <p className="text-xs text-sem-green">{magicState.info}</p>
-          ) : null}
-          <Button
-            type="submit"
-            variant="outline"
-            className="w-full"
-            disabled={magicPending}
-          >
-            {magicPending ? "Sending…" : "Email me a sign-in link"}
-          </Button>
-        </form>
-
-        <div className="flex justify-between pt-2 text-xs text-ink-secondary">
-          <Link href="/forgot-password" className="hover:text-ink-primary">
-            Forgot password?
-          </Link>
-          <Link href="/signup" className="hover:text-ink-primary">
-            Create an account
-          </Link>
         </div>
-      </CardContent>
-    </>
+        {magicState.error ? <p className="mkt-err">{magicState.error}</p> : null}
+        {magicState.info ? <p className="mkt-info">{magicState.info}</p> : null}
+        <button type="submit" className="mkt-btn-secondary" disabled={magicPending}>
+          {magicPending ? "Sending…" : "Email me a sign-in link"}
+        </button>
+      </form>
+
+      <p className="mkt-switch">
+        New to SourceBD?{" "}
+        <Link href={`/signup?next=${encodeURIComponent(next)}`}>
+          Create an account
+        </Link>
+      </p>
+      <p className="mkt-legal" style={{ marginTop: 16 }}>
+        <ShieldCheck size={13} weight="fill" style={{ verticalAlign: "-2px", marginRight: 4 }} />
+        Sessions are encrypted in transit. SourceBD is a neutral
+        public-record index — not a marketplace, broker or rating agency.
+      </p>
+    </AuthShell>
   );
 }

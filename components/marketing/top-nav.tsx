@@ -1,24 +1,15 @@
-// Spec M2 — Shared marketing top-nav.
+// Spec M2 — Shared marketing top-nav (M6a light variant).
 //
 // Client component, role-aware after hydration. Mounted in
-// `app/(marketing)/layout.tsx` so every marketing surface (`/`, `/pricing`,
-// `/legal/trademarks`, `/discover`, `/suppliers/[slug]`, `/compliance/*`)
-// renders the same chrome.
+// `app/(marketing)/layout.tsx`. I-033 contract preserved: SSR + first
+// client render emit the anonymous variant (matching prerendered HTML,
+// clean hydration); `useEffect` fetches `/api/session/me` and swaps the
+// right-side CTA group to the role-aware variant. UI visibility is
+// never the security boundary — `middleware.ts` still gates `/app`,
+// `/supplier`, `/admin`, `/api/v1/*` server-side.
 //
-// I-033: marketing pages are statically generated (`force-static` or
-// `revalidate=N`). A server component cannot detect the session under
-// static rendering — there is no request cookie — so the cached HTML
-// always rendered the anonymous CTAs even for logged-in visitors. This
-// component now SSRs the anon variant (matching the prerendered HTML,
-// so no hydration mismatch) and fetches `/api/session/me` once on mount
-// to swap to the role-aware variant. UI visibility is never the security
-// control — `middleware.ts` still gates `/app`, `/supplier`, `/admin`,
-// `/api/v1/*` on the server.
-//
-// M6a: re-skinned with the new dark cinematic chrome — sticky nav
-// with a scroll-driven `.scrolled` glass-blur state, animated
-// underline on hover, shield wordmark glyph. Logic above is
-// unchanged.
+// M6a: light cream chrome with shield wordmark glyph, scroll-driven
+// hairline + soft shadow once the page leaves the top.
 
 "use client";
 
@@ -30,20 +21,16 @@ type Role = "admin" | "buyer" | "supplier";
 function RightLinks({ role }: { role: Role | null }) {
   if (role === "supplier") {
     return (
-      <>
-        <Link href="/supplier" className="mkt-btn mkt-btn-primary">
-          Supplier portal
-        </Link>
-      </>
+      <Link href="/supplier" className="mkt-btn mkt-btn-primary">
+        Supplier portal
+      </Link>
     );
   }
   if (role === "buyer" || role === "admin") {
     return (
-      <>
-        <Link href="/app" className="mkt-btn mkt-btn-primary">
-          Open app
-        </Link>
-      </>
+      <Link href="/app" className="mkt-btn mkt-btn-primary">
+        Open app
+      </Link>
     );
   }
   return (
@@ -59,8 +46,6 @@ function RightLinks({ role }: { role: Role | null }) {
 }
 
 export function MarketingTopNav() {
-  // SSR + first client render: anon variant. Matches the statically
-  // generated HTML so hydration is clean.
   const [role, setRole] = useState<Role | null>(null);
   const [scrolled, setScrolled] = useState(false);
 
@@ -81,7 +66,7 @@ export function MarketingTopNav() {
         }
       })
       .catch(() => {
-        // Network/abort: leave anon nav in place.
+        /* anon nav stays */
       });
     return () => ac.abort();
   }, []);
@@ -103,15 +88,23 @@ export function MarketingTopNav() {
       <div className="mkt-wrap mkt-nav-row">
         <Link href="/" className="mkt-wordmark">
           <span className="mkt-wm-glyph" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.4"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
               <path d="M12 3l8 3.5v5c0 4.6-3.2 7.8-8 9-4.8-1.2-8-4.4-8-9v-5L12 3z" />
               <path d="M9 12l2 2 4-4.5" />
             </svg>
           </span>
-          Source<b>BD</b>
+          Source<b> BD</b>
         </Link>
         <div className="mkt-nav-links">
-          <Link href="/discover">Discover</Link>
+          <Link href="/#how-we-verify">How we verify</Link>
+          <Link href="/#sources">Data sources</Link>
           <Link href="/compliance">Compliance</Link>
           <Link href="/pricing">Pricing</Link>
         </div>
@@ -122,5 +115,3 @@ export function MarketingTopNav() {
     </nav>
   );
 }
-
-

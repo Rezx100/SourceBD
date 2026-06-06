@@ -1,30 +1,40 @@
-// Spec M6a — Count of Tier-1 + Tier-2 authority sources.
+// Spec M6a — Counts of authority sources.
 //
-// Drives the "authorities" copy line under the markstack on the
-// homepage ("Indexes N primary registers across government and
-// trade associations."). Reads `public.sources` directly; the count
-// is small and stable. Cached for an hour.
+// Drives the homepage authority markstack ("31 official sources
+// reconciled continuously") and the metrics footer pip
+// ("31 / 31 sources in sync"). Reads `public.sources` directly;
+// the count is small and stable. Cached for an hour.
 
 import { unstable_cache } from "next/cache";
 import { createClient } from "@supabase/supabase-js";
 
-async function loadAuthorityCount(): Promise<number> {
+export type SourceCounts = {
+  total: number;
+  tier1or2: number;
+};
+
+async function loadCounts(): Promise<SourceCounts> {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!url || !anonKey) return 0;
+  if (!url || !anonKey) return { total: 0, tier1or2: 0 };
   const supabase = createClient(url, anonKey, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
-  const { count, error } = await supabase
+  const totalQ = await supabase
+    .from("sources")
+    .select("*", { count: "exact", head: true });
+  const t12Q = await supabase
     .from("sources")
     .select("*", { count: "exact", head: true })
     .in("tier", ["tier1_gov", "tier2_industry"]);
-  if (error) return 0;
-  return count ?? 0;
+  return {
+    total: totalQ.count ?? 0,
+    tier1or2: t12Q.count ?? 0,
+  };
 }
 
-export const fetchAuthorityCount = unstable_cache(
-  loadAuthorityCount,
-  ["mkt-authority-count"],
+export const fetchAuthorityCounts = unstable_cache(
+  loadCounts,
+  ["mkt-authority-counts"],
   { revalidate: 3600 },
 );

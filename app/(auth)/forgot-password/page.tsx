@@ -1,15 +1,14 @@
 "use client";
 
+// Spec M6b — Forgot-password form. Same `requestPasswordReset`
+// server action as F3.
+
 import Link from "next/link";
 import { useActionState } from "react";
 
-import { Button } from "@/components/ui/button";
-import {
-  CardContent,
-  CardHeader,
-  CardMeta,
-  CardTitle,
-} from "@/components/ui/card";
+import { ArrowRight, Envelope } from "@phosphor-icons/react/dist/ssr";
+
+import { AuthShell } from "@/components/auth/auth-shell";
 
 import { requestPasswordReset, type AuthActionState } from "../actions";
 
@@ -21,50 +20,46 @@ export default function ForgotPasswordPage() {
     INITIAL,
   );
   return (
-    <>
-      <CardHeader>
-        <CardTitle>Reset password</CardTitle>
-        <CardMeta>SourceBD</CardMeta>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        <form action={action} className="space-y-4">
-          <div className="space-y-1">
-            <label
-              htmlFor="forgot-email"
-              className="text-xs font-medium text-ink-secondary"
-            >
-              Email
-            </label>
+    <AuthShell
+      brandHeadline="Reset your access,"
+      brandHeadlineAccent="not the receipts."
+      brandSub="We email a single-use link to the address on file. Your saved searches, exported provenance trails and workspace settings stay intact."
+      brandFooter="Reset links expire after 60 minutes."
+      topRight={
+        <>
+          Remembered it? <Link href="/login">Sign in</Link>
+        </>
+      }
+    >
+      <h1>Reset password</h1>
+      <p className="mkt-am-sub">
+        Enter the email you used to sign up — we&apos;ll send a single-use
+        reset link.
+      </p>
+      <form action={action} style={{ marginTop: 28 }}>
+        <div className="mkt-field">
+          <label htmlFor="forgot-email">Work email</label>
+          <div className="inp">
+            <Envelope size={17} weight="bold" />
             <input
               id="forgot-email"
               type="email"
               name="email"
               required
               autoComplete="email"
-              className="w-full rounded-input border border-hairline bg-bg-l0 px-3 py-2 text-sm outline-none focus:border-accent-indigo"
+              placeholder="you@company.com"
             />
           </div>
-          {state.error ? (
-            <p className="text-xs text-sem-red">{state.error}</p>
-          ) : null}
-          {state.info ? (
-            <p className="text-xs text-sem-green">{state.info}</p>
-          ) : null}
-          <Button
-            type="submit"
-            variant="primary"
-            className="w-full"
-            disabled={pending}
-          >
-            {pending ? "Sending…" : "Send reset link"}
-          </Button>
-        </form>
-        <p className="text-xs text-ink-secondary">
-          <Link href="/login" className="text-ink-primary hover:underline">
-            Back to sign in
-          </Link>
-        </p>
-      </CardContent>
-    </>
+        </div>
+        {state.error ? <p className="mkt-err">{state.error}</p> : null}
+        {state.info ? <p className="mkt-info">{state.info}</p> : null}
+        <button type="submit" className="mkt-btn-submit" disabled={pending}>
+          {pending ? "Sending…" : <>Send reset link <ArrowRight size={17} /></>}
+        </button>
+      </form>
+      <p className="mkt-switch">
+        <Link href="/login">Back to sign in</Link>
+      </p>
+    </AuthShell>
   );
 }

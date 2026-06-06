@@ -19,10 +19,10 @@ import { TAG_DISCOVER_SUPPLIERS } from "@/lib/cache/tags";
 // non-sanctioned supplier with `t13_source_count >= 3` wins.
 // Add/replace slugs as the data moat grows.
 const CANDIDATE_SLUGS = [
+  "ha-meem-denim-ltd",
   "cotton-club-bd-ltd",
   "ananta-apparels-ltd",
   "ananta-jeanswear-ltd",
-  "ha-meem-denim-ltd",
   "envoy-textiles-limited",
 ] as const;
 

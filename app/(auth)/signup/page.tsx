@@ -1,15 +1,23 @@
 "use client";
 
-import Link from "next/link";
-import { useActionState } from "react";
+// Spec M6b — Signup form.
+//
+// Uses the existing `signUp` server action in `app/(auth)/actions.ts`.
+// Role selector compressed into a small dropdown per M6 JC #11.
 
-import { Button } from "@/components/ui/button";
+import Link from "next/link";
+import { useActionState, useState } from "react";
+
 import {
-  CardContent,
-  CardHeader,
-  CardMeta,
-  CardTitle,
-} from "@/components/ui/card";
+  ArrowRight,
+  Envelope,
+  Eye,
+  EyeSlash,
+  Lock,
+  User,
+} from "@phosphor-icons/react/dist/ssr";
+
+import { AuthShell } from "@/components/auth/auth-shell";
 
 import { signUp, type AuthActionState } from "../actions";
 
@@ -17,89 +25,111 @@ const INITIAL: AuthActionState = {};
 
 export default function SignupPage() {
   const [state, action, pending] = useActionState(signUp, INITIAL);
+  const [showPw, setShowPw] = useState(false);
+
   return (
-    <>
-      <CardHeader>
-        <CardTitle>Create account</CardTitle>
-        <CardMeta>SourceBD</CardMeta>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        <form action={action} className="space-y-4">
-          <div className="space-y-1">
-            <label
-              htmlFor="signup-email"
-              className="text-xs font-medium text-ink-secondary"
-            >
-              Email
-            </label>
+    <AuthShell
+      brandHeadline="The verified record,"
+      brandHeadlineAccent="in minutes."
+      brandSub="Create a free workspace and start searching the indexed Bangladesh garment register — every supplier checked against the official record."
+      brandFooter="Free to search the public register · no card required."
+      topRight={
+        <>
+          Already have an account? <Link href="/login">Sign in</Link>
+        </>
+      }
+    >
+      <h1>Create your account</h1>
+      <p className="mkt-am-sub">Free to search the register. No card required.</p>
+
+      <form action={action} style={{ marginTop: 28 }}>
+        <div className="mkt-field">
+          <label htmlFor="signup-name">Full name</label>
+          <div className="inp">
+            <User size={17} weight="bold" />
+            <input
+              id="signup-name"
+              type="text"
+              name="full_name"
+              placeholder="Ada Rahman"
+              autoComplete="name"
+            />
+          </div>
+        </div>
+        <div className="mkt-field">
+          <label htmlFor="signup-email">Work email</label>
+          <div className="inp">
+            <Envelope size={17} weight="bold" />
             <input
               id="signup-email"
               type="email"
               name="email"
               required
               autoComplete="email"
-              className="w-full rounded-input border border-hairline bg-bg-l0 px-3 py-2 text-sm outline-none focus:border-accent-indigo"
+              placeholder="you@company.com"
             />
           </div>
-          <div className="space-y-1">
-            <label
-              htmlFor="signup-password"
-              className="text-xs font-medium text-ink-secondary"
-            >
-              Password (min 8 chars)
-            </label>
+        </div>
+        <div className="mkt-field">
+          <label htmlFor="signup-password">Password</label>
+          <div className="inp">
+            <Lock size={17} weight="bold" />
             <input
               id="signup-password"
-              type="password"
+              type={showPw ? "text" : "password"}
               name="password"
               required
               minLength={8}
               autoComplete="new-password"
-              className="w-full rounded-input border border-hairline bg-bg-l0 px-3 py-2 text-sm outline-none focus:border-accent-indigo"
+              placeholder="Create a password"
             />
+            <button
+              type="button"
+              onClick={() => setShowPw((v) => !v)}
+              aria-label={showPw ? "Hide password" : "Show password"}
+              style={{
+                background: "none",
+                border: 0,
+                cursor: "pointer",
+                color: "var(--mkt-ink-400)",
+                padding: 4,
+                display: "grid",
+                placeItems: "center",
+              }}
+            >
+              {showPw ? <EyeSlash size={17} /> : <Eye size={17} />}
+            </button>
           </div>
-          <fieldset className="space-y-2">
-            <legend className="text-xs font-medium text-ink-secondary">
-              I am a
-            </legend>
-            <div className="flex gap-4">
-              <label className="flex items-center gap-2 text-sm">
-                <input
-                  type="radio"
-                  name="role"
-                  value="buyer"
-                  defaultChecked
-                />
-                Buyer
-              </label>
-              <label className="flex items-center gap-2 text-sm">
-                <input type="radio" name="role" value="supplier" />
-                Supplier
-              </label>
-            </div>
-          </fieldset>
-          {state.error ? (
-            <p className="text-xs text-sem-red">{state.error}</p>
-          ) : null}
-          {state.info ? (
-            <p className="text-xs text-sem-green">{state.info}</p>
-          ) : null}
-          <Button
-            type="submit"
-            variant="primary"
-            className="w-full"
-            disabled={pending}
-          >
-            {pending ? "Creating…" : "Create account"}
-          </Button>
-        </form>
-        <p className="text-xs text-ink-secondary">
-          Already registered?{" "}
-          <Link href="/login" className="text-ink-primary hover:underline">
-            Sign in
-          </Link>
-        </p>
-      </CardContent>
-    </>
+          <p className="hint">At least 8 characters, with a number and a symbol.</p>
+        </div>
+        <div className="mkt-field">
+          <label htmlFor="signup-role">I am a</label>
+          <div className="inp">
+            <select id="signup-role" name="role" defaultValue="buyer">
+              <option value="buyer">Buyer · brand / importer / sourcing team</option>
+              <option value="supplier">Supplier · factory / buying house</option>
+            </select>
+          </div>
+        </div>
+
+        {state.error ? <p className="mkt-err">{state.error}</p> : null}
+        {state.info ? <p className="mkt-info">{state.info}</p> : null}
+
+        <button type="submit" className="mkt-btn-submit" disabled={pending}>
+          {pending ? "Creating…" : <>Create account <ArrowRight size={17} /></>}
+        </button>
+      </form>
+
+      <p className="mkt-switch">
+        Already have an account? <Link href="/login">Sign in</Link>
+      </p>
+      <p className="mkt-legal">
+        By creating an account you agree to SourceBD&apos;s{" "}
+        <Link href="/legal/terms">Terms</Link> and{" "}
+        <Link href="/legal/privacy">Privacy Policy</Link>. SourceBD is a
+        neutral public-record index — not a marketplace, broker or rating
+        agency.
+      </p>
+    </AuthShell>
   );
 }

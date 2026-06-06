@@ -1,9 +1,8 @@
-// Demo-mode banner — Spec M5. Anonymous public chrome that appears
-// above /discover and /suppliers/[slug]. Server component; no client
-// island. Plain <aside aria-label="Demo mode"> (not role="status" —
-// this is static marketing chrome, not a live region).
-// Spec M6a — restyle only. Same component shape, same copy, dark
-// glass token surface.
+// Demo-mode banner — Spec M5 / M6a (light).
+// Anonymous public chrome above /discover and /suppliers/[slug].
+// Server component; no client island. Plain <aside aria-label="Demo
+// mode"> (not role="status" — this is static marketing chrome, not a
+// live region).
 
 import Link from "next/link";
 
@@ -29,4 +28,3 @@ export function DemoBanner({ next }: { next: string }) {
     </aside>
   );
 }
-
