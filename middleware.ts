@@ -33,6 +33,21 @@ type Role = "admin" | "buyer" | "supplier";
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
+
+  // ── Canonical hostname redirect ──────────────────────────────────────────
+  // Redirect www.sourcebd.net → sourcebd.net (301, permanent).
+  // Runs first, before rate limiting and auth, so the redirect is always
+  // issued regardless of route. Defence in depth: CF Page Rule covers this
+  // too, but this ensures correctness even when CF is bypassed or misconfigured.
+  const host = req.headers.get("host") ?? "";
+  if (host.startsWith("www.")) {
+    const url = req.nextUrl.clone();
+    url.host = host.replace(/^www\./, "");
+    url.port = "";
+    return NextResponse.redirect(url, { status: 301 });
+  }
+  // ────────────────────────────────────────────────────────────────────────
+
   const isApi = pathname.startsWith("/api/");
   const needsAuthGate =
     pathname === "/app" ||
@@ -87,6 +102,41 @@ export async function middleware(req: NextRequest) {
           },
         },
       );
+    }
+  }
+
+  // I-034: bounce logged-in buyers/admins from the demo-mode marketing
+  // surface (`/discover`, `/suppliers/<slug>`) to their app-side
+  // equivalent. Suppliers stay on the marketing variant (no `/app`
+  // equivalent for them). Anon visitors short-circuit on the cookie
+  // probe so cold marketing traffic does not pay a DB round-trip.
+  if (req.method === "GET") {
+    const targetAppPath = appPathForMarketing(pathname);
+    if (targetAppPath) {
+      const hasSbCookie = req.cookies
+        .getAll()
+        .some((c) => c.name.startsWith("sb-"));
+      if (hasSbCookie) {
+        if (cachedUserId === undefined) {
+          const {
+            data: { user },
+          } = await supabase.auth.getUser();
+          cachedUserId = user?.id ?? null;
+        }
+        if (cachedUserId) {
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("role")
+            .eq("id", cachedUserId)
+            .maybeSingle();
+          const role = (profile?.role ?? null) as Role | null;
+          if (role === "buyer" || role === "admin") {
+            const url = req.nextUrl.clone();
+            url.pathname = targetAppPath;
+            return NextResponse.redirect(url, { status: 307 });
+          }
+        }
+      }
     }
   }
 
@@ -168,6 +218,19 @@ function redirectToLogin(req: NextRequest) {
     req.nextUrl.pathname + req.nextUrl.search,
   )}`;
   return NextResponse.redirect(url);
+}
+
+// I-034: marketing → app equivalent map. Only `/discover` and
+// `/suppliers/<slug>` have an authenticated app surface that should be
+// shown to logged-in buyers/admins by default; `/`, `/pricing`,
+// `/legal/*`, `/compliance/*` deliberately stay accessible to logged-in
+// users (legitimate destinations even when signed in).
+function appPathForMarketing(pathname: string): string | null {
+  if (pathname === "/discover") return "/app/discover";
+  if (pathname.startsWith("/suppliers/")) {
+    return "/app" + pathname;
+  }
+  return null;
 }
 
 export const config = {
