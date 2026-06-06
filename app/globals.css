@@ -112,6 +112,48 @@
 }
 
 /* ============================================================
+   I-027 — Pixel-matching skeletons. A single `.skel` primitive that
+   the per-segment `loading.tsx` files compose into silhouettes that
+   match the real component shapes (header dossier, metric tiles,
+   result cards, etc.) at the same dimensions. Shimmer is a translateX
+   sweep across a horizontal gradient and degrades to a flat tone under
+   `prefers-reduced-motion: reduce` via the global override above.
+   ============================================================ */
+.skel {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  background: var(--hairline);
+  border-radius: var(--r-input);
+}
+.skel::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.55) 50%,
+    transparent 100%
+  );
+  transform: translateX(-100%);
+  animation: skelShimmer 1400ms var(--ease) infinite;
+}
+.skel.tone-soft { background: var(--surface-l1); }
+.skel.tone-card {
+  background: var(--surface-l1);
+  border: 1px solid var(--hairline);
+}
+.skel.pill { border-radius: var(--r-pill); }
+.skel.circle { border-radius: 50%; }
+.skel.card { border-radius: var(--r-card); }
+.skel.hero { border-radius: var(--r-hero); }
+@keyframes skelShimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+/* ============================================================
    Prototype component layer — strict port of prototypes/_tokens.css
    for the buyer-profile dossier surface (Naafco prototype). Classes
    below are consumed directly by app/(app)/app/suppliers/[slug]/page.tsx
@@ -1686,5 +1728,154 @@
   .topbar-moat-label {
     font-size: 11px;
     color: var(--ink-tertiary);
+  }
+
+  /* ============================================================
+     I-028 — Responsiveness pass (2026-06-06). Phone (≤480) and small
+     tablet (≤640) overrides for layouts that were desktop-only.
+     iPad (768–1024) inherits the existing `max-width: 900px` block
+     plus the @md/@lg Tailwind utilities already on each page.
+     ============================================================ */
+
+  /* Topbar — search hides below md (sidebar disclosure carries the menu),
+     but keep moat chip + quick-nav accessible by allowing them to wrap if
+     they ever do render at narrow widths. */
+  @media (max-width: 640px) {
+    .topbar { padding-left: 12px; padding-right: 12px; gap: 8px; }
+    .topbar-moat { padding: 4px 8px; font-size: 11px; }
+    .topbar-moat-count { font-size: 11px; }
+    .topbar-moat-label { display: none; }
+  }
+
+  /* Profile header dossier. The 900px breakpoint already collapses the
+     grid; below 640 the side column (CTAs / completeness) needs to align
+     left when stacked and the title shrinks again at 420 so a 12-character
+     supplier name does not crowd the chips. */
+  @media (max-width: 640px) {
+    .header-card { padding: 16px; row-gap: 16px; }
+    .header-side { align-items: flex-start; }
+    .header-name { font-size: 26px; }
+    .header-glyph-col { align-self: flex-start; }
+  }
+  @media (max-width: 420px) {
+    .header-name { font-size: 22px; }
+    .header-meta-row { grid-template-columns: 1fr 1fr; }
+  }
+
+  /* Tabs — convert wrap to horizontal scroll on phones so the strip stays
+     one line and reads as a single nav, with momentum scroll. */
+  @media (max-width: 640px) {
+    .proto-tabs {
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+    }
+    .proto-tabs::-webkit-scrollbar { display: none; }
+    .proto-tab { white-space: nowrap; padding: 10px 12px; }
+  }
+
+  /* Cards — tighter padding on phones so 343-wide viewports do not lose
+     content area to chrome. */
+  @media (max-width: 640px) {
+    .proto-card { padding: 16px; border-radius: 10px; }
+    .proto-card-head { gap: 8px; margin-bottom: 12px; }
+  }
+
+  /* Metric grid — 3-up falls to 2-up at 600 and 1-up at 380. */
+  @media (max-width: 600px) {
+    .metric-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+    .metric { padding: 12px; }
+    .metric-val { font-size: 20px; }
+  }
+  @media (max-width: 380px) {
+    .metric-grid { grid-template-columns: 1fr; }
+  }
+
+  /* Contact list — narrower label column on phones. */
+  @media (max-width: 480px) {
+    .contact-list { grid-template-columns: 84px 1fr; gap: 8px 12px; font-size: 12px; }
+  }
+
+  /* Registry rows — 4-col grid (logo · name · meta · status) gets cramped
+     under 640. Stack meta + status under the name. */
+  @media (max-width: 640px) {
+    .registry-row {
+      grid-template-columns: 36px 1fr;
+      grid-template-areas:
+        "logo name"
+        ".    meta";
+      gap: 6px 12px;
+      padding: 12px 0;
+    }
+    .registry-row .reg-logo { grid-area: logo; }
+    .registry-row .reg-name { grid-area: name; min-width: 0; }
+    .registry-row .reg-meta,
+    .registry-row .reg-status {
+      grid-area: meta;
+      justify-self: start;
+    }
+  }
+
+  /* Doc rows — 5-col grid collapses; show type+name on one row, meta +
+     actions on the next. */
+  @media (max-width: 640px) {
+    .doc-row {
+      grid-template-columns: 28px 1fr auto;
+      grid-template-areas:
+        "type name action"
+        ".    meta meta2";
+      row-gap: 4px;
+    }
+    .doc-row > :nth-child(1) { grid-area: type; }
+    .doc-row > :nth-child(2) { grid-area: name; min-width: 0; }
+    .doc-row > :nth-child(3) { grid-area: meta; }
+    .doc-row > :nth-child(4) { grid-area: action; }
+    .doc-row > :nth-child(5) { grid-area: meta2; justify-self: start; }
+  }
+
+  /* Provenance rows — 5-col → 2-row stack on phones. */
+  @media (max-width: 640px) {
+    .prov-row {
+      grid-template-columns: 1fr auto;
+      grid-template-areas:
+        "source tier"
+        "ref    ref"
+        "seen   seen";
+      row-gap: 4px;
+      padding: 12px 0;
+    }
+    .prov-row > :nth-child(1) { grid-area: source; }
+    .prov-row > :nth-child(2) { grid-area: ref; min-width: 0; word-break: break-word; }
+    .prov-row > :nth-child(3) { grid-area: seen; }
+    .prov-row > :nth-child(4) { grid-area: tier; justify-self: end; }
+  }
+
+  /* Sanctions grid — already collapses to 2-col at 900; add 1-col under
+     420 so the tile labels do not wrap awkwardly. */
+  @media (max-width: 420px) {
+    .sanctions-grid { grid-template-columns: 1fr; }
+  }
+
+  /* Sources explainer popover — already capped at calc(100vw - 32px);
+     also constrain the anchor flex so the chip itself does not push past
+     the card edge. */
+  @media (max-width: 480px) {
+    .sources-explainer.inline { max-width: 100%; }
+  }
+
+  /* Wordmark scaling — keep the brand readable but not bulky on phones. */
+  @media (max-width: 480px) {
+    .proto-wordmark { font-size: 18px; }
+  }
+
+  /* Pill rows — allow long pill labels to break naturally rather than
+     forcing a horizontal scroll bar on the parent card. */
+  @media (max-width: 480px) {
+    .proto-pill,
+    .chip,
+    .brand-pill { max-width: 100%; }
+    .proto-pill .ref,
+    .brand-pill .ref { white-space: normal; word-break: break-word; }
   }
 }

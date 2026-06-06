@@ -1,20 +1,22 @@
-// App-shell Suspense fallback. Rendered inside the topbar + sidebar
-// shell (Next mounts it as `<Suspense fallback>` for children of
-// `app/(app)/layout.tsx`). Mirrors the shell's `px-4/md:px-8` padding so
-// the skeleton doesn't reflow when content arrives.
+// I-027 — App-shell Suspense fallback. This is the *catch-all* for any
+// (app)/* segment without its own `loading.tsx`. High-traffic segments
+// (dashboard, discover, profile, supplier portal, rfqs, orders, saved,
+// messages, compliance, admin) own pixel-matched skeletons next to their
+// page.tsx — this one only fires on long-tail / new routes. Kept calm:
+// matches the standard page chrome (header + a single card) so the user
+// gets honest "something is loading here" without misrepresenting shape.
+
+import { ProtoCardSkeleton } from "@/components/supplier/profile-skeleton";
+import { Skeleton, SkeletonRegion } from "@/components/ui/skeleton";
 
 export default function AppLoading() {
   return (
-    <div
-      role="status"
-      aria-busy="true"
-      className="space-y-4 px-4 py-6 md:px-8 md:py-8"
-    >
-      <span className="sr-only">Loading</span>
-      <div className="h-4 w-40 animate-pulse rounded-pill bg-hairline" />
-      <div className="h-3 w-72 animate-pulse rounded-pill bg-hairline" />
-      <div className="h-3 w-64 animate-pulse rounded-pill bg-hairline" />
-      <div className="h-48 w-full max-w-3xl animate-pulse rounded-card bg-surface-l1" />
-    </div>
+    <SkeletonRegion className="mx-auto max-w-5xl space-y-6">
+      <header className="space-y-2">
+        <Skeleton w={70} h={10} />
+        <Skeleton w={200} h={32} />
+      </header>
+      <ProtoCardSkeleton rows={4} title={180} />
+    </SkeletonRegion>
   );
 }

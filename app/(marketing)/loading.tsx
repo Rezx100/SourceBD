@@ -1,18 +1,24 @@
-// Marketing-shell Suspense fallback. Centred to match marketing chrome
-// max-width. Pure CSS; no JS.
+// I-027 — Marketing-shell Suspense fallback. Mirrors the marketing chrome
+// (max-w-5xl, generous padding, hero-card + supporting lines) so the
+// silhouette matches the most common marketing surfaces (landing, pricing,
+// compliance hub). Segment-specific overrides exist for /discover and
+// /suppliers/[slug].
+
+import { Skeleton, SkeletonRegion } from "@/components/ui/skeleton";
 
 export default function MarketingLoading() {
   return (
-    <div
-      role="status"
-      aria-busy="true"
-      className="mx-auto max-w-5xl space-y-4 px-6 py-16"
-    >
-      <span className="sr-only">Loading</span>
-      <div className="h-40 w-full animate-pulse rounded-card bg-surface-l1" />
-      <div className="h-3 w-56 animate-pulse rounded-pill bg-hairline" />
-      <div className="h-3 w-72 animate-pulse rounded-pill bg-hairline" />
-      <div className="h-3 w-40 animate-pulse rounded-pill bg-hairline" />
-    </div>
+    <SkeletonRegion className="mx-auto max-w-5xl space-y-6 px-6 py-16">
+      <Skeleton w={120} h={10} />
+      <Skeleton w={420} h={48} />
+      <Skeleton w={360} h={14} />
+      <Skeleton w={300} h={14} />
+      <Skeleton w="100%" h={200} shape="hero" tone="card" />
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        <Skeleton w="100%" h={140} shape="card" tone="card" />
+        <Skeleton w="100%" h={140} shape="card" tone="card" />
+        <Skeleton w="100%" h={140} shape="card" tone="card" />
+      </div>
+    </SkeletonRegion>
   );
 }
