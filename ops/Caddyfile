@@ -1,35 +1,42 @@
-# Spec P1 — Caddy reverse proxy for the SourceBD web container.
+# SourceBD — Caddy reverse proxy.
 #
-# HTTP-only on port 80 against the bare VPS IP (109.104.153.228). When the
-# DNS CNAME lands, swap the `:80` block for a `sourcebd.com {` block — Caddy
-# will then auto-provision a Let's Encrypt cert on first request.
+# Cloudflare proxies all HTTPS for sourcebd.net (orange cloud ON). CF
+# terminates TLS with the user's browser, then forwards to this server.
 #
-# The `web` container listens on 127.0.0.1:3000 (compose port mapping); only
-# Caddy is exposed publicly on :80. This keeps the Next.js port off the
-# internet and lets us add HSTS / TLS / rate limits at the proxy layer
-# without touching the app.
+# CF SSL/TLS mode: Full (not Flexible, not Strict).
+#   - :80  accepts HTTP from CF when it probes over plain HTTP
+#   - :443 accepts HTTPS from CF with an internally-generated self-signed cert
+#           (CF Full mode validates the connection but not the cert authority)
+#
+# Traffic flow:
+#   User → CF (443 HTTPS) → VPS :443 (Caddy + self-signed) → 127.0.0.1:3000
 
 {
-	# Server-wide options.
 	admin off
 	persist_config off
+	# auto_https is off — we manage TLS manually with `tls internal` below.
 	auto_https off
 }
 
-:80 {
+# HTTPS listener — used by Cloudflare in Full mode.
+:443 {
+	tls internal {
+		on_demand
+	}
+
 	encode zstd gzip
 
-	# Health probe upstream so a stuck container is recycled by Caddy's
-	# active health checks rather than only by Docker's HEALTHCHECK.
 	reverse_proxy 127.0.0.1:3000 {
-		header_up X-Forwarded-Proto http
-		header_up X-Forwarded-Host {host}
+		# Tell Next.js the original scheme was HTTPS.
+		header_up X-Forwarded-Proto https
+		# Pass the real client IP from Cloudflare's header.
+		header_up X-Real-IP {header.CF-Connecting-IP}
+
 		health_uri /api/health
 		health_interval 30s
 		health_timeout 5s
 	}
 
-	# Hide the proxy.
 	header -Server
 
 	log {
@@ -39,4 +46,20 @@
 		}
 		format console
 	}
+}
+
+# HTTP listener — handles direct bare-IP probes and let CF redirect to HTTPS.
+:80 {
+	encode zstd gzip
+
+	reverse_proxy 127.0.0.1:3000 {
+		header_up X-Forwarded-Proto http
+		header_up X-Real-IP {header.CF-Connecting-IP}
+
+		health_uri /api/health
+		health_interval 30s
+		health_timeout 5s
+	}
+
+	header -Server
 }
