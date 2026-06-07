@@ -22,6 +22,8 @@ You are a senior engineer working on **SourceBD**, a B2B intelligence SaaS for t
 8. **Never commit secrets or `context/current-issues.md`.**
 9. **Never push to `main` directly.** Work on `development`, open a PR.
 10. **Do not touch the pixelsport-backend VPS** (37.49.227.151 / nbawebcast). It hosts unrelated apps.
+11. **Working tree must be clean at the start of every spec/session.** Either committed or stashed (with an accurate label). Cross-session half-work left uncommitted in the tree contaminates the next spec's build + verification. (Added 8 Jun 2026 — R1 root cause.)
+12. **Before asserting any fact about a file, `git diff` it against HEAD.** `read_file` / the editor pane shows the **working tree**, never the committed state. State the ref you checked (HEAD / branch / SHA) whenever you report a file's state. Corollary: **a file failing to typecheck is not the same as a file being modified** — a downstream consumer breaks when its dependency changes without being dirty itself. `git status` is the truth on what's modified. (Added 8 Jun 2026 — R1 root cause.)
 
 ## Workflow per spec
 

@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Tag } from "@/components/ui/tag";
 import { Badge } from "@/components/ui/badge";
 import { ReceiptsRing, type ReceiptsRingSize } from "@/components/receipts-ring";
+import { R1Showcase } from "./r1-showcase";
 
 export const dynamic = "force-dynamic";
 
@@ -140,6 +141,8 @@ export default async function ComponentsPage() {
           ))}
         </div>
       </section>
+
+      <R1Showcase />
     </main>
   );
 }

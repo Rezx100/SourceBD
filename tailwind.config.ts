@@ -13,6 +13,13 @@ const config: Config = {
   ],
   theme: {
     extend: {
+      screens: {
+        // Spec R1: extra-small phone breakpoint (iPhone SE 1st gen, small
+        // Androids). `sm` (640) was previously the smallest target which
+        // left ~320–639 unaddressed; the R-series mobile-first work
+        // explicitly targets 320 / 360 / 390 / 414 / 430 etc.
+        xs: "360px",
+      },
       colors: {
         // Surfaces (§16.3)
         "bg-l0": "var(--bg-l0)",
