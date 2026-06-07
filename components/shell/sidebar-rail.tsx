@@ -1,94 +1,35 @@
 "use client";
 
 // Spec R1 — SidebarRail (tablet icon-only collapsed sidebar).
+// Spec R2 — Wired into `app/(app)/layout.tsx` at `hidden md:flex lg:hidden`
+// so tablet portrait shows ONE primary nav (the rail), not two.
 //
-// STANDALONE variant — does NOT edit `components/shell/sidebar.tsx`.
-// R2 will mount this at `hidden md:flex lg:hidden` alongside the full
-// sidebar at `lg:flex`. R1 only ships the component + showcases it.
-//
-// Slot list mirrors the existing `BUYER_SECTIONS` / `SUPPLIER_SECTIONS`
-// / `ADMIN_SECTIONS` constants — see `components/shell/sidebar.tsx`.
-// To keep R1 strictly additive (no edits to that file), the slot
-// structure is duplicated below from the same source-of-truth shape;
-// R2 will dedup by exporting them from `sidebar.tsx` and importing here.
+// Slot source is the SECTIONS map exported from `components/shell/sidebar.tsx`
+// — flattened to a single list of (label, href, Icon) per variant so the
+// rail mirrors the same IA as the full sidebar. R1 originally re-declared
+// a curated subset to stay strictly additive; R2 flips to single-source-
+// of-truth now that the consumer wiring is landing.
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import {
-  BookmarkSimple,
-  Certificate,
-  ChatCircleText,
-  ClockCounterClockwise,
-  FileText,
-  GearSix,
-  Gauge,
-  IdentificationBadge,
-  MagnifyingGlass,
-  Package,
-  Prohibit,
-  ShieldCheck,
-  Sparkle,
-  Storefront,
-  Tray,
-  Users,
-  UsersThree,
-} from "@phosphor-icons/react/dist/ssr";
-import type { Icon } from "@phosphor-icons/react";
 
 import { cn } from "@/lib/utils";
 import type { Role } from "@/lib/auth";
+import {
+  SECTIONS,
+  variantFromPath,
+  type ShellVariant,
+  type Slot,
+} from "@/components/shell/sidebar";
 
-type RailSlot = { label: string; href: string; Icon: Icon };
-type RailVariant = "buyer" | "supplier" | "admin";
-
-// Curated top-of-IA slots per variant (a subset of the full sidebar IA;
-// the rail is icon-only so we keep the most-trafficked destinations).
-const BUYER_RAIL: RailSlot[] = [
-  { label: "Search suppliers", href: "/app/discover", Icon: MagnifyingGlass },
-  { label: "Find matches", href: "/app/match", Icon: Sparkle },
-  { label: "Saved", href: "/app/saved", Icon: BookmarkSimple },
-  { label: "Messages", href: "/app/messages", Icon: ChatCircleText },
-  { label: "RFQs", href: "/app/rfqs", Icon: FileText },
-  { label: "Orders", href: "/app/orders", Icon: Package },
-  { label: "Compliance", href: "/app/compliance", Icon: ShieldCheck },
-  { label: "Settings", href: "/app/settings", Icon: GearSix },
-];
-const SUPPLIER_RAIL: RailSlot[] = [
-  { label: "Dashboard", href: "/supplier", Icon: Gauge },
-  { label: "Profile", href: "/supplier/profile", Icon: Storefront },
-  { label: "Messages", href: "/supplier/messages", Icon: ChatCircleText },
-  { label: "RFQs received", href: "/supplier/rfqs", Icon: Tray },
-  { label: "Partners", href: "/supplier/partners", Icon: UsersThree },
-  { label: "Documents", href: "/supplier/documents", Icon: FileText },
-  { label: "Settings", href: "/app/settings", Icon: GearSix },
-];
-const ADMIN_RAIL: RailSlot[] = [
-  { label: "Overview", href: "/admin", Icon: Gauge },
-  { label: "Suppliers", href: "/admin/suppliers", Icon: Storefront },
-  { label: "Claims", href: "/admin/claims", Icon: IdentificationBadge },
-  { label: "Certifications", href: "/admin/certifications", Icon: Certificate },
-  { label: "Sanctions", href: "/admin/sanctions", Icon: Prohibit },
-  { label: "Audit log", href: "/admin/audit-log", Icon: ClockCounterClockwise },
-  { label: "Users", href: "/admin/users", Icon: Users },
-];
-
-function variantFromPath(pathname: string): RailVariant {
-  if (pathname === "/admin" || pathname.startsWith("/admin/")) return "admin";
-  if (pathname === "/supplier" || pathname.startsWith("/supplier/"))
-    return "supplier";
-  return "buyer";
+function flatten(variant: ShellVariant): Slot[] {
+  return SECTIONS[variant].flatMap((s) => s.slots);
 }
-
-const RAILS: Record<RailVariant, RailSlot[]> = {
-  buyer: BUYER_RAIL,
-  supplier: SUPPLIER_RAIL,
-  admin: ADMIN_RAIL,
-};
 
 type SidebarRailProps = {
   /** Optional explicit variant (e.g. for the /dev/components showcase
    *  where the path may not match a real route). Falls back to path. */
-  variant?: RailVariant;
+  variant?: ShellVariant;
   /** Role (currently unused for routing — server middleware gates
    *  routes — but kept in the API so R2 can drive visual a11y hints). */
   role?: Role | null;
@@ -98,16 +39,14 @@ type SidebarRailProps = {
 export function SidebarRail({ variant, className }: SidebarRailProps) {
   const pathname = usePathname() ?? "/app";
   const v = variant ?? variantFromPath(pathname);
-  const slots = RAILS[v];
+  const slots = flatten(v);
 
   return (
     <nav
       aria-label="Collapsed primary navigation"
       className={cn(
-        // Visibility is the consumer's responsibility (R2 picks
-        // `hidden md:flex lg:hidden`). R1 defaults to always-visible
-        // so /dev/components can showcase it at every breakpoint.
-        "sticky top-14 flex h-[calc(100dvh-56px)] w-[64px] flex-shrink-0 flex-col items-stretch gap-1 border-r border-hairline-strong bg-surface-l1 px-1 py-3",
+        // R2 default visibility: tablet only. Consumer can override.
+        "hidden md:sticky md:top-14 md:flex md:h-[calc(100dvh-56px)] md:w-[64px] md:flex-shrink-0 md:flex-col md:items-stretch md:gap-1 md:overflow-y-auto md:border-r md:border-hairline-strong md:bg-surface-l1 md:px-1 md:py-3 lg:hidden",
         className,
       )}
     >

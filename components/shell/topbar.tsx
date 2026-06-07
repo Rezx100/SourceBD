@@ -3,11 +3,15 @@
 // §2.1 plus debug batch 2026-06-06 I-022 (quick-nav links + verified count
 // surfaced in the header so the topbar carries useful info, not just chrome).
 // Server component — interactive search submit is a plain HTML form, no JS.
+// Spec R2 — Adds the <md hamburger trigger (TopbarHamburger client island)
+// that opens a MobileDrawer with the full sidebar slot list. Tablet (md..<lg)
+// gets SidebarRail, desktop (≥lg) gets the full Sidebar.
 
 import Link from "next/link";
 import { Bell, MagnifyingGlass, UserCircle } from "@phosphor-icons/react/dist/ssr";
 
 import type { Role } from "@/lib/auth";
+import { TopbarHamburger } from "@/components/shell/topbar-hamburger";
 
 type QuickLink = { href: string; label: string };
 
@@ -54,7 +58,8 @@ export function Topbar({
   const links = QUICK_LINKS[variant];
 
   return (
-    <header className="topbar sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-hairline px-4 backdrop-blur">
+    <header className="topbar sticky top-0 z-30 flex h-14 items-center gap-2 border-b border-hairline px-3 backdrop-blur md:gap-3 md:px-4">
+      <TopbarHamburger variant={variant} />
       <Link href="/" className="proto-wordmark shrink-0">
         SourceBD
       </Link>

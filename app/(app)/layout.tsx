@@ -8,6 +8,8 @@
 // `settings_get`) so the client component stays pure render.
 
 import { Sidebar, type SidebarBadges } from "@/components/shell/sidebar";
+import { SidebarRail } from "@/components/shell/sidebar-rail";
+import { BottomTabBar } from "@/components/shell/bottom-tab-bar";
 import { Topbar } from "@/components/shell/topbar";
 import { SkipLink } from "@/components/ui/skip-link";
 import { PostHogProvider } from "@/lib/posthog/provider";
@@ -131,6 +133,10 @@ export default async function AppShellLayout({
         <SkipLink />
         <Topbar role={role} moatTotal={moatTotal} />
         <div className="flex flex-1 flex-col md:flex-row md:items-start">
+          {/* R2 — tablet portrait (md..<lg) renders the icon-only rail,
+              desktop (≥lg) renders the full sidebar. Both have their own
+              visibility class so they never both render at the same width. */}
+          <SidebarRail role={role} />
           <Sidebar
             role={role}
             email={email}
@@ -143,11 +149,15 @@ export default async function AppShellLayout({
           <main
             id="main-content"
             tabIndex={-1}
-            className="flex-1 px-4 py-6 md:min-h-[calc(100vh-56px)] md:px-8 md:py-8 focus:outline-none"
+            className="flex-1 px-4 pb-[72px] py-6 md:min-h-[calc(100vh-56px)] md:px-8 md:pb-8 md:py-8 focus:outline-none"
           >
             {children}
           </main>
         </div>
+        {/* R2 — phone only (md:hidden). Bottom-tab covers the top 5
+            destinations per role; the full sidebar is available via the
+            topbar hamburger. */}
+        <BottomTabBar role={role} />
       </div>
     </PostHogProvider>
   );

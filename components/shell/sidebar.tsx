@@ -19,7 +19,6 @@ import {
   GearSix,
   Gauge,
   IdentificationBadge,
-  List as ListIcon,
   MagnifyingGlass,
   Package,
   Prohibit,
@@ -49,15 +48,15 @@ export type SidebarBadges = {
   adminSanctions?: number;
 };
 
-type Slot = {
+export type Slot = {
   label: string;
   href: string;
   Icon: Icon;
   badgeKey?: keyof SidebarBadges;
 };
-type Section = { label: string; slots: Slot[] };
+export type Section = { label: string; slots: Slot[] };
 
-const BUYER_SECTIONS: Section[] = [
+export const BUYER_SECTIONS: Section[] = [
   {
     label: "Discover",
     slots: [
@@ -86,7 +85,7 @@ const BUYER_SECTIONS: Section[] = [
   },
 ];
 
-const SUPPLIER_SECTIONS: Section[] = [
+export const SUPPLIER_SECTIONS: Section[] = [
   {
     label: "Workspace",
     slots: [
@@ -116,7 +115,7 @@ const SUPPLIER_SECTIONS: Section[] = [
   },
 ];
 
-const ADMIN_SECTIONS: Section[] = [
+export const ADMIN_SECTIONS: Section[] = [
   {
     label: "Overview",
     slots: [{ label: "Overview", href: "/admin", Icon: Gauge }],
@@ -144,26 +143,26 @@ const ADMIN_SECTIONS: Section[] = [
 
 export type ShellVariant = "buyer" | "supplier" | "admin";
 
-function variantFromPath(pathname: string): ShellVariant {
+export function variantFromPath(pathname: string): ShellVariant {
   if (pathname === "/admin" || pathname.startsWith("/admin/")) return "admin";
   if (pathname === "/supplier" || pathname.startsWith("/supplier/"))
     return "supplier";
   return "buyer";
 }
 
-const VARIANT_LABEL: Record<ShellVariant, string> = {
+export const VARIANT_LABEL: Record<ShellVariant, string> = {
   buyer: "Buyer workspace",
   supplier: "Supplier workspace",
   admin: "Admin console",
 };
 
-const SECTIONS: Record<ShellVariant, Section[]> = {
+export const SECTIONS: Record<ShellVariant, Section[]> = {
   buyer: BUYER_SECTIONS,
   supplier: SUPPLIER_SECTIONS,
   admin: ADMIN_SECTIONS,
 };
 
-const VARIANT_HREF: Record<ShellVariant, string> = {
+export const VARIANT_HREF: Record<ShellVariant, string> = {
   buyer: "/app",
   supplier: "/supplier",
   admin: "/admin",
@@ -369,31 +368,12 @@ export function Sidebar({
 
   return (
     <>
-      {/* Mobile disclosure — sticky right below the topbar. */}
-      <details className="proto-sidebar sticky top-14 z-20 border-b border-hairline md:hidden">
-        <summary
-          className="flex h-12 cursor-pointer list-none items-center justify-between px-4 text-sm font-medium text-ink-primary outline-none [&::-webkit-details-marker]:hidden"
-          aria-label={`${VARIANT_LABEL[variant]} navigation`}
-        >
-          <span className="flex items-center gap-2">
-            <ListIcon size={18} weight="bold" aria-hidden />
-            {VARIANT_LABEL[variant]}
-          </span>
-          <span className="text-[11px] text-ink-tertiary">
-            Menu
-          </span>
-        </summary>
-        <div className="flex flex-col gap-0.5 border-t border-hairline-strong px-3 pb-4 pt-3">
-          {wsCard}
-          {switcher}
-          <div className="mt-2">{navBody}</div>
-          {footer}
-        </div>
-      </details>
-
+      {/* R2: mobile disclosure removed — the topbar hamburger now opens
+         the full sidebar via <MobileDrawer>. The aside below shifts one
+         tier later (md→lg) so the tablet band hands off to <SidebarRail>. */}
       <aside
         aria-label={`${VARIANT_LABEL[variant]} navigation`}
-        className="proto-sidebar hidden md:sticky md:top-14 md:flex md:h-[calc(100vh-56px)] md:w-[272px] md:shrink-0 md:flex-col md:gap-0.5 md:overflow-y-auto md:border-r md:border-hairline-strong md:px-[14px] md:pb-[14px] md:pt-[18px]"
+        className="proto-sidebar hidden lg:sticky lg:top-14 lg:flex lg:h-[calc(100vh-56px)] lg:w-[272px] lg:shrink-0 lg:flex-col lg:gap-0.5 lg:overflow-y-auto lg:border-r lg:border-hairline-strong lg:px-[14px] lg:pb-[14px] lg:pt-[18px]"
       >
         {wsCard}
         {switcher}
