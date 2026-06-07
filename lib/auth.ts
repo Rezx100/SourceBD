@@ -16,6 +16,15 @@ export type Role = "admin" | "buyer" | "supplier";
 
 const ALLOWED: ReadonlySet<Role> = new Set<Role>(["admin", "buyer", "supplier"]);
 
+// Default landing surface for a role after a sign-in that did not request a
+// specific `next` target. Admins land in the admin console; suppliers in the
+// supplier workspace; buyers (and anonymous fallthrough) in `/app`.
+export function defaultLandingForRole(role: Role | null): string {
+  if (role === "admin") return "/admin";
+  if (role === "supplier") return "/supplier";
+  return "/app";
+}
+
 export async function getServerRole(): Promise<Role | null> {
   if (
     process.env.NODE_ENV !== "production" &&
