@@ -239,7 +239,7 @@ export default function PricingPage() {
           volume and we will reply with a quote within two working days.
         </p>
         <Link
-          href="mailto:sales@sourcebd.com?subject=SourceBD%20Enterprise%20enquiry"
+          href="mailto:sales@sourcebd.net?subject=SourceBD%20Enterprise%20enquiry"
           className="btn-proto primary mt-6 inline-flex"
         >
           Contact sales

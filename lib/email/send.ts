@@ -53,7 +53,7 @@ export class EmailError extends Error {
 }
 
 const DEFAULT_FROM =
-  process.env.RESEND_FROM || "SourceBD <noreply@sourcebd.com>";
+  process.env.RESEND_FROM || "SourceBD <noreply@sourcebd.net>";
 const LIMIT_PER_MIN = 10;
 
 function serviceRoleClient(): SupabaseClient | null {

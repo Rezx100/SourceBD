@@ -41,7 +41,7 @@ export async function runCertExpiryDigest(): Promise<CertExpiryRunResult> {
   const supabase = createClient(url, key, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://sourcebd.com";
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://sourcebd.net";
 
   const { data, error } = await supabase.rpc("buyer_cert_expiry_digest", {
     p_days: 30,

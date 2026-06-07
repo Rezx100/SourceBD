@@ -75,7 +75,7 @@ export const PLANS: PricingPlan[] = [
     ctaLabel: "Contact sales",
     ctaTarget: {
       kind: "mailto",
-      email: "sales@sourcebd.com",
+      email: "sales@sourcebd.net",
       subject: "SourceBD Enterprise enquiry",
     },
     features: [

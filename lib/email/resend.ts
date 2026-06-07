@@ -19,7 +19,7 @@ import "server-only";
 import { Resend } from "resend";
 
 export const CLAIM_FROM =
-  process.env.RESEND_FROM || "SourceBD <noreply@sourcebd.com>";
+  process.env.RESEND_FROM || "SourceBD <noreply@sourcebd.net>";
 
 export type SendEmailInput = {
   to: string;
