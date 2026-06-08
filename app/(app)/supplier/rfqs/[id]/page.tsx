@@ -29,6 +29,7 @@ import {
   CardMeta,
   CardTitle,
 } from "@/components/ui/card";
+import { MasterDetail } from "@/components/ui/master-detail";
 import { SupplierQuoteForm } from "@/components/supplier-quote-form";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -94,12 +95,28 @@ export default async function SupplierRfqDetailPage({
     redirect(`/app/rfqs/${rfq.id}`);
   }
 
+  const { data: listData } = await supabase.rpc("rfq_list", { p_status: null });
+  const listItems = ((listData ?? []) as RfqListPaneItem[]).filter(
+    (r) => r.viewer_role !== "buyer",
+  );
+
   const myQuote = rfq.quotes[0] ?? null;
   const canQuote = rfq.status === "open";
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
-      <header className="space-y-1">
+    <MasterDetail
+      mode="detail"
+      className="mx-auto max-w-6xl"
+      list={<RfqListPane items={listItems} activeId={rfq.id} />}
+      detail={
+        <div className="space-y-6">
+          <Link
+            href="/supplier/rfqs"
+            className="inline-flex items-center gap-1.5 text-xs text-ink-tertiary hover:text-ink-primary lg:hidden"
+          >
+            ← All RFQs
+          </Link>
+          <header className="space-y-1">
         <p className="text-[11px] text-ink-tertiary">
           Supplier · RFQ {rfq.id.slice(0, 8)}
         </p>
@@ -261,7 +278,55 @@ export default async function SupplierRfqDetailPage({
           )}
         </CardContent>
       </Card>
-    </div>
+        </div>
+      }
+    />
+  );
+}
+
+type RfqListPaneItem = {
+  id: string;
+  product_title: string;
+  status: RfqDoc["status"];
+  viewer_role: "buyer" | "supplier" | "both";
+  updated_at: string;
+};
+
+function RfqListPane({
+  items,
+  activeId,
+}: {
+  items: RfqListPaneItem[];
+  activeId: string;
+}) {
+  return (
+    <nav className="rounded-card border border-hairline bg-surface-l1">
+      <p className="border-b border-hairline px-3 py-2 font-mono text-[11px] uppercase tracking-[0.05em] text-ink-tertiary">
+        RFQs received
+      </p>
+      <ul className="m-0 flex max-h-[70vh] list-none flex-col overflow-y-auto p-0">
+        {items.map((r) => (
+          <li key={r.id} className="border-b border-hairline last:border-b-0">
+            <Link
+              href={`/supplier/rfqs/${r.id}`}
+              className={`block px-3 py-2.5 transition hover:bg-brand-forest-tint ${
+                r.id === activeId ? "bg-[#FBFAF6]" : ""
+              }`}
+            >
+              <span className="block truncate text-[13px] font-semibold text-ink-primary">
+                {r.product_title}
+              </span>
+              <span className="mt-0.5 flex items-center gap-2">
+                <Badge tone={statusTone(r.status)}>{statusLabel(r.status)}</Badge>
+                <span className="font-mono text-[10px] text-ink-tertiary">
+                  {fmtRelative(r.updated_at)}
+                </span>
+              </span>
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </nav>
   );
 }
 

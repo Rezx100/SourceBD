@@ -16,8 +16,15 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tag } from "@/components/ui/tag";
+import { Wizard } from "@/components/ui/wizard";
 
 export const dynamic = "force-dynamic";
+
+const CLAIM_STEPS = [
+  { id: "search", label: "Find company" },
+  { id: "initiate", label: "Verify ownership" },
+  { id: "verify", label: "Confirm" },
+];
 
 function originFromHeaders(headers: Headers): string {
   const env = process.env.NEXT_PUBLIC_APP_URL;
@@ -85,29 +92,31 @@ export default async function ClaimVerifyPage({
   const approved = result.outcome === "approved";
   return (
     <div className="mx-auto max-w-md">
-      <Card>
-        <CardHeader>
-          <CardTitle>Email verified</CardTitle>
-          <CardMeta>Spec S1</CardMeta>
-        </CardHeader>
-        <CardContent className="space-y-3 text-sm">
-          <Tag>{approved ? "Claim approved" : "Awaiting admin review"}</Tag>
-          <p className="text-ink-secondary">
-            {approved
-              ? "Your domain matched the company record. You now own this profile."
-              : "Thanks. An admin will review your request and notify you of the decision."}
-          </p>
-          {result.claim_id ? (
-            <Button asChild variant="primary">
-              <Link href={`/supplier/claim/${result.claim_id}`}>View claim</Link>
-            </Button>
-          ) : (
-            <Button asChild variant="primary">
-              <Link href="/supplier/claim">Back to claims</Link>
-            </Button>
-          )}
-        </CardContent>
-      </Card>
+      <Wizard steps={CLAIM_STEPS} current={2}>
+        <Card>
+          <CardHeader>
+            <CardTitle>Email verified</CardTitle>
+            <CardMeta>Spec S1</CardMeta>
+          </CardHeader>
+          <CardContent className="space-y-3 text-sm">
+            <Tag>{approved ? "Claim approved" : "Awaiting admin review"}</Tag>
+            <p className="text-ink-secondary">
+              {approved
+                ? "Your domain matched the company record. You now own this profile."
+                : "Thanks. An admin will review your request and notify you of the decision."}
+            </p>
+            {result.claim_id ? (
+              <Button asChild variant="primary">
+                <Link href={`/supplier/claim/${result.claim_id}`}>View claim</Link>
+              </Button>
+            ) : (
+              <Button asChild variant="primary">
+                <Link href="/supplier/claim">Back to claims</Link>
+              </Button>
+            )}
+          </CardContent>
+        </Card>
+      </Wizard>
     </div>
   );
 }

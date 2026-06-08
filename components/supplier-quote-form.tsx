@@ -11,6 +11,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
+import { FormGrid } from "@/components/ui/form-grid";
+import { StickyActionBar } from "@/components/ui/sticky-action-bar";
 
 export type SupplierQuoteFormInitial = {
   unit_price: number;
@@ -106,7 +108,7 @@ export function SupplierQuoteForm({
         </p>
       ) : null}
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <FormGrid cols={2}>
         <Field label="Unit price" required>
           <input
             required
@@ -130,13 +132,13 @@ export function SupplierQuoteForm({
             className={inputClass}
           />
         </Field>
-      </div>
+      </FormGrid>
 
       <p className="text-[11px] text-ink-tertiary">
         Quoted per {quantityUnit}.
       </p>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+      <FormGrid cols={3}>
         <Field label="Lead time (days)">
           <input
             type="number"
@@ -168,7 +170,7 @@ export function SupplierQuoteForm({
             className={inputClass}
           />
         </Field>
-      </div>
+      </FormGrid>
 
       <Field label="Notes">
         <textarea
@@ -185,7 +187,8 @@ export function SupplierQuoteForm({
       {error ? <p className="text-sm text-sem-red">{error}</p> : null}
       {ok ? <p className="text-sm text-sem-green">{ok}</p> : null}
 
-      <div className="flex items-center justify-end gap-2">
+      <div className="h-16 md:hidden" aria-hidden />
+      <StickyActionBar className="bottom-[calc(56px+env(safe-area-inset-bottom,0px))]">
         <Button
           type="submit"
           variant="primary"
@@ -194,7 +197,7 @@ export function SupplierQuoteForm({
         >
           {busy ? "Submitting…" : isEdit ? "Update quote" : "Submit quote"}
         </Button>
-      </div>
+      </StickyActionBar>
     </form>
   );
 }

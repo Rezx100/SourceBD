@@ -8,10 +8,11 @@
 
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft } from "@phosphor-icons/react/dist/ssr";
+import { ArrowLeft, ChatCircleText } from "@phosphor-icons/react/dist/ssr";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { MasterDetail } from "@/components/ui/master-detail";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 import { ThreadRealtime } from "./thread-realtime";
@@ -64,34 +65,85 @@ export default async function SupplierThreadPage({
   const messages = (msgRes.data ?? []) as ThreadMessage[];
 
   return (
-    <div className="mx-auto flex h-full max-w-3xl flex-col">
-      <header className="mb-4 flex items-center justify-between gap-3">
-        <Button asChild variant="ghost" size="sm">
-          <Link
-            href="/supplier/messages"
-            className="inline-flex items-center gap-1.5"
-          >
-            <ArrowLeft size={14} weight="bold" aria-hidden /> Inbox
-          </Link>
-        </Button>
-      </header>
+    <MasterDetail
+      mode="detail"
+      className="mx-auto h-full max-w-6xl"
+      list={<ThreadListPane items={allThreads} activeId={threadId} />}
+      detail={
+        <div className="flex h-full flex-col">
+          <header className="mb-4 flex items-center justify-between gap-3 lg:hidden">
+            <Button asChild variant="ghost" size="sm">
+              <Link
+                href="/supplier/messages"
+                className="inline-flex items-center gap-1.5"
+              >
+                <ArrowLeft size={14} weight="bold" aria-hidden /> Inbox
+              </Link>
+            </Button>
+          </header>
 
-      <div className="mb-3 flex items-baseline justify-between gap-3">
-        <div className="min-w-0">
-          <div className="flex items-center gap-2">
-            <h1 className="truncate font-display text-xl font-semibold tracking-tightish text-ink-primary">
-              {buyerLabel(thread)}
-            </h1>
-            <Badge tone="neutral">Buyer</Badge>
+          <div className="mb-3 flex items-baseline justify-between gap-3">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <h1 className="truncate font-display text-xl font-semibold tracking-tightish text-ink-primary">
+                  {buyerLabel(thread)}
+                </h1>
+                <Badge tone="neutral">Buyer</Badge>
+              </div>
+              <p className="text-[11px] text-ink-tertiary">
+                {thread.subject ?? "General inquiry"} · {thread.supplier_name}
+              </p>
+            </div>
           </div>
-          <p className="text-[11px] text-ink-tertiary">
-            {thread.subject ?? "General inquiry"} · {thread.supplier_name}
-          </p>
-        </div>
-      </div>
 
-      <ThreadRealtime threadId={threadId} initialMessages={messages} />
-    </div>
+          <ThreadRealtime threadId={threadId} initialMessages={messages} />
+        </div>
+      }
+    />
+  );
+}
+
+function ThreadListPane({
+  items,
+  activeId,
+}: {
+  items: ThreadRow[];
+  activeId: string;
+}) {
+  const threads = items.filter((t) => t.viewer_role === "supplier");
+  return (
+    <nav className="rounded-card border border-hairline bg-surface-l1">
+      <p className="border-b border-hairline px-3 py-2 font-mono text-[11px] uppercase tracking-[0.05em] text-ink-tertiary">
+        Messages
+      </p>
+      <ul className="m-0 flex max-h-[70vh] list-none flex-col overflow-y-auto p-0">
+        {threads.map((t) => (
+          <li key={t.id} className="border-b border-hairline last:border-b-0">
+            <Link
+              href={`/supplier/messages/${t.id}`}
+              className={`flex items-center gap-2 px-3 py-2.5 transition hover:bg-brand-forest-tint ${
+                t.id === activeId ? "bg-[#FBFAF6]" : ""
+              }`}
+            >
+              <ChatCircleText
+                size={16}
+                weight="duotone"
+                className="shrink-0 text-accent-indigo"
+                aria-hidden
+              />
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-[13px] font-semibold text-ink-primary">
+                  {buyerLabel(t)}
+                </span>
+                <span className="block truncate text-[11px] text-ink-tertiary">
+                  {t.subject ?? "General inquiry"}
+                </span>
+              </span>
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </nav>
   );
 }
 

@@ -11,10 +11,17 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Tag } from "@/components/ui/tag";
+import { Wizard } from "@/components/ui/wizard";
 import { ClaimCancelButton } from "@/components/claim-cancel-button";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
+
+const CLAIM_STEPS = [
+  { id: "search", label: "Find company" },
+  { id: "initiate", label: "Verify ownership" },
+  { id: "verify", label: "Confirm" },
+];
 
 type ClaimRow = {
   id: string;
@@ -91,11 +98,15 @@ export default async function ClaimStatusPage({
         </p>
       </header>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Status</CardTitle>
-          <CardMeta>{claim.method === "domain_email" ? "Domain proof" : "Manual review"}</CardMeta>
-        </CardHeader>
+      <Wizard
+        steps={CLAIM_STEPS}
+        current={claim.status === "pending_email" ? 1 : 2}
+      >
+        <Card>
+          <CardHeader>
+            <CardTitle>Status</CardTitle>
+            <CardMeta>{claim.method === "domain_email" ? "Domain proof" : "Manual review"}</CardMeta>
+          </CardHeader>
         <CardContent className="space-y-3 text-sm">
           <div>
             <Tag>{statusLabel(claim.status)}</Tag>
@@ -142,7 +153,8 @@ export default async function ClaimStatusPage({
           ) : null}
           {cancellable ? <ClaimCancelButton id={claim.id} /> : null}
         </CardContent>
-      </Card>
+        </Card>
+      </Wizard>
     </div>
   );
 }

@@ -8,11 +8,11 @@
 // unambiguously inbound, mirroring how `/supplier/messages` filters
 // `thread_list()` rows.
 
-import Link from "next/link";
 import { Tray } from "@phosphor-icons/react/dist/ssr";
 
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { ResponsiveTable, type Column } from "@/components/ui/responsive-table";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -59,71 +59,81 @@ export default async function SupplierRfqsPage() {
             Could not load RFQs.
           </CardContent>
         </Card>
-      ) : rfqs.length === 0 ? (
-        <Card>
-          <CardContent className="space-y-3 py-8 text-center">
-            <Tray
-              size={32}
-              weight="duotone"
-              className="mx-auto text-ink-tertiary"
-              aria-hidden
-            />
-            <p className="text-sm text-ink-secondary">No RFQs yet.</p>
-            <p className="text-[12px] text-ink-tertiary">
-              When a buyer addresses an RFQ to one of your claimed companies
-              it will appear here.
-            </p>
-          </CardContent>
-        </Card>
       ) : (
-        <Card>
-          <CardContent className="px-0 py-0">
-            <ul className="m-0 flex list-none flex-col p-0">
-              {rfqs.map((r) => (
-                <li
-                  key={r.id}
-                  className="border-b border-hairline last:border-b-0"
-                >
-                  <Link
-                    href={`/supplier/rfqs/${r.id}`}
-                    className="flex items-center gap-3 px-4 py-3 transition hover:bg-brand-forest-tint focus:outline-none focus-visible:bg-brand-forest-tint"
-                  >
-                    <Tray
-                      size={20}
-                      weight="duotone"
-                      className="text-accent-indigo"
-                      aria-hidden
-                    />
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="truncate font-display text-sm font-semibold text-ink-primary">
-                          {r.product_title}
-                        </span>
-                        <Badge tone={statusTone(r.status)}>
-                          {statusLabel(r.status)}
-                        </Badge>
-                      </div>
-                      <p className="truncate text-[12px] text-ink-tertiary">
-                        {fmtQty(r.quantity, r.quantity_unit)}
-                        {r.target_unit_price != null
-                          ? ` · target ${fmtMoney(r.target_unit_price, r.currency)}`
-                          : ""}
-                        {r.ship_by ? ` · ship by ${fmtDate(r.ship_by)}` : ""}
-                      </p>
-                    </div>
-                    <span className="font-mono text-[11px] text-ink-tertiary">
-                      {fmtRelative(r.updated_at)}
-                    </span>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </CardContent>
-        </Card>
+        <ResponsiveTable
+          mode="stacked"
+          columns={RFQ_COLUMNS}
+          rows={rfqs}
+          rowKey={(r) => r.id}
+          rowHref={(r) => `/supplier/rfqs/${r.id}`}
+          caption="RFQs received"
+          emptyState={
+            <div className="space-y-3 py-4">
+              <Tray
+                size={32}
+                weight="duotone"
+                className="mx-auto text-ink-tertiary"
+                aria-hidden
+              />
+              <p className="text-sm text-ink-secondary">No RFQs yet.</p>
+              <p className="text-[12px] text-ink-tertiary">
+                When a buyer addresses an RFQ to one of your claimed companies
+                it will appear here.
+              </p>
+            </div>
+          }
+        />
       )}
     </div>
   );
 }
+
+const RFQ_COLUMNS: Column<Rfq>[] = [
+  {
+    key: "rfq",
+    label: "RFQ",
+    render: (r) => (
+      <span className="font-display text-sm font-semibold text-ink-primary">
+        {r.product_title}
+      </span>
+    ),
+  },
+  {
+    key: "status",
+    label: "Status",
+    render: (r) => <Badge tone={statusTone(r.status)}>{statusLabel(r.status)}</Badge>,
+  },
+  {
+    key: "quantity",
+    label: "Quantity",
+    render: (r) => fmtQty(r.quantity, r.quantity_unit),
+  },
+  {
+    key: "target",
+    label: "Target",
+    numeric: true,
+    render: (r) =>
+      r.target_unit_price != null
+        ? fmtMoney(r.target_unit_price, r.currency)
+        : "—",
+  },
+  {
+    key: "quotes",
+    label: "Quotes",
+    numeric: true,
+    render: (r) => r.quote_count.toLocaleString(),
+  },
+  {
+    key: "updated",
+    label: "Updated",
+    numeric: true,
+    render: (r) => (
+      <span className="font-mono text-[11px] text-ink-tertiary">
+        {fmtRelative(r.updated_at)}
+      </span>
+    ),
+  },
+];
 
 function statusTone(s: Rfq["status"]): "active" | "neutral" | "alert" | "success" {
   if (s === "open") return "active";
@@ -149,12 +159,6 @@ function fmtMoney(n: number, ccy: string) {
   const v = Number(n);
   if (!Number.isFinite(v)) return `${n} ${ccy}`;
   return `${v.toLocaleString(undefined, { maximumFractionDigits: 4 })} ${ccy}`;
-}
-
-function fmtDate(iso: string) {
-  const t = new Date(iso).getTime();
-  if (!Number.isFinite(t)) return iso;
-  return new Date(iso).toLocaleDateString();
 }
 
 function fmtRelative(iso: string) {

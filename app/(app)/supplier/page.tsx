@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tag } from "@/components/ui/tag";
+import { FormGrid } from "@/components/ui/form-grid";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 // Supplier portal landing (extended by Spec S1).
@@ -115,10 +116,13 @@ export default async function SupplierHome() {
               </Button>
             </div>
           ) : (
-            <ul className="divide-y divide-hairline">
+            <FormGrid cols={3}>
               {owned.map((s) => (
-                <li key={s.id} className="flex items-center justify-between py-3">
-                  <div>
+                <div
+                  key={s.id}
+                  className="flex flex-col gap-3 rounded-card border border-hairline bg-bg-l0 p-4"
+                >
+                  <div className="min-w-0">
                     <Link
                       href={`/app/suppliers/${s.slug}`}
                       className="text-sm font-semibold text-ink-primary hover:underline"
@@ -130,17 +134,17 @@ export default async function SupplierHome() {
                       {[s.city, s.district].filter(Boolean).join(", ") || "—"}
                     </p>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="mt-auto flex items-center gap-2">
                     <Tag>Owned</Tag>
-                    <Button asChild variant="primary" size="sm">
+                    <Button asChild variant="primary" size="sm" className="ml-auto">
                       <Link href={`/supplier/profile/${s.id}`}>
                         Edit profile
                       </Link>
                     </Button>
                   </div>
-                </li>
+                </div>
               ))}
-            </ul>
+            </FormGrid>
           )}
         </CardContent>
       </Card>
@@ -156,10 +160,13 @@ export default async function SupplierHome() {
               No claims awaiting verification or admin review.
             </p>
           ) : (
-            <ul className="divide-y divide-hairline">
+            <FormGrid cols={2}>
               {openClaims.map((c) => (
-                <li key={c.id} className="flex items-center justify-between py-3">
-                  <div>
+                <div
+                  key={c.id}
+                  className="flex items-center justify-between gap-3 rounded-card border border-hairline bg-bg-l0 p-4"
+                >
+                  <div className="min-w-0">
                     <Link
                       href={`/supplier/claim/${c.id}`}
                       className="text-sm font-semibold text-ink-primary hover:underline"
@@ -174,9 +181,9 @@ export default async function SupplierHome() {
                   <Tag>
                     {c.status === "pending_email" ? "Awaiting email" : "Awaiting admin"}
                   </Tag>
-                </li>
+                </div>
               ))}
-            </ul>
+            </FormGrid>
           )}
         </CardContent>
       </Card>

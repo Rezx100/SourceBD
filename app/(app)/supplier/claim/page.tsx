@@ -14,10 +14,17 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Tag } from "@/components/ui/tag";
+import { Wizard } from "@/components/ui/wizard";
 import { ClaimSearchForm } from "@/components/claim-search-form";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
+
+const CLAIM_STEPS = [
+  { id: "search", label: "Find company", hint: "Search the directory" },
+  { id: "initiate", label: "Verify ownership", hint: "Company email proof" },
+  { id: "verify", label: "Confirm", hint: "Click the email link" },
+];
 
 type ClaimRow = {
   id: string;
@@ -104,15 +111,17 @@ export default async function SupplierClaimPage({
         </p>
       </header>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Find your company</CardTitle>
-          <CardMeta>Spec S1</CardMeta>
-        </CardHeader>
-        <CardContent>
-          <ClaimSearchForm prebound={prebound} />
-        </CardContent>
-      </Card>
+      <Wizard steps={CLAIM_STEPS} current={0}>
+        <Card>
+          <CardHeader>
+            <CardTitle>Find your company</CardTitle>
+            <CardMeta>Spec S1</CardMeta>
+          </CardHeader>
+          <CardContent>
+            <ClaimSearchForm prebound={prebound} />
+          </CardContent>
+        </Card>
+      </Wizard>
 
       <Card>
         <CardHeader>

@@ -9,6 +9,7 @@ import { UsersThree } from "@phosphor-icons/react/dist/ssr";
 
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardMeta, CardTitle } from "@/components/ui/card";
+import { ResponsiveTable, type Column } from "@/components/ui/responsive-table";
 import { Tag } from "@/components/ui/tag";
 import { PartnerActionButtons } from "@/components/supplier-partner-actions";
 import { SupplierPartnerRequestForm } from "@/components/supplier-partner-request-form";
@@ -182,74 +183,109 @@ function RelationshipGroup({
         <CardMeta>{meta}</CardMeta>
       </CardHeader>
       <CardContent>
-        {rows.length === 0 ? (
-          <p className="text-sm text-ink-tertiary">{emptyText}</p>
-        ) : (
-          <ul className="m-0 flex list-none flex-col divide-y divide-hairline p-0">
-            {rows.map((r) => (
-              <li key={r.id} className="py-3">
-                <RelationshipRow row={r} />
-              </li>
-            ))}
-          </ul>
-        )}
+        <ResponsiveTable
+          mode="priority"
+          priorityKeys={["partner", "role"]}
+          columns={PARTNER_COLUMNS}
+          rows={rows}
+          rowKey={(r) => r.id}
+          caption={title}
+          emptyState={
+            <p className="text-sm text-ink-tertiary">{emptyText}</p>
+          }
+        />
       </CardContent>
     </Card>
   );
 }
 
-function RelationshipRow({ row }: { row: Relationship }) {
-  const counterparty =
-    row.viewer_role === "buying_house" ? row.factory : row.buying_house;
-  const myCompany =
-    row.viewer_role === "buying_house" ? row.buying_house : row.factory;
-  const counterpartyRole =
-    row.viewer_role === "buying_house" ? "factory" : "buying house";
-
-  return (
-    <div className="flex flex-wrap items-start justify-between gap-3">
-      <div className="min-w-0 flex-1">
-        <div className="flex flex-wrap items-center gap-2">
-          <Link
-            href={`/app/suppliers/${counterparty.slug}`}
-            className="font-display text-sm font-semibold text-ink-primary hover:underline"
-          >
-            {counterparty.company_name}
-          </Link>
-          <Tag>{counterpartyRole}</Tag>
-          <StatusBadge status={row.status} />
-        </div>
-        <p className="mt-0.5 text-[12px] text-ink-tertiary">
-          {[counterparty.city, counterparty.district]
-            .filter(Boolean)
-            .join(", ") || "—"}
-          {" · for "}
-          <Link
-            href={`/app/suppliers/${myCompany.slug}`}
-            className="hover:underline"
-          >
-            {myCompany.company_name}
-          </Link>
-          {" · "}
-          {row.initiated_by_me ? "you requested" : "they requested"}
-          {row.decided_at
-            ? ` · decided ${new Date(row.decided_at).toLocaleDateString()}`
-            : ""}
-        </p>
-        {row.note ? (
-          <p className="mt-1 max-w-prose whitespace-pre-wrap text-[13px] text-ink-secondary">
-            “{row.note}”
-          </p>
-        ) : null}
-      </div>
-      <PartnerActionButtons
-        id={row.id}
-        canDecide={row.can_decide}
-        canRevoke={row.can_revoke}
-      />
-    </div>
-  );
+function counterpartyOf(row: Relationship): Counterparty {
+  return row.viewer_role === "buying_house" ? row.factory : row.buying_house;
 }
+function myCompanyOf(row: Relationship): Counterparty {
+  return row.viewer_role === "buying_house" ? row.buying_house : row.factory;
+}
+
+const PARTNER_COLUMNS: Column<Relationship>[] = [
+  {
+    key: "partner",
+    label: "Partner",
+    render: (r) => {
+      const c = counterpartyOf(r);
+      return (
+        <Link
+          href={`/app/suppliers/${c.slug}`}
+          className="font-display text-sm font-semibold text-ink-primary hover:underline"
+        >
+          {c.company_name}
+        </Link>
+      );
+    },
+  },
+  {
+    key: "role",
+    label: "Role",
+    render: (r) => (
+      <Tag>{r.viewer_role === "buying_house" ? "factory" : "buying house"}</Tag>
+    ),
+  },
+  {
+    key: "status",
+    label: "Status",
+    render: (r) => <StatusBadge status={r.status} />,
+  },
+  {
+    key: "for",
+    label: "For",
+    render: (r) => {
+      const mine = myCompanyOf(r);
+      return (
+        <Link
+          href={`/app/suppliers/${mine.slug}`}
+          className="text-[13px] text-ink-secondary hover:underline"
+        >
+          {mine.company_name}
+        </Link>
+      );
+    },
+  },
+  {
+    key: "who",
+    label: "Direction",
+    render: (r) => (
+      <span className="text-[13px] text-ink-tertiary">
+        {r.initiated_by_me ? "you requested" : "they requested"}
+        {r.decided_at
+          ? ` · decided ${new Date(r.decided_at).toLocaleDateString()}`
+          : ""}
+      </span>
+    ),
+  },
+  {
+    key: "note",
+    label: "Note",
+    render: (r) =>
+      r.note ? (
+        <span className="whitespace-pre-wrap text-[13px] text-ink-secondary">
+          “{r.note}”
+        </span>
+      ) : (
+        "—"
+      ),
+  },
+  {
+    key: "actions",
+    label: "Actions",
+    numeric: true,
+    render: (r) => (
+      <PartnerActionButtons
+        id={r.id}
+        canDecide={r.can_decide}
+        canRevoke={r.can_revoke}
+      />
+    ),
+  },
+];
 
 function StatusBadge({ status }: { status: Relationship["status"] }) {
   if (status === "accepted") return <Badge tone="success">Accepted</Badge>;

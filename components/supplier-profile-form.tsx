@@ -6,6 +6,8 @@ import { useState, useTransition, type FormEvent, type KeyboardEvent } from "rea
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tag } from "@/components/ui/tag";
+import { FormGrid } from "@/components/ui/form-grid";
+import { StickyActionBar } from "@/components/ui/sticky-action-bar";
 
 // Spec S2 — supplier-attested editor client island. Controlled inputs for
 // all 9 editable keys; chip-style capabilities; partial patch on submit.
@@ -211,7 +213,7 @@ export function SupplierProfileForm({
             </p>
           </div>
 
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <FormGrid cols="profile">
             <div>
               <label
                 htmlFor="s2-moq"
@@ -247,7 +249,7 @@ export function SupplierProfileForm({
                 placeholder="e.g. 60"
               />
             </div>
-          </div>
+          </FormGrid>
 
           <div>
             <span className="block text-xs font-medium text-ink-secondary">
@@ -287,7 +289,7 @@ export function SupplierProfileForm({
             </p>
           </div>
 
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <FormGrid cols="profile">
             <div>
               <label
                 htmlFor="s2-cname"
@@ -351,22 +353,23 @@ export function SupplierProfileForm({
                 className="mt-1 w-full rounded-input border border-hairline bg-bg-l0 px-3 py-2 text-sm text-ink-primary focus:outline-none focus:ring-1 focus:ring-accent-indigo"
               />
             </div>
-          </div>
+          </FormGrid>
 
           {error ? <p className="text-xs text-sem-red">{error}</p> : null}
           {info ? <p className="text-xs text-sem-green">{info}</p> : null}
-
-          <div className="flex gap-2">
-            <Button type="submit" variant="primary" disabled={pending}>
-              {pending ? "Saving…" : "Save profile"}
-            </Button>
-          </div>
 
           <p className="text-xs text-ink-tertiary">
             Your edits never overwrite the register record above. Buyers see
             your supplier-attested values when the register does not publish
             the field; otherwise the register wins.
           </p>
+
+          <div className="h-16 md:hidden" aria-hidden />
+          <StickyActionBar className="bottom-[calc(56px+env(safe-area-inset-bottom,0px))]">
+            <Button type="submit" variant="primary" disabled={pending}>
+              {pending ? "Saving…" : "Save profile"}
+            </Button>
+          </StickyActionBar>
         </form>
       </CardContent>
     </Card>

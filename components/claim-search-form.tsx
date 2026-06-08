@@ -14,6 +14,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 
 import { Button } from "@/components/ui/button";
+import { StickyActionBar } from "@/components/ui/sticky-action-bar";
 
 type SearchHit = {
   id: string;
@@ -247,9 +248,12 @@ export function ClaimSearchForm({ prebound }: ClaimSearchFormProps) {
           </div>
           {error ? <p className="text-xs text-sem-red">{error}</p> : null}
           {info ? <p className="text-xs text-sem-green">{info}</p> : null}
-          <Button type="submit" variant="primary" disabled={submitting}>
-            {submitting ? "Sending…" : "Send verification email"}
-          </Button>
+          <div className="h-16 md:hidden" aria-hidden />
+          <StickyActionBar className="bottom-[calc(56px+env(safe-area-inset-bottom,0px))]">
+            <Button type="submit" variant="primary" disabled={submitting}>
+              {submitting ? "Sending…" : "Send verification email"}
+            </Button>
+          </StickyActionBar>
         </form>
       ) : null}
     </div>
