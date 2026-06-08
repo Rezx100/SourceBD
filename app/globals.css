@@ -3304,3 +3304,58 @@
   [data-surface="marketing"] .mkt-metrics-grid { grid-template-columns: 1fr 1fr; }
   [data-surface="marketing"] .mkt-reg-grid { grid-template-columns: 1fr; }
 }
+
+/* ===== Spec R3 — marketing + auth responsive finishing (9 Jun 2026) ===== */
+
+/* Homepage metric band: 1-col below xs (360px) so the long labels
+   ("Government- or association-corroborated") don't collide. */
+@media (max-width: 380px) {
+  [data-surface="marketing"] .mkt-metrics-grid { grid-template-columns: 1fr; }
+  [data-surface="marketing"] .mkt-metric { border-left: 0; border-top: 1px solid var(--mkt-line); padding: 22px 22px; }
+  [data-surface="marketing"] .mkt-metric:first-child { border-top: 0; }
+}
+
+/* Homepage CTA box: stack vertically (text -> actions block) below md.
+   The existing mkt-cta-box uses a flex row layout; below 720 it already
+   wraps via `flex-wrap` on .mkt-cta-actions, but the headline + actions
+   block should also stack so the buttons reach 100% width. */
+@media (max-width: 540px) {
+  [data-surface="marketing"] .mkt-cta-box { flex-direction: column; align-items: stretch; gap: 18px; }
+  [data-surface="marketing"] .mkt-cta-actions { width: 100%; }
+  [data-surface="marketing"] .mkt-cta-actions a { flex: 1 1 100%; justify-content: center; min-height: 44px; }
+  [data-surface="marketing"] .mkt-cta-box h2 { font-size: 26px; }
+}
+
+/* Homepage hero search bar: keep input pill but let the submit button
+   stretch to full width below 420 so the touch target is unmistakable. */
+@media (max-width: 420px) {
+  [data-surface="marketing"] .mkt-searchbar { flex-wrap: wrap; padding: 10px; gap: 8px; border-radius: var(--mkt-r-md); }
+  [data-surface="marketing"] .mkt-searchbar > svg { display: none; }
+  [data-surface="marketing"] .mkt-searchbar input { flex: 1 1 100%; padding: 10px 12px; min-height: 44px; border: 1px solid var(--mkt-line); border-radius: var(--mkt-r-sm); background: var(--mkt-canvas); }
+  [data-surface="marketing"] .mkt-searchbar button { flex: 1 1 100%; min-height: 44px; }
+}
+
+/* Supplier-profile address row: 140px label column collapses below sm
+   so the address text gets the full width on phones. The component
+   keeps the 3-column grid on desktop unchanged. */
+.r3-address-row { grid-template-columns: 140px 1fr auto !important; }
+@media (max-width: 640px) {
+  .r3-address-row { grid-template-columns: 1fr !important; gap: 4px !important; }
+  .r3-address-row > :nth-child(3) { text-align: left; }
+}
+
+/* Supplier-profile 2-col dossier <dl>: stack below sm so the EPZ /
+   Type / etc. value pairs don't overflow at 360px. */
+.r3-dossier-dl { grid-template-columns: 1fr 1fr !important; }
+@media (max-width: 480px) {
+  .r3-dossier-dl { grid-template-columns: 1fr !important; }
+}
+
+/* Pricing cards: ensure every CTA on a plan card meets the 44px tap
+   target. The card itself stays at the existing proto-card padding. */
+.r3-plan-cta { min-height: 44px; display: inline-flex; align-items: center; justify-content: center; }
+
+/* Public Discover mobile filter sheet trigger. The trigger button
+   mirrors the proto-card 44px-tap target language; the Sheet body
+   uses safe-area padding via R1's .safe-pb utility. */
+.r3-filter-trigger { min-height: 44px; }

@@ -130,7 +130,8 @@ export default function PricingPage() {
               <Link
                 href={ctaHref(plan.ctaTarget)}
                 className={
-                  "mt-6 " + (featured ? "btn-proto primary" : "btn-proto")
+                  "r3-plan-cta mt-6 " +
+                  (featured ? "btn-proto primary" : "btn-proto")
                 }
               >
                 {plan.ctaLabel}
@@ -240,7 +241,7 @@ export default function PricingPage() {
         </p>
         <Link
           href="mailto:sales@sourcebd.net?subject=SourceBD%20Enterprise%20enquiry"
-          className="btn-proto primary mt-6 inline-flex"
+          className="btn-proto primary r3-plan-cta mt-6 inline-flex"
         >
           Contact sales
         </Link>

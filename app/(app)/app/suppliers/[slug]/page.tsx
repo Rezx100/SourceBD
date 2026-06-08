@@ -674,11 +674,11 @@ function AddressRow({ address }: { address: DedupedAddress }) {
   const kindLabel = address.kinds.join(" · ");
   return (
     <li
+      className="r3-address-row"
       style={{
         padding: "12px 0",
         borderBottom: "1px solid var(--hairline)",
         display: "grid",
-        gridTemplateColumns: "140px 1fr auto",
         gap: 16,
         alignItems: "baseline",
       }}
@@ -1410,12 +1410,11 @@ function CapacityTab({ supplier: s }: { supplier: Supplier }) {
             <h2 className="proto-card-title">Site</h2>
           </header>
           <dl
-            className="header-meta-row"
+            className="header-meta-row r3-dossier-dl"
             style={{
               border: "none",
               padding: 0,
               margin: 0,
-              gridTemplateColumns: "1fr 1fr",
             }}
           >
             {s.bepza_zone ? (

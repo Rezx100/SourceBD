@@ -27,6 +27,7 @@ import {
   asStringArray,
   clampSort,
 } from "@/components/discover/filter-rail";
+import { MobileFilterSheet } from "@/components/discover/mobile-filter-sheet";
 import {
   DiscoverResultCard,
 } from "@/components/discover/result-card";
@@ -139,10 +140,48 @@ export default async function PublicDiscoverPage({
     Boolean(district) ||
     Boolean(category);
 
+  // R3 — count of active filter dimensions for the mobile sheet trigger.
+  const activeFilterCount =
+    (q ? 1 : 0) +
+    (entityTypes.length > 0 ? 1 : 0) +
+    (certKinds.length > 0 ? 1 : 0) +
+    (registries.length > 0 ? 1 : 0) +
+    (brandCodes.length > 0 ? 1 : 0) +
+    (factoryTypes.length > 0 ? 1 : 0) +
+    (minSources !== null ? 1 : 0) +
+    (rscMin !== null ? 1 : 0) +
+    (completenessMin !== null ? 1 : 0) +
+    (workersMin !== null ? 1 : 0) +
+    (city ? 1 : 0) +
+    (district ? 1 : 0) +
+    (category ? 1 : 0);
+
+  const filterRail = (
+    <FilterRail
+      basePath={BASE_PATH}
+      q={q}
+      entityTypes={entityTypes}
+      certKinds={certKinds}
+      registries={registries}
+      brandCodes={brandCodes}
+      factoryTypes={factoryTypes}
+      minSources={minSourcesRaw}
+      rscMin={rscMin}
+      completenessMin={completenessMin}
+      workersMin={workersMin}
+      city={city}
+      district={district}
+      category={category}
+      sort={sort}
+      facets={facets}
+      baseQuery={baseQuery}
+    />
+  );
+
   return (
     <>
       <DemoBanner next={BASE_PATH} />
-      <main className="mx-auto max-w-7xl space-y-6 px-6 py-8">
+      <main className="mx-auto max-w-7xl space-y-6 px-4 py-8 sm:px-6">
         <header>
           <p className="text-[11px] font-semibold text-ink-tertiary">
             Public preview
@@ -157,25 +196,19 @@ export default async function PublicDiscoverPage({
         </header>
 
         <div className="space-y-6">
-          <FilterRail
-            basePath={BASE_PATH}
-            q={q}
-            entityTypes={entityTypes}
-            certKinds={certKinds}
-            registries={registries}
-            brandCodes={brandCodes}
-            factoryTypes={factoryTypes}
-            minSources={minSourcesRaw}
-            rscMin={rscMin}
-            completenessMin={completenessMin}
-            workersMin={workersMin}
-            city={city}
-            district={district}
-            category={category}
-            sort={sort}
-            facets={facets}
-            baseQuery={baseQuery}
-          />
+          {/* R3 — desktop: horizontal top-bar rail unchanged. */}
+          <div className="hidden md:block">{filterRail}</div>
+          {/* R3 — mobile: collapse the entire rail into a bottom Sheet
+              triggered by a "Filters (N)" button. The Sheet body is the
+              SAME server-rendered FilterRail, passed as children. */}
+          <div className="md:hidden">
+            <MobileFilterSheet
+              activeFilterCount={activeFilterCount}
+              resultCount={Number(totalCount)}
+            >
+              {filterRail}
+            </MobileFilterSheet>
+          </div>
 
           <section className="space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
@@ -214,7 +247,7 @@ export default async function PublicDiscoverPage({
                 ) : null}
               </div>
             ) : (
-              <ul className="grid grid-cols-1 gap-4">
+              <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {rows.map((row) => (
                   <li key={row.id}>
                     <DiscoverResultCard row={row} hrefBase="/suppliers" />
