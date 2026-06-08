@@ -29,7 +29,6 @@ import { SaveButton } from "@/components/save-button";
 import { ClaimCtaButton } from "@/components/claim-cta-button";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { StickyActionBar } from "@/components/ui/sticky-action-bar";
 import { ProductsStripExpandable } from "@/components/supplier/products-strip-expandable";
 import { AddressesJumpLink } from "@/components/supplier/addresses-jump-link";
 import { PhonesReveal } from "@/components/supplier/phones-reveal";
@@ -38,7 +37,6 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getServerRole } from "@/lib/auth";
 import { resolveRegistryUrl, resolveCertificateUrl } from "@/lib/source-links";
 import { dedupAddresses, type DedupedAddress } from "@/lib/dedup-addresses";
-import { establishedYear } from "@/lib/established";
 
 export const dynamic = "force-dynamic";
 
@@ -198,9 +196,9 @@ export default async function FactoryProfilePage({
             </h1>
             <p className="mt-2 text-sm text-amber-800">
               The factory profile for{" "}
-              <span className="font-mono">{slug}</span> couldn&apos;t load within
-              the time limit. Our database is under heavy load. Please refresh
-              in a few seconds.
+              <span className="font-mono">{slug}</span> couldn&apos;t load
+              within the time limit. Our database is under heavy load. Please
+              refresh in a few seconds.
             </p>
             <Link
               href={`/app/suppliers/${slug}`}
@@ -261,7 +259,7 @@ export default async function FactoryProfilePage({
   }
 
   return (
-    <div className="mx-auto flex max-w-[1180px] flex-col gap-4 px-6 py-8">
+    <div className="r7-profile-shell mx-auto flex max-w-[1180px] flex-col gap-4 overflow-x-clip px-4 py-6 sm:px-6 sm:py-8">
       {s.is_sanctioned ? <SanctionsBanner /> : null}
       <ProfileHeader
         payload={payload}
@@ -337,19 +335,6 @@ export default async function FactoryProfilePage({
         Every datum traces to the issuing authority shown on the Provenance
         tab.
       </p>
-
-      {/* R4 — phone-only sticky action bar. Sits above the BottomTabBar
-         (offset by its height + safe inset) and is hidden ≥md where the
-         header-side button row stays visible. */}
-      <StickyActionBar className="bottom-[calc(56px+env(safe-area-inset-bottom,0px))] md:hidden">
-        <SaveButton supplierId={s.id} initialSaved={isSaved} shape="icon" />
-        <Button asChild size="sm" variant="outline">
-          <Link href="/app/messages">Message</Link>
-        </Button>
-        <Button asChild size="sm" variant="primary">
-          <Link href={`/app/rfqs/new?supplier=${s.id}`}>Request a quote</Link>
-        </Button>
-      </StickyActionBar>
     </div>
   );
 }
@@ -443,7 +428,7 @@ function ProfileHeader({
       dt: "Established",
       dd: (
         <>
-          {establishedYear(established)}
+          {established}
           <br />
           <span className="mono">{yearsSince(established)} yrs</span>
         </>
@@ -689,11 +674,11 @@ function AddressRow({ address }: { address: DedupedAddress }) {
   const kindLabel = address.kinds.join(" · ");
   return (
     <li
-      className="r3-address-row"
       style={{
         padding: "12px 0",
         borderBottom: "1px solid var(--hairline)",
         display: "grid",
+        gridTemplateColumns: "140px 1fr auto",
         gap: 16,
         alignItems: "baseline",
       }}
@@ -1425,11 +1410,12 @@ function CapacityTab({ supplier: s }: { supplier: Supplier }) {
             <h2 className="proto-card-title">Site</h2>
           </header>
           <dl
-            className="header-meta-row r3-dossier-dl"
+            className="header-meta-row"
             style={{
               border: "none",
               padding: 0,
               margin: 0,
+              gridTemplateColumns: "1fr 1fr",
             }}
           >
             {s.bepza_zone ? (

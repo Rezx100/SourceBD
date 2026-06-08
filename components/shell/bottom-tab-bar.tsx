@@ -27,6 +27,33 @@ function topTabs(variant: ShellVariant, n = 5): Slot[] {
   return flat.slice(0, n);
 }
 
+// Short, single-word labels for the bottom tab — the full sidebar labels
+// ("Search suppliers", "Saved suppliers", …) wrap to two lines and collide
+// in a 5-up bar on a 375px phone. The sidebar/drawer keep the full labels.
+const SHORT_LABELS: Record<string, string> = {
+  "/app/discover": "Discover",
+  "/app/match": "Match",
+  "/app/saved": "Saved",
+  "/app/messages": "Messages",
+  "/app/rfqs": "RFQs",
+  "/app/orders": "Orders",
+  "/app/compliance": "Compliance",
+  "/supplier": "Home",
+  "/supplier/rfqs": "RFQs",
+  "/supplier/messages": "Messages",
+  "/supplier/profile": "Profile",
+  "/supplier/claim": "Claim",
+  "/admin": "Overview",
+  "/admin/suppliers": "Suppliers",
+  "/admin/claims": "Claims",
+  "/admin/certifications": "Certs",
+  "/admin/sanctions": "Sanctions",
+};
+
+function shortLabel(slot: Slot): string {
+  return SHORT_LABELS[slot.href] ?? slot.label.split(" ")[0] ?? slot.label;
+}
+
 type BottomTabBarProps = {
   /** Explicit variant override (used by /dev/components showcase). */
   variant?: ShellVariant;
@@ -45,14 +72,13 @@ export function BottomTabBar({ variant, className }: BottomTabBarProps) {
     <nav
       aria-label="Primary navigation"
       className={cn(
-        // Fixed to viewport bottom with safe-area inset; backdrop-blur so
-        // content scrolling underneath stays legible. md:hidden confines
-        // the bar to phones — tablet+ gets SidebarRail or full Sidebar.
-        "fixed left-0 right-0 bottom-0 z-30 safe-bottom-0 safe-pb safe-px md:hidden",
-        "border-t border-hairline-strong bg-surface-l1/95",
-        "supports-[backdrop-filter]:bg-surface-l1/82 supports-[backdrop-filter]:backdrop-blur",
+        // Fixed to viewport bottom with safe-area inset. Solid surface —
+        // no glassmorphism — so labels never bleed into scrolling content
+        // beneath the bar (enterprise-grade legibility over translucency).
+        "fixed left-0 right-0 bottom-0 z-40 safe-bottom-0 safe-pb safe-px md:hidden",
+        "border-t border-hairline-strong bg-surface-l1",
         // Light shadow toward content above.
-        "shadow-[0_-6px_18px_-8px_rgba(15,15,20,0.10)]",
+        "shadow-[0_-6px_18px_-8px_rgba(15,15,20,0.12)]",
         className,
       )}
     >
@@ -64,19 +90,21 @@ export function BottomTabBar({ variant, className }: BottomTabBarProps) {
           const active =
             pathname === s.href || pathname.startsWith(`${s.href}/`);
           return (
-            <li key={s.href} className="flex-1 relative">
+            <li key={s.href} className="relative min-w-0 flex-1">
               <Link
                 href={s.href}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "flex h-[56px] min-h-[44px] flex-col items-center justify-center gap-0.5 text-[10px] font-medium",
+                  "flex h-[56px] min-h-[44px] flex-col items-center justify-center gap-1 px-0.5",
                   active
                     ? "text-brand-forest"
                     : "text-ink-tertiary hover:text-ink-primary",
                 )}
               >
-                <s.Icon size={20} weight={active ? "fill" : "regular"} aria-hidden />
-                <span className="font-display tracking-[-0.005em]">{s.label}</span>
+                <s.Icon size={22} weight={active ? "fill" : "regular"} aria-hidden />
+                <span className="w-full truncate text-center font-display text-[10px] font-medium leading-none tracking-[-0.005em]">
+                  {shortLabel(s)}
+                </span>
                 {active ? (
                   <span
                     aria-hidden
