@@ -21,6 +21,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { FormGrid } from "@/components/ui/form-grid";
 
 export const dynamic = "force-dynamic";
 
@@ -84,7 +85,7 @@ export default async function SettingsHubPage() {
         ) : null}
       </header>
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+      <FormGrid cols={3}>
         <NavCard
           href="/app/settings/profile"
           icon={<UserCircle size={20} weight="duotone" />}
@@ -106,7 +107,7 @@ export default async function SettingsHubPage() {
           meta={`${enabledCount} of 3 enabled`}
           body="Choose which weekly digests, RFQ replies, and saved-supplier alerts you receive."
         />
-      </div>
+      </FormGrid>
 
       <Card>
         <CardHeader>

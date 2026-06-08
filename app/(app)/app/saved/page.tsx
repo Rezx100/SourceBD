@@ -119,14 +119,14 @@ export default async function SavedSuppliersPage({
           </Link>
         </div>
       ) : (
-        <ul className="grid grid-cols-1 gap-4">
+        <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {rows.map((row) => (
             <li key={row.id}>
               <DiscoverResultCard
                 row={toDiscoverRow(row)}
                 hrefBase="/app/suppliers"
                 actionSlot={
-                  <SaveButton supplierId={row.id} initialSaved={true} shape="icon" />
+                  <SaveButton supplierId={row.id} initialSaved={true} shape="responsive" />
                 }
               />
             </li>

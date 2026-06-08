@@ -9,6 +9,10 @@ import Link from "next/link";
 import { FileText, Plus } from "@phosphor-icons/react/dist/ssr";
 
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import {
+  ResponsiveTable,
+  type Column,
+} from "@/components/ui/responsive-table";
 
 export const dynamic = "force-dynamic";
 
@@ -35,6 +39,47 @@ export default async function RfqsPage() {
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase.rpc("rfq_list", { p_status: null });
   const rfqs: Rfq[] = error || data == null ? [] : (data as Rfq[]);
+
+  const columns: Column<Rfq>[] = [
+    {
+      key: "product",
+      label: "Product",
+      render: (r) => (
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="font-display text-sm font-medium text-ink-primary">
+            {r.product_title}
+          </span>
+          <span className={statusChip(r.status)}>{statusLabel(r.status)}</span>
+          {r.viewer_role !== "buyer" ? (
+            <span className="chip">As supplier</span>
+          ) : null}
+        </div>
+      ),
+    },
+    {
+      key: "quantity",
+      label: "Quantity",
+      render: (r) => fmtQty(r.quantity, r.quantity_unit),
+    },
+    {
+      key: "suppliers",
+      label: "Suppliers",
+      numeric: true,
+      render: (r) => r.target_supplier_count,
+    },
+    {
+      key: "quotes",
+      label: "Quotes",
+      numeric: true,
+      render: (r) => r.quote_count,
+    },
+    {
+      key: "updated",
+      label: "Updated",
+      numeric: true,
+      render: (r) => fmtRelative(r.updated_at),
+    },
+  ];
 
   return (
     <div className="mx-auto max-w-5xl space-y-6">
@@ -77,48 +122,13 @@ export default async function RfqsPage() {
           </Link>
         </div>
       ) : (
-        <nav aria-label="RFQs" className="proto-card p-0">
-          <ul className="m-0 flex list-none flex-col p-0">
-            {rfqs.map((r) => (
-              <li key={r.id} className="border-b border-hairline last:border-b-0">
-                <Link
-                  href={`/app/rfqs/${r.id}`}
-                  className="proto-nav-item !rounded-none !px-5 !py-3"
-                >
-                  <FileText
-                    size={18}
-                    weight="duotone"
-                    className="shrink-0 text-brand-forest"
-                    aria-hidden
-                  />
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="truncate font-display text-sm font-medium text-ink-primary">
-                        {r.product_title}
-                      </span>
-                      <span className={statusChip(r.status)}>
-                        {statusLabel(r.status)}
-                      </span>
-                      {r.viewer_role !== "buyer" ? (
-                        <span className="chip">As supplier</span>
-                      ) : null}
-                    </div>
-                    <p className="mt-0.5 truncate text-[12px] text-ink-tertiary">
-                      {fmtQty(r.quantity, r.quantity_unit)} ·{" "}
-                      {r.target_supplier_count}{" "}
-                      {r.target_supplier_count === 1 ? "supplier" : "suppliers"} ·{" "}
-                      {r.quote_count}{" "}
-                      {r.quote_count === 1 ? "quote" : "quotes"}
-                    </p>
-                  </div>
-                  <span className="shrink-0 text-[11px] text-ink-tertiary">
-                    {fmtRelative(r.updated_at)}
-                  </span>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </nav>
+        <ResponsiveTable
+          columns={columns}
+          rows={rfqs}
+          rowKey={(r) => r.id}
+          rowHref={(r) => `/app/rfqs/${r.id}`}
+          caption="RFQs"
+        />
       )}
     </div>
   );

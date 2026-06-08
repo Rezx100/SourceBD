@@ -220,7 +220,7 @@ export default async function BuyerHome() {
                   row={savedToDiscoverRow(c)}
                   hrefBase="/app/suppliers"
                   actionSlot={
-                    <SaveButton supplierId={c.id} initialSaved={true} shape="icon" />
+                    <SaveButton supplierId={c.id} initialSaved={true} shape="responsive" />
                   }
                 />
               </li>

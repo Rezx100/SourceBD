@@ -917,6 +917,31 @@
   }
   .cert-view:hover { background: rgba(30, 42, 107, 0.06); }
 
+  /* R4 — phone reflow. The 4-up `48px 1fr auto auto` grid collapses at
+     phone width: the name column wraps one word per line and the status
+     pill overlaps the view link. Stack name / status / view in a single
+     column beside the logo so nothing collides. */
+  @media (max-width: 639.98px) {
+    .cert {
+      grid-template-columns: 40px minmax(0, 1fr);
+      grid-template-areas:
+        "logo main"
+        "logo status"
+        "logo view";
+      column-gap: 12px;
+      row-gap: 6px;
+      align-items: start;
+    }
+    .cert > .auth-logo-color,
+    .cert > .issuer-mark { grid-area: logo; align-self: start; }
+    .cert-main { grid-area: main; }
+    .cert-status { grid-area: status; justify-self: start; }
+    .cert-view { grid-area: view; justify-self: start; }
+    /* The no-link placeholder is an empty <span>; drop it so it doesn't
+       reserve a phantom row. */
+    .cert > span:empty { display: none; }
+  }
+
   /* ---------- RSC ---------- */
   .rsc-stack { display: flex; flex-direction: column; gap: 8px; }
   .rsc-headline {

@@ -11,6 +11,29 @@ import Link from "next/link";
 import { ReceiptsRing } from "@/components/receipts-ring";
 import { ENTITY_TYPES } from "@/components/discover/filter-rail";
 import { apparelIconUrl } from "@/lib/apparel-icons";
+import { establishedYear } from "@/lib/established";
+
+// Source-code → human pill label. Brand disclosure codes (`BRAND_ASOS`,
+// `BRAND_HM`, …) must never render raw on a card; certification codes keep
+// their issuer-canonical hyphenation. Everything else (registry codes like
+// BGMEA / EPB / RSC) renders as-is.
+const BRAND_PILL_LABELS: Record<string, string> = {
+  BRAND_HM: "H&M",
+  BRAND_NEXT: "Next",
+  BRAND_MS: "M&S",
+  BRAND_ASOS: "ASOS",
+};
+
+function pillLabel(tag: string): string {
+  const brand = BRAND_PILL_LABELS[tag];
+  if (brand) return brand;
+  if (tag.startsWith("BRAND_")) {
+    const raw = tag.slice(6).replace(/_/g, " ").trim();
+    return raw ? raw.charAt(0).toUpperCase() + raw.slice(1).toLowerCase() : tag;
+  }
+  if (tag === "OEKO_TEX") return "OEKO-TEX";
+  return tag;
+}
 
 export type DiscoverRow = {
   id: string;
@@ -90,7 +113,7 @@ export function DiscoverResultCard({
             <div className="pill-row">
               {visiblePills.map((tag) => (
                 <span key={tag} className="proto-pill">
-                  {tag}
+                  {pillLabel(tag)}
                 </span>
               ))}
               {extraPills > 0 ? (
@@ -155,7 +178,8 @@ function ProductTag({ product }: { product: string }) {
 
 function StatLine({ row }: { row: DiscoverRow }) {
   const parts: string[] = [];
-  if (row.established_date) parts.push(`Established ${row.established_date}`);
+  const estYear = establishedYear(row.established_date);
+  if (estYear) parts.push(`Established ${estYear}`);
   if (row.employees_total)
     parts.push(`${row.employees_total.toLocaleString()} employees`);
   if (row.factory_types.length > 0)

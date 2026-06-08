@@ -7,6 +7,8 @@ import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { FormGrid } from "@/components/ui/form-grid";
+import { StickyActionBar } from "@/components/ui/sticky-action-bar";
 
 export interface RfqCreateFormProps {
   supplierId: string;
@@ -95,7 +97,7 @@ export function RfqCreateForm({ supplierId, supplierName }: RfqCreateFormProps) 
             />
           </Field>
 
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <FormGrid cols={2}>
             <Field label="Quantity" required>
               <input
                 required
@@ -117,9 +119,9 @@ export function RfqCreateForm({ supplierId, supplierName }: RfqCreateFormProps) 
                 className={inputClass}
               />
             </Field>
-          </div>
+          </FormGrid>
 
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <FormGrid cols={2}>
             <Field label="Target unit price (optional)">
               <input
                 type="number"
@@ -139,9 +141,9 @@ export function RfqCreateForm({ supplierId, supplierName }: RfqCreateFormProps) 
                 className={inputClass}
               />
             </Field>
-          </div>
+          </FormGrid>
 
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <FormGrid cols={2}>
             <Field label="Ship to country (optional)">
               <input
                 type="text"
@@ -159,11 +161,12 @@ export function RfqCreateForm({ supplierId, supplierName }: RfqCreateFormProps) 
                 className={inputClass}
               />
             </Field>
-          </div>
+          </FormGrid>
 
           {error ? <p className="text-sm text-sem-red">{error}</p> : null}
 
-          <div className="flex items-center justify-end gap-2">
+          <div className="h-16 md:hidden" aria-hidden />
+          <StickyActionBar className="bottom-[calc(56px+env(safe-area-inset-bottom,0px))]">
             <Button
               type="button"
               variant="ghost"
@@ -176,7 +179,7 @@ export function RfqCreateForm({ supplierId, supplierName }: RfqCreateFormProps) 
             <Button type="submit" variant="primary" size="sm" disabled={busy}>
               {busy ? "Sending…" : "Send RFQ"}
             </Button>
-          </div>
+          </StickyActionBar>
         </form>
       </CardContent>
     </Card>

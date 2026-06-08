@@ -17,6 +17,10 @@ import {
   CardContent,
 } from "@/components/ui/card";
 import { Tag } from "@/components/ui/tag";
+import {
+  ResponsiveTable,
+  type Column,
+} from "@/components/ui/responsive-table";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -121,93 +125,100 @@ export default async function UflpaPage() {
       {payload && payload.rows.length > 0 ? (
         <Card>
           <CardContent className="pt-4">
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-hairline text-left text-[11px] text-ink-tertiary">
-                    <th className="py-2 pr-4">Supplier</th>
-                    <th className="py-2 pr-4">Location</th>
-                    <th className="py-2 pr-4">Parent group</th>
-                    <th className="py-2 pr-4">Status</th>
-                    <th className="py-2">Evidence</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {payload.rows.map((r) => (
-                    <tr
-                      key={r.supplier_id}
-                      className="border-b border-hairline/60 last:border-0 align-top"
-                    >
-                      <td className="py-2 pr-4">
-                        <Link
-                          href={`/app/suppliers/${r.supplier_slug}`}
-                          className="font-medium text-ink-primary underline-offset-2 hover:underline"
-                        >
-                          {r.company_name}
-                        </Link>
-                        <div className="text-[11px] text-ink-tertiary capitalize">
-                          {r.entity_type.replace(/_/g, " ")}
-                        </div>
-                      </td>
-                      <td className="py-2 pr-4 text-ink-secondary">
-                        {[r.city, r.district, r.country]
-                          .filter(Boolean)
-                          .join(", ") || "—"}
-                      </td>
-                      <td className="py-2 pr-4 text-ink-secondary">
-                        {r.parent_group_name ?? "—"}
-                      </td>
-                      <td className="py-2 pr-4">
-                        <StatusTag status={r.status} />
-                      </td>
-                      <td className="py-2">
-                        {r.uflpa_hits.length === 0 ? (
-                          <span className="text-[12px] text-ink-tertiary">
-                            {r.status === "region_flag"
-                              ? "Xinjiang-linked text in supplier fields"
-                              : "No active UFLPA matches"}
-                          </span>
-                        ) : (
-                          <ul className="space-y-1 text-[12px]">
-                            {r.uflpa_hits.map((h, i) => (
-                              <li key={`${h.list_entry_ref ?? "x"}-${i}`}>
-                                <span className="font-medium text-ink-primary">
-                                  {h.matched_name ?? h.entity_name ?? "match"}
-                                </span>
-                                {h.list_entry_ref ? (
-                                  <span className="ml-1 font-mono text-ink-tertiary">
-                                    [{h.list_entry_ref}]
-                                  </span>
-                                ) : null}
-                                {h.source_url ? (
-                                  <>
-                                    {" "}·{" "}
-                                    <a
-                                      href={h.source_url}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      className="text-accent-indigo underline-offset-2 hover:underline"
-                                    >
-                                      DHS entry
-                                    </a>
-                                  </>
-                                ) : null}
-                              </li>
-                            ))}
-                          </ul>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <ResponsiveTable
+              mode="stacked"
+              columns={UFLPA_COLUMNS}
+              rows={payload.rows}
+              rowKey={(r) => r.supplier_id}
+              caption="UFLPA traceability"
+            />
           </CardContent>
         </Card>
       ) : null}
     </div>
   );
 }
+
+const UFLPA_COLUMNS: Column<UflpaRow>[] = [
+  {
+    key: "supplier",
+    label: "Supplier",
+    render: (r) => (
+      <>
+        <Link
+          href={`/app/suppliers/${r.supplier_slug}`}
+          className="font-medium text-ink-primary underline-offset-2 hover:underline"
+        >
+          {r.company_name}
+        </Link>
+        <div className="text-[11px] text-ink-tertiary capitalize">
+          {r.entity_type.replace(/_/g, " ")}
+        </div>
+      </>
+    ),
+  },
+  {
+    key: "location",
+    label: "Location",
+    render: (r) => (
+      <span className="text-ink-secondary">
+        {[r.city, r.district, r.country].filter(Boolean).join(", ") || "—"}
+      </span>
+    ),
+  },
+  {
+    key: "parent",
+    label: "Parent group",
+    render: (r) => (
+      <span className="text-ink-secondary">{r.parent_group_name ?? "—"}</span>
+    ),
+  },
+  {
+    key: "status",
+    label: "Status",
+    render: (r) => <StatusTag status={r.status} />,
+  },
+  {
+    key: "evidence",
+    label: "Evidence",
+    render: (r) =>
+      r.uflpa_hits.length === 0 ? (
+        <span className="text-[12px] text-ink-tertiary">
+          {r.status === "region_flag"
+            ? "Xinjiang-linked text in supplier fields"
+            : "No active UFLPA matches"}
+        </span>
+      ) : (
+        <ul className="space-y-1 text-[12px]">
+          {r.uflpa_hits.map((h, i) => (
+            <li key={`${h.list_entry_ref ?? "x"}-${i}`}>
+              <span className="font-medium text-ink-primary">
+                {h.matched_name ?? h.entity_name ?? "match"}
+              </span>
+              {h.list_entry_ref ? (
+                <span className="ml-1 font-mono text-ink-tertiary">
+                  [{h.list_entry_ref}]
+                </span>
+              ) : null}
+              {h.source_url ? (
+                <>
+                  {" "}·{" "}
+                  <a
+                    href={h.source_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-accent-indigo underline-offset-2 hover:underline"
+                  >
+                    DHS entry
+                  </a>
+                </>
+              ) : null}
+            </li>
+          ))}
+        </ul>
+      ),
+  },
+];
 
 type IconCmp = React.ComponentType<{
   size?: number;

@@ -9,6 +9,7 @@ import Link from "next/link";
 import { ChatCircleText } from "@phosphor-icons/react/dist/ssr";
 
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { MasterDetail } from "@/components/ui/master-detail";
 
 export const dynamic = "force-dynamic";
 
@@ -33,7 +34,7 @@ export default async function MessagesPage() {
   const threads: Thread[] = error || data == null ? [] : (data as Thread[]);
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6">
+    <div className="mx-auto max-w-6xl space-y-6">
       <header className="flex items-baseline justify-between gap-3">
         <div>
           <p className="text-[11px] font-semibold text-ink-tertiary">
@@ -48,66 +49,76 @@ export default async function MessagesPage() {
         </Link>
       </header>
 
-      {error ? (
-        <div className="proto-card text-sm text-sem-red">
-          Could not load your inbox.
-        </div>
-      ) : threads.length === 0 ? (
-        <div className="proto-card space-y-3 text-center">
-          <ChatCircleText
-            size={32}
-            weight="duotone"
-            className="mx-auto text-ink-tertiary"
-            aria-hidden
-          />
-          <p className="affiliation-disclaimer">
-            You haven&apos;t started any conversations yet.
-          </p>
-          <p className="affiliation-disclaimer">
-            Open a supplier profile and send the first message — your threads
-            will appear here.
-          </p>
-          <Link href="/app/discover" className="btn-proto primary inline-flex">
-            Browse Discover
-          </Link>
-        </div>
-      ) : (
-        <nav aria-label="Threads" className="proto-card p-0">
-          <ul className="m-0 flex list-none flex-col p-0">
-            {threads.map((t) => (
-              <li key={t.id} className="border-b border-hairline last:border-b-0">
-                <Link
-                  href={`/app/messages/${t.id}`}
-                  className="proto-nav-item !rounded-none !px-5 !py-3"
-                >
-                  <ChatCircleText
-                    size={18}
-                    weight="duotone"
-                    className="shrink-0 text-brand-forest"
-                    aria-hidden
-                  />
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <span className="truncate font-display text-sm font-medium text-ink-primary">
-                        {t.supplier_name}
+      <MasterDetail
+        mode="list"
+        list={
+          error ? (
+            <div className="proto-card text-sm text-sem-red">
+              Could not load your inbox.
+            </div>
+          ) : threads.length === 0 ? (
+            <div className="proto-card space-y-3 text-center">
+              <ChatCircleText
+                size={32}
+                weight="duotone"
+                className="mx-auto text-ink-tertiary"
+                aria-hidden
+              />
+              <p className="affiliation-disclaimer">
+                You haven&apos;t started any conversations yet.
+              </p>
+              <p className="affiliation-disclaimer">
+                Open a supplier profile and send the first message — your threads
+                will appear here.
+              </p>
+              <Link href="/app/discover" className="btn-proto primary inline-flex">
+                Browse Discover
+              </Link>
+            </div>
+          ) : (
+            <nav aria-label="Threads" className="proto-card p-0">
+              <ul className="m-0 flex list-none flex-col p-0">
+                {threads.map((t) => (
+                  <li key={t.id} className="border-b border-hairline last:border-b-0">
+                    <Link
+                      href={`/app/messages/${t.id}`}
+                      className="proto-nav-item !rounded-none !px-5 !py-3"
+                    >
+                      <ChatCircleText
+                        size={18}
+                        weight="duotone"
+                        className="shrink-0 text-brand-forest"
+                        aria-hidden
+                      />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="truncate font-display text-sm font-medium text-ink-primary">
+                            {t.supplier_name}
+                          </span>
+                          <span className="chip">{entityLabel(t.supplier_entity_type)}</span>
+                        </div>
+                        <p className="mt-0.5 truncate text-[12px] text-ink-tertiary">
+                          {t.subject ?? "General inquiry"} ·{" "}
+                          {t.message_count.toLocaleString()}{" "}
+                          {t.message_count === 1 ? "message" : "messages"}
+                        </p>
+                      </div>
+                      <span className="shrink-0 text-[11px] text-ink-tertiary">
+                        {fmtRelative(t.last_message_at ?? t.created_at)}
                       </span>
-                      <span className="chip">{entityLabel(t.supplier_entity_type)}</span>
-                    </div>
-                    <p className="mt-0.5 truncate text-[12px] text-ink-tertiary">
-                      {t.subject ?? "General inquiry"} ·{" "}
-                      {t.message_count.toLocaleString()}{" "}
-                      {t.message_count === 1 ? "message" : "messages"}
-                    </p>
-                  </div>
-                  <span className="shrink-0 text-[11px] text-ink-tertiary">
-                    {fmtRelative(t.last_message_at ?? t.created_at)}
-                  </span>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </nav>
-      )}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </nav>
+          )
+        }
+        detail={
+          <div className="proto-card hidden h-full min-h-[40vh] items-center justify-center text-center text-sm text-ink-tertiary lg:flex">
+            <span>Select a conversation to read it here.</span>
+          </div>
+        }
+      />
     </div>
   );
 }

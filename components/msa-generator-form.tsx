@@ -13,6 +13,7 @@ import { useMemo, useState } from "react";
 import { Copy, DownloadSimple } from "@phosphor-icons/react/dist/ssr";
 
 import { Button } from "@/components/ui/button";
+import { StickyActionBar } from "@/components/ui/sticky-action-bar";
 import {
   Card,
   CardContent,
@@ -120,14 +121,14 @@ export function MsaGeneratorForm({ inputs }: { inputs: MsaInputs }) {
           </Field>
         </div>
 
-        <div className="flex items-center gap-2">
+        <StickyActionBar className="bottom-[calc(56px+env(safe-area-inset-bottom,0px))]">
           <Button variant="primary" size="sm" onClick={handleDownload}>
             <DownloadSimple size={14} weight="bold" /> Download .md
           </Button>
           <Button variant="outline" size="sm" onClick={handleCopy}>
             <Copy size={14} weight="bold" /> Copy to clipboard
           </Button>
-        </div>
+        </StickyActionBar>
 
         <div>
           <p className="mb-2 text-[11px] text-ink-tertiary">

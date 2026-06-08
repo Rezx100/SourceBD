@@ -13,6 +13,7 @@ import { AcceptQuoteButton } from "@/components/accept-quote-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardMeta, CardTitle } from "@/components/ui/card";
+import { MasterDetail } from "@/components/ui/master-detail";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -74,8 +75,22 @@ export default async function RfqDetailPage({
   const isBuyer = rfq.viewer_role === "buyer" || rfq.viewer_role === "both";
   const canAccept = isBuyer && rfq.status === "open";
 
+  const { data: listData } = await supabase.rpc("rfq_list", { p_status: null });
+  const listItems = (listData as RfqListPaneItem[] | null) ?? [];
+
   return (
-    <div className="mx-auto max-w-4xl space-y-6">
+    <MasterDetail
+      mode="detail"
+      className="mx-auto max-w-6xl"
+      list={<RfqListPane items={listItems} activeId={rfq.id} />}
+      detail={
+        <div className="space-y-6">
+          <Link
+            href="/app/rfqs"
+            className="inline-flex items-center gap-1 text-[12px] text-ink-tertiary hover:text-ink-primary lg:hidden"
+          >
+            ← All RFQs
+          </Link>
       <header className="space-y-1">
         <p className="text-[11px] text-ink-tertiary">
           RFQ · {rfq.id.slice(0, 8)}
@@ -238,7 +253,58 @@ export default async function RfqDetailPage({
           )}
         </CardContent>
       </Card>
-    </div>
+        </div>
+      }
+    />
+  );
+}
+
+type RfqListPaneItem = {
+  id: string;
+  product_title: string;
+  status: RfqDoc["status"];
+  updated_at: string;
+};
+
+function RfqListPane({
+  items,
+  activeId,
+}: {
+  items: RfqListPaneItem[];
+  activeId: string;
+}) {
+  return (
+    <nav
+      aria-label="All RFQs"
+      className="overflow-hidden rounded-[12px] border border-hairline bg-white"
+    >
+      <p className="border-b border-hairline px-4 py-2.5 text-[11px] font-semibold text-ink-tertiary">
+        RFQs
+      </p>
+      <ul className="m-0 flex max-h-[70vh] list-none flex-col overflow-y-auto p-0">
+        {items.map((r) => {
+          const active = r.id === activeId;
+          return (
+            <li key={r.id}>
+              <Link
+                href={`/app/rfqs/${r.id}`}
+                aria-current={active ? "page" : undefined}
+                className={`flex flex-col gap-0.5 border-b border-hairline px-4 py-3 last:border-b-0 ${
+                  active ? "bg-[#FBFAF6] font-medium" : "hover:bg-[#FBFAF6]/60"
+                }`}
+              >
+                <span className="truncate font-display text-[13px] text-ink-primary">
+                  {r.product_title}
+                </span>
+                <span className="text-[11px] text-ink-tertiary">
+                  {statusLabel(r.status)} · {fmtRelative(r.updated_at)}
+                </span>
+              </Link>
+            </li>
+          );
+        })}
+      </ul>
+    </nav>
   );
 }
 

@@ -15,6 +15,10 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Tag } from "@/components/ui/tag";
+import {
+  ResponsiveTable,
+  type Column,
+} from "@/components/ui/responsive-table";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -123,90 +127,109 @@ function Bucket({
         <Badge tone={tone}>{rows.length}</Badge>
       </CardHeader>
       <CardContent className="pt-0">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-hairline text-left text-[11px] text-ink-tertiary">
-                <th className="py-2 pr-4">Supplier</th>
-                <th className="py-2 pr-4">Certification</th>
-                <th className="py-2 pr-4">Issuer</th>
-                <th className="py-2 pr-4">Expires</th>
-                <th className="py-2 pr-4 text-right">Days</th>
-                <th className="py-2 text-right">Doc</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((r, i) => (
-                <tr
-                  key={`${r.supplier.id}-${r.kind}-${r.certificate_no ?? i}`}
-                  className="border-b border-hairline/60 last:border-0"
-                >
-                  <td className="py-2 pr-4">
-                    <Link
-                      href={`/app/suppliers/${r.supplier.slug}`}
-                      className="font-medium text-ink-primary underline-offset-2 hover:underline"
-                    >
-                      {r.supplier.company_name}
-                    </Link>
-                    <div className="text-[11px] text-ink-tertiary">
-                      {[r.supplier.city, r.supplier.district]
-                        .filter(Boolean)
-                        .join(", ") || "—"}
-                    </div>
-                  </td>
-                  <td className="py-2 pr-4">
-                    <Tag tone="neutral">
-                      <Certificate size={12} weight="fill" />
-                      {prettyCert(r.kind)}
-                    </Tag>
-                    {r.certificate_no ? (
-                      <div className="mt-1 font-mono text-[11px] text-ink-tertiary">
-                        {r.certificate_no}
-                      </div>
-                    ) : null}
-                  </td>
-                  <td className="py-2 pr-4 text-ink-secondary">
-                    {r.issuer ?? "—"}
-                  </td>
-                  <td className="py-2 pr-4 tabular-nums text-ink-secondary">
-                    {fmtDate(r.expires_on)}
-                  </td>
-                  <td className="py-2 pr-4 text-right tabular-nums">
-                    <Badge
-                      tone={
-                        r.days_remaining < 30
-                          ? "alert"
-                          : r.days_remaining < 60
-                            ? "active"
-                            : "neutral"
-                      }
-                    >
-                      {r.days_remaining}d
-                    </Badge>
-                  </td>
-                  <td className="py-2 text-right">
-                    {r.document_url ? (
-                      <a
-                        href={r.document_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 text-[12px] text-accent-indigo underline-offset-2 hover:underline"
-                      >
-                        <FileText size={12} /> Open
-                      </a>
-                    ) : (
-                      <span className="text-[12px] text-ink-tertiary">—</span>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <ResponsiveTable
+          mode="stacked"
+          columns={EXPIRY_COLUMNS}
+          rows={rows}
+          rowKey={(r) =>
+            `${r.supplier.id}-${r.kind}-${r.certificate_no ?? r.expires_on}`
+          }
+          caption={title}
+        />
       </CardContent>
     </Card>
   );
 }
+
+const EXPIRY_COLUMNS: Column<CertRow>[] = [
+  {
+    key: "supplier",
+    label: "Supplier",
+    render: (r) => (
+      <>
+        <Link
+          href={`/app/suppliers/${r.supplier.slug}`}
+          className="font-medium text-ink-primary underline-offset-2 hover:underline"
+        >
+          {r.supplier.company_name}
+        </Link>
+        <div className="text-[11px] text-ink-tertiary">
+          {[r.supplier.city, r.supplier.district].filter(Boolean).join(", ") ||
+            "—"}
+        </div>
+      </>
+    ),
+  },
+  {
+    key: "cert",
+    label: "Certification",
+    render: (r) => (
+      <>
+        <Tag tone="neutral">
+          <Certificate size={12} weight="fill" />
+          {prettyCert(r.kind)}
+        </Tag>
+        {r.certificate_no ? (
+          <div className="mt-1 font-mono text-[11px] text-ink-tertiary">
+            {r.certificate_no}
+          </div>
+        ) : null}
+      </>
+    ),
+  },
+  {
+    key: "issuer",
+    label: "Issuer",
+    render: (r) => (
+      <span className="text-ink-secondary">{r.issuer ?? "—"}</span>
+    ),
+  },
+  {
+    key: "expires",
+    label: "Expires",
+    render: (r) => (
+      <span className="tabular-nums text-ink-secondary">
+        {fmtDate(r.expires_on)}
+      </span>
+    ),
+  },
+  {
+    key: "days",
+    label: "Days",
+    numeric: true,
+    render: (r) => (
+      <Badge
+        tone={
+          r.days_remaining < 30
+            ? "alert"
+            : r.days_remaining < 60
+              ? "active"
+              : "neutral"
+        }
+      >
+        {r.days_remaining}d
+      </Badge>
+    ),
+  },
+  {
+    key: "doc",
+    label: "Doc",
+    numeric: true,
+    render: (r) =>
+      r.document_url ? (
+        <a
+          href={r.document_url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1 text-[12px] text-accent-indigo underline-offset-2 hover:underline"
+        >
+          <FileText size={12} /> Open
+        </a>
+      ) : (
+        <span className="text-[12px] text-ink-tertiary">—</span>
+      ),
+  },
+];
 
 function prettyCert(k: string): string {
   switch (k) {

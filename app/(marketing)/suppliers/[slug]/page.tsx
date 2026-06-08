@@ -39,6 +39,7 @@ import { SourcesExplainer } from "@/components/supplier/sources-explainer";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { resolveRegistryUrl, resolveCertificateUrl } from "@/lib/source-links";
 import { dedupAddresses, type DedupedAddress } from "@/lib/dedup-addresses";
+import { establishedYear } from "@/lib/established";
 
 export const revalidate = 300;
 
@@ -452,7 +453,7 @@ function ProfileHeader({
       dt: "Established",
       dd: (
         <>
-          {established}
+          {establishedYear(established)}
           <br />
           <span className="mono">{yearsSince(established)} yrs</span>
         </>

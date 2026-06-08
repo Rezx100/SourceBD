@@ -277,7 +277,7 @@ export default async function BuyerDiscoverPage({
                       <SaveButton
                         supplierId={row.id}
                         initialSaved={savedSet.has(row.id)}
-                        shape="icon"
+                        shape="responsive"
                       />
                     }
                   />

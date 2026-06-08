@@ -13,6 +13,7 @@ import { OrderStatusEditor } from "@/components/order-status-editor";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardMeta, CardTitle } from "@/components/ui/card";
+import { MasterDetail } from "@/components/ui/master-detail";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -88,8 +89,22 @@ export default async function OrderDetailPage({
   const canEdit = isBuyer && order.status !== "cancelled";
   const canMilestone = order.status !== "cancelled";
 
+  const { data: listData } = await supabase.rpc("order_list", { p_status: null });
+  const listItems = (listData as OrderListPaneItem[] | null) ?? [];
+
   return (
-    <div className="mx-auto max-w-4xl space-y-6">
+    <MasterDetail
+      mode="detail"
+      className="mx-auto max-w-6xl"
+      list={<OrderListPane items={listItems} activeId={order.id} />}
+      detail={
+        <div className="space-y-6">
+          <Link
+            href="/app/orders"
+            className="inline-flex items-center gap-1 text-[12px] text-ink-tertiary hover:text-ink-primary lg:hidden"
+          >
+            ← All orders
+          </Link>
       <header className="space-y-1">
         <p className="text-[11px] text-ink-tertiary">
           Order · {order.id.slice(0, 8)}
@@ -289,7 +304,58 @@ export default async function OrderDetailPage({
           ) : null}
         </CardContent>
       </Card>
-    </div>
+        </div>
+      }
+    />
+  );
+}
+
+type OrderListPaneItem = {
+  id: string;
+  product_title: string;
+  status: OrderStatus;
+  updated_at: string;
+};
+
+function OrderListPane({
+  items,
+  activeId,
+}: {
+  items: OrderListPaneItem[];
+  activeId: string;
+}) {
+  return (
+    <nav
+      aria-label="All orders"
+      className="overflow-hidden rounded-[12px] border border-hairline bg-white"
+    >
+      <p className="border-b border-hairline px-4 py-2.5 text-[11px] font-semibold text-ink-tertiary">
+        Orders
+      </p>
+      <ul className="m-0 flex max-h-[70vh] list-none flex-col overflow-y-auto p-0">
+        {items.map((o) => {
+          const active = o.id === activeId;
+          return (
+            <li key={o.id}>
+              <Link
+                href={`/app/orders/${o.id}`}
+                aria-current={active ? "page" : undefined}
+                className={`flex flex-col gap-0.5 border-b border-hairline px-4 py-3 last:border-b-0 ${
+                  active ? "bg-[#FBFAF6] font-medium" : "hover:bg-[#FBFAF6]/60"
+                }`}
+              >
+                <span className="truncate font-display text-[13px] text-ink-primary">
+                  {o.product_title}
+                </span>
+                <span className="text-[11px] text-ink-tertiary">
+                  {statusLabel(o.status)} · {fmtRelative(o.updated_at)}
+                </span>
+              </Link>
+            </li>
+          );
+        })}
+      </ul>
+    </nav>
   );
 }
 

@@ -8,6 +8,10 @@ import Link from "next/link";
 import { Package, Plus } from "@phosphor-icons/react/dist/ssr";
 
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import {
+  ResponsiveTable,
+  type Column,
+} from "@/components/ui/responsive-table";
 
 export const dynamic = "force-dynamic";
 
@@ -139,54 +143,67 @@ function OrderGroup({
         <h2 className="proto-card-title">{title}</h2>
         <span className="proto-card-meta pr-5">{meta}</span>
       </div>
-      <ul className="m-0 flex list-none flex-col p-0">
-        {rows.map((o) => (
-          <li key={o.id} className="border-b border-hairline last:border-b-0">
-            <Link
-              href={`/app/orders/${o.id}`}
-              className="proto-nav-item !rounded-none !px-5 !py-3"
-            >
-              <Package
-                size={18}
-                weight="duotone"
-                className="shrink-0 text-brand-forest"
-                aria-hidden
-              />
-              <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="truncate font-display text-sm font-medium text-ink-primary">
-                    {o.product_title}
-                  </span>
-                  <span className={statusChip(o.status)}>{statusLabel(o.status)}</span>
-                  {o.viewer_role !== "buyer" ? (
-                    <span className="chip">As supplier</span>
-                  ) : null}
-                  {o.po_number ? (
-                    <span className="text-[11px] text-ink-tertiary">
-                      PO {o.po_number}
-                    </span>
-                  ) : null}
-                </div>
-                <p className="mt-0.5 truncate text-[12px] text-ink-tertiary">
-                  {o.supplier_name} · {fmtQty(o.quantity, o.quantity_unit)}
-                  {o.total_value != null
-                    ? ` · ${fmtMoney(o.total_value, o.currency)}`
-                    : ""}
-                  {o.latest_milestone
-                    ? ` · ${milestoneLabel(o.latest_milestone)}`
-                    : ""}
-                </p>
-              </div>
-              <span className="shrink-0 text-[11px] text-ink-tertiary">
-                {fmtRelative(o.updated_at)}
-              </span>
-            </Link>
-          </li>
-        ))}
-      </ul>
+      <div className="px-5 pb-5 pt-3">
+        <ResponsiveTable
+          columns={ORDER_COLUMNS}
+          rows={rows}
+          rowKey={(o) => o.id}
+          rowHref={(o) => `/app/orders/${o.id}`}
+          caption={`${title} orders`}
+        />
+      </div>
     </section>
   );
 }
+
+const ORDER_COLUMNS: Column<OrderRow>[] = [
+  {
+    key: "product",
+    label: "Product",
+    render: (o) => (
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="font-display text-sm font-medium text-ink-primary">
+          {o.product_title}
+        </span>
+        <span className={statusChip(o.status)}>{statusLabel(o.status)}</span>
+        {o.viewer_role !== "buyer" ? (
+          <span className="chip">As supplier</span>
+        ) : null}
+        {o.po_number ? (
+          <span className="text-[11px] text-ink-tertiary">PO {o.po_number}</span>
+        ) : null}
+      </div>
+    ),
+  },
+  {
+    key: "supplier",
+    label: "Supplier",
+    render: (o) => o.supplier_name,
+  },
+  {
+    key: "quantity",
+    label: "Quantity",
+    render: (o) => fmtQty(o.quantity, o.quantity_unit),
+  },
+  {
+    key: "value",
+    label: "Value",
+    numeric: true,
+    render: (o) =>
+      o.total_value != null ? fmtMoney(o.total_value, o.currency) : "\u2014",
+  },
+  {
+    key: "milestone",
+    label: "Latest",
+    render: (o) => (o.latest_milestone ? milestoneLabel(o.latest_milestone) : "\u2014"),
+  },
+  {
+    key: "updated",
+    label: "Updated",
+    numeric: true,
+    render: (o) => fmtRelative(o.updated_at),
+  },
+];
 
 function statusChip(s: OrderStatus): string {
   if (s === "delivered") return "chip claim-verified";

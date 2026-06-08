@@ -29,6 +29,7 @@ import { SaveButton } from "@/components/save-button";
 import { ClaimCtaButton } from "@/components/claim-cta-button";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { StickyActionBar } from "@/components/ui/sticky-action-bar";
 import { ProductsStripExpandable } from "@/components/supplier/products-strip-expandable";
 import { AddressesJumpLink } from "@/components/supplier/addresses-jump-link";
 import { PhonesReveal } from "@/components/supplier/phones-reveal";
@@ -37,6 +38,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getServerRole } from "@/lib/auth";
 import { resolveRegistryUrl, resolveCertificateUrl } from "@/lib/source-links";
 import { dedupAddresses, type DedupedAddress } from "@/lib/dedup-addresses";
+import { establishedYear } from "@/lib/established";
 
 export const dynamic = "force-dynamic";
 
@@ -335,6 +337,19 @@ export default async function FactoryProfilePage({
         Every datum traces to the issuing authority shown on the Provenance
         tab.
       </p>
+
+      {/* R4 — phone-only sticky action bar. Sits above the BottomTabBar
+         (offset by its height + safe inset) and is hidden ≥md where the
+         header-side button row stays visible. */}
+      <StickyActionBar className="bottom-[calc(56px+env(safe-area-inset-bottom,0px))] md:hidden">
+        <SaveButton supplierId={s.id} initialSaved={isSaved} shape="icon" />
+        <Button asChild size="sm" variant="outline">
+          <Link href="/app/messages">Message</Link>
+        </Button>
+        <Button asChild size="sm" variant="primary">
+          <Link href={`/app/rfqs/new?supplier=${s.id}`}>Request a quote</Link>
+        </Button>
+      </StickyActionBar>
     </div>
   );
 }
@@ -428,7 +443,7 @@ function ProfileHeader({
       dt: "Established",
       dd: (
         <>
-          {established}
+          {establishedYear(established)}
           <br />
           <span className="mono">{yearsSince(established)} yrs</span>
         </>
