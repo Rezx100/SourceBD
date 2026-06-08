@@ -3450,3 +3450,73 @@ html[data-scroll-lock] { overflow: hidden; }
   .sanctions-clear .cert-status { grid-column: 2; justify-self: start; }
   .sanctions-clear-body { word-break: normal; overflow-wrap: anywhere; }
 }
+
+/* ===== R8 mobile-fix overrides (universal horizontal-scroll & overlap fixes) ===== */
+
+/* Defensive: kill any rogue horizontal scrolling from decorative blurs or
+   fixed-width legacy elements. `clip` does not create a scroll container, so
+   sticky/position behaviour above is preserved. */
+html, body { overflow-x: clip; }
+
+@media (max-width: 720px) {
+  /* The hamburger drawer already exposes Sign in + Start free; the
+     desktop right-rail (160px) was the universal offender breaking the
+     viewport on every marketing page. Hide it under the drawer
+     breakpoint and let the wordmark have the room. */
+  [data-surface="marketing"] .mkt-nav-right { display: none; }
+}
+
+@media (max-width: 639.98px) {
+  /* Sanctions / proto-card head meta was forced to one line (287px) and
+     spilled out the card on phones. Allow wrap and lose flex-shrink:0. */
+  .proto-card-head { flex-wrap: wrap; align-items: flex-start; }
+  .proto-card-meta {
+    white-space: normal;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+    flex-shrink: 1;
+    min-width: 0;
+  }
+
+  /* Marketing auth shell: parent grid would otherwise hold its min-content
+     width on phones; force full-fluid with smaller side padding. */
+  [data-surface="marketing"] .mkt-auth { grid-template-columns: 1fr; min-width: 0; }
+  [data-surface="marketing"] .mkt-auth-main {
+    width: 100%;
+    min-width: 0;
+    padding: 32px 16px 48px;
+  }
+  [data-surface="marketing"] .mkt-am-card {
+    width: 100%;
+    max-width: none;
+    min-width: 0;
+  }
+  [data-surface="marketing"] .mkt-field .inp { padding: 0 12px; min-width: 0; }
+  [data-surface="marketing"] .mkt-field .inp input,
+  [data-surface="marketing"] .mkt-field .inp select { min-width: 0; width: 100%; }
+
+  /* Marketing landing: the markstack logo wall should wrap at narrow widths
+     instead of forcing a 384px row. */
+  [data-surface="marketing"] .mkt-markstack { flex-wrap: wrap; gap: 12px; }
+
+  /* Pricing comparison table is content-wide; wrap in a horizontal scroll
+     instead of poking out of its parent. */
+  .mkt-block table.min-w-full { display: block; overflow-x: auto; max-width: 100%; }
+
+  /* Discover/Saved result card: the absolute-positioned completeness pill
+     (top:5 right:5) collides with long company names + the
+     `pr-32` reserve eats the entire content area on small phones.
+     Reflow on phones: pill becomes inline-flex below the head, content area
+     uses full width. */
+  article.proto-card.hoverable.relative > a.flex { gap: 14px; }
+  article.proto-card.hoverable.relative > a.flex > div.flex-1 { padding-right: 0 !important; }
+  article.proto-card.hoverable.relative > div.absolute {
+    position: static !important;
+    margin-top: 12px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    justify-content: flex-start;
+  }
+}
