@@ -52,11 +52,20 @@ export default async function AppShellLayout({
   let badges: SidebarBadges = {};
 
   let role: Awaited<ReturnType<typeof getServerRole>> = null;
+  // Per-call race timeout. When Supabase compute is under pressure, individual
+  // dashboard RPCs can stall for >30s and block the entire shell from rendering
+  // (auth'd users see app/loading.tsx with no chrome). Each fetch races against
+  // a 6s timeout; on miss we render the shell with whatever we did collect.
+  const withTimeout = <T,>(p: PromiseLike<T>, ms: number, fallback: T): Promise<T> =>
+    Promise.race([
+      Promise.resolve(p),
+      new Promise<T>((resolve) => setTimeout(() => resolve(fallback), ms)),
+    ]);
   try {
     const supabase = await createSupabaseServerClient();
     const [{ data: userData }, roleResolved] = await Promise.all([
-      supabase.auth.getUser(),
-      getServerRole(),
+      withTimeout(supabase.auth.getUser(), 5000, { data: { user: null } } as Awaited<ReturnType<typeof supabase.auth.getUser>>),
+      withTimeout(getServerRole(), 5000, null as Awaited<ReturnType<typeof getServerRole>>),
     ]);
     userId = userData.user?.id ?? null;
     email = userData.user?.email ?? null;
@@ -79,10 +88,10 @@ export default async function AppShellLayout({
         : Promise.resolve({ data: null });
 
     const [moatRes, settingsRes, buyerRes, adminRes] = await Promise.all([
-      moatPromise,
-      settingsPromise,
-      buyerPromise,
-      adminPromise,
+      withTimeout(moatPromise, 6000, { count: null } as Awaited<typeof moatPromise>),
+      withTimeout(settingsPromise, 6000, { data: null } as Awaited<typeof settingsPromise>),
+      withTimeout(buyerPromise, 6000, { data: null } as Awaited<typeof buyerPromise>),
+      withTimeout(adminPromise, 6000, { data: null } as Awaited<typeof adminPromise>),
     ]);
 
     moatTotal = typeof moatRes.count === "number" ? moatRes.count : null;

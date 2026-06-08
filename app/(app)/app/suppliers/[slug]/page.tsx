@@ -179,6 +179,37 @@ export default async function FactoryProfilePage({
     p_slug: slug,
   });
   if (error || data == null) {
+    // Distinguish "row missing" (correct 404) from "DB timeout" (transient).
+    // statement_timeout / canceling statement → 57014. Render a service-slow
+    // card instead of a misleading "Not found".
+    const code = (error as { code?: string } | null)?.code ?? null;
+    const msg = error?.message ?? "";
+    const isTimeout =
+      code === "57014" ||
+      /statement timeout|canceling statement|timed out/i.test(msg);
+    if (isTimeout) {
+      return (
+        <div className="mx-auto max-w-2xl px-4 py-12">
+          <div className="rounded-lg border border-amber-200 bg-amber-50 p-6">
+            <h1 className="text-lg font-semibold text-amber-900">
+              Service temporarily slow
+            </h1>
+            <p className="mt-2 text-sm text-amber-800">
+              The factory profile for{" "}
+              <span className="font-mono">{slug}</span> couldn't load within
+              the time limit. Our database is under heavy load. Please refresh
+              in a few seconds.
+            </p>
+            <Link
+              href={`/app/suppliers/${slug}`}
+              className="mt-4 inline-flex items-center rounded-md bg-amber-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-amber-700"
+            >
+              Retry
+            </Link>
+          </div>
+        </div>
+      );
+    }
     notFound();
   }
 
