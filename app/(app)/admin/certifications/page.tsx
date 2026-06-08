@@ -14,6 +14,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { ResponsiveTable, type Column } from "@/components/ui/responsive-table";
 import { Tag } from "@/components/ui/tag";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -200,76 +201,13 @@ export default async function AdminCertificationsPage({
               No certifications in this state.
             </p>
           ) : (
-            <ul className="divide-y divide-hairline">
-              {doc.rows.map((r) => (
-                <li
-                  key={r.queue_id}
-                  className="flex flex-col gap-3 py-4 md:flex-row md:items-start md:justify-between"
-                >
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <Link
-                        href={`/admin/suppliers/${r.supplier.id}`}
-                        className="text-sm font-semibold text-ink-primary hover:underline"
-                      >
-                        {r.supplier.company_name}
-                      </Link>
-                      <Tag>{r.supplier.entity_type.replace(/_/g, " ")}</Tag>
-                      <Badge tone={r.cert.verified ? "success" : "neutral"}>
-                        {r.cert.kind}
-                      </Badge>
-                      {r.cert.verified ? (
-                        <Badge tone="success">verified</Badge>
-                      ) : r.cert.rejected_at ? (
-                        <Badge tone="alert">rejected</Badge>
-                      ) : null}
-                      {r.admin_action ? (
-                        <Tag>{r.admin_action}</Tag>
-                      ) : null}
-                    </div>
-                    <p className="text-xs text-ink-tertiary">
-                      {r.cert.certificate_no ?? "—"} · issuer{" "}
-                      {r.cert.issuer ?? "—"} · expires{" "}
-                      {r.cert.expires_on ?? "—"}
-                    </p>
-                    {r.cert.scope ? (
-                      <p className="text-xs text-ink-secondary">{r.cert.scope}</p>
-                    ) : null}
-                    {r.cert.document_url ? (
-                      <p className="text-xs">
-                        <a
-                          href={r.cert.document_url}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="font-mono text-accent-indigo hover:underline"
-                        >
-                          {r.cert.document_url}
-                        </a>
-                      </p>
-                    ) : null}
-                    <p className="text-[11px] text-ink-tertiary">
-                      uploaded by{" "}
-                      <span className="font-mono">
-                        {r.uploaded_by_email ?? "—"}
-                      </span>{" "}
-                      · queued{" "}
-                      {new Date(r.queue_created_at).toLocaleString()}
-                      {r.reviewed_at
-                        ? ` · reviewed ${new Date(r.reviewed_at).toLocaleString()}`
-                        : ""}
-                    </p>
-                    {r.cert.rejected_reason ? (
-                      <p className="mt-1 rounded-input border border-hairline bg-bg-l0 p-2 text-xs text-ink-secondary">
-                        Reason: {r.cert.rejected_reason}
-                      </p>
-                    ) : null}
-                  </div>
-                  {r.reviewed_at == null ? (
-                    <AdminCertDecideButton queueId={r.queue_id} />
-                  ) : null}
-                </li>
-              ))}
-            </ul>
+            <ResponsiveTable
+              mode="stacked"
+              columns={CERT_COLUMNS}
+              rows={doc.rows}
+              rowKey={(r) => r.queue_id}
+              caption="Certification queue"
+            />
           )}
         </CardContent>
       </Card>
@@ -294,6 +232,103 @@ export default async function AdminCertificationsPage({
     </div>
   );
 }
+
+const CERT_COLUMNS: Column<Row>[] = [
+  {
+    key: "supplier",
+    label: "Supplier",
+    render: (r) => (
+      <span className="flex flex-wrap items-center gap-1.5">
+        <Link
+          href={`/admin/suppliers/${r.supplier.id}`}
+          className="text-sm font-semibold text-ink-primary hover:underline"
+        >
+          {r.supplier.company_name}
+        </Link>
+        <Tag>{r.supplier.entity_type.replace(/_/g, " ")}</Tag>
+      </span>
+    ),
+  },
+  {
+    key: "cert",
+    label: "Certificate",
+    render: (r) => (
+      <span className="flex flex-wrap items-center gap-1.5">
+        <Badge tone={r.cert.verified ? "success" : "neutral"}>
+          {r.cert.kind}
+        </Badge>
+        {r.cert.verified ? (
+          <Badge tone="success">verified</Badge>
+        ) : r.cert.rejected_at ? (
+          <Badge tone="alert">rejected</Badge>
+        ) : null}
+        {r.admin_action ? <Tag>{r.admin_action}</Tag> : null}
+      </span>
+    ),
+  },
+  {
+    key: "details",
+    label: "Details",
+    render: (r) => (
+      <span className="block text-xs text-ink-tertiary">
+        {r.cert.certificate_no ?? "—"} · issuer {r.cert.issuer ?? "—"} · expires{" "}
+        {r.cert.expires_on ?? "—"}
+        {r.cert.scope ? (
+          <span className="block text-ink-secondary">{r.cert.scope}</span>
+        ) : null}
+        {r.cert.rejected_reason ? (
+          <span className="block text-ink-secondary">
+            Reason: {r.cert.rejected_reason}
+          </span>
+        ) : null}
+      </span>
+    ),
+  },
+  {
+    key: "document",
+    label: "Document",
+    render: (r) =>
+      r.cert.document_url ? (
+        <a
+          href={r.cert.document_url}
+          target="_blank"
+          rel="noreferrer"
+          className="font-mono text-xs text-accent-indigo hover:underline"
+        >
+          view
+        </a>
+      ) : (
+        "—"
+      ),
+  },
+  {
+    key: "meta",
+    label: "Submitted",
+    render: (r) => (
+      <span className="block text-[11px] text-ink-tertiary">
+        by <span className="font-mono">{r.uploaded_by_email ?? "—"}</span> ·{" "}
+        {new Date(r.queue_created_at).toLocaleDateString()}
+        {r.reviewed_at
+          ? ` · reviewed ${new Date(r.reviewed_at).toLocaleDateString()}`
+          : ""}
+      </span>
+    ),
+  },
+  {
+    key: "action",
+    label: "",
+    numeric: true,
+    render: (r) =>
+      r.reviewed_at == null ? (
+        <AdminCertDecideButton
+          queueId={r.queue_id}
+          label={`${r.supplier.company_name} · ${r.cert.kind}`}
+        />
+      ) : (
+        <span className="text-ink-tertiary">—</span>
+      ),
+  },
+];
 
 function PageHeader({ total }: { total?: number }) {
   return (

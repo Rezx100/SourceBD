@@ -12,6 +12,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { ResponsiveTable, type Column } from "@/components/ui/responsive-table";
 import { Tag } from "@/components/ui/tag";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -193,61 +194,13 @@ export default async function AdminUsersPage({
           {doc.rows.length === 0 ? (
             <p className="text-sm text-ink-tertiary">No users match.</p>
           ) : (
-            <ul className="divide-y divide-hairline">
-              {doc.rows.map((r) => (
-                <li
-                  key={r.user_id}
-                  className="flex flex-col gap-2 py-4 md:flex-row md:items-start md:justify-between"
-                >
-                  <div className="space-y-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Link
-                        href={`/admin/users/${r.user_id}`}
-                        className="text-sm font-semibold text-ink-primary hover:underline"
-                      >
-                        {r.display_name || r.email}
-                      </Link>
-                      <Badge tone={roleTone(r.role)}>{r.role}</Badge>
-                      {r.is_suspended ? <Badge tone="alert">suspended</Badge> : null}
-                      {r.plan_tier ? <Tag>{r.plan_tier}</Tag> : null}
-                    </div>
-                    <p className="font-mono text-xs text-ink-tertiary">
-                      {r.email}
-                    </p>
-                    {r.claimed_supplier ? (
-                      <p className="text-xs">
-                        claims{" "}
-                        <Link
-                          href={`/admin/suppliers/${r.claimed_supplier.id}`}
-                          className="font-mono text-accent-indigo hover:underline"
-                        >
-                          {r.claimed_supplier.company_name}
-                        </Link>{" "}
-                        <Tag>{r.claimed_supplier.entity_type.replace(/_/g, " ")}</Tag>
-                      </p>
-                    ) : null}
-                    <p className="text-[11px] text-ink-tertiary">
-                      created {new Date(r.created_at).toLocaleString()}
-                      {r.last_sign_in_at
-                        ? ` · last sign-in ${new Date(r.last_sign_in_at).toLocaleString()}`
-                        : " · never signed in"}
-                      {` · ${r.audit_count} audit ${r.audit_count === 1 ? "row" : "rows"}`}
-                    </p>
-                    {r.is_suspended && r.suspended_reason ? (
-                      <p className="mt-1 rounded-input border border-hairline bg-bg-l0 p-2 text-xs text-ink-secondary">
-                        Suspended: {r.suspended_reason}
-                      </p>
-                    ) : null}
-                  </div>
-                  <Link
-                    href={`/admin/users/${r.user_id}`}
-                    className="self-start rounded-pill border border-hairline px-3 py-1 text-xs text-ink-secondary hover:border-accent-indigo hover:text-accent-indigo"
-                  >
-                    Manage
-                  </Link>
-                </li>
-              ))}
-            </ul>
+            <ResponsiveTable
+              mode="stacked"
+              columns={USER_COLUMNS}
+              rows={doc.rows}
+              rowKey={(r) => r.user_id}
+              caption="Users"
+            />
           )}
         </CardContent>
       </Card>
@@ -272,6 +225,82 @@ export default async function AdminUsersPage({
     </div>
   );
 }
+
+const USER_COLUMNS: Column<Row>[] = [
+  {
+    key: "user",
+    label: "User",
+    render: (r) => (
+      <span className="block min-w-0">
+        <Link
+          href={`/admin/users/${r.user_id}`}
+          className="text-sm font-semibold text-ink-primary hover:underline"
+        >
+          {r.display_name || r.email}
+        </Link>
+        <span className="block font-mono text-xs text-ink-tertiary">
+          {r.email}
+        </span>
+      </span>
+    ),
+  },
+  {
+    key: "role",
+    label: "Role",
+    render: (r) => (
+      <span className="flex flex-wrap items-center gap-1.5">
+        <Badge tone={roleTone(r.role)}>{r.role}</Badge>
+        {r.is_suspended ? <Badge tone="alert">suspended</Badge> : null}
+      </span>
+    ),
+  },
+  {
+    key: "plan",
+    label: "Plan",
+    render: (r) => (r.plan_tier ? <Tag>{r.plan_tier}</Tag> : "—"),
+  },
+  {
+    key: "claims",
+    label: "Claims",
+    render: (r) =>
+      r.claimed_supplier ? (
+        <Link
+          href={`/admin/suppliers/${r.claimed_supplier.id}`}
+          className="font-mono text-[12px] text-accent-indigo hover:underline"
+        >
+          {r.claimed_supplier.company_name}
+        </Link>
+      ) : (
+        "—"
+      ),
+  },
+  {
+    key: "activity",
+    label: "Activity",
+    render: (r) => (
+      <span className="text-[11px] text-ink-tertiary">
+        created {new Date(r.created_at).toLocaleDateString()}
+        {r.last_sign_in_at
+          ? ` · last ${new Date(r.last_sign_in_at).toLocaleDateString()}`
+          : " · never"}
+        {` · ${r.audit_count} audit`}
+      </span>
+    ),
+  },
+  {
+    key: "manage",
+    label: "",
+    numeric: true,
+    render: (r) => (
+      <Link
+        href={`/admin/users/${r.user_id}`}
+        className="inline-flex h-[44px] items-center rounded-pill border border-hairline px-4 text-xs text-ink-secondary hover:border-accent-indigo hover:text-accent-indigo"
+      >
+        Manage
+      </Link>
+    ),
+  },
+];
 
 function PageHeader({ total }: { total?: number }) {
   return (

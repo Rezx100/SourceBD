@@ -15,6 +15,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Tag } from "@/components/ui/tag";
+import { ResponsiveTable, type Column } from "@/components/ui/responsive-table";
 import { ClaimAdminDecideButton } from "@/components/claim-admin-decide-button";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -109,67 +110,88 @@ export default async function AdminClaimsPage({
           {rows.length === 0 ? (
             <p className="text-sm text-ink-tertiary">No claims in this state.</p>
           ) : (
-            <ul className="divide-y divide-hairline">
-              {rows.map((r) => (
-                <li
-                  key={r.id}
-                  className="flex flex-col gap-3 py-4 md:flex-row md:items-start md:justify-between"
-                >
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <Link
-                        href={`/suppliers/${r.supplier.slug}`}
-                        className="text-sm font-semibold text-ink-primary hover:underline"
-                        target="_blank"
-                      >
-                        {r.supplier.company_name}
-                      </Link>
-                      <Tag>{r.method === "domain_email" ? "Domain" : "Manual"}</Tag>
-                      <Tag>{r.status}</Tag>
-                    </div>
-                    <p className="text-xs text-ink-tertiary">
-                      {r.supplier.entity_type.replace(/_/g, " ")} ·{" "}
-                      {[r.supplier.city, r.supplier.district]
-                        .filter(Boolean)
-                        .join(", ") || "—"}
-                      {r.supplier.website ? ` · ${r.supplier.website}` : ""}
-                    </p>
-                    <p className="text-xs text-ink-secondary">
-                      <span className="font-mono text-ink-primary">
-                        {r.proof_email}
-                      </span>{" "}
-                      · claimant{" "}
-                      <span className="font-mono">{r.claimant_email}</span>
-                    </p>
-                    <p className="text-[11px] text-ink-tertiary">
-                      Verified{" "}
-                      {r.email_verified_at
-                        ? new Date(r.email_verified_at).toLocaleString()
-                        : "—"}
-                      {r.decided_at
-                        ? ` · decided ${new Date(r.decided_at).toLocaleString()}`
-                        : ""}
-                    </p>
-                    {r.note ? (
-                      <p className="mt-2 rounded-input border border-hairline bg-bg-l0 p-2 text-xs text-ink-secondary">
-                        {r.note}
-                      </p>
-                    ) : null}
-                    {r.decision_note ? (
-                      <p className="mt-1 text-[11px] text-ink-tertiary">
-                        Decision: {r.decision_note}
-                      </p>
-                    ) : null}
-                  </div>
-                  {r.status === "email_verified" ? (
-                    <ClaimAdminDecideButton id={r.id} />
-                  ) : null}
-                </li>
-              ))}
-            </ul>
+            <ResponsiveTable
+              mode="stacked"
+              columns={CLAIM_COLUMNS}
+              rows={rows}
+              rowKey={(r) => r.id}
+              caption="Supplier claims"
+            />
           )}
         </CardContent>
       </Card>
     </div>
   );
 }
+
+const CLAIM_COLUMNS: Column<AdminRow>[] = [
+  {
+    key: "supplier",
+    label: "Supplier",
+    render: (r) => (
+      <span className="flex flex-wrap items-center gap-1.5">
+        <Link
+          href={`/suppliers/${r.supplier.slug}`}
+          className="text-sm font-semibold text-ink-primary hover:underline"
+          target="_blank"
+        >
+          {r.supplier.company_name}
+        </Link>
+        <Tag>{r.method === "domain_email" ? "Domain" : "Manual"}</Tag>
+        <Tag>{r.status}</Tag>
+      </span>
+    ),
+  },
+  {
+    key: "where",
+    label: "Entity",
+    render: (r) => (
+      <span className="block text-xs text-ink-tertiary">
+        {r.supplier.entity_type.replace(/_/g, " ")} ·{" "}
+        {[r.supplier.city, r.supplier.district].filter(Boolean).join(", ") ||
+          "—"}
+        {r.supplier.website ? ` · ${r.supplier.website}` : ""}
+      </span>
+    ),
+  },
+  {
+    key: "proof",
+    label: "Proof",
+    render: (r) => (
+      <span className="block text-xs text-ink-secondary">
+        <span className="font-mono text-ink-primary">{r.proof_email}</span> ·
+        claimant <span className="font-mono">{r.claimant_email}</span>
+      </span>
+    ),
+  },
+  {
+    key: "meta",
+    label: "Verified",
+    render: (r) => (
+      <span className="block text-[11px] text-ink-tertiary">
+        {r.email_verified_at
+          ? new Date(r.email_verified_at).toLocaleDateString()
+          : "—"}
+        {r.decided_at
+          ? ` · decided ${new Date(r.decided_at).toLocaleDateString()}`
+          : ""}
+        {r.note ? <span className="block text-ink-secondary">{r.note}</span> : null}
+        {r.decision_note ? (
+          <span className="block">Decision: {r.decision_note}</span>
+        ) : null}
+      </span>
+    ),
+  },
+  {
+    key: "action",
+    label: "",
+    numeric: true,
+    render: (r) =>
+      r.status === "email_verified" ? (
+        <ClaimAdminDecideButton id={r.id} label={r.supplier.company_name} />
+      ) : (
+        <span className="text-ink-tertiary">—</span>
+      ),
+  },
+];
+

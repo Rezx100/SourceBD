@@ -13,6 +13,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { ResponsiveTable, type Column } from "@/components/ui/responsive-table";
 import { Tag } from "@/components/ui/tag";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -50,18 +51,51 @@ function asStr(v: string | string[] | undefined): string {
   return s ?? "";
 }
 
-function targetHref(table: string, id: string | null): string | null {
-  if (!id) return null;
-  if (table === "suppliers") return `/admin/suppliers/${id}`;
-  if (table === "profiles") return `/admin/users/${id}`;
-  if (table === "certifications") return `/admin/certifications`;
-  return null;
-}
-
 function shortId(id: string | null): string {
   if (!id) return "—";
   return id.slice(0, 8);
 }
+
+const AUDIT_COLUMNS: Column<Row>[] = [
+  {
+    key: "when",
+    label: "When",
+    render: (r) => (
+      <span className="font-mono text-xs text-ink-secondary">
+        {new Date(r.created_at).toLocaleString()}
+      </span>
+    ),
+  },
+  {
+    key: "action",
+    label: "Action",
+    render: (r) => (
+      <span className="flex flex-wrap items-center gap-1.5">
+        <Badge tone="active">{r.action}</Badge>
+        <Tag>{r.target_table}</Tag>
+      </span>
+    ),
+  },
+  {
+    key: "target",
+    label: "Target",
+    render: (r) => (
+      <span className="text-sm font-semibold text-ink-primary">
+        {r.target_label || shortId(r.target_id)}
+      </span>
+    ),
+  },
+  {
+    key: "actor",
+    label: "Actor",
+    render: (r) => (
+      <span className="font-mono text-[11px] text-ink-tertiary">
+        {r.actor.email || shortId(r.actor.id)}
+        {r.actor.role ? ` · ${r.actor.role}` : ""}
+      </span>
+    ),
+  },
+];
 
 function PageHeader({ total }: { total?: number }) {
   return (
@@ -239,41 +273,14 @@ export default async function AdminAuditLogPage({
           {doc.rows.length === 0 ? (
             <p className="text-sm text-ink-tertiary">No entries match.</p>
           ) : (
-            <ul className="divide-y divide-hairline">
-              {doc.rows.map((r) => {
-                const href = targetHref(r.target_table, r.target_id);
-                return (
-                  <li key={r.id} className="space-y-1 py-3">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Link
-                        href={`/admin/audit-log/${r.id}`}
-                        className="font-mono text-xs text-accent-indigo hover:underline"
-                      >
-                        {new Date(r.created_at).toLocaleString()}
-                      </Link>
-                      <Badge tone="active">{r.action}</Badge>
-                      <Tag>{r.target_table}</Tag>
-                      {href ? (
-                        <Link
-                          href={href}
-                          className="text-sm font-semibold text-ink-primary hover:underline"
-                        >
-                          {r.target_label || shortId(r.target_id)}
-                        </Link>
-                      ) : (
-                        <span className="text-sm font-semibold text-ink-primary">
-                          {r.target_label || shortId(r.target_id)}
-                        </span>
-                      )}
-                    </div>
-                    <p className="font-mono text-[11px] text-ink-tertiary">
-                      by {r.actor.email || shortId(r.actor.id)}
-                      {r.actor.role ? ` · ${r.actor.role}` : ""}
-                    </p>
-                  </li>
-                );
-              })}
-            </ul>
+            <ResponsiveTable
+              mode="stacked"
+              columns={AUDIT_COLUMNS}
+              rows={doc.rows}
+              rowKey={(r) => r.id}
+              rowHref={(r) => `/admin/audit-log/${r.id}`}
+              caption="Audit log entries"
+            />
           )}
         </CardContent>
       </Card>

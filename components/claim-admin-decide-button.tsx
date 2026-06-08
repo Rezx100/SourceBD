@@ -1,19 +1,34 @@
 "use client";
 
-// Admin decision island (Spec S1). Renders Approve + Reject buttons inline
-// in the admin queue at /admin/claims.
+// Admin decision island (Spec S1). Renders Approve + Reject buttons in a
+// Sheet row-action menu (R6) at /admin/claims.
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
 import { Button } from "@/components/ui/button";
+import { Sheet } from "@/components/ui/sheet";
 
-export function ClaimAdminDecideButton({ id }: { id: string }) {
+export function ClaimAdminDecideButton({
+  id,
+  label,
+}: {
+  id: string;
+  label?: string;
+}) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [note, setNote] = useState("");
-  const [open, setOpen] = useState(false);
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [rejecting, setRejecting] = useState(false);
   const [pending, startTransition] = useTransition();
+
+  function close() {
+    setSheetOpen(false);
+    setRejecting(false);
+    setNote("");
+    setError(null);
+  }
 
   function decide(approve: boolean) {
     setError(null);
@@ -34,6 +49,7 @@ export function ClaimAdminDecideButton({ id }: { id: string }) {
           setError(j?.detail ?? j?.error ?? `Failed (${res.status})`);
           return;
         }
+        close();
         router.refresh();
       } catch (e) {
         setError(e instanceof Error ? e.message : String(e));
@@ -42,38 +58,67 @@ export function ClaimAdminDecideButton({ id }: { id: string }) {
   }
 
   return (
-    <div className="flex flex-col items-end gap-1">
-      <div className="flex gap-2">
-        <Button
-          type="button"
-          variant="primary"
-          size="sm"
-          onClick={() => decide(true)}
-          disabled={pending}
-        >
-          Approve
-        </Button>
-        <Button
-          type="button"
-          variant="danger"
-          size="sm"
-          onClick={() => (open ? decide(false) : setOpen(true))}
-          disabled={pending}
-        >
-          {open ? "Confirm reject" : "Reject"}
-        </Button>
-      </div>
-      {open ? (
-        <input
-          type="text"
-          value={note}
-          onChange={(e) => setNote(e.target.value)}
-          placeholder="Reason (optional)"
-          maxLength={1000}
-          className="w-64 rounded-input border border-hairline bg-bg-l0 px-2 py-1 text-xs outline-none focus:border-accent-indigo"
-        />
-      ) : null}
-      {error ? <p className="text-xs text-sem-red">{error}</p> : null}
-    </div>
+    <>
+      <button
+        type="button"
+        onClick={() => setSheetOpen(true)}
+        className="inline-flex h-[44px] min-w-[44px] items-center justify-center rounded-pill border border-hairline px-4 text-xs font-semibold text-ink-secondary hover:border-accent-indigo hover:text-accent-indigo"
+      >
+        Decide
+      </button>
+      <Sheet
+        open={sheetOpen}
+        onClose={close}
+        side="bottom"
+        label={label ?? "Decide claim"}
+      >
+        <div className="flex flex-col gap-3 p-4">
+          <Button
+            type="button"
+            variant="primary"
+            onClick={() => decide(true)}
+            disabled={pending}
+            className="min-h-[44px] w-full"
+          >
+            Approve
+          </Button>
+          {rejecting ? (
+            <div className="flex flex-col gap-2">
+              <input
+                type="text"
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                placeholder="Reason (optional)"
+                maxLength={1000}
+                className="min-h-[44px] w-full rounded-input border border-hairline bg-bg-l0 px-3 text-sm outline-none focus:border-accent-indigo"
+              />
+              <Button
+                type="button"
+                variant="danger"
+                onClick={() => decide(false)}
+                disabled={pending}
+                className="min-h-[44px] w-full"
+              >
+                Confirm reject
+              </Button>
+            </div>
+          ) : (
+            <Button
+              type="button"
+              variant="danger"
+              onClick={() => {
+                setRejecting(true);
+                setError(null);
+              }}
+              disabled={pending}
+              className="min-h-[44px] w-full"
+            >
+              Reject
+            </Button>
+          )}
+          {error ? <p className="text-xs text-sem-red">{error}</p> : null}
+        </div>
+      </Sheet>
+    </>
   );
 }

@@ -14,6 +14,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { ResponsiveTable, type Column } from "@/components/ui/responsive-table";
 import { Tag } from "@/components/ui/tag";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -190,79 +191,13 @@ export default async function AdminSanctionsPage({
               No sanctions hits in this state.
             </p>
           ) : (
-            <ul className="divide-y divide-hairline">
-              {doc.rows.map((r) => {
-                const score =
-                  r.hit.match_score == null
-                    ? null
-                    : typeof r.hit.match_score === "number"
-                    ? r.hit.match_score
-                    : Number.parseFloat(String(r.hit.match_score));
-                return (
-                  <li
-                    key={r.queue_id}
-                    className="flex flex-col gap-3 py-4 md:flex-row md:items-start md:justify-between"
-                  >
-                    <div className="space-y-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <Link
-                          href={`/admin/suppliers/${r.supplier.id}`}
-                          className="text-sm font-semibold text-ink-primary hover:underline"
-                        >
-                          {r.supplier.company_name}
-                        </Link>
-                        <Tag>{r.supplier.entity_type.replace(/_/g, " ")}</Tag>
-                        {r.hit.list ? (
-                          <Badge tone="alert">{r.hit.list}</Badge>
-                        ) : null}
-                        {r.supplier.sanctioned_flag ? (
-                          <Badge tone="alert">sanctioned</Badge>
-                        ) : r.supplier.sanctions_cleared ? (
-                          <Badge tone="success">cleared</Badge>
-                        ) : null}
-                        {r.admin_action ? <Tag>{r.admin_action}</Tag> : null}
-                      </div>
-                      <p className="text-xs text-ink-tertiary">
-                        matched{" "}
-                        <span className="font-mono">
-                          {r.hit.matched_name ?? r.hit.entity_name ?? "—"}
-                        </span>
-                        {score != null && Number.isFinite(score)
-                          ? ` · score ${score.toFixed(3)}`
-                          : ""}
-                        {r.hit.listed_date ? ` · listed ${r.hit.listed_date}` : ""}
-                      </p>
-                      {r.hit.source_url ? (
-                        <p className="text-xs">
-                          <a
-                            href={r.hit.source_url}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="font-mono text-accent-indigo hover:underline"
-                          >
-                            {r.hit.source_url}
-                          </a>
-                        </p>
-                      ) : null}
-                      <p className="text-[11px] text-ink-tertiary">
-                        queued {new Date(r.queue_created_at).toLocaleString()}
-                        {r.reviewed_at
-                          ? ` · reviewed ${new Date(r.reviewed_at).toLocaleString()}`
-                          : ""}
-                      </p>
-                      {r.supplier.sanctioned_reason ? (
-                        <p className="mt-1 rounded-input border border-hairline bg-bg-l0 p-2 text-xs text-ink-secondary">
-                          Reason: {r.supplier.sanctioned_reason}
-                        </p>
-                      ) : null}
-                    </div>
-                    {r.reviewed_at == null ? (
-                      <AdminSanctionsDecideButton queueId={r.queue_id} />
-                    ) : null}
-                  </li>
-                );
-              })}
-            </ul>
+            <ResponsiveTable
+              mode="stacked"
+              columns={SANCTIONS_COLUMNS}
+              rows={doc.rows}
+              rowKey={(r) => r.queue_id}
+              caption="Sanctions queue"
+            />
           )}
         </CardContent>
       </Card>
@@ -287,6 +222,101 @@ export default async function AdminSanctionsPage({
     </div>
   );
 }
+
+function scoreOf(raw: number | string | null): number | null {
+  if (raw == null) return null;
+  const n = typeof raw === "number" ? raw : Number.parseFloat(String(raw));
+  return Number.isFinite(n) ? n : null;
+}
+
+const SANCTIONS_COLUMNS: Column<Row>[] = [
+  {
+    key: "supplier",
+    label: "Supplier",
+    render: (r) => (
+      <span className="flex flex-wrap items-center gap-1.5">
+        <Link
+          href={`/admin/suppliers/${r.supplier.id}`}
+          className="text-sm font-semibold text-ink-primary hover:underline"
+        >
+          {r.supplier.company_name}
+        </Link>
+        <Tag>{r.supplier.entity_type.replace(/_/g, " ")}</Tag>
+        {r.hit.list ? <Badge tone="alert">{r.hit.list}</Badge> : null}
+        {r.supplier.sanctioned_flag ? (
+          <Badge tone="alert">sanctioned</Badge>
+        ) : r.supplier.sanctions_cleared ? (
+          <Badge tone="success">cleared</Badge>
+        ) : null}
+        {r.admin_action ? <Tag>{r.admin_action}</Tag> : null}
+      </span>
+    ),
+  },
+  {
+    key: "match",
+    label: "Match",
+    render: (r) => {
+      const score = scoreOf(r.hit.match_score);
+      return (
+        <span className="block text-xs text-ink-tertiary">
+          <span className="font-mono">
+            {r.hit.matched_name ?? r.hit.entity_name ?? "—"}
+          </span>
+          {score != null ? ` · score ${score.toFixed(3)}` : ""}
+          {r.hit.listed_date ? ` · listed ${r.hit.listed_date}` : ""}
+          {r.supplier.sanctioned_reason ? (
+            <span className="block text-ink-secondary">
+              Reason: {r.supplier.sanctioned_reason}
+            </span>
+          ) : null}
+        </span>
+      );
+    },
+  },
+  {
+    key: "source",
+    label: "Source",
+    render: (r) =>
+      r.hit.source_url ? (
+        <a
+          href={r.hit.source_url}
+          target="_blank"
+          rel="noreferrer"
+          className="font-mono text-xs text-accent-indigo hover:underline"
+        >
+          view
+        </a>
+      ) : (
+        "—"
+      ),
+  },
+  {
+    key: "meta",
+    label: "Queued",
+    render: (r) => (
+      <span className="block text-[11px] text-ink-tertiary">
+        {new Date(r.queue_created_at).toLocaleDateString()}
+        {r.reviewed_at
+          ? ` · reviewed ${new Date(r.reviewed_at).toLocaleDateString()}`
+          : ""}
+      </span>
+    ),
+  },
+  {
+    key: "action",
+    label: "",
+    numeric: true,
+    render: (r) =>
+      r.reviewed_at == null ? (
+        <AdminSanctionsDecideButton
+          queueId={r.queue_id}
+          label={`${r.supplier.company_name}${r.hit.list ? ` · ${r.hit.list}` : ""}`}
+        />
+      ) : (
+        <span className="text-ink-tertiary">—</span>
+      ),
+  },
+];
 
 function PageHeader({ total }: { total?: number }) {
   return (

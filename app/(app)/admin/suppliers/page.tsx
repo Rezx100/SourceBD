@@ -12,6 +12,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { ResponsiveTable, type Column } from "@/components/ui/responsive-table";
 import { Tag } from "@/components/ui/tag";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -237,66 +238,14 @@ export default async function AdminSuppliersPage({
               No suppliers match these filters.
             </p>
           ) : (
-            <ul className="divide-y divide-hairline">
-              {doc.rows.map((r) => (
-                <li
-                  key={r.id}
-                  className="flex flex-col gap-1 py-3 md:flex-row md:items-start md:justify-between"
-                >
-                  <div className="min-w-0 space-y-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Link
-                        href={`/admin/suppliers/${r.id}`}
-                        className="truncate text-sm font-semibold text-ink-primary hover:underline"
-                      >
-                        {r.name_display ?? r.company_name}
-                      </Link>
-                      <Badge tone={r.entity_type === "factory" ? "active" : "neutral"}>
-                        {r.entity_type}
-                      </Badge>
-                      {r.published ? (
-                        <Tag tone="muted">published</Tag>
-                      ) : (
-                        <Tag tone="amber">unpublished</Tag>
-                      )}
-                      {r.claimed_by ? <Tag tone="muted">claimed</Tag> : null}
-                      {r.sanctioned_flag ? <Tag tone="red">sanctioned</Tag> : null}
-                      {r.has_pending_rescore ? (
-                        <Tag tone="amber">rescore queued</Tag>
-                      ) : null}
-                    </div>
-                    <p className="truncate text-[12px] text-ink-tertiary">
-                      <span className="font-mono">{r.slug}</span>
-                      {r.city || r.district
-                        ? ` · ${[r.city, r.district].filter(Boolean).join(", ")}`
-                        : ""}
-                    </p>
-                  </div>
-                  <div className="flex shrink-0 items-baseline gap-3 text-[12px] text-ink-tertiary md:text-right">
-                    <span>
-                      tier{" "}
-                      <span className="font-mono tabular-nums text-ink-primary">
-                        {r.tier_coverage}
-                      </span>
-                    </span>
-                    <span>
-                      SBI{" "}
-                      <span className="font-mono tabular-nums text-ink-primary">
-                        {r.sbi_total ?? "—"}
-                      </span>
-                    </span>
-                    <span>
-                      updated{" "}
-                      <span className="font-mono">
-                        {r.updated_at
-                          ? new Date(r.updated_at).toISOString().slice(0, 10)
-                          : "—"}
-                      </span>
-                    </span>
-                  </div>
-                </li>
-              ))}
-            </ul>
+            <ResponsiveTable
+              mode="priority"
+              priorityKeys={["company", "entity", "published", "sanctioned"]}
+              columns={SUPPLIER_COLUMNS}
+              rows={doc.rows}
+              rowKey={(r) => r.id}
+              caption="Suppliers"
+            />
           )}
 
           {totalPages > 1 ? (
@@ -334,6 +283,100 @@ export default async function AdminSuppliersPage({
     </div>
   );
 }
+
+const SUPPLIER_COLUMNS: Column<Row>[] = [
+  {
+    key: "company",
+    label: "Company",
+    render: (r) => (
+      <span className="block min-w-0">
+        <Link
+          href={`/admin/suppliers/${r.id}`}
+          className="truncate text-sm font-semibold text-ink-primary hover:underline"
+        >
+          {r.name_display ?? r.company_name}
+        </Link>
+        <span className="block truncate text-[12px] text-ink-tertiary">
+          <span className="font-mono">{r.slug}</span>
+          {r.city || r.district
+            ? ` · ${[r.city, r.district].filter(Boolean).join(", ")}`
+            : ""}
+        </span>
+      </span>
+    ),
+  },
+  {
+    key: "entity",
+    label: "Entity",
+    render: (r) => (
+      <Badge tone={r.entity_type === "factory" ? "active" : "neutral"}>
+        {r.entity_type}
+      </Badge>
+    ),
+  },
+  {
+    key: "published",
+    label: "Published",
+    render: (r) =>
+      r.published ? (
+        <Tag tone="muted">published</Tag>
+      ) : (
+        <Tag tone="amber">unpublished</Tag>
+      ),
+  },
+  {
+    key: "sanctioned",
+    label: "Sanctioned",
+    render: (r) =>
+      r.sanctioned_flag ? <Tag tone="red">sanctioned</Tag> : <span className="text-ink-tertiary">clean</span>,
+  },
+  {
+    key: "claim",
+    label: "Claim",
+    render: (r) =>
+      r.claimed_by ? <Tag tone="muted">claimed</Tag> : <span className="text-ink-tertiary">unclaimed</span>,
+  },
+  {
+    key: "tier",
+    label: "Tier 1–3",
+    numeric: true,
+    render: (r) => (
+      <span className="font-mono tabular-nums text-ink-primary">
+        {r.tier_coverage}
+      </span>
+    ),
+  },
+  {
+    key: "sbi",
+    label: "SBI",
+    numeric: true,
+    render: (r) => (
+      <span className="font-mono tabular-nums text-ink-primary">
+        {r.sbi_total ?? "—"}
+      </span>
+    ),
+  },
+  {
+    key: "rescore",
+    label: "Rescore",
+    render: (r) =>
+      r.has_pending_rescore ? (
+        <Tag tone="amber">rescore queued</Tag>
+      ) : (
+        <span className="text-ink-tertiary">—</span>
+      ),
+  },
+  {
+    key: "updated",
+    label: "Updated",
+    numeric: true,
+    render: (r) => (
+      <span className="font-mono">
+        {r.updated_at ? new Date(r.updated_at).toISOString().slice(0, 10) : "—"}
+      </span>
+    ),
+  },
+];
 
 function PageHeader({ total }: { total?: number }) {
   return (

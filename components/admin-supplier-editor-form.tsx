@@ -8,6 +8,8 @@ import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
 
 import { Button } from "@/components/ui/button";
+import { FormGrid } from "@/components/ui/form-grid";
+import { StickyActionBar } from "@/components/ui/sticky-action-bar";
 
 type Initial = {
   name_display: string;
@@ -78,7 +80,7 @@ export function AdminSupplierEditorForm({
 
   return (
     <form className="space-y-4" onSubmit={onSubmit}>
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <FormGrid cols="profile">
         <Field label="name_display" hint="Override of company_name shown to buyers (≤240).">
           <input
             type="text"
@@ -99,7 +101,7 @@ export function AdminSupplierEditorForm({
             <option value="unknown">unknown</option>
           </select>
         </Field>
-      </div>
+      </FormGrid>
 
       <Field label="description" hint="Short profile blurb (≤8000).">
         <textarea
@@ -111,7 +113,7 @@ export function AdminSupplierEditorForm({
         />
       </Field>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <FormGrid cols="profile">
         <Field label="published">
           <Toggle
             checked={form.published}
@@ -126,7 +128,7 @@ export function AdminSupplierEditorForm({
             label={form.sanctioned_flag ? "sanctioned" : "clean"}
           />
         </Field>
-      </div>
+      </FormGrid>
 
       <Field label="sanctioned_reason" hint="Cited Tier 1–5 source (≤2000). Required for buyers to understand the flag.">
         <textarea
@@ -150,18 +152,25 @@ export function AdminSupplierEditorForm({
         />
       </Field>
 
-      <div className="flex items-center gap-3">
-        <Button type="submit" variant="primary" size="sm" disabled={pending || !hasChanges}>
+      <div className="h-16 md:hidden" aria-hidden />
+      <StickyActionBar
+        className="bottom-[calc(56px+env(safe-area-inset-bottom,0px))]"
+        helper={
+          hasChanges ? (
+            <span className="font-mono text-[11px] text-ink-tertiary">
+              patching {Object.keys(dirty).join(", ")}
+            </span>
+          ) : ok ? (
+            <span className="text-[12px] text-sem-green">Saved.</span>
+          ) : error ? (
+            <span className="text-[12px] text-sem-red">{error}</span>
+          ) : undefined
+        }
+      >
+        <Button type="submit" variant="primary" disabled={pending || !hasChanges} className="min-h-[44px]">
           {pending ? "Saving…" : hasChanges ? "Save changes" : "No changes"}
         </Button>
-        {hasChanges ? (
-          <p className="font-mono text-[11px] text-ink-tertiary">
-            patching {Object.keys(dirty).join(", ")}
-          </p>
-        ) : null}
-        {ok ? <p className="text-[12px] text-sem-green">Saved.</p> : null}
-        {error ? <p className="text-[12px] text-sem-red">{error}</p> : null}
-      </div>
+      </StickyActionBar>
     </form>
   );
 }

@@ -6,6 +6,7 @@
 import { useRef, useState, useTransition } from "react";
 
 import { Button } from "@/components/ui/button";
+import { ResponsiveTable, type Column } from "@/components/ui/responsive-table";
 
 type FailedRow = { row: number; slug: string; ok: false; reason: string };
 type Result = {
@@ -14,6 +15,24 @@ type Result = {
   failed_count: number;
   failed: FailedRow[];
 };
+
+const FAILED_COLUMNS: Column<FailedRow>[] = [
+  {
+    key: "row",
+    label: "Row",
+    render: (f) => <span className="font-mono">L{f.row}</span>,
+  },
+  {
+    key: "slug",
+    label: "Slug",
+    render: (f) => <span className="font-mono">{f.slug || "—"}</span>,
+  },
+  {
+    key: "reason",
+    label: "Reason",
+    render: (f) => <span className="text-ink-tertiary">{f.reason}</span>,
+  },
+];
 
 export function AdminSupplierImportForm() {
   const [file, setFile] = useState<File | null>(null);
@@ -91,19 +110,15 @@ export function AdminSupplierImportForm() {
             <span className="tabular-nums text-sem-red">{result.failed_count}</span>
           </p>
           {result.failed.length > 0 ? (
-            <ul className="mt-2 m-0 flex list-none flex-col p-0">
-              {result.failed.map((f) => (
-                <li
-                  key={`${f.row}-${f.slug}`}
-                  className="flex items-baseline justify-between gap-3 border-b border-hairline py-1 last:border-b-0"
-                >
-                  <span className="font-mono">
-                    L{f.row}{f.slug ? ` · ${f.slug}` : ""}
-                  </span>
-                  <span className="text-ink-tertiary">{f.reason}</span>
-                </li>
-              ))}
-            </ul>
+            <div className="mt-2">
+              <ResponsiveTable
+                mode="swipe"
+                columns={FAILED_COLUMNS}
+                rows={result.failed}
+                rowKey={(f) => `${f.row}-${f.slug}`}
+                caption="Failed rows"
+              />
+            </div>
           ) : null}
         </div>
       ) : null}
