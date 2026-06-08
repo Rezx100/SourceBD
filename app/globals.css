@@ -3520,3 +3520,18 @@ html, body { overflow-x: clip; }
     justify-content: flex-start;
   }
 }
+
+
+/* ===== R8 follow-up nav-collapse 980 ===== */
+
+/* The marketing top-nav has three pieces (hamburger md:hidden,
+   nav-links @media >720 visible, nav-right always visible). The
+   721-980 band shows links + right-rail but no hamburger and the
+   right-rail still overflowed by 25px @ 768. Extend the collapse
+   point: <=980 hides links + right-rail and brings the hamburger
+   back (which already carries Sign in + Start free). */
+@media (max-width: 980px) {
+  [data-surface="marketing"] .mkt-nav-right { display: none; }
+  [data-surface="marketing"] .mkt-nav-links { display: none; }
+  [data-surface="marketing"] .mkt-nav-menu { display: inline-flex !important; }
+}
