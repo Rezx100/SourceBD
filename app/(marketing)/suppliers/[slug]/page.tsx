@@ -18,9 +18,6 @@
 //   - Sanctions banner overrides chrome when an active hit exists; the
 //     Contact CTA is disabled in that branch.
 //   - Tier hierarchy is law: Provenance tab footer reiterates it.
-//
-// Demo-mode chrome:
-//   - DemoBanner (Spec M5) renders above the profile.
 //   - M4 JSON-LD Organization / LocalBusiness preserved.
 
 import type { Metadata } from "next";
@@ -30,7 +27,6 @@ import { notFound } from "next/navigation";
 
 import { ShieldCheck } from "@phosphor-icons/react/dist/ssr";
 
-import { DemoBanner } from "@/components/marketing/demo-banner";
 import { ReceiptsRing } from "@/components/receipts-ring";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ProductsStripExpandable } from "@/components/supplier/products-strip-expandable";
@@ -39,7 +35,6 @@ import { SourcesExplainer } from "@/components/supplier/sources-explainer";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { resolveRegistryUrl, resolveCertificateUrl } from "@/lib/source-links";
 import { dedupAddresses, type DedupedAddress } from "@/lib/dedup-addresses";
-import { establishedYear } from "@/lib/established";
 
 export const revalidate = 300;
 
@@ -283,7 +278,6 @@ export default async function PublicSupplierProfilePage({
 
   return (
     <>
-      <DemoBanner next={nextPath} />
       <div className="mx-auto flex max-w-[1180px] flex-col gap-4 px-6 py-8">
         <script
           type="application/ld+json"
@@ -453,7 +447,7 @@ function ProfileHeader({
       dt: "Established",
       dd: (
         <>
-          {establishedYear(established)}
+          {established}
           <br />
           <span className="mono">{yearsSince(established)} yrs</span>
         </>
@@ -718,11 +712,11 @@ function AddressRow({ address }: { address: DedupedAddress<PublicAddress> }) {
   const kindLabel = address.kinds.join(" · ");
   return (
     <li
-      className="r3-address-row"
       style={{
         padding: "12px 0",
         borderBottom: "1px solid var(--hairline)",
         display: "grid",
+        gridTemplateColumns: "140px 1fr auto",
         gap: 16,
         alignItems: "baseline",
       }}
@@ -1350,11 +1344,12 @@ function CapacityTab({ supplier: s }: { supplier: Supplier }) {
             <h2 className="proto-card-title">Site</h2>
           </header>
           <dl
-            className="header-meta-row r3-dossier-dl"
+            className="header-meta-row"
             style={{
               border: "none",
               padding: 0,
               margin: 0,
+              gridTemplateColumns: "1fr 1fr",
             }}
           >
             {s.bepza_zone ? (

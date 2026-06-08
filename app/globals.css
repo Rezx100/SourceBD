@@ -3535,3 +3535,168 @@ html, body { overflow-x: clip; }
   [data-surface="marketing"] .mkt-nav-links { display: none; }
   [data-surface="marketing"] .mkt-nav-menu { display: inline-flex !important; }
 }
+
+
+/* ===== R9 - Marketing + auth chrome polish ===== */
+/* DemoBanner removed (R9). Defensively hide any orphan markup. */
+[data-surface="marketing"] .mkt-demo,
+[data-surface="marketing"] .mkt-demo-inner,
+[data-surface="marketing"] .mkt-demo-cta { display: none !important; }
+
+/* Buttons: rebuild on the design-system <Button> contract
+   (rounded-pill 8px, semibold 13px, hairline-strong border, no glow). */
+[data-surface="marketing"] .mkt-btn {
+  font: 600 13px/1 var(--mkt-font-body, ui-sans-serif, system-ui, sans-serif);
+  padding: 0 14px; height: 36px; gap: 6px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--hairline-strong);
+  background: var(--surface-l1); color: var(--ink-primary);
+  box-shadow: none;
+  transition: background .16s ease, color .16s ease, border-color .16s ease, box-shadow .16s ease;
+}
+[data-surface="marketing"] .mkt-btn:hover { box-shadow: var(--shadow-l1); }
+[data-surface="marketing"] .mkt-btn:active { transform: none; }
+
+[data-surface="marketing"] .mkt-btn-primary {
+  background: var(--brand-forest); color: var(--ink-on-accent);
+  border-color: var(--brand-forest);
+  box-shadow: none;
+}
+[data-surface="marketing"] .mkt-btn-primary:hover {
+  background: var(--brand-forest); color: var(--ink-on-accent);
+  box-shadow: var(--shadow-l1);
+}
+
+[data-surface="marketing"] .mkt-btn-ghost {
+  background: transparent; color: var(--ink-primary);
+  border-color: var(--hairline-strong);
+  box-shadow: none;
+}
+[data-surface="marketing"] .mkt-btn-ghost:hover {
+  background: var(--brand-forest-tint); color: var(--ink-primary);
+  border-color: var(--hairline-strong);
+  box-shadow: var(--shadow-l1);
+}
+
+[data-surface="marketing"] .mkt-btn-lg {
+  height: 40px; padding: 0 20px; font-size: 13px;
+}
+
+[data-surface="marketing"] .mkt-btn-white {
+  background: var(--surface-l1); color: var(--brand-forest);
+  border-color: var(--surface-l1);
+  box-shadow: none;
+}
+[data-surface="marketing"] .mkt-btn-white:hover {
+  background: var(--surface-l1); color: var(--brand-forest);
+  box-shadow: var(--shadow-l1);
+}
+
+[data-surface="marketing"] .mkt-btn-dark-ghost {
+  background: transparent; color: #fff;
+  border-color: rgba(255,255,255,.32);
+  box-shadow: none;
+}
+[data-surface="marketing"] .mkt-btn-dark-ghost:hover {
+  background: rgba(255,255,255,.08);
+  border-color: rgba(255,255,255,.55); color: #fff;
+  box-shadow: none;
+}
+
+/* Top-nav sign-in: quiet text link, matches design-system <Button variant="ghost">
+   typography weight at small size. */
+[data-surface="marketing"] .mkt-nav-right .mkt-signin {
+  font: 600 13px/1 var(--mkt-font-body, ui-sans-serif, system-ui, sans-serif);
+  color: var(--ink-primary);
+  transition: color .16s ease;
+}
+[data-surface="marketing"] .mkt-nav-right .mkt-signin:hover {
+  color: var(--brand-forest); text-decoration: none;
+}
+
+/* Auth form submit + secondary: match <Button variant="primary"> / outline
+   shape; drop the inset highlight + green drop-shadow glow. */
+[data-surface="marketing"] .mkt-btn-submit {
+  height: 44px; padding: 0 18px; width: 100%;
+  border-radius: var(--r-pill);
+  background: var(--brand-forest); color: var(--ink-on-accent);
+  border: 1px solid var(--brand-forest);
+  font: 600 14px/1 var(--mkt-font-body, ui-sans-serif, system-ui, sans-serif);
+  box-shadow: none;
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  transition: background .16s ease, box-shadow .16s ease, color .16s ease;
+  cursor: pointer;
+}
+[data-surface="marketing"] .mkt-btn-submit:hover {
+  background: var(--brand-forest); color: var(--ink-on-accent);
+  box-shadow: var(--shadow-l1);
+}
+[data-surface="marketing"] .mkt-btn-submit:active { transform: none; }
+[data-surface="marketing"] .mkt-btn-submit:disabled { opacity: .55; cursor: progress; }
+
+[data-surface="marketing"] .mkt-btn-secondary {
+  height: 44px; padding: 0 18px; width: 100%;
+  border-radius: var(--r-pill);
+  background: transparent; color: var(--ink-primary);
+  border: 1px solid var(--hairline-strong);
+  font: 600 14px/1 var(--mkt-font-body, ui-sans-serif, system-ui, sans-serif);
+  box-shadow: none;
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  transition: background .16s ease, box-shadow .16s ease, border-color .16s ease;
+  cursor: pointer;
+}
+[data-surface="marketing"] .mkt-btn-secondary:hover {
+  background: var(--brand-forest-tint); color: var(--ink-primary);
+  border-color: var(--hairline-strong);
+  box-shadow: var(--shadow-l1);
+}
+
+/* Wordmark glyph: drop the green-gradient shield. Both wordmark mounts
+   now render an empty <span class="mkt-wm-glyph"/> which becomes a clean,
+   small brand-forest filled square (typographic accent, no AI shield vibe). */
+[data-surface="marketing"] .mkt-wm-glyph {
+  width: 16px; height: 16px; border-radius: 3px;
+  background: var(--brand-forest);
+  box-shadow: none; padding: 0;
+  display: inline-block; flex-shrink: 0;
+}
+[data-surface="marketing"] .mkt-wm-glyph svg { display: none; }
+[data-surface="marketing"] .mkt-wordmark {
+  font: 700 18px/1 var(--mkt-font-display, ui-sans-serif, system-ui, sans-serif);
+  letter-spacing: -.02em; color: var(--ink-primary); gap: 8px;
+}
+[data-surface="marketing"] .mkt-wordmark b {
+  color: var(--brand-forest); font-weight: 700;
+}
+/* Dark auth-brand panel keeps the wordmark light on its dark background. */
+[data-surface="marketing"] .mkt-auth-brand .mkt-wm-glyph {
+  background: rgba(255,255,255,.92);
+}
+
+/* Auth shell: fix .mkt-am-top crashing into .mkt-am-card at narrow widths.
+   The parent .mkt-auth-main is display:flex (centered); at <=920 the existing
+   rule turns .mkt-am-top from position:absolute to position:static, which
+   makes the two flex children (.mkt-am-top + .mkt-am-card) render side-by-side
+   instead of stacking. Force column stacking; at <=640 hide .mkt-am-top
+   entirely - .mkt-switch at the bottom of the form already carries the
+   counterpart link (no info loss). */
+@media (max-width: 920px) {
+  [data-surface="marketing"] .mkt-auth-main {
+    flex-direction: column;
+    align-items: stretch;
+    padding-top: 28px;
+  }
+  [data-surface="marketing"] .mkt-am-top {
+    align-self: flex-end;
+    max-width: 320px;
+    margin: 0 0 14px auto;
+  }
+  [data-surface="marketing"] .mkt-am-card {
+    margin: 0 auto;
+  }
+}
+@media (max-width: 640px) {
+  [data-surface="marketing"] .mkt-am-top { display: none; }
+  [data-surface="marketing"] .mkt-am-logo { margin: 0 0 20px; }
+}
+/* ===== /R9 ===== */

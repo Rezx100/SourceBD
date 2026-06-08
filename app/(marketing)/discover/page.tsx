@@ -12,7 +12,6 @@
 
 import Link from "next/link";
 
-import { DemoBanner } from "@/components/marketing/demo-banner";
 import {
   BRAND_SOURCES,
   CERT_KINDS,
@@ -180,7 +179,6 @@ export default async function PublicDiscoverPage({
 
   return (
     <>
-      <DemoBanner next={BASE_PATH} />
       <main className="mx-auto max-w-7xl space-y-6 px-4 py-8 sm:px-6">
         <header>
           <p className="text-[11px] font-semibold text-ink-tertiary">

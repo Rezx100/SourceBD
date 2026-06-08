@@ -13,7 +13,7 @@
 
 import Link from "next/link";
 
-import { CheckCircle, ShieldCheck } from "@phosphor-icons/react/dist/ssr";
+import { CheckCircle } from "@phosphor-icons/react/dist/ssr";
 
 type ProofRow = {
   label: string;
@@ -63,19 +63,7 @@ export function AuthShell({
       <section className="mkt-auth-brand" aria-hidden="true">
         <div className="mkt-ab-inner">
           <Link href="/" className="mkt-wordmark" style={{ color: "#fff" }}>
-            <span className="mkt-wm-glyph">
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.4"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M12 3l8 3.5v5c0 4.6-3.2 7.8-8 9-4.8-1.2-8-4.4-8-9v-5L12 3z" />
-                <path d="M9 12l2 2 4-4.5" />
-              </svg>
-            </span>
+            <span className="mkt-wm-glyph" aria-hidden="true" />
             Source<b style={{ color: "var(--mkt-green-300)" }}> BD</b>
           </Link>
 
@@ -122,9 +110,7 @@ export function AuthShell({
         <div className="mkt-am-top">{topRight}</div>
         <div className="mkt-am-card">
           <Link href="/" className="mkt-wordmark mkt-am-logo">
-            <span className="mkt-wm-glyph" aria-hidden="true">
-              <ShieldCheck size={16} weight="fill" />
-            </span>
+            <span className="mkt-wm-glyph" aria-hidden="true" />
             Source<b> BD</b>
           </Link>
           {children}
