@@ -196,7 +196,7 @@ export default async function FactoryProfilePage({
             </h1>
             <p className="mt-2 text-sm text-amber-800">
               The factory profile for{" "}
-              <span className="font-mono">{slug}</span> couldn't load within
+              <span className="font-mono">{slug}</span> couldn&apos;t load within
               the time limit. Our database is under heavy load. Please refresh
               in a few seconds.
             </p>
