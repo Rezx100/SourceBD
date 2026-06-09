@@ -33,7 +33,6 @@ import { ProductsStripExpandable } from "@/components/supplier/products-strip-ex
 import { AddressesJumpLink } from "@/components/supplier/addresses-jump-link";
 import { SourcesExplainer } from "@/components/supplier/sources-explainer";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { resolveRegistryUrl, resolveCertificateUrl } from "@/lib/source-links";
 import { dedupAddresses, type DedupedAddress } from "@/lib/dedup-addresses";
 
 export const revalidate = 300;
@@ -541,7 +540,6 @@ function ProfileHeader({
       </div>
 
       <div className="header-side">
-        <CompletenessChip pct={s.completeness_pct} />
         <div className="btn-row">
           <Link
             href={`/signup?next=${encodeURIComponent(nextPath)}`}
@@ -577,18 +575,6 @@ function ProfileHeader({
         </div>
       </div>
     </section>
-  );
-}
-
-function CompletenessChip({ pct }: { pct: number }) {
-  const thin = pct < 60;
-  return (
-    <span
-      className={`completeness${thin ? " thin" : ""}`}
-      title={`${pct}% of expected fields populated`}
-    >
-      {pct}% complete
-    </span>
   );
 }
 
@@ -717,37 +703,27 @@ function OverviewTab({ payload }: { payload: ProfilePayload }) {
 }
 
 function AddressRow({ address }: { address: DedupedAddress<PublicAddress> }) {
-  const kindLabel = address.kinds.join(" · ");
+  return <AddressRowView kinds={address.kinds} address={address.address} verifiedBy={address.verified_by} />;
+}
+
+function AddressRowView({
+  kinds,
+  address,
+  verifiedBy,
+}: {
+  kinds: string[];
+  address: string;
+  verifiedBy: string[];
+}) {
   return (
-    <li
-      style={{
-        padding: "12px 0",
-        borderBottom: "1px solid var(--hairline)",
-        display: "grid",
-        gridTemplateColumns: "140px 1fr auto",
-        gap: 16,
-        alignItems: "baseline",
-      }}
-    >
-      <span
-        className="mono"
-        style={{
-          fontSize: 11,
-          color: "var(--ink-tertiary)",
-          letterSpacing: "0.06em",
-        }}
-      >
-        {kindLabel}
-      </span>
-      <span style={{ fontSize: 13, color: "var(--ink-primary)" }}>
-        {address.address}
-      </span>
-      <span
-        className="mono"
-        style={{ fontSize: 11, color: "var(--ink-tertiary)" }}
-      >
-        via {address.verified_by.join(" + ")}
-      </span>
+    <li className="address-row">
+      <div className="address-row-head">
+        {kinds.map((k) => (
+          <span key={k} className="address-kind">{k}</span>
+        ))}
+        <span className="address-via">via {verifiedBy.join(" + ")}</span>
+      </div>
+      <p className="address-line">{address}</p>
     </li>
   );
 }
@@ -783,8 +759,7 @@ function ComplianceTab({ payload }: { payload: ProfilePayload }) {
           <header className="proto-card-head">
             <h2 className="proto-card-title">Registries</h2>
             <span className="proto-card-meta">
-              {countDirect(registryPills)} direct ·{" "}
-              {countInherited(registryPills)} inherited
+              {registryPillsSummary(registryPills)}
             </span>
           </header>
           <div className="registry-list">
@@ -893,15 +868,14 @@ function ComplianceTab({ payload }: { payload: ProfilePayload }) {
 // ---------- Registry / cert / RSC / sanctions / brand / doc rows ---------
 
 function RegistryRow({ pill }: { pill: Pill }) {
-  const inherited = pill.inherited_from != null;
   const logo = LOGO_BY_CODE[pill.source_code];
+  const inherited = !!pill.inherited_from;
   const meta = inherited
-    ? `Inherited via parent ${pill.inherited_from_name ?? ""}`.trim()
-    : pill.label;
-  const linkUrl =
-    resolveRegistryUrl(pill.source_code, pill.value) ?? pill.source_url ?? null;
+    ? `Inherited from parent group ${pill.inherited_from_name ?? ""}`.trim()
+    : `Verified via ${sourceFullName(pill.source_code)}`;
+  const titleHint = verifyInstructions(pill.source_code, pill.value);
   return (
-    <div className="registry-row">
+    <div className="registry-row" title={titleHint}>
       <div className="reg-logo">
         {logo ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -918,20 +892,8 @@ function RegistryRow({ pill }: { pill: Pill }) {
         <div className="reg-meta">{meta}</div>
       </div>
       <span className={`reg-status${inherited ? " inherited" : ""}`}>
-        {inherited ? "↳ Inherited" : "Active"}
+        {inherited ? "Inherited" : "Verified"}
       </span>
-      {linkUrl ? (
-        <a
-          className="reg-action"
-          href={linkUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Look up ↗
-        </a>
-      ) : (
-        <span style={{ width: 1 }} />
-      )}
     </div>
   );
 }
@@ -939,13 +901,9 @@ function RegistryRow({ pill }: { pill: Pill }) {
 function CertRow({ cert }: { cert: Cert }) {
   const logo = LOGO_BY_CERT[cert.kind];
   const status = certStatus(cert);
-  const linkUrl = resolveCertificateUrl(
-    cert.kind,
-    cert.certificate_no,
-    cert.document_url,
-  );
+  const titleHint = verifyInstructionsCert(cert.kind, cert.certificate_no);
   return (
-    <div className="cert">
+    <div className="cert" title={titleHint}>
       {logo ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img className="auth-logo-color" src={logo} alt={certLabel(cert.kind)} />
@@ -966,18 +924,6 @@ function CertRow({ cert }: { cert: Cert }) {
         </p>
       </div>
       <span className={`cert-status ${status.tone}`}>{status.label}</span>
-      {linkUrl ? (
-        <a
-          className="cert-view"
-          href={linkUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Verify ↗
-        </a>
-      ) : (
-        <span />
-      )}
     </div>
   );
 }
@@ -1525,7 +1471,7 @@ function ProvenanceTab({ provenance }: { provenance: Provenance[] }) {
         {provenance.map((p, i) => (
           <div key={i} className="prov-row">
             <span className="prov-source">{p.source_code}</span>
-            <span>{p.display_name}</span>
+            <span className="prov-name">{p.display_name}</span>
             <span className="prov-ref">{p.source_ref ?? ""}</span>
             <span className="prov-seen">
               last seen {fmtDate(p.last_seen_at)}
@@ -1539,6 +1485,67 @@ function ProvenanceTab({ provenance }: { provenance: Provenance[] }) {
       <SourcesExplainer variant="footer" />
     </section>
   );
+}
+
+
+function registryPillsSummary(pills: Pill[]): string {
+  const direct = countDirect(pills);
+  const inh = countInherited(pills);
+  const parts: string[] = [];
+  if (direct > 0) {
+    parts.push(`${direct} verified record${direct === 1 ? "" : "s"}`);
+  }
+  if (inh > 0) {
+    parts.push(`${inh} from parent group`);
+  }
+  return parts.length > 0 ? parts.join(" · ") : "no registry records";
+}
+
+function verifyInstructions(sourceCode: string, value: string | null): string {
+  const v = value ?? "";
+  switch (sourceCode) {
+    case "BGMEA":
+      return `To verify independently:\n1. Open bgmea.com.bd → Member Directory\n2. Search by company name${v ? ` or membership #${v}` : ""}\n3. Confirm the listing matches`;
+    case "BKMEA":
+      return `To verify independently:\n1. Open bkmea.com → Members\n2. Search by company name${v ? ` or member #${v}` : ""}\n3. Confirm the listing matches`;
+    case "BTMA":
+      return `To verify independently:\n1. Open btmadhaka.com → Member List\n2. Search by company name\n3. Confirm the listing matches`;
+    case "BGAPMEA":
+      return `To verify independently:\n1. Open bgapmea.org → Members\n2. Search by company name\n3. Confirm the listing matches`;
+    case "RJSC":
+      return `To verify independently:\n1. Open roc.gov.bd → eServices\n2. Search by company name${v ? ` or registration #${v}` : ""}\n3. Confirm the registration record`;
+    case "EPB":
+      return `To verify independently:\n1. Cross-check at epb.gov.bd or your import export data provider\n2. Match against EPB ID${v ? ` ${v}` : ""}`;
+    case "BIN":
+      return `To verify independently:\n1. Open vat.gov.bd → BIN Verification\n2. Enter BIN${v ? ` ${v}` : ""}`;
+    case "RSC":
+      return `To verify independently:\n1. Open rsc-bd.org → Factory Search\n2. Search by company name\n3. Confirm the inspection record`;
+    default:
+      return `Cross-check this record with the issuing body's public directory.`;
+  }
+}
+
+function verifyInstructionsCert(kind: string, certNo: string | null): string {
+  const n = certNo ?? "";
+  switch (kind) {
+    case "oeko_tex":
+    case "oeko-tex":
+      return `To verify independently:\n1. Open oeko-tex.com → Label Check\n2. Enter certificate #${n || "from the supplier"}`;
+    case "gots":
+      return `To verify independently:\n1. Open global-standard.org → Public Database\n2. Search by company name${n ? ` or licence #${n}` : ""}`;
+    case "wrap":
+      return `To verify independently:\n1. Open wrapcompliance.org → Certified Facilities\n2. Search by company name`;
+    case "grs":
+      return `To verify independently:\n1. Open textileexchange.org → Certified Sites\n2. Search by company name${n ? ` or licence #${n}` : ""}`;
+    case "bsci":
+      return `To verify independently:\n1. Open amfori.org → Member access\n2. Confirm with the auditing body`;
+    case "sedex":
+      return `To verify independently:\n1. Open sedex.com → Member login\n2. Search by company name`;
+    case "bci":
+      return `To verify independently:\n1. Open bettercotton.org → Members\n2. Search by company name`;
+    default:
+      return `Cross-check this certificate with the issuing body's public registry.`;
+  }
 }
 
 // ---------- maps + helpers ------------------------------------------------

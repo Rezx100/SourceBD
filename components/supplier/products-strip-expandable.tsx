@@ -9,8 +9,21 @@ import { apparelIconUrl } from "@/lib/apparel-icons";
 // (migration 0006). The same garment surfaces as Shirt/Shirts, Pyjamas/Pajamas,
 // etc. Collapse at the render layer; keep the longest original as the display.
 
+function stripMarker(raw: string): string {
+  // Source data sometimes tags products with trailing badges like
+  // "Cardigan (A)", "Polo Shirt (B)", "Knit Top (I)" — internal BGMEA /
+  // EPB sub-classification codes. They mean nothing to a buyer, so peel
+  // any trailing parenthesised 1–3 alphanumeric token before display +
+  // dedup. Repeat once in case two markers stack (e.g. "Shirt (A) (B)").
+  let s = raw.trim();
+  for (let i = 0; i < 2; i++) {
+    s = s.replace(/\s*\(\s*[A-Za-z0-9]{1,3}\s*\)\s*$/, "").trim();
+  }
+  return s;
+}
+
 function canonicalKey(raw: string): string {
-  let s = raw.toLowerCase().trim();
+  let s = stripMarker(raw).toLowerCase().trim();
   s = s.replace(/[`'\u2018\u2019\u02bc]/g, "'");
   s = s.replace(/^all\s+kinds?\s+of\s+/, "");
   s = s.replace(/\bpyjamas?\b/g, "pajamas");
@@ -38,7 +51,7 @@ function dedupProducts(products: readonly string[]): string[] {
   const groups = new Map<string, string>();
   for (const raw of products) {
     if (!raw) continue;
-    const trimmed = raw.trim();
+    const trimmed = stripMarker(raw);
     if (!trimmed) continue;
     const key = canonicalKey(trimmed);
     if (!key) continue;

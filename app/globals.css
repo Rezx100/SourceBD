@@ -395,28 +395,6 @@
     gap: 10px;
     align-items: flex-end;
   }
-  .completeness {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 5px 10px;
-    background: var(--sem-green-soft);
-    color: var(--sem-green);
-    border-radius: var(--r-pill);
-    font-size: 12px;
-    font-weight: 600;
-    font-family: var(--font-mono);
-    cursor: help;
-  }
-  .completeness::before {
-    content: '';
-    width: 6px;
-    height: 6px;
-    background: var(--sem-green);
-    border-radius: 50%;
-  }
-  .completeness.thin { background: var(--sem-amber-soft); color: var(--sem-amber); }
-  .completeness.thin::before { background: var(--sem-amber); }
 
   .btn-proto {
     display: inline-flex;
@@ -747,7 +725,7 @@
   }
   .registry-row {
     display: grid;
-    grid-template-columns: 44px 1fr auto auto;
+    grid-template-columns: 44px 1fr auto;
     gap: 14px;
     align-items: center;
     padding: 14px 4px;
@@ -825,25 +803,12 @@
     color: var(--ink-secondary);
     border: 1px dashed var(--hairline-strong);
   }
-  .registry-row .reg-action {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding: 6px 10px;
-    border-radius: var(--r-input);
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--accent-indigo);
-    text-decoration: none;
-    transition: background var(--dur-hover) var(--ease);
-  }
-  .registry-row .reg-action:hover { background: rgba(30, 42, 107, 0.06); }
 
   /* ---------- Cert rows ---------- */
   .cert-list { display: flex; flex-direction: column; gap: 10px; }
   .cert {
     display: grid;
-    grid-template-columns: 48px 1fr auto auto;
+    grid-template-columns: 48px 1fr auto;
     gap: 14px;
     align-items: center;
     padding: 12px;
@@ -904,18 +869,6 @@
   .cert-status.expiring { background: var(--sem-amber-soft); color: var(--sem-amber); }
   .cert-status.expired { background: var(--sem-red-soft); color: var(--sem-red); }
   .cert-status.evergreen { background: #ECEDF0; color: var(--ink-secondary); }
-  .cert-view {
-    font-size: 11px;
-    font-weight: 600;
-    color: var(--accent-indigo);
-    padding: 4px 8px;
-    border-radius: var(--r-input);
-    transition: background var(--dur-hover) var(--ease);
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-  }
-  .cert-view:hover { background: rgba(30, 42, 107, 0.06); }
 
   /* R4 — phone reflow. The 4-up `48px 1fr auto auto` grid collapses at
      phone width: the name column wraps one word per line and the status
@@ -936,7 +889,6 @@
     .cert > .issuer-mark { grid-area: logo; align-self: start; }
     .cert-main { grid-area: main; }
     .cert-status { grid-area: status; justify-self: start; }
-    .cert-view { grid-area: view; justify-self: start; }
     /* The no-link placeholder is an empty <span>; drop it so it doesn't
        reserve a phantom row. */
     .cert > span:empty { display: none; }
@@ -1926,21 +1878,24 @@
     .doc-row > :nth-child(5) { grid-area: meta2; justify-self: start; }
   }
 
-  /* Provenance rows — 5-col → 2-row stack on phones. */
+  /* Provenance rows — 5-col → stacked 3-row layout on phones.
+     Use class-based grid-area instead of nth-child so the tier badge
+     (5th DOM child) lands in its own slot. R9r5 fix. */
   @media (max-width: 640px) {
     .prov-row {
       grid-template-columns: 1fr auto;
       grid-template-areas:
         "source tier"
-        "ref    ref"
-        "seen   seen";
+        "name   name"
+        "ref    seen";
       row-gap: 4px;
       padding: 12px 0;
     }
-    .prov-row > :nth-child(1) { grid-area: source; }
-    .prov-row > :nth-child(2) { grid-area: ref; min-width: 0; word-break: break-word; }
-    .prov-row > :nth-child(3) { grid-area: seen; }
-    .prov-row > :nth-child(4) { grid-area: tier; justify-self: end; }
+    .prov-row .prov-source { grid-area: source; }
+    .prov-row .prov-name { grid-area: name; min-width: 0; word-break: break-word; color: var(--ink-secondary); }
+    .prov-row .prov-ref { grid-area: ref; justify-self: start; }
+    .prov-row .prov-seen { grid-area: seen; justify-self: end; }
+    .prov-row .tier-badge { grid-area: tier; justify-self: end; }
   }
 
   /* Sanctions grid — already collapses to 2-col at 900; add 1-col under
@@ -3445,7 +3400,6 @@ html[data-scroll-lock] { overflow: hidden; }
   .header-side .btn-row > * { flex: 1 1 auto; min-width: 0; }
   .header-side .btn-row a,
   .header-side .btn-row button { width: 100%; justify-content: center; min-height: 44px; }
-  .header-side .completeness { align-self: flex-start; }
   .sanctions-clear { grid-template-columns: 28px 1fr; row-gap: 6px; }
   .sanctions-clear .cert-status { grid-column: 2; justify-self: start; }
   .sanctions-clear-body { word-break: normal; overflow-wrap: anywhere; }
@@ -3997,11 +3951,101 @@ html, body { overflow-x: clip; }
     padding: 3px 8px;
     font-size: 10.5px;
   }
-  .registry-row .reg-action {
-    grid-area: action;
-    justify-self: end;
-    padding: 3px 6px;
-    font-size: 11px;
-  }
 }
 /* ===== /R9 round 3 ===== */
+
+/* ============================================================
+   Spec R9 round 5 (9 Jun 2026) — polish pass for the
+   supplier dossier on mobile + sticky sources popover close button.
+   ============================================================ */
+
+/* Address rows on the Overview / dossier card. Replaces the old
+   inline 3-col grid (140px 1fr auto) that collapsed messily on
+   phones: kind label was forced to a narrow column, the address
+   wrapped into 4-5 lines, and the "via X" tag stuck to the right
+   regardless of width. */
+.address-row {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--hairline);
+  list-style: none;
+}
+.address-row:last-child { border-bottom: none; }
+.address-row-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ink-tertiary);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+.address-kind {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 7px;
+  border-radius: var(--r-pill);
+  background: var(--surface-l1);
+  border: 1px solid var(--hairline);
+  color: var(--ink-secondary);
+}
+.address-via {
+  margin-left: auto;
+  font-size: 10.5px;
+  color: var(--ink-tertiary);
+  text-transform: none;
+  letter-spacing: 0.02em;
+  font-family: var(--font-mono);
+}
+.address-line {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.45;
+  color: var(--ink-primary);
+  word-break: break-word;
+}
+@media (max-width: 480px) {
+  .address-line { font-size: 13px; }
+  .address-via { margin-left: 0; flex-basis: 100%; order: 3; }
+}
+
+/* Inline sources-explainer popover — close (X) button anchored
+   in the top-right corner, only rendered inside the popover body
+   (variant === "inline"). Keeps the panel sticky: the only way to
+   close it is the trigger pill or this button. */
+.sources-explainer-close {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1px solid var(--hairline);
+  background: var(--surface-l2);
+  color: var(--ink-tertiary);
+  cursor: pointer;
+  transition: background var(--dur-hover) var(--ease),
+              color var(--dur-hover) var(--ease),
+              border-color var(--dur-hover) var(--ease);
+}
+.sources-explainer-close:hover {
+  background: var(--brand-forest-tint);
+  color: var(--brand-forest);
+  border-color: var(--brand-forest);
+}
+.sources-explainer.inline .sources-explainer-body {
+  padding-right: 36px;
+}
+
+/* Registry / cert tiles — no longer interactive (R9r5 dropped the
+   "Look up" link), so reset the cursor and the cert tile's hover
+   transform so users do not expect a click target. */
+.cert { cursor: default; }
+.cert:hover { transform: none; box-shadow: none; }
+.registry-row { cursor: default; }
+/* /R9 round 5 ===== */

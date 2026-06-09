@@ -13,7 +13,6 @@
 //   Row 2 — quick-pick product chips (deep-links, preserve other filters)
 //   Row 3 — common compact filters: City · District · Category ·
 //           Receipts ≥ · RSC % ≥ · Min workforce
-//   Row 3b — Profile completeness ≥ %
 //   Row 4 — collapsible <details> "More filters":
 //           Entity type · Certifications · Registry membership ·
 //           Brand factory list · Factory type
@@ -32,7 +31,6 @@ export const PAGE_SIZE = 24;
 export const SORT_OPTIONS = [
   { value: "default", label: "Best match" },
   { value: "receipts", label: "Most receipts" },
-  { value: "completeness", label: "Most complete" },
   { value: "name", label: "Name (A–Z)" },
 ] as const;
 
@@ -159,7 +157,6 @@ export function FilterRail({
   factoryTypes,
   minSources,
   rscMin,
-  completenessMin,
   workersMin,
   city,
   district,
@@ -179,7 +176,6 @@ export function FilterRail({
   factoryTypes: string[];
   minSources: string;
   rscMin: number | null;
-  completenessMin: number | null;
   workersMin: number | null;
   city: string;
   district: string;
@@ -369,25 +365,6 @@ export function FilterRail({
               defaultValue={workersMin !== null ? String(workersMin) : ""}
               placeholder="e.g. 500"
               className={cn(inputBase, activeRing(workersMin !== null))}
-            />
-          </Field>
-        </div>
-
-        {/* Row 3b — profile completeness on its own line. */}
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-          <Field label="Profile completeness ≥ %">
-            <input
-              type="number"
-              name="completeness_min"
-              min={0}
-              max={100}
-              step={5}
-              inputMode="numeric"
-              defaultValue={
-                completenessMin !== null ? String(completenessMin) : ""
-              }
-              placeholder="e.g. 60"
-              className={cn(inputBase, activeRing(completenessMin !== null))}
             />
           </Field>
         </div>

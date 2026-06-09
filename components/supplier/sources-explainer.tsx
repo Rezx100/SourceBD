@@ -6,14 +6,22 @@
 //                 popover. Sits under the ReceiptsRing in the supplier
 //                 profile header without ever pushing siblings around
 //                 (debug batch 2026-06-06 I-021 + I-023 elegance pass).
+//
+// R12 (2026-06-08): popover is fully sticky. Nothing dismisses it except
+// the trigger pill itself or the explicit close × button rendered inside
+// the body — no click-outside, no Escape, no scroll-away.
 
-import { Info } from "@phosphor-icons/react/dist/ssr";
+"use client";
+
+import { useState } from "react";
+import { Info, X } from "@phosphor-icons/react/dist/ssr";
 
 type Variant = "header" | "footer" | "inline";
 
 const SUMMARY = "How we verify our sources";
 
 export function SourcesExplainer({ variant = "header" }: { variant?: Variant }) {
+  const [open, setOpen] = useState(false);
   const cls =
     variant === "footer"
       ? "sources-explainer footer"
@@ -22,8 +30,15 @@ export function SourcesExplainer({ variant = "header" }: { variant?: Variant }) 
         : "sources-explainer";
 
   return (
-    <details className={cls}>
-      <summary aria-label={SUMMARY} title={SUMMARY}>
+    <details className={cls} open={open}>
+      <summary
+        aria-label={SUMMARY}
+        title={SUMMARY}
+        onClick={(e) => {
+          e.preventDefault();
+          setOpen((v) => !v);
+        }}
+      >
         {variant === "inline" ? (
           <>
             <Info size={13} weight="fill" aria-hidden />
@@ -34,6 +49,16 @@ export function SourcesExplainer({ variant = "header" }: { variant?: Variant }) 
         )}
       </summary>
       <div className="sources-explainer-body" role="region" aria-label={SUMMARY}>
+        {variant === "inline" ? (
+          <button
+            type="button"
+            className="sources-explainer-close"
+            onClick={() => setOpen(false)}
+            aria-label="Close sources panel"
+          >
+            <X size={12} weight="bold" aria-hidden />
+          </button>
+        ) : null}
         <p className="sources-explainer-title">{SUMMARY}</p>
         <p>
           We rank every source by how official it is. A factory only appears

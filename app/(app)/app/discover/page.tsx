@@ -27,12 +27,9 @@ import {
   asStringArray,
   clampSort,
 } from "@/components/discover/filter-rail";
-import { MobileFilterSheet } from "@/components/discover/mobile-filter-sheet";
+import { DiscoverResultCard, type DiscoverRow } from "@/components/discover/result-card";
 import { DiscoverSearchHero } from "@/components/discover/search-hero";
-import {
-  DiscoverResultCard,
-  type DiscoverRow,
-} from "@/components/discover/result-card";
+import { MobileFilterSheet } from "@/components/discover/mobile-filter-sheet";
 import { fetchDiscoverFacets } from "@/lib/discover-facets";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -68,7 +65,6 @@ export default async function BuyerDiscoverPage({
       ? Number.parseInt(minSourcesRaw, 10)
       : null;
   const rscMin = asInt(sp.rsc_min);
-  const completenessMin = asInt(sp.completeness_min);
   const workersMin = asInt(sp.workers_min);
   const city = asString(sp.city).trim();
   const district = asString(sp.district).trim();
@@ -94,12 +90,7 @@ export default async function BuyerDiscoverPage({
     p_registries: registries.length ? registries : null,
     p_factory_types: factoryTypes.length ? factoryTypes : null,
     p_brand_codes: brandCodes.length ? brandCodes : null,
-    p_completeness_min:
-      completenessMin !== null &&
-      completenessMin >= 0 &&
-      completenessMin <= 100
-        ? completenessMin
-        : null,
+    p_completeness_min: null,
     p_workers_min:
       workersMin !== null && workersMin >= 0 ? workersMin : null,
   });
@@ -144,7 +135,6 @@ export default async function BuyerDiscoverPage({
     min_sources:
       minSourcesRaw && /^[1-5]$/.test(minSourcesRaw) ? minSourcesRaw : "",
     rsc_min: rscMin !== null ? String(rscMin) : "",
-    completeness_min: completenessMin !== null ? String(completenessMin) : "",
     workers_min: workersMin !== null ? String(workersMin) : "",
     city,
     district,
@@ -161,74 +151,27 @@ export default async function BuyerDiscoverPage({
     factoryTypes.length > 0 ||
     minSources !== null ||
     rscMin !== null ||
-    completenessMin !== null ||
     workersMin !== null ||
     Boolean(city) ||
     Boolean(district) ||
     Boolean(category);
 
-  // R3 — count of active filter dimensions for the mobile sheet trigger.
+  // R9r4 — surfaced to the mobile filter trigger so the buyer can see
+  // at a glance how many filters they have stacked without opening the
+  // sheet. Counts every non-empty filter param including `q`.
   const activeFilterCount =
     (q ? 1 : 0) +
-    (entityTypes.length > 0 ? 1 : 0) +
-    (certKinds.length > 0 ? 1 : 0) +
-    (registries.length > 0 ? 1 : 0) +
-    (brandCodes.length > 0 ? 1 : 0) +
-    (factoryTypes.length > 0 ? 1 : 0) +
+    entityTypes.length +
+    certKinds.length +
+    registries.length +
+    brandCodes.length +
+    factoryTypes.length +
     (minSources !== null ? 1 : 0) +
     (rscMin !== null ? 1 : 0) +
-    (completenessMin !== null ? 1 : 0) +
     (workersMin !== null ? 1 : 0) +
     (city ? 1 : 0) +
     (district ? 1 : 0) +
     (category ? 1 : 0);
-
-  const filterRailDesktop = (
-    <FilterRail
-      basePath={BASE_PATH}
-      q={q}
-      entityTypes={entityTypes}
-      certKinds={certKinds}
-      registries={registries}
-      brandCodes={brandCodes}
-      factoryTypes={factoryTypes}
-      minSources={minSourcesRaw}
-      rscMin={rscMin}
-      completenessMin={completenessMin}
-      workersMin={workersMin}
-      city={city}
-      district={district}
-      category={category}
-      sort={sort}
-      facets={facets}
-      baseQuery={baseQuery}
-      hideSearchRow
-      instanceId="desktop"
-    />
-  );
-  const filterRailMobile = (
-    <FilterRail
-      basePath={BASE_PATH}
-      q={q}
-      entityTypes={entityTypes}
-      certKinds={certKinds}
-      registries={registries}
-      brandCodes={brandCodes}
-      factoryTypes={factoryTypes}
-      minSources={minSourcesRaw}
-      rscMin={rscMin}
-      completenessMin={completenessMin}
-      workersMin={workersMin}
-      city={city}
-      district={district}
-      category={category}
-      sort={sort}
-      facets={facets}
-      baseQuery={baseQuery}
-      hideSearchRow
-      instanceId="mobile"
-    />
-  );
 
   return (
     <div className="mx-auto max-w-7xl space-y-6">
@@ -246,19 +189,62 @@ export default async function BuyerDiscoverPage({
       </header>
 
       <div className="space-y-6">
-        {/* R9r4 — primary search bar, always visible above the rail. */}
+        {/* R9r4 — primary search bar, always visible. */}
         <DiscoverSearchHero basePath={BASE_PATH} q={q} sort={sort} />
 
-        {/* R9r4 — desktop: inline filter rail (no search row, hero owns it). */}
-        <div className="hidden md:block">{filterRailDesktop}</div>
-        {/* R9r4 — mobile: opt-in filter sheet behind a Filters trigger. */}
+        {/* R9r4 — mobile: hide the inline rail behind a Filters trigger
+            that opens a bottom sheet. The hero above already covers the
+            search-by-name case, so the sheet is opt-in for power filters. */}
         <div className="md:hidden">
           <MobileFilterSheet
             activeFilterCount={activeFilterCount}
             resultCount={Number(totalCount)}
           >
-            {filterRailMobile}
+            <FilterRail
+              basePath={BASE_PATH}
+              q={q}
+              entityTypes={entityTypes}
+              certKinds={certKinds}
+              registries={registries}
+              brandCodes={brandCodes}
+              factoryTypes={factoryTypes}
+              minSources={minSourcesRaw}
+              rscMin={rscMin}
+              workersMin={workersMin}
+              city={city}
+              district={district}
+              category={category}
+              sort={sort}
+              facets={facets}
+              baseQuery={baseQuery}
+              hideSearchRow
+              instanceId="mobile"
+            />
           </MobileFilterSheet>
+        </div>
+
+        {/* Desktop: inline rail below the hero (no duplicate search row). */}
+        <div className="hidden md:block">
+          <FilterRail
+            basePath={BASE_PATH}
+            q={q}
+            entityTypes={entityTypes}
+            certKinds={certKinds}
+            registries={registries}
+            brandCodes={brandCodes}
+            factoryTypes={factoryTypes}
+            minSources={minSourcesRaw}
+            rscMin={rscMin}
+            workersMin={workersMin}
+            city={city}
+            district={district}
+            category={category}
+            sort={sort}
+            facets={facets}
+            baseQuery={baseQuery}
+            hideSearchRow
+            instanceId="desktop"
+          />
         </div>
 
         <section className="space-y-4">
@@ -306,7 +292,7 @@ export default async function BuyerDiscoverPage({
                       <SaveButton
                         supplierId={row.id}
                         initialSaved={savedSet.has(row.id)}
-                        shape="responsive"
+                        shape="icon"
                       />
                     }
                   />

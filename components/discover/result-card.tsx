@@ -44,7 +44,6 @@ export type DiscoverRow = {
   district: string | null;
   source_tags: string[];
   t13_source_count: number;
-  completeness_pct: number;
   employees_total: number | null;
   established_date: string | null;
   principal_products: string[];
@@ -71,17 +70,10 @@ export function DiscoverResultCard({
     row.entity_type.replace(/_/g, " ");
   const visiblePills = row.source_tags.slice(0, 4);
   const extraPills = Math.max(0, row.source_tags.length - visiblePills.length);
-  const thin = row.t13_source_count <= 1 && row.completeness_pct < 50;
-  const completenessClass = thin ? "completeness thin" : "completeness";
 
   return (
     <article className="proto-card hoverable relative">
       <div className="absolute right-5 top-5 flex items-center gap-2">
-        {row.completeness_pct > 0 ? (
-          <span className={completenessClass} title="Completeness">
-            {row.completeness_pct}%
-          </span>
-        ) : null}
         {actionSlot}
       </div>
 

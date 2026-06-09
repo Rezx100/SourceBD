@@ -313,7 +313,6 @@ function savedToDiscoverRow(c: SavedCard): DiscoverRow {
     district: c.district,
     source_tags: c.source_tags ?? [],
     t13_source_count: c.t13_source_count,
-    completeness_pct: c.completeness_pct,
     employees_total: null,
     established_date: null,
     principal_products: [],

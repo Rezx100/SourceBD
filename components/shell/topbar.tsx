@@ -57,10 +57,14 @@ export function Topbar({
 }) {
   const variant = variantFor(role);
   const links = QUICK_LINKS[variant];
+  // Logo on the app-shell topbar always belongs to a logged-in user, so
+  // route to their workspace home rather than the marketing landing page.
+  const homeHref =
+    role === "admin" ? "/admin" : role === "supplier" ? "/supplier" : "/app";
 
   return (
     <header className="topbar sticky top-0 z-30 flex h-14 items-center gap-2 border-b border-hairline px-3 backdrop-blur md:gap-3 md:px-4">
-      <Link href="/" className="proto-wordmark shrink-0">
+      <Link href={homeHref} className="proto-wordmark shrink-0">
         <WordmarkMark />
         <span className="proto-wm-text">Source<b>BD</b></span>
       </Link>

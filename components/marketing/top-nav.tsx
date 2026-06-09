@@ -29,6 +29,13 @@ import { WordmarkMark } from "@/components/marketing/wordmark-mark";
 
 type Role = "admin" | "buyer" | "supplier";
 
+function homeHref(role: Role | null): string {
+  if (role === "admin") return "/admin";
+  if (role === "supplier") return "/supplier";
+  if (role === "buyer") return "/app";
+  return "/";
+}
+
 function RightLinks({ role }: { role: Role | null }) {
   if (role === "supplier") {
     return (
@@ -112,7 +119,7 @@ export function MarketingTopNav() {
           <ListIcon size={20} weight="bold" aria-hidden />
         </button>
 
-        <Link href="/" className="mkt-wordmark">
+        <Link href={homeHref(role)} className="mkt-wordmark">
           <WordmarkMark />
           <span className="mkt-wm-text">Source<b>BD</b></span>
         </Link>
