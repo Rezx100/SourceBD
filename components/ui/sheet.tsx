@@ -122,9 +122,15 @@ export function Sheet({
     if (e.target === e.currentTarget) onClose();
   };
 
-  // Swipe-down to close (bottom variant only).
+  // Swipe-down to close (bottom variant only). R9r4: gated to the drag
+  // handle so scrolling inside the sheet body never auto-closes it.
   const onTouchStart = (e: React.TouchEvent) => {
     if (side !== "bottom" || !swipeToClose) return;
+    const target = e.target as HTMLElement | null;
+    if (!target || !target.closest('[data-r1-drag-handle="true"]')) {
+      touchStartY.current = null;
+      return;
+    }
     touchStartY.current = e.touches[0]?.clientY ?? null;
     touchDeltaY.current = 0;
   };
@@ -136,6 +142,7 @@ export function Sheet({
   };
   const onTouchEnd = () => {
     if (side !== "bottom" || !swipeToClose) return;
+    if (touchStartY.current == null) return;
     if (touchDeltaY.current > 64) onClose();
     touchStartY.current = null;
     touchDeltaY.current = 0;
@@ -181,7 +188,13 @@ export function Sheet({
         )}
       >
         {side === "bottom" && swipeToClose ? (
-          <div className="mx-auto mt-2 h-1 w-10 rounded-pill bg-hairline-strong" aria-hidden />
+          <div
+            data-r1-drag-handle="true"
+            aria-hidden
+            className="mx-auto mt-2 flex h-6 w-full max-w-[120px] cursor-grab items-center justify-center"
+          >
+            <span className="block h-1 w-10 rounded-pill bg-hairline-strong" />
+          </div>
         ) : null}
         {(header !== null && (header || label)) || showCloseButton ? (
           <div className="flex items-center justify-between gap-3 border-b border-hairline px-4 py-3">

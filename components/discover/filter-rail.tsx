@@ -167,6 +167,8 @@ export function FilterRail({
   sort,
   facets,
   baseQuery,
+  hideSearchRow = false,
+  instanceId = "",
 }: {
   basePath: string;
   q: string;
@@ -185,7 +187,16 @@ export function FilterRail({
   sort: string;
   facets: DiscoverFacets;
   baseQuery: Record<string, string | string[]>;
+  /** R9r4 — when true, omit Row 1's search input (the parent renders
+   *  the always-visible DiscoverSearchHero above instead). A hidden
+   *  `q` input is still emitted so filter-only submits preserve query. */
+  hideSearchRow?: boolean;
+  /** R9r4 — suffix appended to ids / datalist refs when the rail is
+   *  rendered twice (e.g. inside MobileFilterSheet AND inline desktop).
+   *  Defaults to empty for the single-instance case. */
+  instanceId?: string;
 }) {
+  const idSuffix = instanceId ? `-${instanceId}` : "";
   const hasAdvancedActive =
     entityTypes.length > 0 ||
     certKinds.length > 0 ||
@@ -211,40 +222,45 @@ export function FilterRail({
         {sort && sort !== "default" ? (
           <input type="hidden" name="sort" value={sort} />
         ) : null}
+        {hideSearchRow && q ? (
+          <input type="hidden" name="q" value={q} />
+        ) : null}
 
-        {/* Row 1 — search + apply/reset, always visible */}
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
-          <div className="flex-1">
-            <label
-              htmlFor="discover-q"
-              className="mb-1.5 block text-xs font-semibold text-ink-tertiary"
-            >
-              Search
-            </label>
-            <input
-              id="discover-q"
-              type="search"
-              name="q"
-              defaultValue={q}
-              placeholder="Company name, e.g. Naafco, Standard Group…"
-              className={cn(inputBase, activeRing(Boolean(q)))}
-            />
+        {hideSearchRow ? null : (
+          /* Row 1 — search + apply/reset (single-instance / legacy callers) */
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+            <div className="flex-1">
+              <label
+                htmlFor={`discover-q${idSuffix}`}
+                className="mb-1.5 block text-xs font-semibold text-ink-tertiary"
+              >
+                Search
+              </label>
+              <input
+                id={`discover-q${idSuffix}`}
+                type="search"
+                name="q"
+                defaultValue={q}
+                placeholder="Company name, e.g. Naafco, Standard Group…"
+                className={cn(inputBase, activeRing(Boolean(q)))}
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="submit"
+                className="btn-proto primary justify-center px-5 py-2.5 text-sm"
+              >
+                Apply
+              </button>
+              <Link
+                href={basePath}
+                className="btn-proto justify-center px-4 py-2.5 text-sm"
+              >
+                Reset
+              </Link>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <button
-              type="submit"
-              className="btn-proto primary justify-center px-5 py-2.5 text-sm"
-            >
-              Apply
-            </button>
-            <Link
-              href={basePath}
-              className="btn-proto justify-center px-4 py-2.5 text-sm"
-            >
-              Reset
-            </Link>
-          </div>
-        </div>
+        )}
 
         {/* Row 2 — quick product chips. Plain anchors that preserve
             current filters but set category. No JS needed. */}
@@ -288,7 +304,7 @@ export function FilterRail({
             <input
               type="text"
               name="city"
-              list="discover-cities"
+              list={`discover-cities${idSuffix}`}
               defaultValue={city}
               placeholder="e.g. Dhaka"
               autoComplete="off"
@@ -299,7 +315,7 @@ export function FilterRail({
             <input
               type="text"
               name="district"
-              list="discover-districts"
+              list={`discover-districts${idSuffix}`}
               defaultValue={district}
               placeholder="e.g. Gazipur"
               autoComplete="off"
@@ -310,7 +326,7 @@ export function FilterRail({
             <input
               type="text"
               name="category"
-              list="discover-products"
+              list={`discover-products${idSuffix}`}
               defaultValue={category}
               placeholder="e.g. knitwear"
               autoComplete="off"
@@ -434,14 +450,34 @@ export function FilterRail({
             ) : null}
           </div>
         </details>
+
+        {hideSearchRow ? (
+          /* R9r4 — when the hero owns search, the filter form still needs
+             a submit + reset row so the user can apply/clear filters from
+             inside the mobile sheet or below the desktop rail. */
+          <div className="flex flex-wrap items-center justify-end gap-2 pt-1">
+            <Link
+              href={basePath}
+              className="btn-proto justify-center px-4 py-2.5 text-sm"
+            >
+              Reset
+            </Link>
+            <button
+              type="submit"
+              className="btn-proto primary justify-center px-5 py-2.5 text-sm"
+            >
+              Apply filters
+            </button>
+          </div>
+        ) : null}
       </form>
 
       {/* Datalists for native type-ahead, re-used across the City /
           District / Category inputs above. Server-rendered from the
           live database via `discover_facets()`. */}
-      <SuggestionList id="discover-cities" values={facets.cities} />
-      <SuggestionList id="discover-districts" values={facets.districts} />
-      <SuggestionList id="discover-products" values={facets.products} />
+      <SuggestionList id={`discover-cities${idSuffix}`} values={facets.cities} />
+      <SuggestionList id={`discover-districts${idSuffix}`} values={facets.districts} />
+      <SuggestionList id={`discover-products${idSuffix}`} values={facets.products} />
     </section>
   );
 }

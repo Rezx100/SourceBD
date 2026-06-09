@@ -28,6 +28,7 @@ import {
   clampSort,
 } from "@/components/discover/filter-rail";
 import { MobileFilterSheet } from "@/components/discover/mobile-filter-sheet";
+import { DiscoverSearchHero } from "@/components/discover/search-hero";
 import {
   DiscoverResultCard,
   type DiscoverRow,
@@ -182,7 +183,7 @@ export default async function BuyerDiscoverPage({
     (district ? 1 : 0) +
     (category ? 1 : 0);
 
-  const filterRail = (
+  const filterRailDesktop = (
     <FilterRail
       basePath={BASE_PATH}
       q={q}
@@ -201,6 +202,31 @@ export default async function BuyerDiscoverPage({
       sort={sort}
       facets={facets}
       baseQuery={baseQuery}
+      hideSearchRow
+      instanceId="desktop"
+    />
+  );
+  const filterRailMobile = (
+    <FilterRail
+      basePath={BASE_PATH}
+      q={q}
+      entityTypes={entityTypes}
+      certKinds={certKinds}
+      registries={registries}
+      brandCodes={brandCodes}
+      factoryTypes={factoryTypes}
+      minSources={minSourcesRaw}
+      rscMin={rscMin}
+      completenessMin={completenessMin}
+      workersMin={workersMin}
+      city={city}
+      district={district}
+      category={category}
+      sort={sort}
+      facets={facets}
+      baseQuery={baseQuery}
+      hideSearchRow
+      instanceId="mobile"
     />
   );
 
@@ -220,15 +246,18 @@ export default async function BuyerDiscoverPage({
       </header>
 
       <div className="space-y-6">
-        {/* R3 — desktop: horizontal top-bar rail unchanged. */}
-        <div className="hidden md:block">{filterRail}</div>
-        {/* R3 — mobile: collapse the whole rail into a bottom Sheet. */}
+        {/* R9r4 — primary search bar, always visible above the rail. */}
+        <DiscoverSearchHero basePath={BASE_PATH} q={q} sort={sort} />
+
+        {/* R9r4 — desktop: inline filter rail (no search row, hero owns it). */}
+        <div className="hidden md:block">{filterRailDesktop}</div>
+        {/* R9r4 — mobile: opt-in filter sheet behind a Filters trigger. */}
         <div className="md:hidden">
           <MobileFilterSheet
             activeFilterCount={activeFilterCount}
             resultCount={Number(totalCount)}
           >
-            {filterRail}
+            {filterRailMobile}
           </MobileFilterSheet>
         </div>
 
