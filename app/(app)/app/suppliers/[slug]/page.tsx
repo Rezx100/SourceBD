@@ -22,7 +22,7 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { ShieldCheck } from "@phosphor-icons/react/dist/ssr";
+import { ShieldCheck, ChatCircleDots } from "@phosphor-icons/react/dist/ssr";
 
 import { ReceiptsRing } from "@/components/receipts-ring";
 import { SaveButton } from "@/components/save-button";
@@ -525,8 +525,17 @@ function ProfileHeader({
         <CompletenessChip pct={s.completeness_pct} />
         <div className="btn-row">
           <SaveButton supplierId={s.id} initialSaved={isSaved} shape="full" />
-          <Button asChild size="sm" variant="primary">
-            <Link href={`/app/rfqs/new?supplier=${s.id}`}>Contact</Link>
+          <Button
+            asChild
+            size="sm"
+            variant="primary"
+            title="Send a Request for Quote to this supplier"
+            aria-label="Contact supplier (Request for Quote)"
+          >
+            <Link href={`/app/rfqs/new?supplier=${s.id}`}>
+              <ChatCircleDots size={14} weight="regular" aria-hidden />
+              <span className="r9-btn-label">Contact</span>
+            </Link>
           </Button>
           {showClaimCta ? <ClaimCtaButton slug={s.slug} /> : null}
         </div>

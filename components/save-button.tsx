@@ -122,7 +122,7 @@ export function SaveButton({
       className={cn(saved && "text-sem-amber border-sem-amber", className)}
     >
       <Star size={14} weight={saved ? "fill" : "regular"} />
-      {label}
+      <span className="r9-btn-label">{label}</span>
     </Button>
   );
 }

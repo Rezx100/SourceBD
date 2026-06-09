@@ -15,6 +15,8 @@ import Link from "next/link";
 
 import { CheckCircle } from "@phosphor-icons/react/dist/ssr";
 
+import { WordmarkMark } from "@/components/marketing/wordmark-mark";
+
 type ProofRow = {
   label: string;
   tier:
@@ -63,8 +65,8 @@ export function AuthShell({
       <section className="mkt-auth-brand" aria-hidden="true">
         <div className="mkt-ab-inner">
           <Link href="/" className="mkt-wordmark" style={{ color: "#fff" }}>
-            <span className="mkt-wm-glyph" aria-hidden="true" />
-            Source<b style={{ color: "var(--mkt-green-300)" }}> BD</b>
+            <WordmarkMark />
+            <span className="mkt-wm-text">Source<b style={{ color: "var(--mkt-green-300)" }}>BD</b></span>
           </Link>
 
           <h2 className="mkt-ab-headline">
@@ -110,8 +112,8 @@ export function AuthShell({
         <div className="mkt-am-top">{topRight}</div>
         <div className="mkt-am-card">
           <Link href="/" className="mkt-wordmark mkt-am-logo">
-            <span className="mkt-wm-glyph" aria-hidden="true" />
-            Source<b> BD</b>
+            <WordmarkMark />
+            <span className="mkt-wm-text">Source<b>BD</b></span>
           </Link>
           {children}
         </div>

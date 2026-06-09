@@ -25,6 +25,7 @@ import { useEffect, useState } from "react";
 import { List as ListIcon } from "@phosphor-icons/react/dist/ssr";
 
 import { MobileDrawer } from "@/components/ui/mobile-drawer";
+import { WordmarkMark } from "@/components/marketing/wordmark-mark";
 
 type Role = "admin" | "buyer" | "supplier";
 
@@ -112,8 +113,8 @@ export function MarketingTopNav() {
         </button>
 
         <Link href="/" className="mkt-wordmark">
-          <span className="mkt-wm-glyph" aria-hidden="true" />
-          Source<b> BD</b>
+          <WordmarkMark />
+          <span className="mkt-wm-text">Source<b>BD</b></span>
         </Link>
         <div className="mkt-nav-links hidden md:flex">
           <Link href="/#how-we-verify">How we verify</Link>

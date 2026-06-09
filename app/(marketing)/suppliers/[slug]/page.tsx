@@ -25,7 +25,7 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { ShieldCheck } from "@phosphor-icons/react/dist/ssr";
+import { ShieldCheck, Star, ChatCircleDots, Prohibit } from "@phosphor-icons/react/dist/ssr";
 
 import { ReceiptsRing } from "@/components/receipts-ring";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -546,24 +546,32 @@ function ProfileHeader({
           <Link
             href={`/signup?next=${encodeURIComponent(nextPath)}`}
             className="btn-proto"
+            title="Create a free account to save this supplier"
+            aria-label="Sign up to save this supplier"
           >
-            Sign up to save
+            <Star size={14} weight="regular" aria-hidden />
+            <span className="r9-btn-label">Sign up to save</span>
           </Link>
           {s.is_sanctioned ? (
             <span
               className="btn-proto"
               aria-disabled
               style={{ opacity: 0.5, cursor: "not-allowed" }}
-              title="Contact disabled — sanctions flag active"
+              title="Contact disabled - sanctions flag active"
+              aria-label="Contact disabled (sanctions flag active)"
             >
-              Contact disabled
+              <Prohibit size={14} weight="regular" aria-hidden />
+              <span className="r9-btn-label">Contact disabled</span>
             </span>
           ) : (
             <Link
               href={`/signup?next=${encodeURIComponent(nextPath)}`}
               className="btn-proto primary"
+              title="Create an account to send a Request for Quote"
+              aria-label="Sign up to contact this supplier"
             >
-              Contact
+              <ChatCircleDots size={14} weight="regular" aria-hidden />
+              <span className="r9-btn-label">Contact</span>
             </Link>
           )}
         </div>

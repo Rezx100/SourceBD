@@ -11,6 +11,8 @@
 
 import Link from "next/link";
 
+import { Storefront } from "@phosphor-icons/react/dist/ssr";
+
 import { Button } from "@/components/ui/button";
 import { getServerRole } from "@/lib/auth";
 
@@ -25,8 +27,17 @@ export async function ClaimCtaButton({ slug }: { slug: string }) {
           `/supplier/claim${supplierQs}`,
         )}`;
   return (
-    <Button asChild variant="outline" size="sm">
-      <Link href={href}>Claim this company</Link>
+    <Button
+      asChild
+      variant="outline"
+      size="sm"
+      title="Are you this supplier? Claim ownership to manage the profile."
+      aria-label="Claim this company profile"
+    >
+      <Link href={href}>
+        <Storefront size={14} weight="regular" aria-hidden />
+        <span className="r9-btn-label">Claim this company</span>
+      </Link>
     </Button>
   );
 }

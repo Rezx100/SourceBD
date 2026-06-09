@@ -3700,3 +3700,196 @@ html, body { overflow-x: clip; }
   [data-surface="marketing"] .mkt-am-logo { margin: 0 0 20px; }
 }
 /* ===== /R9 ===== */
+/* ===== R9 round 2 - audit follow-up =====
+   1. Replace the round-1 plain forest-square glyph (read as placeholder)
+      with the new <WordmarkMark> SVG (forest rounded square + 3 white
+      record-rows). Style targets the SVG class so we don't touch the
+      legacy .mkt-wm-glyph rules that round-1 left in place.
+   2. Verified-by chip: cap row to one line on phone via .mkt-vsources
+      span that handles its own truncation; also tighten the
+      "Verified by" label to mono uppercase so the badge reads as
+      enterprise grade rather than ad-hoc.
+   3. Profile header: explicit gap between .header-name and .header-chips
+      (visual breathing room when there's no parentline between them).
+   4. Marketing top-nav: left-anchor the wordmark on phone (was reading
+      as middled because the nav-row 28px gap pushed it past the
+      hamburger).
+   5. Buyer profile .btn-row: enterprise-grade icon-first compact treatment
+      below 640px (icon-only 36x36 outline pills with title/aria-label
+      describing purpose) while keeping desktop full-label CTAs.
+===== */
+
+/* --- 1. Wordmark mark (replaces .mkt-wm-glyph for new mounts) --- */
+[data-surface="marketing"] .mkt-wm-mark {
+  width: 22px; height: 22px; flex-shrink: 0;
+  display: inline-block;
+  filter: drop-shadow(0 1px 1px rgba(15,15,20,.06));
+}
+[data-surface="marketing"] .mkt-wm-mark .mkt-wm-mark-bg {
+  fill: var(--brand-forest);
+}
+[data-surface="marketing"] .mkt-wm-mark .mkt-wm-mark-row {
+  fill: rgba(255,255,255,.92);
+}
+/* On the dark auth-brand panel + footer brand block, invert: mark stays
+   forest but rows pop on the dark background. */
+[data-surface="marketing"] .mkt-auth-brand .mkt-wm-mark .mkt-wm-mark-bg {
+  fill: rgba(255,255,255,.96);
+}
+[data-surface="marketing"] .mkt-auth-brand .mkt-wm-mark .mkt-wm-mark-row {
+  fill: var(--brand-forest);
+}
+[data-surface="marketing"] .mkt-ft-brand .mkt-wm-mark .mkt-wm-mark-bg {
+  fill: var(--brand-forest);
+}
+[data-surface="marketing"] .mkt-ft-brand .mkt-wm-mark .mkt-wm-mark-row {
+  fill: rgba(255,255,255,.94);
+}
+
+/* Wordmark text wrapper (was a bare text node). Tightens the brand to
+   read as a single typographic unit, with a defined gap to the mark. */
+[data-surface="marketing"] .mkt-wordmark {
+  gap: 9px;
+}
+[data-surface="marketing"] .mkt-wm-text {
+  font-family: var(--mkt-font-display, var(--font-display, ui-sans-serif));
+  font-weight: 700; font-size: 18px;
+  letter-spacing: -.02em;
+  line-height: 1;
+  display: inline-flex; align-items: baseline; gap: 1px;
+}
+[data-surface="marketing"] .mkt-wm-text b {
+  margin-left: 3px;
+  color: var(--brand-forest);
+  font-weight: 700;
+}
+
+/* Hide the legacy round-1 plain-square fallback (the empty
+   <span class="mkt-wm-glyph"/>) — those mounts now render <WordmarkMark>.
+   Belt-and-braces: any orphan instance is invisible. */
+[data-surface="marketing"] .mkt-wordmark > .mkt-wm-glyph:empty {
+  display: none;
+}
+
+/* --- 2. Verified-by chip: clean line, tighter label, never wraps badly --- */
+.chip.chip-verified {
+  padding: 5px 11px 5px 9px;
+  gap: 7px;
+  max-width: 100%;
+  flex-wrap: nowrap;
+  align-items: center;
+  line-height: 1.15;
+}
+.chip.chip-verified > span:not(.chip-verified-sources) {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--sem-green);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.chip.chip-verified .chip-verified-sources {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--sem-green);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+@media (max-width: 640px) {
+  .chip.chip-verified .chip-verified-sources {
+    max-width: 180px;
+  }
+}
+
+/* --- 3. Header chip row: visual breathing room from the company name --- */
+.header-chips {
+  margin-top: 4px;
+  margin-bottom: 14px;
+  row-gap: 8px;
+}
+.header-name {
+  margin-bottom: 8px;
+}
+/* When there's a parentline between name and chips, tighten the gaps
+   (parentline already adds spacing). */
+.header-parentline + .header-chips {
+  margin-top: 0;
+}
+
+/* --- 4. Marketing top-nav: left-anchor wordmark on phone --- */
+@media (max-width: 720px) {
+  [data-surface="marketing"] .mkt-nav-row {
+    gap: 12px;
+    height: 60px;
+  }
+  [data-surface="marketing"] .mkt-wordmark {
+    margin-right: auto;
+  }
+  [data-surface="marketing"] .mkt-wm-text {
+    font-size: 17px;
+  }
+  [data-surface="marketing"] .mkt-wm-mark {
+    width: 20px; height: 20px;
+  }
+}
+
+/* --- 5. Buyer profile action row: enterprise-grade compact on phone --- */
+/* Round 1 left .btn-row as a vertical stack of three full-width buttons.
+   Round 2 makes it horizontal-icon-first <640 (saves vertical real estate +
+   reads as an enterprise toolbar rather than a stack of CTA buttons). */
+@media (max-width: 640px) {
+  .header-side {
+    width: 100%;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .header-side .btn-row {
+    gap: 6px;
+    flex-wrap: nowrap;
+    margin-left: auto;
+  }
+  /* All children of .btn-row collapse to a 36x36 icon button on phone.
+     Labels still render in DOM (a11y) but visually hidden via .sr-only-mobile.
+     Buttons keep their full title="" / aria-label="" so hover / VO still
+     describes purpose. */
+  .header-side .btn-row > * {
+    height: 36px !important;
+    min-height: 36px !important;
+    width: 36px !important;
+    padding: 0 !important;
+    border-radius: 10px !important;
+    flex: 0 0 auto;
+    gap: 0 !important;
+  }
+  .header-side .btn-row > * > svg {
+    width: 18px; height: 18px;
+  }
+  .header-side .btn-row .r9-btn-label {
+    position: absolute;
+    width: 1px; height: 1px; padding: 0; margin: -1px;
+    overflow: hidden; clip: rect(0,0,0,0);
+    white-space: nowrap; border: 0;
+  }
+}
+@media (min-width: 641px) {
+  /* Desktop / tablet: keep labels visible but tighten height + spacing. */
+  .header-side .btn-row {
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+  .header-side .btn-row > * {
+    min-height: 36px;
+  }
+}
+
+/* ===== /R9 round 2 ===== */
