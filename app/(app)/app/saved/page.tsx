@@ -126,7 +126,7 @@ export default async function SavedSuppliersPage({
                 row={toDiscoverRow(row)}
                 hrefBase="/app/suppliers"
                 actionSlot={
-                  <SaveButton supplierId={row.id} initialSaved={true} shape="responsive" />
+                  <SaveButton supplierId={row.id} initialSaved={true} shape="icon" />
                 }
               />
             </li>

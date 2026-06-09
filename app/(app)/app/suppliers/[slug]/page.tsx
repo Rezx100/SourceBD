@@ -26,7 +26,6 @@ import { ShieldCheck, ChatCircleDots } from "@phosphor-icons/react/dist/ssr";
 
 import { ReceiptsRing } from "@/components/receipts-ring";
 import { SaveButton } from "@/components/save-button";
-import { ClaimCtaButton } from "@/components/claim-cta-button";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ProductsStripExpandable } from "@/components/supplier/products-strip-expandable";
@@ -223,13 +222,6 @@ export default async function FactoryProfilePage({
     .maybeSingle();
   const isSaved = Boolean(savedRow);
 
-  const { data: claimRow } = await supabase
-    .from("suppliers")
-    .select("claimed_by, is_sanctioned")
-    .eq("id", s.id)
-    .maybeSingle();
-  const showClaimCta =
-    !!claimRow && claimRow.claimed_by === null && !claimRow.is_sanctioned;
 
   // Admin contact unlock (I-004). Admins bypass paywall universally; the
   // SELECT is server-only and the result never reaches the browser unless
@@ -264,7 +256,6 @@ export default async function FactoryProfilePage({
       <ProfileHeader
         payload={payload}
         isSaved={isSaved}
-        showClaimCta={showClaimCta}
       />
       {s.principal_products.length > 0 ? (
         <ProductsStripExpandable products={s.principal_products} />
@@ -382,11 +373,9 @@ function VerifiedByChip({ pills }: { pills: Pill[] }) {
 function ProfileHeader({
   payload,
   isSaved,
-  showClaimCta,
 }: {
   payload: ProfilePayload;
   isSaved: boolean;
-  showClaimCta: boolean;
 }) {
   const s = payload.supplier;
   const primaryAddress =
@@ -537,7 +526,6 @@ function ProfileHeader({
               <span className="r9-btn-label">Contact</span>
             </Link>
           </Button>
-          {showClaimCta ? <ClaimCtaButton slug={s.slug} /> : null}
         </div>
       </div>
     </section>

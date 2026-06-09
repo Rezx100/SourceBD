@@ -3931,3 +3931,77 @@ html, body { overflow-x: clip; }
   .proto-wordmark .mkt-wm-mark { width: 20px; height: 20px; }
 }
 /* ===== /R9 round 2b ===== */
+/* ===== R9 round 3 - audit-driven polish =====
+   Fixes from the post-round-2 live audit (sourcebd.net):
+   #4 inline sources tooltip clipped left on phone profile header.
+   #6 registry rows cramped left, wasting right-column whitespace.
+*/
+
+/* #4a - desktop: anchor popover to the trigger's LEFT edge, not its centre.
+   The 320px panel centered on a near-edge trigger overflowed viewport. */
+.sources-explainer.inline .sources-explainer-body {
+  left: 0;
+  transform: none;
+}
+@keyframes sourcesPopInLeft {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.sources-explainer.inline .sources-explainer-body {
+  animation: sourcesPopInLeft 160ms var(--ease);
+}
+
+/* #4b - phone: detach from the trigger and clamp to the viewport rails so
+   the popover never clips, no matter where the chip sits in the header. */
+@media (max-width: 720px) {
+  .sources-explainer.inline .sources-explainer-body {
+    position: fixed;
+    top: 64px;
+    left: 12px;
+    right: 12px;
+    transform: none;
+    width: auto;
+    max-width: none;
+  }
+}
+
+/* #6 - registry row mobile layout: 3-column grid using the right rail for
+   status + action chips. Logo spans both rows on the left, name + status on
+   top, meta + action on bottom. Compact and enterprise-balanced. */
+@media (max-width: 640px) {
+  .registry-row {
+    grid-template-columns: 36px minmax(0, 1fr) auto;
+    grid-template-areas:
+      "logo name   status"
+      "logo meta   action";
+    gap: 2px 10px;
+    padding: 12px 0;
+    align-items: center;
+  }
+  .registry-row .reg-logo {
+    grid-area: logo;
+    align-self: center;
+  }
+  .registry-row .reg-name {
+    grid-area: name;
+    min-width: 0;
+  }
+  .registry-row .reg-meta {
+    grid-area: meta;
+    min-width: 0;
+    margin-top: 0;
+  }
+  .registry-row .reg-status {
+    grid-area: status;
+    justify-self: end;
+    padding: 3px 8px;
+    font-size: 10.5px;
+  }
+  .registry-row .reg-action {
+    grid-area: action;
+    justify-self: end;
+    padding: 3px 6px;
+    font-size: 11px;
+  }
+}
+/* ===== /R9 round 3 ===== */

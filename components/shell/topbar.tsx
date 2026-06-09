@@ -60,7 +60,6 @@ export function Topbar({
 
   return (
     <header className="topbar sticky top-0 z-30 flex h-14 items-center gap-2 border-b border-hairline px-3 backdrop-blur md:gap-3 md:px-4">
-      <TopbarHamburger variant={variant} />
       <Link href="/" className="proto-wordmark shrink-0">
         <WordmarkMark />
         <span className="proto-wm-text">Source<b>BD</b></span>
@@ -68,7 +67,7 @@ export function Topbar({
 
       <nav
         aria-label="Quick navigation"
-        className="ml-2 hidden items-center gap-1 lg:flex"
+        className="ml-4 hidden items-center gap-1 lg:flex"
       >
         {links.map((l) => (
           <Link key={l.href} href={l.href} className="topbar-quick-link">
@@ -80,7 +79,7 @@ export function Topbar({
       <form
         action={variant === "buyer" ? "/app/discover" : "/app/discover"}
         method="get"
-        className="ml-auto hidden flex-1 max-w-md md:flex"
+        className="mx-3 hidden flex-1 max-w-md md:flex"
       >
         <label htmlFor="topbar-q" className="sr-only">
           Search suppliers
@@ -116,7 +115,7 @@ export function Topbar({
         </Link>
       ) : null}
 
-      <div className="flex items-center gap-2">
+      <div className="ml-auto flex items-center gap-1 md:gap-2">
         <button
           type="button"
           aria-label="Notifications"
@@ -131,6 +130,7 @@ export function Topbar({
         >
           <UserCircle size={20} aria-hidden />
         </Link>
+        <TopbarHamburger variant={variant} />
       </div>
     </header>
   );
