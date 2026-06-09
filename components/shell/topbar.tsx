@@ -12,6 +12,7 @@ import { Bell, MagnifyingGlass, UserCircle } from "@phosphor-icons/react/dist/ss
 
 import type { Role } from "@/lib/auth";
 import { TopbarHamburger } from "@/components/shell/topbar-hamburger";
+import { WordmarkMark } from "@/components/marketing/wordmark-mark";
 
 type QuickLink = { href: string; label: string };
 
@@ -61,7 +62,8 @@ export function Topbar({
     <header className="topbar sticky top-0 z-30 flex h-14 items-center gap-2 border-b border-hairline px-3 backdrop-blur md:gap-3 md:px-4">
       <TopbarHamburger variant={variant} />
       <Link href="/" className="proto-wordmark shrink-0">
-        SourceBD
+        <WordmarkMark />
+        <span className="proto-wm-text">Source<b>BD</b></span>
       </Link>
 
       <nav

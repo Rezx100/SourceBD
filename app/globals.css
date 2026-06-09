@@ -3893,3 +3893,41 @@ html, body { overflow-x: clip; }
 }
 
 /* ===== /R9 round 2 ===== */
+/* ===== R9 round 2b - app-shell topbar wordmark =====
+   The .proto-wordmark previously rendered a gradient text-only "SourceBD".
+   Now it wraps <WordmarkMark> + <span class="proto-wm-text"> so logged-in
+   users see the same brand mark as the marketing surface. Override the
+   text-clip (which would also clip the SVG) and define the layout. */
+.proto-wordmark {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  background: none;
+  -webkit-background-clip: initial;
+  background-clip: initial;
+  color: var(--ink-primary);
+}
+.proto-wordmark .mkt-wm-mark {
+  width: 22px; height: 22px; flex-shrink: 0;
+}
+.proto-wordmark .mkt-wm-mark .mkt-wm-mark-bg { fill: var(--brand-forest); }
+.proto-wordmark .mkt-wm-mark .mkt-wm-mark-row { fill: rgba(255,255,255,.92); }
+.proto-wm-text {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 18px;
+  letter-spacing: -.02em;
+  line-height: 1;
+  display: inline-flex; align-items: baseline; gap: 1px;
+  color: var(--ink-primary);
+}
+.proto-wm-text b {
+  margin-left: 3px;
+  color: var(--brand-forest);
+  font-weight: 700;
+}
+@media (max-width: 640px) {
+  .proto-wm-text { font-size: 17px; }
+  .proto-wordmark .mkt-wm-mark { width: 20px; height: 20px; }
+}
+/* ===== /R9 round 2b ===== */
