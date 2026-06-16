@@ -28,6 +28,7 @@ import {
   FileText,
   MagnifyingGlass,
   ShieldCheck,
+  Storefront,
 } from "@phosphor-icons/react/dist/ssr";
 
 import { AnimatedGridPattern } from "@/components/ui/animated-grid-pattern";
@@ -196,7 +197,7 @@ export default async function HomeV2Page() {
     : "10,000";
 
   return (
-    <div className="bg-white font-[family-name:var(--mkt-font-body)] text-neutral-900">
+    <div className="overflow-x-hidden bg-white font-[family-name:var(--mkt-font-body)] text-neutral-900">
       {/* JSON-LD */}
       <script
         type="application/ld+json"
@@ -228,11 +229,11 @@ export default async function HomeV2Page() {
           repeatDelay={1}
         />
 
-        <div className="relative z-10 mx-auto grid max-w-6xl items-center gap-10 px-6 pb-20 pt-24 md:grid-cols-2 md:px-12 md:pt-32 lg:gap-12 lg:px-20">
+        <div className="relative z-10 mx-auto grid max-w-6xl items-center gap-8 px-6 pb-16 pt-16 md:grid-cols-2 md:gap-10 md:px-12 md:pt-24 lg:gap-12 lg:px-20">
           {/* Left — message */}
-          <div>
+          <div className="text-center md:text-left">
             <BlurFade delay={0.15}>
-              <h1 className="font-[family-name:var(--mkt-font-display)] text-5xl font-extrabold leading-[0.98] tracking-[-0.03em] text-neutral-900 sm:text-6xl lg:text-7xl">
+              <h1 className="font-[family-name:var(--mkt-font-display)] text-[2.6rem] font-extrabold leading-[0.98] tracking-[-0.03em] text-neutral-900 xs:text-5xl sm:text-6xl lg:text-7xl">
                 Verified
                 <br />
                 Bangladesh
@@ -242,7 +243,7 @@ export default async function HomeV2Page() {
             </BlurFade>
 
             <BlurFade delay={0.3}>
-              <p className="mt-7 max-w-md text-lg leading-relaxed text-neutral-600 md:text-xl">
+              <p className="mx-auto mt-6 max-w-md text-base leading-relaxed text-neutral-600 md:mx-0 md:mt-7 md:text-lg lg:text-xl">
                 Find, vet and message garment suppliers — with a receipt on
                 every claim.
               </p>
@@ -250,23 +251,23 @@ export default async function HomeV2Page() {
 
             <BlurFade delay={0.45}>
               <form
-                className="relative mt-9 flex max-w-xl items-center gap-2 overflow-hidden rounded-xl border border-neutral-300 bg-white px-4 py-2.5 shadow-sm"
+                className="relative mx-auto mt-8 flex max-w-xl items-center gap-2 overflow-hidden rounded-xl border border-neutral-300 bg-white px-3 py-2 shadow-sm md:mx-0 md:px-4 md:py-2.5"
                 action="/discover"
                 method="get"
                 role="search"
               >
-                <MagnifyingGlass size={20} className="text-neutral-400" />
+                <MagnifyingGlass size={20} className="hidden shrink-0 text-neutral-400 sm:block" />
                 <input
                   type="search"
                   name="q"
-                  placeholder="OEKO-TEX certified knit factory in Gazipur…"
+                  placeholder="OEKO-TEX certified knit factory…"
                   aria-label="Search suppliers"
                   autoComplete="off"
-                  className="flex-1 bg-transparent text-sm text-neutral-900 placeholder:text-neutral-400 focus:outline-none"
+                  className="min-w-0 flex-1 bg-transparent text-sm text-neutral-900 placeholder:text-neutral-400 focus:outline-none"
                 />
                 <button
                   type="submit"
-                  className="rounded-lg bg-[#1f4d3a] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#2d6a4f]"
+                  className="shrink-0 rounded-lg bg-[#1f4d3a] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#2d6a4f]"
                 >
                   Search
                 </button>
@@ -281,7 +282,7 @@ export default async function HomeV2Page() {
 
             {/* Avatar proof */}
             <BlurFade delay={0.6}>
-              <div className="mt-10 flex flex-wrap items-center gap-x-4 gap-y-3">
+              <div className="mt-8 flex flex-wrap items-center justify-center gap-x-4 gap-y-3 md:mt-10 md:justify-start">
                 <AvatarCircles avatarUrls={COMPANY_AVATARS} overflowLabel="10k+" />
                 <p className="text-[15px] text-neutral-600">
                   <span className="font-[family-name:var(--mkt-font-display)] font-bold text-neutral-900">
@@ -295,17 +296,17 @@ export default async function HomeV2Page() {
 
           {/* Right — Globe (large, bleeds, blends into the page) */}
           <BlurFade delay={0.3} className="relative">
-            <div className="pointer-events-none relative mx-auto flex aspect-square w-full max-w-[560px] items-center justify-center lg:max-w-none lg:scale-[1.18]">
+            <div className="pointer-events-none relative mx-auto flex aspect-square w-full max-w-[340px] items-center justify-center sm:max-w-[440px] md:max-w-[520px] lg:max-w-none lg:scale-[1.12]">
               {/* soft halo behind the sphere */}
-              <div className="absolute inset-10 rounded-full bg-[radial-gradient(circle_at_50%_45%,rgba(31,77,58,0.10),transparent_62%)] blur-xl" />
+              <div className="absolute inset-6 rounded-full bg-[radial-gradient(circle_at_50%_42%,rgba(31,77,58,0.16),transparent_60%)] blur-2xl" />
               <Globe className="!max-w-[560px]" />
-              {/* blend the sphere edges into the white page */}
-              <div className="absolute inset-0 [background:radial-gradient(circle_at_50%_50%,transparent_56%,#fff_72%)]" />
+              {/* feather only the very outer rim into the page */}
+              <div className="absolute inset-0 [background:radial-gradient(circle_at_50%_50%,transparent_70%,#fff_92%)]" />
             </div>
             {/* single-line caption pinned under the globe */}
-            <div className="pointer-events-none mt-2 flex justify-center">
-              <span className="inline-flex items-center whitespace-nowrap rounded-full border border-neutral-200 bg-white/90 px-4 py-1.5 font-[family-name:var(--mkt-font-mono)] text-[11px] text-neutral-600 shadow-sm backdrop-blur-sm">
-                <span className="mr-2 h-1.5 w-1.5 rounded-full bg-[#1f4d3a]" />
+            <div className="pointer-events-none -mt-2 flex justify-center sm:mt-1">
+              <span className="inline-flex items-center whitespace-nowrap rounded-full border border-neutral-200 bg-white/90 px-3.5 py-1.5 font-[family-name:var(--mkt-font-mono)] text-[10px] text-neutral-600 shadow-sm backdrop-blur-sm sm:text-[11px]">
+                <span className="mr-2 h-1.5 w-1.5 animate-pulse rounded-full bg-[#1f4d3a]" />
                 <span className="font-semibold text-[#1f4d3a]">Dhaka HQ</span>
                 <span className="mx-2 text-neutral-300">·</span>
                 serving UK&nbsp;·&nbsp;US&nbsp;·&nbsp;EU&nbsp;·&nbsp;CA
@@ -316,12 +317,12 @@ export default async function HomeV2Page() {
       </section>
 
       {/* ════════ AUTHORITY MARQUEE ════════ */}
-      <section id="sources" className="border-b border-neutral-200 bg-neutral-50 py-14">
+      <section id="sources" className="border-b border-neutral-200 bg-neutral-50 py-12 md:py-16">
         <div className="mx-auto mb-8 max-w-6xl px-6 text-center md:px-12 lg:px-20">
-          <p className="font-[family-name:var(--mkt-font-mono)] text-xs uppercase tracking-[0.2em] text-[#1f4d3a]">
+          <p className="font-[family-name:var(--mkt-font-mono)] text-[11px] uppercase tracking-[0.2em] text-[#1f4d3a] sm:text-xs">
             Sources of record
           </p>
-          <h2 className="mt-2 font-[family-name:var(--mkt-font-display)] text-2xl font-bold tracking-tight text-neutral-900 md:text-3xl">
+          <h2 className="mt-2 font-[family-name:var(--mkt-font-display)] text-xl font-bold tracking-tight text-neutral-900 sm:text-2xl md:text-3xl">
             Built on the registers buyers already trust.
           </h2>
           <p className="mx-auto mt-2 max-w-xl text-sm text-neutral-500">
@@ -332,44 +333,47 @@ export default async function HomeV2Page() {
 
         {/* edge-faded marquee for depth */}
         <div className="relative">
-          <Marquee pauseOnHover className="[--duration:38s]">
+          <Marquee pauseOnHover className="[--duration:40s] [--gap:1rem]">
             {AUTHORITY_LOGOS.map((logo) => (
               <div
                 key={logo.alt}
-                className="mx-3 flex h-20 w-40 items-center justify-center rounded-xl border border-neutral-200/80 bg-white px-5 grayscale transition duration-300 hover:border-[#1f4d3a]/20 hover:grayscale-0"
+                className="mx-2 flex h-16 w-32 items-center justify-center rounded-xl border border-neutral-200 bg-white px-4 shadow-[0_1px_3px_rgba(16,40,28,0.04)] transition duration-300 hover:-translate-y-0.5 hover:border-[#1f4d3a]/25 hover:shadow-md sm:h-20 sm:w-40 sm:px-5"
               >
                 <Image
                   src={logo.src}
                   alt={logo.alt}
-                  width={120}
-                  height={48}
-                  className="max-h-11 w-auto object-contain"
+                  width={140}
+                  height={56}
+                  className="max-h-10 w-auto object-contain sm:max-h-12"
                 />
               </div>
             ))}
           </Marquee>
-          <div className="pointer-events-none absolute inset-y-0 left-0 w-24 bg-gradient-to-r from-neutral-50 to-transparent" />
-          <div className="pointer-events-none absolute inset-y-0 right-0 w-24 bg-gradient-to-l from-neutral-50 to-transparent" />
+          <div className="pointer-events-none absolute inset-y-0 left-0 w-16 bg-gradient-to-r from-neutral-50 to-transparent sm:w-32" />
+          <div className="pointer-events-none absolute inset-y-0 right-0 w-16 bg-gradient-to-l from-neutral-50 to-transparent sm:w-32" />
         </div>
       </section>
 
       {/* ════════ STATS BAND ════════ */}
-      <section className="border-b border-neutral-200 px-6 py-14 md:px-12 lg:px-20">
+      <section className="border-b border-neutral-200 px-6 py-12 md:px-12 md:py-16 lg:px-20">
         <div className="mx-auto max-w-6xl">
-          <div className="grid grid-cols-2 divide-neutral-200 lg:grid-cols-4 lg:divide-x">
+          <div className="grid grid-cols-2 gap-x-4 gap-y-8 lg:grid-cols-4 lg:gap-0 lg:divide-x lg:divide-neutral-200">
             {[
-              { icon: <Buildings size={22} weight="duotone" />, value: stats.suppliers_indexed, label: "Suppliers indexed" },
-              { icon: <ShieldCheck size={22} weight="duotone" />, value: stats.suppliers_with_tier1or2_source, label: "Gov / association corroborated" },
-              { icon: <FileText size={22} weight="duotone" />, value: stats.compliance_documents_mirrored, label: "Compliance docs mirrored" },
-              { icon: <Certificate size={22} weight="duotone" />, value: stats.certifications_verified, label: "Certifications verified" },
+              { icon: <Buildings size={24} weight="duotone" />, value: stats.suppliers_indexed, label: "Suppliers indexed" },
+              { icon: <ShieldCheck size={24} weight="duotone" />, value: stats.suppliers_with_tier1or2_source, label: "Gov / association corroborated" },
+              { icon: <FileText size={24} weight="duotone" />, value: stats.compliance_documents_mirrored, label: "Compliance documents mirrored" },
+              { icon: <Storefront size={24} weight="duotone" />, value: 31, label: "Official sources in sync", suffix: " / 31" },
             ].map((s, i) => (
               <BlurFade key={s.label} delay={0.1 + i * 0.08}>
-                <div className="flex flex-col px-0 py-4 lg:px-6">
-                  <span className="mb-3 inline-flex h-9 w-9 items-center justify-center rounded-lg bg-[#ecf3ee] text-[#1f4d3a]">
+                <div className="flex flex-col lg:px-7">
+                  <span className="mb-3 inline-flex h-11 w-11 items-center justify-center rounded-xl bg-[#ecf3ee] text-[#1f4d3a] shadow-[0_2px_8px_-2px_rgba(31,77,58,0.18)]">
                     {s.icon}
                   </span>
-                  <span className="font-[family-name:var(--mkt-font-display)] text-3xl font-bold tabular-nums text-neutral-900 md:text-4xl">
-                    {s.value ? <NumberTicker value={s.value} /> : "—"}
+                  <span className="font-[family-name:var(--mkt-font-display)] text-3xl font-bold tabular-nums text-neutral-900 sm:text-4xl">
+                    {typeof s.value === "number" ? <NumberTicker value={s.value} /> : "—"}
+                    {s.suffix ? (
+                      <span className="text-lg font-semibold text-neutral-400">{s.suffix}</span>
+                    ) : null}
                   </span>
                   <span className="mt-1 text-sm text-neutral-500">{s.label}</span>
                 </div>
@@ -380,8 +384,8 @@ export default async function HomeV2Page() {
       </section>
 
       {/* ════════ FEATURE 1 — Behind the scenes (AnimatedBeam) ════════ */}
-      <section id="how-we-verify" className="border-b border-neutral-200 px-6 py-24 md:px-12 lg:px-20">
-        <div className="mx-auto grid max-w-6xl items-center gap-12 lg:grid-cols-2 lg:gap-16">
+      <section id="how-we-verify" className="border-b border-neutral-200 px-6 py-16 md:px-12 md:py-20 lg:px-20">
+        <div className="mx-auto grid max-w-6xl items-center gap-10 lg:grid-cols-2 lg:gap-16">
           {/* copy */}
           <div>
             <BlurFade delay={0.1}>
@@ -419,8 +423,8 @@ export default async function HomeV2Page() {
 
           {/* borderless visual — bleeds into the page, no box */}
           <BlurFade delay={0.2}>
-            <div className="relative mx-auto w-full max-w-[480px]">
-              <div className="absolute -inset-12 -z-10 bg-[radial-gradient(circle_at_50%_50%,rgba(31,77,58,0.08),transparent_68%)]" />
+            <div className="relative mx-auto w-full max-w-[440px] sm:max-w-[480px]">
+              <div className="absolute -inset-10 -z-10 bg-[radial-gradient(circle_at_50%_50%,rgba(31,77,58,0.08),transparent_68%)]" />
               <DataPipeline />
             </div>
           </BlurFade>
@@ -428,11 +432,11 @@ export default async function HomeV2Page() {
       </section>
 
       {/* ════════ FEATURE 2 — Live provenance feed (AnimatedList) ════════ */}
-      <section className="border-b border-neutral-200 bg-neutral-50 px-6 py-24 md:px-12 lg:px-20">
-        <div className="mx-auto grid max-w-6xl items-center gap-12 lg:grid-cols-2 lg:gap-16">
+      <section className="border-b border-neutral-200 bg-neutral-50 px-6 py-16 md:px-12 md:py-20 lg:px-20">
+        <div className="mx-auto grid max-w-6xl items-center gap-10 lg:grid-cols-2 lg:gap-16">
           {/* borderless visual (left on desktop) — bleeds into the page */}
           <BlurFade delay={0.2} className="order-2 lg:order-1">
-            <div className="relative lg:-ml-12 lg:scale-105">
+            <div className="relative mx-auto w-full max-w-[480px] lg:mx-0">
               <div className="absolute -inset-10 -z-10 bg-[radial-gradient(circle_at_50%_45%,rgba(31,77,58,0.08),transparent_68%)]" />
               <VerificationFeed />
             </div>
@@ -460,7 +464,7 @@ export default async function HomeV2Page() {
             <BlurFade delay={0.25}>
               <Link
                 href="/discover"
-                className="mt-8 inline-flex items-center gap-2 rounded-lg bg-[#1f4d3a] px-5 py-3 text-sm font-medium text-white transition-colors hover:bg-[#2d6a4f]"
+                className="mt-8 inline-flex items-center gap-2 rounded-lg bg-[#1f4d3a] px-5 py-3 text-sm font-medium !text-white shadow-sm transition-colors hover:bg-[#2d6a4f]"
               >
                 Explore the index <ArrowRight size={16} />
               </Link>
@@ -470,8 +474,8 @@ export default async function HomeV2Page() {
       </section>
 
       {/* ════════ FEATURE 3 — Trust hierarchy (OrbitingCircles) ════════ */}
-      <section className="border-b border-neutral-200 px-6 py-24 md:px-12 lg:px-20">
-        <div className="mx-auto grid max-w-6xl items-center gap-12 lg:grid-cols-2 lg:gap-16">
+      <section className="border-b border-neutral-200 px-6 py-16 md:px-12 md:py-20 lg:px-20">
+        <div className="mx-auto grid max-w-6xl items-center gap-10 lg:grid-cols-2 lg:gap-16">
           {/* copy */}
           <div>
             <BlurFade delay={0.1}>
@@ -511,10 +515,10 @@ export default async function HomeV2Page() {
             </BlurFade>
           </div>
 
-          {/* borderless orbit — bleeds into the page, larger than life */}
+          {/* borderless orbit — bleeds into the page */}
           <BlurFade delay={0.2}>
-            <div className="relative lg:-mr-16 lg:scale-125">
-              <div className="absolute -inset-12 -z-10 bg-[radial-gradient(circle_at_center,rgba(31,77,58,0.09),transparent_62%)]" />
+            <div className="relative mx-auto flex w-full max-w-[460px] scale-[0.82] justify-center sm:scale-95 lg:scale-110">
+              <div className="absolute -inset-10 -z-10 bg-[radial-gradient(circle_at_center,rgba(31,77,58,0.09),transparent_62%)]" />
               <TrustOrbit />
             </div>
           </BlurFade>
@@ -522,7 +526,7 @@ export default async function HomeV2Page() {
       </section>
 
       {/* ════════ CERTIFICATIONS STRIP ════════ */}
-      <section className="border-b border-neutral-200 bg-neutral-50 px-6 py-16 md:px-12 lg:px-20">
+      <section className="border-b border-neutral-200 bg-neutral-50 px-6 py-14 md:px-12 lg:px-20">
         <div className="mx-auto max-w-6xl">
           <BlurFade delay={0.1}>
             <div className="flex flex-col items-start justify-between gap-6 md:flex-row md:items-center">
@@ -559,7 +563,7 @@ export default async function HomeV2Page() {
       </section>
 
       {/* ════════ POSITIONING ════════ */}
-      <section className="border-b border-neutral-200 px-6 py-20 md:px-12 lg:px-20">
+      <section className="border-b border-neutral-200 px-6 py-16 md:px-12 md:py-20 lg:px-20">
         <div className="mx-auto max-w-6xl">
           <BlurFade delay={0.1}>
             <Kicker>What we are</Kicker>
@@ -569,7 +573,7 @@ export default async function HomeV2Page() {
             </Heading>
           </BlurFade>
 
-          <div className="mt-12 grid gap-4 md:grid-cols-3">
+          <div className="mt-10 grid gap-4 sm:grid-cols-2 md:mt-12 md:grid-cols-3">
             {POSITIONING.map((card) => (
               <BlurFade key={card.title} delay={0.15}>
                 <MagicCard
@@ -596,7 +600,7 @@ export default async function HomeV2Page() {
       </section>
 
       {/* ════════ CTA ════════ */}
-      <section className="px-6 py-24 md:px-12 lg:px-20">
+      <section className="px-6 py-20 md:px-12 md:py-24 lg:px-20">
         <div className="mx-auto max-w-6xl text-center">
           <BlurFade delay={0.1}>
             <h2 className="font-[family-name:var(--mkt-font-display)] text-3xl font-bold tracking-tight text-neutral-900 md:text-5xl">

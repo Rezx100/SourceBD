@@ -97,14 +97,15 @@ function Row({ issuer, action, tier, icon, tint }: Event) {
 
 export function VerificationFeed() {
   return (
-    <div className="relative flex h-[420px] w-full flex-col overflow-hidden">
-      <AnimatedList delay={1600}>
+    <div className="relative flex h-[392px] w-full flex-col overflow-hidden">
+      <AnimatedList delay={1800}>
         {EVENTS.map((e, i) => (
           <Row key={i} {...e} />
         ))}
       </AnimatedList>
-      {/* fade bottom into page */}
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-white" />
+      {/* fade top + bottom into the neutral-50 section background */}
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-10 bg-gradient-to-b from-neutral-50 to-transparent" />
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-neutral-50 via-neutral-50/80 to-transparent" />
     </div>
   );
 }

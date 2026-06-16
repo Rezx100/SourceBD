@@ -85,7 +85,7 @@ export const ShimmerButton = React.forwardRef<
         {/* backdrop */}
         <div
           className={cn(
-            "absolute inset-(--cut) -z-20 [border-radius:var(--radius)] [background:var(--bg)]"
+            "absolute inset-[var(--cut)] -z-20 [border-radius:var(--radius)] [background:var(--bg)]"
           )}
         />
       </button>

@@ -66,18 +66,24 @@ export const BorderBeam = ({
 }: BorderBeamProps) => {
   return (
     <div
-      className="pointer-events-none absolute inset-0 rounded-[inherit] border-(length:--border-beam-width) border-transparent mask-[linear-gradient(transparent,transparent),linear-gradient(#000,#000)] mask-intersect [mask-clip:padding-box,border-box]"
+      className="pointer-events-none absolute inset-0 rounded-[inherit] border-transparent"
       style={
         {
-          "--border-beam-width": `${borderWidth}px`,
+          borderWidth: `${borderWidth}px`,
+          WebkitMask:
+            "linear-gradient(transparent, transparent), linear-gradient(#000, #000)",
+          WebkitMaskClip: "padding-box, border-box",
+          WebkitMaskComposite: "source-in, xor",
+          mask: "linear-gradient(transparent, transparent), linear-gradient(#000, #000)",
+          maskClip: "padding-box, border-box",
+          maskComposite: "intersect",
         } as React.CSSProperties
       }
     >
       <motion.div
         className={cn(
-          "absolute aspect-square",
-          "bg-linear-to-l from-(--color-from) via-(--color-to) to-transparent",
-          className
+          "absolute aspect-square bg-gradient-to-l from-[var(--color-from)] via-[var(--color-to)] to-transparent",
+          className,
         )}
         style={
           {

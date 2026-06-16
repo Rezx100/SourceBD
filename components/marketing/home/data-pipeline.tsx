@@ -24,7 +24,7 @@ const Node = forwardRef<
       ref={ref}
       title={title}
       className={cn(
-        "z-10 flex size-16 items-center justify-center rounded-2xl border border-neutral-200/80 bg-white p-3",
+        "z-10 flex size-14 items-center justify-center rounded-2xl border border-neutral-200 bg-white p-2 shadow-[0_2px_8px_-2px_rgba(16,40,28,0.12)] sm:size-16 sm:p-2.5",
         className,
       )}
     >
@@ -39,8 +39,8 @@ function Logo({ src, alt }: { src: string; alt: string }) {
     <Image
       src={src}
       alt={alt}
-      width={36}
-      height={36}
+      width={48}
+      height={48}
       className="h-full w-full object-contain"
     />
   );
@@ -82,12 +82,12 @@ export function DataPipeline({ className }: { className?: string }) {
     <div
       ref={containerRef}
       className={cn(
-        "relative flex h-full min-h-[460px] w-full items-stretch justify-between px-3 sm:px-6",
+        "relative flex h-full min-h-[380px] w-full items-stretch justify-between px-1 sm:min-h-[460px] sm:px-6",
         className,
       )}
     >
       {/* Left — certification bodies */}
-      <div className="flex flex-col justify-center gap-7">
+      <div className="flex flex-col justify-center gap-5 sm:gap-7">
         {CERTS.map((c, i) => (
           <Node key={c.alt} ref={certRefs[i]} title={`Certification · ${c.alt}`}>
             <Logo src={c.src} alt={c.alt} />
@@ -101,7 +101,7 @@ export function DataPipeline({ className }: { className?: string }) {
         <div
           ref={engineRef}
           title="SourceBD verification engine"
-          className="pointer-events-auto relative flex size-28 items-center justify-center rounded-3xl bg-[#1f4d3a] shadow-[0_14px_40px_-14px_rgba(31,77,58,0.55)]"
+          className="pointer-events-auto relative flex size-20 items-center justify-center rounded-3xl bg-[#1f4d3a] shadow-[0_14px_40px_-14px_rgba(31,77,58,0.55)] sm:size-28"
         >
           <span className="absolute -inset-2 -z-10 rounded-3xl bg-[#1f4d3a]/[0.08]" />
           <ShieldGlyph className="h-1/2 w-1/2" />
@@ -109,7 +109,7 @@ export function DataPipeline({ className }: { className?: string }) {
       </div>
 
       {/* Right — registers & associations */}
-      <div className="flex flex-col justify-center gap-7">
+      <div className="flex flex-col justify-center gap-5 sm:gap-7">
         {REGS.map((r, i) => (
           <Node key={r.alt} ref={regRefs[i]} title={`Register · ${r.alt}`}>
             <Logo src={r.src} alt={r.alt} />

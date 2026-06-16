@@ -14,12 +14,12 @@ import { OrbitingCircles } from "@/components/ui/orbiting-circles";
 
 function OrbitLogo({ src, alt }: { src: string; alt: string }) {
   return (
-    <div className="flex size-full items-center justify-center rounded-full border border-neutral-200/80 bg-white p-2">
+    <div className="flex size-full items-center justify-center rounded-full border border-neutral-200 bg-white p-1.5 shadow-[0_2px_8px_-2px_rgba(16,40,28,0.12)]">
       <Image
         src={src}
         alt={alt}
-        width={36}
-        height={36}
+        width={44}
+        height={44}
         className="h-full w-full object-contain"
       />
     </div>

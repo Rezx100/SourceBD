@@ -23,7 +23,7 @@ const NAV_LINKS = [
 ];
 
 const CTA_BUTTON =
-  "inline-flex items-center justify-center rounded-lg bg-[#1f4d3a] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#2d6a4f]";
+  "inline-flex items-center justify-center rounded-lg bg-[#1f4d3a] px-4 py-2 text-sm font-medium !text-white shadow-sm transition-colors hover:bg-[#2d6a4f]";
 
 function RightLinks({ role }: { role: Role | null }) {
   if (role === "supplier") {
@@ -161,7 +161,7 @@ export function MarketingTopNav() {
             <Link
               href="/supplier"
               onClick={() => setDrawerOpen(false)}
-              className="inline-flex min-h-[44px] items-center justify-center rounded-lg bg-[#1f4d3a] px-4 text-sm font-medium text-white"
+              className="inline-flex min-h-[44px] items-center justify-center rounded-lg bg-[#1f4d3a] px-4 text-sm font-medium !text-white"
             >
               Supplier portal
             </Link>
@@ -169,7 +169,7 @@ export function MarketingTopNav() {
             <Link
               href="/app"
               onClick={() => setDrawerOpen(false)}
-              className="inline-flex min-h-[44px] items-center justify-center rounded-lg bg-[#1f4d3a] px-4 text-sm font-medium text-white"
+              className="inline-flex min-h-[44px] items-center justify-center rounded-lg bg-[#1f4d3a] px-4 text-sm font-medium !text-white"
             >
               Open app
             </Link>
@@ -185,7 +185,7 @@ export function MarketingTopNav() {
               <Link
                 href="/signup"
                 onClick={() => setDrawerOpen(false)}
-                className="inline-flex min-h-[44px] items-center justify-center rounded-lg bg-[#1f4d3a] px-4 text-sm font-medium text-white"
+                className="inline-flex min-h-[44px] items-center justify-center rounded-lg bg-[#1f4d3a] px-4 text-sm font-medium !text-white"
               >
                 Start free
               </Link>

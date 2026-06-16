@@ -14,18 +14,18 @@ const GLOBE_CONFIG: COBEOptions = {
   onRender: () => {},
   devicePixelRatio: 2,
   phi: 0,
-  theta: 0.3,
+  theta: 0.32,
   dark: 0,
-  diffuse: 1.1,
-  mapSamples: 20000,
-  mapBrightness: 3.4,
-  baseColor: [0.18, 0.42, 0.32], // forest sphere — clearly reads on white
-  markerColor: [0.05, 0.18, 0.13], // deep forest markers
-  glowColor: [0.74, 0.86, 0.79],
+  diffuse: 1.25,
+  mapSamples: 16000,
+  mapBrightness: 5.2,
+  baseColor: [0.17, 0.41, 0.31], // forest "ocean" sphere
+  markerColor: [0.03, 0.12, 0.09], // deep forest pins (read on bright land)
+  glowColor: [0.66, 0.83, 0.74], // soft sage halo
   markers: [
-    { location: [23.685, 90.3563], size: 0.12 }, // Bangladesh (home)
-    { location: [51.5074, -0.1278], size: 0.07 }, // London (UK)
-    { location: [40.7128, -74.006], size: 0.07 }, // New York (US)
+    { location: [23.685, 90.3563], size: 0.14 }, // Bangladesh (home)
+    { location: [51.5074, -0.1278], size: 0.08 }, // London (UK)
+    { location: [40.7128, -74.006], size: 0.08 }, // New York (US)
     { location: [52.52, 13.405], size: 0.06 }, // Berlin (EU)
     { location: [48.8566, 2.3522], size: 0.06 }, // Paris (EU)
     { location: [43.6532, -79.3832], size: 0.06 }, // Toronto (CA)
