@@ -13,6 +13,7 @@
 //   Row 2 — quick-pick product chips (deep-links, preserve other filters)
 //   Row 3 — common compact filters: City · District · Category ·
 //           Receipts ≥ · RSC % ≥ · Min workforce
+//   Row 3b — Profile completeness ≥ %
 //   Row 4 — collapsible <details> "More filters":
 //           Entity type · Certifications · Registry membership ·
 //           Brand factory list · Factory type
@@ -31,6 +32,7 @@ export const PAGE_SIZE = 24;
 export const SORT_OPTIONS = [
   { value: "default", label: "Best match" },
   { value: "receipts", label: "Most receipts" },
+  { value: "completeness", label: "Most complete" },
   { value: "name", label: "Name (A–Z)" },
 ] as const;
 
@@ -157,6 +159,7 @@ export function FilterRail({
   factoryTypes,
   minSources,
   rscMin,
+  completenessMin,
   workersMin,
   city,
   district,
@@ -164,8 +167,8 @@ export function FilterRail({
   sort,
   facets,
   baseQuery,
-  hideSearchRow = false,
-  instanceId = "",
+  hideSearchRow: _hideSearchRow,
+  instanceId: _instanceId,
 }: {
   basePath: string;
   q: string;
@@ -176,6 +179,7 @@ export function FilterRail({
   factoryTypes: string[];
   minSources: string;
   rscMin: number | null;
+  completenessMin?: number | null;
   workersMin: number | null;
   city: string;
   district: string;
@@ -183,16 +187,9 @@ export function FilterRail({
   sort: string;
   facets: DiscoverFacets;
   baseQuery: Record<string, string | string[]>;
-  /** R9r4 — when true, omit Row 1's search input (the parent renders
-   *  the always-visible DiscoverSearchHero above instead). A hidden
-   *  `q` input is still emitted so filter-only submits preserve query. */
   hideSearchRow?: boolean;
-  /** R9r4 — suffix appended to ids / datalist refs when the rail is
-   *  rendered twice (e.g. inside MobileFilterSheet AND inline desktop).
-   *  Defaults to empty for the single-instance case. */
   instanceId?: string;
 }) {
-  const idSuffix = instanceId ? `-${instanceId}` : "";
   const hasAdvancedActive =
     entityTypes.length > 0 ||
     certKinds.length > 0 ||
@@ -218,45 +215,40 @@ export function FilterRail({
         {sort && sort !== "default" ? (
           <input type="hidden" name="sort" value={sort} />
         ) : null}
-        {hideSearchRow && q ? (
-          <input type="hidden" name="q" value={q} />
-        ) : null}
 
-        {hideSearchRow ? null : (
-          /* Row 1 — search + apply/reset (single-instance / legacy callers) */
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
-            <div className="flex-1">
-              <label
-                htmlFor={`discover-q${idSuffix}`}
-                className="mb-1.5 block text-xs font-semibold text-ink-tertiary"
-              >
-                Search
-              </label>
-              <input
-                id={`discover-q${idSuffix}`}
-                type="search"
-                name="q"
-                defaultValue={q}
-                placeholder="Company name, e.g. Naafco, Standard Group…"
-                className={cn(inputBase, activeRing(Boolean(q)))}
-              />
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                type="submit"
-                className="btn-proto primary justify-center px-5 py-2.5 text-sm"
-              >
-                Apply
-              </button>
-              <Link
-                href={basePath}
-                className="btn-proto justify-center px-4 py-2.5 text-sm"
-              >
-                Reset
-              </Link>
-            </div>
+        {/* Row 1 — search + apply/reset, always visible */}
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+          <div className="flex-1">
+            <label
+              htmlFor="discover-q"
+              className="mb-1.5 block text-xs font-semibold text-ink-tertiary"
+            >
+              Search
+            </label>
+            <input
+              id="discover-q"
+              type="search"
+              name="q"
+              defaultValue={q}
+              placeholder="Company name, e.g. Naafco, Standard Group…"
+              className={cn(inputBase, activeRing(Boolean(q)))}
+            />
           </div>
-        )}
+          <div className="flex items-center gap-2">
+            <button
+              type="submit"
+              className="btn-proto primary justify-center px-5 py-2.5 text-sm"
+            >
+              Apply
+            </button>
+            <Link
+              href={basePath}
+              className="btn-proto justify-center px-4 py-2.5 text-sm"
+            >
+              Reset
+            </Link>
+          </div>
+        </div>
 
         {/* Row 2 — quick product chips. Plain anchors that preserve
             current filters but set category. No JS needed. */}
@@ -300,7 +292,7 @@ export function FilterRail({
             <input
               type="text"
               name="city"
-              list={`discover-cities${idSuffix}`}
+              list="discover-cities"
               defaultValue={city}
               placeholder="e.g. Dhaka"
               autoComplete="off"
@@ -311,7 +303,7 @@ export function FilterRail({
             <input
               type="text"
               name="district"
-              list={`discover-districts${idSuffix}`}
+              list="discover-districts"
               defaultValue={district}
               placeholder="e.g. Gazipur"
               autoComplete="off"
@@ -322,7 +314,7 @@ export function FilterRail({
             <input
               type="text"
               name="category"
-              list={`discover-products${idSuffix}`}
+              list="discover-products"
               defaultValue={category}
               placeholder="e.g. knitwear"
               autoComplete="off"
@@ -365,6 +357,25 @@ export function FilterRail({
               defaultValue={workersMin !== null ? String(workersMin) : ""}
               placeholder="e.g. 500"
               className={cn(inputBase, activeRing(workersMin !== null))}
+            />
+          </Field>
+        </div>
+
+        {/* Row 3b — profile completeness on its own line. */}
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+          <Field label="Profile completeness ≥ %">
+            <input
+              type="number"
+              name="completeness_min"
+              min={0}
+              max={100}
+              step={5}
+              inputMode="numeric"
+              defaultValue={
+                completenessMin !== null ? String(completenessMin) : ""
+              }
+              placeholder="e.g. 60"
+              className={cn(inputBase, activeRing(completenessMin !== null))}
             />
           </Field>
         </div>
@@ -427,34 +438,14 @@ export function FilterRail({
             ) : null}
           </div>
         </details>
-
-        {hideSearchRow ? (
-          /* R9r4 — when the hero owns search, the filter form still needs
-             a submit + reset row so the user can apply/clear filters from
-             inside the mobile sheet or below the desktop rail. */
-          <div className="flex flex-wrap items-center justify-end gap-2 pt-1">
-            <Link
-              href={basePath}
-              className="btn-proto justify-center px-4 py-2.5 text-sm"
-            >
-              Reset
-            </Link>
-            <button
-              type="submit"
-              className="btn-proto primary justify-center px-5 py-2.5 text-sm"
-            >
-              Apply filters
-            </button>
-          </div>
-        ) : null}
       </form>
 
       {/* Datalists for native type-ahead, re-used across the City /
           District / Category inputs above. Server-rendered from the
           live database via `discover_facets()`. */}
-      <SuggestionList id={`discover-cities${idSuffix}`} values={facets.cities} />
-      <SuggestionList id={`discover-districts${idSuffix}`} values={facets.districts} />
-      <SuggestionList id={`discover-products${idSuffix}`} values={facets.products} />
+      <SuggestionList id="discover-cities" values={facets.cities} />
+      <SuggestionList id="discover-districts" values={facets.districts} />
+      <SuggestionList id="discover-products" values={facets.products} />
     </section>
   );
 }

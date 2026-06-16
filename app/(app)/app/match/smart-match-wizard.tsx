@@ -8,12 +8,15 @@
 // store. Reload === clean wizard, which matches the design spec's intent
 // that Smart Match is a session-local brief.
 
-import { useEffect, useRef, useState, useTransition } from "react";
-import { ArrowLeft, ArrowRight, Sparkle } from "@phosphor-icons/react/dist/ssr";
+import { useState, useTransition } from "react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  CheckCircle,
+  Sparkle,
+} from "@phosphor-icons/react/dist/ssr";
 
 import { Button } from "@/components/ui/button";
-import { Wizard } from "@/components/ui/wizard";
-import { StickyActionBar } from "@/components/ui/sticky-action-bar";
 import {
   DiscoverResultCard,
   type DiscoverRow,
@@ -46,12 +49,6 @@ const CERT_OPTIONS = [
 type EntityType = (typeof ENTITY_TYPES)[number]["value"];
 type Registry   = (typeof REGISTRY_OPTIONS)[number]["value"];
 type Cert       = (typeof CERT_OPTIONS)[number]["value"];
-
-const WIZARD_STEPS = [
-  { id: "product", label: "Product" },
-  { id: "requirements", label: "Requirements" },
-  { id: "review", label: "Review & match" },
-];
 
 type FormState = {
   product: string;
@@ -103,12 +100,6 @@ export function SmartMatchWizard() {
   const [response, setResponse] = useState<MatchResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
-  const errorRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (error)
-      errorRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
-  }, [error]);
 
   function update<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -146,60 +137,81 @@ export function SmartMatchWizard() {
 
   return (
     <div className="space-y-4">
-      <Wizard steps={WIZARD_STEPS} current={step - 1}>
-        {step === 1 ? <Step1Product form={form} update={update} /> : null}
-        {step === 2 ? (
-          <Step2Requirements form={form} update={update} />
-        ) : null}
-        {step === 3 ? <Step3Review form={form} /> : null}
-      </Wizard>
+      <StepBar step={step} />
+
+      {step === 1 ? (
+        <Step1Product form={form} update={update} onNext={() => setStep(2)} />
+      ) : null}
+
+      {step === 2 ? (
+        <Step2Requirements
+          form={form}
+          update={update}
+          onBack={() => setStep(1)}
+          onNext={() => setStep(3)}
+        />
+      ) : null}
+
+      {step === 3 ? (
+        <Step3Review
+          form={form}
+          pending={pending}
+          onBack={() => setStep(2)}
+          onSubmit={submit}
+        />
+      ) : null}
 
       {error ? (
-        <div
-          ref={errorRef}
-          className="proto-card border-sem-red text-sm text-sem-red"
-        >
-          {error}
-        </div>
+        <div className="proto-card border-sem-red text-sm text-sem-red">{error}</div>
       ) : null}
 
       {response ? <ResultsPanel data={response} onReset={reset} /> : null}
-
-      {/* R4 — wizard nav pinned above the BottomTabBar on phones; inline
-         footer on desktop. Back/Next across steps 1–3, submit on step 3. */}
-      <StickyActionBar
-        className="bottom-[calc(56px+env(safe-area-inset-bottom,0px))]"
-        helper={`Step ${step} of 3`}
-      >
-        {step > 1 ? (
-          <Button
-            variant="ghost"
-            onClick={() => setStep((s) => (s - 1) as 1 | 2 | 3)}
-            disabled={pending}
-          >
-            <ArrowLeft size={14} weight="bold" />
-            Back
-          </Button>
-        ) : null}
-        {step < 3 ? (
-          <Button
-            variant="primary"
-            onClick={() => setStep((s) => (s + 1) as 1 | 2 | 3)}
-          >
-            Next
-            <ArrowRight size={14} weight="bold" />
-          </Button>
-        ) : (
-          <Button variant="primary" onClick={submit} disabled={pending}>
-            <Sparkle size={14} weight="fill" />
-            {pending ? "Matching…" : "Find matches"}
-          </Button>
-        )}
-      </StickyActionBar>
-
-      {/* Spacer so the last content clears the fixed mobile action bar. */}
-      <div className="h-16 md:hidden" aria-hidden />
     </div>
+  );
+}
+
+// ----- step bar -----
+
+function StepBar({ step }: { step: 1 | 2 | 3 }) {
+  const labels = ["Product", "Requirements", "Review & match"] as const;
+  return (
+    <ol
+      aria-label="Wizard progress"
+      className="flex items-center gap-2 text-[12px]"
+    >
+      {labels.map((label, i) => {
+        const n = (i + 1) as 1 | 2 | 3;
+        const done = step > n;
+        const active = step === n;
+        return (
+          <li key={label} className="flex items-center gap-2">
+            <span
+              className={cn(
+                "inline-flex h-6 min-w-[24px] items-center justify-center rounded-pill border px-2 text-[11px]",
+                done
+                  ? "border-sem-green bg-sem-green-soft text-sem-green"
+                  : active
+                    ? "border-brand-forest bg-brand-forest-soft text-brand-forest"
+                    : "border-hairline text-ink-tertiary",
+              )}
+            >
+              {done ? <CheckCircle weight="fill" size={12} /> : n}
+            </span>
+            <span
+              className={cn(
+                "text-[11px]",
+                active ? "text-ink-primary" : "text-ink-tertiary",
+              )}
+            >
+              {label}
+            </span>
+            {n < 3 ? (
+              <span aria-hidden className="mx-1 h-px w-6 bg-hairline" />
+            ) : null}
+          </li>
+        );
+      })}
+    </ol>
   );
 }
 
@@ -208,9 +220,11 @@ export function SmartMatchWizard() {
 function Step1Product({
   form,
   update,
+  onNext,
 }: {
   form: FormState;
   update: <K extends keyof FormState>(k: K, v: FormState[K]) => void;
+  onNext: () => void;
 }) {
   return (
     <section className="proto-card space-y-5">
@@ -242,6 +256,13 @@ function Step1Product({
           onChange={(v) => update("entityTypes", v as EntityType[])}
         />
       </Field>
+
+      <div className="flex justify-end pt-2">
+        <Button variant="primary" onClick={onNext}>
+          Next: requirements
+          <ArrowRight size={14} weight="bold" />
+        </Button>
+      </div>
     </section>
   );
 }
@@ -251,9 +272,13 @@ function Step1Product({
 function Step2Requirements({
   form,
   update,
+  onBack,
+  onNext,
 }: {
   form: FormState;
   update: <K extends keyof FormState>(k: K, v: FormState[K]) => void;
+  onBack: () => void;
+  onNext: () => void;
 }) {
   return (
     <section className="proto-card space-y-5">
@@ -335,6 +360,17 @@ function Step2Requirements({
           />
         </Field>
       </div>
+
+      <div className="flex items-center justify-between pt-2">
+        <Button variant="ghost" onClick={onBack}>
+          <ArrowLeft size={14} weight="bold" />
+          Back
+        </Button>
+        <Button variant="primary" onClick={onNext}>
+          Next: review
+          <ArrowRight size={14} weight="bold" />
+        </Button>
+      </div>
     </section>
   );
 }
@@ -343,8 +379,14 @@ function Step2Requirements({
 
 function Step3Review({
   form,
+  pending,
+  onBack,
+  onSubmit,
 }: {
   form: FormState;
+  pending: boolean;
+  onBack: () => void;
+  onSubmit: () => void;
 }) {
   const summary = summarise(form);
   return (
@@ -367,6 +409,16 @@ function Step3Review({
           ))}
         </ul>
       )}
+      <div className="flex items-center justify-between pt-2">
+        <Button variant="ghost" onClick={onBack} disabled={pending}>
+          <ArrowLeft size={14} weight="bold" />
+          Back
+        </Button>
+        <Button variant="primary" onClick={onSubmit} disabled={pending}>
+          <Sparkle size={14} weight="fill" />
+          {pending ? "Matching\u2026" : "Find matches"}
+        </Button>
+      </div>
     </section>
   );
 }
@@ -443,6 +495,7 @@ function matchToDiscoverRow(r: MatchResult): DiscoverRow {
     district: r.district,
     source_tags: r.source_tags,
     t13_source_count: r.t13_source_count,
+    completeness_pct: r.completeness_pct,
     employees_total: null,
     established_date: null,
     principal_products: [],

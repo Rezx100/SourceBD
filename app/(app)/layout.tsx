@@ -158,7 +158,7 @@ export default async function AppShellLayout({
           <main
             id="main-content"
             tabIndex={-1}
-            className="flex-1 px-4 pb-[calc(72px+env(safe-area-inset-bottom,0px))] py-6 md:min-h-[calc(100vh-56px)] md:px-8 md:pb-8 md:py-8 focus:outline-none"
+            className="flex-1 px-4 pb-[72px] py-6 md:min-h-[calc(100vh-56px)] md:px-8 md:pb-8 md:py-8 focus:outline-none"
           >
             {children}
           </main>

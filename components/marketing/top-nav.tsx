@@ -1,22 +1,8 @@
-// Spec M2 — Shared marketing top-nav (M6a light variant).
+// Marketing top-nav — Magic UI light-mode design.
 //
-// Client component, role-aware after hydration. Mounted in
-// `app/(marketing)/layout.tsx`. I-033 contract preserved: SSR + first
-// client render emit the anonymous variant (matching prerendered HTML,
-// clean hydration); `useEffect` fetches `/api/session/me` and swaps the
-// right-side CTA group to the role-aware variant. UI visibility is
-// never the security boundary — `middleware.ts` still gates `/app`,
-// `/supplier`, `/admin`, `/api/v1/*` server-side.
-//
-// M6a: light cream chrome with shield wordmark glyph, scroll-driven
-// hairline + soft shadow once the page leaves the top.
-//
-// Spec R2 — Adds a <md hamburger trigger that opens a MobileDrawer with
-// the marketing nav links. Drawer body is route + role aware (same role
-// signal as the right-side CTA swap) so anon visitors see the marketing
-// nav + Sign in / Start free; logged-in visitors see the right-side CTA
-// reflecting their workspace. No new fetch — the drawer reuses the
-// already-fetched role state.
+// Sticky white nav with a subtle scroll-shadow. Role-aware right CTAs
+// fetched from /api/session/me on mount. Forest green (#1f4d3a) appears
+// only on the shield glyph and the primary CTA button — nowhere else.
 
 "use client";
 
@@ -24,39 +10,45 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { List as ListIcon } from "@phosphor-icons/react/dist/ssr";
 
+import { Wordmark } from "@/components/marketing/logo";
 import { MobileDrawer } from "@/components/ui/mobile-drawer";
-import { WordmarkMark } from "@/components/marketing/wordmark-mark";
 
 type Role = "admin" | "buyer" | "supplier";
 
-function homeHref(role: Role | null): string {
-  if (role === "admin") return "/admin";
-  if (role === "supplier") return "/supplier";
-  if (role === "buyer") return "/app";
-  return "/";
-}
+const NAV_LINKS = [
+  { href: "/#how-we-verify", label: "How we verify" },
+  { href: "/#sources", label: "Sources" },
+  { href: "/discover", label: "Discover" },
+  { href: "/pricing", label: "Pricing" },
+];
+
+const CTA_BUTTON =
+  "inline-flex items-center justify-center rounded-lg bg-[#1f4d3a] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#2d6a4f]";
 
 function RightLinks({ role }: { role: Role | null }) {
   if (role === "supplier") {
     return (
-      <Link href="/supplier" className="mkt-btn mkt-btn-primary">
+      <Link href="/supplier" className={CTA_BUTTON}>
         Supplier portal
       </Link>
     );
   }
   if (role === "buyer" || role === "admin") {
     return (
-      <Link href="/app" className="mkt-btn mkt-btn-primary">
+      <Link href="/app" className={CTA_BUTTON}>
         Open app
       </Link>
     );
   }
   return (
     <>
-      <Link href="/login" className="mkt-signin">
+      <Link
+        href="/login"
+        className="text-sm font-medium text-neutral-600 transition-colors hover:text-neutral-900"
+      >
         Sign in
       </Link>
-      <Link href="/signup" className="mkt-btn mkt-btn-primary">
+      <Link href="/signup" className={CTA_BUTTON}>
         Start free
       </Link>
     </>
@@ -68,6 +60,8 @@ export function MarketingTopNav() {
   const [scrolled, setScrolled] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
 
+  // Role detection — anonymous variant is the SSR + first-paint default
+  // so hydration stays clean; CTAs swap only after this resolves.
   useEffect(() => {
     const ac = new AbortController();
     fetch("/api/session/me", {
@@ -79,14 +73,14 @@ export function MarketingTopNav() {
       .then((data) => {
         if (
           data &&
-          (data.role === "admin" || data.role === "buyer" || data.role === "supplier")
+          (data.role === "admin" ||
+            data.role === "buyer" ||
+            data.role === "supplier")
         ) {
           setRole(data.role as Role);
         }
       })
-      .catch(() => {
-        /* anon nav stays */
-      });
+      .catch(() => {});
     return () => ac.abort();
   }, []);
 
@@ -101,103 +95,73 @@ export function MarketingTopNav() {
 
   return (
     <nav
-      data-marketing-nav
-      className={`mkt-nav${scrolled ? " scrolled" : ""}`}
+      className={`sticky top-0 z-50 w-full border-b transition-all duration-200 ${
+        scrolled
+          ? "border-neutral-200 bg-white/90 shadow-sm backdrop-blur-md"
+          : "border-transparent bg-white"
+      }`}
     >
-      <div className="mkt-wrap mkt-nav-row">
-        {/* R2 — hamburger trigger, phone only (<md). Sits before the
-           wordmark so it reads left-to-right: menu, brand, …, CTAs. */}
+      <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3 md:px-12 lg:px-20">
+        {/* Mobile hamburger (<md only) */}
         <button
           type="button"
           onClick={() => setDrawerOpen(true)}
           aria-label="Open menu"
           aria-haspopup="dialog"
           aria-expanded={drawerOpen}
-          className="mkt-nav-menu inline-flex h-[44px] w-[44px] items-center justify-center rounded-pill text-current md:hidden"
-          style={{ marginRight: 4 }}
+          className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-neutral-700 transition-colors hover:bg-neutral-100 md:hidden"
         >
           <ListIcon size={20} weight="bold" aria-hidden />
         </button>
 
-        <Link href={homeHref(role)} className="mkt-wordmark">
-          <WordmarkMark />
-          <span className="mkt-wm-text">Source<b>BD</b></span>
-        </Link>
-        <div className="mkt-nav-links hidden md:flex">
-          <Link href="/#how-we-verify">How we verify</Link>
-          <Link href="/#sources">Data sources</Link>
-          <Link href="/compliance">Compliance</Link>
-          <Link href="/pricing">Pricing</Link>
+        {/* Wordmark */}
+        <Wordmark />
+
+        {/* Desktop nav links (md+) */}
+        <div className="hidden items-center gap-8 md:flex">
+          {NAV_LINKS.map((l) => (
+            <Link
+              key={l.href}
+              href={l.href}
+              className="text-sm font-medium text-neutral-600 transition-colors hover:text-neutral-900"
+            >
+              {l.label}
+            </Link>
+          ))}
         </div>
-        <div className="mkt-nav-right">
+
+        {/* Right CTAs */}
+        <div className="flex items-center gap-4">
           <RightLinks role={role} />
         </div>
       </div>
 
-      {/* R2 — Marketing drawer. Same role signal as the right-side CTA
-         (no extra fetch). Drawer is icon-X close + nav links. */}
+      {/* Mobile drawer */}
       <MobileDrawer
         open={drawerOpen}
         onClose={() => setDrawerOpen(false)}
         side="left"
-        label="Marketing menu"
+        label="Navigation"
       >
-        <ul role="list" className="m-0 flex list-none flex-col gap-1 p-0 text-[15px]">
-          <li>
-            <Link
-              href="/#how-we-verify"
-              onClick={() => setDrawerOpen(false)}
-              className="flex min-h-[44px] items-center rounded-pill px-3 font-medium text-ink-primary hover:bg-brand-forest-tint"
-            >
-              How we verify
-            </Link>
-          </li>
-          <li>
-            <Link
-              href="/#sources"
-              onClick={() => setDrawerOpen(false)}
-              className="flex min-h-[44px] items-center rounded-pill px-3 font-medium text-ink-primary hover:bg-brand-forest-tint"
-            >
-              Data sources
-            </Link>
-          </li>
-          <li>
-            <Link
-              href="/compliance"
-              onClick={() => setDrawerOpen(false)}
-              className="flex min-h-[44px] items-center rounded-pill px-3 font-medium text-ink-primary hover:bg-brand-forest-tint"
-            >
-              Compliance
-            </Link>
-          </li>
-          <li>
-            <Link
-              href="/discover"
-              onClick={() => setDrawerOpen(false)}
-              className="flex min-h-[44px] items-center rounded-pill px-3 font-medium text-ink-primary hover:bg-brand-forest-tint"
-            >
-              Discover
-            </Link>
-          </li>
-          <li>
-            <Link
-              href="/pricing"
-              onClick={() => setDrawerOpen(false)}
-              className="flex min-h-[44px] items-center rounded-pill px-3 font-medium text-ink-primary hover:bg-brand-forest-tint"
-            >
-              Pricing
-            </Link>
-          </li>
+        <ul className="flex flex-col gap-1 p-0">
+          {NAV_LINKS.map((l) => (
+            <li key={l.href}>
+              <Link
+                href={l.href}
+                onClick={() => setDrawerOpen(false)}
+                className="flex min-h-[44px] items-center rounded-lg px-3 text-[15px] font-medium text-neutral-800 transition-colors hover:bg-neutral-100"
+              >
+                {l.label}
+              </Link>
+            </li>
+          ))}
         </ul>
-        {/* Role-aware CTA inside the drawer mirrors the desktop right
-           side. Anon: Sign in + Start free. Buyer/admin: Open app.
-           Supplier: Supplier portal. */}
-        <div className="mt-4 border-t border-hairline pt-4 flex flex-col gap-2">
+        <div className="mt-4 flex flex-col gap-2 border-t border-neutral-200 pt-4">
           {role === "supplier" ? (
             <Link
               href="/supplier"
               onClick={() => setDrawerOpen(false)}
-              className="inline-flex min-h-[44px] items-center justify-center rounded-pill bg-brand-forest px-4 text-[14px] font-semibold text-ink-on-accent"
+              className="inline-flex min-h-[44px] items-center justify-center rounded-lg bg-[#1f4d3a] px-4 text-sm font-medium text-white"
             >
               Supplier portal
             </Link>
@@ -205,7 +169,7 @@ export function MarketingTopNav() {
             <Link
               href="/app"
               onClick={() => setDrawerOpen(false)}
-              className="inline-flex min-h-[44px] items-center justify-center rounded-pill bg-brand-forest px-4 text-[14px] font-semibold text-ink-on-accent"
+              className="inline-flex min-h-[44px] items-center justify-center rounded-lg bg-[#1f4d3a] px-4 text-sm font-medium text-white"
             >
               Open app
             </Link>
@@ -214,21 +178,20 @@ export function MarketingTopNav() {
               <Link
                 href="/login"
                 onClick={() => setDrawerOpen(false)}
-                className="inline-flex min-h-[44px] items-center justify-center rounded-pill border border-hairline-strong px-4 text-[14px] font-semibold text-ink-primary"
+                className="inline-flex min-h-[44px] items-center justify-center rounded-lg border border-neutral-200 px-4 text-sm font-medium text-neutral-800"
               >
                 Sign in
               </Link>
               <Link
                 href="/signup"
                 onClick={() => setDrawerOpen(false)}
-                className="inline-flex min-h-[44px] items-center justify-center rounded-pill bg-brand-forest px-4 text-[14px] font-semibold text-ink-on-accent"
+                className="inline-flex min-h-[44px] items-center justify-center rounded-lg bg-[#1f4d3a] px-4 text-sm font-medium text-white"
               >
                 Start free
               </Link>
             </>
           )}
         </div>
-        {/* Sheet renders its own close button (44×44, top-right). */}
       </MobileDrawer>
     </nav>
   );

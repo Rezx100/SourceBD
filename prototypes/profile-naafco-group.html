@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SourceBD — Naafco Group · Supplier profile (prototype)</title>
+<!--
+  Prototype: §6 frame #2 (multi-source flagship, Compliance default tab).
+  All 6 tabs populated. Bunny CDN doc links follow real path scheme:
+    rsc-docs/<slug>/<doc_type>-<date>.<ext>
+    brand-disclosures/brand_<brand>/<date>.<ext>
+  Brief refs: §6, §13 R1 glyph, §16 surfaces, §19 motion budget, §20 assets.
+  Not Phase 1 production code.
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="_tokens.css">
+</head>
+<body>
+
+<!-- ============================================================ TOP NAV ============================================================ -->
+<nav class="topnav" aria-label="Primary">
+  <a href="#" class="wordmark" aria-label="SourceBD home">SourceBD</a>
+  <input class="topnav-search" type="search" placeholder="Search 10,121 verified Bangladesh factories…" aria-label="Search suppliers">
+  <div class="topnav-links">
+    <a class="topnav-link" href="#">Discover</a>
+    <a class="topnav-link" href="#">Saved <span style="color:var(--ink-tertiary);font-family:var(--font-mono);">12</span></a>
+    <a class="topnav-link" href="#">Lists</a>
+  </div>
+  <div class="topnav-avatar" aria-label="Account menu">SK</div>
+</nav>
+
+<div class="layout">
+
+  <!-- ============================================================ SIDEBAR ============================================================ -->
+  <aside class="sidebar" aria-label="App navigation">
+
+    <!-- Workspace switcher -->
+    <button class="sidebar-ws" aria-haspopup="menu" aria-label="Switch workspace">
+      <span class="ws-mark">AB</span>
+      <span class="ws-text">
+        <span class="ws-name">Acme Brands Ltd.</span>
+        <span class="ws-plan">Pro · 14 seats</span>
+      </span>
+      <svg class="ws-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 9l4-4 4 4M8 15l4 4 4-4"/></svg>
+    </button>
+
+    <div class="nav-section">Sourcing</div>
+    <a class="nav-item active" href="#" aria-current="page">
+      <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M16 16l5 5"/></svg>
+      <span class="nav-label">Discover</span>
+      <span class="nav-badge">10,121</span>
+    </a>
+    <a class="nav-item" href="#">
+      <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l2.4 6.6L21 11l-6.6 2.4L12 20l-2.4-6.6L3 11l6.6-2.4z"/></svg>
+      <span class="nav-label">Smart Match</span>
+      <span class="nav-badge alert">3 new</span>
+    </a>
+    <a class="nav-item" href="#">
+      <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12a1 1 0 0 1 1 1v17l-7-4-7 4V4a1 1 0 0 1 1-1z"/></svg>
+      <span class="nav-label">Saved</span>
+      <span class="nav-badge">12</span>
+    </a>
+
+    <div class="nav-section">Engage</div>
+    <a class="nav-item" href="#">
+      <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+      <span class="nav-label">Messages</span>
+      <span class="nav-badge dot" aria-label="unread"></span>
+    </a>
+    <a class="nav-item" href="#">
+      <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M9 13h6M9 17h4"/></svg>
+      <span class="nav-label">RFQ Manager</span>
+      <span class="nav-badge">7</span>
+    </a>
+    <a class="nav-item" href="#">
+      <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7l9-4 9 4-9 4-9-4z"/><path d="M3 7v10l9 4 9-4V7"/><path d="M12 11v10"/></svg>
+      <span class="nav-label">Orders</span>
+      <span class="nav-badge">2</span>
+    </a>
+
+    <div class="nav-section">Governance</div>
+    <a class="nav-item" href="#">
+      <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l8 4v6c0 5-3.5 9-8 10-4.5-1-8-5-8-10V6z"/><path d="M9 12l2 2 4-4"/></svg>
+      <span class="nav-label">Compliance Hub</span>
+      <span class="nav-badge alert">2</span>
+    </a>
+    <a class="nav-item" href="#">
+      <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
+      <span class="nav-label">Lists</span>
+      <span class="nav-badge">5</span>
+    </a>
+
+    <div class="nav-section">Account</div>
+    <a class="nav-item" href="#">
+      <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9c.05.36.18.7.39 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      <span class="nav-label">Settings</span>
+      <span></span>
+    </a>
+
+    <div class="sidebar-bottom">
+      <div class="sidebar-freshness" role="status" aria-label="Data moat freshness">
+        <div class="fresh-top">
+          <span class="fresh-label">Data Moat</span>
+          <span class="fresh-dot" aria-hidden="true"></span>
+        </div>
+        <span class="fresh-count">10,121 verified</span>
+        <span class="fresh-sub">Last refresh · 12 hours ago</span>
+      </div>
+      <button class="sidebar-user" aria-haspopup="menu" aria-label="Account menu">
+        <span class="user-avatar">SK</span>
+        <span class="user-text">
+          <span class="user-name">Sarah Kim</span>
+          <span class="user-role">Sourcing Lead · Acme</span>
+        </span>
+        <svg class="user-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 9l4-4 4 4M8 15l4 4 4-4"/></svg>
+      </button>
+    </div>
+  </aside>
+
+  <!-- ============================================================ MAIN ============================================================ -->
+  <main class="main">
+
+    <!-- ===== PROFILE HEADER ===== -->
+    <section class="header-card" aria-labelledby="company-name">
+      <div class="glyph" role="img" aria-label="Verified by 5 independent Tier 1–3 sources">
+        <span class="line"></span><span class="line"></span><span class="line"></span><span class="line"></span><span class="line"></span>
+      </div>
+
+      <div class="header-main">
+        <div class="breadcrumb">Discover › Garment manufacturer</div>
+        <h1 class="header-name" id="company-name">Naafco Group</h1>
+        <p class="header-parentline">
+          Member of <a href="#">Naafco Group HQ</a>
+          <span style="color:var(--ink-tertiary);">·</span>
+          <span style="color:var(--ink-tertiary);">3 sister sites:</span>
+          <a href="#">Naafco Knit Composite</a>,
+          <a href="#">Naafco Apparels Ltd</a>,
+          <a href="#">Naafco Yarn Dyeing</a>
+        </p>
+
+        <div class="header-chips">
+          <span class="chip">
+            <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="13" rx="1"/><path d="M3 11h18M8 7V4h8v3"/></svg>
+            Garment manufacturer
+          </span>
+          <span class="chip">Knit composite</span>
+          <span class="chip">Member of BGMEA</span>
+          <span class="chip claim-verified">
+            <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+            Claimed · verified 2026-03-12
+          </span>
+        </div>
+
+        <dl class="header-meta-row">
+          <div><dt>Address</dt><dd>Sataish Road, Tongi<br><span class="mono">Gazipur 1710</span></dd></div>
+          <div><dt>Established</dt><dd>1998<br><span class="mono">28 yrs</span></dd></div>
+          <div><dt>RJSC</dt><dd><span class="mono">C-34982/1998</span></dd></div>
+          <div><dt>BIN</dt><dd><span class="mono">000123456-0203</span></dd></div>
+          <div><dt>Last verified</dt><dd><span class="mono">2026-05-21</span><br><span style="font-size:10px;color:var(--ink-tertiary);font-family:var(--font-mono);">BGMEA registry</span></dd></div>
+        </dl>
+        <p style="margin:6px 0 0;font-size:11px;color:var(--ink-tertiary);"><a href="#" style="color:var(--accent-indigo);font-weight:600;">+ 2 other addresses on file →</a></p>
+      </div>
+
+      <div class="header-side">
+        <span class="tier-badge-large gold" title="Tier label derived from 5 independent Tier 1–3 sources. Categorical, not a numeric score.">
+          <svg class="ico" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3 7h7l-5.5 4 2 7L12 16l-6.5 4 2-7L2 9h7z"/></svg>
+          Gold tier
+        </span>
+        <span class="completeness" title="84% of expected fields populated. 6 missing: lat/lng, principal-contact LinkedIn, fabric-mill HS codes, electrical-audit date, union recognition, EPZ zone.">84% complete</span>
+        <div class="btn-row">
+          <button class="btn icon-only" aria-label="Save supplier">
+            <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3 7h7l-5.5 4 2 7L12 16l-6.5 4 2-7L2 9h7z"/></svg>
+          </button>
+          <button class="btn">Edit listing</button>
+          <button class="btn primary">Contact</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== PRODUCTS STRIP ===== -->
+    <div class="products-strip">
+      <span class="products-label">Principal products</span>
+      <div class="product-list">
+        <span class="product"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4l-5 3 2 4 3-1v10h12V10l3 1 2-4-5-3-3 2a3 3 0 0 1-6 0z"/></svg> T-Shirt</span>
+        <span class="product"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4l-5 3 2 4 3-1v10h12V10l3 1 2-4-5-3-2 2-2 2-2-2-2-2z"/><path d="M11 6v4"/></svg> Polo Shirt</span>
+        <span class="product"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4l-4 4 2 3 2-1v10h14V10l2 1 2-3-4-4-3 2a4 4 0 0 1-8 0z"/><path d="M9 12h6M9 15h6"/></svg> Knit Top</span>
+        <span class="product"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4l-5 3 2 4 3-1v10h12V10l3 1 2-4-5-3"/><path d="M8 4c0 3 2 5 4 5s4-2 4-5"/><path d="M12 13v4"/></svg> Hoodie</span>
+        <span class="product" style="color:var(--ink-tertiary);">+ 6 more</span>
+      </div>
+    </div>
+
+    <!-- ===== TABS ===== -->
+    <nav class="tabs" role="tablist" aria-label="Profile sections">
+      <button class="tab" role="tab" data-tab="overview">Overview</button>
+      <button class="tab active" role="tab" data-tab="compliance" aria-selected="true">Compliance <span class="tab-count">8</span></button>
+      <button class="tab" role="tab" data-tab="capacity">Capacity</button>
+      <button class="tab" role="tab" data-tab="brands">Brand attribution <span class="tab-count">3</span></button>
+      <button class="tab" role="tab" data-tab="contact">Contact</button>
+      <button class="tab" role="tab" data-tab="provenance">Provenance <span class="tab-count">11</span></button>
+    </nav>
+
+    <!-- ===== TAB: OVERVIEW ===== -->
+    <div class="tab-panel" id="panel-overview" role="tabpanel" hidden>
+      <div class="grid">
+        <section class="card hoverable span2">
+          <header class="card-head"><h2 class="card-title">About</h2><span class="card-meta">Self-reported · supplier-verified 2026-03-12</span></header>
+          <p style="margin:0 0 12px;font-size:14px;line-height:1.65;color:var(--ink-primary);">
+            Naafco Group is a vertically integrated knit composite manufacturer based in Tongi, Gazipur,
+            operating since 1998. The group runs spinning, knitting, dyeing, finishing, cutting, and sewing
+            in-house across 4 sister sites in Gazipur and Narayanganj. Specialises in basic and fashion
+            knitwear for European and UK department stores.
+          </p>
+          <dl class="header-meta-row" style="border:none;padding:0;margin:0;">
+            <div><dt>Ownership</dt><dd>Private limited</dd></div>
+            <div><dt>Founder</dt><dd>Mr. Md. Mizanur Rahman</dd></div>
+            <div><dt>Group HQ</dt><dd>Tongi, Gazipur</dd></div>
+            <div><dt>Working language</dt><dd>Bangla · English</dd></div>
+            <div><dt>Tax ID (TIN)</dt><dd><span class="mono">478291-0203</span></dd></div>
+          </dl>
+        </section>
+
+        <section class="card hoverable">
+          <header class="card-head"><h2 class="card-title">Principal export markets</h2><span class="card-meta">EPB 2025 FY · self-disclosed</span></header>
+          <div class="bar-stack" aria-label="Export market mix">
+            <span class="b-eu" style="width:48%;"></span>
+            <span class="b-uk" style="width:28%;"></span>
+            <span class="b-us" style="width:14%;"></span>
+            <span class="b-other" style="width:10%;"></span>
+          </div>
+          <div class="bar-legend">
+            <span><span class="swatch" style="background:var(--accent-indigo);"></span>EU 48%</span>
+            <span><span class="swatch" style="background:var(--accent-teal);"></span>UK 28%</span>
+            <span><span class="swatch" style="background:var(--tier-gold);"></span>US 14%</span>
+            <span><span class="swatch" style="background:var(--ink-tertiary);"></span>Other 10%</span>
+          </div>
+          <dl class="header-meta-row" style="border:none;padding:8px 0 0;margin:0;grid-template-columns:1fr 1fr;">
+            <div><dt>Annual exports</dt><dd>USD 84.6 M<br><span class="mono">FY 2024–25</span></dd></div>
+            <div><dt>Repeat-buyer share</dt><dd>72%<br><span class="mono">brand-disclosed</span></dd></div>
+          </dl>
+        </section>
+
+        <section class="card hoverable">
+          <header class="card-head"><h2 class="card-title">HS-code spread</h2><span class="card-meta">EPB FY 2024–25</span></header>
+          <div style="display:flex;flex-direction:column;gap:6px;">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;border-bottom:1px solid var(--hairline);padding-bottom:6px;">
+              <span style="font-family:var(--font-mono);font-weight:600;font-size:12px;">6109.10</span>
+              <span style="font-size:12px;color:var(--ink-secondary);flex:1;margin:0 12px;">Cotton T-shirts, knitted</span>
+              <span style="font-family:var(--font-mono);font-size:11px;color:var(--ink-tertiary);">42%</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:baseline;border-bottom:1px solid var(--hairline);padding-bottom:6px;">
+              <span style="font-family:var(--font-mono);font-weight:600;font-size:12px;">6105.10</span>
+              <span style="font-size:12px;color:var(--ink-secondary);flex:1;margin:0 12px;">Men's cotton shirts, knitted</span>
+              <span style="font-family:var(--font-mono);font-size:11px;color:var(--ink-tertiary);">24%</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:baseline;border-bottom:1px solid var(--hairline);padding-bottom:6px;">
+              <span style="font-family:var(--font-mono);font-weight:600;font-size:12px;">6110.20</span>
+              <span style="font-size:12px;color:var(--ink-secondary);flex:1;margin:0 12px;">Cotton jerseys, pullovers</span>
+              <span style="font-family:var(--font-mono);font-size:11px;color:var(--ink-tertiary);">21%</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:baseline;">
+              <span style="font-family:var(--font-mono);font-weight:600;font-size:12px;">6114.20</span>
+              <span style="font-size:12px;color:var(--ink-secondary);flex:1;margin:0 12px;">Other knit garments, cotton</span>
+              <span style="font-family:var(--font-mono);font-size:11px;color:var(--ink-tertiary);">13%</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="card hoverable span2">
+          <header class="card-head"><h2 class="card-title">What changed (last 90 days)</h2><span class="card-meta">11 events</span></header>
+          <ul class="changelog">
+            <li><span class="when">2026-05-21</span><span class="what"><strong>BGMEA membership re-verified</strong> — registry directory confirms #1234</span><span class="tier-badge t2">T2</span></li>
+            <li><span class="when">2026-04-30</span><span class="what"><strong>RSC remediation moved 71% → 76%</strong> — 4 fire-safety findings closed</span><span class="tier-badge t3">T3</span></li>
+            <li><span class="when">2026-04-15</span><span class="what"><strong>Brand attribution added: H&amp;M</strong> — appears on H&amp;M's published supplier list</span><span class="tier-badge t4">T4</span></li>
+            <li><span class="when">2026-04-01</span><span class="what"><strong>ASOS supplier-list refresh</strong> — Naafco Group retained on ASOS factory list</span><span class="tier-badge t4">T4</span></li>
+            <li><span class="when">2026-03-12</span><span class="what"><strong>Profile claimed by supplier</strong> — verification by email + BGMEA ID</span><span class="tier-badge t2">T2</span></li>
+            <li><span class="when">2026-03-04</span><span class="what"><strong>EPB exporter registry re-verified</strong> — EXP-9821 active</span><span class="tier-badge t1">T1</span></li>
+          </ul>
+        </section>
+      </div>
+    </div>
+
+    <!-- ===== TAB: COMPLIANCE (default) ===== -->
+    <div class="tab-panel" id="panel-compliance" role="tabpanel">
+      <div class="grid">
+
+        <!-- Registries -->
+        <section class="card hoverable" aria-labelledby="card-reg">
+          <header class="card-head"><h2 class="card-title" id="card-reg">Registries</h2><span class="card-meta">2 direct · 1 inherited</span></header>
+          <div class="registry-list">
+            <div class="registry-row">
+              <div class="reg-logo"><img src="../inapp-logos/bgmea.png" alt="BGMEA"></div>
+              <div>
+                <div class="reg-name">BGMEA <span class="ref">Member #1234</span></div>
+                <div class="reg-meta">Member since 1999 · re-verified 2026-05-21 · category Knit composite</div>
+              </div>
+              <span class="reg-status">
+                <svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg>
+                Active
+              </span>
+              <a class="reg-action" href="https://bgmea.com.bd/member/1234" target="_blank" rel="noopener noreferrer">
+                Open directory <svg class="ext" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17L17 7M9 7h8v8"/></svg>
+              </a>
+            </div>
+            <div class="registry-row">
+              <div class="reg-logo"><span class="reg-mark">EPB</span></div>
+              <div>
+                <div class="reg-name">Export Promotion Bureau <span class="ref">EXP-9821</span></div>
+                <div class="reg-meta">Exporter registered 2001 · re-verified 2026-05-19 · HS chapters 61, 62</div>
+              </div>
+              <span class="reg-status">
+                <svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg>
+                Active
+              </span>
+              <a class="reg-action" href="https://epb.gov.bd/exporter/EXP-9821" target="_blank" rel="noopener noreferrer">
+                Open registry <svg class="ext" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17L17 7M9 7h8v8"/></svg>
+              </a>
+            </div>
+            <div class="registry-row">
+              <div class="reg-logo"><img src="../inapp-logos/bkmea.png" alt="BKMEA"></div>
+              <div>
+                <div class="reg-name">BKMEA <span class="ref">Member #4421</span></div>
+                <div class="reg-meta">Inherited via parent Naafco Group HQ · last seen 2024-11-02</div>
+              </div>
+              <span class="reg-status inherited">↳ Inherited</span>
+              <a class="reg-action" href="#">
+                Open parent <svg class="ext" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17L17 7M9 7h8v8"/></svg>
+              </a>
+            </div>
+          </div>
+          <p style="margin:14px 0 0;font-size:11px;color:var(--ink-tertiary);">
+            Each row links to the source registry. Inherited registries resolve from the parent group's records and open the parent profile in the same tab.
+          </p>
+        </section>
+
+        <!-- Certifications -->
+        <section class="card hoverable" aria-labelledby="card-cert">
+          <header class="card-head"><h2 class="card-title" id="card-cert">Certifications</h2><span class="card-meta">3 active · 1 expiring</span></header>
+          <div class="cert-list">
+            <div class="cert">
+              <img class="auth-logo-color" src="../inapp-logos/okeo100.png" alt="OEKO-TEX Standard 100">
+              <div class="cert-main">
+                <p class="cert-name">OEKO-TEX® STANDARD 100</p>
+                <p class="cert-meta">BAN 1234/5 · Hohenstein</p>
+              </div>
+              <span class="cert-status evergreen" title="OEKO-TEX certificates do not publish validity dates; treat as evergreen until reissue.">Evergreen</span>
+              <a class="cert-view" href="https://www.oeko-tex.com/en/buying-guide/label-check?certNo=BAN+1234%2F5" target="_blank" rel="noopener noreferrer">
+                View on Hohenstein <svg class="ext" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17L17 7M9 7h8v8"/></svg>
+              </a>
+            </div>
+            <div class="cert">
+              <img class="auth-logo-color" src="../inapp-logos/wrap.png" alt="WRAP">
+              <div class="cert-main">
+                <p class="cert-name">WRAP Worldwide Responsible Accredited Production</p>
+                <p class="cert-meta">WRAP-12345 · WRAP · expires 2026-08-15</p>
+              </div>
+              <span class="cert-status expiring" title="Expires within 90 days. Renewal required by 2026-08-15.">Expires in 81 days</span>
+              <a class="cert-view" href="https://wrapcompliance.org/certificate/12345" target="_blank" rel="noopener noreferrer">
+                View on WRAP <svg class="ext" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17L17 7M9 7h8v8"/></svg>
+              </a>
+            </div>
+            <div class="cert">
+              <img class="auth-logo-color" src="../inapp-logos/gost.png" alt="GOTS">
+              <div class="cert-main">
+                <p class="cert-name">GOTS Global Organic Textile Standard</p>
+                <p class="cert-meta">CU-GOTS-0987654 · Control Union · expires 2027-02-10</p>
+              </div>
+              <span class="cert-status valid">Valid · 261 days</span>
+              <a class="cert-view" href="https://www.global-trace-base.org/website-api/v2/certified-suppliers/CU-GOTS-0987654" target="_blank" rel="noopener noreferrer">
+                View on GOTS <svg class="ext" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17L17 7M9 7h8v8"/></svg>
+              </a>
+            </div>
+          </div>
+        </section>
+
+        <!-- RSC remediation with sub-scores -->
+        <section class="card hoverable" aria-labelledby="card-rsc">
+          <header class="card-head"><h2 class="card-title" id="card-rsc">RSC Remediation</h2><span class="card-meta">Updated 2026-04-30</span></header>
+          <div class="rsc-stack">
+            <div>
+              <span class="rsc-headline">76<span class="pct">%</span></span>
+              <span style="margin-left:8px;font-size:11px;color:var(--ink-tertiary);font-family:var(--font-mono);">remediation completed</span>
+            </div>
+            <div class="rsc-bar-wrap">
+              <div class="rsc-bar" style="width:76%;"></div>
+              <div class="rsc-tick" style="left:68%;" data-label="Industry median 68%"></div>
+            </div>
+            <div class="rsc-legend"><span>0%</span><span>100%</span></div>
+            <div class="rsc-subscores">
+              <div class="rsc-sub"><span class="rsc-sub-label">Fire</span><span class="rsc-sub-val">82%</span></div>
+              <div class="rsc-sub"><span class="rsc-sub-label">Structural</span><span class="rsc-sub-val">79%</span></div>
+              <div class="rsc-sub"><span class="rsc-sub-label">Electrical</span><span class="rsc-sub-val">71%</span></div>
+              <div class="rsc-sub"><span class="rsc-sub-label">Boiler</span><span class="rsc-sub-val">88%</span></div>
+            </div>
+            <p style="margin:10px 0 0;font-size:11px;color:var(--ink-tertiary);font-family:var(--font-mono);">
+              Last audit 2025-11-12 · next due 2026-11-12 · CAP filed 2026-04-30
+            </p>
+          </div>
+        </section>
+
+        <!-- Sanctions confirmation card (negative result) -->
+        <section class="card hoverable" aria-labelledby="card-sanc">
+          <header class="card-head"><h2 class="card-title" id="card-sanc">Sanctions screening</h2><span class="card-meta">6 of 6 watchlists clear · re-screened weekly</span></header>
+          <div class="sanctions-clear">
+            <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+            <div>
+              <p class="sanctions-clear-title">No matches across any watchlist</p>
+              <p class="sanctions-clear-body">Name + address + registry IDs cross-checked against 6 watchlists below.</p>
+            </div>
+            <span class="cert-status valid" style="font-family:var(--font-mono);">Clear</span>
+          </div>
+          <div class="sanctions-grid">
+            <div class="sanctions-tile">
+              <div class="tile-top">
+                <span class="tile-juris">US</span>
+                <span class="tile-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span>
+              </div>
+              <span class="tile-acronym">UFLPA</span>
+              <span class="tile-auth">CBP Entity List</span>
+            </div>
+            <div class="sanctions-tile">
+              <div class="tile-top">
+                <span class="tile-juris">US</span>
+                <span class="tile-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span>
+              </div>
+              <span class="tile-acronym">OFAC SDN</span>
+              <span class="tile-auth">U.S. Treasury</span>
+            </div>
+            <div class="sanctions-tile">
+              <div class="tile-top">
+                <span class="tile-juris">UK</span>
+                <span class="tile-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span>
+              </div>
+              <span class="tile-acronym">OFSI</span>
+              <span class="tile-auth">HM Treasury</span>
+            </div>
+            <div class="sanctions-tile">
+              <div class="tile-top">
+                <span class="tile-juris">EU</span>
+                <span class="tile-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span>
+              </div>
+              <span class="tile-acronym">EU FSF</span>
+              <span class="tile-auth">European Commission</span>
+            </div>
+            <div class="sanctions-tile">
+              <div class="tile-top">
+                <span class="tile-juris">US</span>
+                <span class="tile-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span>
+              </div>
+              <span class="tile-acronym">CBP WRO</span>
+              <span class="tile-auth">U.S. Customs</span>
+            </div>
+            <div class="sanctions-tile">
+              <div class="tile-top">
+                <span class="tile-juris">US</span>
+                <span class="tile-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span>
+              </div>
+              <span class="tile-acronym">DOL ILAB</span>
+              <span class="tile-auth">U.S. Labor Dept.</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- Worker rights + EPZ -->
+        <section class="card hoverable" aria-labelledby="card-rights">
+          <header class="card-head"><h2 class="card-title" id="card-rights">Worker rights &amp; jurisdiction</h2></header>
+          <dl class="header-meta-row" style="border:none;padding:0;margin:0;grid-template-columns:1fr 1fr;">
+            <div><dt>Union recognition</dt><dd>Recognised<br><span style="font-size:10px;color:var(--ink-tertiary);font-family:var(--font-mono);">RSC participating-brand attestation</span></dd></div>
+            <div><dt>Collective bargaining</dt><dd>Agreement on file<br><span style="font-size:10px;color:var(--ink-tertiary);font-family:var(--font-mono);">renewed 2024-09</span></dd></div>
+            <div><dt>Complaint mechanism</dt><dd>RSC complaints line<br><span style="font-size:10px;color:var(--ink-tertiary);font-family:var(--font-mono);">+880-2-58817XXX</span></dd></div>
+            <div><dt>EPZ status</dt><dd>Outside EPZ<br><span style="font-size:10px;color:var(--ink-tertiary);font-family:var(--font-mono);">Tongi industrial area</span></dd></div>
+          </dl>
+        </section>
+
+        <!-- Brand attribution summary -->
+        <section class="card hoverable" aria-labelledby="card-brand">
+          <header class="card-head"><h2 class="card-title" id="card-brand">Brand attribution</h2><span class="card-meta">3 brands disclosed</span></header>
+          <div class="pill-row">
+            <span class="brand-pill" title="Disclosed on H&amp;M's published factory list (2026-04-15)">H&amp;M <span class="ref">2026-04-15</span></span>
+            <span class="brand-pill" title="Disclosed on Inditex's published factory list (2025-09-15)">Inditex <span class="ref">2025-09-15</span></span>
+            <span class="brand-pill" title="Disclosed on Next's published factory list (2025-08-01)">Next <span class="ref">2025-08-01</span></span>
+          </div>
+          <p style="margin:14px 0 0;font-size:11px;color:var(--ink-tertiary);">
+            Each pill traces to the brand's own published supplier disclosure. Full sources on the Brand attribution tab.
+          </p>
+        </section>
+
+        <!-- Compliance documents (Bunny CDN mirrors) -->
+        <section class="card span2" aria-labelledby="card-docs">
+          <header class="card-head"><h2 class="card-title" id="card-docs">Compliance documents</h2><span class="card-meta">5 mirrored · 7,049 docs across the moat</span></header>
+          <div class="docs-list">
+            <div class="doc-row">
+              <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg>
+              <div><span class="doc-type">Fire</span> <span class="doc-name" style="margin-left:8px;">RSC fire-safety inspection report</span></div>
+              <span class="doc-meta">PDF · 4.2 MB</span>
+              <a class="doc-action" href="https://sourcebd-docs.b-cdn.net/rsc-docs/naafco-group/fire-2025-11-12.pdf" target="_blank" rel="noopener noreferrer">
+                Open mirror <svg class="ext" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17L17 7M9 7h8v8"/></svg>
+              </a>
+              <a class="doc-action secondary" href="https://accord2.fairfactories.org/factory/naafco-group/fire/2025-11-12.pdf" target="_blank" rel="noopener noreferrer">
+                Original <svg class="ext" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17L17 7M9 7h8v8"/></svg>
+              </a>
+            </div>
+            <div class="doc-row">
+              <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg>
+              <div><span class="doc-type">Structural</span> <span class="doc-name" style="margin-left:8px;">RSC structural inspection report</span></div>
+              <span class="doc-meta">PDF · 3.8 MB</span>
+              <a class="doc-action" href="https://sourcebd-docs.b-cdn.net/rsc-docs/naafco-group/structural-2025-11-12.pdf" target="_blank" rel="noopener noreferrer">
+                Open mirror <svg class="ext" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17L17 7M9 7h8v8"/></svg>
+              </a>
+              <a class="doc-action secondary" href="https://accord2.fairfactories.org/factory/naafco-group/structural/2025-11-12.pdf" target="_blank" rel="noopener noreferrer">
+                Original <svg class="ext" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17L17 7M9 7h8v8"/></svg>
+              </a>
+            </div>
+            <div class="doc-row">
+              <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg>
+              <div><span class="doc-type">Electrical</span> <span class="doc-name" style="margin-left:8px;">RSC electrical inspection report</span></div>
+              <span class="doc-meta">PDF · 2.9 MB</span>
+              <a class="doc-action" href="https://sourcebd-docs.b-cdn.net/rsc-docs/naafco-group/electrical-2025-11-12.pdf" target="_blank" rel="noopener noreferrer">
+                Open mirror <svg class="ext" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17L17 7M9 7h8v8"/></svg>
+              </a>
+              <a class="doc-action secondary" href="https://accord2.fairfactories.org/factory/naafco-group/electrical/2025-11-12.pdf" target="_blank" rel="noopener noreferrer">
+                Original <svg class="ext" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17L17 7M9 7h8v8"/></svg>
+              </a>
+            </div>
+            <div class="doc-row">
+              <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg>
+              <div><span class="doc-type">Boiler</span> <span class="doc-name" style="margin-left:8px;">RSC boiler safety inspection</span></div>
+              <span class="doc-meta">PDF · 1.1 MB</span>
+              <a class="doc-action" href="https://sourcebd-docs.b-cdn.net/rsc-docs/naafco-group/boiler-2025-10-08.pdf" target="_blank" rel="noopener noreferrer">
+                Open mirror <svg class="ext" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17L17 7M9 7h8v8"/></svg>
+              </a>
+              <a class="doc-action secondary" href="https://accord2.fairfactories.org/factory/naafco-group/boiler/2025-10-08.pdf" target="_blank" rel="noopener noreferrer">
+                Original <svg class="ext" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17L17 7M9 7h8v8"/></svg>
+              </a>
+            </div>
+            <div class="doc-row">
+              <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg>
+              <div><span class="doc-type">CAP</span> <span class="doc-name" style="margin-left:8px;">Corrective Action Plan</span></div>
+              <span class="doc-meta">PDF · 240 KB</span>
+              <a class="doc-action" href="https://sourcebd-docs.b-cdn.net/rsc-docs/naafco-group/cap-2026-04-30.pdf" target="_blank" rel="noopener noreferrer">
+                Open mirror <svg class="ext" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17L17 7M9 7h8v8"/></svg>
+              </a>
+              <a class="doc-action secondary" href="https://accord2.fairfactories.org/factory/naafco-group/cap/2026-04-30.pdf" target="_blank" rel="noopener noreferrer">
+                Original <svg class="ext" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17L17 7M9 7h8v8"/></svg>
+              </a>
+            </div>
+          </div>
+          <p style="margin:14px 0 0;font-size:11px;color:var(--ink-tertiary);">
+            Mirror copies served from SourceBD's CDN (<code style="font-family:var(--font-mono);">sourcebd-docs.b-cdn.net</code>) for stable archival. Originals link back to the issuing authority. We never inline a PDF we don't host.
+          </p>
+        </section>
+
+        <!-- Provenance (compliance-scoped) -->
+        <section class="card span2" aria-labelledby="card-prov-c">
+          <header class="card-head"><h2 class="card-title" id="card-prov-c">Show your work</h2><span class="card-meta">5 of 11 source records on this tab</span></header>
+          <details class="provenance" open>
+            <summary>Provenance — every datum on this tab traces to a primary source</summary>
+            <div class="prov-list">
+              <div class="prov-row"><span class="prov-source">BGMEA</span><span>Member directory — Naafco Group, #1234</span><span class="prov-ref">BGMEA-1234</span><span class="prov-seen">last seen 2026-05-21</span><span class="tier-badge t2">T2</span></div>
+              <div class="prov-row"><span class="prov-source">EPB</span><span>Exporter registry — EXP-9821</span><span class="prov-ref">EPB-9821</span><span class="prov-seen">last seen 2026-05-19</span><span class="tier-badge t1">T1</span></div>
+              <div class="prov-row"><span class="prov-source">OEKO-TEX</span><span>Certificate BAN 1234/5 · Hohenstein</span><span class="prov-ref">BAN-1234-5</span><span class="prov-seen">last seen 2026-05-12</span><span class="tier-badge t3">T3</span></div>
+              <div class="prov-row"><span class="prov-source">WRAP</span><span>Certificate WRAP-12345 · expires 2026-08-15</span><span class="prov-ref">WRAP-12345</span><span class="prov-seen">last seen 2026-04-30</span><span class="tier-badge t3">T3</span></div>
+              <div class="prov-row"><span class="prov-source">RSC</span><span>Remediation tracker — 76% (industry median 68%)</span><span class="prov-ref">RSC-NAAFCO-001</span><span class="prov-seen">last seen 2026-04-30</span><span class="tier-badge t3">T3</span></div>
+            </div>
+          </details>
+          <p style="margin:14px 0 0;font-size:11px;color:var(--ink-tertiary);">See the Provenance tab for the full 11-record source history including brand attribution.</p>
+        </section>
+
+      </div>
+    </div>
+
+    <!-- ===== TAB: CAPACITY ===== -->
+    <div class="tab-panel" id="panel-capacity" role="tabpanel" hidden>
+      <div class="grid">
+        <section class="card hoverable span2">
+          <header class="card-head"><h2 class="card-title">Workforce</h2><span class="card-meta">Self-disclosed · BGMEA-cross-checked</span></header>
+          <div class="metric-grid">
+            <div class="metric"><p class="metric-label">Total</p><div class="metric-val">4,200</div><p class="metric-sub">workers + staff</p></div>
+            <div class="metric"><p class="metric-label">Female</p><div class="metric-val">62%</div><p class="metric-sub">2,604 workers</p></div>
+            <div class="metric"><p class="metric-label">Migrant</p><div class="metric-val">< 1%</div><p class="metric-sub">primarily local</p></div>
+          </div>
+        </section>
+
+        <section class="card hoverable">
+          <header class="card-head"><h2 class="card-title">Production lines</h2></header>
+          <div class="metric-grid">
+            <div class="metric"><p class="metric-label">Sewing lines</p><div class="metric-val">48</div><p class="metric-sub">3 floors</p></div>
+            <div class="metric"><p class="metric-label">Knitting m/c</p><div class="metric-val">186</div><p class="metric-sub">circular + flat</p></div>
+            <div class="metric"><p class="metric-label">Dyeing m/c</p><div class="metric-val">22</div><p class="metric-sub">winch + jet</p></div>
+          </div>
+        </section>
+
+        <section class="card hoverable">
+          <header class="card-head"><h2 class="card-title">Output</h2></header>
+          <div class="metric-grid">
+            <div class="metric"><p class="metric-label">Monthly</p><div class="metric-val">104K</div><p class="metric-sub">dozens / month</p></div>
+            <div class="metric"><p class="metric-label">Annual</p><div class="metric-val">1.25M</div><p class="metric-sub">dozens / year</p></div>
+            <div class="metric"><p class="metric-label">Footprint</p><div class="metric-val">485K</div><p class="metric-sub">sq ft built-up</p></div>
+          </div>
+        </section>
+
+        <section class="card hoverable">
+          <header class="card-head"><h2 class="card-title">Capabilities</h2></header>
+          <div class="pill-row" style="margin-bottom:12px;">
+            <span class="pill text-only"><span class="label">KNIT</span> Cotton single jersey, pique, fleece, interlock</span>
+            <span class="pill text-only"><span class="label">YARN</span> 100% cotton, CVC, polyester blend</span>
+          </div>
+          <dl class="header-meta-row" style="border:none;padding:0;margin:0;grid-template-columns:1fr 1fr;">
+            <div><dt>MOQ</dt><dd>3,000 pcs / style / colour</dd></div>
+            <div><dt>Lead time</dt><dd>60–75 days FOB</dd></div>
+            <div><dt>Incoterms</dt><dd>FOB Chittagong · CIF on request</dd></div>
+            <div><dt>Sampling</dt><dd>7–14 days</dd></div>
+          </dl>
+        </section>
+
+        <section class="card hoverable">
+          <header class="card-head"><h2 class="card-title">Site & jurisdiction</h2></header>
+          <dl class="header-meta-row" style="border:none;padding:0;margin:0;grid-template-columns:1fr 1fr;">
+            <div><dt>EPZ</dt><dd>Outside EPZ</dd></div>
+            <div><dt>Industrial area</dt><dd>Tongi industrial area</dd></div>
+            <div><dt>Nearest port</dt><dd>Chittagong (~280 km)</dd></div>
+            <div><dt>Inland depot</dt><dd>Kamalapur ICD</dd></div>
+          </dl>
+        </section>
+      </div>
+    </div>
+
+    <!-- ===== TAB: BRANDS ===== -->
+    <div class="tab-panel" id="panel-brands" role="tabpanel" hidden>
+      <div class="grid">
+        <section class="card hoverable span2">
+          <header class="card-head"><h2 class="card-title">Brand attribution — full history</h2><span class="card-meta">3 active · per-factory authenticity</span></header>
+          <div class="brand-list">
+            <div class="brand-row">
+              <div class="brand-id">
+                <div class="brand-mark hm">H&amp;M</div>
+                <div class="brand-text">
+                  <span class="brand-name">H&amp;M Group</span>
+                  <span class="brand-since">first seen 2024-08-01</span>
+                </div>
+              </div>
+              <p class="brand-desc">Named on <strong>H&amp;M's published BD supplier list</strong>, refreshed quarterly. Factory appears under H&amp;M's Tier 1 garment-manufacturing tier.</p>
+              <span class="brand-meta">XLSX · 1.2 MB<br>refreshed 2026-04-15</span>
+              <div class="brand-actions">
+                <a class="doc-action" href="https://sourcebd-docs.b-cdn.net/brand-disclosures/brand_hm/2026-04-15.xlsx" target="_blank" rel="noopener noreferrer">Open mirror <svg class="ext" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17L17 7M9 7h8v8"/></svg></a>
+                <a class="doc-action secondary" href="https://hmgroup.com/sustainability/leading-the-change/transparency/supplier-list/" target="_blank" rel="noopener noreferrer">H&amp;M source <svg class="ext" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17L17 7M9 7h8v8"/></svg></a>
+              </div>
+            </div>
+            <div class="brand-row">
+              <div class="brand-id">
+                <div class="brand-mark inditex">IDX</div>
+                <div class="brand-text">
+                  <span class="brand-name">Inditex</span>
+                  <span class="brand-since">first seen 2023-11-04</span>
+                </div>
+              </div>
+              <p class="brand-desc">Named on <strong>Inditex's BD supplier disclosure</strong> (Zara, Pull&amp;Bear, Bershka, Massimo Dutti). Listed under cut-make-trim suppliers.</p>
+              <span class="brand-meta">XLSX · 3.4 MB<br>refreshed 2025-09-15</span>
+              <div class="brand-actions">
+                <a class="doc-action" href="https://sourcebd-docs.b-cdn.net/brand-disclosures/brand_inditex/2025-09-15.xlsx" target="_blank" rel="noopener noreferrer">Open mirror <svg class="ext" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17L17 7M9 7h8v8"/></svg></a>
+                <a class="doc-action secondary" href="https://www.inditex.com/itxcomweb/api/media/list-of-suppliers" target="_blank" rel="noopener noreferrer">Inditex source <svg class="ext" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17L17 7M9 7h8v8"/></svg></a>
+              </div>
+            </div>
+            <div class="brand-row">
+              <div class="brand-id">
+                <div class="brand-mark next">N</div>
+                <div class="brand-text">
+                  <span class="brand-name">Next plc</span>
+                  <span class="brand-since">first seen 2024-02-01</span>
+                </div>
+              </div>
+              <p class="brand-desc">Named on <strong>Next's published BD factory list</strong>, annual refresh. Listed under apparel suppliers with active POs in the most recent reporting year.</p>
+              <span class="brand-meta">PDF · 1.97 MB<br>refreshed 2025-08-01</span>
+              <div class="brand-actions">
+                <a class="doc-action" href="https://sourcebd-docs.b-cdn.net/brand-disclosures/brand_next/2025-08-01.pdf" target="_blank" rel="noopener noreferrer">Open mirror <svg class="ext" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17L17 7M9 7h8v8"/></svg></a>
+                <a class="doc-action secondary" href="https://www.nextplc.co.uk/corporate-responsibility/our-suppliers" target="_blank" rel="noopener noreferrer">Next source <svg class="ext" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17L17 7M9 7h8v8"/></svg></a>
+              </div>
+            </div>
+          </div>
+          <p style="margin:14px 0 0;font-size:11px;color:var(--ink-tertiary);">
+            Per-factory authenticity rule: a brand pill renders only when the brand's own publication names this specific factory. M&amp;S OSH listings count under the narrow OSH extension. MSS-style narrative PDFs do not.
+          </p>
+        </section>
+      </div>
+    </div>
+
+    <!-- ===== TAB: CONTACT — two states ===== -->
+    <div class="tab-panel" id="panel-contact" role="tabpanel" hidden>
+      <div class="contact-states">
+        <!-- Gated state -->
+        <section class="card">
+          <p class="contact-state-label">State A — free tier · contact gated</p>
+          <dl class="contact-list">
+            <dt>Phone</dt><dd class="masked">+880-2-XXXXXXXX</dd>
+            <dt>Email</dt><dd class="masked">XXXXXX@naafcogroup.com</dd>
+            <dt>Website</dt><dd><a href="https://naafcogroup.com" target="_blank" rel="noopener noreferrer" style="color:var(--accent-indigo);">naafcogroup.com</a></dd>
+            <dt>LinkedIn</dt><dd class="masked">linkedin.com/company/XXXXXXX</dd>
+            <dt>Contact</dt><dd class="masked">Mr. XXXXXX XXXXXX · Director, Sales</dd>
+          </dl>
+          <div class="gated-cta">
+            <p class="gated-cta-title">Unlock verified contacts</p>
+            <p class="gated-cta-body">Direct-dial phone, decision-maker email, LinkedIn URL, and principal contact name + title for every supplier in your saved list.</p>
+            <a class="btn primary" href="/pricing">See plans →</a>
+          </div>
+        </section>
+
+        <!-- Unlocked state -->
+        <section class="card">
+          <p class="contact-state-label">State B — paid plan · contact unlocked</p>
+          <dl class="contact-list">
+            <dt>Phone</dt><dd>+880-2-9817234</dd>
+            <dt>Email</dt><dd>sales@naafcogroup.com</dd>
+            <dt>Website</dt><dd><a href="https://naafcogroup.com" target="_blank" rel="noopener noreferrer" style="color:var(--accent-indigo);">naafcogroup.com</a></dd>
+            <dt>LinkedIn</dt><dd><a href="https://linkedin.com/company/naafco-group" target="_blank" rel="noopener noreferrer" style="color:var(--accent-indigo);">linkedin.com/company/naafco-group</a></dd>
+            <dt>Contact</dt><dd>Mr. Rashed Ahmed · Director, Sales</dd>
+            <dt>Direct dial</dt><dd>+880-1713-XXXXXX</dd>
+            <dt>Verified</dt><dd style="color:var(--sem-green);">2026-03-12 · by supplier</dd>
+          </dl>
+          <div style="margin-top:16px;display:flex;gap:8px;">
+            <button class="btn primary">Compose message</button>
+            <button class="btn">Add to RFQ</button>
+          </div>
+        </section>
+      </div>
+      <p style="margin:14px 0 0;font-size:11px;color:var(--ink-tertiary);">
+        Both states shown side-by-side for design review only. Production renders one state based on plan + auth (server-enforced).
+        Brief constraint §6.3: contact PII is server-gated; hiding UI is never a security control.
+      </p>
+    </div>
+
+    <!-- ===== TAB: PROVENANCE ===== -->
+    <div class="tab-panel" id="panel-provenance" role="tabpanel" hidden>
+      <section class="card span2">
+        <header class="card-head"><h2 class="card-title">Source records — full timeline</h2><span class="card-meta">11 records · 6 sources · oldest 2023-08-04</span></header>
+        <div class="prov-list">
+          <div class="prov-row"><span class="prov-source">BGMEA</span><span>Member directory — Naafco Group, #1234</span><span class="prov-ref">BGMEA-1234</span><span class="prov-seen">re-verified 2026-05-21</span><span class="tier-badge t2">T2</span></div>
+          <div class="prov-row"><span class="prov-source">EPB</span><span>Exporter registry — EXP-9821 active</span><span class="prov-ref">EPB-9821</span><span class="prov-seen">re-verified 2026-05-19</span><span class="tier-badge t1">T1</span></div>
+          <div class="prov-row"><span class="prov-source">OEKO-TEX</span><span>Certificate BAN 1234/5 · Hohenstein</span><span class="prov-ref">BAN-1234-5</span><span class="prov-seen">re-verified 2026-05-12</span><span class="tier-badge t3">T3</span></div>
+          <div class="prov-row"><span class="prov-source">WRAP</span><span>Certificate WRAP-12345 · expires 2026-08-15</span><span class="prov-ref">WRAP-12345</span><span class="prov-seen">re-verified 2026-04-30</span><span class="tier-badge t3">T3</span></div>
+          <div class="prov-row"><span class="prov-source">GOTS</span><span>Certificate CU-GOTS-0987654 · Control Union</span><span class="prov-ref">GOTS-0987654</span><span class="prov-seen">re-verified 2026-04-22</span><span class="tier-badge t3">T3</span></div>
+          <div class="prov-row"><span class="prov-source">RSC</span><span>Remediation: 76% (industry median 68%)</span><span class="prov-ref">RSC-NAAFCO-001</span><span class="prov-seen">updated 2026-04-30</span><span class="tier-badge t3">T3</span></div>
+          <div class="prov-row"><span class="prov-source">BRAND_HM</span><span>H&amp;M supplier list disclosure</span><span class="prov-ref">HM-2026-04-15</span><span class="prov-seen">2026-04-15</span><span class="tier-badge t4">T4</span></div>
+          <div class="prov-row"><span class="prov-source">BRAND_INDITEX</span><span>Inditex supplier list disclosure</span><span class="prov-ref">ITX-2025-09-15</span><span class="prov-seen">2025-09-15</span><span class="tier-badge t4">T4</span></div>
+          <div class="prov-row"><span class="prov-source">BRAND_NEXT</span><span>Next published BD factory list</span><span class="prov-ref">NXT-2025-08-01</span><span class="prov-seen">2025-08-01</span><span class="tier-badge t4">T4</span></div>
+          <div class="prov-row"><span class="prov-source">BKMEA</span><span>Inherited via parent: Naafco Group HQ</span><span class="prov-ref">BKMEA-PARENT</span><span class="prov-seen">2024-11-02</span><span class="tier-badge t2">T2</span></div>
+          <div class="prov-row"><span class="prov-source">BGMEA</span><span>Initial registry observation</span><span class="prov-ref">BGMEA-1234-FIRST</span><span class="prov-seen">first seen 2023-08-04</span><span class="tier-badge t2">T2</span></div>
+        </div>
+        <p style="margin:16px 0 0;font-size:11px;color:var(--ink-tertiary);">
+          Tier hierarchy: T1 (gov/regulatory) &gt; T2 (BGMEA/BKMEA/BTMA/BGAPMEA) &gt; T3 (cert bodies) &gt; T4 (brand disclosures).
+          A T4 record never enters this profile alone — every brand pill is backed by at least one T1–T3 corroboration.
+        </p>
+      </section>
+    </div>
+
+    <p class="affiliation-disclaimer">
+      Authority logos identify the data sources we aggregate from. SourceBD is not affiliated with or endorsed by BGMEA,
+      BKMEA, EPB, OEKO-TEX, WRAP, GOTS, RSC, or any of the brands named on this page. All cert numbers and contact details
+      shown are illustrative seed data for prototype review.
+    </p>
+
+  </main>
+</div>
+
+<div class="proto-watermark">PROTOTYPE · NOT PRODUCTION</div>
+
+<script>
+  // Tab switching — A5 crossfade. No other JS motion.
+  const tabs = document.querySelectorAll('[role="tab"]');
+  const panels = document.querySelectorAll('[role="tabpanel"]');
+  tabs.forEach(t => t.addEventListener('click', () => {
+    const target = t.dataset.tab;
+    tabs.forEach(x => { x.classList.remove('active'); x.setAttribute('aria-selected','false'); });
+    t.classList.add('active'); t.setAttribute('aria-selected','true');
+    panels.forEach(p => p.hidden = (p.id !== 'panel-' + target));
+    const active = document.getElementById('panel-' + target);
+    if (active) { active.style.animation = 'none'; void active.offsetWidth; active.style.animation = ''; }
+  }));
+</script>
+
+</body>
+</html>

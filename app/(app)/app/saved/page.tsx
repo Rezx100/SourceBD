@@ -151,6 +151,7 @@ function toDiscoverRow(r: SavedRow): DiscoverRow {
     district: r.district,
     source_tags: r.source_tags,
     t13_source_count: r.t13_source_count,
+    completeness_pct: r.completeness_pct,
     employees_total: r.employees_total,
     established_date: r.established_date,
     principal_products: r.principal_products,

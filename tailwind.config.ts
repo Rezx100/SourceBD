@@ -53,6 +53,11 @@ const config: Config = {
         // Hairlines
         hairline: "var(--hairline)",
         "hairline-strong": "var(--hairline-strong)",
+        // shadcn/ui semantic colors
+        border: "var(--border)",
+        ring: "var(--ring)",
+        background: "var(--background)",
+        foreground: "var(--foreground)",
       },
       fontFamily: {
         display: ["var(--font-display)"],
@@ -85,6 +90,46 @@ const config: Config = {
       },
       letterSpacing: {
         tightish: "-0.005em",
+      },
+      animation: {
+        marquee: "marquee var(--duration, 40s) infinite linear",
+        "marquee-vertical": "marquee-vertical var(--duration, 40s) linear infinite",
+        "shimmer-slide": "shimmer-slide var(--speed, 2s) ease-in-out infinite alternate",
+        "spin-around": "spin-around calc(var(--speed, 2s) * 2) infinite linear",
+        "border-beam": "border-beam calc(var(--duration, 4s) * 1s) infinite linear",
+        orbit: "orbit calc(var(--duration, 20s) * 1s) linear infinite",
+      },
+      keyframes: {
+        marquee: {
+          from: { transform: "translateX(0)" },
+          to: { transform: "translateX(calc(-100% - var(--gap, 1rem)))" },
+        },
+        "marquee-vertical": {
+          from: { transform: "translateY(0)" },
+          to: { transform: "translateY(calc(-100% - var(--gap, 1rem)))" },
+        },
+        "shimmer-slide": {
+          to: { transform: "translate(calc(100cqw - 100%), 0)" },
+        },
+        "spin-around": {
+          "0%": { transform: "translateZ(0) rotate(0)" },
+          "15%, 35%": { transform: "translateZ(0) rotate(90deg)" },
+          "65%, 85%": { transform: "translateZ(0) rotate(270deg)" },
+          "100%": { transform: "translateZ(0) rotate(360deg)" },
+        },
+        "border-beam": {
+          "100%": { "offset-distance": "100%" },
+        },
+        orbit: {
+          "0%": {
+            transform:
+              "rotate(calc(var(--angle) * 1deg)) translateY(calc(var(--radius) * 1px)) rotate(calc(var(--angle) * -1deg))",
+          },
+          "100%": {
+            transform:
+              "rotate(calc(var(--angle) * 1deg + 360deg)) translateY(calc(var(--radius) * 1px)) rotate(calc((var(--angle) * -1deg) - 360deg))",
+          },
+        },
       },
     },
   },

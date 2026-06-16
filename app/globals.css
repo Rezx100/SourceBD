@@ -89,6 +89,92 @@
     outline-offset: 2px;
     border-radius: var(--r-input);
   }
+  .theme {
+    --animate-marquee: marquee var(--duration) infinite linear;
+    --animate-marquee-vertical: marquee-vertical var(--duration) linear infinite;
+    --animate-shimmer-slide: shimmer-slide var(--speed) ease-in-out infinite alternate;
+    --animate-spin-around: spin-around calc(var(--speed) * 2) infinite linear;
+    --font-heading: var(--font-sans);
+    --font-sans: var(--font-sans);
+  }
+  :root {
+    --background: oklch(1 0 0);
+    --foreground: oklch(0.145 0 0);
+    --card: oklch(1 0 0);
+    --card-foreground: oklch(0.145 0 0);
+    --popover: oklch(1 0 0);
+    --popover-foreground: oklch(0.145 0 0);
+    --primary: oklch(0.205 0 0);
+    --primary-foreground: oklch(0.985 0 0);
+    --secondary: oklch(0.97 0 0);
+    --secondary-foreground: oklch(0.205 0 0);
+    --muted: oklch(0.97 0 0);
+    --muted-foreground: oklch(0.556 0 0);
+    --accent: oklch(0.97 0 0);
+    --accent-foreground: oklch(0.205 0 0);
+    --destructive: oklch(0.577 0.245 27.325);
+    --border: oklch(0.922 0 0);
+    --input: oklch(0.922 0 0);
+    --ring: oklch(0.708 0 0);
+    --chart-1: oklch(0.87 0 0);
+    --chart-2: oklch(0.556 0 0);
+    --chart-3: oklch(0.439 0 0);
+    --chart-4: oklch(0.371 0 0);
+    --chart-5: oklch(0.269 0 0);
+    --radius: 0.625rem;
+    --sidebar: oklch(0.985 0 0);
+    --sidebar-foreground: oklch(0.145 0 0);
+    --sidebar-primary: oklch(0.205 0 0);
+    --sidebar-primary-foreground: oklch(0.985 0 0);
+    --sidebar-accent: oklch(0.97 0 0);
+    --sidebar-accent-foreground: oklch(0.205 0 0);
+    --sidebar-border: oklch(0.922 0 0);
+    --sidebar-ring: oklch(0.708 0 0);
+  }
+  .dark {
+    --background: oklch(0.145 0 0);
+    --foreground: oklch(0.985 0 0);
+    --card: oklch(0.205 0 0);
+    --card-foreground: oklch(0.985 0 0);
+    --popover: oklch(0.205 0 0);
+    --popover-foreground: oklch(0.985 0 0);
+    --primary: oklch(0.922 0 0);
+    --primary-foreground: oklch(0.205 0 0);
+    --secondary: oklch(0.269 0 0);
+    --secondary-foreground: oklch(0.985 0 0);
+    --muted: oklch(0.269 0 0);
+    --muted-foreground: oklch(0.708 0 0);
+    --accent: oklch(0.269 0 0);
+    --accent-foreground: oklch(0.985 0 0);
+    --destructive: oklch(0.704 0.191 22.216);
+    --border: oklch(1 0 0 / 10%);
+    --input: oklch(1 0 0 / 15%);
+    --ring: oklch(0.556 0 0);
+    --chart-1: oklch(0.87 0 0);
+    --chart-2: oklch(0.556 0 0);
+    --chart-3: oklch(0.439 0 0);
+    --chart-4: oklch(0.371 0 0);
+    --chart-5: oklch(0.269 0 0);
+    --sidebar: oklch(0.205 0 0);
+    --sidebar-foreground: oklch(0.985 0 0);
+    --sidebar-primary: oklch(0.488 0.243 264.376);
+    --sidebar-primary-foreground: oklch(0.985 0 0);
+    --sidebar-accent: oklch(0.269 0 0);
+    --sidebar-accent-foreground: oklch(0.985 0 0);
+    --sidebar-border: oklch(1 0 0 / 10%);
+    --sidebar-ring: oklch(0.556 0 0);
+  }
+  * {
+    border-color: var(--border);
+    outline-color: var(--ring);
+  }
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+  }
+  html {
+    font-family: var(--font-body);
+  }
 }
 
 @keyframes fadeIn {
@@ -395,6 +481,28 @@
     gap: 10px;
     align-items: flex-end;
   }
+  .completeness {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 10px;
+    background: var(--sem-green-soft);
+    color: var(--sem-green);
+    border-radius: var(--r-pill);
+    font-size: 12px;
+    font-weight: 600;
+    font-family: var(--font-mono);
+    cursor: help;
+  }
+  .completeness::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    background: var(--sem-green);
+    border-radius: 50%;
+  }
+  .completeness.thin { background: var(--sem-amber-soft); color: var(--sem-amber); }
+  .completeness.thin::before { background: var(--sem-amber); }
 
   .btn-proto {
     display: inline-flex;
@@ -725,7 +833,7 @@
   }
   .registry-row {
     display: grid;
-    grid-template-columns: 44px 1fr auto;
+    grid-template-columns: 44px 1fr auto auto;
     gap: 14px;
     align-items: center;
     padding: 14px 4px;
@@ -803,12 +911,25 @@
     color: var(--ink-secondary);
     border: 1px dashed var(--hairline-strong);
   }
+  .registry-row .reg-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 10px;
+    border-radius: var(--r-input);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--accent-indigo);
+    text-decoration: none;
+    transition: background var(--dur-hover) var(--ease);
+  }
+  .registry-row .reg-action:hover { background: rgba(30, 42, 107, 0.06); }
 
   /* ---------- Cert rows ---------- */
   .cert-list { display: flex; flex-direction: column; gap: 10px; }
   .cert {
     display: grid;
-    grid-template-columns: 48px 1fr auto;
+    grid-template-columns: 48px 1fr auto auto;
     gap: 14px;
     align-items: center;
     padding: 12px;
@@ -869,30 +990,18 @@
   .cert-status.expiring { background: var(--sem-amber-soft); color: var(--sem-amber); }
   .cert-status.expired { background: var(--sem-red-soft); color: var(--sem-red); }
   .cert-status.evergreen { background: #ECEDF0; color: var(--ink-secondary); }
-
-  /* R4 — phone reflow. The 4-up `48px 1fr auto auto` grid collapses at
-     phone width: the name column wraps one word per line and the status
-     pill overlaps the view link. Stack name / status / view in a single
-     column beside the logo so nothing collides. */
-  @media (max-width: 639.98px) {
-    .cert {
-      grid-template-columns: 40px minmax(0, 1fr);
-      grid-template-areas:
-        "logo main"
-        "logo status"
-        "logo view";
-      column-gap: 12px;
-      row-gap: 6px;
-      align-items: start;
-    }
-    .cert > .auth-logo-color,
-    .cert > .issuer-mark { grid-area: logo; align-self: start; }
-    .cert-main { grid-area: main; }
-    .cert-status { grid-area: status; justify-self: start; }
-    /* The no-link placeholder is an empty <span>; drop it so it doesn't
-       reserve a phantom row. */
-    .cert > span:empty { display: none; }
+  .cert-view {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--accent-indigo);
+    padding: 4px 8px;
+    border-radius: var(--r-input);
+    transition: background var(--dur-hover) var(--ease);
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
   }
+  .cert-view:hover { background: rgba(30, 42, 107, 0.06); }
 
   /* ---------- RSC ---------- */
   .rsc-stack { display: flex; flex-direction: column; gap: 8px; }
@@ -1878,24 +1987,21 @@
     .doc-row > :nth-child(5) { grid-area: meta2; justify-self: start; }
   }
 
-  /* Provenance rows — 5-col → stacked 3-row layout on phones.
-     Use class-based grid-area instead of nth-child so the tier badge
-     (5th DOM child) lands in its own slot. R9r5 fix. */
+  /* Provenance rows — 5-col → 2-row stack on phones. */
   @media (max-width: 640px) {
     .prov-row {
       grid-template-columns: 1fr auto;
       grid-template-areas:
         "source tier"
-        "name   name"
-        "ref    seen";
+        "ref    ref"
+        "seen   seen";
       row-gap: 4px;
       padding: 12px 0;
     }
-    .prov-row .prov-source { grid-area: source; }
-    .prov-row .prov-name { grid-area: name; min-width: 0; word-break: break-word; color: var(--ink-secondary); }
-    .prov-row .prov-ref { grid-area: ref; justify-self: start; }
-    .prov-row .prov-seen { grid-area: seen; justify-self: end; }
-    .prov-row .tier-badge { grid-area: tier; justify-self: end; }
+    .prov-row > :nth-child(1) { grid-area: source; }
+    .prov-row > :nth-child(2) { grid-area: ref; min-width: 0; word-break: break-word; }
+    .prov-row > :nth-child(3) { grid-area: seen; }
+    .prov-row > :nth-child(4) { grid-area: tier; justify-self: end; }
   }
 
   /* Sanctions grid — already collapses to 2-col at 900; add 1-col under
@@ -2213,6 +2319,411 @@
   background: var(--mkt-green-50);
 }
 [data-surface="marketing"] .mkt-hero-tags span b { color: var(--mkt-green-700); font-weight: 700; }
+
+/* ===== hero editorial entrance (Register × Engine) ===== */
+[data-surface="marketing"] .mkt-hero-h1 { max-width: 16ch; text-wrap: balance; }
+[data-surface="marketing"] .mkt-hero-lead > *,
+[data-surface="marketing"] .mkt-hero-grid > .mkt-register {
+  opacity: 0; transform: translateY(16px);
+}
+[data-surface="marketing"] [data-mkt-hero].in .mkt-hero-lead > * {
+  animation: mkt-rise .72s cubic-bezier(.2,.8,.2,1) both;
+}
+[data-surface="marketing"] [data-mkt-hero].in .mkt-hero-lead > *:nth-child(2) { animation-delay: .06s; }
+[data-surface="marketing"] [data-mkt-hero].in .mkt-hero-lead > *:nth-child(3) { animation-delay: .12s; }
+[data-surface="marketing"] [data-mkt-hero].in .mkt-hero-lead > *:nth-child(4) { animation-delay: .18s; }
+[data-surface="marketing"] [data-mkt-hero].in .mkt-hero-lead > *:nth-child(5) { animation-delay: .24s; }
+[data-surface="marketing"] [data-mkt-hero].in .mkt-hero-grid > .mkt-register {
+  animation: mkt-rise .8s cubic-bezier(.2,.8,.2,1) both; animation-delay: .14s;
+}
+@keyframes mkt-rise { to { opacity: 1; transform: none; } }
+
+/* ===== hero live register panel ===== */
+[data-surface="marketing"] .mkt-register {
+  position: relative; width: 100%; max-width: 520px;
+  justify-self: end; margin-left: auto;
+  background: var(--mkt-paper);
+  border: 1px solid var(--mkt-line);
+  border-radius: var(--mkt-r-lg);
+  box-shadow: var(--mkt-shadow-lg);
+  overflow: hidden;
+}
+[data-surface="marketing"] .mkt-register-bar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 13px 16px;
+  background: var(--mkt-green-900);
+  color: var(--mkt-text-1);
+}
+[data-surface="marketing"] .mkt-register-title {
+  display: inline-flex; align-items: center; gap: 9px;
+  font: 600 12px/1 var(--mkt-font-mono, ui-monospace, monospace);
+  letter-spacing: .04em; text-transform: uppercase;
+}
+[data-surface="marketing"] .mkt-register-title .pip {
+  width: 7px; height: 7px; border-radius: 999px;
+  background: var(--mkt-green-400);
+  box-shadow: 0 0 0 0 rgba(78,146,104,.55);
+  animation: mkt-pip 2.4s ease-out infinite;
+}
+[data-surface="marketing"] .mkt-register-sync { color: var(--mkt-text-3); font-size: 11px; }
+@keyframes mkt-pip {
+  0%   { box-shadow: 0 0 0 0 rgba(78,146,104,.5); }
+  70%  { box-shadow: 0 0 0 7px rgba(78,146,104,0); }
+  100% { box-shadow: 0 0 0 0 rgba(78,146,104,0); }
+}
+
+[data-surface="marketing"] .mkt-register-rows {
+  position: relative; padding: 7px;
+  min-height: calc(var(--mkt-reg-window, 5) * 67px);
+}
+[data-surface="marketing"] .mkt-reg-row {
+  display: grid; grid-template-columns: 34px 1fr auto;
+  align-items: center; gap: 12px;
+  padding: 11px 11px; border-radius: var(--mkt-r-md);
+  transition: background .16s;
+}
+[data-surface="marketing"] .mkt-reg-row:hover { background: var(--mkt-green-50); }
+[data-surface="marketing"] .mkt-reg-recv {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  width: 34px; height: 34px; border-radius: 9px;
+  background: var(--mkt-green-50); border: 1px solid var(--mkt-green-100);
+  font-family: var(--mkt-font-mono, ui-monospace, monospace); line-height: 1;
+}
+[data-surface="marketing"] .mkt-reg-recv b { font-size: 14px; font-weight: 600; color: var(--mkt-green-700); }
+[data-surface="marketing"] .mkt-reg-recv i { font-size: 8.5px; font-style: normal; color: var(--mkt-green-400); margin-top: 1px; }
+[data-surface="marketing"] .mkt-reg-main { min-width: 0; }
+[data-surface="marketing"] .mkt-reg-name {
+  display: block; font: 600 14.5px/1.25 var(--mkt-font-display, ui-sans-serif, system-ui, sans-serif);
+  color: var(--mkt-ink-900); letter-spacing: -.01em;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+[data-surface="marketing"] .mkt-reg-loc {
+  display: block; font: 400 11.5px/1.3 var(--mkt-font-body, ui-sans-serif, system-ui, sans-serif);
+  color: var(--mkt-ink-400); margin-top: 1px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+[data-surface="marketing"] .mkt-reg-pills { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 7px; }
+[data-surface="marketing"] .mkt-reg-pill {
+  display: inline-flex; align-items: center; gap: 5px;
+  font: 500 10.5px/1 var(--mkt-font-mono, ui-monospace, monospace);
+  color: var(--mkt-ink-700);
+  border: 1px solid var(--mkt-line); background: var(--mkt-canvas);
+  padding: 4px 8px; border-radius: var(--mkt-r-pill); white-space: nowrap;
+}
+[data-surface="marketing"] .mkt-reg-pill .dot { width: 6px; height: 6px; border-radius: 999px; flex-shrink: 0; }
+[data-surface="marketing"] .mkt-reg-chk {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 21px; height: 21px; border-radius: 999px;
+  background: var(--mkt-green-500); color: #fff; flex-shrink: 0;
+}
+[data-surface="marketing"] .mkt-register-foot {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 16px; border-top: 1px solid var(--mkt-line);
+  background: var(--mkt-canvas);
+  font-size: 11px; color: var(--mkt-ink-400);
+}
+[data-surface="marketing"] .mkt-register-scan {
+  flex: 1; height: 3px; border-radius: 999px; overflow: hidden;
+  background: var(--mkt-line);
+  background-image: linear-gradient(90deg, transparent, var(--mkt-green-400), transparent);
+  background-size: 40% 100%; background-repeat: no-repeat;
+  animation: mkt-reg-scan 2.6s linear infinite;
+}
+@keyframes mkt-reg-scan {
+  0%   { background-position: -40% 0; }
+  100% { background-position: 140% 0; }
+}
+[data-surface="marketing"] .mkt-register-empty .mkt-register-emptynum {
+  padding: 28px 18px 30px; text-align: left;
+}
+[data-surface="marketing"] .mkt-register-empty .mkt-register-emptynum b {
+  display: block; font: 800 40px/1 var(--mkt-font-display, ui-sans-serif, system-ui, sans-serif);
+  color: var(--mkt-ink-900); letter-spacing: -.03em;
+}
+[data-surface="marketing"] .mkt-register-empty .mkt-register-emptynum span {
+  display: block; margin-top: 8px; font-size: 13.5px; color: var(--mkt-ink-500); max-width: 30ch;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-surface="marketing"] .mkt-hero-lead > *,
+  [data-surface="marketing"] .mkt-hero-grid > .mkt-register {
+    opacity: 1 !important; transform: none !important; animation: none !important;
+  }
+  [data-surface="marketing"] .mkt-register-title .pip,
+  [data-surface="marketing"] .mkt-register-scan { animation: none !important; }
+}
+
+/* ===== ingestion engine (multi-cadence schematic) ===== */
+[data-surface="marketing"] .mkt-ie {
+  display: grid; grid-template-columns: minmax(0,1.05fr) 116px minmax(0,0.95fr);
+  align-items: center; gap: 0;
+  background: var(--mkt-paper);
+  border: 1px solid var(--mkt-line); border-radius: var(--mkt-r-xl);
+  box-shadow: var(--mkt-shadow-md);
+  padding: 26px;
+}
+[data-surface="marketing"] .mkt-ie-lanes { display: flex; flex-direction: column; gap: 12px; }
+[data-surface="marketing"] .mkt-ie-lane {
+  position: relative; display: grid; grid-template-columns: 34px 1fr; align-items: center;
+  gap: 11px; padding: 12px 13px 14px; overflow: hidden;
+  background: var(--mkt-canvas); border: 1px solid var(--mkt-line);
+  border-left: 3px solid var(--lane); border-radius: var(--mkt-r-md);
+}
+[data-surface="marketing"] .mkt-ie-lane-ic {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 32px; height: 32px; border-radius: 9px;
+  color: var(--lane);
+  background: color-mix(in srgb, var(--lane) 12%, transparent);
+}
+[data-surface="marketing"] .mkt-ie-lane-txt { min-width: 0; line-height: 1.25; }
+[data-surface="marketing"] .mkt-ie-lane-txt b {
+  display: block; font: 600 13.5px/1.25 var(--mkt-font-display, ui-sans-serif, system-ui, sans-serif);
+  color: var(--mkt-ink-900); letter-spacing: -.01em;
+}
+[data-surface="marketing"] .mkt-ie-lane-txt i {
+  display: block; font: 500 11px/1.2 var(--mkt-font-mono, ui-monospace, monospace);
+  font-style: normal; color: var(--mkt-ink-400); margin-top: 2px;
+}
+[data-surface="marketing"] .mkt-ie-lane-scan {
+  position: absolute; left: 0; bottom: 0; height: 2px; width: 38%;
+  background: linear-gradient(90deg, transparent, var(--lane), transparent);
+  opacity: .85;
+  animation: mkt-ie-sweep var(--tempo, 4s) cubic-bezier(.4,0,.6,1) infinite;
+}
+@keyframes mkt-ie-sweep { 0% { left: -38%; } 100% { left: 100%; } }
+
+[data-surface="marketing"] .mkt-ie-mid { position: relative; align-self: stretch; min-height: 220px; }
+[data-surface="marketing"] .mkt-ie-flow { position: absolute; inset: 0; width: 100%; height: 100%; }
+[data-surface="marketing"] .mkt-ie-flow .wire { fill: none; stroke: var(--mkt-line-strong); stroke-width: 1.5; }
+[data-surface="marketing"] .mkt-ie-flow .pulse {
+  fill: none; stroke: var(--mkt-green-400); stroke-width: 1.8;
+  stroke-dasharray: 14 220; stroke-linecap: round;
+  animation: mkt-ie-dash var(--tempo, 4s) linear infinite;
+}
+@keyframes mkt-ie-dash { to { stroke-dashoffset: -234; } }
+[data-surface="marketing"] .mkt-ie-core {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 72px; height: 72px; border-radius: 999px;
+  background: var(--mkt-green-900); color: var(--mkt-text-1);
+  font: 600 10.5px/1.1 var(--mkt-font-mono, ui-monospace, monospace);
+  letter-spacing: .04em; text-transform: uppercase; text-align: center;
+  box-shadow: var(--mkt-shadow-md); z-index: 2;
+}
+[data-surface="marketing"] .mkt-ie-core .ring {
+  position: absolute; inset: -6px; border-radius: 999px;
+  border: 1.5px solid var(--mkt-green-400);
+  animation: mkt-ie-corepulse 2.8s ease-out infinite;
+}
+@keyframes mkt-ie-corepulse {
+  0% { transform: scale(.92); opacity: .8; }
+  70% { transform: scale(1.18); opacity: 0; }
+  100% { transform: scale(1.18); opacity: 0; }
+}
+
+[data-surface="marketing"] .mkt-ie-out {
+  background: var(--mkt-paper); border: 1px solid var(--mkt-line);
+  border-radius: var(--mkt-r-lg); box-shadow: var(--mkt-shadow-md);
+  overflow: hidden;
+}
+[data-surface="marketing"] .mkt-ie-out-head {
+  display: grid; grid-template-columns: 30px 1fr auto; align-items: center; gap: 10px;
+  padding: 14px 15px; border-bottom: 1px solid var(--mkt-line);
+}
+[data-surface="marketing"] .mkt-ie-out-head .g {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 30px; height: 30px; border-radius: 8px;
+  background: var(--mkt-green-50); color: var(--mkt-green-600);
+}
+[data-surface="marketing"] .mkt-ie-out-head b {
+  display: block; font: 600 14px/1.2 var(--mkt-font-display, ui-sans-serif, system-ui, sans-serif);
+  color: var(--mkt-ink-900); letter-spacing: -.01em;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 22ch;
+}
+[data-surface="marketing"] .mkt-ie-out-head span:not(.lv):not(.tick) {
+  display: block; font-size: 11px; color: var(--mkt-ink-400); margin-top: 1px;
+}
+[data-surface="marketing"] .mkt-ie-out-head .tick {
+  display: inline-flex; align-items: center; gap: 5px;
+  font: 500 10.5px/1 var(--mkt-font-mono, ui-monospace, monospace);
+  color: var(--mkt-green-600);
+}
+[data-surface="marketing"] .mkt-ie-out-head .tick .lv {
+  width: 6px; height: 6px; border-radius: 999px; background: var(--mkt-green-500);
+  animation: mkt-pip 2.4s ease-out infinite;
+}
+[data-surface="marketing"] .mkt-ie-out-rows { list-style: none; margin: 0; padding: 8px; display: flex; flex-direction: column; gap: 2px; }
+[data-surface="marketing"] .mkt-ie-out-rows li {
+  display: grid; grid-template-columns: 8px 1fr auto; align-items: center; gap: 10px;
+  padding: 9px 8px; border-radius: 8px; color: var(--mkt-green-600);
+}
+[data-surface="marketing"] .mkt-ie-out-rows li .dot { width: 8px; height: 8px; border-radius: 999px; }
+[data-surface="marketing"] .mkt-ie-out-rows li .lbl {
+  font: 500 12.5px/1.2 var(--mkt-font-body, ui-sans-serif, system-ui, sans-serif);
+  color: var(--mkt-ink-700);
+}
+[data-surface="marketing"] .mkt-ie-out-foot {
+  padding: 10px 15px; border-top: 1px solid var(--mkt-line);
+  background: var(--mkt-canvas); font-size: 11px; color: var(--mkt-ink-400);
+}
+
+@media (max-width: 860px) {
+  [data-surface="marketing"] .mkt-ie { grid-template-columns: 1fr; gap: 18px; }
+  [data-surface="marketing"] .mkt-ie-mid { min-height: 64px; }
+  [data-surface="marketing"] .mkt-ie-flow { display: none; }
+  [data-surface="marketing"] .mkt-ie-core { position: relative; top: auto; left: auto; transform: none; margin: 0 auto; }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-surface="marketing"] .mkt-ie-lane-scan,
+  [data-surface="marketing"] .mkt-ie-flow .pulse,
+  [data-surface="marketing"] .mkt-ie-core .ring,
+  [data-surface="marketing"] .mkt-ie-out-head .tick .lv { animation: none !important; }
+  [data-surface="marketing"] .mkt-ie-lane-scan { opacity: .35; }
+}
+
+/* ===== product demos (animated app window) ===== */
+[data-surface="marketing"] .mkt-pd { display: flex; flex-direction: column; align-items: center; gap: 20px; }
+[data-surface="marketing"] .mkt-pd-tabs {
+  display: inline-flex; gap: 4px; padding: 4px;
+  background: var(--mkt-canvas-2); border: 1px solid var(--mkt-line);
+  border-radius: var(--mkt-r-pill);
+}
+[data-surface="marketing"] .mkt-pd-tabs button {
+  appearance: none; cursor: pointer; border: 0; background: transparent;
+  font: 600 13.5px/1 var(--mkt-font-display, ui-sans-serif, system-ui, sans-serif);
+  color: var(--mkt-ink-500); padding: 9px 18px; border-radius: var(--mkt-r-pill);
+  transition: background .18s, color .18s, box-shadow .18s;
+}
+[data-surface="marketing"] .mkt-pd-tabs button.on {
+  background: var(--mkt-paper); color: var(--mkt-green-700); box-shadow: var(--mkt-shadow-sm);
+}
+
+[data-surface="marketing"] .mkt-pd-window {
+  width: 100%; max-width: 760px;
+  background: var(--mkt-paper); border: 1px solid var(--mkt-line-strong);
+  border-radius: var(--mkt-r-lg); box-shadow: var(--mkt-shadow-lg); overflow: hidden;
+}
+[data-surface="marketing"] .mkt-pd-bar {
+  display: flex; align-items: center; gap: 7px;
+  padding: 11px 14px; border-bottom: 1px solid var(--mkt-line); background: var(--mkt-canvas);
+}
+[data-surface="marketing"] .mkt-pd-bar .d { width: 9px; height: 9px; border-radius: 999px; background: var(--mkt-line-strong); }
+[data-surface="marketing"] .mkt-pd-url {
+  margin-left: 10px; display: inline-flex; align-items: center; gap: 6px;
+  font: 500 11.5px/1 var(--mkt-font-mono, ui-monospace, monospace);
+  color: var(--mkt-ink-400);
+  background: var(--mkt-paper); border: 1px solid var(--mkt-line);
+  padding: 5px 11px; border-radius: var(--mkt-r-pill);
+}
+[data-surface="marketing"] .mkt-pd-url svg { color: var(--mkt-green-500); }
+[data-surface="marketing"] .mkt-pd-stage { position: relative; min-height: 308px; padding: 20px; }
+[data-surface="marketing"] .mkt-pd-stage > div { height: 100%; }
+[data-surface="marketing"] .mkt-pd-pane { display: flex; flex-direction: column; gap: 12px; }
+
+[data-surface="marketing"] .mkt-pd-search {
+  display: flex; align-items: center; gap: 9px;
+  background: var(--mkt-canvas); border: 1px solid var(--mkt-line-strong);
+  border-radius: var(--mkt-r-pill); padding: 11px 16px;
+  font: 400 14px/1 var(--mkt-font-body, ui-sans-serif, system-ui, sans-serif);
+  color: var(--mkt-ink-700);
+}
+[data-surface="marketing"] .mkt-pd-search svg { color: var(--mkt-green-600); }
+[data-surface="marketing"] .mkt-pd-caret { width: 1.5px; height: 15px; background: var(--mkt-green-500); margin-left: -4px; animation: mkt-pd-blink 1.1s step-end infinite; }
+@keyframes mkt-pd-blink { 50% { opacity: 0; } }
+[data-surface="marketing"] .mkt-pd-chips { display: flex; flex-wrap: wrap; gap: 7px; }
+[data-surface="marketing"] .mkt-pd-chips span {
+  font: 500 11.5px/1 var(--mkt-font-mono, ui-monospace, monospace);
+  color: var(--mkt-ink-500); border: 1px solid var(--mkt-line); background: var(--mkt-canvas);
+  padding: 6px 11px; border-radius: var(--mkt-r-pill);
+}
+[data-surface="marketing"] .mkt-pd-chips span.on {
+  color: var(--mkt-green-700); border-color: var(--mkt-green-200); background: var(--mkt-green-50);
+}
+[data-surface="marketing"] .mkt-pd-list { display: flex; flex-direction: column; gap: 8px; }
+[data-surface="marketing"] .mkt-pd-listrow {
+  display: grid; grid-template-columns: 36px 1fr auto; align-items: center; gap: 13px;
+  padding: 12px 14px; border: 1px solid var(--mkt-line); border-radius: var(--mkt-r-md); background: var(--mkt-paper);
+}
+[data-surface="marketing"] .mkt-pd-listrow b, [data-surface="marketing"] .mkt-pd-prof-id b {
+  display: block; font: 600 14px/1.2 var(--mkt-font-display, ui-sans-serif, system-ui, sans-serif); color: var(--mkt-ink-900);
+}
+[data-surface="marketing"] .mkt-pd-listrow span, [data-surface="marketing"] .mkt-pd-prof-id span {
+  display: block; font-size: 11.5px; color: var(--mkt-ink-400); margin-top: 1px;
+}
+[data-surface="marketing"] .mkt-pd-listrow .sc { color: var(--mkt-green-500); }
+
+[data-surface="marketing"] .mkt-pd-ring { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; }
+[data-surface="marketing"] .mkt-pd-ring .trk { fill: none; stroke: var(--mkt-line); stroke-width: 3; }
+[data-surface="marketing"] .mkt-pd-ring .val { fill: none; stroke: var(--mkt-green-500); stroke-width: 3; stroke-linecap: round; }
+[data-surface="marketing"] .mkt-pd-ring b { position: absolute; font: 700 13px/1 var(--mkt-font-mono, ui-monospace, monospace); color: var(--mkt-green-700); }
+
+[data-surface="marketing"] .mkt-pd-prof { display: flex; align-items: center; gap: 14px; padding: 4px 2px 12px; border-bottom: 1px solid var(--mkt-line); }
+[data-surface="marketing"] .mkt-pd-pillrow { display: flex; flex-wrap: wrap; gap: 7px; }
+[data-surface="marketing"] .mkt-pd-pillrow.tight { margin-top: 9px; }
+[data-surface="marketing"] .mkt-pd-pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  font: 500 11.5px/1 var(--mkt-font-mono, ui-monospace, monospace); color: var(--mkt-ink-700);
+  border: 1px solid var(--mkt-line); background: var(--mkt-canvas); padding: 6px 10px; border-radius: var(--mkt-r-pill);
+}
+[data-surface="marketing"] .mkt-pd-pill .dot { width: 6px; height: 6px; border-radius: 999px; }
+[data-surface="marketing"] .mkt-pd-note {
+  display: inline-flex; align-items: center; gap: 7px; align-self: flex-start;
+  font: 500 12px/1 var(--mkt-font-mono, ui-monospace, monospace); color: var(--mkt-green-600);
+  background: var(--mkt-green-50); border: 1px solid var(--mkt-green-100);
+  padding: 8px 12px; border-radius: var(--mkt-r-pill);
+}
+
+[data-surface="marketing"] .mkt-pd-prov-head, [data-surface="marketing"] .mkt-pd-rfq-head {
+  display: flex; align-items: center; gap: 8px;
+  font: 600 12px/1 var(--mkt-font-mono, ui-monospace, monospace); color: var(--mkt-ink-500);
+  text-transform: uppercase; letter-spacing: .03em; margin-bottom: 2px;
+}
+[data-surface="marketing"] .mkt-pd-prov {
+  display: grid; grid-template-columns: 8px 1fr auto; align-items: center; gap: 12px;
+  padding: 11px 13px; border: 1px solid var(--mkt-line); border-radius: var(--mkt-r-md); background: var(--mkt-paper);
+}
+[data-surface="marketing"] .mkt-pd-prov .dot { width: 8px; height: 8px; border-radius: 999px; }
+[data-surface="marketing"] .mkt-pd-prov b { display: block; font: 600 13px/1.2 var(--mkt-font-body, ui-sans-serif, system-ui, sans-serif); color: var(--mkt-ink-900); }
+[data-surface="marketing"] .mkt-pd-prov span { display: block; font-size: 11px; color: var(--mkt-ink-400); margin-top: 1px; }
+[data-surface="marketing"] .mkt-pd-prov .ext { color: var(--mkt-green-500); }
+
+[data-surface="marketing"] .mkt-pd-claim {
+  display: flex; align-items: center; justify-content: space-between; gap: 14px;
+  padding: 16px; border: 1px solid var(--mkt-line); border-radius: var(--mkt-r-md); background: var(--mkt-canvas);
+}
+[data-surface="marketing"] .mkt-pd-cta {
+  display: inline-flex; align-items: center; gap: 6px; white-space: nowrap;
+  font: 600 12.5px/1 var(--mkt-font-display, ui-sans-serif, system-ui, sans-serif); color: #fff;
+  background: var(--mkt-green-600); padding: 10px 15px; border-radius: var(--mkt-r-pill);
+}
+[data-surface="marketing"] .mkt-pd-rfq { display: flex; flex-direction: column; gap: 10px; }
+[data-surface="marketing"] .mkt-pd-rfq-msg, [data-surface="marketing"] .mkt-pd-rfq-reply {
+  font: 400 13px/1.5 var(--mkt-font-body, ui-sans-serif, system-ui, sans-serif); color: var(--mkt-ink-700);
+  padding: 12px 14px; border-radius: var(--mkt-r-md); max-width: 86%;
+}
+[data-surface="marketing"] .mkt-pd-rfq-msg { background: var(--mkt-canvas); border: 1px solid var(--mkt-line); align-self: flex-start; }
+[data-surface="marketing"] .mkt-pd-rfq-reply { background: var(--mkt-green-50); border: 1px solid var(--mkt-green-100); align-self: flex-end; }
+[data-surface="marketing"] .mkt-pd-rfq .who {
+  display: block; font: 600 10.5px/1 var(--mkt-font-mono, ui-monospace, monospace);
+  color: var(--mkt-ink-400); text-transform: uppercase; letter-spacing: .04em; margin-bottom: 5px;
+}
+
+[data-surface="marketing"] .mkt-pd-caption { max-width: 640px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 14px; }
+[data-surface="marketing"] .mkt-pd-dots { display: inline-flex; gap: 7px; }
+[data-surface="marketing"] .mkt-pd-dots button {
+  appearance: none; cursor: pointer; border: 0; padding: 0;
+  width: 8px; height: 8px; border-radius: 999px; background: var(--mkt-line-strong); transition: background .2s, width .2s;
+}
+[data-surface="marketing"] .mkt-pd-dots button.on { background: var(--mkt-green-500); width: 22px; }
+[data-surface="marketing"] .mkt-pd-caption p { font: 400 16px/1.55 var(--mkt-font-body, ui-sans-serif, system-ui, sans-serif); color: var(--mkt-ink-500); text-wrap: pretty; }
+
+@media (max-width: 640px) {
+  [data-surface="marketing"] .mkt-pd-stage { min-height: 340px; padding: 14px; }
+  [data-surface="marketing"] .mkt-pd-rfq-msg, [data-surface="marketing"] .mkt-pd-rfq-reply { max-width: 100%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-surface="marketing"] .mkt-pd-caret { animation: none !important; }
+}
 
 /* ===== hero dossier card (white, light) ===== */
 [data-surface="marketing"] .mkt-herodash { position: relative; width: 100%; max-width: 520px; justify-self: end; margin-left: auto; }
@@ -3285,767 +3796,40 @@
   [data-surface="marketing"] .mkt-reg-grid { grid-template-columns: 1fr; }
 }
 
-/* ===== Spec R3 — marketing + auth responsive finishing (9 Jun 2026) ===== */
-
-/* Homepage metric band: 1-col below xs (360px) so the long labels
-   ("Government- or association-corroborated") don't collide. */
-@media (max-width: 380px) {
-  [data-surface="marketing"] .mkt-metrics-grid { grid-template-columns: 1fr; }
-  [data-surface="marketing"] .mkt-metric { border-left: 0; border-top: 1px solid var(--mkt-line); padding: 22px 22px; }
-  [data-surface="marketing"] .mkt-metric:first-child { border-top: 0; }
-}
-
-/* Homepage CTA box: stack vertically (text -> actions block) below md.
-   The existing mkt-cta-box uses a flex row layout; below 720 it already
-   wraps via `flex-wrap` on .mkt-cta-actions, but the headline + actions
-   block should also stack so the buttons reach 100% width. */
-@media (max-width: 540px) {
-  [data-surface="marketing"] .mkt-cta-box { flex-direction: column; align-items: stretch; gap: 18px; }
-  [data-surface="marketing"] .mkt-cta-actions { width: 100%; }
-  [data-surface="marketing"] .mkt-cta-actions a { flex: 1 1 100%; justify-content: center; min-height: 44px; }
-  [data-surface="marketing"] .mkt-cta-box h2 { font-size: 26px; }
-}
-
-/* Homepage hero search bar: keep input pill but let the submit button
-   stretch to full width below 420 so the touch target is unmistakable. */
-@media (max-width: 420px) {
-  [data-surface="marketing"] .mkt-searchbar { flex-wrap: wrap; padding: 10px; gap: 8px; border-radius: var(--mkt-r-md); }
-  [data-surface="marketing"] .mkt-searchbar > svg { display: none; }
-  [data-surface="marketing"] .mkt-searchbar input { flex: 1 1 100%; padding: 10px 12px; min-height: 44px; border: 1px solid var(--mkt-line); border-radius: var(--mkt-r-sm); background: var(--mkt-canvas); }
-  [data-surface="marketing"] .mkt-searchbar button { flex: 1 1 100%; min-height: 44px; }
-}
-
-/* Supplier-profile address row: 140px label column collapses below sm
-   so the address text gets the full width on phones. The component
-   keeps the 3-column grid on desktop unchanged. */
-.r3-address-row { grid-template-columns: 140px 1fr auto !important; }
-@media (max-width: 640px) {
-  .r3-address-row { grid-template-columns: 1fr !important; gap: 4px !important; }
-  .r3-address-row > :nth-child(3) { text-align: left; }
-}
-
-/* Supplier-profile 2-col dossier <dl>: stack below sm so the EPZ /
-   Type / etc. value pairs don't overflow at 360px. */
-.r3-dossier-dl { grid-template-columns: 1fr 1fr !important; }
-@media (max-width: 480px) {
-  .r3-dossier-dl { grid-template-columns: 1fr !important; }
-}
-
-/* Pricing cards: ensure every CTA on a plan card meets the 44px tap
-   target. The card itself stays at the existing proto-card padding. */
-.r3-plan-cta { min-height: 44px; display: inline-flex; align-items: center; justify-content: center; }
-
-/* Public Discover mobile filter sheet trigger. The trigger button
-   mirrors the proto-card 44px-tap target language; the Sheet body
-   uses safe-area padding via R1's .safe-pb utility. */
-.r3-filter-trigger { min-height: 44px; }
-
-/* ============================================================
-   Spec R7 � Mobile polish pass (iPhone-X audit, 9 Jun 2026).
-   Unlayered (wins the cascade over @layer components defaults).
-   Implements the styling contract the R1 Sheet / MobileDrawer
-   primitives reference by class name but that was never defined:
-   `.r1-sheet`, `.r1-sheet--{bottom,center,left,right}`, `.r1-sheet-panel`.
-   Without these, native <dialog>.showModal() opened an unstyled,
-   effectively invisible dialog � i.e. "nothing happens when I tap the
-   hamburger" and the admin decide sheets never appeared.
-   ============================================================ */
-.r1-sheet {
-  position: fixed;
-  inset: 0;
-  margin: 0;
-  padding: 0;
-  border: 0;
-  max-width: 100vw;
-  max-height: 100dvh;
-  width: 100%;
-  height: 100%;
-  background: transparent;
-  color: var(--ink-primary, #16191b);
-  overflow: hidden;
-}
-.r1-sheet:not([open]) { display: none; }
-.r1-sheet[open] { display: flex; }
-.r1-sheet::backdrop { background: rgba(10, 12, 14, 0.46); }
-@supports (backdrop-filter: blur(2px)) {
-  .r1-sheet::backdrop { backdrop-filter: blur(2px); }
-}
-.r1-sheet--bottom { align-items: flex-end; justify-content: center; }
-.r1-sheet--center { align-items: center;   justify-content: center; }
-.r1-sheet--left   { align-items: stretch;  justify-content: flex-start; }
-.r1-sheet--right  { align-items: stretch;  justify-content: flex-end; }
-.r1-sheet-panel { position: relative; max-width: 100vw; pointer-events: auto; }
-.r1-sheet--bottom .r1-sheet-panel,
-.r1-sheet--center .r1-sheet-panel { width: 100%; }
-@keyframes r1-sheet-in-bottom { from { transform: translateY(100%); } to { transform: none; } }
-@keyframes r1-sheet-in-left   { from { transform: translateX(-100%); } to { transform: none; } }
-@keyframes r1-sheet-in-right  { from { transform: translateX(100%); } to { transform: none; } }
-@keyframes r1-sheet-in-center { from { transform: translateY(8px); opacity: 0; } to { transform: none; opacity: 1; } }
-@keyframes r1-sheet-backdrop  { from { opacity: 0; } to { opacity: 1; } }
-.r1-sheet[open]::backdrop { animation: r1-sheet-backdrop 200ms ease both; }
-.r1-sheet--bottom[open] .r1-sheet-panel { animation: r1-sheet-in-bottom 240ms cubic-bezier(0.22, 1, 0.36, 1) both; }
-.r1-sheet--center[open] .r1-sheet-panel { animation: r1-sheet-in-center 200ms cubic-bezier(0.22, 1, 0.36, 1) both; }
-.r1-sheet--left[open]   .r1-sheet-panel { animation: r1-sheet-in-left   240ms cubic-bezier(0.22, 1, 0.36, 1) both; }
-.r1-sheet--right[open]  .r1-sheet-panel { animation: r1-sheet-in-right  240ms cubic-bezier(0.22, 1, 0.36, 1) both; }
-html[data-scroll-lock] { overflow: hidden; }
-
-/* ---- Profile page (phones): remove the double horizontal padding and
-   stop any sideways scroll. The (app) <main> already pads px-4; the
-   profile wrapper added px-6 on top, eating ~80px of a 375px viewport. */
-@media (max-width: 639.98px) {
-  .r7-profile-shell { padding-left: 0; padding-right: 0; }
-  .header-name { overflow-wrap: anywhere; word-break: break-word; }
-  .header-side { width: 100%; align-items: stretch; }
-  .header-side .btn-row { width: 100%; flex-wrap: wrap; gap: 8px; }
-  .header-side .btn-row > * { flex: 1 1 auto; min-width: 0; }
-  .header-side .btn-row a,
-  .header-side .btn-row button { width: 100%; justify-content: center; min-height: 44px; }
-  .sanctions-clear { grid-template-columns: 28px 1fr; row-gap: 6px; }
-  .sanctions-clear .cert-status { grid-column: 2; justify-self: start; }
-  .sanctions-clear-body { word-break: normal; overflow-wrap: anywhere; }
-}
-
-/* ===== R8 mobile-fix overrides (universal horizontal-scroll & overlap fixes) ===== */
-
-/* Defensive: kill any rogue horizontal scrolling from decorative blurs or
-   fixed-width legacy elements. `clip` does not create a scroll container, so
-   sticky/position behaviour above is preserved. */
-html, body { overflow-x: clip; }
-
-@media (max-width: 720px) {
-  /* The hamburger drawer already exposes Sign in + Start free; the
-     desktop right-rail (160px) was the universal offender breaking the
-     viewport on every marketing page. Hide it under the drawer
-     breakpoint and let the wordmark have the room. */
-  [data-surface="marketing"] .mkt-nav-right { display: none; }
-}
-
-@media (max-width: 639.98px) {
-  /* Sanctions / proto-card head meta was forced to one line (287px) and
-     spilled out the card on phones. Allow wrap and lose flex-shrink:0. */
-  .proto-card-head { flex-wrap: wrap; align-items: flex-start; }
-  .proto-card-meta {
-    white-space: normal;
-    word-break: break-word;
-    overflow-wrap: anywhere;
-    flex-shrink: 1;
-    min-width: 0;
+@theme inline {
+  @keyframes marquee {
+  from {
+    transform: translateX(0);
+    }
+  to {
+    transform: translateX(calc(-100% - var(--gap)));
+    }
   }
-
-  /* Marketing auth shell: parent grid would otherwise hold its min-content
-     width on phones; force full-fluid with smaller side padding. */
-  [data-surface="marketing"] .mkt-auth { grid-template-columns: 1fr; min-width: 0; }
-  [data-surface="marketing"] .mkt-auth-main {
-    width: 100%;
-    min-width: 0;
-    padding: 32px 16px 48px;
+  @keyframes marquee-vertical {
+  from {
+    transform: translateY(0);
+    }
+  to {
+    transform: translateY(calc(-100% - var(--gap)));
+    }
   }
-  [data-surface="marketing"] .mkt-am-card {
-    width: 100%;
-    max-width: none;
-    min-width: 0;
+  @keyframes shimmer-slide {
+  to {
+    transform: translate(calc(100cqw - 100%), 0);
+    }
   }
-  [data-surface="marketing"] .mkt-field .inp { padding: 0 12px; min-width: 0; }
-  [data-surface="marketing"] .mkt-field .inp input,
-  [data-surface="marketing"] .mkt-field .inp select { min-width: 0; width: 100%; }
-
-  /* Marketing landing: the markstack logo wall should wrap at narrow widths
-     instead of forcing a 384px row. */
-  [data-surface="marketing"] .mkt-markstack { flex-wrap: wrap; gap: 12px; }
-
-  /* Pricing comparison table is content-wide; wrap in a horizontal scroll
-     instead of poking out of its parent. */
-  .mkt-block table.min-w-full { display: block; overflow-x: auto; max-width: 100%; }
-
-  /* Discover/Saved result card: the absolute-positioned completeness pill
-     (top:5 right:5) collides with long company names + the
-     `pr-32` reserve eats the entire content area on small phones.
-     Reflow on phones: pill becomes inline-flex below the head, content area
-     uses full width. */
-  article.proto-card.hoverable.relative > a.flex { gap: 14px; }
-  article.proto-card.hoverable.relative > a.flex > div.flex-1 { padding-right: 0 !important; }
-  article.proto-card.hoverable.relative > div.absolute {
-    position: static !important;
-    margin-top: 12px;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    align-items: center;
-    justify-content: flex-start;
+  @keyframes spin-around {
+  0% {
+    transform: translateZ(0) rotate(0);
+    }
+  15%, 35% {
+    transform: translateZ(0) rotate(90deg);
+    }
+  65%, 85% {
+    transform: translateZ(0) rotate(270deg);
+    }
+  100% {
+    transform: translateZ(0) rotate(360deg);
+    }
   }
 }
-
-
-/* ===== R8 follow-up nav-collapse 980 ===== */
-
-/* The marketing top-nav has three pieces (hamburger md:hidden,
-   nav-links @media >720 visible, nav-right always visible). The
-   721-980 band shows links + right-rail but no hamburger and the
-   right-rail still overflowed by 25px @ 768. Extend the collapse
-   point: <=980 hides links + right-rail and brings the hamburger
-   back (which already carries Sign in + Start free). */
-@media (max-width: 980px) {
-  [data-surface="marketing"] .mkt-nav-right { display: none; }
-  [data-surface="marketing"] .mkt-nav-links { display: none; }
-  [data-surface="marketing"] .mkt-nav-menu { display: inline-flex !important; }
-}
-
-
-/* ===== R9 - Marketing + auth chrome polish ===== */
-/* DemoBanner removed (R9). Defensively hide any orphan markup. */
-[data-surface="marketing"] .mkt-demo,
-[data-surface="marketing"] .mkt-demo-inner,
-[data-surface="marketing"] .mkt-demo-cta { display: none !important; }
-
-/* Buttons: rebuild on the design-system <Button> contract
-   (rounded-pill 8px, semibold 13px, hairline-strong border, no glow). */
-[data-surface="marketing"] .mkt-btn {
-  font: 600 13px/1 var(--mkt-font-body, ui-sans-serif, system-ui, sans-serif);
-  padding: 0 14px; height: 36px; gap: 6px;
-  border-radius: var(--r-pill);
-  border: 1px solid var(--hairline-strong);
-  background: var(--surface-l1); color: var(--ink-primary);
-  box-shadow: none;
-  transition: background .16s ease, color .16s ease, border-color .16s ease, box-shadow .16s ease;
-}
-[data-surface="marketing"] .mkt-btn:hover { box-shadow: var(--shadow-l1); }
-[data-surface="marketing"] .mkt-btn:active { transform: none; }
-
-[data-surface="marketing"] .mkt-btn-primary {
-  background: var(--brand-forest); color: var(--ink-on-accent);
-  border-color: var(--brand-forest);
-  box-shadow: none;
-}
-[data-surface="marketing"] .mkt-btn-primary:hover {
-  background: var(--brand-forest); color: var(--ink-on-accent);
-  box-shadow: var(--shadow-l1);
-}
-
-[data-surface="marketing"] .mkt-btn-ghost {
-  background: transparent; color: var(--ink-primary);
-  border-color: var(--hairline-strong);
-  box-shadow: none;
-}
-[data-surface="marketing"] .mkt-btn-ghost:hover {
-  background: var(--brand-forest-tint); color: var(--ink-primary);
-  border-color: var(--hairline-strong);
-  box-shadow: var(--shadow-l1);
-}
-
-[data-surface="marketing"] .mkt-btn-lg {
-  height: 40px; padding: 0 20px; font-size: 13px;
-}
-
-[data-surface="marketing"] .mkt-btn-white {
-  background: var(--surface-l1); color: var(--brand-forest);
-  border-color: var(--surface-l1);
-  box-shadow: none;
-}
-[data-surface="marketing"] .mkt-btn-white:hover {
-  background: var(--surface-l1); color: var(--brand-forest);
-  box-shadow: var(--shadow-l1);
-}
-
-[data-surface="marketing"] .mkt-btn-dark-ghost {
-  background: transparent; color: #fff;
-  border-color: rgba(255,255,255,.32);
-  box-shadow: none;
-}
-[data-surface="marketing"] .mkt-btn-dark-ghost:hover {
-  background: rgba(255,255,255,.08);
-  border-color: rgba(255,255,255,.55); color: #fff;
-  box-shadow: none;
-}
-
-/* Top-nav sign-in: quiet text link, matches design-system <Button variant="ghost">
-   typography weight at small size. */
-[data-surface="marketing"] .mkt-nav-right .mkt-signin {
-  font: 600 13px/1 var(--mkt-font-body, ui-sans-serif, system-ui, sans-serif);
-  color: var(--ink-primary);
-  transition: color .16s ease;
-}
-[data-surface="marketing"] .mkt-nav-right .mkt-signin:hover {
-  color: var(--brand-forest); text-decoration: none;
-}
-
-/* Auth form submit + secondary: match <Button variant="primary"> / outline
-   shape; drop the inset highlight + green drop-shadow glow. */
-[data-surface="marketing"] .mkt-btn-submit {
-  height: 44px; padding: 0 18px; width: 100%;
-  border-radius: var(--r-pill);
-  background: var(--brand-forest); color: var(--ink-on-accent);
-  border: 1px solid var(--brand-forest);
-  font: 600 14px/1 var(--mkt-font-body, ui-sans-serif, system-ui, sans-serif);
-  box-shadow: none;
-  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-  transition: background .16s ease, box-shadow .16s ease, color .16s ease;
-  cursor: pointer;
-}
-[data-surface="marketing"] .mkt-btn-submit:hover {
-  background: var(--brand-forest); color: var(--ink-on-accent);
-  box-shadow: var(--shadow-l1);
-}
-[data-surface="marketing"] .mkt-btn-submit:active { transform: none; }
-[data-surface="marketing"] .mkt-btn-submit:disabled { opacity: .55; cursor: progress; }
-
-[data-surface="marketing"] .mkt-btn-secondary {
-  height: 44px; padding: 0 18px; width: 100%;
-  border-radius: var(--r-pill);
-  background: transparent; color: var(--ink-primary);
-  border: 1px solid var(--hairline-strong);
-  font: 600 14px/1 var(--mkt-font-body, ui-sans-serif, system-ui, sans-serif);
-  box-shadow: none;
-  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-  transition: background .16s ease, box-shadow .16s ease, border-color .16s ease;
-  cursor: pointer;
-}
-[data-surface="marketing"] .mkt-btn-secondary:hover {
-  background: var(--brand-forest-tint); color: var(--ink-primary);
-  border-color: var(--hairline-strong);
-  box-shadow: var(--shadow-l1);
-}
-
-/* Wordmark glyph: drop the green-gradient shield. Both wordmark mounts
-   now render an empty <span class="mkt-wm-glyph"/> which becomes a clean,
-   small brand-forest filled square (typographic accent, no AI shield vibe). */
-[data-surface="marketing"] .mkt-wm-glyph {
-  width: 16px; height: 16px; border-radius: 3px;
-  background: var(--brand-forest);
-  box-shadow: none; padding: 0;
-  display: inline-block; flex-shrink: 0;
-}
-[data-surface="marketing"] .mkt-wm-glyph svg { display: none; }
-[data-surface="marketing"] .mkt-wordmark {
-  font: 700 18px/1 var(--mkt-font-display, ui-sans-serif, system-ui, sans-serif);
-  letter-spacing: -.02em; color: var(--ink-primary); gap: 8px;
-}
-[data-surface="marketing"] .mkt-wordmark b {
-  color: var(--brand-forest); font-weight: 700;
-}
-/* Dark auth-brand panel keeps the wordmark light on its dark background. */
-[data-surface="marketing"] .mkt-auth-brand .mkt-wm-glyph {
-  background: rgba(255,255,255,.92);
-}
-
-/* Auth shell: fix .mkt-am-top crashing into .mkt-am-card at narrow widths.
-   The parent .mkt-auth-main is display:flex (centered); at <=920 the existing
-   rule turns .mkt-am-top from position:absolute to position:static, which
-   makes the two flex children (.mkt-am-top + .mkt-am-card) render side-by-side
-   instead of stacking. Force column stacking; at <=640 hide .mkt-am-top
-   entirely - .mkt-switch at the bottom of the form already carries the
-   counterpart link (no info loss). */
-@media (max-width: 920px) {
-  [data-surface="marketing"] .mkt-auth-main {
-    flex-direction: column;
-    align-items: stretch;
-    padding-top: 28px;
-  }
-  [data-surface="marketing"] .mkt-am-top {
-    align-self: flex-end;
-    max-width: 320px;
-    margin: 0 0 14px auto;
-  }
-  [data-surface="marketing"] .mkt-am-card {
-    margin: 0 auto;
-  }
-}
-@media (max-width: 640px) {
-  [data-surface="marketing"] .mkt-am-top { display: none; }
-  [data-surface="marketing"] .mkt-am-logo { margin: 0 0 20px; }
-}
-/* ===== /R9 ===== */
-/* ===== R9 round 2 - audit follow-up =====
-   1. Replace the round-1 plain forest-square glyph (read as placeholder)
-      with the new <WordmarkMark> SVG (forest rounded square + 3 white
-      record-rows). Style targets the SVG class so we don't touch the
-      legacy .mkt-wm-glyph rules that round-1 left in place.
-   2. Verified-by chip: cap row to one line on phone via .mkt-vsources
-      span that handles its own truncation; also tighten the
-      "Verified by" label to mono uppercase so the badge reads as
-      enterprise grade rather than ad-hoc.
-   3. Profile header: explicit gap between .header-name and .header-chips
-      (visual breathing room when there's no parentline between them).
-   4. Marketing top-nav: left-anchor the wordmark on phone (was reading
-      as middled because the nav-row 28px gap pushed it past the
-      hamburger).
-   5. Buyer profile .btn-row: enterprise-grade icon-first compact treatment
-      below 640px (icon-only 36x36 outline pills with title/aria-label
-      describing purpose) while keeping desktop full-label CTAs.
-===== */
-
-/* --- 1. Wordmark mark (replaces .mkt-wm-glyph for new mounts) --- */
-[data-surface="marketing"] .mkt-wm-mark {
-  width: 22px; height: 22px; flex-shrink: 0;
-  display: inline-block;
-  filter: drop-shadow(0 1px 1px rgba(15,15,20,.06));
-}
-[data-surface="marketing"] .mkt-wm-mark .mkt-wm-mark-bg {
-  fill: var(--brand-forest);
-}
-[data-surface="marketing"] .mkt-wm-mark .mkt-wm-mark-row {
-  fill: rgba(255,255,255,.92);
-}
-/* On the dark auth-brand panel + footer brand block, invert: mark stays
-   forest but rows pop on the dark background. */
-[data-surface="marketing"] .mkt-auth-brand .mkt-wm-mark .mkt-wm-mark-bg {
-  fill: rgba(255,255,255,.96);
-}
-[data-surface="marketing"] .mkt-auth-brand .mkt-wm-mark .mkt-wm-mark-row {
-  fill: var(--brand-forest);
-}
-[data-surface="marketing"] .mkt-ft-brand .mkt-wm-mark .mkt-wm-mark-bg {
-  fill: var(--brand-forest);
-}
-[data-surface="marketing"] .mkt-ft-brand .mkt-wm-mark .mkt-wm-mark-row {
-  fill: rgba(255,255,255,.94);
-}
-
-/* Wordmark text wrapper (was a bare text node). Tightens the brand to
-   read as a single typographic unit, with a defined gap to the mark. */
-[data-surface="marketing"] .mkt-wordmark {
-  gap: 9px;
-}
-[data-surface="marketing"] .mkt-wm-text {
-  font-family: var(--mkt-font-display, var(--font-display, ui-sans-serif));
-  font-weight: 700; font-size: 18px;
-  letter-spacing: -.02em;
-  line-height: 1;
-  display: inline-flex; align-items: baseline; gap: 1px;
-}
-[data-surface="marketing"] .mkt-wm-text b {
-  margin-left: 3px;
-  color: var(--brand-forest);
-  font-weight: 700;
-}
-
-/* Hide the legacy round-1 plain-square fallback (the empty
-   <span class="mkt-wm-glyph"/>) — those mounts now render <WordmarkMark>.
-   Belt-and-braces: any orphan instance is invisible. */
-[data-surface="marketing"] .mkt-wordmark > .mkt-wm-glyph:empty {
-  display: none;
-}
-
-/* --- 2. Verified-by chip: clean line, tighter label, never wraps badly --- */
-.chip.chip-verified {
-  padding: 5px 11px 5px 9px;
-  gap: 7px;
-  max-width: 100%;
-  flex-wrap: nowrap;
-  align-items: center;
-  line-height: 1.15;
-}
-.chip.chip-verified > span:not(.chip-verified-sources) {
-  font-family: var(--font-mono);
-  font-size: 10.5px;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--sem-green);
-  white-space: nowrap;
-  flex-shrink: 0;
-}
-.chip.chip-verified .chip-verified-sources {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  color: var(--sem-green);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  min-width: 0;
-}
-@media (max-width: 640px) {
-  .chip.chip-verified .chip-verified-sources {
-    max-width: 180px;
-  }
-}
-
-/* --- 3. Header chip row: visual breathing room from the company name --- */
-.header-chips {
-  margin-top: 4px;
-  margin-bottom: 14px;
-  row-gap: 8px;
-}
-.header-name {
-  margin-bottom: 8px;
-}
-/* When there's a parentline between name and chips, tighten the gaps
-   (parentline already adds spacing). */
-.header-parentline + .header-chips {
-  margin-top: 0;
-}
-
-/* --- 4. Marketing top-nav: left-anchor wordmark on phone --- */
-@media (max-width: 720px) {
-  [data-surface="marketing"] .mkt-nav-row {
-    gap: 12px;
-    height: 60px;
-  }
-  [data-surface="marketing"] .mkt-wordmark {
-    margin-right: auto;
-  }
-  [data-surface="marketing"] .mkt-wm-text {
-    font-size: 17px;
-  }
-  [data-surface="marketing"] .mkt-wm-mark {
-    width: 20px; height: 20px;
-  }
-}
-
-/* --- 5. Buyer profile action row: enterprise-grade compact on phone --- */
-/* Round 1 left .btn-row as a vertical stack of three full-width buttons.
-   Round 2 makes it horizontal-icon-first <640 (saves vertical real estate +
-   reads as an enterprise toolbar rather than a stack of CTA buttons). */
-@media (max-width: 640px) {
-  .header-side {
-    width: 100%;
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    gap: 10px;
-  }
-  .header-side .btn-row {
-    gap: 6px;
-    flex-wrap: nowrap;
-    margin-left: auto;
-  }
-  /* All children of .btn-row collapse to a 36x36 icon button on phone.
-     Labels still render in DOM (a11y) but visually hidden via .sr-only-mobile.
-     Buttons keep their full title="" / aria-label="" so hover / VO still
-     describes purpose. */
-  .header-side .btn-row > * {
-    height: 36px !important;
-    min-height: 36px !important;
-    width: 36px !important;
-    padding: 0 !important;
-    border-radius: 10px !important;
-    flex: 0 0 auto;
-    gap: 0 !important;
-  }
-  .header-side .btn-row > * > svg {
-    width: 18px; height: 18px;
-  }
-  .header-side .btn-row .r9-btn-label {
-    position: absolute;
-    width: 1px; height: 1px; padding: 0; margin: -1px;
-    overflow: hidden; clip: rect(0,0,0,0);
-    white-space: nowrap; border: 0;
-  }
-}
-@media (min-width: 641px) {
-  /* Desktop / tablet: keep labels visible but tighten height + spacing. */
-  .header-side .btn-row {
-    gap: 8px;
-    flex-wrap: wrap;
-    justify-content: flex-end;
-  }
-  .header-side .btn-row > * {
-    min-height: 36px;
-  }
-}
-
-/* ===== /R9 round 2 ===== */
-/* ===== R9 round 2b - app-shell topbar wordmark =====
-   The .proto-wordmark previously rendered a gradient text-only "SourceBD".
-   Now it wraps <WordmarkMark> + <span class="proto-wm-text"> so logged-in
-   users see the same brand mark as the marketing surface. Override the
-   text-clip (which would also clip the SVG) and define the layout. */
-.proto-wordmark {
-  display: inline-flex;
-  align-items: center;
-  gap: 9px;
-  background: none;
-  -webkit-background-clip: initial;
-  background-clip: initial;
-  color: var(--ink-primary);
-}
-.proto-wordmark .mkt-wm-mark {
-  width: 22px; height: 22px; flex-shrink: 0;
-}
-.proto-wordmark .mkt-wm-mark .mkt-wm-mark-bg { fill: var(--brand-forest); }
-.proto-wordmark .mkt-wm-mark .mkt-wm-mark-row { fill: rgba(255,255,255,.92); }
-.proto-wm-text {
-  font-family: var(--font-display);
-  font-weight: 700;
-  font-size: 18px;
-  letter-spacing: -.02em;
-  line-height: 1;
-  display: inline-flex; align-items: baseline; gap: 1px;
-  color: var(--ink-primary);
-}
-.proto-wm-text b {
-  margin-left: 3px;
-  color: var(--brand-forest);
-  font-weight: 700;
-}
-@media (max-width: 640px) {
-  .proto-wm-text { font-size: 17px; }
-  .proto-wordmark .mkt-wm-mark { width: 20px; height: 20px; }
-}
-/* ===== /R9 round 2b ===== */
-/* ===== R9 round 3 - audit-driven polish =====
-   Fixes from the post-round-2 live audit (sourcebd.net):
-   #4 inline sources tooltip clipped left on phone profile header.
-   #6 registry rows cramped left, wasting right-column whitespace.
-*/
-
-/* #4a - desktop: anchor popover to the trigger's LEFT edge, not its centre.
-   The 320px panel centered on a near-edge trigger overflowed viewport. */
-.sources-explainer.inline .sources-explainer-body {
-  left: 0;
-  transform: none;
-}
-@keyframes sourcesPopInLeft {
-  from { opacity: 0; transform: translateY(-4px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-.sources-explainer.inline .sources-explainer-body {
-  animation: sourcesPopInLeft 160ms var(--ease);
-}
-
-/* #4b - phone: detach from the trigger and clamp to the viewport rails so
-   the popover never clips, no matter where the chip sits in the header. */
-@media (max-width: 720px) {
-  .sources-explainer.inline .sources-explainer-body {
-    position: fixed;
-    top: 64px;
-    left: 12px;
-    right: 12px;
-    transform: none;
-    width: auto;
-    max-width: none;
-  }
-}
-
-/* #6 - registry row mobile layout: 3-column grid using the right rail for
-   status + action chips. Logo spans both rows on the left, name + status on
-   top, meta + action on bottom. Compact and enterprise-balanced. */
-@media (max-width: 640px) {
-  .registry-row {
-    grid-template-columns: 36px minmax(0, 1fr) auto;
-    grid-template-areas:
-      "logo name   status"
-      "logo meta   action";
-    gap: 2px 10px;
-    padding: 12px 0;
-    align-items: center;
-  }
-  .registry-row .reg-logo {
-    grid-area: logo;
-    align-self: center;
-  }
-  .registry-row .reg-name {
-    grid-area: name;
-    min-width: 0;
-  }
-  .registry-row .reg-meta {
-    grid-area: meta;
-    min-width: 0;
-    margin-top: 0;
-  }
-  .registry-row .reg-status {
-    grid-area: status;
-    justify-self: end;
-    padding: 3px 8px;
-    font-size: 10.5px;
-  }
-}
-/* ===== /R9 round 3 ===== */
-
-/* ============================================================
-   Spec R9 round 5 (9 Jun 2026) — polish pass for the
-   supplier dossier on mobile + sticky sources popover close button.
-   ============================================================ */
-
-/* Address rows on the Overview / dossier card. Replaces the old
-   inline 3-col grid (140px 1fr auto) that collapsed messily on
-   phones: kind label was forced to a narrow column, the address
-   wrapped into 4-5 lines, and the "via X" tag stuck to the right
-   regardless of width. */
-.address-row {
-  padding: 12px 0;
-  border-bottom: 1px solid var(--hairline);
-  list-style: none;
-}
-.address-row:last-child { border-bottom: none; }
-.address-row-head {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px 10px;
-  font-family: var(--font-mono);
-  font-size: 11px;
-  color: var(--ink-tertiary);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  margin-bottom: 4px;
-}
-.address-kind {
-  display: inline-flex;
-  align-items: center;
-  padding: 2px 7px;
-  border-radius: var(--r-pill);
-  background: var(--surface-l1);
-  border: 1px solid var(--hairline);
-  color: var(--ink-secondary);
-}
-.address-via {
-  margin-left: auto;
-  font-size: 10.5px;
-  color: var(--ink-tertiary);
-  text-transform: none;
-  letter-spacing: 0.02em;
-  font-family: var(--font-mono);
-}
-.address-line {
-  margin: 0;
-  font-size: 13.5px;
-  line-height: 1.45;
-  color: var(--ink-primary);
-  word-break: break-word;
-}
-@media (max-width: 480px) {
-  .address-line { font-size: 13px; }
-  .address-via { margin-left: 0; flex-basis: 100%; order: 3; }
-}
-
-/* Inline sources-explainer popover — close (X) button anchored
-   in the top-right corner, only rendered inside the popover body
-   (variant === "inline"). Keeps the panel sticky: the only way to
-   close it is the trigger pill or this button. */
-.sources-explainer-close {
-  position: absolute;
-  top: 6px;
-  right: 6px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  border: 1px solid var(--hairline);
-  background: var(--surface-l2);
-  color: var(--ink-tertiary);
-  cursor: pointer;
-  transition: background var(--dur-hover) var(--ease),
-              color var(--dur-hover) var(--ease),
-              border-color var(--dur-hover) var(--ease);
-}
-.sources-explainer-close:hover {
-  background: var(--brand-forest-tint);
-  color: var(--brand-forest);
-  border-color: var(--brand-forest);
-}
-.sources-explainer.inline .sources-explainer-body {
-  padding-right: 36px;
-}
-
-/* Registry / cert tiles — no longer interactive (R9r5 dropped the
-   "Look up" link), so reset the cursor and the cert tile's hover
-   transform so users do not expect a click target. */
-.cert { cursor: default; }
-.cert:hover { transform: none; box-shadow: none; }
-.registry-row { cursor: default; }
-/* /R9 round 5 ===== */

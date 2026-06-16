@@ -172,22 +172,19 @@ export default async function BuyerHome() {
             {doc.alerts.map((a) => (
               <li
                 key={`${a.supplier_id}-${a.cert_kind}-${a.expires_on}`}
-                className="grid grid-cols-[16px_1fr] items-start gap-x-2 gap-y-0.5 rounded-input border border-sem-amber bg-sem-amber-soft px-3 py-2.5 text-[13px]"
+                className="flex items-center justify-between gap-3 rounded-input border border-sem-amber bg-sem-amber-soft px-3 py-2 text-[13px]"
               >
-                <WarningCircle
-                  size={16}
-                  weight="fill"
-                  aria-hidden
-                  className="mt-0.5 text-sem-amber"
-                />
-                <Link
-                  href={`/app/suppliers/${a.supplier_slug}`}
-                  className="min-w-0 break-words font-medium text-sem-amber underline-offset-2 hover:underline"
-                >
-                  {a.company_name}
-                </Link>
-                <span className="col-start-2 text-[12px] text-ink-secondary">
-                  {prettyCert(a.cert_kind)} expires {fmtDate(a.expires_on)}
+                <span className="flex items-center gap-2 text-sem-amber">
+                  <WarningCircle size={16} weight="fill" aria-hidden />
+                  <Link
+                    href={`/app/suppliers/${a.supplier_slug}`}
+                    className="font-medium underline-offset-2 hover:underline"
+                  >
+                    {a.company_name}
+                  </Link>
+                  <span className="text-ink-secondary">
+                    · {prettyCert(a.cert_kind)} expires {fmtDate(a.expires_on)}
+                  </span>
                 </span>
               </li>
             ))}
@@ -223,7 +220,7 @@ export default async function BuyerHome() {
                   row={savedToDiscoverRow(c)}
                   hrefBase="/app/suppliers"
                   actionSlot={
-                    <SaveButton supplierId={c.id} initialSaved={true} shape="responsive" />
+                    <SaveButton supplierId={c.id} initialSaved={true} shape="icon" />
                   }
                 />
               </li>
@@ -313,6 +310,7 @@ function savedToDiscoverRow(c: SavedCard): DiscoverRow {
     district: c.district,
     source_tags: c.source_tags ?? [],
     t13_source_count: c.t13_source_count,
+    completeness_pct: c.completeness_pct,
     employees_total: null,
     established_date: null,
     principal_products: [],

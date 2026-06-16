@@ -13,6 +13,7 @@
 - **Language**: TypeScript (strict).
 - **Framework**: **Next.js 15+ App Router** (single Next.js app serving both marketing site `/` and buyer app `/app/*` via route groups; supplier portal `/supplier/*`; admin `/admin/*`).
 - **Styling**: Tailwind CSS + shadcn/ui + Phosphor Icons (`@phosphor-icons/react`). Fonts: Bricolage Grotesque (display) + Plus Jakarta Sans (body).
+- **Motion / animation**: **`motion`** (the successor to Framer Motion; package `motion`, React bindings via `motion/react`). **Approved as a Hard-Rule-4 exception by founder on 9 Jun 2026** for the marketing-surface redesign (Register × Engine direction). Scope: marketing route group (`(marketing)`) + auth shell only — the buyer/supplier/admin app surfaces stay on CSS + small IntersectionObserver islands unless a future spec extends this. All motion must honour `prefers-reduced-motion` (settle to final state, no animation) and must never animate fabricated data.
 - **Auth**: Supabase Auth (email/password + magic link). Three roles: `buyer`, `supplier`, `admin`.
 - **Server-side data**: Supabase JS client + RLS-protected queries. No separate backend service.
 - **Forms / validation**: `react-hook-form` + `zod`.

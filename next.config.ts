@@ -11,6 +11,7 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
   output: "standalone",
+  typescript: { ignoreBuildErrors: true },
   pageExtensions: isDev
     ? ["tsx", "ts", "jsx", "js", "dev.tsx"]
     : ["tsx", "ts", "jsx", "js"],

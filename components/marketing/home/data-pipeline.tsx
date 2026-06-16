@@ -1,0 +1,157 @@
+"use client";
+
+// Data-pipeline diagram — AnimatedBeam (L / elbow routing).
+//
+// Two columns of real authority logos converge on the SourceBD
+// verification engine in the centre: certification bodies on the left,
+// government registers + trade associations on the right. The beams use
+// an angular L / elbow route (no rounded curves) so it reads like a
+// circuit board — collection → reconciliation.
+
+import React, { forwardRef, useRef } from "react";
+import Image from "next/image";
+
+import { AnimatedBeam } from "@/components/ui/animated-beam";
+import { ShieldGlyph } from "@/components/marketing/logo";
+import { cn } from "@/lib/utils";
+
+const Node = forwardRef<
+  HTMLDivElement,
+  { className?: string; children?: React.ReactNode; title?: string }
+>(({ className, children, title }, ref) => {
+  return (
+    <div
+      ref={ref}
+      title={title}
+      className={cn(
+        "z-10 flex size-16 items-center justify-center rounded-2xl border border-neutral-200/80 bg-white p-3",
+        className,
+      )}
+    >
+      {children}
+    </div>
+  );
+});
+Node.displayName = "Node";
+
+function Logo({ src, alt }: { src: string; alt: string }) {
+  return (
+    <Image
+      src={src}
+      alt={alt}
+      width={36}
+      height={36}
+      className="h-full w-full object-contain"
+    />
+  );
+}
+
+// Left — certification bodies
+const CERTS = [
+  { src: "/inapp-logos/okeo100.png", alt: "OEKO-TEX" },
+  { src: "/inapp-logos/wrap.png", alt: "WRAP" },
+  { src: "/inapp-logos/gost.png", alt: "GOTS" },
+  { src: "/inapp-logos/GRS.png", alt: "GRS" },
+];
+
+// Right — government registers + trade associations
+const REGS = [
+  { src: "/inapp-logos/RSC.png", alt: "RSC" },
+  { src: "/inapp-logos/bgmea.png", alt: "BGMEA" },
+  { src: "/inapp-logos/bkmea.png", alt: "BKMEA" },
+  { src: "/inapp-logos/BTMA.webp", alt: "BTMA" },
+];
+
+export function DataPipeline({ className }: { className?: string }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const engineRef = useRef<HTMLDivElement>(null);
+  const certRefs = [
+    useRef<HTMLDivElement>(null),
+    useRef<HTMLDivElement>(null),
+    useRef<HTMLDivElement>(null),
+    useRef<HTMLDivElement>(null),
+  ];
+  const regRefs = [
+    useRef<HTMLDivElement>(null),
+    useRef<HTMLDivElement>(null),
+    useRef<HTMLDivElement>(null),
+    useRef<HTMLDivElement>(null),
+  ];
+
+  return (
+    <div
+      ref={containerRef}
+      className={cn(
+        "relative flex h-full min-h-[460px] w-full items-stretch justify-between px-3 sm:px-6",
+        className,
+      )}
+    >
+      {/* Left — certification bodies */}
+      <div className="flex flex-col justify-center gap-7">
+        {CERTS.map((c, i) => (
+          <Node key={c.alt} ref={certRefs[i]} title={`Certification · ${c.alt}`}>
+            <Logo src={c.src} alt={c.alt} />
+          </Node>
+        ))}
+      </div>
+
+      {/* Centre — SourceBD verification engine (absolutely centred so it
+          stays dead-centre regardless of column widths) */}
+      <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center">
+        <div
+          ref={engineRef}
+          title="SourceBD verification engine"
+          className="pointer-events-auto relative flex size-28 items-center justify-center rounded-3xl bg-[#1f4d3a] shadow-[0_14px_40px_-14px_rgba(31,77,58,0.55)]"
+        >
+          <span className="absolute -inset-2 -z-10 rounded-3xl bg-[#1f4d3a]/[0.08]" />
+          <ShieldGlyph className="h-1/2 w-1/2" />
+        </div>
+      </div>
+
+      {/* Right — registers & associations */}
+      <div className="flex flex-col justify-center gap-7">
+        {REGS.map((r, i) => (
+          <Node key={r.alt} ref={regRefs[i]} title={`Register · ${r.alt}`}>
+            <Logo src={r.src} alt={r.alt} />
+          </Node>
+        ))}
+      </div>
+
+      {/* Beams: cert logos → engine (L route, all fire together) */}
+      {certRefs.map((ref, i) => (
+        <AnimatedBeam
+          key={`c-${i}`}
+          containerRef={containerRef}
+          fromRef={ref}
+          toRef={engineRef}
+          pathType="angular"
+          elbowAt={0.6}
+          duration={5}
+          delay={0}
+          pathColor="#d2d1c3"
+          pathWidth={2}
+          gradientStartColor="#1f4d3a"
+          gradientStopColor="#4e9268"
+        />
+      ))}
+      {/* Beams: register logos → engine (L route, reversed, all together) */}
+      {regRefs.map((ref, i) => (
+        <AnimatedBeam
+          key={`r-${i}`}
+          containerRef={containerRef}
+          fromRef={ref}
+          toRef={engineRef}
+          pathType="angular"
+          elbowAt={0.6}
+          duration={5}
+          delay={0}
+          reverse
+          pathColor="#d2d1c3"
+          pathWidth={2}
+          gradientStartColor="#1f4d3a"
+          gradientStopColor="#4e9268"
+        />
+      ))}
+    </div>
+  );
+}

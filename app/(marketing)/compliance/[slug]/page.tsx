@@ -129,56 +129,12 @@ export default async function ComplianceDetailPage({
         </p>
       </header>
 
-      {/* R3 — in-page jump menu. Native <details>, no JS. Collapsed
-          by default on phones; expanded by default on `md+` via the
-          `open` attribute toggled by a CSS-only media-query pattern
-          (Tailwind `md:[&[open]]` is not available, so we instead
-          render the open marker via a `data-r3-md-open` attribute
-          that CSS targets at md+). Keeps long pages navigable on
-          mobile without adding a `'use client'` boundary. */}
-      <nav
-        aria-label="On this page"
-        className="mt-6 md:hidden"
-      >
-        <details className="rounded-card border border-hairline bg-surface-l1">
-          <summary className="cursor-pointer px-4 py-3 text-sm font-semibold text-ink-primary">
-            On this page
-          </summary>
-          <ul className="space-y-1 border-t border-hairline px-4 py-3 text-sm">
-            {SECTION_ORDER.map((heading) => {
-              const section = page.sections.find((s) => s.heading === heading);
-              if (!section) return null;
-              const id = heading.toLowerCase().replace(/[^a-z0-9]+/g, "-");
-              return (
-                <li key={heading}>
-                  <a
-                    href={`#${id}`}
-                    className="block min-h-[44px] py-2 text-ink-secondary hover:text-brand-forest"
-                  >
-                    {heading}
-                  </a>
-                </li>
-              );
-            })}
-            <li>
-              <a
-                href="#references"
-                className="block min-h-[44px] py-2 text-ink-secondary hover:text-brand-forest"
-              >
-                References
-              </a>
-            </li>
-          </ul>
-        </details>
-      </nav>
-
       <article className="proto-card mt-10 space-y-10">
         {SECTION_ORDER.map((heading) => {
           const section = page.sections.find((s) => s.heading === heading);
           if (!section) return null;
-          const id = heading.toLowerCase().replace(/[^a-z0-9]+/g, "-");
           return (
-            <section key={heading} id={id}>
+            <section key={heading}>
               <h2 className="font-display text-xl font-semibold text-ink-primary">
                 {section.heading}
               </h2>
@@ -198,7 +154,7 @@ export default async function ComplianceDetailPage({
           );
         })}
 
-        <section id="references">
+        <section>
           <h2 className="font-display text-xl font-semibold text-ink-primary">
             References
           </h2>

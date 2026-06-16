@@ -12,7 +12,6 @@ import { Bell, MagnifyingGlass, UserCircle } from "@phosphor-icons/react/dist/ss
 
 import type { Role } from "@/lib/auth";
 import { TopbarHamburger } from "@/components/shell/topbar-hamburger";
-import { WordmarkMark } from "@/components/marketing/wordmark-mark";
 
 type QuickLink = { href: string; label: string };
 
@@ -57,21 +56,17 @@ export function Topbar({
 }) {
   const variant = variantFor(role);
   const links = QUICK_LINKS[variant];
-  // Logo on the app-shell topbar always belongs to a logged-in user, so
-  // route to their workspace home rather than the marketing landing page.
-  const homeHref =
-    role === "admin" ? "/admin" : role === "supplier" ? "/supplier" : "/app";
 
   return (
     <header className="topbar sticky top-0 z-30 flex h-14 items-center gap-2 border-b border-hairline px-3 backdrop-blur md:gap-3 md:px-4">
-      <Link href={homeHref} className="proto-wordmark shrink-0">
-        <WordmarkMark />
-        <span className="proto-wm-text">Source<b>BD</b></span>
+      <TopbarHamburger variant={variant} />
+      <Link href="/" className="proto-wordmark shrink-0">
+        SourceBD
       </Link>
 
       <nav
         aria-label="Quick navigation"
-        className="ml-4 hidden items-center gap-1 lg:flex"
+        className="ml-2 hidden items-center gap-1 lg:flex"
       >
         {links.map((l) => (
           <Link key={l.href} href={l.href} className="topbar-quick-link">
@@ -83,7 +78,7 @@ export function Topbar({
       <form
         action={variant === "buyer" ? "/app/discover" : "/app/discover"}
         method="get"
-        className="mx-3 hidden flex-1 max-w-md md:flex"
+        className="ml-auto hidden flex-1 max-w-md md:flex"
       >
         <label htmlFor="topbar-q" className="sr-only">
           Search suppliers
@@ -119,7 +114,7 @@ export function Topbar({
         </Link>
       ) : null}
 
-      <div className="ml-auto flex items-center gap-1 md:gap-2">
+      <div className="flex items-center gap-2">
         <button
           type="button"
           aria-label="Notifications"
@@ -134,7 +129,6 @@ export function Topbar({
         >
           <UserCircle size={20} aria-hidden />
         </Link>
-        <TopbarHamburger variant={variant} />
       </div>
     </header>
   );
