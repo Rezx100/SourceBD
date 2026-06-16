@@ -15,15 +15,15 @@ interface AvatarCirclesProps {
   avatarUrls: Avatar[];
 }
 
-// Deterministic forest-family tints so the initials avatars read as a set
-// without looking randomly coloured.
+// Deterministic forest-family tints — all high-contrast so the initials
+// always read (dark forest with white text + a couple of mid-tones).
 const TINTS = [
   { bg: "#1f4d3a", fg: "#ffffff" },
   { bg: "#2d6a4f", fg: "#ffffff" },
-  { bg: "#ecf3ee", fg: "#1f4d3a" },
-  { bg: "#dbeae0", fg: "#19543a" },
   { bg: "#19543a", fg: "#ffffff" },
-  { bg: "#cfe3d6", fg: "#1f4d3a" },
+  { bg: "#3a7d5c", fg: "#ffffff" },
+  { bg: "#123e2b", fg: "#ffffff" },
+  { bg: "#4e9268", fg: "#ffffff" },
 ];
 
 export function AvatarCircles({

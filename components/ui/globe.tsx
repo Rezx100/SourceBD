@@ -7,30 +7,28 @@ import { cn } from "@/lib/utils";
 
 // Centered on Bangladesh (Dhaka ~23.68N, 90.35E) — the platform is rooted
 // in Bangladesh but the markers fan out to the buyer markets it serves
-// (UK, US, EU, CA). Forest-green base keeps the brand signature.
+// (UK, US, EU, CA). Forest "ocean" + pale-mint continents (high contrast
+// so it reads as a real globe, not a flat disc) + readable forest pins.
 const GLOBE_CONFIG: COBEOptions = {
   width: 800,
   height: 800,
   onRender: () => {},
   devicePixelRatio: 2,
-  phi: 0,
-  theta: 0.32,
+  phi: -0.5, // start with South Asia facing forward
+  theta: 0.25,
   dark: 0,
-  diffuse: 1.25,
-  mapSamples: 16000,
-  mapBrightness: 5.2,
-  baseColor: [0.17, 0.41, 0.31], // forest "ocean" sphere
-  markerColor: [0.03, 0.12, 0.09], // deep forest pins (read on bright land)
-  glowColor: [0.66, 0.83, 0.74], // soft sage halo
+  diffuse: 1.2,
+  mapSamples: 22000, // denser sampling → crisper coastlines
+  mapBrightness: 6, // land dots lift to pale mint vs the forest ocean
+  baseColor: [0.22, 0.47, 0.36], // forest "ocean" sphere (bright enough to read)
+  markerColor: [0.05, 0.18, 0.13], // deep-forest pins
+  glowColor: [0.78, 0.89, 0.82], // soft sage halo
   markers: [
-    { location: [23.685, 90.3563], size: 0.14 }, // Bangladesh (home)
-    { location: [51.5074, -0.1278], size: 0.08 }, // London (UK)
-    { location: [40.7128, -74.006], size: 0.08 }, // New York (US)
-    { location: [52.52, 13.405], size: 0.06 }, // Berlin (EU)
-    { location: [48.8566, 2.3522], size: 0.06 }, // Paris (EU)
-    { location: [43.6532, -79.3832], size: 0.06 }, // Toronto (CA)
-    { location: [41.9028, 12.4964], size: 0.05 }, // Rome (EU)
-    { location: [40.4168, -3.7038], size: 0.05 }, // Madrid (EU)
+    { location: [23.685, 90.3563], size: 0.12 }, // Bangladesh (home — hero pin)
+    { location: [51.5074, -0.1278], size: 0.055 }, // London (UK)
+    { location: [40.7128, -74.006], size: 0.055 }, // New York (US)
+    { location: [43.6532, -79.3832], size: 0.05 }, // Toronto (CA)
+    { location: [50.1109, 8.6821], size: 0.05 }, // Frankfurt (EU)
   ],
 };
 

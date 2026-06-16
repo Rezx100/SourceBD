@@ -296,12 +296,12 @@ export default async function HomeV2Page() {
 
           {/* Right — Globe (large, bleeds, blends into the page) */}
           <BlurFade delay={0.3} className="relative">
-            <div className="pointer-events-none relative mx-auto flex aspect-square w-full max-w-[340px] items-center justify-center sm:max-w-[440px] md:max-w-[520px] lg:max-w-none lg:scale-[1.12]">
+            <div className="pointer-events-none relative mx-auto flex aspect-square w-full max-w-[340px] items-center justify-center sm:max-w-[440px] md:max-w-[520px] lg:max-w-none lg:scale-[1.1]">
               {/* soft halo behind the sphere */}
-              <div className="absolute inset-6 rounded-full bg-[radial-gradient(circle_at_50%_42%,rgba(31,77,58,0.16),transparent_60%)] blur-2xl" />
+              <div className="absolute inset-8 rounded-full bg-[radial-gradient(circle_at_50%_45%,rgba(31,77,58,0.16),transparent_62%)] blur-2xl" />
               <Globe className="!max-w-[560px]" />
               {/* feather only the very outer rim into the page */}
-              <div className="absolute inset-0 [background:radial-gradient(circle_at_50%_50%,transparent_70%,#fff_92%)]" />
+              <div className="absolute inset-0 rounded-full [background:radial-gradient(circle_at_50%_50%,transparent_88%,#fff_99%)]" />
             </div>
             {/* single-line caption pinned under the globe */}
             <div className="pointer-events-none -mt-2 flex justify-center sm:mt-1">
@@ -333,46 +333,48 @@ export default async function HomeV2Page() {
 
         {/* edge-faded marquee for depth */}
         <div className="relative">
-          <Marquee pauseOnHover className="[--duration:40s] [--gap:1rem]">
+          <Marquee pauseOnHover className="[--duration:40s] [--gap:1.25rem]">
             {AUTHORITY_LOGOS.map((logo) => (
               <div
                 key={logo.alt}
-                className="mx-2 flex h-16 w-32 items-center justify-center rounded-xl border border-neutral-200 bg-white px-4 shadow-[0_1px_3px_rgba(16,40,28,0.04)] transition duration-300 hover:-translate-y-0.5 hover:border-[#1f4d3a]/25 hover:shadow-md sm:h-20 sm:w-40 sm:px-5"
+                className="flex h-16 w-32 items-center justify-center rounded-xl border border-neutral-200 bg-white px-4 shadow-[0_1px_3px_rgba(16,40,28,0.04)] transition duration-300 hover:-translate-y-0.5 hover:border-[#1f4d3a]/25 hover:shadow-md sm:h-20 sm:w-40 sm:px-6"
               >
                 <Image
                   src={logo.src}
                   alt={logo.alt}
                   width={140}
                   height={56}
-                  className="max-h-10 w-auto object-contain sm:max-h-12"
+                  className="max-h-9 w-auto max-w-[88px] object-contain sm:max-h-11 sm:max-w-[112px]"
                 />
               </div>
             ))}
           </Marquee>
-          <div className="pointer-events-none absolute inset-y-0 left-0 w-16 bg-gradient-to-r from-neutral-50 to-transparent sm:w-32" />
-          <div className="pointer-events-none absolute inset-y-0 right-0 w-16 bg-gradient-to-l from-neutral-50 to-transparent sm:w-32" />
+          <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-20 bg-gradient-to-r from-neutral-50 via-neutral-50 to-transparent sm:w-40" />
+          <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-20 bg-gradient-to-l from-neutral-50 via-neutral-50 to-transparent sm:w-40" />
         </div>
       </section>
 
       {/* ════════ STATS BAND ════════ */}
-      <section className="border-b border-neutral-200 px-6 py-12 md:px-12 md:py-16 lg:px-20">
+      <section className="border-b border-neutral-200 px-6 py-12 md:px-12 md:py-14 lg:px-20">
         <div className="mx-auto max-w-6xl">
           <div className="grid grid-cols-2 gap-x-4 gap-y-8 lg:grid-cols-4 lg:gap-0 lg:divide-x lg:divide-neutral-200">
             {[
-              { icon: <Buildings size={24} weight="duotone" />, value: stats.suppliers_indexed, label: "Suppliers indexed" },
-              { icon: <ShieldCheck size={24} weight="duotone" />, value: stats.suppliers_with_tier1or2_source, label: "Gov / association corroborated" },
-              { icon: <FileText size={24} weight="duotone" />, value: stats.compliance_documents_mirrored, label: "Compliance documents mirrored" },
-              { icon: <Storefront size={24} weight="duotone" />, value: 31, label: "Official sources in sync", suffix: " / 31" },
+              { icon: <Buildings size={26} weight="duotone" />, value: stats.suppliers_indexed, label: "Suppliers indexed" },
+              { icon: <ShieldCheck size={26} weight="duotone" />, value: stats.suppliers_with_tier1or2_source, label: "Gov / association corroborated" },
+              { icon: <FileText size={26} weight="duotone" />, value: stats.compliance_documents_mirrored, label: "Compliance documents mirrored" },
+              { icon: <Storefront size={26} weight="duotone" />, value: 31, label: "Official sources in sync", outOf: 31 },
             ].map((s, i) => (
               <BlurFade key={s.label} delay={0.1 + i * 0.08}>
                 <div className="flex flex-col lg:px-7">
-                  <span className="mb-3 inline-flex h-11 w-11 items-center justify-center rounded-xl bg-[#ecf3ee] text-[#1f4d3a] shadow-[0_2px_8px_-2px_rgba(31,77,58,0.18)]">
+                  <span className="mb-3 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-[#ecf3ee] text-[#1f4d3a] shadow-[0_2px_10px_-2px_rgba(31,77,58,0.22)]">
                     {s.icon}
                   </span>
-                  <span className="font-[family-name:var(--mkt-font-display)] text-3xl font-bold tabular-nums text-neutral-900 sm:text-4xl">
+                  <span className="flex items-baseline gap-1 font-[family-name:var(--mkt-font-display)] text-3xl font-bold tabular-nums text-neutral-900 sm:text-4xl">
                     {typeof s.value === "number" ? <NumberTicker value={s.value} /> : "—"}
-                    {s.suffix ? (
-                      <span className="text-lg font-semibold text-neutral-400">{s.suffix}</span>
+                    {s.outOf ? (
+                      <span className="text-base font-semibold text-neutral-400 sm:text-lg">
+                        / {s.outOf}
+                      </span>
                     ) : null}
                   </span>
                   <span className="mt-1 text-sm text-neutral-500">{s.label}</span>
@@ -384,7 +386,7 @@ export default async function HomeV2Page() {
       </section>
 
       {/* ════════ FEATURE 1 — Behind the scenes (AnimatedBeam) ════════ */}
-      <section id="how-we-verify" className="border-b border-neutral-200 px-6 py-16 md:px-12 md:py-20 lg:px-20">
+      <section id="how-we-verify" className="border-b border-neutral-200 px-6 py-14 md:px-12 md:py-20 lg:px-20">
         <div className="mx-auto grid max-w-6xl items-center gap-10 lg:grid-cols-2 lg:gap-16">
           {/* copy */}
           <div>
@@ -526,7 +528,7 @@ export default async function HomeV2Page() {
       </section>
 
       {/* ════════ CERTIFICATIONS STRIP ════════ */}
-      <section className="border-b border-neutral-200 bg-neutral-50 px-6 py-14 md:px-12 lg:px-20">
+      <section className="border-b border-neutral-200 px-6 py-14 md:px-12 lg:px-20">
         <div className="mx-auto max-w-6xl">
           <BlurFade delay={0.1}>
             <div className="flex flex-col items-start justify-between gap-6 md:flex-row md:items-center">
@@ -552,9 +554,9 @@ export default async function HomeV2Page() {
               {PROVIDER_GRID.map((p) => (
                 <div
                   key={p.alt}
-                  className="flex aspect-square items-center justify-center rounded-2xl border border-neutral-200/80 bg-white p-4 transition hover:border-[#1f4d3a]/20"
+                  className="flex h-20 items-center justify-center rounded-xl border border-neutral-200 bg-white p-2.5 transition hover:-translate-y-0.5 hover:border-[#1f4d3a]/25 hover:shadow-sm"
                 >
-                  <Image src={p.src} alt={p.alt} width={56} height={56} className="h-full w-full object-contain" />
+                  <Image src={p.src} alt={p.alt} width={72} height={72} className="max-h-14 w-auto object-contain" />
                 </div>
               ))}
             </div>
@@ -563,7 +565,7 @@ export default async function HomeV2Page() {
       </section>
 
       {/* ════════ POSITIONING ════════ */}
-      <section className="border-b border-neutral-200 px-6 py-16 md:px-12 md:py-20 lg:px-20">
+      <section className="border-b border-neutral-200 bg-neutral-50 px-6 py-16 md:px-12 md:py-20 lg:px-20">
         <div className="mx-auto max-w-6xl">
           <BlurFade delay={0.1}>
             <Kicker>What we are</Kicker>
@@ -577,7 +579,7 @@ export default async function HomeV2Page() {
             {POSITIONING.map((card) => (
               <BlurFade key={card.title} delay={0.15}>
                 <MagicCard
-                  className="rounded-xl border border-neutral-200 bg-neutral-50 p-6"
+                  className="rounded-xl border border-neutral-200 bg-white p-6"
                   gradientFrom={FOREST}
                   gradientTo="#2d6a4f"
                   gradientColor="#ecf3ee"
