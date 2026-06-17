@@ -8,10 +8,10 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { List as ListIcon } from "@phosphor-icons/react/dist/ssr";
+import { List as ListIcon, X as XIcon } from "@phosphor-icons/react/dist/ssr";
 
 import { Wordmark } from "@/components/marketing/logo";
-import { MobileDrawer } from "@/components/ui/mobile-drawer";
+import { cn } from "@/lib/utils";
 
 type Role = "admin" | "buyer" | "supplier";
 
@@ -49,6 +49,46 @@ function RightLinks({ role }: { role: Role | null }) {
         Sign in
       </Link>
       <Link href="/signup" className={CTA_BUTTON}>
+        Start free
+      </Link>
+    </>
+  );
+}
+
+/** Full-width CTA block reused inside the mobile drawer. */
+function DrawerCtas({
+  role,
+  onNavigate,
+}: {
+  role: Role | null;
+  onNavigate: () => void;
+}) {
+  const solid =
+    "inline-flex min-h-[48px] items-center justify-center rounded-lg bg-[#1f4d3a] px-4 text-sm font-medium !text-white transition-colors hover:bg-[#2d6a4f]";
+  if (role === "supplier") {
+    return (
+      <Link href="/supplier" onClick={onNavigate} className={solid}>
+        Supplier portal
+      </Link>
+    );
+  }
+  if (role === "buyer" || role === "admin") {
+    return (
+      <Link href="/app" onClick={onNavigate} className={solid}>
+        Open app
+      </Link>
+    );
+  }
+  return (
+    <>
+      <Link
+        href="/login"
+        onClick={onNavigate}
+        className="inline-flex min-h-[48px] items-center justify-center rounded-lg border border-neutral-200 px-4 text-sm font-medium text-neutral-800 transition-colors hover:bg-neutral-50"
+      >
+        Sign in
+      </Link>
+      <Link href="/signup" onClick={onNavigate} className={solid}>
         Start free
       </Link>
     </>
@@ -93,7 +133,23 @@ export function MarketingTopNav() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  // Lock body scroll + Esc-to-close while the drawer is open.
+  useEffect(() => {
+    if (!drawerOpen) return;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setDrawerOpen(false);
+    }
+    window.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [drawerOpen]);
+
   return (
+    <>
     <nav
       className={`sticky top-0 z-50 w-full border-b transition-all duration-200 ${
         scrolled
@@ -102,19 +158,7 @@ export function MarketingTopNav() {
       }`}
     >
       <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3 md:px-12 lg:px-20">
-        {/* Mobile hamburger (<md only) */}
-        <button
-          type="button"
-          onClick={() => setDrawerOpen(true)}
-          aria-label="Open menu"
-          aria-haspopup="dialog"
-          aria-expanded={drawerOpen}
-          className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-neutral-700 transition-colors hover:bg-neutral-100 md:hidden"
-        >
-          <ListIcon size={20} weight="bold" aria-hidden />
-        </button>
-
-        {/* Wordmark */}
+        {/* Wordmark — always pinned far-left */}
         <Wordmark />
 
         {/* Desktop nav links (md+) */}
@@ -130,69 +174,92 @@ export function MarketingTopNav() {
           ))}
         </div>
 
-        {/* Right CTAs */}
-        <div className="flex items-center gap-4">
-          <RightLinks role={role} />
+        {/* Right cluster — desktop CTAs, or the mobile hamburger far-right */}
+        <div className="flex items-center gap-3">
+          <div className="hidden items-center gap-4 md:flex">
+            <RightLinks role={role} />
+          </div>
+          <button
+            type="button"
+            onClick={() => setDrawerOpen(true)}
+            aria-label="Open menu"
+            aria-haspopup="dialog"
+            aria-expanded={drawerOpen}
+            className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-neutral-700 ring-1 ring-inset ring-neutral-200 transition-colors hover:bg-neutral-100 md:hidden"
+          >
+            <ListIcon size={20} weight="bold" aria-hidden />
+          </button>
         </div>
       </div>
+    </nav>
 
-      {/* Mobile drawer */}
-      <MobileDrawer
-        open={drawerOpen}
-        onClose={() => setDrawerOpen(false)}
-        side="left"
-        label="Navigation"
+      {/* Mobile drawer — permanently mounted and driven purely by CSS
+          transitions, so the slide is deterministic on every browser.
+          (A framer-motion enter-animation on a nested AnimatePresence
+          child silently parked the panel off-screen on mobile.) Depth
+          comes from a translucent scrim + hairline border, never a drop
+          shadow; `inert` removes the off-screen panel from the tab order
+          and a11y tree while closed; transitions disable under
+          prefers-reduced-motion. */}
+      <div
+        className={cn(
+          "fixed inset-0 z-[100] md:hidden",
+          drawerOpen ? "pointer-events-auto" : "pointer-events-none",
+        )}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Navigation"
+        aria-hidden={!drawerOpen}
       >
-        <ul className="flex flex-col gap-1 p-0">
-          {NAV_LINKS.map((l) => (
-            <li key={l.href}>
+        {/* Scrim */}
+        <button
+          type="button"
+          aria-label="Close menu"
+          tabIndex={drawerOpen ? 0 : -1}
+          onClick={() => setDrawerOpen(false)}
+          className={cn(
+            "absolute inset-0 h-full w-full cursor-default bg-neutral-950/30 backdrop-blur-[2px] transition-opacity duration-300 motion-reduce:transition-none",
+            drawerOpen ? "opacity-100" : "opacity-0",
+          )}
+        />
+        {/* Panel */}
+        <div
+          inert={!drawerOpen}
+          style={{ transform: drawerOpen ? "translateX(0)" : "translateX(100%)" }}
+          className={cn(
+            "absolute right-0 top-0 flex h-full w-[min(86vw,360px)] flex-col border-l border-neutral-200 bg-white transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] will-change-transform motion-reduce:transition-none",
+          )}
+        >
+          <div className="flex items-center justify-between border-b border-neutral-200 px-5 py-4">
+            <Wordmark onClick={() => setDrawerOpen(false)} />
+            <button
+              type="button"
+              onClick={() => setDrawerOpen(false)}
+              aria-label="Close menu"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-900"
+            >
+              <XIcon size={20} weight="bold" aria-hidden />
+            </button>
+          </div>
+
+          <div className="flex flex-col gap-1 px-3 py-4">
+            {NAV_LINKS.map((l) => (
               <Link
+                key={l.href}
                 href={l.href}
                 onClick={() => setDrawerOpen(false)}
-                className="flex min-h-[44px] items-center rounded-lg px-3 text-[15px] font-medium text-neutral-800 transition-colors hover:bg-neutral-100"
+                className="flex min-h-[48px] items-center rounded-lg px-3 text-[15px] font-medium text-neutral-800 transition-colors hover:bg-neutral-100"
               >
                 {l.label}
               </Link>
-            </li>
-          ))}
-        </ul>
-        <div className="mt-4 flex flex-col gap-2 border-t border-neutral-200 pt-4">
-          {role === "supplier" ? (
-            <Link
-              href="/supplier"
-              onClick={() => setDrawerOpen(false)}
-              className="inline-flex min-h-[44px] items-center justify-center rounded-lg bg-[#1f4d3a] px-4 text-sm font-medium !text-white"
-            >
-              Supplier portal
-            </Link>
-          ) : role === "buyer" || role === "admin" ? (
-            <Link
-              href="/app"
-              onClick={() => setDrawerOpen(false)}
-              className="inline-flex min-h-[44px] items-center justify-center rounded-lg bg-[#1f4d3a] px-4 text-sm font-medium !text-white"
-            >
-              Open app
-            </Link>
-          ) : (
-            <>
-              <Link
-                href="/login"
-                onClick={() => setDrawerOpen(false)}
-                className="inline-flex min-h-[44px] items-center justify-center rounded-lg border border-neutral-200 px-4 text-sm font-medium text-neutral-800"
-              >
-                Sign in
-              </Link>
-              <Link
-                href="/signup"
-                onClick={() => setDrawerOpen(false)}
-                className="inline-flex min-h-[44px] items-center justify-center rounded-lg bg-[#1f4d3a] px-4 text-sm font-medium !text-white"
-              >
-                Start free
-              </Link>
-            </>
-          )}
+            ))}
+          </div>
+
+          <div className="mt-auto flex flex-col gap-2.5 border-t border-neutral-200 px-5 py-5">
+            <DrawerCtas role={role} onNavigate={() => setDrawerOpen(false)} />
+          </div>
         </div>
-      </MobileDrawer>
-    </nav>
+      </div>
+    </>
   );
 }

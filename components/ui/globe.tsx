@@ -7,8 +7,9 @@ import { cn } from "@/lib/utils";
 
 // Centered on Bangladesh (Dhaka ~23.68N, 90.35E) — the platform is rooted
 // in Bangladesh but the markers fan out to the buyer markets it serves
-// (UK, US, EU, CA). Forest "ocean" + pale-mint continents (high contrast
-// so it reads as a real globe, not a flat disc) + readable forest pins.
+// (UK, US, EU, CA). Blended "dotted-sphere" look: a near-white base + white
+// glow so the sphere dissolves into the white hero (only the dotted
+// continents + glowing forest pins read), per the Magic UI globe pattern.
 const GLOBE_CONFIG: COBEOptions = {
   width: 800,
   height: 800,
@@ -17,12 +18,12 @@ const GLOBE_CONFIG: COBEOptions = {
   phi: -0.5, // start with South Asia facing forward
   theta: 0.25,
   dark: 0,
-  diffuse: 1.2,
-  mapSamples: 22000, // denser sampling → crisper coastlines
-  mapBrightness: 6, // land dots lift to pale mint vs the forest ocean
-  baseColor: [0.22, 0.47, 0.36], // forest "ocean" sphere (bright enough to read)
-  markerColor: [0.05, 0.18, 0.13], // deep-forest pins
-  glowColor: [0.78, 0.89, 0.82], // soft sage halo
+  diffuse: 0.4, // flat, even shading so the rim feathers into the page
+  mapSamples: 16000,
+  mapBrightness: 1.2, // continents read as soft neutral dots on white
+  baseColor: [1, 1, 1], // white sphere → blends with the hero background
+  markerColor: [31 / 255, 77 / 255, 58 / 255], // forest #1f4d3a brand pins
+  glowColor: [1, 1, 1], // white halo so the edge dissolves, no hard disc
   markers: [
     { location: [23.685, 90.3563], size: 0.12 }, // Bangladesh (home — hero pin)
     { location: [51.5074, -0.1278], size: 0.055 }, // London (UK)
@@ -79,21 +80,54 @@ export function Globe({
   }, []);
 
   useEffect(() => {
+    // Defer WebGL creation until the canvas actually has a width. When the
+    // globe is hidden (`display:none` at < lg) its `offsetWidth` is 0, and
+    // creating a cobe instance at width 0 spams `WebGL: INVALID_OPERATION:
+    // drawArrays` every animation frame — that error loop pins the main
+    // thread and visibly stalls CSS transitions/animations across the page.
+    // A ResizeObserver mounts the globe only once it has real dimensions and
+    // tears it down if it collapses back to 0, so the mobile (hidden) path
+    // never touches the GPU.
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    let globe: ReturnType<typeof createGlobe> | null = null;
+
+    const createIfSized = () => {
+      width = canvas.offsetWidth;
+      if (globe || width === 0) return;
+      globe = createGlobe(canvas, {
+        ...config,
+        width: width * 2,
+        height: width * 2,
+        onRender,
+      });
+      requestAnimationFrame(() => {
+        canvas.style.opacity = "1";
+      });
+    };
+
+    const destroyIfHidden = () => {
+      if (globe && canvas.offsetWidth === 0) {
+        globe.destroy();
+        globe = null;
+        canvas.style.opacity = "0";
+      }
+    };
+
+    const ro = new ResizeObserver(() => {
+      onResize();
+      createIfSized();
+      destroyIfHidden();
+    });
+    ro.observe(canvas);
+
     window.addEventListener("resize", onResize);
-    onResize();
+    createIfSized();
 
-    const globe = createGlobe(canvasRef.current!, {
-      ...config,
-      width: width * 2,
-      height: width * 2,
-      onRender,
-    });
-
-    setTimeout(() => {
-      if (canvasRef.current) canvasRef.current.style.opacity = "1";
-    });
     return () => {
-      globe.destroy();
+      ro.disconnect();
+      if (globe) globe.destroy();
       window.removeEventListener("resize", onResize);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps

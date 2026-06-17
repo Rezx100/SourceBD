@@ -12,6 +12,19 @@ portal, admin, marketing) shipped. Branch: `development`.
 - Marketing homepage redesigned (Magic UI, light mode) and live at `/`.
 
 ## Shipped (most recent first)
+- **Marketing homepage v2 — mobile + animation hardening pass** (in progress,
+  branch `development`, not yet committed). Fixes: (1) mobile nav drawer was
+  parked off-screen — Tailwind v3 `translate-x-0/full` only flip a CSS var,
+  which browsers won't transition, so the slide is now driven by an inline
+  `transform` (deterministic CSS transition, `inert` + scrim depth, no drop
+  shadow). (2) Hamburger pinned far-right / logo far-left. (3) Hero search
+  beam swapped from offset-path `BorderBeam` (fails on mobile, bi-directional)
+  to a single-direction conic-gradient ring. (4) `AnimatedList` provenance
+  feed looped continuously instead of freezing on the last row. (5) Hero
+  `Globe` (cobe/WebGL) no longer mounts at width 0 when hidden < lg — a
+  ResizeObserver gates creation/teardown, eliminating a `drawArrays` error
+  loop that pinned the main thread and stalled page-wide CSS animations.
+  Globe also restyled to a blended white dotted sphere. Build green 26/26.
 - **Marketing homepage v2 (Magic UI light redesign)** — full rewrite of
   `app/(marketing)/page.tsx` + new `top-nav.tsx` / `footer.tsx` / `logo.tsx`.
   Hero with interactive `Globe` (BD→buyer markets), `BorderBeam` search,

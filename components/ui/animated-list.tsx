@@ -39,18 +39,14 @@ export const AnimatedList = React.memo(
     )
 
     useEffect(() => {
-      let timeout: ReturnType<typeof setTimeout> | null = null
-
-      if (index < childrenArray.length - 1) {
-        timeout = setTimeout(() => {
-          setIndex((prevIndex) => (prevIndex + 1) % childrenArray.length)
-        }, delay)
-      }
+      // Loop continuously: once the stack fills, wrap back to the start and
+      // rebuild so the feed never freezes on the last item.
+      const timeout = setTimeout(() => {
+        setIndex((prevIndex) => (prevIndex + 1) % childrenArray.length)
+      }, delay)
 
       return () => {
-        if (timeout !== null) {
-          clearTimeout(timeout)
-        }
+        clearTimeout(timeout)
       }
     }, [index, delay, childrenArray.length])
 

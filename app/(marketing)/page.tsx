@@ -34,7 +34,6 @@ import {
 import { AnimatedGridPattern } from "@/components/ui/animated-grid-pattern";
 import { AvatarCircles } from "@/components/ui/avatar-circles";
 import { BlurFade } from "@/components/ui/blur-fade";
-import { BorderBeam } from "@/components/ui/border-beam";
 import { Globe } from "@/components/ui/globe";
 import { MagicCard } from "@/components/ui/magic-card";
 import { Marquee } from "@/components/ui/marquee";
@@ -229,9 +228,9 @@ export default async function HomeV2Page() {
           repeatDelay={1}
         />
 
-        <div className="relative z-10 mx-auto grid max-w-6xl items-center gap-8 px-6 pb-16 pt-16 md:grid-cols-2 md:gap-10 md:px-12 md:pt-24 lg:gap-12 lg:px-20">
+        <div className="relative z-10 mx-auto grid max-w-6xl items-center gap-8 px-6 pb-16 pt-16 md:px-12 md:pt-24 lg:grid-cols-2 lg:gap-12 lg:px-20">
           {/* Left — message */}
-          <div className="text-center md:text-left">
+          <div className="text-center lg:text-left">
             <BlurFade delay={0.15}>
               <h1 className="font-[family-name:var(--mkt-font-display)] text-[2.6rem] font-extrabold leading-[0.98] tracking-[-0.03em] text-neutral-900 xs:text-5xl sm:text-6xl lg:text-7xl">
                 Verified
@@ -243,46 +242,52 @@ export default async function HomeV2Page() {
             </BlurFade>
 
             <BlurFade delay={0.3}>
-              <p className="mx-auto mt-6 max-w-md text-base leading-relaxed text-neutral-600 md:mx-0 md:mt-7 md:text-lg lg:text-xl">
+              <p className="mx-auto mt-6 max-w-md text-base leading-relaxed text-neutral-600 md:mt-7 md:text-lg lg:mx-0 lg:text-xl">
                 Find, vet and message garment suppliers — with a receipt on
                 every claim.
               </p>
             </BlurFade>
 
             <BlurFade delay={0.45}>
-              <form
-                className="relative mx-auto mt-8 flex max-w-xl items-center gap-2 overflow-hidden rounded-xl border border-neutral-300 bg-white px-3 py-2 shadow-sm md:mx-0 md:px-4 md:py-2.5"
-                action="/discover"
-                method="get"
-                role="search"
-              >
-                <MagnifyingGlass size={20} className="hidden shrink-0 text-neutral-400 sm:block" />
-                <input
-                  type="search"
-                  name="q"
-                  placeholder="OEKO-TEX certified knit factory…"
-                  aria-label="Search suppliers"
-                  autoComplete="off"
-                  className="min-w-0 flex-1 bg-transparent text-sm text-neutral-900 placeholder:text-neutral-400 focus:outline-none"
-                />
-                <button
-                  type="submit"
-                  className="shrink-0 rounded-lg bg-[#1f4d3a] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#2d6a4f]"
-                >
-                  Search
-                </button>
-                <BorderBeam
-                  duration={6}
-                  size={120}
-                  colorFrom="#1f4d3a"
-                  colorTo="#4e9268"
-                />
-              </form>
+              {/* Search field with a single-direction, continuously looping
+                  beam border. Implemented as a spinning conic-gradient ring
+                  (GPU transform) — robust on mobile where offset-path beams
+                  fail; honours prefers-reduced-motion via motion-safe. */}
+              <div className="relative mx-auto mt-8 max-w-xl lg:mx-0">
+                <div className="relative overflow-hidden rounded-xl bg-neutral-200/90 p-px shadow-sm">
+                  <span
+                    aria-hidden
+                    className="pointer-events-none absolute left-1/2 top-1/2 aspect-square w-[200%] -translate-x-1/2 -translate-y-1/2 bg-[conic-gradient(from_0deg,transparent_0deg,transparent_300deg,#1f4d3a_332deg,#4e9268_352deg,transparent_360deg)] motion-safe:animate-[spin_5s_linear_infinite]"
+                  />
+                  <form
+                    className="relative flex items-center gap-2 rounded-[11px] bg-white px-3 py-2 md:px-4 md:py-2.5"
+                    action="/discover"
+                    method="get"
+                    role="search"
+                  >
+                    <MagnifyingGlass size={20} className="hidden shrink-0 text-neutral-400 sm:block" />
+                    <input
+                      type="search"
+                      name="q"
+                      placeholder="OEKO-TEX certified knit factory…"
+                      aria-label="Search suppliers"
+                      autoComplete="off"
+                      className="min-w-0 flex-1 bg-transparent text-sm text-neutral-900 placeholder:text-neutral-400 focus:outline-none"
+                    />
+                    <button
+                      type="submit"
+                      className="shrink-0 rounded-lg bg-[#1f4d3a] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#2d6a4f]"
+                    >
+                      Search
+                    </button>
+                  </form>
+                </div>
+              </div>
             </BlurFade>
 
             {/* Avatar proof */}
             <BlurFade delay={0.6}>
-              <div className="mt-8 flex flex-wrap items-center justify-center gap-x-4 gap-y-3 md:mt-10 md:justify-start">
+              <div className="mt-8 flex flex-wrap items-center justify-center gap-x-4 gap-y-3 md:mt-10 lg:justify-start">
                 <AvatarCircles avatarUrls={COMPANY_AVATARS} overflowLabel="10k+" />
                 <p className="text-[15px] text-neutral-600">
                   <span className="font-[family-name:var(--mkt-font-display)] font-bold text-neutral-900">
@@ -294,14 +299,15 @@ export default async function HomeV2Page() {
             </BlurFade>
           </div>
 
-          {/* Right — Globe (large, bleeds, blends into the page) */}
-          <BlurFade delay={0.3} className="relative">
+          {/* Right — Globe (large, bleeds, blends into the page). Hidden
+              below lg: the blended white sphere reads as an empty void when
+              stacked alone on narrow viewports, so it only appears beside the
+              hero copy on two-column layouts. */}
+          <BlurFade delay={0.3} className="relative hidden lg:block">
             <div className="pointer-events-none relative mx-auto flex aspect-square w-full max-w-[340px] items-center justify-center sm:max-w-[440px] md:max-w-[520px] lg:max-w-none lg:scale-[1.1]">
-              {/* soft halo behind the sphere */}
-              <div className="absolute inset-8 rounded-full bg-[radial-gradient(circle_at_50%_45%,rgba(31,77,58,0.16),transparent_62%)] blur-2xl" />
+              {/* soft brand halo for depth — sits behind the dotted sphere */}
+              <div className="absolute inset-12 rounded-full bg-[radial-gradient(circle_at_50%_45%,rgba(31,77,58,0.10),transparent_60%)] blur-3xl" />
               <Globe className="!max-w-[560px]" />
-              {/* feather only the very outer rim into the page */}
-              <div className="absolute inset-0 rounded-full [background:radial-gradient(circle_at_50%_50%,transparent_88%,#fff_99%)]" />
             </div>
             {/* single-line caption pinned under the globe */}
             <div className="pointer-events-none -mt-2 flex justify-center sm:mt-1">
