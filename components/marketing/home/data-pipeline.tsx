@@ -24,7 +24,7 @@ const Node = forwardRef<
       ref={ref}
       title={title}
       className={cn(
-        "z-10 flex size-14 items-center justify-center rounded-2xl border border-neutral-200 bg-white p-2 shadow-[0_2px_8px_-2px_rgba(16,40,28,0.12)] sm:size-16 sm:p-2.5",
+        "z-10 flex size-16 items-center justify-center rounded-2xl border border-neutral-200 bg-white p-2 shadow-[0_2px_8px_-2px_rgba(16,40,28,0.12)] sm:size-20 sm:p-2.5",
         className,
       )}
     >
@@ -101,9 +101,8 @@ export function DataPipeline({ className }: { className?: string }) {
         <div
           ref={engineRef}
           title="SourceBD verification engine"
-          className="pointer-events-auto relative flex size-20 items-center justify-center rounded-3xl bg-[#1f4d3a] shadow-[0_14px_40px_-14px_rgba(31,77,58,0.55)] sm:size-28"
+          className="pointer-events-auto flex size-20 items-center justify-center rounded-3xl bg-[#1f4d3a] shadow-[0_10px_30px_-12px_rgba(31,77,58,0.45)] sm:size-24"
         >
-          <span className="absolute -inset-2 -z-10 rounded-3xl bg-[#1f4d3a]/[0.08]" />
           <ShieldGlyph className="h-1/2 w-1/2" />
         </div>
       </div>

@@ -139,17 +139,6 @@ const COMPANY_AVATARS = [
   { initials: "EH", label: "Epyllion" },
 ];
 
-const PROVIDER_GRID = [
-  { src: "/inapp-logos/okeo100.png", alt: "OEKO-TEX" },
-  { src: "/inapp-logos/wrap.png", alt: "WRAP" },
-  { src: "/inapp-logos/gost.png", alt: "GOTS" },
-  { src: "/inapp-logos/GRS.png", alt: "GRS" },
-  { src: "/inapp-logos/RCS.png", alt: "RCS" },
-  { src: "/inapp-logos/OCS.png", alt: "OCS" },
-  { src: "/inapp-logos/amfori.jpg", alt: "amfori" },
-  { src: "/inapp-logos/RSC.png", alt: "RSC" },
-];
-
 const POSITIONING = [
   {
     title: "Not a marketplace.",
@@ -232,7 +221,7 @@ export default async function HomeV2Page() {
           {/* Left — message */}
           <div className="text-center lg:text-left">
             <BlurFade delay={0.15}>
-              <h1 className="font-[family-name:var(--mkt-font-display)] text-[2.6rem] font-extrabold leading-[0.98] tracking-[-0.03em] text-neutral-900 xs:text-5xl sm:text-6xl lg:text-7xl">
+              <h1 className="font-[family-name:var(--mkt-font-display)] text-[clamp(2.75rem,12vw,4.75rem)] font-extrabold leading-[1.02] tracking-[-0.03em] text-neutral-900">
                 Verified
                 <br />
                 Bangladesh
@@ -242,22 +231,25 @@ export default async function HomeV2Page() {
             </BlurFade>
 
             <BlurFade delay={0.3}>
-              <p className="mx-auto mt-6 max-w-md text-base leading-relaxed text-neutral-600 md:mt-7 md:text-lg lg:mx-0 lg:text-xl">
+              <p className="mx-auto mt-5 max-w-md text-pretty text-base leading-relaxed text-neutral-600 sm:mt-6 md:text-lg lg:mx-0 lg:text-xl">
                 Find, vet and message garment suppliers — with a receipt on
                 every claim.
               </p>
             </BlurFade>
 
             <BlurFade delay={0.45}>
-              {/* Search field with a single-direction, continuously looping
-                  beam border. Implemented as a spinning conic-gradient ring
-                  (GPU transform) — robust on mobile where offset-path beams
-                  fail; honours prefers-reduced-motion via motion-safe. */}
+              {/* Search field with a single-comet border beam. A fixed conic
+                  gradient (one bright head + a fading tail, the rest fully
+                  transparent) is spun by `animate-spin`, so the highlight
+                  travels the border once per loop in a single direction and
+                  never reverses or doubles up. Conic + transform is GPU-cheap
+                  and animates on every mobile browser (offset-path beams do
+                  not on older Safari); honours prefers-reduced-motion. */}
               <div className="relative mx-auto mt-8 max-w-xl lg:mx-0">
-                <div className="relative overflow-hidden rounded-xl bg-neutral-200/90 p-px shadow-sm">
+                <div className="relative overflow-hidden rounded-xl bg-neutral-200/80 p-px shadow-sm">
                   <span
                     aria-hidden
-                    className="pointer-events-none absolute left-1/2 top-1/2 aspect-square w-[200%] -translate-x-1/2 -translate-y-1/2 bg-[conic-gradient(from_0deg,transparent_0deg,transparent_300deg,#1f4d3a_332deg,#4e9268_352deg,transparent_360deg)] motion-safe:animate-[spin_5s_linear_infinite]"
+                    className="pointer-events-none absolute left-1/2 top-1/2 aspect-square w-[200%] -translate-x-1/2 -translate-y-1/2 [background:conic-gradient(from_0deg,#4e9268_0deg,#1f4d3a_14deg,rgba(31,77,58,0.18)_40deg,transparent_72deg,transparent_360deg)] motion-safe:animate-[spin_4s_linear_infinite]"
                   />
                   <form
                     className="relative flex items-center gap-2 rounded-[11px] bg-white px-3 py-2 md:px-4 md:py-2.5"
@@ -528,43 +520,6 @@ export default async function HomeV2Page() {
             <div className="relative mx-auto flex w-full max-w-[460px] scale-[0.82] justify-center sm:scale-95 lg:scale-110">
               <div className="absolute -inset-10 -z-10 bg-[radial-gradient(circle_at_center,rgba(31,77,58,0.09),transparent_62%)]" />
               <TrustOrbit />
-            </div>
-          </BlurFade>
-        </div>
-      </section>
-
-      {/* ════════ CERTIFICATIONS STRIP ════════ */}
-      <section className="border-b border-neutral-200 px-6 py-14 md:px-12 lg:px-20">
-        <div className="mx-auto max-w-6xl">
-          <BlurFade delay={0.1}>
-            <div className="flex flex-col items-start justify-between gap-6 md:flex-row md:items-center">
-              <div>
-                <p className="font-[family-name:var(--mkt-font-mono)] text-xs uppercase tracking-[0.2em] text-[#1f4d3a]">
-                  Verified from the issuer
-                </p>
-                <h3 className="mt-2 font-[family-name:var(--mkt-font-display)] text-2xl font-bold tracking-tight text-neutral-900">
-                  Certifications &amp; registers we read directly.
-                </h3>
-              </div>
-              <Link
-                href="/compliance"
-                className="inline-flex shrink-0 items-center gap-2 text-sm font-medium text-[#1f4d3a] hover:text-[#2d6a4f]"
-              >
-                See all sources <ArrowRight size={16} />
-              </Link>
-            </div>
-          </BlurFade>
-
-          <BlurFade delay={0.2}>
-            <div className="mt-8 grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-8">
-              {PROVIDER_GRID.map((p) => (
-                <div
-                  key={p.alt}
-                  className="flex h-20 items-center justify-center rounded-xl border border-neutral-200 bg-white p-2.5 transition hover:-translate-y-0.5 hover:border-[#1f4d3a]/25 hover:shadow-sm"
-                >
-                  <Image src={p.src} alt={p.alt} width={72} height={72} className="max-h-14 w-auto object-contain" />
-                </div>
-              ))}
             </div>
           </BlurFade>
         </div>

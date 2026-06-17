@@ -98,7 +98,7 @@ function Row({ issuer, action, tier, icon, tint }: Event) {
 export function VerificationFeed() {
   return (
     <div className="relative flex h-[392px] w-full flex-col overflow-hidden">
-      <AnimatedList delay={1800}>
+      <AnimatedList delay={1800} maxItems={4}>
         {EVENTS.map((e, i) => (
           <Row key={i} {...e} />
         ))}

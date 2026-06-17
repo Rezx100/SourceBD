@@ -14,7 +14,7 @@ import { OrbitingCircles } from "@/components/ui/orbiting-circles";
 
 function OrbitLogo({ src, alt }: { src: string; alt: string }) {
   return (
-    <div className="flex size-full items-center justify-center rounded-full border border-neutral-200 bg-white p-1.5 shadow-[0_2px_8px_-2px_rgba(16,40,28,0.12)]">
+    <div className="flex size-full items-center justify-center rounded-full border border-neutral-200 bg-white p-1 shadow-[0_2px_8px_-2px_rgba(16,40,28,0.12)]">
       <Image
         src={src}
         alt={alt}
@@ -44,21 +44,21 @@ const OUTER = [
 
 export function TrustOrbit() {
   return (
-    <div className="relative flex h-full min-h-[360px] w-full items-center justify-center sm:min-h-[440px]">
-      {/* Centre — SourceBD brand mark */}
-      <div className="z-10 flex size-24 items-center justify-center rounded-3xl bg-[#1f4d3a] shadow-[0_10px_30px_-12px_rgba(31,77,58,0.45)]">
+    <div className="relative flex h-full min-h-[380px] w-full items-center justify-center sm:min-h-[460px]">
+      {/* Centre — SourceBD brand mark (matches the Step 01 engine shield) */}
+      <div className="z-10 flex size-20 items-center justify-center rounded-3xl bg-[#1f4d3a] shadow-[0_10px_30px_-12px_rgba(31,77,58,0.45)] sm:size-24">
         <ShieldGlyph className="h-1/2 w-1/2" />
       </div>
 
       {/* Inner ring */}
-      <OrbitingCircles iconSize={46} radius={102} duration={20}>
+      <OrbitingCircles iconSize={54} radius={104} duration={20}>
         {INNER.map((l) => (
           <OrbitLogo key={l.alt} src={l.src} alt={l.alt} />
         ))}
       </OrbitingCircles>
 
       {/* Outer ring — reversed */}
-      <OrbitingCircles iconSize={52} radius={168} duration={30} reverse>
+      <OrbitingCircles iconSize={62} radius={170} duration={30} reverse>
         {OUTER.map((l) => (
           <OrbitLogo key={l.alt} src={l.src} alt={l.alt} />
         ))}
