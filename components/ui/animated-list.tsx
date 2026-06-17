@@ -25,10 +25,14 @@ export function AnimatedListItem({ children }: { children: React.ReactNode }) {
         transition: { duration: 0.2 },
       }
     : {
-        initial: { scale: 0.94, opacity: 0, y: -10 },
-        animate: { scale: 1, opacity: 1, y: 0, originY: 0 },
-        exit: { scale: 0.94, opacity: 0 },
-        transition: { type: "spring", stiffness: 320, damping: 38 },
+        // "Water falling from the top": a new row drops in from above the
+        // stack, overshoots slightly, then settles — pushing the rows below it
+        // down via the shared layout animation. The oldest row fades out at the
+        // bottom.
+        initial: { opacity: 0, y: -56, scale: 0.96 },
+        animate: { opacity: 1, y: 0, scale: 1 },
+        exit: { opacity: 0, scale: 0.96, transition: { duration: 0.3 } },
+        transition: { type: "spring", stiffness: 260, damping: 22, mass: 0.9 },
       }
 
   return (

@@ -7,29 +7,29 @@ import { cn } from "@/lib/utils";
 
 // Centered on Bangladesh (Dhaka ~23.68N, 90.35E) — the platform is rooted
 // in Bangladesh but the markers fan out to the buyer markets it serves
-// (UK, US, EU, CA). Blended "dotted-sphere" look: a near-white base + white
-// glow so the sphere dissolves into the white hero (only the dotted
-// continents + glowing forest pins read), per the Magic UI globe pattern.
+// (UK, US, EU, CA). Light "dotted-sphere" look that still clearly reads as a
+// globe: a soft cool-grey base with brighter land dots + gentle diffuse
+// shading give the ball form, while forest pins mark the served markets.
 const GLOBE_CONFIG: COBEOptions = {
   width: 800,
   height: 800,
   onRender: () => {},
   devicePixelRatio: 2,
   phi: -0.5, // start with South Asia facing forward
-  theta: 0.25,
+  theta: 0.2,
   dark: 0,
-  diffuse: 0.4, // flat, even shading so the rim feathers into the page
+  diffuse: 1.1, // restore shading so the sphere reads as 3D, not a flat disc
   mapSamples: 16000,
-  mapBrightness: 1.2, // continents read as soft neutral dots on white
-  baseColor: [1, 1, 1], // white sphere → blends with the hero background
+  mapBrightness: 5.2, // land dots lift clearly above the grey ocean
+  baseColor: [0.86, 0.9, 0.88], // soft cool-grey ocean — visible but light
   markerColor: [31 / 255, 77 / 255, 58 / 255], // forest #1f4d3a brand pins
-  glowColor: [1, 1, 1], // white halo so the edge dissolves, no hard disc
+  glowColor: [0.82, 0.9, 0.85], // soft sage halo feathers into the page
   markers: [
-    { location: [23.685, 90.3563], size: 0.12 }, // Bangladesh (home — hero pin)
-    { location: [51.5074, -0.1278], size: 0.055 }, // London (UK)
-    { location: [40.7128, -74.006], size: 0.055 }, // New York (US)
-    { location: [43.6532, -79.3832], size: 0.05 }, // Toronto (CA)
-    { location: [50.1109, 8.6821], size: 0.05 }, // Frankfurt (EU)
+    { location: [23.685, 90.3563], size: 0.13 }, // Bangladesh (home — hero pin)
+    { location: [51.5074, -0.1278], size: 0.06 }, // London (UK)
+    { location: [40.7128, -74.006], size: 0.06 }, // New York (US)
+    { location: [43.6532, -79.3832], size: 0.055 }, // Toronto (CA)
+    { location: [50.1109, 8.6821], size: 0.055 }, // Frankfurt (EU)
   ],
 };
 

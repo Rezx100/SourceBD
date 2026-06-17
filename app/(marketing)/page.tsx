@@ -238,42 +238,36 @@ export default async function HomeV2Page() {
             </BlurFade>
 
             <BlurFade delay={0.45}>
-              {/* Search field with a single-comet border beam. A fixed conic
-                  gradient (one bright head + a fading tail, the rest fully
-                  transparent) is spun by `animate-spin`, so the highlight
-                  travels the border once per loop in a single direction and
-                  never reverses or doubles up. Conic + transform is GPU-cheap
-                  and animates on every mobile browser (offset-path beams do
-                  not on older Safari); honours prefers-reduced-motion. */}
-              <div className="relative mx-auto mt-8 max-w-xl lg:mx-0">
-                <div className="relative overflow-hidden rounded-xl bg-neutral-200/80 p-px shadow-sm">
-                  <span
-                    aria-hidden
-                    className="pointer-events-none absolute left-1/2 top-1/2 aspect-square w-[200%] -translate-x-1/2 -translate-y-1/2 [background:conic-gradient(from_0deg,#4e9268_0deg,#1f4d3a_14deg,rgba(31,77,58,0.18)_40deg,transparent_72deg,transparent_360deg)] motion-safe:animate-[spin_4s_linear_infinite]"
+              {/* Search field with a single-comet border beam. A conic
+                  gradient masked to a 1.6px ring lights only the rounded-rect
+                  border; its start angle is animated via the registered
+                  --beam-angle @property (see globals.css .search-beam), so one
+                  bright head traces the entire perimeter in a single direction
+                  and never reverses or collapses. */}
+              <div className="relative mx-auto mt-8 max-w-xl rounded-xl lg:mx-0">
+                <span aria-hidden className="search-beam" />
+                <form
+                  className="relative flex items-center gap-2 rounded-xl border border-neutral-200 bg-white px-3 py-2 shadow-sm md:px-4 md:py-2.5"
+                  action="/discover"
+                  method="get"
+                  role="search"
+                >
+                  <MagnifyingGlass size={20} className="hidden shrink-0 text-neutral-400 sm:block" />
+                  <input
+                    type="search"
+                    name="q"
+                    placeholder="OEKO-TEX certified knit factory…"
+                    aria-label="Search suppliers"
+                    autoComplete="off"
+                    className="min-w-0 flex-1 bg-transparent text-sm text-neutral-900 placeholder:text-neutral-400 focus:outline-none"
                   />
-                  <form
-                    className="relative flex items-center gap-2 rounded-[11px] bg-white px-3 py-2 md:px-4 md:py-2.5"
-                    action="/discover"
-                    method="get"
-                    role="search"
+                  <button
+                    type="submit"
+                    className="shrink-0 rounded-lg bg-[#1f4d3a] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#2d6a4f]"
                   >
-                    <MagnifyingGlass size={20} className="hidden shrink-0 text-neutral-400 sm:block" />
-                    <input
-                      type="search"
-                      name="q"
-                      placeholder="OEKO-TEX certified knit factory…"
-                      aria-label="Search suppliers"
-                      autoComplete="off"
-                      className="min-w-0 flex-1 bg-transparent text-sm text-neutral-900 placeholder:text-neutral-400 focus:outline-none"
-                    />
-                    <button
-                      type="submit"
-                      className="shrink-0 rounded-lg bg-[#1f4d3a] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#2d6a4f]"
-                    >
-                      Search
-                    </button>
-                  </form>
-                </div>
+                    Search
+                  </button>
+                </form>
               </div>
             </BlurFade>
 
