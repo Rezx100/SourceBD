@@ -12,6 +12,7 @@ import Link from "next/link";
 
 import { DiscoverResultCard, type DiscoverRow } from "@/components/discover/result-card";
 import { SaveButton } from "@/components/save-button";
+import { EmptyState, PageHeader } from "@/components/ui/page-kit";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -81,20 +82,14 @@ export default async function SavedSuppliersPage({
 
   return (
     <div className="mx-auto max-w-6xl space-y-6">
-      <header>
-        <p className="text-[11px] font-semibold text-ink-tertiary">
-          Buyer
-        </p>
-        <h1 className="font-display text-3xl font-light tracking-tight text-ink-primary">
-          Saved suppliers
-        </h1>
-        <p className="affiliation-disclaimer mt-2">
-          Your personal shortlist. Visible only to you.
-        </p>
-      </header>
+      <PageHeader
+        kicker="Buyer"
+        title="Saved suppliers"
+        description="Your personal shortlist. Visible only to you."
+      />
 
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-[11px] text-ink-tertiary">
+        <p className="text-[13px] text-ink-tertiary">
           {error ? (
             <span className="text-sem-red">Could not load saved suppliers.</span>
           ) : (
@@ -110,16 +105,20 @@ export default async function SavedSuppliersPage({
       </div>
 
       {!error && rows.length === 0 ? (
-        <div className="proto-card space-y-3 text-center">
-          <p className="affiliation-disclaimer">
-            You haven&apos;t saved any suppliers yet.
-          </p>
-          <Link href="/app/discover" className="btn-proto inline-flex">
-            Browse Discover
-          </Link>
-        </div>
+        <EmptyState
+          title="No saved suppliers yet"
+          description="Save suppliers from Discover to build your shortlist."
+          action={
+            <Link
+              href="/app/discover"
+              className="inline-flex items-center rounded-pill bg-brand-forest px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-brand-forest-mid"
+            >
+              Browse Discover
+            </Link>
+          }
+        />
       ) : (
-        <ul className="grid grid-cols-1 gap-4">
+        <ul className="grid grid-cols-1 gap-4 xl:grid-cols-2">
           {rows.map((row) => (
             <li key={row.id}>
               <DiscoverResultCard
@@ -151,7 +150,6 @@ function toDiscoverRow(r: SavedRow): DiscoverRow {
     district: r.district,
     source_tags: r.source_tags,
     t13_source_count: r.t13_source_count,
-    completeness_pct: r.completeness_pct,
     employees_total: r.employees_total,
     established_date: r.established_date,
     principal_products: r.principal_products,
@@ -183,7 +181,7 @@ function SortControl({ current }: { current: SortValue }) {
           </option>
         ))}
       </select>
-      <button type="submit" className="btn-proto">
+      <button type="submit" className="inline-flex items-center rounded-pill border border-hairline-strong bg-surface-l1 px-3.5 py-1.5 text-sm font-semibold text-ink-primary transition-colors hover:bg-brand-forest-tint">
         Apply
       </button>
     </form>
@@ -215,18 +213,18 @@ function Pagination({
       </div>
       <div className="flex gap-2">
         {prev !== null ? (
-          <Link href={`/app/saved${qs(prev)}`} className="btn-proto">
+          <Link href={`/app/saved${qs(prev)}`} className="inline-flex items-center rounded-pill border border-hairline-strong bg-surface-l1 px-4 py-2 text-sm font-semibold text-ink-primary transition-colors hover:bg-brand-forest-tint">
             Previous
           </Link>
         ) : (
-          <span className="btn-proto cursor-not-allowed opacity-50">Previous</span>
+          <span className="inline-flex cursor-not-allowed items-center rounded-pill border border-hairline-strong bg-surface-l1 px-4 py-2 text-sm font-semibold text-ink-primary opacity-50">Previous</span>
         )}
         {next !== null ? (
-          <Link href={`/app/saved${qs(next)}`} className="btn-proto">
+          <Link href={`/app/saved${qs(next)}`} className="inline-flex items-center rounded-pill border border-hairline-strong bg-surface-l1 px-4 py-2 text-sm font-semibold text-ink-primary transition-colors hover:bg-brand-forest-tint">
             Next
           </Link>
         ) : (
-          <span className="btn-proto cursor-not-allowed opacity-50">Next</span>
+          <span className="inline-flex cursor-not-allowed items-center rounded-pill border border-hairline-strong bg-surface-l1 px-4 py-2 text-sm font-semibold text-ink-primary opacity-50">Next</span>
         )}
       </div>
     </nav>

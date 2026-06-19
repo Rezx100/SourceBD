@@ -9,6 +9,7 @@ import { ArrowLeft } from "@phosphor-icons/react/dist/ssr";
 
 import { SettingsNotificationToggles } from "@/components/settings-notification-toggles";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { PageHeader } from "@/components/ui/page-kit";
 
 export const dynamic = "force-dynamic";
 
@@ -37,23 +38,20 @@ export default async function SettingsNotificationsPage() {
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
-      <header>
+      <div className="space-y-4">
         <Link
           href="/app/settings"
-          className="inline-flex items-center gap-1 text-[11px] text-ink-tertiary hover:text-ink-primary"
+          className="inline-flex items-center gap-1.5 text-[12px] font-medium text-ink-tertiary transition-colors hover:text-ink-primary"
         >
-          <ArrowLeft size={12} />
+          <ArrowLeft size={13} weight="bold" aria-hidden />
           Back to settings
         </Link>
-        <h1 className="mt-1 font-display text-2xl font-semibold tracking-tightish text-ink-primary">
-          Notifications
-        </h1>
-        <p className="mt-1 text-sm text-ink-secondary">
-          Choose which emails you receive. Delivery jobs land with the Inngest
-          + Resend wiring in a later phase; toggling here records your
-          preference now so you&apos;re opted in (or out) when sending begins.
-        </p>
-      </header>
+        <PageHeader
+          kicker="Settings"
+          title="Notifications"
+          description="Choose which emails you receive. Delivery jobs land with the Inngest + Resend wiring in a later phase; toggling here records your preference now so you’re opted in (or out) when sending begins."
+        />
+      </div>
 
       <SettingsNotificationToggles initial={notifications} />
     </div>

@@ -10,6 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Tag } from "@/components/ui/tag";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { PageHeader } from "@/components/ui/page-kit";
 
 // Supplier Profile Editor — listing page (Spec S2).
 // Lists the caller's claimed companies; each row deep-links to the
@@ -44,19 +45,11 @@ export default async function SupplierProfileList() {
 
   return (
     <div className="mx-auto max-w-5xl space-y-6">
-      <header>
-        <p className="text-[11px] text-ink-tertiary">
-          Supplier · Profile
-        </p>
-        <h1 className="font-display text-2xl font-semibold tracking-tightish text-ink-primary">
-          Company profile
-        </h1>
-        <p className="mt-2 text-sm text-ink-secondary">
-          Choose a company to edit its supplier-attested fields. Register
-          data from BGMEA, BKMEA, BTMA, BGAPMEA, RSC and certification
-          bodies is never overwritten by your edits.
-        </p>
-      </header>
+      <PageHeader
+        kicker="Supplier"
+        title="Company profile"
+        description="Choose a company to edit its supplier-attested fields. Register data from BGMEA, BKMEA, BTMA, BGAPMEA, RSC and certification bodies is never overwritten by your edits."
+      />
 
       <Card>
         <CardHeader>

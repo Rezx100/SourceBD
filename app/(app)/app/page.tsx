@@ -22,6 +22,7 @@ import {
 
 import { DiscoverResultCard, type DiscoverRow } from "@/components/discover/result-card";
 import { SaveButton } from "@/components/save-button";
+import { EmptyState, PageHeader, Section } from "@/components/ui/page-kit";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -92,25 +93,18 @@ export default async function BuyerHome() {
   const activeOrders = activeOrderCount ?? 0;
 
   return (
-    <div className="mx-auto max-w-6xl space-y-6">
-      <header>
-        <p className="text-[11px] font-semibold text-ink-tertiary">
-          Buyer
-        </p>
-        <h1 className="font-display text-3xl font-light tracking-tight text-ink-primary">
-          Dashboard
-        </h1>
-      </header>
+    <div className="mx-auto max-w-6xl space-y-10">
+      <PageHeader kicker="Buyer" title="Dashboard" description="Your sourcing activity at a glance." />
 
       {error ? (
-        <div className="proto-card text-sm text-sem-red">
+        <div className="rounded-card border border-sem-red/30 bg-sem-red-soft p-4 text-sm text-sem-red">
           Could not load dashboard.
         </div>
       ) : null}
 
       <section
         aria-label="Quick stats"
-        className="grid grid-cols-1 gap-[14px] sm:grid-cols-2 lg:grid-cols-5"
+        className="grid grid-cols-2 gap-3 lg:grid-cols-5"
       >
         <StatTile
           label="Saved suppliers"
@@ -161,24 +155,21 @@ export default async function BuyerHome() {
       </section>
 
       {doc.alerts.length > 0 ? (
-        <section aria-label="Alerts" className="proto-card space-y-3">
-          <div className="proto-card-head">
-            <h2 className="proto-card-title">Alerts</h2>
-            <span className="proto-card-meta">
-              Certifications expiring in the next 30 days
-            </span>
-          </div>
+        <Section
+          title="Alerts"
+          description="Certifications expiring in the next 30 days"
+        >
           <ul className="m-0 flex list-none flex-col gap-2 p-0">
             {doc.alerts.map((a) => (
               <li
                 key={`${a.supplier_id}-${a.cert_kind}-${a.expires_on}`}
-                className="flex items-center justify-between gap-3 rounded-input border border-sem-amber bg-sem-amber-soft px-3 py-2 text-[13px]"
+                className="flex items-center justify-between gap-3 rounded-card border border-sem-amber/30 bg-sem-amber-soft px-3 py-2.5 text-[13px]"
               >
                 <span className="flex items-center gap-2 text-sem-amber">
                   <WarningCircle size={16} weight="fill" aria-hidden />
                   <Link
                     href={`/app/suppliers/${a.supplier_slug}`}
-                    className="font-medium underline-offset-2 hover:underline"
+                    className="font-semibold underline-offset-2 hover:underline"
                   >
                     {a.company_name}
                   </Link>
@@ -189,31 +180,37 @@ export default async function BuyerHome() {
               </li>
             ))}
           </ul>
-        </section>
+        </Section>
       ) : null}
 
-      <section aria-label="Saved suppliers" className="space-y-3">
-        <div className="flex items-baseline justify-between gap-3">
-          <h2 className="font-display text-lg font-light tracking-tight text-ink-primary">
-            Saved suppliers
-          </h2>
-          {doc.saved_count > 0 ? (
-            <Link href="/app/saved" className="btn-proto inline-flex items-center gap-1">
-              View all <ArrowRight size={12} weight="bold" />
+      <Section
+        title="Saved suppliers"
+        actions={
+          doc.saved_count > 0 ? (
+            <Link
+              href="/app/saved"
+              className="inline-flex items-center gap-1 text-sm font-semibold text-brand-forest hover:text-brand-forest-mid"
+            >
+              View all <ArrowRight size={13} weight="bold" />
             </Link>
-          ) : null}
-        </div>
+          ) : null
+        }
+      >
         {doc.recent_saved.length === 0 ? (
-          <div className="proto-card space-y-3 text-center">
-            <p className="text-sm text-ink-secondary">
-              You haven&apos;t saved any suppliers yet.
-            </p>
-            <Link href="/app/discover" className="btn-proto inline-flex">
-              Browse Discover
-            </Link>
-          </div>
+          <EmptyState
+            title="No saved suppliers yet"
+            description="Save suppliers from Discover to build your shortlist."
+            action={
+              <Link
+                href="/app/discover"
+                className="inline-flex items-center rounded-pill bg-brand-forest px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-brand-forest-mid"
+              >
+                Browse Discover
+              </Link>
+            }
+          />
         ) : (
-          <ul className="grid grid-cols-1 gap-4">
+          <ul className="grid grid-cols-1 gap-4 xl:grid-cols-2">
             {doc.recent_saved.map((c) => (
               <li key={c.id}>
                 <DiscoverResultCard
@@ -227,42 +224,38 @@ export default async function BuyerHome() {
             ))}
           </ul>
         )}
-      </section>
+      </Section>
 
-      <section aria-label="Recent activity" className="space-y-3">
-        <h2 className="font-display text-lg font-light tracking-tight text-ink-primary">
-          Recent activity
-        </h2>
+      <Section title="Recent activity">
         {doc.recent_activity.length === 0 ? (
-          <div className="proto-card text-center text-sm text-ink-secondary">
+          <div className="rounded-card border border-hairline bg-surface-l1 p-6 text-center text-sm text-ink-secondary">
             Activity on your saved suppliers will show up here.
           </div>
         ) : (
-          <div className="proto-card">
-            <ul className="prov-list m-0 list-none p-0">
-              {doc.recent_activity.map((ev, i) => (
-                <li
-                  key={`${ev.supplier_id}-${ev.kind}-${ev.event_at}-${i}`}
-                  className="prov-row"
-                  style={{ gridTemplateColumns: "28px 1fr auto" }}
-                >
-                  <ActivityIcon kind={ev.kind} />
-                  <div className="min-w-0 truncate">
-                    <Link
-                      href={`/app/suppliers/${ev.supplier_slug}`}
-                      className="prov-source hover:underline"
-                    >
-                      {ev.company_name}
-                    </Link>
-                    <span className="text-ink-secondary"> · {activityLabel(ev)}</span>
-                  </div>
-                  <span className="prov-ref">{fmtRelative(ev.event_at)}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
+          <ul className="m-0 list-none divide-y divide-hairline overflow-hidden rounded-card border border-hairline bg-surface-l1 p-0">
+            {doc.recent_activity.map((ev, i) => (
+              <li
+                key={`${ev.supplier_id}-${ev.kind}-${ev.event_at}-${i}`}
+                className="flex items-center gap-3 px-4 py-3"
+              >
+                <ActivityIcon kind={ev.kind} />
+                <div className="min-w-0 flex-1 truncate text-[13px]">
+                  <Link
+                    href={`/app/suppliers/${ev.supplier_slug}`}
+                    className="font-semibold text-ink-primary hover:underline"
+                  >
+                    {ev.company_name}
+                  </Link>
+                  <span className="text-ink-secondary"> · {activityLabel(ev)}</span>
+                </div>
+                <span className="shrink-0 font-mono text-[11px] text-ink-tertiary">
+                  {fmtRelative(ev.event_at)}
+                </span>
+              </li>
+            ))}
+          </ul>
         )}
-      </section>
+      </Section>
     </div>
   );
 }
@@ -281,17 +274,19 @@ function StatTile({
   href?: string;
 }) {
   const body = (
-    <div className="metric h-full">
-      <p className="metric-label">{label}</p>
-      <p className="metric-val tabular-nums">{value.toLocaleString()}</p>
-      <p className="metric-sub">{meta}</p>
+    <div className="group flex h-full flex-col rounded-card border border-hairline bg-surface-l1 p-5 shadow-[0_1px_2px_rgba(15,15,20,0.05)] transition duration-200 hover:-translate-y-0.5 hover:border-brand-forest/30 hover:shadow-l2">
+      <p className="text-[12px] font-medium text-ink-tertiary">{label}</p>
+      <p className="mt-2 font-display text-[28px] font-extrabold leading-none tracking-[-0.02em] tabular-nums text-ink-primary">
+        {value.toLocaleString()}
+      </p>
+      <p className="mt-2 text-[11px] leading-snug text-ink-tertiary">{meta}</p>
     </div>
   );
   if (href) {
     return (
       <Link
         href={href}
-        className="block rounded-input transition focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-forest"
+        className="block rounded-card transition focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-forest"
       >
         {body}
       </Link>
@@ -310,7 +305,6 @@ function savedToDiscoverRow(c: SavedCard): DiscoverRow {
     district: c.district,
     source_tags: c.source_tags ?? [],
     t13_source_count: c.t13_source_count,
-    completeness_pct: c.completeness_pct,
     employees_total: null,
     established_date: null,
     principal_products: [],

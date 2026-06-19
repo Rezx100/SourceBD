@@ -1,14 +1,15 @@
 "use client";
 
-// Spec M6b — Forgot-password form. Same `requestPasswordReset`
-// server action as F3.
+// Forgot-password form — light Magic UI rebuild. Same
+// `requestPasswordReset` server action as before.
 
 import Link from "next/link";
 import { useActionState } from "react";
 
-import { ArrowRight, Envelope } from "@phosphor-icons/react/dist/ssr";
+import { ArrowLeft, ArrowRight, Envelope } from "@phosphor-icons/react/dist/ssr";
 
-import { AuthShell } from "@/components/auth/auth-shell";
+import { AuthShell, AuthHeading } from "@/components/auth/auth-shell";
+import { AuthAlert, SubmitButton, TextField } from "@/components/auth/auth-fields";
 
 import { requestPasswordReset, type AuthActionState } from "../actions";
 
@@ -27,38 +28,42 @@ export default function ForgotPasswordPage() {
       brandFooter="Reset links expire after 60 minutes."
       topRight={
         <>
-          Remembered it? <Link href="/login">Sign in</Link>
+          Remembered it?{" "}
+          <Link href="/login" className="font-medium text-[#1f4d3a] hover:underline">
+            Sign in
+          </Link>
         </>
       }
     >
-      <h1>Reset password</h1>
-      <p className="mkt-am-sub">
-        Enter the email you used to sign up — we&apos;ll send a single-use
-        reset link.
-      </p>
-      <form action={action} style={{ marginTop: 28 }}>
-        <div className="mkt-field">
-          <label htmlFor="forgot-email">Work email</label>
-          <div className="inp">
-            <Envelope size={17} weight="bold" />
-            <input
-              id="forgot-email"
-              type="email"
-              name="email"
-              required
-              autoComplete="email"
-              placeholder="you@company.com"
-            />
-          </div>
-        </div>
-        {state.error ? <p className="mkt-err">{state.error}</p> : null}
-        {state.info ? <p className="mkt-info">{state.info}</p> : null}
-        <button type="submit" className="mkt-btn-submit" disabled={pending}>
-          {pending ? "Sending…" : <>Send reset link <ArrowRight size={17} /></>}
-        </button>
+      <AuthHeading
+        title="Reset password"
+        subtitle="Enter the email you used to sign up — we'll send a single-use reset link."
+      />
+
+      <form action={action} className="mt-7 space-y-4">
+        <TextField
+          label="Work email"
+          name="email"
+          type="email"
+          required
+          autoComplete="email"
+          placeholder="you@company.com"
+          icon={<Envelope size={17} weight="bold" />}
+        />
+        {state.error ? <AuthAlert tone="error">{state.error}</AuthAlert> : null}
+        {state.info ? <AuthAlert tone="info">{state.info}</AuthAlert> : null}
+        <SubmitButton pending={pending} pendingLabel="Sending…">
+          Send reset link <ArrowRight size={17} weight="bold" />
+        </SubmitButton>
       </form>
-      <p className="mkt-switch">
-        <Link href="/login">Back to sign in</Link>
+
+      <p className="mt-6 text-center">
+        <Link
+          href="/login"
+          className="inline-flex items-center gap-1.5 text-sm font-medium text-neutral-500 hover:text-neutral-800"
+        >
+          <ArrowLeft size={15} weight="bold" /> Back to sign in
+        </Link>
       </p>
     </AuthShell>
   );

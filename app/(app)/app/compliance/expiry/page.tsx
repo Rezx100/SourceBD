@@ -20,6 +20,7 @@ import {
   type Column,
 } from "@/components/ui/responsive-table";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { PageHeader } from "@/components/ui/page-kit";
 
 export const dynamic = "force-dynamic";
 
@@ -65,22 +66,19 @@ export default async function ExpiryPage() {
 
   return (
     <div className="mx-auto max-w-6xl space-y-6">
-      <header className="space-y-2">
+      <div className="space-y-4">
         <Link
           href="/app/compliance"
-          className="inline-flex items-center gap-1 text-[12px] text-ink-tertiary hover:text-ink-secondary"
+          className="inline-flex items-center gap-1.5 text-[12px] font-medium text-ink-tertiary transition-colors hover:text-ink-primary"
         >
-          <ArrowLeft size={12} /> Compliance
+          <ArrowLeft size={13} weight="bold" aria-hidden /> Compliance
         </Link>
-        <h1 className="font-display text-2xl font-semibold text-ink-primary">
-          Certification expiry — next 90 days
-        </h1>
-        <p className="text-sm text-ink-secondary">
-          Tracks every cert (BSCI, WRAP, GOTS, SA8000, OCS, GRS, RCS, Sedex,
-          Higg, Fairtrade) on your saved suppliers with a known expiry inside
-          the next 90 days. OEKO-TEX has no expiry semantics and is excluded.
-        </p>
-      </header>
+        <PageHeader
+          kicker="Compliance"
+          title="Certification expiry — next 90 days"
+          description="Tracks every cert (BSCI, WRAP, GOTS, SA8000, OCS, GRS, RCS, Sedex, Higg, Fairtrade) on your saved suppliers with a known expiry inside the next 90 days. OEKO-TEX has no expiry semantics and is excluded."
+        />
+      </div>
 
       {error ? (
         <Card>

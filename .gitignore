@@ -60,6 +60,9 @@ supabase/.temp
 
 # Scratch / debug artefacts (kept locally, never committed)
 ops/_*
+.devlog.txt
+.devlog-review.txt
+.buildlog.txt
 # Unrelated browser-saved help page
 API Access _ OneProvider.htm
 API Access _ OneProvider_files/

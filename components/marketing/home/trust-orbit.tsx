@@ -44,21 +44,21 @@ const OUTER = [
 
 export function TrustOrbit() {
   return (
-    <div className="relative flex h-full min-h-[380px] w-full items-center justify-center sm:min-h-[460px]">
+    <div className="relative flex h-full min-h-[420px] w-full items-center justify-center sm:min-h-[500px]">
       {/* Centre — SourceBD brand mark (matches the Step 01 engine shield) */}
-      <div className="z-10 flex size-20 items-center justify-center rounded-3xl bg-[#1f4d3a] shadow-[0_10px_30px_-12px_rgba(31,77,58,0.45)] sm:size-24">
+      <div className="z-10 flex size-[72px] items-center justify-center rounded-3xl bg-[#1f4d3a] shadow-[0_12px_34px_-12px_rgba(31,77,58,0.5)] sm:size-[84px]">
         <ShieldGlyph className="h-1/2 w-1/2" />
       </div>
 
       {/* Inner ring */}
-      <OrbitingCircles iconSize={54} radius={104} duration={20}>
+      <OrbitingCircles iconSize={48} radius={98} duration={24}>
         {INNER.map((l) => (
           <OrbitLogo key={l.alt} src={l.src} alt={l.alt} />
         ))}
       </OrbitingCircles>
 
-      {/* Outer ring — reversed */}
-      <OrbitingCircles iconSize={62} radius={170} duration={30} reverse>
+      {/* Outer ring — reversed, slower */}
+      <OrbitingCircles iconSize={54} radius={160} duration={36} reverse>
         {OUTER.map((l) => (
           <OrbitLogo key={l.alt} src={l.src} alt={l.alt} />
         ))}

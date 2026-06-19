@@ -94,7 +94,7 @@ export function AdminSanctionsDecideButton({
         <div className="flex flex-col gap-3 p-4">
           <Button
             type="button"
-            variant="danger"
+            variant="destructive"
             onClick={() => handle("confirm")}
             disabled={pending}
             className="min-h-[44px] w-full"

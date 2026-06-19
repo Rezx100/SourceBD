@@ -10,6 +10,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "@phosphor-icons/react/dist/ssr";
 
+import { Pill } from "@/components/ui/page-kit";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 import { ThreadRealtime } from "./thread-realtime";
@@ -63,23 +64,28 @@ export default async function ThreadPage({
       <header className="flex items-center justify-between gap-3">
         <Link
           href="/app/messages"
-          className="btn-proto inline-flex items-center gap-1.5"
+          className="inline-flex items-center gap-1.5 rounded-pill border border-hairline-strong bg-surface-l1 px-3.5 py-2 text-sm font-semibold text-ink-primary transition-colors hover:bg-brand-forest-tint"
         >
-          <ArrowLeft size={12} weight="bold" aria-hidden /> Inbox
+          <ArrowLeft size={14} weight="bold" aria-hidden /> Inbox
         </Link>
-        <Link href={`/app/discover/${thread.supplier_slug}`} className="btn-proto">
+        <Link
+          href={`/app/discover/${thread.supplier_slug}`}
+          className="inline-flex items-center rounded-pill border border-hairline-strong bg-surface-l1 px-3.5 py-2 text-sm font-semibold text-ink-primary transition-colors hover:bg-brand-forest-tint"
+        >
           View profile
         </Link>
       </header>
 
-      <div className="proto-card">
-        <div className="proto-card-head">
+      <div className="flex min-h-0 flex-1 flex-col rounded-card border border-hairline bg-surface-l1 shadow-[0_1px_2px_rgba(15,15,20,0.03)]">
+        <div className="flex items-center gap-2 border-b border-hairline px-5 py-4">
           <div className="min-w-0">
             <div className="flex items-center gap-2">
-              <h1 className="header-name !text-xl">{thread.supplier_name}</h1>
-              <span className="chip">{entityLabel(thread.supplier_entity_type)}</span>
+              <h1 className="truncate font-display text-lg font-semibold tracking-[-0.01em] text-ink-primary">
+                {thread.supplier_name}
+              </h1>
+              <Pill tone="neutral">{entityLabel(thread.supplier_entity_type)}</Pill>
             </div>
-            <p className="mt-1 text-[11px] text-ink-tertiary">
+            <p className="mt-0.5 text-[12px] text-ink-tertiary">
               {thread.subject ?? "General inquiry"}
             </p>
           </div>

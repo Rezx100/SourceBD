@@ -10,6 +10,7 @@ import { notFound, redirect } from "next/navigation";
 
 import { OrderCreateForm, type OrderSeed } from "@/components/order-create-form";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { PageHeader } from "@/components/ui/page-kit";
 
 export const dynamic = "force-dynamic";
 
@@ -72,19 +73,15 @@ export default async function NewOrderPage({
     };
     return (
       <div className="mx-auto max-w-3xl space-y-4">
-        <div className="flex items-baseline justify-between gap-3">
-          <div>
-            <p className="text-[11px] font-semibold text-ink-tertiary">
-              Buyer
-            </p>
-            <h1 className="font-display text-3xl font-light tracking-tight text-ink-primary">
-              New order
-            </h1>
-          </div>
-          <Link href={`/app/rfqs/${quoteRow.rfq_id}`} className="btn-proto">
-            ← Back to RFQ
-          </Link>
-        </div>
+        <PageHeader
+          kicker="Buyer"
+          title="New order"
+          actions={
+            <Link href={`/app/rfqs/${quoteRow.rfq_id}`} className="btn-proto">
+              ← Back to RFQ
+            </Link>
+          }
+        />
         <OrderCreateForm seed={seed} />
       </div>
     );
@@ -109,19 +106,15 @@ export default async function NewOrderPage({
     };
     return (
       <div className="mx-auto max-w-3xl space-y-4">
-        <div className="flex items-baseline justify-between gap-3">
-          <div>
-            <p className="text-[11px] font-semibold text-ink-tertiary">
-              Buyer
-            </p>
-            <h1 className="font-display text-3xl font-light tracking-tight text-ink-primary">
-              New order
-            </h1>
-          </div>
-          <Link href={`/app/suppliers/${data.slug}`} className="btn-proto">
-            ← Back to profile
-          </Link>
-        </div>
+        <PageHeader
+          kicker="Buyer"
+          title="New order"
+          actions={
+            <Link href={`/app/suppliers/${data.slug}`} className="btn-proto">
+              ← Back to profile
+            </Link>
+          }
+        />
         <OrderCreateForm seed={seed} />
       </div>
     );

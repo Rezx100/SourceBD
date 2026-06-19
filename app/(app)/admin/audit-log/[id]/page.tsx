@@ -86,10 +86,11 @@ export default async function AdminAuditLogDrilldownPage({
             ← Audit log
           </Link>
         </p>
-        <p className="mt-3 text-[11px] text-ink-tertiary">
+        <p className="mb-2 mt-3 inline-flex items-center gap-2 font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-brand-forest">
+          <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-brand-forest" />
           Admin · audit entry
         </p>
-        <h1 className="font-display text-2xl font-semibold tracking-tightish text-ink-primary">
+        <h1 className="font-display text-[24px] font-extrabold leading-[1.1] tracking-[-0.03em] text-ink-primary sm:text-[28px]">
           {row.action}
         </h1>
         <p className="mt-1 font-mono text-xs text-ink-tertiary">

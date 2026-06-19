@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/card";
 import { Tag } from "@/components/ui/tag";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { PageHeader } from "@/components/ui/page-kit";
 
 export const dynamic = "force-dynamic";
 
@@ -27,24 +28,19 @@ export default async function MsaPage() {
 
   return (
     <div className="mx-auto max-w-6xl space-y-6">
-      <header className="space-y-2">
+      <div className="space-y-4">
         <Link
           href="/app/compliance"
-          className="inline-flex items-center gap-1 text-[12px] text-ink-tertiary hover:text-ink-secondary"
+          className="inline-flex items-center gap-1.5 text-[12px] font-medium text-ink-tertiary transition-colors hover:text-ink-primary"
         >
-          <ArrowLeft size={12} /> Compliance
+          <ArrowLeft size={13} weight="bold" aria-hidden /> Compliance
         </Link>
-        <h1 className="font-display text-2xl font-semibold text-ink-primary">
-          Modern Slavery Act §54 statement generator
-        </h1>
-        <p className="text-sm text-ink-secondary">
-          Composes a draft UK Modern Slavery Act 2015 §54 transparency
-          statement from your saved-supplier footprint. The draft covers the
-          six areas the Home Office guidance asks for: organisation, supply
-          chain structure, policies, due diligence, risk assessment, training
-          and effectiveness. Review with counsel before publishing.
-        </p>
-      </header>
+        <PageHeader
+          kicker="Compliance"
+          title="Modern Slavery Act §54 statement generator"
+          description="Composes a draft UK Modern Slavery Act 2015 §54 transparency statement from your saved-supplier footprint. The draft covers the six areas the Home Office guidance asks for: organisation, supply chain structure, policies, due diligence, risk assessment, training and effectiveness. Review with counsel before publishing."
+        />
+      </div>
 
       {error ? (
         <Card>

@@ -12,7 +12,6 @@ import {
   UserCircle,
 } from "@phosphor-icons/react/dist/ssr";
 
-import { Badge } from "@/components/ui/badge";
 import {
   Card,
   CardContent,
@@ -22,6 +21,7 @@ import {
 } from "@/components/ui/card";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { FormGrid } from "@/components/ui/form-grid";
+import { PageHeader } from "@/components/ui/page-kit";
 
 export const dynamic = "force-dynamic";
 
@@ -57,33 +57,29 @@ export default async function SettingsHubPage() {
 
   return (
     <div className="mx-auto max-w-6xl space-y-6">
-      <header>
-        <p className="text-[11px] text-ink-tertiary">
-          Account
-        </p>
-        <h1 className="font-display text-2xl font-semibold tracking-tightish text-ink-primary">
-          Settings
-        </h1>
-        <p className="mt-1 text-sm text-ink-secondary">
-          {settings?.email ? (
+      <PageHeader
+        kicker="Account"
+        title="Settings"
+        description={
+          settings?.email ? (
             <>
               Signed in as{" "}
               <span className="font-semibold text-ink-primary">
                 {settings.email}
               </span>
               {" · "}
-              <Badge tone="neutral">{planLabel(settings.plan_tier)} plan</Badge>
+              {planLabel(settings.plan_tier)} plan
             </>
           ) : (
-            "Loading…"
-          )}
+            "Manage your profile, plan, and notification preferences."
+          )
+        }
+      />
+      {error ? (
+        <p className="text-sm text-sem-red">
+          Could not load settings: {error.message}
         </p>
-        {error ? (
-          <p className="mt-2 text-sm text-sem-red">
-            Could not load settings: {error.message}
-          </p>
-        ) : null}
-      </header>
+      ) : null}
 
       <FormGrid cols={3}>
         <NavCard
@@ -144,13 +140,13 @@ function NavCard({
 }) {
   return (
     <Link href={href} className="group">
-      <Card className="h-full transition group-hover:border-accent-indigo">
+      <Card className="h-full transition group-hover:border-brand-forest/40 group-hover:shadow-l1">
         <CardHeader>
           <div className="flex items-center justify-between">
-            <span className="text-accent-indigo">{icon}</span>
+            <span className="flex size-10 items-center justify-center rounded-xl bg-brand-forest-soft text-brand-forest">{icon}</span>
             <ArrowRight
               size={16}
-              className="text-ink-tertiary transition group-hover:translate-x-0.5 group-hover:text-accent-indigo"
+              className="text-ink-tertiary transition group-hover:translate-x-0.5 group-hover:text-brand-forest"
             />
           </div>
           <CardTitle>{title}</CardTitle>

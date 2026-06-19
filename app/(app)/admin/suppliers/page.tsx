@@ -380,26 +380,27 @@ const SUPPLIER_COLUMNS: Column<Row>[] = [
 
 function PageHeader({ total }: { total?: number }) {
   return (
-    <header className="flex items-end justify-between gap-3">
-      <div>
-        <p className="text-[11px] text-ink-tertiary">
+    <div className="flex flex-col gap-4 border-b border-hairline pb-6 sm:flex-row sm:items-end sm:justify-between">
+      <div className="min-w-0">
+        <p className="mb-2 inline-flex items-center gap-2 font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-brand-forest">
+          <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-brand-forest" />
           Admin
         </p>
-        <h1 className="font-display text-2xl font-semibold tracking-tightish text-ink-primary">
+        <h1 className="font-display text-[26px] font-extrabold leading-[1.05] tracking-[-0.03em] text-ink-primary sm:text-[32px]">
           Suppliers
         </h1>
         {total != null ? (
-          <p className="mt-1 text-sm text-ink-secondary">
+          <p className="mt-2.5 text-[15px] leading-relaxed text-ink-secondary">
             {total.toLocaleString()} suppliers in scope.
           </p>
         ) : null}
       </div>
       <Link
         href="/admin"
-        className="rounded-pill border border-hairline px-3 py-1.5 text-[12px] text-ink-tertiary hover:text-ink-primary"
+        className="inline-flex shrink-0 items-center gap-1.5 rounded-pill border border-hairline px-3 py-1.5 text-[12px] font-medium text-ink-tertiary transition-colors hover:border-brand-forest/30 hover:text-ink-primary"
       >
         ← Admin home
       </Link>
-    </header>
+    </div>
   );
 }

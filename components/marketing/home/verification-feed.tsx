@@ -1,11 +1,13 @@
 "use client";
 
-// Live verification feed — AnimatedList.
+// Live verification feed — a calm, continuous vertical Marquee.
 //
 // A rolling feed of the kind of provenance events the platform records:
 // a new register match, a certificate verified, a sanctions screen passed,
 // a brand disclosure attached. Each row is a "receipt" — issuer, action,
-// timestamp — reinforcing the receipts-first doctrine in motion.
+// tier. A seamless vertical Marquee scrolls them upward forever (no
+// enter/exit layout animation, so it never stutters or ping-pongs); the
+// top and bottom fade into the section background.
 
 import {
   Buildings,
@@ -15,7 +17,7 @@ import {
   Warning,
 } from "@phosphor-icons/react/dist/ssr";
 
-import { AnimatedList } from "@/components/ui/animated-list";
+import { Marquee } from "@/components/ui/marquee";
 
 type Event = {
   issuer: string;
@@ -72,7 +74,7 @@ const EVENTS: Event[] = [
 
 function Row({ issuer, action, tier, icon, tint }: Event) {
   return (
-    <figure className="relative mx-auto w-full max-w-[480px] overflow-hidden rounded-2xl border border-neutral-200/80 bg-white p-4 shadow-[0_8px_24px_-16px_rgba(16,40,28,0.25)]">
+    <figure className="relative w-full overflow-hidden rounded-2xl border border-neutral-200/80 bg-white p-4 shadow-[0_8px_24px_-16px_rgba(16,40,28,0.25)]">
       <div className="flex items-center gap-3.5">
         <span
           className={`flex size-11 shrink-0 items-center justify-center rounded-xl ${tint}`}
@@ -97,15 +99,19 @@ function Row({ issuer, action, tier, icon, tint }: Event) {
 
 export function VerificationFeed() {
   return (
-    <div className="relative flex h-[392px] w-full flex-col overflow-hidden">
-      <AnimatedList delay={1800} maxItems={4}>
+    <div className="relative mx-auto flex h-[392px] w-full max-w-[480px] flex-col overflow-hidden">
+      <Marquee
+        vertical
+        pauseOnHover
+        className="[--duration:24s] [--gap:1rem] py-0"
+      >
         {EVENTS.map((e, i) => (
           <Row key={i} {...e} />
         ))}
-      </AnimatedList>
+      </Marquee>
       {/* fade top + bottom into the neutral-50 section background */}
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-10 bg-gradient-to-b from-neutral-50 to-transparent" />
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-neutral-50 via-neutral-50/80 to-transparent" />
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-16 bg-gradient-to-b from-neutral-50 to-transparent" />
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-neutral-50 to-transparent" />
     </div>
   );
 }

@@ -7,6 +7,14 @@
 import Link from "next/link";
 import { Package, Plus } from "@phosphor-icons/react/dist/ssr";
 
+import {
+  DataList,
+  EmptyState,
+  PageHeader,
+  Pill,
+  Section,
+  type PillTone,
+} from "@/components/ui/page-kit";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -63,44 +71,38 @@ export default async function OrdersPage() {
 
   return (
     <div className="mx-auto max-w-5xl space-y-6">
-      <header className="flex items-baseline justify-between gap-3">
-        <div>
-          <p className="text-[11px] font-semibold text-ink-tertiary">
-            Buyer
-          </p>
-          <h1 className="font-display text-3xl font-light tracking-tight text-ink-primary">
-            Orders
-          </h1>
-        </div>
-        <Link
-          href="/app/orders/new"
-          className="btn-proto primary inline-flex items-center gap-1.5"
-        >
-          <Plus size={12} weight="bold" aria-hidden /> New order
-        </Link>
-      </header>
+      <PageHeader
+        kicker="Buyer"
+        title="Orders"
+        description="Track production and shipping milestones for your accepted orders."
+        actions={
+          <Link
+            href="/app/orders/new"
+            className="inline-flex items-center gap-1.5 rounded-pill bg-brand-forest px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-brand-forest-mid"
+          >
+            <Plus size={14} weight="bold" aria-hidden /> New order
+          </Link>
+        }
+      />
 
       {error ? (
-        <div className="proto-card text-sm text-sem-red">Could not load orders.</div>
-      ) : orders.length === 0 ? (
-        <div className="proto-card space-y-3 text-center">
-          <Package
-            size={32}
-            weight="duotone"
-            className="mx-auto text-ink-tertiary"
-            aria-hidden
-          />
-          <p className="affiliation-disclaimer">
-            You don&apos;t have any orders yet.
-          </p>
-          <p className="affiliation-disclaimer">
-            Accept an RFQ quote to seed an order, or create one manually from a
-            supplier profile.
-          </p>
-          <Link href="/app/rfqs" className="btn-proto inline-flex">
-            View RFQs
-          </Link>
+        <div className="rounded-card border border-sem-red/30 bg-sem-red-soft p-4 text-sm text-sem-red">
+          Could not load orders.
         </div>
+      ) : orders.length === 0 ? (
+        <EmptyState
+          icon={<Package size={26} weight="duotone" aria-hidden />}
+          title="No orders yet"
+          description="Accept an RFQ quote to seed an order, or create one manually from a supplier profile."
+          action={
+            <Link
+              href="/app/rfqs"
+              className="inline-flex items-center rounded-pill border border-hairline-strong bg-surface-l1 px-4 py-2 text-sm font-semibold text-ink-primary transition-colors hover:bg-brand-forest-tint"
+            >
+              View RFQs
+            </Link>
+          }
+        />
       ) : (
         <>
           <OrderGroup title="Active" meta={`${active.length}`} rows={active} />
@@ -124,27 +126,21 @@ function OrderGroup({
 }) {
   if (rows.length === 0) {
     return (
-      <section className="proto-card">
-        <div className="proto-card-head">
-          <h2 className="proto-card-title">{title}</h2>
-          <span className="proto-card-meta">{meta}</span>
+      <Section title={title} actions={<span className="font-mono text-[11px] text-ink-tertiary">{meta}</span>}>
+        <div className="rounded-card border border-hairline bg-surface-l1 p-6 text-center text-sm text-ink-secondary">
+          Nothing here.
         </div>
-        <p className="text-center text-sm text-ink-secondary">Nothing here.</p>
-      </section>
+      </Section>
     );
   }
   return (
-    <section className="proto-card p-0">
-      <div className="proto-card-head px-5 pt-5">
-        <h2 className="proto-card-title">{title}</h2>
-        <span className="proto-card-meta pr-5">{meta}</span>
-      </div>
-      <ul className="m-0 flex list-none flex-col p-0">
+    <Section title={title} actions={<span className="font-mono text-[11px] text-ink-tertiary">{meta}</span>}>
+      <DataList>
         {rows.map((o) => (
-          <li key={o.id} className="border-b border-hairline last:border-b-0">
+          <li key={o.id}>
             <Link
               href={`/app/orders/${o.id}`}
-              className="proto-nav-item !rounded-none !px-5 !py-3"
+              className="flex items-center gap-3 px-4 py-3.5 transition-colors duration-hover ease-smooth hover:bg-brand-forest-tint"
             >
               <Package
                 size={18}
@@ -154,12 +150,12 @@ function OrderGroup({
               />
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="truncate font-display text-sm font-medium text-ink-primary">
+                  <span className="truncate font-display text-sm font-semibold text-ink-primary">
                     {o.product_title}
                   </span>
-                  <span className={statusChip(o.status)}>{statusLabel(o.status)}</span>
+                  <Pill tone={statusTone(o.status)}>{statusLabel(o.status)}</Pill>
                   {o.viewer_role !== "buyer" ? (
-                    <span className="chip">As supplier</span>
+                    <Pill tone="neutral">As supplier</Pill>
                   ) : null}
                   {o.po_number ? (
                     <span className="text-[11px] text-ink-tertiary">
@@ -183,17 +179,15 @@ function OrderGroup({
             </Link>
           </li>
         ))}
-      </ul>
-    </section>
+      </DataList>
+    </Section>
   );
 }
 
-function statusChip(s: OrderStatus): string {
-  if (s === "delivered") return "chip claim-verified";
-  if (s === "cancelled")
-    return "chip !bg-sem-red-soft !text-sem-red !border-sem-red";
-  if (s === "draft") return "chip";
-  return "chip";
+function statusTone(s: OrderStatus): PillTone {
+  if (s === "delivered") return "green";
+  if (s === "cancelled") return "red";
+  return "neutral";
 }
 function statusLabel(s: OrderStatus): string {
   if (s === "in_production") return "In production";

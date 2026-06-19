@@ -25,14 +25,19 @@ export function AnimatedListItem({ children }: { children: React.ReactNode }) {
         transition: { duration: 0.2 },
       }
     : {
-        // "Water falling from the top": a new row drops in from above the
-        // stack, overshoots slightly, then settles — pushing the rows below it
-        // down via the shared layout animation. The oldest row fades out at the
-        // bottom.
-        initial: { opacity: 0, y: -56, scale: 0.96 },
-        animate: { opacity: 1, y: 0, scale: 1 },
-        exit: { opacity: 0, scale: 0.96, transition: { duration: 0.3 } },
-        transition: { type: "spring", stiffness: 260, damping: 22, mass: 0.9 },
+        // New row drops in from the top; the shared `layout` animation pushes
+        // every row below it down one slot. The oldest row exits by sliding
+        // further DOWN as it fades into the background — never snapping back up
+        // (the old in-place fade let popLayout pin it at its previous slot,
+        // which read as a ping-pong). One calm, continuous loop.
+        initial: { opacity: 0, y: -40 },
+        animate: { opacity: 1, y: 0 },
+        exit: {
+          opacity: 0,
+          y: 40,
+          transition: { duration: 0.55, ease: "easeIn" },
+        },
+        transition: { type: "tween", duration: 0.5, ease: "easeOut" },
       }
 
   return (

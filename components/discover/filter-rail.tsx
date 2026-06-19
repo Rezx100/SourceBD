@@ -167,8 +167,8 @@ export function FilterRail({
   sort,
   facets,
   baseQuery,
-  hideSearchRow: _hideSearchRow,
-  instanceId: _instanceId,
+  hideSearchRow,
+  instanceId,
 }: {
   basePath: string;
   q: string;
@@ -190,6 +190,7 @@ export function FilterRail({
   hideSearchRow?: boolean;
   instanceId?: string;
 }) {
+  const qId = `discover-q-${instanceId ?? "default"}`;
   const hasAdvancedActive =
     entityTypes.length > 0 ||
     certKinds.length > 0 ||
@@ -216,39 +217,62 @@ export function FilterRail({
           <input type="hidden" name="sort" value={sort} />
         ) : null}
 
-        {/* Row 1 — search + apply/reset, always visible */}
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
-          <div className="flex-1">
-            <label
-              htmlFor="discover-q"
-              className="mb-1.5 block text-xs font-semibold text-ink-tertiary"
-            >
-              Search
-            </label>
-            <input
-              id="discover-q"
-              type="search"
-              name="q"
-              defaultValue={q}
-              placeholder="Company name, e.g. Naafco, Standard Group…"
-              className={cn(inputBase, activeRing(Boolean(q)))}
-            />
+        {/* Row 1 — search + apply/reset. When the page already renders the
+            primary search hero above the rail (hideSearchRow), we omit the
+            duplicate input and keep `q` as a hidden field so Apply preserves
+            the active query; Apply/Reset move to a compact right-aligned row. */}
+        {hideSearchRow ? (
+          <>
+            {q ? <input type="hidden" name="q" value={q} /> : null}
+            <div className="flex items-center justify-end gap-2">
+              <button
+                type="submit"
+                className="inline-flex items-center justify-center rounded-pill bg-brand-forest px-5 py-2 text-sm font-semibold text-white transition-colors hover:bg-brand-forest-mid"
+              >
+                Apply filters
+              </button>
+              <Link
+                href={basePath}
+                className="inline-flex items-center justify-center rounded-pill border border-hairline-strong bg-surface-l1 px-4 py-2 text-sm font-semibold text-ink-primary transition-colors hover:bg-brand-forest-tint"
+              >
+                Reset
+              </Link>
+            </div>
+          </>
+        ) : (
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+            <div className="flex-1">
+              <label
+                htmlFor={qId}
+                className="mb-1.5 block text-xs font-semibold text-ink-tertiary"
+              >
+                Search
+              </label>
+              <input
+                id={qId}
+                type="search"
+                name="q"
+                defaultValue={q}
+                placeholder="Company name, e.g. Naafco, Standard Group…"
+                className={cn(inputBase, activeRing(Boolean(q)))}
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="submit"
+                className="inline-flex items-center justify-center rounded-pill bg-brand-forest px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-forest-mid"
+              >
+                Apply
+              </button>
+              <Link
+                href={basePath}
+                className="inline-flex items-center justify-center rounded-pill border border-hairline-strong bg-surface-l1 px-4 py-2.5 text-sm font-semibold text-ink-primary transition-colors hover:bg-brand-forest-tint"
+              >
+                Reset
+              </Link>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <button
-              type="submit"
-              className="btn-proto primary justify-center px-5 py-2.5 text-sm"
-            >
-              Apply
-            </button>
-            <Link
-              href={basePath}
-              className="btn-proto justify-center px-4 py-2.5 text-sm"
-            >
-              Reset
-            </Link>
-          </div>
-        </div>
+        )}
 
         {/* Row 2 — quick product chips. Plain anchors that preserve
             current filters but set category. No JS needed. */}
@@ -268,9 +292,10 @@ export function FilterRail({
                   key={label}
                   href={href}
                   className={cn(
-                    "proto-pill !text-[12px]",
-                    isActive &&
-                      "border-brand-forest bg-brand-forest-soft text-brand-forest",
+                    "inline-flex items-center rounded-pill border px-2.5 py-1 text-[12px] font-medium transition-colors",
+                    isActive
+                      ? "border-brand-forest/30 bg-brand-forest-soft text-brand-forest"
+                      : "border-hairline-strong bg-surface-l1 text-ink-secondary hover:bg-brand-forest-tint",
                   )}
                   aria-current={isActive ? "true" : undefined}
                 >
@@ -279,7 +304,7 @@ export function FilterRail({
               );
             })}
             {category && !isQuickPickValue(category) ? (
-              <span className="proto-pill !text-[12px] border-brand-forest bg-brand-forest-soft text-brand-forest">
+              <span className="inline-flex items-center rounded-pill border border-brand-forest/30 bg-brand-forest-soft px-2.5 py-1 text-[12px] font-medium text-brand-forest">
                 {category}
               </span>
             ) : null}
@@ -568,9 +593,10 @@ export function SortControl({
             key={opt.value}
             href={href}
             className={cn(
-              "proto-pill",
-              isActive &&
-                "border-brand-forest bg-brand-forest-soft text-brand-forest",
+              "inline-flex items-center rounded-pill border px-2.5 py-1 text-[12px] font-medium transition-colors",
+              isActive
+                ? "border-brand-forest/30 bg-brand-forest-soft text-brand-forest"
+                : "border-hairline-strong bg-surface-l1 text-ink-secondary hover:bg-brand-forest-tint",
             )}
             aria-current={isActive ? "page" : undefined}
           >
@@ -613,18 +639,18 @@ export function Pagination({
       </span>
       <div className="flex items-center gap-2">
         {atFirst ? (
-          <span className="btn-proto cursor-not-allowed opacity-50">
+          <span className="inline-flex cursor-not-allowed items-center rounded-pill border border-hairline-strong bg-surface-l1 px-4 py-2 text-sm font-semibold text-ink-primary opacity-50">
             Previous
           </span>
         ) : (
-          <Link href={prevHref} className="btn-proto">
+          <Link href={prevHref} className="inline-flex items-center rounded-pill border border-hairline-strong bg-surface-l1 px-4 py-2 text-sm font-semibold text-ink-primary transition-colors hover:bg-brand-forest-tint">
             Previous
           </Link>
         )}
         {atLast ? (
-          <span className="btn-proto cursor-not-allowed opacity-50">Next</span>
+          <span className="inline-flex cursor-not-allowed items-center rounded-pill border border-hairline-strong bg-surface-l1 px-4 py-2 text-sm font-semibold text-ink-primary opacity-50">Next</span>
         ) : (
-          <Link href={nextHref} className="btn-proto">
+          <Link href={nextHref} className="inline-flex items-center rounded-pill border border-hairline-strong bg-surface-l1 px-4 py-2 text-sm font-semibold text-ink-primary transition-colors hover:bg-brand-forest-tint">
             Next
           </Link>
         )}

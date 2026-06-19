@@ -59,20 +59,21 @@ export default async function AdminClaimsPage({
 
   return (
     <div className="mx-auto max-w-5xl space-y-6">
-      <header className="flex items-end justify-between">
-        <div>
-          <p className="text-[11px] text-ink-tertiary">
+      <div className="flex flex-col gap-4 border-b border-hairline pb-6 sm:flex-row sm:items-end sm:justify-between">
+        <div className="min-w-0">
+          <p className="mb-2 inline-flex items-center gap-2 font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-brand-forest">
+            <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-brand-forest" />
             Admin
           </p>
-          <h1 className="font-display text-2xl font-semibold tracking-tightish text-ink-primary">
+          <h1 className="font-display text-[26px] font-extrabold leading-[1.05] tracking-[-0.03em] text-ink-primary sm:text-[32px]">
             Supplier claims
           </h1>
-          <p className="mt-1 text-sm text-ink-secondary">
+          <p className="mt-2.5 max-w-2xl text-[15px] leading-relaxed text-ink-secondary">
             Manual-review claims that have cleared email verification.
             Filter: <strong>{status}</strong>.
           </p>
         </div>
-        <nav className="flex gap-2 text-xs">
+        <nav className="flex flex-wrap gap-2 text-xs">
           {(["email_verified", "approved", "rejected", "all"] as const).map(
             (s) => (
               <Link
@@ -89,7 +90,7 @@ export default async function AdminClaimsPage({
             ),
           )}
         </nav>
-      </header>
+      </div>
 
       {error ? (
         <Card>

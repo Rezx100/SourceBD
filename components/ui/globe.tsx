@@ -13,7 +13,6 @@ import { cn } from "@/lib/utils";
 const GLOBE_CONFIG: COBEOptions = {
   width: 800,
   height: 800,
-  onRender: () => {},
   devicePixelRatio: 2,
   phi: -0.5, // start with South Asia facing forward
   theta: 0.2,
@@ -101,7 +100,7 @@ export function Globe({
         width: width * 2,
         height: width * 2,
         onRender,
-      });
+      } as COBEOptions);
       requestAnimationFrame(() => {
         canvas.style.opacity = "1";
       });

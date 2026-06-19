@@ -14,6 +14,7 @@ import { Tag } from "@/components/ui/tag";
 import { PartnerActionButtons } from "@/components/supplier-partner-actions";
 import { SupplierPartnerRequestForm } from "@/components/supplier-partner-request-form";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { PageHeader } from "@/components/ui/page-kit";
 
 export const dynamic = "force-dynamic";
 
@@ -86,19 +87,11 @@ export default async function SupplierPartnersPage() {
 
   return (
     <div className="mx-auto max-w-5xl space-y-6">
-      <header>
-        <p className="text-[11px] text-ink-tertiary">
-          Supplier
-        </p>
-        <h1 className="font-display text-2xl font-semibold tracking-tightish text-ink-primary">
-          Partners
-        </h1>
-        <p className="mt-1 max-w-prose text-sm text-ink-secondary">
-          Buying houses and factories can declare partnerships. Both sides
-          must agree before a relationship becomes public on the buyer-side
-          profile pages.
-        </p>
-      </header>
+      <PageHeader
+        kicker="Supplier"
+        title="Partners"
+        description="Buying houses and factories can declare partnerships. Both sides must agree before a relationship becomes public on the buyer-side profile pages."
+      />
 
       {owned.length === 0 ? (
         <Card>

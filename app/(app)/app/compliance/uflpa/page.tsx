@@ -22,6 +22,7 @@ import {
   type Column,
 } from "@/components/ui/responsive-table";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { PageHeader } from "@/components/ui/page-kit";
 
 export const dynamic = "force-dynamic";
 
@@ -62,26 +63,29 @@ export default async function UflpaPage() {
 
   return (
     <div className="mx-auto max-w-6xl space-y-6">
-      <header className="space-y-2">
+      <div className="space-y-4">
         <Link
           href="/app/compliance"
-          className="inline-flex items-center gap-1 text-[12px] text-ink-tertiary hover:text-ink-secondary"
+          className="inline-flex items-center gap-1.5 text-[12px] font-medium text-ink-tertiary transition-colors hover:text-ink-primary"
         >
-          <ArrowLeft size={12} /> Compliance
+          <ArrowLeft size={13} weight="bold" aria-hidden /> Compliance
         </Link>
-        <h1 className="font-display text-2xl font-semibold text-ink-primary">
-          UFLPA traceability tracker
-        </h1>
-        <p className="text-sm text-ink-secondary">
-          Cross-references your saved suppliers against the U.S. Department of
-          Homeland Security&apos;s UFLPA Entity List. A row is{" "}
-          <span className="font-semibold">hit</span> when the supplier has an
-          active match in <code className="font-mono text-[12px]">sanctions_screening</code>,{" "}
-          <span className="font-semibold">region flag</span> when supplier
-          fields mention Xinjiang/XUAR/Uyghur exposure, otherwise{" "}
-          <span className="font-semibold">clear</span>.
-        </p>
-      </header>
+        <PageHeader
+          kicker="Compliance"
+          title="UFLPA traceability tracker"
+          description={
+            <>
+              Cross-references your saved suppliers against the U.S. Department of
+              Homeland Security&apos;s UFLPA Entity List. A row is{" "}
+              <span className="font-semibold">hit</span> when the supplier has an
+              active match in <code className="font-mono text-[12px]">sanctions_screening</code>,{" "}
+              <span className="font-semibold">region flag</span> when supplier
+              fields mention Xinjiang/XUAR/Uyghur exposure, otherwise{" "}
+              <span className="font-semibold">clear</span>.
+            </>
+          }
+        />
+      </div>
 
       {error ? (
         <Card>

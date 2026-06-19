@@ -72,7 +72,7 @@ export default function PricingPage() {
       <section className="text-center">
         <h1 className="font-display text-4xl font-light tracking-tight text-ink-primary md:text-5xl">
           Pricing built for{" "}
-          <span className="proto-wordmark text-4xl md:text-5xl">
+          <span className="text-[#1f4d3a] text-4xl md:text-5xl">
             sourcing teams
           </span>
         </h1>
@@ -232,7 +232,7 @@ export default function PricingPage() {
       <section className="mt-20 rounded-hero border border-hairline-strong bg-brand-forest-soft p-10 text-center">
         <h2 className="font-display text-2xl font-light tracking-tight text-ink-primary">
           Need something{" "}
-          <span className="proto-wordmark text-2xl">bespoke</span>?
+          <span className="text-[#1f4d3a]">bespoke</span>?
         </h2>
         <p className="mx-auto mt-3 max-w-xl text-sm text-ink-secondary">
           Enterprise programmes get seats, API access, bulk export, and a

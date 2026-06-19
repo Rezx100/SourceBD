@@ -25,7 +25,7 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { ShieldCheck, Star, ChatCircleDots, Prohibit } from "@phosphor-icons/react/dist/ssr";
+import { ShieldCheck, Star, ChatCircleDots, Prohibit, MapPin } from "@phosphor-icons/react/dist/ssr";
 
 import { ReceiptsRing } from "@/components/receipts-ring";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -277,7 +277,7 @@ export default async function PublicSupplierProfilePage({
 
   return (
     <>
-      <div className="mx-auto flex max-w-[1180px] flex-col gap-4 px-6 py-8">
+      <div className="mx-auto flex max-w-[1280px] flex-col gap-4 px-4 py-6 sm:px-6 sm:py-8">
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(ld) }}
@@ -387,7 +387,6 @@ function VerifiedByChip({ pills }: { pills: Pill[] }) {
   return (
     <span
       className="chip chip-verified"
-      title={`Verified by ${codes.join(", ")}`}
     >
       <ShieldCheck size={13} weight="fill" aria-hidden />
       <span>Verified by</span>
@@ -479,9 +478,8 @@ function ProfileHeader({
               <br />
               <span
                 style={{
-                  fontSize: 10,
+                  fontSize: 12,
                   color: "var(--ink-tertiary)",
-                  fontFamily: "var(--font-mono)",
                 }}
               >
                 {lastVerifiedSource}
@@ -620,80 +618,65 @@ function OverviewTab({ payload }: { payload: ProfilePayload }) {
   const s = payload.supplier;
   const addrs = publicAddresses(payload.addresses);
   const dedupedAddresses = dedupAddresses(addrs);
+
+  const facts: { label: string; value: ReactNode }[] = [];
+  if (s.parent_group_name)
+    facts.push({ label: "Parent group", value: s.parent_group_name });
+  if (s.established_date)
+    facts.push({ label: "Established", value: s.established_date });
+  if (s.factory_types.length > 0)
+    facts.push({
+      label: "Factory type",
+      value: s.factory_types.slice(0, 3).join(" · "),
+    });
+  if (s.bepza_zone) facts.push({ label: "EPZ zone", value: s.bepza_zone });
+  if (s.country) facts.push({ label: "Country", value: s.country });
+  facts.push({
+    label: "Verified sources",
+    value: `${payload.t13_source_count} Tier 1–3`,
+  });
+
   return (
-    <div className="proto-grid">
-      <section className="proto-card hoverable span2">
+    <div className="space-y-4">
+      <section className="proto-card">
         <header className="proto-card-head">
-          <h2 className="proto-card-title">About</h2>
+          <h2 className="proto-card-title">Company overview</h2>
           <span className="proto-card-meta">
             {payload.provenance.length} source records
           </span>
         </header>
-        <p
-          style={{
-            margin: 0,
-            fontSize: 14,
-            lineHeight: 1.65,
-            color: "var(--ink-primary)",
-            fontWeight: 300,
-          }}
-        >
-          {entityNarrative(s)}
-        </p>
-        <dl
-          className="header-meta-row"
-          style={{ border: "none", padding: 0, marginTop: 16 }}
-        >
-          {s.parent_group_name ? (
-            <div>
-              <dt>Group</dt>
-              <dd>{s.parent_group_name}</dd>
-            </div>
+        <div className="grid gap-x-10 gap-y-6 lg:grid-cols-[minmax(0,1.55fr)_minmax(0,1fr)]">
+          <p className="text-[15px] leading-relaxed text-ink-secondary">
+            {entityNarrative(s)}
+          </p>
+          {facts.length > 0 ? (
+            <dl className="grid grid-cols-2 gap-x-5 gap-y-5 border-t border-hairline pt-6 sm:gap-x-8 lg:border-l lg:border-t-0 lg:pl-8 lg:pt-0">
+              {facts.map((f) => (
+                <div key={f.label} className="min-w-0">
+                  <dt className="text-[10.5px] font-semibold uppercase tracking-[0.07em] text-ink-tertiary">
+                    {f.label}
+                  </dt>
+                  <dd className="mt-1.5 text-[14px] font-medium leading-snug text-ink-primary">
+                    {f.value}
+                  </dd>
+                </div>
+              ))}
+            </dl>
           ) : null}
-          {s.bepza_zone ? (
-            <div>
-              <dt>EPZ zone</dt>
-              <dd>{s.bepza_zone}</dd>
-            </div>
-          ) : null}
-          {s.country ? (
-            <div>
-              <dt>Country</dt>
-              <dd>{s.country}</dd>
-            </div>
-          ) : null}
-          {s.factory_types.length > 0 ? (
-            <div>
-              <dt>Factory type</dt>
-              <dd>{s.factory_types.slice(0, 3).join(" · ")}</dd>
-            </div>
-          ) : null}
-          <div>
-            <dt>Receipts</dt>
-            <dd>
-              <span className="mono">
-                {payload.t13_source_count} Tier 1–3 source
-                {payload.t13_source_count === 1 ? "" : "s"}
-              </span>
-            </dd>
-          </div>
-        </dl>
+        </div>
       </section>
 
-      {dedupedAddresses.length > 1 ? (
-        <section id="locations" className="proto-card hoverable span2">
+      {dedupedAddresses.length > 0 ? (
+        <section id="locations" className="proto-card">
           <header className="proto-card-head">
-            <h2 className="proto-card-title">Addresses on file</h2>
+            <h2 className="proto-card-title">Locations &amp; addresses</h2>
             <span className="proto-card-meta">
-              {dedupedAddresses.length} location{dedupedAddresses.length === 1 ? "" : "s"}
+              {dedupedAddresses.length} on file
             </span>
           </header>
-          <ul
-            className="m-0 flex list-none flex-col p-0"
-            style={{ borderTop: "1px solid var(--hairline)" }}
-          >
+          <ul className="m-0 flex list-none flex-col gap-3 p-0">
             {dedupedAddresses.map((a, i) => (
-              <AddressRow key={i} address={a} />
+              <AddressCard key={i} address={a} primary={i === 0} />
             ))}
           </ul>
         </section>
@@ -702,28 +685,83 @@ function OverviewTab({ payload }: { payload: ProfilePayload }) {
   );
 }
 
-function AddressRow({ address }: { address: DedupedAddress<PublicAddress> }) {
-  return <AddressRowView kinds={address.kinds} address={address.address} verifiedBy={address.verified_by} />;
+const ADDRESS_KIND_LABEL: Record<string, string> = {
+  factory: "Factory",
+  registered: "Registered office",
+  registered_office: "Registered office",
+  mailing: "Mailing address",
+  head_office: "Head office",
+  office: "Office",
+  warehouse: "Warehouse",
+  corporate: "Corporate office",
+};
+
+function addressKindLabel(k: string): string {
+  const key = k.toLowerCase().trim();
+  return (
+    ADDRESS_KIND_LABEL[key] ??
+    key.charAt(0).toUpperCase() + key.slice(1).replace(/_/g, " ")
+  );
 }
 
-function AddressRowView({
-  kinds,
+// Tidy a raw source code for display in the address provenance line
+// (e.g. "OEKO_TEX" → "OEKO-TEX", "BRAND_HM" → "H&M").
+function sourceCodeLabel(code: string): string {
+  if (code === "OEKO_TEX") return "OEKO-TEX";
+  if (code === "BRAND_HM") return "H&M";
+  if (code === "BRAND_MS") return "M&S";
+  if (code.startsWith("BRAND_")) {
+    const raw = code.slice(6).replace(/_/g, " ").trim();
+    return raw
+      ? raw.charAt(0).toUpperCase() + raw.slice(1).toLowerCase()
+      : code;
+  }
+  return code.replace(/_/g, "-");
+}
+
+function AddressCard({
   address,
-  verifiedBy,
+  primary,
 }: {
-  kinds: string[];
-  address: string;
-  verifiedBy: string[];
+  address: DedupedAddress<PublicAddress>;
+  primary: boolean;
 }) {
   return (
-    <li className="address-row">
-      <div className="address-row-head">
-        {kinds.map((k) => (
-          <span key={k} className="address-kind">{k}</span>
-        ))}
-        <span className="address-via">via {verifiedBy.join(" + ")}</span>
+    <li className="flex gap-3.5 rounded-card border border-hairline bg-bg-l0 p-4">
+      <span
+        aria-hidden
+        className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-lg bg-brand-forest-soft text-brand-forest"
+      >
+        <MapPin size={18} weight="duotone" />
+      </span>
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-center gap-2">
+          {address.kinds.map((k) => (
+            <span
+              key={k}
+              className="inline-flex items-center rounded-pill border border-brand-forest/20 bg-brand-forest-soft px-2 py-0.5 text-[11px] font-semibold text-brand-forest"
+            >
+              {addressKindLabel(k)}
+            </span>
+          ))}
+          {primary && address.kinds.length === 0 ? (
+            <span className="text-[11px] font-medium text-ink-tertiary">
+              Primary
+            </span>
+          ) : null}
+        </div>
+        <p className="mt-2 text-[14px] leading-relaxed text-ink-primary">
+          {address.address}
+        </p>
+        {address.verified_by.length > 0 ? (
+          <p className="mt-1.5 text-[12px] text-ink-tertiary">
+            Verified by{" "}
+            <span className="font-medium text-ink-secondary">
+              {address.verified_by.map(sourceCodeLabel).join(" + ")}
+            </span>
+          </p>
+        ) : null}
       </div>
-      <p className="address-line">{address}</p>
     </li>
   );
 }
@@ -737,9 +775,17 @@ function entityNarrative(s: Supplier): string {
   const since = s.established_date
     ? ` operating since ${s.established_date}`
     : "";
+  const cleanedProducts = s.principal_products
+    .map((p) =>
+      p
+        .replace(/^\(\s*[A-Za-z0-9]{1,3}\s*\)\s*/, "")
+        .replace(/\s*\(\s*[A-Za-z0-9]{1,3}\s*\)\s*$/, "")
+        .trim(),
+    )
+    .filter(Boolean);
   const products =
-    s.principal_products.length > 0
-      ? ` Principal products: ${s.principal_products.slice(0, 4).join(", ")}.`
+    cleanedProducts.length > 0
+      ? ` Principal products: ${cleanedProducts.slice(0, 4).join(", ")}.`
       : "";
   return `${s.company_name} is a ${kind}${
     where ? ` based in ${where}` : ""
@@ -873,9 +919,8 @@ function RegistryRow({ pill }: { pill: Pill }) {
   const meta = inherited
     ? `Inherited from parent group ${pill.inherited_from_name ?? ""}`.trim()
     : `Verified via ${sourceFullName(pill.source_code)}`;
-  const titleHint = verifyInstructions(pill.source_code, pill.value);
   return (
-    <div className="registry-row" title={titleHint}>
+    <div className="registry-row">
       <div className="reg-logo">
         {logo ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -901,9 +946,8 @@ function RegistryRow({ pill }: { pill: Pill }) {
 function CertRow({ cert }: { cert: Cert }) {
   const logo = LOGO_BY_CERT[cert.kind];
   const status = certStatus(cert);
-  const titleHint = verifyInstructionsCert(cert.kind, cert.certificate_no);
   return (
-    <div className="cert" title={titleHint}>
+    <div className="cert">
       {logo ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img className="auth-logo-color" src={logo} alt={certLabel(cert.kind)} />
@@ -1499,53 +1543,6 @@ function registryPillsSummary(pills: Pill[]): string {
     parts.push(`${inh} from parent group`);
   }
   return parts.length > 0 ? parts.join(" · ") : "no registry records";
-}
-
-function verifyInstructions(sourceCode: string, value: string | null): string {
-  const v = value ?? "";
-  switch (sourceCode) {
-    case "BGMEA":
-      return `To verify independently:\n1. Open bgmea.com.bd → Member Directory\n2. Search by company name${v ? ` or membership #${v}` : ""}\n3. Confirm the listing matches`;
-    case "BKMEA":
-      return `To verify independently:\n1. Open bkmea.com → Members\n2. Search by company name${v ? ` or member #${v}` : ""}\n3. Confirm the listing matches`;
-    case "BTMA":
-      return `To verify independently:\n1. Open btmadhaka.com → Member List\n2. Search by company name\n3. Confirm the listing matches`;
-    case "BGAPMEA":
-      return `To verify independently:\n1. Open bgapmea.org → Members\n2. Search by company name\n3. Confirm the listing matches`;
-    case "RJSC":
-      return `To verify independently:\n1. Open roc.gov.bd → eServices\n2. Search by company name${v ? ` or registration #${v}` : ""}\n3. Confirm the registration record`;
-    case "EPB":
-      return `To verify independently:\n1. Cross-check at epb.gov.bd or your import export data provider\n2. Match against EPB ID${v ? ` ${v}` : ""}`;
-    case "BIN":
-      return `To verify independently:\n1. Open vat.gov.bd → BIN Verification\n2. Enter BIN${v ? ` ${v}` : ""}`;
-    case "RSC":
-      return `To verify independently:\n1. Open rsc-bd.org → Factory Search\n2. Search by company name\n3. Confirm the inspection record`;
-    default:
-      return `Cross-check this record with the issuing body's public directory.`;
-  }
-}
-
-function verifyInstructionsCert(kind: string, certNo: string | null): string {
-  const n = certNo ?? "";
-  switch (kind) {
-    case "oeko_tex":
-    case "oeko-tex":
-      return `To verify independently:\n1. Open oeko-tex.com → Label Check\n2. Enter certificate #${n || "from the supplier"}`;
-    case "gots":
-      return `To verify independently:\n1. Open global-standard.org → Public Database\n2. Search by company name${n ? ` or licence #${n}` : ""}`;
-    case "wrap":
-      return `To verify independently:\n1. Open wrapcompliance.org → Certified Facilities\n2. Search by company name`;
-    case "grs":
-      return `To verify independently:\n1. Open textileexchange.org → Certified Sites\n2. Search by company name${n ? ` or licence #${n}` : ""}`;
-    case "bsci":
-      return `To verify independently:\n1. Open amfori.org → Member access\n2. Confirm with the auditing body`;
-    case "sedex":
-      return `To verify independently:\n1. Open sedex.com → Member login\n2. Search by company name`;
-    case "bci":
-      return `To verify independently:\n1. Open bettercotton.org → Members\n2. Search by company name`;
-    default:
-      return `Cross-check this certificate with the issuing body's public registry.`;
-  }
 }
 
 // ---------- maps + helpers ------------------------------------------------

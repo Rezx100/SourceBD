@@ -94,7 +94,7 @@ export function ClaimAdminDecideButton({
               />
               <Button
                 type="button"
-                variant="danger"
+                variant="destructive"
                 onClick={() => decide(false)}
                 disabled={pending}
                 className="min-h-[44px] w-full"
@@ -105,7 +105,7 @@ export function ClaimAdminDecideButton({
           ) : (
             <Button
               type="button"
-              variant="danger"
+              variant="destructive"
               onClick={() => {
                 setRejecting(true);
                 setError(null);

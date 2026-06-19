@@ -2,9 +2,7 @@
 
 import { useState } from "react";
 
-import { apparelIconUrl } from "@/lib/apparel-icons";
-
-// I-011 — dedup, RMG fallback icon, larger icons + text.
+// I-011 / elegance pass — dedup + clean text chips (no per-product icons).
 // `principal_products` is the union of BGMEA ∪ EPB ∪ BKMEA raw vendor strings
 // (migration 0006). The same garment surfaces as Shirt/Shirts, Pyjamas/Pajamas,
 // etc. Collapse at the render layer; keep the longest original as the display.
@@ -17,7 +15,10 @@ function stripMarker(raw: string): string {
   // dedup. Repeat once in case two markers stack (e.g. "Shirt (A) (B)").
   let s = raw.trim();
   for (let i = 0; i < 2; i++) {
-    s = s.replace(/\s*\(\s*[A-Za-z0-9]{1,3}\s*\)\s*$/, "").trim();
+    s = s
+      .replace(/^\(\s*[A-Za-z0-9]{1,3}\s*\)\s*/, "")
+      .replace(/\s*\(\s*[A-Za-z0-9]{1,3}\s*\)\s*$/, "")
+      .trim();
   }
   return s;
 }
@@ -101,43 +102,9 @@ export function ProductsStripExpandable({ products }: { products: string[] }) {
 
 // Generic RMG fallback: clothes-hanger glyph. Vendor-neutral; used when
 // `apparelIconUrl()` returns null so a chip never renders without an icon.
-function HangerIcon() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      width={22}
-      height={22}
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={1.7}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden
-      className="product-icon product-icon-fallback"
-    >
-      <path d="M12 9.5a2 2 0 1 1 2-2" />
-      <path d="M12 9.5L3.4 15.4a1 1 0 0 0 .58 1.82h16.04a1 1 0 0 0 .58-1.82L12 9.5z" />
-    </svg>
-  );
-}
-
 function ProductChip({ product }: { product: string }) {
-  const icon = apparelIconUrl(product);
   return (
     <span className="product">
-      {icon ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={icon}
-          alt=""
-          width={22}
-          height={22}
-          loading="lazy"
-          className="product-icon"
-        />
-      ) : (
-        <HangerIcon />
-      )}
       <span className="product-label">{product}</span>
     </span>
   );

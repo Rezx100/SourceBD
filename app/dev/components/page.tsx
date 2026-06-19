@@ -44,7 +44,7 @@ export default async function ComponentsPage() {
           <Button variant="primary">Primary</Button>
           <Button variant="outline">Outline</Button>
           <Button variant="ghost">Ghost</Button>
-          <Button variant="danger">Danger</Button>
+          <Button variant="destructive">Danger</Button>
           <Button size="sm">Small</Button>
           <Button size="lg">Large</Button>
           <Button disabled>Disabled</Button>

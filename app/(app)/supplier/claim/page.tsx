@@ -17,6 +17,7 @@ import { Tag } from "@/components/ui/tag";
 import { Wizard } from "@/components/ui/wizard";
 import { ClaimSearchForm } from "@/components/claim-search-form";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { PageHeader } from "@/components/ui/page-kit";
 
 export const dynamic = "force-dynamic";
 
@@ -97,19 +98,11 @@ export default async function SupplierClaimPage({
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
-      <header>
-        <p className="text-[11px] text-ink-tertiary">
-          Supplier
-        </p>
-        <h1 className="font-display text-2xl font-semibold tracking-tightish text-ink-primary">
-          Claim your company
-        </h1>
-        <p className="mt-1 text-sm text-ink-secondary">
-          Search the SourceBD directory, then verify ownership via your
-          company email. If your email domain matches the published company
-          domain, your claim is approved automatically.
-        </p>
-      </header>
+      <PageHeader
+        kicker="Supplier"
+        title="Claim your company"
+        description="Search the SourceBD directory, then verify ownership via your company email. If your email domain matches the published company domain, your claim is approved automatically."
+      />
 
       <Wizard steps={CLAIM_STEPS} current={0}>
         <Card>

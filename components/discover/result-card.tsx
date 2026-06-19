@@ -9,9 +9,10 @@
 import Link from "next/link";
 
 import { ReceiptsRing } from "@/components/receipts-ring";
+import { Pill } from "@/components/ui/page-kit";
 import { ENTITY_TYPES } from "@/components/discover/filter-rail";
-import { apparelIconUrl } from "@/lib/apparel-icons";
 import { establishedYear } from "@/lib/established";
+import { sourceLogo } from "@/lib/source-logos";
 
 // Source-code → human pill label. Brand disclosure codes (`BRAND_ASOS`,
 // `BRAND_HM`, …) must never render raw on a card; certification codes keep
@@ -33,6 +34,21 @@ function pillLabel(tag: string): string {
   }
   if (tag === "OEKO_TEX") return "OEKO-TEX";
   return tag;
+}
+
+// Source data tags some products with parenthesised sub-classification codes
+// — standalone "(B)" entries or trailing "Polo Shirt (A)" markers from the
+// BGMEA / EPB feeds. They mean nothing to a buyer, so peel them before
+// display (mirrors `stripMarker` on the full dossier).
+function cleanProduct(raw: string): string {
+  let s = (raw ?? "").trim();
+  for (let i = 0; i < 2; i++) {
+    s = s
+      .replace(/^\(\s*[A-Za-z0-9]{1,3}\s*\)\s*/, "")
+      .replace(/\s*\(\s*[A-Za-z0-9]{1,3}\s*\)\s*$/, "")
+      .trim();
+  }
+  return s;
 }
 
 export type DiscoverRow = {
@@ -72,26 +88,28 @@ export function DiscoverResultCard({
   const extraPills = Math.max(0, row.source_tags.length - visiblePills.length);
 
   return (
-    <article className="proto-card hoverable relative">
-      <div className="absolute right-5 top-5 flex items-center gap-2">
+    <article className="group relative rounded-lg border border-hairline bg-surface-l1 p-4 transition-colors duration-200 ease-smooth hover:border-brand-forest/30 hover:bg-[#fbfdfb] sm:p-6">
+      <div className="absolute right-4 top-4 z-10 flex items-center gap-2">
         {actionSlot}
       </div>
 
       <Link
         href={`${hrefBase}/${row.slug}`}
-        className="flex items-start gap-5 rounded-card focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-forest"
+        className="flex items-start gap-3.5 rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-forest sm:gap-5"
       >
-        <div className="shrink-0 pt-1">
+        <div className="shrink-0">
           <ReceiptsRing sources={row.t13_source_count} size={32} />
         </div>
 
-        <div className="min-w-0 flex-1 space-y-3 pr-32">
-          <div>
-            <h2 className="header-name !text-xl">{row.company_name}</h2>
-            <div className="mt-1 flex flex-wrap items-center gap-2 text-[12px]">
-              <span className="chip">{entityLabel}</span>
+        <div className="min-w-0 flex-1 space-y-3.5">
+          <div className="space-y-2 pr-8">
+            <h2 className="font-display text-[19px] font-bold leading-snug tracking-[-0.02em] text-ink-primary">
+              {row.company_name}
+            </h2>
+            <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[13px]">
+              <Pill tone="forest">{entityLabel}</Pill>
               {location ? (
-                <span className="text-ink-tertiary">{location}</span>
+                <span className="text-ink-secondary">{location}</span>
               ) : null}
               {row.parent_group_name ? (
                 <span className="text-ink-tertiary">
@@ -102,22 +120,20 @@ export function DiscoverResultCard({
           </div>
 
           {visiblePills.length > 0 ? (
-            <div className="pill-row">
+            <div className="flex flex-wrap items-center gap-1.5">
               {visiblePills.map((tag) => (
-                <span key={tag} className="proto-pill">
-                  {pillLabel(tag)}
-                </span>
+                <SourcePill key={tag} tag={tag} />
               ))}
               {extraPills > 0 ? (
-                <span className="proto-pill inherited">
-                  + {extraPills} more
+                <span className="self-center text-[12px] font-medium text-ink-tertiary">
+                  +{extraPills} more
                 </span>
               ) : null}
             </div>
           ) : null}
 
           {row.principal_products.length > 0 ? (
-            <ProductsRow products={row.principal_products} />
+            <ProductsLine products={row.principal_products} />
           ) : null}
 
           <StatLine row={row} />
@@ -128,42 +144,37 @@ export function DiscoverResultCard({
   );
 }
 
-function ProductsRow({ products }: { products: string[] }) {
+function ProductsLine({ products }: { products: string[] }) {
+  const cleaned = products.map(cleanProduct).filter(Boolean);
   const limit = 6;
-  const shown = products.slice(0, limit);
-  const overflow = Math.max(0, products.length - shown.length);
+  const shown = cleaned.slice(0, limit);
+  const overflow = Math.max(0, cleaned.length - shown.length);
+  if (shown.length === 0) return null;
   return (
-    <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[12px] text-ink-secondary">
-      {shown.map((p) => (
-        <ProductTag key={p} product={p} />
-      ))}
+    <p className="text-[13px] leading-relaxed text-ink-secondary">
+      {shown.join("  ·  ")}
       {overflow > 0 ? (
-        <span className="text-ink-tertiary">+ {overflow} more</span>
+        <span className="text-ink-tertiary">{`  ·  +${overflow} more`}</span>
       ) : null}
-    </div>
+    </p>
   );
 }
 
-function ProductTag({ product }: { product: string }) {
-  const icon = apparelIconUrl(product);
+// Source/registry chip. Renders a rounded provider logo when one exists,
+// otherwise falls back to a plain neutral text pill.
+function SourcePill({ tag }: { tag: string }) {
+  const logo = sourceLogo(tag);
+  const label = pillLabel(tag);
+  if (!logo) {
+    return <Pill tone="neutral">{label}</Pill>;
+  }
   return (
-    <span className="inline-flex items-center gap-1.5">
-      {icon ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={icon}
-          alt=""
-          width={16}
-          height={16}
-          loading="lazy"
-          className="inline-block opacity-80"
-        />
-      ) : (
-        <span aria-hidden className="text-ink-tertiary">
-          ◆
-        </span>
-      )}
-      <span>{product}</span>
+    <span className="inline-flex items-center gap-1.5 rounded-pill border border-hairline bg-surface-l1 py-[3px] pl-[3px] pr-2.5 text-[12px] font-medium text-ink-secondary">
+      <span className="flex size-[18px] items-center justify-center overflow-hidden rounded-full border border-hairline bg-white">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={logo} alt="" className="size-full object-contain p-[1px]" />
+      </span>
+      {label}
     </span>
   );
 }
@@ -171,7 +182,7 @@ function ProductTag({ product }: { product: string }) {
 function StatLine({ row }: { row: DiscoverRow }) {
   const parts: string[] = [];
   const estYear = establishedYear(row.established_date);
-  if (estYear) parts.push(`Established ${estYear}`);
+  if (estYear) parts.push(`Est. ${estYear}`);
   if (row.employees_total)
     parts.push(`${row.employees_total.toLocaleString()} employees`);
   if (row.factory_types.length > 0)
@@ -180,8 +191,17 @@ function StatLine({ row }: { row: DiscoverRow }) {
     parts.push(`RSC ${Number(row.rsc_progress_pct).toFixed(0)}%`);
   if (parts.length === 0) return null;
   return (
-    <p className="text-[11px] text-ink-tertiary">
-      {parts.join(" · ")}
-    </p>
+    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 border-t border-hairline pt-3 text-[12px] text-ink-tertiary">
+      {parts.map((p, i) => (
+        <span key={p} className="inline-flex items-center gap-2">
+          {i > 0 ? (
+            <span aria-hidden className="text-hairline-strong">
+              ·
+            </span>
+          ) : null}
+          {p}
+        </span>
+      ))}
+    </div>
   );
 }

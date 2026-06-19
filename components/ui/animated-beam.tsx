@@ -23,6 +23,8 @@ export interface AnimatedBeamProps {
   gradientStopColor?: string;
   delay?: number;
   duration?: number;
+  /** Motion easing for the comet travel. Linear = calm, even, no flash. */
+  ease?: "linear" | [number, number, number, number];
   startXOffset?: number;
   startYOffset?: number;
   endXOffset?: number;
@@ -40,6 +42,7 @@ export function AnimatedBeam({
   reverse = false,
   duration = Math.random() * 3 + 4,
   delay = 0,
+  ease = "linear",
   pathColor = "gray",
   pathWidth = 2,
   pathOpacity = 0.2,
@@ -167,7 +170,7 @@ export function AnimatedBeam({
           transition={{
             delay,
             duration,
-            ease: [0.16, 1, 0.3, 1],
+            ease,
             repeat: Infinity,
             repeatDelay: 0,
           }}

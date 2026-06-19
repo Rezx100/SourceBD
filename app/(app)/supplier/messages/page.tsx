@@ -14,6 +14,7 @@ import { ChatCircleText } from "@phosphor-icons/react/dist/ssr";
 
 import { Card, CardContent } from "@/components/ui/card";
 import { MasterDetail } from "@/components/ui/master-detail";
+import { PageHeader } from "@/components/ui/page-kit";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -44,14 +45,11 @@ export default async function SupplierMessagesPage() {
 
   return (
     <div className="mx-auto max-w-6xl space-y-6">
-      <header>
-        <p className="text-[11px] text-ink-tertiary">
-          Supplier
-        </p>
-        <h1 className="font-display text-2xl font-semibold tracking-tightish text-ink-primary">
-          Messages
-        </h1>
-      </header>
+      <PageHeader
+        kicker="Supplier"
+        title="Messages"
+        description="Buyer inquiries against your claimed companies."
+      />
 
       <MasterDetail
         mode="list"
@@ -124,7 +122,7 @@ export default async function SupplierMessagesPage() {
           )
         }
         detail={
-          <div className="proto-card hidden h-full items-center justify-center p-10 text-sm text-ink-tertiary lg:flex">
+          <div className="hidden h-full items-center justify-center rounded-card border border-hairline bg-surface-l1 p-10 text-sm text-ink-tertiary shadow-[0_1px_2px_rgba(15,15,20,0.03)] lg:flex">
             <span>Select a conversation to read it here.</span>
           </div>
         }

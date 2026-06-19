@@ -8,6 +8,7 @@
 import Link from "next/link";
 import { ChatCircleText } from "@phosphor-icons/react/dist/ssr";
 
+import { DataList, EmptyState, PageHeader, Pill } from "@/components/ui/page-kit";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -34,79 +35,72 @@ export default async function MessagesPage() {
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
-      <header className="flex items-baseline justify-between gap-3">
-        <div>
-          <p className="text-[11px] font-semibold text-ink-tertiary">
-            Buyer
-          </p>
-          <h1 className="font-display text-3xl font-light tracking-tight text-ink-primary">
-            Messages
-          </h1>
-        </div>
-        <Link href="/app/discover" className="btn-proto">
-          Find a supplier
-        </Link>
-      </header>
+      <PageHeader
+        kicker="Buyer"
+        title="Messages"
+        description="Your conversations with verified suppliers."
+        actions={
+          <Link
+            href="/app/discover"
+            className="inline-flex items-center rounded-pill border border-hairline-strong bg-surface-l1 px-4 py-2 text-sm font-semibold text-ink-primary transition-colors hover:bg-brand-forest-tint"
+          >
+            Find a supplier
+          </Link>
+        }
+      />
 
       {error ? (
-        <div className="proto-card text-sm text-sem-red">
+        <div className="rounded-card border border-sem-red/30 bg-sem-red-soft p-4 text-sm text-sem-red">
           Could not load your inbox.
         </div>
       ) : threads.length === 0 ? (
-        <div className="proto-card space-y-3 text-center">
-          <ChatCircleText
-            size={32}
-            weight="duotone"
-            className="mx-auto text-ink-tertiary"
-            aria-hidden
-          />
-          <p className="affiliation-disclaimer">
-            You haven&apos;t started any conversations yet.
-          </p>
-          <p className="affiliation-disclaimer">
-            Open a supplier profile and send the first message — your threads
-            will appear here.
-          </p>
-          <Link href="/app/discover" className="btn-proto primary inline-flex">
-            Browse Discover
-          </Link>
-        </div>
+        <EmptyState
+          icon={<ChatCircleText size={26} weight="duotone" aria-hidden />}
+          title="No conversations yet"
+          description="Open a supplier profile and send the first message — your threads will appear here."
+          action={
+            <Link
+              href="/app/discover"
+              className="inline-flex items-center rounded-pill bg-brand-forest px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-brand-forest-mid"
+            >
+              Browse Discover
+            </Link>
+          }
+        />
       ) : (
-        <nav aria-label="Threads" className="proto-card p-0">
-          <ul className="m-0 flex list-none flex-col p-0">
-            {threads.map((t) => (
-              <li key={t.id} className="border-b border-hairline last:border-b-0">
-                <Link
-                  href={`/app/messages/${t.id}`}
-                  className="proto-nav-item !rounded-none !px-5 !py-3"
-                >
-                  <ChatCircleText
-                    size={18}
-                    weight="duotone"
-                    className="shrink-0 text-brand-forest"
-                    aria-hidden
-                  />
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <span className="truncate font-display text-sm font-medium text-ink-primary">
-                        {t.supplier_name}
-                      </span>
-                      <span className="chip">{entityLabel(t.supplier_entity_type)}</span>
-                    </div>
-                    <p className="mt-0.5 truncate text-[12px] text-ink-tertiary">
-                      {t.subject ?? "General inquiry"} ·{" "}
-                      {t.message_count.toLocaleString()}{" "}
-                      {t.message_count === 1 ? "message" : "messages"}
-                    </p>
+        <DataList>
+          {threads.map((t) => (
+            <li key={t.id}>
+              <Link
+                href={`/app/messages/${t.id}`}
+                className="flex items-center gap-3 px-4 py-3.5 transition-colors duration-hover ease-smooth hover:bg-brand-forest-tint"
+              >
+                <ChatCircleText
+                  size={18}
+                  weight="duotone"
+                  className="shrink-0 text-brand-forest"
+                  aria-hidden
+                />
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="truncate font-display text-sm font-semibold text-ink-primary">
+                      {t.supplier_name}
+                    </span>
+                    <Pill tone="neutral">{entityLabel(t.supplier_entity_type)}</Pill>
                   </div>
-                  <span className="shrink-0 text-[11px] text-ink-tertiary">
-                    {fmtRelative(t.last_message_at ?? t.created_at)}
-                  </span>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </nav>
+                  <p className="mt-0.5 truncate text-[12px] text-ink-tertiary">
+                    {t.subject ?? "General inquiry"} ·{" "}
+                    {t.message_count.toLocaleString()}{" "}
+                    {t.message_count === 1 ? "message" : "messages"}
+                  </p>
+                </div>
+                <span className="shrink-0 text-[11px] text-ink-tertiary">
+                  {fmtRelative(t.last_message_at ?? t.created_at)}
+                </span>
+              </Link>
+            </li>
+          ))}
+        </DataList>
       )}
     </div>
   );

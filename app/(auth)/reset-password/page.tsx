@@ -1,19 +1,16 @@
 "use client";
 
-// Spec M6b — Reset-password form. Same `updatePassword` server action
-// as F3 (writes to the recovery session set by the magic link).
+// Reset-password form — light Magic UI rebuild. Same `updatePassword`
+// server action as before (writes to the recovery session set by the
+// magic link).
 
 import Link from "next/link";
-import { useActionState, useState } from "react";
+import { useActionState } from "react";
 
-import {
-  ArrowRight,
-  Eye,
-  EyeSlash,
-  Lock,
-} from "@phosphor-icons/react/dist/ssr";
+import { ArrowRight, Lock } from "@phosphor-icons/react/dist/ssr";
 
-import { AuthShell } from "@/components/auth/auth-shell";
+import { AuthShell, AuthHeading } from "@/components/auth/auth-shell";
+import { AuthAlert, PasswordField, SubmitButton } from "@/components/auth/auth-fields";
 
 import { updatePassword, type AuthActionState } from "../actions";
 
@@ -21,7 +18,6 @@ const INITIAL: AuthActionState = {};
 
 export default function ResetPasswordPage() {
   const [state, action, pending] = useActionState(updatePassword, INITIAL);
-  const [showPw, setShowPw] = useState(false);
   return (
     <AuthShell
       brandHeadline="One new password,"
@@ -30,51 +26,32 @@ export default function ResetPasswordPage() {
       brandFooter="Encrypted in transit · session refreshed."
       topRight={
         <>
-          Need help? <Link href="/login">Back to sign in</Link>
+          Need help?{" "}
+          <Link href="/login" className="font-medium text-[#1f4d3a] hover:underline">
+            Back to sign in
+          </Link>
         </>
       }
     >
-      <h1>Set a new password</h1>
-      <p className="mkt-am-sub">
-        Choose a password you don&apos;t use elsewhere — at least 8
-        characters.
-      </p>
-      <form action={action} style={{ marginTop: 28 }}>
-        <div className="mkt-field">
-          <label htmlFor="reset-password">New password</label>
-          <div className="inp">
-            <Lock size={17} weight="bold" />
-            <input
-              id="reset-password"
-              type={showPw ? "text" : "password"}
-              name="password"
-              required
-              minLength={8}
-              autoComplete="new-password"
-              placeholder="At least 8 characters"
-            />
-            <button
-              type="button"
-              onClick={() => setShowPw((v) => !v)}
-              aria-label={showPw ? "Hide password" : "Show password"}
-              style={{
-                background: "none",
-                border: 0,
-                cursor: "pointer",
-                color: "var(--mkt-ink-400)",
-                padding: 4,
-                display: "grid",
-                placeItems: "center",
-              }}
-            >
-              {showPw ? <EyeSlash size={17} /> : <Eye size={17} />}
-            </button>
-          </div>
-        </div>
-        {state.error ? <p className="mkt-err">{state.error}</p> : null}
-        <button type="submit" className="mkt-btn-submit" disabled={pending}>
-          {pending ? "Saving…" : <>Update password <ArrowRight size={17} /></>}
-        </button>
+      <AuthHeading
+        title="Set a new password"
+        subtitle="Choose a password you don't use elsewhere — at least 8 characters."
+      />
+
+      <form action={action} className="mt-7 space-y-4">
+        <PasswordField
+          label="New password"
+          name="password"
+          required
+          minLength={8}
+          autoComplete="new-password"
+          placeholder="At least 8 characters"
+          icon={<Lock size={17} weight="bold" />}
+        />
+        {state.error ? <AuthAlert tone="error">{state.error}</AuthAlert> : null}
+        <SubmitButton pending={pending} pendingLabel="Saving…">
+          Update password <ArrowRight size={17} weight="bold" />
+        </SubmitButton>
       </form>
     </AuthShell>
   );

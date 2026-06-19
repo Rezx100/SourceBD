@@ -14,6 +14,7 @@ import {
   WarningCircle,
 } from "@phosphor-icons/react/dist/ssr";
 
+import { EmptyState, PageHeader } from "@/components/ui/page-kit";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -59,39 +60,31 @@ export default async function ComplianceHubPage() {
 
   return (
     <div className="mx-auto max-w-6xl space-y-6">
-      <header>
-        <p className="text-[11px] font-semibold text-ink-tertiary">
-          Buyer
-        </p>
-        <h1 className="font-display text-3xl font-light tracking-tight text-ink-primary">
-          Compliance
-        </h1>
-        <p className="affiliation-disclaimer mt-2">
-          Personalised compliance posture across your{" "}
-          <span className="font-semibold text-ink-primary">
-            {savedTotal.toLocaleString()}
-          </span>{" "}
-          saved suppliers. Use these surfaces to surface upcoming cert renewals,
-          spot UFLPA risk, and draft your UK Modern Slavery Act §54 statement.
-        </p>
-      </header>
+      <PageHeader
+        kicker="Buyer"
+        title="Compliance"
+        description={`Personalised compliance posture across your ${savedTotal.toLocaleString()} saved suppliers — upcoming cert renewals, UFLPA risk, and your UK Modern Slavery Act §54 statement.`}
+      />
 
       {anyError ? (
-        <div className="proto-card text-sm text-sem-red">
+        <div className="rounded-card border border-sem-red/30 bg-sem-red-soft p-4 text-sm text-sem-red">
           Could not load one or more compliance views.
         </div>
       ) : null}
 
       {savedTotal === 0 ? (
-        <div className="proto-card space-y-3 text-center">
-          <p className="affiliation-disclaimer">
-            You haven&apos;t saved any suppliers yet — the Compliance page draws
-            from your saved list.
-          </p>
-          <Link href="/app/discover" className="btn-proto inline-flex items-center gap-1">
-            Browse Discover <ArrowRight size={12} weight="bold" />
-          </Link>
-        </div>
+        <EmptyState
+          title="No saved suppliers yet"
+          description="The Compliance page draws from your saved list. Save suppliers from Discover to begin."
+          action={
+            <Link
+              href="/app/discover"
+              className="inline-flex items-center gap-1 rounded-pill bg-brand-forest px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-brand-forest-mid"
+            >
+              Browse Discover <ArrowRight size={13} weight="bold" />
+            </Link>
+          }
+        />
       ) : null}
 
       <section

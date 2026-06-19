@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tag } from "@/components/ui/tag";
+import { PageHeader } from "@/components/ui/page-kit";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -280,21 +281,19 @@ export default async function AdminHome() {
 
 function AdminHeader({ generatedAt }: { generatedAt?: string }) {
   return (
-    <header className="flex items-end justify-between gap-3">
-      <div>
-        <p className="text-[11px] text-ink-tertiary">
-          Admin
-        </p>
-        <h1 className="font-display text-2xl font-semibold tracking-tightish text-ink-primary">
-          Overview
-        </h1>
-      </div>
-      {generatedAt ? (
-        <p className="font-mono text-[11px] text-ink-tertiary">
-          generated {new Date(generatedAt).toISOString().replace("T", " ").slice(0, 19)} UTC
-        </p>
-      ) : null}
-    </header>
+    <PageHeader
+      kicker="Admin"
+      title="Overview"
+      description="Platform-wide stats, moderation queues and data-moat coverage."
+      actions={
+        generatedAt ? (
+          <p className="font-mono text-[11px] text-ink-tertiary">
+            generated{" "}
+            {new Date(generatedAt).toISOString().replace("T", " ").slice(0, 19)} UTC
+          </p>
+        ) : null
+      }
+    />
   );
 }
 
@@ -310,10 +309,10 @@ function StatTile({
   return (
     <Card>
       <CardContent className="space-y-1 py-4">
-        <p className="text-[11px] text-ink-tertiary">
+        <p className="text-[11px] font-medium text-ink-tertiary">
           {label}
         </p>
-        <p className="font-display text-3xl font-semibold tabular-nums text-ink-primary">
+        <p className="font-display text-3xl font-bold tabular-nums text-ink-primary">
           {value.toLocaleString()}
         </p>
         <p className="text-[12px] text-ink-tertiary">{meta}</p>

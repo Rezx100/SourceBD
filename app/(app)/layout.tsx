@@ -19,6 +19,7 @@ import { getServerRole } from "@/lib/auth";
 type SettingsDoc = {
   email: string | null;
   display_name: string | null;
+  avatar_url: string | null;
   plan_tier: string | null;
 };
 
@@ -46,6 +47,7 @@ export default async function AppShellLayout({
   let userId: string | null = null;
   let email: string | null = null;
   let displayName: string | null = null;
+  let avatarUrl: string | null = null;
   let planTier: string | null = null;
   let moatTotal: number | null = null;
   let moatRefreshedAt: string | null = null;
@@ -99,6 +101,7 @@ export default async function AppShellLayout({
     if (settings) {
       displayName = settings.display_name ?? displayName;
       email = settings.email ?? email;
+      avatarUrl = settings.avatar_url ?? avatarUrl;
       planTier = settings.plan_tier ?? planTier;
     }
     const buyerDoc = (buyerRes.data ?? null) as BuyerDashboardDoc | null;
@@ -150,6 +153,7 @@ export default async function AppShellLayout({
             role={role}
             email={email}
             displayName={displayName}
+            avatarUrl={avatarUrl}
             planTier={planTier}
             moatTotal={moatTotal}
             moatRefreshedAt={moatRefreshedAt}
@@ -158,7 +162,7 @@ export default async function AppShellLayout({
           <main
             id="main-content"
             tabIndex={-1}
-            className="flex-1 px-4 pb-[72px] py-6 md:min-h-[calc(100vh-56px)] md:px-8 md:pb-8 md:py-8 focus:outline-none"
+            className="flex-1 px-4 pb-[72px] pt-6 md:min-h-[calc(100vh-56px)] md:px-10 md:pb-12 md:pt-10 lg:px-12 focus:outline-none"
           >
             {children}
           </main>

@@ -1,29 +1,34 @@
 import type { Metadata, Viewport } from "next";
-import { Bricolage_Grotesque, JetBrains_Mono, Plus_Jakarta_Sans, Geist } from "next/font/google";
+import { Archivo, Hanken_Grotesk, IBM_Plex_Mono, Geist } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 
 const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 
-const display = Bricolage_Grotesque({
+// Unified platform typography (decision 2026-06-18). The app surfaces now
+// share the marketing stack so the whole platform reads as one company:
+// Archivo (display) + Hanken Grotesk (body) + IBM Plex Mono (mono). This
+// supersedes the M6a split — `--font-*` and `--mkt-font-*` now resolve to
+// the same families.
+const display = Archivo({
   subsets: ["latin"],
   variable: "--font-display",
   display: "swap",
-  weight: ["400", "500", "600", "700"],
+  weight: ["500", "600", "700", "800", "900"],
 });
 
-const body = Plus_Jakarta_Sans({
+const body = Hanken_Grotesk({
   subsets: ["latin"],
   variable: "--font-body",
   display: "swap",
   weight: ["400", "500", "600", "700"],
 });
 
-const mono = JetBrains_Mono({
+const mono = IBM_Plex_Mono({
   subsets: ["latin"],
   variable: "--font-mono",
   display: "swap",
-  weight: ["400", "500"],
+  weight: ["400", "500", "600"],
 });
 
 export const metadata: Metadata = {
@@ -42,7 +47,7 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={cn(display.variable, body.variable, mono.variable, "font-sans", geist.variable)}>
-      <body>{children}</body>
+      <body suppressHydrationWarning>{children}</body>
     </html>
   );
 }

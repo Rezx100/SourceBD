@@ -320,19 +320,20 @@ const SANCTIONS_COLUMNS: Column<Row>[] = [
 
 function PageHeader({ total }: { total?: number }) {
   return (
-    <header>
-      <p className="text-[11px] text-ink-tertiary">
+    <div className="border-b border-hairline pb-6">
+      <p className="mb-2 inline-flex items-center gap-2 font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-brand-forest">
+        <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-brand-forest" />
         Admin
       </p>
-      <h1 className="font-display text-2xl font-semibold tracking-tightish text-ink-primary">
+      <h1 className="font-display text-[26px] font-extrabold leading-[1.05] tracking-[-0.03em] text-ink-primary sm:text-[32px]">
         Sanctions queue
       </h1>
-      <p className="mt-1 text-sm text-ink-secondary">
+      <p className="mt-2.5 max-w-2xl text-[15px] leading-relaxed text-ink-secondary">
         Review auto-flagged sanctions matches. Confirm flips the supplier to
         sanctioned with a recorded reason; clear marks the match as a false
         positive with a recorded reason.
         {typeof total === "number" ? ` ${total} total in current filter.` : ""}
       </p>
-    </header>
+    </div>
   );
 }

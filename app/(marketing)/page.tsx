@@ -238,37 +238,68 @@ export default async function HomeV2Page() {
             </BlurFade>
 
             <BlurFade delay={0.45}>
-              {/* Search field with a single-comet border beam. A conic
-                  gradient masked to a 1.6px ring lights only the rounded-rect
-                  border; its start angle is animated via the registered
-                  --beam-angle @property (see globals.css .search-beam), so one
-                  bright head traces the entire perimeter in a single direction
-                  and never reverses or collapses. */}
-              <div className="relative mx-auto mt-8 max-w-xl rounded-xl lg:mx-0">
-                <span aria-hidden className="search-beam" />
-                <form
-                  className="relative flex items-center gap-2 rounded-xl border border-neutral-200 bg-white px-3 py-2 shadow-sm md:px-4 md:py-2.5"
-                  action="/discover"
-                  method="get"
-                  role="search"
+              {/* Search field with a calm, continuous comet: a single
+                  forest-green segment travels the rounded-rect perimeter
+                  (A→B→C→D→A) at uniform speed via SVG stroke-dashoffset
+                  (pathLength-normalised). Pure CSS animation — smooth across
+                  corners, no JS, no hydration cost. */}
+              <form
+                className="relative mx-auto mt-8 flex max-w-xl items-center gap-2 rounded-xl border border-neutral-200 bg-white px-3 py-2 shadow-sm md:px-4 md:py-2.5 lg:mx-0"
+                action="/discover"
+                method="get"
+                role="search"
+              >
+                <svg
+                  aria-hidden
+                  className="search-comet pointer-events-none absolute inset-0 h-full w-full overflow-visible"
+                  preserveAspectRatio="none"
                 >
-                  <MagnifyingGlass size={20} className="hidden shrink-0 text-neutral-400 sm:block" />
-                  <input
-                    type="search"
-                    name="q"
-                    placeholder="OEKO-TEX certified knit factory…"
-                    aria-label="Search suppliers"
-                    autoComplete="off"
-                    className="min-w-0 flex-1 bg-transparent text-sm text-neutral-900 placeholder:text-neutral-400 focus:outline-none"
-                  />
-                  <button
-                    type="submit"
-                    className="shrink-0 rounded-lg bg-[#1f4d3a] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#2d6a4f]"
-                  >
-                    Search
-                  </button>
-                </form>
-              </div>
+                  {/* One unified comet: many fine, evenly phase-shifted
+                      sub-segments travel the perimeter together. Their width +
+                      opacity follow a sine envelope (0 at both tips, peak in the
+                      middle), so the streak reads as a single line that narrows
+                      and fades at BOTH ends — not discrete steps. All share one
+                      linear keyframe, so the loop is seamless and smooth across
+                      corners. */}
+                  {Array.from({ length: 22 }, (_, i) => {
+                    const t = (i + 1) / 23; // 0..1 along the streak
+                    const env = Math.sin(Math.PI * t); // 0 at ends, 1 mid
+                    return (
+                      <rect
+                        key={i}
+                        x="0"
+                        y="0"
+                        width="100%"
+                        height="100%"
+                        rx="12"
+                        ry="12"
+                        pathLength={100}
+                        fill="none"
+                        stroke="#2d6a4f"
+                        strokeWidth={0.2 + env * 1.1}
+                        strokeLinecap="round"
+                        strokeDasharray="1 99"
+                        style={{ opacity: 0.04 + env * 0.8, animationDelay: `-${i * 0.03}s` }}
+                      />
+                    );
+                  })}
+                </svg>
+                <MagnifyingGlass size={20} className="hidden shrink-0 text-neutral-400 sm:block" />
+                <input
+                  type="search"
+                  name="q"
+                  placeholder="OEKO-TEX certified knit factory…"
+                  aria-label="Search suppliers"
+                  autoComplete="off"
+                  className="min-w-0 flex-1 bg-transparent text-sm text-neutral-900 placeholder:text-neutral-400 focus:outline-none"
+                />
+                <button
+                  type="submit"
+                  className="shrink-0 rounded-lg bg-[#1f4d3a] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#2d6a4f]"
+                >
+                  Search
+                </button>
+              </form>
             </BlurFade>
 
             {/* Avatar proof */}
@@ -362,7 +393,11 @@ export default async function HomeV2Page() {
                     {s.icon}
                   </span>
                   <span className="flex items-baseline gap-1 font-[family-name:var(--mkt-font-display)] text-3xl font-bold tabular-nums text-neutral-900 sm:text-4xl">
-                    {typeof s.value === "number" ? <NumberTicker value={s.value} /> : "—"}
+                    {typeof s.value === "number" ? (
+                      <NumberTicker value={s.value} className="tracking-tight text-neutral-900" />
+                    ) : (
+                      "—"
+                    )}
                     {s.outOf ? (
                       <span className="text-base font-semibold text-neutral-400 sm:text-lg">
                         / {s.outOf}

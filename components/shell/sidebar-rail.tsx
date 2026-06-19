@@ -63,10 +63,10 @@ export function SidebarRail({ variant, className }: SidebarRailProps) {
                 title={s.label}
                 className={cn(
                   // 44×44 hit area, 20px glyph, label sr-only.
-                  "group relative mx-auto flex h-[44px] w-[44px] items-center justify-center rounded-pill text-ink-tertiary transition-colors duration-hover ease-smooth",
+                  "group relative mx-auto flex h-[44px] w-[44px] items-center justify-center rounded-md text-ink-tertiary transition-colors duration-hover ease-smooth",
                   active
-                    ? "bg-brand-forest-tint text-brand-forest"
-                    : "hover:bg-brand-forest-tint hover:text-ink-primary",
+                    ? "bg-brand-forest-soft text-brand-forest"
+                    : "hover:bg-[rgba(15,15,20,0.05)] hover:text-ink-primary",
                 )}
               >
                 <s.Icon size={20} weight={active ? "fill" : "regular"} aria-hidden />

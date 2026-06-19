@@ -170,7 +170,7 @@ export function AdminUserEditForm({
           </span>
           <Button
             type="button"
-            variant={suspended ? "primary" : "danger"}
+            variant={suspended ? "primary" : "destructive"}
             size="sm"
             onClick={onSuspendClick}
             disabled={pending || isSelf}

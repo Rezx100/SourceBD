@@ -119,12 +119,13 @@ export default async function AdminSupplierEditorPage({
 
   return (
     <div className="mx-auto max-w-5xl space-y-6">
-      <header className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+      <header className="flex flex-col gap-2 border-b border-hairline pb-6 md:flex-row md:items-end md:justify-between">
         <div>
-          <p className="text-[11px] text-ink-tertiary">
+          <p className="mb-2 inline-flex items-center gap-2 font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-brand-forest">
+            <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-brand-forest" />
             Admin · supplier
           </p>
-          <h1 className="font-display text-2xl font-semibold tracking-tightish text-ink-primary">
+          <h1 className="font-display text-[24px] font-extrabold leading-[1.1] tracking-[-0.03em] text-ink-primary sm:text-[28px]">
             {s.name_display ?? s.company_name}
           </h1>
           <p className="mt-1 text-[12px] text-ink-tertiary">

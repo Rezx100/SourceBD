@@ -7,6 +7,7 @@
 
 import { Sparkle } from "@phosphor-icons/react/dist/ssr";
 
+import { PageHeader } from "@/components/ui/page-kit";
 import { SmartMatchWizard } from "./smart-match-wizard";
 
 export const metadata = {
@@ -18,21 +19,12 @@ export const metadata = {
 export default function SmartMatchPage() {
   return (
     <div className="mx-auto max-w-5xl space-y-6">
-      <header className="space-y-2">
-        <p className="flex items-center gap-1.5 text-[11px] font-semibold text-ink-tertiary">
-          <Sparkle size={12} weight="fill" className="text-brand-forest" />
-          Find matches
-        </p>
-        <h1 className="font-display text-3xl font-light tracking-tight text-ink-primary">
-          Tell us what you need
-        </h1>
-        <p className="affiliation-disclaimer">
-          Three steps: product, requirements, ranked matches. Every match shows
-          the verified receipts that satisfied your brief \u2014 BGMEA registry,
-          WRAP / GOTS / OEKO-TEX / SA8000 certificates, RSC remediation
-          progress, sewing-machine capacity.
-        </p>
-      </header>
+      <PageHeader
+        kicker="Find matches"
+        icon={<Sparkle size={20} weight="fill" aria-hidden />}
+        title="Tell us what you need"
+        description="Three steps: product, requirements, ranked matches. Every match shows the verified receipts that satisfied your brief — BGMEA registry, WRAP / GOTS / OEKO-TEX / SA8000 certificates, RSC remediation progress, sewing-machine capacity."
+      />
       <SmartMatchWizard />
     </div>
   );

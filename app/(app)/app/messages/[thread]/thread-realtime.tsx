@@ -20,8 +20,6 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
 
 export type ThreadMessage = {
@@ -130,49 +128,47 @@ export function ThreadRealtime({
   );
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-3">
-      <Card className="flex min-h-[320px] flex-1 flex-col">
-        <CardContent className="flex-1 overflow-y-auto px-4 py-4">
-          {messages.length === 0 ? (
-            <p className="py-8 text-center text-[12px] text-ink-tertiary">
-              No messages yet. Send the first one below.
-            </p>
-          ) : (
-            <ul className="m-0 flex list-none flex-col gap-2 p-0">
-              {messages.map((m) => (
-                <li
-                  key={m.id}
+    <div className="flex min-h-0 flex-1 flex-col">
+      <div className="min-h-[320px] flex-1 overflow-y-auto bg-bg-l0 px-4 py-4">
+        {messages.length === 0 ? (
+          <p className="py-8 text-center text-[12px] text-ink-tertiary">
+            No messages yet. Send the first one below.
+          </p>
+        ) : (
+          <ul className="m-0 flex list-none flex-col gap-2 p-0">
+            {messages.map((m) => (
+              <li
+                key={m.id}
+                className={
+                  m.is_self
+                    ? "flex flex-col items-end"
+                    : "flex flex-col items-start"
+                }
+              >
+                <div
                   className={
                     m.is_self
-                      ? "flex flex-col items-end"
-                      : "flex flex-col items-start"
+                      ? "max-w-[80%] rounded-2xl rounded-br-sm bg-brand-forest px-3.5 py-2 text-[13px] text-white shadow-sm"
+                      : "max-w-[80%] rounded-2xl rounded-bl-sm border border-hairline bg-surface-l1 px-3.5 py-2 text-[13px] text-ink-primary shadow-sm"
                   }
                 >
-                  <div
-                    className={
-                      m.is_self
-                        ? "max-w-[80%] rounded-card border border-accent-indigo bg-accent-indigo px-3 py-2 text-[13px] text-ink-on-accent"
-                        : "max-w-[80%] rounded-card border border-hairline bg-surface-l1 px-3 py-2 text-[13px] text-ink-primary"
-                    }
-                  >
-                    <p className="m-0 whitespace-pre-wrap break-words">
-                      {m.body}
-                    </p>
-                  </div>
-                  <span className="mt-1 font-mono text-[10px] text-ink-tertiary">
-                    {fmtTime(m.created_at)}
-                  </span>
-                </li>
-              ))}
-              <div ref={listEndRef} />
-            </ul>
-          )}
-        </CardContent>
-      </Card>
+                  <p className="m-0 whitespace-pre-wrap break-words">
+                    {m.body}
+                  </p>
+                </div>
+                <span className="mt-1 font-mono text-[10px] text-ink-tertiary">
+                  {fmtTime(m.created_at)}
+                </span>
+              </li>
+            ))}
+            <div ref={listEndRef} />
+          </ul>
+        )}
+      </div>
 
       <form
         onSubmit={onSend}
-        className="rounded-card border border-hairline bg-surface-l1 p-3 shadow-l1"
+        className="border-t border-hairline bg-surface-l1 p-3"
       >
         <label htmlFor="thread-composer" className="sr-only">
           Message
@@ -185,7 +181,7 @@ export function ThreadRealtime({
           rows={3}
           maxLength={MAX_BODY}
           disabled={sending}
-          className="block w-full resize-y rounded-md border border-hairline bg-white px-3 py-2 font-sans text-[13px] text-ink-primary placeholder:text-ink-tertiary focus:border-accent-indigo focus:outline-none focus:ring-1 focus:ring-accent-indigo disabled:opacity-50"
+          className="block w-full resize-y rounded-md border border-hairline-strong bg-bg-l0 px-3 py-2 font-sans text-[13px] text-ink-primary placeholder:text-ink-tertiary focus:border-brand-forest focus:bg-surface-l1 focus:outline-none focus:ring-2 focus:ring-brand-forest/15 disabled:opacity-50"
         />
         <div className="mt-2 flex items-center justify-between gap-3">
           <span className="font-mono text-[11px] text-ink-tertiary">
@@ -194,14 +190,13 @@ export function ThreadRealtime({
               <span className="ml-2 text-sem-red">· {error}</span>
             ) : null}
           </span>
-          <Button
+          <button
             type="submit"
-            variant="primary"
-            size="sm"
             disabled={sending || draft.trim().length === 0}
+            className="inline-flex items-center rounded-pill bg-brand-forest px-5 py-2 text-sm font-semibold text-white transition-colors hover:bg-brand-forest-mid disabled:cursor-not-allowed disabled:opacity-50"
           >
             {sending ? "Sending…" : "Send"}
-          </Button>
+          </button>
         </div>
       </form>
     </div>

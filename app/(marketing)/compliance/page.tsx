@@ -60,7 +60,7 @@ export default async function ComplianceHubPage() {
     <main className="mx-auto max-w-5xl px-6 py-16">
       <section className="text-center">
         <h1 className="font-display text-4xl font-light tracking-tight text-ink-primary md:text-5xl">
-          <span className="proto-wordmark text-4xl md:text-5xl">Compliance</span>
+          <span className="text-[#1f4d3a] text-4xl md:text-5xl">Compliance</span>
         </h1>
         <p className="mx-auto mt-4 max-w-2xl text-base text-ink-secondary leading-relaxed">
           {HUB_METADATA.headline}
@@ -93,7 +93,7 @@ export default async function ComplianceHubPage() {
       <section className="mt-16 rounded-hero border border-hairline-strong bg-brand-forest-soft p-10 text-center">
         <h2 className="font-display text-2xl font-light tracking-tight text-ink-primary">
           Use SourceBD&apos;s{" "}
-          <span className="proto-wordmark text-2xl">receipts</span> on every
+          <span className="text-[#1f4d3a]">receipts</span> on every
           claim
         </h2>
         <p className="mx-auto mt-3 max-w-2xl text-sm text-ink-secondary leading-relaxed">

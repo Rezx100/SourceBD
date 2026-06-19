@@ -254,7 +254,7 @@ export default async function PublicDiscoverPage({
                 ) : null}
               </div>
             ) : (
-              <ul className="grid grid-cols-1 gap-4">
+              <ul className="grid grid-cols-1 gap-4 lg:grid-cols-2">
                 {rows.map((row) => (
                   <li key={row.id}>
                     <DiscoverResultCard row={row} hrefBase="/suppliers" />

@@ -35,7 +35,7 @@ export function ClaimCancelButton({ id }: { id: string }) {
 
   return (
     <div className="space-y-1">
-      <Button type="button" variant="danger" size="sm" onClick={cancel} disabled={pending}>
+      <Button type="button" variant="destructive" size="sm" onClick={cancel} disabled={pending}>
         {pending ? "Cancelling…" : "Cancel claim"}
       </Button>
       {error ? <p className="text-xs text-sem-red">{error}</p> : null}

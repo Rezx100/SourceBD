@@ -5,6 +5,8 @@
 import Link from "next/link";
 import { FileText } from "@phosphor-icons/react/dist/ssr";
 
+import { PageHeader } from "@/components/ui/page-kit";
+
 export const dynamic = "force-static";
 
 export const metadata = {
@@ -14,19 +16,11 @@ export const metadata = {
 export default function SupplierDocumentsPlaceholderPage() {
   return (
     <div className="mx-auto max-w-3xl space-y-6">
-      <header>
-        <p className="text-[11px] text-ink-tertiary">
-          Supplier · documents
-        </p>
-        <h1 className="mt-2 font-display text-2xl font-semibold tracking-tightish text-ink-primary">
-          Documents
-        </h1>
-        <p className="mt-2 max-w-prose text-sm text-ink-secondary">
-          Upload factory licences, audit reports, insurance, and certification
-          PDFs. Buyers will see verification badges on your profile once a
-          SourceBD reviewer signs off.
-        </p>
-      </header>
+      <PageHeader
+        kicker="Supplier"
+        title="Documents"
+        description="Upload factory licences, audit reports, insurance, and certification PDFs. Buyers will see verification badges on your profile once a SourceBD reviewer signs off."
+      />
 
       <section className="rounded-card border border-hairline bg-surface-l1 p-8 text-center">
         <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full border border-hairline-strong bg-bg-l0 text-ink-tertiary">

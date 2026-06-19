@@ -116,7 +116,9 @@ export function DataPipeline({ className }: { className?: string }) {
         ))}
       </div>
 
-      {/* Beams: cert logos → engine (L route, all fire together) */}
+      {/* Beams: cert logos → engine. Square (L / elbow) routing; every beam
+          fires at the same time and pulses continuously — slow travel, no gap
+          between repeats so it reads as a steady circuit. */}
       {certRefs.map((ref, i) => (
         <AnimatedBeam
           key={`c-${i}`}
@@ -124,16 +126,17 @@ export function DataPipeline({ className }: { className?: string }) {
           fromRef={ref}
           toRef={engineRef}
           pathType="angular"
-          elbowAt={0.6}
-          duration={5}
+          elbowAt={0.55}
+          duration={7}
           delay={0}
-          pathColor="#d2d1c3"
+          pathColor="#dfe4dd"
           pathWidth={2}
           gradientStartColor="#1f4d3a"
           gradientStopColor="#4e9268"
         />
       ))}
-      {/* Beams: register logos → engine (L route, reversed, all together) */}
+      {/* Beams: register logos → engine (mirrored square route, reversed, also
+          firing simultaneously with the cert side) */}
       {regRefs.map((ref, i) => (
         <AnimatedBeam
           key={`r-${i}`}
@@ -141,11 +144,11 @@ export function DataPipeline({ className }: { className?: string }) {
           fromRef={ref}
           toRef={engineRef}
           pathType="angular"
-          elbowAt={0.6}
-          duration={5}
+          elbowAt={0.55}
+          duration={7}
           delay={0}
           reverse
-          pathColor="#d2d1c3"
+          pathColor="#dfe4dd"
           pathWidth={2}
           gradientStartColor="#1f4d3a"
           gradientStopColor="#4e9268"

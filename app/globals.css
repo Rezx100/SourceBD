@@ -9,8 +9,10 @@
    ============================================================ */
 
 :root {
-  /* Surfaces (§16.3) */
-  --bg-l0: #fafaf7;
+  /* Surfaces — unified to the marketing system (clean white cards on a
+     cool near-white canvas). Replaces the former warm-cream --bg-l0
+     (#fafaf7) that made the app read as a different product after login. */
+  --bg-l0: #f6f7f8;
   --surface-l1: #ffffff;
   --surface-l2: #ffffff;
 
@@ -20,14 +22,20 @@
   --ink-tertiary: #8a8a95;
   --ink-on-accent: #ffffff;
 
-  /* Hairlines + shadows */
-  --hairline: rgba(15, 15, 20, 0.06);
-  --hairline-strong: rgba(15, 15, 20, 0.1);
-  --shadow-l1: 0 1px 2px rgba(15, 15, 20, 0.04), 0 8px 24px rgba(15, 15, 20, 0.04);
-  --shadow-l2: 0 2px 4px rgba(15, 15, 20, 0.06), 0 16px 40px rgba(15, 15, 20, 0.08);
+  /* Hairlines + shadows — crisp neutral hairline (≈ neutral-200) and a
+     restrained two-step elevation. The former large 8–16px ambient blur
+     made surfaces feel heavy/floaty; premium SaaS uses tight, low shadows. */
+  --hairline: rgba(15, 15, 20, 0.07);
+  --hairline-strong: rgba(15, 15, 20, 0.12);
+  --shadow-l1: 0 1px 2px rgba(15, 15, 20, 0.05);
+  --shadow-l2: 0 1px 3px rgba(15, 15, 20, 0.06), 0 12px 28px -12px rgba(15, 15, 20, 0.16);
 
-  /* Interaction accent (§21.1 — buttons, links, focus rings, tab underline, T1/T2 tier text) */
-  --accent-indigo: #1e2a6b;
+  /* Interaction accent — unified to forest green to match the marketing
+     homepage (forest-only palette, no indigo). The token name is kept for
+     backward-compat across ~40 pages that reference `accent-indigo`; the
+     value now resolves to the brand forest so every link, tab underline,
+     focus ring and action renders forest green. */
+  --accent-indigo: #1f4d3a;
   --accent-teal: #0e7c82;
 
   /* Brand — forest green surface gradient (§21.1). 6-surface ceiling. */
@@ -51,10 +59,13 @@
   --tier-gold: #b6892b;
   --tier-platinum: #2c4e8a;
 
-  /* Fonts */
-  --font-display: "Bricolage Grotesque", ui-sans-serif, system-ui, sans-serif;
-  --font-body: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  /* Fonts — unified platform stack (decision 2026-06-18). The actual
+     families are injected by next/font on <html> as --font-display /
+     --font-body / --font-mono (Archivo / Hanken Grotesk / IBM Plex Mono).
+     We deliberately do NOT redefine those three custom properties here:
+     a literal :root override (the old Bricolage / Plus Jakarta values)
+     out-cascaded next/font and forced the app onto the old typeface after
+     login. They are intentionally omitted so next/font is the sole source. */
 
   /* Radius (§16.3 — 6/8/12/20 family) */
   --r-input: 6px;
@@ -793,32 +804,34 @@
     border: 1px solid var(--hairline);
     border-radius: var(--r-card);
     box-shadow: var(--shadow-l1);
-    padding: 20px;
+    padding: 24px;
     transition: transform var(--dur-hover) var(--ease),
-      box-shadow var(--dur-hover) var(--ease);
+      box-shadow var(--dur-hover) var(--ease),
+      border-color var(--dur-hover) var(--ease);
   }
   .proto-card.hoverable:hover {
-    transform: translateY(-1px);
+    transform: translateY(-2px);
+    border-color: var(--hairline-strong);
     box-shadow: var(--shadow-l2);
   }
   .proto-card-head {
     display: flex;
     align-items: baseline;
     justify-content: space-between;
-    margin-bottom: 14px;
+    margin-bottom: 18px;
     gap: 12px;
   }
   .proto-card-title {
     font-family: var(--font-display);
-    font-weight: 500;
-    font-size: 13.5px;
-    letter-spacing: 0.02em;
+    font-weight: 700;
+    font-size: 15px;
+    letter-spacing: -0.01em;
     text-transform: none;
     color: var(--ink-primary);
     margin: 0;
   }
   .proto-card-meta {
-    font-size: 11px;
+    font-size: 12px;
     color: var(--ink-tertiary);
     font-family: var(--font-mono);
     font-weight: 400;
@@ -923,7 +936,7 @@
     text-decoration: none;
     transition: background var(--dur-hover) var(--ease);
   }
-  .registry-row .reg-action:hover { background: rgba(30, 42, 107, 0.06); }
+  .registry-row .reg-action:hover { background: var(--brand-forest-tint); }
 
   /* ---------- Cert rows ---------- */
   .cert-list { display: flex; flex-direction: column; gap: 10px; }
@@ -935,7 +948,7 @@
     padding: 12px;
     border: 1px solid var(--hairline);
     border-radius: var(--r-card);
-    background: #FCFBF7;
+    background: var(--bg-l0);
     transition: transform var(--dur-hover) var(--ease),
       box-shadow var(--dur-hover) var(--ease);
   }
@@ -1001,7 +1014,7 @@
     align-items: center;
     gap: 4px;
   }
-  .cert-view:hover { background: rgba(30, 42, 107, 0.06); }
+  .cert-view:hover { background: var(--brand-forest-tint); }
 
   /* ---------- RSC ---------- */
   .rsc-stack { display: flex; flex-direction: column; gap: 8px; }
@@ -1244,7 +1257,7 @@
     align-items: center;
     gap: 6px;
     padding: 5px 12px;
-    background: #F4F2EC;
+    background: var(--bg-l0);
     border: 1px solid var(--hairline-strong);
     border-radius: var(--r-pill);
     font-size: 12px;
@@ -1279,8 +1292,8 @@
       box-shadow var(--dur-hover) var(--ease);
   }
   .proto-pill:hover {
-    background: #F4F2EC;
-    border-color: var(--ink-tertiary);
+    background: var(--brand-forest-tint);
+    border-color: var(--brand-forest);
     box-shadow: var(--shadow-l1);
   }
   .proto-pill .ref {
@@ -1342,7 +1355,7 @@
     color: var(--accent-indigo);
     transition: background var(--dur-hover) var(--ease);
   }
-  .doc-action:hover { background: rgba(30, 42, 107, 0.06); }
+  .doc-action:hover { background: var(--brand-forest-tint); }
   .doc-action.secondary { color: var(--ink-secondary); }
   .prov-row {
     display: grid;
@@ -1374,8 +1387,8 @@
     font-size: 10px;
     font-weight: 600;
   }
-  .tier-badge.t1 { background: #DDE3F1; color: var(--accent-indigo); }
-  .tier-badge.t2 { background: #E8EBF5; color: var(--accent-indigo); }
+  .tier-badge.t1 { background: var(--brand-forest-soft); color: var(--brand-forest); }
+  .tier-badge.t2 { background: var(--brand-forest-soft); color: var(--brand-forest); }
   .tier-badge.t3 { background: #EAEFEE; color: var(--accent-teal); }
   .tier-badge.t4 { background: #F4E7D6; color: var(--tier-bronze); }
   details.provenance summary {
@@ -1403,33 +1416,34 @@
   .metric-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 14px;
+    gap: 16px;
   }
   .metric {
-    padding: 14px;
-    background: #FCFBF7;
+    padding: 18px 20px;
+    background: var(--surface-l1);
     border: 1px solid var(--hairline);
-    border-radius: var(--r-input);
+    border-radius: var(--r-card);
+    transition: border-color var(--dur-hover) var(--ease),
+      box-shadow var(--dur-hover) var(--ease);
   }
   .metric-label {
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 500;
     color: var(--ink-tertiary);
-    margin: 0 0 4px;
+    margin: 0 0 6px;
   }
   .metric-val {
     font-family: var(--font-display);
-    font-weight: 500;
-    font-size: 22px;
+    font-weight: 700;
+    font-size: 28px;
     color: var(--ink-primary);
-    letter-spacing: -0.01em;
-    line-height: 1.1;
+    letter-spacing: -0.02em;
+    line-height: 1.05;
   }
   .metric-sub {
-    font-size: 11px;
-    color: var(--ink-secondary);
-    font-family: var(--font-mono);
-    margin-top: 4px;
+    font-size: 12px;
+    color: var(--ink-tertiary);
+    margin-top: 6px;
   }
 
   /* ---------- Contact ---------- */
@@ -1464,8 +1478,8 @@
   .gated-cta {
     margin-top: 16px;
     padding: 18px;
-    background: linear-gradient(180deg, rgba(30, 42, 107, 0.04) 0%, rgba(14, 124, 130, 0.04) 100%);
-    border: 1px dashed var(--accent-indigo);
+    background: linear-gradient(180deg, rgba(31, 77, 58, 0.05) 0%, rgba(45, 106, 79, 0.04) 100%);
+    border: 1px dashed var(--brand-forest);
     border-radius: var(--r-card);
     text-align: center;
   }
@@ -1490,398 +1504,10 @@
     line-height: 1.6;
   }
 
-  /* ---------- Sidebar (workspace + freshness + user) ---------- */
-  .proto-sidebar {
-    position: relative;
-    background: linear-gradient(180deg, #F3F1E8 0%, #ECEDE3 100%);
-    box-shadow:
-      inset -1px 0 0 rgba(255, 255, 255, 0.6),
-      1px 0 0 rgba(15, 15, 20, 0.02);
-  }
-  .proto-sidebar::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background:
-      radial-gradient(120% 60% at 0% 0%, rgba(31, 77, 58, 0.07), transparent 60%),
-      radial-gradient(80% 50% at 100% 100%, rgba(45, 106, 79, 0.05), transparent 70%);
-    pointer-events: none;
-    z-index: 0;
-  }
-  .proto-sidebar > * {
-    position: relative;
-    z-index: 1;
-  }
-  .sidebar-ws {
-    position: relative;
-    display: grid;
-    grid-template-columns: 36px 1fr 14px;
-    gap: 12px;
-    align-items: center;
-    padding: 11px 12px;
-    background: linear-gradient(180deg, #FFFFFF 0%, #FBFAF6 100%);
-    border: 1px solid var(--hairline-strong);
-    border-radius: var(--r-md);
-    box-shadow:
-      0 1px 0 rgba(255, 255, 255, 0.9) inset,
-      0 1px 2px rgba(15, 15, 20, 0.04),
-      0 4px 12px rgba(31, 77, 58, 0.06);
-    cursor: pointer;
-    transition: box-shadow var(--dur-hover) var(--ease);
-    width: 100%;
-    text-align: left;
-  }
-  .sidebar-ws:hover {
-    box-shadow:
-      0 1px 0 rgba(255, 255, 255, 0.9) inset,
-      0 2px 4px rgba(15, 15, 20, 0.06),
-      0 8px 20px rgba(31, 77, 58, 0.1);
-  }
-  .sidebar-ws .ws-mark {
-    width: 36px;
-    height: 36px;
-    border-radius: 8px;
-    background: var(--accent-grad);
-    color: #fff;
-    font-family: var(--font-display);
-    font-weight: 700;
-    font-size: 14px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    letter-spacing: 0.02em;
-    box-shadow:
-      0 1px 0 rgba(255, 255, 255, 0.25) inset,
-      0 4px 10px rgba(31, 77, 58, 0.3);
-  }
-  .sidebar-ws .ws-name {
-    font-size: 13.5px;
-    font-weight: 600;
-    color: var(--ink-primary);
-    letter-spacing: -0.01em;
-    line-height: 1.2;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  .sidebar-ws .ws-text {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    min-width: 0;
-  }
-  .sidebar-ws .ws-chev {
-    width: 14px;
-    height: 14px;
-    color: var(--ink-tertiary);
-  }
-  .sidebar-ws .ws-plan {
-    font-size: 11px;
-    color: var(--ink-tertiary);
-    line-height: 1.2;
-  }
-  .nav-section {
-    font-size: 11px;
-    font-weight: 600;
-    color: var(--ink-tertiary);
-    opacity: 0.85;
-    padding: 18px 12px 8px;
-  }
-  .nav-section:first-of-type { padding-top: 4px; }
-  .proto-nav-item {
-    position: relative;
-    display: grid;
-    grid-template-columns: 18px 1fr auto;
-    gap: 12px;
-    align-items: center;
-    padding: 10px 14px;
-    border-radius: var(--r-md);
-    font-size: 13.5px;
-    font-weight: 500;
-    color: var(--ink-secondary);
-    letter-spacing: -0.005em;
-    line-height: 1.3;
-    border: 1px solid transparent;
-    transition: background var(--dur-hover) var(--ease),
-      color var(--dur-hover) var(--ease),
-      border-color var(--dur-hover) var(--ease),
-      box-shadow var(--dur-hover) var(--ease);
-  }
-  .proto-nav-item:hover {
-    background: rgba(255, 255, 255, 0.7);
-    color: var(--ink-primary);
-    border-color: var(--hairline);
-    box-shadow: 0 1px 2px rgba(15, 15, 20, 0.03);
-  }
-  .proto-nav-item.active {
-    color: var(--ink-primary);
-    background: linear-gradient(180deg, #FFFFFF 0%, #FBFAF6 100%);
-    border-color: var(--hairline-strong);
-    box-shadow:
-      0 1px 0 rgba(255, 255, 255, 0.9) inset,
-      0 1px 2px rgba(15, 15, 20, 0.05),
-      0 6px 14px rgba(31, 77, 58, 0.1);
-  }
-  .proto-nav-item.active::after {
-    content: '';
-    position: absolute;
-    left: 0;
-    top: 6px;
-    bottom: 6px;
-    width: 3px;
-    border-radius: 0 2px 2px 0;
-    background: var(--accent-grad);
-  }
-  .proto-nav-item .nav-badge {
-    font-family: var(--font-mono);
-    font-size: 10px;
-    font-weight: 600;
-    color: var(--ink-tertiary);
-    padding: 3px 7px;
-    border-radius: 4px;
-    background: rgba(255, 255, 255, 0.8);
-    border: 1px solid var(--hairline);
-    min-width: 18px;
-    text-align: center;
-    letter-spacing: 0.02em;
-  }
-  .proto-nav-item.active .nav-badge {
-    color: var(--brand-forest);
-    background: var(--brand-forest-tint);
-    border-color: rgba(31, 77, 58, 0.18);
-  }
-  .proto-nav-item .nav-badge.dot {
-    width: 7px;
-    height: 7px;
-    padding: 0;
-    min-width: 0;
-    border-radius: 50%;
-    background: var(--sem-red);
-    border: none;
-    box-shadow: 0 0 0 3px rgba(200, 16, 46, 0.18);
-  }
-  .proto-nav-item .nav-badge.alert {
-    color: var(--sem-red);
-    background: var(--sem-red-soft);
-    border-color: rgba(200, 16, 46, 0.3);
-  }
-  .sidebar-freshness {
-    position: relative;
-    padding: 14px 16px;
-    background: linear-gradient(180deg, #FFFFFF 0%, #FBFAF6 100%);
-    border: 1px solid var(--hairline-strong);
-    border-radius: var(--r-md);
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    box-shadow:
-      0 1px 0 rgba(255, 255, 255, 0.9) inset,
-      0 1px 2px rgba(15, 15, 20, 0.04),
-      0 8px 20px rgba(31, 77, 58, 0.08);
-    overflow: hidden;
-  }
-  .sidebar-freshness::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 2px;
-    background: var(--accent-grad);
-  }
-  .sidebar-freshness .fresh-top {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-  }
-  .sidebar-bottom {
-    position: relative;
-    margin-top: auto;
-    padding-top: 16px;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-  }
-  .sidebar-bottom::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 8px;
-    right: 8px;
-    height: 1px;
-    background: linear-gradient(90deg, transparent, var(--hairline-strong), transparent);
-  }
-  .sidebar-freshness .fresh-label {
-    font-size: 11px;
-    color: var(--brand-forest);
-    font-weight: 500;
-  }
-  .sidebar-freshness .fresh-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: var(--brand-forest-mid);
-    box-shadow:
-      0 0 0 3px var(--brand-forest-soft),
-      0 0 8px rgba(31, 77, 58, 0.45);
-  }
-  .sidebar-freshness .fresh-count {
-    font-family: var(--font-mono);
-    font-weight: 700;
-    font-size: 16px;
-    color: var(--ink-primary);
-    letter-spacing: 0.01em;
-    line-height: 1.2;
-  }
-  .sidebar-freshness .fresh-sub {
-    font-size: 10.5px;
-    color: var(--ink-tertiary);
-    line-height: 1.4;
-  }
-  .sidebar-user {
-    display: grid;
-    grid-template-columns: 32px 1fr 16px;
-    gap: 12px;
-    align-items: center;
-    padding: 10px 12px;
-    border: 1px solid var(--hairline-strong);
-    border-radius: var(--r-md);
-    background: linear-gradient(180deg, #FFFFFF 0%, #FBFAF6 100%);
-    box-shadow:
-      0 1px 0 rgba(255, 255, 255, 0.9) inset,
-      0 1px 2px rgba(15, 15, 20, 0.04);
-    cursor: pointer;
-    width: 100%;
-    text-align: left;
-    transition: box-shadow var(--dur-hover) var(--ease);
-  }
-  .sidebar-user:hover {
-    box-shadow:
-      0 1px 0 rgba(255, 255, 255, 0.9) inset,
-      0 2px 4px rgba(15, 15, 20, 0.06),
-      0 8px 18px rgba(31, 77, 58, 0.1);
-  }
-  .sidebar-user .user-avatar {
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, #E8E4DC 0%, #C9C3B6 100%);
-    color: var(--ink-primary);
-    font-weight: 600;
-    font-size: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: 1px solid var(--hairline-strong);
-    box-shadow:
-      0 1px 0 rgba(255, 255, 255, 0.6) inset,
-      0 1px 2px rgba(15, 15, 20, 0.06);
-  }
-  .sidebar-user .user-name {
-    font-size: 12.5px;
-    font-weight: 600;
-    color: var(--ink-primary);
-    letter-spacing: -0.01em;
-    line-height: 1.2;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  .sidebar-user .user-text {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    min-width: 0;
-  }
-  .sidebar-user .user-chev {
-    width: 14px;
-    height: 14px;
-    color: var(--ink-tertiary);
-  }
-  .sidebar-user .user-role {
-    font-size: 10.5px;
-    color: var(--ink-tertiary);
-    line-height: 1.3;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  /* ---------- Topbar wordmark ---------- */
-  .proto-wordmark {
-    font-family: var(--font-display);
-    font-weight: 600;
-    font-size: 19px;
-    letter-spacing: -0.02em;
-    background: var(--accent-grad);
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
-  }
-
-  /* ---------- Topbar (I-022) ---------- */
-  /* The topbar shares the warm cream of the sidebar at its top so the two
-     surfaces read as one continuous chrome strip rather than two materials
-     glued together. A subtle bottom hairline + tint keeps it readable when
-     content scrolls underneath. */
-  .topbar {
-    background: linear-gradient(180deg, #F3F1E8 0%, #F6F4EC 100%);
-    box-shadow: 0 1px 0 rgba(15, 15, 20, 0.04);
-  }
-  @supports (backdrop-filter: blur(8px)) {
-    .topbar {
-      background: linear-gradient(
-        180deg,
-        rgba(243, 241, 232, 0.92) 0%,
-        rgba(246, 244, 236, 0.86) 100%
-      );
-    }
-  }
-  .topbar-quick-link {
-    padding: 6px 10px;
-    border-radius: var(--r-pill);
-    font-size: 12.5px;
-    font-weight: 500;
-    color: var(--ink-secondary);
-    transition: background-color var(--dur-hover) var(--ease),
-      color var(--dur-hover) var(--ease);
-  }
-  .topbar-quick-link:hover {
-    background: var(--brand-forest-tint);
-    color: var(--ink-primary);
-  }
-  .topbar-moat {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 5px 10px;
-    border-radius: var(--r-pill);
-    background: var(--surface-l1);
-    border: 1px solid var(--hairline-strong);
-    font-size: 12px;
-    color: var(--ink-secondary);
-    transition: background-color var(--dur-hover) var(--ease);
-  }
-  .topbar-moat:hover {
-    background: var(--brand-forest-tint);
-  }
-  .topbar-moat-dot {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: var(--sem-green);
-    box-shadow: 0 0 0 2px var(--sem-green-soft);
-  }
-  .topbar-moat-count {
-    font-family: var(--font-mono);
-    font-weight: 600;
-    color: var(--ink-primary);
-    font-size: 12px;
-  }
-  .topbar-moat-label {
-    font-size: 11px;
-    color: var(--ink-tertiary);
-  }
+  /* Sidebar + topbar chrome is now Tailwind-utility driven
+     (components/shell/sidebar.tsx + topbar.tsx). The former bespoke
+     .proto-sidebar / .sidebar-ws / .proto-nav-item / .sidebar-freshness /
+     .sidebar-user CSS blocks were removed in the Magic-UI light redesign. */
 
   /* ============================================================
      I-028 — Responsiveness pass (2026-06-06). Phone (≤480) and small
@@ -1890,15 +1516,9 @@
      plus the @md/@lg Tailwind utilities already on each page.
      ============================================================ */
 
-  /* Topbar — search hides below md (sidebar disclosure carries the menu),
-     but keep moat chip + quick-nav accessible by allowing them to wrap if
-     they ever do render at narrow widths. */
-  @media (max-width: 640px) {
-    .topbar { padding-left: 12px; padding-right: 12px; gap: 8px; }
-    .topbar-moat { padding: 4px 8px; font-size: 11px; }
-    .topbar-moat-count { font-size: 11px; }
-    .topbar-moat-label { display: none; }
-  }
+  /* Topbar — search hides below md (sidebar disclosure carries the menu).
+     The topbar chrome itself is now Tailwind-utility driven (see
+     components/shell/topbar.tsx); no bespoke .topbar CSS remains. */
 
   /* Profile header dossier. The 900px breakpoint already collapses the
      grid; below 640 the side column (CTAs / completeness) needs to align
@@ -3834,45 +3454,27 @@
   }
 }
 
-/* ===== Marketing search-field border beam =====
-   A single bright comet that traces the FULL rounded-rectangle perimeter in
-   one continuous direction and never reverses or collapses. Implemented as a
-   conic gradient whose start angle is animated via a registered @property
-   (smooth, GPU-friendly) and masked to a thin border ring so only the edge
-   lights up. prefers-reduced-motion freezes it at a static accent. */
-@property --beam-angle {
-  syntax: "<angle>";
-  inherits: false;
-  initial-value: 0deg;
+/* ===== Marketing hero search comet =====
+   A forest-green comet travels the rounded-rect perimeter at uniform speed.
+   stroke-dashoffset animates linearly over the pathLength-normalised perimeter
+   (=100), so corners stay smooth and motion is calm & continuous. Multiple
+   layers (set in the markup) trail via animation-delay to form a tapered
+   snake-tail; a soft drop-shadow gives the gentle glow. */
+@keyframes search-comet {
+  to {
+    stroke-dashoffset: -100;
+  }
 }
-@keyframes beam-rotate {
-  to { --beam-angle: 360deg; }
+.search-comet {
+  filter: drop-shadow(0 0 2px rgba(45, 106, 79, 0.45));
 }
-.search-beam {
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  padding: 1.6px; /* = border-ring thickness */
-  background: conic-gradient(
-    from var(--beam-angle),
-    transparent 0deg,
-    transparent 295deg,
-    rgba(31, 77, 58, 0.25) 320deg,
-    #1f4d3a 344deg,
-    #4e9268 356deg,
-    transparent 360deg
-  );
-  -webkit-mask:
-    linear-gradient(#000 0 0) content-box,
-    linear-gradient(#000 0 0);
-  -webkit-mask-composite: xor;
-  mask:
-    linear-gradient(#000 0 0) content-box,
-    linear-gradient(#000 0 0);
-  mask-composite: exclude;
-  animation: beam-rotate 4s linear infinite;
-  pointer-events: none;
+.search-comet rect {
+  stroke-dashoffset: 0;
+  animation: search-comet 6s linear infinite;
 }
 @media (prefers-reduced-motion: reduce) {
-  .search-beam { animation: none; --beam-angle: 320deg; }
+  .search-comet rect {
+    animation: none;
+    stroke-dashoffset: 0;
+  }
 }

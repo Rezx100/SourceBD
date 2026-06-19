@@ -47,7 +47,7 @@ export function TopbarHamburger({
         aria-label={`${VARIANT_LABEL[v]} menu`}
         aria-haspopup="dialog"
         aria-expanded={open}
-        className="inline-flex h-[44px] w-[44px] items-center justify-center rounded-pill text-ink-secondary transition-colors duration-hover ease-smooth hover:bg-brand-forest-tint hover:text-ink-primary md:hidden"
+        className="inline-flex h-[44px] w-[44px] items-center justify-center rounded-md text-ink-secondary transition-colors duration-hover ease-smooth hover:bg-[rgba(15,15,20,0.05)] hover:text-ink-primary md:hidden"
       >
         <ListIcon size={20} weight="bold" aria-hidden />
       </button>
@@ -57,10 +57,10 @@ export function TopbarHamburger({
         side="left"
         label={VARIANT_LABEL[v]}
       >
-        <nav aria-label={`${VARIANT_LABEL[v]} sections`} className="flex flex-col gap-1">
+        <nav aria-label={`${VARIANT_LABEL[v]} sections`} className="flex flex-col gap-5">
           {sections.map((section) => (
             <div key={section.label} className="flex flex-col gap-0.5">
-              <p className="px-2 pt-3 font-mono text-[10px] uppercase tracking-[0.06em] text-ink-tertiary first:pt-0">
+              <p className="mb-1 px-2.5 text-[11px] font-semibold uppercase tracking-[0.06em] text-ink-tertiary">
                 {section.label}
               </p>
               {section.slots.map((slot) => {
@@ -73,16 +73,20 @@ export function TopbarHamburger({
                     href={slot.href}
                     aria-current={active ? "page" : undefined}
                     className={cn(
-                      "flex min-h-[44px] items-center gap-3 rounded-pill px-3 text-[14px] font-medium",
+                      "group flex min-h-[44px] items-center gap-3 rounded-md px-2.5 text-[14px] transition-colors",
                       active
-                        ? "bg-brand-forest-tint text-brand-forest"
-                        : "text-ink-primary hover:bg-brand-forest-tint",
+                        ? "bg-brand-forest-soft font-semibold text-brand-forest"
+                        : "font-medium text-ink-secondary hover:bg-[rgba(15,15,20,0.045)] hover:text-ink-primary",
                     )}
                   >
                     <slot.Icon
-                      size={18}
+                      size={19}
                       weight={active ? "fill" : "regular"}
                       aria-hidden
+                      className={cn(
+                        "shrink-0",
+                        active ? "text-brand-forest" : "text-ink-tertiary",
+                      )}
                     />
                     <span>{slot.label}</span>
                   </Link>

@@ -180,7 +180,7 @@ export default async function ComplianceDetailPage({
 
       <section className="mt-12 rounded-hero border border-hairline-strong bg-brand-forest-soft p-8 text-center">
         <h2 className="font-display text-xl font-light tracking-tight text-ink-primary">
-          <span className="proto-wordmark text-xl">Receipts</span> on every supplier
+          <span className="text-[#1f4d3a] text-xl">Receipts</span> on every supplier
         </h2>
         <p className="mx-auto mt-3 max-w-xl text-sm text-ink-secondary leading-relaxed">
           Each SourceBD supplier profile carries source pills with

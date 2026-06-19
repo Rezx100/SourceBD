@@ -10,6 +10,7 @@ import { notFound, redirect } from "next/navigation";
 
 import { RfqCreateForm } from "@/components/rfq-create-form";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { PageHeader } from "@/components/ui/page-kit";
 
 export const dynamic = "force-dynamic";
 
@@ -37,19 +38,15 @@ export default async function NewRfqPage({
   }
   return (
     <div className="mx-auto max-w-3xl space-y-4">
-      <div className="flex items-baseline justify-between gap-3">
-        <div>
-          <p className="text-[11px] font-semibold text-ink-tertiary">
-            Buyer
-          </p>
-          <h1 className="font-display text-3xl font-light tracking-tight text-ink-primary">
-            Compose RFQ
-          </h1>
-        </div>
-        <Link href={`/app/suppliers/${data.slug}`} className="btn-proto">
-          ← Back to profile
-        </Link>
-      </div>
+      <PageHeader
+        kicker="Buyer"
+        title="Compose RFQ"
+        actions={
+          <Link href={`/app/suppliers/${data.slug}`} className="btn-proto">
+            ← Back to profile
+          </Link>
+        }
+      />
       <RfqCreateForm
         supplierId={data.id as string}
         supplierName={data.company_name as string}

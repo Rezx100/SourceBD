@@ -96,7 +96,7 @@ export function AdminCertDecideButton({
               />
               <Button
                 type="button"
-                variant="danger"
+                variant="destructive"
                 onClick={() => {
                   if (reason.trim().length === 0) {
                     setError("Reason is required when rejecting.");
@@ -113,7 +113,7 @@ export function AdminCertDecideButton({
           ) : (
             <Button
               type="button"
-              variant="danger"
+              variant="destructive"
               onClick={() => {
                 setRejecting(true);
                 setError(null);

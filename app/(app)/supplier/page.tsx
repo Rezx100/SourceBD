@@ -10,6 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Tag } from "@/components/ui/tag";
 import { FormGrid } from "@/components/ui/form-grid";
+import { PageHeader } from "@/components/ui/page-kit";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 // Supplier portal landing (extended by Spec S1).
@@ -93,14 +94,11 @@ export default async function SupplierHome() {
 
   return (
     <div className="mx-auto max-w-5xl space-y-6">
-      <header>
-        <p className="text-[11px] text-ink-tertiary">
-          Supplier
-        </p>
-        <h1 className="font-display text-2xl font-semibold tracking-tightish text-ink-primary">
-          Portal
-        </h1>
-      </header>
+      <PageHeader
+        kicker="Supplier"
+        title="Portal"
+        description="Manage your claimed companies, incoming RFQs and partner relationships."
+      />
 
       <Card>
         <CardHeader>

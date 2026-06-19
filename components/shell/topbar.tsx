@@ -11,6 +11,7 @@ import Link from "next/link";
 import { Bell, MagnifyingGlass, UserCircle } from "@phosphor-icons/react/dist/ssr";
 
 import type { Role } from "@/lib/auth";
+import { ShieldGlyph } from "@/components/marketing/logo";
 import { TopbarHamburger } from "@/components/shell/topbar-hamburger";
 
 type QuickLink = { href: string; label: string };
@@ -57,35 +58,52 @@ export function Topbar({
   const variant = variantFor(role);
   const links = QUICK_LINKS[variant];
 
+  const searchAction = variant === "admin" ? "/admin/suppliers" : "/app/discover";
+
   return (
-    <header className="topbar sticky top-0 z-30 flex h-14 items-center gap-2 border-b border-hairline px-3 backdrop-blur md:gap-3 md:px-4">
+    <header className="sticky top-0 z-30 flex h-14 items-center gap-2 border-b border-hairline bg-surface-l1/90 px-3 backdrop-blur-md md:gap-3 md:px-4">
       <TopbarHamburger variant={variant} />
-      <Link href="/" className="proto-wordmark shrink-0">
-        SourceBD
+      <Link
+        href="/"
+        className="flex shrink-0 items-center gap-2 font-display text-[15px] font-bold tracking-tight text-ink-primary"
+      >
+        <span
+          className="flex size-7 items-center justify-center rounded-lg"
+          style={{ backgroundColor: "#1f4d3a" }}
+        >
+          <ShieldGlyph className="h-4 w-4" />
+        </span>
+        <span>
+          Source<span className="font-extrabold">BD</span>
+        </span>
       </Link>
 
       <nav
         aria-label="Quick navigation"
-        className="ml-2 hidden items-center gap-1 lg:flex"
+        className="ml-2 hidden items-center gap-0.5 lg:flex"
       >
         {links.map((l) => (
-          <Link key={l.href} href={l.href} className="topbar-quick-link">
+          <Link
+            key={l.href}
+            href={l.href}
+            className="rounded-pill px-3 py-1.5 text-[13px] font-medium text-ink-secondary transition-colors duration-hover ease-smooth hover:bg-brand-forest-tint hover:text-ink-primary"
+          >
             {l.label}
           </Link>
         ))}
       </nav>
 
       <form
-        action={variant === "buyer" ? "/app/discover" : "/app/discover"}
+        action={searchAction}
         method="get"
-        className="ml-auto hidden flex-1 max-w-md md:flex"
+        className="ml-auto hidden max-w-md flex-1 md:flex"
       >
         <label htmlFor="topbar-q" className="sr-only">
           Search suppliers
         </label>
-        <div className="flex w-full items-center gap-2 rounded-input border border-hairline-strong bg-bg-l0 px-3 py-1.5">
+        <div className="flex w-full items-center gap-2 rounded-pill border border-hairline-strong bg-bg-l0 px-3 py-1.5 transition-colors focus-within:border-brand-forest/40 focus-within:bg-surface-l1">
           <MagnifyingGlass
-            size={14}
+            size={15}
             weight="bold"
             aria-hidden
             className="text-ink-tertiary"
@@ -103,29 +121,34 @@ export function Topbar({
       {moatTotal != null ? (
         <Link
           href={variant === "buyer" ? "/app/discover" : "/admin/suppliers"}
-          className="topbar-moat hidden xl:inline-flex"
+          className="hidden items-center gap-2 rounded-pill border border-brand-forest/20 bg-brand-forest-soft px-3 py-1.5 xl:inline-flex"
           aria-label={`${moatTotal.toLocaleString("en-US")} verified suppliers`}
         >
-          <span className="topbar-moat-dot" aria-hidden />
-          <span className="topbar-moat-count">
+          <span
+            aria-hidden
+            className="size-1.5 animate-pulse rounded-full bg-brand-forest"
+          />
+          <span className="font-display text-[13px] font-bold tabular-nums text-brand-forest">
             {moatTotal.toLocaleString("en-US")}
           </span>
-          <span className="topbar-moat-label">verified</span>
+          <span className="text-[12px] font-medium text-brand-forest/80">
+            verified
+          </span>
         </Link>
       ) : null}
 
-      <div className="flex items-center gap-2">
+      <div className="ml-auto flex items-center gap-0.5 md:ml-0 md:gap-1">
         <button
           type="button"
           aria-label="Notifications"
-          className="flex h-9 w-9 items-center justify-center rounded-pill text-ink-secondary transition-colors duration-hover ease-smooth hover:bg-brand-forest-tint hover:text-ink-primary"
+          className="flex size-9 items-center justify-center rounded-pill text-ink-secondary transition-colors duration-hover ease-smooth hover:bg-brand-forest-tint hover:text-ink-primary"
         >
           <Bell size={18} aria-hidden />
         </button>
         <Link
           href={variant === "admin" ? "/admin/users" : "/app/settings"}
           aria-label="Account menu"
-          className="flex h-9 w-9 items-center justify-center rounded-pill text-ink-secondary transition-colors duration-hover ease-smooth hover:bg-brand-forest-tint hover:text-ink-primary"
+          className="flex size-9 items-center justify-center rounded-pill text-ink-secondary transition-colors duration-hover ease-smooth hover:bg-brand-forest-tint hover:text-ink-primary"
         >
           <UserCircle size={20} aria-hidden />
         </Link>

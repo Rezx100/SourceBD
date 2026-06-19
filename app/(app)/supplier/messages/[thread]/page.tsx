@@ -96,7 +96,9 @@ export default async function SupplierThreadPage({
             </div>
           </div>
 
-          <ThreadRealtime threadId={threadId} initialMessages={messages} />
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-card border border-hairline bg-surface-l1 shadow-[0_1px_2px_rgba(15,15,20,0.03)]">
+            <ThreadRealtime threadId={threadId} initialMessages={messages} />
+          </div>
         </div>
       }
     />
@@ -122,7 +124,7 @@ function ThreadListPane({
             <Link
               href={`/supplier/messages/${t.id}`}
               className={`flex items-center gap-2 px-3 py-2.5 transition hover:bg-brand-forest-tint ${
-                t.id === activeId ? "bg-[#FBFAF6]" : ""
+                t.id === activeId ? "bg-brand-forest-tint" : ""
               }`}
             >
               <ChatCircleText

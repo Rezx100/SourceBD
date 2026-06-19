@@ -11,7 +11,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   BookmarkSimple,
-  CaretUpDown,
   Certificate,
   ChatCircleText,
   ClockCounterClockwise,
@@ -23,6 +22,7 @@ import {
   Package,
   Prohibit,
   ShieldCheck,
+  SignOut,
   Sparkle,
   Storefront,
   Tray,
@@ -191,22 +191,12 @@ function resolveBadge(
   return { text, kind };
 }
 
-function relativeRefresh(iso: string | null | undefined): string {
-  if (!iso) return "Refreshed daily";
-  const then = new Date(iso).getTime();
-  if (!Number.isFinite(then)) return "Refreshed daily";
-  const diff = Math.max(0, Date.now() - then);
-  const h = Math.floor(diff / 3_600_000);
-  if (h < 1) return "Last refresh · just now";
-  if (h < 24) return `Last refresh · ${h} hour${h === 1 ? "" : "s"} ago`;
-  const d = Math.floor(h / 24);
-  return `Last refresh · ${d} day${d === 1 ? "" : "s"} ago`;
-}
-
 export type SidebarProps = {
   role: Role | null;
   email?: string | null;
   displayName?: string | null;
+  /** Profile picture URL. Falls back to initials when absent. */
+  avatarUrl?: string | null;
   planTier?: string | null;
   moatTotal?: number | null;
   moatRefreshedAt?: string | null;
@@ -217,9 +207,7 @@ export function Sidebar({
   role,
   email,
   displayName,
-  planTier,
-  moatTotal,
-  moatRefreshedAt,
+  avatarUrl,
   badges,
 }: SidebarProps) {
   const pathname = usePathname() ?? "/app";
@@ -230,64 +218,54 @@ export function Sidebar({
   const initials = ((email ?? "??").split("@")[0] ?? "??")
     .slice(0, 2)
     .toUpperCase();
-  const userName = (displayName ?? "").trim() || email || "Account";
   const userRole = role
     ? `${role[0]!.toUpperCase()}${role.slice(1)}`
     : "Guest";
-  const planLabel = isAdmin
-    ? "Admin · all access"
-    : planTier
-      ? `${planTier[0]!.toUpperCase()}${planTier.slice(1)} plan`
-      : "Free plan";
+  const profileName = (displayName ?? "").trim() || email || "Your account";
+  const profileSub = (displayName ?? "").trim() ? email ?? userRole : userRole;
 
-  const wsCard = (
+  const profileHeader = (
     <Link
-      href={VARIANT_HREF[variant]}
-      className="sidebar-ws"
-      aria-label={`${VARIANT_LABEL[variant]} home`}
+      href="/app/settings"
+      className="group flex items-center gap-2.5 rounded-md px-2 py-2 transition-colors duration-150 ease-smooth hover:bg-[rgba(15,15,20,0.045)]"
+      aria-label="Your profile and settings"
     >
-      <span className="ws-mark" aria-hidden>
-        SB
+      {avatarUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={avatarUrl}
+          alt=""
+          className="size-9 shrink-0 rounded-full border border-hairline object-cover"
+        />
+      ) : (
+        <span
+          className="flex size-9 shrink-0 items-center justify-center rounded-full bg-brand-forest text-[12px] font-bold text-white"
+          aria-hidden
+        >
+          {initials}
+        </span>
+      )}
+      <span className="flex min-w-0 flex-1 flex-col">
+        <span className="truncate font-display text-[13.5px] font-bold tracking-[-0.01em] text-ink-primary">
+          {profileName}
+        </span>
+        <span className="truncate text-[11px] text-ink-tertiary">{profileSub}</span>
       </span>
-      <span className="ws-text">
-        <span className="ws-name">{VARIANT_LABEL[variant]}</span>
-        <span className="ws-plan">{planLabel}</span>
-      </span>
-      <CaretUpDown className="ws-chev" aria-hidden weight="bold" />
+      <GearSix
+        size={16}
+        className="shrink-0 text-ink-tertiary opacity-0 transition-opacity group-hover:opacity-100"
+        aria-hidden
+      />
     </Link>
   );
 
-  const switcher = isAdmin ? (
-    <div
-      role="group"
-      aria-label="Switch workspace"
-      className="mt-1 mb-1 flex items-center gap-1 rounded-pill border border-hairline bg-bg-l0 p-1"
-    >
-      {(["buyer", "supplier", "admin"] as const).map((v) => {
-        const active = variant === v;
-        return (
-          <Link
-            key={v}
-            href={VARIANT_HREF[v]}
-            aria-current={active ? "page" : undefined}
-            className={`flex-1 rounded-pill px-2 py-1 text-center text-[10px] font-semibold transition-colors duration-hover ease-smooth ${
-              active
-                ? "bg-brand-forest-tint text-ink-primary shadow-l1"
-                : "text-ink-tertiary hover:bg-brand-forest-tint hover:text-ink-primary"
-            }`}
-          >
-            {v}
-          </Link>
-        );
-      })}
-    </div>
-  ) : null;
-
   const navBody = (
-    <nav aria-label={`${VARIANT_LABEL[variant]} sections`} className="flex flex-col gap-0.5">
+    <nav aria-label={`${VARIANT_LABEL[variant]} sections`} className="flex flex-col gap-5">
       {sections.map((section) => (
         <div key={section.label} className="flex flex-col gap-0.5">
-          <p className="nav-section">{section.label}</p>
+          <p className="mb-1 px-2.5 text-[11px] font-semibold uppercase tracking-[0.06em] text-ink-tertiary">
+            {section.label}
+          </p>
           {section.slots.map((slot) => {
             const { label, href, Icon: SlotIcon } = slot;
             const active =
@@ -298,31 +276,37 @@ export function Sidebar({
                 key={href}
                 href={href}
                 aria-current={active ? "page" : undefined}
-                className={`proto-nav-item${active ? " active" : ""}`}
+                className={`group flex items-center gap-3 rounded-md px-2.5 py-[7px] text-[13px] transition-colors duration-150 ease-smooth ${
+                  active
+                    ? "bg-brand-forest-soft font-semibold text-brand-forest"
+                    : "font-medium text-ink-secondary hover:bg-[rgba(15,15,20,0.045)] hover:text-ink-primary"
+                }`}
               >
                 <SlotIcon
                   size={18}
                   weight={active ? "fill" : "regular"}
                   aria-hidden
-                  className="ico"
+                  className={`shrink-0 ${active ? "text-brand-forest" : "text-ink-tertiary group-hover:text-ink-secondary"}`}
                 />
-                <span className="nav-label">{label}</span>
+                <span className="min-w-0 flex-1 truncate">{label}</span>
                 {badge ? (
-                  <span
-                    className={
-                      badge.kind === "alert"
-                        ? "nav-badge alert"
-                        : badge.kind === "dot"
-                          ? "nav-badge dot"
-                          : "nav-badge"
-                    }
-                    aria-label={badge.kind === "dot" ? "unread" : undefined}
-                  >
-                    {badge.kind === "dot" ? "" : badge.text}
-                  </span>
-                ) : (
-                  <span aria-hidden />
-                )}
+                  badge.kind === "dot" ? (
+                    <span
+                      aria-label="unread"
+                      className="size-2 shrink-0 rounded-full bg-brand-forest"
+                    />
+                  ) : (
+                    <span
+                      className={`shrink-0 rounded-md px-1.5 py-0.5 text-[10.5px] font-semibold tabular-nums ${
+                        badge.kind === "alert"
+                          ? "bg-sem-red-soft text-sem-red"
+                          : "bg-[rgba(15,15,20,0.06)] text-ink-tertiary"
+                      }`}
+                    >
+                      {badge.text}
+                    </span>
+                  )
+                ) : null}
               </Link>
             );
           })}
@@ -331,38 +315,46 @@ export function Sidebar({
     </nav>
   );
 
-  const footer = (
-    <div className="sidebar-bottom">
-      <div className="sidebar-freshness" role="status" aria-label="Verified supplier directory">
-        <div className="fresh-top">
-          <span className="fresh-label">Verified suppliers</span>
-          <span className="fresh-dot" aria-hidden />
+  const sessionActions = (
+    <div className="mt-3 space-y-1 border-t border-hairline pt-3">
+      {isAdmin ? (
+        <div
+          role="group"
+          aria-label="Switch workspace"
+          className="mb-1 flex items-center gap-1 rounded-lg border border-hairline bg-bg-l0 p-1"
+        >
+          {(["buyer", "supplier", "admin"] as const).map((v) => {
+            const active = variant === v;
+            return (
+              <Link
+                key={v}
+                href={VARIANT_HREF[v]}
+                aria-current={active ? "page" : undefined}
+                className={`flex-1 rounded-md px-2 py-1 text-center text-[11px] font-semibold capitalize transition-colors duration-150 ease-smooth ${
+                  active
+                    ? "bg-surface-l1 text-brand-forest shadow-[0_1px_2px_rgba(15,15,20,0.08)]"
+                    : "text-ink-tertiary hover:text-ink-primary"
+                }`}
+              >
+                {v}
+              </Link>
+            );
+          })}
         </div>
-        <span className="fresh-count">
-          {moatTotal != null
-            ? `${moatTotal.toLocaleString("en-US")} verified`
-            : "Verified factories"}
-        </span>
-        <span className="fresh-sub">{relativeRefresh(moatRefreshedAt)}</span>
-      </div>
-      <Link
-        href={
-          variant === "admin"
-            ? "/admin/users"
-            : "/app/settings"
-        }
-        className="sidebar-user"
-        aria-label="Account menu"
-      >
-        <span className="user-avatar" aria-hidden>
-          {initials}
-        </span>
-        <span className="user-text">
-          <span className="user-name">{userName}</span>
-          <span className="user-role">{userRole}</span>
-        </span>
-        <CaretUpDown className="user-chev" aria-hidden weight="bold" />
-      </Link>
+      ) : null}
+      <form action="/auth/sign-out" method="post">
+        <button
+          type="submit"
+          className="group flex w-full items-center gap-3 rounded-md px-2.5 py-[7px] text-[13px] font-medium text-ink-secondary transition-colors duration-150 ease-smooth hover:bg-sem-red-soft hover:text-sem-red"
+        >
+          <SignOut
+            size={18}
+            aria-hidden
+            className="shrink-0 text-ink-tertiary group-hover:text-sem-red"
+          />
+          <span className="flex-1 text-left">Sign out</span>
+        </button>
+      </form>
     </div>
   );
 
@@ -373,12 +365,11 @@ export function Sidebar({
          tier later (md→lg) so the tablet band hands off to <SidebarRail>. */}
       <aside
         aria-label={`${VARIANT_LABEL[variant]} navigation`}
-        className="proto-sidebar hidden lg:sticky lg:top-14 lg:flex lg:h-[calc(100vh-56px)] lg:w-[272px] lg:shrink-0 lg:flex-col lg:gap-0.5 lg:overflow-y-auto lg:border-r lg:border-hairline-strong lg:px-[14px] lg:pb-[14px] lg:pt-[18px]"
+        className="hidden bg-surface-l1 lg:sticky lg:top-14 lg:flex lg:h-[calc(100vh-56px)] lg:w-[268px] lg:shrink-0 lg:flex-col lg:gap-2 lg:overflow-y-auto lg:border-r lg:border-hairline lg:px-3 lg:pb-3 lg:pt-4"
       >
-        {wsCard}
-        {switcher}
-        <div className="mt-1 flex-1">{navBody}</div>
-        {footer}
+        {profileHeader}
+        <div className="mt-2 flex-1">{navBody}</div>
+        {sessionActions}
       </aside>
     </>
   );

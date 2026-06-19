@@ -30,6 +30,7 @@ import {
 import { DiscoverResultCard, type DiscoverRow } from "@/components/discover/result-card";
 import { DiscoverSearchHero } from "@/components/discover/search-hero";
 import { MobileFilterSheet } from "@/components/discover/mobile-filter-sheet";
+import { EmptyState, PageHeader } from "@/components/ui/page-kit";
 import { fetchDiscoverFacets } from "@/lib/discover-facets";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -174,19 +175,12 @@ export default async function BuyerDiscoverPage({
     (category ? 1 : 0);
 
   return (
-    <div className="mx-auto max-w-7xl space-y-6">
-      <header>
-        <p className="text-[11px] font-semibold text-ink-tertiary">
-          Buyer
-        </p>
-        <h1 className="mt-1 font-display text-3xl font-light tracking-tight text-ink-primary">
-          Discover
-        </h1>
-        <p className="mt-2 text-sm text-ink-secondary">
-          Verified Bangladesh garment factories and buying houses. Results
-          ranked by source-backed evidence.
-        </p>
-      </header>
+    <div className="mx-auto max-w-7xl space-y-8">
+      <PageHeader
+        kicker="Buyer"
+        title="Discover"
+        description="Verified Bangladesh garment factories and buying houses, ranked by source-backed evidence."
+      />
 
       <div className="space-y-6">
         {/* R9r4 — primary search bar, always visible. */}
@@ -269,20 +263,26 @@ export default async function BuyerDiscoverPage({
           </div>
 
           {!error && rows.length === 0 ? (
-            <div className="proto-card space-y-3 text-center">
-              <p className="text-sm text-ink-secondary">
-                {anyFilterActive
+            <EmptyState
+              title={anyFilterActive ? "No matches" : "No published suppliers yet"}
+              description={
+                anyFilterActive
                   ? "No suppliers match these filters. Try removing the most restrictive one."
-                  : "No published suppliers yet."}
-              </p>
-              {anyFilterActive ? (
-                <Link href={BASE_PATH} className="btn-proto inline-flex">
-                  Clear all filters
-                </Link>
-              ) : null}
-            </div>
+                  : "Published suppliers will appear here as the index fills."
+              }
+              action={
+                anyFilterActive ? (
+                  <Link
+                    href={BASE_PATH}
+                    className="inline-flex items-center rounded-pill bg-brand-forest px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-brand-forest-mid"
+                  >
+                    Clear all filters
+                  </Link>
+                ) : null
+              }
+            />
           ) : (
-            <ul className="grid grid-cols-1 gap-4">
+            <ul className="grid grid-cols-1 gap-4 lg:grid-cols-2">
               {rows.map((row) => (
                 <li key={row.id}>
                   <DiscoverResultCard

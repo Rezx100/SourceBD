@@ -22,7 +22,7 @@ export default function TrademarksPage() {
     <main className="mx-auto max-w-3xl px-6 py-16">
       <header className="mb-8 text-center">
         <h1 className="font-display text-3xl font-light tracking-tight text-ink-primary md:text-4xl">
-          <span className="proto-wordmark text-3xl md:text-4xl">
+          <span className="text-[#1f4d3a] text-3xl md:text-4xl">
             Trademarks
           </span>
         </h1>

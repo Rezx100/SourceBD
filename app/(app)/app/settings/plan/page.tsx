@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/card";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { FormGrid } from "@/components/ui/form-grid";
+import { PageHeader } from "@/components/ui/page-kit";
 
 export const dynamic = "force-dynamic";
 
@@ -87,22 +88,25 @@ export default async function SettingsPlanPage() {
 
   return (
     <div className="mx-auto max-w-5xl space-y-6">
-      <header>
+      <div className="space-y-4">
         <Link
           href="/app/settings"
-          className="inline-flex items-center gap-1 text-[11px] text-ink-tertiary hover:text-ink-primary"
+          className="inline-flex items-center gap-1.5 text-[12px] font-medium text-ink-tertiary transition-colors hover:text-ink-primary"
         >
-          <ArrowLeft size={12} />
+          <ArrowLeft size={13} weight="bold" aria-hidden />
           Back to settings
         </Link>
-        <h1 className="mt-1 font-display text-2xl font-semibold tracking-tightish text-ink-primary">
-          Plan
-        </h1>
-        <p className="mt-1 text-sm text-ink-secondary">
-          You are currently on the{" "}
-          <Badge tone="active">{planLabel(current)}</Badge> plan.
-        </p>
-      </header>
+        <PageHeader
+          kicker="Settings"
+          title="Plan"
+          description={
+            <>
+              You are currently on the{" "}
+              <Badge tone="active">{planLabel(current)}</Badge> plan.
+            </>
+          }
+        />
+      </div>
 
       <FormGrid cols={3}>
         {TIERS.map((tier) => {

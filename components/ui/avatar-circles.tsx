@@ -37,7 +37,7 @@ export function AvatarCircles({
     <div className={cn("z-10 flex -space-x-4 rtl:space-x-reverse", className)}>
       {avatarUrls.map((url, index) => {
         if (url.initials) {
-          const tint = TINTS[index % TINTS.length];
+          const tint = TINTS[index % TINTS.length] ?? { bg: "#1f4d3a", fg: "#ffffff" };
           return (
             <span
               key={index}
