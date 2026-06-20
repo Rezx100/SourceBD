@@ -130,7 +130,7 @@ export default async function ComplianceHubPage() {
           </p>
           <div className="mt-6 inline-block">
             <Link href={cta.href}>
-              <ShimmerButton className="px-8 py-3 text-sm font-medium" background={FOREST}>
+              <ShimmerButton className="px-8 py-2.5 text-sm font-semibold" borderRadius="10px" background={FOREST}>
                 {cta.label}
               </ShimmerButton>
             </Link>

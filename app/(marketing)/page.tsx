@@ -679,7 +679,7 @@ export default async function HomeV2Page() {
           <BlurFade delay={0.25}>
             <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
               <Link href="/signup">
-                <ShimmerButton className="px-8 py-3" background="#1f4d3a">
+                <ShimmerButton className="px-8 py-3" borderRadius="10px" background="#1f4d3a">
                   <span className="flex items-center gap-2 text-sm font-medium">
                     Start free <ArrowRight size={16} />
                   </span>

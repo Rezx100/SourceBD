@@ -203,7 +203,7 @@ export default async function ComplianceDetailPage({
           </p>
           <div className="mt-5 inline-block">
             <Link href={cta.href}>
-              <ShimmerButton className="px-7 py-2.5 text-sm font-medium" background={FOREST}>
+              <ShimmerButton className="px-7 py-2.5 text-sm font-semibold" borderRadius="10px" background={FOREST}>
                 <span className="flex items-center gap-2">
                   {cta.label} <ArrowRight size={15} />
                 </span>
