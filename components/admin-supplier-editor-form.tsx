@@ -81,7 +81,7 @@ export function AdminSupplierEditorForm({
   return (
     <form className="space-y-4" onSubmit={onSubmit}>
       <FormGrid cols="profile">
-        <Field label="name_display" hint="Override of company_name shown to buyers (≤240).">
+        <Field label="Buyer-facing company name" hint="Optional override of the register company name shown to buyers (240 characters max).">
           <input
             type="text"
             value={form.name_display}
@@ -90,20 +90,20 @@ export function AdminSupplierEditorForm({
             className="w-full rounded-input border border-hairline bg-bg-l0 px-2 py-1.5 text-sm outline-none focus:border-accent-indigo"
           />
         </Field>
-        <Field label="entity_type">
+        <Field label="Supplier type">
           <select
             value={form.entity_type}
             onChange={(e) => setForm((f) => ({ ...f, entity_type: e.target.value }))}
             className="w-full rounded-input border border-hairline bg-bg-l0 px-2 py-1.5 text-sm outline-none focus:border-accent-indigo"
           >
-            <option value="factory">factory</option>
-            <option value="buying_house">buying_house</option>
-            <option value="unknown">unknown</option>
+            <option value="factory">Factory</option>
+            <option value="buying_house">Buying house</option>
+            <option value="unknown">Unknown</option>
           </select>
         </Field>
       </FormGrid>
 
-      <Field label="description" hint="Short profile blurb (≤8000).">
+      <Field label="Buyer-facing description" hint="Short profile blurb shown on profile surfaces (8,000 characters max).">
         <textarea
           rows={4}
           value={form.description}
@@ -114,23 +114,23 @@ export function AdminSupplierEditorForm({
       </Field>
 
       <FormGrid cols="profile">
-        <Field label="published">
+        <Field label="Publication status">
           <Toggle
             checked={form.published}
             onChange={(v) => setForm((f) => ({ ...f, published: v }))}
-            label={form.published ? "published" : "unpublished"}
+            label={form.published ? "Published" : "Unpublished"}
           />
         </Field>
-        <Field label="sanctioned_flag">
+        <Field label="Sanctions status">
           <Toggle
             checked={form.sanctioned_flag}
             onChange={(v) => setForm((f) => ({ ...f, sanctioned_flag: v }))}
-            label={form.sanctioned_flag ? "sanctioned" : "clean"}
+            label={form.sanctioned_flag ? "Sanctioned" : "Clear"}
           />
         </Field>
       </FormGrid>
 
-      <Field label="sanctioned_reason" hint="Cited Tier 1–5 source (≤2000). Required for buyers to understand the flag.">
+      <Field label="Sanctions reason" hint="Cited Tier 1–5 source or admin decision note. Required when a supplier is flagged (2,000 characters max).">
         <textarea
           rows={2}
           value={form.sanctioned_reason}
@@ -142,7 +142,7 @@ export function AdminSupplierEditorForm({
         />
       </Field>
 
-      <Field label="notes_admin" hint="Internal admin notes; never shown to buyers (≤8000).">
+      <Field label="Internal admin notes" hint="Internal only. Never shown to buyers or suppliers (8,000 characters max).">
         <textarea
           rows={3}
           value={form.notes_admin}

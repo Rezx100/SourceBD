@@ -36,9 +36,9 @@ type SidebarRailProps = {
   className?: string;
 };
 
-export function SidebarRail({ variant, className }: SidebarRailProps) {
+export function SidebarRail({ variant, role, className }: SidebarRailProps) {
   const pathname = usePathname() ?? "/app";
-  const v = variant ?? variantFromPath(pathname);
+  const v = variant ?? variantFromPath(pathname, role);
   const slots = flatten(v);
 
   return (

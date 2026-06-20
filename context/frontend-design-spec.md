@@ -28,14 +28,11 @@ These invariants from `ui-context.md` remain in force (preserved, not deprecated
 | Framework | Next.js 15 (App Router, RSC default) |
 | Language | TypeScript strict |
 | Styling | Tailwind utility classes only, `cn()` helper |
-| Component primitives | shadcn/ui (Radix under the hood) |
+| Component primitives | Magic UI for new visual/layout components; shadcn/ui (Radix under the hood) for controls/dialogs/forms |
 | Icons | Phosphor Icons (`@phosphor-icons/react`) |
-| Display font (app) | Bricolage Grotesque — used on `/app`, `/supplier`, `/admin` |
-| Body font (app) | Plus Jakarta Sans — used on `/app`, `/supplier`, `/admin` |
-| Mono font (app) | JetBrains Mono — used on `/app`, `/supplier`, `/admin` |
-| Display font (marketing + auth) | Archivo — scoped to `(marketing)` + `(auth)` layouts only (Spec M6a) |
-| Body font (marketing + auth) | Hanken Grotesk — scoped to `(marketing)` + `(auth)` layouts only (Spec M6a) |
-| Mono font (marketing + auth) | IBM Plex Mono — scoped to `(marketing)` + `(auth)` layouts only (Spec M6a) |
+| Display font | Archivo — unified across marketing, auth, buyer, supplier, and admin |
+| Body font | Hanken Grotesk — unified across marketing, auth, buyer, supplier, and admin |
+| Mono font | IBM Plex Mono — unified across marketing, auth, buyer, supplier, and admin |
 | Auth UI | Supabase Auth (buyer / supplier / admin) |
 | Data | Supabase JS + RLS — never bypass with a service role for buyer-facing reads |
 | Tables / virtual lists | TanStack Table + virtualisation for any list > 50 rows |
@@ -45,17 +42,15 @@ These invariants from `ui-context.md` remain in force (preserved, not deprecated
 
 Do not introduce a different component lib, icon set, font, table lib, or styling system without a Hard-Rule-4 exception.
 
-**Font-stack split rationale (Spec M6a, 6 Jun 2026).** The marketing
-and auth surfaces use a separate type stack from the buyer / supplier
-/ admin app surfaces. Marketing chrome must read as a public register
-(Archivo display authority, IBM Plex Mono data) while the app chrome
-stays in the calmer Bricolage / Plus Jakarta palette tuned for long
-sessions. The two stacks are wired through `next/font/google`
-declared per-layout, so font binaries are only delivered on the
-routes that use them, and the CSS variables (`--font-display` vs
-`--mkt-font-display`, etc.) coexist without collision. Marketing
-tokens including the font variables live under the
-`[data-surface="marketing"]` selector in `app/globals.css`.
+**Unified visual system (Spec FE-SITEWIDE, 19 Jun 2026).** Marketing,
+public data pages, and the logged-in portal share one light SourceBD SaaS
+language: neutral page canvas, white hairline cards, Archivo display,
+Hanken Grotesk body, IBM Plex Mono data labels, Phosphor icons, Magic UI
+for new visual/layout components, and shadcn primitives for controls. The
+older split between marketing fonts and app fonts is retired because the
+platform must read as one company product from `/` through `/app`,
+`/supplier`, and `/admin`. New UI work stays light mode only and should
+avoid adding legacy prototype-only colour systems.
 
 ---
 

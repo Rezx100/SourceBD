@@ -63,9 +63,9 @@ type BottomTabBarProps = {
   className?: string;
 };
 
-export function BottomTabBar({ variant, className }: BottomTabBarProps) {
+export function BottomTabBar({ variant, role, className }: BottomTabBarProps) {
   const pathname = usePathname() ?? "/app";
-  const v = variant ?? variantFromPath(pathname);
+  const v = variant ?? variantFromPath(pathname, role);
   const slots = topTabs(v);
 
   return (

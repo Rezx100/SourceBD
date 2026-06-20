@@ -17,6 +17,7 @@ import { List as ListIcon } from "@phosphor-icons/react/dist/ssr";
 
 import { MobileDrawer } from "@/components/ui/mobile-drawer";
 import { cn } from "@/lib/utils";
+import type { Role } from "@/lib/auth";
 import {
   SECTIONS,
   VARIANT_LABEL,
@@ -26,11 +27,13 @@ import {
 
 export function TopbarHamburger({
   variant,
+  role,
 }: {
   variant?: ShellVariant;
+  role?: Role | null;
 }) {
   const pathname = usePathname() ?? "/app";
-  const v = variant ?? variantFromPath(pathname);
+  const v = variant ?? variantFromPath(pathname, role);
   const sections = SECTIONS[v];
   const [open, setOpen] = React.useState(false);
 

@@ -1,10 +1,9 @@
 // SourceBD app-surface page kit.
 //
 // A small set of data-dense layout primitives that give every authenticated
-// page (buyer / supplier / admin) the same calm, forest-green, light Magic-UI
-// language as the marketing homepage — without bulky nested cards that eat
-// vertical space. Headings use the app display font (Bricolage); surfaces are
-// white on the warm canvas (--bg-l0) with hairline borders.
+// page (buyer / supplier / admin) the same calm, light SourceBD SaaS language
+// as the marketing surfaces — without bulky nested cards that eat vertical
+// space. Surfaces are white on a neutral canvas with hairline borders.
 //
 // These are server-safe (no hooks). They compose the client BlurFade /
 // NumberTicker primitives, which is allowed inside RSC.
@@ -155,7 +154,7 @@ export function Panel({
   return (
     <Tag
       className={cn(
-        "rounded-card border border-hairline bg-surface-l1",
+        "rounded-lg border border-neutral-200 bg-white shadow-sm",
         padded && "p-5 sm:p-6",
         className,
       )}
@@ -179,7 +178,7 @@ export function Toolbar({
   return (
     <div
       className={cn(
-        "flex flex-wrap items-center gap-2 rounded-card border border-hairline bg-surface-l1 px-3 py-2.5",
+        "flex flex-wrap items-center gap-2 rounded-lg border border-neutral-200 bg-white px-3 py-2.5 shadow-sm",
         className,
       )}
     >
@@ -222,7 +221,7 @@ export function StatStrip({
   return (
     <div
       className={cn(
-        "grid grid-cols-2 gap-x-4 gap-y-7 rounded-card border border-hairline bg-surface-l1 p-5 sm:p-6",
+        "grid grid-cols-2 gap-x-4 gap-y-7 rounded-lg border border-neutral-200 bg-white p-5 shadow-sm sm:p-6",
         colClass,
         "lg:gap-0 lg:divide-x lg:divide-hairline",
         className,
@@ -283,7 +282,7 @@ export function EmptyState({
   return (
     <div
       className={cn(
-        "flex flex-col items-center justify-center gap-3 rounded-card border border-dashed border-hairline-strong bg-surface-l1 px-6 py-14 text-center",
+        "flex flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-neutral-300 bg-white px-6 py-14 text-center shadow-sm",
         className,
       )}
     >
@@ -364,7 +363,7 @@ export function DataList({
     <ul
       role="list"
       className={cn(
-        "divide-y divide-hairline overflow-hidden rounded-card border border-hairline bg-surface-l1",
+        "divide-y divide-neutral-200 overflow-hidden rounded-lg border border-neutral-200 bg-white shadow-sm",
         className,
       )}
     >

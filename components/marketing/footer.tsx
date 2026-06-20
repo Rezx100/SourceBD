@@ -42,8 +42,8 @@ const COLUMNS: {
 
 export function MarketingFooter() {
   return (
-    <footer className="border-t border-neutral-200 bg-neutral-50">
-      <div className="mx-auto max-w-6xl px-6 py-16 md:px-12 lg:px-20">
+    <footer className="border-t border-hairline bg-surface-l1">
+      <div className="mx-auto max-w-7xl px-4 py-12 md:px-10 lg:px-12">
         {/* ── 4-column grid: Brand · Product · Regulations · Legal ── */}
         <div className="grid grid-cols-1 gap-10 sm:grid-cols-2 md:grid-cols-4">
           {/* Column 1 — Brand */}

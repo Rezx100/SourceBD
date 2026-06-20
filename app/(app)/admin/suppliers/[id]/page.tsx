@@ -171,8 +171,8 @@ export default async function AdminSupplierEditorPage({
 
       <Card>
         <CardHeader>
-          <CardTitle>Editable fields</CardTitle>
-          <CardMeta>admin_supplier_update — whitelisted columns only</CardMeta>
+          <CardTitle>Admin-editable profile fields</CardTitle>
+          <CardMeta>Only the approved admin fields below can be changed</CardMeta>
         </CardHeader>
         <CardContent className="pt-0">
           <AdminSupplierEditorForm
@@ -193,22 +193,22 @@ export default async function AdminSupplierEditorPage({
       <section className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Read-only register fields</CardTitle>
-            <CardMeta>ETL-owned</CardMeta>
+            <CardTitle>Register-owned facts</CardTitle>
+            <CardMeta>Read-only evidence from source records</CardMeta>
           </CardHeader>
           <CardContent className="pt-0">
             <dl className="grid grid-cols-1 gap-x-4 gap-y-2 text-[13px] sm:grid-cols-2">
-              <Kv k="company_name" v={s.company_name} mono />
-              <Kv k="website" v={s.website} mono />
-              <Kv k="address_raw" v={s.address_raw} />
-              <Kv k="parent_group" v={s.parent_group_name} />
+              <Kv k="Register company name" v={s.company_name} mono />
+              <Kv k="Website" v={s.website} mono />
+              <Kv k="Registered address" v={s.address_raw} />
+              <Kv k="Parent group" v={s.parent_group_name} />
               <Kv
-                k="completeness_pct"
+                k="Profile completeness"
                 v={s.completeness_pct != null ? `${s.completeness_pct}%` : null}
               />
-              <Kv k="sbi_total" v={s.sbi_total != null ? String(s.sbi_total) : null} mono />
+              <Kv k="Internal SBI total" v={s.sbi_total != null ? String(s.sbi_total) : null} mono />
               <Kv
-                k="source_tags"
+                k="Source tags"
                 v={s.source_tags && s.source_tags.length > 0 ? s.source_tags.join(", ") : null}
                 mono
               />
@@ -315,7 +315,7 @@ export default async function AdminSupplierEditorPage({
       <Card>
         <CardHeader>
           <CardTitle>Recent admin actions</CardTitle>
-          <CardMeta>admin_audit_log — last {doc.recent_audit.length}</CardMeta>
+          <CardMeta>Last {doc.recent_audit.length} audit entries for this supplier</CardMeta>
         </CardHeader>
         <CardContent className="pt-0">
           {doc.recent_audit.length === 0 ? (

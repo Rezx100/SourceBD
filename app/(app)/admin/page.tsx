@@ -131,7 +131,7 @@ export default async function AdminHome() {
         <Card>
           <CardHeader>
             <CardTitle>Users by role</CardTitle>
-            <CardMeta>public.profiles</CardMeta>
+            <CardMeta>Buyer, supplier, and admin accounts</CardMeta>
           </CardHeader>
           <CardContent className="pt-0">
             <KvList
@@ -268,7 +268,7 @@ export default async function AdminHome() {
         <Card>
           <CardHeader>
             <CardTitle>Certifications by kind</CardTitle>
-            <CardMeta>public.certifications</CardMeta>
+            <CardMeta>Verified supplier certifications</CardMeta>
           </CardHeader>
           <CardContent className="pt-0">
             <CountList rows={doc.data_moat.certifications_by_kind.map(r => [r.kind, r.count])} />
@@ -284,7 +284,7 @@ function AdminHeader({ generatedAt }: { generatedAt?: string }) {
     <PageHeader
       kicker="Admin"
       title="Overview"
-      description="Platform-wide stats, moderation queues and data-moat coverage."
+      description="Platform-wide stats, moderation queues and verified index coverage."
       actions={
         generatedAt ? (
           <p className="font-mono text-[11px] text-ink-tertiary">
@@ -370,6 +370,13 @@ function QueueRow({
   tone?: "amber" | "neutral";
   indent?: boolean;
 }) {
+  const displayLabel = label
+    .replace("group parent review", "Group / parent review")
+    .replace("fuzzy match review", "Fuzzy supplier match review")
+    .replace("brand disclosure match review", "Brand disclosure review")
+    .replace("cert doc review", "Certification document review")
+    .replace("claim review", "Supplier claim review")
+    .replace("sanctions hit", "Sanctions hit review");
   const valueNode = (
     <span className="font-mono tabular-nums text-ink-primary">
       {value.toLocaleString()}
@@ -383,7 +390,7 @@ function QueueRow({
       }
     >
       <span>
-        {label}
+        {displayLabel}
         {tone === "amber" && value > 0 ? (
           <span className="ml-2 inline-block">
             <Tag tone="amber">review</Tag>

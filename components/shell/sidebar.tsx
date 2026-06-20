@@ -118,12 +118,16 @@ export const SUPPLIER_SECTIONS: Section[] = [
 export const ADMIN_SECTIONS: Section[] = [
   {
     label: "Overview",
-    slots: [{ label: "Overview", href: "/admin", Icon: Gauge }],
+    slots: [
+      { label: "Overview", href: "/admin", Icon: Gauge },
+      { label: "Beta analytics", href: "/admin/beta", Icon: Sparkle },
+    ],
   },
   {
     label: "Moderation",
     slots: [
       { label: "Suppliers", href: "/admin/suppliers", Icon: Storefront },
+      { label: "User feedback", href: "/admin/feedback", Icon: ChatCircleText },
       { label: "Supplier claim review", href: "/admin/claims", Icon: IdentificationBadge, badgeKey: "adminClaims" },
       { label: "Certification review", href: "/admin/certifications", Icon: Certificate, badgeKey: "adminCerts" },
       { label: "Sanctions screening", href: "/admin/sanctions", Icon: Prohibit, badgeKey: "adminSanctions" },
@@ -143,10 +147,17 @@ export const ADMIN_SECTIONS: Section[] = [
 
 export type ShellVariant = "buyer" | "supplier" | "admin";
 
-export function variantFromPath(pathname: string): ShellVariant {
+export function variantFromPath(
+  pathname: string,
+  role?: Role | null,
+): ShellVariant {
   if (pathname === "/admin" || pathname.startsWith("/admin/")) return "admin";
   if (pathname === "/supplier" || pathname.startsWith("/supplier/"))
     return "supplier";
+  // Shared settings route — keep supplier/admin chrome for signed-in role.
+  if (pathname.startsWith("/app/settings") && role === "supplier")
+    return "supplier";
+  if (pathname.startsWith("/app/settings") && role === "admin") return "admin";
   return "buyer";
 }
 
@@ -211,22 +222,29 @@ export function Sidebar({
   badges,
 }: SidebarProps) {
   const pathname = usePathname() ?? "/app";
-  const variant = variantFromPath(pathname);
+  const variant = variantFromPath(pathname, role);
   const sections = SECTIONS[variant];
   const isAdmin = role === "admin";
 
-  const initials = ((email ?? "??").split("@")[0] ?? "??")
+  const initials = ((email ?? displayName ?? "??").split("@")[0] ?? "??")
     .slice(0, 2)
     .toUpperCase();
   const userRole = role
     ? `${role[0]!.toUpperCase()}${role.slice(1)}`
-    : "Guest";
-  const profileName = (displayName ?? "").trim() || email || "Your account";
-  const profileSub = (displayName ?? "").trim() ? email ?? userRole : userRole;
+    : email
+      ? "Signed in"
+      : "Guest";
+  const profileName =
+    (displayName ?? "").trim() || email || (role ? "Account" : "Sign in");
+  const profileSub = (displayName ?? "").trim()
+    ? (email ?? userRole)
+    : userRole;
+  const settingsHref =
+    variant === "admin" ? "/admin/users" : "/app/settings";
 
   const profileHeader = (
     <Link
-      href="/app/settings"
+      href={settingsHref}
       className="group flex items-center gap-2.5 rounded-md px-2 py-2 transition-colors duration-150 ease-smooth hover:bg-[rgba(15,15,20,0.045)]"
       aria-label="Your profile and settings"
     >

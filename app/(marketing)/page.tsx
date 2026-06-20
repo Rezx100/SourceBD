@@ -34,7 +34,6 @@ import {
 import { AnimatedGridPattern } from "@/components/ui/animated-grid-pattern";
 import { AvatarCircles } from "@/components/ui/avatar-circles";
 import { BlurFade } from "@/components/ui/blur-fade";
-import { Globe } from "@/components/ui/globe";
 import { MagicCard } from "@/components/ui/magic-card";
 import { Marquee } from "@/components/ui/marquee";
 import { NumberTicker } from "@/components/ui/number-ticker";
@@ -176,6 +175,79 @@ function Heading({ children }: { children: React.ReactNode }) {
   );
 }
 
+function HeroDossierPreview({ stats }: { stats: Stats }) {
+  const suppliers = stats.suppliers_indexed?.toLocaleString("en-GB") ?? "10,000+";
+  const documents =
+    stats.compliance_documents_mirrored?.toLocaleString("en-GB") ?? "7,000+";
+  const corroborated =
+    stats.suppliers_with_tier1or2_source?.toLocaleString("en-GB") ?? "9,000+";
+
+  return (
+    <MagicCard
+      className="mx-auto w-full max-w-[520px] rounded-lg border border-neutral-200 bg-white p-5 shadow-sm sm:p-6"
+      gradientFrom={FOREST}
+      gradientTo="#2d6a4f"
+      gradientColor="#ecf3ee"
+      gradientOpacity={0.1}
+    >
+      <div className="flex items-start justify-between gap-4 border-b border-neutral-200 pb-4">
+        <div>
+          <p className="font-[family-name:var(--mkt-font-mono)] text-[11px] uppercase tracking-[0.16em] text-neutral-500">
+            Evidence dossier
+          </p>
+          <h2 className="mt-1 font-[family-name:var(--mkt-font-display)] text-2xl font-bold tracking-tight text-neutral-900 sm:text-3xl">
+            Verified supplier profile
+          </h2>
+          <p className="mt-2 max-w-sm text-sm leading-relaxed text-neutral-600">
+            The same card language buyers use inside the portal: receipts,
+            source rows, and documents before any outreach.
+          </p>
+        </div>
+        <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-neutral-200 bg-neutral-50 text-brand-forest">
+          <ShieldCheck size={24} weight="duotone" aria-hidden />
+        </span>
+      </div>
+
+      <div className="grid grid-cols-3 gap-3 py-4">
+        {[
+          [suppliers, "suppliers"],
+          [corroborated, "corroborated"],
+          [documents, "documents"],
+        ].map(([value, label]) => (
+          <div key={label} className="rounded-lg border border-neutral-200 bg-neutral-50 p-3">
+            <p className="font-[family-name:var(--mkt-font-display)] text-xl font-bold leading-none text-neutral-900">
+              {value}
+            </p>
+            <p className="mt-1 text-[11px] font-medium text-neutral-500">{label}</p>
+          </div>
+        ))}
+      </div>
+
+      <div className="space-y-2 border-t border-neutral-200 pt-4">
+        {[
+          ["BGMEA", "Trade association register", "Verified"],
+          ["RSC", "Remediation and safety evidence", "96%"],
+          ["GOTS", "Certification body record", "Active"],
+          ["UFLPA", "Sanctions screening", "Clear"],
+        ].map(([code, label, status]) => (
+          <div
+            key={code}
+            className="grid grid-cols-[64px_minmax(0,1fr)_auto] items-center gap-3 rounded-lg border border-neutral-200 bg-white px-3 py-2.5"
+          >
+            <span className="font-[family-name:var(--mkt-font-mono)] text-xs font-semibold text-brand-forest">
+              {code}
+            </span>
+            <span className="min-w-0 truncate text-sm text-neutral-700">{label}</span>
+            <span className="rounded-lg bg-neutral-100 px-2 py-1 text-[11px] font-semibold text-neutral-600">
+              {status}
+            </span>
+          </div>
+        ))}
+      </div>
+    </MagicCard>
+  );
+}
+
 // ─── Page ────────────────────────────────────────────────────────
 
 export default async function HomeV2Page() {
@@ -185,7 +257,7 @@ export default async function HomeV2Page() {
     : "10,000";
 
   return (
-    <div className="overflow-x-hidden bg-white font-[family-name:var(--mkt-font-body)] text-neutral-900">
+    <div className="overflow-x-hidden bg-bg-l0 font-[family-name:var(--mkt-font-body)] text-neutral-900">
       {/* JSON-LD */}
       <script
         type="application/ld+json"
@@ -208,7 +280,7 @@ export default async function HomeV2Page() {
       />
 
       {/* ════════ HERO ════════ */}
-      <section className="relative overflow-hidden border-b border-neutral-200">
+      <section className="relative overflow-hidden border-b border-neutral-200 bg-white">
         <AnimatedGridPattern
           className="absolute inset-0 fill-[#1f4d3a]/[0.05] stroke-[#1f4d3a]/[0.07] text-[#1f4d3a] opacity-70 [mask-image:radial-gradient(700px_circle_at_30%_30%,white,transparent)]"
           numSquares={50}
@@ -316,18 +388,12 @@ export default async function HomeV2Page() {
             </BlurFade>
           </div>
 
-          {/* Right — Globe (large, bleeds, blends into the page). Hidden
-              below lg: the blended white sphere reads as an empty void when
-              stacked alone on narrow viewports, so it only appears beside the
-              hero copy on two-column layouts. */}
+          {/* Right — product-derived dossier preview. This keeps the public
+              homepage visually tied to the portal instead of using an abstract
+              decorative object. */}
           <BlurFade delay={0.3} className="relative hidden lg:block">
-            <div className="pointer-events-none relative mx-auto flex aspect-square w-full max-w-[340px] items-center justify-center sm:max-w-[440px] md:max-w-[520px] lg:max-w-none lg:scale-[1.1]">
-              {/* soft brand halo for depth — sits behind the dotted sphere */}
-              <div className="absolute inset-12 rounded-full bg-[radial-gradient(circle_at_50%_45%,rgba(31,77,58,0.10),transparent_60%)] blur-3xl" />
-              <Globe className="!max-w-[560px]" />
-            </div>
-            {/* single-line caption pinned under the globe */}
-            <div className="pointer-events-none -mt-2 flex justify-center sm:mt-1">
+            <HeroDossierPreview stats={stats} />
+            <div className="pointer-events-none mt-4 flex justify-center">
               <span className="inline-flex items-center whitespace-nowrap rounded-full border border-neutral-200 bg-white/90 px-3.5 py-1.5 font-[family-name:var(--mkt-font-mono)] text-[10px] text-neutral-600 shadow-sm backdrop-blur-sm sm:text-[11px]">
                 <span className="mr-2 h-1.5 w-1.5 animate-pulse rounded-full bg-[#1f4d3a]" />
                 <span className="font-semibold text-[#1f4d3a]">Dhaka HQ</span>

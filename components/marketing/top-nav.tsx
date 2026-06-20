@@ -1,8 +1,7 @@
 // Marketing top-nav — Magic UI light-mode design.
 //
 // Sticky white nav with a subtle scroll-shadow. Role-aware right CTAs
-// fetched from /api/session/me on mount. Forest green (#1f4d3a) appears
-// only on the shield glyph and the primary CTA button — nowhere else.
+// fetched from /api/session/me on mount. Uses shared SourceBD brand tokens.
 
 "use client";
 
@@ -23,7 +22,7 @@ const NAV_LINKS = [
 ];
 
 const CTA_BUTTON =
-  "inline-flex items-center justify-center rounded-lg bg-[#1f4d3a] px-4 py-2 text-sm font-medium !text-white shadow-sm transition-colors hover:bg-[#2d6a4f]";
+  "inline-flex items-center justify-center rounded-lg bg-brand-forest px-4 py-2 text-sm font-medium !text-white shadow-sm transition-colors hover:bg-brand-forest-mid";
 
 function RightLinks({ role }: { role: Role | null }) {
   if (role === "supplier") {
@@ -64,7 +63,7 @@ function DrawerCtas({
   onNavigate: () => void;
 }) {
   const solid =
-    "inline-flex min-h-[48px] items-center justify-center rounded-lg bg-[#1f4d3a] px-4 text-sm font-medium !text-white transition-colors hover:bg-[#2d6a4f]";
+    "inline-flex min-h-[48px] items-center justify-center rounded-lg bg-brand-forest px-4 text-sm font-medium !text-white transition-colors hover:bg-brand-forest-mid";
   if (role === "supplier") {
     return (
       <Link href="/supplier" onClick={onNavigate} className={solid}>
@@ -151,23 +150,28 @@ export function MarketingTopNav() {
   return (
     <>
     <nav
-      className={`sticky top-0 z-50 w-full border-b transition-all duration-200 ${
+      className={`sticky top-0 z-50 flex h-14 w-full items-center border-b transition-all duration-200 ${
         scrolled
-          ? "border-neutral-200 bg-white/90 shadow-sm backdrop-blur-md"
-          : "border-transparent bg-white"
+          ? "border-hairline bg-surface-l1/90 shadow-sm backdrop-blur-md"
+          : "border-hairline bg-surface-l1/95 backdrop-blur-md"
       }`}
     >
-      <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3 md:px-12 lg:px-20">
+      <div className="flex w-full items-center gap-2 px-3 md:gap-3 md:px-4">
         {/* Wordmark — always pinned far-left */}
-        <Wordmark />
+        <Wordmark
+          boxClassName="h-7 w-7"
+          glyphClassName="h-4 w-4"
+          textClassName="text-[15px]"
+          className="shrink-0"
+        />
 
         {/* Desktop nav links (md+) */}
-        <div className="hidden items-center gap-8 md:flex">
+        <div className="ml-2 hidden items-center gap-0.5 md:flex">
           {NAV_LINKS.map((l) => (
             <Link
               key={l.href}
               href={l.href}
-              className="text-sm font-medium text-neutral-600 transition-colors hover:text-neutral-900"
+              className="rounded-pill px-3 py-1.5 text-[13px] font-medium text-ink-secondary transition-colors duration-hover ease-smooth hover:bg-brand-forest-tint hover:text-ink-primary"
             >
               {l.label}
             </Link>
@@ -175,7 +179,7 @@ export function MarketingTopNav() {
         </div>
 
         {/* Right cluster — desktop CTAs, or the mobile hamburger far-right */}
-        <div className="flex items-center gap-3">
+        <div className="ml-auto flex items-center gap-2 md:gap-3">
           <div className="hidden items-center gap-4 md:flex">
             <RightLinks role={role} />
           </div>
@@ -185,7 +189,7 @@ export function MarketingTopNav() {
             aria-label="Open menu"
             aria-haspopup="dialog"
             aria-expanded={drawerOpen}
-            className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-neutral-700 ring-1 ring-inset ring-neutral-200 transition-colors hover:bg-neutral-100 md:hidden"
+            className="inline-flex h-[44px] w-[44px] items-center justify-center rounded-md text-ink-secondary transition-colors duration-hover ease-smooth hover:bg-[rgba(15,15,20,0.05)] hover:text-ink-primary md:hidden"
           >
             <ListIcon size={20} weight="bold" aria-hidden />
           </button>

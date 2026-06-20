@@ -87,10 +87,9 @@ gracefully.
 
 ## Migrations
 
-Default deploy **does not** touch Supabase migrations. The production
-project has migrations 0001 → 0047 applied via the per-migration psycopg
-pattern (see `progress-tracker.md` decisions log). Run with
-`--with-migrations` only when shipping a brand-new `supabase/migrations/*.sql`,
+Default deploy **does not** touch Supabase migrations. Migrations 0001 → 0047
+are already applied. Run with `--with-migrations` when shipping 0048–0049,
+0060 (P2/P3/P4) or any newer `supabase/migrations/*.sql`,
 and then apply via the etl container's psycopg + `ops/_apply_one.py` —
 not via Supabase CLI (CLI is not an approved tool per `architecture.md`).
 

@@ -1,11 +1,7 @@
-// Spec M2 — Marketing pricing page. Public, indexable, static.
+// Marketing pricing page. Public, indexable, static.
 //
-// JC #11 ack: no Stripe in v1 — Starter/Growth CTAs route to `/signup`
-// with a plan hint; Enterprise routes to a mailto: link. JC #12 ack:
-// every numeric placeholder figure is wrapped in
-// `<!-- launch marker: price -->...<!-- /launch marker -->` HTML comments
-// so the M2 smoke can assert the markers are still present (forces a
-// deliberate pre-launch swap).
+// Free public beta posture: no Stripe checkout, no paid tiers, no trial
+// language. Growth / Enterprise are future capability descriptions only.
 //
 // Plan tier identifiers (`starter` / `growth` / `enterprise`) are the
 // same ones the `profiles.plan_tier` CHECK constraint admits (migration
@@ -29,7 +25,7 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://sourcebd.net";
 export const metadata = {
   title: "Pricing — SourceBD",
   description:
-    "Three plans for UK / US / EU / CA buyers sourcing from Bangladesh: Starter (free), Growth, and Enterprise. Compare features and view FAQs.",
+    "SourceBD is in a free public beta. Pricing, billing, and paid plan enforcement arrive after beta usage proves the right commercial model.",
   robots: { index: true, follow: true },
   alternates: { canonical: SITE_URL + "/pricing" },
 };
@@ -71,19 +67,19 @@ export default function PricingPage() {
       {/* Hero */}
       <section className="text-center">
         <h1 className="font-display text-4xl font-light tracking-tight text-ink-primary md:text-5xl">
-          Pricing built for{" "}
-          <span className="text-[#1f4d3a] text-4xl md:text-5xl">
+          Free public beta for{" "}
+          <span className="text-brand-forest text-4xl md:text-5xl">
             sourcing teams
           </span>
         </h1>
         <p className="mx-auto mt-4 max-w-2xl text-base text-ink-secondary leading-relaxed">
-          Start free. Upgrade when you place repeat orders. Talk to us when
-          your programme needs seats, API access, or a dedicated compliance
-          reviewer.
+          SourceBD is open at zero price while we validate buyer workflows,
+          data quality, and the right commercial model. No card, no checkout,
+          no hidden paid gate.
         </p>
         <p className="affiliation-disclaimer mx-auto mt-3 max-w-2xl">
-          Prices shown in GBP. USD and EUR pricing arriving before MAGIC
-          Las Vegas (August 2026).
+          Paid tiers, Stripe checkout, billing portal, and plan enforcement are
+          deferred until after the public beta.
         </p>
       </section>
 
@@ -232,12 +228,12 @@ export default function PricingPage() {
       <section className="mt-20 rounded-hero border border-hairline-strong bg-brand-forest-soft p-10 text-center">
         <h2 className="font-display text-2xl font-light tracking-tight text-ink-primary">
           Need something{" "}
-          <span className="text-[#1f4d3a]">bespoke</span>?
+          <span className="text-brand-forest">bespoke</span>?
         </h2>
         <p className="mx-auto mt-3 max-w-xl text-sm text-ink-secondary">
-          Enterprise programmes get seats, API access, bulk export, and a
-          dedicated compliance reviewer. Tell us about your sourcing
-          volume and we will reply with a quote within two working days.
+          Enterprise programmes will eventually need seats, API access, bulk
+          export, and dedicated compliance review. During beta, tell us what
+          your team needs and we will use it to shape the roadmap.
         </p>
         <Link
           href="mailto:sales@sourcebd.net?subject=SourceBD%20Enterprise%20enquiry"

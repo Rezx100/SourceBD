@@ -2,17 +2,20 @@
 // · moat headline · notification bell · avatar. Per `frontend-design-spec.md`
 // §2.1 plus debug batch 2026-06-06 I-022 (quick-nav links + verified count
 // surfaced in the header so the topbar carries useful info, not just chrome).
-// Server component — interactive search submit is a plain HTML form, no JS.
-// Spec R2 — Adds the <md hamburger trigger (TopbarHamburger client island)
-// that opens a MobileDrawer with the full sidebar slot list. Tablet (md..<lg)
-// gets SidebarRail, desktop (≥lg) gets the full Sidebar.
+// Client component only so the quick links/search target can follow the
+// current route group. Server-side auth still happens in middleware and the
+// layout; this file only chooses buyer/supplier/admin chrome.
+
+"use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Bell, MagnifyingGlass, UserCircle } from "@phosphor-icons/react/dist/ssr";
 
 import type { Role } from "@/lib/auth";
 import { ShieldGlyph } from "@/components/marketing/logo";
 import { TopbarHamburger } from "@/components/shell/topbar-hamburger";
+import { variantFromPath } from "@/components/shell/sidebar";
 
 type QuickLink = { href: string; label: string };
 
@@ -42,12 +45,6 @@ const QUICK_LINKS: Record<"buyer" | "supplier" | "admin", QuickLink[]> = {
   ],
 };
 
-function variantFor(role: Role | null): "buyer" | "supplier" | "admin" {
-  if (role === "admin") return "admin";
-  if (role === "supplier") return "supplier";
-  return "buyer";
-}
-
 export function Topbar({
   role = null,
   moatTotal = null,
@@ -55,21 +52,22 @@ export function Topbar({
   role?: Role | null;
   moatTotal?: number | null;
 }) {
-  const variant = variantFor(role);
+  const pathname = usePathname() ?? "/app";
+  const variant = variantFromPath(pathname, role);
   const links = QUICK_LINKS[variant];
 
   const searchAction = variant === "admin" ? "/admin/suppliers" : "/app/discover";
 
   return (
     <header className="sticky top-0 z-30 flex h-14 items-center gap-2 border-b border-hairline bg-surface-l1/90 px-3 backdrop-blur-md md:gap-3 md:px-4">
-      <TopbarHamburger variant={variant} />
+      <TopbarHamburger role={role} />
       <Link
         href="/"
         className="flex shrink-0 items-center gap-2 font-display text-[15px] font-bold tracking-tight text-ink-primary"
       >
         <span
           className="flex size-7 items-center justify-center rounded-lg"
-          style={{ backgroundColor: "#1f4d3a" }}
+          style={{ backgroundColor: "var(--brand-forest)" }}
         >
           <ShieldGlyph className="h-4 w-4" />
         </span>
