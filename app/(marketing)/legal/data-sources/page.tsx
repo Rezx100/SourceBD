@@ -4,6 +4,8 @@
 // #5 in buyer-facing language, and names the takedown / correction
 // contact.
 
+import { BlurFade } from "@/components/ui/blur-fade";
+
 export const dynamic = "force-static";
 
 const LAST_UPDATED = "2026-06-03";
@@ -22,16 +24,17 @@ export const metadata = {
 export default function DataSourcesPage() {
   return (
     <main className="mx-auto max-w-3xl px-6 py-16">
-      <header className="mb-8 text-center">
-        <h1 className="font-display text-3xl font-light tracking-tight text-ink-primary md:text-4xl">
-          <span className="text-[#1f4d3a] text-3xl md:text-4xl">
-            Data Source Policy
-          </span>
-        </h1>
-        <p className="affiliation-disclaimer mt-3">
-          Last updated: {LAST_UPDATED}
-        </p>
-      </header>
+      <BlurFade delay={0.1}>
+        <header className="mb-8 text-center">
+          <h1 className="font-display text-3xl font-bold tracking-tight text-ink-primary md:text-4xl">
+            <span className="text-[#1f4d3a]">Data Source Policy</span>
+          </h1>
+          <p className="mt-3 text-[11px] text-ink-tertiary">
+            Last updated: {LAST_UPDATED}
+          </p>
+        </header>
+      </BlurFade>
+      <BlurFade delay={0.15}>
       <div className="proto-card">
 
       <section className="space-y-4 text-ink-secondary leading-relaxed">
@@ -140,6 +143,7 @@ export default function DataSourcesPage() {
         </p>
       </section>
       </div>
+      </BlurFade>
     </main>
   );
 }

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 
+import { BlurFade } from "@/components/ui/blur-fade";
 import { PageHeader, Panel } from "@/components/ui/page-kit";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -68,13 +69,16 @@ export default async function StatusPage() {
 
   return (
     <main className="mx-auto max-w-3xl px-6 py-16">
-      <PageHeader
-        kicker="Platform status"
-        title="SourceBD live index"
-        description="Public freshness signals for the verified supplier database. This page shows when registers, compliance mirrors, and sanctions screening were last refreshed — not internal scores or proprietary opinions."
-        animate={false}
-      />
+      <BlurFade delay={0.1}>
+        <PageHeader
+          kicker="Platform status"
+          title="SourceBD live index"
+          description="Public freshness signals for the verified supplier database. This page shows when registers, compliance mirrors, and sanctions screening were last refreshed — not internal scores or proprietary opinions."
+          animate={false}
+        />
+      </BlurFade>
 
+      <BlurFade delay={0.2}>
       {error ? (
         <Panel className="mt-8 border-sem-amber/30 bg-sem-amber-soft/30">
           <p className="text-sm text-sem-amber">
@@ -154,6 +158,7 @@ export default async function StatusPage() {
           ) : null}
         </div>
       ) : null}
+      </BlurFade>
 
       <p className="mt-10 text-center text-sm text-ink-secondary">
         <Link href="/discover" className="text-brand-forest underline-offset-2 hover:underline">

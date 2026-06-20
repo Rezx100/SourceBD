@@ -1675,18 +1675,18 @@
   --mkt-green-900: #0C2C1F;
   --mkt-green-950: #071c14;
 
-  /* Warm-ink neutrals */
-  --mkt-ink-900: #16191B;
-  --mkt-ink-800: #23272A;
-  --mkt-ink-700: #3A3F40;
-  --mkt-ink-500: #6B6F69;
-  --mkt-ink-400: #8C9088;
+  /* Cool-neutral ink — remapped to portal source of truth (--ink-*) */
+  --mkt-ink-900: #0f0f14;
+  --mkt-ink-800: #1e1e26;
+  --mkt-ink-700: #4a4a55;
+  --mkt-ink-500: #8a8a95;
+  --mkt-ink-400: #a0a0aa;
 
-  /* Canvas + hairlines */
-  --mkt-line: #E4E3D7;
-  --mkt-line-strong: #D2D1C3;
-  --mkt-canvas: #F5F4EC;
-  --mkt-canvas-2: #ECEADE;
+  /* Canvas + hairlines — remapped to portal source of truth (--bg-l0 / --hairline) */
+  --mkt-line: rgba(15, 15, 20, 0.07);
+  --mkt-line-strong: rgba(15, 15, 20, 0.12);
+  --mkt-canvas: #f6f7f8;
+  --mkt-canvas-2: #edf0f2;
   --mkt-paper: #FFFFFF;
 
   /* Tier-of-evidence dots (subtle dark variants used on light cards) */
@@ -1717,10 +1717,15 @@
   /* Layout */
   --mkt-maxw: 1240px;
 
-  /* font CSS variables are set on the layout element from next/font */
+  /* Bridge mkt-font-* to the root --font-* vars set by next/font on <html>.
+     This avoids loading a duplicate font bundle in the marketing layout. */
+  --mkt-font-display: var(--font-display);
+  --mkt-font-body: var(--font-body);
+  --mkt-font-mono: var(--font-mono);
   font-family: var(--mkt-font-body, ui-sans-serif, system-ui, sans-serif);
-  background: var(--mkt-canvas);
-  color: var(--mkt-ink-700);
+  /* Use portal source-of-truth tokens directly so the surface matches /app exactly */
+  background: var(--bg-l0);
+  color: var(--ink-primary);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
@@ -1729,7 +1734,7 @@
 [data-surface="marketing"] h2,
 [data-surface="marketing"] h3,
 [data-surface="marketing"] h4 {
-  color: var(--mkt-ink-900);
+  color: var(--ink-primary);
   margin: 0;
   font-family: var(--mkt-font-display, ui-sans-serif, system-ui, sans-serif);
   letter-spacing: -0.022em;

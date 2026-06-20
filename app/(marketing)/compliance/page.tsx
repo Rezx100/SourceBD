@@ -11,8 +11,16 @@
 // try/catch returning null so static prerender without runtime env
 // renders the anon variant rather than crashing the build (same
 // pattern as `components/marketing/top-nav.tsx`).
+//
+// Design: Magic UI BlurFade entrances, MagicCard for regulation tiles,
+// ShimmerButton for primary CTA — unified with home page.
 
 import Link from "next/link";
+import { ArrowRight } from "@phosphor-icons/react/dist/ssr";
+
+import { BlurFade } from "@/components/ui/blur-fade";
+import { MagicCard } from "@/components/ui/magic-card";
+import { ShimmerButton } from "@/components/ui/shimmer-button";
 
 import { getServerRole, type Role } from "@/lib/auth";
 import {
@@ -26,6 +34,7 @@ import {
 export const dynamic = "force-static";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://sourcebd.net";
+const FOREST = "#1f4d3a";
 
 export const metadata = {
   title: HUB_METADATA.title,
@@ -58,55 +67,78 @@ export default async function ComplianceHubPage() {
 
   return (
     <main className="mx-auto max-w-5xl px-6 py-16">
+
+      {/* ── Hero ── */}
       <section className="text-center">
-        <h1 className="font-display text-4xl font-light tracking-tight text-ink-primary md:text-5xl">
-          <span className="text-[#1f4d3a] text-4xl md:text-5xl">Compliance</span>
-        </h1>
-        <p className="mx-auto mt-4 max-w-2xl text-base text-ink-secondary leading-relaxed">
-          {HUB_METADATA.headline}
-        </p>
-        <p className="mx-auto mt-3 max-w-2xl text-sm text-ink-tertiary leading-relaxed">
-          {HUB_METADATA.summary}
-        </p>
+        <BlurFade delay={0.1}>
+          <p className="mb-3 inline-flex items-center gap-2 font-[family-name:var(--font-mono)] text-xs uppercase tracking-widest text-[#1f4d3a]">
+            <span className="h-1.5 w-1.5 rounded-full bg-[#1f4d3a]" />
+            Compliance guides
+          </p>
+          <h1 className="font-[family-name:var(--font-display)] text-4xl font-extrabold tracking-tight text-neutral-900 md:text-5xl">
+            <span className="text-[#1f4d3a]">Compliance</span>
+          </h1>
+        </BlurFade>
+        <BlurFade delay={0.2}>
+          <p className="mx-auto mt-4 max-w-2xl text-base leading-relaxed text-neutral-600">
+            {HUB_METADATA.headline}
+          </p>
+          <p className="mx-auto mt-3 max-w-2xl text-sm text-neutral-400 leading-relaxed">
+            {HUB_METADATA.summary}
+          </p>
+        </BlurFade>
       </section>
 
-      <section className="mt-12 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {COMPLIANCE_PAGES.map((page) => (
-          <Link
-            key={page.slug}
-            href={`/compliance/${page.slug}`}
-            className="proto-card hoverable flex flex-col"
-          >
-            <h2 className="font-display text-lg font-semibold text-ink-primary">
-              {page.shortName}
-            </h2>
-            <p className="mt-2 text-sm text-ink-secondary leading-relaxed">
-              {page.headline}
-            </p>
-            <span className="mt-4 inline-flex text-[11px] text-brand-forest">
-              Read the guide →
-            </span>
-          </Link>
+      {/* ── Regulation tiles ── */}
+      <section className="mt-12 grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
+        {COMPLIANCE_PAGES.map((page, i) => (
+          <BlurFade key={page.slug} delay={0.15 + i * 0.07}>
+            <Link href={`/compliance/${page.slug}`} className="block h-full">
+              <MagicCard
+                className="flex h-full flex-col rounded-xl border border-neutral-200 bg-white p-6 transition-shadow hover:shadow-md"
+                gradientFrom={FOREST}
+                gradientTo="#2d6a4f"
+                gradientColor="#ecf3ee"
+                gradientOpacity={0.1}
+              >
+                <h2 className="font-[family-name:var(--font-display)] text-lg font-bold text-neutral-900">
+                  {page.shortName}
+                </h2>
+                <p className="mt-2 flex-1 text-sm leading-relaxed text-neutral-500">
+                  {page.headline}
+                </p>
+                <span className="mt-5 inline-flex items-center gap-1 text-[12px] font-semibold text-[#1f4d3a]">
+                  Read the guide <ArrowRight size={13} />
+                </span>
+              </MagicCard>
+            </Link>
+          </BlurFade>
         ))}
       </section>
 
-      <section className="mt-16 rounded-hero border border-hairline-strong bg-brand-forest-soft p-10 text-center">
-        <h2 className="font-display text-2xl font-light tracking-tight text-ink-primary">
-          Use SourceBD&apos;s{" "}
-          <span className="text-[#1f4d3a]">receipts</span> on every
-          claim
-        </h2>
-        <p className="mx-auto mt-3 max-w-2xl text-sm text-ink-secondary leading-relaxed">
-          Every supplier profile carries source pills with issuer, URL,
-          and last-seen date — the same provenance trail your
-          compliance team needs.
-        </p>
-        <Link href={cta.href} className="btn-proto primary mt-6 inline-flex">
-          {cta.label}
-        </Link>
-      </section>
+      {/* ── CTA band ── */}
+      <BlurFade delay={0.15}>
+        <section className="mt-16 overflow-hidden rounded-2xl border border-[#1f4d3a]/20 bg-[#ecf3ee] p-10 text-center">
+          <h2 className="font-[family-name:var(--font-display)] text-2xl font-extrabold tracking-tight text-neutral-900">
+            Use SourceBD&apos;s{" "}
+            <span className="text-[#1f4d3a]">receipts</span> on every claim
+          </h2>
+          <p className="mx-auto mt-3 max-w-2xl text-sm leading-relaxed text-neutral-600">
+            Every supplier profile carries source pills with issuer, URL,
+            and last-seen date — the same provenance trail your compliance
+            team needs.
+          </p>
+          <div className="mt-6 inline-block">
+            <Link href={cta.href}>
+              <ShimmerButton className="px-8 py-3 text-sm font-medium" background={FOREST}>
+                {cta.label}
+              </ShimmerButton>
+            </Link>
+          </div>
+        </section>
+      </BlurFade>
 
-      <p className="affiliation-disclaimer mx-auto mt-12 text-center">
+      <p className="mx-auto mt-12 text-center text-[11px] text-neutral-400">
         {DISCLAIMER} Last reviewed: {reviewedAt}.
       </p>
     </main>

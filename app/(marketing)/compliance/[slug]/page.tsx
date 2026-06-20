@@ -14,6 +14,10 @@
 
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { ArrowRight } from "@phosphor-icons/react/dist/ssr";
+
+import { BlurFade } from "@/components/ui/blur-fade";
+import { ShimmerButton } from "@/components/ui/shimmer-button";
 
 import { getServerRole, type Role } from "@/lib/auth";
 import {
@@ -90,6 +94,8 @@ export default async function ComplianceDetailPage({
   }
   const cta = ctaFor(role);
 
+  const FOREST = "#1f4d3a";
+
   return (
     <main className="mx-auto max-w-3xl px-6 py-16">
       {/* M4 — JSON-LD Article. `datePublished` and `dateModified` both
@@ -112,24 +118,30 @@ export default async function ComplianceDetailPage({
           }),
         }}
       />
-      <nav aria-label="Breadcrumb" className="text-[10px] text-ink-tertiary">
-        <Link href="/compliance" className="hover:text-ink-primary">
-          Compliance
-        </Link>
-        <span className="mx-2">/</span>
-        <span>{page.shortName}</span>
-      </nav>
 
-      <header className="mt-4">
-        <h1 className="font-display text-3xl font-light tracking-tight text-ink-primary md:text-4xl">
-          {page.title}
-        </h1>
-        <p className="mt-4 text-base text-ink-secondary leading-relaxed">
-          {page.summary}
-        </p>
-      </header>
+      <BlurFade delay={0.05}>
+        <nav aria-label="Breadcrumb" className="text-[10px] text-neutral-400">
+          <Link href="/compliance" className="hover:text-neutral-700">
+            Compliance
+          </Link>
+          <span className="mx-2">/</span>
+          <span>{page.shortName}</span>
+        </nav>
+      </BlurFade>
 
-      <article className="proto-card mt-10 space-y-10">
+      <BlurFade delay={0.1}>
+        <header className="mt-4">
+          <h1 className="font-[family-name:var(--font-display)] text-3xl font-extrabold tracking-tight text-neutral-900 md:text-4xl">
+            {page.title}
+          </h1>
+          <p className="mt-4 text-base leading-relaxed text-neutral-600">
+            {page.summary}
+          </p>
+        </header>
+      </BlurFade>
+
+      <BlurFade delay={0.15}>
+      <article className="mt-10 space-y-10 overflow-hidden rounded-xl border border-neutral-200 bg-white p-6 shadow-[0_1px_3px_rgba(15,15,20,0.06)] md:p-8">
         {SECTION_ORDER.map((heading) => {
           const section = page.sections.find((s) => s.heading === heading);
           if (!section) return null;
@@ -177,22 +189,31 @@ export default async function ComplianceDetailPage({
           </ul>
         </section>
       </article>
+      </BlurFade>
 
-      <section className="mt-12 rounded-hero border border-hairline-strong bg-brand-forest-soft p-8 text-center">
-        <h2 className="font-display text-xl font-light tracking-tight text-ink-primary">
-          <span className="text-[#1f4d3a] text-xl">Receipts</span> on every supplier
-        </h2>
-        <p className="mx-auto mt-3 max-w-xl text-sm text-ink-secondary leading-relaxed">
-          Each SourceBD supplier profile carries source pills with
-          issuer, URL, and last-seen date — the trail your auditor
-          asks for.
-        </p>
-        <Link href={cta.href} className="btn-proto primary mt-5 inline-flex">
-          {cta.label}
-        </Link>
-      </section>
+      <BlurFade delay={0.2}>
+        <section className="mt-12 overflow-hidden rounded-2xl border border-[#1f4d3a]/20 bg-[#ecf3ee] p-8 text-center">
+          <h2 className="font-[family-name:var(--font-display)] text-xl font-extrabold tracking-tight text-neutral-900">
+            <span className="text-[#1f4d3a]">Receipts</span> on every supplier
+          </h2>
+          <p className="mx-auto mt-3 max-w-xl text-sm leading-relaxed text-neutral-600">
+            Each SourceBD supplier profile carries source pills with
+            issuer, URL, and last-seen date — the trail your auditor
+            asks for.
+          </p>
+          <div className="mt-5 inline-block">
+            <Link href={cta.href}>
+              <ShimmerButton className="px-7 py-2.5 text-sm font-medium" background={FOREST}>
+                <span className="flex items-center gap-2">
+                  {cta.label} <ArrowRight size={15} />
+                </span>
+              </ShimmerButton>
+            </Link>
+          </div>
+        </section>
+      </BlurFade>
 
-      <p className="affiliation-disclaimer mx-auto mt-12 text-center">
+      <p className="mx-auto mt-12 text-center text-[11px] text-neutral-400">
         {DISCLAIMER} Last reviewed: {page.last_reviewed_at}.
       </p>
     </main>
