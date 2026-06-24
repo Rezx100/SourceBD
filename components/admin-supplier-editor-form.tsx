@@ -152,9 +152,7 @@ export function AdminSupplierEditorForm({
         />
       </Field>
 
-      <div className="h-16 md:hidden" aria-hidden />
       <StickyActionBar
-        className="bottom-[calc(56px+env(safe-area-inset-bottom,0px))]"
         helper={
           hasChanges ? (
             <span className="font-mono text-[11px] text-ink-tertiary">

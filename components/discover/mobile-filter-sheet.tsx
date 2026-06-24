@@ -31,7 +31,7 @@ export function MobileFilterSheet({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="r3-filter-trigger inline-flex w-full items-center justify-between rounded-card border border-hairline bg-surface-l1 px-4 py-3 text-sm font-semibold text-ink-primary shadow-[0_1px_2px_rgba(15,15,20,0.03)] hover:border-brand-forest/50"
+        className="r3-filter-trigger inline-flex w-full items-center justify-between rounded-lg border border-neutral-200 bg-white px-4 py-3 text-sm font-semibold text-neutral-900 shadow-sm hover:border-brand-forest/50"
         aria-haspopup="dialog"
         aria-expanded={open}
       >
@@ -39,7 +39,7 @@ export function MobileFilterSheet({
           <Funnel size={16} weight="bold" />
           <span>Filters{countSuffix}</span>
         </span>
-        <span className="text-[11px] font-medium text-ink-tertiary">
+        <span className="text-[11px] font-medium text-neutral-500">
           {resultCount.toLocaleString()} result{resultCount === 1 ? "" : "s"}
         </span>
       </button>

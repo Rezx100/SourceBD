@@ -1,9 +1,7 @@
 import type { Metadata, Viewport } from "next";
-import { Archivo, Hanken_Grotesk, IBM_Plex_Mono, Geist } from "next/font/google";
+import { Archivo, Hanken_Grotesk, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
-
-const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 
 // Unified platform typography (decision 2026-06-18). The app surfaces now
 // share the marketing stack so the whole platform reads as one company:
@@ -46,7 +44,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={cn(display.variable, body.variable, mono.variable, "font-sans", geist.variable)}>
+    <html lang="en" className={cn(display.variable, body.variable, mono.variable, "font-sans")}>
       <body suppressHydrationWarning>{children}</body>
     </html>
   );

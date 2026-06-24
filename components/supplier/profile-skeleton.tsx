@@ -68,22 +68,42 @@ export function ProfileTabsSkeleton() {
   );
 }
 
-/** Tabbed-body placeholder: two stacked proto-cards. */
+function CertRowSkeleton() {
+  return (
+    <div className="cert">
+      <Skeleton w={36} h={36} shape="card" />
+      <div className="cert-main">
+        <Skeleton w={92} h={16} />
+        <Skeleton w="80%" h={12} />
+      </div>
+      <Skeleton w={64} h={24} shape="pill" />
+    </div>
+  );
+}
+
+/** Tabbed-body placeholder: compliance-first cards matching the default tab. */
 export function ProfileTabBodySkeleton() {
   return (
     <div className="space-y-4">
       <div className="proto-card space-y-3">
-        <Skeleton w={160} h={16} />
-        <Skeleton w="100%" h={12} />
-        <Skeleton w="85%" h={12} />
-        <Skeleton w="70%" h={12} />
+        <div className="proto-card-head">
+          <Skeleton w={130} h={16} />
+          <Skeleton w={120} h={12} />
+        </div>
+        <div className="cert-list">
+          <CertRowSkeleton />
+          <CertRowSkeleton />
+          <CertRowSkeleton />
+        </div>
       </div>
       <div className="proto-card space-y-3">
-        <Skeleton w={140} h={16} />
-        <div className="metric-grid">
-          <MetricSkeleton />
-          <MetricSkeleton />
-          <MetricSkeleton />
+        <div className="proto-card-head">
+          <Skeleton w={150} h={16} />
+          <Skeleton w={90} h={12} />
+        </div>
+        <div className="space-y-2">
+          <Skeleton w="100%" h={38} shape="card" />
+          <Skeleton w="100%" h={38} shape="card" />
         </div>
       </div>
     </div>
@@ -124,24 +144,28 @@ export function ProtoCardSkeleton({
   );
 }
 
-/** Mirrors `DiscoverResultCard`: 64px glyph + name/sublines + chips column,
- *  plus a side rail with completeness + save button. Width is fluid. */
+/** Mirrors `DiscoverResultCard`: compact receipts ring + name/sublines + chips. */
 export function DiscoverResultCardSkeleton() {
   return (
-    <div className="proto-card hoverable">
-      <div className="flex items-start gap-4">
-        <Skeleton w={64} h={72} shape="card" />
-        <div className="min-w-0 flex-1 space-y-2">
-          <Skeleton w="55%" h={18} />
-          <Skeleton w="35%" h={12} />
+    <div className="rounded-lg border border-neutral-200 bg-white p-4 shadow-sm sm:p-5">
+      <div className="flex items-start gap-3.5 sm:gap-5">
+        <Skeleton w={32} h={32} shape="circle" />
+        <div className="min-w-0 flex-1 space-y-2.5">
+          <Skeleton w="55%" h={16} />
+          <div className="flex flex-wrap gap-2">
+            <Skeleton w={64} h={22} shape="pill" />
+            <Skeleton w={120} h={12} />
+          </div>
           <div className="flex flex-wrap gap-1.5 pt-1">
             <Skeleton w={70} h={20} shape="pill" />
             <Skeleton w={90} h={20} shape="pill" />
             <Skeleton w={60} h={20} shape="pill" />
+            <Skeleton w={80} h={20} shape="pill" />
           </div>
+          <Skeleton w="70%" h={12} />
+          <Skeleton w="58%" h={12} />
         </div>
         <div className="flex flex-col items-end gap-2">
-          <Skeleton w={56} h={22} shape="pill" />
           <Skeleton w={36} h={36} shape="circle" />
         </div>
       </div>

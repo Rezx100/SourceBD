@@ -46,8 +46,6 @@ export function LoginForm({ next }: { next: string }) {
       brandHeadlineAccent="receipts on every claim."
       brandSub="Sign in to search the verified register, open any factory's provenance trail and export the evidence your compliance team needs."
       brandFooter="Trusted by sourcing & compliance teams in the UK, US & EU."
-      proofTitle="Cotton Club (BD) Ltd"
-      proofSubtitle="Knit composite · Gazipur"
       topRight={
         <>
           New to SourceBD?{" "}

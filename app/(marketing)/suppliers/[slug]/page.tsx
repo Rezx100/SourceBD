@@ -27,6 +27,7 @@ import { notFound } from "next/navigation";
 
 import { ShieldCheck, Star, ChatCircleDots, Prohibit, MapPin } from "@phosphor-icons/react/dist/ssr";
 
+import { BlurFade } from "@/components/ui/blur-fade";
 import { ReceiptsRing } from "@/components/receipts-ring";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ProductsStripExpandable } from "@/components/supplier/products-strip-expandable";
@@ -285,7 +286,9 @@ export default async function PublicSupplierProfilePage({
 
         {s.is_sanctioned ? <SanctionsBanner /> : null}
 
-        <ProfileHeader payload={payload} nextPath={nextPath} />
+        <BlurFade delay={0.07}>
+          <ProfileHeader payload={payload} nextPath={nextPath} />
+        </BlurFade>
 
         {s.principal_products.length > 0 ? (
           <ProductsStripExpandable products={s.principal_products} />
@@ -946,6 +949,7 @@ function RegistryRow({ pill }: { pill: Pill }) {
 function CertRow({ cert }: { cert: Cert }) {
   const logo = LOGO_BY_CERT[cert.kind];
   const status = certStatus(cert);
+  const shortStatus = certStatusShort(status);
   return (
     <div className="cert">
       {logo ? (
@@ -957,7 +961,10 @@ function CertRow({ cert }: { cert: Cert }) {
         </span>
       )}
       <div className="cert-main">
-        <p className="cert-name">{certLongName(cert.kind)}</p>
+        <p className="cert-name">
+          <span className="cert-name-short">{certLabel(cert.kind)}</span>
+          <span className="cert-name-full">{certLongName(cert.kind)}</span>
+        </p>
         <p className="cert-meta">
           {[cert.certificate_no, cert.issuer]
             .filter(Boolean)
@@ -967,7 +974,10 @@ function CertRow({ cert }: { cert: Cert }) {
             : ""}
         </p>
       </div>
-      <span className={`cert-status ${status.tone}`}>{status.label}</span>
+      <span className={`cert-status ${status.tone}`}>
+        <span className="cert-status-short">{shortStatus}</span>
+        <span className="cert-status-full">{status.label}</span>
+      </span>
     </div>
   );
 }
@@ -1488,8 +1498,8 @@ function ContactTab({
         </p>
         {disabled ? null : (
           <Link
-            className="btn-proto primary"
             href={`/signup?next=${encodeURIComponent(nextPath)}`}
+            className="btn-proto primary"
           >
             Sign up free →
           </Link>
@@ -1640,6 +1650,13 @@ function certStatus(c: Cert): {
   if (daysLeft < 90)
     return { label: `Expires in ${daysLeft} days`, tone: "expiring" };
   return { label: `Valid · ${daysLeft} days`, tone: "valid" };
+}
+
+function certStatusShort(status: ReturnType<typeof certStatus>): string {
+  if (status.tone === "valid") return "Valid";
+  if (status.tone === "expiring") return "Expiring";
+  if (status.tone === "expired") return "Expired";
+  return status.label === "expiry n/a" ? "No expiry" : status.label;
 }
 
 const SANCTIONS_TILES = [

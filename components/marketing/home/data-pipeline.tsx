@@ -24,7 +24,7 @@ const Node = forwardRef<
       ref={ref}
       title={title}
       className={cn(
-        "z-10 flex size-16 items-center justify-center rounded-2xl border border-neutral-200 bg-white p-2 shadow-[0_2px_8px_-2px_rgba(16,40,28,0.12)] sm:size-20 sm:p-2.5",
+        "z-10 flex size-16 items-center justify-center rounded-lg border border-neutral-200 bg-white p-2 shadow-sm sm:size-20 sm:p-2.5",
         className,
       )}
     >
@@ -61,6 +61,8 @@ const REGS = [
   { src: "/inapp-logos/bkmea.png", alt: "BKMEA" },
   { src: "/inapp-logos/BTMA.webp", alt: "BTMA" },
 ];
+
+const BEAM_CYCLE_SECONDS = 2.5;
 
 export function DataPipeline({ className }: { className?: string }) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -101,7 +103,7 @@ export function DataPipeline({ className }: { className?: string }) {
         <div
           ref={engineRef}
           title="SourceBD verification engine"
-          className="pointer-events-auto flex size-20 items-center justify-center rounded-3xl bg-[#1f4d3a] shadow-[0_10px_30px_-12px_rgba(31,77,58,0.45)] sm:size-24"
+          className="pointer-events-auto flex size-20 items-center justify-center rounded-lg bg-brand-forest shadow-sm sm:size-24"
         >
           <ShieldGlyph className="h-1/2 w-1/2" />
         </div>
@@ -127,12 +129,12 @@ export function DataPipeline({ className }: { className?: string }) {
           toRef={engineRef}
           pathType="angular"
           elbowAt={0.55}
-          duration={7}
+          duration={BEAM_CYCLE_SECONDS}
           delay={0}
-          pathColor="#dfe4dd"
+          pathColor="var(--hairline)"
           pathWidth={2}
-          gradientStartColor="#1f4d3a"
-          gradientStopColor="#4e9268"
+          gradientStartColor="var(--brand-forest)"
+          gradientStopColor="var(--brand-forest-mid)"
         />
       ))}
       {/* Beams: register logos → engine (mirrored square route, reversed, also
@@ -145,13 +147,13 @@ export function DataPipeline({ className }: { className?: string }) {
           toRef={engineRef}
           pathType="angular"
           elbowAt={0.55}
-          duration={7}
+          duration={BEAM_CYCLE_SECONDS}
           delay={0}
           reverse
-          pathColor="#dfe4dd"
+          pathColor="var(--hairline)"
           pathWidth={2}
-          gradientStartColor="#1f4d3a"
-          gradientStopColor="#4e9268"
+          gradientStartColor="var(--brand-forest)"
+          gradientStopColor="var(--brand-forest-mid)"
         />
       ))}
     </div>

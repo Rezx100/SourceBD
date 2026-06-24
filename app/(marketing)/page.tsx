@@ -14,7 +14,7 @@
 //   • AnimatedList     → live provenance feed (receipts in motion)
 //   • Provider grid    → the certifications & registers we read directly
 //
-// Light mode only. Forest green (#1f4d3a) is a signature, not a theme.
+// Light mode only. Forest green is a signature, not a theme.
 // Nav + footer are mounted by app/(marketing)/layout.tsx.
 
 import type { Metadata } from "next";
@@ -37,7 +37,6 @@ import { BlurFade } from "@/components/ui/blur-fade";
 import { MagicCard } from "@/components/ui/magic-card";
 import { Marquee } from "@/components/ui/marquee";
 import { NumberTicker } from "@/components/ui/number-ticker";
-import { ShimmerButton } from "@/components/ui/shimmer-button";
 import { TextHighlighter } from "@/components/ui/text-highlighter";
 
 import { DataPipeline } from "@/components/marketing/home/data-pipeline";
@@ -49,7 +48,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 export const dynamic = "force-dynamic";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://sourcebd.net";
-const FOREST = "#1f4d3a";
+const FOREST = "var(--brand-forest)";
 
 export const metadata: Metadata = {
   title: "SourceBD — Verified Bangladesh Garment Factories, on the Record",
@@ -160,8 +159,8 @@ const POSITIONING = [
 
 function Kicker({ children }: { children: React.ReactNode }) {
   return (
-    <p className="mb-3 inline-flex items-center gap-2 font-[family-name:var(--mkt-font-mono)] text-xs uppercase tracking-widest text-[#1f4d3a]">
-      <span className="h-1.5 w-1.5 rounded-full bg-[#1f4d3a]" />
+    <p className="mb-3 inline-flex items-center gap-2 font-mono text-xs uppercase tracking-widest text-brand-forest">
+      <span className="h-1.5 w-1.5 rounded-full bg-brand-forest" />
       {children}
     </p>
   );
@@ -169,33 +168,33 @@ function Kicker({ children }: { children: React.ReactNode }) {
 
 function Heading({ children }: { children: React.ReactNode }) {
   return (
-    <h2 className="font-[family-name:var(--mkt-font-display)] text-3xl font-bold tracking-tight text-neutral-900 md:text-4xl">
+    <h2 className="text-balance font-display text-[clamp(1.75rem,6vw,2.25rem)] font-bold leading-tight tracking-tight text-neutral-900 md:text-4xl">
       {children}
     </h2>
   );
 }
 
 function HeroDossierPreview({ stats }: { stats: Stats }) {
-  const suppliers = stats.suppliers_indexed?.toLocaleString("en-GB") ?? "10,000+";
-  const documents =
-    stats.compliance_documents_mirrored?.toLocaleString("en-GB") ?? "7,000+";
-  const corroborated =
-    stats.suppliers_with_tier1or2_source?.toLocaleString("en-GB") ?? "9,000+";
+  const dossierStats = [
+    { num: stats.suppliers_indexed, fallback: "10,000+", label: "suppliers" },
+    { num: stats.suppliers_with_tier1or2_source, fallback: "9,000+", label: "corroborated" },
+    { num: stats.compliance_documents_mirrored, fallback: "7,000+", label: "documents" },
+  ];
 
   return (
     <MagicCard
       className="mx-auto w-full max-w-[520px] rounded-lg border border-neutral-200 bg-white p-5 shadow-sm sm:p-6"
       gradientFrom={FOREST}
-      gradientTo="#2d6a4f"
-      gradientColor="#ecf3ee"
+      gradientTo="var(--brand-forest-mid)"
+      gradientColor="var(--brand-forest-soft)"
       gradientOpacity={0.1}
     >
       <div className="flex items-start justify-between gap-4 border-b border-neutral-200 pb-4">
         <div>
-          <p className="font-[family-name:var(--mkt-font-mono)] text-[11px] uppercase tracking-[0.16em] text-neutral-500">
+          <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-neutral-500">
             Evidence dossier
           </p>
-          <h2 className="mt-1 font-[family-name:var(--mkt-font-display)] text-2xl font-bold tracking-tight text-neutral-900 sm:text-3xl">
+          <h2 className="mt-1 font-display text-2xl font-bold tracking-tight text-neutral-900 sm:text-3xl">
             Verified supplier profile
           </h2>
           <p className="mt-2 max-w-sm text-sm leading-relaxed text-neutral-600">
@@ -209,14 +208,14 @@ function HeroDossierPreview({ stats }: { stats: Stats }) {
       </div>
 
       <div className="grid grid-cols-3 gap-3 py-4">
-        {[
-          [suppliers, "suppliers"],
-          [corroborated, "corroborated"],
-          [documents, "documents"],
-        ].map(([value, label]) => (
+        {dossierStats.map(({ num, fallback, label }) => (
           <div key={label} className="rounded-lg border border-neutral-200 bg-neutral-50 p-3">
-            <p className="font-[family-name:var(--mkt-font-display)] text-xl font-bold leading-none text-neutral-900">
-              {value}
+            <p className="font-display text-xl font-bold leading-none text-neutral-900">
+              {num != null ? (
+                <NumberTicker value={num} className="text-neutral-900" />
+              ) : (
+                fallback
+              )}
             </p>
             <p className="mt-1 text-[11px] font-medium text-neutral-500">{label}</p>
           </div>
@@ -234,7 +233,7 @@ function HeroDossierPreview({ stats }: { stats: Stats }) {
             key={code}
             className="grid grid-cols-[64px_minmax(0,1fr)_auto] items-center gap-3 rounded-lg border border-neutral-200 bg-white px-3 py-2.5"
           >
-            <span className="font-[family-name:var(--mkt-font-mono)] text-xs font-semibold text-brand-forest">
+            <span className="font-mono text-xs font-semibold text-brand-forest">
               {code}
             </span>
             <span className="min-w-0 truncate text-sm text-neutral-700">{label}</span>
@@ -257,7 +256,7 @@ export default async function HomeV2Page() {
     : "10,000";
 
   return (
-    <div className="overflow-x-hidden bg-bg-l0 font-[family-name:var(--mkt-font-body)] text-neutral-900">
+    <div className="overflow-x-hidden bg-bg-l0 font-body text-neutral-900">
       {/* JSON-LD */}
       <script
         type="application/ld+json"
@@ -282,7 +281,7 @@ export default async function HomeV2Page() {
       {/* ════════ HERO ════════ */}
       <section className="relative overflow-hidden border-b border-neutral-200 bg-white">
         <AnimatedGridPattern
-          className="absolute inset-0 fill-[#1f4d3a]/[0.05] stroke-[#1f4d3a]/[0.07] text-[#1f4d3a] opacity-70 [mask-image:radial-gradient(700px_circle_at_30%_30%,white,transparent)]"
+          className="absolute inset-0 fill-brand-forest/5 stroke-brand-forest/10 text-brand-forest opacity-70 [mask-image:radial-gradient(700px_circle_at_30%_30%,white,transparent)]"
           numSquares={50}
           maxOpacity={0.09}
           duration={3}
@@ -293,17 +292,17 @@ export default async function HomeV2Page() {
           {/* Left — message */}
           <div className="text-center lg:text-left">
             <BlurFade delay={0.15}>
-              <h1 className="font-[family-name:var(--mkt-font-display)] text-[clamp(2.75rem,12vw,4.75rem)] font-extrabold leading-[1.02] tracking-[-0.03em] text-neutral-900">
+              <h1 className="font-display text-[clamp(2.75rem,12vw,4.75rem)] font-extrabold leading-[1.02] tracking-[-0.03em] text-neutral-900">
                 Verified
                 <br />
                 Bangladesh
                 <br />
-                <span className="text-[#1f4d3a]">factories.</span>
+                <span className="text-brand-forest">factories.</span>
               </h1>
             </BlurFade>
 
             <BlurFade delay={0.3}>
-              <p className="mx-auto mt-5 max-w-md text-pretty text-base leading-relaxed text-neutral-600 sm:mt-6 md:text-lg lg:mx-0 lg:text-xl">
+              <p className="mx-auto mt-5 max-w-md !text-center text-base leading-relaxed text-neutral-600 sm:mt-6 md:text-lg lg:mx-0 lg:!text-left lg:text-xl">
                 Find, vet and message garment suppliers — with a receipt on
                 every claim.
               </p>
@@ -347,7 +346,7 @@ export default async function HomeV2Page() {
                         ry="12"
                         pathLength={100}
                         fill="none"
-                        stroke="#2d6a4f"
+                        stroke="var(--brand-forest-mid)"
                         strokeWidth={0.2 + env * 1.1}
                         strokeLinecap="round"
                         strokeDasharray="1 99"
@@ -365,10 +364,7 @@ export default async function HomeV2Page() {
                   autoComplete="off"
                   className="min-w-0 flex-1 bg-transparent text-sm text-neutral-900 placeholder:text-neutral-400 focus:outline-none"
                 />
-                <button
-                  type="submit"
-                  className="shrink-0 rounded-lg bg-[#1f4d3a] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#2d6a4f]"
-                >
+                <button type="submit" className="btn-proto primary shrink-0 px-4">
                   Search
                 </button>
               </form>
@@ -379,7 +375,7 @@ export default async function HomeV2Page() {
               <div className="mt-8 flex flex-wrap items-center justify-center gap-x-4 gap-y-3 md:mt-10 lg:justify-start">
                 <AvatarCircles avatarUrls={COMPANY_AVATARS} overflowLabel="10k+" />
                 <p className="text-[15px] text-neutral-600">
-                  <span className="font-[family-name:var(--mkt-font-display)] font-bold text-neutral-900">
+                  <span className="font-display font-bold text-neutral-900">
                     {suppliersLabel}+
                   </span>{" "}
                   verified companies indexed
@@ -394,9 +390,9 @@ export default async function HomeV2Page() {
           <BlurFade delay={0.3} className="relative hidden lg:block">
             <HeroDossierPreview stats={stats} />
             <div className="pointer-events-none mt-4 flex justify-center">
-              <span className="inline-flex items-center whitespace-nowrap rounded-full border border-neutral-200 bg-white/90 px-3.5 py-1.5 font-[family-name:var(--mkt-font-mono)] text-[10px] text-neutral-600 shadow-sm backdrop-blur-sm sm:text-[11px]">
-                <span className="mr-2 h-1.5 w-1.5 animate-pulse rounded-full bg-[#1f4d3a]" />
-                <span className="font-semibold text-[#1f4d3a]">Dhaka HQ</span>
+              <span className="inline-flex items-center whitespace-nowrap rounded-full border border-neutral-200 bg-white/90 px-3.5 py-1.5 font-mono text-[10px] text-neutral-600 shadow-sm backdrop-blur-sm sm:text-[11px]">
+                <span className="mr-2 h-1.5 w-1.5 animate-pulse rounded-full bg-brand-forest" />
+                <span className="font-semibold text-brand-forest">Dhaka HQ</span>
                 <span className="mx-2 text-neutral-300">·</span>
                 serving UK&nbsp;·&nbsp;US&nbsp;·&nbsp;EU&nbsp;·&nbsp;CA
               </span>
@@ -408,16 +404,17 @@ export default async function HomeV2Page() {
       {/* ════════ AUTHORITY MARQUEE ════════ */}
       <section id="sources" className="border-b border-neutral-200 bg-neutral-50 py-12 md:py-16">
         <div className="mx-auto mb-8 max-w-6xl px-6 text-center md:px-12 lg:px-20">
-          <p className="font-[family-name:var(--mkt-font-mono)] text-[11px] uppercase tracking-[0.2em] text-[#1f4d3a] sm:text-xs">
+          <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-brand-forest sm:text-xs">
             Sources of record
           </p>
-          <h2 className="mt-2 font-[family-name:var(--mkt-font-display)] text-xl font-bold tracking-tight text-neutral-900 sm:text-2xl md:text-3xl">
+          <h2 className="mt-2 text-balance font-display text-xl font-bold tracking-tight text-neutral-900 sm:text-2xl md:text-3xl">
             Built on the registers buyers already trust.
           </h2>
-          <p className="mx-auto mt-2 max-w-xl text-sm text-neutral-500">
-            Government bodies, trade associations and certification authorities —
-            aggregated, never invented.
-          </p>
+          <div className="mt-2 flex w-full justify-center">
+            <p className="max-w-xl text-center text-balance text-sm text-neutral-500">
+              Government bodies, trade associations and certification authorities — aggregated, never invented.
+            </p>
+          </div>
         </div>
 
         {/* edge-faded marquee for depth */}
@@ -426,7 +423,7 @@ export default async function HomeV2Page() {
             {AUTHORITY_LOGOS.map((logo) => (
               <div
                 key={logo.alt}
-                className="flex h-16 w-32 items-center justify-center rounded-xl border border-neutral-200 bg-white px-4 shadow-[0_1px_3px_rgba(16,40,28,0.04)] transition duration-300 hover:-translate-y-0.5 hover:border-[#1f4d3a]/25 hover:shadow-md sm:h-20 sm:w-40 sm:px-6"
+                className="flex h-16 w-32 items-center justify-center rounded-lg border border-neutral-200 bg-white px-4 shadow-sm transition duration-300 hover:border-brand-forest/25 hover:bg-neutral-50 sm:h-20 sm:w-40 sm:px-6"
               >
                 <Image
                   src={logo.src}
@@ -446,7 +443,7 @@ export default async function HomeV2Page() {
       {/* ════════ STATS BAND ════════ */}
       <section className="border-b border-neutral-200 px-6 py-12 md:px-12 md:py-14 lg:px-20">
         <div className="mx-auto max-w-6xl">
-          <div className="grid grid-cols-2 gap-x-4 gap-y-8 lg:grid-cols-4 lg:gap-0 lg:divide-x lg:divide-neutral-200">
+          <div className="grid grid-cols-2 gap-x-6 gap-y-10 sm:gap-x-8 lg:grid-cols-4 lg:gap-0 lg:divide-x lg:divide-neutral-200">
             {[
               { icon: <Buildings size={26} weight="duotone" />, value: stats.suppliers_indexed, label: "Suppliers indexed" },
               { icon: <ShieldCheck size={26} weight="duotone" />, value: stats.suppliers_with_tier1or2_source, label: "Gov / association corroborated" },
@@ -455,22 +452,22 @@ export default async function HomeV2Page() {
             ].map((s, i) => (
               <BlurFade key={s.label} delay={0.1 + i * 0.08}>
                 <div className="flex flex-col lg:px-7">
-                  <span className="mb-3 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-[#ecf3ee] text-[#1f4d3a] shadow-[0_2px_10px_-2px_rgba(31,77,58,0.22)]">
+                  <span className="mb-3 inline-flex h-11 w-11 items-center justify-center rounded-lg bg-brand-forest-soft text-brand-forest shadow-sm">
                     {s.icon}
                   </span>
-                  <span className="flex items-baseline gap-1 font-[family-name:var(--mkt-font-display)] text-3xl font-bold tabular-nums text-neutral-900 sm:text-4xl">
+                <span className="flex items-baseline gap-1 font-display text-2xl font-bold tabular-nums text-neutral-900 sm:text-3xl lg:text-4xl">
                     {typeof s.value === "number" ? (
                       <NumberTicker value={s.value} className="tracking-tight text-neutral-900" />
                     ) : (
                       "—"
                     )}
                     {s.outOf ? (
-                      <span className="text-base font-semibold text-neutral-400 sm:text-lg">
+                      <span className="text-sm font-semibold text-neutral-400 sm:text-base lg:text-lg">
                         / {s.outOf}
                       </span>
                     ) : null}
                   </span>
-                  <span className="mt-1 text-sm text-neutral-500">{s.label}</span>
+                  <span className="mt-1.5 text-xs leading-snug text-neutral-500 sm:text-sm">{s.label}</span>
                 </div>
               </BlurFade>
             ))}
@@ -482,15 +479,15 @@ export default async function HomeV2Page() {
       <section id="how-we-verify" className="border-b border-neutral-200 px-6 py-14 md:px-12 md:py-20 lg:px-20">
         <div className="mx-auto grid max-w-6xl items-center gap-10 lg:grid-cols-2 lg:gap-16">
           {/* copy */}
-          <div>
+          <div className="text-left">
             <BlurFade delay={0.1}>
-              <span className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-[#ecf3ee] text-[#1f4d3a]">
+              <span className="inline-flex h-14 w-14 items-center justify-center rounded-lg bg-brand-forest-soft text-brand-forest">
                 <FileText size={30} weight="duotone" />
               </span>
-              <p className="mt-6 font-[family-name:var(--mkt-font-mono)] text-xs uppercase tracking-[0.2em] text-[#1f4d3a]">
+              <p className="mt-6 font-mono text-xs uppercase tracking-[0.2em] text-brand-forest">
                 Step 01 · Collect &amp; reconcile
               </p>
-              <h2 className="mt-3 font-[family-name:var(--mkt-font-display)] text-3xl font-bold leading-tight tracking-tight text-neutral-900 md:text-[2.6rem]">
+              <h2 className="mt-3 text-balance font-display text-[clamp(1.75rem,6vw,2.6rem)] font-bold leading-tight tracking-tight text-neutral-900">
                 Two sides of evidence, one verified record.
               </h2>
               <p className="mt-5 max-w-lg text-lg leading-relaxed text-neutral-600">
@@ -501,14 +498,14 @@ export default async function HomeV2Page() {
             </BlurFade>
 
             <BlurFade delay={0.25}>
-              <ul className="mt-8 space-y-4">
+              <ul className="mt-8 max-w-sm space-y-4 text-left lg:max-w-none">
                 {[
                   "31 official sources, continuously refreshed",
                   "Matched and de-duplicated to one canonical factory",
                   "Higher-tier evidence always overrides lower-tier",
                 ].map((line) => (
                   <li key={line} className="flex items-start gap-3 text-base text-neutral-700">
-                    <ShieldCheck size={22} weight="fill" className="mt-0.5 shrink-0 text-[#1f4d3a]" />
+                    <ShieldCheck size={22} weight="fill" className="mt-0.5 shrink-0 text-brand-forest" />
                     {line}
                   </li>
                 ))}
@@ -519,7 +516,7 @@ export default async function HomeV2Page() {
           {/* borderless visual — bleeds into the page, no box */}
           <BlurFade delay={0.2}>
             <div className="relative mx-auto w-full max-w-[440px] sm:max-w-[480px]">
-              <div className="absolute -inset-10 -z-10 bg-[radial-gradient(circle_at_50%_50%,rgba(31,77,58,0.08),transparent_68%)]" />
+              <div className="absolute -inset-10 -z-10 rounded-full bg-brand-forest/10 blur-3xl" />
               <DataPipeline />
             </div>
           </BlurFade>
@@ -532,21 +529,21 @@ export default async function HomeV2Page() {
           {/* borderless visual (left on desktop) — bleeds into the page */}
           <BlurFade delay={0.2} className="order-2 lg:order-1">
             <div className="relative mx-auto w-full max-w-[480px] lg:mx-0">
-              <div className="absolute -inset-10 -z-10 bg-[radial-gradient(circle_at_50%_45%,rgba(31,77,58,0.08),transparent_68%)]" />
+              <div className="absolute -inset-10 -z-10 rounded-full bg-brand-forest/10 blur-3xl" />
               <VerificationFeed />
             </div>
           </BlurFade>
 
           {/* copy */}
-          <div className="order-1 lg:order-2">
+          <div className="order-1 text-left lg:order-2">
             <BlurFade delay={0.1}>
-              <span className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-[#ecf3ee] text-[#1f4d3a]">
+              <span className="inline-flex h-14 w-14 items-center justify-center rounded-lg bg-brand-forest-soft text-brand-forest">
                 <ShieldCheck size={30} weight="duotone" />
               </span>
-              <p className="mt-6 font-[family-name:var(--mkt-font-mono)] text-xs uppercase tracking-[0.2em] text-[#1f4d3a]">
+              <p className="mt-6 font-mono text-xs uppercase tracking-[0.2em] text-brand-forest">
                 Step 02 · Receipts, in real time
               </p>
-              <h2 className="mt-3 font-[family-name:var(--mkt-font-display)] text-3xl font-bold leading-tight tracking-tight text-neutral-900 md:text-[2.6rem]">
+              <h2 className="mt-3 text-balance font-display text-[clamp(1.75rem,6vw,2.6rem)] font-bold leading-tight tracking-tight text-neutral-900">
                 Watch the evidence land, claim by claim.
               </h2>
               <p className="mt-5 max-w-lg text-lg leading-relaxed text-neutral-600">
@@ -557,10 +554,7 @@ export default async function HomeV2Page() {
             </BlurFade>
 
             <BlurFade delay={0.25}>
-              <Link
-                href="/discover"
-                className="mt-8 inline-flex items-center gap-2 rounded-lg bg-[#1f4d3a] px-5 py-3 text-sm font-medium !text-white shadow-sm transition-colors hover:bg-[#2d6a4f]"
-              >
+              <Link href="/discover" className="btn-proto primary mt-8 gap-2">
                 Explore the index <ArrowRight size={16} />
               </Link>
             </BlurFade>
@@ -572,15 +566,15 @@ export default async function HomeV2Page() {
       <section className="border-b border-neutral-200 px-6 py-16 md:px-12 md:py-20 lg:px-20">
         <div className="mx-auto grid max-w-6xl items-center gap-10 lg:grid-cols-2 lg:gap-16">
           {/* copy */}
-          <div>
+          <div className="text-left">
             <BlurFade delay={0.1}>
-              <span className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-[#ecf3ee] text-[#1f4d3a]">
+              <span className="inline-flex h-14 w-14 items-center justify-center rounded-lg bg-brand-forest-soft text-brand-forest">
                 <Certificate size={30} weight="duotone" />
               </span>
-              <p className="mt-6 font-[family-name:var(--mkt-font-mono)] text-xs uppercase tracking-[0.2em] text-[#1f4d3a]">
+              <p className="mt-6 font-mono text-xs uppercase tracking-[0.2em] text-brand-forest">
                 Step 03 · Ranked by authority
               </p>
-              <h2 className="mt-3 font-[family-name:var(--mkt-font-display)] text-3xl font-bold leading-tight tracking-tight text-neutral-900 md:text-[2.6rem]">
+              <h2 className="mt-3 text-balance font-display text-[clamp(1.75rem,6vw,2.6rem)] font-bold leading-tight tracking-tight text-neutral-900">
                 Every claim circles back to an authority.
               </h2>
               <p className="mt-5 max-w-lg text-lg leading-relaxed text-neutral-600">
@@ -592,14 +586,14 @@ export default async function HomeV2Page() {
             </BlurFade>
 
             <BlurFade delay={0.25}>
-              <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-3">
+              <div className="mt-8 grid max-w-sm grid-cols-2 gap-3 text-left sm:grid-cols-3 lg:max-w-none">
                 {["Government", "Associations", "Certifications", "Brand disclosures", "Sanctions", "Cross-check"].map(
                   (t, i) => (
                     <span
                       key={t}
                       className="flex items-center gap-2 rounded-lg border border-neutral-200 bg-white px-3 py-2.5 text-sm font-medium text-neutral-700"
                     >
-                      <span className="font-[family-name:var(--mkt-font-mono)] text-[#1f4d3a]">
+                      <span className="font-mono text-brand-forest">
                         {String(i + 1).padStart(2, "0")}
                       </span>
                       {t}
@@ -613,7 +607,7 @@ export default async function HomeV2Page() {
           {/* borderless orbit — bleeds into the page */}
           <BlurFade delay={0.2}>
             <div className="relative mx-auto flex w-full max-w-[460px] scale-[0.82] justify-center sm:scale-95 lg:scale-110">
-              <div className="absolute -inset-10 -z-10 bg-[radial-gradient(circle_at_center,rgba(31,77,58,0.09),transparent_62%)]" />
+              <div className="absolute -inset-10 -z-10 rounded-full bg-brand-forest/10 blur-3xl" />
               <TrustOrbit />
             </div>
           </BlurFade>
@@ -637,17 +631,17 @@ export default async function HomeV2Page() {
                 <MagicCard
                   className="rounded-xl border border-neutral-200 bg-white p-6"
                   gradientFrom={FOREST}
-                  gradientTo="#2d6a4f"
-                  gradientColor="#ecf3ee"
+                  gradientTo="var(--brand-forest-mid)"
+                  gradientColor="var(--brand-forest-soft)"
                   gradientOpacity={0.12}
                 >
                   <div className="flex h-full flex-col">
-                    <h3 className="font-[family-name:var(--mkt-font-display)] text-lg font-semibold text-neutral-800">
+                    <h3 className="font-display text-lg font-semibold text-neutral-800">
                       {card.title}
                     </h3>
                     <p className="mt-2 flex-1 text-sm text-neutral-500">{card.body}</p>
                     <p className="mt-4 border-t border-neutral-200 pt-4 text-sm text-neutral-700">
-                      <span className="text-[#1f4d3a]">✓</span> {card.positive}
+                      <span className="text-brand-forest">✓</span> {card.positive}
                     </p>
                   </div>
                 </MagicCard>
@@ -661,29 +655,27 @@ export default async function HomeV2Page() {
       <section className="px-6 py-20 md:px-12 md:py-24 lg:px-20">
         <div className="mx-auto max-w-6xl text-center">
           <BlurFade delay={0.1}>
-            <h2 className="font-[family-name:var(--mkt-font-display)] text-3xl font-bold tracking-tight text-neutral-900 md:text-5xl">
+            <h2 className="text-balance font-display text-[clamp(1.875rem,7vw,3.5rem)] font-bold tracking-tight text-neutral-900">
               Start vetting with{" "}
               <TextHighlighter
-                highlightColor="#bfe3cf"
+                highlightColor="var(--brand-forest-soft)"
                 transition={{ type: "spring", duration: 1, delay: 0.2, bounce: 0 }}
               >
                 receipts on every claim.
               </TextHighlighter>
             </h2>
-            <p className="mx-auto mt-4 max-w-xl text-neutral-600">
-              Free to search the index. No marketplace fees, ever — just the
-              public record, refreshed weekly.
-            </p>
+            <div className="mt-4 flex w-full justify-center">
+              <p className="max-w-sm text-center text-base leading-relaxed text-neutral-600 sm:text-lg">
+                Free to search the index. No marketplace fees, ever — just the
+                public record, refreshed weekly.
+              </p>
+            </div>
           </BlurFade>
 
           <BlurFade delay={0.25}>
             <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
-              <Link href="/signup">
-                <ShimmerButton className="px-8 py-3" borderRadius="10px" background="#1f4d3a">
-                  <span className="flex items-center gap-2 text-sm font-medium">
-                    Start free <ArrowRight size={16} />
-                  </span>
-                </ShimmerButton>
+              <Link href="/signup" className="btn-proto primary gap-2 px-7 py-3 text-sm">
+                Start free <ArrowRight size={16} />
               </Link>
               <Link
                 href="/pricing"

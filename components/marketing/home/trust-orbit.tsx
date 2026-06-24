@@ -14,13 +14,13 @@ import { OrbitingCircles } from "@/components/ui/orbiting-circles";
 
 function OrbitLogo({ src, alt }: { src: string; alt: string }) {
   return (
-    <div className="flex size-full items-center justify-center rounded-full border border-neutral-200 bg-white p-1 shadow-[0_2px_8px_-2px_rgba(16,40,28,0.12)]">
+    <div className="flex size-full items-center justify-center overflow-hidden rounded-full border border-neutral-200 bg-white p-1 shadow-sm [clip-path:circle(50%_at_50%_50%)]">
       <Image
         src={src}
         alt={alt}
         width={44}
         height={44}
-        className="h-full w-full object-contain"
+        className="h-full w-full rounded-full object-contain"
       />
     </div>
   );
@@ -46,7 +46,7 @@ export function TrustOrbit() {
   return (
     <div className="relative flex h-full min-h-[420px] w-full items-center justify-center sm:min-h-[500px]">
       {/* Centre — SourceBD brand mark (matches the Step 01 engine shield) */}
-      <div className="z-10 flex size-[72px] items-center justify-center rounded-3xl bg-[#1f4d3a] shadow-[0_12px_34px_-12px_rgba(31,77,58,0.5)] sm:size-[84px]">
+      <div className="z-10 flex size-[72px] items-center justify-center rounded-lg bg-brand-forest shadow-sm sm:size-[84px]">
         <ShieldGlyph className="h-1/2 w-1/2" />
       </div>
 

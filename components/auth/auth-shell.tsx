@@ -26,60 +26,39 @@ const DISPLAY = "font-[family-name:var(--mkt-font-display)]";
 
 type ProofRow = {
   label: string;
-  tier: "tier1_gov" | "tier2_industry" | "tier5_regulatory";
+  description: string;
+  tone: "search" | "receipts" | "export";
 };
 
-const DEFAULT_PROOF: ProofRow[] = [
-  { label: "DIFE factory register", tier: "tier1_gov" },
-  { label: "BGMEA membership #3041", tier: "tier2_industry" },
-  { label: "OFAC · UFLPA — clear", tier: "tier5_regulatory" },
+const AUTH_WORKFLOW: ProofRow[] = [
+  {
+    label: "Search the verified register",
+    description: "Filter factories and buying houses by location, certificates, and source coverage.",
+    tone: "search",
+  },
+  {
+    label: "Open the provenance trail",
+    description: "Check the issuer, source URL, and last-seen date behind every visible claim.",
+    tone: "receipts",
+  },
+  {
+    label: "Keep evidence ready",
+    description: "Save suppliers and use the compliance hub when your team needs audit context.",
+    tone: "export",
+  },
 ];
 
-const TIER_DOT: Record<ProofRow["tier"], string> = {
-  tier1_gov: "var(--mkt-tier-gov)",
-  tier2_industry: "var(--mkt-tier-assoc)",
-  tier5_regulatory: "var(--mkt-tier-sanction)",
+const WORKFLOW_DOT: Record<ProofRow["tone"], string> = {
+  search: "var(--mkt-tier-gov)",
+  receipts: "var(--mkt-tier-assoc)",
+  export: "var(--mkt-tier-cert)",
 };
-
-/** Small receipts glyph — count of distinct Tier 1–3 sources (never SBI). */
-function ReceiptsRing({ count }: { count: number }) {
-  const pct = Math.min(count, 5) / 5;
-  const r = 13;
-  const c = 2 * Math.PI * r;
-  return (
-    <span
-      role="img"
-      aria-label={`${count} verified sources`}
-      className="relative inline-grid size-9 place-items-center"
-    >
-      <svg viewBox="0 0 32 32" className="size-9 -rotate-90">
-        <circle cx="16" cy="16" r={r} fill="none" stroke="#dbeae0" strokeWidth="3" />
-        <circle
-          cx="16"
-          cy="16"
-          r={r}
-          fill="none"
-          stroke="#1f4d3a"
-          strokeWidth="3"
-          strokeLinecap="round"
-          strokeDasharray={c}
-          strokeDashoffset={c * (1 - pct)}
-        />
-      </svg>
-      <span className="absolute text-[0.7rem] font-semibold text-[#1f4d3a]">
-        {count}
-      </span>
-    </span>
-  );
-}
 
 export function AuthShell({
   brandHeadline,
   brandHeadlineAccent,
   brandSub,
   brandFooter,
-  proofTitle = "Cotton Club (BD) Ltd",
-  proofSubtitle = "Knit composite · Gazipur",
   topRight,
   children,
 }: {
@@ -87,8 +66,6 @@ export function AuthShell({
   brandHeadlineAccent: string;
   brandSub: string;
   brandFooter: string;
-  proofTitle?: string;
-  proofSubtitle?: string;
   topRight: React.ReactNode;
   children: React.ReactNode;
 }) {
@@ -126,34 +103,45 @@ export function AuthShell({
             {brandSub}
           </p>
 
-          {/* Receipts proof card */}
+          {/* Workspace preview */}
           <div className="relative mt-8 overflow-hidden rounded-2xl border border-neutral-200 bg-white p-5 shadow-[0_18px_40px_-24px_rgba(16,25,20,0.45)]">
             <div className="flex items-center gap-3">
-              <ReceiptsRing count={3} />
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#ecf3ee] text-[#1f4d3a]">
+                <ShieldCheck size={20} weight="duotone" />
+              </span>
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-semibold text-neutral-900">
-                  {proofTitle}
+                <p className="text-sm font-semibold text-neutral-900">
+                  Your SourceBD workspace
                 </p>
-                <p className="truncate text-xs text-neutral-500">{proofSubtitle}</p>
+                <p className="text-xs text-neutral-500">
+                  Built for faster supplier due diligence.
+                </p>
               </div>
-              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-1 text-[0.7rem] font-medium text-emerald-700">
+              <span className="hidden items-center gap-1 rounded-full bg-emerald-50 px-2 py-1 text-[0.7rem] font-medium text-emerald-700 sm:inline-flex">
                 <span className="size-1.5 rounded-full bg-emerald-500" />
-                Corroborated
+                Free beta
               </span>
             </div>
 
-            <div className="mt-4 space-y-2">
-              {DEFAULT_PROOF.map((p) => (
+            <div className="mt-4 space-y-3">
+              {AUTH_WORKFLOW.map((p) => (
                 <div
                   key={p.label}
-                  className="flex items-center gap-2.5 text-[0.8rem] text-neutral-700"
+                  className="flex items-start gap-3 rounded-xl border border-neutral-100 bg-neutral-50/70 px-3 py-2.5"
                 >
                   <span
-                    className="size-2 shrink-0 rounded-full"
-                    style={{ background: TIER_DOT[p.tier] }}
+                    className="mt-1.5 size-2 shrink-0 rounded-full"
+                    style={{ background: WORKFLOW_DOT[p.tone] }}
                   />
-                  <span className="flex-1 truncate">{p.label}</span>
-                  <CheckCircle size={14} weight="fill" className="text-emerald-500" />
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-[0.8rem] font-semibold text-neutral-800">
+                      {p.label}
+                    </span>
+                    <span className="mt-0.5 block text-[0.72rem] leading-relaxed text-neutral-500">
+                      {p.description}
+                    </span>
+                  </span>
+                  <CheckCircle size={14} weight="fill" className="mt-0.5 shrink-0 text-emerald-500" />
                 </div>
               ))}
             </div>

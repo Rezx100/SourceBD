@@ -16,6 +16,14 @@ export function FeedbackMount({ userId }: { userId: string | null }) {
 
 function FeedbackPanel() {
   const pathname = usePathname() ?? "/app";
+  const hasBottomActionBar =
+    pathname === "/app/rfqs/new" ||
+    pathname === "/app/orders/new" ||
+    pathname === "/app/match" ||
+    pathname.startsWith("/supplier/rfqs") ||
+    pathname.startsWith("/supplier/profile") ||
+    pathname.startsWith("/supplier/claim") ||
+    pathname.startsWith("/admin/suppliers");
   const [open, setOpen] = React.useState(false);
   const [message, setMessage] = React.useState("");
   const [pending, setPending] = React.useState(false);
@@ -68,7 +76,12 @@ function FeedbackPanel() {
         onClick={() => setOpen(true)}
         aria-label="Send feedback"
         title="Send feedback (?)"
-        className="fixed bottom-[calc(72px+env(safe-area-inset-bottom,0px))] right-4 z-40 flex size-11 items-center justify-center rounded-full border border-neutral-200 bg-white text-brand-forest shadow-sm transition hover:bg-brand-forest-soft md:bottom-6"
+        className={cn(
+          "fixed right-4 z-40 flex size-11 items-center justify-center rounded-full border border-neutral-200 bg-white text-brand-forest shadow-sm transition hover:bg-brand-forest-soft md:bottom-6",
+          hasBottomActionBar
+            ? "bottom-[calc(56px+env(safe-area-inset-bottom,0px)+84px+1rem)]"
+            : "bottom-[calc(56px+env(safe-area-inset-bottom,0px)+1rem)]",
+        )}
       >
         <ChatCircleDots size={22} weight="bold" aria-hidden />
       </button>
@@ -92,11 +105,11 @@ function FeedbackPanel() {
           aria-modal="true"
           aria-label="Send feedback"
           className={cn(
-            "absolute right-0 top-0 flex h-full w-full max-w-md flex-col border-l border-neutral-200 bg-white shadow-xl transition-transform duration-200",
+            "absolute right-0 top-0 flex h-dvh w-full max-w-md flex-col border-l border-neutral-200 bg-white shadow-xl transition-transform duration-200",
             open ? "translate-x-0" : "translate-x-full",
           )}
         >
-          <div className="flex items-center justify-between border-b border-neutral-200 px-5 py-4">
+          <div className="flex items-center justify-between border-b border-neutral-200 px-5 py-4 safe-pt">
             <div>
               <h2 className="font-display text-lg font-semibold text-ink-primary">
                 Send feedback

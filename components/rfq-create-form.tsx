@@ -165,8 +165,7 @@ export function RfqCreateForm({ supplierId, supplierName }: RfqCreateFormProps) 
 
           {error ? <p className="text-sm text-sem-red">{error}</p> : null}
 
-          <div className="h-16 md:hidden" aria-hidden />
-          <StickyActionBar className="bottom-[calc(56px+env(safe-area-inset-bottom,0px))]">
+          <StickyActionBar>
             <Button
               type="button"
               variant="ghost"

@@ -10,12 +10,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Bell, MagnifyingGlass, UserCircle } from "@phosphor-icons/react/dist/ssr";
+import { Bell, MagnifyingGlass } from "@phosphor-icons/react/dist/ssr";
 
 import type { Role } from "@/lib/auth";
 import { ShieldGlyph } from "@/components/marketing/logo";
 import { TopbarHamburger } from "@/components/shell/topbar-hamburger";
 import { variantFromPath } from "@/components/shell/sidebar";
+import { UserAvatar } from "@/components/shell/user-avatar";
 
 type QuickLink = { href: string; label: string };
 
@@ -48,9 +49,15 @@ const QUICK_LINKS: Record<"buyer" | "supplier" | "admin", QuickLink[]> = {
 export function Topbar({
   role = null,
   moatTotal = null,
+  avatarUrl = null,
+  displayName = null,
+  email = null,
 }: {
   role?: Role | null;
   moatTotal?: number | null;
+  avatarUrl?: string | null;
+  displayName?: string | null;
+  email?: string | null;
 }) {
   const pathname = usePathname() ?? "/app";
   const variant = variantFromPath(pathname, role);
@@ -59,15 +66,19 @@ export function Topbar({
   const searchAction = variant === "admin" ? "/admin/suppliers" : "/app/discover";
 
   return (
-    <header className="sticky top-0 z-30 flex h-14 items-center gap-2 border-b border-hairline bg-surface-l1/90 px-3 backdrop-blur-md md:gap-3 md:px-4">
-      <TopbarHamburger role={role} />
+    <header className="sticky top-0 z-30 flex min-h-[calc(3.5rem+env(safe-area-inset-top,0px))] items-center gap-2 border-b border-neutral-200 bg-white px-3 safe-pt shadow-sm md:gap-3 md:px-4">
+      <TopbarHamburger
+        role={role}
+        avatarUrl={avatarUrl}
+        displayName={displayName}
+        email={email}
+      />
       <Link
         href="/"
         className="flex shrink-0 items-center gap-2 font-display text-[15px] font-bold tracking-tight text-ink-primary"
       >
         <span
-          className="flex size-7 items-center justify-center rounded-lg"
-          style={{ backgroundColor: "var(--brand-forest)" }}
+          className="flex size-7 items-center justify-center rounded-lg bg-brand-forest"
         >
           <ShieldGlyph className="h-4 w-4" />
         </span>
@@ -146,9 +157,14 @@ export function Topbar({
         <Link
           href={variant === "admin" ? "/admin/users" : "/app/settings"}
           aria-label="Account menu"
-          className="flex size-9 items-center justify-center rounded-pill text-ink-secondary transition-colors duration-hover ease-smooth hover:bg-brand-forest-tint hover:text-ink-primary"
+          className="flex size-9 items-center justify-center rounded-full transition-colors duration-hover ease-smooth hover:bg-brand-forest-tint"
         >
-          <UserCircle size={20} aria-hidden />
+          <UserAvatar
+            avatarUrl={avatarUrl}
+            displayName={displayName}
+            email={email}
+            size="sm"
+          />
         </Link>
       </div>
     </header>

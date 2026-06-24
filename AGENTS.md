@@ -4,17 +4,23 @@ You are a senior engineer working on **SourceBD**, a B2B intelligence SaaS for t
 
 ## Hard rules (never violate)
 
-1. **Data moat first, SaaS second.** Until Phase 0 (data enrichment) is complete and progress-tracker.md says so, do NOT build app features. Database + ETL pipeline only.
+1. **Data moat first, SaaS second.** Until Phase 0 (data enrichment) is complete and `context/current-state.md` says so, do NOT build app features. Database + ETL pipeline only.
 2. **One spec at a time.** Never combine specs in a single session.
-3. **Read every file in `/context/` before any work.** In this order:
-   1. project-overview.md
-   2. architecture.md
-   3. code-standards.md
-   4. ai-workflow-rules.md
-   5. frontend-design-spec.md   ← canonical FE design source (replaces the deprecated ui-context.md)
-   6. progress-tracker.md
-   7. phases.md
-   Then read the active spec under `context/feature-specs/`.
+3. **Use scoped context loading before work.** Do not read every file in
+   `/context/` for routine tasks. Start with the lean boot set:
+   1. `context/agent-brief.md`
+   2. `context/current-state.md`
+   3. `context/feature-specs/active.md`
+   Then read only the task-relevant source of truth:
+   - Frontend/design work: `context/frontend-design-spec.md` plus the active
+     FE spec.
+   - ETL/data work: `context/architecture.md`, `context/code-standards.md`,
+     and the active ETL spec.
+   - Security/auth/RLS work: `context/architecture.md`,
+     `context/ai-workflow-rules.md`, and the relevant feature spec.
+   - Logo/source-mark work: `context/logos.lock.md`.
+   Read `context/archive/*` or inactive `context/feature-specs/*` only when a
+   specific historical decision, regression, or named spec requires it.
 4. **No new tools.** Use only what's listed in architecture.md. If you think a new tool is needed, STOP and ask.
 5. **Source trust hierarchy is law.** Tier 1 (gov/regulatory) > Tier 2 (BGMEA/BKMEA/BTMA/BGAPMEA) > Tier 3 (cert bodies) > Tier 4 (brand disclosures) > Tier 5 (US/UK/EU regulatory) > Tier 6 (cross-check only). Never let a Tier 6 source overwrite higher-tier data.
 6. **No Tier 6 record enters the database alone.** It must be corroborated by ≥1 Tier 1–3 source.
@@ -27,10 +33,13 @@ You are a senior engineer working on **SourceBD**, a B2B intelligence SaaS for t
 
 ## Workflow per spec
 
-1. Update progress-tracker.md → mark spec "in progress".
+1. Update `context/current-state.md` and `context/feature-specs/active.md` →
+   mark the active spec/task "in progress".
 2. Implement EXACTLY what the spec says. No drive-by refactors.
 3. Run build/lint/typecheck/tests. Fix everything that breaks.
-4. Update progress-tracker.md → "complete" + add architectural decisions.
+4. Update `context/current-state.md` → "complete" and add only concise
+   architectural decisions. Move verbose shipped-spec closeouts to
+   `context/archive/`, not the daily boot files.
 5. Commit on `development` branch. Open PR.
 
 ## Debugging mode (when reading current-issues.md)

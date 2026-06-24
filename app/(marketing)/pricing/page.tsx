@@ -4,14 +4,13 @@
 // authenticated plan page uses Card + CardHeader + CardTitle + CardContent
 // + Button (all portal-native components). This marketing page mirrors that
 // exact component pattern so /pricing and /app/settings/plan look like the
-// same product. Magic UI BlurFade provides section entrances; ShimmerButton
+// same product. Magic UI BlurFade provides section entrances;
 // is used only for the standalone enterprise CTA (not inside plan cards).
 
 import Link from "next/link";
 import { ArrowRight, Check } from "@phosphor-icons/react/dist/ssr";
 
 import { BlurFade } from "@/components/ui/blur-fade";
-import { ShimmerButton } from "@/components/ui/shimmer-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -71,27 +70,31 @@ function CheckMark({ on }: { on: boolean }) {
 
 export default function PricingPage() {
   return (
-    <main className="mx-auto max-w-5xl px-6 py-16">
+    <main className="mx-auto max-w-5xl px-4 py-12 sm:px-6 sm:py-16">
 
       {/* ── Hero ── */}
-      <section className="mb-12 text-center">
-        <BlurFade delay={0.1}>
+      <section className="mb-12 flex flex-col items-center text-center">
+        <BlurFade delay={0.1} className="mx-auto w-full max-w-4xl text-center">
           <Kicker className="justify-center">Pricing</Kicker>
-          <h1 className="mt-1 font-display text-3xl font-bold tracking-tight text-ink-primary md:text-4xl">
+          <h1 className="mx-auto mt-1 text-balance font-display text-[clamp(1.75rem,7vw,2.5rem)] font-bold tracking-tight text-ink-primary">
             Free during public beta.{" "}
             <span className="text-brand-forest">No card required.</span>
           </h1>
         </BlurFade>
-        <BlurFade delay={0.2}>
-          <p className="mx-auto mt-3 max-w-2xl text-sm leading-relaxed text-ink-secondary">
-            SourceBD is open at zero price while we validate buyer workflows,
-            data quality, and the right commercial model. No card, no checkout,
-            no hidden paid gate.
-          </p>
-          <p className="mx-auto mt-2 max-w-2xl text-[11px] text-ink-tertiary">
-            Paid tiers, Stripe checkout, billing portal, and plan enforcement
-            are deferred until after the public beta.
-          </p>
+        <BlurFade delay={0.2} className="w-full text-center">
+          <div className="flex w-full justify-center">
+            <p className="mt-4 max-w-md text-center text-sm leading-relaxed text-ink-secondary">
+              SourceBD is open at zero price while we validate buyer workflows,
+              data quality, and the right commercial model. No card, no checkout,
+              no hidden paid gate.
+            </p>
+          </div>
+          <div className="mt-2 flex w-full justify-center">
+            <p className="max-w-xs text-center text-[11px] leading-relaxed text-ink-tertiary">
+              Paid tiers, Stripe checkout, billing portal, and plan enforcement
+              are deferred until after the public beta.
+            </p>
+          </div>
         </BlurFade>
       </section>
 
@@ -172,14 +175,14 @@ export default function PricingPage() {
               <table className="min-w-full text-sm">
                 <thead>
                   <tr className="border-b border-neutral-100 bg-neutral-50">
-                    <th scope="col" className="px-5 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-ink-tertiary">
+                    <th scope="col" className="px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-ink-tertiary sm:px-5">
                       Feature
                     </th>
                     {PLANS.map((plan) => (
                       <th
                         key={plan.key}
                         scope="col"
-                        className="px-5 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-ink-tertiary"
+                        className="px-3 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-ink-tertiary sm:px-5"
                       >
                         {plan.label}
                       </th>
@@ -191,25 +194,25 @@ export default function PricingPage() {
                     <tr key={row.feature} className="hover:bg-neutral-50/60">
                       <th
                         scope="row"
-                        className="px-5 py-3 text-left text-[13px] font-normal text-ink-secondary"
+                        className="px-3 py-3 text-left text-[13px] font-normal text-ink-secondary sm:px-5"
                       >
                         {row.feature}
                       </th>
-                      <td className="px-5 py-3 text-center text-[13px]">
+                      <td className="px-3 py-3 text-center text-[13px] sm:px-5">
                         {typeof row.starter === "boolean" ? (
                           <CheckMark on={row.starter} />
                         ) : (
                           <span className="text-ink-primary">{row.starter}</span>
                         )}
                       </td>
-                      <td className="px-5 py-3 text-center text-[13px]">
+                      <td className="px-3 py-3 text-center text-[13px] sm:px-5">
                         {typeof row.growth === "boolean" ? (
                           <CheckMark on={row.growth} />
                         ) : (
                           <span className="text-ink-primary">{row.growth}</span>
                         )}
                       </td>
-                      <td className="px-5 py-3 text-center text-[13px]">
+                      <td className="px-3 py-3 text-center text-[13px] sm:px-5">
                         {typeof row.enterprise === "boolean" ? (
                           <CheckMark on={row.enterprise} />
                         ) : (
@@ -254,29 +257,26 @@ export default function PricingPage() {
         </section>
       </BlurFade>
 
-      {/* ── Enterprise CTA — standalone section, ShimmerButton is correct here ── */}
+      {/* ── Enterprise CTA ── */}
       <BlurFade delay={0.15}>
-        <section className="mt-16 overflow-hidden rounded-xl border border-brand-forest-soft bg-brand-forest-soft p-10 text-center">
-          <h2 className="font-display text-xl font-bold tracking-tight text-ink-primary">
+        <section className="mt-16 overflow-hidden rounded-xl border border-brand-forest-soft bg-brand-forest-soft p-6 text-center sm:p-10">
+          <h2 className="text-balance font-display text-xl font-bold tracking-tight text-ink-primary sm:text-2xl">
             Need something{" "}
             <span className="text-brand-forest">bespoke</span>?
           </h2>
-          <p className="mx-auto mt-2 max-w-xl text-sm text-ink-secondary">
-            Enterprise programmes will eventually need seats, API access, bulk
-            export, and dedicated compliance review. During beta, tell us what
-            your team needs and we will use it to shape the roadmap.
-          </p>
+          <div className="mt-3 flex w-full justify-center">
+            <p className="max-w-md text-center text-sm leading-relaxed text-ink-secondary">
+              Enterprise programmes will eventually need seats, API access, bulk
+              export, and dedicated compliance review. During beta, tell us what
+              your team needs and we will use it to shape the roadmap.
+            </p>
+          </div>
           <div className="mt-6 inline-block">
-            <Link href="mailto:sales@sourcebd.net?subject=SourceBD%20Enterprise%20enquiry">
-              <ShimmerButton
-                className="px-7 py-2.5 text-sm font-semibold"
-                borderRadius="10px"
-                background={FOREST}
-              >
-                <span className="flex items-center gap-2">
-                  Contact sales <ArrowRight size={15} />
-                </span>
-              </ShimmerButton>
+            <Link
+              href="mailto:sales@sourcebd.net?subject=SourceBD%20Enterprise%20enquiry"
+              className="btn-proto primary gap-2 px-7 py-2.5 text-sm"
+            >
+              Contact sales <ArrowRight size={15} />
             </Link>
           </div>
         </section>

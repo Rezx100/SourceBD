@@ -262,8 +262,7 @@ export function OrderCreateForm({ seed }: { seed: OrderSeed }) {
 
           {error ? <p className="text-sm text-sem-red">{error}</p> : null}
 
-          <div className="h-16 md:hidden" aria-hidden />
-          <StickyActionBar className="bottom-[calc(56px+env(safe-area-inset-bottom,0px))]">
+          <StickyActionBar>
             <Button
               type="button"
               variant="ghost"

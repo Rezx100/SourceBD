@@ -4,10 +4,15 @@ These rules govern how the coding agent behaves on every task. They override con
 
 ## Before any code
 
-1. Read every file in `/context/` in order (project-overview → architecture → code-standards → ai-workflow-rules → ui-context → progress-tracker → phases).
-2. Read the active spec in `context/feature-specs/NN-name.md`.
-3. If a `context/current-issues.md` exists, read it too.
-4. Update progress-tracker.md → mark this spec **"in progress"** before writing any code.
+1. Read the lean boot set: `AGENTS.md`, `context/agent-brief.md`,
+   `context/current-state.md`, and `context/feature-specs/active.md`.
+2. Read only the task-relevant source of truth named by the boot files. Do not
+   load every file in `/context/` for routine work.
+3. Read the active spec only when the task is spec work. For micro edits, read
+   the relevant code and the narrow design/security/data rule file.
+4. If `context/current-issues.md` exists and the task is debugging, read it too.
+5. Update `context/current-state.md` and `context/feature-specs/active.md` →
+   mark this spec/task **"in progress"** before writing code.
 
 ## During the work
 
@@ -23,7 +28,9 @@ These rules govern how the coding agent behaves on every task. They override con
 
 1. Run, in this order: `pnpm typecheck`, `pnpm lint`, `pnpm test`, then build (`pnpm build`). For ETL: `ruff check`, `mypy`, `pytest`.
 2. Fix every error. Warnings: fix or document in current-issues.md.
-3. Update progress-tracker.md → mark spec **"complete"**, add architectural decisions made, list follow-ups.
+3. Update `context/current-state.md` → mark spec/task **"complete"**, add only
+   concise architectural decisions, and list follow-ups. Move verbose closeout
+   history to `context/archive/` instead of the daily boot files.
 4. Commit on the `development` branch with a Conventional Commit message. Open a PR to `main`.
 5. **Do NOT commit** `.env*` (except `.env.example`), `context/current-issues.md`, `etl/raw/`, `node_modules/`, `.next/`, `__pycache__/`, `.venv/`.
 

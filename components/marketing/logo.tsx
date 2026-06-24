@@ -2,7 +2,7 @@
 //
 // The forest-green shield (#1f4d3a) is the ONLY brand-accent surface in
 // the marketing chrome: a quiet signature, never a section background.
-// Wordmark text uses Archivo (--mkt-font-display); the "BD" is heavier.
+// Wordmark text uses the shared display font; the "BD" is heavier.
 
 import Link from "next/link";
 
@@ -81,7 +81,7 @@ export function Wordmark({
     <Link
       href={href}
       onClick={onClick}
-      className={`flex items-center gap-2.5 font-bold tracking-tight text-neutral-900 ${textClassName} ${className ?? ""}`}
+      className={`flex items-center gap-2.5 font-display font-bold tracking-tight text-neutral-900 ${textClassName} ${className ?? ""}`}
     >
       <span
         className={`flex items-center justify-center rounded-lg ${boxClassName}`}
@@ -89,7 +89,7 @@ export function Wordmark({
       >
         <ShieldGlyph className={glyphClassName} />
       </span>
-      <span className="font-[family-name:var(--mkt-font-display)]">
+      <span>
         Source<span className="font-extrabold">BD</span>
       </span>
     </Link>

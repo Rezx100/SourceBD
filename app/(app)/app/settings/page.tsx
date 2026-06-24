@@ -106,7 +106,7 @@ export default async function SettingsHubPage() {
       </FormGrid>
 
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-col items-start gap-1">
           <CardTitle>Session</CardTitle>
           <CardMeta>End your session on this device</CardMeta>
         </CardHeader>
@@ -141,16 +141,18 @@ function NavCard({
   return (
     <Link href={href} className="group">
       <Card className="h-full transition group-hover:border-brand-forest/40 group-hover:shadow-l1">
-        <CardHeader>
+        <CardHeader className="flex flex-col items-stretch gap-3">
           <div className="flex items-center justify-between">
-            <span className="flex size-10 items-center justify-center rounded-xl bg-brand-forest-soft text-brand-forest">{icon}</span>
+            <span className="flex size-10 items-center justify-center rounded-lg bg-brand-forest-soft text-brand-forest">{icon}</span>
             <ArrowRight
               size={16}
               className="text-ink-tertiary transition group-hover:translate-x-0.5 group-hover:text-brand-forest"
             />
           </div>
-          <CardTitle>{title}</CardTitle>
-          <CardMeta>{meta}</CardMeta>
+          <div className="min-w-0 space-y-1">
+            <CardTitle>{title}</CardTitle>
+            <CardMeta className="block whitespace-normal leading-relaxed">{meta}</CardMeta>
+          </div>
         </CardHeader>
         <CardContent className="pt-0">
           <p className="text-sm text-ink-secondary">{body}</p>

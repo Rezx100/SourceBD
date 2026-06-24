@@ -17,6 +17,7 @@ import {
 } from "@phosphor-icons/react/dist/ssr";
 
 import { Button } from "@/components/ui/button";
+import { StickyActionBar } from "@/components/ui/sticky-action-bar";
 import {
   DiscoverResultCard,
   type DiscoverRow,
@@ -114,6 +115,10 @@ export function SmartMatchWizard() {
 
   function submit() {
     setError(null);
+    if (summarise(form).length === 0) {
+      setError("Add a product or at least one requirement before finding matches.");
+      return;
+    }
     const payload = buildPayload(form);
     startTransition(async () => {
       try {
@@ -233,22 +238,22 @@ function Step1Product({
         <span className="proto-card-meta">What are you sourcing?</span>
       </div>
       <Field
-        label="Product or category"
-        hint="Free-text. Matched against the supplier's declared principal products (e.g. knitwear, polo shirts, denim, accessories)."
+        label="What are you making?"
+        hint="Use a simple product name, such as shirts, denim, knitwear, jackets, or uniforms."
       >
         <input
           type="text"
           value={form.product}
           onChange={(e) => update("product", e.target.value)}
           maxLength={80}
-          placeholder="e.g. knitwear"
+          placeholder="e.g. Shirts"
           className={inputClass}
         />
       </Field>
 
       <Field
-        label="Supplier type"
-        hint="Leave both unchecked to include any type."
+        label="Who do you want to work with?"
+        hint="Choose one if it matters. Leave both off to see all verified suppliers."
       >
         <CheckboxGroup
           options={ENTITY_TYPES}
@@ -257,12 +262,12 @@ function Step1Product({
         />
       </Field>
 
-      <div className="flex justify-end pt-2">
+      <StickyActionBar>
         <Button variant="primary" onClick={onNext}>
           Next: requirements
           <ArrowRight size={14} weight="bold" />
         </Button>
-      </div>
+      </StickyActionBar>
     </section>
   );
 }
@@ -283,12 +288,12 @@ function Step2Requirements({
   return (
     <section className="proto-card space-y-5">
       <div className="proto-card-head">
-        <h2 className="proto-card-title">Step 2 — Requirements</h2>
-        <span className="proto-card-meta">Verified signals that matter for your order</span>
+        <h2 className="proto-card-title">Step 2 — Must-haves</h2>
+        <span className="proto-card-meta">Choose the proof your buyer needs</span>
       </div>
       <Field
-        label="Certifications"
-        hint="Only valid (non-expired) certificates count."
+        label="Required certifications"
+        hint="Pick the certificates your order or retailer requires."
       >
         <CheckboxGroup
           options={CERT_OPTIONS}
@@ -298,8 +303,8 @@ function Step2Requirements({
       </Field>
 
       <Field
-        label="Registries / membership"
-        hint="Direct or RSC-inherited registry IDs."
+        label="Preferred memberships"
+        hint="Use these if you need association, exporter, or RSC evidence."
       >
         <CheckboxGroup
           options={REGISTRY_OPTIONS}
@@ -309,36 +314,7 @@ function Step2Requirements({
       </Field>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <Field
-          label="Minimum RSC remediation %"
-          hint="0\u2013100. Leave blank to skip."
-        >
-          <input
-            type="number"
-            min={0}
-            max={100}
-            value={form.rscMin}
-            onChange={(e) => update("rscMin", e.target.value)}
-            placeholder="e.g. 80"
-            className={inputClass}
-          />
-        </Field>
-
-        <Field
-          label="Minimum sewing machines"
-          hint="Soft capacity floor."
-        >
-          <input
-            type="number"
-            min={0}
-            value={form.minMachines}
-            onChange={(e) => update("minMachines", e.target.value)}
-            placeholder="e.g. 200"
-            className={inputClass}
-          />
-        </Field>
-
-        <Field label="City" hint="Exact match (case-insensitive).">
+        <Field label="Preferred city" hint="Optional. Use this only if location matters.">
           <input
             type="text"
             value={form.city}
@@ -349,7 +325,7 @@ function Step2Requirements({
           />
         </Field>
 
-        <Field label="District" hint="Exact match (case-insensitive).">
+        <Field label="Preferred district" hint="Optional. Example: Dhaka, Gazipur, Chattogram.">
           <input
             type="text"
             value={form.district}
@@ -361,7 +337,43 @@ function Step2Requirements({
         </Field>
       </div>
 
-      <div className="flex items-center justify-between pt-2">
+      <details className="rounded-lg border border-neutral-200 bg-neutral-50 p-4">
+        <summary className="cursor-pointer text-sm font-semibold text-ink-primary">
+          Advanced requirements
+        </summary>
+        <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <Field
+            label="Minimum RSC progress"
+            hint="Optional. Use when you need a remediation progress floor."
+          >
+            <input
+              type="number"
+              min={0}
+              max={100}
+              value={form.rscMin}
+              onChange={(e) => update("rscMin", e.target.value)}
+              placeholder="e.g. 80"
+              className={inputClass}
+            />
+          </Field>
+
+          <Field
+            label="Minimum sewing machines"
+            hint="Optional capacity filter for larger orders."
+          >
+            <input
+              type="number"
+              min={0}
+              value={form.minMachines}
+              onChange={(e) => update("minMachines", e.target.value)}
+              placeholder="e.g. 200"
+              className={inputClass}
+            />
+          </Field>
+        </div>
+      </details>
+
+      <StickyActionBar>
         <Button variant="ghost" onClick={onBack}>
           <ArrowLeft size={14} weight="bold" />
           Back
@@ -370,7 +382,7 @@ function Step2Requirements({
           Next: review
           <ArrowRight size={14} weight="bold" />
         </Button>
-      </div>
+      </StickyActionBar>
     </section>
   );
 }
@@ -409,7 +421,7 @@ function Step3Review({
           ))}
         </ul>
       )}
-      <div className="flex items-center justify-between pt-2">
+      <StickyActionBar>
         <Button variant="ghost" onClick={onBack} disabled={pending}>
           <ArrowLeft size={14} weight="bold" />
           Back
@@ -418,7 +430,7 @@ function Step3Review({
           <Sparkle size={14} weight="fill" />
           {pending ? "Matching\u2026" : "Find matches"}
         </Button>
-      </div>
+      </StickyActionBar>
     </section>
   );
 }

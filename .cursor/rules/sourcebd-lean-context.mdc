@@ -1,0 +1,26 @@
+---
+description: Use SourceBD's lean context boot instead of loading the full archive
+alwaysApply: true
+---
+
+# SourceBD Lean Context Boot
+
+For every SourceBD session, avoid loading the whole `/context` tree by default.
+
+Start with:
+
+1. `AGENTS.md`
+2. `context/agent-brief.md`
+3. `context/current-state.md`
+4. `context/feature-specs/active.md`
+
+Then read only the source documents needed for the task:
+
+- Frontend/design: relevant sections of `context/frontend-design-spec.md` and the active FE spec.
+- ETL/data: `context/architecture.md`, `context/code-standards.md`, and the active ETL spec.
+- Security/auth/RLS: `context/architecture.md`, `context/ai-workflow-rules.md`, and the relevant spec.
+- Logo/source-mark work: `context/logos.lock.md`.
+
+Do not read `context/archive/*` or inactive `context/feature-specs/*` unless a named historical decision, regression, migration, smoke test, or production incident requires it.
+
+For small edits, prefer reading the affected code and narrow context sections over full documents.

@@ -15,15 +15,14 @@ interface AvatarCirclesProps {
   avatarUrls: Avatar[];
 }
 
-// Deterministic forest-family tints — all high-contrast so the initials
-// always read (dark forest with white text + a couple of mid-tones).
+// Deterministic forest-family tints — all high-contrast so the initials read.
 const TINTS = [
-  { bg: "#1f4d3a", fg: "#ffffff" },
-  { bg: "#2d6a4f", fg: "#ffffff" },
-  { bg: "#19543a", fg: "#ffffff" },
-  { bg: "#3a7d5c", fg: "#ffffff" },
-  { bg: "#123e2b", fg: "#ffffff" },
-  { bg: "#4e9268", fg: "#ffffff" },
+  "bg-brand-forest text-white",
+  "bg-brand-forest-mid text-white",
+  "bg-emerald-800 text-white",
+  "bg-emerald-700 text-white",
+  "bg-neutral-900 text-white",
+  "bg-emerald-600 text-white",
 ];
 
 export function AvatarCircles({
@@ -37,13 +36,15 @@ export function AvatarCircles({
     <div className={cn("z-10 flex -space-x-4 rtl:space-x-reverse", className)}>
       {avatarUrls.map((url, index) => {
         if (url.initials) {
-          const tint = TINTS[index % TINTS.length] ?? { bg: "#1f4d3a", fg: "#ffffff" };
+          const tint = TINTS[index % TINTS.length] ?? TINTS[0];
           return (
             <span
               key={index}
               title={url.label}
-              style={{ backgroundColor: tint.bg, color: tint.fg }}
-              className="flex h-14 w-14 items-center justify-center rounded-full border-[3px] border-white font-[family-name:var(--mkt-font-display)] text-sm font-bold shadow-[0_4px_12px_-4px_rgba(16,40,28,0.2)] transition-transform hover:z-20 hover:-translate-y-1"
+              className={cn(
+                "flex h-14 w-14 items-center justify-center rounded-full border-[3px] border-white font-display text-sm font-bold shadow-sm",
+                tint,
+              )}
             >
               {url.initials}
             </span>
@@ -53,7 +54,7 @@ export function AvatarCircles({
           <span
             key={index}
             title={url.label}
-            className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-full border-[3px] border-white bg-[#ecf3ee] object-contain p-2.5 shadow-[0_4px_12px_-4px_rgba(16,40,28,0.18)] transition-transform hover:z-20 hover:-translate-y-1"
+            className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-full border-[3px] border-white bg-brand-forest-soft object-contain p-2.5 shadow-sm"
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
@@ -67,7 +68,7 @@ export function AvatarCircles({
         );
       })}
       {badge ? (
-        <span className="flex h-14 w-14 items-center justify-center rounded-full border-[3px] border-white bg-[#1f4d3a] text-center text-xs font-semibold text-white shadow-[0_4px_12px_-4px_rgba(31,77,58,0.3)]">
+        <span className="flex h-14 w-14 items-center justify-center rounded-full border-[3px] border-white bg-brand-forest text-center text-xs font-semibold text-white shadow-sm">
           {badge}
         </span>
       ) : null}

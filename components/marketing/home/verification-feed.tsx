@@ -33,48 +33,48 @@ const EVENTS: Event[] = [
     action: "Remediation progress verified — 98%",
     tier: "Government",
     icon: <ShieldCheck size={18} weight="fill" />,
-    tint: "bg-[#ecf3ee] text-[#1f4d3a]",
+    tint: "bg-brand-forest-soft text-brand-forest",
   },
   {
     issuer: "OEKO-TEX",
     action: "STANDARD 100 certificate confirmed",
     tier: "Certification",
     icon: <Certificate size={18} weight="fill" />,
-    tint: "bg-[#dcf0f1] text-[#0e7c86]",
+    tint: "bg-cyan-50 text-cyan-700",
   },
   {
     issuer: "BGMEA",
     action: "Membership register match",
     tier: "Association",
     icon: <Buildings size={18} weight="fill" />,
-    tint: "bg-[#deede3] text-[#19543a]",
+    tint: "bg-emerald-50 text-emerald-800",
   },
   {
     issuer: "UFLPA / OFAC",
     action: "Sanctions screen passed — no hit",
     tier: "Sanctions",
     icon: <Warning size={18} weight="fill" />,
-    tint: "bg-[#f6e1df] text-[#a22b25]",
+    tint: "bg-red-50 text-red-700",
   },
   {
     issuer: "DIFE",
     action: "Fire & building inspection mirrored",
     tier: "Government",
     icon: <FileText size={18} weight="fill" />,
-    tint: "bg-[#ecf3ee] text-[#1f4d3a]",
+    tint: "bg-brand-forest-soft text-brand-forest",
   },
   {
     issuer: "WRAP",
     action: "Gold certification verified",
     tier: "Certification",
     icon: <Certificate size={18} weight="fill" />,
-    tint: "bg-[#dcf0f1] text-[#0e7c86]",
+    tint: "bg-cyan-50 text-cyan-700",
   },
 ];
 
 function Row({ issuer, action, tier, icon, tint }: Event) {
   return (
-    <figure className="relative w-full overflow-hidden rounded-2xl border border-neutral-200/80 bg-white p-4 shadow-[0_8px_24px_-16px_rgba(16,40,28,0.25)]">
+    <figure className="relative w-full overflow-hidden rounded-lg border border-neutral-200 bg-white p-4 shadow-sm">
       <div className="flex items-center gap-3.5">
         <span
           className={`flex size-11 shrink-0 items-center justify-center rounded-xl ${tint}`}
@@ -83,10 +83,10 @@ function Row({ issuer, action, tier, icon, tint }: Event) {
         </span>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <span className="truncate font-[family-name:var(--mkt-font-display)] text-[15px] font-semibold text-neutral-900">
+            <span className="truncate font-display text-[15px] font-semibold text-neutral-900">
               {issuer}
             </span>
-            <span className="shrink-0 rounded-full bg-neutral-100 px-2 py-0.5 font-[family-name:var(--mkt-font-mono)] text-[10px] uppercase tracking-wide text-neutral-500">
+            <span className="shrink-0 rounded-full bg-neutral-100 px-2 py-0.5 font-mono text-[10px] uppercase tracking-wide text-neutral-500">
               {tier}
             </span>
           </div>

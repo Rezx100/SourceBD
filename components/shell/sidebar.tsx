@@ -31,6 +31,7 @@ import {
 } from "@phosphor-icons/react/dist/ssr";
 import type { Icon } from "@phosphor-icons/react";
 
+import { UserAvatar } from "@/components/shell/user-avatar";
 import type { Role } from "@/lib/auth";
 
 type BadgeKind = "neutral" | "alert" | "dot";
@@ -226,9 +227,6 @@ export function Sidebar({
   const sections = SECTIONS[variant];
   const isAdmin = role === "admin";
 
-  const initials = ((email ?? displayName ?? "??").split("@")[0] ?? "??")
-    .slice(0, 2)
-    .toUpperCase();
   const userRole = role
     ? `${role[0]!.toUpperCase()}${role.slice(1)}`
     : email
@@ -248,21 +246,12 @@ export function Sidebar({
       className="group flex items-center gap-2.5 rounded-md px-2 py-2 transition-colors duration-150 ease-smooth hover:bg-[rgba(15,15,20,0.045)]"
       aria-label="Your profile and settings"
     >
-      {avatarUrl ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={avatarUrl}
-          alt=""
-          className="size-9 shrink-0 rounded-full border border-hairline object-cover"
-        />
-      ) : (
-        <span
-          className="flex size-9 shrink-0 items-center justify-center rounded-full bg-brand-forest text-[12px] font-bold text-white"
-          aria-hidden
-        >
-          {initials}
-        </span>
-      )}
+      <UserAvatar
+        avatarUrl={avatarUrl}
+        displayName={displayName}
+        email={email}
+        size="lg"
+      />
       <span className="flex min-w-0 flex-1 flex-col">
         <span className="truncate font-display text-[13.5px] font-bold tracking-[-0.01em] text-ink-primary">
           {profileName}
@@ -383,7 +372,7 @@ export function Sidebar({
          tier later (md→lg) so the tablet band hands off to <SidebarRail>. */}
       <aside
         aria-label={`${VARIANT_LABEL[variant]} navigation`}
-        className="hidden bg-surface-l1 lg:sticky lg:top-14 lg:flex lg:h-[calc(100vh-56px)] lg:w-[268px] lg:shrink-0 lg:flex-col lg:gap-2 lg:overflow-y-auto lg:border-r lg:border-hairline lg:px-3 lg:pb-3 lg:pt-4"
+        className="hidden bg-surface-l1 lg:sticky lg:top-14 lg:flex lg:h-[calc(100dvh-3.5rem)] lg:w-[268px] lg:shrink-0 lg:flex-col lg:gap-2 lg:overflow-y-auto lg:border-r lg:border-hairline lg:px-3 lg:pb-3 lg:pt-4"
       >
         {profileHeader}
         <div className="mt-2 flex-1">{navBody}</div>

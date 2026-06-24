@@ -435,10 +435,10 @@ Additional phase smoke should assert:
 
 When implementation starts:
 
-1. Update [progress-tracker.md](../progress-tracker.md) and mark this spec in progress.
+1. Update [current-state.md](../current-state.md) and [active.md](active.md) and mark this spec in progress.
 2. Implement only the active phase.
 3. Run validation.
-4. Update [progress-tracker.md](../progress-tracker.md) with phase closeout, decisions, and follow-ups.
+4. Update [current-state.md](../current-state.md) with concise closeout, decisions, and follow-ups. Move verbose history to `context/archive/` instead of the daily boot files.
 5. Commit on `development` with a Conventional Commit message.
 6. Do not push to `main`.
 

@@ -364,8 +364,7 @@ export function SupplierProfileForm({
             the field; otherwise the register wins.
           </p>
 
-          <div className="h-16 md:hidden" aria-hidden />
-          <StickyActionBar className="bottom-[calc(56px+env(safe-area-inset-bottom,0px))]">
+          <StickyActionBar>
             <Button type="submit" variant="primary" disabled={pending}>
               {pending ? "Saving…" : "Save profile"}
             </Button>

@@ -3,6 +3,7 @@
 import Link from "next/link";
 
 import { BlurFade } from "@/components/ui/blur-fade";
+import { NumberTicker } from "@/components/ui/number-ticker";
 import { PageHeader, Panel } from "@/components/ui/page-kit";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -97,11 +98,17 @@ export default async function StatusPage() {
         <div className="mt-8 space-y-4">
           <Panel>
             <dl className="m-0 grid gap-4 sm:grid-cols-2">
-              <Stat
-                label="Published suppliers"
-                value={doc.published_suppliers.toLocaleString("en-US")}
-                tone="green"
-              />
+              <div>
+                <dt className="text-[11px] font-medium uppercase tracking-wide text-ink-tertiary">
+                  Published suppliers
+                </dt>
+                <dd className="mt-1 text-sem-green">
+                  <NumberTicker
+                    value={doc.published_suppliers}
+                    className="font-display text-2xl font-bold tabular-nums text-sem-green"
+                  />
+                </dd>
+              </div>
               <Stat
                 label="Source register refresh"
                 value={fmt(doc.last_source_refresh)}

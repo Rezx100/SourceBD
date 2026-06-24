@@ -23,6 +23,7 @@ import {
 import { DiscoverResultCard, type DiscoverRow } from "@/components/discover/result-card";
 import { SaveButton } from "@/components/save-button";
 import { EmptyState, PageHeader, Section } from "@/components/ui/page-kit";
+import { NumberTicker } from "@/components/ui/number-ticker";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -201,10 +202,7 @@ export default async function BuyerHome() {
             title="No saved suppliers yet"
             description="Save suppliers from Discover to build your shortlist."
             action={
-              <Link
-                href="/app/discover"
-                className="inline-flex items-center rounded-pill bg-brand-forest px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-brand-forest-mid"
-              >
+              <Link href="/app/discover" className="btn-proto primary">
                 Browse Discover
               </Link>
             }
@@ -276,9 +274,10 @@ function StatTile({
   const body = (
     <div className="group flex h-full flex-col rounded-card border border-hairline bg-surface-l1 p-5 shadow-[0_1px_2px_rgba(15,15,20,0.05)] transition duration-200 hover:-translate-y-0.5 hover:border-brand-forest/30 hover:shadow-l2">
       <p className="text-[12px] font-medium text-ink-tertiary">{label}</p>
-      <p className="mt-2 font-display text-[28px] font-extrabold leading-none tracking-[-0.02em] tabular-nums text-ink-primary">
-        {value.toLocaleString()}
-      </p>
+      <NumberTicker
+        value={value}
+        className="mt-2 font-display text-[28px] font-extrabold leading-none tracking-[-0.02em] text-ink-primary"
+      />
       <p className="mt-2 text-[11px] leading-snug text-ink-tertiary">{meta}</p>
     </div>
   );

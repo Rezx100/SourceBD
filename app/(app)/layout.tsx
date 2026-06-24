@@ -14,6 +14,7 @@ import { Topbar } from "@/components/shell/topbar";
 import { SkipLink } from "@/components/ui/skip-link";
 import { PostHogProvider } from "@/lib/posthog/provider";
 import { FeedbackMount } from "@/components/feedback/feedback-mount";
+import { ScrollToTop } from "@/components/shell/scroll-to-top";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getServerRole } from "@/lib/auth";
 
@@ -142,9 +143,16 @@ export default async function AppShellLayout({
 
   return (
     <PostHogProvider userId={userId}>
-      <div className="flex min-h-screen flex-col bg-bg-l0">
+      <div className="flex min-h-dvh flex-col bg-bg-l0">
+        <ScrollToTop />
         <SkipLink />
-        <Topbar role={role} moatTotal={moatTotal} />
+        <Topbar
+          role={role}
+          moatTotal={moatTotal}
+          avatarUrl={avatarUrl}
+          displayName={displayName}
+          email={email}
+        />
         <div className="flex flex-1 flex-col md:flex-row md:items-start">
           {/* R2 — tablet portrait (md..<lg) renders the icon-only rail,
               desktop (≥lg) renders the full sidebar. Both have their own
@@ -163,7 +171,7 @@ export default async function AppShellLayout({
           <main
             id="main-content"
             tabIndex={-1}
-            className="flex-1 px-4 pb-[72px] pt-6 md:min-h-[calc(100vh-56px)] md:px-10 md:pb-12 md:pt-10 lg:px-12 focus:outline-none"
+            className="flex-1 px-4 pb-[calc(56px+env(safe-area-inset-bottom,0px)+1rem)] pt-6 md:min-h-[calc(100dvh-3.5rem)] md:px-10 md:pb-12 md:pt-10 lg:px-12 focus:outline-none"
           >
             {children}
           </main>

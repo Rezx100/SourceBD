@@ -248,8 +248,7 @@ export function ClaimSearchForm({ prebound }: ClaimSearchFormProps) {
           </div>
           {error ? <p className="text-xs text-sem-red">{error}</p> : null}
           {info ? <p className="text-xs text-sem-green">{info}</p> : null}
-          <div className="h-16 md:hidden" aria-hidden />
-          <StickyActionBar className="bottom-[calc(56px+env(safe-area-inset-bottom,0px))]">
+          <StickyActionBar>
             <Button type="submit" variant="primary" disabled={submitting}>
               {submitting ? "Sending…" : "Send verification email"}
             </Button>

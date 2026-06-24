@@ -43,17 +43,19 @@ const COLUMNS: {
 export function MarketingFooter() {
   return (
     <footer className="border-t border-hairline bg-surface-l1">
-      <div className="mx-auto max-w-7xl px-4 py-12 md:px-10 lg:px-12">
+      <div className="mx-auto max-w-7xl px-6 py-10 sm:px-8 sm:py-12 lg:px-12">
+
         {/* ── 4-column grid: Brand · Product · Regulations · Legal ── */}
-        <div className="grid grid-cols-1 gap-10 sm:grid-cols-2 md:grid-cols-4">
-          {/* Column 1 — Brand */}
-          <div>
+        <div className="grid grid-cols-2 gap-x-6 gap-y-10 sm:grid-cols-2 md:grid-cols-4 md:gap-x-8">
+
+          {/* Column 1 — Brand (full width on smallest phones) */}
+          <div className="col-span-2 md:col-span-1">
             <Wordmark
               boxClassName="h-7 w-7"
               glyphClassName="h-4 w-4"
               textClassName="text-base"
             />
-            <p className="mt-4 max-w-xs text-sm leading-relaxed text-neutral-500">
+            <p className="mt-3 max-w-xs text-sm leading-relaxed text-neutral-500">
               A public-record index of Bangladesh&apos;s ready-made-garment
               sector. Every claim traceable to the authority that issued it.
             </p>
@@ -62,10 +64,10 @@ export function MarketingFooter() {
           {/* Columns 2–4 — link groups */}
           {COLUMNS.map((col) => (
             <div key={col.heading}>
-              <h5 className="text-xs font-semibold uppercase tracking-wider text-neutral-400">
+              <h5 className="text-[11px] font-semibold uppercase tracking-wider text-neutral-400">
                 {col.heading}
               </h5>
-              <ul className="mt-4 space-y-3">
+              <ul className="mt-3 space-y-2.5">
                 {col.links.map((l) => (
                   <li key={l.href}>
                     <Link
@@ -82,9 +84,9 @@ export function MarketingFooter() {
         </div>
 
         {/* ── Bottom bar ── */}
-        <div className="mt-12 flex flex-col items-start justify-between gap-4 border-t border-neutral-200 pt-6 sm:flex-row sm:items-center">
+        <div className="mt-10 flex flex-col items-center gap-3 border-t border-neutral-200 pt-5 sm:flex-row sm:items-center sm:justify-between">
           <span className="text-xs text-neutral-400">© 2026 SourceBD</span>
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-5">
             <Link
               href="/#how-we-verify"
               className="text-xs text-neutral-400 transition-colors hover:text-neutral-600"
@@ -101,7 +103,7 @@ export function MarketingFooter() {
         </div>
 
         {/* ── Disclaimer ── */}
-        <p className="mt-6 text-center text-xs leading-relaxed text-neutral-400">
+        <p className="mt-5 text-center text-[11px] leading-relaxed text-neutral-400">
           SourceBD is a neutral public-record index — not a marketplace, broker,
           or rating agency. Authority logos identify data sources we aggregate
           from; SourceBD is not affiliated with or endorsed by BGMEA, BKMEA,

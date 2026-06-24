@@ -21,8 +21,7 @@ const NAV_LINKS = [
   { href: "/pricing", label: "Pricing" },
 ];
 
-const CTA_BUTTON =
-  "inline-flex items-center justify-center rounded-lg bg-brand-forest px-4 py-2 text-sm font-medium !text-white shadow-sm transition-colors hover:bg-brand-forest-mid";
+const CTA_BUTTON = "btn-proto primary";
 
 function RightLinks({ role }: { role: Role | null }) {
   if (role === "supplier") {
@@ -47,7 +46,7 @@ function RightLinks({ role }: { role: Role | null }) {
       >
         Sign in
       </Link>
-      <Link href="/signup" className={CTA_BUTTON}>
+      <Link href="/signup" className="btn-proto primary">
         Start free
       </Link>
     </>
@@ -62,18 +61,16 @@ function DrawerCtas({
   role: Role | null;
   onNavigate: () => void;
 }) {
-  const solid =
-    "inline-flex min-h-[48px] items-center justify-center rounded-lg bg-brand-forest px-4 text-sm font-medium !text-white transition-colors hover:bg-brand-forest-mid";
   if (role === "supplier") {
     return (
-      <Link href="/supplier" onClick={onNavigate} className={solid}>
+      <Link href="/supplier" onClick={onNavigate} className="btn-proto primary min-h-[48px] justify-center">
         Supplier portal
       </Link>
     );
   }
   if (role === "buyer" || role === "admin") {
     return (
-      <Link href="/app" onClick={onNavigate} className={solid}>
+      <Link href="/app" onClick={onNavigate} className="btn-proto primary min-h-[48px] justify-center">
         Open app
       </Link>
     );
@@ -87,7 +84,11 @@ function DrawerCtas({
       >
         Sign in
       </Link>
-      <Link href="/signup" onClick={onNavigate} className={solid}>
+      <Link
+        href="/signup"
+        onClick={onNavigate}
+        className="btn-proto primary min-h-[48px] w-full justify-center"
+      >
         Start free
       </Link>
     </>
@@ -150,13 +151,12 @@ export function MarketingTopNav() {
   return (
     <>
     <nav
-      className={`sticky top-0 z-50 flex h-14 w-full items-center border-b transition-all duration-200 ${
-        scrolled
-          ? "border-hairline bg-surface-l1/90 shadow-sm backdrop-blur-md"
-          : "border-hairline bg-surface-l1/95 backdrop-blur-md"
-      }`}
+      className={cn(
+        "sticky top-0 z-50 w-full border-b border-neutral-200 bg-white safe-pt transition-shadow duration-200",
+        scrolled && "shadow-sm",
+      )}
     >
-      <div className="flex w-full items-center gap-2 px-3 md:gap-3 md:px-4">
+      <div className="flex h-14 w-full items-center gap-2 px-3 md:gap-3 md:px-4">
         {/* Wordmark — always pinned far-left */}
         <Wordmark
           boxClassName="h-7 w-7"
@@ -189,7 +189,7 @@ export function MarketingTopNav() {
             aria-label="Open menu"
             aria-haspopup="dialog"
             aria-expanded={drawerOpen}
-            className="inline-flex h-[44px] w-[44px] items-center justify-center rounded-md text-ink-secondary transition-colors duration-hover ease-smooth hover:bg-[rgba(15,15,20,0.05)] hover:text-ink-primary md:hidden"
+            className="inline-flex h-[44px] w-[44px] items-center justify-center rounded-md text-neutral-600 transition-colors duration-hover ease-smooth hover:bg-neutral-100 hover:text-neutral-900 md:hidden"
           >
             <ListIcon size={20} weight="bold" aria-hidden />
           </button>
@@ -231,10 +231,10 @@ export function MarketingTopNav() {
           inert={!drawerOpen}
           style={{ transform: drawerOpen ? "translateX(0)" : "translateX(100%)" }}
           className={cn(
-            "absolute right-0 top-0 flex h-full w-[min(86vw,360px)] flex-col border-l border-neutral-200 bg-white transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] will-change-transform motion-reduce:transition-none",
+            "absolute right-0 top-0 flex h-dvh w-[min(86vw,360px)] flex-col border-l border-neutral-200 bg-white safe-pb transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] will-change-transform motion-reduce:transition-none",
           )}
         >
-          <div className="flex items-center justify-between border-b border-neutral-200 px-5 py-4">
+          <div className="flex items-center justify-between border-b border-neutral-200 px-5 py-4 safe-pt">
             <Wordmark onClick={() => setDrawerOpen(false)} />
             <button
               type="button"

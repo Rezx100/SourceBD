@@ -16,7 +16,7 @@ export default function BuyerDiscoverLoading() {
       </header>
 
       {/* Filter rail silhouette — horizontal pill row + More filters chip. */}
-      <div className="proto-card space-y-4">
+      <div className="space-y-4 rounded-lg border border-neutral-200 bg-white p-4 shadow-sm sm:p-5">
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4">
           {Array.from({ length: 4 }).map((_, i) => (
             <div key={i} className="space-y-1.5">

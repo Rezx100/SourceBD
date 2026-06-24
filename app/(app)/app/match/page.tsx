@@ -23,7 +23,7 @@ export default function SmartMatchPage() {
         kicker="Find matches"
         icon={<Sparkle size={20} weight="fill" aria-hidden />}
         title="Tell us what you need"
-        description="Three steps: product, requirements, ranked matches. Every match shows the verified receipts that satisfied your brief — BGMEA registry, WRAP / GOTS / OEKO-TEX / SA8000 certificates, RSC remediation progress, sewing-machine capacity."
+        description="Answer a few buyer-friendly questions and SourceBD will shortlist verified Bangladesh suppliers with the receipts behind each match."
       />
       <SmartMatchWizard />
     </div>

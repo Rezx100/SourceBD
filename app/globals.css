@@ -28,7 +28,7 @@
   --hairline: rgba(15, 15, 20, 0.07);
   --hairline-strong: rgba(15, 15, 20, 0.12);
   --shadow-l1: 0 1px 2px rgba(15, 15, 20, 0.05);
-  --shadow-l2: 0 1px 3px rgba(15, 15, 20, 0.06), 0 12px 28px -12px rgba(15, 15, 20, 0.16);
+  --shadow-l2: 0 2px 8px -6px rgba(15, 15, 20, 0.18);
 
   /* Interaction accent — unified to forest green to match the marketing
      homepage (forest-only palette, no indigo). The token name is kept for
@@ -67,11 +67,11 @@
      out-cascaded next/font and forced the app onto the old typeface after
      login. They are intentionally omitted so next/font is the sole source. */
 
-  /* Radius (§16.3 — 6/8/12/20 family) */
+  /* Radius (§16.3 — operational cards cap at the hairline 8px treatment). */
   --r-input: 6px;
   --r-pill: 8px;
   --r-md: 10px;
-  --r-card: 12px;
+  --r-card: 8px;
   --r-hero: 20px;
 
   /* Motion (§19 — 12-motion budget, all honour prefers-reduced-motion) */
@@ -86,6 +86,7 @@
   body {
     background: var(--bg-l0);
     color: var(--ink-primary);
+    color-scheme: light;
     font-family: var(--font-body);
     font-size: 14px;
     line-height: 1.6;
@@ -249,6 +250,75 @@
      never sits behind the home indicator. Use alongside `bottom: 0`. */
   .safe-bottom-0 {
     bottom: max(0px, env(safe-area-inset-bottom, 0px));
+  }
+}
+
+@layer components {
+  html[data-scroll-lock],
+  html[data-scroll-lock] body {
+    overflow: hidden;
+  }
+
+  .r1-sheet {
+    position: fixed;
+    inset: 0;
+    width: 100dvw;
+    height: 100dvh;
+    max-width: none;
+    max-height: none;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    overflow: hidden;
+  }
+
+  .r1-sheet::backdrop {
+    background: rgba(15, 15, 20, 0.32);
+  }
+
+  .r1-sheet[open] {
+    display: flex;
+  }
+
+  .r1-sheet--left {
+    align-items: stretch;
+    justify-content: flex-start;
+  }
+
+  .r1-sheet--right {
+    align-items: stretch;
+    justify-content: flex-end;
+  }
+
+  .r1-sheet--bottom {
+    align-items: flex-end;
+    justify-content: center;
+  }
+
+  .r1-sheet--center {
+    align-items: flex-end;
+    justify-content: center;
+  }
+
+  @media (min-width: 768px) {
+    .r1-sheet--center {
+      align-items: center;
+    }
+  }
+
+  .r1-sheet-panel {
+    max-width: 100%;
+    max-height: 100%;
+    border-color: var(--hairline);
+  }
+
+  .r1-sheet--left .r1-sheet-panel {
+    border-right: 1px solid var(--hairline);
+  }
+
+  .r1-sheet--right .r1-sheet-panel {
+    border-left: 1px solid var(--hairline);
   }
 }
 
@@ -810,9 +880,8 @@
       border-color var(--dur-hover) var(--ease);
   }
   .proto-card.hoverable:hover {
-    transform: translateY(-2px);
     border-color: var(--hairline-strong);
-    box-shadow: var(--shadow-l2);
+    box-shadow: var(--shadow-l1);
   }
   .proto-card-head {
     display: flex;
@@ -949,10 +1018,9 @@
     border: 1px solid var(--hairline);
     border-radius: var(--r-card);
     background: var(--bg-l0);
-    transition: transform var(--dur-hover) var(--ease),
-      box-shadow var(--dur-hover) var(--ease);
+    transition: box-shadow var(--dur-hover) var(--ease);
   }
-  .cert:hover { transform: translateY(-1px); box-shadow: var(--shadow-l1); }
+  .cert:hover { box-shadow: var(--shadow-l1); }
   .cert .auth-logo-color {
     height: 40px;
     width: 40px;
@@ -978,6 +1046,10 @@
     letter-spacing: -0.02em;
   }
   .cert-main { min-width: 0; }
+  .cert-name-short,
+  .cert-status-short {
+    display: none;
+  }
   .cert-name {
     font-weight: 600;
     font-size: 13px;
@@ -1015,6 +1087,65 @@
     gap: 4px;
   }
   .cert-view:hover { background: var(--brand-forest-tint); }
+
+  @media (max-width: 640px) {
+    .cert {
+      grid-template-columns: 44px minmax(0, 1fr);
+      align-items: start;
+      gap: 12px;
+      padding: 14px;
+    }
+
+    .cert .auth-logo-color,
+    .cert .issuer-mark {
+      height: 36px;
+      width: 36px;
+    }
+
+    .cert-main {
+      display: flex;
+      min-width: 0;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .cert-name {
+      margin: 0;
+      font-size: 14px;
+      line-height: 1.25;
+    }
+
+    .cert-name-short,
+    .cert-status-short {
+      display: inline;
+    }
+
+    .cert-name-full,
+    .cert-status-full {
+      display: none;
+    }
+
+    .cert-meta {
+      display: -webkit-box;
+      overflow: hidden;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 2;
+      font-size: 11px;
+      line-height: 1.45;
+    }
+
+    .cert-status {
+      grid-column: 2;
+      justify-self: start;
+      width: fit-content;
+      padding: 6px 9px;
+    }
+
+    .cert-view {
+      grid-column: 2;
+      justify-self: start;
+    }
+  }
 
   /* ---------- RSC ---------- */
   .rsc-stack { display: flex; flex-direction: column; gap: 8px; }
@@ -3101,7 +3232,7 @@
 [data-surface="marketing"] .mkt-reveal.in { opacity: 1; transform: none; }
 
 /* ===== auth split-pane shell ===== */
-[data-surface="marketing"] .mkt-auth { min-height: 100vh; display: grid; grid-template-columns: 1.04fr 0.96fr; }
+[data-surface="marketing"] .mkt-auth { min-height: 100dvh; display: grid; grid-template-columns: 1.04fr 0.96fr; }
 [data-surface="marketing"] .mkt-auth-brand {
   position: relative; background: var(--mkt-green-950); color: #fff;
   overflow: hidden; padding: 48px 56px;

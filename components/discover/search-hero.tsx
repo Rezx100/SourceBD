@@ -31,7 +31,7 @@ export function DiscoverSearchHero({ basePath, q, sort, className }: Props) {
       role="search"
       aria-label="Search suppliers"
       className={cn(
-        "r9r4-search-hero rounded-card border border-hairline bg-surface-l1 p-3 shadow-[0_1px_2px_rgba(15,15,20,0.03)] sm:p-4",
+        "r9r4-search-hero rounded-lg border border-neutral-200 bg-white p-3 shadow-sm sm:p-4",
         className,
       )}
     >
@@ -59,14 +59,11 @@ export function DiscoverSearchHero({ basePath, q, sort, className }: Props) {
             placeholder="Search by company name — e.g. Naafco, Standard Group, SM Sourcing"
             inputMode="search"
             autoComplete="off"
-            className="r9r4-hero-input w-full rounded-input border border-hairline bg-bg-l0 py-3 pl-10 pr-3 text-[15px] text-ink-primary outline-none transition-colors placeholder:text-ink-tertiary focus:border-brand-forest focus:ring-2 focus:ring-brand-forest/15 sm:text-base"
+            className="r9r4-hero-input w-full rounded-lg border border-neutral-200 bg-neutral-50 py-3 pl-10 pr-3 text-[15px] text-neutral-900 outline-none transition-colors placeholder:text-neutral-500 focus:border-brand-forest/50 focus:bg-white focus:ring-2 focus:ring-brand-forest/15 sm:text-base"
           />
         </div>
 
-        <button
-          type="submit"
-          className="btn-proto primary inline-flex shrink-0 items-center justify-center px-4 text-sm sm:px-6"
-        >
+        <button type="submit" className="btn-proto primary shrink-0 px-5 sm:px-7">
           Search
         </button>
       </div>

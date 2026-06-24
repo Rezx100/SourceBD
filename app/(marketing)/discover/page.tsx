@@ -12,6 +12,7 @@
 
 import Link from "next/link";
 
+import { EmptyState, PageHeader } from "@/components/ui/page-kit";
 import {
   BRAND_SOURCES,
   CERT_KINDS,
@@ -149,18 +150,11 @@ export default async function PublicDiscoverPage({
   return (
     <>
       <main className="mx-auto max-w-7xl space-y-6 px-6 py-8">
-        <header>
-          <p className="text-[11px] font-semibold text-ink-tertiary">
-            Public preview
-          </p>
-          <h1 className="mt-1 font-display text-4xl font-light tracking-tight text-ink-primary">
-            Discover
-          </h1>
-          <p className="mt-2 text-sm text-ink-secondary">
-            Verified Bangladesh garment factories and buying houses. Results
-            ranked by source-backed evidence.
-          </p>
-        </header>
+        <PageHeader
+          kicker="Public index"
+          title="Discover"
+          description="Verified Bangladesh garment factories and buying houses. Every result is ranked by source-backed evidence from government registers, trade associations, and certification bodies."
+        />
 
         <div className="space-y-6">
           {/* R9r4 — primary search bar, always visible. */}
@@ -241,20 +235,19 @@ export default async function PublicDiscoverPage({
             </div>
 
             {!error && rows.length === 0 ? (
-              <div className="proto-card space-y-3 text-center">
-                <p className="text-sm text-ink-secondary">
-                  {anyFilterActive
-                    ? "No suppliers match these filters. Try removing the most restrictive one."
-                    : "No published suppliers yet."}
-                </p>
-                {anyFilterActive ? (
-                  <Link href={BASE_PATH} className="btn-proto inline-flex">
-                    Clear all filters
-                  </Link>
-                ) : null}
-              </div>
+              <EmptyState
+                title={anyFilterActive ? "No results for these filters" : "No published suppliers yet"}
+                description={anyFilterActive ? "Try removing the most restrictive filter to broaden your search." : undefined}
+                action={
+                  anyFilterActive ? (
+                    <Link href={BASE_PATH} className="btn-proto primary">
+                      Clear filters
+                    </Link>
+                  ) : null
+                }
+              />
             ) : (
-              <ul className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+              <ul className="grid grid-cols-1 gap-4">
                 {rows.map((row) => (
                   <li key={row.id}>
                     <DiscoverResultCard row={row} hrefBase="/suppliers" />

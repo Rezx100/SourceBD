@@ -1,7 +1,7 @@
 // Shared Discover result card — used by both `/app/discover` (auth) and
 // `/discover` (public). Server component; takes a pre-typed `DiscoverRow`
 // straight from the `discover_suppliers` RPC and renders the prototype
-// design-language card (proto-card.hoverable + R1 receipt-stack glyph).
+// design-language card (white hairline surface + R1 receipt-stack glyph).
 //
 // SBI hard contract: payload is `t13_source_count` only — never any SBI
 // numeric, pillar, grade, or "Score" / "Rating" string.
@@ -88,7 +88,7 @@ export function DiscoverResultCard({
   const extraPills = Math.max(0, row.source_tags.length - visiblePills.length);
 
   return (
-    <article className="group relative rounded-lg border border-hairline bg-surface-l1 p-4 transition-colors duration-200 ease-smooth hover:border-brand-forest/30 hover:bg-[#fbfdfb] sm:p-6">
+    <article className="group relative rounded-lg border border-neutral-200 bg-white p-4 shadow-sm transition-colors duration-200 ease-smooth hover:border-brand-forest/30 hover:bg-neutral-50 sm:p-5">
       <div className="absolute right-4 top-4 z-10 flex items-center gap-2">
         {actionSlot}
       </div>
@@ -103,16 +103,16 @@ export function DiscoverResultCard({
 
         <div className="min-w-0 flex-1 space-y-3.5">
           <div className="space-y-2 pr-8">
-            <h2 className="font-display text-[19px] font-bold leading-snug tracking-[-0.02em] text-ink-primary">
+            <h2 className="font-display text-base font-semibold leading-snug tracking-[-0.01em] text-neutral-900">
               {row.company_name}
             </h2>
             <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[13px]">
               <Pill tone="forest">{entityLabel}</Pill>
               {location ? (
-                <span className="text-ink-secondary">{location}</span>
+                <span className="text-neutral-700">{location}</span>
               ) : null}
               {row.parent_group_name ? (
-                <span className="text-ink-tertiary">
+                <span className="text-neutral-500">
                   · part of {row.parent_group_name}
                 </span>
               ) : null}
@@ -125,7 +125,7 @@ export function DiscoverResultCard({
                 <SourcePill key={tag} tag={tag} />
               ))}
               {extraPills > 0 ? (
-                <span className="self-center text-[12px] font-medium text-ink-tertiary">
+                <span className="self-center text-[12px] font-medium text-neutral-500">
                   +{extraPills} more
                 </span>
               ) : null}
@@ -151,10 +151,10 @@ function ProductsLine({ products }: { products: string[] }) {
   const overflow = Math.max(0, cleaned.length - shown.length);
   if (shown.length === 0) return null;
   return (
-    <p className="text-[13px] leading-relaxed text-ink-secondary">
+    <p className="text-[13px] leading-relaxed text-neutral-700">
       {shown.join("  ·  ")}
       {overflow > 0 ? (
-        <span className="text-ink-tertiary">{`  ·  +${overflow} more`}</span>
+        <span className="text-neutral-500">{`  ·  +${overflow} more`}</span>
       ) : null}
     </p>
   );
@@ -169,8 +169,8 @@ function SourcePill({ tag }: { tag: string }) {
     return <Pill tone="neutral">{label}</Pill>;
   }
   return (
-    <span className="inline-flex items-center gap-1.5 rounded-pill border border-hairline bg-surface-l1 py-[3px] pl-[3px] pr-2.5 text-[12px] font-medium text-ink-secondary">
-      <span className="flex size-[18px] items-center justify-center overflow-hidden rounded-full border border-hairline bg-white">
+    <span className="inline-flex items-center gap-1.5 rounded-pill border border-neutral-200 bg-white py-[3px] pl-[3px] pr-2.5 text-[12px] font-medium text-neutral-700">
+      <span className="flex size-[18px] items-center justify-center overflow-hidden rounded-full border border-neutral-200 bg-white">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={logo} alt="" className="size-full object-contain p-[1px]" />
       </span>
@@ -191,11 +191,11 @@ function StatLine({ row }: { row: DiscoverRow }) {
     parts.push(`RSC ${Number(row.rsc_progress_pct).toFixed(0)}%`);
   if (parts.length === 0) return null;
   return (
-    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 border-t border-hairline pt-3 text-[12px] text-ink-tertiary">
+    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 border-t border-neutral-200 pt-3 text-[12px] text-neutral-500">
       {parts.map((p, i) => (
         <span key={p} className="inline-flex items-center gap-2">
           {i > 0 ? (
-            <span aria-hidden className="text-hairline-strong">
+            <span aria-hidden className="text-neutral-300">
               ·
             </span>
           ) : null}

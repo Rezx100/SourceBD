@@ -9,8 +9,10 @@ export const runtime = "nodejs";
 export async function POST(req: NextRequest) {
   const supabase = await createSupabaseServerClient();
   await supabase.auth.signOut();
-  const url = req.nextUrl.clone();
-  url.pathname = "/";
-  url.search = "";
+  const origin =
+    process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ??
+    process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ??
+    req.nextUrl.origin;
+  const url = new URL("/login", origin);
   return NextResponse.redirect(url, { status: 303 });
 }

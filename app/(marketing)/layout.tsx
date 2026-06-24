@@ -18,6 +18,7 @@ import type { Metadata } from "next";
 
 import { MarketingFooter } from "@/components/marketing/footer";
 import { MarketingTopNav } from "@/components/marketing/top-nav";
+import { ScrollToTop } from "@/components/shell/scroll-to-top";
 import { SkipLink } from "@/components/ui/skip-link";
 import { PostHogProvider } from "@/lib/posthog/provider";
 
@@ -54,8 +55,9 @@ export default function MarketingLayout({
     <PostHogProvider userId={null}>
       <div
         data-surface="marketing"
-        className="flex min-h-screen flex-col"
+        className="flex min-h-dvh flex-col"
       >
+        <ScrollToTop />
         <SkipLink />
         <MarketingTopNav />
         <div

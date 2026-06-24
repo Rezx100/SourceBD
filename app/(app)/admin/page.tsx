@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tag } from "@/components/ui/tag";
-import { PageHeader } from "@/components/ui/page-kit";
+import { PageHeader, StatStrip } from "@/components/ui/page-kit";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -101,31 +101,35 @@ export default async function AdminHome() {
     <div className="mx-auto max-w-6xl space-y-6">
       <AdminHeader generatedAt={doc.generated_at} />
 
-      <section
-        aria-label="Headline stats"
-        className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4"
-      >
-        <StatTile
-          label="Users"
-          value={doc.users.total}
-          meta={`+${doc.users.signups_7d} last 7d · +${doc.users.signups_30d} last 30d`}
-        />
-        <StatTile
-          label="Suppliers (published)"
-          value={doc.suppliers.published}
-          meta={`${doc.suppliers.total.toLocaleString()} total · ${doc.suppliers.claimed.toLocaleString()} claimed`}
-        />
-        <StatTile
-          label="Open RFQs"
-          value={doc.rfqs.open}
-          meta={`${doc.rfqs.accepted_30d} accepted · ${doc.rfqs.closed_30d} closed (30d)`}
-        />
-        <StatTile
-          label="Message threads"
-          value={doc.messages.threads}
-          meta={`${doc.messages.messages_7d.toLocaleString()} messages last 7d`}
-        />
-      </section>
+      <StatStrip
+        columns={4}
+        items={[
+          {
+            label: "Users",
+            value: doc.users.total,
+            animateValue: true,
+            hint: `+${doc.users.signups_7d} last 7 days`,
+          },
+          {
+            label: "Suppliers published",
+            value: doc.suppliers.published,
+            animateValue: true,
+            hint: `${doc.suppliers.total.toLocaleString()} total · ${doc.suppliers.claimed.toLocaleString()} claimed`,
+          },
+          {
+            label: "Open RFQs",
+            value: doc.rfqs.open,
+            animateValue: true,
+            hint: `${doc.rfqs.accepted_30d} accepted · ${doc.rfqs.closed_30d} closed (30d)`,
+          },
+          {
+            label: "Message threads",
+            value: doc.messages.threads,
+            animateValue: true,
+            hint: `${doc.messages.messages_7d.toLocaleString()} messages last 7d`,
+          },
+        ]}
+      />
 
       <section className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <Card>
@@ -297,29 +301,6 @@ function AdminHeader({ generatedAt }: { generatedAt?: string }) {
   );
 }
 
-function StatTile({
-  label,
-  value,
-  meta,
-}: {
-  label: string;
-  value: number;
-  meta: string;
-}) {
-  return (
-    <Card>
-      <CardContent className="space-y-1 py-4">
-        <p className="text-[11px] font-medium text-ink-tertiary">
-          {label}
-        </p>
-        <p className="font-display text-3xl font-bold tabular-nums text-ink-primary">
-          {value.toLocaleString()}
-        </p>
-        <p className="text-[12px] text-ink-tertiary">{meta}</p>
-      </CardContent>
-    </Card>
-  );
-}
 
 function KvList({ rows }: { rows: ReadonlyArray<readonly [string, number]> }) {
   return (

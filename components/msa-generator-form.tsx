@@ -121,7 +121,7 @@ export function MsaGeneratorForm({ inputs }: { inputs: MsaInputs }) {
           </Field>
         </div>
 
-        <StickyActionBar className="bottom-[calc(56px+env(safe-area-inset-bottom,0px))]">
+        <StickyActionBar>
           <Button variant="primary" size="sm" onClick={handleDownload}>
             <DownloadSimple size={14} weight="bold" /> Download .md
           </Button>

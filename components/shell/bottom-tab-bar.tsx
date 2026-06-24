@@ -72,13 +72,11 @@ export function BottomTabBar({ variant, role, className }: BottomTabBarProps) {
     <nav
       aria-label="Primary navigation"
       className={cn(
-        // Fixed to viewport bottom with safe-area inset. Solid surface —
-        // no glassmorphism — so labels never bleed into scrolling content
-        // beneath the bar (enterprise-grade legibility over translucency).
-        "fixed left-0 right-0 bottom-0 z-40 safe-bottom-0 safe-pb safe-px md:hidden",
-        "border-t border-hairline-strong bg-surface-l1",
-        // Light shadow toward content above.
-        "shadow-[0_-6px_18px_-8px_rgba(15,15,20,0.12)]",
+        // Fixed to the physical viewport bottom. The safe-area belongs inside
+        // the painted bar, not as a bottom offset, otherwise iPhone browsers
+        // expose a transparent strip when their chrome collapses.
+        "fixed bottom-0 left-0 right-0 z-40 safe-pb safe-px md:hidden",
+        "border-t border-neutral-200 bg-white shadow-sm",
         className,
       )}
     >

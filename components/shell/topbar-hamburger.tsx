@@ -13,9 +13,10 @@
 import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { List as ListIcon } from "@phosphor-icons/react/dist/ssr";
+import { List as ListIcon, SignOut } from "@phosphor-icons/react/dist/ssr";
 
 import { MobileDrawer } from "@/components/ui/mobile-drawer";
+import { UserAvatar } from "@/components/shell/user-avatar";
 import { cn } from "@/lib/utils";
 import type { Role } from "@/lib/auth";
 import {
@@ -28,9 +29,15 @@ import {
 export function TopbarHamburger({
   variant,
   role,
+  avatarUrl,
+  displayName,
+  email,
 }: {
   variant?: ShellVariant;
   role?: Role | null;
+  avatarUrl?: string | null;
+  displayName?: string | null;
+  email?: string | null;
 }) {
   const pathname = usePathname() ?? "/app";
   const v = variant ?? variantFromPath(pathname, role);
@@ -60,6 +67,25 @@ export function TopbarHamburger({
         side="left"
         label={VARIANT_LABEL[v]}
       >
+        <Link
+          href={v === "admin" ? "/admin/users" : "/app/settings"}
+          className="mb-4 flex items-center gap-3 rounded-lg border border-neutral-200 bg-white p-3"
+        >
+          <UserAvatar
+            avatarUrl={avatarUrl}
+            displayName={displayName}
+            email={email}
+            size="md"
+          />
+          <span className="min-w-0 flex-1">
+            <span className="block truncate font-display text-sm font-semibold text-ink-primary">
+              {(displayName ?? "").trim() || email || "Your account"}
+            </span>
+            <span className="block truncate text-xs text-ink-tertiary">
+              {email || VARIANT_LABEL[v]}
+            </span>
+          </span>
+        </Link>
         <nav aria-label={`${VARIANT_LABEL[v]} sections`} className="flex flex-col gap-5">
           {sections.map((section) => (
             <div key={section.label} className="flex flex-col gap-0.5">
@@ -98,6 +124,15 @@ export function TopbarHamburger({
             </div>
           ))}
         </nav>
+        <form action="/auth/sign-out" method="post" className="mt-5 border-t border-neutral-200 pt-4">
+          <button
+            type="submit"
+            className="flex min-h-[44px] w-full items-center gap-3 rounded-md px-2.5 text-sm font-medium text-ink-secondary transition-colors hover:bg-sem-red-soft hover:text-sem-red"
+          >
+            <SignOut size={18} aria-hidden />
+            <span>Sign out</span>
+          </button>
+        </form>
       </MobileDrawer>
     </>
   );

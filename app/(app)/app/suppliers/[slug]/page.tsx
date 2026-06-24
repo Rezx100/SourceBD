@@ -24,6 +24,8 @@ import { notFound } from "next/navigation";
 
 import { ShieldCheck, ChatCircleDots, MapPin } from "@phosphor-icons/react/dist/ssr";
 
+import { BlurFade } from "@/components/ui/blur-fade";
+import { NumberTicker } from "@/components/ui/number-ticker";
 import { ReceiptsRing } from "@/components/receipts-ring";
 import { SaveButton } from "@/components/save-button";
 import { Button } from "@/components/ui/button";
@@ -252,10 +254,12 @@ export default async function FactoryProfilePage({
   return (
     <div className="r7-profile-shell mx-auto flex max-w-[1280px] flex-col gap-4 overflow-x-clip py-5 sm:px-6 sm:py-8">
       {s.is_sanctioned ? <SanctionsBanner /> : null}
-      <ProfileHeader
-        payload={payload}
-        isSaved={isSaved}
-      />
+      <BlurFade delay={0.07}>
+        <ProfileHeader
+          payload={payload}
+          isSaved={isSaved}
+        />
+      </BlurFade>
       {s.principal_products.length > 0 ? (
         <ProductsStripExpandable products={s.principal_products} />
       ) : null}
@@ -897,6 +901,7 @@ function RegistryRow({ pill }: { pill: Pill }) {
 function CertRow({ cert }: { cert: Cert }) {
   const logo = LOGO_BY_CERT[cert.kind];
   const status = certStatus(cert);
+  const shortStatus = certStatusShort(status);
   return (
     <div className="cert">
       {logo ? (
@@ -908,7 +913,10 @@ function CertRow({ cert }: { cert: Cert }) {
         </span>
       )}
       <div className="cert-main">
-        <p className="cert-name">{certLongName(cert.kind)}</p>
+        <p className="cert-name">
+          <span className="cert-name-short">{certLabel(cert.kind)}</span>
+          <span className="cert-name-full">{certLongName(cert.kind)}</span>
+        </p>
         <p className="cert-meta">
           {[cert.certificate_no, cert.issuer]
             .filter(Boolean)
@@ -918,7 +926,10 @@ function CertRow({ cert }: { cert: Cert }) {
             : ""}
         </p>
       </div>
-      <span className={`cert-status ${status.tone}`}>{status.label}</span>
+      <span className={`cert-status ${status.tone}`}>
+        <span className="cert-status-short">{shortStatus}</span>
+        <span className="cert-status-full">{status.label}</span>
+      </span>
     </div>
   );
 }
@@ -1335,6 +1346,7 @@ function CapacityTab({ supplier: s }: { supplier: Supplier }) {
             <Metric
               label="Total"
               value={wf.total.toLocaleString()}
+              numValue={wf.total}
               sub="workers + staff"
             />
             {wf.showGenderSplit && wf.femalePct != null ? (
@@ -1352,6 +1364,7 @@ function CapacityTab({ supplier: s }: { supplier: Supplier }) {
               <Metric
                 label="Male"
                 value={wf.maleCount.toLocaleString()}
+                numValue={wf.maleCount}
                 sub="workers + staff"
               />
             ) : null}
@@ -1371,12 +1384,14 @@ function CapacityTab({ supplier: s }: { supplier: Supplier }) {
               <Metric
                 label="Sewing m/c"
                 value={s.machines_sewing.toLocaleString()}
+                numValue={s.machines_sewing}
               />
             ) : null}
             {s.production_capacity_pcs_day != null ? (
               <Metric
                 label="Per day"
                 value={s.production_capacity_pcs_day.toLocaleString()}
+                numValue={s.production_capacity_pcs_day}
                 sub="pcs"
               />
             ) : null}
@@ -1384,6 +1399,7 @@ function CapacityTab({ supplier: s }: { supplier: Supplier }) {
               <Metric
                 label="Per year"
                 value={s.production_capacity_dozen_yearly.toLocaleString()}
+                numValue={s.production_capacity_dozen_yearly}
                 sub="dozen"
               />
             ) : null}
@@ -1427,16 +1443,24 @@ function CapacityTab({ supplier: s }: { supplier: Supplier }) {
 function Metric({
   label,
   value,
+  numValue,
   sub,
 }: {
   label: string;
   value: string;
+  numValue?: number;
   sub?: string;
 }) {
   return (
     <div className="metric">
       <p className="metric-label">{label}</p>
-      <div className="metric-val">{value}</div>
+      <div className="metric-val">
+        {numValue != null ? (
+          <NumberTicker value={numValue} className="text-ink-primary" />
+        ) : (
+          value
+        )}
+      </div>
       {sub ? <p className="metric-sub">{sub}</p> : null}
     </div>
   );
@@ -1757,6 +1781,13 @@ function certStatus(c: Cert): {
   if (daysLeft < 90)
     return { label: `Expires in ${daysLeft} days`, tone: "expiring" };
   return { label: `Valid · ${daysLeft} days`, tone: "valid" };
+}
+
+function certStatusShort(status: ReturnType<typeof certStatus>): string {
+  if (status.tone === "valid") return "Valid";
+  if (status.tone === "expiring") return "Expiring";
+  if (status.tone === "expired") return "Expired";
+  return status.label === "expiry n/a" ? "No expiry" : status.label;
 }
 
 const SANCTIONS_TILES = [

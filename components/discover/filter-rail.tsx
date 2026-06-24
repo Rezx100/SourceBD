@@ -205,12 +205,12 @@ export function FilterRail({
     factoryTypes.length;
 
   const inputBase =
-    "w-full rounded-input border bg-bg-l0 px-3 py-2.5 text-sm text-ink-primary outline-none transition-colors focus:border-brand-forest focus:ring-2 focus:ring-brand-forest/15";
+    "w-full rounded-lg border bg-neutral-50 px-3 py-2.5 text-sm text-neutral-900 outline-none transition-colors placeholder:text-neutral-500 focus:border-brand-forest/50 focus:bg-white focus:ring-2 focus:ring-brand-forest/15";
 
   return (
     <section
       aria-label="Filter suppliers"
-      className="rounded-card border border-hairline bg-surface-l1 p-4 shadow-[0_1px_2px_rgba(15,15,20,0.03)] sm:p-5"
+      className="rounded-lg border border-neutral-200 bg-white p-4 shadow-sm sm:p-5"
     >
       <form method="get" action={basePath} className="space-y-4">
         {sort && sort !== "default" ? (
@@ -225,15 +225,12 @@ export function FilterRail({
           <>
             {q ? <input type="hidden" name="q" value={q} /> : null}
             <div className="flex items-center justify-end gap-2">
-              <button
-                type="submit"
-                className="inline-flex items-center justify-center rounded-pill bg-brand-forest px-5 py-2 text-sm font-semibold text-white transition-colors hover:bg-brand-forest-mid"
-              >
+              <button type="submit" className="btn-proto primary px-5">
                 Apply filters
               </button>
               <Link
                 href={basePath}
-                className="inline-flex items-center justify-center rounded-pill border border-hairline-strong bg-surface-l1 px-4 py-2 text-sm font-semibold text-ink-primary transition-colors hover:bg-brand-forest-tint"
+                className="inline-flex items-center justify-center rounded-lg border border-neutral-200 bg-white px-4 py-2 text-sm font-semibold text-neutral-900 transition-colors hover:bg-neutral-50"
               >
                 Reset
               </Link>
@@ -258,15 +255,12 @@ export function FilterRail({
               />
             </div>
             <div className="flex items-center gap-2">
-              <button
-                type="submit"
-                className="inline-flex items-center justify-center rounded-pill bg-brand-forest px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-forest-mid"
-              >
+              <button type="submit" className="btn-proto primary px-5">
                 Apply
               </button>
               <Link
                 href={basePath}
-                className="inline-flex items-center justify-center rounded-pill border border-hairline-strong bg-surface-l1 px-4 py-2.5 text-sm font-semibold text-ink-primary transition-colors hover:bg-brand-forest-tint"
+                className="inline-flex items-center justify-center rounded-lg border border-neutral-200 bg-white px-4 py-2.5 text-sm font-semibold text-neutral-900 transition-colors hover:bg-neutral-50"
               >
                 Reset
               </Link>
@@ -295,7 +289,7 @@ export function FilterRail({
                     "inline-flex items-center rounded-pill border px-2.5 py-1 text-[12px] font-medium transition-colors",
                     isActive
                       ? "border-brand-forest/30 bg-brand-forest-soft text-brand-forest"
-                      : "border-hairline-strong bg-surface-l1 text-ink-secondary hover:bg-brand-forest-tint",
+                      : "border-neutral-200 bg-white text-neutral-700 hover:bg-neutral-50",
                   )}
                   aria-current={isActive ? "true" : undefined}
                 >
@@ -409,7 +403,7 @@ export function FilterRail({
             the bar stays uncluttered when buyers only need the
             common filters. */}
         <details
-          className="group rounded-card border border-hairline bg-bg-l0 px-4 py-3 open:bg-surface-l1"
+          className="group rounded-lg border border-neutral-200 bg-neutral-50 px-4 py-3 open:bg-white"
           open={hasAdvancedActive}
         >
           <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-sm font-medium text-ink-primary">
@@ -478,7 +472,7 @@ export function FilterRail({
 function activeRing(active: boolean): string {
   return active
     ? "border-brand-forest/50 bg-brand-forest-tint"
-    : "border-hairline";
+    : "border-neutral-200";
 }
 
 function isQuickPickValue(category: string): boolean {
@@ -534,7 +528,7 @@ function CheckboxGroup({
                 "flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors",
                 checked
                   ? "bg-brand-forest-soft text-brand-forest"
-                  : "text-ink-secondary hover:bg-bg-l0",
+                  : "text-neutral-700 hover:bg-neutral-50",
               )}
             >
               <input
@@ -632,25 +626,25 @@ export function Pagination({
   return (
     <nav
       aria-label="Pagination"
-      className="flex items-center justify-between border-t border-hairline pt-4 text-sm"
+      className="flex items-center justify-between border-t border-neutral-200 pt-4 text-sm"
     >
       <span className="text-[11px] text-ink-tertiary">
         Page {page} of {totalPages}
       </span>
       <div className="flex items-center gap-2">
         {atFirst ? (
-          <span className="inline-flex cursor-not-allowed items-center rounded-pill border border-hairline-strong bg-surface-l1 px-4 py-2 text-sm font-semibold text-ink-primary opacity-50">
+          <span className="inline-flex cursor-not-allowed items-center rounded-lg border border-neutral-200 bg-white px-4 py-2 text-sm font-semibold text-neutral-900 opacity-50">
             Previous
           </span>
         ) : (
-          <Link href={prevHref} className="inline-flex items-center rounded-pill border border-hairline-strong bg-surface-l1 px-4 py-2 text-sm font-semibold text-ink-primary transition-colors hover:bg-brand-forest-tint">
+          <Link href={prevHref} className="inline-flex items-center rounded-lg border border-neutral-200 bg-white px-4 py-2 text-sm font-semibold text-neutral-900 transition-colors hover:bg-neutral-50">
             Previous
           </Link>
         )}
         {atLast ? (
-          <span className="inline-flex cursor-not-allowed items-center rounded-pill border border-hairline-strong bg-surface-l1 px-4 py-2 text-sm font-semibold text-ink-primary opacity-50">Next</span>
+          <span className="inline-flex cursor-not-allowed items-center rounded-lg border border-neutral-200 bg-white px-4 py-2 text-sm font-semibold text-neutral-900 opacity-50">Next</span>
         ) : (
-          <Link href={nextHref} className="inline-flex items-center rounded-pill border border-hairline-strong bg-surface-l1 px-4 py-2 text-sm font-semibold text-ink-primary transition-colors hover:bg-brand-forest-tint">
+          <Link href={nextHref} className="inline-flex items-center rounded-lg border border-neutral-200 bg-white px-4 py-2 text-sm font-semibold text-neutral-900 transition-colors hover:bg-neutral-50">
             Next
           </Link>
         )}
