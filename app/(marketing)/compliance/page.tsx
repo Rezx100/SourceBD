@@ -63,21 +63,21 @@ export default async function ComplianceHubPage() {
   const reviewedAt = oldestReviewedAt();
 
   return (
-    <main className="mx-auto max-w-5xl px-6 py-16">
+    <main className="mx-auto max-w-5xl px-4 py-10 sm:px-6 sm:py-14 md:py-16">
 
       {/* ── Hero ── */}
       <section className="text-center">
         <BlurFade delay={0.1}>
-          <p className="mb-3 inline-flex items-center gap-2 font-mono text-xs uppercase tracking-widest text-brand-forest">
+          <p className="mb-3 inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-widest text-brand-forest sm:text-xs">
             <span className="h-1.5 w-1.5 rounded-full bg-brand-forest" />
             Compliance guides
           </p>
-          <h1 className="font-display text-4xl font-extrabold tracking-tight text-neutral-900 md:text-5xl">
+          <h1 className="font-display text-3xl font-extrabold tracking-tight text-neutral-900 sm:text-4xl md:text-5xl">
             <span className="text-brand-forest">Compliance</span>
           </h1>
         </BlurFade>
         <BlurFade delay={0.2}>
-          <p className="mx-auto mt-4 max-w-lg !text-center text-base leading-relaxed text-neutral-600">
+          <p className="mx-auto mt-4 max-w-lg !text-center text-sm leading-relaxed text-neutral-600 sm:text-base">
             {HUB_METADATA.headline}
           </p>
           <p className="mx-auto mt-3 max-w-md !text-center text-sm leading-relaxed text-neutral-400">
@@ -87,21 +87,21 @@ export default async function ComplianceHubPage() {
       </section>
 
       {/* ── Regulation tiles ── */}
-      <section className="mt-12 grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
+      <section className="mt-9 grid grid-cols-1 gap-3 sm:mt-12 sm:gap-5 md:grid-cols-2 lg:grid-cols-3">
         {COMPLIANCE_PAGES.map((page, i) => (
           <BlurFade key={page.slug} delay={0.15 + i * 0.07}>
             <Link href={`/compliance/${page.slug}`} className="block h-full">
               <MagicCard
-                className="flex h-full flex-col rounded-lg border border-neutral-200 bg-white p-6 shadow-sm transition-colors hover:border-brand-forest/25 hover:bg-neutral-50"
+                className="flex h-full flex-col rounded-lg border border-neutral-200 bg-white p-4 shadow-sm transition-colors hover:border-brand-forest/25 hover:bg-neutral-50 sm:p-6"
                 gradientFrom="var(--brand-forest)"
                 gradientTo="var(--brand-forest-mid)"
                 gradientColor="var(--brand-forest-soft)"
                 gradientOpacity={0.1}
               >
-                <h2 className="font-display text-lg font-bold text-neutral-900">
+                <h2 className="font-display text-base font-bold text-neutral-900 sm:text-lg">
                   {page.shortName}
                 </h2>
-                <p className="mt-2 flex-1 text-sm leading-relaxed text-neutral-500">
+                <p className="mt-2 flex-1 text-[13px] leading-relaxed text-neutral-500 sm:text-sm">
                   {page.headline}
                 </p>
                 <span className="mt-5 inline-flex items-center gap-1 text-[12px] font-semibold text-brand-forest">
@@ -115,12 +115,12 @@ export default async function ComplianceHubPage() {
 
       {/* ── CTA band ── */}
       <BlurFade delay={0.15}>
-        <section className="mt-16 overflow-hidden rounded-lg border border-brand-forest/20 bg-brand-forest-soft p-10 text-center">
-          <h2 className="font-display text-2xl font-extrabold tracking-tight text-neutral-900">
+        <section className="mt-10 overflow-hidden rounded-lg border border-brand-forest/20 bg-brand-forest-soft p-5 text-center sm:mt-16 sm:p-10">
+          <h2 className="font-display text-xl font-extrabold tracking-tight text-neutral-900 sm:text-2xl">
             Use SourceBD&apos;s{" "}
             <span className="text-brand-forest">receipts</span> on every claim
           </h2>
-          <p className="mx-auto mt-3 max-w-md !text-center text-sm leading-relaxed text-neutral-600">
+          <p className="mx-auto mt-3 max-w-md !text-center text-[13px] leading-relaxed text-neutral-600 sm:text-sm">
             Every supplier profile carries source pills with issuer, URL,
             and last-seen date — the same provenance trail your compliance
             team needs.

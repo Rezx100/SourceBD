@@ -99,11 +99,10 @@ function Row({ issuer, action, tier, icon, tint }: Event) {
 
 export function VerificationFeed() {
   return (
-    <div className="relative mx-auto flex h-[392px] w-full max-w-[480px] flex-col overflow-hidden">
+    <div className="relative mx-auto flex h-[320px] w-full max-w-[480px] flex-col overflow-hidden sm:h-[392px]">
       <Marquee
         vertical
-        pauseOnHover
-        className="[--duration:24s] [--gap:1rem] py-0"
+        className="[--duration:28s] [--gap:0.875rem] py-0 sm:[--gap:1rem]"
       >
         {EVENTS.map((e, i) => (
           <Row key={i} {...e} />

@@ -998,21 +998,12 @@ function RscCard({ rsc }: { rsc: RscRemediation }) {
       <div className="rsc-stack">
         {pct != null ? (
           <>
-            <div>
+            <div className="rsc-score-row">
               <span className="rsc-headline">
                 {pct.toFixed(0)}
                 <span className="pct">%</span>
               </span>
-              <span
-                style={{
-                  marginLeft: 8,
-                  fontSize: 11,
-                  color: "var(--ink-tertiary)",
-                  fontFamily: "var(--font-mono)",
-                }}
-              >
-                remediation completed
-              </span>
+              <span className="rsc-score-label">remediation completed</span>
             </div>
             <div className="rsc-bar-wrap">
               <div className="rsc-bar" style={{ width: `${pct}%` }} />
@@ -1029,14 +1020,7 @@ function RscCard({ rsc }: { rsc: RscRemediation }) {
           </>
         ) : null}
         {rsc.workers_count != null || rsc.remediation_status ? (
-          <p
-            style={{
-              margin: "10px 0 0",
-              fontSize: 11,
-              color: "var(--ink-tertiary)",
-              fontFamily: "var(--font-mono)",
-            }}
-          >
+          <p className="rsc-meta-line">
             {rsc.workers_count != null
               ? `${rsc.workers_count.toLocaleString()} workers`
               : ""}

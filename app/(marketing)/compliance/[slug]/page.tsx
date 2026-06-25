@@ -94,7 +94,7 @@ export default async function ComplianceDetailPage({
   const cta = ctaFor(role);
 
   return (
-    <main className="mx-auto max-w-3xl px-6 py-16">
+    <main className="mx-auto max-w-3xl px-4 py-10 sm:px-6 sm:py-14 md:py-16">
       {/* M4 — JSON-LD Article. `datePublished` and `dateModified` both
           derive from the single `last_reviewed_at` field (CompliancePage
           has no separate publish date — the page is a living summary;
@@ -128,31 +128,31 @@ export default async function ComplianceDetailPage({
 
       <BlurFade delay={0.1}>
         <header className="mt-4">
-          <h1 className="font-display text-3xl font-extrabold tracking-tight text-neutral-900 md:text-4xl">
+          <h1 className="text-balance font-display text-2xl font-extrabold tracking-tight text-neutral-900 sm:text-3xl md:text-4xl">
             {page.title}
           </h1>
-          <p className="mt-4 text-base leading-relaxed text-neutral-600">
+          <p className="mt-4 text-sm leading-relaxed text-neutral-600 sm:text-base">
             {page.summary}
           </p>
         </header>
       </BlurFade>
 
       <BlurFade delay={0.15}>
-      <article className="mt-10 space-y-10 overflow-hidden rounded-lg border border-neutral-200 bg-white p-6 shadow-sm md:p-8">
+      <article className="mt-8 space-y-7 overflow-hidden rounded-lg border border-neutral-200 bg-white p-4 shadow-sm sm:p-6 md:mt-10 md:space-y-10 md:p-8">
         {SECTION_ORDER.map((heading) => {
           const section = page.sections.find((s) => s.heading === heading);
           if (!section) return null;
           return (
             <section key={heading}>
-              <h2 className="font-display text-xl font-semibold text-ink-primary">
+              <h2 className="font-display text-lg font-semibold text-ink-primary sm:text-xl">
                 {section.heading}
               </h2>
-              <div className="mt-3 space-y-3 text-sm text-ink-secondary leading-relaxed">
+              <div className="mt-3 space-y-3 text-[13px] leading-relaxed text-ink-secondary sm:text-sm">
                 {section.body.map((para, i) => (
                   <p key={i}>{para}</p>
                 ))}
                 {section.bullets ? (
-                  <ul className="ml-5 list-disc space-y-1">
+                  <ul className="ml-4 list-disc space-y-1 sm:ml-5">
                     {section.bullets.map((b, i) => (
                       <li key={i}>{b}</li>
                     ))}
@@ -164,12 +164,12 @@ export default async function ComplianceDetailPage({
         })}
 
         <section>
-          <h2 className="font-display text-xl font-semibold text-ink-primary">
+          <h2 className="font-display text-lg font-semibold text-ink-primary sm:text-xl">
             References
           </h2>
-          <ul className="mt-3 space-y-2 text-sm">
+          <ul className="mt-3 space-y-2 text-[13px] sm:text-sm">
             {page.references.map((ref) => (
-              <li key={ref.url}>
+              <li key={ref.url} className="break-words leading-relaxed">
                 <a
                   href={ref.url}
                   className="text-brand-forest underline hover:text-ink-primary"
@@ -189,17 +189,17 @@ export default async function ComplianceDetailPage({
       </BlurFade>
 
       <BlurFade delay={0.2}>
-        <section className="mt-12 overflow-hidden rounded-lg border border-brand-forest/20 bg-brand-forest-soft p-8 text-center">
-          <h2 className="font-display text-xl font-extrabold tracking-tight text-neutral-900">
+        <section className="mt-10 overflow-hidden rounded-lg border border-brand-forest/20 bg-brand-forest-soft p-5 text-center sm:mt-12 sm:p-8">
+          <h2 className="font-display text-lg font-extrabold tracking-tight text-neutral-900 sm:text-xl">
             <span className="text-brand-forest">Receipts</span> on every supplier
           </h2>
-          <p className="mx-auto mt-3 max-w-md !text-center text-sm leading-relaxed text-neutral-600">
+          <p className="mx-auto mt-3 max-w-md !text-center text-[13px] leading-relaxed text-neutral-600 sm:text-sm">
             Each SourceBD supplier profile carries source pills with
             issuer, URL, and last-seen date — the trail your auditor
             asks for.
           </p>
           <div className="mt-5 inline-block">
-            <Link href={cta.href} className="btn-proto primary gap-2 px-7 py-2.5 text-sm">
+            <Link href={cta.href} className="btn-proto primary gap-2 px-5 py-2.5 text-sm sm:px-7">
               {cta.label} <ArrowRight size={15} />
             </Link>
           </div>

@@ -419,18 +419,18 @@ export default async function HomeV2Page() {
 
         {/* edge-faded marquee for depth */}
         <div className="relative">
-          <Marquee pauseOnHover className="[--duration:40s] [--gap:1.25rem]">
+          <Marquee pauseOnHover className="[--duration:34s] [--gap:0.875rem] sm:[--gap:1.25rem]">
             {AUTHORITY_LOGOS.map((logo) => (
               <div
                 key={logo.alt}
-                className="flex h-16 w-32 items-center justify-center rounded-lg border border-neutral-200 bg-white px-4 shadow-sm transition duration-300 hover:border-brand-forest/25 hover:bg-neutral-50 sm:h-20 sm:w-40 sm:px-6"
+                className="flex h-14 w-28 items-center justify-center rounded-lg border border-neutral-200 bg-white px-3 shadow-sm transition duration-300 hover:border-brand-forest/25 hover:bg-neutral-50 sm:h-20 sm:w-40 sm:px-6"
               >
                 <Image
                   src={logo.src}
                   alt={logo.alt}
                   width={140}
                   height={56}
-                  className="max-h-9 w-auto max-w-[88px] object-contain sm:max-h-11 sm:max-w-[112px]"
+                  className="max-h-8 w-auto max-w-[76px] object-contain sm:max-h-11 sm:max-w-[112px]"
                 />
               </div>
             ))}
@@ -606,7 +606,7 @@ export default async function HomeV2Page() {
 
           {/* borderless orbit — bleeds into the page */}
           <BlurFade delay={0.2}>
-            <div className="relative mx-auto flex w-full max-w-[460px] scale-[0.82] justify-center sm:scale-95 lg:scale-110">
+            <div className="relative mx-auto flex w-full max-w-[420px] justify-center sm:max-w-[460px] lg:scale-105">
               <div className="absolute -inset-10 -z-10 rounded-full bg-brand-forest/10 blur-3xl" />
               <TrustOrbit />
             </div>

@@ -63,7 +63,7 @@ export default async function MsaPage() {
             </CardMeta>
           </CardHeader>
           <CardContent className="pt-0">
-            <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+            <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4">
               <Stat label="Saved" value={inputs.total_saved} />
               <Stat label="Published" value={inputs.total_published} />
               <Stat label="RSC covered" value={inputs.rsc_covered} />
@@ -122,7 +122,7 @@ function Stat({ label, value }: { label: string; value: number }) {
       <p className="text-[11px] text-ink-tertiary">
         {label}
       </p>
-      <p className="font-display text-2xl font-semibold tabular-nums text-ink-primary">
+      <p className="font-display text-xl font-semibold tabular-nums text-ink-primary sm:text-2xl">
         {value.toLocaleString()}
       </p>
     </div>

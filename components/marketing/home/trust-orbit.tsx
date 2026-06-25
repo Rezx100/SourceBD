@@ -44,21 +44,21 @@ const OUTER = [
 
 export function TrustOrbit() {
   return (
-    <div className="relative flex h-full min-h-[420px] w-full items-center justify-center sm:min-h-[500px]">
+    <div className="relative flex h-full min-h-[300px] w-full items-center justify-center sm:min-h-[420px]">
       {/* Centre — SourceBD brand mark (matches the Step 01 engine shield) */}
-      <div className="z-10 flex size-[72px] items-center justify-center rounded-lg bg-brand-forest shadow-sm sm:size-[84px]">
+      <div className="z-10 flex size-[64px] items-center justify-center rounded-lg bg-brand-forest shadow-sm sm:size-[76px]">
         <ShieldGlyph className="h-1/2 w-1/2" />
       </div>
 
       {/* Inner ring */}
-      <OrbitingCircles iconSize={48} radius={98} duration={24}>
+      <OrbitingCircles iconSize={42} radius={82} duration={34}>
         {INNER.map((l) => (
           <OrbitLogo key={l.alt} src={l.src} alt={l.alt} />
         ))}
       </OrbitingCircles>
 
       {/* Outer ring — reversed, slower */}
-      <OrbitingCircles iconSize={54} radius={160} duration={36} reverse>
+      <OrbitingCircles iconSize={46} radius={130} duration={48} reverse>
         {OUTER.map((l) => (
           <OrbitLogo key={l.alt} src={l.src} alt={l.alt} />
         ))}

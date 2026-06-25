@@ -96,7 +96,7 @@ export default async function UflpaPage() {
       ) : null}
 
       {payload ? (
-        <section className="grid grid-cols-3 gap-4">
+        <section className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
           <Stat
             label="Hits"
             value={payload.hits}
@@ -249,13 +249,13 @@ function Stat({
         : "text-sem-green";
   return (
     <Card>
-      <CardContent className="flex items-center gap-3 py-4">
-        <Icon size={24} weight="fill" className={color} />
+      <CardContent className="flex items-center gap-3 py-3 sm:py-4">
+        <Icon size={22} weight="fill" className={color} />
         <div>
           <p className="text-[11px] text-ink-tertiary">
             {label}
           </p>
-          <p className="font-display text-2xl font-semibold tabular-nums text-ink-primary">
+          <p className="font-display text-xl font-semibold tabular-nums text-ink-primary sm:text-2xl">
             {value.toLocaleString()}
           </p>
         </div>

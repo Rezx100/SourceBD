@@ -89,7 +89,7 @@ export default async function ComplianceHubPage() {
 
       <section
         aria-label="Compliance surfaces"
-        className="grid grid-cols-1 gap-4 md:grid-cols-3"
+        className="grid grid-cols-1 gap-3 sm:gap-4 md:grid-cols-3"
       >
         <HubTile
           href="/app/compliance/expiry"
@@ -208,13 +208,13 @@ function HubTile({
             {meta}
           </p>
         </div>
-        <div className="flex items-baseline gap-3">
-          <p className="font-display text-3xl font-light tabular-nums text-ink-primary">
+        <div className="flex flex-wrap items-baseline gap-2 sm:gap-3">
+          <p className="font-display text-2xl font-light tabular-nums text-ink-primary sm:text-3xl">
             {value.toLocaleString()}
           </p>
           <span className={chipClass}>{title}</span>
         </div>
-        <p className="text-[11px] text-ink-tertiary">
+        <p className="text-[11px] leading-relaxed text-ink-tertiary">
           {subline}
         </p>
       </article>

@@ -115,7 +115,7 @@ function Bucket({
   if (rows.length === 0) return null;
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
+      <CardHeader className="flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <CardTitle>{title}</CardTitle>
           <CardMeta>
