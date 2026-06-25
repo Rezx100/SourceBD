@@ -62,7 +62,7 @@ const REGS = [
   { src: "/inapp-logos/BTMA.webp", alt: "BTMA" },
 ];
 
-const BEAM_CYCLE_SECONDS = 4.8;
+const BEAM_CYCLE_SECONDS = 2.5;
 
 export function DataPipeline({ className }: { className?: string }) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -84,7 +84,7 @@ export function DataPipeline({ className }: { className?: string }) {
     <div
       ref={containerRef}
       className={cn(
-        "relative flex h-full min-h-[320px] w-full items-stretch justify-between px-1 sm:min-h-[420px] sm:px-6",
+        "relative flex h-full min-h-[380px] w-full items-stretch justify-between px-1 sm:min-h-[460px] sm:px-6",
         className,
       )}
     >
@@ -121,7 +121,7 @@ export function DataPipeline({ className }: { className?: string }) {
       {/* Beams: cert logos → engine. Square (L / elbow) routing; every beam
           fires at the same time and pulses continuously — slow travel, no gap
           between repeats so it reads as a steady circuit. */}
-      {certRefs.filter((_, i) => i % 2 === 0).map((ref, i) => (
+      {certRefs.map((ref, i) => (
         <AnimatedBeam
           key={`c-${i}`}
           containerRef={containerRef}
@@ -130,7 +130,7 @@ export function DataPipeline({ className }: { className?: string }) {
           pathType="angular"
           elbowAt={0.55}
           duration={BEAM_CYCLE_SECONDS}
-          delay={i * 0.9}
+          delay={0}
           pathColor="var(--hairline)"
           pathWidth={2}
           gradientStartColor="var(--brand-forest)"
@@ -139,7 +139,7 @@ export function DataPipeline({ className }: { className?: string }) {
       ))}
       {/* Beams: register logos → engine (mirrored square route, reversed, also
           firing simultaneously with the cert side) */}
-      {regRefs.filter((_, i) => i % 2 === 0).map((ref, i) => (
+      {regRefs.map((ref, i) => (
         <AnimatedBeam
           key={`r-${i}`}
           containerRef={containerRef}
@@ -148,7 +148,7 @@ export function DataPipeline({ className }: { className?: string }) {
           pathType="angular"
           elbowAt={0.55}
           duration={BEAM_CYCLE_SECONDS}
-          delay={i * 0.9 + 0.45}
+          delay={0}
           reverse
           pathColor="var(--hairline)"
           pathWidth={2}
