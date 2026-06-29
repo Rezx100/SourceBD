@@ -1,0 +1,192 @@
+{
+  "collection_name": "Principal products",
+  "source": "c:\\Users\\Hp\\Downloads\\extract-data-2026-06-29.json",
+  "icons": [
+    {
+      "slug": "t-shirt",
+      "icon_id": "4214599",
+      "file": "t-shirt.png"
+    },
+    {
+      "slug": "tee",
+      "icon_id": "4214594",
+      "file": "tee.png"
+    },
+    {
+      "slug": "shirt",
+      "icon_id": "4214592",
+      "file": "shirt.png"
+    },
+    {
+      "slug": "polo",
+      "icon_id": "4214595",
+      "file": "polo.png"
+    },
+    {
+      "slug": "blouse",
+      "icon_id": "4213818",
+      "file": "blouse.png",
+      "note": "Replaced 4214596 (mislabeled blazer in export) with dress-set top 4213818"
+    },
+    {
+      "slug": "hoodie",
+      "icon_id": "4213811",
+      "file": "hoodie.png"
+    },
+    {
+      "slug": "sweater",
+      "icon_id": "4213805",
+      "file": "sweater.png"
+    },
+    {
+      "slug": "cardigan",
+      "icon_id": "4213806",
+      "file": "cardigan.png"
+    },
+    {
+      "slug": "jumper",
+      "icon_id": "4214602",
+      "file": "jumper.png"
+    },
+    {
+      "slug": "jacket",
+      "icon_id": "4213807",
+      "file": "jacket.png"
+    },
+    {
+      "slug": "coat",
+      "icon_id": "4213809",
+      "file": "coat.png"
+    },
+    {
+      "slug": "vest",
+      "icon_id": "4213835",
+      "file": "vest.png"
+    },
+    {
+      "slug": "waistcoat",
+      "icon_id": "4214601",
+      "file": "waistcoat.png"
+    },
+    {
+      "slug": "suit",
+      "icon_id": "4213839",
+      "file": "suit.png"
+    },
+    {
+      "slug": "tuxedo",
+      "icon_id": "4214600",
+      "file": "tuxedo.png"
+    },
+    {
+      "slug": "dress",
+      "icon_id": "4213810",
+      "file": "dress.png"
+    },
+    {
+      "slug": "skirt",
+      "icon_id": "4213817",
+      "file": "skirt.png"
+    },
+    {
+      "slug": "denim",
+      "icon_id": "4213808",
+      "file": "denim.png"
+    },
+    {
+      "slug": "jeans",
+      "icon_id": "4213822",
+      "file": "jeans.png"
+    },
+    {
+      "slug": "trousers",
+      "icon_id": "4213826",
+      "file": "trousers.png"
+    },
+    {
+      "slug": "pants",
+      "icon_id": "4213829",
+      "file": "pants.png"
+    },
+    {
+      "slug": "shorts",
+      "icon_id": "4213827",
+      "file": "shorts.png"
+    },
+    {
+      "slug": "jogger",
+      "icon_id": "4213823",
+      "file": "jogger.png"
+    },
+    {
+      "slug": "boxers",
+      "icon_id": "4213832",
+      "file": "boxers.png"
+    },
+    {
+      "slug": "bikini",
+      "icon_id": "4213834",
+      "file": "bikini.png"
+    },
+    {
+      "slug": "pajamas",
+      "icon_id": "4213836",
+      "file": "pajamas.png"
+    },
+    {
+      "slug": "children-clothes",
+      "icon_id": "4213833",
+      "file": "children-clothes.png"
+    },
+    {
+      "slug": "infant-clothes",
+      "icon_id": "4213840",
+      "file": "infant-clothes.png"
+    },
+    {
+      "slug": "socks",
+      "icon_id": "4214302",
+      "file": "socks.png"
+    },
+    {
+      "slug": "stockings",
+      "icon_id": "4213871",
+      "file": "stockings.png"
+    },
+    {
+      "slug": "scarf",
+      "icon_id": "4213870",
+      "file": "scarf.png"
+    },
+    {
+      "slug": "cap",
+      "icon_id": "4213868",
+      "file": "cap.png"
+    },
+    {
+      "slug": "bag",
+      "icon_id": "4213851",
+      "file": "bag.png"
+    },
+    {
+      "slug": "belt",
+      "icon_id": "4213852",
+      "file": "belt.png"
+    },
+    {
+      "slug": "robe",
+      "icon_id": "4213841",
+      "file": "robe.png"
+    },
+    {
+      "slug": "shoes",
+      "icon_id": "4214299",
+      "file": "shoes.png"
+    },
+    {
+      "slug": "sneakers",
+      "icon_id": "4213881",
+      "file": "sneakers.png"
+    }
+  ]
+}

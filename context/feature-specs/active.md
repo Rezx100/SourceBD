@@ -3,10 +3,16 @@
 This file keeps routine agent sessions from scanning every inactive feature spec.
 
 ## Active / Recent Spec
-- Current frontend baseline: `context/feature-specs/spec-FE-SITEWIDE-design-conformance-pass.md`.
-- Status: frontend design stabilization polish completed in the working tree
-  on top of the sitewide light SaaS visual baseline.
-- Normal daily frontend polish should treat this spec plus `context/frontend-design-spec.md` as the relevant design source of truth.
+- No spec currently in progress.
+- Most recent ad-hoc frontend work (29 Jun 2026): principal product icons on
+  supplier profiles — local Noun Project icon set, slug resolver in
+  `lib/product-icons.ts`, deployed via quick deploy. See
+  `context/current-state.md` → Recent Frontend Polish.
+- Previous completed implementation: Admin scraper operations from the accepted
+  Cursor plan `Admin Scraper Ops` (26 Jun 2026).
+- Frontend visual baseline remains
+  `context/feature-specs/spec-FE-SITEWIDE-design-conformance-pass.md`
+  plus `context/frontend-design-spec.md`.
 
 ## Current Launch Work
 - Phase 7 public beta launch prep remains the current phase.
