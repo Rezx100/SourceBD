@@ -2,7 +2,12 @@
 
 import Link from "next/link";
 
-import { PageHeader, Panel, EmptyState } from "@/components/ui/page-kit";
+import {
+  AdminEmptyState,
+  AdminPage,
+  AdminPageHeader,
+  AdminPanel,
+} from "@/components/admin/admin-ui";
 import { Button } from "@/components/ui/button";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -38,9 +43,9 @@ export default async function AdminFeedbackPage({
   const doc = (data ?? null) as Doc | null;
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6">
-      <PageHeader
-        kicker="Admin"
+    <AdminPage maxWidth="4xl">
+      <AdminPageHeader
+        kicker="Admin · Feedback"
         title="User feedback"
         description="In-app notes submitted via the ? hotkey or the floating feedback button."
         actions={
@@ -61,15 +66,14 @@ export default async function AdminFeedbackPage({
             ))}
           </div>
         }
-        animate={false}
       />
 
       {error ? (
-        <Panel>
+        <AdminPanel>
           <p className="text-sm text-sem-red">Could not load feedback: {error.message}</p>
-        </Panel>
+        </AdminPanel>
       ) : !doc || doc.rows.length === 0 ? (
-        <EmptyState
+        <AdminEmptyState
           title="No feedback in this queue"
           description={`There are no ${status} reports right now.`}
         />
@@ -77,7 +81,7 @@ export default async function AdminFeedbackPage({
         <ul className="m-0 flex list-none flex-col gap-3 p-0">
           {doc.rows.map((row) => (
             <li key={row.id}>
-              <Panel className="space-y-3">
+              <AdminPanel className="space-y-3">
                 <div className="flex flex-wrap items-start justify-between gap-2">
                   <div>
                     <p className="font-mono text-[11px] text-ink-tertiary">
@@ -103,11 +107,11 @@ export default async function AdminFeedbackPage({
                     </Button>
                   </form>
                 ) : null}
-              </Panel>
+              </AdminPanel>
             </li>
           ))}
         </ul>
       )}
-    </div>
+    </AdminPage>
   );
 }

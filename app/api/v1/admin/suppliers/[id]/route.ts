@@ -2,7 +2,7 @@
 // Dispatches to public.admin_supplier_update; whitelist enforced by RPC.
 
 import { NextResponse } from "next/server";
-import { revalidateTag } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 
 import { getServerRole } from "@/lib/auth";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -80,6 +80,12 @@ export async function PATCH(
     .eq("id", id)
     .maybeSingle();
   const slug = (slugRow as { slug?: string } | null)?.slug;
-  if (slug) revalidateTag(tagSupplier(slug));
+  if (slug) {
+    revalidateTag(tagSupplier(slug));
+    revalidatePath(`/suppliers/${slug}`);
+    revalidatePath(`/app/suppliers/${slug}`);
+    revalidatePath("/discover");
+    revalidatePath("/app/discover");
+  }
   return NextResponse.json(data ?? { ok: true, id });
 }

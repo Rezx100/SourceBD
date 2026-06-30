@@ -1,7 +1,7 @@
 // Spec M3 — Compliance Hub. Public, indexable, static.
 //
 // Hub for 5 regulation detail pages. JC #11 ack: hybrid hub + detail
-// pattern, hub lists tiles, detail pages carry the receipts.
+// pattern, hub lists tiles, detail pages carry the verified evidence.
 //
 // Inline staleness assertion (locked-in JC #8): calls
 // `assertContentFresh()` so any page in `COMPLIANCE_PAGES` older than
@@ -118,7 +118,7 @@ export default async function ComplianceHubPage() {
         <section className="mt-10 overflow-hidden rounded-lg border border-brand-forest/20 bg-brand-forest-soft p-5 text-center sm:mt-16 sm:p-10">
           <h2 className="font-display text-xl font-extrabold tracking-tight text-neutral-900 sm:text-2xl">
             Use SourceBD&apos;s{" "}
-            <span className="text-brand-forest">receipts</span> on every claim
+            <span className="text-brand-forest">verified evidence</span> behind every claim
           </h2>
           <p className="mx-auto mt-3 max-w-md !text-center text-[13px] leading-relaxed text-neutral-600 sm:text-sm">
             Every supplier profile carries source pills with issuer, URL,

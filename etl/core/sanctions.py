@@ -14,7 +14,7 @@ import abc
 import json
 from dataclasses import dataclass, field
 from datetime import date
-from typing import Any, AsyncIterator
+from typing import Any, AsyncIterator, Callable
 
 from rapidfuzz import fuzz, process
 
@@ -203,9 +203,11 @@ class BaseSanctionScraper(abc.ABC):
 
     code: str = ""
     source_code: str = ""
+    progress_callback: Callable[[dict[str, Any]], None] | None = None
 
     def __init__(self) -> None:
         self.log = get_logger(f"etl.sanctions.{self.code}")
+        self.last_run_id: str | None = None
 
     @abc.abstractmethod
     async def fetch(self) -> AsyncIterator[SanctionEntry]:  # pragma: no cover
@@ -215,6 +217,9 @@ class BaseSanctionScraper(abc.ABC):
     async def run(self) -> dict[str, int]:
         run_id = self._open_run()
         seen = upserted = skipped = matched_total = 0
+        self._emit_progress(
+            run_id, "started", "Sanctions scraper started.", seen, upserted, skipped, matched_total
+        )
         try:
             async for entry in self.fetch():
                 seen += 1
@@ -231,6 +236,16 @@ class BaseSanctionScraper(abc.ABC):
                     self.log.info(
                         "progress", seen=seen, upserted=upserted,
                         skipped=skipped, matched=matched_total,
+                    )
+                    self._update_run_progress(run_id, seen, upserted, skipped, matched_total)
+                    self._emit_progress(
+                        run_id,
+                        "progress",
+                        f"Checked {seen} sanctions entries.",
+                        seen,
+                        upserted,
+                        skipped,
+                        matched_total,
                     )
             self._close_run(
                 run_id, "success", seen, upserted, skipped, matched_total, None
@@ -254,6 +269,7 @@ class BaseSanctionScraper(abc.ABC):
                 (self.code, get_source_id(self.source_code) if self.source_code else None),
             )
             run_id = str(cur.fetchone()["id"])
+            self.last_run_id = run_id
             c.commit()
             self.log.info("run.start", run_id=run_id)
             return run_id
@@ -286,4 +302,59 @@ class BaseSanctionScraper(abc.ABC):
         self.log.info(
             "run.end", run_id=run_id, status=status,
             seen=seen, upserted=upserted, skipped=skipped, matched=matched,
+        )
+        self._emit_progress(
+            run_id,
+            "success" if status == "success" else "failed",
+            "Sanctions scraper finished successfully." if status == "success" else (error or "Sanctions scraper failed."),
+            seen,
+            upserted,
+            skipped,
+            matched,
+        )
+
+    def _update_run_progress(
+        self,
+        run_id: str,
+        seen: int,
+        upserted: int,
+        skipped: int,
+        matched: int,
+    ) -> None:
+        meta = json.dumps({"matched_suppliers": matched})
+        with db.conn() as c, c.cursor() as cur:
+            cur.execute(
+                """update public.etl_runs
+                     set records_seen = %s,
+                         records_upserted = %s,
+                         records_skipped = %s,
+                         meta = coalesce(meta, '{}'::jsonb) || %s::jsonb
+                   where id = %s""",
+                (seen, upserted, skipped, meta, run_id),
+            )
+            c.commit()
+
+    def _emit_progress(
+        self,
+        run_id: str,
+        event_type: str,
+        message: str,
+        seen: int,
+        upserted: int,
+        skipped: int,
+        matched: int,
+    ) -> None:
+        if self.progress_callback is None:
+            return
+        self.progress_callback(
+            {
+                "etl_run_id": run_id,
+                "scraper_code": self.code,
+                "event_type": event_type,
+                "message": message,
+                "records_seen": seen,
+                "records_upserted": upserted,
+                "records_skipped": skipped,
+                "records_matched": matched,
+            }
         )

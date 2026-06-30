@@ -26,6 +26,8 @@ import { cn } from "@/lib/utils";
 
 // ----- form schema (mirrors /api/v1/match allow-lists) -----
 
+const MATCH_PAGE_SIZE = 24;
+
 const ENTITY_TYPES = [
   { value: "factory", label: "Factory" },
   { value: "buying_house", label: "Buying house" },
@@ -81,6 +83,12 @@ type MatchResult = {
   city: string | null;
   district: string | null;
   completeness_pct: number;
+  employees_total: number | null;
+  established_date: string | null;
+  principal_products: string[];
+  factory_types: string[];
+  rsc_progress_pct: number | null;
+  parent_group_name: string | null;
   t13_source_count: number;
   source_tags: string[];
   match_score: number;
@@ -90,6 +98,9 @@ type MatchResult = {
 type MatchResponse = {
   criteria_count: number;
   total: number;
+  limit: number;
+  offset: number;
+  has_more: boolean;
   results: MatchResult[];
 };
 
@@ -113,13 +124,17 @@ export function SmartMatchWizard() {
     setStep(1);
   }
 
-  function submit() {
+  function requestMatches(offset: number, append: boolean) {
     setError(null);
     if (summarise(form).length === 0) {
       setError("Add a product or at least one requirement before finding matches.");
       return;
     }
-    const payload = buildPayload(form);
+    const payload = {
+      ...buildPayload(form),
+      limit: MATCH_PAGE_SIZE,
+      offset,
+    };
     startTransition(async () => {
       try {
         const res = await fetch("/api/v1/match", {
@@ -133,11 +148,19 @@ export function SmartMatchWizard() {
           return;
         }
         const data = (await res.json()) as MatchResponse;
-        setResponse(data);
+        setResponse((prev) =>
+          append && prev
+            ? { ...data, results: [...prev.results, ...data.results] }
+            : data,
+        );
       } catch (e) {
         setError(e instanceof Error ? e.message : "Network error");
       }
     });
+  }
+
+  function submit() {
+    requestMatches(0, false);
   }
 
   return (
@@ -170,7 +193,14 @@ export function SmartMatchWizard() {
         <div className="proto-card border-sem-red text-sm text-sem-red">{error}</div>
       ) : null}
 
-      {response ? <ResultsPanel data={response} onReset={reset} /> : null}
+      {response ? (
+        <ResultsPanel
+          data={response}
+          pending={pending}
+          onLoadMore={() => requestMatches(response.results.length, true)}
+          onReset={reset}
+        />
+      ) : null}
     </div>
   );
 }
@@ -239,7 +269,7 @@ function Step1Product({
       </div>
       <Field
         label="What are you making?"
-        hint="Use a simple product name, such as shirts, denim, knitwear, jackets, or uniforms."
+        hint="Use buyer-style intent, such as kids shirt, ladies trousers, denim jacket, or uniforms."
       >
         <input
           type="text"
@@ -410,7 +440,7 @@ function Step3Review({
       {summary.length === 0 ? (
         <p className="affiliation-disclaimer">
           No criteria added. SourceBD will return the highest-quality verified
-          suppliers by receipt count.
+          suppliers by evidence count.
         </p>
       ) : (
         <ul className="pill-row m-0 list-none p-0">
@@ -439,23 +469,36 @@ function Step3Review({
 
 function ResultsPanel({
   data,
+  pending,
+  onLoadMore,
   onReset,
 }: {
   data: MatchResponse;
+  pending: boolean;
+  onLoadMore: () => void;
   onReset: () => void;
 }) {
+  const shown = data.results.length;
   return (
     <section aria-label="Match results" className="space-y-3">
       <header className="flex items-baseline justify-between gap-3">
-        <h2 className="font-display text-lg font-light tracking-tight text-ink-primary">
-          {data.total} {data.total === 1 ? "match" : "matches"}
-          {data.criteria_count > 0 ? (
-            <span className="ml-2 text-[11px] text-ink-tertiary">
-              against {data.criteria_count}{" "}
-              {data.criteria_count === 1 ? "criterion" : "criteria"}
-            </span>
+        <div>
+          <h2 className="font-display text-lg font-light tracking-tight text-ink-primary">
+            {data.total} {data.total === 1 ? "match" : "matches"}
+            {data.criteria_count > 0 ? (
+              <span className="ml-2 text-[11px] text-ink-tertiary">
+                against {data.criteria_count}{" "}
+                {data.criteria_count === 1 ? "criterion" : "criteria"}
+              </span>
+            ) : null}
+          </h2>
+          {data.total > 0 ? (
+            <p className="mt-1 text-[12px] text-ink-tertiary">
+              Showing {shown} of {data.total}. Search intent uses the same
+              synonym and compound-product brain as Discover.
+            </p>
           ) : null}
-        </h2>
+        </div>
         <button type="button" onClick={onReset} className="btn-proto">
           Start over
         </button>
@@ -493,6 +536,14 @@ function ResultsPanel({
           ))}
         </ul>
       )}
+
+      {data.has_more ? (
+        <div className="flex justify-center pt-2">
+          <Button variant="secondary" onClick={onLoadMore} disabled={pending}>
+            {pending ? "Loading…" : `Load more matches (${shown}/${data.total})`}
+          </Button>
+        </div>
+      ) : null}
     </section>
   );
 }
@@ -507,12 +558,13 @@ function matchToDiscoverRow(r: MatchResult): DiscoverRow {
     district: r.district,
     source_tags: r.source_tags,
     t13_source_count: r.t13_source_count,
-    employees_total: null,
-    established_date: null,
-    principal_products: [],
-    factory_types: [],
-    rsc_progress_pct: null,
-    parent_group_name: null,
+    completeness_pct: r.completeness_pct,
+    employees_total: r.employees_total,
+    established_date: r.established_date,
+    principal_products: r.principal_products,
+    factory_types: r.factory_types,
+    rsc_progress_pct: r.rsc_progress_pct,
+    parent_group_name: r.parent_group_name,
     total_count: 0,
   };
 }

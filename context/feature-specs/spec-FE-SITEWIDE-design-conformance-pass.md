@@ -27,7 +27,7 @@ This spec covers steps 1 through 4 only. Step 5 is explicitly parked for a follo
 These inherit from [AGENTS.md](../../AGENTS.md), [architecture.md](../architecture.md), [ai-workflow-rules.md](../ai-workflow-rules.md), [frontend-design-spec.md](../frontend-design-spec.md), and `.github/copilot-instructions.md`.
 
 1. **No SBI leakage.** No public, buyer, supplier, marketing, email, SEO, or public API surface may render SBI totals, pillar values, internal scores, grades, ratings, or score-like SourceBD opinions. Admin-only remains the exception.
-2. **Receipts-first copy.** Use source-backed words: receipts, registers, certifications, RSC remediation, source records, provenance. Avoid internal phrases like data moat in user-facing UI.
+2. **Verified-evidence copy.** Use source-backed words: verified evidence, verified sources, registers, certifications, RSC remediation, source records, and provenance. Avoid internal phrases like data moat in user-facing UI.
 3. **Source hierarchy is law.** Tier 6 never appears as primary UI evidence. Brand attributions follow the per-factory authenticity rule in [logos.lock.md](../logos.lock.md).
 4. **Server-side security stays untouched.** Do not weaken auth, ownership checks, PII gating, RLS, middleware, suspension, or admin role gates.
 5. **No DB changes.** No Supabase migrations, no new RPCs, no table/view/function edits, no ETL work.
@@ -91,7 +91,7 @@ Prefer these local sources:
 - Magic UI components in `components/ui/` for cards, bento/grid layouts, subtle reveal, animated backgrounds, and button treatments when appropriate.
 - Existing shadcn-style primitives for form controls, tabs, dialogs, dropdowns, and skeletons.
 - Existing Phosphor icons because the app already standardised on Phosphor in [architecture.md](../architecture.md).
-- Existing source/receipt components where they already enforce the no-SBI contract.
+- Existing source/evidence components where they already enforce the no-SBI contract.
 
 Do not introduce another icon family, animation library, table library, CSS framework, or visual token package.
 
@@ -120,7 +120,7 @@ Required fix:
 
 - Replace or reduce decorative hero treatment in favour of a portal-style evidence/dossier preview or product-derived proof surface.
 - Match portal cards, buttons, search input, source chips, and footer rhythm.
-- Preserve receipts-first methodology and affiliation disclaimer.
+- Preserve verified-evidence methodology and affiliation disclaimer.
 
 ### 3.3 Public Discover
 

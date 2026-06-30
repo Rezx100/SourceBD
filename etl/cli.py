@@ -15,66 +15,12 @@ import typer
 
 from etl.core.db import db
 from etl.core.logging import get_logger
-from etl.scrapers.bgmea_pdf import BgmeaPdfScraper
-from etl.scrapers.bgmea_web import BgmeaWebScraper
-from etl.scrapers.bkmea_web import BkmeaScraper
-from etl.scrapers.bkmea_detail import BkmeaDetailScraper
-from etl.scrapers.bgapmea_web import BgapmeaScraper
-from etl.scrapers.epb_web import EpbScraper
-from etl.scrapers.rsc import RscScraper
-from etl.scrapers.rsc_reports import RscReportsScraper
-from etl.scrapers.rsc_updates import RscUpdatesScraper
-from etl.scrapers.rsc_documents import RscDocumentsScraper
-from etl.scrapers.uflpa import UflpaScraper
-from etl.scrapers.cbp_wro import CbpWroScraper
-from etl.scrapers.ofac_sdn import OfacSdnScraper
-from etl.scrapers.uk_ofsi import UkOfsiScraper
-from etl.scrapers.eu_sanctions import EuSanctionsScraper
-from etl.scrapers.ilab_tvpra import IlabTvpraScraper
-from etl.scrapers.gots import GotsScraper
-from etl.scrapers.sa8000 import Sa8000Scraper
-from etl.scrapers.oeko_tex import OekoTexScraper
 from etl.scrapers.btma_spinning import BtmaSpinningScraper
-from etl.scrapers.brand_disclosures import (
-    BrandHmScraper,
-    BrandInditexScraper,
-    BrandPrimarkScraper,
-    BrandAsosScraper,
-    BrandMsScraper,
-    BrandNextScraper,
-)
+from etl.scrapers.registry import SCRAPERS
+from etl.scrapers.rsc_documents import RscDocumentsScraper
 
 app = typer.Typer(add_completion=False, help="SourceBD ETL")
 log = get_logger("etl.cli")
-
-SCRAPERS = {
-    "bgmea_pdf": BgmeaPdfScraper,
-    "bgmea_web": BgmeaWebScraper,
-    "bkmea_web": BkmeaScraper,
-    "bkmea_detail": BkmeaDetailScraper,
-    "bgapmea_web": BgapmeaScraper,
-    "epb_web": EpbScraper,
-    "rsc": RscScraper,
-    "rsc_reports": RscReportsScraper,
-    "rsc_updates": RscUpdatesScraper,
-    "rsc_documents": RscDocumentsScraper,
-    "uflpa": UflpaScraper,
-    "cbp_wro": CbpWroScraper,
-    "ofac_sdn": OfacSdnScraper,
-    "uk_ofsi": UkOfsiScraper,
-    "eu_sanctions": EuSanctionsScraper,
-    "ilab_tvpra": IlabTvpraScraper,
-    "gots": GotsScraper,
-    "sa8000": Sa8000Scraper,
-    "oeko_tex": OekoTexScraper,
-    "btma_spinning": BtmaSpinningScraper,
-    "brand_hm": BrandHmScraper,
-    "brand_inditex": BrandInditexScraper,
-    "brand_primark": BrandPrimarkScraper,
-    "brand_asos": BrandAsosScraper,
-    "brand_ms": BrandMsScraper,
-    "brand_next": BrandNextScraper,
-}
 
 MIGRATIONS_DIR = Path(__file__).parent.parent / "supabase" / "migrations"
 
@@ -118,6 +64,28 @@ def run(scraper: str) -> None:
         typer.echo(f"unknown scraper: {scraper}. Try `list`.")
         raise typer.Exit(1)
     result = asyncio.run(cls().run())
+    typer.echo(str(result))
+
+
+@app.command("enqueue-due-schedules")
+def enqueue_due_schedules_cmd(
+    limit: int = typer.Option(None, help="Only enqueue the first N due schedules."),
+) -> None:
+    """Create queue jobs for due admin scraper timers."""
+    from etl.jobs.scraper_queue import enqueue_due_schedules
+
+    result = enqueue_due_schedules(limit=limit)
+    typer.echo(str(result))
+
+
+@app.command("run-queue")
+def run_queue_cmd(
+    limit: int = typer.Option(1, help="Run at most N pending scraper jobs."),
+) -> None:
+    """Run pending admin-requested scraper jobs."""
+    from etl.jobs.scraper_queue import run_queue
+
+    result = run_queue(limit=limit)
     typer.echo(str(result))
 
 

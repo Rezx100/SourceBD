@@ -98,7 +98,7 @@ const SAMPLE_COLS: Column<SampleRow>[] = [
 const WIZ_STEPS = [
   { id: "product", label: "Product", hint: "Category + specs" },
   { id: "req", label: "Requirements", hint: "MOQ, lead time, certs" },
-  { id: "review", label: "Review & match", hint: "Receipts + ranking" },
+  { id: "review", label: "Review & match", hint: "Evidence + ranking" },
 ];
 
 export function R1Showcase() {

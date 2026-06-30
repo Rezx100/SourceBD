@@ -9,8 +9,10 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-brand-forest text-white hover:bg-brand-forest-mid",
-        primary: "bg-brand-forest text-white hover:bg-brand-forest-mid",
+        default:
+          "bg-brand-forest text-ink-on-accent hover:bg-brand-forest-mid hover:text-ink-on-accent",
+        primary:
+          "bg-brand-forest text-ink-on-accent hover:bg-brand-forest-mid hover:text-ink-on-accent",
         outline:
           "border-border bg-background hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:border-input dark:bg-input/30 dark:hover:bg-input/50",
         secondary:

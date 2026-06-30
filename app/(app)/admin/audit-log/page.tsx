@@ -3,15 +3,20 @@
 // substring / since / until filters from URL search params. Admin-only;
 // middleware gates `/admin/*` and the RPC re-checks role inside its body.
 
-import Link from "next/link";
-
 import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardMeta,
-  CardTitle,
-} from "@/components/ui/card";
+  ADMIN_INPUT_CLASS,
+  ADMIN_SELECT_CLASS,
+  AdminActionLink,
+  AdminEmptyState,
+  AdminField,
+  AdminFilterPanel,
+  AdminPage,
+  AdminPageHeader,
+  AdminPagination,
+  AdminPanel,
+  formatAdminDateTime,
+  humanizeAdminToken,
+} from "@/components/admin/admin-ui";
 import { Badge } from "@/components/ui/badge";
 import { ResponsiveTable, type Column } from "@/components/ui/responsive-table";
 import { Tag } from "@/components/ui/tag";
@@ -62,7 +67,7 @@ const AUDIT_COLUMNS: Column<Row>[] = [
     label: "When",
     render: (r) => (
       <span className="font-mono text-xs text-ink-secondary">
-        {new Date(r.created_at).toLocaleString()}
+        {formatAdminDateTime(r.created_at)}
       </span>
     ),
   },
@@ -71,8 +76,8 @@ const AUDIT_COLUMNS: Column<Row>[] = [
     label: "Action",
     render: (r) => (
       <span className="flex flex-wrap items-center gap-1.5">
-        <Badge tone="active">{r.action}</Badge>
-        <Tag>{r.target_table}</Tag>
+        <Badge tone="active">{humanizeAdminToken(r.action)}</Badge>
+        <Tag>{humanizeAdminToken(r.target_table)}</Tag>
       </span>
     ),
   },
@@ -91,27 +96,19 @@ const AUDIT_COLUMNS: Column<Row>[] = [
     render: (r) => (
       <span className="font-mono text-[11px] text-ink-tertiary">
         {r.actor.email || shortId(r.actor.id)}
-        {r.actor.role ? ` · ${r.actor.role}` : ""}
+        {r.actor.role ? ` · ${humanizeAdminToken(r.actor.role)}` : ""}
       </span>
     ),
   },
 ];
 
-function PageHeader({ total }: { total?: number }) {
+function AuditHeader({ total }: { total?: number }) {
   return (
-    <div className="border-b border-hairline pb-6">
-      <p className="mb-2 inline-flex items-center gap-2 font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-brand-forest">
-        <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-brand-forest" />
-        Admin
-      </p>
-      <h1 className="font-display text-[26px] font-extrabold leading-[1.05] tracking-[-0.03em] text-ink-primary sm:text-[32px]">
-        Audit log
-      </h1>
-      <p className="mt-2.5 max-w-2xl text-[15px] leading-relaxed text-ink-secondary">
-        Every administrative action across suppliers, certifications, users, and
-        sanctions decisions. {typeof total === "number" ? `${total} rows.` : null}
-      </p>
-    </div>
+    <AdminPageHeader
+      kicker="Admin · Audit"
+      title="Audit log"
+      description={`Every administrative action across suppliers, certifications, users, and sanctions decisions.${typeof total === "number" ? ` ${total} rows.` : ""}`}
+    />
   );
 }
 
@@ -142,15 +139,15 @@ export default async function AdminAuditLogPage({
 
   if (error || data == null) {
     return (
-      <div className="mx-auto max-w-5xl space-y-6">
-        <PageHeader />
-        <Card>
-          <CardContent className="text-sm text-sem-red">
+      <AdminPage maxWidth="5xl">
+        <AuditHeader />
+        <AdminPanel>
+          <p className="text-sm text-sem-red">
             Could not load audit log
             {error?.message ? <>: {error.message}</> : null}.
-          </CardContent>
-        </Card>
-      </div>
+          </p>
+        </AdminPanel>
+      </AdminPage>
     );
   }
 
@@ -171,108 +168,94 @@ export default async function AdminAuditLogPage({
   };
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6">
-      <PageHeader total={doc.total} />
+    <AdminPage maxWidth="5xl">
+      <AuditHeader total={doc.total} />
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Filters</CardTitle>
-          <CardMeta>GET /admin/audit-log</CardMeta>
-        </CardHeader>
-        <CardContent className="pt-0">
+      <AdminFilterPanel
+        title="Find audit entries"
+        description="Filter by action, target, actor, or timestamp range."
+      >
           <form
             method="get"
             action="/admin/audit-log"
             className="grid grid-cols-1 gap-3 sm:grid-cols-3"
           >
-            <label className="flex flex-col gap-1 text-[12px] text-ink-secondary">
-              Action
+            <AdminField label="Action">
               <select
                 name="action"
                 defaultValue={action}
-                className="rounded-input border border-hairline bg-bg-l0 px-2 py-1.5 text-sm outline-none focus:border-accent-indigo"
+                className={ADMIN_SELECT_CLASS}
               >
                 <option value="">Any</option>
                 {doc.facets.actions.map((a) => (
                   <option key={a} value={a}>
-                    {a}
+                    {humanizeAdminToken(a)}
                   </option>
                 ))}
               </select>
-            </label>
-            <label className="flex flex-col gap-1 text-[12px] text-ink-secondary">
-              Target table
+            </AdminField>
+            <AdminField label="Target table">
               <select
                 name="target"
                 defaultValue={targetTable}
-                className="rounded-input border border-hairline bg-bg-l0 px-2 py-1.5 text-sm outline-none focus:border-accent-indigo"
+                className={ADMIN_SELECT_CLASS}
               >
                 <option value="">Any</option>
                 {doc.facets.target_tables.map((t) => (
                   <option key={t} value={t}>
-                    {t}
+                    {humanizeAdminToken(t)}
                   </option>
                 ))}
               </select>
-            </label>
-            <label className="flex flex-col gap-1 text-[12px] text-ink-secondary">
-              Actor email contains
+            </AdminField>
+            <AdminField label="Actor email contains">
               <input
                 type="search"
                 name="actor"
                 defaultValue={actorEmail}
                 placeholder="min 2 chars"
-                className="rounded-input border border-hairline bg-bg-l0 px-2 py-1.5 text-sm outline-none focus:border-accent-indigo"
+                className={ADMIN_INPUT_CLASS}
               />
-            </label>
-            <label className="flex flex-col gap-1 text-[12px] text-ink-secondary">
-              Since (ISO timestamp)
+            </AdminField>
+            <AdminField label="Since (ISO timestamp)">
               <input
                 type="text"
                 name="since"
                 defaultValue={since}
                 placeholder="2026-05-01T00:00:00Z"
-                className="rounded-input border border-hairline bg-bg-l0 px-2 py-1.5 font-mono text-xs outline-none focus:border-accent-indigo"
+                className={`${ADMIN_INPUT_CLASS} font-mono text-xs`}
               />
-            </label>
-            <label className="flex flex-col gap-1 text-[12px] text-ink-secondary">
-              Until (ISO timestamp)
+            </AdminField>
+            <AdminField label="Until (ISO timestamp)">
               <input
                 type="text"
                 name="until"
                 defaultValue={until}
                 placeholder="2026-06-30T23:59:59Z"
-                className="rounded-input border border-hairline bg-bg-l0 px-2 py-1.5 font-mono text-xs outline-none focus:border-accent-indigo"
+                className={`${ADMIN_INPUT_CLASS} font-mono text-xs`}
               />
-            </label>
+            </AdminField>
             <div className="flex items-end gap-2">
               <button
                 type="submit"
-                className="rounded-pill border border-hairline px-3 py-1.5 text-xs hover:border-accent-indigo hover:text-accent-indigo"
+                className="min-h-[44px] rounded-pill border border-brand-forest bg-brand-forest px-4 text-sm font-semibold text-white hover:bg-brand-forest-mid"
               >
                 Apply
               </button>
-              <Link
-                href="/admin/audit-log"
-                className="rounded-pill border border-hairline px-3 py-1.5 text-xs text-ink-secondary hover:border-accent-indigo hover:text-accent-indigo"
-              >
-                Reset
-              </Link>
+              <AdminActionLink href="/admin/audit-log">Reset</AdminActionLink>
             </div>
           </form>
-        </CardContent>
-      </Card>
+      </AdminFilterPanel>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Entries</CardTitle>
-          <CardMeta>
-            {doc.total} total · page {page} / {totalPages}
-          </CardMeta>
-        </CardHeader>
-        <CardContent>
+      <AdminPanel
+        title="Entries"
+        meta={`${doc.total} total · page ${page} / ${totalPages}`}
+        padded={false}
+      >
           {doc.rows.length === 0 ? (
-            <p className="text-sm text-ink-tertiary">No entries match.</p>
+            <div className="p-4 sm:p-5">
+              <AdminEmptyState title="No entries match" />
+            </div>
           ) : (
             <ResponsiveTable
               mode="stacked"
@@ -281,35 +264,12 @@ export default async function AdminAuditLogPage({
               rowKey={(r) => r.id}
               rowHref={(r) => `/admin/audit-log/${r.id}`}
               caption="Audit log entries"
+              className="border-0 shadow-none"
             />
           )}
-        </CardContent>
-      </Card>
+      </AdminPanel>
 
-      {totalPages > 1 ? (
-        <nav className="flex items-center justify-between text-xs">
-          {page > 1 ? (
-            <Link
-              href={pageHref(page - 1)}
-              className="rounded-pill border border-hairline px-3 py-1.5 text-ink-secondary hover:border-accent-indigo hover:text-accent-indigo"
-            >
-              ← Prev
-            </Link>
-          ) : (
-            <span />
-          )}
-          {page < totalPages ? (
-            <Link
-              href={pageHref(page + 1)}
-              className="rounded-pill border border-hairline px-3 py-1.5 text-ink-secondary hover:border-accent-indigo hover:text-accent-indigo"
-            >
-              Next →
-            </Link>
-          ) : (
-            <span />
-          )}
-        </nav>
-      ) : null}
-    </div>
+      <AdminPagination page={page} totalPages={totalPages} pageHref={pageHref} />
+    </AdminPage>
   );
 }

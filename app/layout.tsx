@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Archivo, Hanken_Grotesk, IBM_Plex_Mono } from "next/font/google";
+import { Archivo, Hanken_Grotesk, IBM_Plex_Mono, Syne } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 
@@ -29,9 +29,21 @@ const mono = IBM_Plex_Mono({
   weight: ["400", "500", "600"],
 });
 
+const brand = Syne({
+  subsets: ["latin"],
+  variable: "--font-brand",
+  display: "swap",
+  weight: ["500", "600", "700"],
+});
+
 export const metadata: Metadata = {
   title: "SourceBD",
   description: "Verified Bangladesh RMG supplier intelligence.",
+  icons: {
+    icon: "/icons/brand/sourcebd-logo.png",
+    shortcut: "/icons/brand/sourcebd-logo.png",
+    apple: "/icons/brand/sourcebd-logo.png",
+  },
 };
 
 // Spec P1: explicit mobile viewport. Without this, mobile Safari renders
@@ -44,7 +56,16 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={cn(display.variable, body.variable, mono.variable, "font-sans")}>
+    <html
+      lang="en"
+      className={cn(
+        display.variable,
+        body.variable,
+        mono.variable,
+        brand.variable,
+        "font-sans",
+      )}
+    >
       <body suppressHydrationWarning>{children}</body>
     </html>
   );

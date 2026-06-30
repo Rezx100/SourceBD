@@ -111,7 +111,7 @@ export const COMPLIANCE_PAGES: CompliancePage[] = [
       {
         heading: "How SourceBD's data helps",
         body: [
-          "Drafting a §54 statement requires you to describe your supply chain structure with named factories, the registers and certifications they hold, and the steps you have taken to assess risk. SourceBD surfaces the receipts that back those claims:",
+          "Drafting a §54 statement requires you to describe your supply chain structure with named factories, the registers and certifications they hold, and the steps you have taken to assess risk. SourceBD surfaces the verified evidence behind those claims:",
         ],
         bullets: [
           "Government registers (BGMEA, BKMEA, BTMA, BGAPMEA, EPB, RSC) with reg numbers per supplier.",
@@ -483,7 +483,7 @@ export const COMPLIANCE_PAGES: CompliancePage[] = [
       {
         heading: "How SourceBD's data helps",
         body: [
-          "CSDDD requires a documented, repeatable due-diligence process across your chain of activities. SourceBD's receipts-first model is built for that:",
+          "CSDDD requires a documented, repeatable due-diligence process across your chain of activities. SourceBD's verified-evidence model is built for that:",
         ],
         bullets: [
           "Every supplier in the index carries source-pill provenance for every published claim — issuer, source URL, last-seen date — so each fact in your due-diligence record is verifiable by an auditor.",
@@ -522,7 +522,7 @@ export const COMPLIANCE_PAGES: CompliancePage[] = [
 export const HUB_METADATA = {
   title: "Compliance — SourceBD",
   headline:
-    "Receipts-first compliance education for UK, US, EU, and CA buyers sourcing from Bangladesh.",
+    "Verified-evidence compliance education for UK, US, EU, and CA buyers sourcing from Bangladesh.",
   summary:
     "Five regulations shape supplier due diligence for brands and importers sourcing apparel from Bangladesh. SourceBD's index is built to support each of them. The pages below summarise what the regulation requires, who it binds, and what the SourceBD data layer surfaces to back your own compliance record.",
   description:

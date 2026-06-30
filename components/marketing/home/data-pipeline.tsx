@@ -11,8 +11,8 @@
 import React, { forwardRef, useRef } from "react";
 import Image from "next/image";
 
+import { BrandMarkWithHairline } from "@/components/marketing/logo";
 import { AnimatedBeam } from "@/components/ui/animated-beam";
-import { ShieldGlyph } from "@/components/marketing/logo";
 import { cn } from "@/lib/utils";
 
 const Node = forwardRef<
@@ -52,22 +52,46 @@ const CERTS = [
   { src: "/inapp-logos/wrap.png", alt: "WRAP" },
   { src: "/inapp-logos/gost.png", alt: "GOTS" },
   { src: "/inapp-logos/GRS.png", alt: "GRS" },
+  { src: "/inapp-logos/RCS.png", alt: "RCS" },
 ];
 
 // Right — government registers + trade associations
 const REGS = [
-  { src: "/inapp-logos/RSC.png", alt: "RSC" },
-  { src: "/inapp-logos/bgmea.png", alt: "BGMEA" },
+  { src: "/inapp-logos/RSC-logo.png", alt: "RSC" },
+  { src: "/inapp-logos/BGMEA%20logo.png", alt: "BGMEA" },
   { src: "/inapp-logos/bkmea.png", alt: "BKMEA" },
+  { src: "/inapp-logos/BGAPMEA%20logo.png", alt: "BGAPMEA" },
   { src: "/inapp-logos/BTMA.webp", alt: "BTMA" },
 ];
 
-const BEAM_CYCLE_SECONDS = 2.5;
+const BEAM_CYCLE_SECONDS = 3.2;
+
+function CanonicalIndexNode() {
+  return (
+    <div className="relative z-20">
+      <span
+        aria-hidden
+        className="absolute -left-1 top-1/2 z-10 size-2 -translate-y-1/2 rounded-full bg-brand-forest shadow-[0_0_0_5px_var(--brand-forest-soft)] motion-safe:animate-pulse"
+        style={{ animationDuration: `${BEAM_CYCLE_SECONDS}s` }}
+      />
+      <span
+        aria-hidden
+        className="absolute -right-1 top-1/2 z-10 size-2 -translate-y-1/2 rounded-full bg-brand-forest shadow-[0_0_0_5px_var(--brand-forest-soft)] motion-safe:animate-pulse"
+        style={{ animationDuration: `${BEAM_CYCLE_SECONDS}s` }}
+      />
+      <BrandMarkWithHairline
+        durationSeconds={BEAM_CYCLE_SECONDS}
+        wrapperClassName="relative"
+      />
+    </div>
+  );
+}
 
 export function DataPipeline({ className }: { className?: string }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const engineRef = useRef<HTMLDivElement>(null);
   const certRefs = [
+    useRef<HTMLDivElement>(null),
     useRef<HTMLDivElement>(null),
     useRef<HTMLDivElement>(null),
     useRef<HTMLDivElement>(null),
@@ -78,18 +102,19 @@ export function DataPipeline({ className }: { className?: string }) {
     useRef<HTMLDivElement>(null),
     useRef<HTMLDivElement>(null),
     useRef<HTMLDivElement>(null),
+    useRef<HTMLDivElement>(null),
   ];
 
   return (
     <div
       ref={containerRef}
       className={cn(
-        "relative flex h-full min-h-[380px] w-full items-stretch justify-between px-1 sm:min-h-[460px] sm:px-6",
+        "relative isolate grid min-h-[340px] w-full grid-cols-[72px_minmax(150px,1fr)_72px] items-center gap-3 px-1 sm:min-h-[460px] sm:grid-cols-[82px_minmax(170px,1fr)_82px] sm:gap-5 sm:px-6",
         className,
       )}
     >
       {/* Left — certification bodies */}
-      <div className="flex flex-col justify-center gap-5 sm:gap-7">
+      <div className="flex flex-col items-center justify-center gap-5 sm:gap-7">
         {CERTS.map((c, i) => (
           <Node key={c.alt} ref={certRefs[i]} title={`Certification · ${c.alt}`}>
             <Logo src={c.src} alt={c.alt} />
@@ -97,20 +122,15 @@ export function DataPipeline({ className }: { className?: string }) {
         ))}
       </div>
 
-      {/* Centre — SourceBD verification engine (absolutely centred so it
-          stays dead-centre regardless of column widths) */}
-      <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center">
-        <div
-          ref={engineRef}
-          title="SourceBD verification engine"
-          className="pointer-events-auto flex size-20 items-center justify-center rounded-lg bg-brand-forest shadow-sm sm:size-24"
-        >
-          <ShieldGlyph className="h-1/2 w-1/2" />
+      {/* Centre — canonical SourceBD index receiving both evidence streams. */}
+      <div className="z-10 flex h-full items-center justify-center">
+        <div ref={engineRef} title="SourceBD canonical index">
+          <CanonicalIndexNode />
         </div>
       </div>
 
       {/* Right — registers & associations */}
-      <div className="flex flex-col justify-center gap-5 sm:gap-7">
+      <div className="flex flex-col items-center justify-center gap-5 sm:gap-7">
         {REGS.map((r, i) => (
           <Node key={r.alt} ref={regRefs[i]} title={`Register · ${r.alt}`}>
             <Logo src={r.src} alt={r.alt} />
@@ -146,7 +166,7 @@ export function DataPipeline({ className }: { className?: string }) {
           fromRef={ref}
           toRef={engineRef}
           pathType="angular"
-          elbowAt={0.55}
+          elbowAt={0.45}
           duration={BEAM_CYCLE_SECONDS}
           delay={0}
           reverse

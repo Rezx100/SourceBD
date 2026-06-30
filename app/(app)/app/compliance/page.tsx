@@ -97,6 +97,13 @@ export default async function ComplianceHubPage() {
           title="Certification expiry"
           meta="Next 90 days"
           value={expCount}
+          statusLabel={
+            (expiry?.bucket_30 ?? 0) > 0
+              ? "Action needed"
+              : expCount > 0
+                ? "Monitoring"
+                : "Clear"
+          }
           chip={
             (expiry?.bucket_30 ?? 0) > 0
               ? "alert"
@@ -116,6 +123,7 @@ export default async function ComplianceHubPage() {
           title="UFLPA tracker"
           meta="Forced-labour exposure"
           value={uflpaHits + uflpaFlags}
+          statusLabel={uflpaHits > 0 ? "Hit" : uflpaFlags > 0 ? "Review" : "Clear"}
           chip={uflpaHits > 0 ? "alert" : uflpaFlags > 0 ? "active" : "success"}
           subline={
             uflpa
@@ -129,6 +137,7 @@ export default async function ComplianceHubPage() {
           title="MSA §54 generator"
           meta="Modern Slavery Act"
           value={msaIn?.total_published ?? 0}
+          statusLabel="Draft ready"
           chip="neutral"
           subline={
             msaIn
@@ -177,6 +186,7 @@ function HubTile({
   title,
   meta,
   value,
+  statusLabel,
   chip,
   subline,
 }: {
@@ -185,6 +195,7 @@ function HubTile({
   title: string;
   meta: string;
   value: number;
+  statusLabel: string;
   chip: "neutral" | "active" | "alert" | "success";
   subline: string;
 }) {
@@ -199,24 +210,34 @@ function HubTile({
   return (
     <Link
       href={href}
-      className="block rounded-card focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-forest"
+      className="group block rounded-card focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-forest"
     >
-      <article className="proto-card hoverable h-full space-y-3">
-        <div className="flex items-center gap-2">
-          <Icon size={18} weight="duotone" className="text-brand-forest" />
-          <p className="text-[10px] font-semibold text-ink-tertiary">
+      <article className="h-full rounded-card border border-hairline bg-surface-l1 p-4 shadow-[0_1px_2px_rgba(15,15,20,0.05)] transition duration-200 group-hover:-translate-y-0.5 group-hover:border-brand-forest/30 group-hover:shadow-l2 sm:p-5">
+        <div className="flex items-start justify-between gap-3">
+          <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-neutral-200 bg-neutral-50 text-ink-secondary">
+            <Icon size={20} weight="duotone" />
+          </span>
+          <span className={chipClass}>{statusLabel}</span>
+        </div>
+
+        <div className="mt-4">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-ink-tertiary">
             {meta}
           </p>
+          <div className="mt-2 flex items-end justify-between gap-3">
+            <div className="min-w-0">
+              <h2 className="font-display text-base font-semibold leading-tight text-ink-primary">
+                {title}
+              </h2>
+              <p className="mt-2 text-[11px] leading-relaxed text-ink-tertiary">
+                {subline}
+              </p>
+            </div>
+            <p className="shrink-0 font-display text-3xl font-semibold tabular-nums leading-none text-ink-primary sm:text-4xl">
+              {value.toLocaleString()}
+            </p>
+          </div>
         </div>
-        <div className="flex flex-wrap items-baseline gap-2 sm:gap-3">
-          <p className="font-display text-2xl font-light tabular-nums text-ink-primary sm:text-3xl">
-            {value.toLocaleString()}
-          </p>
-          <span className={chipClass}>{title}</span>
-        </div>
-        <p className="text-[11px] leading-relaxed text-ink-tertiary">
-          {subline}
-        </p>
       </article>
     </Link>
   );

@@ -25,7 +25,7 @@ export const BUYER_STEPS: ReadonlyArray<TourStep> = [
   {
     id: "discover",
     title: "Discover verified suppliers",
-    body: "Filter by certification, register, RSC remediation, city, and category. Every result card carries a Receipts Ring showing how many independent Tier 1–3 sources verified that supplier.",
+    body: "Filter by certification, register, RSC remediation, city, and category. Every result card shows how many independent Tier 1–3 verified sources back that supplier.",
     cta_label: "Open Discover",
     cta_href: "/app/discover",
   },

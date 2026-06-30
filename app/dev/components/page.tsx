@@ -32,7 +32,7 @@ export default async function ComponentsPage() {
           SourceBD design system
         </h1>
         <p className="mt-2 text-ink-secondary">
-          Base components and the Receipts Ring trust glyph. Centre payload is the count
+          Base components and the verified-sources trust glyph. Centre payload is the count
           of distinct Tier 1–3 sources — never the SBI numeric.
         </p>
       </header>
@@ -113,7 +113,7 @@ export default async function ComponentsPage() {
 
       <section>
         <h2 className="font-display text-lg font-semibold text-ink-primary">
-          Receipts Ring
+          Verified Sources Ring
         </h2>
         <p className="mt-1 text-ink-secondary">
           Centre payload = count of distinct Tier 1–3 sources, saturated at 5+. Colour
