@@ -1,0 +1,62 @@
+---
+description: SourceBD enterprise deployment — read before any VPS deploy, git push to production, or release
+alwaysApply: false
+---
+
+# SourceBD Enterprise Deploy Rules
+
+When the user says **"deploy using the SourceBD deploy rules"** (or asks to deploy to production/VPS), follow this rule and read **`docs/ENTERPRISE_DEPLOYMENT.md`** in full before taking any deploy action.
+
+## Mandatory preflight
+
+1. Read `docs/ENTERPRISE_DEPLOYMENT.md`.
+2. Confirm target VPS is **`109.104.153.228`** only — **never** `37.49.227.151`.
+3. Run or confirm CI checks passed: `pnpm exec tsc --noEmit`, `pnpm lint`, `pnpm build`.
+4. Confirm deploy ref is a **clean GitHub branch/tag/SHA** — not local dirty tree.
+5. Confirm deploy **scope** matches intended change (see scoped file lists in `ops/deploy/scopes/` when tree is contaminated).
+6. **Do not deploy** until the user explicitly confirms ref, scope, and method — unless they already said to deploy using these rules with a stated ref.
+
+## Forbidden actions
+
+- **Never** deploy from auto-detected dirty working tree (`deploy-quick.ps1` default mode).
+- **Never** deploy unrelated uncommitted changes mixed with the requested feature.
+- **Never** overwrite `/opt/sourcebd/.env` or ship local `.env` to VPS.
+- **Never** use `rsync --delete` on production without explicit user approval.
+- **Never** force-push to `main` or `development`.
+- **Never** commit or push secrets, `.env`, DB dumps, or SSH private keys.
+- **Never** delete persistent VPS paths: `.env`, `etl/raw`, `etl/parsed`, `etl/logs`, `.deploy/`.
+- **Never** run production deploy scripts against any IP other than `109.104.153.228`.
+
+## Approved production path
+
+1. Merge scoped commits to `development` → `main` (or tag `v*`).
+2. Push to `origin` (`https://github.com/Rezx100/SourceBD.git`).
+3. Deploy via **GitHub Actions → Deploy Production** (preferred) or SSH:
+   ```bash
+   cd /opt/sourcebd && bash ops/deploy_vps.sh --ref=<tag-or-sha> --require-git
+   ```
+4. Legacy scripts require explicit flags and are **not** for production:
+   - `ops/deploy-quick.ps1` → `-AllowLegacyHotfix` + explicit file paths only
+   - `ops/deploy-vps.ps1` → `-AllowLegacyTarballDeploy` (bootstrap/migration only)
+
+## Backup and rollback
+
+Before production deploy, ensure `ops/deploy_vps.sh` runs (records `.deploy/previous-sha` and Docker rollback tag).
+
+After deploy, produce a **deploy summary** with:
+
+- Deployed SHA/tag
+- Previous SHA (rollback ref from `.deploy/previous-sha`)
+- Files/scope deployed
+- Backup status
+- Smoke test results (`/api/health`, relevant pages)
+- Exact rollback command
+
+If smoke fails → rollback immediately:
+```bash
+bash ops/deploy_vps.sh --ref=$(cat /opt/sourcebd/.deploy/previous-sha) --require-git
+```
+
+## Emergency stop
+
+Stop and ask the user if: wrong VPS IP, dirty tree deploy requested, `.env` overwrite risk, CI failures, unrelated files in scope, or health check failure after deploy.

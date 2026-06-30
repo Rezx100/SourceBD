@@ -1,0 +1,56 @@
+name: Deploy Production
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Git tag, branch, or SHA to deploy
+        required: true
+        default: main
+        type: string
+
+# Production deploys require the GitHub "production" environment (manual approval).
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: production
+
+    steps:
+      - name: Validate deploy target
+        run: |
+          if [ "${{ secrets.VPS_HOST }}" = "37.49.227.151" ]; then
+            echo "Refusing to deploy to forbidden VPS 37.49.227.151"
+            exit 1
+          fi
+          if [ -z "${{ secrets.VPS_HOST }}" ]; then
+            echo "VPS_HOST secret is not configured"
+            exit 1
+          fi
+
+      - name: Deploy to VPS via SSH
+        uses: appleboy/ssh-action@v1.2.0
+        env:
+          DEPLOY_REF: ${{ github.event.inputs.ref }}
+          APP_DIR: ${{ secrets.VPS_APP_DIR }}
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_PRIVATE_KEY }}
+          envs: DEPLOY_REF,APP_DIR
+          script_stop: true
+          script: |
+            set -Eeuo pipefail
+            REPO_DIR="${APP_DIR:-/opt/sourcebd}"
+            cd "$REPO_DIR" || { echo "REPO_DIR $REPO_DIR not found"; exit 1; }
+            if [ ! -d .git ]; then
+              echo "No .git in $REPO_DIR — run first-time VPS migration (docs/ENTERPRISE_DEPLOYMENT.md)"
+              exit 1
+            fi
+            bash ops/deploy_vps.sh --ref="${DEPLOY_REF}" --require-git
+
+      - name: Public smoke test
+        run: |
+          HOST="${{ secrets.VPS_HOST }}"
+          curl --fail --silent --show-error --max-time 15 "http://${HOST}/api/health"
+          echo "Health check OK on ${HOST}"

@@ -1,19 +1,46 @@
 <#
-  SourceBD - VPS deploy from Windows laptop
-  Usage:
-    .\ops\deploy-vps.ps1 -VpsIp 1.2.3.4
+  SourceBD - VPS deploy from Windows laptop (LEGACY TARBALL)
+
+  *** DEPRECATED FOR PRODUCTION ***
+  Production deploys MUST use git-backed flow: docs/ENTERPRISE_DEPLOYMENT.md
+
+  This script tarballs the local repo and rsyncs to VPS. It does NOT deploy
+  from GitHub and historically included local .env in the tarball.
+
+  Usage (bootstrap / one-time migration only):
+    .\ops\deploy-vps.ps1 -VpsIp 109.104.153.228 -AllowLegacyTarballDeploy
 #>
 [CmdletBinding()]
 param(
   [Parameter(Mandatory=$true)] [string]$VpsIp,
   [string]$SshUser = 'root',
   [int]$SshPort = 22,
-  [string]$KeyPath = "$env:USERPROFILE\.ssh\sourcebd_vps"
+  [string]$KeyPath = "$env:USERPROFILE\.ssh\sourcebd_vps",
+  [switch]$AllowLegacyTarballDeploy
 )
 
 $ErrorActionPreference = 'Stop'
 $RepoRoot = Split-Path -Parent $PSScriptRoot
 Set-Location $RepoRoot
+
+if ($VpsIp -eq '37.49.227.151') {
+  throw 'FORBIDDEN: 37.49.227.151 is off-limits (pixelsport-backend). Use 109.104.153.228 only.'
+}
+
+if (-not $AllowLegacyTarballDeploy) {
+  Write-Host @"
+
+*** BLOCKED: ops/deploy-vps.ps1 is deprecated for production. ***
+
+Use git-backed deploy: docs/ENTERPRISE_DEPLOYMENT.md
+  GitHub Actions -> Deploy Production
+  OR: ssh root@109.104.153.228 'cd /opt/sourcebd && bash ops/deploy_vps.sh --ref=<tag> --require-git'
+
+For one-time bootstrap/migration only, pass -AllowLegacyTarballDeploy.
+
+"@ -ForegroundColor Red
+  exit 1
+}
 
 $KnownHosts = "$env:USERPROFILE\.ssh\known_hosts_sourcebd"
 
@@ -27,7 +54,9 @@ function Invoke-Scp([string]$src, [string]$dst) {
 }
 
 if (-not (Test-Path $KeyPath)) { throw "SSH private key not found at $KeyPath" }
-if (-not (Test-Path "$RepoRoot\.env")) { throw "Local .env missing. Cannot deploy without DB credentials." }
+if ($VpsIp -ne '109.104.153.228') {
+  Write-Warning "Expected SourceBD VPS 109.104.153.228; got $VpsIp — confirm before continuing."
+}
 
 Write-Host '==> Testing SSH' -ForegroundColor Cyan
 Invoke-Ssh 'uname -a; cat /etc/os-release | head -2'
@@ -41,12 +70,13 @@ $tmp = Join-Path $env:TEMP 'sourcebd-deploy.tar'
 if (Test-Path $tmp) { Remove-Item $tmp -Force }
 & tar --exclude='.git' --exclude='node_modules' --exclude='.next' `
       --exclude='etl/logs' --exclude='etl/parsed' `
+      --exclude='.env' --exclude='.env.*' `
       --exclude='*.htm' --exclude='API Access*' --exclude='API Access_files' `
-      --exclude='ops/_*' --exclude='prototypes' --exclude='inapp-logos' `
+      --exclude='ops/_*' --exclude='prototypes' `
       --exclude='MASTER_AI_BUILD_TUTORIAL.md' --exclude='SourceBD_Data_Pipeline_Spec.md' `
       --exclude='SourceBD_Spec_Addendum.md' `
       -cf $tmp `
-      .env Dockerfile Dockerfile.web docker-compose.yml `
+      Dockerfile Dockerfile.web docker-compose.yml `
       package.json pnpm-lock.yaml pyproject.toml `
       next.config.ts tsconfig.json tailwind.config.ts postcss.config.mjs `
       middleware.ts instrumentation.ts instrumentation-client.ts `
@@ -64,8 +94,8 @@ Write-Host '==> Extracting on VPS' -ForegroundColor Cyan
 Invoke-Ssh 'rm -rf /opt/sourcebd/_incoming; mkdir -p /opt/sourcebd/_incoming'
 Invoke-Ssh 'tar -xf /tmp/sourcebd-deploy.tar -C /opt/sourcebd/_incoming'
 Invoke-Ssh 'mkdir -p /opt/sourcebd/etl/raw /opt/sourcebd/etl/parsed /opt/sourcebd/etl/logs'
-# rsync without --delete to avoid issues with leftover dirs in dest
-Invoke-Ssh 'rsync -a --exclude=etl/raw --exclude=etl/logs --exclude=etl/parsed /opt/sourcebd/_incoming/ /opt/sourcebd/'
+# rsync without --delete; never overwrite VPS .env or ETL persistent dirs
+Invoke-Ssh 'rsync -a --exclude=.env --exclude=.env.* --exclude=etl/raw --exclude=etl/logs --exclude=etl/parsed /opt/sourcebd/_incoming/ /opt/sourcebd/'
 Invoke-Ssh 'rm -rf /opt/sourcebd/_incoming; rm -f /tmp/sourcebd-deploy.tar'
 Invoke-Ssh 'chown -R sourcebd:sourcebd /opt/sourcebd; echo OK_EXTRACT'
 

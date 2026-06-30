@@ -1,5 +1,11 @@
 # ops/deploy-quick.ps1 — Incremental deploy for SourceBD (Spec FE-PROTO debug)
 #
+# *** DEPRECATED FOR PRODUCTION ***
+# Production deploys MUST use git-backed flow (docs/ENTERPRISE_DEPLOYMENT.md):
+#   GitHub Actions -> Deploy Production, or VPS: ops/deploy_vps.sh --ref=<tag> --require-git
+# This script ships files from the LOCAL machine and auto-detect includes dirty tree.
+# Requires -AllowLegacyHotfix; auto-detect requires -AllowAutoDetect.
+#
 # Why this exists:
 #   The default `ops/deploy.ps1` ships the whole repo and runs
 #   `docker compose build --no-cache web`, which forces pnpm install + a fresh
@@ -27,14 +33,35 @@
 #   pwsh ops/deploy-quick.ps1                            # auto-detect changed files
 #   pwsh ops/deploy-quick.ps1 components/foo.tsx app/globals.css
 #   pwsh ops/deploy-quick.ps1 -FromGit                   # explicit auto-detect (same as default)
+#   pwsh ops/deploy-quick.ps1 -ApplyMigrations supabase/migrations/0062_admin_queue_hub.sql app/foo.tsx
 
 param(
     [switch] $FromGit,
+    [switch] $ApplyMigrations,
+    [switch] $AllowLegacyHotfix,
+    [switch] $AllowAutoDetect,
     [Parameter(ValueFromRemainingArguments = $true)]
     [string[]] $ExplicitFiles
 )
 
 $ErrorActionPreference = "Stop"
+
+if (-not $AllowLegacyHotfix) {
+    Write-Host @"
+
+*** BLOCKED: ops/deploy-quick.ps1 is deprecated for production. ***
+
+Use git-backed deploy instead:
+  docs/ENTERPRISE_DEPLOYMENT.md
+  GitHub Actions -> Deploy Production
+  OR: ssh root@109.104.153.228 'cd /opt/sourcebd && bash ops/deploy_vps.sh --ref=<tag> --require-git'
+
+To run a legacy hotfix tarball from this laptop, pass -AllowLegacyHotfix
+and an EXPLICIT file list (never auto-detect for production).
+
+"@ -ForegroundColor Red
+    exit 1
+}
 
 $VpsIp  = "109.104.153.228"
 $VpsKey = "$env:USERPROFILE\.ssh\sourcebd_vps"
@@ -58,7 +85,16 @@ $files = @()
 if ($ExplicitFiles -and $ExplicitFiles.Count -gt 0 -and -not $FromGit) {
     $files = $ExplicitFiles
 } else {
-    Write-Host "==> Auto-detecting changed files (origin/development vs HEAD + dirty tree)" -ForegroundColor Cyan
+    if (-not $AllowAutoDetect) {
+        Write-Error @"
+Auto-detect deploy blocked (includes dirty working tree).
+Pass explicit file paths, or add -AllowAutoDetect with -AllowLegacyHotfix.
+See docs/ENTERPRISE_DEPLOYMENT.md
+"@
+        exit 1
+    }
+    Write-Host "==> Auto-detecting changed files (origin/development vs HEAD + dirty tree)" -ForegroundColor Yellow
+    Write-Host "    WARNING: legacy hotfix mode — not for production" -ForegroundColor Yellow
     $committed = git diff --name-only origin/development...HEAD 2>$null
     $dirty     = git diff --name-only HEAD 2>$null
     $untracked = git ls-files --others --exclude-standard 2>$null
@@ -77,10 +113,19 @@ $files = $files | Where-Object {
     $_ -notmatch '^prototypes/' -and
     $_ -notmatch '^inapp-logos/' -and
     $_ -notmatch '^ops/' -and
-    $_ -notmatch '^supabase/' -and
+    (-not ($_.ToString().StartsWith('supabase/')) -or $ApplyMigrations) -and
     $_ -notmatch '^\.env' -and
     $_ -notmatch '/\.DS_Store$' -and
     $_ -match '\.(ts|tsx|js|jsx|mjs|cjs|css|json|svg|png|jpg|jpeg|webp|ico|woff|woff2|sql|py|md)$'
+}
+
+$migrationFiles = @()
+if ($ApplyMigrations) {
+    $migrationFiles = $files | Where-Object { $_ -match '^supabase/migrations/[0-9].*\.sql$' }
+    if (-not $migrationFiles -or $migrationFiles.Count -eq 0) {
+        Write-Error "-ApplyMigrations was passed, but no supabase/migrations/*.sql file is in the deploy list."
+        exit 1
+    }
 }
 
 if (-not $files -or $files.Count -eq 0) {
@@ -114,6 +159,37 @@ echo "==> Extracting bundle"
 tar -xzf /tmp/$tarName -C $VpsApp/
 echo "--- files now on disk:"
 tar -tzf /tmp/$tarName
+
+"@
+
+if ($ApplyMigrations) {
+    $migrationArgs = ($migrationFiles | ForEach-Object { "'$_'" }) -join " "
+    $remote += @"
+
+echo "==> docker compose build etl (migration helper image)"
+docker compose build etl
+
+echo "==> applying Supabase migration(s)"
+for migration in $migrationArgs; do
+  echo "--- applying `$migration"
+  docker compose run --rm --entrypoint python etl -c 'import os, sys, psycopg, pathlib
+path = pathlib.Path(sys.argv[1])
+url = os.environ.get("SUPABASE_DB_URL", "")
+if not url:
+    raise SystemExit("SUPABASE_DB_URL not set")
+sql = path.read_text(encoding="utf-8")
+with psycopg.connect(url, prepare_threshold=None, autocommit=True) as conn:
+    with conn.cursor() as cur:
+        cur.execute("set statement_timeout = 0")
+        cur.execute("set lock_timeout = '\''5min'\''")
+        cur.execute(sql)
+print(f"applied: {path}")' "`$migration"
+done
+
+"@
+}
+
+$remote += @"
 
 echo "==> docker compose build web (layer-cached, no --no-cache)"
 docker compose build web

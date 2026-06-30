@@ -1,5 +1,9 @@
 # P1 — Production VPS deploy notes
 
+> **Canonical runbook:** [`docs/ENTERPRISE_DEPLOYMENT.md`](../../docs/ENTERPRISE_DEPLOYMENT.md)  
+> **Agent rule:** `.cursor/rules/sourcebd-enterprise-deploy.mdc`  
+> Production deploys use **git-backed** `ops/deploy_vps.sh --ref=<tag> --require-git` or GitHub Actions.
+
 Target VPS: **`109.104.153.228`** (SourceBD).
 **Do not** touch `37.49.227.151` (pixelsport-backend, off-limits).
 
@@ -11,7 +15,7 @@ This deploy stands up the Next.js web container only; the existing
 ```bash
 ssh root@109.104.153.228
 apt-get update && apt-get install -y docker.io docker-compose-plugin caddy git curl
-git clone -b development git@github.com:<org>/sourcebd.git /opt/sourcebd
+git clone -b main https://github.com/Rezx100/SourceBD.git /opt/sourcebd
 cd /opt/sourcebd
 cp .env.example .env
 # edit .env — see "Env contract" below
@@ -21,21 +25,18 @@ systemctl enable --now caddy
 
 ## Every-deploy workflow
 
-From a local PowerShell:
+Preferred: **GitHub Actions → Deploy Production** (manual approval, input ref).
 
-```pwsh
-# 1. Push to development branch
-git push origin development
+Manual VPS:
 
-# 2. Trigger the deploy on the VPS (single-shot SSH, sequential)
-ssh.exe -i $env:USERPROFILE\.ssh\sourcebd_vps -o BatchMode=yes -n root@109.104.153.228 'tmux new-session -d -s p1_deploy "cd /opt/sourcebd && bash ops/deploy_vps.sh 2>&1 | tee /tmp/p1_deploy.log"'
-
-# 3. Tail the log
-ssh.exe -i $env:USERPROFILE\.ssh\sourcebd_vps -o BatchMode=yes -n root@109.104.153.228 'tail -f /tmp/p1_deploy.log'
-
-# 4. Verify
-curl http://109.104.153.228/api/health
+```bash
+ssh root@109.104.153.228
+cd /opt/sourcebd
+bash ops/deploy_vps.sh --ref=main --require-git
+curl -sf http://127.0.0.1:3000/api/health
 ```
+
+Legacy laptop scripts (`deploy-quick.ps1`, `deploy-vps.ps1`) are **blocked for production** unless explicit legacy flags are passed — see enterprise runbook.
 
 ## Env contract
 
@@ -98,8 +99,8 @@ not via Supabase CLI (CLI is not an approved tool per `architecture.md`).
 ```bash
 ssh root@109.104.153.228
 cd /opt/sourcebd
-git checkout <previous-commit-sha>
-bash ops/deploy_vps.sh
+PREV=$(cat .deploy/previous-sha)
+bash ops/deploy_vps.sh --ref="$PREV" --require-git
 ```
 
 The image is rebuilt deterministically from the pinned commit. No

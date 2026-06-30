@@ -60,6 +60,26 @@ supabase/.temp
 
 # Scratch / debug artefacts (kept locally, never committed)
 ops/_*
+ops/screenshots/
+
+# Legacy deploy-quick pack artifacts (laptop only)
+_quick_*.tar.gz
+_quick_*.list
+_quick_*.sh
+_preflight.*
+
+# VPS deploy metadata (written on server at /opt/sourcebd/.deploy/)
+.deploy/
+
+# Local agent/editor config
+.claude/
+.cursor/settings.local.json
+
+# Accidental DB dumps
+*.sql.gz
+*.dump
+*.bak
+
 .devlog.txt
 .devlog-review.txt
 .buildlog.txt

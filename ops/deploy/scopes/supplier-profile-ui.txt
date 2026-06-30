@@ -1,0 +1,30 @@
+# Supplier profile UI pass — commit/deploy scope only.
+# See docs/ENTERPRISE_DEPLOYMENT.md. Do not deploy unrelated dirty files.
+
+app/(app)/app/suppliers/[slug]/page.tsx
+app/(marketing)/suppliers/[slug]/page.tsx
+
+components/supplier/profile-ui.tsx
+components/supplier/profile-compliance-tab.tsx
+components/supplier/profile-capacity-tab.tsx
+components/supplier/profile-brands-tab.tsx
+components/supplier/profile-contact-tab.tsx
+components/supplier/profile-provenance-tab.tsx
+components/supplier/profile-header-meta.tsx
+components/supplier/verified-by-badge.tsx
+components/supplier/profile-skeleton.tsx
+components/supplier/products-strip-expandable.tsx
+
+lib/format-supplier-profile.ts
+lib/format-company-name.ts
+lib/format-location.ts
+lib/product-icons.ts
+lib/source-logos.ts
+
+app/globals.css
+
+public/icons/products/
+public/inapp-logos/BGMEA logo.png
+public/inapp-logos/BGAPMEA logo.png
+public/inapp-logos/EPB-Logo.png
+public/inapp-logos/RSC-logo.png
