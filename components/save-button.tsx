@@ -21,7 +21,7 @@ export interface SaveButtonProps {
   /** Visual variant. `icon` is the compact circle button used in card rows.
    *  `responsive` is a phone-first 44 px labelled pill that collapses to the
    *  compact icon at `sm+` (Spec R4 §3 Buyer Discover). */
-  shape?: "icon" | "full" | "responsive";
+  shape?: "icon" | "full" | "responsive" | "profile";
   className?: string;
 }
 
@@ -68,6 +68,28 @@ export function SaveButton({
 
   const label = saved ? "Saved" : "Save";
   const aria = saved ? "Remove from saved" : "Save supplier";
+
+  if (shape === "profile") {
+    return (
+      <Button
+        type="button"
+        variant="outline"
+        onClick={toggle}
+        disabled={pending}
+        aria-pressed={saved}
+        aria-label={aria}
+        title={error ?? aria}
+        className={cn(
+          "h-11 min-w-[8.5rem] gap-2 rounded-lg border-neutral-200 px-4 text-sm font-semibold shadow-sm",
+          saved && "border-sem-amber/40 bg-sem-amber-soft/40 text-sem-amber hover:bg-sem-amber-soft/60",
+          className,
+        )}
+      >
+        <Star size={17} weight={saved ? "fill" : "regular"} />
+        <span>{label}</span>
+      </Button>
+    );
+  }
 
   if (shape === "responsive") {
     // Phone: 44 px labelled pill (first-class tap target). sm+: compact icon.
