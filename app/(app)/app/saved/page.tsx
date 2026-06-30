@@ -20,7 +20,7 @@ export const dynamic = "force-dynamic";
 const PAGE_SIZE = 24;
 const SORT_OPTIONS = [
   { value: "recent", label: "Recently saved" },
-  { value: "receipts", label: "Most receipts" },
+  { value: "receipts", label: "Most evidence" },
   { value: "completeness", label: "Most complete" },
   { value: "name", label: "Name (A–Z)" },
 ] as const;
@@ -118,7 +118,7 @@ export default async function SavedSuppliersPage({
           }
         />
       ) : (
-        <ul className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+        <ul className="grid grid-cols-1 gap-4">
           {rows.map((row) => (
             <li key={row.id}>
               <DiscoverResultCard
@@ -150,6 +150,7 @@ function toDiscoverRow(r: SavedRow): DiscoverRow {
     district: r.district,
     source_tags: r.source_tags,
     t13_source_count: r.t13_source_count,
+    completeness_pct: r.completeness_pct,
     employees_total: r.employees_total,
     established_date: r.established_date,
     principal_products: r.principal_products,

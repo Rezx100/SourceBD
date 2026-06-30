@@ -208,7 +208,7 @@ export default async function BuyerHome() {
             }
           />
         ) : (
-          <ul className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+          <ul className="grid grid-cols-1 gap-4">
             {doc.recent_saved.map((c) => (
               <li key={c.id}>
                 <DiscoverResultCard
@@ -304,6 +304,7 @@ function savedToDiscoverRow(c: SavedCard): DiscoverRow {
     district: c.district,
     source_tags: c.source_tags ?? [],
     t13_source_count: c.t13_source_count,
+    completeness_pct: c.completeness_pct,
     employees_total: null,
     established_date: null,
     principal_products: [],

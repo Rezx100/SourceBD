@@ -43,7 +43,7 @@ export function LoginForm({ next }: { next: string }) {
   return (
     <AuthShell
       brandHeadline="Vet suppliers with"
-      brandHeadlineAccent="receipts on every claim."
+      brandHeadlineAccent="verified evidence behind every claim."
       brandSub="Sign in to search the verified register, open any factory's provenance trail and export the evidence your compliance team needs."
       brandFooter="Trusted by sourcing & compliance teams in the UK, US & EU."
       topRight={

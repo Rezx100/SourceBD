@@ -150,12 +150,10 @@ export default function PricingPage() {
                   <Button
                     asChild
                     variant={featured ? "default" : "outline"}
-                    size="sm"
-                    className="w-full"
+                    size="lg"
+                    className="h-11 w-full text-sm font-semibold shadow-sm"
                   >
-                    <Link href={ctaHref(plan.ctaTarget)}>
-                      {plan.ctaLabel}
-                    </Link>
+                    <Link href={ctaHref(plan.ctaTarget)}>{plan.ctaLabel}</Link>
                   </Button>
                 </CardContent>
               </Card>
@@ -274,7 +272,7 @@ export default function PricingPage() {
           <div className="mt-6 inline-block">
             <Link
               href="mailto:sales@sourcebd.net?subject=SourceBD%20Enterprise%20enquiry"
-              className="btn-proto primary gap-2 px-7 py-2.5 text-sm"
+              className="btn-proto primary inline-flex h-11 items-center gap-2 px-8 text-sm font-semibold text-white shadow-sm"
             >
               Contact sales <ArrowRight size={15} />
             </Link>

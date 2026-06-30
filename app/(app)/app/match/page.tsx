@@ -13,7 +13,7 @@ import { SmartMatchWizard } from "./smart-match-wizard";
 export const metadata = {
   title: "Find matches · SourceBD",
   description:
-    "Describe your product and requirements; SourceBD ranks verified Bangladesh suppliers with the receipts behind each match.",
+    "Describe your product and requirements; SourceBD ranks verified Bangladesh suppliers with verified evidence behind each match.",
 };
 
 export default function SmartMatchPage() {
@@ -23,7 +23,7 @@ export default function SmartMatchPage() {
         kicker="Find matches"
         icon={<Sparkle size={20} weight="fill" aria-hidden />}
         title="Tell us what you need"
-        description="Answer a few buyer-friendly questions and SourceBD will shortlist verified Bangladesh suppliers with the receipts behind each match."
+        description="Answer a few buyer-friendly questions and SourceBD will shortlist verified Bangladesh suppliers with verified evidence behind each match."
       />
       <SmartMatchWizard />
     </div>

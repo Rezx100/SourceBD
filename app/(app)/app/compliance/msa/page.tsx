@@ -118,7 +118,7 @@ export default async function MsaPage() {
 
 function Stat({ label, value }: { label: string; value: number }) {
   return (
-    <div>
+    <div className="rounded-card border border-hairline bg-bg-l0 p-3">
       <p className="text-[11px] text-ink-tertiary">
         {label}
       </p>
@@ -137,7 +137,7 @@ function Block({
   children: React.ReactNode;
 }) {
   return (
-    <div>
+    <div className="min-w-0 rounded-card border border-hairline bg-bg-l0 p-3">
       <p className="mb-2 text-[11px] text-ink-tertiary">
         {title}
       </p>

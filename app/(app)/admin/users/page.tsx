@@ -5,12 +5,18 @@
 import Link from "next/link";
 
 import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardMeta,
-  CardTitle,
-} from "@/components/ui/card";
+  ADMIN_INPUT_CLASS,
+  ADMIN_SELECT_CLASS,
+  AdminEmptyState,
+  AdminField,
+  AdminFilterPanel,
+  AdminPage,
+  AdminPageHeader,
+  AdminPagination,
+  AdminPanel,
+  formatAdminDate,
+  humanizeAdminToken,
+} from "@/components/admin/admin-ui";
 import { Badge } from "@/components/ui/badge";
 import { ResponsiveTable, type Column } from "@/components/ui/responsive-table";
 import { Tag } from "@/components/ui/tag";
@@ -92,15 +98,15 @@ export default async function AdminUsersPage({
 
   if (error || data == null) {
     return (
-      <div className="mx-auto max-w-5xl space-y-6">
-        <PageHeader />
-        <Card>
-          <CardContent className="text-sm text-sem-red">
+      <AdminPage maxWidth="5xl">
+        <UsersHeader />
+        <AdminPanel>
+          <p className="text-sm text-sem-red">
             Could not load users
             {error?.message ? <>: {error.message}</> : null}.
-          </CardContent>
-        </Card>
-      </div>
+          </p>
+        </AdminPanel>
+      </AdminPage>
     );
   }
 
@@ -119,80 +125,77 @@ export default async function AdminUsersPage({
   };
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6">
-      <PageHeader total={doc.total} />
+    <AdminPage maxWidth="5xl">
+      <UsersHeader total={doc.total} />
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Filters</CardTitle>
-          <CardMeta>GET /admin/users</CardMeta>
-        </CardHeader>
-        <CardContent className="pt-0">
+      <AdminFilterPanel
+        title="Find users"
+        description="Search by email or display name, then narrow by role and access status."
+      >
           <form
             method="get"
             action="/admin/users"
             className="grid grid-cols-1 gap-3 sm:grid-cols-4"
           >
-            <label className="flex flex-col gap-1 text-[12px] text-ink-secondary">
-              Search (email / name)
+            <AdminField label="Search user">
               <input
                 type="search"
                 name="q"
                 defaultValue={search}
-                className="rounded-input border border-hairline bg-bg-l0 px-2 py-1.5 text-sm outline-none focus:border-accent-indigo"
+                placeholder="Email or name"
+                className={ADMIN_INPUT_CLASS}
               />
-            </label>
-            <label className="flex flex-col gap-1 text-[12px] text-ink-secondary">
-              Role
+            </AdminField>
+            <AdminField label="Role">
               <select
                 name="role"
                 defaultValue={roleFilter}
-                className="rounded-input border border-hairline bg-bg-l0 px-2 py-1.5 text-sm outline-none focus:border-accent-indigo"
+                className={ADMIN_SELECT_CLASS}
               >
                 <option value="">Any</option>
                 {ROLES.map((r) => (
                   <option key={r} value={r}>
-                    {r}
+                    {humanizeAdminToken(r)}
                   </option>
                 ))}
               </select>
-            </label>
-            <label className="flex flex-col gap-1 text-[12px] text-ink-secondary">
-              Status
+            </AdminField>
+            <AdminField label="Status">
               <select
                 name="status"
                 defaultValue={status}
-                className="rounded-input border border-hairline bg-bg-l0 px-2 py-1.5 text-sm outline-none focus:border-accent-indigo"
+                className={ADMIN_SELECT_CLASS}
               >
                 {STATUSES.map((s) => (
                   <option key={s} value={s}>
-                    {s}
+                    {humanizeAdminToken(s)}
                   </option>
                 ))}
               </select>
-            </label>
+            </AdminField>
             <div className="flex items-end">
               <button
                 type="submit"
-                className="rounded-pill border border-hairline px-3 py-1.5 text-xs hover:border-accent-indigo hover:text-accent-indigo"
+                className="min-h-[44px] rounded-pill border border-brand-forest bg-brand-forest px-4 text-sm font-semibold text-white hover:bg-brand-forest-mid"
               >
                 Apply
               </button>
             </div>
           </form>
-        </CardContent>
-      </Card>
+      </AdminFilterPanel>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Users</CardTitle>
-          <CardMeta>
-            {doc.total} total · page {page} / {totalPages}
-          </CardMeta>
-        </CardHeader>
-        <CardContent>
+      <AdminPanel
+        title="Users"
+        meta={`${doc.total} total · page ${page} / ${totalPages}`}
+        padded={false}
+      >
           {doc.rows.length === 0 ? (
-            <p className="text-sm text-ink-tertiary">No users match.</p>
+            <div className="p-4 sm:p-5">
+              <AdminEmptyState
+                title="No users match"
+                description="Try clearing the search or choosing a wider status."
+              />
+            </div>
           ) : (
             <ResponsiveTable
               mode="stacked"
@@ -200,29 +203,13 @@ export default async function AdminUsersPage({
               rows={doc.rows}
               rowKey={(r) => r.user_id}
               caption="Users"
+              className="border-0 shadow-none"
             />
           )}
-        </CardContent>
-      </Card>
+      </AdminPanel>
 
-      {totalPages > 1 ? (
-        <nav className="flex justify-center gap-2 text-xs">
-          {Array.from({ length: totalPages }, (_, i) => i + 1).map((n) => (
-            <Link
-              key={n}
-              href={pageHref(n)}
-              className={`rounded-pill border px-2 py-1 ${
-                n === page
-                  ? "border-accent-indigo text-accent-indigo"
-                  : "border-hairline text-ink-tertiary hover:text-ink-primary"
-              }`}
-            >
-              {n}
-            </Link>
-          ))}
-        </nav>
-      ) : null}
-    </div>
+      <AdminPagination page={page} totalPages={totalPages} pageHref={pageHref} />
+    </AdminPage>
   );
 }
 
@@ -249,7 +236,7 @@ const USER_COLUMNS: Column<Row>[] = [
     label: "Role",
     render: (r) => (
       <span className="flex flex-wrap items-center gap-1.5">
-        <Badge tone={roleTone(r.role)}>{r.role}</Badge>
+        <Badge tone={roleTone(r.role)}>{humanizeAdminToken(r.role)}</Badge>
         {r.is_suspended ? <Badge tone="alert">suspended</Badge> : null}
       </span>
     ),
@@ -279,9 +266,9 @@ const USER_COLUMNS: Column<Row>[] = [
     label: "Activity",
     render: (r) => (
       <span className="text-[11px] text-ink-tertiary">
-        created {new Date(r.created_at).toLocaleDateString()}
+        created {formatAdminDate(r.created_at)}
         {r.last_sign_in_at
-          ? ` · last ${new Date(r.last_sign_in_at).toLocaleDateString()}`
+          ? ` · last ${formatAdminDate(r.last_sign_in_at)}`
           : " · never"}
         {` · ${r.audit_count} audit`}
       </span>
@@ -302,20 +289,12 @@ const USER_COLUMNS: Column<Row>[] = [
   },
 ];
 
-function PageHeader({ total }: { total?: number }) {
+function UsersHeader({ total }: { total?: number }) {
   return (
-    <div className="border-b border-hairline pb-6">
-      <p className="mb-2 inline-flex items-center gap-2 font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-brand-forest">
-        <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-brand-forest" />
-        Admin
-      </p>
-      <h1 className="font-display text-[26px] font-extrabold leading-[1.05] tracking-[-0.03em] text-ink-primary sm:text-[32px]">
-        Users &amp; access
-      </h1>
-      <p className="mt-2.5 max-w-2xl text-[15px] leading-relaxed text-ink-secondary">
-        Roles, suspensions, per-user audit drilldown.
-        {total != null ? ` ${total} accounts.` : ""}
-      </p>
-    </div>
+    <AdminPageHeader
+      kicker="Admin · Access"
+      title="Users & access"
+      description={`Roles, suspensions, and per-user audit drilldown.${total != null ? ` ${total} accounts.` : ""}`}
+    />
   );
 }

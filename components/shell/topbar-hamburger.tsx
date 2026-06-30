@@ -17,6 +17,7 @@ import { List as ListIcon, SignOut } from "@phosphor-icons/react/dist/ssr";
 
 import { MobileDrawer } from "@/components/ui/mobile-drawer";
 import { UserAvatar } from "@/components/shell/user-avatar";
+import { publicRoleLabel } from "@/lib/shell/role-label";
 import { cn } from "@/lib/utils";
 import type { Role } from "@/lib/auth";
 import {
@@ -43,6 +44,7 @@ export function TopbarHamburger({
   const v = variant ?? variantFromPath(pathname, role);
   const sections = SECTIONS[v];
   const [open, setOpen] = React.useState(false);
+  const roleLabel = publicRoleLabel(role);
 
   // Close on route change.
   React.useEffect(() => {
@@ -57,7 +59,7 @@ export function TopbarHamburger({
         aria-label={`${VARIANT_LABEL[v]} menu`}
         aria-haspopup="dialog"
         aria-expanded={open}
-        className="inline-flex h-[44px] w-[44px] items-center justify-center rounded-md text-ink-secondary transition-colors duration-hover ease-smooth hover:bg-[rgba(15,15,20,0.05)] hover:text-ink-primary md:hidden"
+        className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-ink-secondary transition-colors duration-hover ease-smooth hover:bg-brand-forest-tint hover:text-ink-primary md:hidden"
       >
         <ListIcon size={20} weight="bold" aria-hidden />
       </button>
@@ -81,8 +83,8 @@ export function TopbarHamburger({
             <span className="block truncate font-display text-sm font-semibold text-ink-primary">
               {(displayName ?? "").trim() || email || "Your account"}
             </span>
-            <span className="block truncate text-xs text-ink-tertiary">
-              {email || VARIANT_LABEL[v]}
+            <span className="block truncate text-xs font-medium text-brand-forest">
+              {roleLabel}
             </span>
           </span>
         </Link>

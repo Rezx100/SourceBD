@@ -2,7 +2,13 @@
 
 import Link from "next/link";
 
-import { PageHeader, Panel, StatStrip } from "@/components/ui/page-kit";
+import {
+  AdminPage,
+  AdminPageHeader,
+  AdminPanel,
+  formatAdminDateTime,
+} from "@/components/admin/admin-ui";
+import { StatStrip } from "@/components/ui/page-kit";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -32,23 +38,22 @@ type Doc = {
 
 export default async function AdminBetaPage() {
   const supabase = await createSupabaseServerClient();
-  const { data, error } = await supabase.rpc("admin_beta_dashboard");
+  const { data, error } = await supabase.rpc("admin_beta_dashboard", {});
 
   if (error || !data) {
     return (
-      <div className="mx-auto max-w-5xl space-y-6">
-        <PageHeader
+      <AdminPage maxWidth="5xl">
+        <AdminPageHeader
           kicker="Admin · Beta"
           title="Founder analytics"
           description="Signup → saved supplier → RFQ funnel and top saved suppliers."
-          animate={false}
         />
-        <Panel>
+        <AdminPanel>
           <p className="text-sm text-sem-red">
             Could not load beta dashboard{error?.message ? `: ${error.message}` : ""}.
           </p>
-        </Panel>
-      </div>
+        </AdminPanel>
+      </AdminPage>
     );
   }
 
@@ -56,17 +61,16 @@ export default async function AdminBetaPage() {
   const f = doc.funnel;
 
   return (
-    <div className="mx-auto max-w-5xl space-y-8">
-      <PageHeader
+    <AdminPage maxWidth="5xl" className="space-y-8">
+      <AdminPageHeader
         kicker="Admin · Beta"
         title="Founder analytics"
         description="Read-only funnel over existing tables — no new ETL. Saved suppliers proxy buyer intent until a dedicated view log ships."
         actions={
           <p className="font-mono text-[11px] text-ink-tertiary">
-            {new Date(doc.generated_at).toISOString().replace("T", " ").slice(0, 19)} UTC
+            {formatAdminDateTime(doc.generated_at)} UTC
           </p>
         }
-        animate={false}
       />
 
       <StatStrip
@@ -87,15 +91,11 @@ export default async function AdminBetaPage() {
         ]}
       />
 
-      <Panel padded={false}>
-        <div className="border-b border-neutral-200 px-5 py-4">
-          <h2 className="font-display text-base font-semibold text-ink-primary">
-            Top saved suppliers
-          </h2>
-          <p className="mt-0.5 text-[13px] text-ink-secondary">
-            Ranked by unique buyer saves (proxy for profile interest during beta).
-          </p>
-        </div>
+      <AdminPanel
+        title="Top saved suppliers"
+        description="Ranked by unique buyer saves (proxy for profile interest during beta)."
+        padded={false}
+      >
         {doc.top_saved_suppliers.length === 0 ? (
           <p className="px-5 py-8 text-sm text-ink-tertiary">No saves yet.</p>
         ) : (
@@ -118,7 +118,7 @@ export default async function AdminBetaPage() {
             ))}
           </ol>
         )}
-      </Panel>
-    </div>
+      </AdminPanel>
+    </AdminPage>
   );
 }

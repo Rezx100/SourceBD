@@ -4,7 +4,7 @@
 //
 // A rolling feed of the kind of provenance events the platform records:
 // a new register match, a certificate verified, a sanctions screen passed,
-// a brand disclosure attached. Each row is a "receipt" — issuer, action,
+// a brand disclosure attached. Each row is verified evidence — issuer, action,
 // tier. A seamless vertical Marquee scrolls them upward forever (no
 // enter/exit layout animation, so it never stutters or ping-pongs); the
 // top and bottom fade into the section background.
@@ -99,7 +99,7 @@ function Row({ issuer, action, tier, icon, tint }: Event) {
 
 export function VerificationFeed() {
   return (
-    <div className="relative mx-auto flex h-[320px] w-full max-w-[480px] flex-col overflow-hidden sm:h-[392px]">
+    <div className="relative isolate mx-auto flex h-[320px] w-full max-w-[480px] flex-col overflow-hidden [contain:layout_paint] sm:h-[392px]">
       <Marquee
         vertical
         className="[--duration:28s] [--gap:0.875rem] py-0 sm:[--gap:1rem]"

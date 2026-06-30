@@ -156,22 +156,21 @@ export function MarketingTopNav() {
         scrolled && "shadow-sm",
       )}
     >
-      <div className="flex h-14 w-full items-center gap-2 px-3 md:gap-3 md:px-4">
+      <div className="flex h-16 w-full items-center gap-3 px-4 sm:h-[72px] sm:px-6 md:gap-4 lg:px-8">
         {/* Wordmark — always pinned far-left */}
         <Wordmark
-          boxClassName="h-7 w-7"
-          glyphClassName="h-4 w-4"
-          textClassName="text-[15px]"
+          boxClassName="h-8 w-8 sm:h-9 sm:w-9"
+          textClassName="text-[18px] sm:text-[19px]"
           className="shrink-0"
         />
 
         {/* Desktop nav links (md+) */}
-        <div className="ml-2 hidden items-center gap-0.5 md:flex">
+        <div className="ml-2 hidden items-center gap-1 md:flex lg:ml-4">
           {NAV_LINKS.map((l) => (
             <Link
               key={l.href}
               href={l.href}
-              className="rounded-pill px-3 py-1.5 text-[13px] font-medium text-ink-secondary transition-colors duration-hover ease-smooth hover:bg-brand-forest-tint hover:text-ink-primary"
+              className="rounded-pill px-3 py-2 text-[13px] font-medium text-ink-secondary transition-colors duration-hover ease-smooth hover:bg-brand-forest-tint hover:text-ink-primary lg:text-sm"
             >
               {l.label}
             </Link>

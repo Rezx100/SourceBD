@@ -9,14 +9,16 @@
 // no extra bundle cost and no hydration mismatch risk.
 //
 // Layout (top to bottom inside the bar):
-//   Row 1 — search input + Apply + Reset (always visible)
+//   Row 1 — search input when this rail is standalone
 //   Row 2 — quick-pick product chips (deep-links, preserve other filters)
 //   Row 3 — common compact filters: City · District · Category ·
-//           Receipts ≥ · RSC % ≥ · Min workforce
+//           Verified sources · RSC % ≥ · Min workforce
 //   Row 3b — Profile completeness ≥ %
 //   Row 4 — collapsible <details> "More filters":
 //           Entity type · Certifications · Registry membership ·
 //           Brand factory list · Factory type
+//   Row 5 — quiet Apply/Clear filter actions when the page has a primary
+//           search hero above the rail.
 //
 // A filter is rendered with subtle brand-color emphasis (forest-soft
 // background + forest-50 border) when it has a non-empty value, so the
@@ -31,7 +33,7 @@ export const PAGE_SIZE = 24;
 
 export const SORT_OPTIONS = [
   { value: "default", label: "Best match" },
-  { value: "receipts", label: "Most receipts" },
+  { value: "receipts", label: "Most evidence" },
   { value: "completeness", label: "Most complete" },
   { value: "name", label: "Name (A–Z)" },
 ] as const;
@@ -158,9 +160,6 @@ export function FilterRail({
   brandCodes,
   factoryTypes,
   minSources,
-  rscMin,
-  completenessMin,
-  workersMin,
   city,
   district,
   category,
@@ -178,9 +177,6 @@ export function FilterRail({
   brandCodes: string[];
   factoryTypes: string[];
   minSources: string;
-  rscMin: number | null;
-  completenessMin?: number | null;
-  workersMin: number | null;
   city: string;
   district: string;
   category: string;
@@ -203,39 +199,36 @@ export function FilterRail({
     registries.length +
     brandCodes.length +
     factoryTypes.length;
+  const hasAnyFilterActive =
+    Boolean(q) ||
+    Boolean(city) ||
+    Boolean(district) ||
+    Boolean(category) ||
+    Boolean(minSources) ||
+    hasAdvancedActive;
+  const visibleFilterCount =
+    (city ? 1 : 0) +
+    (district ? 1 : 0) +
+    (category ? 1 : 0) +
+    (minSources ? 1 : 0) +
+    advancedCount;
 
   const inputBase =
-    "w-full rounded-lg border bg-neutral-50 px-3 py-2.5 text-sm text-neutral-900 outline-none transition-colors placeholder:text-neutral-500 focus:border-brand-forest/50 focus:bg-white focus:ring-2 focus:ring-brand-forest/15";
+    "w-full rounded-input border bg-neutral-50 px-3 py-2 text-[13px] text-neutral-900 outline-none transition-colors placeholder:text-neutral-500 focus:border-brand-forest/50 focus:bg-white focus:ring-2 focus:ring-brand-forest/15";
 
   return (
-    <section
-      aria-label="Filter suppliers"
-      className="rounded-lg border border-neutral-200 bg-white p-4 shadow-sm sm:p-5"
-    >
-      <form method="get" action={basePath} className="space-y-4">
+    <section aria-label="Filter suppliers" className="rounded-card border border-neutral-200 bg-white p-3 sm:p-4">
+      <form method="get" action={basePath} className="space-y-3">
         {sort && sort !== "default" ? (
           <input type="hidden" name="sort" value={sort} />
         ) : null}
 
-        {/* Row 1 — search + apply/reset. When the page already renders the
+        {/* Row 1 — search. When the page already renders the
             primary search hero above the rail (hideSearchRow), we omit the
             duplicate input and keep `q` as a hidden field so Apply preserves
-            the active query; Apply/Reset move to a compact right-aligned row. */}
+            the active query. */}
         {hideSearchRow ? (
-          <>
-            {q ? <input type="hidden" name="q" value={q} /> : null}
-            <div className="flex items-center justify-end gap-2">
-              <button type="submit" className="btn-proto primary px-5">
-                Apply filters
-              </button>
-              <Link
-                href={basePath}
-                className="inline-flex items-center justify-center rounded-lg border border-neutral-200 bg-white px-4 py-2 text-sm font-semibold text-neutral-900 transition-colors hover:bg-neutral-50"
-              >
-                Reset
-              </Link>
-            </div>
-          </>
+          q ? <input type="hidden" name="q" value={q} /> : null
         ) : (
           <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
             <div className="flex-1">
@@ -250,7 +243,7 @@ export function FilterRail({
                 type="search"
                 name="q"
                 defaultValue={q}
-                placeholder="Company name, e.g. Naafco, Standard Group…"
+                placeholder="Products, factories, locations, sources..."
                 className={cn(inputBase, activeRing(Boolean(q)))}
               />
             </div>
@@ -260,7 +253,7 @@ export function FilterRail({
               </button>
               <Link
                 href={basePath}
-                className="inline-flex items-center justify-center rounded-lg border border-neutral-200 bg-white px-4 py-2.5 text-sm font-semibold text-neutral-900 transition-colors hover:bg-neutral-50"
+                className="inline-flex items-center justify-center rounded-input border border-neutral-200 bg-white px-4 py-2.5 text-sm font-semibold text-neutral-900 transition-colors hover:bg-neutral-50"
               >
                 Reset
               </Link>
@@ -270,8 +263,8 @@ export function FilterRail({
 
         {/* Row 2 — quick product chips. Plain anchors that preserve
             current filters but set category. No JS needed. */}
-        <div>
-          <div className="mb-1.5 text-xs font-semibold text-ink-tertiary">
+        <div className="flex flex-col gap-2 border-b border-neutral-100 pb-3 lg:flex-row lg:items-center">
+          <div className="shrink-0 text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-tertiary">
             Quick pick
           </div>
           <div className="flex flex-wrap gap-1.5">
@@ -288,8 +281,8 @@ export function FilterRail({
                   className={cn(
                     "inline-flex items-center rounded-pill border px-2.5 py-1 text-[12px] font-medium transition-colors",
                     isActive
-                      ? "border-brand-forest/30 bg-brand-forest-soft text-brand-forest"
-                      : "border-neutral-200 bg-white text-neutral-700 hover:bg-neutral-50",
+                      ? "border-brand-forest/20 bg-brand-forest-soft text-brand-forest"
+                      : "border-transparent text-neutral-600 hover:border-neutral-200 hover:bg-neutral-50 hover:text-neutral-900",
                   )}
                   aria-current={isActive ? "true" : undefined}
                 >
@@ -298,162 +291,167 @@ export function FilterRail({
               );
             })}
             {category && !isQuickPickValue(category) ? (
-              <span className="inline-flex items-center rounded-pill border border-brand-forest/30 bg-brand-forest-soft px-2.5 py-1 text-[12px] font-medium text-brand-forest">
+              <span className="inline-flex items-center rounded-pill border border-brand-forest/20 bg-brand-forest-soft px-2.5 py-1 text-[12px] font-medium text-brand-forest">
                 {category}
               </span>
             ) : null}
           </div>
         </div>
 
-        {/* Row 3 — common compact filters */}
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-          <Field label="City">
-            <input
-              type="text"
-              name="city"
-              list="discover-cities"
-              defaultValue={city}
-              placeholder="e.g. Dhaka"
-              autoComplete="off"
-              className={cn(inputBase, activeRing(Boolean(city)))}
-            />
-          </Field>
-          <Field label="District">
-            <input
-              type="text"
-              name="district"
-              list="discover-districts"
-              defaultValue={district}
-              placeholder="e.g. Gazipur"
-              autoComplete="off"
-              className={cn(inputBase, activeRing(Boolean(district)))}
-            />
-          </Field>
-          <Field label="Category / product">
-            <input
-              type="text"
-              name="category"
-              list="discover-products"
-              defaultValue={category}
-              placeholder="e.g. knitwear"
-              autoComplete="off"
-              className={cn(inputBase, activeRing(Boolean(category)))}
-            />
-          </Field>
-          <Field label="Receipts (T1–3)">
-            <select
-              name="min_sources"
-              defaultValue={minSources}
-              className={cn(inputBase, activeRing(Boolean(minSources)))}
-            >
-              {MIN_SOURCES_OPTIONS.map((o) => (
-                <option key={o.label} value={o.value}>
-                  {o.label}
-                </option>
-              ))}
-            </select>
-          </Field>
-          <Field label="RSC % ≥">
-            <input
-              type="number"
-              name="rsc_min"
-              min={0}
-              max={100}
-              step={1}
-              inputMode="numeric"
-              defaultValue={rscMin !== null ? String(rscMin) : ""}
-              placeholder="e.g. 95"
-              className={cn(inputBase, activeRing(rscMin !== null))}
-            />
-          </Field>
-          <Field label="Min workforce">
-            <input
-              type="number"
-              name="workers_min"
-              min={0}
-              step={50}
-              inputMode="numeric"
-              defaultValue={workersMin !== null ? String(workersMin) : ""}
-              placeholder="e.g. 500"
-              className={cn(inputBase, activeRing(workersMin !== null))}
-            />
-          </Field>
-        </div>
-
-        {/* Row 3b — profile completeness on its own line. */}
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-          <Field label="Profile completeness ≥ %">
-            <input
-              type="number"
-              name="completeness_min"
-              min={0}
-              max={100}
-              step={5}
-              inputMode="numeric"
-              defaultValue={
-                completenessMin !== null ? String(completenessMin) : ""
-              }
-              placeholder="e.g. 60"
-              className={cn(inputBase, activeRing(completenessMin !== null))}
-            />
-          </Field>
-        </div>
-
-        {/* Row 4 — disclosure for the long-tail checkbox groups, so
-            the bar stays uncluttered when buyers only need the
-            common filters. */}
-        <details
-          className="group rounded-lg border border-neutral-200 bg-neutral-50 px-4 py-3 open:bg-white"
-          open={hasAdvancedActive}
-        >
-          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-sm font-medium text-ink-primary">
-            <span className="flex items-center gap-2">
-              More filters
-              {hasAdvancedActive ? (
-                <span className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-brand-forest-soft px-1.5 text-[11px] font-semibold text-brand-forest">
-                  {advancedCount}
+        <details className="group overflow-hidden rounded-card border border-hairline bg-surface-l1 transition-colors open:border-hairline-strong">
+          <summary
+            className="flex cursor-pointer list-none items-center justify-between gap-3 px-3 py-2.5 text-sm font-semibold text-ink-primary"
+          >
+            <span className="flex min-w-0 items-center gap-3">
+              <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-brand-forest-soft text-brand-forest">
+                +
+              </span>
+              <span className="min-w-0">
+                <span className="block">Refine filters</span>
+                <span className="block truncate text-[11px] font-medium text-ink-tertiary">
+                  City, product, registry and compliance filters
+                </span>
+              </span>
+              {visibleFilterCount > 0 ? (
+                <span className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-brand-forest px-1.5 text-[11px] font-semibold text-white">
+                  {visibleFilterCount}
                 </span>
               ) : null}
             </span>
-            <span className="text-xs text-ink-tertiary transition-transform group-open:rotate-180">
-              ▾
+            <span className="rounded-pill border border-neutral-200 bg-neutral-50 px-2.5 py-1 text-[11px] font-semibold text-ink-tertiary">
+              Open
             </span>
           </summary>
 
-          <div className="mt-4 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            <CheckboxGroup
-              label="Entity type"
-              name="entity"
-              options={ENTITY_TYPES}
-              selected={entityTypes}
-            />
-            <CheckboxGroup
-              label="Certifications"
-              name="cert"
-              options={CERT_KINDS}
-              selected={certKinds}
-            />
-            <CheckboxGroup
-              label="Registry membership"
-              name="registry"
-              options={REGISTRY_SOURCES}
-              selected={registries}
-            />
-            <CheckboxGroup
-              label="Brand factory list"
-              name="brand"
-              options={BRAND_SOURCES}
-              selected={brandCodes}
-            />
-            {facets.factory_types.length > 0 ? (
-              <CheckboxGroup
-                label="Factory type"
-                name="ftype"
-                options={facets.factory_types
-                  .slice(0, 12)
-                  .map((t) => ({ value: t, label: t }))}
-                selected={factoryTypes}
-              />
+          <div className="space-y-4 border-t border-hairline bg-neutral-50/40 px-3 py-3">
+            <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-4">
+              <Field label="City">
+                <input
+                  type="text"
+                  name="city"
+                  list="discover-cities"
+                  defaultValue={city}
+                  placeholder="e.g. Dhaka"
+                  autoComplete="off"
+                  className={cn(inputBase, activeRing(Boolean(city)))}
+                />
+              </Field>
+              <Field label="District">
+                <input
+                  type="text"
+                  name="district"
+                  list="discover-districts"
+                  defaultValue={district}
+                  placeholder="e.g. Gazipur"
+                  autoComplete="off"
+                  className={cn(inputBase, activeRing(Boolean(district)))}
+                />
+              </Field>
+              <Field label="Category / product">
+                <input
+                  type="text"
+                  name="category"
+                  list="discover-products"
+                  defaultValue={category}
+                  placeholder="e.g. knitwear"
+                  autoComplete="off"
+                  className={cn(inputBase, activeRing(Boolean(category)))}
+                />
+              </Field>
+              <Field label="Verified sources">
+                <select
+                  name="min_sources"
+                  defaultValue={minSources}
+                  className={cn(inputBase, activeRing(Boolean(minSources)))}
+                >
+                  {MIN_SOURCES_OPTIONS.map((o) => (
+                    <option key={o.label} value={o.value}>
+                      {o.label}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+            </div>
+
+            <div className="rounded-card border border-hairline bg-white p-3 shadow-[0_1px_2px_rgba(15,15,20,0.03)]">
+              <div className="mb-3 flex items-center justify-between gap-3 border-b border-hairline pb-3">
+                <div>
+                  <p className="font-display text-[15px] font-semibold tracking-[-0.01em] text-ink-primary">
+                    Advanced filters
+                  </p>
+                  <p className="mt-0.5 text-[12px] text-ink-tertiary">
+                    Entity, certifications, memberships and brand lists
+                  </p>
+                </div>
+                {advancedCount > 0 ? (
+                  <span className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-brand-forest px-1.5 text-[11px] font-semibold text-white">
+                    {advancedCount}
+                  </span>
+                ) : null}
+              </div>
+              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-12">
+                <CheckboxGroup
+                  label="Entity type"
+                  name="entity"
+                  options={ENTITY_TYPES}
+                  selected={entityTypes}
+                  className="xl:col-span-2"
+                />
+                <CheckboxGroup
+                  label="Certifications"
+                  name="cert"
+                  options={CERT_KINDS}
+                  selected={certKinds}
+                  className="xl:col-span-2"
+                />
+                <CheckboxGroup
+                  label="Registry membership"
+                  name="registry"
+                  options={REGISTRY_SOURCES}
+                  selected={registries}
+                  className="xl:col-span-2"
+                />
+                <CheckboxGroup
+                  label="Brand factory list"
+                  name="brand"
+                  options={BRAND_SOURCES}
+                  selected={brandCodes}
+                  className="xl:col-span-3"
+                />
+                {facets.factory_types.length > 0 ? (
+                  <CheckboxGroup
+                    label="Factory type"
+                    name="ftype"
+                    options={facets.factory_types
+                      .slice(0, 12)
+                      .map((t) => ({ value: t, label: t }))}
+                    selected={factoryTypes}
+                    className="xl:col-span-3"
+                    optionGridClassName="sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2"
+                  />
+                ) : null}
+              </div>
+            </div>
+
+            {hideSearchRow ? (
+              <div className="flex flex-wrap items-center justify-between gap-3 rounded-card border border-hairline bg-white px-3 py-2.5">
+                <p className="text-xs text-ink-tertiary">
+                  Refine the list below without changing the main search field.
+                </p>
+                <div className="flex items-center gap-2">
+                  {hasAnyFilterActive ? (
+                    <Link
+                      href={basePath}
+                      className="inline-flex items-center justify-center rounded-input border border-neutral-200 bg-white px-3.5 py-2 text-sm font-semibold text-neutral-700 transition-colors hover:bg-neutral-50 hover:text-neutral-900"
+                    >
+                      Clear filters
+                    </Link>
+                  ) : null}
+                  <button type="submit" className="btn-proto px-4">
+                    Apply filters
+                  </button>
+                </div>
+              </div>
             ) : null}
           </div>
         </details>
@@ -489,7 +487,7 @@ function Field({
 }) {
   return (
     <label className="block">
-      <span className="mb-1.5 block text-xs font-semibold text-ink-tertiary">
+      <span className="mb-1 block text-[11px] font-semibold text-ink-tertiary">
         {label}
       </span>
       {children}
@@ -502,33 +500,40 @@ function CheckboxGroup({
   name,
   options,
   selected,
+  className,
+  optionGridClassName,
 }: {
   label: string;
   name: string;
   options: ReadonlyArray<{ value: string; label: string }>;
   selected: string[];
+  className?: string;
+  optionGridClassName?: string;
 }) {
   return (
-    <fieldset className="space-y-2 border-0 p-0">
-      <legend className="text-xs font-semibold text-ink-tertiary">
-        {label}
+    <fieldset className={cn("rounded-lg border border-hairline bg-surface-l1 p-2.5", className)}>
+      <legend className="sr-only">{label}</legend>
+      <div className="mb-2 flex items-center justify-between gap-2">
+        <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.08em] text-ink-tertiary">
+          {label}
+        </span>
         {selected.length > 0 ? (
-          <span className="ml-1.5 inline-flex h-4 min-w-[16px] items-center justify-center rounded-full bg-brand-forest-soft px-1 text-[10px] font-semibold text-brand-forest">
+          <span className="inline-flex h-4 min-w-[16px] items-center justify-center rounded-full bg-brand-forest px-1 text-[10px] font-semibold text-white">
             {selected.length}
           </span>
         ) : null}
-      </legend>
-      <div className="grid grid-cols-1 gap-1.5">
+      </div>
+      <div className={cn("grid gap-1", optionGridClassName)}>
         {options.map((opt) => {
           const checked = selected.includes(opt.value);
           return (
             <label
               key={opt.value}
               className={cn(
-                "flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors",
+                "group flex min-h-8 cursor-pointer items-center gap-2 rounded-md border px-2.5 py-1.5 text-[12px] font-medium transition-colors",
                 checked
-                  ? "bg-brand-forest-soft text-brand-forest"
-                  : "text-neutral-700 hover:bg-neutral-50",
+                  ? "border-brand-forest/25 bg-brand-forest-soft text-brand-forest shadow-[inset_0_0_0_1px_rgba(15,82,70,0.04)]"
+                  : "border-transparent bg-transparent text-ink-secondary hover:border-hairline hover:bg-white hover:text-ink-primary",
               )}
             >
               <input
@@ -536,9 +541,9 @@ function CheckboxGroup({
                 name={name}
                 value={opt.value}
                 defaultChecked={checked}
-                className="h-[18px] w-[18px] cursor-pointer accent-brand-forest"
+                className="h-3.5 w-3.5 shrink-0 cursor-pointer rounded border-hairline accent-brand-forest"
               />
-              <span>{opt.label}</span>
+              <span className="min-w-0 truncate">{opt.label}</span>
             </label>
           );
         })}

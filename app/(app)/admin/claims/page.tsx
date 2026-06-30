@@ -8,12 +8,14 @@
 import Link from "next/link";
 
 import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardMeta,
-  CardTitle,
-} from "@/components/ui/card";
+  AdminActionLink,
+  AdminEmptyState,
+  AdminPage,
+  AdminPageHeader,
+  AdminPanel,
+  AdminTabs,
+  humanizeAdminToken,
+} from "@/components/admin/admin-ui";
 import { Tag } from "@/components/ui/tag";
 import { ResponsiveTable, type Column } from "@/components/ui/responsive-table";
 import { ClaimAdminDecideButton } from "@/components/claim-admin-decide-button";
@@ -58,58 +60,40 @@ export default async function AdminClaimsPage({
     []) as AdminRow[];
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6">
-      <div className="flex flex-col gap-4 border-b border-hairline pb-6 sm:flex-row sm:items-end sm:justify-between">
-        <div className="min-w-0">
-          <p className="mb-2 inline-flex items-center gap-2 font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-brand-forest">
-            <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-brand-forest" />
-            Admin
-          </p>
-          <h1 className="font-display text-[26px] font-extrabold leading-[1.05] tracking-[-0.03em] text-ink-primary sm:text-[32px]">
-            Supplier claims
-          </h1>
-          <p className="mt-2.5 max-w-2xl text-[15px] leading-relaxed text-ink-secondary">
-            Manual-review claims that have cleared email verification.
-            Filter: <strong>{status}</strong>.
-          </p>
-        </div>
-        <nav className="flex flex-wrap gap-2 text-xs">
-          {(["email_verified", "approved", "rejected", "all"] as const).map(
-            (s) => (
-              <Link
-                key={s}
-                href={`/admin/claims?status=${s}`}
-                className={`rounded-pill border px-2 py-1 ${
-                  s === status
-                    ? "border-accent-indigo text-accent-indigo"
-                    : "border-hairline text-ink-tertiary hover:text-ink-primary"
-                }`}
-              >
-                {s.replace("_", " ")}
-              </Link>
-            ),
-          )}
-        </nav>
-      </div>
+    <AdminPage maxWidth="5xl">
+      <AdminPageHeader
+        kicker="Admin · Claims"
+        title="Supplier claims"
+        description={`Manual-review claims that have cleared email verification. Current state: ${humanizeAdminToken(status)}.`}
+        actions={<AdminActionLink href="/admin/queue">Review hub</AdminActionLink>}
+      />
+
+      <AdminTabs
+        label="Claim states"
+        items={(["email_verified", "approved", "rejected", "all"] as const).map((s) => ({
+          href: `/admin/claims?status=${s}`,
+          label: humanizeAdminToken(s),
+          active: s === status,
+        }))}
+      />
 
       {error ? (
-        <Card>
-          <CardContent>
+        <AdminPanel>
             <p className="text-sm text-sem-red">
               Failed to load: {error.message}
             </p>
-          </CardContent>
-        </Card>
+        </AdminPanel>
       ) : null}
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Queue</CardTitle>
-          <CardMeta>{rows.length} shown</CardMeta>
-        </CardHeader>
-        <CardContent>
+      <AdminPanel
+        title="Claim queue"
+        meta={`${rows.length} shown in the current state`}
+        padded={false}
+      >
           {rows.length === 0 ? (
-            <p className="text-sm text-ink-tertiary">No claims in this state.</p>
+            <div className="p-4 sm:p-5">
+              <AdminEmptyState title="No claims in this state" />
+            </div>
           ) : (
             <ResponsiveTable
               mode="stacked"
@@ -117,11 +101,11 @@ export default async function AdminClaimsPage({
               rows={rows}
               rowKey={(r) => r.id}
               caption="Supplier claims"
+              className="border-0 shadow-none"
             />
           )}
-        </CardContent>
-      </Card>
-    </div>
+      </AdminPanel>
+    </AdminPage>
   );
 }
 
@@ -132,14 +116,13 @@ const CLAIM_COLUMNS: Column<AdminRow>[] = [
     render: (r) => (
       <span className="flex flex-wrap items-center gap-1.5">
         <Link
-          href={`/suppliers/${r.supplier.slug}`}
+          href={`/admin/suppliers/${r.supplier.id}`}
           className="text-sm font-semibold text-ink-primary hover:underline"
-          target="_blank"
         >
           {r.supplier.company_name}
         </Link>
         <Tag>{r.method === "domain_email" ? "Domain" : "Manual"}</Tag>
-        <Tag>{r.status}</Tag>
+        <Tag>{humanizeAdminToken(r.status)}</Tag>
       </span>
     ),
   },
@@ -148,7 +131,7 @@ const CLAIM_COLUMNS: Column<AdminRow>[] = [
     label: "Entity",
     render: (r) => (
       <span className="block text-xs text-ink-tertiary">
-        {r.supplier.entity_type.replace(/_/g, " ")} ·{" "}
+        {humanizeAdminToken(r.supplier.entity_type)} ·{" "}
         {[r.supplier.city, r.supplier.district].filter(Boolean).join(", ") ||
           "—"}
         {r.supplier.website ? ` · ${r.supplier.website}` : ""}

@@ -6,12 +6,17 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardMeta,
-  CardTitle,
-} from "@/components/ui/card";
+  AdminActionLink,
+  AdminKeyValueList,
+  AdminPage,
+  AdminPageHeader,
+  AdminPanel,
+  AdminRow,
+  AdminRowList,
+  formatAdminDate,
+  formatAdminDateTime,
+  humanizeAdminToken,
+} from "@/components/admin/admin-ui";
 import { Tag } from "@/components/ui/tag";
 import { AdminSupplierEditorForm } from "@/components/admin-supplier-editor-form";
 import { AdminSupplierRescoreButton } from "@/components/admin-supplier-rescore-button";
@@ -103,78 +108,105 @@ export default async function AdminSupplierEditorPage({
 
   if (error) {
     return (
-      <div className="mx-auto max-w-5xl space-y-6">
-        <Card>
-          <CardContent className="text-sm text-sem-red">
+      <AdminPage maxWidth="5xl">
+        <AdminPanel>
+          <p className="text-sm text-sem-red">
             Could not load supplier: {error.message}
-          </CardContent>
-        </Card>
-      </div>
+          </p>
+        </AdminPanel>
+      </AdminPage>
     );
   }
   if (data == null) notFound();
 
   const doc = data as Doc;
   const s = doc.supplier;
+  const activeTier13Sources = new Set(
+    doc.source_records
+      .filter(
+        (sr) =>
+          sr.status === "active" &&
+          ["tier1_gov", "tier2_industry", "tier3_cert"].includes(sr.source_tier),
+      )
+      .map((sr) => sr.source_code),
+  );
+  const openReviewCount = doc.verification_queue.filter((v) => v.reviewed_at == null).length;
+  const canPublish = activeTier13Sources.size > 0;
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6">
-      <header className="flex flex-col gap-2 border-b border-hairline pb-6 md:flex-row md:items-end md:justify-between">
-        <div>
-          <p className="mb-2 inline-flex items-center gap-2 font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-brand-forest">
-            <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-brand-forest" />
-            Admin · supplier
-          </p>
-          <h1 className="font-display text-[24px] font-extrabold leading-[1.1] tracking-[-0.03em] text-ink-primary sm:text-[28px]">
-            {s.name_display ?? s.company_name}
-          </h1>
-          <p className="mt-1 text-[12px] text-ink-tertiary">
+    <AdminPage maxWidth="6xl">
+      <AdminPageHeader
+        kicker="Admin · Supplier"
+        title={s.name_display ?? s.company_name}
+        description={
+          <>
             <span className="font-mono">{s.slug}</span>
             {s.city || s.district
               ? ` · ${[s.city, s.district].filter(Boolean).join(", ")}`
               : ""}
             {s.country ? ` · ${s.country}` : ""}
-          </p>
-          <div className="mt-2 flex flex-wrap gap-2">
-            <Tag tone="muted">{s.entity_type}</Tag>
+          </>
+        }
+        actions={
+          <div className="flex flex-wrap items-center gap-2">
+            <AdminActionLink href="/admin/suppliers">Back to list</AdminActionLink>
             {s.published ? (
-              <Tag tone="muted">published</Tag>
+              <AdminActionLink href={`/suppliers/${s.slug}`} target="_blank">
+                Public profile
+              </AdminActionLink>
             ) : (
-              <Tag tone="amber">unpublished</Tag>
+              <span className="inline-flex min-h-[40px] items-center rounded-pill border border-amber-200 bg-amber-50 px-3 text-sm font-semibold text-amber-800">
+                Public profile hidden
+              </span>
             )}
-            {s.claimed_by ? <Tag tone="muted">claimed</Tag> : null}
-            {s.sanctioned_flag ? <Tag tone="red">sanctioned</Tag> : null}
-            {doc.pending_rescore_count > 0 ? (
-              <Tag tone="amber">
-                {doc.pending_rescore_count} rescore pending
-              </Tag>
-            ) : null}
+            <AdminSupplierRescoreButton id={s.id} />
           </div>
-        </div>
-        <div className="flex shrink-0 items-center gap-2">
-          <Link
-            href="/admin/suppliers"
-            className="rounded-pill border border-hairline px-3 py-1.5 text-[12px] text-ink-tertiary hover:text-ink-primary"
-          >
-            ← Back to list
-          </Link>
-          <Link
-            href={`/suppliers/${s.slug}`}
-            target="_blank"
-            className="rounded-pill border border-hairline px-3 py-1.5 text-[12px] text-ink-tertiary hover:text-ink-primary"
-          >
-            Public profile ↗
-          </Link>
-          <AdminSupplierRescoreButton id={s.id} />
-        </div>
-      </header>
+        }
+      />
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Admin-editable profile fields</CardTitle>
-          <CardMeta>Only the approved admin fields below can be changed</CardMeta>
-        </CardHeader>
-        <CardContent className="pt-0">
+      <div className="flex flex-wrap gap-2">
+        <Tag tone="muted">{humanizeAdminToken(s.entity_type)}</Tag>
+        {s.published ? <Tag tone="muted">Visible to buyers</Tag> : <Tag tone="amber">Not visible</Tag>}
+        {s.claimed_by ? <Tag tone="muted">Claimed</Tag> : <Tag tone="amber">Unclaimed</Tag>}
+        {s.sanctioned_flag ? <Tag tone="red">Sanctioned</Tag> : <Tag tone="muted">Sanctions clear</Tag>}
+        {doc.pending_rescore_count > 0 ? (
+          <Tag tone="amber">{doc.pending_rescore_count} rescore pending</Tag>
+        ) : null}
+      </div>
+
+      <AdminPanel
+        title="Publication readiness"
+        description="Checks an admin should review before changing buyer visibility."
+      >
+        <div className="grid gap-3 sm:grid-cols-3">
+          <ReadinessItem
+            label="Buyer visibility"
+            value={s.published ? "Visible to buyers" : "Not visible"}
+            tone={s.published ? "green" : "amber"}
+          />
+          <ReadinessItem
+            label="Verified evidence"
+            value={`${activeTier13Sources.size} active Tier 1-3 source${activeTier13Sources.size === 1 ? "" : "s"}`}
+            tone={canPublish ? "green" : "red"}
+            hint={
+              canPublish
+                ? "Meets the database publish requirement."
+                : "Publishing is blocked until active Tier 1-3 evidence exists."
+            }
+          />
+          <ReadinessItem
+            label="Open review items"
+            value={String(openReviewCount)}
+            tone={openReviewCount > 0 ? "amber" : "green"}
+            href={openReviewCount > 0 ? `/admin/queue` : undefined}
+          />
+        </div>
+      </AdminPanel>
+
+      <AdminPanel
+        title="Editable buyer profile"
+        description="Only approved admin fields can be changed here."
+      >
           <AdminSupplierEditorForm
             id={s.id}
             initial={{
@@ -187,50 +219,37 @@ export default async function AdminSupplierEditorPage({
               notes_admin: s.notes_admin ?? "",
             }}
           />
-        </CardContent>
-      </Card>
+      </AdminPanel>
 
       <section className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Register-owned facts</CardTitle>
-            <CardMeta>Read-only evidence from source records</CardMeta>
-          </CardHeader>
-          <CardContent className="pt-0">
-            <dl className="grid grid-cols-1 gap-x-4 gap-y-2 text-[13px] sm:grid-cols-2">
-              <Kv k="Register company name" v={s.company_name} mono />
-              <Kv k="Website" v={s.website} mono />
-              <Kv k="Registered address" v={s.address_raw} />
-              <Kv k="Parent group" v={s.parent_group_name} />
-              <Kv
-                k="Profile completeness"
-                v={s.completeness_pct != null ? `${s.completeness_pct}%` : null}
-              />
-              <Kv k="Internal SBI total" v={s.sbi_total != null ? String(s.sbi_total) : null} mono />
-              <Kv
-                k="Source tags"
-                v={s.source_tags && s.source_tags.length > 0 ? s.source_tags.join(", ") : null}
-                mono
-              />
-            </dl>
-          </CardContent>
-        </Card>
+        <AdminPanel
+          title="Evidence from source records"
+          description="Read-only facts pulled from source records."
+        >
+            <AdminKeyValueList
+              rows={[
+                { label: "Register company name", value: s.company_name, mono: true },
+                { label: "Website", value: s.website, mono: true },
+                { label: "Registered address", value: s.address_raw },
+                { label: "Parent group", value: s.parent_group_name },
+                { label: "Profile completeness", value: s.completeness_pct != null ? `${s.completeness_pct}%` : null },
+                { label: "Internal SBI total", value: s.sbi_total != null ? String(s.sbi_total) : null, mono: true },
+                { label: "Source tags", value: s.source_tags && s.source_tags.length > 0 ? s.source_tags.join(", ") : null, mono: true },
+              ]}
+            />
+        </AdminPanel>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Source records</CardTitle>
-            <CardMeta>{doc.source_records.length} rows</CardMeta>
-          </CardHeader>
-          <CardContent className="pt-0">
+        <AdminPanel
+          title="Source records"
+          meta={`${doc.source_records.length} rows`}
+          padded={false}
+        >
             {doc.source_records.length === 0 ? (
-              <p className="text-[13px] text-ink-tertiary">No source records.</p>
+              <p className="p-4 text-[13px] text-ink-tertiary sm:p-5">No source records.</p>
             ) : (
-              <ul className="m-0 flex list-none flex-col p-0 text-[12px]">
+              <AdminRowList className="text-[12px]">
                 {doc.source_records.map((sr) => (
-                  <li
-                    key={sr.id}
-                    className="flex items-baseline justify-between gap-3 border-b border-hairline py-1.5 last:border-b-0"
-                  >
+                  <AdminRow key={sr.id}>
                     <span className="font-mono">
                       {sr.source_code}{" "}
                       <span className="text-ink-tertiary">[{sr.source_tier}]</span>
@@ -238,101 +257,94 @@ export default async function AdminSupplierEditorPage({
                     <span className="font-mono tabular-nums text-ink-tertiary">
                       {sr.status} ·{" "}
                       {sr.fetched_at
-                        ? new Date(sr.fetched_at).toISOString().slice(0, 10)
+                        ? formatAdminDate(sr.fetched_at)
                         : "—"}
                     </span>
-                  </li>
+                  </AdminRow>
                 ))}
-              </ul>
+              </AdminRowList>
             )}
-          </CardContent>
-        </Card>
+        </AdminPanel>
       </section>
 
       <section className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Certifications</CardTitle>
-            <CardMeta>{doc.certifications.length} rows</CardMeta>
-          </CardHeader>
-          <CardContent className="pt-0">
+        <AdminPanel
+          title="Certifications"
+          meta={`${doc.certifications.length} rows`}
+          padded={false}
+        >
             {doc.certifications.length === 0 ? (
-              <p className="text-[13px] text-ink-tertiary">No certifications.</p>
+              <p className="p-4 text-[13px] text-ink-tertiary sm:p-5">No certifications.</p>
             ) : (
-              <ul className="m-0 flex list-none flex-col p-0 text-[12px]">
+              <AdminRowList className="text-[12px]">
                 {doc.certifications.map((c) => (
-                  <li
-                    key={c.id}
-                    className="flex items-baseline justify-between gap-3 border-b border-hairline py-1.5 last:border-b-0"
-                  >
+                  <AdminRow key={c.id}>
                     <span className="font-mono">
-                      {c.kind}
+                      {humanizeAdminToken(c.kind)}
                       {c.certificate_no ? ` · ${c.certificate_no}` : ""}
                     </span>
                     <span className="font-mono tabular-nums text-ink-tertiary">
                       exp{" "}
                       {c.expires_on
-                        ? new Date(c.expires_on).toISOString().slice(0, 10)
+                        ? formatAdminDate(c.expires_on)
                         : "—"}
                     </span>
-                  </li>
+                  </AdminRow>
                 ))}
-              </ul>
+              </AdminRowList>
             )}
-          </CardContent>
-        </Card>
+        </AdminPanel>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Verification queue</CardTitle>
-            <CardMeta>{doc.verification_queue.length} rows</CardMeta>
-          </CardHeader>
-          <CardContent className="pt-0">
+        <AdminPanel
+          title="Open review items"
+          meta={`${openReviewCount} open · ${doc.verification_queue.length} total rows`}
+          padded={false}
+        >
             {doc.verification_queue.length === 0 ? (
-              <p className="text-[13px] text-ink-tertiary">No queue entries.</p>
+              <p className="p-4 text-[13px] text-ink-tertiary sm:p-5">No queue entries.</p>
             ) : (
-              <ul className="m-0 flex list-none flex-col p-0 text-[12px]">
+              <AdminRowList className="text-[12px]">
                 {doc.verification_queue.map((v) => (
-                  <li
-                    key={v.id}
-                    className="flex items-baseline justify-between gap-3 border-b border-hairline py-1.5 last:border-b-0"
-                  >
-                    <span className="font-mono">{v.queue_type}</span>
+                  <AdminRow key={v.id}>
+                    <Link
+                      href={`/admin/queue?type=${encodeURIComponent(v.queue_type)}`}
+                      className="font-mono text-ink-primary hover:underline"
+                    >
+                      {humanizeAdminToken(v.queue_type)}
+                    </Link>
                     <span className="font-mono tabular-nums text-ink-tertiary">
                       {v.admin_action ?? "pending"}
                       {v.confidence != null
                         ? ` · conf ${v.confidence.toFixed(2)}`
                         : ""}
                     </span>
-                  </li>
+                  </AdminRow>
                 ))}
-              </ul>
+              </AdminRowList>
             )}
-          </CardContent>
-        </Card>
+        </AdminPanel>
       </section>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Recent admin actions</CardTitle>
-          <CardMeta>Last {doc.recent_audit.length} audit entries for this supplier</CardMeta>
-        </CardHeader>
-        <CardContent className="pt-0">
+      <AdminPanel
+        title="Recent admin actions"
+        meta={`Last ${doc.recent_audit.length} audit entries for this supplier`}
+        padded={false}
+      >
           {doc.recent_audit.length === 0 ? (
-            <p className="text-[13px] text-ink-tertiary">
+            <p className="p-4 text-[13px] text-ink-tertiary sm:p-5">
               No admin actions logged for this supplier yet.
             </p>
           ) : (
-            <ul className="m-0 flex list-none flex-col p-0 text-[12px]">
+            <AdminRowList className="text-[12px]">
               {doc.recent_audit.map((a) => (
                 <li
                   key={a.id}
-                  className="border-b border-hairline py-2 last:border-b-0"
+                  className="px-4 py-3 last:border-b-0 sm:px-5"
                 >
                   <div className="flex items-baseline justify-between gap-3">
                     <span className="font-mono text-ink-primary">{a.action}</span>
                     <span className="font-mono tabular-nums text-ink-tertiary">
-                      {new Date(a.created_at).toISOString().replace("T", " ").slice(0, 19)}
+                      {formatAdminDateTime(a.created_at)}
                     </span>
                   </div>
                   {a.patch ? (
@@ -347,31 +359,52 @@ export default async function AdminSupplierEditorPage({
                   ) : null}
                 </li>
               ))}
-            </ul>
+            </AdminRowList>
           )}
-        </CardContent>
-      </Card>
-    </div>
+      </AdminPanel>
+    </AdminPage>
   );
 }
 
-function Kv({
-  k,
-  v,
-  mono,
+function ReadinessItem({
+  label,
+  value,
+  tone,
+  hint,
+  href,
 }: {
-  k: string;
-  v: string | null;
-  mono?: boolean;
+  label: string;
+  value: string;
+  tone: "green" | "amber" | "red";
+  hint?: string;
+  href?: string;
 }) {
-  return (
-    <div className="flex flex-col">
-      <dt className="text-[11px] text-ink-tertiary">
-        {k}
-      </dt>
-      <dd className={mono ? "font-mono text-ink-primary" : "text-ink-primary"}>
-        {v ?? <span className="text-ink-tertiary">—</span>}
-      </dd>
+  const content = (
+    <div
+      className={
+        "rounded-lg border p-4 " +
+        (tone === "green"
+          ? "border-emerald-200 bg-emerald-50"
+          : tone === "amber"
+            ? "border-amber-200 bg-amber-50"
+            : "border-red-200 bg-red-50")
+      }
+    >
+      <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-ink-tertiary">
+        {label}
+      </p>
+      <p className="mt-1 font-display text-lg font-semibold text-ink-primary">
+        {value}
+      </p>
+      {hint ? <p className="mt-1 text-[12px] text-ink-secondary">{hint}</p> : null}
     </div>
   );
+  return href ? (
+    <Link href={href} className="block hover:opacity-90">
+      {content}
+    </Link>
+  ) : (
+    content
+  );
 }
+

@@ -11,8 +11,7 @@ OUT_DIR = Path(__file__).resolve().parents[1] / "public" / "icons" / "products"
 
 # One icon per slug — first consistent pick from the Principal products set.
 ICON_MANIFEST: dict[str, str] = {
-    "t-shirt": "4214599",
-    "tee": "4214594",
+    "t-shirt": "4464232",  # Fashion set (Cuputo)
     "shirt": "4214592",
     "polo": "4214595",
     "blouse": "1444151",  # dedicated blouse line icon (4213818 in export is a dress silhouette)
@@ -40,7 +39,7 @@ ICON_MANIFEST: dict[str, str] = {
     "bras": "4213830",
     "bikini": "4213834",
     "overalls": "4213824",
-    "pajamas": "4213836",
+    "pajamas": "4007499",  # pants / sleepwear (Rank Sol)
     "cargo-pants": "4213825",
     "children-clothes": "4213833",
     "infant-clothes": "4213840",
@@ -57,12 +56,24 @@ ICON_MANIFEST: dict[str, str] = {
     "bowtie": "4213850",
     "robe": "4213841",
     # Supplemental icons (not in Principal products apparel set)
-    "carton": "8165428",
+    "athletic-wear": "6633424",  # Sport Equipment (IYIKON)
+    "home-textile": "6373417",  # Home and living (IMG visuals icons)
+    "carton": "3673872",  # Box (ainul muttaqin)
     "cardboard": "6961114",
+    "back-board": "8403565",  # Paper sheet (Ngiconan)
+    "neck-board": "2420101",  # shirt collar (Atif Arshad)
+    "printed-label": "2872085",  # Tag (Made by Made)
+    "tissue-paper": "8317415",  # Paper roll (GlyphGenius Studio)
+    "price-tag": "5285662",  # Price Tag (Nur Hasanah)
+    "barcode": "1673592",  # Barcode (Mohamed Mb)
+    "poly-bag": "8318101",  # Noun Project "Poly Bags" set (Nur Achmadi Yusuf)
     "fabric-roll": "7626151",
     "yarn": "7792080",
     "care-label": "5936190",
-    "elastic": "7327468",
+    "elastic": "3292760",  # Elastic Belt (Olena Panasovska)
+    "leggings": "7793232",  # Hamz Studio
+    "lace": "7288340",  # Wedding Service set (aditya_chan)
+    "hanger": "1442458",  # Hanger set1 (Nook Fulloption)
     "tape": "7005459",
     "thread": "7384372",
 }

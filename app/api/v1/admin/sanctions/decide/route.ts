@@ -1,7 +1,7 @@
 // /api/v1/admin/sanctions/decide — confirm/clear a queued sanctions hit (Spec A4).
 
 import { NextResponse } from "next/server";
-import { revalidateTag } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 
 import { getServerRole } from "@/lib/auth";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -80,30 +80,38 @@ export async function POST(req: Request) {
 
   // H4 — sanction_alert fan-out (only on confirm, best-effort).
   const result = (data ?? {}) as { supplier_id?: string; decision?: string };
-  if (result.decision === "confirm" && result.supplier_id) {
+  if (result.supplier_id) {
     const supplierId = result.supplier_id;
     const { data: supp } = await supabase
       .from("suppliers")
       .select("company_name, slug")
       .eq("id", supplierId)
       .maybeSingle();
-    const { data: q } = await supabase
-      .from("verification_queue")
-      .select("source_data")
-      .eq("id", queueId)
-      .maybeSingle();
-    const listName =
-      (q?.source_data as { list?: string } | null)?.list ?? "Sanctions list";
-    void notifySanctionConfirmed({
-      supplierId,
-      supplierName: supp?.company_name ?? "Saved supplier",
-      supplierSlug: supp?.slug ?? supplierId,
-      listName,
-      reason,
-    });
     revalidateTag(TAG_DISCOVER_FACETS);
     revalidateTag(TAG_DISCOVER_SUPPLIERS);
-    if (supp?.slug) revalidateTag(tagSupplier(supp.slug));
+    if (supp?.slug) {
+      revalidateTag(tagSupplier(supp.slug));
+      revalidatePath(`/suppliers/${supp.slug}`);
+      revalidatePath(`/app/suppliers/${supp.slug}`);
+      revalidatePath("/discover");
+      revalidatePath("/app/discover");
+    }
+    if (result.decision === "confirm") {
+      const { data: q } = await supabase
+        .from("verification_queue")
+        .select("source_data")
+        .eq("id", queueId)
+        .maybeSingle();
+      const listName =
+        (q?.source_data as { list?: string } | null)?.list ?? "Sanctions list";
+      void notifySanctionConfirmed({
+        supplierId,
+        supplierName: supp?.company_name ?? "Saved supplier",
+        supplierSlug: supp?.slug ?? supplierId,
+        listName,
+        reason,
+      });
+    }
   }
 
   return NextResponse.json(data);

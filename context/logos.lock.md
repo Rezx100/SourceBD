@@ -164,7 +164,7 @@ the `sources` table. **Status legend:** `pending` = no asset yet ·
 
 | Asset | Path | Use |
 |---|---|---|
-| Flame logomark, full colour | `brand/sourcebd-mark.svg` | Hero, footer, favicon — the only mark allowed >32 px |
+| SourceBD logomark, full colour | `brand/sourcebd-logo.png` | Hero, footer, favicon — the only mark allowed >32 px |
 | Flame logomark, mono | `brand/sourcebd-mark-mono.svg` | When laid over imagery / coloured ground |
 | Wordmark, "SourceBD" | `brand/sourcebd-wordmark.svg` | Nav, email signature |
 | Stroke icon set | `meta/*.svg` | All product metadata icons (Lucide family, 1.5 px stroke, 24 grid, no frame) |

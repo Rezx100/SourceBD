@@ -7,8 +7,8 @@
 //
 // SBI hard contract: the RPC orders by `sbi_scores.total DESC NULLS LAST`
 // inside its body under `security definer`, but the RETURNS TABLE never
-// includes the SBI value. Receipts Ring centre = count of distinct
-// Tier 1–3 sources (`t13_source_count`).
+// includes the SBI value. The trust glyph centre is the count of distinct
+// Tier 1–3 verified sources (`t13_source_count`).
 
 import Link from "next/link";
 
@@ -32,6 +32,7 @@ import { DiscoverSearchHero } from "@/components/discover/search-hero";
 import { MobileFilterSheet } from "@/components/discover/mobile-filter-sheet";
 import { EmptyState, PageHeader } from "@/components/ui/page-kit";
 import { fetchDiscoverFacets } from "@/lib/discover-facets";
+import { resolveDiscoverSmartQuery } from "@/lib/discover-smart-query";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -65,26 +66,24 @@ export default async function BuyerDiscoverPage({
     minSourcesRaw && /^[1-5]$/.test(minSourcesRaw)
       ? Number.parseInt(minSourcesRaw, 10)
       : null;
-  const rscMin = asInt(sp.rsc_min);
-  const workersMin = asInt(sp.workers_min);
   const city = asString(sp.city).trim();
   const district = asString(sp.district).trim();
   const category = asString(sp.category).trim();
+  const smartQuery = resolveDiscoverSmartQuery(q, category);
   const sort = clampSort(asString(sp.sort));
   const pageNum = Math.max(1, asInt(sp.page) ?? 1);
   const offset = (pageNum - 1) * PAGE_SIZE;
 
   const supabase = await createSupabaseServerClient();
   const rpcPromise = supabase.rpc("discover_suppliers", {
-    p_q: q || null,
+    p_q: smartQuery.rpcQ || null,
     p_entity_types: entityTypes.length ? entityTypes : null,
     p_min_sources: minSources,
     p_cert_kinds: certKinds.length ? certKinds : null,
-    p_rsc_min:
-      rscMin !== null && rscMin >= 0 && rscMin <= 100 ? rscMin : null,
+    p_rsc_min: null,
     p_city: city || null,
     p_district: district || null,
-    p_category: category || null,
+    p_category: category || smartQuery.inferredCategory || null,
     p_sort: sort,
     p_limit: PAGE_SIZE,
     p_offset: offset,
@@ -92,8 +91,7 @@ export default async function BuyerDiscoverPage({
     p_factory_types: factoryTypes.length ? factoryTypes : null,
     p_brand_codes: brandCodes.length ? brandCodes : null,
     p_completeness_min: null,
-    p_workers_min:
-      workersMin !== null && workersMin >= 0 ? workersMin : null,
+    p_workers_min: null,
   });
 
   // Chain the saved-set lookup onto the RPC promise so it runs in parallel
@@ -135,8 +133,6 @@ export default async function BuyerDiscoverPage({
     ftype: factoryTypes,
     min_sources:
       minSourcesRaw && /^[1-5]$/.test(minSourcesRaw) ? minSourcesRaw : "",
-    rsc_min: rscMin !== null ? String(rscMin) : "",
-    workers_min: workersMin !== null ? String(workersMin) : "",
     city,
     district,
     category,
@@ -151,8 +147,6 @@ export default async function BuyerDiscoverPage({
     brandCodes.length > 0 ||
     factoryTypes.length > 0 ||
     minSources !== null ||
-    rscMin !== null ||
-    workersMin !== null ||
     Boolean(city) ||
     Boolean(district) ||
     Boolean(category);
@@ -168,12 +162,9 @@ export default async function BuyerDiscoverPage({
     brandCodes.length +
     factoryTypes.length +
     (minSources !== null ? 1 : 0) +
-    (rscMin !== null ? 1 : 0) +
-    (workersMin !== null ? 1 : 0) +
     (city ? 1 : 0) +
     (district ? 1 : 0) +
     (category ? 1 : 0);
-
   return (
     <div className="mx-auto max-w-7xl space-y-8">
       <PageHeader
@@ -203,8 +194,6 @@ export default async function BuyerDiscoverPage({
               brandCodes={brandCodes}
               factoryTypes={factoryTypes}
               minSources={minSourcesRaw}
-              rscMin={rscMin}
-              workersMin={workersMin}
               city={city}
               district={district}
               category={category}
@@ -228,8 +217,6 @@ export default async function BuyerDiscoverPage({
             brandCodes={brandCodes}
             factoryTypes={factoryTypes}
             minSources={minSourcesRaw}
-            rscMin={rscMin}
-            workersMin={workersMin}
             city={city}
             district={district}
             category={category}
@@ -241,7 +228,7 @@ export default async function BuyerDiscoverPage({
           />
         </div>
 
-        <section className="space-y-4">
+        <section id="discover-results" className="space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="text-sm text-ink-secondary">
               {error ? (

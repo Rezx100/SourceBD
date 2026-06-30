@@ -94,7 +94,7 @@ export default async function ComplianceDetailPage({
   const cta = ctaFor(role);
 
   return (
-    <main className="mx-auto max-w-3xl px-4 py-10 sm:px-6 sm:py-14 md:py-16">
+    <main className="mx-auto w-full max-w-4xl px-4 py-9 sm:px-6 sm:py-14 md:py-16">
       {/* M4 — JSON-LD Article. `datePublished` and `dateModified` both
           derive from the single `last_reviewed_at` field (CompliancePage
           has no separate publish date — the page is a living summary;
@@ -138,16 +138,16 @@ export default async function ComplianceDetailPage({
       </BlurFade>
 
       <BlurFade delay={0.15}>
-      <article className="mt-8 space-y-7 overflow-hidden rounded-lg border border-neutral-200 bg-white p-4 shadow-sm sm:p-6 md:mt-10 md:space-y-10 md:p-8">
+      <article className="mt-8 min-w-0 space-y-6 overflow-hidden rounded-lg border border-neutral-200 bg-white p-4 shadow-sm sm:p-6 md:mt-10 md:space-y-8 md:p-8">
         {SECTION_ORDER.map((heading) => {
           const section = page.sections.find((s) => s.heading === heading);
           if (!section) return null;
           return (
-            <section key={heading}>
+            <section key={heading} className="border-b border-neutral-100 pb-6 last:border-b-0 last:pb-0 md:pb-8">
               <h2 className="font-display text-lg font-semibold text-ink-primary sm:text-xl">
                 {section.heading}
               </h2>
-              <div className="mt-3 space-y-3 text-[13px] leading-relaxed text-ink-secondary sm:text-sm">
+              <div className="mt-3 min-w-0 space-y-3 text-pretty break-words text-[13px] leading-relaxed text-ink-secondary sm:text-sm">
                 {section.body.map((para, i) => (
                   <p key={i}>{para}</p>
                 ))}
@@ -163,7 +163,7 @@ export default async function ComplianceDetailPage({
           );
         })}
 
-        <section>
+        <section className="min-w-0">
           <h2 className="font-display text-lg font-semibold text-ink-primary sm:text-xl">
             References
           </h2>
@@ -191,7 +191,7 @@ export default async function ComplianceDetailPage({
       <BlurFade delay={0.2}>
         <section className="mt-10 overflow-hidden rounded-lg border border-brand-forest/20 bg-brand-forest-soft p-5 text-center sm:mt-12 sm:p-8">
           <h2 className="font-display text-lg font-extrabold tracking-tight text-neutral-900 sm:text-xl">
-            <span className="text-brand-forest">Receipts</span> on every supplier
+            <span className="text-brand-forest">Verified evidence</span> on every supplier
           </h2>
           <p className="mx-auto mt-3 max-w-md !text-center text-[13px] leading-relaxed text-neutral-600 sm:text-sm">
             Each SourceBD supplier profile carries source pills with

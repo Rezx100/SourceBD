@@ -259,6 +259,7 @@ class WrapScraper(BaseScraper):
 
         run_id = self._open_run()
         seen = upserted = skipped = 0
+        self._emit_progress(run_id, "started", "WRAP scraper started.", seen, upserted, skipped)
         try:
             async for rec in self.fetch():
                 seen += 1
@@ -271,6 +272,15 @@ class WrapScraper(BaseScraper):
                     self.log.error("upsert.failed", source_ref=rec.source_ref, error=str(exc))
                 if seen % 50 == 0:
                     self.log.info("progress", seen=seen, upserted=upserted, skipped=skipped)
+                    self._update_run_progress(run_id, seen, upserted, skipped)
+                    self._emit_progress(
+                        run_id,
+                        "progress",
+                        f"Checked {seen} WRAP facilities.",
+                        seen,
+                        upserted,
+                        skipped,
+                    )
             self._close_run(run_id, "success", seen, upserted, skipped, None)
         except Exception as exc:  # noqa: BLE001
             self._close_run(run_id, "failed", seen, upserted, skipped, str(exc))

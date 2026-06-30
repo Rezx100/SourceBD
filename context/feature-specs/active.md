@@ -4,10 +4,13 @@ This file keeps routine agent sessions from scanning every inactive feature spec
 
 ## Active / Recent Spec
 - No spec currently in progress.
-- Most recent ad-hoc frontend work (29 Jun 2026): principal product icons on
+- Most recent ad-hoc frontend work (30 Jun 2026): principal product chip
+  dedup, spelling correction, singular/plural merge, and compound-label split
+  (`Sweater/Jacket` → separate chips) in `lib/product-icons.ts` — deployed via
+  quick deploy. See `context/current-state.md` → Recent Frontend Polish.
+- Previous ad-hoc frontend work (29 Jun 2026): principal product icons on
   supplier profiles — local Noun Project icon set, slug resolver in
-  `lib/product-icons.ts`, deployed via quick deploy. See
-  `context/current-state.md` → Recent Frontend Polish.
+  `lib/product-icons.ts`, deployed via quick deploy.
 - Previous completed implementation: Admin scraper operations from the accepted
   Cursor plan `Admin Scraper Ops` (26 Jun 2026).
 - Frontend visual baseline remains

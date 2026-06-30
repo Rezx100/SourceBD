@@ -36,13 +36,13 @@ export const metadata: Metadata = {
     type: "website",
     title: "SourceBD — verified Bangladesh RMG supply-chain intelligence",
     description:
-      "Discover, vet, and message verified Bangladesh garment factories and buying houses with receipts on every claim.",
+      "Discover, vet, and message verified Bangladesh garment factories and buying houses with verified evidence behind every claim.",
   },
   twitter: {
     card: "summary_large_image",
     title: "SourceBD — verified Bangladesh RMG supply-chain intelligence",
     description:
-      "Discover, vet, and message verified Bangladesh garment factories and buying houses with receipts on every claim.",
+      "Discover, vet, and message verified Bangladesh garment factories and buying houses with verified evidence behind every claim.",
   },
 };
 

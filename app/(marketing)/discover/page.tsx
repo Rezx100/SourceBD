@@ -34,6 +34,7 @@ import { DiscoverSearchHero } from "@/components/discover/search-hero";
 import { MobileFilterSheet } from "@/components/discover/mobile-filter-sheet";
 import { fetchDiscoverFacets } from "@/lib/discover-facets";
 import { fetchPublicDiscoverSuppliers } from "@/lib/discover-suppliers";
+import { resolveDiscoverSmartQuery } from "@/lib/discover-smart-query";
 
 export const revalidate = 300;
 
@@ -66,26 +67,24 @@ export default async function PublicDiscoverPage({
     minSourcesRaw && /^[1-5]$/.test(minSourcesRaw)
       ? Number.parseInt(minSourcesRaw, 10)
       : null;
-  const rscMin = asInt(sp.rsc_min);
-  const workersMin = asInt(sp.workers_min);
   const city = asString(sp.city).trim();
   const district = asString(sp.district).trim();
   const category = asString(sp.category).trim();
+  const smartQuery = resolveDiscoverSmartQuery(q, category);
   const sort = clampSort(asString(sp.sort));
   const pageNum = Math.max(1, asInt(sp.page) ?? 1);
   const offset = (pageNum - 1) * PAGE_SIZE;
 
   const [{ rows, error }, facets] = await Promise.all([
     fetchPublicDiscoverSuppliers({
-      p_q: q || null,
+      p_q: smartQuery.rpcQ || null,
       p_entity_types: entityTypes.length ? entityTypes : null,
       p_min_sources: minSources,
       p_cert_kinds: certKinds.length ? certKinds : null,
-      p_rsc_min:
-        rscMin !== null && rscMin >= 0 && rscMin <= 100 ? rscMin : null,
+      p_rsc_min: null,
       p_city: city || null,
       p_district: district || null,
-      p_category: category || null,
+      p_category: category || smartQuery.inferredCategory || null,
       p_sort: sort,
       p_limit: PAGE_SIZE,
       p_offset: offset,
@@ -93,8 +92,7 @@ export default async function PublicDiscoverPage({
       p_factory_types: factoryTypes.length ? factoryTypes : null,
       p_brand_codes: brandCodes.length ? brandCodes : null,
       p_completeness_min: null,
-      p_workers_min:
-        workersMin !== null && workersMin >= 0 ? workersMin : null,
+      p_workers_min: null,
     }),
     fetchDiscoverFacets(),
   ]);
@@ -111,8 +109,6 @@ export default async function PublicDiscoverPage({
     ftype: factoryTypes,
     min_sources:
       minSourcesRaw && /^[1-5]$/.test(minSourcesRaw) ? minSourcesRaw : "",
-    rsc_min: rscMin !== null ? String(rscMin) : "",
-    workers_min: workersMin !== null ? String(workersMin) : "",
     city,
     district,
     category,
@@ -127,8 +123,6 @@ export default async function PublicDiscoverPage({
     brandCodes.length > 0 ||
     factoryTypes.length > 0 ||
     minSources !== null ||
-    rscMin !== null ||
-    workersMin !== null ||
     Boolean(city) ||
     Boolean(district) ||
     Boolean(category);
@@ -141,12 +135,9 @@ export default async function PublicDiscoverPage({
     brandCodes.length +
     factoryTypes.length +
     (minSources !== null ? 1 : 0) +
-    (rscMin !== null ? 1 : 0) +
-    (workersMin !== null ? 1 : 0) +
     (city ? 1 : 0) +
     (district ? 1 : 0) +
     (category ? 1 : 0);
-
   return (
     <>
       <main className="mx-auto max-w-7xl space-y-6 px-6 py-8">
@@ -174,8 +165,6 @@ export default async function PublicDiscoverPage({
                 brandCodes={brandCodes}
                 factoryTypes={factoryTypes}
                 minSources={minSourcesRaw}
-                rscMin={rscMin}
-                workersMin={workersMin}
                 city={city}
                 district={district}
                 category={category}
@@ -198,8 +187,6 @@ export default async function PublicDiscoverPage({
               brandCodes={brandCodes}
               factoryTypes={factoryTypes}
               minSources={minSourcesRaw}
-              rscMin={rscMin}
-              workersMin={workersMin}
               city={city}
               district={district}
               category={category}
@@ -211,7 +198,7 @@ export default async function PublicDiscoverPage({
             />
           </div>
 
-          <section className="space-y-4">
+          <section id="discover-results" className="space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <p className="text-sm text-ink-secondary">
                 {error ? (

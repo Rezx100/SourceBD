@@ -78,8 +78,11 @@ function buildPayload(raw: Json): Json {
   const district = asTrimmedString(raw.district, 80);
   if (district) payload.district = district;
 
-  const limit = asBoundedInt(raw.limit, 1, 50);
-  payload.limit = limit ?? 20;
+  const limit = asBoundedInt(raw.limit, 1, 100);
+  payload.limit = limit ?? 24;
+
+  const offset = asBoundedInt(raw.offset, 0, 100000);
+  payload.offset = offset ?? 0;
 
   return payload;
 }

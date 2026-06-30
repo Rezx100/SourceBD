@@ -31,7 +31,7 @@ export function DiscoverSearchHero({ basePath, q, sort, className }: Props) {
       role="search"
       aria-label="Search suppliers"
       className={cn(
-        "r9r4-search-hero rounded-lg border border-neutral-200 bg-white p-3 shadow-sm sm:p-4",
+        "r9r4-search-hero rounded-card border border-neutral-200 bg-white p-3 shadow-sm sm:p-4",
         className,
       )}
     >
@@ -39,31 +39,31 @@ export function DiscoverSearchHero({ basePath, q, sort, className }: Props) {
         <input type="hidden" name="sort" value={sort} />
       ) : null}
 
-      <div className="flex items-stretch gap-2">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-stretch">
         <label htmlFor="discover-hero-q" className="sr-only">
           Search suppliers
         </label>
 
-        <div className="relative flex-1">
+        <div className="relative flex-1 rounded-input border border-neutral-200 bg-neutral-50 shadow-[inset_0_1px_0_rgba(15,15,20,0.03)] transition-colors focus-within:border-brand-forest/50 focus-within:bg-white focus-within:ring-2 focus-within:ring-brand-forest/15">
           <MagnifyingGlass
             aria-hidden
             size={18}
             weight="bold"
-            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-tertiary"
+            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400"
           />
           <input
             id="discover-hero-q"
             type="search"
             name="q"
             defaultValue={q}
-            placeholder="Search by company name — e.g. Naafco, Standard Group, SM Sourcing"
+            placeholder="e.g. kids t-shirts, ladies denim, Gazipur knitwear"
             inputMode="search"
             autoComplete="off"
-            className="r9r4-hero-input w-full rounded-lg border border-neutral-200 bg-neutral-50 py-3 pl-10 pr-3 text-[15px] text-neutral-900 outline-none transition-colors placeholder:text-neutral-500 focus:border-brand-forest/50 focus:bg-white focus:ring-2 focus:ring-brand-forest/15 sm:text-base"
+            className="r9r4-hero-input w-full rounded-input border-0 bg-transparent py-3 pl-10 pr-3 text-[15px] font-medium text-neutral-900 outline-none placeholder:font-normal placeholder:text-neutral-500 sm:text-base"
           />
         </div>
 
-        <button type="submit" className="btn-proto primary shrink-0 px-5 sm:px-7">
+        <button type="submit" className="btn-proto primary min-h-[46px] shrink-0 justify-center px-5 sm:px-7">
           Search
         </button>
       </div>

@@ -11,7 +11,7 @@
 //   • NumberTicker     → the live index, in numbers (marketing_stats RPC)
 //   • AnimatedBeam     → the verification engine, behind the scenes
 //   • OrbitingCircles  → every claim circles back to an issuing authority
-//   • AnimatedList     → live provenance feed (receipts in motion)
+//   • AnimatedList     → live provenance feed (verified evidence in motion)
 //   • Provider grid    → the certifications & registers we read directly
 //
 // Light mode only. Forest green is a signature, not a theme.
@@ -67,7 +67,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "SourceBD — Verified Bangladesh Garment Factories, on the Record",
     description:
-      "Discover and vet verified Bangladesh RMG factories with a receipt on every claim — government registers, trade associations, certification bodies and sanctions lists in one index.",
+      "Discover and vet verified Bangladesh RMG factories with verified evidence behind every claim — government registers, trade associations, certification bodies and sanctions lists in one index.",
     url: `${SITE_URL}/`,
     siteName: "SourceBD",
     locale: "en_GB",
@@ -115,10 +115,12 @@ async function loadStats(): Promise<Stats> {
 // ─── Static content ──────────────────────────────────────────────
 
 const AUTHORITY_LOGOS = [
-  { src: "/inapp-logos/bgmea.png", alt: "BGMEA" },
+  { src: "/inapp-logos/BGMEA%20logo.png", alt: "BGMEA" },
   { src: "/inapp-logos/bkmea.png", alt: "BKMEA" },
+  { src: "/inapp-logos/BGAPMEA%20logo.png", alt: "BGAPMEA" },
   { src: "/inapp-logos/BTMA.webp", alt: "BTMA" },
-  { src: "/inapp-logos/RSC.png", alt: "RSC" },
+  { src: "/inapp-logos/EPB-Logo.png", alt: "EPB" },
+  { src: "/inapp-logos/RSC-logo.png", alt: "RSC" },
   { src: "/inapp-logos/okeo100.png", alt: "OEKO-TEX" },
   { src: "/inapp-logos/wrap.png", alt: "WRAP" },
   { src: "/inapp-logos/gost.png", alt: "GOTS" },
@@ -198,8 +200,8 @@ function HeroDossierPreview({ stats }: { stats: Stats }) {
             Verified supplier profile
           </h2>
           <p className="mt-2 max-w-sm text-sm leading-relaxed text-neutral-600">
-            The same card language buyers use inside the portal: receipts,
-            source rows, and documents before any outreach.
+            The same card language buyers use inside the portal: verified
+            evidence, source rows, and documents before any outreach.
           </p>
         </div>
         <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-neutral-200 bg-neutral-50 text-brand-forest">
@@ -303,8 +305,8 @@ export default async function HomeV2Page() {
 
             <BlurFade delay={0.3}>
               <p className="mx-auto mt-5 max-w-md !text-center text-base leading-relaxed text-neutral-600 sm:mt-6 md:text-lg lg:mx-0 lg:!text-left lg:text-xl">
-                Find, vet and message garment suppliers — with a receipt on
-                every claim.
+                Find, vet and message garment suppliers — with verified evidence
+                behind every claim.
               </p>
             </BlurFade>
 
@@ -541,15 +543,16 @@ export default async function HomeV2Page() {
                 <ShieldCheck size={30} weight="duotone" />
               </span>
               <p className="mt-6 font-mono text-xs uppercase tracking-[0.2em] text-brand-forest">
-                Step 02 · Receipts, in real time
+                Step 02 · Evidence, in real time
               </p>
               <h2 className="mt-3 text-balance font-display text-[clamp(1.75rem,6vw,2.6rem)] font-bold leading-tight tracking-tight text-neutral-900">
                 Watch the evidence land, claim by claim.
               </h2>
               <p className="mt-5 max-w-lg text-lg leading-relaxed text-neutral-600">
                 Register matches, certificate confirmations and sanctions
-                screens stream into each supplier profile — every row a receipt
-                from a named issuer, with the tier and date attached.
+                screens stream into each supplier profile — every row is
+                verified evidence from a named issuer, with the tier and date
+                attached.
               </p>
             </BlurFade>
 
@@ -606,8 +609,8 @@ export default async function HomeV2Page() {
 
           {/* borderless orbit — bleeds into the page */}
           <BlurFade delay={0.2}>
-            <div className="relative mx-auto flex w-full max-w-[420px] justify-center sm:max-w-[460px] lg:scale-105">
-              <div className="absolute -inset-10 -z-10 rounded-full bg-brand-forest/10 blur-3xl" />
+            <div className="relative mx-auto flex w-full max-w-[520px] justify-center sm:max-w-[620px] lg:scale-110">
+              <div className="absolute -inset-12 -z-10 rounded-full bg-brand-forest/10 blur-3xl" />
               <TrustOrbit />
             </div>
           </BlurFade>
@@ -661,7 +664,7 @@ export default async function HomeV2Page() {
                 highlightColor="var(--brand-forest-soft)"
                 transition={{ type: "spring", duration: 1, delay: 0.2, bounce: 0 }}
               >
-                receipts on every claim.
+                verified evidence behind every claim.
               </TextHighlighter>
             </h2>
             <div className="mt-4 flex w-full justify-center">

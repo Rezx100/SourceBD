@@ -130,8 +130,9 @@ export function AnimatedBeam({
       width={svgDimensions.width}
       height={svgDimensions.height}
       xmlns="http://www.w3.org/2000/svg"
+      shapeRendering="geometricPrecision"
       className={cn(
-        "pointer-events-none absolute left-0 top-0 transform-gpu stroke-2",
+        "pointer-events-none absolute left-0 top-0 transform-gpu stroke-2 [backface-visibility:hidden]",
         className,
       )}
       viewBox={`0 0 ${svgDimensions.width} ${svgDimensions.height}`}
@@ -142,6 +143,7 @@ export function AnimatedBeam({
         strokeWidth={pathWidth}
         strokeOpacity={pathOpacity}
         strokeLinecap="round"
+        vectorEffect="non-scaling-stroke"
       />
       <path
         d={pathD}
@@ -149,6 +151,7 @@ export function AnimatedBeam({
         stroke={`url(#${id})`}
         strokeOpacity="1"
         strokeLinecap="round"
+        vectorEffect="non-scaling-stroke"
       />
       <defs>
         <motion.linearGradient

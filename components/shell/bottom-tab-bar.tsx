@@ -44,6 +44,7 @@ const SHORT_LABELS: Record<string, string> = {
   "/supplier/profile": "Profile",
   "/supplier/claim": "Claim",
   "/admin": "Overview",
+  "/admin/queue": "Queue",
   "/admin/suppliers": "Suppliers",
   "/admin/claims": "Claims",
   "/admin/certifications": "Certs",

@@ -4,7 +4,12 @@
 // table grouped into 30 / 60 / 90 day urgency buckets, oldest-due first.
 
 import Link from "next/link";
-import { ArrowLeft, Certificate, FileText } from "@phosphor-icons/react/dist/ssr";
+import {
+  ArrowLeft,
+  Certificate,
+  FileText,
+  WarningCircle,
+} from "@phosphor-icons/react/dist/ssr";
 
 import { Badge } from "@/components/ui/badge";
 import {
@@ -15,10 +20,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Tag } from "@/components/ui/tag";
-import {
-  ResponsiveTable,
-  type Column,
-} from "@/components/ui/responsive-table";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { PageHeader } from "@/components/ui/page-kit";
 
@@ -76,7 +77,7 @@ export default async function ExpiryPage() {
         <PageHeader
           kicker="Compliance"
           title="Certification expiry — next 90 days"
-          description="Tracks every cert (BSCI, WRAP, GOTS, SA8000, OCS, GRS, RCS, Sedex, Higg, Fairtrade) on your saved suppliers with a known expiry inside the next 90 days. OEKO-TEX has no expiry semantics and is excluded."
+          description="Renewal dates for saved suppliers, grouped by urgency so your team can follow up before a certificate lapses."
         />
       </div>
 
@@ -96,138 +97,201 @@ export default async function ExpiryPage() {
         </Card>
       ) : null}
 
-      <Bucket title="Under 30 days" tone="alert" rows={b30} />
-      <Bucket title="30 – 60 days" tone="active" rows={b60} />
-      <Bucket title="60 – 90 days" tone="neutral" rows={b90} />
+      {payload ? (
+        <section
+          aria-label="Expiry summary"
+          className="grid grid-cols-2 gap-3 sm:grid-cols-4"
+        >
+          <SummaryCard label="Needs action" value={b30.length} hint="<30 days" tone="alert" />
+          <SummaryCard label="Plan next" value={b60.length} hint="30-60 days" tone="active" />
+          <SummaryCard label="Watchlist" value={b90.length} hint="60-90 days" tone="neutral" />
+          <SummaryCard label="Total" value={payload.total} hint="saved set" tone="neutral" />
+        </section>
+      ) : null}
+
+      <Bucket
+        title="Needs action now"
+        description="Certificates that are close enough to follow up this week."
+        tone="alert"
+        rows={b30}
+      />
+      <Bucket
+        title="Plan next"
+        description="Renewals to schedule with the supplier before they become urgent."
+        tone="active"
+        rows={b60}
+        showEvidence={false}
+      />
+      <Bucket
+        title="Watchlist"
+        description="Later renewals inside the 90-day window."
+        tone="neutral"
+        rows={b90}
+      />
     </div>
+  );
+}
+
+function SummaryCard({
+  label,
+  value,
+  hint,
+  tone,
+}: {
+  label: string;
+  value: number;
+  hint: string;
+  tone: "neutral" | "active" | "alert";
+}) {
+  return (
+    <Card className="p-3 sm:p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-[11px] font-medium text-ink-tertiary">{label}</p>
+          <p className="mt-1 font-display text-2xl font-semibold tabular-nums text-ink-primary">
+            {value.toLocaleString()}
+          </p>
+        </div>
+        <Badge tone={tone}>{hint}</Badge>
+      </div>
+    </Card>
   );
 }
 
 function Bucket({
   title,
+  description,
   tone,
   rows,
+  showEvidence = true,
 }: {
   title: string;
+  description: string;
   tone: "neutral" | "active" | "alert";
   rows: CertRow[];
+  showEvidence?: boolean;
 }) {
   if (rows.length === 0) return null;
   return (
-    <Card>
-      <CardHeader className="flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <div>
+    <Card className="overflow-hidden">
+      <CardHeader className="flex flex-col items-start gap-3 border-b border-hairline bg-white px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+        <div className="min-w-0">
           <CardTitle>{title}</CardTitle>
-          <CardMeta>
-            {rows.length} certification{rows.length === 1 ? "" : "s"}
+          <CardMeta className="mt-1 block max-w-2xl whitespace-normal font-body text-[13px] leading-relaxed">
+            {description}
           </CardMeta>
         </div>
-        <Badge tone={tone}>{rows.length}</Badge>
+        <Badge tone={tone}>
+          {rows.length} renewal{rows.length === 1 ? "" : "s"}
+        </Badge>
       </CardHeader>
-      <CardContent className="pt-0">
-        <ResponsiveTable
-          mode="stacked"
-          columns={EXPIRY_COLUMNS}
-          rows={rows}
-          rowKey={(r) =>
-            `${r.supplier.id}-${r.kind}-${r.certificate_no ?? r.expires_on}`
+      <CardContent className="p-0">
+        <div
+          className={
+            showEvidence
+              ? "hidden grid-cols-[minmax(0,1.35fr)_minmax(150px,0.85fr)_minmax(130px,0.7fr)_auto] gap-4 border-b border-hairline bg-bg-l0 px-4 py-2 font-mono text-[10px] font-semibold uppercase tracking-[0.08em] text-ink-tertiary md:grid"
+              : "hidden grid-cols-[minmax(0,1.35fr)_minmax(170px,0.9fr)_minmax(140px,0.55fr)] gap-4 border-b border-hairline bg-bg-l0 px-4 py-2 font-mono text-[10px] font-semibold uppercase tracking-[0.08em] text-ink-tertiary md:grid"
           }
-          caption={title}
-        />
+        >
+          <span>Supplier</span>
+          <span>Certificate</span>
+          <span>Renewal date</span>
+          {showEvidence ? <span className="text-right">Evidence</span> : null}
+        </div>
+        <div className="divide-y divide-hairline">
+          {rows.map((row) => (
+            <CertRenewalRow
+              key={`${row.supplier.id}-${row.kind}-${row.certificate_no ?? row.expires_on}`}
+              row={row}
+              showEvidence={showEvidence}
+            />
+          ))}
+        </div>
       </CardContent>
     </Card>
   );
 }
 
-const EXPIRY_COLUMNS: Column<CertRow>[] = [
-  {
-    key: "supplier",
-    label: "Supplier",
-    render: (r) => (
-      <>
+function CertRenewalRow({
+  row,
+  showEvidence,
+}: {
+  row: CertRow;
+  showEvidence: boolean;
+}) {
+  const cert = prettyCert(row.kind);
+  const location =
+    [row.supplier.city, row.supplier.district].filter(Boolean).join(", ") ||
+    "Location not listed";
+  const badgeTone =
+    row.days_remaining < 30
+      ? "alert"
+      : row.days_remaining < 60
+        ? "active"
+        : "neutral";
+
+  return (
+    <div
+      className={
+        showEvidence
+          ? "grid gap-3 px-4 py-4 md:grid-cols-[minmax(0,1.35fr)_minmax(150px,0.85fr)_minmax(130px,0.7fr)_auto] md:items-start md:gap-4"
+          : "grid gap-3 px-4 py-4 md:grid-cols-[minmax(0,1.35fr)_minmax(170px,0.9fr)_minmax(140px,0.55fr)] md:items-start md:gap-4"
+      }
+    >
+      <div className="min-w-0">
         <Link
-          href={`/app/suppliers/${r.supplier.slug}`}
+          href={`/app/suppliers/${row.supplier.slug}`}
           className="font-medium text-ink-primary underline-offset-2 hover:underline"
         >
-          {r.supplier.company_name}
+          {row.supplier.company_name}
         </Link>
-        <div className="text-[11px] text-ink-tertiary">
-          {[r.supplier.city, r.supplier.district].filter(Boolean).join(", ") ||
-            "—"}
-        </div>
-      </>
-    ),
-  },
-  {
-    key: "cert",
-    label: "Certification",
-    render: (r) => (
-      <>
+        <p className="mt-0.5 text-[12px] text-ink-tertiary">{location}</p>
+      </div>
+
+      <div className="min-w-0">
         <Tag tone="neutral">
           <Certificate size={12} weight="fill" />
-          {prettyCert(r.kind)}
+          {cert}
         </Tag>
-        {r.certificate_no ? (
-          <div className="mt-1 font-mono text-[11px] text-ink-tertiary">
-            {r.certificate_no}
-          </div>
+        {row.certificate_no ? (
+          <p className="mt-1 font-mono text-[11px] text-ink-tertiary">
+            {row.certificate_no}
+          </p>
         ) : null}
-      </>
-    ),
-  },
-  {
-    key: "issuer",
-    label: "Issuer",
-    render: (r) => (
-      <span className="text-ink-secondary">{r.issuer ?? "—"}</span>
-    ),
-  },
-  {
-    key: "expires",
-    label: "Expires",
-    render: (r) => (
-      <span className="tabular-nums text-ink-secondary">
-        {fmtDate(r.expires_on)}
-      </span>
-    ),
-  },
-  {
-    key: "days",
-    label: "Days",
-    numeric: true,
-    render: (r) => (
-      <Badge
-        tone={
-          r.days_remaining < 30
-            ? "alert"
-            : r.days_remaining < 60
-              ? "active"
-              : "neutral"
-        }
-      >
-        {r.days_remaining}d
-      </Badge>
-    ),
-  },
-  {
-    key: "doc",
-    label: "Doc",
-    numeric: true,
-    render: (r) =>
-      r.document_url ? (
-        <a
-          href={r.document_url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-1 text-[12px] text-accent-indigo underline-offset-2 hover:underline"
-        >
-          <FileText size={12} /> Open
-        </a>
-      ) : (
-        <span className="text-[12px] text-ink-tertiary">—</span>
-      ),
-  },
-];
+        <p className="mt-1 text-[12px] text-ink-tertiary">
+          Issued by {row.issuer ?? cert}
+        </p>
+      </div>
+
+      <div className="flex items-center gap-2 md:block">
+        <p className="text-sm tabular-nums text-ink-primary">
+          {fmtDate(row.expires_on)}
+        </p>
+        <Badge tone={badgeTone} className="mt-0 md:mt-1">
+          <WarningCircle size={11} weight="fill" />
+          {row.days_remaining}d
+        </Badge>
+      </div>
+
+      {showEvidence ? (
+        <div className="md:text-right">
+          {row.document_url ? (
+            <a
+              href={row.document_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 rounded-control border border-hairline bg-white px-2.5 py-1.5 text-[12px] font-medium text-ink-secondary transition-colors hover:border-neutral-300 hover:text-ink-primary"
+            >
+              <FileText size={12} /> Open document
+            </a>
+          ) : (
+            <span className="text-[12px] text-ink-tertiary">No document</span>
+          )}
+        </div>
+      ) : null}
+    </div>
+  );
+}
 
 function prettyCert(k: string): string {
   switch (k) {
