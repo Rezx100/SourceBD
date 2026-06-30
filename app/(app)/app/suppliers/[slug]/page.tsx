@@ -56,7 +56,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getServerRole } from "@/lib/auth";
 import { dedupAddresses, type DedupedAddress } from "@/lib/dedup-addresses";
 import { formatCompanyName } from "@/lib/format-company-name";
-import { formatCityDistrictShort } from "@/lib/format-location";
+import { formatCityDistrictShort, formatProfileCityLine } from "@/lib/format-location";
 import {
   factoryTypesForHeader,
   factoryTypesNarrative,
@@ -399,7 +399,7 @@ function ProfileHeader({
     s.address_raw ??
     payload.addresses[0]?.address ??
     null;
-  const cityLine = formatCityDistrictShort(s.city, s.district);
+  const cityLine = formatProfileCityLine(primaryAddress, s.city, s.district);
   const otherAddressCount = Math.max(0, dedupedAddresses.length - 1);
   const latestProv = latestProvenanceRecord(payload.provenance);
   const lastVerified = latestProv?.last_seen_at ?? null;
