@@ -144,29 +144,31 @@ export function ProtoCardSkeleton({
   );
 }
 
-/** Mirrors `DiscoverResultCard`: compact receipts ring + name/sublines + chips. */
+/** Mirrors `DiscoverResultCard`: verified-sources ring + source pills + fact chips. */
 export function DiscoverResultCardSkeleton() {
   return (
     <div className="rounded-lg border border-neutral-200 bg-white p-4 shadow-sm sm:p-5">
-      <div className="flex items-start gap-3.5 sm:gap-5">
-        <Skeleton w={32} h={32} shape="circle" />
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:gap-5">
+        <Skeleton w={48} h={48} shape="circle" />
         <div className="min-w-0 flex-1 space-y-2.5">
           <Skeleton w="55%" h={16} />
           <div className="flex flex-wrap gap-2">
             <Skeleton w={64} h={22} shape="pill" />
             <Skeleton w={120} h={12} />
           </div>
-          <div className="flex flex-wrap gap-1.5 pt-1">
-            <Skeleton w={70} h={20} shape="pill" />
-            <Skeleton w={90} h={20} shape="pill" />
-            <Skeleton w={60} h={20} shape="pill" />
-            <Skeleton w={80} h={20} shape="pill" />
+          <div className="flex flex-col gap-2 pt-1 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-wrap gap-1.5">
+              <Skeleton w={76} h={32} shape="pill" />
+              <Skeleton w={86} h={32} shape="pill" />
+              <Skeleton w={68} h={32} shape="pill" />
+            </div>
+            <div className="flex flex-wrap gap-1.5 sm:justify-end">
+              <Skeleton w={82} h={28} shape="pill" />
+              <Skeleton w={76} h={28} shape="pill" />
+            </div>
           </div>
           <Skeleton w="70%" h={12} />
           <Skeleton w="58%" h={12} />
-        </div>
-        <div className="flex flex-col items-end gap-2">
-          <Skeleton w={36} h={36} shape="circle" />
         </div>
       </div>
     </div>

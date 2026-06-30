@@ -2,8 +2,8 @@
 //
 // Maps a `source_tags` value (registry membership codes + certification
 // codes, uppercase as they arrive from the `discover_suppliers` RPC) to a
-// stable CDN logo. Mirrors the LOGO_BY_CODE / LOGO_BY_CERT maps used on the
-// full supplier dossier so a buyer sees the same marks everywhere.
+// stable logo URL. Mirrors the full supplier dossier so a buyer sees the same
+// marks everywhere.
 //
 // Returns null when no logo exists — the caller renders a plain text pill.
 
@@ -11,10 +11,12 @@ const CDN = "https://sourcebd-docs.b-cdn.net/inapp-logos";
 
 const SOURCE_LOGOS: Record<string, string> = {
   // Registries / associations
-  BGMEA: `${CDN}/bgmea.png`,
+  BGMEA: `/inapp-logos/BGMEA%20logo.png`,
   BKMEA: `${CDN}/bkmea.png`,
+  BGAPMEA: `/inapp-logos/BGAPMEA%20logo.png`,
   BTMA: `${CDN}/BTMA.webp`,
-  RSC: `${CDN}/RSC.png`,
+  EPB: `/inapp-logos/EPB-Logo.png`,
+  RSC: `/inapp-logos/RSC-logo.png`,
   // Certifications
   WRAP: `${CDN}/wrap.png`,
   GOTS: `${CDN}/gost.png`,
