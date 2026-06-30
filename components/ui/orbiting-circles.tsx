@@ -59,7 +59,7 @@ export function OrbitingCircles({
                 } as React.CSSProperties
               }
               className={cn(
-                "absolute flex size-[var(--icon-size)] transform-gpu animate-[orbit_calc(var(--duration)*1s)_linear_infinite] items-center justify-center rounded-full [backface-visibility:hidden] will-change-transform motion-reduce:animate-none",
+                "absolute flex size-[var(--icon-size)] transform-gpu animate-[orbit_calc(var(--duration)*1s)_linear_infinite] items-center justify-center rounded-full [backface-visibility:hidden] [transform-style:preserve-3d] [will-change:transform] motion-reduce:animate-none",
                 { "[animation-direction:reverse]": reverse },
                 className,
               )}
@@ -80,7 +80,7 @@ export function OrbitingCircles({
             } as React.CSSProperties
           }
           className={cn(
-            "absolute flex size-[var(--icon-size)] transform-gpu animate-[orbit_calc(var(--duration)*1s)_linear_infinite] items-center justify-center rounded-full [backface-visibility:hidden] will-change-transform motion-reduce:animate-none",
+            "absolute flex size-[var(--icon-size)] transform-gpu animate-[orbit_calc(var(--duration)*1s)_linear_infinite] items-center justify-center rounded-full [backface-visibility:hidden] [transform-style:preserve-3d] [will-change:transform] motion-reduce:animate-none",
             { "[animation-direction:reverse]": reverse },
             className,
           )}

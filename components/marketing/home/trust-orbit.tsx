@@ -9,7 +9,7 @@
 
 import Image from "next/image";
 
-import { ShieldGlyph } from "@/components/marketing/logo";
+import { BrandMarkWithHairline } from "@/components/marketing/logo";
 import { OrbitingCircles } from "@/components/ui/orbiting-circles";
 
 function OrbitLogo({ src, alt }: { src: string; alt: string }) {
@@ -27,10 +27,12 @@ function OrbitLogo({ src, alt }: { src: string; alt: string }) {
 }
 
 const INNER = [
-  { src: "/inapp-logos/bgmea.png", alt: "BGMEA" },
+  { src: "/inapp-logos/BGMEA%20logo.png", alt: "BGMEA" },
   { src: "/inapp-logos/bkmea.png", alt: "BKMEA" },
+  { src: "/inapp-logos/BGAPMEA%20logo.png", alt: "BGAPMEA" },
   { src: "/inapp-logos/BTMA.webp", alt: "BTMA" },
-  { src: "/inapp-logos/RSC.png", alt: "RSC" },
+  { src: "/inapp-logos/EPB-Logo.png", alt: "EPB" },
+  { src: "/inapp-logos/RSC-logo.png", alt: "RSC" },
 ];
 
 const OUTER = [
@@ -42,27 +44,42 @@ const OUTER = [
   { src: "/inapp-logos/amfori.jpg", alt: "amfori" },
 ];
 
+const HAIRLINE_CYCLE_SECONDS = 3.2;
+
 export function TrustOrbit() {
   return (
-    <div className="relative flex h-full min-h-[300px] w-full items-center justify-center sm:min-h-[420px]">
-      {/* Centre — SourceBD brand mark (matches the Step 01 engine shield) */}
-      <div className="z-10 flex size-[64px] items-center justify-center rounded-lg bg-brand-forest shadow-sm sm:size-[76px]">
-        <ShieldGlyph className="h-1/2 w-1/2" />
+    <div className="relative isolate flex h-full min-h-[320px] w-full items-center justify-center [contain:layout] sm:min-h-[560px]">
+      <BrandMarkWithHairline durationSeconds={HAIRLINE_CYCLE_SECONDS} />
+
+      {/* Phone rings: same animation, smaller radius so the orbit stays in-frame. */}
+      <div className="contents sm:hidden">
+        <OrbitingCircles iconSize={38} radius={84} duration={34}>
+          {INNER.map((l) => (
+            <OrbitLogo key={l.alt} src={l.src} alt={l.alt} />
+          ))}
+        </OrbitingCircles>
+
+        <OrbitingCircles iconSize={42} radius={126} duration={48} reverse>
+          {OUTER.map((l) => (
+            <OrbitLogo key={l.alt} src={l.src} alt={l.alt} />
+          ))}
+        </OrbitingCircles>
       </div>
 
-      {/* Inner ring */}
-      <OrbitingCircles iconSize={42} radius={82} duration={34}>
-        {INNER.map((l) => (
-          <OrbitLogo key={l.alt} src={l.src} alt={l.alt} />
-        ))}
-      </OrbitingCircles>
+      {/* Larger rings for tablet and desktop. */}
+      <div className="hidden sm:contents">
+        <OrbitingCircles iconSize={48} radius={112} duration={34}>
+          {INNER.map((l) => (
+            <OrbitLogo key={l.alt} src={l.src} alt={l.alt} />
+          ))}
+        </OrbitingCircles>
 
-      {/* Outer ring — reversed, slower */}
-      <OrbitingCircles iconSize={46} radius={130} duration={48} reverse>
-        {OUTER.map((l) => (
-          <OrbitLogo key={l.alt} src={l.src} alt={l.alt} />
-        ))}
-      </OrbitingCircles>
+        <OrbitingCircles iconSize={56} radius={180} duration={48} reverse>
+          {OUTER.map((l) => (
+            <OrbitLogo key={l.alt} src={l.src} alt={l.alt} />
+          ))}
+        </OrbitingCircles>
+      </div>
     </div>
   );
 }

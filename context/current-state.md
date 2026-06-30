@@ -1,6 +1,6 @@
 # SourceBD - Current State
 
-Last compacted for agent-token efficiency: 29 Jun 2026.
+Last compacted for agent-token efficiency: 30 Jun 2026.
 
 ## Phase
 Phase 7 - Public Beta launch prep.
@@ -69,6 +69,18 @@ page polish. `pnpm typecheck` and `pnpm lint` pass; `pnpm build` still fails
 on Windows before compilation with `.next/trace` EPERM.
 
 ## Recent Frontend Polish
+30 Jun 2026 - Principal product chip dedup and compound-label split deployed to VPS
+`109.104.153.228`. Frontend-only (DB unchanged) in `lib/product-icons.ts`:
+spelling correction for common BGMEA harvest typos, singular/plural merge
+(Shirt/Shirts, Legging/Leggings, etc.), near-duplicate collapse and generic
+suppression (e.g. generic Shirt hidden when Knit Shirt present), and compound
+label split on `/`, `&`, `+` so `Sweater/Jacket` and `T-Shirt/Polo Shirt`
+render as separate chips with distinct Noun Project icons. Supplemental trim/
+packaging icons added (Poly Bag, Leggings, Lace, Hanger, Elastic, Athletic
+Wear, Home Textile, Carton, Pajama, Back Board, Neck Board, Printed Label,
+Tissue Paper, Hang Tag, Barcode; T-Shirt icon 4464232). Quick-deployed;
+health OK.
+
 29 Jun 2026 - Principal product icons integrated and deployed to VPS
 `109.104.153.228`. Scope: local Noun Project "Principal products" apparel set
 under `public/icons/products/` (plus supplemental packaging/trim/material icons

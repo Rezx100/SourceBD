@@ -1,7 +1,7 @@
 // /api/v1/admin/certifications/decide — approve/reject a queued cert (Spec A3).
 
 import { NextResponse } from "next/server";
-import { revalidateTag } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 
 import { getServerRole } from "@/lib/auth";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -78,7 +78,16 @@ export async function POST(req: Request) {
   }
   revalidateTag(TAG_DISCOVER_FACETS);
   revalidateTag(TAG_DISCOVER_SUPPLIERS);
-  const supplierId = (data as { supplier_id?: string } | null)?.supplier_id;
+  const result = (data as { supplier_id?: string; certification_id?: string } | null) ?? null;
+  let supplierId = result?.supplier_id;
+  if (!supplierId && result?.certification_id) {
+    const { data: certRow } = await supabase
+      .from("certifications")
+      .select("supplier_id")
+      .eq("id", result.certification_id)
+      .maybeSingle();
+    supplierId = (certRow as { supplier_id?: string } | null)?.supplier_id;
+  }
   if (supplierId) {
     const { data: slugRow } = await supabase
       .from("suppliers")
@@ -86,7 +95,13 @@ export async function POST(req: Request) {
       .eq("id", supplierId)
       .maybeSingle();
     const slug = (slugRow as { slug?: string } | null)?.slug;
-    if (slug) revalidateTag(tagSupplier(slug));
+    if (slug) {
+      revalidateTag(tagSupplier(slug));
+      revalidatePath(`/suppliers/${slug}`);
+      revalidatePath(`/app/suppliers/${slug}`);
+      revalidatePath("/discover");
+      revalidatePath("/app/discover");
+    }
   }
   return NextResponse.json(data);
 }

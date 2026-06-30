@@ -1,12 +1,8 @@
-// Shared SourceBD shield wordmark — used by the marketing nav + footer.
-//
-// The forest-green shield (#1f4d3a) is the ONLY brand-accent surface in
-// the marketing chrome: a quiet signature, never a section background.
-// Wordmark text uses the shared display font; the "BD" is heavier.
+// Shared SourceBD logo mark + wordmark used by marketing, auth, and app chrome.
 
 import Link from "next/link";
 
-const FOREST = "#1f4d3a";
+const SOURCEBD_LOGO_SRC = "/icons/brand/sourcebd-logo.png";
 
 /** Shield outline with an inner checkmark. White stroke on a forest box. */
 export function ShieldGlyph({ className }: { className?: string }) {
@@ -28,39 +24,72 @@ export function ShieldGlyph({ className }: { className?: string }) {
 }
 
 type BrandMarkProps = {
-  /** Size + radius of the forest badge, e.g. "size-12 rounded-2xl". */
+  /** Size + radius of the logo frame, e.g. "size-12 rounded-2xl". */
   className?: string;
-  /** Size of the inner SourceBD glyph, e.g. "h-6 w-6". */
+  /** Size of the inner SourceBD logo, e.g. "h-6 w-6". */
   glyphClassName?: string;
   title?: string;
 };
 
+type BrandMarkWithHairlineProps = BrandMarkProps & {
+  durationSeconds?: number;
+  wrapperClassName?: string;
+};
+
 /**
- * The canonical SourceBD brand mark: a forest-green squircle badge with the
- * white SourceBD shield glyph perfectly centred. Use this everywhere a
- * "green shield" is needed so the identity stays consistent.
+ * The canonical SourceBD brand mark. Use this everywhere the platform identity
+ * needs a standalone mark so the uploaded logo stays consistent.
  */
 export function BrandMark({
-  className = "size-12 rounded-2xl",
-  glyphClassName = "h-1/2 w-1/2",
+  className = "size-12",
+  glyphClassName = "h-full w-full",
   title,
 }: BrandMarkProps) {
   return (
     <span
       title={title}
+      role={title ? "img" : undefined}
+      aria-label={title}
       className={`inline-flex shrink-0 items-center justify-center ${className}`}
-      style={{ backgroundColor: FOREST }}
     >
-      <ShieldGlyph className={glyphClassName} />
+      <img
+        src={SOURCEBD_LOGO_SRC}
+        alt=""
+        aria-hidden
+        className={`block object-contain ${glyphClassName}`}
+      />
+    </span>
+  );
+}
+
+export function BrandMarkWithHairline({
+  className = "size-16 rounded-lg shadow-sm sm:size-20 lg:size-[76px]",
+  glyphClassName,
+  title = "SourceBD",
+  durationSeconds = 3.2,
+  wrapperClassName = "relative z-10",
+}: BrandMarkWithHairlineProps) {
+  return (
+    <span className={`inline-flex ${wrapperClassName}`}>
+      <span
+        aria-hidden
+        className="pointer-events-none absolute -inset-1 rounded-xl border border-brand-forest/20 bg-white/40 opacity-80 shadow-[0_0_0_4px_var(--brand-forest-soft)] motion-safe:animate-pulse"
+        style={{ animationDuration: `${durationSeconds}s` }}
+      />
+      <BrandMark
+        className={className}
+        glyphClassName={glyphClassName}
+        title={title}
+      />
     </span>
   );
 }
 
 type WordmarkProps = {
   href?: string;
-  /** Size of the forest shield box. */
+  /** Size of the logo frame. */
   boxClassName?: string;
-  /** Size of the inner shield glyph. */
+  /** Size of the inner SourceBD logo. */
   glyphClassName?: string;
   /** Text size for the wordmark. */
   textClassName?: string;
@@ -68,11 +97,35 @@ type WordmarkProps = {
   onClick?: () => void;
 };
 
-/** Shield box + "SourceBD" wordmark, wrapped in a link to `href`. */
+/** Icon-only brand mark for app shell chrome (no wordmark text). */
+export function BrandMarkLink({
+  href = "/app",
+  boxClassName = "h-8 w-8 sm:h-9 sm:w-9",
+  className,
+  title = "SourceBD home",
+}: {
+  href?: string;
+  boxClassName?: string;
+  className?: string;
+  title?: string;
+}) {
+  return (
+    <Link
+      href={href}
+      aria-label={title}
+      title={title}
+      className={`inline-flex shrink-0 items-center justify-center rounded-lg transition-opacity hover:opacity-90 ${className ?? ""}`}
+    >
+      <BrandMark className={boxClassName} glyphClassName="h-full w-full" />
+    </Link>
+  );
+}
+
+/** SourceBD logo mark + wordmark, wrapped in a link to `href`. */
 export function Wordmark({
   href = "/",
-  boxClassName = "h-8 w-8",
-  glyphClassName = "h-5 w-5",
+  boxClassName = "h-7 w-7",
+  glyphClassName = "h-full w-full",
   textClassName = "text-lg",
   className,
   onClick,
@@ -81,16 +134,23 @@ export function Wordmark({
     <Link
       href={href}
       onClick={onClick}
-      className={`flex items-center gap-2.5 font-display font-bold tracking-tight text-neutral-900 ${textClassName} ${className ?? ""}`}
+      className={`flex items-center gap-2.5 font-brand font-medium leading-none tracking-[-0.035em] text-neutral-950 ${textClassName} ${className ?? ""}`}
     >
       <span
-        className={`flex items-center justify-center rounded-lg ${boxClassName}`}
-        style={{ backgroundColor: FOREST }}
+        className={`flex items-center justify-center ${boxClassName}`}
       >
-        <ShieldGlyph className={glyphClassName} />
+        <img
+          src={SOURCEBD_LOGO_SRC}
+          alt=""
+          aria-hidden
+          className={`block object-contain ${glyphClassName}`}
+        />
       </span>
-      <span>
-        Source<span className="font-extrabold">BD</span>
+      <span className="inline-flex items-center leading-none">
+        SOURCE
+        <span className="ml-0.5 font-semibold tracking-[-0.08em] text-brand-forest">
+          BD
+        </span>
       </span>
     </Link>
   );

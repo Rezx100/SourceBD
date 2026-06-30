@@ -7,12 +7,18 @@ import Link from "next/link";
 
 import { AdminSanctionsDecideButton } from "@/components/admin-sanctions-decide-button";
 import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardMeta,
-  CardTitle,
-} from "@/components/ui/card";
+  ADMIN_SELECT_CLASS,
+  AdminActionLink,
+  AdminEmptyState,
+  AdminField,
+  AdminFilterPanel,
+  AdminPage,
+  AdminPageHeader,
+  AdminPagination,
+  AdminPanel,
+  formatAdminDate,
+  humanizeAdminToken,
+} from "@/components/admin/admin-ui";
 import { Badge } from "@/components/ui/badge";
 import { ResponsiveTable, type Column } from "@/components/ui/responsive-table";
 import { Tag } from "@/components/ui/tag";
@@ -97,15 +103,15 @@ export default async function AdminSanctionsPage({
 
   if (error || data == null) {
     return (
-      <div className="mx-auto max-w-5xl space-y-6">
-        <PageHeader />
-        <Card>
-          <CardContent className="text-sm text-sem-red">
+      <AdminPage maxWidth="5xl">
+        <SanctionsHeader />
+        <AdminPanel>
+          <p className="text-sm text-sem-red">
             Could not load queue
             {error?.message ? <>: {error.message}</> : null}.
-          </CardContent>
-        </Card>
-      </div>
+          </p>
+        </AdminPanel>
+      </AdminPage>
     );
   }
 
@@ -123,73 +129,68 @@ export default async function AdminSanctionsPage({
   };
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6">
-      <PageHeader total={doc.total} />
+    <AdminPage maxWidth="5xl">
+      <SanctionsHeader total={doc.total} />
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Filters</CardTitle>
-          <CardMeta>GET /admin/sanctions</CardMeta>
-        </CardHeader>
-        <CardContent className="pt-0">
+      <AdminFilterPanel
+        title="Find sanctions reviews"
+        description="Filter screening hits by review state and sanctions list."
+      >
           <form
             method="get"
             action="/admin/sanctions"
             className="grid grid-cols-1 gap-3 sm:grid-cols-3"
           >
-            <label className="flex flex-col gap-1 text-[12px] text-ink-secondary">
-              Status
+            <AdminField label="Status">
               <select
                 name="status"
                 defaultValue={status}
-                className="rounded-input border border-hairline bg-bg-l0 px-2 py-1.5 text-sm outline-none focus:border-accent-indigo"
+                className={ADMIN_SELECT_CLASS}
               >
                 {STATUSES.map((s) => (
                   <option key={s} value={s}>
-                    {s}
+                    {humanizeAdminToken(s)}
                   </option>
                 ))}
               </select>
-            </label>
-            <label className="flex flex-col gap-1 text-[12px] text-ink-secondary">
-              Sanctions list
+            </AdminField>
+            <AdminField label="Sanctions list">
               <select
                 name="list"
                 defaultValue={list}
-                className="rounded-input border border-hairline bg-bg-l0 px-2 py-1.5 text-sm outline-none focus:border-accent-indigo"
+                className={ADMIN_SELECT_CLASS}
               >
                 <option value="">Any</option>
                 {SANCTIONS_LISTS.map((k) => (
                   <option key={k} value={k}>
-                    {k}
+                    {humanizeAdminToken(k)}
                   </option>
                 ))}
               </select>
-            </label>
+            </AdminField>
             <div className="flex items-end">
               <button
                 type="submit"
-                className="rounded-pill border border-hairline px-3 py-1.5 text-xs hover:border-accent-indigo hover:text-accent-indigo"
+                className="min-h-[44px] rounded-pill border border-brand-forest bg-brand-forest px-4 text-sm font-semibold text-white hover:bg-brand-forest-mid"
               >
                 Apply
               </button>
             </div>
           </form>
-        </CardContent>
-      </Card>
+      </AdminFilterPanel>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Queue</CardTitle>
-          <CardMeta>
-            {doc.total} total · page {page} / {totalPages}
-          </CardMeta>
-        </CardHeader>
-        <CardContent>
+      <AdminPanel
+        title="Sanctions queue"
+        meta={`${doc.total} total · page ${page} / ${totalPages}`}
+        padded={false}
+      >
           {doc.rows.length === 0 ? (
-            <p className="text-sm text-ink-tertiary">
-              No sanctions hits in this state.
-            </p>
+            <div className="p-4 sm:p-5">
+              <AdminEmptyState
+                title="No sanctions hits in this state"
+                description="Try a different status or sanctions list."
+              />
+            </div>
           ) : (
             <ResponsiveTable
               mode="stacked"
@@ -197,29 +198,12 @@ export default async function AdminSanctionsPage({
               rows={doc.rows}
               rowKey={(r) => r.queue_id}
               caption="Sanctions queue"
+              className="border-0 shadow-none"
             />
           )}
-        </CardContent>
-      </Card>
-
-      {totalPages > 1 ? (
-        <nav className="flex justify-center gap-2 text-xs">
-          {Array.from({ length: totalPages }, (_, i) => i + 1).map((n) => (
-            <Link
-              key={n}
-              href={pageHref(n)}
-              className={`rounded-pill border px-2 py-1 ${
-                n === page
-                  ? "border-accent-indigo text-accent-indigo"
-                  : "border-hairline text-ink-tertiary hover:text-ink-primary"
-              }`}
-            >
-              {n}
-            </Link>
-          ))}
-        </nav>
-      ) : null}
-    </div>
+      </AdminPanel>
+      <AdminPagination page={page} totalPages={totalPages} pageHref={pageHref} />
+    </AdminPage>
   );
 }
 
@@ -241,8 +225,8 @@ const SANCTIONS_COLUMNS: Column<Row>[] = [
         >
           {r.supplier.company_name}
         </Link>
-        <Tag>{r.supplier.entity_type.replace(/_/g, " ")}</Tag>
-        {r.hit.list ? <Badge tone="alert">{r.hit.list}</Badge> : null}
+        <Tag>{humanizeAdminToken(r.supplier.entity_type)}</Tag>
+        {r.hit.list ? <Badge tone="alert">{humanizeAdminToken(r.hit.list)}</Badge> : null}
         {r.supplier.sanctioned_flag ? (
           <Badge tone="alert">sanctioned</Badge>
         ) : r.supplier.sanctions_cleared ? (
@@ -295,9 +279,9 @@ const SANCTIONS_COLUMNS: Column<Row>[] = [
     label: "Queued",
     render: (r) => (
       <span className="block text-[11px] text-ink-tertiary">
-        {new Date(r.queue_created_at).toLocaleDateString()}
+        {formatAdminDate(r.queue_created_at)}
         {r.reviewed_at
-          ? ` · reviewed ${new Date(r.reviewed_at).toLocaleDateString()}`
+          ? ` · reviewed ${formatAdminDate(r.reviewed_at)}`
           : ""}
       </span>
     ),
@@ -318,22 +302,13 @@ const SANCTIONS_COLUMNS: Column<Row>[] = [
   },
 ];
 
-function PageHeader({ total }: { total?: number }) {
+function SanctionsHeader({ total }: { total?: number }) {
   return (
-    <div className="border-b border-hairline pb-6">
-      <p className="mb-2 inline-flex items-center gap-2 font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-brand-forest">
-        <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-brand-forest" />
-        Admin
-      </p>
-      <h1 className="font-display text-[26px] font-extrabold leading-[1.05] tracking-[-0.03em] text-ink-primary sm:text-[32px]">
-        Sanctions queue
-      </h1>
-      <p className="mt-2.5 max-w-2xl text-[15px] leading-relaxed text-ink-secondary">
-        Review auto-flagged sanctions matches. Confirm flips the supplier to
-        sanctioned with a recorded reason; clear marks the match as a false
-        positive with a recorded reason.
-        {typeof total === "number" ? ` ${total} total in current filter.` : ""}
-      </p>
-    </div>
+    <AdminPageHeader
+      kicker="Admin · Sanctions"
+      title="Sanctions queue"
+      description={`Review auto-flagged sanctions matches. Confirm records a sanctioned supplier; clear records a false positive.${typeof total === "number" ? ` ${total} total in current filter.` : ""}`}
+      actions={<AdminActionLink href="/admin/queue?type=sanctions_hit">Review hub</AdminActionLink>}
+    />
   );
 }

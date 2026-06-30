@@ -14,6 +14,7 @@ import {
   Certificate,
   ChatCircleText,
   ClockCounterClockwise,
+  Database,
   FileText,
   GearSix,
   Gauge,
@@ -32,6 +33,7 @@ import {
 import type { Icon } from "@phosphor-icons/react";
 
 import { UserAvatar } from "@/components/shell/user-avatar";
+import { publicRoleLabel } from "@/lib/shell/role-label";
 import type { Role } from "@/lib/auth";
 
 type BadgeKind = "neutral" | "alert" | "dot";
@@ -45,6 +47,7 @@ export type SidebarBadges = {
   compliance?: number;
   supplierClaims?: number;
   adminClaims?: number;
+  adminQueue?: number;
   adminCerts?: number;
   adminSanctions?: number;
 };
@@ -127,6 +130,7 @@ export const ADMIN_SECTIONS: Section[] = [
   {
     label: "Moderation",
     slots: [
+      { label: "Review queue", href: "/admin/queue", Icon: FileText, badgeKey: "adminQueue" },
       { label: "Suppliers", href: "/admin/suppliers", Icon: Storefront },
       { label: "User feedback", href: "/admin/feedback", Icon: ChatCircleText },
       { label: "Supplier claim review", href: "/admin/claims", Icon: IdentificationBadge, badgeKey: "adminClaims" },
@@ -137,6 +141,7 @@ export const ADMIN_SECTIONS: Section[] = [
   {
     label: "Data",
     slots: [
+      { label: "Sources & ingestion", href: "/admin/sources", Icon: Database },
       { label: "Audit log", href: "/admin/audit-log", Icon: ClockCounterClockwise },
     ],
   },
@@ -196,7 +201,9 @@ function resolveBadge(
   // Slot.adminClaims / adminCerts get a soft alert tone when there's pending
   // review queue regardless of active state.
   const queueKey =
-    slot.badgeKey === "adminClaims" || slot.badgeKey === "adminCerts";
+    slot.badgeKey === "adminClaims" ||
+    slot.badgeKey === "adminCerts" ||
+    slot.badgeKey === "adminQueue";
   const kind: BadgeKind = alertKey || (queueKey && v > 0) ? "alert" : "neutral";
   const text = v >= 1000 ? v.toLocaleString("en-US") : String(v);
   void active;
@@ -227,16 +234,10 @@ export function Sidebar({
   const sections = SECTIONS[variant];
   const isAdmin = role === "admin";
 
-  const userRole = role
-    ? `${role[0]!.toUpperCase()}${role.slice(1)}`
-    : email
-      ? "Signed in"
-      : "Guest";
+  const userRole = publicRoleLabel(role);
   const profileName =
     (displayName ?? "").trim() || email || (role ? "Account" : "Sign in");
-  const profileSub = (displayName ?? "").trim()
-    ? (email ?? userRole)
-    : userRole;
+  const profileSub = userRole;
   const settingsHref =
     variant === "admin" ? "/admin/users" : "/app/settings";
 
@@ -309,6 +310,16 @@ export function Sidebar({
                           ? "bg-sem-red-soft text-sem-red"
                           : "bg-[rgba(15,15,20,0.06)] text-ink-tertiary"
                       }`}
+                      aria-label={
+                        slot.badgeKey === "compliance"
+                          ? `${badge.text} saved-supplier compliance alerts`
+                          : undefined
+                      }
+                      title={
+                        slot.badgeKey === "compliance"
+                          ? "Alerts across your saved suppliers — not this profile's compliance tab"
+                          : undefined
+                      }
                     >
                       {badge.text}
                     </span>

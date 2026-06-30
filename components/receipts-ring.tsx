@@ -2,7 +2,7 @@ import * as React from "react";
 import { cn } from "@/lib/utils";
 
 /**
- * ReceiptsRing — the canonical R1 receipt-stack trust glyph.
+ * ReceiptsRing — the canonical R1 verified-sources trust glyph.
  *
  * Visual: stack of up to 5 short horizontal lines (decreasing widths) inside a
  * rounded card. Per design-brief-phase1.md §13 / prototypes/profile-naafco-group.html.

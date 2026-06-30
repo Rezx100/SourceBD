@@ -5,12 +5,13 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardMeta,
-  CardTitle,
-} from "@/components/ui/card";
+  AdminActionLink,
+  AdminPage,
+  AdminPageHeader,
+  AdminPanel,
+  formatAdminDateTime,
+  humanizeAdminToken,
+} from "@/components/admin/admin-ui";
 import { Badge } from "@/components/ui/badge";
 import { Tag } from "@/components/ui/tag";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -53,22 +54,15 @@ export default async function AdminAuditLogDrilldownPage({
       notFound();
     }
     return (
-      <div className="mx-auto max-w-3xl space-y-6">
-        <p>
-          <Link
-            href="/admin/audit-log"
-            className="font-mono text-xs text-accent-indigo hover:underline"
-          >
-            ← Audit log
-          </Link>
-        </p>
-        <Card>
-          <CardContent className="text-sm text-sem-red">
+      <AdminPage maxWidth="4xl">
+        <AdminActionLink href="/admin/audit-log">Back to audit log</AdminActionLink>
+        <AdminPanel>
+          <p className="text-sm text-sem-red">
             Could not load audit row
             {error?.message ? <>: {error.message}</> : null}.
-          </CardContent>
-        </Card>
-      </div>
+          </p>
+        </AdminPanel>
+      </AdminPage>
     );
   }
 
@@ -76,53 +70,28 @@ export default async function AdminAuditLogDrilldownPage({
   const href = targetHref(row.target_table, row.target_id);
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
-      <header>
-        <p>
-          <Link
-            href="/admin/audit-log"
-            className="font-mono text-xs text-accent-indigo hover:underline"
-          >
-            ← Audit log
-          </Link>
-        </p>
-        <p className="mb-2 mt-3 inline-flex items-center gap-2 font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-brand-forest">
-          <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-brand-forest" />
-          Admin · audit entry
-        </p>
-        <h1 className="font-display text-[24px] font-extrabold leading-[1.1] tracking-[-0.03em] text-ink-primary sm:text-[28px]">
-          {row.action}
-        </h1>
-        <p className="mt-1 font-mono text-xs text-ink-tertiary">
-          {new Date(row.created_at).toLocaleString()} · id {row.id}
-        </p>
-      </header>
+    <AdminPage maxWidth="4xl">
+      <AdminPageHeader
+        kicker="Admin · Audit"
+        title={humanizeAdminToken(row.action)}
+        description={<span className="font-mono text-xs">{formatAdminDateTime(row.created_at)} · id {row.id}</span>}
+        actions={<AdminActionLink href="/admin/audit-log">Back to audit log</AdminActionLink>}
+      />
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Actor</CardTitle>
-          <CardMeta>admin who performed the action</CardMeta>
-        </CardHeader>
-        <CardContent className="space-y-1 text-sm">
+      <AdminPanel title="Actor" description="Admin who performed the action.">
           <p>
             <span className="font-mono text-xs">{row.actor.email || row.actor.id}</span>
           </p>
           {row.actor.role ? (
             <p>
-              <Badge tone="alert">{row.actor.role}</Badge>
+              <Badge tone="alert">{humanizeAdminToken(row.actor.role)}</Badge>
             </p>
           ) : null}
-        </CardContent>
-      </Card>
+      </AdminPanel>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Target</CardTitle>
-          <CardMeta>{row.target_table}</CardMeta>
-        </CardHeader>
-        <CardContent className="space-y-2 text-sm">
+      <AdminPanel title="Target" meta={humanizeAdminToken(row.target_table)}>
           <div className="flex flex-wrap items-center gap-2">
-            <Tag>{row.target_table}</Tag>
+            <Tag>{humanizeAdminToken(row.target_table)}</Tag>
             {href && row.target_id ? (
               <Link
                 href={href}
@@ -141,15 +110,9 @@ export default async function AdminAuditLogDrilldownPage({
               id {row.target_id}
             </p>
           ) : null}
-        </CardContent>
-      </Card>
+      </AdminPanel>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Patch</CardTitle>
-          <CardMeta>field-by-field diff</CardMeta>
-        </CardHeader>
-        <CardContent>
+      <AdminPanel title="Patch" description="Field-by-field diff.">
           {row.patch == null ? (
             <p className="text-sm text-ink-tertiary">No patch payload.</p>
           ) : (
@@ -157,15 +120,9 @@ export default async function AdminAuditLogDrilldownPage({
               {JSON.stringify(row.patch, null, 2)}
             </pre>
           )}
-        </CardContent>
-      </Card>
+      </AdminPanel>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Metadata</CardTitle>
-          <CardMeta>context captured at write time</CardMeta>
-        </CardHeader>
-        <CardContent>
+      <AdminPanel title="Metadata" description="Context captured at write time.">
           {row.metadata == null ? (
             <p className="text-sm text-ink-tertiary">No metadata.</p>
           ) : (
@@ -173,8 +130,7 @@ export default async function AdminAuditLogDrilldownPage({
               {JSON.stringify(row.metadata, null, 2)}
             </pre>
           )}
-        </CardContent>
-      </Card>
-    </div>
+      </AdminPanel>
+    </AdminPage>
   );
 }

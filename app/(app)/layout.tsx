@@ -126,6 +126,7 @@ export default async function AppShellLayout({
       badges = {
         ...badges,
         discover: adminDoc.suppliers?.published ?? moatTotal ?? undefined,
+        adminQueue: adminDoc.queues?.verification_queue_total ?? 0,
         adminClaims: claimBacklog,
         adminCerts: certBacklog,
         adminSanctions: adminDoc.queues?.sanctions_active ?? 0,

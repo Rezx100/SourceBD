@@ -23,7 +23,7 @@ export default function ForgotPasswordPage() {
   return (
     <AuthShell
       brandHeadline="Reset your access,"
-      brandHeadlineAccent="not the receipts."
+      brandHeadlineAccent="not the verified evidence."
       brandSub="We email a single-use link to the address on file. Your saved searches, exported provenance trails and workspace settings stay intact."
       brandFooter="Reset links expire after 60 minutes."
       topRight={

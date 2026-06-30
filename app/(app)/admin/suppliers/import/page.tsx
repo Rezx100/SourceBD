@@ -1,50 +1,36 @@
 // Admin bulk-import page (Spec A2). Server shell + client form island.
 
-import Link from "next/link";
-
 import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardMeta,
-  CardTitle,
-} from "@/components/ui/card";
+  AdminActionLink,
+  AdminPage,
+  AdminPageHeader,
+  AdminPanel,
+} from "@/components/admin/admin-ui";
 import { AdminSupplierImportForm } from "@/components/admin-supplier-import-form";
 
 export const dynamic = "force-dynamic";
 
 export default function AdminSupplierImportPage() {
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
-      <div className="flex flex-col gap-4 border-b border-hairline pb-6 sm:flex-row sm:items-end sm:justify-between">
-        <div className="min-w-0">
-          <p className="mb-2 inline-flex items-center gap-2 font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-brand-forest">
-            <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-brand-forest" />
-            Admin · suppliers
-          </p>
-          <h1 className="font-display text-[26px] font-extrabold leading-[1.05] tracking-[-0.03em] text-ink-primary sm:text-[32px]">
-            Bulk import
-          </h1>
-          <p className="mt-2.5 max-w-2xl text-[15px] leading-relaxed text-ink-secondary">
+    <AdminPage maxWidth="4xl">
+      <AdminPageHeader
+        kicker="Admin · Suppliers"
+        title="Bulk import"
+        description={
+          <>
             CSV upload. Each row is dispatched through{" "}
             <code className="font-mono text-[12px]">admin_supplier_update</code>;
             one bad row never aborts the batch.
-          </p>
-        </div>
-        <Link
-          href="/admin/suppliers"
-          className="inline-flex shrink-0 items-center gap-1.5 rounded-pill border border-hairline px-3 py-1.5 text-[12px] font-medium text-ink-tertiary transition-colors hover:border-brand-forest/30 hover:text-ink-primary"
-        >
-          ← Back to list
-        </Link>
-      </div>
+          </>
+        }
+        actions={<AdminActionLink href="/admin/suppliers">Back to list</AdminActionLink>}
+      />
 
-      <Card>
-        <CardHeader>
-          <CardTitle>CSV format</CardTitle>
-          <CardMeta>RFC 4180 — header row required</CardMeta>
-        </CardHeader>
-        <CardContent className="pt-0 space-y-3 text-[13px] text-ink-secondary">
+      <AdminPanel
+        title="CSV format"
+        meta="RFC 4180 · header row required"
+        contentClassName="space-y-3 text-[13px] text-ink-secondary"
+      >
           <p>
             Required column: <code className="font-mono">slug</code> (looks up
             the supplier).
@@ -75,18 +61,14 @@ gamma-woven,publish,,`}
           <p className="text-[12px] text-ink-tertiary">
             Limits: ≤ 2 MB, ≤ 2000 data rows per upload.
           </p>
-        </CardContent>
-      </Card>
+      </AdminPanel>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Upload</CardTitle>
-          <CardMeta>POST /api/v1/admin/suppliers/import</CardMeta>
-        </CardHeader>
-        <CardContent className="pt-0">
+      <AdminPanel
+        title="Upload"
+        description="Upload a CSV to update, publish, unpublish, sanction, or clear supplier rows in bulk."
+      >
           <AdminSupplierImportForm />
-        </CardContent>
-      </Card>
-    </div>
+      </AdminPanel>
+    </AdminPage>
   );
 }

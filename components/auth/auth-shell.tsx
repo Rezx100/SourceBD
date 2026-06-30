@@ -2,7 +2,7 @@
 //
 // Server component. Renders a two-column enterprise auth layout:
 //   • Left  — a light "brand / proof" panel (forest #1f4d3a signature
-//             only) with an animated grid backdrop and a receipts proof
+//             only) with an animated grid backdrop and a verified-evidence proof
 //             card — the data moat made visible on the way in.
 //   • Right — a clean white form panel; each page passes its own form
 //             via `children` and its own headline copy via props.

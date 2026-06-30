@@ -60,6 +60,7 @@ const config: Config = {
         foreground: "var(--foreground)",
       },
       fontFamily: {
+        brand: ["var(--font-brand)"],
         display: ["var(--font-display)"],
         body: ["var(--font-body)"],
         mono: ["var(--font-mono)"],

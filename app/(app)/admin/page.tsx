@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tag } from "@/components/ui/tag";
+import { AdminPage } from "@/components/admin/admin-ui";
 import { PageHeader, StatStrip } from "@/components/ui/page-kit";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -83,7 +84,7 @@ export default async function AdminHome() {
 
   if (error || data == null) {
     return (
-      <div className="mx-auto max-w-5xl space-y-6">
+      <AdminPage maxWidth="5xl">
         <AdminHeader />
         <Card>
           <CardContent className="text-sm text-sem-red">
@@ -91,14 +92,14 @@ export default async function AdminHome() {
             {error?.message ? <>: {error.message}</> : null}.
           </CardContent>
         </Card>
-      </div>
+      </AdminPage>
     );
   }
 
   const doc = data as Doc;
 
   return (
-    <div className="mx-auto max-w-6xl space-y-6">
+    <AdminPage>
       <AdminHeader generatedAt={doc.generated_at} />
 
       <StatStrip
@@ -211,11 +212,13 @@ export default async function AdminHome() {
               <QueueRow
                 label="Sanctions hits (active)"
                 value={doc.queues.sanctions_active}
+                href="/admin/sanctions"
                 tone={doc.queues.sanctions_active > 0 ? "amber" : "neutral"}
               />
               <QueueRow
                 label="Verification queue (total)"
                 value={doc.queues.verification_queue_total}
+                href="/admin/queue"
                 tone={doc.queues.verification_queue_total > 0 ? "amber" : "neutral"}
               />
               {Object.entries(doc.queues.verification_queue_by_type)
@@ -225,6 +228,7 @@ export default async function AdminHome() {
                     key={qt}
                     label={`  · ${qt.replace(/_/g, " ")}`}
                     value={n}
+                    href={`/admin/queue?type=${encodeURIComponent(qt)}`}
                     indent
                   />
                 ))}
@@ -279,7 +283,7 @@ export default async function AdminHome() {
           </CardContent>
         </Card>
       </section>
-    </div>
+    </AdminPage>
   );
 }
 

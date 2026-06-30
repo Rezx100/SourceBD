@@ -13,7 +13,7 @@
 These invariants from `ui-context.md` remain in force (preserved, not deprecated):
 
 1. **No SBI numeric in any non-admin surface.** Never render `sbi_scores.total`, any `pillar_*` value, the string "SBI", "Score", "Rating", or A-D letter grades. RLS already blocks selection. Server-side `ORDER BY sbi_scores.total DESC` is allowed because the value is consumed in the query and never serialised.
-2. **Receipts Ring is the centrepiece** of every supplier card and profile header. Payload = count of distinct Tier 1–3 sources, saturated at 5+.
+2. **Verified Sources Ring is the centrepiece** of every supplier card and profile header. Payload = count of distinct Tier 1–3 sources, saturated at 5+.
 3. **Completeness badge** is the only "quality" indicator visible to buyers.
 4. **Contact PII is gated server-side.** Hiding it in the UI is not a control — `email_primary`, `phones`, `contact_name`, `contact_role` must come back redacted from the API for unauthenticated/unauthorised callers.
 5. **Sanctions banner.** Any active hit forces a top-of-profile red banner that overrides marketing chrome.
@@ -164,7 +164,7 @@ Header data sources (column → coverage of published universe):
 
 | Field | Source | Coverage |
 | --- | --- | --- |
-| Receipts Ring count | `count(distinct source_id)` over Tier 1–3 active `source_records` for this supplier (saturated at 5+) | 100% (every published supplier has ≥1) |
+| Verified Sources Ring count | `count(distinct source_id)` over Tier 1–3 active `source_records` for this supplier (saturated at 5+) | 100% (every published supplier has ≥1) |
 | Ring distribution to design for | 1 source: 7,329 (72%) · 2: 1,420 (14%) · 3: 640 (6%) · 4: 405 (4%) · 5+: 327 (3%) | — |
 | Company name | `suppliers.company_name` | 100% |
 | Entity type chip | `suppliers.entity_type` enum (factory / buying_house / unknown) | 100% (factory 86%, BH 14%) |
@@ -216,7 +216,7 @@ Six stacked cards. Render only the cards with data; omit empty cards entirely.
 
 5. **Sanctions hits** (when present — currently 0). Card design must exist; render top-of-tab in red when any match. Each entry: list name, entry ref, source URL, listed date.
 
-6. **Provenance footer.** Always rendered, last card of the tab. Lists every distinct active `source_records` row for this supplier with `source_url`, `last_seen_at`, and the tier badge. This is the "show your work" surface. Open with a `<details>` collapsed by default; show count in summary ("Receipts: 17 records across 5 sources").
+6. **Provenance footer.** Always rendered, last card of the tab. Lists every distinct active `source_records` row for this supplier with `source_url`, `last_seen_at`, and the tier badge. This is the "show your work" surface. Open with a `<details>` collapsed by default; show count in summary ("Verified evidence: 17 records across 5 sources").
 
 ### 4.4 `Overview` tab
 
@@ -282,7 +282,7 @@ URL: `/app/discover`. The page is server-rendered on first load (RSC), then hydr
 │ Filters   │  ┌────────────────────────────────────────────────────┐  │
 │ (rail,    │  │ Search: "knit factory in Gazipur with GOTS"  ⌘K    │  │
 │  sticky)  │  └────────────────────────────────────────────────────┘  │
-│           │  [Sort: Most receipts ▾]   1,420 results · Saved (12)   │
+│           │  [Sort: Most evidence ▾]   1,420 results · Saved (12)   │
 │           │  ┌──── result card ──────────────────────────────────┐  │
 │           │  │ ◯ NAME · factory · Gazipur · 78%  ★              │  │
 │           │  │ [BGMEA] [RSC] [GOTS] [OEKO-TEX]  +3              │  │
@@ -301,7 +301,7 @@ URL: `/app/discover`. The page is server-rendered on first load (RSC), then hydr
 | Group | Control | Backing column / table |
 | --- | --- | --- |
 | **Entity type** | Multi-select pill group: Factory · Buying house · Unknown | `suppliers.entity_type` |
-| **Receipts (T1-T3 sources)** | Range slider 1–5+ | computed (Spec 12) |
+| **Verified sources** | Range slider 1–5+ | computed (Spec 12) |
 | **Registry membership** | Checkbox group: BGMEA · BKMEA · BGAPMEA · BTMA · EPB · RSC | `v_supplier_registry_ids` (direct OR inherited) |
 | **Certifications** | Checkbox group: GOTS · OEKO-TEX · WRAP · SA8000 (valid today / any) | `certifications` |
 | **RSC progress** | Range slider 0–100 | `rsc_remediation.progress_pct` |
@@ -318,7 +318,7 @@ All filter URLs are **deep-linkable** — Discover state lives in `searchParams`
 
 ### 5.4 Sort options
 
-- **Most receipts** (default; server `ORDER BY t13_source_count DESC`).
+- **Most evidence** (default; server `ORDER BY t13_source_count DESC`).
 - **Relevance to query** (when there's a `q`; uses FTS rank).
 - **Most complete profile** (`completeness_pct DESC`).
 - **Recently updated** (`max(source_records.last_seen_at) DESC`).
@@ -332,14 +332,14 @@ All filter URLs are **deep-linkable** — Discover state lives in `searchParams`
   Established 2008 · 4,500 employees · Knit composite
 ```
 
-- Ring on the left: same Receipts Ring as profile header, smaller.
+- Ring on the left: same Verified Sources Ring as profile header, smaller.
 - Pill row: top 4 by tier priority, then count of remainder. Inherited pills get the dashed-border variant here too.
 - Stat line: render fields that are populated; omit those that aren't (no "n/a" everywhere — empty space is fine).
 - Save star: optimistic UI; calls Phase 1 `saved_suppliers` endpoint.
 
 ### 5.6 Empty / zero-result states
 
-- **No query, no filters:** show 50 highest-receipts suppliers (default discovery).
+- **No query, no filters:** show 50 highest-evidence suppliers (default discovery).
 - **Filtered to zero:** "No suppliers match these filters. Try removing {weakest filter}." Provide a single click to clear.
 - **Tier-6-only would-be-result is omitted entirely** — that data tier never appears in Discover by hard rule.
 
@@ -358,7 +358,7 @@ Reserve route `/app/match`. Spec-3 of Phase 2 will define the brief form (catego
 - Top row: 3 stat tiles — Saved suppliers · Active RFQs · Unread messages.
 - "Saved" section: card grid using the same result-card component as Discover.
 - "Recently viewed" section: from `recent_views` (Phase 1 table to design — store last 50 per user).
-- "Newly verified in your industry" section (P): pulls suppliers whose receipts count increased in last 30 days; needs an audit/diff table — design only.
+- "Newly verified in your industry" section (P): pulls suppliers whose verified-source count increased in last 30 days; needs an audit/diff table — design only.
 
 `/app/saved`: same result-card grid, sortable, with bulk-action toolbar (Add to list · Remove · Export CSV).
 
@@ -422,12 +422,12 @@ Future for Phase 1, but design must reserve the schema:
 
 ## 14. Cross-cutting invariants (apply to every page)
 
-1. **Receipts Ring** is the only universal "trust" glyph. It appears wherever a supplier name appears (cards, headers, mention chips). Variants: 12px (inline), 24px (card), 48px (profile header).
+1. **Verified Sources Ring** is the only universal "trust" glyph. It appears wherever a supplier name appears (cards, headers, mention chips). Variants: 12px (inline), 24px (card), 48px (profile header).
 2. **Completeness badge** rendered as `{pct}%` chip with semantic colour: < 40 red, 40–69 amber, 70–89 green, ≥ 90 emerald. From `suppliers.completeness_pct`.
 3. **Source-pill provenance.** Every pill, badge, or claim that comes from a specific source must be click-traceable to the underlying `source_records.source_url`. No "trust us" badges.
 4. **Gated contact PII.** Server returns nulls + `gated: true` when caller lacks entitlement. Client never receives the secret.
 5. **Sanctions banner.** Red top-of-profile, dismissible only within a session.
-6. **Inherited pill rule.** Always visually distinct (dashed border), always shows parent name on hover/click, never aggregated into the "receipts count" — receipts count is direct Tier 1–3 only.
+6. **Inherited pill rule.** Always visually distinct (dashed border), always shows parent name on hover/click, never aggregated into the "verified sources" count — verified sources count is direct Tier 1–3 only.
 7. **No SBI numeric** anywhere outside `/admin/scoring`. Server-side sort by SBI is allowed; serialising the value is not.
 8. **Tier 6 sources** never decorate buyer-facing UI. They're allowed inside `/admin/sources` for ingestion debug only.
 
@@ -470,14 +470,14 @@ Future for Phase 1, but design must reserve the schema:
 | `xl` (≥ 1280) | Result cards 3-col on Discover, 4-col on Saved. |
 | `2xl` (≥ 1536) | Profile tab content max-width 1100px (centered), header full-bleed. |
 
-Mobile invariants: Receipts Ring never smaller than 24px; pill text never below 12px; tap targets ≥ 44px.
+Mobile invariants: Verified Sources Ring never smaller than 24px; pill text never below 12px; tap targets ≥ 44px.
 
 ---
 
 ## 17. Accessibility checklist (non-negotiable)
 
 - All Phosphor icons that aren't pure decoration carry `aria-label`.
-- Receipts Ring: `role="img"` with `aria-label="3 verified sources"`.
+- Verified Sources Ring: `role="img"` with `aria-label="3 verified sources"`.
 - Colour is never the only signal — every state has a glyph or text affordance.
 - Keyboard: full tab order, ⌘K opens search, `?` opens shortcut help.
 - `prefers-reduced-motion`: disable ring "fill-in" animation.
@@ -504,8 +504,8 @@ Use these numbers to size empty-state copy, default sorts, and feature rollouts.
 | --- | --- |
 | Suppliers total / published | 10,189 / 10,121 |
 | Factories / Buying houses | 8,677 / 1,444 |
-| Receipts ≥ 2 distinct T1-3 sources | 2,792 (27.6%) |
-| Receipts = 1 | 7,329 (72.4%) |
+| Verified sources ≥ 2 distinct T1-3 sources | 2,792 (27.6%) |
+| Verified sources = 1 | 7,329 (72.4%) |
 | RSC remediation rows | 2,227 (median progress 95%) |
 | Compliance docs mirrored | 7,049 across 5 doc types |
 | OEKO-TEX certs | 2,871 (2,453 suppliers) |
@@ -525,7 +525,7 @@ Use these numbers to size empty-state copy, default sorts, and feature rollouts.
 
 1. **Inherited pill — how strong is the visual demotion?** A dashed border may not be enough at 12px. Consider a tiny "↳" prefix glyph on inherited pills.
 2. **Multiple-address disclosure on the profile header** — full-width sub-line, or click-through from the location pill?
-3. **Receipts Ring tooltip copy** — finalise the one-liner. Current draft: "{n} of 5 verified registries". Avoid "score", "rating", "grade".
+3. **Verified Sources Ring tooltip copy** — finalise the one-liner. Current draft: "{n} of 5 verified registries". Avoid "score", "rating", "grade".
 4. **Brand attribution wording** — confirm legal: "Disclosed on H&M's published supplier list" vs. "Listed by H&M". Coordinate with legal review before M1.
 5. **Sanctions banner severity grades** — UFLPA / WRO / OFAC SDN vs UK OFSI vs EU SANC. Today all are red; should some be amber? Decide before the first hit lands.
 
