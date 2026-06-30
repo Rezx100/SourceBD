@@ -4,13 +4,9 @@
   "icons": [
     {
       "slug": "t-shirt",
-      "icon_id": "4214599",
-      "file": "t-shirt.png"
-    },
-    {
-      "slug": "tee",
-      "icon_id": "4214594",
-      "file": "tee.png"
+      "icon_id": "4464232",
+      "file": "t-shirt.png",
+      "note": "Fashion set (Cuputo) — t-shirt / tshirt / tee"
     },
     {
       "slug": "shirt",
@@ -187,6 +183,90 @@
       "slug": "sneakers",
       "icon_id": "4213881",
       "file": "sneakers.png"
+    },
+    {
+      "slug": "back-board",
+      "icon_id": "8403565",
+      "file": "back-board.png",
+      "note": "Paper sheet (Ngiconan) — back board / black board"
+    },
+    {
+      "slug": "poly-bag",
+      "icon_id": "8318101",
+      "file": "poly-bag.png",
+      "note": "Noun Project Poly Bags set (Nur Achmadi Yusuf)"
+    },
+    {
+      "slug": "leggings",
+      "icon_id": "7793232",
+      "file": "leggings.png",
+      "note": "Hamz Studio"
+    },
+    {
+      "slug": "lace",
+      "icon_id": "7288340",
+      "file": "lace.png",
+      "note": "Wedding Service set (aditya_chan)"
+    },
+    {
+      "slug": "hanger",
+      "icon_id": "1442458",
+      "file": "hanger.png",
+      "note": "Hanger set1 (Nook Fulloption)"
+    },
+    {
+      "slug": "athletic-wear",
+      "icon_id": "6633424",
+      "file": "athletic-wear.png",
+      "note": "Sport Equipment Thick Line (IYIKON)"
+    },
+    {
+      "slug": "home-textile",
+      "icon_id": "6373417",
+      "file": "home-textile.png",
+      "note": "Home and living (IMG visuals icons)"
+    },
+    {
+      "slug": "carton",
+      "icon_id": "3673872",
+      "file": "carton.png",
+      "note": "Box (ainul muttaqin) — Carton Box"
+    },
+    {
+      "slug": "pajamas",
+      "icon_id": "4007499",
+      "file": "pajamas.png",
+      "note": "pants / sleepwear (Rank Sol)"
+    },
+    {
+      "slug": "neck-board",
+      "icon_id": "2420101",
+      "file": "neck-board.png",
+      "note": "shirt collar (Atif Arshad) — neck board / collar bone"
+    },
+    {
+      "slug": "printed-label",
+      "icon_id": "2872085",
+      "file": "printed-label.png",
+      "note": "Tag (Made by Made)"
+    },
+    {
+      "slug": "tissue-paper",
+      "icon_id": "8317415",
+      "file": "tissue-paper.png",
+      "note": "Paper roll (GlyphGenius Studio)"
+    },
+    {
+      "slug": "price-tag",
+      "icon_id": "5285662",
+      "file": "price-tag.png",
+      "note": "Price Tag (Nur Hasanah)"
+    },
+    {
+      "slug": "barcode",
+      "icon_id": "1673592",
+      "file": "barcode.png",
+      "note": "Barcode (Mohamed Mb)"
     }
   ]
 }
