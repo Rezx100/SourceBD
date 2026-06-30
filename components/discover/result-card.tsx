@@ -23,7 +23,7 @@ import { ProductIcon } from "@/components/supplier/product-icon";
 import { ENTITY_TYPES } from "@/components/discover/filter-rail";
 import { establishedYear } from "@/lib/established";
 import { formatCompanyName } from "@/lib/format-company-name";
-import { formatCityDistrictShort } from "@/lib/format-location";
+import { formatProfileCityLine } from "@/lib/format-location";
 import { dedupProducts } from "@/lib/product-icons";
 import { sourceLogo } from "@/lib/source-logos";
 
@@ -65,6 +65,7 @@ export type DiscoverRow = {
   factory_types: string[];
   rsc_progress_pct: number | null;
   parent_group_name: string | null;
+  primary_address?: string | null;
   total_count: number;
 };
 
@@ -79,7 +80,11 @@ export function DiscoverResultCard({
   actionSlot?: React.ReactNode;
   footerSlot?: React.ReactNode;
 }) {
-  const location = formatCityDistrictShort(row.city, row.district);
+  const location = formatProfileCityLine(
+    row.primary_address,
+    row.city,
+    row.district,
+  );
   const entityLabel =
     ENTITY_TYPES.find((o) => o.value === row.entity_type)?.label ??
     row.entity_type.replace(/_/g, " ");

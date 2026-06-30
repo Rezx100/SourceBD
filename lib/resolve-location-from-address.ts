@@ -16,6 +16,7 @@ type AliasRule = {
 
 /** Longer / more specific patterns first. */
 const ALIAS_RULES: AliasRule[] = [
+  { pattern: /\bbaridhara\b/i, city: "Baridhara", district: "Dhaka" },
   { pattern: /\bgulshan[\s-]*2\b/i, city: "Gulshan", district: "Dhaka" },
   { pattern: /\bgulshan\b/i, city: "Gulshan", district: "Dhaka" },
   { pattern: /\bbanani\b/i, city: "Banani", district: "Dhaka" },
