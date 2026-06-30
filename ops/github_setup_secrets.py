@@ -69,47 +69,41 @@ def put_secret(name: str, value: str) -> None:
 
 
 def ensure_production_environment() -> None:
-    body = {
-        "deployment_branch_policy": {
-            "protected_branches": True,
-            "custom_branch_policies": False,
-        },
-        "wait_timer": 0,
-        "reviewers": [],
-    }
+    # Minimal env — required reviewers need GitHub Team/Enterprise; add via UI if needed.
     try:
-        api("PUT", f"/repos/{REPO}/environments/production", body)
+        api("PUT", f"/repos/{REPO}/environments/production", {})
         print("  environment: production")
-    except SystemExit:
-        # Some plans require reviewers via UI; create minimal env
-        api("PUT", f"/repos/{REPO}/environments/production", {"wait_timer": 0})
-        print("  environment: production (basic)")
+    except SystemExit as e:
+        print(f"  environment skipped: {e}")
 
 
 def protect_main_branch() -> None:
-    body = {
-        "required_status_checks": {
-            "strict": True,
-            "contexts": ["verify"],
-        },
-        "enforce_admins": False,
-        "required_pull_request_reviews": {
-            "dismiss_stale_reviews": True,
-            "require_code_owner_reviews": False,
-            "required_approving_review_count": 1,
-        },
-        "restrictions": None,
-        "required_linear_history": False,
-        "allow_force_pushes": False,
-        "allow_deletions": False,
-        "block_creations": False,
-        "required_conversation_resolution": True,
-    }
-    try:
-        api("PUT", f"/repos/{REPO}/branches/main/protection", body)
-        print("  branch protection: main")
-    except SystemExit as e:
-        print(f"  branch protection skipped (may need CI run first): {e}")
+    # Try with CI check; fall back without contexts until first CI run completes.
+    for contexts in (["verify"], []):
+        body = {
+            "required_status_checks": {
+                "strict": True,
+                "contexts": contexts,
+            },
+            "enforce_admins": False,
+            "required_pull_request_reviews": {
+                "dismiss_stale_reviews": True,
+                "require_code_owner_reviews": False,
+                "required_approving_review_count": 1,
+            },
+            "restrictions": None,
+            "allow_force_pushes": False,
+            "allow_deletions": False,
+            "required_conversation_resolution": True,
+        }
+        try:
+            api("PUT", f"/repos/{REPO}/branches/main/protection", body)
+            label = "main" + (f" (CI: {contexts[0]})" if contexts else " (no CI gate yet)")
+            print(f"  branch protection: {label}")
+            return
+        except SystemExit:
+            continue
+    print("  branch protection: failed — configure manually in GitHub UI")
 
 
 def main() -> None:
