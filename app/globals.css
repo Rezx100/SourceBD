@@ -52,6 +52,10 @@
   --sem-amber-soft: #fbf1e3;
   --sem-green: #2d7a4f;
   --sem-green-soft: #eaf5ee;
+  /* Completeness band ≥90 (frontend-design-spec.md §14.2) — distinct from
+     --sem-green (70–89) so the two highest bands remain visually distinct. */
+  --sem-emerald: #0c8a6b;
+  --sem-emerald-soft: #e5f7f2;
 
   /* Categorical tier badges — admin only (no numeric SBI ever shown) */
   --tier-bronze: #8c5a2b;
