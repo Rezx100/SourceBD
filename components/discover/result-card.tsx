@@ -6,10 +6,19 @@
 // equivalent mapped shape) and renders the finalized card design decided in
 // the 2 Jul UX audit (see frontend-design-spec.md §0.2 and §14.2).
 //
+// Mobile and desktop are two genuinely different arrangements (not just a
+// scaled-up mobile layout): mobile stacks avatar/name → trust row → products
+// → a divided footer bar; desktop moves to a two-column layout with a fixed
+// right-hand rail (follow button, employee count, est. year, CTA) that has
+// no footer divider at all. Both are built from one DOM via Tailwind
+// responsive classes so there is exactly one markup source of truth, per
+// `ops/design-mockups/discover-card-mockup.html` (the approved reference).
+//
 // SBI hard contract: payload is `t13_source_count` only — never any SBI
 // numeric, pillar, grade, or "Score" / "Rating" string.
 
 import Link from "next/link";
+import { cloneElement, isValidElement, type ReactElement } from "react";
 import {
   ArrowRight,
   CalendarBlank,
@@ -26,7 +35,7 @@ import {
 } from "@/lib/completeness-band";
 import { establishedYear } from "@/lib/established";
 import { formatCompanyName } from "@/lib/format-company-name";
-import { formatProfileCityLine } from "@/lib/format-location";
+import { formatCardLocation } from "@/lib/format-location";
 import { dedupProducts } from "@/lib/product-icons";
 import { sourceLogo } from "@/lib/source-logos";
 import { cn } from "@/lib/utils";
@@ -61,6 +70,15 @@ function shortCode(tag: string): string {
   return letters.length > 4 ? letters.slice(0, 3).toUpperCase() : letters.toUpperCase();
 }
 
+/** Render the same action element (SaveButton) at two DOM positions — the
+ *  mobile header row and the desktop rail — since only one is visible at
+ *  any given viewport width (the other is `display:none`). Keys keep React
+ *  from complaining about reusing the same element reference twice. */
+function slotFor(node: React.ReactNode | undefined, key: string) {
+  if (!node) return null;
+  return isValidElement(node) ? cloneElement(node as ReactElement, { key }) : node;
+}
+
 export type DiscoverRow = {
   id: string;
   slug: string;
@@ -92,11 +110,7 @@ export function DiscoverResultCard({
   actionSlot?: React.ReactNode;
   footerSlot?: React.ReactNode;
 }) {
-  const location = formatProfileCityLine(
-    row.primary_address,
-    row.city,
-    row.district,
-  );
+  const location = formatCardLocation(row.primary_address, row.city, row.district);
   const entityLabel =
     ENTITY_TYPES.find((o) => o.value === row.entity_type)?.label ??
     row.entity_type.replace(/_/g, " ");
@@ -104,80 +118,116 @@ export function DiscoverResultCard({
   const extraMarks = Math.max(0, row.source_tags.length - visibleMarks.length);
   const name = formatCompanyName(row.company_name);
   const estYear = establishedYear(row.established_date);
+  const hasTrustRow = visibleMarks.length > 0 || row.t13_source_count > 0;
+  const actionMobile = slotFor(actionSlot, "action-mobile");
+  const actionDesktop = slotFor(actionSlot, "action-desktop");
 
   return (
     <article className="group relative overflow-hidden rounded-lg border border-neutral-200 bg-white px-4 pb-3.5 pt-4 text-left shadow-sm transition-colors duration-200 ease-smooth hover:border-brand-forest/[0.22] hover:bg-neutral-50 sm:p-5">
-      {actionSlot ? (
-        <div className="absolute right-4 top-4 z-10 sm:right-5 sm:top-5">
-          {actionSlot}
-        </div>
-      ) : null}
-
       <Link
         href={`${hrefBase}/${row.slug}`}
         className="block rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-forest"
       >
-        <div className="flex items-start gap-4 sm:gap-5">
-          <CompanyAvatar
-            name={name}
-            verified={row.t13_source_count > 0}
-            className="mt-0.5"
-          />
-          <div className="min-w-0 flex-1">
-            <div className="flex items-start justify-between gap-2 pr-8">
-              <h2 className="truncate font-display text-[19px] font-black leading-tight tracking-[-0.02em] text-neutral-900 transition-colors group-hover:text-brand-forest sm:text-[21px]">
-                {name}
-              </h2>
+        <div className="flex gap-4 sm:gap-6">
+          {/* Left column: identity, trust row, products. Full width on
+              mobile; shares the row with the desktop rail at sm+. */}
+          <div className="flex min-w-0 flex-1 items-start gap-4 sm:gap-5">
+            <CompanyAvatar
+              name={name}
+              verified={row.t13_source_count > 0}
+              className="mt-0.5"
+            />
+            <div className="min-w-0 flex-1">
+              <div>
+                <div className="flex items-start justify-between gap-2 pr-8 sm:pr-0">
+                  <h2 className="truncate font-display text-[19px] font-black leading-tight tracking-[-0.02em] text-neutral-900 transition-colors group-hover:text-brand-forest sm:text-[21px]">
+                    {name}
+                  </h2>
+                  {actionMobile ? (
+                    <span className="shrink-0 sm:hidden">{actionMobile}</span>
+                  ) : null}
+                </div>
+                <div className="mt-1 flex items-center gap-1.5 text-[13px] font-medium text-neutral-600 sm:mt-1.5">
+                  <span className="inline-flex items-center rounded-pill bg-neutral-100 px-2 py-0.5 text-[11px] font-semibold text-neutral-600">
+                    {entityLabel}
+                  </span>
+                  {location ? (
+                    <>
+                      <MapPin
+                        size={12}
+                        weight="fill"
+                        aria-hidden
+                        className="ml-0.5 shrink-0 text-neutral-400"
+                      />
+                      <span className="truncate">{location}</span>
+                    </>
+                  ) : null}
+                </div>
+              </div>
+
+              {/* Desktop only: trust row + products nest under the name
+                  column here (indented past the avatar), matching the
+                  approved desktop mockup. Mobile renders its own copy of
+                  these two rows full-width below (see sibling block after
+                  this flex row) since the mobile mockup runs them the full
+                  card width, not indented under the avatar. */}
+              <div className="mt-3 hidden sm:block sm:space-y-3">
+                {hasTrustRow ? <TrustRow row={row} marks={visibleMarks} extraMarks={extraMarks} mobile={false} /> : null}
+                {row.principal_products.length > 0 ? (
+                  <ProductsLine products={row.principal_products} mobile={false} />
+                ) : null}
+              </div>
             </div>
-            <div className="mt-1 flex items-center gap-1.5 text-[13px] font-medium text-neutral-600">
-              <span className="inline-flex items-center rounded-pill bg-neutral-100 px-2 py-0.5 text-[11px] font-semibold text-neutral-600">
-                {entityLabel}
-              </span>
-              {location ? (
-                <>
-                  <MapPin
-                    size={12}
-                    weight="fill"
+          </div>
+
+          {/* Desktop-only right rail. No vertical divider — separation
+              comes from generous padding alone so the card still reads as
+              one unit, not two. */}
+          <div className="hidden w-[160px] shrink-0 flex-col items-end gap-3 pl-10 text-right sm:flex">
+            {actionDesktop}
+            <div className="mt-auto">
+              {row.employees_total ? (
+                  <div className="flex items-baseline justify-end gap-1.5">
+                    <span className="font-display text-[19px] font-bold leading-none tabular-nums tracking-[-0.01em] text-neutral-800">
+                      {row.employees_total.toLocaleString()}
+                    </span>
+                    <span className="text-[11.5px] font-normal text-neutral-400">
+                      employees
+                    </span>
+                  </div>
+                ) : null}
+                {estYear ? (
+                  <div className="mt-1 text-[12px] font-medium text-neutral-500">
+                    Est. {estYear}
+                  </div>
+                ) : null}
+                <span className="-mr-2 mt-1.5 flex items-center justify-end gap-1 rounded-md px-2 py-1.5 text-[13px] font-semibold text-brand-forest transition-colors duration-hover ease-smooth group-hover:bg-brand-forest-soft">
+                  View profile
+                  <ArrowRight
+                    size={13}
+                    weight="bold"
                     aria-hidden
-                    className="ml-0.5 shrink-0 text-neutral-400"
+                    className="transition-transform duration-hover ease-smooth group-hover:translate-x-0.5"
                   />
-                  <span className="truncate">{location}</span>
-                </>
-              ) : null}
-            </div>
+                </span>
+              </div>
           </div>
         </div>
 
-        {visibleMarks.length > 0 || row.t13_source_count > 0 ? (
-          <div className="mt-3 flex flex-wrap items-center gap-2 text-[12px] text-neutral-600 sm:gap-3">
-            {visibleMarks.map((tag) => (
-              <RegistryMark key={tag} tag={tag} />
-            ))}
-            {extraMarks > 0 ? (
-              <span className="text-neutral-500">+{extraMarks}</span>
-            ) : null}
-            <span className="min-w-0 truncate font-medium text-neutral-700">
-              {Math.min(row.t13_source_count, 5)}
-              {row.t13_source_count > 5 ? "+" : ""} verified{" "}
-              {row.t13_source_count === 1 ? "source" : "sources"}
-            </span>
-            {typeof row.completeness_pct === "number" ? (
-              <CompletenessPill
-                pct={row.completeness_pct}
-                className="ml-auto shrink-0"
-              />
-            ) : null}
-          </div>
-        ) : null}
-
-        {row.principal_products.length > 0 ? (
-          <ProductsLine products={row.principal_products} />
-        ) : null}
+        {/* Mobile only: trust row + products at full card width (not
+            indented under the avatar) — see comment above. */}
+        <div className="sm:hidden">
+          {hasTrustRow ? <TrustRow row={row} marks={visibleMarks} extraMarks={extraMarks} mobile /> : null}
+          {row.principal_products.length > 0 ? (
+            <ProductsLine products={row.principal_products} mobile />
+          ) : null}
+        </div>
 
         {footerSlot}
 
+        {/* Mobile-only footer bar — the desktop rail replaces this above sm. */}
         <div
-          className="mt-3 flex items-center justify-between gap-3 pt-3 text-[12px] text-neutral-500"
+          className="mt-3 flex items-center justify-between gap-3 pt-3 text-[12px] text-neutral-500 sm:hidden"
           style={{ borderTop: "1px solid rgba(15,15,20,0.045)" }}
         >
           <div className="flex flex-wrap items-center gap-3">
@@ -211,28 +261,68 @@ export function DiscoverResultCard({
   );
 }
 
-function ProductsLine({ products }: { products: string[] }) {
+// Trust row — registry marks, "verified by N sources," and the completeness
+// pill. Mobile and desktop render this as two structurally separate blocks
+// (see `DiscoverResultCard`), so wording and alignment can each match their
+// own mockup exactly rather than sharing one compromise markup.
+function TrustRow({
+  row,
+  marks,
+  extraMarks,
+  mobile,
+}: {
+  row: DiscoverRow;
+  marks: string[];
+  extraMarks: number;
+  mobile: boolean;
+}) {
+  const count = row.t13_source_count;
+  return (
+    <div
+      className={cn(
+        "flex items-center text-[12px] text-neutral-600",
+        mobile ? "gap-2" : "gap-3",
+      )}
+    >
+      {marks.map((tag) => (
+        <RegistryMark key={tag} tag={tag} />
+      ))}
+      {extraMarks > 0 ? (
+        <span className="mr-1 text-neutral-500">
+          +{extraMarks}
+          {mobile ? "" : " more"}
+        </span>
+      ) : null}
+      <span className="min-w-0 truncate font-medium text-neutral-700">
+        {mobile
+          ? `${Math.min(count, 5)}${count > 5 ? "+" : ""} verified ${count === 1 ? "source" : "sources"}`
+          : `Verified by ${count} ${count === 1 ? "source" : "sources"}`}
+      </span>
+      {typeof row.completeness_pct === "number" ? (
+        <CompletenessPill
+          pct={row.completeness_pct}
+          suffix={mobile ? "" : " complete"}
+          className={cn("shrink-0", mobile && "ml-auto")}
+        />
+      ) : null}
+    </div>
+  );
+}
+
+function ProductsLine({ products, mobile }: { products: string[]; mobile: boolean }) {
   const cleaned = dedupProducts(products);
   if (cleaned.length === 0) return null;
 
   // One fewer inline chip on mobile than desktop — same "+N more" pattern
   // already used for registry marks, so no data is lost, it's just
   // disclosed one tap later on the narrower viewport instead of wrapping.
-  const desktopShown = cleaned.slice(0, 3);
-  const mobileShown = cleaned.slice(0, 2);
-  const desktopOverflow = cleaned.length - desktopShown.length;
-  const mobileOverflow = cleaned.length - mobileShown.length;
+  const shown = cleaned.slice(0, mobile ? 2 : 3);
+  const overflow = cleaned.length - shown.length;
 
   return (
     <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] leading-snug text-neutral-700">
-      {desktopShown.map((product, i) => (
-        <span
-          key={product}
-          className={cn(
-            "inline-flex items-center gap-1 font-medium",
-            i >= mobileShown.length && "hidden sm:inline-flex",
-          )}
-        >
+      {shown.map((product) => (
+        <span key={product} className="inline-flex items-center gap-1 font-medium">
           <ProductIcon
             product={product}
             className="product-icon preview-product-icon shrink-0 text-neutral-400"
@@ -240,14 +330,9 @@ function ProductsLine({ products }: { products: string[] }) {
           {product}
         </span>
       ))}
-      {mobileOverflow > 0 ? (
-        <span className="font-semibold text-brand-forest underline decoration-brand-forest/30 underline-offset-2 sm:hidden">
-          +{mobileOverflow} more categories
-        </span>
-      ) : null}
-      {desktopOverflow > 0 ? (
-        <span className="hidden font-semibold text-brand-forest underline decoration-brand-forest/30 underline-offset-2 sm:inline">
-          +{desktopOverflow} more categories
+      {overflow > 0 ? (
+        <span className="whitespace-nowrap font-semibold text-brand-forest underline decoration-brand-forest/30 underline-offset-2">
+          +{overflow} more categories
         </span>
       ) : null}
     </div>
@@ -285,8 +370,17 @@ function RegistryMark({ tag }: { tag: string }) {
 // completeness is real and spec-mandated but shouldn't out-shout it. Text
 // stays neutral for the non-critical bands so only the icon + border carry
 // the semantic colour the spec requires; the red band (a real data-quality
-// gap) is the one band where the text itself stays colored.
-function CompletenessPill({ pct, className }: { pct: number; className?: string }) {
+// gap) is the one band where the text itself stays colored. Desktop spells
+// out "N% complete"; mobile drops "complete" to save width.
+function CompletenessPill({
+  pct,
+  suffix = "",
+  className,
+}: {
+  pct: number;
+  suffix?: string;
+  className?: string;
+}) {
   const band = completenessBand(pct);
   const tone = COMPLETENESS_BAND_CLASSES[band];
   const rounded = Math.round(pct);
@@ -301,7 +395,7 @@ function CompletenessPill({ pct, className }: { pct: number; className?: string 
       )}
     >
       <Gauge size={11} weight="bold" aria-hidden className={cn("shrink-0", tone.icon)} />
-      {rounded}%
+      {rounded}%{suffix}
     </span>
   );
 }
