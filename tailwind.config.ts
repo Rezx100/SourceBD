@@ -45,6 +45,8 @@ const config: Config = {
         "sem-amber-soft": "var(--sem-amber-soft)",
         "sem-green": "var(--sem-green)",
         "sem-green-soft": "var(--sem-green-soft)",
+        "sem-emerald": "var(--sem-emerald)",
+        "sem-emerald-soft": "var(--sem-emerald-soft)",
         // Categorical tier badges (Bronze/Silver/Gold/Platinum — admin only)
         "tier-bronze": "var(--tier-bronze)",
         "tier-silver": "var(--tier-silver)",

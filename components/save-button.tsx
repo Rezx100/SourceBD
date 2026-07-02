@@ -7,10 +7,15 @@
 // a transient inline error if the request fails. Server enforces auth +
 // ownership — this button is just a UI affordance.
 //
+// Renders as "Follow" / bell, not "Save" / star (decided 2 Jul, UX audit):
+// saving a supplier quietly enrols the buyer in cert/registration change
+// alerts for that company (opt-out in Settings), which a star/bookmark
+// icon doesn't communicate. The bell is honest about what the action does.
+//
 // Usage: render anywhere the user has the supplier UUID + initial state.
 
 import { useState, useTransition } from "react";
-import { Star } from "@phosphor-icons/react/dist/ssr";
+import { Bell, BellRinging } from "@phosphor-icons/react/dist/ssr";
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -66,8 +71,10 @@ export function SaveButton({
     });
   }
 
-  const label = saved ? "Saved" : "Save";
-  const aria = saved ? "Remove from saved" : "Save supplier";
+  const label = saved ? "Following" : "Follow";
+  const aria = saved
+    ? "Unfollow — stop getting cert & registration change alerts"
+    : "Follow — get notified of cert & registration changes";
 
   if (shape === "profile") {
     return (
@@ -81,11 +88,11 @@ export function SaveButton({
         title={error ?? aria}
         className={cn(
           "h-11 min-w-[8.5rem] gap-2 rounded-lg border-neutral-200 px-4 text-sm font-semibold shadow-sm",
-          saved && "border-sem-amber/40 bg-sem-amber-soft/40 text-sem-amber hover:bg-sem-amber-soft/60",
+          saved && "border-brand-forest/30 bg-brand-forest-soft text-brand-forest hover:bg-brand-forest-soft/70",
           className,
         )}
       >
-        <Star size={17} weight={saved ? "fill" : "regular"} />
+        {saved ? <BellRinging size={17} weight="fill" /> : <Bell size={17} weight="regular" />}
         <span>{label}</span>
       </Button>
     );
@@ -104,31 +111,42 @@ export function SaveButton({
         title={error ?? aria}
         className={cn(
           "h-11 gap-1.5 px-3.5 sm:h-9 sm:w-9 sm:px-0",
-          saved && "text-sem-amber border-sem-amber",
+          saved && "text-brand-forest border-brand-forest/30 bg-brand-forest-soft",
           className,
         )}
       >
-        <Star size={16} weight={saved ? "fill" : "regular"} />
+        {saved ? <BellRinging size={16} weight="fill" /> : <Bell size={16} weight="regular" />}
         <span className="sm:hidden">{label}</span>
       </Button>
     );
   }
 
   if (shape === "icon") {
+    // Compact card-row affordance — thinner outline, softer border, fills
+    // with a light neutral wash on hover (decided 2 Jul, UX audit: the
+    // stock outline-button treatment read as the weakest, least "custom"
+    // element on the finished card).
     return (
-      <Button
+      <button
         type="button"
-        variant="outline"
-        size="icon"
         onClick={toggle}
         disabled={pending}
         aria-pressed={saved}
         aria-label={aria}
         title={error ?? aria}
-        className={cn(saved && "text-sem-amber border-sem-amber", className)}
+        className={cn(
+          "flex size-7 shrink-0 items-center justify-center rounded-full border text-neutral-500 transition-colors duration-hover ease-smooth hover:border-neutral-200 hover:bg-neutral-50 hover:text-neutral-700 disabled:opacity-60",
+          saved && "border-brand-forest/30 bg-brand-forest-soft text-brand-forest hover:bg-brand-forest-soft/80 hover:text-brand-forest",
+          className,
+        )}
+        style={!saved ? { borderColor: "rgba(15,15,20,0.08)" } : undefined}
       >
-        <Star size={16} weight={saved ? "fill" : "regular"} />
-      </Button>
+        {saved ? (
+          <BellRinging size={14.5} weight="fill" />
+        ) : (
+          <Bell size={14.5} weight="regular" />
+        )}
+      </button>
     );
   }
 
@@ -141,9 +159,9 @@ export function SaveButton({
       disabled={pending}
       aria-pressed={saved}
       title={error ?? aria}
-      className={cn(saved && "text-sem-amber border-sem-amber", className)}
+      className={cn(saved && "text-brand-forest border-brand-forest/30 bg-brand-forest-soft", className)}
     >
-      <Star size={14} weight={saved ? "fill" : "regular"} />
+      {saved ? <BellRinging size={14} weight="fill" /> : <Bell size={14} weight="regular" />}
       <span className="r9-btn-label">{label}</span>
     </Button>
   );
