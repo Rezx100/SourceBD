@@ -123,7 +123,7 @@ export function DiscoverResultCard({
   const actionDesktop = slotFor(actionSlot, "action-desktop");
 
   return (
-    <article className="group relative overflow-hidden rounded-lg border border-neutral-200 bg-white px-4 pb-3.5 pt-4 text-left shadow-sm transition-colors duration-200 ease-smooth hover:border-brand-forest/[0.22] hover:bg-neutral-50 sm:p-5">
+    <article className="group relative overflow-hidden rounded-lg border border-neutral-200 bg-white px-4 pb-3.5 pt-4 text-left shadow-sm transition-colors duration-200 ease-smooth hover:border-brand-forest/[0.22] hover:bg-[#fafaf9] sm:p-5">
       <Link
         href={`${hrefBase}/${row.slug}`}
         className="block rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-forest"
@@ -139,7 +139,7 @@ export function DiscoverResultCard({
             />
             <div className="min-w-0 flex-1">
               <div>
-                <div className="flex items-start justify-between gap-2 pr-8 sm:pr-0">
+                <div className="flex items-start justify-between gap-2">
                   <h2 className="truncate font-display text-[19px] font-black leading-tight tracking-[-0.02em] text-neutral-900 transition-colors group-hover:text-brand-forest sm:text-[21px]">
                     {name}
                   </h2>
@@ -201,13 +201,13 @@ export function DiscoverResultCard({
                     Est. {estYear}
                   </div>
                 ) : null}
-                <span className="-mr-2 mt-1.5 flex items-center justify-end gap-1 rounded-md px-2 py-1.5 text-[13px] font-semibold text-brand-forest transition-colors duration-hover ease-smooth group-hover:bg-brand-forest-soft">
+                <span className="group/cta -mr-2 mt-1.5 flex items-center justify-end gap-1 rounded-md px-2 py-1.5 text-[13px] font-semibold text-brand-forest underline decoration-transparent underline-offset-2 transition-colors duration-hover ease-smooth hover:bg-brand-forest-soft hover:decoration-brand-forest/40">
                   View profile
                   <ArrowRight
                     size={13}
                     weight="bold"
                     aria-hidden
-                    className="transition-transform duration-hover ease-smooth group-hover:translate-x-0.5"
+                    className="transition-transform duration-hover ease-smooth group-hover/cta:translate-x-0.5"
                   />
                 </span>
               </div>
@@ -246,13 +246,13 @@ export function DiscoverResultCard({
               </span>
             ) : null}
           </div>
-          <span className="-mr-1.5 flex shrink-0 items-center gap-1 rounded-md px-2 py-1.5 font-semibold text-brand-forest transition-colors duration-hover ease-smooth group-hover:bg-brand-forest-soft">
+          <span className="group/cta -mr-1.5 flex shrink-0 items-center gap-1 rounded-md px-2 py-1.5 font-semibold text-brand-forest underline decoration-transparent underline-offset-2 transition-colors duration-hover ease-smooth hover:bg-brand-forest-soft hover:decoration-brand-forest/40">
             View profile
             <ArrowRight
               size={13}
               weight="bold"
               aria-hidden
-              className="transition-transform duration-hover ease-smooth group-hover:translate-x-0.5"
+              className="transition-transform duration-hover ease-smooth group-hover/cta:translate-x-0.5"
             />
           </span>
         </div>
@@ -352,11 +352,11 @@ function RegistryMark({ tag }: { tag: string }) {
       role="img"
       aria-label={label}
       title={label}
-      className="flex size-[21px] shrink-0 items-center justify-center rounded-[5px] border border-neutral-200/70 bg-neutral-50 font-mono text-[7.5px] font-bold text-neutral-600 transition-colors duration-hover ease-smooth group-hover:border-neutral-300 group-hover:bg-white"
+      className="flex size-[27px] shrink-0 items-center justify-center rounded-[6px] border border-[rgba(15,15,20,0.065)] bg-[#fafaf9] font-mono text-[9px] font-bold text-[#4a4a55] transition-colors duration-hover ease-smooth group-hover:border-[rgba(15,15,20,0.12)] group-hover:bg-white"
     >
       {logo ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={logo} alt="" className="h-full w-full rounded-[4px] object-contain p-0.5" />
+        <img src={logo} alt="" className="h-full w-full rounded-[5px] object-contain p-1" />
       ) : (
         shortCode(tag)
       )}

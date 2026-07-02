@@ -53,6 +53,17 @@ const PRODUCT_PHRASE_SPELLING: Record<string, string> = {
   "t shrit": "T-Shirt",
 };
 
+/** Drop the wordy "All kinds/types of ..." prefix for on-card display —
+ *  BGMEA harvest text like "All types of printing" should read "Printing"
+ *  on the compact card, matching the approved mockup. Re-capitalises the
+ *  remainder since the source string is usually only capitalised at its
+ *  original start. */
+function stripGenericPrefixForDisplay(raw: string): string {
+  const stripped = raw.replace(/^all\s+(kinds?|types?)\s+of\s+/i, "").trim();
+  if (!stripped || stripped === raw) return raw;
+  return stripped.charAt(0).toUpperCase() + stripped.slice(1);
+}
+
 /** Split BGMEA compound labels (Sweater/Jacket, T-Shirt/Polo Shirt) into separate products. */
 function splitCompoundProduct(raw: string): string[] {
   const trimmed = stripProductMarker(raw);
@@ -245,8 +256,9 @@ export function dedupProducts(products: readonly string[]): string[] {
   const entries: { trimmed: string; dedupKey: string }[] = [];
   for (const raw of products) {
     if (!raw) continue;
-    for (const trimmed of splitCompoundProduct(raw)) {
-      if (!trimmed) continue;
+    for (const split of splitCompoundProduct(raw)) {
+      if (!split) continue;
+      const trimmed = stripGenericPrefixForDisplay(split);
       const dedupKey = productDedupKey(trimmed);
       if (!dedupKey) continue;
       entries.push({ trimmed, dedupKey });
