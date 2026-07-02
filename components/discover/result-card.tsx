@@ -215,8 +215,10 @@ export function DiscoverResultCard({
         </div>
 
         {/* Mobile only: trust row + products at full card width (not
-            indented under the avatar) — see comment above. */}
-        <div className="sm:hidden">
+            indented under the avatar) — see comment above. Needs its own
+            top margin since it's a sibling of the identity row, not a
+            child nesting under existing spacing. */}
+        <div className="mt-3.5 sm:hidden">
           {hasTrustRow ? <TrustRow row={row} marks={visibleMarks} extraMarks={extraMarks} mobile /> : null}
           {row.principal_products.length > 0 ? (
             <ProductsLine products={row.principal_products} mobile />
@@ -280,8 +282,8 @@ function TrustRow({
   return (
     <div
       className={cn(
-        "flex items-center text-[12px] text-neutral-600",
-        mobile ? "gap-2" : "gap-3",
+        "flex flex-wrap items-center text-[12px] text-neutral-600",
+        mobile ? "gap-x-2.5 gap-y-1.5" : "gap-3",
       )}
     >
       {marks.map((tag) => (
@@ -302,7 +304,7 @@ function TrustRow({
         <CompletenessPill
           pct={row.completeness_pct}
           suffix={mobile ? "" : " complete"}
-          className={cn("shrink-0", mobile && "ml-auto")}
+          className="shrink-0"
         />
       ) : null}
     </div>
