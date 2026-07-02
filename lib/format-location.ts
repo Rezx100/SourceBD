@@ -40,3 +40,20 @@ export function formatProfileCityLine(
 
 /** @deprecated Use `formatCityDistrictLine`. Kept for existing imports. */
 export const formatCityDistrictShort = formatCityDistrictLine;
+
+/** Single-word locality for the compact list-card design (decided 2 Jul, UX
+ *  audit): cards show just "Dhaka", not the profile header's verbose
+ *  "City Dhaka, Dist Dhaka" line. Prefers the locality parsed from the
+ *  displayed primary address, same source-of-truth as `formatProfileCityLine`,
+ *  falling back to the raw `city`/`district` fields. */
+export function formatCardLocation(
+  primaryAddress: string | null | undefined,
+  city: string | null | undefined,
+  district: string | null | undefined,
+): string | null {
+  const fromAddress = resolveLocationFromAddress(primaryAddress);
+  const resolvedCity = fromAddress?.city ?? city?.trim() ?? null;
+  const resolvedDistrict = fromAddress?.district ?? district?.trim() ?? null;
+  const label = resolvedCity || resolvedDistrict;
+  return label ? titleCasePlace(label) : null;
+}
