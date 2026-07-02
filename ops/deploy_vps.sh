@@ -24,6 +24,8 @@
 
 set -Eeuo pipefail
 
+DEPLOY_START_S="$(date +%s)"
+
 REPO_DIR="${REPO_DIR:-/opt/sourcebd}"
 BRANCH="${BRANCH:-development}"
 REF=""
@@ -124,10 +126,17 @@ else
 fi
 
 step "Building web image (Dockerfile.web)"
-docker build -f Dockerfile.web -t sourcebd-web:latest .
+# Single build via `docker compose build` — a prior version of this script
+# also ran a standalone `docker build` first, building the same image twice
+# and roughly doubling deploy time for no benefit (both commands produced
+# the identical `sourcebd-web:latest` tag). BuildKit cache mounts in
+# Dockerfile.web (pnpm store + .next/cache) make this one build fast for
+# code-only changes.
+export DOCKER_BUILDKIT=1
+export COMPOSE_DOCKER_CLI_BUILD=1
+docker compose -f "$COMPOSE_FILE" build web
 
 step "Restarting web container only (etl volumes untouched)"
-docker compose -f "$COMPOSE_FILE" build web
 docker compose -f "$COMPOSE_FILE" up -d --no-deps web
 
 step "Waiting for /api/health"
@@ -145,16 +154,28 @@ echo "  ✓ web container healthy"
 step "Reloading Caddy"
 if command -v caddy >/dev/null 2>&1; then
 	caddy validate --config /etc/caddy/Caddyfile >/dev/null
-	systemctl reload caddy || caddy reload --config /etc/caddy/Caddyfile
-	echo "  ✓ caddy reloaded"
+	# This Caddyfile ships with `admin off` (hardening — no local admin API),
+	# so `caddy reload` / `systemctl reload caddy` can never work: both talk
+	# to the admin API over localhost:2019, which doesn't exist. `restart`
+	# re-execs Caddy fresh from the config on disk instead — the correct
+	# (and only reliable) way to apply Caddyfile changes with admin off.
+	# Deploys that don't touch the Caddyfile don't need this step at all
+	# (the running Caddy process already proxies to the same upstream port
+	# regardless of which app version is behind it), but running it anyway
+	# keeps behaviour identical whether or not the Caddyfile changed.
+	systemctl restart caddy
+	echo "  ✓ caddy restarted"
 else
 	warn "Caddy binary not found — install with: apt-get install -y caddy"
 fi
+
+DEPLOY_ELAPSED_S="$(( $(date +%s) - DEPLOY_START_S ))"
 
 step "Public health check"
 if curl --silent --fail --max-time 5 http://109.104.153.228/api/health; then
 	echo
 	echo "  ✓ deploy OK — http://109.104.153.228 (commit $COMMIT_SHA)"
+	echo "  elapsed: ${DEPLOY_ELAPSED_S}s"
 	if [ -f "$DEPLOY_META_DIR/previous-sha" ]; then
 		echo "  rollback ref: $(cat "$DEPLOY_META_DIR/previous-sha")"
 	fi
