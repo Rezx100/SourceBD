@@ -1,0 +1,7 @@
+# Shell scripts run on Linux (VPS) or WSL — force LF regardless of the
+# committer's OS. CRLF in a .sh file can break bash parsing in ways that
+# are easy to miss locally (e.g. a stray \r before `{` in a multi-line
+# function definition) but fail outright on the VPS. Discovered 2 Jul 2026
+# when ops/deploy_vps.sh's committed blob turned out to be CRLF despite
+# core.autocrlf=true, because the file predated any normalisation rule.
+*.sh text eol=lf
