@@ -13,7 +13,14 @@ import { cn } from "@/lib/utils";
 // in plain text alongside the card's other facts.
 
 function monogram(name: string): string {
-  const words = name.trim().split(/\s+/).filter(Boolean);
+  // Strip punctuation per word first — e.g. "Robintex (Bangladesh) Ltd."
+  // must monogram to "RB", not "R(" from the literal first character of
+  // the parenthesised second word.
+  const words = name
+    .trim()
+    .split(/\s+/)
+    .map((w) => w.replace(/[^\p{L}\p{N}]/gu, ""))
+    .filter(Boolean);
   if (words.length === 0) return "?";
   if (words.length === 1) return words[0]!.slice(0, 2).toUpperCase();
   return (words[0]!.charAt(0) + words[1]!.charAt(0)).toUpperCase();
@@ -35,11 +42,11 @@ export function CompanyAvatar({
     <span className={cn("relative inline-flex shrink-0", className)}>
       <span
         className={cn(
-          "flex h-12 w-12 items-center justify-center rounded-[10px] border font-display text-[17px] font-bold tracking-[-0.02em]",
-          "shadow-[0_1px_3px_rgba(15,15,20,0.05)] sm:h-[58px] sm:w-[58px] sm:text-[20px]",
+          "flex h-14 w-14 items-center justify-center rounded-xl border font-display text-[19px] font-bold tracking-[-0.02em]",
+          "shadow-[0_1px_4px_rgba(15,15,20,0.07)] sm:h-16 sm:w-16 sm:text-[22px]",
           logoUrl ? "bg-white p-2.5" : "bg-neutral-100 text-neutral-900",
         )}
-        style={{ borderColor: "rgba(15,15,20,0.055)" }}
+        style={{ borderColor: "rgba(15,15,20,0.06)" }}
       >
         {logoUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -53,7 +60,7 @@ export function CompanyAvatar({
           role="img"
           aria-label="Verified by independent sources"
           title="Verified by independent sources"
-          className="absolute -bottom-0.5 -right-0.5 flex size-5 items-center justify-center rounded-full border-[1.5px] bg-white text-brand-forest"
+          className="absolute -bottom-1 -right-1 flex size-5 items-center justify-center rounded-full border-[1.5px] bg-white text-brand-forest"
           style={{ borderColor: "rgba(15,15,20,0.14)" }}
         >
           <Check size={10} weight="bold" aria-hidden />
