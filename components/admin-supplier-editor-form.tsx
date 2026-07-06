@@ -179,11 +179,11 @@ export function AdminSupplierEditorForm({
       <StickyActionBar
         helper={
           error ? (
-            <span className="text-[12px] text-sem-red">{error}</span>
+            <span className="text-[13px] text-sem-red">{error}</span>
           ) : ok ? (
-            <span className="text-[12px] text-sem-green">{ok}</span>
+            <span className="text-[13px] text-sem-green">{ok}</span>
           ) : hasChanges ? (
-            <span className="font-mono text-[11px] text-ink-tertiary">
+            <span className="font-mono text-[12px] text-ink-tertiary">
               Unsaved changes: {Object.keys(dirty).join(", ")}
             </span>
           ) : undefined

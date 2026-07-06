@@ -103,7 +103,7 @@ export function SupplierQuoteForm({
   return (
     <form className="flex flex-col gap-4" onSubmit={onSubmit}>
       {disabled ? (
-        <p className="rounded-input border border-hairline-strong bg-surface-l1 px-3 py-2 text-[12px] text-ink-secondary">
+        <p className="rounded-input border border-hairline-strong bg-surface-l1 px-3 py-2 text-[13px] text-ink-secondary">
           This RFQ is no longer open for quotes.
         </p>
       ) : null}
@@ -134,7 +134,7 @@ export function SupplierQuoteForm({
         </Field>
       </FormGrid>
 
-      <p className="text-[11px] text-ink-tertiary">
+      <p className="text-[12px] text-ink-tertiary">
         Quoted per {quantityUnit}.
       </p>
 
@@ -202,7 +202,7 @@ export function SupplierQuoteForm({
 }
 
 const inputClass =
-  "w-full rounded-input border border-hairline-strong bg-white px-3 py-2 text-[13px] text-ink-primary placeholder:text-ink-tertiary focus:outline-none focus:ring-2 focus:ring-accent-indigo disabled:cursor-not-allowed disabled:bg-surface-l1 disabled:text-ink-tertiary";
+  "w-full rounded-input border border-hairline-strong bg-white px-3 py-2 text-[14px] text-ink-primary placeholder:text-ink-tertiary focus:outline-none focus:ring-2 focus:ring-accent-indigo disabled:cursor-not-allowed disabled:bg-surface-l1 disabled:text-ink-tertiary";
 
 function Field({
   label,
@@ -215,7 +215,7 @@ function Field({
 }) {
   return (
     <label className="flex flex-col gap-1">
-      <span className="text-[11px] text-ink-tertiary">
+      <span className="text-[12px] text-ink-tertiary">
         {label}
         {required ? " *" : ""}
       </span>

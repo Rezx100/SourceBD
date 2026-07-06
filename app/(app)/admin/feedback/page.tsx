@@ -55,7 +55,7 @@ export default async function AdminFeedbackPage({
                 key={s}
                 href={`/admin/feedback?status=${s}`}
                 className={
-                  "rounded-pill border px-3 py-1.5 text-[12px] font-medium capitalize " +
+                  "rounded-pill border px-3 py-1.5 text-[13px] font-medium capitalize " +
                   (status === s
                     ? "border-brand-forest/30 bg-brand-forest-soft text-brand-forest"
                     : "border-neutral-200 text-ink-secondary hover:bg-neutral-50")
@@ -84,15 +84,15 @@ export default async function AdminFeedbackPage({
               <AdminPanel className="space-y-3">
                 <div className="flex flex-wrap items-start justify-between gap-2">
                   <div>
-                    <p className="font-mono text-[11px] text-ink-tertiary">
+                    <p className="font-mono text-[12px] text-ink-tertiary">
                       {new Date(row.created_at).toISOString().replace("T", " ").slice(0, 19)} UTC
                     </p>
                     <p className="mt-1 text-sm text-ink-secondary">
                       {row.user_email ?? "Unknown user"} ·{" "}
-                      <span className="font-mono text-[12px]">{row.page_path}</span>
+                      <span className="font-mono text-[13px]">{row.page_path}</span>
                     </p>
                   </div>
-                  <span className="rounded-pill border border-neutral-200 px-2 py-0.5 text-[11px] capitalize text-ink-tertiary">
+                  <span className="rounded-pill border border-neutral-200 px-2 py-0.5 text-[12px] capitalize text-ink-tertiary">
                     {row.status}
                   </span>
                 </div>

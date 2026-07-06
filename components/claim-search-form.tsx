@@ -149,7 +149,7 @@ export function ClaimSearchForm({ prebound }: ClaimSearchFormProps) {
             <p className="text-sm font-semibold text-ink-primary">
               {selected.company_name}
             </p>
-            <p className="text-[11px] text-ink-tertiary">Selected</p>
+            <p className="text-[12px] text-ink-tertiary">Selected</p>
           </div>
           <Button type="button" variant="ghost" size="sm" onClick={clearSelection}>
             Change
@@ -172,7 +172,7 @@ export function ClaimSearchForm({ prebound }: ClaimSearchFormProps) {
             autoComplete="off"
           />
           {searching ? (
-            <p className="text-[11px] text-ink-tertiary">Searching…</p>
+            <p className="text-[12px] text-ink-tertiary">Searching…</p>
           ) : null}
           {results.length > 0 ? (
             <ul className="max-h-64 divide-y divide-hairline overflow-auto rounded-input border border-hairline">
@@ -188,7 +188,7 @@ export function ClaimSearchForm({ prebound }: ClaimSearchFormProps) {
                     <p className="text-sm font-medium text-ink-primary">
                       {r.company_name}
                     </p>
-                    <p className="text-[11px] text-ink-tertiary">
+                    <p className="text-[12px] text-ink-tertiary">
                       {[r.city, r.district].filter(Boolean).join(", ") || "—"}
                       {r.website_host ? ` · ${r.website_host}` : ""}
                     </p>
@@ -198,7 +198,7 @@ export function ClaimSearchForm({ prebound }: ClaimSearchFormProps) {
             </ul>
           ) : null}
           {q.trim().length >= 2 && !searching && results.length === 0 ? (
-            <p className="text-[11px] text-ink-tertiary">
+            <p className="text-[12px] text-ink-tertiary">
               No unclaimed matches. Companies that are already claimed or
               unpublished are hidden.
             </p>
@@ -225,7 +225,7 @@ export function ClaimSearchForm({ prebound }: ClaimSearchFormProps) {
               className="w-full rounded-input border border-hairline bg-bg-l0 px-3 py-2 text-sm outline-none focus:border-accent-indigo"
               autoComplete="email"
             />
-            <p className="text-[11px] text-ink-tertiary">
+            <p className="text-[12px] text-ink-tertiary">
               If this domain matches the company&apos;s published website, your
               claim is approved automatically.
             </p>

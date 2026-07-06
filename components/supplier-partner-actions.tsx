@@ -89,7 +89,7 @@ export function PartnerActionButtons({
           </Button>
         ) : null}
       </div>
-      {error ? <p className="text-[11px] text-sem-red">{error}</p> : null}
+      {error ? <p className="text-[12px] text-sem-red">{error}</p> : null}
     </div>
   );
 }

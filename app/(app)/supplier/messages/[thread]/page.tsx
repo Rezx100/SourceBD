@@ -77,7 +77,7 @@ export default async function SupplierThreadPage({
                 href="/supplier/messages"
                 className="inline-flex items-center gap-1.5"
               >
-                <ArrowLeft size={14} weight="bold" aria-hidden /> Inbox
+                <ArrowLeft size={16} weight="bold" aria-hidden /> Inbox
               </Link>
             </Button>
           </header>
@@ -90,7 +90,7 @@ export default async function SupplierThreadPage({
                 </h1>
                 <Badge tone="neutral">Buyer</Badge>
               </div>
-              <p className="text-[11px] text-ink-tertiary">
+              <p className="text-[12px] text-ink-tertiary">
                 {thread.subject ?? "General inquiry"} · {thread.supplier_name}
               </p>
             </div>
@@ -115,7 +115,7 @@ function ThreadListPane({
   const threads = items.filter((t) => t.viewer_role === "supplier");
   return (
     <nav className="rounded-card border border-hairline bg-surface-l1">
-      <p className="border-b border-hairline px-3 py-2 font-mono text-[11px] uppercase tracking-[0.05em] text-ink-tertiary">
+      <p className="border-b border-hairline px-3 py-2 font-mono text-[12px] uppercase tracking-[0.05em] text-ink-tertiary">
         Messages
       </p>
       <ul className="m-0 flex max-h-[70vh] list-none flex-col overflow-y-auto p-0">
@@ -134,10 +134,10 @@ function ThreadListPane({
                 aria-hidden
               />
               <span className="min-w-0 flex-1">
-                <span className="block truncate text-[13px] font-semibold text-ink-primary">
+                <span className="block truncate text-[14px] font-semibold text-ink-primary">
                   {buyerLabel(t)}
                 </span>
-                <span className="block truncate text-[11px] text-ink-tertiary">
+                <span className="block truncate text-[12px] text-ink-tertiary">
                   {t.subject ?? "General inquiry"}
                 </span>
               </span>

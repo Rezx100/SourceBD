@@ -2,11 +2,11 @@ import {
   ProfileCard,
   ProfileCardHeader,
   ProfileEmptyState,
+  ProfileFootnote,
   ProfileKpiGrid,
   ProfileTabStack,
   type ProfileKpiItem,
 } from "@/components/supplier/profile-ui";
-import { formatFactoryTypesList } from "@/lib/format-supplier-profile";
 
 type SupplierCapacity = {
   bepza_zone: string | null;
@@ -203,14 +203,6 @@ function buildCapacityKpis(s: SupplierCapacity): ProfileKpiItem[] {
       value: s.bepza_zone,
     });
   }
-  if (s.factory_types.length > 0) {
-    items.push({
-      key: "types",
-      label: "Factory type",
-      value: formatFactoryTypesList(s.factory_types),
-    });
-  }
-
   return items;
 }
 
@@ -223,14 +215,34 @@ export function ProfileCapacityTab({ supplier: s }: { supplier: SupplierCapacity
   const kpis = buildCapacityKpis(s);
   const meta =
     wf.note ??
-    (kpis.length > 0 ? "self-disclosed · registry sources" : "no data on file");
+    (kpis.length > 0 || s.factory_types.length > 0
+      ? "self-disclosed · registry sources"
+      : "no data on file");
 
   return (
     <ProfileTabStack>
       <ProfileCard>
         <ProfileCardHeader title="Capacity & workforce" meta={meta} />
-        {kpis.length > 0 ? (
-          <ProfileKpiGrid items={kpis} />
+        {kpis.length > 0 || s.factory_types.length > 0 ? (
+          <>
+            <ProfileKpiGrid items={kpis} />
+            {s.factory_types.length > 0 ? (
+              <div className="mt-4 flex flex-wrap gap-2">
+                {s.factory_types.map((type) => (
+                  <span
+                    key={type}
+                    className="rounded-full bg-neutral-100 px-3 py-1 text-[13px] font-semibold text-neutral-600"
+                  >
+                    {type}
+                  </span>
+                ))}
+              </div>
+            ) : null}
+            <ProfileFootnote>
+              Capacity figures are rendered only when a source provides them;
+              SourceBD does not infer throughput from partial fields.
+            </ProfileFootnote>
+          </>
         ) : (
           <ProfileEmptyState>
             No workforce, output, or site capacity data is on file for this

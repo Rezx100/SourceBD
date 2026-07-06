@@ -18,6 +18,7 @@ import { useState, useTransition } from "react";
 import { Bell, BellRinging } from "@phosphor-icons/react/dist/ssr";
 
 import { Button } from "@/components/ui/button";
+import { profileHeaderFollowClass } from "@/lib/profile-tab-styles";
 import { cn } from "@/lib/utils";
 
 export interface SaveButtonProps {
@@ -28,6 +29,8 @@ export interface SaveButtonProps {
    *  compact icon at `sm+` (Spec R4 §3 Buyer Discover). */
   shape?: "icon" | "full" | "responsive" | "profile";
   className?: string;
+  /** Overrides the native `title` tooltip when set. */
+  tooltip?: string;
 }
 
 export function SaveButton({
@@ -35,6 +38,7 @@ export function SaveButton({
   initialSaved,
   shape = "full",
   className,
+  tooltip,
 }: SaveButtonProps) {
   const [saved, setSaved] = useState<boolean>(initialSaved);
   const [error, setError] = useState<string | null>(null);
@@ -75,6 +79,7 @@ export function SaveButton({
   const aria = saved
     ? "Unfollow — stop getting cert & registration change alerts"
     : "Follow — get notified of cert & registration changes";
+  const nativeTitle = tooltip ?? error ?? aria;
 
   if (shape === "profile") {
     return (
@@ -85,14 +90,14 @@ export function SaveButton({
         disabled={pending}
         aria-pressed={saved}
         aria-label={aria}
-        title={error ?? aria}
+        title={nativeTitle}
         className={cn(
-          "h-11 min-w-[8.5rem] gap-2 rounded-lg border-neutral-200 px-4 text-sm font-semibold shadow-sm",
+          profileHeaderFollowClass,
           saved && "border-brand-forest/30 bg-brand-forest-soft text-brand-forest hover:bg-brand-forest-soft/70",
           className,
         )}
       >
-        {saved ? <BellRinging size={17} weight="fill" /> : <Bell size={17} weight="regular" />}
+        {saved ? <BellRinging size={15} weight="fill" /> : <Bell size={15} weight="regular" />}
         <span>{label}</span>
       </Button>
     );
@@ -108,7 +113,7 @@ export function SaveButton({
         disabled={pending}
         aria-pressed={saved}
         aria-label={aria}
-        title={error ?? aria}
+        title={nativeTitle}
         className={cn(
           "h-11 gap-1.5 px-3.5 sm:h-9 sm:w-9 sm:px-0",
           saved && "text-brand-forest border-brand-forest/30 bg-brand-forest-soft",
@@ -133,7 +138,7 @@ export function SaveButton({
         disabled={pending}
         aria-pressed={saved}
         aria-label={aria}
-        title={error ?? aria}
+        title={nativeTitle}
         className={cn(
           "flex size-7 shrink-0 items-center justify-center rounded-full border text-neutral-500 transition-colors duration-hover ease-smooth hover:border-neutral-200 hover:bg-neutral-50 hover:text-neutral-700 disabled:opacity-60",
           saved && "border-brand-forest/30 bg-brand-forest-soft text-brand-forest hover:bg-brand-forest-soft/80 hover:text-brand-forest",
@@ -158,10 +163,10 @@ export function SaveButton({
       onClick={toggle}
       disabled={pending}
       aria-pressed={saved}
-      title={error ?? aria}
+      title={nativeTitle}
       className={cn(saved && "text-brand-forest border-brand-forest/30 bg-brand-forest-soft", className)}
     >
-      {saved ? <BellRinging size={14} weight="fill" /> : <Bell size={14} weight="regular" />}
+      {saved ? <BellRinging size={16} weight="fill" /> : <Bell size={16} weight="regular" />}
       <span className="r9-btn-label">{label}</span>
     </Button>
   );

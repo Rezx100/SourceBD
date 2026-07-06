@@ -53,7 +53,7 @@ export function MasterDetail({
           // Narrow visibility: hide when on detail.
           mode === "detail" ? "hidden lg:block" : "block",
           // Wide: fixed-width list pane.
-          "lg:w-[320px] lg:flex-shrink-0 lg:max-w-[360px]",
+          "lg:w-[322px] lg:flex-shrink-0 lg:max-w-[360px]",
         )}
       >
         {list}

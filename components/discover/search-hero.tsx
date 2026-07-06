@@ -59,7 +59,7 @@ export function DiscoverSearchHero({ basePath, q, sort, className }: Props) {
             placeholder="e.g. kids t-shirts, ladies denim, Gazipur knitwear"
             inputMode="search"
             autoComplete="off"
-            className="r9r4-hero-input w-full rounded-input border-0 bg-transparent py-3 pl-10 pr-3 text-[15px] font-medium text-neutral-900 outline-none placeholder:font-normal placeholder:text-neutral-500 sm:text-base"
+            className="r9r4-hero-input w-full rounded-input border-0 bg-transparent py-3 pl-10 pr-3 text-[16px] font-medium text-neutral-900 outline-none placeholder:font-normal placeholder:text-neutral-500 sm:text-base"
           />
         </div>
 

@@ -68,6 +68,22 @@ revalidation, operator-focused supplier list/detail labels, and moderation
 page polish. `pnpm typecheck` and `pnpm lint` pass; `pnpm build` still fails
 on Windows before compilation with `.next/trace` EPERM.
 
+## Recent Barikoi Integration
+6 Jul 2026 - Barikoi location services integrated (founder-approved Hard-Rule-4
+exception; see architecture.md → Maps/geocoding). Web: `lib/barikoi.ts`
+(server-side Rupantor resolution, DB-cache-first with bounded live fallback),
+`components/supplier/locations-map.tsx` (`bkoi-gl` map, forest pins, no scroll
+hijack), wired into the profile Locations card on both app and marketing
+routes. ETL: `etl/jobs/barikoi_geocode.py` + `geocode-addresses` CLI command
+backfill `public.address_geocodes` (mig `0077_address_geocodes.sql`).
+Verified: typecheck/lint/py_compile pass; Rupantor API key smoke-tested OK.
+PENDING OPS: migration 0077 is NOT yet applied — Supabase pooler ports
+5432/6543 are unreachable from the dev machine; apply from the VPS
+(`python -m etl.cli migrate` or psql) and then run
+`python -m etl.cli geocode-addresses --limit 500` to start the backfill.
+Until then the profile map works via live geocoding only (first 4 addresses
+per profile, memoised in-process).
+
 ## Recent Frontend Polish
 30 Jun 2026 - Principal product chip dedup and compound-label split deployed to VPS
 `109.104.153.228`. Frontend-only (DB unchanged) in `lib/product-icons.ts`:

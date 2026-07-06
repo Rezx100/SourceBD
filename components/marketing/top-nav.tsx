@@ -6,7 +6,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { List as ListIcon, X as XIcon } from "@phosphor-icons/react/dist/ssr";
 
 import { Wordmark } from "@/components/marketing/logo";
@@ -99,6 +99,11 @@ export function MarketingTopNav() {
   const [role, setRole] = useState<Role | null>(null);
   const [scrolled, setScrolled] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  // Separate from `drawerOpen` so the panel paints off-screen for one frame
+  // before sliding in — same double-rAF pattern as Sheet / MobileDrawer.
+  const [drawerEntered, setDrawerEntered] = useState(false);
+  const drawerOpenRef = useRef(false);
+  drawerOpenRef.current = drawerOpen;
 
   // Role detection — anonymous variant is the SSR + first-paint default
   // so hydration stays clean; CTAs swap only after this resolves.
@@ -133,6 +138,30 @@ export function MarketingTopNav() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  // Drive the slide-in after an off-screen paint; skip resetting entered on
+  // Strict Mode remount while the drawer is still open (pingpong fix).
+  useEffect(() => {
+    if (!drawerOpen) {
+      setDrawerEntered(false);
+      return;
+    }
+
+    let cancelled = false;
+    const raf = requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        if (!cancelled) setDrawerEntered(true);
+      });
+    });
+
+    return () => {
+      cancelled = true;
+      cancelAnimationFrame(raf);
+      if (!drawerOpenRef.current) {
+        setDrawerEntered(false);
+      }
+    };
+  }, [drawerOpen]);
+
   // Lock body scroll + Esc-to-close while the drawer is open.
   useEffect(() => {
     if (!drawerOpen) return;
@@ -160,7 +189,7 @@ export function MarketingTopNav() {
         {/* Wordmark — always pinned far-left */}
         <Wordmark
           boxClassName="h-8 w-8 sm:h-9 sm:w-9"
-          textClassName="text-[18px] sm:text-[19px]"
+          textClassName="text-[15px] sm:text-[20px]"
           className="shrink-0"
         />
 
@@ -170,7 +199,7 @@ export function MarketingTopNav() {
             <Link
               key={l.href}
               href={l.href}
-              className="rounded-pill px-3 py-2 text-[13px] font-medium text-ink-secondary transition-colors duration-hover ease-smooth hover:bg-brand-forest-tint hover:text-ink-primary lg:text-sm"
+              className="rounded-pill px-3 py-2 text-[14px] font-medium text-ink-secondary transition-colors duration-hover ease-smooth hover:bg-brand-forest-tint hover:text-ink-primary lg:text-sm"
             >
               {l.label}
             </Link>
@@ -206,7 +235,10 @@ export function MarketingTopNav() {
           prefers-reduced-motion. */}
       <div
         className={cn(
-          "fixed inset-0 z-[100] md:hidden",
+          // `overflow-hidden` clips the off-canvas panel (translateX(100%))
+          // so it can't widen the document's scrollWidth and cause phantom
+          // horizontal scroll on phones while the drawer is closed.
+          "fixed inset-0 z-[100] overflow-hidden md:hidden",
           drawerOpen ? "pointer-events-auto" : "pointer-events-none",
         )}
         role="dialog"
@@ -222,13 +254,16 @@ export function MarketingTopNav() {
           onClick={() => setDrawerOpen(false)}
           className={cn(
             "absolute inset-0 h-full w-full cursor-default bg-neutral-950/30 backdrop-blur-[2px] transition-opacity duration-300 motion-reduce:transition-none",
-            drawerOpen ? "opacity-100" : "opacity-0",
+            drawerOpen && drawerEntered ? "opacity-100" : "opacity-0",
           )}
         />
         {/* Panel */}
         <div
           inert={!drawerOpen}
-          style={{ transform: drawerOpen ? "translateX(0)" : "translateX(100%)" }}
+          style={{
+            transform:
+              drawerOpen && drawerEntered ? "translateX(0)" : "translateX(100%)",
+          }}
           className={cn(
             "absolute right-0 top-0 flex h-dvh w-[min(86vw,360px)] flex-col border-l border-neutral-200 bg-white safe-pb transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] will-change-transform motion-reduce:transition-none",
           )}
@@ -251,7 +286,7 @@ export function MarketingTopNav() {
                 key={l.href}
                 href={l.href}
                 onClick={() => setDrawerOpen(false)}
-                className="flex min-h-[48px] items-center rounded-lg px-3 text-[15px] font-medium text-neutral-800 transition-colors hover:bg-neutral-100"
+                className="flex min-h-[48px] items-center rounded-lg px-3 text-[16px] font-medium text-neutral-800 transition-colors hover:bg-neutral-100"
               >
                 {l.label}
               </Link>

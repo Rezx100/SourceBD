@@ -91,9 +91,9 @@ export default async function SettingsPlanPage() {
       <div className="space-y-4">
         <Link
           href="/app/settings"
-          className="inline-flex items-center gap-1.5 text-[12px] font-medium text-ink-tertiary transition-colors hover:text-ink-primary"
+          className="inline-flex items-center gap-1.5 text-[13px] font-medium text-ink-tertiary transition-colors hover:text-ink-primary"
         >
-          <ArrowLeft size={13} weight="bold" aria-hidden />
+          <ArrowLeft size={17} weight="bold" aria-hidden />
           Back to settings
         </Link>
         <PageHeader
@@ -132,7 +132,7 @@ export default async function SettingsPlanPage() {
                   {tier.features.map((f) => (
                     <li key={f} className="flex items-start gap-2">
                       <Check
-                        size={14}
+                        size={16}
                         weight="bold"
                         className="mt-0.5 shrink-0 text-sem-green"
                       />

@@ -3,7 +3,10 @@
 This file keeps routine agent sessions from scanning every inactive feature spec.
 
 ## Active / Recent Spec
-- No spec currently in progress.
+- Barikoi integration (6 Jul 2026, ad-hoc, founder-approved): Rupantor geocode
+  cache in ETL + profile Locations map on app/marketing routes. Code complete;
+  migration 0077 pending application from the VPS. See current-state.md →
+  Recent Barikoi Integration.
 - Most recent ad-hoc frontend work (30 Jun 2026): principal product chip
   dedup, spelling correction, singular/plural merge, and compound-label split
   (`Sweater/Jacket` → separate chips) in `lib/product-icons.ts` — deployed via

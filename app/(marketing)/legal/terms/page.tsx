@@ -29,7 +29,7 @@ export default function TermsPage() {
           <h1 className="font-display text-3xl font-bold tracking-tight text-ink-primary md:text-4xl">
             <span className="text-[#1f4d3a]">Terms of Service</span>
           </h1>
-          <p className="mt-3 text-[11px] text-ink-tertiary">
+          <p className="mt-3 text-[12px] text-ink-tertiary">
             Last updated: {LAST_UPDATED}
           </p>
         </header>

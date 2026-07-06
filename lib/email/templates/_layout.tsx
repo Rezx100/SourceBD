@@ -54,7 +54,7 @@ export function EmailLayout({
           style={{
             maxWidth: 560,
             margin: "0 auto",
-            padding: "32px 16px",
+            padding: "32px 18px",
           }}
         >
           <Section style={{ paddingBottom: 24 }}>
@@ -76,7 +76,7 @@ export function EmailLayout({
               backgroundColor: colours.card,
               border: `1px solid ${colours.hairline}`,
               borderRadius: 12,
-              padding: "28px 28px 24px",
+              padding: "30px 30px 26px",
             }}
           >
             <Heading
@@ -84,7 +84,7 @@ export function EmailLayout({
               style={{
                 fontSize: 22,
                 lineHeight: "30px",
-                margin: "0 0 16px",
+                margin: "0 0 18px",
                 color: colours.ink,
                 fontWeight: 600,
               }}
@@ -93,7 +93,7 @@ export function EmailLayout({
             </Heading>
             {children}
           </Section>
-          <Hr style={{ borderColor: colours.hairline, margin: "28px 0 16px" }} />
+          <Hr style={{ borderColor: colours.hairline, margin: "30px 0 18px" }} />
           <Section>
             {footer ?? (
               <Text style={{ fontSize: 12, color: colours.inkMuted, margin: 0 }}>
@@ -121,22 +121,22 @@ export function EmailLayout({
 export const emailStyles = {
   paragraph: {
     fontSize: 15,
-    lineHeight: "22px",
+    lineHeight: "24px",
     color: colours.ink,
-    margin: "0 0 12px",
+    margin: "0 0 13px",
   } as const,
   muted: {
     fontSize: 13,
-    lineHeight: "20px",
+    lineHeight: "22px",
     color: colours.inkMuted,
-    margin: "0 0 12px",
+    margin: "0 0 13px",
   } as const,
   button: {
     display: "inline-block",
     backgroundColor: colours.brand,
     color: "#FFFFFF",
     textDecoration: "none",
-    padding: "10px 18px",
+    padding: "12px 110px",
     borderRadius: 8,
     fontSize: 14,
     fontWeight: 600,

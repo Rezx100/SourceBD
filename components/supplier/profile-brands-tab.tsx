@@ -1,12 +1,16 @@
 import {
+  ProfileActionLink,
   ProfileCard,
   ProfileCardHeader,
+  ProfileEvidenceRow,
   ProfileFootnote,
+  ProfileSourceMark,
   ProfileTabStack,
 } from "@/components/supplier/profile-ui";
 import { formatProfileDate } from "@/lib/format-supplier-profile";
 
 export type BrandAttributionRow = {
+  source_code?: string;
   display_name: string;
   source_url: string | null;
   last_seen_at: string;
@@ -24,41 +28,26 @@ export function ProfileBrandsTab({
           title="Brand attribution"
           meta={`${brands.length} brand${brands.length === 1 ? "" : "s"} · per-factory authenticity`}
         />
-        <div className="brand-list">
+        <div>
           {brands.map((b, i) => (
-            <div key={i} className="brand-row">
-              <div className="brand-id">
-                <div className="brand-mark">
-                  {b.display_name.slice(0, 2).toUpperCase()}
-                </div>
-                <div className="brand-text">
-                  <span className="brand-name">{b.display_name}</span>
-                  <span className="brand-since">
+            <ProfileEvidenceRow
+              key={i}
+              mark={<ProfileSourceMark tag={b.source_code ?? `BRAND_${b.display_name}`} label={b.display_name} />}
+              title={b.display_name}
+              meta={
+                <>
+                  Disclosed on {b.display_name}&apos;s published supplier list.
+                  <span className="ml-1 font-mono">
                     Last verified {formatProfileDate(b.last_seen_at)}
                   </span>
-                </div>
-              </div>
-              <p className="brand-desc">
-                Named on{" "}
-                <strong>
-                  {b.display_name}&apos;s published BD supplier list
-                </strong>
-                . Disclosure does not imply endorsement.
-              </p>
-              <span className="brand-meta">{formatProfileDate(b.last_seen_at)}</span>
-              <div className="brand-actions">
-                {b.source_url ? (
-                  <a
-                    className="doc-action"
-                    href={b.source_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    Brand source ↗
-                  </a>
-                ) : null}
-              </div>
-            </div>
+                </>
+              }
+              action={
+                b.source_url ? (
+                  <ProfileActionLink href={b.source_url}>Brand source</ProfileActionLink>
+                ) : null
+              }
+            />
           ))}
         </div>
         <ProfileFootnote>

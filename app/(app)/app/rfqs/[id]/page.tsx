@@ -87,12 +87,12 @@ export default async function RfqDetailPage({
         <div className="space-y-6">
           <Link
             href="/app/rfqs"
-            className="inline-flex items-center gap-1 text-[12px] text-ink-tertiary hover:text-ink-primary lg:hidden"
+            className="inline-flex items-center gap-1 text-[13px] text-ink-tertiary hover:text-ink-primary lg:hidden"
           >
             ← All RFQs
           </Link>
       <header className="space-y-1">
-        <p className="text-[11px] text-ink-tertiary">
+        <p className="text-[12px] text-ink-tertiary">
           RFQ · {rfq.id.slice(0, 8)}
         </p>
         <div className="flex items-center gap-2">
@@ -101,7 +101,7 @@ export default async function RfqDetailPage({
           </h1>
           <Badge tone={statusTone(rfq.status)}>{statusLabel(rfq.status)}</Badge>
         </div>
-        <p className="text-[12px] text-ink-tertiary">
+        <p className="text-[13px] text-ink-tertiary">
           Created {fmtDate(rfq.created_at)} · Updated {fmtRelative(rfq.updated_at)}
         </p>
       </header>
@@ -110,7 +110,7 @@ export default async function RfqDetailPage({
         <CardHeader>
           <CardTitle>Specification</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-3 text-[13px]">
+        <CardContent className="space-y-3 text-[14px]">
           <Row label="Quantity">
             {fmtNum(rfq.quantity)} {rfq.quantity_unit}
           </Row>
@@ -125,7 +125,7 @@ export default async function RfqDetailPage({
           {rfq.ship_by ? <Row label="Ship by">{fmtDate(rfq.ship_by)}</Row> : null}
           {rfq.product_description ? (
             <div className="space-y-1">
-              <p className="text-[11px] text-ink-tertiary">
+              <p className="text-[12px] text-ink-tertiary">
                 Description
               </p>
               <p className="whitespace-pre-wrap text-ink-primary">
@@ -164,7 +164,7 @@ export default async function RfqDetailPage({
                   >
                     {s.company_name}
                   </Link>
-                  <p className="truncate text-[12px] text-ink-tertiary">
+                  <p className="truncate text-[13px] text-ink-tertiary">
                     {entityLabel(s.entity_type)}
                     {s.city ? ` · ${s.city}` : ""}
                     {s.district ? `, ${s.district}` : ""}
@@ -173,7 +173,7 @@ export default async function RfqDetailPage({
                 {isBuyer && rfq.thread_id ? (
                   <Button asChild variant="ghost" size="sm">
                     <Link href={`/app/messages/${rfq.thread_id}`}>
-                      <ChatCircleText size={14} aria-hidden /> Thread
+                      <ChatCircleText size={16} aria-hidden /> Thread
                     </Link>
                   </Button>
                 ) : null}
@@ -221,7 +221,7 @@ export default async function RfqDetailPage({
                         {quoteLabel(q.status)}
                       </Badge>
                     </div>
-                    <p className="text-[12px] text-ink-secondary">
+                    <p className="text-[13px] text-ink-secondary">
                       {fmtMoney(q.unit_price, q.currency)} / {rfq.quantity_unit}
                       {q.lead_time_days != null
                         ? ` · ${q.lead_time_days}d lead`
@@ -230,7 +230,7 @@ export default async function RfqDetailPage({
                       {q.valid_until ? ` · valid to ${fmtDate(q.valid_until)}` : ""}
                     </p>
                     {q.notes ? (
-                      <p className="whitespace-pre-wrap text-[12px] text-ink-tertiary">
+                      <p className="whitespace-pre-wrap text-[13px] text-ink-tertiary">
                         {q.notes}
                       </p>
                     ) : null}
@@ -276,9 +276,9 @@ function RfqListPane({
   return (
     <nav
       aria-label="All RFQs"
-      className="overflow-hidden rounded-[12px] border border-hairline bg-white"
+      className="overflow-hidden rounded-[13px] border border-hairline bg-white"
     >
-      <p className="border-b border-hairline px-4 py-2.5 text-[11px] font-semibold text-ink-tertiary">
+      <p className="border-b border-hairline px-4 py-2.5 text-[12px] font-semibold text-ink-tertiary">
         RFQs
       </p>
       <ul className="m-0 flex max-h-[70vh] list-none flex-col overflow-y-auto p-0">
@@ -293,10 +293,10 @@ function RfqListPane({
                   active ? "bg-[#FBFAF6] font-medium" : "hover:bg-[#FBFAF6]/60"
                 }`}
               >
-                <span className="truncate font-display text-[13px] text-ink-primary">
+                <span className="truncate font-display text-[14px] text-ink-primary">
                   {r.product_title}
                 </span>
-                <span className="text-[11px] text-ink-tertiary">
+                <span className="text-[12px] text-ink-tertiary">
                   {statusLabel(r.status)} · {fmtRelative(r.updated_at)}
                 </span>
               </Link>
@@ -317,7 +317,7 @@ function Row({
 }) {
   return (
     <div className="flex items-baseline gap-3">
-      <span className="w-40 shrink-0 text-[11px] text-ink-tertiary">
+      <span className="w-40 shrink-0 text-[12px] text-ink-tertiary">
         {label}
       </span>
       <span className="text-ink-primary">{children}</span>

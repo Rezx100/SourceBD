@@ -24,7 +24,8 @@
 //   side="bottom"  — bottom-sheet on every viewport (best for mobile filters)
 //   side="center"  — centered modal on `md+`, bottom-sheet on `<md`
 //                    (best for form dialogs)
-//   side="left" / side="right" — off-canvas drawer (used by MobileDrawer)
+//   side="left" / side="right" — off-canvas drawer (MobileDrawer uses its
+//                    own fixed overlay; not this Sheet primitive)
 
 import * as React from "react";
 import { X } from "@phosphor-icons/react/dist/ssr";
@@ -66,34 +67,76 @@ export function Sheet({
   const ref = React.useRef<HTMLDialogElement | null>(null);
   const touchStartY = React.useRef<number | null>(null);
   const touchDeltaY = React.useRef(0);
+  // Drives the slide/fade-in transition (see r1-sheet--entered in
+  // globals.css). Kept as state — not a CSS keyframe on `[open]` — because
+  // re-matching a keyframe selector races with the synchronous `inert`
+  // sweep below on some browsers, which visibly stutters/reverses the
+  // panel for a frame or two ("pingpong" jank) right as it opens.
+  const [entered, setEntered] = React.useState(false);
+  const openRef = React.useRef(open);
+  openRef.current = open;
 
   // Open/close + scroll-lock + inert siblings.
   React.useEffect(() => {
     const dlg = ref.current;
     if (!dlg) return;
-    if (open && !dlg.open) {
+
+    if (!open) {
+      setEntered(false);
+      if (dlg.open) {
+        dlg.close();
+      }
+      document.documentElement.removeAttribute("data-scroll-lock");
+      return;
+    }
+
+    // `open` — show if needed, then slide in after an off-screen paint.
+    // Must run even when `dlg.open` is already true: Strict Mode's effect
+    // re-mount can leave the dialog open while a prior cleanup cancelled the
+    // enter rAF; skipping this branch caused the panel to slide in, get
+    // reset off-screen ("pingpong"), and stay hidden.
+    if (!dlg.open) {
       try {
         dlg.showModal();
       } catch {
         // Some browsers throw if showModal is called twice; ignore.
       }
-      document.documentElement.setAttribute("data-scroll-lock", "true");
-      // Mark every direct child of body except the dialog (or its portal)
-      // as inert. The native dialog focus trap already prevents tab
-      // escape, but `inert` also blocks pointer events + screen-reader
-      // virtual-cursor access — defence in depth.
-      const sibs = Array.from(document.body.children).filter((el) => el !== dlg && !el.contains(dlg));
-      sibs.forEach((el) => el.setAttribute("inert", ""));
-      return () => {
-        sibs.forEach((el) => el.removeAttribute("inert"));
-        document.documentElement.removeAttribute("data-scroll-lock");
-      };
     }
-    if (!open && dlg.open) {
-      dlg.close();
+
+    document.documentElement.setAttribute("data-scroll-lock", "true");
+    const sibs = Array.from(document.body.children).filter(
+      (el) => el !== dlg && !el.contains(dlg),
+    );
+    sibs.forEach((el) => el.setAttribute("inert", ""));
+
+    // A *single* rAF here isn't enough: React's commit for `setEntered`
+    // can land in the very same frame React/the browser paints the
+    // dialog's just-opened (pre-transition) state, so the panel never
+    // gets a chance to actually render off-screen first — it jumps
+    // straight to its resting position with no visible slide at all
+    // (confirmed by sampling the real DOM: 0 → 68px with zero
+    // in-between frames). Nesting two rAFs guarantees the browser has
+    // committed a full paint of the off-screen state before we flip
+    // to "entered", so the transition always has a real starting frame.
+    let cancelled = false;
+    const raf = requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        if (!cancelled) setEntered(true);
+      });
+    });
+
+    return () => {
+      cancelled = true;
+      cancelAnimationFrame(raf);
+      sibs.forEach((el) => el.removeAttribute("inert"));
       document.documentElement.removeAttribute("data-scroll-lock");
-    }
-    return undefined;
+      // Strict Mode re-runs this cleanup while `open` is still true; only
+      // reset the slide state on a real close so the panel doesn't bounce
+      // back off-screen for a frame ("pingpong" jank).
+      if (!openRef.current) {
+        setEntered(false);
+      }
+    };
   }, [open]);
 
   // Native <dialog> fires `cancel` (on Esc) and `close` (after .close()).
@@ -162,6 +205,7 @@ export function Sheet({
       className={cn(
         "r1-sheet",
         sideClass,
+        entered && "r1-sheet--entered",
         "p-0 m-0 bg-transparent text-ink-primary",
         className,
       )}
@@ -173,11 +217,11 @@ export function Sheet({
           side === "bottom" &&
             "w-full max-h-[90dvh] rounded-t-card safe-pb",
           side === "center" &&
-            "w-full max-h-[90dvh] rounded-t-card safe-pb md:w-auto md:min-w-[420px] md:max-w-[640px] md:rounded-card md:safe-pb-0",
+            "w-full max-h-[90dvh] rounded-t-card safe-pb md:w-auto md:min-w-[422px] md:max-w-[640px] md:rounded-card md:safe-pb-0",
           side === "left" &&
-            "h-full max-h-[100dvh] w-[min(86vw,320px)] safe-py",
+            "h-full max-h-[100dvh] w-[min(86vw,322px)] safe-py",
           side === "right" &&
-            "h-full max-h-[100dvh] w-[min(86vw,320px)] safe-py",
+            "h-full max-h-[100dvh] w-[min(86vw,322px)] safe-py",
         )}
       >
         {side === "bottom" && swipeToClose ? (
@@ -185,7 +229,7 @@ export function Sheet({
         ) : null}
         {(header !== null && (header || label)) || showCloseButton ? (
           <div className="flex items-center justify-between gap-3 border-b border-hairline px-4 py-3">
-            <div className="min-w-0 flex-1 truncate font-display text-[15px] font-semibold text-ink-primary">
+            <div className="min-w-0 flex-1 truncate font-display text-[16px] font-semibold text-ink-primary">
               {header ?? label}
             </div>
             {showCloseButton ? (

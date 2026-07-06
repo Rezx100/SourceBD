@@ -62,7 +62,7 @@ export function SidebarRail({ variant, role, className }: SidebarRailProps) {
                 aria-label={s.label}
                 title={s.label}
                 className={cn(
-                  // 44×44 hit area, 20px glyph, label sr-only.
+                  // 44×44 hit area, 22px glyph, label sr-only.
                   "group relative mx-auto flex h-[44px] w-[44px] items-center justify-center rounded-md text-ink-tertiary transition-colors duration-hover ease-smooth",
                   active
                     ? "bg-brand-forest-soft text-brand-forest"

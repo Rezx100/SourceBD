@@ -101,7 +101,7 @@ export function BottomTabBar({ variant, role, className }: BottomTabBarProps) {
                 )}
               >
                 <s.Icon size={22} weight={active ? "fill" : "regular"} aria-hidden />
-                <span className="w-full truncate text-center font-display text-[10px] font-medium leading-none tracking-[-0.005em]">
+                <span className="w-full truncate text-center font-display text-[12px] font-medium leading-none tracking-[-0.005em]">
                   {shortLabel(s)}
                 </span>
                 {active ? (

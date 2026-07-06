@@ -22,17 +22,12 @@ import { cloneElement, isValidElement, type ReactElement } from "react";
 import {
   ArrowRight,
   CalendarBlank,
-  Gauge,
   MapPin,
 } from "@phosphor-icons/react/dist/ssr";
 
 import { CompanyAvatar } from "@/components/supplier/company-avatar";
 import { ProductIcon } from "@/components/supplier/product-icon";
 import { ENTITY_TYPES } from "@/components/discover/filter-rail";
-import {
-  COMPLETENESS_BAND_CLASSES,
-  completenessBand,
-} from "@/lib/completeness-band";
 import { establishedYear } from "@/lib/established";
 import { formatCompanyName } from "@/lib/format-company-name";
 import { formatCardLocation } from "@/lib/format-location";
@@ -140,21 +135,21 @@ export function DiscoverResultCard({
             <div className="min-w-0 flex-1">
               <div>
                 <div className="flex items-start justify-between gap-2">
-                  <h2 className="truncate font-display text-[19px] font-black leading-tight tracking-[-0.02em] text-neutral-900 transition-colors group-hover:text-brand-forest sm:text-[21px]">
+                  <h2 className="truncate font-display text-[20px] font-black leading-tight tracking-[-0.02em] text-neutral-900 transition-colors group-hover:text-brand-forest sm:text-[23px]">
                     {name}
                   </h2>
                   {actionMobile ? (
                     <span className="shrink-0 sm:hidden">{actionMobile}</span>
                   ) : null}
                 </div>
-                <div className="mt-1 flex items-center gap-1.5 text-[13px] font-medium text-neutral-600 sm:mt-1.5">
-                  <span className="inline-flex items-center rounded-pill bg-neutral-100 px-2 py-0.5 text-[11px] font-semibold text-neutral-600">
+                <div className="mt-1 flex items-center gap-1.5 text-[14px] font-medium text-neutral-600 sm:mt-1.5">
+                  <span className="inline-flex items-center rounded-pill bg-neutral-100 px-2 py-0.5 text-[12px] font-semibold text-neutral-600">
                     {entityLabel}
                   </span>
                   {location ? (
                     <>
                       <MapPin
-                        size={12}
+                        size={16}
                         weight="fill"
                         aria-hidden
                         className="ml-0.5 shrink-0 text-neutral-400"
@@ -188,23 +183,23 @@ export function DiscoverResultCard({
             <div className="mt-auto">
               {row.employees_total ? (
                   <div className="flex items-baseline justify-end gap-1.5">
-                    <span className="font-display text-[19px] font-bold leading-none tabular-nums tracking-[-0.01em] text-neutral-800">
+                    <span className="font-display text-[20px] font-bold leading-none tabular-nums tracking-[-0.01em] text-neutral-800">
                       {row.employees_total.toLocaleString()}
                     </span>
-                    <span className="text-[11.5px] font-normal text-neutral-400">
+                    <span className="text-[14px] font-normal text-neutral-400">
                       employees
                     </span>
                   </div>
                 ) : null}
                 {estYear ? (
-                  <div className="mt-1 text-[12px] font-medium text-neutral-500">
+                  <div className="mt-1 text-[13px] font-medium text-neutral-500">
                     Est. {estYear}
                   </div>
                 ) : null}
-                <span className="group/cta -mr-2 mt-1.5 flex items-center justify-end gap-1 rounded-md px-2 py-1.5 text-[13px] font-semibold text-brand-forest underline decoration-transparent underline-offset-2 transition-colors duration-hover ease-smooth hover:bg-brand-forest-soft hover:decoration-brand-forest/40">
+                <span className="group/cta -mr-2 mt-1.5 flex items-center justify-end gap-1 rounded-md px-2 py-1.5 text-[14px] font-semibold text-brand-forest underline decoration-transparent underline-offset-2 transition-colors duration-hover ease-smooth hover:bg-brand-forest-soft hover:decoration-brand-forest/40">
                   View profile
                   <ArrowRight
-                    size={13}
+                    size={17}
                     weight="bold"
                     aria-hidden
                     className="transition-transform duration-hover ease-smooth group-hover/cta:translate-x-0.5"
@@ -229,19 +224,19 @@ export function DiscoverResultCard({
 
         {/* Mobile-only footer bar — the desktop rail replaces this above sm. */}
         <div
-          className="mt-3 flex items-center justify-between gap-3 pt-3 text-[12px] text-neutral-500 sm:hidden"
+          className="mt-3 flex items-center justify-between gap-3 pt-3 text-[13px] text-neutral-500 sm:hidden"
           style={{ borderTop: "1px solid rgba(15,15,20,0.045)" }}
         >
           <div className="flex flex-wrap items-center gap-3">
             {estYear ? (
               <span className="inline-flex items-center gap-1.5">
-                <CalendarBlank size={13} weight="duotone" aria-hidden className="text-neutral-400" />
+                <CalendarBlank size={17} weight="duotone" aria-hidden className="text-neutral-400" />
                 Est. {estYear}
               </span>
             ) : null}
             {row.employees_total ? (
               <span className="inline-flex items-center gap-1">
-                <span className="font-display text-[14px] font-bold tabular-nums text-neutral-700">
+                <span className="font-display text-[15px] font-bold tabular-nums text-neutral-700">
                   {row.employees_total.toLocaleString()}
                 </span>
                 employees
@@ -251,7 +246,7 @@ export function DiscoverResultCard({
           <span className="group/cta -mr-1.5 flex shrink-0 items-center gap-1 rounded-md px-2 py-1.5 font-semibold text-brand-forest underline decoration-transparent underline-offset-2 transition-colors duration-hover ease-smooth hover:bg-brand-forest-soft hover:decoration-brand-forest/40">
             View profile
             <ArrowRight
-              size={13}
+              size={17}
               weight="bold"
               aria-hidden
               className="transition-transform duration-hover ease-smooth group-hover/cta:translate-x-0.5"
@@ -263,10 +258,8 @@ export function DiscoverResultCard({
   );
 }
 
-// Trust row — registry marks, "verified by N sources," and the completeness
-// pill. Mobile and desktop render this as two structurally separate blocks
-// (see `DiscoverResultCard`), so wording and alignment can each match their
-// own mockup exactly rather than sharing one compromise markup.
+// Trust row — registry marks and "verified by N sources." Mobile and desktop
+// render this as two structurally separate blocks (see `DiscoverResultCard`).
 function TrustRow({
   row,
   marks,
@@ -282,7 +275,7 @@ function TrustRow({
   return (
     <div
       className={cn(
-        "flex flex-wrap items-center text-[12px] text-neutral-600",
+        "flex flex-wrap items-center text-[13px] text-neutral-600",
         mobile ? "gap-x-2.5 gap-y-1.5" : "gap-3",
       )}
     >
@@ -300,13 +293,6 @@ function TrustRow({
           ? `${Math.min(count, 5)}${count > 5 ? "+" : ""} verified ${count === 1 ? "source" : "sources"}`
           : `Verified by ${count} ${count === 1 ? "source" : "sources"}`}
       </span>
-      {typeof row.completeness_pct === "number" ? (
-        <CompletenessPill
-          pct={row.completeness_pct}
-          suffix={mobile ? "" : " complete"}
-          className="shrink-0"
-        />
-      ) : null}
     </div>
   );
 }
@@ -322,7 +308,7 @@ function ProductsLine({ products, mobile }: { products: string[]; mobile: boolea
   const overflow = cleaned.length - shown.length;
 
   return (
-    <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] leading-snug text-neutral-700">
+    <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[14px] leading-snug text-neutral-700">
       {shown.map((product) => (
         <span key={product} className="inline-flex items-center gap-1 font-medium">
           <ProductIcon
@@ -354,7 +340,7 @@ function RegistryMark({ tag }: { tag: string }) {
       role="img"
       aria-label={label}
       title={label}
-      className="flex size-[27px] shrink-0 items-center justify-center rounded-[6px] border border-[rgba(15,15,20,0.065)] bg-[#fafaf9] font-mono text-[9px] font-bold text-[#4a4a55] transition-colors duration-hover ease-smooth group-hover:border-[rgba(15,15,20,0.12)] group-hover:bg-white"
+      className="flex size-[30px] shrink-0 items-center justify-center rounded-[6px] border border-[rgba(15,15,20,0.065)] bg-[#fafaf9] font-mono text-[12px] font-bold text-[#4a4a55] transition-colors duration-hover ease-smooth group-hover:border-[rgba(15,15,20,0.12)] group-hover:bg-white"
     >
       {logo ? (
         // eslint-disable-next-line @next/next/no-img-element
@@ -362,42 +348,6 @@ function RegistryMark({ tag }: { tag: string }) {
       ) : (
         shortCode(tag)
       )}
-    </span>
-  );
-}
-
-// Completeness — the only "quality" indicator shown outside /admin per
-// frontend-design-spec.md §14.2. Quieter than a filled pill on purpose:
-// "verified by N sources" is the senior trust signal on this card;
-// completeness is real and spec-mandated but shouldn't out-shout it. Text
-// stays neutral for the non-critical bands so only the icon + border carry
-// the semantic colour the spec requires; the red band (a real data-quality
-// gap) is the one band where the text itself stays colored. Desktop spells
-// out "N% complete"; mobile drops "complete" to save width.
-function CompletenessPill({
-  pct,
-  suffix = "",
-  className,
-}: {
-  pct: number;
-  suffix?: string;
-  className?: string;
-}) {
-  const band = completenessBand(pct);
-  const tone = COMPLETENESS_BAND_CLASSES[band];
-  const rounded = Math.round(pct);
-  return (
-    <span
-      title={`${rounded}% profile completeness`}
-      className={cn(
-        "inline-flex items-center gap-1 rounded-pill border px-2 py-0.5 text-[11.5px] font-medium",
-        tone.border,
-        tone.text,
-        className,
-      )}
-    >
-      <Gauge size={11} weight="bold" aria-hidden className={cn("shrink-0", tone.icon)} />
-      {rounded}%{suffix}
     </span>
   );
 }

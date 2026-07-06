@@ -31,9 +31,9 @@ export default async function MsaPage() {
       <div className="space-y-4">
         <Link
           href="/app/compliance"
-          className="inline-flex items-center gap-1.5 text-[12px] font-medium text-ink-tertiary transition-colors hover:text-ink-primary"
+          className="inline-flex items-center gap-1.5 text-[13px] font-medium text-ink-tertiary transition-colors hover:text-ink-primary"
         >
-          <ArrowLeft size={13} weight="bold" aria-hidden /> Compliance
+          <ArrowLeft size={17} weight="bold" aria-hidden /> Compliance
         </Link>
         <PageHeader
           kicker="Compliance"
@@ -119,7 +119,7 @@ export default async function MsaPage() {
 function Stat({ label, value }: { label: string; value: number }) {
   return (
     <div className="rounded-card border border-hairline bg-bg-l0 p-3">
-      <p className="text-[11px] text-ink-tertiary">
+      <p className="text-[12px] text-ink-tertiary">
         {label}
       </p>
       <p className="font-display text-xl font-semibold tabular-nums text-ink-primary sm:text-2xl">
@@ -138,7 +138,7 @@ function Block({
 }) {
   return (
     <div className="min-w-0 rounded-card border border-hairline bg-bg-l0 p-3">
-      <p className="mb-2 text-[11px] text-ink-tertiary">
+      <p className="mb-2 text-[12px] text-ink-tertiary">
         {title}
       </p>
       {children}
@@ -159,7 +159,7 @@ function TagRow({ items }: { items: { label: string }[] }) {
 }
 
 function Empty() {
-  return <p className="text-[12px] text-ink-tertiary">—</p>;
+  return <p className="text-[13px] text-ink-tertiary">—</p>;
 }
 
 function prettyCert(k: string): string {

@@ -68,7 +68,7 @@ export default async function ComplianceHubPage() {
       {/* ── Hero ── */}
       <section className="text-center">
         <BlurFade delay={0.1}>
-          <p className="mb-3 inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-widest text-brand-forest sm:text-xs">
+          <p className="mb-3 inline-flex items-center gap-2 font-mono text-[12px] uppercase tracking-widest text-brand-forest sm:text-xs">
             <span className="h-1.5 w-1.5 rounded-full bg-brand-forest" />
             Compliance guides
           </p>
@@ -101,11 +101,11 @@ export default async function ComplianceHubPage() {
                 <h2 className="font-display text-base font-bold text-neutral-900 sm:text-lg">
                   {page.shortName}
                 </h2>
-                <p className="mt-2 flex-1 text-[13px] leading-relaxed text-neutral-500 sm:text-sm">
+                <p className="mt-2 flex-1 text-[14px] leading-relaxed text-neutral-500 sm:text-sm">
                   {page.headline}
                 </p>
-                <span className="mt-5 inline-flex items-center gap-1 text-[12px] font-semibold text-brand-forest">
-                  Read the guide <ArrowRight size={13} />
+                <span className="mt-5 inline-flex items-center gap-1 text-[13px] font-semibold text-brand-forest">
+                  Read the guide <ArrowRight size={17} />
                 </span>
               </MagicCard>
             </Link>
@@ -120,7 +120,7 @@ export default async function ComplianceHubPage() {
             Use SourceBD&apos;s{" "}
             <span className="text-brand-forest">verified evidence</span> behind every claim
           </h2>
-          <p className="mx-auto mt-3 max-w-md !text-center text-[13px] leading-relaxed text-neutral-600 sm:text-sm">
+          <p className="mx-auto mt-3 max-w-md !text-center text-[14px] leading-relaxed text-neutral-600 sm:text-sm">
             Every supplier profile carries source pills with issuer, URL,
             and last-seen date — the same provenance trail your compliance
             team needs.
@@ -133,7 +133,7 @@ export default async function ComplianceHubPage() {
         </section>
       </BlurFade>
 
-      <p className="mx-auto mt-12 text-center text-[11px] text-neutral-400">
+      <p className="mx-auto mt-12 text-center text-[12px] text-neutral-400">
         {DISCLAIMER} Last reviewed: {reviewedAt}.
       </p>
     </main>

@@ -22,7 +22,7 @@ const SUMMARY = "How we verify our sources";
 
 function ExplainerBody() {
   return (
-    <div className="space-y-3 text-[13px] leading-relaxed text-ink-secondary">
+    <div className="space-y-3 text-[14px] leading-relaxed text-ink-secondary">
       <p>
         We rank every source by how official it is. A factory only appears here
         when at least one source from groups 1, 2 or 3 confirms it — a brand
@@ -88,9 +88,9 @@ export function SourcesExplainer({ variant = "header" }: { variant?: Variant }) 
           type="button"
           onClick={() => setOpen((v) => !v)}
           aria-expanded={open}
-          className="inline-flex items-center gap-2 text-[13px] font-semibold text-ink-secondary transition-colors hover:text-ink-primary"
+          className="inline-flex min-h-11 items-center gap-2 text-left text-[14px] font-semibold text-ink-secondary transition-colors hover:text-ink-primary sm:min-h-0"
         >
-          <span className="flex size-[18px] items-center justify-center rounded-full bg-brand-forest text-[10px] font-bold text-white">
+          <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-brand-forest text-[12px] font-bold text-white">
             ?
           </span>
           {SUMMARY}
@@ -113,13 +113,13 @@ export function SourcesExplainer({ variant = "header" }: { variant?: Variant }) 
         aria-expanded={open}
         aria-haspopup="dialog"
         className={cn(
-          "inline-flex items-center gap-1.5 rounded-pill border px-2.5 py-1 font-mono text-[10px] font-semibold uppercase tracking-[0.06em] transition-colors",
+          "inline-flex items-center gap-1.5 rounded-pill border px-2.5 py-1 font-mono text-[12px] font-semibold uppercase tracking-[0.06em] transition-colors",
           open
             ? "border-brand-forest bg-brand-forest-soft text-brand-forest"
             : "border-hairline-strong bg-surface-l1 text-ink-secondary hover:border-brand-forest/40 hover:text-brand-forest",
         )}
       >
-        <Info size={13} weight="fill" aria-hidden className="text-brand-forest" />
+        <Info size={17} weight="fill" aria-hidden className="text-brand-forest" />
         Sources
       </button>
 
@@ -137,11 +137,11 @@ export function SourcesExplainer({ variant = "header" }: { variant?: Variant }) 
             className={cn(
               // Phone: centred modal. Desktop: anchored popover under the pill.
               "fixed inset-x-4 top-1/2 z-50 mx-auto max-w-[360px] -translate-y-1/2 rounded-card border border-hairline bg-surface-l1 p-5 shadow-l2",
-              "sm:absolute sm:inset-x-auto sm:left-0 sm:top-[calc(100%+10px)] sm:mx-0 sm:w-[340px] sm:max-w-none sm:translate-y-0",
+              "sm:absolute sm:inset-x-auto sm:left-0 sm:top-[calc(100%+12px)] sm:mx-0 sm:w-[340px] sm:max-w-none sm:translate-y-0",
             )}
           >
             <div className="mb-3 flex items-center justify-between gap-3">
-              <p className="font-display text-[15px] font-bold tracking-[-0.01em] text-ink-primary">
+              <p className="font-display text-[16px] font-bold tracking-[-0.01em] text-ink-primary">
                 {SUMMARY}
               </p>
               <button
@@ -150,7 +150,7 @@ export function SourcesExplainer({ variant = "header" }: { variant?: Variant }) 
                 aria-label="Close"
                 className="flex size-7 shrink-0 items-center justify-center rounded-pill text-ink-tertiary transition-colors hover:bg-brand-forest-tint hover:text-ink-primary"
               >
-                <X size={15} weight="bold" aria-hidden />
+                <X size={17} weight="bold" aria-hidden />
               </button>
             </div>
             <ExplainerBody />

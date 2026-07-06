@@ -117,7 +117,7 @@ export default async function SupplierRfqDetailPage({
             ← All RFQs
           </Link>
           <header className="space-y-1">
-        <p className="text-[11px] text-ink-tertiary">
+        <p className="text-[12px] text-ink-tertiary">
           Supplier · RFQ {rfq.id.slice(0, 8)}
         </p>
         <div className="flex items-center gap-2">
@@ -126,7 +126,7 @@ export default async function SupplierRfqDetailPage({
           </h1>
           <Badge tone={statusTone(rfq.status)}>{statusLabel(rfq.status)}</Badge>
         </div>
-        <p className="text-[12px] text-ink-tertiary">
+        <p className="text-[13px] text-ink-tertiary">
           Created {fmtDate(rfq.created_at)} · Updated{" "}
           {fmtRelative(rfq.updated_at)}
         </p>
@@ -136,7 +136,7 @@ export default async function SupplierRfqDetailPage({
         <CardHeader>
           <CardTitle>Specification</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-3 text-[13px]">
+        <CardContent className="space-y-3 text-[14px]">
           <Row label="Quantity">
             {fmtNum(rfq.quantity)} {rfq.quantity_unit}
           </Row>
@@ -154,7 +154,7 @@ export default async function SupplierRfqDetailPage({
           ) : null}
           {rfq.product_description ? (
             <div className="space-y-1">
-              <p className="text-[11px] text-ink-tertiary">
+              <p className="text-[12px] text-ink-tertiary">
                 Description
               </p>
               <p className="whitespace-pre-wrap text-ink-primary">
@@ -194,7 +194,7 @@ export default async function SupplierRfqDetailPage({
                   >
                     {s.company_name}
                   </Link>
-                  <p className="truncate text-[12px] text-ink-tertiary">
+                  <p className="truncate text-[13px] text-ink-tertiary">
                     {entityLabel(s.entity_type)}
                     {s.city ? ` · ${s.city}` : ""}
                     {s.district ? `, ${s.district}` : ""}
@@ -203,7 +203,7 @@ export default async function SupplierRfqDetailPage({
                 {rfq.thread_id ? (
                   <Button asChild variant="ghost" size="sm">
                     <Link href={`/supplier/messages/${rfq.thread_id}`}>
-                      <ChatCircleText size={14} aria-hidden /> Thread
+                      <ChatCircleText size={16} aria-hidden /> Thread
                     </Link>
                   </Button>
                 ) : null}
@@ -226,7 +226,7 @@ export default async function SupplierRfqDetailPage({
         </CardHeader>
         <CardContent>
           {myQuote && !canQuote ? (
-            <div className="space-y-2 text-[13px]">
+            <div className="space-y-2 text-[14px]">
               <Row label="Unit price">
                 {fmtMoney(myQuote.unit_price, myQuote.currency)} /{" "}
                 {rfq.quantity_unit}
@@ -242,7 +242,7 @@ export default async function SupplierRfqDetailPage({
               ) : null}
               {myQuote.notes ? (
                 <div className="space-y-1">
-                  <p className="text-[11px] text-ink-tertiary">
+                  <p className="text-[12px] text-ink-tertiary">
                     Notes
                   </p>
                   <p className="whitespace-pre-wrap text-ink-primary">
@@ -250,8 +250,8 @@ export default async function SupplierRfqDetailPage({
                   </p>
                 </div>
               ) : null}
-              <p className="pt-2 text-[12px] text-ink-tertiary">
-                <FileText size={12} aria-hidden className="mr-1 inline" />
+              <p className="pt-2 text-[13px] text-ink-tertiary">
+                <FileText size={16} aria-hidden className="mr-1 inline" />
                 RFQ is no longer open; your submitted quote is locked.
               </p>
             </div>
@@ -301,7 +301,7 @@ function RfqListPane({
 }) {
   return (
     <nav className="rounded-card border border-hairline bg-surface-l1">
-      <p className="border-b border-hairline px-3 py-2 font-mono text-[11px] uppercase tracking-[0.05em] text-ink-tertiary">
+      <p className="border-b border-hairline px-3 py-2 font-mono text-[12px] uppercase tracking-[0.05em] text-ink-tertiary">
         RFQs received
       </p>
       <ul className="m-0 flex max-h-[70vh] list-none flex-col overflow-y-auto p-0">
@@ -313,12 +313,12 @@ function RfqListPane({
                 r.id === activeId ? "bg-[#FBFAF6]" : ""
               }`}
             >
-              <span className="block truncate text-[13px] font-semibold text-ink-primary">
+              <span className="block truncate text-[14px] font-semibold text-ink-primary">
                 {r.product_title}
               </span>
               <span className="mt-0.5 flex items-center gap-2">
                 <Badge tone={statusTone(r.status)}>{statusLabel(r.status)}</Badge>
-                <span className="font-mono text-[10px] text-ink-tertiary">
+                <span className="font-mono text-[12px] text-ink-tertiary">
                   {fmtRelative(r.updated_at)}
                 </span>
               </span>
@@ -339,7 +339,7 @@ function Row({
 }) {
   return (
     <div className="flex items-baseline gap-3">
-      <span className="w-40 shrink-0 text-[11px] text-ink-tertiary">
+      <span className="w-40 shrink-0 text-[12px] text-ink-tertiary">
         {label}
       </span>
       <span className="text-ink-primary">{children}</span>

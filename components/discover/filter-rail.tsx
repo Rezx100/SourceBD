@@ -13,7 +13,6 @@
 //   Row 2 — quick-pick product chips (deep-links, preserve other filters)
 //   Row 3 — common compact filters: City · District · Category ·
 //           Verified sources · RSC % ≥ · Min workforce
-//   Row 3b — Profile completeness ≥ %
 //   Row 4 — collapsible <details> "More filters":
 //           Entity type · Certifications · Registry membership ·
 //           Brand factory list · Factory type
@@ -34,7 +33,6 @@ export const PAGE_SIZE = 24;
 export const SORT_OPTIONS = [
   { value: "default", label: "Best match" },
   { value: "receipts", label: "Most evidence" },
-  { value: "completeness", label: "Most complete" },
   { value: "name", label: "Name (A–Z)" },
 ] as const;
 
@@ -214,7 +212,7 @@ export function FilterRail({
     advancedCount;
 
   const inputBase =
-    "w-full rounded-input border bg-neutral-50 px-3 py-2 text-[13px] text-neutral-900 outline-none transition-colors placeholder:text-neutral-500 focus:border-brand-forest/50 focus:bg-white focus:ring-2 focus:ring-brand-forest/15";
+    "w-full rounded-input border bg-neutral-50 px-3 py-2 text-[14px] text-neutral-900 outline-none transition-colors placeholder:text-neutral-500 focus:border-brand-forest/50 focus:bg-white focus:ring-2 focus:ring-brand-forest/15";
 
   return (
     <section aria-label="Filter suppliers" className="rounded-card border border-neutral-200 bg-white p-3 sm:p-4">
@@ -264,7 +262,7 @@ export function FilterRail({
         {/* Row 2 — quick product chips. Plain anchors that preserve
             current filters but set category. No JS needed. */}
         <div className="flex flex-col gap-2 border-b border-neutral-100 pb-3 lg:flex-row lg:items-center">
-          <div className="shrink-0 text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-tertiary">
+          <div className="shrink-0 text-[12px] font-semibold uppercase tracking-[0.08em] text-ink-tertiary">
             Quick pick
           </div>
           <div className="flex flex-wrap gap-1.5">
@@ -279,7 +277,7 @@ export function FilterRail({
                   key={label}
                   href={href}
                   className={cn(
-                    "inline-flex items-center rounded-pill border px-2.5 py-1 text-[12px] font-medium transition-colors",
+                    "inline-flex items-center rounded-pill border px-2.5 py-1 text-[13px] font-medium transition-colors",
                     isActive
                       ? "border-brand-forest/20 bg-brand-forest-soft text-brand-forest"
                       : "border-transparent text-neutral-600 hover:border-neutral-200 hover:bg-neutral-50 hover:text-neutral-900",
@@ -291,7 +289,7 @@ export function FilterRail({
               );
             })}
             {category && !isQuickPickValue(category) ? (
-              <span className="inline-flex items-center rounded-pill border border-brand-forest/20 bg-brand-forest-soft px-2.5 py-1 text-[12px] font-medium text-brand-forest">
+              <span className="inline-flex items-center rounded-pill border border-brand-forest/20 bg-brand-forest-soft px-2.5 py-1 text-[13px] font-medium text-brand-forest">
                 {category}
               </span>
             ) : null}
@@ -308,17 +306,17 @@ export function FilterRail({
               </span>
               <span className="min-w-0">
                 <span className="block">Refine filters</span>
-                <span className="block truncate text-[11px] font-medium text-ink-tertiary">
+                <span className="block truncate text-[12px] font-medium text-ink-tertiary">
                   City, product, registry and compliance filters
                 </span>
               </span>
               {visibleFilterCount > 0 ? (
-                <span className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-brand-forest px-1.5 text-[11px] font-semibold text-white">
+                <span className="inline-flex h-5 min-w-[22px] items-center justify-center rounded-full bg-brand-forest px-1.5 text-[12px] font-semibold text-white">
                   {visibleFilterCount}
                 </span>
               ) : null}
             </span>
-            <span className="rounded-pill border border-neutral-200 bg-neutral-50 px-2.5 py-1 text-[11px] font-semibold text-ink-tertiary">
+            <span className="rounded-pill border border-neutral-200 bg-neutral-50 px-2.5 py-1 text-[12px] font-semibold text-ink-tertiary">
               Open
             </span>
           </summary>
@@ -376,15 +374,15 @@ export function FilterRail({
             <div className="rounded-card border border-hairline bg-white p-3 shadow-[0_1px_2px_rgba(15,15,20,0.03)]">
               <div className="mb-3 flex items-center justify-between gap-3 border-b border-hairline pb-3">
                 <div>
-                  <p className="font-display text-[15px] font-semibold tracking-[-0.01em] text-ink-primary">
+                  <p className="font-display text-[16px] font-semibold tracking-[-0.01em] text-ink-primary">
                     Advanced filters
                   </p>
-                  <p className="mt-0.5 text-[12px] text-ink-tertiary">
+                  <p className="mt-0.5 text-[13px] text-ink-tertiary">
                     Entity, certifications, memberships and brand lists
                   </p>
                 </div>
                 {advancedCount > 0 ? (
-                  <span className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-brand-forest px-1.5 text-[11px] font-semibold text-white">
+                  <span className="inline-flex h-5 min-w-[22px] items-center justify-center rounded-full bg-brand-forest px-1.5 text-[12px] font-semibold text-white">
                     {advancedCount}
                   </span>
                 ) : null}
@@ -487,7 +485,7 @@ function Field({
 }) {
   return (
     <label className="block">
-      <span className="mb-1 block text-[11px] font-semibold text-ink-tertiary">
+      <span className="mb-1 block text-[12px] font-semibold text-ink-tertiary">
         {label}
       </span>
       {children}
@@ -514,11 +512,11 @@ function CheckboxGroup({
     <fieldset className={cn("rounded-lg border border-hairline bg-surface-l1 p-2.5", className)}>
       <legend className="sr-only">{label}</legend>
       <div className="mb-2 flex items-center justify-between gap-2">
-        <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.08em] text-ink-tertiary">
+        <span className="font-mono text-[12px] font-semibold uppercase tracking-[0.08em] text-ink-tertiary">
           {label}
         </span>
         {selected.length > 0 ? (
-          <span className="inline-flex h-4 min-w-[16px] items-center justify-center rounded-full bg-brand-forest px-1 text-[10px] font-semibold text-white">
+          <span className="inline-flex h-4 min-w-[18px] items-center justify-center rounded-full bg-brand-forest px-1 text-[12px] font-semibold text-white">
             {selected.length}
           </span>
         ) : null}
@@ -530,7 +528,7 @@ function CheckboxGroup({
             <label
               key={opt.value}
               className={cn(
-                "group flex min-h-8 cursor-pointer items-center gap-2 rounded-md border px-2.5 py-1.5 text-[12px] font-medium transition-colors",
+                "group flex min-h-8 cursor-pointer items-center gap-2 rounded-md border px-2.5 py-1.5 text-[13px] font-medium transition-colors",
                 checked
                   ? "border-brand-forest/25 bg-brand-forest-soft text-brand-forest shadow-[inset_0_0_0_1px_rgba(15,82,70,0.04)]"
                   : "border-transparent bg-transparent text-ink-secondary hover:border-hairline hover:bg-white hover:text-ink-primary",
@@ -575,7 +573,7 @@ export function SortControl({
   return (
     <nav
       aria-label="Sort results"
-      className="flex flex-wrap items-center gap-1.5 text-[12px]"
+      className="flex flex-wrap items-center gap-1.5 text-[13px]"
     >
       <span className="text-xs font-semibold text-ink-tertiary">Sort</span>
       {SORT_OPTIONS.map((opt) => {
@@ -592,7 +590,7 @@ export function SortControl({
             key={opt.value}
             href={href}
             className={cn(
-              "inline-flex items-center rounded-pill border px-2.5 py-1 text-[12px] font-medium transition-colors",
+              "inline-flex items-center rounded-pill border px-2.5 py-1 text-[13px] font-medium transition-colors",
               isActive
                 ? "border-brand-forest/30 bg-brand-forest-soft text-brand-forest"
                 : "border-hairline-strong bg-surface-l1 text-ink-secondary hover:bg-brand-forest-tint",
@@ -633,7 +631,7 @@ export function Pagination({
       aria-label="Pagination"
       className="flex items-center justify-between border-t border-neutral-200 pt-4 text-sm"
     >
-      <span className="text-[11px] text-ink-tertiary">
+      <span className="text-[12px] text-ink-tertiary">
         Page {page} of {totalPages}
       </span>
       <div className="flex items-center gap-2">

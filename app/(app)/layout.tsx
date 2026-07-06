@@ -13,7 +13,6 @@ import { BottomTabBar } from "@/components/shell/bottom-tab-bar";
 import { Topbar } from "@/components/shell/topbar";
 import { SkipLink } from "@/components/ui/skip-link";
 import { PostHogProvider } from "@/lib/posthog/provider";
-import { FeedbackMount } from "@/components/feedback/feedback-mount";
 import { ScrollToTop } from "@/components/shell/scroll-to-top";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getServerRole } from "@/lib/auth";
@@ -181,7 +180,6 @@ export default async function AppShellLayout({
             destinations per role; the full sidebar is available via the
             topbar hamburger. */}
         <BottomTabBar role={role} />
-        <FeedbackMount userId={userId} />
       </div>
     </PostHogProvider>
   );

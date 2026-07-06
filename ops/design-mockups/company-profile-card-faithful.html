@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Company profile — card-faithful rebuild</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800;900&family=Hanken+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: { extend: {
+      colors: {
+        "brand-forest": "#1f4d3a", "brand-forest-soft": "#ecf3ee",
+        "ink-primary": "#0f0f14", "ink-secondary": "#4a4a55", "ink-tertiary": "#8a8a95",
+        "sem-green": "#2d7a4f", "sem-green-soft": "#eaf5ee",
+        "sem-amber": "#c7741a", "sem-amber-soft": "#fbf1e3",
+        hairline: "rgba(15,15,20,0.07)", "hairline-strong": "rgba(15,15,20,0.12)",
+      },
+      borderRadius: { pill: "9999px" },
+      fontFamily: { display: ["Archivo", "sans-serif"], body: ["Hanken Grotesk", "sans-serif"], mono: ["IBM Plex Mono", "monospace"] },
+    } },
+  };
+</script>
+<style>
+  body { font-family: "Hanken Grotesk", sans-serif; background: #f2f1ed; color: #0f0f14; }
+  .font-display { font-family: "Archivo", sans-serif; }
+  .font-mono { font-family: "IBM Plex Mono", monospace; }
+
+  /* ---- the following block is copy-pasted verbatim from discover-card-mockup.html ---- */
+  /* No values changed. This is the contract: if it's not here, it doesn't exist on the profile either. */
+  .reg-mark { display: inline-flex; align-items: center; justify-content: center; width: 21px; height: 21px; border-radius: 5px; background: #fafaf9; border: 1px solid rgba(15,15,20,0.065); color: #4a4a55; font-family: "IBM Plex Mono", monospace; font-weight: 700; font-size: 7.5px; flex-shrink: 0; }
+  /* real provider logos (lib/source-logos.ts), sized to the same 27px tile production already uses.
+     One accent treatment for all of them — grayscale, quiet — instead of each brand's native colors
+     competing on the page; full color reveals on hover, same idea as an "as seen in" logo wall. */
+  .reg-logo { display: inline-flex; align-items: center; justify-content: center; width: 27px; height: 27px; border-radius: 6px; border: 1px solid rgba(15,15,20,0.065); background: #fafaf9; flex-shrink: 0; overflow: hidden; transition: border-color 150ms ease, background-color 150ms ease; }
+  .reg-logo img { width: 100%; height: 100%; object-fit: contain; padding: 4px; filter: grayscale(1) contrast(1.05); opacity: .72; transition: filter 150ms ease, opacity 150ms ease; }
+  .reg-logo:hover, .reg-row:hover .reg-logo { border-color: rgba(15,15,20,0.12); background: #ffffff; }
+  .reg-logo:hover img { filter: none; opacity: 1; }
+  .reg-logo.sm { width: 22px; height: 22px; border-radius: 5px; }
+  /* Compliance tab only: registry/cert/sanction issuer marks read as list-item logos, not tiny wayfinding dots — size up without touching the header reg-row or Provenance timeline.
+     align-items switches to center (from the base baseline) because a tile this size next to single-line text needs to sit on the row's vertical center, not its text baseline, or the status badge on the right reads as floating/misaligned. */
+  [data-tab-panel="compliance"] .fact-row { align-items: center; padding: 12px 0; }
+  /* At list-item size these tiles sit at rest (no hover to reveal them), so the card's hover-reveal contrast recipe
+     (opacity .72, near-invisible border) reads as washed-out gray here. Darken the resting state instead of relying on hover. */
+  [data-tab-panel="compliance"] .fact-row .reg-logo { width: 42px; height: 42px; border-radius: 9px; border-color: rgba(15,15,20,0.12); background: #f2f1ef; }
+  [data-tab-panel="compliance"] .fact-row .reg-logo img { padding: 6px; opacity: .92; filter: grayscale(1) contrast(1.15); }
+  .tab-panel[hidden] { display: none; }
+  .completeness-pill { display: inline-flex; align-items: center; gap: 5px; border-radius: 9999px; padding: 1.5px 8px 1.5px 6px; font-size: 11.5px; font-weight: 500; border: 1px solid transparent; }
+  .completeness-pill .gauge { flex-shrink: 0; }
+  .completeness-pill.band-amber { border-color: rgba(199,116,26,0.32); color: #6b6b74; }
+  .completeness-pill.band-amber .gauge { color: #c7741a; }
+  .avatar { display: flex; align-items: center; justify-content: center; flex-shrink: 0; border-radius: 10px; background: #f5f5f4; color: #0f0f14; font-family: "Archivo", sans-serif; font-weight: 700; letter-spacing: -0.02em; border: 1px solid rgba(15,15,20,0.055); box-shadow: 0 1px 3px rgba(15,15,20,0.05); }
+  .verify-seal { position: absolute; bottom: -2px; right: -2px; display: flex; align-items: center; justify-content: center; width: 20px; height: 20px; border-radius: 9999px; background: #ffffff; border: 1.5px solid rgba(15,15,20,0.14); color: #1f4d3a; }
+  /* Was IBM Plex Mono — fine for single codewords ("BGMEA", "T1") but multi-word captions ("EPB Registration",
+     "Registered Address") look clunky in a fixed-width face at 10-11px. Hanken Grotesk (the body font) reads
+     cleaner for these short prose labels; mono stays reserved for the actual data/codes underneath them. */
+  .section-label { font-family: "Hanken Grotesk", sans-serif; letter-spacing: 0.05em; text-transform: uppercase; font-weight: 700; }
+  .entity-pill { display: inline-flex; align-items: center; border-radius: 9999px; background: #f5f5f4; padding: 2px 8px; font-size: 11px; font-weight: 600; color: #4a4a55; }
+  .cta-link { transition: color 150ms ease, background-color 150ms ease; }
+  .cta-link:hover { text-decoration: underline; text-decoration-color: rgba(31,77,58,0.4); }
+  .follow-btn { transition: color 150ms ease, background-color 150ms ease, border-color 150ms ease; }
+  /* ---- end verbatim block ---- */
+
+  /* app shell chrome only — not part of the card's visual language */
+  .sidebar-link { display:flex; align-items:center; justify-content:space-between; border-radius:8px; padding:8px 10px; font-size:13px; font-weight:500; color:#4a4a55; }
+  .sidebar-link:hover { background:#f2f1ed; }
+  .sidebar-link.active { background:#ecf3ee; color:#1f4d3a; font-weight:600; }
+  .sidebar-count { font-family:"IBM Plex Mono"; font-size:10.5px; font-weight:600; color:#8a8a95; background:#f2f1ed; border-radius:9999px; padding:1px 7px; }
+  .sidebar-section-label { font:700 10.5px "Hanken Grotesk"; letter-spacing:.05em; text-transform:uppercase; color:#b4b4b9; padding: 0 10px; }
+  .avatar-round { display:flex; align-items:center; justify-content:center; border-radius:9999px; background:#f5f5f4; color:#0f0f14; font:700 12px "Archivo"; }
+  .tab { border-radius: 8px; padding: 9px 13px; font-weight: 650; font-size: 13px; color: #6b6b74; white-space: nowrap; background: none; border: none; cursor: pointer; font-family: "Hanken Grotesk", sans-serif; }
+  .tab:hover { background: #f5f5f4; }
+  .tab.active { color: #1f4d3a; background: #ecf3ee; }
+  .tab.active:hover { background: #ecf3ee; }
+  /* fact rows and evidence rows reuse the card's font sizes/colors exactly — 13px/12px neutral-600/700, never bigger */
+  .fact-row { display:flex; align-items:baseline; justify-content:space-between; gap: 16px; padding: 10px 0; border-top: 1px solid rgba(15,15,20,.055); font-size: 13px; }
+  .fact-row:first-child { border-top: none; }
+</style>
+</head>
+<body class="p-4 sm:p-10">
+<main class="mx-auto max-w-[1160px] space-y-3">
+
+  <header class="max-w-[900px] pb-2">
+    <h1 class="font-display text-[22px] font-black tracking-[-0.02em]">Company profile — card-faithful rebuild</h1>
+    <p class="mt-2 text-[13px] leading-6 text-neutral-600">Same avatar, completeness-pill and fact-row scale as the card. Registry/certification marks now use the real provider logos from <span class="font-mono text-[12px]">lib/source-logos.ts</span>, all rendered in one quiet grayscale accent so ten different brand colors don't compete on the page — full color on hover. Tabs below are wired up; click one.</p>
+  </header>
+
+  <div class="grid grid-cols-[220px_minmax(0,1fr)] gap-5 rounded-xl border border-neutral-200 bg-neutral-50 p-4">
+
+    <!-- SIDEBAR -->
+    <aside class="rounded-lg border border-neutral-200 bg-white p-3 shadow-sm h-fit">
+      <div class="flex items-center gap-2.5 rounded-lg p-2">
+        <span class="avatar-round h-9 w-9">RF</span>
+        <div class="min-w-0">
+          <p class="font-display truncate text-[13px] font-bold leading-tight">Rezan Ferdous</p>
+          <p class="text-[11px] text-neutral-600">Buyer account</p>
+        </div>
+      </div>
+      <div class="mt-4 space-y-4">
+        <div class="space-y-1">
+          <p class="sidebar-section-label mb-1">Discover</p>
+          <div class="sidebar-link"><span>Search suppliers</span><span class="sidebar-count">10,148</span></div>
+          <div class="sidebar-link"><span>Find matches</span></div>
+          <div class="sidebar-link"><span>Saved suppliers</span><span class="sidebar-count">9</span></div>
+        </div>
+        <div class="space-y-1">
+          <p class="sidebar-section-label mb-1">Activity</p>
+          <div class="sidebar-link"><span>Messages</span></div>
+          <div class="sidebar-link"><span>RFQs</span></div>
+          <div class="sidebar-link"><span>Orders</span></div>
+        </div>
+        <div class="space-y-1">
+          <p class="sidebar-section-label mb-1">Compliance</p>
+          <div class="sidebar-link active"><span>Compliance</span><span class="sidebar-count" style="background:#dff0e6;color:#1f4d3a">4</span></div>
+        </div>
+        <div class="space-y-1">
+          <p class="sidebar-section-label mb-1">Account</p>
+          <div class="sidebar-link"><span>Settings</span></div>
+        </div>
+      </div>
+      <div class="mt-6 border-t border-neutral-100 pt-3">
+        <div class="sidebar-link text-neutral-600"><span>Sign out</span></div>
+      </div>
+    </aside>
+
+    <!-- MAIN COLUMN -->
+    <div class="min-w-0 space-y-3">
+
+      <!-- HERO — literally the desktop card, just with real action buttons instead of the "View profile" link, because we're already on the profile -->
+      <article class="rounded-lg border border-neutral-200 bg-white p-5 shadow-sm">
+        <div class="flex gap-6">
+          <div class="flex min-w-0 flex-1 items-start gap-5">
+            <span class="relative inline-flex shrink-0">
+              <span class="avatar flex h-[64px] w-[64px] text-[22px]">SS</span>
+              <span class="verify-seal">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2"><path d="M5 13l4 4L19 7"/></svg>
+              </span>
+            </span>
+            <div class="min-w-0 flex-1 space-y-3 pr-6">
+              <div>
+                <h2 class="font-display text-[24px] font-black leading-tight tracking-[-0.02em] text-neutral-900">Sm Sourcing</h2>
+                <div class="mt-1.5 flex flex-wrap items-center gap-1.5 text-[13px] font-medium text-neutral-600">
+                  <span class="entity-pill">Factory</span>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" class="ml-0.5 shrink-0 text-neutral-500"><path d="M12 2C7.58 2 4 5.58 4 10c0 5.25 7 12 8 12s8-6.75 8-12c0-4.42-3.58-8-8-8zm0 11a3 3 0 110-6 3 3 0 010 6z"/></svg>
+                  <span>Shahbagh, Dhaka</span>
+                </div>
+              </div>
+              <!-- No nested box — a card inside the hero card fights the flat, borderless language the rest of the
+                   page uses. Hierarchy instead comes purely from type: the claim is dark/semibold/14px, the supporting
+                   logos are small/muted/grey underneath it, same way "Signature categories" outranks "Also produces"
+                   in the products section. -->
+              <div class="space-y-2">
+                <div class="flex flex-wrap items-center gap-2.5">
+                  <span class="inline-flex items-center gap-1.5 text-[14px] font-semibold text-neutral-900">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" class="shrink-0 text-[#1f4d3a]"><path d="M5 13l4 4L19 7"/></svg>
+                    Verified by 8 independent sources
+                  </span>
+                  <span class="completeness-pill band-amber" title="55% of the profile fields SourceBD tracks (registries, capacity, contact, documents) are on file">
+                    <svg class="gauge" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M4 15a8 8 0 1116 0M12 15l3.5-4"/></svg>
+                    Profile 55% complete
+                  </span>
+                </div>
+                <div class="reg-row flex flex-wrap items-center gap-1.5">
+                  <span class="mr-0.5 text-[11px] text-neutral-500">Corroborated by</span>
+                  <span class="reg-logo sm" title="BGAPMEA"><img src="file:///E:/SourceBD/public/inapp-logos/BGAPMEA%20logo.png" alt="" /></span>
+                  <span class="reg-logo sm" title="BGMEA"><img src="file:///E:/SourceBD/public/inapp-logos/BGMEA%20logo.png" alt="" /></span>
+                  <span class="reg-logo sm" title="Export Promotion Bureau"><img src="file:///E:/SourceBD/public/inapp-logos/EPB-Logo.png" alt="" /></span>
+                  <span class="reg-logo sm" title="BKMEA"><img src="file:///E:/SourceBD/public/inapp-logos/bkmea.png" alt="" /></span>
+                  <span class="reg-logo sm" title="RMG Sustainability Council"><img src="file:///E:/SourceBD/public/inapp-logos/RSC-logo.png" alt="" /></span>
+                  <span class="reg-logo sm" title="GOTS"><img src="file:///E:/SourceBD/public/inapp-logos/gost.png" alt="" /></span>
+                  <span class="reg-logo sm" title="OEKO-TEX"><img src="file:///E:/SourceBD/public/inapp-logos/okeo100.png" alt="" /></span>
+                  <a href="#compliance" onclick="showTab('compliance')" class="cta-link ml-0.5 text-[11.5px] font-semibold text-brand-forest">+1 more →</a>
+                </div>
+              </div>
+
+              <!-- Label-over-value fact cluster, not run-on inline text — each fact reads as its own chunk instead of
+                   one long line that wraps mid-sentence once the address gets long. -->
+              <div class="flex flex-wrap gap-x-7 gap-y-2 border-t border-neutral-100 pt-3">
+                <div>
+                  <p class="section-label flex items-center gap-1 text-[10px] text-neutral-500">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="shrink-0"><path d="M12 21s7-6.5 7-12a7 7 0 10-14 0c0 5.5 7 12 7 12z"/><circle cx="12" cy="9" r="2.4"/></svg>
+                    Registered address
+                  </p>
+                  <p class="mt-0.5 text-[12.5px] font-medium text-neutral-700">SM Tower (2nd floor), 80/6, Shahbagh, Dhaka</p>
+                </div>
+                <div>
+                  <p class="section-label flex items-center gap-1 text-[10px] text-neutral-500">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="shrink-0"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M8 2v4M16 2v4M3 10h18"/><path d="M9 15l2 2 4-4"/></svg>
+                    EPB registration
+                  </p>
+                  <p class="mt-0.5 font-mono text-[12.5px] font-medium text-neutral-700">BD06209</p>
+                </div>
+                <div>
+                  <p class="section-label flex items-center gap-1 text-[10px] text-neutral-500">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="shrink-0"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>
+                    Last verified
+                  </p>
+                  <p class="mt-0.5 font-mono text-[12.5px] font-medium text-neutral-700">27 Jun 2026</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex w-[170px] shrink-0 flex-col items-end justify-between gap-3 pl-6 text-right">
+            <span title="Follow" class="follow-btn flex size-8 items-center justify-center rounded-full border text-neutral-600 hover:border-neutral-200 hover:bg-neutral-50 hover:text-neutral-700" style="border-color:rgba(15,15,20,0.08)">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0"/></svg>
+            </span>
+            <div class="w-full">
+              <div class="flex items-baseline justify-end gap-1.5">
+                <span class="font-display text-[19px] font-bold leading-none tabular-nums tracking-[-0.01em] text-neutral-800">770</span>
+                <span class="text-[11.5px] font-normal text-neutral-500">employees</span>
+              </div>
+              <div class="mt-1 text-[12px] font-medium text-neutral-600">Est. 2022 · 3 yrs</div>
+              <button class="mt-2.5 h-9 w-full rounded-md bg-brand-forest text-[13px] font-semibold text-white">Contact</button>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <!-- TABS — same quiet pill treatment as entity-pill; wired up, actually switches panels below -->
+      <div class="rounded-lg border border-neutral-200 bg-white px-2 py-1.5 shadow-sm">
+        <div class="flex gap-1 overflow-x-auto">
+          <button type="button" class="tab active" data-tab-button="overview" onclick="showTab('overview')">Overview</button>
+          <button type="button" class="tab" data-tab-button="compliance" onclick="showTab('compliance')">Compliance</button>
+          <button type="button" class="tab" data-tab-button="capacity" onclick="showTab('capacity')">Capacity</button>
+          <button type="button" class="tab" data-tab-button="contact" onclick="showTab('contact')">Contact</button>
+          <button type="button" class="tab" data-tab-button="provenance" onclick="showTab('provenance')">Provenance</button>
+        </div>
+      </div>
+
+      <!-- ===== OVERVIEW PANEL ===== -->
+      <div data-tab-panel="overview" class="tab-panel space-y-3">
+
+      <!-- PRINCIPAL PRODUCTS — its own section with real hierarchy: signature categories featured large, the rest grouped and quieter, instead of 27 equal-weight icons crammed into the hero -->
+      <article id="products" class="rounded-lg border border-neutral-200 bg-white p-5 shadow-sm">
+        <h3 class="font-display text-[14px] font-bold text-neutral-900">Principal products <span class="font-body text-[12px] font-medium text-neutral-600">27 categories</span></h3>
+
+        <p class="mt-3 text-[11px] font-semibold uppercase tracking-wide text-neutral-500">Signature categories</p>
+        <div class="mt-2 flex flex-wrap gap-2.5">
+          <span class="inline-flex items-center gap-2 rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-[13px] font-semibold text-neutral-800"><img src="file:///E:/SourceBD/public/icons/products/denim.png" class="h-5 w-5 shrink-0" />Denim</span>
+          <span class="inline-flex items-center gap-2 rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-[13px] font-semibold text-neutral-800"><img src="file:///E:/SourceBD/public/icons/products/t-shirt.png" class="h-5 w-5 shrink-0" />T-Shirts</span>
+          <span class="inline-flex items-center gap-2 rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-[13px] font-semibold text-neutral-800"><img src="file:///E:/SourceBD/public/icons/products/jeans.png" class="h-5 w-5 shrink-0" />Jeans</span>
+          <span class="inline-flex items-center gap-2 rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-[13px] font-semibold text-neutral-800"><img src="file:///E:/SourceBD/public/icons/products/hoodie.png" class="h-5 w-5 shrink-0" />Hoodies</span>
+        </div>
+        <p class="mt-1 text-[11.5px] text-neutral-500">Most frequently listed across this supplier's source records.</p>
+
+        <p class="mt-5 border-t border-neutral-100 pt-4 text-[11px] font-semibold uppercase tracking-wide text-neutral-500">Also produces <span class="normal-case text-neutral-300">· 23</span></p>
+        <div class="mt-2.5 grid grid-cols-2 gap-1.5 sm:grid-cols-3 lg:grid-cols-4">
+          <span class="flex items-center gap-2 rounded-md px-2 py-1.5 text-[12.5px] text-neutral-600 hover:bg-neutral-50"><img src="file:///E:/SourceBD/public/icons/products/polo.png" class="h-4 w-4 shrink-0 opacity-50" />Polo Shirts</span>
+          <span class="flex items-center gap-2 rounded-md px-2 py-1.5 text-[12.5px] text-neutral-600 hover:bg-neutral-50"><img src="file:///E:/SourceBD/public/icons/products/jacket.png" class="h-4 w-4 shrink-0 opacity-50" />Jackets</span>
+          <span class="flex items-center gap-2 rounded-md px-2 py-1.5 text-[12.5px] text-neutral-600 hover:bg-neutral-50"><img src="file:///E:/SourceBD/public/icons/products/trousers.png" class="h-4 w-4 shrink-0 opacity-50" />Trousers</span>
+          <span class="flex items-center gap-2 rounded-md px-2 py-1.5 text-[12.5px] text-neutral-600 hover:bg-neutral-50"><img src="file:///E:/SourceBD/public/icons/products/shorts.png" class="h-4 w-4 shrink-0 opacity-50" />Shorts</span>
+          <span class="flex items-center gap-2 rounded-md px-2 py-1.5 text-[12.5px] text-neutral-600 hover:bg-neutral-50"><img src="file:///E:/SourceBD/public/icons/products/skirt.png" class="h-4 w-4 shrink-0 opacity-50" />Skirts</span>
+          <span class="flex items-center gap-2 rounded-md px-2 py-1.5 text-[12.5px] text-neutral-600 hover:bg-neutral-50"><img src="file:///E:/SourceBD/public/icons/products/dress.png" class="h-4 w-4 shrink-0 opacity-50" />Dresses</span>
+          <span class="flex items-center gap-2 rounded-md px-2 py-1.5 text-[12.5px] text-neutral-600 hover:bg-neutral-50"><img src="file:///E:/SourceBD/public/icons/products/blouse.png" class="h-4 w-4 shrink-0 opacity-50" />Blouses</span>
+          <span class="flex items-center gap-2 rounded-md px-2 py-1.5 text-[12.5px] text-neutral-600 hover:bg-neutral-50"><img src="file:///E:/SourceBD/public/icons/products/shirt.png" class="h-4 w-4 shrink-0 opacity-50" />Shirts</span>
+          <span class="flex items-center gap-2 rounded-md px-2 py-1.5 text-[12.5px] text-neutral-600 hover:bg-neutral-50"><img src="file:///E:/SourceBD/public/icons/products/sweater.png" class="h-4 w-4 shrink-0 opacity-50" />Sweaters</span>
+          <span class="flex items-center gap-2 rounded-md px-2 py-1.5 text-[12.5px] text-neutral-600 hover:bg-neutral-50"><img src="file:///E:/SourceBD/public/icons/products/cardigan.png" class="h-4 w-4 shrink-0 opacity-50" />Cardigans</span>
+          <span class="flex items-center gap-2 rounded-md px-2 py-1.5 text-[12.5px] text-neutral-600 hover:bg-neutral-50"><img src="file:///E:/SourceBD/public/icons/products/jogger.png" class="h-4 w-4 shrink-0 opacity-50" />Joggers</span>
+          <span class="flex items-center gap-2 rounded-md px-2 py-1.5 text-[12.5px] text-neutral-600 hover:bg-neutral-50"><img src="file:///E:/SourceBD/public/icons/products/leggings.png" class="h-4 w-4 shrink-0 opacity-50" />Leggings</span>
+          <span class="flex items-center gap-2 rounded-md px-2 py-1.5 text-[12.5px] text-neutral-600 hover:bg-neutral-50"><img src="file:///E:/SourceBD/public/icons/products/infant-clothes.png" class="h-4 w-4 shrink-0 opacity-50" />Infant Clothes</span>
+          <span class="flex items-center gap-2 rounded-md px-2 py-1.5 text-[12.5px] text-neutral-600 hover:bg-neutral-50"><img src="file:///E:/SourceBD/public/icons/products/children-clothes.png" class="h-4 w-4 shrink-0 opacity-50" />Children's Clothes</span>
+          <span class="flex items-center gap-2 rounded-md px-2 py-1.5 text-[12.5px] text-neutral-600 hover:bg-neutral-50"><img src="file:///E:/SourceBD/public/icons/products/athletic-wear.png" class="h-4 w-4 shrink-0 opacity-50" />Athletic Wear</span>
+          <span class="flex items-center gap-2 rounded-md px-2 py-1.5 text-[12.5px] text-neutral-600 hover:bg-neutral-50"><img src="file:///E:/SourceBD/public/icons/products/overalls.png" class="h-4 w-4 shrink-0 opacity-50" />Overalls</span>
+          <span class="flex items-center gap-2 rounded-md px-2 py-1.5 text-[12.5px] text-neutral-600 hover:bg-neutral-50"><img src="file:///E:/SourceBD/public/icons/products/vest.png" class="h-4 w-4 shrink-0 opacity-50" />Vests</span>
+          <span class="flex items-center gap-2 rounded-md px-2 py-1.5 text-[12.5px] text-neutral-600 hover:bg-neutral-50"><img src="file:///E:/SourceBD/public/icons/products/home-textile.png" class="h-4 w-4 shrink-0 opacity-50" />Home Textile</span>
+          <span class="flex items-center gap-2 rounded-md px-2 py-1.5 text-[12.5px] text-neutral-600 hover:bg-neutral-50"><img src="file:///E:/SourceBD/public/icons/products/fabric-roll.png" class="h-4 w-4 shrink-0 opacity-50" />Fabric Rolls</span>
+          <span class="flex items-center gap-2 rounded-md px-2 py-1.5 text-[12.5px] text-neutral-600 hover:bg-neutral-50"><img src="file:///E:/SourceBD/public/icons/products/yarn.png" class="h-4 w-4 shrink-0 opacity-50" />Yarn</span>
+          <span class="flex items-center gap-2 rounded-md px-2 py-1.5 text-[12.5px] text-neutral-600 hover:bg-neutral-50"><img src="file:///E:/SourceBD/public/icons/products/zipper.png" class="h-4 w-4 shrink-0 opacity-50" />Zippers</span>
+          <span class="flex items-center gap-2 rounded-md px-2 py-1.5 text-[12.5px] text-neutral-600 hover:bg-neutral-50"><img src="file:///E:/SourceBD/public/icons/products/care-label.png" class="h-4 w-4 shrink-0 opacity-50" />Care Labels</span>
+          <span class="flex items-center gap-2 rounded-md px-2 py-1.5 text-[12.5px] text-neutral-600 hover:bg-neutral-50"><img src="file:///E:/SourceBD/public/icons/products/price-tag.png" class="h-4 w-4 shrink-0 opacity-50" />Price Tags</span>
+          <span class="flex items-center gap-2 rounded-md px-2 py-1.5 text-[12.5px] text-neutral-600 hover:bg-neutral-50"><img src="file:///E:/SourceBD/public/icons/products/poly-bag.png" class="h-4 w-4 shrink-0 opacity-50" />Poly Bags</span>
+        </div>
+      </article>
+
+      <!-- OVERVIEW + LOCATIONS — one continuous card, fact-rows use the card's exact 13px scale, reg-mark reused for corroboration source instead of an invented icon -->
+      <article class="rounded-lg border border-neutral-200 bg-white p-5 shadow-sm">
+        <h3 class="font-display text-[14px] font-bold text-neutral-900">Company overview</h3>
+        <p class="mt-2 max-w-[64ch] text-[13px] leading-6 text-neutral-600">Sm Sourcing is a garment manufacturer based in Shahbagh, Dhaka, operating since 2022. The company holds registry records with BGMEA, BGAPMEA, BKMEA, and EPB.</p>
+        <div class="mt-3">
+          <div class="fact-row"><span class="text-neutral-600">Country</span><span class="font-semibold text-neutral-800">Bangladesh</span></div>
+          <div class="fact-row"><span class="text-neutral-600">Tier 1–3 sources</span><span class="font-semibold text-neutral-800">8</span></div>
+          <div class="fact-row"><span class="text-neutral-600">EPZ zone</span><span class="font-semibold text-neutral-500">—</span></div>
+          <div class="fact-row"><span class="text-neutral-600">Parent group</span><span class="font-semibold text-neutral-500">—</span></div>
+        </div>
+
+        <h3 class="mt-6 font-display text-[14px] font-bold text-neutral-900 border-t border-neutral-100 pt-5">Locations &amp; addresses <span class="ml-1 font-body text-[12px] font-medium text-neutral-600">13 on file</span></h3>
+        <div class="mt-3 rounded-md border border-brand-forest/15 bg-brand-forest-soft/40 p-3">
+          <p class="text-[13px] font-semibold text-neutral-900">Kuptan Tower, Level-4, Room# C6, Box Culvert Road, Nayapaltan, Dhaka</p>
+          <p class="mt-1.5 flex items-center gap-1.5 text-[11.5px] text-neutral-600"><span class="reg-logo sm"><img src="file:///E:/SourceBD/public/inapp-logos/BGAPMEA%20logo.png" alt="" /></span>Corroborated by BGAPMEA</p>
+        </div>
+        <div class="mt-1">
+          <div class="fact-row"><span class="text-neutral-700">SM Tower (2nd floor), 80/6 Maymashingo Road</span><span class="text-neutral-500">Mailing</span></div>
+          <div class="fact-row"><span class="text-neutral-700">Baimail, Konabari, 1704, Gazipur</span><span class="text-neutral-500">Factory</span></div>
+          <div class="fact-row"><span class="text-neutral-700">Plot # A15, BSCIC I/E, Dhulashial, Habiganj</span><span class="text-neutral-500">Factory</span></div>
+        </div>
+        <a class="mt-3 inline-block cta-link text-[13px] font-semibold text-brand-forest">Show 10 more addresses →</a>
+      </article>
+      </div>
+      <!-- ===== /OVERVIEW PANEL ===== -->
+
+      <!-- ===== COMPLIANCE PANEL ===== -->
+      <!-- mirrors profile-compliance-tab.tsx section-for-section: Registries, Certifications, RSC remediation,
+           Sanctions screening, Brand attribution, Compliance documents — nothing dropped from the real component. -->
+      <div data-tab-panel="compliance" class="tab-panel grid gap-3 lg:grid-cols-2" hidden>
+
+        <!-- Registries -->
+        <article class="rounded-lg border border-neutral-200 bg-white p-5 shadow-sm">
+          <h3 class="font-display text-[14px] font-bold text-neutral-900">Registries <span class="font-body text-[12px] font-medium text-neutral-600">4 verified records</span></h3>
+          <div class="mt-3">
+            <div class="fact-row"><span class="flex items-center gap-2.5 text-neutral-800 font-medium"><span class="reg-logo"><img src="file:///E:/SourceBD/public/inapp-logos/BGAPMEA%20logo.png" alt="" /></span>BGAPMEA <span class="font-mono text-[11px] font-normal text-neutral-500">Reg. 1574</span></span><span class="inline-flex items-center gap-1 text-[12px] font-semibold text-sem-green"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2"><path d="M5 13l4 4L19 7"/></svg>Verified</span></div>
+            <div class="fact-row"><span class="flex items-center gap-2.5 text-neutral-800 font-medium"><span class="reg-logo"><img src="file:///E:/SourceBD/public/inapp-logos/EPB-Logo.png" alt="" /></span>Export Promotion Bureau <span class="font-mono text-[11px] font-normal text-neutral-500">Reg. 0006209</span></span><span class="inline-flex items-center gap-1 text-[12px] font-semibold text-sem-green"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2"><path d="M5 13l4 4L19 7"/></svg>Verified</span></div>
+            <div class="fact-row"><span class="flex items-center gap-2.5 text-neutral-800 font-medium"><span class="reg-logo"><img src="file:///E:/SourceBD/public/inapp-logos/bkmea.png" alt="" /></span>BKMEA <span class="font-mono text-[11px] font-normal text-neutral-500">Reg. 3312</span></span><span class="inline-flex items-center gap-1 text-[12px] font-semibold text-sem-green"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2"><path d="M5 13l4 4L19 7"/></svg>Verified</span></div>
+            <div class="fact-row"><span class="flex items-center gap-2.5 text-neutral-800 font-medium"><span class="reg-logo"><img src="file:///E:/SourceBD/public/inapp-logos/RSC-logo.png" alt="" /></span>RMG Sustainability Council</span><span class="inline-flex items-center gap-1 rounded-full bg-neutral-100 px-2 py-0.5 text-[11px] font-semibold text-neutral-600">Inherited</span></div>
+          </div>
+          <p class="mt-3 text-[11px] leading-4 text-neutral-500">Inherited registries resolve from the parent group's records and link back to the parent profile.</p>
+        </article>
+
+        <!-- Certifications — separate card from Registries, per the real component -->
+        <article class="rounded-lg border border-neutral-200 bg-white p-5 shadow-sm">
+          <h3 class="font-display text-[14px] font-bold text-neutral-900">Certifications <span class="font-body text-[12px] font-medium text-neutral-600">3 active · 1 expiring</span></h3>
+          <div class="mt-3">
+            <div class="fact-row">
+              <span class="flex items-center gap-2.5 text-neutral-800 font-medium"><span class="reg-logo"><img src="file:///E:/SourceBD/public/inapp-logos/okeo100.png" alt="" /></span>OEKO-TEX® STANDARD 100</span>
+              <span class="inline-flex items-center gap-1 text-[12px] font-semibold text-sem-green">Evergreen</span>
+            </div>
+            <div class="fact-row">
+              <span class="flex items-center gap-2.5 text-neutral-800 font-medium"><span class="reg-logo"><img src="file:///E:/SourceBD/public/inapp-logos/gost.png" alt="" /></span>GOTS <span class="font-mono text-[11px] font-normal text-neutral-500">SC0029790</span></span>
+              <span class="inline-flex items-center gap-1 text-[12px] font-semibold text-sem-amber">Expires in 62 days</span>
+            </div>
+            <div class="fact-row">
+              <span class="flex items-center gap-2.5 text-neutral-800 font-medium"><span class="reg-logo"><img src="file:///E:/SourceBD/public/inapp-logos/wrap.png" alt="" /></span>WRAP</span>
+              <span class="inline-flex items-center gap-1 text-[12px] font-semibold text-sem-green">Valid · 210 days</span>
+            </div>
+            <div class="fact-row">
+              <span class="flex items-center gap-2.5 text-neutral-800 font-medium"><span class="reg-logo"><img src="file:///E:/SourceBD/public/inapp-logos/amfori.jpg" alt="" /></span>BSCI</span>
+              <span class="inline-flex items-center gap-1 text-[12px] font-semibold text-sem-green">Valid · 340 days</span>
+            </div>
+          </div>
+        </article>
+
+        <!-- RSC remediation — progress bar plus the fields ProfileComplianceRsc already carries (training_status
+             was in the data contract but never rendered anywhere; workers/status upgraded from one plain sentence
+             to the same fact-row list every other compliance card uses, so this card doesn't read half-empty next
+             to Sanctions screening's 6-row list). -->
+        <article class="rounded-lg border border-neutral-200 bg-white p-5 shadow-sm">
+          <h3 class="font-display text-[14px] font-bold text-neutral-900">RSC remediation <span class="font-body text-[12px] font-medium text-neutral-600">78% complete</span></h3>
+          <div class="mt-4 flex flex-wrap items-baseline gap-2">
+            <span class="font-display text-[34px] font-bold leading-none tracking-[-0.02em] text-neutral-950">78<span class="text-[17px]">%</span></span>
+            <span class="text-[12px] font-medium text-neutral-600">remediation completed</span>
+          </div>
+          <div class="relative mt-3 h-2 rounded-full bg-neutral-100">
+            <div class="h-full rounded-full bg-brand-forest" style="width:78%"></div>
+            <span class="absolute top-1/2 h-4 w-px -translate-y-1/2 bg-neutral-400" style="left:95%" title="Industry median 95%"></span>
+          </div>
+          <div class="mt-1.5 flex justify-between font-mono text-[11px] text-neutral-600"><span>0%</span><span>100%</span></div>
+          <div class="mt-4">
+            <div class="fact-row"><span class="text-neutral-600">Workforce covered</span><span class="font-semibold text-neutral-800">770 workers</span></div>
+            <div class="fact-row"><span class="text-neutral-600">Remediation status</span><span class="inline-flex items-center gap-1.5 font-semibold text-sem-amber"><span class="h-1.5 w-1.5 rounded-full bg-sem-amber"></span>In progress</span></div>
+            <div class="fact-row"><span class="text-neutral-600">Training status</span><span class="inline-flex items-center gap-1.5 font-semibold text-sem-green"><span class="h-1.5 w-1.5 rounded-full bg-sem-green"></span>Completed</span></div>
+          </div>
+          <p class="mt-3 text-[11px] leading-4 text-neutral-500">Tracked by the RMG Sustainability Council under the post-Accord safety transition programme — covers fire, structural, and electrical remediation across all factory buildings on file.</p>
+        </article>
+
+        <!-- Sanctions screening — same fact-row list shape as Registries, real issuer-agency logos instead of jurisdiction-code tiles -->
+        <article class="rounded-lg border border-neutral-200 bg-white p-5 shadow-sm">
+          <h3 class="font-display text-[14px] font-bold text-neutral-900">Sanctions screening <span class="font-body text-[12px] font-medium text-neutral-600">6 of 6 watchlists clear</span></h3>
+          <div class="mt-3">
+            <div class="fact-row"><span class="flex items-center gap-2.5 text-neutral-800 font-medium"><span class="reg-logo"><img src="file:///E:/SourceBD/public/inapp-logos/sanctions/cbp.png" alt="" /></span>UFLPA <span class="font-mono text-[11px] font-normal text-neutral-500">CBP Entity List</span></span><span class="inline-flex items-center gap-1 text-[12px] font-semibold text-sem-green"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2"><path d="M5 13l4 4L19 7"/></svg>Clear</span></div>
+            <div class="fact-row"><span class="flex items-center gap-2.5 text-neutral-800 font-medium"><span class="reg-logo"><img src="file:///E:/SourceBD/public/inapp-logos/sanctions/ofac-treasury.png" alt="" /></span>OFAC SDN <span class="font-mono text-[11px] font-normal text-neutral-500">U.S. Treasury</span></span><span class="inline-flex items-center gap-1 text-[12px] font-semibold text-sem-green"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2"><path d="M5 13l4 4L19 7"/></svg>Clear</span></div>
+            <div class="fact-row"><span class="flex items-center gap-2.5 text-neutral-800 font-medium"><span class="reg-logo"><img src="file:///E:/SourceBD/public/inapp-logos/sanctions/hm-treasury-uk.png" alt="" /></span>OFSI <span class="font-mono text-[11px] font-normal text-neutral-500">HM Treasury</span></span><span class="inline-flex items-center gap-1 text-[12px] font-semibold text-sem-green"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2"><path d="M5 13l4 4L19 7"/></svg>Clear</span></div>
+            <div class="fact-row"><span class="flex items-center gap-2.5 text-neutral-800 font-medium"><span class="reg-logo"><img src="file:///E:/SourceBD/public/inapp-logos/sanctions/european-commission.png" alt="" /></span>EU FSF <span class="font-mono text-[11px] font-normal text-neutral-500">European Commission</span></span><span class="inline-flex items-center gap-1 text-[12px] font-semibold text-sem-green"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2"><path d="M5 13l4 4L19 7"/></svg>Clear</span></div>
+            <div class="fact-row"><span class="flex items-center gap-2.5 text-neutral-800 font-medium"><span class="reg-logo"><img src="file:///E:/SourceBD/public/inapp-logos/sanctions/cbp.png" alt="" /></span>CBP WRO <span class="font-mono text-[11px] font-normal text-neutral-500">U.S. Customs</span></span><span class="inline-flex items-center gap-1 text-[12px] font-semibold text-sem-green"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2"><path d="M5 13l4 4L19 7"/></svg>Clear</span></div>
+            <div class="fact-row"><span class="flex items-center gap-2.5 text-neutral-800 font-medium"><span class="reg-logo"><img src="file:///E:/SourceBD/public/inapp-logos/sanctions/dol.png" alt="" /></span>DOL ILAB <span class="font-mono text-[11px] font-normal text-neutral-500">U.S. Labor Dept.</span></span><span class="inline-flex items-center gap-1 text-[12px] font-semibold text-sem-green"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2"><path d="M5 13l4 4L19 7"/></svg>Clear</span></div>
+          </div>
+          <p class="mt-3 text-[11px] leading-4 text-neutral-500">Name + address + registry IDs cross-checked against all 6 watchlists above.</p>
+        </article>
+
+        <!-- Brand attribution -->
+        <article class="rounded-lg border border-neutral-200 bg-white p-5 shadow-sm">
+          <h3 class="font-display text-[14px] font-bold text-neutral-900">Brand attribution <span class="font-body text-[12px] font-medium text-neutral-600">2 brands disclosed</span></h3>
+          <div class="mt-3 flex flex-wrap gap-2">
+            <span class="inline-flex items-center gap-2 rounded-full border border-neutral-200 bg-neutral-50 px-3 py-1.5 text-[12px] font-semibold text-neutral-800">H&amp;M<span class="border-l border-neutral-200 pl-2 font-mono text-[10.5px] font-medium text-neutral-600">12 Jun 2026</span></span>
+            <span class="inline-flex items-center gap-2 rounded-full border border-neutral-200 bg-neutral-50 px-3 py-1.5 text-[12px] font-semibold text-neutral-800">Next<span class="border-l border-neutral-200 pl-2 font-mono text-[10.5px] font-medium text-neutral-600">03 May 2026</span></span>
+          </div>
+          <p class="mt-3 text-[11px] leading-4 text-neutral-500">Each chip traces to the brand's own published supplier disclosure.</p>
+        </article>
+
+        <!-- Compliance documents — full width, mirrors the real lg:col-span-2 card -->
+        <article class="rounded-lg border border-neutral-200 bg-white p-5 shadow-sm lg:col-span-2">
+          <h3 class="font-display text-[14px] font-bold text-neutral-900">Compliance documents <span class="font-body text-[12px] font-medium text-neutral-600">5 mirrored</span></h3>
+          <div class="mt-3">
+            <div class="fact-row"><span class="flex items-center gap-2 text-neutral-800 font-medium"><span class="rounded bg-neutral-100 px-1.5 py-0.5 text-[10.5px] font-semibold uppercase text-neutral-600">Fire</span>RSC fire-safety inspection report</span><span class="flex items-center gap-3"><span class="font-mono text-[11px] text-neutral-500">1.2 MB</span><a class="cta-link text-[12px] font-semibold text-brand-forest">Mirror</a><a class="cta-link text-[12px] font-semibold text-brand-forest">Original</a></span></div>
+            <div class="fact-row"><span class="flex items-center gap-2 text-neutral-800 font-medium"><span class="rounded bg-neutral-100 px-1.5 py-0.5 text-[10.5px] font-semibold uppercase text-neutral-600">Structural</span>RSC structural inspection report</span><span class="flex items-center gap-3"><span class="font-mono text-[11px] text-neutral-500">2.4 MB</span><a class="cta-link text-[12px] font-semibold text-brand-forest">Mirror</a><a class="cta-link text-[12px] font-semibold text-brand-forest">Original</a></span></div>
+            <div class="fact-row"><span class="flex items-center gap-2 text-neutral-800 font-medium"><span class="rounded bg-neutral-100 px-1.5 py-0.5 text-[10.5px] font-semibold uppercase text-neutral-600">Electrical</span>RSC electrical inspection report</span><span class="flex items-center gap-3"><span class="font-mono text-[11px] text-neutral-500">0.9 MB</span><a class="cta-link text-[12px] font-semibold text-brand-forest">Mirror</a><a class="cta-link text-[12px] font-semibold text-brand-forest">Original</a></span></div>
+            <div class="fact-row"><span class="flex items-center gap-2 text-neutral-800 font-medium"><span class="rounded bg-neutral-100 px-1.5 py-0.5 text-[10.5px] font-semibold uppercase text-neutral-600">Boiler</span>RSC boiler safety inspection</span><span class="flex items-center gap-3"><span class="font-mono text-[11px] text-neutral-500">0.6 MB</span><a class="cta-link text-[12px] font-semibold text-brand-forest">Mirror</a><a class="cta-link text-[12px] font-semibold text-brand-forest">Original</a></span></div>
+            <div class="fact-row"><span class="flex items-center gap-2 text-neutral-800 font-medium"><span class="rounded bg-neutral-100 px-1.5 py-0.5 text-[10.5px] font-semibold uppercase text-neutral-600">CAP</span>Corrective Action Plan</span><span class="flex items-center gap-3"><span class="font-mono text-[11px] text-neutral-500">3.1 MB</span><a class="cta-link text-[12px] font-semibold text-brand-forest">Mirror</a><a class="cta-link text-[12px] font-semibold text-brand-forest">Original</a></span></div>
+          </div>
+          <p class="mt-3 text-[11px] leading-4 text-neutral-500">Mirror copies served from SourceBD's CDN for stable archival. Originals link back to the issuing authority.</p>
+        </article>
+      </div>
+      <!-- ===== /COMPLIANCE PANEL ===== -->
+
+      <!-- ===== CAPACITY PANEL ===== -->
+      <div data-tab-panel="capacity" class="tab-panel space-y-3" hidden>
+        <article class="rounded-lg border border-neutral-200 bg-white p-5 shadow-sm">
+          <h3 class="font-display text-[14px] font-bold text-neutral-900">Capacity &amp; workforce</h3>
+          <p class="mt-1 text-[12px] text-neutral-600">Accessories · Dyeing · Knit · Packaging</p>
+          <div class="mt-3 grid gap-x-8 sm:grid-cols-2">
+            <div class="fact-row"><span class="text-neutral-600">Total workforce</span><span class="font-display text-[16px] font-bold tabular-nums text-neutral-800">770</span></div>
+            <div class="fact-row"><span class="text-neutral-600">Sewing machines</span><span class="font-display text-[16px] font-bold tabular-nums text-neutral-800">305</span></div>
+            <div class="fact-row"><span class="text-neutral-600">Daily output (pcs)</span><span class="font-display text-[16px] font-bold tabular-nums text-neutral-800">16,000</span></div>
+            <div class="fact-row"><span class="text-neutral-600">Annual output (dozen)</span><span class="font-display text-[16px] font-bold tabular-nums text-neutral-800">335,000</span></div>
+          </div>
+        </article>
+      </div>
+      <!-- ===== /CAPACITY PANEL ===== -->
+
+      <!-- ===== CONTACT PANEL ===== -->
+      <div data-tab-panel="contact" class="tab-panel space-y-3" hidden>
+        <article class="rounded-lg border border-neutral-200 bg-white p-5 shadow-sm">
+          <h3 class="font-display text-[14px] font-bold text-neutral-900">Contact <span class="font-body text-[12px] font-medium text-neutral-600">Unlocked · admin view</span></h3>
+          <div class="mt-3">
+            <div class="fact-row"><span class="flex items-center gap-2 text-neutral-800 font-medium"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="text-neutral-500"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.362 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.338 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>9343892935</span><span class="text-neutral-500">+3 more on file</span></div>
+            <div class="fact-row"><span class="flex items-center gap-2 text-neutral-800 font-medium"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="text-neutral-500"><path d="M4 4h16v16H4z"/><path d="M22 6l-10 7L2 6"/></svg>shakti@smsourcing.com</span><span class="text-neutral-500">Primary</span></div>
+            <div class="fact-row"><span class="flex items-center gap-2 text-neutral-800 font-medium"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="text-neutral-500"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 010 20 15.3 15.3 0 010-20z"/></svg>smsourcing.biz</span><span class="text-neutral-500">Website</span></div>
+          </div>
+        </article>
+      </div>
+      <!-- ===== /CONTACT PANEL ===== -->
+
+      <!-- ===== PROVENANCE PANEL ===== -->
+      <div data-tab-panel="provenance" class="tab-panel space-y-3" hidden>
+        <article class="rounded-lg border border-neutral-200 bg-white p-5 shadow-sm">
+          <h3 class="font-display text-[14px] font-bold text-neutral-900">Source records <span class="font-body text-[12px] font-medium text-neutral-600">11 · 8 sources</span></h3>
+          <div class="mt-3">
+            <div class="fact-row"><span class="flex items-center gap-2.5 text-neutral-800 font-medium"><span class="reg-logo"><img src="file:///E:/SourceBD/public/inapp-logos/EPB-Logo.png" alt="" /></span>Export Promotion Bureau</span><span class="font-mono text-[11px] text-neutral-600">T1 · 27 Jun</span></div>
+            <div class="fact-row"><span class="flex items-center gap-2.5 text-neutral-800 font-medium"><span class="reg-logo"><img src="file:///E:/SourceBD/public/inapp-logos/RSC-logo.png" alt="" /></span>RMG Sustainability Council</span><span class="font-mono text-[11px] text-neutral-600">T1 · 27 Jun</span></div>
+            <div class="fact-row"><span class="flex items-center gap-2.5 text-neutral-800 font-medium"><span class="reg-logo"><img src="file:///E:/SourceBD/public/inapp-logos/BGMEA%20logo.png" alt="" /></span>BGMEA</span><span class="font-mono text-[11px] text-neutral-600">T2 · 26 Jun</span></div>
+            <div class="fact-row"><span class="flex items-center gap-2.5 text-neutral-800 font-medium"><span class="reg-logo"><img src="file:///E:/SourceBD/public/inapp-logos/gost.png" alt="" /></span>GOTS</span><span class="font-mono text-[11px] text-neutral-600">T3 · 26 Jun</span></div>
+          </div>
+          <a class="mt-3 inline-block cta-link text-[12.5px] font-semibold text-brand-forest">How we verify our sources →</a>
+        </article>
+      </div>
+      <!-- ===== /PROVENANCE PANEL ===== -->
+
+    </div>
+  </div>
+</main>
+<script>
+  function showTab(name) {
+    document.querySelectorAll('[data-tab-panel]').forEach(function (panel) {
+      panel.hidden = panel.getAttribute('data-tab-panel') !== name;
+    });
+    document.querySelectorAll('[data-tab-button]').forEach(function (btn) {
+      btn.classList.toggle('active', btn.getAttribute('data-tab-button') === name);
+    });
+  }
+</script>
+</body>
+</html>

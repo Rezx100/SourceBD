@@ -54,7 +54,7 @@ export default async function RfqsPage() {
             href="/app/discover"
             className="inline-flex items-center gap-1.5 rounded-pill bg-brand-forest px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-brand-forest-mid"
           >
-            <Plus size={14} weight="bold" aria-hidden /> Find suppliers
+            <Plus size={16} weight="bold" aria-hidden /> Find suppliers
           </Link>
         }
       />
@@ -101,7 +101,7 @@ export default async function RfqsPage() {
                       <Pill tone="neutral">As supplier</Pill>
                     ) : null}
                   </div>
-                  <p className="mt-0.5 truncate text-[12px] text-ink-tertiary">
+                  <p className="mt-0.5 truncate text-[13px] text-ink-tertiary">
                     {fmtQty(r.quantity, r.quantity_unit)} ·{" "}
                     {r.target_supplier_count}{" "}
                     {r.target_supplier_count === 1 ? "supplier" : "suppliers"} ·{" "}
@@ -109,7 +109,7 @@ export default async function RfqsPage() {
                     {r.quote_count === 1 ? "quote" : "quotes"}
                   </p>
                 </div>
-                <span className="shrink-0 text-[11px] text-ink-tertiary">
+                <span className="shrink-0 text-[12px] text-ink-tertiary">
                   {fmtRelative(r.updated_at)}
                 </span>
               </Link>

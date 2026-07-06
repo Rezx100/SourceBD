@@ -129,9 +129,9 @@ export function ThreadRealtime({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <div className="min-h-[320px] flex-1 overflow-y-auto bg-bg-l0 px-4 py-4">
+      <div className="min-h-[322px] flex-1 overflow-y-auto bg-bg-l0 px-4 py-4">
         {messages.length === 0 ? (
-          <p className="py-8 text-center text-[12px] text-ink-tertiary">
+          <p className="py-8 text-center text-[13px] text-ink-tertiary">
             No messages yet. Send the first one below.
           </p>
         ) : (
@@ -148,15 +148,15 @@ export function ThreadRealtime({
                 <div
                   className={
                     m.is_self
-                      ? "max-w-[80%] rounded-2xl rounded-br-sm bg-brand-forest px-3.5 py-2 text-[13px] text-white shadow-sm"
-                      : "max-w-[80%] rounded-2xl rounded-bl-sm border border-hairline bg-surface-l1 px-3.5 py-2 text-[13px] text-ink-primary shadow-sm"
+                      ? "max-w-[80%] rounded-2xl rounded-br-sm bg-brand-forest px-3.5 py-2 text-[14px] text-white shadow-sm"
+                      : "max-w-[80%] rounded-2xl rounded-bl-sm border border-hairline bg-surface-l1 px-3.5 py-2 text-[14px] text-ink-primary shadow-sm"
                   }
                 >
                   <p className="m-0 whitespace-pre-wrap break-words">
                     {m.body}
                   </p>
                 </div>
-                <span className="mt-1 font-mono text-[10px] text-ink-tertiary">
+                <span className="mt-1 font-mono text-[12px] text-ink-tertiary">
                   {fmtTime(m.created_at)}
                 </span>
               </li>
@@ -181,10 +181,10 @@ export function ThreadRealtime({
           rows={3}
           maxLength={MAX_BODY}
           disabled={sending}
-          className="block w-full resize-y rounded-md border border-hairline-strong bg-bg-l0 px-3 py-2 font-sans text-[13px] text-ink-primary placeholder:text-ink-tertiary focus:border-brand-forest focus:bg-surface-l1 focus:outline-none focus:ring-2 focus:ring-brand-forest/15 disabled:opacity-50"
+          className="block w-full resize-y rounded-md border border-hairline-strong bg-bg-l0 px-3 py-2 font-sans text-[14px] text-ink-primary placeholder:text-ink-tertiary focus:border-brand-forest focus:bg-surface-l1 focus:outline-none focus:ring-2 focus:ring-brand-forest/15 disabled:opacity-50"
         />
         <div className="mt-2 flex items-center justify-between gap-3">
-          <span className="font-mono text-[11px] text-ink-tertiary">
+          <span className="font-mono text-[12px] text-ink-tertiary">
             {draft.trim().length}/{MAX_BODY}
             {error ? (
               <span className="ml-2 text-sem-red">· {error}</span>

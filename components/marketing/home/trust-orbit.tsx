@@ -48,7 +48,7 @@ const HAIRLINE_CYCLE_SECONDS = 3.2;
 
 export function TrustOrbit() {
   return (
-    <div className="relative isolate flex h-full min-h-[320px] w-full items-center justify-center [contain:layout] sm:min-h-[560px]">
+    <div className="relative isolate flex h-full min-h-[322px] w-full items-center justify-center [contain:layout] sm:min-h-[560px]">
       <BrandMarkWithHairline durationSeconds={HAIRLINE_CYCLE_SECONDS} />
 
       {/* Phone rings: same animation, smaller radius so the orbit stays in-frame. */}

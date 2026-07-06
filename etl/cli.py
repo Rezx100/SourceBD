@@ -132,6 +132,22 @@ def normalize_addresses_cmd(
     typer.echo(str(result))
 
 
+@app.command("geocode-addresses")
+def geocode_addresses_cmd(
+    limit: int = typer.Option(None, help="Geocode only the first N pending addresses (quota control)."),
+    dry_run: bool = typer.Option(False, "--dry-run", help="Report pending count without calling Barikoi."),
+) -> None:
+    """Barikoi Rupantor geocode backfill into `public.address_geocodes`.
+
+    Populates the coordinate cache the profile locations map reads.
+    Rupantor bills 2 API calls per address — use --limit to stay in quota.
+    """
+    from etl.jobs.barikoi_geocode import run as run_geocode
+
+    result = run_geocode(limit=limit, dry_run=dry_run)
+    typer.echo(str(result))
+
+
 @app.command("merge-contacts")
 def merge_contacts_cmd(
     limit: int = typer.Option(None, help="Process only the first N candidate suppliers (debug)."),

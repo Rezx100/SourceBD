@@ -66,7 +66,7 @@ export default async function ThreadPage({
           href="/app/messages"
           className="inline-flex items-center gap-1.5 rounded-pill border border-hairline-strong bg-surface-l1 px-3.5 py-2 text-sm font-semibold text-ink-primary transition-colors hover:bg-brand-forest-tint"
         >
-          <ArrowLeft size={14} weight="bold" aria-hidden /> Inbox
+          <ArrowLeft size={16} weight="bold" aria-hidden /> Inbox
         </Link>
         <Link
           href={`/app/discover/${thread.supplier_slug}`}
@@ -85,7 +85,7 @@ export default async function ThreadPage({
               </h1>
               <Pill tone="neutral">{entityLabel(thread.supplier_entity_type)}</Pill>
             </div>
-            <p className="mt-0.5 text-[12px] text-ink-tertiary">
+            <p className="mt-0.5 text-[13px] text-ink-tertiary">
               {thread.subject ?? "General inquiry"}
             </p>
           </div>

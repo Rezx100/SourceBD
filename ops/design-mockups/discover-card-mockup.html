@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<title>Discover card — current vs proposed</title>
+<title>Company profile preview card</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800;900&family=Hanken+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
 <script src="https://cdn.tailwindcss.com"></script>
@@ -37,31 +37,6 @@
   body { font-family: "Hanken Grotesk", sans-serif; background: #f2f1ed; }
   .font-display { font-family: "Archivo", sans-serif; }
   .font-mono { font-family: "IBM Plex Mono", monospace; }
-
-  /* Receipts ring glyph — mirrors components/receipts-ring.tsx + globals.css .glyph/.line */
-  .glyph {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    gap: 5px;
-    border: 1px solid rgba(15,15,20,0.12);
-    border-radius: 8px;
-    background: #ffffff;
-    flex-shrink: 0;
-  }
-  .glyph .line { height: 2px; background: #0f0f14; border-radius: 1px; }
-  .glyph-lg .line { height: 3px; border-radius: 1.5px; }
-
-  .logo-chip {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    font-family: "IBM Plex Mono", monospace;
-    font-weight: 600;
-    color: #fff;
-    border-radius: 6px;
-  }
-  .logo-chip.muted { filter: grayscale(1); opacity: 0.55; }
 
   /* Registry mark — stands in for the real logo image (sourceLogo()) that a
      static mockup can't embed. In production this is an actual brand mark,
@@ -104,24 +79,6 @@
      the icon + border alone carry the semantic band colour the spec requires. */
   .completeness-pill.band-amber { border-color: rgba(199,116,26,0.32); color: #6b6b74; }
   .completeness-pill.band-amber .gauge { color: #c7741a; }
-  .ring-badge {
-    position: absolute;
-    bottom: -6px;
-    right: -6px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 20px;
-    height: 20px;
-    padding: 0 4px;
-    border-radius: 9999px;
-    border: 2px solid #ffffff;
-    background: #0f0f14;
-    color: #ffffff;
-    font-family: "Hanken Grotesk", sans-serif;
-    font-size: 10.5px;
-    font-weight: 700;
-  }
 
   /* Identity avatar — flat, uniform for every company without an uploaded
      logo. Same background/weight regardless of company so the "who is this"
@@ -141,12 +98,6 @@
     border: 1px solid rgba(15,15,20,0.055);
     box-shadow: 0 1px 3px rgba(15,15,20,0.05);
   }
-  .avatar.has-logo {
-    background: #ffffff;
-    padding: 10px;
-  }
-  .avatar.has-logo img,
-  .avatar.has-logo svg { width: 100%; height: 100%; object-fit: contain; }
 
   /* Verified indicator — a quiet, monochrome seal. No number, no fill color:
      a magnitude badge (count in a colored circle) reads exactly like a star
@@ -204,86 +155,9 @@
 <body class="p-10">
 <div class="mx-auto flex max-w-[1040px] flex-col gap-16">
 
-  <!-- ============================================================ -->
-  <!-- CURRENT — MOBILE -->
-  <!-- ============================================================ -->
+  <!-- MOBILE -->
   <div>
-    <p class="section-label mb-3 text-[11px] font-medium text-red-700">Current — mobile (375px)</p>
-    <div id="current-mobile" class="inline-block bg-[#f2f1ed] p-6">
-      <article class="relative w-[375px] overflow-hidden rounded-lg border border-neutral-200 bg-white p-4 shadow-sm">
-        <div class="absolute right-4 top-4 z-10 flex items-center gap-2">
-          <span class="flex size-8 items-center justify-center rounded-full border border-neutral-200 text-neutral-400">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 21 12 17.27 5.82 21 7 14.14l-5-4.87 6.91-1.01L12 2z"/></svg>
-          </span>
-        </div>
-        <div class="flex flex-col gap-4">
-          <div class="flex items-center gap-3">
-            <span class="glyph flex h-[52px] w-[52px] px-[7px] py-[9px]">
-              <span class="line" style="width:90%"></span>
-              <span class="line" style="width:70%"></span>
-              <span class="line" style="width:80%"></span>
-              <span class="line" style="width:60%"></span>
-              <span class="line" style="width:50%"></span>
-            </span>
-          </div>
-          <div class="min-w-0 flex-1 space-y-3.5">
-            <div class="space-y-2 pr-8">
-              <h2 class="font-display text-base font-semibold leading-snug tracking-[-0.01em] text-neutral-900">Sm Sourcing</h2>
-              <div class="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[13px]">
-                <span class="inline-flex items-center gap-1.5 rounded-pill border border-brand-forest/20 bg-brand-forest-soft px-2.5 py-1 text-xs font-medium text-brand-forest">Factory</span>
-                <span class="inline-flex items-center gap-1 text-neutral-700">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C7.58 2 4 5.58 4 10c0 5.25 7 12 8 12s8-6.75 8-12c0-4.42-3.58-8-8-8zm0 11a3 3 0 110-6 3 3 0 010 6z"/></svg>
-                  City Dhaka, Dist Dhaka
-                </span>
-              </div>
-            </div>
-            <div class="flex flex-col gap-2">
-              <div class="flex flex-wrap items-center gap-1.5">
-                <span class="inline-flex min-h-8 items-center gap-2 rounded-pill border border-neutral-200 bg-white px-2.5 py-1 text-[12px] font-medium text-neutral-700 shadow-sm">
-                  <span class="logo-chip h-5 w-7 bg-red-600 text-[8px]">BGA</span>BGAPMEA
-                </span>
-                <span class="inline-flex min-h-8 items-center gap-2 rounded-pill border border-neutral-200 bg-white px-2.5 py-1 text-[12px] font-medium text-neutral-700 shadow-sm">
-                  <span class="logo-chip h-5 w-7 bg-orange-500 text-[8px]">BG</span>BGMEA
-                </span>
-                <span class="inline-flex min-h-8 items-center gap-2 rounded-pill border border-neutral-200 bg-white px-2.5 py-1 text-[12px] font-medium text-neutral-700 shadow-sm">
-                  <span class="logo-chip h-5 w-7 bg-blue-600 text-[8px]">EPB</span>EPB
-                </span>
-                <span class="inline-flex min-h-8 items-center gap-2 rounded-pill border border-neutral-200 bg-white px-2.5 py-1 text-[12px] font-medium text-neutral-700 shadow-sm">
-                  <span class="logo-chip h-5 w-7 bg-teal-600 text-[8px]">WR</span>WRAP
-                </span>
-                <span class="text-[12px] font-medium text-neutral-500">+4 more</span>
-              </div>
-              <div class="flex flex-wrap items-center gap-1.5 text-[11px] font-medium text-neutral-500">
-                <span class="inline-flex min-h-7 items-center rounded-pill border border-neutral-200 bg-neutral-50 px-2.5 py-1">55% complete</span>
-                <span class="inline-flex min-h-7 items-center rounded-pill border border-neutral-200 bg-neutral-50 px-2.5 py-1">5+ verified sources</span>
-              </div>
-            </div>
-            <div class="flex flex-wrap items-center gap-1.5">
-              <span class="inline-flex min-h-8 items-center gap-2 rounded-pill border border-neutral-200 bg-neutral-50 py-1 pl-1.5 pr-2.5 text-[12px] font-medium text-neutral-700">Knitted Garments</span>
-              <span class="inline-flex min-h-8 items-center gap-2 rounded-pill border border-neutral-200 bg-neutral-50 py-1 pl-1.5 pr-2.5 text-[12px] font-medium text-neutral-700">All types of printing</span>
-              <span class="inline-flex min-h-8 items-center gap-2 rounded-pill border border-neutral-200 bg-neutral-50 py-1 pl-1.5 pr-2.5 text-[12px] font-medium text-neutral-700">Babies' apparel</span>
-              <span class="inline-flex min-h-8 items-center gap-2 rounded-pill border border-neutral-200 bg-neutral-50 py-1 pl-1.5 pr-2.5 text-[12px] font-medium text-neutral-700">Back Board</span>
-              <span class="inline-flex min-h-8 items-center gap-2 rounded-pill border border-neutral-200 bg-neutral-50 py-1 pl-1.5 pr-2.5 text-[12px] font-medium text-neutral-700">Carton Box</span>
-              <span class="inline-flex min-h-7 items-center rounded-pill border border-dashed border-neutral-300 px-2.5 py-1 text-[12px] font-medium text-neutral-500">+25 more</span>
-            </div>
-            <div class="grid grid-cols-2 gap-2 border-t border-neutral-200 pt-3 text-[12px] text-neutral-500">
-              <span class="inline-flex items-center gap-1.5"><svg width="13" height="13" viewBox="0 0 256 256" fill="currentColor" class="text-neutral-400"><path d="M208,32H184V24a8,8,0,0,0-16,0v8H88V24a8,8,0,0,0-16,0v8H48A16,16,0,0,0,32,48V208a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V48A16,16,0,0,0,208,32ZM72,48v8a8,8,0,0,0,16,0V48h80v8a8,8,0,0,0,16,0V48h24V80H48V48ZM208,208H48V96H208V208Z"/></svg>Est. 2022</span>
-
-              <span class="inline-flex items-center gap-1.5"><svg width="13" height="13" viewBox="0 0 256 256" fill="currentColor" class="text-neutral-400"><path d="M164.47,195.63a8,8,0,0,1-6.7,12.37H10.23a8,8,0,0,1-6.7-12.37,95.83,95.83,0,0,1,47.22-37.71,60,60,0,1,1,66.5,0A95.83,95.83,0,0,1,164.47,195.63Zm87.91-.72a95.83,95.83,0,0,0-47.22-37.71,60,60,0,0,0-38.66-105.63,8,8,0,1,0,3.65,15.58,44,44,0,0,1,26.94,80.31,8,8,0,0,0-2.06,10.51,7.94,7.94,0,0,0,3.32,3.09A79.9,79.9,0,0,1,238.6,203a8,8,0,0,0,7.11,4.31h.05a8,8,0,0,0,7.62-10.4Z"/></svg>770 employees</span>
-              <span class="inline-flex items-center gap-1.5"><svg width="13" height="13" viewBox="0 0 256 256" fill="currentColor" class="text-neutral-400"><path d="M223.68,66.15,135.68,18a15.88,15.88,0,0,0-15.36,0l-88,48.17a16,16,0,0,0-8.32,14v95.64a16,16,0,0,0,8.32,14l88,48.17a15.88,15.88,0,0,0,15.36,0l88-48.17a16,16,0,0,0,8.32-14V80.18A16,16,0,0,0,223.68,66.15Z" opacity=".3"/></svg>Accessories · Dyeing</span>
-              <span class="inline-flex items-center gap-1.5"><svg width="13" height="13" viewBox="0 0 256 256" fill="currentColor" class="text-neutral-400"><circle cx="128" cy="128" r="96" opacity=".3"/></svg>RSC 59%</span>
-            </div>
-          </div>
-        </div>
-      </article>
-    </div>
-  </div>
-
-  <!-- ============================================================ -->
-  <!-- PROPOSED — MOBILE -->
-  <!-- ============================================================ -->
-  <div>
-    <p class="section-label mb-3 text-[11px] font-medium text-emerald-700">Proposed — mobile (375px)</p>
+    <p class="section-label mb-3 text-[11px] font-medium text-emerald-700">Mobile (375px)</p>
     <div id="proposed-mobile" class="inline-block bg-[#f2f1ed] p-6">
       <article class="card-demo relative w-[375px] overflow-hidden rounded-lg border border-neutral-200 bg-white px-4 pb-3.5 pt-4 shadow-sm">
         <div class="flex items-start gap-4">
@@ -320,9 +194,6 @@
           </span>
         </div>
 
-        <!-- One fewer inline chip than desktop — same "+N more" pattern already
-             used for registries, so no data is lost, it's just disclosed one
-             tap later on the narrower viewport instead of wrapping to a 2nd line. -->
         <div class="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] leading-snug text-neutral-700">
           <span class="inline-flex items-center gap-1 font-medium">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" class="shrink-0 text-neutral-400"><path d="M8 4l2 2h4l2-2M6 6h12l1 14a2 2 0 01-2 2H7a2 2 0 01-2-2L6 6z"/></svg>
@@ -349,87 +220,12 @@
     </div>
   </div>
 
-  <!-- ============================================================ -->
-  <!-- CURRENT — DESKTOP -->
-  <!-- ============================================================ -->
+  <!-- DESKTOP -->
   <div>
-    <p class="section-label mb-3 text-[11px] font-medium text-red-700">Current — desktop (~900px)</p>
-    <div id="current-desktop" class="inline-block bg-[#f2f1ed] p-6">
-      <article class="relative w-[900px] overflow-hidden rounded-lg border border-neutral-200 bg-white p-5 shadow-sm">
-        <div class="absolute right-4 top-4 z-10 flex items-center gap-2">
-          <span class="flex size-8 items-center justify-center rounded-full border border-neutral-200 text-neutral-400">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 21 12 17.27 5.82 21 7 14.14l-5-4.87 6.91-1.01L12 2z"/></svg>
-          </span>
-        </div>
-        <div class="flex items-start gap-5">
-          <span class="glyph flex h-[52px] w-[52px] shrink-0 px-[7px] py-[9px]">
-            <span class="line" style="width:90%"></span>
-            <span class="line" style="width:70%"></span>
-            <span class="line" style="width:80%"></span>
-            <span class="line" style="width:60%"></span>
-            <span class="line" style="width:50%"></span>
-          </span>
-          <div class="min-w-0 flex-1 space-y-3.5">
-            <div class="space-y-2 pr-8">
-              <h2 class="font-display text-base font-semibold leading-snug tracking-[-0.01em] text-neutral-900">Sm Sourcing</h2>
-              <div class="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[13px]">
-                <span class="inline-flex items-center gap-1.5 rounded-pill border border-brand-forest/20 bg-brand-forest-soft px-2.5 py-1 text-xs font-medium text-brand-forest">Factory</span>
-                <span class="inline-flex items-center gap-1 text-neutral-700">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C7.58 2 4 5.58 4 10c0 5.25 7 12 8 12s8-6.75 8-12c0-4.42-3.58-8-8-8zm0 11a3 3 0 110-6 3 3 0 010 6z"/></svg>
-                  City Dhaka, Dist Dhaka
-                </span>
-              </div>
-            </div>
-            <div class="flex items-center justify-between gap-2">
-              <div class="flex flex-wrap items-center gap-1.5">
-                <span class="inline-flex min-h-8 items-center gap-2 rounded-pill border border-neutral-200 bg-white px-2.5 py-1 text-[12px] font-medium text-neutral-700 shadow-sm">
-                  <span class="logo-chip h-5 w-7 bg-red-600 text-[8px]">BGA</span>BGAPMEA
-                </span>
-                <span class="inline-flex min-h-8 items-center gap-2 rounded-pill border border-neutral-200 bg-white px-2.5 py-1 text-[12px] font-medium text-neutral-700 shadow-sm">
-                  <span class="logo-chip h-5 w-7 bg-orange-500 text-[8px]">BG</span>BGMEA
-                </span>
-                <span class="inline-flex min-h-8 items-center gap-2 rounded-pill border border-neutral-200 bg-white px-2.5 py-1 text-[12px] font-medium text-neutral-700 shadow-sm">
-                  <span class="logo-chip h-5 w-7 bg-blue-600 text-[8px]">EPB</span>EPB
-                </span>
-                <span class="inline-flex min-h-8 items-center gap-2 rounded-pill border border-neutral-200 bg-white px-2.5 py-1 text-[12px] font-medium text-neutral-700 shadow-sm">
-                  <span class="logo-chip h-5 w-7 bg-teal-600 text-[8px]">WR</span>WRAP
-                </span>
-                <span class="text-[12px] font-medium text-neutral-500">+4 more</span>
-              </div>
-              <div class="flex flex-shrink-0 items-center gap-1.5 text-[11px] font-medium text-neutral-500">
-                <span class="inline-flex min-h-7 items-center rounded-pill border border-neutral-200 bg-neutral-50 px-2.5 py-1">55% complete</span>
-                <span class="inline-flex min-h-7 items-center rounded-pill border border-neutral-200 bg-neutral-50 px-2.5 py-1">5+ verified sources</span>
-              </div>
-            </div>
-            <div class="flex flex-wrap items-center gap-1.5">
-              <span class="inline-flex min-h-8 items-center gap-2 rounded-pill border border-neutral-200 bg-neutral-50 py-1 pl-1.5 pr-2.5 text-[12px] font-medium text-neutral-700">Knitted Garments</span>
-              <span class="inline-flex min-h-8 items-center gap-2 rounded-pill border border-neutral-200 bg-neutral-50 py-1 pl-1.5 pr-2.5 text-[12px] font-medium text-neutral-700">All types of printing</span>
-              <span class="inline-flex min-h-8 items-center gap-2 rounded-pill border border-neutral-200 bg-neutral-50 py-1 pl-1.5 pr-2.5 text-[12px] font-medium text-neutral-700">Babies' apparel</span>
-              <span class="inline-flex min-h-8 items-center gap-2 rounded-pill border border-neutral-200 bg-neutral-50 py-1 pl-1.5 pr-2.5 text-[12px] font-medium text-neutral-700">Back Board</span>
-              <span class="inline-flex min-h-8 items-center gap-2 rounded-pill border border-neutral-200 bg-neutral-50 py-1 pl-1.5 pr-2.5 text-[12px] font-medium text-neutral-700">Carton Box</span>
-              <span class="inline-flex min-h-7 items-center rounded-pill border border-dashed border-neutral-300 px-2.5 py-1 text-[12px] font-medium text-neutral-500">+25 more</span>
-            </div>
-            <div class="flex flex-wrap items-center gap-4 border-t border-neutral-200 pt-3 text-[12px] text-neutral-500">
-              <span class="inline-flex items-center gap-1.5"><svg width="13" height="13" viewBox="0 0 256 256" fill="currentColor" class="text-neutral-400"><path d="M208,32H184V24a8,8,0,0,0-16,0v8H88V24a8,8,0,0,0-16,0v8H48A16,16,0,0,0,32,48V208a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V48A16,16,0,0,0,208,32ZM72,48v8a8,8,0,0,0,16,0V48h80v8a8,8,0,0,0,16,0V48h24V80H48V48ZM208,208H48V96H208V208Z"/></svg>Est. 2022</span>
-              <span class="inline-flex items-center gap-1.5"><svg width="13" height="13" viewBox="0 0 256 256" fill="currentColor" class="text-neutral-400"><path d="M164.47,195.63a8,8,0,0,1-6.7,12.37H10.23a8,8,0,0,1-6.7-12.37,95.83,95.83,0,0,1,47.22-37.71,60,60,0,1,1,66.5,0A95.83,95.83,0,0,1,164.47,195.63Z"/></svg>770 employees</span>
-              <span class="inline-flex items-center gap-1.5"><svg width="13" height="13" viewBox="0 0 256 256" fill="currentColor" class="text-neutral-400"><rect x="32" y="48" width="192" height="160" rx="8" opacity=".3"/></svg>Accessories · Dyeing</span>
-              <span class="inline-flex items-center gap-1.5"><svg width="13" height="13" viewBox="0 0 256 256" fill="currentColor" class="text-neutral-400"><circle cx="128" cy="128" r="96" opacity=".3"/></svg>RSC 59%</span>
-            </div>
-          </div>
-        </div>
-      </article>
-    </div>
-  </div>
-
-  <!-- ============================================================ -->
-  <!-- PROPOSED — DESKTOP -->
-  <!-- ============================================================ -->
-  <div>
-    <p class="section-label mb-3 text-[11px] font-medium text-emerald-700">Proposed — desktop (~900px)</p>
+    <p class="section-label mb-3 text-[11px] font-medium text-emerald-700">Desktop (~900px)</p>
     <div id="proposed-desktop" class="inline-block bg-[#f2f1ed] p-6">
       <article class="card-demo relative w-[900px] overflow-hidden rounded-lg border border-neutral-200 bg-white p-5 shadow-sm">
         <div class="flex gap-6">
-          <!-- left: identity + trust + products, stacked -->
           <div class="flex min-w-0 flex-1 items-start gap-5">
             <span class="relative inline-flex shrink-0">
               <span class="avatar flex h-[58px] w-[58px] text-[20px]">SM</span>
@@ -475,8 +271,6 @@
             </div>
           </div>
 
-          <!-- right rail: key stat + CTA. No vertical rule — separation comes from
-               generous padding alone, so the card still reads as one unit, not two. -->
           <div class="flex w-[160px] shrink-0 flex-col items-end justify-between gap-3 pl-10 text-right">
             <span title="Follow — get notified of certification &amp; registration changes" class="follow-btn flex size-7 items-center justify-center rounded-full border text-neutral-500 transition-colors hover:border-neutral-200 hover:bg-neutral-50 hover:text-neutral-700" style="border-color:rgba(15,15,20,0.08)">
               <svg width="14.5" height="14.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0"/></svg>
@@ -496,146 +290,6 @@
         </div>
       </article>
     </div>
-  </div>
-
-  <!-- ============================================================ -->
-  <!-- RING TREATMENT OPTIONS -->
-  <!-- ============================================================ -->
-  <div>
-    <p class="section-label mb-3 text-[11px] font-medium text-neutral-500">Verified-sources glyph — is the bar stack the best read?</p>
-    <div id="ring-options" class="inline-flex gap-8 bg-[#f2f1ed] p-6">
-
-      <div class="flex w-[220px] flex-col items-center gap-3 rounded-lg border border-neutral-200 bg-white p-5">
-        <span class="glyph flex h-[56px] w-[56px] px-[7px] py-[9px]">
-          <span class="line" style="width:90%"></span>
-          <span class="line" style="width:70%"></span>
-          <span class="line" style="width:80%"></span>
-          <span class="line" style="width:60%"></span>
-          <span class="line" style="width:50%"></span>
-        </span>
-        <p class="text-center text-[12px] font-semibold text-neutral-800">A — Ring only (today)</p>
-        <p class="text-center text-[11px] leading-snug text-neutral-500">Reads as a logo, not a number. Count only exists in a separate text pill elsewhere on the card.</p>
-      </div>
-
-      <div class="flex w-[220px] flex-col items-center gap-3 rounded-lg border-2 border-brand-forest bg-white p-5">
-        <span class="relative inline-flex">
-          <span class="glyph flex h-[56px] w-[56px] px-[7px] py-[9px]">
-            <span class="line" style="width:90%"></span>
-            <span class="line" style="width:70%"></span>
-            <span class="line" style="width:80%"></span>
-            <span class="line" style="width:60%"></span>
-            <span class="line" style="width:50%"></span>
-          </span>
-          <span class="ring-badge">5</span>
-        </span>
-        <p class="text-center text-[12px] font-semibold text-brand-forest">B — Ring + numeral (recommended)</p>
-        <p class="text-center text-[11px] leading-snug text-neutral-500">Same glyph, same brand history — just legible on its own. One glance = one number, no duplicate text pill needed anywhere else.</p>
-      </div>
-
-      <div class="flex w-[220px] flex-col items-center gap-3 rounded-lg border border-dashed border-neutral-300 bg-white p-5">
-        <div class="flex h-[56px] flex-col items-center justify-center gap-2">
-          <div class="flex items-center gap-1">
-            <span class="h-2.5 w-2.5 rounded-full bg-ink-primary"></span>
-            <span class="h-2.5 w-2.5 rounded-full bg-ink-primary"></span>
-            <span class="h-2.5 w-2.5 rounded-full bg-ink-primary"></span>
-            <span class="h-2.5 w-2.5 rounded-full bg-ink-primary"></span>
-            <span class="h-2.5 w-2.5 rounded-full bg-ink-primary"></span>
-          </div>
-          <span class="font-display text-lg font-extrabold text-neutral-900">5</span>
-        </div>
-        <p class="text-center text-[12px] font-semibold text-neutral-800">C — Dot meter (bigger change)</p>
-        <p class="text-center text-[11px] leading-snug text-neutral-500">More instantly countable than variable-width bars, but it's a new glyph family — needs a cross-product decision, not a card-level fix.</p>
-      </div>
-
-    </div>
-  </div>
-
-  <!-- ============================================================ -->
-  <!-- IDENTITY SLOT: RING VS AVATAR -->
-  <!-- ============================================================ -->
-  <div>
-    <p class="section-label mb-3 text-[11px] font-medium text-neutral-500">Identity slot — the ring shouldn't stand in for a company logo</p>
-    <div id="identity-options" class="inline-flex gap-8 bg-[#f2f1ed] p-6">
-
-      <div class="flex w-[230px] flex-col items-center gap-3 rounded-lg border border-neutral-200 bg-white p-5">
-        <span class="relative inline-flex">
-          <span class="glyph flex h-[56px] w-[56px] px-[7px] py-[9px]">
-            <span class="line" style="width:90%"></span>
-            <span class="line" style="width:70%"></span>
-            <span class="line" style="width:80%"></span>
-            <span class="line" style="width:60%"></span>
-            <span class="line" style="width:50%"></span>
-          </span>
-          <span class="ring-badge">5</span>
-        </span>
-        <p class="text-center text-[12px] font-semibold text-neutral-800">Before — ring fills the logo slot</p>
-        <p class="text-center text-[11px] leading-snug text-neutral-500">Every card's "face" is a trust meter, not the company. Identity and verification are conflated, and it's why the badge felt cramped — it's bolted onto a chart icon, not an avatar.</p>
-      </div>
-
-      <div class="flex w-[230px] flex-col items-center gap-3 rounded-lg border-2 border-brand-forest bg-white p-5">
-        <span class="relative inline-flex">
-          <span class="avatar flex h-[56px] w-[56px] text-[20px]">SM</span>
-          <span class="verify-seal">
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2"><path d="M5 13l4 4L19 7"/></svg>
-          </span>
-        </span>
-        <p class="text-center text-[12px] font-semibold text-brand-forest">After — no logo uploaded</p>
-        <p class="text-center text-[11px] leading-snug text-neutral-500">Neutral tile, two-letter mark, matches the app's real neutral-100 surface + Archivo. Same seal for every verified company — checkmark only, no number, so nothing here is a leaderboard.</p>
-      </div>
-
-      <div class="flex w-[230px] flex-col items-center gap-3 rounded-lg border-2 border-brand-forest bg-white p-5">
-        <span class="relative inline-flex">
-          <span class="avatar has-logo flex h-[56px] w-[56px] items-center justify-center">
-            <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#1f4d3a" stroke-width="1.6"><path d="M3 21V8l9-5 9 5v13M9 21v-6h6v6M3 8l9 5 9-5"/></svg>
-          </span>
-          <span class="verify-seal">
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2"><path d="M5 13l4 4L19 7"/></svg>
-          </span>
-        </span>
-        <p class="text-center text-[12px] font-semibold text-brand-forest">After — logo uploaded</p>
-        <p class="text-center text-[11px] leading-snug text-neutral-500">White tile frames the real logo (like Clutch/G2 do) so dark or light logos both stay legible — a solid colored tile would clip half of real uploads. Same seal, same position either way.</p>
-      </div>
-
-    </div>
-  </div>
-
-  <!-- ============================================================ -->
-  <!-- SAVE ACTION: STAR VS FOLLOW/BELL -->
-  <!-- ============================================================ -->
-  <div>
-    <p class="section-label mb-3 text-[11px] font-medium text-neutral-500">Save action — a star doesn't say "you'll be notified of cert/reg changes"</p>
-    <div id="save-options" class="inline-flex gap-8 bg-[#f2f1ed] p-6">
-
-      <div class="flex w-[230px] flex-col items-center gap-3 rounded-lg border border-neutral-200 bg-white p-5">
-        <div class="flex items-center gap-3">
-          <span class="flex size-9 items-center justify-center rounded-full border border-neutral-200 text-neutral-400">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 21 12 17.27 5.82 21 7 14.14l-5-4.87 6.91-1.01L12 2z"/></svg>
-          </span>
-          <span class="flex size-9 items-center justify-center rounded-full border text-sem-amber" style="border-color:#c7741a;background:#fbf1e3">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 21 12 17.27 5.82 21 7 14.14l-5-4.87 6.91-1.01L12 2z"/></svg>
-          </span>
-        </div>
-        <p class="text-center text-[12px] font-semibold text-neutral-800">Before — Star / "Save"</p>
-        <p class="text-center text-[11px] leading-snug text-neutral-500">Reads as "favorite" — a bookmark for later. Says nothing about the fact that saving quietly enrols the buyer in cert/registration change alerts on this company.</p>
-      </div>
-
-      <div class="flex w-[230px] flex-col items-center gap-3 rounded-lg border-2 border-brand-forest bg-white p-5">
-        <div class="flex items-center gap-3">
-          <span class="flex size-9 items-center justify-center rounded-full border border-neutral-200 text-neutral-400">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0"/></svg>
-          </span>
-          <span class="flex size-9 items-center justify-center rounded-full border border-brand-forest/30 bg-brand-forest-soft text-brand-forest">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path fill-rule="evenodd" d="M5.25 9a6.75 6.75 0 0113.5 0v.75c0 2.123.8 4.057 2.118 5.52a.75.75 0 01-.297 1.206 24.585 24.585 0 01-4.831 1.244 3.75 3.75 0 11-7.48 0 24.585 24.585 0 01-4.831-1.244.75.75 0 01-.298-1.205A8.217 8.217 0 005.25 9.75V9zm4.502 8.9a2.25 2.25 0 104.496 0 25.057 25.057 0 01-4.496 0z" clip-rule="evenodd"/></svg>
-          </span>
-        </div>
-        <p class="text-center text-[12px] font-semibold text-brand-forest">After — Bell / "Follow"</p>
-        <p class="text-center text-[11px] leading-snug text-neutral-500">Matches the actual behavior: on by default, notifies on meaningful changes (cert/registration expiry today; more event types later), opt-out anytime from settings. Off-state outline, on-state filled — same toggle pattern as the star had, honest icon.</p>
-      </div>
-
-    </div>
-    <p class="mt-3 max-w-[620px] text-[11px] leading-snug text-neutral-500">
-      Label also changes from "Save" / "Saved" → "Follow" / "Following" to match. Hovering (desktop) or long-pressing (mobile) shows a one-line tooltip: "You'll get notified about cert &amp; registration changes on this company. Opt out anytime in Settings." First-follow could show a one-time toast with the same copy so the default isn't a silent surprise.
-    </p>
   </div>
 
 </div>

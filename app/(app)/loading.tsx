@@ -305,7 +305,7 @@ export function ThreadSkeleton() {
         <Skeleton w={92} h={38} shape="pill" />
         <Skeleton w={105} h={38} shape="pill" />
       </header>
-      <div className="flex min-h-[520px] flex-1 flex-col rounded-card border border-hairline bg-surface-l1 shadow-[0_1px_2px_rgba(15,15,20,0.03)]">
+      <div className="flex min-h-[522px] flex-1 flex-col rounded-card border border-hairline bg-surface-l1 shadow-[0_1px_2px_rgba(15,15,20,0.03)]">
         <div className="border-b border-hairline px-5 py-4">
           <div className="flex items-center gap-2">
             <Skeleton w={190} h={20} />
@@ -330,7 +330,7 @@ export function ThreadSkeleton() {
 
 export function MasterDetailSkeleton({ kind }: { kind: "rfq" | "order" }) {
   return (
-    <div className="mx-auto grid max-w-6xl gap-6 lg:grid-cols-[320px_minmax(0,1fr)]">
+    <div className="mx-auto grid max-w-6xl gap-6 lg:grid-cols-[322px_minmax(0,1fr)]">
       <aside className="hidden overflow-hidden rounded-card border border-hairline bg-surface-l1 lg:block">
         <div className="border-b border-hairline p-4">
           <Skeleton w={kind === "rfq" ? 95 : 110} h={16} />
@@ -544,7 +544,7 @@ function SmartMatchSkeleton() {
   return (
     <div className="mx-auto max-w-5xl space-y-6">
       <PageHeaderSkeleton titleWidth={300} descriptionWidth="100%" />
-      <ol className="flex items-center gap-2 text-[12px]">
+      <ol className="flex items-center gap-2 text-[13px]">
         {[44, 82, 98].map((w, i) => (
           <li key={w} className="flex items-center gap-2">
             <Skeleton w={24} h={24} shape="pill" />
@@ -615,7 +615,7 @@ function AdminSkeleton() {
   return (
     <div className="mx-auto max-w-6xl space-y-6">
       <PageHeaderSkeleton titleWidth={200} descriptionWidth={360} />
-      <section className="grid grid-cols-1 gap-[14px] sm:grid-cols-2 lg:grid-cols-4">
+      <section className="grid grid-cols-1 gap-[15px] sm:grid-cols-2 lg:grid-cols-4">
         {Array.from({ length: 4 }).map((_, i) => (
           <StatTileSkeleton key={i} />
         ))}
@@ -630,7 +630,7 @@ export function AdminDetailSkeleton() {
   return (
     <div className="mx-auto max-w-6xl space-y-6">
       <BackAndHeaderSkeleton titleWidth={260} />
-      <section className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
+      <section className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_322px]">
         <div className="space-y-4">
           <DetailCardSkeleton titleWidth={180} rows={5} />
           <DetailCardSkeleton titleWidth={150} rows={5} />

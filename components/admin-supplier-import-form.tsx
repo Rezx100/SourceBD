@@ -91,16 +91,16 @@ export function AdminSupplierImportForm() {
             {pending ? "Uploading…" : "Upload CSV"}
           </Button>
           {file ? (
-            <span className="font-mono text-[11px] text-ink-tertiary">
+            <span className="font-mono text-[12px] text-ink-tertiary">
               {file.name} · {file.size.toLocaleString()} bytes
             </span>
           ) : null}
         </div>
-        {error ? <p className="text-[12px] text-sem-red">{error}</p> : null}
+        {error ? <p className="text-[13px] text-sem-red">{error}</p> : null}
       </form>
 
       {result ? (
-        <div className="rounded-input border border-hairline bg-bg-l0 p-3 text-[12px]">
+        <div className="rounded-input border border-hairline bg-bg-l0 p-3 text-[13px]">
           <p className="font-mono">
             processed{" "}
             <span className="tabular-nums text-ink-primary">{result.processed}</span>

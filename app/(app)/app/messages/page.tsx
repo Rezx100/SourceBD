@@ -88,13 +88,13 @@ export default async function MessagesPage() {
                     </span>
                     <Pill tone="neutral">{entityLabel(t.supplier_entity_type)}</Pill>
                   </div>
-                  <p className="mt-0.5 truncate text-[12px] text-ink-tertiary">
+                  <p className="mt-0.5 truncate text-[13px] text-ink-tertiary">
                     {t.subject ?? "General inquiry"} ·{" "}
                     {t.message_count.toLocaleString()}{" "}
                     {t.message_count === 1 ? "message" : "messages"}
                   </p>
                 </div>
-                <span className="shrink-0 text-[11px] text-ink-tertiary">
+                <span className="shrink-0 text-[12px] text-ink-tertiary">
                   {fmtRelative(t.last_message_at ?? t.created_at)}
                 </span>
               </Link>

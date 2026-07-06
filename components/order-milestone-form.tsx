@@ -64,12 +64,12 @@ export function OrderMilestoneForm({ orderId }: { orderId: string }) {
 
   return (
     <form className="flex flex-col gap-3" onSubmit={onSubmit}>
-      <p className="text-[11px] text-ink-tertiary">
+      <p className="text-[12px] text-ink-tertiary">
         Log a milestone
       </p>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <label className="flex flex-col gap-1">
-          <span className="text-[11px] text-ink-tertiary">
+          <span className="text-[12px] text-ink-tertiary">
             Kind
           </span>
           <select
@@ -85,7 +85,7 @@ export function OrderMilestoneForm({ orderId }: { orderId: string }) {
           </select>
         </label>
         <label className="flex flex-col gap-1">
-          <span className="text-[11px] text-ink-tertiary">
+          <span className="text-[12px] text-ink-tertiary">
             Occurred on
           </span>
           <input
@@ -98,7 +98,7 @@ export function OrderMilestoneForm({ orderId }: { orderId: string }) {
         </label>
       </div>
       <label className="flex flex-col gap-1">
-        <span className="text-[11px] text-ink-tertiary">
+        <span className="text-[12px] text-ink-tertiary">
           Label (optional)
         </span>
         <input
@@ -111,7 +111,7 @@ export function OrderMilestoneForm({ orderId }: { orderId: string }) {
         />
       </label>
       <label className="flex flex-col gap-1">
-        <span className="text-[11px] text-ink-tertiary">
+        <span className="text-[12px] text-ink-tertiary">
           Notes (optional)
         </span>
         <textarea
@@ -140,4 +140,4 @@ function isoToday() {
 }
 
 const inputClass =
-  "w-full rounded-input border border-hairline-strong bg-white px-3 py-2 text-[13px] text-ink-primary placeholder:text-ink-tertiary focus:outline-none focus:ring-2 focus:ring-accent-indigo";
+  "w-full rounded-input border border-hairline-strong bg-white px-3 py-2 text-[14px] text-ink-primary placeholder:text-ink-tertiary focus:outline-none focus:ring-2 focus:ring-accent-indigo";

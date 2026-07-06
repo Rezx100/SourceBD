@@ -8,50 +8,46 @@
 
 import { Skeleton } from "@/components/ui/skeleton";
 
-/** Mirrors the dossier `.header-card` (64px / 1fr / auto grid). Below 900px
- *  the real CSS collapses to one column; the silhouette inherits that via
- *  the same class names. */
 export function ProfileHeaderSkeleton() {
   return (
-    <div className="header-card">
-      {/* glyph column */}
-      <div className="header-glyph-col">
-        <Skeleton w={64} h={72} shape="card" />
-        <Skeleton w={56} h={20} shape="pill" />
-      </div>
-
-      {/* identity column */}
-      <div className="min-w-0">
-        <Skeleton w={120} h={10} />
-        <div className="mt-2">
-          <Skeleton w="70%" h={40} />
+    <div className="rounded-lg border border-neutral-200 bg-white p-4 shadow-sm sm:p-5 lg:p-6">
+      <div className="grid gap-5 lg:grid-cols-[76px_minmax(0,1fr)_minmax(170px,auto)]">
+        <div className="flex items-start gap-3 lg:flex-col lg:items-center">
+          <Skeleton w={64} h={60} shape="card" />
+          <Skeleton w={58} h={22} shape="pill" />
         </div>
-        <div className="mt-3">
-          <Skeleton w={220} h={12} />
-        </div>
-        <div className="header-chips" style={{ marginTop: 14 }}>
-          <Skeleton w={150} h={22} shape="pill" />
-          <Skeleton w={90} h={22} shape="pill" />
-          <Skeleton w={110} h={22} shape="pill" />
-          <Skeleton w={80} h={22} shape="pill" />
-        </div>
-        <div className="header-meta-row" style={{ marginTop: 12 }}>
-          {Array.from({ length: 5 }).map((_, i) => (
-            <div key={i}>
-              <Skeleton w={70} h={10} />
-              <div className="mt-1.5">
-                <Skeleton w={120} h={14} />
+        <div className="min-w-0">
+          <Skeleton w={150} h={10} />
+          <div className="mt-2">
+            <Skeleton w="72%" h={38} />
+          </div>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Skeleton w={70} h={22} shape="pill" />
+            <Skeleton w={140} h={14} />
+            <Skeleton w={120} h={14} />
+          </div>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <Skeleton w={32} h={32} shape="card" />
+            <Skeleton w={32} h={32} shape="card" />
+            <Skeleton w={32} h={32} shape="card" />
+            <Skeleton w={130} h={14} />
+            <Skeleton w={92} h={22} shape="pill" />
+          </div>
+          <div className="mt-5 grid gap-3 border-t border-neutral-100 pt-4 sm:grid-cols-2 xl:grid-cols-4">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i}>
+                <Skeleton w={70} h={10} />
+                <div className="mt-2">
+                  <Skeleton w="80%" h={14} />
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
-      </div>
-
-      {/* side column (completeness + CTAs) */}
-      <div className="header-side">
-        <Skeleton w={110} h={22} shape="pill" />
-        <Skeleton w={140} h={36} shape="pill" />
-        <Skeleton w={120} h={36} shape="pill" />
+        <div className="flex flex-col gap-2 lg:items-end">
+          <Skeleton w={140} h={44} shape="pill" />
+          <Skeleton w={140} h={44} shape="pill" />
+        </div>
       </div>
     </div>
   );
@@ -60,7 +56,10 @@ export function ProfileHeaderSkeleton() {
 /** Mirrors the tab strip — 6 tabs at ~96px each, 36px tall. */
 export function ProfileTabsSkeleton() {
   return (
-    <div className="flex flex-wrap gap-2" aria-hidden>
+    <div
+      className="flex gap-2 overflow-hidden rounded-lg border border-neutral-200 bg-white p-2 shadow-sm"
+      aria-hidden
+    >
       {Array.from({ length: 6 }).map((_, i) => (
         <Skeleton key={i} w={96} h={36} shape="pill" tone="card" />
       ))}
@@ -70,11 +69,13 @@ export function ProfileTabsSkeleton() {
 
 function CertRowSkeleton() {
   return (
-    <div className="cert">
-      <Skeleton w={36} h={36} shape="card" />
-      <div className="cert-main">
+    <div className="grid grid-cols-[2rem_minmax(0,1fr)_auto] items-center gap-3 border-t border-neutral-100 py-3">
+      <Skeleton w={32} h={32} shape="card" />
+      <div>
         <Skeleton w={92} h={16} />
-        <Skeleton w="80%" h={12} />
+        <div className="mt-1">
+          <Skeleton w="80%" h={12} />
+        </div>
       </div>
       <Skeleton w={64} h={24} shape="pill" />
     </div>
@@ -85,19 +86,19 @@ function CertRowSkeleton() {
 export function ProfileTabBodySkeleton() {
   return (
     <div className="space-y-4">
-      <div className="proto-card space-y-3">
-        <div className="proto-card-head">
+      <div className="rounded-lg border border-neutral-200 bg-white p-4 shadow-sm sm:p-5">
+        <div className="mb-4 flex items-baseline justify-between border-b border-neutral-100 pb-3">
           <Skeleton w={130} h={16} />
           <Skeleton w={120} h={12} />
         </div>
-        <div className="cert-list">
+        <div>
           <CertRowSkeleton />
           <CertRowSkeleton />
           <CertRowSkeleton />
         </div>
       </div>
-      <div className="proto-card space-y-3">
-        <div className="proto-card-head">
+      <div className="rounded-lg border border-neutral-200 bg-white p-4 shadow-sm sm:p-5">
+        <div className="mb-4 flex items-baseline justify-between border-b border-neutral-100 pb-3">
           <Skeleton w={150} h={16} />
           <Skeleton w={90} h={12} />
         </div>
@@ -133,8 +134,8 @@ export function ProtoCardSkeleton({
   title?: number;
 }) {
   return (
-    <div className="proto-card space-y-3">
-      <div className="proto-card-head">
+    <div className="space-y-3 rounded-lg border border-neutral-200 bg-white p-4 shadow-sm sm:p-5">
+      <div className="border-b border-neutral-100 pb-3">
         <Skeleton w={title} h={16} />
       </div>
       {Array.from({ length: rows }).map((_, i) => (

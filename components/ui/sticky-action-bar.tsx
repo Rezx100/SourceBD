@@ -38,7 +38,7 @@ export function StickyActionBar({
         {...rest}
       >
         {helper ? (
-          <div className="text-[12px] text-ink-tertiary md:flex-1">{helper}</div>
+          <div className="text-[13px] text-ink-tertiary md:flex-1">{helper}</div>
         ) : (
           <div className="md:flex-1" />
         )}

@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 
 // Tag — neutral pill chip used in header chip rows, registry rows, etc.
 const tagVariants = cva(
-  "inline-flex items-center gap-1.5 rounded-pill border px-2.5 py-1 text-[12px] font-medium",
+  "inline-flex items-center gap-1.5 rounded-pill border px-2.5 py-1 text-[13px] font-medium",
   {
     variants: {
       tone: {

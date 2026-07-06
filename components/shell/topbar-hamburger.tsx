@@ -66,7 +66,7 @@ export function TopbarHamburger({
       <MobileDrawer
         open={open}
         onClose={() => setOpen(false)}
-        side="left"
+        side="right"
         label={VARIANT_LABEL[v]}
       >
         <Link
@@ -91,7 +91,7 @@ export function TopbarHamburger({
         <nav aria-label={`${VARIANT_LABEL[v]} sections`} className="flex flex-col gap-5">
           {sections.map((section) => (
             <div key={section.label} className="flex flex-col gap-0.5">
-              <p className="mb-1 px-2.5 text-[11px] font-semibold uppercase tracking-[0.06em] text-ink-tertiary">
+              <p className="mb-1 px-2.5 text-[12px] font-semibold uppercase tracking-[0.06em] text-ink-tertiary">
                 {section.label}
               </p>
               {section.slots.map((slot) => {
@@ -104,7 +104,7 @@ export function TopbarHamburger({
                     href={slot.href}
                     aria-current={active ? "page" : undefined}
                     className={cn(
-                      "group flex min-h-[44px] items-center gap-3 rounded-md px-2.5 text-[14px] transition-colors",
+                      "group flex min-h-[44px] items-center gap-3 rounded-md px-2.5 text-[15px] transition-colors",
                       active
                         ? "bg-brand-forest-soft font-semibold text-brand-forest"
                         : "font-medium text-ink-secondary hover:bg-[rgba(15,15,20,0.045)] hover:text-ink-primary",

@@ -10,7 +10,7 @@ type Tone = "default" | "soft" | "card";
 type Props = {
   /** Inline width — px number or any CSS length. Omit for full-width. */
   w?: number | string;
-  /** Inline height — px number or any CSS length. Default 12px (text-bar). */
+  /** Inline height — px number or any CSS length. Default 13px (text-bar). */
   h?: number | string;
   shape?: Shape;
   tone?: Tone;

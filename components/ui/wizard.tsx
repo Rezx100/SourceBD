@@ -45,10 +45,10 @@ export function Wizard({ steps, current, children, className }: WizardProps) {
         className="md:hidden"
       >
         <div className="flex items-baseline justify-between gap-2">
-          <p className="font-mono text-[11px] uppercase tracking-[0.06em] text-ink-tertiary">
+          <p className="font-mono text-[12px] uppercase tracking-[0.06em] text-ink-tertiary">
             Step {safeCurrent + 1} of {total}
           </p>
-          <p className="font-display text-[14px] font-semibold text-ink-primary">
+          <p className="font-display text-[15px] font-semibold text-ink-primary">
             {activeStep?.label}
           </p>
         </div>
@@ -82,7 +82,7 @@ export function Wizard({ steps, current, children, className }: WizardProps) {
             >
               <span
                 className={cn(
-                  "mt-0.5 inline-flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-pill border font-mono text-[12px] font-semibold",
+                  "mt-0.5 inline-flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-pill border font-mono text-[13px] font-semibold",
                   status === "done" &&
                     "border-brand-forest bg-brand-forest text-ink-on-accent",
                   status === "active" &&
@@ -96,14 +96,14 @@ export function Wizard({ steps, current, children, className }: WizardProps) {
               <div className="min-w-0 flex-1">
                 <p
                   className={cn(
-                    "font-display text-[13px] font-semibold leading-tight",
+                    "font-display text-[14px] font-semibold leading-tight",
                     status === "todo" ? "text-ink-tertiary" : "text-ink-primary",
                   )}
                 >
                   {s.label}
                 </p>
                 {s.hint ? (
-                  <p className="mt-0.5 font-mono text-[11px] leading-snug text-ink-tertiary">
+                  <p className="mt-0.5 font-mono text-[12px] leading-snug text-ink-tertiary">
                     {s.hint}
                   </p>
                 ) : null}

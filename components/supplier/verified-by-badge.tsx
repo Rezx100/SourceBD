@@ -32,7 +32,7 @@ export function VerifiedByBadge({ pills }: { pills: VerifiedPill[] }) {
       aria-label={`Company verified by ${codes.join(", ")}`}
     >
       <span className="verified-by-badge-label">
-        <ShieldCheck size={14} weight="fill" aria-hidden />
+        <ShieldCheck size={16} weight="fill" aria-hidden />
         <span>Company verified by</span>
       </span>
       <span className="verified-by-badge-sources">

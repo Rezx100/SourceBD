@@ -25,7 +25,7 @@ export default async function ComponentsPage() {
   return (
     <main className="mx-auto max-w-5xl px-6 py-12 space-y-12">
       <header>
-        <p className="text-[11px] text-ink-tertiary">
+        <p className="text-[12px] text-ink-tertiary">
           Dev only · Spec F1
         </p>
         <h1 className="font-display text-3xl font-semibold tracking-tightish text-ink-primary">
@@ -124,14 +124,14 @@ export default async function ComponentsPage() {
         <div className="mt-4 space-y-6">
           {ringCounts.map((n) => (
             <div key={n} className="flex items-center gap-6">
-              <span className="w-28 font-mono text-[12px] text-ink-tertiary">
+              <span className="w-28 font-mono text-[13px] text-ink-tertiary">
                 {n} {n === 1 ? "source" : "sources"}
               </span>
               <div className="flex items-end gap-5">
                 {ringSizes.map((size) => (
                   <div key={size} className="flex flex-col items-center gap-1">
                     <ReceiptsRing sources={n} size={size} />
-                    <span className="font-mono text-[10px] text-ink-tertiary">
+                    <span className="font-mono text-[12px] text-ink-tertiary">
                       {size}px
                     </span>
                   </div>

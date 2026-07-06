@@ -27,6 +27,14 @@ const SOURCE_LOGOS: Record<string, string> = {
   OCS: `${CDN}/OCS.png`,
   BSCI: `${CDN}/amfori.jpg`,
   AMFORI: `${CDN}/amfori.jpg`,
+  // Sanctions watchlists — keyed by the real `sanctions_list_entries.list`
+  // values (see app/(app)/admin/sanctions/page.tsx SANCTIONS_LISTS).
+  uflpa: "/inapp-logos/sanctions/cbp.png",
+  us_wro: "/inapp-logos/sanctions/cbp.png",
+  ofac_sdn: "/inapp-logos/sanctions/ofac-treasury.png",
+  uk_ofsi: "/inapp-logos/sanctions/hm-treasury-uk.png",
+  eu_sanctions: "/inapp-logos/sanctions/european-commission.png",
+  ilab_tvpra: "/inapp-logos/sanctions/dol.png",
 };
 
 /** Resolve a CDN logo URL for a source tag, or null when none is known. */

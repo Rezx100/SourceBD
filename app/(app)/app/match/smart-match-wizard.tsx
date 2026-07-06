@@ -212,7 +212,7 @@ function StepBar({ step }: { step: 1 | 2 | 3 }) {
   return (
     <ol
       aria-label="Wizard progress"
-      className="flex items-center gap-2 text-[12px]"
+      className="flex items-center gap-2 text-[13px]"
     >
       {labels.map((label, i) => {
         const n = (i + 1) as 1 | 2 | 3;
@@ -222,7 +222,7 @@ function StepBar({ step }: { step: 1 | 2 | 3 }) {
           <li key={label} className="flex items-center gap-2">
             <span
               className={cn(
-                "inline-flex h-6 min-w-[24px] items-center justify-center rounded-pill border px-2 text-[11px]",
+                "inline-flex h-6 min-w-[26px] items-center justify-center rounded-pill border px-2 text-[12px]",
                 done
                   ? "border-sem-green bg-sem-green-soft text-sem-green"
                   : active
@@ -230,11 +230,11 @@ function StepBar({ step }: { step: 1 | 2 | 3 }) {
                     : "border-hairline text-ink-tertiary",
               )}
             >
-              {done ? <CheckCircle weight="fill" size={12} /> : n}
+              {done ? <CheckCircle weight="fill" size={16} /> : n}
             </span>
             <span
               className={cn(
-                "text-[11px]",
+                "text-[12px]",
                 active ? "text-ink-primary" : "text-ink-tertiary",
               )}
             >
@@ -295,7 +295,7 @@ function Step1Product({
       <StickyActionBar>
         <Button variant="primary" onClick={onNext}>
           Next: requirements
-          <ArrowRight size={14} weight="bold" />
+          <ArrowRight size={16} weight="bold" />
         </Button>
       </StickyActionBar>
     </section>
@@ -405,12 +405,12 @@ function Step2Requirements({
 
       <StickyActionBar>
         <Button variant="ghost" onClick={onBack}>
-          <ArrowLeft size={14} weight="bold" />
+          <ArrowLeft size={16} weight="bold" />
           Back
         </Button>
         <Button variant="primary" onClick={onNext}>
           Next: review
-          <ArrowRight size={14} weight="bold" />
+          <ArrowRight size={16} weight="bold" />
         </Button>
       </StickyActionBar>
     </section>
@@ -453,11 +453,11 @@ function Step3Review({
       )}
       <StickyActionBar>
         <Button variant="ghost" onClick={onBack} disabled={pending}>
-          <ArrowLeft size={14} weight="bold" />
+          <ArrowLeft size={16} weight="bold" />
           Back
         </Button>
         <Button variant="primary" onClick={onSubmit} disabled={pending}>
-          <Sparkle size={14} weight="fill" />
+          <Sparkle size={16} weight="fill" />
           {pending ? "Matching\u2026" : "Find matches"}
         </Button>
       </StickyActionBar>
@@ -486,14 +486,14 @@ function ResultsPanel({
           <h2 className="font-display text-lg font-light tracking-tight text-ink-primary">
             {data.total} {data.total === 1 ? "match" : "matches"}
             {data.criteria_count > 0 ? (
-              <span className="ml-2 text-[11px] text-ink-tertiary">
+              <span className="ml-2 text-[12px] text-ink-tertiary">
                 against {data.criteria_count}{" "}
                 {data.criteria_count === 1 ? "criterion" : "criteria"}
               </span>
             ) : null}
           </h2>
           {data.total > 0 ? (
-            <p className="mt-1 text-[12px] text-ink-tertiary">
+            <p className="mt-1 text-[13px] text-ink-tertiary">
               Showing {shown} of {data.total}. Search intent uses the same
               synonym and compound-product brain as Discover.
             </p>
@@ -520,7 +520,7 @@ function ResultsPanel({
                 footerSlot={
                   row.match_reasons.length > 0 ? (
                     <div className="pill-row">
-                      <span className="text-[10px] font-semibold text-ink-tertiary">
+                      <span className="text-[12px] font-semibold text-ink-tertiary">
                         Matched on:
                       </span>
                       {row.match_reasons.map((reason) => (
@@ -585,11 +585,11 @@ function Field({
 }) {
   return (
     <label className="block space-y-1.5">
-      <span className="block text-[11px] text-ink-tertiary">
+      <span className="block text-[12px] text-ink-tertiary">
         {label}
       </span>
       {children}
-      {hint ? <span className="block text-[12px] text-ink-tertiary">{hint}</span> : null}
+      {hint ? <span className="block text-[13px] text-ink-tertiary">{hint}</span> : null}
     </label>
   );
 }
@@ -617,7 +617,7 @@ function CheckboxGroup<T extends string>({
             onClick={() => toggle(opt.value)}
             aria-pressed={active}
             className={cn(
-              "rounded-pill border px-3 py-1 text-[12px] font-medium transition",
+              "rounded-pill border px-3 py-1 text-[13px] font-medium transition",
               active
                 ? "border-brand-forest bg-brand-forest-soft text-brand-forest"
                 : "border-hairline-strong bg-surface-l1 text-ink-secondary hover:border-brand-forest",

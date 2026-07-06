@@ -20,7 +20,7 @@ export default function SmartMatchLoading() {
       <div className="space-y-4">
         <ol
           aria-hidden
-          className="flex items-center gap-2 text-[12px]"
+          className="flex items-center gap-2 text-[13px]"
         >
           {["Product", "Requirements", "Review & match"].map((label, i) => (
             <li key={label} className="flex items-center gap-2">

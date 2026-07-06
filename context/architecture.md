@@ -23,6 +23,7 @@
 - **Payments**: **Stripe** integration is **deferred to a post-beta phase** (3 Jun 2026 founder decision). The H3 idempotent webhook recorder is retained as harmless infrastructure; no live keys, no checkout, no tier structure committed. Plan-tier names and pricing will be decided after the free public beta validates product-market fit. See `phases.md` → "Deferred until post-beta".
 - **Error tracking**: **Sentry** (added at production launch).
 - **Analytics**: **PostHog** (added at production launch).
+- **Maps / geocoding**: **Barikoi** (approved as a Hard-Rule-4 exception by founder on 6 Jul 2026). Two scoped uses: (1) Rupantor geocode backfill in ETL (`etl/jobs/barikoi_geocode.py` → `public.address_geocodes` cache table, mig 0077) and (2) the profile Locations map (`bkoi-gl` via `components/supplier/locations-map.tsx`, server geocode resolution in `lib/barikoi.ts`). Server key `BARIKOI_API_KEY`; tile key `NEXT_PUBLIC_BARIKOI_API_KEY` (public by design — bind to domain in the Barikoi dashboard). Coordinates are display metadata only; they never overwrite registry facts (trust hierarchy unaffected). Web only reads the geocode cache; the ETL job is the only writer, and Rupantor bills 2 calls/address so backfills run with `--limit`.
 
 ### Hosting
 - **Web app**: **OneProvider VPS** (Ubuntu 22.04 LTS, Docker + Caddy reverse proxy, Next.js running under PM2 or as a systemd service in a container). Replaces Vercel.

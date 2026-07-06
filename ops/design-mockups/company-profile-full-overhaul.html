@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Company profile — full overhaul proposal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800;900&family=Hanken+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          "brand-forest": "#1f4d3a",
+          "brand-forest-soft": "#ecf3ee",
+          "ink-primary": "#0f0f14",
+          "ink-secondary": "#4a4a55",
+          "ink-tertiary": "#8a8a95",
+          "sem-green": "#2d7a4f",
+          "sem-green-soft": "#eaf5ee",
+          "sem-amber": "#c7741a",
+          "sem-amber-soft": "#fbf1e3",
+          "sem-red": "#b3402a",
+          "sem-red-soft": "#fbeae6",
+          hairline: "rgba(15,15,20,0.07)",
+          "hairline-strong": "rgba(15,15,20,0.12)",
+        },
+        fontFamily: {
+          display: ["Archivo", "sans-serif"],
+          body: ["Hanken Grotesk", "sans-serif"],
+          mono: ["IBM Plex Mono", "monospace"],
+        },
+      },
+    },
+  };
+</script>
+<style>
+  body { font-family: "Hanken Grotesk", sans-serif; background: #f2f1ed; color: #0f0f14; }
+  .font-display { font-family: "Archivo", sans-serif; }
+  .font-mono { font-family: "IBM Plex Mono", monospace; }
+
+  /* ---- shared primitives, ported 1:1 from the accepted Discover-card mockup ---- */
+  .avatar {
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    border-radius: 14px; background: #f5f5f4; color: #0f0f14;
+    font-family: "Archivo", sans-serif; font-weight: 700; letter-spacing: -0.02em;
+    border: 1px solid rgba(15,15,20,0.06); box-shadow: 0 1px 4px rgba(15,15,20,0.07);
+  }
+  .verify-seal {
+    position: absolute; bottom: -3px; right: -3px; display: flex; align-items: center; justify-content: center;
+    border-radius: 9999px; background: #fff; border: 1.5px solid rgba(15,15,20,0.14); color: #1f4d3a;
+  }
+  .mark {
+    display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+    border-radius: 7px; border: 1px solid rgba(15,15,20,.065); background: #fafaf9;
+    font: 700 9px "IBM Plex Mono"; color: #4a4a55;
+  }
+  .entity-pill { display: inline-flex; align-items: center; border-radius: 9999px; background: #f5f5f4; padding: 2px 9px; font-size: 12px; font-weight: 600; color: #4a4a55; }
+  .type-pill { display: inline-flex; align-items: center; border-radius: 9999px; border: 1px solid rgba(15,15,20,.09); padding: 2px 9px; font-size: 12px; font-weight: 500; color: #6b6b74; }
+  .completeness-pill { display: inline-flex; align-items: center; gap: 5px; border-radius: 9999px; padding: 3px 10px 3px 8px; font-size: 12px; font-weight: 500; border: 1px solid rgba(199,116,26,.32); color: #6b6b74; background:#fff; }
+  .completeness-pill .gauge { color: #c7741a; }
+  .section-label { font: 600 11px "IBM Plex Mono"; letter-spacing: .08em; text-transform: uppercase; color: #1f4d3a; }
+  .tab { border-radius: 8px; padding: 9px 13px; font-weight: 650; font-size: 13px; color: #6b6b74; white-space: nowrap; }
+  .tab.active { color: #1f4d3a; background: #ecf3ee; }
+  .evidence-row { display: grid; grid-template-columns: 34px minmax(0,1fr) auto; gap: 12px; align-items: center; padding: 13px 0; border-top: 1px solid rgba(15,15,20,.07); }
+  .status-pill { display:inline-flex; align-items:center; gap:4px; border-radius:9999px; padding:4px 10px; font-size:11px; font-weight:600; }
+  .status-valid { background:#eaf5ee; color:#2d7a4f; }
+  .status-neutral { background:#f2f1ed; color:#6b6b74; }
+  .kpi-tile { border-radius: 12px; border: 1px solid rgba(15,15,20,.09); background: #fafaf9; padding: 14px 16px; }
+  .kpi-value { font-family:"Archivo"; font-size: 26px; font-weight: 700; letter-spacing: -0.02em; line-height:1; color:#0f0f14; }
+  .kpi-label { font-size: 12px; font-weight: 600; color:#6b6b74; }
+  .addr-card { border-radius: 10px; border: 1px solid rgba(15,15,20,.08); background:#fff; padding: 12px 14px; }
+  .addr-kind { display:inline-flex; align-items:center; border-radius:9999px; padding:2px 8px; font-size:10.5px; font-weight:700; letter-spacing:.02em; }
+  .kind-factory { background:#f2f1ed; color:#6b6b74; }
+  .kind-office { background:#ecf3ee; color:#1f4d3a; }
+  .kind-mailing { background:#fbf1e3; color:#a15f16; }
+  .sidebar-link { display:flex; align-items:center; justify-content:space-between; border-radius:8px; padding:8px 10px; font-size:13px; font-weight:500; color:#4a4a55; }
+  .sidebar-link:hover { background:#f2f1ed; }
+  .sidebar-link.active { background:#ecf3ee; color:#1f4d3a; font-weight:600; }
+  .sidebar-count { font-family:"IBM Plex Mono"; font-size:10.5px; font-weight:600; color:#8a8a95; background:#f2f1ed; border-radius:9999px; padding:1px 7px; }
+  .sidebar-section-label { font:600 10.5px "IBM Plex Mono"; letter-spacing:.08em; text-transform:uppercase; color:#b4b4b9; padding: 0 10px; }
+
+  /* ---- hero / trust / stat primitives ---- */
+  .trust-panel { border-radius: 12px; background: linear-gradient(180deg,#f4f8f5,#eef4f0); border: 1px solid rgba(31,77,58,.14); padding: 14px 16px; }
+  .tabs-sticky { position: sticky; top: 12px; z-index: 10; }
+  .tab-v2 { position:relative; border-radius: 8px; padding: 12px 16px; font-weight: 650; font-size: 13.5px; color: #6b6b74; white-space: nowrap; transition: color 150ms ease; }
+  .tab-v2.active { color: #1f4d3a; }
+  .tab-v2.active::after { content:""; position:absolute; left:16px; right:16px; bottom:0; height:2.5px; border-radius: 2px 2px 0 0; background:#1f4d3a; }
+  .highlight-chip { display:inline-flex; align-items:center; gap:5px; border-radius: 8px; background:#fafaf9; border:1px solid rgba(15,15,20,.07); padding: 7px 11px; font-size:12.5px; font-weight:600; color:#33333a; }
+  .highlight-chip svg { color:#2d7a4f; flex-shrink:0; }
+  .stat-card { border-radius: 12px; border: 1px solid rgba(15,15,20,.08); background:#fafaf9; padding: 16px; }
+  .stat-value { font-family:"Archivo"; font-size: 22px; font-weight: 700; letter-spacing:-0.01em; color:#0f0f14; line-height:1.1; }
+  .icon-btn { display:inline-flex; align-items:center; gap:7px; border-radius: 9px; border:1px solid rgba(15,15,20,.1); background:#fff; padding: 9px 13px; font-size:13px; font-weight:600; color:#1f4d3a; }
+  .icon-btn svg { flex-shrink:0; }
+</style>
+</head>
+<body class="p-4 sm:p-10">
+<main class="mx-auto max-w-[1400px] space-y-14">
+
+  <header class="max-w-[1000px]">
+    <h1 class="font-display text-[26px] font-black tracking-[-0.02em]">Company profile — full overhaul proposal</h1>
+    <p class="mt-2 text-[14px] leading-6 text-neutral-600">Built from the same primitives already shipped on the Discover card — avatar identity glyph, registry marks, quiet completeness pill, evidence-row lists — so the card and the full profile read as one product.</p>
+  </header>
+
+  <!-- ============ DESKTOP — SHELL + HEADER + OVERVIEW ============ -->
+  <section>
+    <p class="section-label mb-3">Desktop (1400px) — shell, header, Overview tab</p>
+    <div class="grid grid-cols-[220px_minmax(0,1fr)] gap-5 rounded-xl border border-neutral-200 bg-neutral-50 p-4">
+
+      <!-- SIDEBAR -->
+      <aside class="rounded-lg border border-neutral-200 bg-white p-3 shadow-sm">
+        <div class="flex items-center gap-2.5 rounded-lg p-2">
+          <span class="avatar flex h-9 w-9 rounded-full text-[12px]">RF</span>
+          <div class="min-w-0">
+            <p class="font-display truncate text-[13px] font-bold leading-tight">Rezan Ferdous</p>
+            <p class="text-[11px] text-neutral-500">Buyer account</p>
+          </div>
+        </div>
+        <div class="mt-4 space-y-4">
+          <div class="space-y-1">
+            <p class="sidebar-section-label mb-1">Discover</p>
+            <div class="sidebar-link"><span>Search suppliers</span><span class="sidebar-count">10,148</span></div>
+            <div class="sidebar-link"><span>Find matches</span></div>
+            <div class="sidebar-link"><span>Saved suppliers</span><span class="sidebar-count">9</span></div>
+          </div>
+          <div class="space-y-1">
+            <p class="sidebar-section-label mb-1">Activity</p>
+            <div class="sidebar-link"><span>Messages</span></div>
+            <div class="sidebar-link"><span>RFQs</span></div>
+            <div class="sidebar-link"><span>Orders</span></div>
+          </div>
+          <div class="space-y-1">
+            <p class="sidebar-section-label mb-1">Compliance</p>
+            <div class="sidebar-link active"><span>Compliance</span><span class="sidebar-count" style="background:#dff0e6;color:#1f4d3a">4</span></div>
+          </div>
+          <div class="space-y-1">
+            <p class="sidebar-section-label mb-1">Account</p>
+            <div class="sidebar-link"><span>Settings</span></div>
+          </div>
+        </div>
+        <div class="mt-6 border-t border-neutral-100 pt-3">
+          <div class="sidebar-link text-neutral-500"><span>Sign out</span></div>
+        </div>
+      </aside>
+
+      <!-- MAIN COLUMN -->
+      <div class="min-w-0 space-y-4">
+
+        <!-- HERO v3 — open/spacious identity anchor, trust as a secondary hero, metadata regrouped and de-emphasized -->
+        <article class="rounded-lg border border-neutral-200 bg-white p-8 shadow-sm">
+          <div class="flex flex-wrap items-start justify-between gap-6">
+            <div class="flex min-w-0 items-center gap-6">
+              <span class="relative inline-flex shrink-0">
+                <span class="avatar flex h-[92px] w-[92px] text-[32px]">SS</span>
+                <span class="verify-seal h-7 w-7">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2"><path d="M5 13l4 4L19 7"/></svg>
+                </span>
+              </span>
+              <div class="min-w-0">
+                <h1 class="font-display text-[44px] font-black leading-[1] tracking-[-0.03em] text-neutral-950">Sm Sourcing</h1>
+                <div class="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1.5">
+                  <span class="entity-pill">Factory</span>
+                  <span class="inline-flex items-center gap-1 text-[14px] font-medium text-neutral-600">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" class="text-neutral-400"><path d="M12 2C7.58 2 4 5.58 4 10c0 5.25 7 12 8 12s8-6.75 8-12c0-4.42-3.58-8-8-8zm0 11a3 3 0 110-6 3 3 0 010 6z"/></svg>
+                    Shahbagh, Dhaka
+                  </span>
+                  <span class="text-[14px] text-neutral-400">·</span>
+                  <span class="text-[14px] font-medium text-neutral-500">Accessories, Dyeing +2 more</span>
+                </div>
+              </div>
+            </div>
+            <div class="flex gap-2">
+              <button class="h-11 rounded-lg border border-neutral-200 px-4 text-sm font-semibold text-neutral-700 shadow-sm">Follow</button>
+              <button class="h-11 rounded-lg bg-brand-forest px-5 text-sm font-semibold text-white shadow-sm">Contact</button>
+            </div>
+          </div>
+
+          <!-- trust as a secondary hero — bigger, bolder, more breathing room, not a text row -->
+          <div class="trust-panel mt-8 p-5">
+            <div class="flex flex-wrap items-center gap-4">
+              <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white text-brand-forest shadow-sm">
+                <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg>
+              </span>
+              <div class="min-w-0 flex-1">
+                <p class="text-[17px] font-bold leading-tight text-neutral-900">Verified by 8 independent sources</p>
+                <p class="mt-1 text-[12.5px] text-neutral-500">Cross-checked against government &amp; industry registries</p>
+              </div>
+              <span class="completeness-pill shrink-0">
+                <svg class="gauge" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M4 15a8 8 0 1116 0M12 15l3.5-4"/></svg>
+                55% complete
+              </span>
+            </div>
+            <div class="mt-4 flex flex-wrap items-center gap-2.5 border-t border-brand-forest/10 pt-4">
+              <span class="mark h-8 w-8">BGA</span>
+              <span class="mark h-8 w-8">BGM</span>
+              <span class="mark h-8 w-8">EPB</span>
+              <span class="text-[12px] font-medium text-neutral-500">+5 more registries</span>
+            </div>
+          </div>
+
+          <!-- metadata regrouped into two calmer clusters instead of 4 equal-weight columns -->
+          <div class="mt-7 flex flex-wrap gap-x-10 gap-y-4">
+            <div class="min-w-0">
+              <p class="text-[11px] font-semibold text-neutral-500">Registered address</p>
+              <p class="mt-1.5 text-[13.5px] font-medium leading-5 text-neutral-800">SM Tower (2nd floor), 80/6, Shahbagh, Dhaka</p>
+              <a class="mt-1 inline-block text-[12px] font-semibold text-brand-forest underline decoration-brand-forest/30 underline-offset-2">+ 12 other addresses on file →</a>
+            </div>
+            <div class="flex gap-8">
+              <div><p class="text-[11px] font-semibold text-neutral-500">Established</p><p class="mt-1.5 font-mono text-[13px] font-medium text-neutral-700">2022 <span class="text-neutral-400">· 3 yrs</span></p></div>
+              <div><p class="text-[11px] font-semibold text-neutral-500">EPB registration</p><p class="mt-1.5 font-mono text-[13px] font-medium text-neutral-700">BD06209</p></div>
+              <div><p class="text-[11px] font-semibold text-neutral-500">Last verified</p><p class="mt-1.5 font-mono text-[13px] font-medium text-neutral-700">27 Jun 2026</p></div>
+            </div>
+          </div>
+        </article>
+
+        <!-- PRODUCTS STRIP -->
+        <div class="rounded-lg border border-neutral-200 bg-white px-4 py-3 shadow-sm">
+          <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
+            <span class="text-[13px] font-semibold text-neutral-600">Principal products</span>
+            <span class="inline-flex items-center gap-1.5 text-[13px] font-medium text-neutral-700">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" class="text-neutral-400"><path d="M8 4l2 2h4l2-2M6 6h12l1 14a2 2 0 01-2 2H7a2 2 0 01-2-2L6 6z"/></svg>
+              Knitted Garments
+            </span>
+            <span class="inline-flex items-center gap-1.5 text-[13px] font-medium text-neutral-700">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" class="text-neutral-400"><rect x="6" y="9" width="12" height="7" rx="1"/><path d="M7 9V4h10v5M8 13h8M8 20h8v-4H8v4z"/></svg>
+              Printing
+            </span>
+            <span class="inline-flex items-center gap-1.5 text-[13px] font-medium text-neutral-700">Babies' apparel</span>
+            <a class="text-[13px] font-semibold text-brand-forest underline decoration-brand-forest/30 underline-offset-2">+27 more categories</a>
+          </div>
+        </div>
+
+        <!-- TABS v2 — sticky, animated underline instead of a filled pill -->
+        <div class="tabs-sticky rounded-lg border border-neutral-200 bg-white/95 px-2 shadow-sm backdrop-blur">
+          <div class="flex gap-1 overflow-x-auto">
+            <span class="tab-v2 active">Overview</span><span class="tab-v2">Compliance</span><span class="tab-v2">Capacity</span><span class="tab-v2">Contact</span><span class="tab-v2">Provenance <span class="font-mono text-[10px]">11</span></span>
+          </div>
+        </div>
+
+        <!-- OVERVIEW TAB v3 — one continuous document instead of stacked cards; editorial density -->
+        <section class="rounded-lg border border-neutral-200 bg-white p-7 shadow-sm">
+
+          <div>
+            <div class="flex items-baseline justify-between">
+              <h2 class="font-display text-lg font-bold">Company overview</h2>
+              <span class="text-[12px] font-medium text-neutral-500">11 active source records</span>
+            </div>
+            <div class="mt-4 flex flex-wrap gap-2">
+              <span class="highlight-chip"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 13l4 4L19 7"/></svg>8 sources</span>
+              <span class="highlight-chip"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 13l4 4L19 7"/></svg>3 certifications</span>
+              <span class="highlight-chip"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 13l4 4L19 7"/></svg>Since 2022</span>
+              <span class="highlight-chip"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 13l4 4L19 7"/></svg>Bangladesh</span>
+              <span class="highlight-chip"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 13l4 4L19 7"/></svg>13 addresses on file</span>
+            </div>
+            <p class="mt-5 max-w-[62ch] text-[15px] leading-8 text-neutral-600">Sm Sourcing is a garment manufacturer based in Shahbagh, Dhaka, operating since 2022. The company holds registry records with BGMEA, BGAPMEA, BKMEA, and EPB.</p>
+            <div class="mt-6 grid grid-cols-2 gap-x-8 gap-y-5 sm:grid-cols-4">
+              <div><p class="text-[11px] font-semibold text-neutral-500">Country</p><p class="stat-value mt-1.5">Bangladesh</p></div>
+              <div><p class="text-[11px] font-semibold text-neutral-500">Tier 1–3 sources</p><p class="stat-value mt-1.5">8</p></div>
+              <div><p class="text-[11px] font-semibold text-neutral-500">EPZ zone</p><p class="stat-value mt-1.5 text-neutral-400">—</p></div>
+              <div><p class="text-[11px] font-semibold text-neutral-500">Parent group</p><p class="stat-value mt-1.5 text-neutral-400">—</p></div>
+            </div>
+          </div>
+
+          <!-- same continuous surface, separated by a divider + generous space, not a second bordered card -->
+          <div class="mt-10 border-t border-neutral-100 pt-8">
+            <div class="flex items-baseline justify-between">
+              <h2 class="font-display text-lg font-bold">Locations &amp; addresses</h2>
+              <span class="text-[12px] font-medium text-neutral-500">13 on file</span>
+            </div>
+            <div class="mt-5 rounded-lg border border-brand-forest/15 bg-brand-forest-soft/50 p-4">
+              <span class="addr-kind kind-office">Registered office</span>
+              <p class="mt-2 text-[13.5px] font-semibold text-neutral-900">Kuptan Tower, Level-4, Room# C6, Box Culvert Road, Nayapaltan, Dhaka</p>
+              <p class="mt-1 text-[12px] text-neutral-500">Address corroborated by BGAPMEA</p>
+            </div>
+            <div class="mt-2 divide-y divide-neutral-100">
+              <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1 py-4"><span class="addr-kind kind-mailing shrink-0">Mailing address</span><p class="text-[13.5px] font-medium text-neutral-800">SM Tower (2nd floor), 80/6 Maymashingo Road</p><span class="text-[11.5px] text-neutral-400">Corroborated by BGMEA</span></div>
+              <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1 py-4"><span class="addr-kind kind-factory shrink-0">Factory</span><p class="text-[13.5px] font-medium text-neutral-800">Baimail, Konabari, 1704, Gazipur</p><span class="text-[11.5px] text-neutral-400">Corroborated by OEKO-TEX</span></div>
+              <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1 py-4"><span class="addr-kind kind-factory shrink-0">Factory</span><p class="text-[13.5px] font-medium text-neutral-800">Plot # A15, BSCIC I/E, Dhulashial, Habiganj</p><span class="text-[11.5px] text-neutral-400">Corroborated by BGAPMEA</span></div>
+              <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1 py-4"><span class="addr-kind kind-office shrink-0">Registered office</span><p class="text-[13.5px] font-medium text-neutral-800">76B, Askarabad, D.T. Road, Monourabad</p><span class="text-[11.5px] text-neutral-400">Corroborated by BGAPMEA</span></div>
+            </div>
+            <button class="mt-1 text-[13px] font-semibold text-brand-forest underline decoration-brand-forest/30 underline-offset-2">Show 8 more addresses</button>
+          </div>
+        </section>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ COMPLIANCE / CAPACITY / PROVENANCE / CONTACT ============ -->
+  <section>
+    <p class="section-label mb-3">Desktop — remaining tab bodies</p>
+    <div class="grid gap-4 lg:grid-cols-2">
+
+      <!-- CAPACITY v3 — metric-focused: one dominant number, production grouped separately, type read as descriptive metadata -->
+      <article class="rounded-lg border border-neutral-200 bg-white p-6 shadow-sm">
+        <header class="flex items-baseline justify-between">
+          <h2 class="font-display text-base font-bold">Capacity &amp; workforce</h2>
+          <span class="text-[12px] font-medium text-neutral-500">self-disclosed · registry sources</span>
+        </header>
+        <p class="mt-1.5 text-[12.5px] text-neutral-500">Accessories · Dyeing · Knit · Packaging</p>
+
+        <div class="mt-6 flex items-baseline gap-3">
+          <p class="font-display text-[46px] font-black leading-none tracking-[-0.02em] text-neutral-950">770</p>
+          <div class="pb-1">
+            <p class="text-[13px] font-semibold text-neutral-700">Total workforce</p>
+            <p class="text-[12px] text-neutral-500">workers + staff · 305 sewing machines</p>
+          </div>
+        </div>
+
+        <div class="mt-6 grid grid-cols-2 gap-6 border-t border-neutral-100 pt-5">
+          <div><p class="text-[11px] font-semibold text-neutral-500">Daily output</p><p class="stat-value mt-1">16,000 <span class="text-[13px] font-medium text-neutral-400">pcs/day</span></p></div>
+          <div><p class="text-[11px] font-semibold text-neutral-500">Annual output</p><p class="stat-value mt-1">335,000 <span class="text-[13px] font-medium text-neutral-400">dozen/yr</span></p></div>
+        </div>
+      </article>
+
+      <!-- SOURCE RECORDS v3 — evidence/timeline-focused: identity dominant, tier read as inline metadata, verify-link given room to breathe -->
+      <article class="rounded-lg border border-neutral-200 bg-white p-6 shadow-sm">
+        <header class="flex items-baseline justify-between">
+          <h2 class="font-display text-base font-bold">Source records</h2>
+          <span class="text-[12px] font-medium text-neutral-500">11 records · 8 sources</span>
+        </header>
+        <div class="mt-3 divide-y divide-neutral-100">
+          <div class="flex items-center gap-3 py-3.5">
+            <span class="mark h-9 w-9 shrink-0">EPB</span>
+            <div class="min-w-0 flex-1">
+              <p class="text-[14px] font-bold text-neutral-900">Export Promotion Bureau</p>
+              <p class="mt-0.5 font-mono text-[11px] text-neutral-500">1695 · verified 27 Jun 2026 · <span class="font-semibold text-sem-green">Tier 1</span></p>
+            </div>
+          </div>
+          <div class="flex items-center gap-3 py-3.5">
+            <span class="mark h-9 w-9 shrink-0">RSC</span>
+            <div class="min-w-0 flex-1">
+              <p class="text-[14px] font-bold text-neutral-900">RMG Sustainability Council</p>
+              <p class="mt-0.5 font-mono text-[11px] text-neutral-500">24719 · verified 27 Jun 2026 · <span class="font-semibold text-sem-green">Tier 1</span></p>
+            </div>
+          </div>
+          <div class="flex items-center gap-3 py-3.5">
+            <span class="mark h-9 w-9 shrink-0">BGM</span>
+            <div class="min-w-0 flex-1">
+              <p class="text-[14px] font-bold text-neutral-900">BGMEA</p>
+              <p class="mt-0.5 font-mono text-[11px] text-neutral-500">general:6843 · verified 26 Jun 2026 · <span class="font-semibold text-neutral-500">Tier 2</span></p>
+            </div>
+          </div>
+          <div class="flex items-center gap-3 py-3.5">
+            <span class="mark h-9 w-9 shrink-0">GOT</span>
+            <div class="min-w-0 flex-1">
+              <p class="text-[14px] font-bold text-neutral-900">GOTS</p>
+              <p class="mt-0.5 font-mono text-[11px] text-neutral-500">SC0029790 · verified 26 Jun 2026 · <span class="font-semibold text-neutral-500">Tier 3</span></p>
+            </div>
+          </div>
+        </div>
+        <div class="mt-4 border-t border-neutral-100 pt-4">
+          <button class="text-[12.5px] font-semibold text-brand-forest underline decoration-brand-forest/30 underline-offset-2">How we verify our sources →</button>
+        </div>
+      </article>
+
+      <!-- REGISTRIES v3 — identity-focused: badge grid, distinct from the Source records timeline -->
+      <article class="rounded-lg border border-neutral-200 bg-white p-6 shadow-sm">
+        <header class="flex items-baseline justify-between">
+          <h2 class="font-display text-base font-bold">Registries</h2>
+          <span class="text-[12px] font-medium text-neutral-500">7 verified records</span>
+        </header>
+        <div class="mt-4 grid grid-cols-2 gap-3">
+          <div class="rounded-lg border border-brand-forest/15 bg-brand-forest-soft/40 p-3.5">
+            <span class="mark h-9 w-9 !bg-white">BGA</span>
+            <p class="mt-2.5 text-[13.5px] font-bold text-neutral-900">BGAPMEA</p>
+            <p class="font-mono text-[11px] text-neutral-500">Reg. 1574</p>
+            <p class="mt-1.5 text-[11px] font-semibold text-sem-green">✓ Verified</p>
+          </div>
+          <div class="rounded-lg border border-brand-forest/15 bg-brand-forest-soft/40 p-3.5">
+            <span class="mark h-9 w-9 !bg-white">EPB</span>
+            <p class="mt-2.5 text-[13.5px] font-bold text-neutral-900">Export Promotion Bureau</p>
+            <p class="font-mono text-[11px] text-neutral-500">Reg. 0006209</p>
+            <p class="mt-1.5 text-[11px] font-semibold text-sem-green">✓ Verified</p>
+          </div>
+        </div>
+      </article>
+
+      <!-- CONTACT v3 — action-focused: phone/email as primary rows, website demoted to a quiet secondary line -->
+      <article class="rounded-lg border border-neutral-200 bg-white p-6 shadow-sm">
+        <header class="flex items-baseline justify-between">
+          <h2 class="font-display text-base font-bold">Contact</h2>
+          <span class="text-[12px] font-medium text-neutral-500">Unlocked · admin view</span>
+        </header>
+        <div class="mt-4 space-y-2">
+          <a class="group flex items-center gap-3 rounded-lg border border-neutral-200 bg-white px-4 py-3 shadow-sm transition hover:border-brand-forest/30 hover:shadow-md">
+            <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-forest-soft text-brand-forest"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.362 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.338 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg></span>
+            <span class="min-w-0 flex-1"><span class="block text-[13.5px] font-bold text-neutral-900">9343892935</span><span class="block text-[11px] text-neutral-500">Primary phone · +3 more on file</span></span>
+            <span class="text-neutral-400 transition group-hover:translate-x-0.5 group-hover:text-brand-forest">→</span>
+          </a>
+          <a class="group flex items-center gap-3 rounded-lg border border-neutral-200 bg-white px-4 py-3 shadow-sm transition hover:border-brand-forest/30 hover:shadow-md">
+            <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-forest-soft text-brand-forest"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v16H4z"/><path d="M22 6l-10 7L2 6"/></svg></span>
+            <span class="min-w-0 flex-1"><span class="block truncate text-[13.5px] font-bold text-neutral-900">shakti@smsourcing.com</span><span class="block text-[11px] text-neutral-500">Primary email</span></span>
+            <span class="text-neutral-400 transition group-hover:translate-x-0.5 group-hover:text-brand-forest">→</span>
+          </a>
+          <a class="flex items-center gap-2 px-4 py-1.5 text-[12.5px] font-medium text-neutral-500 hover:text-brand-forest">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 010 20 15.3 15.3 0 010-20z"/></svg>
+            smsourcing.biz
+          </a>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <!-- ============ MOBILE ============ -->
+  <section>
+    <p class="section-label mb-3">Mobile (390px) — header, tabs, Overview</p>
+    <div class="mx-auto max-w-[390px] rounded-xl border border-neutral-200 bg-neutral-50 p-3">
+      <article class="rounded-lg border border-neutral-200 bg-white p-4 shadow-sm">
+        <div class="flex items-start gap-3.5">
+          <span class="relative inline-flex shrink-0">
+            <span class="avatar flex h-14 w-14 text-[19px]">SS</span>
+            <span class="verify-seal h-5 w-5"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2"><path d="M5 13l4 4L19 7"/></svg></span>
+          </span>
+          <div class="min-w-0 flex-1">
+            <h1 class="font-display text-[22px] font-black leading-tight tracking-[-0.02em]">Sm Sourcing</h1>
+            <div class="mt-1 flex flex-wrap items-center gap-1.5">
+              <span class="entity-pill">Factory</span>
+              <span class="inline-flex items-center gap-1 text-[12.5px] font-medium text-neutral-600">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" class="text-neutral-400"><path d="M12 2C7.58 2 4 5.58 4 10c0 5.25 7 12 8 12s8-6.75 8-12c0-4.42-3.58-8-8-8zm0 11a3 3 0 110-6 3 3 0 010 6z"/></svg>
+                Shahbagh, Dhaka
+              </span>
+            </div>
+          </div>
+        </div>
+        <div class="mt-3 flex flex-wrap items-center gap-2">
+          <span class="mark h-7 w-7">BGA</span><span class="mark h-7 w-7">BGM</span><span class="text-[11.5px] text-neutral-500">+6</span>
+          <span class="text-[12.5px] font-semibold text-neutral-800">8 verified sources</span>
+          <span class="completeness-pill">55%</span>
+        </div>
+        <dl class="mt-3.5 grid grid-cols-2 gap-3 border-t border-neutral-100 pt-3.5">
+          <div><dt class="text-[10.5px] font-semibold text-neutral-500">Established</dt><dd class="mt-1 font-mono text-[12px] font-medium text-neutral-700">2022 · 3 yrs</dd></div>
+          <div><dt class="text-[10.5px] font-semibold text-neutral-500">Last verified</dt><dd class="mt-1 font-mono text-[12px] font-medium text-neutral-700">27 Jun 2026</dd></div>
+        </dl>
+        <div class="mt-4 grid grid-cols-2 gap-2">
+          <button class="h-11 rounded-lg border border-neutral-200 text-sm font-semibold">Follow</button>
+          <button class="h-11 rounded-lg bg-brand-forest text-sm font-semibold text-white">Contact</button>
+        </div>
+      </article>
+
+      <div class="mt-3 overflow-x-auto rounded-lg border border-neutral-200 bg-white px-2 shadow-sm">
+        <div class="flex min-w-max gap-1"><span class="tab-v2 active">Overview</span><span class="tab-v2">Compliance</span><span class="tab-v2">Capacity</span><span class="tab-v2">Contact</span><span class="tab-v2">Provenance</span></div>
+      </div>
+
+      <section class="mt-3 rounded-lg border border-neutral-200 bg-white p-4 shadow-sm">
+        <h2 class="font-display text-[15px] font-bold">Company overview</h2>
+        <p class="mt-2 text-[13.5px] leading-6 text-neutral-600">Sm Sourcing is a garment manufacturer based in Shahbagh, Dhaka, operating since 2022.</p>
+      </section>
+      <section class="mt-3 rounded-lg border border-neutral-200 bg-white p-4 shadow-sm">
+        <div class="flex items-baseline justify-between"><h2 class="font-display text-[15px] font-bold">Locations</h2><span class="text-[11.5px] font-medium text-neutral-500">13 on file</span></div>
+        <div class="mt-3 rounded-lg border border-brand-forest/15 bg-brand-forest-soft/50 p-3">
+          <span class="addr-kind kind-office">Registered office</span>
+          <p class="mt-2 text-[13px] font-semibold text-neutral-900">Kuptan Tower, Level-4, Nayapaltan, Dhaka</p>
+        </div>
+        <button class="mt-3 text-[13px] font-semibold text-brand-forest underline decoration-brand-forest/30 underline-offset-2">Show 12 more addresses</button>
+      </section>
+    </div>
+  </section>
+
+</main>
+</body>
+</html>

@@ -18,53 +18,30 @@
 //   * Contact fields excluded from RPC RETURNS. Contact tab renders a gated
 //     CTA; no payload to un-blur in the browser.
 
-import type { ReactNode } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { ChatCircleDots, Factory, MapPin, Package } from "@phosphor-icons/react/dist/ssr";
+import { ChatCircleDots } from "@phosphor-icons/react/dist/ssr";
 
 import { BlurFade } from "@/components/ui/blur-fade";
-import { ReceiptsRing } from "@/components/receipts-ring";
 import { SaveButton } from "@/components/save-button";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ProductsStripExpandable } from "@/components/supplier/products-strip-expandable";
-import { dedupProducts } from "@/lib/product-icons";
-import { VerifiedByBadge } from "@/components/supplier/verified-by-badge";
-import { ProfileHeaderMetaGrid, type ProfileHeaderMetaItem } from "@/components/supplier/profile-header-meta";
+import { CompanyProfileHeader } from "@/components/supplier/company-profile-header";
+import { ProfileOverviewTab } from "@/components/supplier/profile-overview-tab";
 import {
   ProfileCapacityTab,
   hasCapacityData,
 } from "@/components/supplier/profile-capacity-tab";
-import { ProfileBrandsTab } from "@/components/supplier/profile-brands-tab";
 import {
   ProfileContactTab,
   ProfileContactTabAppBuyer,
 } from "@/components/supplier/profile-contact-tab";
 import { ProfileProvenanceTab } from "@/components/supplier/profile-provenance-tab";
 import { ProfileComplianceTab } from "@/components/supplier/profile-compliance-tab";
-import {
-  ProfileCard,
-  ProfileCardHeader,
-  ProfileFactGrid,
-  ProfileTabStack,
-} from "@/components/supplier/profile-ui";
-import { AddressesJumpLink } from "@/components/supplier/addresses-jump-link";
-import { SourcesExplainer } from "@/components/supplier/sources-explainer";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getServerRole } from "@/lib/auth";
-import { dedupAddresses, type DedupedAddress } from "@/lib/dedup-addresses";
-import { formatCompanyName } from "@/lib/format-company-name";
-import { formatCityDistrictShort, formatProfileCityLine } from "@/lib/format-location";
-import {
-  factoryTypesForHeader,
-  factoryTypesNarrative,
-  formatFactoryTypesList,
-  formatProfileDate,
-  latestProvenanceRecord,
-  yearsElapsedSince,
-} from "@/lib/format-supplier-profile";
+import { profileTabClass, profileTabCountClass, profileHeaderContactClass } from "@/lib/profile-tab-styles";
 
 export const dynamic = "force-dynamic";
 
@@ -280,49 +257,67 @@ export default async function FactoryProfilePage({
   }
 
   return (
-    <div className="r7-profile-shell mx-auto flex max-w-[1280px] flex-col gap-4 overflow-x-clip px-4 py-5 sm:px-6 sm:py-8">
+    <div className="r7-profile-shell mx-auto flex max-w-[1280px] flex-col gap-4 overflow-x-clip px-0 pb-5 sm:px-4 sm:pb-6 md:px-6">
       {s.is_sanctioned ? <SanctionsBanner /> : null}
       <BlurFade delay={0.07}>
-        <ProfileHeader
-          payload={payload}
-          isSaved={isSaved}
+        <CompanyProfileHeader
+          supplier={s}
+          t13SourceCount={payload.t13_source_count}
+          pills={payload.pills}
+          provenance={payload.provenance}
+          addresses={payload.addresses}
+          discoverHref="/app/discover"
+          followSlot={
+            <SaveButton
+              supplierId={s.id}
+              initialSaved={isSaved}
+              shape="profile"
+            />
+          }
+          contactSlot={
+            <Button
+              asChild
+              size="lg"
+              variant="primary"
+              className={profileHeaderContactClass}
+              title="Send a Request for Quote to this supplier"
+              aria-label="Contact supplier (Request for Quote)"
+            >
+              <Link href={`/app/rfqs/new?supplier=${s.id}`}>
+                <ChatCircleDots size={15} weight="regular" aria-hidden className="sm:hidden" />
+                <ChatCircleDots size={18} weight="regular" aria-hidden className="hidden sm:block" />
+                {/* Sub-360px phones get the short label so the CTA never
+                    truncates inside its half of the action grid. */}
+                <span className="xs:hidden">Contact</span>
+                <span className="hidden xs:inline">Contact supplier</span>
+              </Link>
+            </Button>
+          }
         />
       </BlurFade>
-      {s.principal_products.length > 0 ? (
-        <ProductsStripExpandable products={s.principal_products} />
-      ) : null}
-
-      <Tabs defaultValue="compliance" className="profile-tabs-shell flex flex-col gap-0">
+      <Tabs defaultValue="overview" className="profile-tabs-shell flex flex-col gap-0">
         <TabsList
           aria-label="Profile sections"
-          className="proto-tabs h-auto"
+          className="flex-nowrap gap-1 overflow-x-auto rounded-[14px] border border-neutral-200 bg-white p-1.5 shadow-[0_1px_2px_rgba(15,15,20,0.03)] [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         >
-          <TabsTrigger value="overview" id="tab-trigger-overview" className="proto-tab">
+          <TabsTrigger value="overview" id="tab-trigger-overview" className={profileTabClass}>
             Overview
           </TabsTrigger>
-          <TabsTrigger value="compliance" className="proto-tab">
+          <TabsTrigger value="compliance" id="tab-trigger-compliance" className={profileTabClass}>
             Compliance
           </TabsTrigger>
           {hasCapacityData(s) ? (
-            <TabsTrigger value="capacity" className="proto-tab">
+            <TabsTrigger value="capacity" className={profileTabClass}>
               Capacity
             </TabsTrigger>
           ) : null}
-          {payload.brand_attributions.length > 0 ? (
-            <TabsTrigger value="brands" className="proto-tab">
-              Brand attribution
-              <span className="proto-tab-count">
-                {payload.brand_attributions.length}
-              </span>
-            </TabsTrigger>
-          ) : null}
-          <TabsTrigger value="contact" className="proto-tab">
+          <TabsTrigger value="contact" className={profileTabClass}>
             Contact
           </TabsTrigger>
-          <TabsTrigger value="provenance" className="proto-tab">
+          <TabsTrigger value="provenance" className={`${profileTabClass} group`}>
             Provenance
             <span
-              className="proto-tab-count"
+              className={profileTabCountClass}
               title="Active source records on this profile"
             >
               {payload.provenance.length}
@@ -331,7 +326,13 @@ export default async function FactoryProfilePage({
         </TabsList>
 
         <TabsContent value="overview">
-          <OverviewTab payload={payload} />
+          <ProfileOverviewTab
+            supplier={s}
+            t13SourceCount={payload.t13_source_count}
+            provenanceCount={payload.provenance.length}
+            addresses={payload.addresses}
+            discoverHref="/app/discover"
+          />
         </TabsContent>
         <TabsContent value="compliance" id="compliance">
           <ProfileComplianceTab
@@ -350,11 +351,6 @@ export default async function FactoryProfilePage({
             <ProfileCapacityTab supplier={s} />
           </TabsContent>
         ) : null}
-        {payload.brand_attributions.length > 0 ? (
-          <TabsContent value="brands">
-            <ProfileBrandsTab brands={payload.brand_attributions} />
-          </TabsContent>
-        ) : null}
         <TabsContent value="contact">
           {unlockedContact ? (
             <ProfileContactTab
@@ -365,12 +361,15 @@ export default async function FactoryProfilePage({
             <ProfileContactTabAppBuyer slug={s.slug} />
           )}
         </TabsContent>
-        <TabsContent value="provenance">
-          <ProfileProvenanceTab provenance={payload.provenance} />
+        <TabsContent value="provenance" id="provenance">
+          <ProfileProvenanceTab
+            provenance={payload.provenance}
+            t13SourceCount={payload.t13_source_count}
+          />
         </TabsContent>
       </Tabs>
 
-      <p className="affiliation-disclaimer mt-6">
+      <p className="mx-auto mt-6 max-w-[640px] px-3 text-center text-[13px] leading-5 text-neutral-500 sm:px-0">
         Authority logos identify the data sources we aggregate from. SourceBD
         is not affiliated with or endorsed by BGMEA, BKMEA, BTMA, EPB,
         OEKO-TEX, WRAP, GOTS, RSC, or any of the brands named on this page.
@@ -380,179 +379,6 @@ export default async function FactoryProfilePage({
     </div>
   );
 }
-
-// ---------- header --------------------------------------------------------
-
-// I-023 — "Verified by" hero badge lives in `@/components/supplier/verified-by-badge`.
-
-function ProfileHeader({
-  payload,
-  isSaved,
-}: {
-  payload: ProfilePayload;
-  isSaved: boolean;
-}) {
-  const s = payload.supplier;
-  const dedupedAddresses = dedupAddresses(payload.addresses);
-  const primaryAddress =
-    dedupedAddresses[0]?.address ??
-    s.address_raw ??
-    payload.addresses[0]?.address ??
-    null;
-  const cityLine = formatProfileCityLine(primaryAddress, s.city, s.district);
-  const otherAddressCount = Math.max(0, dedupedAddresses.length - 1);
-  const latestProv = latestProvenanceRecord(payload.provenance);
-  const lastVerified = latestProv?.last_seen_at ?? null;
-  const lastVerifiedSource = latestProv?.display_name ?? null;
-  const headerFactoryTypes = factoryTypesForHeader(s.factory_types, 2);
-
-  const entityBreadcrumb =
-    s.entity_type === "buying_house"
-      ? "Discover › Buying house"
-      : "Discover › Garment manufacturer";
-
-  const rjsc = pillByCode(payload.pills, "RJSC")?.value ?? null;
-  const bin = pillByCode(payload.pills, "BIN")?.value ?? null;
-  const epbExp = pillByCode(payload.pills, "EPB")?.value ?? null;
-  const established = s.established_date;
-
-  const metaItems: ProfileHeaderMetaItem[] = [];
-  if (primaryAddress || cityLine) {
-    metaItems.push({
-      key: "address",
-      label: "Address",
-      icon: "address",
-      children: (
-        <>
-          {primaryAddress ? (
-            <span className="header-meta-address">{primaryAddress}</span>
-          ) : null}
-          {cityLine ? <span className="mono">{cityLine}</span> : null}
-        </>
-      ),
-    });
-  }
-  if (established) {
-    metaItems.push({
-      key: "established",
-      label: "Established",
-      icon: "established",
-      children: (
-        <>
-          {established}
-          <span className="mono">{yearsElapsedSince(established)} yrs</span>
-        </>
-      ),
-    });
-  }
-  if (rjsc) {
-    metaItems.push({
-      key: "rjsc",
-      label: "RJSC",
-      icon: "registry",
-      children: <span className="mono">{rjsc}</span>,
-    });
-  }
-  if (bin || epbExp) {
-    metaItems.push({
-      key: "bin-epb",
-      label: bin ? "BIN" : "EPB",
-      icon: "registry",
-      children: <span className="mono">{bin ?? epbExp}</span>,
-    });
-  }
-  if (lastVerified) {
-    metaItems.push({
-      key: "last-verified",
-      label: "Last verified",
-      icon: "verified",
-      children: (
-        <>
-          <span className="mono">{formatProfileDate(lastVerified)}</span>
-          {lastVerifiedSource ? (
-            <span className="mono">{lastVerifiedSource}</span>
-          ) : null}
-        </>
-      ),
-    });
-  }
-
-  return (
-    <section className="header-card" aria-labelledby="company-name">
-      <div className="header-glyph-col">
-        <ReceiptsRing sources={payload.t13_source_count} size={64} />
-        <SourcesExplainer variant="inline" />
-      </div>
-
-      <div className="header-main min-w-0">
-        <div className="breadcrumb">{entityBreadcrumb}</div>
-        <h1 id="company-name" className="header-name">
-          {formatCompanyName(s.company_name)}
-        </h1>
-        {s.parent_group_name ? (
-          <p className="header-parentline">
-            <span style={{ color: "var(--ink-tertiary)" }}>Member of</span>{" "}
-            <Link
-              href={`/app/discover?group=${encodeURIComponent(s.parent_group_name)}`}
-            >
-              {s.parent_group_name}
-            </Link>
-          </p>
-        ) : null}
-
-        <p className="header-classification">
-          <span className="header-classification-item">
-            <Factory size={13} weight="duotone" aria-hidden />
-            {entityLabel(s.entity_type)}
-          </span>
-          {s.factory_types.slice(0, 2).map((t) => (
-            <span key={t} className="header-classification-item">
-              <Package size={13} weight="duotone" aria-hidden />
-              {t}
-            </span>
-          ))}
-          {headerFactoryTypes.overflow > 0 ? (
-            <span
-              className="header-classification-item"
-              title={s.factory_types.slice(2).join(", ")}
-            >
-              +{headerFactoryTypes.overflow} more
-            </span>
-          ) : null}
-        </p>
-
-        <div className="header-trust-row">
-          <VerifiedByBadge pills={payload.pills} />
-        </div>
-
-        <ProfileHeaderMetaGrid items={metaItems} />
-        {otherAddressCount > 0 ? (
-          <AddressesJumpLink count={otherAddressCount} />
-        ) : null}
-      </div>
-
-      <div className="header-side">
-        <div className="header-action-row">
-          <SaveButton supplierId={s.id} initialSaved={isSaved} shape="profile" />
-          <Button
-            asChild
-            size="lg"
-            variant="primary"
-            className="h-11 min-w-[8.5rem] gap-2 rounded-lg px-4 text-sm font-semibold shadow-sm"
-            title="Send a Request for Quote to this supplier"
-            aria-label="Contact supplier (Request for Quote)"
-          >
-            <Link href={`/app/rfqs/new?supplier=${s.id}`}>
-              <ChatCircleDots size={17} weight="regular" aria-hidden />
-              <span>Contact</span>
-            </Link>
-          </Button>
-        </div>
-      </div>
-    </section>
-  );
-}
-
 function SanctionsBanner() {
   return (
     <div role="alert" className="sanctions-banner">
@@ -583,163 +409,4 @@ function SanctionsBanner() {
       </a>
     </div>
   );
-}
-
-// ---------- Products strip ------------------------------------------------
-// Rendered via the client-side `ProductsStripExpandable` component so that
-// the "+ N more" affordance can expand inline.
-
-// ---------- Overview tab --------------------------------------------------
-
-function OverviewTab({ payload }: { payload: ProfilePayload }) {
-  const s = payload.supplier;
-  const dedupedAddresses = dedupAddresses(payload.addresses);
-
-  const facts: { label: string; value: ReactNode }[] = [];
-  if (s.parent_group_name)
-    facts.push({ label: "Parent group", value: s.parent_group_name });
-  if (s.established_date)
-    facts.push({ label: "Established", value: s.established_date });
-  if (s.factory_types.length > 0)
-    facts.push({
-      label: "Factory type",
-      value: formatFactoryTypesList(s.factory_types),
-    });
-  if (s.bepza_zone) facts.push({ label: "EPZ zone", value: s.bepza_zone });
-  if (s.country) facts.push({ label: "Country", value: s.country });
-  facts.push({
-    label: "Tier 1–3 sources",
-    value: String(payload.t13_source_count),
-  });
-
-  return (
-    <ProfileTabStack>
-      <ProfileCard>
-        <ProfileCardHeader
-          title="Company overview"
-          meta={`${payload.provenance.length} active source records`}
-        />
-        <div className="profile-overview-layout">
-          <p className="profile-overview-body">{entityNarrative(s)}</p>
-          <ProfileFactGrid facts={facts} />
-        </div>
-      </ProfileCard>
-
-      {dedupedAddresses.length > 0 ? (
-        <ProfileCard id="locations">
-          <ProfileCardHeader
-            title="Locations & addresses"
-            meta={`${dedupedAddresses.length} on file`}
-          />
-          <ul className="profile-location-list">
-            {dedupedAddresses.map((a, i) => (
-              <AddressCard key={i} address={a} primary={i === 0} />
-            ))}
-          </ul>
-        </ProfileCard>
-      ) : null}
-    </ProfileTabStack>
-  );
-}
-
-const ADDRESS_KIND_LABEL: Record<string, string> = {
-  factory: "Factory",
-  registered: "Registered office",
-  registered_office: "Registered office",
-  mailing: "Mailing address",
-  head_office: "Head office",
-  office: "Office",
-  warehouse: "Warehouse",
-  corporate: "Corporate office",
-};
-
-function addressKindLabel(k: string): string {
-  const key = k.toLowerCase().trim();
-  return (
-    ADDRESS_KIND_LABEL[key] ??
-    key.charAt(0).toUpperCase() + key.slice(1).replace(/_/g, " ")
-  );
-}
-
-// Tidy a raw source code for display in the address provenance line
-// (e.g. "OEKO_TEX" → "OEKO-TEX", "BRAND_HM" → "H&M").
-function sourceCodeLabel(code: string): string {
-  if (code === "OEKO_TEX") return "OEKO-TEX";
-  if (code === "BRAND_HM") return "H&M";
-  if (code === "BRAND_MS") return "M&S";
-  if (code.startsWith("BRAND_")) {
-    const raw = code.slice(6).replace(/_/g, " ").trim();
-    return raw
-      ? raw.charAt(0).toUpperCase() + raw.slice(1).toLowerCase()
-      : code;
-  }
-  return code.replace(/_/g, "-");
-}
-
-function AddressCard({
-  address,
-  primary,
-}: {
-  address: DedupedAddress;
-  primary: boolean;
-}) {
-  return (
-    <li className="profile-location-row">
-      <span aria-hidden className="profile-location-icon">
-        <MapPin size={18} weight="duotone" />
-      </span>
-      <div className="profile-location-body">
-        <div className="flex flex-wrap items-center gap-2">
-          {address.kinds.map((k) => (
-            <span key={k} className="profile-kind-badge">
-              {addressKindLabel(k)}
-            </span>
-          ))}
-          {primary && address.kinds.length === 0 ? (
-            <span className="text-[11px] font-medium text-ink-tertiary">
-              Primary
-            </span>
-          ) : null}
-        </div>
-        <p className="profile-location-address">{address.address}</p>
-        {address.verified_by.length > 0 ? (
-          <p className="profile-location-meta">
-            Address corroborated by{" "}
-            <span className="font-medium text-ink-primary">
-              {address.verified_by.map(sourceCodeLabel).join(" + ")}
-            </span>
-          </p>
-        ) : null}
-      </div>
-    </li>
-  );
-}
-
-function entityNarrative(s: Supplier): string {
-  const kind =
-    s.entity_type === "buying_house"
-      ? "buying house"
-      : factoryTypesNarrative(s.factory_types) ?? "garment manufacturer";
-  const where = formatCityDistrictShort(s.city, s.district);
-  const since = s.established_date
-    ? ` operating since ${s.established_date}`
-    : "";
-  const cleanedProducts = dedupProducts(s.principal_products);
-  const products =
-    cleanedProducts.length > 0
-      ? ` Principal products: ${cleanedProducts.slice(0, 4).join(", ")}.`
-      : "";
-  return `${formatCompanyName(s.company_name)} is a ${kind}${
-    where ? ` based in ${where}` : ""
-  }${since}.${products}`;
-}
-
-function pillByCode(pills: Pill[], code: string): Pill | undefined {
-  return pills.find((p) => p.source_code === code);
-}
-
-function entityLabel(e: Supplier["entity_type"]): string {
-  if (e === "factory") return "Garment manufacturer";
-  if (e === "buying_house") return "Buying house";
-  return "Supplier";
 }

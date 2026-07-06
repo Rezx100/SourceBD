@@ -140,7 +140,7 @@ export function SupplierPartnerRequestForm({
       <div className="flex flex-col gap-1">
         <label
           htmlFor="rel-mine"
-          className="text-[11px] text-ink-tertiary"
+          className="text-[12px] text-ink-tertiary"
         >
           From your company
         </label>
@@ -161,7 +161,7 @@ export function SupplierPartnerRequestForm({
       <div className="flex flex-col gap-1">
         <label
           htmlFor="rel-q"
-          className="text-[11px] text-ink-tertiary"
+          className="text-[12px] text-ink-tertiary"
         >
           {targetEntityType === "factory"
             ? "Find a partner factory"
@@ -195,7 +195,7 @@ export function SupplierPartnerRequestForm({
                   <span className="font-semibold text-ink-primary">
                     {h.company_name}
                   </span>
-                  <span className="text-[11px] text-ink-tertiary">
+                  <span className="text-[12px] text-ink-tertiary">
                     {h.entity_type.replace(/_/g, " ")} ·{" "}
                     {[h.city, h.district].filter(Boolean).join(", ") || "—"}
                   </span>
@@ -209,7 +209,7 @@ export function SupplierPartnerRequestForm({
       <div className="flex flex-col gap-1">
         <label
           htmlFor="rel-note"
-          className="text-[11px] text-ink-tertiary"
+          className="text-[12px] text-ink-tertiary"
         >
           Note (optional)
         </label>

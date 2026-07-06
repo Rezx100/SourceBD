@@ -94,7 +94,7 @@ const AUDIT_COLUMNS: Column<Row>[] = [
     key: "actor",
     label: "Actor",
     render: (r) => (
-      <span className="font-mono text-[11px] text-ink-tertiary">
+      <span className="font-mono text-[12px] text-ink-tertiary">
         {r.actor.email || shortId(r.actor.id)}
         {r.actor.role ? ` · ${humanizeAdminToken(r.actor.role)}` : ""}
       </span>

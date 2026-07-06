@@ -161,7 +161,7 @@ export default async function AdminQueuePage({
       >
           <form method="get" action="/admin/queue" className="flex flex-col gap-3 sm:flex-row sm:items-end">
             {type ? <input type="hidden" name="type" value={type} /> : null}
-            <AdminField label="Status" className="sm:min-w-[220px]">
+            <AdminField label="Status" className="sm:min-w-[222px]">
               <select
                 name="status"
                 defaultValue={status}
@@ -228,7 +228,7 @@ const QUEUE_COLUMNS: Column<Row>[] = [
             <Tag tone="amber">open</Tag>
           )}
         </span>
-        <span className="mt-1 block text-[12px] text-ink-tertiary">
+        <span className="mt-1 block text-[13px] text-ink-tertiary">
           Queued {formatAdminDate(r.created_at)}
           {confidenceValue(r.confidence) != null
             ? ` · confidence ${confidenceValue(r.confidence)?.toFixed(2)}`
@@ -249,7 +249,7 @@ const QUEUE_COLUMNS: Column<Row>[] = [
           >
             {r.supplier.name_display ?? r.supplier.company_name}
           </Link>
-          <span className="block text-[12px] text-ink-tertiary">
+          <span className="block text-[13px] text-ink-tertiary">
             {r.supplier.entity_type.replace(/_/g, " ")}
             {[r.supplier.city, r.supplier.district].filter(Boolean).length
               ? ` · ${[r.supplier.city, r.supplier.district].filter(Boolean).join(", ")}`
@@ -283,7 +283,7 @@ const QUEUE_COLUMNS: Column<Row>[] = [
     key: "details",
     label: "Evidence",
     render: (r) => (
-      <span className="block max-w-md text-[12px] text-ink-secondary">
+      <span className="block max-w-md text-[13px] text-ink-secondary">
         {sourceSummary(r.source_data)}
       </span>
     ),

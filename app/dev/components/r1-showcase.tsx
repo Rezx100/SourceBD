@@ -54,7 +54,7 @@ function BreakpointFrame({
 }) {
   return (
     <div className="flex flex-col gap-2">
-      <p className="font-mono text-[10px] uppercase tracking-[0.06em] text-ink-tertiary">
+      <p className="font-mono text-[12px] uppercase tracking-[0.06em] text-ink-tertiary">
         {label}px
       </p>
       <div
@@ -91,7 +91,7 @@ const SAMPLE_COLS: Column<SampleRow>[] = [
   { key: "entity", label: "Entity", render: (r) => r.entity },
   { key: "city", label: "City", render: (r) => r.city },
   { key: "sources", label: "Sources", numeric: true, render: (r) => r.sources },
-  { key: "slug", label: "Slug", render: (r) => <span className="font-mono text-[12px]">{r.slug}</span> },
+  { key: "slug", label: "Slug", render: (r) => <span className="font-mono text-[13px]">{r.slug}</span> },
 ];
 
 // Sample steps for the Wizard showcase.
@@ -110,7 +110,7 @@ export function R1Showcase() {
   return (
     <section className="space-y-16 border-t border-hairline pt-12">
       <header>
-        <p className="font-mono text-[11px] uppercase tracking-[0.06em] text-ink-tertiary">
+        <p className="font-mono text-[12px] uppercase tracking-[0.06em] text-ink-tertiary">
           Spec R1 — Responsive foundation
         </p>
         <h2 className="font-display text-2xl font-semibold tracking-tightish text-ink-primary">
@@ -131,11 +131,11 @@ export function R1Showcase() {
           Safe-area utilities
         </h3>
         <p className="mt-1 text-sm text-ink-secondary">
-          Six CSS classes that read <code className="font-mono text-[12px]">env(safe-area-inset-*)</code> for notched
+          Six CSS classes that read <code className="font-mono text-[13px]">env(safe-area-inset-*)</code> for notched
           phones. Used by every fixed/sticky chrome element (BottomTabBar,
           StickyActionBar, Sheet bottom variant, mobile FilterRail sheet).
         </p>
-        <pre className="mt-3 overflow-x-auto rounded-input border border-hairline bg-bg-l0 p-3 font-mono text-[11px]">
+        <pre className="mt-3 overflow-x-auto rounded-input border border-hairline bg-bg-l0 p-3 font-mono text-[12px]">
 {`.safe-pt   padding-top: env(safe-area-inset-top, 0)
 .safe-pb   padding-bottom: env(safe-area-inset-bottom, 0)
 .safe-pl   padding-left: env(safe-area-inset-left, 0)
@@ -146,24 +146,24 @@ export function R1Showcase() {
         </pre>
       </section>
 
-      {/* ── 16px input baseline ──────────────────────────────────── */}
+      {/* ── 18px input baseline ──────────────────────────────────── */}
       <section>
         <h3 className="font-display text-base font-semibold text-ink-primary">
-          Mobile 16px input baseline
+          Mobile 18px input baseline
         </h3>
         <p className="mt-1 text-sm text-ink-secondary">
-          At <code className="font-mono text-[12px]">@media (max-width: 767px)</code> every
-          <code className="font-mono text-[12px]"> &lt;input&gt;/&lt;select&gt;/&lt;textarea&gt;</code> that hasn&apos;t
-          opted into a larger Tailwind <code className="font-mono text-[12px]">text-*</code>
-          utility is bumped to 16px to prevent iOS focus-zoom. The
-          <code className="font-mono text-[12px]">:not(.text-base)…:not(.text-6xl)</code> exclusion
+          At <code className="font-mono text-[13px]">@media (max-width: 768px)</code> every
+          <code className="font-mono text-[13px]"> &lt;input&gt;/&lt;select&gt;/&lt;textarea&gt;</code> that hasn&apos;t
+          opted into a larger Tailwind <code className="font-mono text-[13px]">text-*</code>
+          utility is bumped to 18px to prevent iOS focus-zoom. The
+          <code className="font-mono text-[13px]">:not(.text-base)…:not(.text-6xl)</code> exclusion
           ladder gives the rule specificity (0,3,1) so it beats a plain
-          <code className="font-mono text-[12px]">.text-sm</code> (0,1,0) — but inputs that explicitly
-          use <code className="font-mono text-[12px]">text-lg</code> or larger are simply not matched.
+          <code className="font-mono text-[13px]">.text-sm</code> (0,1,0) — but inputs that explicitly
+          use <code className="font-mono text-[13px]">text-lg</code> or larger are simply not matched.
         </p>
         <div className="mt-3 flex flex-wrap gap-3">
           <label className="flex flex-col gap-1 text-xs text-ink-tertiary">
-            text-sm (14px) → becomes 16px on phones
+            text-sm (15px) → becomes 18px on phones
             <input
               type="text"
               defaultValue="bump me"
@@ -171,7 +171,7 @@ export function R1Showcase() {
             />
           </label>
           <label className="flex flex-col gap-1 text-xs text-ink-tertiary">
-            text-lg (18px) → stays 18px on phones
+            text-lg (110px) → stays 110px on phones
             <input
               type="text"
               defaultValue="don't shrink me"
@@ -231,16 +231,16 @@ export function R1Showcase() {
           ResponsiveTable — stacked / priority / swipe
         </h3>
         <p className="mt-1 text-sm text-ink-secondary">
-          Three modes via the <code className="font-mono text-[12px]">mode</code> prop.
+          Three modes via the <code className="font-mono text-[13px]">mode</code> prop.
           Stacked = default (desktop table, mobile cards). Priority keeps
           named columns visible + collapses the rest. Swipe is reserved
-          for <code className="font-mono text-[12px]">/admin/suppliers/import</code> preview only.
+          for <code className="font-mono text-[13px]">/admin/suppliers/import</code> preview only.
         </p>
 
         <div className="mt-4 space-y-6">
           {(["stacked", "priority", "swipe"] as const).map((mode) => (
             <div key={mode}>
-              <p className="mb-2 font-mono text-[11px] uppercase tracking-[0.06em] text-ink-tertiary">
+              <p className="mb-2 font-mono text-[12px] uppercase tracking-[0.06em] text-ink-tertiary">
                 mode = {mode}
               </p>
               <div className="flex flex-wrap items-start gap-6">
@@ -286,9 +286,9 @@ export function R1Showcase() {
           Sheet · MobileDrawer
         </h3>
         <p className="mt-1 text-sm text-ink-secondary">
-          Native <code className="font-mono text-[12px]">&lt;dialog&gt; + .showModal()</code> — focus
+          Native <code className="font-mono text-[13px]">&lt;dialog&gt; + .showModal()</code> — focus
           containment + Esc + ::backdrop are native. We add backdrop-click
-          dismiss, body scroll-lock, <code className="font-mono text-[12px]">inert</code> on background
+          dismiss, body scroll-lock, <code className="font-mono text-[13px]">inert</code> on background
           siblings, swipe-down close on the bottom variant, and safe-area
           inset padding. No Radix Dialog, no hand-rolled focus trap.
         </p>
@@ -311,7 +311,7 @@ export function R1Showcase() {
         >
           <p className="text-sm text-ink-secondary">
             Tap the backdrop, press Esc, swipe down on the drag handle,
-            or use the × button to close. Background is <code className="font-mono text-[12px]">inert</code>.
+            or use the × button to close. Background is <code className="font-mono text-[13px]">inert</code>.
           </p>
         </Sheet>
         <Sheet
@@ -321,7 +321,7 @@ export function R1Showcase() {
           label="Centered modal demo"
         >
           <p className="text-sm text-ink-secondary">
-            Centered on <code className="font-mono text-[12px]">md+</code> · bottom-sheet on phones.
+            Centered on <code className="font-mono text-[13px]">md+</code> · bottom-sheet on phones.
           </p>
         </Sheet>
         <MobileDrawer
@@ -407,8 +407,8 @@ export function R1Showcase() {
                       Detail pane
                     </p>
                     <p className="mt-1 text-xs text-ink-secondary">
-                      Renders side-by-side on <code className="font-mono text-[11px]">lg+</code>;
-                      below <code className="font-mono text-[11px]">lg</code> only the active mode pane is visible.
+                      Renders side-by-side on <code className="font-mono text-[12px]">lg+</code>;
+                      below <code className="font-mono text-[12px]">lg</code> only the active mode pane is visible.
                     </p>
                   </div>
                 }
@@ -425,13 +425,13 @@ export function R1Showcase() {
         </h3>
         <p className="mt-1 text-sm text-ink-secondary">
           Standalone variant; R2 will mount this at
-          <code className="font-mono text-[12px]"> hidden md:flex lg:hidden</code> while leaving the
-          existing full sidebar at <code className="font-mono text-[12px]">lg:flex</code>.
+          <code className="font-mono text-[13px]"> hidden md:flex lg:hidden</code> while leaving the
+          existing full sidebar at <code className="font-mono text-[13px]">lg:flex</code>.
         </p>
         <div className="mt-3 flex flex-wrap items-start gap-6">
           {(["buyer", "supplier", "admin"] as const).map((v) => (
             <div key={v} className="flex flex-col gap-2">
-              <p className="font-mono text-[10px] uppercase tracking-[0.06em] text-ink-tertiary">
+              <p className="font-mono text-[12px] uppercase tracking-[0.06em] text-ink-tertiary">
                 variant = {v}
               </p>
               <div className="overflow-x-clip rounded-card border border-hairline bg-bg-l0 p-3" style={{ height: 520 }}>
@@ -449,9 +449,9 @@ export function R1Showcase() {
         </h3>
         <p className="mt-1 text-sm text-ink-secondary">
           Pure mock here — in production it&apos;s
-          <code className="font-mono text-[12px]"> position: fixed; bottom: 0</code> with
-          <code className="font-mono text-[12px]"> .safe-bottom-0</code>. R2 will wire it at
-          <code className="font-mono text-[12px]"> md:hidden</code>.
+          <code className="font-mono text-[13px]"> position: fixed; bottom: 0</code> with
+          <code className="font-mono text-[13px]"> .safe-bottom-0</code>. R2 will wire it at
+          <code className="font-mono text-[13px]"> md:hidden</code>.
         </p>
         <div className="mt-3 flex flex-wrap items-start gap-6">
           {(["buyer", "supplier", "admin"] as const).map((v) => (
@@ -475,7 +475,7 @@ export function R1Showcase() {
           FilterRailResponsive (mobile Discover filter sheet)
         </h3>
         <p className="mt-1 text-sm text-ink-secondary">
-          Renders nothing at <code className="font-mono text-[12px]">≥md</code>; below md
+          Renders nothing at <code className="font-mono text-[13px]">≥md</code>; below md
           surfaces a Filters trigger + applied-filter chip row. R3/R4
           swap this into the live Discover surfaces.
         </p>
@@ -529,8 +529,8 @@ export function R1Showcase() {
           R1 done when every primitive above ✓ at every breakpoint frame
         </p>
         <ul className="mt-2 list-inside list-disc text-sm text-ink-secondary">
-          <li className="inline-flex items-center gap-2"><Eye size={14} aria-hidden /> No horizontal overflow in any frame.</li>
-          <li className="inline-flex items-center gap-2"><ShieldCheck size={14} aria-hidden /> Every interactive element ≥ 44×44 px.</li>
+          <li className="inline-flex items-center gap-2"><Eye size={16} aria-hidden /> No horizontal overflow in any frame.</li>
+          <li className="inline-flex items-center gap-2"><ShieldCheck size={16} aria-hidden /> Every interactive element ≥ 44×44 px.</li>
         </ul>
       </section>
     </section>

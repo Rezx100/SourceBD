@@ -146,7 +146,7 @@ export default async function AdminHome() {
                 ["Suppliers", doc.users.by_role.supplier ?? 0],
               ]}
             />
-            <div className="mt-3 flex flex-wrap gap-2 text-[11px]">
+            <div className="mt-3 flex flex-wrap gap-2 text-[12px]">
               <Tag tone="muted">Saved-supplier rows: {doc.saved_suppliers.total.toLocaleString()}</Tag>
             </div>
           </CardContent>
@@ -159,10 +159,10 @@ export default async function AdminHome() {
           </CardHeader>
           <CardContent className="pt-0 space-y-3">
             <div>
-              <p className="text-[11px] text-ink-tertiary">
+              <p className="text-[12px] text-ink-tertiary">
                 By entity type
               </p>
-              <div className="mt-1 flex flex-wrap gap-2 text-[12px]">
+              <div className="mt-1 flex flex-wrap gap-2 text-[13px]">
                 {Object.entries(doc.suppliers.by_entity_type)
                   .sort(([, a], [, b]) => b - a)
                   .map(([et, n]) => (
@@ -173,7 +173,7 @@ export default async function AdminHome() {
               </div>
             </div>
             <div>
-              <p className="text-[11px] text-ink-tertiary">
+              <p className="text-[12px] text-ink-tertiary">
                 Tier-source coverage
               </p>
               <KvList
@@ -243,7 +243,7 @@ export default async function AdminHome() {
           </CardHeader>
           <CardContent className="pt-0 space-y-2">
             <div className="flex items-baseline justify-between">
-              <span className="text-[11px] text-ink-tertiary">
+              <span className="text-[12px] text-ink-tertiary">
                 Documents
               </span>
               <span className="font-display text-2xl font-semibold tabular-nums text-ink-primary">
@@ -251,7 +251,7 @@ export default async function AdminHome() {
               </span>
             </div>
             <div className="flex items-baseline justify-between">
-              <span className="text-[11px] text-ink-tertiary">
+              <span className="text-[12px] text-ink-tertiary">
                 Total mirrored
               </span>
               <span className="font-display text-base font-semibold tabular-nums text-ink-primary">
@@ -295,7 +295,7 @@ function AdminHeader({ generatedAt }: { generatedAt?: string }) {
       description="Platform-wide stats, moderation queues and verified index coverage."
       actions={
         generatedAt ? (
-          <p className="font-mono text-[11px] text-ink-tertiary">
+          <p className="font-mono text-[12px] text-ink-tertiary">
             generated{" "}
             {new Date(generatedAt).toISOString().replace("T", " ").slice(0, 19)} UTC
           </p>
@@ -308,7 +308,7 @@ function AdminHeader({ generatedAt }: { generatedAt?: string }) {
 
 function KvList({ rows }: { rows: ReadonlyArray<readonly [string, number]> }) {
   return (
-    <ul className="m-0 flex list-none flex-col gap-1 p-0 text-[13px]">
+    <ul className="m-0 flex list-none flex-col gap-1 p-0 text-[14px]">
       {rows.map(([k, v]) => (
         <li key={k} className="flex items-baseline justify-between gap-3">
           <span className="text-ink-secondary">{k}</span>
@@ -323,16 +323,16 @@ function KvList({ rows }: { rows: ReadonlyArray<readonly [string, number]> }) {
 
 function CountList({ rows }: { rows: ReadonlyArray<readonly [string, number]> }) {
   if (rows.length === 0) {
-    return <p className="text-[13px] text-ink-tertiary">No rows.</p>;
+    return <p className="text-[14px] text-ink-tertiary">No rows.</p>;
   }
   return (
-    <ul className="m-0 flex list-none flex-col p-0 text-[13px]">
+    <ul className="m-0 flex list-none flex-col p-0 text-[14px]">
       {rows.map(([k, v]) => (
         <li
           key={k}
           className="flex items-baseline justify-between gap-3 border-b border-hairline py-1.5 last:border-b-0"
         >
-          <span className="font-mono text-[12px] text-ink-secondary">{k}</span>
+          <span className="font-mono text-[13px] text-ink-secondary">{k}</span>
           <span className="font-mono tabular-nums text-ink-primary">
             {v.toLocaleString()}
           </span>
@@ -370,7 +370,7 @@ function QueueRow({
   const inner = (
     <div
       className={
-        "flex items-center justify-between gap-3 border-b border-hairline px-1 py-2 text-[13px] last:border-b-0" +
+        "flex items-center justify-between gap-3 border-b border-hairline px-1 py-2 text-[14px] last:border-b-0" +
         (indent ? " pl-4 text-ink-secondary" : "")
       }
     >

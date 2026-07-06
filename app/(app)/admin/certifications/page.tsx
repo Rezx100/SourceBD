@@ -289,7 +289,7 @@ const CERT_COLUMNS: Column<Row>[] = [
     key: "meta",
     label: "Submitted",
     render: (r) => (
-      <span className="block text-[11px] text-ink-tertiary">
+      <span className="block text-[12px] text-ink-tertiary">
         by <span className="font-mono">{r.uploaded_by_email ?? "—"}</span> ·{" "}
         {formatAdminDate(r.queue_created_at)}
         {r.reviewed_at

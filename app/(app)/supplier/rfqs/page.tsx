@@ -74,7 +74,7 @@ export default async function SupplierRfqsPage() {
                 aria-hidden
               />
               <p className="text-sm text-ink-secondary">No RFQs yet.</p>
-              <p className="text-[12px] text-ink-tertiary">
+              <p className="text-[13px] text-ink-tertiary">
                 When a buyer addresses an RFQ to one of your claimed companies
                 it will appear here.
               </p>
@@ -126,7 +126,7 @@ const RFQ_COLUMNS: Column<Rfq>[] = [
     label: "Updated",
     numeric: true,
     render: (r) => (
-      <span className="font-mono text-[11px] text-ink-tertiary">
+      <span className="font-mono text-[12px] text-ink-tertiary">
         {fmtRelative(r.updated_at)}
       </span>
     ),

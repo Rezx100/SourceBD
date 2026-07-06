@@ -1,9 +1,15 @@
 import {
+  ProfileActionLink,
+  ProfileCard,
+  ProfileCardHeader,
+  ProfileEvidenceRow,
   ProfileFootnote,
+  ProfileSourceMark,
   ProfileStatusBadge,
+  ProfileTabStack,
 } from "@/components/supplier/profile-ui";
 import { formatProfileDate, formatRegistryIdLabel } from "@/lib/format-supplier-profile";
-import { sourceLogo } from "@/lib/source-logos";
+import { cn } from "@/lib/utils";
 
 export type ProfileCompliancePill = {
   source_code: string;
@@ -122,14 +128,40 @@ const CERT_LONG: Record<string, string> = {
   ocs: "OCS — Organic Content Standard",
 };
 
-const SANCTIONS_TILES = [
-  { juris: "US", acronym: "UFLPA", auth: "CBP Entity List" },
-  { juris: "US", acronym: "OFAC SDN", auth: "U.S. Treasury" },
-  { juris: "UK", acronym: "OFSI", auth: "HM Treasury" },
-  { juris: "EU", acronym: "EU FSF", auth: "European Commission" },
-  { juris: "US", acronym: "CBP WRO", auth: "U.S. Customs" },
-  { juris: "US", acronym: "DOL ILAB", auth: "U.S. Labor Dept." },
-];
+// The 6 watchlists SourceBD screens against, keyed by the real
+// `sanctions_list_entries.list` value (see lib/source-logos.ts and
+// app/(app)/admin/sanctions/page.tsx SANCTIONS_LISTS) so the clear-state
+// list and any real hit resolve the same issuer-agency logo.
+const SANCTIONS_WATCHLISTS = [
+  { list: "uflpa", acronym: "UFLPA", authority: "CBP Entity List" },
+  { list: "us_wro", acronym: "CBP WRO", authority: "U.S. Customs & Border Protection" },
+  { list: "ofac_sdn", acronym: "OFAC SDN", authority: "U.S. Treasury" },
+  { list: "uk_ofsi", acronym: "OFSI", authority: "HM Treasury" },
+  { list: "eu_sanctions", acronym: "EU Sanctions", authority: "European Commission" },
+  { list: "ilab_tvpra", acronym: "DOL ILAB", authority: "U.S. Labor Dept." },
+] as const;
+
+// remediation_status / training_status are free-text RSC columns with no
+// enum — this infers a dot colour from common phrasing instead of asserting
+// a status the data doesn't guarantee. Unrecognised text stays neutral.
+function statusTone(text: string): "valid" | "expiring" | "neutral" {
+  const t = text.toLowerCase();
+  if (/complet|done|resolved|closed/.test(t)) return "valid";
+  if (/progress|pending|ongoing|underway/.test(t)) return "expiring";
+  return "neutral";
+}
+
+const STATUS_DOT_CLASS: Record<"valid" | "expiring" | "neutral", string> = {
+  valid: "bg-sem-green",
+  expiring: "bg-sem-amber",
+  neutral: "bg-neutral-400",
+};
+
+const STATUS_TEXT_CLASS: Record<"valid" | "expiring" | "neutral", string> = {
+  valid: "text-sem-green",
+  expiring: "text-sem-amber",
+  neutral: "text-neutral-600",
+};
 
 const DOC_TYPE_LONG: Record<ProfileComplianceDocument["doc_type"], string> = {
   fire: "RSC fire-safety inspection report",
@@ -220,16 +252,15 @@ export function ProfileComplianceTab({
   );
 
   return (
-    <div className="proto-grid">
+    <ProfileTabStack>
+      <div className="grid gap-4 lg:grid-cols-2">
       {registryPills.length > 0 ? (
-        <section className="proto-card hoverable">
-          <header className="proto-card-head">
-            <h2 className="proto-card-title">Registries</h2>
-            <span className="proto-card-meta">
-              {registryPillsSummary(registryPills)}
-            </span>
-          </header>
-          <div className="registry-list">
+        <ProfileCard hoverable>
+          <ProfileCardHeader
+            title="Registries"
+            meta={registryPillsSummary(registryPills)}
+          />
+          <div>
             {registryPills.map((p, i) => (
               <RegistryRow key={i} pill={p} />
             ))}
@@ -240,24 +271,21 @@ export function ProfileComplianceTab({
               and link back to the parent profile.
             </ProfileFootnote>
           ) : null}
-        </section>
+        </ProfileCard>
       ) : null}
 
       {data.certifications.length > 0 ? (
-        <section className="proto-card hoverable">
-          <header className="proto-card-head">
-            <h2 className="proto-card-title">Certifications</h2>
-            <span className="proto-card-meta">
-              {countActiveCerts(data.certifications)} active ·{" "}
-              {countExpiringCerts(data.certifications)} expiring
-            </span>
-          </header>
-          <div className="cert-list">
+        <ProfileCard hoverable>
+          <ProfileCardHeader
+            title="Certifications"
+            meta={`${countActiveCerts(data.certifications)} active · ${countExpiringCerts(data.certifications)} expiring`}
+          />
+          <div>
             {data.certifications.map((c, i) => (
               <CertRow key={i} cert={c} />
             ))}
           </div>
-        </section>
+        </ProfileCard>
       ) : null}
 
       {data.rsc_remediation ? (
@@ -271,15 +299,12 @@ export function ProfileComplianceTab({
       )}
 
       {data.brand_attributions.length > 0 ? (
-        <section className="proto-card hoverable">
-          <header className="proto-card-head">
-            <h2 className="proto-card-title">Brand attribution</h2>
-            <span className="proto-card-meta">
-              {data.brand_attributions.length} brand
-              {data.brand_attributions.length === 1 ? "" : "s"} disclosed
-            </span>
-          </header>
-          <div className="pill-row">
+        <ProfileCard hoverable>
+          <ProfileCardHeader
+            title="Brand attribution"
+            meta={`${data.brand_attributions.length} brand${data.brand_attributions.length === 1 ? "" : "s"} disclosed`}
+          />
+          <div className="flex flex-wrap gap-2">
             {data.brand_attributions.map((b, i) => (
               <BrandChip key={i} brand={b} />
             ))}
@@ -288,18 +313,16 @@ export function ProfileComplianceTab({
             Each chip traces to the brand&apos;s own published supplier
             disclosure. Full sources on the Brand attribution tab.
           </ProfileFootnote>
-        </section>
+        </ProfileCard>
       ) : null}
 
       {data.documents.length > 0 ? (
-        <section className="proto-card span2">
-          <header className="proto-card-head">
-            <h2 className="proto-card-title">Compliance documents</h2>
-            <span className="proto-card-meta">
-              {data.documents.length} mirrored
-            </span>
-          </header>
-          <div className="docs-list">
+        <ProfileCard className="lg:col-span-2">
+          <ProfileCardHeader
+            title="Compliance documents"
+            meta={`${data.documents.length} mirrored`}
+          />
+          <div>
             {data.documents.map((d, i) => (
               <DocRow key={i} doc={d} />
             ))}
@@ -308,84 +331,87 @@ export function ProfileComplianceTab({
             Mirror copies served from SourceBD&apos;s CDN for stable archival.
             Originals link back to the issuing authority.
           </ProfileFootnote>
-        </section>
+        </ProfileCard>
       ) : null}
-    </div>
+      </div>
+    </ProfileTabStack>
   );
 }
 
 function RegistryRow({ pill }: { pill: ProfileCompliancePill }) {
-  const logo = sourceLogo(pill.source_code);
   const inherited = !!pill.inherited_from;
   const meta = inherited
     ? `Inherited from parent group ${pill.inherited_from_name ?? ""}`.trim()
     : `Verified via ${sourceFullName(pill.source_code)}`;
   return (
-    <div className="registry-row">
-      <div className="reg-logo" data-source={pill.source_code}>
-        {logo ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={logo} alt={pill.source_code} />
-        ) : (
-          <span className="reg-mark">{pill.source_code}</span>
-        )}
-      </div>
-      <div>
-        <div className="reg-name">
+    <ProfileEvidenceRow
+      markSize="lg"
+      pillAlign="top"
+      mark={<ProfileSourceMark tag={pill.source_code} size="lg" />}
+      title={
+        <>
           {sourceFullName(pill.source_code)}
           {pill.value ? (
             <span
-              className="ref"
+              className="ml-2 font-mono text-[13px] font-medium text-neutral-500"
               title={formatRegistryIdLabel(pill.source_code)}
             >
               {pill.value}
             </span>
           ) : null}
-        </div>
-        <div className="reg-meta">{meta}</div>
-      </div>
-      <span
-        className={`reg-status profile-status-badge${inherited ? " inherited" : " valid"}`}
-      >
-        {inherited ? "Inherited" : "Verified"}
-      </span>
-    </div>
+        </>
+      }
+      meta={meta}
+      status={
+        <ProfileStatusBadge tone={inherited ? "inherited" : "valid"}>
+          {inherited ? "Inherited" : "Verified"}
+        </ProfileStatusBadge>
+      }
+    />
   );
 }
 
 function CertRow({ cert }: { cert: ProfileComplianceCert }) {
-  const logo = sourceLogo(cert.kind);
   const status = certStatus(cert);
   const shortStatus = certStatusShort(status);
+  const expirySuffix =
+    cert.expires_on && cert.kind !== "oeko_tex"
+      ? ` · expires ${formatProfileDate(cert.expires_on)}`
+      : "";
   return (
-    <div className="cert">
-      {logo ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img className="auth-logo-color" src={logo} alt={certLabel(cert.kind)} />
-      ) : (
-        <span className="issuer-mark">
-          {certLabel(cert.kind).slice(0, 3).toUpperCase()}
-        </span>
-      )}
-      <div className="cert-main">
-        <p className="cert-name">
-          <span className="cert-name-short">{certLabel(cert.kind)}</span>
-          <span className="cert-name-full">{certLongName(cert.kind)}</span>
-        </p>
-        <p className="cert-meta">
-          {[cert.certificate_no, cert.issuer]
-            .filter(Boolean)
-            .join(" · ") || "—"}
-          {cert.expires_on && cert.kind !== "oeko_tex"
-            ? ` · expires ${formatProfileDate(cert.expires_on)}`
-            : ""}
-        </p>
-      </div>
-      <ProfileStatusBadge tone={status.tone} className="cert-status">
-        <span className="cert-status-short">{shortStatus}</span>
-        <span className="cert-status-full">{status.label}</span>
-      </ProfileStatusBadge>
-    </div>
+    <ProfileEvidenceRow
+      markSize="lg"
+      pillAlign="top"
+      mark={<ProfileSourceMark tag={cert.kind} label={certLabel(cert.kind)} size="lg" />}
+      title={
+        <>
+          {/* Phones: acronym only — the full descriptive name is what makes
+              this list read as a wall of text on narrow screens. */}
+          <span className="sm:hidden">{certLabel(cert.kind)}</span>
+          <span className="hidden sm:inline">{certLongName(cert.kind)}</span>
+        </>
+      }
+      meta={
+        <>
+          {/* Phones: drop the issuer name (often the longest, least-scannable
+              segment) and keep just the certificate number + expiry. */}
+          <span className="font-mono sm:hidden">
+            {[cert.certificate_no].filter(Boolean).join(" · ") || "—"}
+            {expirySuffix}
+          </span>
+          <span className="hidden font-mono sm:inline">
+            {[cert.certificate_no, cert.issuer].filter(Boolean).join(" · ") || "—"}
+            {expirySuffix}
+          </span>
+        </>
+      }
+      status={
+        <ProfileStatusBadge tone={status.tone}>
+          <span className="sm:hidden">{shortStatus}</span>
+          <span className="hidden sm:inline">{status.label}</span>
+        </ProfileStatusBadge>
+      }
+    />
   );
 }
 
@@ -395,111 +421,125 @@ function RscCard({ rsc }: { rsc: ProfileComplianceRsc }) {
       ? Math.max(0, Math.min(100, Number(rsc.progress_pct)))
       : null;
   return (
-    <section className="proto-card hoverable rsc-card">
-      <header className="proto-card-head">
-        <h2 className="proto-card-title">RSC remediation</h2>
-        <span className="proto-card-meta">
-          {pct != null ? `${pct.toFixed(0)}% complete` : "tracked"}
-        </span>
-      </header>
-      <div className="rsc-stack">
+    <ProfileCard hoverable>
+      <ProfileCardHeader
+        title="RSC remediation"
+        meta={pct != null ? `${pct.toFixed(0)}% complete` : "tracked"}
+      />
+      <div className="space-y-4">
         {pct != null ? (
           <>
-            <div className="rsc-score-row">
-              <span className="rsc-headline">
+            <div className="flex flex-wrap items-baseline gap-2">
+              <span className="font-display text-[34px] font-bold leading-none tracking-[-0.02em] text-neutral-950">
                 {pct.toFixed(0)}
-                <span className="pct">%</span>
+                <span className="text-[18px]">%</span>
               </span>
-              <span className="rsc-score-label">remediation completed</span>
+              <span className="text-[13px] font-medium text-neutral-500">
+                remediation completed
+              </span>
             </div>
-            <div className="rsc-bar-wrap">
-              <div className="rsc-bar" style={{ width: `${pct}%` }} />
+            <div className="relative h-2 rounded-full bg-neutral-100">
               <div
-                className="rsc-tick"
+                className="h-full rounded-full bg-brand-forest"
+                style={{ width: `${pct}%` }}
+              />
+              <span
+                className="absolute top-1/2 h-4 w-px -translate-y-1/2 bg-neutral-400"
                 style={{ left: "95%" }}
-                data-label="Industry median 95%"
+                title="Industry median 95%"
               />
             </div>
-            <div className="rsc-legend">
+            <div className="flex justify-between font-mono text-[12px] text-neutral-500">
               <span>0%</span>
               <span>100%</span>
             </div>
           </>
         ) : null}
-        {rsc.workers_count != null || rsc.remediation_status ? (
-          <p className="rsc-meta-line">
-            {rsc.workers_count != null
-              ? `${rsc.workers_count.toLocaleString()} workers`
-              : ""}
-            {rsc.workers_count != null && rsc.remediation_status ? " · " : ""}
-            {rsc.remediation_status ?? ""}
-          </p>
+        {rsc.workers_count != null || rsc.remediation_status || rsc.training_status ? (
+          <div>
+            {rsc.workers_count != null ? (
+              <div className="flex items-center justify-between border-t border-neutral-100 py-2.5 text-[14px]">
+                <span className="text-neutral-600">Workforce covered</span>
+                <span className="font-semibold text-neutral-800">
+                  {rsc.workers_count.toLocaleString()} workers
+                </span>
+              </div>
+            ) : null}
+            {rsc.remediation_status ? (
+              <div className="flex items-center justify-between border-t border-neutral-100 py-2.5 text-[14px]">
+                <span className="text-neutral-600">Remediation status</span>
+                <span
+                  className={cn(
+                    "inline-flex items-center gap-1.5 font-semibold",
+                    STATUS_TEXT_CLASS[statusTone(rsc.remediation_status)],
+                  )}
+                >
+                  <span
+                    className={cn(
+                      "h-1.5 w-1.5 rounded-full",
+                      STATUS_DOT_CLASS[statusTone(rsc.remediation_status)],
+                    )}
+                  />
+                  {rsc.remediation_status}
+                </span>
+              </div>
+            ) : null}
+            {rsc.training_status ? (
+              <div className="flex items-center justify-between border-t border-neutral-100 py-2.5 text-[14px]">
+                <span className="text-neutral-600">Training status</span>
+                <span
+                  className={cn(
+                    "inline-flex items-center gap-1.5 font-semibold",
+                    STATUS_TEXT_CLASS[statusTone(rsc.training_status)],
+                  )}
+                >
+                  <span
+                    className={cn(
+                      "h-1.5 w-1.5 rounded-full",
+                      STATUS_DOT_CLASS[statusTone(rsc.training_status)],
+                    )}
+                  />
+                  {rsc.training_status}
+                </span>
+              </div>
+            ) : null}
+          </div>
         ) : null}
       </div>
-    </section>
+      <ProfileFootnote>
+        Tracked by the RMG Sustainability Council under the post-Accord
+        safety transition programme — covers fire, structural, and
+        electrical remediation across all factory buildings on file.
+      </ProfileFootnote>
+    </ProfileCard>
   );
 }
 
 function SanctionsClearCard() {
   return (
-    <section className="proto-card hoverable sanctions-card">
-      <header className="proto-card-head">
-        <h2 className="proto-card-title">Sanctions screening</h2>
-        <span className="proto-card-meta">
-          6 of 6 watchlists clear · re-screened weekly
-        </span>
-      </header>
-      <div className="sanctions-clear">
-        <svg
-          className="ico"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth={1.8}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          aria-hidden
-        >
-          <path d="M20 6L9 17l-5-5" />
-        </svg>
-        <div>
-          <p className="sanctions-clear-title">
-            No matches across any watchlist
-          </p>
-          <p className="sanctions-clear-body">
-            Name + address + registry IDs cross-checked against the 6
-            watchlists below.
-          </p>
-        </div>
-        <span className="cert-status valid">Clear</span>
-      </div>
-      <div className="sanctions-grid">
-        {SANCTIONS_TILES.map((t) => (
-          <div key={t.acronym} className="sanctions-tile">
-            <div className="tile-top">
-              <span className="tile-juris">{t.juris}</span>
-              <span className="tile-check">
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth={3.5}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  width={11}
-                  height={11}
-                  aria-hidden
-                >
-                  <path d="M20 6L9 17l-5-5" />
-                </svg>
-              </span>
-            </div>
-            <span className="tile-acronym">{t.acronym}</span>
-            <span className="tile-auth">{t.auth}</span>
-          </div>
+    <ProfileCard hoverable>
+      <ProfileCardHeader
+        title="Sanctions screening"
+        meta="6 of 6 watchlists clear · re-screened weekly"
+      />
+      <div>
+        {SANCTIONS_WATCHLISTS.map((w) => (
+          <ProfileEvidenceRow
+            key={w.list}
+            markSize="lg"
+            pillAlign="top"
+            mark={<ProfileSourceMark tag={w.list} label={w.acronym} size="lg" />}
+            title={w.acronym}
+            meta={w.authority}
+            status={<ProfileStatusBadge tone="valid">Clear</ProfileStatusBadge>}
+          />
         ))}
       </div>
-    </section>
+      <ProfileFootnote>
+        Name + address + registry IDs cross-checked against all 6 watchlists
+        above.
+      </ProfileFootnote>
+    </ProfileCard>
   );
 }
 
@@ -509,74 +549,39 @@ function SanctionsHitsCard({
   hits: readonly ProfileComplianceSanction[];
 }) {
   return (
-    <section
-      className="proto-card hoverable"
-      style={{ borderColor: "var(--sem-red)" }}
-    >
-      <header className="proto-card-head">
-        <h2 className="proto-card-title" style={{ color: "var(--sem-red)" }}>
-          Sanctions matches
-        </h2>
-        <span className="proto-card-meta">{hits.length} active</span>
-      </header>
-      <ul className="m-0 flex list-none flex-col p-0">
+    <ProfileCard className="border-sem-red/50 bg-sem-red-soft/40">
+      <ProfileCardHeader title="Sanctions matches" meta={`${hits.length} active`} />
+      <div>
         {hits.map((h, i) => (
-          <li
+          <ProfileEvidenceRow
             key={i}
-            style={{
-              padding: "12px 0",
-              borderBottom: "1px solid var(--hairline)",
-              display: "flex",
-              flexDirection: "column",
-              gap: 4,
-            }}
-          >
-            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-              <span
-                className="cert-status"
-                style={{
-                  background: "var(--sem-red-soft)",
-                  color: "var(--sem-red)",
-                }}
-              >
-                {h.list}
-              </span>
-              <span style={{ fontSize: 13, color: "var(--ink-primary)" }}>
-                {h.matched_name}
-              </span>
-            </div>
-            <div
-              className="mono"
-              style={{ fontSize: 11, color: "var(--ink-tertiary)" }}
-            >
-              {h.list_entry_ref ? `Ref: ${h.list_entry_ref} · ` : ""}
-              Screened {formatProfileDate(h.screened_at)}
-            </div>
-            {h.source_url ? (
-              <a
-                href={h.source_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="cert-view"
-              >
-                View list entry ↗
-              </a>
-            ) : null}
-          </li>
+            markSize="lg"
+            mark={<ProfileSourceMark tag={h.list} size="lg" />}
+            title={h.matched_name}
+            meta={`${h.list_entry_ref ? `Ref: ${h.list_entry_ref} · ` : ""}Screened ${formatProfileDate(h.screened_at)}`}
+            status={<ProfileStatusBadge tone="danger">{h.list}</ProfileStatusBadge>}
+            action={
+              h.source_url ? (
+                <ProfileActionLink href={h.source_url}>View list entry</ProfileActionLink>
+              ) : null
+            }
+          />
         ))}
-      </ul>
-    </section>
+      </div>
+    </ProfileCard>
   );
 }
 
 function BrandChip({ brand }: { brand: ProfileComplianceBrand }) {
   const node = (
     <span
-      className="brand-pill"
+      className="inline-flex items-center gap-2 rounded-full border border-neutral-200 bg-neutral-50 px-3 py-1.5 text-[13px] font-semibold text-neutral-800"
       title={`Disclosed on ${brand.display_name}'s published factory list (${formatProfileDate(brand.last_seen_at)})`}
     >
       {brand.display_name}
-      <span className="ref">{formatProfileDate(brand.last_seen_at)}</span>
+      <span className="border-l border-neutral-200 pl-2 font-mono text-[13px] font-medium text-neutral-500">
+        {formatProfileDate(brand.last_seen_at)}
+      </span>
     </span>
   );
   if (!brand.source_url) return node;
@@ -589,47 +594,61 @@ function BrandChip({ brand }: { brand: ProfileComplianceBrand }) {
 
 function DocRow({ doc }: { doc: ProfileComplianceDocument }) {
   return (
-    <div className="doc-row">
-      <svg
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth={1.5}
-        width={18}
-        height={18}
-        style={{ color: "var(--ink-tertiary)" }}
-        aria-hidden
-      >
-        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-        <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8" />
-      </svg>
-      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        <span className="doc-type">{doc.doc_type}</span>
-        <span className="doc-name">{DOC_TYPE_LONG[doc.doc_type]}</span>
-      </div>
-      <span className="doc-meta">
-        {doc.file_size ? fmtBytes(doc.file_size) : ""}
-      </span>
-      {doc.mirror_url ? (
-        <a
-          className="doc-action"
-          href={doc.mirror_url}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Mirror ↗
-        </a>
-      ) : (
-        <span />
-      )}
-      <a
-        className="doc-action secondary"
-        href={doc.original_url}
-        target="_blank"
-        rel="noopener noreferrer"
-      >
-        Original ↗
-      </a>
-    </div>
+    <ProfileEvidenceRow
+      mark={<ProfileSourceMark tag="RSC" />}
+      title={
+        <>
+          {/* Phones: doc-type badge as an eyebrow above the full name instead
+              of wrapping inline — reads as one clean two-line block instead
+              of a ragged wrap. sm+: unchanged inline pairing. */}
+          <span className="flex flex-col items-start gap-1 sm:hidden">
+            <span className="rounded bg-neutral-100 px-1.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-neutral-500">
+              {doc.doc_type}
+            </span>
+            <span>{DOC_TYPE_LONG[doc.doc_type]}</span>
+          </span>
+          <span className="hidden flex-wrap items-center gap-2 sm:flex">
+            <span className="rounded bg-neutral-100 px-1.5 py-0.5 text-[12px] font-semibold uppercase text-neutral-600">
+              {doc.doc_type}
+            </span>
+            {DOC_TYPE_LONG[doc.doc_type]}
+          </span>
+        </>
+      }
+      meta={doc.file_size ? <span className="font-mono">{fmtBytes(doc.file_size)}</span> : null}
+      action={
+        <>
+          {/* Phones: plain compact text links instead of the padded
+              button-style tap target, which read as stray whitespace in a
+              list this dense. sm+: unchanged full-size tap targets. */}
+          <span className="flex items-center gap-4 sm:hidden">
+            {doc.mirror_url ? (
+              <a
+                href={doc.mirror_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[13px] font-semibold text-brand-forest underline decoration-brand-forest/30 underline-offset-2"
+              >
+                Mirror
+              </a>
+            ) : null}
+            <a
+              href={doc.original_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[13px] font-semibold text-brand-forest underline decoration-brand-forest/30 underline-offset-2"
+            >
+              Original
+            </a>
+          </span>
+          <span className="hidden items-center gap-2 sm:flex">
+            {doc.mirror_url ? (
+              <ProfileActionLink href={doc.mirror_url}>Mirror</ProfileActionLink>
+            ) : null}
+            <ProfileActionLink href={doc.original_url}>Original</ProfileActionLink>
+          </span>
+        </>
+      }
+    />
   );
 }

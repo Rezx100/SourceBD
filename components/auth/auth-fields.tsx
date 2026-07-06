@@ -17,7 +17,7 @@ import { cn } from "@/lib/utils";
 
 const WRAP =
   "flex h-12 items-center gap-2.5 rounded-xl border border-neutral-200 bg-white px-3.5 shadow-[0_1px_2px_rgba(16,25,20,0.04)] transition-all focus-within:border-[#1f4d3a] focus-within:ring-4 focus-within:ring-[#1f4d3a]/10";
-// 16px base on mobile prevents iOS Safari from zooming the viewport on focus;
+// 18px base on mobile prevents iOS Safari from zooming the viewport on focus;
 // scales down to the design size from sm up.
 const INPUT =
   "h-full flex-1 bg-transparent text-base text-neutral-900 outline-none placeholder:text-neutral-400 sm:text-[0.95rem]";
@@ -141,7 +141,7 @@ export function SubmitButton({
     <button
       type="submit"
       disabled={pending}
-      className="relative mt-1 flex h-12 w-full items-center justify-center gap-2 overflow-hidden rounded-xl bg-[#1f4d3a] text-[0.95rem] font-semibold text-white shadow-[0_8px_20px_-8px_rgba(31,77,58,0.55)] transition-colors hover:bg-[#2d6a4f] disabled:cursor-not-allowed disabled:opacity-60"
+      className="relative mt-1 flex h-12 w-full items-center justify-center gap-2 overflow-hidden rounded-xl bg-[#1f4d3a] text-[0.95rem] font-semibold text-white shadow-[0_8px_22px_-8px_rgba(31,77,58,0.55)] transition-colors hover:bg-[#2d6a4f] disabled:cursor-not-allowed disabled:opacity-60"
     >
       {pending ? pendingLabel : children}
       {!pending ? (

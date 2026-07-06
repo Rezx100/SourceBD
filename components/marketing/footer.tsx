@@ -64,7 +64,7 @@ export function MarketingFooter() {
           {/* Columns 2–4 — link groups */}
           {COLUMNS.map((col) => (
             <div key={col.heading}>
-              <h5 className="text-[11px] font-semibold uppercase tracking-wider text-neutral-400">
+              <h5 className="text-[12px] font-semibold uppercase tracking-wider text-neutral-400">
                 {col.heading}
               </h5>
               <ul className="mt-3 space-y-2.5">
@@ -103,7 +103,7 @@ export function MarketingFooter() {
         </div>
 
         {/* ── Disclaimer ── */}
-        <p className="mt-5 text-center text-[11px] leading-relaxed text-neutral-400">
+        <p className="mt-5 text-center text-[12px] leading-relaxed text-neutral-400">
           SourceBD is a neutral public-record index — not a marketplace, broker,
           or rating agency. Authority logos identify data sources we aggregate
           from; SourceBD is not affiliated with or endorsed by BGMEA, BKMEA,
