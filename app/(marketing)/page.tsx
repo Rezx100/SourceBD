@@ -170,7 +170,7 @@ function Kicker({ children }: { children: React.ReactNode }) {
 
 function Heading({ children }: { children: React.ReactNode }) {
   return (
-    <h2 className="text-balance font-display text-[clamp(1.75rem,6vw,2.25rem)] font-bold leading-tight tracking-tight text-neutral-900 md:text-4xl">
+    <h2 className="text-balance font-display text-2xl font-bold leading-tight tracking-tight text-neutral-900 md:text-3xl lg:text-4xl">
       {children}
     </h2>
   );
@@ -294,7 +294,7 @@ export default async function HomeV2Page() {
           {/* Left — message */}
           <div className="text-center lg:text-left">
             <BlurFade delay={0.15}>
-              <h1 className="font-display text-[clamp(2.75rem,12vw,4.75rem)] font-extrabold leading-[1.02] tracking-[-0.03em] text-neutral-900">
+              <h1 className="font-display text-4xl font-extrabold leading-[1.05] tracking-[-0.03em] text-neutral-900 md:text-5xl">
                 Verified
                 <br />
                 Bangladesh
@@ -304,7 +304,7 @@ export default async function HomeV2Page() {
             </BlurFade>
 
             <BlurFade delay={0.3}>
-              <p className="mx-auto mt-5 max-w-md !text-center text-base leading-relaxed text-neutral-600 sm:mt-6 md:text-lg lg:mx-0 lg:!text-left lg:text-xl">
+              <p className="mx-auto mt-5 max-w-md !text-center text-body leading-relaxed text-neutral-600 sm:mt-6 md:text-body-lg lg:mx-0 lg:!text-left lg:text-xl">
                 Find, vet and message garment suppliers — with verified evidence
                 behind every claim.
               </p>
@@ -376,7 +376,7 @@ export default async function HomeV2Page() {
             <BlurFade delay={0.6}>
               <div className="mt-8 flex flex-wrap items-center justify-center gap-x-4 gap-y-3 md:mt-10 lg:justify-start">
                 <AvatarCircles avatarUrls={COMPANY_AVATARS} overflowLabel="10k+" />
-                <p className="text-[16px] text-neutral-600">
+                <p className="text-body-lg text-neutral-600">
                   <span className="font-display font-bold text-neutral-900">
                     {suppliersLabel}+
                   </span>{" "}
@@ -489,10 +489,10 @@ export default async function HomeV2Page() {
               <p className="mt-6 font-mono text-xs uppercase tracking-[0.2em] text-brand-forest">
                 Step 01 · Collect &amp; reconcile
               </p>
-              <h2 className="mt-3 text-balance font-display text-[clamp(1.75rem,6vw,2.6rem)] font-bold leading-tight tracking-tight text-neutral-900">
+              <h2 className="mt-3 text-balance font-display text-2xl font-bold leading-tight tracking-tight text-neutral-900 md:text-3xl">
                 Two sides of evidence, one verified record.
               </h2>
-              <p className="mt-5 max-w-lg text-lg leading-relaxed text-neutral-600">
+              <p className="mt-5 max-w-lg text-body leading-relaxed text-neutral-600 md:text-body-lg">
                 Certification bodies on one side, government registers and trade
                 associations on the other — all reconciled into a single
                 canonical factory record you can act on.
@@ -545,10 +545,10 @@ export default async function HomeV2Page() {
               <p className="mt-6 font-mono text-xs uppercase tracking-[0.2em] text-brand-forest">
                 Step 02 · Evidence, in real time
               </p>
-              <h2 className="mt-3 text-balance font-display text-[clamp(1.75rem,6vw,2.6rem)] font-bold leading-tight tracking-tight text-neutral-900">
+              <h2 className="mt-3 text-balance font-display text-2xl font-bold leading-tight tracking-tight text-neutral-900 md:text-3xl">
                 Watch the evidence land, claim by claim.
               </h2>
-              <p className="mt-5 max-w-lg text-lg leading-relaxed text-neutral-600">
+              <p className="mt-5 max-w-lg text-body leading-relaxed text-neutral-600 md:text-body-lg">
                 Register matches, certificate confirmations and sanctions
                 screens stream into each supplier profile — every row is
                 verified evidence from a named issuer, with the tier and date
@@ -577,10 +577,10 @@ export default async function HomeV2Page() {
               <p className="mt-6 font-mono text-xs uppercase tracking-[0.2em] text-brand-forest">
                 Step 03 · Ranked by authority
               </p>
-              <h2 className="mt-3 text-balance font-display text-[clamp(1.75rem,6vw,2.6rem)] font-bold leading-tight tracking-tight text-neutral-900">
+              <h2 className="mt-3 text-balance font-display text-2xl font-bold leading-tight tracking-tight text-neutral-900 md:text-3xl">
                 Every claim circles back to an authority.
               </h2>
-              <p className="mt-5 max-w-lg text-lg leading-relaxed text-neutral-600">
+              <p className="mt-5 max-w-lg text-body leading-relaxed text-neutral-600 md:text-body-lg">
                 We never publish a proprietary score. Each fact on a profile is
                 ranked by the body that issued it — government and statutory
                 first, then associations, certification bodies, brand
@@ -609,7 +609,7 @@ export default async function HomeV2Page() {
 
           {/* borderless orbit — bleeds into the page */}
           <BlurFade delay={0.2}>
-            <div className="relative mx-auto flex w-full max-w-[522px] justify-center sm:max-w-[622px] lg:scale-110">
+            <div className="relative mx-auto flex w-full max-w-[522px] justify-center sm:max-w-[622px]">
               <div className="absolute -inset-12 -z-10 rounded-full bg-brand-forest/10 blur-3xl" />
               <TrustOrbit />
             </div>
@@ -658,7 +658,7 @@ export default async function HomeV2Page() {
       <section className="px-6 py-20 md:px-12 md:py-24 lg:px-20">
         <div className="mx-auto max-w-6xl text-center">
           <BlurFade delay={0.1}>
-            <h2 className="text-balance font-display text-[clamp(1.875rem,7vw,3.5rem)] font-bold tracking-tight text-neutral-900">
+            <h2 className="text-balance font-display text-3xl font-bold tracking-tight text-neutral-900 md:text-4xl">
               Start vetting with{" "}
               <TextHighlighter
                 highlightColor="var(--brand-forest-soft)"

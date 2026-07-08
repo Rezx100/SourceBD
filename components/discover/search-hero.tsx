@@ -1,72 +1,62 @@
-// R9 round 4 — DiscoverSearchHero.
+// Discover search hero.
 //
-// Always-visible primary search bar that sits above the FilterRail on
-// both /app/discover (buyer) and /discover (marketing). Server component
-// — plain HTML GET form. The user feedback was that the search input
-// being buried inside a Filters card / sheet was the wrong default;
-// search is the primary action on the page and must be one tap away.
+// Card-free, centered hero on both /app/discover (buyer) and /discover
+// (marketing). Renders the title + one-line description (server-rendered
+// static copy) and delegates the actual input to `DiscoverSearchBox`, a
+// client island that provides Google-style live typeahead.
 //
-// Submitting only sets `q` + preserves the current `sort` (so a typed
-// query doesn't silently drop the active sort). It deliberately does
-// NOT preserve filters — typing a new company name typically means the
-// buyer is restarting their search; if they want to keep filters they
-// can use the FilterRail's own Apply button inside the sheet.
+// When `centered` is set (the no-query initial state) the hero grows via
+// `flex-1` so the search field sits in the vertical centre of the page.
 
-import { MagnifyingGlass } from "@phosphor-icons/react/dist/ssr";
-
+import { DiscoverSearchBox } from "@/components/discover/search-box";
 import { cn } from "@/lib/utils";
 
 type Props = {
   basePath: string;
+  /** Profile route base for company jumps, e.g. "/suppliers" or "/app/suppliers". */
+  profileBase: string;
   q: string;
   sort: string;
   className?: string;
+  headline?: string;
+  subcopy?: string;
+  /** Vertically center the hero in the viewport (initial no-query state). */
+  centered?: boolean;
 };
 
-export function DiscoverSearchHero({ basePath, q, sort, className }: Props) {
+export function DiscoverSearchHero({
+  basePath,
+  profileBase,
+  q,
+  sort,
+  className,
+  headline = "Find a verified factory",
+  subcopy = "Search by certification, product, or district.",
+  centered = false,
+}: Props) {
   return (
-    <form
-      method="get"
-      action={basePath}
-      role="search"
-      aria-label="Search suppliers"
+    <section
       className={cn(
-        "r9r4-search-hero rounded-card border border-neutral-200 bg-white p-3 shadow-sm sm:p-4",
+        "flex w-full flex-col items-center text-center",
+        centered && "flex-1 justify-center",
         className,
       )}
     >
-      {sort && sort !== "default" ? (
-        <input type="hidden" name="sort" value={sort} />
-      ) : null}
-
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-stretch">
-        <label htmlFor="discover-hero-q" className="sr-only">
-          Search suppliers
-        </label>
-
-        <div className="relative flex-1 rounded-input border border-neutral-200 bg-neutral-50 shadow-[inset_0_1px_0_rgba(15,15,20,0.03)] transition-colors focus-within:border-brand-forest/50 focus-within:bg-white focus-within:ring-2 focus-within:ring-brand-forest/15">
-          <MagnifyingGlass
-            aria-hidden
-            size={18}
-            weight="bold"
-            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400"
-          />
-          <input
-            id="discover-hero-q"
-            type="search"
-            name="q"
-            defaultValue={q}
-            placeholder="e.g. kids t-shirts, ladies denim, Gazipur knitwear"
-            inputMode="search"
-            autoComplete="off"
-            className="r9r4-hero-input w-full rounded-input border-0 bg-transparent py-3 pl-10 pr-3 text-[16px] font-medium text-neutral-900 outline-none placeholder:font-normal placeholder:text-neutral-500 sm:text-base"
-          />
+      <div className="mx-auto flex w-full max-w-2xl flex-col items-center gap-5">
+        <div className="space-y-1.5">
+          <h1 className="font-display text-2xl font-semibold tracking-[-0.02em] text-ink-primary sm:text-[1.75rem]">
+            {headline}
+          </h1>
+          <p className="text-sm text-ink-secondary">{subcopy}</p>
         </div>
 
-        <button type="submit" className="btn-proto primary min-h-[46px] shrink-0 justify-center px-5 sm:px-7">
-          Search
-        </button>
+        <DiscoverSearchBox
+          basePath={basePath}
+          profileBase={profileBase}
+          q={q}
+          sort={sort}
+        />
       </div>
-    </form>
+    </section>
   );
 }

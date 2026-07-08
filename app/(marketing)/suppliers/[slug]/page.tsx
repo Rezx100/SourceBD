@@ -282,7 +282,8 @@ export default async function PublicSupplierProfilePage({
 
   return (
     <>
-      <div className="r7-profile-shell mx-auto flex max-w-[1280px] flex-col gap-4 overflow-x-clip px-0 pb-5 sm:px-4 sm:pb-6 md:px-6">
+      {/* Marketing layout main has no horizontal padding; app shell main uses px-4. */}
+      <div className="r7-profile-shell mx-auto flex max-w-[1280px] flex-col gap-4 overflow-x-clip px-4 pb-5 sm:pb-6 md:px-6">
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(ld) }}

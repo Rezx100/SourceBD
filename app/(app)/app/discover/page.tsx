@@ -30,7 +30,7 @@ import {
 import { DiscoverResultCard, type DiscoverRow } from "@/components/discover/result-card";
 import { DiscoverSearchHero } from "@/components/discover/search-hero";
 import { MobileFilterSheet } from "@/components/discover/mobile-filter-sheet";
-import { EmptyState, PageHeader } from "@/components/ui/page-kit";
+import { EmptyState } from "@/components/ui/page-kit";
 import { fetchDiscoverFacets } from "@/lib/discover-facets";
 import { resolveDiscoverSmartQuery } from "@/lib/discover-smart-query";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -70,60 +70,58 @@ export default async function BuyerDiscoverPage({
   const district = asString(sp.district).trim();
   const category = asString(sp.category).trim();
   const smartQuery = resolveDiscoverSmartQuery(q, category);
+  const hasSearchQuery = q.length > 0;
   const sort = clampSort(asString(sp.sort));
   const pageNum = Math.max(1, asInt(sp.page) ?? 1);
   const offset = (pageNum - 1) * PAGE_SIZE;
 
   const supabase = await createSupabaseServerClient();
-  const rpcPromise = supabase.rpc("discover_suppliers", {
-    p_q: smartQuery.rpcQ || null,
-    p_entity_types: entityTypes.length ? entityTypes : null,
-    p_min_sources: minSources,
-    p_cert_kinds: certKinds.length ? certKinds : null,
-    p_rsc_min: null,
-    p_city: city || null,
-    p_district: district || null,
-    p_category: category || smartQuery.inferredCategory || null,
-    p_sort: sort,
-    p_limit: PAGE_SIZE,
-    p_offset: offset,
-    p_registries: registries.length ? registries : null,
-    p_factory_types: factoryTypes.length ? factoryTypes : null,
-    p_brand_codes: brandCodes.length ? brandCodes : null,
-    p_completeness_min: null,
-    p_workers_min: null,
-  });
+  const facets = await fetchDiscoverFacets();
+  let rows: DiscoverRow[] = [];
+  let error: unknown = null;
+  let totalCount = 0;
+  let totalPages = 1;
+  const savedSet = new Set<string>();
 
-  // Chain the saved-set lookup onto the RPC promise so it runs in parallel
-  // with `fetchDiscoverFacets` (which is anon-cached and usually a hit).
-  const savedPromise = rpcPromise.then(async ({ data }) => {
-    const rows = (data ?? []) as DiscoverRow[];
-    if (rows.length === 0) return new Set<string>();
-    const { data: savedRows } = await supabase
-      .from("saved_suppliers")
-      .select("supplier_id")
-      .in(
-        "supplier_id",
-        rows.map((r) => r.id),
-      );
-    const set = new Set<string>();
-    if (savedRows) {
-      for (const r of savedRows as { supplier_id: string }[]) {
-        set.add(r.supplier_id);
+  if (hasSearchQuery) {
+    const { data, error: rpcError } = await supabase.rpc("discover_suppliers", {
+      p_q: smartQuery.rpcQ || null,
+      p_entity_types: entityTypes.length ? entityTypes : null,
+      p_min_sources: minSources,
+      p_cert_kinds: certKinds.length ? certKinds : null,
+      p_rsc_min: null,
+      p_city: city || null,
+      p_district: district || null,
+      p_category: category || smartQuery.inferredCategory || null,
+      p_sort: sort,
+      p_limit: PAGE_SIZE,
+      p_offset: offset,
+      p_registries: registries.length ? registries : null,
+      p_factory_types: factoryTypes.length ? factoryTypes : null,
+      p_brand_codes: brandCodes.length ? brandCodes : null,
+      p_completeness_min: null,
+      p_workers_min: null,
+    });
+    error = rpcError;
+    rows = (data ?? []) as DiscoverRow[];
+    totalCount = rows[0]?.total_count ?? 0;
+    totalPages = Math.max(1, Math.ceil(Number(totalCount) / PAGE_SIZE));
+
+    if (rows.length > 0) {
+      const { data: savedRows } = await supabase
+        .from("saved_suppliers")
+        .select("supplier_id")
+        .in(
+          "supplier_id",
+          rows.map((r) => r.id),
+        );
+      if (savedRows) {
+        for (const r of savedRows as { supplier_id: string }[]) {
+          savedSet.add(r.supplier_id);
+        }
       }
     }
-    return set;
-  });
-
-  const [{ data, error }, facets, savedSet] = await Promise.all([
-    rpcPromise,
-    fetchDiscoverFacets(),
-    savedPromise,
-  ]);
-
-  const rows = (data ?? []) as DiscoverRow[];
-  const totalCount = rows[0]?.total_count ?? 0;
-  const totalPages = Math.max(1, Math.ceil(Number(totalCount) / PAGE_SIZE));
+  }
   const baseQuery = {
     q,
     entity: entityTypes,
@@ -166,138 +164,136 @@ export default async function BuyerDiscoverPage({
     (district ? 1 : 0) +
     (category ? 1 : 0);
   return (
-    <div className="mx-auto max-w-7xl space-y-8">
-      <PageHeader
-        kicker="Buyer"
-        title="Discover"
-        description="Verified Bangladesh garment factories and buying houses, ranked by source-backed evidence."
+    <div className="mx-auto flex min-h-[calc(100dvh-9rem)] max-w-6xl flex-col gap-6">
+      <DiscoverSearchHero
+        basePath={BASE_PATH}
+        profileBase="/app/suppliers"
+        q={q}
+        sort={sort}
+        centered={!hasSearchQuery}
+        subcopy="Search by certification, product, or district - every result is source-backed."
       />
 
-      <div className="space-y-6">
-        {/* R9r4 — primary search bar, always visible. */}
-        <DiscoverSearchHero basePath={BASE_PATH} q={q} sort={sort} />
+      {hasSearchQuery ? (
+        <>
+          <div className="space-y-4">
+            <div className="md:hidden">
+              <MobileFilterSheet
+                activeFilterCount={activeFilterCount}
+                resultCount={Number(totalCount)}
+              >
+                <FilterRail
+                  basePath={BASE_PATH}
+                  q={q}
+                  entityTypes={entityTypes}
+                  certKinds={certKinds}
+                  registries={registries}
+                  brandCodes={brandCodes}
+                  factoryTypes={factoryTypes}
+                  minSources={minSourcesRaw}
+                  city={city}
+                  district={district}
+                  category={category}
+                  sort={sort}
+                  facets={facets}
+                  hideSearchRow
+                  instanceId="mobile"
+                />
+              </MobileFilterSheet>
+            </div>
 
-        {/* R9r4 — mobile: hide the inline rail behind a Filters trigger
-            that opens a bottom sheet. The hero above already covers the
-            search-by-name case, so the sheet is opt-in for power filters. */}
-        <div className="md:hidden">
-          <MobileFilterSheet
-            activeFilterCount={activeFilterCount}
-            resultCount={Number(totalCount)}
-          >
-            <FilterRail
-              basePath={BASE_PATH}
-              q={q}
-              entityTypes={entityTypes}
-              certKinds={certKinds}
-              registries={registries}
-              brandCodes={brandCodes}
-              factoryTypes={factoryTypes}
-              minSources={minSourcesRaw}
-              city={city}
-              district={district}
-              category={category}
-              sort={sort}
-              facets={facets}
-              baseQuery={baseQuery}
-              hideSearchRow
-              instanceId="mobile"
-            />
-          </MobileFilterSheet>
-        </div>
-
-        {/* Desktop: inline rail below the hero (no duplicate search row). */}
-        <div className="hidden md:block">
-          <FilterRail
-            basePath={BASE_PATH}
-            q={q}
-            entityTypes={entityTypes}
-            certKinds={certKinds}
-            registries={registries}
-            brandCodes={brandCodes}
-            factoryTypes={factoryTypes}
-            minSources={minSourcesRaw}
-            city={city}
-            district={district}
-            category={category}
-            sort={sort}
-            facets={facets}
-            baseQuery={baseQuery}
-            hideSearchRow
-            instanceId="desktop"
-          />
-        </div>
-
-        <section id="discover-results" className="space-y-4">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <p className="text-sm text-ink-secondary">
-              {error ? (
-                <span className="text-sem-red">Could not load suppliers.</span>
-              ) : (
-                <>
-                  <span className="font-semibold text-ink-primary">
-                    {Number(totalCount).toLocaleString()}
-                  </span>{" "}
-                  result{Number(totalCount) === 1 ? "" : "s"}
-                </>
-              )}
-            </p>
-            <SortControl
-              basePath={BASE_PATH}
-              current={sort}
-              baseQuery={baseQuery}
-            />
+            <div className="hidden md:block">
+              <FilterRail
+                basePath={BASE_PATH}
+                q={q}
+                entityTypes={entityTypes}
+                certKinds={certKinds}
+                registries={registries}
+                brandCodes={brandCodes}
+                factoryTypes={factoryTypes}
+                minSources={minSourcesRaw}
+                city={city}
+                district={district}
+                category={category}
+                sort={sort}
+                facets={facets}
+                hideSearchRow
+                instanceId="desktop"
+              />
+            </div>
           </div>
 
-          {!error && rows.length === 0 ? (
-            <EmptyState
-              title={anyFilterActive ? "No matches" : "No published suppliers yet"}
-              description={
-                anyFilterActive
-                  ? "No suppliers match these filters. Try removing the most restrictive one."
-                  : "Published suppliers will appear here as the index fills."
-              }
-              action={
-                anyFilterActive ? (
-                  <Link
-                    href={BASE_PATH}
-                    className="inline-flex items-center rounded-pill bg-brand-forest px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-brand-forest-mid"
-                  >
-                    Clear all filters
-                  </Link>
-                ) : null
-              }
-            />
-          ) : (
-            <ul className="grid grid-cols-1 gap-4">
-              {rows.map((row) => (
-                <li key={row.id}>
-                  <DiscoverResultCard
-                    row={row}
-                    hrefBase="/app/suppliers"
-                    actionSlot={
-                      <SaveButton
-                        supplierId={row.id}
-                        initialSaved={savedSet.has(row.id)}
-                        shape="icon"
-                      />
-                    }
-                  />
-                </li>
-              ))}
-            </ul>
-          )}
+          <section id="discover-results" className="space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <p className="text-sm text-ink-secondary">
+                {error ? (
+                  <span className="text-sem-red">Could not load suppliers.</span>
+                ) : (
+                  <>
+                    <span className="font-semibold text-ink-primary">
+                      {Number(totalCount).toLocaleString()}
+                    </span>{" "}
+                    result{Number(totalCount) === 1 ? "" : "s"}
+                  </>
+                )}
+              </p>
+              <SortControl
+                basePath={BASE_PATH}
+                current={sort}
+                baseQuery={baseQuery}
+              />
+            </div>
 
-          {totalPages > 1 ? (
-            <Pagination
-              basePath={BASE_PATH}
-              page={pageNum}
-              totalPages={totalPages}
-              baseQuery={baseQuery}
-            />
-          ) : null}
-        </section>
-      </div>
+            {!error && rows.length === 0 ? (
+              <EmptyState
+                title={anyFilterActive ? "No matches" : "No published suppliers yet"}
+                description={
+                  anyFilterActive
+                    ? "No suppliers match these filters. Try removing the most restrictive one."
+                    : "Published suppliers will appear here as the index fills."
+                }
+                action={
+                  anyFilterActive ? (
+                    <Link
+                      href={BASE_PATH}
+                      className="inline-flex items-center rounded-pill bg-brand-forest px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-brand-forest-mid"
+                    >
+                      Clear all filters
+                    </Link>
+                  ) : null
+                }
+              />
+            ) : (
+              <ul className="grid grid-cols-1 gap-4">
+                {rows.map((row) => (
+                  <li key={row.id}>
+                    <DiscoverResultCard
+                      row={row}
+                      hrefBase="/app/suppliers"
+                      actionSlot={
+                        <SaveButton
+                          supplierId={row.id}
+                          initialSaved={savedSet.has(row.id)}
+                          shape="icon"
+                        />
+                      }
+                    />
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            {totalPages > 1 ? (
+              <Pagination
+                basePath={BASE_PATH}
+                page={pageNum}
+                totalPages={totalPages}
+                baseQuery={baseQuery}
+              />
+            ) : null}
+          </section>
+        </>
+      ) : null}
     </div>
   );
 }
