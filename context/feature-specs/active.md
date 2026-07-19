@@ -3,11 +3,26 @@
 This file keeps routine agent sessions from scanning every inactive feature spec.
 
 ## Active / Recent Spec
+- Most recent ad-hoc frontend work (19 Jul 2026): /home-demo polish —
+  section reorder (VerifiedRecordSteps before closing CTA),
+  ExploreIndexTeaser removed from page, evidence stage light stone wash
+  + hover no longer pauses auto-advance, buyer-workflow FrameHairlines
+  clip fix, checklist milestone shadow/Due cleanup. Demo page only.
+  Boot from `context/feature-specs/brief-home-demo-polish.md` if
+  continuing polish. See `context/current-state.md` → Recent Frontend
+  Polish.
+- /home-demo audit remediation (15 Jul 2026, ad-hoc): founder-selected
+  38-item fix list from the homepage UI/UX + data-moat audit — section
+  reorder, new RSC safety / brand-disclosure / explore-index / closing-CTA
+  sections with live RPC counts, shared Kicker, container + rhythm
+  unification, contrast and a11y fixes. Demo page only; production `/`
+  untouched. Brand-strip wording pending legal sign-off. See
+  current-state.md → Recent Frontend Polish.
 - Barikoi integration (6 Jul 2026, ad-hoc, founder-approved): Rupantor geocode
   cache in ETL + profile Locations map on app/marketing routes. Code complete;
   migration 0077 pending application from the VPS. See current-state.md →
   Recent Barikoi Integration.
-- Most recent ad-hoc frontend work (30 Jun 2026): principal product chip
+- Previous ad-hoc frontend work (30 Jun 2026): principal product chip
   dedup, spelling correction, singular/plural merge, and compound-label split
   (`Sweater/Jacket` → separate chips) in `lib/product-icons.ts` — deployed via
   quick deploy. See `context/current-state.md` → Recent Frontend Polish.

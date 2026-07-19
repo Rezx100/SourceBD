@@ -85,6 +85,43 @@ Until then the profile map works via live geocoding only (first 4 addresses
 per profile, memoised in-process).
 
 ## Recent Frontend Polish
+19 Jul 2026 - /home-demo polish pass (ad-hoc, working tree). Demo page
+only; production `/` untouched. Section order now: hero → MoatStats →
+EvidenceAnatomy → CapabilityFeatureGrid → WorkflowAgentsMarquee →
+IsometricDecisionPath → VerifiedRecordSteps → closing forest CTA.
+Removed ExploreIndexTeaser from the page. Evidence stage restyled from
+deep-forest wash to a quiet stone surface (no under-stage glow); section
+band `bg-neutral-50`; auto-advance no longer pauses on hover. Buyer
+workflow animation: shared `FrameHairlines` inset/inherited-radius so
+card corner hairlines do not clip; checklist milestone shadow softened
+and top inset to keep the active-row hairline; Due badge removed from
+Quality inspection. Local `/home-demo` smoke 200 after warm compile
+(cold compile on Windows can take ~60–90s; watch for Next memory
+restarts).
+
+15 Jul 2026 - /home-demo audit remediation (38-item founder-selected list)
+implemented in the working tree. Scope is the demo homepage only
+(production `/` untouched). Structural: sections reordered to hero →
+moat stats → evidence anatomy → positioning → live checks → new RSC
+safety band → new brand-disclosure strip → decision path → new
+explore-the-index teaser → new closing CTA; one shared `Kicker`
+(`components/marketing/home/kicker.tsx`), one container (max-w-[1200px]),
+two padding steps, hairline border-b separators. Data: MoatStats now
+renders certifications_verified, sanctions_lists_screened and a
+last_refreshed_at stamp; "corroborated" label corrected to "backed by a
+government or association register"; live ≥2-source count in evidence
+rail; new sections pull live counts via `discover_suppliers`
+(`components/marketing/home/discover-count.ts`) with counts matched
+1:1 to their /discover deep-link args. Brand-disclosure strip wording
+("disclosed on {brand}'s published factory list", text-only, no brand
+logos) is PENDING legal sign-off per frontend-design-spec.md §20 Q4.
+A11y/fixes: evidence stage converted to tablist/tab/tabpanel with
+arrow-key nav and fluid width (1024-1200px collapse fixed), marquee
+grid holes removed (15 cards/15 slots), sub-12px text raised,
+neutral-400 contrast failures lifted to neutral-500+. `pnpm typecheck`
+and `pnpm lint` pass (same pre-existing warnings); /home-demo smoke
+200 on local dev with all new sections rendering live numbers.
+
 30 Jun 2026 - Principal product chip dedup and compound-label split deployed to VPS
 `109.104.153.228`. Frontend-only (DB unchanged) in `lib/product-icons.ts`:
 spelling correction for common BGMEA harvest typos, singular/plural merge
