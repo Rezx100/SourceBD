@@ -110,6 +110,16 @@ approved the rendering; flagged for future legal review alongside the
 brand-strip wording. Typecheck + lint pass; dev smoke: `/` 200 with both
 anchors + scenic footer + JSON-LD, `/pricing` renders the global scenic
 footer, `/home-demo` redirects to `/`.
+DEPLOYED 23 Jul 2026: merged to main (PR #16, c8c1812; main branch was
+restored at 22f5093 after being deleted on GitHub, then result-card.tsx
+merge conflicts resolved keeping the development side — it subsumed
+main's #14 mobile-spacing fix) and deployed to VPS 109.104.153.228 via
+`ops/deploy_vps.sh --ref=main --require-git` in tmux. Rollback ref
+8b0af65 in `.deploy/previous-sha`. Production smoke green:
+sourcebd.net `/` + `/api/health` + `/discover` + product icon +
+skyline art 200, `/pricing` global footer, `/home-demo` redirect doc.
+The deploy script's "public health check failed" warning was transient
+(Caddy active, public health 200 immediately after).
 
 23 Jul 2026 (hero dashboard demo) - /home-demo hero product window is now
 an animated `HeroDashboardDemo`
