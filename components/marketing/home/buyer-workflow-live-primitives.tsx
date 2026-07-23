@@ -138,7 +138,7 @@ function ChromeButton({
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1 rounded-pill px-2.5 py-1 text-[11px] font-semibold",
+        "inline-flex items-center gap-1 rounded-pill px-2.5 py-1 text-[12px] font-semibold",
         tone === "primary"
           ? "bg-brand-forest text-white shadow-sm"
           : "border border-hairline-strong bg-surface-l1 text-ink-primary",
@@ -154,24 +154,27 @@ function StaticField({
   label,
   value,
   multiline = false,
+  wrap = false,
   reveal = 1,
   className,
 }: {
   label: string;
   value: string;
   multiline?: boolean;
+  /** Allow long single-line values (e.g. product titles) to wrap instead of clipping. */
+  wrap?: boolean;
   reveal?: number;
   className?: string;
 }) {
   const shown = multiline ? typedText(value, reveal, 0, 1) : value;
   return (
     <label className="flex flex-col gap-0.5">
-      <span className="text-[10px] text-ink-tertiary">{label}</span>
+      <span className="text-[12px] text-ink-tertiary">{label}</span>
       {multiline ? (
         // Reserve full-text height so typing reveal never grows the box / shifts the scene.
         <div
           className={cn(
-            "relative w-full overflow-hidden rounded-input border border-hairline-strong bg-white px-2 py-1 text-[11px] leading-4 text-ink-primary",
+            "relative w-full overflow-hidden rounded-input border border-hairline-strong bg-white px-2 py-1 text-[12px] leading-4 text-ink-primary",
             className,
           )}
         >
@@ -188,7 +191,8 @@ function StaticField({
       ) : (
         <div
           className={cn(
-            "w-full truncate rounded-input border border-hairline-strong bg-white px-2 py-1 text-[11px] text-ink-primary",
+            "w-full rounded-input border border-hairline-strong bg-white px-2 py-1 text-[12px] text-ink-primary",
+            wrap ? "break-words whitespace-normal leading-snug" : "truncate",
             className,
           )}
         >
@@ -208,7 +212,7 @@ function DetailRow({
 }) {
   return (
     <div className="flex items-baseline gap-3">
-      <span className="w-24 shrink-0 text-[11px] text-ink-tertiary">{label}</span>
+      <span className="w-24 shrink-0 text-[12px] text-ink-tertiary">{label}</span>
       <span className="text-[13px] text-ink-primary">{children}</span>
     </div>
   );
@@ -237,7 +241,7 @@ function ThreadBubble({
       >
         <span
           className={cn(
-            "flex size-7 shrink-0 items-center justify-center overflow-hidden rounded-full border text-[10px] font-semibold shadow-[0_1px_3px_rgba(15,15,20,0.08)]",
+            "flex size-7 shrink-0 items-center justify-center overflow-hidden rounded-full border text-[12px] font-semibold shadow-[0_1px_3px_rgba(15,15,20,0.08)]",
             self
               ? "border-slate-200 bg-gradient-to-br from-slate-100 to-white text-slate-700"
               : "border-brand-forest/15 bg-gradient-to-br from-brand-forest/[0.14] via-brand-forest/[0.06] to-white text-brand-forest",
@@ -250,8 +254,8 @@ function ThreadBubble({
           <div
             className={
               self
-                ? "max-w-[86%] rounded-2xl rounded-br-sm border border-neutral-200 bg-neutral-100 px-2.5 py-1.5 text-[11.5px] leading-5 text-neutral-900 shadow-sm"
-                : "max-w-[86%] rounded-2xl rounded-bl-sm border border-hairline bg-surface-l1 px-2.5 py-1.5 text-[11.5px] leading-5 text-ink-primary shadow-sm"
+                ? "max-w-[86%] rounded-2xl rounded-br-sm border border-neutral-200 bg-neutral-100 px-2.5 py-1.5 text-[12px] leading-5 text-neutral-900 shadow-sm"
+                : "max-w-[86%] rounded-2xl rounded-bl-sm border border-hairline bg-surface-l1 px-2.5 py-1.5 text-[12px] leading-5 text-ink-primary shadow-sm"
             }
           >
             {typing ? (
@@ -264,7 +268,7 @@ function ThreadBubble({
               body
             )}
           </div>
-          <span className="mt-1 font-mono text-[10px] text-ink-tertiary">
+          <span className="mt-1 font-mono text-[12px] text-ink-tertiary">
             {time}
             {status ? <span className="ml-2">{status}</span> : null}
           </span>
@@ -310,7 +314,7 @@ export function CompactSupplierProfileScene() {
       <div className="grid h-full grid-rows-[auto_minmax(0,1fr)] gap-3">
         <ProfileCard className="relative border-0 p-4 sm:p-4">
           <FrameHairlines />
-          <div className="flex items-start justify-between gap-3">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div className="flex min-w-0 gap-3">
               <CompanyAvatar
                 name={BUYER_WORKFLOW_DEMO.supplierName}
@@ -318,7 +322,7 @@ export function CompactSupplierProfileScene() {
                 className="shrink-0"
               />
               <div className="min-w-0">
-                <h3 className="truncate font-display text-[20px] font-bold tracking-[-0.03em] text-neutral-950">
+                <h3 className="truncate font-display text-[18px] font-bold tracking-[-0.03em] text-neutral-950 sm:text-[20px]">
                   {BUYER_WORKFLOW_DEMO.supplierName}
                 </h3>
                 <div className="mt-2 flex flex-wrap gap-1.5">
@@ -326,7 +330,7 @@ export function CompactSupplierProfileScene() {
                   <Pill tone="neutral">{BUYER_WORKFLOW_DEMO.supplierLocation}</Pill>
                   <Pill tone="forest">{BUYER_WORKFLOW_DEMO.verifiedLine}</Pill>
                 </div>
-                <p className="mt-3 text-[11px] font-medium text-neutral-500">
+                <p className="mt-3 text-[12px] font-medium text-neutral-500">
                   Registered address
                 </p>
                 <p className="mt-1 text-[12.5px] font-medium leading-5 text-neutral-800">
@@ -334,14 +338,14 @@ export function CompactSupplierProfileScene() {
                 </p>
               </div>
             </div>
-            <div className="flex shrink-0 items-start gap-2">
+            <div className="buyer-workflow-actions">
               <ChromeButton>Follow</ChromeButton>
               <ChromeButton tone="primary">Contact supplier</ChromeButton>
             </div>
           </div>
         </ProfileCard>
 
-        <div className="grid min-h-0 gap-3 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
+        <div className="buyer-workflow-split buyer-workflow-split--profile min-h-0">
           <ProfileCard className="relative border-0 p-4 sm:p-4">
           <FrameHairlines />
             <div className="mb-3 flex flex-wrap gap-1.5">
@@ -361,7 +365,7 @@ export function CompactSupplierProfileScene() {
             <div className="mt-3 flex items-start gap-3 rounded-[12px] border border-neutral-200 bg-neutral-50 px-3 py-2.5">
               <ProfileSourceMark tag="OEKO_TEX" size="sm" />
               <div className="min-w-0">
-                <p className="text-[11px] font-medium text-neutral-500">
+                <p className="text-[12px] font-medium text-neutral-500">
                   Verification
                 </p>
                 <p className="mt-0.5 text-[12.5px] leading-5 text-neutral-800">
@@ -379,7 +383,7 @@ export function CompactSupplierProfileScene() {
                 <h4 className="font-display text-[15px] font-semibold text-neutral-900">
                   Locations & addresses
                 </h4>
-                <p className="mt-1 text-[11px] text-neutral-500">
+                <p className="mt-1 text-[12px] text-neutral-500">
                   1 unique location · 2 source records
                 </p>
               </div>
@@ -410,7 +414,7 @@ export function CompactRfqComposeScene({
       <div className="grid h-full grid-rows-[auto_minmax(0,1fr)] gap-0.5">
         <div className="flex items-center justify-between gap-2 px-0.5">
           <div>
-            <p className="text-[8px] font-medium uppercase tracking-[0.14em] text-brand-forest">
+            <p className="text-[12px] font-medium uppercase tracking-[0.12em] text-brand-forest">
               Buyer
             </p>
             <h3 className="mt-0.5 font-display text-[15px] font-bold tracking-[-0.03em] text-neutral-950">
@@ -431,10 +435,11 @@ export function CompactRfqComposeScene({
             </CardTitle>
           </CardHeader>
           <CardContent className="flex min-h-0 flex-1 flex-col justify-start px-0 pb-0 pt-0.5">
-            <div className="min-h-0 space-y-1 overflow-y-auto px-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <div className="min-h-0 space-y-1 overflow-y-auto px-3 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               <StaticField
                 label="Product title *"
                 value={BUYER_WORKFLOW_DEMO.productTitle}
+                wrap
               />
               <StaticField
                 label="Description"
@@ -489,7 +494,7 @@ export function CompactRfqDetailScene({
     <SceneFrame>
       <div className="grid h-full grid-rows-[auto_minmax(0,1fr)] gap-2">
         <div className="px-0.5">
-          <p className="text-[10px] text-ink-tertiary">
+          <p className="text-[12px] text-ink-tertiary">
             RFQ · {BUYER_WORKFLOW_DEMO.rfqId}
           </p>
           <div className="mt-0.5 flex items-center gap-2">
@@ -500,12 +505,12 @@ export function CompactRfqDetailScene({
               Open
             </Badge>
           </div>
-          <p className="mt-0.5 text-[10px] text-ink-tertiary">
+          <p className="mt-0.5 text-[12px] text-ink-tertiary">
             {BUYER_WORKFLOW_DEMO.createdAt} · {BUYER_WORKFLOW_DEMO.updatedAt}
           </p>
         </div>
 
-        <div className="grid min-h-0 gap-2 lg:grid-cols-[minmax(0,1.12fr)_minmax(0,0.88fr)]">
+        <div className="buyer-workflow-split buyer-workflow-split--detail min-h-0">
           <Card className="relative border-0 shadow-none">
           <FrameHairlines />
             <CardHeader className="px-3.5 pt-3">
@@ -521,7 +526,7 @@ export function CompactRfqDetailScene({
               <DetailRow label="Ship to">{BUYER_WORKFLOW_DEMO.shipTo}</DetailRow>
               <DetailRow label="Ship by">{BUYER_WORKFLOW_DEMO.shipBy}</DetailRow>
               <div className="space-y-1 pt-1">
-                <p className="text-[10px] text-ink-tertiary">Description</p>
+                <p className="text-[12px] text-ink-tertiary">Description</p>
                 <p className="line-clamp-3 text-[12px] leading-5 text-ink-primary">
                   {BUYER_WORKFLOW_DEMO.description}
                 </p>
@@ -547,7 +552,7 @@ export function CompactRfqDetailScene({
                     <p className="truncate font-display text-[12px] font-semibold text-ink-primary">
                       {BUYER_WORKFLOW_DEMO.supplierName}
                     </p>
-                    <p className="truncate text-[11px] text-ink-tertiary">
+                    <p className="truncate text-[12px] text-ink-tertiary">
                       Factory · {BUYER_WORKFLOW_DEMO.supplierLocation}
                     </p>
                   </div>
@@ -564,7 +569,7 @@ export function CompactRfqDetailScene({
                 <CardTitle className="text-[14px]">Quotes</CardTitle>
                 <CardMeta>0 submitted</CardMeta>
               </CardHeader>
-              <CardContent className="flex items-center justify-center gap-2 px-3.5 py-4 text-[11px] text-ink-secondary">
+              <CardContent className="flex items-center justify-center gap-2 px-3.5 py-4 text-[12px] text-ink-secondary">
                 <FileText size={16} weight="duotone" className="text-ink-tertiary" />
                 No quotes yet.
               </CardContent>
@@ -629,7 +634,7 @@ function ThreadSurface({
               </h3>
               <Pill tone="neutral">{BUYER_WORKFLOW_DEMO.supplierType}</Pill>
             </div>
-            <p className="mt-0.5 truncate text-[11px] text-ink-tertiary">
+            <p className="mt-0.5 line-clamp-2 text-[12px] leading-snug text-ink-tertiary">
               {BUYER_WORKFLOW_DEMO.productTitle}
             </p>
           </div>
@@ -672,7 +677,7 @@ function ThreadSurface({
               )}
             </div>
             <div className="mt-1.5 flex items-center justify-between gap-2">
-              <span className="font-mono text-[10px] text-ink-tertiary">
+              <span className="font-mono text-[12px] text-ink-tertiary">
                 {draft ? `${draftText.length}/8000` : "0/8000"}
               </span>
               <ChromeButton tone="primary">
@@ -746,7 +751,7 @@ export function CompactInboxScene({
       <div className="grid h-full grid-rows-[auto_minmax(0,1fr)] gap-2">
         <div className="flex items-center justify-between gap-2 px-0.5">
           <div>
-            <p className="text-[10px] font-medium uppercase tracking-[0.14em] text-brand-forest">
+            <p className="text-[12px] font-medium uppercase tracking-[0.12em] text-brand-forest">
               Buyer
             </p>
             <h3 className="mt-0.5 font-display text-[18px] font-bold tracking-[-0.03em] text-neutral-950">
@@ -786,7 +791,7 @@ export function CompactInboxScene({
                   {BUYER_WORKFLOW_DEMO.productTitle} · {row.count}
                 </p>
               </div>
-              <span className="shrink-0 text-[10px] text-ink-tertiary">
+              <span className="shrink-0 text-[12px] text-ink-tertiary">
                 {row.when}
               </span>
             </li>

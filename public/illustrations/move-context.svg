@@ -1,0 +1,139 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500" width="100%" height="100%" fill="none">
+  <!-- Definitions for gradients and filters -->
+  <defs>
+    <linearGradient id="track-grad" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#E5E5E5" stop-opacity="0.2" />
+      <stop offset="50%" stop-color="#2D6A4F" stop-opacity="0.6" />
+      <stop offset="100%" stop-color="#1F4D3A" stop-opacity="0.9" />
+    </linearGradient>
+    <linearGradient id="portal-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2D6A4F" stop-opacity="0.2" />
+      <stop offset="100%" stop-color="#1F4D3A" stop-opacity="0.0" />
+    </linearGradient>
+    <filter id="subtle-shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="8" stdDeviation="6" flood-color="#1F4D3A" flood-opacity="0.06" />
+    </filter>
+  </defs>
+
+  <!-- Ground Grid (Context reference) -->
+  <g opacity="0.3">
+    <path d="M 50 380 L 210 288" stroke="#E5E5E5" stroke-width="1" />
+    <path d="M 80 397 L 240 305" stroke="#E5E5E5" stroke-width="1" />
+    <path d="M 110 414 L 270 322" stroke="#E5E5E5" stroke-width="1" />
+    <path d="M 50 380 L 110 414" stroke="#E5E5E5" stroke-width="1" />
+    <path d="M 80 363 L 140 397" stroke="#E5E5E5" stroke-width="1" />
+    <path d="M 110 346 L 170 380" stroke="#E5E5E5" stroke-width="1" />
+  </g>
+
+  <!-- The Sourcing Conduit / Track (Preserving Context in Motion) -->
+  <!-- A curved, multi-lane isometric track that guides the requirements intact -->
+  <g fill="none">
+    <!-- Outer boundary left -->
+    <path d="M 80 330 C 160 290, 240 270, 360 210" stroke="url(#track-grad)" stroke-width="1.5" stroke-linecap="round" />
+    <!-- Center track line -->
+    <path d="M 95 340 C 175 300, 255 280, 375 220" stroke="url(#track-grad)" stroke-width="2" stroke-linecap="round" stroke-dasharray="6 4" />
+    <!-- Outer boundary right -->
+    <path d="M 110 350 C 190 310, 270 290, 390 230" stroke="url(#track-grad)" stroke-width="1.5" stroke-linecap="round" />
+  </g>
+
+  <!-- Trailing Ghost Cluster (Requirements at Start of Sourcing Journey) -->
+  <!-- Shows the initial state, drawn with dashed lines and lower opacity -->
+  <g opacity="0.35">
+    <!-- Top Face -->
+    <path d="M 130 270 L 151.6 257.5 L 173.2 270 L 151.6 282.5 Z" fill="none" stroke="#2D6A4F" stroke-width="1" stroke-dasharray="2 2" />
+    <!-- Left Face -->
+    <path d="M 130 270 L 130 295 L 151.6 307.5 L 151.6 282.5 Z" fill="none" stroke="#2D6A4F" stroke-width="1" stroke-dasharray="2 2" />
+    <!-- Right Face -->
+    <path d="M 151.6 282.5 L 151.6 307.5 L 173.2 295 L 173.2 270 Z" fill="none" stroke="#2D6A4F" stroke-width="1" stroke-dasharray="2 2" />
+    <!-- Nodes -->
+    <circle cx="130" cy="270" r="1.5" fill="#2D6A4F" />
+    <circle cx="151.6" cy="257.5" r="1.5" fill="#2D6A4F" />
+    <circle cx="173.2" cy="270" r="1.5" fill="#2D6A4F" />
+    <circle cx="151.6" cy="282.5" r="1.5" fill="#2D6A4F" />
+    <circle cx="130" cy="295" r="1.5" fill="#2D6A4F" />
+    <circle cx="151.6" cy="307.5" r="1.5" fill="#2D6A4F" />
+    <circle cx="173.2" cy="295" r="1.5" fill="#2D6A4F" />
+  </g>
+
+  <!-- Trajectory / Motion Vectors -->
+  <!-- Dotted lines connecting the start state to the current active state -->
+  <g stroke="#2D6A4F" stroke-width="1" stroke-opacity="0.25" stroke-dasharray="4 4" fill="none">
+    <path d="M 130 270 C 180 235, 220 215, 270 180" />
+    <path d="M 151.6 307.5 C 201.6 272.5, 241.6 252.5, 291.6 217.5" />
+    <path d="M 173.2 270 C 223.2 235, 263.2 215, 313.2 180" />
+  </g>
+
+  <!-- Active Context Cluster (Requirements Kept Perfectly Intact) -->
+  <!-- A beautifully detailed, glowing 3D isometric cube wireframe -->
+  <g filter="url(#subtle-shadow)">
+    <!-- Back wireframe edges -->
+    <path d="M 270 180 L 270 205" stroke="#2D6A4F" stroke-width="1.2" stroke-dasharray="2 2" />
+    <path d="M 270 180 L 291.6 192.5" stroke="#2D6A4F" stroke-width="1.2" stroke-dasharray="2 2" />
+    <path d="M 270 180 L 248.4 192.5" stroke="#2D6A4F" stroke-width="1.2" stroke-dasharray="2 2" />
+
+    <!-- Inner Core Glow -->
+    <path d="M 258.4 187.5 L 270 180 L 281.6 187.5 L 270 195 Z" fill="#ECF3EE" fill-opacity="0.5" />
+
+    <!-- Front Faces & Edges -->
+    <!-- Top Face -->
+    <path d="M 270 180 L 291.6 167.5 L 313.2 180 L 291.6 192.5 Z" fill="#FFFFFF" fill-opacity="0.9" stroke="#1F4D3A" stroke-width="1.5" />
+    <!-- Left Face -->
+    <path d="M 248.4 192.5 L 248.4 217.5 L 291.6 242.5 L 291.6 217.5 Z" fill="#ECF3EE" fill-opacity="0.4" stroke="#1F4D3A" stroke-width="1.5" />
+    <!-- Right Face -->
+    <path d="M 291.6 192.5 L 291.6 217.5 L 313.2 205 L 313.2 180 Z" fill="#D8E8E1" fill-opacity="0.4" stroke="#1F4D3A" stroke-width="1.5" />
+
+    <!-- Front Wireframe Edges -->
+    <path d="M 248.4 192.5 L 291.6 205 L 313.2 180" fill="none" stroke="#1F4D3A" stroke-width="1.5" />
+    <path d="M 248.4 217.5 L 291.6 230 L 313.2 205" fill="none" stroke="#1F4D3A" stroke-width="1.5" />
+    <path d="M 291.6 205 L 291.6 230" stroke="#1F4D3A" stroke-width="1.5" />
+
+    <!-- Glowing Nodes at Vertices -->
+    <circle cx="270" cy="180" r="3" fill="#1F4D3A" />
+    <circle cx="291.6" cy="167.5" r="3" fill="#1F4D3A" />
+    <circle cx="313.2" cy="180" r="3" fill="#1F4D3A" />
+    <circle cx="291.6" cy="192.5" r="3" fill="#1F4D3A" />
+    <circle cx="248.4" cy="192.5" r="3" fill="#1F4D3A" />
+    <circle cx="248.4" cy="217.5" r="3" fill="#1F4D3A" />
+    <circle cx="291.6" cy="217.5" r="3" fill="#1F4D3A" />
+    <circle cx="291.6" cy="242.5" r="3" fill="#1F4D3A" />
+    <circle cx="313.2" cy="205" r="3" fill="#1F4D3A" />
+  </g>
+
+  <!-- The Destination Portal / Receiver (Supplier Record / Direct Contact) -->
+  <!-- A precise 3D bracket/gate that matches and receives the context cluster -->
+  <g filter="url(#subtle-shadow)">
+    <!-- Portal Base Platform -->
+    <path d="M 340 230 L 400 195 L 460 230 L 400 265 Z" fill="#FFFFFF" fill-opacity="0.9" stroke="#E5E5E5" stroke-width="1.2" />
+    <path d="M 350 230 L 400 201 L 450 230 L 400 259 Z" fill="url(#portal-grad)" stroke="#2D6A4F" stroke-width="1" stroke-opacity="0.3" stroke-dasharray="3 2" />
+
+    <!-- 3D Receiving Bracket (Architectural Frame) -->
+    <!-- Left Pillar -->
+    <path d="M 350 230 L 350 180 L 365 188.5 L 365 238.5 Z" fill="#ECF3EE" stroke="#2D6A4F" stroke-width="1" />
+    <!-- Right Pillar -->
+    <path d="M 450 230 L 450 180 L 435 188.5 L 435 238.5 Z" fill="#D8E8E1" stroke="#2D6A4F" stroke-width="1" />
+    <!-- Top Beam (Hollow Arch) -->
+    <path d="M 350 180 L 400 151 L 450 180 L 435 188.5 L 400 168 L 365 188.5 Z" fill="#FFFFFF" stroke="#2D6A4F" stroke-width="1" />
+
+    <!-- Target Alignment Reticle (Floating above platform) -->
+    <ellipse cx="400" cy="230" rx="20" ry="10" fill="none" stroke="#1F4D3A" stroke-width="1.5" stroke-dasharray="3 2" />
+    <circle cx="400" cy="230" r="3" fill="#1F4D3A" />
+
+    <!-- Corner Nodes on Bracket -->
+    <circle cx="350" cy="180" r="2.5" fill="#2D6A4F" />
+    <circle cx="450" cy="180" r="2.5" fill="#2D6A4F" />
+    <circle cx="400" cy="151" r="2.5" fill="#2D6A4F" />
+  </g>
+
+  <!-- Precision Annotations (Architectural Details) -->
+  <g stroke="#737373" stroke-width="0.8" opacity="0.5" fill="none">
+    <!-- Velocity / Speed indicators -->
+    <path d="M 230 160 L 210 171.5" />
+    <path d="M 220 150 L 200 161.5" />
+    <path d="M 210 140 L 190 151.5" />
+    
+    <!-- Alignment line from cluster to receiver center -->
+    <path d="M 291.6 217.5 L 400 230" stroke="#1F4D3A" stroke-width="1" stroke-opacity="0.3" stroke-dasharray="4 4" />
+  </g>
+  <text x="210" y="130" font-family="monospace" font-size="9" fill="#737373" opacity="0.6" text-anchor="end">v = 240 km/s</text>
+  <text x="400" y="285" font-family="monospace" font-size="9" fill="#737373" opacity="0.6" text-anchor="middle">ALIGNMENT_OK</text>
+</svg>

@@ -18,6 +18,7 @@ import {
 } from "@phosphor-icons/react/dist/ssr";
 
 import { Marquee } from "@/components/ui/marquee";
+import { cn } from "@/lib/utils";
 
 type Event = {
   issuer: string;
@@ -97,9 +98,14 @@ function Row({ issuer, action, tier, icon, tint }: Event) {
   );
 }
 
-export function VerificationFeed() {
+export function VerificationFeed({ className }: { className?: string }) {
   return (
-    <div className="relative isolate mx-auto flex h-[322px] w-full max-w-[480px] flex-col overflow-hidden [contain:layout_paint] sm:h-[392px]">
+    <div
+      className={cn(
+        "relative isolate mx-auto flex h-[322px] w-full max-w-[480px] flex-col overflow-hidden [contain:layout_paint] sm:h-[392px]",
+        className,
+      )}
+    >
       <Marquee
         vertical
         className="[--duration:28s] [--gap:0.875rem] py-0 sm:[--gap:1rem]"

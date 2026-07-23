@@ -99,12 +99,16 @@ export function DiscoverResultCard({
   hrefBase,
   actionSlot,
   footerSlot,
+  layout = "responsive",
 }: {
   row: DiscoverRow;
   hrefBase: "/app/suppliers" | "/suppliers";
   actionSlot?: React.ReactNode;
   footerSlot?: React.ReactNode;
+  /** `"mobile"` locks the approved mobile arrangement at every breakpoint. */
+  layout?: "responsive" | "mobile";
 }) {
+  const forceMobile = layout === "mobile";
   const location = formatCardLocation(row.primary_address, row.city, row.district);
   const entityLabel =
     ENTITY_TYPES.find((o) => o.value === row.entity_type)?.label ??
@@ -118,15 +122,25 @@ export function DiscoverResultCard({
   const actionDesktop = slotFor(actionSlot, "action-desktop");
 
   return (
-    <article className="group relative overflow-hidden rounded-lg border border-neutral-200 bg-white px-4 pb-3.5 pt-4 text-left shadow-sm transition-colors duration-200 ease-smooth hover:border-brand-forest/[0.22] hover:bg-[#fafaf9] sm:p-5">
+    <article
+      className={cn(
+        "group relative overflow-hidden rounded-lg border border-neutral-200 bg-white px-4 pb-3.5 pt-4 text-left shadow-sm transition-colors duration-200 ease-smooth hover:border-brand-forest/[0.22] hover:bg-[#fafaf9]",
+        !forceMobile && "sm:p-5",
+      )}
+    >
       <Link
         href={`${hrefBase}/${row.slug}`}
         className="block rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-forest"
       >
-        <div className="flex gap-4 sm:gap-6">
+        <div className={cn("flex gap-4", !forceMobile && "sm:gap-6")}>
           {/* Left column: identity, trust row, products. Full width on
               mobile; shares the row with the desktop rail at sm+. */}
-          <div className="flex min-w-0 flex-1 items-start gap-4 sm:gap-5">
+          <div
+            className={cn(
+              "flex min-w-0 flex-1 items-start gap-4",
+              !forceMobile && "sm:gap-5",
+            )}
+          >
             <CompanyAvatar
               name={name}
               verified={row.t13_source_count > 0}
@@ -135,14 +149,28 @@ export function DiscoverResultCard({
             <div className="min-w-0 flex-1">
               <div>
                 <div className="flex items-start justify-between gap-2">
-                  <h2 className="truncate font-display text-[20px] font-black leading-tight tracking-[-0.02em] text-neutral-900 transition-colors group-hover:text-brand-forest sm:text-[23px]">
+                  <h2
+                    className={cn(
+                      "truncate font-display text-[20px] font-black leading-tight tracking-[-0.02em] text-neutral-900 transition-colors group-hover:text-brand-forest",
+                      !forceMobile && "sm:text-[23px]",
+                    )}
+                  >
                     {name}
                   </h2>
                   {actionMobile ? (
-                    <span className="shrink-0 sm:hidden">{actionMobile}</span>
+                    <span
+                      className={cn("shrink-0", !forceMobile && "sm:hidden")}
+                    >
+                      {actionMobile}
+                    </span>
                   ) : null}
                 </div>
-                <div className="mt-1 flex items-center gap-1.5 text-[14px] font-medium text-neutral-600 sm:mt-1.5">
+                <div
+                  className={cn(
+                    "mt-1 flex items-center gap-1.5 text-[14px] font-medium text-neutral-600",
+                    !forceMobile && "sm:mt-1.5",
+                  )}
+                >
                   <span className="inline-flex items-center rounded-pill bg-neutral-100 px-2 py-0.5 text-[12px] font-semibold text-neutral-600">
                     {entityLabel}
                   </span>
@@ -166,22 +194,32 @@ export function DiscoverResultCard({
                   these two rows full-width below (see sibling block after
                   this flex row) since the mobile mockup runs them the full
                   card width, not indented under the avatar. */}
-              <div className="mt-3 hidden sm:block sm:space-y-3">
-                {hasTrustRow ? <TrustRow row={row} marks={visibleMarks} extraMarks={extraMarks} mobile={false} /> : null}
-                {row.principal_products.length > 0 ? (
-                  <ProductsLine products={row.principal_products} mobile={false} />
-                ) : null}
-              </div>
+              {!forceMobile ? (
+                <div className="mt-3 hidden sm:block sm:space-y-3">
+                  {hasTrustRow ? (
+                    <TrustRow
+                      row={row}
+                      marks={visibleMarks}
+                      extraMarks={extraMarks}
+                      mobile={false}
+                    />
+                  ) : null}
+                  {row.principal_products.length > 0 ? (
+                    <ProductsLine products={row.principal_products} mobile={false} />
+                  ) : null}
+                </div>
+              ) : null}
             </div>
           </div>
 
           {/* Desktop-only right rail. No vertical divider — separation
               comes from generous padding alone so the card still reads as
               one unit, not two. */}
-          <div className="hidden w-[160px] shrink-0 flex-col items-end gap-3 pl-10 text-right sm:flex">
-            {actionDesktop}
-            <div className="mt-auto">
-              {row.employees_total ? (
+          {!forceMobile ? (
+            <div className="hidden w-[160px] shrink-0 flex-col items-end gap-3 pl-10 text-right sm:flex">
+              {actionDesktop}
+              <div className="mt-auto">
+                {row.employees_total ? (
                   <div className="flex items-baseline justify-end gap-1.5">
                     <span className="font-display text-[20px] font-bold leading-none tabular-nums tracking-[-0.01em] text-neutral-800">
                       {row.employees_total.toLocaleString()}
@@ -206,15 +244,24 @@ export function DiscoverResultCard({
                   />
                 </span>
               </div>
-          </div>
+            </div>
+          ) : null}
         </div>
 
         {/* Mobile only: trust row + products at full card width (not
             indented under the avatar) — see comment above. Needs its own
             top margin since it's a sibling of the identity row, not a
             child nesting under existing spacing. */}
-        <div className="mt-3.5 sm:hidden">
-          {hasTrustRow ? <TrustRow row={row} marks={visibleMarks} extraMarks={extraMarks} mobile /> : null}
+        <div className={cn("mt-3.5", !forceMobile && "sm:hidden")}>
+          {hasTrustRow ? (
+            <TrustRow
+              row={row}
+              marks={visibleMarks}
+              extraMarks={extraMarks}
+              mobile
+              singleLine={forceMobile}
+            />
+          ) : null}
           {row.principal_products.length > 0 ? (
             <ProductsLine products={row.principal_products} mobile />
           ) : null}
@@ -224,8 +271,10 @@ export function DiscoverResultCard({
 
         {/* Mobile-only footer bar — the desktop rail replaces this above sm. */}
         <div
-          className="mt-3 flex items-center justify-between gap-3 pt-3 text-[13px] text-neutral-500 sm:hidden"
-          style={{ borderTop: "1px solid rgba(15,15,20,0.045)" }}
+          className={cn(
+            "mt-3 flex items-center justify-between gap-3 border-t border-[rgba(15,15,20,0.045)] pt-3 text-[13px] text-neutral-500",
+            !forceMobile && "sm:hidden",
+          )}
         >
           <div className="flex flex-wrap items-center gap-3">
             {estYear ? (
@@ -265,33 +314,40 @@ function TrustRow({
   marks,
   extraMarks,
   mobile,
+  singleLine = false,
 }: {
   row: DiscoverRow;
   marks: string[];
   extraMarks: number;
   mobile: boolean;
+  /** Keep marks + verified count on one row (hub / forced-mobile cards). */
+  singleLine?: boolean;
 }) {
   const count = row.t13_source_count;
   return (
     <div
       className={cn(
-        "flex flex-wrap items-center text-[13px] text-neutral-600",
-        mobile ? "gap-x-2.5 gap-y-1.5" : "gap-3",
+        "flex items-center text-[13px] text-neutral-600",
+        singleLine ? "flex-nowrap gap-2 overflow-hidden" : "flex-wrap",
+        !singleLine && (mobile ? "gap-x-2.5 gap-y-1.5" : "gap-3"),
       )}
     >
       {marks.map((tag) => (
         <RegistryMark key={tag} tag={tag} />
       ))}
-      {extraMarks > 0 ? (
-        <span className="mr-1 text-neutral-500">
+      {/* Hub single-line: skip +N overflow — the verified count already states it. */}
+      {!singleLine && extraMarks > 0 ? (
+        <span className="mr-0.5 shrink-0 text-neutral-500">
           +{extraMarks}
           {mobile ? "" : " more"}
         </span>
       ) : null}
-      <span className="min-w-0 truncate font-medium text-neutral-700">
-        {mobile
-          ? `${Math.min(count, 5)}${count > 5 ? "+" : ""} verified ${count === 1 ? "source" : "sources"}`
-          : `Verified by ${count} ${count === 1 ? "source" : "sources"}`}
+      <span className="min-w-0 truncate whitespace-nowrap font-medium text-neutral-700">
+        {singleLine
+          ? `Verified by ${count} ${count === 1 ? "source" : "sources"}`
+          : mobile
+            ? `${Math.min(count, 5)}${count > 5 ? "+" : ""} verified ${count === 1 ? "source" : "sources"}`
+            : `Verified by ${count} ${count === 1 ? "source" : "sources"}`}
       </span>
     </div>
   );

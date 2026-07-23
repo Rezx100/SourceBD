@@ -25,12 +25,13 @@ const SOURCE_LOGOS: Record<string, string> = {
   GRS: `${CDN}/GRS.png`,
   RCS: `${CDN}/RCS.png`,
   OCS: `${CDN}/OCS.png`,
+  SA8000: `/inapp-logos/sa8000.png`,
   BSCI: `${CDN}/amfori.jpg`,
   AMFORI: `${CDN}/amfori.jpg`,
   // Sanctions watchlists — keyed by the real `sanctions_list_entries.list`
   // values (see app/(app)/admin/sanctions/page.tsx SANCTIONS_LISTS).
   uflpa: "/inapp-logos/sanctions/cbp.png",
-  us_wro: "/inapp-logos/sanctions/cbp.png",
+  us_wro: "/inapp-logos/sanctions/cbp-wro.png",
   ofac_sdn: "/inapp-logos/sanctions/ofac-treasury.png",
   uk_ofsi: "/inapp-logos/sanctions/hm-treasury-uk.png",
   eu_sanctions: "/inapp-logos/sanctions/european-commission.png",

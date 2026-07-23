@@ -34,6 +34,8 @@ type BrandMarkProps = {
 type BrandMarkWithHairlineProps = BrandMarkProps & {
   durationSeconds?: number;
   wrapperClassName?: string;
+  /** Soft pulsing halo around the mark. Default on. */
+  showHairline?: boolean;
 };
 
 /**
@@ -68,14 +70,17 @@ export function BrandMarkWithHairline({
   title = "SourceBD",
   durationSeconds = 3.2,
   wrapperClassName = "relative z-10",
+  showHairline = true,
 }: BrandMarkWithHairlineProps) {
   return (
     <span className={`inline-flex ${wrapperClassName}`}>
-      <span
-        aria-hidden
-        className="pointer-events-none absolute -inset-1 rounded-xl border border-brand-forest/20 bg-white/40 opacity-80 shadow-[0_0_0_4px_var(--brand-forest-soft)] motion-safe:animate-pulse"
-        style={{ animationDuration: `${durationSeconds}s` }}
-      />
+      {showHairline ? (
+        <span
+          aria-hidden
+          className="pointer-events-none absolute -inset-1 rounded-xl border border-brand-forest/20 bg-white/40 opacity-80 shadow-[0_0_0_4px_var(--brand-forest-soft)] motion-safe:animate-pulse"
+          style={{ animationDuration: `${durationSeconds}s` }}
+        />
+      ) : null}
       <BrandMark
         className={className}
         glyphClassName={glyphClassName}

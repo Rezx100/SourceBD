@@ -358,8 +358,11 @@ export function DemoCertificationsPanel({
             }
             title={
               <>
-                <span className="sm:hidden">{certLabel(c.kind)}</span>
-                <span className="hidden sm:inline">{certLong(c.kind)}</span>
+                {/* Short label while the evidence stage is narrow (stacked or
+                    lg side-by-side at 1024–1280). Long names only when the
+                    stage has room — avoids title+badge crowding. */}
+                <span className="xl:hidden">{certLabel(c.kind)}</span>
+                <span className="hidden xl:inline">{certLong(c.kind)}</span>
               </>
             }
             meta={

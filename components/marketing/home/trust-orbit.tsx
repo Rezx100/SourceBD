@@ -46,7 +46,26 @@ const OUTER = [
 
 const HAIRLINE_CYCLE_SECONDS = 3.2;
 
-export function TrustOrbit() {
+export function TrustOrbit({ compact = false }: { compact?: boolean }) {
+  if (compact) {
+    // Small rings at every breakpoint — for tight, one-viewport layouts.
+    return (
+      <div className="relative isolate flex h-full min-h-[280px] w-full items-center justify-center [contain:layout]">
+        <BrandMarkWithHairline durationSeconds={HAIRLINE_CYCLE_SECONDS} />
+        <OrbitingCircles iconSize={36} radius={76} duration={34}>
+          {INNER.map((l) => (
+            <OrbitLogo key={l.alt} src={l.src} alt={l.alt} />
+          ))}
+        </OrbitingCircles>
+        <OrbitingCircles iconSize={40} radius={122} duration={48} reverse>
+          {OUTER.map((l) => (
+            <OrbitLogo key={l.alt} src={l.src} alt={l.alt} />
+          ))}
+        </OrbitingCircles>
+      </div>
+    );
+  }
+
   return (
     <div className="relative isolate flex h-full min-h-[322px] w-full items-center justify-center [contain:layout] sm:min-h-[560px]">
       <BrandMarkWithHairline durationSeconds={HAIRLINE_CYCLE_SECONDS} />

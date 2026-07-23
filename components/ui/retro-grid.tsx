@@ -269,6 +269,11 @@ interface RetroGridProps extends HTMLAttributes<HTMLDivElement> {
    */
   opacity?: number
   /**
+   * Seconds for one full scroll cycle. Higher = slower.
+   * @default 15
+   */
+  duration?: number
+  /**
    * Grid line color in light mode
    * @default "gray"
    */
@@ -456,10 +461,11 @@ function resolveLineColor(color: string, element: HTMLElement) {
 
 function createFallbackGridStyle(
   cellSize: number,
-  lineColor: string
+  lineColor: string,
+  durationSeconds: number = ANIMATION_DURATION_SECONDS
 ): CSSProperties {
   return {
-    animation: `${FALLBACK_ANIMATION_NAME} ${ANIMATION_DURATION_SECONDS}s linear infinite`,
+    animation: `${FALLBACK_ANIMATION_NAME} ${durationSeconds}s linear infinite`,
     backgroundImage: `linear-gradient(to right, ${lineColor} 1px, transparent 0), linear-gradient(to bottom, ${lineColor} 1px, transparent 0)`,
     backgroundRepeat: "repeat",
     backgroundSize: `${cellSize}px ${cellSize}px`,
@@ -472,6 +478,7 @@ export function RetroGrid({
   angle = 65,
   cellSize = 60,
   opacity = 0.5,
+  duration = ANIMATION_DURATION_SECONDS,
   lightLineColor = "gray",
   darkLineColor = "gray",
   style,
@@ -482,6 +489,7 @@ export function RetroGrid({
   const [isWebGlReady, setIsWebGlReady] = useState(false)
   const angleRef = useRef(angle)
   const cellSizeRef = useRef(cellSize)
+  const durationRef = useRef(duration)
   const darkLineColorRef = useRef(darkLineColor)
   const lightLineColorRef = useRef(lightLineColor)
   const syncSceneRef = useRef<(() => void) | null>(null)
@@ -489,10 +497,11 @@ export function RetroGrid({
   useEffect(() => {
     angleRef.current = angle
     cellSizeRef.current = cellSize
+    durationRef.current = Math.max(duration, 1)
     darkLineColorRef.current = darkLineColor
     lightLineColorRef.current = lightLineColor
     syncSceneRef.current?.()
-  }, [angle, cellSize, darkLineColor, lightLineColor])
+  }, [angle, cellSize, duration, darkLineColor, lightLineColor])
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -664,9 +673,12 @@ export function RetroGrid({
         currentDevicePixelRatio
       )
       gl.uniform4fv(programInfo.uniforms.lineColor, lineColor)
+      // Shader bakes a 15s cycle; scale wall-clock time so longer `duration` scrolls slower.
+      const durationSeconds = Math.max(durationRef.current, 1)
+      const timeScale = ANIMATION_DURATION_SECONDS / durationSeconds
       gl.uniform1f(
         programInfo.uniforms.time,
-        reducedMotion.matches ? 0 : timestamp / 1000
+        reducedMotion.matches ? 0 : (timestamp / 1000) * timeScale
       )
       gl.uniform2f(
         programInfo.uniforms.viewportSize,
@@ -817,13 +829,16 @@ export function RetroGrid({
   const fallbackRotationStyles = {
     transform: `rotateX(${normalizedAngle}deg)`,
   } as CSSProperties
+  const normalizedDuration = Math.max(duration, 1)
   const lightFallbackGridStyles = createFallbackGridStyle(
     normalizedCellSize,
-    lightLineColor
+    lightLineColor,
+    normalizedDuration
   )
   const darkFallbackGridStyles = createFallbackGridStyle(
     normalizedCellSize,
-    darkLineColor
+    darkLineColor,
+    normalizedDuration
   )
 
   return (

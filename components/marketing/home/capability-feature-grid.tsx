@@ -43,7 +43,7 @@ function FeatureCard({
   return (
     <article
       className={cn(
-        "flex flex-col overflow-hidden rounded-card border border-neutral-200/80 bg-white px-6 pb-7 pt-8 shadow-[0_1px_2px_rgba(15,15,20,0.035),0_18px_40px_-34px_rgba(15,15,20,0.22)] sm:px-7 sm:pb-7 sm:pt-8",
+        "flex flex-col overflow-hidden rounded-card border border-neutral-200/80 bg-white px-4 pb-6 pt-6 shadow-[0_1px_2px_rgba(15,15,20,0.035),0_18px_40px_-34px_rgba(15,15,20,0.22)] sm:px-7 sm:pb-7 sm:pt-8",
         className,
       )}
     >
@@ -69,7 +69,10 @@ function FeatureCard({
 
 function WorkflowFeatureCard({ active }: { active: boolean }) {
   return (
-    <article className="flex h-full overflow-hidden rounded-card border border-neutral-200/80 bg-white p-3 shadow-[0_1px_2px_rgba(15,15,20,0.035),0_18px_40px_-34px_rgba(15,15,20,0.22)] sm:p-4 md:h-[408px] xl:h-[424px]">
+    <article
+      className="flex h-[392px] overflow-hidden rounded-card border border-neutral-200/80 bg-white p-3 shadow-[0_1px_2px_rgba(15,15,20,0.035),0_18px_40px_-34px_rgba(15,15,20,0.22)] [overflow-anchor:none] min-[420px]:h-[420px] sm:h-[448px] sm:p-4 md:h-[468px] xl:h-[488px]"
+      data-home-demo-workflow-stage
+    >
       <div className="relative flex h-full w-full flex-1 items-stretch justify-center">
         <BuyerWorkflowLiveStage active={active} />
       </div>
@@ -563,8 +566,8 @@ const CONTACTS = [
 
 function CollectStage({ reduce }: { reduce: boolean }) {
   return (
-    <div className="relative -mx-7 h-[260px] w-[calc(100%+56px)]">
-      <div className="absolute inset-0 translate-y-3">
+    <div className="relative h-[240px] w-full sm:-mx-7 sm:h-[260px] sm:w-[calc(100%+56px)]">
+      <div className="absolute inset-0 translate-y-2 sm:translate-y-3">
         <div
           className="pointer-events-none absolute inset-0"
           style={{
@@ -575,9 +578,9 @@ function CollectStage({ reduce }: { reduce: boolean }) {
           }}
           aria-hidden
         >
-        <div className="absolute left-1/2 top-[63%] aspect-square w-[92%] -translate-x-1/2 -translate-y-1/2 rounded-full border border-brand-forest/10" />
-        <div className="absolute left-1/2 top-[63%] aspect-square w-[42%] -translate-x-1/2 -translate-y-1/2 rounded-full border border-neutral-200/70" />
-        <div className="absolute left-1/2 top-[63%] aspect-square w-[66%] -translate-x-1/2 -translate-y-1/2">
+        <div className="absolute left-1/2 top-[63%] aspect-square w-[84%] -translate-x-1/2 -translate-y-1/2 rounded-full border border-brand-forest/10 sm:w-[92%]" />
+        <div className="absolute left-1/2 top-[63%] aspect-square w-[38%] -translate-x-1/2 -translate-y-1/2 rounded-full border border-neutral-200/70 sm:w-[42%]" />
+        <div className="absolute left-1/2 top-[63%] aspect-square w-[58%] -translate-x-1/2 -translate-y-1/2 sm:w-[66%]">
           <svg
             viewBox="0 0 100 100"
             className="size-full -rotate-90 overflow-visible"
@@ -631,10 +634,11 @@ function CollectStage({ reduce }: { reduce: boolean }) {
 
         <div className="absolute left-1/2 top-[63%] z-10 -translate-x-1/2 -translate-y-1/2">
           <div
-            className="flex size-[68px] items-center justify-center rounded-full bg-brand-forest text-white shadow-[0_8px_20px_rgba(31,77,58,0.18)]"
+            className="flex size-14 items-center justify-center rounded-full bg-brand-forest text-white shadow-[0_8px_20px_rgba(31,77,58,0.18)] sm:size-[68px]"
             aria-hidden
           >
-            <PaperPlaneTilt size={24} weight="fill" />
+            <PaperPlaneTilt size={22} weight="fill" className="sm:hidden" />
+            <PaperPlaneTilt size={24} weight="fill" className="hidden sm:block" />
           </div>
         </div>
 
@@ -648,20 +652,18 @@ function CollectStage({ reduce }: { reduce: boolean }) {
                 top: `${c.y}%`,
               }}
             >
-              <div>
-                <div className="flex items-center gap-1.5 rounded-full bg-white py-1 pl-1 pr-3 shadow-[0_6px_18px_rgba(15,15,20,0.10)]">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={c.src}
-                    alt=""
-                    width={28}
-                    height={28}
-                    className="size-7 rounded-full object-cover"
-                  />
-                  <span className="text-[12.5px] font-medium text-neutral-700">
-                    {c.label}
-                  </span>
-                </div>
+              <div className="flex items-center gap-1.5 rounded-full bg-white py-1 pl-1 pr-2.5 shadow-[0_6px_18px_rgba(15,15,20,0.10)] sm:pr-3">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={c.src}
+                  alt=""
+                  width={28}
+                  height={28}
+                  className="size-6 rounded-full object-cover sm:size-7"
+                />
+                <span className="text-[12px] font-medium text-neutral-700 sm:text-[12.5px]">
+                  {c.label}
+                </span>
               </div>
             </div>
           );
@@ -699,7 +701,7 @@ export function CapabilityFeatureGrid() {
   return (
     <section
       ref={rootRef}
-      className="border-b border-neutral-200 bg-white py-16 md:py-20"
+      className="border-b border-neutral-200 bg-white py-16 md:py-20 [overflow-anchor:none]"
       aria-label="SourceBD capabilities"
     >
       <div className="mx-auto w-full max-w-[1200px] px-4 sm:px-6">
@@ -709,39 +711,39 @@ export function CapabilityFeatureGrid() {
           description="Send RFQs, message suppliers, track orders, and manage compliance after the shortlist is set."
         />
 
-        <div className="mt-16 grid gap-4 sm:mt-[4.5rem] md:grid-cols-2 md:gap-6 md:mt-20 xl:grid-cols-3">
+        <div className="mt-12 grid gap-4 sm:mt-[4.5rem] md:mt-20 md:grid-cols-2 md:gap-6 xl:grid-cols-3">
           <div className="md:col-span-2 xl:col-span-2">
             <WorkflowFeatureCard active={inView} />
           </div>
           <FeatureCard
             title="Track every order milestone"
             body="Follow confirmed orders through production, inspection, and shipment."
-            className="md:h-full md:min-h-[408px] xl:min-h-[424px]"
-            stageClassName="min-h-[220px] 2xl:items-start"
+            className="md:min-h-[408px] xl:min-h-[424px]"
+            stageClassName="min-h-[200px] sm:min-h-[220px] 2xl:items-start"
           >
             <ChecklistStage phase={phase} reduce={reduce} />
           </FeatureCard>
           <FeatureCard
             title="Prepare an MSA statement"
             body="Generate a working Modern Slavery Act statement from your compliance data."
-            className="md:h-[430px]"
-            stageClassName="min-h-[250px] items-start"
+            className="md:min-h-[430px]"
+            stageClassName="min-h-[220px] items-start sm:min-h-[250px]"
           >
             <DocumentScanStage reduce={reduce} />
           </FeatureCard>
           <FeatureCard
             title="Act before certifications expire"
             body="See upcoming expiries for followed suppliers and prioritise renewals."
-            className="md:h-[430px]"
-            stageClassName="min-h-[250px] items-start"
+            className="md:min-h-[430px]"
+            stageClassName="min-h-[220px] items-start sm:min-h-[250px]"
           >
             <TimelineStage reduce={reduce} />
           </FeatureCard>
           <FeatureCard
             title="Keep supplier conversations together"
             body="Message supplier teams without losing the sourcing context around each thread."
-            className="md:h-[430px]"
-            stageClassName="min-h-[250px] 2xl:items-start"
+            className="md:min-h-[430px]"
+            stageClassName="min-h-[220px] sm:min-h-[250px] 2xl:items-start"
           >
             <CollectStage reduce={reduce} />
           </FeatureCard>

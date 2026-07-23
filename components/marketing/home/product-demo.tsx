@@ -1,114 +1,131 @@
 "use client";
 
-// Cinematic product walkthrough — a self-contained "screen recording" that
-// runs entirely from real React + Tailwind (no video file, no GIF). It loops
-// through the three things a buyer actually does on SourceBD, inside a
-// faux-browser frame:
-//
-//   01 · Search   — a query types itself, live autocomplete opens, cursor clicks
-//   02 · Vet      — real DiscoverResultCard-styled cards spring in, staggered;
-//                   the lead card lights up and the cursor opens it
-//   03 · Contact  — a supplier profile opens; verified evidence lands row by
-//                   row, each status confirming with a pop
-//
-// Fidelity: card + profile markup mirror components/discover/result-card.tsx
-// and the profile header — same tokens, avatar, registry-mark tiles, verified
-// line. Registry marks use the real logo resolver (lib/source-logos) and the
-// real assets under /public/inapp-logos. Illustrative example companies only
-// (same convention as the shipped HeroDossierPreview). No SBI numeric.
-//
-// Motion: honours prefers-reduced-motion — the timeline freezes on the final
-// profile state and entrances settle instantly.
+// Four-frame buyer walkthrough: dashboard → discover → results → profile.
+// App shell stays fixed; scroll, cursor, and typed search are the only motion.
 
-import { useEffect, useRef, useState } from "react";
-import {
-  AnimatePresence,
-  motion,
-  useReducedMotion,
-  type Transition,
-  type Variants,
-} from "motion/react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { motion, useReducedMotion } from "motion/react";
 import {
   ArrowRight,
+  Bell,
+  BookmarkSimple,
+  CalendarBlank,
+  ChatCircleText,
   Check,
-  ClockCounterClockwise,
+  Clock,
   CursorClick,
+  Factory,
+  FileText,
+  GearSix,
   Lock,
   MagnifyingGlass,
   MapPin,
-  PaperPlaneTilt,
+  Package,
   ShieldCheck,
+  SignOut,
+  Sparkle,
+  Star,
+  UsersThree,
+  WarningCircle,
 } from "@phosphor-icons/react/dist/ssr";
 
 import { CompanyAvatar } from "@/components/supplier/company-avatar";
+import { BrandMarkLink } from "@/components/marketing/logo";
 import { sourceLogo } from "@/lib/source-logos";
 import { cn } from "@/lib/utils";
 
-// ─── Scene timeline ──────────────────────────────────────────────
-const SCENES = ["search", "results", "profile"] as const;
-type Scene = (typeof SCENES)[number];
+const FRAMES = ["dashboard", "discover", "results", "profile"] as const;
+type Frame = (typeof FRAMES)[number];
 
-const SCENE_MS: Record<Scene, number> = {
-  search: 4200,
-  results: 4200,
-  profile: 5200,
+const FRAME_MS: Record<Frame, number> = {
+  dashboard: 5200,
+  discover: 4800,
+  results: 6200,
+  profile: 5400,
 };
 
-const QUERY = "OEKO-TEX certified knit factory, Dhaka";
+const QUERY = "Gazipur knitwear";
+const MOAT = "10,148";
+const BUYER = "Rezan Ferdous";
+const BUYER_AVATAR_SRC = "/marketing/buyer-avatar.jpg";
 
-const SPRING: Transition = { type: "spring", stiffness: 240, damping: 24, mass: 0.9 };
-const SPRING_POP: Transition = { type: "spring", stiffness: 460, damping: 17 };
+// ─── Scroll helper (single eased animation per target — no stacked transforms) ─
 
-// ─── Illustrative data (real companies, illustrative details) ────
-type Mark = string;
+function animateScrollTo(el: HTMLElement, to: number, duration = 720) {
+  const from = el.scrollTop;
+  if (Math.abs(from - to) < 1) {
+    el.scrollTop = to;
+    return Promise.resolve();
+  }
+  return new Promise<void>((resolve) => {
+    const t0 = performance.now();
+    let raf = 0;
+    const step = (now: number) => {
+      const t = Math.min(1, (now - t0) / duration);
+      const eased = 1 - (1 - t) ** 3;
+      el.scrollTop = from + (to - from) * eased;
+      if (t < 1) raf = requestAnimationFrame(step);
+      else resolve();
+    };
+    raf = requestAnimationFrame(step);
+  });
+}
 
-type DemoCompany = {
-  name: string;
-  entity: string;
-  location: string;
-  marks: Mark[];
-  count: number;
-  employees: number;
-};
+// ─── Buyer photo (cropped from real app screenshot) ───────────────────────────
 
-const RESULTS: DemoCompany[] = [
-  { name: "DBL Group", entity: "Factory", location: "Gazipur", marks: ["BGMEA", "OEKO_TEX", "RSC"], count: 5, employees: 45000 },
-  { name: "Square Fashions", entity: "Factory", location: "Dhaka", marks: ["BKMEA", "GOTS", "WRAP"], count: 4, employees: 12000 },
-  { name: "Viyellatex", entity: "Factory", location: "Dhaka", marks: ["BGMEA", "GRS"], count: 4, employees: 22000 },
-];
+function DemoBuyerAvatar({
+  variant = "sidebar",
+  size = "md",
+  className,
+}: {
+  variant?: "sidebar" | "topbar";
+  size?: "sm" | "md" | "lg";
+  className?: string;
+}) {
+  const dim = { sm: 32, md: 40, lg: 48 }[size];
+  const crop =
+    variant === "sidebar"
+      ? { scale: 9.5, x: -0.36, y: -0.48 }
+      : { scale: 11, x: -9.15, y: -0.32 };
 
-const LEAD = RESULTS[0]!;
+  return (
+    <span
+      className={cn(
+        "relative inline-flex shrink-0 overflow-hidden rounded-full border border-neutral-200 bg-white shadow-sm",
+        className,
+      )}
+      style={{ width: dim, height: dim }}
+      aria-hidden
+    >
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={BUYER_AVATAR_SRC}
+        alt=""
+        className="absolute max-w-none select-none"
+        style={{
+          width: dim * crop.scale,
+          height: dim * crop.scale,
+          left: dim * crop.x,
+          top: dim * crop.y,
+        }}
+      />
+    </span>
+  );
+}
 
-const SUGGESTIONS = [
-  { text: "OEKO-TEX certified knit factory, Dhaka", history: false },
-  { text: "OEKO-TEX knit — Gazipur belt", history: true },
-  { text: "GOTS organic cotton, Narayanganj", history: true },
-];
+// ─── Shared data ─────────────────────────────────────────────────
 
-// Evidence rows that land on the profile (issuer · what · status).
-const EVIDENCE: { code: Mark; label: string; status: string; check: boolean }[] = [
-  { code: "BGMEA", label: "Trade association register", status: "Verified", check: true },
-  { code: "RSC", label: "Remediation & safety evidence", status: "96%", check: false },
-  { code: "GOTS", label: "Certification body record", status: "Active", check: true },
-  { code: "uflpa", label: "Sanctions screening", status: "Clear", check: true },
-];
-
-// ─── Small pieces ────────────────────────────────────────────────
-
-function MarkTile({ tag, size = 30 }: { tag: Mark; size?: number }) {
+function MarkTile({ tag, size = 22 }: { tag: string; size?: number }) {
   const logo = sourceLogo(tag);
   const label = tag === "OEKO_TEX" ? "OEKO-TEX" : tag.toUpperCase();
   return (
     <span
-      role="img"
-      aria-label={label}
-      title={label}
-      className="flex shrink-0 items-center justify-center rounded-[6px] border border-[rgba(15,15,20,0.065)] bg-[#fafaf9] font-mono text-[11px] font-bold text-[#4a4a55]"
+      className="flex shrink-0 items-center justify-center rounded-[5px] border border-[rgba(15,15,20,0.065)] bg-[#fafaf9] font-mono text-[9px] font-bold text-[#4a4a55]"
       style={{ width: size, height: size }}
     >
       {logo ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={logo} alt="" className="h-full w-full rounded-[5px] object-contain p-1" />
+        <img src={logo} alt="" className="h-full w-full rounded-[4px] object-contain p-0.5" />
       ) : (
         label.replace(/[^A-Za-z0-9]/g, "").slice(0, 3)
       )}
@@ -116,558 +133,804 @@ function MarkTile({ tag, size = 30 }: { tag: Mark; size?: number }) {
   );
 }
 
-// A cursor that glides in from below-right, settles on its target, then taps
-// with a forest ripple. Feels hand-driven rather than teleported.
-function TapCursor({ delay, reduce }: { delay: number; reduce: boolean }) {
-  if (reduce) return null;
+type ResultRow = {
+  name: string;
+  location: string;
+  employees: number;
+  est: number | null;
+  marks: string[];
+  sources: number;
+  products: string[];
+  highlight?: boolean;
+};
+
+const RESULT_ROWS: ResultRow[] = [
+  { name: "Ajami Fashions Limited", location: "Gazipur", employees: 2400, est: 2012, marks: ["BGMEA", "OEKO_TEX"], sources: 4, products: ["Knit", "T-Shirt"] },
+  { name: "Arbelia Fashion Limited", location: "Gazipur", employees: 400, est: 2015, marks: ["BGMEA", "WRAP"], sources: 3, products: ["Knit", "Polo"] },
+  { name: "Artex Fashion Limited", location: "Gazipur", employees: 1200, est: 2010, marks: ["BGMEA", "GOTS"], sources: 5, products: ["Knit", "Fleece"] },
+  { name: "Atria Knitwear Ltd.", location: "Gazipur", employees: 850, est: 2014, marks: ["BKMEA", "RSC"], sources: 4, products: ["Knit"] },
+  { name: "Bengal Knitcraft Ltd.", location: "Gazipur", employees: 620, est: 2016, marks: ["BGMEA"], sources: 3, products: ["Knit", "Sweater"] },
+  { name: "Crown Knitwear Ltd", location: "Mymensingh", employees: 1800, est: 2008, marks: ["BGMEA", "OEKO_TEX", "RSC"], sources: 4, products: ["Knit"] },
+  { name: "DBL Group", location: "Gazipur", employees: 45000, est: 1991, marks: ["BGMEA", "OEKO_TEX", "RSC"], sources: 5, products: ["Knit", "Woven"] },
+  {
+    name: "Quattro Fashion Limited",
+    location: "Gazipur",
+    employees: 2650,
+    est: 2018,
+    marks: ["BGMEA", "GOTS", "OEKO_TEX", "WRAP"],
+    sources: 6,
+    products: ["Knit", "Denim"],
+    highlight: true,
+  },
+];
+
+const SAVED_ROWS = [
+  { name: "Crown Knitwear Ltd", loc: "Mymensingh", sources: 4, marks: ["BGMEA", "RSC"] },
+  { name: "Tm Jeans Ltd", loc: "Gazipur", sources: 3, marks: ["BGMEA", "WRAP"] },
+  { name: "Tex Town Ltd.", loc: "Dhaka", sources: 4, marks: ["BKMEA", "GOTS"] },
+];
+
+const ACTIVITY = [
+  { name: "Crown Knitwear Ltd", text: "added to your saved list", ago: "1d ago", kind: "saved" as const },
+  { name: "Vintage Denim Apparels Ltd.", text: "WRAP certification expired", ago: "11d ago", kind: "expired" as const },
+  { name: "Square Textiles Ltd.", text: "RSC remediation now at 100%", ago: "27d ago", kind: "rsc" as const },
+];
+
+// ─── Cursor ──────────────────────────────────────────────────────
+
+function DemoCursor({ x, y, visible, reduce }: { x: number; y: number; visible: boolean; reduce: boolean }) {
+  if (reduce || !visible) return null;
   return (
     <motion.span
       aria-hidden
-      className="pointer-events-none absolute -bottom-2 -right-1 z-30 text-brand-forest drop-shadow-[0_2px_5px_rgba(31,77,58,0.35)]"
-      initial={{ opacity: 0, scale: 0.7, x: 22, y: 22 }}
-      animate={{
-        opacity: [0, 1, 1, 1, 1],
-        scale: [0.7, 1, 1, 0.86, 1],
-        x: [22, 0, 0, 0, 0],
-        y: [22, 0, 0, 0, 0],
-      }}
-      transition={{ duration: 1.2, delay, times: [0, 0.4, 0.62, 0.78, 1], ease: "easeOut" }}
+      className="pointer-events-none absolute z-50 text-brand-forest drop-shadow-[0_2px_4px_rgba(31,77,58,0.4)]"
+      animate={{ left: x, top: y }}
+      transition={{ duration: 0.5, ease: [0.22, 0.03, 0.26, 1] }}
     >
-      <span className="relative flex">
-        <CursorClick size={26} weight="fill" />
-        <motion.span
-          className="absolute -left-2 -top-2 -z-10 rounded-full bg-brand-forest/25"
-          initial={{ width: 0, height: 0, opacity: 0 }}
-          animate={{ width: [0, 40], height: [0, 40], opacity: [0.55, 0] }}
-          transition={{ duration: 0.7, delay: delay + 0.5 }}
-        />
-      </span>
+      <CursorClick size={20} weight="fill" />
     </motion.span>
   );
 }
 
-// ─── Faithful card replica (Discover result card, compacted) ─────
+// ─── App shell (matches real buyer chrome) ───────────────────────
 
-const cardVariants: Variants = {
-  hidden: { opacity: 0, y: 20, scale: 0.97, filter: "blur(7px)" },
-  visible: { opacity: 1, y: 0, scale: 1, filter: "blur(0px)" },
-};
+type SidebarActive = "none" | "discover";
 
-function DemoCard({ c, lead, reduce }: { c: DemoCompany; lead?: boolean; reduce: boolean }) {
+function DemoSidebar({ active }: { active: SidebarActive }) {
+  const sections: {
+    label: string;
+    rows: { label: string; Icon: typeof MagnifyingGlass; navKey: SidebarActive | null; badge?: string; alert?: boolean; dot?: boolean }[];
+  }[] = [
+    {
+      label: "Discover",
+      rows: [
+        { label: "Search suppliers", Icon: MagnifyingGlass, navKey: "discover", badge: MOAT },
+        { label: "Find matches", Icon: Sparkle, navKey: null },
+        { label: "Saved suppliers", Icon: BookmarkSimple, navKey: null, badge: "10" },
+      ],
+    },
+    {
+      label: "Activity",
+      rows: [
+        { label: "Messages", Icon: ChatCircleText, navKey: null, dot: true },
+        { label: "RFQs", Icon: FileText, navKey: null },
+        { label: "Orders", Icon: Package, navKey: null },
+      ],
+    },
+    {
+      label: "Compliance",
+      rows: [{ label: "Compliance", Icon: ShieldCheck, navKey: null, badge: "3", alert: true }],
+    },
+    {
+      label: "Account",
+      rows: [{ label: "Settings", Icon: GearSix, navKey: null }],
+    },
+  ];
+
   return (
-    <div
-      className={cn(
-        "relative overflow-hidden rounded-xl border bg-white px-3.5 py-3 text-left transition-colors sm:px-5 sm:py-4 lg:px-6 lg:py-5",
-        lead ? "border-brand-forest/30 bg-[#fafaf9]" : "border-neutral-200 shadow-sm",
-      )}
-    >
-      {/* lead card gets a soft focus ring that breathes in just before the click */}
-      {lead && !reduce ? (
-        <motion.span
-          aria-hidden
-          className="pointer-events-none absolute inset-0 rounded-xl ring-2 ring-brand-forest/25"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: [0, 0, 1, 1] }}
-          transition={{ duration: 2.4, times: [0, 0.55, 0.72, 1] }}
-        />
-      ) : null}
-
-      <div className="relative flex items-start gap-3 sm:gap-4">
-        <CompanyAvatar name={c.name} verified className="mt-0.5 scale-[0.72] sm:scale-90" />
-        <div className="min-w-0 flex-1">
-          <div className="flex items-start justify-between gap-2">
-            <h3 className="truncate font-display text-[15px] font-black leading-tight tracking-[-0.02em] text-neutral-900 sm:text-[18px] lg:text-[21px]">
-              {c.name}
-            </h3>
-            <span className="hidden shrink-0 text-right sm:block">
-              <span className="font-display text-[15px] font-bold leading-none tabular-nums text-neutral-800">
-                {c.employees.toLocaleString()}
-              </span>
-              <span className="ml-1 text-[12px] text-neutral-400">staff</span>
-            </span>
-          </div>
-
-          <div className="mt-1 flex items-center gap-1.5 text-[12px] font-medium text-neutral-600">
-            <span className="inline-flex items-center rounded-pill bg-neutral-100 px-1.5 py-0.5 text-[11px] font-semibold text-neutral-600">
-              {c.entity}
-            </span>
-            <MapPin size={13} weight="fill" aria-hidden className="shrink-0 text-neutral-400" />
-            <span className="truncate">{c.location}</span>
-          </div>
-
-          <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[12px] text-neutral-600 sm:gap-2">
-            {c.marks.map((m) => (
-              <MarkTile key={m} tag={m} size={24} />
-            ))}
-            <span className="font-medium text-neutral-700">Verified by {c.count} sources</span>
+    <aside className="hidden w-[212px] shrink-0 flex-col border-r border-hairline bg-surface-l1 sm:flex md:w-[228px]">
+      <div className="px-2 pt-3">
+        <div className="flex items-center gap-2.5 rounded-md px-2 py-2">
+          <DemoBuyerAvatar variant="sidebar" size="lg" />
+          <div className="min-w-0 flex-1">
+            <p className="truncate font-display text-[14px] font-bold tracking-[-0.01em] text-ink-primary">{BUYER}</p>
+            <p className="truncate text-[11px] text-ink-tertiary">Buyer account</p>
           </div>
         </div>
-
-        <span
-          className={cn(
-            "hidden shrink-0 items-center gap-1 self-center rounded-lg px-2.5 py-1.5 text-[13px] font-semibold sm:flex",
-            lead ? "bg-brand-forest text-white" : "text-brand-forest",
-          )}
-        >
-          View
-          <ArrowRight size={15} weight="bold" aria-hidden />
-        </span>
       </div>
-      {lead ? <TapCursor delay={2.4} reduce={reduce} /> : null}
+
+      <nav className="flex-1 overflow-hidden px-2 pb-2 pt-1">
+        {sections.map((sec) => (
+          <div key={sec.label} className="mb-3">
+            <p className="mb-1 px-2.5 text-[11px] font-semibold uppercase tracking-[0.06em] text-ink-tertiary">
+              {sec.label}
+            </p>
+            {sec.rows.map(({ label, Icon, navKey, badge, alert, dot }) => {
+              const isActive = navKey === "discover" && active === "discover";
+              return (
+                <div
+                  key={label}
+                  data-demo-nav={navKey ?? label}
+                  className={cn(
+                    "flex items-center gap-2.5 rounded-md px-2.5 py-[7px] text-[13px] transition-colors",
+                    isActive
+                      ? "bg-brand-forest-soft font-semibold text-brand-forest"
+                      : "font-medium text-ink-secondary",
+                  )}
+                >
+                  <Icon
+                    size={17}
+                    weight={isActive ? "fill" : "regular"}
+                    aria-hidden
+                    className={cn("shrink-0", isActive ? "text-brand-forest" : "text-ink-tertiary")}
+                  />
+                  <span className="min-w-0 flex-1 truncate">{label}</span>
+                  {dot ? <span className="size-2 shrink-0 rounded-full bg-brand-forest" aria-hidden /> : null}
+                  {badge ? (
+                    <span
+                      className={cn(
+                        "shrink-0 rounded-md px-1.5 py-0.5 text-[12px] font-semibold tabular-nums",
+                        alert ? "bg-sem-red-soft text-sem-red" : "bg-[rgba(15,15,20,0.06)] text-ink-tertiary",
+                      )}
+                    >
+                      {badge}
+                    </span>
+                  ) : null}
+                </div>
+              );
+            })}
+          </div>
+        ))}
+      </nav>
+
+      <div className="mt-auto border-t border-hairline px-2 py-2">
+        <div className="flex items-center gap-2.5 rounded-md px-2.5 py-[7px] text-[13px] font-medium text-ink-secondary">
+          <SignOut size={17} aria-hidden className="shrink-0 text-ink-tertiary" />
+          Sign out
+        </div>
+      </div>
+    </aside>
+  );
+}
+
+function DemoTopbar({ title, query }: { title: string; query?: string }) {
+  return (
+    <header className="flex h-11 shrink-0 items-center gap-2 border-b border-neutral-200 bg-white px-3 shadow-sm sm:h-12 sm:px-4">
+      <BrandMarkLink href="/app" boxClassName="h-8 w-8 sm:h-9 sm:w-9" className="shrink-0" />
+      <p className="hidden min-w-0 truncate font-display text-[15px] font-semibold tracking-[-0.01em] text-ink-primary sm:block">
+        {title}
+      </p>
+      <div className="ml-auto flex min-w-0 items-center gap-2">
+        <div className="hidden min-w-[11rem] max-w-[14rem] items-center gap-2 rounded-lg border border-hairline-strong bg-bg-l0 px-2.5 py-1.5 md:flex">
+          <MagnifyingGlass size={14} weight="bold" className="shrink-0 text-ink-tertiary" aria-hidden />
+          <span className="truncate text-[12px] text-ink-primary">{query ?? "Search verified suppliers"}</span>
+        </div>
+        <span className="hidden items-center gap-1.5 rounded-lg border border-brand-forest/20 bg-brand-forest-soft px-2 py-1 lg:inline-flex">
+          <span className="size-1.5 animate-pulse rounded-full bg-brand-forest" aria-hidden />
+          <span className="font-display text-[13px] font-bold tabular-nums text-brand-forest">{MOAT}</span>
+          <span className="text-[12px] font-medium text-brand-forest/80">verified</span>
+        </span>
+        <button type="button" aria-hidden className="hidden size-9 items-center justify-center rounded-lg text-ink-secondary sm:flex">
+          <Bell size={18} />
+        </button>
+        <DemoBuyerAvatar variant="topbar" size="sm" />
+      </div>
+    </header>
+  );
+}
+
+function BrowserChrome({ url, children }: { url: string; children: React.ReactNode }) {
+  return (
+    <div className="overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-[0_10px_30px_-18px_rgba(15,15,20,0.18)] sm:rounded-2xl">
+      <div className="flex items-end gap-2 border-b border-neutral-200 bg-neutral-100 pl-3 pr-4 pt-2 sm:pl-4">
+        <div className="mb-2 flex items-center gap-1.5">
+          <span className="size-2.5 rounded-full bg-neutral-300" />
+          <span className="size-2.5 rounded-full bg-neutral-300" />
+          <span className="size-2.5 rounded-full bg-neutral-300" />
+        </div>
+        <div className="flex items-center gap-2 rounded-t-lg border border-b-0 border-neutral-200 bg-white px-3 py-1.5">
+          <span className="size-2 rounded-full bg-brand-forest" />
+          <span className="text-[11px] font-medium text-neutral-600 sm:text-[12px]">SourceBD</span>
+        </div>
+      </div>
+      <div className="flex items-center gap-2 border-b border-neutral-200 bg-neutral-50 px-3 py-2 sm:px-4">
+        <div className="flex min-w-0 flex-1 items-center gap-1.5 rounded-md border border-neutral-200 bg-white px-2.5 py-1 sm:px-3">
+          <Lock size={11} weight="fill" className="shrink-0 text-brand-forest" aria-hidden />
+          <span className="truncate font-mono text-[11px] text-neutral-500 sm:text-[12px]">{url}</span>
+        </div>
+      </div>
+      {children}
     </div>
   );
 }
 
-// ─── Scene: Search ───────────────────────────────────────────────
-
-function SearchView({ typed, reduce }: { typed: string; reduce: boolean }) {
-  const complete = typed.length >= QUERY.length;
-  const showSuggestions = reduce || typed.length > 14;
-
+function ScrollPane({ children, scrollRef }: { children: ReactNode; scrollRef: React.RefObject<HTMLDivElement | null> }) {
   return (
-    <motion.div
-      key="search"
-      className="absolute inset-0 flex flex-col items-center justify-center px-5 text-center sm:px-10"
-      initial={reduce ? false : { opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={reduce ? undefined : { opacity: 0, transition: { duration: 0.25 } }}
+    <div
+      ref={scrollRef}
+      className="h-full overflow-x-hidden overflow-y-auto overscroll-none bg-bg-l0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
     >
-      <motion.span
-        className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-forest-soft text-brand-forest"
-        initial={reduce ? false : { scale: 0.6, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        transition={SPRING_POP}
-      >
-        <MagnifyingGlass size={24} weight="duotone" aria-hidden />
-      </motion.span>
-      <p className="font-display text-base font-bold tracking-tight text-neutral-900 sm:text-xl">
-        Find a verified factory
-      </p>
-      <p className="mt-1 max-w-xs text-[12px] leading-relaxed text-neutral-500 sm:text-[13px]">
-        Search by certification, product or district — every result is on the record.
-      </p>
+      {children}
+    </div>
+  );
+}
 
-      <div className="relative mt-5 w-full max-w-lg">
+// ─── Frames ──────────────────────────────────────────────────────
+
+function DashboardFrame() {
+  return (
+    <div className="space-y-4 px-3 py-3 sm:space-y-5 sm:px-4 sm:py-4">
+      <div>
+        <p className="text-[11px] font-semibold uppercase tracking-wider text-brand-forest">Buyer</p>
+        <h2 className="font-display text-lg font-bold text-ink-primary sm:text-xl">Dashboard</h2>
+        <p className="text-[12px] text-ink-secondary">Your sourcing activity at a glance.</p>
+      </div>
+
+      <div className="grid grid-cols-2 gap-2 lg:grid-cols-5 lg:gap-3">
+        {[
+          { label: "Saved suppliers", val: "10", meta: "Your shortlist for outreach" },
+          { label: "Active RFQs", val: "0", meta: "Compose your first RFQ from a supplier profile." },
+          { label: "Active orders", val: "0", meta: "Accept an RFQ quote to seed an order." },
+          { label: "Compliance alerts", val: "3", meta: "Certs expiring within 30 days" },
+          { label: "Unread messages", val: "0", meta: "Open Messages from the sidebar" },
+        ].map((s) => (
+          <div key={s.label} className="rounded-lg border border-hairline bg-surface-l1 p-3 shadow-sm">
+            <p className="text-[11px] font-medium text-ink-tertiary">{s.label}</p>
+            <p className="mt-1 font-display text-2xl font-extrabold tabular-nums text-ink-primary">{s.val}</p>
+            <p className="mt-1 text-[10px] leading-snug text-ink-tertiary">{s.meta}</p>
+          </div>
+        ))}
+      </div>
+
+      <div>
+        <p className="text-[13px] font-semibold text-ink-primary">Alerts</p>
+        <p className="text-[11px] text-ink-secondary">Certifications expiring in the next 30 days</p>
+        <ul className="mt-2 space-y-1.5">
+          {[
+            ["S M KNITWEARS LIMITED", "Jul 21, 2026"],
+            ["PRIME CAP (BD) LTD.", "Jul 23, 2026"],
+            ["IRIS FABRICS LTD", "Jul 25, 2026"],
+          ].map(([co, dt]) => (
+            <li key={co} className="flex items-center gap-2 rounded-lg border border-sem-amber/30 bg-sem-amber-soft px-2.5 py-2 text-[11px] sm:text-[12px]">
+              <WarningCircle size={14} weight="fill" className="shrink-0 text-sem-amber" aria-hidden />
+              <span className="font-semibold text-sem-amber">{co}</span>
+              <span className="text-ink-secondary">· WRAP expires {dt}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      <div>
+        <div className="flex items-center justify-between">
+          <p className="text-[13px] font-semibold text-ink-primary">Saved suppliers</p>
+          <span className="text-[11px] font-semibold text-brand-forest">View all →</span>
+        </div>
+        <ul className="mt-2 space-y-2">
+          {SAVED_ROWS.map((c) => (
+            <li key={c.name} className="rounded-lg border border-neutral-200 bg-white px-3 py-3 shadow-sm">
+              <div className="flex items-start gap-3">
+                <CompanyAvatar name={c.name} verified className="mt-0.5 scale-[0.85]" />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate font-display text-[14px] font-black text-neutral-900">{c.name}</p>
+                  <p className="mt-0.5 flex items-center gap-1 text-[12px] text-neutral-600">
+                    <span className="rounded-pill bg-neutral-100 px-1.5 py-0.5 text-[11px] font-semibold">Factory</span>
+                    <MapPin size={12} weight="fill" className="text-neutral-400" aria-hidden />
+                    {c.loc}
+                  </p>
+                  <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[11px]">
+                    {c.marks.map((m) => (
+                      <MarkTile key={m} tag={m} />
+                    ))}
+                    <span className="font-medium text-neutral-700">Verified by {c.sources} sources</span>
+                  </div>
+                </div>
+                <span className="hidden shrink-0 items-center gap-0.5 text-[12px] font-semibold text-brand-forest sm:inline-flex">
+                  View profile <ArrowRight size={14} weight="bold" aria-hidden />
+                </span>
+              </div>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      <div className="pb-4">
+        <p className="text-[13px] font-semibold text-ink-primary">Recent activity</p>
+        <ul className="mt-2 divide-y divide-hairline overflow-hidden rounded-lg border border-hairline bg-surface-l1">
+          {ACTIVITY.map((a) => (
+            <li key={a.name + a.ago} className="flex items-center gap-2.5 px-3 py-2.5 text-[12px]">
+              {a.kind === "saved" ? <Star size={14} weight="fill" className="text-sem-amber" aria-hidden /> : null}
+              {a.kind === "expired" ? <Clock size={14} weight="fill" className="text-sem-red" aria-hidden /> : null}
+              {a.kind === "rsc" ? <ShieldCheck size={14} weight="fill" className="text-brand-forest" aria-hidden /> : null}
+              <span className="min-w-0 flex-1 truncate">
+                <span className="font-semibold text-ink-primary">{a.name}</span>
+                <span className="text-ink-secondary"> · {a.text}</span>
+              </span>
+              <span className="shrink-0 font-mono text-[10px] text-ink-tertiary">{a.ago}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  );
+}
+
+function DiscoverFrame({ typed, reduce }: { typed: string; reduce: boolean }) {
+  const complete = typed.length >= QUERY.length;
+  return (
+    <div className="flex min-h-full flex-col items-center justify-center px-4 py-8 text-center">
+      <h2 className="font-display text-xl font-semibold tracking-[-0.02em] text-ink-primary sm:text-[1.75rem]">
+        Find a verified factory
+      </h2>
+      <p className="mt-1.5 max-w-md text-[13px] text-ink-secondary">
+        Search by certification, product, or district — every result is source-backed.
+      </p>
+      <div className="relative mt-5 w-full max-w-xl">
         <div
-          className={cn(
-            "relative z-10 flex items-center gap-2 rounded-xl border bg-white px-3 py-2.5 shadow-sm transition-colors sm:py-3",
-            showSuggestions ? "border-brand-forest/40" : "border-neutral-200",
-          )}
+          data-demo-search-box
+          className="flex items-center gap-2 rounded-xl border border-neutral-200 bg-white px-3 py-2.5 shadow-sm"
         >
           <MagnifyingGlass size={18} className="shrink-0 text-neutral-400" aria-hidden />
-          <span className="flex-1 truncate text-left text-[13px] text-neutral-900 sm:text-sm">
-            {typed || <span className="text-neutral-400">OEKO-TEX certified knit factory…</span>}
+          <span className="flex-1 truncate text-left text-[13px] text-ink-primary sm:text-sm">
+            {typed || <span className="text-ink-tertiary">e.g. OEKO-TEX, Gazipur knitwear</span>}
             {!reduce && !complete ? (
               <span className="ml-0.5 inline-block h-4 w-px animate-pulse bg-brand-forest align-middle" />
             ) : null}
           </span>
-          <span className="relative inline-flex shrink-0 items-center rounded-lg bg-brand-forest px-3 py-1.5 text-[12px] font-semibold text-white">
+          <span
+            data-demo-search-btn
+            className="shrink-0 rounded-lg bg-brand-forest px-4 py-2 text-[13px] font-semibold text-white"
+          >
             Search
-            {complete ? <TapCursor delay={0.5} reduce={reduce} /> : null}
           </span>
         </div>
-
-        {/* live autocomplete */}
-        <AnimatePresence>
-          {showSuggestions ? (
-            <motion.ul
-              className="absolute inset-x-0 top-[calc(100%+6px)] z-0 overflow-hidden rounded-xl border border-neutral-200 bg-white p-1.5 text-left shadow-[0_16px_40px_-20px_rgba(15,15,20,0.35)]"
-              initial={reduce ? false : { opacity: 0, y: -8, scale: 0.98 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={reduce ? undefined : { opacity: 0, y: -8, transition: { duration: 0.15 } }}
-              transition={SPRING}
-            >
-              {SUGGESTIONS.map((s, i) => (
-                <motion.li
-                  key={s.text}
-                  initial={reduce ? false : { opacity: 0, x: -6 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: reduce ? 0 : 0.08 + i * 0.07, ...SPRING }}
-                  className={cn(
-                    "flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[12px] sm:text-[13px]",
-                    i === 0 ? "bg-brand-forest-soft text-neutral-900" : "text-neutral-600",
-                  )}
-                >
-                  {s.history ? (
-                    <ClockCounterClockwise size={15} className="shrink-0 text-neutral-400" aria-hidden />
-                  ) : (
-                    <MagnifyingGlass size={15} className="shrink-0 text-brand-forest" aria-hidden />
-                  )}
-                  <span className="truncate">{s.text}</span>
-                  {i === 0 ? (
-                    <span className="ml-auto hidden shrink-0 rounded bg-white/70 px-1.5 py-0.5 font-mono text-[10px] font-semibold text-brand-forest sm:inline">
-                      ↵ enter
-                    </span>
-                  ) : null}
-                </motion.li>
-              ))}
-            </motion.ul>
-          ) : null}
-        </AnimatePresence>
       </div>
-    </motion.div>
+    </div>
   );
 }
 
-// ─── Scene: Results ──────────────────────────────────────────────
-
-function ResultsView({ reduce }: { reduce: boolean }) {
+function ResultCard({ row, lead }: { row: ResultRow; lead?: boolean }) {
   return (
-    <motion.div
-      key="results"
-      className="absolute inset-0 flex flex-col px-3.5 pt-3.5 sm:px-6 sm:pt-5 lg:px-10 lg:pt-7"
-      initial={reduce ? false : { opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={reduce ? undefined : { opacity: 0, transition: { duration: 0.25 } }}
+    <article
+      data-demo-result={row.highlight ? "quattro" : undefined}
+      className={cn(
+        "group relative overflow-hidden rounded-lg border bg-white px-3 py-3 text-left shadow-sm transition-colors sm:px-4 sm:py-4",
+        lead ? "border-brand-forest/30 bg-[#fafaf9]" : "border-neutral-200 hover:border-brand-forest/[0.22]",
+      )}
     >
-      <motion.div
-        className="mb-3 flex items-center justify-between"
-        initial={reduce ? false : { opacity: 0, y: -8 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={SPRING}
-      >
-        <p className="font-mono text-[11px] uppercase tracking-widest text-neutral-500">
-          <span className="font-semibold text-brand-forest">3</span> verified matches
-        </p>
-        <span className="rounded-pill border border-neutral-200 bg-white px-2 py-0.5 text-[11px] font-medium text-neutral-500">
-          Dhaka · Knit
-        </span>
-      </motion.div>
-
-      <motion.div
-        className="flex flex-1 flex-col justify-center gap-2.5 sm:gap-4 lg:gap-5"
-        initial={reduce ? false : "hidden"}
-        animate="visible"
-        variants={{ visible: { transition: { staggerChildren: reduce ? 0 : 0.16, delayChildren: 0.1 } } }}
-      >
-        {RESULTS.map((c, i) => (
-          <motion.div key={c.name} variants={reduce ? undefined : cardVariants} transition={SPRING}>
-            <DemoCard c={c} lead={i === 0} reduce={reduce} />
-          </motion.div>
-        ))}
-      </motion.div>
-    </motion.div>
-  );
-}
-
-// ─── Scene: Profile ──────────────────────────────────────────────
-
-function ProfileView({ reduce }: { reduce: boolean }) {
-  return (
-    <motion.div
-      key="profile"
-      className="absolute inset-0 flex flex-col px-3.5 pt-4 sm:px-6 sm:pt-6 lg:px-10 lg:pt-8"
-      initial={reduce ? false : { opacity: 0, x: 28 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={reduce ? undefined : { opacity: 0, x: -28, transition: { duration: 0.25 } }}
-      transition={SPRING}
-    >
-      {/* Header */}
-      <motion.div
-        className="flex items-start gap-3 border-b border-neutral-200 pb-3.5 sm:gap-4"
-        initial={reduce ? false : { opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={SPRING}
-      >
-        <CompanyAvatar name={LEAD.name} verified variant="profile" className="scale-[0.72] sm:scale-90" />
+      <div className="flex gap-3 sm:gap-4">
+        <CompanyAvatar name={row.name} verified className="mt-0.5 scale-[0.88]" />
         <div className="min-w-0 flex-1">
-          <h3 className="truncate font-display text-lg font-black tracking-[-0.02em] text-neutral-900 sm:text-2xl">
-            {LEAD.name}
+          <h3 className="truncate font-display text-[15px] font-black leading-tight tracking-[-0.02em] text-neutral-900 sm:text-[17px]">
+            {row.name}
           </h3>
-          <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[12px] font-medium text-neutral-600">
-            <span className="inline-flex items-center rounded-pill bg-neutral-100 px-1.5 py-0.5 text-[11px] font-semibold text-neutral-600">
-              {LEAD.entity}
-            </span>
-            <MapPin size={13} weight="fill" aria-hidden className="shrink-0 text-neutral-400" />
-            <span>{LEAD.location}, Bangladesh</span>
+          <div className="mt-1 flex items-center gap-1.5 text-[11px] font-medium text-neutral-600 sm:text-[12px]">
+            <span className="inline-flex items-center rounded-pill bg-neutral-100 px-1.5 py-0.5 font-semibold">Factory</span>
+            <MapPin size={12} weight="fill" className="text-neutral-400" aria-hidden />
+            <span>{row.location}</span>
           </div>
-          <div className="mt-1.5 inline-flex items-center gap-1.5 text-[12px] font-semibold text-brand-forest">
-            <span className="inline-flex size-4 items-center justify-center rounded-full border border-brand-forest/25">
-              <Check size={11} weight="bold" aria-hidden />
-            </span>
-            Verified by {LEAD.count} independent sources
+          <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[11px] text-neutral-600">
+            {row.marks.slice(0, 3).map((m) => (
+              <MarkTile key={m} tag={m} />
+            ))}
+            <span className="font-medium text-neutral-700">Verified by {row.sources} sources</span>
+          </div>
+          <div className="mt-1.5 flex flex-wrap gap-1">
+            {row.products.map((p) => (
+              <span key={p} className="inline-flex items-center gap-1 rounded bg-neutral-100 px-1.5 py-0.5 text-[10px] font-medium text-neutral-600">
+                {p}
+              </span>
+            ))}
           </div>
         </div>
-      </motion.div>
-
-      {/* Evidence rows landing one by one */}
-      <div className="mt-3 flex flex-1 flex-col justify-center gap-2 sm:mt-5 sm:gap-3 lg:gap-3.5">
-        {EVIDENCE.map((e, i) => {
-          const landDelay = reduce ? 0 : 0.25 + i * 0.55;
-          return (
-            <motion.div
-              key={e.code}
-              initial={reduce ? false : { opacity: 0, y: 12, filter: "blur(5px)" }}
-              animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-              transition={{ delay: landDelay, ...SPRING }}
-              className="grid grid-cols-[28px_minmax(0,1fr)_auto] items-center gap-2.5 rounded-xl border border-neutral-200 bg-white px-2.5 py-2 sm:grid-cols-[30px_minmax(0,1fr)_auto] sm:gap-3 sm:px-4 sm:py-3 lg:py-4"
-            >
-              <MarkTile tag={e.code} size={28} />
-              <span className="min-w-0 truncate text-[12px] text-neutral-700 sm:text-[13px]">
-                {e.label}
-              </span>
-              <motion.span
-                className="inline-flex items-center gap-1 rounded-md bg-brand-forest-soft px-2 py-0.5 text-[11px] font-semibold text-brand-forest"
-                initial={reduce ? false : { scale: 0.4, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                transition={{ delay: landDelay + 0.22, ...SPRING_POP }}
-              >
-                {e.check ? <Check size={11} weight="bold" aria-hidden /> : null}
-                {e.status}
-              </motion.span>
-            </motion.div>
-          );
-        })}
+        <div className="hidden shrink-0 flex-col items-end justify-between self-stretch sm:flex">
+          <div className="text-right">
+            <p className="font-display text-[14px] font-bold tabular-nums text-neutral-800">{row.employees.toLocaleString()}</p>
+            <p className="text-[10px] text-neutral-400">employees</p>
+            {row.est ? <p className="mt-1 text-[10px] text-neutral-400">Est. {row.est}</p> : null}
+          </div>
+          <span
+            data-demo-view-profile={row.highlight ? "true" : undefined}
+            className={cn(
+              "inline-flex items-center gap-0.5 text-[12px] font-semibold",
+              lead ? "rounded-lg bg-brand-forest px-2.5 py-1.5 text-white" : "text-brand-forest",
+            )}
+          >
+            View profile
+            <ArrowRight size={14} weight="bold" aria-hidden />
+          </span>
+        </div>
       </div>
-
-      <motion.div
-        className="mt-auto flex items-center justify-between py-3"
-        initial={reduce ? false : { opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: reduce ? 0 : 0.25 + EVIDENCE.length * 0.55 }}
-      >
-        <span className="inline-flex items-center gap-1.5 text-[12px] text-neutral-500">
-          <ShieldCheck size={15} weight="duotone" className="text-brand-forest" aria-hidden />
-          Traced to the issuing authority
-        </span>
-        <span className="relative inline-flex items-center gap-1.5 rounded-lg bg-brand-forest px-3 py-1.5 text-[12px] font-semibold text-white">
-          <PaperPlaneTilt size={14} weight="fill" aria-hidden />
-          Message factory
-        </span>
-      </motion.div>
-    </motion.div>
+    </article>
   );
 }
 
-// ─── Journey stepper (connected rail + glowing active node) ──────
+function ResultsFrame() {
+  return (
+    <div className="px-3 py-3 sm:px-4 sm:py-4">
+      <div className="mb-3">
+        <h2 className="font-display text-lg font-semibold text-ink-primary">Find a verified factory</h2>
+        <p className="text-[12px] text-ink-secondary">Search by certification, product, or district.</p>
+        <div className="mt-2 flex items-center gap-2 rounded-xl border border-neutral-200 bg-white px-3 py-2 shadow-sm">
+          <MagnifyingGlass size={16} className="text-neutral-400" aria-hidden />
+          <span className="flex-1 text-[13px] text-ink-primary">{QUERY}</span>
+          <span className="rounded-lg bg-brand-forest px-3 py-1.5 text-[12px] font-semibold text-white">Search</span>
+        </div>
+      </div>
 
-const STEPS: { scene: Scene; n: string; label: string; hint: string; icon: typeof MagnifyingGlass }[] = [
-  { scene: "search", n: "01", label: "Search", hint: "by cert, product or district", icon: MagnifyingGlass },
-  { scene: "results", n: "02", label: "Vet the evidence", hint: "sources behind every claim", icon: ShieldCheck },
-  { scene: "profile", n: "03", label: "Contact directly", hint: "no broker, no middleman", icon: PaperPlaneTilt },
+      <div className="mb-3 flex flex-wrap gap-1.5 text-[10px] sm:text-[11px]">
+        {["City · Gazipur", "Product · Knit", "Type · Knitted", "Sources · Any"].map((f) => (
+          <span key={f} className="rounded-md border border-brand-forest/25 bg-brand-forest-soft px-2 py-0.5 font-medium text-brand-forest">
+            {f}
+          </span>
+        ))}
+      </div>
+
+      <div className="mb-2 flex items-center justify-between">
+        <p className="font-mono text-[10px] uppercase tracking-widest text-ink-tertiary sm:text-[11px]">
+          <span className="font-semibold text-brand-forest">523</span> verified matches
+        </p>
+        <span className="text-[11px] text-ink-tertiary">Best match ▾</span>
+      </div>
+
+      <div className="space-y-2 pb-6">
+        {RESULT_ROWS.map((row) => (
+          <ResultCard key={row.name} row={row} lead={row.highlight} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ProfileFrame() {
+  return (
+    <div className="px-3 py-3 sm:px-4 sm:py-4">
+      <section className="relative overflow-hidden rounded-[14px] border border-neutral-200 bg-white px-3 py-3 shadow-sm before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-20 before:bg-gradient-to-b before:from-brand-forest/[0.035] before:to-transparent sm:rounded-[18px] sm:px-5 sm:py-4">
+        <div className="relative flex items-center gap-3 sm:gap-4">
+          <CompanyAvatar name="Quattro Fashion Limited" verified variant="profile" className="shrink-0 scale-[0.82] sm:scale-100" />
+          <div className="min-w-0 flex-1">
+            <h2 className="line-clamp-2 font-display text-[18px] font-extrabold leading-tight tracking-[-0.02em] text-neutral-900 sm:text-[22px]">
+              Quattro Fashion Limited
+            </h2>
+            <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] sm:text-[12px]">
+              <span className="inline-flex items-center gap-1 rounded-pill bg-neutral-100 px-2 py-0.5 font-semibold text-neutral-700">
+                <Factory size={12} aria-hidden />
+                Factory
+              </span>
+              <span className="inline-flex items-center gap-1 font-medium text-neutral-600">
+                <MapPin size={12} weight="fill" className="text-neutral-400" aria-hidden />
+                Gazipur
+              </span>
+              <span className="inline-flex items-center gap-1 font-semibold text-brand-forest">
+                <ShieldCheck size={12} weight="fill" aria-hidden />
+                Verified · 6 authorities · 27 Jun 2026
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-3 h-px bg-gradient-to-r from-neutral-200/0 via-neutral-200/70 to-neutral-200/0 sm:mt-4" />
+
+        <div className="mt-3 flex flex-col gap-3 sm:mt-4 lg:flex-row lg:items-center lg:justify-between">
+          <dl className="grid min-w-0 flex-1 grid-cols-2 gap-x-4 gap-y-3 sm:gap-x-6 lg:flex lg:gap-8">
+            {[
+              { label: "Registered address", icon: MapPin, value: "Gazipur, Bangladesh" },
+              { label: "Employees", icon: UsersThree, value: "2,650", bold: true },
+              { label: "Established", icon: CalendarBlank, value: "Sept 2018", bold: true },
+            ].map((item) => (
+              <div key={item.label} className={cn("min-w-0", item.label === "Registered address" && "col-span-2 sm:col-span-1 lg:flex-[2]")}>
+                <dt className="flex items-center gap-1.5 text-[11px] font-semibold text-neutral-500">
+                  <item.icon size={14} weight="duotone" className="text-brand-forest/80" aria-hidden />
+                  {item.label}
+                </dt>
+                <dd className={cn("mt-0.5 text-neutral-900", item.bold ? "font-display text-[15px] font-bold tabular-nums" : "text-[12px] font-semibold text-neutral-700")}>
+                  {item.value}
+                </dd>
+              </div>
+            ))}
+          </dl>
+          <div className="flex shrink-0 items-center gap-2">
+            <span className="rounded-lg border border-neutral-200 px-3 py-1.5 text-[12px] font-semibold text-neutral-700">Follow</span>
+            <span className="rounded-lg bg-brand-forest px-3 py-1.5 text-[12px] font-semibold text-white">Contact supplier</span>
+          </div>
+        </div>
+      </section>
+
+      <div className="mt-3 flex gap-3 overflow-x-auto border-b border-neutral-200 text-[11px] font-semibold sm:text-[12px]">
+        {["Overview", "Compliance", "Capacity", "Contact", "Provenance 8"].map((t) => (
+          <span
+            key={t}
+            className={cn(
+              "shrink-0 pb-2",
+              t === "Compliance" ? "border-b-2 border-brand-forest text-brand-forest" : "text-neutral-400",
+            )}
+          >
+            {t}
+          </span>
+        ))}
+      </div>
+
+      <div className="mt-3 space-y-2.5 pb-6">
+        {[
+          {
+            title: "Registries",
+            sub: "4 verified records",
+            rows: ["BGMEA member", "BKMEA member", "RMG Sustainability Council", "EPB exporter"].map((r) => [r, "Verified"]),
+          },
+          {
+            title: "Certifications",
+            sub: "3 active · 0 expiring",
+            rows: [
+              ["GOTS — Global Organic Textile Standard", "Valid · 2027"],
+              ["OEKO-TEX STANDARD 100", "Valid · 2026"],
+              ["WRAP", "Evergreen"],
+            ],
+          },
+        ].map((block) => (
+          <div key={block.title} className="rounded-lg border border-neutral-200 bg-white p-3">
+            <p className="text-[12px] font-semibold text-ink-primary">
+              {block.title} <span className="font-normal text-ink-secondary">{block.sub}</span>
+            </p>
+            <ul className="mt-1.5 space-y-1">
+              {block.rows.map(([left, right]) => (
+                <li key={left} className="flex items-center justify-between gap-2 text-[11px]">
+                  <span className="min-w-0 truncate text-neutral-700">{left}</span>
+                  <span className={cn("shrink-0 font-semibold", right === "Verified" ? "rounded bg-brand-forest-soft px-1.5 py-0.5 text-brand-forest" : "text-neutral-500")}>
+                    {right}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+
+        <div className="rounded-lg border border-neutral-200 bg-white p-3">
+          <p className="text-[12px] font-semibold text-ink-primary">RSC Remediation</p>
+          <div className="mt-1.5 flex items-center gap-2">
+            <span className="font-display text-2xl font-bold text-brand-forest">100%</span>
+            <div className="h-2 flex-1 overflow-hidden rounded-full bg-neutral-200">
+              <div className="h-full w-full rounded-full bg-brand-forest" />
+            </div>
+          </div>
+          <p className="mt-1 text-[11px] text-ink-secondary">2,567 workers · Initial remediation completed</p>
+        </div>
+
+        <div className="rounded-lg border border-neutral-200 bg-white p-3">
+          <p className="text-[12px] font-semibold text-ink-primary">
+            Sanctions screening <span className="font-normal text-ink-secondary">6 of 6 watchlists clear</span>
+          </p>
+          <div className="mt-1.5 flex flex-wrap gap-1">
+            {["UFLPA", "CBP WRO", "OFAC SDN", "EU Sanctions"].map((s) => (
+              <span key={s} className="rounded bg-brand-forest-soft px-1.5 py-0.5 text-[10px] font-semibold text-brand-forest">
+                {s} · Clear
+              </span>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Stepper ─────────────────────────────────────────────────────
+
+const STEPS = [
+  { label: "Your workspace", hint: "buyer dashboard" },
+  { label: "Search", hint: "by cert, product or district" },
+  { label: "Vet the evidence", hint: "523 verified matches" },
+  { label: "Open the profile", hint: "compliance on the record" },
 ];
 
-function Stepper({ sceneIndex, loop, reduce }: { sceneIndex: number; loop: number; reduce: boolean }) {
+function Stepper({ frameIndex, loop, reduce }: { frameIndex: number; loop: number; reduce: boolean }) {
+  const frame = FRAMES[frameIndex]!;
   return (
     <div className="mt-6 sm:mt-8">
-      {/* nodes + rails */}
       <ol className="flex items-center">
         {STEPS.map((step, i) => {
-          const state = i < sceneIndex ? "done" : i === sceneIndex ? "active" : "upcoming";
-          const Icon = step.icon;
           const isLast = i === STEPS.length - 1;
           return (
-            <li key={step.n} className={cn("flex items-center", !isLast && "flex-1")}>
-              <div className="relative shrink-0">
-                {state === "active" && !reduce ? (
-                  <motion.span
-                    aria-hidden
-                    className="absolute -inset-1 rounded-full bg-brand-forest/25"
-                    animate={{ scale: [1, 1.4, 1], opacity: [0.5, 0, 0.5] }}
-                    transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-                  />
-                ) : null}
-                <motion.div
-                  className={cn(
-                    "relative flex size-9 items-center justify-center rounded-full border sm:size-11",
-                    state === "upcoming"
-                      ? "border-neutral-200 bg-white text-neutral-400"
-                      : "border-brand-forest bg-brand-forest text-white shadow-[0_6px_16px_-6px_rgba(31,77,58,0.6)]",
-                  )}
-                  animate={reduce ? undefined : { scale: state === "active" ? 1.06 : 1 }}
-                  transition={SPRING}
-                >
-                  <AnimatePresence mode="wait" initial={false}>
-                    {state === "done" ? (
-                      <motion.span
-                        key="check"
-                        initial={reduce ? false : { scale: 0, opacity: 0 }}
-                        animate={{ scale: 1, opacity: 1 }}
-                        transition={SPRING_POP}
-                      >
-                        <Check size={18} weight="bold" aria-hidden />
-                      </motion.span>
-                    ) : (
-                      <motion.span
-                        key="icon"
-                        initial={reduce ? false : { scale: 0.6, opacity: 0 }}
-                        animate={{ scale: 1, opacity: 1 }}
-                        exit={reduce ? undefined : { scale: 0.6, opacity: 0 }}
-                        transition={{ duration: 0.15 }}
-                      >
-                        <Icon size={18} weight={state === "active" ? "fill" : "duotone"} aria-hidden />
-                      </motion.span>
-                    )}
-                  </AnimatePresence>
-                </motion.div>
+            <li key={step.label} className={cn("flex items-center", !isLast && "flex-1")}>
+              <div
+                className={cn(
+                  "relative flex size-8 items-center justify-center rounded-full border text-[11px] font-bold sm:size-10 sm:text-[12px]",
+                  i <= frameIndex ? "border-brand-forest bg-brand-forest text-white" : "border-neutral-200 bg-white text-neutral-400",
+                )}
+              >
+                {i < frameIndex ? <Check size={16} weight="bold" aria-hidden /> : String(i + 1).padStart(2, "0")}
               </div>
-
               {!isLast ? (
-                <div className="mx-2 h-[3px] flex-1 overflow-hidden rounded-full bg-neutral-200 sm:mx-3">
-                  {i < sceneIndex ? (
-                    <div className="h-full w-full rounded-full bg-brand-forest" />
-                  ) : i === sceneIndex && !reduce ? (
+                <div className="mx-1.5 h-[3px] flex-1 overflow-hidden rounded-full bg-neutral-200 sm:mx-2">
+                  {i < frameIndex ? (
+                    <div className="h-full w-full bg-brand-forest" />
+                  ) : i === frameIndex && !reduce ? (
                     <motion.div
                       key={`rail-${i}-${loop}`}
-                      className="h-full rounded-full bg-brand-forest"
+                      className="h-full bg-brand-forest"
                       initial={{ width: "0%" }}
                       animate={{ width: "100%" }}
-                      transition={{ duration: SCENE_MS[step.scene] / 1000, ease: "easeInOut" }}
+                      transition={{ duration: FRAME_MS[frame] / 1000, ease: "linear" }}
                     />
-                  ) : (
-                    <div className="h-full w-0" />
-                  )}
+                  ) : null}
                 </div>
               ) : null}
             </li>
           );
         })}
       </ol>
-
-      {/* labels aligned under each node */}
       <div className="mt-3 flex">
-        {STEPS.map((step, i) => {
-          const active = i === sceneIndex;
-          const align = i === 0 ? "items-start text-left" : i === STEPS.length - 1 ? "items-end text-right" : "items-center text-center";
-          return (
-            <div key={step.n} className={cn("flex flex-1 flex-col", align)}>
-              <span
-                className={cn(
-                  "text-[12px] font-semibold leading-tight transition-colors duration-300 sm:text-[13px]",
-                  active ? "text-neutral-900" : i < sceneIndex ? "text-brand-forest" : "text-neutral-400",
-                )}
-              >
-                {step.label}
-              </span>
-              <span className="mt-0.5 hidden text-[11px] leading-tight text-neutral-400 sm:block">
-                {step.hint}
-              </span>
-            </div>
-          );
-        })}
+        {STEPS.map((step, i) => (
+          <div
+            key={step.label}
+            className={cn(
+              "flex flex-1 flex-col",
+              i === 0 ? "items-start text-left" : i === STEPS.length - 1 ? "items-end text-right" : "items-center text-center",
+            )}
+          >
+            <span className={cn("text-[11px] font-semibold sm:text-[12px]", i === frameIndex ? "text-neutral-900" : i < frameIndex ? "text-brand-forest" : "text-neutral-400")}>
+              {step.label}
+            </span>
+            <span className="mt-0.5 hidden text-[10px] text-neutral-400 sm:block">{step.hint}</span>
+          </div>
+        ))}
       </div>
     </div>
   );
+}
+
+// ─── Timeline ────────────────────────────────────────────────────
+
+type CursorTarget = { x: number; y: number; visible: boolean };
+
+function useDemoTimeline(
+  frameIndex: number,
+  loop: number,
+  reduce: boolean,
+  scrollRef: React.RefObject<HTMLDivElement | null>,
+) {
+  const [typed, setTyped] = useState("");
+  const [cursor, setCursor] = useState<CursorTarget>({ x: 0, y: 0, visible: false });
+  const animToken = useRef(0);
+
+  const frame = FRAMES[frameIndex]!;
+
+  const runScrollSequence = useCallback(
+    async (targets: number[], token: number) => {
+      const el = scrollRef.current;
+      if (!el) return;
+      for (const y of targets) {
+        if (animToken.current !== token) return;
+        await animateScrollTo(el, y);
+      }
+    },
+    [scrollRef],
+  );
+
+  useEffect(() => {
+    const token = ++animToken.current;
+    const el = scrollRef.current;
+
+    if (reduce) {
+      if (el) {
+        el.scrollTop = frame === "results" ? 380 : frame === "dashboard" ? 220 : frame === "profile" ? 120 : 0;
+      }
+      setTyped(QUERY);
+      setCursor({ x: 0, y: 0, visible: false });
+      return;
+    }
+
+    setTyped("");
+    setCursor({ x: 0, y: 0, visible: false });
+    if (el) el.scrollTop = 0;
+
+    const timers: ReturnType<typeof setTimeout>[] = [];
+
+    if (frame === "dashboard") {
+      timers.push(setTimeout(() => void runScrollSequence([130, 260], token), 500));
+      timers.push(setTimeout(() => setCursor({ x: 78, y: 152, visible: true }), 3600));
+    }
+
+    if (frame === "discover") {
+      let i = 0;
+      const typeId = setInterval(() => {
+        i += 1;
+        setTyped(QUERY.slice(0, i));
+        if (i >= QUERY.length) clearInterval(typeId);
+      }, 44);
+      timers.push(setTimeout(() => setCursor({ x: 480, y: 268, visible: true }), 2400));
+      return () => {
+        clearInterval(typeId);
+        timers.forEach(clearTimeout);
+        animToken.current += 1;
+      };
+    }
+
+    if (frame === "results") {
+      timers.push(setTimeout(() => void runScrollSequence([90, 240, 400], token), 450));
+      timers.push(setTimeout(() => setCursor({ x: 560, y: 318, visible: true }), 5000));
+    }
+
+    if (frame === "profile") {
+      timers.push(setTimeout(() => void runScrollSequence([70, 140], token), 700));
+    }
+
+    return () => {
+      timers.forEach(clearTimeout);
+      animToken.current += 1;
+    };
+  }, [frame, loop, reduce, runScrollSequence, scrollRef]);
+
+  return { typed, cursor };
+}
+
+function frameMeta(frame: Frame) {
+  switch (frame) {
+    case "dashboard":
+      return { title: "Dashboard", url: "sourcebd.net/app", sidebar: "none" as SidebarActive, query: undefined };
+    case "discover":
+      return { title: "Search suppliers", url: "sourcebd.net/app/discover", sidebar: "discover" as SidebarActive, query: undefined };
+    case "results":
+      return { title: "Search suppliers", url: `sourcebd.net/app/discover?q=${encodeURIComponent(QUERY)}`, sidebar: "discover" as SidebarActive, query: QUERY };
+    case "profile":
+      return { title: "Company profile", url: "sourcebd.net/app/suppliers/quattro-fashion", sidebar: "discover" as SidebarActive, query: undefined };
+  }
 }
 
 // ─── Root ────────────────────────────────────────────────────────
 
 export function ProductDemo() {
   const reduce = useReducedMotion() ?? false;
-  const [sceneIndex, setSceneIndex] = useState(0);
+  const [frameIndex, setFrameIndex] = useState(0);
   const [loop, setLoop] = useState(0);
-  const [typed, setTyped] = useState("");
   const frozen = useRef(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
-  const scene = SCENES[sceneIndex]!;
+  const frame = FRAMES[frameIndex]!;
+  const meta = frameMeta(frame);
+  const { typed, cursor } = useDemoTimeline(frameIndex, loop, reduce, scrollRef);
 
   useEffect(() => {
     if (reduce) {
       frozen.current = true;
-      setSceneIndex(SCENES.indexOf("profile"));
-      setTyped(QUERY);
+      setFrameIndex(FRAMES.indexOf("profile"));
     }
   }, [reduce]);
 
   useEffect(() => {
     if (frozen.current) return;
     const id = setTimeout(() => {
-      setSceneIndex((s) => {
-        const next = (s + 1) % SCENES.length;
+      setFrameIndex((i) => {
+        const next = (i + 1) % FRAMES.length;
         if (next === 0) setLoop((l) => l + 1);
         return next;
       });
-    }, SCENE_MS[scene]);
+    }, FRAME_MS[frame]);
     return () => clearTimeout(id);
-  }, [sceneIndex, scene]);
-
-  useEffect(() => {
-    if (frozen.current || scene !== "search") return;
-    setTyped("");
-    let i = 0;
-    const id = setInterval(() => {
-      i += 1;
-      setTyped(QUERY.slice(0, i));
-      if (i >= QUERY.length) clearInterval(id);
-    }, 52);
-    return () => clearInterval(id);
-  }, [scene, loop]);
-
-  const url = scene === "profile" ? "sourcebd.net/suppliers/dbl-group" : "sourcebd.net/discover";
+  }, [frameIndex, frame]);
 
   return (
     <div className="mx-auto w-full max-w-6xl">
-      {/* Browser frame */}
-      <div className="overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-[0_10px_30px_-18px_rgba(15,15,20,0.18)] sm:rounded-2xl">
-        {/* Tab strip */}
-        <div className="flex items-end gap-2 border-b border-neutral-200 bg-neutral-100 pl-3 pr-4 pt-2 sm:pl-4">
-          <div className="mr-1 flex items-center gap-1.5 pb-2">
-            <span className="size-2.5 rounded-full bg-neutral-300" />
-            <span className="size-2.5 rounded-full bg-neutral-300" />
-            <span className="size-2.5 rounded-full bg-neutral-300" />
-          </div>
-          <div className="flex items-center gap-2 rounded-t-lg border border-b-0 border-neutral-200 bg-white px-3 py-1.5">
-            <span className="size-2 rounded-full bg-brand-forest" />
-            <span className="text-[11px] font-medium text-neutral-600 sm:text-[12px]">SourceBD</span>
-          </div>
-        </div>
-
-        {/* URL bar */}
-        <div className="flex items-center gap-2 border-b border-neutral-200 bg-neutral-50 px-3 py-2 sm:px-4">
-          <div className="flex min-w-0 flex-1 items-center gap-1.5 rounded-md border border-neutral-200 bg-white px-2.5 py-1 sm:px-3">
-            <Lock size={12} weight="fill" className="shrink-0 text-brand-forest" aria-hidden />
-            <AnimatePresence mode="wait">
-              <motion.span
-                key={url}
-                initial={reduce ? false : { opacity: 0, y: 4 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={reduce ? undefined : { opacity: 0, y: -4 }}
-                transition={{ duration: 0.25 }}
-                className="truncate font-mono text-[11px] text-neutral-500 sm:text-[12px]"
-              >
-                {url}
-              </motion.span>
-            </AnimatePresence>
+      <BrowserChrome url={meta.url}>
+        <div className="relative flex h-[400px] bg-bg-l0 sm:h-[520px] lg:h-[560px]">
+          <DemoSidebar active={meta.sidebar} />
+          <div className="relative flex min-w-0 flex-1 flex-col">
+            <DemoTopbar title={meta.title} query={meta.query} />
+            <div className="relative min-h-0 flex-1">
+              {frame === "discover" ? (
+                <div className="h-full overflow-hidden bg-bg-l0">
+                  <DiscoverFrame typed={typed} reduce={reduce} />
+                </div>
+              ) : (
+                <ScrollPane scrollRef={scrollRef}>
+                  {frame === "dashboard" ? <DashboardFrame /> : null}
+                  {frame === "results" ? <ResultsFrame /> : null}
+                  {frame === "profile" ? <ProfileFrame /> : null}
+                </ScrollPane>
+              )}
+              <DemoCursor x={cursor.x} y={cursor.y} visible={cursor.visible} reduce={reduce} />
+            </div>
           </div>
         </div>
-
-        {/* Viewport */}
-        <div className="relative h-[380px] overflow-hidden bg-bg-l0 sm:h-[520px] lg:h-[600px]">
-          {/* depth: soft top light + edge vignette */}
-          <div
-            aria-hidden
-            className="pointer-events-none absolute inset-0 z-[15]"
-            style={{
-              background:
-                "radial-gradient(120% 70% at 50% -10%, rgba(255,255,255,0.7), transparent 42%), radial-gradient(100% 60% at 50% 115%, rgba(15,15,20,0.035), transparent 45%)",
-            }}
-          />
-
-          {/* subtle scanning beam */}
-          {!reduce ? (
-            <motion.div
-              aria-hidden
-              className="pointer-events-none absolute inset-x-0 top-0 z-20 h-28 bg-gradient-to-b from-brand-forest/[0.08] to-transparent"
-              initial={{ y: -120 }}
-              animate={{ y: [-120, 640] }}
-              transition={{ duration: SCENE_MS[scene] / 1000, ease: "linear" }}
-              key={`beam-${scene}-${loop}`}
-            />
-          ) : null}
-
-          <AnimatePresence mode="wait">
-            {scene === "search" ? (
-              <SearchView key="s" typed={typed} reduce={reduce} />
-            ) : scene === "results" ? (
-              <ResultsView key="r" reduce={reduce} />
-            ) : (
-              <ProfileView key="p" reduce={reduce} />
-            )}
-          </AnimatePresence>
-        </div>
-      </div>
-
-      <Stepper sceneIndex={sceneIndex} loop={loop} reduce={reduce} />
+      </BrowserChrome>
+      <Stepper frameIndex={frameIndex} loop={loop} reduce={reduce} />
     </div>
   );
 }

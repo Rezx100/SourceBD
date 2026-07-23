@@ -242,97 +242,127 @@ function fmtBytes(n: number): string {
   return `${(n / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+export function ProfileRegistriesCard({
+  pills,
+}: {
+  pills: readonly ProfileCompliancePill[];
+}) {
+  const registryPills = pills.filter((p) => REGISTRY_CODES.has(p.source_code));
+  if (registryPills.length === 0) return null;
+  return (
+    <ProfileCard hoverable>
+      <ProfileCardHeader
+        title="Registries"
+        meta={registryPillsSummary(registryPills)}
+      />
+      <div>
+        {registryPills.map((p, i) => (
+          <RegistryRow key={i} pill={p} />
+        ))}
+      </div>
+      {registryPills.some((p) => p.inherited_from != null) ? (
+        <ProfileFootnote>
+          Inherited registries resolve from the parent group&apos;s records
+          and link back to the parent profile.
+        </ProfileFootnote>
+      ) : null}
+    </ProfileCard>
+  );
+}
+
+export function ProfileCertificationsCard({
+  certifications,
+}: {
+  certifications: readonly ProfileComplianceCert[];
+}) {
+  if (certifications.length === 0) return null;
+  return (
+    <ProfileCard hoverable>
+      <ProfileCardHeader
+        title="Certifications"
+        meta={`${countActiveCerts(certifications)} active · ${countExpiringCerts(certifications)} expiring`}
+      />
+      <div>
+        {certifications.map((c, i) => (
+          <CertRow key={i} cert={c} />
+        ))}
+      </div>
+    </ProfileCard>
+  );
+}
+
+export function ProfileSanctionsCard({
+  hits,
+}: {
+  hits: readonly ProfileComplianceSanction[];
+}) {
+  return hits.length > 0 ? (
+    <SanctionsHitsCard hits={hits} />
+  ) : (
+    <SanctionsClearCard />
+  );
+}
+
+export function ProfileDocumentsCard({
+  documents,
+  className,
+}: {
+  documents: readonly ProfileComplianceDocument[];
+  className?: string;
+}) {
+  if (documents.length === 0) return null;
+  return (
+    <ProfileCard className={className}>
+      <ProfileCardHeader
+        title="Compliance documents"
+        meta={`${documents.length} mirrored`}
+      />
+      <div>
+        {documents.map((d, i) => (
+          <DocRow key={i} doc={d} />
+        ))}
+      </div>
+      <ProfileFootnote>
+        Mirror copies served from SourceBD&apos;s CDN for stable archival.
+        Originals link back to the issuing authority.
+      </ProfileFootnote>
+    </ProfileCard>
+  );
+}
+
 export function ProfileComplianceTab({
   data,
 }: {
   data: ProfileComplianceData;
 }) {
-  const registryPills = data.pills.filter((p) =>
-    REGISTRY_CODES.has(p.source_code),
-  );
-
   return (
     <ProfileTabStack>
       <div className="grid gap-4 lg:grid-cols-2">
-      {registryPills.length > 0 ? (
-        <ProfileCard hoverable>
-          <ProfileCardHeader
-            title="Registries"
-            meta={registryPillsSummary(registryPills)}
-          />
-          <div>
-            {registryPills.map((p, i) => (
-              <RegistryRow key={i} pill={p} />
-            ))}
-          </div>
-          {registryPills.some((p) => p.inherited_from != null) ? (
+        <ProfileRegistriesCard pills={data.pills} />
+        <ProfileCertificationsCard certifications={data.certifications} />
+        {data.rsc_remediation ? <RscCard rsc={data.rsc_remediation} /> : null}
+        <ProfileSanctionsCard hits={data.sanctions} />
+        {data.brand_attributions.length > 0 ? (
+          <ProfileCard hoverable>
+            <ProfileCardHeader
+              title="Brand attribution"
+              meta={`${data.brand_attributions.length} brand${data.brand_attributions.length === 1 ? "" : "s"} disclosed`}
+            />
+            <div className="flex flex-wrap gap-2">
+              {data.brand_attributions.map((b, i) => (
+                <BrandChip key={i} brand={b} />
+              ))}
+            </div>
             <ProfileFootnote>
-              Inherited registries resolve from the parent group&apos;s records
-              and link back to the parent profile.
+              Each chip traces to the brand&apos;s own published supplier
+              disclosure. Full sources on the Brand attribution tab.
             </ProfileFootnote>
-          ) : null}
-        </ProfileCard>
-      ) : null}
-
-      {data.certifications.length > 0 ? (
-        <ProfileCard hoverable>
-          <ProfileCardHeader
-            title="Certifications"
-            meta={`${countActiveCerts(data.certifications)} active · ${countExpiringCerts(data.certifications)} expiring`}
-          />
-          <div>
-            {data.certifications.map((c, i) => (
-              <CertRow key={i} cert={c} />
-            ))}
-          </div>
-        </ProfileCard>
-      ) : null}
-
-      {data.rsc_remediation ? (
-        <RscCard rsc={data.rsc_remediation} />
-      ) : null}
-
-      {data.sanctions.length > 0 ? (
-        <SanctionsHitsCard hits={data.sanctions} />
-      ) : (
-        <SanctionsClearCard />
-      )}
-
-      {data.brand_attributions.length > 0 ? (
-        <ProfileCard hoverable>
-          <ProfileCardHeader
-            title="Brand attribution"
-            meta={`${data.brand_attributions.length} brand${data.brand_attributions.length === 1 ? "" : "s"} disclosed`}
-          />
-          <div className="flex flex-wrap gap-2">
-            {data.brand_attributions.map((b, i) => (
-              <BrandChip key={i} brand={b} />
-            ))}
-          </div>
-          <ProfileFootnote>
-            Each chip traces to the brand&apos;s own published supplier
-            disclosure. Full sources on the Brand attribution tab.
-          </ProfileFootnote>
-        </ProfileCard>
-      ) : null}
-
-      {data.documents.length > 0 ? (
-        <ProfileCard className="lg:col-span-2">
-          <ProfileCardHeader
-            title="Compliance documents"
-            meta={`${data.documents.length} mirrored`}
-          />
-          <div>
-            {data.documents.map((d, i) => (
-              <DocRow key={i} doc={d} />
-            ))}
-          </div>
-          <ProfileFootnote>
-            Mirror copies served from SourceBD&apos;s CDN for stable archival.
-            Originals link back to the issuing authority.
-          </ProfileFootnote>
-        </ProfileCard>
-      ) : null}
+          </ProfileCard>
+        ) : null}
+        <ProfileDocumentsCard
+          documents={data.documents}
+          className="lg:col-span-2"
+        />
       </div>
     </ProfileTabStack>
   );

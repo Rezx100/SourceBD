@@ -10,10 +10,28 @@
 
 import React, { forwardRef, useRef } from "react";
 import Image from "next/image";
+import { motion, useReducedMotion } from "motion/react";
 
 import { BrandMarkWithHairline } from "@/components/marketing/logo";
 import { AnimatedBeam } from "@/components/ui/animated-beam";
 import { cn } from "@/lib/utils";
+
+/** Push outer nodes further from centre for a circuit-board tree read. */
+const LEFT_STAGGER = [
+  "-translate-x-2 sm:-translate-x-4",
+  "-translate-x-0.5 sm:-translate-x-1",
+  "-translate-x-4 sm:-translate-x-7",
+  "-translate-x-1 sm:-translate-x-2",
+  "-translate-x-3 sm:-translate-x-5",
+] as const;
+
+const RIGHT_STAGGER = [
+  "translate-x-2 sm:translate-x-4",
+  "translate-x-0.5 sm:translate-x-1",
+  "translate-x-4 sm:translate-x-7",
+  "translate-x-1 sm:translate-x-2",
+  "translate-x-3 sm:translate-x-5",
+] as const;
 
 const Node = forwardRef<
   HTMLDivElement,
@@ -34,13 +52,21 @@ const Node = forwardRef<
 });
 Node.displayName = "Node";
 
-function Logo({ src, alt }: { src: string; alt: string }) {
+function Logo({
+  src,
+  alt,
+  size = 48,
+}: {
+  src: string;
+  alt: string;
+  size?: number;
+}) {
   return (
     <Image
       src={src}
       alt={alt}
-      width={48}
-      height={48}
+      width={size}
+      height={size}
       className="h-full w-full object-contain"
     />
   );
@@ -66,28 +92,168 @@ const REGS = [
 
 const BEAM_CYCLE_SECONDS = 3.2;
 
-function CanonicalIndexNode() {
+/**
+ * AnimatedBeam paints a horizontal gradient wipe across the SVG (not path-
+ * length). Left beams (10%→110%) and reverse right beams (90%→-10%) both
+ * cross the centre mark around ~40% of the cycle — darken there, not at the
+ * end. brightness(1.3) ≈ 20%+ lighter forest; 1.0 = baked-in darkest.
+ */
+const RECEIVE_FILTER = [
+  "brightness(1.3)",
+  "brightness(1.3)",
+  "brightness(1)",
+  "brightness(1)",
+  "brightness(1.3)",
+  "brightness(1.3)",
+] as const;
+const RECEIVE_TIMES = [0, 0.28, 0.4, 0.52, 0.68, 1] as const;
+
+function CanonicalIndexNode({
+  showConnectionDots = true,
+  showHairline = true,
+  markClassName,
+  markSrc,
+  markReceivePulse = false,
+  hubPill = false,
+}: {
+  showConnectionDots?: boolean;
+  showHairline?: boolean;
+  markClassName?: string;
+  /** When set, renders this image/SVG instead of the PNG BrandMark. */
+  markSrc?: string;
+  markReceivePulse?: boolean;
+  /** White pill frame with corner pins — demo / hero pipeline stage. */
+  hubPill?: boolean;
+}) {
+  const reduceMotion = useReducedMotion();
+
+  const mark = markSrc ? (
+    <span
+      title="SourceBD"
+      role="img"
+      aria-label="SourceBD"
+      className={cn(
+        "relative inline-flex shrink-0 items-center justify-center overflow-hidden",
+        markClassName,
+      )}
+    >
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={markSrc}
+        alt=""
+        aria-hidden
+        className="h-full w-full object-contain"
+        draggable={false}
+      />
+    </span>
+  ) : (
+    <BrandMarkWithHairline
+      durationSeconds={BEAM_CYCLE_SECONDS}
+      className={markClassName}
+      wrapperClassName="relative"
+      showHairline={showHairline}
+    />
+  );
+
+  const markBody = markReceivePulse && !reduceMotion ? (
+    <motion.span
+      className="inline-flex"
+      animate={{ filter: [...RECEIVE_FILTER] }}
+      transition={{
+        duration: BEAM_CYCLE_SECONDS,
+        times: [...RECEIVE_TIMES],
+        ease: "linear",
+        repeat: Infinity,
+      }}
+    >
+      {mark}
+    </motion.span>
+  ) : (
+    mark
+  );
+
+  const hubContent = hubPill ? (
+    <div className="relative flex items-center justify-center rounded-full border border-neutral-200 bg-white px-4 py-2.5 shadow-[0_8px_28px_-14px_rgba(15,23,42,0.18)] sm:px-5 sm:py-3">
+      {[
+        "left-2 top-2",
+        "right-2 top-2",
+        "left-2 bottom-2",
+        "right-2 bottom-2",
+      ].map((pos) => (
+        <span
+          key={pos}
+          aria-hidden
+          className={cn("absolute size-1 rounded-full bg-neutral-300", pos)}
+        />
+      ))}
+      {markBody}
+    </div>
+  ) : (
+    markBody
+  );
+
   return (
     <div className="relative z-20">
-      <span
-        aria-hidden
-        className="absolute -left-1 top-1/2 z-10 size-2 -translate-y-1/2 rounded-full bg-brand-forest shadow-[0_0_0_5px_var(--brand-forest-soft)] motion-safe:animate-pulse"
-        style={{ animationDuration: `${BEAM_CYCLE_SECONDS}s` }}
-      />
-      <span
-        aria-hidden
-        className="absolute -right-1 top-1/2 z-10 size-2 -translate-y-1/2 rounded-full bg-brand-forest shadow-[0_0_0_5px_var(--brand-forest-soft)] motion-safe:animate-pulse"
-        style={{ animationDuration: `${BEAM_CYCLE_SECONDS}s` }}
-      />
-      <BrandMarkWithHairline
-        durationSeconds={BEAM_CYCLE_SECONDS}
-        wrapperClassName="relative"
-      />
+      {showConnectionDots ? (
+        <>
+          <span
+            aria-hidden
+            className="absolute -left-1 top-1/2 z-10 size-2 -translate-y-1/2 rounded-full bg-brand-forest shadow-[0_0_0_5px_var(--brand-forest-soft)] motion-safe:animate-pulse"
+            style={{ animationDuration: `${BEAM_CYCLE_SECONDS}s` }}
+          />
+          <span
+            aria-hidden
+            className="absolute -right-1 top-1/2 z-10 size-2 -translate-y-1/2 rounded-full bg-brand-forest shadow-[0_0_0_5px_var(--brand-forest-soft)] motion-safe:animate-pulse"
+            style={{ animationDuration: `${BEAM_CYCLE_SECONDS}s` }}
+          />
+        </>
+      ) : null}
+      {hubContent}
     </div>
   );
 }
 
-export function DataPipeline({ className }: { className?: string }) {
+export function DataPipeline({
+  className,
+  containerClassName = "min-h-[340px] grid-cols-[72px_minmax(150px,1fr)_72px] gap-3 px-1 sm:min-h-[460px] sm:grid-cols-[82px_minmax(170px,1fr)_82px] sm:gap-5 sm:px-6",
+  columnGapClassName = "gap-5 sm:gap-7",
+  nodeClassName,
+  logoSize = 48,
+  showConnectionDots = true,
+  showHairline = true,
+  markClassName,
+  markSrc,
+  markReceivePulse = false,
+  hubPill = false,
+  staggered = false,
+  strokeLinecap = "round",
+}: {
+  className?: string;
+  /** Overrides the outer grid sizing (min-h, columns, gap, padding). */
+  containerClassName?: string;
+  /** Overrides the vertical gap between stacked nodes in each column. */
+  columnGapClassName?: string;
+  /** Overrides each logo node's box size/padding. */
+  nodeClassName?: string;
+  /** Overrides the intrinsic logo image size (px). */
+  logoSize?: number;
+  /** Left/right pulsing connection nodes on the centre mark. Default on for production `/`. */
+  showConnectionDots?: boolean;
+  /** Soft pulsing halo around the centre BrandMark. Default on for production `/`. */
+  showHairline?: boolean;
+  /** Overrides the centre BrandMark frame size. */
+  markClassName?: string;
+  /** Optional centre mark asset (e.g. SVG). Demo can pass SourceBD_logo.svg. */
+  markSrc?: string;
+  /** Sync forest-green darken with beam comet arrival. Demo-only when enabled. */
+  markReceivePulse?: boolean;
+  /** Pill-shaped white hub frame with corner pins. */
+  hubPill?: boolean;
+  /** Offset outer nodes horizontally for a circuit-board tree layout. */
+  staggered?: boolean;
+  /** Comet cap style — use `butt` for sharp square pulses on angular paths. */
+  strokeLinecap?: "round" | "butt" | "square";
+}) {
   const containerRef = useRef<HTMLDivElement>(null);
   const engineRef = useRef<HTMLDivElement>(null);
   const certRefs = [
@@ -109,15 +275,21 @@ export function DataPipeline({ className }: { className?: string }) {
     <div
       ref={containerRef}
       className={cn(
-        "relative isolate grid min-h-[340px] w-full grid-cols-[72px_minmax(150px,1fr)_72px] items-center gap-3 px-1 sm:min-h-[460px] sm:grid-cols-[82px_minmax(170px,1fr)_82px] sm:gap-5 sm:px-6",
+        "relative isolate grid w-full items-center",
+        containerClassName,
         className,
       )}
     >
       {/* Left — certification bodies */}
-      <div className="flex flex-col items-center justify-center gap-5 sm:gap-7">
+      <div className={cn("flex flex-col items-center justify-center", columnGapClassName)}>
         {CERTS.map((c, i) => (
-          <Node key={c.alt} ref={certRefs[i]} title={`Certification · ${c.alt}`}>
-            <Logo src={c.src} alt={c.alt} />
+          <Node
+            key={c.alt}
+            ref={certRefs[i]}
+            title={`Certification · ${c.alt}`}
+            className={cn(nodeClassName, staggered && LEFT_STAGGER[i])}
+          >
+            <Logo src={c.src} alt={c.alt} size={logoSize} />
           </Node>
         ))}
       </div>
@@ -125,15 +297,27 @@ export function DataPipeline({ className }: { className?: string }) {
       {/* Centre — canonical SourceBD index receiving both evidence streams. */}
       <div className="z-10 flex h-full items-center justify-center">
         <div ref={engineRef} title="SourceBD canonical index">
-          <CanonicalIndexNode />
+          <CanonicalIndexNode
+            showConnectionDots={showConnectionDots}
+            showHairline={showHairline}
+            markClassName={markClassName}
+            markSrc={markSrc}
+            markReceivePulse={markReceivePulse}
+            hubPill={hubPill}
+          />
         </div>
       </div>
 
       {/* Right — registers & associations */}
-      <div className="flex flex-col items-center justify-center gap-5 sm:gap-7">
+      <div className={cn("flex flex-col items-center justify-center", columnGapClassName)}>
         {REGS.map((r, i) => (
-          <Node key={r.alt} ref={regRefs[i]} title={`Register · ${r.alt}`}>
-            <Logo src={r.src} alt={r.alt} />
+          <Node
+            key={r.alt}
+            ref={regRefs[i]}
+            title={`Register · ${r.alt}`}
+            className={cn(nodeClassName, staggered && RIGHT_STAGGER[i])}
+          >
+            <Logo src={r.src} alt={r.alt} size={logoSize} />
           </Node>
         ))}
       </div>
@@ -155,6 +339,8 @@ export function DataPipeline({ className }: { className?: string }) {
           pathWidth={2}
           gradientStartColor="var(--brand-forest)"
           gradientStopColor="var(--brand-forest-mid)"
+          strokeLinecap={strokeLinecap}
+          strokeLinejoin="miter"
         />
       ))}
       {/* Beams: register logos → engine (mirrored square route, reversed, also
@@ -174,6 +360,8 @@ export function DataPipeline({ className }: { className?: string }) {
           pathWidth={2}
           gradientStartColor="var(--brand-forest)"
           gradientStopColor="var(--brand-forest-mid)"
+          strokeLinecap={strokeLinecap}
+          strokeLinejoin="miter"
         />
       ))}
     </div>

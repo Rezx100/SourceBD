@@ -289,7 +289,7 @@ export function ProfileEvidenceRow({
       >
         <div className={markSize === "lg" ? "flex items-center" : "pt-0.5"}>{mark}</div>
         <div className="min-w-0">
-          <div className="flex items-start justify-between gap-2">
+          <div className="flex flex-wrap items-start justify-between gap-x-2 gap-y-1.5">
             <div className="min-w-0 text-[14px] font-semibold leading-5 text-neutral-900">
               {title}
             </div>

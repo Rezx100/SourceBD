@@ -174,8 +174,12 @@ function evidenceDensity(payload: ProfilePayload): number {
   );
 }
 
-/** Cap candidates — fetch in parallel so TTFB is ~one RPC, not a 12-row chain. */
+/** Discover pool size — profile RPCs are fetched sequentially from this list. */
 const FEATURED_CANDIDATE_LIMIT = 6;
+/** Max profile RPCs per page render. Parallel stampedes hit statement timeout. */
+const FEATURED_PROFILE_ATTEMPTS = 3;
+/** Good-enough density to stop early (discover is already receipts-sorted). */
+const FEATURED_DENSITY_EARLY_EXIT = 10;
 
 async function loadFeaturedProfile(): Promise<ProfilePayload | null> {
   const certKinds = CERT_KINDS.map((c) => c.value);
@@ -203,28 +207,32 @@ async function loadFeaturedProfile(): Promise<ProfilePayload | null> {
   try {
     const supabase = await createSupabaseServerClient();
     const slugs = rows.map((r) => r.slug).filter((s): s is string => !!s);
-    const results = await Promise.all(
-      slugs.map(async (slug) => {
-        const { data, error: profileError } = await supabase.rpc(
-          "buyer_supplier_profile",
-          { p_slug: slug },
-        );
-        if (profileError || data == null) return null;
-        return data as ProfilePayload;
-      }),
-    );
 
+    // Sequential on purpose: six parallel buyer_supplier_profile calls reliably
+    // trip statement timeout (57014) on the hosted DB and hide this section.
     let best: ProfilePayload | null = null;
     let bestScore = -1;
-    for (const payload of results) {
-      if (!payload) continue;
+    let attempts = 0;
+    for (const slug of slugs) {
+      if (attempts >= FEATURED_PROFILE_ATTEMPTS) break;
+      attempts += 1;
+
+      const { data, error: profileError } = await supabase.rpc(
+        "buyer_supplier_profile",
+        { p_slug: slug },
+      );
+      if (profileError || data == null) continue;
+
+      const payload = data as ProfilePayload;
       if (payload.supplier.is_sanctioned) continue;
       if (!hasEvidenceAnatomy(payload)) continue;
+
       const score = evidenceDensity(payload);
       if (score > bestScore) {
         best = payload;
         bestScore = score;
       }
+      if (bestScore >= FEATURED_DENSITY_EARLY_EXIT) break;
     }
     return best;
   } catch {
@@ -232,50 +240,44 @@ async function loadFeaturedProfile(): Promise<ProfilePayload | null> {
   }
 }
 
-// Contact sits third so the sign-up gating hook is reached inside the first
-// three auto-advance steps (~13s) instead of last in a ~25s cycle.
+// Editorial category framing for the left rail. Panel ids stay wired to the
+// live Compliance surfaces; order is narrative, not product-tab order.
 const CASES: EvidenceCaseMeta[] = [
   {
     id: "registries",
     index: "01",
-    title: "Registries",
-    description:
-      "BGMEA, BKMEA, EPB and peer association memberships — verified IDs from the issuing register.",
+    title: "Government Registries",
+    description: "Legal identity and statutory records.",
   },
   {
     id: "certifications",
     index: "02",
     title: "Certifications",
-    description:
-      "OEKO-TEX, GOTS, WRAP, SA8000 and more — certificate number, issuer, and validity from the body that issued them.",
+    description: "Current certificates from issuing bodies.",
   },
   {
-    id: "contact",
+    id: "provenance",
     index: "03",
-    title: "Contact",
-    description:
-      "Phone, email, website, and decision-maker fields — masked on the public profile until sign-up unlocks them.",
+    title: "Trade Activity",
+    description: "Export history and manufacturing footprint.",
   },
   {
     id: "sanctions",
     index: "04",
-    title: "Sanctions screening",
-    description:
-      "Name, address, and registry IDs cross-checked against UFLPA, OFAC SDN, UK OFSI, and peer watchlists.",
+    title: "Compliance",
+    description: "Sanctions and screening.",
+  },
+  {
+    id: "contact",
+    index: "05",
+    title: "Contacts",
+    description: "Verified communication channels.",
   },
   {
     id: "addresses",
-    index: "05",
-    title: "Addresses",
-    description:
-      "Factory and registered-office addresses as published by the source authorities on file.",
-  },
-  {
-    id: "provenance",
     index: "06",
-    title: "Provenance",
-    description:
-      "Every active source record for this supplier — tier, reference, and last verified date.",
+    title: "Locations",
+    description: "Production and office addresses.",
   },
 ];
 
@@ -329,7 +331,7 @@ export async function EvidenceAnatomy() {
       aria-label="Evidence anatomy"
       className="relative overflow-hidden border-b border-neutral-200 bg-neutral-50"
     >
-      <div className="mx-auto w-full max-w-[1200px] px-4 py-24 sm:px-6 md:py-28">
+      <div className="mx-auto w-full max-w-[1200px] px-4 py-16 sm:px-6 sm:py-20 md:py-28">
         <EvidenceAnatomyStage cases={CASES} panels={panels} />
       </div>
     </section>

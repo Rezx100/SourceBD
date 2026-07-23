@@ -90,6 +90,40 @@ function topAuthorityLabels(codes: readonly string[], limit = 2): string[] {
   return picked;
 }
 
+export function ProfileAddressesCard<TAddress extends AddressRowRaw>({
+  addresses,
+}: {
+  addresses: readonly TAddress[];
+}) {
+  const overview = buildLocationOverview(addresses);
+  if (overview.uniqueLocationCount === 0) return null;
+
+  return (
+    <ProfileCard id="locations">
+      <ProfileCardHeader
+        title="Locations & addresses"
+        meta={locationOverviewMeta(
+          overview.uniqueLocationCount,
+          overview.sourceRecordCount,
+        )}
+      />
+      <div className="flex flex-col gap-5">
+        {overview.groups.map((group) => (
+          <LocationsAddressGroup
+            key={group.title}
+            title={group.title}
+            count={group.locations.length}
+          >
+            {group.locations.map((location, i) => (
+              <AddressRow key={i} location={location} groupTitle={group.title} />
+            ))}
+          </LocationsAddressGroup>
+        ))}
+      </div>
+    </ProfileCard>
+  );
+}
+
 export async function ProfileOverviewTab<TAddress extends AddressRowRaw>({
   supplier: s,
   t13SourceCount,

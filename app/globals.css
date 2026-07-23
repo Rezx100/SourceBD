@@ -402,6 +402,32 @@
    wrap themselves in the `.r1-cq-host` class so their internal layout
    can flip based on the slot width, not the viewport. */
 
+/* /home-demo buyer-workflow live stage — split only when the CARD is wide
+   enough. Viewport `lg:` was flipping a ~750px card into a cramped 2-col. */
+.buyer-workflow-cq {
+  container-type: inline-size;
+}
+.buyer-workflow-split {
+  display: grid;
+  gap: 0.75rem;
+}
+.buyer-workflow-actions {
+  display: flex;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+@container (min-width: 640px) {
+  .buyer-workflow-split--profile {
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
+  }
+  .buyer-workflow-split--detail {
+    grid-template-columns: minmax(0, 1.12fr) minmax(0, 0.88fr);
+  }
+}
+
 /* ============================================================
    I-027 — Pixel-matching skeletons. A single `.skel` primitive that
    the per-segment `loading.tsx` files compose into silhouettes that
@@ -4781,6 +4807,13 @@
   50% { transform: translateY(6px); }
 }
 @keyframes mkt-mkPop { to { transform: scale(1); } }
+/* Record-network verification engine — quiet vertical scan sweep. */
+@keyframes engine-scan {
+  0% { transform: translateY(0); opacity: 0; }
+  15% { opacity: 1; }
+  85% { opacity: 1; }
+  100% { transform: translateY(150px); opacity: 0; }
+}
 
 @media (prefers-reduced-motion: reduce) {
   [data-surface="marketing"] .mkt-hero h1 .mkt-word > span { transform: none !important; }

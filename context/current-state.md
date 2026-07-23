@@ -85,6 +85,266 @@ Until then the profile map works via live geocoding only (first 4 addresses
 per profile, memoised in-process).
 
 ## Recent Frontend Polish
+23 Jul 2026 (homepage promotion) - The founder-approved /home-demo
+composition is now the production homepage at `app/(marketing)/page.tsx`
+(hero dashboard demo → MoatStats → EvidenceAnatomy → BuyerWorkflowBento →
+RecordNetworkSection → IsometricDecisionPath → closing CTA), keeping the
+old homepage's SEO metadata (title/description/keywords/canonical/OG/
+twitter) and Organization JSON-LD. `/home-demo` is retired to a
+`permanentRedirect("/")`. The scenic light footer (skyline artwork +
+blended wordmark, formerly `demo-footer.tsx`) is now the shared
+`components/marketing/footer.tsx` `MarketingFooter`, mounted globally by
+the (marketing) layout — the deep-forest footer and the page-scoped
+`:has()` footer-hiding hack are gone; `demo-footer.tsx` deleted.
+Bugbot review fixes (pixel-neutral): (1) nav/footer `/#sources` and
+`/#how-we-verify` links now resolve — anchor wrappers with `scroll-mt-24`
+around EvidenceAnatomy (`#sources`) and RecordNetworkSection
+(`#how-we-verify`); (2) EvidenceAnatomyStage auto-advance now PAUSES while
+a tab holds visible keyboard focus (`:focus-visible` tracked on the
+tablist, progress bar `animationPlayState: paused`) so the roving tabindex
+can never desync (WCAG 2.2.2) — pointer users keep uninterrupted
+rotation. Known-and-accepted: the Registries demo panel still pads to six
+rows with peer registries/plausible IDs — the stage never names the
+supplier (anonymous illustrative composite, IDs part-blurred), founder
+approved the rendering; flagged for future legal review alongside the
+brand-strip wording. Typecheck + lint pass; dev smoke: `/` 200 with both
+anchors + scenic footer + JSON-LD, `/pricing` renders the global scenic
+footer, `/home-demo` redirects to `/`.
+
+23 Jul 2026 (hero dashboard demo) - /home-demo hero product window is now
+an animated `HeroDashboardDemo`
+(`components/marketing/home/hero-dashboard-demo.tsx`, mounted by
+`HomeHero`): the approved static buyer dashboard plus one looping ~22.6s
+"Find matches" workflow — cursor opens Find matches, completes the REAL
+Smart Match wizard (Step 1 types "knit shirts" + Factory, Step 2 OEKO-TEX
++ BGMEA, Step 3 review pills → Find matches → "Matching…"), the real
+405-matches results render as hero-scaled `DiscoverResultCard` replicas
+with real "Matched on" pill grammar (production top result Apparel
+Promoters Ltd, 405/24 counts, Load-more affordance), the buyer follows the
+top card via the SaveButton bell, and the dashboard returns with the
+Saved-suppliers tile/badge odometering 10→11 before a seamless loop
+(counts persist across the seam; invisible resets mid-story). Founder
+correction honored: the match surface is a faithful replica of
+/app/match + PageHeader + StepBar + proto-card steps — no invented search
+rail/profile panel. Animation language is byte-compatible with
+`BuyerWorkflowBento` (event-mark clock, ~55 renders/loop, same cursor
+SVG/easing, flip-on-release, reduced-motion = settled static dashboard).
+Mobile (<md) is the true product shell: bottom tab bar, stacked wizard,
+native smooth pane auto-scroll that reveals each upcoming control above
+the tab bar. Typecheck + lint pass; Playwright-verified across the loop at
+1440px and 400px (wizard steps, results, follow, 11/11 return, loop seam).
+(`components/marketing/home/demo-footer.tsx`) modeled on a founder
+reference: light link registers, neutrality disclaimer (legal copy
+unchanged), then a full-bleed flat-vector Bangladesh RMG industrial
+skyline (`public/marketing/footer-rmg-skyline.png`, AI-generated,
+strictly forest-green shades) with an oversized "SourceBD" watermark in
+the sky. Band background #F4F7F5 is sampled from the artwork's flat sky
+so band and art read as one surface; the watermark uses
+`mix-blend-mode: darken` so skyline layers occlude the letterforms like
+the reference. Shared `MarketingFooter` is hidden on this route only via
+a page-scoped `#main-content:has(main[data-demo-footer]) + footer` rule;
+production `/` and all other marketing pages keep the deep-forest
+footer. Typecheck + lint pass; Playwright-verified desktop 1440px +
+mobile 400px.
+
+23 Jul 2026 (buyer workflow choreography pass) - Founder's fourth review
+(9.3/10; "stop adding features, refine choreography only") addressed in
+`buyer-workflow-bento.tsx`, timing/easing only: pre-wake — the next
+chapter's card un-dims 200–250ms before its chapter starts (conversation
+card brightens while the plane is in flight) so the eye never hunts;
+longer ease-in-out on state changes (card dim 500ms, shortlist +
+compliance row highlights 500ms, RFQ field fills 300ms, MSA ladder
+cross-fades 300ms); shortlist outro extended — row highlight releases
+~350ms into the RFQ chapter instead of cutting; supplier reply gains a
+Delivered → Seen receipt ladder; loop reset now STAGGERED per card via
+per-card `on()` closures (shortlist resets at 11.05s during the MSA
+download click, then RFQ 11.25s, conversation 11.4s, rest 11.5s) so no
+single detectable restart frame exists. Follow-up in the same session:
+active windows now OVERLAP instead of cutting at chapter boundaries — a
+card stays active until its task visibly settles (shortlist through its
+highlight release, RFQ through the whole plane flight, conversation while
+the buyer is still typing, compliance until the shield check settles), so
+focus never leaves a card mid-animation. Handoff redesign in the same
+session: the paper-plane flight is REMOVED entirely (any second traveler
+read as a duplicate/morphing pointer) — the shared cursor never hides or
+changes shape and its 700ms glide card 2 → 3 is the only cross-card
+motion (`planeLaunch`/`planeArrive` marks renamed
+`handoffStart`/`handoffEnd`). PaperPlaneTilt remains only as static
+icons. MSA card also got a spacing pass (wider column gap/padding,
+looser checklist rhythm) + sequenced status crossfades (incoming label
+delays 100ms) after a cramped-text review. Grid-level premium spacing
+pass (founder-adjusted): UNIFORM proportional gutters (mobile gap-6, md
+gap-5, xl gap-6 — founder rejected asymmetric x/y gaps); card padding
+xl:p-6; card header→demo offset mt-5; card shadow lightened from
+0_18px_40px_-34px/0.22 to 0_8px_20px_-16px/0.10 (heavy ambient shadow
+read as over-elevated on the active card). Compliance chapter payoff
+added: cursor now CLICKS the GOTS alert row (compClick 8.25s) and a
+certificate-alert detail popover opens under the row (compRelease 8.4s →
+compPopClose 9.15s) — mono kicker, cert/supplier, expiry + renewal
+reminder lines, "View certificate" hint; new marks slot between existing
+ones so no other timing shifted; hidden in reduced motion (transient).
+Sequencing pass (founder pass 5, SUPERSEDES chapter-overlap timing):
+loop retimed 12s → 22s, chapters strictly sequential — each card's last
+animation settles, ~1s dwell, then the cursor departs; only remaining
+overlaps are pre-wake un-dim + cursor glides. Send button label now
+flips to "Sending…" on press RELEASE (sendRelease), never at press-down.
+Active windows = chapter start → cursor departure. All intra-chapter
+beat deltas preserved. Typecheck + lint pass.
+
+23 Jul 2026 (buyer workflow motion-quality pass) - Founder's third review
+(video frame-by-frame) addressed in `buyer-workflow-bento.tsx`, timing and
+choreography only (no visual redesign): chapters now overlap 150–250ms so
+each action reads as causing the next (cursor leaves while the shortlist
+toast settles; plane launches while the success copy settles; compliance
+starts while the buyer is still drafting; MSA spins up while the shield
+check settles); Send RFQ → success is a strict causal chain (click →
+button "Sending…" → 300ms beat → panel wakes → success); compliance row
+gets a temporary gray+border emphasis at the update moment then relaxes;
+MSA runs Queued → Generating → Preparing → Ready → Download-enabled as
+separate beats; completed cards keep near-invisible ambient life (new
+`AmbientPulse` on toast/sent/ready checks, draft caret keeps blinking);
+bookmark click gains a one-shot neutral confirmation ripple. Typecheck +
+lint pass.
+
+23 Jul 2026 (buyer workflow bento review pass) - Founder frame-by-frame
+notes addressed in `buyer-workflow-bento.tsx`: continuous shared cursor
+now travels bookmark → RFQ → Send → conversation → compliance → MSA
+(only yields during the paper-plane handoff); non-active cards dim;
+active card gets a neutral left hairline; RFQ right panel is a dormant
+"Recipients / Waiting for Send RFQ" state until Send fires, then
+Sending… → success; shortlist teaching beat stronger (row hierarchy +
+toast pill); conversation keeps Seen + draft typing into the second
+half; compliance active row has clearer neutral hierarchy; MSA writes
+lines + progressive feature checks + scan while generating. Second-half
+pacing tightened. Typecheck pass.
+
+23 Jul 2026 (buyer workflow bento) - /home-demo section 4 replaced:
+`CapabilityFeatureGrid` swapped out for a new `BuyerWorkflowBento`
+(`components/marketing/home/buyer-workflow-bento.tsx`) built from the
+founder's enterprise motion spec + mockup. Five cards (follow suppliers /
+compose RFQ heroes + conversation / compliance / MSA supporting row) tell
+one continuous 12s event-driven sourcing story: cursor follows a supplier
+(bookmark fill, 23→24 odometer, ripple), RFQ fields paste-fill and Send
+runs Send→Sending→Sent, a tiny forest paper plane (the ONLY cross-card
+element, DOM-measured flight so it works on mobile stacks) hands off to
+the conversation card (unread badge, reply, typing dots, Quotation.pdf),
+compliance updates one certificate row (32→30 days, green dot, shield
+check), MSA flips Queued→Generating→Ready, then everything soft-resets
+inside the loop with no jump. Ambient motion: 120s confidence-ring drift,
+3s status-dot opacity pulse, 4s online-dot breathing. Master clock emits
+~30 discrete event marks per loop (no per-frame React renders); all
+transitions are transform/opacity/color only. Green is semantic-only
+(bookmark, checks, plane, dots, sending state); mockup's fabricated stats
+strip intentionally NOT reproduced. Reduced motion renders the settled
+end state (SSR-safe via mount gate). Old `capability-feature-grid.tsx` +
+buyer-workflow-live-* files kept on disk but no longer routed. Typecheck +
+lint pass; Playwright-verified at six story beats, mobile 400px, and
+reduced-motion. NOTE: pre-existing hydration mismatch under reduced motion
+traced to HeroBackdrop hero-wash animation style + NumberTicker (hero),
+not this section.
+
+23 Jul 2026 (founder edit pass 3) - Engine card's database orbit emblem
+(generic ringed circle, dead white space) replaced with a compact
+"Canonical record" footer row in the same idiom as the processing rows:
+brand-forest db icon tile, "Assembling evidence…" while steps run, then
+"Verified profile committed" + spring check the moment all five pipeline
+steps complete — the footer is now the pipeline's landing state, not an
+ornament. Card is shorter; typecheck/lint pass; Playwright-verified in
+both states.
+
+23 Jul 2026 (founder edit pass 2) - `IntelligenceEngineStage` refinements:
+all greens moved to brand tokens (#1f4d3a / #2d6a4f, no generic #16a34a);
+comets are now ONE tiny solid ball per trace (zero-length round dash
+traveling the path, 6.5s, staggered) — gray on the ingest side, brand
+green on the insight side, with card ports matching the tone; engine
+card compacted (300px, tighter paddings, 68px db emblem with a
+brand-forest core instead of near-black); processing rows run a
+meaningful sequential pipeline (one Live row filling its bar per 2s
+step, done rows keep a full bar + check, later rows show "Queued",
+cycle resets after all five); column-label corner marks moved inline
+into the label flex row so left/right always align; shadows reduced to
+the shadow-l1 token + whisper hub glow; radii normalized to the
+5/6/8/12/22 token family (rounded-card cards, rounded-hero engine,
+rounded-pill tiles/rows, --r-md inner frame + metrics bar). Typecheck
++ lint pass; Playwright-verified at two animation phases.
+
+23 Jul 2026 (later) - `IntelligenceEngineStage` rebuilt 1:1 against the
+founder's second reference mockup. Beams are now thin solid light-gray
+PCB traces with staggered rounded elbows (outer cards bend later →
+nested cascade into each hub) and continuously traveling green packet
+dashes (4 evenly spaced per trace via normalized `pathLength`; static
+dashes under reduced motion) — replacing the dotted-track AnimatedBeam
+comets. Cards gained green edge "ports" the beams anchor to; hubs are a
+dark core in a green ring with a soft breathing glow; the engine card
+is a double frame with corner ticks, "Source**BD**" two-tone wordmark,
+five processing rows (icon tile + segmented green progress bar +
+breathing tail + "Live" chip), and a dark database emblem with green
+ring + expanding ripples. New chrome per the mockup: top-center "Live
+reconciliation" pill, mono uppercase column labels, dotted-grid
+patches + corner squares, a 4-metric stats bar (28+/18.7M+/1.1M+/96% —
+same real audited values; mockup's illustrative counts NOT copied),
+and the "Trusted records. Unified intelligence." caption. Right output
+cards gained tiny illustrative mini-graphics (map/bars/dots/doc/check).
+`roundedElbowPath` exported from `components/ui/animated-beam.tsx`
+(component itself untouched, still used elsewhere). Typecheck + lint
+pass; verified via Playwright screenshots desktop 1440px + mobile 400px.
+
+23 Jul 2026 - Founder audit fix pass on the `IntelligenceEngineStage` from
+earlier the same day, against a reference mockup screenshot. Fixes: (1)
+left source cards now render real on-file provider logos via the existing
+`sourceLogo()` helper (BGMEA ×2 "Registry"/"Members", EPB, RSC; NBR and
+Certificates keep a neutral glyph fallback — no logo on file) instead of
+generic gray icons, matching the `data-pipeline.tsx`/`trust-orbit.tsx`
+convention already used elsewhere on this page; (2) every card→hub beam on
+a side now shares one fixed elbow fraction (`ELBOW_TO_HUB` / mirrored
+`ELBOW_FROM_HUB`) instead of a per-card spread, which was the root cause of
+the tangled/overlapping curves near the collector and distributor nodes —
+beams now form a clean single bus/spine into each hub; (3) `AnimatedBeam`
+gained an opt-in `dashed` prop (dotted PCB-trace track with a slow marching
+offset) used here so the base track reads as "carrying data" even without
+motion; (4) hub nodes are now a visible dark dot inside one soft
+forest-green fill + ring halo (was three near-invisible neutral rings);
+(5) engine processing rows now show a title + subtitle per row inside a
+light-green icon tile (was a single line, neutral icon); (6) the database
+glyph is a forest-green ring badge on white (was a solid black fill); (7)
+the metrics bar is wrapped in a bordered card with forest-green-tinted icon
+badges (was a bare top border with neutral icons), and the "real-time"
+caption gained small dot flourishes on both sides. Metric values stay the
+real 28+/18.7M+/4.2M+/1.1M+/96% set from the original spec. `pnpm
+typecheck` and `pnpm lint` pass (same pre-existing warnings); re-verified
+visually via Playwright screenshots (desktop 1440px, mobile 400px, plus
+zoomed hub and engine-card crops).
+
+23 Jul 2026 - /home-demo section 5 ("How the record is built") animation
+replaced with a new `IntelligenceEngineStage`
+(`components/marketing/home/intelligence-engine-stage.tsx`): a calm,
+industrial three-column diagram (six trusted-source cards → collector node →
+SourceBD engine card with five live processing rows + database orbit →
+distributor node → six verified-output cards), continuous PCB-trace beams
+(gray lines, forest-green comets only), a 5-stat metrics bar with one-time
+count-up + a small confidence ring, and a dedicated mobile stacked layout.
+Scope is the animation only — the section's heading, three-step "how it
+behaves" card, and authority-order strip are untouched. Extended the shared
+`components/ui/animated-beam.tsx` primitive with `axis` (vertical elbow
+routing) and `cornerRadius` (rounded PCB-style corners) props, both opt-in
+and backward compatible with existing usages. Removed the now-unused
+`record-network-stage.tsx` and its live-Discover-row plumbing in
+`record-network-section.tsx` (the new diagram is illustrative, not tied to
+one live supplier). Demo page only; production `/` untouched. `pnpm
+typecheck` and `pnpm lint` pass (same pre-existing warnings); local
+`/home-demo` smoke 200, verified visually via Playwright screenshots at
+desktop (1440px) and mobile (400px) widths.
+
+20 Jul 2026 - /home-demo mobile responsive polish completed in the working
+tree. Scope is the demo homepage only: phone-first hero/product preview,
+section density and wrapping, 44px touch targets, main/demo semantics,
+reduced-motion behavior, and off-screen animation pausing. Production `/`,
+data contracts, routes, and dependencies remain unchanged. `pnpm typecheck`
+and `pnpm lint` pass (same pre-existing warnings). Runtime viewport smoke was
+blocked on this Windows machine: both webpack and Turbopack exhausted the
+available 8 GB memory while cold-compiling `/home-demo`; trace reported about
+10 MB free, so the compile was stopped rather than left thrashing.
+
 19 Jul 2026 - /home-demo polish pass (ad-hoc, working tree). Demo page
 only; production `/` untouched. Section order now: hero → MoatStats →
 EvidenceAnatomy → CapabilityFeatureGrid → WorkflowAgentsMarquee →
