@@ -25,6 +25,15 @@ class Settings(BaseSettings):
     etl_retry_backoff_base: float = 2.0
     etl_playwright_headless: bool = True
 
+    # Barikoi location services (Rupantor geocode cache backfill).
+    # Accepts the historical BRIKOI_API_KEY spelling as a fallback.
+    barikoi_api_key: str = Field(default="")
+    brikoi_api_key: str = Field(default="")
+
+    @property
+    def resolved_barikoi_api_key(self) -> str:
+        return self.barikoi_api_key or self.brikoi_api_key
+
     # BunnyCDN (raw document mirror — brand disclosures, RSC PDFs, compliance docs)
     bunny_api_key: str = Field(default="")
     bunny_storage_zone: str = Field(default="")

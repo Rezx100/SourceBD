@@ -80,7 +80,7 @@ export default async function OrdersPage() {
             href="/app/orders/new"
             className="inline-flex items-center gap-1.5 rounded-pill bg-brand-forest px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-brand-forest-mid"
           >
-            <Plus size={14} weight="bold" aria-hidden /> New order
+            <Plus size={16} weight="bold" aria-hidden /> New order
           </Link>
         }
       />
@@ -126,7 +126,7 @@ function OrderGroup({
 }) {
   if (rows.length === 0) {
     return (
-      <Section title={title} actions={<span className="font-mono text-[11px] text-ink-tertiary">{meta}</span>}>
+      <Section title={title} actions={<span className="font-mono text-[12px] text-ink-tertiary">{meta}</span>}>
         <div className="rounded-card border border-hairline bg-surface-l1 p-6 text-center text-sm text-ink-secondary">
           Nothing here.
         </div>
@@ -134,7 +134,7 @@ function OrderGroup({
     );
   }
   return (
-    <Section title={title} actions={<span className="font-mono text-[11px] text-ink-tertiary">{meta}</span>}>
+    <Section title={title} actions={<span className="font-mono text-[12px] text-ink-tertiary">{meta}</span>}>
       <DataList>
         {rows.map((o) => (
           <li key={o.id}>
@@ -158,12 +158,12 @@ function OrderGroup({
                     <Pill tone="neutral">As supplier</Pill>
                   ) : null}
                   {o.po_number ? (
-                    <span className="text-[11px] text-ink-tertiary">
+                    <span className="text-[12px] text-ink-tertiary">
                       PO {o.po_number}
                     </span>
                   ) : null}
                 </div>
-                <p className="mt-0.5 truncate text-[12px] text-ink-tertiary">
+                <p className="mt-0.5 truncate text-[13px] text-ink-tertiary">
                   {o.supplier_name} · {fmtQty(o.quantity, o.quantity_unit)}
                   {o.total_value != null
                     ? ` · ${fmtMoney(o.total_value, o.currency)}`
@@ -173,7 +173,7 @@ function OrderGroup({
                     : ""}
                 </p>
               </div>
-              <span className="shrink-0 text-[11px] text-ink-tertiary">
+              <span className="shrink-0 text-[12px] text-ink-tertiary">
                 {fmtRelative(o.updated_at)}
               </span>
             </Link>

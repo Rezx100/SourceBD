@@ -123,25 +123,25 @@ export function MsaGeneratorForm({ inputs }: { inputs: MsaInputs }) {
 
         <StickyActionBar>
           <Button variant="primary" size="sm" onClick={handleDownload}>
-            <DownloadSimple size={14} weight="bold" /> Download .md
+            <DownloadSimple size={16} weight="bold" /> Download .md
           </Button>
           <Button variant="outline" size="sm" onClick={handleCopy}>
-            <Copy size={14} weight="bold" /> Copy to clipboard
+            <Copy size={16} weight="bold" /> Copy to clipboard
           </Button>
         </StickyActionBar>
 
         <div>
-          <p className="mb-2 text-[11px] text-ink-tertiary">
+          <p className="mb-2 text-[12px] text-ink-tertiary">
             Preview
           </p>
           <textarea
             readOnly
             value={draft}
-            className="h-[440px] w-full resize-y rounded-control border border-hairline-strong bg-surface-l1 px-3 py-2 font-mono text-[12px] leading-relaxed text-ink-primary focus:border-accent-indigo focus:outline-none"
+            className="h-[440px] w-full resize-y rounded-control border border-hairline-strong bg-surface-l1 px-3 py-2 font-mono text-[13px] leading-relaxed text-ink-primary focus:border-accent-indigo focus:outline-none"
           />
         </div>
 
-        <p className="text-[12px] text-ink-tertiary">
+        <p className="text-[13px] text-ink-tertiary">
           This is a starting draft only. The UK Home Office guidance for §54
           statements (
           <em>Transparency in supply chains: a practical guide</em>) requires
@@ -162,7 +162,7 @@ function Field({
 }) {
   return (
     <label className="block space-y-1">
-      <span className="block text-[11px] text-ink-tertiary">
+      <span className="block text-[12px] text-ink-tertiary">
         {label}
       </span>
       {children}

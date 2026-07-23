@@ -1,12 +1,12 @@
-// Marketing top-nav — Magic UI light-mode design.
+// Marketing top-nav — Linear-inspired light-mode layout.
 //
-// Sticky white nav with a subtle scroll-shadow. Role-aware right CTAs
-// fetched from /api/session/me on mount. Uses shared SourceBD brand tokens.
+// Logo left · nav links + auth actions right (links | Log in · Sign up).
+// No btn-proto. Role-aware CTAs from /api/session/me after mount.
 
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { List as ListIcon, X as XIcon } from "@phosphor-icons/react/dist/ssr";
 
 import { Wordmark } from "@/components/marketing/logo";
@@ -21,33 +21,34 @@ const NAV_LINKS = [
   { href: "/pricing", label: "Pricing" },
 ];
 
-const CTA_BUTTON = "btn-proto primary";
+const linkClass =
+  "text-[13.5px] font-medium tracking-[-0.01em] text-neutral-500 transition-colors duration-150 hover:text-neutral-900";
 
-function RightLinks({ role }: { role: Role | null }) {
+const signupClass =
+  "inline-flex h-9 items-center justify-center rounded-full bg-brand-forest px-5 font-body text-[13px] font-medium leading-none tracking-[0.01em] !text-white transition-[background-color,transform] duration-150 hover:bg-brand-forest-mid active:scale-[0.98]";
+
+function AuthActions({ role }: { role: Role | null }) {
   if (role === "supplier") {
     return (
-      <Link href="/supplier" className={CTA_BUTTON}>
+      <Link href="/supplier" className={signupClass}>
         Supplier portal
       </Link>
     );
   }
   if (role === "buyer" || role === "admin") {
     return (
-      <Link href="/app" className={CTA_BUTTON}>
+      <Link href="/app" className={signupClass}>
         Open app
       </Link>
     );
   }
   return (
     <>
-      <Link
-        href="/login"
-        className="text-sm font-medium text-neutral-600 transition-colors hover:text-neutral-900"
-      >
-        Sign in
+      <Link href="/login" className={linkClass}>
+        Log in
       </Link>
-      <Link href="/signup" className="btn-proto primary">
-        Start free
+      <Link href="/signup" className={signupClass}>
+        Sign up
       </Link>
     </>
   );
@@ -63,14 +64,22 @@ function DrawerCtas({
 }) {
   if (role === "supplier") {
     return (
-      <Link href="/supplier" onClick={onNavigate} className="btn-proto primary min-h-[48px] justify-center">
+      <Link
+        href="/supplier"
+        onClick={onNavigate}
+        className="inline-flex min-h-[48px] w-full items-center justify-center rounded-full bg-brand-forest text-[15px] font-semibold !text-white"
+      >
         Supplier portal
       </Link>
     );
   }
   if (role === "buyer" || role === "admin") {
     return (
-      <Link href="/app" onClick={onNavigate} className="btn-proto primary min-h-[48px] justify-center">
+      <Link
+        href="/app"
+        onClick={onNavigate}
+        className="inline-flex min-h-[48px] w-full items-center justify-center rounded-full bg-brand-forest text-[15px] font-semibold !text-white"
+      >
         Open app
       </Link>
     );
@@ -80,16 +89,16 @@ function DrawerCtas({
       <Link
         href="/login"
         onClick={onNavigate}
-        className="inline-flex min-h-[48px] items-center justify-center rounded-lg border border-neutral-200 px-4 text-sm font-medium text-neutral-800 transition-colors hover:bg-neutral-50"
+        className="inline-flex min-h-[48px] items-center justify-center rounded-full border border-neutral-200 px-4 text-[15px] font-medium text-neutral-800 transition-colors hover:bg-neutral-50"
       >
-        Sign in
+        Log in
       </Link>
       <Link
         href="/signup"
         onClick={onNavigate}
-        className="btn-proto primary min-h-[48px] w-full justify-center"
+        className="inline-flex min-h-[48px] w-full items-center justify-center rounded-full bg-brand-forest text-[15px] font-semibold !text-white"
       >
-        Start free
+        Sign up
       </Link>
     </>
   );
@@ -99,6 +108,11 @@ export function MarketingTopNav() {
   const [role, setRole] = useState<Role | null>(null);
   const [scrolled, setScrolled] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  // Separate from `drawerOpen` so the panel paints off-screen for one frame
+  // before sliding in — same double-rAF pattern as Sheet / MobileDrawer.
+  const [drawerEntered, setDrawerEntered] = useState(false);
+  const drawerOpenRef = useRef(false);
+  drawerOpenRef.current = drawerOpen;
 
   // Role detection — anonymous variant is the SSR + first-paint default
   // so hydration stays clean; CTAs swap only after this resolves.
@@ -133,6 +147,30 @@ export function MarketingTopNav() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  // Drive the slide-in after an off-screen paint; skip resetting entered on
+  // Strict Mode remount while the drawer is still open (pingpong fix).
+  useEffect(() => {
+    if (!drawerOpen) {
+      setDrawerEntered(false);
+      return;
+    }
+
+    let cancelled = false;
+    const raf = requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        if (!cancelled) setDrawerEntered(true);
+      });
+    });
+
+    return () => {
+      cancelled = true;
+      cancelAnimationFrame(raf);
+      if (!drawerOpenRef.current) {
+        setDrawerEntered(false);
+      }
+    };
+  }, [drawerOpen]);
+
   // Lock body scroll + Esc-to-close while the drawer is open.
   useEffect(() => {
     if (!drawerOpen) return;
@@ -150,51 +188,51 @@ export function MarketingTopNav() {
 
   return (
     <>
-    <nav
-      className={cn(
-        "sticky top-0 z-50 w-full border-b border-neutral-200 bg-white safe-pt transition-shadow duration-200",
-        scrolled && "shadow-sm",
-      )}
-    >
-      <div className="flex h-16 w-full items-center gap-3 px-4 sm:h-[72px] sm:px-6 md:gap-4 lg:px-8">
-        {/* Wordmark — always pinned far-left */}
-        <Wordmark
-          boxClassName="h-8 w-8 sm:h-9 sm:w-9"
-          textClassName="text-[18px] sm:text-[19px]"
-          className="shrink-0"
-        />
+      <nav
+        className={cn(
+          "sticky top-0 z-50 w-full border-b border-neutral-200/80 bg-white/90 backdrop-blur-md safe-pt transition-shadow duration-200",
+          scrolled && "shadow-sm",
+        )}
+      >
+        <div className="mx-auto flex h-[72px] w-full max-w-[1200px] items-center px-4 sm:px-6 lg:px-8">
+          <Wordmark
+            boxClassName="h-8 w-8 sm:h-9 sm:w-9"
+            textClassName="text-[18px] sm:text-[22px]"
+            className="shrink-0"
+          />
 
-        {/* Desktop nav links (md+) */}
-        <div className="ml-2 hidden items-center gap-1 md:flex lg:ml-4">
-          {NAV_LINKS.map((l) => (
-            <Link
-              key={l.href}
-              href={l.href}
-              className="rounded-pill px-3 py-2 text-[13px] font-medium text-ink-secondary transition-colors duration-hover ease-smooth hover:bg-brand-forest-tint hover:text-ink-primary lg:text-sm"
-            >
-              {l.label}
-            </Link>
-          ))}
-        </div>
+          {/* Desktop: links + separator + auth, all right-aligned */}
+          <div className="ml-auto hidden h-full items-center gap-6 md:flex">
+            <div className="flex h-full items-center gap-5">
+              {NAV_LINKS.map((l) => (
+                <Link key={l.href} href={l.href} className={linkClass}>
+                  {l.label}
+                </Link>
+              ))}
+            </div>
 
-        {/* Right cluster — desktop CTAs, or the mobile hamburger far-right */}
-        <div className="ml-auto flex items-center gap-2 md:gap-3">
-          <div className="hidden items-center gap-4 md:flex">
-            <RightLinks role={role} />
+            <span
+              aria-hidden
+              className="h-4 w-px shrink-0 bg-neutral-200"
+            />
+
+            <div className="flex h-full items-center gap-4">
+              <AuthActions role={role} />
+            </div>
           </div>
+
           <button
             type="button"
             onClick={() => setDrawerOpen(true)}
             aria-label="Open menu"
             aria-haspopup="dialog"
             aria-expanded={drawerOpen}
-            className="inline-flex h-[44px] w-[44px] items-center justify-center rounded-md text-neutral-600 transition-colors duration-hover ease-smooth hover:bg-neutral-100 hover:text-neutral-900 md:hidden"
+            className="ml-auto inline-flex h-11 w-11 items-center justify-center rounded-md text-neutral-600 transition-colors hover:bg-neutral-100 hover:text-neutral-900 md:hidden"
           >
             <ListIcon size={20} weight="bold" aria-hidden />
           </button>
         </div>
-      </div>
-    </nav>
+      </nav>
 
       {/* Mobile drawer — permanently mounted and driven purely by CSS
           transitions, so the slide is deterministic on every browser.
@@ -206,7 +244,10 @@ export function MarketingTopNav() {
           prefers-reduced-motion. */}
       <div
         className={cn(
-          "fixed inset-0 z-[100] md:hidden",
+          // `overflow-hidden` clips the off-canvas panel (translateX(100%))
+          // so it can't widen the document's scrollWidth and cause phantom
+          // horizontal scroll on phones while the drawer is closed.
+          "fixed inset-0 z-[100] overflow-hidden md:hidden",
           drawerOpen ? "pointer-events-auto" : "pointer-events-none",
         )}
         role="dialog"
@@ -222,19 +263,25 @@ export function MarketingTopNav() {
           onClick={() => setDrawerOpen(false)}
           className={cn(
             "absolute inset-0 h-full w-full cursor-default bg-neutral-950/30 backdrop-blur-[2px] transition-opacity duration-300 motion-reduce:transition-none",
-            drawerOpen ? "opacity-100" : "opacity-0",
+            drawerOpen && drawerEntered ? "opacity-100" : "opacity-0",
           )}
         />
         {/* Panel */}
         <div
           inert={!drawerOpen}
-          style={{ transform: drawerOpen ? "translateX(0)" : "translateX(100%)" }}
+          style={{
+            transform:
+              drawerOpen && drawerEntered ? "translateX(0)" : "translateX(100%)",
+          }}
           className={cn(
             "absolute right-0 top-0 flex h-dvh w-[min(86vw,360px)] flex-col border-l border-neutral-200 bg-white safe-pb transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] will-change-transform motion-reduce:transition-none",
           )}
         >
           <div className="flex items-center justify-between border-b border-neutral-200 px-5 py-4 safe-pt">
-            <Wordmark onClick={() => setDrawerOpen(false)} />
+            <Wordmark
+              onClick={() => setDrawerOpen(false)}
+              textClassName="text-[18px]"
+            />
             <button
               type="button"
               onClick={() => setDrawerOpen(false)}
@@ -251,7 +298,7 @@ export function MarketingTopNav() {
                 key={l.href}
                 href={l.href}
                 onClick={() => setDrawerOpen(false)}
-                className="flex min-h-[48px] items-center rounded-lg px-3 text-[15px] font-medium text-neutral-800 transition-colors hover:bg-neutral-100"
+                className="flex min-h-[48px] items-center rounded-lg px-3 text-[16px] font-medium text-neutral-800 transition-colors hover:bg-neutral-100"
               >
                 {l.label}
               </Link>

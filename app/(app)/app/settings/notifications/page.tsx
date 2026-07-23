@@ -41,9 +41,9 @@ export default async function SettingsNotificationsPage() {
       <div className="space-y-4">
         <Link
           href="/app/settings"
-          className="inline-flex items-center gap-1.5 text-[12px] font-medium text-ink-tertiary transition-colors hover:text-ink-primary"
+          className="inline-flex items-center gap-1.5 text-[13px] font-medium text-ink-tertiary transition-colors hover:text-ink-primary"
         >
-          <ArrowLeft size={13} weight="bold" aria-hidden />
+          <ArrowLeft size={17} weight="bold" aria-hidden />
           Back to settings
         </Link>
         <PageHeader

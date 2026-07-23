@@ -278,7 +278,7 @@ const SANCTIONS_COLUMNS: Column<Row>[] = [
     key: "meta",
     label: "Queued",
     render: (r) => (
-      <span className="block text-[11px] text-ink-tertiary">
+      <span className="block text-[12px] text-ink-tertiary">
         {formatAdminDate(r.queue_created_at)}
         {r.reviewed_at
           ? ` · reviewed ${formatAdminDate(r.reviewed_at)}`

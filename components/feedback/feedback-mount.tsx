@@ -4,10 +4,12 @@
 
 import * as React from "react";
 import { usePathname } from "next/navigation";
-import { ChatCircleDots, X } from "@phosphor-icons/react";
+import { CaretLeft, ChatCircleDots, X } from "@phosphor-icons/react";
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+
+const COLLAPSED_STORAGE_KEY = "sourcebd-feedback-widget-collapsed";
 
 export function FeedbackMount({ userId }: { userId: string | null }) {
   if (!userId) return null;
@@ -29,6 +31,27 @@ function FeedbackPanel() {
   const [pending, setPending] = React.useState(false);
   const [done, setDone] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  // Minimised to a slim edge tab so the round FAB never sits on top of page
+  // content on phones. Persisted so it stays out of the way across
+  // navigations/reloads; a tap on the tab brings the full button back.
+  const [collapsed, setCollapsed] = React.useState(false);
+
+  React.useEffect(() => {
+    try {
+      setCollapsed(window.localStorage.getItem(COLLAPSED_STORAGE_KEY) === "1");
+    } catch {
+      // localStorage unavailable (privacy mode etc.) — default expanded.
+    }
+  }, []);
+
+  function setCollapsedPersisted(value: boolean) {
+    setCollapsed(value);
+    try {
+      window.localStorage.setItem(COLLAPSED_STORAGE_KEY, value ? "1" : "0");
+    } catch {
+      // Best-effort only.
+    }
+  }
 
   React.useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -36,6 +59,7 @@ function FeedbackPanel() {
       const tag = (e.target as HTMLElement | null)?.tagName?.toLowerCase();
       if (tag === "input" || tag === "textarea" || tag === "select") return;
       e.preventDefault();
+      setCollapsedPersisted(false);
       setOpen((v) => !v);
     }
     window.addEventListener("keydown", onKey);
@@ -69,22 +93,50 @@ function FeedbackPanel() {
     }
   }
 
+  const bottomOffsetClass = hasBottomActionBar
+    ? "bottom-[calc(56px+env(safe-area-inset-bottom,0px)+84px+1rem)]"
+    : "bottom-[calc(56px+env(safe-area-inset-bottom,0px)+1rem)]";
+
   return (
     <>
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        aria-label="Send feedback"
-        title="Send feedback (?)"
-        className={cn(
-          "fixed right-4 z-40 flex size-11 items-center justify-center rounded-full border border-neutral-200 bg-white text-brand-forest shadow-sm transition hover:bg-brand-forest-soft md:bottom-6",
-          hasBottomActionBar
-            ? "bottom-[calc(56px+env(safe-area-inset-bottom,0px)+84px+1rem)]"
-            : "bottom-[calc(56px+env(safe-area-inset-bottom,0px)+1rem)]",
-        )}
-      >
-        <ChatCircleDots size={22} weight="bold" aria-hidden />
-      </button>
+      {collapsed ? (
+        <button
+          type="button"
+          onClick={() => setCollapsedPersisted(false)}
+          aria-label="Show feedback button"
+          title="Show feedback button"
+          className={cn(
+            "fixed right-0 z-40 flex h-10 w-6 items-center justify-center rounded-l-full border border-r-0 border-neutral-200 bg-white text-neutral-400 shadow-sm transition hover:text-brand-forest md:bottom-6",
+            bottomOffsetClass,
+          )}
+        >
+          <CaretLeft size={13} weight="bold" aria-hidden />
+        </button>
+      ) : (
+        <span className={cn("fixed right-4 z-40 md:bottom-6", bottomOffsetClass)}>
+          <button
+            type="button"
+            onClick={() => setOpen(true)}
+            aria-label="Send feedback"
+            title="Send feedback (?)"
+            className="flex size-11 items-center justify-center rounded-full border border-neutral-200 bg-white text-brand-forest shadow-sm transition hover:bg-brand-forest-soft"
+          >
+            <ChatCircleDots size={22} weight="bold" aria-hidden />
+          </button>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setCollapsedPersisted(true);
+            }}
+            aria-label="Hide feedback button"
+            title="Hide feedback button"
+            className="absolute -left-1.5 -top-1.5 flex size-5 items-center justify-center rounded-full border border-neutral-200 bg-white text-neutral-500 shadow-sm transition hover:bg-neutral-100 hover:text-neutral-800"
+          >
+            <X size={11} weight="bold" aria-hidden />
+          </button>
+        </span>
+      )}
 
       <div
         className={cn(
@@ -114,7 +166,7 @@ function FeedbackPanel() {
               <h2 className="font-display text-lg font-semibold text-ink-primary">
                 Send feedback
               </h2>
-              <p className="text-[12px] text-ink-tertiary">
+              <p className="text-[13px] text-ink-tertiary">
                 Press <kbd className="rounded border border-neutral-200 px-1">?</kbd> to toggle
               </p>
             </div>
@@ -129,7 +181,7 @@ function FeedbackPanel() {
           </div>
 
           <form onSubmit={submit} className="flex flex-1 flex-col gap-4 p-5">
-            <p className="text-[13px] text-ink-secondary">
+            <p className="text-[14px] text-ink-secondary">
               Page: <span className="font-mono text-ink-primary">{pathname}</span>
             </p>
             {done ? (

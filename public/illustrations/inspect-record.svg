@@ -1,0 +1,129 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500" width="100%" height="100%" fill="none">
+  <!-- Definitions for gradients and filters -->
+  <defs>
+    <linearGradient id="beam-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#2D6A4F" stop-opacity="0.0" />
+      <stop offset="30%" stop-color="#2D6A4F" stop-opacity="0.85" />
+      <stop offset="70%" stop-color="#1F4D3A" stop-opacity="0.85" />
+      <stop offset="100%" stop-color="#1F4D3A" stop-opacity="0.0" />
+    </linearGradient>
+    <linearGradient id="core-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2D6A4F" stop-opacity="0.9" />
+      <stop offset="100%" stop-color="#1F4D3A" stop-opacity="0.95" />
+    </linearGradient>
+    <filter id="subtle-shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="8" stdDeviation="6" flood-color="#1F4D3A" flood-opacity="0.05" />
+    </filter>
+  </defs>
+
+  <!-- Vertical Inspection Beam (The Core Axis) -->
+  <!-- This represents the unbiased, direct inspection passing through all layers of evidence -->
+  <g>
+    <!-- Outer Glow -->
+    <line x1="250" y1="60" x2="250" y2="440" stroke="#2D6A4F" stroke-width="6" stroke-opacity="0.15" stroke-linecap="round" />
+    <!-- Inner Core Beam -->
+    <line x1="250" y1="60" x2="250" y2="440" stroke="url(#beam-grad)" stroke-width="1.5" stroke-linecap="round" />
+  </g>
+
+  <!-- LAYER 1: Bottom Evidence Layer (Regulatory / Government - Tier 1) -->
+  <!-- Deepest layer, providing the foundational anchor -->
+  <g filter="url(#subtle-shadow)" opacity="0.85">
+    <!-- Semi-transparent Diamond Plate -->
+    <path d="M 150 350 L 250 300 L 350 350 L 250 400 Z" fill="#FFFFFF" fill-opacity="0.9" stroke="#E5E5E5" stroke-width="1" />
+    <path d="M 170 350 L 250 310 L 330 350 L 250 390 Z" fill="none" stroke="#2D6A4F" stroke-width="1" stroke-opacity="0.15" stroke-dasharray="4 3" />
+    
+    <!-- Radar Scan Wave Ellipse -->
+    <ellipse cx="250" cy="350" rx="45" ry="22.5" fill="none" stroke="#2D6A4F" stroke-width="1" stroke-opacity="0.25" />
+    
+    <!-- Foundation Grid Nodes -->
+    <circle cx="210" cy="330" r="2" fill="#E5E5E5" />
+    <circle cx="290" cy="330" r="2" fill="#E5E5E5" />
+    <circle cx="210" cy="370" r="2" fill="#E5E5E5" />
+    <circle cx="290" cy="370" r="2" fill="#E5E5E5" />
+  </g>
+
+  <!-- LAYER 2: Middle Evidence Layer (Certifications / Audits - Tier 3) -->
+  <!-- Intermediate layer, representing verified compliance data -->
+  <g filter="url(#subtle-shadow)">
+    <!-- Semi-transparent Diamond Plate -->
+    <path d="M 150 240 L 250 190 L 350 240 L 250 290 Z" fill="#FFFFFF" fill-opacity="0.85" stroke="#E5E5E5" stroke-width="1.2" />
+    <path d="M 170 240 L 250 200 L 330 240 L 250 280 Z" fill="none" stroke="#2D6A4F" stroke-width="1" stroke-opacity="0.2" stroke-dasharray="4 3" />
+
+    <!-- Radar Scan Wave Ellipses (Concentric) -->
+    <ellipse cx="250" cy="240" rx="35" ry="17.5" fill="none" stroke="#2D6A4F" stroke-width="1.2" stroke-opacity="0.3" stroke-dasharray="3 2" />
+    <ellipse cx="250" cy="240" rx="60" ry="30" fill="none" stroke="#2D6A4F" stroke-width="1" stroke-opacity="0.15" />
+
+    <!-- Evidence 3D Block on Middle Layer -->
+    <g>
+      <!-- Left Face -->
+      <path d="M 195 215 L 195 235 L 210 242.5 L 210 222.5 Z" fill="#ECF3EE" stroke="#2D6A4F" stroke-width="0.8" />
+      <!-- Right Face -->
+      <path d="M 210 222.5 L 210 242.5 L 225 235 L 225 215 Z" fill="#D8E8E1" stroke="#2D6A4F" stroke-width="0.8" />
+      <!-- Top Face -->
+      <path d="M 195 215 L 210 207.5 L 225 215 L 210 222.5 Z" fill="#FFFFFF" stroke="#2D6A4F" stroke-width="0.8" />
+      <!-- Vertical Projection Line Down to Layer 1 -->
+      <path d="M 210 242.5 L 210 330" stroke="#737373" stroke-width="0.8" stroke-opacity="0.4" stroke-dasharray="2 2" />
+      <circle cx="210" cy="330" r="1.5" fill="#737373" opacity="0.5" />
+    </g>
+  </g>
+
+  <!-- LAYER 3: Top Evidence Layer (Brand Disclosures / Live Records - Tier 4) -->
+  <!-- Topmost layer, showing current, high-fidelity active fit -->
+  <g filter="url(#subtle-shadow)">
+    <!-- Semi-transparent Diamond Plate -->
+    <path d="M 150 130 L 250 80 L 350 130 L 250 180 Z" fill="#FFFFFF" fill-opacity="0.8" stroke="#2D6A4F" stroke-width="1.5" stroke-opacity="0.7" />
+    <path d="M 170 130 L 250 90 L 330 130 L 250 170 Z" fill="none" stroke="#1F4D3A" stroke-width="1" stroke-opacity="0.3" stroke-dasharray="4 3" />
+
+    <!-- Radar Scan Wave Ellipses (Concentric, Glowing) -->
+    <ellipse cx="250" cy="130" rx="25" ry="12.5" fill="none" stroke="#1F4D3A" stroke-width="1.5" stroke-opacity="0.5" />
+    <ellipse cx="250" cy="130" rx="50" ry="25" fill="none" stroke="#2D6A4F" stroke-width="1" stroke-opacity="0.25" stroke-dasharray="5 3" />
+    <ellipse cx="250" cy="130" rx="75" ry="37.5" fill="none" stroke="#2D6A4F" stroke-width="0.8" stroke-opacity="0.15" />
+
+    <!-- Verified 3D Block on Top Layer (The Fit) -->
+    <g>
+      <!-- Left Face -->
+      <path d="M 280 100 L 280 125 L 300 135 L 300 110 Z" fill="#ECF3EE" stroke="#1F4D3A" stroke-width="1" />
+      <!-- Right Face -->
+      <path d="M 300 110 L 300 135 L 320 125 L 320 100 Z" fill="#D8E8E1" stroke="#1F4D3A" stroke-width="1" />
+      <!-- Top Face -->
+      <path d="M 280 100 L 300 90 L 320 100 L 300 110 Z" fill="#FFFFFF" stroke="#1F4D3A" stroke-width="1" />
+      <!-- Vertical Projection Line Down through Middle Layer to Bottom Layer -->
+      <path d="M 300 135 L 300 350" stroke="#1F4D3A" stroke-width="1" stroke-opacity="0.35" stroke-dasharray="3 3" />
+      <circle cx="300" cy="240" r="2" fill="#2D6A4F" />
+      <circle cx="300" cy="350" r="2" fill="#2D6A4F" />
+    </g>
+  </g>
+
+  <!-- Glowing Intersection Nodes along the Central Beam -->
+  <g>
+    <!-- Bottom Intersection -->
+    <circle cx="250" cy="350" r="4.5" fill="#1F4D3A" />
+    <circle cx="250" cy="350" r="8.5" fill="none" stroke="#2D6A4F" stroke-width="1" stroke-opacity="0.5" />
+
+    <!-- Middle Intersection -->
+    <circle cx="250" cy="240" r="4.5" fill="#1F4D3A" />
+    <circle cx="250" cy="240" r="8.5" fill="none" stroke="#2D6A4F" stroke-width="1" stroke-opacity="0.5" />
+
+    <!-- Top Intersection (Primary Focus) -->
+    <circle cx="250" cy="130" r="6" fill="#1F4D3A" />
+    <circle cx="250" cy="130" r="11" fill="none" stroke="#1F4D3A" stroke-width="1.5" stroke-opacity="0.6" />
+    <circle cx="250" cy="130" r="16" fill="none" stroke="#2D6A4F" stroke-width="1" stroke-opacity="0.3" stroke-dasharray="3 2" />
+  </g>
+
+  <!-- Precision Annotations (Architectural Details) -->
+  <g stroke="#737373" stroke-width="0.8" opacity="0.5" fill="none">
+    <!-- Height brackets on the right -->
+    <path d="M 370 130 L 390 130" />
+    <path d="M 370 240 L 390 240" />
+    <path d="M 370 350 L 390 350" />
+    <path d="M 385 130 L 385 350" stroke-dasharray="3 3" />
+    
+    <!-- Crosshair indicator in top corner -->
+    <circle cx="80" cy="80" r="12" stroke-dasharray="2 2" />
+    <line x1="65" y1="80" x2="95" y2="80" />
+    <line x1="80" y1="65" x2="80" y2="95" />
+  </g>
+  <text x="405" y="133" font-family="monospace" font-size="9" fill="#737373" opacity="0.6">L3: BRAND</text>
+  <text x="405" y="243" font-family="monospace" font-size="9" fill="#737373" opacity="0.6">L2: CERT</text>
+  <text x="405" y="353" font-family="monospace" font-size="9" fill="#737373" opacity="0.6">L1: GOV</text>
+</svg>

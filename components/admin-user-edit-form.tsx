@@ -127,7 +127,7 @@ export function AdminUserEditForm({
 
   return (
     <div className="space-y-4">
-      <label className="flex flex-col gap-1 text-[12px] text-ink-secondary">
+      <label className="flex flex-col gap-1 text-[13px] text-ink-secondary">
         Role
         <select
           value={role}
@@ -140,13 +140,13 @@ export function AdminUserEditForm({
           <option value="admin">admin</option>
         </select>
         {isSelf ? (
-          <span className="text-[11px] text-ink-tertiary">
+          <span className="text-[12px] text-ink-tertiary">
             You can&apos;t change your own role — ask another admin.
           </span>
         ) : null}
       </label>
 
-      <label className="flex flex-col gap-1 text-[12px] text-ink-secondary">
+      <label className="flex flex-col gap-1 text-[13px] text-ink-secondary">
         Plan
         <select
           value={plan}
@@ -164,7 +164,7 @@ export function AdminUserEditForm({
 
       <div className="flex flex-col gap-2">
         <div className="flex items-center gap-2">
-          <span className="text-[12px] text-ink-secondary">Status:</span>
+          <span className="text-[13px] text-ink-secondary">Status:</span>
           <span className="text-sm">
             {suspended ? "Suspended" : "Active"}
           </span>
@@ -183,7 +183,7 @@ export function AdminUserEditForm({
           </Button>
         </div>
         {isSelf ? (
-          <p className="text-[11px] text-ink-tertiary">
+          <p className="text-[12px] text-ink-tertiary">
             You can&apos;t suspend your own account.
           </p>
         ) : null}
@@ -210,7 +210,7 @@ export function AdminUserEditForm({
           {isDirty ? "Save changes" : "No changes"}
         </Button>
         {pending ? (
-          <span className="text-[11px] text-ink-tertiary">Saving…</span>
+          <span className="text-[12px] text-ink-tertiary">Saving…</span>
         ) : null}
       </div>
 

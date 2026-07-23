@@ -81,7 +81,7 @@ export default async function ComplianceHubPage() {
               href="/app/discover"
               className="inline-flex items-center gap-1 rounded-pill bg-brand-forest px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-brand-forest-mid"
             >
-              Browse Discover <ArrowRight size={13} weight="bold" />
+              Browse Discover <ArrowRight size={17} weight="bold" />
             </Link>
           }
         />
@@ -221,7 +221,7 @@ function HubTile({
         </div>
 
         <div className="mt-4">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-ink-tertiary">
+          <p className="text-[12px] font-semibold uppercase tracking-[0.16em] text-ink-tertiary">
             {meta}
           </p>
           <div className="mt-2 flex items-end justify-between gap-3">
@@ -229,7 +229,7 @@ function HubTile({
               <h2 className="font-display text-base font-semibold leading-tight text-ink-primary">
                 {title}
               </h2>
-              <p className="mt-2 text-[11px] leading-relaxed text-ink-tertiary">
+              <p className="mt-2 text-[12px] leading-relaxed text-ink-tertiary">
                 {subline}
               </p>
             </div>

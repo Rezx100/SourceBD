@@ -19,7 +19,7 @@ export default function AdminSupplierImportPage() {
         description={
           <>
             CSV upload. Each row is dispatched through{" "}
-            <code className="font-mono text-[12px]">admin_supplier_update</code>;
+            <code className="font-mono text-[13px]">admin_supplier_update</code>;
             one bad row never aborts the batch.
           </>
         }
@@ -29,7 +29,7 @@ export default function AdminSupplierImportPage() {
       <AdminPanel
         title="CSV format"
         meta="RFC 4180 · header row required"
-        contentClassName="space-y-3 text-[13px] text-ink-secondary"
+        contentClassName="space-y-3 text-[14px] text-ink-secondary"
       >
           <p>
             Required column: <code className="font-mono">slug</code> (looks up
@@ -52,13 +52,13 @@ export default function AdminSupplierImportPage() {
             . Any other column is ignored. Blank values are skipped (use the
             single-supplier editor to clear a field).
           </p>
-          <pre className="overflow-x-auto rounded-input border border-hairline bg-bg-l0 p-3 font-mono text-[11px] text-ink-primary">
+          <pre className="overflow-x-auto rounded-input border border-hairline bg-bg-l0 p-3 font-mono text-[12px] text-ink-primary">
 {`slug,action,name_display,notes_admin
 acme-textiles,update,Acme Textiles Pvt. Ltd.,priority outreach 2026
 beta-knit,sanction,,OFAC SDN match 2026-05-12 — confirmed
 gamma-woven,publish,,`}
           </pre>
-          <p className="text-[12px] text-ink-tertiary">
+          <p className="text-[13px] text-ink-tertiary">
             Limits: ≤ 2 MB, ≤ 2000 data rows per upload.
           </p>
       </AdminPanel>

@@ -117,7 +117,7 @@ export default async function ComplianceDetailPage({
       />
 
       <BlurFade delay={0.05}>
-        <nav aria-label="Breadcrumb" className="text-[10px] text-neutral-400">
+        <nav aria-label="Breadcrumb" className="text-[12px] text-neutral-400">
           <Link href="/compliance" className="hover:text-neutral-700">
             Compliance
           </Link>
@@ -147,7 +147,7 @@ export default async function ComplianceDetailPage({
               <h2 className="font-display text-lg font-semibold text-ink-primary sm:text-xl">
                 {section.heading}
               </h2>
-              <div className="mt-3 min-w-0 space-y-3 text-pretty break-words text-[13px] leading-relaxed text-ink-secondary sm:text-sm">
+              <div className="mt-3 min-w-0 space-y-3 text-pretty break-words text-[14px] leading-relaxed text-ink-secondary sm:text-sm">
                 {section.body.map((para, i) => (
                   <p key={i}>{para}</p>
                 ))}
@@ -167,7 +167,7 @@ export default async function ComplianceDetailPage({
           <h2 className="font-display text-lg font-semibold text-ink-primary sm:text-xl">
             References
           </h2>
-          <ul className="mt-3 space-y-2 text-[13px] sm:text-sm">
+          <ul className="mt-3 space-y-2 text-[14px] sm:text-sm">
             {page.references.map((ref) => (
               <li key={ref.url} className="break-words leading-relaxed">
                 <a
@@ -193,20 +193,20 @@ export default async function ComplianceDetailPage({
           <h2 className="font-display text-lg font-extrabold tracking-tight text-neutral-900 sm:text-xl">
             <span className="text-brand-forest">Verified evidence</span> on every supplier
           </h2>
-          <p className="mx-auto mt-3 max-w-md !text-center text-[13px] leading-relaxed text-neutral-600 sm:text-sm">
+          <p className="mx-auto mt-3 max-w-md !text-center text-[14px] leading-relaxed text-neutral-600 sm:text-sm">
             Each SourceBD supplier profile carries source pills with
             issuer, URL, and last-seen date — the trail your auditor
             asks for.
           </p>
           <div className="mt-5 inline-block">
             <Link href={cta.href} className="btn-proto primary gap-2 px-5 py-2.5 text-sm sm:px-7">
-              {cta.label} <ArrowRight size={15} />
+              {cta.label} <ArrowRight size={17} />
             </Link>
           </div>
         </section>
       </BlurFade>
 
-      <p className="mx-auto mt-12 text-center text-[11px] text-neutral-400">
+      <p className="mx-auto mt-12 text-center text-[12px] text-neutral-400">
         {DISCLAIMER} Last reviewed: {page.last_reviewed_at}.
       </p>
     </main>

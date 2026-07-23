@@ -2,12 +2,16 @@ import { SourcesExplainer } from "@/components/supplier/sources-explainer";
 import {
   ProfileCard,
   ProfileCardHeader,
+  ProfileEvidenceRow,
+  ProfileSourceMark,
+  ProfileStatusBadge,
   ProfileTabStack,
 } from "@/components/supplier/profile-ui";
 import {
   formatProfileDate,
   formatProvenanceRef,
-  provenanceTierShort,
+  tierGroupLabel,
+  trustLine,
 } from "@/lib/format-supplier-profile";
 
 export type ProvenanceRow = {
@@ -15,55 +19,60 @@ export type ProvenanceRow = {
   display_name: string;
   tier: string;
   source_ref: string | null;
+  source_url?: string | null;
   last_seen_at: string;
 };
 
 export function ProfileProvenanceTab({
   provenance,
+  t13SourceCount,
 }: {
   provenance: readonly ProvenanceRow[];
+  /** Same authority count shown in the header + Overview card — keeps the
+   *  canonical trust line consistent everywhere it's quoted. */
+  t13SourceCount: number;
 }) {
-  const distinct = new Set(provenance.map((p) => p.source_code)).size;
   return (
     <ProfileTabStack>
       <ProfileCard id="provenance">
         <ProfileCardHeader
           title="Source records"
-          meta={`${provenance.length} records · ${distinct} sources`}
+          meta={trustLine(t13SourceCount, provenance.length)}
         />
-        <div className="profile-data-table">
-          <div className="profile-data-head" aria-hidden>
-            <span>Source</span>
-            <span>Authority</span>
-            <span>Reference</span>
-            <span>Last verified</span>
-            <span>Tier</span>
-          </div>
-          <div className="prov-list">
+        <div>
             {provenance.map((p, i) => {
               const refLabel = formatProvenanceRef(p.source_code, p.source_ref);
               return (
-                <div key={i} className="prov-row">
-                  <span className="prov-source">{p.source_code}</span>
-                  <span className="prov-name">{p.display_name}</span>
-                  <span
-                    className="prov-ref"
-                    title={refLabel ? "Source reference" : undefined}
-                  >
-                    {refLabel ?? "—"}
-                  </span>
-                  <span className="prov-seen">
-                    {formatProfileDate(p.last_seen_at)}
-                  </span>
-                  <span
-                    className={`tier-badge ${provenanceTierShort(p.tier)}`}
-                  >
-                    {provenanceTierShort(p.tier).toUpperCase()}
-                  </span>
-                </div>
+                <ProfileEvidenceRow
+                  key={i}
+                  pillAlign="top"
+                  mark={<ProfileSourceMark tag={p.source_code} label={p.display_name} />}
+                  title={
+                    <span className="flex flex-wrap items-center gap-2">
+                      <span>{p.display_name}</span>
+                      <span className="font-mono text-[13px] font-semibold text-neutral-500">
+                        {p.source_code}
+                      </span>
+                    </span>
+                  }
+                  meta={
+                    <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                      {refLabel ? (
+                        <span className="rounded border border-neutral-200 bg-neutral-50 px-1.5 py-0.5 font-mono text-[12px] font-semibold text-neutral-700">
+                          Ref {refLabel}
+                        </span>
+                      ) : null}
+                      <span className="font-mono">
+                        Last verified {formatProfileDate(p.last_seen_at)}
+                      </span>
+                    </span>
+                  }
+                  status={
+                    <ProfileStatusBadge tone="neutral">{tierGroupLabel(p.tier)}</ProfileStatusBadge>
+                  }
+                />
               );
             })}
-          </div>
         </div>
         <SourcesExplainer variant="footer" />
       </ProfileCard>

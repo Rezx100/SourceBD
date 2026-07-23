@@ -2,20 +2,9 @@ import { Check } from "@phosphor-icons/react/dist/ssr";
 import { cn } from "@/lib/utils";
 
 // CompanyAvatar — identity slot for supplier list cards (Discover, Saved,
-// Smart Match, dashboard). Decided 2 Jul during the Discover card UX audit;
-// see frontend-design-spec.md §0.2.
-//
-// Deliberately NOT `ReceiptsRing`: a numeric trust glyph as every card's
-// "face" invited glance-comparison across a results grid. This tile is a
-// flat, uniform monogram (or, once `suppliers` gains a logo column, the real
-// logo) so the identity slot itself never signals relative trust — the
-// verify seal below only answers yes/no, and the precise source count lives
-// in plain text alongside the card's other facts.
+// Smart Match, dashboard) and the full company profile header.
 
 function monogram(name: string): string {
-  // Strip punctuation per word first — e.g. "Robintex (Bangladesh) Ltd."
-  // must monogram to "RB", not "R(" from the literal first character of
-  // the parenthesised second word.
   const words = name
     .trim()
     .split(/\s+/)
@@ -29,24 +18,56 @@ function monogram(name: string): string {
 export function CompanyAvatar({
   name,
   logoUrl,
-  verified,
+  verified = false,
+  variant = "default",
   className,
 }: {
   name: string;
-  /** Reserved for when `suppliers` gains a logo column — not populated today. */
   logoUrl?: string | null;
-  verified: boolean;
+  verified?: boolean;
+  /** Profile header: larger identity tile; seal renders when `verified`. */
+  variant?: "default" | "profile";
   className?: string;
 }) {
+  const isProfile = variant === "profile";
+  const showSeal = verified && !isProfile;
+  // Profile header: instead of a static seal, a verified company gets the
+  // quiet "live sync" ring pulse — SourceBD is continuously re-scanning
+  // authority sources in the background, and the avatar breathes with it.
+  const livePulse = verified && isProfile;
+
   return (
-    <span className={cn("relative inline-flex shrink-0", className)}>
+    <span
+      className={cn(
+        "relative inline-flex shrink-0",
+        livePulse && "profile-avatar-live",
+        className,
+      )}
+    >
       <span
         className={cn(
-          "flex h-14 w-14 items-center justify-center rounded-xl border font-display text-[19px] font-bold tracking-[-0.02em]",
-          "shadow-[0_1px_4px_rgba(15,15,20,0.07)] sm:h-16 sm:w-16 sm:text-[22px]",
-          logoUrl ? "bg-white p-2.5" : "bg-neutral-100 text-neutral-900",
+          "flex items-center justify-center font-display tracking-[-0.02em]",
+          isProfile
+            ? cn(
+                // 320–389px phones (incl. the common 360px width): 56px tile
+                // so long company names still have room to settle into 2
+                // lines without clipping — the old 360px (`xs`) breakpoint
+                // bumped this up too early and reintroduced the cut-off.
+                // 390px+: 64px; sm+: the 92px dossier tile.
+                "size-14 rounded-xl text-[19px] font-bold leading-none tracking-[0.01em] min-[390px]:size-16 min-[390px]:text-[22px] sm:size-[5.75rem] sm:rounded-2xl sm:text-[2rem]",
+                logoUrl
+                  ? "border border-neutral-200/80 bg-white p-2 shadow-[0_1px_3px_rgba(15,15,20,0.03)]"
+                  : cn(
+                      "border border-brand-forest/12 bg-gradient-to-br from-brand-forest/[0.1] via-brand-forest/[0.05] to-white text-neutral-500",
+                      "shadow-[0_1px_3px_rgba(15,15,20,0.03)]",
+                    ),
+              )
+            : cn(
+                "h-14 w-14 rounded-xl border text-[20px] font-bold shadow-[0_1px_4px_rgba(15,15,20,0.07)] sm:h-16 sm:w-16 sm:text-[24px]",
+                logoUrl ? "border-neutral-200/60 bg-white p-2.5" : "border-neutral-200/60 bg-neutral-100 text-neutral-900",
+              ),
         )}
-        style={{ borderColor: "rgba(15,15,20,0.06)" }}
+        style={isProfile ? undefined : { borderColor: "rgba(15,15,20,0.06)" }}
       >
         {logoUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -55,7 +76,7 @@ export function CompanyAvatar({
           monogram(name)
         )}
       </span>
-      {verified ? (
+      {showSeal ? (
         <span
           role="img"
           aria-label="Verified by independent sources"
@@ -63,7 +84,7 @@ export function CompanyAvatar({
           className="absolute -bottom-1 -right-1 flex size-5 items-center justify-center rounded-full border-[1.5px] bg-white text-brand-forest"
           style={{ borderColor: "rgba(15,15,20,0.14)" }}
         >
-          <Check size={10} weight="bold" aria-hidden />
+          <Check size={16} weight="bold" aria-hidden />
         </span>
       ) : null}
     </span>

@@ -99,7 +99,7 @@ export function AdminScraperMonitor({ initialDoc }: { initialDoc: DashboardDoc }
         title="Sources & ingestion"
         description="Run scraper jobs, set refresh timers, and watch live progress without reading terminal logs."
         actions={
-          <div className="text-right font-mono text-[11px] text-ink-tertiary">
+          <div className="text-right font-mono text-[12px] text-ink-tertiary">
             <p>auto-refresh {hasLiveWork ? "3s" : "15s"}</p>
             <p>generated {formatAdminDateTime(doc.generated_at)} UTC</p>
             {error ? <p className="text-sem-red">status: {error}</p> : null}
@@ -197,7 +197,7 @@ function SummaryCard({
   return (
     <Card>
       <CardContent className="space-y-2">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.06em] text-ink-tertiary">
+        <p className="text-[12px] font-semibold uppercase tracking-[0.06em] text-ink-tertiary">
           {label}
         </p>
         <p
@@ -212,7 +212,7 @@ function SummaryCard({
         >
           {value}
         </p>
-        <p className="font-mono text-[11px] text-ink-tertiary">{hint}</p>
+        <p className="font-mono text-[12px] text-ink-tertiary">{hint}</p>
       </CardContent>
     </Card>
   );
@@ -255,24 +255,24 @@ function ScraperCard({
 
         <div className="space-y-2 text-sm leading-relaxed text-ink-secondary">
           <p>{scraper.updates}</p>
-          <p className="text-[12px] text-ink-tertiary">{scraper.operatorNote}</p>
+          <p className="text-[13px] text-ink-tertiary">{scraper.operatorNote}</p>
         </div>
 
         <div className="rounded-lg border border-neutral-200 bg-neutral-50 p-3">
-          <p className="text-[12px] font-semibold text-ink-primary">
+          <p className="text-[13px] font-semibold text-ink-primary">
             {activeJob ? activeJobReport(activeJob, now) : plainRunReport(latest)}
           </p>
           {activeJob ? (
             <ProgressBars job={activeJob} />
           ) : null}
-          <dl className="mt-3 grid grid-cols-2 gap-2 text-[12px]">
+          <dl className="mt-3 grid grid-cols-2 gap-2 text-[13px]">
             <Metric label="Last success" value={formatRelative(state?.last_success_at ?? null, now)} />
             <Metric label="Next timer" value={formatRelative(schedule?.next_run_at ?? null, now)} />
             <Metric label="Pending" value={String(state?.queue.pending ?? 0)} />
             <Metric label="Running" value={String(state?.queue.running ?? 0)} />
           </dl>
           {latest?.error ? (
-            <p className="mt-2 line-clamp-2 text-[12px] text-sem-red">{latest.error}</p>
+            <p className="mt-2 line-clamp-2 text-[13px] text-sem-red">{latest.error}</p>
           ) : null}
         </div>
 
@@ -302,7 +302,7 @@ function LiveJobCard({ job, now }: { job: QueueJob; now: number }) {
       <CardContent className="space-y-4">
         <div className="rounded-lg border border-neutral-200 bg-neutral-50 p-3">
           <p className="text-sm font-semibold text-ink-primary">{activeJobReport(job, now)}</p>
-          <dl className="mt-3 grid grid-cols-2 gap-3 text-[12px] sm:grid-cols-4">
+          <dl className="mt-3 grid grid-cols-2 gap-3 text-[13px] sm:grid-cols-4">
             <Metric label="Queued" value={formatRelative(job.requested_at, now)} />
             <Metric label="Elapsed" value={formatElapsed(job.started_at ?? job.requested_at, now)} />
             <Metric label="Heartbeat" value={formatRelative(job.heartbeat_at, now)} />
@@ -339,7 +339,7 @@ function Bar({ label, value, max, tone }: { label: string; value: number; max: n
   const width = `${Math.max(3, Math.round((value / max) * 100))}%`;
   return (
     <div>
-      <div className="mb-1 flex justify-between text-[11px] text-ink-tertiary">
+      <div className="mb-1 flex justify-between text-[12px] text-ink-tertiary">
         <span>{label}</span>
         <span className="font-mono">{value.toLocaleString()}</span>
       </div>
@@ -356,7 +356,7 @@ function EventTimeline({ events, now }: { events: EtlJobEvent[]; now: number }) 
   }
   return (
     <div>
-      <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.06em] text-ink-tertiary">
+      <p className="mb-2 text-[12px] font-semibold uppercase tracking-[0.06em] text-ink-tertiary">
         Run timeline
       </p>
       <ol className="m-0 space-y-2 p-0">
@@ -365,7 +365,7 @@ function EventTimeline({ events, now }: { events: EtlJobEvent[]; now: number }) 
             <span className="mt-1 size-2 rounded-full bg-brand-forest" aria-hidden />
             <div className="min-w-0">
               <p className="text-sm font-medium text-ink-primary">{event.message}</p>
-              <p className="font-mono text-[11px] text-ink-tertiary">
+              <p className="font-mono text-[12px] text-ink-tertiary">
                 {event.event_type} · {formatRelative(event.created_at, now)}
                 {event.records_seen > 0 ? ` · seen ${event.records_seen.toLocaleString()}` : ""}
               </p>
@@ -392,17 +392,17 @@ function RecentJobs({ jobs, now }: { jobs: QueueJob[]; now: number }) {
             <AdminRow key={job.id}>
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="font-mono text-[12px] font-semibold text-ink-primary">
+                  <span className="font-mono text-[13px] font-semibold text-ink-primary">
                     {job.scraper_code}
                   </span>
                   <JobStatusTag status={job.status} />
-                  <span className="font-mono text-[11px] text-ink-tertiary">
+                  <span className="font-mono text-[12px] text-ink-tertiary">
                     {job.status === "running"
                       ? `elapsed ${formatElapsed(job.started_at ?? job.requested_at, now)}`
                       : `attempt ${job.attempts}`}
                   </span>
                 </div>
-                <p className="mt-1 text-[12px] text-ink-tertiary">
+                <p className="mt-1 text-[13px] text-ink-tertiary">
                   {job.progress_message ?? `requested ${formatAdminDateTime(job.requested_at)}`}
                   {job.error ? <> - {job.error}</> : null}
                 </p>
@@ -438,7 +438,7 @@ function RecentRuns({ runs, now }: { runs: EtlRun[]; now: number }) {
             <AdminRow key={run.id}>
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="font-mono text-[12px] font-semibold text-ink-primary">
+                  <span className="font-mono text-[13px] font-semibold text-ink-primary">
                     {run.scraper_code}
                   </span>
                   <RunStatusTag status={run.status} />
@@ -446,12 +446,12 @@ function RecentRuns({ runs, now }: { runs: EtlRun[]; now: number }) {
                     <Tag tone="amber">{matchedSuppliers(run.meta)} sanctions matches</Tag>
                   ) : null}
                 </div>
-                <p className="mt-1 text-[12px] text-ink-secondary">
+                <p className="mt-1 text-[13px] text-ink-secondary">
                   {plainRunReport(run)}
                 </p>
-                {run.error ? <p className="mt-1 text-[12px] text-sem-red">{run.error}</p> : null}
+                {run.error ? <p className="mt-1 text-[13px] text-sem-red">{run.error}</p> : null}
               </div>
-              <p className="shrink-0 font-mono text-[11px] text-ink-tertiary">
+              <p className="shrink-0 font-mono text-[12px] text-ink-tertiary">
                 {run.finished_at ? formatElapsed(run.started_at, new Date(run.finished_at).getTime()) : formatRelative(run.started_at, now)}
               </p>
             </AdminRow>
@@ -465,7 +465,7 @@ function RecentRuns({ runs, now }: { runs: EtlRun[]; now: number }) {
 function Metric({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <dt className="font-mono text-[10px] uppercase tracking-[0.05em] text-ink-tertiary">
+      <dt className="font-mono text-[12px] uppercase tracking-[0.05em] text-ink-tertiary">
         {label}
       </dt>
       <dd className="mt-0.5 break-words font-medium text-ink-primary">{value}</dd>

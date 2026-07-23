@@ -9,8 +9,8 @@ type UserAvatarProps = {
 };
 
 const SIZE_CLASS = {
-  sm: "size-8 text-[11px]",
-  md: "size-10 text-[12px]",
+  sm: "size-8 text-[12px]",
+  md: "size-10 text-[13px]",
   lg: "size-12 text-sm",
 } as const;
 

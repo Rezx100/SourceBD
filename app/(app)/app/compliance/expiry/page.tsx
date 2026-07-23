@@ -70,9 +70,9 @@ export default async function ExpiryPage() {
       <div className="space-y-4">
         <Link
           href="/app/compliance"
-          className="inline-flex items-center gap-1.5 text-[12px] font-medium text-ink-tertiary transition-colors hover:text-ink-primary"
+          className="inline-flex items-center gap-1.5 text-[13px] font-medium text-ink-tertiary transition-colors hover:text-ink-primary"
         >
-          <ArrowLeft size={13} weight="bold" aria-hidden /> Compliance
+          <ArrowLeft size={17} weight="bold" aria-hidden /> Compliance
         </Link>
         <PageHeader
           kicker="Compliance"
@@ -147,7 +147,7 @@ function SummaryCard({
     <Card className="p-3 sm:p-4">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-[11px] font-medium text-ink-tertiary">{label}</p>
+          <p className="text-[12px] font-medium text-ink-tertiary">{label}</p>
           <p className="mt-1 font-display text-2xl font-semibold tabular-nums text-ink-primary">
             {value.toLocaleString()}
           </p>
@@ -177,7 +177,7 @@ function Bucket({
       <CardHeader className="flex flex-col items-start gap-3 border-b border-hairline bg-white px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
         <div className="min-w-0">
           <CardTitle>{title}</CardTitle>
-          <CardMeta className="mt-1 block max-w-2xl whitespace-normal font-body text-[13px] leading-relaxed">
+          <CardMeta className="mt-1 block max-w-2xl whitespace-normal font-body text-[14px] leading-relaxed">
             {description}
           </CardMeta>
         </div>
@@ -189,8 +189,8 @@ function Bucket({
         <div
           className={
             showEvidence
-              ? "hidden grid-cols-[minmax(0,1.35fr)_minmax(150px,0.85fr)_minmax(130px,0.7fr)_auto] gap-4 border-b border-hairline bg-bg-l0 px-4 py-2 font-mono text-[10px] font-semibold uppercase tracking-[0.08em] text-ink-tertiary md:grid"
-              : "hidden grid-cols-[minmax(0,1.35fr)_minmax(170px,0.9fr)_minmax(140px,0.55fr)] gap-4 border-b border-hairline bg-bg-l0 px-4 py-2 font-mono text-[10px] font-semibold uppercase tracking-[0.08em] text-ink-tertiary md:grid"
+              ? "hidden grid-cols-[minmax(0,1.35fr)_minmax(150px,0.85fr)_minmax(130px,0.7fr)_auto] gap-4 border-b border-hairline bg-bg-l0 px-4 py-2 font-mono text-[12px] font-semibold uppercase tracking-[0.08em] text-ink-tertiary md:grid"
+              : "hidden grid-cols-[minmax(0,1.35fr)_minmax(170px,0.9fr)_minmax(140px,0.55fr)] gap-4 border-b border-hairline bg-bg-l0 px-4 py-2 font-mono text-[12px] font-semibold uppercase tracking-[0.08em] text-ink-tertiary md:grid"
           }
         >
           <span>Supplier</span>
@@ -245,20 +245,20 @@ function CertRenewalRow({
         >
           {row.supplier.company_name}
         </Link>
-        <p className="mt-0.5 text-[12px] text-ink-tertiary">{location}</p>
+        <p className="mt-0.5 text-[13px] text-ink-tertiary">{location}</p>
       </div>
 
       <div className="min-w-0">
         <Tag tone="neutral">
-          <Certificate size={12} weight="fill" />
+          <Certificate size={16} weight="fill" />
           {cert}
         </Tag>
         {row.certificate_no ? (
-          <p className="mt-1 font-mono text-[11px] text-ink-tertiary">
+          <p className="mt-1 font-mono text-[12px] text-ink-tertiary">
             {row.certificate_no}
           </p>
         ) : null}
-        <p className="mt-1 text-[12px] text-ink-tertiary">
+        <p className="mt-1 text-[13px] text-ink-tertiary">
           Issued by {row.issuer ?? cert}
         </p>
       </div>
@@ -268,7 +268,7 @@ function CertRenewalRow({
           {fmtDate(row.expires_on)}
         </p>
         <Badge tone={badgeTone} className="mt-0 md:mt-1">
-          <WarningCircle size={11} weight="fill" />
+          <WarningCircle size={17} weight="fill" />
           {row.days_remaining}d
         </Badge>
       </div>
@@ -280,12 +280,12 @@ function CertRenewalRow({
               href={row.document_url}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 rounded-control border border-hairline bg-white px-2.5 py-1.5 text-[12px] font-medium text-ink-secondary transition-colors hover:border-neutral-300 hover:text-ink-primary"
+              className="inline-flex items-center gap-1.5 rounded-control border border-hairline bg-white px-2.5 py-1.5 text-[13px] font-medium text-ink-secondary transition-colors hover:border-neutral-300 hover:text-ink-primary"
             >
-              <FileText size={12} /> Open document
+              <FileText size={16} /> Open document
             </a>
           ) : (
-            <span className="text-[12px] text-ink-tertiary">No document</span>
+            <span className="text-[13px] text-ink-tertiary">No document</span>
           )}
         </div>
       ) : null}

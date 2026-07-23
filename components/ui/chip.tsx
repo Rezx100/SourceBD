@@ -36,7 +36,7 @@ export function Chip({
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1 rounded-pill border px-2.5 py-1 text-[12px] font-medium leading-none",
+        "inline-flex items-center gap-1 rounded-pill border px-2.5 py-1 text-[13px] font-medium leading-none",
         toneClass,
         className,
       )}
@@ -50,17 +50,17 @@ export function Chip({
         <a
           href={onRemoveHref}
           aria-label={`Remove ${label} filter`}
-          className="-mr-1 inline-flex h-[24px] min-h-[24px] min-w-[24px] items-center justify-center rounded-pill text-ink-tertiary transition-colors duration-hover ease-smooth hover:text-ink-primary focus-visible:text-ink-primary"
+          className="-mr-1 inline-flex h-[26px] min-h-[26px] min-w-[26px] items-center justify-center rounded-pill text-ink-tertiary transition-colors duration-hover ease-smooth hover:text-ink-primary focus-visible:text-ink-primary"
           // Wrap in a 44 px hit region via padding while keeping visual
           // size compact; iOS/Android both honour `padding` as the touch
           // target. Inline style here because Tailwind has no idiomatic
           // way to express "expand the hit-box without changing the box".
           style={{
-            padding: "10px",
-            margin: "-10px -10px -10px 0",
+            padding: "12px",
+            margin: "-12px -12px -12px 0",
           }}
         >
-          <X size={12} weight="bold" aria-hidden />
+          <X size={16} weight="bold" aria-hidden />
         </a>
       ) : null}
     </span>

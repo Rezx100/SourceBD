@@ -35,7 +35,7 @@ export async function ClaimCtaButton({ slug }: { slug: string }) {
       aria-label="Claim this company profile"
     >
       <Link href={href}>
-        <Storefront size={14} weight="regular" aria-hidden />
+        <Storefront size={16} weight="regular" aria-hidden />
         <span className="r9-btn-label">Claim this company</span>
       </Link>
     </Button>

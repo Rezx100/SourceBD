@@ -129,7 +129,7 @@ export default async function AdminSuppliersPage({
         description="Search the verified index, jump to common work queues, or narrow by publication and evidence status."
         actions={<AdminActionLink href="/admin/suppliers/import">Bulk import</AdminActionLink>}
       >
-        <div className="flex gap-2 overflow-x-auto pb-1 text-[12px]">
+        <div className="flex gap-2 overflow-x-auto pb-1 text-[13px]">
           <AdminActionLink href="/admin/queue" className="shrink-0">Needs review</AdminActionLink>
           <AdminActionLink href="/admin/suppliers?published=false&tier_min=1" className="shrink-0">Ready to publish</AdminActionLink>
           <AdminActionLink href="/admin/suppliers?published=true" className="shrink-0">Visible to buyers</AdminActionLink>
@@ -259,7 +259,7 @@ const SUPPLIER_COLUMNS: Column<Row>[] = [
         <span className="block truncate text-sm font-semibold text-ink-primary">
           {r.name_display ?? r.company_name}
         </span>
-        <span className="block truncate text-[12px] text-ink-tertiary">
+        <span className="block truncate text-[13px] text-ink-tertiary">
           <span className="font-mono">{r.slug}</span>
           {r.city || r.district
             ? ` · ${[r.city, r.district].filter(Boolean).join(", ")}`

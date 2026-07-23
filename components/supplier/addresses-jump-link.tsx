@@ -2,8 +2,12 @@
 
 export function AddressesJumpLink({ count }: { count: number }) {
   function jump() {
+    // Radix's TabsTrigger activates on mousedown (button 0), not click — a
+    // bare `.click()` call never fires that handler, leaving the panel stuck.
     const trigger = document.getElementById("tab-trigger-overview");
-    if (trigger) trigger.click();
+    if (trigger) {
+      trigger.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, button: 0 }));
+    }
     requestAnimationFrame(() => {
       setTimeout(() => {
         const target = document.getElementById("locations");

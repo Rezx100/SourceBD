@@ -118,7 +118,7 @@ export function SettingsNotificationToggles({
                 </span>
               </span>
               {saving ? (
-                <span className="text-[10px] text-ink-tertiary">
+                <span className="text-[12px] text-ink-tertiary">
                   Saving…
                 </span>
               ) : null}

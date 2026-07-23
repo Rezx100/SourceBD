@@ -25,10 +25,10 @@ export default function RootError({
           gradientColor="#ecf3ee"
           gradientOpacity={0.08}
         >
-          <p className="font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-sem-amber">
+          <p className="font-mono text-[12px] font-medium uppercase tracking-[0.14em] text-sem-amber">
             {error.digest ?? "500"}
           </p>
-          <h1 className="mt-2 font-display text-[22px] font-bold tracking-tight text-ink-primary">
+          <h1 className="mt-2 font-display text-[24px] font-bold tracking-tight text-ink-primary">
             Something went wrong
           </h1>
           <p className="mt-3 max-w-xs text-sm leading-relaxed text-ink-secondary">

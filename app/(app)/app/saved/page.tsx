@@ -21,7 +21,6 @@ const PAGE_SIZE = 24;
 const SORT_OPTIONS = [
   { value: "recent", label: "Recently saved" },
   { value: "receipts", label: "Most evidence" },
-  { value: "completeness", label: "Most complete" },
   { value: "name", label: "Name (A–Z)" },
 ] as const;
 
@@ -89,7 +88,7 @@ export default async function SavedSuppliersPage({
       />
 
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-[13px] text-ink-tertiary">
+        <p className="text-[14px] text-ink-tertiary">
           {error ? (
             <span className="text-sem-red">Could not load saved suppliers.</span>
           ) : (
@@ -166,7 +165,7 @@ function SortControl({ current }: { current: SortValue }) {
     <form method="get" className="flex items-center gap-2">
       <label
         htmlFor="sort"
-        className="text-[10px] font-semibold text-ink-tertiary"
+        className="text-[12px] font-semibold text-ink-tertiary"
       >
         Sort
       </label>
@@ -174,7 +173,7 @@ function SortControl({ current }: { current: SortValue }) {
         id="sort"
         name="sort"
         defaultValue={current}
-        className="h-8 rounded-input border border-hairline-strong bg-surface-l1 px-2 text-[12px] text-ink-primary focus:border-brand-forest focus:outline-none"
+        className="h-8 rounded-input border border-hairline-strong bg-surface-l1 px-2 text-[13px] text-ink-primary focus:border-brand-forest focus:outline-none"
       >
         {SORT_OPTIONS.map((o) => (
           <option key={o.value} value={o.value}>
@@ -209,7 +208,7 @@ function Pagination({
   };
   return (
     <nav aria-label="Pagination" className="flex items-center justify-between gap-3">
-      <div className="text-[11px] text-ink-tertiary">
+      <div className="text-[12px] text-ink-tertiary">
         Page {page} of {totalPages}
       </div>
       <div className="flex gap-2">

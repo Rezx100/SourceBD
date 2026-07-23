@@ -104,7 +104,7 @@ export function ResponsiveTable<TRow>(props: ResponsiveTableProps<TRow>) {
         <div className="overflow-x-auto">
           <table className="w-full min-w-max border-collapse text-left text-sm">
             <thead>
-              <tr className="border-b border-hairline bg-bg-l0 text-[11px] uppercase tracking-[0.05em] text-ink-tertiary">
+              <tr className="border-b border-hairline bg-bg-l0 text-[12px] uppercase tracking-[0.05em] text-ink-tertiary">
                 {columns.map((c, i) => (
                   <th
                     key={c.key}
@@ -169,7 +169,7 @@ export function ResponsiveTable<TRow>(props: ResponsiveTableProps<TRow>) {
       <div className="hidden overflow-x-auto rounded-card border border-hairline bg-surface-l1 md:block">
         <table className="w-full border-collapse text-left text-sm">
           <thead>
-            <tr className="border-b border-hairline bg-bg-l0 text-[11px] uppercase tracking-[0.05em] text-ink-tertiary">
+            <tr className="border-b border-hairline bg-bg-l0 text-[12px] uppercase tracking-[0.05em] text-ink-tertiary">
               {columns.map((c) => (
                 <th
                   key={c.key}
@@ -228,14 +228,14 @@ export function ResponsiveTable<TRow>(props: ResponsiveTableProps<TRow>) {
           const href = rowHref?.(r) ?? null;
           const inner = (
             <div className="rounded-card border border-hairline bg-surface-l1 p-3">
-              <dl className="grid grid-cols-[88px_1fr] gap-x-3 gap-y-1.5 text-[13px]">
+              <dl className="grid grid-cols-[88px_1fr] gap-x-3 gap-y-1.5 text-[14px]">
                 {columns.map((c) => {
                   const isPriority =
                     priorityKeys == null || priorityKeys.includes(c.key);
                   if (!isPriority) return null;
                   return (
                     <React.Fragment key={c.key}>
-                      <dt className="font-mono text-[11px] uppercase tracking-[0.05em] text-ink-tertiary">
+                      <dt className="font-mono text-[12px] uppercase tracking-[0.05em] text-ink-tertiary">
                         {c.label}
                       </dt>
                       <dd className="m-0 min-w-0 break-words text-ink-primary">
@@ -247,15 +247,15 @@ export function ResponsiveTable<TRow>(props: ResponsiveTableProps<TRow>) {
               </dl>
               {priorityKeys ? (
                 <details className="mt-2">
-                  <summary className="inline-flex h-[36px] cursor-pointer items-center gap-1 rounded-pill border border-hairline px-3 font-mono text-[11px] text-ink-secondary hover:bg-brand-forest-tint">
+                  <summary className="inline-flex h-[36px] cursor-pointer items-center gap-1 rounded-pill border border-hairline px-3 font-mono text-[12px] text-ink-secondary hover:bg-brand-forest-tint">
                     More fields
                   </summary>
-                  <dl className="mt-2 grid grid-cols-[88px_1fr] gap-x-3 gap-y-1.5 border-t border-hairline pt-2 text-[13px]">
+                  <dl className="mt-2 grid grid-cols-[88px_1fr] gap-x-3 gap-y-1.5 border-t border-hairline pt-2 text-[14px]">
                     {columns.map((c) => {
                       if (priorityKeys.includes(c.key)) return null;
                       return (
                         <React.Fragment key={c.key}>
-                          <dt className="font-mono text-[11px] uppercase tracking-[0.05em] text-ink-tertiary">
+                          <dt className="font-mono text-[12px] uppercase tracking-[0.05em] text-ink-tertiary">
                             {c.label}
                           </dt>
                           <dd className="m-0 min-w-0 break-words text-ink-primary">

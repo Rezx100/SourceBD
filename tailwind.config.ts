@@ -94,6 +94,17 @@ const config: Config = {
       letterSpacing: {
         tightish: "-0.005em",
       },
+      fontSize: {
+        caption: ["var(--text-caption)", { lineHeight: "1.35" }],
+        meta: ["var(--text-meta)", { lineHeight: "1.4" }],
+        "body-sm": ["var(--text-body-sm)", { lineHeight: "1.5" }],
+        body: ["var(--text-body)", { lineHeight: "1.6" }],
+        "body-lg": ["var(--text-body-lg)", { lineHeight: "1.55" }],
+        "title-sm": ["var(--text-title-sm)", { lineHeight: "1.3" }],
+        title: ["var(--text-title)", { lineHeight: "1.25" }],
+        "title-lg": ["var(--text-title-lg)", { lineHeight: "1.2" }],
+        display: ["var(--text-display)", { lineHeight: "1.15" }],
+      },
       animation: {
         marquee: "marquee var(--duration, 40s) infinite linear",
         "marquee-vertical": "marquee-vertical var(--duration, 40s) linear infinite",

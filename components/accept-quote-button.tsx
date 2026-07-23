@@ -49,7 +49,7 @@ export function AcceptQuoteButton({ quoteId }: { quoteId: string }) {
       >
         {busy || pending ? "Accepting…" : "Accept"}
       </Button>
-      {error ? <span className="text-[12px] text-sem-red">{error}</span> : null}
+      {error ? <span className="text-[13px] text-sem-red">{error}</span> : null}
     </div>
   );
 }

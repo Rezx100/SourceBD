@@ -143,7 +143,7 @@ export default async function SupplierClaimPage({
                         .join(", ")}{" "}
                       · {c.proof_email}
                     </p>
-                    <p className="mt-1 text-[11px] text-ink-tertiary">
+                    <p className="mt-1 text-[12px] text-ink-tertiary">
                       Started {new Date(c.created_at).toLocaleDateString()} ·{" "}
                       {c.method === "domain_email" ? "Domain proof" : "Manual review"}
                     </p>

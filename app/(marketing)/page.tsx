@@ -1,54 +1,71 @@
 // SourceBD — marketing homepage.
 //
-// An enterprise-grade composition built around Magic UI's animated
-// primitives, each used to carry a specific message — never for
-// decoration alone:
+// Founder-approved composition promoted from /home-demo (23 Jul 2026).
 //
-//   • Globe            → BD-rooted platform serving international buyers
-//   • TextHighlighter  → one deliberate emphasis in the closing CTA
-//   • AvatarCircles    → 10,000+ verified companies, social proof
-//   • Marquee          → the real authority logos we aggregate from
-//   • NumberTicker     → the live index, in numbers (marketing_stats RPC)
-//   • AnimatedBeam     → the verification engine, behind the scenes
-//   • OrbitingCircles  → every claim circles back to an issuing authority
-//   • AnimatedList     → live provenance feed (verified evidence in motion)
-//   • Provider grid    → the certifications & registers we read directly
+// Narrative order: claim → scale proof → evidence → capabilities →
+// how the record is built → decision path → convert.
 //
-// Light mode only. Forest green is a signature, not a theme.
+//   1. Hero (animated product window, live supplier count)
+//   2. MoatStats (live counters + sanctions/freshness strip)
+//   3. Evidence Anatomy (live Compliance surfaces from a real profile)
+//   4. Buyer workflow bento (animated product-capability story)
+//   5. Record network (how the record is built — intelligence engine)
+//   6. Isometric decision path
+//   7. Closing CTA
+//
+// All sections share one container (max-w-[1200px] px-4 sm:px-6), one Kicker,
+// two vertical-rhythm steps (py-16/20 standard · py-24/28 feature) and
+// hairline border-b separators with white / neutral-50 alternation.
+//
 // Nav + footer are mounted by app/(marketing)/layout.tsx.
 
 import type { Metadata } from "next";
 import Link from "next/link";
-import Image from "next/image";
+import { Suspense, type ReactNode } from "react";
+import { ArrowRight } from "@phosphor-icons/react/dist/ssr";
 
-import {
-  ArrowRight,
-  Buildings,
-  Certificate,
-  FileText,
-  MagnifyingGlass,
-  ShieldCheck,
-  Storefront,
-} from "@phosphor-icons/react/dist/ssr";
-
-import { AnimatedGridPattern } from "@/components/ui/animated-grid-pattern";
-import { AvatarCircles } from "@/components/ui/avatar-circles";
 import { BlurFade } from "@/components/ui/blur-fade";
-import { MagicCard } from "@/components/ui/magic-card";
-import { Marquee } from "@/components/ui/marquee";
-import { NumberTicker } from "@/components/ui/number-ticker";
-import { TextHighlighter } from "@/components/ui/text-highlighter";
-
-import { DataPipeline } from "@/components/marketing/home/data-pipeline";
-import { TrustOrbit } from "@/components/marketing/home/trust-orbit";
-import { VerificationFeed } from "@/components/marketing/home/verification-feed";
+import { BuyerWorkflowBento } from "@/components/marketing/home/buyer-workflow-bento";
+import { EvidenceAnatomy } from "@/components/marketing/home/evidence-anatomy";
+import { HeroBackdrop } from "@/components/marketing/home/hero-backdrop";
+import { HomeHero } from "@/components/marketing/home/hero-product-window";
+import { IsometricDecisionPath } from "@/components/marketing/home/isometric-decision-path";
+import { MoatStats } from "@/components/marketing/home/moat-stats";
+import { Kicker } from "@/components/marketing/home/kicker";
+import { RecordNetworkSection } from "@/components/marketing/home/record-network-section";
 
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
-export const dynamic = "force-dynamic";
-
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://sourcebd.net";
-const FOREST = "var(--brand-forest)";
+
+/** Quiet reserved band while live sections resolve — no invented copy/numbers. */
+function SectionFallback({ className }: { className?: string }) {
+  return (
+    <div
+      role="status"
+      aria-live="polite"
+      className={className ?? "min-h-[12rem] border-b border-neutral-200 bg-white"}
+    >
+      <span className="sr-only">Loading live supplier evidence</span>
+    </div>
+  );
+}
+
+function Deferred({
+  children,
+  fallbackClassName,
+}: {
+  children: ReactNode;
+  fallbackClassName?: string;
+}) {
+  return (
+    <Suspense fallback={<SectionFallback className={fallbackClassName} />}>
+      {children}
+    </Suspense>
+  );
+}
+
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "SourceBD — Verified Bangladesh Garment Factories, on the Record",
@@ -82,7 +99,6 @@ export const metadata: Metadata = {
 };
 
 // ─── Data ────────────────────────────────────────────────────────
-
 type Stats = {
   suppliers_indexed: number | null;
   suppliers_with_tier1or2_source: number | null;
@@ -112,153 +128,14 @@ async function loadStats(): Promise<Stats> {
   }
 }
 
-// ─── Static content ──────────────────────────────────────────────
-
-const AUTHORITY_LOGOS = [
-  { src: "/inapp-logos/BGMEA%20logo.png", alt: "BGMEA" },
-  { src: "/inapp-logos/bkmea.png", alt: "BKMEA" },
-  { src: "/inapp-logos/BGAPMEA%20logo.png", alt: "BGAPMEA" },
-  { src: "/inapp-logos/BTMA.webp", alt: "BTMA" },
-  { src: "/inapp-logos/EPB-Logo.png", alt: "EPB" },
-  { src: "/inapp-logos/RSC-logo.png", alt: "RSC" },
-  { src: "/inapp-logos/okeo100.png", alt: "OEKO-TEX" },
-  { src: "/inapp-logos/wrap.png", alt: "WRAP" },
-  { src: "/inapp-logos/gost.png", alt: "GOTS" },
-  { src: "/inapp-logos/GRS.png", alt: "GRS" },
-  { src: "/inapp-logos/RCS.png", alt: "RCS" },
-  { src: "/inapp-logos/OCS.png", alt: "OCS" },
-  { src: "/inapp-logos/amfori.jpg", alt: "amfori BSCI" },
-];
-
-const COMPANY_AVATARS = [
-  { initials: "AT", label: "Aman Tex" },
-  { initials: "DG", label: "DBL Group" },
-  { initials: "SK", label: "Square Knit" },
-  { initials: "VT", label: "Viyellatex" },
-  { initials: "PG", label: "Pacific Group" },
-  { initials: "EH", label: "Epyllion" },
-];
-
-const POSITIONING = [
-  {
-    title: "Not a marketplace.",
-    body: "We don't take a cut of your sourcing, rank suppliers who pay, or broker introductions.",
-    positive: "We index who is real and let you reach them directly.",
-  },
-  {
-    title: "Not a broker.",
-    body: "No commissions, no exclusivity, no supplier we're quietly incentivised to push.",
-    positive: "The same record is shown to every buyer, every time.",
-  },
-  {
-    title: "Not a rating agency.",
-    body: "We never invent a proprietary score that hides how a judgement was reached.",
-    positive: "You see the issuer's evidence and form your own view.",
-  },
-];
-
-// ─── Primitives ──────────────────────────────────────────────────
-
-function Kicker({ children }: { children: React.ReactNode }) {
-  return (
-    <p className="mb-3 inline-flex items-center gap-2 font-mono text-xs uppercase tracking-widest text-brand-forest">
-      <span className="h-1.5 w-1.5 rounded-full bg-brand-forest" />
-      {children}
-    </p>
-  );
-}
-
-function Heading({ children }: { children: React.ReactNode }) {
-  return (
-    <h2 className="text-balance font-display text-[clamp(1.75rem,6vw,2.25rem)] font-bold leading-tight tracking-tight text-neutral-900 md:text-4xl">
-      {children}
-    </h2>
-  );
-}
-
-function HeroDossierPreview({ stats }: { stats: Stats }) {
-  const dossierStats = [
-    { num: stats.suppliers_indexed, fallback: "10,000+", label: "suppliers" },
-    { num: stats.suppliers_with_tier1or2_source, fallback: "9,000+", label: "corroborated" },
-    { num: stats.compliance_documents_mirrored, fallback: "7,000+", label: "documents" },
-  ];
-
-  return (
-    <MagicCard
-      className="mx-auto w-full max-w-[520px] rounded-lg border border-neutral-200 bg-white p-5 shadow-sm sm:p-6"
-      gradientFrom={FOREST}
-      gradientTo="var(--brand-forest-mid)"
-      gradientColor="var(--brand-forest-soft)"
-      gradientOpacity={0.1}
-    >
-      <div className="flex items-start justify-between gap-4 border-b border-neutral-200 pb-4">
-        <div>
-          <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-neutral-500">
-            Evidence dossier
-          </p>
-          <h2 className="mt-1 font-display text-2xl font-bold tracking-tight text-neutral-900 sm:text-3xl">
-            Verified supplier profile
-          </h2>
-          <p className="mt-2 max-w-sm text-sm leading-relaxed text-neutral-600">
-            The same card language buyers use inside the portal: verified
-            evidence, source rows, and documents before any outreach.
-          </p>
-        </div>
-        <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-neutral-200 bg-neutral-50 text-brand-forest">
-          <ShieldCheck size={24} weight="duotone" aria-hidden />
-        </span>
-      </div>
-
-      <div className="grid grid-cols-3 gap-3 py-4">
-        {dossierStats.map(({ num, fallback, label }) => (
-          <div key={label} className="rounded-lg border border-neutral-200 bg-neutral-50 p-3">
-            <p className="font-display text-xl font-bold leading-none text-neutral-900">
-              {num != null ? (
-                <NumberTicker value={num} className="text-neutral-900" />
-              ) : (
-                fallback
-              )}
-            </p>
-            <p className="mt-1 text-[11px] font-medium text-neutral-500">{label}</p>
-          </div>
-        ))}
-      </div>
-
-      <div className="space-y-2 border-t border-neutral-200 pt-4">
-        {[
-          ["BGMEA", "Trade association register", "Verified"],
-          ["RSC", "Remediation and safety evidence", "96%"],
-          ["GOTS", "Certification body record", "Active"],
-          ["UFLPA", "Sanctions screening", "Clear"],
-        ].map(([code, label, status]) => (
-          <div
-            key={code}
-            className="grid grid-cols-[64px_minmax(0,1fr)_auto] items-center gap-3 rounded-lg border border-neutral-200 bg-white px-3 py-2.5"
-          >
-            <span className="font-mono text-xs font-semibold text-brand-forest">
-              {code}
-            </span>
-            <span className="min-w-0 truncate text-sm text-neutral-700">{label}</span>
-            <span className="rounded-lg bg-neutral-100 px-2 py-1 text-[11px] font-semibold text-neutral-600">
-              {status}
-            </span>
-          </div>
-        ))}
-      </div>
-    </MagicCard>
-  );
-}
-
-// ─── Page ────────────────────────────────────────────────────────
-
-export default async function HomeV2Page() {
+export default async function HomePage() {
   const stats = await loadStats();
-  const suppliersLabel = stats.suppliers_indexed
-    ? `${stats.suppliers_indexed.toLocaleString()}`
-    : "10,000";
 
   return (
-    <div className="overflow-x-hidden bg-bg-l0 font-body text-neutral-900">
+    <main
+      aria-label="SourceBD product overview"
+      className="overflow-x-clip bg-bg-l0 font-body text-neutral-900"
+    >
       {/* JSON-LD */}
       <script
         type="application/ld+json"
@@ -280,416 +157,97 @@ export default async function HomeV2Page() {
         }}
       />
 
-      {/* ════════ HERO ════════ */}
-      <section className="relative overflow-hidden border-b border-neutral-200 bg-white">
-        <AnimatedGridPattern
-          className="absolute inset-0 fill-brand-forest/5 stroke-brand-forest/10 text-brand-forest opacity-70 [mask-image:radial-gradient(700px_circle_at_30%_30%,white,transparent)]"
-          numSquares={50}
-          maxOpacity={0.09}
-          duration={3}
-          repeatDelay={1}
+      {/* ════════ 1 · HERO — wash band ends with the product window ════════ */}
+      <div className="relative border-b border-neutral-200">
+        <HeroBackdrop showGrid={false} />
+        <div className="relative z-10">
+          <HomeHero suppliersIndexed={stats.suppliers_indexed} />
+        </div>
+      </div>
+
+      {/* ════════ 2 · MOAT PROOF — live counters + freshness ════════ */}
+      <MoatStats
+        suppliersIndexed={stats.suppliers_indexed}
+        corroborated={stats.suppliers_with_tier1or2_source}
+        documentsMirrored={stats.compliance_documents_mirrored}
+        certificationsVerified={stats.certifications_verified}
+        sanctionsListsScreened={stats.sanctions_lists_screened}
+        lastRefreshedAt={stats.last_refreshed_at}
+      />
+
+      {/* ════════ 3 · EVIDENCE ANATOMY — live Compliance tab ════════
+          Anchor target for the nav/footer "Sources" links; scroll-mt clears
+          the 72px sticky nav. */}
+      <div id="sources" className="scroll-mt-24">
+        <Deferred fallbackClassName="min-h-[28rem] border-b border-neutral-200 bg-neutral-50">
+          <EvidenceAnatomy />
+        </Deferred>
+      </div>
+
+      {/* ════════ 4 · BUYER WORKFLOW BENTO — one connected sourcing story ════════ */}
+      <BuyerWorkflowBento />
+
+      {/* ════════ 5 · RECORD NETWORK — evidence streams → canonical record ════════
+          Anchor target for the nav/footer "How we verify" links. */}
+      <div id="how-we-verify" className="scroll-mt-24">
+        <Deferred fallbackClassName="min-h-[28rem] border-b border-neutral-200 bg-white">
+          <RecordNetworkSection />
+        </Deferred>
+      </div>
+
+      {/* ════════ 6 · DECISION PATH ════════ */}
+      <IsometricDecisionPath />
+
+      {/* ════════ 7 · CLOSING CTA — light editorial close. Centered dark
+          typography on a near-white band; the forest button is the only
+          saturated element. The scenic footer below closes the page on the
+          same light register. ════════ */}
+      <section className="relative overflow-hidden bg-neutral-50 py-20 sm:py-24 md:py-32">
+        {/* Whisper decoration only: a centered forest tint behind the
+            headline and a faint ring echoing the record motif. */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 bg-[radial-gradient(640px_300px_at_50%_18%,rgba(31,77,58,0.06),transparent_70%)]"
+        />
+        <div
+          aria-hidden
+          className="pointer-events-none absolute left-1/2 top-1/2 size-[560px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-brand-forest/[0.07] sm:size-[760px]"
+        />
+        <div
+          aria-hidden
+          className="pointer-events-none absolute left-1/2 top-1/2 size-[380px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-brand-forest/[0.05] sm:size-[520px]"
         />
 
-        <div className="relative z-10 mx-auto grid max-w-6xl items-center gap-8 px-6 pb-16 pt-16 md:px-12 md:pt-24 lg:grid-cols-2 lg:gap-12 lg:px-20">
-          {/* Left — message */}
-          <div className="text-center lg:text-left">
-            <BlurFade delay={0.15}>
-              <h1 className="font-display text-[clamp(2.75rem,12vw,4.75rem)] font-extrabold leading-[1.02] tracking-[-0.03em] text-neutral-900">
-                Verified
-                <br />
-                Bangladesh
-                <br />
-                <span className="text-brand-forest">factories.</span>
-              </h1>
-            </BlurFade>
-
-            <BlurFade delay={0.3}>
-              <p className="mx-auto mt-5 max-w-md !text-center text-base leading-relaxed text-neutral-600 sm:mt-6 md:text-lg lg:mx-0 lg:!text-left lg:text-xl">
-                Find, vet and message garment suppliers — with verified evidence
-                behind every claim.
-              </p>
-            </BlurFade>
-
-            <BlurFade delay={0.45}>
-              {/* Search field with a calm, continuous comet: a single
-                  forest-green segment travels the rounded-rect perimeter
-                  (A→B→C→D→A) at uniform speed via SVG stroke-dashoffset
-                  (pathLength-normalised). Pure CSS animation — smooth across
-                  corners, no JS, no hydration cost. */}
-              <form
-                className="relative mx-auto mt-8 flex max-w-xl items-center gap-2 rounded-xl border border-neutral-200 bg-white px-3 py-2 shadow-sm md:px-4 md:py-2.5 lg:mx-0"
-                action="/discover"
-                method="get"
-                role="search"
-              >
-                <svg
-                  aria-hidden
-                  className="search-comet pointer-events-none absolute inset-0 h-full w-full overflow-visible"
-                  preserveAspectRatio="none"
-                >
-                  {/* One unified comet: many fine, evenly phase-shifted
-                      sub-segments travel the perimeter together. Their width +
-                      opacity follow a sine envelope (0 at both tips, peak in the
-                      middle), so the streak reads as a single line that narrows
-                      and fades at BOTH ends — not discrete steps. All share one
-                      linear keyframe, so the loop is seamless and smooth across
-                      corners. */}
-                  {Array.from({ length: 22 }, (_, i) => {
-                    const t = (i + 1) / 23; // 0..1 along the streak
-                    const env = Math.sin(Math.PI * t); // 0 at ends, 1 mid
-                    return (
-                      <rect
-                        key={i}
-                        x="0"
-                        y="0"
-                        width="100%"
-                        height="100%"
-                        rx="12"
-                        ry="12"
-                        pathLength={100}
-                        fill="none"
-                        stroke="var(--brand-forest-mid)"
-                        strokeWidth={0.2 + env * 1.1}
-                        strokeLinecap="round"
-                        strokeDasharray="1 99"
-                        style={{ opacity: 0.04 + env * 0.8, animationDelay: `-${i * 0.03}s` }}
-                      />
-                    );
-                  })}
-                </svg>
-                <MagnifyingGlass size={20} className="hidden shrink-0 text-neutral-400 sm:block" />
-                <input
-                  type="search"
-                  name="q"
-                  placeholder="OEKO-TEX certified knit factory…"
-                  aria-label="Search suppliers"
-                  autoComplete="off"
-                  className="min-w-0 flex-1 bg-transparent text-sm text-neutral-900 placeholder:text-neutral-400 focus:outline-none"
-                />
-                <button type="submit" className="btn-proto primary shrink-0 px-4">
-                  Search
-                </button>
-              </form>
-            </BlurFade>
-
-            {/* Avatar proof */}
-            <BlurFade delay={0.6}>
-              <div className="mt-8 flex flex-wrap items-center justify-center gap-x-4 gap-y-3 md:mt-10 lg:justify-start">
-                <AvatarCircles avatarUrls={COMPANY_AVATARS} overflowLabel="10k+" />
-                <p className="text-[15px] text-neutral-600">
-                  <span className="font-display font-bold text-neutral-900">
-                    {suppliersLabel}+
-                  </span>{" "}
-                  verified companies indexed
-                </p>
-              </div>
-            </BlurFade>
-          </div>
-
-          {/* Right — product-derived dossier preview. This keeps the public
-              homepage visually tied to the portal instead of using an abstract
-              decorative object. */}
-          <BlurFade delay={0.3} className="relative hidden lg:block">
-            <HeroDossierPreview stats={stats} />
-            <div className="pointer-events-none mt-4 flex justify-center">
-              <span className="inline-flex items-center whitespace-nowrap rounded-full border border-neutral-200 bg-white/90 px-3.5 py-1.5 font-mono text-[10px] text-neutral-600 shadow-sm backdrop-blur-sm sm:text-[11px]">
-                <span className="mr-2 h-1.5 w-1.5 animate-pulse rounded-full bg-brand-forest" />
-                <span className="font-semibold text-brand-forest">Dhaka HQ</span>
-                <span className="mx-2 text-neutral-300">·</span>
-                serving UK&nbsp;·&nbsp;US&nbsp;·&nbsp;EU&nbsp;·&nbsp;CA
-              </span>
-            </div>
-          </BlurFade>
-        </div>
-      </section>
-
-      {/* ════════ AUTHORITY MARQUEE ════════ */}
-      <section id="sources" className="border-b border-neutral-200 bg-neutral-50 py-12 md:py-16">
-        <div className="mx-auto mb-8 max-w-6xl px-6 text-center md:px-12 lg:px-20">
-          <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-brand-forest sm:text-xs">
-            Sources of record
-          </p>
-          <h2 className="mt-2 text-balance font-display text-xl font-bold tracking-tight text-neutral-900 sm:text-2xl md:text-3xl">
-            Built on the registers buyers already trust.
-          </h2>
-          <div className="mt-2 flex w-full justify-center">
-            <p className="max-w-xl text-center text-balance text-sm text-neutral-500">
-              Government bodies, trade associations and certification authorities — aggregated, never invented.
-            </p>
-          </div>
-        </div>
-
-        {/* edge-faded marquee for depth */}
-        <div className="relative">
-          <Marquee pauseOnHover className="[--duration:34s] [--gap:0.875rem] sm:[--gap:1.25rem]">
-            {AUTHORITY_LOGOS.map((logo) => (
-              <div
-                key={logo.alt}
-                className="flex h-14 w-28 items-center justify-center rounded-lg border border-neutral-200 bg-white px-3 shadow-sm transition duration-300 hover:border-brand-forest/25 hover:bg-neutral-50 sm:h-20 sm:w-40 sm:px-6"
-              >
-                <Image
-                  src={logo.src}
-                  alt={logo.alt}
-                  width={140}
-                  height={56}
-                  className="max-h-8 w-auto max-w-[76px] object-contain sm:max-h-11 sm:max-w-[112px]"
-                />
-              </div>
-            ))}
-          </Marquee>
-          <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-20 bg-gradient-to-r from-neutral-50 via-neutral-50 to-transparent sm:w-40" />
-          <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-20 bg-gradient-to-l from-neutral-50 via-neutral-50 to-transparent sm:w-40" />
-        </div>
-      </section>
-
-      {/* ════════ STATS BAND ════════ */}
-      <section className="border-b border-neutral-200 px-6 py-12 md:px-12 md:py-14 lg:px-20">
-        <div className="mx-auto max-w-6xl">
-          <div className="grid grid-cols-2 gap-x-6 gap-y-10 sm:gap-x-8 lg:grid-cols-4 lg:gap-0 lg:divide-x lg:divide-neutral-200">
-            {[
-              { icon: <Buildings size={26} weight="duotone" />, value: stats.suppliers_indexed, label: "Suppliers indexed" },
-              { icon: <ShieldCheck size={26} weight="duotone" />, value: stats.suppliers_with_tier1or2_source, label: "Gov / association corroborated" },
-              { icon: <FileText size={26} weight="duotone" />, value: stats.compliance_documents_mirrored, label: "Compliance documents mirrored" },
-              { icon: <Storefront size={26} weight="duotone" />, value: 31, label: "Official sources in sync", outOf: 31 },
-            ].map((s, i) => (
-              <BlurFade key={s.label} delay={0.1 + i * 0.08}>
-                <div className="flex flex-col lg:px-7">
-                  <span className="mb-3 inline-flex h-11 w-11 items-center justify-center rounded-lg bg-brand-forest-soft text-brand-forest shadow-sm">
-                    {s.icon}
-                  </span>
-                <span className="flex items-baseline gap-1 font-display text-2xl font-bold tabular-nums text-neutral-900 sm:text-3xl lg:text-4xl">
-                    {typeof s.value === "number" ? (
-                      <NumberTicker value={s.value} className="tracking-tight text-neutral-900" />
-                    ) : (
-                      "—"
-                    )}
-                    {s.outOf ? (
-                      <span className="text-sm font-semibold text-neutral-400 sm:text-base lg:text-lg">
-                        / {s.outOf}
-                      </span>
-                    ) : null}
-                  </span>
-                  <span className="mt-1.5 text-xs leading-snug text-neutral-500 sm:text-sm">{s.label}</span>
-                </div>
-              </BlurFade>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ════════ FEATURE 1 — Behind the scenes (AnimatedBeam) ════════ */}
-      <section id="how-we-verify" className="border-b border-neutral-200 px-6 py-14 md:px-12 md:py-20 lg:px-20">
-        <div className="mx-auto grid max-w-6xl items-center gap-10 lg:grid-cols-2 lg:gap-16">
-          {/* copy */}
-          <div className="text-left">
-            <BlurFade delay={0.1}>
-              <span className="inline-flex h-14 w-14 items-center justify-center rounded-lg bg-brand-forest-soft text-brand-forest">
-                <FileText size={30} weight="duotone" />
-              </span>
-              <p className="mt-6 font-mono text-xs uppercase tracking-[0.2em] text-brand-forest">
-                Step 01 · Collect &amp; reconcile
-              </p>
-              <h2 className="mt-3 text-balance font-display text-[clamp(1.75rem,6vw,2.6rem)] font-bold leading-tight tracking-tight text-neutral-900">
-                Two sides of evidence, one verified record.
-              </h2>
-              <p className="mt-5 max-w-lg text-lg leading-relaxed text-neutral-600">
-                Certification bodies on one side, government registers and trade
-                associations on the other — all reconciled into a single
-                canonical factory record you can act on.
-              </p>
-            </BlurFade>
-
-            <BlurFade delay={0.25}>
-              <ul className="mt-8 max-w-sm space-y-4 text-left lg:max-w-none">
-                {[
-                  "31 official sources, continuously refreshed",
-                  "Matched and de-duplicated to one canonical factory",
-                  "Higher-tier evidence always overrides lower-tier",
-                ].map((line) => (
-                  <li key={line} className="flex items-start gap-3 text-base text-neutral-700">
-                    <ShieldCheck size={22} weight="fill" className="mt-0.5 shrink-0 text-brand-forest" />
-                    {line}
-                  </li>
-                ))}
-              </ul>
-            </BlurFade>
-          </div>
-
-          {/* borderless visual — bleeds into the page, no box */}
-          <BlurFade delay={0.2}>
-            <div className="relative mx-auto w-full max-w-[440px] sm:max-w-[480px]">
-              <div className="absolute -inset-10 -z-10 rounded-full bg-brand-forest/10 blur-3xl" />
-              <DataPipeline />
-            </div>
-          </BlurFade>
-        </div>
-      </section>
-
-      {/* ════════ FEATURE 2 — Live provenance feed (AnimatedList) ════════ */}
-      <section className="border-b border-neutral-200 bg-neutral-50 px-6 py-16 md:px-12 md:py-20 lg:px-20">
-        <div className="mx-auto grid max-w-6xl items-center gap-10 lg:grid-cols-2 lg:gap-16">
-          {/* borderless visual (left on desktop) — bleeds into the page */}
-          <BlurFade delay={0.2} className="order-2 lg:order-1">
-            <div className="relative mx-auto w-full max-w-[480px] lg:mx-0">
-              <div className="absolute -inset-10 -z-10 rounded-full bg-brand-forest/10 blur-3xl" />
-              <VerificationFeed />
-            </div>
-          </BlurFade>
-
-          {/* copy */}
-          <div className="order-1 text-left lg:order-2">
-            <BlurFade delay={0.1}>
-              <span className="inline-flex h-14 w-14 items-center justify-center rounded-lg bg-brand-forest-soft text-brand-forest">
-                <ShieldCheck size={30} weight="duotone" />
-              </span>
-              <p className="mt-6 font-mono text-xs uppercase tracking-[0.2em] text-brand-forest">
-                Step 02 · Evidence, in real time
-              </p>
-              <h2 className="mt-3 text-balance font-display text-[clamp(1.75rem,6vw,2.6rem)] font-bold leading-tight tracking-tight text-neutral-900">
-                Watch the evidence land, claim by claim.
-              </h2>
-              <p className="mt-5 max-w-lg text-lg leading-relaxed text-neutral-600">
-                Register matches, certificate confirmations and sanctions
-                screens stream into each supplier profile — every row is
-                verified evidence from a named issuer, with the tier and date
-                attached.
-              </p>
-            </BlurFade>
-
-            <BlurFade delay={0.25}>
-              <Link href="/discover" className="btn-proto primary mt-8 gap-2">
-                Explore the index <ArrowRight size={16} />
-              </Link>
-            </BlurFade>
-          </div>
-        </div>
-      </section>
-
-      {/* ════════ FEATURE 3 — Trust hierarchy (OrbitingCircles) ════════ */}
-      <section className="border-b border-neutral-200 px-6 py-16 md:px-12 md:py-20 lg:px-20">
-        <div className="mx-auto grid max-w-6xl items-center gap-10 lg:grid-cols-2 lg:gap-16">
-          {/* copy */}
-          <div className="text-left">
-            <BlurFade delay={0.1}>
-              <span className="inline-flex h-14 w-14 items-center justify-center rounded-lg bg-brand-forest-soft text-brand-forest">
-                <Certificate size={30} weight="duotone" />
-              </span>
-              <p className="mt-6 font-mono text-xs uppercase tracking-[0.2em] text-brand-forest">
-                Step 03 · Ranked by authority
-              </p>
-              <h2 className="mt-3 text-balance font-display text-[clamp(1.75rem,6vw,2.6rem)] font-bold leading-tight tracking-tight text-neutral-900">
-                Every claim circles back to an authority.
-              </h2>
-              <p className="mt-5 max-w-lg text-lg leading-relaxed text-neutral-600">
-                We never publish a proprietary score. Each fact on a profile is
-                ranked by the body that issued it — government and statutory
-                first, then associations, certification bodies, brand
-                disclosures, and sanctions screening.
-              </p>
-            </BlurFade>
-
-            <BlurFade delay={0.25}>
-              <div className="mt-8 grid max-w-sm grid-cols-2 gap-3 text-left sm:grid-cols-3 lg:max-w-none">
-                {["Government", "Associations", "Certifications", "Brand disclosures", "Sanctions", "Cross-check"].map(
-                  (t, i) => (
-                    <span
-                      key={t}
-                      className="flex items-center gap-2 rounded-lg border border-neutral-200 bg-white px-3 py-2.5 text-sm font-medium text-neutral-700"
-                    >
-                      <span className="font-mono text-brand-forest">
-                        {String(i + 1).padStart(2, "0")}
-                      </span>
-                      {t}
-                    </span>
-                  ),
-                )}
-              </div>
-            </BlurFade>
-          </div>
-
-          {/* borderless orbit — bleeds into the page */}
-          <BlurFade delay={0.2}>
-            <div className="relative mx-auto flex w-full max-w-[520px] justify-center sm:max-w-[620px] lg:scale-110">
-              <div className="absolute -inset-12 -z-10 rounded-full bg-brand-forest/10 blur-3xl" />
-              <TrustOrbit />
-            </div>
-          </BlurFade>
-        </div>
-      </section>
-
-      {/* ════════ POSITIONING ════════ */}
-      <section className="border-b border-neutral-200 bg-neutral-50 px-6 py-16 md:px-12 md:py-20 lg:px-20">
-        <div className="mx-auto max-w-6xl">
+        <div className="relative mx-auto w-full max-w-[1200px] px-4 sm:px-6 text-center">
           <BlurFade delay={0.1}>
-            <Kicker>What we are</Kicker>
-            <Heading>
-              A neutral public-record index.{" "}
-              <span className="text-neutral-400">Nothing more, by design.</span>
-            </Heading>
-          </BlurFade>
-
-          <div className="mt-10 grid gap-4 sm:grid-cols-2 md:mt-12 md:grid-cols-3">
-            {POSITIONING.map((card) => (
-              <BlurFade key={card.title} delay={0.15}>
-                <MagicCard
-                  className="rounded-xl border border-neutral-200 bg-white p-6"
-                  gradientFrom={FOREST}
-                  gradientTo="var(--brand-forest-mid)"
-                  gradientColor="var(--brand-forest-soft)"
-                  gradientOpacity={0.12}
-                >
-                  <div className="flex h-full flex-col">
-                    <h3 className="font-display text-lg font-semibold text-neutral-800">
-                      {card.title}
-                    </h3>
-                    <p className="mt-2 flex-1 text-sm text-neutral-500">{card.body}</p>
-                    <p className="mt-4 border-t border-neutral-200 pt-4 text-sm text-neutral-700">
-                      <span className="text-brand-forest">✓</span> {card.positive}
-                    </p>
-                  </div>
-                </MagicCard>
-              </BlurFade>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ════════ CTA ════════ */}
-      <section className="px-6 py-20 md:px-12 md:py-24 lg:px-20">
-        <div className="mx-auto max-w-6xl text-center">
-          <BlurFade delay={0.1}>
-            <h2 className="text-balance font-display text-[clamp(1.875rem,7vw,3.5rem)] font-bold tracking-tight text-neutral-900">
-              Start vetting with{" "}
-              <TextHighlighter
-                highlightColor="var(--brand-forest-soft)"
-                transition={{ type: "spring", duration: 1, delay: 0.2, bounce: 0 }}
-              >
-                verified evidence behind every claim.
-              </TextHighlighter>
-            </h2>
-            <div className="mt-4 flex w-full justify-center">
-              <p className="max-w-sm text-center text-base leading-relaxed text-neutral-600 sm:text-lg">
-                Free to search the index. No marketplace fees, ever — just the
-                public record, refreshed weekly.
+            <div className="flex flex-col items-center">
+              <Kicker>Start with the record</Kicker>
+              <h2 className="mt-4 max-w-[20ch] text-balance font-display text-4xl font-extrabold leading-[1.04] tracking-[-0.03em] text-neutral-950 sm:text-5xl">
+                Start vetting with evidence.
+              </h2>
+              <p className="mt-5 max-w-[46ch] text-balance text-base leading-relaxed text-neutral-600">
+                Search the index free. Every record traceable to its issuing
+                authority — refreshed weekly.
               </p>
-            </div>
-          </BlurFade>
 
-          <BlurFade delay={0.25}>
-            <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
-              <Link href="/signup" className="btn-proto primary gap-2 px-7 py-3 text-sm">
-                Start free <ArrowRight size={16} />
-              </Link>
-              <Link
-                href="/pricing"
-                className="rounded-lg border border-neutral-300 px-6 py-3 text-sm font-medium text-neutral-700 transition-colors hover:border-neutral-400 hover:text-neutral-900"
-              >
-                See pricing
-              </Link>
+              <div className="mt-10 flex w-full flex-col items-stretch justify-center gap-3 min-[420px]:w-auto min-[420px]:flex-row min-[420px]:items-center sm:mt-12 sm:gap-4">
+                <Link
+                  href="/signup"
+                  className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-lg bg-brand-forest px-6 py-2.5 text-sm font-semibold !text-white shadow-[0_14px_30px_-14px_rgba(31,77,58,0.55)] transition-transform motion-safe:hover:-translate-y-0.5"
+                >
+                  Start free <ArrowRight size={16} weight="bold" />
+                </Link>
+                <Link
+                  href="/pricing"
+                  className="inline-flex min-h-[44px] items-center justify-center rounded-lg border border-neutral-300 bg-white px-5 py-2.5 text-sm font-medium !text-neutral-800 shadow-[0_1px_2px_rgba(15,15,20,0.04)] transition-colors hover:border-neutral-400"
+                >
+                  See pricing
+                </Link>
+              </div>
             </div>
           </BlurFade>
         </div>
       </section>
-    </div>
+    </main>
   );
 }

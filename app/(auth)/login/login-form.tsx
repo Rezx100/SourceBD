@@ -129,7 +129,7 @@ export function LoginForm({ next }: { next: string }) {
       </form>
 
       <p className="mt-8 flex items-start gap-1.5 text-xs leading-relaxed text-neutral-400">
-        <ShieldCheck size={14} weight="fill" className="mt-px shrink-0" />
+        <ShieldCheck size={16} weight="fill" className="mt-px shrink-0" />
         Sessions are encrypted in transit. SourceBD is a neutral public-record
         index — not a marketplace, broker or rating agency.
       </p>

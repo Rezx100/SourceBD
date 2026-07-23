@@ -232,7 +232,6 @@ export default async function AdminSupplierEditorPage({
                 { label: "Website", value: s.website, mono: true },
                 { label: "Registered address", value: s.address_raw },
                 { label: "Parent group", value: s.parent_group_name },
-                { label: "Profile completeness", value: s.completeness_pct != null ? `${s.completeness_pct}%` : null },
                 { label: "Internal SBI total", value: s.sbi_total != null ? String(s.sbi_total) : null, mono: true },
                 { label: "Source tags", value: s.source_tags && s.source_tags.length > 0 ? s.source_tags.join(", ") : null, mono: true },
               ]}
@@ -245,9 +244,9 @@ export default async function AdminSupplierEditorPage({
           padded={false}
         >
             {doc.source_records.length === 0 ? (
-              <p className="p-4 text-[13px] text-ink-tertiary sm:p-5">No source records.</p>
+              <p className="p-4 text-[14px] text-ink-tertiary sm:p-5">No source records.</p>
             ) : (
-              <AdminRowList className="text-[12px]">
+              <AdminRowList className="text-[13px]">
                 {doc.source_records.map((sr) => (
                   <AdminRow key={sr.id}>
                     <span className="font-mono">
@@ -274,9 +273,9 @@ export default async function AdminSupplierEditorPage({
           padded={false}
         >
             {doc.certifications.length === 0 ? (
-              <p className="p-4 text-[13px] text-ink-tertiary sm:p-5">No certifications.</p>
+              <p className="p-4 text-[14px] text-ink-tertiary sm:p-5">No certifications.</p>
             ) : (
-              <AdminRowList className="text-[12px]">
+              <AdminRowList className="text-[13px]">
                 {doc.certifications.map((c) => (
                   <AdminRow key={c.id}>
                     <span className="font-mono">
@@ -301,9 +300,9 @@ export default async function AdminSupplierEditorPage({
           padded={false}
         >
             {doc.verification_queue.length === 0 ? (
-              <p className="p-4 text-[13px] text-ink-tertiary sm:p-5">No queue entries.</p>
+              <p className="p-4 text-[14px] text-ink-tertiary sm:p-5">No queue entries.</p>
             ) : (
-              <AdminRowList className="text-[12px]">
+              <AdminRowList className="text-[13px]">
                 {doc.verification_queue.map((v) => (
                   <AdminRow key={v.id}>
                     <Link
@@ -331,11 +330,11 @@ export default async function AdminSupplierEditorPage({
         padded={false}
       >
           {doc.recent_audit.length === 0 ? (
-            <p className="p-4 text-[13px] text-ink-tertiary sm:p-5">
+            <p className="p-4 text-[14px] text-ink-tertiary sm:p-5">
               No admin actions logged for this supplier yet.
             </p>
           ) : (
-            <AdminRowList className="text-[12px]">
+            <AdminRowList className="text-[13px]">
               {doc.recent_audit.map((a) => (
                 <li
                   key={a.id}
@@ -348,12 +347,12 @@ export default async function AdminSupplierEditorPage({
                     </span>
                   </div>
                   {a.patch ? (
-                    <pre className="mt-1 overflow-x-auto rounded-input border border-hairline bg-bg-l0 p-2 font-mono text-[11px] text-ink-secondary">
+                    <pre className="mt-1 overflow-x-auto rounded-input border border-hairline bg-bg-l0 p-2 font-mono text-[12px] text-ink-secondary">
                       {JSON.stringify(a.patch, null, 2)}
                     </pre>
                   ) : null}
                   {a.metadata ? (
-                    <pre className="mt-1 overflow-x-auto rounded-input border border-hairline bg-bg-l0 p-2 font-mono text-[11px] text-ink-tertiary">
+                    <pre className="mt-1 overflow-x-auto rounded-input border border-hairline bg-bg-l0 p-2 font-mono text-[12px] text-ink-tertiary">
                       {JSON.stringify(a.metadata, null, 2)}
                     </pre>
                   ) : null}
@@ -390,13 +389,13 @@ function ReadinessItem({
             : "border-red-200 bg-red-50")
       }
     >
-      <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-ink-tertiary">
+      <p className="text-[12px] font-medium uppercase tracking-[0.08em] text-ink-tertiary">
         {label}
       </p>
       <p className="mt-1 font-display text-lg font-semibold text-ink-primary">
         {value}
       </p>
-      {hint ? <p className="mt-1 text-[12px] text-ink-secondary">{hint}</p> : null}
+      {hint ? <p className="mt-1 text-[13px] text-ink-secondary">{hint}</p> : null}
     </div>
   );
   return href ? (

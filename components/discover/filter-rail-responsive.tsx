@@ -76,12 +76,12 @@ export function FilterRailResponsive({
           onClick={() => setOpen(true)}
           aria-haspopup="dialog"
           aria-expanded={open}
-          className="inline-flex h-[44px] min-h-[44px] items-center gap-2 rounded-pill border border-hairline-strong bg-surface-l1 px-4 text-[13px] font-semibold text-ink-primary shadow-l1 hover:bg-brand-forest-tint"
+          className="inline-flex h-[44px] min-h-[44px] items-center gap-2 rounded-pill border border-hairline-strong bg-surface-l1 px-4 text-[14px] font-semibold text-ink-primary shadow-l1 hover:bg-brand-forest-tint"
         >
           <Funnel size={16} weight="bold" aria-hidden />
           <span>{triggerLabel}</span>
           {activeCount > 0 ? (
-            <span className="ml-1 inline-flex h-5 min-w-[20px] items-center justify-center rounded-pill bg-brand-forest px-1.5 font-mono text-[10px] font-semibold text-ink-on-accent">
+            <span className="ml-1 inline-flex h-5 min-w-[22px] items-center justify-center rounded-pill bg-brand-forest px-1.5 font-mono text-[12px] font-semibold text-ink-on-accent">
               {activeCount}
             </span>
           ) : null}
@@ -90,7 +90,7 @@ export function FilterRailResponsive({
         {activeCount > 0 ? (
           <a
             href={resetHref}
-            className="font-mono text-[11px] uppercase tracking-[0.06em] text-ink-tertiary underline-offset-2 hover:text-ink-primary hover:underline"
+            className="font-mono text-[12px] uppercase tracking-[0.06em] text-ink-tertiary underline-offset-2 hover:text-ink-primary hover:underline"
           >
             Reset
           </a>

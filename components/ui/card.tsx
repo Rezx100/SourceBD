@@ -31,7 +31,7 @@ const CardTitle = React.forwardRef<HTMLHeadingElement, React.HTMLAttributes<HTML
     <h3
       ref={ref}
       className={cn(
-        "m-0 font-display text-[15px] font-bold tracking-[-0.01em] text-ink-primary",
+        "m-0 font-display text-[16px] font-bold tracking-[-0.01em] text-ink-primary",
         className,
       )}
       {...props}
@@ -44,7 +44,7 @@ const CardMeta = React.forwardRef<HTMLSpanElement, React.HTMLAttributes<HTMLSpan
   ({ className, ...props }, ref) => (
     <span
       ref={ref}
-      className={cn("font-mono text-[11px] text-ink-tertiary", className)}
+      className={cn("font-mono text-[12px] text-ink-tertiary", className)}
       {...props}
     />
   ),

@@ -62,7 +62,7 @@ export default function ForgotPasswordPage() {
           href="/login"
           className="inline-flex items-center gap-1.5 text-sm font-medium text-neutral-500 hover:text-neutral-800"
         >
-          <ArrowLeft size={15} weight="bold" /> Back to sign in
+          <ArrowLeft size={17} weight="bold" /> Back to sign in
         </Link>
       </p>
     </AuthShell>

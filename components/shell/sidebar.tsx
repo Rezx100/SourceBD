@@ -254,10 +254,10 @@ export function Sidebar({
         size="lg"
       />
       <span className="flex min-w-0 flex-1 flex-col">
-        <span className="truncate font-display text-[13.5px] font-bold tracking-[-0.01em] text-ink-primary">
+        <span className="truncate font-display text-[16px] font-bold tracking-[-0.01em] text-ink-primary">
           {profileName}
         </span>
-        <span className="truncate text-[11px] text-ink-tertiary">{profileSub}</span>
+        <span className="truncate text-[12px] text-ink-tertiary">{profileSub}</span>
       </span>
       <GearSix
         size={16}
@@ -271,7 +271,7 @@ export function Sidebar({
     <nav aria-label={`${VARIANT_LABEL[variant]} sections`} className="flex flex-col gap-5">
       {sections.map((section) => (
         <div key={section.label} className="flex flex-col gap-0.5">
-          <p className="mb-1 px-2.5 text-[11px] font-semibold uppercase tracking-[0.06em] text-ink-tertiary">
+          <p className="mb-1 px-2.5 text-[12px] font-semibold uppercase tracking-[0.06em] text-ink-tertiary">
             {section.label}
           </p>
           {section.slots.map((slot) => {
@@ -284,7 +284,7 @@ export function Sidebar({
                 key={href}
                 href={href}
                 aria-current={active ? "page" : undefined}
-                className={`group flex items-center gap-3 rounded-md px-2.5 py-[7px] text-[13px] transition-colors duration-150 ease-smooth ${
+                className={`group flex items-center gap-3 rounded-md px-2.5 py-[8px] text-[14px] transition-colors duration-150 ease-smooth ${
                   active
                     ? "bg-brand-forest-soft font-semibold text-brand-forest"
                     : "font-medium text-ink-secondary hover:bg-[rgba(15,15,20,0.045)] hover:text-ink-primary"
@@ -305,7 +305,7 @@ export function Sidebar({
                     />
                   ) : (
                     <span
-                      className={`shrink-0 rounded-md px-1.5 py-0.5 text-[10.5px] font-semibold tabular-nums ${
+                      className={`shrink-0 rounded-md px-1.5 py-0.5 text-[13px] font-semibold tabular-nums ${
                         badge.kind === "alert"
                           ? "bg-sem-red-soft text-sem-red"
                           : "bg-[rgba(15,15,20,0.06)] text-ink-tertiary"
@@ -348,7 +348,7 @@ export function Sidebar({
                 key={v}
                 href={VARIANT_HREF[v]}
                 aria-current={active ? "page" : undefined}
-                className={`flex-1 rounded-md px-2 py-1 text-center text-[11px] font-semibold capitalize transition-colors duration-150 ease-smooth ${
+                className={`flex-1 rounded-md px-2 py-1 text-center text-[12px] font-semibold capitalize transition-colors duration-150 ease-smooth ${
                   active
                     ? "bg-surface-l1 text-brand-forest shadow-[0_1px_2px_rgba(15,15,20,0.08)]"
                     : "text-ink-tertiary hover:text-ink-primary"
@@ -363,7 +363,7 @@ export function Sidebar({
       <form action="/auth/sign-out" method="post">
         <button
           type="submit"
-          className="group flex w-full items-center gap-3 rounded-md px-2.5 py-[7px] text-[13px] font-medium text-ink-secondary transition-colors duration-150 ease-smooth hover:bg-sem-red-soft hover:text-sem-red"
+          className="group flex w-full items-center gap-3 rounded-md px-2.5 py-[8px] text-[14px] font-medium text-ink-secondary transition-colors duration-150 ease-smooth hover:bg-sem-red-soft hover:text-sem-red"
         >
           <SignOut
             size={18}

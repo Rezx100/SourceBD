@@ -164,7 +164,7 @@ export default async function BuyerHome() {
             {doc.alerts.map((a) => (
               <li
                 key={`${a.supplier_id}-${a.cert_kind}-${a.expires_on}`}
-                className="flex items-center justify-between gap-3 rounded-card border border-sem-amber/30 bg-sem-amber-soft px-3 py-2.5 text-[13px]"
+                className="flex items-center justify-between gap-3 rounded-card border border-sem-amber/30 bg-sem-amber-soft px-3 py-2.5 text-[14px]"
               >
                 <span className="flex items-center gap-2 text-sem-amber">
                   <WarningCircle size={16} weight="fill" aria-hidden />
@@ -192,7 +192,7 @@ export default async function BuyerHome() {
               href="/app/saved"
               className="inline-flex items-center gap-1 text-sm font-semibold text-brand-forest hover:text-brand-forest-mid"
             >
-              View all <ArrowRight size={13} weight="bold" />
+              View all <ArrowRight size={17} weight="bold" />
             </Link>
           ) : null
         }
@@ -237,7 +237,7 @@ export default async function BuyerHome() {
                 className="flex items-center gap-3 px-4 py-3"
               >
                 <ActivityIcon kind={ev.kind} />
-                <div className="min-w-0 flex-1 truncate text-[13px]">
+                <div className="min-w-0 flex-1 truncate text-[14px]">
                   <Link
                     href={`/app/suppliers/${ev.supplier_slug}`}
                     className="font-semibold text-ink-primary hover:underline"
@@ -246,7 +246,7 @@ export default async function BuyerHome() {
                   </Link>
                   <span className="text-ink-secondary"> · {activityLabel(ev)}</span>
                 </div>
-                <span className="shrink-0 font-mono text-[11px] text-ink-tertiary">
+                <span className="shrink-0 font-mono text-[12px] text-ink-tertiary">
                   {fmtRelative(ev.event_at)}
                 </span>
               </li>
@@ -273,12 +273,12 @@ function StatTile({
 }) {
   const body = (
     <div className="group flex h-full flex-col rounded-card border border-hairline bg-surface-l1 p-5 shadow-[0_1px_2px_rgba(15,15,20,0.05)] transition duration-200 hover:-translate-y-0.5 hover:border-brand-forest/30 hover:shadow-l2">
-      <p className="text-[12px] font-medium text-ink-tertiary">{label}</p>
+      <p className="text-[13px] font-medium text-ink-tertiary">{label}</p>
       <NumberTicker
         value={value}
-        className="mt-2 font-display text-[28px] font-extrabold leading-none tracking-[-0.02em] text-ink-primary"
+        className="mt-2 font-display text-[30px] font-extrabold leading-none tracking-[-0.02em] text-ink-primary"
       />
-      <p className="mt-2 text-[11px] leading-snug text-ink-tertiary">{meta}</p>
+      <p className="mt-2 text-[12px] leading-snug text-ink-tertiary">{meta}</p>
     </div>
   );
   if (href) {

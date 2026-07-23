@@ -10,7 +10,7 @@ export default function SuspendedPage() {
   return (
     <main className="mx-auto flex max-w-lg flex-col gap-6 px-6 py-20 text-center">
       <BlurFade delay={0.08}>
-        <p className="mb-2 font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-sem-amber">
+        <p className="mb-2 font-mono text-[12px] font-medium uppercase tracking-[0.14em] text-sem-amber">
           Account suspended
         </p>
         <h1 className="font-display text-2xl font-semibold tracking-tight text-ink-primary">

@@ -67,7 +67,7 @@ export default async function AdminBetaPage() {
         title="Founder analytics"
         description="Read-only funnel over existing tables — no new ETL. Saved suppliers proxy buyer intent until a dedicated view log ships."
         actions={
-          <p className="font-mono text-[11px] text-ink-tertiary">
+          <p className="font-mono text-[12px] text-ink-tertiary">
             {formatAdminDateTime(doc.generated_at)} UTC
           </p>
         }
@@ -103,7 +103,7 @@ export default async function AdminBetaPage() {
             {doc.top_saved_suppliers.map((s, i) => (
               <li key={s.supplier_id} className="flex items-center justify-between gap-3 px-5 py-3">
                 <div className="min-w-0">
-                  <span className="mr-2 font-mono text-[11px] text-ink-tertiary">#{i + 1}</span>
+                  <span className="mr-2 font-mono text-[12px] text-ink-tertiary">#{i + 1}</span>
                   <Link
                     href={`/admin/suppliers/${s.supplier_id}`}
                     className="font-medium text-brand-forest hover:underline"

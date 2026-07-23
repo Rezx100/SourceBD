@@ -235,7 +235,7 @@ const PARTNER_COLUMNS: Column<Relationship>[] = [
       return (
         <Link
           href={`/app/suppliers/${mine.slug}`}
-          className="text-[13px] text-ink-secondary hover:underline"
+          className="text-[14px] text-ink-secondary hover:underline"
         >
           {mine.company_name}
         </Link>
@@ -246,7 +246,7 @@ const PARTNER_COLUMNS: Column<Relationship>[] = [
     key: "who",
     label: "Direction",
     render: (r) => (
-      <span className="text-[13px] text-ink-tertiary">
+      <span className="text-[14px] text-ink-tertiary">
         {r.initiated_by_me ? "you requested" : "they requested"}
         {r.decided_at
           ? ` · decided ${new Date(r.decided_at).toLocaleDateString()}`
@@ -259,7 +259,7 @@ const PARTNER_COLUMNS: Column<Relationship>[] = [
     label: "Note",
     render: (r) =>
       r.note ? (
-        <span className="whitespace-pre-wrap text-[13px] text-ink-secondary">
+        <span className="whitespace-pre-wrap text-[14px] text-ink-secondary">
           “{r.note}”
         </span>
       ) : (

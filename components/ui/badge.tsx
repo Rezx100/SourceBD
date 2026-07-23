@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 // Badge — mono numeric / status indicator (count chip, alert pill).
 // Forest-tinted "active" variant for sidebar active-state count badges.
 const badgeVariants = cva(
-  "inline-flex min-w-[18px] items-center justify-center rounded-[4px] border px-1.5 py-[3px] text-center font-mono text-[10px] font-semibold tracking-[0.02em]",
+  "inline-flex min-w-[110px] items-center justify-center rounded-[4px] border px-1.5 py-[3px] text-center font-mono text-[12px] font-semibold tracking-[0.02em]",
   {
     variants: {
       tone: {

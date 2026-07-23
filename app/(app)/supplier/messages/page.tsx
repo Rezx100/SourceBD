@@ -72,7 +72,7 @@ export default async function SupplierMessagesPage() {
                 <p className="text-sm text-ink-secondary">
                   No buyer inquiries yet.
                 </p>
-                <p className="text-[12px] text-ink-tertiary">
+                <p className="text-[13px] text-ink-tertiary">
                   When a buyer opens a thread against one of your claimed
                   companies it will appear here.
                 </p>
@@ -103,14 +103,14 @@ export default async function SupplierMessagesPage() {
                               {buyerLabel(t)}
                             </span>
                           </div>
-                          <p className="truncate text-[12px] text-ink-tertiary">
+                          <p className="truncate text-[13px] text-ink-tertiary">
                             {t.subject ?? "General inquiry"} ·{" "}
                             {t.supplier_name} ·{" "}
                             {t.message_count.toLocaleString()}{" "}
                             {t.message_count === 1 ? "message" : "messages"}
                           </p>
                         </div>
-                        <span className="font-mono text-[11px] text-ink-tertiary">
+                        <span className="font-mono text-[12px] text-ink-tertiary">
                           {fmtRelative(t.last_message_at ?? t.created_at)}
                         </span>
                       </Link>

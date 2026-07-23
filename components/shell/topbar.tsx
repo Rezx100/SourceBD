@@ -46,7 +46,7 @@ export function Topbar({
           className="shrink-0"
         />
         <div className="hidden min-w-0 max-w-[8rem] flex-col justify-center sm:flex md:max-w-[10rem] lg:max-w-xs xl:max-w-sm">
-          <p className="truncate font-display text-[15px] font-semibold tracking-[-0.01em] text-ink-primary">
+          <p className="truncate font-display text-[16px] font-semibold tracking-[-0.01em] text-ink-primary">
             {pageTitle}
           </p>
         </div>
@@ -73,7 +73,7 @@ export function Topbar({
               name="q"
               type="search"
               placeholder="Search verified suppliers"
-              className="w-full bg-transparent text-[13px] text-ink-primary placeholder:text-ink-tertiary focus:outline-none"
+              className="w-full bg-transparent text-[14px] text-ink-primary placeholder:text-ink-tertiary focus:outline-none"
             />
           </div>
         </form>
@@ -88,10 +88,10 @@ export function Topbar({
               aria-hidden
               className="size-1.5 animate-pulse rounded-full bg-brand-forest"
             />
-            <span className="font-display text-[13px] font-bold tabular-nums text-brand-forest">
+            <span className="font-display text-[14px] font-bold tabular-nums text-brand-forest">
               {moatTotal.toLocaleString("en-US")}
             </span>
-            <span className="text-[12px] font-medium text-brand-forest/80">
+            <span className="text-[13px] font-medium text-brand-forest/80">
               verified
             </span>
           </Link>

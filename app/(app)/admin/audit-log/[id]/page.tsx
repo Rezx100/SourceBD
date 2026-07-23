@@ -106,7 +106,7 @@ export default async function AdminAuditLogDrilldownPage({
             )}
           </div>
           {row.target_id ? (
-            <p className="font-mono text-[11px] text-ink-tertiary">
+            <p className="font-mono text-[12px] text-ink-tertiary">
               id {row.target_id}
             </p>
           ) : null}
@@ -116,7 +116,7 @@ export default async function AdminAuditLogDrilldownPage({
           {row.patch == null ? (
             <p className="text-sm text-ink-tertiary">No patch payload.</p>
           ) : (
-            <pre className="overflow-x-auto rounded-input border border-hairline bg-bg-l0 p-3 font-mono text-[11px] text-ink-primary">
+            <pre className="overflow-x-auto rounded-input border border-hairline bg-bg-l0 p-3 font-mono text-[12px] text-ink-primary">
               {JSON.stringify(row.patch, null, 2)}
             </pre>
           )}
@@ -126,7 +126,7 @@ export default async function AdminAuditLogDrilldownPage({
           {row.metadata == null ? (
             <p className="text-sm text-ink-tertiary">No metadata.</p>
           ) : (
-            <pre className="overflow-x-auto rounded-input border border-hairline bg-bg-l0 p-3 font-mono text-[11px] text-ink-primary">
+            <pre className="overflow-x-auto rounded-input border border-hairline bg-bg-l0 p-3 font-mono text-[12px] text-ink-primary">
               {JSON.stringify(row.metadata, null, 2)}
             </pre>
           )}

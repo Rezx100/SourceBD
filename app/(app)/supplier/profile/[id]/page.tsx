@@ -72,7 +72,7 @@ export default async function SupplierProfileEdit({
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <header>
-        <p className="text-[11px] text-ink-tertiary">
+        <p className="text-[12px] text-ink-tertiary">
           Supplier · Profile · Edit
         </p>
         <h1 className="font-display text-2xl font-semibold tracking-tightish text-ink-primary">

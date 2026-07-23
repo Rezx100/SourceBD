@@ -308,7 +308,7 @@ export function OrderStatusEditor({ orderId, initial }: OrderStatusEditorProps) 
 }
 
 const inputClass =
-  "w-full rounded-input border border-hairline-strong bg-white px-3 py-2 text-[13px] text-ink-primary placeholder:text-ink-tertiary focus:outline-none focus:ring-2 focus:ring-accent-indigo";
+  "w-full rounded-input border border-hairline-strong bg-white px-3 py-2 text-[14px] text-ink-primary placeholder:text-ink-tertiary focus:outline-none focus:ring-2 focus:ring-accent-indigo";
 
 function Field({
   label,
@@ -319,7 +319,7 @@ function Field({
 }) {
   return (
     <label className="flex flex-col gap-1">
-      <span className="text-[11px] text-ink-tertiary">
+      <span className="text-[12px] text-ink-tertiary">
         {label}
       </span>
       {children}

@@ -26,7 +26,7 @@ export function Kicker({
   return (
     <p
       className={cn(
-        "mb-2 inline-flex items-center gap-2 font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-brand-forest",
+        "mb-2 inline-flex items-center gap-2 font-mono text-[12px] font-medium uppercase tracking-[0.14em] text-brand-forest",
         className,
       )}
     >
@@ -78,7 +78,7 @@ export function PageHeader({
           </h1>
         </div>
         {description ? (
-          <p className="mt-2.5 max-w-2xl text-[15px] leading-relaxed text-ink-secondary">
+          <p className="mt-2.5 max-w-2xl text-[16px] leading-relaxed text-ink-secondary">
             {description}
           </p>
         ) : null}
@@ -123,7 +123,7 @@ export function Section({
               </h2>
             ) : null}
             {description ? (
-              <p className="mt-0.5 text-[13px] text-ink-secondary">{description}</p>
+              <p className="mt-0.5 text-[14px] text-ink-secondary">{description}</p>
             ) : null}
           </div>
           {actions ? (
@@ -235,7 +235,7 @@ export function StatStrip({
                 {s.icon}
               </span>
             ) : null}
-            <span className="flex items-baseline gap-0.5 font-display text-[28px] font-extrabold tabular-nums leading-none tracking-[-0.02em] text-ink-primary sm:text-[34px]">
+            <span className="flex items-baseline gap-0.5 font-display text-[30px] font-extrabold tabular-nums leading-none tracking-[-0.02em] text-ink-primary sm:text-[34px]">
               {typeof s.value === "number" ? (
                 s.animateValue ? (
                   <NumberTicker value={s.value} className="text-ink-primary" />
@@ -251,7 +251,7 @@ export function StatStrip({
                 </span>
               ) : null}
             </span>
-            <span className="mt-2 text-[13px] font-medium text-ink-secondary">
+            <span className="mt-2 text-[14px] font-medium text-ink-secondary">
               {s.label}
             </span>
             {s.hint ? (

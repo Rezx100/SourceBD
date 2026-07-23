@@ -99,7 +99,7 @@ export default async function StatusPage() {
           <Panel>
             <dl className="m-0 grid gap-4 sm:grid-cols-2">
               <div>
-                <dt className="text-[11px] font-medium uppercase tracking-wide text-ink-tertiary">
+                <dt className="text-[12px] font-medium uppercase tracking-wide text-ink-tertiary">
                   Published suppliers
                 </dt>
                 <dd className="mt-1 text-sem-green">
@@ -130,7 +130,7 @@ export default async function StatusPage() {
                 tone={freshnessTone(doc.last_etl_success)}
               />
             </dl>
-            <p className="mt-4 font-mono text-[11px] text-ink-tertiary">
+            <p className="mt-4 font-mono text-[12px] text-ink-tertiary">
               Generated {fmt(doc.generated_at)}
             </p>
           </Panel>
@@ -141,7 +141,7 @@ export default async function StatusPage() {
                 <h2 className="font-display text-base font-semibold text-ink-primary">
                   Recent pipeline runs
                 </h2>
-                <p className="mt-0.5 text-[13px] text-ink-secondary">
+                <p className="mt-0.5 text-[14px] text-ink-secondary">
                   Latest finished run per scraper (newest first within each job family).
                 </p>
               </div>
@@ -151,11 +151,11 @@ export default async function StatusPage() {
                     key={row.scraper_code}
                     className="flex items-center justify-between gap-3 px-5 py-3 text-sm"
                   >
-                    <span className="font-mono text-[12px] text-ink-secondary">
+                    <span className="font-mono text-[13px] text-ink-secondary">
                       {row.scraper_code}
                     </span>
                     <span className="text-ink-tertiary">{row.status}</span>
-                    <span className="font-mono text-[11px] text-ink-tertiary">
+                    <span className="font-mono text-[12px] text-ink-tertiary">
                       {fmt(row.finished_at)}
                     </span>
                   </li>
@@ -191,10 +191,10 @@ function Stat({
 }) {
   return (
     <div>
-      <dt className="text-[11px] font-medium uppercase tracking-wide text-ink-tertiary">
+      <dt className="text-[12px] font-medium uppercase tracking-wide text-ink-tertiary">
         {label}
       </dt>
-      <dd className={`mt-1 font-mono text-[13px] ${TONE_CLASS[tone]}`}>{value}</dd>
+      <dd className={`mt-1 font-mono text-[14px] ${TONE_CLASS[tone]}`}>{value}</dd>
     </div>
   );
 }

@@ -89,12 +89,12 @@ export function AdminPanel({
               </h2>
             ) : null}
             {description ? (
-              <p className="mt-1 text-[13px] leading-relaxed text-ink-secondary">
+              <p className="mt-1 text-[14px] leading-relaxed text-ink-secondary">
                 {description}
               </p>
             ) : null}
             {meta ? (
-              <p className="mt-1 font-mono text-[11px] text-ink-tertiary">{meta}</p>
+              <p className="mt-1 font-mono text-[12px] text-ink-tertiary">{meta}</p>
             ) : null}
           </div>
           {actions ? <div className="flex shrink-0 flex-wrap gap-2">{actions}</div> : null}
@@ -140,10 +140,10 @@ export function AdminField({
   className?: string;
 }) {
   return (
-    <label className={cn("flex min-w-0 flex-col gap-1.5 text-[12px] font-medium text-ink-secondary", className)}>
+    <label className={cn("flex min-w-0 flex-col gap-1.5 text-[13px] font-medium text-ink-secondary", className)}>
       <span>{label}</span>
       {children}
-      {hint ? <span className="text-[11px] font-normal leading-relaxed text-ink-tertiary">{hint}</span> : null}
+      {hint ? <span className="text-[12px] font-normal leading-relaxed text-ink-tertiary">{hint}</span> : null}
     </label>
   );
 }
@@ -221,7 +221,7 @@ export function AdminTabs({
         >
           <span>{item.label}</span>
           {item.count != null ? (
-            <span className="rounded-full bg-white/80 px-2 py-0.5 font-mono text-[11px] tabular-nums text-inherit">
+            <span className="rounded-full bg-white/80 px-2 py-0.5 font-mono text-[12px] tabular-nums text-inherit">
               {typeof item.count === "number" ? item.count.toLocaleString("en-US") : item.count}
             </span>
           ) : null}
@@ -247,7 +247,7 @@ export function AdminPagination({
     <nav
       aria-label="Pagination"
       className={cn(
-        "flex items-center justify-between gap-3 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-[12px] text-ink-tertiary shadow-sm",
+        "flex items-center justify-between gap-3 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-[13px] text-ink-tertiary shadow-sm",
         className,
       )}
     >
@@ -292,16 +292,16 @@ export function AdminKeyValueList({
   className?: string;
 }) {
   return (
-    <dl className={cn("grid gap-x-4 gap-y-3 text-[13px] sm:grid-cols-2", className)}>
+    <dl className={cn("grid gap-x-4 gap-y-3 text-[14px] sm:grid-cols-2", className)}>
       {rows.map((row, index) => (
         <div key={index} className="min-w-0">
-          <dt className="font-mono text-[11px] uppercase tracking-[0.05em] text-ink-tertiary">
+          <dt className="font-mono text-[12px] uppercase tracking-[0.05em] text-ink-tertiary">
             {row.label}
           </dt>
           <dd
             className={cn(
               "mt-1 min-w-0 break-words text-ink-primary",
-              row.mono && "font-mono text-[12px]",
+              row.mono && "font-mono text-[13px]",
             )}
           >
             {row.value ?? "—"}

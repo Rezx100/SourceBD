@@ -191,7 +191,7 @@ export default async function AdminUserDrilldownPage({
                     </span>
                   </div>
                   {row.patch ? (
-                    <pre className="overflow-x-auto rounded-input border border-hairline bg-bg-l0 p-2 font-mono text-[11px] text-ink-secondary">
+                    <pre className="overflow-x-auto rounded-input border border-hairline bg-bg-l0 p-2 font-mono text-[12px] text-ink-secondary">
                       {JSON.stringify(row.patch, null, 2)}
                     </pre>
                   ) : null}

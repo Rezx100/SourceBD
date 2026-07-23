@@ -18,6 +18,7 @@ import {
 } from "@phosphor-icons/react/dist/ssr";
 
 import { Marquee } from "@/components/ui/marquee";
+import { cn } from "@/lib/utils";
 
 type Event = {
   issuer: string;
@@ -83,23 +84,28 @@ function Row({ issuer, action, tier, icon, tint }: Event) {
         </span>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <span className="truncate font-display text-[15px] font-semibold text-neutral-900">
+            <span className="truncate font-display text-[16px] font-semibold text-neutral-900">
               {issuer}
             </span>
-            <span className="shrink-0 rounded-full bg-neutral-100 px-2 py-0.5 font-mono text-[10px] uppercase tracking-wide text-neutral-500">
+            <span className="shrink-0 rounded-full bg-neutral-100 px-2 py-0.5 font-mono text-[12px] uppercase tracking-wide text-neutral-500">
               {tier}
             </span>
           </div>
-          <p className="truncate text-[13px] text-neutral-500">{action}</p>
+          <p className="truncate text-[14px] text-neutral-500">{action}</p>
         </div>
       </div>
     </figure>
   );
 }
 
-export function VerificationFeed() {
+export function VerificationFeed({ className }: { className?: string }) {
   return (
-    <div className="relative isolate mx-auto flex h-[320px] w-full max-w-[480px] flex-col overflow-hidden [contain:layout_paint] sm:h-[392px]">
+    <div
+      className={cn(
+        "relative isolate mx-auto flex h-[322px] w-full max-w-[480px] flex-col overflow-hidden [contain:layout_paint] sm:h-[392px]",
+        className,
+      )}
+    >
       <Marquee
         vertical
         className="[--duration:28s] [--gap:0.875rem] py-0 sm:[--gap:1rem]"

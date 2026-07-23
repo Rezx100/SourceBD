@@ -5,6 +5,16 @@ app/(app)/app/suppliers/[slug]/page.tsx
 app/(marketing)/suppliers/[slug]/page.tsx
 
 components/supplier/profile-ui.tsx
+components/supplier/company-profile-header.tsx
+components/supplier/company-avatar.tsx
+components/supplier/principal-products-card.tsx
+components/supplier/also-produces-chips.tsx
+components/supplier/authority-chip.tsx
+components/supplier/corroborated-by-row.tsx
+components/supplier/locations-address-group.tsx
+components/supplier/profile-tab-jump-link.tsx
+components/supplier/addresses-jump-link.tsx
+components/supplier/profile-overview-tab.tsx
 components/supplier/profile-compliance-tab.tsx
 components/supplier/profile-capacity-tab.tsx
 components/supplier/profile-brands-tab.tsx
@@ -13,13 +23,16 @@ components/supplier/profile-provenance-tab.tsx
 components/supplier/profile-header-meta.tsx
 components/supplier/verified-by-badge.tsx
 components/supplier/profile-skeleton.tsx
-components/supplier/products-strip-expandable.tsx
 
 lib/format-supplier-profile.ts
 lib/format-company-name.ts
 lib/format-location.ts
+lib/established.ts
 lib/product-icons.ts
 lib/source-logos.ts
+lib/source-full-names.ts
+lib/dedup-addresses.ts
+lib/profile-tab-styles.ts
 
 app/globals.css
 
@@ -28,3 +41,4 @@ public/inapp-logos/BGMEA logo.png
 public/inapp-logos/BGAPMEA logo.png
 public/inapp-logos/EPB-Logo.png
 public/inapp-logos/RSC-logo.png
+public/inapp-logos/sanctions/

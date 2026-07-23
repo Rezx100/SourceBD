@@ -101,12 +101,12 @@ export default async function OrderDetailPage({
         <div className="space-y-6">
           <Link
             href="/app/orders"
-            className="inline-flex items-center gap-1 text-[12px] text-ink-tertiary hover:text-ink-primary lg:hidden"
+            className="inline-flex items-center gap-1 text-[13px] text-ink-tertiary hover:text-ink-primary lg:hidden"
           >
             ← All orders
           </Link>
       <header className="space-y-1">
-        <p className="text-[11px] text-ink-tertiary">
+        <p className="text-[12px] text-ink-tertiary">
           Order · {order.id.slice(0, 8)}
           {order.po_number ? ` · PO ${order.po_number}` : ""}
         </p>
@@ -116,7 +116,7 @@ export default async function OrderDetailPage({
           </h1>
           <Badge tone={statusTone(order.status)}>{statusLabel(order.status)}</Badge>
         </div>
-        <p className="text-[12px] text-ink-tertiary">
+        <p className="text-[13px] text-ink-tertiary">
           Created {fmtDate(order.created_at)} · Updated {fmtRelative(order.updated_at)}
         </p>
       </header>
@@ -140,7 +140,7 @@ export default async function OrderDetailPage({
               >
                 {order.supplier.company_name}
               </Link>
-              <p className="text-[12px] text-ink-tertiary">
+              <p className="text-[13px] text-ink-tertiary">
                 {entityLabel(order.supplier.entity_type)}
                 {order.supplier.city ? ` · ${order.supplier.city}` : ""}
                 {order.supplier.district ? `, ${order.supplier.district}` : ""}
@@ -159,7 +159,7 @@ export default async function OrderDetailPage({
         <CardHeader>
           <CardTitle>Specification</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-3 text-[13px]">
+        <CardContent className="space-y-3 text-[14px]">
           <Row label="Quantity">
             {fmtNum(order.quantity)} {order.quantity_unit}
           </Row>
@@ -175,7 +175,7 @@ export default async function OrderDetailPage({
           ) : null}
           {order.notes ? (
             <div className="space-y-1">
-              <p className="text-[11px] text-ink-tertiary">
+              <p className="text-[12px] text-ink-tertiary">
                 Notes
               </p>
               <p className="whitespace-pre-wrap text-ink-primary">{order.notes}</p>
@@ -188,7 +188,7 @@ export default async function OrderDetailPage({
         <CardHeader>
           <CardTitle>Logistics</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-3 text-[13px]">
+        <CardContent className="space-y-3 text-[14px]">
           {order.incoterm ? <Row label="Incoterm">{order.incoterm}</Row> : null}
           {order.origin_port ? <Row label="Origin port">{order.origin_port}</Row> : null}
           {order.destination_port ? (
@@ -284,11 +284,11 @@ export default async function OrderDetailPage({
                     <p className="font-display text-sm font-semibold text-ink-primary">
                       {m.label && m.label.trim() ? m.label : prettyKind(m.kind)}
                     </p>
-                    <p className="text-[12px] text-ink-tertiary">
+                    <p className="text-[13px] text-ink-tertiary">
                       {prettyKind(m.kind)} · {fmtDate(m.occurred_on)}
                     </p>
                     {m.notes ? (
-                      <p className="mt-1 whitespace-pre-wrap text-[12px] text-ink-secondary">
+                      <p className="mt-1 whitespace-pre-wrap text-[13px] text-ink-secondary">
                         {m.notes}
                       </p>
                     ) : null}
@@ -327,9 +327,9 @@ function OrderListPane({
   return (
     <nav
       aria-label="All orders"
-      className="overflow-hidden rounded-[12px] border border-hairline bg-white"
+      className="overflow-hidden rounded-[13px] border border-hairline bg-white"
     >
-      <p className="border-b border-hairline px-4 py-2.5 text-[11px] font-semibold text-ink-tertiary">
+      <p className="border-b border-hairline px-4 py-2.5 text-[12px] font-semibold text-ink-tertiary">
         Orders
       </p>
       <ul className="m-0 flex max-h-[70vh] list-none flex-col overflow-y-auto p-0">
@@ -344,10 +344,10 @@ function OrderListPane({
                   active ? "bg-[#FBFAF6] font-medium" : "hover:bg-[#FBFAF6]/60"
                 }`}
               >
-                <span className="truncate font-display text-[13px] text-ink-primary">
+                <span className="truncate font-display text-[14px] text-ink-primary">
                   {o.product_title}
                 </span>
-                <span className="text-[11px] text-ink-tertiary">
+                <span className="text-[12px] text-ink-tertiary">
                   {statusLabel(o.status)} · {fmtRelative(o.updated_at)}
                 </span>
               </Link>
@@ -368,7 +368,7 @@ function Row({
 }) {
   return (
     <div className="flex items-baseline gap-3">
-      <span className="w-40 shrink-0 text-[11px] text-ink-tertiary">
+      <span className="w-40 shrink-0 text-[12px] text-ink-tertiary">
         {label}
       </span>
       <span className="text-ink-primary">{children}</span>

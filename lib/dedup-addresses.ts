@@ -1,31 +1,9 @@
-// I-012 (extended by debug batch 2026-06-06 I-020) — pure-function dedup
-// for the "Addresses on file" panel.
+// Address dedup for supplier profile locations.
 //
-// `v_supplier_addresses` correctly emits one row per (source_code,
-// address_kind) as provenance. When two or more rows describe the same
-// physical building we want to render that building **once** — even when
-// one source labels it `factory` and another labels it `mailing` /
-// `registered`. The goal is "most detailed unique address; mention who
-// approved it", so we collapse across `address_kind` and surface the
-// kinds + sources that corroborate the row.
-//
-// Match key (case-insensitive, punctuation-folded):
-//   1. lowercase
-//   2. fold transliteration variants for Bangladeshi place names
-//      (chittagong/chattogram, dacca/dhaka, baizid/bayzid, etc.)
-//   3. expand abbreviations ("ind. area"/"i/a" → "industrial area",
-//      "rd" → "road", "ave" → "avenue", "blvd" → "boulevard")
-//   4. fold "plot no" / "plot #" / "plot:" → "plot"; same for
-//      block/road/sector/house number prefixes
-//   5. strip Bangladesh 4-digit postal codes and the standalone
-//      country token (`bangladesh` / `bd`)
-//   6. strip `# . , : ; / ( ) -` and collapse whitespace
-//   7. collapse repeated trailing tokens ("dhaka dhaka" → "dhaka")
-//
-// After deterministic-key grouping we run a second pass that merges any
-// remaining groups whose normalised token sets share ≥ 0.9 Jaccard
-// overlap, so rows that add postal codes or extra locality words still
-// collapse onto the canonical (longest) row.
+// Data arrives as one row per (address, authority) pair. We merge by
+// physical location first (global fuzzy match), then bucket each unique
+// location into a single UI group by primary type priority:
+// Factory > Registered office > Mailing.
 
 export type AddressRowRaw = {
   kind: string;
@@ -36,6 +14,29 @@ export type AddressRowRaw = {
   fetched_at: string;
 };
 
+export type UniqueLocation<T extends AddressRowRaw = AddressRowRaw> = {
+  displayAddress: string;
+  authorities: string[];
+  types: string[];
+  phones: string[];
+  emails: string[];
+  fetched_at: string;
+  source_rows: T[];
+};
+
+export type LocationOverviewGroup<T extends AddressRowRaw = AddressRowRaw> = {
+  title: GroupTitle;
+  locations: UniqueLocation<T>[];
+};
+
+export type LocationDedupResult<T extends AddressRowRaw = AddressRowRaw> = {
+  locations: UniqueLocation<T>[];
+  groups: LocationOverviewGroup<T>[];
+  sourceRecordCount: number;
+  uniqueLocationCount: number;
+};
+
+/** @deprecated Legacy shape — prefer `UniqueLocation`. */
 export type DedupedAddress<T extends AddressRowRaw = AddressRowRaw> = {
   kind: string;
   kinds: string[];
@@ -47,12 +48,17 @@ export type DedupedAddress<T extends AddressRowRaw = AddressRowRaw> = {
   source_rows: T[];
 };
 
+const MERGE_THRESHOLD = 0.75;
+
 const TRANSLITERATION_PAIRS: ReadonlyArray<readonly [RegExp, string]> = [
   [/\bchittagong\b/g, "chattogram"],
   [/\bdacca\b/g, "dhaka"],
   [/\bbayzid\b/g, "baizid"],
   [/\bdhanmandi\b/g, "dhanmondi"],
   [/\bn[\s.]?ganj\b/g, "narayanganj"],
+  [/\bmaymashingo\b/g, "mymensingh"],
+  [/\bmaymanshingh\b/g, "mymensingh"],
+  [/\bmymensing\b/g, "mymensingh"],
 ];
 
 const ABBREVIATION_PAIRS: ReadonlyArray<readonly [RegExp, string]> = [
@@ -64,7 +70,51 @@ const ABBREVIATION_PAIRS: ReadonlyArray<readonly [RegExp, string]> = [
   [/\bblvd\.?\b/g, "boulevard"],
 ];
 
-function normaliseKey(input: string): string {
+export type AddressTypeCategory = "factory" | "registered" | "mailing" | "other";
+
+export const GROUP_TITLES = [
+  "Factories",
+  "Registered offices",
+  "Mailing addresses",
+  "Other addresses",
+] as const;
+
+export type GroupTitle = (typeof GROUP_TITLES)[number];
+
+const GROUP_BY_CATEGORY: Record<AddressTypeCategory, GroupTitle> = {
+  factory: "Factories",
+  registered: "Registered offices",
+  mailing: "Mailing addresses",
+  other: "Other addresses",
+};
+
+const TYPE_LABEL: Record<AddressTypeCategory, string> = {
+  factory: "Factory",
+  registered: "Registered office",
+  mailing: "Mailing address",
+  other: "Other",
+};
+
+const CATEGORY_PRIORITY: AddressTypeCategory[] = [
+  "factory",
+  "registered",
+  "mailing",
+  "other",
+];
+
+/** Skip null/empty segments so ",," never renders in display text. */
+export function cleanAddressString(raw: string | null | undefined): string {
+  if (!raw?.trim()) return "";
+  const parts = raw
+    .split(/,\s*/)
+    .map((part) => part.trim())
+    .filter(Boolean);
+  return parts.join(", ");
+}
+
+/** Normalised match key: lowercase, no punctuation, collapsed whitespace,
+ *  consecutive duplicate words removed, empty tokens dropped. */
+export function normaliseAddressKey(input: string): string {
   let s = input.toLowerCase();
   for (const [pat, rep] of TRANSLITERATION_PAIRS) s = s.replace(pat, rep);
   for (const [pat, rep] of ABBREVIATION_PAIRS) s = s.replace(pat, rep);
@@ -79,14 +129,14 @@ function normaliseKey(input: string): string {
   s = s.replace(/\bbd\b/g, "");
   s = s.replace(/[#().,:;/\-]/g, " ");
   s = s.replace(/\s+/g, " ").trim();
-  const parts = s.split(" ");
-  while (
-    parts.length >= 2 &&
-    parts[parts.length - 1] === parts[parts.length - 2]
-  ) {
-    parts.pop();
+  const deduped: string[] = [];
+  for (const part of s.split(" ")) {
+    if (!part) continue;
+    if (deduped.length === 0 || deduped[deduped.length - 1] !== part) {
+      deduped.push(part);
+    }
   }
-  return parts.join(" ");
+  return deduped.join(" ");
 }
 
 function tokens(key: string): Set<string> {
@@ -102,9 +152,6 @@ function jaccard(a: Set<string>, b: Set<string>): number {
   return inter / (a.size + b.size - inter);
 }
 
-/** Containment ratio = |A ∩ B| / min(|A|, |B|). 1.0 when one set is a
- * subset of the other — catches the common case where one source records
- * a richer address (extra locality, postal code) for the same building. */
 function containment(a: Set<string>, b: Set<string>): number {
   const small = a.size <= b.size ? a : b;
   const large = a.size <= b.size ? b : a;
@@ -114,15 +161,74 @@ function containment(a: Set<string>, b: Set<string>): number {
   return inter / small.size;
 }
 
-function mergeInto<T extends AddressRowRaw>(
-  target: DedupedAddress<T>,
-  donor: DedupedAddress<T>,
-): void {
-  if (donor.address.length > target.address.length) {
-    target.address = donor.address;
+export function typeCategory(kind: string): AddressTypeCategory {
+  const k = kind.toLowerCase().trim();
+  if (k === "factory" || k === "warehouse") return "factory";
+  if (
+    k === "registered" ||
+    k === "registered_office" ||
+    k === "head_office" ||
+    k === "corporate" ||
+    k === "office"
+  ) {
+    return "registered";
   }
-  for (const k of donor.kinds) {
-    if (!target.kinds.includes(k)) target.kinds.push(k);
+  if (k === "mailing") return "mailing";
+  return "other";
+}
+
+export function primaryCategory(types: readonly string[]): AddressTypeCategory {
+  const cats = new Set(types.map(typeCategory));
+  for (const cat of CATEGORY_PRIORITY) {
+    if (cats.has(cat)) return cat;
+  }
+  return "other";
+}
+
+export function primaryGroupTitle(types: readonly string[]): GroupTitle {
+  return GROUP_BY_CATEGORY[primaryCategory(types)];
+}
+
+/** Secondary type labels for display ("Registered office", …). */
+export function secondaryTypeLabels(types: readonly string[]): string[] {
+  const primary = primaryCategory(types);
+  const labels: string[] = [];
+  for (const cat of CATEGORY_PRIORITY) {
+    if (cat === primary) continue;
+    if (types.some((t) => typeCategory(t) === cat)) {
+      const label = TYPE_LABEL[cat];
+      if (!labels.includes(label)) labels.push(label);
+    }
+  }
+  return labels;
+}
+
+function rowToLocation<T extends AddressRowRaw>(row: T): UniqueLocation<T> {
+  const display = cleanAddressString(row.address);
+  return {
+    displayAddress: display,
+    authorities: [row.source_code],
+    types: [row.kind],
+    phones: row.phone ? [row.phone] : [],
+    emails: row.email ? [row.email] : [],
+    fetched_at: row.fetched_at,
+    source_rows: [row],
+  };
+}
+
+function mergeLocations<T extends AddressRowRaw>(
+  target: UniqueLocation<T>,
+  donor: UniqueLocation<T>,
+): void {
+  const donorDisplay = cleanAddressString(donor.displayAddress);
+  if (donorDisplay.length > target.displayAddress.length) {
+    target.displayAddress = donorDisplay;
+  }
+  for (const kind of donor.types) {
+    if (!target.types.includes(kind)) target.types.push(kind);
+  }
+  for (const auth of donor.authorities) {
+    if (!target.authorities.includes(auth)) target.authorities.push(auth);
   }
   for (const p of donor.phones) {
     if (!target.phones.includes(p)) target.phones.push(p);
@@ -130,74 +236,35 @@ function mergeInto<T extends AddressRowRaw>(
   for (const e of donor.emails) {
     if (!target.emails.includes(e)) target.emails.push(e);
   }
-  for (const sc of donor.verified_by) {
-    if (!target.verified_by.includes(sc)) target.verified_by.push(sc);
-  }
   if (donor.fetched_at > target.fetched_at) {
     target.fetched_at = donor.fetched_at;
   }
   target.source_rows.push(...donor.source_rows);
 }
 
-export function dedupAddresses<T extends AddressRowRaw>(
+/** Merge all records whose normalised keys share ≥ threshold token-set
+ *  similarity into one location (longest displayAddress, union authorities
+ *  and types). */
+export function mergeUniqueLocations<T extends AddressRowRaw>(
   rows: readonly T[],
-): DedupedAddress<T>[] {
-  const groups = new Map<string, DedupedAddress<T>>();
-  for (const row of rows) {
-    if (!row.address || row.address.trim() === "") continue;
-    const key = normaliseKey(row.address);
-    const existing = groups.get(key);
-    if (!existing) {
-      groups.set(key, {
-        kind: row.kind,
-        kinds: [row.kind],
-        address: row.address,
-        phones: row.phone ? [row.phone] : [],
-        emails: row.email ? [row.email] : [],
-        verified_by: [row.source_code],
-        fetched_at: row.fetched_at,
-        source_rows: [row],
-      });
-      continue;
-    }
-    if (row.address.length > existing.address.length) {
-      existing.address = row.address;
-    }
-    if (!existing.kinds.includes(row.kind)) existing.kinds.push(row.kind);
-    if (row.phone && !existing.phones.includes(row.phone)) {
-      existing.phones.push(row.phone);
-    }
-    if (row.email && !existing.emails.includes(row.email)) {
-      existing.emails.push(row.email);
-    }
-    if (!existing.verified_by.includes(row.source_code)) {
-      existing.verified_by.push(row.source_code);
-    }
-    if (row.fetched_at > existing.fetched_at) {
-      existing.fetched_at = row.fetched_at;
-    }
-    existing.source_rows.push(row);
-  }
-
-  const ordered = Array.from(groups.entries()).sort(
-    (a, b) => b[1].address.length - a[1].address.length,
+  threshold = MERGE_THRESHOLD,
+): UniqueLocation<T>[] {
+  const valid = rows.filter((r) => r.address?.trim());
+  const singletons = valid.map(rowToLocation);
+  const ordered = [...singletons].sort(
+    (a, b) => b.displayAddress.length - a.displayAddress.length,
   );
-  const merged: DedupedAddress<T>[] = [];
+  const merged: UniqueLocation<T>[] = [];
   const tokenSets: Set<string>[] = [];
-  for (const [key, group] of ordered) {
-    const tok = tokens(key);
+
+  for (const loc of ordered) {
+    const tok = tokens(normaliseAddressKey(loc.displayAddress));
     let mergedIdx = -1;
     for (let i = 0; i < merged.length; i++) {
       const other = tokenSets[i]!;
       const minSize = Math.min(other.size, tok.size);
-      // Two address groups merge when either:
-      //  - their token sets are ≥ 90% Jaccard-similar (genuinely the same
-      //    address, e.g. trivial punctuation differences); or
-      //  - the smaller set is ≥ 95% contained in the larger one AND has at
-      //    least 5 significant tokens (so one source recorded a richer
-      //    version of the other — extra locality / postal code / etc.).
       if (
-        jaccard(other, tok) >= 0.9 ||
+        jaccard(other, tok) >= threshold ||
         (minSize >= 5 && containment(other, tok) >= 0.95)
       ) {
         mergedIdx = i;
@@ -205,12 +272,66 @@ export function dedupAddresses<T extends AddressRowRaw>(
       }
     }
     if (mergedIdx === -1) {
-      merged.push(group);
+      merged.push(loc);
       tokenSets.push(tok);
     } else {
-      mergeInto(merged[mergedIdx]!, group);
+      mergeLocations(merged[mergedIdx]!, loc);
       for (const t of tok) tokenSets[mergedIdx]!.add(t);
     }
   }
   return merged;
+}
+
+export function buildLocationOverview<T extends AddressRowRaw>(
+  rows: readonly T[],
+): LocationDedupResult<T> {
+  const valid = rows.filter((r) => r.address?.trim());
+  const locations = mergeUniqueLocations(valid);
+  const buckets = new Map<GroupTitle, UniqueLocation<T>[]>();
+
+  for (const loc of locations) {
+    const title = primaryGroupTitle(loc.types);
+    const list = buckets.get(title) ?? [];
+    list.push(loc);
+    buckets.set(title, list);
+  }
+
+  const groups: LocationOverviewGroup<T>[] = [];
+  for (const title of GROUP_TITLES) {
+    const bucket = buckets.get(title);
+    if (!bucket || bucket.length === 0) continue;
+    groups.push({ title, locations: bucket });
+  }
+
+  return {
+    locations,
+    groups,
+    sourceRecordCount: valid.length,
+    uniqueLocationCount: locations.length,
+  };
+}
+
+export function locationOverviewMeta(
+  uniqueCount: number,
+  recordCount: number,
+): string {
+  const locLabel = uniqueCount === 1 ? "location" : "locations";
+  const recLabel = recordCount === 1 ? "record" : "records";
+  return `${uniqueCount} unique ${locLabel} · ${recordCount} source ${recLabel}`;
+}
+
+/** Legacy adapter — header primary address lookup. */
+export function dedupAddresses<T extends AddressRowRaw>(
+  rows: readonly T[],
+): DedupedAddress<T>[] {
+  return mergeUniqueLocations(rows).map((loc) => ({
+    kind: loc.types[0] ?? "unknown",
+    kinds: loc.types,
+    address: loc.displayAddress,
+    phones: loc.phones,
+    emails: loc.emails,
+    verified_by: loc.authorities,
+    fetched_at: loc.fetched_at,
+    source_rows: loc.source_rows,
+  }));
 }

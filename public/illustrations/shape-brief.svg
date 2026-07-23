@@ -1,0 +1,151 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500" width="100%" height="100%" fill="none">
+  <!-- Definitions for gradients and filters -->
+  <defs>
+    <linearGradient id="forest-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2D6A4F" stop-opacity="0.8" />
+      <stop offset="100%" stop-color="#1F4D3A" stop-opacity="0.95" />
+    </linearGradient>
+    <linearGradient id="soft-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ECF3EE" stop-opacity="0.6" />
+      <stop offset="100%" stop-color="#ECF3EE" stop-opacity="0.1" />
+    </linearGradient>
+    <linearGradient id="glow-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2D6A4F" stop-opacity="0.25" />
+      <stop offset="100%" stop-color="#1F4D3A" stop-opacity="0.0" />
+    </linearGradient>
+    <filter id="subtle-shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="8" stdDeviation="6" flood-color="#1F4D3A" flood-opacity="0.06" />
+    </filter>
+  </defs>
+
+  <!-- Base Grid (Ground Plane) -->
+  <g opacity="0.65">
+    <!-- Isometric Grid Lines (u-direction, 30 deg) -->
+    <path d="M 60 360 L 260 244" stroke="#E5E5E5" stroke-width="1" />
+    <path d="M 90 377 L 290 261" stroke="#E5E5E5" stroke-width="1" />
+    <path d="M 120 394 L 320 278" stroke="#E5E5E5" stroke-width="1" />
+    <path d="M 150 411 L 350 295" stroke="#E5E5E5" stroke-width="1" />
+    <path d="M 180 428 L 380 312" stroke="#E5E5E5" stroke-width="1" />
+
+    <!-- Isometric Grid Lines (v-direction, 150 deg) -->
+    <path d="M 60 360 L 180 428" stroke="#E5E5E5" stroke-width="1" />
+    <path d="M 90 343 L 210 411" stroke="#E5E5E5" stroke-width="1" />
+    <path d="M 120 326 L 240 394" stroke="#E5E5E5" stroke-width="1" />
+    <path d="M 150 309 L 270 377" stroke="#E5E5E5" stroke-width="1" />
+    <path d="M 180 292 L 300 360" stroke="#E5E5E5" stroke-width="1" />
+  </g>
+
+  <!-- Ground Plane Nodes -->
+  <g fill="#E5E5E5">
+    <circle cx="120" cy="326" r="2.5" />
+    <circle cx="150" cy="343" r="2.5" />
+    <circle cx="180" cy="360" r="2.5" />
+    <circle cx="210" cy="377" r="2.5" />
+    <circle cx="240" cy="394" r="2.5" />
+  </g>
+
+  <!-- Sweeping Transformation Curves (Shaping the Brief) -->
+  <!-- These curves represent the flow of raw requirements into the structured brief -->
+  <g fill="none">
+    <!-- Curve 1: Product Requirement Flow -->
+    <path d="M 120 326 C 160 280, 220 240, 310 225" stroke="#2D6A4F" stroke-width="1.5" stroke-opacity="0.4" stroke-dasharray="4 3" />
+    <!-- Curve 2: Location Requirement Flow -->
+    <path d="M 180 360 C 220 310, 260 260, 310 255" stroke="#2D6A4F" stroke-width="1.5" stroke-opacity="0.4" />
+    <!-- Curve 3: Capability Requirement Flow -->
+    <path d="M 240 394 C 280 350, 310 300, 340 272" stroke="#2D6A4F" stroke-width="1.5" stroke-opacity="0.4" stroke-dasharray="4 3" />
+  </g>
+
+  <!-- Floating Requirement Panels (Input Dimensions) -->
+  <!-- 1. Product Panel (Left, floating) -->
+  <g filter="url(#subtle-shadow)">
+    <!-- Panel Surface -->
+    <path d="M 90 220 L 142 191 L 194 220 L 142 249 Z" fill="#FFFFFF" fill-opacity="0.9" stroke="#E5E5E5" stroke-width="1.2" />
+    <path d="M 110 220 L 142 201.5 L 174 220 L 142 238.5 Z" fill="url(#soft-grad)" stroke="#2D6A4F" stroke-width="1" stroke-opacity="0.3" stroke-dasharray="3 2" />
+    <!-- Center Node -->
+    <circle cx="142" cy="220" r="4" fill="#2D6A4F" />
+    <!-- Vertical Projection Line to Ground -->
+    <path d="M 142 220 L 142 338" stroke="#2D6A4F" stroke-width="1" stroke-opacity="0.25" stroke-dasharray="3 3" />
+    <circle cx="142" cy="338" r="2" fill="none" stroke="#2D6A4F" stroke-opacity="0.5" />
+  </g>
+
+  <!-- 2. Location Panel (Right, floating) -->
+  <g filter="url(#subtle-shadow)">
+    <!-- Panel Surface -->
+    <path d="M 230 150 L 282 121 L 334 150 L 282 179 Z" fill="#FFFFFF" fill-opacity="0.9" stroke="#E5E5E5" stroke-width="1.2" />
+    <path d="M 250 150 L 282 132.5 L 314 150 L 282 167.5 Z" fill="url(#soft-grad)" stroke="#2D6A4F" stroke-width="1" stroke-opacity="0.3" stroke-dasharray="3 2" />
+    <!-- Center Node -->
+    <circle cx="282" cy="150" r="4" fill="#2D6A4F" />
+    <!-- Vertical Projection Line to Ground -->
+    <path d="M 282 150 L 282 313" stroke="#2D6A4F" stroke-width="1" stroke-opacity="0.25" stroke-dasharray="3 3" />
+    <circle cx="282" cy="313" r="2" fill="none" stroke="#2D6A4F" stroke-opacity="0.5" />
+  </g>
+
+  <!-- 3. Capability Panel (Back, floating) -->
+  <g filter="url(#subtle-shadow)">
+    <!-- Panel Surface -->
+    <path d="M 180 110 L 232 81 L 284 110 L 232 139 Z" fill="#FFFFFF" fill-opacity="0.9" stroke="#E5E5E5" stroke-width="1.2" />
+    <path d="M 200 110 L 232 92.5 L 264 110 L 232 127.5 Z" fill="url(#soft-grad)" stroke="#2D6A4F" stroke-width="1" stroke-opacity="0.3" stroke-dasharray="3 2" />
+    <!-- Center Node -->
+    <circle cx="232" cy="110" r="4" fill="#2D6A4F" />
+    <!-- Vertical Projection Line to Ground -->
+    <path d="M 232 110 L 232 273" stroke="#2D6A4F" stroke-width="1" stroke-opacity="0.25" stroke-dasharray="3 3" />
+    <circle cx="232" cy="273" r="2" fill="none" stroke="#2D6A4F" stroke-opacity="0.5" />
+  </g>
+
+  <!-- Central Structured Brief (The Destination) -->
+  <!-- A beautifully engineered, multi-layered 3D isometric structure -->
+  <g filter="url(#subtle-shadow)">
+    <!-- Outer Wireframe Cage (Back Edges) -->
+    <path d="M 310 255 L 310 195" stroke="#E5E5E5" stroke-width="1.2" stroke-dasharray="3 3" />
+    <path d="M 310 255 L 258 225" stroke="#E5E5E5" stroke-width="1.2" stroke-dasharray="3 3" />
+    <path d="M 310 255 L 362 225" stroke="#E5E5E5" stroke-width="1.2" stroke-dasharray="3 3" />
+
+    <!-- Inner Glowing Core (Solid 3D Block) -->
+    <!-- Left Face -->
+    <path d="M 284 210 L 284 250 L 310 265 L 310 225 Z" fill="#ECF3EE" stroke="#2D6A4F" stroke-width="1" />
+    <!-- Right Face -->
+    <path d="M 310 225 L 310 265 L 336 250 L 336 210 Z" fill="#D8E8E1" stroke="#2D6A4F" stroke-width="1" />
+    <!-- Top Face -->
+    <path d="M 284 210 L 310 195 L 336 210 L 310 225 Z" fill="#FFFFFF" stroke="#2D6A4F" stroke-width="1" />
+
+    <!-- Outer Wireframe Cage (Front Edges) -->
+    <!-- Base -->
+    <path d="M 258 225 L 310 255 L 362 225 L 310 195 Z" fill="url(#glow-grad)" stroke="#2D6A4F" stroke-width="1.5" stroke-opacity="0.4" />
+    <!-- Vertical Pillars -->
+    <path d="M 258 225 L 258 165" stroke="#1F4D3A" stroke-width="1.5" />
+    <path d="M 310 255 L 310 285" stroke="#1F4D3A" stroke-width="1.5" /> <!-- Lower anchor -->
+    <path d="M 362 225 L 362 165" stroke="#1F4D3A" stroke-width="1.5" />
+    <path d="M 310 195 L 310 135" stroke="#1F4D3A" stroke-width="1.5" />
+    <!-- Top Frame -->
+    <path d="M 258 165 L 310 195 L 362 165 L 310 135 Z" fill="none" stroke="#1F4D3A" stroke-width="1.5" />
+
+    <!-- Floating Top Lid (Emergence of the Brief) -->
+    <path d="M 270 148 L 310 125 L 350 148 L 310 171 Z" fill="#FFFFFF" fill-opacity="0.95" stroke="#1F4D3A" stroke-width="1.5" />
+    <!-- Inner pattern on Lid -->
+    <path d="M 290 148 L 310 136.5 L 330 148 L 310 159.5 Z" fill="#ECF3EE" stroke="#2D6A4F" stroke-width="1" />
+    <circle cx="310" cy="148" r="3" fill="#1F4D3A" />
+
+    <!-- Corner Nodes on Outer Cage -->
+    <circle cx="258" cy="165" r="3" fill="#1F4D3A" />
+    <circle cx="362" cy="165" r="3" fill="#1F4D3A" />
+    <circle cx="310" cy="135" r="3" fill="#1F4D3A" />
+    <circle cx="310" cy="195" r="3" fill="#1F4D3A" />
+    <circle cx="258" cy="225" r="3" fill="#1F4D3A" />
+    <circle cx="362" cy="225" r="3" fill="#1F4D3A" />
+  </g>
+
+  <!-- Precision Annotations (Architectural Details) -->
+  <g stroke="#737373" stroke-width="0.8" opacity="0.5" fill="none">
+    <!-- Dimension lines -->
+    <path d="M 380 155 L 400 166.5" />
+    <path d="M 380 215 L 400 226.5" />
+    <path d="M 395 163.5 L 395 223.5" stroke-dasharray="2 2" />
+    <!-- Compass indicator or coordinate markers -->
+    <path d="M 430 380 L 450 368.5" />
+    <path d="M 430 380 L 410 368.5" />
+    <path d="M 430 380 L 430 400" />
+  </g>
+  <text x="440" y="355" font-family="monospace" font-size="10" fill="#737373" opacity="0.6" text-anchor="middle">Z</text>
+  <text x="460" y="380" font-family="monospace" font-size="10" fill="#737373" opacity="0.6" text-anchor="middle">X</text>
+  <text x="400" y="380" font-family="monospace" font-size="10" fill="#737373" opacity="0.6" text-anchor="middle">Y</text>
+</svg>

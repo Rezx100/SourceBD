@@ -12,7 +12,7 @@
 
 import Link from "next/link";
 
-import { EmptyState, PageHeader } from "@/components/ui/page-kit";
+import { EmptyState } from "@/components/ui/page-kit";
 import {
   BRAND_SOURCES,
   CERT_KINDS,
@@ -71,12 +71,19 @@ export default async function PublicDiscoverPage({
   const district = asString(sp.district).trim();
   const category = asString(sp.category).trim();
   const smartQuery = resolveDiscoverSmartQuery(q, category);
+  const hasSearchQuery = q.length > 0;
   const sort = clampSort(asString(sp.sort));
   const pageNum = Math.max(1, asInt(sp.page) ?? 1);
   const offset = (pageNum - 1) * PAGE_SIZE;
 
-  const [{ rows, error }, facets] = await Promise.all([
-    fetchPublicDiscoverSuppliers({
+  const facets = await fetchDiscoverFacets();
+  let rows: Awaited<ReturnType<typeof fetchPublicDiscoverSuppliers>>["rows"] = [];
+  let error: unknown = null;
+  let totalCount = 0;
+  let totalPages = 1;
+
+  if (hasSearchQuery) {
+    const result = await fetchPublicDiscoverSuppliers({
       p_q: smartQuery.rpcQ || null,
       p_entity_types: entityTypes.length ? entityTypes : null,
       p_min_sources: minSources,
@@ -93,12 +100,12 @@ export default async function PublicDiscoverPage({
       p_brand_codes: brandCodes.length ? brandCodes : null,
       p_completeness_min: null,
       p_workers_min: null,
-    }),
-    fetchDiscoverFacets(),
-  ]);
-
-  const totalCount = rows[0]?.total_count ?? 0;
-  const totalPages = Math.max(1, Math.ceil(Number(totalCount) / PAGE_SIZE));
+    });
+    rows = result.rows;
+    error = result.error;
+    totalCount = rows[0]?.total_count ?? 0;
+    totalPages = Math.max(1, Math.ceil(Number(totalCount) / PAGE_SIZE));
+  }
 
   const baseQuery = {
     q,
@@ -140,119 +147,121 @@ export default async function PublicDiscoverPage({
     (category ? 1 : 0);
   return (
     <>
-      <main className="mx-auto max-w-7xl space-y-6 px-6 py-8">
-        <PageHeader
-          kicker="Public index"
-          title="Discover"
-          description="Verified Bangladesh garment factories and buying houses. Every result is ranked by source-backed evidence from government registers, trade associations, and certification bodies."
+      <main className="mx-auto flex min-h-[calc(100dvh-4rem)] max-w-6xl flex-col gap-6 px-4 py-8 sm:px-6">
+        <DiscoverSearchHero
+          basePath={BASE_PATH}
+          profileBase="/suppliers"
+          q={q}
+          sort={sort}
+          centered={!hasSearchQuery}
+          subcopy="Search by certification, product, or district - every result is on the record."
         />
 
-        <div className="space-y-6">
-          {/* R9r4 — primary search bar, always visible. */}
-          <DiscoverSearchHero basePath={BASE_PATH} q={q} sort={sort} />
+        {hasSearchQuery ? (
+          <>
+            <div className="space-y-4">
+              <div className="md:hidden">
+                <MobileFilterSheet
+                  activeFilterCount={activeFilterCount}
+                  resultCount={Number(totalCount)}
+                >
+                  <FilterRail
+                    basePath={BASE_PATH}
+                    q={q}
+                    entityTypes={entityTypes}
+                    certKinds={certKinds}
+                    registries={registries}
+                    brandCodes={brandCodes}
+                    factoryTypes={factoryTypes}
+                    minSources={minSourcesRaw}
+                    city={city}
+                    district={district}
+                    category={category}
+                    sort={sort}
+                    facets={facets}
+                    hideSearchRow
+                    instanceId="mobile"
+                  />
+                </MobileFilterSheet>
+              </div>
 
-          <div className="md:hidden">
-            <MobileFilterSheet
-              activeFilterCount={activeFilterCount}
-              resultCount={Number(totalCount)}
-            >
-              <FilterRail
-                basePath={BASE_PATH}
-                q={q}
-                entityTypes={entityTypes}
-                certKinds={certKinds}
-                registries={registries}
-                brandCodes={brandCodes}
-                factoryTypes={factoryTypes}
-                minSources={minSourcesRaw}
-                city={city}
-                district={district}
-                category={category}
-                sort={sort}
-                facets={facets}
-                baseQuery={baseQuery}
-                hideSearchRow
-                instanceId="mobile"
-              />
-            </MobileFilterSheet>
-          </div>
-
-          <div className="hidden md:block">
-            <FilterRail
-              basePath={BASE_PATH}
-              q={q}
-              entityTypes={entityTypes}
-              certKinds={certKinds}
-              registries={registries}
-              brandCodes={brandCodes}
-              factoryTypes={factoryTypes}
-              minSources={minSourcesRaw}
-              city={city}
-              district={district}
-              category={category}
-              sort={sort}
-              facets={facets}
-              baseQuery={baseQuery}
-              hideSearchRow
-              instanceId="desktop"
-            />
-          </div>
-
-          <section id="discover-results" className="space-y-4">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <p className="text-sm text-ink-secondary">
-                {error ? (
-                  <span className="text-sem-red">
-                    Could not load suppliers.
-                  </span>
-                ) : (
-                  <>
-                    <span className="font-semibold text-ink-primary">
-                      {Number(totalCount).toLocaleString()}
-                    </span>{" "}
-                    result{Number(totalCount) === 1 ? "" : "s"}
-                  </>
-                )}
-              </p>
-              <SortControl
-                basePath={BASE_PATH}
-                current={sort}
-                baseQuery={baseQuery}
-              />
+              <div className="hidden md:block">
+                <FilterRail
+                  basePath={BASE_PATH}
+                  q={q}
+                  entityTypes={entityTypes}
+                  certKinds={certKinds}
+                  registries={registries}
+                  brandCodes={brandCodes}
+                  factoryTypes={factoryTypes}
+                  minSources={minSourcesRaw}
+                  city={city}
+                  district={district}
+                  category={category}
+                  sort={sort}
+                  facets={facets}
+                  hideSearchRow
+                  instanceId="desktop"
+                />
+              </div>
             </div>
 
-            {!error && rows.length === 0 ? (
-              <EmptyState
-                title={anyFilterActive ? "No results for these filters" : "No published suppliers yet"}
-                description={anyFilterActive ? "Try removing the most restrictive filter to broaden your search." : undefined}
-                action={
-                  anyFilterActive ? (
-                    <Link href={BASE_PATH} className="btn-proto primary">
-                      Clear filters
-                    </Link>
-                  ) : null
-                }
-              />
-            ) : (
-              <ul className="grid grid-cols-1 gap-4">
-                {rows.map((row) => (
-                  <li key={row.id}>
-                    <DiscoverResultCard row={row} hrefBase="/suppliers" />
-                  </li>
-                ))}
-              </ul>
-            )}
+            <section id="discover-results" className="space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <p className="text-sm text-ink-secondary">
+                  {error ? (
+                    <span className="text-sem-red">
+                      Could not load suppliers.
+                    </span>
+                  ) : (
+                    <>
+                      <span className="font-semibold text-ink-primary">
+                        {Number(totalCount).toLocaleString()}
+                      </span>{" "}
+                      result{Number(totalCount) === 1 ? "" : "s"}
+                    </>
+                  )}
+                </p>
+                <SortControl
+                  basePath={BASE_PATH}
+                  current={sort}
+                  baseQuery={baseQuery}
+                />
+              </div>
 
-            {totalPages > 1 ? (
-              <Pagination
-                basePath={BASE_PATH}
-                page={pageNum}
-                totalPages={totalPages}
-                baseQuery={baseQuery}
-              />
-            ) : null}
-          </section>
-        </div>
+              {!error && rows.length === 0 ? (
+                <EmptyState
+                  title={anyFilterActive ? "No results for these filters" : "No published suppliers yet"}
+                  description={anyFilterActive ? "Try removing the most restrictive filter to broaden your search." : undefined}
+                  action={
+                    anyFilterActive ? (
+                      <Link href={BASE_PATH} className="btn-proto primary">
+                        Clear filters
+                      </Link>
+                    ) : null
+                  }
+                />
+              ) : (
+                <ul className="grid grid-cols-1 gap-4">
+                  {rows.map((row) => (
+                    <li key={row.id}>
+                      <DiscoverResultCard row={row} hrefBase="/suppliers" />
+                    </li>
+                  ))}
+                </ul>
+              )}
+
+              {totalPages > 1 ? (
+                <Pagination
+                  basePath={BASE_PATH}
+                  page={pageNum}
+                  totalPages={totalPages}
+                  baseQuery={baseQuery}
+                />
+              ) : null}
+            </section>
+          </>
+        ) : null}
       </main>
     </>
   );

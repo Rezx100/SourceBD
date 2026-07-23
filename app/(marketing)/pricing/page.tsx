@@ -59,7 +59,7 @@ function PriceHeadline({ value }: { value: string }) {
 function CheckMark({ on }: { on: boolean }) {
   return on ? (
     <span aria-label="Included" className="inline-flex justify-center text-sem-green">
-      <Check size={14} weight="bold" />
+      <Check size={16} weight="bold" />
     </span>
   ) : (
     <span aria-label="Not included" className="inline-flex justify-center text-ink-tertiary">
@@ -90,7 +90,7 @@ export default function PricingPage() {
             </p>
           </div>
           <div className="mt-2 flex w-full justify-center">
-            <p className="max-w-xs text-center text-[11px] leading-relaxed text-ink-tertiary">
+            <p className="max-w-xs text-center text-[12px] leading-relaxed text-ink-tertiary">
               Paid tiers, Stripe checkout, billing portal, and plan enforcement
               are deferred until after the public beta.
             </p>
@@ -120,25 +120,25 @@ export default function PricingPage() {
                   </div>
                 </CardHeader>
                 <CardContent className="flex flex-1 flex-col gap-4 pt-0">
-                  <p className="text-[13px] text-ink-secondary">{plan.tagline}</p>
+                  <p className="text-[14px] text-ink-secondary">{plan.tagline}</p>
 
                   <div>
                     <p className="font-display text-3xl font-bold tracking-tight text-ink-primary">
                       <PriceHeadline value={plan.priceHeadline} />
                     </p>
-                    <p className="mt-0.5 text-[11px] text-ink-tertiary">
+                    <p className="mt-0.5 text-[12px] text-ink-tertiary">
                       {plan.priceSubline}
                     </p>
                     {plan.trialNote ? (
-                      <p className="mt-1 text-[11px] text-sem-green">{plan.trialNote}</p>
+                      <p className="mt-1 text-[12px] text-sem-green">{plan.trialNote}</p>
                     ) : null}
                   </div>
 
-                  <ul className="flex-1 space-y-2 text-[13px] text-ink-secondary">
+                  <ul className="flex-1 space-y-2 text-[14px] text-ink-secondary">
                     {plan.features.map((f) => (
                       <li key={f} className="flex items-start gap-2">
                         <Check
-                          size={13}
+                          size={17}
                           weight="bold"
                           className="mt-0.5 shrink-0 text-sem-green"
                         />
@@ -173,14 +173,14 @@ export default function PricingPage() {
               <table className="min-w-full text-sm">
                 <thead>
                   <tr className="border-b border-neutral-100 bg-neutral-50">
-                    <th scope="col" className="px-3 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-ink-tertiary sm:px-5">
+                    <th scope="col" className="px-3 py-3 text-left text-[12px] font-semibold uppercase tracking-wider text-ink-tertiary sm:px-5">
                       Feature
                     </th>
                     {PLANS.map((plan) => (
                       <th
                         key={plan.key}
                         scope="col"
-                        className="px-3 py-3 text-center text-[11px] font-semibold uppercase tracking-wider text-ink-tertiary sm:px-5"
+                        className="px-3 py-3 text-center text-[12px] font-semibold uppercase tracking-wider text-ink-tertiary sm:px-5"
                       >
                         {plan.label}
                       </th>
@@ -192,25 +192,25 @@ export default function PricingPage() {
                     <tr key={row.feature} className="hover:bg-neutral-50/60">
                       <th
                         scope="row"
-                        className="px-3 py-3 text-left text-[13px] font-normal text-ink-secondary sm:px-5"
+                        className="px-3 py-3 text-left text-[14px] font-normal text-ink-secondary sm:px-5"
                       >
                         {row.feature}
                       </th>
-                      <td className="px-3 py-3 text-center text-[13px] sm:px-5">
+                      <td className="px-3 py-3 text-center text-[14px] sm:px-5">
                         {typeof row.starter === "boolean" ? (
                           <CheckMark on={row.starter} />
                         ) : (
                           <span className="text-ink-primary">{row.starter}</span>
                         )}
                       </td>
-                      <td className="px-3 py-3 text-center text-[13px] sm:px-5">
+                      <td className="px-3 py-3 text-center text-[14px] sm:px-5">
                         {typeof row.growth === "boolean" ? (
                           <CheckMark on={row.growth} />
                         ) : (
                           <span className="text-ink-primary">{row.growth}</span>
                         )}
                       </td>
-                      <td className="px-3 py-3 text-center text-[13px] sm:px-5">
+                      <td className="px-3 py-3 text-center text-[14px] sm:px-5">
                         {typeof row.enterprise === "boolean" ? (
                           <CheckMark on={row.enterprise} />
                         ) : (
@@ -235,7 +235,7 @@ export default function PricingPage() {
           <Card className="divide-y divide-neutral-100 p-0">
             {PRICING_FAQS.map((faq) => (
               <details key={faq.q} className="group px-5 py-4">
-                <summary className="cursor-pointer list-none text-[13px] font-medium text-ink-primary marker:hidden">
+                <summary className="cursor-pointer list-none text-[14px] font-medium text-ink-primary marker:hidden">
                   <span className="flex items-start justify-between gap-4">
                     <span>{faq.q}</span>
                     <span
@@ -246,7 +246,7 @@ export default function PricingPage() {
                     </span>
                   </span>
                 </summary>
-                <p className="mt-3 text-[13px] leading-relaxed text-ink-secondary">
+                <p className="mt-3 text-[14px] leading-relaxed text-ink-secondary">
                   {faq.a}
                 </p>
               </details>
@@ -274,7 +274,7 @@ export default function PricingPage() {
               href="mailto:sales@sourcebd.net?subject=SourceBD%20Enterprise%20enquiry"
               className="btn-proto primary inline-flex h-11 items-center gap-2 px-8 text-sm font-semibold text-white shadow-sm"
             >
-              Contact sales <ArrowRight size={15} />
+              Contact sales <ArrowRight size={17} />
             </Link>
           </div>
         </section>

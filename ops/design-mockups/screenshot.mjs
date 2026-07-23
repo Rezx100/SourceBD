@@ -5,15 +5,7 @@ import { fileURLToPath } from "node:url";
 const dir = path.dirname(fileURLToPath(import.meta.url));
 const htmlPath = path.join(dir, "discover-card-mockup.html");
 
-const ids = [
-  "current-mobile",
-  "proposed-mobile",
-  "current-desktop",
-  "proposed-desktop",
-  "ring-options",
-  "identity-options",
-  "save-options",
-];
+const ids = ["proposed-mobile", "proposed-desktop"];
 
 const browser = await chromium.launch();
 const page = await browser.newPage({

@@ -39,7 +39,7 @@ export function MobileFilterSheet({
           <Funnel size={16} weight="bold" />
           <span>Filters{countSuffix}</span>
         </span>
-        <span className="text-[11px] font-medium text-neutral-500">
+        <span className="text-[12px] font-medium text-neutral-500">
           {resultCount.toLocaleString()} result{resultCount === 1 ? "" : "s"}
         </span>
       </button>

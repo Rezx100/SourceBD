@@ -253,7 +253,7 @@ const USER_COLUMNS: Column<Row>[] = [
       r.claimed_supplier ? (
         <Link
           href={`/admin/suppliers/${r.claimed_supplier.id}`}
-          className="font-mono text-[12px] text-accent-indigo hover:underline"
+          className="font-mono text-[13px] text-accent-indigo hover:underline"
         >
           {r.claimed_supplier.company_name}
         </Link>
@@ -265,7 +265,7 @@ const USER_COLUMNS: Column<Row>[] = [
     key: "activity",
     label: "Activity",
     render: (r) => (
-      <span className="text-[11px] text-ink-tertiary">
+      <span className="text-[12px] text-ink-tertiary">
         created {formatAdminDate(r.created_at)}
         {r.last_sign_in_at
           ? ` · last ${formatAdminDate(r.last_sign_in_at)}`

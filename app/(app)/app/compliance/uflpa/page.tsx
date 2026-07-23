@@ -66,9 +66,9 @@ export default async function UflpaPage() {
       <div className="space-y-4">
         <Link
           href="/app/compliance"
-          className="inline-flex items-center gap-1.5 text-[12px] font-medium text-ink-tertiary transition-colors hover:text-ink-primary"
+          className="inline-flex items-center gap-1.5 text-[13px] font-medium text-ink-tertiary transition-colors hover:text-ink-primary"
         >
-          <ArrowLeft size={13} weight="bold" aria-hidden /> Compliance
+          <ArrowLeft size={17} weight="bold" aria-hidden /> Compliance
         </Link>
         <PageHeader
           kicker="Compliance"
@@ -78,7 +78,7 @@ export default async function UflpaPage() {
               Cross-references your saved suppliers against the U.S. Department of
               Homeland Security&apos;s UFLPA Entity List. A row is{" "}
               <span className="font-semibold">hit</span> when the supplier has an
-              active match in <code className="font-mono text-[12px]">sanctions_screening</code>,{" "}
+              active match in <code className="font-mono text-[13px]">sanctions_screening</code>,{" "}
               <span className="font-semibold">region flag</span> when supplier
               fields mention Xinjiang/XUAR/Uyghur exposure, otherwise{" "}
               <span className="font-semibold">clear</span>.
@@ -155,7 +155,7 @@ const UFLPA_COLUMNS: Column<UflpaRow>[] = [
         >
           {r.company_name}
         </Link>
-        <div className="text-[11px] text-ink-tertiary capitalize">
+        <div className="text-[12px] text-ink-tertiary capitalize">
           {r.entity_type.replace(/_/g, " ")}
         </div>
       </>
@@ -187,13 +187,13 @@ const UFLPA_COLUMNS: Column<UflpaRow>[] = [
     label: "Evidence",
     render: (r) =>
       r.uflpa_hits.length === 0 ? (
-        <span className="text-[12px] text-ink-tertiary">
+        <span className="text-[13px] text-ink-tertiary">
           {r.status === "region_flag"
             ? "Xinjiang-linked text in supplier fields"
             : "No active UFLPA matches"}
         </span>
       ) : (
-        <ul className="space-y-1 text-[12px]">
+        <ul className="space-y-1 text-[13px]">
           {r.uflpa_hits.map((h, i) => (
             <li key={`${h.list_entry_ref ?? "x"}-${i}`}>
               <span className="font-medium text-ink-primary">
@@ -252,7 +252,7 @@ function Stat({
       <CardContent className="flex items-center gap-3 py-3 sm:py-4">
         <Icon size={22} weight="fill" className={color} />
         <div>
-          <p className="text-[11px] text-ink-tertiary">
+          <p className="text-[12px] text-ink-tertiary">
             {label}
           </p>
           <p className="font-display text-xl font-semibold tabular-nums text-ink-primary sm:text-2xl">

@@ -105,7 +105,7 @@ export function SettingsAvatarForm({
             />
           ) : (
             <span
-              className="flex size-16 shrink-0 items-center justify-center rounded-full bg-brand-forest text-[18px] font-bold text-white"
+              className="flex size-16 shrink-0 items-center justify-center rounded-full bg-brand-forest text-[110px] font-bold text-white"
               aria-hidden
             >
               {initials}
@@ -128,7 +128,7 @@ export function SettingsAvatarForm({
                 disabled={pending}
                 onClick={() => inputRef.current?.click()}
               >
-                <UploadSimple size={15} weight="bold" aria-hidden className="mr-1.5" />
+                <UploadSimple size={17} weight="bold" aria-hidden className="mr-1.5" />
                 {pending ? "Working…" : url ? "Change picture" : "Upload picture"}
               </Button>
               {url ? (
@@ -140,15 +140,15 @@ export function SettingsAvatarForm({
                   onClick={onRemove}
                   className="text-sem-red hover:bg-sem-red-soft hover:text-sem-red"
                 >
-                  <Trash size={15} aria-hidden className="mr-1.5" />
+                  <Trash size={17} aria-hidden className="mr-1.5" />
                   Remove
                 </Button>
               ) : null}
             </div>
-            <p className="text-[11px] text-ink-tertiary">
+            <p className="text-[12px] text-ink-tertiary">
               PNG, JPEG, WebP, or GIF · up to 5 MB.
             </p>
-            <div className="min-h-[18px] text-sm">
+            <div className="min-h-[110px] text-sm">
               {ok ? <span className="text-sem-green">Saved.</span> : null}
               {error ? <span className="text-sem-red">{error}</span> : null}
             </div>

@@ -89,7 +89,7 @@ export function AuthShell({
 
         <BlurFade inView delay={0.05} className="relative z-10 max-w-md">
           <span className="inline-flex items-center gap-1.5 rounded-full border border-[#1f4d3a]/15 bg-white/70 px-3 py-1 text-xs font-medium text-[#1f4d3a] backdrop-blur">
-            <ShieldCheck size={13} weight="fill" />
+            <ShieldCheck size={17} weight="fill" />
             Verified Bangladesh RMG register
           </span>
 
@@ -104,7 +104,7 @@ export function AuthShell({
           </p>
 
           {/* Workspace preview */}
-          <div className="relative mt-8 overflow-hidden rounded-2xl border border-neutral-200 bg-white p-5 shadow-[0_18px_40px_-24px_rgba(16,25,20,0.45)]">
+          <div className="relative mt-8 overflow-hidden rounded-2xl border border-neutral-200 bg-white p-5 shadow-[0_110px_40px_-26px_rgba(16,25,20,0.45)]">
             <div className="flex items-center gap-3">
               <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#ecf3ee] text-[#1f4d3a]">
                 <ShieldCheck size={20} weight="duotone" />
@@ -141,7 +141,7 @@ export function AuthShell({
                       {p.description}
                     </span>
                   </span>
-                  <CheckCircle size={14} weight="fill" className="mt-0.5 shrink-0 text-emerald-500" />
+                  <CheckCircle size={16} weight="fill" className="mt-0.5 shrink-0 text-emerald-500" />
                 </div>
               ))}
             </div>

@@ -43,11 +43,11 @@ export function AdminSupplierRescoreButton({ id }: { id: string }) {
         {pending ? "Enqueuing…" : "Queue SBI rescore"}
       </Button>
       {jobId ? (
-        <p className="font-mono text-[11px] text-sem-green">
+        <p className="font-mono text-[12px] text-sem-green">
           queued · {jobId.slice(0, 8)}
         </p>
       ) : null}
-      {error ? <p className="text-[11px] text-sem-red">{error}</p> : null}
+      {error ? <p className="text-[12px] text-sem-red">{error}</p> : null}
     </div>
   );
 }
