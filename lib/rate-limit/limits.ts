@@ -51,6 +51,10 @@ export function classifyRoute(
   if (pathname.startsWith("/api/v1")) {
     return WRITE_METHODS.has(method) ? "api_write" : "api_read";
   }
+  // Public anon API endpoints — IP-based, same ceiling as marketing pages.
+  if (pathname.startsWith("/api/discover")) {
+    return "public_marketing";
+  }
   if (AUTH_PATHS.has(pathname)) {
     // GET renders the page (cheap). The bucket starts to bite on the form
     // submission, which Next routes back to the same path as a POST server
