@@ -139,7 +139,11 @@ export async function POST(req: Request) {
       p_subject: subject,
     });
     if (error) {
-      const code = /not authenticated/i.test(error.message) ? 401 : 400;
+      const code = /not authenticated/i.test(error.message)
+        ? 401
+        : /not a buyer/i.test(error.message)
+          ? 403
+          : 400;
       return NextResponse.json(
         { error: "thread_open failed", detail: error.message },
         { status: code },
