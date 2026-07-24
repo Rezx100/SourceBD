@@ -17,6 +17,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Tag } from "@/components/ui/tag";
 import { Wizard } from "@/components/ui/wizard";
+import { AppOriginError, getCanonicalAppOrigin } from "@/lib/app-origin";
 
 export const dynamic = "force-dynamic";
 
@@ -25,15 +26,6 @@ const CLAIM_STEPS = [
   { id: "initiate", label: "Verify ownership" },
   { id: "verify", label: "Confirm" },
 ];
-
-function originFromHeaders(headers: Headers): string {
-  const env = process.env.NEXT_PUBLIC_APP_URL;
-  if (env) return env.replace(/\/$/, "");
-  const proto = headers.get("x-forwarded-proto") ?? "http";
-  const host =
-    headers.get("x-forwarded-host") ?? headers.get("host") ?? "localhost:3000";
-  return `${proto}://${host}`;
-}
 
 export default async function ClaimVerifyPage({
   searchParams,
@@ -53,7 +45,21 @@ export default async function ClaimVerifyPage({
   }
 
   const h = await headers();
-  const origin = originFromHeaders(h as unknown as Headers);
+  let origin: string;
+  try {
+    origin = getCanonicalAppOrigin(h as unknown as Headers);
+  } catch (err) {
+    return (
+      <ErrorCard
+        title="Configuration error"
+        detail={
+          err instanceof AppOriginError
+            ? err.message
+            : "Unable to resolve the app origin."
+        }
+      />
+    );
+  }
 
   let result: {
     ok?: boolean;
