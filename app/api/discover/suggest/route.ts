@@ -27,6 +27,7 @@ const MAX_COMPANIES = 6;
 const MAX_PRODUCTS = 4;
 const MAX_LOCATIONS = 3;
 const MAX_CERTS = 2;
+const MAX_Q_LEN = 200;
 
 type CompanySuggestion = {
   type: "company";
@@ -101,6 +102,13 @@ export async function GET(request: Request) {
     return Response.json(
       { q, suggestions: [] as DiscoverSuggestion[] },
       { headers: { "Cache-Control": "no-store" } },
+    );
+  }
+
+  if (q.length > MAX_Q_LEN) {
+    return Response.json(
+      { error: "query_too_long", max: MAX_Q_LEN },
+      { status: 400 },
     );
   }
 
