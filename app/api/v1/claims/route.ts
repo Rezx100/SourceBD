@@ -216,8 +216,18 @@ export async function POST(req: Request) {
       text,
     });
 
-    const includeDevUrl =
-      process.env.NODE_ENV !== "production" || sendResult.sent === false;
+    // In production, a failed email send is a hard error — never expose the
+    // verification token via the API response, even as a fallback.
+    if (process.env.NODE_ENV === "production" && !sendResult.sent) {
+      return NextResponse.json(
+        {
+          error: "email_send_failed",
+          detail:
+            "Verification email could not be sent. Please try again later.",
+        },
+        { status: 502 },
+      );
+    }
 
     return NextResponse.json({
       ok: true,
@@ -225,7 +235,11 @@ export async function POST(req: Request) {
       method: payload.method,
       expires_at: payload.expires_at,
       email_sent: sendResult.sent,
-      ...(includeDevUrl ? { dev_verification_url: verifyUrl } : {}),
+      // dev_verification_url is only included outside production to aid
+      // local/preview workflows. It is never returned in production.
+      ...(process.env.NODE_ENV !== "production"
+        ? { dev_verification_url: verifyUrl }
+        : {}),
     });
   }
 
