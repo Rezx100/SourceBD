@@ -37,7 +37,6 @@ import {
   Database,
   IdentificationBadge,
   MapPin,
-  Receipt,
   SealCheck,
   ShareNetwork,
   ShieldCheck,
@@ -76,11 +75,11 @@ type SourceNode = {
 
 const LEFT_SOURCES: SourceNode[] = [
   { label: "BGMEA", sublabel: "Registry", logoTag: "BGMEA", icon: StackSimple },
-  { label: "BGMEA", sublabel: "Members", logoTag: "BGMEA", icon: StackSimple },
+  { label: "BKMEA", sublabel: "Registry", logoTag: "BKMEA", icon: StackSimple },
   { label: "EPB", sublabel: "Export Data", logoTag: "EPB", icon: StackSimple },
-  { label: "RSC", sublabel: "Trade License", logoTag: "RSC", icon: StackSimple },
-  { label: "NBR", sublabel: "Tax Records", icon: Receipt },
-  { label: "Certificates", sublabel: "Authorities", icon: SealCheck },
+  { label: "WRAP", sublabel: "Certification", logoTag: "WRAP", icon: StackSimple },
+  { label: "GOTS", sublabel: "Certification", logoTag: "GOTS", icon: StackSimple },
+  { label: "OEKO-TEX", sublabel: "Certification", logoTag: "OEKO_TEX", icon: StackSimple },
 ];
 
 type VizKind = "map" | "lines" | "doc" | "bars" | "dots" | "check";
