@@ -8,6 +8,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 
+import { AppOriginError, getCanonicalAppOrigin } from "@/lib/app-origin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { sendEmail, EmailError } from "@/lib/email/send";
 
@@ -17,15 +18,6 @@ function isSafeNext(value: string | null | undefined): value is string {
   // Only same-origin relative paths. Block protocol-relative `//evil.com`
   // and absolute URLs.
   return !!value && value.startsWith("/") && !value.startsWith("//");
-}
-
-async function siteOrigin(): Promise<string> {
-  const envOrigin = process.env.NEXT_PUBLIC_APP_URL;
-  if (envOrigin) return envOrigin.replace(/\/$/, "");
-  const h = await headers();
-  const proto = h.get("x-forwarded-proto") ?? "http";
-  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3000";
-  return `${proto}://${host}`;
 }
 
 export async function signInWithPassword(
@@ -56,7 +48,18 @@ export async function signInWithMagicLink(
 
   const supabase = await createSupabaseServerClient();
   const next = isSafeNext(nextRaw) ? nextRaw : "/app";
-  const origin = await siteOrigin();
+  const h = await headers();
+  let origin: string;
+  try {
+    origin = getCanonicalAppOrigin(h);
+  } catch (err) {
+    return {
+      error:
+        err instanceof AppOriginError
+          ? err.message
+          : "Unable to build auth redirect URL.",
+    };
+  }
   const emailRedirectTo = `${origin}/auth/callback?next=${encodeURIComponent(next)}`;
   const { error } = await supabase.auth.signInWithOtp({
     email,
@@ -80,7 +83,18 @@ export async function signUp(
   }
 
   const supabase = await createSupabaseServerClient();
-  const origin = await siteOrigin();
+  const h = await headers();
+  let origin: string;
+  try {
+    origin = getCanonicalAppOrigin(h);
+  } catch (err) {
+    return {
+      error:
+        err instanceof AppOriginError
+          ? err.message
+          : "Unable to build auth redirect URL.",
+    };
+  }
   const emailRedirectTo = `${origin}/auth/callback?next=${encodeURIComponent(
     role === "supplier" ? "/supplier" : "/app",
   )}`;
@@ -117,7 +131,18 @@ export async function requestPasswordReset(
   if (!email) return { error: "Email is required." };
 
   const supabase = await createSupabaseServerClient();
-  const origin = await siteOrigin();
+  const h = await headers();
+  let origin: string;
+  try {
+    origin = getCanonicalAppOrigin(h);
+  } catch (err) {
+    return {
+      error:
+        err instanceof AppOriginError
+          ? err.message
+          : "Unable to build auth redirect URL.",
+    };
+  }
   const redirectTo = `${origin}/auth/callback?next=${encodeURIComponent(
     "/reset-password",
   )}`;

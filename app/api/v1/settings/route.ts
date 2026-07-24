@@ -12,6 +12,7 @@
 
 import { NextResponse } from "next/server";
 
+import { AppOriginError, getCanonicalAppOrigin } from "@/lib/app-origin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
@@ -35,16 +36,6 @@ async function requireAuth(): Promise<
     return NextResponse.json({ error: "unauthorised" }, { status: 401 });
   }
   return { supabase, userId: user.id };
-}
-
-function siteOrigin(req: Request): string {
-  const envOrigin = process.env.NEXT_PUBLIC_APP_URL;
-  if (envOrigin) return envOrigin.replace(/\/$/, "");
-  const h = req.headers;
-  const proto = h.get("x-forwarded-proto") ?? "http";
-  const host =
-    h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3000";
-  return `${proto}://${host}`;
 }
 
 export async function GET() {
@@ -138,9 +129,23 @@ export async function POST(req: Request) {
         { status: 400 },
       );
     }
-    const emailRedirectTo = `${siteOrigin(req)}/auth/callback?next=${encodeURIComponent(
-      "/app/settings/profile",
-    )}`;
+    let emailRedirectTo: string;
+    try {
+      emailRedirectTo = `${getCanonicalAppOrigin(req.headers)}/auth/callback?next=${encodeURIComponent(
+        "/app/settings/profile",
+      )}`;
+    } catch (err) {
+      return NextResponse.json(
+        {
+          error: "app_origin_unavailable",
+          detail:
+            err instanceof AppOriginError
+              ? err.message
+              : "Unable to build email change redirect.",
+        },
+        { status: 500 },
+      );
+    }
     const { error } = await supabase.auth.updateUser(
       { email: raw.trim().toLowerCase() },
       { emailRedirectTo },
