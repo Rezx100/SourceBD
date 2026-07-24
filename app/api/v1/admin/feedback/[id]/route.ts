@@ -15,17 +15,25 @@ export async function POST(
   }
 
   const { id } = await ctx.params;
-  let status = "triaged";
+  const VALID_STATUSES = new Set(["open", "triaged", "closed"]);
   const contentType = req.headers.get("content-type") ?? "";
+
+  let status: string | null = null;
   if (contentType.includes("application/json")) {
     const body = (await req.json().catch(() => null)) as { status?: string } | null;
-    if (body?.status === "open" || body?.status === "triaged" || body?.status === "closed") {
-      status = body.status;
-    }
+    const s = body?.status;
+    if (typeof s === "string" && VALID_STATUSES.has(s)) status = s;
   } else {
     const form = await req.formData().catch(() => null);
     const s = form?.get("status");
-    if (s === "open" || s === "triaged" || s === "closed") status = s;
+    if (typeof s === "string" && VALID_STATUSES.has(s)) status = s;
+  }
+
+  if (status === null) {
+    return NextResponse.json(
+      { error: "invalid status; expected one of open|triaged|closed" },
+      { status: 400 },
+    );
   }
 
   const supabase = await createSupabaseServerClient();
