@@ -14,6 +14,7 @@
 
 import { NextResponse } from "next/server";
 
+import { AppOriginError, getCanonicalAppOrigin } from "@/lib/app-origin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { sendTransactionalEmail } from "@/lib/email/resend";
 
@@ -39,16 +40,6 @@ async function requireAuth(): Promise<
     return NextResponse.json({ error: "unauthorised" }, { status: 401 });
   }
   return { supabase, userId: user.id };
-}
-
-function siteOrigin(req: Request): string {
-  const env = process.env.NEXT_PUBLIC_APP_URL;
-  if (env) return env.replace(/\/$/, "");
-  const h = req.headers;
-  const proto = h.get("x-forwarded-proto") ?? "http";
-  const host =
-    h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3000";
-  return `${proto}://${host}`;
 }
 
 function rpcStatus(detail: string): number {
@@ -187,9 +178,23 @@ export async function POST(req: Request) {
       proof_email: string;
       supplier: { id: string; company_name: string };
     };
-    const verifyUrl = `${siteOrigin(req)}/supplier/claim/verify?token=${encodeURIComponent(
-      payload.verification_token,
-    )}`;
+    let verifyUrl: string;
+    try {
+      verifyUrl = `${getCanonicalAppOrigin(req.headers)}/supplier/claim/verify?token=${encodeURIComponent(
+        payload.verification_token,
+      )}`;
+    } catch (err) {
+      return NextResponse.json(
+        {
+          error: "app_origin_unavailable",
+          detail:
+            err instanceof AppOriginError
+              ? err.message
+              : "Unable to build claim verification link.",
+        },
+        { status: 500 },
+      );
+    }
 
     const subject = `Confirm ownership of ${payload.supplier.company_name} on SourceBD`;
     const text = [
