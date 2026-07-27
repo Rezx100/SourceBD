@@ -3,7 +3,20 @@
 This file keeps routine agent sessions from scanning every inactive feature spec.
 
 ## Active / Recent Spec
-- Most recent (28 Jul 2026): REZ-29 — Supplier map UX: satellite/street toggle, campus zoom (16),
+- COMPLETE (28 Jul 2026): REZ-30 — Supplier map enrichment pack (12 points): taller inline map
+  and fullscreen removal, inter-site haversine distances, pins differentiated by address kind +
+  legend, on-map site switcher, curated-landmark context chips, optional nearby-SourceBD-suppliers
+  layer, near-duplicate pin collision handling, geocode confidence cue, scale bar + attribution,
+  `?site=` permalink, GeoJSON pin export, and arrow-key site cycling. Zero live Barikoi/Rupantor
+  geocode calls — cache + our own catalog only. Touch: `components/supplier/locations-map.tsx`
+  (rewrite), `locations-section.tsx`, `profile-overview-tab.tsx`, new `lib/geo.ts`,
+  `lib/bd-landmarks.ts`, `lib/nearby-suppliers.ts`, `app/api/suppliers/nearby/route.ts`,
+  `lib/geo.test.ts`; `lib/dedup-addresses.ts` gained server-safe `CATEGORY_BY_GROUP`;
+  `lib/barikoi.ts` now surfaces cached `confidence_pct` / `address_status`.
+  `pnpm test` 143/143, `pnpm typecheck` + `pnpm lint` pass (same pre-existing warnings
+  outside this work). See `context/current-state.md` → "Recent Map UX" for the three
+  silent-failure bugs this spec uncovered.
+- Prior (28 Jul 2026): REZ-29 — Supplier map UX: satellite/street toggle, campus zoom (16),
   per-style maxZoom (19 sat / 20 street), one overview map for multi-site suppliers with fitBounds
   + click-to-focus flyTo, fullscreen mode (Esc/✕), copy lat/lng + Open in Google Maps per-pin
   popup, address list ↔ map highlight via shared `selectedIndex` in new `LocationsSection` client

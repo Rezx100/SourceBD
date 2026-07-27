@@ -52,7 +52,10 @@ export function classifyRoute(
     return WRITE_METHODS.has(method) ? "api_write" : "api_read";
   }
   // Public anon API endpoints — IP-based, same ceiling as marketing pages.
-  if (pathname.startsWith("/api/discover")) {
+  if (
+    pathname.startsWith("/api/discover") ||
+    pathname.startsWith("/api/suppliers")
+  ) {
     return "public_marketing";
   }
   if (AUTH_PATHS.has(pathname)) {

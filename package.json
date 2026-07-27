@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
-    "test": "tsc lib/dedup-addresses.ts lib/dedup-addresses.test.ts lib/bd-place-lexicon.test.ts --outDir node_modules/.cache/sourcebd-tests --module commonjs --target es2022 --moduleResolution node --esModuleInterop --skipLibCheck && node --test node_modules/.cache/sourcebd-tests"
+    "test": "tsc lib/dedup-addresses.ts lib/dedup-addresses.test.ts lib/bd-place-lexicon.test.ts lib/geo.test.ts --outDir node_modules/.cache/sourcebd-tests --module commonjs --target es2022 --moduleResolution node --esModuleInterop --skipLibCheck && node --test node_modules/.cache/sourcebd-tests"
   },
   "dependencies": {
     "@phosphor-icons/react": "^2.1.7",

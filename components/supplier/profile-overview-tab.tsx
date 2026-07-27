@@ -1,6 +1,10 @@
 import type { ReactNode } from "react";
 
-import { LocationsSection, type SerializableGroup } from "@/components/supplier/locations-section";
+import {
+  LocationsSection,
+  type SerializableGroup,
+} from "@/components/supplier/locations-section";
+import type { LocationKind, LocationMapMarker } from "@/components/supplier/locations-map";
 import { geocodeLocations } from "@/lib/barikoi";
 import { PrincipalProductsCard } from "@/components/supplier/principal-products-card";
 import {
@@ -10,6 +14,7 @@ import {
 } from "@/components/supplier/profile-ui";
 import {
   buildLocationOverview,
+  CATEGORY_BY_GROUP,
   locationOverviewMeta,
   mergeUniqueLocations,
   type AddressRowRaw,
@@ -112,12 +117,17 @@ export async function ProfileOverviewTab<TAddress extends AddressRowRaw>({
   t13SourceCount,
   provenanceCount,
   addresses,
+  discoverHref,
+  slug,
 }: {
   supplier: ProfileOverviewSupplier;
   t13SourceCount: number;
   provenanceCount: number;
   addresses: readonly TAddress[];
   discoverHref: "/app/discover" | "/discover";
+  /** Profile slug — excluded from the nearby-sites map layer and used to name
+   *  the GeoJSON pin export. */
+  slug?: string;
 }) {
   const overview = buildLocationOverview(addresses);
   const primaryAddress =
@@ -126,14 +136,25 @@ export async function ProfileOverviewTab<TAddress extends AddressRowRaw>({
   // Pins come from the ETL geocode cache only. Look each location up by the
   // raw registry spellings it was merged from — the cache is keyed on those,
   // not on the cleaned display address. A miss just means no pin.
-  const mapMarkers = await geocodeLocations(
+  const geocoded = await geocodeLocations(
     overview.groups.flatMap((g) =>
       g.locations.map((l) => ({
         label: toTitleCaseAddress(l.displayAddress),
         lookups: l.source_rows.map((r) => r.address),
+        // Carried through so the pin can be coloured by address kind (REZ-30).
+        kind: CATEGORY_BY_GROUP[g.title],
       })),
     ),
   );
+
+  const mapMarkers: LocationMapMarker[] = geocoded.map((g) => ({
+    latitude: g.latitude,
+    longitude: g.longitude,
+    label: g.label,
+    kind: (g.kind ?? "other") as LocationKind,
+    confidencePct: g.confidencePct,
+    addressStatus: g.addressStatus,
+  }));
 
   // Build label → marker index so each SerializableLocation knows which map
   // pin it corresponds to. geocodeLocations drops cache-miss entries, so the
@@ -183,7 +204,14 @@ export async function ProfileOverviewTab<TAddress extends AddressRowRaw>({
               overview.sourceRecordCount,
             )}
           />
-          <LocationsSection markers={mapMarkers} groups={serializedGroups} />
+          <LocationsSection
+            markers={mapMarkers}
+            groups={serializedGroups}
+            supplierSlug={slug}
+            profileBasePath={
+              discoverHref === "/app/discover" ? "/app/suppliers" : "/suppliers"
+            }
+          />
         </ProfileCard>
       ) : null}
     </ProfileTabStack>
