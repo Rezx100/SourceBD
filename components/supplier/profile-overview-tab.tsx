@@ -9,7 +9,7 @@ import {
 import { AuthorityChip } from "@/components/supplier/authority-chip";
 import { LocationsAddressGroup } from "@/components/supplier/locations-address-group";
 import { LocationsMap } from "@/components/supplier/locations-map";
-import { geocodeAddresses } from "@/lib/barikoi";
+import { geocodeLocations } from "@/lib/barikoi";
 import { PrincipalProductsCard } from "@/components/supplier/principal-products-card";
 import {
   ProfileCard,
@@ -140,11 +140,15 @@ export async function ProfileOverviewTab<TAddress extends AddressRowRaw>({
   const primaryAddress =
     mergeUniqueLocations(addresses)[0]?.displayAddress ?? null;
 
-  // Geocode the deduped locations for the map (Barikoi; DB cache first,
-  // bounded live fallback). Failure or missing key = no map, never an error.
-  const mapMarkers = await geocodeAddresses(
+  // Pins come from the ETL geocode cache only. Look each location up by the
+  // raw registry spellings it was merged from — the cache is keyed on those,
+  // not on the cleaned display address. A miss just means no pin.
+  const mapMarkers = await geocodeLocations(
     overview.groups.flatMap((g) =>
-      g.locations.map((l) => toTitleCaseAddress(l.displayAddress)),
+      g.locations.map((l) => ({
+        label: toTitleCaseAddress(l.displayAddress),
+        lookups: l.source_rows.map((r) => r.address),
+      })),
     ),
   );
 
@@ -211,6 +215,10 @@ function AddressRow<TAddress extends AddressRowRaw>({
 }) {
   const also = secondaryTypeLabels(location.types);
   const display = toTitleCaseAddress(location.displayAddress);
+  // Floors merged in from other registry rows that the chosen wording omits.
+  const extraFloors = location.floors.filter(
+    (floor) => !display.toLowerCase().includes(floor.toLowerCase()),
+  );
 
   return (
     <div className="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
@@ -224,8 +232,20 @@ function AddressRow<TAddress extends AddressRowRaw>({
         >
           {GROUP_ICON[groupTitle]}
         </span>
-        <p className="min-w-0 pt-0.5 text-[14.5px] leading-[1.45] text-neutral-800 sm:pt-0">
+        <p
+          className="min-w-0 pt-0.5 text-[14.5px] leading-[1.45] text-neutral-800 sm:pt-0"
+          title={
+            location.variants.length > 0
+              ? `Also recorded as: ${location.variants.join(" · ")}`
+              : undefined
+          }
+        >
           {display}
+          {extraFloors.length > 0 ? (
+            <span className="ml-1.5 text-[13px] font-normal text-neutral-500">
+              Also on {extraFloors.join(", ")}
+            </span>
+          ) : null}
           {also.length > 0 ? (
             <span className="ml-1.5 text-[13px] font-normal text-neutral-500">
               Also: {also.join(", ")}
