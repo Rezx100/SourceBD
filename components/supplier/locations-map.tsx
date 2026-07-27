@@ -230,6 +230,7 @@ function useMapInstance(
         scrollZoom: false,
         dragRotate: false,
         pitchWithRotate: false,
+        attributionControl: false,
       });
       map.touchZoomRotate.disableRotation();
       map.addControl(
