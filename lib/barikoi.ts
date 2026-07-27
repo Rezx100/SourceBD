@@ -18,6 +18,8 @@ import "server-only";
 
 import { createClient } from "@supabase/supabase-js";
 
+import { applyPlaceLexicon } from "@/lib/bd-place-lexicon";
+
 export type GeocodedLocation = {
   latitude: number;
   longitude: number;
@@ -31,9 +33,11 @@ export type GeocodeTarget = {
   lookups: readonly string[];
 };
 
-/** Same normalisation the ETL job uses — keep the two in sync. */
+/** Same normalisation the ETL job uses — keep the two in sync (REZ-28:
+ *  place lexicon applied so variant spellings share the same cache key). */
 export function normalizeAddressKey(address: string): string {
-  return address.trim().toLowerCase().replace(/\s+/g, " ");
+  const lower = address.trim().toLowerCase().replace(/\s+/g, " ");
+  return applyPlaceLexicon(lower).replace(/\s+/g, " ").trim();
 }
 
 type LatLng = { latitude: number; longitude: number };

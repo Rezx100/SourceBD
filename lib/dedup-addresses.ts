@@ -1,4 +1,6 @@
 // Address dedup for supplier profile locations.
+// Uses the shared BD place lexicon (lib/bd-place-lexicon.ts) inside
+// normaliseAddressKey for place-name canonicalization (REZ-28).
 //
 // Data arrives as one row per (address, authority) pair, and the registries
 // spell the same premises differently: transliteration drift (Kainzanul /
@@ -14,6 +16,8 @@
 // premises no matter how similar the surrounding prose reads, because
 // collapsing them would destroy a registry fact. A leftover duplicate row is
 // a cosmetic problem; a wrongly merged factory is a data problem.
+
+import { applyPlaceLexicon } from "./bd-place-lexicon";
 
 export type AddressRowRaw = {
   kind: string;
@@ -73,20 +77,6 @@ const SHARED_ID_THRESHOLD = 0.6;
 const TOKEN_JW = 0.9;
 const TOKEN_LEV = 0.78;
 
-const TRANSLITERATION_PAIRS: ReadonlyArray<readonly [RegExp, string]> = [
-  [/\bchittagong\b/g, "chattogram"],
-  [/\bctg\b/g, "chattogram"],
-  [/\bdacca\b/g, "dhaka"],
-  [/\bbayzid\b/g, "baizid"],
-  [/\bdhanmandi\b/g, "dhanmondi"],
-  [/\bn[\s.]?ganj\b/g, "narayanganj"],
-  [/\bnarayangonj\b/g, "narayanganj"],
-  [/\bsiddirgonj\b/g, "siddhirganj"],
-  [/\bsiddhirgonj\b/g, "siddhirganj"],
-  [/\bmaymashingo\b/g, "mymensingh"],
-  [/\bmaymanshingh\b/g, "mymensingh"],
-  [/\bmymensing\b/g, "mymensingh"],
-];
 
 const ABBREVIATION_PAIRS: ReadonlyArray<readonly [RegExp, string]> = [
   // Longest first: "in/estate" must not be eaten by the "i/a" rule.
@@ -275,7 +265,7 @@ export function extractFloors(address: string): {
  *  consecutive duplicate words removed, empty tokens dropped. */
 export function normaliseAddressKey(input: string): string {
   let s = input.toLowerCase();
-  for (const [pat, rep] of TRANSLITERATION_PAIRS) s = s.replace(pat, rep);
+  s = applyPlaceLexicon(s);
   for (const [pat, rep] of ABBREVIATION_PAIRS) s = s.replace(pat, rep);
   s = s.replace(/\bplot\s*(no\.?|number|#|:)\s*/g, "plot ");
   s = s.replace(/\bblock\s*[-:]\s*/g, "block ");

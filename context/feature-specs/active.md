@@ -3,7 +3,18 @@
 This file keeps routine agent sessions from scanning every inactive feature spec.
 
 ## Active / Recent Spec
-- Most recent (27 Jul 2026): REZ-27 — Barikoi satellite maps at building zoom,
+- Most recent (28 Jul 2026): REZ-28 — Platform address canonicalization:
+  shared BD place lexicon (TS + Python lockstep) merges 50+ approved spelling
+  variants of Bangladesh place names for address dedup and geocode cache keys.
+  `lib/bd-place-lexicon.ts` → `applyPlaceLexicon()`; mirrors in
+  `etl/lib/bd_place_lexicon.py` → `apply_place_lexicon()`. Wired into
+  `normaliseAddressKey` in `dedup-addresses.ts` (replaces inline
+  TRANSLITERATION_PAIRS), `normalizeAddressKey` in `barikoi.ts`, and
+  `normalize_key` in `etl/jobs/barikoi_geocode.py`. Tests: 108 TS (pnpm
+  test) + 74 Python (pytest) all pass; `pnpm typecheck` + `pnpm lint` +
+  `python -m py_compile` pass. Zero Barikoi API calls; raw source strings
+  unchanged.
+- Prior (27 Jul 2026): REZ-27 — Barikoi satellite maps at building zoom,
   one map per unique address on supplier profile Locations. Implemented in
   `components/supplier/locations-map.tsx`: satellite style
   (`barikoi_satellite`), zoom 18, `AddressMap` per marker when 2+ addresses.

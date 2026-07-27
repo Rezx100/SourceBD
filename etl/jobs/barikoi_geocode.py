@@ -23,17 +23,20 @@ from etl.core.config import settings
 from etl.core.db import db
 from etl.core.http import HttpClient
 from etl.core.logging import get_logger
+from etl.lib.bd_place_lexicon import apply_place_lexicon
 
 log = get_logger("etl.jobs.barikoi_geocode")
 
 RUPANTOR_URL = "https://barikoi.xyz/v2/api/search/rupantor/geocode"
 
-# Keep in sync with `normalizeAddressKey` in lib/barikoi.ts.
+# Keep in sync with `normalizeAddressKey` in lib/barikoi.ts (REZ-28:
+# place lexicon applied so variant spellings share the same cache key).
 _WS = re.compile(r"\s+")
 
 
 def normalize_key(address: str) -> str:
-    return _WS.sub(" ", address.strip().lower())
+    lower = _WS.sub(" ", address.strip().lower())
+    return _WS.sub(" ", apply_place_lexicon(lower)).strip()
 
 
 def _list_pending(limit: int | None) -> list[str]:
