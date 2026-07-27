@@ -4933,6 +4933,15 @@
   }
 }
 
+/* ===== Barikoi / MapLibre map branding suppression =====
+   Remove the Barikoi logo (bottom-left) and attribution text (bottom-right)
+   from all bkoi-gl map instances. Attribution control is also disabled at the
+   Map constructor level (attributionControl: false). */
+.maplibregl-ctrl-logo,
+.maplibregl-ctrl-attrib {
+  display: none !important;
+}
+
 /* ===== Marketing hero search comet =====
    A forest-green comet travels the rounded-rect perimeter at uniform speed.
    stroke-dashoffset animates linearly over the pathLength-normalised perimeter

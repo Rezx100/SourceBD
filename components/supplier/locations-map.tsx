@@ -38,12 +38,11 @@ const MAX_ZOOM: Record<MapStyle, number> = { satellite: 19, street: 20 };
 const OVERVIEW_PADDING = 52;
 // Maximum overview zoom so distant single-cluster sites read clearly
 const OVERVIEW_MAX_ZOOM = 15;
+// Lighter sage color for transient (live-located) pins — visually distinct from
+// ETL-verified forest-green pins so buyers know it is a best-effort locate.
+const TRANSIENT_PIN_COLOR = "#6b9e83";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
-
-function googleMapsUrl(lat: number, lng: number) {
-  return `https://www.google.com/maps?q=${lat},${lng}`;
-}
 
 function styleUrl(style: MapStyle, apiKey: string) {
   return `${MAP_STYLE_URLS[style]}?key=${encodeURIComponent(apiKey)}`;
@@ -78,28 +77,17 @@ function makePinPopupHtml(marker: LocationMapMarker, index: number) {
   const lat = marker.latitude.toFixed(6);
   const lng = marker.longitude.toFixed(6);
   return `
-    <div style="min-width:200px;padding:4px 2px">
-      <p style="margin:0 0 6px;font-size:13px;font-weight:600;color:#1a1a1a;line-height:1.4">${marker.label}</p>
-      <p style="margin:0 0 10px;font-size:11.5px;color:#666;font-family:monospace">${lat}, ${lng}</p>
-      <div style="display:flex;gap:6px">
-        <button
-          data-copy-coords="${lat},${lng}"
-          data-pin-index="${index}"
-          style="flex:1;display:flex;align-items:center;justify-content:center;gap:4px;padding:5px 8px;font-size:11.5px;font-weight:500;color:#374151;background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;cursor:pointer"
-          title="Copy coordinates"
-        >
-          Copy
-        </button>
-        <a
-          href="${googleMapsUrl(marker.latitude, marker.longitude)}"
-          target="_blank"
-          rel="noopener noreferrer"
-          style="flex:1;display:flex;align-items:center;justify-content:center;gap:4px;padding:5px 8px;font-size:11.5px;font-weight:500;color:#374151;background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;text-decoration:none"
-          title="Open in Google Maps"
-        >
-          Maps ↗
-        </a>
-      </div>
+    <div style="min-width:180px;padding:4px 2px">
+      <p style="margin:0 0 5px;font-size:13px;font-weight:600;color:#1a1a1a;line-height:1.4">${marker.label}</p>
+      <p style="margin:0 0 9px;font-size:11.5px;color:#666;font-family:monospace">${lat}, ${lng}</p>
+      <button
+        data-copy-coords="${lat},${lng}"
+        data-pin-index="${index}"
+        style="width:100%;display:flex;align-items:center;justify-content:center;gap:4px;padding:5px 8px;font-size:11.5px;font-weight:500;color:#374151;background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;cursor:pointer"
+        title="Copy coordinates"
+      >
+        Copy coordinates
+      </button>
     </div>`;
 }
 
@@ -230,6 +218,7 @@ function useMapInstance(
         scrollZoom: false,
         dragRotate: false,
         pitchWithRotate: false,
+        attributionControl: false,
       });
       map.touchZoomRotate.disableRotation();
       map.addControl(
@@ -350,7 +339,61 @@ function useMapInstance(
     mapRef.current?.resize();
   }, []);
 
-  return { setStyle, flyToMarker, resetToOverview, resize };
+  // Transient marker — lives outside the stable marker array so it can be
+  // added/replaced/removed imperatively after mount.
+  const transientMarkerRef = useRef<import("bkoi-gl").Marker | null>(null);
+  const transientPopupRef = useRef<import("bkoi-gl").Popup | null>(null);
+
+  const setTransientMarker = useCallback(
+    (m: LocationMapMarker | null) => {
+      // Remove any existing transient pin.
+      transientPopupRef.current?.remove();
+      transientMarkerRef.current?.remove();
+      transientMarkerRef.current = null;
+      transientPopupRef.current = null;
+
+      const map = mapRef.current;
+      if (!m || !map) return;
+
+      (async () => {
+        const bkoi = await import("bkoi-gl");
+        if (!mapRef.current) return;
+
+        const lat = m.latitude.toFixed(6);
+        const lng = m.longitude.toFixed(6);
+        const popupHtml = `
+          <div style="min-width:180px;padding:4px 2px">
+            <p style="margin:0 0 5px;font-size:12px;font-weight:600;color:#1a1a1a;line-height:1.4">${m.label}</p>
+            <p style="margin:0 0 4px;font-size:11px;color:#888;font-family:monospace">${lat}, ${lng}</p>
+            <p style="margin:0;font-size:10.5px;color:#aaa;font-style:italic">Best-effort locate — not registry-verified</p>
+          </div>`;
+
+        const popup = new bkoi.Popup({
+          offset: 20,
+          closeButton: true,
+          maxWidth: "240px",
+        }).setHTML(popupHtml);
+
+        const marker = new bkoi.Marker({ color: TRANSIENT_PIN_COLOR })
+          .setLngLat([m.longitude, m.latitude])
+          .setPopup(popup)
+          .addTo(mapRef.current);
+
+        transientMarkerRef.current = marker;
+        transientPopupRef.current = popup;
+
+        mapRef.current.flyTo({
+          center: [m.longitude, m.latitude],
+          zoom: CAMPUS_ZOOM,
+          duration: 600,
+        });
+        setTimeout(() => popup.addTo(mapRef.current!), 650);
+      })();
+    },
+    [], // eslint-disable-line react-hooks/exhaustive-deps
+  );
+
+  return { setStyle, flyToMarker, resetToOverview, resize, setTransientMarker };
 }
 
 // ─── Map widget (the actual rendered map + overlaid controls) ─────────────────
@@ -364,6 +407,9 @@ interface MapWidgetProps {
   mapStyle: MapStyle;
   /** True while the fullscreen overlay is open — triggers a map resize. */
   isFullscreen: boolean;
+  /** Optional live-located transient pin (best-effort Autocomplete result).
+   *  Displayed in a lighter sage color to distinguish from ETL-verified pins. */
+  transientMarker?: LocationMapMarker | null;
   className?: string;
   ariaLabel: string;
 }
@@ -374,6 +420,7 @@ function MapWidget({
   onFocusChange,
   mapStyle,
   isFullscreen,
+  transientMarker,
   className,
   ariaLabel,
 }: MapWidgetProps) {
@@ -384,7 +431,7 @@ function MapWidget({
   const onFocusChangeRef = useRef<((index: number) => void) | null>(null);
   onFocusChangeRef.current = onFocusChange;
 
-  const { setStyle, flyToMarker, resetToOverview, resize } = useMapInstance(
+  const { setStyle, flyToMarker, resetToOverview, resize, setTransientMarker } = useMapInstance(
     containerRef,
     markers,
     mapStyle,
@@ -419,6 +466,11 @@ function MapWidget({
     const t = setTimeout(() => resize(), 120);
     return () => clearTimeout(t);
   }, [isFullscreen, resize]);
+
+  // Sync transient (live-located) pin to the imperative map handle.
+  useEffect(() => {
+    setTransientMarker(transientMarker ?? null);
+  }, [transientMarker, setTransientMarker]);
 
   return (
     <div
@@ -486,21 +538,25 @@ export interface LocationsMapProps {
    *  When undefined the component manages its own focus state. */
   focusedIndex?: number | null;
   onFocusChange?: (index: number | null) => void;
+  /** Optional transient pin for a live-located (Autocomplete) address. */
+  transientMarker?: LocationMapMarker | null;
 }
 
 export function LocationsMap({
   markers,
   focusedIndex: externalFocusedIndex,
   onFocusChange: externalOnFocusChange,
+  transientMarker,
 }: LocationsMapProps) {
   const apiKey = process.env.NEXT_PUBLIC_BARIKOI_API_KEY;
-  if (!apiKey || markers.length === 0) return null;
+  if (!apiKey || (markers.length === 0 && !transientMarker)) return null;
 
   return (
     <LocationsMapInner
       markers={markers}
       externalFocusedIndex={externalFocusedIndex}
       externalOnFocusChange={externalOnFocusChange}
+      transientMarker={transientMarker}
     />
   );
 }
@@ -510,15 +566,17 @@ function LocationsMapInner({
   markers,
   externalFocusedIndex,
   externalOnFocusChange,
+  transientMarker,
 }: {
   markers: LocationMapMarker[];
   externalFocusedIndex?: number | null;
   externalOnFocusChange?: (index: number | null) => void;
+  transientMarker?: LocationMapMarker | null;
 }) {
   const [internalFocusedIndex, setInternalFocusedIndex] = useState<
     number | null
   >(null);
-  const [mapStyle, setMapStyle] = useState<MapStyle>("satellite");
+  const [mapStyle, setMapStyle] = useState<MapStyle>("street");
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   const isControlled = externalFocusedIndex !== undefined;
@@ -566,6 +624,7 @@ function LocationsMapInner({
         onFocusChange={handleFocusChange}
         mapStyle={mapStyle}
         isFullscreen={isFullscreen}
+        transientMarker={transientMarker}
         ariaLabel={ariaLabel}
       />
       {controls}
