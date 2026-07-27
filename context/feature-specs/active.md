@@ -3,7 +3,15 @@
 This file keeps routine agent sessions from scanning every inactive feature spec.
 
 ## Active / Recent Spec
-- Most recent (28 Jul 2026): REZ-28 — Platform address canonicalization:
+- Most recent (28 Jul 2026): REZ-29 — Supplier map UX: satellite/street toggle, campus zoom (16),
+  per-style maxZoom (19 sat / 20 street), one overview map for multi-site suppliers with fitBounds
+  + click-to-focus flyTo, fullscreen mode (Esc/✕), copy lat/lng + Open in Google Maps per-pin
+  popup, address list ↔ map highlight via shared `selectedIndex` in new `LocationsSection` client
+  component. Touch: `components/supplier/locations-map.tsx` (rewrite),
+  `components/supplier/locations-section.tsx` (new),
+  `components/supplier/profile-overview-tab.tsx` (uses LocationsSection, removes inline AddressRow).
+  `pnpm typecheck` + `pnpm lint` pass (same pre-existing warnings outside this work).
+- Prior (28 Jul 2026): REZ-28 — Platform address canonicalization:
   shared BD place lexicon (TS + Python lockstep) merges 50+ approved spelling
   variants of Bangladesh place names for address dedup and geocode cache keys.
   `lib/bd-place-lexicon.ts` → `applyPlaceLexicon()`; mirrors in

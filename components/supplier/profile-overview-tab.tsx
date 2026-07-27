@@ -1,14 +1,6 @@
 import type { ReactNode } from "react";
-import {
-  Buildings,
-  EnvelopeSimple,
-  Factory,
-  MapPin,
-} from "@phosphor-icons/react/dist/ssr";
 
-import { AuthorityChip } from "@/components/supplier/authority-chip";
-import { LocationsAddressGroup } from "@/components/supplier/locations-address-group";
-import { LocationsMap } from "@/components/supplier/locations-map";
+import { LocationsSection, type SerializableGroup } from "@/components/supplier/locations-section";
 import { geocodeLocations } from "@/lib/barikoi";
 import { PrincipalProductsCard } from "@/components/supplier/principal-products-card";
 import {
@@ -20,10 +12,7 @@ import {
   buildLocationOverview,
   locationOverviewMeta,
   mergeUniqueLocations,
-  secondaryTypeLabels,
   type AddressRowRaw,
-  type GroupTitle,
-  type UniqueLocation,
 } from "@/lib/dedup-addresses";
 import { articleFor, formatMonthYear } from "@/lib/format-supplier-profile";
 import { correctProductSpelling, dedupProducts } from "@/lib/product-icons";
@@ -55,12 +44,6 @@ function sourceCodeLabel(code: string): string {
   return code.replace(/_/g, "-");
 }
 
-const GROUP_ICON: Record<GroupTitle, ReactNode> = {
-  Factories: <Factory size={17} weight="duotone" aria-hidden />,
-  "Registered offices": <Buildings size={17} weight="duotone" aria-hidden />,
-  "Mailing addresses": <EnvelopeSimple size={17} weight="duotone" aria-hidden />,
-  "Other addresses": <MapPin size={17} weight="duotone" aria-hidden />,
-};
 
 const NARRATIVE_AUTHORITY_PRIORITY = [
   "BGMEA",
@@ -98,6 +81,18 @@ export function ProfileAddressesCard<TAddress extends AddressRowRaw>({
   const overview = buildLocationOverview(addresses);
   if (overview.uniqueLocationCount === 0) return null;
 
+  const groups: SerializableGroup[] = overview.groups.map((group) => ({
+    title: group.title,
+    locations: group.locations.map((loc) => ({
+      displayAddress: loc.displayAddress,
+      floors: loc.floors,
+      variants: loc.variants,
+      types: loc.types,
+      authorities: loc.authorities,
+      markerIndex: null,
+    })),
+  }));
+
   return (
     <ProfileCard id="locations">
       <ProfileCardHeader
@@ -107,19 +102,7 @@ export function ProfileAddressesCard<TAddress extends AddressRowRaw>({
           overview.sourceRecordCount,
         )}
       />
-      <div className="flex flex-col gap-5">
-        {overview.groups.map((group) => (
-          <LocationsAddressGroup
-            key={group.title}
-            title={group.title}
-            count={group.locations.length}
-          >
-            {group.locations.map((location, i) => (
-              <AddressRow key={i} location={location} groupTitle={group.title} />
-            ))}
-          </LocationsAddressGroup>
-        ))}
-      </div>
+      <LocationsSection markers={[]} groups={groups} />
     </ProfileCard>
   );
 }
@@ -152,6 +135,24 @@ export async function ProfileOverviewTab<TAddress extends AddressRowRaw>({
     ),
   );
 
+  // Build label → marker index so each SerializableLocation knows which map
+  // pin it corresponds to. geocodeLocations drops cache-miss entries, so the
+  // index only exists for locations with a cached geocode.
+  const markerIndexByLabel = new Map(mapMarkers.map((m, i) => [m.label, i]));
+
+  const serializedGroups: SerializableGroup[] = overview.groups.map((group) => ({
+    title: group.title,
+    locations: group.locations.map((loc) => ({
+      displayAddress: loc.displayAddress,
+      floors: loc.floors,
+      variants: loc.variants,
+      types: loc.types,
+      authorities: loc.authorities,
+      markerIndex:
+        markerIndexByLabel.get(toTitleCaseAddress(loc.displayAddress)) ?? null,
+    })),
+  }));
+
   return (
     <ProfileTabStack>
       <PrincipalProductsCard products={s.principal_products} />
@@ -182,89 +183,10 @@ export async function ProfileOverviewTab<TAddress extends AddressRowRaw>({
               overview.sourceRecordCount,
             )}
           />
-          {mapMarkers.length > 0 ? (
-            <div className="mb-5">
-              <LocationsMap markers={mapMarkers} />
-            </div>
-          ) : null}
-          <div className="flex flex-col gap-5">
-            {overview.groups.map((group) => (
-              <LocationsAddressGroup
-                key={group.title}
-                title={group.title}
-                count={group.locations.length}
-              >
-                {group.locations.map((location, i) => (
-                  <AddressRow key={i} location={location} groupTitle={group.title} />
-                ))}
-              </LocationsAddressGroup>
-            ))}
-          </div>
+          <LocationsSection markers={mapMarkers} groups={serializedGroups} />
         </ProfileCard>
       ) : null}
     </ProfileTabStack>
-  );
-}
-
-function AddressRow<TAddress extends AddressRowRaw>({
-  location,
-  groupTitle,
-}: {
-  location: UniqueLocation<TAddress>;
-  groupTitle: GroupTitle;
-}) {
-  const also = secondaryTypeLabels(location.types);
-  const display = toTitleCaseAddress(location.displayAddress);
-  // Floors merged in from other registry rows that the chosen wording omits.
-  const extraFloors = location.floors.filter(
-    (floor) => !display.toLowerCase().includes(floor.toLowerCase()),
-  );
-
-  return (
-    <div className="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
-      <div className="flex min-w-0 items-start gap-2.5 sm:flex-1">
-        {/* Phones: boxed mark to match the source-mark language used
-            elsewhere on the profile (Registries, Certifications); sm+
-            reverts to the quieter bare icon. */}
-        <span
-          className="flex size-7 shrink-0 items-center justify-center rounded-[8px] border border-neutral-200/70 bg-[#fafaf9] text-neutral-500 sm:mt-px sm:size-auto sm:rounded-none sm:border-0 sm:bg-transparent sm:text-neutral-400"
-          aria-hidden
-        >
-          {GROUP_ICON[groupTitle]}
-        </span>
-        <p
-          className="min-w-0 pt-0.5 text-[14.5px] leading-[1.45] text-neutral-800 sm:pt-0"
-          title={
-            location.variants.length > 0
-              ? `Also recorded as: ${location.variants.join(" · ")}`
-              : undefined
-          }
-        >
-          {display}
-          {extraFloors.length > 0 ? (
-            <span className="ml-1.5 text-[13px] font-normal text-neutral-500">
-              Also on {extraFloors.join(", ")}
-            </span>
-          ) : null}
-          {also.length > 0 ? (
-            <span className="ml-1.5 text-[13px] font-normal text-neutral-500">
-              Also: {also.join(", ")}
-            </span>
-          ) : null}
-        </p>
-      </div>
-      {location.authorities.length > 0 ? (
-        <div className="flex flex-wrap gap-1.5 pl-[38px] sm:shrink-0 sm:justify-end sm:gap-1 sm:pl-0">
-          {location.authorities.map((code) => (
-            <AuthorityChip
-              key={code}
-              label={sourceCodeLabel(code)}
-              className="px-2 py-[3px] text-[11px] sm:px-2.5 sm:py-0.5 sm:text-[12px]"
-            />
-          ))}
-        </div>
-      ) : null}
-    </div>
   );
 }
 

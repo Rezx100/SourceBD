@@ -84,6 +84,20 @@ PENDING OPS: migration 0077 is NOT yet applied — Supabase pooler ports
 Until then the profile map works via live geocoding only (first 4 addresses
 per profile, memoised in-process).
 
+## Recent Map UX
+28 Jul 2026 - REZ-29: Supplier profile Locations map UX overhauled. `components/supplier/locations-map.tsx`
+rewritten: satellite ↔ street style toggle (`barikoi_satellite` / `osm_barikoi_v1`), campus default
+zoom 16, per-style maxZoom (19 / 20), one overview map for multi-site suppliers (fitBounds +
+click-to-focus flyTo with "All sites" back button), fullscreen mode (Esc or ✕ exit, map.resize on
+toggle), copy lat/lng to clipboard + Open in Google Maps link in per-pin popup. New
+`components/supplier/locations-section.tsx` client wrapper holds shared `selectedIndex` state
+binding map ↔ address list (address row click → map flyTo; map pin click → row highlight). Marker
+index mapping pre-computed from `geocodeLocations` return order and stored as `markerIndex: number |
+null` on each `SerializableLocation`. `profile-overview-tab.tsx` updated to use `LocationsSection`
+(inline `AddressRow` and `GROUP_ICON` removed; `ProfileAddressesCard` updated similarly). Zero new
+Barikoi geocode/Rupantor calls. `pnpm typecheck` + `pnpm lint` pass (same pre-existing warnings
+outside this work).
+
 ## Recent Address Canonicalization
 28 Jul 2026 - REZ-28: Shared BD place lexicon implemented. `lib/bd-place-lexicon.ts`
 (`applyPlaceLexicon`) + `etl/lib/bd_place_lexicon.py` (`apply_place_lexicon`) carry
