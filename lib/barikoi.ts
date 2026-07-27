@@ -24,6 +24,17 @@ export type GeocodedLocation = {
   latitude: number;
   longitude: number;
   label: string;
+  /** Echoed straight back from the target so callers can keep their own
+   *  classification (address kind) attached to the resolved pin. */
+  kind?: string;
+  /** Rupantor's own confidence in the match, as cached by the ETL job.
+   *  Surfaced so the map can tell a buyer when a pin is a loose locate
+   *  rather than a building-level one. Null when the cache row predates
+   *  confidence capture. */
+  confidencePct: number | null;
+  /** Rupantor address_status ("full_address", "area" …) — coarse label for
+   *  how precisely the address text resolved. */
+  addressStatus: string | null;
 };
 
 /** One merged location: the address to display, plus every raw registry
@@ -31,6 +42,7 @@ export type GeocodedLocation = {
 export type GeocodeTarget = {
   label: string;
   lookups: readonly string[];
+  kind?: string;
 };
 
 /** Same normalisation the ETL job uses — keep the two in sync (REZ-28:
@@ -40,7 +52,12 @@ export function normalizeAddressKey(address: string): string {
   return applyPlaceLexicon(lower).replace(/\s+/g, " ").trim();
 }
 
-type LatLng = { latitude: number; longitude: number };
+type CacheHit = {
+  latitude: number;
+  longitude: number;
+  confidencePct: number | null;
+  addressStatus: string | null;
+};
 
 // REZ-23: address_geocodes RLS policy was tightened to deny anon reads.
 // Use the service role (server-only context) for cache reads so the policy
@@ -54,20 +71,26 @@ function serviceSupabase() {
   });
 }
 
-async function cacheLookup(keys: string[]): Promise<Map<string, LatLng | null>> {
-  const out = new Map<string, LatLng | null>();
+async function cacheLookup(keys: string[]): Promise<Map<string, CacheHit | null>> {
+  const out = new Map<string, CacheHit | null>();
   const supabase = serviceSupabase();
   if (!supabase || keys.length === 0) return out;
   const { data, error } = await supabase
     .from("address_geocodes")
-    .select("address_norm, latitude, longitude")
+    .select("address_norm, latitude, longitude, confidence_pct, address_status")
     .in("address_norm", keys);
   if (error || !data) return out;
   for (const row of data) {
     out.set(
       row.address_norm as string,
       row.latitude != null && row.longitude != null
-        ? { latitude: Number(row.latitude), longitude: Number(row.longitude) }
+        ? {
+            latitude: Number(row.latitude),
+            longitude: Number(row.longitude),
+            confidencePct:
+              row.confidence_pct != null ? Number(row.confidence_pct) : null,
+            addressStatus: (row.address_status as string | null) ?? null,
+          }
         : null,
     );
   }
@@ -103,7 +126,7 @@ export async function geocodeLocations(
     for (const lookup of target.lookups) {
       const hit = cached.get(normalizeAddressKey(lookup));
       if (hit) {
-        out.push({ ...hit, label: target.label });
+        out.push({ ...hit, label: target.label, kind: target.kind });
         break;
       }
     }

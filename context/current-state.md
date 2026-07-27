@@ -85,11 +85,53 @@ Until then the profile map works via live geocoding only (first 4 addresses
 per profile, memoised in-process).
 
 ## Recent Map UX
+28 Jul 2026 - REZ-30: Supplier map enrichment pack shipped (12 points).
+`components/supplier/locations-map.tsx` rewritten again. **Fullscreen removed** — the map is
+taller inline instead (380 / 470 / 540px), since fullscreen hides the address list that gives
+the pins meaning. Pins now carry two independent channels: address kind (head shape + tone,
+numbered to match the list rows) and geocode precision (filled = premises, hollow =
+area-level). Confidence keys off `confidence_pct < 70` only — `address_status` is
+"incomplete" on every cached row, so a cue based on it would flag 100% of pins and say
+nothing (~39% of the cache is below 70, so the cue discriminates). Pins within 60 m get a
+pixel spiderfy so each stays clickable. Added an on-map site switcher (arrow keys / Home on
+the focused map region), straight-line distance sentence, curated-landmark context chips, a
+live scale bar, `?site=N` permalinks via `history.replaceState`, GeoJSON pin export, and an
+optional "other published SourceBD sites nearby" layer. New `lib/geo.ts` (haversine, bbox,
+centroid, span, spiderfy, metresPerPixel), `lib/bd-landmarks.ts` (curated ports/airports/
+EPZs/belts), `lib/nearby-suppliers.ts` + `app/api/suppliers/nearby` (rate-limited via
+`lib/rate-limit/limits.ts`).
+
+Three real bugs found and fixed while verifying, worth remembering:
+1. **`GROUP_KIND` lived in a `"use client"` module** and was imported by the server component
+   `profile-overview-tab.tsx`. A plain object imported out of a client module is a
+   client-reference proxy, not the object, so every lookup returned `undefined` and every pin
+   silently fell back to kind "other" — the map legend contradicted the address list. The
+   table now lives in `lib/dedup-addresses.ts` as `CATEGORY_BY_GROUP` (server-safe) and the
+   client re-uses it. **Lesson: never import a value table from a `"use client"` file into a
+   Server Component; it fails silently, not loudly.**
+2. **Attribution did not follow the basemap.** The satellite style is Barikoi's but its
+   imagery is Stadia/Airbus/CNES/PlanetObserver, so crediting only Barikoi + OSM over
+   satellite was factually wrong. `MAP_ATTRIBUTION` is now per-style.
+3. **The nearby layer cached its own failures.** One dropped request wrote `[]` into the
+   per-anchor cache, so the layer stayed empty for the rest of the session and the strip
+   claimed "No other published sites within 6 km" — asserting a fact it had not established.
+   Failures are no longer cached, and the strip distinguishes loading / failed / genuinely
+   empty. This also explained an intermittent smoke failure that was really a cold
+   dev-server compile hiding behind misleading copy.
+
+Verified with a throwaway Playwright pass over a 4-site profile (`fakir-apparels`) and a
+single-site profile: pin/legend/popup agreement, no fullscreen control anywhere, scale bar,
+distance + landmark chips, keyboard cycling and permalink round-trip, satellite attribution
+swap, nearby layer (12 sites, spiderfied), GeoJSON payload fields, deep-link cold load, and
+mobile 400px layout. `pnpm test` 143/143, `pnpm typecheck` + `pnpm lint` pass (same
+pre-existing warnings outside this work). Zero new Rupantor/live Barikoi geocode calls.
+
 28 Jul 2026 - REZ-29: Supplier profile Locations map UX overhauled. `components/supplier/locations-map.tsx`
 rewritten: satellite ↔ street style toggle (`barikoi_satellite` / `osm_barikoi_v1`), campus default
 zoom 16, per-style maxZoom (19 / 20), one overview map for multi-site suppliers (fitBounds +
 click-to-focus flyTo with "All sites" back button), fullscreen mode (Esc or ✕ exit, map.resize on
-toggle), copy lat/lng to clipboard + Open in Google Maps link in per-pin popup. New
+toggle — **superseded by REZ-30, which removed fullscreen**), copy lat/lng to clipboard + Open in
+Google Maps link in per-pin popup (**the Google Maps link was since removed**). New
 `components/supplier/locations-section.tsx` client wrapper holds shared `selectedIndex` state
 binding map ↔ address list (address row click → map flyTo; map pin click → row highlight). Marker
 index mapping pre-computed from `geocodeLocations` return order and stored as `markerIndex: number |

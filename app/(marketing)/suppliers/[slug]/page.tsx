@@ -385,6 +385,7 @@ export default async function PublicSupplierProfilePage({
               provenanceCount={payload.provenance.length}
               addresses={publicAddresses(payload.addresses)}
               discoverHref="/discover"
+              slug={slug}
             />
           </TabsContent>
           <TabsContent value="compliance" id="compliance">

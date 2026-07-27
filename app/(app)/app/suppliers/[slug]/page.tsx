@@ -332,6 +332,7 @@ export default async function FactoryProfilePage({
             provenanceCount={payload.provenance.length}
             addresses={payload.addresses}
             discoverHref="/app/discover"
+            slug={slug}
           />
         </TabsContent>
         <TabsContent value="compliance" id="compliance">

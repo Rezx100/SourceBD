@@ -4,12 +4,20 @@
 // selectedIndex state so clicking an address row flies to that pin, and clicking
 // a map pin highlights that row in the list.
 //
+// REZ-30 adds two bindings on top of that:
+//   • Geocoded rows on multi-site profiles carry the same numbered badge, in
+//     the same address-kind colour, as their map pin — so "site 3" means one
+//     thing on the map, in the list, and in the exported GeoJSON.
+//   • `?site=N` deep-links a profile straight to one location. Read from the
+//     URL on mount and written back with history.replaceState, so sharing a
+//     pin never costs a navigation or a re-render of the server component.
+//
 // For addresses with no ETL geocode cache entry (markerIndex === null), clicking
 // the row fires a one-credit Barikoi Autocomplete request to get a best-effort
 // lat/lng. The result is ephemeral (session state only — never written to DB).
 // A lighter sage pin distinguishes it from registry-verified forest-green pins.
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   Buildings,
   CircleNotch,
@@ -22,11 +30,17 @@ import {
 import { AuthorityChip } from "@/components/supplier/authority-chip";
 import { LocationsAddressGroup } from "@/components/supplier/locations-address-group";
 import {
+  LOCATION_KIND_STYLE,
   LocationsMap,
+  type LocationKind,
   type LocationMapMarker,
 } from "@/components/supplier/locations-map";
-import { secondaryTypeLabels } from "@/lib/dedup-addresses";
+import { CATEGORY_BY_GROUP, secondaryTypeLabels } from "@/lib/dedup-addresses";
 import { toTitleCaseAddress } from "@/lib/format-location";
+
+/** Deep-link param that focuses one location on load. 1-based to match the
+ *  numbering a buyer sees on the pins and in the address list. */
+const SITE_PARAM = "site";
 
 // ─── Serialisable shape passed from the server component ─────────────────────
 
@@ -76,7 +90,7 @@ async function barikoiLocate(
   }
 }
 
-// ─── Group icon map ───────────────────────────────────────────────────────────
+// ─── Group icon / kind maps ───────────────────────────────────────────────────
 
 const GROUP_ICON: Record<string, React.ReactNode> = {
   Factories: <Factory size={17} weight="duotone" aria-hidden />,
@@ -84,6 +98,10 @@ const GROUP_ICON: Record<string, React.ReactNode> = {
   "Mailing addresses": <EnvelopeSimple size={17} weight="duotone" aria-hidden />,
   "Other addresses": <MapPin size={17} weight="duotone" aria-hidden />,
 };
+
+/** Group titles come from `buildLocationOverview`; the map thinks in kinds.
+ *  The table itself is server-safe and lives in `lib/dedup-addresses`. */
+const GROUP_KIND = CATEGORY_BY_GROUP as Record<string, LocationKind>;
 
 // ─── Address row ─────────────────────────────────────────────────────────────
 
@@ -94,12 +112,16 @@ function AddressRow({
   groupTitle,
   isSelected,
   locateState,
+  showSiteNumber,
   onClick,
 }: {
   location: SerializableLocation;
   groupTitle: string;
   isSelected: boolean;
   locateState: LocateState;
+  /** True on multi-pin profiles, where the numbered badge is what ties this
+   *  row to a specific pin. */
+  showSiteNumber: boolean;
   onClick: () => void;
 }) {
   const also = secondaryTypeLabels(location.types);
@@ -110,8 +132,14 @@ function AddressRow({
 
   const isUngeocoded = location.markerIndex === null;
   const isTransientSelected = isSelected && isUngeocoded;
+  const siteNumber =
+    showSiteNumber && location.markerIndex !== null
+      ? location.markerIndex + 1
+      : null;
+  const kindStyle = LOCATION_KIND_STYLE[GROUP_KIND[groupTitle] ?? "other"];
 
-  // Icon tile — shows spinner while locating, cross-map-pin on failure
+  // Icon tile — spinner while locating, cross-map-pin on failure, and on
+  // multi-site profiles a numbered badge in the pin's own colour.
   const iconTile = (() => {
     if (locateState === "loading") {
       return (
@@ -126,6 +154,19 @@ function AddressRow({
     if (locateState === "failed") {
       return (
         <MapPinLine size={17} weight="duotone" className="text-neutral-400" aria-hidden />
+      );
+    }
+    if (siteNumber !== null) {
+      return (
+        <span
+          className={
+            "flex size-[19px] items-center justify-center font-mono text-[10.5px] font-bold " +
+            (kindStyle.head === "round" ? "rounded-full" : "rounded-[5px]")
+          }
+          style={{ background: kindStyle.color, color: kindStyle.badgeColor }}
+        >
+          {siteNumber}
+        </span>
       );
     }
     return GROUP_ICON[groupTitle] ?? <MapPin size={17} weight="duotone" aria-hidden />;
@@ -164,6 +205,9 @@ function AddressRow({
                 : undefined
             }
           >
+            {siteNumber !== null ? (
+              <span className="sr-only">Site {siteNumber}. </span>
+            ) : null}
             {display}
             {extraFloors.length > 0 ? (
               <span className="ml-1.5 text-[13px] font-normal text-neutral-500">
@@ -212,9 +256,15 @@ function AddressRow({
 export function LocationsSection({
   markers,
   groups,
+  supplierSlug,
+  profileBasePath,
 }: {
   markers: LocationMapMarker[];
   groups: SerializableGroup[];
+  /** Excluded from the nearby layer; also names the GeoJSON export. */
+  supplierSlug?: string;
+  /** `/suppliers` or `/app/suppliers` for nearby-supplier popup links. */
+  profileBasePath?: string;
 }) {
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
 
@@ -233,6 +283,35 @@ export function LocationsSection({
     typeof window !== "undefined"
       ? process.env.NEXT_PUBLIC_BARIKOI_API_KEY
       : undefined;
+
+  // --- ?site=N deep link (read once on mount) ---
+  // Read straight from `location.search` rather than `useSearchParams` so this
+  // stays a plain client island: no Suspense boundary, and no dependency on the
+  // profile page's rendering mode.
+  useEffect(() => {
+    if (markers.length === 0) return;
+    const raw = new URLSearchParams(window.location.search).get(SITE_PARAM);
+    if (!raw) return;
+    const requested = Number.parseInt(raw, 10);
+    if (!Number.isInteger(requested)) return;
+    if (requested < 1 || requested > markers.length) return;
+    setSelectedIndex(requested - 1);
+    // A shared pin link should land on the map, not the top of the profile.
+    document
+      .getElementById("locations")
+      ?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [markers.length]);
+
+  // --- keep the URL in step with the focused pin, without navigating ---
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    const current = url.searchParams.get(SITE_PARAM);
+    const next = selectedIndex === null ? null : String(selectedIndex + 1);
+    if (current === next) return;
+    if (next === null) url.searchParams.delete(SITE_PARAM);
+    else url.searchParams.set(SITE_PARAM, next);
+    window.history.replaceState(null, "", url.toString());
+  }, [selectedIndex]);
 
   // --- ETL-geocoded address click ---
   const handleAddressClick = useCallback((markerIndex: number | null) => {
@@ -308,6 +387,8 @@ export function LocationsSection({
             focusedIndex={selectedIndex}
             onFocusChange={handleMapFocus}
             transientMarker={transientMarker}
+            supplierSlug={supplierSlug}
+            profileBasePath={profileBasePath}
           />
         </div>
       ) : null}
@@ -349,6 +430,7 @@ export function LocationsSection({
                   groupTitle={group.title}
                   isSelected={isSelected || isTransientSelected}
                   locateState={locateState}
+                  showSiteNumber={markers.length > 1}
                   onClick={() =>
                     isGeocoded
                       ? handleAddressClick(location.markerIndex)

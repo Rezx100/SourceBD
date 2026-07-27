@@ -186,6 +186,17 @@ const GROUP_BY_CATEGORY: Record<AddressTypeCategory, GroupTitle> = {
   other: "Other addresses",
 };
 
+/** Group heading → category. Lives here rather than in a `"use client"`
+ *  component so Server Components can read it: importing a plain object out of
+ *  a client module yields a client-reference proxy, not the object, which
+ *  silently classified every map pin as "other" (REZ-30). */
+export const CATEGORY_BY_GROUP: Record<GroupTitle, AddressTypeCategory> = {
+  Factories: "factory",
+  "Registered offices": "registered",
+  "Mailing addresses": "mailing",
+  "Other addresses": "other",
+};
+
 const TYPE_LABEL: Record<AddressTypeCategory, string> = {
   factory: "Factory",
   registered: "Registered office",
