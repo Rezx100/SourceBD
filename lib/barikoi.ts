@@ -1,13 +1,18 @@
 // Barikoi geocoding (server-side only — never import from client components).
 //
-// Resolution order for a profile's location pins:
-//   1. `public.address_geocodes` — the DB cache populated by the ETL
-//      `geocode-addresses` job (bulk Rupantor backfill).
-//   2. Live Rupantor call for a small number of cache misses, memoised
-//      in-process so repeated views of the same profile don't re-bill.
+// Profile location pins are resolved purely from `public.address_geocodes`,
+// the DB cache populated by the ETL `geocode-addresses` job. The web app
+// never calls Barikoi: a cache miss yields no pin until the next ETL run.
 //
-// Fails closed everywhere: no API key, provider error, or unresolvable
-// address simply yields no pin. The profile renders fine without a map.
+// The cache is keyed on the RAW registry address the ETL geocoded, so lookups
+// must pass those raw strings — not the cleaned display address. Dedup
+// re-punctuates the display string (newlines become commas, repeated
+// administrative tails are dropped) and `normalizeAddressKey` preserves
+// commas, so a display-string lookup would miss the cache on roughly 9,000
+// rows and, when a live fallback existed, silently re-bill Rupantor for them.
+//
+// Fails closed everywhere: no cache row simply yields no pin. The profile
+// renders fine without a map.
 
 import "server-only";
 
@@ -19,24 +24,19 @@ export type GeocodedLocation = {
   label: string;
 };
 
-const RUPANTOR_URL = "https://barikoi.xyz/v2/api/search/rupantor/geocode";
-const LIVE_LOOKUP_LIMIT = 4;
-const LIVE_TIMEOUT_MS = 3500;
+/** One merged location: the address to display, plus every raw registry
+ *  spelling it was merged from, any of which may be the cache key. */
+export type GeocodeTarget = {
+  label: string;
+  lookups: readonly string[];
+};
 
 /** Same normalisation the ETL job uses — keep the two in sync. */
 export function normalizeAddressKey(address: string): string {
   return address.trim().toLowerCase().replace(/\s+/g, " ");
 }
 
-function barikoiApiKey(): string | null {
-  return process.env.BARIKOI_API_KEY ?? process.env.BRIKOI_API_KEY ?? null;
-}
-
 type LatLng = { latitude: number; longitude: number };
-
-// In-process memo (positive and negative results) so `force-dynamic`
-// profile pages don't re-call the provider on every request.
-const liveMemo = new Map<string, LatLng | null>();
 
 // REZ-23: address_geocodes RLS policy was tightened to deny anon reads.
 // Use the service role (server-only context) for cache reads so the policy
@@ -70,77 +70,39 @@ async function cacheLookup(keys: string[]): Promise<Map<string, LatLng | null>> 
   return out;
 }
 
-async function liveGeocode(address: string): Promise<LatLng | null> {
-  const key = normalizeAddressKey(address);
-  if (liveMemo.has(key)) return liveMemo.get(key)!;
-
-  const apiKey = barikoiApiKey();
-  if (!apiKey) return null;
-
-  let result: LatLng | null = null;
-  try {
-    const body = new URLSearchParams({ q: address });
-    const res = await fetch(`${RUPANTOR_URL}?api_key=${encodeURIComponent(apiKey)}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body,
-      signal: AbortSignal.timeout(LIVE_TIMEOUT_MS),
-      cache: "no-store",
-    });
-    if (res.ok) {
-      const json = (await res.json()) as {
-        geocoded_address?: { latitude?: string | number; longitude?: string | number };
-      };
-      const lat = Number(json.geocoded_address?.latitude);
-      const lng = Number(json.geocoded_address?.longitude);
-      if (Number.isFinite(lat) && Number.isFinite(lng) && lat !== 0 && lng !== 0) {
-        result = { latitude: lat, longitude: lng };
-      }
-    }
-  } catch {
-    result = null;
-  }
-  liveMemo.set(key, result);
-  return result;
-}
-
 /**
- * Resolve coordinates for up to `max` addresses. DB cache first, then a
- * bounded number of live lookups for misses. Order of the input is
- * preserved in the output; unresolvable addresses are dropped.
+ * Resolve coordinates for up to `max` merged locations from the DB cache.
+ * Each target is tried against every raw spelling it was merged from, so a
+ * location still gets a pin when only one registry's wording was geocoded.
+ * Order is preserved; unresolvable locations are dropped. Never calls Barikoi.
  */
-export async function geocodeAddresses(
-  addresses: readonly string[],
+export async function geocodeLocations(
+  targets: readonly GeocodeTarget[],
   max = 8,
 ): Promise<GeocodedLocation[]> {
-  const unique: string[] = [];
-  const seen = new Set<string>();
-  for (const addr of addresses) {
-    const key = normalizeAddressKey(addr);
-    if (!key || seen.has(key)) continue;
-    seen.add(key);
-    unique.push(addr);
-    if (unique.length >= max) break;
+  const wanted = targets.slice(0, max);
+  if (wanted.length === 0) return [];
+
+  const keys = new Set<string>();
+  for (const target of wanted) {
+    for (const lookup of target.lookups) {
+      const key = normalizeAddressKey(lookup);
+      if (key) keys.add(key);
+    }
   }
-  if (unique.length === 0) return [];
+  if (keys.size === 0) return [];
 
-  const cached = await cacheLookup(unique.map(normalizeAddressKey));
+  const cached = await cacheLookup([...keys]);
 
-  const results = await Promise.all(
-    unique.map(async (addr, i): Promise<GeocodedLocation | null> => {
-      const key = normalizeAddressKey(addr);
-      if (cached.has(key)) {
-        const hit = cached.get(key);
-        return hit ? { ...hit, label: addr } : null;
+  const out: GeocodedLocation[] = [];
+  for (const target of wanted) {
+    for (const lookup of target.lookups) {
+      const hit = cached.get(normalizeAddressKey(lookup));
+      if (hit) {
+        out.push({ ...hit, label: target.label });
+        break;
       }
-      // Bounded live fallback for the first few cache misses only.
-      const missRank = unique
-        .slice(0, i)
-        .filter((a) => !cached.has(normalizeAddressKey(a))).length;
-      if (missRank >= LIVE_LOOKUP_LIMIT) return null;
-      const live = await liveGeocode(addr);
-      return live ? { ...live, label: addr } : null;
-    }),
-  );
-  return results.filter((r): r is GeocodedLocation => r !== null);
+    }
+  }
+  return out;
 }
