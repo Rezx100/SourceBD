@@ -688,6 +688,9 @@ export function mergeUniqueLocations<T extends AddressRowRaw>(
       for (const id of candidate.ids) candidates[target]!.ids.add(id);
     }
   }
+  for (const location of merged) {
+    location.floors.sort((a, b) => (parseInt(a, 10) || 0) - (parseInt(b, 10) || 0));
+  }
   return merged;
 }
 
