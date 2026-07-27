@@ -14,6 +14,8 @@
 // Fails closed everywhere: no cache row simply yields no pin. The profile
 // renders fine without a map.
 
+import "server-only";
+
 import { createClient } from "@supabase/supabase-js";
 
 export type GeocodedLocation = {
@@ -36,16 +38,21 @@ export function normalizeAddressKey(address: string): string {
 
 type LatLng = { latitude: number; longitude: number };
 
-function anonSupabase() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+// REZ-23: address_geocodes RLS policy was tightened to deny anon reads.
+// Use the service role (server-only context) for cache reads so the policy
+// change does not break profile map lookups.
+function serviceSupabase() {
+  const url = process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!url || !key) return null;
-  return createClient(url, key, { auth: { persistSession: false } });
+  return createClient(url, key, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
 }
 
 async function cacheLookup(keys: string[]): Promise<Map<string, LatLng | null>> {
   const out = new Map<string, LatLng | null>();
-  const supabase = anonSupabase();
+  const supabase = serviceSupabase();
   if (!supabase || keys.length === 0) return out;
   const { data, error } = await supabase
     .from("address_geocodes")

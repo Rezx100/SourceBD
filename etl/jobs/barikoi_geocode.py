@@ -101,15 +101,19 @@ def _store(address: str, payload: dict | None) -> None:
 
 async def _geocode_all(addresses: list[str], api_key: str) -> dict[str, int]:
     stats = {"scanned": 0, "resolved": 0, "unresolved": 0, "failed": 0}
-    # Rupantor is 2 credits/call; keep a polite fixed rate regardless of
-    # the scraper-wide default.
+    # Base-only Rupantor request = 2 credits/call (district + thana params
+    # each add +1 credit and are not used by the map — omitted to halve cost).
+    # Sequential loop intentional: concurrent gather caused a 429 thundering-
+    # herd where all 8 in-flight tasks retry simultaneously, compounding the
+    # rate-limit problem. 2 RPS sequential is predictable and stays well under
+    # Barikoi's observed sustained limit.
     async with HttpClient(rps=2.0) as http:
         for address in addresses:
             stats["scanned"] += 1
             try:
                 resp = await http.post(
                     f"{RUPANTOR_URL}?api_key={api_key}",
-                    data={"q": address, "district": "yes", "thana": "yes"},
+                    data={"q": address},
                 )
                 payload = resp.json()
                 _store(address, payload)
