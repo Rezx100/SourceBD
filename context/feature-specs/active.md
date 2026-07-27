@@ -3,7 +3,12 @@
 This file keeps routine agent sessions from scanning every inactive feature spec.
 
 ## Active / Recent Spec
-- Most recent (23 Jul 2026, latest): homepage promotion — the approved
+- Most recent (27 Jul 2026): REZ-27 — Barikoi satellite maps at building zoom,
+  one map per unique address on supplier profile Locations. Implemented in
+  `components/supplier/locations-map.tsx`: satellite style
+  (`barikoi_satellite`), zoom 18, `AddressMap` per marker when 2+ addresses.
+  `pnpm typecheck` + `pnpm lint` pass.
+- Prior (23 Jul 2026, latest): homepage promotion — the approved
   /home-demo composition IS now production `/` (old homepage SEO metadata
   + JSON-LD retained), `/home-demo` permanently redirects to `/`, and the
   scenic skyline footer is the global `MarketingFooter` on every

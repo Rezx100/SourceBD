@@ -84,6 +84,17 @@ PENDING OPS: migration 0077 is NOT yet applied — Supabase pooler ports
 Until then the profile map works via live geocoding only (first 4 addresses
 per profile, memoised in-process).
 
+## Recent Map Update
+27 Jul 2026 - REZ-27: Supplier profile Locations map switched to Barikoi
+satellite imagery (`barikoi_satellite` style) at building-level zoom 18.
+Companies with 2+ unique geocoded addresses now render a separate
+`AddressMap` instance per address (each labeled with its address text)
+instead of a single multi-pin fitBounds view. Single-address profiles keep
+one map. No new dependencies; no Rupantor re-geocoding — all maps reuse
+cached coordinates from `address_geocodes`. `pnpm typecheck` + `pnpm lint`
+pass (same pre-existing warnings outside this work). Touch: only
+`components/supplier/locations-map.tsx`.
+
 ## Recent Frontend Polish
 23 Jul 2026 (homepage promotion) - The founder-approved /home-demo
 composition is now the production homepage at `app/(marketing)/page.tsx`
