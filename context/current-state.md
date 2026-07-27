@@ -84,6 +84,21 @@ PENDING OPS: migration 0077 is NOT yet applied — Supabase pooler ports
 Until then the profile map works via live geocoding only (first 4 addresses
 per profile, memoised in-process).
 
+## Recent Address Canonicalization
+28 Jul 2026 - REZ-28: Shared BD place lexicon implemented. `lib/bd-place-lexicon.ts`
+(`applyPlaceLexicon`) + `etl/lib/bd_place_lexicon.py` (`apply_place_lexicon`) carry
+the founder-confirmed 50+ pair lexicon (A1–A2 new pairs, B1–B7 UI transliterations,
+C1 district corrections, C2 locality/EPZ aliases; D negatives enforced by omission:
+Sreepur≠Sripur, bare Nawabganj≠Chapainawabganj). Wired into: (1) `normaliseAddressKey`
+in `dedup-addresses.ts` — replaces the old inline `TRANSLITERATION_PAIRS` so variant
+spellings now merge into one `UniqueLocation` on the profile Locations card;
+(2) `normalizeAddressKey` in `barikoi.ts` — geocode cache lookups canonicalize before
+querying `address_geocodes`, so one cached row resolves both spellings without any new
+Barikoi API calls; (3) `normalize_key` in `etl/jobs/barikoi_geocode.py` — future
+geocode entries stored under the canonical key. `pnpm test` 108/108 pass; pytest
+74/74 pass; `pnpm typecheck` + `pnpm lint` + `python -m py_compile` pass (same
+pre-existing lint warnings outside this work). Raw source strings unchanged.
+
 ## Recent Map Update
 27 Jul 2026 - REZ-27: Supplier profile Locations map switched to Barikoi
 satellite imagery (`barikoi_satellite` style) at building-level zoom 18.
