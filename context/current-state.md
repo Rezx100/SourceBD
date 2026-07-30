@@ -197,10 +197,28 @@ Not yet verified, and to be checked before deploy:
   machine). It moves from `mcr.microsoft.com/playwright/python:v1.47.0-jammy` to
   `python:3.12-slim-bookworm` plus `playwright install --with-deps chromium`,
   since Chromium is now the only browser used. Build it before deploying.
-- Migration 0084 has not been applied to production Supabase. Note it now grants
-  `firecrawl_webhook_record` to `service_role` explicitly: revoking the function
-  from `public` also removes the implicit grant the webhook route relied on, so
-  without it every delivery 500s while every test still passes.
+- ~~Migration 0084 has not been applied~~ **Applied to production 30 Jul 2026**
+  via the Supabase MCP, along with 0085. Verified after apply, not just assumed:
+  5 tables with RLS on, 6 functions, 18 indexes, 4 triggers, and an allow-list of
+  28 codes with `brand_inditex` absent and `verify_evidence` / `refresh_monitors`
+  present. The `service_role` grant on `firecrawl_webhook_record` matters and is
+  confirmed present — revoking the function from `public` also removes the
+  implicit grant the webhook route relied on, so without it every delivery 500s
+  while every test still passes.
+
+  Access was proven rather than inferred (`ops/verify_evidence_access.py`): with
+  the anon key, all five admin RPCs answer 401 "admin only", the webhook function
+  answers 401 "permission denied", and direct reads of all three tables answer
+  401. The advisor lists those RPCs as anon-executable, which is true of 71
+  pre-existing RPCs here too — the real control is the `admin_etl_assert_admin()`
+  call inside each one, per hard rule 7.
+
+  0085 exists because the advisor flagged a mutable `search_path` on 0084's
+  url_hash trigger function once it was live. Kept as its own migration rather
+  than folded back, since editing an applied migration makes a fresh database and
+  production disagree about history even when they agree about schema. 11
+  pre-existing functions still carry that finding, `touch_updated_at` among them;
+  out of scope here.
 - No Firecrawl monitors are registered yet: `refresh_monitors` needs
   `FIRECRAWL_API_KEY`, `FIRECRAWL_WEBHOOK_BASE_URL` and
   `FIRECRAWL_WEBHOOK_SECRET` set, and refuses to register a monitor that would

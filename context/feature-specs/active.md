@@ -25,10 +25,11 @@ This file keeps routine agent sessions from scanning every inactive feature spec
   retired everywhere except `brand_ms`. Admin surface: transport badges and evidence health on
   `/admin/sources`, new `/admin/evidence` worklist, `verify_evidence` and `refresh_monitors`
   registered in all three synced places. Python 309/309, `npm test` 159/159, typecheck and lint
-  clean apart from pre-existing warnings. **Not yet done: the new `Dockerfile` base image is
-  unbuilt (no local Docker), migration 0084 is unapplied in production, and no monitors are
-  registered.** See `context/current-state.md` → "Firecrawl Acquisition Layer + Verified
-  Provenance" for the decisions worth remembering.
+  clean apart from pre-existing warnings. **Migrations 0084 + 0085 applied to production
+  30 Jul 2026 and verified (tables, RLS, grants, allow-list, and anon refusal all checked).
+  Still not done: the new `Dockerfile` base image is unbuilt (no local Docker) and no
+  monitors are registered.** See `context/current-state.md` → "Firecrawl Acquisition Layer
+  + Verified Provenance" for the decisions worth remembering.
 - Prior (28 Jul 2026): REZ-30 — Supplier map enrichment pack (12 points): taller inline map
   and fullscreen removal, inter-site haversine distances, pins differentiated by address kind +
   legend, on-map site switcher, curated-landmark context chips, optional nearby-SourceBD-suppliers

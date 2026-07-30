@@ -327,6 +327,7 @@ revoke all on public.firecrawl_webhook_events from anon, authenticated;
 revoke all on sequence public.evidence_verifications_id_seq from anon, authenticated;
 
 -- Keep url_hash authoritative regardless of which client inserts the row.
+-- (search_path pinned in 0085, after the advisor flagged it post-apply.)
 create or replace function public.evidence_documents_set_url_hash()
 returns trigger
 language plpgsql
