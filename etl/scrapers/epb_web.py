@@ -16,6 +16,11 @@ are out of scope for SourceBD's RMG focus.
 District / thana names are not in the API response (only foreign-key ids).
 We extract the embedded `districts` / `thanas` lookup tables from the home
 page on startup and resolve names locally.
+
+Transport: direct, wrapped in the acquisition interface. The search endpoint is a
+POST that requires a Laravel XSRF token read from a cookie set on the home page,
+which no scraping API can express, and its response is typed JSON. The wrapper
+adds per-field evidence and the same admin controls as every other source.
 """
 from __future__ import annotations
 
@@ -24,10 +29,15 @@ import re
 import urllib.parse
 from typing import Any, AsyncIterator
 
-import httpx
-
-from etl.core.http import HttpClient
-from etl.core.scraper import BaseScraper, ScrapedRecord
+from etl.acquire import AcquiredDoc, AcquireRequest
+from etl.core.acquiring import AcquiringScraper
+from etl.core.scraper import EvidenceAttachment, ScrapedRecord
+from etl.evidence.locate import (
+    NO_EXCERPT,
+    json_locator,
+    json_record_window,
+    raw_window,
+)
 
 BASE = "https://edb.epb.gov.bd"
 HOME_URL = f"{BASE}/exporters"
@@ -57,44 +67,77 @@ _DISTRICT_FIX = {
 }
 
 
-class EpbScraper(BaseScraper):
+# Payload key → the API field it was read from, for JSON-pointer locators.
+_JSON_FIELDS = {
+    "epb_reg_no": "epb_reg_no",
+    "epb_eu_reg_no": "eu_reg_no",
+    "epb_factory_address": "factory_address",
+    "epb_office_address": "office_address",
+    "epb_logo": "logo",
+}
+# District and thana names are resolved from a lookup table embedded in the home
+# page, so they cannot be excerpted from the search response that carries only
+# their foreign keys. The rest are our own derivations or the API's row handle,
+# not facts EPB states about the exporter.
+_UNCITABLE_FIELDS = (
+    "epb_factory_district",
+    "epb_office_district",
+    "epb_office_thana",
+    "epb_exporter_id",
+    "epb_slug",
+    "epb_detail_url",
+    "epb_registered",
+    "epb_associations",
+    "epb_categories",
+)
+
+
+class EpbScraper(AcquiringScraper):
     code = "epb_web"
     source_code = "EPB"
+    transport = "direct"
+    fallback_transport = None
+    rps = 1.0
+    request_headers = _BROWSER_HEADERS
 
     async def fetch(self) -> AsyncIterator[ScrapedRecord]:
-        async with HttpClient(rps=1.0, headers=_BROWSER_HEADERS) as http:
-            districts, thanas, categories = await self._bootstrap(http)
-            self.log.info(
-                "epb.bootstrap",
-                districts=len(districts),
-                thanas=len(thanas),
-                categories=len(categories),
-            )
+        districts, thanas, categories = await self._bootstrap()
+        self.log.info(
+            "epb.bootstrap",
+            districts=len(districts),
+            thanas=len(thanas),
+            categories=len(categories),
+        )
 
-            for assoc_id, assoc_name in RMG_ASSOCIATIONS.items():
-                yielded = 0
-                async for rec in self._fetch_association(
-                    http, assoc_id, assoc_name, districts, thanas
-                ):
-                    yielded += 1
-                    yield rec
-                self.log.info(
-                    "epb.association_done",
-                    association=assoc_name,
-                    count=yielded,
-                )
+        for assoc_id, assoc_name in RMG_ASSOCIATIONS.items():
+            yielded = 0
+            async for rec in self._fetch_association(
+                assoc_id, assoc_name, districts, thanas
+            ):
+                yielded += 1
+                yield rec
+            self.log.info(
+                "epb.association_done",
+                association=assoc_name,
+                count=yielded,
+            )
 
     # ------------------------------------------------------------------
     async def _bootstrap(
-        self, http: HttpClient
+        self,
     ) -> tuple[dict[int, str], dict[int, str], dict[int, str]]:
         """Hit the home page once to collect the XSRF cookie + lookup tables."""
-        resp = await http.get(HOME_URL)
-        html = resp.text
+        doc = await self.acquire(AcquireRequest(url=HOME_URL, label="exporters home"))
+        if not doc.ok:
+            raise RuntimeError(
+                f"epb_web: {HOME_URL} unreadable ({doc.fetch_status.value}: "
+                f"{doc.error_message}); cannot obtain the XSRF token or lookups."
+            )
+        html = doc.text()
 
-        # HttpClient doesn't expose cookies publicly; reach in once for the
-        # XSRF-TOKEN that Laravel demands on the API call.
-        xsrf_raw = http._client.cookies.get("XSRF-TOKEN", "")  # noqa: SLF001
+        # The adapter holds one session for the whole run, so the cookie the home
+        # page set is still in the jar when the search API is called below.
+        xsrf_raw = self.direct_adapter().cookie("XSRF-TOKEN") or ""
         if not xsrf_raw:
             raise RuntimeError("EPB: failed to obtain XSRF-TOKEN cookie")
         # Cookie value is URL-encoded; the API expects the decoded form in
@@ -111,7 +154,6 @@ class EpbScraper(BaseScraper):
     # ------------------------------------------------------------------
     async def _fetch_association(
         self,
-        http: HttpClient,
         assoc_id: int,
         assoc_name: str,
         districts: dict[int, str],
@@ -148,19 +190,28 @@ class EpbScraper(BaseScraper):
                 "order": "asc",
             }
 
-            try:
-                resp = await http.post(SEARCH_URL, json=payload, headers=headers)
-            except httpx.HTTPError as e:
+            doc = await self.acquire(
+                AcquireRequest(
+                    url=SEARCH_URL,
+                    method="POST",
+                    json_body=payload,
+                    headers=headers,
+                    label=f"{assoc_name} exporters offset={offset}",
+                )
+            )
+            if not doc.ok:
                 self.log.warning(
                     "epb.search_failed",
                     association=assoc_name,
                     offset=offset,
-                    error=str(e),
+                    status=doc.fetch_status.value,
+                    error=doc.error_message,
                 )
                 break
 
+            raw_body = doc.text()
             try:
-                data = resp.json()
+                data = json.loads(raw_body)
             except json.JSONDecodeError:
                 self.log.warning(
                     "epb.search_non_json",
@@ -200,7 +251,9 @@ class EpbScraper(BaseScraper):
                 if not eid or eid in seen_ids:
                     continue
                 seen_ids.add(eid)
-                rec = self._build_record(ex, assoc_name, districts, thanas)
+                rec = self._build_record(
+                    ex, assoc_name, districts, thanas, doc, raw_body
+                )
                 if rec is not None:
                     yield rec
 
@@ -218,6 +271,8 @@ class EpbScraper(BaseScraper):
         assoc_name: str,
         districts: dict[int, str],
         thanas: dict[int, str],
+        doc: AcquiredDoc | None = None,
+        raw_body: str | None = None,
     ) -> ScrapedRecord | None:
         eid = ex.get("id")
         name = (ex.get("name") or "").strip()
@@ -267,6 +322,36 @@ class EpbScraper(BaseScraper):
         }
         payload = {k: v for k, v in payload.items() if v not in (None, "", [])}
 
+        evidence: EvidenceAttachment | None = None
+        if doc is not None:
+            # One response carries up to 200 exporters. Excerpt against this
+            # exporter's own slice so a neighbouring row's registration number
+            # can never be cited as this one's.
+            evidence = EvidenceAttachment(
+                doc=doc,
+                locators={
+                    key: json_locator(f"exporters[id={eid}]/{field}")
+                    for key, field in _JSON_FIELDS.items()
+                },
+                default_locator=json_locator(f"exporters[id={eid}]"),
+                document_text=json_record_window(raw_body, f'"{name}"')
+                or raw_window(raw_body, f'"id":{eid},')
+                or NO_EXCERPT,
+                document_is_html=False,
+                # The API returns district/thana as foreign keys, so the names
+                # we store are resolved from a lookup table on a different
+                # document and cannot be excerpted from this response. The rest
+                # are our own derivations, not facts EPB states.
+                skip_keys=_UNCITABLE_FIELDS,
+            )
+            # Deliberately no `citable_url_override`: one search response backs
+            # up to 200 exporters, so a per-record override would stamp the
+            # first exporter's detail page onto the document every other record
+            # also cites. The public detail page still reaches the UI as
+            # `epb_detail_url` in the payload; the citation stays on the
+            # endpoint the values actually came from, which is also the only
+            # thing the verifier can re-check.
+
         return ScrapedRecord(
             source_code=self.source_code,
             source_ref=str(eid),
@@ -274,6 +359,7 @@ class EpbScraper(BaseScraper):
             address_raw=primary_addr,
             district=factory_district or office_district,
             payload=payload,
+            evidence=evidence,
         )
 
 

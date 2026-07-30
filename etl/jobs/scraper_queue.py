@@ -11,7 +11,7 @@ from typing import Any, TypedDict
 
 from etl.core.db import db
 from etl.core.logging import get_logger
-from etl.scrapers.registry import SCRAPERS
+from etl.scrapers.registry import RUNNABLE
 
 log = get_logger("etl.jobs.scraper_queue")
 
@@ -177,7 +177,7 @@ def _claim_next_job() -> QueueJob | None:
 
 def _run_job(job: QueueJob) -> None:
     scraper_code = job["scraper_code"]
-    scraper_cls = SCRAPERS.get(scraper_code)
+    scraper_cls = RUNNABLE.get(scraper_code)
     if scraper_cls is None:
         _mark_failed(job["id"], f"unknown scraper_code: {scraper_code}")
         return

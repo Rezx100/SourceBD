@@ -6,19 +6,28 @@ We call that endpoint directly (paginated) — much faster + more reliable than
 driving the SPA with Playwright. Writes a `rsc_remediation` row per matched
 supplier; supplier match is fuzzy by name + location. Unmatched RSC factories
 are queued in verification_queue.
+
+Transport: direct, wrapped in the acquisition interface. The endpoint returns
+typed JSON — floats for remediation progress, integers for worker counts — and
+reading a rendering of it instead would mean re-parsing numbers we already have
+exactly. The wrapper adds per-field evidence and the shared admin controls.
 """
 from __future__ import annotations
 
 import asyncio
+import json
 import re
-from typing import Any, AsyncIterator
+from typing import TYPE_CHECKING, Any, AsyncIterator
 
-import httpx
-
+from etl.acquire import AcquireRequest
+from etl.core.acquiring import AcquiringScraper
 from etl.core.config import settings
 from etl.core.db import db, get_source_id
-from etl.core.normalize import normalize_company_name
-from etl.core.scraper import BaseScraper, ScrapedRecord
+from etl.core.scraper import EvidenceAttachment, ScrapedRecord
+from etl.evidence.locate import NO_EXCERPT, json_locator, json_record_window
+
+if TYPE_CHECKING:
+    from etl.acquire import AcquiredDoc
 
 BASE = "https://rsc-bd.org"
 FACTORIES_URL = f"{BASE}/factories/"
@@ -67,58 +76,60 @@ def _progress_to_pct(v: Any) -> float | None:
         return None
 
 
-class RscScraper(BaseScraper):
+class RscScraper(AcquiringScraper):
     code = "rsc"
     source_code = "RSC"
+    transport = "direct"
+    fallback_transport = None
 
-    async def fetch(self) -> AsyncIterator[ScrapedRecord]:
-        headers = {
+    @property
+    def request_headers(self) -> dict[str, str]:
+        return {
             "User-Agent": settings.etl_user_agent,
             "Accept": "application/json",
             "Referer": FACTORIES_URL,
             "Origin": BASE,
         }
+
+    async def fetch(self) -> AsyncIterator[ScrapedRecord]:
+        url = RSC_API_FACTORIES
+        params: dict[str, Any] | None = {**RSC_DEFAULT_PARAMS, "page": "1"}
         page_num = 1
-        async with httpx.AsyncClient(timeout=60.0, headers=headers) as client:
-            url = RSC_API_FACTORIES
-            params: dict[str, Any] | None = {**RSC_DEFAULT_PARAMS, "page": "1"}
-            while True:
-                # Retry transient failures
-                last_exc: Exception | None = None
-                for attempt in range(3):
-                    try:
-                        resp = await client.get(url, params=params)
-                        resp.raise_for_status()
-                        break
-                    except (httpx.HTTPError,) as exc:  # noqa: PERF203
-                        last_exc = exc
-                        await asyncio.sleep(2 ** attempt)
-                else:
-                    raise RuntimeError(f"RSC API failed after retries: {last_exc}")
+        while True:
+            doc = await self.acquire(
+                AcquireRequest(url=url, params=params, label=f"factories page {page_num}")
+            )
+            if not doc.ok:
+                raise RuntimeError(
+                    f"rsc: factories page {page_num} unreadable "
+                    f"({doc.fetch_status.value}: {doc.error_message})"
+                )
+            raw = doc.text()
+            data = json.loads(raw)
+            results = data.get("results") or []
+            for fac in results:
+                rec = _factory_to_record(fac, doc, raw)
+                if rec:
+                    yield rec
 
-                data = resp.json()
-                results = data.get("results") or []
-                for fac in results:
-                    rec = _factory_to_record(fac)
-                    if rec:
-                        yield rec
-
-                pagination = data.get("pagination") or {}
-                next_path = pagination.get("next")
-                if not next_path:
-                    break
-                # `next` is a relative path like "/factories?...&page=2"
-                url = RSC_API_BASE + next_path
-                params = None  # next URL already carries query string
-                page_num += 1
-                # Friendly throttle — full crawl is ~10 pages at limit=200
-                await asyncio.sleep(0.3)
+            pagination = data.get("pagination") or {}
+            next_path = pagination.get("next")
+            if not next_path:
+                break
+            # `next` is a relative path like "/factories?...&page=2"
+            url = RSC_API_BASE + next_path
+            params = None  # next URL already carries query string
+            page_num += 1
+            # Friendly throttle — full crawl is ~10 pages at limit=200
+            await asyncio.sleep(0.3)
 
     async def run(self) -> dict[str, int]:
         """Override: RSC also writes rsc_remediation + queues unmatched."""
         from etl.core.upsert import upsert_supplier_with_source
+        from etl.evidence.writer import reset_document_cache
 
         run_id = self._open_run()
+        reset_document_cache()
         seen = upserted = skipped = 0
         try:
             async for rec in self.fetch():
@@ -128,11 +139,22 @@ class RscScraper(BaseScraper):
                 supplier_id = upsert_supplier_with_source(rec)
                 _write_remediation(supplier_id, rec)
                 upserted += 1
+                await self._record_evidence(rec, supplier_id, run_id)
             self._close_run(run_id, "success", seen, upserted, skipped, None)
         except Exception as e:  # noqa: BLE001
             self._close_run(run_id, "failed", seen, upserted, skipped, str(e))
             raise
-        return {"seen": seen, "upserted": upserted, "skipped": skipped}
+        finally:
+            await self.aclose()
+        return {
+            "seen": seen,
+            "upserted": upserted,
+            "skipped": skipped,
+            "transport": self.active_transport,
+            "evidence_documents": self.evidence_documents,
+            "evidence_claims": self.evidence_claims,
+            "credits_used": self.credits_used,
+        }
 
 
 def _extract_factories(data: Any) -> list[dict[str, Any]]:
@@ -156,7 +178,33 @@ def _extract_factories(data: Any) -> list[dict[str, Any]]:
     return found
 
 
-def _factory_to_record(fac: dict[str, Any]) -> ScrapedRecord | None:
+# Payload key → the API field it was read from, for JSON-pointer locators.
+_JSON_FIELDS = {
+    "rsc_factory_name": "factory_name",
+    "rsc_location": "location",
+    "rsc_progress_pct": "progress",
+    "rsc_workers_count": "workers",
+    "rsc_parent_group": "supplier/name",
+    "rsc_parent_group_factory_count": "supplier/factory_count",
+    "rsc_remediation_status": "designation/status",
+    "rsc_training_status": "training",
+    "rsc_status_name": "status/name",
+    "rsc_fire_inspection_url": "inspections/fire",
+    "rsc_structural_inspection_url": "inspections/structural",
+    "rsc_electrical_inspection_url": "inspections/electrical",
+    "rsc_boiler_inspection_url": "inspections/boiler",
+    "rsc_cap_url": "cap",
+}
+# `rsc_factory_id` is the API's own row handle rather than a fact about the
+# factory, and `active` is our reading of `status.name` (cited above).
+_UNCITABLE_FIELDS = ("rsc_factory_id", "active")
+
+
+def _factory_to_record(
+    fac: dict[str, Any],
+    doc: "AcquiredDoc | None" = None,
+    raw_page: str | None = None,
+) -> ScrapedRecord | None:
     name = fac.get("factory_name") or fac.get("name") or fac.get("factoryName")
     if not name:
         return None
@@ -169,6 +217,31 @@ def _factory_to_record(fac: dict[str, Any]) -> ScrapedRecord | None:
 
     progress_pct = _progress_to_pct(fac.get("progress"))
     workers = _to_int(fac.get("workers"))
+
+    evidence: EvidenceAttachment | None = None
+    if doc is not None:
+        # One response carries up to 200 factories, so excerpt against this
+        # factory's own slice of it. Searching the whole page would let another
+        # factory's "active" or worker count be cited as this one's.
+        # Neither anchor resolving means we cannot tell this factory's bytes from
+        # its neighbours', so the claims stay locator-only rather than quoting a
+        # window that might belong to a different factory.
+        window = (
+            json_record_window(raw_page, f'"{name}"')
+            or json_record_window(raw_page, f'"{fid}"')
+            or NO_EXCERPT
+        )
+        evidence = EvidenceAttachment(
+            doc=doc,
+            locators={
+                key: json_locator(f"results[factory_id={fid}]/{field}")
+                for key, field in _JSON_FIELDS.items()
+            },
+            default_locator=json_locator(f"results[factory_id={fid}]"),
+            document_text=window,
+            document_is_html=False,
+            skip_keys=_UNCITABLE_FIELDS,
+        )
 
     return ScrapedRecord(
         source_code="RSC",
@@ -203,6 +276,7 @@ def _factory_to_record(fac: dict[str, Any]) -> ScrapedRecord | None:
             "active": (status_block.get("name") == "active") if isinstance(status_block, dict) else True,
             "raw": fac,
         },
+        evidence=evidence,
     )
 
 

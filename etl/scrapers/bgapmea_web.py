@@ -15,17 +15,20 @@ Strategy
      - Phone / Fax / Email / Website / Products
 
 The detail page is server-rendered HTML, no JavaScript required.
+
+Transport: Firecrawl. Detail pages are batched; the listing walk stays
+sequential because each page's content decides whether to request the next.
 """
 from __future__ import annotations
 
 import re
 from typing import Any, AsyncIterator
 
-import httpx
 from bs4 import BeautifulSoup
 
-from etl.core.http import HttpClient
-from etl.core.scraper import BaseScraper, ScrapedRecord
+from etl.acquire import AcquiredDoc, AcquireRequest
+from etl.core.acquiring import AcquiringScraper
+from etl.core.scraper import EvidenceAttachment, ScrapedRecord
 
 BASE = "https://www.bgapmea.org/index.php"
 LIST_URL = f"{BASE}/member"
@@ -54,37 +57,80 @@ _DISTRICT_HINTS = (
 )
 
 
-class BgapmeaScraper(BaseScraper):
+_FIELD_LOCATORS = {
+    "bgapmea_membership_no": "detail heading '… [ Membership: <no> ]'",
+    "bgapmea_member_status": "detail heading '… Member Status : <status>'",
+    "bgapmea_company_address": "detail heading 'Company Address : …'",
+    "bgapmea_factory_address": "detail heading 'Factory Address : …'",
+    "bgapmea_owner_name": "detail owner heading '<name>, <role>'",
+    "bgapmea_owner_role": "detail owner heading '<name>, <role>'",
+    "bgapmea_phone": "detail heading 'Phone : …'",
+    "bgapmea_fax": "detail heading 'Fax : …'",
+    "bgapmea_email_raw": "detail heading 'Email : …'",
+    "bgapmea_website_raw": "detail heading 'Website : …'",
+    "bgapmea_products": "detail heading 'Products : …'",
+}
+_UNCITABLE_FIELDS = ("bgapmea_member_id", "bgapmea_detail_url")
+
+_BATCH_SIZE = 50
+
+
+class BgapmeaScraper(AcquiringScraper):
     code = "bgapmea_web"
     source_code = "BGAPMEA"
+    transport = "firecrawl"
+    fallback_transport = "direct"
+    monitor_urls = (LIST_URL,)
+    request_headers = _BROWSER_HEADERS
+    rps = 1.0
 
     async def fetch(self) -> AsyncIterator[ScrapedRecord]:
-        async with HttpClient(rps=1.0, headers=_BROWSER_HEADERS) as http:
-            ids = await self._collect_detail_ids(http)
-            self.log.info("bgapmea.detail_ids_collected", count=len(ids))
+        ids = await self._collect_detail_ids()
+        self.log.info(
+            "bgapmea.detail_ids_collected",
+            count=len(ids),
+            transport=self.active_transport,
+        )
 
-            for idx, did in enumerate(ids, 1):
-                url = DETAIL_URL.format(id=did)
-                try:
-                    resp = await http.get(url)
-                except httpx.HTTPStatusError as e:
-                    self.log.warning("bgapmea.detail_skip", id=did,
-                                     status=e.response.status_code)
+        done = 0
+        for start in range(0, len(ids), _BATCH_SIZE):
+            chunk = ids[start : start + _BATCH_SIZE]
+            requests = [
+                AcquireRequest(
+                    url=DETAIL_URL.format(id=did),
+                    only_main_content=False,
+                    label=f"member {did}",
+                )
+                for did in chunk
+            ]
+            id_by_url = {DETAIL_URL.format(id=did): did for did in chunk}
+
+            async for doc in self.acquire_many(requests):
+                done += 1
+                did = id_by_url.get(doc.url)
+                if did is None:
                     continue
-                except Exception as e:  # noqa: BLE001
-                    self.log.warning("bgapmea.detail_error", id=did, error=str(e))
+                if not doc.ok:
+                    self.log.warning(
+                        "bgapmea.detail_skip",
+                        id=did,
+                        status=doc.fetch_status.value,
+                        http_status=doc.http_status,
+                    )
                     continue
 
-                rec = self._parse_detail(resp.text, detail_id=did, url=url)
+                rec = self._parse_detail(
+                    doc.text(), detail_id=did, url=doc.citable_url, doc=doc
+                )
                 if rec is None:
                     self.log.warning("bgapmea.parse_empty", id=did)
                     continue
-                if idx % 50 == 0:
-                    self.log.info("bgapmea.progress", done=idx, total=len(ids))
+                if done % 50 == 0:
+                    self.log.info("bgapmea.progress", done=done, total=len(ids))
                 yield rec
 
     # ------------------------------------------------------------------
-    async def _collect_detail_ids(self, http: HttpClient) -> list[str]:
+    async def _collect_detail_ids(self) -> list[str]:
         """Walk paginated listing and collect unique detail ids in order seen."""
         seen: dict[str, None] = {}
         offset = 0
@@ -94,13 +140,27 @@ class BgapmeaScraper(BaseScraper):
 
         while True:
             url = LIST_URL if offset == 0 else LIST_PAGE_URL.format(offset=offset)
-            try:
-                resp = await http.get(url)
-            except Exception as e:  # noqa: BLE001
-                self.log.warning("bgapmea.list_failed", offset=offset, error=str(e))
+            doc = await self.acquire(
+                AcquireRequest(
+                    url=url, only_main_content=False, label=f"member list @{offset}"
+                )
+            )
+            if not doc.ok:
+                self.log.warning(
+                    "bgapmea.list_failed",
+                    offset=offset,
+                    status=doc.fetch_status.value,
+                    error=doc.error_message,
+                )
+                if doc.transient_failure and not seen:
+                    raise RuntimeError(
+                        "bgapmea_web: first listing page unreadable "
+                        f"({doc.fetch_status.value}). Aborting rather than "
+                        "reporting an empty register as a successful run."
+                    )
                 break
 
-            html = resp.text
+            html = doc.text()
             ids = _DETAIL_ID_RE.findall(html)
             fresh = [i for i in ids if i not in seen]
 
@@ -134,7 +194,14 @@ class BgapmeaScraper(BaseScraper):
         return list(seen.keys())
 
     # ------------------------------------------------------------------
-    def _parse_detail(self, html: str, *, detail_id: str, url: str) -> ScrapedRecord | None:
+    def _parse_detail(
+        self,
+        html: str,
+        *,
+        detail_id: str,
+        url: str,
+        doc: AcquiredDoc | None = None,
+    ) -> ScrapedRecord | None:
         soup = BeautifulSoup(html, "lxml")
         # Detail block is rendered as a series of <h2> headings inside the page body.
         # Convert the whole content area to plain lines and parse label : value pairs.
@@ -246,6 +313,16 @@ class BgapmeaScraper(BaseScraper):
             district=district,
             website=clean_website,
             payload=payload,
+            evidence=(
+                EvidenceAttachment(
+                    doc=doc,
+                    locators=_FIELD_LOCATORS,
+                    default_locator="member detail page",
+                    skip_keys=_UNCITABLE_FIELDS,
+                )
+                if doc is not None and doc.ok
+                else None
+            ),
         )
 
 

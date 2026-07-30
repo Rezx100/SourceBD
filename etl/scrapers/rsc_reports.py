@@ -13,6 +13,13 @@ safe.
 
 Bunny CDN mirroring is deferred to Spec 13 (compliance documents) — for now
 source_url is the rsc-bd.org URL.
+
+Transport: hybrid. The reports index goes through Firecrawl (it also sidesteps
+rsc-bd.org's incomplete certificate chain, which is why the index no longer needs
+a custom TLS context). The PDFs themselves are downloaded directly with that
+context, because these KPI tables only come out correctly through pdfplumber's
+table extraction — a markdown rendering of the same page loses the row/column
+structure the metric labels depend on.
 """
 from __future__ import annotations
 
@@ -22,18 +29,19 @@ import re
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
-from typing import AsyncIterator, Iterable
+from typing import Any, AsyncIterator, Iterable
 
 from urllib.parse import urljoin
 
-import httpx
 import pdfplumber
 from bs4 import BeautifulSoup
 
+from etl.acquire import AcquiredDoc, AcquireRequest
+from etl.core.acquiring import AcquiringScraper
 from etl.core.config import settings
 from etl.core.db import db
 from etl.core.logging import get_logger
-from etl.core.scraper import BaseScraper, ScrapedRecord
+from etl.core.scraper import ScrapedRecord
 
 log = get_logger("etl.scraper.rsc_reports")
 
@@ -71,11 +79,9 @@ class ReportRef:
 # Discovery
 # --------------------------------------------------------------------------- #
 
-async def discover_reports(client: httpx.AsyncClient) -> list[ReportRef]:
-    """Fetch the reports page and enumerate every PDF link by section."""
-    r = await client.get(REPORTS_INDEX_URL, timeout=60)
-    r.raise_for_status()
-    soup = BeautifulSoup(r.text, "lxml")
+def discover_reports(html: str) -> list[ReportRef]:
+    """Enumerate every PDF link on the reports page, by section."""
+    soup = BeautifulSoup(html, "lxml")
 
     refs: list[ReportRef] = []
     seen_urls: set[str] = set()
@@ -133,26 +139,29 @@ def _parse_month(s: str) -> date | None:
 # Download + catalog
 # --------------------------------------------------------------------------- #
 
-async def download_pdf(client: httpx.AsyncClient, ref: ReportRef) -> Path:
+async def download_pdf(scraper: "RscReportsScraper", ref: ReportRef) -> tuple[Path, AcquiredDoc | None]:
+    """Fetch the report PDF to disk. Returns (path, the doc it was cited from).
+
+    A cached file on disk yields no `AcquiredDoc` — we did not acquire anything
+    this run, so there is nothing new to cite and the existing evidence row for
+    that URL still stands.
+    """
     RAW_DIR.mkdir(parents=True, exist_ok=True)
     fname = ref.url.rsplit("/", 1)[-1]
     dest = RAW_DIR / fname
     if dest.exists() and dest.stat().st_size > 1000:
-        return dest
-    last_exc: Exception | None = None
-    for attempt in range(3):
-        try:
-            async with client.stream("GET", ref.url, timeout=120) as resp:
-                resp.raise_for_status()
-                with open(dest, "wb") as f:
-                    async for chunk in resp.aiter_bytes(64 * 1024):
-                        f.write(chunk)
-            return dest
-        except (httpx.RemoteProtocolError, httpx.ReadError, httpx.ConnectError) as e:
-            last_exc = e
-            await asyncio.sleep(1.5 * (attempt + 1))
-    assert last_exc is not None
-    raise last_exc
+        return dest, None
+
+    doc = await scraper.acquire_direct(
+        AcquireRequest(url=ref.url, want_bytes=True, label=ref.title[:80])
+    )
+    if not doc.ok or not doc.body_bytes:
+        raise RuntimeError(
+            f"rsc_reports: {ref.url} unreadable "
+            f"({doc.fetch_status.value}: {doc.error_message})"
+        )
+    dest.write_bytes(doc.body_bytes)
+    return dest, doc
 
 
 def _sha256(p: Path) -> str:
@@ -394,60 +403,154 @@ def upsert_metrics(report_month: date, source_url: str, metrics: Iterable[dict])
 # Scraper class
 # --------------------------------------------------------------------------- #
 
-class RscReportsScraper(BaseScraper):
+class RscReportsScraper(AcquiringScraper):
     code = "rsc_reports"
     source_code = "RSC"
+    transport = "firecrawl"
+    # No fallback: the direct path to rsc-bd.org needs the custom TLS context
+    # that `direct_verify` supplies, which the fallback adapter does use — so a
+    # direct fallback is in fact safe here.
+    fallback_transport = "direct"
+    monitor_urls = (REPORTS_INDEX_URL,)
+    # `run()` writes rsc_industry_metrics directly; `fetch()` is a stub.
+    yields_records = False
+
+    @property
+    def request_headers(self) -> dict[str, str]:
+        return {"User-Agent": settings.etl_user_agent}
+
+    def direct_verify(self) -> Any | None:
+        return _build_rsc_ssl_context()
 
     async def fetch(self) -> AsyncIterator[ScrapedRecord]:  # not used; we override run()
         if False:
             yield  # type: ignore[unreachable]
 
     async def run(self) -> dict[str, int]:  # type: ignore[override]
+        from etl.evidence.writer import reset_document_cache
+
         run_id = self._open_run()
+        reset_document_cache()
         seen = upserted = skipped = 0
         try:
-            async with httpx.AsyncClient(
-                headers={"User-Agent": settings.etl_user_agent},
-                follow_redirects=True,
-                verify=_build_rsc_ssl_context(),
-            ) as client:
-                refs = await discover_reports(client)
-                self.log.info("discover.done", n_pdfs=len(refs))
+            index = await self.acquire(
+                AcquireRequest(
+                    url=REPORTS_INDEX_URL,
+                    only_main_content=False,
+                    label="RSC reports index",
+                )
+            )
+            if not index.ok:
+                raise RuntimeError(
+                    f"rsc_reports: index unreadable ({index.fetch_status.value}: "
+                    f"{index.error_message})"
+                )
+            refs = discover_reports(index.text())
+            self.log.info(
+                "discover.done", n_pdfs=len(refs), transport=self.active_transport
+            )
 
-                for ref in refs:
-                    seen += 1
-                    if ref.report_month is None:
-                        # Quarterly/annual aggregates: just record provenance, skip parsing.
+            for ref in refs:
+                seen += 1
+                if ref.report_month is None:
+                    # Quarterly/annual aggregates: just record provenance, skip parsing.
+                    skipped += 1
+                    continue
+                try:
+                    path, pdf_doc = await download_pdf(self, ref)
+                    metrics = await asyncio.to_thread(parse_pdf, path)
+                    if not metrics:
+                        _catalog_report(ref, path, "failed", "no metrics extracted")
                         skipped += 1
+                        self.log.warning("parse.empty", url=ref.url)
                         continue
+                    n = upsert_metrics(ref.report_month, ref.url, metrics)
+                    _catalog_report(ref, path, "parsed", None)
+                    upserted += 1
+
+                    if pdf_doc is not None:
+                        await self._cite_metrics(pdf_doc, ref, metrics, run_id)
+
+                    self.log.info(
+                        "report.parsed",
+                        month=ref.report_month.isoformat(),
+                        metrics=n,
+                        url=ref.url,
+                    )
+                except Exception as e:  # noqa: BLE001
+                    skipped += 1
                     try:
-                        path = await download_pdf(client, ref)
-                        metrics = await asyncio.to_thread(parse_pdf, path)
-                        if not metrics:
-                            _catalog_report(ref, path, "failed", "no metrics extracted")
-                            skipped += 1
-                            self.log.warn("parse.empty", url=ref.url)
-                            continue
-                        n = upsert_metrics(ref.report_month, ref.url, metrics)
-                        _catalog_report(ref, path, "parsed", None)
-                        upserted += 1
-                        self.log.info(
-                            "report.parsed",
-                            month=ref.report_month.isoformat(),
-                            metrics=n,
-                            url=ref.url,
-                        )
-                    except Exception as e:  # noqa: BLE001
-                        skipped += 1
-                        try:
-                            _catalog_report(ref, RAW_DIR / ref.url.rsplit("/", 1)[-1],
-                                            "failed", str(e)[:500])
-                        except Exception:  # noqa: BLE001
-                            pass
-                        self.log.error("report.failed", url=ref.url, error=str(e))
+                        _catalog_report(ref, RAW_DIR / ref.url.rsplit("/", 1)[-1],
+                                        "failed", str(e)[:500])
+                    except Exception:  # noqa: BLE001
+                        pass
+                    self.log.error("report.failed", url=ref.url, error=str(e))
 
             self._close_run(run_id, "success", seen, upserted, skipped, None)
         except Exception as e:  # noqa: BLE001
             self._close_run(run_id, "failed", seen, upserted, skipped, str(e))
             raise
-        return {"seen": seen, "upserted": upserted, "skipped": skipped}
+        finally:
+            await self.aclose()
+        return {
+            "seen": seen,
+            "upserted": upserted,
+            "skipped": skipped,
+            "transport": self.active_transport,
+            "evidence_documents": self.evidence_documents,
+            "evidence_claims": self.evidence_claims,
+            "credits_used": self.credits_used,
+        }
+
+    async def _cite_metrics(
+        self,
+        pdf_doc: AcquiredDoc,
+        ref: ReportRef,
+        metrics: list[dict],
+        run_id: str,
+    ) -> None:
+        """Cite each extracted KPI back to the sentence or row it came from.
+
+        `raw_label` is the matched text, so it doubles as the excerpt — meaning a
+        restated figure in next month's report is detectable rather than assumed
+        still true.
+        """
+        payload = {m["metric_key"]: m["value_num"] for m in metrics}
+        locators = {
+            m["metric_key"]: f"{ref.title} ({m['scope']}): {m['raw_label'][:120]}"
+            for m in metrics
+        }
+        excerpt_source = "\n".join(
+            f"{m['raw_label']} = {m['value_num']}" for m in metrics
+        )
+        from etl.evidence.writer import record
+
+        try:
+            doc_id, claims = await record(
+                pdf_doc,
+                scraper_code=self.code,
+                source_code=self.source_code,
+                subject_table="rsc_industry_metrics",
+                subject_id=None,
+                # Metrics are keyed on (report_month, scope, metric_key) over a
+                # bigserial id, so they are addressed by key rather than uuid.
+                subject_key=(
+                    f"report_month={ref.report_month.isoformat()}"
+                    if ref.report_month
+                    else None
+                ),
+                payload=payload,
+                source_tier="tier2_industry",
+                etl_run_id=run_id,
+                locators=locators,
+                default_locator=ref.title[:200],
+                document_text=excerpt_source,
+            )
+        except Exception as exc:  # noqa: BLE001
+            self.log.error("evidence.record_failed", url=ref.url, error=str(exc))
+            return
+        if doc_id:
+            if doc_id not in self._evidence_doc_ids:
+                self._evidence_doc_ids.add(doc_id)
+                self.credits_used += pdf_doc.credits_used
+            self.evidence_claims += claims

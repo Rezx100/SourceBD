@@ -39,31 +39,71 @@ def normalize_key(address: str) -> str:
     return _WS.sub(" ", apply_place_lexicon(lower)).strip()
 
 
+_CANDIDATES_SQL = """
+    with candidates as (
+        select distinct address from public.v_supplier_addresses
+         where address is not null and length(trim(address)) >= 8
+        union
+        select distinct address_raw from public.suppliers
+         where address_raw is not null and length(trim(address_raw)) >= 8
+    )
+    select c.address
+      from candidates c
+     order by length(c.address) desc
+"""
+
+
+def _rows_to_list(rows: list, column: str) -> list[str]:
+    return [r[column] if isinstance(r, dict) else r[0] for r in rows]
+
+
+def select_pending(
+    candidates: list[str], cached_keys: set[str], limit: int | None
+) -> list[str]:
+    """Which candidate addresses still need geocoding, longest first.
+
+    Deliberately not a SQL `not exists` against `address_geocodes`, even though
+    that is the obvious shape and is what this did until 31 Jul 2026. The cache
+    key is `normalize_key`, which runs the place lexicon, so `Jessore` is stored
+    under `jashore`. SQL cannot reproduce that without a second copy of the
+    lexicon, and the copy it had instead — plain lower/whitespace — computed a
+    different key. Every address the lexicon rewrites therefore failed to match
+    its own cache row, was re-reported as pending, and cost 2 more Rupantor calls
+    on every run, forever. `on conflict do nothing` absorbed the duplicate write
+    and the run counted it as resolved, so nothing surfaced but the invoice.
+
+    Doing the comparison here means `normalize_key` is the only thing that ever
+    computes a key, which is the property that was missing. Both sides are short
+    strings in the tens of thousands, so holding them in memory is cheap next to
+    the API calls this saves.
+    """
+    pending: list[str] = []
+    seen: set[str] = set()
+    for address in candidates:
+        key = normalize_key(address)
+        # `seen` also collapses spelling variants that share one key. Two raw
+        # forms of one address are two Rupantor calls that write a single cache
+        # row, so the second was always paying to be discarded.
+        if not key or key in cached_keys or key in seen:
+            continue
+        seen.add(key)
+        pending.append(address)
+        if limit is not None and len(pending) >= limit:
+            break
+    return pending
+
+
 def _list_pending(limit: int | None) -> list[str]:
     """Distinct not-yet-geocoded addresses, longest first (more specific
     addresses geocode better and serve the profile map sooner)."""
-    sql = """
-        with candidates as (
-            select distinct address from public.v_supplier_addresses
-             where address is not null and length(trim(address)) >= 8
-            union
-            select distinct address_raw from public.suppliers
-             where address_raw is not null and length(trim(address_raw)) >= 8
-        )
-        select c.address
-          from candidates c
-         where not exists (
-                 select 1 from public.address_geocodes g
-                  where g.address_norm = lower(regexp_replace(trim(c.address), '\\s+', ' ', 'g'))
-               )
-         order by length(c.address) desc
-    """
-    if limit is not None:
-        sql += " limit %s"
     with db.conn() as c, c.cursor() as cur:
-        cur.execute(sql, (limit,) if limit is not None else None)
-        rows = cur.fetchall()
-    return [r["address"] if isinstance(r, dict) else r[0] for r in rows]
+        cur.execute(_CANDIDATES_SQL)
+        candidates = _rows_to_list(cur.fetchall(), "address")
+        cur.execute("select address_norm from public.address_geocodes")
+        cached = set(_rows_to_list(cur.fetchall(), "address_norm"))
+    # The limit is applied after filtering, as it was when SQL did the filtering:
+    # it is a quota control on calls actually made, not on rows examined.
+    return select_pending(candidates, cached, limit)
 
 
 def _store(address: str, payload: dict | None) -> None:

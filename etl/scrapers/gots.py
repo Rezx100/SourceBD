@@ -15,19 +15,27 @@ Strategy: paginate the list (884 BD rows as of 2026-05-19), GET the detail
 endpoint per row, and emit one `ScrapedRecord` per supplier. Override `run()`
 to also write a `public.certifications` row keyed on
 `(supplier_id, kind='gots', certificate_no=<gtb_license_number>)`.
+
+Transport: direct, wrapped in the acquisition interface. This is a typed JSON
+API, and routing it through a scraping API would mean parsing a rendering of the
+JSON instead of the JSON itself — the sort of fidelity loss Hard Rule 5 exists to
+prevent. What the wrapper buys is the rest of the uniformity: per-field evidence
+rows, one transport badge, and the same admin controls as every other source.
 """
 from __future__ import annotations
 
 import asyncio
+import json
 import re
 from datetime import date
 from typing import Any, AsyncIterator
 
-import httpx
-
+from etl.acquire import AcquiredDoc, AcquireRequest
+from etl.core.acquiring import AcquiringScraper
 from etl.core.config import settings
 from etl.core.db import db, get_source_id
-from etl.core.scraper import BaseScraper, ScrapedRecord
+from etl.core.scraper import EvidenceAttachment, ScrapedRecord
+from etl.evidence.locate import NO_EXCERPT, json_locator, json_record_window
 
 API_BASE = "https://www.global-trace-base.org/website-api/v2"
 LIST_URL = f"{API_BASE}/certified-suppliers"
@@ -102,86 +110,167 @@ def _nz(v: Any) -> str | None:
     return s or None
 
 
-class GotsScraper(BaseScraper):
+# Payload key → GTB response field it was read from. Rendered as JSON pointers
+# so a citation says exactly which field of which document carries the value.
+_JSON_FIELDS = {
+    "gots_license_number": "gtb_license_number",
+    "gots_cb_license_number": "cb_license_number",
+    "gots_certification_body": "certification_body",
+    "gots_field_of_operation": "field_of_operation",
+    "gots_product_category": "product_category",
+    "gots_product_details": "product_details",
+    "gots_brand_names": "brand_names",
+    "gots_postcode": "postcode",
+    "gots_state": "state",
+    "certificate_valid_until": "certificate_valid_until",
+}
+# `gots_system_id` is the API's own row handle, `expires_on` is our reformatting
+# of `certificate_valid_until` (cited above), and `scope_certificate_url` is a
+# link we absolutised rather than a fact GOTS states.
+_UNCITABLE_FIELDS = ("gots_system_id", "expires_on", "gots_scope_certificate_url")
+
+
+class GotsScraper(AcquiringScraper):
     code = "gots"
     source_code = "GOTS"
+    transport = "direct"
+    fallback_transport = None
 
-    async def fetch(self) -> AsyncIterator[ScrapedRecord]:
-        headers = {
+    @property
+    def request_headers(self) -> dict[str, str]:
+        return {
             "User-Agent": settings.etl_user_agent,
             "Accept": "application/json, text/plain, */*",
             "Accept-Language": "en-US,en;q=0.9",
             "Referer": "https://global-standard.org/",
         }
-        async with httpx.AsyncClient(timeout=60.0, headers=headers, follow_redirects=True) as client:
-            offset = 0
-            total: int | None = None
-            while True:
-                params = {"limit": PAGE_SIZE, "offset": offset, "country": COUNTRY_CODE}
-                resp = await client.get(LIST_URL, params=params)
-                resp.raise_for_status()
-                data = resp.json()
-                items = data.get("items") or []
-                if total is None:
-                    total = int(data.get("total") or 0)
-                    self.log.info("gots.list.start", total=total, page_size=PAGE_SIZE)
-                if not items:
-                    break
-                for row in items:
-                    sysid = (row.get("system_id") or "").strip()
-                    if not sysid:
-                        continue
-                    detail_url = DETAIL_URL_TEMPLATE.format(system_id=sysid)
-                    try:
-                        dresp = await client.get(detail_url)
-                        dresp.raise_for_status()
-                        detail = dresp.json()
-                    except Exception as exc:  # noqa: BLE001
-                        self.log.warn("gots.detail.failed", system_id=sysid, error=str(exc))
-                        detail = dict(row)
-                        detail.setdefault("system_id", sysid)
-                    await asyncio.sleep(DETAIL_THROTTLE_SEC)
 
-                    name = _nz(detail.get("company_name") or row.get("company_name"))
-                    if not name:
-                        continue
-                    expires = _parse_expires(detail.get("certificate_valid_until"))
-                    scope_url = _absolute_scope_ref(detail.get("scope_certificate_ref"))
-                    yield ScrapedRecord(
-                        source_code="GOTS",
-                        source_ref=f"gots-{sysid}",
-                        company_name=name,
-                        city=_nz(detail.get("city")),
-                        address_raw=_compose_address(detail),
-                        email=_nz(detail.get("contact_email")),
-                        website=_nz(detail.get("website")),
-                        contact_name=_nz(detail.get("contact_name")),
-                        payload={
-                            "gots_system_id": sysid,
-                            "gots_license_number": _nz(detail.get("gtb_license_number")),
-                            "gots_cb_license_number": _nz(detail.get("cb_license_number")),
-                            "gots_certification_body": _nz(detail.get("certification_body")),
-                            "gots_field_of_operation": _nz(detail.get("field_of_operation")),
-                            "gots_product_category": _nz(detail.get("product_category") or row.get("product_category")),
-                            "gots_product_details": _nz(detail.get("product_details")),
-                            "gots_brand_names": _nz(detail.get("brand_names") or row.get("brand_names")),
-                            "gots_scope_certificate_url": scope_url,
-                            "gots_postcode": _nz(detail.get("postcode")),
-                            "gots_state": _nz(detail.get("state")),
-                            "country": "Bangladesh",
-                            "certificate_valid_until": detail.get("certificate_valid_until"),
-                            "expires_on": expires.isoformat() if expires else None,
-                        },
+    async def fetch(self) -> AsyncIterator[ScrapedRecord]:
+        offset = 0
+        total: int | None = None
+        while True:
+            page = await self.acquire(
+                AcquireRequest(
+                    url=LIST_URL,
+                    params={"limit": PAGE_SIZE, "offset": offset, "country": COUNTRY_CODE},
+                    label=f"certified-suppliers offset={offset}",
+                )
+            )
+            if not page.ok:
+                raise RuntimeError(
+                    f"gots: list page at offset {offset} unreadable "
+                    f"({page.fetch_status.value}: {page.error_message}). "
+                    "Aborting rather than reporting a partial directory."
+                )
+            data = json.loads(page.text())
+            items = data.get("items") or []
+            if total is None:
+                total = int(data.get("total") or 0)
+                self.log.info("gots.list.start", total=total, page_size=PAGE_SIZE)
+            if not items:
+                break
+            for row in items:
+                sysid = (row.get("system_id") or "").strip()
+                if not sysid:
+                    continue
+                detail_doc = await self.acquire(
+                    AcquireRequest(
+                        url=DETAIL_URL_TEMPLATE.format(system_id=sysid),
+                        label=f"supplier {sysid}",
                     )
-                offset += len(items)
-                if total is not None and offset >= total:
-                    break
+                )
+                if detail_doc.ok:
+                    try:
+                        detail = json.loads(detail_doc.text())
+                    except ValueError as exc:
+                        self.log.warning(
+                            "gots.detail.unparsable", system_id=sysid, error=str(exc)
+                        )
+                        detail = None
+                else:
+                    self.log.warning(
+                        "gots.detail.failed",
+                        system_id=sysid,
+                        status=detail_doc.fetch_status.value,
+                        error=detail_doc.error_message,
+                    )
+                    detail = None
+
+                # Fall back to the list row, and cite the list document — the
+                # detail values are the ones we failed to read, so citing the
+                # detail URL would point at a document we never saw.
+                if detail is None:
+                    detail = dict(row)
+                    detail.setdefault("system_id", sysid)
+                    cite_doc: AcquiredDoc = page
+                    cite_where = f"items[?system_id=={sysid}]"
+                    # A list page carries a whole page of suppliers, so the excerpt
+                    # search has to be narrowed to this supplier's own entry —
+                    # license numbers and product categories repeat across entries,
+                    # and a page-wide search could quote a neighbour's.
+                    cite_text: str | None = (
+                        json_record_window(page.text(), f'"{sysid}"') or NO_EXCERPT
+                    )
+                else:
+                    cite_doc = detail_doc
+                    cite_where = ""
+                    # A detail response describes exactly one supplier, so its whole
+                    # body is already correctly scoped.
+                    cite_text = None
+                await asyncio.sleep(DETAIL_THROTTLE_SEC)
+
+                name = _nz(detail.get("company_name") or row.get("company_name"))
+                if not name:
+                    continue
+                expires = _parse_expires(detail.get("certificate_valid_until"))
+                scope_url = _absolute_scope_ref(detail.get("scope_certificate_ref"))
+                yield ScrapedRecord(
+                    source_code="GOTS",
+                    source_ref=f"gots-{sysid}",
+                    company_name=name,
+                    city=_nz(detail.get("city")),
+                    address_raw=_compose_address(detail),
+                    email=_nz(detail.get("contact_email")),
+                    website=_nz(detail.get("website")),
+                    contact_name=_nz(detail.get("contact_name")),
+                    payload={
+                        "gots_system_id": sysid,
+                        "gots_license_number": _nz(detail.get("gtb_license_number")),
+                        "gots_cb_license_number": _nz(detail.get("cb_license_number")),
+                        "gots_certification_body": _nz(detail.get("certification_body")),
+                        "gots_field_of_operation": _nz(detail.get("field_of_operation")),
+                        "gots_product_category": _nz(detail.get("product_category") or row.get("product_category")),
+                        "gots_product_details": _nz(detail.get("product_details")),
+                        "gots_brand_names": _nz(detail.get("brand_names") or row.get("brand_names")),
+                        "gots_scope_certificate_url": scope_url,
+                        "gots_postcode": _nz(detail.get("postcode")),
+                        "gots_state": _nz(detail.get("state")),
+                        "country": "Bangladesh",
+                        "certificate_valid_until": detail.get("certificate_valid_until"),
+                        "expires_on": expires.isoformat() if expires else None,
+                    },
+                    evidence=EvidenceAttachment(
+                        doc=cite_doc,
+                        locators={
+                            key: json_locator(f"{cite_where}/{field}" if cite_where else field)
+                            for key, field in _JSON_FIELDS.items()
+                        },
+                        default_locator=json_locator(cite_where or "/"),
+                        document_text=cite_text,
+                        skip_keys=_UNCITABLE_FIELDS,
+                    ),
+                )
+            offset += len(items)
+            if total is not None and offset >= total:
+                break
 
     async def run(self) -> dict[str, int]:  # type: ignore[override]
         """Override: also insert into public.certifications keyed on GOTS license."""
         from etl.core.upsert import upsert_supplier_with_source
+        from etl.evidence.writer import reset_document_cache
 
         run_id = self._open_run()
+        reset_document_cache()
         seen = upserted = skipped = 0
         try:
             async for rec in self.fetch():
@@ -193,13 +282,25 @@ class GotsScraper(BaseScraper):
                 except Exception as exc:  # noqa: BLE001
                     skipped += 1
                     self.log.error("upsert.failed", source_ref=rec.source_ref, error=str(exc))
+                else:
+                    await self._record_evidence(rec, supplier_id, run_id)
                 if seen % 50 == 0:
                     self.log.info("progress", seen=seen, upserted=upserted, skipped=skipped)
             self._close_run(run_id, "success", seen, upserted, skipped, None)
         except Exception as exc:  # noqa: BLE001
             self._close_run(run_id, "failed", seen, upserted, skipped, str(exc))
             raise
-        return {"seen": seen, "upserted": upserted, "skipped": skipped}
+        finally:
+            await self.aclose()
+        return {
+            "seen": seen,
+            "upserted": upserted,
+            "skipped": skipped,
+            "transport": self.active_transport,
+            "evidence_documents": self.evidence_documents,
+            "evidence_claims": self.evidence_claims,
+            "credits_used": self.credits_used,
+        }
 
 
 def _write_certification(supplier_id: str, rec: ScrapedRecord) -> None:

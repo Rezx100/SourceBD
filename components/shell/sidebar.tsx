@@ -15,6 +15,7 @@ import {
   ChatCircleText,
   ClockCounterClockwise,
   Database,
+  FileMagnifyingGlass,
   FileText,
   GearSix,
   Gauge,
@@ -142,6 +143,7 @@ export const ADMIN_SECTIONS: Section[] = [
     label: "Data",
     slots: [
       { label: "Sources & ingestion", href: "/admin/sources", Icon: Database },
+      { label: "Citation health", href: "/admin/evidence", Icon: FileMagnifyingGlass },
       { label: "Audit log", href: "/admin/audit-log", Icon: ClockCounterClockwise },
     ],
   },

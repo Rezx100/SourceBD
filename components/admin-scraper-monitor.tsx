@@ -20,10 +20,20 @@ import { Tag } from "@/components/ui/tag";
 import {
   SCRAPER_CATALOG,
   SCRAPER_GROUP_LABELS,
+  SCRAPER_TRANSPORT_LABELS,
   formatInterval,
+  scraperTransport,
   type ScraperCatalogItem,
   type ScraperGroup,
+  type ScraperTransport,
 } from "@/lib/admin/etl-scrapers";
+import {
+  formatCredits,
+  verifiedShare,
+  type EvidenceByScraper,
+  type EvidenceByScraperRow,
+  type EvidenceSummary,
+} from "@/lib/admin/evidence";
 import type {
   DashboardDoc,
   EtlJobEvent,
@@ -40,9 +50,18 @@ const GROUP_ORDER: ScraperGroup[] = [
   "certifications",
   "sanctions",
   "brands",
+  "maintenance",
 ];
 
-export function AdminScraperMonitor({ initialDoc }: { initialDoc: DashboardDoc }) {
+export function AdminScraperMonitor({
+  initialDoc,
+  evidence = null,
+  evidenceByScraper = null,
+}: {
+  initialDoc: DashboardDoc;
+  evidence?: EvidenceSummary | null;
+  evidenceByScraper?: EvidenceByScraper | null;
+}) {
   const [doc, setDoc] = useState(initialDoc);
   const [error, setError] = useState<string | null>(null);
   const [now, setNow] = useState(() => Date.now());
@@ -132,6 +151,8 @@ export function AdminScraperMonitor({ initialDoc }: { initialDoc: DashboardDoc }
         />
       </section>
 
+      {evidence ? <EvidenceHealth summary={evidence} /> : null}
+
       <AdminPanel
         title="Live monitor"
         description="Current and queued scraper runs. This updates automatically while the VPS worker is running."
@@ -168,6 +189,7 @@ export function AdminScraperMonitor({ initialDoc }: { initialDoc: DashboardDoc }
                 key={scraper.code}
                 scraper={scraper}
                 state={stateByCode.get(scraper.code) ?? null}
+                evidence={evidenceByScraper?.[scraper.code] ?? null}
                 now={now}
               />
             ))}
@@ -218,13 +240,124 @@ function SummaryCard({
   );
 }
 
+/**
+ * Evidence health across every source.
+ *
+ * Placed above the live monitor because it answers the question a run report
+ * cannot: a scraper can succeed every night while the pages it cited quietly
+ * stop saying what we stored. "Updated 4,288 records" and "4,288 citations still
+ * check out" are different claims, and only the second is what a buyer relies on.
+ */
+function EvidenceHealth({ summary }: { summary: EvidenceSummary }) {
+  const { documents, claims, credits, monitors } = summary;
+  const needsReview = claims.needs_review;
+  const share = verifiedShare(summary);
+
+  return (
+    <AdminPanel
+      title="Evidence health"
+      description="Every stored fact carries a link, a locator and a verbatim excerpt. These counts are how many of those citations still hold up against the live page."
+      contentClassName="space-y-4"
+      actions={
+        needsReview > 0 ? (
+          <a
+            href="/admin/evidence"
+            className="rounded-md border border-neutral-300 px-3 py-1.5 text-[13px] font-semibold text-ink-primary hover:bg-neutral-50"
+          >
+            Review {needsReview.toLocaleString()} claims
+          </a>
+        ) : null
+      }
+    >
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <SummaryCard
+          label="Citations confirmed"
+          value={claims.active.toLocaleString()}
+          tone="green"
+          hint={`of ${claims.total.toLocaleString()} total · ${claims.confirmed_last_7d.toLocaleString()} rechecked in 7d`}
+        />
+        <SummaryCard
+          label="Needs review"
+          value={needsReview.toLocaleString()}
+          tone={needsReview > 0 ? "red" : "green"}
+          hint={
+            needsReview > 0
+              ? `${claims.stale.toLocaleString()} value changed · ${claims.orphaned.toLocaleString()} link gone`
+              : "No drifted or dead citations"
+          }
+        />
+        <SummaryCard
+          label="Pages checked in 7d"
+          value={`${share}%`}
+          tone={share >= 80 ? "green" : share >= 40 ? "neutral" : "red"}
+          hint={
+            documents.unverified > 0
+              ? `${documents.unverified.toLocaleString()} never verified`
+              : `${documents.total.toLocaleString()} documents tracked`
+          }
+        />
+        <SummaryCard
+          label="Firecrawl credits (month)"
+          value={formatCredits(credits.month_to_date)}
+          hint={`${formatCredits(credits.last_24h)} in the last 24h · ${formatCredits(credits.last_30d)} rolling 30d`}
+        />
+      </div>
+
+      <dl className="grid grid-cols-2 gap-3 rounded-lg border border-neutral-200 bg-neutral-50 p-3 text-[13px] sm:grid-cols-4">
+        <Metric label="Live pages" value={documents.live.toLocaleString()} />
+        <Metric label="Changed" value={documents.changed.toLocaleString()} />
+        <Metric label="Dead" value={documents.dead.toLocaleString()} />
+        <Metric
+          label="Monitors"
+          value={
+            monitors.total === 0
+              ? "None registered"
+              : `${monitors.enabled}/${monitors.total} on`
+          }
+        />
+      </dl>
+
+      {monitors.total === 0 ? (
+        <p className="text-[13px] text-sem-amber">
+          No index-page monitors are registered, so a source restructuring will not be
+          noticed until the next verification sweep. Run <span className="font-mono">refresh_monitors</span>.
+        </p>
+      ) : null}
+      {monitors.pending_webhook_events > 0 ? (
+        <p className="text-[13px] text-ink-tertiary">
+          {monitors.pending_webhook_events.toLocaleString()} monitor notifications waiting to be
+          processed by the VPS worker.
+        </p>
+      ) : null}
+      {documents.oldest_unverified_at ? (
+        <p className="text-[13px] text-ink-tertiary">
+          Oldest never-verified page was captured{" "}
+          {formatAdminDateTime(documents.oldest_unverified_at)} UTC.
+        </p>
+      ) : null}
+    </AdminPanel>
+  );
+}
+
+function TransportTag({ transport }: { transport: ScraperTransport }) {
+  // Not decoration: the transport is what an operator needs to know before
+  // acting on a failure. Firecrawl failing may be a vendor outage or an
+  // exhausted credit balance; direct failing is the publisher blocking us; file
+  // failing means nobody has staged a fresh extract.
+  const tone =
+    transport === "firecrawl" ? "green" : transport === "direct" ? "neutral" : "muted";
+  return <Tag tone={tone}>{SCRAPER_TRANSPORT_LABELS[transport]}</Tag>;
+}
+
 function ScraperCard({
   scraper,
   state,
+  evidence,
   now,
 }: {
   scraper: ScraperCatalogItem;
   state: ScraperState | null;
+  evidence: EvidenceByScraperRow | null;
   now: number;
 }) {
   const latest = state?.latest_run ?? null;
@@ -232,6 +365,7 @@ function ScraperCard({
   const schedule = state?.schedule ?? null;
   const stale = isStale(state?.last_success_at ?? null, scraper.suggestedIntervalMinutes, now);
   const statusTone = latestStatusTone(latest, activeJob, stale);
+  const transport = scraperTransport(scraper.code);
 
   return (
     <Card className="flex flex-col">
@@ -244,7 +378,8 @@ function ScraperCard({
       </CardHeader>
       <CardContent className="flex flex-1 flex-col gap-4">
         <div className="flex flex-wrap gap-2">
-          <Tag tone="neutral">{scraper.sourceTier}</Tag>
+          {transport ? <TransportTag transport={transport} /> : null}
+          {scraper.sourceTier === "—" ? null : <Tag tone="neutral">{scraper.sourceTier}</Tag>}
           <Tag tone={scraper.risk === "high" ? "red" : scraper.risk === "medium" ? "amber" : "green"}>
             {scraper.risk} risk
           </Tag>
@@ -257,6 +392,10 @@ function ScraperCard({
           <p>{scraper.updates}</p>
           <p className="text-[13px] text-ink-tertiary">{scraper.operatorNote}</p>
         </div>
+
+        {evidence && evidence.documents > 0 ? (
+          <EvidenceStrip row={evidence} />
+        ) : null}
 
         <div className="rounded-lg border border-neutral-200 bg-neutral-50 p-3">
           <p className="text-[13px] font-semibold text-ink-primary">
@@ -286,6 +425,39 @@ function ScraperCard({
         </div>
       </CardContent>
     </Card>
+  );
+}
+
+/** Per-source citation health and credit spend, on the source's own card. */
+function EvidenceStrip({ row }: { row: EvidenceByScraperRow }) {
+  const problems = row.claims_needing_review;
+  return (
+    <div className="rounded-lg border border-neutral-200 p-3">
+      <div className="flex items-center justify-between">
+        <p className="text-[12px] font-semibold uppercase tracking-[0.06em] text-ink-tertiary">
+          Citations
+        </p>
+        {problems > 0 ? (
+          <Tag tone="red">{problems.toLocaleString()} need review</Tag>
+        ) : (
+          <Tag tone="green">all confirmed</Tag>
+        )}
+      </div>
+      <dl className="mt-2 grid grid-cols-2 gap-2 text-[13px] sm:grid-cols-4">
+        <Metric label="Claims" value={row.claims.toLocaleString()} />
+        <Metric label="Pages" value={row.documents.toLocaleString()} />
+        <Metric
+          label="Unchecked"
+          value={row.unverified_documents.toLocaleString()}
+        />
+        <Metric
+          label="Credits (mo)"
+          // A direct or file source spends nothing, and a zero there means
+          // "not applicable" rather than "cheap this month".
+          value={row.adapter === "firecrawl" ? formatCredits(row.credits_month) : "—"}
+        />
+      </dl>
+    </div>
   );
 }
 
@@ -578,6 +750,8 @@ function groupDescription(group: ScraperGroup): string {
       return "High-risk forced-labor and sanctions checks. Review failures quickly.";
     case "brands":
       return "Brand disclosure lists used as supporting evidence only.";
+    case "maintenance":
+      return "Jobs that keep the citations honest. They ingest nothing, so their run reports count checks rather than records.";
   }
 }
 

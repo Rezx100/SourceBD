@@ -17,13 +17,15 @@ from __future__ import annotations
 
 import re
 from datetime import datetime
-from typing import AsyncIterator
+from typing import Any, AsyncIterator
 
 from bs4 import BeautifulSoup
 
-from etl.core.http import HttpClient
+from etl.acquire import AcquiredDoc, AcquireRequest
+from etl.core.acquiring import AcquiringSanctionScraper
 from etl.core.normalize import normalize_company_name
-from etl.core.sanctions import BaseSanctionScraper, SanctionEntry
+from etl.core.sanctions import SanctionEntry
+from etl.core.scraper import EvidenceAttachment
 
 # Live URL (kept for provenance even though it redirects)
 LIVE_URL = "https://www.cbp.gov/trade/forced-labor/withhold-release-orders-and-findings"
@@ -156,12 +158,38 @@ def _slugify(s: str) -> str:
     return re.sub(r"[^a-z0-9]+", "-", s).strip("-")
 
 
-class CbpWroScraper(BaseSanctionScraper):
+def _is_data_table(table: Any) -> bool:
+    """Whether a `<table>` is one of the WRO/Findings listings.
+
+    The presence of `<table>` says nothing about whether the data is present.
+    CBP now redirects the listing URL to a Tableau dashboard that is still on
+    cbp.gov and still carries three tables, none of which hold any entity — so a
+    check for the tag alone waves through a page with no data in it.
+
+    Row 1 is the column header (row 0 is the country banner); a real listing
+    names both the entities and the merchandise columns.
+    """
+    rows = table.find_all("tr")
+    if len(rows) < 3:
+        return False
+    header = " ".join(
+        td.get_text(" ", strip=True).lower() for td in rows[1].find_all(["td", "th"])
+    )
+    return "entities" in header and "merchandise" in header
+
+
+class CbpWroScraper(AcquiringSanctionScraper):
     code = "cbp_wro"
     source_code = "US_WRO"
+    transport = "firecrawl"
+    fallback_transport = "direct"
+    # Only the live CBP page. The Wayback fallback is by definition an archive:
+    # it does not change, so watching it would be noise.
+    monitor_urls = (LIVE_URL,)
+    rps = 0.5
 
-    async def _fetch_with_fallback(self, http: HttpClient):
-        """Try live URL first; fall back to Wayback if (a) request fails,
+    async def _fetch_with_fallback(self) -> AcquiredDoc | None:
+        """Try live URL first; fall back to Wayback if (a) the request fails,
         (b) we get redirected off cbp.gov, or (c) the page contains no <table>.
 
         CBP migrated the WRO listing from a static HTML table page to a
@@ -169,29 +197,48 @@ class CbpWroScraper(BaseSanctionScraper):
         historical data (1991-2024) — newer entries appear infrequently.
         Wayback is treated as the canonical fallback source.
         """
-        try:
-            resp = await http.get(LIVE_URL)
-            host_ok = "cbp.gov" in str(resp.url.host)
-            has_tables = "<table" in resp.text.lower()
-            if host_ok and has_tables:
-                return resp
+        live = await self.acquire(
+            AcquireRequest(url=LIVE_URL, only_main_content=False, label="CBP WRO live")
+        )
+        if live.ok:
+            host_ok = "cbp.gov" in (live.citable_url or "")
+            soup = BeautifulSoup(live.text(), "lxml")
+            data_tables = sum(1 for t in soup.find_all("table") if _is_data_table(t))
+            if host_ok and data_tables:
+                return live
             self.log.warning(
                 "cbp.live_unusable",
-                final_url=str(resp.url),
+                final_url=live.citable_url,
                 host_ok=host_ok,
-                has_tables=has_tables,
+                data_tables=data_tables,
                 falling_back_to="wayback",
             )
-        except Exception as e:  # noqa: BLE001
-            self.log.warning("cbp.live_failed", error=str(e), trying="wayback")
-        return await http.get(WAYBACK_URL)
+        else:
+            self.log.warning(
+                "cbp.live_failed",
+                status=live.fetch_status.value,
+                error=live.error_message,
+                trying="wayback",
+            )
+
+        snapshot = await self.acquire(
+            AcquireRequest(
+                url=WAYBACK_URL, only_main_content=False, label="CBP WRO wayback"
+            )
+        )
+        return snapshot if snapshot.ok else None
 
     async def fetch(self) -> AsyncIterator[SanctionEntry]:
-        async with HttpClient(rps=0.5) as http:
-            resp = await self._fetch_with_fallback(http)
+        doc = await self._fetch_with_fallback()
+        if doc is None:
+            raise RuntimeError(
+                "cbp_wro: neither the live CBP page nor the Wayback snapshot was "
+                "readable. Refusing to report an empty Withhold Release Order list."
+            )
 
-        soup = BeautifulSoup(resp.text, "lxml")
-        fetched_via = "wayback" if "web.archive.org" in str(resp.url) else "live"
+        soup = BeautifulSoup(doc.text(), "lxml")
+        doc_text = doc.text()
+        fetched_via = "wayback" if "web.archive.org" in doc.citable_url else "live"
 
         # Walk h2 + table nodes in document order. Mode (WRO vs Finding) is
         # determined by the most recently seen H2 of those exact names.
@@ -210,18 +257,14 @@ class CbpWroScraper(BaseSanctionScraper):
                     current_mode = "Finding"
                 continue
 
-            rows = node.find_all("tr")
-            if len(rows) < 3:
+            # Same predicate the usability gate uses, so the gate can never
+            # accept a page that this loop then silently skips every table on.
+            if not _is_data_table(node):
                 continue
 
             # Row 0: country header. Row 1: column header. Rows 2+: data.
-            country_cell = rows[0].get_text(" ", strip=True)
-            header_text = " ".join(
-                td.get_text(" ", strip=True).lower() for td in rows[1].find_all(["td", "th"])
-            )
-            if "entities" not in header_text or "merchandise" not in header_text:
-                continue
-            country = country_cell.strip() or "Unknown"
+            rows = node.find_all("tr")
+            country = rows[0].get_text(" ", strip=True).strip() or "Unknown"
 
             for tr in rows[2:]:
                 tds = [td.get_text(" ", strip=True) for td in tr.find_all(["td", "th"])]
@@ -258,11 +301,41 @@ class CbpWroScraper(BaseSanctionScraper):
                         listed_date=listed,
                         status=status or None,
                         status_notes=notes,
-                        source_url=LIVE_URL,
+                        # Cite the document we actually read. The live CBP URL
+                        # 302s to a generic advisories page, so recording it as
+                        # the source_url produced a citation that did not
+                        # contain the cited data — the exact failure the
+                        # evidence system exists to prevent. The canonical CBP
+                        # URL is preserved in `raw` for reference.
+                        source_url=doc.citable_url,
                         raw={
                             "kind": kind,
                             "row_number": num,
                             "raw_entities": entities_cell,
                             "fetched_via": fetched_via,
+                            "canonical_url": LIVE_URL,
                         },
+                        evidence=EvidenceAttachment(
+                            doc=doc,
+                            locators={
+                                "entity_name": f"{kind} → {country} table, row {num}, Entities",
+                                "merchandise": f"{kind} → {country} table, row {num}, Merchandise",
+                                "listed_date": f"{kind} → {country} table, row {num}, Date",
+                                "status": f"{kind} → {country} table, row {num}, Status",
+                                "status_notes": f"{kind} → {country} table, row {num}, Status Notes",
+                            },
+                            default_locator=f"{kind} → {country} table, row {num}",
+                            document_text=doc_text,
+                            subject_table="sanctions_list_entries",
+                        ),
                     )
+
+        if not seen_refs:
+            # A readable page that parses to nothing is the dangerous case: the
+            # fetch succeeded, so no error surfaces, and an empty forced-labor
+            # list means every supplier silently screens clean. Refusing here
+            # matches the refusal above for an unreadable page.
+            raise RuntimeError(
+                f"cbp_wro: parsed 0 entries from {doc.citable_url}. Refusing to "
+                "report an empty Withhold Release Order list."
+            )

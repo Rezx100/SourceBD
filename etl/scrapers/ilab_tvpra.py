@@ -23,6 +23,10 @@ match any supplier under our 2-significant-token gate (false-positive defence).
 They are still ingested to power "audited against ILAB" coverage badges and
 the country/merchandise-level risk lookup tables we surface on supplier
 profile pages.
+
+Transport: hybrid. The listing page goes through Firecrawl (link discovery on a
+page DoL restructures periodically); the workbook download stays direct, because
+openpyxl needs the exact bytes rather than a rendered version of them.
 """
 from __future__ import annotations
 
@@ -35,8 +39,10 @@ from bs4 import BeautifulSoup
 from openpyxl import load_workbook
 from slugify import slugify
 
-from etl.core.http import HttpClient
-from etl.core.sanctions import BaseSanctionScraper, SanctionEntry
+from etl.acquire import AcquireRequest
+from etl.core.acquiring import AcquiringSanctionScraper
+from etl.core.sanctions import SanctionEntry
+from etl.core.scraper import EvidenceAttachment
 
 LIST_PAGE = "https://www.dol.gov/agencies/ilab/reports/child-labor/list-of-goods"
 
@@ -80,20 +86,45 @@ def _is_present(cell) -> bool:
     return True
 
 
-class IlabTvpraScraper(BaseSanctionScraper):
+class IlabTvpraScraper(AcquiringSanctionScraper):
     code = "ilab_tvpra"
     source_code = "ILAB"
+    transport = "firecrawl"
+    fallback_transport = "direct"
+    # The listing page, because that is where a new edition of the workbook is
+    # announced. The XLSX URL itself changes with every edition, so monitoring
+    # it would report every release as a dead link.
+    monitor_urls = (LIST_PAGE,)
+    rps = 0.5
 
     async def fetch(self) -> AsyncIterator[SanctionEntry]:
-        async with HttpClient(rps=0.5) as http:
-            page = await http.get(LIST_PAGE)
-            xlsx_url = _pick_xlsx_url(page.text, LIST_PAGE)
-            if not xlsx_url:
-                self.log.error("ilab.no_xlsx_link", listing_page=LIST_PAGE)
-                return
-            self.log.info("ilab.xlsx", url=xlsx_url)
-            xlsx_resp = await http.get(xlsx_url)
-            xlsx_bytes = xlsx_resp.content
+        page = await self.acquire(
+            AcquireRequest(
+                url=LIST_PAGE, only_main_content=False, label="TVPRA list-of-goods page"
+            )
+        )
+        if not page.ok:
+            raise RuntimeError(
+                f"ilab_tvpra: listing page unreadable ({page.fetch_status.value}). "
+                "Refusing to report an empty TVPRA list."
+            )
+
+        xlsx_url = _pick_xlsx_url(page.text(), LIST_PAGE)
+        if not xlsx_url:
+            self.log.error("ilab.no_xlsx_link", listing_page=LIST_PAGE)
+            return
+        self.log.info("ilab.xlsx", url=xlsx_url)
+
+        # Direct: openpyxl needs the workbook bytes, not a rendering of them.
+        book = await self.acquire_direct(
+            AcquireRequest(url=xlsx_url, want_bytes=True, label="TVPRA workbook")
+        )
+        if not book.ok or not book.body_bytes:
+            raise RuntimeError(
+                f"ilab_tvpra: workbook {xlsx_url} unreadable "
+                f"({book.fetch_status.value}). Refusing to report an empty list."
+            )
+        xlsx_bytes = book.body_bytes
 
         wb = load_workbook(io.BytesIO(xlsx_bytes), read_only=True, data_only=True)
         ws = wb[wb.sheetnames[0]]
@@ -165,5 +196,26 @@ class IlabTvpraScraper(BaseSanctionScraper):
                 status=status,
                 status_notes=None,
                 source_url=xlsx_url,
-                raw={"country": country, "good": good, "flags": flags},
+                raw={
+                    "country": country,
+                    "good": good,
+                    "flags": flags,
+                    "listing_page": LIST_PAGE,
+                },
+                # Cite the workbook: it is the document that asserts the row, and
+                # DoL keeps the dated file addressable after the listing page is
+                # restructured. `entity_name` is our own "<country> — <good>"
+                # join, so only the two real cells are cited.
+                evidence=EvidenceAttachment(
+                    doc=book,
+                    locators={
+                        "country": f"sheet '{ws.title}', Country/Area column",
+                        "merchandise": f"sheet '{ws.title}', Good column",
+                        "status": f"sheet '{ws.title}', exploitation-type columns",
+                    },
+                    default_locator=f"sheet '{ws.title}'",
+                    document_text=f"{country}\t{good}\t{status}",
+                    subject_table="sanctions_list_entries",
+                    skip_keys=("entity_name",),
+                ),
             )

@@ -25,6 +25,20 @@ class Settings(BaseSettings):
     etl_retry_backoff_base: float = 2.0
     etl_playwright_headless: bool = True
 
+    # Firecrawl Cloud (web acquisition layer — see architecture.md Hard-Rule-4
+    # exception, 29 Jul 2026). Server-only key; never exposed to the browser.
+    firecrawl_api_key: str = Field(default="")
+    firecrawl_api_base: str = "https://api.firecrawl.dev"
+    firecrawl_timeout_ms: int = 60_000
+    firecrawl_max_concurrency: int = 8
+    # Hard ceiling on billable credits one run may spend. 0 disables the guard.
+    # A source may lower it further via `max_credits_per_run`, never raise it.
+    firecrawl_max_credits_per_run: int = 0
+    # Shared secret the Firecrawl webhook must present back to our API route.
+    firecrawl_webhook_secret: str = Field(default="")
+    # Public base URL used when registering monitor webhooks.
+    firecrawl_webhook_base_url: str = Field(default="")
+
     # Barikoi location services (Rupantor geocode cache backfill).
     # Accepts the historical BRIKOI_API_KEY spelling as a fallback.
     barikoi_api_key: str = Field(default="")

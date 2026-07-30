@@ -4,9 +4,14 @@ Mirrors `lib/bd-place-lexicon.test.ts` (REZ-28).
 """
 from __future__ import annotations
 
-import pytest
+import re
+from pathlib import Path
 
 from etl.lib.bd_place_lexicon import apply_place_lexicon
+
+REPO = Path(__file__).resolve().parents[2]
+PY_LEXICON = REPO / "etl" / "lib" / "bd_place_lexicon.py"
+TS_LEXICON = REPO / "lib" / "bd-place-lexicon.ts"
 
 
 def lex(s: str) -> str:
@@ -317,3 +322,50 @@ def test_bare_nawabganj_not_chapainawabganj():
 
 def test_chapainawabganj_stays():
     assert lex("chapainawabganj") == "chapainawabganj"
+
+
+# ---- lockstep with the TypeScript twin ----
+
+def _py_rules() -> list[tuple[str, str]]:
+    src = PY_LEXICON.read_text(encoding="utf-8")
+    return re.findall(r're\.compile\(r"((?:[^"\\]|\\.)*)"\)\s*,\s*"([^"]*)"', src)
+
+
+def _ts_rules() -> list[tuple[str, str]]:
+    src = TS_LEXICON.read_text(encoding="utf-8")
+    return re.findall(r'\[\s*/((?:[^/\\]|\\.)*)/[gimsuy]*\s*,\s*"([^"]*)"', src)
+
+
+def test_the_parsing_this_lockstep_check_relies_on_still_works():
+    """Guards the checks below from passing vacuously.
+
+    Both are regex-scraped out of source files. If a reformat broke the scrape,
+    the comparison would be between two empty lists and would pass while
+    checking nothing — so the floor is asserted before the equality is.
+    """
+    assert len(_py_rules()) >= 55
+    assert len(_ts_rules()) >= 55
+
+
+def test_python_and_typescript_lexicons_are_identical():
+    """`apply_place_lexicon` and its TS twin must canonicalise identically.
+
+    They key the same things from opposite ends of the stack — the geocode cache
+    key written by the ETL and the address comparison done in the app — so a pair
+    present in one and not the other means the same address normalises two
+    different ways depending on which side of the wire it is on. That is
+    invisible: nothing errors, the cache simply stops matching itself.
+    """
+    assert _py_rules() == _ts_rules()
+
+
+def test_the_two_lexicons_apply_their_rules_in_the_same_order():
+    """Order is part of the contract, not an implementation detail.
+
+    Longer and more specific patterns have to run first — `ccepz` before `cepz`,
+    `chapai nawabganj` before any bare-district rule — so two files holding the
+    same set of pairs in different orders still produce different output.
+    """
+    assert [pattern for pattern, _ in _py_rules()] == [
+        pattern for pattern, _ in _ts_rules()
+    ]

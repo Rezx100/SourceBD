@@ -3,7 +3,34 @@
 This file keeps routine agent sessions from scanning every inactive feature spec.
 
 ## Active / Recent Spec
-- COMPLETE (28 Jul 2026): REZ-30 — Supplier map enrichment pack (12 points): taller inline map
+- COMPLETE in the working tree (31 Jul 2026): Barikoi geocode cache-key leak closed —
+  `barikoi_geocode` keyed its cache through the place lexicon but decided what was
+  still pending with raw SQL that did not, so every address the lexicon rewrites was
+  re-geocoded at 2 Rupantor calls on every run, silently (`on conflict do nothing`
+  absorbed the duplicate, the run counted it resolved). The pending decision moved
+  out of SQL into the pure `select_pending`, making `normalize_key` the only thing
+  that computes a key. Fixing it surfaced a worse, separate consequence: rows
+  geocoded *before* REZ-28 are raw-keyed, and the app's read path applies the
+  lexicon, so suppliers in renamed districts have had no map pin since 28 Jul. The
+  fix self-heals them via a bounded one-time re-geocode. 12 new tests, no database
+  needed. See `context/feature-specs/spec-barikoi-geocode-cache-key-leak.md`.
+- COMPLETE in the working tree (29 Jul 2026): Firecrawl acquisition layer with verified
+  per-field provenance, from the Cursor plan `firecrawl_acquisition_layer`. Acquisition split
+  out of the 27 scrapers into `etl/acquire/` (Firecrawl / Direct / Local adapters); parsing and
+  persistence unchanged, so Hard Rule 5 field fidelity stays in our own code. Every stored fact
+  now carries a URL, a locator and a verbatim excerpt (`etl/evidence/`, migration 0084), which
+  makes "the link still contains this fact" machine-checkable rather than assumed. Verification
+  is two-tier: Firecrawl `/v2/monitor` on the index pages each source declares, webhooking
+  `app/api/v1/webhooks/firecrawl`, plus a `verify-evidence` job for the long tail. Playwright is
+  retired everywhere except `brand_ms`. Admin surface: transport badges and evidence health on
+  `/admin/sources`, new `/admin/evidence` worklist, `verify_evidence` and `refresh_monitors`
+  registered in all three synced places. Python 309/309, `npm test` 159/159, typecheck and lint
+  clean apart from pre-existing warnings. **Migrations 0084 + 0085 applied to production
+  30 Jul 2026 and verified (tables, RLS, grants, allow-list, and anon refusal all checked).
+  Still not done: the new `Dockerfile` base image is unbuilt (no local Docker) and no
+  monitors are registered.** See `context/current-state.md` → "Firecrawl Acquisition Layer
+  + Verified Provenance" for the decisions worth remembering.
+- Prior (28 Jul 2026): REZ-30 — Supplier map enrichment pack (12 points): taller inline map
   and fullscreen removal, inter-site haversine distances, pins differentiated by address kind +
   legend, on-map site switcher, curated-landmark context chips, optional nearby-SourceBD-suppliers
   layer, near-duplicate pin collision handling, geocode confidence cue, scale bar + attribution,
@@ -121,6 +148,13 @@ This file keeps routine agent sessions from scanning every inactive feature spec
 - Frontend visual baseline remains
   `context/feature-specs/spec-FE-SITEWIDE-design-conformance-pass.md`
   plus `context/frontend-design-spec.md`.
+
+## Queued Specs
+- `spec-brand-primark-global-sourcing-map.md` — retarget `brand_primark` from the
+  Modern Slavery Statement (narrative prose, parses to zero rows) at Primark's
+  Global Sourcing Map, which is the real factory-level list. Raised 29 Jul 2026 by
+  the transport parity sweep. Safe to defer: the source now fails loudly rather
+  than reporting an empty supplier list.
 
 ## Current Launch Work
 - Phase 7 public beta launch prep remains the current phase.

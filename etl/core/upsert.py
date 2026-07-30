@@ -327,11 +327,19 @@ _TIER_MAP = {
     "BTMA": "tier2_industry", "BGAPMEA": "tier2_industry",
     "WRAP": "tier3_cert",  # BSCI removed 2026-05-19: no public surface (see progress-tracker decision log)
     "OEKO_TEX": "tier3_cert", "GOTS": "tier3_cert", "SA8000": "tier3_cert",
+    # BRAND_INDITEX kept although the scraper retired 2026-07-29 (no public
+    # factory list exists): rows ingested before then still resolve their tier.
     "BRAND_HM": "tier4_brand", "BRAND_INDITEX": "tier4_brand",
     "BRAND_PRIMARK": "tier4_brand", "BRAND_ASOS": "tier4_brand",
     "BRAND_MS": "tier4_brand", "BRAND_NEXT": "tier4_brand",
     "UFLPA": "tier5_regulatory", "OFAC": "tier5_regulatory",
     "UK_OFSI": "tier5_regulatory", "EU_SANC": "tier5_regulatory",
+    # US_WRO and ILAB were previously absent and defaulted to tier6_crosscheck.
+    # That was harmless while only the supplier upsert read this map, because
+    # sanctions scrapers bypass it — but the evidence writer now stamps
+    # source_tier on every claim, and a CBP Withhold Release Order is Tier 5
+    # regulatory, not a cross-check hint.
+    "US_WRO": "tier5_regulatory", "ILAB": "tier5_regulatory",
 }
 
 _ENTITY_DEFAULT = {

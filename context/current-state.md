@@ -17,6 +17,313 @@ Launch-readiness closeout:
 - Apply migrations 0048-0049 and 0060 to production Supabase.
 - Run the 30-day zero P1/P2 Sentry incident window before calling beta fully live.
 
+## Firecrawl Acquisition Layer + Verified Provenance
+29 Jul 2026 - Complete, in the working tree, from the accepted plan
+`firecrawl_acquisition_layer`. Acquisition is now a separate concern from parsing
+and persistence, and every stored fact carries a checkable citation.
+
+Architectural decisions worth keeping:
+
+- **Firecrawl replaces the acquisition concern only** (Hard-Rule-4 exception,
+  founder-approved 29 Jul 2026, recorded in `context/architecture.md`). Parsing
+  and persistence stay in our Python, so Hard Rule 5 field fidelity is never
+  delegated. Extraction is deterministic at 1 credit/page; Firecrawl's LLM `json`
+  mode is deliberately unused for registry facts.
+- **Three adapters behind one interface** (`etl/acquire/`): Firecrawl for 14 HTML
+  sources, Direct (httpx) for the 11 typed feeds Firecrawl cannot express
+  (JSON/CSV/XML/XLSX/Power-BI), Local for the 2 on-disk sources. Every source
+  emits identical evidence rows regardless of transport — asserted over the whole
+  registry in `etl/tests/test_feed_sources_acquire.py`, not left to convention.
+- **A citation is a URL plus a locator plus a verbatim excerpt** (migration 0084:
+  `evidence_documents`, `evidence_claims`, `evidence_verifications`,
+  `evidence_monitors`, `firecrawl_webhook_events`). The excerpt is what makes the
+  no-dead-links guarantee machine-checkable: a page that returns 200 but has
+  dropped the fact is caught, not just a 404.
+- **`verify_mode` on each document decides verification depth** — `full` (a GET
+  or a file, replays exactly, so a missing excerpt is real drift), `liveness` (a
+  Firecrawl action sequence produced the payload; a replay reaches the page but
+  not the payload, so a missing excerpt means "could not check"), `none` (a POST
+  body cannot be reissued, so it is excluded from the queue and rests on its
+  archived Bunny snapshot). Without this split every action-driven and POST-driven
+  claim would be marked stale on the first pass.
+- **Transient failure never retires a citation.** Timeouts, 403s and 5xx leave the
+  last known good state, log `inconclusive`, and double the retry backoff. Only a
+  definitive 404/410 orphans claims — and a *missing local file* is inconclusive,
+  not dead, because an unmounted raw directory is our problem, not a retraction.
+  This is the REZ-30 rule, and it is carried into the UI: `/admin/evidence` lists
+  "could not be checked" separately from "checked and no longer supported".
+- **XML feeds keep their markup when excerpting.** OFSI and the EU list put their
+  payload in attributes (`wholeName="..."`), so stripping tags would delete every
+  value and leave every claim unverifiable. Writer and verifier both route through
+  `strips_tags_for()`, so an excerpt is re-checked under the rules that produced it.
+- **Multi-record responses are excerpted against the single record they describe**
+  (`json_record_window`, `_rows_with_raw`). One RSC response carries 200 factories;
+  a page-wide search would let a neighbouring factory's worker count stand as this
+  one's evidence.
+- **Two-tier verification.** Firecrawl `/v2/monitor` on the ~20 index pages each
+  source declares via `monitor_targets()` (declared on the source, so an entry
+  point cannot change and quietly stop being watched), webhooking
+  `/api/v1/webhooks/firecrawl`. That route only authenticates and records — it has
+  10 seconds before Firecrawl retries — and the worker drains the inbox. A change
+  notification requeues documents by clearing `last_verified_at`; it never
+  concludes a fact is wrong, or a cosmetic redeploy would orphan thousands of
+  claims. The `verify-evidence` job covers the long tail.
+- **Maintenance jobs are registered separately from sources** (`JOBS` vs
+  `SCRAPERS`, union `RUNNABLE`). `verify_evidence` and `refresh_monitors` run
+  through the same admin queue, timer UI and run history, but a job has no
+  transport and no evidence, so folding them into `SCRAPERS` would weaken the
+  registry-wide invariant into a convention.
+- **Playwright is retired everywhere except `brand_ms`**, which must read a
+  per-contributor `x-oar-client-key` out of live iframe request headers — no scrape
+  API exposes that. `etl/core/ssl_rsc.py` also stays: both RSC sources still reach
+  rsc-bd.org directly for binaries and the direct fallback.
+
+**An excerpt is never taken from a document wider than the record it belongs to.**
+On a page carrying hundreds of records, a shared value — `"active"`, a repeated
+worker count, a district name — can match a *neighbouring* record, and the claim
+would then quote one supplier's bytes as another's evidence. Every multi-record
+source therefore narrows to its own slice first, and where that slice cannot be
+anchored it passes `NO_EXCERPT` so the claim keeps its URL and locator but goes
+unquoted. `NO_EXCERPT` is deliberately distinct from `None`, which still means
+"search the document body" and is only sound for single-subject documents; both
+are falsy, so `writer.excerpt_source()` tests for `None` by identity and is
+pinned by a test. Found in review: `btma_spinning`, `rsc`, `gots`, `epb_web` and
+`wrap` all had a page-wide fall-through.
+
+**Normalisation and dedup are unchanged by this work**, which is the point: the
+refactor replaced how bytes are acquired, not what happens to values afterwards.
+`upsert_supplier_with_source` is called identically — the only edit captures its
+return value so evidence can be attached — so every supplier still gets
+`make_slug` + `normalize_company_name` + `normalize_phones`, the five-pass dedup
+ladder (source_ref → slug → email → phone-overlap → fuzzy name at 92), then
+`contact_merge` and `address_norm`. Watchlist sources never insert suppliers at
+all; they screen existing ones at a stricter 95. Evidence claims deliberately
+store the source's **raw** value rather than the canonical one, because a
+citation must quote what was published — normalising it would break excerpt
+verification and misstate the source. `bd_place_lexicon.py` and
+`lib/bd-place-lexicon.ts` are now held in lockstep by a test that compares pairs
+*and* ordering (ordering is part of the contract: `ccepz` must precede `cepz`)
+and that asserts a rule-count floor first so it cannot pass vacuously if the
+source scrape ever breaks.
+
+**Runs abort before passing a credit ceiling.** `FIRECRAWL_MAX_CREDITS_PER_RUN`
+(0 = off) caps billable spend per run, and a source may tighten it via
+`max_credits_per_run` but never loosen it. Enforced in `AcquisitionMixin.acquire`
+and `acquire_many` — the only two paths every source shares — *before* the call,
+priced with `estimate_credits`, because a credit is gone the moment the request
+leaves. Batches are checked whole, since a per-item check cannot stop an
+overspend already in flight concurrently. Exceeding raises `CreditBudgetExceeded`
+rather than stopping quietly: a half-scraped registry that looks complete is
+worse than a failed run, because it silently ages out every record it never
+reached. Only the Firecrawl transport is charged; direct and local are exempt.
+`credits_spent` now tracks true spend on the mixin, separate from the existing
+`credits_used`, which counts only cited documents — the gap between the two is
+spend that bought nothing citable. Verified live: with the ceiling at 1, exactly
+one page was fetched and the second was refused.
+
+**Firecrawl resolves hrefs against the page URL before returning HTML**, and that
+silently fabricates data. BGMEA renders an absent website as `<a href="">`: read
+directly the href is empty and correctly becomes None, but Firecrawl returns it
+as the member's *own profile URL*, which passes a bare `startswith("https://")`
+check and lands on the supplier as its website. `external_website()` in
+`etl/core/normalize.py` now screens on host, since a registry's domain is never a
+member's own site. Found by `compare-parity bgmea_web --limit 1` — the first live
+Firecrawl run of any source — which is precisely the class of bug the harness
+exists to catch, and an argument for running it per source before cutover rather
+than trusting unit tests. Audited the other five href extractions: `bgapmea`
+takes its website from label text rather than an href, `gots` and `btma` from
+JSON, and the rest are navigation links where absolutisation is harmless. The one
+latent case the audit turned up is now closed too: `bkmea_web` built `detail_url`
+from an href, so a blank one would have absolutised to the listing page and been
+stored as that member's detail link. It is now derived from the id parsed out of
+the href, which also settles relative-against-absolute hrefs on one spelling —
+the same shape `epb_web` and `bgapmea_web` already use. Nothing downstream
+regressed because `bkmea_detail` selects on `bkmea_detail_id`, never the URL.
+
+Firecrawl smoke test: `compare-parity bgmea_web --limit 1` → PASS (1 record,
+identical across transports). 5 credits spent in total, all of it deliberate.
+`compare-parity` writes nothing to the database, which is what makes it the right
+first live test while migration 0084 is still unapplied.
+
+Verification run locally: `python -m pytest etl/tests -q` → 332 passed;
+`npx tsc --noEmit` clean; `npm test` → 159 passed; `ruff` clean across every file
+this work touches. Firecrawl auth confirmed working against the live API. Migration 0084 parses under libpg_query (68 statements) via
+`python ops/validate_sql_syntax.py` — syntax only, which cannot catch an
+unresolvable column reference.
+
+Fixed 31 Jul 2026 (initially deferred, pulled forward because it bills real
+money): `etl/jobs/barikoi_geocode.py` re-billed every address the place lexicon
+rewrites, on every run. `_store()` keyed the cache with `normalize_key()` (lexicon
+applied) while `_list_pending()` looked up with plain lowercase-and-whitespace SQL
+(no lexicon), so any address containing a renamed district — Chittagong→Chattogram,
+Comilla→Cumilla, Jessore→Jashore — never matched, was re-selected as pending, and
+cost 2 Rupantor calls again. `on conflict do nothing` hid it and the run counted the
+re-geocode under `resolved`, so the only symptom was quota burn.
+
+The fix moves the pending decision out of SQL into a pure `select_pending`, so
+`normalize_key` is the only thing in the system that computes a cache key. Porting
+the lexicon into SQL instead was rejected: it would have created a third copy to
+hold in lockstep, and two already needed a dedicated parity test.
+
+**Measuring it against production corrected the diagnosis, and found something
+worse.** `normalize_key` only gained the lexicon in REZ-28 (28 Jul 2026), so the
+cache held two generations of key. Of 17,973 rows: 14,568 the lexicon does not
+touch, and 3,405 keyed by the pre-REZ-28 raw spelling. Canonical-keyed rows:
+**zero** — so the re-billing had not actually cost anything yet. The job had not
+run since REZ-28, and the bug was armed rather than firing.
+
+The live harm was the other direction. Those 3,405 raw-keyed rows all hold real
+coordinates, and the app's read path applies the lexicon, so it was looking for a
+key that is not there: **every supplier in a renamed district had silently lost its
+map pin when REZ-28 shipped.** The map fails closed by design — a cache miss yields
+no pin and no error — which is why nobody saw 3,405 geocodes go dark.
+
+Repaired in place on 30 Jul rather than by re-geocoding: `address_raw` is stored
+next to the key, so the canonical key is recomputable for every row without asking
+Barikoi anything. `ops/rekey_geocode_cache.py` updated 3,344 rows, 0 failures. The
+remaining 61 are duplicates, not gaps (54 already have a canonical row serving the
+app, 7 collapse onto a shared key). Free and instant where the backfill would have
+cost 6,688 Rupantor calls for the same result, and reversible — the previous key is
+`raw_key(address_raw)`.
+
+The audit after the re-key is the clearest statement of why the code fix matters:
+pending is now **0 calls** under the new scan and **6,688** under the old one. The
+old code against the repaired data would re-bill the entire cache on every run.
+`ops/audit_geocode_cache.py` re-runs that comparison read-only at any time. Full
+write-up in `context/feature-specs/spec-barikoi-geocode-cache-key-leak.md`.
+
+Not yet verified, and to be checked before deploy:
+- **The `Dockerfile` base image change is unbuilt locally** (no Docker on the dev
+  machine). It moves from `mcr.microsoft.com/playwright/python:v1.47.0-jammy` to
+  `python:3.12-slim-bookworm` plus `playwright install --with-deps chromium`,
+  since Chromium is now the only browser used. Build it before deploying.
+- ~~Migration 0084 has not been applied~~ **Applied to production 30 Jul 2026**
+  via the Supabase MCP, along with 0085. Verified after apply, not just assumed:
+  5 tables with RLS on, 6 functions, 18 indexes, 4 triggers, and an allow-list of
+  28 codes with `brand_inditex` absent and `verify_evidence` / `refresh_monitors`
+  present. The `service_role` grant on `firecrawl_webhook_record` matters and is
+  confirmed present — revoking the function from `public` also removes the
+  implicit grant the webhook route relied on, so without it every delivery 500s
+  while every test still passes.
+
+  Access was proven rather than inferred (`ops/verify_evidence_access.py`): with
+  the anon key, all five admin RPCs answer 401 "admin only", the webhook function
+  answers 401 "permission denied", and direct reads of all three tables answer
+  401. The advisor lists those RPCs as anon-executable, which is true of 71
+  pre-existing RPCs here too — the real control is the `admin_etl_assert_admin()`
+  call inside each one, per hard rule 7.
+
+  One sharp edge checked and cleared: `etl_job_queue` and `etl_schedules` both
+  CHECK `scraper_code` against this allow-list, and dropping `brand_inditex` from
+  it is a narrowing, not the widening the migration header describes. Postgres
+  does not re-validate existing rows, but it does re-check on UPDATE, so a live
+  row for a removed code would break the moment a worker touched it. There are no
+  `etl_schedules` rows and exactly one `etl_job_queue` row: a terminal `failed`
+  job from 26 Jun whose error is "no disclosure file link found on
+  inditex.com" — the very evidence for retiring the source. Terminal jobs are
+  never picked up or updated, so it cannot trip the constraint, and it is left in
+  place deliberately as the audit trail for that decision.
+
+  0085 exists because the advisor flagged a mutable `search_path` on 0084's
+  url_hash trigger function once it was live. Kept as its own migration rather
+  than folded back, since editing an applied migration makes a fresh database and
+  production disagree about history even when they agree about schema. 11
+  pre-existing functions still carry that finding, `touch_updated_at` among them;
+  out of scope here.
+- No Firecrawl monitors are registered yet: `refresh_monitors` needs
+  `FIRECRAWL_API_KEY`, `FIRECRAWL_WEBHOOK_BASE_URL` and
+  `FIRECRAWL_WEBHOOK_SECRET` set, and refuses to register a monitor that would
+  report to nobody.
+
+### Live parity sweep, 29 Jul 2026
+
+Every Firecrawl source was compared against its direct baseline on the real API,
+about 60 credits in total. Nine sources are identical across transports:
+`bgmea_web`, `bkmea_web`, `bkmea_detail`, `bgapmea_web`, `brand_asos`,
+`brand_hm`, `brand_next`, `ilab_tvpra`, `cbp_wro`. Two need a product decision
+(below) and four are legitimately not comparable.
+
+The sweep found more than the earlier website-absolutisation bug, and the common
+thread is worth stating plainly: **the dangerous failure is not an error, it is
+silence.** Four separate paths could fetch successfully, parse to zero rows, and
+report success. On a forced-labor watchlist that means every supplier screens
+clean; on a brand disclosure it means existing suppliers quietly stop being
+refreshed. Fixes therefore favour raising loudly over returning empty.
+
+What was fixed:
+
+- **The harness could not test sanctions sources at all.** It keyed every record
+  on `source_ref`, but watchlist sources yield `SanctionEntry`, keyed on
+  `entry_ref` with no `payload`. All three raised `AttributeError` and were
+  silently unvalidated — the sources where a false positive brands a real factory
+  as sanctioned. `record_ref` / `comparable_fields` now handle both shapes, and a
+  record carrying neither key is refused rather than collapsing every entry onto
+  one dictionary key. `raw` is excluded from comparison: it is our own capture of
+  the scrape, not a publisher assertion, so it differs by design.
+- **`cbp_wro` reported an empty Withhold Release Order list via Firecrawl.** CBP
+  redirects the listing to a Tableau dashboard which is still on cbp.gov and
+  still carries three `<table>` tags, so the old gate (`"<table" in text`) waved
+  it through; every table was then skipped and zero entries yielded without
+  error. Direct meanwhile gets a 403 and correctly falls back to Wayback, which
+  is why only one transport was wrong. The gate now requires a table whose header
+  names both the entities and merchandise columns, using the same predicate the
+  parser uses so the two cannot drift, and a readable page parsing to zero
+  entries now raises.
+- **`brand_next` had two independent breakages.** Next renamed the tier 1 file
+  from `T1 2025.pdf` to `PLC LIST FEB 2026 - TIER1.pdf`, so it was no longer
+  found; the tier is now read from the decoded filename, never the whole URL,
+  because the folder is called `Tier 1 -2 - 3 lists` and a URL-wide match would
+  have picked up the Tier 2 and Tier 3 lists sitting beside it and published
+  downstream subcontractors as direct manufacturers. They also changed the PDF's
+  internal layout, inserting `Site Id` and `Country` ahead of the old first
+  column, so positional indexing found no country and produced zero rows. The
+  parser is now header-driven and handles both layouts: 397 Bangladesh rows,
+  identical on both transports.
+- **`brand_hm` cited two different URLs for one file.** H&M's filename really
+  contains a space; direct returns it literally and Firecrawl percent-encodes it,
+  so the stored citation depended on the transport. `canonical_url` in
+  `etl/core/normalize.py` converges both on the encoded form without
+  double-encoding an already-encoded URL.
+- **Soft 404s are now detectable.** `AcquiredDoc.landed_on_site_root` reports a
+  request for a specific page answered with the homepage, which is how sites
+  retire pages while returning 200. This matters for provenance specifically: a
+  citation is a promise that a URL shows a human the cited fact, and a homepage
+  cannot keep it.
+- **The harness no longer cries wolf.** A sweep that reports things it never
+  could have validated as regressions gets ignored, and then a real failure gets
+  ignored with it. `SKIP` is now distinct from `FAIL` (exit code 3), and is never
+  treated as a pass. `rsc_reports`, `rsc_updates` and `rsc_documents` declare
+  `yields_records = False` because they override `run()` and leave `fetch()` a
+  stub, so there was never anything to diff. `sa8000` has no direct baseline at
+  all. `uflpa` is skipped because DHS serves our address a 403 while Firecrawl
+  returns the list — the migration working, not failing.
+- **`compare-parity` reports credits spent**, so a sweep can be costed.
+- One sampling trap worth remembering: `bkmea_detail` "failed" only because it
+  fetches 590 detail pages concurrently and does not yield in a fixed order, so
+  `--limit 1` sampled a different factory on each side. It is 8/8 identical at
+  `--limit 8`. The report now says so instead of implying a data conflict.
+
+Two sources are blocked on a decision rather than on engineering:
+
+- **`brand_inditex` is retired** (decided 29 Jul 2026). Its landing page now 200s
+  and redirects to the Inditex homepage, and more fundamentally Inditex does not
+  publish a factory-level supplier list at all: only aggregate country counts,
+  with the actual list shared privately with IndustriALL Global Union under their
+  Global Framework Agreement. Know The Chain penalises them for exactly this. No
+  selector fixes a disclosure that does not exist, so the scraper was removed from
+  all four places that referenced it — the Python registry, the admin catalog and
+  transport map, and the SQL allow-list in 0084 — each with a comment saying why,
+  so it does not get re-added. `BRAND_INDITEX` stays in `upsert.py`'s tier map on
+  purpose: rows ingested before today still need their tier resolved.
+- **`brand_primark` is pointed at the wrong document**, and is queued as its own
+  spec (`context/feature-specs/spec-brand-primark-global-sourcing-map.md`). It
+  parses the Modern Slavery Statement, which is narrative prose, so zero rows is
+  the correct output from the wrong file. Primark does publish a real factory list
+  — the Global Sourcing Map at `globalsourcingmap.primark.com`, with factory
+  names, addresses, worker counts and gender splits, and an Excel export.
+  Deferring is safe because it now fails loudly rather than reporting an empty
+  supplier list.
+
 ## Recent Admin Scraper Ops
 26 Jun 2026 - Admin scraper operations implemented from the accepted plan.
 Scope adds `/admin/sources`, admin-only ETL queue/schedule RPCs and API

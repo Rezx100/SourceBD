@@ -10,6 +10,11 @@ entity, filtered to `Country = 'Bangladesh'`, decode the returned DSR (Data
 Stream Representation), and emit one `ScrapedRecord` per facility. Override
 `run()` to also write a `public.certifications` row keyed on
 `(supplier_id, kind='wrap', certificate_no=WRAPID)`.
+
+Transport: direct, wrapped in the acquisition interface. The payload is a Power BI
+semantic query — a POST with a resource-key header returning a dictionary-encoded
+DSR blob — which no scraping API can express and which has to be decoded, not
+rendered. The wrapper adds per-field evidence and the shared admin controls.
 """
 from __future__ import annotations
 
@@ -19,11 +24,12 @@ import uuid
 from datetime import date
 from typing import Any, AsyncIterator
 
-import httpx
-
+from etl.acquire import AcquireRequest
+from etl.core.acquiring import AcquiringScraper
 from etl.core.config import settings
 from etl.core.db import db, get_source_id
-from etl.core.scraper import BaseScraper, ScrapedRecord
+from etl.core.scraper import EvidenceAttachment, ScrapedRecord
+from etl.evidence.locate import NO_EXCERPT, raw_window
 
 PBI_CLUSTER = "https://wabi-us-east2-api.analysis.windows.net"
 PBI_QUERY_URL = f"{PBI_CLUSTER}/public/reports/querydata?synchronous=true"
@@ -194,12 +200,28 @@ def _parse_expires(s: str | None) -> date | None:
         return None
 
 
-class WrapScraper(BaseScraper):
+# A Power BI DSR response encodes repeated values once in `ValueDicts` and refers
+# to them by integer index, so city / cert type / products / industries appear in
+# the document as numbers, not text. Those claims get a locator but no excerpt —
+# recorded as unverifiable rather than pretending a dictionary entry shared by
+# 200 facilities is this facility's citation. `WRAPID` and the facility name are
+# unique per row and inlined, so they anchor the row and can be re-checked.
+_UNCITABLE_FIELDS = (
+    "wrap_country",
+    "wrap_profile_url",
+    "expires_on",
+)
+
+
+class WrapScraper(AcquiringScraper):
     code = "wrap"
     source_code = "WRAP"
+    transport = "direct"
+    fallback_transport = None
 
-    async def fetch(self) -> AsyncIterator[ScrapedRecord]:
-        headers = {
+    @property
+    def request_headers(self) -> dict[str, str]:
+        return {
             "Content-Type": "application/json;charset=UTF-8",
             "Accept": "application/json, text/plain, */*",
             "X-PowerBI-ResourceKey": WRAP_RESOURCE_KEY,
@@ -209,11 +231,24 @@ class WrapScraper(BaseScraper):
             "Origin": "https://app.powerbi.com",
             "User-Agent": settings.etl_user_agent,
         }
+
+    async def fetch(self) -> AsyncIterator[ScrapedRecord]:
         body = json.dumps(_build_query("Bangladesh"))
-        async with httpx.AsyncClient(timeout=60.0, headers=headers) as client:
-            resp = await client.post(PBI_QUERY_URL, content=body)
-            resp.raise_for_status()
-            payload = resp.json()
+        doc = await self.acquire(
+            AcquireRequest(
+                url=PBI_QUERY_URL,
+                method="POST",
+                content=body,
+                label="certified facilities (Bangladesh)",
+            )
+        )
+        if not doc.ok:
+            raise RuntimeError(
+                f"wrap: Power BI query failed ({doc.fetch_status.value}: "
+                f"{doc.error_message}). Refusing to report an empty facility list."
+            )
+        raw = doc.text()
+        payload = json.loads(raw)
 
         facilities = _decode_dsr(payload)
         self.log.info("wrap.fetched", count=len(facilities))
@@ -251,13 +286,35 @@ class WrapScraper(BaseScraper):
                     "wrap_profile_url": WRAP_FACILITY_URL_TEMPLATE.format(wrap_id=wrap_id_s),
                     "expires_on": expires.isoformat() if expires else None,
                 },
+                evidence=EvidenceAttachment(
+                    doc=doc,
+                    locators={
+                        "wrap_id": f"powerbi:CertifiedFacilities[WRAPID={wrap_id_s}]/WRAPID",
+                        "wrap_cert_type": f"powerbi:CertifiedFacilities[WRAPID={wrap_id_s}]/Cert Type",
+                        "wrap_industries": f"powerbi:CertifiedFacilities[WRAPID={wrap_id_s}]/Industries",
+                        "wrap_products": f"powerbi:CertifiedFacilities[WRAPID={wrap_id_s}]/Products",
+                        "wrap_cert_expires": f"powerbi:CertifiedFacilities[WRAPID={wrap_id_s}]/Cert Expires",
+                    },
+                    default_locator=f"powerbi:CertifiedFacilities[WRAPID={wrap_id_s}]",
+                    document_text=raw_window(raw, f'"{wrap_id_s}"', radius=600)
+                    or NO_EXCERPT,
+                    document_is_html=False,
+                    skip_keys=_UNCITABLE_FIELDS,
+                    # No `citable_url_override`: one query response backs every
+                    # Bangladesh facility, so a per-facility override would
+                    # stamp the first one's profile URL onto the document all
+                    # the others cite too. `wrap_profile_url` already carries
+                    # the public page into the payload.
+                ),
             )
 
     async def run(self) -> dict[str, int]:
         """Override: also insert into public.certifications keyed on WRAP ID."""
         from etl.core.upsert import upsert_supplier_with_source
+        from etl.evidence.writer import reset_document_cache
 
         run_id = self._open_run()
+        reset_document_cache()
         seen = upserted = skipped = 0
         self._emit_progress(run_id, "started", "WRAP scraper started.", seen, upserted, skipped)
         try:
@@ -270,6 +327,8 @@ class WrapScraper(BaseScraper):
                 except Exception as exc:  # noqa: BLE001
                     skipped += 1
                     self.log.error("upsert.failed", source_ref=rec.source_ref, error=str(exc))
+                else:
+                    await self._record_evidence(rec, supplier_id, run_id)
                 if seen % 50 == 0:
                     self.log.info("progress", seen=seen, upserted=upserted, skipped=skipped)
                     self._update_run_progress(run_id, seen, upserted, skipped)
@@ -285,7 +344,17 @@ class WrapScraper(BaseScraper):
         except Exception as exc:  # noqa: BLE001
             self._close_run(run_id, "failed", seen, upserted, skipped, str(exc))
             raise
-        return {"seen": seen, "upserted": upserted, "skipped": skipped}
+        finally:
+            await self.aclose()
+        return {
+            "seen": seen,
+            "upserted": upserted,
+            "skipped": skipped,
+            "transport": self.active_transport,
+            "evidence_documents": self.evidence_documents,
+            "evidence_claims": self.evidence_claims,
+            "credits_used": self.credits_used,
+        }
 
 
 def _write_certification(supplier_id: str, rec: ScrapedRecord) -> None:
