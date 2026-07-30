@@ -213,6 +213,17 @@ Not yet verified, and to be checked before deploy:
   pre-existing RPCs here too — the real control is the `admin_etl_assert_admin()`
   call inside each one, per hard rule 7.
 
+  One sharp edge checked and cleared: `etl_job_queue` and `etl_schedules` both
+  CHECK `scraper_code` against this allow-list, and dropping `brand_inditex` from
+  it is a narrowing, not the widening the migration header describes. Postgres
+  does not re-validate existing rows, but it does re-check on UPDATE, so a live
+  row for a removed code would break the moment a worker touched it. There are no
+  `etl_schedules` rows and exactly one `etl_job_queue` row: a terminal `failed`
+  job from 26 Jun whose error is "no disclosure file link found on
+  inditex.com" — the very evidence for retiring the source. Terminal jobs are
+  never picked up or updated, so it cannot trip the constraint, and it is left in
+  place deliberately as the audit trail for that decision.
+
   0085 exists because the advisor flagged a mutable `search_path` on 0084's
   url_hash trigger function once it was live. Kept as its own migration rather
   than folded back, since editing an applied migration makes a fresh database and
