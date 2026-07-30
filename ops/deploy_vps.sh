@@ -113,6 +113,10 @@ main() {
 	fi
 	echo "$COMMIT_SHA" > "$DEPLOY_META_DIR/current-sha"
 	date -u +%Y-%m-%dT%H:%M:%SZ > "$DEPLOY_META_DIR/deployed-at"
+	# Write a sidecar env file loaded by docker-compose so the web container's
+	# /api/health can report the deployed commit at runtime. .env is never
+	# overwritten by this script; this sidecar is the only deploy-managed file.
+	printf 'COMMIT_SHA=%s\n' "$COMMIT_SHA" > "$DEPLOY_META_DIR/deploy.env"
 	export COMMIT_SHA
 	echo "  previous = ${PREVIOUS_SHA:-none}"
 	echo "  head     = $COMMIT_SHA"
