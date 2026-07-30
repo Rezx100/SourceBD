@@ -31,10 +31,10 @@ from etl.evidence.locate import pdf_locator
 
 PDF_PATH = settings.etl_raw_dir / "BGMEA_Associate_Members.pdf"
 
-_REG_RE = re.compile(r"^(?P<name>.+?)\s*\(Reg-(?P<reg>\d+)\)\s*$")
-_TEL_RE = re.compile(r"^Tel/Mob-\s*(?P<tel>.+)$", re.IGNORECASE)
-_EMAIL_RE = re.compile(r"^Email-\s*(?P<email>.*)$", re.IGNORECASE)
-_CONTACT_RE = re.compile(r"^(?P<contact>[^,]+?),\s*(?P<role>.+)$")
+# Reg separator is ':' in current PDFs, '-' in older ones — accept both.
+_REG_RE   = re.compile(r"^(?P<name>.+?)\s*\(Reg[:\-]\s*(?P<reg>\d+)\)\s*$")
+_TEL_RE   = re.compile(r"^Tel(?:/Mob)?[:\-]\s*(?P<tel>.+)$", re.IGNORECASE)
+_EMAIL_RE = re.compile(r"^Email[:\-]\s*(?P<email>.*)$", re.IGNORECASE)
 _HEADER_RE = re.compile(r"^List of Associate Member", re.IGNORECASE)
 
 _CITY_KEYWORDS = {
@@ -113,12 +113,18 @@ def _parse_column(lines: list[str]) -> Iterable[dict]:
             continue
         name = m.group("name").strip()
         reg = m.group("reg").strip()
+        # Current PDF layout: role on line i-1, contact name on line i-2.
+        # Guard against false positives: skip if the candidate line looks like
+        # a tel/email/reg line (e.g. first entry on a page with no preceding text).
         contact = role = None
-        if i > 0:
-            cm = _CONTACT_RE.match(lines[i - 1])
-            if cm:
-                contact = cm.group("contact").strip()
-                role = cm.group("role").strip()
+        if i >= 1:
+            prev1 = lines[i - 1]
+            if not _REG_RE.match(prev1) and not _TEL_RE.match(prev1) and not _EMAIL_RE.match(prev1):
+                role = prev1.strip() or None
+        if i >= 2 and role is not None:
+            prev2 = lines[i - 2]
+            if not _REG_RE.match(prev2) and not _TEL_RE.match(prev2) and not _EMAIL_RE.match(prev2):
+                contact = prev2.strip() or None
         addr_lines: list[str] = []
         tel: str | None = None
         email: str | None = None
