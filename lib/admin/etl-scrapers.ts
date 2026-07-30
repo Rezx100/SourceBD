@@ -30,14 +30,14 @@ export const SCRAPER_GROUP_LABELS: Record<ScraperGroup, string> = {
 
 export const SCRAPER_CATALOG = [
   {
-    code: "bgmea_pdf",
-    label: "BGMEA PDF",
+    code: "bgmea_buying_house",
+    label: "BGMEA buying houses",
     group: "registries",
     sourceTier: "Tier 2",
     risk: "medium",
     suggestedIntervalMinutes: 10080,
-    updates: "BGMEA member records from the official PDF file.",
-    operatorNote: "Run after replacing the BGMEA PDF in the ETL raw folder.",
+    updates: "BGMEA associate member (buying house) records from the official PDF.",
+    operatorNote: "Run after replacing etl/raw/BGMEA_Associate_Members.pdf with a fresh download.",
   },
   {
     code: "bgmea_web",
@@ -340,7 +340,7 @@ export type ScraperCode = (typeof SCRAPER_CATALOG)[number]["code"];
 export type ScraperTransport = "firecrawl" | "direct" | "file" | "job";
 
 export const SCRAPER_TRANSPORT: Record<ScraperCode, ScraperTransport> = {
-  bgmea_pdf: "file",
+  bgmea_buying_house: "file",
   btma_spinning: "file",
   bgmea_web: "firecrawl",
   bkmea_web: "firecrawl",

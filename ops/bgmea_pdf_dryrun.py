@@ -1,13 +1,13 @@
-"""Dry-run BGMEA PDF parser: count matches, print first 3 records, no DB writes."""
+"""Dry-run BGMEA buying house PDF parser: count matches, print first 3 records, no DB writes."""
 from __future__ import annotations
 
 import asyncio
 
-from etl.scrapers.bgmea_pdf import BgmeaPdfScraper
+from etl.scrapers.bgmea_buying_house import BgmeaBuyingHouseScraper
 
 
 async def main() -> None:
-    scraper = BgmeaPdfScraper()
+    scraper = BgmeaBuyingHouseScraper()
     count = 0
     samples = []
     async for rec in scraper.fetch():
