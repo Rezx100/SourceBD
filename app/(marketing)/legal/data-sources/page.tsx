@@ -68,12 +68,12 @@ export default function DataSourcesPage() {
           </li>
           <li>
             <strong>Tier 3 — Certification bodies</strong>: GOTS,
-            OEKO-TEX, BSCI, WRAP, Higg FEM, ISO certificate databases.
+            OEKO-TEX, SA8000, WRAP certificate databases.
           </li>
           <li>
-            <strong>Tier 4 — Brand disclosures</strong>: H&amp;M, Inditex,
-            Levi&apos;s, ASOS, Marks &amp; Spencer, and other brand
-            factory-list disclosures.
+            <strong>Tier 4 — Brand disclosures</strong>: H&amp;M, Next,
+            ASOS, Marks &amp; Spencer, and other brand factory-list
+            disclosures.
           </li>
           <li>
             <strong>Tier 5 — US/UK/EU regulatory</strong>: UFLPA

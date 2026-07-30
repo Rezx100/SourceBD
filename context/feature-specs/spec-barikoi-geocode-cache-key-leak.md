@@ -83,9 +83,38 @@ from the key alone.
 Expect the first run after this change to do real work. That is the backfill, not
 a regression.
 
-This generational split is derived from the code history, not measured against
-production: the database is not reachable from a dev machine, so the row counts in
-each generation are still unknown. Getting them is the first task below.
+### Measured against production, 30 Jul 2026
+
+Read over PostgREST, since the Postgres wire is unreachable from a dev machine on
+either pooler port. Of 17,973 cached rows:
+
+| Generation | Rows | Meaning |
+| --- | --- | --- |
+| Lexicon-irrelevant | 14,568 | Key identical either way; never affected |
+| Canonical-keyed | **0** | Would have been re-billed — none existed yet |
+| Raw-keyed | **3,405** | Orphaned from the app; all hold real coordinates |
+
+Two corrections to the diagnosis above fall out of this. The re-billing had **not
+yet cost anything**: the job had not run since REZ-28, so the bug was armed rather
+than firing. And the orphan problem was larger and more concrete than assumed —
+3,405 real geocodes, every one of them invisible to the map, none of them negative
+cache entries.
+
+### Repaired in place, not by re-geocoding
+
+The spec originally assumed the raw spelling was unrecoverable from the key. It is
+not: `address_raw` is a stored column, so the canonical key is recomputable for
+every row. `ops/rekey_geocode_cache.py` updated 3,344 rows with 0 failures. The
+other 61 cannot be re-keyed and do not need to be — 54 already have a canonical row
+serving the app, 7 collapse onto a shared key.
+
+That cost nothing and was instant, where letting the backfill re-resolve the same
+addresses would have cost 6,688 Rupantor calls to arrive at identical coordinates.
+
+The post-repair audit is the sharpest evidence for the code fix: pending is now
+**0 calls** under the new scan and **6,688** under the old one. Deploying the
+repaired data without the code fix would re-bill the whole cache every run.
+`ops/audit_geocode_cache.py` reproduces that comparison read-only whenever needed.
 
 ## Scope
 
@@ -95,24 +124,11 @@ each generation are still unknown. Getting them is the first task below.
    thousands, so holding them in memory is not a concern next to the API calls it
    saves. Deduping by key within a run came free with it: two spellings of one
    address were previously two calls writing a single row.
-2. **Quantify the two generations — still open, do this from the VPS.** A
-   read-only count of how many cached rows are raw-keyed (pre-REZ-28, orphaned
-   from the app) versus canonical. This needs no API calls and sizes the one-time
-   backfill before it runs:
-
-   ```sql
-   select count(*) filter (where address_norm = lower(regexp_replace(trim(address_raw), '\s+', ' ', 'g'))) as raw_keyed,
-          count(*) filter (where address_norm <> lower(regexp_replace(trim(address_raw), '\s+', ' ', 'g'))) as lexicon_keyed,
-          count(*) as total
-     from public.address_geocodes;
-   ```
-
-   `raw_keyed` over-counts slightly — an address the lexicon does not touch keys
-   identically either way — so treat it as the ceiling on the backfill.
-3. **Run the backfill deliberately, not by surprise.** Use
-   `geocode-addresses --dry-run` first to see the pending count, then `--limit` in
-   tranches sized to plan quota. The count should fall to roughly zero and stay
-   there on subsequent runs; if it does not, the two paths have diverged again.
+2. **Quantify the two generations.** ✅ Done — `ops/audit_geocode_cache.py`,
+   read-only, no API calls. Numbers above.
+3. **Repair the orphans.** ✅ Done — `ops/rekey_geocode_cache.py --apply`, 3,344
+   rows re-keyed against production on 30 Jul 2026, 0 failures. No backfill run is
+   needed; pending is 0.
 
 ### Rejected alternative
 

@@ -165,19 +165,32 @@ The fix moves the pending decision out of SQL into a pure `select_pending`, so
 the lexicon into SQL instead was rejected: it would have created a third copy to
 hold in lockstep, and two already needed a dedicated parity test.
 
-**The more important finding came out of fixing it.** `normalize_key` only gained
-the lexicon in REZ-28 (28 Jul 2026), so the cache holds two generations of key.
-Rows written after that date are canonical — those are the ones being re-billed.
-Rows written *before* it are raw-keyed, and since the app's read path applies the
-lexicon, it has been looking for a key that is not there: **any supplier in a
-renamed district geocoded before 28 Jul has silently had no map pin since**. The
-map fails closed by design, so a cache miss yields no pin and no error, which is
-why nobody saw it. The fix self-heals these — they no longer match, so they are
-geocoded once more under the canonical key — at a bounded one-time cost. Expect the
-first run after deploy to do real work; that is the backfill, not a regression.
-Sizing it needs a read-only count from the VPS, since the database is not reachable
-from a dev machine. Full write-up in
-`context/feature-specs/spec-barikoi-geocode-cache-key-leak.md`.
+**Measuring it against production corrected the diagnosis, and found something
+worse.** `normalize_key` only gained the lexicon in REZ-28 (28 Jul 2026), so the
+cache held two generations of key. Of 17,973 rows: 14,568 the lexicon does not
+touch, and 3,405 keyed by the pre-REZ-28 raw spelling. Canonical-keyed rows:
+**zero** — so the re-billing had not actually cost anything yet. The job had not
+run since REZ-28, and the bug was armed rather than firing.
+
+The live harm was the other direction. Those 3,405 raw-keyed rows all hold real
+coordinates, and the app's read path applies the lexicon, so it was looking for a
+key that is not there: **every supplier in a renamed district had silently lost its
+map pin when REZ-28 shipped.** The map fails closed by design — a cache miss yields
+no pin and no error — which is why nobody saw 3,405 geocodes go dark.
+
+Repaired in place on 30 Jul rather than by re-geocoding: `address_raw` is stored
+next to the key, so the canonical key is recomputable for every row without asking
+Barikoi anything. `ops/rekey_geocode_cache.py` updated 3,344 rows, 0 failures. The
+remaining 61 are duplicates, not gaps (54 already have a canonical row serving the
+app, 7 collapse onto a shared key). Free and instant where the backfill would have
+cost 6,688 Rupantor calls for the same result, and reversible — the previous key is
+`raw_key(address_raw)`.
+
+The audit after the re-key is the clearest statement of why the code fix matters:
+pending is now **0 calls** under the new scan and **6,688** under the old one. The
+old code against the repaired data would re-bill the entire cache on every run.
+`ops/audit_geocode_cache.py` re-runs that comparison read-only at any time. Full
+write-up in `context/feature-specs/spec-barikoi-geocode-cache-key-leak.md`.
 
 Not yet verified, and to be checked before deploy:
 - **The `Dockerfile` base image change is unbuilt locally** (no Docker on the dev
