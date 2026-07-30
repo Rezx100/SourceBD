@@ -3,6 +3,17 @@
 This file keeps routine agent sessions from scanning every inactive feature spec.
 
 ## Active / Recent Spec
+- COMPLETE in the working tree (31 Jul 2026): Barikoi geocode cache-key leak closed —
+  `barikoi_geocode` keyed its cache through the place lexicon but decided what was
+  still pending with raw SQL that did not, so every address the lexicon rewrites was
+  re-geocoded at 2 Rupantor calls on every run, silently (`on conflict do nothing`
+  absorbed the duplicate, the run counted it resolved). The pending decision moved
+  out of SQL into the pure `select_pending`, making `normalize_key` the only thing
+  that computes a key. Fixing it surfaced a worse, separate consequence: rows
+  geocoded *before* REZ-28 are raw-keyed, and the app's read path applies the
+  lexicon, so suppliers in renamed districts have had no map pin since 28 Jul. The
+  fix self-heals them via a bounded one-time re-geocode. 12 new tests, no database
+  needed. See `context/feature-specs/spec-barikoi-geocode-cache-key-leak.md`.
 - COMPLETE in the working tree (29 Jul 2026): Firecrawl acquisition layer with verified
   per-field provenance, from the Cursor plan `firecrawl_acquisition_layer`. Acquisition split
   out of the 27 scrapers into `etl/acquire/` (Firecrawl / Direct / Local adapters); parsing and
@@ -138,12 +149,6 @@ This file keeps routine agent sessions from scanning every inactive feature spec
   plus `context/frontend-design-spec.md`.
 
 ## Queued Specs
-- `spec-barikoi-geocode-cache-key-leak.md` — `barikoi_geocode` writes its cache key
-  through the place lexicon but decides what is still pending with raw SQL that does
-  not, so every address the lexicon rewrites is re-geocoded and re-billed on every
-  run. Silent: `on conflict do nothing` swallows the duplicate and the run reports it
-  as resolved. Pre-existing, unrelated to Firecrawl, and costs Rupantor quota on a
-  recurring basis — quantify before scheduling.
 - `spec-brand-primark-global-sourcing-map.md` — retarget `brand_primark` from the
   Modern Slavery Statement (narrative prose, parses to zero rows) at Primark's
   Global Sourcing Map, which is the real factory-level list. Raised 29 Jul 2026 by

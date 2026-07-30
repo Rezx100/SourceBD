@@ -151,18 +151,33 @@ this work touches. Firecrawl auth confirmed working against the live API. Migrat
 `python ops/validate_sql_syntax.py` — syntax only, which cannot catch an
 unresolvable column reference.
 
-Deferred to its own PR, not part of this change: `etl/jobs/barikoi_geocode.py`
-re-bills every address the place lexicon rewrites, on every run. `_store()` keys
-the cache with `normalize_key()` (lexicon applied) while `_list_pending()` looks
-up with plain lowercase-and-whitespace SQL (no lexicon), so any address
-containing a renamed district — Chittagong→Chattogram, Comilla→Cumilla,
-Jessore→Jashore — never matches, is re-selected as pending, and costs 2 Rupantor
-calls again. `on conflict do nothing` hides it, and the run counts the re-geocode
-under `resolved`, so the only symptom is quota burn. Predates this work (arrived
-with the REZ-28 lexicon). Written up as
-`context/feature-specs/spec-barikoi-geocode-cache-key-leak.md` so the deferral
-does not lose it; the app's own read path applies the lexicon and is unaffected,
-which is why this is a spend bug rather than a correctness one.
+Fixed 31 Jul 2026 (initially deferred, pulled forward because it bills real
+money): `etl/jobs/barikoi_geocode.py` re-billed every address the place lexicon
+rewrites, on every run. `_store()` keyed the cache with `normalize_key()` (lexicon
+applied) while `_list_pending()` looked up with plain lowercase-and-whitespace SQL
+(no lexicon), so any address containing a renamed district — Chittagong→Chattogram,
+Comilla→Cumilla, Jessore→Jashore — never matched, was re-selected as pending, and
+cost 2 Rupantor calls again. `on conflict do nothing` hid it and the run counted the
+re-geocode under `resolved`, so the only symptom was quota burn.
+
+The fix moves the pending decision out of SQL into a pure `select_pending`, so
+`normalize_key` is the only thing in the system that computes a cache key. Porting
+the lexicon into SQL instead was rejected: it would have created a third copy to
+hold in lockstep, and two already needed a dedicated parity test.
+
+**The more important finding came out of fixing it.** `normalize_key` only gained
+the lexicon in REZ-28 (28 Jul 2026), so the cache holds two generations of key.
+Rows written after that date are canonical — those are the ones being re-billed.
+Rows written *before* it are raw-keyed, and since the app's read path applies the
+lexicon, it has been looking for a key that is not there: **any supplier in a
+renamed district geocoded before 28 Jul has silently had no map pin since**. The
+map fails closed by design, so a cache miss yields no pin and no error, which is
+why nobody saw it. The fix self-heals these — they no longer match, so they are
+geocoded once more under the canonical key — at a bounded one-time cost. Expect the
+first run after deploy to do real work; that is the backfill, not a regression.
+Sizing it needs a read-only count from the VPS, since the database is not reachable
+from a dev machine. Full write-up in
+`context/feature-specs/spec-barikoi-geocode-cache-key-leak.md`.
 
 Not yet verified, and to be checked before deploy:
 - **The `Dockerfile` base image change is unbuilt locally** (no Docker on the dev

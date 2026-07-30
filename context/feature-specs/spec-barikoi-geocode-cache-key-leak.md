@@ -1,9 +1,19 @@
 # Spec — close the Barikoi geocode cache-key leak
 
-Status: **queued** (raised 29 Jul 2026 during the Firecrawl PR review; deliberately
-kept out of that PR as pre-existing and unrelated)
-Owner: unassigned
+Status: **shipped 31 Jul 2026.** Raised 29 Jul during the Firecrawl PR review and
+initially deferred; pulled forward on the founder's call because it bills real
+money on every run. Kept as the record of what was wrong and why.
+Owner: —
 Depends on: nothing. Independent of the Firecrawl acquisition work.
+
+## What landed
+
+`_list_pending` no longer filters in SQL. It reads the candidate addresses and the
+existing `address_norm` values, then filters through the pure `select_pending`
+helper so `normalize_key` is the only thing in the system that computes a cache
+key. Covered by `etl/tests/test_barikoi_geocode.py` (12 tests, no database
+required), including a guard that fails if the lexicon stops rewriting the place
+name the regression test is built on.
 
 ## Why this matters
 
@@ -47,21 +57,62 @@ Three things independently hide it:
 
 Nothing surfaces except the Barikoi invoice.
 
+## A second, worse consequence found while fixing it
+
+`normalize_key` only gained the lexicon in REZ-28 (`5d71291`, 28 Jul 2026). Before
+that it was plain lowercase-and-whitespace. So the cache holds two generations of
+key, and they behave differently:
+
+- **Written on or after 28 Jul** — canonical key. The app finds these. The pending
+  scan did not, so *these* are the rows that were re-billed every run.
+- **Written before 28 Jul** — raw key. The old pending scan matched these, so they
+  were never re-billed — but the app's read path applies the lexicon, so it has
+  been looking for a canonical key that is not there. **Any supplier in a renamed
+  district geocoded before 28 Jul has silently had no map pin since REZ-28
+  shipped.** That is a correctness bug, not just a spend one, and it was hidden by
+  the map's deliberate fail-closed behaviour: a cache miss yields no pin and no
+  error.
+
+The fix resolves both. Legacy raw-keyed rows do not match the canonical key, so
+they are geocoded once more, which writes a canonical row and restores the pin.
+That is a bounded one-time cost — the next run sees the canonical key and skips
+them — and it is the cheapest available repair, since the alternative is a
+migration that re-keys rows whose original raw spelling is no longer recoverable
+from the key alone.
+
+Expect the first run after this change to do real work. That is the backfill, not
+a regression.
+
+This generational split is derived from the code history, not measured against
+production: the database is not reachable from a dev machine, so the row counts in
+each generation are still unknown. Getting them is the first task below.
+
 ## Scope
 
-1. **Quantify it first.** A read-only count of how many distinct candidate
-   addresses have a lexicon-rewritten key versus a raw one. This needs no API
-   calls and decides how urgent the rest is. Until this number exists, the cost
-   of the leak is unknown.
-2. **Make one implementation authoritative.** Recommended: move the "is it
-   already cached?" decision out of SQL and into Python, so `normalize_key` is
-   the only thing that ever computes a key. `_list_pending` becomes: select the
-   candidate addresses, select the existing `address_norm` values, and filter in
-   Python with `normalize_key`. Both sides are short strings in the tens of
-   thousands, so holding them in memory is not a concern.
-3. **Backfill the orphans.** Rows already written under a canonical key are
-   correct and must not be re-geocoded. Verify a pass over existing data
-   re-geocodes nothing.
+1. **Make one implementation authoritative.** ✅ Done. The "is it already cached?"
+   decision moved out of SQL and into `select_pending`, so `normalize_key` is the
+   only thing that ever computes a key. Both sides are short strings in the tens of
+   thousands, so holding them in memory is not a concern next to the API calls it
+   saves. Deduping by key within a run came free with it: two spellings of one
+   address were previously two calls writing a single row.
+2. **Quantify the two generations — still open, do this from the VPS.** A
+   read-only count of how many cached rows are raw-keyed (pre-REZ-28, orphaned
+   from the app) versus canonical. This needs no API calls and sizes the one-time
+   backfill before it runs:
+
+   ```sql
+   select count(*) filter (where address_norm = lower(regexp_replace(trim(address_raw), '\s+', ' ', 'g'))) as raw_keyed,
+          count(*) filter (where address_norm <> lower(regexp_replace(trim(address_raw), '\s+', ' ', 'g'))) as lexicon_keyed,
+          count(*) as total
+     from public.address_geocodes;
+   ```
+
+   `raw_keyed` over-counts slightly — an address the lexicon does not touch keys
+   identically either way — so treat it as the ceiling on the backfill.
+3. **Run the backfill deliberately, not by surprise.** Use
+   `geocode-addresses --dry-run` first to see the pending count, then `--limit` in
+   tranches sized to plan quota. The count should fall to roughly zero and stay
+   there on subsequent runs; if it does not, the two paths have diverged again.
 
 ### Rejected alternative
 
@@ -73,16 +124,22 @@ second implementation over adding a third.
 
 ## Acceptance
 
-All of this is verifiable with **zero Barikoi API calls**:
+Verified locally with **zero Barikoi API calls**:
 
-- `python -m etl.cli geocode-addresses --dry-run` reports a pending count that
-  excludes every address already present in `address_geocodes`, including
-  addresses whose key the lexicon rewrites.
-- A unit test proves an address containing a rewritten place name
-  (`Jessore`/`Jashore` is the clearest case) is treated as cached once stored.
-- Run the dry run, apply nothing, run it again: the count must not include
-  previously geocoded addresses.
-- The app's map behaviour is unchanged, since its read path was already correct.
+- ✅ A unit test proves an address whose key the lexicon rewrites is treated as
+  cached once stored under `normalize_key` — the exact key `_store` writes.
+  `etl/tests/test_barikoi_geocode.py`, 12 tests.
+- ✅ `--limit` counts calls to be made rather than rows examined, so quota control
+  still means what it says now that filtering happens after the query.
+- ✅ Spelling variants sharing one key are geocoded once per run.
+
+Still to confirm on the VPS, where the database is reachable:
+
+- `python -m etl.cli geocode-addresses --dry-run` twice in a row, with a real run
+  in between: the second count must exclude everything the first run geocoded.
+  This is the check that would have caught the original bug.
+- The app's map behaviour improves rather than changes: pre-REZ-28 orphans regain
+  their pins as the backfill re-keys them.
 
 ## Notes for whoever picks this up
 
