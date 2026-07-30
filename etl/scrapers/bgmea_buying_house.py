@@ -173,8 +173,8 @@ def _parse_column(lines: list[str]) -> Iterable[dict]:
 _UNCITABLE_FIELDS = ("bgmea_member_type",)
 
 
-class BgmeaPdfScraper(AcquiringScraper):
-    code = "bgmea_pdf"
+class BgmeaBuyingHouseScraper(AcquiringScraper):
+    code = "bgmea_buying_house"
     source_code = "BGMEA"
     transport = "local"
     fallback_transport = None
