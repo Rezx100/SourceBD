@@ -16,11 +16,12 @@ from dataclasses import dataclass, field
 from datetime import date
 from typing import Any, AsyncIterator, Callable
 
-from rapidfuzz import fuzz, process
+from rapidfuzz import fuzz
 
 from etl.core.db import db, get_source_id
 from etl.core.logging import get_logger
 from etl.core.normalize import normalize_company_name
+from etl.core.scraper import EvidenceAttachment
 
 log = get_logger("etl.sanctions")
 
@@ -45,6 +46,27 @@ class SanctionEntry:
     status_notes: str | None = None
     source_url: str | None = None
     raw: dict[str, Any] = field(default_factory=dict)
+    evidence: EvidenceAttachment | None = None
+
+    def claim_payload(self) -> dict[str, Any]:
+        """The citable facts on this entry.
+
+        `aliases` and `raw` are excluded: a list has no single excerpt, and `raw`
+        is our own capture of the scrape rather than an assertion by the
+        publisher.
+        """
+        return {
+            k: v
+            for k, v in {
+                "entity_name": self.entity_name,
+                "country": self.country,
+                "merchandise": self.merchandise,
+                "listed_date": self.listed_date.isoformat() if self.listed_date else None,
+                "status": self.status,
+                "status_notes": self.status_notes,
+            }.items()
+            if v not in (None, "")
+        }
 
 
 def ingest_sanction_entry(entry: SanctionEntry) -> dict[str, Any]:
@@ -208,6 +230,13 @@ class BaseSanctionScraper(abc.ABC):
     def __init__(self) -> None:
         self.log = get_logger(f"etl.sanctions.{self.code}")
         self.last_run_id: str | None = None
+        self.evidence_claims = 0
+        self.credits_used = 0
+        self._evidence_doc_ids: set[str] = set()
+
+    @property
+    def evidence_documents(self) -> int:
+        return len(self._evidence_doc_ids)
 
     @abc.abstractmethod
     async def fetch(self) -> AsyncIterator[SanctionEntry]:  # pragma: no cover
@@ -215,7 +244,10 @@ class BaseSanctionScraper(abc.ABC):
             yield  # type: ignore[unreachable]
 
     async def run(self) -> dict[str, int]:
+        from etl.evidence.writer import reset_document_cache
+
         run_id = self._open_run()
+        reset_document_cache()
         seen = upserted = skipped = matched_total = 0
         self._emit_progress(
             run_id, "started", "Sanctions scraper started.", seen, upserted, skipped, matched_total
@@ -232,6 +264,8 @@ class BaseSanctionScraper(abc.ABC):
                     self.log.error(
                         "ingest.failed", entry_ref=entry.entry_ref, error=str(e)
                     )
+                else:
+                    await self._record_evidence(entry, res["entry_id"], run_id)
                 if seen % 25 == 0:
                     self.log.info(
                         "progress", seen=seen, upserted=upserted,
@@ -258,7 +292,55 @@ class BaseSanctionScraper(abc.ABC):
         return {
             "seen": seen, "upserted": upserted,
             "skipped": skipped, "matched": matched_total,
+            "evidence_documents": self.evidence_documents,
+            "evidence_claims": self.evidence_claims,
+            "credits_used": self.credits_used,
         }
+
+    async def _record_evidence(
+        self, entry: SanctionEntry, entry_id: str, run_id: str
+    ) -> None:
+        """Cite a sanctions entry to the list page it was read from.
+
+        Best-effort, for the same reason as the supplier path: the entry itself
+        is already stored, and a missing citation is recoverable while a failed
+        ingest of a forced-labor listing is not.
+        """
+        if entry.evidence is None:
+            return
+
+        from etl.core.upsert import _tier_for
+        from etl.evidence.writer import record
+
+        att = entry.evidence
+        try:
+            doc_id, claims = await record(
+                att.doc,
+                scraper_code=self.code,
+                source_code=self.source_code or entry.source_code,
+                subject_table="sanctions_list_entries",
+                subject_id=entry_id,
+                payload=entry.claim_payload(),
+                source_tier=_tier_for(entry.source_code),
+                etl_run_id=run_id,
+                locators=att.locators,
+                default_locator=att.default_locator,
+                skip_keys=att.skip_keys,
+                document_text=att.document_text,
+                document_is_html=att.document_is_html,
+                citable_url_override=att.citable_url_override,
+            )
+        except Exception as exc:  # noqa: BLE001
+            self.log.error(
+                "evidence.record_failed", entry_ref=entry.entry_ref, error=str(exc)
+            )
+            return
+
+        if doc_id:
+            if doc_id not in self._evidence_doc_ids:
+                self._evidence_doc_ids.add(doc_id)
+                self.credits_used += att.doc.credits_used
+            self.evidence_claims += claims
 
     # --- run log ---
     def _open_run(self) -> str:

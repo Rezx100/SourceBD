@@ -4,17 +4,30 @@ Place the PDF at: etl/raw/BGMEA_Associate_Members.pdf
 
 The PDF is a 2-column layout. We split each page vertically using word
 x-coordinates, then parse each column block-by-block using the (Reg-N) marker.
+
+Transport: local file, wrapped in the acquisition interface. There is no network
+transport to replace here — what the wrapper adds is provenance the source never
+had. Previously a scheduled run of this source reported success whether the PDF
+on disk was fetched yesterday or eighteen months ago. Now each run records the
+file's path, mtime and content hash, and mirrors the PDF to Bunny, so a citation
+resolves to a dated archived copy and staleness is visible in the admin console
+instead of showing as a green tick.
 """
 from __future__ import annotations
 
+import io
 import re
 from pathlib import Path
 from typing import AsyncIterator, Iterable
 
 import pdfplumber
 
+from etl.acquire import AcquireRequest
+from etl.acquire.local import path_to_url
+from etl.core.acquiring import AcquiringScraper
 from etl.core.config import settings
-from etl.core.scraper import BaseScraper, ScrapedRecord
+from etl.core.scraper import EvidenceAttachment, ScrapedRecord
+from etl.evidence.locate import pdf_locator
 
 PDF_PATH = settings.etl_raw_dir / "BGMEA_Associate_Members.pdf"
 
@@ -154,27 +167,46 @@ def _parse_column(lines: list[str]) -> Iterable[dict]:
         i = j
 
 
-class BgmeaPdfScraper(BaseScraper):
+# `bgmea_member_type` is a label we assign to every row in this document, not
+# something the PDF prints, so citing it would attach an excerpt-less claim to
+# every buying house.
+_UNCITABLE_FIELDS = ("bgmea_member_type",)
+
+
+class BgmeaPdfScraper(AcquiringScraper):
     code = "bgmea_pdf"
     source_code = "BGMEA"
+    transport = "local"
+    fallback_transport = None
 
-    def __init__(self, pdf_path: Path | None = None) -> None:
-        super().__init__()
+    def __init__(self, pdf_path: Path | None = None, **kwargs) -> None:
+        super().__init__(**kwargs)
         self.pdf_path = pdf_path or PDF_PATH
 
     async def fetch(self) -> AsyncIterator[ScrapedRecord]:
-        if not self.pdf_path.exists():
+        doc = await self.acquire(
+            AcquireRequest(
+                url=path_to_url(self.pdf_path), label="BGMEA associate members"
+            )
+        )
+        if not doc.ok or doc.body_bytes is None:
             raise FileNotFoundError(
-                f"BGMEA PDF not found at {self.pdf_path}. "
+                f"BGMEA PDF not readable at {self.pdf_path} "
+                f"({doc.fetch_status.value}: {doc.error_message}). "
                 "Drop the BGMEA Associate Members PDF there and re-run."
             )
 
         seen_regs: set[str] = set()
-        with pdfplumber.open(str(self.pdf_path)) as pdf:
-            for page in pdf.pages:
+        with pdfplumber.open(io.BytesIO(doc.body_bytes)) as pdf:
+            for page_no, page in enumerate(pdf.pages, start=1):
                 width = page.width
                 left = _column_lines(page, 0, width * 0.5)
                 right = _column_lines(page, width * 0.5, width)
+                # Excerpt against this page only. The register runs to dozens of
+                # pages and the same street or phone prefix recurs throughout, so
+                # a whole-document search would happily cite another buying
+                # house's line as this one's evidence.
+                page_text = page.extract_text() or ""
                 for col in (left, right):
                     for rec in _parse_column(col):
                         if rec["reg"] in seen_regs:
@@ -197,4 +229,16 @@ class BgmeaPdfScraper(BaseScraper):
                                 "raw_address": address,
                                 "raw_tel": rec["tel"],
                             },
+                            evidence=EvidenceAttachment(
+                                doc=doc,
+                                default_locator=pdf_locator(page_no, rec["name"]),
+                                locators={
+                                    "bgmea_reg_number": pdf_locator(
+                                        page_no, f"{rec['name']} (Reg-{rec['reg']})"
+                                    ),
+                                },
+                                document_text=page_text,
+                                document_is_html=False,
+                                skip_keys=_UNCITABLE_FIELDS,
+                            ),
                         )

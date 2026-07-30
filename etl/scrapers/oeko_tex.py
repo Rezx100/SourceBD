@@ -14,6 +14,20 @@ A single company may hold several OEKO-TEX certifications; we model each
 (company, oets_standard) pair as a separate row in `public.certifications`
 keyed on `certificate_no = "{idx}-{oets_standard}"`, all under
 `kind = 'oeko_tex'`.
+
+Transport: direct, wrapped in the acquisition interface.
+
+The plan grouped this source with the Firecrawl set, but the Buying Guide result
+endpoint is reached by POSTing a wrapped form body, and Firecrawl's scrape API
+only issues GETs — there is no way to express this request through it. Driving
+the form with Firecrawl `actions` would also break the second constraint: the
+`customer_profile` URLs each row yields are short-lived and bound to the
+requesting session, so they must be fetched immediately from the same client
+that ran the search. Routing them via Firecrawl's proxy pool would return
+"Profile key has expired" instead of contact data.
+
+It still runs through the acquisition layer, so it produces the same evidence
+rows, transport badge and admin controls as every other source.
 """
 from __future__ import annotations
 
@@ -23,12 +37,13 @@ import re
 from typing import AsyncIterator
 from urllib.parse import urlencode
 
-import httpx
 from bs4 import BeautifulSoup
 
+from etl.acquire import AcquiredDoc, AcquireRequest
+from etl.core.acquiring import AcquiringScraper
 from etl.core.config import settings
 from etl.core.db import db, get_source_id
-from etl.core.scraper import BaseScraper, ScrapedRecord
+from etl.core.scraper import EvidenceAttachment, ScrapedRecord
 
 BASE = "https://services.oeko-tex.com"
 RESULT_URL = f"{BASE}/buying-guide/result/"
@@ -139,81 +154,164 @@ def _extract_rows(html: str) -> tuple[int, list[dict[str, str | None]]]:
     return f_count, rows
 
 
-class OekoTexScraper(BaseScraper):
+_FIELD_LOCATORS = {
+    "oeko_profile_address": "customer_profile page, address block",
+    "oeko_profile_phone": "customer_profile page, 'Phone' row",
+    "oeko_profile_email": "customer_profile page, 'Email' row",
+    "oeko_profile_website": "customer_profile page, contact block URL",
+    "oeko_standard_label": "buying-guide result row, oets_standard filter",
+}
+# `oeko_customer_id`/`oeko_standard`/`oeko_profile_url` are request plumbing, and
+# `country` is the Bangladesh filter we applied rather than text on the page.
+_UNCITABLE_FIELDS = (
+    "oeko_customer_id",
+    "oeko_standard",
+    "oeko_profile_url",
+    "country",
+)
+
+
+class OekoTexScraper(AcquiringScraper):
     code = "oeko_tex"
     source_code = "OEKO_TEX"
+    transport = "direct"
+    fallback_transport = None
+    # The public Buying Guide entry point. The search endpoint itself is a POST,
+    # which a monitor cannot express — but a restructure of the guide is what
+    # would break the search, and that is visible here.
+    monitor_urls = (f"{BASE}/buying-guide/",)
 
-    async def fetch(self) -> AsyncIterator[ScrapedRecord]:
-        headers = {
-            "User-Agent": settings.etl_user_agent,
-            "Referer": f"{BASE}/buying-guide/",
-            "Origin": BASE,
-            "Content-Type": "application/x-www-form-urlencoded",
-            "Accept": "text/html, */*; q=0.01",
-            "Accept-Language": "en-US,en;q=0.9",
-        }
-        profile_headers = {
+    @property
+    def request_headers(self) -> dict[str, str]:
+        return {
             "User-Agent": settings.etl_user_agent,
             "Referer": f"{BASE}/buying-guide/",
             "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
             "Accept-Language": "en-US,en;q=0.9",
         }
 
-        async with httpx.AsyncClient(timeout=60.0, headers=headers, follow_redirects=True) as client:
-            for oets, label in OETS_STANDARDS.items():
-                page = 1
-                total_pages = 1
-                while page <= total_pages:
-                    body = _build_body(oets, page)
-                    resp = await client.post(RESULT_URL, content=body)
-                    resp.raise_for_status()
-                    f_count, rows = _extract_rows(resp.text)
-                    if page == 1:
-                        total_pages = max(1, math.ceil(f_count / PAGE_SIZE))
-                        self.log.info(
-                            "oeko.standard.start",
-                            oets=oets, label=label, f_count=f_count, pages=total_pages,
-                        )
-                    if not rows:
-                        self.log.info("oeko.empty_page", oets=oets, page=page)
-                        break
-                    for r in rows:
-                        profile = await _fetch_profile(
-                            client, r.get("profile_url"), profile_headers, self.log,
-                            idx=r["idx"], oets=oets,
-                        )
-                        payload = {
-                            "oeko_customer_id": r["idx"],
-                            "oeko_standard": oets,
-                            "oeko_standard_label": label,
-                            "oeko_profile_url": r.get("profile_url"),
-                            "country": "Bangladesh",
-                        }
-                        if profile.get("address"):
-                            payload["oeko_profile_address"] = profile["address"]
-                        if profile.get("phone"):
-                            payload["oeko_profile_phone"] = profile["phone"]
-                        if profile.get("email"):
-                            payload["oeko_profile_email"] = profile["email"]
-                        if profile.get("website"):
-                            payload["oeko_profile_website"] = profile["website"]
-                        yield ScrapedRecord(
-                            source_code="OEKO_TEX",
-                            source_ref=f"oeko-tex-{r['idx']}",
-                            company_name=r["name"] or "",
-                            city=r.get("city"),
-                            address_raw=profile.get("address") or r.get("location_raw"),
-                            email=profile.get("email"),
-                            phone_raw=profile.get("phone"),
-                            website=profile.get("website"),
-                            payload=payload,
-                        )
-                    page += 1
+    async def fetch(self) -> AsyncIterator[ScrapedRecord]:
+        search_headers = {
+            **self.request_headers,
+            "Origin": BASE,
+            "Content-Type": "application/x-www-form-urlencoded",
+            "Accept": "text/html, */*; q=0.01",
+        }
+
+        for oets, label in OETS_STANDARDS.items():
+            page = 1
+            total_pages = 1
+            while page <= total_pages:
+                result = await self.acquire(
+                    AcquireRequest(
+                        url=RESULT_URL,
+                        method="POST",
+                        content=_build_body(oets, page),
+                        headers=search_headers,
+                        label=f"buying-guide {oets} p{page}",
+                    )
+                )
+                if not result.ok:
+                    self.log.warning(
+                        "oeko.search_failed",
+                        oets=oets, page=page,
+                        status=result.fetch_status.value,
+                        error=result.error_message,
+                    )
+                    break
+
+                f_count, rows = _extract_rows(result.text())
+                if page == 1:
+                    total_pages = max(1, math.ceil(f_count / PAGE_SIZE))
+                    self.log.info(
+                        "oeko.standard.start",
+                        oets=oets, label=label, f_count=f_count, pages=total_pages,
+                    )
+                if not rows:
+                    self.log.info("oeko.empty_page", oets=oets, page=page)
+                    break
+                for r in rows:
+                    profile_doc = await self._fetch_profile_doc(
+                        r.get("profile_url"), idx=r["idx"], oets=oets
+                    )
+                    profile = _parse_profile(profile_doc, self.log, idx=r["idx"], oets=oets)
+                    payload = {
+                        "oeko_customer_id": r["idx"],
+                        "oeko_standard": oets,
+                        "oeko_standard_label": label,
+                        "oeko_profile_url": r.get("profile_url"),
+                        "country": "Bangladesh",
+                    }
+                    if profile.get("address"):
+                        payload["oeko_profile_address"] = profile["address"]
+                    if profile.get("phone"):
+                        payload["oeko_profile_phone"] = profile["phone"]
+                    if profile.get("email"):
+                        payload["oeko_profile_email"] = profile["email"]
+                    if profile.get("website"):
+                        payload["oeko_profile_website"] = profile["website"]
+                    yield ScrapedRecord(
+                        source_code="OEKO_TEX",
+                        source_ref=f"oeko-tex-{r['idx']}",
+                        company_name=r["name"] or "",
+                        city=r.get("city"),
+                        address_raw=profile.get("address") or r.get("location_raw"),
+                        email=profile.get("email"),
+                        phone_raw=profile.get("phone"),
+                        website=profile.get("website"),
+                        payload=payload,
+                        evidence=self._evidence_for(profile_doc, result),
+                    )
+                page += 1
+
+    def _evidence_for(
+        self, profile_doc: AcquiredDoc | None, result: AcquiredDoc
+    ) -> EvidenceAttachment | None:
+        """Cite the customer profile when we got one, else the result page.
+
+        The profile URL is deliberately NOT used as the citable link even when we
+        read it successfully: its key expires within minutes, so storing it would
+        guarantee a dead citation. We cite the Buying Guide search entry point,
+        which is the durable public page where a buyer can re-run the lookup, and
+        keep the profile's own excerpt as the checkable content.
+        """
+        doc = profile_doc if (profile_doc is not None and profile_doc.ok) else result
+        return EvidenceAttachment(
+            doc=doc,
+            locators=_FIELD_LOCATORS,
+            default_locator="OEKO-TEX Buying Guide result row",
+            skip_keys=_UNCITABLE_FIELDS,
+            citable_url_override=f"{BASE}/buying-guide/",
+        )
+
+    async def _fetch_profile_doc(
+        self, url: str | None, *, idx: str, oets: str
+    ) -> AcquiredDoc | None:
+        """Fetch a freshly-issued customer_profile URL.
+
+        Profile keys expire quickly, so this MUST run during the search pass that
+        produced the URL; reusing a stored URL yields 'Profile key has expired'.
+        """
+        if not url:
+            return None
+        await asyncio.sleep(PROFILE_DELAY_SECONDS)
+        doc = await self.acquire(
+            AcquireRequest(url=url, label=f"profile {idx}/{oets}")
+        )
+        if not doc.ok:
+            self.log.warning(
+                "oeko.profile.fetch_failed",
+                idx=idx, oets=oets, status=doc.fetch_status.value,
+            )
+            return None
+        return doc
 
     async def run(self) -> dict[str, int]:  # type: ignore[override]
         from etl.core.upsert import upsert_supplier_with_source
+        from etl.evidence.writer import reset_document_cache
 
         run_id = self._open_run()
+        reset_document_cache()
         seen = upserted = skipped = 0
         try:
             async for rec in self.fetch():
@@ -230,39 +328,40 @@ class OekoTexScraper(BaseScraper):
                     self.log.error(
                         "upsert.failed", source_ref=rec.source_ref, error=str(exc),
                     )
+                else:
+                    await self._record_evidence(rec, supplier_id, run_id)
                 if seen % 100 == 0:
                     self.log.info("progress", seen=seen, upserted=upserted, skipped=skipped)
             self._close_run(run_id, "success", seen, upserted, skipped, None)
         except Exception as exc:  # noqa: BLE001
             self._close_run(run_id, "failed", seen, upserted, skipped, str(exc))
             raise
-        return {"seen": seen, "upserted": upserted, "skipped": skipped}
+        finally:
+            await self.aclose()
+        return {
+            "seen": seen,
+            "upserted": upserted,
+            "skipped": skipped,
+            "transport": self.active_transport,
+            "evidence_documents": self.evidence_documents,
+            "evidence_claims": self.evidence_claims,
+            "credits_used": self.credits_used,
+        }
 
 
-async def _fetch_profile(
-    client: httpx.AsyncClient,
-    url: str | None,
-    headers: dict[str, str],
+def _parse_profile(
+    doc: AcquiredDoc | None,
     logger,
     *,
     idx: str,
     oets: str,
 ) -> dict[str, str | None]:
-    """GET a freshly-issued OEKO customer_profile URL and parse the public
-    contact block (address, phone, email, website). Profile keys expire
-    quickly so this MUST be called during the search pass that produced the
-    URL; reusing a stored URL yields 'Profile key has expired'."""
+    """Parse the public contact block (address, phone, email, website) out of a
+    fetched OEKO customer_profile page."""
     out: dict[str, str | None] = {"address": None, "phone": None, "email": None, "website": None}
-    if not url:
+    if doc is None:
         return out
-    await asyncio.sleep(PROFILE_DELAY_SECONDS)
-    try:
-        resp = await client.get(url, headers=headers)
-        resp.raise_for_status()
-    except httpx.HTTPError as exc:
-        logger.warning("oeko.profile.fetch_failed", idx=idx, oets=oets, error=str(exc))
-        return out
-    html = resp.text
+    html = doc.text()
     if "Profile key has expired" in html or len(html) < 800:
         logger.warning("oeko.profile.expired_or_empty", idx=idx, oets=oets, length=len(html))
         return out

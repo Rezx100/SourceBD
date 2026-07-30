@@ -19,24 +19,26 @@ Per-factory pipeline:
 
 Idempotent on (supplier_id, doc_type, sha256): an unchanged file is a no-op,
 an updated file inserts a new history row.
+
+Transport: direct, wrapped in the acquisition interface. These are binary
+downloads — the point is the exact bytes, so a rendered version of them is
+useless. What the wrapper adds is an `evidence_documents` row per file, so a
+mirrored inspection report is covered by the same liveness checking, archive
+link and admin view as every other citation.
 """
 from __future__ import annotations
 
-import asyncio
 import hashlib
 import re
-import ssl
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import AsyncIterator, Iterable
-from urllib.parse import urlparse
+from typing import Any, AsyncIterator, Iterable
 
-import certifi
-import httpx
-
+from etl.acquire import AcquireRequest
+from etl.core.acquiring import AcquiringScraper
 from etl.core.bunny import exists as bunny_exists, upload as bunny_upload
 from etl.core.db import db
-from etl.core.scraper import BaseScraper, ScrapedRecord
+from etl.core.scraper import ScrapedRecord
 from etl.core.ssl_rsc import build_rsc_ssl_context
 
 _DOC_COLUMNS: list[tuple[str, str]] = [
@@ -71,12 +73,11 @@ def _ext_from_url(url: str) -> str | None:
     return m.group(1).lower() if m else None
 
 
-def _ext_from_response(resp: httpx.Response) -> str | None:
-    ct = (resp.headers.get("content-type") or "").split(";", 1)[0].strip().lower()
+def _ext_from_doc(content_type: str | None, disposition: str | None) -> str | None:
+    ct = (content_type or "").split(";", 1)[0].strip().lower()
     if ct in _CT_EXT:
         return _CT_EXT[ct]
-    cd = resp.headers.get("content-disposition") or ""
-    m = re.search(r'filename\*?=(?:UTF-8\'\')?"?([^";]+)', cd)
+    m = re.search(r'filename\*?=(?:UTF-8\'\')?"?([^";]+)', disposition or "")
     if m:
         e = _ext_from_url(m.group(1))
         if e:
@@ -134,28 +135,6 @@ def _mirror_path(slug: str, doc_type: str, ext: str, fetched_date: str) -> str:
     return f"rsc-docs/{slug}/{doc_type}-{fetched_date}.{ext}"
 
 
-def _verify_for(url: str) -> ssl.SSLContext | str | bool:
-    """Use the RSC-specific SSL context only for rsc-bd.org; certifi otherwise."""
-    host = (urlparse(url).hostname or "").lower()
-    if host.endswith("rsc-bd.org"):
-        return build_rsc_ssl_context()
-    return certifi.where()
-
-
-async def _download(client: httpx.AsyncClient, url: str) -> tuple[bytes, httpx.Response]:
-    last_exc: Exception | None = None
-    for attempt in range(3):
-        try:
-            resp = await client.get(url, timeout=120, follow_redirects=True)
-            resp.raise_for_status()
-            return resp.content, resp
-        except (httpx.RemoteProtocolError, httpx.ReadError, httpx.ConnectError) as e:
-            last_exc = e
-            await asyncio.sleep(1.5 * (attempt + 1))
-    assert last_exc is not None
-    raise last_exc
-
-
 def _upsert_doc(
     supplier_id: str,
     doc_type: str,
@@ -164,10 +143,12 @@ def _upsert_doc(
     sha256: str,
     file_size: int,
     content_type: str | None,
-) -> str:
+) -> tuple[str, str]:
     """Insert or update a compliance_documents row.
 
-    Returns 'inserted' | 'updated' (mirror_url filled in on existing row) | 'noop'.
+    Returns ('inserted' | 'updated', row id). The id is what an evidence claim
+    points at, so provenance attaches to this specific version of the file
+    rather than to whatever the latest one happens to be.
     """
     with db.conn() as c, c.cursor() as cur:
         cur.execute(
@@ -181,7 +162,8 @@ def _upsert_doc(
                    content_type = coalesce(excluded.content_type, public.compliance_documents.content_type),
                    file_size    = excluded.file_size,
                    fetched_at   = now()
-               returning (xmax = 0) as inserted,
+               returning id,
+                         (xmax = 0) as inserted,
                          mirror_url
             """,
             (supplier_id, doc_type, original_url, mirror_url,
@@ -189,24 +171,46 @@ def _upsert_doc(
         )
         row = cur.fetchone()
         c.commit()
-    return "inserted" if row["inserted"] else "updated"
+    return ("inserted" if row["inserted"] else "updated"), str(row["id"])
 
 
-class RscDocumentsScraper(BaseScraper):
+class RscDocumentsScraper(AcquiringScraper):
     code = "rsc_documents"
     source_code = "RSC"
+    transport = "direct"
+    fallback_transport = None
+    # `run()` catalogs documents directly; `fetch()` is a stub.
+    yields_records = False
 
-    def __init__(self, supplier_slug: str | None = None, limit: int | None = None) -> None:
-        super().__init__()
+    def __init__(
+        self,
+        supplier_slug: str | None = None,
+        limit: int | None = None,
+        **kwargs: Any,
+    ) -> None:
+        super().__init__(**kwargs)
         self._supplier_slug = supplier_slug
         self._limit = limit
+
+    def direct_verify(self):
+        """rsc-bd.org omits its Sectigo intermediate, so add it to the trust store.
+
+        The context is certifi plus that one intermediate, i.e. a strict
+        superset, so it is also correct for the non-RSC hosts some CAP documents
+        are served from — one adapter instead of two clients keyed by hostname.
+        """
+        return build_rsc_ssl_context()
 
     async def fetch(self) -> AsyncIterator[ScrapedRecord]:  # not used
         if False:
             yield  # type: ignore[unreachable]
 
     async def run(self) -> dict[str, int]:  # type: ignore[override]
+        from etl.evidence.writer import record_claims, record_document, reset_document_cache
+        from etl.core.upsert import _tier_for
+
         run_id = self._open_run()
+        reset_document_cache()
         seen = upserted = skipped = 0
         bytes_uploaded = 0
         bytes_downloaded = 0
@@ -220,79 +224,93 @@ class RscDocumentsScraper(BaseScraper):
             # Pre-flight: ensure Bunny credentials are present (raises if not).
             await bunny_exists("rsc-docs/.healthcheck")
 
-            async with httpx.AsyncClient(verify=certifi.where()) as default_client, \
-                    httpx.AsyncClient(verify=build_rsc_ssl_context()) as rsc_client:
-                for ref in _enumerate(rows):
-                    seen += 1
+            for ref in _enumerate(rows):
+                seen += 1
+                try:
+                    doc = await self.acquire(
+                        AcquireRequest(
+                            url=ref.url,
+                            want_bytes=True,
+                            label=f"{ref.supplier_slug} {ref.doc_type}",
+                        )
+                    )
+                    if not doc.ok or doc.body_bytes is None:
+                        raise RuntimeError(
+                            f"{doc.fetch_status.value}: {doc.error_message}"
+                        )
+                    content = doc.body_bytes
+                    bytes_downloaded += len(content)
+                    sha = hashlib.sha256(content).hexdigest()
+                    disposition = doc.meta.get("content_disposition")
+                    ext = (
+                        _ext_from_url(ref.url)
+                        or _ext_from_doc(doc.content_type, disposition)
+                        or "bin"
+                    )
+                    content_type = (
+                        (doc.content_type or "").split(";", 1)[0].strip() or None
+                    )
+
+                    path = _mirror_path(ref.supplier_slug, ref.doc_type, ext, today)
+                    mirror_url: str | None = None
                     try:
-                        client = (
-                            rsc_client
-                            if (urlparse(ref.url).hostname or "").lower().endswith("rsc-bd.org")
-                            else default_client
-                        )
-                        content, resp = await _download(client, ref.url)
-                        bytes_downloaded += len(content)
-                        sha = hashlib.sha256(content).hexdigest()
-                        ext = _ext_from_url(ref.url) or _ext_from_response(resp) or "bin"
-                        content_type = (
-                            (resp.headers.get("content-type") or "").split(";", 1)[0].strip()
-                            or None
-                        )
-
-                        path = _mirror_path(ref.supplier_slug, ref.doc_type, ext, today)
-                        mirror_url: str | None = None
-                        try:
-                            if await bunny_exists(path):
-                                # Bunny already has an object at this deterministic path
-                                # for today's date; use the public URL as-is.
-                                from etl.core.config import settings as _s
-                                mirror_url = (
-                                    f"https://{_s.bunny_pull_zone_hostname}/{path}"
-                                )
-                            else:
-                                mirror_url = await bunny_upload(path, content, content_type)
-                                bytes_uploaded += len(content)
-                        except Exception as e:  # noqa: BLE001
-                            mirror_failed += 1
-                            self.log.warn(
-                                "rsc_docs.mirror_failed",
-                                supplier=ref.supplier_slug,
-                                doc_type=ref.doc_type,
-                                error=str(e)[:200],
+                        if await bunny_exists(path):
+                            # Bunny already has an object at this deterministic path
+                            # for today's date; use the public URL as-is.
+                            from etl.core.config import settings as _s
+                            mirror_url = (
+                                f"https://{_s.bunny_pull_zone_hostname}/{path}"
                             )
-                            mirror_url = None  # hot-link fallback
-
-                        _upsert_doc(
-                            supplier_id=ref.supplier_id,
-                            doc_type=ref.doc_type,
-                            original_url=ref.url,
-                            mirror_url=mirror_url,
-                            sha256=sha,
-                            file_size=len(content),
-                            content_type=content_type,
-                        )
-                        upserted += 1
+                        else:
+                            mirror_url = await bunny_upload(path, content, content_type)
+                            bytes_uploaded += len(content)
                     except Exception as e:  # noqa: BLE001
-                        skipped += 1
-                        self.log.error(
-                            "rsc_docs.failed",
+                        mirror_failed += 1
+                        self.log.warn(
+                            "rsc_docs.mirror_failed",
                             supplier=ref.supplier_slug,
                             doc_type=ref.doc_type,
-                            url=ref.url,
-                            error=str(e)[:300],
+                            error=str(e)[:200],
                         )
-                    if seen % 100 == 0:
-                        self.log.info(
-                            "rsc_docs.progress",
-                            seen=seen, upserted=upserted, skipped=skipped,
-                            mirror_failed=mirror_failed,
-                            bytes_uploaded=bytes_uploaded,
-                        )
+                        mirror_url = None  # hot-link fallback
+
+                    _, doc_row_id = _upsert_doc(
+                        supplier_id=ref.supplier_id,
+                        doc_type=ref.doc_type,
+                        original_url=ref.url,
+                        mirror_url=mirror_url,
+                        sha256=sha,
+                        file_size=len(content),
+                        content_type=content_type,
+                    )
+                    upserted += 1
+                    await self._cite_file(
+                        doc, ref, sha, len(content), doc_row_id, run_id,
+                        record_document, record_claims, _tier_for,
+                    )
+                except Exception as e:  # noqa: BLE001
+                    skipped += 1
+                    self.log.error(
+                        "rsc_docs.failed",
+                        supplier=ref.supplier_slug,
+                        doc_type=ref.doc_type,
+                        url=ref.url,
+                        error=str(e)[:300],
+                    )
+                if seen % 100 == 0:
+                    self.log.info(
+                        "rsc_docs.progress",
+                        seen=seen, upserted=upserted, skipped=skipped,
+                        mirror_failed=mirror_failed,
+                        bytes_uploaded=bytes_uploaded,
+                    )
 
             self._close_run(run_id, "success", seen, upserted, skipped, None)
         except Exception as e:  # noqa: BLE001
             self._close_run(run_id, "failed", seen, upserted, skipped, str(e))
             raise
+        finally:
+            await self.aclose()
 
         return {
             "seen": seen,
@@ -301,4 +319,49 @@ class RscDocumentsScraper(BaseScraper):
             "mirror_failed": mirror_failed,
             "bytes_downloaded": bytes_downloaded,
             "bytes_uploaded": bytes_uploaded,
+            "transport": self.active_transport,
+            "evidence_documents": self.evidence_documents,
+            "evidence_claims": self.evidence_claims,
         }
+
+    async def _cite_file(
+        self,
+        doc,
+        ref: "_DocRef",
+        sha: str,
+        size: int,
+        doc_row_id: str,
+        run_id: str | None,
+        record_document,
+        record_claims,
+        _tier_for,
+    ) -> None:
+        """Record provenance for one mirrored file.
+
+        A binary has no text to excerpt, so the claim is anchored on the file's
+        digest instead: the verifier re-fetches the origin URL and compares
+        `content_sha256`, which answers the question that actually matters here —
+        is the inspection report we archived still the report RSC publishes?
+        """
+        evidence_id = await record_document(
+            doc,
+            scraper_code=self.code,
+            source_code=self.source_code,
+            etl_run_id=run_id,
+        )
+        if not evidence_id:
+            return
+        self._evidence_doc_ids.add(evidence_id)
+        self.evidence_claims += record_claims(
+            evidence_id,
+            subject_table="compliance_documents",
+            subject_id=doc_row_id,
+            supplier_id=ref.supplier_id,
+            payload={"document_sha256": sha, "file_size": size},
+            document_text=None,
+            source_tier=_tier_for(self.source_code),
+            locators={
+                "document_sha256": f"file:{ref.doc_type} (sha256 of the downloaded bytes)",
+                "file_size": f"file:{ref.doc_type} (byte length)",
+            },
+        )

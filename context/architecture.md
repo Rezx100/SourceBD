@@ -7,6 +7,8 @@
 ### Data layer (built FIRST in Phase 0)
 - **Database**: PostgreSQL via **Supabase** (managed, with RLS, full-text search, `pg_trgm`, `pgvector` for future).
 - **ETL / scraping**: **Python 3.12** with `pdfplumber`, `requests`, `beautifulsoup4`, `playwright`, `rapidfuzz`, `python-slugify`, `unidecode`. One-off scripts in `etl/` directory of the monorepo.
+- **Web data acquisition**: **Firecrawl Cloud API** (approved as a Hard-Rule-4 exception by founder on 29 Jul 2026). Scope: the **acquisition concern only** — fetching HTML pages and discovered documents. Parsing and persistence stay in our own Python, so field fidelity under Hard Rule 5 is never delegated to a third party. Implemented as one adapter behind `etl/acquire/` (`FirecrawlAdapter`), alongside `DirectAdapter` (httpx, for JSON/CSV/XML/XLSX/Power-BI transports Firecrawl cannot express) and `LocalFileAdapter` (on-disk sources). Key `FIRECRAWL_API_KEY` (server-only; never exposed to the browser). **Extraction is deterministic**: we request `markdown` + `rawHtml` at 1 credit/page and run our own parsers. Firecrawl's LLM `json` mode is deliberately NOT used for registry facts — it is non-deterministic and would put a language model between a government/association register and a stored fact. Per-source config (`only_main_content=false` for registry tables, custom `headers`, `proxy`, `actions`, `parsers`) lives in each source definition so cost and anti-bot behaviour are explicit. Notes: sending `headers` forces `storeInCache=false` upstream; `zeroDataRetention` is incompatible with the `screenshot` format, so ZDR and archived snapshots are mutually exclusive per request; `proxy="auto"` silently escalates to 5 credits on retry, so it is opt-in per source. We consume the Cloud API and do **not** self-host, so the AGPL-3.0 licence of the open-source distribution does not bind this repo. Credits are recorded per acquired document (`evidence_documents.credits_used`) and surfaced in `/admin/sources`.
+- **Provenance / evidence**: every stored fact is citable to a live URL via `evidence_documents` + `evidence_claims` + `evidence_verifications` (mig `0084`). A claim stores the field key, the value as cited, a `locator` (CSS selector / table row / PDF page / JSON pointer) and a verbatim `excerpt`, so "the link still contains this fact" is machine-checkable rather than assumed. Dead or drifted citations fall back to a dated Bunny snapshot and raise an admin review item; a single transient fetch failure never marks a link dead.
 - **Object storage**: Supabase Storage (private bucket: `supplier-docs`; public bucket: `supplier-media`).
 
 ### Web app (built in Phase 1+)
@@ -29,7 +31,7 @@
 - **Web app**: **OneProvider VPS** (Ubuntu 22.04 LTS, Docker + Caddy reverse proxy, Next.js running under PM2 or as a systemd service in a container). Replaces Vercel.
 - **Database / storage / auth**: Supabase (Singapore region — closest to Bangladesh + good for UK latency). Project ref `stnrfxrxfonwexzcvvpv`.
 - **ETL scripts**: Same OneProvider VPS, separate Docker container. Triggered by cron + Inngest. Outputs land in Supabase via service-role key. Local dev uses identical Docker image.
-- **Approved infra tools**: Docker, docker-compose, Caddy, systemd, cron, Playwright (Chromium only). No new tools without spec change.
+- **Approved infra tools**: Docker, docker-compose, Caddy, systemd, cron, Playwright (Chromium only), Firecrawl Cloud API (web acquisition — see Data layer). No new tools without spec change.
 
 ## Repo layout (monorepo, single Next.js project)
 ```

@@ -235,11 +235,17 @@ function appPathForMarketing(pathname: string): string | null {
 
 export const config = {
   // Broad matcher so marketing + auth surfaces flow through the H2 limiter.
-  // Static assets, the Next runtime, the internal health probe, and the
-  // Stripe webhook endpoint (H3) are excluded so we do not run middleware
-  // on every image / JS / CSS request — and so Stripe retries are not
-  // rate-limited or auth-gated.
+  // Static assets, the Next runtime, the internal health probe, and the two
+  // machine-to-machine webhook endpoints are excluded so we do not run
+  // middleware on every image / JS / CSS request — and so a retrying sender is
+  // neither rate-limited nor auth-gated.
+  //
+  // The Firecrawl exclusion is load-bearing, not an optimisation: `/api/v1/*`
+  // returns 401 to anonymous callers, and Firecrawl has no session. Left in the
+  // matcher, every monitor notification would be rejected and the early-warning
+  // tier would be silently dead. That route authenticates itself with a
+  // shared-secret header instead.
   matcher: [
-    "/((?!_next/|api/health|api/stripe/webhook|favicon\\.ico|robots\\.txt|sitemap\\.xml|.*\\.(?:png|jpg|jpeg|svg|webp|gif|ico|css|js|woff|woff2|ttf|map|xml|txt)$).*)",
+    "/((?!_next/|api/health|api/stripe/webhook|api/v1/webhooks/|favicon\\.ico|robots\\.txt|sitemap\\.xml|.*\\.(?:png|jpg|jpeg|svg|webp|gif|ico|css|js|woff|woff2|ttf|map|xml|txt)$).*)",
   ],
 };

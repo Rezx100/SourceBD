@@ -26,17 +26,25 @@ We collapse all rows for one GroupID into a single SanctionEntry:
 We screen entities only — individuals and ships are dropped at scrape time
 (same rationale as `ofac_sdn`: a Bangladesh garment factory cannot be a UK-
 sanctioned individual or vessel, so keeping them only invites false positives).
+
+Transport: direct, wrapped in the acquisition interface. A 50 MB XML document is
+streamed with `iterparse` and its facts live in typed elements; a rendered
+version of it would be a different document. The wrapper gives it per-field
+evidence and the same admin controls as every other source.
 """
 from __future__ import annotations
 
+import io
 import re
 from datetime import date, datetime
 from typing import AsyncIterator
 
 from lxml import etree
 
-from etl.core.http import HttpClient
-from etl.core.sanctions import BaseSanctionScraper, SanctionEntry
+from etl.acquire import AcquireRequest
+from etl.core.acquiring import AcquiringSanctionScraper
+from etl.core.sanctions import SanctionEntry
+from etl.core.scraper import EvidenceAttachment
 
 URL = "https://ofsistorage.blob.core.windows.net/publishlive/2022format/ConList.xml"
 TARGET_TAG = "{*}FinancialSanctionsTarget"  # default xmlns is HMT schema URL
@@ -80,19 +88,46 @@ def _full_name(elem) -> str:
     return " ".join(parts).strip()
 
 
-class UkOfsiScraper(BaseSanctionScraper):
+def _xpath(group_id: str, tag: str | None = None) -> str:
+    """Locator into ConList.xml: the group's row, optionally a field within it."""
+    base = f"xml:FinancialSanctionsTarget[GroupID={group_id}]"
+    return f"{base}/{tag}" if tag else base
+
+
+def _row_source(elem) -> str:
+    """The row's own XML as text, for excerpting.
+
+    Tags are deliberately kept: OFSI puts nothing in attributes but everything
+    in short child elements, and `<Name6>ABC Ltd</Name6>` is a verbatim slice of
+    the document that the verifier can re-find. Serialising per row instead of
+    holding the whole 50 MB tree keeps the streaming parse's memory profile.
+    """
+    try:
+        return etree.tostring(elem, encoding="unicode", with_tail=False)
+    except Exception:  # noqa: BLE001
+        return ""
+
+
+class UkOfsiScraper(AcquiringSanctionScraper):
     code = "uk_ofsi"
     source_code = "UK_OFSI"
+    transport = "direct"
+    fallback_transport = None
+    rps = 0.5
 
     async def fetch(self) -> AsyncIterator[SanctionEntry]:
-        async with HttpClient(rps=0.5) as http:
-            resp = await http.get(URL)
-            xml_bytes = resp.content
+        doc = await self.acquire(
+            AcquireRequest(url=URL, want_bytes=True, label="consolidated list XML")
+        )
+        if not doc.ok or not doc.body_bytes:
+            raise RuntimeError(
+                f"uk_ofsi: {URL} unreadable ({doc.fetch_status.value}: "
+                f"{doc.error_message}). Refusing to report an empty sanctions list."
+            )
+        xml_bytes = doc.body_bytes
 
         # Group rows by GroupID. Each entry below is the merged dict for one group.
         groups: dict[str, dict] = {}
-
-        import io
 
         for _event, elem in etree.iterparse(
             io.BytesIO(xml_bytes), events=("end",), tag=TARGET_TAG
@@ -133,15 +168,23 @@ class UkOfsiScraper(BaseSanctionScraper):
                         "regime": "",
                         "status": status,
                         "reasons": "",
+                        "sources": [],
                     },
                 )
+
+                # A group spans several rows. Keep the XML of only the rows that
+                # actually contributed a value we cite, so the excerpt haystack
+                # stays small without ever missing a cited fact.
+                contributed = False
 
                 # Pick the primary-name row if we encounter one; otherwise
                 # fall back to the first Name6 we saw.
                 if alias_type.startswith("primary name") and g["primary"] is None:
                     g["primary"] = name
+                    contributed = True
                 if g["primary"] is None and name not in g["names_seen"]:
                     g["primary"] = name
+                    contributed = True
 
                 if name not in g["names_seen"]:
                     g["names_seen"].add(name)
@@ -150,14 +193,20 @@ class UkOfsiScraper(BaseSanctionScraper):
 
                 if country and not g["country"]:
                     g["country"] = country
+                    contributed = True
                 if listed and (g["listed"] is None or listed < g["listed"]):
                     g["listed"] = listed
+                    contributed = True
                 if last_upd and (g["last_updated"] is None or last_upd > g["last_updated"]):
                     g["last_updated"] = last_upd
                 if regime and not g["regime"]:
                     g["regime"] = regime
                 if reasons and not g["reasons"]:
                     g["reasons"] = reasons[:2000]
+                    contributed = True
+
+                if contributed:
+                    g["sources"].append(_row_source(elem))
             finally:
                 # Free memory while streaming a 50+ MB document.
                 elem.clear()
@@ -181,10 +230,24 @@ class UkOfsiScraper(BaseSanctionScraper):
                 listed_date=g["listed"],
                 status=g["status"],
                 status_notes=g["reasons"] or None,
-                source_url=URL,
+                source_url=doc.citable_url,
                 raw={
                     "group_id": gid,
                     "regime": g["regime"],
                     "last_updated": g["last_updated"].isoformat() if g["last_updated"] else None,
                 },
+                evidence=EvidenceAttachment(
+                    doc=doc,
+                    locators={
+                        "entity_name": _xpath(gid, "Name6"),
+                        "country": _xpath(gid, "Country"),
+                        "listed_date": _xpath(gid, "DateListed"),
+                        "status": _xpath(gid, "GroupStatus"),
+                        "status_notes": _xpath(gid, "UKStatementOfReasons"),
+                    },
+                    default_locator=_xpath(gid),
+                    document_text="\n".join(g["sources"]),
+                    document_is_html=False,
+                    subject_table="sanctions_list_entries",
+                ),
             )

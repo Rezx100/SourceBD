@@ -3,7 +3,22 @@
 This file keeps routine agent sessions from scanning every inactive feature spec.
 
 ## Active / Recent Spec
-- COMPLETE (28 Jul 2026): REZ-30 — Supplier map enrichment pack (12 points): taller inline map
+- COMPLETE in the working tree (29 Jul 2026): Firecrawl acquisition layer with verified
+  per-field provenance, from the Cursor plan `firecrawl_acquisition_layer`. Acquisition split
+  out of the 27 scrapers into `etl/acquire/` (Firecrawl / Direct / Local adapters); parsing and
+  persistence unchanged, so Hard Rule 5 field fidelity stays in our own code. Every stored fact
+  now carries a URL, a locator and a verbatim excerpt (`etl/evidence/`, migration 0084), which
+  makes "the link still contains this fact" machine-checkable rather than assumed. Verification
+  is two-tier: Firecrawl `/v2/monitor` on the index pages each source declares, webhooking
+  `app/api/v1/webhooks/firecrawl`, plus a `verify-evidence` job for the long tail. Playwright is
+  retired everywhere except `brand_ms`. Admin surface: transport badges and evidence health on
+  `/admin/sources`, new `/admin/evidence` worklist, `verify_evidence` and `refresh_monitors`
+  registered in all three synced places. Python 309/309, `npm test` 159/159, typecheck and lint
+  clean apart from pre-existing warnings. **Not yet done: the new `Dockerfile` base image is
+  unbuilt (no local Docker), migration 0084 is unapplied in production, and no monitors are
+  registered.** See `context/current-state.md` → "Firecrawl Acquisition Layer + Verified
+  Provenance" for the decisions worth remembering.
+- Prior (28 Jul 2026): REZ-30 — Supplier map enrichment pack (12 points): taller inline map
   and fullscreen removal, inter-site haversine distances, pins differentiated by address kind +
   legend, on-map site switcher, curated-landmark context chips, optional nearby-SourceBD-suppliers
   layer, near-duplicate pin collision handling, geocode confidence cue, scale bar + attribution,
@@ -121,6 +136,19 @@ This file keeps routine agent sessions from scanning every inactive feature spec
 - Frontend visual baseline remains
   `context/feature-specs/spec-FE-SITEWIDE-design-conformance-pass.md`
   plus `context/frontend-design-spec.md`.
+
+## Queued Specs
+- `spec-barikoi-geocode-cache-key-leak.md` — `barikoi_geocode` writes its cache key
+  through the place lexicon but decides what is still pending with raw SQL that does
+  not, so every address the lexicon rewrites is re-geocoded and re-billed on every
+  run. Silent: `on conflict do nothing` swallows the duplicate and the run reports it
+  as resolved. Pre-existing, unrelated to Firecrawl, and costs Rupantor quota on a
+  recurring basis — quantify before scheduling.
+- `spec-brand-primark-global-sourcing-map.md` — retarget `brand_primark` from the
+  Modern Slavery Statement (narrative prose, parses to zero rows) at Primark's
+  Global Sourcing Map, which is the real factory-level list. Raised 29 Jul 2026 by
+  the transport parity sweep. Safe to defer: the source now fails loudly rather
+  than reporting an empty supplier list.
 
 ## Current Launch Work
 - Phase 7 public beta launch prep remains the current phase.

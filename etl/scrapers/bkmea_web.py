@@ -6,17 +6,23 @@ The site (https://member.bkmea.com/member-home) renders an HTML table:
 The detail page (later enrichment pass) gives factory address, contact, etc.
 For Phase 0 we capture the listing (~2k+ rows) and use the membership number
 as the natural source_ref.
+
+Transport: Firecrawl. ``only_main_content`` stays False (the directory table is
+outside ``<main>``). The browser headers below are still sent because BKMEA drops
+non-browser User-Agents outright; the Playwright fallback that used to exist for
+that reason is now redundant and has been removed.
 """
 from __future__ import annotations
 
 import re
 from typing import Any, AsyncIterator
+from urllib.parse import urlencode
 
 from bs4 import BeautifulSoup
 
-from etl.core.config import settings
-from etl.core.http import HttpClient
-from etl.core.scraper import BaseScraper, ScrapedRecord
+from etl.acquire import AcquiredDoc, AcquireRequest
+from etl.core.acquiring import AcquiringScraper
+from etl.core.scraper import EvidenceAttachment, ScrapedRecord
 
 BASE = "https://member.bkmea.com"
 LIST_URL = f"{BASE}/member-home"
@@ -38,33 +44,70 @@ _MEMNO_RE = re.compile(r"^\s*(\d+)\s*-\s*([A-Z]+)\s*/\s*(\d{4})\s*$")
 _DETAIL_ID_RE = re.compile(r"/member/details/(\d+)")
 
 
-class BkmeaScraper(BaseScraper):
+_FIELD_LOCATORS = {
+    "bkmea_reg_number": "table.table tbody tr td:nth-child(2)",
+    "bkmea_membership_no": "table.table tbody tr td:nth-child(2)",
+    "bkmea_member_type": "table.table tbody tr td:nth-child(4)",
+    "bkmea_category": "table.table tbody tr td:nth-child(5)",
+    "bkmea_detail_url": "table.table tbody tr td:last-child a[href]",
+}
+# Parsed out of the membership number by us, not printed as separate fields.
+_UNCITABLE_FIELDS = ("bkmea_detail_id", "bkmea_membership_year")
+
+
+class BkmeaScraper(AcquiringScraper):
     code = "bkmea_web"
     source_code = "BKMEA"
+    transport = "firecrawl"
+    fallback_transport = "direct"
+    monitor_urls = (LIST_URL,)
+    request_headers = _BROWSER_HEADERS
+    rps = 0.5
+
+    def _list_url(self, page: int) -> str:
+        return f"{LIST_URL}?{urlencode({'page': page})}"
 
     async def fetch(self) -> AsyncIterator[ScrapedRecord]:
-        async with HttpClient(rps=0.5, headers=_BROWSER_HEADERS) as http:
-            seen_keys: set[str] = set()
-            page = 1
-            empty_streak = 0
-            while empty_streak < 2 and page <= 10:
-                try:
-                    resp = await http.get(LIST_URL, params={"page": page})
-                except Exception as e:  # noqa: BLE001
-                    self.log.warning("bkmea.fetch_failed", page=page, error=str(e))
-                    break
-                rows = self._parse_table(resp.text)
-                fresh = [r for r in rows if r["key"] not in seen_keys]
-                if not fresh:
-                    empty_streak += 1
-                    self.log.info("bkmea.empty_page", page=page, raw_rows=len(rows))
-                else:
-                    empty_streak = 0
-                    self.log.info("bkmea.page", page=page, rows=len(rows), fresh=len(fresh))
-                    for row in fresh:
-                        seen_keys.add(row["key"])
-                        yield self._to_record(row)
-                page += 1
+        seen_keys: set[str] = set()
+        page = 1
+        empty_streak = 0
+        while empty_streak < 2 and page <= 10:
+            doc = await self.acquire(
+                AcquireRequest(
+                    url=self._list_url(page),
+                    only_main_content=False,
+                    label=f"member-home p{page}",
+                )
+            )
+            if not doc.ok:
+                self.log.warning(
+                    "bkmea.fetch_failed",
+                    page=page,
+                    status=doc.fetch_status.value,
+                    error=doc.error_message,
+                )
+                if doc.transient_failure:
+                    raise RuntimeError(
+                        f"bkmea_web: list page {page} unreadable "
+                        f"({doc.fetch_status.value}). Aborting rather than "
+                        "reporting a partial directory as complete."
+                    )
+                break
+            rows = self._parse_table(doc.text())
+            fresh = [r for r in rows if r["key"] not in seen_keys]
+            if not fresh:
+                empty_streak += 1
+                self.log.info("bkmea.empty_page", page=page, raw_rows=len(rows))
+            else:
+                empty_streak = 0
+                self.log.info(
+                    "bkmea.page", page=page, rows=len(rows), fresh=len(fresh),
+                    transport=self.active_transport,
+                )
+                for row in fresh:
+                    seen_keys.add(row["key"])
+                    yield self._to_record(row, doc)
+            page += 1
 
     # ------------------------------------------------------------------
     def _parse_table(self, html: str) -> list[dict[str, Any]]:
@@ -80,12 +123,17 @@ class BkmeaScraper(BaseScraper):
             category = tds[4].get_text(strip=True) if len(tds) > 4 else None
             owner = tds[5].get_text(" ", strip=True) if len(tds) > 5 else None
             link_el = tds[-1].find("a", href=True) if len(tds) > 6 else None
-            detail_url = link_el["href"].strip() if link_el else None
-            detail_id = None
-            if detail_url:
-                m = _DETAIL_ID_RE.search(detail_url)
-                if m:
-                    detail_id = m.group(1)
+            href = link_el["href"].strip() if link_el else None
+            m = _DETAIL_ID_RE.search(href) if href else None
+            detail_id = m.group(1) if m else None
+            # Rebuilt from the id rather than stored as found. A member with no
+            # detail page carries `<a href="">`, which Firecrawl returns already
+            # resolved to the listing page, so keeping the href would hand every
+            # such member a "detail link" pointing back at the directory. Deriving
+            # it also settles relative-against-absolute hrefs, which the two
+            # transports render differently, on a single spelling. epb_web and
+            # bgapmea_web build their detail URLs from the id for the same reason.
+            detail_url = DETAIL_URL.format(id=detail_id) if detail_id else None
 
             mn = _MEMNO_RE.match(mem_no)
             mem_int = mn.group(1) if mn else None
@@ -112,7 +160,7 @@ class BkmeaScraper(BaseScraper):
             })
         return out
 
-    def _to_record(self, c: dict[str, Any]) -> ScrapedRecord:
+    def _to_record(self, c: dict[str, Any], doc: AcquiredDoc | None = None) -> ScrapedRecord:
         # Use membership integer as source_ref — stable across years.
         ref = c["detail_id"] or c["membership_int"] or c["membership_no"]
         return ScrapedRecord(
@@ -129,20 +177,15 @@ class BkmeaScraper(BaseScraper):
                 "bkmea_detail_id": c["detail_id"],
                 "bkmea_membership_year": c["membership_year"],
             },
+            evidence=(
+                EvidenceAttachment(
+                    doc=doc,
+                    locators=_FIELD_LOCATORS,
+                    default_locator="member directory table row",
+                    skip_keys=_UNCITABLE_FIELDS,
+                )
+                if doc is not None and doc.ok
+                else None
+            ),
         )
-
-    # ------------------------------------------------------------------
-    # Optional Playwright fallback retained for future detail-page enrichment.
-    async def fetch_playwright(self) -> list[dict[str, Any]]:
-        from playwright.async_api import async_playwright  # lazy
-
-        captured: list[dict[str, Any]] = []
-        async with async_playwright() as p:
-            browser = await p.chromium.launch(headless=settings.etl_playwright_headless)
-            ctx = await browser.new_context(user_agent=settings.etl_user_agent)
-            page = await ctx.new_page()
-            await page.goto(LIST_URL, wait_until="networkidle", timeout=90_000)
-            html = await page.content()
-            await browser.close()
-        return self._parse_table(html)
 

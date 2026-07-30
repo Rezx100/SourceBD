@@ -24,9 +24,11 @@ from typing import AsyncIterator
 
 from bs4 import BeautifulSoup
 
-from etl.core.http import HttpClient
+from etl.acquire import AcquireRequest
+from etl.core.acquiring import AcquiringSanctionScraper
 from etl.core.normalize import normalize_company_name
-from etl.core.sanctions import BaseSanctionScraper, SanctionEntry
+from etl.core.sanctions import SanctionEntry
+from etl.core.scraper import EvidenceAttachment
 
 URL = "https://www.dhs.gov/uflpa-entity-list"
 
@@ -116,14 +118,28 @@ def _section_for(table) -> str:
     return "x"
 
 
-class UflpaScraper(BaseSanctionScraper):
+class UflpaScraper(AcquiringSanctionScraper):
     code = "uflpa"
     source_code = "UFLPA"
+    transport = "firecrawl"
+    fallback_transport = "direct"
+    rps = 1.0
+    monitor_urls = (URL,)
 
     async def fetch(self) -> AsyncIterator[SanctionEntry]:
-        async with HttpClient(rps=1.0) as http:
-            resp = await http.get(URL)
-        soup = BeautifulSoup(resp.text, "lxml")
+        doc = await self.acquire(
+            AcquireRequest(url=URL, only_main_content=False, label="UFLPA entity list")
+        )
+        if not doc.ok:
+            # This list drives supplier sanctions screening. Silently yielding
+            # nothing would let a later pass conclude "no entities listed".
+            raise RuntimeError(
+                f"uflpa: {URL} unreadable ({doc.fetch_status.value}: "
+                f"{doc.error_message}). Refusing to report an empty entity list."
+            )
+
+        soup = BeautifulSoup(doc.text(), "lxml")
+        doc_text = doc.text()
 
         seen_refs: set[str] = set()
         for table in soup.find_all("table"):
@@ -165,11 +181,25 @@ class UflpaScraper(BaseSanctionScraper):
                     country="China",
                     listed_date=listed,
                     status="Active",
-                    source_url=URL,
+                    source_url=doc.citable_url,
                     raw={
                         "section": section,
                         "section_index": counter,
                         "raw_name": raw_name,
                         "raw_date": date_str,
                     },
+                    evidence=EvidenceAttachment(
+                        doc=doc,
+                        locators={
+                            "entity_name": f"section ({section}) table, row {counter}, col 1",
+                            "listed_date": f"section ({section}) table, row {counter}, col 2",
+                        },
+                        default_locator=f"UFLPA Entity List, section ({section})",
+                        document_text=doc_text,
+                        subject_table="sanctions_list_entries",
+                        # Both are constants we assign for every row on this
+                        # list, not per-row text DHS prints. Citing them would
+                        # attach an unverifiable excerpt to every entry.
+                        skip_keys=("country", "status"),
+                    ),
                 )

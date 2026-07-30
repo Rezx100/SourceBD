@@ -3,7 +3,8 @@ export type ScraperGroup =
   | "rsc"
   | "certifications"
   | "sanctions"
-  | "brands";
+  | "brands"
+  | "maintenance";
 
 export type ScraperRisk = "low" | "medium" | "high";
 
@@ -24,6 +25,7 @@ export const SCRAPER_GROUP_LABELS: Record<ScraperGroup, string> = {
   certifications: "Certifications",
   sanctions: "Sanctions checks",
   brands: "Brand disclosures",
+  maintenance: "Evidence maintenance",
 };
 
 export const SCRAPER_CATALOG = [
@@ -247,16 +249,10 @@ export const SCRAPER_CATALOG = [
     updates: "H&M published supplier disclosure matches.",
     operatorNote: "Brand lists are supporting evidence, not endorsement.",
   },
-  {
-    code: "brand_inditex",
-    label: "Inditex disclosure",
-    group: "brands",
-    sourceTier: "Tier 4",
-    risk: "low",
-    suggestedIntervalMinutes: 43200,
-    updates: "Inditex published supplier disclosure matches.",
-    operatorNote: "Brand lists are supporting evidence, not endorsement.",
-  },
+  // brand_inditex retired 29 Jul 2026: Inditex publishes no factory-level
+  // supplier list, only aggregate per-country counts, and shares the real list
+  // privately with IndustriALL Global Union. The page we scraped now redirects to
+  // their homepage and answers 200. Do not re-add without a public list.
   {
     code: "brand_primark",
     label: "Primark disclosure",
@@ -297,9 +293,100 @@ export const SCRAPER_CATALOG = [
     updates: "Next published supplier disclosure matches.",
     operatorNote: "Brand lists are supporting evidence, not endorsement.",
   },
+  // Maintenance jobs. They ingest nothing, but they run through the same queue,
+  // timer UI and run history so an operator has one place to look — and so
+  // "verification has not run for three weeks" is as visible as a failed scrape.
+  {
+    code: "verify_evidence",
+    label: "Verify citations",
+    group: "maintenance",
+    sourceTier: "—",
+    risk: "low",
+    suggestedIntervalMinutes: 1440,
+    updates:
+      "Re-checks recorded citations: is the link still live, and does the page still state the cited value.",
+    operatorNote:
+      "Run daily. A timeout or block never retires a citation, so a red count here means real drift, not a flaky source.",
+  },
+  {
+    code: "refresh_monitors",
+    label: "Refresh monitors",
+    group: "maintenance",
+    sourceTier: "—",
+    risk: "low",
+    suggestedIntervalMinutes: 10080,
+    updates:
+      "Reconciles Firecrawl monitors with the index pages each source declares.",
+    operatorNote:
+      "Idempotent. Run after adding a source or changing a registry entry point.",
+  },
 ] as const satisfies readonly ScraperCatalogItem[];
 
 export type ScraperCode = (typeof SCRAPER_CATALOG)[number]["code"];
+
+/**
+ * How each source acquires its bytes. Mirrors the `transport` attribute on the
+ * Python scraper classes.
+ *
+ * Surfaced in the admin console because the transport determines what a failure
+ * means and what an operator can do about it: a Firecrawl source failing may be
+ * a vendor outage or an exhausted credit balance, a direct source failing is the
+ * publisher blocking us, and a file source failing means nobody has staged a
+ * fresh extract. One "failed" badge for all three would hide that.
+ *
+ * Typed as an exhaustive record, so adding a source without declaring its
+ * transport is a compile error rather than a blank badge.
+ */
+export type ScraperTransport = "firecrawl" | "direct" | "file" | "job";
+
+export const SCRAPER_TRANSPORT: Record<ScraperCode, ScraperTransport> = {
+  bgmea_pdf: "file",
+  btma_spinning: "file",
+  bgmea_web: "firecrawl",
+  bkmea_web: "firecrawl",
+  bkmea_detail: "firecrawl",
+  bgapmea_web: "firecrawl",
+  rsc_reports: "firecrawl",
+  rsc_updates: "firecrawl",
+  sa8000: "firecrawl",
+  uflpa: "firecrawl",
+  cbp_wro: "firecrawl",
+  ilab_tvpra: "firecrawl",
+  brand_hm: "firecrawl",
+  brand_primark: "firecrawl",
+  brand_asos: "firecrawl",
+  brand_next: "firecrawl",
+  // M&S is the one brand that cannot move: reading the OSH embed token needs a
+  // real browser observing real network traffic, so it keeps Playwright.
+  brand_ms: "direct",
+  epb_web: "direct",
+  rsc: "direct",
+  rsc_documents: "direct",
+  wrap: "direct",
+  oeko_tex: "direct",
+  gots: "direct",
+  ofac_sdn: "direct",
+  uk_ofsi: "direct",
+  eu_sanctions: "direct",
+  verify_evidence: "job",
+  refresh_monitors: "job",
+};
+
+export const SCRAPER_TRANSPORT_LABELS: Record<ScraperTransport, string> = {
+  firecrawl: "Firecrawl",
+  direct: "Direct",
+  file: "File",
+  job: "Job",
+};
+
+export function scraperTransport(code: string): ScraperTransport | null {
+  return (SCRAPER_TRANSPORT as Record<string, ScraperTransport>)[code] ?? null;
+}
+
+/** Maintenance jobs, which have no source and no records to report. */
+export function isMaintenanceCode(code: string): boolean {
+  return SCRAPER_BY_CODE.get(code)?.group === "maintenance";
+}
 
 export const SCRAPER_CODES = SCRAPER_CATALOG.map((scraper) => scraper.code);
 

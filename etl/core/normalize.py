@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import re
+from urllib.parse import quote, urlparse, urlsplit, urlunsplit
 
 from slugify import slugify
 from unidecode import unidecode
@@ -117,6 +118,66 @@ def make_slug(name: str) -> str:
     """Slug derived from the normalized form so 'KNIT RADIX LTD' and
     'Knit Radix Limited' produce the same slug."""
     return slugify(normalize_company_name(name))
+
+
+def _host_of(url: str) -> str:
+    host = (urlparse(url).hostname or "").lower()
+    return host[4:] if host.startswith("www.") else host
+
+
+def external_website(href: str | None, *, page_url: str | None) -> str | None:
+    """A company's own website, or None when the link points back at the source.
+
+    Registry pages routinely render a blank website cell as `<a href="">`. Read
+    directly that yields an empty string and correctly becomes None, but
+    Firecrawl resolves hrefs against the page URL before returning the HTML, so
+    the same empty anchor arrives as the *member's own profile URL* — which then
+    passes a naive `startswith("https://")` check and gets stored as the
+    company's website.
+
+    A registry's domain is never a member's website, so same-host is the rule
+    that catches this without depending on how the source spelled the blank.
+    """
+    if not href:
+        return None
+    candidate = href.strip()
+    if not candidate or not candidate.lower().startswith(("http://", "https://")):
+        return None
+    if page_url:
+        host = _host_of(candidate)
+        if not host or host == _host_of(page_url):
+            return None
+    return candidate
+
+
+# `%` is listed safe so an already-encoded URL is not encoded a second time,
+# turning a working `%20` into a broken `%2520`.
+_URL_SAFE = "/%:@&=+$,;~*!()'?#[]"
+
+
+def canonical_url(url: str) -> str:
+    """One spelling per resource, whichever transport reported the link.
+
+    Publishers do put spaces in filenames, and the transports disagree on how to
+    render them: read directly an href arrives with the literal space intact,
+    while Firecrawl returns it percent-encoded. Both fetch the same bytes, so the
+    difference is invisible in the data and shows up only in the URL we store as
+    the citation — meaning one document accumulates two provenance identities and
+    a transport switch silently rewrites the source URL on existing rows.
+
+    Percent-encoding is the canonical direction because a literal space is not
+    valid in a URI, so encoding converges the two spellings on the legal one.
+    """
+    parts = urlsplit(url.strip())
+    return urlunsplit(
+        (
+            parts.scheme,
+            parts.netloc,
+            quote(parts.path, safe=_URL_SAFE),
+            quote(parts.query, safe=_URL_SAFE),
+            parts.fragment,
+        )
+    )
 
 
 _PHONE_SPLIT_RE = re.compile(r"[,/;|]+|\s{2,}")

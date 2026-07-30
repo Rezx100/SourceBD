@@ -7,6 +7,9 @@ ScrapedRecords with factory address, owner name/email/phone, employee
 counts, machine counts, production capacity.
 
 The upsert pipeline COALESCES non-null values, so re-running is safe.
+
+Transport: Firecrawl, batched — these are thousands of independent detail pages
+with one option set, which is exactly what ``/v2/batch/scrape`` is for.
 """
 from __future__ import annotations
 
@@ -15,9 +18,10 @@ from typing import Any, AsyncIterator, Iterable
 
 from bs4 import BeautifulSoup, Tag
 
-from etl.core.db import db, get_source_id
-from etl.core.http import HttpClient
-from etl.core.scraper import BaseScraper, ScrapedRecord
+from etl.acquire import AcquiredDoc, AcquireRequest
+from etl.core.acquiring import AcquiringScraper
+from etl.core.db import db
+from etl.core.scraper import EvidenceAttachment, ScrapedRecord
 
 BASE = "https://member.bkmea.com"
 DETAIL_URL = f"{BASE}/member/details/{{id}}"
@@ -39,30 +43,97 @@ _DISTRICT_HINTS = (
 )
 
 
-class BkmeaDetailScraper(BaseScraper):
+_SECTION_LOCATORS = {
+    "bkmea_reg_number": "div.tbrow table.table (BKMEA Membership No.)",
+    "bkmea_membership_no": "div.tbrow table.table (BKMEA Membership No.)",
+    "bkmea_membership_category": "div.tbrow table.table (Membership Category)",
+    "bkmea_factory_address": "div.tbrow table.table (Factory Adress)",
+    "bkmea_mailing_address": "div.tbrow table.table (Mailing Address)",
+    "bkmea_owner_name": "div.tbrow table.table (Owner Details / Owner Name)",
+    "bkmea_owner_email": "div.tbrow table.table (Owner Details / Email Address)",
+    "bkmea_owner_mobile": "div.tbrow table.table (Owner Details / Mobile No.)",
+    "bkmea_rep_name": "div.tbrow table.table (Representative Details / Name)",
+    "bkmea_rep_email": "div.tbrow table.table (Representative Details / Email Address)",
+    "bkmea_rep_mobile": "div.tbrow table.table (Representative Details / Mobile No.)",
+    "bkmea_employees_male": "div.tbrow table.table (Number of Employees / Male)",
+    "bkmea_employees_female": "div.tbrow table.table (Number of Employees / Female)",
+    "bkmea_employees_others": "div.tbrow table.table (Number of Employees / Others)",
+    "bkmea_employees_total": "div.tbrow table.table (Number of Employees / Total)",
+    "bkmea_machines_sewing": "div.tbrow table.table (Number of Machine / SEWING)",
+    "bkmea_machines_knitting": "div.tbrow table.table (Number of Machine / Knitting)",
+    "bkmea_machines_dyeing": "div.tbrow table.table (Number of Machine / Dyeing)",
+    "bkmea_production_capacity": "div.tbrow table.table (Production Capacity)",
+    "bkmea_products": "div.tbrow table.table (Products)",
+}
+# `bkmea_raw_kv` is the whole scrape dumped for debugging; `detail_id`/`detail_url`
+# are our own plumbing. None of them are claims about the supplier.
+_UNCITABLE_FIELDS = ("bkmea_raw_kv", "bkmea_detail_id", "bkmea_detail_url")
+
+# How many detail pages to submit per Firecrawl batch job.
+_BATCH_SIZE = 50
+
+
+class BkmeaDetailScraper(AcquiringScraper):
     code = "bkmea_detail"
     source_code = "BKMEA"
+    transport = "firecrawl"
+    fallback_transport = "direct"
+    # Detail pages are per-supplier and far too numerous to monitor; the list
+    # page is monitored by `bkmea_web`, and a restructure there is what would
+    # break these too.
+    monitor_urls = ()
+    request_headers = _BROWSER_HEADERS
+    rps = 0.5
 
     async def fetch(self) -> AsyncIterator[ScrapedRecord]:
         targets = list(self._load_targets())
-        self.log.info("bkmea_detail.targets", count=len(targets))
-        async with HttpClient(rps=0.5, headers=_BROWSER_HEADERS) as http:
-            for idx, (detail_id, ref, name) in enumerate(targets, 1):
-                url = DETAIL_URL.format(id=detail_id)
-                try:
-                    resp = await http.get(url)
-                except Exception as e:  # noqa: BLE001
-                    self.log.warning("bkmea_detail.fetch_failed",
-                                     detail_id=detail_id, ref=ref, error=str(e))
+        self.log.info(
+            "bkmea_detail.targets", count=len(targets), transport=self.active_transport
+        )
+        by_url = {
+            DETAIL_URL.format(id=detail_id): (detail_id, ref, name)
+            for detail_id, ref, name in targets
+        }
+        done = 0
+
+        for start in range(0, len(targets), _BATCH_SIZE):
+            chunk = targets[start : start + _BATCH_SIZE]
+            requests = [
+                AcquireRequest(
+                    url=DETAIL_URL.format(id=detail_id),
+                    only_main_content=False,
+                    label=f"member {detail_id}",
+                )
+                for detail_id, _ref, _name in chunk
+            ]
+            async for doc in self.acquire_many(requests):
+                done += 1
+                target = by_url.get(doc.url)
+                if target is None:
                     continue
-                rec = self._parse_detail(resp.text, ref=ref, fallback_name=name,
-                                         detail_id=detail_id, url=url)
+                detail_id, ref, name = target
+                if not doc.ok:
+                    self.log.warning(
+                        "bkmea_detail.fetch_failed",
+                        detail_id=detail_id,
+                        ref=ref,
+                        status=doc.fetch_status.value,
+                        error=doc.error_message,
+                    )
+                    continue
+                rec = self._parse_detail(
+                    doc.text(), ref=ref, fallback_name=name,
+                    detail_id=detail_id, url=doc.citable_url, doc=doc,
+                )
                 if rec is None:
-                    self.log.warning("bkmea_detail.parse_empty",
-                                     detail_id=detail_id, ref=ref)
+                    self.log.warning(
+                        "bkmea_detail.parse_empty", detail_id=detail_id, ref=ref
+                    )
                     continue
-                if idx % 25 == 0:
-                    self.log.info("bkmea_detail.progress", done=idx, total=len(targets))
+                if done % 25 == 0:
+                    self.log.info(
+                        "bkmea_detail.progress", done=done, total=len(targets)
+                    )
                 yield rec
 
     # ------------------------------------------------------------------
@@ -94,7 +165,8 @@ class BkmeaDetailScraper(BaseScraper):
 
     # ------------------------------------------------------------------
     def _parse_detail(self, html: str, *, ref: str, fallback_name: str,
-                      detail_id: str, url: str) -> ScrapedRecord | None:
+                      detail_id: str, url: str,
+                      doc: AcquiredDoc | None = None) -> ScrapedRecord | None:
         soup = BeautifulSoup(html, "lxml")
         kv = self._extract_kv(soup)
         if not kv:
@@ -150,6 +222,16 @@ class BkmeaDetailScraper(BaseScraper):
             address_raw=address,
             district=district,
             payload=payload,
+            evidence=(
+                EvidenceAttachment(
+                    doc=doc,
+                    locators=_SECTION_LOCATORS,
+                    default_locator="member detail table",
+                    skip_keys=_UNCITABLE_FIELDS,
+                )
+                if doc is not None and doc.ok
+                else None
+            ),
         )
 
     # ------------------------------------------------------------------

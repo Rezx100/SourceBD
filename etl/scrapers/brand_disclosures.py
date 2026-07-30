@@ -14,6 +14,17 @@ Per-brand pipeline (shared `BrandDisclosureBase`):
   6. Custom `run()`: after each upsert, if the supplier still has no active
      Tier 1-3 source_record, enqueue one `brand_disclosure_match_review` row
      into `verification_queue` (idempotent on open rows for that supplier).
+
+Transport: hybrid. Landing pages go through Firecrawl, which renders JS and
+proxies past the Cloudflare interstitials these corporate sites use — that is
+what the local Playwright render fallback existed to do, so it is gone. The
+disclosure file itself is downloaded directly, because openpyxl and pdfplumber
+need the exact bytes, with a Playwright download retained only as a last resort
+for CDNs that refuse a plain client.
+
+`brand_ms` is the exception and still drives Playwright end to end: it has to
+capture a per-contributor embed token out of live iframe request headers, which
+no scrape API can do.
 """
 from __future__ import annotations
 
@@ -24,17 +35,19 @@ import json
 import re
 from dataclasses import dataclass
 from datetime import date
-from typing import Any, AsyncIterator, Iterable
+from typing import Any, AsyncIterator, Iterable, Sized
+from urllib.parse import unquote, urlsplit
 
 import pdfplumber
 from bs4 import BeautifulSoup
 from openpyxl import load_workbook
 
+from etl.acquire import AcquiredDoc, AcquireRequest
+from etl.core.acquiring import AcquiringScraper
 from etl.core.bunny import upload as bunny_upload, exists as bunny_exists
 from etl.core.db import db
-from etl.core.http import HttpClient
-from etl.core.normalize import normalize_company_name
-from etl.core.scraper import BaseScraper, ScrapedRecord
+from etl.core.normalize import canonical_url, normalize_company_name
+from etl.core.scraper import EvidenceAttachment, ScrapedRecord
 
 _BROWSER_HEADERS = {
     "User-Agent": (
@@ -98,7 +111,7 @@ def _collect_candidates(
         haystack = f"{label} {href}"
         if link_regex.search(haystack):
             ext = _ext_from_url(href)
-            out.append((_absolute(base_url, href), ext))
+            out.append((canonical_url(_absolute(base_url, href)), ext))
     return out
 
 
@@ -108,51 +121,6 @@ _CT_EXT = {
     "application/vnd.ms-excel": "xls",
     "text/csv":         "csv",
 }
-
-
-async def _infer_ext(url: str, http: HttpClient) -> str | None:
-    """HEAD-probe `url`; map Content-Type to file extension."""
-    try:
-        resp = await http._client.head(url, follow_redirects=True)
-        ct = (resp.headers.get("content-type") or "").split(";", 1)[0].strip().lower()
-        if ct in _CT_EXT:
-            return _CT_EXT[ct]
-        cd = resp.headers.get("content-disposition") or ""
-        m = re.search(r"filename\*?=[\"']?([^;\"']+)", cd)
-        if m:
-            return _ext_from_url(m.group(1))
-    except Exception:  # noqa: BLE001
-        return None
-    return None
-
-
-async def _render_playwright(url: str, *, wait_ms: int = 4000) -> str:
-    """Render `url` with headless Chromium and return final HTML.
-
-    Bypasses Cloudflare bot pages and JS-only SPAs. Requires the
-    playwright base Docker image (already used in production)."""
-    from playwright.async_api import async_playwright
-
-    async with async_playwright() as p:
-        browser = await p.chromium.launch(args=["--no-sandbox"])
-        ctx = await browser.new_context(
-            user_agent=_BROWSER_HEADERS["User-Agent"],
-            locale="en-GB",
-            viewport={"width": 1366, "height": 900},
-        )
-        page = await ctx.new_page()
-        try:
-            await page.goto(url, wait_until="domcontentloaded", timeout=45000)
-            try:
-                await page.wait_for_load_state("networkidle", timeout=15000)
-            except Exception:  # noqa: BLE001
-                pass
-            await page.wait_for_timeout(wait_ms)
-            html = await page.content()
-        finally:
-            await ctx.close()
-            await browser.close()
-        return html
 
 
 async def _download_playwright(url: str) -> bytes:
@@ -320,45 +288,104 @@ def parse_bytes(ext: str, content: bytes) -> list[dict[str, Any]]:
 # --------------------------------------------------------------------------- #
 
 
-class BrandDisclosureBase(BaseScraper, abc.ABC):
+# Which payload keys the disclosure file actually asserts. `brand`,
+# `source_url`, `mirror_url` and `disclosure_date` are our own bookkeeping.
+_DISCLOSURE_UNCITABLE = ("brand", "disclosure_date", "city")
+
+
+class BrandDisclosureBase(AcquiringScraper, abc.ABC):
     brand_code: str = ""                # e.g. 'BRAND_HM' (also the source_code)
     landing_url: str = ""
+    transport = "firecrawl"
+    fallback_transport = "direct"
+
+    @classmethod
+    def monitor_targets(cls) -> tuple[str, ...]:
+        """Watch the landing page, which is where the file link is published.
+
+        Brands replace their disclosure file on their own schedule and rarely
+        announce it, so the landing page changing is the earliest signal that a
+        new supplier list exists — and the only signal that the link we cite has
+        moved. Derived from `landing_url` rather than repeated per brand so the
+        two cannot disagree.
+        """
+        return (cls.landing_url,) if cls.landing_url else ()
+    request_headers = _BROWSER_HEADERS
+    rps = 0.5
     # Regex used to filter list-page anchors when discovering the latest file.
     file_link_regex: re.Pattern[str] = re.compile(
         r"(supplier|factory|production).*\.(xlsx|xls|pdf|csv)",
         re.IGNORECASE,
     )
 
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self, transport: str | None = None) -> None:
+        super().__init__(transport=transport)
         if not self.brand_code:
             raise RuntimeError(f"{type(self).__name__}.brand_code is empty")
         self.source_code = self.brand_code
 
-    async def discover(self, http: HttpClient) -> DiscoveredFile:
-        """Scrape the landing page for the latest disclosure file.
+    async def landing_page(self) -> AcquiredDoc:
+        """Acquire the brand's landing page.
 
-        Tries plain HTTP first; on 4xx/5xx or empty candidates falls back to
-        Playwright Chromium render (handles JS-only SPAs + Cloudflare)."""
-        html: str | None = None
-        try:
-            resp = await http.get(self.landing_url)
-            html = resp.text
-        except Exception as exc:  # noqa: BLE001
-            self.log.info("brand.http_failed", brand=self.brand_code, error=str(exc))
-        candidates = _collect_candidates(html or "", self.landing_url, self.file_link_regex)
+        Firecrawl renders JS and proxies past bot interstitials, so there is one
+        path here rather than the old httpx-then-Playwright ladder.
+        """
+        doc = await self.acquire(
+            AcquireRequest(
+                url=self.landing_url,
+                only_main_content=False,
+                # These pages hydrate their download links client-side.
+                wait_for_ms=3000,
+                label=f"{self.brand_code} landing page",
+            )
+        )
+        if not doc.ok:
+            self.log.info(
+                "brand.landing_failed",
+                brand=self.brand_code,
+                status=doc.fetch_status.value,
+                error=doc.error_message,
+            )
+        return doc
+
+    async def _infer_ext(self, url: str) -> str | None:
+        """HEAD-probe `url`; map Content-Type to a file extension."""
+        probe = await self.acquire_direct(
+            AcquireRequest(url=url, method="HEAD", label="ext probe")
+        )
+        if not probe.ok:
+            return None
+        ct = (probe.content_type or "").split(";", 1)[0].strip().lower()
+        if ct in _CT_EXT:
+            return _CT_EXT[ct]
+        cd = str(probe.meta.get("content_disposition") or "")
+        m = re.search(r"filename\*?=[\"']?([^;\"']+)", cd)
+        if m:
+            return _ext_from_url(m.group(1))
+        return None
+
+    async def discover(self) -> tuple[DiscoveredFile, AcquiredDoc]:
+        """Scrape the landing page for the latest disclosure file."""
+        doc = await self.landing_page()
+        candidates = _collect_candidates(doc.text(), self.landing_url, self.file_link_regex)
         if not candidates:
-            self.log.info("brand.fallback_playwright", brand=self.brand_code, url=self.landing_url)
-            html = await _render_playwright(self.landing_url)
-            candidates = _collect_candidates(html, self.landing_url, self.file_link_regex)
-        if not candidates:
+            # Name the soft 404 explicitly. Inditex answers 200 for this page and
+            # redirects to its homepage, so "no link found" reads as a parser bug
+            # when the real cause is that the page no longer exists.
+            diverted = (
+                f" — the request was redirected to {doc.citable_url}, which looks "
+                "like the site homepage, so this page has probably been retired"
+                if doc.landed_on_site_root
+                else ""
+            )
             raise RuntimeError(
-                f"{self.brand_code}: no disclosure file link found on {self.landing_url}"
+                f"{self.brand_code}: no disclosure file link found on {self.landing_url} "
+                f"(fetch {doc.fetch_status.value} via {doc.adapter.value}){diverted}"
             )
         # Resolve extension-less candidates via HEAD probe.
         for i, (url, ext) in enumerate(candidates):
             if ext is None:
-                ext = await _infer_ext(url, http)
+                ext = await self._infer_ext(url)
                 if ext:
                     candidates[i] = (url, ext)
         candidates = [(u, e) for (u, e) in candidates if e]
@@ -367,65 +394,126 @@ class BrandDisclosureBase(BaseScraper, abc.ABC):
                 f"{self.brand_code}: discovered link(s) but Content-Type unknown"
             )
         url, ext = candidates[0]
-        return DiscoveredFile(url=url, ext=ext, disclosure_date=date.today())
+        return DiscoveredFile(url=url, ext=ext, disclosure_date=date.today()), doc
+
+    async def download(self, url: str) -> tuple[bytes, str | None, AcquiredDoc | None]:
+        """Fetch the disclosure file's exact bytes.
+
+        Direct first: the parsers need the original workbook/PDF, not a rendered
+        view of it. Playwright is kept as a last resort for CDNs that reject a
+        plain client, and in that case there is no `AcquiredDoc` to cite from.
+        """
+        doc = await self.acquire_direct(
+            AcquireRequest(url=url, want_bytes=True, label=f"{self.brand_code} file")
+        )
+        if doc.ok and doc.body_bytes:
+            return doc.body_bytes, doc.content_type, doc
+        self.log.info(
+            "brand.file_http_failed",
+            brand=self.brand_code,
+            status=doc.fetch_status.value,
+            error=doc.error_message,
+        )
+        return await _download_playwright(url), None, None
+
+    def _require_rows(self, rows: Sized, source_url: str) -> None:
+        """Refuse a disclosure that parsed to no Bangladesh rows.
+
+        A brand that has published a Bangladesh supplier list for years does not
+        abruptly stop having Bangladesh factories. Zero rows means the link moved,
+        the format changed, or we are reading the wrong document — Primark's
+        Modern Slavery Statement is narrative prose, and parsing it for a factory
+        list yields exactly zero rows with no error.
+
+        Yielding nothing instead of raising is the harmful option: the run reports
+        success, the existing suppliers quietly stop being refreshed, and nothing
+        anywhere says the source went stale.
+        """
+        if len(rows) == 0:
+            raise RuntimeError(
+                f"{self.brand_code}: parsed 0 Bangladesh rows from {source_url}. "
+                "Refusing to report an empty supplier list — the document, its "
+                "format, or the link has probably changed."
+            )
+
+    def _evidence_for(
+        self, file_doc: AcquiredDoc | None, row: dict[str, Any], found: DiscoveredFile
+    ) -> EvidenceAttachment | None:
+        """Cite the disclosure file, with the row's own cells as the excerpt.
+
+        The excerpt is built from the parsed row rather than the file body: the
+        body is a binary workbook or PDF, so searching it for "1,240" would fail
+        and leave every claim unverifiable.
+        """
+        if file_doc is None or not file_doc.ok:
+            return None
+        row_text = "\t".join(
+            str(v) for v in row.values() if v is not None and str(v).strip()
+        )
+        return EvidenceAttachment(
+            doc=file_doc,
+            default_locator=(
+                f"{self.brand_code} disclosure "
+                f"({found.disclosure_date.isoformat()}, .{found.ext}), Bangladesh rows"
+            ),
+            document_text=row_text,
+            skip_keys=_DISCLOSURE_UNCITABLE,
+        )
 
     async def fetch(self) -> AsyncIterator[ScrapedRecord]:
-        async with HttpClient(rps=0.5, headers=_BROWSER_HEADERS) as http:
-            found = await self.discover(http)
-            self.log.info(
-                "brand.discovered", brand=self.brand_code, url=found.url,
-                ext=found.ext, date=found.disclosure_date.isoformat(),
+        found, _landing = await self.discover()
+        self.log.info(
+            "brand.discovered", brand=self.brand_code, url=found.url,
+            ext=found.ext, date=found.disclosure_date.isoformat(),
+            transport=self.active_transport,
+        )
+        mirror_path = _mirror_path(self.brand_code, found.disclosure_date, found.ext)
+        if await bunny_exists(mirror_path):
+            self.log.info("brand.mirror_exists", path=mirror_path)
+            # Still need bytes to (re-)parse — download once.
+        content, content_type, file_doc = await self.download(found.url)
+        mirror_url = await bunny_upload(mirror_path, content, content_type=content_type)
+        rows = parse_bytes(found.ext, content)
+        self.log.info(
+            "brand.parsed", brand=self.brand_code,
+            bd_rows=len(rows), source_url=found.url,
+        )
+        self._require_rows(rows, found.url)
+        for row in rows:
+            name = str(row.get("factory_name") or "").strip()
+            if not name:
+                continue
+            city = row.get("city") or None
+            payload = {
+                "brand": self.brand_code,
+                "source_url": found.url,
+                "mirror_url": mirror_url,
+                "disclosure_date": found.disclosure_date.isoformat(),
+                "parent_group": row.get("parent_group"),
+                "tier": row.get("tier"),
+                "products": row.get("products"),
+                "workers": row.get("workers"),
+                "country": row.get("country"),
+                "city": city,
+                "address": row.get("address"),
+            }
+            yield ScrapedRecord(
+                source_code=self.brand_code,
+                source_ref=_source_ref(self.brand_code, name, str(row.get("country") or ""), city),
+                company_name=name,
+                address_raw=row.get("address") or None,
+                city=city,
+                payload={k: v for k, v in payload.items() if v is not None},
+                evidence=self._evidence_for(file_doc, row, found),
             )
-            mirror_path = _mirror_path(self.brand_code, found.disclosure_date, found.ext)
-            if await bunny_exists(mirror_path):
-                self.log.info("brand.mirror_exists", path=mirror_path)
-                # Still need bytes to (re-)parse — download once.
-            try:
-                resp = await http.get(found.url)
-                content = resp.content
-                content_type = resp.headers.get("content-type")
-            except Exception as exc:  # noqa: BLE001
-                self.log.info("brand.file_http_failed", brand=self.brand_code, error=str(exc))
-                content = await _download_playwright(found.url)
-                content_type = None
-            mirror_url = await bunny_upload(mirror_path, content, content_type=content_type)
-            rows = parse_bytes(found.ext, content)
-            self.log.info(
-                "brand.parsed", brand=self.brand_code,
-                bd_rows=len(rows), source_url=found.url,
-            )
-            for row in rows:
-                name = str(row.get("factory_name") or "").strip()
-                if not name:
-                    continue
-                city = row.get("city") or None
-                payload = {
-                    "brand": self.brand_code,
-                    "source_url": found.url,
-                    "mirror_url": mirror_url,
-                    "disclosure_date": found.disclosure_date.isoformat(),
-                    "parent_group": row.get("parent_group"),
-                    "tier": row.get("tier"),
-                    "products": row.get("products"),
-                    "workers": row.get("workers"),
-                    "country": row.get("country"),
-                    "city": city,
-                    "address": row.get("address"),
-                }
-                yield ScrapedRecord(
-                    source_code=self.brand_code,
-                    source_ref=_source_ref(self.brand_code, name, str(row.get("country") or ""), city),
-                    company_name=name,
-                    address_raw=row.get("address") or None,
-                    city=city,
-                    payload={k: v for k, v in payload.items() if v is not None},
-                )
 
     async def run(self) -> dict[str, int]:
         """Override: after each upsert, enqueue brand-only suppliers for review."""
         from etl.core.upsert import upsert_supplier_with_source
+        from etl.evidence.writer import reset_document_cache
 
         run_id = self._open_run()
+        reset_document_cache()
         seen = upserted = skipped = enqueued = 0
         try:
             async for rec in self.fetch():
@@ -438,6 +526,8 @@ class BrandDisclosureBase(BaseScraper, abc.ABC):
                 except Exception as exc:  # noqa: BLE001
                     skipped += 1
                     self.log.error("upsert.failed", source_ref=rec.source_ref, error=str(exc))
+                else:
+                    await self._record_evidence(rec, supplier_id, run_id)
                 if seen % 50 == 0:
                     self.log.info(
                         "progress", seen=seen, upserted=upserted,
@@ -447,9 +537,15 @@ class BrandDisclosureBase(BaseScraper, abc.ABC):
         except Exception as exc:  # noqa: BLE001
             self._close_run(run_id, "failed", seen, upserted, skipped, str(exc))
             raise
+        finally:
+            await self.aclose()
         return {
             "seen": seen, "upserted": upserted,
             "skipped": skipped, "enqueued_for_review": enqueued,
+            "transport": self.active_transport,
+            "evidence_documents": self.evidence_documents,
+            "evidence_claims": self.evidence_claims,
+            "credits_used": self.credits_used,
         }
 
 
@@ -506,14 +602,12 @@ class BrandHmScraper(BrandDisclosureBase):
     file_link_regex = re.compile(r"\.(xlsx|xls)(?:[?#]|$)", re.IGNORECASE)
 
 
-class BrandInditexScraper(BrandDisclosureBase):
-    code = "brand_inditex"
-    brand_code = "BRAND_INDITEX"
-    landing_url = "https://www.inditex.com/itxcomweb/en/sustainability/our-impact/people-in-our-supply-chain"
-    file_link_regex = re.compile(
-        r"(suppliers?|factories|manufactur|UKIMSAct|modern[-_ ]?slavery).*\.(pdf|xlsx|xls)(?:[?#]|$)",
-        re.IGNORECASE,
-    )
+# BrandInditexScraper was removed on 29 Jul 2026. Inditex does not publish a
+# factory-level supplier list at any URL: they disclose aggregate per-country
+# counts only, and share the real list privately with IndustriALL Global Union
+# under their Global Framework Agreement. The page this scraper read now answers
+# 200 and redirects to the Inditex homepage. Reinstating it needs a public list to
+# exist first, not a new selector.
 
 
 class BrandPrimarkScraper(BrandDisclosureBase):
@@ -599,56 +693,51 @@ class BrandAsosScraper(BrandDisclosureBase):
     file_link_regex = re.compile(r"factory-list-[a-z]+-\d{4}\.pdf", re.IGNORECASE)
 
     async def fetch(self) -> AsyncIterator[ScrapedRecord]:
-        async with HttpClient(rps=0.5, headers=_BROWSER_HEADERS) as http:
-            found = await self.discover(http)
-            # ASOS dates the file in the filename — use that, not today.
-            found = DiscoveredFile(
-                url=found.url, ext=found.ext,
-                disclosure_date=_asos_disclosure_date(found.url),
+        found, _landing = await self.discover()
+        # ASOS dates the file in the filename — use that, not today.
+        found = DiscoveredFile(
+            url=found.url, ext=found.ext,
+            disclosure_date=_asos_disclosure_date(found.url),
+        )
+        self.log.info(
+            "brand.discovered", brand=self.brand_code, url=found.url,
+            ext=found.ext, date=found.disclosure_date.isoformat(),
+            transport=self.active_transport,
+        )
+        mirror_path = _mirror_path(self.brand_code, found.disclosure_date, found.ext)
+        if await bunny_exists(mirror_path):
+            self.log.info("brand.mirror_exists", path=mirror_path)
+        content, content_type, file_doc = await self.download(found.url)
+        mirror_url = await bunny_upload(mirror_path, content, content_type=content_type)
+        rows = parse_asos_pdf(content)
+        self.log.info(
+            "brand.parsed", brand=self.brand_code,
+            bd_rows=len(rows), source_url=found.url,
+        )
+        self._require_rows(rows, found.url)
+        for row in rows:
+            name = row["factory_name"]
+            payload = {
+                "brand": self.brand_code,
+                "source_url": found.url,
+                "mirror_url": mirror_url,
+                "disclosure_date": found.disclosure_date.isoformat(),
+                "country": row.get("country"),
+                "address": row.get("address"),
+                "products": row.get("products"),
+                "workers": row.get("workers"),
+                "male_workers": row.get("male_workers"),
+                "female_workers": row.get("female_workers"),
+            }
+            yield ScrapedRecord(
+                source_code=self.brand_code,
+                source_ref=_source_ref(self.brand_code, name, row.get("country") or "", None),
+                company_name=name,
+                address_raw=row.get("address") or None,
+                city=None,
+                payload={k: v for k, v in payload.items() if v is not None},
+                evidence=self._evidence_for(file_doc, row, found),
             )
-            self.log.info(
-                "brand.discovered", brand=self.brand_code, url=found.url,
-                ext=found.ext, date=found.disclosure_date.isoformat(),
-            )
-            mirror_path = _mirror_path(self.brand_code, found.disclosure_date, found.ext)
-            if await bunny_exists(mirror_path):
-                self.log.info("brand.mirror_exists", path=mirror_path)
-            try:
-                resp = await http.get(found.url)
-                content = resp.content
-                content_type = resp.headers.get("content-type")
-            except Exception as exc:  # noqa: BLE001
-                self.log.info("brand.file_http_failed", brand=self.brand_code, error=str(exc))
-                content = await _download_playwright(found.url)
-                content_type = None
-            mirror_url = await bunny_upload(mirror_path, content, content_type=content_type)
-            rows = parse_asos_pdf(content)
-            self.log.info(
-                "brand.parsed", brand=self.brand_code,
-                bd_rows=len(rows), source_url=found.url,
-            )
-            for row in rows:
-                name = row["factory_name"]
-                payload = {
-                    "brand": self.brand_code,
-                    "source_url": found.url,
-                    "mirror_url": mirror_url,
-                    "disclosure_date": found.disclosure_date.isoformat(),
-                    "country": row.get("country"),
-                    "address": row.get("address"),
-                    "products": row.get("products"),
-                    "workers": row.get("workers"),
-                    "male_workers": row.get("male_workers"),
-                    "female_workers": row.get("female_workers"),
-                }
-                yield ScrapedRecord(
-                    source_code=self.brand_code,
-                    source_ref=_source_ref(self.brand_code, name, row.get("country") or "", None),
-                    company_name=name,
-                    address_raw=row.get("address") or None,
-                    city=None,
-                    payload={k: v for k, v in payload.items() if v is not None},
-                )
 
 
 _MS_OSH_CONTRIBUTOR_ID = 10061
@@ -785,6 +874,11 @@ class BrandMsScraper(BrandDisclosureBase):
     # corporate domain. Both conditions are runtime-enforced.
     landing_url = _MS_EMBED_PAGE
     file_link_regex = re.compile(r"^never$")  # unused; we override fetch()
+    # The only source that cannot move: we must read a per-contributor
+    # `x-oar-client-key` out of the live iframe's request headers, which requires
+    # a real browser observing real network traffic. No scrape API exposes that.
+    transport = "direct"
+    fallback_transport = None
 
     async def fetch(self) -> AsyncIterator[ScrapedRecord]:
         features, source_url = await _ms_verify_embed_and_fetch(self.log)
@@ -807,6 +901,7 @@ class BrandMsScraper(BrandDisclosureBase):
             "brand.parsed", brand=self.brand_code,
             bd_rows=len(features), source_url=source_url,
         )
+        self._require_rows(features, source_url)
         for feat in features:
             props = feat.get("properties") or {}
             name = (props.get("name") or "").strip()
@@ -854,8 +949,47 @@ class BrandMsScraper(BrandDisclosureBase):
 # Disclosure date comes from PDF page-1 text: "Produced <Month> <Year>".
 
 _NEXT_PRODUCED_RE = re.compile(r"Produced\s+([A-Za-z]+)\s+(\d{4})", re.IGNORECASE)
-_NEXT_T1_FILE_RE  = re.compile(r"/T1[ %]+20\d{2}\.pdf", re.IGNORECASE)
-_NEXT_T1_YEAR_RE  = re.compile(r"T1[ %]+20(\d{2})\.pdf", re.IGNORECASE)
+# Next renames these lists freely: the Tier 1 file has been `T1 2025.pdf`,
+# `T1 - CO SEC - AW23 - SS24.pdf`, `TIER 1 PLC LIST AUGUST 2024.pdf` and now
+# `PLC LIST FEB 2026 - TIER1.pdf`. So the collector takes every PDF on the page
+# and the tier is decided afterwards, rather than being pinned to one filename
+# shape that goes stale the next time they publish.
+_NEXT_PDF_RE = re.compile(r"\.pdf(?:[?#]|$)", re.IGNORECASE)
+
+_NEXT_TIER1_RE = re.compile(r"(?:^|[^a-z0-9])(?:tier[\s_-]*1|t1)(?![0-9])", re.IGNORECASE)
+_NEXT_TIER23_RE = re.compile(r"(?:^|[^a-z0-9])(?:tier[\s_-]*[23]|t[23])(?![0-9])", re.IGNORECASE)
+_NEXT_YEAR_RE = re.compile(r"20\d{2}")
+
+
+def _url_filename(url: str) -> str:
+    """The last path segment, percent-decoded.
+
+    Tests must not run against the whole URL: Next keeps these files in a folder
+    called `Tier 1 -2 - 3 lists`, so a URL-wide search for "Tier 1" matches the
+    Tier 2 and Tier 3 lists sitting beside it, and we would publish downstream
+    subcontractors as if they were direct manufacturers.
+
+    Decoding matters for the same reason it is easy to miss. `%20` ends in a
+    digit, so `...FEB%202026%20-%20TIER1.pdf` breaks a word-boundary test right
+    where the tier is named, and `20\\d{2}` reads a year of 2020 out of the
+    encoding itself rather than the 2026 in the name. Decoding first collapses
+    both URL spellings into one and keeps the patterns honest.
+    """
+    return unquote(urlsplit(url).path.rstrip("/").rpartition("/")[2])
+
+
+def _is_next_tier1(url: str) -> bool:
+    """Whether a URL names the Tier 1 list specifically."""
+    name = _url_filename(url)
+    if _NEXT_TIER23_RE.search(name):
+        return False
+    return bool(_NEXT_TIER1_RE.search(name))
+
+
+def _next_t1_year(url: str) -> int:
+    """Latest 4-digit year in the filename, 0 when it carries none."""
+    years = [int(y) for y in _NEXT_YEAR_RE.findall(_url_filename(url))]
+    return max(years) if years else 0
 _NEXT_COUNTRY_NAMES = {
     "albania", "bangladesh", "bulgaria", "cambodia", "china", "egypt",
     "ethiopia", "france", "germany", "haiti", "honduras", "india",
@@ -890,50 +1024,107 @@ def _next_disclosure_date(content: bytes, fallback_url: str) -> date:
         month = _ASOS_MONTHS.get(m.group(1).lower())
         if month:
             return date(int(m.group(2)), month, 1)
-    m2 = _NEXT_T1_YEAR_RE.search(fallback_url)
-    if m2:
-        return date(2000 + int(m2.group(1)), 1, 1)
+    year = _next_t1_year(fallback_url)
+    if year:
+        return date(year, 1, 1)
     return date.today()
 
 
+# Next's own column titles mapped to our field names. The titles are stable even
+# though their positions are not, which is why the parser keys off them.
+_NEXT_COLUMNS = {
+    "manufacturing site name": "factory_name",
+    "supplier name": "supplier_vendor",
+    "address": "address",
+    "country": "country",
+    "product type": "products",
+    "female employees": "female_workers",
+    "male employees": "male_workers",
+    "trade union in factory": "trade_union",
+    "freely elected workers committee": "workers_committee",
+}
+
+
+def _next_header_map(row: list[Any]) -> dict[str, int] | None:
+    """Column indexes keyed by our field names, or None if this is not a header.
+
+    Header cells arrive clipped to the PDF's column widths — the committee column
+    reads "FREELY ELECTED WORKERS COM" — so a title matches when it is a prefix of
+    a known column name. The minimum length keeps a stray short cell from
+    matching several columns at once.
+    """
+    found: dict[str, int] = {}
+    for i, cell in enumerate(row):
+        label = " ".join(str(cell or "").split()).lower()
+        if len(label) < 6:
+            continue
+        for known, field_name in _NEXT_COLUMNS.items():
+            if known.startswith(label):
+                found.setdefault(field_name, i)
+                break
+    if "factory_name" in found and "supplier_vendor" in found:
+        return found
+    return None
+
+
 def parse_next_t1_pdf(content: bytes) -> list[dict[str, Any]]:
-    """Parse Next plc Tier-1 PDF; country tracked by section header rows."""
+    """Parse Next plc's tier 1 PDF into its Bangladesh rows.
+
+    Both of Next's layouts are supported because both are still in circulation:
+    older files name the country once in a section header row and omit it from the
+    rows beneath, while the February 2026 file gives every row its own Country
+    column and shifts every other column right by two.
+
+    Reading the header row instead of fixed offsets is what lets one parser handle
+    both. The previous version indexed columns positionally, so the new file
+    silently produced zero rows: no country header row was ever found, so every
+    row was skipped as having no country.
+    """
     out: list[dict[str, Any]] = []
     with pdfplumber.open(io.BytesIO(content)) as pdf:
+        # The header appears once, on page 1, and governs every later page.
+        cols: dict[str, int] | None = None
         for page in pdf.pages:
-            current_country: str | None = None
+            section_country: str | None = None
             for table in page.extract_tables() or []:
-                if not table:
-                    continue
-                for row in table:
+                for row in table or []:
                     if not row:
                         continue
-                    cm = _next_country_marker(row)
-                    if cm:
-                        current_country = cm
+                    header = _next_header_map(row)
+                    if header:
+                        cols = header
                         continue
-                    cell0 = str(row[0] or "").strip()
-                    cell1 = str(row[1] or "").strip() if len(row) > 1 else ""
-                    if not cell0 or not cell1:
+                    marker = _next_country_marker(row)
+                    if marker:
+                        section_country = marker
                         continue
-                    if cell0.upper().startswith("TIER "):
+                    if cols is None:
                         continue
-                    if cell0.upper() == "SUPPLIER NAME":
+
+                    def cell(name: str, _row: list[Any] = row) -> str | None:
+                        i = cols.get(name)  # type: ignore[union-attr]
+                        if i is None or i >= len(_row):
+                            return None
+                        return " ".join(str(_row[i] or "").split()) or None
+
+                    factory = cell("factory_name")
+                    supplier = cell("supplier_vendor")
+                    if not factory or not supplier:
                         continue
-                    if not current_country:
-                        continue
-                    if current_country.lower() != "bangladesh":
+                    # Per-row country in the new layout; section header in the old.
+                    country = cell("country") or section_country
+                    if not country or country.lower() != "bangladesh":
                         continue
                     out.append({
-                        "factory_name": cell1,
-                        "supplier_vendor": cell0,
-                        "address": str(row[2] or "").strip() or None if len(row) > 2 else None,
-                        "country": current_country,
-                        "products": str(row[3] or "").strip() or None if len(row) > 3 else None,
-                        "female_workers": str(row[4] or "").strip() or None if len(row) > 4 else None,
-                        "male_workers": str(row[5] or "").strip() or None if len(row) > 5 else None,
-                        "trade_union": str(row[6] or "").strip() or None if len(row) > 6 else None,
-                        "workers_committee": str(row[7] or "").strip() or None if len(row) > 7 else None,
+                        "factory_name": factory,
+                        "supplier_vendor": supplier,
+                        "address": cell("address"),
+                        "country": country,
+                        "products": cell("products"),
+                        "female_workers": cell("female_workers"),
+                        "male_workers": cell("male_workers"),
+                        "trade_union": cell("trade_union"),
+                        "workers_committee": cell("workers_committee"),
                     })
     return out
 
@@ -942,83 +1133,74 @@ class BrandNextScraper(BrandDisclosureBase):
     code = "brand_next"
     brand_code = "BRAND_NEXT"
     landing_url = "https://www.nextplc.co.uk/corporate-responsibility/our-suppliers"
-    # Match Next CDN path `/T1 2025.pdf` (raw or URL-encoded spaces). Excludes
-    # T2/T3 (those are downstream tiers; T1 = direct manufacturers, which is
-    # the per-factory authenticity-rule-compliant disclosure).
-    file_link_regex = _NEXT_T1_FILE_RE
+    # Every PDF on the page; `_is_next_tier1` picks the tier. T1 = direct
+    # manufacturers, which is the per-factory authenticity-rule-compliant
+    # disclosure. T2/T3 are downstream tiers and must never be substituted.
+    file_link_regex = _NEXT_PDF_RE
+
+    @property
+    def request_headers(self) -> dict[str, str]:
+        # Next's CDN requires a Referer matching the supplier landing page.
+        return {**_BROWSER_HEADERS, "Referer": self.landing_url}
 
     async def fetch(self) -> AsyncIterator[ScrapedRecord]:
-        # Next's CDN requires a Referer matching the supplier landing page.
-        headers = dict(_BROWSER_HEADERS)
-        headers["Referer"] = self.landing_url
-        async with HttpClient(rps=0.5, headers=headers) as http:
-            # Discover ALL matching T1 candidates, pick the highest year.
-            html: str | None = None
-            try:
-                resp = await http.get(self.landing_url)
-                html = resp.text
-            except Exception as exc:  # noqa: BLE001
-                self.log.info("brand.http_failed", brand=self.brand_code, error=str(exc))
-            candidates = _collect_candidates(html or "", self.landing_url, self.file_link_regex)
-            if not candidates:
-                self.log.info("brand.fallback_playwright", brand=self.brand_code, url=self.landing_url)
-                html = await _render_playwright(self.landing_url)
-                candidates = _collect_candidates(html, self.landing_url, self.file_link_regex)
-            if not candidates:
-                raise RuntimeError(
-                    f"{self.brand_code}: no T1 PDF link found on {self.landing_url}"
-                )
-
-            def _year(u: str) -> int:
-                m = _NEXT_T1_YEAR_RE.search(u)
-                return int(m.group(1)) if m else 0
-            candidates.sort(key=lambda c: _year(c[0]), reverse=True)
-            url, ext = candidates[0]
-            ext = ext or "pdf"
-
-            try:
-                resp = await http.get(url)
-                content = resp.content
-                content_type = resp.headers.get("content-type")
-            except Exception as exc:  # noqa: BLE001
-                self.log.info("brand.file_http_failed", brand=self.brand_code, error=str(exc))
-                content = await _download_playwright(url)
-                content_type = None
-
-            disclosure_date = _next_disclosure_date(content, url)
-            self.log.info(
-                "brand.discovered", brand=self.brand_code, url=url,
-                ext=ext, date=disclosure_date.isoformat(),
+        # Discover ALL matching T1 candidates, pick the highest year.
+        landing = await self.landing_page()
+        pdfs = _collect_candidates(
+            landing.text(), self.landing_url, self.file_link_regex
+        )
+        candidates = [c for c in pdfs if _is_next_tier1(c[0])]
+        if not candidates:
+            raise RuntimeError(
+                f"{self.brand_code}: no T1 PDF link found on {self.landing_url} "
+                f"({len(pdfs)} PDFs on the page, none naming tier 1) "
+                f"(fetch {landing.fetch_status.value} via {landing.adapter.value})"
             )
-            mirror_path = _mirror_path(self.brand_code, disclosure_date, ext)
-            mirror_url = await bunny_upload(mirror_path, content, content_type=content_type)
 
-            rows = parse_next_t1_pdf(content)
-            self.log.info(
-                "brand.parsed", brand=self.brand_code,
-                bd_rows=len(rows), source_url=url,
+        candidates.sort(key=lambda c: _next_t1_year(c[0]), reverse=True)
+        url, ext = candidates[0]
+        ext = ext or "pdf"
+
+        content, content_type, file_doc = await self.download(url)
+
+        disclosure_date = _next_disclosure_date(content, url)
+        self.log.info(
+            "brand.discovered", brand=self.brand_code, url=url,
+            ext=ext, date=disclosure_date.isoformat(),
+            transport=self.active_transport,
+        )
+        mirror_path = _mirror_path(self.brand_code, disclosure_date, ext)
+        mirror_url = await bunny_upload(mirror_path, content, content_type=content_type)
+
+        found = DiscoveredFile(url=url, ext=ext, disclosure_date=disclosure_date)
+        rows = parse_next_t1_pdf(content)
+        self.log.info(
+            "brand.parsed", brand=self.brand_code,
+            bd_rows=len(rows), source_url=url,
+        )
+        self._require_rows(rows, url)
+        for row in rows:
+            name = row["factory_name"]
+            payload = {
+                "brand": self.brand_code,
+                "source_url": url,
+                "mirror_url": mirror_url,
+                "disclosure_date": disclosure_date.isoformat(),
+                "country": row.get("country"),
+                "address": row.get("address"),
+                "products": row.get("products"),
+                "female_workers": row.get("female_workers"),
+                "male_workers": row.get("male_workers"),
+                "trade_union": row.get("trade_union"),
+                "workers_committee": row.get("workers_committee"),
+                "next_supplier_vendor": row.get("supplier_vendor"),
+            }
+            yield ScrapedRecord(
+                source_code=self.brand_code,
+                source_ref=_source_ref(self.brand_code, name, row.get("country") or "", None),
+                company_name=name,
+                address_raw=row.get("address") or None,
+                city=None,
+                payload={k: v for k, v in payload.items() if v is not None},
+                evidence=self._evidence_for(file_doc, row, found),
             )
-            for row in rows:
-                name = row["factory_name"]
-                payload = {
-                    "brand": self.brand_code,
-                    "source_url": url,
-                    "mirror_url": mirror_url,
-                    "disclosure_date": disclosure_date.isoformat(),
-                    "country": row.get("country"),
-                    "address": row.get("address"),
-                    "products": row.get("products"),
-                    "female_workers": row.get("female_workers"),
-                    "male_workers": row.get("male_workers"),
-                    "trade_union": row.get("trade_union"),
-                    "workers_committee": row.get("workers_committee"),
-                    "next_supplier_vendor": row.get("supplier_vendor"),
-                }
-                yield ScrapedRecord(
-                    source_code=self.brand_code,
-                    source_ref=_source_ref(self.brand_code, name, row.get("country") or "", None),
-                    company_name=name,
-                    address_raw=row.get("address") or None,
-                    city=None,
-                    payload={k: v for k, v in payload.items() if v is not None},
-                )

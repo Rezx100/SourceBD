@@ -11,6 +11,13 @@ The existing 4-pass dedup (slug → email → phone → fuzzy name ≥92) auto-
 merges BTMA rows onto existing BGMEA / BKMEA / RSC / EPB / cert suppliers.
 
 Dry-run (`--dry-run`) prints a match report without writing to the DB.
+
+Transport: local file, wrapped in the acquisition interface. There is no network
+transport to replace — what the wrapper adds is provenance the source never had.
+Previously a run of this source looked identical whether the extract on disk was
+staged this week or a year ago. Now each page file is acquired as its own
+document with a path, mtime and content hash, and mirrored to Bunny, so every
+mill's fields cite the dated file and page they were read from.
 """
 from __future__ import annotations
 
@@ -19,11 +26,18 @@ import re
 from collections import Counter
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, AsyncIterator, Iterable
+from typing import TYPE_CHECKING, Any, AsyncIterator, Iterable
 
+from etl.acquire import AcquireRequest
+from etl.acquire.local import path_to_url
+from etl.core.acquiring import AcquiringScraper
 from etl.core.config import settings
 from etl.core.normalize import clean_display_name, make_slug, normalize_phones
-from etl.core.scraper import BaseScraper, ScrapedRecord
+from etl.core.scraper import EvidenceAttachment, ScrapedRecord
+from etl.evidence.locate import NO_EXCERPT, json_locator, json_record_window
+
+if TYPE_CHECKING:
+    from etl.acquire import AcquiredDoc
 
 DEFAULT_DATA_DIR = settings.etl_raw_dir / "btma_spinning" / "pages"
 
@@ -187,7 +201,30 @@ def _iter_rows(data_dir: Path) -> Iterable[_Row]:
             yield _Row.from_json(section, raw)
 
 
-def _row_to_record(row: _Row) -> ScrapedRecord:
+# Both are the register's own bookkeeping — which table a mill was listed under
+# and its serial number in that table — rather than facts about the mill.
+# `btma_status` is our reading of the section heading, cited via `btma_section`.
+_UNCITABLE_FIELDS = ("btma_section", "btma_sl_no", "btma_status")
+
+# Payload key → the JSON field it was read from, for pointer locators.
+_JSON_FIELDS = {
+    "mailing_address": "head_office",
+    "factory_address": "mill_site",
+    "raw_tel": "telephone",
+    "raw_fax": "fax",
+    "raw_email": "email",
+    "installed_capacity": "installed_capacity",
+    "annual_production": "annual_production",
+    "btma_notes": "notes",
+    "raw_contact_person": "contact_person",
+}
+
+
+def _row_to_record(
+    row: _Row,
+    doc: "AcquiredDoc | None" = None,
+    raw_page: str | None = None,
+) -> ScrapedRecord:
     name = clean_display_name(row.mill_name)
     contact_name, contact_role = _parse_contact(row.contact_person)
     email, website = _split_email_and_website(row.email)
@@ -226,6 +263,29 @@ def _row_to_record(row: _Row) -> ScrapedRecord:
 
     section_slug = _slugify_section(row.section)
 
+    evidence: EvidenceAttachment | None = None
+    if doc is not None:
+        where = f"rows[sl_no={row.sl_no}]"
+        evidence = EvidenceAttachment(
+            doc=doc,
+            locators={
+                key: json_locator(f"{where}/{field}")
+                for key, field in _JSON_FIELDS.items()
+            },
+            default_locator=json_locator(where),
+            # Scope the excerpt search to this mill's own entry: capacities and
+            # district names repeat across a page, so a page-wide search could
+            # cite a neighbouring mill's figure as this one's. When the entry
+            # cannot be anchored we keep the locator and forgo the excerpt, since
+            # falling back to the page would reintroduce exactly that risk.
+            document_text=json_record_window(
+                raw_page, json.dumps(row.mill_name)[1:-1]
+            )
+            or NO_EXCERPT,
+            document_is_html=False,
+            skip_keys=_UNCITABLE_FIELDS,
+        )
+
     return ScrapedRecord(
         source_code="BTMA",
         source_ref=f"spinning-{section_slug}-{row.sl_no}",
@@ -239,25 +299,52 @@ def _row_to_record(row: _Row) -> ScrapedRecord:
         district=district,
         website=website,
         payload=payload,
+        evidence=evidence,
     )
 
 
-class BtmaSpinningScraper(BaseScraper):
+class BtmaSpinningScraper(AcquiringScraper):
     """BTMA spinning-mills register — local JSON ingest. No HTTP."""
 
     code = "btma_spinning"
     source_code = "BTMA"
+    transport = "local"
+    fallback_transport = None
 
-    def __init__(self, data_dir: Path | None = None, *, dry_run: bool = False) -> None:
-        super().__init__()
+    def __init__(
+        self, data_dir: Path | None = None, *, dry_run: bool = False, **kwargs: Any
+    ) -> None:
+        super().__init__(**kwargs)
         self.data_dir = data_dir or DEFAULT_DATA_DIR
         self.dry_run = dry_run
 
     async def fetch(self) -> AsyncIterator[ScrapedRecord]:
-        for row in _iter_rows(self.data_dir):
-            if not row.mill_name:
-                continue
-            yield _row_to_record(row)
+        files = sorted(self.data_dir.glob("page_*.json"))
+        if not files:
+            raise FileNotFoundError(
+                f"No page_*.json files under {self.data_dir}. "
+                "Stage the BTMA extract there and re-run."
+            )
+        # One evidence document per page file rather than per directory, so a
+        # claim points at the file its value is actually in and a single
+        # re-staged page shows as changed instead of the whole extract.
+        for path in files:
+            doc = await self.acquire(
+                AcquireRequest(url=path_to_url(path), label=f"BTMA {path.name}")
+            )
+            if not doc.ok:
+                raise FileNotFoundError(
+                    f"btma_spinning: {path} unreadable "
+                    f"({doc.fetch_status.value}: {doc.error_message})"
+                )
+            raw_page = doc.text()
+            page = json.loads(raw_page)
+            section = (page.get("section") or "").strip()
+            for raw in page.get("rows") or []:
+                row = _Row.from_json(section, raw)
+                if not row.mill_name:
+                    continue
+                yield _row_to_record(row, doc, raw_page)
 
     async def run(self) -> dict[str, int]:  # type: ignore[override]
         if self.dry_run:

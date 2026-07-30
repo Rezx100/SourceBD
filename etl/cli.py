@@ -16,7 +16,7 @@ import typer
 from etl.core.db import db
 from etl.core.logging import get_logger
 from etl.scrapers.btma_spinning import BtmaSpinningScraper
-from etl.scrapers.registry import SCRAPERS
+from etl.scrapers.registry import JOBS, RUNNABLE, SCRAPERS
 from etl.scrapers.rsc_documents import RscDocumentsScraper
 
 app = typer.Typer(add_completion=False, help="SourceBD ETL")
@@ -53,18 +53,116 @@ def migrate() -> None:
 @app.command("list")
 def list_scrapers() -> None:
     for code, cls in SCRAPERS.items():
-        typer.echo(f"{code:15s}  source={cls.source_code}")
+        transport = getattr(cls, "transport", "direct")
+        typer.echo(f"{code:15s}  source={cls.source_code:12s}  transport={transport}")
+    for code in JOBS:
+        typer.echo(f"{code:15s}  (maintenance job)")
+
+
+@app.command("compare-parity")
+def compare_parity_cmd(
+    scraper: str = typer.Argument(..., help="Scraper code, e.g. bgmea_web."),
+    limit: int = typer.Option(25, help="Compare at most N records per transport."),
+    legacy: str = typer.Option("direct", help="Baseline transport."),
+    candidate: str = typer.Option("firecrawl", help="Transport being validated."),
+    json_out: Path = typer.Option(None, "--json-out", help="Write the full report as JSON."),
+) -> None:
+    """Diff a scraper's output across two transports. Writes nothing to the DB.
+
+    This is the cutover gate: a source moves to Firecrawl only after its
+    payloads match the legacy transport on a sampled set.
+    """
+    import json as _json
+
+    from etl.parity import compare, format_report
+
+    try:
+        report = asyncio.run(compare(scraper, limit=limit, legacy_transport=legacy,
+                                     candidate_transport=candidate))
+    except ValueError as exc:
+        typer.echo(str(exc))
+        raise typer.Exit(2) from exc
+
+    typer.echo(format_report(report))
+    if json_out is not None:
+        json_out.write_text(
+            _json.dumps(report.as_dict(), indent=2, ensure_ascii=False), encoding="utf-8"
+        )
+        typer.echo(f"\nfull report written to {json_out}")
+
+    # 3 for a skip, so a sweep can tell "never comparable" from "regressed"
+    # without either being mistaken for a clean pass.
+    if report.not_comparable:
+        raise typer.Exit(3)
+    if not report.passed:
+        raise typer.Exit(1)
 
 
 @app.command()
 def run(scraper: str) -> None:
-    """Run a scraper end-to-end."""
-    cls = SCRAPERS.get(scraper)
+    """Run a scraper or maintenance job end-to-end."""
+    cls = RUNNABLE.get(scraper)
     if cls is None:
         typer.echo(f"unknown scraper: {scraper}. Try `list`.")
         raise typer.Exit(1)
     result = asyncio.run(cls().run())
     typer.echo(str(result))
+
+
+@app.command("verify-evidence")
+def verify_evidence_cmd(
+    limit: int = typer.Option(500, help="Check at most N due documents."),
+    scraper: str = typer.Option(None, help="Restrict to one source's documents."),
+    interval_hours: int = typer.Option(
+        None, help="Re-check documents older than this many hours."
+    ),
+) -> None:
+    """Re-check recorded citations for liveness and excerpt drift.
+
+    Never retires a citation on a single failure: timeouts, blocks and 5xx leave
+    the last known good state and back the retry off.
+    """
+    from etl.evidence.verifier import DEFAULT_INTERVAL_HOURS, VerifyEvidenceJob
+
+    job = VerifyEvidenceJob(
+        limit=limit,
+        scraper_code=scraper,
+        interval_hours=interval_hours or DEFAULT_INTERVAL_HOURS,
+    )
+    result = asyncio.run(job.run())
+    typer.echo(str(result))
+
+
+@app.command("refresh-monitors")
+def refresh_monitors_cmd(
+    dry_run: bool = typer.Option(
+        False, help="List the targets that would be registered, and register nothing."
+    ),
+) -> None:
+    """Reconcile Firecrawl monitors with the index pages sources declare.
+
+    Idempotent: a target that already has a monitor id is left alone, so this is
+    safe to run on every deploy.
+    """
+    from etl.evidence.monitors import refresh_monitors
+
+    result = asyncio.run(refresh_monitors(dry_run=dry_run))
+    typer.echo(str(result))
+
+
+@app.command("process-webhooks")
+def process_webhooks_cmd(
+    limit: int = typer.Option(100, help="Process at most N pending deliveries."),
+) -> None:
+    """Drain the Firecrawl webhook inbox.
+
+    The API route only records deliveries — it has ten seconds before Firecrawl
+    retries — so this is where a change notification is acted on, by moving the
+    affected documents to the front of the verify queue.
+    """
+    from etl.evidence.webhook_inbox import process_pending
+
+    typer.echo(str(process_pending(limit=limit)))
 
 
 @app.command("enqueue-due-schedules")

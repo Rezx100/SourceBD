@@ -37,6 +37,15 @@ class HttpClient:
             follow_redirects=True,
         )
 
+    def cookie(self, name: str) -> str | None:
+        """Read a cookie the session has picked up.
+
+        EPB's Laravel backend hands out an XSRF token as a cookie on the home
+        page and then demands it back as a header on the search API, so the
+        cookie jar has to be readable rather than merely present.
+        """
+        return self._client.cookies.get(name)
+
     async def aclose(self) -> None:
         await self._client.aclose()
 

@@ -24,6 +24,11 @@ We ingest one SanctionEntry per <sanctionEntity> with subjectType code=='enterpr
   - listed_date    = parsed from designationDate
   - status         = 'EU consolidated sanctions'
   - status_notes   = first <remark> text (truncated)
+
+Transport: direct, wrapped in the acquisition interface. The payload is XML
+streamed with `iterparse`, and most of its facts live in attributes, so it must
+be read as XML rather than as a rendering of XML. The wrapper is what gives it
+per-field evidence and the shared admin surface.
 """
 from __future__ import annotations
 
@@ -34,8 +39,10 @@ from typing import AsyncIterator
 
 from lxml import etree
 
-from etl.core.http import HttpClient
-from etl.core.sanctions import BaseSanctionScraper, SanctionEntry
+from etl.acquire import AcquireRequest
+from etl.core.acquiring import AcquiringSanctionScraper
+from etl.core.sanctions import SanctionEntry
+from etl.core.scraper import EvidenceAttachment
 
 URL = (
     "https://webgate.ec.europa.eu/fsd/fsf/public/files/"
@@ -72,14 +79,28 @@ def _local_first(parent, name: str):
     return None
 
 
-class EuSanctionsScraper(BaseSanctionScraper):
+def _xpath(logical_id: str, part: str | None = None) -> str:
+    base = f"xml:sanctionEntity[logicalId={logical_id}]"
+    return f"{base}/{part}" if part else base
+
+
+class EuSanctionsScraper(AcquiringSanctionScraper):
     code = "eu_sanctions"
     source_code = "EU_SANC"
+    transport = "direct"
+    fallback_transport = None
+    rps = 0.5
 
     async def fetch(self) -> AsyncIterator[SanctionEntry]:
-        async with HttpClient(rps=0.5) as http:
-            resp = await http.get(URL)
-            xml_bytes = resp.content
+        doc = await self.acquire(
+            AcquireRequest(url=URL, want_bytes=True, label="EU consolidated list XML")
+        )
+        if not doc.ok or not doc.body_bytes:
+            raise RuntimeError(
+                f"eu_sanctions: {URL} unreadable ({doc.fetch_status.value}: "
+                f"{doc.error_message}). Refusing to report an empty sanctions list."
+            )
+        xml_bytes = doc.body_bytes
 
         for _event, ent in etree.iterparse(
             io.BytesIO(xml_bytes),
@@ -123,6 +144,19 @@ class EuSanctionsScraper(BaseSanctionScraper):
                 reg = _local_first(ent, "regulation")
                 publication_url = (reg.get("publicationUrl") if reg is not None else "") or ""
 
+                # Serialise before the yield: the `finally` below clears the
+                # element to keep the streaming parse's memory flat, so after
+                # the consumer resumes there is nothing left to excerpt from.
+                # Tags and attributes are kept deliberately — `wholeName="…"`
+                # is where the EU states the name, so stripping markup would
+                # leave every claim without a checkable excerpt.
+                try:
+                    entity_source = etree.tostring(
+                        ent, encoding="unicode", with_tail=False
+                    )
+                except Exception:  # noqa: BLE001
+                    entity_source = ""
+
                 yield SanctionEntry(
                     list_code="eu_sanctions",
                     source_code="EU_SANC",
@@ -140,6 +174,21 @@ class EuSanctionsScraper(BaseSanctionScraper):
                         "eu_reference_number": ent.get("euReferenceNumber"),
                         "subject_type_code": code,
                     },
+                    evidence=EvidenceAttachment(
+                        doc=doc,
+                        locators={
+                            "entity_name": _xpath(logical_id, "nameAlias/@wholeName"),
+                            "listed_date": _xpath(logical_id, "@designationDate"),
+                            "status_notes": _xpath(logical_id, "remark"),
+                        },
+                        default_locator=_xpath(logical_id),
+                        document_text=entity_source,
+                        document_is_html=False,
+                        subject_table="sanctions_list_entries",
+                        # A label we assign to every row on this list rather
+                        # than text the EU prints per entity.
+                        skip_keys=("status",),
+                    ),
                 )
             finally:
                 ent.clear()
