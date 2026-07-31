@@ -55,6 +55,7 @@ from psycopg.rows import dict_row
 from rapidfuzz import fuzz
 
 from etl.core.normalize import make_slug, normalize_company_name
+from etl.core.upsert import _names_compatible
 
 # Columns `backfill_profile_columns.py` max-merges from BKMEA records. Left in
 # place they would keep the largest value seen across companies that are about
@@ -99,6 +100,27 @@ select r.record_id, r.supplier_id, r.source_ref, r.scraped_name, r.base_no,
 
 def _group_key(row: dict[str, Any]) -> str:
     return row["base_no"]
+
+
+def _is_same_company(survivor_rows: list[dict], candidate_rows: list[dict]) -> bool:
+    """Whether a differing base membership number still means the same company.
+
+    A different base number is the *signal* that two BKMEA records are different
+    members, but it is not proof: BKMEA re-issues numbers, so one company can
+    hold 1449 and 489, or 863 and 325, under the same name. The first dry run of
+    this script proposed splitting `A. K. KNITWEAR LTD` off `A. K. KNITWEAR LTD`
+    and `SHAN HOSIERY UNIT-2` off itself, which would have manufactured
+    duplicates while fixing conflations.
+
+    So the number opens the question and the name settles it, using the same
+    predicate that now governs merging in `_find_existing` — one definition of
+    "these are the same company", applied in both directions.
+    """
+    survivors = [normalize_company_name(r["scraped_name"]) for r in survivor_rows if r["scraped_name"]]
+    candidates = [normalize_company_name(r["scraped_name"]) for r in candidate_rows if r["scraped_name"]]
+    if not survivors or not candidates:
+        return False
+    return any(_names_compatible(a, b) for a in survivors for b in candidates)
 
 
 def _pick_survivor(company_name: str, groups: dict[str, list[dict]]) -> str:
@@ -162,6 +184,7 @@ def main() -> int:
 
         planned_splits = 0
         skipped_unnamed = 0
+        kept_relisting = 0
 
         for supplier_id in supplier_ids:
             supplier_rows = by_supplier[supplier_id]
@@ -172,11 +195,16 @@ def main() -> int:
                 groups[_group_key(row)].append(row)
 
             survivor = _pick_survivor(company_name, groups)
+            split_here = 0
             print(f"\n{company_name}  [{supplier_id}]")
             print(f"  keep   {survivor:<10} {_names(groups[survivor])}")
 
             for base_no, group_rows in groups.items():
                 if base_no == survivor:
+                    continue
+                if _is_same_company(groups[survivor], group_rows):
+                    kept_relisting += 1
+                    print(f"  keep   {base_no:<10} re-listing of the same company")
                     continue
                 new_name = _new_company_name(group_rows)
                 if not new_name:
@@ -189,6 +217,7 @@ def main() -> int:
                     continue
 
                 planned_splits += 1
+                split_here += 1
                 print(f"  split  {base_no:<10} -> {new_name!r} ({len(group_rows)} record(s))")
 
                 if not args.apply:
@@ -218,7 +247,9 @@ def main() -> int:
                         (new_id, supplier_id, [str(r) for r in record_ids]),
                     )
 
-            if args.apply:
+            # Only the suppliers that actually lost records have derived columns
+            # max-merged across companies that no longer belong together.
+            if args.apply and split_here:
                 with conn.cursor() as cur:
                     cur.execute(
                         f"""update public.suppliers
@@ -229,8 +260,9 @@ def main() -> int:
                     )
 
         print(
-            f"\n{len(supplier_ids)} merged supplier(s); "
-            f"{planned_splits} split(s) planned; {skipped_unnamed} skipped for want of a name."
+            f"\n{len(supplier_ids)} candidate supplier(s); {planned_splits} split(s) planned; "
+            f"{kept_relisting} left alone as re-listings; "
+            f"{skipped_unnamed} skipped for want of a name."
         )
 
         if args.apply:
