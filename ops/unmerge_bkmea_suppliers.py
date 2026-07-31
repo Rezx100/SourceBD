@@ -186,6 +186,7 @@ def main() -> int:
         skipped_unnamed = 0
         kept_relisting = 0
         reused_member = 0
+        stranded_records = 0
 
         # One BKMEA member can be attached to two different merged suppliers —
         # member 376 (CRONY APPARELS LTD) sits under both ABANTI COLOUR TEX and
@@ -255,17 +256,48 @@ def main() -> int:
                         supplier_for_member[base_no] = new_id
 
                     record_ids = [r["record_id"] for r in group_rows]
+                    # `source_records` is unique on (supplier_id, source_id,
+                    # source_ref), and two wrongly-merged parents can each hold a
+                    # scrape of the *same* BKMEA page — ABANTI COLOUR TEX and CRONY
+                    # FASHION both carry source_ref 373 for member 376. Once the
+                    # first parent's copy has moved, the second collides. The
+                    # collision means the destination already has that page, so the
+                    # duplicate is left on its original parent rather than deleted:
+                    # a stranded row is visible and fixable, a deleted one is not.
                     cur.execute(
-                        "update public.source_records set supplier_id = %s where id = any(%s)",
-                        (new_id, record_ids),
+                        """update public.source_records sr
+                              set supplier_id = %s
+                            where sr.id = any(%s)
+                              and not exists (
+                                    select 1
+                                      from public.source_records o
+                                     where o.supplier_id = %s
+                                       and o.source_id   = sr.source_id
+                                       and o.source_ref  = sr.source_ref
+                                       and o.id <> sr.id
+                                  )
+                          returning sr.id""",
+                        (new_id, record_ids, new_id),
                     )
+                    moved_ids = [r["id"] for r in cur.fetchall()]
+                    stranded = len(record_ids) - len(moved_ids)
+                    if stranded:
+                        stranded_records += stranded
+                        print(
+                            f"         {stranded} record(s) left on the parent — "
+                            f"{new_name!r} already has that source page"
+                        )
+                    if not moved_ids:
+                        continue
+
+                    # Claims follow only the records that actually moved.
                     cur.execute(
                         """update public.evidence_claims
                               set supplier_id = %s
                             where supplier_id = %s
                               and subject_table = 'source_records'
                               and subject_id = any(%s::uuid[])""",
-                        (new_id, supplier_id, [str(r) for r in record_ids]),
+                        (new_id, supplier_id, [str(r) for r in moved_ids]),
                     )
 
             # Only the suppliers that actually lost records have derived columns
@@ -284,7 +316,8 @@ def main() -> int:
             f"\n{len(supplier_ids)} candidate supplier(s); {planned_splits} split(s) planned "
             f"({reused_member} joining a member already split); "
             f"{kept_relisting} left alone as re-listings; "
-            f"{skipped_unnamed} skipped for want of a name."
+            f"{skipped_unnamed} skipped for want of a name; "
+            f"{stranded_records} record(s) stranded on a parent as duplicates."
         )
 
         if args.apply:
