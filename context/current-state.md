@@ -17,6 +17,55 @@ Launch-readiness closeout:
 - Apply migrations 0048-0049 and 0060 to production Supabase.
 - Run the 30-day zero P1/P2 Sentry incident window before calling beta fully live.
 
+## Supplier Identity + Evidence Status Split
+31 Jul 2026 - Complete, in the working tree. Triggered by "why does
+/admin/evidence say 11,320 need review?", which turned out to be two defects
+stacked on each other.
+
+Architectural decisions worth keeping:
+
+- **Superseding a citation is not a problem, and no longer looks like one.**
+  `supersede_claims` wrote `stale` — the verifier's word for "the cited page no
+  longer contains this value" — for the routine case of re-scraping a page. The
+  worklist therefore counted ~11.9k non-problems while the verifier had never
+  run once (`evidence_verifications` was empty), and grew by ~5,800 per
+  `bkmea_detail` run without bound. Migration 0087 adds a `superseded` status
+  that sits outside every needs-review filter.
+- **But supersession is classified, not assumed.** Retiring everything silently
+  would have hidden the second defect. The rule (writer and migration agree):
+  same `url_hash` -> `superseded`; different URL but same value -> `superseded`;
+  **different URL asserting a different value -> `contradicted`, and stays
+  visible**. `evidence_documents` is unique on (url_hash, content_sha256), so a
+  refetch of a changed page keeps its url_hash — that is what distinguishes "the
+  page moved on" from "another page disagrees".
+- **Contact overlap is not identity.** 82 suppliers held BKMEA member records for
+  genuinely different companies. Bangladesh RMG groups run legally distinct
+  factories off one switchboard and one group mailbox, and `_find_existing`
+  Pass 2/3 merged on email or phone with no name check: ABANTI COLOUR TEX with
+  CRONY APPARELS, SWEATER HEAVEN with FATULLAH FASHION, ABONI KNITWEAR with
+  ABONI TEXTILE. Both passes now require a name floor (85) below the fuzzy
+  threshold — the contact is corroboration, so the names need only be
+  recognisably the same company. A duplicate supplier is visible and mergeable;
+  a conflation silently publishes one factory's data under another's name.
+- **`token_sort_ratio` is blind to the signal that separates these names.** It
+  sorts tokens before comparing, so COTTON FAIR vs FAIR COTTON scores 100 and
+  H. R TEXTILE MILLS vs G. R TEXTILE MILLS scores 94 — both over the 92
+  threshold, both different companies. Pass 4 now also requires an
+  order-sensitive `fuzz.ratio` over threshold, and forbids swapping one leading
+  initials block for another. Pinned in
+  `etl/tests/test_supplier_dedup_guards.py` against the real observed pairs, in
+  both directions: conflations must not merge, true variants must still merge.
+- **Max-merge hides downward corrections.** `backfill_profile_columns.py` uses
+  `greatest()`, so when BKMEA corrected KNIT GUARD APPARELS from 150 sewing
+  machines to 36, the profile kept 150. Known, not yet fixed — it needs a
+  per-source current-value rule rather than a running maximum.
+
+Not yet applied to production: migration 0087, and `ops/unmerge_bkmea_suppliers.py`
+(dry-run by default) which splits the 82 merged suppliers. The unmerge moves
+source records and evidence claims only; buyer-facing rows (saved_suppliers,
+message_threads, orders, claim_requests) stay with the surviving supplier
+because there is no honest way to know which company the buyer meant.
+
 ## Firecrawl Acquisition Layer + Verified Provenance
 29 Jul 2026 - Complete, in the working tree, from the accepted plan
 `firecrawl_acquisition_layer`. Acquisition is now a separate concern from parsing

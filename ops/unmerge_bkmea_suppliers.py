@@ -1,0 +1,252 @@
+"""Split suppliers that hold BKMEA member records for more than one company.
+
+WHY
+---
+Found on 31 Jul 2026 while investigating the /admin/evidence worklist: 82
+suppliers carried two or more BKMEA member records whose *base* membership
+numbers differ, meaning they are separate BKMEA members — separate legal
+entities — merged into one profile. `S. B. KNITWEAR` held B. S KNITWEAR and
+B. S TEXTILE; `ABANTI COLOUR TEX` held CRONY APPARELS; `M. H APPARELS LTD` held
+five records across three companies.
+
+They were merged by `_find_existing` in `etl/core/upsert.py`, mostly by Pass 2
+and Pass 3 — a shared group mailbox or switchboard number, which Bangladesh RMG
+groups routinely share across legally distinct factories. Those passes now
+require the names to corroborate the contact; this script repairs the rows that
+were written before that guard existed.
+
+WHAT IT DOES NOT DO
+-------------------
+Buyer-facing rows created against the merged profile — saved_suppliers,
+message_threads, orders, claim_requests, rfq_quotes — are never moved. A buyer
+who saved "M. H APPARELS LTD" saved whatever the profile showed them at the
+time, and there is no honest way to decide which of the underlying companies
+they meant. They stay with the surviving supplier. Splitting evidence and source
+data while leaving intent alone is the conservative half, and it is the half
+that fixes the data moat.
+
+Derived profile columns on the surviving supplier are cleared for the fields
+`backfill_profile_columns.py` owns, because those were max-merged across records
+that are about to belong to different companies. Re-run that script afterwards
+to recompute them from each supplier's own records:
+
+    python ops/backfill_profile_columns.py
+
+USAGE
+-----
+    python ops/unmerge_bkmea_suppliers.py              # dry run, prints the plan
+    python ops/unmerge_bkmea_suppliers.py --apply      # execute in one transaction
+    python ops/unmerge_bkmea_suppliers.py --apply --limit 5   # execute a slice first
+
+Dry run is the default deliberately: this rewrites supplier identity, and the
+plan should be read by a human before it runs.
+"""
+
+from __future__ import annotations
+
+import argparse
+import os
+import sys
+from collections import defaultdict
+from typing import Any
+
+import psycopg
+from psycopg.rows import dict_row
+from rapidfuzz import fuzz
+
+from etl.core.normalize import make_slug, normalize_company_name
+
+# Columns `backfill_profile_columns.py` max-merges from BKMEA records. Left in
+# place they would keep the largest value seen across companies that are about
+# to be separated — the reason KNIT GUARD APPARELS still showed 150 sewing
+# machines after BKMEA corrected it to 36.
+DERIVED_COLUMNS = (
+    "employees_total",
+    "employees_male",
+    "employees_female",
+    "production_capacity_pcs_day",
+    "machines_sewing",
+)
+
+MERGED_SUPPLIERS_SQL = """
+with recs as (
+  select sr.id            as record_id,
+         sr.supplier_id,
+         sr.source_ref,
+         sr.fields,
+         sr.fields->'bkmea_raw_kv'->>'Factory Name'     as scraped_name,
+         split_part(sr.fields->>'bkmea_membership_no', '-', 1) as base_no
+    from public.source_records sr
+    join public.sources s on s.id = sr.source_id and s.code = 'BKMEA'
+   where sr.fields ? 'bkmea_membership_no'
+     and nullif(trim(split_part(sr.fields->>'bkmea_membership_no', '-', 1)), '') is not null
+),
+merged as (
+  select supplier_id
+    from recs
+   group by supplier_id
+  having count(distinct base_no) > 1
+)
+select r.record_id, r.supplier_id, r.source_ref, r.scraped_name, r.base_no,
+       r.fields->>'bkmea_membership_no' as membership_no,
+       sup.company_name, sup.slug
+  from recs r
+  join merged m on m.supplier_id = r.supplier_id
+  join public.suppliers sup on sup.id = r.supplier_id
+ order by sup.company_name, r.base_no, r.source_ref;
+"""
+
+
+def _group_key(row: dict[str, Any]) -> str:
+    return row["base_no"]
+
+
+def _pick_survivor(company_name: str, groups: dict[str, list[dict]]) -> str:
+    """Which membership number keeps the existing supplier row.
+
+    The one whose scraped Factory Name is closest to the name the profile is
+    already published under, so the surviving slug keeps meaning what it meant.
+    Ties and nameless records fall back to the group with the most records,
+    which is the one carrying the most evidence.
+    """
+    target = normalize_company_name(company_name or "")
+
+    def score(base_no: str) -> tuple[float, int]:
+        names = [r["scraped_name"] for r in groups[base_no] if r["scraped_name"]]
+        best = max((fuzz.ratio(target, normalize_company_name(n)) for n in names), default=-1.0)
+        return (best, len(groups[base_no]))
+
+    return max(groups, key=score)
+
+
+def _unique_slug(cur, base: str) -> str:
+    slug = base or "supplier"
+    for suffix in range(0, 100):
+        candidate = slug if suffix == 0 else f"{slug}-{suffix + 1}"
+        cur.execute("select 1 from public.suppliers where slug = %s", (candidate,))
+        if cur.fetchone() is None:
+            return candidate
+    raise RuntimeError(f"could not find a free slug for {base!r}")
+
+
+def _new_company_name(rows: list[dict]) -> str | None:
+    for r in rows:
+        if r["scraped_name"]:
+            return r["scraped_name"].strip()
+    return None
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--apply", action="store_true", help="execute (default: dry run)")
+    parser.add_argument("--limit", type=int, default=None, help="only process N suppliers")
+    args = parser.parse_args()
+
+    dsn = os.environ.get("SUPABASE_DB_URL")
+    if not dsn:
+        print("ERROR: SUPABASE_DB_URL not set", file=sys.stderr)
+        return 1
+
+    with psycopg.connect(dsn, prepare_threshold=None, autocommit=False, row_factory=dict_row) as conn:
+        with conn.cursor() as cur:
+            cur.execute(MERGED_SUPPLIERS_SQL)
+            rows = cur.fetchall()
+
+        by_supplier: dict[str, list[dict]] = defaultdict(list)
+        for row in rows:
+            by_supplier[str(row["supplier_id"])].append(row)
+
+        supplier_ids = list(by_supplier)
+        if args.limit is not None:
+            supplier_ids = supplier_ids[: args.limit]
+
+        planned_splits = 0
+        skipped_unnamed = 0
+
+        for supplier_id in supplier_ids:
+            supplier_rows = by_supplier[supplier_id]
+            company_name = supplier_rows[0]["company_name"]
+
+            groups: dict[str, list[dict]] = defaultdict(list)
+            for row in supplier_rows:
+                groups[_group_key(row)].append(row)
+
+            survivor = _pick_survivor(company_name, groups)
+            print(f"\n{company_name}  [{supplier_id}]")
+            print(f"  keep   {survivor:<10} {_names(groups[survivor])}")
+
+            for base_no, group_rows in groups.items():
+                if base_no == survivor:
+                    continue
+                new_name = _new_company_name(group_rows)
+                if not new_name:
+                    # No Factory Name was ever scraped for this membership
+                    # number, so there is nothing to name the new supplier
+                    # after. Leaving it attached is wrong but recoverable;
+                    # inventing a name is neither.
+                    skipped_unnamed += 1
+                    print(f"  SKIP   {base_no:<10} no scraped name on {len(group_rows)} record(s)")
+                    continue
+
+                planned_splits += 1
+                print(f"  split  {base_no:<10} -> {new_name!r} ({len(group_rows)} record(s))")
+
+                if not args.apply:
+                    continue
+
+                with conn.cursor() as cur:
+                    slug = _unique_slug(cur, make_slug(new_name))
+                    cur.execute(
+                        """insert into public.suppliers (company_name, slug, company_name_norm)
+                           values (%s, %s, %s)
+                           returning id""",
+                        (new_name, slug, normalize_company_name(new_name)),
+                    )
+                    new_id = cur.fetchone()["id"]
+
+                    record_ids = [r["record_id"] for r in group_rows]
+                    cur.execute(
+                        "update public.source_records set supplier_id = %s where id = any(%s)",
+                        (new_id, record_ids),
+                    )
+                    cur.execute(
+                        """update public.evidence_claims
+                              set supplier_id = %s
+                            where supplier_id = %s
+                              and subject_table = 'source_records'
+                              and subject_id = any(%s::uuid[])""",
+                        (new_id, supplier_id, [str(r) for r in record_ids]),
+                    )
+
+            if args.apply:
+                with conn.cursor() as cur:
+                    cur.execute(
+                        f"""update public.suppliers
+                               set {', '.join(f'{c} = null' for c in DERIVED_COLUMNS)},
+                                   updated_at = now()
+                             where id = %s""",
+                        (supplier_id,),
+                    )
+
+        print(
+            f"\n{len(supplier_ids)} merged supplier(s); "
+            f"{planned_splits} split(s) planned; {skipped_unnamed} skipped for want of a name."
+        )
+
+        if args.apply:
+            conn.commit()
+            print("Applied. Now run: python ops/backfill_profile_columns.py")
+        else:
+            conn.rollback()
+            print("Dry run — nothing written. Re-run with --apply to execute.")
+
+    return 0
+
+
+def _names(rows: list[dict]) -> str:
+    seen = {r["scraped_name"] for r in rows if r["scraped_name"]}
+    return ", ".join(sorted(seen)) if seen else "(no scraped name)"
+
+
+if __name__ == "__main__":
+    sys.exit(main())

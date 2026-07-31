@@ -329,29 +329,71 @@ def supersede_claims(
     field_keys: Sequence[str],
     subject_key: str | None = None,
 ) -> int:
-    """Mark older claims for the same fields as superseded.
+    """Retire older claims for the same fields, and say why they were retired.
 
-    When a source republishes a page, the previous document's claims for those
-    fields are no longer the current citation. They become `stale` rather than
-    being deleted, so the history of what was cited when is not destroyed.
+    Claims are never deleted, so the history of what was cited when survives.
+    But "retired" covers two situations that must not be counted alike, because
+    only one of them is worth an operator's attention:
+
+    - `superseded` — the page was fetched again, or a different page says the
+      same thing. Pure bookkeeping. Excluded from the /admin/evidence worklist.
+    - `contradicted` — a *different* page asserts a *different* value for the
+      same subject and field. Two sources genuinely disagree. Stays visible.
+
+    Everything used to be written as `stale`, which is the verifier's word for
+    "the cited page no longer contains this value". That conflation is what let
+    three `bkmea_detail` runs put ~11.9k non-problems on the worklist while the
+    real signal in there — 82 suppliers holding BKMEA records for different
+    companies, each run flipping which membership number was current — was
+    indistinguishable from the noise.
+
+    `url_hash` is what separates the two cases: `evidence_documents` is unique
+    on (url_hash, content_sha256), so refetching one page whose content moved
+    yields a second row under the same url_hash.
     """
     if not field_keys:
         return 0
+    # `n` is the claim just written by the keeping document. Restricting to the
+    # fields it actually claimed is stricter than trusting `field_keys` alone,
+    # which is the caller's view of the payload rather than what got stored.
     sql = """
-    update public.evidence_claims
-       set status = 'stale', updated_at = now()
-     where subject_table = %s
-       and subject_id is not distinct from %s
-       and subject_key is not distinct from %s
-       and field_key = any(%s)
-       and evidence_id <> %s
-       and status = 'active'
+    update public.evidence_claims c
+       set status = case
+                      when n.doc_url_hash = (
+                             select d.url_hash
+                               from public.evidence_documents d
+                              where d.id = c.evidence_id
+                           )
+                        then 'superseded'
+                      when c.field_value is not distinct from n.field_value
+                        then 'superseded'
+                      else 'contradicted'
+                    end,
+           updated_at = now()
+      from (
+            select cl.subject_table, cl.subject_id, cl.subject_key,
+                   cl.field_key, cl.field_value, d.url_hash as doc_url_hash
+              from public.evidence_claims cl
+              join public.evidence_documents d on d.id = cl.evidence_id
+             where cl.evidence_id = %s
+           ) n
+     where c.subject_table = %s
+       and c.subject_id is not distinct from %s
+       and c.subject_key is not distinct from %s
+       and c.field_key = any(%s)
+       and c.evidence_id <> %s
+       and c.status = 'active'
+       and c.subject_table = n.subject_table
+       and c.subject_id is not distinct from n.subject_id
+       and c.subject_key is not distinct from n.subject_key
+       and c.field_key = n.field_key
     """
     try:
         with db.conn() as c, c.cursor() as cur:
             cur.execute(
                 sql,
                 (
+                    keep_evidence_id,
                     subject_table, subject_id, subject_key,
                     list(field_keys), keep_evidence_id,
                 ),
