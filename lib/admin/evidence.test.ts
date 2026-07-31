@@ -177,6 +177,20 @@ describe("claimAdvice", () => {
     const advice = claimAdvice(claim({ status: "contradicted" }));
     assert.ok(advice.includes("higher tier"));
   });
+
+  // A contradiction between two registry records for one supplier is nearly
+  // always a bad merge rather than a source disagreement — 82 such suppliers
+  // were found on 31 Jul 2026. The advice has to say so, or the operator
+  // "resolves" it by picking a value and the merge survives.
+  it("raises a bad merge as the likely cause of a contradiction", () => {
+    const advice = claimAdvice(claim({ status: "contradicted" }));
+    assert.ok(advice.includes("bad merge"));
+  });
+
+  it("tells the operator a superseded claim needs nothing done", () => {
+    const advice = claimAdvice(claim({ status: "superseded" }));
+    assert.ok(advice.includes("no action needed"));
+  });
 });
 
 describe("summary helpers", () => {
@@ -196,6 +210,7 @@ describe("summary helpers", () => {
         total: 0,
         active: 0,
         stale: 0,
+        superseded: 0,
         contradicted: 0,
         orphaned: 0,
         needs_review: 0,

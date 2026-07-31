@@ -74,6 +74,7 @@ function fieldLabel(key: string): string {
 const COMPACT_STATUS: Record<ClaimStatus, string> = {
   active: "OK",
   stale: "Changed",
+  superseded: "Replaced",
   contradicted: "Conflict",
   orphaned: "Gone",
 };

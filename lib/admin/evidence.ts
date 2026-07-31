@@ -7,7 +7,12 @@
 // been timing out for a week would read exactly like a registry that quietly
 // deleted a factory's worker count. Only the second is a data problem.
 
-export type ClaimStatus = "active" | "stale" | "contradicted" | "orphaned";
+export type ClaimStatus =
+  | "active"
+  | "stale"
+  | "superseded"
+  | "contradicted"
+  | "orphaned";
 export type VerifyStatus = "live" | "changed" | "dead" | "unverified";
 export type FetchStatus = "ok" | "not_found" | "error" | "blocked" | "timeout";
 
@@ -25,6 +30,11 @@ export type EvidenceSummary = {
     total: number;
     active: number;
     stale: number;
+    /**
+     * Retired because the page was fetched again, or another page agrees.
+     * Deliberately absent from `needs_review` — see migration 0087.
+     */
+    superseded: number;
     contradicted: number;
     orphaned: number;
     needs_review: number;
@@ -105,6 +115,7 @@ export type ProblemClaimsPage = {
 export const CLAIM_STATUS_LABELS: Record<ClaimStatus, string> = {
   active: "Confirmed",
   stale: "Value changed",
+  superseded: "Replaced by a newer citation",
   contradicted: "Contradicted",
   orphaned: "Link gone",
 };
@@ -123,7 +134,9 @@ export function claimAdvice(claim: ProblemClaim): string {
     case "stale":
       return `The page is still live but no longer contains this value. Re-run ${scraper} to pick up the current figure, then retire this claim if the source has dropped the field entirely.`;
     case "contradicted":
-      return `A higher-tier source states something different. Compare the two, and keep the higher tier per the source trust hierarchy.`;
+      return `Another page states something different for this same field. Check whether both records really describe this company — a supplier holding two registry records is usually a bad merge, not a source disagreement — then keep the higher tier per the source trust hierarchy.`;
+    case "superseded":
+      return "A newer citation replaced this one. Kept for history; no action needed.";
     case "active":
       return "Confirmed against the live page.";
   }

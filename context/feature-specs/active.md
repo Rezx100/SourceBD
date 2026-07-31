@@ -3,6 +3,26 @@
 This file keeps routine agent sessions from scanning every inactive feature spec.
 
 ## Active / Recent Spec
+- COMPLETE in the working tree (31 Jul 2026): supplier identity guards + evidence status
+  split. `/admin/evidence` reported 11,320 items needing review; none had failed a check
+  (`evidence_verifications` was empty) and every one had a newer active claim, because
+  `supersede_claims` wrote `stale` — the verifier's drift word — for the routine re-scrape
+  case. `bkmea_detail` alone added ~5,800 per run, unbounded. Migration 0087 adds a
+  `superseded` status outside every needs-review filter, but *classifies* rather than
+  assumes: same `url_hash` or same value is superseded and hidden, a different URL with a
+  different value is `contradicted` and stays visible. That distinction is load-bearing —
+  it is what surfaces the second defect found underneath: 82 suppliers holding BKMEA member
+  records for genuinely different companies, merged by `_find_existing` Pass 2/3 on a shared
+  group mailbox or switchboard with no name check, plus Pass 4's `token_sort_ratio` scoring
+  COTTON FAIR / FAIR COTTON at 100 and H. R / G. R TEXTILE MILLS at 94. Contact matches now
+  need a name floor of 85; fuzzy matches need an order-sensitive ratio and matching leading
+  initials. 23 new tests pin both directions against the real observed pairs. Python 414
+  passed (1 pre-existing failure: `bgmea_buying_house` missing from the SQL allow-list, at
+  HEAD), `npm test` 161/161, typecheck clean, lint clean apart from pre-existing warnings.
+  **Not applied to production: migration 0087, and `ops/unmerge_bkmea_suppliers.py`
+  (dry-run by default) which splits the 82 merged suppliers and needs
+  `backfill_profile_columns.py` re-run afterwards.** See `context/current-state.md` →
+  "Supplier Identity + Evidence Status Split".
 - COMPLETE in the working tree (31 Jul 2026): Barikoi geocode cache-key leak closed —
   `barikoi_geocode` keyed its cache through the place lexicon but decided what was
   still pending with raw SQL that did not, so every address the lexicon rewrites was
@@ -150,6 +170,18 @@ This file keeps routine agent sessions from scanning every inactive feature spec
   plus `context/frontend-design-spec.md`.
 
 ## Queued Specs
+- **Numeric profile fields cannot be corrected downwards.**
+  `ops/backfill_profile_columns.py` merges numeric columns with `greatest()`, so a
+  supplier's `machines_sewing`, `employees_total` and capacity figures can only ever
+  rise. When BKMEA corrected KNIT GUARD APPARELS from 150 sewing machines to 36, the
+  profile kept 150. The rule was chosen to survive a source publishing a zero, and
+  `_to_int_nonzero` in `bkmea_detail.py` already discards zeros, so `greatest()` is
+  now guarding against a case that no longer reaches it — while silently blocking
+  every legitimate correction. Raised 31 Jul 2026 during the /admin/evidence
+  investigation. Needs a rule that prefers the most recently confirmed value from the
+  highest-trust source rather than the largest one, and a one-off recompute
+  afterwards. Not urgent, but it means published capacity figures currently read as
+  high-water marks rather than current facts.
 - `spec-brand-primark-global-sourcing-map.md` — retarget `brand_primark` from the
   Modern Slavery Statement (narrative prose, parses to zero rows) at Primark's
   Global Sourcing Map, which is the real factory-level list. Raised 29 Jul 2026 by

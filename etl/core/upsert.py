@@ -27,6 +27,26 @@ log = get_logger("etl.upsert")
 
 _FUZZY_THRESHOLD = 92  # rapidfuzz returns 0-100
 
+# A shared email or phone is not, on its own, evidence of identity. Bangladesh
+# RMG groups run many legally distinct factories off one switchboard and one
+# group mailbox, so contact overlap alone merged genuinely different companies:
+# ABANTI COLOUR TEX with CRONY APPARELS (both sunny@abanti.net), SWEATER HEAVEN
+# with FATULLAH FASHION (both ffashion@bol-online.com), ABONI KNITWEAR with
+# ABONI TEXTILE, FAKIR APPARELS with FAKIR FASHION, and others — 82 suppliers
+# ended up holding BKMEA member records for more than one company.
+#
+# Contact matches must now clear a name floor too. It is deliberately below
+# _FUZZY_THRESHOLD: the contact is real corroborating evidence, so the names
+# need only be recognisably the same company rather than a fuzzy match in their
+# own right. Erring towards a duplicate supplier is the right trade — a
+# duplicate is visible and mergeable, whereas a conflation silently publishes
+# one factory's worker count and certifications under another's name.
+_CONTACT_NAME_FLOOR = 85
+
+# Longest leading token still read as an initials block once
+# `normalize_company_name` has collapsed "H. R." to "hr".
+_MAX_INITIALS_LEN = 3
+
 
 def upsert_supplier_with_source(rec: ScrapedRecord) -> str:
     """Returns supplier_id (uuid as str)."""
@@ -98,19 +118,26 @@ def _find_existing(
     if row:
         return str(row["id"])
 
-    # Pass 2: email
+    # Pass 2: email, corroborated by the name.
     if email:
-        cur.execute("select id from public.suppliers where email_primary = %s", (email,))
+        cur.execute(
+            "select id, company_name_norm from public.suppliers where email_primary = %s",
+            (email,),
+        )
         row = cur.fetchone()
-        if row:
+        if row and _contact_match_allowed(norm, row["company_name_norm"]):
             return str(row["id"])
 
-    # Pass 3: phone overlap
+    # Pass 3: phone overlap, corroborated by the name.
     if phones:
-        cur.execute("select id from public.suppliers where phones && %s::text[]", (phones,))
-        row = cur.fetchone()
-        if row:
-            return str(row["id"])
+        cur.execute(
+            "select id, company_name_norm from public.suppliers "
+            "where phones && %s::text[]",
+            (phones,),
+        )
+        for row in cur.fetchall():
+            if _contact_match_allowed(norm, row["company_name_norm"]):
+                return str(row["id"])
 
     # Pass 4: fuzzy name (within trigram-prefiltered candidates)
     cur.execute(
@@ -124,9 +151,62 @@ def _find_existing(
     if rows:
         choices = {str(r["id"]): r["company_name_norm"] for r in rows}
         match = process.extractOne(norm, choices, scorer=fuzz.token_sort_ratio)
-        if match and match[1] >= _FUZZY_THRESHOLD:
+        if (
+            match
+            and match[1] >= _FUZZY_THRESHOLD
+            and _names_compatible(norm, match[0])
+        ):
             return match[2]
     return None
+
+
+def _leading_initials(norm: str) -> str | None:
+    """The initials block a company leads with, if it has one.
+
+    `normalize_company_name` collapses "H. R. TEXTILE MILLS" to
+    "hr textile mills", so the identity of the company is carried by a short
+    first token that the rest of the name does not distinguish.
+    """
+    parts = norm.split()
+    if len(parts) < 2:
+        return None
+    head = parts[0]
+    return head if head.isalpha() and len(head) <= _MAX_INITIALS_LEN else None
+
+
+def _names_compatible(a: str, b: str) -> bool:
+    """Reject two name-similarity failure modes `token_sort_ratio` cannot see.
+
+    That scorer sorts tokens before comparing, which is what lets it see through
+    word-order noise — and also what makes it blind to word order as a signal:
+
+    - "COTTON FAIR (PVT) LTD" and "FAIR COTTON (PVT) LTD" score **100**. They
+      are two different BKMEA members. An order-sensitive ratio scores them 55.
+    - "H. R TEXTILE MILLS" and "G. R TEXTILE MILLS" score **94**, over the
+      threshold, on a one-letter difference in the initials that *are* the
+      company's identity. Likewise "S. B. KNITWEAR" against "B. S KNITWEAR".
+
+    So a fuzzy match must additionally survive an order-sensitive comparison,
+    and may not silently swap one initials block for another.
+    """
+    ia, ib = _leading_initials(a), _leading_initials(b)
+    if ia is not None and ib is not None and ia != ib:
+        return False
+    return fuzz.ratio(a, b) >= _FUZZY_THRESHOLD
+
+
+def _contact_match_allowed(norm: str, candidate_norm: str | None) -> bool:
+    """Whether a shared email/phone may merge these two names."""
+    if not candidate_norm:
+        # Nothing to corroborate against. The contact is all we have, and on its
+        # own it is not identity — see _CONTACT_NAME_FLOOR.
+        return False
+    if _leading_initials(norm) != _leading_initials(candidate_norm):
+        return False
+    return max(
+        fuzz.token_sort_ratio(norm, candidate_norm),
+        fuzz.ratio(norm, candidate_norm),
+    ) >= _CONTACT_NAME_FLOOR
 
 
 def _insert_supplier(
