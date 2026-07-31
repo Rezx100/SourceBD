@@ -47,7 +47,7 @@ _SECTION_LOCATORS = {
     "bkmea_reg_number": "div.tbrow table.table (BKMEA Membership No.)",
     "bkmea_membership_no": "div.tbrow table.table (BKMEA Membership No.)",
     "bkmea_membership_category": "div.tbrow table.table (Membership Category)",
-    "bkmea_factory_address": "div.tbrow table.table (Factory Adress)",
+    "bkmea_factory_address": "div.tbrow table.table (Factory Address)",
     "bkmea_mailing_address": "div.tbrow table.table (Mailing Address)",
     "bkmea_owner_name": "div.tbrow table.table (Owner Details / Owner Name)",
     "bkmea_owner_email": "div.tbrow table.table (Owner Details / Email Address)",
@@ -140,11 +140,13 @@ class BkmeaDetailScraper(AcquiringScraper):
     def _load_targets(self) -> Iterable[tuple[str, str, str]]:
         """Return list of (detail_id, source_ref, company_name) to enrich.
 
-        Only picks suppliers that still need enrichment (missing email AND
-        missing address_raw) to keep re-runs cheap.
+        Picks suppliers that:
+        - Still need initial enrichment (missing email OR address_raw), OR
+        - Have at least one stale evidence claim from bkmea_detail (so a
+          re-run can refresh their membership / address excerpts).
         """
         sql = """
-            select sr.source_ref,
+            select distinct sr.source_ref,
                    s.company_name,
                    sr.fields ->> 'bkmea_detail_id' as detail_id
               from public.source_records sr
@@ -152,7 +154,19 @@ class BkmeaDetailScraper(AcquiringScraper):
               join public.sources src on src.id = sr.source_id
              where src.code = 'BKMEA'
                and sr.fields ? 'bkmea_detail_id'
-               and (s.email_primary is null or s.address_raw is null)
+               and (
+                   s.email_primary is null
+                   or s.address_raw is null
+                   or exists (
+                       select 1
+                         from public.evidence_claims ec
+                         join public.evidence_documents ed on ed.id = ec.evidence_id
+                        where ec.supplier_id = s.id
+                          and ed.scraper_code = 'bkmea_detail'
+                          and ec.status = 'stale'
+                          and ec.reviewed_at is null
+                   )
+               )
              order by sr.source_ref desc
         """
         with db.conn() as c, c.cursor() as cur:
@@ -195,14 +209,14 @@ class BkmeaDetailScraper(AcquiringScraper):
             "bkmea_rep_name": kv.get("Representative Details / Name"),
             "bkmea_rep_email": kv.get("Representative Details / Email Address"),
             "bkmea_rep_mobile": kv.get("Representative Details / Mobile No."),
-            "bkmea_employees_male": _to_int(kv.get("Number of Employees / Male")),
-            "bkmea_employees_female": _to_int(kv.get("Number of Employees / Female")),
-            "bkmea_employees_others": _to_int(kv.get("Number of Employees / Others")),
-            "bkmea_employees_total": _to_int(kv.get("Number of Employees / Total")),
-            "bkmea_machines_sewing": _to_int(kv.get("Number of Machine / SEWING")),
-            "bkmea_machines_knitting": _to_int(kv.get("Number of Machine / Knitting")),
-            "bkmea_machines_dyeing": _to_int(kv.get("Number of Machine / Dyeing")),
-            "bkmea_production_capacity": _to_int(kv.get("Production Capacity")),
+            "bkmea_employees_male": _to_int_nonzero(kv.get("Number of Employees / Male")),
+            "bkmea_employees_female": _to_int_nonzero(kv.get("Number of Employees / Female")),
+            "bkmea_employees_others": _to_int_nonzero(kv.get("Number of Employees / Others")),
+            "bkmea_employees_total": _to_int_nonzero(kv.get("Number of Employees / Total")),
+            "bkmea_machines_sewing": _to_int_nonzero(kv.get("Number of Machine / SEWING")),
+            "bkmea_machines_knitting": _to_int_nonzero(kv.get("Number of Machine / Knitting")),
+            "bkmea_machines_dyeing": _to_int_nonzero(kv.get("Number of Machine / Dyeing")),
+            "bkmea_production_capacity": _to_int_nonzero(kv.get("Production Capacity")),
             "bkmea_products": kv.get("Products"),
             "bkmea_detail_id": detail_id,
             "bkmea_detail_url": url,
@@ -312,6 +326,18 @@ def _to_int(v: str | None) -> int | None:
         return None
     digits = re.sub(r"[^\d]", "", v)
     return int(digits) if digits else None
+
+
+def _to_int_nonzero(v: str | None) -> int | None:
+    """Parse an integer, returning None for zero or missing values.
+
+    BKMEA sometimes records 0 for fields the factory has not reported — e.g.
+    employee counts, machine counts, production capacity — which is
+    indistinguishable from a true zero count.  A 0 from BKMEA is therefore
+    treated as 'not provided' so it never overwrites verified platform data.
+    """
+    result = _to_int(v)
+    return result if result else None
 
 
 def _clean_email(v: str | None) -> str | None:
