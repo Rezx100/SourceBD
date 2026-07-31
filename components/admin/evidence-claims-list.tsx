@@ -115,7 +115,6 @@ export function EvidenceClaimsList({
   rows: ProblemClaim[];
   emptyDescription?: string;
 }) {
-  const router = useRouter();
   const [resolvedIds, setResolvedIds] = useState<ReadonlySet<string>>(new Set());
 
   const handleResolved = useCallback(
