@@ -78,7 +78,7 @@ describe("transport metadata", () => {
   it("marks the file-backed sources as file, not direct", () => {
     // These read from disk, so "failed" means nobody staged a fresh extract —
     // a different action from a network failure.
-    assert.equal(scraperTransport("bgmea_pdf"), "file");
+    assert.equal(scraperTransport("bgmea_buying_house"), "file");
     assert.equal(scraperTransport("btma_spinning"), "file");
   });
 

@@ -4,7 +4,10 @@ services:
       context: .
       dockerfile: Dockerfile.web
     image: sourcebd-web:latest
-    env_file: .env
+    env_file:
+      - .env
+      - path: .deploy/deploy.env
+        required: false
     restart: unless-stopped
     ports:
       # Bind to localhost only; Caddy on the host fronts public :80.

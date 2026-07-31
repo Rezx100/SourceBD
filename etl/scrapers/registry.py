@@ -14,7 +14,7 @@ from __future__ import annotations
 from etl.evidence.monitors import RefreshMonitorsJob
 from etl.evidence.verifier import VerifyEvidenceJob
 from etl.scrapers.bgapmea_web import BgapmeaScraper
-from etl.scrapers.bgmea_pdf import BgmeaPdfScraper
+from etl.scrapers.bgmea_buying_house import BgmeaBuyingHouseScraper
 from etl.scrapers.bgmea_web import BgmeaWebScraper
 from etl.scrapers.bkmea_detail import BkmeaDetailScraper
 from etl.scrapers.bkmea_web import BkmeaScraper
@@ -43,7 +43,7 @@ from etl.scrapers.uk_ofsi import UkOfsiScraper
 from etl.scrapers.wrap import WrapScraper
 
 SCRAPERS = {
-    "bgmea_pdf": BgmeaPdfScraper,
+    "bgmea_buying_house": BgmeaBuyingHouseScraper,
     "bgmea_web": BgmeaWebScraper,
     "bkmea_web": BkmeaScraper,
     "bkmea_detail": BkmeaDetailScraper,
