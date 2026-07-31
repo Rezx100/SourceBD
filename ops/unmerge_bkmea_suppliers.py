@@ -185,6 +185,15 @@ def main() -> int:
         planned_splits = 0
         skipped_unnamed = 0
         kept_relisting = 0
+        reused_member = 0
+
+        # One BKMEA member can be attached to two different merged suppliers —
+        # member 376 (CRONY APPARELS LTD) sits under both ABANTI COLOUR TEX and
+        # CRONY FASHION. Splitting each parent independently would create two
+        # suppliers for one company, trading a conflation for a duplicate. The
+        # membership number is the identity, so the first split of a member wins
+        # and later ones attach to it.
+        supplier_for_member: dict[str, Any] = {}
 
         for supplier_id in supplier_ids:
             supplier_rows = by_supplier[supplier_id]
@@ -218,20 +227,32 @@ def main() -> int:
 
                 planned_splits += 1
                 split_here += 1
-                print(f"  split  {base_no:<10} -> {new_name!r} ({len(group_rows)} record(s))")
+                already = base_no in supplier_for_member
+                if already:
+                    reused_member += 1
+                    print(
+                        f"  split  {base_no:<10} -> {new_name!r} "
+                        f"({len(group_rows)} record(s), joins the supplier already split for this member)"
+                    )
+                else:
+                    print(f"  split  {base_no:<10} -> {new_name!r} ({len(group_rows)} record(s))")
 
                 if not args.apply:
+                    supplier_for_member.setdefault(base_no, True)
                     continue
 
                 with conn.cursor() as cur:
-                    slug = _unique_slug(cur, make_slug(new_name))
-                    cur.execute(
-                        """insert into public.suppliers (company_name, slug, company_name_norm)
-                           values (%s, %s, %s)
-                           returning id""",
-                        (new_name, slug, normalize_company_name(new_name)),
-                    )
-                    new_id = cur.fetchone()["id"]
+                    new_id = supplier_for_member.get(base_no)
+                    if new_id is None:
+                        slug = _unique_slug(cur, make_slug(new_name))
+                        cur.execute(
+                            """insert into public.suppliers (company_name, slug, company_name_norm)
+                               values (%s, %s, %s)
+                               returning id""",
+                            (new_name, slug, normalize_company_name(new_name)),
+                        )
+                        new_id = cur.fetchone()["id"]
+                        supplier_for_member[base_no] = new_id
 
                     record_ids = [r["record_id"] for r in group_rows]
                     cur.execute(
@@ -260,7 +281,8 @@ def main() -> int:
                     )
 
         print(
-            f"\n{len(supplier_ids)} candidate supplier(s); {planned_splits} split(s) planned; "
+            f"\n{len(supplier_ids)} candidate supplier(s); {planned_splits} split(s) planned "
+            f"({reused_member} joining a member already split); "
             f"{kept_relisting} left alone as re-listings; "
             f"{skipped_unnamed} skipped for want of a name."
         )
