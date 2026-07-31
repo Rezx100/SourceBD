@@ -12,13 +12,9 @@
 // visually and given different first actions, because treating an outage as a
 // retraction is how a data moat quietly loses facts it still has evidence for.
 
-import Link from "next/link";
-
-import { AdminEvidenceDecideButton } from "@/components/admin-evidence-decide-button";
 import {
   ADMIN_SELECT_CLASS,
   AdminActionLink,
-  AdminEmptyState,
   AdminField,
   AdminFilterPanel,
   AdminPage,
@@ -27,19 +23,10 @@ import {
   AdminPanel,
   formatAdminDate,
 } from "@/components/admin/admin-ui";
-import { Badge } from "@/components/ui/badge";
+import { EvidenceClaimsList } from "@/components/admin/evidence-claims-list";
 import { Card, CardContent } from "@/components/ui/card";
-import { Tag } from "@/components/ui/tag";
 import {
-  CLAIM_STATUS_LABELS,
-  citationHref,
-  claimAdvice,
-  consecutiveFailures,
-  isTransientlyUnreachable,
-  transientReason,
-  type ClaimStatus,
   type EvidenceSummary,
-  type ProblemClaim,
   type ProblemClaimsPage,
 } from "@/lib/admin/evidence";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -107,13 +94,18 @@ export default async function AdminEvidencePage({
 
   const doc = claims.data as ProblemClaimsPage;
   const health = (summary.data as EvidenceSummary | null) ?? null;
-  const totalPages = Math.max(1, Math.ceil(doc.total / PAGE_SIZE));
 
-  // Two piles, because they call for different actions. A page we could not
-  // reach needs a re-check or a look at the source; a fact that has actually
-  // moved needs a scraper run or a retirement.
-  const unreachable = doc.rows.filter(isTransientlyUnreachable);
-  const drifted = doc.rows.filter((row) => !isTransientlyUnreachable(row));
+  // The RPC returns all problem claims sorted with reviewed at the back.
+  // We filter to unreviewed-only here so the worklist only shows actionable items.
+  // The reviewed ones still exist in the DB; the operator can see them via the
+  // full-detail supplier page.
+  const unreviewedRows = doc.rows.filter((r) => r.reviewed_at === null);
+
+  // Use the summary's needs_review count as the canonical "to do" number;
+  // doc.total includes already-reviewed claims which are not shown.
+  const needsReviewTotal = health?.claims.needs_review ?? unreviewedRows.length;
+
+  const totalPages = Math.max(1, Math.ceil(doc.total / PAGE_SIZE));
 
   const pageHref = (n: number) => {
     const query = new URLSearchParams();
@@ -125,13 +117,13 @@ export default async function AdminEvidencePage({
 
   return (
     <AdminPage maxWidth="5xl">
-      <EvidenceHeader total={doc.total} />
+      <EvidenceHeader total={needsReviewTotal} />
 
       {health ? <HealthStrip summary={health} /> : null}
 
       <AdminFilterPanel
         title="Filter the worklist"
-        description="Unreviewed problems come first, most recently changed at the top."
+        description="Unreviewed problems only — acknowledged or re-checked claims drop out immediately."
       >
         <form
           method="get"
@@ -158,42 +150,10 @@ export default async function AdminEvidencePage({
         </form>
       </AdminFilterPanel>
 
-      {doc.rows.length === 0 ? (
-        <AdminPanel title="Nothing to review">
-          <AdminEmptyState
-            title="Every citation currently checks out"
-            description="No stored fact is missing from the page it was cited on. Run the verify-evidence job to re-check the long tail."
-          />
-        </AdminPanel>
-      ) : null}
-
-      {unreachable.length > 0 ? (
-        <AdminPanel
-          title={`Could not be checked (${unreachable.length})`}
-          description="The source did not answer at check time — a timeout, a block, or a 5xx. This says nothing about whether the fact is still published, so the stored value and its citation are untouched. Re-check, or look at why the source is refusing us."
-          padded={false}
-        >
-          <div className="divide-y divide-neutral-200">
-            {unreachable.map((claim) => (
-              <ClaimRow key={claim.claim_id} claim={claim} unreachable />
-            ))}
-          </div>
-        </AdminPanel>
-      ) : null}
-
-      {drifted.length > 0 ? (
-        <AdminPanel
-          title={`Checked and no longer supported (${drifted.length})`}
-          description="We reached the page and the value we cited is not on it. These are real data problems: the fact is being asserted on evidence that no longer holds."
-          padded={false}
-        >
-          <div className="divide-y divide-neutral-200">
-            {drifted.map((claim) => (
-              <ClaimRow key={claim.claim_id} claim={claim} />
-            ))}
-          </div>
-        </AdminPanel>
-      ) : null}
+      <EvidenceClaimsList
+        rows={unreviewedRows}
+        emptyDescription="No unreviewed problems in the current filter. Run the verify-evidence job to re-check the long tail."
+      />
 
       <AdminPagination page={page} totalPages={totalPages} pageHref={pageHref} />
     </AdminPage>
@@ -208,7 +168,7 @@ function HealthStrip({ summary }: { summary: EvidenceSummary }) {
         <Stat
           label="Confirmed claims"
           value={claims.active.toLocaleString()}
-          hint={`of ${claims.total.toLocaleString()}`}
+          hint={`of ${claims.total.toLocaleString()} total`}
         />
         <Stat
           label="Needs review"
@@ -223,10 +183,8 @@ function HealthStrip({ summary }: { summary: EvidenceSummary }) {
           tone={documents.dead > 0 ? "red" : "green"}
         />
         <Stat
-          label="Monitors on"
-          value={
-            monitors.total === 0 ? "None" : `${monitors.enabled}/${monitors.total}`
-          }
+          label="Monitors"
+          value={monitors.total === 0 ? "None" : `${monitors.enabled}/${monitors.total}`}
           hint={
             monitors.last_check_at
               ? `last check ${formatAdminDate(monitors.last_check_at)}`
@@ -271,112 +229,12 @@ function Stat({
   );
 }
 
-function ClaimRow({
-  claim,
-  unreachable = false,
-}: {
-  claim: ProblemClaim;
-  unreachable?: boolean;
-}) {
-  const href = citationHref(claim);
-  const isArchived = claim.evidence.verify_status === "dead";
-  const failures = consecutiveFailures(claim);
-
-  return (
-    <div className="flex flex-col gap-3 p-4 sm:flex-row sm:items-start sm:justify-between sm:p-5">
-      <div className="min-w-0 space-y-2">
-        <div className="flex flex-wrap items-center gap-2">
-          {claim.supplier?.id ? (
-            <Link
-              href={`/admin/suppliers/${claim.supplier.id}`}
-              className="text-sm font-semibold text-ink-primary hover:underline"
-            >
-              {claim.supplier.company_name ?? "Unnamed supplier"}
-            </Link>
-          ) : (
-            <span className="text-sm font-semibold text-ink-primary">
-              {claim.subject_table}
-            </span>
-          )}
-          <Badge tone={unreachable ? "neutral" : "alert"}>
-            {unreachable ? "unchecked" : CLAIM_STATUS_LABELS[claim.status as ClaimStatus]}
-          </Badge>
-          <Tag tone="neutral">{claim.evidence.scraper_code}</Tag>
-          {claim.source_tier != null ? <Tag>Tier {claim.source_tier}</Tag> : null}
-          {claim.reviewed_at ? <Tag tone="muted">reviewed</Tag> : null}
-        </div>
-
-        <p className="font-mono text-[13px] text-ink-secondary">
-          {claim.field_key} = {claim.field_value ?? "—"}
-        </p>
-
-        {claim.excerpt ? (
-          <p className="rounded-md border border-neutral-200 bg-neutral-50 p-2 text-[13px] italic text-ink-secondary">
-            &ldquo;{claim.excerpt}&rdquo;
-          </p>
-        ) : (
-          <p className="text-[13px] text-ink-tertiary">
-            No excerpt was captured for this claim — it is confirmed by file digest
-            rather than by quoting text.
-          </p>
-        )}
-
-        <p className="text-[13px] text-ink-secondary">
-          {unreachable
-            ? `The last ${failures || 1} check${failures === 1 ? "" : "s"} could not reach the page (${transientReason(claim) ?? "unknown reason"}). The stored value is unchanged and its citation still stands; nothing has been retired.`
-            : claimAdvice(claim)}
-        </p>
-
-        <p className="font-mono text-[12px] text-ink-tertiary">
-          {claim.locator ? <>{claim.locator} · </> : null}
-          last confirmed{" "}
-          {claim.last_confirmed_at ? formatAdminDate(claim.last_confirmed_at) : "never"}
-          {claim.evidence.last_verified_at ? (
-            <> · last checked {formatAdminDate(claim.evidence.last_verified_at)}</>
-          ) : null}
-          {claim.evidence.http_status != null ? (
-            <> · HTTP {claim.evidence.http_status}</>
-          ) : null}
-        </p>
-
-        {href ? (
-          <a
-            href={href}
-            target="_blank"
-            rel="noreferrer"
-            className="inline-block font-mono text-[12px] text-accent-indigo hover:underline"
-          >
-            {isArchived
-              ? `archived snapshot (page captured ${formatAdminDate(claim.evidence.fetched_at)})`
-              : claim.evidence.final_url ?? claim.evidence.url}
-          </a>
-        ) : (
-          <p className="font-mono text-[12px] text-ink-tertiary">
-            {claim.evidence.url} · no archived copy available
-          </p>
-        )}
-
-        {claim.review_note ? (
-          <p className="text-[13px] text-ink-tertiary">Note: {claim.review_note}</p>
-        ) : null}
-      </div>
-
-      <div className="shrink-0">
-        <AdminEvidenceDecideButton
-          claimId={claim.claim_id}
-          label={`${claim.field_key} · ${claim.evidence.scraper_code}`}
-        />
-      </div>
-    </div>
-  );
-}
-
 function EvidenceHeader({ total }: { total?: number }) {
   return (
     <AdminPageHeader
       kicker="Admin · Evidence"
       title="Citation health"
-      description={`Stored facts whose citation no longer checks out against the live page.${typeof total === "number" ? ` ${total} in the current filter.` : ""} A page we could not reach is listed separately from a fact that has actually moved.`}
+      description={`Stored facts whose citation no longer checks out against the live page.${typeof total === "number" ? ` ${total.toLocaleString()} unreviewed.` : ""} Grouped by company — click a field row to see the excerpt and source URL.`}
       actions={<AdminActionLink href="/admin/sources">Sources &amp; ingestion</AdminActionLink>}
     />
   );
