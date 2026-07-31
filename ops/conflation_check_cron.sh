@@ -24,7 +24,12 @@ notify() {
 
 echo "=== $(date -Is) supplier conflation check ==="
 
-output=$(docker compose run --rm --entrypoint python -e PYTHONPATH=/app etl \
+# The etl image copies in only `etl/` and `supabase/` (see Dockerfile), so
+# `ops/` is mounted from the deployed tree rather than baked. That also means
+# the check always runs whatever ops/ code is actually deployed, with no image
+# rebuild needed to fix or tune it.
+output=$(docker compose run --rm --entrypoint python \
+  -e PYTHONPATH=/app -v "$APP_DIR/ops:/app/ops:ro" etl \
   ops/check_supplier_conflations.py --quiet 2>&1)
 rc=$?
 [ -n "$output" ] && echo "$output"
