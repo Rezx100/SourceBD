@@ -160,6 +160,21 @@ main() {
 	export COMPOSE_DOCKER_CLI_BUILD=1
 	docker compose -f "$COMPOSE_FILE" build web
 
+	step "Building etl image (Dockerfile)"
+	# The etl service bakes the pipeline source into the image — only
+	# etl/raw, etl/parsed and etl/logs are bind-mounted — and cron invokes it
+	# as `docker compose run --rm etl`, which reuses the existing tag rather
+	# than rebuilding. So skipping this build leaves the scrapers running
+	# whatever code was current at the last etl build, silently, while
+	# /api/health reports the new commit and the deploy looks clean.
+	#
+	# That is not hypothetical: on 31 Jul 2026 the supplier-identity guards in
+	# etl/core/upsert.py were deployed and the minutely scraper queue kept
+	# running the old matcher, which would have re-merged the 40 supplier
+	# profiles that had just been split apart. Web and etl are one commit and
+	# must be built as one.
+	docker compose -f "$COMPOSE_FILE" build etl
+
 	step "Restarting web container only (etl volumes untouched)"
 	# `--no-build`: the image was just built explicitly above. Without this
 	# flag, `up` re-evaluates the service's `build:` block and reruns the
