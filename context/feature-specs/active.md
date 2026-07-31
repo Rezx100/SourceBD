@@ -170,6 +170,18 @@ This file keeps routine agent sessions from scanning every inactive feature spec
   plus `context/frontend-design-spec.md`.
 
 ## Queued Specs
+- **Numeric profile fields cannot be corrected downwards.**
+  `ops/backfill_profile_columns.py` merges numeric columns with `greatest()`, so a
+  supplier's `machines_sewing`, `employees_total` and capacity figures can only ever
+  rise. When BKMEA corrected KNIT GUARD APPARELS from 150 sewing machines to 36, the
+  profile kept 150. The rule was chosen to survive a source publishing a zero, and
+  `_to_int_nonzero` in `bkmea_detail.py` already discards zeros, so `greatest()` is
+  now guarding against a case that no longer reaches it — while silently blocking
+  every legitimate correction. Raised 31 Jul 2026 during the /admin/evidence
+  investigation. Needs a rule that prefers the most recently confirmed value from the
+  highest-trust source rather than the largest one, and a one-off recompute
+  afterwards. Not urgent, but it means published capacity figures currently read as
+  high-water marks rather than current facts.
 - `spec-brand-primark-global-sourcing-map.md` — retarget `brand_primark` from the
   Modern Slavery Statement (narrative prose, parses to zero rows) at Primark's
   Global Sourcing Map, which is the real factory-level list. Raised 29 Jul 2026 by
