@@ -3,6 +3,24 @@
 This file keeps routine agent sessions from scanning every inactive feature spec.
 
 ## Active / Recent Spec
+- P0 CORE COMPLETE IN PRODUCTION (2 Aug 2026): **REZ-31 — zombie ETL run/job
+  reaper + universal heartbeats**. `reap_stale()` runs at the top of every
+  `run_queue()` in one transaction and raises (so the cron's Slack alert
+  fires): stale `running` jobs fail on `coalesce(heartbeat_at, started_at,
+  requested_at)` older than `ETL_REAP_STALE_HOURS` (default 3) with a
+  `Reaped:` event row; orphaned `running` runs fail on age, exempted while a
+  pending/running job references them (a queue-backed run's liveness is its
+  job's heartbeat). Heartbeats are now universal — claim sets
+  `heartbeat_at`, verify/refresh jobs emit progress mid-run — which is the
+  reaper's safety precondition. Skip-slide fixed: a skipped schedule no
+  longer advances `next_run_at`, so blocked schedules catch up instead of
+  dropping intervals (the weekly `rsc` had silently eaten 31 Jul).
+  Resurrection guard: `_mark_success`/`_mark_failed` only touch rows still
+  `running`. First production cron pass reaped exactly the audited zombies
+  (2 jobs + 7 runs); zero `running` stragglers since. PR #59
+  (development→main) open, unmerged; VPS on `development` `9591e41`.
+  Session 2 (REZ-39: pending-job alerting) closes the issue. See
+  `context/current-state.md` → "ETL Zombie Reaper + Universal Heartbeats".
 - PHASES A–C COMPLETE IN PRODUCTION (2 Aug 2026): **REZ-34 — activate the
   evidence verification tier**
   (`context/feature-specs/spec-evidence-verification-tier-activation.md`), REZ-42
