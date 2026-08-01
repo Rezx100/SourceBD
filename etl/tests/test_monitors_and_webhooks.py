@@ -353,7 +353,7 @@ def test_refresh_monitors_job_reports_an_unconfigured_run_as_failed(
     opened: list[str] = []
     closed: list[tuple[str, str, int, int, str | None]] = []
 
-    async def fake_refresh(dry_run: bool = False):
+    async def fake_refresh(dry_run: bool = False, progress_callback: Any | None = None):
         return {"planned": 5, "created": 0, "error": "FIRECRAWL_API_KEY not set"}
 
     monkeypatch.setattr(mmod, "refresh_monitors", fake_refresh)
