@@ -140,9 +140,11 @@ export function AdminScraperActions({
 export function AdminScraperJobAction({
   jobId,
   action,
+  label,
 }: {
   jobId: string;
   action: "cancel" | "retry";
+  label?: string;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -177,9 +179,12 @@ export function AdminScraperJobAction({
         type="button"
         disabled={pending}
         onClick={submit}
-        className="rounded-pill border border-neutral-200 px-3 py-1.5 text-xs font-semibold capitalize text-ink-secondary transition hover:border-brand-forest/30 hover:bg-brand-forest-tint hover:text-brand-forest disabled:opacity-60"
+        className={
+          "rounded-pill border border-neutral-200 px-3 py-1.5 text-xs font-semibold text-ink-secondary transition hover:border-brand-forest/30 hover:bg-brand-forest-tint hover:text-brand-forest disabled:opacity-60" +
+          (label ? "" : " capitalize")
+        }
       >
-        {pending ? "Saving..." : action}
+        {pending ? "Saving..." : (label ?? action)}
       </button>
       {error ? <span className="text-xs text-sem-red">{error}</span> : null}
     </span>
