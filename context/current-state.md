@@ -60,11 +60,37 @@ Architectural decisions worth keeping:
   machines to 36, the profile kept 150. Known, not yet fixed — it needs a
   per-source current-value rule rather than a running maximum.
 
-Not yet applied to production: migration 0087, and `ops/unmerge_bkmea_suppliers.py`
-(dry-run by default) which splits the 82 merged suppliers. The unmerge moves
-source records and evidence claims only; buyer-facing rows (saved_suppliers,
-message_threads, orders, claim_requests) stay with the surviving supplier
-because there is no honest way to know which company the buyer meant.
+**Applied to production 31 Jul 2026** (main `bf9647d`). Migration 0087 took
+needs_review from ~11.9k to 881, with 12,551 claims filed as `superseded`. The
+unmerge split 40 groups into 39 new suppliers (10,245 -> 10,284) in one
+transaction, taking conflated suppliers from 82 to 47; `backfill_profile_columns.py`
+recomputed the derived columns afterwards. The unmerge moves source records and
+evidence claims only; buyer-facing rows (saved_suppliers, message_threads, orders,
+claim_requests) stay with the surviving supplier because there is no honest way to
+know which company the buyer meant.
+
+The 47 remaining are deliberate: BKMEA re-listing one company under two
+membership numbers (a different base number opens the question, the names settle
+it), or records with no scraped name, where inventing one is worse than leaving
+it. One duplicate source record is stranded on CRONY FASHION LTD — two parents
+each held a scrape of the same page and `source_records` is unique on
+(supplier_id, source_id, source_ref).
+
+Two things make this durable rather than a one-off cleanup:
+
+- **`ops/deploy_vps.sh` now builds the etl image too.** It built only web. The
+  etl service bakes the pipeline source in and cron invokes it with
+  `docker compose run`, which reuses the existing tag — so the guards went live
+  in the web container and were *absent from the scrapers that needed them*,
+  while `/api/health` reported the new commit and the deploy looked clean. The
+  next BKMEA run would have re-merged everything just split apart. Web and etl
+  are one commit and must be built as one.
+- **`ops/check_supplier_conflations.py`**, daily at 03:17 via
+  `ops/conflation_check_cron.sh`, on the assumption the guards will eventually be
+  circumvented. It reuses `_names_compatible`, so detection cannot drift from the
+  rule it polices. A check that cannot run also alerts — otherwise a broken DSN
+  disarms it silently. `ops/` is mounted rather than baked (the etl Dockerfile
+  copies only `etl/` and `supabase/`).
 
 ## Firecrawl Acquisition Layer + Verified Provenance
 29 Jul 2026 - Complete, in the working tree, from the accepted plan
