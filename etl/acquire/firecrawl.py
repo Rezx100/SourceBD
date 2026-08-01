@@ -349,9 +349,27 @@ class FirecrawlAdapter(AcquisitionAdapter):
 
     # --------------------------------------------------------------- monitor
     async def create_monitor(self, spec: dict[str, Any]) -> dict[str, Any]:
-        payload, _status, err = await self._post_with_retry("/v2/monitor", spec)
+        """Register a monitor. Raises unless Firecrawl actually accepted it.
+
+        `_request_with_retry` surfaces a 4xx with a JSON body as (payload,
+        status, None) — no error — so the caller must check both the HTTP
+        status and the `success` flag, exactly as `fetch()` does. Recording an
+        error body as a registration writes a local row with a NULL monitor id:
+        a phantom that looks registered, reports nothing, and is invisible to
+        reconciliation (6 of them in production on 2 Aug 2026).
+        """
+        payload, http_status, err = await self._post_with_retry("/v2/monitor", spec)
         if err is not None:
             raise RuntimeError(f"firecrawl monitor create failed: {err}")
+        if http_status is not None and not 200 <= http_status < 300:
+            detail = payload.get("error") or payload.get("message") or ""
+            raise RuntimeError(
+                f"firecrawl monitor create failed: HTTP {http_status}"
+                + (f": {detail}" if detail else "")
+            )
+        if not payload.get("success", False):
+            detail = payload.get("error") or payload.get("message") or "success flag absent"
+            raise RuntimeError(f"firecrawl monitor create failed: {detail}")
         return payload
 
     async def list_monitors(self) -> list[dict[str, Any]]:

@@ -78,6 +78,14 @@ class BkmeaDetailScraper(AcquiringScraper):
     source_code = "BKMEA"
     transport = "firecrawl"
     fallback_transport = "direct"
+    # Verify over the direct transport (founder-approved 2 Aug 2026, parity-
+    # proven 8/8 on 29 Jul): the browser headers below force storeInCache=false
+    # upstream, so a Firecrawl replay could never hit the cache and would bill
+    # ~1 credit per document — ~1,770/week steady state — for what direct does
+    # for free. If these pages ever become Firecrawl-only, remove this override
+    # in the same commit or verification will go inconclusive-backed-off and
+    # surface as needs_attention, which is the correct alarm.
+    verify_transport = "direct"
     # Detail pages are per-supplier and far too numerous to monitor; the list
     # page is monitored by `bkmea_web`, and a restructure there is what would
     # break these too.

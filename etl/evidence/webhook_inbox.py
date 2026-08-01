@@ -24,34 +24,71 @@ from etl.core.logging import get_logger
 
 log = get_logger("etl.evidence.webhook_inbox")
 
-# Event types that mean the watched page's content moved. Anything else (a
-# monitor starting, a check completing unchanged) is recorded and ignored.
-CHANGE_EVENTS = frozenset(
-    {
-        "monitor.page.changed",
-        "monitor.page.added",
-        "monitor.page.removed",
-        "page.changed",
-        "changed",
-    }
-)
+# The per-page `status` values in a `monitor.page` delivery that mean the
+# watched page's content moved. Everything else (`same`, `error`, a bare
+# `monitor.check.completed`) is recorded and ignored — the requeue decision
+# turns on this vocabulary, so a value missing here is silently classed as
+# "nothing moved".
+CHANGE_STATUSES = frozenset({"changed", "new", "removed"})
 
 
-def _pending(limit: int) -> list[dict[str, Any]]:
-    with db.conn() as c, c.cursor() as cur:
-        cur.execute(
-            """select id, event_type, monitor_id, page_url, payload, attempts
-                 from public.firecrawl_webhook_events
-                where process_status = 'pending'
-                order by received_at asc
-                for update skip locked
-                limit %s""",
-            (limit,),
-        )
-        return list(cur.fetchall())
+def _page_entries(payload: Any) -> list[dict[str, Any]]:
+    """The per-page entries of a delivery. `data` is an array in the real
+    contract; an object is tolerated, anything else means no entries."""
+    if not isinstance(payload, dict):
+        return []
+    data = payload.get("data")
+    if isinstance(data, list):
+        return [e for e in data if isinstance(e, dict)]
+    if isinstance(data, dict):
+        return [data]
+    return []
 
 
-def _requeue_documents(page_url: str, scraper_code: str | None) -> int:
+def _entry_status(event: dict[str, Any]) -> str:
+    """The `status` of the page entry this row was recorded from.
+
+    The route writes one row per `data[i]`, carrying that entry's `monitorId`
+    and `url` in the columns, so the entry is found back by matching them.
+    Classifying on the envelope alone is impossible — the root `type` is
+    `monitor.page` whether the page changed or not.
+    """
+    entries = _page_entries(event.get("payload"))
+    if not entries:
+        return ""
+    page_url = event.get("page_url")
+    monitor_id = event.get("monitor_id")
+    chosen: dict[str, Any] | None = None
+    for entry in entries:
+        if page_url and entry.get("url") == page_url:
+            chosen = entry
+            break
+    if chosen is None:
+        for entry in entries:
+            if monitor_id and entry.get("monitorId") == monitor_id:
+                chosen = entry
+                break
+    if chosen is None:
+        if len(entries) != 1:
+            return ""
+        chosen = entries[0]
+    return str(chosen.get("status") or "")
+
+
+def _pending(cur: Any, limit: int) -> list[dict[str, Any]]:
+    cur.execute(
+        """select id, event_type, monitor_id, page_url, payload, attempts
+             from public.firecrawl_webhook_events
+            where process_status = 'pending'
+            order by received_at asc
+            for update skip locked
+            limit %s""",
+        (limit,),
+    )
+    return list(cur.fetchall())
+
+
+def _requeue_documents(cur: Any, page_url: str, scraper_code: str | None) -> int:
     """Bring the affected documents forward in the verify queue.
 
     Clearing `last_verified_at` rather than writing a status is the whole point:
@@ -76,91 +113,122 @@ def _requeue_documents(page_url: str, scraper_code: str | None) -> int:
         params["scraper_code"] = scraper_code
     sql += ")"
 
-    with db.conn() as c, c.cursor() as cur:
-        cur.execute(sql, params)
-        count = cur.rowcount or 0
-        c.commit()
-    return count
+    cur.execute(sql, params)
+    return cur.rowcount or 0
 
 
-def _monitor_scraper_code(monitor_id: str | None, page_url: str | None) -> str | None:
+def _monitor_scraper_code(cur: Any, monitor_id: str | None, page_url: str | None) -> str | None:
     if not monitor_id and not page_url:
         return None
-    with db.conn() as c, c.cursor() as cur:
-        cur.execute(
-            """select scraper_code from public.evidence_monitors
-                where (monitor_id = %s and %s is not null)
-                   or target_url = %s
-                limit 1""",
-            (monitor_id, monitor_id, page_url),
-        )
-        row = cur.fetchone()
+    cur.execute(
+        """select scraper_code from public.evidence_monitors
+            where (monitor_id = %s and %s is not null)
+               or target_url = %s
+            limit 1""",
+        (monitor_id, monitor_id, page_url),
+    )
+    row = cur.fetchone()
     return str(row["scraper_code"]) if row else None
 
 
-def _touch_monitor(monitor_id: str | None, changed: bool) -> None:
+def _touch_monitor(cur: Any, monitor_id: str | None, status: str) -> None:
+    """Record the monitor's heartbeat and what its last check concluded.
+
+    A change status moves `last_change_at`; an `error` status increments
+    `consecutive_errors` instead of resetting it, so a monitor that fails every
+    check surfaces as erroring in the health strip rather than looking quiet.
+    """
     if not monitor_id:
         return
-    with db.conn() as c, c.cursor() as cur:
-        cur.execute(
-            """update public.evidence_monitors
-                  set last_check_at      = now(),
-                      last_status        = %s,
-                      last_change_at     = case when %s then now() else last_change_at end,
-                      consecutive_errors = 0,
-                      updated_at         = now()
-                where monitor_id = %s""",
-            ("changed" if changed else "unchanged", changed, monitor_id),
-        )
-        c.commit()
+    cur.execute(
+        """update public.evidence_monitors
+              set last_check_at      = now(),
+                  last_status        = %s,
+                  last_change_at     = case when %s then now() else last_change_at end,
+                  consecutive_errors = case when %s
+                                            then consecutive_errors + 1
+                                            else 0 end,
+                  updated_at         = now()
+            where monitor_id = %s""",
+        (status, status in CHANGE_STATUSES, status == "error", monitor_id),
+    )
 
 
-def _finish(event_id: str, status: str, error: str | None = None) -> None:
-    with db.conn() as c, c.cursor() as cur:
-        cur.execute(
-            """update public.firecrawl_webhook_events
-                  set process_status = %s,
-                      processed_at   = now(),
-                      process_error  = %s,
-                      attempts       = attempts + 1
-                where id = %s""",
-            (status, error, event_id),
-        )
-        c.commit()
+def _finish(cur: Any, event_id: str, status: str, error: str | None = None) -> None:
+    cur.execute(
+        """update public.firecrawl_webhook_events
+              set process_status = %s,
+                  processed_at   = now(),
+                  process_error  = %s,
+                  attempts       = attempts + 1
+            where id = %s""",
+        (status, error, event_id),
+    )
 
 
 def process_pending(limit: int = 100) -> dict[str, int]:
-    """Drain the inbox. Returns per-outcome counts."""
+    """Drain the inbox. Returns per-outcome counts.
+
+    REZ-42: the claiming transaction is held for the whole drain — claim with
+    `FOR UPDATE SKIP LOCKED`, process, mark, one commit. The old shape claimed
+    in one transaction and processed in follow-up ones, so the row locks were
+    released before the work began and two overlapping drains (the minutely
+    cron plus a manual run) could both act on the same delivery. A batch is a
+    few hundred local UPDATEs, so the transaction stays short; a delivery that
+    arrives mid-drain is picked up by the next pass a minute later.
+    """
     result = {"seen": 0, "requeued_documents": 0, "processed": 0, "ignored": 0, "failed": 0}
-    for event in _pending(limit):
-        event_id = str(event["id"])
-        result["seen"] += 1
-        event_type = str(event["event_type"] or "")
-        page_url = event["page_url"]
-        monitor_id = event["monitor_id"]
-        try:
-            changed = event_type in CHANGE_EVENTS
-            _touch_monitor(monitor_id, changed)
-            if not changed or not page_url:
-                _finish(event_id, "ignored")
+    with db.conn() as c, c.cursor() as cur:
+        for event in _pending(cur, limit):
+            event_id = str(event["id"])
+            result["seen"] += 1
+            event_type = str(event.get("event_type") or "")
+            page_url = event.get("page_url")
+            monitor_id = event.get("monitor_id")
+            try:
+                status = _entry_status(event)
+                if not status and event_type == "monitor.check.completed":
+                    # A check ran and reported nothing per-page: heartbeat only.
+                    status = "same"
+
+                if status in CHANGE_STATUSES:
+                    _touch_monitor(cur, monitor_id, status)
+                    if not page_url:
+                        # Guessing which documents were meant would requeue the
+                        # wrong ones.
+                        _finish(cur, event_id, "ignored")
+                        result["ignored"] += 1
+                        continue
+                    scraper_code = _monitor_scraper_code(cur, monitor_id, page_url)
+                    touched = _requeue_documents(cur, page_url, scraper_code)
+                    result["requeued_documents"] += touched
+                    result["processed"] += 1
+                    _finish(cur, event_id, "processed")
+                    log.info(
+                        "webhook.page_changed",
+                        monitor_id=monitor_id,
+                        url=page_url,
+                        scraper=scraper_code,
+                        documents_requeued=touched,
+                    )
+                    continue
+
+                if status == "error":
+                    _touch_monitor(cur, monitor_id, "error")
+                elif status:
+                    _touch_monitor(cur, monitor_id, status)
+                else:
+                    # No per-page status to classify on: the heartbeat is still
+                    # recorded, so "this monitor has not checked in for a week"
+                    # stays answerable — but nothing is requeued on a guess.
+                    _touch_monitor(cur, monitor_id, "unchanged")
+                _finish(cur, event_id, "ignored")
                 result["ignored"] += 1
-                continue
-            scraper_code = _monitor_scraper_code(monitor_id, page_url)
-            touched = _requeue_documents(page_url, scraper_code)
-            result["requeued_documents"] += touched
-            result["processed"] += 1
-            _finish(event_id, "processed")
-            log.info(
-                "webhook.page_changed",
-                monitor_id=monitor_id,
-                url=page_url,
-                scraper=scraper_code,
-                documents_requeued=touched,
-            )
-        except Exception as exc:  # noqa: BLE001
-            result["failed"] += 1
-            _finish(event_id, "failed", str(exc)[:500])
-            log.error("webhook.process_failed", event_id=event_id, error=str(exc)[:300])
+            except Exception as exc:  # noqa: BLE001
+                result["failed"] += 1
+                _finish(cur, event_id, "failed", str(exc)[:500])
+                log.error("webhook.process_failed", event_id=event_id, error=str(exc)[:300])
+        c.commit()
     return result
 
 

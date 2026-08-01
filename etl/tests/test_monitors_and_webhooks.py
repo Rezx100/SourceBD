@@ -104,12 +104,14 @@ def test_the_watched_pages_are_the_ones_the_sources_actually_read():
 
 
 # ------------------------------------------------------------------- specs ----
-def test_monitor_spec_disables_main_content_stripping():
-    """Firecrawl defaults `onlyMainContent` to true.
+def test_monitor_spec_matches_the_real_v2_monitor_contract():
+    """Pins the shape Firecrawl actually accepts, so it cannot drift again.
 
-    Left at the default, a registry monitor would compare a stripped page against
-    a stripped page — the member table sits outside the main content block, so the
-    one change we care about would never be detected.
+    The pre-REZ-34 spec sent `{urls, schedule: "daily"}` and no event
+    subscription; Firecrawl rejected it with a 400, which the adapter then
+    recorded as a success — six phantom monitors with NULL ids in production.
+    The contract is `targets` (typed entries), `schedule.text`, and an explicit
+    `webhook.events` subscription.
     """
     spec = mmod._monitor_spec(
         {
@@ -119,9 +121,21 @@ def test_monitor_spec_disables_main_content_stripping():
         },
         "https://sourcebd.com/api/v1/webhooks/firecrawl",
     )
-    assert spec["scrapeOptions"]["onlyMainContent"] is False
-    assert spec["urls"] == ["https://www.bgmea.com.bd/page/member-list"]
-    assert spec["schedule"] == mmod.DEFAULT_SCHEDULE
+    assert spec["name"] == "sourcebd:bgmea_web"
+    assert "urls" not in spec
+    assert len(spec["targets"]) == 1
+    target = spec["targets"][0]
+    assert target["type"] == "scrape"
+    assert target["urls"] == ["https://www.bgmea.com.bd/page/member-list"]
+    assert target["scrapeOptions"]["formats"] == ["markdown"]
+    # Firecrawl defaults `onlyMainContent` to true. Left at the default, a
+    # registry monitor would compare a stripped page against a stripped page —
+    # the member table sits outside the main content block, so the one change
+    # we care about would never be detected.
+    assert target["scrapeOptions"]["onlyMainContent"] is False
+    assert spec["schedule"] == {"text": mmod.DEFAULT_SCHEDULE}
+    # Without an explicit event subscription the monitor checks and tells nobody.
+    assert spec["webhook"]["events"] == ["monitor.page"]
     # The secret travels in a header, not the URL, so it stays out of request logs.
     assert "X-SourceBD-Webhook-Secret" in spec["webhook"]["headers"]
     assert "secret" not in spec["webhook"]["url"]
@@ -167,6 +181,80 @@ def test_monitor_id_is_read_from_either_envelope_shape():
     assert mmod._extract_monitor_id({"id": "mon_1"}) == "mon_1"
     assert mmod._extract_monitor_id({"data": {"monitorId": "mon_2"}}) == "mon_2"
     assert mmod._extract_monitor_id({"success": True}) is None
+
+
+# ------------------------------------------------------- create_monitor ----
+def _adapter_with_response(payload: dict[str, Any], status: int | None, err: str | None):
+    from etl.acquire.firecrawl import FirecrawlAdapter
+
+    adapter = FirecrawlAdapter(api_key="fc-test", api_base="https://example.invalid")
+
+    async def fake_post(path: str, body: dict[str, Any]):
+        return payload, status, err
+
+    adapter._post_with_retry = fake_post  # type: ignore[method-assign]
+    return adapter
+
+
+def test_create_monitor_raises_on_a_json_error_body():
+    """R2 regression: a 4xx with a JSON body is a failure, not a registration.
+
+    `_request_with_retry` surfaces it as (payload, status, None) — no error —
+    so without this guard the error body flowed to `_extract_monitor_id`,
+    produced None, and was written as a local row with a NULL monitor id.
+    """
+    adapter = _adapter_with_response(
+        {"success": False, "error": "Invalid monitor spec"}, 400, None
+    )
+    with pytest.raises(RuntimeError, match="HTTP 400"):
+        asyncio.run(adapter.create_monitor({"name": "n"}))
+    asyncio.run(adapter.aclose())
+
+
+def test_create_monitor_raises_on_success_false_even_with_a_200():
+    adapter = _adapter_with_response({"success": False, "error": "bad spec"}, 200, None)
+    with pytest.raises(RuntimeError, match="bad spec"):
+        asyncio.run(adapter.create_monitor({"name": "n"}))
+    asyncio.run(adapter.aclose())
+
+
+def test_create_monitor_returns_the_payload_only_on_a_real_acceptance():
+    adapter = _adapter_with_response({"success": True, "id": "mon_1"}, 200, None)
+    assert asyncio.run(adapter.create_monitor({"name": "n"})) == {
+        "success": True,
+        "id": "mon_1",
+    }
+    asyncio.run(adapter.aclose())
+
+
+def test_a_failed_registration_writes_no_local_row(monkeypatch: pytest.MonkeyPatch):
+    """The whole point of raising: a phantom must never reach `evidence_monitors`."""
+    monkeypatch.setattr(mmod.settings, "firecrawl_api_key", "fc-test", raising=False)
+    monkeypatch.setattr(
+        mmod.settings, "firecrawl_webhook_base_url", "https://sourcebd.com", raising=False
+    )
+    monkeypatch.setattr(mmod.settings, "firecrawl_webhook_secret", "s3cret", raising=False)
+    monkeypatch.setattr(
+        mmod,
+        "planned_targets",
+        lambda: [{"scraper_code": "a", "target_url": "https://a/1", "name": "n:a"}],
+    )
+    monkeypatch.setattr(mmod, "_existing_ids", lambda: {})
+    upserts: list[Any] = []
+    monkeypatch.setattr(mmod, "_upsert_local", lambda *a, **k: upserts.append(a))
+
+    class RejectingAdapter:
+        async def create_monitor(self, spec):
+            raise RuntimeError("firecrawl monitor create failed: HTTP 400: bad spec")
+
+        async def aclose(self):
+            pass
+
+    monkeypatch.setattr(mmod, "FirecrawlAdapter", lambda: RejectingAdapter())
+    result = asyncio.run(mmod.refresh_monitors())
+    assert result["failed"] == 1
+    assert result["created"] == 0
+    assert upserts == []
 
 
 def test_refresh_is_idempotent_and_does_not_re_register(monkeypatch: pytest.MonkeyPatch):
@@ -217,7 +305,7 @@ def test_refresh_is_idempotent_and_does_not_re_register(monkeypatch: pytest.Monk
         "skipped": 0,
         "failed": 0,
     }
-    assert [s["urls"] for s in created] == [["https://b/2"]]
+    assert [s["targets"][0]["urls"] for s in created] == [["https://b/2"]]
     assert written == [("uflpa", "mon_new")]
 
 
@@ -291,7 +379,9 @@ class _FakeCursor:
         self._rows: list[dict[str, Any]] = []
 
     def execute(self, sql: str, params: Any = None) -> None:
-        self.store.setdefault("sql", []).append((" ".join(sql.split()), params))
+        normalised = " ".join(sql.split())
+        self.store.setdefault("sql", []).append((normalised, params))
+        self.store.setdefault("events", []).append(("sql", normalised))
         planned = self.store.get("returns", {})
         for needle, rows in planned.items():
             if needle in sql:
@@ -322,7 +412,8 @@ class _FakeConn:
         return _FakeCursor(self.store)
 
     def commit(self):
-        pass
+        self.store["commits"] = self.store.get("commits", 0) + 1
+        self.store.setdefault("events", []).append(("commit",))
 
     def __enter__(self):
         return self
@@ -336,6 +427,7 @@ class _FakeDb:
         self.store = store
 
     def conn(self):
+        self.store["connections"] = self.store.get("connections", 0) + 1
         return _FakeConn(self.store)
 
 
@@ -343,25 +435,50 @@ def _with_fake_db(monkeypatch: pytest.MonkeyPatch, store: dict[str, Any]) -> Non
     monkeypatch.setattr(wmod, "db", _FakeDb(store))
 
 
-def test_a_change_event_requeues_instead_of_concluding(monkeypatch: pytest.MonkeyPatch):
+def _event(
+    status: str,
+    *,
+    page_url: str | None = "https://www.bgmea.com.bd/page/member-list",
+    monitor_id: str = "mon_1",
+    event_type: str = "monitor.page",
+    entries: list[dict[str, Any]] | None = None,
+    event_id: str = "e1",
+) -> dict[str, Any]:
+    """A `firecrawl_webhook_events` row as the route writes it.
+
+    The columns come from one page entry of the real envelope
+    `{success, type: "monitor.page", id, data: [{monitorId, url, status}]}`,
+    and the full envelope is stored in `payload`.
+    """
+    if entries is None:
+        entry: dict[str, Any] = {"monitorId": monitor_id, "status": status}
+        if page_url is not None:
+            entry["url"] = page_url
+        entries = [entry]
+    return {
+        "id": event_id,
+        "event_type": event_type,
+        "monitor_id": monitor_id,
+        "page_url": page_url,
+        "payload": {"success": True, "type": event_type, "id": "evt_1", "data": entries},
+        "attempts": 0,
+    }
+
+
+@pytest.mark.parametrize("status", ["changed", "new", "removed"])
+def test_a_page_that_moved_requeues_instead_of_concluding(
+    monkeypatch: pytest.MonkeyPatch, status: str
+):
     """The webhook says "look again", never "this fact is wrong".
 
     Marking claims stale straight from a notification would let a cosmetic
     redeploy of a registry orphan thousands of facts that are still perfectly
-    well supported.
+    well supported. All three per-page statuses that mean "the content moved"
+    take this path.
     """
     store: dict[str, Any] = {
         "returns": {
-            "from public.firecrawl_webhook_events": [
-                {
-                    "id": "e1",
-                    "event_type": "monitor.page.changed",
-                    "monitor_id": "mon_1",
-                    "page_url": "https://www.bgmea.com.bd/page/member-list",
-                    "payload": {},
-                    "attempts": 0,
-                }
-            ],
+            "from public.firecrawl_webhook_events": [_event(status)],
             "select scraper_code from public.evidence_monitors": [
                 {"scraper_code": "bgmea_web"}
             ],
@@ -392,16 +509,7 @@ def test_a_change_sweeps_the_whole_source_not_just_the_index_page(
     """
     store: dict[str, Any] = {
         "returns": {
-            "from public.firecrawl_webhook_events": [
-                {
-                    "id": "e1",
-                    "event_type": "monitor.page.changed",
-                    "monitor_id": "mon_1",
-                    "page_url": "https://x/list",
-                    "payload": {},
-                    "attempts": 0,
-                }
-            ],
+            "from public.firecrawl_webhook_events": [_event("changed", page_url="https://x/list")],
             "select scraper_code from public.evidence_monitors": [
                 {"scraper_code": "bgmea_web"}
             ],
@@ -422,20 +530,11 @@ def test_a_change_sweeps_the_whole_source_not_just_the_index_page(
     assert params["url"] == "https://x/list"
 
 
-def test_an_unchanged_check_is_recorded_and_ignored(monkeypatch: pytest.MonkeyPatch):
-    """Most monitor deliveries say "checked, nothing moved"."""
+def test_an_unchanged_page_is_recorded_and_ignored(monkeypatch: pytest.MonkeyPatch):
+    """Most monitor deliveries say "checked, nothing moved" (status `same`)."""
     store: dict[str, Any] = {
         "returns": {
-            "from public.firecrawl_webhook_events": [
-                {
-                    "id": "e1",
-                    "event_type": "monitor.check.completed",
-                    "monitor_id": "mon_1",
-                    "page_url": "https://x/list",
-                    "payload": {},
-                    "attempts": 0,
-                }
-            ]
+            "from public.firecrawl_webhook_events": [_event("same", page_url="https://x/list")]
         }
     }
     _with_fake_db(monkeypatch, store)
@@ -447,11 +546,99 @@ def test_an_unchanged_check_is_recorded_and_ignored(monkeypatch: pytest.MonkeyPa
         "ignored": 1,
         "failed": 0,
     }
-    statements = " || ".join(sql for sql, _ in store["sql"])
+    touch = [
+        (sql, params)
+        for sql, params in store["sql"]
+        if "update public.evidence_monitors" in sql
+    ]
     # The monitor's heartbeat is still recorded, so "this monitor has not checked
     # in for a week" stays answerable.
+    assert touch, "monitor heartbeat was not recorded"
+    assert touch[0][1][0] == "same"
+    statements = " || ".join(sql for sql, _ in store["sql"])
+    assert "update public.evidence_documents" not in statements
+
+
+def test_an_error_check_increments_consecutive_errors(monkeypatch: pytest.MonkeyPatch):
+    """A monitor that fails every check must surface as erroring, not quiet.
+
+    `consecutive_errors` was only ever reset before REZ-34, so the health
+    strip's erroring count could never move off zero.
+    """
+    store: dict[str, Any] = {
+        "returns": {
+            "from public.firecrawl_webhook_events": [_event("error", page_url="https://x/list")]
+        }
+    }
+    _with_fake_db(monkeypatch, store)
+    result = wmod.process_pending()
+    assert result["ignored"] == 1
+    assert result["processed"] == 0
+
+    touch = [
+        (sql, params)
+        for sql, params in store["sql"]
+        if "update public.evidence_monitors" in sql
+    ]
+    assert touch, "monitor heartbeat was not recorded"
+    sql, params = touch[0]
+    assert "consecutive_errors + 1" in sql
+    assert params == ("error", False, True, "mon_1")
+
+
+def test_a_completed_check_with_no_page_status_is_a_heartbeat(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    """`monitor.check.completed` carries no per-page status: touch and ignore."""
+    event = _event("", event_type="monitor.check.completed", page_url="https://x/list")
+    event["payload"] = {"success": True, "type": "monitor.check.completed", "id": "evt_9"}
+    store: dict[str, Any] = {
+        "returns": {"from public.firecrawl_webhook_events": [event]}
+    }
+    _with_fake_db(monkeypatch, store)
+    result = wmod.process_pending()
+    assert result["ignored"] == 1
+    statements = " || ".join(sql for sql, _ in store["sql"])
     assert "update public.evidence_monitors" in statements
     assert "update public.evidence_documents" not in statements
+
+
+def test_the_entry_is_matched_by_page_url_not_by_position(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    """One delivery can carry many page entries; each row classifies on its own.
+
+    Classifying every row on `data[0]` would requeue a page that reported
+    `same` because a *neighbouring* page changed, and miss one that changed
+    because the first entry did not.
+    """
+    entries = [
+        {"monitorId": "mon_1", "url": "https://x/a", "status": "same"},
+        {"monitorId": "mon_1", "url": "https://x/b", "status": "changed"},
+    ]
+    store: dict[str, Any] = {
+        "returns": {
+            "from public.firecrawl_webhook_events": [
+                _event("same", page_url="https://x/a", entries=entries, event_id="row-a"),
+                _event("changed", page_url="https://x/b", entries=entries, event_id="row-b"),
+            ],
+            "select scraper_code from public.evidence_monitors": [
+                {"scraper_code": "bgmea_web"}
+            ],
+        }
+    }
+    _with_fake_db(monkeypatch, store)
+    result = wmod.process_pending()
+    assert result["ignored"] == 1
+    assert result["processed"] == 1
+
+    requeue = [
+        (sql, params)
+        for sql, params in store["sql"]
+        if "update public.evidence_documents" in sql
+    ]
+    assert len(requeue) == 1
+    assert requeue[0][1]["url"] == "https://x/b"
 
 
 def test_a_change_event_without_a_url_cannot_requeue_anything(
@@ -459,18 +646,7 @@ def test_a_change_event_without_a_url_cannot_requeue_anything(
 ):
     """Guessing which documents were meant would requeue the wrong ones."""
     store: dict[str, Any] = {
-        "returns": {
-            "from public.firecrawl_webhook_events": [
-                {
-                    "id": "e1",
-                    "event_type": "monitor.page.changed",
-                    "monitor_id": "mon_1",
-                    "page_url": None,
-                    "payload": {},
-                    "attempts": 0,
-                }
-            ]
-        }
+        "returns": {"from public.firecrawl_webhook_events": [_event("changed", page_url=None)]}
     }
     _with_fake_db(monkeypatch, store)
     result = wmod.process_pending()
@@ -479,33 +655,20 @@ def test_a_change_event_without_a_url_cannot_requeue_anything(
 
 
 def test_one_bad_delivery_does_not_stop_the_queue(monkeypatch: pytest.MonkeyPatch):
-    events = [
-        {
-            "id": "bad",
-            "event_type": "monitor.page.changed",
-            "monitor_id": "m1",
-            "page_url": "https://x/1",
-            "payload": {},
-            "attempts": 0,
-        },
-        {
-            "id": "good",
-            "event_type": "monitor.check.completed",
-            "monitor_id": "m2",
-            "page_url": "https://x/2",
-            "payload": {},
-            "attempts": 0,
-        },
-    ]
-    monkeypatch.setattr(wmod, "_pending", lambda limit: events)
-    monkeypatch.setattr(wmod, "_touch_monitor", lambda *a: None)
-    monkeypatch.setattr(wmod, "_monitor_scraper_code", lambda *a: "bgmea_web")
-    finished: list[tuple[str, str]] = []
-    monkeypatch.setattr(
-        wmod, "_finish", lambda eid, status, error=None: finished.append((eid, status))
-    )
+    store: dict[str, Any] = {
+        "returns": {
+            "from public.firecrawl_webhook_events": [
+                _event("changed", page_url="https://x/1", monitor_id="m1", event_id="bad"),
+                _event("same", page_url="https://x/2", monitor_id="m2", event_id="good"),
+            ],
+            "select scraper_code from public.evidence_monitors": [
+                {"scraper_code": "bgmea_web"}
+            ],
+        }
+    }
+    _with_fake_db(monkeypatch, store)
 
-    def boom(url, code):
+    def boom(cur, url, code):
         raise RuntimeError("deadlock detected")
 
     monkeypatch.setattr(wmod, "_requeue_documents", boom)
@@ -515,18 +678,60 @@ def test_one_bad_delivery_does_not_stop_the_queue(monkeypatch: pytest.MonkeyPatc
     assert result["ignored"] == 1
     # The failure is recorded against that delivery so it can be retried, rather
     # than left pending forever and re-read on every pass.
-    assert ("bad", "failed") in finished
+    finishes = [
+        params
+        for sql, params in store["sql"]
+        if "update public.firecrawl_webhook_events" in sql
+    ]
+    assert ("failed", "deadlock detected", "bad") in finishes
+    assert ("ignored", None, "good") in finishes
 
 
 def test_deliveries_are_claimed_with_skip_locked(monkeypatch: pytest.MonkeyPatch):
     """Two workers draining the inbox must not both act on one delivery."""
     store: dict[str, Any] = {}
     _with_fake_db(monkeypatch, store)
-    wmod._pending(10)
+    wmod.process_pending(limit=10)
     sql, _params = store["sql"][0]
     assert "for update skip locked" in sql
     assert "process_status = 'pending'" in sql
     assert "order by received_at asc" in sql
+
+
+def test_the_claiming_transaction_is_held_for_the_whole_drain(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    """REZ-42: a second worker must see these rows as locked until we commit.
+
+    The old shape claimed in one connection, released the locks, then processed
+    in follow-up connections — so a minutely cron overlapping a manual drain
+    could both act on the same delivery. The pin: one connection, the claim
+    first, every write inside, exactly one commit, and the commit last.
+    """
+    store: dict[str, Any] = {
+        "returns": {
+            "from public.firecrawl_webhook_events": [_event("changed")],
+            "select scraper_code from public.evidence_monitors": [
+                {"scraper_code": "bgmea_web"}
+            ],
+        },
+        "rowcount": 5,
+    }
+    _with_fake_db(monkeypatch, store)
+    result = wmod.process_pending()
+    assert result["processed"] == 1
+
+    assert store["connections"] == 1
+    assert store["commits"] == 1
+    events = store["events"]
+    assert events[-1] == ("commit",), "writes happened after the commit"
+    kind, first_sql = events[0]
+    assert kind == "sql"
+    assert "for update skip locked" in first_sql
+    assert any(
+        kind == "sql" and "update public.firecrawl_webhook_events" in sql
+        for kind, sql in events
+    )
 
 
 def test_record_delivery_is_idempotent_on_the_dedupe_key(
@@ -535,19 +740,20 @@ def test_record_delivery_is_idempotent_on_the_dedupe_key(
     """Firecrawl retries, so a re-delivery must be a no-op rather than a re-apply."""
     store: dict[str, Any] = {"returns": {}}
     _with_fake_db(monkeypatch, store)
-    assert wmod.record_delivery("fc:1", "monitor.page.changed", "m1", "https://x", {}) is False
+    assert wmod.record_delivery("fc:1:0", "monitor.page", "m1", "https://x", {}) is False
     sql, params = store["sql"][0]
     assert "on conflict (dedupe_key) do nothing" in sql
-    assert params[0] == "fc:1"
+    assert params[0] == "fc:1:0"
     assert json.loads(params[4]) == {}
 
 
-def test_change_event_names_cover_the_shapes_firecrawl_sends():
+def test_change_statuses_cover_the_contract_firecrawl_sends():
     """Pins the vocabulary the requeue decision turns on.
 
-    A name missing from this set would be silently classed as "nothing moved",
+    A status missing from this set would be silently classed as "nothing moved",
     which is the failure mode that leaves stale citations looking verified.
     """
-    for name in ("monitor.page.changed", "monitor.page.added", "monitor.page.removed"):
-        assert name in wmod.CHANGE_EVENTS
-    assert "monitor.check.completed" not in wmod.CHANGE_EVENTS
+    for name in ("changed", "new", "removed"):
+        assert name in wmod.CHANGE_STATUSES
+    assert "same" not in wmod.CHANGE_STATUSES
+    assert "error" not in wmod.CHANGE_STATUSES

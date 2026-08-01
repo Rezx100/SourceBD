@@ -17,6 +17,48 @@ Launch-readiness closeout:
 - Apply migrations 0048-0049 and 0060 to production Supabase.
 - Run the 30-day zero P1/P2 Sentry incident window before calling beta fully live.
 
+## Evidence Verification Tier Activation (REZ-34, with REZ-42)
+2 Aug 2026 - Phase A (code) COMPLETE. Spec:
+`context/feature-specs/spec-evidence-verification-tier-activation.md`. Phase
+B/C/D (VPS config, activation runbook, contradicted-claims triage) remain —
+do NOT register monitors, create schedules, or deploy as part of this closeout.
+
+Architectural decisions worth keeping:
+
+- **Monitor registration is fail-loud.** `_monitor_spec` emits the real
+  `/v2/monitor` schema (`targets[0].{type,urls,scrapeOptions}`,
+  `schedule.text`, `webhook.events`), and `create_monitor` raises on non-2xx or
+  `success:false`. A failed registration never writes a local row — that is
+  what minted the 6 phantom NULL-`monitor_id` rows in production.
+- **The webhook contract is a `data` array of page entries, classified on
+  `data[i].status`.** The route writes one row per entry (dedupe
+  `fc:{envelope id}:{index}`, body-hash fallback); the inbox requeues on
+  `changed`/`new`/`removed`, ignores `same`, and `error` increments
+  `consecutive_errors`. Event-type classification is gone.
+- **REZ-42 is closed by transaction scope, not schema.** `process_pending`
+  holds one connection for select-`FOR UPDATE SKIP LOCKED` → process → mark →
+  commit, so overlapping drains cannot double-process. No `processing` status
+  needed.
+- **Verification replay goes through the source class.** `EvidenceVerifier`
+  resolves `SCRAPERS[scraper_code]` and builds the request through the class's
+  own adapter, so `request_headers`/`rps`/TLS apply to replays exactly as at
+  ingest. `AcquisitionMixin.verify_transport` (new class attribute) overrides
+  the replay transport per source — `BkmeaDetailScraper` verifies `direct`
+  (founder-approved, parity-proven; ~0 credits vs ~1,770/week). One declaration
+  point per source, same philosophy as `monitor_targets`.
+- **The verifier has a credit ceiling.** `VerifyEvidenceJob` prices each
+  Firecrawl replay with `estimate_credits` before fetching and stops the run
+  before overspend; ceiling defaults to `firecrawl_max_credits_per_run` (0 =
+  off) and is overridable per run / via `--max-credits`. This makes the
+  queue-dispatched weekly job safe unattended. Also: `--interval-hours 0` now
+  means "everything is due" (`is None` default, not `or`).
+
+Tests: pytest 434 passed (1 pre-existing failure at HEAD —
+`bgmea_buying_house` absent from the SQL allow-list, unrelated); `npm test`
+329/329 (route tests intercept `globalThis.fetch`; Node 20 needs
+`--experimental-websocket` for supabase-js, now in the test script); `npx tsc
+--noEmit` and `ruff check` clean.
+
 ## Supplier Identity + Evidence Status Split
 31 Jul 2026 - Complete, in the working tree. Triggered by "why does
 /admin/evidence say 11,320 need review?", which turned out to be two defects

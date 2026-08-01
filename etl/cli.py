@@ -114,7 +114,14 @@ def verify_evidence_cmd(
     limit: int = typer.Option(500, help="Check at most N due documents."),
     scraper: str = typer.Option(None, help="Restrict to one source's documents."),
     interval_hours: int = typer.Option(
-        None, help="Re-check documents older than this many hours."
+        None,
+        help="Re-check documents older than this many hours. 0 means everything is due.",
+    ),
+    max_credits: int = typer.Option(
+        None,
+        "--max-credits",
+        help="Stop before the run spends more than this many Firecrawl credits. "
+        "Default: FIRECRAWL_MAX_CREDITS_PER_RUN; 0 means no ceiling.",
     ),
 ) -> None:
     """Re-check recorded citations for liveness and excerpt drift.
@@ -127,7 +134,11 @@ def verify_evidence_cmd(
     job = VerifyEvidenceJob(
         limit=limit,
         scraper_code=scraper,
-        interval_hours=interval_hours or DEFAULT_INTERVAL_HOURS,
+        # `is None`, not `or`: 0 is a real instruction ("everything is due"),
+        # and swallowing it would make a first-run smoke check 2 documents and
+        # a vacuous green exit.
+        interval_hours=interval_hours if interval_hours is not None else DEFAULT_INTERVAL_HOURS,
+        max_credits=max_credits,
     )
     result = asyncio.run(job.run())
     typer.echo(str(result))

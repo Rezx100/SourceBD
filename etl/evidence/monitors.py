@@ -67,23 +67,39 @@ def planned_targets() -> list[dict[str, str]]:
 
 
 def _monitor_spec(target: dict[str, str], hook: str) -> dict[str, Any]:
+    """The real `/v2/monitor` schema.
+
+    Targets are an array of typed entries, the schedule is an object with a
+    `text` field, and the webhook must subscribe to events explicitly —
+    `monitor.page` is the per-URL change notification. Sending the shorthand
+    `{urls, schedule: "daily"}` shape gets a 400, which is how six phantom
+    monitors with NULL ids were "created" on 30 Jul 2026.
+    """
     return {
         "name": target["name"],
-        "urls": [target["target_url"]],
-        "schedule": DEFAULT_SCHEDULE,
-        "scrapeOptions": {
-            "formats": ["markdown"],
-            # Registry tables live outside the main content block, and Firecrawl
-            # defaults this to true. Left at the default, every monitor would
-            # compare a stripped page against a stripped page and never notice
-            # the table changing.
-            "onlyMainContent": False,
-        },
+        "targets": [
+            {
+                "type": "scrape",
+                "urls": [target["target_url"]],
+                "scrapeOptions": {
+                    "formats": ["markdown"],
+                    # Registry tables live outside the main content block, and
+                    # Firecrawl defaults this to true. Left at the default, every
+                    # monitor would compare a stripped page against a stripped
+                    # page and never notice the table changing.
+                    "onlyMainContent": False,
+                },
+            }
+        ],
+        "schedule": {"text": DEFAULT_SCHEDULE},
         "webhook": {
             "url": hook,
             # Shared secret in a header rather than a query string, so it does
             # not end up in Firecrawl's or our own request logs.
             "headers": {"X-SourceBD-Webhook-Secret": settings.firecrawl_webhook_secret},
+            # Without an explicit subscription the monitor would check and tell
+            # nobody, which is the failure this whole tier exists to prevent.
+            "events": ["monitor.page"],
         },
     }
 

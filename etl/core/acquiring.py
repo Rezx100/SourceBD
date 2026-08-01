@@ -56,6 +56,12 @@ class AcquisitionMixin:
     # browser would produce an empty page that parses to zero records.
     fallback_transport: str | None = Transport.DIRECT.value
 
+    # Transport the evidence verifier re-checks this source's documents on,
+    # when it differs from the ingest transport. None replays on the ingest
+    # adapter. Set per source, never per run, so how a citation is re-checked
+    # is declared in one place — the same philosophy as `monitor_targets`.
+    verify_transport: str | None = None
+
     # Per-source direct-adapter settings, also used by the fallback path.
     request_headers: dict[str, str] = {}
     rps: float | None = None

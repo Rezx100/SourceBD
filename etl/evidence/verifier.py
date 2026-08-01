@@ -36,8 +36,10 @@ from etl.acquire import (
     DirectAdapter,
     FirecrawlAdapter,
     LocalFileAdapter,
+    estimate_credits,
 )
 from etl.acquire.models import Adapter, FetchStatus
+from etl.core.config import settings
 from etl.core.db import db
 from etl.core.logging import get_logger
 from etl.core.scraper import ScrapedRecord
@@ -140,17 +142,62 @@ class EvidenceVerifier:
         self._firecrawl: FirecrawlAdapter | None = None
         self._direct: DirectAdapter | None = None
         self._local: LocalFileAdapter | None = None
+        # Scraper instances, one per source seen, built so the replay uses the
+        # same adapter construction the source itself uses. `request_headers`
+        # may be a property and TLS comes from `direct_verify()`, so reading
+        # class attributes statically would miss both.
+        self._sources: dict[str, Any] = {}
+
+    # ----------------------------------------------------------------- source
+    @staticmethod
+    def _source_for(scraper_code: Any) -> type | None:
+        # Function-level import: the registry imports this module (JOBS), so a
+        # module-level import would be circular.
+        from etl.scrapers.registry import SCRAPERS
+
+        if not scraper_code:
+            return None
+        return SCRAPERS.get(str(scraper_code))
+
+    def _source(self, scraper_code: Any) -> Any | None:
+        key = str(scraper_code or "")
+        if not key:
+            return None
+        if key not in self._sources:
+            cls = self._source_for(key)
+            self._sources[key] = cls() if cls is not None else None
+        return self._sources[key]
+
+    def _replay_transport(self, row: dict[str, Any], source: Any | None) -> str:
+        """The transport this document is re-checked on.
+
+        Defaults to the ingest adapter. A source may declare `verify_transport`
+        to re-check on a different one — `bkmea_detail` verifies over `direct`
+        (founder-approved 2 Aug 2026, parity-proven 8/8 on 29 Jul): its browser
+        headers force `storeInCache=false` upstream, so a Firecrawl replay can
+        never hit the cache and would bill ~1,770 credits a week for what the
+        direct adapter does for free.
+        """
+        override = getattr(source, "verify_transport", None) if source is not None else None
+        return override or row["adapter"]
 
     # ------------------------------------------------------------------ fetch
     async def _refetch(self, row: dict[str, Any]) -> AcquiredDoc:
-        adapter = row["adapter"]
         meta = row.get("meta") or {}
-        if adapter == Adapter.FIRECRAWL.value:
+        source = self._source(row.get("scraper_code"))
+        transport = self._replay_transport(row, source)
+        # The replay must issue the request the source would: a registry that
+        # only serves its table to a browser UA + Referer answers a headerless
+        # replay differently, which reads as drift that never happened.
+        headers = dict(getattr(source, "request_headers", None) or {}) if source else {}
+
+        if transport == Adapter.FIRECRAWL.value:
             if self._firecrawl is None:
                 self._firecrawl = FirecrawlAdapter()
             return await self._firecrawl.fetch(
                 AcquireRequest(
                     url=row["url"],
+                    headers=headers,
                     # Mirror the acquisition options that change what the
                     # document contains. Re-checking a registry table with the
                     # Firecrawl default of only_main_content=True would strip
@@ -160,25 +207,55 @@ class EvidenceVerifier:
                     label="verify",
                 )
             )
-        if adapter == Adapter.LOCAL.value:
+        if transport == Adapter.LOCAL.value:
             if self._local is None:
                 self._local = LocalFileAdapter()
             return await self._local.fetch(
                 AcquireRequest(url=row["url"], label="verify")
             )
-        if self._direct is None:
-            self._direct = DirectAdapter()
-        return await self._direct.fetch(
-            AcquireRequest(url=row["url"], want_bytes=True, label="verify")
+        if source is not None:
+            # The source's own construction: its rps, its headers, its TLS
+            # context (rsc-bd.org's incomplete chain) — not a bare client.
+            adapter = source.direct_adapter()
+        else:
+            if self._direct is None:
+                self._direct = DirectAdapter()
+            adapter = self._direct
+        return await adapter.fetch(
+            AcquireRequest(url=row["url"], headers=headers, want_bytes=True, label="verify")
+        )
+
+    def planned_credits(self, row: dict[str, Any]) -> int:
+        """Firecrawl credits re-checking this row would spend. 0 otherwise.
+
+        Priced with Firecrawl's documented estimate on the same request the
+        replay would issue, *before* the fetch — a credit is gone the moment
+        the request leaves, so a check afterwards has guarded nothing.
+        """
+        source = self._source(row.get("scraper_code"))
+        if self._replay_transport(row, source) != Adapter.FIRECRAWL.value:
+            return 0
+        meta = row.get("meta") or {}
+        return estimate_credits(
+            AcquireRequest(
+                url=row["url"],
+                only_main_content=bool(meta.get("only_main_content", False)),
+                max_age_ms=VERIFY_MAX_AGE_MS,
+                label="verify",
+            )
         )
 
     async def aclose(self) -> None:
         for adapter in (self._firecrawl, self._direct):
             if adapter is not None:
                 await adapter.aclose()
+        for source in self._sources.values():
+            if source is not None:
+                await source.aclose()
         self._firecrawl = None
         self._direct = None
         self._local = None
+        self._sources = {}
 
     # ----------------------------------------------------------------- verify
     async def verify_document(self, row: dict[str, Any]) -> VerifyOutcome:
@@ -489,12 +566,23 @@ class VerifyEvidenceJob:
         limit: int = 500,
         scraper_code: str | None = None,
         interval_hours: int = DEFAULT_INTERVAL_HOURS,
+        max_credits: int | None = None,
     ) -> None:
         self.log = get_logger("etl.scraper.verify_evidence")
         self.limit = limit
         self.scraper_code = scraper_code
         self.interval_hours = interval_hours
+        # Per-run override of FIRECRAWL_MAX_CREDITS_PER_RUN. None defers to the
+        # setting; 0 means no ceiling, consistent with the sources' budget.
+        self.max_credits = max_credits
         self.last_run_id: str | None = None
+
+    @property
+    def credit_ceiling(self) -> int:
+        """Effective Firecrawl credit cap for this run. 0 means unlimited."""
+        if self.max_credits is not None:
+            return self.max_credits
+        return settings.firecrawl_max_credits_per_run
 
     async def fetch(self) -> AsyncIterator[ScrapedRecord]:  # pragma: no cover
         """Not a source. Present so the queue runner's interface is uniform."""
@@ -512,6 +600,8 @@ class VerifyEvidenceJob:
         }
         seen = 0
         credits = 0
+        budget = self.credit_ceiling
+        budget_stopped = False
         claims_confirmed = claims_missing = 0
         try:
             rows = _select_due(
@@ -519,8 +609,29 @@ class VerifyEvidenceJob:
                 scraper_code=self.scraper_code,
                 interval_hours=self.interval_hours,
             )
-            self.log.info("verify.due", count=len(rows), limit=self.limit)
+            self.log.info(
+                "verify.due", count=len(rows), limit=self.limit, credit_ceiling=budget
+            )
             for row in rows:
+                if budget > 0:
+                    # Stop BEFORE spending: the verifier calls the adapter
+                    # directly, so FIRECRAWL_MAX_CREDITS_PER_RUN would otherwise
+                    # not apply to it at all — and this is the job the weekly
+                    # schedule runs unattended. Unlike a registry ingest, a
+                    # partial sweep corrupts nothing: the unchecked documents
+                    # stay due and are picked up by the next pass.
+                    price = verifier.planned_credits(row)
+                    if price > 0 and credits + price > budget:
+                        budget_stopped = True
+                        self.log.warning(
+                            "verify.budget_reached",
+                            credits=credits,
+                            ceiling=budget,
+                            next_price=price,
+                            checked=seen,
+                            remaining=len(rows) - seen,
+                        )
+                        break
                 seen += 1
                 try:
                     outcome = await verifier.verify_document(row)
@@ -548,7 +659,7 @@ class VerifyEvidenceJob:
         finally:
             await verifier.aclose()
 
-        return {
+        result = {
             "seen": seen,
             "upserted": counts["live"] + counts["changed"],
             "skipped": counts["inconclusive"],
@@ -559,7 +670,11 @@ class VerifyEvidenceJob:
             "claims_confirmed": claims_confirmed,
             "claims_missing": claims_missing,
             "credits_used": credits,
+            "budget_stopped": budget_stopped,
         }
+        if budget > 0:
+            result["credit_ceiling"] = budget
+        return result
 
     # --- run log ---------------------------------------------------------
     def _open_run(self) -> str:
