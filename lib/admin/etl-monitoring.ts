@@ -1,5 +1,22 @@
 export type RunStatus = "running" | "success" | "failed" | "partial";
 export type JobStatus = "pending" | "running" | "success" | "failed" | "cancelled";
+
+/** Same staleness window as the worker reaper and the 0088 RPC guard. */
+export const STALE_RUNNING_JOB_MS = 3 * 60 * 60 * 1000;
+
+/**
+ * Mirrors reap_stale() in etl/jobs/scraper_queue.py and the admin_etl_job_decide
+ * stale guard: coalesce(heartbeat_at, started_at, requested_at) older than 3h.
+ * A live job heartbeats, so this can never be true of one.
+ */
+export function isStaleRunningJob(
+  job: Pick<QueueJob, "status" | "heartbeat_at" | "started_at" | "requested_at">,
+  now: number,
+): boolean {
+  if (job.status !== "running") return false;
+  const basis = new Date(job.heartbeat_at ?? job.started_at ?? job.requested_at).getTime();
+  return Number.isFinite(basis) && now - basis > STALE_RUNNING_JOB_MS;
+}
 export type JobEventType =
   | "queued"
   | "claimed"

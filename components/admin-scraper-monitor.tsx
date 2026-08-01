@@ -34,14 +34,15 @@ import {
   type EvidenceByScraperRow,
   type EvidenceSummary,
 } from "@/lib/admin/evidence";
-import type {
-  DashboardDoc,
-  EtlJobEvent,
-  EtlRun,
-  JobStatus,
-  QueueJob,
-  RunStatus,
-  ScraperState,
+import {
+  isStaleRunningJob,
+  type DashboardDoc,
+  type EtlJobEvent,
+  type EtlRun,
+  type JobStatus,
+  type QueueJob,
+  type RunStatus,
+  type ScraperState,
 } from "@/lib/admin/etl-monitoring";
 
 const GROUP_ORDER: ScraperGroup[] = [
@@ -585,6 +586,12 @@ function RecentJobs({ jobs, now }: { jobs: QueueJob[]; now: number }) {
                 ) : null}
                 {job.status === "failed" || job.status === "cancelled" ? (
                   <AdminScraperJobAction jobId={job.id} action="retry" />
+                ) : null}
+                {isStaleRunningJob(job, now) ? (
+                  <>
+                    <AdminScraperJobAction jobId={job.id} action="retry" label="Retry (stale)" />
+                    <AdminScraperJobAction jobId={job.id} action="cancel" label="Cancel (stale)" />
+                  </>
                 ) : null}
               </div>
             </AdminRow>
