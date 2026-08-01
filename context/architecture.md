@@ -65,7 +65,7 @@
 - **Supplier / Admin** routes are role-gated server-side.
 - **API routes** validate input with `zod`, authenticate via Supabase session, enforce ownership server-side.
 - **ETL scripts** never run inside Next.js. They write directly to Supabase using the service role key (kept out of the web app).
-- **Sanctions screening** runs as an Inngest job after every supplier upsert.
+- **Sanctions screening** runs in the ETL (`etl/core/sanctions.py`), in both directions, sharing one pair-level predicate (`_pair_matches`): entry-side when a sanctions list entry is ingested (`_match_and_screen`), and supplier-side inside the `upsert_supplier_with_source` transaction (`screen_supplier_against_entries`) — a screening failure rolls the supplier record back. Either direction inserts into `sanctions_screening`; the `trg_sanc_propagate` trigger then flips `suppliers.is_sanctioned` and zeroes `sbi_scores.total`. There is no Inngest job for this (no Inngest code exists in the repo).
 
 ## Storage model
 - **Persistent metadata**: PostgreSQL (suppliers, profiles, RFQs, conversations, messages, orders, certs, scores, reviews, sources, source_records).

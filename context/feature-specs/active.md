@@ -3,6 +3,24 @@
 This file keeps routine agent sessions from scanning every inactive feature spec.
 
 ## Active / Recent Spec
+- COMPLETE in the working tree (2 Aug 2026): **REZ-32 — screen newly upserted
+  suppliers against stored sanctions entries** (Linear, P0). One-directional
+  screening gap closed: `_pair_matches` in `etl/core/sanctions.py` is the one
+  pair-level predicate for BOTH directions (screenable both sides + >=2 shared
+  significant tokens + token_sort_ratio >= 95 + `_names_compatible` — the
+  order-sensitive guard is what rejects COTTON FAIR / FAIR COTTON at 100 and
+  A. B. / B. A. KNITWEAR INDUSTRIES at 95.5); supplier-side
+  `screen_supplier_against_entries` runs INSIDE the
+  `upsert_supplier_with_source` transaction so a failure rolls the record back
+  (`BaseScraper.run` contains it as `records_skipped`); migration 0089 adds
+  the partial unique index `(supplier_id, list, coalesce(list_entry_ref,''))
+  where active` so `on conflict do nothing` finally has something to conflict
+  on. 23 new tests in `etl/tests/test_sanctions_screening.py`; pytest 471
+  passed + same 1 pre-existing failure; ruff / tsc clean; npm test 336/336.
+  **Session 2 (NOT done): apply 0089 to production, run the backfill sweep
+  over existing suppliers.** architecture.md line 68's false Inngest claim
+  rewritten; lines 24/33 Inngest tool mentions left as noted doc debt. See
+  `context/current-state.md` → "Sanctions Screening Both Directions".
 - FULLY COMPLETE IN PRODUCTION (2 Aug 2026): **REZ-31 — zombie ETL run/job
   reaper + universal heartbeats + stale-job manual retry/cancel**.
   `reap_stale()` runs at the top of every
