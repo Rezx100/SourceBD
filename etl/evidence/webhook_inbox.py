@@ -121,8 +121,13 @@ def _monitor_scraper_code(cur: Any, monitor_id: str | None, page_url: str | None
     if not monitor_id and not page_url:
         return None
     cur.execute(
+        # The bare `%s is not null` guard needs an explicit cast: unlike the
+        # column comparisons, it gives Postgres no type context, so psycopg's
+        # server-side binding raises IndeterminateDatatype on $2. Mocked-cursor
+        # unit tests cannot see this — only a real drain can (found 2 Aug 2026
+        # by the REZ-34 activation runbook's first live delivery).
         """select scraper_code from public.evidence_monitors
-            where (monitor_id = %s and %s is not null)
+            where (monitor_id = %s and %s::text is not null)
                or target_url = %s
             limit 1""",
         (monitor_id, monitor_id, page_url),
