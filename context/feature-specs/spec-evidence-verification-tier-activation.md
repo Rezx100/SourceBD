@@ -1,8 +1,9 @@
 # Spec — activate the evidence verification tier (REZ-34)
 
-Status: **Phase A complete 2 Aug 2026; Phase B/C/D pending.** From the REZ-34
-audit conducted the same day; implementation happens in a fresh session per the
-one-spec workflow.
+Status: **Phases A/B/C complete 2 Aug 2026 — the tier is live in production.
+Phase D (contradicted-claims triage) remains as a standing routine.** From the
+REZ-34 audit conducted the same day; implementation happens in a fresh session
+per the one-spec workflow.
 Linear: **REZ-34** (P0). **REZ-42** (P1, webhook inbox lock-scope race) rides
 along — same module, and activation is what arms it.
 Founder decisions, 2 Aug 2026: (1) the verifier re-checks `bkmea_detail`
@@ -268,3 +269,12 @@ Phase C, production:
   remove its `verify_transport` override in the same commit, or verification
   will go inconclusive-backed-off and surface as `needs_attention` — which is
   the correct alarm, but know that it will fire.
+- Activation log, 2 Aug 2026: the runbook's first live drain caught a defect
+  no unit test could see — `_monitor_scraper_code`'s bare `%s is not null`
+  parameter raised `IndeterminateDatatype` on real Postgres (psycopg server-side
+  binding gives the guard no type context), crashing every change-status drain
+  and rolling back cleanly. Fixed in `2b76046` (`%s::text`). Mocked-cursor
+  tests cannot exercise server-side parameter typing; the production end-to-end
+  step is the only test for that class, which is what it is for. The contained
+  test event was reset to `pending` after the fix and drained as the C.4 proof
+  (`attempts: 2`).
