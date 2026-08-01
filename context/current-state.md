@@ -21,9 +21,43 @@ Launch-readiness closeout:
 2 Aug 2026 - Phases A/B/C COMPLETE; the verification tier is live in
 production. Spec:
 `context/feature-specs/spec-evidence-verification-tier-activation.md`. Phase D
-(contradicted-claims triage, 881 unreviewed) remains as a standing routine.
-VPS is on `2b76046` — see the main-lag note below before any `--ref=main`
-deploy.
+(contradicted-claims triage) is now a standing routine with its first pass
+executed. VPS is on `2b76046` — see the main-lag note below before any
+`--ref=main` deploy.
+
+Phase D first pass (2 Aug 2026): 881 unreviewed contradicted claims were
+classified per supplier and 855 retired (status `orphaned`, review notes
+prefixed `Phase D triage (REZ-34)`) across 73 suppliers — 72 one-company
+decisions (62 plain re-listings, 7 membership-suffix corrections, 2
+dual-membership same-company, 1 duplicate-profile same-factory) plus OSHIN
+KNITWEAR, whose 16 losing claims cite OSHIN TEXTILE's page 84 (different
+company, already split out on 31 Jul). Retirements were direct SQL replicating
+`admin_evidence_claim_decide` retire semantics (the RPC asserts an admin JWT).
+26 claims remain unreviewed by design — GOLDEN KNITWEAR (PVT) LTD (12) and
+MUKTER EXPORT LTD. (14) are queued for a claim-level repair batch, not
+triaged (see pattern 2). Two systematic patterns found:
+
+1. **BKMEA re-listing (72 of 75 suppliers).** BKMEA re-lists members on new
+   detail-page ids (21xx/22xx series) carrying the same membership number;
+   the old pages still serve stale data and both are scraped every run, so
+   each `bkmea_detail` run re-mints a fresh contradicted population (new
+   document versions → new claim rows). Phase D triage is therefore a routine
+   that never converges while both listings exist — expected and per spec.
+2. **Unmerge claim residue (new finding, not covered by the spec).** The
+   31 Jul unmerge moved `source_records` but not supplier-subject claims:
+   all 39 split-off suppliers have zero evidence claims; every citation
+   written while records were merged stayed on the pre-split parent. GOLDEN
+   and MUKTER are inverted — their active citations point at the other
+   company's page while their own records' claims sit contradicted (published
+   profile columns are correct; conflation is citation-layer only). Retiring
+   their contradicted claims would orphan their own registry citations, so
+   they are queued for a dry-run-first claim-repair script
+   (`ops/unmerge_bkmea_suppliers.py` does not cover this — it requires >1
+   base membership per supplier). The next `bkmea_detail` run partially
+   self-heals (split-offs gain first claims, own-record claims re-assert)
+   and will mint fresh unreviewed contradicted rows for the next pass.
+   Also queued: NOOR-A-ALIA / NOOR-A-ALIA FASHION duplicate-profile merge
+   candidate (noted in its review note, not actioned).
 
 Architectural decisions worth keeping:
 
