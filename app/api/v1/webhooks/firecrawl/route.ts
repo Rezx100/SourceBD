@@ -48,17 +48,18 @@ function firstString(source: Record<string, unknown>, keys: string[]): string | 
 }
 
 /**
- * A stable identity for this delivery.
+ * A stable identity for one page entry of this delivery.
  *
  * Firecrawl's envelope shape has varied across monitor releases, so we prefer an
  * id it supplies and otherwise hash the body. Hashing means a genuine retry of
  * the same event collapses to one row, while two distinct checks of the same URL
- * stay distinct because their payloads differ.
+ * stay distinct because their payloads differ. `data` is an array of page
+ * entries and each gets its own row, so the entry index is part of the key.
  */
-function dedupeKey(payload: Record<string, unknown>, rawBody: string): string {
+function dedupeKey(payload: Record<string, unknown>, rawBody: string, index: number): string {
   const explicit = firstString(payload, ["id", "eventId", "event_id", "deliveryId"]);
-  if (explicit) return `fc:${explicit}`;
-  return `fc:sha256:${createHash("sha256").update(rawBody).digest("hex")}`;
+  if (explicit) return `fc:${explicit}:${index}`;
+  return `fc:sha256:${createHash("sha256").update(rawBody).digest("hex")}:${index}`;
 }
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
@@ -112,37 +113,57 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
   const eventType =
     firstString(payload, ["type", "event", "eventType", "event_type"]) ?? "unknown";
-  const monitorId = firstString(payload, ["monitorId", "monitor_id", "monitor"]);
 
-  // The changed page's URL can arrive at the envelope root or inside the check
-  // result, depending on the event. Recording it wrong would mean requeueing the
-  // wrong documents, so both shapes are read rather than assumed.
-  const nested = isRecord(payload.data) ? payload.data : {};
-  const pageUrl =
-    firstString(payload, ["url", "pageUrl", "page_url"]) ??
-    firstString(nested, ["url", "pageUrl", "page_url"]);
+  // The real envelope is {success, type: "monitor.page", id, data: [...]} with
+  // `data` an ARRAY of page entries, each {monitorId, url, status, ...}. One
+  // row per entry: our monitors are one URL each, but the contract allows many,
+  // and collapsing them would drop every page but the first. The full payload
+  // is stored on every row so the worker classifies on data[i].status.
+  const dataEntries = Array.isArray(payload.data)
+    ? payload.data.filter(isRecord)
+    : isRecord(payload.data)
+      ? [payload.data]
+      : [];
+  // A delivery with no page entries still gets one row, extracted from the
+  // envelope root — otherwise it would vanish without a trace.
+  const pageEntries: (Record<string, unknown> | null)[] =
+    dataEntries.length > 0 ? dataEntries : [null];
 
   const supabase = createClient(supabaseUrl, serviceRoleKey, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
 
-  const { data: inserted, error } = await supabase.rpc("firecrawl_webhook_record", {
-    p_dedupe_key: dedupeKey(payload, rawBody),
-    p_event_type: eventType,
-    p_monitor_id: monitorId,
-    p_page_url: pageUrl,
-    p_payload: payload,
-  });
+  let recorded = 0;
+  let duplicates = 0;
+  for (let index = 0; index < pageEntries.length; index++) {
+    const entry = pageEntries[index];
+    const monitorId = entry
+      ? (firstString(entry, ["monitorId", "monitor_id", "monitor"]) ??
+        firstString(payload, ["monitorId", "monitor_id", "monitor"]))
+      : firstString(payload, ["monitorId", "monitor_id", "monitor"]);
+    const pageUrl = entry
+      ? (firstString(entry, ["url", "pageUrl", "page_url"]) ??
+        firstString(payload, ["url", "pageUrl", "page_url"]))
+      : firstString(payload, ["url", "pageUrl", "page_url"]);
 
-  if (error) {
-    // Retryable by design: losing a change notification would leave stale
-    // citations looking verified until the weekly sweep caught up.
-    console.error("[firecrawl-webhook] record failed:", error.message);
-    return NextResponse.json({ error: "record_failed" }, { status: 500 });
+    const { data: inserted, error } = await supabase.rpc("firecrawl_webhook_record", {
+      p_dedupe_key: dedupeKey(payload, rawBody, index),
+      p_event_type: eventType,
+      p_monitor_id: monitorId,
+      p_page_url: pageUrl,
+      p_payload: payload,
+    });
+
+    if (error) {
+      // Retryable by design: losing a change notification would leave stale
+      // citations looking verified until the weekly sweep caught up. Rows
+      // already written are dedupe-keyed, so the retry collapses them.
+      console.error("[firecrawl-webhook] record failed:", error.message);
+      return NextResponse.json({ error: "record_failed" }, { status: 500 });
+    }
+    if (inserted === false) duplicates += 1;
+    else recorded += 1;
   }
 
-  return NextResponse.json(
-    { received: true, duplicate: inserted === false },
-    { status: 200 },
-  );
+  return NextResponse.json({ received: true, recorded, duplicates }, { status: 200 });
 }

@@ -411,18 +411,23 @@ def test_due_query_excludes_unreplayable_documents_and_backs_off():
 def test_verify_replays_a_firecrawl_document_with_its_original_options(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """`only_main_content` must be replayed as recorded.
+    """`only_main_content` and the source's headers must be replayed as recorded.
 
-    Firecrawl defaults it to True, which strips the table a registry list page
-    keeps its data in — re-checking with the default would report every claim on
-    that page as drifted.
+    Firecrawl defaults `only_main_content` to True, which strips the table a
+    registry list page keeps its data in — re-checking with the default would
+    report every claim on that page as drifted. And a registry that only serves
+    its table to a browser UA + Referer answers a headerless replay differently,
+    which reads as drift that never happened.
     """
+    from etl.scrapers.registry import SCRAPERS
+
     seen: dict[str, Any] = {}
 
     class FakeFirecrawl:
         async def fetch(self, request: AcquireRequest):
             seen["only_main_content"] = request.only_main_content
             seen["max_age_ms"] = request.max_age_ms
+            seen["headers"] = request.headers
             return _ok_doc("<div/>")
 
         async def aclose(self):
@@ -437,6 +442,274 @@ def test_verify_replays_a_firecrawl_document_with_its_original_options(
     asyncio.run(v._refetch(row))
     assert seen["only_main_content"] is False
     assert seen["max_age_ms"] == vmod.VERIFY_MAX_AGE_MS
+    assert seen["headers"] == dict(SCRAPERS["bgmea_web"].request_headers)
+
+
+# ----------------------------------------------------------- replay transport ---
+def test_bkmea_detail_verifies_on_the_direct_transport():
+    """The founder-approved override (2 Aug 2026): parity-proven 8/8, ~0 credits
+    vs ~1,770/week — the browser headers force storeInCache=false upstream, so
+    a Firecrawl replay could never hit the cache."""
+    from etl.scrapers.registry import SCRAPERS
+
+    assert SCRAPERS["bkmea_detail"].verify_transport == "direct"
+    # Nothing else declares an override: every other source replays on the
+    # transport that ingested it.
+    for code, cls in SCRAPERS.items():
+        if code != "bkmea_detail":
+            assert cls.verify_transport is None, code
+
+
+class _StubSource:
+    """Stands in for a scraper class: the replay must use its construction."""
+
+    verify_transport: str | None = None
+    request_headers = {"User-Agent": "SourceBD-Test/1.0", "Referer": "https://x/"}
+
+    def __init__(self) -> None:
+        self.direct: _CapturingDirect | None = None
+
+    def direct_adapter(self) -> "_CapturingDirect":
+        if self.direct is None:
+            self.direct = _CapturingDirect()
+        return self.direct
+
+    async def aclose(self) -> None:
+        pass
+
+
+class _CapturingDirect:
+    def __init__(self) -> None:
+        self.requests: list[AcquireRequest] = []
+
+    async def fetch(self, request: AcquireRequest) -> AcquiredDoc:
+        self.requests.append(request)
+        return _ok_doc("<div/>")
+
+
+def _verifier_with_source(monkeypatch: pytest.MonkeyPatch, cls: type) -> vmod.EvidenceVerifier:
+    monkeypatch.setattr(vmod.EvidenceVerifier, "_source_for", staticmethod(lambda code: cls))
+    return vmod.EvidenceVerifier()
+
+
+def test_a_declared_verify_transport_replays_through_the_sources_adapter(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """`verify_transport = "direct"` sends a Firecrawl-ingested document to the
+    source's own direct adapter — its headers, its rps, its TLS."""
+
+    class DirectOverride(_StubSource):
+        verify_transport = "direct"
+
+    v = _verifier_with_source(monkeypatch, DirectOverride)
+    row = _row(adapter=Adapter.FIRECRAWL.value, scraper_code="stub")
+    asyncio.run(v._refetch(row))
+
+    assert v._firecrawl is None, "Firecrawl was used despite the direct override"
+    source = v._sources["stub"]
+    assert source.direct is not None
+    request = source.direct.requests[0]
+    assert request.headers == dict(DirectOverride.request_headers)
+    assert request.want_bytes is True
+
+
+def test_an_undeclared_source_replays_on_the_ingest_adapter(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """No `verify_transport` means the ingest adapter replays — Firecrawl stays
+    Firecrawl, direct stays direct."""
+
+    class FirecrawlCapture:
+        def __init__(self) -> None:
+            self.requests: list[AcquireRequest] = []
+
+        async def fetch(self, request: AcquireRequest) -> AcquiredDoc:
+            self.requests.append(request)
+            return _ok_doc("<div/>")
+
+        async def aclose(self) -> None:
+            pass
+
+    v = _verifier_with_source(monkeypatch, _StubSource)
+    v._firecrawl = FirecrawlCapture()  # type: ignore[assignment]
+    asyncio.run(v._refetch(_row(adapter=Adapter.FIRECRAWL.value, scraper_code="stub")))
+    assert len(v._firecrawl.requests) == 1  # type: ignore[union-attr]
+    assert v._sources["stub"].direct is None
+
+    # A direct-ingested document goes through the source's direct construction,
+    # picking up its headers — not a bare shared client.
+    asyncio.run(v._refetch(_row(adapter=Adapter.DIRECT.value, scraper_code="stub")))
+    source = v._sources["stub"]
+    assert source.direct is not None
+    assert source.direct.requests[0].headers == dict(_StubSource.request_headers)
+
+
+def test_an_unknown_source_replays_headerless_on_the_shared_adapter(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A document whose scraper is no longer registered still verifies; it just
+    gets no per-source request shaping."""
+    monkeypatch.setattr(vmod.EvidenceVerifier, "_source_for", staticmethod(lambda code: None))
+    v = vmod.EvidenceVerifier()
+    fake = _CapturingDirect()
+    v._direct = fake  # type: ignore[assignment]
+    asyncio.run(v._refetch(_row(adapter=Adapter.DIRECT.value, scraper_code="gone")))
+    assert fake.requests[0].headers == {}
+
+
+def test_planned_credits_charges_only_firecrawl_replays(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The budget prices the transport the replay will actually use."""
+    v = vmod.EvidenceVerifier()
+    firecrawl_row = _row(adapter=Adapter.FIRECRAWL.value, scraper_code="bgmea_web")
+    # bgmea_web declares no override: the replay is Firecrawl, 1 credit/page.
+    assert v.planned_credits(firecrawl_row) == 1
+    # bkmea_detail verifies direct despite being Firecrawl-ingested: free.
+    bkmea_row = _row(adapter=Adapter.FIRECRAWL.value, scraper_code="bkmea_detail")
+    assert v.planned_credits(bkmea_row) == 0
+    # Direct and local never bill.
+    assert v.planned_credits(_row(adapter=Adapter.DIRECT.value, scraper_code=None)) == 0
+    assert v.planned_credits(_row(adapter=Adapter.LOCAL.value, scraper_code=None)) == 0
+    asyncio.run(v.aclose())
+
+
+# ---------------------------------------------------------------- budget ----
+def test_the_budget_stops_the_run_before_overspend(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The ceiling is checked before each Firecrawl fetch, not after.
+
+    A guard that notices after spending has guarded nothing, and this job is
+    the one the weekly schedule runs unattended.
+    """
+
+    class FakeVerifier:
+        def __init__(self) -> None:
+            self.checked: list[str] = []
+
+        def planned_credits(self, row: dict[str, Any]) -> int:
+            return 1
+
+        async def verify_document(self, row: dict[str, Any]) -> vmod.VerifyOutcome:
+            self.checked.append(str(row["id"]))
+            return vmod.VerifyOutcome(
+                evidence_id=str(row["id"]), url=row["url"], outcome="live", credits_used=1
+            )
+
+        async def aclose(self) -> None:
+            pass
+
+    fake = FakeVerifier()
+    monkeypatch.setattr(vmod, "EvidenceVerifier", lambda: fake)
+    rows = [_row(id=f"doc-{i}") for i in range(3)]
+    monkeypatch.setattr(vmod, "_select_due", lambda *a, **k: rows)
+
+    job = vmod.VerifyEvidenceJob(limit=10, max_credits=1)
+    monkeypatch.setattr(job, "_open_run", lambda: "r1")
+    closed: list[tuple[Any, ...]] = []
+    monkeypatch.setattr(
+        job, "_close_run", lambda *a: closed.append(a)
+    )
+
+    result = asyncio.run(job.run())
+    # Two credits were affordable... no: the ceiling is 1, so exactly one
+    # document is checked and the run stops before the second fetch.
+    assert fake.checked == ["doc-0"]
+    assert result["seen"] == 1
+    assert result["credits_used"] == 1
+    assert result["budget_stopped"] is True
+    assert result["credit_ceiling"] == 1
+    assert closed[0][1] == "success"
+
+
+def test_the_ceiling_defaults_to_the_setting_and_a_run_can_override_it(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(vmod.settings, "firecrawl_max_credits_per_run", 25)
+    assert vmod.VerifyEvidenceJob().credit_ceiling == 25
+    assert vmod.VerifyEvidenceJob(max_credits=5).credit_ceiling == 5
+    # 0 means off, consistent with the sources' budget semantics.
+    assert vmod.VerifyEvidenceJob(max_credits=0).credit_ceiling == 0
+    monkeypatch.setattr(vmod.settings, "firecrawl_max_credits_per_run", 0)
+    assert vmod.VerifyEvidenceJob().credit_ceiling == 0
+
+
+def test_an_unlimited_run_never_stops_for_budget(monkeypatch: pytest.MonkeyPatch) -> None:
+    class FakeVerifier:
+        def planned_credits(self, row: dict[str, Any]) -> int:
+            return 1
+
+        async def verify_document(self, row: dict[str, Any]) -> vmod.VerifyOutcome:
+            return vmod.VerifyOutcome(
+                evidence_id=str(row["id"]), url=row["url"], outcome="live", credits_used=1
+            )
+
+        async def aclose(self) -> None:
+            pass
+
+    monkeypatch.setattr(vmod, "EvidenceVerifier", lambda: FakeVerifier())
+    monkeypatch.setattr(vmod, "_select_due", lambda *a, **k: [_row(id="a"), _row(id="b")])
+    monkeypatch.setattr(vmod.settings, "firecrawl_max_credits_per_run", 0)
+    job = vmod.VerifyEvidenceJob(limit=10)
+    monkeypatch.setattr(job, "_open_run", lambda: "r1")
+    monkeypatch.setattr(job, "_close_run", lambda *a: None)
+    result = asyncio.run(job.run())
+    assert result["seen"] == 2
+    assert result["budget_stopped"] is False
+    assert "credit_ceiling" not in result
+
+
+# -------------------------------------------------------------------- CLI ----
+def test_cli_interval_hours_zero_means_zero_and_max_credits_is_passed(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """`--interval-hours 0` is "everything is due", not "use the default".
+
+    `interval_hours or DEFAULT` swallowed the 0, which made a first-run smoke
+    check 2 documents and a vacuous green exit — the proof this spec exists to
+    prevent.
+    """
+    from typer.testing import CliRunner
+
+    from etl.cli import app
+
+    captured: dict[str, Any] = {}
+
+    class FakeJob:
+        def __init__(self, **kwargs: Any) -> None:
+            captured.update(kwargs)
+
+        async def run(self) -> dict[str, Any]:
+            return {"seen": 0}
+
+    monkeypatch.setattr("etl.evidence.verifier.VerifyEvidenceJob", FakeJob)
+    result = CliRunner().invoke(
+        app, ["verify-evidence", "--interval-hours", "0", "--max-credits", "7"]
+    )
+    assert result.exit_code == 0, result.output
+    assert captured["interval_hours"] == 0
+    assert captured["max_credits"] == 7
+
+
+def test_cli_defaults_when_no_flags_are_given(monkeypatch: pytest.MonkeyPatch) -> None:
+    from typer.testing import CliRunner
+
+    from etl.cli import app
+
+    captured: dict[str, Any] = {}
+
+    class FakeJob:
+        def __init__(self, **kwargs: Any) -> None:
+            captured.update(kwargs)
+
+        async def run(self) -> dict[str, Any]:
+            return {"seen": 0}
+
+    monkeypatch.setattr("etl.evidence.verifier.VerifyEvidenceJob", FakeJob)
+    result = CliRunner().invoke(app, ["verify-evidence"])
+    assert result.exit_code == 0, result.output
+    assert captured["interval_hours"] == vmod.DEFAULT_INTERVAL_HOURS
+    assert captured["max_credits"] is None
+    assert captured["limit"] == 500
 
 
 def test_post_backed_documents_are_marked_unreplayable_at_acquisition():

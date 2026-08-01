@@ -3,6 +3,27 @@
 This file keeps routine agent sessions from scanning every inactive feature spec.
 
 ## Active / Recent Spec
+- PHASE A COMPLETE in the working tree (2 Aug 2026): **REZ-34 — activate the
+  evidence verification tier**
+  (`context/feature-specs/spec-evidence-verification-tier-activation.md`), REZ-42
+  riding along. All six code items landed: `_monitor_spec` now emits the real
+  `/v2/monitor` schema (targets array, `schedule.text`, `webhook.events`);
+  `create_monitor` raises on non-2xx / `success:false` (no more phantom rows);
+  the route and inbox parse the real envelope (`data` array, one row per page
+  entry, classify on `data[i].status`, dedupe `fc:{id}:{index}`); REZ-42 closed
+  by holding the claiming transaction for the whole drain (no schema change);
+  the verifier replays through the source class's own adapter so
+  `request_headers`/`rps`/TLS apply, with `verify_transport = "direct"` on
+  `BkmeaDetailScraper` (founder-approved) and a credit ceiling on
+  `VerifyEvidenceJob`; CLI `--interval-hours 0` means 0 and `--max-credits`
+  added. New tests: 9 Python (monitors/inbox incl. the two-worker overlap pin) +
+  10 Python (verifier/budget/CLI) + 7 route tests (npm, fetch-intercepted).
+  Python 434 passed (1 pre-existing failure: `bgmea_buying_house` missing from
+  the SQL allow-list, at HEAD), `npm test` 329/329, `npx tsc --noEmit` clean,
+  `ruff check` clean. **Not done, per the spec: Phase B (VPS `.env` webhook
+  base), Phase C (activation runbook — refresh-monitors, end-to-end webhook
+  proof, smoke verify, daily schedules), Phase D (contradicted-claims
+  triage).** Do not schedule or register anything until Phase C.
 - COMPLETE in the working tree (31 Jul 2026): supplier identity guards + evidence status
   split. `/admin/evidence` reported 11,320 items needing review; none had failed a check
   (`evidence_verifications` was empty) and every one had a newer active claim, because
