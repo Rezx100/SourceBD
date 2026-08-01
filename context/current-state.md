@@ -18,8 +18,9 @@ Launch-readiness closeout:
 - Run the 30-day zero P1/P2 Sentry incident window before calling beta fully live.
 
 ## ETL Zombie Reaper + Universal Heartbeats (REZ-31)
-2 Aug 2026 - P0 core COMPLETE in production (VPS `9591e41`, PR #59
-development→main unmerged). Workers are ephemeral `docker compose run`
+2 Aug 2026 - FULLY COMPLETE in production (reaper core VPS `9591e41`, manual
+escape hatch VPS `42da527`, PR #59 development→main unmerged; Linear issue
+moved to Done). Workers are ephemeral `docker compose run`
 containers; one dying between `_open_run()` and `_close_run()` left its job
 and run `running` forever, and the schedule skip-slide then ate every
 interval the zombie blocked.
@@ -55,6 +56,23 @@ Architectural decisions worth keeping:
 - **Resurrection guard:** `_mark_success` / `_mark_failed` only update rows
   still `status='running'`, so a half-alive process cannot flip a reaped job
   back.
+- **The manual escape hatch mirrors the reaper predicate.** Migration 0088
+  (2 Aug 2026, commit `42da527`): `admin_etl_job_decide` now accepts
+  retry/cancel on a `running` job only when `coalesce(heartbeat_at,
+  started_at, requested_at)` is older than 3 hours — exactly the reaper's
+  staleness rule, so one rule covers the automatic and operator paths, and a
+  live job (which heartbeats) can never match it; a fresh `running` job still
+  raises. Before this, a zombie could only be cleared with manual SQL.
+  `/admin/sources` surfaces "Retry (stale)" / "Cancel (stale)" on stale
+  running rows (server stays the enforcement — hard rule 7); the UI predicate
+  `isStaleRunningJob` in `lib/admin/etl-monitoring.ts` is held in lockstep
+  with the SQL by 7 tests. Production verification ran in a rolled-back
+  transaction: fresh `running` → `only failed or cancelled jobs can be
+  retried` / `only pending jobs can be cancelled`; 4h-stale `running` →
+  retry returns `status='pending'` with all run columns reset, a
+  `Stale job`-prefixed event row, and the `admin_audit_log` write; no JWT
+  claims → `admin only`; no synthetic rows persisted. Smoke on VPS
+  `42da527`: `/api/health` + `/admin/sources` green.
 - **`make_interval(hours => %s)` rejects a float bind on real Postgres**
   (int-only, 42883) while mocked-cursor tests never parse the SQL — the
   threshold is `(%s * interval '1 hour')`. Same class as REZ-34's
@@ -73,7 +91,8 @@ fell to the orphan predicate. `rsc` schedule still shows `next_run_at =
 0` → processed 0 / failed 0. Tests: 14 new in
 `etl/tests/test_scraper_queue_reaper.py`; pytest 448 passed (same 1
 pre-existing failure), ruff clean on touched files, `npx tsc --noEmit`
-clean. Session 2 (REZ-39) owns pending-job alerting and closes the issue.
+clean. REZ-31 is closed (reaper + 0088 manual escape hatch); pending-job
+alerting continues as its own issue, REZ-39.
 
 ## Evidence Verification Tier Activation (REZ-34, with REZ-42)
 2 Aug 2026 - Phases A/B/C COMPLETE; the verification tier is live in
