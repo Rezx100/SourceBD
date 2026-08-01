@@ -24,6 +24,10 @@ class Settings(BaseSettings):
     etl_max_retries: int = 5
     etl_retry_backoff_base: float = 2.0
     etl_playwright_headless: bool = True
+    # A running queue job (or orphaned run) with no heartbeat for this many
+    # hours is declared dead and failed by the reaper in run_queue() (REZ-31).
+    # Must exceed the longest legitimate scraper runtime.
+    etl_reap_stale_hours: float = 3
 
     # Firecrawl Cloud (web acquisition layer — see architecture.md Hard-Rule-4
     # exception, 29 Jul 2026). Server-only key; never exposed to the browser.

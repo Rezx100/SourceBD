@@ -17,13 +17,105 @@ Launch-readiness closeout:
 - Apply migrations 0048-0049 and 0060 to production Supabase.
 - Run the 30-day zero P1/P2 Sentry incident window before calling beta fully live.
 
+## ETL Zombie Reaper + Universal Heartbeats (REZ-31)
+2 Aug 2026 - P0 core COMPLETE in production (VPS `9591e41`, PR #59
+development→main unmerged). Workers are ephemeral `docker compose run`
+containers; one dying between `_open_run()` and `_close_run()` left its job
+and run `running` forever, and the schedule skip-slide then ate every
+interval the zombie blocked.
+
+Architectural decisions worth keeping:
+
+- **The reaper is the top of `run_queue()`, one transaction, and raises.**
+  `reap_stale(stale_after_hours)` in `etl/jobs/scraper_queue.py` fails stale
+  `running` jobs (`coalesce(heartbeat_at, started_at, requested_at)` older
+  than `ETL_REAP_STALE_HOURS`, default 3), writes one `etl_job_events`
+  `failed` row per job, fails runs linked from reaped jobs, then fails
+  orphaned `running` runs. The orphan predicate's `NOT EXISTS`
+  (pending/running job with `etl_run_id = run.id`) is load-bearing: a
+  queue-backed run's liveness is its job's heartbeat, so it is never reaped
+  from under a living worker; CLI-opened runs reap on age. Pending jobs are
+  never reaped (pending = worker never arrived = REZ-39 alerting problem).
+  Riding the existing minutely cron means no new scheduler, and raising
+  means `notify_etl_fail` fires instead of the queue running on top of a
+  broken reaper.
+- **Heartbeat universality is the reaper's safety precondition.** A reaper
+  keyed on heartbeats kills any healthy job that never writes one, so every
+  path now heartbeats: `_claim_next_job` sets `heartbeat_at = now()` at
+  claim (schedule-enqueued jobs sat NULL until first progress), and
+  `VerifyEvidenceJob` / `RefreshMonitorsJob` emit `progress_callback` events
+  mid-run (every 25 docs / per monitor reconcile), guarded for CLI runs
+  where no callback exists.
+- **Skip-slide is replaced with catch-up semantics.**
+  `enqueue_due_schedules` advanced `next_run_at` even when it skipped
+  enqueueing behind a pending/running row — the weekly `rsc` schedule
+  silently ate its 31 Jul run this way. The timer now advances only on an
+  actual enqueue; a still-due schedule fires on the next cron minute once
+  the reaper clears the block.
+- **Resurrection guard:** `_mark_success` / `_mark_failed` only update rows
+  still `status='running'`, so a half-alive process cannot flip a reaped job
+  back.
+- **`make_interval(hours => %s)` rejects a float bind on real Postgres**
+  (int-only, 42883) while mocked-cursor tests never parse the SQL — the
+  threshold is `(%s * interval '1 hour')`. Same class as REZ-34's
+  `IndeterminateDatatype`: SQL that only ever runs under a mocked cursor is
+  unverified SQL.
+
+Production verification (1 Aug 2026 22:14 UTC, first cron pass after the
+deploy): reaped exactly the audited zombie population — 2 queue jobs (`rsc`,
+`rsc_documents`, dead since 30 Jul) and 7 `etl_runs` (2× bkmea_web 12 May,
+bgapmea_web 14 May, oeko_tex 26 May, rsc + rsc_documents 30 Jul,
+bgmea_buying_house 30 Jul) — each job with a `Reaped:` event row; every
+minutely cycle since logs `jobs_reaped: 0, runs_reaped: 0`. Both reaped jobs
+had NULL `etl_run_id` (worker died before linking), so their runs correctly
+fell to the orphan predicate. `rsc` schedule still shows `next_run_at =
+2026-08-07 05:14 UTC` and will now fire normally. Smoke: `run-queue --limit
+0` → processed 0 / failed 0. Tests: 14 new in
+`etl/tests/test_scraper_queue_reaper.py`; pytest 448 passed (same 1
+pre-existing failure), ruff clean on touched files, `npx tsc --noEmit`
+clean. Session 2 (REZ-39) owns pending-job alerting and closes the issue.
+
 ## Evidence Verification Tier Activation (REZ-34, with REZ-42)
 2 Aug 2026 - Phases A/B/C COMPLETE; the verification tier is live in
 production. Spec:
 `context/feature-specs/spec-evidence-verification-tier-activation.md`. Phase D
-(contradicted-claims triage, 881 unreviewed) remains as a standing routine.
-VPS is on `2b76046` — see the main-lag note below before any `--ref=main`
-deploy.
+(contradicted-claims triage) is now a standing routine with its first pass
+executed. VPS is on `9591e41` — see the main-lag note below before any
+`--ref=main` deploy.
+
+Phase D first pass (2 Aug 2026): 881 unreviewed contradicted claims were
+classified per supplier and 855 retired (status `orphaned`, review notes
+prefixed `Phase D triage (REZ-34)`) across 73 suppliers — 72 one-company
+decisions (62 plain re-listings, 7 membership-suffix corrections, 2
+dual-membership same-company, 1 duplicate-profile same-factory) plus OSHIN
+KNITWEAR, whose 16 losing claims cite OSHIN TEXTILE's page 84 (different
+company, already split out on 31 Jul). Retirements were direct SQL replicating
+`admin_evidence_claim_decide` retire semantics (the RPC asserts an admin JWT).
+26 claims remain unreviewed by design — GOLDEN KNITWEAR (PVT) LTD (12) and
+MUKTER EXPORT LTD. (14) are queued for a claim-level repair batch, not
+triaged (see pattern 2). Two systematic patterns found:
+
+1. **BKMEA re-listing (72 of 75 suppliers).** BKMEA re-lists members on new
+   detail-page ids (21xx/22xx series) carrying the same membership number;
+   the old pages still serve stale data and both are scraped every run, so
+   each `bkmea_detail` run re-mints a fresh contradicted population (new
+   document versions → new claim rows). Phase D triage is therefore a routine
+   that never converges while both listings exist — expected and per spec.
+2. **Unmerge claim residue (new finding, not covered by the spec).** The
+   31 Jul unmerge moved `source_records` but not supplier-subject claims:
+   all 39 split-off suppliers have zero evidence claims; every citation
+   written while records were merged stayed on the pre-split parent. GOLDEN
+   and MUKTER are inverted — their active citations point at the other
+   company's page while their own records' claims sit contradicted (published
+   profile columns are correct; conflation is citation-layer only). Retiring
+   their contradicted claims would orphan their own registry citations, so
+   they are queued for a dry-run-first claim-repair script
+   (`ops/unmerge_bkmea_suppliers.py` does not cover this — it requires >1
+   base membership per supplier). The next `bkmea_detail` run partially
+   self-heals (split-offs gain first claims, own-record claims re-assert)
+   and will mint fresh unreviewed contradicted rows for the next pass.
+   Also queued: NOOR-A-ALIA / NOOR-A-ALIA FASHION duplicate-profile merge
+   candidate (noted in its review note, not actioned).
 
 Architectural decisions worth keeping:
 
@@ -95,7 +187,7 @@ Phase B/C production outcome (2 Aug 2026, VPS `109.104.153.228`):
   by design), `refresh_monitors` 20:46 UTC (15 existing, 0 created — idempotent
   reconcile). Queue rows link to their `etl_runs`; schedules advanced to
   2026-08-02 20:45 UTC.
-- **The VPS now tracks `development` (`2b76046`), not `main`.** `origin/main`
+- **The VPS now tracks `development` (`9591e41`), not `main`.** `origin/main`
   (`59f6a47`) lacks the inbox fix; a `--ref=main` deploy would revert it until
   the development→main PR is merged. Merge it before the next main deploy.
 - **GitHub Actions "Deploy Production" cannot reach the VPS** (`dial tcp

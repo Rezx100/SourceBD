@@ -142,12 +142,19 @@ def _existing_ids() -> dict[tuple[str, str], str | None]:
         }
 
 
-async def refresh_monitors(dry_run: bool = False) -> dict[str, Any]:
+async def refresh_monitors(
+    dry_run: bool = False,
+    progress_callback: Any | None = None,
+) -> dict[str, Any]:
     """Reconcile Firecrawl monitors with what the sources declare.
 
     Idempotent: a target that already has a monitor id is left alone rather than
     re-registered, so running this on every deploy does not accumulate duplicate
     monitors all webhooking the same change.
+
+    `progress_callback`, when given, is invoked once per reconciled target with
+    (message, seen, upserted, skipped) so a queue-dispatched run keeps its
+    heartbeat fresh; the CLI passes nothing.
     """
     targets = planned_targets()
     hook = webhook_url()
@@ -186,31 +193,38 @@ async def refresh_monitors(dry_run: bool = False) -> dict[str, Any]:
     known = _existing_ids()
     adapter = FirecrawlAdapter()
     try:
-        for target in targets:
+        for index, target in enumerate(targets, start=1):
             key = (target["scraper_code"], target["target_url"])
             if known.get(key):
                 result["existing"] += 1
-                continue
-            try:
-                payload = await adapter.create_monitor(_monitor_spec(target, hook))
-            except (FirecrawlNotConfigured, RuntimeError) as exc:
-                result["failed"] += 1
-                log.error(
-                    "monitors.create_failed",
-                    scraper=target["scraper_code"],
-                    url=target["target_url"],
-                    error=str(exc)[:300],
+            else:
+                try:
+                    payload = await adapter.create_monitor(_monitor_spec(target, hook))
+                except (FirecrawlNotConfigured, RuntimeError) as exc:
+                    result["failed"] += 1
+                    log.error(
+                        "monitors.create_failed",
+                        scraper=target["scraper_code"],
+                        url=target["target_url"],
+                        error=str(exc)[:300],
+                    )
+                else:
+                    monitor_id = _extract_monitor_id(payload)
+                    _upsert_local(target, monitor_id, {"registered_webhook": hook})
+                    result["created"] += 1
+                    log.info(
+                        "monitors.created",
+                        scraper=target["scraper_code"],
+                        url=target["target_url"],
+                        monitor_id=monitor_id,
+                    )
+            if progress_callback is not None:
+                progress_callback(
+                    f"Reconciled {index} of {len(targets)} monitors.",
+                    index,
+                    result["created"],
+                    result["existing"] + result["skipped"],
                 )
-                continue
-            monitor_id = _extract_monitor_id(payload)
-            _upsert_local(target, monitor_id, {"registered_webhook": hook})
-            result["created"] += 1
-            log.info(
-                "monitors.created",
-                scraper=target["scraper_code"],
-                url=target["target_url"],
-                monitor_id=monitor_id,
-            )
     finally:
         await adapter.aclose()
     return result
@@ -244,10 +258,31 @@ class RefreshMonitorsJob:
         if False:
             yield ScrapedRecord(source_code="", source_ref="", company_name="")
 
+    def _emit_progress(self, message: str, seen: int, upserted: int, skipped: int) -> None:
+        """Heartbeat for the queue runner; a no-op from the CLI (no callback)."""
+        if self.progress_callback is None:
+            return
+        self.progress_callback(
+            {
+                "etl_run_id": self.last_run_id,
+                "scraper_code": self.code,
+                "event_type": "progress",
+                "message": message,
+                "records_seen": seen,
+                "records_upserted": upserted,
+                "records_skipped": skipped,
+                "records_matched": 0,
+            }
+        )
+
     async def run(self) -> dict[str, Any]:
         run_id = self._open_run()
+        self._emit_progress("Refreshing monitors.", 0, 0, 0)
         try:
-            result = await refresh_monitors(dry_run=self.dry_run)
+            result = await refresh_monitors(
+                dry_run=self.dry_run,
+                progress_callback=self._emit_progress,
+            )
         except Exception as exc:  # noqa: BLE001
             self._close_run(run_id, "failed", 0, 0, str(exc))
             raise

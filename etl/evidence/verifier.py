@@ -557,8 +557,9 @@ class VerifyEvidenceJob:
     code = "verify_evidence"
     source_code = ""
     transport = "direct"
-    # Set by the queue runner. Verification has no per-record progress worth
-    # streaming, so it is accepted and unused rather than special-cased there.
+    # Set by the queue runner. The run loop heartbeats through it every 25
+    # documents: a 500-doc Firecrawl-heavy batch can run for hours, and
+    # without heartbeats the stale reaper would kill a healthy job (REZ-31).
     progress_callback: Any | None = None
 
     def __init__(
@@ -650,6 +651,19 @@ class VerifyEvidenceJob:
                 credits += outcome.credits_used
                 claims_confirmed += outcome.claims_confirmed
                 claims_missing += outcome.claims_missing
+                if seen % 25 == 0 and self.progress_callback is not None:
+                    self.progress_callback(
+                        {
+                            "etl_run_id": self.last_run_id,
+                            "scraper_code": self.code,
+                            "event_type": "progress",
+                            "message": f"Verified {seen} documents.",
+                            "records_seen": seen,
+                            "records_upserted": counts["live"] + counts["changed"],
+                            "records_skipped": counts["inconclusive"],
+                            "records_matched": claims_confirmed,
+                        }
+                    )
                 if seen % 50 == 0:
                     self.log.info("verify.progress", seen=seen, **counts)
             self._close_run(run_id, "success", seen, counts, None)
