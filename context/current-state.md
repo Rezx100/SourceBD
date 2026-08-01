@@ -18,10 +18,12 @@ Launch-readiness closeout:
 - Run the 30-day zero P1/P2 Sentry incident window before calling beta fully live.
 
 ## Evidence Verification Tier Activation (REZ-34, with REZ-42)
-2 Aug 2026 - Phase A (code) COMPLETE. Spec:
-`context/feature-specs/spec-evidence-verification-tier-activation.md`. Phase
-B/C/D (VPS config, activation runbook, contradicted-claims triage) remain —
-do NOT register monitors, create schedules, or deploy as part of this closeout.
+2 Aug 2026 - Phases A/B/C COMPLETE; the verification tier is live in
+production. Spec:
+`context/feature-specs/spec-evidence-verification-tier-activation.md`. Phase D
+(contradicted-claims triage, 881 unreviewed) remains as a standing routine.
+VPS is on `2b76046` — see the main-lag note below before any `--ref=main`
+deploy.
 
 Architectural decisions worth keeping:
 
@@ -58,6 +60,48 @@ Tests: pytest 434 passed (1 pre-existing failure at HEAD —
 329/329 (route tests intercept `globalThis.fetch`; Node 20 needs
 `--experimental-websocket` for supabase-js, now in the test script); `npx tsc
 --noEmit` and `ruff check` clean.
+
+Phase B/C production outcome (2 Aug 2026, VPS `109.104.153.228`):
+
+- **`FIRECRAWL_WEBHOOK_BASE_URL` was the doubled-path misconfig** — it held the
+  full endpoint URL and `urljoin` appended the path again. Now the bare origin
+  `https://sourcebd.net` (backup `.env.bak-20260802-phaseb` on the VPS).
+- **15 monitors registered, agreeing both ways**: every `evidence_monitors`
+  row has a non-NULL `monitor_id` and the corrected webhook URL; upstream
+  `list_monitors()` matches the id set exactly. The 6 phantom rows self-healed
+  through the upsert — no manual SQL.
+- **End-to-end webhook proof**: a real-shape `monitor.page` / `changed` test
+  delivery landed (200, `recorded=1`), drained (`processed=1`), requeued the
+  source's document (`last_verified_at` cleared), and set the monitor health
+  columns (`last_check_at`/`last_status=changed`/`last_change_at`). Wrong
+  secret → 401.
+- **The runbook caught a defect Phase A's tests could not.** The first live
+  drain crashed on `_monitor_scraper_code`: a bare `%s is not null` parameter
+  raises `IndeterminateDatatype` on real Postgres (psycopg binds server-side;
+  the guard has no type context). Mocked-cursor unit tests never parse the
+  statement, so the production end-to-end step was the only test that could
+  catch it — and did. Every change-status drain rolled back cleanly (REZ-42's
+  transaction scope: zero partial writes), but the minutely cron stalled behind
+  the pending test event until it was marked `failed`. Fix: `%s::text`, commit
+  `2b76046`. The same event was then reset to `pending` and drained as the
+  C.4 proof (`attempts: 2`).
+- **Smoke verify**: 50/50 `live`, 2,543 claims confirmed, `credits_used: 1`
+  (bkmea_detail replays direct; the 1 credit is the cbp_wro doc on its ingest
+  adapter). 50 rows in `evidence_verifications`.
+- **Both jobs scheduled daily** (1440 min, via direct SQL —
+  `admin_etl_schedule_upsert` asserts an admin JWT, so the RPC path is the
+  admin UI; the spec allows SQL). First unattended cycles succeeded:
+  `verify_evidence` 20:45 UTC (0 due at 168h — the 6–7 Aug wave drains ~500/day
+  by design), `refresh_monitors` 20:46 UTC (15 existing, 0 created — idempotent
+  reconcile). Queue rows link to their `etl_runs`; schedules advanced to
+  2026-08-02 20:45 UTC.
+- **The VPS now tracks `development` (`2b76046`), not `main`.** `origin/main`
+  (`59f6a47`) lacks the inbox fix; a `--ref=main` deploy would revert it until
+  the development→main PR is merged. Merge it before the next main deploy.
+- **GitHub Actions "Deploy Production" cannot reach the VPS** (`dial tcp
+  109.104.153.228:22: i/o timeout` from the runner — network-level, before
+  auth). Manual SSH deploy (the documented secondary path) was used. The
+  workflow needs firewall/runner-network attention before it is usable.
 
 ## Supplier Identity + Evidence Status Split
 31 Jul 2026 - Complete, in the working tree. Triggered by "why does
