@@ -50,6 +50,10 @@ _MAX_INITIALS_LEN = 3
 
 def upsert_supplier_with_source(rec: ScrapedRecord) -> str:
     """Returns supplier_id (uuid as str)."""
+    # Local import: avoids the cycle (etl.core.sanctions imports
+    # _names_compatible from this module at module level).
+    from etl.core.sanctions import screen_supplier_against_entries
+
     slug = make_slug(rec.company_name)
     norm = normalize_company_name(rec.company_name)
     phones = normalize_phones(rec.phone_raw)
@@ -76,6 +80,13 @@ def upsert_supplier_with_source(rec: ScrapedRecord) -> str:
         _apply_source_specific(cur, supplier_id=supplier_id, rec=rec)
         _maybe_publish(cur, supplier_id)
         _refresh_completeness(cur, supplier_id)
+        # REZ-32: screen the supplier against stored sanctions entries INSIDE
+        # the transaction. Screening is the P0 invariant, not enrichment, so
+        # it cannot live in the post-commit best-effort block below — a
+        # failure must raise and roll this record back. BaseScraper.run's
+        # per-record try/except contains that as records_skipped: loud, and
+        # self-healing on the next ingest.
+        screen_supplier_against_entries(cur, supplier_id=supplier_id, norm=norm)
         c.commit()
 
     # F5 post-ingest enrichment: keep contacts merged and city/district

@@ -1,12 +1,19 @@
-"""Sanctions list ingestion: persist raw entries + cross-match to suppliers.
+"""Sanctions screening: list ingestion + supplier screening, both directions.
 
 UFLPA / CBP-WRO / OFAC etc. don't create suppliers — they're cross-reference data.
-Pipeline:
-  1. Scraper yields SanctionEntry rows.
-  2. ingest_sanction_entry() upserts into sanctions_list_entries.
-  3. After upsert, fuzzy-match entity_name against existing suppliers.
-  4. On confident match (>=98) → insert into sanctions_screening
-     (DB trigger then flips suppliers.is_sanctioned + zeros SBI).
+Screening runs in BOTH directions, sharing one pair-level predicate
+(`_pair_matches`) so detection cannot drift between them:
+
+  1. Entry side — ingest_sanction_entry() upserts into sanctions_list_entries,
+     then _match_and_screen() matches the new entry against existing suppliers.
+  2. Supplier side — upsert_supplier_with_source() calls
+     screen_supplier_against_entries() inside the upsert transaction, matching
+     the newly upserted supplier against every stored list entry.
+
+On a confident match (token_sort_ratio >= _MATCH_THRESHOLD = 95, plus the
+screenability, shared-token and order-sensitivity guards in `_pair_matches`)
+either side inserts into sanctions_screening; the DB trigger
+trg_sanc_propagate then flips suppliers.is_sanctioned + zeros SBI.
 """
 from __future__ import annotations
 
@@ -22,6 +29,7 @@ from etl.core.db import db, get_source_id
 from etl.core.logging import get_logger
 from etl.core.normalize import normalize_company_name
 from etl.core.scraper import EvidenceAttachment
+from etl.core.upsert import _names_compatible
 
 log = get_logger("etl.sanctions")
 
@@ -140,8 +148,85 @@ def _is_screenable(s: str) -> bool:
     return len(_significant_tokens(s)) >= 2
 
 
+def _pair_matches(a_norm: str, b_norm: str) -> bool:
+    """The ONE pair-level screening rule, shared by both directions.
+
+    Entry side (`_match_and_screen`, at list ingest) and supplier side
+    (`screen_supplier_against_entries`, at supplier upsert) both decide through
+    this predicate so detection cannot drift between directions — the same
+    principle as `ops/check_supplier_conflations.py` reusing
+    `_names_compatible`.
+
+    A pair of normalized names must clear ALL of:
+
+    - `_is_screenable` on BOTH sides. A name that collapses to fewer than two
+      significant tokens ("m s d", "pacific") can never be screened safely,
+      whichever side of the comparison it sits on.
+    - At least TWO significant tokens (length >= 4) literally shared. A single
+      shared common word like "pacific" or "international" is not evidence —
+      token_sort_ratio happily scores 96+ on "Pacific Interntional" vs
+      "International Pacific Trading" purely on that overlap. Real matches
+      almost always share 2+ distinctive tokens (brand + product, or two-part
+      company name).
+    - `fuzz.token_sort_ratio` >= `_MATCH_THRESHOLD` (95).
+    - `_names_compatible` from supplier dedup. token_sort_ratio sorts tokens
+      before comparing, so it is blind to word order as a signal: COTTON FAIR
+      / FAIR COTTON (two different BKMEA members) scores 100, and a swapped
+      leading initials block (A. B. / B. A. KNITWEAR INDUSTRIES) scores 95+.
+      A false positive here brands a real factory as sanctioned and zeroes its
+      score, so the order-sensitive guard applies with full force.
+    """
+    if not _is_screenable(a_norm) or not _is_screenable(b_norm):
+        return False
+    if len(_significant_tokens(a_norm) & _significant_tokens(b_norm)) < 2:
+        return False
+    if fuzz.token_sort_ratio(a_norm, b_norm) < _MATCH_THRESHOLD:
+        return False
+    return _names_compatible(a_norm, b_norm)
+
+
+def _insert_screening_row(
+    cur,
+    *,
+    supplier_id: str,
+    list_code: str,
+    matched_name: str,
+    score: float,
+    entry_ref: str,
+    entry_id: str,
+    source_url: str | None,
+) -> None:
+    """One active sanctions_screening row for a confirmed match.
+
+    `on conflict do nothing` only dedups once migration 0089's partial unique
+    index exists; until then re-ingests can mint duplicate active rows per
+    match. The details shape is identical for both directions.
+    """
+    cur.execute(
+        """insert into public.sanctions_screening
+             (supplier_id, list, matched_name, match_score,
+              list_entry_ref, details, screened_at, active)
+           values (%s, %s, %s, %s, %s, %s::jsonb, now(), true)
+           on conflict do nothing""",
+        (
+            supplier_id, list_code, matched_name, score / 100.0,
+            entry_ref,
+            json.dumps(
+                {"sanctions_list_entry_id": entry_id, "source_url": source_url},
+                ensure_ascii=False,
+            ),
+        ),
+    )
+    log.warning(
+        "sanctions.match",
+        supplier_id=supplier_id, list=list_code,
+        name=matched_name, score=score,
+    )
+
+
 def _match_and_screen(cur, *, entry: SanctionEntry, norm: str, entry_id: str) -> list[str]:
-    """Fuzzy-match against suppliers; insert sanctions_screening rows on hit."""
+    """Entry side: fuzzy-match a new list entry against suppliers; insert
+    sanctions_screening rows on hit."""
     candidates: dict[str, str] = {}
 
     screenable_targets = [norm] if _is_screenable(norm) else []
@@ -169,51 +254,69 @@ def _match_and_screen(cur, *, entry: SanctionEntry, norm: str, entry_id: str) ->
 
     matched: list[str] = []
     for sid, sup_norm in candidates.items():
-        # Skip suppliers whose normalized form is itself too sparse: same
-        # rationale as the entry-side guard. A supplier "M S D" can never
-        # be screened safely, regardless of what list it's compared to.
-        if not _is_screenable(sup_norm):
+        passing = [t for t in screenable_targets if _pair_matches(t, sup_norm)]
+        if not passing:
             continue
+        best = max(fuzz.token_sort_ratio(t, sup_norm) for t in passing)
 
-        # Require at least TWO significant tokens (length >= 4 each) to be
-        # literally shared between the supplier name and the sanctioned
-        # entity name. A single shared common word like "pacific" or
-        # "international" is not enough evidence — token_sort_ratio happily
-        # scores 96+ on "Pacific Interntional" vs "International Pacific
-        # Trading" purely on that overlap. Real matches almost always share
-        # 2+ distinctive tokens (brand + product, or two-part company name).
-        sup_sig = _significant_tokens(sup_norm)
-        if not any(len(_significant_tokens(t) & sup_sig) >= 2 for t in screenable_targets):
-            continue
-
-        best = max(
-            (fuzz.token_sort_ratio(t, sup_norm) for t in screenable_targets),
-            default=0,
-        )
-        if best < _MATCH_THRESHOLD:
-            continue
-
-        cur.execute(
-            """insert into public.sanctions_screening
-                 (supplier_id, list, matched_name, match_score,
-                  list_entry_ref, details, screened_at, active)
-               values (%s, %s, %s, %s, %s, %s::jsonb, now(), true)
-               on conflict do nothing""",
-            (
-                sid, entry.list_code, entry.entity_name, best / 100.0,
-                entry.entry_ref,
-                json.dumps(
-                    {"sanctions_list_entry_id": entry_id, "source_url": entry.source_url},
-                    ensure_ascii=False,
-                ),
-            ),
-        )
-        log.warning(
-            "sanctions.match",
-            supplier_id=sid, list=entry.list_code,
-            name=entry.entity_name, score=best,
+        _insert_screening_row(
+            cur,
+            supplier_id=sid,
+            list_code=entry.list_code,
+            matched_name=entry.entity_name,
+            score=best,
+            entry_ref=entry.entry_ref,
+            entry_id=entry_id,
+            source_url=entry.source_url,
         )
         matched.append(sid)
+
+    return matched
+
+
+def screen_supplier_against_entries(cur, *, supplier_id: str, norm: str) -> list[str]:
+    """Supplier side: screen one supplier against every stored list entry.
+
+    Called from `upsert_supplier_with_source` INSIDE the upsert transaction:
+    screening is the P0 invariant, not enrichment, so a failure here raises
+    and rolls the supplier record back rather than publishing an unscreened
+    supplier. (`BaseScraper.run`'s per-record try/except then contains it as
+    records_skipped — loud, and self-healing on the next ingest.) The match
+    decision is `_pair_matches`, the same predicate the entry side uses.
+
+    Returns the matched sanctions_list_entries ids.
+    """
+    if not _is_screenable(norm):
+        return []
+
+    # Trigram prefilter over the GIN index idx_sle_name_trgm, best-first so a
+    # true match survives the limit even when many entries trigram-match.
+    cur.execute(
+        """select id, list, entry_ref, entity_name, entity_name_norm, source_url
+             from public.sanctions_list_entries
+            where entity_name_norm %% %s
+            order by entity_name_norm <-> %s
+            limit 50""",
+        (norm, norm),
+    )
+
+    matched: list[str] = []
+    for row in cur.fetchall():
+        entry_norm = row["entity_name_norm"]
+        if not _pair_matches(norm, entry_norm):
+            continue
+        entry_id = str(row["id"])
+        _insert_screening_row(
+            cur,
+            supplier_id=supplier_id,
+            list_code=row["list"],
+            matched_name=row["entity_name"],
+            score=fuzz.token_sort_ratio(norm, entry_norm),
+            entry_ref=row["entry_ref"],
+            entry_id=entry_id,
+            source_url=row["source_url"],
+        )
+        matched.append(entry_id)
 
     return matched
 

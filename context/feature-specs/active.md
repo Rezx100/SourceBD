@@ -3,8 +3,27 @@
 This file keeps routine agent sessions from scanning every inactive feature spec.
 
 ## Active / Recent Spec
-- P0 CORE COMPLETE IN PRODUCTION (2 Aug 2026): **REZ-31 — zombie ETL run/job
-  reaper + universal heartbeats**. `reap_stale()` runs at the top of every
+- COMPLETE in the working tree (2 Aug 2026): **REZ-32 — screen newly upserted
+  suppliers against stored sanctions entries** (Linear, P0). One-directional
+  screening gap closed: `_pair_matches` in `etl/core/sanctions.py` is the one
+  pair-level predicate for BOTH directions (screenable both sides + >=2 shared
+  significant tokens + token_sort_ratio >= 95 + `_names_compatible` — the
+  order-sensitive guard is what rejects COTTON FAIR / FAIR COTTON at 100 and
+  A. B. / B. A. KNITWEAR INDUSTRIES at 95.5); supplier-side
+  `screen_supplier_against_entries` runs INSIDE the
+  `upsert_supplier_with_source` transaction so a failure rolls the record back
+  (`BaseScraper.run` contains it as `records_skipped`); migration 0089 adds
+  the partial unique index `(supplier_id, list, coalesce(list_entry_ref,''))
+  where active` so `on conflict do nothing` finally has something to conflict
+  on. 23 new tests in `etl/tests/test_sanctions_screening.py`; pytest 471
+  passed + same 1 pre-existing failure; ruff / tsc clean; npm test 336/336.
+  **Session 2 (NOT done): apply 0089 to production, run the backfill sweep
+  over existing suppliers.** architecture.md line 68's false Inngest claim
+  rewritten; lines 24/33 Inngest tool mentions left as noted doc debt. See
+  `context/current-state.md` → "Sanctions Screening Both Directions".
+- FULLY COMPLETE IN PRODUCTION (2 Aug 2026): **REZ-31 — zombie ETL run/job
+  reaper + universal heartbeats + stale-job manual retry/cancel**.
+  `reap_stale()` runs at the top of every
   `run_queue()` in one transaction and raises (so the cron's Slack alert
   fires): stale `running` jobs fail on `coalesce(heartbeat_at, started_at,
   requested_at)` older than `ETL_REAP_STALE_HOURS` (default 3) with a
@@ -17,9 +36,15 @@ This file keeps routine agent sessions from scanning every inactive feature spec
   dropping intervals (the weekly `rsc` had silently eaten 31 Jul).
   Resurrection guard: `_mark_success`/`_mark_failed` only touch rows still
   `running`. First production cron pass reaped exactly the audited zombies
-  (2 jobs + 7 runs); zero `running` stragglers since. PR #59
-  (development→main) open, unmerged; VPS on `development` `9591e41`.
-  Session 2 (REZ-39: pending-job alerting) closes the issue. See
+  (2 jobs + 7 runs); zero `running` stragglers since. Follow-up in the same
+  session: migration 0088 lets admins retry/cancel a `running` job only
+  under the reaper's own staleness predicate (a live job heartbeats, so the
+  guard can never double-fire a real run), surfaced on `/admin/sources` as
+  "Retry (stale)" / "Cancel (stale)"; verified in production in a
+  rolled-back transaction (fresh raises, 4h-stale succeeds, anon gets
+  `admin only`). Linear moved to Done; pending-job alerting continues as
+  REZ-39. PR #59 (development→main) open, unmerged; VPS on `development`
+  `42da527`. See
   `context/current-state.md` → "ETL Zombie Reaper + Universal Heartbeats".
 - PHASES A–C COMPLETE IN PRODUCTION (2 Aug 2026): **REZ-34 — activate the
   evidence verification tier**

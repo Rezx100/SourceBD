@@ -5,6 +5,63 @@ Last compacted for agent-token efficiency: 30 Jun 2026.
 ## Phase
 Phase 7 - Public Beta launch prep.
 
+## Sanctions Screening Both Directions (REZ-32)
+2 Aug 2026 - Complete, in the working tree. Screening was one-directional:
+`_match_and_screen` fired only when a list entry was ingested, so the 67
+suppliers created since OFAC's last refresh had never been screened against
+the 13,366 stored entries (production: 3 screening rows ever, 0 active, last
+touched 14 May). The downstream mechanism (`trg_sanc_propagate` flipping
+`suppliers.is_sanctioned` + zeroing `sbi_scores.total`) worked — it was just
+never triggered for new suppliers.
+
+Architectural decisions worth keeping:
+
+- **One pair-level predicate decides both directions.** `_pair_matches` in
+  `etl/core/sanctions.py` is the single rule — `_is_screenable` on BOTH sides,
+  >=2 literally shared significant tokens, `token_sort_ratio >= 95`, and
+  `_names_compatible` reused from supplier dedup. Entry side
+  (`_match_and_screen` at list ingest) and supplier side
+  (`screen_supplier_against_entries` at upsert) both call it, so detection
+  cannot drift (same principle as `ops/check_supplier_conflations.py` reusing
+  `_names_compatible`). The order-sensitive guard is load-bearing, not
+  redundant: token_sort_ratio scores the word-order permutation COTTON FAIR /
+  FAIR COTTON at 100 and the initials swap A. B. / B. A. KNITWEAR INDUSTRIES
+  at 95.5 — both over threshold, both different companies, and here a false
+  positive brands a real factory as sanctioned. Both directions also insert
+  through one helper (`_insert_screening_row`), so the `details` jsonb shape
+  cannot drift either.
+- **Supplier-side screening is in-transaction, not post-commit.**
+  `screen_supplier_against_entries` runs inside `upsert_supplier_with_source`
+  after `_refresh_completeness`, before `commit()` — screening is the P0
+  invariant, not enrichment, so a failure raises and rolls the supplier record
+  back rather than publishing an unscreened supplier. `BaseScraper.run`'s
+  per-record try/except contains that as `records_skipped`: loud, and
+  self-healing on the next ingest. The post-commit block stays best-effort
+  enrichment only.
+- **`on conflict do nothing` had nothing to conflict on.** Both directions
+  inserted with that clause, but `sanctions_screening` had no unique
+  constraint over the match identity — re-ingests would have minted duplicate
+  active rows per match, each re-firing the trigger. Migration 0089 adds the
+  partial unique index `(supplier_id, list, coalesce(list_entry_ref, ''))
+  where active`. **NOT applied to production — Session 2, together with the
+  backfill sweep over existing suppliers.**
+- **Supplier-side prefilter is best-first.** `entity_name_norm %% %s` over the
+  existing GIN index `idx_sle_name_trgm`, ordered by `<->` distance so a true
+  match survives `limit 50` even when many OFAC entries trigram-match a short
+  BD factory name. (Entry side's prefilter left as-is — no drive-by.)
+- **architecture.md claimed screening "runs as an Inngest job" — false** (no
+  Inngest code exists in the repo); rewritten to describe the real mechanism.
+  Lines 24/33 still mention Inngest as an approved background-job tool —
+  adjacent doc debt, deliberately out of scope, noted here.
+
+Tests: 23 new in `etl/tests/test_sanctions_screening.py` pinning both
+directions against the real observed pairs (permutations / initials swaps
+rejected, true variants match, "M S D"-class names unscreenable on both
+sides, one active row per match, re-screening idempotent under the 0089 key).
+pytest 471 passed + same 1 pre-existing failure (`bgmea_buying_house` absent
+from the SQL allow-list, unrelated); ruff clean on touched files; `npx tsc
+--noEmit` clean; `npm test` 336/336.
+
 ## Shipped Baseline
 - Phase 0 data moat and Phases 1-5 are shipped in the codebase.
 - Phase 6 hardening H1-H8 is shipped in codebase.
@@ -18,8 +75,9 @@ Launch-readiness closeout:
 - Run the 30-day zero P1/P2 Sentry incident window before calling beta fully live.
 
 ## ETL Zombie Reaper + Universal Heartbeats (REZ-31)
-2 Aug 2026 - P0 core COMPLETE in production (VPS `9591e41`, PR #59
-development→main unmerged). Workers are ephemeral `docker compose run`
+2 Aug 2026 - FULLY COMPLETE in production (reaper core VPS `9591e41`, manual
+escape hatch VPS `42da527`, PR #59 development→main unmerged; Linear issue
+moved to Done). Workers are ephemeral `docker compose run`
 containers; one dying between `_open_run()` and `_close_run()` left its job
 and run `running` forever, and the schedule skip-slide then ate every
 interval the zombie blocked.
@@ -55,6 +113,23 @@ Architectural decisions worth keeping:
 - **Resurrection guard:** `_mark_success` / `_mark_failed` only update rows
   still `status='running'`, so a half-alive process cannot flip a reaped job
   back.
+- **The manual escape hatch mirrors the reaper predicate.** Migration 0088
+  (2 Aug 2026, commit `42da527`): `admin_etl_job_decide` now accepts
+  retry/cancel on a `running` job only when `coalesce(heartbeat_at,
+  started_at, requested_at)` is older than 3 hours — exactly the reaper's
+  staleness rule, so one rule covers the automatic and operator paths, and a
+  live job (which heartbeats) can never match it; a fresh `running` job still
+  raises. Before this, a zombie could only be cleared with manual SQL.
+  `/admin/sources` surfaces "Retry (stale)" / "Cancel (stale)" on stale
+  running rows (server stays the enforcement — hard rule 7); the UI predicate
+  `isStaleRunningJob` in `lib/admin/etl-monitoring.ts` is held in lockstep
+  with the SQL by 7 tests. Production verification ran in a rolled-back
+  transaction: fresh `running` → `only failed or cancelled jobs can be
+  retried` / `only pending jobs can be cancelled`; 4h-stale `running` →
+  retry returns `status='pending'` with all run columns reset, a
+  `Stale job`-prefixed event row, and the `admin_audit_log` write; no JWT
+  claims → `admin only`; no synthetic rows persisted. Smoke on VPS
+  `42da527`: `/api/health` + `/admin/sources` green.
 - **`make_interval(hours => %s)` rejects a float bind on real Postgres**
   (int-only, 42883) while mocked-cursor tests never parse the SQL — the
   threshold is `(%s * interval '1 hour')`. Same class as REZ-34's
@@ -73,7 +148,8 @@ fell to the orphan predicate. `rsc` schedule still shows `next_run_at =
 0` → processed 0 / failed 0. Tests: 14 new in
 `etl/tests/test_scraper_queue_reaper.py`; pytest 448 passed (same 1
 pre-existing failure), ruff clean on touched files, `npx tsc --noEmit`
-clean. Session 2 (REZ-39) owns pending-job alerting and closes the issue.
+clean. REZ-31 is closed (reaper + 0088 manual escape hatch); pending-job
+alerting continues as its own issue, REZ-39.
 
 ## Evidence Verification Tier Activation (REZ-34, with REZ-42)
 2 Aug 2026 - Phases A/B/C COMPLETE; the verification tier is live in
