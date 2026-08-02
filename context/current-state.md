@@ -39,6 +39,44 @@ reclassified to `superseded`; the worklist dropped from 442 claims / 75
 suppliers to **20 claims / 10 suppliers, all genuine** list-vs-detail
 membership-number disagreements (the Phase D dual-membership class).
 
+## Registry Display Precedence (founder rule, 3 Aug 2026)
+3 Aug 2026 - COMPLETE in production (main `4727185`, PR #67; VPS at
+`4727185`). Founder rule: cert/reg provider data is the source of truth and
+the last scraped value must show without a review round-trip; within-provider
+conflicts are sorted at the root, never reviewed.
+
+Root causes found + fixed:
+- `suppliers.bkmea_reg_number` was `coalesce(existing, new)` — first-writer-
+  wins, frozen forever. 73 suppliers displayed numbers BKMEA had long since
+  corrected (KHADIZA KNITWEARS showed 642 - B/2008; BKMEA says 503 - C/2000
+  on both list and detail). Now the canonical record
+  (`ScrapedRecord.canonical_registry`, set by bkmea_detail) OVERWRITES the
+  column; the list only fills a NULL. Blank memberships ("- C/2009") are
+  junk-guarded out of the parser payload and the column.
+- bkmea_web and bkmea_detail both CLAIMED the membership fields, so a
+  list-vs-page disagreement became a `contradicted` review item. The list no
+  longer claims detail-owned fields when a detail page exists — one canonical
+  citation per provider, within-provider review items structurally impossible.
+- ~48 suppliers legitimately hold 2+ current BKMEA memberships (BKMEA never
+  dedupes re-registrations). Displayed value = newest-fetched valid detail
+  value; stable across runs (fixed gate order + hash-skip), moves only when
+  the provider's data changes.
+
+Backlog repaired by `ops/repair_bkmea_registry_display.py` (two passes: 48 +
+25 columns; 20 contradicted claims resolved — 10 self-resolved, 10 canonical-
+won; KNIT FASHION's blank-page junk claim superseded, its list citation
+reactivated). Worklist: **zero** unreviewed stale/contradicted.
+
+False alarms cleared for the record: "Apparel Today Ltd." WAS current
+(2638 - C/2026 scraped 2 Aug from the current detail page 2842; the
+983 - B/2009 the founder saw is BKMEA's own stale 2009 page 8817, no longer
+cited anywhere). "APPAREL TODAY" (membership 2640) is not missing — it does
+not exist on BKMEA's live register (verified by direct full-register fetch,
+2,784 rows, zero credits); it was briefly listed and removed. Latent risk
+noted for Spec B: `make_slug` erases the LTD distinction, so a reappearing
+"APPAREL TODAY" (2640) would Pass-1-merge into "Apparel Today Ltd." — needs
+a same-name-different-membership guard.
+
 
 Architectural decisions worth keeping:
 

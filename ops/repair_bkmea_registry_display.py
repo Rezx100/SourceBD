@@ -19,9 +19,13 @@ show without a review round-trip. Two defects violated it:
 
 WHAT IT DOES (all reported, dry-run default)
 --------------------------------------------
-A. Columns: per supplier with a BKMEA list row, the correct value is the
-   `:detail` row's `bkmea_reg_number` (junk-guarded: must lead with its
-   integer) when present, else the list row's. Updates only mismatches.
+A. Columns: per supplier with a BKMEA row, the correct value is the NEWEST
+   fetched valid `:detail` row's `bkmea_reg_number` (junk-guarded: must lead
+   with its integer), else the newest fetched valid list row's. ~48 suppliers
+   legitimately hold 2+ current memberships (BKMEA never dedupes
+   re-registrations); newest-fetched is the deterministic "last scraped data
+   wins" pick and only moves when the provider's data actually changes.
+   Updates only mismatches.
 B. Claims, in order:
    1. unreviewed `contradicted` claims whose ACTIVE same-field replacement
       carries the SAME value (self-resolved noise) -> `superseded`.
@@ -65,20 +69,22 @@ _MEMNO_HEAD_RE = re.compile(r"^\d+\s*-")
 
 _DETAIL_OWNED_FIELDS = ("bkmea_membership_no", "bkmea_reg_number")
 
+# Every BKMEA row (list and :detail) with its value and fetch time. ~48
+# suppliers legitimately hold 2+ current memberships (BKMEA never dedupes
+# re-registrations), so the pick must be deterministic: the NEWEST fetched
+# valid :detail value wins (the canonical page, last scraped — the founder
+# rule), else the newest fetched valid list value. The gate fetches in a
+# fixed order and hash-skip keeps steady-state runs untouched, so the pick
+# only moves when the provider's data actually changes.
 COLUMN_CANDIDATES_SQL = """
 select s.id as supplier_id, s.company_name, s.bkmea_reg_number as current,
-       l.fields->>'bkmea_reg_number' as list_reg,
-       d.fields->>'bkmea_reg_number' as detail_reg
+       sr.source_ref, sr.fetched_at,
+       sr.fields->>'bkmea_reg_number' as reg
   from public.suppliers s
-  join public.source_records l
-    on l.supplier_id = s.id
-   and l.source_id = (select id from public.sources where code = 'BKMEA')
-   and position(':' in l.source_ref) = 0
-  left join public.source_records d
-    on d.supplier_id = s.id
-   and d.source_id = l.source_id
-   and d.source_ref = (l.fields->>'bkmea_detail_id') || ':detail'
- order by s.company_name
+  join public.source_records sr
+    on sr.supplier_id = s.id
+   and sr.source_id = (select id from public.sources where code = 'BKMEA')
+ order by s.company_name, sr.fetched_at
 """
 
 CONTRADICTED_SQL = """
@@ -167,13 +173,15 @@ def main() -> int:
 
             column_fixes: list[tuple[dict, str]] = []
             for _sid, srows in by_supplier.items():
+                detail_rows = [r for r in srows if ":" in r["source_ref"]]
+                list_rows = [r for r in srows if ":" not in r["source_ref"]]
                 correct = next(
-                    (r["detail_reg"].strip() for r in srows if _valid(r["detail_reg"])),
+                    (r["reg"].strip() for r in reversed(detail_rows) if _valid(r["reg"])),
                     None,
                 )
                 if correct is None:
                     correct = next(
-                        (r["list_reg"].strip() for r in srows if _valid(r["list_reg"])),
+                        (r["reg"].strip() for r in reversed(list_rows) if _valid(r["reg"])),
                         None,
                     )
                 current = srows[0]["current"]
