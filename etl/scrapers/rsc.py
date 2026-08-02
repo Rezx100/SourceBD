@@ -137,6 +137,10 @@ class RscScraper(AcquiringScraper):
                 # RSC factories may not yet exist in suppliers table.
                 # Try fuzzy match first; if no match, create supplier shell + queue review.
                 supplier_id = upsert_supplier_with_source(rec)
+                if supplier_id is None:
+                    # Unchanged payload: fetched_at was touched, nothing else to do.
+                    skipped += 1
+                    continue
                 _write_remediation(supplier_id, rec)
                 upserted += 1
                 await self._record_evidence(rec, supplier_id, run_id)

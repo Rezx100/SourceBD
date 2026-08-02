@@ -5,6 +5,63 @@ Last compacted for agent-token efficiency: 30 Jun 2026.
 ## Phase
 Phase 7 - Public Beta launch prep.
 
+## ETL Change-Skip + BKMEA source_records Split (REZ-36 Spec A)
+2 Aug 2026 - COMPLETE in the working tree; production rollout (rekey +
+controlled runs) pending. Spec:
+`context/feature-specs/spec-etl-change-skip.md`.
+
+Architectural decisions worth keeping:
+
+- **The change-skip lives in `upsert_supplier_with_source` — one code path,
+  every scraper.** `_source_record_unchanged` looks up the stored
+  `source_records` row by `(source_id, source_ref)`; a matching `raw_hash`
+  returns `None` from the upsert, which means: no enrich, no source-record
+  rewrite beyond `fetched_at` (freshness monitoring keys off that column — a
+  verified record must not false-age), no evidence, no per-record downstream
+  writes. Callers count `records_skipped`. A ref matching rows on MORE THAN
+  ONE supplier never skips — skipping on an ambiguous ref could freeze the
+  wrong supplier's row, so the full upsert's Pass 0 resolves it
+  deterministically. All 7 upsert call sites (`BaseScraper.run` + 6 custom
+  `run()` overrides) handle the `None`.
+- **`bkmea_detail` writes its own `{detail_id}:detail` source_records row.**
+  Sharing the list row's ref made `raw_hash` flip-flop between list-hash and
+  detail-hash on alternating runs, so hash-skip was impossible. The detail
+  row carries `enriched_from_list_hash` (the list row's `raw_hash` at
+  enrichment time) in its `fields` — the pre-fetch gate's input — and the
+  list row's ref rides in the new `ScrapedRecord.alias_refs`, so Pass 0 still
+  resolves the detail record to the same supplier (zero new suppliers, pinned
+  by test). No new source code — that would ripple into the SQL allow-list
+  and tier map.
+- **The pre-fetch gate is a pure function, not a SQL predicate.** The old
+  `_load_targets` predicate (`email_primary IS NULL OR address_raw IS NULL`)
+  never cleared — BKMEA rarely publishes email — so the whole ~590-member
+  register was re-scraped every run at ~1 Firecrawl credit each. The gate is
+  now `_needs_enrichment(...)`: never-enriched OR list-hash-moved OR
+  unreviewed-stale-claim (that branch kept exactly), with `--full-refresh`
+  bypassing (founder knob; queue-dispatched runs always gate). The SQL only
+  fetches candidates — the REZ-34 lesson (mocked cursors never parse SQL) is
+  why the predicate is testable Python.
+- **`bkmea_web` keys `source_ref` on the membership integer, never the
+  detail-page id.** BKMEA re-lists members on new detail ids under the same
+  membership number; preferring `detail_id` minted a new `source_records` row
+  per re-listing (the REZ-34 Phase D treadmill).
+  `ops/rekey_bkmea_source_refs.py` (dry-run default) rekeys existing rows:
+  per `(supplier_id, membership_int)` group the freshest row wins, losers'
+  FK references are re-pointed and the losers deleted; multi-supplier refs
+  (the stranded CRONY FASHION duplicate) are reported, not merged.
+
+Tests: 29 new — `etl/tests/test_change_skip.py` (hash-skip idempotency,
+`fetched_at` touch, changed/NULL-hash fallthrough, multi-supplier
+fallthrough, run-level skip counting vs failures, no evidence on skip) and
+`etl/tests/test_bkmea_detail_gate.py` (gate predicate truth table, candidate
+SQL shape, `_load_targets` wiring, `{detail_id}:detail` ref + alias linkage
+with zero new suppliers, second-run hash-skip, `--full-refresh` CLI wiring +
+rejection on other scrapers, queue-default gate-on), plus one `bkmea_web`
+ref-stability pin. Shared fakes live in `etl/tests/conftest.py`. pytest 517
+passed; ruff clean on touched files; `npx tsc --noEmit` clean; `npm test`
+336/336; no schema migration (data rekey only) — 92/92 migrations still
+parse.
+
 ## SBI Recompute Restored + Pillar 2 Re-spec (REZ-33)
 2 Aug 2026 - FULLY COMPLETE in production (main `645dc19`, PR #62; VPS
 `109.104.153.228`). `sbi_scores` was written exactly

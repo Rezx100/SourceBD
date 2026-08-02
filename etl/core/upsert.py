@@ -5,6 +5,12 @@ Strategy:
      supplier_id directly. This guarantees deterministic self-source idempotency:
      re-ingesting the same scraper never remaps a row to a different supplier,
      even when Pass 3 phone-overlap would otherwise pick an ambiguous sibling.
+     `ScrapedRecord.alias_refs` match here too, so a chained enrichment record
+     (bkmea_detail) resolves through its parent list row's ref.
+  0.5 Change-skip: if the stored row for this exact (source, ref) already
+     carries this payload's raw_hash, skip the enrich and the evidence rewrite
+     entirely — but still touch fetched_at so freshness monitoring does not
+     false-age a record we verified just now. The caller counts records_skipped.
   1. Match against existing suppliers via slug -> email -> phone -> fuzzy name (spec §4.2).
   2. If matched, ENRICH (never overwrite non-null with null, add source_tag).
   3. If not matched, INSERT new supplier.
@@ -48,8 +54,12 @@ _CONTACT_NAME_FLOOR = 85
 _MAX_INITIALS_LEN = 3
 
 
-def upsert_supplier_with_source(rec: ScrapedRecord) -> str:
-    """Returns supplier_id (uuid as str)."""
+def upsert_supplier_with_source(rec: ScrapedRecord) -> str | None:
+    """Returns supplier_id (uuid as str), or None when the record was skipped
+    as unchanged (the stored source_records row already carries this payload's
+    raw_hash). A None return means: no enrich, no source-record rewrite beyond
+    fetched_at, and the caller must not record evidence or run per-record
+    downstream writes — it counts records_skipped instead."""
     # Local import: avoids the cycle (etl.core.sanctions imports
     # _names_compatible from this module at module level).
     from etl.core.sanctions import screen_supplier_against_entries
@@ -60,9 +70,15 @@ def upsert_supplier_with_source(rec: ScrapedRecord) -> str:
     email = (rec.email or "").strip().lower() or None
 
     with db.conn() as c, c.cursor() as cur:
+        if _source_record_unchanged(cur, rec):
+            c.commit()
+            log.info("source_record.unchanged",
+                     source=rec.source_code, ref=rec.source_ref)
+            return None
         supplier_id = _find_existing(
             cur, slug=slug, norm=norm, email=email, phones=phones,
             source_code=rec.source_code, source_ref=rec.source_ref,
+            alias_refs=rec.alias_refs,
         )
 
         if supplier_id is None:
@@ -105,19 +121,59 @@ def upsert_supplier_with_source(rec: ScrapedRecord) -> str:
 
 
 # -----------------------------------------------------------------------------
+def _source_record_unchanged(cur, rec: ScrapedRecord) -> bool:
+    """Post-fetch change-skip: True when the stored row for this exact
+    (source, ref) already carries this payload's hash.
+
+    One code path for every scraper (REZ-36): a record whose content has not
+    changed since it was last ingested must not re-enrich the supplier or
+    rewrite its evidence — before migration 0087 that rewrite minted ~5,800
+    stale claims per bkmea_detail run, and it still re-bills the write path
+    for nothing. fetched_at is still touched: the record WAS verified just
+    now, and freshness monitoring keys off that column.
+    """
+    src_id = get_source_id(rec.source_code)
+    cur.execute(
+        "select supplier_id, raw_hash from public.source_records "
+        "where source_id = %s and source_ref = %s",
+        (src_id, rec.source_ref),
+    )
+    rows = cur.fetchall()
+    supplier_ids = {str(r["supplier_id"]) for r in rows}
+    if len(supplier_ids) != 1:
+        # 0 rows: never ingested. >1 supplier: the ref is ambiguous (a
+        # stranded duplicate like CRONY FASHION's) — fall through to the full
+        # upsert, whose Pass 0 resolves it deterministically. Skipping on an
+        # ambiguous ref could freeze the wrong supplier's row.
+        return False
+    if rows[0]["raw_hash"] != rec.hash():
+        # Covers a NULL stored hash (never computed) as well as a real change.
+        return False
+    cur.execute(
+        "update public.source_records set fetched_at = now() "
+        "where source_id = %s and source_ref = %s",
+        (src_id, rec.source_ref),
+    )
+    return True
+
+
 def _find_existing(
     cur, *, slug: str, norm: str, email: str | None, phones: list[str],
     source_code: str | None = None, source_ref: str | None = None,
+    alias_refs: tuple[str, ...] = (),
 ) -> str | None:
     # Pass 0: self-source idempotency. If we have already ingested this exact
     # (source_id, source_ref), reuse the same supplier_id deterministically.
+    # Aliases (a chained record's parent ref) match too, with the record's own
+    # ref preferred so self-source history always wins over the parent's.
     if source_code and source_ref:
         src_id = get_source_id(source_code)
+        refs = [source_ref, *alias_refs]
         cur.execute(
             "select supplier_id from public.source_records "
-            "where source_id = %s and source_ref = %s "
-            "order by fetched_at asc limit 1",
-            (src_id, source_ref),
+            "where source_id = %s and source_ref = any(%s::text[]) "
+            "order by (source_ref = %s) desc, fetched_at asc limit 1",
+            (src_id, refs, source_ref),
         )
         row = cur.fetchone()
         if row:

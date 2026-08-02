@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import asyncio
 from pathlib import Path
+from typing import Any
 
 import typer
 
@@ -99,13 +100,27 @@ def compare_parity_cmd(
 
 
 @app.command()
-def run(scraper: str) -> None:
+def run(
+    scraper: str,
+    full_refresh: bool = typer.Option(
+        False,
+        "--full-refresh",
+        help="bkmea_detail only: re-fetch every member with a detail page, "
+        "bypassing the pre-fetch hash gate (founder knob for a periodic full pass).",
+    ),
+) -> None:
     """Run a scraper or maintenance job end-to-end."""
     cls = RUNNABLE.get(scraper)
     if cls is None:
         typer.echo(f"unknown scraper: {scraper}. Try `list`.")
         raise typer.Exit(1)
-    result = asyncio.run(cls().run())
+    kwargs: dict[str, Any] = {}
+    if full_refresh:
+        if scraper != "bkmea_detail":
+            typer.echo("--full-refresh only applies to bkmea_detail.")
+            raise typer.Exit(1)
+        kwargs["full_refresh"] = True
+    result = asyncio.run(cls(**kwargs).run())
     typer.echo(str(result))
 
 

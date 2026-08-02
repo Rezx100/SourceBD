@@ -161,8 +161,13 @@ class BkmeaScraper(AcquiringScraper):
         return out
 
     def _to_record(self, c: dict[str, Any], doc: AcquiredDoc | None = None) -> ScrapedRecord:
-        # Use membership integer as source_ref — stable across years.
-        ref = c["detail_id"] or c["membership_int"] or c["membership_no"]
+        # Membership integer as source_ref — stable across years AND across
+        # BKMEA's re-listings. BKMEA re-lists members on new detail-page ids
+        # carrying the same membership number, so preferring detail_id (the old
+        # code, despite this comment) minted a new source_records row per
+        # re-listing — the REZ-34 Phase D re-listing treadmill. detail_id is
+        # only the fallback for a row whose membership number did not parse.
+        ref = c["membership_int"] or c["detail_id"] or c["membership_no"]
         return ScrapedRecord(
             source_code=self.source_code,
             source_ref=str(ref),

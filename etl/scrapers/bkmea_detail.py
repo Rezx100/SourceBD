@@ -6,7 +6,14 @@ Reads existing suppliers (created by `bkmea_web`) that have a
 ScrapedRecords with factory address, owner name/email/phone, employee
 counts, machine counts, production capacity.
 
-The upsert pipeline COALESCES non-null values, so re-running is safe.
+Each member's record writes its OWN source_records row, keyed
+`{detail_id}:detail` and carrying `enriched_from_list_hash` (the list row's
+raw_hash at enrichment time). The pre-fetch gate (`_needs_enrichment`) only
+spends a Firecrawl credit when the member was never enriched, its list row
+changed since the last enrichment, or an unreviewed stale claim is
+outstanding — `--full-refresh` bypasses the gate for a periodic full pass.
+The upsert pipeline COALESCES non-null values and hash-skips unchanged
+payloads, so re-running is safe and steady-state runs cost ~0 credits.
 
 Transport: Firecrawl, batched — these are thousands of independent detail pages
 with one option set, which is exactly what ``/v2/batch/scrape`` is for.
@@ -66,11 +73,51 @@ _SECTION_LOCATORS = {
     "bkmea_products": "div.tbrow table.table (Products)",
 }
 # `bkmea_raw_kv` is the whole scrape dumped for debugging; `detail_id`/`detail_url`
-# are our own plumbing. None of them are claims about the supplier.
-_UNCITABLE_FIELDS = ("bkmea_raw_kv", "bkmea_detail_id", "bkmea_detail_url")
+# are our own plumbing; `enriched_from_list_hash` is the pre-fetch gate's marker.
+# None of them are claims about the supplier.
+_UNCITABLE_FIELDS = (
+    "bkmea_raw_kv",
+    "bkmea_detail_id",
+    "bkmea_detail_url",
+    "enriched_from_list_hash",
+)
 
 # How many detail pages to submit per Firecrawl batch job.
 _BATCH_SIZE = 50
+
+# Candidate list rows for the pre-fetch gate. Wide on purpose: the targeting
+# DECISION lives in `_needs_enrichment` (pure, unit-tested) because mocked
+# cursors never parse SQL — the REZ-34 lesson. The `position(':' ...)` clause
+# excludes the detail-namespace rows this scraper writes: they also carry
+# `bkmea_detail_id` in fields, and without the exclusion each would re-target
+# its own page on every run.
+_CANDIDATES_SQL = """
+    select sr.source_ref,
+           s.company_name,
+           sr.fields ->> 'bkmea_detail_id' as detail_id,
+           sr.raw_hash as list_hash,
+           d.fields ->> 'enriched_from_list_hash' as enriched_from_list_hash,
+           exists (
+               select 1
+                 from public.evidence_claims ec
+                 join public.evidence_documents ed on ed.id = ec.evidence_id
+                where ec.supplier_id = s.id
+                  and ed.scraper_code = 'bkmea_detail'
+                  and ec.status = 'stale'
+                  and ec.reviewed_at is null
+           ) as has_unreviewed_stale_claim
+      from public.source_records sr
+      join public.suppliers s on s.id = sr.supplier_id
+      join public.sources src on src.id = sr.source_id
+      left join public.source_records d
+             on d.supplier_id = sr.supplier_id
+            and d.source_id = sr.source_id
+            and d.source_ref = (sr.fields ->> 'bkmea_detail_id') || ':detail'
+     where src.code = 'BKMEA'
+       and sr.fields ? 'bkmea_detail_id'
+       and position(':' in sr.source_ref) = 0
+     order by sr.source_ref desc
+"""
 
 
 class BkmeaDetailScraper(AcquiringScraper):
@@ -93,14 +140,22 @@ class BkmeaDetailScraper(AcquiringScraper):
     request_headers = _BROWSER_HEADERS
     rps = 0.5
 
+    def __init__(self, *args: Any, full_refresh: bool = False, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+        # Founder knob (`run bkmea_detail --full-refresh`): bypass the
+        # pre-fetch hash gate and re-fetch every member with a detail page.
+        # Queue-dispatched runs always use the gate.
+        self.full_refresh = full_refresh
+
     async def fetch(self) -> AsyncIterator[ScrapedRecord]:
         targets = list(self._load_targets())
         self.log.info(
-            "bkmea_detail.targets", count=len(targets), transport=self.active_transport
+            "bkmea_detail.targets", count=len(targets), transport=self.active_transport,
+            full_refresh=self.full_refresh,
         )
         by_url = {
-            DETAIL_URL.format(id=detail_id): (detail_id, ref, name)
-            for detail_id, ref, name in targets
+            DETAIL_URL.format(id=detail_id): (detail_id, list_ref, name, list_hash)
+            for detail_id, list_ref, name, list_hash in targets
         }
         done = 0
 
@@ -112,30 +167,31 @@ class BkmeaDetailScraper(AcquiringScraper):
                     only_main_content=False,
                     label=f"member {detail_id}",
                 )
-                for detail_id, _ref, _name in chunk
+                for detail_id, _ref, _name, _hash in chunk
             ]
             async for doc in self.acquire_many(requests):
                 done += 1
                 target = by_url.get(doc.url)
                 if target is None:
                     continue
-                detail_id, ref, name = target
+                detail_id, list_ref, name, list_hash = target
                 if not doc.ok:
                     self.log.warning(
                         "bkmea_detail.fetch_failed",
                         detail_id=detail_id,
-                        ref=ref,
+                        ref=list_ref,
                         status=doc.fetch_status.value,
                         error=doc.error_message,
                     )
                     continue
                 rec = self._parse_detail(
-                    doc.text(), ref=ref, fallback_name=name,
+                    doc.text(), list_ref=list_ref, fallback_name=name,
                     detail_id=detail_id, url=doc.citable_url, doc=doc,
+                    list_hash=list_hash,
                 )
                 if rec is None:
                     self.log.warning(
-                        "bkmea_detail.parse_empty", detail_id=detail_id, ref=ref
+                        "bkmea_detail.parse_empty", detail_id=detail_id, ref=list_ref
                     )
                     continue
                 if done % 25 == 0:
@@ -145,50 +201,44 @@ class BkmeaDetailScraper(AcquiringScraper):
                 yield rec
 
     # ------------------------------------------------------------------
-    def _load_targets(self) -> Iterable[tuple[str, str, str]]:
-        """Return list of (detail_id, source_ref, company_name) to enrich.
+    def _load_targets(self) -> Iterable[tuple[str, str, str, str | None]]:
+        """Return (detail_id, list_source_ref, company_name, list_raw_hash)
+        for every member the pre-fetch gate lets through.
 
-        Picks suppliers that:
-        - Still need initial enrichment (missing email OR address_raw), OR
-        - Have at least one stale evidence claim from bkmea_detail (so a
-          re-run can refresh their membership / address excerpts).
-        """
-        sql = """
-            select distinct sr.source_ref,
-                   s.company_name,
-                   sr.fields ->> 'bkmea_detail_id' as detail_id
-              from public.source_records sr
-              join public.suppliers s on s.id = sr.supplier_id
-              join public.sources src on src.id = sr.source_id
-             where src.code = 'BKMEA'
-               and sr.fields ? 'bkmea_detail_id'
-               and (
-                   s.email_primary is null
-                   or s.address_raw is null
-                   or exists (
-                       select 1
-                         from public.evidence_claims ec
-                         join public.evidence_documents ed on ed.id = ec.evidence_id
-                        where ec.supplier_id = s.id
-                          and ed.scraper_code = 'bkmea_detail'
-                          and ec.status = 'stale'
-                          and ec.reviewed_at is null
-                   )
-               )
-             order by sr.source_ref desc
+        The gate decision is `_needs_enrichment`, a pure function over a wider
+        candidate select: mocked cursors never parse SQL (the REZ-34 lesson),
+        and the old SQL-resident `email_primary is null or address_raw is null`
+        predicate is exactly how the whole ~590-member register got re-scraped
+        every run untested — BKMEA pages rarely publish email, so it never
+        cleared. Same lesson as `barikoi_geocode.select_pending`: the decision
+        lives in Python, the SQL only fetches candidate rows.
         """
         with db.conn() as c, c.cursor() as cur:
-            cur.execute(sql)
+            cur.execute(_CANDIDATES_SQL)
             for row in cur.fetchall():
                 did = row.get("detail_id")
                 if not did:
                     continue
-                yield (str(did), str(row["source_ref"]), str(row["company_name"]))
+                if not _needs_enrichment(
+                    enriched_from_list_hash=row.get("enriched_from_list_hash"),
+                    list_hash=row.get("list_hash"),
+                    has_unreviewed_stale_claim=bool(row.get("has_unreviewed_stale_claim")),
+                    full_refresh=self.full_refresh,
+                ):
+                    continue
+                list_hash = row.get("list_hash")
+                yield (
+                    str(did),
+                    str(row["source_ref"]),
+                    str(row["company_name"]),
+                    str(list_hash) if list_hash else None,
+                )
 
     # ------------------------------------------------------------------
-    def _parse_detail(self, html: str, *, ref: str, fallback_name: str,
+    def _parse_detail(self, html: str, *, list_ref: str, fallback_name: str,
                       detail_id: str, url: str,
-                      doc: AcquiredDoc | None = None) -> ScrapedRecord | None:
+                      doc: AcquiredDoc | None = None,
+                      list_hash: str | None = None) -> ScrapedRecord | None:
         soup = BeautifulSoup(html, "lxml")
         kv = self._extract_kv(soup)
         if not kv:
@@ -229,13 +279,25 @@ class BkmeaDetailScraper(AcquiringScraper):
             "bkmea_detail_id": detail_id,
             "bkmea_detail_url": url,
             "bkmea_raw_kv": kv,
+            # The list row's raw_hash at enrichment time. The pre-fetch gate
+            # re-targets this member when the list row's hash moves on — that
+            # is what makes an unchanged member cost zero Firecrawl credits.
+            "enriched_from_list_hash": list_hash,
         }
         # strip None
         payload = {k: v for k, v in payload.items() if v not in (None, "")}
 
         return ScrapedRecord(
             source_code=self.source_code,
-            source_ref=ref,
+            # Own row per member, namespaced off the list row's keyspace:
+            # sharing the list row's ref made one source_records row flip-flop
+            # between the list hash and the detail hash on alternating runs,
+            # which is what made change-skip impossible (REZ-36).
+            source_ref=f"{detail_id}:detail",
+            # The list row's ref rides as an alias so the upsert's Pass 0
+            # resolves this record to the same supplier the list created —
+            # the split must not mint duplicate suppliers.
+            alias_refs=(list_ref,),
             company_name=name,
             contact_name=owner_name,
             contact_role="Owner" if owner_name else None,
@@ -325,6 +387,35 @@ class BkmeaDetailScraper(AcquiringScraper):
 
 
 # ---------------------------------------------------------------------------
+def _needs_enrichment(
+    *,
+    enriched_from_list_hash: str | None,
+    list_hash: str | None,
+    has_unreviewed_stale_claim: bool,
+    full_refresh: bool,
+) -> bool:
+    """The pre-fetch gate: is this member's detail page worth a Firecrawl credit?
+
+    Targeted when:
+    - never enriched (no `{detail_id}:detail` row yet — the LEFT JOIN leaves
+      the marker NULL), or
+    - the list row's raw_hash moved on since the last enrichment (the member's
+      directory data changed, so the detail page is worth re-reading), or
+    - an unreviewed stale claim from this scraper is outstanding (kept exactly
+      from the old predicate: a re-run refreshes the membership / address
+      excerpts the verifier drifted on).
+
+    `--full-refresh` bypasses the hash gate for a periodic full pass.
+    """
+    if full_refresh:
+        return True
+    if enriched_from_list_hash is None:
+        return True
+    if enriched_from_list_hash != list_hash:
+        return True
+    return has_unreviewed_stale_claim
+
+
 def _txt(td: Tag) -> str:
     return re.sub(r"\s+", " ", td.get_text(" ", strip=True)).strip()
 

@@ -520,14 +520,19 @@ class BrandDisclosureBase(AcquiringScraper, abc.ABC):
                 seen += 1
                 try:
                     supplier_id = upsert_supplier_with_source(rec)
-                    upserted += 1
-                    if _enqueue_if_brand_only(supplier_id, rec):
-                        enqueued += 1
+                    if supplier_id is not None:
+                        upserted += 1
+                        if _enqueue_if_brand_only(supplier_id, rec):
+                            enqueued += 1
                 except Exception as exc:  # noqa: BLE001
                     skipped += 1
                     self.log.error("upsert.failed", source_ref=rec.source_ref, error=str(exc))
                 else:
-                    await self._record_evidence(rec, supplier_id, run_id)
+                    if supplier_id is None:
+                        # Unchanged payload: fetched_at was touched, nothing else to do.
+                        skipped += 1
+                    else:
+                        await self._record_evidence(rec, supplier_id, run_id)
                 if seen % 50 == 0:
                     self.log.info(
                         "progress", seen=seen, upserted=upserted,
