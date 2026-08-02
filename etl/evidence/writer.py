@@ -335,10 +335,12 @@ def supersede_claims(
     But "retired" covers two situations that must not be counted alike, because
     only one of them is worth an operator's attention:
 
-    - `superseded` — the page was fetched again, or a different page says the
-      same thing. Pure bookkeeping. Excluded from the /admin/evidence worklist.
-    - `contradicted` — a *different* page asserts a *different* value for the
-      same subject and field. Two sources genuinely disagree. Stays visible.
+    - `superseded` — the page was fetched again, a different page says the same
+      thing, or the SAME source asserts a new value across a page move. Pure
+      bookkeeping. Excluded from the /admin/evidence worklist.
+    - `contradicted` — a claim from a DIFFERENT scraper asserts a different
+      value for the same subject and field. Two sources genuinely disagree.
+      Stays visible.
 
     Everything used to be written as `stale`, which is the verifier's word for
     "the cited page no longer contains this value". That conflation is what let
@@ -347,9 +349,19 @@ def supersede_claims(
     companies, each run flipping which membership number was current — was
     indistinguishable from the noise.
 
-    `url_hash` is what separates the two cases: `evidence_documents` is unique
-    on (url_hash, content_sha256), so refetching one page whose content moved
-    yields a second row under the same url_hash.
+    `url_hash` alone could not separate the two cases: `evidence_documents` is
+    unique on (url_hash, content_sha256), so a refetch yields a second row under
+    one url_hash — but a source that MOVES its page mints a new url_hash for
+    what is still the same source updating itself. BKMEA re-lists members on new
+    detail-page URLs, and that misclassified every re-listing as a cross-source
+    disagreement: the 2 Aug 2026 bkmea_detail run alone marked 396 claims
+    contradicted across 65 suppliers, none of them real. The same-scraper branch
+    below closes that: one source's newer word about its own subject is always
+    bookkeeping, whatever the URL. A value flipping between two companies on one
+    supplier record is conflation — policed by ops/check_supplier_conflations.py
+    and the dedup name floors, not by this queue. Note bkmea_web and
+    bkmea_detail are distinct scraper codes, so list-vs-detail disagreement
+    inside one registry still surfaces.
     """
     if not field_keys:
         return 0
@@ -367,12 +379,19 @@ def supersede_claims(
                         then 'superseded'
                       when c.field_value is not distinct from n.field_value
                         then 'superseded'
+                      when (
+                             select d.scraper_code
+                               from public.evidence_documents d
+                              where d.id = c.evidence_id
+                           ) is not distinct from n.doc_scraper_code
+                        then 'superseded'
                       else 'contradicted'
                     end,
            updated_at = now()
       from (
             select cl.subject_table, cl.subject_id, cl.subject_key,
-                   cl.field_key, cl.field_value, d.url_hash as doc_url_hash
+                   cl.field_key, cl.field_value, d.url_hash as doc_url_hash,
+                   d.scraper_code as doc_scraper_code
               from public.evidence_claims cl
               join public.evidence_documents d on d.id = cl.evidence_id
              where cl.evidence_id = %s
