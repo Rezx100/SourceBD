@@ -12,8 +12,11 @@ from unidecode import unidecode
 # real distinguishing name and stripping them collapsed names like
 # "Afrah Fashion Limited" → "afrah" and triggered cross-company false matches.
 # `lts` covers the recurring typo for `ltd` seen in BGMEA / WRAP data.
+# `plc` is the public-limited-company form — the GOTS register files some
+# entities that way (`... Industries PLC.` vs BKMEA's `... Industries Ltd`),
+# and an unstripped plc survived slug matching as a trailing token (REZ-56).
 _LEGAL_SUFFIX_RE = re.compile(
-    r"\s+(ltd\.?|lts\.?|limited|pvt\.?|private|co\.?|company|"
+    r"\s+(ltd\.?|lts\.?|limited|plc\.?|pvt\.?|private|co\.?|company|"
     r"corp\.?|corporation|inc\.?|incorporated|llc|llp)\.?\s*$",
     re.IGNORECASE,
 )
