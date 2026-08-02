@@ -69,6 +69,13 @@ class ScrapedRecord:
     # duplicate (bkmea_detail carries the bkmea_web list row's ref). Never
     # hashed — the hash is the payload's identity, aliases are linkage.
     alias_refs: tuple[str, ...] = ()
+    # True when this record is its source's canonical registry record (e.g.
+    # bkmea_detail's member page, versus bkmea_web's directory index row).
+    # Canonical records OVERWRITE the supplier's registry columns with the
+    # latest scrape; non-canonical records only fill a NULL. Founder rule,
+    # 3 Aug 2026: the provider's current page is the truth and must show
+    # without a review round-trip.
+    canonical_registry: bool = False
 
     def hash(self) -> str:
         canonical = json.dumps(self.payload, sort_keys=True, ensure_ascii=False, default=str)

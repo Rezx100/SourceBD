@@ -54,6 +54,14 @@ _FIELD_LOCATORS = {
 # Parsed out of the membership number by us, not printed as separate fields.
 _UNCITABLE_FIELDS = ("bkmea_detail_id", "bkmea_membership_year")
 
+# Fields the member's detail page also asserts. When the member HAS a detail
+# page, that page is the canonical citation for them (founder rule, 3 Aug
+# 2026: one canonical citation per provider — a list-vs-page disagreement must
+# never become a review item). The list still stores the values in fields for
+# the pre-fetch gate and the rekey; it just stops claiming them. Members
+# without a detail page keep their list citations — the list is all they have.
+_DETAIL_OWNED_FIELDS = ("bkmea_membership_no", "bkmea_reg_number", "bkmea_category")
+
 
 class BkmeaScraper(AcquiringScraper):
     code = "bkmea_web"
@@ -168,6 +176,9 @@ class BkmeaScraper(AcquiringScraper):
         # re-listing — the REZ-34 Phase D re-listing treadmill. detail_id is
         # only the fallback for a row whose membership number did not parse.
         ref = c["membership_int"] or c["detail_id"] or c["membership_no"]
+        skip = _UNCITABLE_FIELDS
+        if c["detail_id"]:
+            skip = skip + _DETAIL_OWNED_FIELDS
         return ScrapedRecord(
             source_code=self.source_code,
             source_ref=str(ref),
@@ -187,7 +198,7 @@ class BkmeaScraper(AcquiringScraper):
                     doc=doc,
                     locators=_FIELD_LOCATORS,
                     default_locator="member directory table row",
-                    skip_keys=_UNCITABLE_FIELDS,
+                    skip_keys=skip,
                 )
                 if doc is not None and doc.ok
                 else None

@@ -20,6 +20,7 @@ Strategy:
 """
 from __future__ import annotations
 
+import re
 from typing import Any
 
 from rapidfuzz import fuzz, process
@@ -32,6 +33,10 @@ from etl.core.scraper import ScrapedRecord
 log = get_logger("etl.upsert")
 
 _FUZZY_THRESHOLD = 92  # rapidfuzz returns 0-100
+
+# A registry membership number always leads with its integer: "2638 - C/2026".
+# A half-rendered page can yield a blank like "- C/2009" — not a fact.
+_REG_NO_HEAD_RE = re.compile(r"^\d+\s*-")
 
 # A shared email or phone is not, on its own, evidence of identity. Bangladesh
 # RMG groups run many legally distinct factories off one switchboard and one
@@ -365,14 +370,33 @@ def _apply_source_specific(cur, *, supplier_id: str, rec: ScrapedRecord) -> None
             )
     elif code == "BKMEA":
         reg = rec.payload.get("bkmea_reg_number")
-        cur.execute(
-            """update public.suppliers set
-                 bkmea_verified = true,
-                 bkmea_reg_number = coalesce(bkmea_reg_number, %s),
-                 entity_type = case when entity_type = 'unknown' then 'factory' else entity_type end
-               where id = %s""",
-            (reg, supplier_id),
-        )
+        # A membership number always leads with its integer ("2638 - C/2026").
+        # Anything else — a blank "- C/2009" from a half-rendered page — is not
+        # a fact and must never touch the column.
+        if reg and not _REG_NO_HEAD_RE.match(reg.strip()):
+            reg = None
+        if reg and rec.canonical_registry:
+            # The member's own detail page is the canonical registry record
+            # (founder rule, 3 Aug 2026): the latest scrape wins outright, so a
+            # re-registration shows without a review round-trip. The directory
+            # list only ever fills a NULL column (below).
+            cur.execute(
+                """update public.suppliers set
+                     bkmea_verified = true,
+                     bkmea_reg_number = %s,
+                     entity_type = case when entity_type = 'unknown' then 'factory' else entity_type end
+                   where id = %s""",
+                (reg, supplier_id),
+            )
+        else:
+            cur.execute(
+                """update public.suppliers set
+                     bkmea_verified = true,
+                     bkmea_reg_number = coalesce(bkmea_reg_number, %s),
+                     entity_type = case when entity_type = 'unknown' then 'factory' else entity_type end
+                   where id = %s""",
+                (reg, supplier_id),
+            )
     elif code == "BTMA":
         cur.execute(
             """update public.suppliers set
