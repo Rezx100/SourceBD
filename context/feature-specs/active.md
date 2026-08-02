@@ -3,29 +3,27 @@
 This file keeps routine agent sessions from scanning every inactive feature spec.
 
 ## Active / Recent Spec
-- COMPLETE in the working tree (2 Aug 2026): **REZ-33 — restore SBI: re-spec
+- FULLY COMPLETE IN PRODUCTION (2 Aug 2026): **REZ-33 — restore SBI: re-spec
   Pillar 2 on real RSC progress data + schedulable nightly recompute**
-  (Linear, P0). `sbi_scores` was frozen at the 21 May Spec-11 backfill (98 of
-  10,284 suppliers with no row; Pillar 2 fed by two `null::numeric` stubs
-  behind a fake "DIFE default" — the fire/structural inputs are dead upstream
-  since migration 0002). Pillar 2 re-spec'd on the one real signal
-  (founder-approved ladder): base 5 for an ACTIVE `rsc_remediation` row +
-  progress ladder >=95→25 / >=80→20 / >=60→14 / >=40→8 / >0→3, cap 30; no
-  active row → 0 (gate unchanged). `_formula_version` 1→2 invalidates every
-  stored inputs_hash, so the first plain run recomputes all rows.
-  `SbiRecomputeJob` (`etl/scoring/job.py`, mirrors `VerifyEvidenceJob`)
-  registered in `JOBS` (never `SCRAPERS`), the TS catalog (+ transport map),
-  and the SQL allow-list (migration 0090, widening only); heartbeats per
-  committed 500-row upsert batch so the REZ-31 reaper cannot kill it; `etl
-  sbi` CLI unchanged. `test_runnable_registry_sync.py` now reads the LATEST
-  allow-list definition — its stale 0084 pointer WAS the pre-existing
-  `bgmea_buying_house` failure, now green. architecture.md line 24's false
-  Inngest nightly-recompute claim corrected. 17 new tests; pytest 488 passed,
-  ruff / tsc clean, npm test 336/336, 0090 parses under libpg_query.
-  **Session 2 (NOT done): apply 0090 to production, merge the development→main
-  PR, deploy, add the nightly `etl_schedules` row, verify the first unattended
-  recompute.** See `context/current-state.md` → "SBI Recompute Restored +
-  Pillar 2 Re-spec".
+  (Linear, P0). Pillar 2 re-spec'd on the one real signal (founder-approved
+  ladder): base 5 for an ACTIVE `rsc_remediation` row + progress ladder
+  >=95→25 / >=80→20 / >=60→14 / >=40→8 / >0→3, cap 30; no active row → 0.
+  `_formula_version` 1→2 invalidated every stored inputs_hash, so the first
+  plain run recomputed the world. `SbiRecomputeJob` registered in `JOBS`
+  (never `SCRAPERS`), the TS catalog (+ transport map), and the SQL
+  allow-list (migration 0090, applied + verified: 29 codes). Merged via PR
+  #62 (main `645dc19`), deployed to VPS `109.104.153.228` (manual SSH path;
+  BOTH web + etl tags rebuilt; rollback ref `e8b1b3f`). Production
+  verification: first recompute seen=10,284 / upserted=10,284 /
+  skipped_hash=0; pillar2 now 7 distinct values, non-zero exactly 1,615 (=
+  active RSC rows), zero unscored suppliers (was 98); spot-checks 100%→30
+  and inactive→0 hold; sanctions-zero trigger intact. Nightly
+  `etl_schedules` row (1440 min) live; first queued run is the idempotency
+  proof (upserted=0, skipped_hash=10,284, 4s, `next_run_at` +24h). Smoke:
+  `/api/health` 200 at `645dc19`, `/discover` payload carries no
+  pillar/total fields. Next-day check owed: first unattended nightly cycle
+  (3 Aug ~01:02 UTC). See `context/current-state.md` → "SBI Recompute
+  Restored + Pillar 2 Re-spec".
 - COMPLETE in the working tree (2 Aug 2026): **REZ-32 — screen newly upserted
   suppliers against stored sanctions entries** (Linear, P0). One-directional
   screening gap closed: `_pair_matches` in `etl/core/sanctions.py` is the one

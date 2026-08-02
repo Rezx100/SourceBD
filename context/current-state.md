@@ -6,7 +6,8 @@ Last compacted for agent-token efficiency: 30 Jun 2026.
 Phase 7 - Public Beta launch prep.
 
 ## SBI Recompute Restored + Pillar 2 Re-spec (REZ-33)
-2 Aug 2026 - Complete, in the working tree. `sbi_scores` was written exactly
+2 Aug 2026 - FULLY COMPLETE in production (main `645dc19`, PR #62; VPS
+`109.104.153.228`). `sbi_scores` was written exactly
 once (Spec-11 backfill, 21 May 2026): 98 of 10,284 suppliers had no score row
 at all while Discover's default ranking joins `sbi_scores`, and Pillar 2 ran
 on two `null::numeric` stubs — the old fire/structural inputs are dead
@@ -71,9 +72,35 @@ shape / queue-key mapping / failure-close / heartbeat-no-op tests. pytest
 by the latest-definition fix above); ruff clean on touched files; `npx tsc
 --noEmit` clean; `npm test` 336/336; 0090 parses under libpg_query.
 
-**Session 2 (NOT done): apply 0090 to production, merge the development→main
-PR, deploy, add the nightly `etl_schedules` row, and verify the first
-unattended recompute.**
+**Session 2 (2 Aug 2026, ~01:02 UTC) — production rollout complete.** PRs
+#59–#61 had already landed the REZ-31/32/34 backlog on main, so PR #62
+carried only `303d2f3`; merged main = `645dc19`. Migration 0090 applied via
+the Supabase MCP: allow-list now 29 codes with `sbi_recompute` present and
+`bgmea_buying_house` carried forward (0089 was already applied — REZ-32's
+session, untouched here). Deployed via the manual SSH path in tmux (GitHub
+Actions still cannot reach the VPS — dial tcp timeout); BOTH `sourcebd-web`
+and `sourcebd-etl` tags rebuilt; rollback ref `.deploy/previous-sha` =
+`e8b1b3f`. First controlled recompute (`docker compose run --rm etl sbi`, no
+--force): seen=10,284, upserted=10,284, skipped_hash=0 — the
+`_formula_version` bump recomputed the world exactly once. Post-recompute
+truth: pillar2 distribution 0: 8,669 | 5: 45 | 8: 38 | 13: 103 | 19: 140 |
+25: 274 | 30: 1,015 — non-zero total exactly 1,615 (= active RSC rows), 7
+distinct values (was 2), zero unscored suppliers (was 98), max(computed_at)
+= 2 Aug; spot-checks progress_pct=100 → 30 and inactive RSC row → 0 both
+hold; `trg_sbi_zero` / `enforce_sanctions_zero` present, 0 sanctioned rows.
+Nightly schedule inserted via direct SQL (1440 min); the minutely cron
+enqueued it 5 min later and that queued run is the idempotency proof:
+success, seen=10,284, upserted=0, skipped_hash=10,284 in 4s, `next_run_at`
+advanced +24h. Note: the per-batch heartbeat callback fires only when an
+upsert batch commits, so a full hash-skip run emits no progress events —
+expected; claim/finish heartbeats bound the short run. Smoke:
+`/api/health` 200 on domain + IP at `645dc19`; `/discover?q=knit` renders
+24 results with zero pillar/sbi/total score fields in the payload;
+`/admin/sources` auth-gates anon (307) — schedule + run history verified at
+the DB level. Rollback: `bash ops/deploy_vps.sh --ref=$(cat
+/opt/sourcebd/.deploy/previous-sha) --require-git`. Next-day check owed:
+confirm the first unattended nightly cycle (3 Aug ~01:02 UTC) succeeds with
+skipped_hash≈all and no reaper events.
 
 ## Sanctions Screening Both Directions (REZ-32)
 2 Aug 2026 - Complete, in the working tree. Screening was one-directional:
