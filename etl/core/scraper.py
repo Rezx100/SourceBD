@@ -63,6 +63,12 @@ class ScrapedRecord:
     website: str | None = None
     entity_type: str | None = None   # explicit override; falls back to source default
     evidence: EvidenceAttachment | None = None
+    # Other refs this same record is (or was) also published under. A chained
+    # enrichment scraper carries its parent row's ref here so the upsert's
+    # Pass 0 resolves the record to the same supplier instead of minting a
+    # duplicate (bkmea_detail carries the bkmea_web list row's ref). Never
+    # hashed — the hash is the payload's identity, aliases are linkage.
+    alias_refs: tuple[str, ...] = ()
 
     def hash(self) -> str:
         canonical = json.dumps(self.payload, sort_keys=True, ensure_ascii=False, default=str)
@@ -113,12 +119,18 @@ class BaseScraper(abc.ABC):
                 seen += 1
                 try:
                     supplier_id = upsert_supplier_with_source(rec)
-                    upserted += 1
                 except Exception as e:  # noqa: BLE001
                     skipped += 1
                     self.log.error("upsert.failed", source_ref=rec.source_ref, error=str(e))
                 else:
-                    await self._record_evidence(rec, supplier_id, run_id)
+                    if supplier_id is None:
+                        # Unchanged payload (raw_hash match): the upsert already
+                        # touched fetched_at; there is nothing to enrich and no
+                        # evidence to rewrite.
+                        skipped += 1
+                    else:
+                        upserted += 1
+                        await self._record_evidence(rec, supplier_id, run_id)
                 if seen % 50 == 0:
                     self.log.info("progress", seen=seen, upserted=upserted, skipped=skipped)
                     self._update_run_progress(run_id, seen, upserted, skipped)

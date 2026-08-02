@@ -3,6 +3,25 @@
 This file keeps routine agent sessions from scanning every inactive feature spec.
 
 ## Active / Recent Spec
+- COMPLETE in the working tree (2 Aug 2026): **REZ-36 Spec A — ETL
+  change-skip, BKMEA source_records split, bkmea_detail pre-fetch gate**
+  (`context/feature-specs/spec-etl-change-skip.md`). Generic post-fetch
+  hash-skip in `upsert_supplier_with_source` (skip enrich + evidence rewrite,
+  still touch `fetched_at`, count `records_skipped`; ambiguous multi-supplier
+  refs fall through); `bkmea_detail` writes its own `{detail_id}:detail`
+  source_records row carrying `enriched_from_list_hash` (linkage via the list
+  ref in `ScrapedRecord.alias_refs` — zero new suppliers pinned by test);
+  `bkmea_web` source_ref prefers `membership_int` over `detail_id` +
+  `ops/rekey_bkmea_source_refs.py` (dry-run default) to rekey existing rows;
+  `_load_targets` gate is the pure `_needs_enrichment` (never-enriched OR
+  list-hash-changed OR unreviewed-stale-claim; null-email predicate deleted),
+  with a `--full-refresh` founder knob. 29 new tests; pytest 517, ruff, tsc,
+  npm 336 all clean. No schema migration — data rekey only. **Production
+  rollout pending: deploy, rekey dry-run + live, controlled bkmea_web /
+  bkmea_detail runs, second-run acceptance (targets ≈ 0, credits ≈ 0),
+  `--full-refresh` hash-skip proof.** NOT this spec: migration 0089 / REZ-32
+  backfill. See `context/current-state.md` → "ETL Change-Skip + BKMEA
+  source_records Split".
 - FULLY COMPLETE IN PRODUCTION (2 Aug 2026): **REZ-33 — restore SBI: re-spec
   Pillar 2 on real RSC progress data + schedulable nightly recompute**
   (Linear, P0). Pillar 2 re-spec'd on the one real signal (founder-approved

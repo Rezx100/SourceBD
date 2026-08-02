@@ -112,3 +112,15 @@ def test_the_record_carries_the_derived_url_not_the_href():
     assert rec.payload["bkmea_detail_id"] is None
     # source_ref falls back to the membership integer, so the row is still keyed.
     assert rec.source_ref == "2632"
+
+
+def test_the_record_keys_on_the_membership_integer_not_the_detail_id():
+    """REZ-36: BKMEA re-lists members on new detail-page ids under the same
+    membership number. Keying on the page id minted a new source_records row
+    per re-listing — the Phase D re-listing treadmill — so the membership
+    integer wins even when a detail id is present."""
+    scraper = BkmeaScraper()
+    parsed = parse("https://member.bkmea.com/member/details/8817")
+    assert parsed["detail_id"] == "8817"
+    rec = scraper._to_record(parsed)
+    assert rec.source_ref == "2632"
