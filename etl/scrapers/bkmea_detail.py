@@ -85,6 +85,9 @@ _UNCITABLE_FIELDS = (
 # How many detail pages to submit per Firecrawl batch job.
 _BATCH_SIZE = 50
 
+# A membership number always leads with its integer: "2638 - C/2026".
+_MEMNO_HEAD_RE = re.compile(r"^\d+\s*-")
+
 # Candidate list rows for the pre-fetch gate. Wide on purpose: the targeting
 # DECISION lives in `_needs_enrichment` (pure, unit-tested) because mocked
 # cursors never parse SQL — the REZ-34 lesson. The `position(':' ...)` clause
@@ -255,9 +258,17 @@ class BkmeaDetailScraper(AcquiringScraper):
 
         district = self._guess_district(address)
 
+        # A half-rendered page can show a blank membership number ("- C/2009").
+        # That is not a fact: never claim it, and never let it near the
+        # supplier's registry column (the canonical overwrite in
+        # `_apply_source_specific` would otherwise need to distinguish it).
+        membership = kv.get("BKMEA Membership No.")
+        if membership and not _MEMNO_HEAD_RE.match(membership.strip()):
+            membership = None
+
         payload: dict[str, Any] = {
-            "bkmea_reg_number": kv.get("BKMEA Membership No."),
-            "bkmea_membership_no": kv.get("BKMEA Membership No."),
+            "bkmea_reg_number": membership,
+            "bkmea_membership_no": membership,
             "bkmea_membership_category": kv.get("Membership Category"),
             "bkmea_factory_address": kv.get("Factory Adress") or kv.get("Factory Address"),
             "bkmea_mailing_address": kv.get("Mailing Address"),
@@ -298,6 +309,10 @@ class BkmeaDetailScraper(AcquiringScraper):
             # resolves this record to the same supplier the list created —
             # the split must not mint duplicate suppliers.
             alias_refs=(list_ref,),
+            # The member's own page is BKMEA's canonical registry record: it
+            # overwrites the supplier's bkmea_reg_number column (latest scrape
+            # wins), while the directory list only fills a NULL.
+            canonical_registry=True,
             company_name=name,
             contact_name=owner_name,
             contact_role="Owner" if owner_name else None,

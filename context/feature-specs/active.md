@@ -3,25 +3,22 @@
 This file keeps routine agent sessions from scanning every inactive feature spec.
 
 ## Active / Recent Spec
-- COMPLETE in the working tree (2 Aug 2026): **REZ-36 Spec A — ETL
+- FULLY COMPLETE IN PRODUCTION (2 Aug 2026): **REZ-36 Spec A — ETL
   change-skip, BKMEA source_records split, bkmea_detail pre-fetch gate**
-  (`context/feature-specs/spec-etl-change-skip.md`). Generic post-fetch
-  hash-skip in `upsert_supplier_with_source` (skip enrich + evidence rewrite,
-  still touch `fetched_at`, count `records_skipped`; ambiguous multi-supplier
-  refs fall through); `bkmea_detail` writes its own `{detail_id}:detail`
-  source_records row carrying `enriched_from_list_hash` (linkage via the list
-  ref in `ScrapedRecord.alias_refs` — zero new suppliers pinned by test);
-  `bkmea_web` source_ref prefers `membership_int` over `detail_id` +
-  `ops/rekey_bkmea_source_refs.py` (dry-run default) to rekey existing rows;
-  `_load_targets` gate is the pure `_needs_enrichment` (never-enriched OR
-  list-hash-changed OR unreviewed-stale-claim; null-email predicate deleted),
-  with a `--full-refresh` founder knob. 29 new tests; pytest 517, ruff, tsc,
-  npm 336 all clean. No schema migration — data rekey only. **Production
-  rollout pending: deploy, rekey dry-run + live, controlled bkmea_web /
-  bkmea_detail runs, second-run acceptance (targets ≈ 0, credits ≈ 0),
-  `--full-refresh` hash-skip proof.** NOT this spec: migration 0089 / REZ-32
-  backfill. See `context/current-state.md` → "ETL Change-Skip + BKMEA
-  source_records Split".
+  (`context/feature-specs/spec-etl-change-skip.md`). Merged via PRs #64 + #66
+  (main `948e0b6`), deployed to VPS `109.104.153.228` (`e482bd1`, both tags
+  rebuilt, rollback ref `8e9af23`). Production: rekey applied (2,628 rekeys,
+  152 re-listing duplicates merged, 0 collisions); `bkmea_web` 72% hash-skip
+  (2,017/2,783), 3 credits; `bkmea_detail` acceptance run **seen=16,
+  upserted=0, skipped=16, 16 credits** — gate cut targets 2,636 → 16.
+  Follow-up in the same session: `supersede_claims` same-scraper
+  reclassification fix + backlog repair (422 claims → `superseded`; worklist
+  now 20 genuine cross-scraper items / 10 suppliers). Residual for Spec B:
+  ~16 multi-list-row members re-target every run but always hash-skip (~16
+  credits). `--full-refresh` proof run declined by founder (credit cost).
+  NOT this spec: migration 0089 / REZ-32 backfill. See
+  `context/current-state.md` → "ETL Change-Skip + BKMEA source_records
+  Split".
 - FULLY COMPLETE IN PRODUCTION (2 Aug 2026): **REZ-33 — restore SBI: re-spec
   Pillar 2 on real RSC progress data + schedulable nightly recompute**
   (Linear, P0). Pillar 2 re-spec'd on the one real signal (founder-approved
