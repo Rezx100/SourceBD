@@ -6,9 +6,39 @@ Last compacted for agent-token efficiency: 30 Jun 2026.
 Phase 7 - Public Beta launch prep.
 
 ## ETL Change-Skip + BKMEA source_records Split (REZ-36 Spec A)
-2 Aug 2026 - COMPLETE in the working tree; production rollout (rekey +
-controlled runs) pending. Spec:
+2 Aug 2026 - FULLY COMPLETE in production (main `948e0b6`, PRs #64 + #66;
+VPS `109.104.153.228` at `e482bd1`). Spec:
 `context/feature-specs/spec-etl-change-skip.md`.
+
+Production verification (2 Aug 2026, VPS): rekey applied first —
+2,628 `source_records` rows rekeyed detail-id → membership-int, 152
+duplicate re-listing rows merged away (FK refs re-pointed), 0 collisions, 15
+multi-supplier memberships reported-not-merged (incl. the stranded 376/CRONY
+FASHION row). Controlled runs: `bkmea_web` seen=2,783 / upserted=766 /
+**skipped=2,017 (72% hash-skip)**, 3 credits; `bkmea_detail` run 1
+seen=2,632 / upserted=2,632 (expected one-time `:detail` backfill, 2,632
+credits, 0 failures); **run 2 acceptance: seen=16, upserted=0, skipped=16,
+16 credits** — the gate cut targets 2,636 → 16 (−99.4%) and hash-skip caught
+100% of what was fetched. Residual: ~16 members holding multiple BKMEA list
+rows (multi-supplier memberships, dual memberships) re-target every run
+because one `enriched_from_list_hash` cannot match two list rows — they
+always hash-skip, ~16 credits/run, Spec B material. The founder declined the
+`--full-refresh` proof run (credit cost; mechanism already proven 16/16 +
+unit tests).
+
+Follow-up defect found by the founder's review-queue complaint and fixed in
+the same session (PR #66): `supersede_claims` used `url_hash` as the proxy
+for "two sources disagree", so a source MOVING its page (BKMEA re-listings)
+filed its own update as `contradicted` — run 1 minted 396 such claims across
+65 suppliers. The `case` now classifies same-scraper replacement as
+`superseded` whatever the URL; `contradicted` is reserved for cross-scraper
+disagreement (bkmea_web vs bkmea_detail remain distinct codes, so
+list-vs-detail disagreement still surfaces). Backlog repaired by
+`ops/reclassify_same_source_contradicted.py` (dry-run → apply): 422 claims
+reclassified to `superseded`; the worklist dropped from 442 claims / 75
+suppliers to **20 claims / 10 suppliers, all genuine** list-vs-detail
+membership-number disagreements (the Phase D dual-membership class).
+
 
 Architectural decisions worth keeping:
 
