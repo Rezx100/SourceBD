@@ -160,7 +160,9 @@ confirm the first unattended nightly cycle (3 Aug ~01:02 UTC) succeeds with
 skipped_hash≈all and no reaper events.
 
 ## Sanctions Screening Both Directions (REZ-32)
-2 Aug 2026 - Complete, in the working tree. Screening was one-directional:
+2 Aug 2026 - FULLY COMPLETE in production (VPS `e8b1b3f`, migration 0089
+applied, backfill run, end-to-end proof passed; Linear moved to Done).
+Screening was one-directional:
 `_match_and_screen` fired only when a list entry was ingested, so the 67
 suppliers created since OFAC's last refresh had never been screened against
 the 13,366 stored entries (production: 3 screening rows ever, 0 active, last
@@ -197,8 +199,8 @@ Architectural decisions worth keeping:
   constraint over the match identity — re-ingests would have minted duplicate
   active rows per match, each re-firing the trigger. Migration 0089 adds the
   partial unique index `(supplier_id, list, coalesce(list_entry_ref, ''))
-  where active`. **NOT applied to production — Session 2, together with the
-  backfill sweep over existing suppliers.**
+  where active`. Applied to production 2 Aug 2026 via the Supabase MCP
+  (`20260801234013`), definition verified in `pg_indexes`.
 - **Supplier-side prefilter is best-first.** `entity_name_norm %% %s` over the
   existing GIN index `idx_sle_name_trgm`, ordered by `<->` distance so a true
   match survives `limit 50` even when many OFAC entries trigram-match a short
@@ -215,6 +217,38 @@ sides, one active row per match, re-screening idempotent under the 0089 key).
 pytest 471 passed + same 1 pre-existing failure (`bgmea_buying_house` absent
 from the SQL allow-list, unrelated); ruff clean on touched files; `npx tsc
 --noEmit` clean; `npm test` 336/336.
+
+Session 2 production outcome (2 Aug 2026, VPS `109.104.153.228`):
+
+- **Deploy `e8b1b3f` via manual SSH path** (GitHub Actions still cannot reach
+  the VPS — the REZ-31 runner-network issue), both `sourcebd-web` and
+  `sourcebd-etl` images built (the 31 Jul lesson: the fix is ETL code baked
+  into the etl image). Smoke green: `/api/health` 200 reporting `e8b1b3f`,
+  `/admin/sources` 200, `run-queue --limit 0` → processed 0 / failed 0.
+  Rollback ref `42da527` (`.deploy/previous-sha` +
+  `sourcebd-web:rollback-42da527...`).
+- **Backfill `ops/sanctions_rescreen.py` run supervised in tmux** (~2h27m,
+  one-off; never cron it — a crash between clear and rebuild leaves
+  sanctioned suppliers clean): `rescreen.before` 0 active / 0 flagged →
+  `rescreen.done` 13,366 entries processed, **0 new matches** (`by_list {}`),
+  0 active / 0 flagged after. Every current supplier — including the 67
+  never-screened — is now verified clean against the 13,366 stored entries
+  under the shared `_pair_matches` predicate. The 3 historical (inactive,
+  14 May) screening rows are preserved as audit.
+- **End-to-end proof on real Postgres in a rolled-back transaction** (the
+  REZ-31/34 lesson: mocked-cursor SQL is unverified SQL). Against published
+  supplier Pack & Trim Collections (`000828ed`, SBI total 3): inserting an
+  active `ofac_sdn` screening row flipped `is_sanctioned` to true and zeroed
+  `sbi_scores.total` with `sanctioned_zero = true` (proves
+  `trg_sanc_propagate` fires); re-inserting the same
+  `(supplier_id, list, list_entry_ref)` raised a unique violation from
+  `idx_sanc_screening_unique_active` (proves the 0089 idempotency guard).
+  Rolled back — verified afterwards: 0 probe rows, supplier and score
+  untouched.
+- Later the same session window: REZ-33 (`303d2f3`) and REZ-36 Spec A
+  (`8e9af23`) deployed after this one, moving the VPS to `8e9af23`, which
+  carries REZ-32; REZ-32 is also in `main` (`e8b1b3f` is an ancestor via the
+  merged development→main PRs #63/#64).
 
 ## Shipped Baseline
 - Phase 0 data moat and Phases 1-5 are shipped in the codebase.

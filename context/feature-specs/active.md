@@ -43,8 +43,9 @@ This file keeps routine agent sessions from scanning every inactive feature spec
   pillar/total fields. Next-day check owed: first unattended nightly cycle
   (3 Aug ~01:02 UTC). See `context/current-state.md` → "SBI Recompute
   Restored + Pillar 2 Re-spec".
-- COMPLETE in the working tree (2 Aug 2026): **REZ-32 — screen newly upserted
-  suppliers against stored sanctions entries** (Linear, P0). One-directional
+- FULLY COMPLETE IN PRODUCTION (2 Aug 2026): **REZ-32 — screen newly upserted
+  suppliers against stored sanctions entries** (Linear, P0; moved to Done).
+  One-directional
   screening gap closed: `_pair_matches` in `etl/core/sanctions.py` is the one
   pair-level predicate for BOTH directions (screenable both sides + >=2 shared
   significant tokens + token_sort_ratio >= 95 + `_names_compatible` — the
@@ -57,9 +58,18 @@ This file keeps routine agent sessions from scanning every inactive feature spec
   where active` so `on conflict do nothing` finally has something to conflict
   on. 23 new tests in `etl/tests/test_sanctions_screening.py`; pytest 471
   passed + same 1 pre-existing failure; ruff / tsc clean; npm test 336/336.
-  **Session 2 (NOT done): apply 0089 to production, run the backfill sweep
-  over existing suppliers.** architecture.md line 68's false Inngest claim
-  rewritten; lines 24/33 Inngest tool mentions left as noted doc debt. See
+  Session 2 (2 Aug 2026): 0089 applied to production (`20260801234013`,
+  definition verified in `pg_indexes`); VPS deployed `e8b1b3f` via manual SSH
+  (GitHub Actions still broken), BOTH web + etl images built, smoke green
+  (rollback ref `42da527`); backfill `ops/sanctions_rescreen.py` run
+  supervised in tmux — 13,366 entries, **0 new matches**, all 10,284
+  suppliers incl. the 67 never-screened verified clean; end-to-end proof in a
+  rolled-back transaction on real Postgres (trigger flips `is_sanctioned` +
+  zeroes SBI; duplicate insert blocked by `idx_sanc_screening_unique_active`;
+  zero synthetic rows persisted). VPS since moved to `8e9af23` (REZ-36),
+  which carries REZ-32; `e8b1b3f` is in `main` via PRs #63/#64.
+  architecture.md line 68's false Inngest claim rewritten; lines 24/33
+  Inngest tool mentions left as noted doc debt. See
   `context/current-state.md` → "Sanctions Screening Both Directions".
 - FULLY COMPLETE IN PRODUCTION (2 Aug 2026): **REZ-31 — zombie ETL run/job
   reaper + universal heartbeats + stale-job manual retry/cancel**.
