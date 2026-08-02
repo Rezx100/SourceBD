@@ -320,6 +320,18 @@ export const SCRAPER_CATALOG = [
     operatorNote:
       "Idempotent. Run after adding a source or changing a registry entry point.",
   },
+  {
+    code: "sbi_recompute",
+    label: "Recompute SBI",
+    group: "maintenance",
+    sourceTier: "—",
+    risk: "low",
+    suggestedIntervalMinutes: 1440,
+    updates:
+      "Recomputes every supplier's SBI pillars from current evidence and upserts sbi_scores, which Discover's default ranking joins.",
+    operatorNote:
+      "Run nightly. Idempotent via inputs_hash — suppliers whose inputs have not changed are skipped, so a quiet night writes nothing.",
+  },
 ] as const satisfies readonly ScraperCatalogItem[];
 
 export type ScraperCode = (typeof SCRAPER_CATALOG)[number]["code"];
@@ -370,6 +382,7 @@ export const SCRAPER_TRANSPORT: Record<ScraperCode, ScraperTransport> = {
   eu_sanctions: "direct",
   verify_evidence: "job",
   refresh_monitors: "job",
+  sbi_recompute: "job",
 };
 
 export const SCRAPER_TRANSPORT_LABELS: Record<ScraperTransport, string> = {

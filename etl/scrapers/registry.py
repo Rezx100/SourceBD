@@ -13,6 +13,7 @@ from __future__ import annotations
 
 from etl.evidence.monitors import RefreshMonitorsJob
 from etl.evidence.verifier import VerifyEvidenceJob
+from etl.scoring.job import SbiRecomputeJob
 from etl.scrapers.bgapmea_web import BgapmeaScraper
 from etl.scrapers.bgmea_buying_house import BgmeaBuyingHouseScraper
 from etl.scrapers.bgmea_web import BgmeaWebScraper
@@ -81,6 +82,7 @@ SCRAPER_CODES = tuple(SCRAPERS.keys())
 JOBS = {
     "verify_evidence": VerifyEvidenceJob,
     "refresh_monitors": RefreshMonitorsJob,
+    "sbi_recompute": SbiRecomputeJob,
 }
 
 JOB_CODES = tuple(JOBS.keys())

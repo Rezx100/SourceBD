@@ -14,6 +14,13 @@ trigger on `public.sbi_scores` — the calculator does NOT inspect `is_sanctione
 UFLPA traceability bonus (0–10, US buyers only — addendum GAP 8) is a
 display-time additive computed in the app layer; it is NOT stored here
 (the trigger caps `total` at 100 and the table has no bonus column).
+
+Pillar 2 formula revised by REZ-33 (2 Aug 2026): the old fire/structural
+ladders ran on per-component RSC percentages that are dead upstream — the
+RSC/Accord API returns only overall remediation `progress` (recorded in
+migration 0002_rsc_real_fields.sql), and `rsc_remediation` has no
+fire_pct/structural_pct columns at all. Pillar 2 is now a coverage base
+plus a ladder over the one real signal, `progress_pct`.
 """
 from __future__ import annotations
 
@@ -41,8 +48,7 @@ class SbiInputs:
     bkmea_verified: bool = False
     bgapmea_verified: bool = False
     btma_verified: bool = False
-    rsc_fire_pct: float | None = None
-    rsc_structural_pct: float | None = None
+    rsc_progress_pct: float | None = None
     rsc_has_row: bool = False
     certs: tuple[Cert, ...] = field(default_factory=tuple)
     established_date: date | None = None
@@ -90,43 +96,34 @@ def compute_pillar1_legal(inputs: SbiInputs) -> int:
 
 
 # ---------------------------------------------------------------- Pillar 2
-def _fire_ladder(pct: float | None) -> int:
+def _progress_ladder(pct: float | None) -> int:
     p = pct or 0
-    if p >= 100:
-        return 15
+    if p >= 95:
+        return 25
     if p >= 80:
-        return 12
+        return 20
     if p >= 60:
+        return 14
+    if p >= 40:
         return 8
     if p > 0:
         return 3
     return 0
 
 
-def _structural_ladder(pct: float | None) -> int:
-    p = pct or 0
-    if p >= 100:
-        return 10
-    if p >= 80:
-        return 8
-    if p >= 60:
-        return 5
-    if p > 0:
-        return 2
-    return 0
-
-
 def compute_pillar2_safety(inputs: SbiInputs) -> int:
-    """RSC safety + DIFE — max 30. Verbatim from data-pipeline-spec §6.2.
+    """RSC remediation coverage + progress — max 30. Re-spec'd by REZ-33 on
+    the one real signal the RSC API still publishes (`progress_pct`).
 
-    Suppliers with no RSC row score 0 (no safety evidence → no reward).
+    Suppliers with no active RSC row score 0 (no safety evidence → no reward).
+    The base 5 credits "an active remediation casefile exists"; it replaces
+    the old DIFE default, which awarded the same 5 points for a source that
+    was never wired up.
     """
     if not inputs.rsc_has_row:
         return 0
-    fire = _fire_ladder(inputs.rsc_fire_pct)
-    structural = _structural_ladder(inputs.rsc_structural_pct)
-    dife = 5  # default; no DIFE violation source wired yet
-    return min(30, fire + structural + dife)
+    coverage = 5
+    return min(30, coverage + _progress_ladder(inputs.rsc_progress_pct))
 
 
 # ---------------------------------------------------------------- Pillar 3
@@ -210,6 +207,13 @@ def compute_pillar4_market(inputs: SbiInputs, today: date) -> int:
 
 
 # ---------------------------------------------------------------- public API
+# Bump when the formula or the hashed input set changes: stored inputs_hash
+# values can never match a payload from a different version, so a plain
+# (non-force) runner pass recomputes every row exactly once. Version 2 =
+# REZ-33 (rsc_progress_pct replaces the dead rsc_fire/structural inputs).
+_FORMULA_VERSION = 2
+
+
 @dataclass(frozen=True)
 class SbiScore:
     pillar1_legal: int
@@ -234,9 +238,8 @@ def compute_inputs_hash(inputs: SbiInputs, today: date) -> str:
         "bgapmea_verified": inputs.bgapmea_verified,
         "btma_verified": inputs.btma_verified,
         "rsc_has_row": inputs.rsc_has_row,
-        "rsc_fire_pct": round(inputs.rsc_fire_pct, 2) if inputs.rsc_fire_pct is not None else None,
-        "rsc_structural_pct": round(inputs.rsc_structural_pct, 2)
-        if inputs.rsc_structural_pct is not None
+        "rsc_progress_pct": round(inputs.rsc_progress_pct, 2)
+        if inputs.rsc_progress_pct is not None
         else None,
         "certs": sorted(
             [[c.kind, c.expires_on.isoformat() if c.expires_on else None] for c in inputs.certs]
@@ -246,7 +249,7 @@ def compute_inputs_hash(inputs: SbiInputs, today: date) -> str:
         "capacity_pcs_day": inputs.capacity_pcs_day,
         "capacity_dozen_yearly": inputs.capacity_dozen_yearly,
         "today_year": today.year,  # cert-expiry boundary moves once per year
-        "_formula_version": 1,
+        "_formula_version": _FORMULA_VERSION,
     }
     blob = json.dumps(payload, sort_keys=True, separators=(",", ":"), default=str)
     return hashlib.sha256(blob.encode("utf-8")).hexdigest()

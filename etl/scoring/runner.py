@@ -8,6 +8,7 @@ matches the existing row are skipped.
 """
 from __future__ import annotations
 
+from collections.abc import Callable
 from datetime import date, datetime
 from typing import Iterable
 
@@ -34,8 +35,7 @@ select
   s.employees_total             as employees_total,
   s.production_capacity_pcs_day as capacity_pcs_day,
   s.production_capacity_dozen_yearly as capacity_dozen_yearly,
-  null::numeric                 as rsc_fire_pct,
-  null::numeric                 as rsc_structural_pct,
+  r.progress_pct                as rsc_progress_pct,
   (r.supplier_id is not null)   as rsc_has_row,
   coalesce(
     (select jsonb_agg(jsonb_build_object('kind', c.kind, 'expires_on', c.expires_on))
@@ -108,8 +108,7 @@ def _row_to_inputs(row: dict) -> SbiInputs:
         bkmea_verified=bool(row["bkmea_verified"]),
         bgapmea_verified=bool(row["bgapmea_verified"]),
         btma_verified=bool(row["btma_verified"]),
-        rsc_fire_pct=_f(row["rsc_fire_pct"]),
-        rsc_structural_pct=_f(row["rsc_structural_pct"]),
+        rsc_progress_pct=_f(row["rsc_progress_pct"]),
         rsc_has_row=bool(row["rsc_has_row"]),
         certs=tuple(certs),
         established_date=_d(row["established_date"]),
@@ -125,8 +124,13 @@ def run(
     force: bool = False,
     batch_size: int = 500,
     today: date | None = None,
+    progress_callback: Callable[[dict[str, int]], None] | None = None,
 ) -> dict[str, int]:
     """Backfill / recompute SBI scores for all suppliers.
+
+    `progress_callback`, when given, fires after each committed upsert batch
+    with the running counters — the queue-dispatched job heartbeats through it
+    so the stale reaper never kills a healthy recompute (REZ-31).
 
     Returns counters: {seen, computed, upserted, skipped_hash}.
     """
@@ -171,6 +175,15 @@ def run(
                     upserted += len(batch)
                     batch.clear()
                     c.commit()
+                    if progress_callback is not None:
+                        progress_callback(
+                            {
+                                "seen": seen,
+                                "computed": computed,
+                                "upserted": upserted,
+                                "skipped_hash": skipped,
+                            }
+                        )
             if batch:
                 cur.executemany(_UPSERT_SQL, batch)
                 upserted += len(batch)

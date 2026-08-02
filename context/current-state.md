@@ -5,6 +5,76 @@ Last compacted for agent-token efficiency: 30 Jun 2026.
 ## Phase
 Phase 7 - Public Beta launch prep.
 
+## SBI Recompute Restored + Pillar 2 Re-spec (REZ-33)
+2 Aug 2026 - Complete, in the working tree. `sbi_scores` was written exactly
+once (Spec-11 backfill, 21 May 2026): 98 of 10,284 suppliers had no score row
+at all while Discover's default ranking joins `sbi_scores`, and Pillar 2 ran
+on two `null::numeric` stubs — the old fire/structural inputs are dead
+upstream (the RSC/Accord API returns only overall `progress`; migration 0002
+recorded this, and `rsc_remediation` has no fire_pct/structural_pct columns at
+all). Production pillar2_safety had exactly two values: 5 (the fake "DIFE
+default") and 0. There was also no recompute job: `sbi` existed only as a CLI
+command, absent from all three synced registries and from `etl_schedules`.
+
+Architectural decisions worth keeping:
+
+- **Pillar 2 is re-spec'd on the one real signal.** Approved shape (founder,
+  2 Aug 2026): coverage base 5 for an ACTIVE `rsc_remediation` row — the
+  honest re-label of the old DIFE default, which credited the same 5 points
+  for a source that was never wired up — plus a ladder over `progress_pct`
+  (>=95→25, >=80→20, >=60→14, >=40→8, >0→3, 0→0), min(30, base+ladder); no
+  active row still scores 0 (gate unchanged). Production impact on the 1,615
+  active-row suppliers (2 Aug 2026 buckets, all flat 5 today): p=0: 45→5 |
+  0–40: 38→8 | 40–60: 103→13 | 60–80: 140→19 | 80–95: 274→25 |
+  >=95: 1015→30 (762 at exactly 100).
+- **`_formula_version` (now 2) is what recomputes the world.** It rides in
+  the hashed payload, so bumping it invalidates every stored inputs_hash and
+  a plain (non-force) runner pass recomputes all rows exactly once — no
+  backfill script, no `--force` flag day. It is a module constant so the
+  invalidation is pinned by a monkeypatch test.
+- **The recompute is a JOBS entry, not a scraper.** `SbiRecomputeJob`
+  (`etl/scoring/job.py`) mirrors `VerifyEvidenceJob`: code `sbi_recompute`,
+  `source_code = ""`, `transport = "direct"`, no-arg constructor, opens an
+  `etl_runs` row, maps runner counters to the queue's
+  seen/upserted/skipped/matched keys (`computed` rides along for metadata).
+  Registered in `JOBS` (never `SCRAPERS` — no transport, no evidence), the
+  TS catalog (plus its exhaustive transport map, "job"), and the SQL
+  allow-list (migration 0090, widening only — CHECK re-validates on
+  INSERT/UPDATE, existing rows unaffected).
+- **The runner heartbeats per committed 500-row batch.** `runner.run()`
+  gained an optional `progress_callback` fired after each full upsert batch;
+  the job translates it into the queue event shape and is a no-op when None
+  (CLI). REZ-31's reaper kills any job that never heartbeats, and a full
+  recompute walks 10k+ suppliers. The `etl sbi` CLI is unchanged — the new
+  kwarg defaults to None.
+- **The three-way sync test reads the LATEST allow-list definition.**
+  `test_runnable_registry_sync.py` read 0084's file only, and that pointer
+  went stale the day 0086 renamed `bgmea_pdf` — the stale pointer WAS the
+  pre-existing `bgmea_buying_house` failure at HEAD. `_sql_codes()` now reads
+  the highest-numbered migration defining
+  `admin_etl_allowed_scraper_codes()` (what production actually enforces:
+  zero-padded prefixes sort lexicographically), so later re-definitions can
+  never silently drift from Python/TS again.
+- **architecture.md line 24's Inngest "nightly score recompute" claim was
+  false** (flagged as doc debt by REZ-32); it now states the real mechanism —
+  the `sbi_recompute` JOBS entry on `etl_schedules`, dispatched by the
+  minutely queue cron. Line 33's Inngest mention remains as noted doc debt.
+
+Tests: 17 new — pillar-2 ladder boundaries (0/1/39/40/60/80/94/95/100) plus
+base-only/gate/cap, formula-version invalidation, dead-inputs rejection,
+runner `_FETCH_SQL` string assertions (progress_pct present, no
+`null::numeric as rsc_` stub, `r.active is true` join kept — mocked cursors
+never parse SQL, the REZ-34 lesson), Decimal→float mapping, per-batch
+heartbeat + hash-skip idempotency under a fake cursor, and the job registry
+shape / queue-key mapping / failure-close / heartbeat-no-op tests. pytest
+488 passed (the pre-existing `bgmea_buying_house` sync failure is resolved
+by the latest-definition fix above); ruff clean on touched files; `npx tsc
+--noEmit` clean; `npm test` 336/336; 0090 parses under libpg_query.
+
+**Session 2 (NOT done): apply 0090 to production, merge the development→main
+PR, deploy, add the nightly `etl_schedules` row, and verify the first
+unattended recompute.**
+
 ## Sanctions Screening Both Directions (REZ-32)
 2 Aug 2026 - Complete, in the working tree. Screening was one-directional:
 `_match_and_screen` fired only when a list entry was ingested, so the 67

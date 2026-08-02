@@ -21,7 +21,7 @@
 - **Forms / validation**: `react-hook-form` + `zod`.
 - **State**: React Server Components + URL state. No global client store unless a spec demands it.
 - **Email**: **Resend** (transactional only).
-- **Background jobs**: **Inngest** (only for: nightly score recompute, certificate-expiry alerts, scheduled scrapes).
+- **Background jobs**: **Inngest** (approved for: certificate-expiry alerts, scheduled scrapes; no Inngest code exists in the repo yet). Nightly score recompute does NOT use Inngest: it is the `sbi_recompute` entry in `etl/scrapers/registry.py` `JOBS`, scheduled via `etl_schedules` and dispatched by the minutely queue cron (`ops/scraper_queue_cron.sh`).
 - **Payments**: **Stripe** integration is **deferred to a post-beta phase** (3 Jun 2026 founder decision). The H3 idempotent webhook recorder is retained as harmless infrastructure; no live keys, no checkout, no tier structure committed. Plan-tier names and pricing will be decided after the free public beta validates product-market fit. See `phases.md` → "Deferred until post-beta".
 - **Error tracking**: **Sentry** (added at production launch).
 - **Analytics**: **PostHog** (added at production launch).
