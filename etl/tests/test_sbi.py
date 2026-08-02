@@ -55,22 +55,32 @@ def test_pillar2_no_rsc_is_zero():
     assert compute_pillar2_safety(_base(rsc_has_row=False)) == 0
 
 
-def test_pillar2_full_remediation():
-    inp = _base(rsc_has_row=True, rsc_fire_pct=100, rsc_structural_pct=100)
-    assert compute_pillar2_safety(inp) == 15 + 10 + 5
+def test_pillar2_progress_ladder_boundaries():
+    """REZ-33 approved rungs: base 5 (active RSC row) + progress ladder,
+    min(30, base + ladder)."""
+    cases = [
+        (0, 5),    # ladder 0
+        (1, 8),    # ladder 3
+        (39, 8),
+        (40, 13),  # ladder 8
+        (60, 19),  # ladder 14
+        (80, 25),  # ladder 20
+        (94, 25),
+        (95, 30),  # ladder 25, capped at 30
+        (100, 30),
+    ]
+    for pct, expected in cases:
+        s = compute_pillar2_safety(_base(rsc_has_row=True, rsc_progress_pct=pct))
+        assert s == expected, f"progress={pct}"
 
 
-def test_pillar2_fire_ladder_boundaries():
-    cases = [(100, 15), (80, 12), (60, 8), (1, 3), (0, 0)]
-    for pct, expected_fire in cases:
-        s = compute_pillar2_safety(_base(rsc_has_row=True, rsc_fire_pct=pct))
-        # add DIFE default (5) since rsc_has_row=True; structural=0
-        assert s == expected_fire + 5, f"fire={pct}"
+def test_pillar2_active_row_without_progress_scores_base_only():
+    assert compute_pillar2_safety(_base(rsc_has_row=True, rsc_progress_pct=None)) == 5
 
 
 def test_pillar2_caps_at_30():
-    inp = _base(rsc_has_row=True, rsc_fire_pct=100, rsc_structural_pct=100)
-    assert compute_pillar2_safety(inp) <= 30
+    inp = _base(rsc_has_row=True, rsc_progress_pct=100)
+    assert compute_pillar2_safety(inp) == 30
 
 
 # ------------------------------------------------------------------ pillar 3
@@ -154,8 +164,7 @@ def test_total_caps_at_100():
         source_tags=("EPB", "BGMEA", "BKMEA", "BTMA", "BGAPMEA"),
         rjsc_reg_number="x",
         rsc_has_row=True,
-        rsc_fire_pct=100,
-        rsc_structural_pct=100,
+        rsc_progress_pct=100,
         certs=tuple(
             Cert(kind=k, expires_on=date(2030, 1, 1))
             for k in ("wrap", "oeko_tex", "sedex_smeta", "gots", "sa8000")
@@ -206,10 +215,36 @@ def test_hash_changes_on_meaningful_input_change():
 
 
 def test_hash_rounds_pct_to_two_dp():
-    a = _base(rsc_has_row=True, rsc_fire_pct=87.501)
-    b = _base(rsc_has_row=True, rsc_fire_pct=87.502)
+    a = _base(rsc_has_row=True, rsc_progress_pct=87.501)
+    b = _base(rsc_has_row=True, rsc_progress_pct=87.502)
     # Both round to 87.50, so the hash should match.
     assert compute_inputs_hash(a, TODAY) == compute_inputs_hash(b, TODAY)
+
+
+def test_hash_changes_on_progress_change():
+    a = _base(rsc_has_row=True, rsc_progress_pct=80)
+    b = _base(rsc_has_row=True, rsc_progress_pct=81)
+    assert compute_inputs_hash(a, TODAY) != compute_inputs_hash(b, TODAY)
+
+
+def test_formula_version_bump_invalidates_stored_hashes(monkeypatch):
+    """Same inputs hashed under two formula versions must differ — that is
+    what makes a plain (non-force) runner pass recompute every row after a
+    formula change like REZ-33's."""
+    inp = _base(rsc_has_row=True, rsc_progress_pct=42)
+    current = compute_inputs_hash(inp, TODAY)
+    monkeypatch.setattr("etl.scoring.sbi._FORMULA_VERSION", 1)
+    previous = compute_inputs_hash(inp, TODAY)
+    assert previous != current
+
+
+def test_dead_rsc_component_inputs_are_removed():
+    """rsc_fire_pct / rsc_structural_pct are dead upstream (REZ-33); the input
+    contract must not accept them back."""
+    with pytest.raises(TypeError):
+        _base(rsc_fire_pct=100)
+    with pytest.raises(TypeError):
+        _base(rsc_structural_pct=100)
 
 
 if __name__ == "__main__":
