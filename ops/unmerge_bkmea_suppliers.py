@@ -32,6 +32,17 @@ to recompute them from each supplier's own records:
 
     python ops/backfill_profile_columns.py
 
+MATCHER GUARD (added 3 Aug 2026, REZ-56)
+----------------------------------------
+The 31-Jul run inserted every split-off member as a fresh supplier without
+asking whether that company already had a profile — minting duplicates like
+`United Apparels` (united-apparels-2) while `UNITED APPARELS` already sat at
+united-apparels. Before inserting, the split now checks the global supplier
+pool with the same identity bar the ingest matcher uses (recomputed-slug
+equality, or the Pass-4 fuzzy bar on recomputed norms). One match: the member
+joins that supplier instead of a new insert. Several matches: ambiguous —
+the split is skipped and reported for a human, never guessed.
+
 USAGE
 -----
     python ops/unmerge_bkmea_suppliers.py              # dry run, prints the plan
@@ -55,7 +66,7 @@ from psycopg.rows import dict_row
 from rapidfuzz import fuzz
 
 from etl.core.normalize import make_slug, normalize_company_name
-from etl.core.upsert import _names_compatible
+from etl.core.upsert import _FUZZY_THRESHOLD, _names_compatible
 
 # Columns `backfill_profile_columns.py` max-merges from BKMEA records. Left in
 # place they would keep the largest value seen across companies that are about
@@ -158,6 +169,41 @@ def _new_company_name(rows: list[dict]) -> str | None:
     return None
 
 
+def _existing_identity_matches(cur, new_name: str, exclude_id: str) -> list[dict]:
+    """Suppliers that already carry this company's identity, minus the parent.
+
+    The SQL half is candidate generation only (stored slug equality, or the
+    trigram operator the matcher's Pass 4 prefilter uses); the Python half
+    rescores with CURRENT normalization on both sides, because stored
+    slug/company_name_norm drift is exactly what hid twins from the matcher
+    on 31 Jul. Both halves mirror `_find_existing` — one definition of
+    identity, applied in every direction.
+    """
+    norm = normalize_company_name(new_name)
+    slug = make_slug(new_name)
+    if not norm:
+        return []
+    cur.execute(
+        """select id::text, company_name, slug, company_name_norm
+             from public.suppliers
+            where id <> %s::uuid
+              and (slug = %s or company_name_norm %% %s)""",
+        (exclude_id, slug, norm),
+    )
+    out = []
+    for row in cur.fetchall():
+        r_norm = normalize_company_name(row["company_name"])
+        if make_slug(row["company_name"]) == slug:
+            out.append(row)
+        elif (
+            r_norm
+            and fuzz.token_sort_ratio(norm, r_norm) >= _FUZZY_THRESHOLD
+            and _names_compatible(norm, r_norm)
+        ):
+            out.append(row)
+    return out
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--apply", action="store_true", help="execute (default: dry run)")
@@ -184,8 +230,10 @@ def main() -> int:
 
         planned_splits = 0
         skipped_unnamed = 0
+        skipped_ambiguous = 0
         kept_relisting = 0
         reused_member = 0
+        joined_existing = 0
         stranded_records = 0
 
         # One BKMEA member can be attached to two different merged suppliers —
@@ -226,14 +274,35 @@ def main() -> int:
                     print(f"  SKIP   {base_no:<10} no scraped name on {len(group_rows)} record(s)")
                     continue
 
+                already = base_no in supplier_for_member
+                guard_matches: list[dict] = []
+                if not already:
+                    with conn.cursor() as guard_cur:
+                        guard_matches = _existing_identity_matches(guard_cur, new_name, supplier_id)
+
+                if len(guard_matches) > 1:
+                    skipped_ambiguous += 1
+                    names = ", ".join(f"{m['company_name']!r}[{m['id'][:6]}]" for m in guard_matches)
+                    print(
+                        f"  SKIP   {base_no:<10} -> {new_name!r} matcher guard found {len(guard_matches)} "
+                        f"existing suppliers for this company ({names}) — human decides"
+                    )
+                    continue
+
                 planned_splits += 1
                 split_here += 1
-                already = base_no in supplier_for_member
                 if already:
                     reused_member += 1
                     print(
                         f"  split  {base_no:<10} -> {new_name!r} "
                         f"({len(group_rows)} record(s), joins the supplier already split for this member)"
+                    )
+                elif guard_matches:
+                    joined_existing += 1
+                    m0 = guard_matches[0]
+                    print(
+                        f"  split  {base_no:<10} -> {new_name!r} ({len(group_rows)} record(s), "
+                        f"joins existing {m0['company_name']!r}[{m0['id'][:6]}] via matcher guard)"
                     )
                 else:
                     print(f"  split  {base_no:<10} -> {new_name!r} ({len(group_rows)} record(s))")
@@ -245,14 +314,17 @@ def main() -> int:
                 with conn.cursor() as cur:
                     new_id = supplier_for_member.get(base_no)
                     if new_id is None:
-                        slug = _unique_slug(cur, make_slug(new_name))
-                        cur.execute(
-                            """insert into public.suppliers (company_name, slug, company_name_norm)
-                               values (%s, %s, %s)
-                               returning id""",
-                            (new_name, slug, normalize_company_name(new_name)),
-                        )
-                        new_id = cur.fetchone()["id"]
+                        if guard_matches:
+                            new_id = guard_matches[0]["id"]
+                        else:
+                            slug = _unique_slug(cur, make_slug(new_name))
+                            cur.execute(
+                                """insert into public.suppliers (company_name, slug, company_name_norm)
+                                   values (%s, %s, %s)
+                                   returning id""",
+                                (new_name, slug, normalize_company_name(new_name)),
+                            )
+                            new_id = cur.fetchone()["id"]
                         supplier_for_member[base_no] = new_id
 
                     record_ids = [r["record_id"] for r in group_rows]
@@ -314,9 +386,11 @@ def main() -> int:
 
         print(
             f"\n{len(supplier_ids)} candidate supplier(s); {planned_splits} split(s) planned "
-            f"({reused_member} joining a member already split); "
+            f"({reused_member} joining a member already split, "
+            f"{joined_existing} joining an existing supplier via the matcher guard); "
             f"{kept_relisting} left alone as re-listings; "
             f"{skipped_unnamed} skipped for want of a name; "
+            f"{skipped_ambiguous} skipped on an ambiguous matcher-guard result; "
             f"{stranded_records} record(s) stranded on a parent as duplicates."
         )
 

@@ -3,6 +3,22 @@
 This file keeps routine agent sessions from scanning every inactive feature spec.
 
 ## Active / Recent Spec
+- CODE COMPLETE (3 Aug 2026), validated read-only against production; pending
+  PR -> deploy -> founder-approved apply: **REZ-56 — Cross-register coverage
+  audit + split-evidence duplicate repair**
+  (`context/feature-specs/spec-cross-register-audit.md`, Linear REZ-56).
+  Founder-reported missing registry evidence turned out to be correct data;
+  the scan surfaced split-evidence duplicates (same legal entity as 2+
+  suppliers with disjoint Tier 1-3 sets). Production audit: 33 certain merge
+  groups / 66 suppliers, 294 fuzzy reported-only, 29 RSC extension clusters
+  excluded, 505 drifted stored identities. Shipped: audit
+  (`ops/audit_cross_register_coverage.py`), `plc` suffix fix + tests,
+  `ops/backfill_supplier_identity.py`, unmerge matcher guard, split detector
+  (`ops/check_supplier_splits.py` + cron twin), merge repair
+  (`ops/merge_duplicate_suppliers.py`, dry-run: 42 records / 162 claims /
+  27 certs re-pointed). Merge eligibility is per-member over certain edges;
+  BKMEA ownership disputes (CORNY/CRONY) and RSC extension rows are never
+  auto-merged.
 - FULLY COMPLETE IN PRODUCTION (2 Aug 2026): **REZ-36 Spec A — ETL
   change-skip, BKMEA source_records split, bkmea_detail pre-fetch gate**
   (`context/feature-specs/spec-etl-change-skip.md`). Merged via PRs #64 + #66

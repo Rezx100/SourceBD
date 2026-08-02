@@ -5,6 +5,58 @@ Last compacted for agent-token efficiency: 30 Jun 2026.
 ## Phase
 Phase 7 - Public Beta launch prep.
 
+## Cross-Register Audit + Split-Evidence Duplicate Repair (REZ-56)
+3 Aug 2026 - CODE COMPLETE, validated read-only against production; pending
+PR -> deploy -> founder-approved production apply. Spec:
+`context/feature-specs/spec-cross-register-audit.md`. Findings verified
+against production before design (hard rule 12): the founder's Sarada
+examples are correct data; the real defect class is split-evidence
+duplicates.
+
+Production audit numbers (3 Aug 2026): 33 certain merge groups / 66
+suppliers (26 recomputed-slug-equal clusters + 7 shared-ref shadow/non-BKMEA
+groups), 294 fuzzy clusters reported-only, 29 RSC extension clusters
+excluded, 505 published suppliers with drifted stored identity (502 slug, 3
+norm-only), 16 BKMEA + 1 OEKO_TEX shared `(source, ref)` pairs. Root causes:
+normalization drift (12-May industry-stripping era), the 31-Jul unmerge
+insert path bypassing the matcher, a `plc` gap in `_LEGAL_SUFFIX_RE`,
+register-typo shared refs (EURO KNIT CARMENTS/GARMENTS both holding
+membership 481 — report-only: the typo'd names score 66.7 on the matcher
+bar, below the 92 identity threshold).
+
+Shipped: `ops/audit_cross_register_coverage.py` (read-only; `--explain NAME`
+dumps pairwise certainty verdicts); `plc` in `_LEGAL_SUFFIX_RE` + 4 tests
+(534 pytest pass); `ops/backfill_supplier_identity.py` (multi-pass
+slug/norm backfill, dry-run: 502 updates, 29 slug-blocked merge candidates);
+matcher guard in `ops/unmerge_bkmea_suppliers.py` (prod dry-run: 7 splits
+join existing suppliers instead of minting duplicates, 1 ambiguous skip);
+`ops/check_supplier_splits.py` + `ops/split_check_cron.sh` (exit-1 alarm on
+the 33 standing groups; 10 ownership pairs informational);
+`ops/merge_duplicate_suppliers.py` (dry-run: 33 groups, 42 source_records /
+162 evidence_claims / 27 certifications / 33 sbi_scores / 8 queue rows
+re-pointed, 7 redundant register pointers kept-newest, 3 cert dupes dropped).
+
+Architectural decisions:
+- Merge eligibility is per-member over "certain edges", not per-cluster:
+  recomputed-slug equality, or shared ref + names clearing the matcher bar +
+  (non-BKMEA ref | BKMEA shadow whose entire ref set duplicates the other
+  side). BKMEA memberships on two substantive suppliers (CORNY/CRONY) are
+  ownership questions for a human — never auto-merged. Fuzzy-only members of
+  a mixed cluster (Eon Fashion in the EMON cluster) are excluded from its
+  merge group.
+- Merge re-points every supplier-referencing column ENUMERATED from
+  information_schema at runtime (FKs + non-FK supplier_id columns; views
+  excluded — they follow via source_records), reconciles columns (arrays
+  union, verified flags OR, bkmea_reg_number by the 3 Aug
+  newest-valid-detail canonical rule, other scalars coalesce), then deletes
+  the loser after a zero-reference check (spec08 tombstone convention).
+  Unique-constraint collisions: source_records keeps the newest-fetched
+  pointer with citations re-pointed; other tables drop the loser's
+  byte-equivalent duplicate.
+- `suppliers.slug` UNIQUE means stored-slug grouping can never see the
+  duplicate class — identity is always RECOMPUTED with the ETL's own
+  `make_slug`/`normalize_company_name`, never reimplemented in ops scripts.
+
 ## ETL Change-Skip + BKMEA source_records Split (REZ-36 Spec A)
 2 Aug 2026 - FULLY COMPLETE in production (main `948e0b6`, PRs #64 + #66;
 VPS `109.104.153.228` at `e482bd1`). Spec:

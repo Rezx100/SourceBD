@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import pytest
 
-from etl.core.normalize import normalize_company_name
+from etl.core.normalize import make_slug, normalize_company_name
 from etl.core.upsert import _contact_match_allowed, _names_compatible
 
 
@@ -81,3 +81,26 @@ def test_contact_match_needs_a_name_to_corroborate() -> None:
     """A candidate with no recorded name cannot be confirmed, so it is refused."""
     assert _contact_match_allowed("knit radix", None) is False
     assert _contact_match_allowed("knit radix", "") is False
+
+
+# Legal-form equivalents — one entity filed under two suffix styles across
+# registers. The normalized form (and therefore the slug, and Pass 1) must be
+# identical. The first pair is the REZ-56 production case: GOTS files the
+# company as PLC while BKMEA/BGMEA file it as Ltd, and the unstripped `plc`
+# token defeated slug matching on 16 May 2026.
+PLC_EQUIVALENTS = [
+    ("Far East Knitting & Dyeing Industries Ltd", "Far East Knitting and Dyeing Industries PLC."),
+    ("ABC Textiles PLC", "ABC Textiles Ltd"),
+    ("ABC Textiles PLC.", "ABC Textiles Limited"),
+]
+
+
+@pytest.mark.parametrize(("a", "b"), PLC_EQUIVALENTS)
+def test_plc_and_ltd_forms_normalize_identically(a: str, b: str) -> None:
+    assert normalize_company_name(a) == normalize_company_name(b)
+    assert make_slug(a) == make_slug(b)
+
+
+def test_plc_only_stripped_as_trailing_legal_suffix() -> None:
+    """`plc` mid-name is a real token and must survive normalization."""
+    assert normalize_company_name("PLC Garments Ltd") == "plc garments"
