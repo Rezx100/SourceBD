@@ -14,14 +14,18 @@ This file keeps routine agent sessions from scanning every inactive feature spec
   identity backfill (521 updates; 6 slug-blocked pairs with unpublished
   holders remain as follow-up candidates), re-audit (**0 certain groups**),
   detector (**OK**). Smoke: FOUR H unified across six registers; RSC
-  extension rows untouched; 0 orphan claims. Follow-on queued: `--pair`
-  seeded merge mode on development (`33d0506`, PR pending) for the
-  founder-confirmed Sarada Knit Wear pair; Sarada Fashions' EPB row traced
-  to `epb_web` association-flag scoping (live-verified EPB 4083 = "SARADA
-  FASHIONS LIMITED." with no flags); 917-pair name-variant scan reported,
-  audit-v2 + matcher hardening + EPB widening awaiting founder decision.
-  See `context/current-state.md` → "Cross-Register Audit + Split-Evidence
-  Duplicate Repair".
+  extension rows untouched; 0 orphan claims. **Follow-ups shipped 4 Aug
+  2026** (development, PR pending): Sarada Knit Wear seeded merge applied in
+  production (10,176 → 10,175; detector OK); founder decisions B/C/D/E
+  landed — audit-v2 name-variant REPORT class (`variant_pairs`, certain-
+  review band = founder's seeded-merge review list, never auto-merge),
+  matcher Pass 1.5 squash-equality (no migration), EPB RMG-category
+  enumeration with attach-only `ScrapedRecord.enrich_only` records, and
+  `--pair` extended to unpublished losers (unblocks the 6 slug-blocked
+  identity-backfill pairs). pytest 591, ruff clean, no schema migration.
+  Residual: Linear REZ-56 closeout comment unposted (Linear MCP unavailable
+  3 + 4 Aug). See `context/current-state.md` → "Cross-Register Audit +
+  Split-Evidence Duplicate Repair".
 - FULLY COMPLETE IN PRODUCTION (2 Aug 2026): **REZ-36 Spec A — ETL
   change-skip, BKMEA source_records split, bkmea_detail pre-fetch gate**
   (`context/feature-specs/spec-etl-change-skip.md`). Merged via PRs #64 + #66

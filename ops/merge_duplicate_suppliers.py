@@ -70,6 +70,13 @@ Wear Ltd.` [BGMEA] vs `SARDA KNITWEAR LTD` [BKMEA] (same premises + owner,
 3 Aug 2026). The named winner keeps its public name/slug; everything else
 follows the same re-point/reconcile/tombstone path as discovered groups.
 
+Seeded mode also loads UNPUBLISHED suppliers named by slug (founder decision
+E, 4 Aug 2026): the 6 slug-blocked identity-backfill pairs each have an
+unpublished holder row the published winner must absorb before the backfill
+can take the slug. Publication status is printed for every member so the
+dry-run review sees exactly what moves; tombstoning an unpublished loser
+frees its slug. Audit discovery itself stays published-only.
+
 USAGE
 -----
     python ops/merge_duplicate_suppliers.py                 # dry run, prints the plan
@@ -381,20 +388,27 @@ def main() -> int:
 
     with psycopg.connect(dsn, prepare_threshold=None, autocommit=False, row_factory=dict_row) as conn:
         with conn.cursor() as cur:
-            members, code_by_id = _fetch(cur)
-
             seeded = False
+            pair_slugs: tuple[str, str] | None = None
             if args.pair:
                 try:
-                    winner_slug, loser_slug = (s.strip() for s in args.pair.split(",", 1))
+                    pair_slugs = tuple(s.strip() for s in args.pair.split(",", 1))  # type: ignore[assignment]
                 except ValueError:
                     print("ERROR: --pair expects WINNER_SLUG,LOSER_SLUG", file=sys.stderr)
                     return 2
+
+            # Seeded mode widens the fetch to the named slugs even when one is
+            # unpublished (founder decision E) — the audit universe itself
+            # stays published-only.
+            members, code_by_id = _fetch(cur, extra_slugs=pair_slugs or ())
+
+            if pair_slugs:
+                winner_slug, loser_slug = pair_slugs
                 by_slug = {m.stored_slug: m for m in members.values()}
-                missing = [s for s in (winner_slug, loser_slug) if s not in by_slug]
+                missing = [s for s in pair_slugs if s not in by_slug]
                 if missing:
                     print(
-                        f"ERROR: slug(s) not found among published suppliers: {missing}",
+                        f"ERROR: slug(s) not found among suppliers (published or not): {missing}",
                         file=sys.stderr,
                     )
                     return 2
@@ -405,7 +419,7 @@ def main() -> int:
                 groups: list[list[Member]] = [[winner_m, loser_m]]
                 seeded = True
             else:
-                clusters = discover_clusters(members, code_by_id, cur)
+                clusters, _pair_signals = discover_clusters(members, code_by_id, cur)
                 groups = [g for c in clusters for g in c.merge_groups]
                 if args.only:
                     groups = [g for g in groups if any(args.only.lower() in m.name.lower() for m in g)]
@@ -459,9 +473,19 @@ def main() -> int:
             print(
                 f"  winner: {winner.name!r}[{winner.id[:6]}] "
                 f"({len(winner.tier13_codes)} Tier 1-3 codes, {len(winner.records)} records)"
+                + ("" if winner.is_published else "  ** UNPUBLISHED **")
             )
             for m in losers:
-                print(f"  loser:  {m.name!r}[{m.id[:6]}] ({len(m.tier13_codes)} codes, {len(m.records)} records)")
+                print(
+                    f"  loser:  {m.name!r}[{m.id[:6]}] ({len(m.tier13_codes)} codes, "
+                    f"{len(m.records)} records)"
+                    + ("" if m.is_published else "  ** UNPUBLISHED **")
+                )
+            if seeded and not winner.is_published:
+                print(
+                    "  WARNING: the named winner is UNPUBLISHED — the merged "
+                    "profile stays hidden from the public site"
+                )
 
             with conn.cursor() as cur:
                 # ---- supplier rows for column reconciliation ----------------

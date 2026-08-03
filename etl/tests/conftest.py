@@ -20,10 +20,14 @@ class FakeCursor:
         *,
         skip_rows: list[dict[str, Any]] | None = None,
         pass0_row: dict[str, Any] | None = None,
+        slug_row: dict[str, Any] | None = None,
+        squash_row: dict[str, Any] | None = None,
         new_supplier_id: str = "sup-new",
     ) -> None:
         self._skip_rows = list(skip_rows or [])
         self._pass0_row = pass0_row
+        self._slug_row = slug_row
+        self._squash_row = squash_row
         self._new_supplier_id = new_supplier_id
         self.executed: list[tuple[str, Any]] = []
         self._last_sql = ""
@@ -43,7 +47,11 @@ class FakeCursor:
             return self._pass0_row
         if "insert into public.suppliers" in self._last_sql:
             return {"id": self._new_supplier_id}
-        # Pass 1 slug / Pass 2 email: no match.
+        if "where slug = %s" in self._last_sql:
+            return self._slug_row
+        if "replace(company_name_norm" in self._last_sql:
+            return self._squash_row
+        # Pass 2 email: no match.
         return None
 
     def __enter__(self) -> "FakeCursor":

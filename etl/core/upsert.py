@@ -62,9 +62,10 @@ _MAX_INITIALS_LEN = 3
 def upsert_supplier_with_source(rec: ScrapedRecord) -> str | None:
     """Returns supplier_id (uuid as str), or None when the record was skipped
     as unchanged (the stored source_records row already carries this payload's
-    raw_hash). A None return means: no enrich, no source-record rewrite beyond
-    fetched_at, and the caller must not record evidence or run per-record
-    downstream writes — it counts records_skipped instead."""
+    raw_hash) — or when an attach-only record (`rec.enrich_only`) matched no
+    existing supplier. A None return means: no enrich, no source-record
+    rewrite beyond fetched_at, and the caller must not record evidence or run
+    per-record downstream writes — it counts records_skipped instead."""
     # Local import: avoids the cycle (etl.core.sanctions imports
     # _names_compatible from this module at module level).
     from etl.core.sanctions import screen_supplier_against_entries
@@ -87,6 +88,16 @@ def upsert_supplier_with_source(rec: ScrapedRecord) -> str | None:
         )
 
         if supplier_id is None:
+            if rec.enrich_only:
+                # Attach-only (founder decision D, 4 Aug 2026): the widened
+                # EPB category enumeration enriches suppliers we already know
+                # but never creates single-source EPB profiles. Nothing has
+                # been written yet, so there is nothing to roll back.
+                log.info("supplier.enrich_only_unmatched",
+                         name=rec.company_name, source=rec.source_code,
+                         ref=rec.source_ref)
+                c.commit()
+                return None
             supplier_id = _insert_supplier(
                 cur, slug=slug, norm=norm, email=email, phones=phones, rec=rec
             )
@@ -189,6 +200,29 @@ def _find_existing(
     row = cur.fetchone()
     if row:
         return str(row["id"])
+
+    # Pass 1.5: squash equality — names differing ONLY by spaces are one
+    # spelling ("Master Cham" vs "Mastercham", "3-A Fashions" vs "3A
+    # Fashions"). `make_slug` keeps the register's spacing, so Pass 1 misses
+    # these, and single-letter register spellings can sit under the Pass 4
+    # fuzzy bar — both mint twins (the WEST KNITWEAR class, 3 Aug 2026).
+    # Exact equality, not similarity: no threshold, so no conflation surface
+    # beyond what Pass 1 already accepts. Oldest row wins for determinism
+    # when historical twins both match (the merge repair heals those). A
+    # functional index on the replace() is the deferred optimization — schema
+    # migration, needs the founder's explicit go-ahead; the per-record seq
+    # scan at ~10k rows is acceptable meanwhile.
+    squashed = norm.replace(" ", "")
+    if squashed:
+        cur.execute(
+            "select id from public.suppliers "
+            "where replace(company_name_norm, ' ', '') = %s "
+            "order by created_at asc limit 1",
+            (squashed,),
+        )
+        row = cur.fetchone()
+        if row:
+            return str(row["id"])
 
     # Pass 2: email, corroborated by the name.
     if email:

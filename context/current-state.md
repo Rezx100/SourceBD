@@ -35,20 +35,60 @@ PGOPTIONS — long audit queries need an in-process `set statement_timeout`
 wrapper under evening DB load.
 
 Follow-on work queued from the founder's Sarada review (same day):
-`--pair` seeded merge mode committed on development (`33d0506`, PR pending)
+`--pair` seeded merge mode committed on development (`33d0506`)
 for founder-confirmed pairs no audit signal links (Sarada Knit Wear Ltd.
 [BGMEA] vs SARDA KNITWEAR LTD [BKMEA] — same premises + owner, verified).
 Sarada Fashions' missing EPB row traced to scraper scope, not matching: EPB
 exporter 4083 IS "SARADA FASHIONS LIMITED." (live-verified, reg BD05918)
 but carries no BGMEA/BKMEA association flag, and `epb_web` only enumerates
 flagged exporters (541 of 5,939; we hold 539 = full flagged coverage).
-~5,398 unflagged exporters incl. RMG-category rows invisible — widening
-proposal (category-scoped enumeration + attach-only vs full-create policy)
-awaiting founder decision. A name-variant scan (space-stripped names +
-address corroboration) found 917 candidate pairs beyond the audit's
-signals; top band ~50 near-certain (several already healed by the 37-group
-apply); audit-v2 variant signal + matcher squash-equality hardening
-proposed, awaiting founder go-ahead.
+~5,398 unflagged exporters incl. RMG-category rows invisible.
+
+**Follow-ups shipped 4 Aug 2026** (development, PR pending; founder decisions
+B/C/D/E taken this session):
+- **Sarada seeded merge applied in production**: `--pair
+  sarada-knitwear,sarda-knitwear` — the loser's BKMEA rows (1010 +
+  1018:detail) moved to the BGMEA-side winner, `bkmea_reg_number` =
+  `1010 - C/2009` (canonical rule), loser tombstoned; 10,176 → 10,175
+  published; detector still OK; profile renders on sourcebd.net.
+  `sarada-fashions` deliberately untouched (sister company, different
+  premises).
+- **B — audit-v2 variant signal** (REPORT class, never auto-merge):
+  `variant_pairs()` in the audit folds in the 3 Aug ad-hoc scan — 4-gram
+  index over space-stripped recomputed norms (grams shared by >40 suppliers
+  dropped), char `fuzz.ratio` ≥ 86, min squashed length 10, fragmented Tier
+  1-3 sets required, address corroboration (street-number agreement for the
+  strong band; city tokens excluded; a number CONFLICT demotes — the
+  sister-company class). The certain-review band is the founder's
+  seeded-merge review list, never `certain_merge_groups` input. The detector
+  prints the counts informationally; it still fails only on certain
+  split-evidence groups.
+- **C — matcher squash-equality pass**: `_find_existing` Pass 1.5 matches on
+  `replace(company_name_norm, ' ', '')` equality, so future WEST
+  KNITWEAR-class spellings attach instead of minting twins. Exact equality,
+  no threshold — no conflation surface beyond Pass 1. Functional index
+  deferred (a schema migration needs the founder's explicit go-ahead; the
+  per-record seq scan at ~10k rows is acceptable meanwhile).
+- **D — EPB category-scoped enumeration, attach-only**: `epb_web` runs a
+  second pass over the RMG category ids (2/3/8/24 + stock-lot 16/23/30,
+  live-verified 3 Aug) after the association pass. Category-pass records
+  carry the new `ScrapedRecord.enrich_only`: the upsert enriches an existing
+  match but NEVER creates (unmatched → skipped, logged
+  `supplier.enrich_only_unmatched`). Covers the unflagged RMG majority
+  (SARADA FASHIONS = exporter 4083) without minting single-source EPB
+  profiles. The association pass keeps full-create; one exporter is yielded
+  once per run (shared `seen_ids`).
+- **E — `--pair` loads unpublished losers**: `_fetch(extra_slugs=…)` widens
+  the merge script's seeded fetch (`is_published or slug = any(…)`); the
+  audit/detector universe stays published-only, and publication status prints
+  on every merge-plan member. Unblocks the 6 slug-blocked identity-backfill
+  pairs (GLITTER/CHORKA/NAFISA + Paramount/SHASHA/SHEPHERD PLC) for
+  founder-reviewed seeded merges.
+
+Tests: pytest 591 passed (28 variant-signal + 37 squash/dedup-guard + 7
+EPB-category + 2 seed-fetch new); ruff clean; no schema migration. Residual:
+Linear REZ-56 closeout comment STILL not posted (Linear MCP unavailable
+again 4 Aug) — summary text ready for manual posting.
 
 Architectural decisions:
 - Merge eligibility is per-member over "certain edges", not per-cluster:
