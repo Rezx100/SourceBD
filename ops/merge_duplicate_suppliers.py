@@ -60,12 +60,23 @@ every reference points at the winner and a zero-reference check passes, the
 loser's supplier row is deleted. Evidence and claim history survive on the
 winner; the loser's row is an empty shell at that point.
 
+SEEDED PAIRS
+------------
+`--pair WINNER_SLUG,LOSER_SLUG` merges exactly one founder-confirmed pair,
+skipping audit discovery. Use when a human has verified two profiles are one
+legal entity from register evidence (addresses, owners, registry numbers) but
+the names differ enough that no audit signal links them — e.g. `Sarada Knit
+Wear Ltd.` [BGMEA] vs `SARDA KNITWEAR LTD` [BKMEA] (same premises + owner,
+3 Aug 2026). The named winner keeps its public name/slug; everything else
+follows the same re-point/reconcile/tombstone path as discovered groups.
+
 USAGE
 -----
     python ops/merge_duplicate_suppliers.py                 # dry run, prints the plan
     python ops/merge_duplicate_suppliers.py --apply         # execute, one transaction
     python ops/merge_duplicate_suppliers.py --apply --only "four h"   # one cluster first
     python ops/merge_duplicate_suppliers.py --apply --limit 3         # a slice first
+    python ops/merge_duplicate_suppliers.py --pair sarada-knitwear,sarda-knitwear
 
 Dry run is the default deliberately: the founder reviews the printed plan
 before anything moves.
@@ -352,7 +363,16 @@ def main() -> int:
     parser.add_argument("--apply", action="store_true", help="execute (default: dry run)")
     parser.add_argument("--limit", type=int, default=None, help="only process N merge groups")
     parser.add_argument("--only", metavar="NAME", help="only groups containing a member named like NAME")
+    parser.add_argument(
+        "--pair",
+        metavar="WINNER_SLUG,LOSER_SLUG",
+        help="merge one founder-confirmed pair (explicit winner), skipping audit discovery",
+    )
     args = parser.parse_args()
+
+    if args.pair and (args.only or args.limit is not None):
+        print("ERROR: --pair cannot be combined with --only/--limit", file=sys.stderr)
+        return 2
 
     dsn = os.environ.get("SUPABASE_DB_URL")
     if not dsn:
@@ -362,14 +382,36 @@ def main() -> int:
     with psycopg.connect(dsn, prepare_threshold=None, autocommit=False, row_factory=dict_row) as conn:
         with conn.cursor() as cur:
             members, code_by_id = _fetch(cur)
-            clusters = discover_clusters(members, code_by_id, cur)
 
-            groups: list[list[Member]] = [g for c in clusters for g in c.merge_groups]
-            if args.only:
-                groups = [g for g in groups if any(args.only.lower() in m.name.lower() for m in g)]
-            groups.sort(key=lambda g: g[0].name)
-            if args.limit is not None:
-                groups = groups[: args.limit]
+            seeded = False
+            if args.pair:
+                try:
+                    winner_slug, loser_slug = (s.strip() for s in args.pair.split(",", 1))
+                except ValueError:
+                    print("ERROR: --pair expects WINNER_SLUG,LOSER_SLUG", file=sys.stderr)
+                    return 2
+                by_slug = {m.stored_slug: m for m in members.values()}
+                missing = [s for s in (winner_slug, loser_slug) if s not in by_slug]
+                if missing:
+                    print(
+                        f"ERROR: slug(s) not found among published suppliers: {missing}",
+                        file=sys.stderr,
+                    )
+                    return 2
+                winner_m, loser_m = by_slug[winner_slug], by_slug[loser_slug]
+                if winner_m.id == loser_m.id:
+                    print("ERROR: --pair names the same supplier twice", file=sys.stderr)
+                    return 2
+                groups: list[list[Member]] = [[winner_m, loser_m]]
+                seeded = True
+            else:
+                clusters = discover_clusters(members, code_by_id, cur)
+                groups = [g for c in clusters for g in c.merge_groups]
+                if args.only:
+                    groups = [g for g in groups if any(args.only.lower() in m.name.lower() for m in g)]
+                groups.sort(key=lambda g: g[0].name)
+                if args.limit is not None:
+                    groups = groups[: args.limit]
             if not groups:
                 print("No merge groups in scope.")
                 return 0
@@ -404,13 +446,14 @@ def main() -> int:
         merged = 0
 
         for group in groups:
-            winner = _pick_winner(group)
+            winner = group[0] if seeded else _pick_winner(group)
             losers = [m for m in group if m.id != winner.id]
             loser_ids = [m.id for m in losers]
 
             print("\n" + "=" * 78)
             print(
                 f"MERGE {' + '.join(f'{m.name!r}[{m.id[:6]}]' for m in group)}"
+                + ("   SEEDED PAIR (founder-confirmed)" if seeded else "")
                 + ("" if args.apply else "   (dry run)")
             )
             print(
