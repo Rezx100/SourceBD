@@ -157,6 +157,57 @@ select sr.id::text, sr.source_id::text, sr.source_ref, sr.fetched_at, sr.status
  where sr.supplier_id = any(%s::uuid[])
 """
 
+# Claims citing the supplier row itself (subject_table='suppliers') collide on
+# evidence_claims_subject_field_uniq post re-point when BOTH sides were claimed
+# from the SAME evidence document on the same field — the shared-register-ref
+# merge shape. The winner already holds the identical citation, so the loser's
+# copy is the redundant duplicate (same convention as redundant source_records:
+# the assertion survives on the winner's row; nothing informational is lost).
+SUBJECT_COLLISION_SQL = """
+select l.id::text as id, l.field_key, l.field_value
+  from public.evidence_claims l
+ where l.subject_table = 'suppliers' and l.subject_id = %s::uuid
+   and exists (select 1 from public.evidence_claims w
+                where w.subject_table = 'suppliers' and w.subject_id = %s::uuid
+                  and w.field_key = l.field_key
+                  and w.evidence_id = l.evidence_id
+                  and w.subject_key is not distinct from l.subject_key)
+ order by l.field_key
+"""
+
+SUBJECT_DEDUPE_DELETE_SQL = """
+delete from public.evidence_claims l
+ where l.subject_table = 'suppliers' and l.subject_id = %s::uuid
+   and exists (select 1 from public.evidence_claims w
+                where w.subject_table = 'suppliers' and w.subject_id = %s::uuid
+                  and w.field_key = l.field_key
+                  and w.evidence_id = l.evidence_id
+                  and w.subject_key is not distinct from l.subject_key)
+"""
+
+# Same collision shape for citations moving off a redundant source_records row
+# onto the surviving pointer.
+RECORD_CITATION_COLLISION_SQL = """
+select l.id::text as id, l.field_key
+  from public.evidence_claims l
+ where l.subject_table = 'source_records' and l.subject_id = %s::uuid
+   and exists (select 1 from public.evidence_claims w
+                where w.subject_table = 'source_records' and w.subject_id = %s::uuid
+                  and w.field_key = l.field_key
+                  and w.evidence_id = l.evidence_id
+                  and w.subject_key is not distinct from l.subject_key)
+"""
+
+RECORD_CITATION_DEDUPE_DELETE_SQL = """
+delete from public.evidence_claims l
+ where l.subject_table = 'source_records' and l.subject_id = %s::uuid
+   and exists (select 1 from public.evidence_claims w
+                where w.subject_table = 'source_records' and w.subject_id = %s::uuid
+                  and w.field_key = l.field_key
+                  and w.evidence_id = l.evidence_id
+                  and w.subject_key is not distinct from l.subject_key)
+"""
+
 # 3 Aug 2026 canonical rule for suppliers.bkmea_reg_number: the NEWEST fetched
 # valid :detail row's value wins, else the newest fetched valid list row's.
 # "Valid" = leads with its membership integer (detail pages with a blank or
@@ -348,6 +399,8 @@ def main() -> int:
 
         grand_moves: dict[str, int] = defaultdict(int)
         grand_drops: dict[str, int] = defaultdict(int)
+        grand_subject_drops = 0
+        grand_record_cite_drops = 0
         merged = 0
 
         for group in groups:
@@ -396,6 +449,14 @@ def main() -> int:
                             f"    drop {d['id'][:8]} (fetched {d['fetched_at']:%Y-%m-%d}), "
                             f"keep {keep['id'][:8]} (fetched {keep['fetched_at']:%Y-%m-%d}) ref={d['source_ref']!r}"
                         )
+                        cur.execute(RECORD_CITATION_COLLISION_SQL, (d["id"], keep["id"]))
+                        rc_collisions = cur.fetchall()
+                        if rc_collisions:
+                            grand_record_cite_drops += len(rc_collisions)
+                            print(
+                                f"    record-citation dedupe: {len(rc_collisions)} claim(s) on the "
+                                f"dropped pointer duplicate citations on the surviving row"
+                            )
 
                 # ---- re-point plan ------------------------------------------
                 per_loser_plans = {
@@ -411,6 +472,18 @@ def main() -> int:
                         )
                         grand_moves[item["table"]] += item["rows"] - item["collisions"]
                         grand_drops[item["table"]] += item["collisions"]
+
+                    cur.execute(SUBJECT_COLLISION_SQL, (lid, winner.id))
+                    subject_collisions = cur.fetchall()
+                    for sc in subject_collisions:
+                        print(
+                            f"  subject-citation dedupe: drop claim {sc['id'][:8]} "
+                            f"field={sc['field_key']!r} value={sc['field_value']!r} "
+                            f"(same doc+field already cited on winner)"
+                        )
+                    grand_subject_drops += len(subject_collisions)
+                    if args.apply and subject_collisions:
+                        cur.execute(SUBJECT_DEDUPE_DELETE_SQL, (lid, winner.id))
 
                 # ---- column reconciliation preview --------------------------
                 updates: dict[str, Any] = {}
@@ -439,6 +512,7 @@ def main() -> int:
                 if args.apply:
                     # redundant source_records: citations follow the surviving row
                     for d, keep in redundant:
+                        cur.execute(RECORD_CITATION_DEDUPE_DELETE_SQL, (d["id"], keep["id"]))
                         cur.execute(
                             """update public.evidence_claims
                                   set subject_id = %s::uuid
@@ -456,7 +530,11 @@ def main() -> int:
                         for item in p:
                             _apply_repoint(cur, item, winner.id, lid)
                         # polymorphic citations of the supplier row itself —
-                        # not enumerable via information_schema.
+                        # not enumerable via information_schema. The dedupe ran
+                        # in the plan pass; re-run silently so collisions
+                        # created by an earlier loser's move (multi-loser
+                        # groups) are caught too.
+                        cur.execute(SUBJECT_DEDUPE_DELETE_SQL, (lid, winner.id))
                         cur.execute(
                             """update public.evidence_claims
                                   set subject_id = %s::uuid
@@ -517,6 +595,16 @@ def main() -> int:
             print(
                 f"  {t:<38} {grand_moves[t]:>4} row(s) re-pointed, "
                 f"{grand_drops[t]} duplicate(s) dropped"
+            )
+        if grand_subject_drops:
+            print(
+                f"  {'evidence_claims subject-citation dedupe':<38} {grand_subject_drops:>4} "
+                f"claim(s) dropped (same doc+field already cited on winner)"
+            )
+        if grand_record_cite_drops:
+            print(
+                f"  {'evidence_claims record-citation dedupe':<38} {grand_record_cite_drops:>4} "
+                f"claim(s) dropped (duplicate citations on surviving pointers)"
             )
         if args.apply:
             conn.commit()
