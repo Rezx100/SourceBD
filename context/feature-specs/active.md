@@ -3,22 +3,25 @@
 This file keeps routine agent sessions from scanning every inactive feature spec.
 
 ## Active / Recent Spec
-- CODE COMPLETE (3 Aug 2026), validated read-only against production; pending
-  PR -> deploy -> founder-approved apply: **REZ-56 — Cross-register coverage
-  audit + split-evidence duplicate repair**
+- FULLY COMPLETE IN PRODUCTION (3 Aug 2026): **REZ-56 — Cross-register
+  coverage audit + split-evidence duplicate repair**
   (`context/feature-specs/spec-cross-register-audit.md`, Linear REZ-56).
-  Founder-reported missing registry evidence turned out to be correct data;
-  the scan surfaced split-evidence duplicates (same legal entity as 2+
-  suppliers with disjoint Tier 1-3 sets). Production audit: 33 certain merge
-  groups / 66 suppliers, 294 fuzzy reported-only, 29 RSC extension clusters
-  excluded, 505 drifted stored identities. Shipped: audit
-  (`ops/audit_cross_register_coverage.py`), `plc` suffix fix + tests,
-  `ops/backfill_supplier_identity.py`, unmerge matcher guard, split detector
-  (`ops/check_supplier_splits.py` + cron twin), merge repair
-  (`ops/merge_duplicate_suppliers.py`, dry-run: 42 records / 162 claims /
-  27 certs re-pointed). Merge eligibility is per-member over certain edges;
-  BKMEA ownership disputes (CORNY/CRONY) and RSC extension rows are never
-  auto-merged.
+  Merged via PRs #70-72 (main `ed84bef`), deployed to VPS, then the
+  founder-reviewed apply merged **all 37 certain merge groups** in one
+  transaction (10,213 → 10,176 published suppliers; 49 records / 168 claims /
+  33 certs re-pointed, collision classes deduped per spec). Post-runbook run
+  in order: profile-column backfill, registry-display repair (0 changes),
+  identity backfill (521 updates; 6 slug-blocked pairs with unpublished
+  holders remain as follow-up candidates), re-audit (**0 certain groups**),
+  detector (**OK**). Smoke: FOUR H unified across six registers; RSC
+  extension rows untouched; 0 orphan claims. Follow-on queued: `--pair`
+  seeded merge mode on development (`33d0506`, PR pending) for the
+  founder-confirmed Sarada Knit Wear pair; Sarada Fashions' EPB row traced
+  to `epb_web` association-flag scoping (live-verified EPB 4083 = "SARADA
+  FASHIONS LIMITED." with no flags); 917-pair name-variant scan reported,
+  audit-v2 + matcher hardening + EPB widening awaiting founder decision.
+  See `context/current-state.md` → "Cross-Register Audit + Split-Evidence
+  Duplicate Repair".
 - FULLY COMPLETE IN PRODUCTION (2 Aug 2026): **REZ-36 Spec A — ETL
   change-skip, BKMEA source_records split, bkmea_detail pre-fetch gate**
   (`context/feature-specs/spec-etl-change-skip.md`). Merged via PRs #64 + #66

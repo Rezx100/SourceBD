@@ -6,35 +6,49 @@ Last compacted for agent-token efficiency: 30 Jun 2026.
 Phase 7 - Public Beta launch prep.
 
 ## Cross-Register Audit + Split-Evidence Duplicate Repair (REZ-56)
-3 Aug 2026 - CODE COMPLETE, validated read-only against production; pending
-PR -> deploy -> founder-approved production apply. Spec:
-`context/feature-specs/spec-cross-register-audit.md`. Findings verified
-against production before design (hard rule 12): the founder's Sarada
-examples are correct data; the real defect class is split-evidence
-duplicates.
+3 Aug 2026 - FULLY COMPLETE in production (main `ed84bef`, PRs #70-72; VPS
+at `ed84bef`). Spec: `context/feature-specs/spec-cross-register-audit.md`.
+**Production apply (3 Aug 2026): all 37 certain merge groups merged** in one
+transaction — 10,213 → 10,176 published suppliers; 49 source_records
+re-pointed (7 redundant register pointers dropped, newest kept), 168
+evidence_claims re-pointed + 30 same-doc subject-citation dupes deduped, 33
+certifications re-pointed (3 dupes dropped), 37 loser sbi_scores rows
+dropped (winners' recomputed nightly), 9 verification_queue rows moved.
+Post-runbook executed in order: backfill_profile_columns,
+repair_bkmea_registry_display --apply (0 changes — merge already reconciled
+canonically), backfill_supplier_identity --apply (521 identity updates over
+3 passes; 6 slug-blocked pairs remain, all with unpublished holders:
+GLITTER/CHORKA/NAFISA + Paramount/SHASHA DENIMS/SHEPHERD INDUSTRIES PLC
+pairs — follow-up candidates), re-audit: **0 certain merge groups**, 311
+fuzzy reported-only, 29 extension clusters excluded; detector: **OK, no
+certain split-evidence duplicates** (10 ownership questions standing,
+report-only). Smoke: FOUR H APPARELS unified (BGMEA+BKMEA+EPB+GOTS+OEKO_TEX
++RSC on one profile, completeness 73%), RSC extension rows (New Building,
+Unit 1) correctly untouched, 0 orphan claims.
 
-Production audit numbers (3 Aug 2026): 33 certain merge groups / 66
-suppliers (26 recomputed-slug-equal clusters + 7 shared-ref shadow/non-BKMEA
-groups), 294 fuzzy clusters reported-only, 29 RSC extension clusters
-excluded, 505 published suppliers with drifted stored identity (502 slug, 3
-norm-only), 16 BKMEA + 1 OEKO_TEX shared `(source, ref)` pairs. Root causes:
-normalization drift (12-May industry-stripping era), the 31-Jul unmerge
-insert path bypassing the matcher, a `plc` gap in `_LEGAL_SUFFIX_RE`,
-register-typo shared refs (EURO KNIT CARMENTS/GARMENTS both holding
-membership 481 — report-only: the typo'd names score 66.7 on the matcher
-bar, below the 92 identity threshold).
+Two apply-time constraint fixes shipped as hotfixes (each caught by the
+transactional rollback, zero partial writes): `sbi_scores` PK is a singleton
+constraint on the supplier column itself (`6d0790c`); same-doc
+subject-citation dupes on shared-register-ref groups needed pre-dedupe
+before subject re-pointing (`a2f57f0`). Ops note: psycopg3 ignores
+PGOPTIONS — long audit queries need an in-process `set statement_timeout`
+wrapper under evening DB load.
 
-Shipped: `ops/audit_cross_register_coverage.py` (read-only; `--explain NAME`
-dumps pairwise certainty verdicts); `plc` in `_LEGAL_SUFFIX_RE` + 4 tests
-(534 pytest pass); `ops/backfill_supplier_identity.py` (multi-pass
-slug/norm backfill, dry-run: 502 updates, 29 slug-blocked merge candidates);
-matcher guard in `ops/unmerge_bkmea_suppliers.py` (prod dry-run: 7 splits
-join existing suppliers instead of minting duplicates, 1 ambiguous skip);
-`ops/check_supplier_splits.py` + `ops/split_check_cron.sh` (exit-1 alarm on
-the 33 standing groups; 10 ownership pairs informational);
-`ops/merge_duplicate_suppliers.py` (dry-run: 33 groups, 42 source_records /
-162 evidence_claims / 27 certifications / 33 sbi_scores / 8 queue rows
-re-pointed, 7 redundant register pointers kept-newest, 3 cert dupes dropped).
+Follow-on work queued from the founder's Sarada review (same day):
+`--pair` seeded merge mode committed on development (`33d0506`, PR pending)
+for founder-confirmed pairs no audit signal links (Sarada Knit Wear Ltd.
+[BGMEA] vs SARDA KNITWEAR LTD [BKMEA] — same premises + owner, verified).
+Sarada Fashions' missing EPB row traced to scraper scope, not matching: EPB
+exporter 4083 IS "SARADA FASHIONS LIMITED." (live-verified, reg BD05918)
+but carries no BGMEA/BKMEA association flag, and `epb_web` only enumerates
+flagged exporters (541 of 5,939; we hold 539 = full flagged coverage).
+~5,398 unflagged exporters incl. RMG-category rows invisible — widening
+proposal (category-scoped enumeration + attach-only vs full-create policy)
+awaiting founder decision. A name-variant scan (space-stripped names +
+address corroboration) found 917 candidate pairs beyond the audit's
+signals; top band ~50 near-certain (several already healed by the 37-group
+apply); audit-v2 variant signal + matcher squash-equality hardening
+proposed, awaiting founder go-ahead.
 
 Architectural decisions:
 - Merge eligibility is per-member over "certain edges", not per-cluster:
@@ -51,7 +65,8 @@ Architectural decisions:
   newest-valid-detail canonical rule, other scalars coalesce), then deletes
   the loser after a zero-reference check (spec08 tombstone convention).
   Unique-constraint collisions: source_records keeps the newest-fetched
-  pointer with citations re-pointed; other tables drop the loser's
+  pointer with citations re-pointed; singleton constraints (sbi_scores PK)
+  drop the loser's derived row; other tables drop the loser's
   byte-equivalent duplicate.
 - `suppliers.slug` UNIQUE means stored-slug grouping can never see the
   duplicate class — identity is always RECOMPUTED with the ETL's own
