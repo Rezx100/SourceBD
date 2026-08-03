@@ -15,7 +15,8 @@ from __future__ import annotations
 import pytest
 
 from etl.core.normalize import make_slug, normalize_company_name
-from etl.core.upsert import _contact_match_allowed, _names_compatible
+from etl.core.upsert import _contact_match_allowed, _find_existing, _names_compatible
+from etl.tests.conftest import FakeCursor
 
 
 def _norm(a: str, b: str) -> tuple[str, str]:
@@ -104,3 +105,71 @@ def test_plc_and_ltd_forms_normalize_identically(a: str, b: str) -> None:
 def test_plc_only_stripped_as_trailing_legal_suffix() -> None:
     """`plc` mid-name is a real token and must survive normalization."""
     assert normalize_company_name("PLC Garments Ltd") == "plc garments"
+
+
+# Space-only variants — one spelling split by the register's spacing. Every
+# pair below is from the 3 Aug 2026 production variant scan (the WEST
+# KNITWEAR class): the normalized forms (and therefore the slugs, and Pass 1)
+# DIFFER, but the space-stripped norms are identical, so the Pass 1.5
+# squash-equality match attaches the new spelling instead of minting a twin.
+SQUASH_VARIANTS = [
+    ("Master Cham Ltd.", "Mastercham ltd."),
+    ("Honeywell Garments Limited", "Honey Well Garments Ltd."),
+    ("KNIT MEN COMPOSITE LTD.", "Knitmen Composite Ltd."),
+    ("CADTEX GARMENTS LIMITED", "Cad Tex Garments Limited"),
+    ("3-A FASHIONS LTD.", "3A Fashions Ltd."),
+    ("MIDLINE SWEATER LTD.", "Mid Line Sweater Ltd."),
+    ("EURO KNIT SPIN GARMENTS LTD.", "Euro Knitspin Garments Ltd"),
+    ("Mac-Tex Industries Ltd.", "MACTEX INDUSTRIES LTD"),
+    ("Reytex Fashion Wears Ltd.", "Rey-Tex Fashion Wears Ltd."),
+    ("Zeysha Fashion Wear Ltd", "Zeysha Fashionwear Ltd."),
+    ("GREEN LIFE KNITTEX LTD.", "Greenlife Knittex Ltd"),
+    ("POLESTAR KNIT COMPOSITE LTD.", "Pole Star Knit Composite Ltd"),
+]
+
+# Genuinely different companies (and the unit-suffix extension class) must
+# never squash-equal. The Sarada pair is 96.3 similar but NOT space-only —
+# it needed the founder-confirmed seeded merge, not a matcher pass.
+SQUASH_NON_VARIANTS = [
+    ("DK KNIT WEAR LTD", "YK KNITWEAR LIMITED"),
+    ("MALEK SPINNING MILLS PLC.", "EK Spinning Mills Ltd."),
+    ("PANDAMIC FASHION LTD", "Pandemic Fashions Ltd."),
+    ("Univogue Garments Co. Ltd. Unit-III", "Univogue Garments Co. Ltd (Unit-2)"),
+    ("Sarada Knit Wear Ltd.", "SARDA KNITWEAR LTD"),
+]
+
+
+def _squash(name: str) -> str:
+    return normalize_company_name(name).replace(" ", "")
+
+
+@pytest.mark.parametrize(("a", "b"), SQUASH_VARIANTS)
+def test_space_only_variants_squash_equal(a: str, b: str) -> None:
+    assert _squash(a) == _squash(b)
+    # Genuinely the squash class: Pass 1 (slug) misses every one of these.
+    assert normalize_company_name(a) != normalize_company_name(b)
+    assert make_slug(a) != make_slug(b)
+
+
+@pytest.mark.parametrize(("a", "b"), SQUASH_NON_VARIANTS)
+def test_different_companies_do_not_squash_equal(a: str, b: str) -> None:
+    assert _squash(a) != _squash(b)
+
+
+def test_find_existing_attaches_squash_equal_spelling() -> None:
+    """Pass 1.5 wiring: a space-only respelling of an existing supplier
+    attaches to it instead of falling through to Pass 4 / insert."""
+    cur = FakeCursor(squash_row={"id": "sup-existing"})
+    found = _find_existing(cur, slug="mastercham", norm="mastercham", email=None, phones=[])
+    assert found == "sup-existing"
+
+
+def test_find_existing_slug_still_wins_over_squash() -> None:
+    """Pass 1 precedes the squash pass: an exact slug match is preferred."""
+    cur = FakeCursor(slug_row={"id": "sup-slug"}, squash_row={"id": "sup-squash"})
+    found = _find_existing(cur, slug="master-cham", norm="master cham", email=None, phones=[])
+    assert found == "sup-slug"
+
+
+def test_find_existing_no_match_still_returns_none() -> None:
+    assert _find_existing(FakeCursor(), slug="x", norm="x y", email=None, phones=[]) is None

@@ -5,13 +5,24 @@ Source: Bangladesh Export Promotion Bureau Exporter Database
 
 Strategy
 --------
-The site is a Vue.js SPA backed by `POST /api/exporters-search`. Filtering by
-association id (BGMEA=1, BKMEA=2) returns the full BGMEA/BKMEA exporter set
-inline as JSON — no per-detail-page fetches required.
+The site is a Vue.js SPA backed by `POST /api/exporters-search`. Two
+enumeration passes over the same endpoint:
 
-We deliberately scope to BGMEA + BKMEA associations only because EPB also
-publishes jute, fish, plastic, leather, agriculture and other exporters that
-are out of scope for SourceBD's RMG focus.
+1. **Association pass** (full-create, the original scope): filtering by
+   association id (BGMEA=1, BKMEA=2) returns the full BGMEA/BKMEA exporter
+   set inline as JSON — no per-detail-page fetches required.
+2. **Category pass** (attach-only, founder decision D, 4 Aug 2026): EPB's
+   register separates RMG from jute/fish/rice by CATEGORY, not by
+   association — of 5,939 approved exporters only 541 carry a BGMEA/BKMEA
+   flag, so the association pass alone misses the unflagged RMG majority
+   (SARADA FASHIONS, exporter 4083, category Knit, no flags). Enumerating
+   the RMG category ids covers them, and every record from this pass
+   carries `enrich_only=True`: it enriches a supplier we already know and
+   is skipped otherwise, so widening coverage never mints a single-source
+   EPB profile.
+
+Jute, fish, plastic, leather, agriculture and other non-RMG exporters stay
+out of scope in both passes.
 
 District / thana names are not in the API response (only foreign-key ids).
 We extract the embedded `districts` / `thanas` lookup tables from the home
@@ -46,6 +57,20 @@ DETAIL_TEMPLATE = f"{BASE}/exporter/{{id}}/{{slug}}"
 
 # Association ids confirmed via /association-exporters/{id}/{slug} URL pattern.
 RMG_ASSOCIATIONS: dict[int, str] = {1: "BGMEA", 2: "BKMEA"}
+
+# RMG category ids in EPB's 818-category taxonomy, live-verified against
+# /api/exporters-search 3 Aug 2026: 2=Knit, 3=Woven, 8=Knit & Woven,
+# 24=Sweater, 16/23/30=Garments stock lot. Everything else (jute, fish,
+# rice, leather, ...) is out of SourceBD scope and must never enter this dict.
+RMG_CATEGORIES: dict[int, str] = {
+    2: "Knit",
+    3: "Woven",
+    8: "Knit & Woven",
+    24: "Sweater",
+    16: "Garments stock lot",
+    23: "Garments stock lot",
+    30: "Garments stock lot",
+}
 
 _BROWSER_HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
@@ -109,16 +134,35 @@ class EpbScraper(AcquiringScraper):
             categories=len(categories),
         )
 
+        # One exporter qualifies for several passes; yield it once, from the
+        # association pass when flagged (its payload carries the association
+        # context), so the per-run upsert and hash-skip stay stable.
+        seen_ids: set[int] = set()
+
         for assoc_id, assoc_name in RMG_ASSOCIATIONS.items():
             yielded = 0
             async for rec in self._fetch_association(
-                assoc_id, assoc_name, districts, thanas
+                assoc_id, assoc_name, districts, thanas, seen_ids
             ):
                 yielded += 1
                 yield rec
             self.log.info(
                 "epb.association_done",
                 association=assoc_name,
+                count=yielded,
+            )
+
+        for cat_id, cat_name in RMG_CATEGORIES.items():
+            yielded = 0
+            async for rec in self._fetch_category(
+                cat_id, cat_name, districts, thanas, seen_ids
+            ):
+                yielded += 1
+                yield rec
+            self.log.info(
+                "epb.category_done",
+                category=cat_name,
+                category_id=cat_id,
                 count=yielded,
             )
 
@@ -158,11 +202,57 @@ class EpbScraper(AcquiringScraper):
         assoc_name: str,
         districts: dict[int, str],
         thanas: dict[int, str],
+        seen_ids: set[int],
+    ) -> AsyncIterator[ScrapedRecord]:
+        async for rec in self._fetch_search(
+            payload_filter={"associations": [assoc_id]},
+            label=assoc_name,
+            referer=f"{BASE}/association-exporters/{assoc_id}/{assoc_name.lower()}",
+            assoc_name=assoc_name,
+            enrich_only=False,
+            districts=districts,
+            thanas=thanas,
+            seen_ids=seen_ids,
+        ):
+            yield rec
+
+    async def _fetch_category(
+        self,
+        cat_id: int,
+        cat_name: str,
+        districts: dict[int, str],
+        thanas: dict[int, str],
+        seen_ids: set[int],
+    ) -> AsyncIterator[ScrapedRecord]:
+        """Attach-only enumeration of one RMG category (decision D)."""
+        async for rec in self._fetch_search(
+            payload_filter={"category_id": cat_id},
+            label=f"category:{cat_name}",
+            referer=HOME_URL,
+            assoc_name=None,
+            enrich_only=True,
+            districts=districts,
+            thanas=thanas,
+            seen_ids=seen_ids,
+        ):
+            yield rec
+
+    async def _fetch_search(
+        self,
+        *,
+        payload_filter: dict[str, Any],
+        label: str,
+        referer: str,
+        assoc_name: str | None,
+        enrich_only: bool,
+        districts: dict[int, str],
+        thanas: dict[int, str],
+        seen_ids: set[int],
     ) -> AsyncIterator[ScrapedRecord]:
         headers = {
             "Accept": "application/json, text/plain, */*",
             "Content-Type": "application/json",
-            "Referer": f"{BASE}/association-exporters/{assoc_id}/{assoc_name.lower()}",
+            "Referer": referer,
             "X-Requested-With": "XMLHttpRequest",
             "X-XSRF-TOKEN": self._xsrf,
             "Origin": BASE,
@@ -172,7 +262,6 @@ class EpbScraper(AcquiringScraper):
         # request to minimise round-trips while staying friendly.
         limit = 200
         offset = 0
-        seen_ids: set[int] = set()
         while True:
             payload = {
                 "private": False,
@@ -182,12 +271,13 @@ class EpbScraper(AcquiringScraper):
                 "reg_type": None,
                 "exporter_type": 0,
                 "hscodes": [],
-                "associations": [assoc_id],
+                "associations": [],
                 "keyword": "",
                 "offset": offset,
                 "limit": limit,
                 "order_by": "exporters.name",
                 "order": "asc",
+                **payload_filter,
             }
 
             doc = await self.acquire(
@@ -196,13 +286,13 @@ class EpbScraper(AcquiringScraper):
                     method="POST",
                     json_body=payload,
                     headers=headers,
-                    label=f"{assoc_name} exporters offset={offset}",
+                    label=f"{label} exporters offset={offset}",
                 )
             )
             if not doc.ok:
                 self.log.warning(
                     "epb.search_failed",
-                    association=assoc_name,
+                    search=label,
                     offset=offset,
                     status=doc.fetch_status.value,
                     error=doc.error_message,
@@ -215,7 +305,7 @@ class EpbScraper(AcquiringScraper):
             except json.JSONDecodeError:
                 self.log.warning(
                     "epb.search_non_json",
-                    association=assoc_name,
+                    search=label,
                     offset=offset,
                 )
                 break
@@ -233,7 +323,7 @@ class EpbScraper(AcquiringScraper):
             total = data.get("total")
             self.log.info(
                 "epb.search_page",
-                association=assoc_name,
+                search=label,
                 offset=offset,
                 returned=len(exporters),
                 total=total,
@@ -252,7 +342,8 @@ class EpbScraper(AcquiringScraper):
                     continue
                 seen_ids.add(eid)
                 rec = self._build_record(
-                    ex, assoc_name, districts, thanas, doc, raw_body
+                    ex, assoc_name, districts, thanas, doc, raw_body,
+                    enrich_only=enrich_only,
                 )
                 if rec is not None:
                     yield rec
@@ -268,11 +359,12 @@ class EpbScraper(AcquiringScraper):
     def _build_record(
         self,
         ex: dict[str, Any],
-        assoc_name: str,
+        assoc_name: str | None,
         districts: dict[int, str],
         thanas: dict[int, str],
         doc: AcquiredDoc | None = None,
         raw_body: str | None = None,
+        enrich_only: bool = False,
     ) -> ScrapedRecord | None:
         eid = ex.get("id")
         name = (ex.get("name") or "").strip()
@@ -315,7 +407,10 @@ class EpbScraper(AcquiringScraper):
             "epb_office_district": office_district,
             "epb_office_thana": office_thana,
             "epb_categories": cats or None,
-            "epb_associations": [assoc_name],
+            # The association pass knows the flag it filtered on; the category
+            # pass does not (the search row carries no association join), so
+            # it leaves the field out rather than guessing.
+            "epb_associations": [assoc_name] if assoc_name else None,
             "epb_logo": ex.get("logo"),
             "epb_detail_url": detail_url,
             "epb_registered": True,
@@ -360,6 +455,7 @@ class EpbScraper(AcquiringScraper):
             district=factory_district or office_district,
             payload=payload,
             evidence=evidence,
+            enrich_only=enrich_only,
         )
 
 

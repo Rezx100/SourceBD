@@ -35,6 +35,27 @@ components of the pairs they produce:
   typo filed member 481 under both EURO KNIT CARMENTS and EURO KNIT
   GARMENTS). Merge-eligible only when the names are also compatible.
 
+NAME-VARIANT REPORT CLASS (added 4 Aug 2026, founder decision B)
+----------------------------------------------------------------
+A fourth scan runs alongside the cluster signals but is REPORT-ONLY — it
+never feeds `certain_merge_groups`. It catches compounding and single-letter
+register spellings ("Master Cham" vs "Mastercham", "Sarada Knit Wear" vs
+"Sarda Knitwear") that BOTH slug equality and the 92-point fuzzy bar miss:
+compared on space-stripped recomputed norms, those names are identical or
+~96+ similar. Method proven ad-hoc on 3 Aug 2026 (917 candidate pairs, top
+band ~50 near-certain): 4-gram index over the space-stripped
+`normalize_company_name` output (grams shared by >40 suppliers dropped as
+undiscriminating), candidates share >=1 rare gram, char `fuzz.ratio` >= 86
+with min squashed length 10, fragmented Tier 1-3 sets required (each side
+holds >=1 code the other lacks), and address corroboration (street-number
+agreement required for a strong score; city tokens excluded). The
+`certain-review` band is the founder's seeded-merge review list
+(`merge_duplicate_suppliers.py --pair WINNER,LOSER`) — below ~94 the noise
+floor is real (DK KNIT WEAR vs YK KNITWEAR, MALEK SPINNING vs EK SPINNING
+are different companies; unit-suffix pairs are the extension class and are
+excluded up front). Pairs already reported by signals A/B/C are subtracted
+so the classes stay disjoint.
+
 Normalization is IMPORTED from the ETL (`make_slug`,
 `normalize_company_name`, `_names_compatible`), never reimplemented — the
 audit must see names exactly the way the matcher does.
@@ -77,6 +98,7 @@ from rapidfuzz import fuzz
 
 from etl.core.normalize import make_slug, normalize_company_name
 from etl.core.upsert import _FUZZY_THRESHOLD, _names_compatible
+from etl.lib.bd_place_lexicon import apply_place_lexicon
 
 TIER_13 = ("tier1_gov", "tier2_industry", "tier3_cert")
 
@@ -100,12 +122,25 @@ _EXT_NAME_RE = re.compile(
 
 _MEMBERSHIP_INT_RE = re.compile(r"^\s*(\d+)")
 
-SUPPLIERS_SQL = """
+_SUPPLIERS_SELECT = """
 select s.id::text, s.company_name, s.company_name_norm, s.slug,
-       s.created_at, s.source_tags,
+       s.created_at, s.source_tags, s.address_raw, s.is_published,
        public.rsc_extension_base_name(s.company_name) as ext_base
   from public.suppliers s
+"""
+
+SUPPLIERS_SQL = _SUPPLIERS_SELECT + """
  where s.is_published
+ order by s.created_at
+"""
+
+# The merge script's seeded `--pair` mode loads the named slugs even when
+# UNPUBLISHED (founder decision E, 4 Aug 2026): the 6 slug-blocked
+# identity-backfill pairs each have an unpublished holder row the published
+# winner must absorb. The audit itself never uses this — its universe stays
+# published-only.
+SUPPLIERS_SQL_WITH_SLUGS = _SUPPLIERS_SELECT + """
+ where s.is_published or s.slug = any(%s::text[])
  order by s.created_at
 """
 
@@ -161,8 +196,12 @@ class Member:
     created_at: Any
     source_tags: list[str]
     ext_base: str | None
+    # The audit's universe is published-only, so this is True everywhere
+    # except members the merge script's seeded mode pulled in by slug.
+    is_published: bool = True
     rec_slug: str = ""
     rec_norm: str = ""
+    address_raw: str = ""
     records: list[dict] = field(default_factory=list)
     bkmea_ints: set[str] = field(default_factory=set)
     rsc_name_match: bool = False
@@ -198,11 +237,172 @@ class Cluster:
         return bool(self.merge_groups)
 
 
-def _fetch(cur) -> tuple[dict[str, Member], dict[str, str]]:
+# ---------------------------------------------------------------------------
+# Name-variant scan (REPORT class — see the module docstring)
+# ---------------------------------------------------------------------------
+_VARIANT_GRAM = 4
+_VARIANT_GRAM_MAX_SHARE = 40
+_VARIANT_MIN_SQUASHED = 10
+_VARIANT_MIN_RATIO = 86.0
+_VARIANT_CERTAIN_RATIO = 96.0
+
+# City/district tokens carry no corroborating signal — every register address
+# shares one. Canonical forms only: the place lexicon runs before tokenizing.
+_CITY_TOKENS = frozenset({
+    "dhaka", "narayanganj", "chattogram", "gazipur", "savar", "cumilla",
+    "khulna", "rajshahi", "sylhet", "barishal", "mymensingh", "tangail",
+    "narsingdi", "munshiganj", "manikganj", "kishoreganj", "bogura",
+    "jashore", "bangladesh",
+})
+
+_ADDR_TOKEN_RE = re.compile(r"[a-z0-9]+")
+
+
+def _addr_tokens(address_raw: str) -> set[str]:
+    return set(_ADDR_TOKEN_RE.findall(apply_place_lexicon((address_raw or "").lower())))
+
+
+def _street_numbers(address_raw: str) -> set[str]:
+    """Digit-bearing address tokens ("56", "12/a") — the premises signal."""
+    return {t for t in _addr_tokens(address_raw) if any(c.isdigit() for c in t)}
+
+
+def _locality_tokens(address_raw: str) -> set[str]:
+    """Non-city, non-number tokens — road/area/mohalla names."""
+    return {
+        t
+        for t in _addr_tokens(address_raw)
+        if t not in _CITY_TOKENS and not any(c.isdigit() for c in t)
+    }
+
+
+@dataclass
+class VariantPair:
+    a: Member
+    b: Member
+    ratio: float
+    squashed_identical: bool
+    number_agree: bool
+    number_conflict: bool
+    shared_locality: frozenset[str]
+
+    @property
+    def band(self) -> str:
+        """certain-review = the founder's seeded-merge review list.
+
+        A street-number CONFLICT demotes even identical names: same name at
+        different premises is the sister-company class (Sarada Fashions vs
+        Sarada Knit Wear), correctly separate.
+        """
+        if self.number_conflict:
+            return "review"
+        if self.squashed_identical or (
+            self.ratio >= _VARIANT_CERTAIN_RATIO and self.number_agree
+        ):
+            return "certain-review"
+        return "review"
+
+
+def variant_pairs(
+    members: dict[str, Member],
+    known_pairs: set[tuple[str, str]] | None = None,
+) -> list[VariantPair]:
+    """Name-variant candidate pairs the cluster signals do not already report.
+
+    `known_pairs` (the audit's A/B/C signal pair keys) is subtracted so the
+    report classes stay disjoint — a pair the slug/fuzzy/shared-ref signals
+    already flag is those classes' story, not a new finding.
+    """
+    squashed: dict[str, str] = {}
+    for mid, m in members.items():
+        sq = m.rec_norm.replace(" ", "")
+        if len(sq) >= _VARIANT_MIN_SQUASHED:
+            squashed[mid] = sq
+
+    gram_index: dict[str, set[str]] = defaultdict(set)
+    for mid, sq in squashed.items():
+        for i in range(len(sq) - _VARIANT_GRAM + 1):
+            gram_index[sq[i : i + _VARIANT_GRAM]].add(mid)
+
+    candidates: set[tuple[str, str]] = set()
+    for ids in gram_index.values():
+        if len(ids) > _VARIANT_GRAM_MAX_SHARE:
+            continue
+        ordered = sorted(ids)
+        for i, a in enumerate(ordered):
+            for b in ordered[i + 1 :]:
+                candidates.add((a, b))
+
+    out: list[VariantPair] = []
+    for a, b in candidates:
+        if known_pairs and (a, b) in known_pairs:
+            continue
+        ma, mb = members[a], members[b]
+        # Extension/building/unit rows are never merge candidates.
+        if ma.ext_pattern or mb.ext_pattern:
+            continue
+        # Fragmented Tier 1-3 sets: each side must hold >=1 code the other
+        # lacks (the split-evidence shape). Subset pairs are the other
+        # classes' work.
+        if not (ma.tier13_codes - mb.tier13_codes and mb.tier13_codes - ma.tier13_codes):
+            continue
+        sa, sb = squashed[a], squashed[b]
+        ratio = fuzz.ratio(sa, sb)
+        if ratio < _VARIANT_MIN_RATIO:
+            continue
+        nums_a = _street_numbers(ma.address_raw)
+        nums_b = _street_numbers(mb.address_raw)
+        number_agree = bool(nums_a & nums_b)
+        out.append(
+            VariantPair(
+                a=ma,
+                b=mb,
+                ratio=ratio,
+                squashed_identical=sa == sb,
+                number_agree=number_agree,
+                number_conflict=bool(nums_a and nums_b and not number_agree),
+                shared_locality=frozenset(
+                    _locality_tokens(ma.address_raw) & _locality_tokens(mb.address_raw)
+                ),
+            )
+        )
+    out.sort(key=lambda p: (p.band != "certain-review", -p.ratio, p.a.name))
+    return out
+
+
+def _fmt_variant_pair(p: VariantPair) -> str:
+    tag = "squashed-identical" if p.squashed_identical else f"sim={p.ratio:.1f}"
+    sets = (
+        "{" + ",".join(sorted(p.a.tier13_codes)) + "} vs {"
+        + ",".join(sorted(p.b.tier13_codes)) + "}"
+    )
+    addr = []
+    if p.number_agree:
+        addr.append("street-number agreement")
+    if p.number_conflict:
+        addr.append("STREET-NUMBER CONFLICT")
+    if p.shared_locality:
+        addr.append("locality: " + ", ".join(sorted(p.shared_locality)))
+    out = f"  {p.a.name!r}[{p.a.id[:6]}] ~ {p.b.name!r}[{p.b.id[:6]}]  {tag}\n      {sets}"
+    if addr:
+        out += f"\n      addr: {'; '.join(addr)}"
+    return out
+
+
+def _fetch(
+    cur, extra_slugs: tuple[str, ...] = ()
+) -> tuple[dict[str, Member], dict[str, str]]:
+    """Load the audit universe. `extra_slugs` additionally loads those slugs
+    when unpublished — only the merge script's seeded `--pair` mode passes
+    them (founder decision E); the audit and detector stay published-only.
+    """
     cur.execute(SOURCE_CODE_SQL)
     code_by_id = {r["id"]: r["code"] for r in cur.fetchall()}
 
-    cur.execute(SUPPLIERS_SQL)
+    if extra_slugs:
+        cur.execute(SUPPLIERS_SQL_WITH_SLUGS, (list(extra_slugs),))
+    else:
+        cur.execute(SUPPLIERS_SQL)
     members: dict[str, Member] = {}
     for r in cur.fetchall():
         m = Member(
@@ -213,6 +413,8 @@ def _fetch(cur) -> tuple[dict[str, Member], dict[str, str]]:
             created_at=r["created_at"],
             source_tags=list(r["source_tags"] or []),
             ext_base=r["ext_base"],
+            is_published=bool(r["is_published"]),
+            address_raw=r["address_raw"] or "",
         )
         m.rec_norm = normalize_company_name(m.name)
         m.rec_slug = make_slug(m.name)
@@ -243,8 +445,9 @@ def _fetch(cur) -> tuple[dict[str, Member], dict[str, str]]:
 
 def discover_clusters(
     members: dict[str, Member], code_by_id: dict[str, str], cur, explain: str | None = None
-) -> list[Cluster]:
-    """Connected components over the three discovery signals."""
+) -> tuple[list[Cluster], dict[tuple[str, str], set[str]]]:
+    """Connected components over the three discovery signals, plus the raw
+    pair signals (the variant report subtracts them to stay disjoint)."""
     parent = {mid: mid for mid in members}
 
     def find(x: str) -> str:
@@ -370,7 +573,7 @@ def discover_clusters(
             )
         )
     clusters.sort(key=lambda c: (c.klass != "slug-equal", c.klass != "shared-ref", c.members[0].name))
-    return clusters
+    return clusters, pair_signals
 
 
 def _is_certain_edge(ma: Member, mb: Member, sigs: set[str]) -> bool:
@@ -493,7 +696,8 @@ def main() -> int:
     try:
         with psycopg.connect(dsn, prepare_threshold=None, row_factory=dict_row) as conn, conn.cursor() as cur:
             members, code_by_id = _fetch(cur)
-            clusters = discover_clusters(members, code_by_id, cur, explain=args.explain)
+            clusters, pair_signals = discover_clusters(members, code_by_id, cur, explain=args.explain)
+            variants = variant_pairs(members, known_pairs=set(pair_signals))
     except Exception as exc:  # noqa: BLE001
         # An audit that cannot run is not a clean audit.
         print(f"ERROR: audit failed: {exc}", file=sys.stderr)
@@ -507,12 +711,16 @@ def main() -> int:
     fuzzy = [c for c in clusters if c.klass == "fuzzy"]
     excluded = [c for c in clusters if c.excluded_reason]
     drifted = [m for m in members.values() if m.drifted]
+    certain_variants = [p for p in variants if p.band == "certain-review"]
+    review_variants = [p for p in variants if p.band != "certain-review"]
 
     print(f"Audited {len(members)} published suppliers.")
     print(
         f"Clusters: {len(slug_equal)} slug-equal, {len(shared_ref)} shared-ref, "
         f"{len(fuzzy)} fuzzy; {len(excluded)} extension-excluded; "
-        f"{len(drifted)} suppliers carry drifted slug/norm.\n"
+        f"{len(drifted)} suppliers carry drifted slug/norm; "
+        f"name-variant: {len(certain_variants)} certain-review + "
+        f"{len(review_variants)} review-band pair(s).\n"
     )
 
     for title, group in (("SLUG-EQUAL (certain duplicates)", slug_equal), ("SHARED-REF", shared_ref)):
@@ -565,6 +773,31 @@ def main() -> int:
             else:
                 print(_fmt_cluster_compact(c))
 
+    if variants:
+        print("\n" + "=" * 78)
+        print(
+            f"NAME-VARIANT (report only, never auto-merged): "
+            f"{len(certain_variants)} certain-review, {len(review_variants)} review-band"
+        )
+        print("=" * 78)
+        print(
+            "  Certain-review pairs are the founder's seeded-merge review list: eyeball,\n"
+            "  then `merge_duplicate_suppliers.py --pair WINNER_SLUG,LOSER_SLUG`."
+        )
+        for p in certain_variants:
+            print(_fmt_variant_pair(p))
+        if review_variants:
+            if args.full:
+                print("\n  --- review band (below the certain band; the noise floor")
+                print("      below ~94 is real — different companies live there) ---")
+                for p in review_variants:
+                    print(_fmt_variant_pair(p))
+            else:
+                print(
+                    f"\n  … plus {len(review_variants)} review-band pair(s) (--full lists them; "
+                    f"below ~94 the noise floor is real)"
+                )
+
     # ---- summary -----------------------------------------------------------
     print("\n" + "=" * 78)
     print("SUMMARY")
@@ -589,7 +822,9 @@ def main() -> int:
         f"cluster(s) merge-eligible (identity-proof links: recomputed-slug equality, or shared ref "
         f"+ compatible names + shadow/non-BKMEA; no extension members) covering {n_merge_members} "
         f"suppliers; {len(fuzzy)} fuzzy reported for review; "
-        f"{len(excluded)} cluster(s) excluded as extension-class."
+        f"{len(excluded)} cluster(s) excluded as extension-class; "
+        f"{len(certain_variants)} name-variant pair(s) in the certain-review band "
+        f"(report only — seeded-merge review list), {len(review_variants)} review-band."
     )
     return 0
 

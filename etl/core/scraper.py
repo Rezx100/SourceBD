@@ -76,6 +76,12 @@ class ScrapedRecord:
     # 3 Aug 2026: the provider's current page is the truth and must show
     # without a review round-trip.
     canonical_registry: bool = False
+    # Attach-only record (founder decision D, 4 Aug 2026): the upsert enriches
+    # an existing supplier match but NEVER creates one — an unmatched
+    # attach-only record is skipped. The widened EPB category enumeration
+    # emits these so covering unflagged RMG exporters cannot mint
+    # single-source EPB profiles.
+    enrich_only: bool = False
 
     def hash(self) -> str:
         canonical = json.dumps(self.payload, sort_keys=True, ensure_ascii=False, default=str)

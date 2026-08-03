@@ -32,6 +32,14 @@ informational and do not fail the run: which company owns the number is a
 human decision, not a defect this check can verdict. Extension/building rows
 are excluded by the same rule the audit uses.
 
+The audit's name-variant report class (4 Aug 2026, founder decision B) rides
+along as an informational count — the certain-review band is the founder's
+seeded-merge review list, never an alarm, so it cannot fail the run either.
+Note the detector's signal set lacks fuzzy-only pairs (it never runs the
+trigram prefilter), so a pair that is fuzzy-class in the full audit can
+count toward the variant number here; the audit's own report is the
+disjoint one.
+
 USAGE
 -----
     python ops/check_supplier_splits.py           # human-readable
@@ -58,6 +66,7 @@ from ops.audit_cross_register_coverage import (
     _fetch,
     _is_certain_edge,
     certain_merge_groups,
+    variant_pairs,
 )
 
 
@@ -148,12 +157,14 @@ def main() -> int:
             with conn.cursor() as cur:
                 members, code_by_id = _fetch(cur)
                 groups, pair_signals, review = _certain_groups(members, code_by_id, cur)
+                variants = variant_pairs(members, known_pairs=set(pair_signals))
     except Exception as exc:  # noqa: BLE001
         # A check that cannot run is not a passing check.
         print(f"ERROR: could not run the split check: {exc}", file=sys.stderr)
         return 2
 
     drifted = sum(1 for m in members.values() if m.drifted)
+    certain_variants = sum(1 for p in variants if p.band == "certain-review")
 
     if groups:
         print(
@@ -172,12 +183,20 @@ def main() -> int:
             for a, b, sigs in review:
                 refs = ", ".join(s.split(":", 1)[1] for s in sigs if s.startswith("C:"))
                 print(f"  {a.name!r}[{a.id[:6]}] ~ {b.name!r}[{b.id[:6]}]  ({refs})")
+        if variants:
+            print(
+                f"\n  also {certain_variants} name-variant pair(s) in the certain-review "
+                f"band + {len(variants) - certain_variants} review-band (report only — "
+                f"the audit lists them)"
+            )
         return 1
 
     if not args.quiet:
         print(
             f"OK: no certain split-evidence duplicates among {len(members)} published suppliers; "
             f"{len(review)} shared-ref ownership question(s) standing; "
+            f"{certain_variants} name-variant pair(s) in the certain-review band "
+            f"(+{len(variants) - certain_variants} review-band; report only — the audit lists them); "
             f"{drifted} supplier(s) carry drifted stored identity "
             f"(run ops/backfill_supplier_identity.py when non-zero)."
         )
