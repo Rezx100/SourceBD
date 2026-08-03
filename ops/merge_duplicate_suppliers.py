@@ -236,6 +236,18 @@ def _repoint_plan(
             for cols in spanning:
                 others = [c for c in cols if c != column]
                 if not others:
+                    # Singleton constraint on the supplier column itself (e.g.
+                    # sbi_scores PK(supplier_id)): one row per supplier, so if
+                    # the winner already holds one, every loser row collides.
+                    cur.execute(
+                        f'''select count(*) as n
+                              from public."{table}" l
+                             where l."{column}" = %s::uuid
+                               and exists (select 1 from public."{table}" w
+                                            where w."{column}" = %s::uuid)''',
+                        (loser_id, winner_id),
+                    )
+                    collisions += cur.fetchone()["n"]
                     continue
                 cond = " and ".join(f'w."{c}" = l."{c}"' for c in others)
                 cur.execute(
@@ -258,6 +270,15 @@ def _apply_repoint(cur, plan_item: dict, winner_id: str, loser_id: str) -> None:
     for cols in plan_item["spanning"]:
         others = [c for c in cols if c != column]
         if not others:
+            # Singleton constraint (e.g. sbi_scores PK): the winner's own row
+            # is the kept equivalent; the loser's derived row drops.
+            cur.execute(
+                f'''delete from public."{table}" l
+                     where l."{column}" = %s::uuid
+                       and exists (select 1 from public."{table}" w
+                                    where w."{column}" = %s::uuid)''',
+                (loser_id, winner_id),
+            )
             continue
         cond = " and ".join(f'w."{c}" = l."{c}"' for c in others)
         # The winner already holds the equivalent row; the loser's duplicate
