@@ -5,6 +5,22 @@ Last compacted for agent-token efficiency: 30 Jun 2026.
 ## Phase
 Phase 7 - Public Beta launch prep.
 
+## Guardrails Epic — facility publish refuse (REZ-62 / REZ-57 A2)
+4 Aug 2026 — COMPLETE in the working tree on `development` (PR pending).
+Migration `0092_enforce_publish_tier_facility_guard.sql` redefines
+`enforce_publish_tier()`: when `NEW.facility_of IS NOT NULL`, silently
+coerce `NEW.is_published := false` and return (chosen over raise so B1
+backfill and `_maybe_publish()` do not churn exceptions). Existing Tier
+1–3 check, message, and `errcode = 'check_violation'` preserved exactly
+for non-facility rows. Trigger `trg_suppliers_publish` widened to
+`before insert or update of is_published, facility_of`. No row values;
+no `upsert.py` / view / RPC / TS changes. Not applied to production.
+Parses under libpg_query (3 statements; 94/94 migrations valid).
+Verification: pytest 607 passed (+9 in
+`etl/tests/test_facility_publish_guard.py`); `npx tsc --noEmit` clean;
+`npm test` 336/336; ruff 44 pre-existing (0 new from this change).
+Unblocks B1. Parent epic: Linear REZ-57.
+
 ## Guardrails Epic — facility_of schema (REZ-61 / REZ-57 A1)
 4 Aug 2026 — COMPLETE in the working tree on `development` (PR pending).
 Schema-only migration `0091_supplier_facility_of.sql`: nullable self-FK
