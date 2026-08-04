@@ -3,7 +3,14 @@
 This file keeps routine agent sessions from scanning every inactive feature spec.
 
 ## Active / Recent Spec
-- IN PROGRESS (5 Aug 2026): **REZ-87 — A7b Unify Python extension
+- IN PROGRESS / PR open (5 Aug 2026): **REZ-91 — employees_total sums
+  BGMEA cohorts, not max** (Linear REZ-91, parent REZ-57). Branched from
+  `origin/development` @ `b7de8dd`. SQL + Python mirror sum only
+  `Management` / `Employee Male` / `Employee Female`; unknown keys reported.
+  Dry-run: 1,390 upward `employees_total` corrections; `--apply` awaits
+  founder approval. Does not touch male/female, machines, capacity, or A8
+  cross-record rule. Coast-to-coast conflation remains REZ-90.
+- COMPLETE (merged PR #98, 5 Aug 2026): **REZ-87 — A7b Unify Python extension
   definition + Direction B patterns** (Linear REZ-87, parent REZ-57).
   Founder decision: Option 1 scoped to Python only — do NOT touch
   `public.rsc_extension_base_name` (indexes 0055/0056; B4 owns SQL).

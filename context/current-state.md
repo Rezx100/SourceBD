@@ -5,21 +5,24 @@ Last compacted for agent-token efficiency: 30 Jun 2026.
 ## Phase
 Phase 7 - Public Beta launch prep.
 
-## Workforce projection + facility roll-up — DECIDED, NOT STARTED
+## Workforce projection + facility roll-up — REZ-91 IN PR (awaiting --apply)
 5 Aug 2026 — founder spotted `COAST TO COAST (PVT.) LTD.` publishing the wrong
 workforce and asked what happens to an extension's data when it joins its
 mother. Investigation found two unrelated defects and one architectural gap.
 
-**REZ-91 (P0) — `employees_total` is the max cohort, not the sum.** BGMEA reports
-workforce as `{Management, Employee Male, Employee Female}`;
-`ops/backfill_profile_columns.py` takes `max()` over that dict. Production
-5 Aug: 4,247 BGMEA suppliers carry the payload, 1,604 have >1 populated cohort,
-**1,594 understate workforce by mean factor 1.88×**, largest suppressed total
-37,094. In **625 of them the displayed "total workforce" is the management
-headcount** (Management wins 625, Male 526, Female 457). Wrong even on a clean
-single-ref supplier. Root cause is the "numerics never summed" rule — correct
-*across source records*, wrong *within one record's cohort breakdown*. Those two
-operations must not share a rule.
+**REZ-91 (P0) — `employees_total` is the max cohort, not the sum.** FIXED in
+working tree (branch `rez-91-employees-total-sum` from `b7de8dd`). BGMEA
+workforce cohorts `{Management, Employee Male, Employee Female}` are now
+**summed** within one record (SQL + Python mirror); unrecognised keys skipped
+and reported. Cross-record A8 winner rule unchanged. Pre-flight reproduced
+4,247 / 1,604 / 1,594 / 1.88× / Management 625. Q1: no explicit Total key in
+any BGMEA payload. Q2: BKMEA uses explicit `bkmea_employees_total` (no
+employees object) — untouched. Q3: max prospective sum 37,094; 200k cap clips
+nothing. Dry-run (REST, no writes): **1,390** `employees_total` upward
+corrections (0 downward; male/female/machines/capacity unchanged). Gap vs
+1,594 understated = 204 already match A8 winner sum (mostly BKMEA wins).
+Production `--apply` awaits founder approval. Conflation on coast-to-coast
+remains REZ-90.
 
 **No facility roll-up exists at all.** Verified 5 Aug: `facility_of` is set on
 **0 suppliers** and **no view or function in the database references it**. Both
