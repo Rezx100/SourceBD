@@ -53,6 +53,22 @@ Extensions epic (REZ-58) should be applied so facility rows are not scored as
 candidate companies. Phases R0–R6 with per-phase acceptance criteria and the
 R4 cutover gate are in the spec.
 
+## Guardrails Epic — field locks (REZ-66 / REZ-57 A6)
+4 Aug 2026 — COMPLETE in working tree (schema + ETL enforcement; not
+applied to production). Migration `0094_supplier_field_locks.sql`
+creates `public.supplier_field_locks` (live unique on `(supplier_id,
+column_name) WHERE released_at IS NULL`, RLS with no anon/auth
+policies, trigger validating `column_name` against
+`information_schema.columns` for `public.suppliers`). Enforcement in
+`etl/core/upsert.py` (`_locked_columns` once per
+`_enrich_supplier` / `_apply_source_specific`) and all **13** UPDATEs
+in `ops/backfill_profile_columns.py`. No admin UI, no lock backfill, no
+generic BEFORE UPDATE on `suppliers`. Third ETL writers
+(`rsc_crosslink`, `contact_merge`, `address_norm`) STOP-AND-ASK'd on
+REZ-66 and left alone this PR. Verification: pytest 641 (+9);
+ruff 44 pre-existing (0 new on changed files); `npx tsc --noEmit`
+clean; `npm test` 336/336. Parent epic: Linear REZ-57.
+
 ## Guardrails Epic — resolution_edges seed (REZ-65 / REZ-57 A5)
 4 Aug 2026 — IN PROGRESS (script + tests; production dry-run only).
 `ops/seed_resolution_edges.py` backfills founder rulings into

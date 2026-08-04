@@ -353,31 +353,69 @@ def _insert_supplier(
     return str(cur.fetchone()["id"])
 
 
+def _locked_columns(cur, supplier_id: str) -> set[str]:
+    """Live field locks for one supplier (released_at IS NULL).
+
+    Loaded once per `_enrich_supplier` / `_apply_source_specific` call —
+    not per SET fragment. Empty set = no locks = ETL behaviour unchanged.
+    """
+    cur.execute(
+        """select column_name
+             from public.supplier_field_locks
+            where supplier_id = %s
+              and released_at is null""",
+        (supplier_id,),
+    )
+    rows = cur.fetchall() or []
+    out: set[str] = set()
+    for row in rows:
+        if isinstance(row, dict):
+            out.add(str(row["column_name"]))
+        else:
+            out.add(str(row[0]))
+    return out
+
+
 def _enrich_supplier(
     cur, *, supplier_id: str, email: str | None, phones: list[str], rec: ScrapedRecord
 ) -> None:
-    # Build COALESCE updates so we never overwrite non-null with null
-    cur.execute(
-        """update public.suppliers set
-             contact_name  = coalesce(contact_name, %s),
-             contact_role  = coalesce(contact_role, %s),
-             email_primary = coalesce(email_primary, %s),
-             phones        = (
-               select array(select distinct unnest(coalesce(phones, '{}'::text[]) || %s::text[]))
-             ),
-             website       = coalesce(website, %s),
-             address_raw   = coalesce(address_raw, %s),
-             city          = coalesce(city, %s),
-             district      = coalesce(district, %s),
-             source_tags   = (
-               select array(select distinct unnest(coalesce(source_tags, '{}'::text[]) || ARRAY[%s]::text[]))
-             )
-           where id = %s""",
+    # Build COALESCE updates so we never overwrite non-null with null.
+    # Skip any column with a live supplier_field_locks row (REZ-66 / A6).
+    locked = _locked_columns(cur, supplier_id)
+    assignments: list[tuple[str, str, Any]] = [
+        ("contact_name", "contact_name  = coalesce(contact_name, %s)", rec.contact_name),
+        ("contact_role", "contact_role  = coalesce(contact_role, %s)", rec.contact_role),
+        ("email_primary", "email_primary = coalesce(email_primary, %s)", email),
         (
-            rec.contact_name, rec.contact_role, email, phones,
-            rec.website, rec.address_raw, rec.city, rec.district,
-            rec.source_code, supplier_id,
+            "phones",
+            "phones        = ("
+            "\n               select array(select distinct unnest("
+            "coalesce(phones, '{}'::text[]) || %s::text[]))"
+            "\n             )",
+            phones,
         ),
+        ("website", "website       = coalesce(website, %s)", rec.website),
+        ("address_raw", "address_raw   = coalesce(address_raw, %s)", rec.address_raw),
+        ("city", "city          = coalesce(city, %s)", rec.city),
+        ("district", "district      = coalesce(district, %s)", rec.district),
+        (
+            "source_tags",
+            "source_tags   = ("
+            "\n               select array(select distinct unnest("
+            "coalesce(source_tags, '{}'::text[]) || ARRAY[%s]::text[]))"
+            "\n             )",
+            rec.source_code,
+        ),
+    ]
+    sets = [frag for col, frag, _ in assignments if col not in locked]
+    params = [val for col, _, val in assignments if col not in locked]
+    if not sets:
+        return
+    cur.execute(
+        "update public.suppliers set\n             "
+        + ",\n             ".join(sets)
+        + "\n           where id = %s",
+        (*params, supplier_id),
     )
 
 
@@ -400,25 +438,72 @@ def _upsert_source_record(cur, *, supplier_id: str, rec: ScrapedRecord) -> None:
     )
 
 
+def _exec_unlocked_update(
+    cur,
+    *,
+    supplier_id: str,
+    locked: set[str],
+    fragments: list[tuple[str, str, tuple[Any, ...]]],
+) -> None:
+    """Run UPDATE with only unlocked column fragments.
+
+    Each fragment is ``(column_name, sql_set_fragment, params)``. When no
+    listed column is locked the joined SQL matches the pre-lock statements
+    byte-for-byte (same fragment order and text).
+    """
+    sets: list[str] = []
+    params: list[Any] = []
+    for col, frag, frag_params in fragments:
+        if col in locked:
+            continue
+        sets.append(frag)
+        params.extend(frag_params)
+    if not sets:
+        return
+    cur.execute(
+        "update public.suppliers set\n                     "
+        + ",\n                     ".join(sets)
+        + "\n                   where id = %s",
+        (*params, supplier_id),
+    )
+
+
 def _apply_source_specific(cur, *, supplier_id: str, rec: ScrapedRecord) -> None:
     """Set register-specific verified flags + reg numbers, and upgrade
     entity_type='unknown' to the source's default when a Tier 1-2
-    register attaches (BGMEA, BKMEA, BTMA, BGAPMEA, RSC, EPB)."""
+    register attaches (BGMEA, BKMEA, BTMA, BGAPMEA, RSC, EPB).
+
+    Live field locks (REZ-66) skip locked columns so admin overrides —
+    especially entity_type and bkmea_reg_number — survive re-scrapes.
+    """
+    locked = _locked_columns(cur, supplier_id)
     code = rec.source_code
     if code == "BGMEA":
         reg = rec.payload.get("bgmea_reg_number")
         if reg:
-            cur.execute(
-                """update public.suppliers set
-                     bgmea_verified = true,
-                     bgmea_reg_numbers = (
-                       select array(select distinct unnest(
-                         coalesce(bgmea_reg_numbers,'{}'::text[]) || ARRAY[%s]::text[]
-                       ))
-                     ),
-                     entity_type = case when entity_type = 'unknown' then 'buying_house' else entity_type end
-                   where id = %s""",
-                (reg, supplier_id),
+            _exec_unlocked_update(
+                cur,
+                supplier_id=supplier_id,
+                locked=locked,
+                fragments=[
+                    ("bgmea_verified", "bgmea_verified = true", ()),
+                    (
+                        "bgmea_reg_numbers",
+                        "bgmea_reg_numbers = (\n"
+                        "                       select array(select distinct unnest(\n"
+                        "                         coalesce(bgmea_reg_numbers,'{}'::text[])"
+                        " || ARRAY[%s]::text[]\n"
+                        "                       ))\n"
+                        "                     )",
+                        (reg,),
+                    ),
+                    (
+                        "entity_type",
+                        "entity_type = case when entity_type = 'unknown' "
+                        "then 'buying_house' else entity_type end",
+                        (),
+                    ),
+                ],
             )
     elif code == "BKMEA":
         reg = rec.payload.get("bkmea_reg_number")
@@ -431,54 +516,101 @@ def _apply_source_specific(cur, *, supplier_id: str, rec: ScrapedRecord) -> None
             # The member's own detail page is the canonical registry record
             # (founder rule, 3 Aug 2026): the latest scrape wins outright, so a
             # re-registration shows without a review round-trip. The directory
-            # list only ever fills a NULL column (below).
-            cur.execute(
-                """update public.suppliers set
-                     bkmea_verified = true,
-                     bkmea_reg_number = %s,
-                     entity_type = case when entity_type = 'unknown' then 'factory' else entity_type end
-                   where id = %s""",
-                (reg, supplier_id),
+            # list only ever fills a NULL column (below). Locks beat this
+            # overwrite when present.
+            _exec_unlocked_update(
+                cur,
+                supplier_id=supplier_id,
+                locked=locked,
+                fragments=[
+                    ("bkmea_verified", "bkmea_verified = true", ()),
+                    ("bkmea_reg_number", "bkmea_reg_number = %s", (reg,)),
+                    (
+                        "entity_type",
+                        "entity_type = case when entity_type = 'unknown' "
+                        "then 'factory' else entity_type end",
+                        (),
+                    ),
+                ],
             )
         else:
-            cur.execute(
-                """update public.suppliers set
-                     bkmea_verified = true,
-                     bkmea_reg_number = coalesce(bkmea_reg_number, %s),
-                     entity_type = case when entity_type = 'unknown' then 'factory' else entity_type end
-                   where id = %s""",
-                (reg, supplier_id),
+            _exec_unlocked_update(
+                cur,
+                supplier_id=supplier_id,
+                locked=locked,
+                fragments=[
+                    ("bkmea_verified", "bkmea_verified = true", ()),
+                    (
+                        "bkmea_reg_number",
+                        "bkmea_reg_number = coalesce(bkmea_reg_number, %s)",
+                        (reg,),
+                    ),
+                    (
+                        "entity_type",
+                        "entity_type = case when entity_type = 'unknown' "
+                        "then 'factory' else entity_type end",
+                        (),
+                    ),
+                ],
             )
     elif code == "BTMA":
-        cur.execute(
-            """update public.suppliers set
-                 btma_verified = true,
-                 entity_type = case when entity_type = 'unknown' then 'factory' else entity_type end
-               where id = %s""",
-            (supplier_id,),
+        _exec_unlocked_update(
+            cur,
+            supplier_id=supplier_id,
+            locked=locked,
+            fragments=[
+                ("btma_verified", "btma_verified = true", ()),
+                (
+                    "entity_type",
+                    "entity_type = case when entity_type = 'unknown' "
+                    "then 'factory' else entity_type end",
+                    (),
+                ),
+            ],
         )
     elif code == "BGAPMEA":
-        cur.execute(
-            """update public.suppliers set
-                 bgapmea_verified = true,
-                 entity_type = case when entity_type = 'unknown' then 'factory' else entity_type end
-               where id = %s""",
-            (supplier_id,),
+        _exec_unlocked_update(
+            cur,
+            supplier_id=supplier_id,
+            locked=locked,
+            fragments=[
+                ("bgapmea_verified", "bgapmea_verified = true", ()),
+                (
+                    "entity_type",
+                    "entity_type = case when entity_type = 'unknown' "
+                    "then 'factory' else entity_type end",
+                    (),
+                ),
+            ],
         )
     elif code in ("EPB", "RSC"):
-        cur.execute(
-            """update public.suppliers set
-                 entity_type = case when entity_type = 'unknown' then 'factory' else entity_type end
-               where id = %s""",
-            (supplier_id,),
+        _exec_unlocked_update(
+            cur,
+            supplier_id=supplier_id,
+            locked=locked,
+            fragments=[
+                (
+                    "entity_type",
+                    "entity_type = case when entity_type = 'unknown' "
+                    "then 'factory' else entity_type end",
+                    (),
+                ),
+            ],
         )
     elif code in ("OEKO_TEX", "WRAP", "SA8000"):
         # Tier-3 cert bodies that audit producing sites only — never buying houses.
-        cur.execute(
-            """update public.suppliers set
-                 entity_type = case when entity_type = 'unknown' then 'factory' else entity_type end
-               where id = %s""",
-            (supplier_id,),
+        _exec_unlocked_update(
+            cur,
+            supplier_id=supplier_id,
+            locked=locked,
+            fragments=[
+                (
+                    "entity_type",
+                    "entity_type = case when entity_type = 'unknown' "
+                    "then 'factory' else entity_type end",
+                    (),
+                ),
+            ],
         )
     elif code == "GOTS":
         # GOTS certifies producers (spinning/weaving/knitting/dyeing/...) and
@@ -495,27 +627,49 @@ def _apply_source_specific(cur, *, supplier_id: str, rec: ScrapedRecord) -> None
         # falsely match. Strip it first.
         ops_check = ops.replace("no processing", "")
         if any(m in ops_check for m in production_markers):
-            cur.execute(
-                """update public.suppliers set
-                     entity_type = case when entity_type = 'unknown' then 'factory' else entity_type end
-                   where id = %s""",
-                (supplier_id,),
+            _exec_unlocked_update(
+                cur,
+                supplier_id=supplier_id,
+                locked=locked,
+                fragments=[
+                    (
+                        "entity_type",
+                        "entity_type = case when entity_type = 'unknown' "
+                        "then 'factory' else entity_type end",
+                        (),
+                    ),
+                ],
             )
         elif "trading" in ops or "trader" in ops:
-            cur.execute(
-                """update public.suppliers set
-                     entity_type = case when entity_type = 'unknown' then 'buying_house' else entity_type end
-                   where id = %s""",
-                (supplier_id,),
+            _exec_unlocked_update(
+                cur,
+                supplier_id=supplier_id,
+                locked=locked,
+                fragments=[
+                    (
+                        "entity_type",
+                        "entity_type = case when entity_type = 'unknown' "
+                        "then 'buying_house' else entity_type end",
+                        (),
+                    ),
+                ],
             )
     elif code.startswith("BRAND_"):
         # Brand supplier-list disclosures publish direct manufacturing partners
         # (Transparency Pledge / Higg). Brand offices are never on these lists.
-        cur.execute(
-            """update public.suppliers set
-                 entity_type = case when entity_type = 'unknown' then 'factory' else entity_type end
-               where id = %s""",
-            (supplier_id,),
+        # entity_type lock must beat this factory overwrite (REZ-66).
+        _exec_unlocked_update(
+            cur,
+            supplier_id=supplier_id,
+            locked=locked,
+            fragments=[
+                (
+                    "entity_type",
+                    "entity_type = case when entity_type = 'unknown' "
+                    "then 'factory' else entity_type end",
+                    (),
+                ),
+            ],
         )
 
 
