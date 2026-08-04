@@ -3,6 +3,14 @@
 This file keeps routine agent sessions from scanning every inactive feature spec.
 
 ## Active / Recent Spec
+- COMPLETE in the working tree (4 Aug 2026): **REZ-63 — A3 Add
+  resolution_edges table for sticky always-same / never-same pair
+  rulings (schema only)** (Linear REZ-63, parent REZ-57). Migration
+  `0093_resolution_edges.sql` only — order-independent pair CHECKs,
+  live-pair partial unique index, read-path indexes, RLS with no
+  permissive policies. No rows; no matcher / upsert change. Not applied
+  to production. Unblocks A4 / A5 / C3. See `context/current-state.md`
+  → "Guardrails Epic — resolution_edges schema".
 - COMPLETE in the working tree (4 Aug 2026): **REZ-62 — A2 Make
   enforce_publish_tier() refuse to publish any row with facility_of set**
   (Linear REZ-62, parent REZ-57). Migration

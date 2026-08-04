@@ -5,6 +5,24 @@ Last compacted for agent-token efficiency: 30 Jun 2026.
 ## Phase
 Phase 7 - Public Beta launch prep.
 
+## Guardrails Epic — resolution_edges schema (REZ-63 / REZ-57 A3)
+4 Aug 2026 — COMPLETE in the working tree on `development` (PR pending).
+Schema-only migration `0093_resolution_edges.sql`: table
+`public.resolution_edges` for sticky always-same / never-same pair
+rulings. Columns: `supplier_a`/`supplier_b` (FK cascade), `verdict`
+(`same`|`different`), `decided_by`, `decided_at`, `rationale`,
+`evidence_note`, `superseded_at`/`superseded_by`. Canonical pair order
+enforced by CHECK `supplier_a < supplier_b` (no silent-swap trigger);
+also CHECK not-self; partial unique
+`idx_resolution_edges_pair_active` (one live ruling per pair); read-path
+partial indexes on each side; RLS enabled with zero anon/authenticated
+policies. No rows inserted; no `upsert.py` / view / RPC / TS changes.
+Not applied to production. Parses under libpg_query (15 statements;
+95/95 migrations valid). Verification: pytest 620 passed (+13 in
+`etl/tests/test_resolution_edges_schema.py`); `npx tsc --noEmit` clean;
+`npm test` 336/336; ruff 44 pre-existing (0 new from this change).
+Unblocks A4 / A5 / C3. Parent epic: Linear REZ-57.
+
 ## Guardrails Epic — facility publish refuse (REZ-62 / REZ-57 A2)
 4 Aug 2026 — COMPLETE in the working tree on `development` (PR pending).
 Migration `0092_enforce_publish_tier_facility_guard.sql` redefines
