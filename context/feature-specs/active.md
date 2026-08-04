@@ -3,13 +3,14 @@
 This file keeps routine agent sessions from scanning every inactive feature spec.
 
 ## Active / Recent Spec
-- IN PROGRESS (4 Aug 2026): **REZ-65 — A5 Seed resolution_edges from
-  founder rulings** (Linear REZ-65, parent REZ-57). `ops/seed_resolution_edges.py`
-  dry-run by default; REST transport; encodes sarada≠sarada-fashions +
-  corny≠crony; `sarda-knitwear` same-ruling reported as structurally
-  satisfied (tombstoned). Production untouched until founder approves
-  `--apply`. See `context/current-state.md` → "Guardrails Epic —
-  resolution_edges seed".
+- COMPLETE in working tree / PR #86 open (4 Aug 2026): **REZ-65 — A5
+  Seed resolution_edges from founder rulings** (Linear REZ-65, parent
+  REZ-57). `ops/seed_resolution_edges.py` dry-run by default; REST
+  transport; encodes sarada≠sarada-fashions + corny≠crony;
+  `sarda-knitwear` same-ruling reported as structurally satisfied
+  (tombstoned). Production untouched until founder approves `--apply`.
+  See `context/current-state.md` → "Guardrails Epic — resolution_edges
+  seed".
 - COMPLETE (merged PR #82 into `development`, 4 Aug 2026): **REZ-64 —
   A4 Make resolution_edges load-bearing** (Linear REZ-64, parent
   REZ-57). Positive `same`-edge canonicalisation in `_find_existing` (no
