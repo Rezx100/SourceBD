@@ -1,0 +1,2652 @@
+{
+  "description": "REZ-87 regression fixture. Pins Python extension_base_name behaviour over production names + Direction A/B examples. Not a SQL-vs-Python drift test — SQL is deliberately allowed to differ.",
+  "direction_a_pairs": [
+    {
+      "name": "Amtranet Limited (New Building)",
+      "base": "Amtranet Limited",
+      "compatible": true
+    },
+    {
+      "name": "Asrotex (Extension)",
+      "base": "Asrotex",
+      "compatible": true
+    },
+    {
+      "name": "Big Boss Corporation Limited (Extension)",
+      "base": "Big Boss Corporation Limited",
+      "compatible": true
+    },
+    {
+      "name": "Debonair Limited (extension)",
+      "base": "Debonair Limited",
+      "compatible": true
+    },
+    {
+      "name": "Debonair Limited Unit-2",
+      "base": "Debonair Limited",
+      "compatible": true
+    },
+    {
+      "name": "Debonair Limited Unit-2 (Extension 2)",
+      "base": "Debonair Limited",
+      "compatible": true
+    },
+    {
+      "name": "Denitex Ltd (Extension)",
+      "base": "Denitex Ltd",
+      "compatible": true
+    },
+    {
+      "name": "Dhakarea Ltd (Extension)",
+      "base": "Dhakarea Ltd",
+      "compatible": true
+    },
+    {
+      "name": "ECHOKNITS LTD (EXTENSION 2)",
+      "base": "ECHOKNITS LTD",
+      "compatible": true
+    },
+    {
+      "name": "Echotex (extension)",
+      "base": "Echotex",
+      "compatible": true
+    },
+    {
+      "name": "ECHOTEX LTD. (Extension 2)",
+      "base": "ECHOTEX LTD.",
+      "compatible": true
+    },
+    {
+      "name": "ECHOTEX LTD. (New Building)",
+      "base": "ECHOTEX LTD.",
+      "compatible": true
+    },
+    {
+      "name": "G.A.B. Limited (Extension)",
+      "base": "G.A.B. Limited",
+      "compatible": true
+    },
+    {
+      "name": "Hossains Ltd. (Unit-2)",
+      "base": "Hossains Ltd.",
+      "compatible": true
+    },
+    {
+      "name": "Hossains Ltd. (Unit-3)",
+      "base": "Hossains Ltd.",
+      "compatible": true
+    },
+    {
+      "name": "KNIT ASIA LTD UNIT-2",
+      "base": "KNIT ASIA LTD",
+      "compatible": true
+    },
+    {
+      "name": "Knit Plus Limited (Unit-2)",
+      "base": "Knit Plus Limited",
+      "compatible": true
+    },
+    {
+      "name": "Knit Plus Ltd (Extension - 2)",
+      "base": "Knit Plus Ltd",
+      "compatible": true
+    },
+    {
+      "name": "Knit Plus Ltd (Extension)",
+      "base": "Knit Plus Ltd",
+      "compatible": true
+    },
+    {
+      "name": "Multifabs Ltd (New Building)",
+      "base": "Multifabs Ltd",
+      "compatible": true
+    },
+    {
+      "name": "PNG (BD) Ltd (Extension 2)",
+      "base": "PNG (BD) Ltd",
+      "compatible": true
+    },
+    {
+      "name": "R.H Attire Ltd. (Unit-2)",
+      "base": "R.H Attire Ltd.",
+      "compatible": true
+    },
+    {
+      "name": "Talisman Ltd. (Extension)",
+      "base": "Talisman Ltd.",
+      "compatible": true
+    },
+    {
+      "name": "Textown Ltd (Extension building)",
+      "base": "Textown Ltd",
+      "compatible": true
+    },
+    {
+      "name": "Uni Gears LTD (Extension)",
+      "base": "Uni Gears LTD",
+      "compatible": true
+    }
+  ],
+  "direction_b_examples": [
+    {
+      "name": "Anzir Apparels Ltd. (U-2)",
+      "base": "Anzir Apparels Ltd."
+    },
+    {
+      "name": "B. Brothers Garments Co. Ltd.(U-2)",
+      "base": "B. Brothers Garments Co. Ltd."
+    },
+    {
+      "name": "Bonny Apparels (Pvt) Ltd.(U-2)",
+      "base": "Bonny Apparels (Pvt) Ltd."
+    },
+    {
+      "name": "Creative Sweaters (Pvt) Ltd.(U-2)",
+      "base": "Creative Sweaters (Pvt) Ltd."
+    },
+    {
+      "name": "Standard Stitches Ltd. (Woven Unit)",
+      "base": "Standard Stitches Ltd."
+    },
+    {
+      "name": "Shangu Tex Ltd.-2",
+      "base": "Shangu Tex Ltd"
+    },
+    {
+      "name": "The Civil Engineers Ltd. (Sw Unit)",
+      "base": "The Civil Engineers Ltd."
+    },
+    {
+      "name": "Univogue Garments Co. Ltd. Unit-II",
+      "base": "Univogue Garments Co. Ltd."
+    },
+    {
+      "name": "Intramex Knit Wear Ltd. (Unit-2)",
+      "base": "Intramex Knit Wear Ltd."
+    },
+    {
+      "name": "Mark Fashion Wear (Pvt.) Ltd. (U-2)",
+      "base": "Mark Fashion Wear (Pvt.) Ltd."
+    },
+    {
+      "name": "4A Yarn Dyeing Ltd. (Extension buildings).",
+      "base": "4A Yarn Dyeing Ltd."
+    },
+    {
+      "name": "BANDO DESIGN LTD. [NEW BUILDING]",
+      "base": "BANDO DESIGN LTD."
+    },
+    {
+      "name": "MNR Sweaters Ltd Extension Building",
+      "base": "MNR Sweaters Ltd"
+    },
+    {
+      "name": "Onus Garments Ltd. Extension Building",
+      "base": "Onus Garments Ltd."
+    },
+    {
+      "name": "Mondol Intimates LimitedNew Buildings",
+      "base": "Mondol Intimates Limited"
+    },
+    {
+      "name": "Consist Apparels Ltd. - Extension 2",
+      "base": "Consist Apparels Ltd."
+    }
+  ],
+  "critical_negatives": [
+    {
+      "name": "N. T. APPARELS UNIT-2 LIMITED",
+      "base": null
+    },
+    {
+      "name": "IFS TEXWEAR (PVT.) LTD.",
+      "base": null
+    },
+    {
+      "name": "Babylon Garments Limited",
+      "base": null
+    },
+    {
+      "name": "ZA Apparels Ltd (Jacket fty)",
+      "base": null
+    }
+  ],
+  "production_hits": [
+    {
+      "name": "4A Yarn Dyeing Ltd. (Extension buildings).",
+      "base": "4A Yarn Dyeing Ltd."
+    },
+    {
+      "name": "A-One Polar Ltd (Extension 2)",
+      "base": "A-One Polar Ltd"
+    },
+    {
+      "name": "A-One Polar Ltd (new buildings)",
+      "base": "A-One Polar Ltd"
+    },
+    {
+      "name": "A.K.M. KNIT WEAR LTD. (Extension)",
+      "base": "A.K.M. KNIT WEAR LTD."
+    },
+    {
+      "name": "A.T.S. Apparels Limited (Extension)",
+      "base": "A.T.S. Apparels Limited"
+    },
+    {
+      "name": "AB APPARELS LTD (extension)",
+      "base": "AB APPARELS LTD"
+    },
+    {
+      "name": "AB Mart Fashion Wear Ltd. (Extension)",
+      "base": "AB Mart Fashion Wear Ltd."
+    },
+    {
+      "name": "ABLOOM DESIGN LIMITED (Extension)",
+      "base": "ABLOOM DESIGN LIMITED"
+    },
+    {
+      "name": "ACS Textiles (Bangladesh) Ltd. (Extension)",
+      "base": "ACS Textiles (Bangladesh) Ltd."
+    },
+    {
+      "name": "AKH ECO APPARELS LTD.--Extended buildings",
+      "base": "AKH ECO APPARELS LTD.-"
+    },
+    {
+      "name": "AKH FASHIONS LTD (EXTENSION)",
+      "base": "AKH FASHIONS LTD"
+    },
+    {
+      "name": "AKH KNITTING & DYEING LTD. (Extension)",
+      "base": "AKH KNITTING & DYEING LTD."
+    },
+    {
+      "name": "AKH Shirts Ltd. (Unit 3)",
+      "base": "AKH Shirts Ltd."
+    },
+    {
+      "name": "ALIB Composite Ltd. (Extension)",
+      "base": "ALIB Composite Ltd."
+    },
+    {
+      "name": "AMAN FASHIONS & DESIGNS LTD (EXTENSION)",
+      "base": "AMAN FASHIONS & DESIGNS LTD"
+    },
+    {
+      "name": "AMC Knit Composite Ltd. (Extension - 2)",
+      "base": "AMC Knit Composite Ltd."
+    },
+    {
+      "name": "AMC Knit Composite Ltd. (Extension)",
+      "base": "AMC Knit Composite Ltd."
+    },
+    {
+      "name": "ANANTA GARMENTS LTD (EXTENSION)",
+      "base": "ANANTA GARMENTS LTD"
+    },
+    {
+      "name": "AR Raafi Apparel Studio Ltd. (Extension))",
+      "base": "AR Raafi Apparel Studio Ltd."
+    },
+    {
+      "name": "AR-TEX COMPOSITE LTD. (EXTENSION)",
+      "base": "AR-TEX COMPOSITE LTD."
+    },
+    {
+      "name": "ARA / Apparel Export Ltd. (Extension)",
+      "base": "ARA / Apparel Export Ltd."
+    },
+    {
+      "name": "ARABI Fashion Ltd (Extension)",
+      "base": "ARABI Fashion Ltd"
+    },
+    {
+      "name": "ARKAY KNIT DYEING MILLS LTD- UNIT 2",
+      "base": "ARKAY KNIT DYEING MILLS LTD"
+    },
+    {
+      "name": "ASWAD COMPOSITE MILLS LTD. ( U-2)",
+      "base": "ASWAD COMPOSITE MILLS LTD."
+    },
+    {
+      "name": "ASWAD COMPOSITE MILLS LTD. ( U-2) (EXTENSION)",
+      "base": "ASWAD COMPOSITE MILLS LTD."
+    },
+    {
+      "name": "Abir Fashions (Extension)",
+      "base": "Abir Fashions"
+    },
+    {
+      "name": "Abloom Design Limited (Unit-2)",
+      "base": "Abloom Design Limited"
+    },
+    {
+      "name": "Aboni Knitwear (New Shed)",
+      "base": "Aboni Knitwear"
+    },
+    {
+      "name": "Adury Apparels Ltd. (Extension 2)",
+      "base": "Adury Apparels Ltd."
+    },
+    {
+      "name": "Advanced Composite Textile Limited (Extension)",
+      "base": "Advanced Composite Textile Limited"
+    },
+    {
+      "name": "Ahsan Composite Ltd. (Extension 2)",
+      "base": "Ahsan Composite Ltd."
+    },
+    {
+      "name": "Al Razi Polymer Industry Unit-2",
+      "base": "Al Razi Polymer Industry"
+    },
+    {
+      "name": "Al-Mostafa Printing & Packaging Ind. Ltd. (Unit-2)",
+      "base": "Al-Mostafa Printing & Packaging Ind. Ltd."
+    },
+    {
+      "name": "Al-Muslim Apparels Ltd (New building)",
+      "base": "Al-Muslim Apparels Ltd"
+    },
+    {
+      "name": "Al-Muslim Apparels Ltd. (Extension)",
+      "base": "Al-Muslim Apparels Ltd."
+    },
+    {
+      "name": "Al-Muslim Washing Ltd. & Al-Muslim Garments Accessories Ltd (Extension 2)",
+      "base": "Al-Muslim Washing Ltd. & Al-Muslim Garments Accessories Ltd"
+    },
+    {
+      "name": "Alema Textiles Ltd (Extension 2)",
+      "base": "Alema Textiles Ltd"
+    },
+    {
+      "name": "Alif Embroidery Village Ltd. Unit-2",
+      "base": "Alif Embroidery Village Ltd."
+    },
+    {
+      "name": "Alim Knit (BD) Ltd (Extension)",
+      "base": "Alim Knit (BD) Ltd"
+    },
+    {
+      "name": "Aliza fashion Ltd (Extension)",
+      "base": "Aliza fashion Ltd"
+    },
+    {
+      "name": "Alpha Clothing Limited (Extension)",
+      "base": "Alpha Clothing Limited"
+    },
+    {
+      "name": "Aman Graphics & Designs Ltd. (Extension)",
+      "base": "Aman Graphics & Designs Ltd."
+    },
+    {
+      "name": "Amotex Ltd. (Woven Unit)",
+      "base": "Amotex Ltd."
+    },
+    {
+      "name": "Amtranet Limited (New Building)",
+      "base": "Amtranet Limited"
+    },
+    {
+      "name": "Ananta Casual Wear Ltd. (Extension)",
+      "base": "Ananta Casual Wear Ltd."
+    },
+    {
+      "name": "Ananta Huaxiang Ltd. (Extension 2)",
+      "base": "Ananta Huaxiang Ltd."
+    },
+    {
+      "name": "Ananta Jeans wear Ltd. (Extension)",
+      "base": "Ananta Jeans wear Ltd."
+    },
+    {
+      "name": "Anzir Apparels Ltd. Unit-02",
+      "base": "Anzir Apparels Ltd."
+    },
+    {
+      "name": "Apex Textile Printing Mills (Extension)",
+      "base": "Apex Textile Printing Mills"
+    },
+    {
+      "name": "Apparel 21 Ltd. (extension)",
+      "base": "Apparel 21 Ltd."
+    },
+    {
+      "name": "Apparel Gallery Ltd (Extended Building)",
+      "base": "Apparel Gallery Ltd"
+    },
+    {
+      "name": "Apparel Gallery Ltd (Extension 2))",
+      "base": "Apparel Gallery Ltd"
+    },
+    {
+      "name": "Apparels Village Ltd. (Shirts) - New building",
+      "base": "Apparels Village Ltd. (Shirts)"
+    },
+    {
+      "name": "Aptech Caswier Ltd (Extension)",
+      "base": "Aptech Caswier Ltd"
+    },
+    {
+      "name": "Arrival Fashion Limited (Extension)",
+      "base": "Arrival Fashion Limited"
+    },
+    {
+      "name": "Artistic Design Ltd.(Extension 2)",
+      "base": "Artistic Design Ltd."
+    },
+    {
+      "name": "Arunima Sportswear Ltd (Extension)",
+      "base": "Arunima Sportswear Ltd"
+    },
+    {
+      "name": "Aspire Garments Limited (Extension)",
+      "base": "Aspire Garments Limited"
+    },
+    {
+      "name": "Asrotex (Extension)",
+      "base": "Asrotex"
+    },
+    {
+      "name": "Aswad Composite Mills Ltd.(unit-1)",
+      "base": "Aswad Composite Mills Ltd."
+    },
+    {
+      "name": "Auko-Tex Limited (Extended building)",
+      "base": "Auko-Tex Limited"
+    },
+    {
+      "name": "Axis Knitwears Ltd (relocated)",
+      "base": "Axis Knitwears Ltd"
+    },
+    {
+      "name": "Azim & Son (Pvt) Ltd Unit 1",
+      "base": "Azim & Son (Pvt) Ltd"
+    },
+    {
+      "name": "Azim & Son (Pvt) Ltd Unit 1 (Extension)",
+      "base": "Azim & Son (Pvt) Ltd"
+    },
+    {
+      "name": "Azmeri Composite Knit Ltd (Extension Buildings)",
+      "base": "Azmeri Composite Knit Ltd"
+    },
+    {
+      "name": "B2B Excellence Ltd (Extension 2)",
+      "base": "B2B Excellence Ltd"
+    },
+    {
+      "name": "B2B Excellence Ltd. (Extension Buildings)",
+      "base": "B2B Excellence Ltd."
+    },
+    {
+      "name": "BABYLON CASUALWEAR LTD (Extension)",
+      "base": "BABYLON CASUALWEAR LTD"
+    },
+    {
+      "name": "BANDO DESIGN LTD. (Extension 2)",
+      "base": "BANDO DESIGN LTD."
+    },
+    {
+      "name": "BANDO DESIGN LTD. [NEW BUILDING]",
+      "base": "BANDO DESIGN LTD."
+    },
+    {
+      "name": "BANGLADESH DRESSESS LTD UNIT-2",
+      "base": "BANGLADESH DRESSESS LTD"
+    },
+    {
+      "name": "BARAKA FASHIONS LIMITED (Extension)",
+      "base": "BARAKA FASHIONS LIMITED"
+    },
+    {
+      "name": "BEA-CON KNIT WEAR LTD. (Extension)",
+      "base": "BEA-CON KNIT WEAR LTD."
+    },
+    {
+      "name": "BG Collection Ltd. (Extension)",
+      "base": "BG Collection Ltd."
+    },
+    {
+      "name": "BKC sweater Limited (Extension)",
+      "base": "BKC sweater Limited"
+    },
+    {
+      "name": "BSA Garment Industry (Pvt) Ltd. (U-2)",
+      "base": "BSA Garment Industry (Pvt) Ltd."
+    },
+    {
+      "name": "Babylon Garments Limited (Extension)",
+      "base": "Babylon Garments Limited"
+    },
+    {
+      "name": "Baridhi Garments Ltd. (Extension)",
+      "base": "Baridhi Garments Ltd."
+    },
+    {
+      "name": "Barnali Collections Ltd. (Extension)",
+      "base": "Barnali Collections Ltd."
+    },
+    {
+      "name": "Bea-Con Knit Wear Limited (Factory-2)",
+      "base": "Bea-Con Knit Wear Limited"
+    },
+    {
+      "name": "Bea-Con Knit Wear Limited (Factory-2) (Extension)",
+      "base": "Bea-Con Knit Wear Limited"
+    },
+    {
+      "name": "Bea-Con Knitwear Ltd. (Factory-2)",
+      "base": "Bea-Con Knitwear Ltd."
+    },
+    {
+      "name": "Best Style Composite Limited Unit - 1",
+      "base": "Best Style Composite Limited"
+    },
+    {
+      "name": "Best Wool Sweaters Ltd (New building)",
+      "base": "Best Wool Sweaters Ltd"
+    },
+    {
+      "name": "Big Boss Corporation Limited (Extension)",
+      "base": "Big Boss Corporation Limited"
+    },
+    {
+      "name": "Birds Garments Ltd. Unit-2",
+      "base": "Birds Garments Ltd."
+    },
+    {
+      "name": "Biswas Garments Ltd Unit 2",
+      "base": "Biswas Garments Ltd"
+    },
+    {
+      "name": "Biswas Garments Ltd. (U-2)",
+      "base": "Biswas Garments Ltd."
+    },
+    {
+      "name": "Blue Planet Knitwear Ltd. (Extension)",
+      "base": "Blue Planet Knitwear Ltd."
+    },
+    {
+      "name": "Bottoms Gallery (pvt) Ltd. (New Location)",
+      "base": "Bottoms Gallery (pvt) Ltd."
+    },
+    {
+      "name": "Brandix Apparel Bangladesh Ltd. (Extension)",
+      "base": "Brandix Apparel Bangladesh Ltd."
+    },
+    {
+      "name": "Brickland Composite Ltd. (Relocated)",
+      "base": "Brickland Composite Ltd."
+    },
+    {
+      "name": "COLOSSUS APPAREL LTD. (UNIT-2)",
+      "base": "COLOSSUS APPAREL LTD."
+    },
+    {
+      "name": "CORTZ APPARELS LTD (UNIT 2)",
+      "base": "CORTZ APPARELS LTD"
+    },
+    {
+      "name": "CUTTING EDGE INDUSTRIES LTD. (EXTENSION)",
+      "base": "CUTTING EDGE INDUSTRIES LTD."
+    },
+    {
+      "name": "Caesar Apparels (EXTENSION)",
+      "base": "Caesar Apparels"
+    },
+    {
+      "name": "Caesar Apparels Ltd - New (Extension)",
+      "base": "Caesar Apparels Ltd - New"
+    },
+    {
+      "name": "Carlos Leather Fashion Ltd. (Extension)",
+      "base": "Carlos Leather Fashion Ltd."
+    },
+    {
+      "name": "Cassiopea Fashion Ltd - Extension",
+      "base": "Cassiopea Fashion Ltd"
+    },
+    {
+      "name": "Century Apparels Ltd - Unit 2",
+      "base": "Century Apparels Ltd"
+    },
+    {
+      "name": "Chaity Composite Ltd. (Extension 2)",
+      "base": "Chaity Composite Ltd."
+    },
+    {
+      "name": "Chaity Composite Ltd.- Annex building",
+      "base": "Chaity Composite Ltd."
+    },
+    {
+      "name": "Chancellor Garments Ltd. (relocated)",
+      "base": "Chancellor Garments Ltd."
+    },
+    {
+      "name": "Chorka Apparels Ltd. (Extension 2)",
+      "base": "Chorka Apparels Ltd."
+    },
+    {
+      "name": "Chorka Textile (Unit 3)",
+      "base": "Chorka Textile"
+    },
+    {
+      "name": "Chorka Textile Ltd. (new building)",
+      "base": "Chorka Textile Ltd."
+    },
+    {
+      "name": "Chowdhury Garments Ltd. (new shed)",
+      "base": "Chowdhury Garments Ltd."
+    },
+    {
+      "name": "Colotex Apparel Ltd. (Extension)",
+      "base": "Colotex Apparel Ltd."
+    },
+    {
+      "name": "Columbia Apparels Ltd - Extension",
+      "base": "Columbia Apparels Ltd"
+    },
+    {
+      "name": "Columbia Garments Ltd. (Extension)",
+      "base": "Columbia Garments Ltd."
+    },
+    {
+      "name": "Comfit Composite Knit Ltd (extension)",
+      "base": "Comfit Composite Knit Ltd"
+    },
+    {
+      "name": "Comfit Composite Knit Ltd (new building)",
+      "base": "Comfit Composite Knit Ltd"
+    },
+    {
+      "name": "Comfit composite knit limited , unit-2",
+      "base": "Comfit composite knit limited ,"
+    },
+    {
+      "name": "Comptex Bangladesh Ltd. (New Building)",
+      "base": "Comptex Bangladesh Ltd."
+    },
+    {
+      "name": "Concept Knitting (Extension)",
+      "base": "Concept Knitting"
+    },
+    {
+      "name": "Concept Knitting Ltd. (Extension 2)",
+      "base": "Concept Knitting Ltd."
+    },
+    {
+      "name": "Concorde Garments Limited (Extension)",
+      "base": "Concorde Garments Limited"
+    },
+    {
+      "name": "Consist Apparels Ltd. - Extension",
+      "base": "Consist Apparels Ltd."
+    },
+    {
+      "name": "Consist Apparels Ltd. - Extension 2",
+      "base": "Consist Apparels Ltd."
+    },
+    {
+      "name": "Consumer Knitex Limited (CMT Bangladesh) (Extension)",
+      "base": "Consumer Knitex Limited (CMT Bangladesh)"
+    },
+    {
+      "name": "Consumer Knitex Limited (Ckl) – Unit 01",
+      "base": "Consumer Knitex Limited (Ckl) –"
+    },
+    {
+      "name": "Consumer Knitex Limited (Unit 2)",
+      "base": "Consumer Knitex Limited"
+    },
+    {
+      "name": "Consumer Knitex Limited (Unit 2)- NEW BUILDINGS",
+      "base": "Consumer Knitex Limited"
+    },
+    {
+      "name": "Cortz Apparels Ltd. (Extension)",
+      "base": "Cortz Apparels Ltd."
+    },
+    {
+      "name": "Cosmopolitan Industries PVT Ltd (Epic) (Extension)",
+      "base": "Cosmopolitan Industries PVT Ltd (Epic)"
+    },
+    {
+      "name": "Cosmopolitan Industries PVT Ltd (Epic) New Shed",
+      "base": "Cosmopolitan Industries PVT Ltd (Epic)"
+    },
+    {
+      "name": "Cotton Club (BD) Ltd. (Extension - 2)",
+      "base": "Cotton Club (BD) Ltd."
+    },
+    {
+      "name": "Cotton Field (BD) Ltd (Extension)",
+      "base": "Cotton Field (BD) Ltd"
+    },
+    {
+      "name": "Cotton Field (BD) Ltd (Relocated)",
+      "base": "Cotton Field (BD) Ltd"
+    },
+    {
+      "name": "Creative Collections Ltd. (Extension)",
+      "base": "Creative Collections Ltd."
+    },
+    {
+      "name": "Creative Shirts Ltd. (U-2)",
+      "base": "Creative Shirts Ltd."
+    },
+    {
+      "name": "Crown Exclusive Wears Ltd. (Extended Building)",
+      "base": "Crown Exclusive Wears Ltd."
+    },
+    {
+      "name": "Crown Wears (Pvt.) Ltd. (Extension)",
+      "base": "Crown Wears (Pvt.) Ltd."
+    },
+    {
+      "name": "Croydon Kowloon Designs Ltd (Unit 2)",
+      "base": "Croydon Kowloon Designs Ltd"
+    },
+    {
+      "name": "DELUXE FASHIONS LTD. (Extension)",
+      "base": "DELUXE FASHIONS LTD."
+    },
+    {
+      "name": "DYNAMIC SWEATER INDUSTRIES LIMITED (DHAKA SWEATER) (Extension)",
+      "base": "DYNAMIC SWEATER INDUSTRIES LIMITED (DHAKA SWEATER)"
+    },
+    {
+      "name": "Daeyu Bangladesh LTD (Extension)",
+      "base": "Daeyu Bangladesh LTD"
+    },
+    {
+      "name": "Danys Knit wear Limited (Extension)",
+      "base": "Danys Knit wear Limited"
+    },
+    {
+      "name": "Debonair Limited (extension)",
+      "base": "Debonair Limited"
+    },
+    {
+      "name": "Debonair Limited Unit-2",
+      "base": "Debonair Limited"
+    },
+    {
+      "name": "Debonair Limited Unit-2 (Extension 2)",
+      "base": "Debonair Limited"
+    },
+    {
+      "name": "Dekko Designs Ltd (New Building)",
+      "base": "Dekko Designs Ltd"
+    },
+    {
+      "name": "Dekko Garments Ltd. (Extension)",
+      "base": "Dekko Garments Ltd."
+    },
+    {
+      "name": "Denim Asia Limited (Extension Building)",
+      "base": "Denim Asia Limited"
+    },
+    {
+      "name": "Denitex Ltd (Extension)",
+      "base": "Denitex Ltd"
+    },
+    {
+      "name": "Designtex Knitwear Ltd (New Building)",
+      "base": "Designtex Knitwear Ltd"
+    },
+    {
+      "name": "Designtex Knitwear Ltd. (Extension 2)",
+      "base": "Designtex Knitwear Ltd."
+    },
+    {
+      "name": "Dewan Fashion Wears Ltd. (Relocated)",
+      "base": "Dewan Fashion Wears Ltd."
+    },
+    {
+      "name": "Dhaka Garments & Washing Ltd (Extension)",
+      "base": "Dhaka Garments & Washing Ltd"
+    },
+    {
+      "name": "Dhakarea Ltd (Extension)",
+      "base": "Dhakarea Ltd"
+    },
+    {
+      "name": "Dips Apparel Limited (Relocated)",
+      "base": "Dips Apparel Limited"
+    },
+    {
+      "name": "Disney Sweater Ltd. (Extension 2)",
+      "base": "Disney Sweater Ltd."
+    },
+    {
+      "name": "Divine Textile Ltd (Unit-2)",
+      "base": "Divine Textile Ltd"
+    },
+    {
+      "name": "Doreen Apparels Ltd (Extension)",
+      "base": "Doreen Apparels Ltd"
+    },
+    {
+      "name": "Dresden Textiles Ltd. (Relocated)",
+      "base": "Dresden Textiles Ltd."
+    },
+    {
+      "name": "Dynasty Sweaters (BD) Ltd (Extended Building)",
+      "base": "Dynasty Sweaters (BD) Ltd"
+    },
+    {
+      "name": "ECHOKNITS LTD (EXTENSION 2)",
+      "base": "ECHOKNITS LTD"
+    },
+    {
+      "name": "ECHOTEX LTD. (Extension 2)",
+      "base": "ECHOTEX LTD."
+    },
+    {
+      "name": "ECHOTEX LTD. (New Building)",
+      "base": "ECHOTEX LTD."
+    },
+    {
+      "name": "ELITE GARMENTS INDUSTRIES LTD. (New Building)",
+      "base": "ELITE GARMENTS INDUSTRIES LTD."
+    },
+    {
+      "name": "EMS Apparels Ltd. (Extension)",
+      "base": "EMS Apparels Ltd."
+    },
+    {
+      "name": "EPYLLION STYLE LTD. (EXTENSION 2)",
+      "base": "EPYLLION STYLE LTD."
+    },
+    {
+      "name": "ESQUIRE SWEATERS LTD. (EXTENSION)",
+      "base": "ESQUIRE SWEATERS LTD."
+    },
+    {
+      "name": "EUROTEX KNITWEAR LTD. (EXTENSION 2)",
+      "base": "EUROTEX KNITWEAR LTD."
+    },
+    {
+      "name": "EVITEX APPARELS LIMITED - EXTENSION",
+      "base": "EVITEX APPARELS LIMITED"
+    },
+    {
+      "name": "EXCOM Fashions Ltd. (relocated)",
+      "base": "EXCOM Fashions Ltd."
+    },
+    {
+      "name": "East Coast Knitwear Pvt. Ltd. (Extension)",
+      "base": "East Coast Knitwear Pvt. Ltd."
+    },
+    {
+      "name": "Echotex (extension)",
+      "base": "Echotex"
+    },
+    {
+      "name": "Entrust Fashions Ltd. (Extended Building)",
+      "base": "Entrust Fashions Ltd."
+    },
+    {
+      "name": "Epic Garments Mafg. Co. Ltd.(U-2)",
+      "base": "Epic Garments Mafg. Co. Ltd."
+    },
+    {
+      "name": "Epic Garments Manufacturing Co. Ltd (unit-7)",
+      "base": "Epic Garments Manufacturing Co. Ltd"
+    },
+    {
+      "name": "Epoch Garments Ltd (Extension)",
+      "base": "Epoch Garments Ltd"
+    },
+    {
+      "name": "Epyllion Style Limited (Extension)",
+      "base": "Epyllion Style Limited"
+    },
+    {
+      "name": "Epyllion style Limited (extension project)",
+      "base": "Epyllion style Limited"
+    },
+    {
+      "name": "Esquire Knit Composite Ltd - Unit 1",
+      "base": "Esquire Knit Composite Ltd"
+    },
+    {
+      "name": "Essential Clothing Ltd. (Extension)",
+      "base": "Essential Clothing Ltd."
+    },
+    {
+      "name": "Euro Arte Apparels Ltd (Extension)",
+      "base": "Euro Arte Apparels Ltd"
+    },
+    {
+      "name": "Euro Jeans Ltd (New Shed)",
+      "base": "Euro Jeans Ltd"
+    },
+    {
+      "name": "Euro Knitwear Limited (Unit-2)",
+      "base": "Euro Knitwear Limited"
+    },
+    {
+      "name": "Everbright sweaters ltd (New Building)",
+      "base": "Everbright sweaters ltd"
+    },
+    {
+      "name": "Executive Greentex Limited (Extension)",
+      "base": "Executive Greentex Limited"
+    },
+    {
+      "name": "Executive Hi-Fashions LTD (Extension)",
+      "base": "Executive Hi-Fashions LTD"
+    },
+    {
+      "name": "FAKIR KNITWEARS LTD. (Extension - 2)",
+      "base": "FAKIR KNITWEARS LTD."
+    },
+    {
+      "name": "FAKIR KNITWEARS LTD. (Extension)",
+      "base": "FAKIR KNITWEARS LTD."
+    },
+    {
+      "name": "FARIHA KNIT TEX LTD. (Extension Buildings 2)",
+      "base": "FARIHA KNIT TEX LTD."
+    },
+    {
+      "name": "FASHION FLASH LTD (Extension)",
+      "base": "FASHION FLASH LTD"
+    },
+    {
+      "name": "FRIENDS KNITTINGS LTD (EXTENSION)",
+      "base": "FRIENDS KNITTINGS LTD"
+    },
+    {
+      "name": "FRIENDS WORLD COMPOSITE IND. LTD (UNIT-2)",
+      "base": "FRIENDS WORLD COMPOSITE IND. LTD"
+    },
+    {
+      "name": "Faiza Industries Ltd. Extended Building",
+      "base": "Faiza Industries Ltd."
+    },
+    {
+      "name": "Fakhruddin Textiles Mills Limited (Extension 2)",
+      "base": "Fakhruddin Textiles Mills Limited"
+    },
+    {
+      "name": "Fakir Apparels Ltd. (Extension 2)",
+      "base": "Fakir Apparels Ltd."
+    },
+    {
+      "name": "Fakir Fashion Ltd (Extension - 2)",
+      "base": "Fakir Fashion Ltd"
+    },
+    {
+      "name": "Fakir Fashion Ltd (Extension - 3)",
+      "base": "Fakir Fashion Ltd"
+    },
+    {
+      "name": "Fakir Garments Ltd. (Extension)",
+      "base": "Fakir Garments Ltd."
+    },
+    {
+      "name": "Fame Apparels Ltd Unit-02",
+      "base": "Fame Apparels Ltd"
+    },
+    {
+      "name": "Fancy Fashion Sweaters Ltd (Extension)",
+      "base": "Fancy Fashion Sweaters Ltd"
+    },
+    {
+      "name": "Far East Knitting & Dyeing Industries Ltd (Extension 2)",
+      "base": "Far East Knitting & Dyeing Industries Ltd"
+    },
+    {
+      "name": "Farseeing Knit Composite Limited (Extension)",
+      "base": "Farseeing Knit Composite Limited"
+    },
+    {
+      "name": "Fashion Forum Ltd (Extension 2)",
+      "base": "Fashion Forum Ltd"
+    },
+    {
+      "name": "Fashion Forum Ltd-Extension",
+      "base": "Fashion Forum Ltd"
+    },
+    {
+      "name": "Fashion Step Ltd. (Extension)",
+      "base": "Fashion Step Ltd."
+    },
+    {
+      "name": "Fin-Bangla Apparels Ltd. (Extension)",
+      "base": "Fin-Bangla Apparels Ltd."
+    },
+    {
+      "name": "Flamingo Fashions Limited, Unit-2",
+      "base": "Flamingo Fashions Limited,"
+    },
+    {
+      "name": "Flamingo Fashions Limited, Unit-2 (Extension)",
+      "base": "Flamingo Fashions Limited,"
+    },
+    {
+      "name": "Flamingo Fashions Ltd Unit 2",
+      "base": "Flamingo Fashions Ltd"
+    },
+    {
+      "name": "Fortis Garments Ltd. Extended Building",
+      "base": "Fortis Garments Ltd."
+    },
+    {
+      "name": "Four Brothers Fashion (Extension)",
+      "base": "Four Brothers Fashion"
+    },
+    {
+      "name": "Four H Apparels Ltd. (New Building)",
+      "base": "Four H Apparels Ltd."
+    },
+    {
+      "name": "Friends Knittings Ltd. (Unit-2)",
+      "base": "Friends Knittings Ltd."
+    },
+    {
+      "name": "Fullcharm Fashion Knitters Ltd.(U-2)",
+      "base": "Fullcharm Fashion Knitters Ltd."
+    },
+    {
+      "name": "G.A.B. Limited (Extension)",
+      "base": "G.A.B. Limited"
+    },
+    {
+      "name": "GK Garments Ltd. (U-2)",
+      "base": "GK Garments Ltd."
+    },
+    {
+      "name": "GMS Composite Knitting Ind. Ltd. (Extension 2)",
+      "base": "GMS Composite Knitting Ind. Ltd."
+    },
+    {
+      "name": "GMS Composite Knitting Ind. Ltd. (New Building)",
+      "base": "GMS Composite Knitting Ind. Ltd."
+    },
+    {
+      "name": "GMS Textiles Ltd. (Extension)",
+      "base": "GMS Textiles Ltd."
+    },
+    {
+      "name": "Geebee (Bangladesh) Limited Unit-2",
+      "base": "Geebee (Bangladesh) Limited"
+    },
+    {
+      "name": "Genesis Fashions Ltd. (Extension - 2)",
+      "base": "Genesis Fashions Ltd."
+    },
+    {
+      "name": "Genesis Fashions Ltd. (Extension - 3)",
+      "base": "Genesis Fashions Ltd."
+    },
+    {
+      "name": "Genesis Fashions Ltd. - Extension",
+      "base": "Genesis Fashions Ltd."
+    },
+    {
+      "name": "Global Outerwear Ltd. (Extension)",
+      "base": "Global Outerwear Ltd."
+    },
+    {
+      "name": "Global Specialised Garments Ltd.(U-2)",
+      "base": "Global Specialised Garments Ltd."
+    },
+    {
+      "name": "Golden Refit Garments Ltd (extension)",
+      "base": "Golden Refit Garments Ltd"
+    },
+    {
+      "name": "Good Rich Sweaters Ltd (new building)",
+      "base": "Good Rich Sweaters Ltd"
+    },
+    {
+      "name": "GoodEarth Apparels Ltd. (Extension)",
+      "base": "GoodEarth Apparels Ltd."
+    },
+    {
+      "name": "Graphics Textiles Ltd (Extension)",
+      "base": "Graphics Textiles Ltd"
+    },
+    {
+      "name": "Graphics Textiles Ltd. (Extension 2)",
+      "base": "Graphics Textiles Ltd."
+    },
+    {
+      "name": "Green Life Knit Composite Ltd. (Extension)",
+      "base": "Green Life Knit Composite Ltd."
+    },
+    {
+      "name": "Green Textile Limited (New Building)",
+      "base": "Green Textile Limited"
+    },
+    {
+      "name": "Green Textile Limited (Unit-3)",
+      "base": "Green Textile Limited"
+    },
+    {
+      "name": "Gumti Textile Ltd. (Extension)",
+      "base": "Gumti Textile Ltd."
+    },
+    {
+      "name": "HASAN TANVIR FASHION WEARS LTD. (EXTENSION)",
+      "base": "HASAN TANVIR FASHION WEARS LTD."
+    },
+    {
+      "name": "HOSSAIN DYEING & PRINTING MILLS LTD. (UNIT-2)",
+      "base": "HOSSAIN DYEING & PRINTING MILLS LTD."
+    },
+    {
+      "name": "Habitus Fashion Limited- Extension Building",
+      "base": "Habitus Fashion Limited-"
+    },
+    {
+      "name": "Habitus Fashion Ltd. (Extension 2)",
+      "base": "Habitus Fashion Ltd."
+    },
+    {
+      "name": "Hams Garments Ltd (Extension 2)",
+      "base": "Hams Garments Ltd"
+    },
+    {
+      "name": "Hams Garments Ltd (extension)",
+      "base": "Hams Garments Ltd"
+    },
+    {
+      "name": "Han Apparel Ltd (Relocated)",
+      "base": "Han Apparel Ltd"
+    },
+    {
+      "name": "Hannan Fashions Ltd. Ext.-1",
+      "base": "Hannan Fashions Ltd. Ext"
+    },
+    {
+      "name": "Hannan Knit & Textiles Ltd. (Extension)",
+      "base": "Hannan Knit & Textiles Ltd."
+    },
+    {
+      "name": "Hollywood Garments (Pvt.) Ltd - Extension",
+      "base": "Hollywood Garments (Pvt.) Ltd"
+    },
+    {
+      "name": "Hong Kong Fashions Ltd (Extension)",
+      "base": "Hong Kong Fashions Ltd"
+    },
+    {
+      "name": "Hong Qun Leather Co., Ltd. -Extension)",
+      "base": "Hong Qun Leather Co., Ltd."
+    },
+    {
+      "name": "Hop Lun Apparel Ltd (Extension)",
+      "base": "Hop Lun Apparel Ltd"
+    },
+    {
+      "name": "Hop Yick (Bangladesh) Limited - 1",
+      "base": "Hop Yick (Bangladesh) Limited"
+    },
+    {
+      "name": "Hop Yick (Bangladesh) Ltd. - 3, 4, 5, 6",
+      "base": "Hop Yick (Bangladesh) Ltd."
+    },
+    {
+      "name": "Hop Yick (Bangladesh) Ltd. - 3, 4, 5, 6 (Extension)",
+      "base": "Hop Yick (Bangladesh) Ltd."
+    },
+    {
+      "name": "Hoplun Apparel Ltd Unit-2",
+      "base": "Hoplun Apparel Ltd"
+    },
+    {
+      "name": "Hossains Ltd. (Unit-2)",
+      "base": "Hossains Ltd."
+    },
+    {
+      "name": "Hossains Ltd. (Unit-3)",
+      "base": "Hossains Ltd."
+    },
+    {
+      "name": "Hydroxide Knitwear Ltd. (Extension)",
+      "base": "Hydroxide Knitwear Ltd."
+    },
+    {
+      "name": "IFS TEXWEAR (Extension 2)",
+      "base": "IFS TEXWEAR"
+    },
+    {
+      "name": "IRIS FABRICS LIMITED (Extension Building)",
+      "base": "IRIS FABRICS LIMITED"
+    },
+    {
+      "name": "ISLAM GARMENTS LIMITED (UNIT-2)",
+      "base": "ISLAM GARMENTS LIMITED"
+    },
+    {
+      "name": "ISLAM GARMENTS LTD. (UNIT-2) - Extension",
+      "base": "ISLAM GARMENTS LTD."
+    },
+    {
+      "name": "ISLAM KNIT DESIGNS LTD (UNIT 2)",
+      "base": "ISLAM KNIT DESIGNS LTD"
+    },
+    {
+      "name": "Ibrahim Knit Garments (Pvt.) Ltd. (Extension 3)",
+      "base": "Ibrahim Knit Garments (Pvt.) Ltd."
+    },
+    {
+      "name": "Imam Industries Ltd. (Unit -1)",
+      "base": "Imam Industries Ltd."
+    },
+    {
+      "name": "Impress-Newtex Composite Textiles Limited (Extension 2)",
+      "base": "Impress-Newtex Composite Textiles Limited"
+    },
+    {
+      "name": "Incredible Fashions Ltd (Extension 2)",
+      "base": "Incredible Fashions Ltd"
+    },
+    {
+      "name": "Indochine Apparel (Bangladesh) Limited, Plot 54-56 (Previously Baxter Brenton (BD) Clothing Manufacturing Co. Ltd (Extension)",
+      "base": "Indochine Apparel (Bangladesh) Limited, Plot 54-56 (Previously Baxter Brenton (BD) Clothing Manufacturing Co. Ltd"
+    },
+    {
+      "name": "Indochine Apparel (Bangladesh) Limited, Plot 54-56 Clothing Manufacturing Co. Ltd (Extension)",
+      "base": "Indochine Apparel (Bangladesh) Limited, Plot 54-56 Clothing Manufacturing Co. Ltd"
+    },
+    {
+      "name": "Int'l Knitwear & Apparels Ltd. (U-2)",
+      "base": "Int'l Knitwear & Apparels Ltd."
+    },
+    {
+      "name": "Integra Apparels Bangladesh Ltd (Extension)",
+      "base": "Integra Apparels Bangladesh Ltd"
+    },
+    {
+      "name": "Integra Dresses Limited (Extension)",
+      "base": "Integra Dresses Limited"
+    },
+    {
+      "name": "Interfab Shirt Manufacturing Limited Unit-02",
+      "base": "Interfab Shirt Manufacturing Limited"
+    },
+    {
+      "name": "International Classic Composite Ltd (ICCL) (Extension)",
+      "base": "International Classic Composite Ltd (ICCL)"
+    },
+    {
+      "name": "International Trading Services Ltd (Extension)",
+      "base": "International Trading Services Ltd"
+    },
+    {
+      "name": "Intramex Knit Wear Ltd. (Unit-2)",
+      "base": "Intramex Knit Wear Ltd."
+    },
+    {
+      "name": "Intramex Sweater Ltd. (U-2)",
+      "base": "Intramex Sweater Ltd."
+    },
+    {
+      "name": "Islam Garments Ltd. (Knitwear Division) (Extension)",
+      "base": "Islam Garments Ltd. (Knitwear Division)"
+    },
+    {
+      "name": "Islam Garments Ltd. (U-2)",
+      "base": "Islam Garments Ltd."
+    },
+    {
+      "name": "J. K FABRICS LTD UNIT-2",
+      "base": "J. K FABRICS LTD"
+    },
+    {
+      "name": "J.K. KNIT COMPOSITE LIMITED (EXTENSION 2)",
+      "base": "J.K. KNIT COMPOSITE LIMITED"
+    },
+    {
+      "name": "J.K. KNIT COMPOSITE LIMITED (EXTENSION)",
+      "base": "J.K. KNIT COMPOSITE LIMITED"
+    },
+    {
+      "name": "JEANS PLUS LTD. (EXTENSION)",
+      "base": "JEANS PLUS LTD."
+    },
+    {
+      "name": "JL SWEATER LIMITED--EXTENDED BUILDING",
+      "base": "JL SWEATER LIMITED-"
+    },
+    {
+      "name": "JM Fabrics Ltd. (Extension 2)",
+      "base": "JM Fabrics Ltd."
+    },
+    {
+      "name": "JM Fabrics Ltd. (Extension)",
+      "base": "JM Fabrics Ltd."
+    },
+    {
+      "name": "JSL STITCHES LTD (Relocated)",
+      "base": "JSL STITCHES LTD"
+    },
+    {
+      "name": "Jamuna Apparels Ltd. (Extension Buildings)",
+      "base": "Jamuna Apparels Ltd."
+    },
+    {
+      "name": "Jeans Manufacturing Co. Ltd (New location)",
+      "base": "Jeans Manufacturing Co. Ltd"
+    },
+    {
+      "name": "Jericho Imex Ltd (Extension 2)",
+      "base": "Jericho Imex Ltd"
+    },
+    {
+      "name": "Jericho Imex Ltd (Extension Building)",
+      "base": "Jericho Imex Ltd"
+    },
+    {
+      "name": "Jinnat Knitwears Limited (Sreepur) (Extension)",
+      "base": "Jinnat Knitwears Limited (Sreepur)"
+    },
+    {
+      "name": "K.C Bottom & Shirt Wear Company( New Building)",
+      "base": "K.C Bottom & Shirt Wear Company"
+    },
+    {
+      "name": "KAC Fashion Wear Ltd (Extension 2)",
+      "base": "KAC Fashion Wear Ltd"
+    },
+    {
+      "name": "KAC Fashion Wear Ltd (Extension)",
+      "base": "KAC Fashion Wear Ltd"
+    },
+    {
+      "name": "KARIM TEXTILES LIMITED (Extension)",
+      "base": "KARIM TEXTILES LIMITED"
+    },
+    {
+      "name": "KAROONI KNIT COMPOSITE LIMITED (Extension 2)",
+      "base": "KAROONI KNIT COMPOSITE LIMITED"
+    },
+    {
+      "name": "KAROONI KNIT COMPOSITE LIMITED (Extension)",
+      "base": "KAROONI KNIT COMPOSITE LIMITED"
+    },
+    {
+      "name": "KC Lingerie Limited (Extension)",
+      "base": "KC Lingerie Limited"
+    },
+    {
+      "name": "KDS Accessories Ltd. (Unit-2)",
+      "base": "KDS Accessories Ltd."
+    },
+    {
+      "name": "KDS Apparels Ltd. (Extension)",
+      "base": "KDS Apparels Ltd."
+    },
+    {
+      "name": "KDS Textile Mills Ltd. (Unit-02)",
+      "base": "KDS Textile Mills Ltd."
+    },
+    {
+      "name": "KDS Thread Limited Unit-2",
+      "base": "KDS Thread Limited"
+    },
+    {
+      "name": "KM Nobely Garments Ltd (Extension Building)",
+      "base": "KM Nobely Garments Ltd"
+    },
+    {
+      "name": "KNIT ASIA LTD UNIT-2",
+      "base": "KNIT ASIA LTD"
+    },
+    {
+      "name": "KNIT CONCERN LTD. (EXTENSION)",
+      "base": "KNIT CONCERN LTD."
+    },
+    {
+      "name": "KNIT SOFTWEAR LTD. (UNIT-2)",
+      "base": "KNIT SOFTWEAR LTD."
+    },
+    {
+      "name": "KSI Karnaphuli Shoes Industries Ltd.(Garments) (Extension)",
+      "base": "KSI Karnaphuli Shoes Industries Ltd.(Garments)"
+    },
+    {
+      "name": "KSS Knit Composite Ltd. (Extension buildings)",
+      "base": "KSS Knit Composite Ltd."
+    },
+    {
+      "name": "Kadena Sportwear Limited (Extension)",
+      "base": "Kadena Sportwear Limited"
+    },
+    {
+      "name": "Karnaphuli Sportswear Industries Ltd. (Extension)",
+      "base": "Karnaphuli Sportswear Industries Ltd."
+    },
+    {
+      "name": "Kenpark Bangladesh (Pvt) Ltd. (Extension)",
+      "base": "Kenpark Bangladesh (Pvt) Ltd."
+    },
+    {
+      "name": "Kenpark Bangladesh (Pvt.) Ltd Unit 1",
+      "base": "Kenpark Bangladesh (Pvt.) Ltd"
+    },
+    {
+      "name": "Kenpark Bangladesh Apparel (Pvt.) Ltd.(K-5) (Extension)",
+      "base": "Kenpark Bangladesh Apparel (Pvt.) Ltd.(K-5)"
+    },
+    {
+      "name": "Kenpark Bangladesh Apparel Pvt. Ltd. (Unit 2)",
+      "base": "Kenpark Bangladesh Apparel Pvt. Ltd."
+    },
+    {
+      "name": "Knit Asia Limited (Shafipur) - Extension",
+      "base": "Knit Asia Limited (Shafipur)"
+    },
+    {
+      "name": "Knit Asia Limited. (Ratanpur) (Extension)",
+      "base": "Knit Asia Limited. (Ratanpur)"
+    },
+    {
+      "name": "Knit Plus Limited (Unit-2)",
+      "base": "Knit Plus Limited"
+    },
+    {
+      "name": "Knit Plus Ltd (Extension - 2)",
+      "base": "Knit Plus Ltd"
+    },
+    {
+      "name": "Knit Plus Ltd (Extension)",
+      "base": "Knit Plus Ltd"
+    },
+    {
+      "name": "Knit Radix Limited (Extension)",
+      "base": "Knit Radix Limited"
+    },
+    {
+      "name": "Knittex Industries Limited (Extension)",
+      "base": "Knittex Industries Limited"
+    },
+    {
+      "name": "L Usine Fashion Ltd ( Unit-2)",
+      "base": "L Usine Fashion Ltd"
+    },
+    {
+      "name": "L Usine Fashion Ltd. (Extension)",
+      "base": "L Usine Fashion Ltd."
+    },
+    {
+      "name": "LIBERTY KNITWEAR LTD. (Extension)",
+      "base": "LIBERTY KNITWEAR LTD."
+    },
+    {
+      "name": "Lalmai Footwear Ltd. (Extension)",
+      "base": "Lalmai Footwear Ltd."
+    },
+    {
+      "name": "Lavender Fashion Ltd. (Unit-01)",
+      "base": "Lavender Fashion Ltd."
+    },
+    {
+      "name": "Liberty Knitwear Ltd. Unit-2",
+      "base": "Liberty Knitwear Ltd."
+    },
+    {
+      "name": "Liberty Knitwear Ltd. Unit-2 (Extension 2)",
+      "base": "Liberty Knitwear Ltd."
+    },
+    {
+      "name": "Liberty Knitwear Ltd. Unit-2 (Extension 3)",
+      "base": "Liberty Knitwear Ltd."
+    },
+    {
+      "name": "Liberty Knitwear Ltd. Unit-2 (Extension)",
+      "base": "Liberty Knitwear Ltd."
+    },
+    {
+      "name": "Lida Textile & Dyeing Limited (Extension 3)",
+      "base": "Lida Textile & Dyeing Limited"
+    },
+    {
+      "name": "Lida Textile & Dyeing Limited- Extended Buildings",
+      "base": "Lida Textile & Dyeing Limited"
+    },
+    {
+      "name": "Life Textile (Pvt.) Ltd. (Extension)",
+      "base": "Life Textile (Pvt.) Ltd."
+    },
+    {
+      "name": "Liz Fashion Industry Ltd (Extension)",
+      "base": "Liz Fashion Industry Ltd"
+    },
+    {
+      "name": "Liz Knitting & Printing Industry (Extension)",
+      "base": "Liz Knitting & Printing Industry"
+    },
+    {
+      "name": "Logos Apparels Ltd (new buildings)",
+      "base": "Logos Apparels Ltd"
+    },
+    {
+      "name": "M.I.T Apparels Ltd. (Extension New 5 storied Building )",
+      "base": "M.I.T Apparels Ltd."
+    },
+    {
+      "name": "M.M. Knitwear Ltd. (Extension 2)",
+      "base": "M.M. Knitwear Ltd."
+    },
+    {
+      "name": "M.M. Knitwear Ltd. (Extension Buildings)",
+      "base": "M.M. Knitwear Ltd."
+    },
+    {
+      "name": "MACK KNITWEAR (UNIT-2)",
+      "base": "MACK KNITWEAR"
+    },
+    {
+      "name": "MAITRI KNITTING UNIT-2",
+      "base": "MAITRI KNITTING"
+    },
+    {
+      "name": "MANTA APPARELS LTD (Extended Building)",
+      "base": "MANTA APPARELS LTD"
+    },
+    {
+      "name": "MAS Intimates Bangladesh (Pvt.) Ltd.(Unit-03)",
+      "base": "MAS Intimates Bangladesh (Pvt.) Ltd."
+    },
+    {
+      "name": "MAWNA FASHIONS LTD (EXTENSION)",
+      "base": "MAWNA FASHIONS LTD"
+    },
+    {
+      "name": "MEGHNA KNIT COMPOSITE LIMITED (Extension)",
+      "base": "MEGHNA KNIT COMPOSITE LIMITED"
+    },
+    {
+      "name": "MG Knit Flair (relocated)",
+      "base": "MG Knit Flair"
+    },
+    {
+      "name": "MG Niche Flair Limited Unit-2",
+      "base": "MG Niche Flair Limited"
+    },
+    {
+      "name": "MILLENNIUM TEXTILES ( SOUTHERN ) LTD - New building",
+      "base": "MILLENNIUM TEXTILES ( SOUTHERN ) LTD"
+    },
+    {
+      "name": "MIM Design Ltd (Extension)",
+      "base": "MIM Design Ltd"
+    },
+    {
+      "name": "MNR Sweaters Ltd Extension Building",
+      "base": "MNR Sweaters Ltd"
+    },
+    {
+      "name": "MOUCHAK KNIT COMPOSITE LTD. (New Building)",
+      "base": "MOUCHAK KNIT COMPOSITE LTD."
+    },
+    {
+      "name": "MUAZUDDIN TEXTILE LTD (Extension 3)",
+      "base": "MUAZUDDIN TEXTILE LTD"
+    },
+    {
+      "name": "Magpie Composite Textile Ltd. (Extension)",
+      "base": "Magpie Composite Textile Ltd."
+    },
+    {
+      "name": "Majumder Garments Ltd (relocation) (Extension)",
+      "base": "Majumder Garments Ltd (relocation)"
+    },
+    {
+      "name": "Mark Fashion Wear (Pvt.) Ltd. (U-2)",
+      "base": "Mark Fashion Wear (Pvt.) Ltd."
+    },
+    {
+      "name": "Mark Sweater Ltd. (Extension 2)",
+      "base": "Mark Sweater Ltd."
+    },
+    {
+      "name": "Mark Sweater Ltd. (Extension)",
+      "base": "Mark Sweater Ltd."
+    },
+    {
+      "name": "Marma Composite Ltd. (extension 2)",
+      "base": "Marma Composite Ltd."
+    },
+    {
+      "name": "Marma Composite Ltd. (extension)",
+      "base": "Marma Composite Ltd."
+    },
+    {
+      "name": "Masihata Sweaters Ltd (Extension)",
+      "base": "Masihata Sweaters Ltd"
+    },
+    {
+      "name": "Max Sweater (Bd) Ltd (Extension)",
+      "base": "Max Sweater (Bd) Ltd"
+    },
+    {
+      "name": "Mega Yarn Dyeing Mills Ltd (Extension 2)",
+      "base": "Mega Yarn Dyeing Mills Ltd"
+    },
+    {
+      "name": "Metro Knitting & Dyeing Mills Ltd (Factory-02)",
+      "base": "Metro Knitting & Dyeing Mills Ltd"
+    },
+    {
+      "name": "Metro Knitting & Dyeing Mills Ltd (Factory-02) (Extension 2)",
+      "base": "Metro Knitting & Dyeing Mills Ltd"
+    },
+    {
+      "name": "Midland Knitwear Ltd. (Extension 2)",
+      "base": "Midland Knitwear Ltd."
+    },
+    {
+      "name": "Midland Knitwear Ltd. (Extension)",
+      "base": "Midland Knitwear Ltd."
+    },
+    {
+      "name": "Minimax Ltd. (Relocated)",
+      "base": "Minimax Ltd."
+    },
+    {
+      "name": "Modele De Capital Ind Ltd (Extension 2)",
+      "base": "Modele De Capital Ind Ltd"
+    },
+    {
+      "name": "Modele De Capital Ind Ltd (Unit 2)",
+      "base": "Modele De Capital Ind Ltd"
+    },
+    {
+      "name": "Modiste (Bangladesh) Ltd. (Extension)",
+      "base": "Modiste (Bangladesh) Ltd."
+    },
+    {
+      "name": "Mohammad Ali Knitex Ltd. (Extension))",
+      "base": "Mohammad Ali Knitex Ltd."
+    },
+    {
+      "name": "Momtex Expo ltd (Extension)",
+      "base": "Momtex Expo ltd"
+    },
+    {
+      "name": "Mondol Fabrics Ltd. (Extension)",
+      "base": "Mondol Fabrics Ltd."
+    },
+    {
+      "name": "Mondol Intimates LimitedNew Buildings",
+      "base": "Mondol Intimates Limited"
+    },
+    {
+      "name": "Montex Fabrics Ltd (Extension)",
+      "base": "Montex Fabrics Ltd"
+    },
+    {
+      "name": "Mukul Knitwear Limited (Extension)",
+      "base": "Mukul Knitwear Limited"
+    },
+    {
+      "name": "Multifabs Ltd (New Building)",
+      "base": "Multifabs Ltd"
+    },
+    {
+      "name": "Murad Apparels Ltd. (Extension)",
+      "base": "Murad Apparels Ltd."
+    },
+    {
+      "name": "N R Knitting Mills Limited. (Extension)",
+      "base": "N R Knitting Mills Limited."
+    },
+    {
+      "name": "NAYEM KNITWEAR LTD - Extension",
+      "base": "NAYEM KNITWEAR LTD"
+    },
+    {
+      "name": "NEXTGEN STYLE LTD (Relocated)",
+      "base": "NEXTGEN STYLE LTD"
+    },
+    {
+      "name": "NRG Knit Composite ( Unit -1)",
+      "base": "NRG Knit Composite"
+    },
+    {
+      "name": "Nafa Apparels Ltd. (Extension)",
+      "base": "Nafa Apparels Ltd."
+    },
+    {
+      "name": "Nafa Apparels Ltd. 2 (Extension)",
+      "base": "Nafa Apparels Ltd. 2"
+    },
+    {
+      "name": "Nassa Apparels Ltd. U-2",
+      "base": "Nassa Apparels Ltd."
+    },
+    {
+      "name": "Nassa Spinners and Garments Ltd (Extension)",
+      "base": "Nassa Spinners and Garments Ltd"
+    },
+    {
+      "name": "Natural Denim Ltd (Extension)",
+      "base": "Natural Denim Ltd"
+    },
+    {
+      "name": "Needle Drop Ltd (Extension)",
+      "base": "Needle Drop Ltd"
+    },
+    {
+      "name": "Network Apparels Ltd. Extended Building",
+      "base": "Network Apparels Ltd."
+    },
+    {
+      "name": "Newage Garments Ltd. (Extension)",
+      "base": "Newage Garments Ltd."
+    },
+    {
+      "name": "Newtex Knit Fashions Limited (Extension)",
+      "base": "Newtex Knit Fashions Limited"
+    },
+    {
+      "name": "Nipa Fashion Wear Ind. Ltd.--Extended Building",
+      "base": "Nipa Fashion Wear Ind. Ltd.-"
+    },
+    {
+      "name": "Nippon Garment Industries Ltd (Extension)",
+      "base": "Nippon Garment Industries Ltd"
+    },
+    {
+      "name": "Nkk Knitwear Ltd. (Extension)",
+      "base": "Nkk Knitwear Ltd."
+    },
+    {
+      "name": "Norban Comtex Ltd. (Extension)",
+      "base": "Norban Comtex Ltd."
+    },
+    {
+      "name": "Norp Knit Industries Ltd Unit 1",
+      "base": "Norp Knit Industries Ltd"
+    },
+    {
+      "name": "Norp Knit Industries Ltd Unit 2",
+      "base": "Norp Knit Industries Ltd"
+    },
+    {
+      "name": "Norp Knit Industries Ltd Unit 2 (Extension)",
+      "base": "Norp Knit Industries Ltd"
+    },
+    {
+      "name": "Northern Fashion (Extension)",
+      "base": "Northern Fashion"
+    },
+    {
+      "name": "OCEAN SWEATER IND. (PVT.) LTD. (EXTENSION)",
+      "base": "OCEAN SWEATER IND. (PVT.) LTD."
+    },
+    {
+      "name": "Oasis Fashion Ltd unit-2",
+      "base": "Oasis Fashion Ltd"
+    },
+    {
+      "name": "Olio Apparels Limited (Relocated)",
+      "base": "Olio Apparels Limited"
+    },
+    {
+      "name": "Onus Garments Ltd. Extension Building",
+      "base": "Onus Garments Ltd."
+    },
+    {
+      "name": "Orient Allure Knitwear Ltd. Unit-2",
+      "base": "Orient Allure Knitwear Ltd."
+    },
+    {
+      "name": "Orient Allure Lingerie Ltd. & LZ Textiles Ltd. (Extension Building)",
+      "base": "Orient Allure Lingerie Ltd. & LZ Textiles Ltd."
+    },
+    {
+      "name": "Orient Allure Lingerie Ltd. (Unit - 2)",
+      "base": "Orient Allure Lingerie Ltd."
+    },
+    {
+      "name": "Oxford Knit Composite Ltd. (Extension)",
+      "base": "Oxford Knit Composite Ltd."
+    },
+    {
+      "name": "P.A Knit Composite (Extension)",
+      "base": "P.A Knit Composite"
+    },
+    {
+      "name": "P.M. Knittex ( Pvt.) Ltd. -New Building -3-",
+      "base": "P.M. Knittex ( Pvt.) Ltd."
+    },
+    {
+      "name": "P.N. Composite Limited (Extension)",
+      "base": "P.N. Composite Limited"
+    },
+    {
+      "name": "PIMKIE APPARELS LTD. (New Building)",
+      "base": "PIMKIE APPARELS LTD."
+    },
+    {
+      "name": "PNG (BD) Ltd (Extension 2)",
+      "base": "PNG (BD) Ltd"
+    },
+    {
+      "name": "PNG (BD) Ltd. (NEW SHED)",
+      "base": "PNG (BD) Ltd."
+    },
+    {
+      "name": "Pacific Cotton Ltd (Extension)",
+      "base": "Pacific Cotton Ltd"
+    },
+    {
+      "name": "Padma Satel Arab Fashions Ltd (Extension)",
+      "base": "Padma Satel Arab Fashions Ltd"
+    },
+    {
+      "name": "Pakiza Knit Composite ltd.- New Building",
+      "base": "Pakiza Knit Composite ltd."
+    },
+    {
+      "name": "Parkstar Apparel Ltd. (Extension)",
+      "base": "Parkstar Apparel Ltd."
+    },
+    {
+      "name": "Pioneer Casual Wear Ltd. (Extension)",
+      "base": "Pioneer Casual Wear Ltd."
+    },
+    {
+      "name": "Pioneer Denim Limited (Garments Division) - Extension",
+      "base": "Pioneer Denim Limited (Garments Division)"
+    },
+    {
+      "name": "Pioneer Knitwears (BD) Ltd (Extension)",
+      "base": "Pioneer Knitwears (BD) Ltd"
+    },
+    {
+      "name": "Pioneer Knitwears (BD) Ltd (Unit-2)",
+      "base": "Pioneer Knitwears (BD) Ltd"
+    },
+    {
+      "name": "Pioneer Knitwears (BD) Ltd. (Section-2) (Extension)",
+      "base": "Pioneer Knitwears (BD) Ltd. (Section-2)"
+    },
+    {
+      "name": "Powertex Fashions Limited (Extension)",
+      "base": "Powertex Fashions Limited"
+    },
+    {
+      "name": "Pretty Composite Textiles Ltd (extension of S.Suhi Industrial Park Ltd)",
+      "base": "Pretty Composite Textiles Ltd"
+    },
+    {
+      "name": "Probashi Knitwear LTD(Relocated)",
+      "base": "Probashi Knitwear LTD"
+    },
+    {
+      "name": "Probridhi Apparels Ltd (Extension)",
+      "base": "Probridhi Apparels Ltd"
+    },
+    {
+      "name": "Progress Apparels (Bangladesh) Limited (Extension)",
+      "base": "Progress Apparels (Bangladesh) Limited"
+    },
+    {
+      "name": "Purbachal Apparel Ltd (Extension)",
+      "base": "Purbachal Apparel Ltd"
+    },
+    {
+      "name": "Purbani Fashion Limited (New Building)",
+      "base": "Purbani Fashion Limited"
+    },
+    {
+      "name": "Quattro Fashion Ltd. (Extension)",
+      "base": "Quattro Fashion Ltd."
+    },
+    {
+      "name": "R.H Attire Ltd. (Unit-2)",
+      "base": "R.H Attire Ltd."
+    },
+    {
+      "name": "RADIAL INTERNATIONAL LTD (UNIT-2)",
+      "base": "RADIAL INTERNATIONAL LTD"
+    },
+    {
+      "name": "RATUL KNITWEARS LTD. (Extension)",
+      "base": "RATUL KNITWEARS LTD."
+    },
+    {
+      "name": "REEDISHA TEXSTRIPE LIMITED (EXTENSION)",
+      "base": "REEDISHA TEXSTRIPE LIMITED"
+    },
+    {
+      "name": "RGR Sweater Ltd - Extended building",
+      "base": "RGR Sweater Ltd"
+    },
+    {
+      "name": "RGR Sweater Ltd. (Extension 2)",
+      "base": "RGR Sweater Ltd."
+    },
+    {
+      "name": "RING SHINE TEXTILES LTD UNIT-2",
+      "base": "RING SHINE TEXTILES LTD"
+    },
+    {
+      "name": "RSB Industrial Ltd (Extension)",
+      "base": "RSB Industrial Ltd"
+    },
+    {
+      "name": "RUSSEL GARMENTS UNIT-2",
+      "base": "RUSSEL GARMENTS"
+    },
+    {
+      "name": "Radial International Ltd. (Unit-2) (Extension)",
+      "base": "Radial International Ltd."
+    },
+    {
+      "name": "Radiance Fashion Ltd (Extension)",
+      "base": "Radiance Fashion Ltd"
+    },
+    {
+      "name": "Radisson Apparels (extension)",
+      "base": "Radisson Apparels"
+    },
+    {
+      "name": "Radisson Casual Wear (Extension)",
+      "base": "Radisson Casual Wear"
+    },
+    {
+      "name": "Rahman Knit Garments Ltd. (Unit-2)",
+      "base": "Rahman Knit Garments Ltd."
+    },
+    {
+      "name": "Rahmat Sweaters (BD) Ltd. (Extension)",
+      "base": "Rahmat Sweaters (BD) Ltd."
+    },
+    {
+      "name": "Raidha Collection Ltd (Extension)",
+      "base": "Raidha Collection Ltd"
+    },
+    {
+      "name": "Rao Garments (Pvt) Ltd. (U-1)",
+      "base": "Rao Garments (Pvt) Ltd."
+    },
+    {
+      "name": "Ratool Apparels (Extension Sheds)",
+      "base": "Ratool Apparels"
+    },
+    {
+      "name": "Ratool Apparels Ltd. (Extension 2)",
+      "base": "Ratool Apparels Ltd."
+    },
+    {
+      "name": "Ratul Fabrics Ltd (Extension Shed)",
+      "base": "Ratul Fabrics Ltd"
+    },
+    {
+      "name": "Reedisha Knitex Ltd (Extension)",
+      "base": "Reedisha Knitex Ltd"
+    },
+    {
+      "name": "Refat Garments Ltd (Extension 2)",
+      "base": "Refat Garments Ltd"
+    },
+    {
+      "name": "Refat Garments Ltd - Extension.",
+      "base": "Refat Garments Ltd"
+    },
+    {
+      "name": "Regency Garments Ltd. Unit 2",
+      "base": "Regency Garments Ltd."
+    },
+    {
+      "name": "Regency Three Limited (Unit-5)",
+      "base": "Regency Three Limited"
+    },
+    {
+      "name": "Remi Holdings Ltd -Unit 2",
+      "base": "Remi Holdings Ltd"
+    },
+    {
+      "name": "Renaissance Apparels (new building)",
+      "base": "Renaissance Apparels"
+    },
+    {
+      "name": "Renaissance Apparels Ltd. Unit-2",
+      "base": "Renaissance Apparels Ltd."
+    },
+    {
+      "name": "Ripon Knitwear Ltd (Extension)",
+      "base": "Ripon Knitwear Ltd"
+    },
+    {
+      "name": "Rizvi Fashions Ltd. (Extension)",
+      "base": "Rizvi Fashions Ltd."
+    },
+    {
+      "name": "Roar Fashion Ltd. (Extension Shed)",
+      "base": "Roar Fashion Ltd."
+    },
+    {
+      "name": "Robintex (Bangladesh) Ltd. (Extension)",
+      "base": "Robintex (Bangladesh) Ltd."
+    },
+    {
+      "name": "Romo Fashion Today Ltd. (Extension 2)",
+      "base": "Romo Fashion Today Ltd."
+    },
+    {
+      "name": "Rose Sweaters Ltd. (U-2)",
+      "base": "Rose Sweaters Ltd."
+    },
+    {
+      "name": "Rose Sweaters Ltd. (Unit-2)",
+      "base": "Rose Sweaters Ltd."
+    },
+    {
+      "name": "Rowa Fashions Limited Unit-2",
+      "base": "Rowa Fashions Limited"
+    },
+    {
+      "name": "Running Fashion Ltd. (Unit-2)",
+      "base": "Running Fashion Ltd."
+    },
+    {
+      "name": "Rupa Fabrics Limited (Extension)",
+      "base": "Rupa Fabrics Limited"
+    },
+    {
+      "name": "Russel Apparels & Ekram Sweater Ltd (New Building)",
+      "base": "Russel Apparels & Ekram Sweater Ltd"
+    },
+    {
+      "name": "S M Knitwears Limited. (Extension)",
+      "base": "S M Knitwears Limited."
+    },
+    {
+      "name": "S. Suhi Industrial Park Ltd.(New Building)",
+      "base": "S. Suhi Industrial Park Ltd."
+    },
+    {
+      "name": "S.B. Knit composite (Extension)",
+      "base": "S.B. Knit composite"
+    },
+    {
+      "name": "S.B.Designs Limited (Relocated)",
+      "base": "S.B.Designs Limited"
+    },
+    {
+      "name": "SAIHAM KNIT COMPOSITE LTD. (Extension 2)",
+      "base": "SAIHAM KNIT COMPOSITE LTD."
+    },
+    {
+      "name": "SAIHAM KNIT COMPOSITE LTD. (Extension area)",
+      "base": "SAIHAM KNIT COMPOSITE LTD."
+    },
+    {
+      "name": "SALIM & BROTHERS LTD (UNIT-2)",
+      "base": "SALIM & BROTHERS LTD"
+    },
+    {
+      "name": "SARDAR APPARELS LTD. UNIT-2",
+      "base": "SARDAR APPARELS LTD."
+    },
+    {
+      "name": "SB Knitting Ltd (Extension)",
+      "base": "SB Knitting Ltd"
+    },
+    {
+      "name": "SF Sweaters Ltd. Building - 2",
+      "base": "SF Sweaters Ltd. Building"
+    },
+    {
+      "name": "SHAMS STYLING WEARS LTD (Extension)",
+      "base": "SHAMS STYLING WEARS LTD"
+    },
+    {
+      "name": "SHAN HOSIERY UNIT-2",
+      "base": "SHAN HOSIERY"
+    },
+    {
+      "name": "SHOVON KNITWEAR LTD (Extension)",
+      "base": "SHOVON KNITWEAR LTD"
+    },
+    {
+      "name": "SOUTHERN CLOTHINGS LIMITED (Extension)",
+      "base": "SOUTHERN CLOTHINGS LIMITED"
+    },
+    {
+      "name": "SP Garments Ltd (Extension 2)",
+      "base": "SP Garments Ltd"
+    },
+    {
+      "name": "SP Garments Ltd (Extension Building)",
+      "base": "SP Garments Ltd"
+    },
+    {
+      "name": "SQ Birichina Ltd Unit 2",
+      "base": "SQ Birichina Ltd"
+    },
+    {
+      "name": "SQ Birichina Ltd Unit 2 - Extension",
+      "base": "SQ Birichina Ltd"
+    },
+    {
+      "name": "SQ Celsius Limited (Unit 04)",
+      "base": "SQ Celsius Limited"
+    },
+    {
+      "name": "SQ Celsius Ltd. (Unit 3)",
+      "base": "SQ Celsius Ltd."
+    },
+    {
+      "name": "SQUARE FASHIONS LTD (Extension)",
+      "base": "SQUARE FASHIONS LTD"
+    },
+    {
+      "name": "STANDARD STITCHES LIMITED (EXTENSION)",
+      "base": "STANDARD STITCHES LIMITED"
+    },
+    {
+      "name": "STANDARD STITCHES WOVEN LIMITED (Extended Building)",
+      "base": "STANDARD STITCHES WOVEN LIMITED"
+    },
+    {
+      "name": "SURMA GARMENTS LTD. UNIT - 2",
+      "base": "SURMA GARMENTS LTD."
+    },
+    {
+      "name": "Saad Musa Fabrics Ltd. (U-3)",
+      "base": "Saad Musa Fabrics Ltd."
+    },
+    {
+      "name": "Sadma Fashion Wear Ltd (Extension)",
+      "base": "Sadma Fashion Wear Ltd"
+    },
+    {
+      "name": "Sadma Fashion Wear Ltd. (Extension 2)",
+      "base": "Sadma Fashion Wear Ltd."
+    },
+    {
+      "name": "Safaa Sweaters Ltd. Unit 2",
+      "base": "Safaa Sweaters Ltd."
+    },
+    {
+      "name": "Sakura Dyeing & Garments Ltd. (Extension)",
+      "base": "Sakura Dyeing & Garments Ltd."
+    },
+    {
+      "name": "Salim & Brothers Ltd. (U-2)",
+      "base": "Salim & Brothers Ltd."
+    },
+    {
+      "name": "Sams Attire Ltd (Extension 2)",
+      "base": "Sams Attire Ltd"
+    },
+    {
+      "name": "Sayam Knit Fab. (Relocated)",
+      "base": "Sayam Knit Fab."
+    },
+    {
+      "name": "Scandex (Bd) Ltd (Extension)",
+      "base": "Scandex (Bd) Ltd"
+    },
+    {
+      "name": "Scandex Knitwear Ltd. (U-2)",
+      "base": "Scandex Knitwear Ltd."
+    },
+    {
+      "name": "Scarlet Knitwears Ltd. (Extension)",
+      "base": "Scarlet Knitwears Ltd."
+    },
+    {
+      "name": "Sensible Fashion (Pvt.) Ltd. (Extension)",
+      "base": "Sensible Fashion (Pvt.) Ltd."
+    },
+    {
+      "name": "Shad Fashion Ltd (New Building)",
+      "base": "Shad Fashion Ltd"
+    },
+    {
+      "name": "Shamser Knit Fashions Ltd. (Unit-2)",
+      "base": "Shamser Knit Fashions Ltd."
+    },
+    {
+      "name": "Shanta Denims Limited (Extension)",
+      "base": "Shanta Denims Limited"
+    },
+    {
+      "name": "Shanta Expression Limited (Extension)",
+      "base": "Shanta Expression Limited"
+    },
+    {
+      "name": "Shinest Apparels Ltd. (Extension)",
+      "base": "Shinest Apparels Ltd."
+    },
+    {
+      "name": "Shipra Fashion Ltd (Extension)",
+      "base": "Shipra Fashion Ltd"
+    },
+    {
+      "name": "Silken Sewing Ltd (New) (Extension Building).",
+      "base": "Silken Sewing Ltd (New)"
+    },
+    {
+      "name": "Silken Sewing Ltd - New building",
+      "base": "Silken Sewing Ltd"
+    },
+    {
+      "name": "Silver Composite Textile Mills Ltd. (Extension)",
+      "base": "Silver Composite Textile Mills Ltd."
+    },
+    {
+      "name": "Silver Composite Textile Mills Ltd. (Unit-03)",
+      "base": "Silver Composite Textile Mills Ltd."
+    },
+    {
+      "name": "Sincere Knit Garments Ltd Unit-1",
+      "base": "Sincere Knit Garments Ltd"
+    },
+    {
+      "name": "Sirajgonj Fashions Limited (UNIT 02)",
+      "base": "Sirajgonj Fashions Limited"
+    },
+    {
+      "name": "Sisal Composite Limited. (Relocated)",
+      "base": "Sisal Composite Limited."
+    },
+    {
+      "name": "Snowtex Outer Wear Ltd (Extension)",
+      "base": "Snowtex Outer Wear Ltd"
+    },
+    {
+      "name": "Softex Cotton (Pvt.) Ltd. (U-1)",
+      "base": "Softex Cotton (Pvt.) Ltd."
+    },
+    {
+      "name": "Soorty Textiles (BD) Ltd. (Extension -2)",
+      "base": "Soorty Textiles (BD) Ltd."
+    },
+    {
+      "name": "Soorty Textiles (BD) Ltd. (Extension)",
+      "base": "Soorty Textiles (BD) Ltd."
+    },
+    {
+      "name": "South East Textiles (Pvt.) Ltd (Extension 2)",
+      "base": "South East Textiles (Pvt.) Ltd"
+    },
+    {
+      "name": "South East Textiles (Pvt.) Ltd (Extension)",
+      "base": "South East Textiles (Pvt.) Ltd"
+    },
+    {
+      "name": "Southeast Sweaters Ltd. NEW - (Extension)",
+      "base": "Southeast Sweaters Ltd. NEW -"
+    },
+    {
+      "name": "Southend Sweater Co Ltd (Extension)",
+      "base": "Southend Sweater Co Ltd"
+    },
+    {
+      "name": "Southern Garments Ltd (Extension 2)",
+      "base": "Southern Garments Ltd"
+    },
+    {
+      "name": "Southern Garments Ltd (New Building)",
+      "base": "Southern Garments Ltd"
+    },
+    {
+      "name": "Southern Services Ltd (Extension 2)",
+      "base": "Southern Services Ltd"
+    },
+    {
+      "name": "Southern Services Ltd (Extension)",
+      "base": "Southern Services Ltd"
+    },
+    {
+      "name": "Sparrow Apparels Ltd. (Extension)",
+      "base": "Sparrow Apparels Ltd."
+    },
+    {
+      "name": "Sportswear Garments Ltd.(U-3)",
+      "base": "Sportswear Garments Ltd."
+    },
+    {
+      "name": "Spotfame Apparels Ltd. (Extension)",
+      "base": "Spotfame Apparels Ltd."
+    },
+    {
+      "name": "Square Apparels Limited (Extension)",
+      "base": "Square Apparels Limited"
+    },
+    {
+      "name": "Square Denims Limited (Garments Unit) (Extension)",
+      "base": "Square Denims Limited (Garments Unit)"
+    },
+    {
+      "name": "Square Denims Ltd. (Sewing Unit)",
+      "base": "Square Denims Ltd."
+    },
+    {
+      "name": "Square Fashions Ltd - Unit 2",
+      "base": "Square Fashions Ltd"
+    },
+    {
+      "name": "Stage II Knitting Apparel (Unit-1)",
+      "base": "Stage II Knitting Apparel"
+    },
+    {
+      "name": "Standard Stitches Ltd. (Unit-2)",
+      "base": "Standard Stitches Ltd."
+    },
+    {
+      "name": "Standard Stitches Ltd. (Woven Unit)",
+      "base": "Standard Stitches Ltd."
+    },
+    {
+      "name": "Starlight Knitwear Ltd. Unit-2",
+      "base": "Starlight Knitwear Ltd."
+    },
+    {
+      "name": "Step To Rainbow (Unit - 2)",
+      "base": "Step To Rainbow"
+    },
+    {
+      "name": "Sterling Creations Ltd. (Extension 2)",
+      "base": "Sterling Creations Ltd."
+    },
+    {
+      "name": "Sterling Creations Ltd. (Extension)",
+      "base": "Sterling Creations Ltd."
+    },
+    {
+      "name": "Sterling Denims Ltd. Unit-2",
+      "base": "Sterling Denims Ltd."
+    },
+    {
+      "name": "Sterling Designs Limited (Extension)",
+      "base": "Sterling Designs Limited"
+    },
+    {
+      "name": "Supreme Stitch Ltd. (Extension)",
+      "base": "Supreme Stitch Ltd."
+    },
+    {
+      "name": "Sweatertech Ltd (Extension Building)",
+      "base": "Sweatertech Ltd"
+    },
+    {
+      "name": "Sweatertech Ltd. (Extension 2)",
+      "base": "Sweatertech Ltd."
+    },
+    {
+      "name": "TASNIAH FABRICS LTD UNIT-2",
+      "base": "TASNIAH FABRICS LTD"
+    },
+    {
+      "name": "THAT'S IT KNIT (EXTENSION)",
+      "base": "THAT'S IT KNIT"
+    },
+    {
+      "name": "TROUSER WORLD (PVT) LTD. (NEW BUILDING)",
+      "base": "TROUSER WORLD (PVT) LTD."
+    },
+    {
+      "name": "TUSUKA JEANS LTD (Unit-2)",
+      "base": "TUSUKA JEANS LTD"
+    },
+    {
+      "name": "Taharat Composite Ltd. (Extension)",
+      "base": "Taharat Composite Ltd."
+    },
+    {
+      "name": "Talisman Ltd. (Extension)",
+      "base": "Talisman Ltd."
+    },
+    {
+      "name": "Tamishna Fashion Wear Limited unit-2",
+      "base": "Tamishna Fashion Wear Limited"
+    },
+    {
+      "name": "Tamishna Fashion Wear Ltd (new building)",
+      "base": "Tamishna Fashion Wear Ltd"
+    },
+    {
+      "name": "Tanima Knit Composite Ltd (Extension)",
+      "base": "Tanima Knit Composite Ltd"
+    },
+    {
+      "name": "Tanzila Textile Ltd. (Extension)",
+      "base": "Tanzila Textile Ltd."
+    },
+    {
+      "name": "Taqwa Fabrics Ltd. (Extension)",
+      "base": "Taqwa Fabrics Ltd."
+    },
+    {
+      "name": "Tarasima Apparels Limited (Extension)",
+      "base": "Tarasima Apparels Limited"
+    },
+    {
+      "name": "Tasniah Fabrics Ltd (New location)",
+      "base": "Tasniah Fabrics Ltd"
+    },
+    {
+      "name": "Tasniah Fabrics Ltd (New location) - Extension",
+      "base": "Tasniah Fabrics Ltd"
+    },
+    {
+      "name": "Teen Age Modern Fashion - Extension",
+      "base": "Teen Age Modern Fashion"
+    },
+    {
+      "name": "Texeurop (BD) Ltd. (Extension)",
+      "base": "Texeurop (BD) Ltd."
+    },
+    {
+      "name": "Texstream Fashion Ltd. (Relocated)",
+      "base": "Texstream Fashion Ltd."
+    },
+    {
+      "name": "Textown Ltd (Extension building)",
+      "base": "Textown Ltd"
+    },
+    {
+      "name": "That's It Fashion Ltd - Extension",
+      "base": "That's It Fashion Ltd"
+    },
+    {
+      "name": "The Civil Engineers Sweater Limited - Extension",
+      "base": "The Civil Engineers Sweater Limited"
+    },
+    {
+      "name": "The Civil Engineers Woven Limited (Extension)",
+      "base": "The Civil Engineers Woven Limited"
+    },
+    {
+      "name": "The Rose Dresses Ltd. & Islam Garments Ltd. & Islam Dresses Ltd. (Extension)",
+      "base": "The Rose Dresses Ltd. & Islam Garments Ltd. & Islam Dresses Ltd."
+    },
+    {
+      "name": "Tokio Mode Ltd (Extension)",
+      "base": "Tokio Mode Ltd"
+    },
+    {
+      "name": "Toptex Sweaters Ltd (Annex Building)",
+      "base": "Toptex Sweaters Ltd"
+    },
+    {
+      "name": "Torque Design Ltd. (Extension)",
+      "base": "Torque Design Ltd."
+    },
+    {
+      "name": "Tosrifa Industries Ltd (Extension)",
+      "base": "Tosrifa Industries Ltd"
+    },
+    {
+      "name": "Total Fashion Ltd. (Extension)",
+      "base": "Total Fashion Ltd."
+    },
+    {
+      "name": "Toyo Spinning Mills Ltd. (Unit-1)",
+      "base": "Toyo Spinning Mills Ltd."
+    },
+    {
+      "name": "Triple Apparels Ltd (Extension)",
+      "base": "Triple Apparels Ltd"
+    },
+    {
+      "name": "Tropical Knitex Ltd (Extension 2)",
+      "base": "Tropical Knitex Ltd"
+    },
+    {
+      "name": "Tropical Knitex Ltd (Extension)",
+      "base": "Tropical Knitex Ltd"
+    },
+    {
+      "name": "Tusuka Processing Ltd. (Extension 2)",
+      "base": "Tusuka Processing Ltd."
+    },
+    {
+      "name": "Tusuka Processing Ltd. (Extension)",
+      "base": "Tusuka Processing Ltd."
+    },
+    {
+      "name": "ULTIMATE FASHIONS LIMITED (EXTENSION)",
+      "base": "ULTIMATE FASHIONS LIMITED"
+    },
+    {
+      "name": "UNIVERSE KNITTING GARMENTS LTD UNIT-2",
+      "base": "UNIVERSE KNITTING GARMENTS LTD"
+    },
+    {
+      "name": "UTAH Knitting & Dyeing Ltd. (Extension)",
+      "base": "UTAH Knitting & Dyeing Ltd."
+    },
+    {
+      "name": "Uni Gears LTD (Extension)",
+      "base": "Uni Gears LTD"
+    },
+    {
+      "name": "Unicorn Sweaters Ltd Extension Building",
+      "base": "Unicorn Sweaters Ltd"
+    },
+    {
+      "name": "Unimas Sportswear (Extension 2)",
+      "base": "Unimas Sportswear"
+    },
+    {
+      "name": "Unisense Apparels Ltd.-Extension",
+      "base": "Unisense Apparels Ltd."
+    },
+    {
+      "name": "Universal Menswear Ltd. (New Building)",
+      "base": "Universal Menswear Ltd."
+    },
+    {
+      "name": "Univogue Garments Co. Ltd (Unit-2)",
+      "base": "Univogue Garments Co. Ltd"
+    },
+    {
+      "name": "Univogue Garments Co. Ltd. Unit-III",
+      "base": "Univogue Garments Co. Ltd."
+    },
+    {
+      "name": "Univogue Garments Company Limited - Unit 1",
+      "base": "Univogue Garments Company Limited"
+    },
+    {
+      "name": "Utah Fashions Ltd. ( Extension )",
+      "base": "Utah Fashions Ltd."
+    },
+    {
+      "name": "Valmont Fashions Ltd. (Extension)",
+      "base": "Valmont Fashions Ltd."
+    },
+    {
+      "name": "Versatile Textiles Limited (New Buildings)",
+      "base": "Versatile Textiles Limited"
+    },
+    {
+      "name": "Versatile Textiles Ltd. (Extension 3)",
+      "base": "Versatile Textiles Ltd."
+    },
+    {
+      "name": "Versatile Textiles Ltd. (Extension)",
+      "base": "Versatile Textiles Ltd."
+    },
+    {
+      "name": "Vertex Wear Limited. (Extension)",
+      "base": "Vertex Wear Limited."
+    },
+    {
+      "name": "Vintage Denim Apparels Ltd. (New building)",
+      "base": "Vintage Denim Apparels Ltd."
+    },
+    {
+      "name": "Vintage Denim Ltd. (Extension)",
+      "base": "Vintage Denim Ltd."
+    },
+    {
+      "name": "Vintage Denim Studio Ltd. (Extended Building)",
+      "base": "Vintage Denim Studio Ltd."
+    },
+    {
+      "name": "Vintage Denim Studio Ltd. (Extension 2)",
+      "base": "Vintage Denim Studio Ltd."
+    },
+    {
+      "name": "Vision Garments Ltd. (Extension 2)",
+      "base": "Vision Garments Ltd."
+    },
+    {
+      "name": "Vision Garments Ltd. (New Building)",
+      "base": "Vision Garments Ltd."
+    },
+    {
+      "name": "Viyellatex Limited (Extension)",
+      "base": "Viyellatex Limited"
+    },
+    {
+      "name": "Welldone Apparel Ltd Extension Building",
+      "base": "Welldone Apparel Ltd"
+    },
+    {
+      "name": "Western Dresses Ltd. Unit-2",
+      "base": "Western Dresses Ltd."
+    },
+    {
+      "name": "Winter Dress Limited (Extension)",
+      "base": "Winter Dress Limited"
+    },
+    {
+      "name": "Yasin Knittex Ind. Ltd (Extended building)",
+      "base": "Yasin Knittex Ind. Ltd"
+    },
+    {
+      "name": "Yester Accessories Co. (Bd) Ltd. (Extension)",
+      "base": "Yester Accessories Co. (Bd) Ltd."
+    },
+    {
+      "name": "Youngone (CEPZ) Limited (Extension 2)",
+      "base": "Youngone (CEPZ) Limited"
+    },
+    {
+      "name": "Youngone (CEPZ) Limited (Extension)",
+      "base": "Youngone (CEPZ) Limited"
+    },
+    {
+      "name": "Youngones (BD) Ltd. Unit-2",
+      "base": "Youngones (BD) Ltd."
+    },
+    {
+      "name": "ZA Apparels Ltd (Jacket fty) (Extension)",
+      "base": "ZA Apparels Ltd (Jacket fty)"
+    },
+    {
+      "name": "Zaber & Zubair Fabrics Ltd (extension)",
+      "base": "Zaber & Zubair Fabrics Ltd"
+    }
+  ]
+}
