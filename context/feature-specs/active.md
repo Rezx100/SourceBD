@@ -3,6 +3,14 @@
 This file keeps routine agent sessions from scanning every inactive feature spec.
 
 ## Active / Recent Spec
+- COMPLETE in working tree (4 Aug 2026): **REZ-66 — A6 field-level
+  manual-override lock** (Linear REZ-66, parent REZ-57). Migration
+  `0094_supplier_field_locks` + ETL skip in `upsert.py` / lock
+  predicates on all 13 UPDATEs in `ops/backfill_profile_columns.py`.
+  Third write paths (`rsc_crosslink` / `contact_merge` /
+  `address_norm`) listed on the issue and left alone. Not applied to
+  production. See `context/current-state.md` → "Guardrails Epic —
+  field locks".
 - COMPLETE in working tree / PR #86 open (4 Aug 2026): **REZ-65 — A5
   Seed resolution_edges from founder rulings** (Linear REZ-65, parent
   REZ-57). `ops/seed_resolution_edges.py` dry-run by default; REST

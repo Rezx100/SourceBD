@@ -19,6 +19,9 @@ Trust-tier merge rules (per architecture.md "highest tier wins"):
 - factory_types: BGMEA `factory_types[].Type` (Woven / Knit / Sweater).
 - principal_products: union of BGMEA `principal_products[]`,
   EPB `epb_categories[].name`, and BKMEA `bkmea_products` string split.
+
+Each UPDATE skips suppliers with a live `supplier_field_locks` row on the
+target column (REZ-66 / A6). Released locks (`released_at` set) do not block.
 """
 
 from __future__ import annotations
@@ -53,7 +56,13 @@ SQL_STATEMENTS: list[tuple[str, str]] = [
          where s.id = x.supplier_id
            and x.val is not null
            and x.val > coalesce(s.employees_total, 0)
-           and x.val <= 200000;
+           and x.val <= 200000
+           and not exists (
+             select 1 from public.supplier_field_locks l
+              where l.supplier_id = s.id
+                and l.column_name = 'employees_total'
+                and l.released_at is null
+           );
         """,
     ),
     (
@@ -77,7 +86,13 @@ SQL_STATEMENTS: list[tuple[str, str]] = [
          where s.id = x.supplier_id
            and x.val is not null
            and x.val > coalesce(s.employees_male, 0)
-           and x.val <= 200000;
+           and x.val <= 200000
+           and not exists (
+             select 1 from public.supplier_field_locks l
+              where l.supplier_id = s.id
+                and l.column_name = 'employees_male'
+                and l.released_at is null
+           );
         """,
     ),
     (
@@ -101,7 +116,13 @@ SQL_STATEMENTS: list[tuple[str, str]] = [
          where s.id = x.supplier_id
            and x.val is not null
            and x.val > coalesce(s.employees_female, 0)
-           and x.val <= 200000;
+           and x.val <= 200000
+           and not exists (
+             select 1 from public.supplier_field_locks l
+              where l.supplier_id = s.id
+                and l.column_name = 'employees_female'
+                and l.released_at is null
+           );
         """,
     ),
     (
@@ -125,7 +146,13 @@ SQL_STATEMENTS: list[tuple[str, str]] = [
          where s.id = x.supplier_id
            and x.val is not null
            and x.val > coalesce(s.production_capacity_pcs_day, 0)
-           and x.val <= 10000000;
+           and x.val <= 10000000
+           and not exists (
+             select 1 from public.supplier_field_locks l
+              where l.supplier_id = s.id
+                and l.column_name = 'production_capacity_pcs_day'
+                and l.released_at is null
+           );
         """,
     ),
     (
@@ -148,7 +175,13 @@ SQL_STATEMENTS: list[tuple[str, str]] = [
           from x
          where s.id = x.supplier_id
            and x.val is not null
-           and x.val > coalesce(s.machines_sewing, 0);
+           and x.val > coalesce(s.machines_sewing, 0)
+           and not exists (
+             select 1 from public.supplier_field_locks l
+              where l.supplier_id = s.id
+                and l.column_name = 'machines_sewing'
+                and l.released_at is null
+           );
         """,
     ),
     # F13 — BGMEA detail-page "No of Machines" surfaced as machines_sewing.
@@ -179,7 +212,13 @@ SQL_STATEMENTS: list[tuple[str, str]] = [
            and s.entity_type = 'factory'
            and x.val is not null
            and x.val > coalesce(s.machines_sewing, 0)
-           and x.val between 1 and 20000;
+           and x.val between 1 and 20000
+           and not exists (
+             select 1 from public.supplier_field_locks l
+              where l.supplier_id = s.id
+                and l.column_name = 'machines_sewing'
+                and l.released_at is null
+           );
         """,
     ),
     # ---------------------------------------------------------------- BGMEA ints
@@ -210,7 +249,13 @@ SQL_STATEMENTS: list[tuple[str, str]] = [
          where s.id = x.supplier_id
            and x.val is not null
            and x.val > coalesce(s.employees_total, 0)
-           and x.val <= 200000;
+           and x.val <= 200000
+           and not exists (
+             select 1 from public.supplier_field_locks l
+              where l.supplier_id = s.id
+                and l.column_name = 'employees_total'
+                and l.released_at is null
+           );
         """,
     ),
     (
@@ -234,7 +279,13 @@ SQL_STATEMENTS: list[tuple[str, str]] = [
           from x
          where s.id = x.supplier_id
            and x.val is not null
-           and x.val > coalesce(s.employees_male, 0);
+           and x.val > coalesce(s.employees_male, 0)
+           and not exists (
+             select 1 from public.supplier_field_locks l
+              where l.supplier_id = s.id
+                and l.column_name = 'employees_male'
+                and l.released_at is null
+           );
         """,
     ),
     (
@@ -258,7 +309,13 @@ SQL_STATEMENTS: list[tuple[str, str]] = [
           from x
          where s.id = x.supplier_id
            and x.val is not null
-           and x.val > coalesce(s.employees_female, 0);
+           and x.val > coalesce(s.employees_female, 0)
+           and not exists (
+             select 1 from public.supplier_field_locks l
+              where l.supplier_id = s.id
+                and l.column_name = 'employees_female'
+                and l.released_at is null
+           );
         """,
     ),
     # ---------------------------------------------------------------- BGMEA text/jsonb
@@ -280,7 +337,13 @@ SQL_STATEMENTS: list[tuple[str, str]] = [
                updated_at = now()
           from x
          where s.id = x.supplier_id
-           and (s.established_date is distinct from x.val);
+           and (s.established_date is distinct from x.val)
+           and not exists (
+             select 1 from public.supplier_field_locks l
+              where l.supplier_id = s.id
+                and l.column_name = 'established_date'
+                and l.released_at is null
+           );
         """,
     ),
     (
@@ -448,7 +511,13 @@ SQL_STATEMENTS: list[tuple[str, str]] = [
          where s.id = agg.supplier_id
            and agg.vals is not null
            and array_length(agg.vals, 1) > 0
-           and (s.factory_types is distinct from agg.vals);
+           and (s.factory_types is distinct from agg.vals)
+           and not exists (
+             select 1 from public.supplier_field_locks l
+              where l.supplier_id = s.id
+                and l.column_name = 'factory_types'
+                and l.released_at is null
+           );
         """,
     ),
     (
@@ -472,7 +541,13 @@ SQL_STATEMENTS: list[tuple[str, str]] = [
          where s.id = x.supplier_id
            and x.val is not null
            and x.val > coalesce(s.production_capacity_dozen_yearly, 0)
-           and x.val <= 200000000;
+           and x.val <= 200000000
+           and not exists (
+             select 1 from public.supplier_field_locks l
+              where l.supplier_id = s.id
+                and l.column_name = 'production_capacity_dozen_yearly'
+                and l.released_at is null
+           );
         """,
     ),
     # ---------------------------------------------------------------- principal_products union
@@ -574,7 +649,13 @@ SQL_STATEMENTS: list[tuple[str, str]] = [
          where s.id = agg.supplier_id
            and agg.vals is not null
            and array_length(agg.vals, 1) > 0
-           and (s.principal_products is distinct from agg.vals);
+           and (s.principal_products is distinct from agg.vals)
+           and not exists (
+             select 1 from public.supplier_field_locks l
+              where l.supplier_id = s.id
+                and l.column_name = 'principal_products'
+                and l.released_at is null
+           );
         """,
     ),
 ]

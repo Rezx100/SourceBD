@@ -22,12 +22,15 @@ class FakeCursor:
         pass0_row: dict[str, Any] | None = None,
         slug_row: dict[str, Any] | None = None,
         squash_row: dict[str, Any] | None = None,
+        lock_rows: list[dict[str, Any]] | None = None,
         new_supplier_id: str = "sup-new",
     ) -> None:
         self._skip_rows = list(skip_rows or [])
         self._pass0_row = pass0_row
         self._slug_row = slug_row
         self._squash_row = squash_row
+        # Live locks only (released_at IS NULL). Default empty = ETL unchanged.
+        self._lock_rows = list(lock_rows or [])
         self._new_supplier_id = new_supplier_id
         self.executed: list[tuple[str, Any]] = []
         self._last_sql = ""
@@ -39,6 +42,8 @@ class FakeCursor:
     def fetchall(self) -> list[dict[str, Any]]:
         if "select supplier_id, raw_hash from public.source_records" in self._last_sql:
             return list(self._skip_rows)
+        if "from public.supplier_field_locks" in self._last_sql:
+            return list(self._lock_rows)
         # Pass 3 phone candidates, Pass 4 fuzzy candidates: none.
         return []
 
