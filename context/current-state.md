@@ -5,24 +5,31 @@ Last compacted for agent-token efficiency: 30 Jun 2026.
 ## Phase
 Phase 7 - Public Beta launch prep.
 
-## Workforce projection + facility roll-up — REZ-91 IN PR (awaiting --apply)
+## Workforce projection + facility roll-up — REZ-91 APPLIED
 5 Aug 2026 — founder spotted `COAST TO COAST (PVT.) LTD.` publishing the wrong
 workforce and asked what happens to an extension's data when it joins its
 mother. Investigation found two unrelated defects and one architectural gap.
 
-**REZ-91 (P0) — `employees_total` is the max cohort, not the sum.** FIXED in
-working tree (branch `rez-91-employees-total-sum` from `b7de8dd`). BGMEA
+**REZ-91 (P0) — `employees_total` is the max cohort, not the sum.** COMPLETE.
+Merged PR #101 into `development`. **APPLIED to production 5 Aug 2026**
+(founder-approved). Branched from `origin/development` @ `b7de8dd`. BGMEA
 workforce cohorts `{Management, Employee Male, Employee Female}` are now
 **summed** within one record (SQL + Python mirror); unrecognised keys skipped
 and reported. Cross-record A8 winner rule unchanged. Pre-flight reproduced
-4,247 / 1,604 / 1,594 / 1.88× / Management 625. Q1: no explicit Total key in
-any BGMEA payload. Q2: BKMEA uses explicit `bkmea_employees_total` (no
-employees object) — untouched. Q3: max prospective sum 37,094; 200k cap clips
-nothing. Dry-run (REST, no writes): **1,390** `employees_total` upward
-corrections (0 downward; male/female/machines/capacity unchanged). Gap vs
-1,594 understated = 204 already match A8 winner sum (mostly BKMEA wins).
-Production `--apply` awaits founder approval. Conflation on coast-to-coast
-remains REZ-90.
+4,247 / 1,604 / 1,594 / 1.88× / Management 625. Q1: no explicit Total key.
+Q2: BKMEA uses explicit `bkmea_employees_total` — untouched. Q3: max sum
+37,094 under 200k cap.
+
+Apply matched dry-run row for row: **1,390** `employees_total` upward, **0**
+downward, **0** sibling-column movement. `akm-knitwear` 16815→32677.
+`square-fashions` / `fakir-fashion` (4858 / 18902) are BKMEA A8 wins — correctly
+unchanged here; their BGMEA sums 31051 / 37094 are REZ-94 scope.
+
+Rollback: `public._rez91_employees_total_snapshot_20260805` (all six numeric
+columns × 10,912 suppliers, pre-apply). Expected set also kept as
+`public._rez91_employees_total_expected_20260805` (1,390 rows). Apply via
+Supabase SQL API (psycopg protocol-blocked from dev machine). REZ-94 must not
+be folded into this PR.
 
 **No facility roll-up exists at all.** Verified 5 Aug: `facility_of` is set on
 **0 suppliers** and **no view or function in the database references it**. Both
@@ -50,11 +57,12 @@ Founder decisions 5 Aug:
 **REZ-71 (B1) bulk facility attach is BLOCKED** until REZ-91 → REZ-92 → REZ-93
 land, because attaching today makes mother profiles thinner, not richer.
 Detection/reporting half of B1 is still safe; only `--apply` is blocked.
+REZ-91 applied; REZ-92 / REZ-93 still required before B1 `--apply`.
 
 `coast-to-coast` is additionally a three-ref conflation (`general:1081` =
 the real company per BGMEA, `2768` = Coast To Coast Fashion, `3070` = Coast To
-Coast Apparels). Its published 650 / 400 / 93,000 all come from `2768`, a
-different company. That is REZ-90's scope, not REZ-91's.
+Coast Apparels). Its published numbers came from `2768`, a different company.
+That is REZ-90's scope, not REZ-91's.
 
 ## Entity Resolution Core — SPECIFIED, NOT STARTED
 4 Aug 2026 — spec written, no code. `context/feature-specs/spec-resolution-core.md`.
