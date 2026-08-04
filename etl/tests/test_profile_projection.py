@@ -16,10 +16,12 @@ from datetime import datetime
 from pathlib import Path
 
 from ops.backfill_profile_columns import (
+    BGMEA_EMPLOYEE_COHORT_KEYS,
     NUMERIC_COLUMNS,
     SQL_STATEMENTS,
     NumericCandidate,
     TIER_RANK,
+    _bgmea_employees_total,
     _digits_int,
     pick_numeric_winner,
 )
@@ -240,3 +242,154 @@ def test_source_exclusivity_preserved() -> None:
 
     machines = next(sql for label, sql in SQL_STATEMENTS if label.startswith("machines_sewing"))
     assert "'BKMEA'" in machines and "'BGMEA'" in machines
+
+
+# ---------------------------------------------------------------------------
+# REZ-91 — BGMEA employees cohort sum (within one record)
+# ---------------------------------------------------------------------------
+
+
+def test_bgmea_employees_total_sums_recognised_cohorts() -> None:
+    """Issue test #1 — Coast To Coast shape: 850+2450+1000 = 4300, not max 2450."""
+    assert (
+        _bgmea_employees_total(
+            {
+                "employees": {
+                    "Management": "850",
+                    "Employee Male": "2450",
+                    "Employee Female": "1000",
+                }
+            }
+        )
+        == 4300
+    )
+
+
+def test_bgmea_employees_total_management_largest_is_still_summed() -> None:
+    """Issue test #2 — Management-wins case must not publish management as total."""
+    assert (
+        _bgmea_employees_total(
+            {
+                "employees": {
+                    "Management": "650",
+                    "Employee Male": "510",
+                    "Employee Female": "200",
+                }
+            }
+        )
+        == 1360
+    )
+
+
+def test_bgmea_employees_total_skips_empty_string_cohorts() -> None:
+    """Issue test #3 — empty string is skipped, not treated as zero."""
+    assert (
+        _bgmea_employees_total(
+            {
+                "employees": {
+                    "Management": "550",
+                    "Employee Male": "",
+                    "Employee Female": "",
+                }
+            }
+        )
+        == 550
+    )
+
+
+def test_bgmea_employees_total_single_cohort_unchanged() -> None:
+    """Issue test #4 — single populated cohort is unchanged by the fix."""
+    assert (
+        _bgmea_employees_total(
+            {"employees": {"Management": "550", "Employee Male": "", "Employee Female": ""}}
+        )
+        == 550
+    )
+    assert (
+        _bgmea_employees_total({"employees": {"Employee Male": "1200"}}) == 1200
+    )
+
+
+def test_bgmea_employees_total_skips_and_reports_unrecognised_keys() -> None:
+    """Issue test #5 — unrecognised keys are not summed; they are reported."""
+    unknown: list[str] = []
+    assert (
+        _bgmea_employees_total(
+            {
+                "employees": {
+                    "Management": "100",
+                    "Employee Male": "200",
+                    "Employee Female": "300",
+                    "Total": "9999",
+                    "Workers": "50",
+                }
+            },
+            unknown_keys=unknown,
+        )
+        == 600
+    )
+    assert sorted(unknown) == ["Total", "Workers"]
+
+
+def test_two_source_records_still_compete_not_summed() -> None:
+    """Issue test #6 — cross-record A8 rule: totals compete, never add."""
+    winner = pick_numeric_winner(
+        [
+            _cand(
+                4300,
+                tier="tier2_industry",
+                fetched="2026-08-02T04:00:00+00:00",
+                record_id="bgmea-new",
+                source_code="BGMEA",
+            ),
+            _cand(
+                800,
+                tier="tier2_industry",
+                fetched="2026-08-01T04:00:00+00:00",
+                record_id="bgmea-old",
+                source_code="BGMEA",
+            ),
+        ]
+    )
+    assert winner is not None
+    assert winner.value == 4300
+    assert winner.value != 4300 + 800
+
+
+def test_sql_employees_total_sums_recognised_cohort_keys_only() -> None:
+    """SQL contract: sum over enumerated cohort keys; no bare max over jsonb_each."""
+    emp_sql = next(sql for label, sql in SQL_STATEMENTS if label.startswith("employees_total"))
+    assert "select sum(" in emp_sql.lower()
+    assert "'Management'" in emp_sql
+    assert "'Employee Male'" in emp_sql
+    assert "'Employee Female'" in emp_sql
+    # The old bug: max over every key in the employees object.
+    assert not re.search(
+        r"select\s+max\(nullif\(regexp_replace\(v\.value",
+        emp_sql,
+        flags=re.I,
+    )
+    # Must not sum every key — the WHERE must enumerate cohorts.
+    assert "v.key in ('Management', 'Employee Male', 'Employee Female')" in emp_sql
+
+
+def test_sql_does_not_touch_male_female_machines_or_capacity() -> None:
+    """REZ-91 non-goals: male/female key reads, machines, capacity stay as-is."""
+    male = next(sql for label, sql in SQL_STATEMENTS if label.startswith("employees_male"))
+    female = next(sql for label, sql in SQL_STATEMENTS if label.startswith("employees_female"))
+    assert "Employee Male" in male
+    assert "Employee Female" in female
+    assert "select sum(" not in male.lower()
+    assert "select sum(" not in female.lower()
+
+    # Cohort sum must appear only on employees_total, not sibling numerics.
+    for label, sql in SQL_STATEMENTS:
+        if label.startswith("employees_total"):
+            continue
+        assert "v.key in ('Management', 'Employee Male', 'Employee Female')" not in sql, label
+
+
+def test_cohort_keys_constant_is_explicit() -> None:
+    assert BGMEA_EMPLOYEE_COHORT_KEYS == frozenset(
+        {"Management", "Employee Male", "Employee Female"}
+    )
