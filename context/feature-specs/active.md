@@ -318,6 +318,27 @@ This file keeps routine agent sessions from scanning every inactive feature spec
   plus `context/frontend-design-spec.md`.
 
 ## Queued Specs
+- **SPECIFIED, NOT STARTED (4 Aug 2026): entity resolution core** —
+  `context/feature-specs/spec-resolution-core.md`. Replaces the
+  `_find_existing` decision (five passes, first match wins, trigram capped at
+  50) with a batch resolution stage: immutable `staging_records`, one shared
+  `record_identity`, multi-key blocking, an explainable feature vector, and a
+  three-band policy writing append-only `resolution_decisions`. Founder
+  decisions recorded in the spec (4 Aug): LLM adjudicator approved for the
+  **review band only** (never auto-merge, rationale persisted), Firecrawl
+  `/v2/extract` **not** approved, resolution runs as a **batch stage** rather
+  than inline. **Prerequisite: the Guardrails epic (Linear REZ-57) must merge
+  first** — `resolution_edges` (A3) is the override table the policy reads,
+  A5's rulings are the regression fixtures, `extension_base_name` (A7) is an
+  identity input, and A9's invariant check is what makes cutover reversible.
+  The Extensions epic (REZ-58) should also be applied so facility rows are not
+  scored as candidate companies. Key measured findings: replay needs **zero
+  re-scraping** (6,374 evidence documents, 100% raw-mirror coverage; 20,224
+  source records all with fields); **BGMEA registration equality is not
+  decisive** (1,196 numbers shared across published suppliers — Opex, Shamoli,
+  Chorka) while BKMEA's is (4); shared address is a group/anti-merge signal,
+  not identity (479 keys shared by 1,752 suppliers, largest cluster 69);
+  `suppliers.lat/lng` is empty, coordinates live only in `address_geocodes`.
 - **Numeric profile fields cannot be corrected downwards.**
   `ops/backfill_profile_columns.py` merges numeric columns with `greatest()`, so a
   supplier's `machines_sewing`, `employees_total` and capacity figures can only ever

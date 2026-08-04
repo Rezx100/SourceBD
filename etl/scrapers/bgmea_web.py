@@ -73,8 +73,14 @@ _FIELD_LOCATORS = {
     "certifications.*": "#final_info table tr:has(th:contains('Certifications')) td table",
 }
 
-# Derived by us, not asserted by BGMEA — must not be presented as a citation.
-_UNCITABLE_FIELDS = ("bgmea_member_type",)
+# bgmea_member_type is derived by us, not asserted by BGMEA. scraped_company_name
+# IS asserted by BGMEA, but it exists as detector metadata (the supplier's name
+# already carries its own citation path) — kept out of the claim stream so it
+# cannot mint a new claim class. Why it exists at all: until 4 Aug 2026 BGMEA
+# records stored no scraped name, so a record merged into the wrong supplier
+# (the 24 Jul contact-overlap conflations — 808 of them) was undetectable from
+# the database alone. `ops/check_supplier_conflations.py` reads this field.
+_UNCITABLE_FIELDS = ("bgmea_member_type", "scraped_company_name")
 
 _CITY_KEYWORDS = {
     "Dhaka": ["Dhaka", "DOHS", "Uttara", "Gulshan", "Banani", "Dhanmondi", "Mirpur",
@@ -481,6 +487,12 @@ class BgmeaWebScraper(AcquiringScraper):
             "bgmea_reg_number": reg or None,
             "bgmea_member_id": member_id,
             "bgmea_member_type": "general_manufacturer",
+            # The record must carry the name BGMEA published it under, so a
+            # record sitting on the wrong supplier is detectable forever after
+            # (see _UNCITABLE_FIELDS note). BKMEA records always had this via
+            # bkmea_raw_kv; BGMEA records did not — that gap hid 808
+            # conflations for months.
+            "scraped_company_name": company,
             "epb_reg_no": detail.get("epb_reg_no"),
             "directors": detail.get("directors", []),
             "mailing_address": detail.get("mailing_address"),

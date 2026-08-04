@@ -5,8 +5,56 @@ Last compacted for agent-token efficiency: 30 Jun 2026.
 ## Phase
 Phase 7 - Public Beta launch prep.
 
+## Entity Resolution Core — SPECIFIED, NOT STARTED
+4 Aug 2026 — spec written, no code. `context/feature-specs/spec-resolution-core.md`.
+Replaces the `_find_existing` decision in `etl/core/upsert.py` (five passes,
+first match wins, trigram prefilter capped at 50, no score retained, no memory
+of human rulings) with a batch resolution stage.
+
+Founder decisions recorded 4 Aug, both required before implementation:
+- **Hard Rule 4 tool approval**: an LLM adjudicator is approved for the
+  **review band only** — never auto-merge, never overriding a human ruling,
+  rationale persisted alongside the feature vector. Firecrawl `/v2/extract` is
+  **NOT** approved; parsing stays deterministic (Hard Rule 5).
+- **Placement**: resolution is a **separate batch stage** over immutable
+  `staging_records`, with upsert consuming its decisions. Inline resolution was
+  rejected because it cannot be shadow-run.
+
+Three new tables: `staging_records` (immutable landing, traceable to an
+`evidence_document_id`), `record_identity` (one shared identity computation, so
+the definitions stop drifting between upsert / audit / repair scripts), and
+`resolution_decisions` (append-only, features + band + policy version).
+`resolution_edges` from A3 is NOT duplicated — it stays the human-ruling table
+and acts as a hard override.
+
+Measured findings that shaped the design (production, 4 Aug 2026):
+- **Replay needs zero re-scraping.** 6,374 evidence documents with 100% raw
+  payload coverage (4,407 `raw_html_mirror_url` + 1,967 `file_mirror_url`);
+  20,224 source records, all with non-empty `fields`, 13 May – 2 Aug.
+- **BGMEA registration equality is NOT decisive** — 1,196 reg numbers appear on
+  more than one published supplier and 664 suppliers hold more than one number
+  (reg 2571 = Opex Designers + Opex International; 641 = Shamoli Garments +
+  YSG Bangladesh; 6699 = Chorka Apparels + CHORKA TEXTILE). BKMEA's IS decisive
+  (4 collisions). Treating BGMEA reg as identity would merge sister companies.
+- **Shared address is a group / anti-merge signal, not identity** — 479
+  normalised address keys shared by 1,752 published suppliers, largest cluster
+  69.
+- **`suppliers.lat` / `lng` are populated on ZERO rows.** Coordinates live only
+  in `address_geocodes` (17,973 rows, all with coords); geo blocking reaches
+  90.6% but only via that join. `address_status = 'ok'` matches zero rows — do
+  not filter on it.
+- Single-source rate 7,947 / 10,845 published (73.3%); zero-source 0.
+- 6,970 published suppliers (64.3%) hold zero active evidence claims — this is
+  the D1 figure Linear REZ-82 asks for, measured here so both efforts share one
+  number.
+
+Prerequisite: the Guardrails epic (Linear REZ-57) must merge first, and the
+Extensions epic (REZ-58) should be applied so facility rows are not scored as
+candidate companies. Phases R0–R6 with per-phase acceptance criteria and the
+R4 cutover gate are in the spec.
+
 ## Guardrails Epic — resolution_edges schema (REZ-63 / REZ-57 A3)
-4 Aug 2026 — COMPLETE in the working tree on `development` (PR pending).
+4 Aug 2026 — COMPLETE (merged via PR #79 into `development` / `main`).
 Schema-only migration `0093_resolution_edges.sql`: table
 `public.resolution_edges` for sticky always-same / never-same pair
 rulings. Columns: `supplier_a`/`supplier_b` (FK cascade), `verdict`
@@ -135,6 +183,44 @@ Tests: pytest 591 passed (28 variant-signal + 37 squash/dedup-guard + 7
 EPB-category + 2 seed-fetch new); ruff clean; no schema migration. Residual:
 Linear REZ-56 closeout comment STILL not posted (Linear MCP unavailable
 again 4 Aug) — summary text ready for manual posting.
+
+## BGMEA Conflation Repair (founder review, 4 Aug 2026)
+4 Aug 2026 - APPLIED in production (development, PR pending). The founder's
+EPB review exposed a second population from the pre-31-Jul contact-overlap
+dedup defect: BGMEA general-member records merged into sister-company
+suppliers (3S International inside 3S TEXTILE, AKH Knitwear inside AKH
+Apparels, Aman Sweaters inside Aman Knittings, Ananta Sportswear inside ABM
+Fashions). The 31 Jul repair + daily detector were BKMEA-only because BGMEA
+records stored no scraped name — the blind spot itself.
+
+- **`ops/repair_bgmea_conflations.py`** (new, REST transport — pooler ports
+  unreachable from the dev machine): name oracle = 4 Aug snapshot of BGMEA's
+  live member list (4,285 members by reg); flags a record whose member name
+  fails `_names_compatible` + prefix guard against its host. 808 stowaways
+  found. Join only on EXACT recomputed identity (slug/squash equality —
+  Pass 1/1.5 bars); fuzzy-only candidates deliberately NOT joined (dry run
+  proposed Anika→ANITA, Bando→BRAND — re-conflations) — they get their own
+  supplier and surface in the audit variant signal. Applied: ~790 records
+  moved with their evidence claims, ~630 new suppliers created + published,
+  ~120 joined an existing exact twin, 3 ambiguous skipped for a human,
+  former hosts' derived columns recomputed from REMAINING records only.
+  Re-scan: 0 stowaways beyond the 3 ambiguous. All four founder cases
+  live with full profiles.
+- **Profile projection, founder rule**: the repair projects the moved
+  record's stored fields (employees/machines/capacity/established/
+  factory_types/principal_products/contacts) onto the destination with
+  `backfill_profile_columns.py` semantics — numerics take the HIGHEST value
+  across sources (never summed), arrays union, scalars fill-only. Genesis
+  Fashion class (bare created profiles) converged this way.
+- **`bgmea_web` now stores `scraped_company_name`** (uncitable) so future
+  BGMEA records are detector-visible; `ops/check_supplier_conflations.py`
+  widened to scan BGMEA general records via that field.
+- Ops scar: an interrupted apply's python child survived the shell kill and
+  raced the real run, minting 651 empty unpublished `-2` duplicates — all
+  verified record-less/claim-less and deleted. Kill the PID, not the shell.
+
+Tests: pytest 598 passed (7 new in test_bgmea_conflation_repair.py);
+ruff clean.
 
 Architectural decisions:
 - Merge eligibility is per-member over "certain edges", not per-cluster:
