@@ -3,6 +3,14 @@
 This file keeps routine agent sessions from scanning every inactive feature spec.
 
 ## Active / Recent Spec
+- COMPLETE in the working tree (4 Aug 2026): **REZ-62 — A2 Make
+  enforce_publish_tier() refuse to publish any row with facility_of set**
+  (Linear REZ-62, parent REZ-57). Migration
+  `0092_enforce_publish_tier_facility_guard.sql` only — silent coerce of
+  `is_published` when `facility_of` is set; trigger widened to fire on
+  `facility_of`; Tier 1–3 logic unchanged. Not applied to production.
+  Unblocks B1. See `context/current-state.md` → "Guardrails Epic —
+  facility publish refuse".
 - COMPLETE in the working tree (4 Aug 2026): **REZ-61 — A1 Add
   suppliers.facility_of column, FK and index (schema only)** (Linear
   REZ-61, parent REZ-57). Migration `0091_supplier_facility_of.sql` only.
