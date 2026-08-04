@@ -181,7 +181,11 @@ def test_released_lock_does_not_block() -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_backfill_has_thirteen_lock_predicates() -> None:
+def test_backfill_has_lock_predicates_on_every_update() -> None:
+    """REZ-68 merged same-column BKMEA/BGMEA numeric UPDATEs (13 → 9).
+
+    Each remaining UPDATE still carries its A6 lock predicate unchanged.
+    """
     sql = _backfill_sql()
     preds = re.findall(
         r"and not exists \(\s*select 1 from public\.supplier_field_locks l\s+"
@@ -191,10 +195,10 @@ def test_backfill_has_thirteen_lock_predicates() -> None:
         sql,
         flags=re.IGNORECASE,
     )
-    assert len(preds) == 13, preds
-    assert preds.count("machines_sewing") == 2
-    assert preds.count("employees_total") == 2
+    assert len(preds) == 9, preds
     # Case 4 contract: machines_sewing gated independently of employees_total.
+    assert preds.count("machines_sewing") == 1
+    assert preds.count("employees_total") == 1
     assert "machines_sewing" in preds
     assert "employees_total" in preds
 

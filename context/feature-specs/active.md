@@ -3,6 +3,14 @@
 This file keeps routine agent sessions from scanning every inactive feature spec.
 
 ## Active / Recent Spec
+- COMPLETE in working tree / PR pending (5 Aug 2026): **REZ-68 — A8
+  Replace greatest() in backfill_profile_columns with
+  highest-trust-then-most-recent** (Linear REZ-68, parent REZ-57).
+  `greatest()` + `>` guards removed; winner = highest `source_tier` then
+  most recent `fetched_at`; `nullif(..., 0)` preserved. Dry-run posted on
+  Linear (802 downward corrections; KNIT GUARD 150→36). Production
+  `--apply` awaits founder approval. See `context/current-state.md` →
+  "Guardrails Epic — profile numeric projection".
 - COMPLETE in working tree (5 Aug 2026): **REZ-67 — A7 Extension-pattern
   records attach as facilities** (Linear REZ-67, parent REZ-57).
   `extension_base_name()` in `etl/core/normalize.py` (SQL 0014 port +
