@@ -74,8 +74,10 @@ shipping that code before its migration crashes every ETL run. Apply the
 migration before or with the deploy.
 
 ## Guardrails Epic — multi-member-ref detector (REZ-88 / REZ-57)
-5 Aug 2026 — IN PROGRESS on `rez-88-multi-ref-detector` (branched from
-`origin/development` @ `7c13599`). Detection + plan only; **no mutations**.
+5 Aug 2026 — detector COMPLETE, merged via PR #95 into `development`
+(`a7695bc`). Detection + plan only; **no mutations** (production verified
+unchanged at 10,912 suppliers / 10,845 published). Branched from
+`origin/development` @ `7c13599`.
 
 Production reproduction (Supabase REST; psycopg pooler blocked from this
 host): **199** BGMEA-sourced suppliers hold >1 distinct active member
@@ -87,9 +89,37 @@ Shipped: `multi_member_ref` signal class in
 and same-`source_ref` re-scrapes); `--rest` transport; planner
 `ops/plan_multi_member_refs.py`; plan
 `ops/plans/rez-88-multi-ref-plan.md`. Classification of 230 excess refs:
-split 164 / attach-as-facility 3 / merge 60 / unresolved 3. Counts posted
-on Linear REZ-88 for founder approval. Did not touch REZ-89 / REZ-87 /
-`_compatible` / projection rules. Parent epic: Linear REZ-57.
+split 164 / attach-as-facility 3 / merge 60 / unresolved 3. Did not touch
+REZ-89 / REZ-87 / `_compatible` / projection rules.
+
+**The detector is accepted. The plan is REJECTED — do not execute
+`ops/plans/rez-88-multi-ref-plan.md`.** Review found three defects
+(tracked as Linear REZ-90, blocked by REZ-87):
+
+1. **Five false merges.** Alpha/Gaya, Azim/Aziz, Dressmen/Dressen,
+   Eastern/Western Dresses, New Wave Group AB/SA — all score 89–96 after
+   normalisation, *higher* than some correct merges, because the strings
+   are long and differ by one or two characters. Azim/Aziz is the
+   CORNY/CRONY shape the founder already ruled `different`. **Similarity
+   score cannot discriminate here.** The rule that works: after stripping
+   legal suffixes and punctuation, root tokens must be identical
+   (pluralisation allowed). That splits the 60 merges into 50 byte-identical
+   + 4 plural-only (safe) + 6 needing human review.
+2. **Ten buildings classified `split` instead of facility** — `(U-2)`,
+   `Unit-II`, `-2`, `(Woven Unit)`, `(Sw Unit)`. Inherited from
+   `extension_base_name` not recognising these (REZ-87 Direction B), so
+   REZ-87 must land first. Two of the ten are inverted: the *host* is the
+   building and the excess ref is the parent (`intramex-knitwear-ltd-unit-2`,
+   `mark-fashion-wear-pvt-ltd-u-2`), a case the plan has no class for.
+3. **Inverted keeper selection.** On `western-dresses` the host is named
+   "Western Dresses Ltd" but the keeper chosen was the "Eastern Dresses Ltd."
+   ref, so the plan would keep the intruder. Keeper must prefer the ref
+   matching the host's stored `company_name`.
+
+Also note: 164 splits implies ~154 new published supplier rows. That must
+be a deliberate decision, not a side effect.
+
+Parent epic: Linear REZ-57.
 
 ## Guardrails Epic — profile numeric projection (REZ-68 / REZ-57 A8)
 5 Aug 2026 — COMPLETE, merged via PR #93 into `development` (`2f803c1`) and
