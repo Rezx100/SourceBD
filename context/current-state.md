@@ -53,6 +53,23 @@ Extensions epic (REZ-58) should be applied so facility rows are not scored as
 candidate companies. Phases R0–R6 with per-phase acceptance criteria and the
 R4 cutover gate are in the spec.
 
+## Guardrails Epic — resolution_edges seed (REZ-65 / REZ-57 A5)
+4 Aug 2026 — IN PROGRESS (script + tests; production dry-run only).
+`ops/seed_resolution_edges.py` backfills founder rulings into
+`public.resolution_edges` via Supabase REST (service-role; no psycopg).
+Dry-run by default; `--apply` required to write. Encodes exactly:
+`sarada-knitwear` ≠ `sarada-fashions` (different), `corny-fashion` ≠
+`crony-fashion` (different). The `sarada-knitwear` = `sarda-knitwear`
+same-ruling is reported as structurally satisfied — loser tombstoned by
+the completed seeded merge; FK correctly rejects insert. Undecided and
+NOT encoded: 3 ambiguous BGMEA stowaways, the other 9 shared-ref
+ownership questions (of the 10 standing; CORNY/CRONY ref 377 was the
+one encoded from the issue table), and `crony-fashions` vs corny/crony
+(founder has not ruled). Verification: pytest 632 (+5);
+ruff 44 pre-existing (0 new on seed files); `npx tsc --noEmit` clean;
+`npm test` 336/336. Production `--apply` waits on founder approval.
+Parent epic: Linear REZ-57.
+
 ## Guardrails Epic — resolution_edges matcher (REZ-64 / REZ-57 A4)
 4 Aug 2026 — COMPLETE (merged via PR #82 into `development`).
 Makes `resolution_edges` load-bearing without changing pass order or
