@@ -3,6 +3,12 @@
 This file keeps routine agent sessions from scanning every inactive feature spec.
 
 ## Active / Recent Spec
+- IN PROGRESS (5 Aug 2026): **REZ-88 — structural multi-member-ref
+  detector + classification plan** (Linear REZ-88, parent REZ-57).
+  Detection + reviewed plan only — no splits/merges/unpublish.
+  Reproduced 199 suppliers / 230 excess BGMEA refs via REST.
+  Plan counts posted on Linear for founder approval. See
+  `context/current-state.md` → "Guardrails Epic — multi-member-ref".
 - COMPLETE in working tree / PR #93 open (5 Aug 2026): **REZ-68 — A8
   Replace greatest() in backfill_profile_columns with
   highest-trust-then-most-recent** (Linear REZ-68, parent REZ-57).
