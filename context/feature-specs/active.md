@@ -3,6 +3,11 @@
 This file keeps routine agent sessions from scanning every inactive feature spec.
 
 ## Active / Recent Spec
+- COMPLETE in the working tree (4 Aug 2026): **REZ-61 — A1 Add
+  suppliers.facility_of column, FK and index (schema only)** (Linear
+  REZ-61, parent REZ-57). Migration `0091_supplier_facility_of.sql` only.
+  Not applied to production. Unblocks A2 / A7 / B1. See
+  `context/current-state.md` → "Guardrails Epic — facility_of schema".
 - FULLY COMPLETE IN PRODUCTION (3 Aug 2026): **REZ-56 — Cross-register
   coverage audit + split-evidence duplicate repair**
   (`context/feature-specs/spec-cross-register-audit.md`, Linear REZ-56).
