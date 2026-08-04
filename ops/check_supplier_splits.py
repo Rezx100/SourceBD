@@ -59,6 +59,7 @@ import psycopg
 from psycopg.rows import dict_row
 from rapidfuzz import fuzz
 
+from etl.core.resolution_edges import load_different_pair_rationales, pair_key
 from etl.core.upsert import _FUZZY_THRESHOLD, _names_compatible
 from ops.audit_cross_register_coverage import (
     SHARED_REFS_SQL,
@@ -71,7 +72,10 @@ from ops.audit_cross_register_coverage import (
 
 
 def _certain_groups(
-    members: dict[str, Member], code_by_id: dict[str, str], cur
+    members: dict[str, Member],
+    code_by_id: dict[str, str],
+    cur,
+    different_pairs: dict[tuple[str, str], str] | None = None,
 ) -> tuple[list[list[Member]], dict[tuple[str, str], set[str]], list[tuple[Member, Member, set[str]]]]:
     """Certain merge groups across all published suppliers, plus the signals.
 
@@ -81,7 +85,13 @@ def _certain_groups(
     scan: signal B is evaluated directly, and only where a shared ref needs it
     for the certainty rule — the failure classes are slug equality and shared
     refs, neither of which needs the trigram self-join to discover.
+
+    Live `different` edges (REZ-64) are excluded from every signal so the
+    detector stops failing on pairs a human already settled.
     """
+    if different_pairs is None:
+        different_pairs = load_different_pair_rationales(cur)
+
     pair_signals: dict[tuple[str, str], set[str]] = defaultdict(set)
 
     by_slug: dict[str, list[str]] = defaultdict(list)
@@ -91,6 +101,8 @@ def _certain_groups(
     for ids in by_slug.values():
         for i, a in enumerate(ids):
             for b in ids[i + 1:]:
+                if pair_key(a, b) in different_pairs:
+                    continue
                 pair_signals[(min(a, b), max(a, b))].add("A")
 
     cur.execute(SHARED_REFS_SQL)
@@ -99,6 +111,8 @@ def _certain_groups(
         code = code_by_id.get(row["source_id"], "?")
         for i, a in enumerate(ids):
             for b in ids[i + 1:]:
+                if pair_key(a, b) in different_pairs:
+                    continue
                 pair_signals[(min(a, b), max(a, b))].add(f"C:{code}:{row['source_ref']}")
 
     # Signal B, only where a C edge needs it for the certainty rule.
@@ -156,8 +170,13 @@ def main() -> int:
         with psycopg.connect(dsn, prepare_threshold=None, row_factory=dict_row) as conn:
             with conn.cursor() as cur:
                 members, code_by_id = _fetch(cur)
-                groups, pair_signals, review = _certain_groups(members, code_by_id, cur)
-                variants = variant_pairs(members, known_pairs=set(pair_signals))
+                different_pairs = load_different_pair_rationales(cur)
+                groups, pair_signals, review = _certain_groups(
+                    members, code_by_id, cur, different_pairs=different_pairs
+                )
+                variants = variant_pairs(
+                    members, known_pairs=set(pair_signals) | set(different_pairs)
+                )
     except Exception as exc:  # noqa: BLE001
         # A check that cannot run is not a passing check.
         print(f"ERROR: could not run the split check: {exc}", file=sys.stderr)

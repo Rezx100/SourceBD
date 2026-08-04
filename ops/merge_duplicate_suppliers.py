@@ -100,6 +100,7 @@ from typing import Any
 import psycopg
 from psycopg.rows import dict_row
 
+from etl.core.resolution_edges import different_rationale, load_different_pair_rationales
 from ops.audit_cross_register_coverage import Member, _fetch, discover_clusters
 
 # Every FK-bearing column referencing public.suppliers.id.
@@ -419,7 +420,7 @@ def main() -> int:
                 groups: list[list[Member]] = [[winner_m, loser_m]]
                 seeded = True
             else:
-                clusters, _pair_signals = discover_clusters(members, code_by_id, cur)
+                clusters, _pair_signals, _ruled = discover_clusters(members, code_by_id, cur)
                 groups = [g for c in clusters for g in c.merge_groups]
                 if args.only:
                     groups = [g for g in groups if any(args.only.lower() in m.name.lower() for m in g)]
@@ -429,6 +430,9 @@ def main() -> int:
             if not groups:
                 print("No merge groups in scope.")
                 return 0
+
+            # Live `different` rulings (REZ-64): refuse to merge settled pairs.
+            different_pairs = load_different_pair_rationales(cur)
 
             cur.execute(FK_REFERENCES_SQL)
             fk_refs = [(r["table_name"], r["column_name"]) for r in cur.fetchall()]
@@ -462,11 +466,26 @@ def main() -> int:
         for group in groups:
             winner = group[0] if seeded else _pick_winner(group)
             losers = [m for m in group if m.id != winner.id]
+            kept_losers: list[Member] = []
+            for m in losers:
+                rationale = different_rationale(different_pairs, winner.id, m.id)
+                if rationale is not None:
+                    print("\n" + "=" * 78)
+                    print(
+                        f"SKIPPED: {winner.name!r}[{winner.id[:6]}] + "
+                        f"{m.name!r}[{m.id[:6]}] — ruled different by human"
+                    )
+                    print(f"  rationale: {rationale}")
+                    continue
+                kept_losers.append(m)
+            losers = kept_losers
+            if not losers:
+                continue
             loser_ids = [m.id for m in losers]
 
             print("\n" + "=" * 78)
             print(
-                f"MERGE {' + '.join(f'{m.name!r}[{m.id[:6]}]' for m in group)}"
+                f"MERGE {' + '.join(f'{m.name!r}[{m.id[:6]}]' for m in [winner, *losers])}"
                 + ("   SEEDED PAIR (founder-confirmed)" if seeded else "")
                 + ("" if args.apply else "   (dry run)")
             )
