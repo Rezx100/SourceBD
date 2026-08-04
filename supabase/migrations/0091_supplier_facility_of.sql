@@ -30,8 +30,9 @@
 --   alter table public.suppliers
 --     drop column if exists facility_of;
 --
--- NOT applied to production in this session — founder applies migrations
--- manually.
+-- Not applied in the authoring session — founder applies migrations manually.
+-- APPLIED to production 4 Aug 2026. See the migration ledger in
+-- context/current-state.md for live status; do not treat this header as one.
 
 -- ---------------------------------------------------------------------------
 -- 1. Column + self-FK (on delete set null so orphaned facilities remain

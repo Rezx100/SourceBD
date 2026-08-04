@@ -33,8 +33,9 @@
 --   drop index if exists public.idx_supplier_field_locks_live;
 --   drop table if exists public.supplier_field_locks;
 --
--- NOT applied to production in this session — founder applies migrations
--- manually.
+-- Not applied in the authoring session — founder applies migrations manually.
+-- APPLIED to production 5 Aug 2026. See the migration ledger in
+-- context/current-state.md for live status; do not treat this header as one.
 
 -- ---------------------------------------------------------------------------
 -- 1. Table

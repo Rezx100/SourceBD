@@ -54,8 +54,9 @@
 --     before insert or update of is_published on public.suppliers
 --     for each row execute function public.enforce_publish_tier();
 --
--- NOT applied to production in this session — founder applies migrations
--- manually.
+-- Not applied in the authoring session — founder applies migrations manually.
+-- APPLIED to production 4 Aug 2026. See the migration ledger in
+-- context/current-state.md for live status; do not treat this header as one.
 
 -- ---------------------------------------------------------------------------
 -- 1. Function — facility coerce first, then unchanged Tier 1–3 gate.
