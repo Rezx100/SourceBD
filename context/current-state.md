@@ -5,6 +5,18 @@ Last compacted for agent-token efficiency: 30 Jun 2026.
 ## Phase
 Phase 7 - Public Beta launch prep.
 
+## Guardrails Epic — facility_of schema (REZ-61 / REZ-57 A1)
+4 Aug 2026 — COMPLETE in the working tree on `development` (PR pending).
+Schema-only migration `0091_supplier_facility_of.sql`: nullable self-FK
+`suppliers.facility_of` → `suppliers(id) on delete set null`, partial
+index `idx_suppliers_facility_of`, CHECK `chk_suppliers_facility_not_self`,
+column comment. No row values; no `enforce_publish_tier()` / `upsert.py` /
+view / RPC / TS changes. Not applied to production. Parses under
+libpg_query (5 statements; 93/93 migrations valid). Verification: pytest
+598 passed; `npx tsc --noEmit` clean; `npm test` 336/336; ruff unchanged
+vs HEAD (44 pre-existing in ops/`etl/logs`, none from this change).
+Unblocks A2, A7, B1. Parent epic: Linear REZ-57.
+
 ## Cross-Register Audit + Split-Evidence Duplicate Repair (REZ-56)
 3 Aug 2026 - FULLY COMPLETE in production (main `ed84bef`, PRs #70-72; VPS
 at `ed84bef`). Spec: `context/feature-specs/spec-cross-register-audit.md`.
