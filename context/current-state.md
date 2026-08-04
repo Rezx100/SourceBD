@@ -5,8 +5,56 @@ Last compacted for agent-token efficiency: 30 Jun 2026.
 ## Phase
 Phase 7 - Public Beta launch prep.
 
+## Entity Resolution Core — SPECIFIED, NOT STARTED
+4 Aug 2026 — spec written, no code. `context/feature-specs/spec-resolution-core.md`.
+Replaces the `_find_existing` decision in `etl/core/upsert.py` (five passes,
+first match wins, trigram prefilter capped at 50, no score retained, no memory
+of human rulings) with a batch resolution stage.
+
+Founder decisions recorded 4 Aug, both required before implementation:
+- **Hard Rule 4 tool approval**: an LLM adjudicator is approved for the
+  **review band only** — never auto-merge, never overriding a human ruling,
+  rationale persisted alongside the feature vector. Firecrawl `/v2/extract` is
+  **NOT** approved; parsing stays deterministic (Hard Rule 5).
+- **Placement**: resolution is a **separate batch stage** over immutable
+  `staging_records`, with upsert consuming its decisions. Inline resolution was
+  rejected because it cannot be shadow-run.
+
+Three new tables: `staging_records` (immutable landing, traceable to an
+`evidence_document_id`), `record_identity` (one shared identity computation, so
+the definitions stop drifting between upsert / audit / repair scripts), and
+`resolution_decisions` (append-only, features + band + policy version).
+`resolution_edges` from A3 is NOT duplicated — it stays the human-ruling table
+and acts as a hard override.
+
+Measured findings that shaped the design (production, 4 Aug 2026):
+- **Replay needs zero re-scraping.** 6,374 evidence documents with 100% raw
+  payload coverage (4,407 `raw_html_mirror_url` + 1,967 `file_mirror_url`);
+  20,224 source records, all with non-empty `fields`, 13 May – 2 Aug.
+- **BGMEA registration equality is NOT decisive** — 1,196 reg numbers appear on
+  more than one published supplier and 664 suppliers hold more than one number
+  (reg 2571 = Opex Designers + Opex International; 641 = Shamoli Garments +
+  YSG Bangladesh; 6699 = Chorka Apparels + CHORKA TEXTILE). BKMEA's IS decisive
+  (4 collisions). Treating BGMEA reg as identity would merge sister companies.
+- **Shared address is a group / anti-merge signal, not identity** — 479
+  normalised address keys shared by 1,752 published suppliers, largest cluster
+  69.
+- **`suppliers.lat` / `lng` are populated on ZERO rows.** Coordinates live only
+  in `address_geocodes` (17,973 rows, all with coords); geo blocking reaches
+  90.6% but only via that join. `address_status = 'ok'` matches zero rows — do
+  not filter on it.
+- Single-source rate 7,947 / 10,845 published (73.3%); zero-source 0.
+- 6,970 published suppliers (64.3%) hold zero active evidence claims — this is
+  the D1 figure Linear REZ-82 asks for, measured here so both efforts share one
+  number.
+
+Prerequisite: the Guardrails epic (Linear REZ-57) must merge first, and the
+Extensions epic (REZ-58) should be applied so facility rows are not scored as
+candidate companies. Phases R0–R6 with per-phase acceptance criteria and the
+R4 cutover gate are in the spec.
+
 ## Guardrails Epic — resolution_edges schema (REZ-63 / REZ-57 A3)
-4 Aug 2026 — COMPLETE in the working tree on `development` (PR pending).
+4 Aug 2026 — COMPLETE (merged via PR #79 into `development` / `main`).
 Schema-only migration `0093_resolution_edges.sql`: table
 `public.resolution_edges` for sticky always-same / never-same pair
 rulings. Columns: `supplier_a`/`supplier_b` (FK cascade), `verdict`
