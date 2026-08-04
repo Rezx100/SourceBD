@@ -3,12 +3,13 @@
 This file keeps routine agent sessions from scanning every inactive feature spec.
 
 ## Active / Recent Spec
-- COMPLETE in the working tree (4 Aug 2026): **REZ-64 — A4 Make
-  resolution_edges load-bearing** (Linear REZ-64, parent REZ-57). Positive
-  `same`-edge canonicalisation in `_find_existing` (no pass reorder); live
-  `different`-edge guards in merge / audit / split-detector ops only. Empty
-  table remains a no-op. Unblocks A5. See `context/current-state.md` →
-  "Guardrails Epic — resolution_edges matcher".
+- COMPLETE (merged PR #82 into `development`, 4 Aug 2026): **REZ-64 —
+  A4 Make resolution_edges load-bearing** (Linear REZ-64, parent
+  REZ-57). Positive `same`-edge canonicalisation in `_find_existing` (no
+  pass reorder); live `different`-edge guards in merge / audit /
+  split-detector ops only. Empty table remains a no-op. Unblocks A5.
+  See `context/current-state.md` → "Guardrails Epic — resolution_edges
+  matcher".
 - COMPLETE in the working tree (4 Aug 2026): **REZ-63 — A3 Add
   resolution_edges table for sticky always-same / never-same pair
   rulings (schema only)** (Linear REZ-63, parent REZ-57). Migration
