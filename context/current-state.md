@@ -73,6 +73,20 @@ Deploy-order hazard, twice hit: A4 and A6 query `resolution_edges` /
 shipping that code before its migration crashes every ETL run. Apply the
 migration before or with the deploy.
 
+## Guardrails Epic — profile numeric projection (REZ-68 / REZ-57 A8)
+5 Aug 2026 — COMPLETE in working tree (PR #93). Branched from
+`origin/development` @ `2f3599b`. Replaces `greatest()` /
+`where x.val > coalesce(...)` in `ops/backfill_profile_columns.py` with
+highest-`source_tier` then most-recent-`fetched_at` (`distinct on`,
+explicit tier→int map). `nullif(..., 0)` kept load-bearing (zeros reach
+payloads — pre-flight). Shared columns (employees_*, machines_sewing)
+merged to one UPDATE each so cross-source ranking works; A6 lock
+predicates preserved on every UPDATE (13 → 9 statements). Arrays /
+established_date / source→column exclusivity untouched. Dry-run is
+default (REST); `--apply` via psycopg awaits founder approval. Dry-run
+posted on Linear REZ-68: 802 downward corrections; KNIT GUARD
+machines_sewing 150 → 36. Parent epic: Linear REZ-57.
+
 ## Guardrails Epic — extension facility attach (REZ-67 / REZ-57 A7)
 5 Aug 2026 — COMPLETE, merged via PR #91 into `development` (`caa036a`).
 Code-only; no migration. `extension_base_name()` in `etl/core/normalize.py` ports
@@ -895,10 +909,9 @@ Architectural decisions worth keeping:
   initials block for another. Pinned in
   `etl/tests/test_supplier_dedup_guards.py` against the real observed pairs, in
   both directions: conflations must not merge, true variants must still merge.
-- **Max-merge hides downward corrections.** `backfill_profile_columns.py` uses
-  `greatest()`, so when BKMEA corrected KNIT GUARD APPARELS from 150 sewing
-  machines to 36, the profile kept 150. Known, not yet fixed — it needs a
-  per-source current-value rule rather than a running maximum.
+- **Max-merge hides downward corrections.** Fixed in REZ-68 / A8 (code on
+  branch; production apply pending founder dry-run approval). KNIT GUARD
+  machines_sewing 150 → 36 is the motivating case.
 
 **Applied to production 31 Jul 2026** (main `bf9647d`). Migration 0087 took
 needs_review from ~11.9k to 881, with 12,551 claims filed as `superseded`. The
