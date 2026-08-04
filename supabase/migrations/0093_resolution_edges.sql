@@ -43,8 +43,9 @@
 --     drop constraint if exists chk_resolution_edges_canonical_order;
 --   drop table if exists public.resolution_edges;
 --
--- NOT applied to production in this session — founder applies migrations
--- manually.
+-- Not applied in the authoring session — founder applies migrations manually.
+-- APPLIED to production 4 Aug 2026. See the migration ledger in
+-- context/current-state.md for live status; do not treat this header as one.
 
 -- ---------------------------------------------------------------------------
 -- 1. Table

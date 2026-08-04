@@ -53,9 +53,29 @@ Extensions epic (REZ-58) should be applied so facility rows are not scored as
 candidate companies. Phases R0–R6 with per-phase acceptance criteria and the
 R4 cutover gate are in the spec.
 
+## Production Migration Ledger (authoritative)
+Migration headers say "NOT applied to production in this session" — that line
+records the state at authoring time and is NOT a live status. Check here, or
+query `to_regclass` / `information_schema` directly, before assuming.
+
+| Migration | Applied to production | Notes |
+| -- | -- | -- |
+| `0091_supplier_facility_of` | 4 Aug 2026 | `suppliers.facility_of` live; 0 rows set |
+| `0092_enforce_publish_tier_facility_guard` | 4 Aug 2026 | trigger fires on `is_published` + `facility_of` |
+| `0093_resolution_edges` | 4 Aug 2026 | table live, 0 rows (A5 `--apply` not yet run) |
+| `0094_supplier_field_locks` | 5 Aug 2026 | table live, 0 rows; `column_name` trigger verified |
+
+Production baseline after all four: 10,845 published of 10,912 suppliers
+(unchanged by every migration above — all additive, no row writes).
+
+Deploy-order hazard, twice hit: A4 and A6 query `resolution_edges` /
+`supplier_field_locks` unconditionally with no missing-table guard, so
+shipping that code before its migration crashes every ETL run. Apply the
+migration before or with the deploy.
+
 ## Guardrails Epic — extension facility attach (REZ-67 / REZ-57 A7)
-5 Aug 2026 — COMPLETE in the working tree on `development` (PR pending).
-`extension_base_name()` in `etl/core/normalize.py` ports
+5 Aug 2026 — COMPLETE, merged via PR #91 into `development` (`caa036a`).
+Code-only; no migration. `extension_base_name()` in `etl/core/normalize.py` ports
 `public.rsc_extension_base_name` (migration 0014) exactly, plus
 production extras `(Extension 2|area|buildings)`, annex, `(Ext)`,
 parenthesized units, and multi-pass for stacked suffixes. Critical
@@ -70,8 +90,9 @@ machine — substituted full pytest green (code-only change). Unblocks
 cleaner B1 intake. Parent epic: Linear REZ-57.
 
 ## Guardrails Epic — field locks (REZ-66 / REZ-57 A6)
-4 Aug 2026 — COMPLETE in working tree (schema + ETL enforcement; not
-applied to production). Migration `0094_supplier_field_locks.sql`
+4 Aug 2026 — COMPLETE, merged via PR #89 into `development` (`41a1a1a`) and
+deployed to the VPS. Migration `0094` APPLIED to production 5 Aug 2026.
+Migration `0094_supplier_field_locks.sql`
 creates `public.supplier_field_locks` (live unique on `(supplier_id,
 column_name) WHERE released_at IS NULL`, RLS with no anon/auth
 policies, trigger validating `column_name` against
@@ -117,8 +138,9 @@ rationale; audit excludes from every signal class + "RULED DIFFERENT BY
 HUMAN" section; `check_supplier_splits` same exclusion. Empty table is a
 provable no-op. Verification: pytest 627 (+7 in
 `test_resolution_edges_matcher.py`; dedup guards unchanged); ruff 44
-pre-existing (0 new); `npx tsc --noEmit` clean; `npm test` 336/336. Not
-applied to production. Unblocks A5. Parent epic: Linear REZ-57.
+pre-existing (0 new); `npx tsc --noEmit` clean; `npm test` 336/336.
+Code-only; deployed to the VPS 5 Aug 2026 (needs `0093` live — applied
+4 Aug). Unblocks A5. Parent epic: Linear REZ-57.
 
 ## Guardrails Epic — resolution_edges schema (REZ-63 / REZ-57 A3)
 4 Aug 2026 — COMPLETE (merged via PR #79 into `development` / `main`).
@@ -132,14 +154,14 @@ also CHECK not-self; partial unique
 `idx_resolution_edges_pair_active` (one live ruling per pair); read-path
 partial indexes on each side; RLS enabled with zero anon/authenticated
 policies. No rows inserted; no `upsert.py` / view / RPC / TS changes.
-Not applied to production. Parses under libpg_query (15 statements;
+APPLIED to production 4 Aug 2026. Parses under libpg_query (15 statements;
 95/95 migrations valid). Verification: pytest 620 passed (+13 in
 `etl/tests/test_resolution_edges_schema.py`); `npx tsc --noEmit` clean;
 `npm test` 336/336; ruff 44 pre-existing (0 new from this change).
 Unblocks A4 / A5 / C3. Parent epic: Linear REZ-57.
 
 ## Guardrails Epic — facility publish refuse (REZ-62 / REZ-57 A2)
-4 Aug 2026 — COMPLETE in the working tree on `development` (PR pending).
+4 Aug 2026 — COMPLETE, merged via PR #77 into `development`.
 Migration `0092_enforce_publish_tier_facility_guard.sql` redefines
 `enforce_publish_tier()`: when `NEW.facility_of IS NOT NULL`, silently
 coerce `NEW.is_published := false` and return (chosen over raise so B1
@@ -147,7 +169,9 @@ backfill and `_maybe_publish()` do not churn exceptions). Existing Tier
 1–3 check, message, and `errcode = 'check_violation'` preserved exactly
 for non-facility rows. Trigger `trg_suppliers_publish` widened to
 `before insert or update of is_published, facility_of`. No row values;
-no `upsert.py` / view / RPC / TS changes. Not applied to production.
+no `upsert.py` / view / RPC / TS changes. APPLIED to production 4 Aug 2026
+(verified: trigger fires on both `is_published` and `facility_of`; Tier 1–3
+check and `check_violation` errcode preserved in the installed function).
 Parses under libpg_query (3 statements; 94/94 migrations valid).
 Verification: pytest 607 passed (+9 in
 `etl/tests/test_facility_publish_guard.py`); `npx tsc --noEmit` clean;
@@ -155,12 +179,12 @@ Verification: pytest 607 passed (+9 in
 Unblocks B1. Parent epic: Linear REZ-57.
 
 ## Guardrails Epic — facility_of schema (REZ-61 / REZ-57 A1)
-4 Aug 2026 — COMPLETE in the working tree on `development` (PR pending).
+4 Aug 2026 — COMPLETE, merged via PR #75 into `development`.
 Schema-only migration `0091_supplier_facility_of.sql`: nullable self-FK
 `suppliers.facility_of` → `suppliers(id) on delete set null`, partial
 index `idx_suppliers_facility_of`, CHECK `chk_suppliers_facility_not_self`,
 column comment. No row values; no `enforce_publish_tier()` / `upsert.py` /
-view / RPC / TS changes. Not applied to production. Parses under
+view / RPC / TS changes. APPLIED to production 4 Aug 2026. Parses under
 libpg_query (5 statements; 93/93 migrations valid). Verification: pytest
 598 passed; `npx tsc --noEmit` clean; `npm test` 336/336; ruff unchanged
 vs HEAD (44 pre-existing in ops/`etl/logs`, none from this change).
