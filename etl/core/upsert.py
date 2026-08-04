@@ -27,7 +27,12 @@ from rapidfuzz import fuzz, process
 
 from etl.core.db import db, get_source_id
 from etl.core.logging import get_logger
-from etl.core.normalize import make_slug, normalize_company_name, normalize_phones
+from etl.core.normalize import (
+    extension_base_name,
+    make_slug,
+    normalize_company_name,
+    normalize_phones,
+)
 from etl.core.resolution_edges import apply_same_edge_canonical
 from etl.core.scraper import ScrapedRecord
 
@@ -99,11 +104,21 @@ def upsert_supplier_with_source(rec: ScrapedRecord) -> str | None:
                          ref=rec.source_ref)
                 c.commit()
                 return None
+            # REZ-67 / A7: extension-pattern names with a known parent attach
+            # as facilities (facility_of set → A2 keeps them unpublished).
+            # Exact recomputed identity only — never fuzzy (Anika/ANITA).
+            # No parent → create and publish as today; B5 collects orphans.
+            facility_of: str | None = None
+            base = extension_base_name(rec.company_name)
+            if base is not None:
+                facility_of = _find_facility_parent(cur, base)
             supplier_id = _insert_supplier(
-                cur, slug=slug, norm=norm, email=email, phones=phones, rec=rec
+                cur, slug=slug, norm=norm, email=email, phones=phones, rec=rec,
+                facility_of=facility_of,
             )
             log.info("supplier.created", supplier_id=supplier_id, name=rec.company_name,
-                     source=rec.source_code, ref=rec.source_ref)
+                     source=rec.source_code, ref=rec.source_ref,
+                     facility_of=facility_of)
         else:
             _enrich_supplier(cur, supplier_id=supplier_id, email=email, phones=phones, rec=rec)
             log.info("supplier.enriched", supplier_id=supplier_id, source=rec.source_code,
@@ -333,21 +348,49 @@ def _contact_match_allowed(norm: str, candidate_norm: str | None) -> bool:
     ) >= _CONTACT_NAME_FLOOR
 
 
+def _find_facility_parent(cur, base_name: str) -> str | None:
+    """Exact recomputed identity only (Pass 1 slug / Pass 1.5 squash).
+
+    Fuzzy matching is forbidden here: a dry run once proposed Anika→ANITA
+    and Bando→BRAND, which would have been re-conflations.
+    """
+    parent_slug = make_slug(base_name)
+    cur.execute("select id from public.suppliers where slug = %s", (parent_slug,))
+    row = cur.fetchone()
+    if row:
+        return str(row["id"])
+    parent_norm = normalize_company_name(base_name)
+    squashed = parent_norm.replace(" ", "")
+    if squashed:
+        cur.execute(
+            "select id from public.suppliers "
+            "where replace(company_name_norm, ' ', '') = %s "
+            "order by created_at asc limit 1",
+            (squashed,),
+        )
+        row = cur.fetchone()
+        if row:
+            return str(row["id"])
+    return None
+
+
 def _insert_supplier(
-    cur, *, slug: str, norm: str, email: str | None, phones: list[str], rec: ScrapedRecord
+    cur, *, slug: str, norm: str, email: str | None, phones: list[str],
+    rec: ScrapedRecord, facility_of: str | None = None,
 ) -> str:
     cur.execute(
         """insert into public.suppliers
              (slug, company_name, company_name_norm, entity_type,
               contact_name, contact_role, email_primary, phones, website,
-              address_raw, city, district, source_tags)
-           values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s, ARRAY[%s])
+              address_raw, city, district, source_tags, facility_of)
+           values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s, ARRAY[%s], %s)
            returning id""",
         (
             slug, rec.company_name, norm,
             rec.entity_type or _entity_type_for(rec.source_code),
             rec.contact_name, rec.contact_role, email, phones, rec.website,
             rec.address_raw, rec.city, rec.district, rec.source_code,
+            facility_of,
         ),
     )
     return str(cur.fetchone()["id"])

@@ -123,6 +123,84 @@ def make_slug(name: str) -> str:
     return slugify(normalize_company_name(name))
 
 
+# ---------------------------------------------------------------------------
+# Extension / facility base-name (REZ-67 / A7)
+# ---------------------------------------------------------------------------
+# Port of public.rsc_extension_base_name (migration 0014) plus the production
+# patterns the SQL misses. Pure — importable by ops without a database.
+# Do NOT unify with ops/repair_bgmea_conflations._compatible (prefix guard);
+# that drift is tracked, not collapsed (Hard Rule 3).
+
+_PREVIOUSLY_END_RE = re.compile(r"\s*\(\s*previously\s+[^)]*\)\s*$", re.IGNORECASE)
+
+# One regex per token — mirrors the SQL (nested alternations break PG ARE).
+_EXT_SQL_PATTERNS: tuple[re.Pattern[str], ...] = (
+    re.compile(r"\s*[-(]\s*extension\s*\)?\s*$", re.IGNORECASE),
+    re.compile(r"\s*[-(]\s*expansion(\s+buildings?)?\s*\)?\s*$", re.IGNORECASE),
+    re.compile(r"\s*[-(]\s*new\s+building\s*\)?\s*$", re.IGNORECASE),
+    re.compile(r"\s*[-(]\s*new\s+location\s*\)?\s*$", re.IGNORECASE),
+    # " Unit-N" / " Unit N" / " - Unit N" with optional comma-separated list.
+    # Anchored at end so "N. T. APPARELS UNIT-2 LIMITED" is NOT a facility.
+    re.compile(r"\s*-?\s*unit[\s-]+[0-9]+(\s*[,-]\s*[0-9]+)*\s*$", re.IGNORECASE),
+    re.compile(r"\s*-\s*[0-9]+\s*-\s*$"),
+    re.compile(r"\s+-\s*[0-9]+(\s*[,-]\s*[0-9]+)*\s*$"),
+)
+
+# Production extras the SQL does not reach (REZ-67).
+_EXT_EXTRA_PATTERNS: tuple[re.Pattern[str], ...] = (
+    # (Extension 2) / (Extension area) / (Extension buildings)
+    re.compile(r"\s*\(\s*extension(?:\s+[^)]+)?\s*\)\s*$", re.IGNORECASE),
+    # (Annex building) / - Annex building
+    re.compile(r"\s*[-(]\s*annex(?:\s+building)?\s*\)?\s*$", re.IGNORECASE),
+    re.compile(r"\s*\(\s*annex(?:\s+building)?\s*\)\s*$", re.IGNORECASE),
+    # (Ext)
+    re.compile(r"\s*\(\s*ext\s*\)\s*$", re.IGNORECASE),
+    # (Unit-03) / (Unit-2) — parenthesized unit the SQL end-anchor misses
+    # when glued as Ltd.(Unit-03)
+    re.compile(r"\s*\(\s*unit[\s-]*[0-9]+\s*\)\s*$", re.IGNORECASE),
+)
+
+
+def _strip_extension_suffixes(value: str) -> str:
+    """Apply one full pass of SQL + extra strip patterns."""
+    out = value
+    for pat in _EXT_SQL_PATTERNS:
+        out = pat.sub("", out)
+    for pat in _EXT_EXTRA_PATTERNS:
+        out = pat.sub("", out)
+    return out.strip()
+
+
+def extension_base_name(name: str) -> str | None:
+    """Return the mother-company name for an extension-pattern name, else None.
+
+    Mirrors ``public.rsc_extension_base_name`` and additionally strips the
+    production patterns that SQL misses. Loops until stable so stacked
+    suffixes like ``(Unit-2) (Extension)`` resolve in two passes. Returns
+    None when nothing was stripped or when the result would be empty.
+    """
+    if not name or not str(name).strip():
+        return None
+
+    v_clean = _PREVIOUSLY_END_RE.sub("", name).strip()
+    if not v_clean:
+        return None
+
+    current = v_clean
+    # Bound the loop: stacked real-world suffixes are 2–3 deep; 8 is ample.
+    for _ in range(8):
+        stripped = _strip_extension_suffixes(current)
+        if stripped == current:
+            break
+        current = stripped
+
+    if not current:
+        return None
+    if current.lower() == v_clean.lower():
+        return None
+    return current
+
+
 def _host_of(url: str) -> str:
     host = (urlparse(url).hostname or "").lower()
     return host[4:] if host.startswith("www.") else host

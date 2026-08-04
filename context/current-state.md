@@ -53,6 +53,22 @@ Extensions epic (REZ-58) should be applied so facility rows are not scored as
 candidate companies. Phases R0–R6 with per-phase acceptance criteria and the
 R4 cutover gate are in the spec.
 
+## Guardrails Epic — extension facility attach (REZ-67 / REZ-57 A7)
+5 Aug 2026 — COMPLETE in the working tree on `development` (PR pending).
+`extension_base_name()` in `etl/core/normalize.py` ports
+`public.rsc_extension_base_name` (migration 0014) exactly, plus
+production extras `(Extension 2|area|buildings)`, annex, `(Ext)`,
+parenthesized units, and multi-pass for stacked suffixes. Critical
+negative pinned: `N. T. APPARELS UNIT-2 LIMITED` → None. Upsert create
+path (`upsert_supplier_with_source`) sets `facility_of` when an exact
+slug or squash parent exists; no fuzzy; no `_find_existing` change; no
+SQL function change; no retro-backfill (B1). A2 trigger keeps facility
+rows unpublished. Drift vs `ops/repair_bgmea_conflations._compatible`
+prefix guard reported on Linear REZ-67 (not unified). Detector
+`ops/check_supplier_conflations.py` timed out on pooler :6543 from this
+machine — substituted full pytest green (code-only change). Unblocks
+cleaner B1 intake. Parent epic: Linear REZ-57.
+
 ## Guardrails Epic — field locks (REZ-66 / REZ-57 A6)
 4 Aug 2026 — COMPLETE in working tree (schema + ETL enforcement; not
 applied to production). Migration `0094_supplier_field_locks.sql`
