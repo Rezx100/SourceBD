@@ -73,6 +73,24 @@ Deploy-order hazard, twice hit: A4 and A6 query `resolution_edges` /
 shipping that code before its migration crashes every ETL run. Apply the
 migration before or with the deploy.
 
+## Guardrails Epic — multi-member-ref detector (REZ-88 / REZ-57)
+5 Aug 2026 — IN PROGRESS on `rez-88-multi-ref-detector` (branched from
+`origin/development` @ `7c13599`). Detection + plan only; **no mutations**.
+
+Production reproduction (Supabase REST; psycopg pooler blocked from this
+host): **199** BGMEA-sourced suppliers hold >1 distinct active member
+`source_ref`; **230** excess refs; all 199 lack `scraped_company_name`
+(pre-REZ-56 `bgmea_web`), so the name-based BGMEA scan was blind.
+
+Shipped: `multi_member_ref` signal class in
+`ops/check_supplier_conflations.py` (structural; ignores BKMEA `:detail`
+and same-`source_ref` re-scrapes); `--rest` transport; planner
+`ops/plan_multi_member_refs.py`; plan
+`ops/plans/rez-88-multi-ref-plan.md`. Classification of 230 excess refs:
+split 164 / attach-as-facility 3 / merge 60 / unresolved 3. Counts posted
+on Linear REZ-88 for founder approval. Did not touch REZ-89 / REZ-87 /
+`_compatible` / projection rules. Parent epic: Linear REZ-57.
+
 ## Guardrails Epic — profile numeric projection (REZ-68 / REZ-57 A8)
 5 Aug 2026 — COMPLETE, merged via PR #93 into `development` (`2f803c1`) and
 deployed to the VPS. Code-only; no migration. **APPLIED to production
