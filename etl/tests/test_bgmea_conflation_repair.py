@@ -42,6 +42,18 @@ class TestStowawayDetection:
             "AKH KNITTING & DYEING LTD. (Extension)", "AKH Knitting & Dyeing Ltd."
         )
 
+    def test_direction_a_short_base_is_compatible(self):
+        # REZ-87: old _MIN_PREFIX_LEN rejected "big boss" (len 8).
+        assert _compatible(
+            "Big Boss Corporation Limited (Extension)",
+            "Big Boss Corporation Limited",
+        )
+        assert _compatible("Asrotex (Extension)", "Asrotex")
+        assert _compatible("G.A.B. Limited (Extension)", "G.A.B. Limited")
+
+    def test_u2_building_is_compatible_with_parent(self):
+        assert _compatible("Anzir Apparels Ltd. (U-2)", "Anzir Apparels Ltd.")
+
     def test_unnamed_record_is_not_flagged(self):
         # Nothing to compare — flagging would be a guess.
         assert _compatible("Any Host Ltd.", "")

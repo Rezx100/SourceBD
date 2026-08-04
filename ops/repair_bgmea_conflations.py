@@ -30,9 +30,9 @@ For every BGMEA source_record whose ref is `general:{reg}`:
 
 1. Look up the member's name in the oracle; compare against the host
    supplier's name with the SAME normalization + compatibility predicate the
-   ingest matcher uses (`normalize_company_name`, `_names_compatible`).
-   Compatible, or one name is a normalized prefix of the other (the
-   extension/unit class, deliberately separate suppliers): leave alone.
+   ingest matcher uses (`normalize_company_name`, `_names_compatible`), plus
+   the extension/unit class via `extension_base_name` (REZ-87). Compatible:
+   leave alone.
 2. Incompatible: the record is a stowaway. A record only ever JOINS an
    existing supplier on exact identity — recomputed-slug equality or squash
    (space-stripped norm) equality, the matcher's Pass 1/1.5 bars.
@@ -87,7 +87,12 @@ from typing import Any
 import httpx
 from rapidfuzz import fuzz
 
-from etl.core.normalize import make_slug, normalize_company_name, normalize_phones
+from etl.core.normalize import (
+    extension_base_name,
+    make_slug,
+    normalize_company_name,
+    normalize_phones,
+)
 from etl.core.upsert import _FUZZY_THRESHOLD, _names_compatible
 
 DERIVED_COLUMNS = (
@@ -108,11 +113,6 @@ _CAPS = {
     "production_capacity_pcs_day": 10_000_000,
     "production_capacity_dozen_yearly": 200_000_000,
 }
-
-# Prefix compatibility guard: "akh knitting and dyeing extension" hosting the
-# record of "akh knitting and dyeing" is the extension/unit class, not a
-# conflation. Only trusted when the shorter norm is substantial.
-_MIN_PREFIX_LEN = 10
 
 _DIGITS_RE = re.compile(r"[^0-9]")
 
@@ -170,6 +170,15 @@ class Rest:
 
 
 def _compatible(host_name: str, member_name: str) -> bool:
+    """Whether a host supplier and a BGMEA member name are the same company.
+
+    Same-company via ``_names_compatible``, or the extension/unit class via
+    ``extension_base_name`` (REZ-87). The old ``_MIN_PREFIX_LEN = 10`` prefix
+    guard lived ONLY for the extension class and is gone: after legal-suffix
+    strip, short bases like ``big boss`` (len 8) failed the floor and
+    ``check_supplier_conflations`` flagged real extensions as conflations
+    (Direction A, 25 production pairs). Do not resurrect a blind prefix check.
+    """
     a = normalize_company_name(host_name or "")
     b = normalize_company_name(member_name or "")
     if not a or not b:
@@ -177,8 +186,16 @@ def _compatible(host_name: str, member_name: str) -> bool:
         return True
     if _names_compatible(a, b):
         return True
-    shorter, longer = sorted((a, b), key=len)
-    return len(shorter) >= _MIN_PREFIX_LEN and longer.startswith(shorter)
+    # Either side may be the building: host "X (Extension)" with member "X",
+    # or host "X" with member "X (Unit-2)".
+    for raw, other_norm in ((host_name, b), (member_name, a)):
+        base = extension_base_name(raw or "")
+        if not base:
+            continue
+        base_n = normalize_company_name(base)
+        if base_n and _names_compatible(base_n, other_norm):
+            return True
+    return False
 
 
 class SupplierPool:

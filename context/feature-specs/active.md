@@ -3,12 +3,18 @@
 This file keeps routine agent sessions from scanning every inactive feature spec.
 
 ## Active / Recent Spec
-- IN PROGRESS (5 Aug 2026): **REZ-88 — structural multi-member-ref
-  detector + classification plan** (Linear REZ-88, parent REZ-57).
-  Detection + reviewed plan only — no splits/merges/unpublish.
-  Reproduced 199 suppliers / 230 excess BGMEA refs via REST.
-  Plan counts posted on Linear for founder approval. See
-  `context/current-state.md` → "Guardrails Epic — multi-member-ref".
+- IN PROGRESS (5 Aug 2026): **REZ-87 — A7b Unify Python extension
+  definition + Direction B patterns** (Linear REZ-87, parent REZ-57).
+  Founder decision: Option 1 scoped to Python only — do NOT touch
+  `public.rsc_extension_base_name` (indexes 0055/0056; B4 owns SQL).
+  `extension_base_name` is Python SoT; `_compatible` delegates; Direction B
+  patterns added; production fixture checked in. Unblocks REZ-90 + REZ-71.
+  Sequential with REZ-89 (both touch `repair_bgmea_conflations.py`).
+- COMPLETE (detector only, 5 Aug 2026): **REZ-88 — structural
+  multi-member-ref detector** (Linear REZ-88, parent REZ-57). Merged PR #95
+  (`a7695bc`). Classification plan **REJECTED** — do not execute
+  `ops/plans/rez-88-multi-ref-plan.md`. Rework is REZ-90 (blocked by REZ-87).
+  See `context/current-state.md` → "Guardrails Epic — multi-member-ref".
 - COMPLETE in working tree / PR #93 open (5 Aug 2026): **REZ-68 — A8
   Replace greatest() in backfill_profile_columns with
   highest-trust-then-most-recent** (Linear REZ-68, parent REZ-57).
