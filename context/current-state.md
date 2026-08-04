@@ -74,13 +74,13 @@ shipping that code before its migration crashes every ETL run. Apply the
 migration before or with the deploy.
 
 ## Guardrails Epic — extension-name Python unify (REZ-87 / REZ-57 A7b)
-5 Aug 2026 — IN PROGRESS on `rez-87-extension-python-unify` (branched from
-`origin/development` @ `62398bb`). Founder decision on Linear: **Option 1
-scoped to Python only** — do NOT retire or modify
-`public.rsc_extension_base_name` (IMMUTABLE indexes 0055/0056; buyer
-profile timeout risk; ≥8 views; B4 owns SQL). SQL and Python are different
-jobs (view-side inheritance vs match/detector classification) and are
-allowed to differ.
+5 Aug 2026 — COMPLETE in working tree / PR #98 open on
+`rez-87-extension-python-unify` (branched from `origin/development` @
+`62398bb`). Founder decision on Linear: **Option 1 scoped to Python only**
+— do NOT retire or modify `public.rsc_extension_base_name` (IMMUTABLE
+indexes 0055/0056; buyer profile timeout risk; ≥8 views; B4 owns SQL).
+SQL and Python are different jobs (view-side inheritance vs match/detector
+classification) and are allowed to differ.
 
 Shipped intent: `extension_base_name()` is the Python source of truth;
 `_compatible` delegates the extension class to it and drops
