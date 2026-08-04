@@ -9,10 +9,14 @@ write via psycopg (founder approval required for production).
 Numeric merge rule (REZ-68 / A8): for each column, the winning value is from
 the highest-trust source_records.source_tier that reports a non-zero value,
 then among equal-tier sources the most recent fetched_at. Never the largest.
-Never the sum. Zeros are excluded via nullif(..., 0) in the candidate set so
-a zero-reporting record cannot blank a real value. greatest() and
-`where x.val > coalesce(...)` are intentionally gone — a register may correct
-a number downwards.
+Never sum *across* source records. Zeros are excluded via nullif(..., 0) in
+the candidate set so a zero-reporting record cannot blank a real value.
+greatest() and `where x.val > coalesce(...)` are intentionally gone — a
+register may correct a number downwards.
+
+Within one BGMEA `employees` object (REZ-91): Management / Employee Male /
+Employee Female are disjoint cohorts — sum those recognised keys only.
+Unrecognised keys are skipped and reported. Do not sum every dict value.
 
 Source-exclusivity (unchanged):
 - employees_total/male/female: BGMEA + BKMEA
@@ -33,6 +37,7 @@ import os
 import re
 import sys
 import time
+from collections import Counter
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
@@ -50,6 +55,13 @@ TIER_RANK: dict[str, int] = {
     "tier5_regulatory": 5,
     "tier6_crosscheck": 6,
 }
+
+# BGMEA workforce cohorts — disjoint groups in one factory. Sum these only
+# (REZ-91). Do not add future keys like "Total" here without an explicit
+# precedence rule; unrecognised keys are skipped and reported.
+BGMEA_EMPLOYEE_COHORT_KEYS: frozenset[str] = frozenset(
+    {"Management", "Employee Male", "Employee Female"}
+)
 
 
 @dataclass(frozen=True)
@@ -108,9 +120,12 @@ SQL_STATEMENTS: list[tuple[str, str]] = [
           union all
           select sr.supplier_id,
                  (
-                   select max(nullif(regexp_replace(v.value::text, '[^0-9]', '', 'g'), '')::bigint)
+                   -- REZ-91: sum recognised cohorts only (not max, not every key).
+                   -- Empty-string values fail ~ '[0-9]' and are skipped.
+                   select sum(nullif(regexp_replace(v.value::text, '[^0-9]', '', 'g'), '')::bigint)
                      from jsonb_each_text(sr.fields -> 'employees') v
-                    where v.value ~ '[0-9]'
+                    where v.key in ('Management', 'Employee Male', 'Employee Female')
+                      and v.value ~ '[0-9]'
                  ) as val,
                  sr.source_tier,
                  sr.fetched_at,
@@ -820,17 +835,35 @@ def _digits_int(raw: Any) -> int | None:
     return val if val != 0 else None
 
 
-def _bgmea_employees_total(fields: dict) -> int | None:
+def _bgmea_employees_total(
+    fields: dict,
+    *,
+    unknown_keys: list[str] | None = None,
+) -> int | None:
+    """Sum recognised BGMEA workforce cohorts (REZ-91).
+
+    Empty-string / non-digit / zero cohorts are skipped via ``_digits_int``.
+    Unrecognised keys are not added to the sum; when ``unknown_keys`` is
+    provided they are appended for reporting. Production payloads (5 Aug 2026)
+    carry only Management / Employee Male / Employee Female — no explicit
+    Total key — so there is no total-precedence branch today.
+    """
     emp = fields.get("employees")
     if not isinstance(emp, dict):
         return None
-    best: int | None = None
-    for v in emp.values():
-        n = _digits_int(v)
+    total = 0
+    found = False
+    for key, raw in emp.items():
+        if key not in BGMEA_EMPLOYEE_COHORT_KEYS:
+            if unknown_keys is not None:
+                unknown_keys.append(str(key))
+            continue
+        n = _digits_int(raw)
         if n is None:
             continue
-        best = n if best is None else max(best, n)
-    return best
+        total += n
+        found = True
+    return total if found else None
 
 
 class Rest:
@@ -869,6 +902,8 @@ def _candidates_for_column(
     records: list[dict],
     source_by_id: dict[str, str],
     entity_type_by_supplier: dict[str, str | None],
+    *,
+    unknown_employee_keys: list[str] | None = None,
 ) -> dict[str, list[NumericCandidate]]:
     """Build per-supplier candidate lists mirroring the SQL statements."""
     by_sup: dict[str, list[NumericCandidate]] = {}
@@ -885,7 +920,7 @@ def _candidates_for_column(
             if code == "BKMEA":
                 val = _digits_int(fields.get("bkmea_employees_total"))
             elif code == "BGMEA":
-                val = _bgmea_employees_total(fields)
+                val = _bgmea_employees_total(fields, unknown_keys=unknown_employee_keys)
         elif column == "employees_male":
             if code == "BKMEA":
                 val = _digits_int(fields.get("bkmea_employees_male"))
@@ -936,7 +971,7 @@ def _candidates_for_column(
 
 
 def dry_run_numeric_diff(rest: Rest) -> dict[str, Any]:
-    """Compute per-column change counts and largest downward corrections via REST."""
+    """Compute per-column change counts and largest corrections via REST."""
     sources = rest.all_rows("sources", {"select": "id,code", "code": "in.(BKMEA,BGMEA)"})
     source_by_id = {s["id"]: s["code"] for s in sources}
     source_ids = ",".join(source_by_id.keys())
@@ -973,11 +1008,16 @@ def dry_run_numeric_diff(rest: Rest) -> dict[str, Any]:
     locked = {(r["supplier_id"], r["column_name"]) for r in locks}
     print(f"  live numeric field locks: {len(locked)}", flush=True)
 
-    report: dict[str, Any] = {"per_column": {}, "downward": []}
+    report: dict[str, Any] = {"per_column": {}, "downward": [], "upward": []}
     all_downward: list[dict[str, Any]] = []
+    all_upward: list[dict[str, Any]] = []
+    unknown_employee_keys: list[str] = []
 
     for col in NUMERIC_COLUMNS:
-        cand_map = _candidates_for_column(col, records, source_by_id, entity_type_by_supplier)
+        unk = unknown_employee_keys if col == "employees_total" else None
+        cand_map = _candidates_for_column(
+            col, records, source_by_id, entity_type_by_supplier, unknown_employee_keys=unk
+        )
         changed = 0
         downward = 0
         upward = 0
@@ -995,26 +1035,26 @@ def dry_run_numeric_diff(rest: Rest) -> dict[str, Any]:
             if before == after:
                 continue
             changed += 1
+            row = {
+                "column": col,
+                "supplier_id": sid,
+                "slug": sup.get("slug"),
+                "company_name": sup.get("company_name"),
+                "before": before,
+                "after": after,
+                "delta": (after - before) if before is not None else after,
+                "winner_source": winner.source_code,
+                "winner_tier": winner.source_tier,
+                "winner_fetched_at": (
+                    winner.fetched_at.isoformat() if winner.fetched_at else None
+                ),
+            }
             if before is not None and after < before:
                 downward += 1
-                all_downward.append(
-                    {
-                        "column": col,
-                        "supplier_id": sid,
-                        "slug": sup.get("slug"),
-                        "company_name": sup.get("company_name"),
-                        "before": before,
-                        "after": after,
-                        "delta": before - after,
-                        "winner_source": winner.source_code,
-                        "winner_tier": winner.source_tier,
-                        "winner_fetched_at": (
-                            winner.fetched_at.isoformat() if winner.fetched_at else None
-                        ),
-                    }
-                )
+                all_downward.append({**row, "delta": before - after})
             else:
                 upward += 1
+                all_upward.append(row)
         report["per_column"][col] = {
             "changed": changed,
             "downward": downward,
@@ -1026,19 +1066,30 @@ def dry_run_numeric_diff(rest: Rest) -> dict[str, Any]:
         )
 
     all_downward.sort(key=lambda r: r["delta"], reverse=True)
+    all_upward.sort(key=lambda r: abs(r["delta"] or 0), reverse=True)
     report["downward"] = all_downward[:10]
     report["downward_total"] = len(all_downward)
+    report["upward"] = all_upward[:15]
+    report["upward_total"] = len(all_upward)
+    # Unique unknown keys encountered while projecting employees_total
+    unk_counts = Counter(unknown_employee_keys)
+    report["unknown_employee_keys"] = dict(unk_counts.most_common())
+    if unk_counts:
+        print(f"  unknown BGMEA employees keys skipped: {dict(unk_counts)}", flush=True)
+    else:
+        print("  unknown BGMEA employees keys skipped: (none)", flush=True)
     return report
 
 
 def format_dry_run_markdown(report: dict[str, Any]) -> str:
     lines: list[str] = [
-        "## REZ-68 / A8 dry-run (REST, no writes)",
+        "## REZ-91 dry-run (REST, no writes)",
         "",
-        "Winner rule: highest `source_tier`, then most recent `fetched_at`, "
-        "then lower `source_records.id`. Zero-reporting records are excluded "
-        "from the candidate set. `greatest()` and `where x.val > coalesce(...)` "
-        "are gone.",
+        "BGMEA `employees_total` is now the **sum** of recognised cohorts "
+        "(`Management`, `Employee Male`, `Employee Female`) within one record. "
+        "Cross-record winner rule is unchanged (REZ-68 / A8: highest "
+        "`source_tier`, then most recent `fetched_at`). Two records' totals "
+        "are never added to each other.",
         "",
         "### Suppliers changed per column",
         "",
@@ -1050,11 +1101,41 @@ def format_dry_run_markdown(report: dict[str, Any]) -> str:
             f"| `{col}` | {stats['changed']} | {stats['downward']} | "
             f"{stats['upward_or_fill']} |"
         )
+    unk = report.get("unknown_employee_keys") or {}
     lines += [
         "",
         f"Total downward corrections across columns: **{report['downward_total']}**",
+        f"Total upward/fill corrections across columns: **{report['upward_total']}**",
         "",
-        "### Ten largest downward corrections",
+        "### Unknown BGMEA `employees` keys skipped (not summed)",
+        "",
+    ]
+    if unk:
+        lines.append("| Key | Sightings |")
+        lines.append("| -- | -- |")
+        for k, n in unk.items():
+            lines.append(f"| `{k}` | {n} |")
+    else:
+        lines.append("_None — production payloads only use the three recognised cohorts._")
+    lines += [
+        "",
+        "### Largest upward `employees_total` corrections (cohort sum vs stored max)",
+        "",
+        "| Supplier | Before -> After | Delta | Winning source |",
+        "| -- | -- | -- | -- |",
+    ]
+    emp_up = [r for r in report.get("upward", []) if r["column"] == "employees_total"][:10]
+    if not emp_up:
+        lines.append("| _(none)_ | | | |")
+    for row in emp_up:
+        name = row.get("slug") or row.get("company_name") or row["supplier_id"][:8]
+        lines.append(
+            f"| {name} | {row['before']} -> {row['after']} | "
+            f"+{row['delta']} | {row['winner_source']} ({row['winner_tier']}) |"
+        )
+    lines += [
+        "",
+        "### Ten largest downward corrections (any column)",
         "",
         "| Column | Supplier | Before -> After | Delta | Winning source |",
         "| -- | -- | -- | -- | -- |",
@@ -1066,11 +1147,6 @@ def format_dry_run_markdown(report: dict[str, Any]) -> str:
             f"{row['delta']} | {row['winner_source']} ({row['winner_tier']}) |"
         )
     lines += [
-        "",
-        "Expected magnitude check (pre-flight comment): "
-        "`machines_sewing` ~234 stored above all sources; "
-        "`employees_total` ~209. If counts are wildly below that, the `>` guard "
-        "was not removed.",
         "",
         "Production untouched. Re-run with `--apply` only after founder approval.",
     ]
