@@ -124,21 +124,24 @@ def make_slug(name: str) -> str:
 
 
 # ---------------------------------------------------------------------------
-# Extension / facility base-name (REZ-67 / A7)
+# Extension / facility base-name (REZ-67 / A7, extended REZ-87 / A7b)
 # ---------------------------------------------------------------------------
-# Port of public.rsc_extension_base_name (migration 0014) plus the production
-# patterns the SQL misses. Pure — importable by ops without a database.
-# Do NOT unify with ops/repair_bgmea_conflations._compatible (prefix guard);
-# that drift is tracked, not collapsed (Hard Rule 3).
+# Python match/detector-side classification. Source of truth for that job;
+# ops/repair_bgmea_conflations._compatible delegates here for the extension
+# class. public.rsc_extension_base_name is a DIFFERENT job (view-side address
+# / registry inheritance, pinned by IMMUTABLE indexes 0055/0056) and must not
+# be altered here — B4 owns it. The two are allowed to differ.
 
 _PREVIOUSLY_END_RE = re.compile(r"\s*\(\s*previously\s+[^)]*\)\s*$", re.IGNORECASE)
 
 # One regex per token — mirrors the SQL (nested alternations break PG ARE).
+# Every pattern is end-anchored so "N. T. APPARELS UNIT-2 LIMITED" stays None.
 _EXT_SQL_PATTERNS: tuple[re.Pattern[str], ...] = (
-    re.compile(r"\s*[-(]\s*extension\s*\)?\s*$", re.IGNORECASE),
-    re.compile(r"\s*[-(]\s*expansion(\s+buildings?)?\s*\)?\s*$", re.IGNORECASE),
-    re.compile(r"\s*[-(]\s*new\s+building\s*\)?\s*$", re.IGNORECASE),
-    re.compile(r"\s*[-(]\s*new\s+location\s*\)?\s*$", re.IGNORECASE),
+    re.compile(r"\s*[-(]\s*extension\s*\)?\.?\s*$", re.IGNORECASE),
+    re.compile(r"\s*[-(]\s*expansion(\s+buildings?)?\s*\)?\.?\s*$", re.IGNORECASE),
+    # Singular + plural "new building(s)" (REZ-87 Direction B).
+    re.compile(r"\s*[-(]\s*new\s+buildings?\s*\)?\.?\s*$", re.IGNORECASE),
+    re.compile(r"\s*[-(]\s*new\s+location\s*\)?\.?\s*$", re.IGNORECASE),
     # " Unit-N" / " Unit N" / " - Unit N" with optional comma-separated list.
     # Anchored at end so "N. T. APPARELS UNIT-2 LIMITED" is NOT a facility.
     re.compile(r"\s*-?\s*unit[\s-]+[0-9]+(\s*[,-]\s*[0-9]+)*\s*$", re.IGNORECASE),
@@ -146,18 +149,47 @@ _EXT_SQL_PATTERNS: tuple[re.Pattern[str], ...] = (
     re.compile(r"\s+-\s*[0-9]+(\s*[,-]\s*[0-9]+)*\s*$"),
 )
 
-# Production extras the SQL does not reach (REZ-67).
+# Production extras — REZ-67 plus REZ-87 Direction B. Still end-anchored.
 _EXT_EXTRA_PATTERNS: tuple[re.Pattern[str], ...] = (
-    # (Extension 2) / (Extension area) / (Extension buildings)
-    re.compile(r"\s*\(\s*extension(?:\s+[^)]+)?\s*\)\s*$", re.IGNORECASE),
+    # (Extension 2) / (Extension area) / (Extension buildings) + trailing junk
+    re.compile(r"\s*\(\s*extension(?:\s+[^)]+)?\s*\)+\.?\s*$", re.IGNORECASE),
+    # Dash form: "Consist Apparels Ltd. - Extension 2"
+    re.compile(r"\s*-\s*extension(?:\s+\d+)?\.?\s*$", re.IGNORECASE),
+    # Undelimited: "MNR Sweaters Ltd Extension Building"
+    re.compile(r"\s+extension\s+buildings?\.?\s*$", re.IGNORECASE),
     # (Annex building) / - Annex building
-    re.compile(r"\s*[-(]\s*annex(?:\s+building)?\s*\)?\s*$", re.IGNORECASE),
-    re.compile(r"\s*\(\s*annex(?:\s+building)?\s*\)\s*$", re.IGNORECASE),
+    re.compile(r"\s*[-(]\s*annex(?:\s+building)?\s*\)?\.?\s*$", re.IGNORECASE),
+    re.compile(r"\s*\(\s*annex(?:\s+building)?\s*\)+\.?\s*$", re.IGNORECASE),
     # (Ext)
-    re.compile(r"\s*\(\s*ext\s*\)\s*$", re.IGNORECASE),
+    re.compile(r"\s*\(\s*ext\s*\)+\.?\s*$", re.IGNORECASE),
     # (Unit-03) / (Unit-2) — parenthesized unit the SQL end-anchor misses
     # when glued as Ltd.(Unit-03)
-    re.compile(r"\s*\(\s*unit[\s-]*[0-9]+\s*\)\s*$", re.IGNORECASE),
+    re.compile(r"\s*\(\s*unit[\s-]*[0-9]+\s*\)+\.?\s*$", re.IGNORECASE),
+    # Unit-II / Unit II (roman) — REZ-90 needs Univogue … Unit-II
+    re.compile(r"\s*-?\s*unit[\s-]+[ivxlcdm]+\.?\s*$", re.IGNORECASE),
+    # (U-2) / (U-02)
+    re.compile(r"\s*\(\s*u[\s-]*[0-9]+\s*\)+\.?\s*$", re.IGNORECASE),
+    # Trailing U-2 / U-02 (space-delimited, end-anchored)
+    re.compile(r"\s+u[\s-]+[0-9]+\.?\s*$", re.IGNORECASE),
+    # Glued trailing -N after a legal-form period: "Shangu Tex Ltd.-2"
+    re.compile(r"(?<=\w)\.\s*-\s*[0-9]+\s*$"),
+    # (Woven Unit) / (Sw Unit) / (Knit Unit) style building labels
+    re.compile(r"\s*\(\s*(?:woven|sw|knit|sewing)\s+unit\s*\)+\.?\s*$", re.IGNORECASE),
+    # (Factory-02) / (Factory 2)
+    re.compile(r"\s*\(\s*factory[\s-]*[0-9]+\s*\)+\.?\s*$", re.IGNORECASE),
+    # [NEW BUILDING] / [Extension]
+    re.compile(
+        r"\s*\[\s*(?:new\s+)?(?:building|buildings|extension)s?\s*\]+\.?\s*$",
+        re.IGNORECASE,
+    ),
+    # Extended Building(s) — with or without a dash/paren delimiter
+    re.compile(r"\s*[-(]?\s*extended\s+buildings?\s*\)?\.?\s*$", re.IGNORECASE),
+    # New Shed
+    re.compile(r"\s*[-(]?\s*new\s+shed\s*\)?\.?\s*$", re.IGNORECASE),
+    # (relocated) / - relocated / trailing relocated
+    re.compile(r"\s*[-(]?\s*relocated\s*\)?\.?\s*$", re.IGNORECASE),
+    # Glued "LimitedNew Buildings" / "LtdNew Building"
+    re.compile(r"(?<=[A-Za-z])New\s+Buildings?\.?\s*$"),
 )
 
 
@@ -174,10 +206,15 @@ def _strip_extension_suffixes(value: str) -> str:
 def extension_base_name(name: str) -> str | None:
     """Return the mother-company name for an extension-pattern name, else None.
 
-    Mirrors ``public.rsc_extension_base_name`` and additionally strips the
-    production patterns that SQL misses. Loops until stable so stacked
-    suffixes like ``(Unit-2) (Extension)`` resolve in two passes. Returns
-    None when nothing was stripped or when the result would be empty.
+    Python-side source of truth for match/detector classification (REZ-87).
+    Ports the SQL patterns and adds production spellings the SQL never saw.
+    Loops until stable so stacked suffixes like ``(Unit-2) (Extension)``
+    resolve in two passes. Returns None when nothing was stripped or when
+    the result would be empty.
+
+    Critical negative: ``N. T. APPARELS UNIT-2 LIMITED`` → None — Unit-2 sits
+    inside the registered name followed by LIMITED; every new pattern must
+    stay end-anchored so that case cannot become a facility.
     """
     if not name or not str(name).strip():
         return None
