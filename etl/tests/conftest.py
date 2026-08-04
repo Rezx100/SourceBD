@@ -22,6 +22,8 @@ class FakeCursor:
         pass0_row: dict[str, Any] | None = None,
         slug_row: dict[str, Any] | None = None,
         squash_row: dict[str, Any] | None = None,
+        slug_by_value: dict[str, dict[str, Any]] | None = None,
+        squash_by_value: dict[str, dict[str, Any]] | None = None,
         lock_rows: list[dict[str, Any]] | None = None,
         new_supplier_id: str = "sup-new",
     ) -> None:
@@ -29,15 +31,30 @@ class FakeCursor:
         self._pass0_row = pass0_row
         self._slug_row = slug_row
         self._squash_row = squash_row
+        # Param-keyed rows so parent-lookup (REZ-67) can resolve a different
+        # slug/squash than `_find_existing` did for the extension name.
+        self._slug_by_value = dict(slug_by_value or {})
+        self._squash_by_value = dict(squash_by_value or {})
         # Live locks only (released_at IS NULL). Default empty = ETL unchanged.
         self._lock_rows = list(lock_rows or [])
         self._new_supplier_id = new_supplier_id
         self.executed: list[tuple[str, Any]] = []
         self._last_sql = ""
+        self._last_params: Any = None
+        # A2 simulation: facility rows stay unpublished after _maybe_publish.
+        self.facility_of_inserted: str | None = None
+        self.is_published: bool = False
 
     def execute(self, sql: str, params: Any = None) -> None:
         self._last_sql = sql
+        self._last_params = params
         self.executed.append((sql, params))
+        if "insert into public.suppliers" in sql and params is not None:
+            # facility_of is the final insert parameter (REZ-67).
+            self.facility_of_inserted = params[-1] if params else None
+        if "set is_published = true" in sql:
+            # Mirror enforce_publish_tier facility guard (A2): coerce off.
+            self.is_published = self.facility_of_inserted is None
 
     def fetchall(self) -> list[dict[str, Any]]:
         if "select supplier_id, raw_hash from public.source_records" in self._last_sql:
@@ -53,8 +70,12 @@ class FakeCursor:
         if "insert into public.suppliers" in self._last_sql:
             return {"id": self._new_supplier_id}
         if "where slug = %s" in self._last_sql:
+            if self._slug_by_value and self._last_params is not None:
+                return self._slug_by_value.get(self._last_params[0])
             return self._slug_row
         if "replace(company_name_norm" in self._last_sql:
+            if self._squash_by_value and self._last_params is not None:
+                return self._squash_by_value.get(self._last_params[0])
             return self._squash_row
         # Pass 2 email: no match.
         return None
