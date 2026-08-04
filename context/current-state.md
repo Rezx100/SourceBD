@@ -5,6 +5,54 @@ Last compacted for agent-token efficiency: 30 Jun 2026.
 ## Phase
 Phase 7 - Public Beta launch prep.
 
+## Workforce projection + facility roll-up — DECIDED, NOT STARTED
+5 Aug 2026 — founder spotted `COAST TO COAST (PVT.) LTD.` publishing the wrong
+workforce and asked what happens to an extension's data when it joins its
+mother. Investigation found two unrelated defects and one architectural gap.
+
+**REZ-91 (P0) — `employees_total` is the max cohort, not the sum.** BGMEA reports
+workforce as `{Management, Employee Male, Employee Female}`;
+`ops/backfill_profile_columns.py` takes `max()` over that dict. Production
+5 Aug: 4,247 BGMEA suppliers carry the payload, 1,604 have >1 populated cohort,
+**1,594 understate workforce by mean factor 1.88×**, largest suppressed total
+37,094. In **625 of them the displayed "total workforce" is the management
+headcount** (Management wins 625, Male 526, Female 457). Wrong even on a clean
+single-ref supplier. Root cause is the "numerics never summed" rule — correct
+*across source records*, wrong *within one record's cohort breakdown*. Those two
+operations must not share a rule.
+
+**No facility roll-up exists at all.** Verified 5 Aug: `facility_of` is set on
+**0 suppliers** and **no view or function in the database references it**. Both
+extension paths lose the building's contribution, by different mechanisms:
+- *merge* re-points source records / evidence / claims / certifications to the
+  survivor, so documents live on, but numerics **compete** (A8 tier-then-recency)
+  and never sum — the extension's headcount is discarded, or *replaces* the
+  parent's if it is more recent.
+- *facility attach* leaves numerics and RSC docs stranded on a row that A2's
+  trigger forces `is_published = false`. Nothing surfaces them on the parent.
+
+Founder decisions 5 Aug:
+- **Show both numbers** — parent's own figure plus a separate labelled group
+  total across N facilities. Never fold facilities into the headline; that
+  destroys the distinction between verified-at-this-address and inferred-across-
+  buildings. Derived only, never written back to `suppliers.*` (REZ-92).
+- **Surface facility RSC/evidence on the mother, attributed to the building**,
+  keeping the `(Extension)` / `Unit-2` suffix as the label. RSC inspects
+  buildings, so hiding a facility hides real safety evidence — a compliance
+  loss, not a cosmetic one. Read-path only; do NOT re-point rows, that destroys
+  attribution (REZ-93).
+- Certification inheritance is **undecided** — an entity-level cert may cover all
+  buildings where an RSC inspection never does. REZ-93 must report and ask.
+
+**REZ-71 (B1) bulk facility attach is BLOCKED** until REZ-91 → REZ-92 → REZ-93
+land, because attaching today makes mother profiles thinner, not richer.
+Detection/reporting half of B1 is still safe; only `--apply` is blocked.
+
+`coast-to-coast` is additionally a three-ref conflation (`general:1081` =
+the real company per BGMEA, `2768` = Coast To Coast Fashion, `3070` = Coast To
+Coast Apparels). Its published 650 / 400 / 93,000 all come from `2768`, a
+different company. That is REZ-90's scope, not REZ-91's.
+
 ## Entity Resolution Core — SPECIFIED, NOT STARTED
 4 Aug 2026 — spec written, no code. `context/feature-specs/spec-resolution-core.md`.
 Replaces the `_find_existing` decision in `etl/core/upsert.py` (five passes,
