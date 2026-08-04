@@ -28,6 +28,7 @@ from rapidfuzz import fuzz, process
 from etl.core.db import db, get_source_id
 from etl.core.logging import get_logger
 from etl.core.normalize import make_slug, normalize_company_name, normalize_phones
+from etl.core.resolution_edges import apply_same_edge_canonical
 from etl.core.scraper import ScrapedRecord
 
 log = get_logger("etl.upsert")
@@ -178,6 +179,16 @@ def _find_existing(
     source_code: str | None = None, source_ref: str | None = None,
     alias_refs: tuple[str, ...] = (),
 ) -> str | None:
+    # Pass order is load-bearing (production incidents). Do not reorder.
+    # After any pass finds a candidate, honour live `same` edges via
+    # apply_same_edge_canonical (positive-edge hook, REZ-64). Negative
+    # (`different`) edges are enforced in ops merge/audit/split paths —
+    # the incoming record has no second supplier id to compare at match time.
+    #
+    # Live same-edges are loaded once per process (see
+    # etl.core.resolution_edges); never query resolution_edges per pass.
+    candidate: str | None = None
+
     # Pass 0: self-source idempotency. If we have already ingested this exact
     # (source_id, source_ref), reuse the same supplier_id deterministically.
     # Aliases (a chained record's parent ref) match too, with the record's own
@@ -193,13 +204,14 @@ def _find_existing(
         )
         row = cur.fetchone()
         if row:
-            return str(row["supplier_id"])
+            candidate = str(row["supplier_id"])
 
     # Pass 1: slug
-    cur.execute("select id from public.suppliers where slug = %s", (slug,))
-    row = cur.fetchone()
-    if row:
-        return str(row["id"])
+    if candidate is None:
+        cur.execute("select id from public.suppliers where slug = %s", (slug,))
+        row = cur.fetchone()
+        if row:
+            candidate = str(row["id"])
 
     # Pass 1.5: squash equality — names differing ONLY by spaces are one
     # spelling ("Master Cham" vs "Mastercham", "3-A Fashions" vs "3A
@@ -212,30 +224,31 @@ def _find_existing(
     # functional index on the replace() is the deferred optimization — schema
     # migration, needs the founder's explicit go-ahead; the per-record seq
     # scan at ~10k rows is acceptable meanwhile.
-    squashed = norm.replace(" ", "")
-    if squashed:
-        cur.execute(
-            "select id from public.suppliers "
-            "where replace(company_name_norm, ' ', '') = %s "
-            "order by created_at asc limit 1",
-            (squashed,),
-        )
-        row = cur.fetchone()
-        if row:
-            return str(row["id"])
+    if candidate is None:
+        squashed = norm.replace(" ", "")
+        if squashed:
+            cur.execute(
+                "select id from public.suppliers "
+                "where replace(company_name_norm, ' ', '') = %s "
+                "order by created_at asc limit 1",
+                (squashed,),
+            )
+            row = cur.fetchone()
+            if row:
+                candidate = str(row["id"])
 
     # Pass 2: email, corroborated by the name.
-    if email:
+    if candidate is None and email:
         cur.execute(
             "select id, company_name_norm from public.suppliers where email_primary = %s",
             (email,),
         )
         row = cur.fetchone()
         if row and _contact_match_allowed(norm, row["company_name_norm"]):
-            return str(row["id"])
+            candidate = str(row["id"])
 
     # Pass 3: phone overlap, corroborated by the name.
-    if phones:
+    if candidate is None and phones:
         cur.execute(
             "select id, company_name_norm from public.suppliers "
             "where phones && %s::text[]",
@@ -243,27 +256,32 @@ def _find_existing(
         )
         for row in cur.fetchall():
             if _contact_match_allowed(norm, row["company_name_norm"]):
-                return str(row["id"])
+                candidate = str(row["id"])
+                break
 
     # Pass 4: fuzzy name (within trigram-prefiltered candidates)
-    cur.execute(
-        """select id, company_name_norm
-             from public.suppliers
-            where company_name_norm %% %s
-            limit 50""",
-        (norm,),
-    )
-    rows = cur.fetchall()
-    if rows:
-        choices = {str(r["id"]): r["company_name_norm"] for r in rows}
-        match = process.extractOne(norm, choices, scorer=fuzz.token_sort_ratio)
-        if (
-            match
-            and match[1] >= _FUZZY_THRESHOLD
-            and _names_compatible(norm, match[0])
-        ):
-            return match[2]
-    return None
+    if candidate is None:
+        cur.execute(
+            """select id, company_name_norm
+                 from public.suppliers
+                where company_name_norm %% %s
+                limit 50""",
+            (norm,),
+        )
+        rows = cur.fetchall()
+        if rows:
+            choices = {str(r["id"]): r["company_name_norm"] for r in rows}
+            match = process.extractOne(norm, choices, scorer=fuzz.token_sort_ratio)
+            if (
+                match
+                and match[1] >= _FUZZY_THRESHOLD
+                and _names_compatible(norm, match[0])
+            ):
+                candidate = match[2]
+
+    if candidate is None:
+        return None
+    return apply_same_edge_canonical(cur, candidate)
 
 
 def _leading_initials(norm: str) -> str | None:

@@ -97,6 +97,7 @@ from psycopg.rows import dict_row
 from rapidfuzz import fuzz
 
 from etl.core.normalize import make_slug, normalize_company_name
+from etl.core.resolution_edges import load_different_pair_rationales, pair_key
 from etl.core.upsert import _FUZZY_THRESHOLD, _names_compatible
 from etl.lib.bd_place_lexicon import apply_place_lexicon
 
@@ -444,10 +445,19 @@ def _fetch(
 
 
 def discover_clusters(
-    members: dict[str, Member], code_by_id: dict[str, str], cur, explain: str | None = None
-) -> tuple[list[Cluster], dict[tuple[str, str], set[str]]]:
+    members: dict[str, Member],
+    code_by_id: dict[str, str],
+    cur,
+    explain: str | None = None,
+    different_pairs: dict[tuple[str, str], str] | None = None,
+) -> tuple[list[Cluster], dict[tuple[str, str], set[str]], dict[tuple[str, str], str]]:
     """Connected components over the three discovery signals, plus the raw
-    pair signals (the variant report subtracts them to stay disjoint)."""
+    pair signals (the variant report subtracts them to stay disjoint).
+
+    Returns (clusters, pair_signals, ruled_different) where ruled_different
+    maps pairs excluded by a live resolution_edges `different` ruling to the
+    edge rationale (REZ-64). Those pairs are omitted from every signal class.
+    """
     parent = {mid: mid for mid in members}
 
     def find(x: str) -> str:
@@ -461,6 +471,19 @@ def discover_clusters(
         if ra != rb:
             parent[rb] = ra
 
+    if different_pairs is None:
+        different_pairs = load_different_pair_rationales(cur)
+    ruled_different: dict[tuple[str, str], str] = {}
+
+    def admit(a: str, b: str) -> bool:
+        """False when a live `different` edge rules the pair out."""
+        key = pair_key(a, b)
+        rationale = different_pairs.get(key)
+        if rationale is not None:
+            ruled_different[key] = rationale
+            return False
+        return True
+
     pair_signals: dict[tuple[str, str], set[str]] = defaultdict(set)
 
     # Signal A: recomputed-slug equality.
@@ -473,6 +496,8 @@ def discover_clusters(
             continue
         for i, a in enumerate(ids):
             for b in ids[i + 1 :]:
+                if not admit(a, b):
+                    continue
                 pair_signals[(min(a, b), max(a, b))].add("A")
                 union(a, b)
 
@@ -481,6 +506,8 @@ def discover_clusters(
     cur.execute(FUZZY_PAIRS_SQL)
     for row in cur.fetchall():
         a, b = row["a_id"], row["b_id"]
+        if not admit(a, b):
+            continue
         ma, mb = members[a], members[b]
         if not ma.rec_norm or not mb.rec_norm:
             continue
@@ -497,6 +524,8 @@ def discover_clusters(
         code = code_by_id.get(row["source_id"], "?")
         for i, a in enumerate(ids):
             for b in ids[i + 1 :]:
+                if not admit(a, b):
+                    continue
                 pair_signals[(min(a, b), max(a, b))].add(f"C:{code}:{row['source_ref']}")
                 union(a, b)
 
@@ -573,7 +602,7 @@ def discover_clusters(
             )
         )
     clusters.sort(key=lambda c: (c.klass != "slug-equal", c.klass != "shared-ref", c.members[0].name))
-    return clusters, pair_signals
+    return clusters, pair_signals, ruled_different
 
 
 def _is_certain_edge(ma: Member, mb: Member, sigs: set[str]) -> bool:
@@ -696,8 +725,14 @@ def main() -> int:
     try:
         with psycopg.connect(dsn, prepare_threshold=None, row_factory=dict_row) as conn, conn.cursor() as cur:
             members, code_by_id = _fetch(cur)
-            clusters, pair_signals = discover_clusters(members, code_by_id, cur, explain=args.explain)
-            variants = variant_pairs(members, known_pairs=set(pair_signals))
+            clusters, pair_signals, ruled_different = discover_clusters(
+                members, code_by_id, cur, explain=args.explain
+            )
+            # Ruled-different pairs stay out of every signal class, including
+            # the name-variant report (REZ-64).
+            variants = variant_pairs(
+                members, known_pairs=set(pair_signals) | set(ruled_different)
+            )
     except Exception as exc:  # noqa: BLE001
         # An audit that cannot run is not a clean audit.
         print(f"ERROR: audit failed: {exc}", file=sys.stderr)
@@ -797,6 +832,20 @@ def main() -> int:
                     f"\n  … plus {len(review_variants)} review-band pair(s) (--full lists them; "
                     f"below ~94 the noise floor is real)"
                 )
+
+    if ruled_different:
+        print("\n" + "=" * 78)
+        print(
+            f"RULED DIFFERENT BY HUMAN: {len(ruled_different)} pair(s) "
+            f"(excluded from every signal class)"
+        )
+        print("=" * 78)
+        for (a, b), rationale in sorted(ruled_different.items(), key=lambda kv: kv[0]):
+            ma, mb = members[a], members[b]
+            print(
+                f"  {ma.name!r}[{a[:6]}] ≠ {mb.name!r}[{b[:6]}]\n"
+                f"      rationale: {rationale}"
+            )
 
     # ---- summary -----------------------------------------------------------
     print("\n" + "=" * 78)
