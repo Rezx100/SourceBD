@@ -74,7 +74,7 @@ shipping that code before its migration crashes every ETL run. Apply the
 migration before or with the deploy.
 
 ## Guardrails Epic — profile numeric projection (REZ-68 / REZ-57 A8)
-5 Aug 2026 — COMPLETE in working tree (PR pending). Branched from
+5 Aug 2026 — COMPLETE in working tree (PR #93). Branched from
 `origin/development` @ `2f3599b`. Replaces `greatest()` /
 `where x.val > coalesce(...)` in `ops/backfill_profile_columns.py` with
 highest-`source_tier` then most-recent-`fetched_at` (`distinct on`,

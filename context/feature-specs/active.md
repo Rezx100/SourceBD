@@ -3,7 +3,7 @@
 This file keeps routine agent sessions from scanning every inactive feature spec.
 
 ## Active / Recent Spec
-- COMPLETE in working tree / PR pending (5 Aug 2026): **REZ-68 — A8
+- COMPLETE in working tree / PR #93 open (5 Aug 2026): **REZ-68 — A8
   Replace greatest() in backfill_profile_columns with
   highest-trust-then-most-recent** (Linear REZ-68, parent REZ-57).
   `greatest()` + `>` guards removed; winner = highest `source_tier` then
