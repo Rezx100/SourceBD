@@ -54,7 +54,7 @@ candidate companies. Phases R0–R6 with per-phase acceptance criteria and the
 R4 cutover gate are in the spec.
 
 ## Guardrails Epic — resolution_edges matcher (REZ-64 / REZ-57 A4)
-4 Aug 2026 — COMPLETE in the working tree on `development` (PR pending).
+4 Aug 2026 — COMPLETE (merged via PR #82 into `development`).
 Makes `resolution_edges` load-bearing without changing pass order or
 thresholds (`92` / `85` / `3`). Positive hook only in `_find_existing`:
 after any pass finds a candidate, `apply_same_edge_canonical` rewrites to
