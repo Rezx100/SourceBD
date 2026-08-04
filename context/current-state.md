@@ -73,9 +73,46 @@ Deploy-order hazard, twice hit: A4 and A6 query `resolution_edges` /
 shipping that code before its migration crashes every ETL run. Apply the
 migration before or with the deploy.
 
+## Guardrails Epic — multi-member-ref detector (REZ-88 / REZ-57)
+5 Aug 2026 — IN PROGRESS on `rez-88-multi-ref-detector` (branched from
+`origin/development` @ `7c13599`). Detection + plan only; **no mutations**.
+
+Production reproduction (Supabase REST; psycopg pooler blocked from this
+host): **199** BGMEA-sourced suppliers hold >1 distinct active member
+`source_ref`; **230** excess refs; all 199 lack `scraped_company_name`
+(pre-REZ-56 `bgmea_web`), so the name-based BGMEA scan was blind.
+
+Shipped: `multi_member_ref` signal class in
+`ops/check_supplier_conflations.py` (structural; ignores BKMEA `:detail`
+and same-`source_ref` re-scrapes); `--rest` transport; planner
+`ops/plan_multi_member_refs.py`; plan
+`ops/plans/rez-88-multi-ref-plan.md`. Classification of 230 excess refs:
+split 164 / attach-as-facility 3 / merge 60 / unresolved 3. Counts posted
+on Linear REZ-88 for founder approval. Did not touch REZ-89 / REZ-87 /
+`_compatible` / projection rules. Parent epic: Linear REZ-57.
+
 ## Guardrails Epic — profile numeric projection (REZ-68 / REZ-57 A8)
-5 Aug 2026 — COMPLETE in working tree (PR #93). Branched from
-`origin/development` @ `2f3599b`. Replaces `greatest()` /
+5 Aug 2026 — COMPLETE, merged via PR #93 into `development` (`2f803c1`) and
+deployed to the VPS. Code-only; no migration. **APPLIED to production
+5 Aug 2026** (founder-approved). Branched from `origin/development` @
+`2f3599b`.
+
+Apply result — matched the dry-run row for row: `employees_total` 246
+changed / 244 down, `employees_male` 147 / 147, `employees_female` 124 /
+124, `production_capacity_pcs_day` 18 / 18, `machines_sewing` 255 / 255,
+`production_capacity_dozen_yearly` 16 / 14. **806 changed, 802 downward,
+4 NULL fills, 0 upward, 0 set to NULL.** Published count unchanged at
+10,845 / 10,912. KNIT GUARD `machines_sewing` 150 → 36.
+
+Rollback path: `public._a8_numeric_snapshot_20260805` holds all six columns
+for all 10,912 suppliers as of immediately pre-apply. Drop it once the
+numbers have been eyeballed on the front end.
+
+Apply mechanism: the script's `--apply` (psycopg) **cannot run from the dev
+machine** — TCP connects on both `:6543` and `:5432` but the Postgres
+handshake times out on every pooler IP, so this is protocol-level blocking,
+not a bad DSN. The six numeric statements were executed verbatim via the
+Supabase SQL API instead. Any future apply needs the VPS or the SQL API. Replaces `greatest()` /
 `where x.val > coalesce(...)` in `ops/backfill_profile_columns.py` with
 highest-`source_tier` then most-recent-`fetched_at` (`distinct on`,
 explicit tier→int map). `nullif(..., 0)` kept load-bearing (zeros reach
@@ -317,6 +354,12 @@ records stored no scraped name — the blind spot itself.
   `backfill_profile_columns.py` semantics — numerics take the HIGHEST value
   across sources (never summed), arrays union, scalars fill-only. Genesis
   Fashion class (bare created profiles) converged this way.
+  **SUPERSEDED 5 Aug 2026 by A8 (REZ-68):** numerics now take the
+  highest-trust source, then most-recent `fetched_at`. Never summed still
+  holds. `ops/repair_bgmea_conflations.py` still implements the old
+  max-merge rule and therefore now contradicts the canonical script —
+  tracked as Linear REZ-89. Do not re-run that repair before REZ-89 lands
+  or it will undo A8's downward corrections.
 - **`bgmea_web` now stores `scraped_company_name`** (uncitable) so future
   BGMEA records are detector-visible; `ops/check_supplier_conflations.py`
   widened to scan BGMEA general records via that field.
