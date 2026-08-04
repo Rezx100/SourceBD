@@ -184,6 +184,44 @@ EPB-category + 2 seed-fetch new); ruff clean; no schema migration. Residual:
 Linear REZ-56 closeout comment STILL not posted (Linear MCP unavailable
 again 4 Aug) — summary text ready for manual posting.
 
+## BGMEA Conflation Repair (founder review, 4 Aug 2026)
+4 Aug 2026 - APPLIED in production (development, PR pending). The founder's
+EPB review exposed a second population from the pre-31-Jul contact-overlap
+dedup defect: BGMEA general-member records merged into sister-company
+suppliers (3S International inside 3S TEXTILE, AKH Knitwear inside AKH
+Apparels, Aman Sweaters inside Aman Knittings, Ananta Sportswear inside ABM
+Fashions). The 31 Jul repair + daily detector were BKMEA-only because BGMEA
+records stored no scraped name — the blind spot itself.
+
+- **`ops/repair_bgmea_conflations.py`** (new, REST transport — pooler ports
+  unreachable from the dev machine): name oracle = 4 Aug snapshot of BGMEA's
+  live member list (4,285 members by reg); flags a record whose member name
+  fails `_names_compatible` + prefix guard against its host. 808 stowaways
+  found. Join only on EXACT recomputed identity (slug/squash equality —
+  Pass 1/1.5 bars); fuzzy-only candidates deliberately NOT joined (dry run
+  proposed Anika→ANITA, Bando→BRAND — re-conflations) — they get their own
+  supplier and surface in the audit variant signal. Applied: ~790 records
+  moved with their evidence claims, ~630 new suppliers created + published,
+  ~120 joined an existing exact twin, 3 ambiguous skipped for a human,
+  former hosts' derived columns recomputed from REMAINING records only.
+  Re-scan: 0 stowaways beyond the 3 ambiguous. All four founder cases
+  live with full profiles.
+- **Profile projection, founder rule**: the repair projects the moved
+  record's stored fields (employees/machines/capacity/established/
+  factory_types/principal_products/contacts) onto the destination with
+  `backfill_profile_columns.py` semantics — numerics take the HIGHEST value
+  across sources (never summed), arrays union, scalars fill-only. Genesis
+  Fashion class (bare created profiles) converged this way.
+- **`bgmea_web` now stores `scraped_company_name`** (uncitable) so future
+  BGMEA records are detector-visible; `ops/check_supplier_conflations.py`
+  widened to scan BGMEA general records via that field.
+- Ops scar: an interrupted apply's python child survived the shell kill and
+  raced the real run, minting 651 empty unpublished `-2` duplicates — all
+  verified record-less/claim-less and deleted. Kill the PID, not the shell.
+
+Tests: pytest 598 passed (7 new in test_bgmea_conflation_repair.py);
+ruff clean.
+
 Architectural decisions:
 - Merge eligibility is per-member over "certain edges", not per-cluster:
   recomputed-slug equality, or shared ref + names clearing the matcher bar +
