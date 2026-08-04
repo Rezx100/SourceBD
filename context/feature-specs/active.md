@@ -3,6 +3,15 @@
 This file keeps routine agent sessions from scanning every inactive feature spec.
 
 ## Active / Recent Spec
+- COMPLETE in working tree (5 Aug 2026): **REZ-67 — A7 Extension-pattern
+  records attach as facilities** (Linear REZ-67, parent REZ-57).
+  `extension_base_name()` in `etl/core/normalize.py` (SQL 0014 port +
+  production extras + multi-pass); upsert create path sets
+  `facility_of` on exact slug/squash parent only (no fuzzy). Detector
+  unreachable from this machine (pooler :6543 timeout); proof =
+  code-only + pytest green. Drift list vs `_compatible` prefix guard
+  posted on the Linear issue — not unified. See
+  `context/current-state.md` → "Guardrails Epic — extension facility attach".
 - COMPLETE in working tree (4 Aug 2026): **REZ-66 — A6 field-level
   manual-override lock** (Linear REZ-66, parent REZ-57). Migration
   `0094_supplier_field_locks` + ETL skip in `upsert.py` / lock
