@@ -53,6 +53,24 @@ Extensions epic (REZ-58) should be applied so facility rows are not scored as
 candidate companies. Phases R0–R6 with per-phase acceptance criteria and the
 R4 cutover gate are in the spec.
 
+## Guardrails Epic — resolution_edges matcher (REZ-64 / REZ-57 A4)
+4 Aug 2026 — COMPLETE in the working tree on `development` (PR pending).
+Makes `resolution_edges` load-bearing without changing pass order or
+thresholds (`92` / `85` / `3`). Positive hook only in `_find_existing`:
+after any pass finds a candidate, `apply_same_edge_canonical` rewrites to
+the sole published survivor of a live `same` edge; if both sides are
+published, logs `resolution.same_edge_both_published` and returns the pass
+result unmodified (never silently picks). Live edges loaded once per
+process (`etl/core/resolution_edges.py`; staleness = one scraper run).
+Negative (`different`) guards live only in ops — incoming records have no
+second supplier id at match time: `merge_duplicate_suppliers` SKIPPED +
+rationale; audit excludes from every signal class + "RULED DIFFERENT BY
+HUMAN" section; `check_supplier_splits` same exclusion. Empty table is a
+provable no-op. Verification: pytest 627 (+7 in
+`test_resolution_edges_matcher.py`; dedup guards unchanged); ruff 44
+pre-existing (0 new); `npx tsc --noEmit` clean; `npm test` 336/336. Not
+applied to production. Unblocks A5. Parent epic: Linear REZ-57.
+
 ## Guardrails Epic — resolution_edges schema (REZ-63 / REZ-57 A3)
 4 Aug 2026 — COMPLETE (merged via PR #79 into `development` / `main`).
 Schema-only migration `0093_resolution_edges.sql`: table

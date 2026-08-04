@@ -87,6 +87,17 @@ class FakeDb:
         return self._conn
 
 
+@pytest.fixture(autouse=True)
+def _clear_resolution_edges_cache() -> None:
+    """Matcher caches live same-edges once per process (REZ-64). Reset
+    between tests so a seeded index cannot leak into unrelated suites."""
+    from etl.core.resolution_edges import clear_live_same_edge_cache
+
+    clear_live_same_edge_cache()
+    yield
+    clear_live_same_edge_cache()
+
+
 @pytest.fixture
 def patched_db(monkeypatch: pytest.MonkeyPatch):
     """Point the upsert path at a FakeDb and neuter the side effects that are
