@@ -74,7 +74,9 @@ shipping that code before its migration crashes every ETL run. Apply the
 migration before or with the deploy.
 
 ## Guardrails Epic — profile numeric projection (REZ-68 / REZ-57 A8)
-5 Aug 2026 — COMPLETE in working tree (PR #93). Branched from
+5 Aug 2026 — COMPLETE, merged via PR #93 into `development` (`2f803c1`) and
+deployed to the VPS. Code-only; no migration. **`--apply` NOT yet run, so
+production numerics are unchanged and the fix is inert.** Branched from
 `origin/development` @ `2f3599b`. Replaces `greatest()` /
 `where x.val > coalesce(...)` in `ops/backfill_profile_columns.py` with
 highest-`source_tier` then most-recent-`fetched_at` (`distinct on`,
@@ -317,6 +319,12 @@ records stored no scraped name — the blind spot itself.
   `backfill_profile_columns.py` semantics — numerics take the HIGHEST value
   across sources (never summed), arrays union, scalars fill-only. Genesis
   Fashion class (bare created profiles) converged this way.
+  **SUPERSEDED 5 Aug 2026 by A8 (REZ-68):** numerics now take the
+  highest-trust source, then most-recent `fetched_at`. Never summed still
+  holds. `ops/repair_bgmea_conflations.py` still implements the old
+  max-merge rule and therefore now contradicts the canonical script —
+  tracked as Linear REZ-89. Do not re-run that repair before REZ-89 lands
+  or it will undo A8's downward corrections.
 - **`bgmea_web` now stores `scraped_company_name`** (uncitable) so future
   BGMEA records are detector-visible; `ops/check_supplier_conflations.py`
   widened to scan BGMEA general records via that field.
