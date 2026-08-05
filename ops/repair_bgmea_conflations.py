@@ -47,12 +47,16 @@ For every BGMEA source_record whose ref is `general:{reg}`:
 4. Project the record's own stored fields onto the destination profile —
    employees, machines, capacity, established date, factory types, principal
    products, contact columns — mirroring `ops/backfill_profile_columns.py`
-   semantics: numeric fields take the HIGHEST value across sources (founder
-   rule, 4 Aug 2026 — three sources with three workforce counts means the
-   max, never the sum), arrays union, scalars fill only when empty.
+   semantics: numerics resolve to the highest-trust `source_tier` that reports
+   a non-zero value, then the most recent `fetched_at`, then the lower
+   `source_records.id` (A8 / REZ-68 — never the largest, never summed across
+   records); arrays union; scalars fill only when empty.
 5. Recompute the same columns for every parent that lost a record, from the
    parent's own REMAINING records only, so nothing of the stowaway's data
    lingers on the wrong profile.
+
+Every `suppliers` write skips columns carrying a live `supplier_field_locks`
+row (A6 / REZ-66), so an admin override survives this repair.
 
 Buyer-facing rows (saved_suppliers, message_threads, orders, claim_requests)
 are never moved — same rule as the BKMEA unmerge, same reasoning.
@@ -82,6 +86,8 @@ import json
 import os
 import re
 import sys
+from dataclasses import dataclass
+from datetime import datetime
 from typing import Any
 
 import httpx
@@ -104,6 +110,10 @@ DERIVED_COLUMNS = (
     "machines_sewing",
 )
 
+# The A8 winner needs source_tier / fetched_at / id alongside the payload;
+# source_ref backs the REZ-98 bgmea_reg_numbers recompute.
+_RECORD_SELECT = "id,source_id,source_ref,source_tier,fetched_at,fields"
+
 # Sanity caps carried over from ops/backfill_profile_columns.py.
 _CAPS = {
     "employees_total": 200_000,
@@ -113,6 +123,24 @@ _CAPS = {
     "production_capacity_pcs_day": 10_000_000,
     "production_capacity_dozen_yearly": 200_000_000,
 }
+
+# Explicit integer ranking — do not rely on the Postgres enum's physical order.
+# Mirrors TIER_RANK in ops/backfill_profile_columns.py.
+TIER_RANK: dict[str, int] = {
+    "tier1_gov": 1,
+    "tier2_industry": 2,
+    "tier3_cert": 3,
+    "tier4_brand": 4,
+    "tier5_regulatory": 5,
+    "tier6_crosscheck": 6,
+}
+
+# BGMEA production-worker cohorts — the only keys summed into employees_total
+# (REZ-95). BGMEA's first column ("Management") is recognised and deliberately
+# excluded: on 192 records it exactly equals Male+Female and on 227 it exceeds
+# the whole worker count, so summing it published a management figure under the
+# "Production workers" label.
+BGMEA_WORKER_COHORT_KEYS: frozenset[str] = frozenset({"Employee Male", "Employee Female"})
 
 _DIGITS_RE = re.compile(r"[^0-9]")
 
@@ -262,28 +290,103 @@ def _guard_matches(
 
 
 # ----------------------------------------------------------------------
-# Profile projection — REST port of ops/backfill_profile_columns.py rules
-# for the record shapes BGMEA and BKMEA store, applied max-merge (numerics),
-# union (arrays), fill-only (scalars/contacts).
+# Profile projection — REST port of ops/backfill_profile_columns.py rules for
+# the record shapes BGMEA and BKMEA store: numerics resolve by highest trust
+# then most recent fetch (A8 / REZ-68), arrays union, scalars/contacts fill
+# only when empty.
+#
+# NOTE: this is a second implementation of rules whose canonical home is
+# ops/backfill_profile_columns.py. That duplication is what let this file keep
+# max-merging for a full release cycle after A8 landed. Extracting both into
+# one importable module is the standing proposal on REZ-89.
 # ----------------------------------------------------------------------
+@dataclass(frozen=True)
+class NumericCandidate:
+    """One non-zero numeric observation, carrying its A8 ranking keys."""
+
+    value: int
+    source_tier: str
+    fetched_at: datetime | None
+    record_id: str
+
+
 def _to_int(value: Any) -> int | None:
     digits = _DIGITS_RE.sub("", str(value or ""))
     return int(digits) if digits else None
 
 
-def _numbers_from_record(fields: dict[str, Any], source: str) -> dict[str, int]:
-    out: dict[str, int] = {}
+def _nonzero_int(value: Any) -> int | None:
+    """`_to_int` with zero treated as absent, not as a value.
+
+    A source publishing 0 must not blank a real figure, which is what
+    `nullif(..., 0)` guards in the canonical SQL.
+    """
+    val = _to_int(value)
+    return val or None
+
+
+def _parse_fetched_at(raw: Any) -> datetime | None:
+    if not raw:
+        return None
+    if isinstance(raw, datetime):
+        return raw
+    try:
+        return datetime.fromisoformat(str(raw).replace("Z", "+00:00"))
+    except ValueError:
+        return None
+
+
+def _bgmea_production_workers(fields: dict[str, Any]) -> int | None:
+    """`Employee Male` + `Employee Female` within one record (REZ-95).
+
+    `Management` is recognised and excluded. Empty / non-digit / zero cohorts
+    are skipped, and a payload with no populated cohort yields no candidate
+    rather than 0.
+    """
+    employees = fields.get("employees")
+    if not isinstance(employees, dict):
+        return None
+    total = 0
+    found = False
+    for key, raw in employees.items():
+        if key not in BGMEA_WORKER_COHORT_KEYS:
+            continue
+        n = _nonzero_int(raw)
+        if n is None:
+            continue
+        total += n
+        found = True
+    return total if found else None
+
+
+def _numbers_from_record(record: dict[str, Any], source: str) -> dict[str, NumericCandidate]:
+    """One record's numeric observations, each tagged with its ranking keys.
+
+    Takes the whole record rather than its `fields` because the A8 winner is
+    decided on `source_tier` / `fetched_at` / `id`, which live on the record.
+    Returning candidates rather than bare ints is deliberate: it makes the
+    old `max()` merge unexpressible at the call sites.
+    """
+    fields = record.get("fields") or {}
+    if not isinstance(fields, dict):
+        return {}
+    tier = record.get("source_tier") or ""
+    fetched_at = _parse_fetched_at(record.get("fetched_at"))
+    record_id = str(record.get("id") or "")
+    out: dict[str, NumericCandidate] = {}
 
     def put(col: str, raw: Any) -> None:
-        val = _to_int(raw)
-        if val and 0 < val <= _CAPS[col]:
-            out[col] = max(out.get(col, 0), val)
+        val = _nonzero_int(raw)
+        if val is None or not (0 < val <= _CAPS[col]):
+            return
+        out[col] = NumericCandidate(
+            value=val, source_tier=tier, fetched_at=fetched_at, record_id=record_id
+        )
 
     if source == "BGMEA":
+        put("employees_total", _bgmea_production_workers(fields))
         employees = fields.get("employees")
         if isinstance(employees, dict):
-            for v in employees.values():
-                put("employees_total", v)
             put("employees_male", employees.get("Employee Male"))
             put("employees_female", employees.get("Employee Female"))
         put("machines_sewing", fields.get("num_machines"))
@@ -295,6 +398,67 @@ def _numbers_from_record(fields: dict[str, Any], source: str) -> dict[str, int]:
         put("machines_sewing", fields.get("bkmea_machines_sewing"))
         put("production_capacity_pcs_day", fields.get("bkmea_production_capacity"))
     return out
+
+
+def pick_numeric_winner(candidates: list[NumericCandidate]) -> NumericCandidate | None:
+    """Highest trust, then most recent `fetched_at`, then lower record id.
+
+    Mirror of `pick_numeric_winner` in ops/backfill_profile_columns.py and of
+    the `distinct on ... order by` in its SQL. A record with no `fetched_at`
+    sorts last within its tier. Zeros never reach here.
+    """
+    if not candidates:
+        return None
+    return min(
+        candidates,
+        key=lambda c: (
+            TIER_RANK.get(c.source_tier, 99),
+            (0, -(c.fetched_at.timestamp())) if c.fetched_at is not None else (1, 0.0),
+            c.record_id,
+        ),
+    )
+
+
+def numeric_winners(
+    records: list[dict[str, Any]], source_codes: dict[str, str]
+) -> dict[str, int]:
+    """Winning value per derived column across a supplier's active records.
+
+    The candidate set is every BGMEA/BKMEA record the supplier holds, so the
+    result is a projection of what the register says today — not a high-water
+    mark of everything it has ever said. Pure — no I/O.
+    """
+    by_col: dict[str, list[NumericCandidate]] = {}
+    for record in records:
+        source = source_codes.get(record.get("source_id") or "")
+        if source not in ("BGMEA", "BKMEA"):
+            continue
+        for col, candidate in _numbers_from_record(record, source).items():
+            by_col.setdefault(col, []).append(candidate)
+    out: dict[str, int] = {}
+    for col, candidates in by_col.items():
+        winner = pick_numeric_winner(candidates)
+        if winner is not None:
+            out[col] = winner.value
+    return out
+
+
+def _locked_columns(rest: Rest, supplier_id: str) -> set[str]:
+    """Columns an admin has locked against automated writes (A6 / REZ-66).
+
+    Released locks (`released_at` set) do not block. Every `suppliers` PATCH
+    in this script filters its body through this — including
+    `bgmea_reg_numbers`, which the REZ-98 recompute can now write.
+    """
+    rows = rest.all_rows(
+        "supplier_field_locks",
+        {
+            "select": "column_name",
+            "supplier_id": f"eq.{supplier_id}",
+            "released_at": "is.null",
+        },
+    )
+    return {str(r["column_name"]) for r in rows if r.get("column_name")}
 
 
 def _lists_from_record(fields: dict[str, Any], source: str) -> dict[str, list[str]]:
@@ -339,13 +503,22 @@ def _scalars_from_record(fields: dict[str, Any], source: str) -> dict[str, Any]:
 
 
 def _merge_into_profile(
-    rest: Rest, supplier_id: str, fields: dict[str, Any], source: str, reg: str | None
+    rest: Rest,
+    supplier_id: str,
+    fields: dict[str, Any],
+    source: str,
+    reg: str | None,
+    source_codes: dict[str, str],
 ) -> None:
-    """Write the record's data onto the destination profile.
+    """Write the moved record's data onto the destination profile.
 
-    Numerics: highest value wins across whatever the profile already carries
-    (three sources with three workforce counts -> the max, never the sum).
+    Numerics: recomputed by the A8 rule over every BGMEA/BKMEA record the
+    destination now holds — including the one just moved in. A single record
+    cannot be ranked against a stored column, because the column carries no
+    provenance; the candidate set is what the rule is defined over. This is
+    why the projection can now lower a value, which is the point of A8.
     Arrays: union. Scalars/contacts: fill only when the profile has none.
+    Locked columns are dropped from the patch body (A6 / REZ-66).
     """
     current = rest.one(
         "suppliers",
@@ -361,8 +534,16 @@ def _merge_into_profile(
         return
     body: dict[str, Any] = {}
 
-    for col, val in _numbers_from_record(fields, source).items():
-        if val > (current.get(col) or 0):
+    records = rest.all_rows(
+        "source_records",
+        {
+            "select": _RECORD_SELECT,
+            "supplier_id": f"eq.{supplier_id}",
+            "status": "eq.active",
+        },
+    )
+    for col, val in numeric_winners(records, source_codes).items():
+        if val != current.get(col):
             body[col] = val
 
     lists = _lists_from_record(fields, source)
@@ -385,6 +566,8 @@ def _merge_into_profile(
         if tags != sorted(current.get("source_tags") or []):
             body["source_tags"] = tags
 
+    locked = _locked_columns(rest, supplier_id)
+    body = {col: val for col, val in body.items() if col not in locked}
     if body:
         rest.patch("suppliers", {"id": f"eq.{supplier_id}"}, body)
 
@@ -417,7 +600,9 @@ def _recompute_parent(rest: Rest, parent_id: str, source_codes: dict[str, str]) 
 
     The stowaway's worker count must not linger on the wrong profile, and the
     parent's own numbers must survive — so the columns are recomputed from
-    scratch, not max-merged with the polluted current values.
+    scratch by the A8 rule rather than merged with the polluted current
+    values. A column no remaining record reports is cleared, which is the
+    whole point: recompute, not top-up.
 
     `bgmea_reg_numbers` is recomputed the same way (REZ-98). Moving a record
     used to leave its registration number behind on the former host, which is
@@ -426,23 +611,20 @@ def _recompute_parent(rest: Rest, parent_id: str, source_codes: dict[str, str]) 
     vouches for are dropped, so a number the parent genuinely holds survives.
     `bgmea_verified` is supplier-level and is deliberately left alone; it
     cannot describe individual elements either way.
+
+    Locked columns are dropped from the patch body (A6 / REZ-66);
+    `bgmea_reg_numbers` is lock-checked like any other column.
     """
     records = rest.all_rows(
         "source_records",
         {
-            "select": "source_id,source_ref,fields",
+            "select": _RECORD_SELECT,
             "supplier_id": f"eq.{parent_id}",
             "status": "eq.active",
         },
     )
-    best: dict[str, int] = {}
-    for rec in records:
-        source = source_codes.get(rec["source_id"])
-        if source not in ("BGMEA", "BKMEA"):
-            continue
-        for col, val in _numbers_from_record(rec.get("fields") or {}, source).items():
-            best[col] = max(best.get(col, 0), val)
-    body: dict[str, Any] = {c: best.get(c) for c in DERIVED_COLUMNS}
+    winners = numeric_winners(records, source_codes)
+    body: dict[str, Any] = {c: winners.get(c) for c in DERIVED_COLUMNS}
 
     current = rest.one(
         "suppliers", {"select": "bgmea_reg_numbers", "id": f"eq.{parent_id}"}
@@ -457,7 +639,13 @@ def _recompute_parent(rest: Rest, parent_id: str, source_codes: dict[str, str]) 
             f"bgmea_reg_numbers (no remaining record backs them)"
         )
 
-    rest.patch("suppliers", {"id": f"eq.{parent_id}"}, body)
+    locked = _locked_columns(rest, parent_id)
+    skipped = sorted(col for col in body if col in locked)
+    body = {col: val for col, val in body.items() if col not in locked}
+    if skipped:
+        print(f"    {parent_id}: skipping locked column(s) {skipped}")
+    if body:
+        rest.patch("suppliers", {"id": f"eq.{parent_id}"}, body)
 
 
 def _unique_slug(rest: Rest, base: str, taken: set[str]) -> str:
@@ -647,9 +835,9 @@ def main() -> int:
             parents_touched.add(host["id"])
 
             # The moved company keeps its data: project the record's fields
-            # onto the destination (max-merge numerics, union arrays,
-            # fill-only scalars).
-            _merge_into_profile(rest, dest_id, fields, "BGMEA", c["reg"])
+            # onto the destination (A8 numerics, union arrays, fill-only
+            # scalars), skipping any admin-locked column.
+            _merge_into_profile(rest, dest_id, fields, "BGMEA", c["reg"], source_codes)
 
             try:
                 rows = rest.patch(
