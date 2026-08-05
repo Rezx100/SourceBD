@@ -1,0 +1,37 @@
+{
+  "gap": {
+    "bgmea_records_on_them": 5970,
+    "measurable_all_records_disagree": 50,
+    "measurable_every_record_agrees": 1416,
+    "measurable_some_record_disagrees": 173,
+    "published_holding_bgmea_record": 5740,
+    "records_agreeing": 1613,
+    "records_disagreeing": 203,
+    "records_with_a_recoverable_name": 1816,
+    "records_without_a_name_oracle": 4154,
+    "suppliers_measurable": 1589,
+    "suppliers_not_measurable": 4151,
+    "unbiased_slice_some_disagree": 152,
+    "unbiased_slice_suppliers": 1554
+  },
+  "options": {
+    "i_status_quo_numbers_removed": 0,
+    "i_status_quo_suppliers_affected": 0,
+    "ii_closed_numbers_removed": 4357,
+    "ii_closed_suppliers_losing_a_number": 4327,
+    "ii_closed_suppliers_losing_pill": 4201,
+    "ii_open_numbers_removed": 203,
+    "ii_open_suppliers_losing_a_number": 173,
+    "ii_open_suppliers_losing_pill": 50,
+    "iii_label_numbers_relabelled": 4357,
+    "iii_label_numbers_removed": 0,
+    "iv_measure_first_numbers_removed": 0,
+    "iv_measure_first_records_needing_a_name": 4154
+  },
+  "oracles": {
+    "associate_pdf_names": 1678,
+    "cache_names": 138,
+    "records_with_scraped_company_name": 0,
+    "total_source_records": 20224
+  }
+}

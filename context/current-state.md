@@ -581,6 +581,49 @@ be a deliberate decision, not a side effect.
 
 Parent epic: Linear REZ-57.
 
+## Guardrails Epic — group-of-companies + backed-only identity gap (REZ-102 / REZ-57)
+6 Aug 2026 — REPORT COMPLETE, awaiting a founder decision. Branched from
+`development` @ `b436660`. **Read-only: no splits, merges, unpublishing or
+array edits; REZ-90's `review` gate, the REZ-88 detector and REZ-99's three
+stranded numbers all untouched.** New `ops/report_group_of_companies.py` →
+`ops/plans/rez-102-group-of-companies-report.md`.
+
+**The name-stem "group of companies" reading does not survive contact
+evidence.** Testing each host against the premises and switchboard on its
+BGMEA records — using ONLY evidence a different register asserted, because
+`suppliers.phones` / `address_raw` / `email_primary` are unions written by the
+same false attach — splits the nine three ways, and the split does not follow
+the stems: **group-corroborated 2** (`dk-knitwear`, `fariha-fashion`),
+**refs-cohere-only 3** (`ags-apparels`, `jm-knitwear`, `pavel-fashion`),
+**no-link 4** (`as-knitwear`, `global-knitwear`, `next-apparels`,
+`ra-apparels`). `global-knitwear` and `next-apparels` were named as coherent
+families and have no link at all; `ags-apparels` was not, and its two refs
+share one office.
+
+**L. A. T Sportwear Ltd. on `dk-knitwear` is the opposite of a false attach**
+— it is the most strongly evidenced of the four. It sits at DK Knit Wear's own
+BKMEA *mailing* address (House 15, Road 68/A) and carries the owner's BKMEA
+representative mobile `01711548158`. The three DK-stem refs share a *different*
+Banani office among themselves. The stem is the weaker signal, not the stronger.
+
+**Identity-gap denominator: `scraped_company_name` is empty in production —
+0 of 20,224 source records**, so the measurement REZ-102 asked for cannot be
+built on it and would report zero because it measured nothing. Names come from
+the associate PDF (1,678, unselected) and the REZ-88 cache (138 general refs,
+selected). **The two BGMEA registers number independently and must be keyed by
+the whole `source_ref`**: keying by the bare number answers a `general:`
+question with the associate register's entry and inflated the gap 609 → **50**.
+Measured: 5,740 published suppliers hold 5,970 BGMEA records; **1,816 nameable
+/ 4,154 not**; of 1,589 measurable suppliers, **50 hold only records naming
+another company** and 173 hold at least one. The nine are a strict subset of
+the 50 — the rest hold a single record, so neither REZ-88's detector nor
+REZ-98's backed-only view can see them. Display-rule options costed fail-open
+(203 numbers) and fail-closed (4,357), **not chosen**.
+
+Verification: pytest **827** (804 baseline + 23), `ruff check etl ops
+--no-cache` **44** (baseline; 0 in the new files), `npx tsc --noEmit` clean,
+`npm test` 336/336. Parent epic: Linear REZ-57.
+
 ## Guardrails Epic — multi-member-ref plan revision (REZ-90 / REZ-57)
 5 Aug 2026 — COMPLETE in the working tree. Branched from `development` @
 `6884e67`. **Still plan-only; no mutations.** Detector and its tests
