@@ -16,12 +16,13 @@ from datetime import datetime
 from pathlib import Path
 
 from ops.backfill_profile_columns import (
-    BGMEA_EMPLOYEE_COHORT_KEYS,
+    BGMEA_NON_WORKER_EMPLOYEE_KEYS,
+    BGMEA_WORKER_COHORT_KEYS,
     NUMERIC_COLUMNS,
     SQL_STATEMENTS,
     NumericCandidate,
     TIER_RANK,
-    _bgmea_employees_total,
+    _bgmea_production_workers,
     _digits_int,
     pick_numeric_winner,
 )
@@ -245,14 +246,61 @@ def test_source_exclusivity_preserved() -> None:
 
 
 # ---------------------------------------------------------------------------
-# REZ-91 — BGMEA employees cohort sum (within one record)
+# REZ-95 — BGMEA production workers = Employee Male + Employee Female
+#
+# These invert REZ-91, which summed all three keys. The first column is NOT a
+# reliable management headcount, so adding it inflated 590 suppliers and exactly
+# doubled 165. Against BKMEA's independent worker total (n=198) Male+Female is
+# closer in every band.
 # ---------------------------------------------------------------------------
 
 
-def test_bgmea_employees_total_sums_recognised_cohorts() -> None:
-    """Issue test #1 — Coast To Coast shape: 850+2450+1000 = 4300, not max 2450."""
+def test_bgmea_production_workers_excludes_restated_total() -> None:
+    """Issue test #1 — fakir-fashion: the first column restates Male+Female.
+
+    18,547 == 9,274 + 9,273 exactly. Must be 18,547, NOT REZ-91's 37,094.
+    """
     assert (
-        _bgmea_employees_total(
+        _bgmea_production_workers(
+            {
+                "employees": {
+                    "Management": "18547",
+                    "Employee Male": "9274",
+                    "Employee Female": "9273",
+                }
+            }
+        )
+        == 18547
+    )
+
+
+def test_bgmea_production_workers_excludes_doubling_case() -> None:
+    """Issue test #2 — zaber-and-zubair-fabrics: 9,341 == 4,000 + 5,341.
+
+    Must be 9,341, NOT REZ-91's 18,682.
+    """
+    assert (
+        _bgmea_production_workers(
+            {
+                "employees": {
+                    "Management": "9341",
+                    "Employee Male": "4000",
+                    "Employee Female": "5341",
+                }
+            }
+        )
+        == 9341
+    )
+
+
+def test_bgmea_production_workers_excludes_plausible_management_figure() -> None:
+    """Issue test #3 — COAST TO COAST shape, where 850 looks like real management.
+
+    Male+Female wins even in this band (94 of 116 against BKMEA), so 850 is
+    still excluded: 2,450 + 1,000 = 3,450, not REZ-91's 4,300.
+    """
+    assert (
+        _bgmea_production_workers(
             {
                 "employees": {
                     "Management": "850",
@@ -261,60 +309,47 @@ def test_bgmea_employees_total_sums_recognised_cohorts() -> None:
                 }
             }
         )
-        == 4300
+        == 3450
     )
 
 
-def test_bgmea_employees_total_management_largest_is_still_summed() -> None:
-    """Issue test #2 — Management-wins case must not publish management as total."""
+def test_bgmea_production_workers_management_only_is_not_a_worker_total() -> None:
+    """Issue test #4 — a management-only payload yields no worker count.
+
+    Asserts current behaviour only. Whether such a record should lose to a
+    cohort-bearing source is REZ-94's decision, not this issue's.
+    """
     assert (
-        _bgmea_employees_total(
+        _bgmea_production_workers(
+            {"employees": {"Management": "550", "Employee Male": "", "Employee Female": ""}}
+        )
+        is None
+    )
+    assert _bgmea_production_workers({"employees": {"Management": "550"}}) is None
+
+
+def test_bgmea_production_workers_skips_empty_string_cohorts() -> None:
+    """Empty string is skipped, not treated as zero; one populated cohort stands."""
+    assert (
+        _bgmea_production_workers(
             {
                 "employees": {
                     "Management": "650",
                     "Employee Male": "510",
-                    "Employee Female": "200",
-                }
-            }
-        )
-        == 1360
-    )
-
-
-def test_bgmea_employees_total_skips_empty_string_cohorts() -> None:
-    """Issue test #3 — empty string is skipped, not treated as zero."""
-    assert (
-        _bgmea_employees_total(
-            {
-                "employees": {
-                    "Management": "550",
-                    "Employee Male": "",
                     "Employee Female": "",
                 }
             }
         )
-        == 550
+        == 510
     )
+    assert _bgmea_production_workers({"employees": {"Employee Male": "1200"}}) == 1200
 
 
-def test_bgmea_employees_total_single_cohort_unchanged() -> None:
-    """Issue test #4 — single populated cohort is unchanged by the fix."""
-    assert (
-        _bgmea_employees_total(
-            {"employees": {"Management": "550", "Employee Male": "", "Employee Female": ""}}
-        )
-        == 550
-    )
-    assert (
-        _bgmea_employees_total({"employees": {"Employee Male": "1200"}}) == 1200
-    )
-
-
-def test_bgmea_employees_total_skips_and_reports_unrecognised_keys() -> None:
-    """Issue test #5 — unrecognised keys are not summed; they are reported."""
+def test_bgmea_production_workers_skips_and_reports_unrecognised_keys() -> None:
+    """Unrecognised keys are not summed; they are reported. Management is not."""
     unknown: list[str] = []
     assert (
-        _bgmea_employees_total(
+        _bgmea_production_workers(
             {
                 "employees": {
                     "Management": "100",
@@ -326,17 +361,31 @@ def test_bgmea_employees_total_skips_and_reports_unrecognised_keys() -> None:
             },
             unknown_keys=unknown,
         )
-        == 600
+        == 500
     )
+    # Management is recognised-but-excluded, so it must NOT be reported as unknown.
     assert sorted(unknown) == ["Total", "Workers"]
 
 
+def test_bgmea_management_figure_is_preserved_not_deleted() -> None:
+    """Step 4 — the first column stays in the payload; we only stop summing it."""
+    fields = {
+        "employees": {
+            "Management": "850",
+            "Employee Male": "2450",
+            "Employee Female": "1000",
+        }
+    }
+    _bgmea_production_workers(fields)
+    assert fields["employees"]["Management"] == "850"
+
+
 def test_two_source_records_still_compete_not_summed() -> None:
-    """Issue test #6 — cross-record A8 rule: totals compete, never add."""
+    """Cross-record A8 rule is unchanged: totals compete, never add."""
     winner = pick_numeric_winner(
         [
             _cand(
-                4300,
+                3450,
                 tier="tier2_industry",
                 fetched="2026-08-02T04:00:00+00:00",
                 record_id="bgmea-new",
@@ -352,29 +401,29 @@ def test_two_source_records_still_compete_not_summed() -> None:
         ]
     )
     assert winner is not None
-    assert winner.value == 4300
-    assert winner.value != 4300 + 800
+    assert winner.value == 3450
+    assert winner.value != 3450 + 800
 
 
-def test_sql_employees_total_sums_recognised_cohort_keys_only() -> None:
-    """SQL contract: sum over enumerated cohort keys; no bare max over jsonb_each."""
+def test_sql_employees_total_sums_worker_cohorts_only() -> None:
+    """SQL contract: sum Male+Female only; Management must not be in the WHERE."""
     emp_sql = next(sql for label, sql in SQL_STATEMENTS if label.startswith("employees_total"))
     assert "select sum(" in emp_sql.lower()
-    assert "'Management'" in emp_sql
     assert "'Employee Male'" in emp_sql
     assert "'Employee Female'" in emp_sql
-    # The old bug: max over every key in the employees object.
+    assert "v.key in ('Employee Male', 'Employee Female')" in emp_sql
+    # The REZ-91 regression: Management enumerated in the summed key list.
+    assert "v.key in ('Management', 'Employee Male', 'Employee Female')" not in emp_sql
+    # The original bug: max over every key in the employees object.
     assert not re.search(
         r"select\s+max\(nullif\(regexp_replace\(v\.value",
         emp_sql,
         flags=re.I,
     )
-    # Must not sum every key — the WHERE must enumerate cohorts.
-    assert "v.key in ('Management', 'Employee Male', 'Employee Female')" in emp_sql
 
 
 def test_sql_does_not_touch_male_female_machines_or_capacity() -> None:
-    """REZ-91 non-goals: male/female key reads, machines, capacity stay as-is."""
+    """Non-goals: male/female key reads, machines, capacity stay as-is."""
     male = next(sql for label, sql in SQL_STATEMENTS if label.startswith("employees_male"))
     female = next(sql for label, sql in SQL_STATEMENTS if label.startswith("employees_female"))
     assert "Employee Male" in male
@@ -382,14 +431,15 @@ def test_sql_does_not_touch_male_female_machines_or_capacity() -> None:
     assert "select sum(" not in male.lower()
     assert "select sum(" not in female.lower()
 
-    # Cohort sum must appear only on employees_total, not sibling numerics.
+    # The worker sum must appear only on employees_total, not sibling numerics.
     for label, sql in SQL_STATEMENTS:
         if label.startswith("employees_total"):
             continue
-        assert "v.key in ('Management', 'Employee Male', 'Employee Female')" not in sql, label
+        assert "v.key in ('Employee Male', 'Employee Female')" not in sql, label
 
 
-def test_cohort_keys_constant_is_explicit() -> None:
-    assert BGMEA_EMPLOYEE_COHORT_KEYS == frozenset(
-        {"Management", "Employee Male", "Employee Female"}
-    )
+def test_worker_cohort_keys_constant_is_explicit() -> None:
+    assert BGMEA_WORKER_COHORT_KEYS == frozenset({"Employee Male", "Employee Female"})
+    # Management is known and deliberately excluded — not merely unrecognised.
+    assert BGMEA_NON_WORKER_EMPLOYEE_KEYS == frozenset({"Management"})
+    assert not (BGMEA_WORKER_COHORT_KEYS & BGMEA_NON_WORKER_EMPLOYEE_KEYS)

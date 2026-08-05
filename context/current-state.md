@@ -38,11 +38,25 @@ they share. `Male + Female` wins in every band:
 | `Management` 50–95% | 27 | **23** | 4 | 1,357 | 2,862 |
 | `Management` under 50% | 116 | **94** | 22 | 860 | 979 |
 
-H&M bracket containment (33 M+F vs 27 sum, n=57) points the same way but is
-**weak corroboration only** — BKMEA is the decisive evidence. Brand workforce
+**Why BKMEA is the right yardstick, not just the closest one.**
+`bkmea_employees_total` equals `male + female + others` on **4,037 of 4,039**
+records (100.0%, and `others` is ~always absent, so it equals `male + female`
+too). BKMEA's total is *by construction* a sum of gendered worker cohorts with
+no management component, so `Employee Male + Employee Female` is the
+like-for-like BGMEA quantity. The band table shows M+F is empirically closer;
+this shows why.
+
+Corroboration, weaker and deliberately labelled as such:
+- **BRAND_NEXT** (Tier 4, n=31) publishes *point-value* `male_workers` /
+  `female_workers`. M+F closer on **27 of 31**, mean error 1,184 vs 2,162.
+- **BRAND_HM** bracket containment (n=57): M+F inside the disclosed range on
+  **33**, sum on 27.
+
+Neither is decisive; BKMEA remains the load-bearing evidence. Brand workforce
 fields hold *ranges* (`1001-2000 Workers`, `>4000`); never
 `regexp_replace(v,'[^0-9]','','g')` them, which concatenates the bounds into a
-plausible-looking integer.
+plausible-looking integer. `BRAND_NEXT` is the exception — point values with
+thousands separators, safe to digit-strip.
 
 **Step 1 rollback — APPLIED to production 5 Aug 2026 and verified.**
 `ops/rez95_rollback_employees_total.sql` (Supabase SQL API; psycopg is
@@ -61,6 +75,72 @@ Founder decisions (do not re-ask): publish **production workers** =
 on the hero card and the Capacity tab and drop the "workers + staff" subtitle,
 **in the same PR as the data change**; **never render** the first-column
 figure — keep it in the payload, no placeholder row.
+
+**Step 2 formula — code landed, production apply NOT yet run (awaiting founder
+approval of the dry-run).** `ops/backfill_profile_columns.py`:
+`BGMEA_WORKER_COHORT_KEYS = {Employee Male, Employee Female}` plus
+`BGMEA_NON_WORKER_EMPLOYEE_KEYS = {Management}` — recognised-but-excluded, so
+`Management` is not summed *and* is not reported as an unknown key. SQL `v.key
+in (...)` and the Python mirror `_bgmea_production_workers` both changed.
+Dry-run from the rolled-back state: **1,232 rows would change — 1,030 up, 202
+down, 0 fills-from-null, all via BGMEA, 0 via BKMEA, 0 blocked by the 200k
+cap.** The 202 downward exactly equals the `mgmt_exceeds_workers` changed
+count, which is the arithmetic tie between the two analyses. Largest downward:
+`saturn-textiles` 27,772→4,326, `eastern-knitwear` 10,000→500 (payload reads
+Management 10,000 / Male 300 / Female 200).
+
+**Honest limit on the evidence:** it establishes `Male + Female` as the best of
+the three candidate formulas and the definitional match to BKMEA — not that it
+is *accurate*. Where the first column is a large round number and the gendered
+cohorts are small, the published figure may understate a real workforce. That
+is a data-quality question about BGMEA's own form, not a formula question.
+
+**Step 3 rename — shipped in the same PR.** Hero card
+(`components/supplier/company-profile-header.tsx`) "Employees" → "Production
+workers"; Capacity tab (`components/supplier/profile-capacity-tab.tsx`) "Total
+workforce" → "Production workers" and the `"workers + staff"` subtitle removed
+from both the total and the "Male workers" KPI. Nothing renders the
+first-column figure — the profile reads only `suppliers.employees_*` columns,
+never the raw BGMEA `employees` payload, so Step 4 needed no removal.
+
+**Gender-split guard — deliberate, keep it (Step 5).** `pickWorkforce` in
+`components/supplier/profile-capacity-tab.tsx` withholds the split when
+`(male + female) / total` falls outside 0.9–1.1 and sets the card meta to
+"gender split unavailable". It is load-bearing and must survive: each numeric
+column picks its A8 winner *independently*, so `employees_total` can come from
+BKMEA while `employees_male/female` come from BGMEA. It is what suppressed
+`coast-to-coast`'s split while the total was inflated to 1,360 against
+510 + 200 — it caught the REZ-91 regression that the data layer did not. Once
+the re-derive lands, total becomes 710 = 510 + 200, ratio 1.0, and the split
+renders again on its own. Documented in-place; no new guard added.
+
+**BGMEA labelling question (Step 6, report only — scraper untouched).** Not a
+per-member-type markup difference: all 1,607 records carrying worker cohorts
+are the single member type `general_manufacturer`, and *within* it 11.9%
+restate the total and 14.1% exceed the whole worker count. The parser is
+positional — `_parse_inner_kv_table` / `_parse_directors` in
+`etl/scrapers/bgmea_web.py` zips the inner table's `<th>` headers to its `<td>`
+cells by index — but all 4,238 payloads carry exactly the three expected keys
+and no `col{i}` fallback keys, so header/cell counts always matched. That
+leaves inconsistent per-factory data entry as the explanation, not a parsing
+misalignment. **Cannot be closed from stored evidence:** there are no BGMEA
+member-detail evidence documents and no raw HTML mirror (only 1
+`bgmea_buying_house` doc, no mirror), and no BGMEA `employees` evidence claims
+exist, so confirming the live markup needs a fresh fetch — a separate issue.
+
+**Known remaining defects, not this issue's scope:**
+- `coast-to-coast` will read **710, not 3,450**, because `general:2768` (a
+  different company) still wins the record competition on a six-second recency
+  margin. **REZ-90.** Not a regression of this fix.
+- `ops/repair_bgmea_conflations.py` `_numbers_from_record` still max()s *every*
+  `employees` value into `employees_total` (including `Management`). It is a
+  second write path that pre-dates REZ-91 and was never updated by it; an
+  `--apply` run would re-introduce the defect this issue fixes. Left untouched
+  deliberately — out of REZ-95's stated scope. Needs its own issue.
+- Two other surfaces still label the figure loosely: the discover result card
+  ("N employees") and the overview narrative ("workforce of ~N"). REZ-95 named
+  only the hero card and Capacity tab, so they were left alone; they need a
+  founder call.
 
 **Process rule this cost us:** REZ-91's dry-run was verified for arithmetic and
 mechanics and every one of those checks passed. What went unchecked was whether
