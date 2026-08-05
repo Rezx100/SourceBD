@@ -3,6 +3,23 @@
 This file keeps routine agent sessions from scanning every inactive feature spec.
 
 ## Active / Recent Spec
+- COMPLETE in the working tree (5 Aug 2026): **REZ-89 — A8b; the BGMEA
+  conflation repair max-merged numerics and ignored field locks** (Linear
+  REZ-89, parent REZ-57). Branched from `development` @ `ae0d9e9`.
+  `ops/repair_bgmea_conflations.py` numerics moved from max-merge to the A8
+  rule (highest `source_tier`, then most recent `fetched_at`, then lower
+  record id); `_numbers_from_record` now takes the whole record and returns
+  `NumericCandidate`s so `max()` is unexpressible at the call sites; both
+  `rest.patch("suppliers", ...)` bodies filter through `_locked_columns`
+  (A6), `bgmea_reg_numbers` included; `employees_total` derived as
+  `Employee Male + Employee Female` (REZ-95 parity — the old code max()'d
+  `Management` in). **Repair NOT run against production; the `--apply` gate
+  stays closed.** Did NOT touch `_compatible` / conflation detection
+  (REZ-87), array-union, fill-only scalars, or REZ-98's backed-set recompute.
+  **Open proposal: extract the projection helpers shared with
+  `ops/backfill_profile_columns.py` into one module** — deliberately not
+  implemented here. pytest 764 (749 baseline + 15). See
+  `context/current-state.md` → "Repair script on the A8 rule + field locks".
 - COMPLETE in the working tree (5 Aug 2026): **REZ-98 — BGMEA reg-number array
   provenance; option (a) backed-only display + append guards** (Linear REZ-98,
   parent REZ-57). `suppliers.bgmea_reg_numbers` is the only denormalised

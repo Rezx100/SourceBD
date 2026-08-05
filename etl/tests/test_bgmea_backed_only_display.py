@@ -200,6 +200,10 @@ class _FakeRest:
         self.patched: list[dict[str, Any]] = []
 
     def all_rows(self, path: str, params: dict[str, str]) -> list[dict[str, Any]]:
+        if path == "supplier_field_locks":
+            # REZ-89 added the A6 lock lookup to _recompute_parent. No locks
+            # here, so every assertion below is the REZ-98 behaviour unchanged.
+            return []
         assert path == "source_records"
         assert params["status"] == "eq.active"
         assert "source_ref" in params["select"], "the ref is the primary backing test"
