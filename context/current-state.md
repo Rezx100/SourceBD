@@ -581,6 +581,72 @@ be a deliberate decision, not a side effect.
 
 Parent epic: Linear REZ-57.
 
+## Guardrails Epic — multi-member-ref plan revision (REZ-90 / REZ-57)
+5 Aug 2026 — COMPLETE in the working tree. Branched from `development` @
+`6884e67`. **Still plan-only; no mutations.** Detector and its tests
+untouched. New plan `ops/plans/rez-90-multi-ref-plan.md`; the rejected
+`rez-88-multi-ref-plan.md` stays in the tree as evidence and as the fixture
+the merge rule is measured against.
+
+Reproduced 199 suppliers / 230 excess refs. **No member pages re-fetched** —
+the 4 Aug member snapshot plus the associate PDF reproduce all 230 recovered
+names byte-identically to the REZ-88 fetch, now checked in as
+`ops/plans/rez-90-ref-names.json` (426 refs) so the plan regenerates without
+the gitignored `ops/_tmp_*` snapshot.
+
+Revised classes: split **154** / attach-as-facility **11** /
+attach-host-as-facility **2** / merge **54** / review **6** / unresolved 3.
+Transitions from the rejected plan: 8 split→attach-as-facility (REZ-87's
+Direction B patterns, no new definition written), 2 split→attach-host-as-
+facility, 6 merge→review, 7 keeper changes.
+
+Three rules, each replacing a defect:
+
+1. **Merge is gated on root tokens, never on a similarity score.** After
+   stripping legal form, incorporation and country words (`ltd`, `pvt`,
+   `int'l`, `bd`, `bangladesh`, `the`…), punctuation and repeated spaces,
+   the surviving tokens must be identical — pluralisation and initial
+   spacing aside. Measured against the rejected plan's own 60 merges this
+   gives exactly **50 identical / 4 plural / 6 root-differs**, and the 6 are
+   precisely Alpha/Gaya, Azim/Aziz, Dressmen/Dressen, Eastern/Western,
+   New Wave AB/SA, Europtex/Eurotex. Pinned in
+   `etl/tests/test_multi_ref_classification.py`.
+2. **Keeper = the ref bearing the host's own `company_name`**, ranked exact
+   name → root form → pluralisation → `_names_compatible`, with `general:`
+   only as a tie-break. Rank "exact name" is load-bearing: root form
+   deliberately discards `International`, so without it `Axon Fashion
+   International` and `Axon Fashion Limited` tie and the `general:`
+   tie-break silently decides which company the row is. **9 hosts match no
+   ref at all** (`dk-knitwear`, `jm-knitwear`, `ra-apparels`…) — reported as
+   separate corruption, not resolved here.
+3. **A building can be on either side.** `extension_base_name` (REZ-87,
+   single definition) is asked about the excess and about the host; when the
+   host row is the unit, the excess is the parent and the host becomes its
+   `facility_of` child.
+
+**Published-row cost: 142 new rows, not ~154.** 12 of the 154 splits name a
+company that already has a supplier row and should be re-pointed. An earlier
+pass put this at 93 by also treating "another supplier publishes this reg
+number" as a target — **that is wrong and was removed.** REZ-98 proved every
+unbacked BGMEA number is a live record sitting elsewhere, so a supplier
+carrying the reg while the host holds the record is a *former* false attach,
+not the owner; re-pointing there would repeat the original mistake. Those
+**76** rows are reported as a cross-check only.
+
+REZ-98 validation set: the 61 entirely-unbacked suppliers reproduce exactly,
+are disjoint from the 199 (necessarily — a row holding two records cannot
+hold none), and only **2** stranded numbers point at a multi-ref host
+(`iqbal-knitwear`→`ra-apparels` split, `speedwell-apparels`→`ritzy-apparels`
+merge). Both agree with REZ-98's adjudication. **The 61 are a different
+population; this plan does not repair them — that stays REZ-99.**
+
+None of the 6 review counterparties exists as its own supplier row, so a
+merge would erase them with nothing to recover from.
+
+Verification: pytest **795** (764 baseline + 31), `ruff check etl ops
+--no-cache` **44** (baseline; none in the touched files), `npx tsc --noEmit`
+clean, `npm test` 336/336. Parent epic: Linear REZ-57.
+
 ## Guardrails Epic — profile numeric projection (REZ-68 / REZ-57 A8)
 5 Aug 2026 — COMPLETE, merged via PR #93 into `development` (`2f803c1`) and
 deployed to the VPS. Code-only; no migration. **APPLIED to production
