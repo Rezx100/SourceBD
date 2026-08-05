@@ -3,10 +3,23 @@
 This file keeps routine agent sessions from scanning every inactive feature spec.
 
 ## Active / Recent Spec
-- NEXT UP (5 Aug 2026): **REZ-90 — revise the multi-ref plan** (unblocked now
-  that REZ-87 is Done). Validation set: the 61 suppliers REZ-98 stripped of
-  their BGMEA pill, 56 of which are BKMEA knitwear members that picked up
-  another company's registration — the false-attach signature REZ-90 must fix.
+- COMPLETE in the working tree (5 Aug 2026): **REZ-90 — revise the multi-ref
+  plan** (Linear REZ-90, parent REZ-57). Branched from `development` @
+  `6884e67`. **Plan only; no mutations; detector and its tests untouched.**
+  New plan `ops/plans/rez-90-multi-ref-plan.md`; the rejected REZ-88 plan
+  stays as evidence and as the merge rule's fixture. Merge is gated on root
+  tokens rather than a similarity score (**50 / 4 / 6** over the rejected
+  plan's 60 merges, the 6 exactly as named); keeper is the ref bearing the
+  host's `company_name` (7 changed, **9 hosts match no ref at all**);
+  `extension_base_name` is asked about the host as well as the excess, adding
+  `attach-host-as-facility`. Classes: split 154 / attach-as-facility 11 /
+  attach-host-as-facility 2 / merge 54 / review 6 / unresolved 3. **142 new
+  published rows** (12 splits re-point to an existing supplier). No member
+  pages re-fetched — names cached in `ops/plans/rez-90-ref-names.json`.
+  REZ-98's 61 reproduce and are disjoint from the 199; only 2 stranded
+  numbers reach a multi-ref host and both agree with REZ-98. Awaiting founder
+  approval before any execution. pytest 795. See `context/current-state.md`
+  → "multi-member-ref plan revision".
   Also open: **REZ-101** (RSC as a workforce floor, 802 suppliers),
   **REZ-100** (extract the duplicated projection rules), **REZ-99** (repair the
   three BGMEA residues), **REZ-96** (premise contradicted — re-scope first).
