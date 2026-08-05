@@ -199,6 +199,58 @@ class TestKeeperSelection:
         assert keeper.source_ref  # still deterministic, just not trusted
 
 
+class TestHostMatchingNoRefCannotResolve:
+    """A row whose identity is unsettled may not be acted on.
+
+    The keeper on these hosts is an arbitrary choice among companies that are
+    all strangers to the supplier's stored name, so a `split` would leave the
+    host publishing a name no record backs.
+    """
+
+    @pytest.mark.parametrize(
+        "host,keeper_name,excess_name",
+        [
+            # dk-knitwear — a group of companies, none of them DK Knitwear.
+            ("DK KNIT WEAR LTD", "DK Design Ltd.", "DK Textile Ltd."),
+            ("DK KNIT WEAR LTD", "DK Design Ltd.", "DK Collection"),
+            ("DK KNIT WEAR LTD", "DK Design Ltd.", "L. A. T Sportwear Ltd."),
+            ("Ags Apparels Ltd", "Saint Martin Apparels", "AGS Fashion Ltd."),
+            ("J. M. KNITWEAR LTD.", "J.M. Export Ltd.", "Reglisse"),
+            ("R. A. APPARELS LTD", "R.A. Trading Limited", "A.R. Fashion"),
+        ],
+    )
+    def test_never_splits(self, host: str, keeper_name: str, excess_name: str):
+        keeper, excess = _ref("k", keeper_name), _ref("e", excess_name)
+        assert (
+            classify_excess(host, keeper, excess, host_matched=False) == "review"
+        )
+
+    def test_not_even_when_the_pair_would_otherwise_merge(self):
+        """The gate outranks every other verdict, including the safe ones."""
+        keeper, excess = _ref("k", "Some Other Co Ltd."), _ref("e", "Some Other Co")
+        assert classify_excess("Unrelated Host Ltd.", keeper, excess) == "merge"
+        assert (
+            classify_excess("Unrelated Host Ltd.", keeper, excess, host_matched=False)
+            == "review"
+        )
+
+    def test_an_unnamed_ref_stays_unresolved(self):
+        """Nothing to review when no name was recovered."""
+        keeper = _ref("k", "DK Design Ltd.")
+        assert (
+            classify_excess("DK KNIT WEAR LTD", keeper, _ref("e", None), host_matched=False)
+            == "unresolved"
+        )
+
+    def test_a_matched_host_is_unaffected(self):
+        keeper = _ref("general:4577", "Apparel Gallery Ltd.")
+        excess = _ref("1036", "Apparel Gallery")
+        assert (
+            classify_excess("Apparel Gallery Ltd.", keeper, excess, host_matched=True)
+            == "merge"
+        )
+
+
 class TestRez98ValidationSet:
     def test_a_supplier_with_a_backed_number_is_not_in_the_class(self):
         suppliers = {

@@ -19,19 +19,19 @@ Detection-only. **No splits, merges, or unpublishing.**
 
 | class | count | REZ-88 (rejected) |
 | -- | -- | -- |
-| split | 154 | 164 |
+| split | 141 | 164 |
 | attach-as-facility | 11 | 3 |
 | attach-host-as-facility | 2 | — (class did not exist) |
 | merge | 54 | 60 |
-| review | 6 | — (class did not exist) |
+| review | 19 | — (class did not exist) |
 | unresolved | 3 | 3 |
 | **total** | **230** | **230** |
 
 ## How many published suppliers the split class creates
 
-- Splits: **154**
-- Of those, the company **already has a supplier row** and the record should be re-pointed rather than a new profile minted: **12**
-- Genuinely new published rows: **142**
+- Splits: **141**
+- Of those, the company **already has a supplier row** and the record should be re-pointed rather than a new profile minted: **11**
+- Genuinely new published rows: **130**
 
 ## Validation against REZ-98's 61 stripped suppliers
 
@@ -44,7 +44,7 @@ The two populations barely intersect, so this plan does not repair the
 adjudicated rows: REZ-98 established where each of those records really
 lives, and this plan agrees with it on every one.
 
-- `iqbal-knitwear` published reg 330; the record sits on `ra-apparels`, classified **split**
+- `iqbal-knitwear` published reg 330; the record sits on `ra-apparels`, classified **review**
 - `speedwell-apparels` published reg 620; the record sits on `ritzy-apparels`, classified **merge**
 
 ## REZ-98 cross-check — excess regs still published by another supplier
@@ -178,7 +178,14 @@ lives, and this plan agrees with it on every one.
 ## Hosts where NO ref matches the supplier's own name (9)
 
 Every registration on these rows names a different company than the row
-does. Separate corruption — reported, not resolved here.
+does. All **13** of their excess refs are forced to
+`review` regardless of how they classify: the keeper is an arbitrary
+choice among strangers, so splitting on it would leave the host
+asserting a name no record backs. Separate corruption — reported, not
+resolved here. Tracked as REZ-102: seven of the nine are corroborated
+by their own BKMEA membership and two by RSC, so the row is a real
+company whose entire BGMEA set is foreign, and five hold a coherent
+group of companies (DK Design / DK Collection / DK Textile).
 
 | host slug | host `company_name` | refs |
 | -- | -- | -- |
@@ -200,7 +207,7 @@ does. Separate corruption — reported, not resolved here.
 | a-and-c-bd | `109` | A & C (BD) Ltd. | `901` | C & A Sourcing International Ltd. | split | new |
 | am-fashion | `general:6146` | A.M. Fashion | `231` | A.M. Fashion International Ltd. | split | new |
 | a-plus-industries | `general:4221` | A Plus Industries Ltd. | `544` | A Plus Industries. | merge | — |
-| as-knitwear | `953` | A. S. Fashion | `528` | S.A. Fashion | split | new |
+| as-knitwear | `953` | A. S. Fashion | `528` | S.A. Fashion | review | — |
 | abc-international | `632` | ABC International | `1697` | — | unresolved | — |
 | abl | `879` | ABL | `1722` | — | unresolved | — |
 | abl | `879` | ABL | `395` | ABL | merge | — |
@@ -215,7 +222,7 @@ does. Separate corruption — reported, not resolved here.
 | abid-export | `747` | Abid Export Ltd. | `1546` | Trade Evidence | split | new |
 | abloom | `719` | Abloom Limited | `754` | Park Mode Wear Ltd. | split | new |
 | aesthetic-apparel | `1024` | Aesthetic Apparel | `1659` | Suxes Attires Ltd. | split | new |
-| ags-apparels | `930` | Saint Martin Apparels | `1204` | AGS Fashion Ltd. | split | new |
+| ags-apparels | `930` | Saint Martin Apparels | `1204` | AGS Fashion Ltd. | review | — |
 | alex-bangladesh | `1594` | Alex Bangladesh | `1018` | Alex Fashion | split | new |
 | alpha-product-development-company-bd | `general:7112` | Alpha Product Development Company (BD) Ltd. | `general:6746` | Gaya Product Development Company (BD) Ltd. | review | — |
 | ananta-apparels | `general:6257` | Ananta Apparels Ltd. | `general:1181` | Ananta Apparels Ltd. | merge | — |
@@ -263,9 +270,9 @@ does. Separate corruption — reported, not resolved here.
 | cut-n-sew | `general:2647` | Cut N Sew Ltd. | `general:5756` | Snowtex Outerwear Ltd. | split | snowtex-outerwear |
 | dekko-knitwear | `general:1401` | Dekko Knitwears Limited | `general:3294` | Dekko Knitwears Ltd. (Unit-2) | attach-as-facility | — |
 | divine-textile | `general:2507` | Divine Textile Ltd. | `651` | Divine Sourcing Ltd. | split | new |
-| dk-knitwear | `778` | DK Design Ltd. | `1314` | L. A. T Sportwear Ltd. | split | new |
-| dk-knitwear | `778` | DK Design Ltd. | `35` | DK Textile Ltd. | split | dk-textile |
-| dk-knitwear | `778` | DK Design Ltd. | `478` | DK Collection | split | new |
+| dk-knitwear | `778` | DK Design Ltd. | `1314` | L. A. T Sportwear Ltd. | review | — |
+| dk-knitwear | `778` | DK Design Ltd. | `35` | DK Textile Ltd. | review | — |
+| dk-knitwear | `778` | DK Design Ltd. | `478` | DK Collection | review | — |
 | danny-dhaka | `general:4929` | Danny Dhaka Ltd. | `53` | Kam Knit | split | new |
 | danny-dhaka | `general:4929` | Danny Dhaka Ltd. | `54` | Danny Dhaka Ltd. | merge | — |
 | data-fashion | `general:4994` | Data Fashion Ltd. | `71` | Data Fashion Ltd. | merge | — |
@@ -294,7 +301,7 @@ does. Separate corruption — reported, not resolved here.
 | explore-fashion | `233` | Explore Fashion Ltd. | `1668` | Xplore Sourcing | split | new |
 | fm-fashion-wear | `general:6835` | F M Fashion Wear | `general:1984` | F.M. Fashion Wear Ltd. | merge | — |
 | fame-design | `general:5924` | Fame Design Ltd. | `258` | Fame Design | merge | — |
-| fariha-fashion | `1669` | Flaxen Fashionwears Limited | `1362` | T.S.A. Bangladesh | split | new |
+| fariha-fashion | `1669` | Flaxen Fashionwears Limited | `1362` | T.S.A. Bangladesh | review | — |
 | fashion-flow-apparels | `general:6342` | Fashion Flow Apparels Ltd. | `1267` | Fashion Flow Limited | split | new |
 | fashion-makers | `general:1456` | Fashion Makers Ltd. | `61` | Fashion Makers Inc. | merge | — |
 | fashion-tex | `868` | Fashion Tex | `254` | Fashion Tex | merge | — |
@@ -316,8 +323,8 @@ does. Separate corruption — reported, not resolved here.
 | garib-and-garib | `general:1930` | Garib & Garib Co. Ltd. | `general:3302` | Garib & Garib Co. Ltd. (Unit-2) | attach-as-facility | — |
 | gemtex-sourcing | `1400` | Gemtex Sourcing Ltd. | `1686` | Tex Stitch Concept Limited | split | new |
 | gilco-fashion | `1151` | Gilco Fashion Ltd. | `239` | Gilco Industries Ltd. | split | new |
-| global-knitwear | `946` | Global Apparel Sourcing Ltd. | `543` | Global Fashion | split | new |
-| global-knitwear | `946` | Global Apparel Sourcing Ltd. | `914` | Global Textile Sourcing Limited | split | new |
+| global-knitwear | `946` | Global Apparel Sourcing Ltd. | `543` | Global Fashion | review | — |
+| global-knitwear | `946` | Global Apparel Sourcing Ltd. | `914` | Global Textile Sourcing Limited | review | — |
 | global-usa | `1055` | Global USA Ltd. | `1012` | Price Club General Trading Ltd. | split | new |
 | golden-tex | `669` | Golden Tex | `1342` | Golden Touch | split | new |
 | grassy | `277` | Grassy | `141` | Mum Fashion Merchandising Ltd. | split | new |
@@ -332,7 +339,7 @@ does. Separate corruption — reported, not resolved here.
 | intend-tex-sourcing | `1478` | Intend Tex Sourcing Ltd. | `1499` | Intend Fashion | split | new |
 | intercare | `general:961` | Intercare Limited | `882` | Intercare Fashion | split | new |
 | intramex-knitwear-ltd-unit-2 | `general:5904` | Intramex Knit Wear Ltd. (Unit-2) | `general:4210` | Intramex Knitwear Ltd. | attach-host-as-facility | — |
-| jm-knitwear | `423` | J.M. Export Ltd. | `422` | Reglisse | split | new |
+| jm-knitwear | `423` | J.M. Export Ltd. | `422` | Reglisse | review | — |
 | jr-enterprise | `general:5593` | J.R. Enterprise Ltd. | `1020` | J.R. International | split | new |
 | jdk-fashion | `934` | JDK Fashion Ltd. | `1101` | JDK Sourcing Ltd. | split | new |
 | jms-clothing | `1579` | JMS Clothing Ltd. | `1398` | JMS International | split | new |
@@ -363,12 +370,12 @@ does. Separate corruption — reported, not resolved here.
 | mustang-associates | `791` | Mustang Associates Ltd. | `11` | Mustang International Limited | split | new |
 | mustex-sourcing | `1371` | Mustex Sourcing | `1382` | Textiss Bangladesh | split | new |
 | needle-thread | `1088` | Needle Thread Pvt. Ltd. | `1463` | WIKITEX - BD | split | new |
-| next-apparels | `1523` | Next Sourcing Services Limited | `1115` | Next Sourcing Ltd. | split | new |
+| next-apparels | `1523` | Next Sourcing Services Limited | `1115` | Next Sourcing Ltd. | review | — |
 | naba-apparel | `951` | Naba Apparel Inc. | `general:1623` | Naba Apparels Ltd. | merge | — |
 | new-wave-group-ab | `619` | New Wave Group AB | `1498` | New Wave Group SA | review | — |
 | nisha-trade-international | `20` | Nisha Trade International | `1506` | Nisha Fashions Wear | split | new |
 | novatex-international | `273` | Novatex International | `278` | Pacers International | split | new |
-| pavel-fashion | `1273` | Pavel Style (BD) Ltd. | `1266` | Pavel Sourcing (BD) Ltd. | split | new |
+| pavel-fashion | `1273` | Pavel Style (BD) Ltd. | `1266` | Pavel Sourcing (BD) Ltd. | review | — |
 | prominent-apparels | `general:5917` | Prominent Apparels Ltd. | `general:2348` | Prominent Apparels | merge | — |
 | panache-international | `12` | Panache International Limited | `255` | Panache Pvt. Ltd. | split | new |
 | penny-design | `1133` | Penny Design Limited | `general:5837` | Penny Design Knitwear | split | new |
@@ -378,8 +385,8 @@ does. Separate corruption — reported, not resolved here.
 | protex-international | `150` | Protex International | `242` | Protex Enterprise Co. Ltd. | split | new |
 | quattro-fashion | `general:6428` | Quattro Fashion Ltd. | `319` | Quatro International | split | new |
 | qtex-merchandising | `244` | Qtex Merchandising Ltd. | `1210` | Qtex Merchandising | merge | — |
-| ra-apparels | `601` | R.A. Trading Limited | `1114` | A.R. Apparel Sourcing | split | new |
-| ra-apparels | `601` | R.A. Trading Limited | `330` | A.R. Fashion | split | new |
+| ra-apparels | `601` | R.A. Trading Limited | `1114` | A.R. Apparel Sourcing | review | — |
+| ra-apparels | `601` | R.A. Trading Limited | `330` | A.R. Fashion | review | — |
 | rr-apparels | `general:6714` | RR Apparels | `general:4171` | R.R. Apparels Ltd. | merge | — |
 | ratool-apparels | `general:5351` | Ratool Apparels Ltd. | `1550` | Ratool Sourcing | split | new |
 | ritzy-apparels | `general:4176` | Ritzy Apparels Ltd. | `620` | Ritzy Apparels | merge | — |
