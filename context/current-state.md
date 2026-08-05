@@ -5,16 +5,39 @@ Last compacted for agent-token efficiency: 30 Jun 2026.
 ## Phase
 Phase 7 - Public Beta launch prep.
 
-## Production workers projection — REZ-95 IN PROGRESS (REZ-91 ROLLED BACK)
-5 Aug 2026 — REZ-91's `sum()` over BGMEA's three employees keys was a
-regression and is rolled back in production. Its `max()` **diagnosis** was
-right; the `sum()` **remedy** was wrong, because BGMEA's first column
-(`Management`) does not reliably mean management. On `fakir-fashion` it reads
-18,547 while Male 9,274 + Female 9,273 = 18,547 exactly — it is restating the
-total.
+## Production workers projection — REZ-95 COMPLETE (REZ-91 ROLLED BACK + RE-DERIVED)
+5 Aug 2026 — `employees_total` is **production workers** = `Employee Male +
+Employee Female`. REZ-91's `sum()` over BGMEA's three employees keys was a
+regression: its `max()` **diagnosis** was right, the `sum()` **remedy** was
+wrong, because BGMEA's first column (`Management`) does not reliably mean
+management. On `fakir-fashion` it reads 18,547 while Male 9,274 + Female 9,273 =
+18,547 exactly — it is restating the total.
 
-Reproduced before any code change, over the 1,607 active BGMEA records holding
-both worker cohorts (`Employee Male` + `Employee Female` > 0):
+**The argument is definitional, not statistical. Lead with this.** BKMEA's
+schema holds only `bkmea_employees_male`, `bkmea_employees_female` and
+`bkmea_employees_total` — **there is no management key in it at all** — and the
+total equals `male + female + others` on **4,037 of 4,039** records (`others` is
+~always absent, so it equals `male + female` too). The comparison registry's
+total *is* a sum of gendered worker cohorts by construction, so
+`Employee Male + Employee Female` is the **identical quantity**, not the nearest
+approximation. Any formula adding a third figure leaves the definition the two
+registries share. Founder-verified independently.
+
+Supporting evidence, in that order of weight:
+
+*Band comparison* — 198 suppliers hold both a BGMEA cohort payload and an
+independent `bkmea_employees_total`. `Male + Female` wins every band, 163 to 35
+overall:
+
+| band | n | M+F closer | sum closer | mean err M+F | mean err sum |
+| -- | -- | -- | -- | -- | -- |
+| `Management` ≥ workers | 55 | **46** | 9 | **686** | 2,064 |
+| `Management` 50–95% | 27 | **23** | 4 | 1,357 | 2,862 |
+| `Management` under 50% | 116 | **94** | 22 | 860 | 979 |
+
+*Inflation bands* — over the 1,607 active BGMEA records holding both worker
+cohorts (`Employee Male` + `Employee Female` > 0), reproduced before any code
+change:
 
 | band (`Management` vs Male+Female) | records | changed by REZ-91 | mean inflation |
 | -- | -- | -- | -- |
@@ -26,25 +49,6 @@ both worker cohorts (`Employee Male` + `Employee Female` > 0):
 The exact-equality band's **2.0000×** is a pure doubling. 165 + 202 + 223 =
 **590 suppliers inflated**. The `changed` column sums to REZ-91's 1,390 rows,
 which is what ties the bands to the apply.
-
-**Ground truth (load-bearing evidence).** 198 suppliers hold both a BGMEA
-cohort payload and an independent `bkmea_employees_total`. Both registries
-count **production workers**, so adding a third figure leaves the definition
-they share. `Male + Female` wins in every band:
-
-| band | n | M+F closer | sum closer | mean err M+F | mean err sum |
-| -- | -- | -- | -- | -- | -- |
-| `Management` ≥ workers | 55 | **46** | 9 | **686** | 2,064 |
-| `Management` 50–95% | 27 | **23** | 4 | 1,357 | 2,862 |
-| `Management` under 50% | 116 | **94** | 22 | 860 | 979 |
-
-**Why BKMEA is the right yardstick, not just the closest one.**
-`bkmea_employees_total` equals `male + female + others` on **4,037 of 4,039**
-records (100.0%, and `others` is ~always absent, so it equals `male + female`
-too). BKMEA's total is *by construction* a sum of gendered worker cohorts with
-no management component, so `Employee Male + Employee Female` is the
-like-for-like BGMEA quantity. The band table shows M+F is empirically closer;
-this shows why.
 
 Corroboration, weaker and deliberately labelled as such:
 - **BRAND_NEXT** (Tier 4, n=31) publishes *point-value* `male_workers` /
@@ -76,23 +80,49 @@ on the hero card and the Capacity tab and drop the "workers + staff" subtitle,
 **in the same PR as the data change**; **never render** the first-column
 figure — keep it in the payload, no placeholder row.
 
-**Step 2 formula — code landed, production apply NOT yet run (awaiting founder
-approval of the dry-run).** `ops/backfill_profile_columns.py`:
+**Step 2 re-derive — APPLIED to production 5 Aug 2026 and verified row for
+row.** `ops/rez95_apply_production_workers.sql` (the statement from
+`ops/backfill_profile_columns.py` verbatim, run via the Supabase SQL API).
+`ops/backfill_profile_columns.py` now carries
 `BGMEA_WORKER_COHORT_KEYS = {Employee Male, Employee Female}` plus
 `BGMEA_NON_WORKER_EMPLOYEE_KEYS = {Management}` — recognised-but-excluded, so
 `Management` is not summed *and* is not reported as an unknown key. SQL `v.key
 in (...)` and the Python mirror `_bgmea_production_workers` both changed.
-Dry-run from the rolled-back state: **1,232 rows would change — 1,030 up, 202
-down, 0 fills-from-null, all via BGMEA, 0 via BKMEA, 0 blocked by the 200k
-cap.** The 202 downward exactly equals the `mgmt_exceeds_workers` changed
-count, which is the arithmetic tie between the two analyses. Largest downward:
-`saturn-textiles` 27,772→4,326, `eastern-knitwear` 10,000→500 (payload reads
-Management 10,000 / Male 300 / Female 200).
+
+**1,232 rows changed — 1,030 up, 202 down**, 0 fills-from-null, all via BGMEA,
+0 via BKMEA, 0 blocked by the 200k cap; matching the dry-run exactly. Verified
+against `public._rez95_production_workers_expected_20260805`, materialised
+before the write: **1,232 / 1,232** rows at their expected value, **0**
+mismatched, **0** rows changed outside the expected set, **0** sibling-column
+movement. Largest downward: `saturn-textiles` 27,772→4,326, `eastern-knitwear`
+10,000→500. `coast-to-coast` reads **710**.
+
+**Composition of the 202 downward rows** — the count matches the exceeds band's
+202 *records*, but the sets are not identical, and the earlier "same 202
+suppliers" framing was wrong. Per *supplier* the exceeds band is 199, all 199 of
+which are in the downward set, plus **3** others:
+`alpha-product-development-company-bd` 475→210, `fm-fashion-wear` 275→165,
+`mass-fashion-bd` 264→90. Each holds two BGMEA records where the data is split —
+one with `Management` populated and both cohorts empty, one with the cohorts
+populated. Under `max()` the management-only record won and published a
+management figure as the workforce total; under the new formula it yields no
+candidate at all, so the win passes to the cohort-bearing record. Correct
+behaviour, and a strict improvement.
+
+**The gender-split guard resolved itself, at scale.** Of the 3,205 suppliers
+holding both cohorts, **2,056** rendered a split before the apply and **3,198**
+after — **1,142 newly rendering, 0 newly suppressed**. Those 1,142 profiles were
+withholding a split they had the data for, because the inflated total
+contradicted it. The 7 still suppressed are the genuine cross-source mismatches
+the guard exists for.
 
 **Honest limit on the evidence:** it establishes `Male + Female` as the best of
 the three candidate formulas and the definitional match to BKMEA — not that it
 is *accurate*. Where the first column is a large round number and the gendered
-cohorts are small, the published figure may understate a real workforce. That
+cohorts are small, the published figure may understate a real workforce. Filed
+as **REZ-96** (224 suppliers, mean 1.91× gap, 154,648 headcount in dispute);
+within that band BKMEA reads *higher* than what we now publish on 17 of the 25
+corroborated cases, so it is a real question rather than a theoretical one. It
 is a data-quality question about BGMEA's own form, not a formula question.
 
 **Step 3 rename — shipped in the same PR.** Hero card
@@ -110,9 +140,15 @@ never the raw BGMEA `employees` payload, so Step 4 needed no removal.
 column picks its A8 winner *independently*, so `employees_total` can come from
 BKMEA while `employees_male/female` come from BGMEA. It is what suppressed
 `coast-to-coast`'s split while the total was inflated to 1,360 against
-510 + 200 — it caught the REZ-91 regression that the data layer did not. Once
-the re-derive lands, total becomes 710 = 510 + 200, ratio 1.0, and the split
-renders again on its own. Documented in-place; no new guard added.
+510 + 200 — it caught the REZ-91 regression that the data layer did not. Post
+apply its total is 710 = 510 + 200, ratio 1.0000, and the split renders again on
+its own. Documented in-place; no new guard added.
+
+**Consistency is not accuracy** — the corollary, and it matters for REZ-96.
+Because the total is now *derived from* the two cohorts, the ratio is 1.0 by
+construction wherever BGMEA is the winning source, so this guard can no longer
+detect a wrong workforce figure from that source. It only catches cross-source
+mismatches now.
 
 **BGMEA labelling question (Step 6, report only — scraper untouched).** Not a
 per-member-type markup difference: all 1,607 records carrying worker cohorts
@@ -136,7 +172,10 @@ exist, so confirming the live markup needs a fresh fetch — a separate issue.
   `employees` value into `employees_total` (including `Management`). It is a
   second write path that pre-dates REZ-91 and was never updated by it; an
   `--apply` run would re-introduce the defect this issue fixes. Left untouched
-  deliberately — out of REZ-95's stated scope. Needs its own issue.
+  deliberately — **REZ-89** was extended to cover it. Do not open a new issue.
+- The 224 suppliers whose first column exceeds their whole worker count may now
+  publish a figure that understates a real workforce; they need corroboration or
+  suppression. **REZ-96.** Do not act on it inside REZ-95's PR.
 - Two other surfaces still label the figure loosely: the discover result card
   ("N employees") and the overview narrative ("workforce of ~N"). REZ-95 named
   only the hero card and Capacity tab, so they were left alone; they need a
