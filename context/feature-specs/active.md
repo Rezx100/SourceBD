@@ -3,16 +3,23 @@
 This file keeps routine agent sessions from scanning every inactive feature spec.
 
 ## Active / Recent Spec
-- IN PROGRESS (5 Aug 2026): **REZ-95 — REZ-91 regression; BGMEA's first
+- COMPLETE (PR #104, 5 Aug 2026): **REZ-95 — REZ-91 regression; BGMEA's first
   employees column is not reliably "Management"** (Linear REZ-95, parent
-  REZ-57). Step 1 rollback **applied to production and verified** (1,390 rows
-  restored, 10,912/10,912 match snapshot, 0 sibling movement) via
-  `ops/rez95_rollback_employees_total.sql`. Remaining: re-derive
-  `employees_total` as `Employee Male + Employee Female` (dry-run awaiting
-  founder approval), rename the field to **"Production workers"** on the hero
-  card + Capacity tab in the SAME PR, never render the first-column figure.
-  Do NOT touch REZ-94, `employees_male`/`female`, machines or capacity, or
-  `etl/scrapers/bgmea_web.py`.
+  REZ-57). Both production applies done and verified. Step 1 rollback: 1,390
+  rows restored, 10,912/10,912 match snapshot, 0 sibling movement
+  (`ops/rez95_rollback_employees_total.sql`). Step 2 re-derive to `Employee Male
+  + Employee Female`: **1,232 rows changed, 1,030 up, 202 down**, verified
+  1,232/1,232 row for row against
+  `public._rez95_production_workers_expected_20260805`, 0 collateral writes
+  (`ops/rez95_apply_production_workers.sql`). Field renamed to **"Production
+  workers"** on the hero card + Capacity tab with the "workers + staff" subtitle
+  dropped, shipped in the same PR; the first-column figure is rendered nowhere.
+  The evidence is **definitional** — BKMEA has no management key at all and its
+  total equals male + female on 4,037/4,039 records; the band tables are
+  supporting. Follow-ups: **REZ-96** (224 possibly-understated suppliers),
+  **REZ-90** (`coast-to-coast` reads 710 not 3,450), **REZ-89** (extended to
+  cover `repair_bgmea_conflations.py`). Did NOT touch REZ-94,
+  `employees_male`/`female`, machines, capacity, or `etl/scrapers/bgmea_web.py`.
 - ROLLED BACK BY REZ-95 (5 Aug 2026): **REZ-91 — employees_total sums BGMEA
   cohorts, not max** (Linear REZ-91, parent REZ-57). Merged PR #101 into
   `development`. Production apply matched dry-run **1,390/1,390** upward;
