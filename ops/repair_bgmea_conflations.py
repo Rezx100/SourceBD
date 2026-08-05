@@ -389,17 +389,48 @@ def _merge_into_profile(
         rest.patch("suppliers", {"id": f"eq.{supplier_id}"}, body)
 
 
+def backed_reg_numbers(records: list[dict[str, Any]], source_codes: dict[str, str]) -> set[str]:
+    """BGMEA registration numbers the parent's REMAINING active records vouch for.
+
+    `bgmea_web` keys general members as `general:{reg}`, so the ref is the
+    primary test; the stored payload field covers rows keyed `member:{id}`
+    because the register published no number for them. Pure — no I/O.
+    """
+    out: set[str] = set()
+    for rec in records:
+        if source_codes.get(rec.get("source_id")) != "BGMEA":
+            continue
+        ref = (rec.get("source_ref") or "").strip()
+        if ref.startswith("general:"):
+            value = ref.split(":", 1)[1].strip()
+            if value:
+                out.add(value)
+        reg = ((rec.get("fields") or {}).get("bgmea_reg_number") or "")
+        reg = str(reg).strip()
+        if reg:
+            out.add(reg)
+    return out
+
+
 def _recompute_parent(rest: Rest, parent_id: str, source_codes: dict[str, str]) -> None:
     """Rebuild the parent's derived numbers from its REMAINING records only.
 
     The stowaway's worker count must not linger on the wrong profile, and the
     parent's own numbers must survive — so the columns are recomputed from
     scratch, not max-merged with the polluted current values.
+
+    `bgmea_reg_numbers` is recomputed the same way (REZ-98). Moving a record
+    used to leave its registration number behind on the former host, which is
+    how 805 published numbers came to assert an identity whose live record
+    belongs to another supplier. Only elements no remaining active record
+    vouches for are dropped, so a number the parent genuinely holds survives.
+    `bgmea_verified` is supplier-level and is deliberately left alone; it
+    cannot describe individual elements either way.
     """
     records = rest.all_rows(
         "source_records",
         {
-            "select": "source_id,fields",
+            "select": "source_id,source_ref,fields",
             "supplier_id": f"eq.{parent_id}",
             "status": "eq.active",
         },
@@ -412,6 +443,20 @@ def _recompute_parent(rest: Rest, parent_id: str, source_codes: dict[str, str]) 
         for col, val in _numbers_from_record(rec.get("fields") or {}, source).items():
             best[col] = max(best.get(col, 0), val)
     body: dict[str, Any] = {c: best.get(c) for c in DERIVED_COLUMNS}
+
+    current = rest.one(
+        "suppliers", {"select": "bgmea_reg_numbers", "id": f"eq.{parent_id}"}
+    )
+    held = [str(n) for n in ((current or {}).get("bgmea_reg_numbers") or [])]
+    backed = backed_reg_numbers(records, source_codes)
+    kept = [n for n in held if n in backed]
+    if len(kept) != len(held):
+        body["bgmea_reg_numbers"] = kept
+        print(
+            f"    {parent_id}: dropping {sorted(set(held) - set(kept))} from "
+            f"bgmea_reg_numbers (no remaining record backs them)"
+        )
+
     rest.patch("suppliers", {"id": f"eq.{parent_id}"}, body)
 
 
