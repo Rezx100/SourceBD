@@ -5,6 +5,76 @@ Last compacted for agent-token efficiency: 30 Jun 2026.
 ## Phase
 Phase 7 - Public Beta launch prep.
 
+## BGMEA reg-number array provenance — REZ-98 (measured; awaiting founder display rule)
+5 Aug 2026 — detection and reporting only. **No production writes.** New
+read-only `ops/report_bgmea_array_provenance.py` + 16 pins in
+`etl/tests/test_bgmea_array_provenance.py`.
+
+**Mechanism (read from the writers, not inferred).** BGMEA is the only register
+in `v_supplier_registry_ids_direct` whose pill comes from a denormalised column
+— `unnest(suppliers.bgmea_reg_numbers)`. EPB, BGAPMEA and BTMA all derive from
+`source_records`, RSC from `rsc_remediation`, certs from `certifications`
+(verified against the LIVE `pg_get_viewdef`, not just the migration file). An
+entry arrives in **two steps, both required**:
+
+1. `etl/core/upsert.py::_apply_source_specific` appends the scraped number with
+   `distinct unnest(existing || ARRAY[reg])` after `_find_existing` attaches
+   another company's record on a partial (contact) match. Arbella Fashion and
+   Avant Garments share `arif@arbellafashion.com` and one Gulshan mailing
+   address — that is the Pass 2/3 pre-31-Jul contact-overlap class.
+2. `ops/repair_bgmea_conflations.py` (applied 4 Aug, 808 stowaways, ~790 records
+   moved) later moves the record to the right supplier, but `_recompute_parent`
+   rebuilds only the numeric `DERIVED_COLUMNS`. **The record leaves; the number
+   stays.**
+
+**No writer ever removes an element.** All four union: `upsert.py`,
+`merge_duplicate_suppliers.py` (`ARRAY_COLUMNS`), `fix_quality.py`,
+`repair_bgmea_conflations.py::_merge_into_profile`. The array is append-only
+with no compensating delete on any split, move or record-delete path.
+
+**Still growing?** Only on new false matches. `_source_record_unchanged`
+returns early on an unchanged re-scrape, and Pass 0 pins an already-ingested
+`general:{reg}` to whoever holds it now, so repaired records will not re-append
+to the old host — the existing residue is frozen. `bgmea_web` has **no
+`etl_schedules` row** (last success 24 Jul 2026, 4,285 records), so growth is
+manual-run only. The append path itself is live and unguarded.
+
+**Measured in production (5 Aug 2026).** 5,801 published suppliers display
+6,775 BGMEA numbers; **805 are unbacked**.
+
+| class | suppliers |
+| -- | -- |
+| >1 number (the REZ-98 class) | **664** |
+| — every number backed | 165 |
+| — some unbacked | **493** |
+| — entirely unbacked | 6 |
+| single number, that one unbacked | **55** |
+| >1 active source record (REZ-88) | 199 — a strict subset of the 664 |
+
+**All 805 unbacked numbers are live active records on a different supplier.
+Zero phantoms, zero inactive-only.** So this is a data repair, not a purge —
+nothing was fabricated. 666 of the 805 point at a supplier created on
+2026-08-03, the conflation-repair burst (666 suppliers created 21:19–22:07).
+
+**Display-rule options (founder decision, NOT taken).** Option (a) backed-only
+removes 805 numbers from 554 suppliers, drops the BGMEA pill entirely for 61,
+and takes 459 from multi to single — leaving **exactly 199** still multi, i.e.
+precisely REZ-88's population. Option (b) honest per-number provenance removes
+nothing and relabels 805.
+
+**Per-number verification is not currently possible.** `bgmea_verified` is one
+supplier-level boolean applied to every element. The citable substrate is
+**190 active `bgmea_reg_number` evidence claims against 6,775 displayed
+numbers (2.8%)**, all minted in a 12-minute window on 30 Jul 2026. Contrast
+`bkmea_reg_number`: 2,578 active claims for 2,578 published numbers — 100% —
+because the scalar column is **overwritten** rather than unioned. Overwrite
+self-heals; append-only union accumulates residue. The only per-number oracle
+in use, `ops/_tmp_bgmea_live_members.json` (4,285 members), is gitignored under
+`ops/_*` and therefore not reproducible in CI.
+
+Did NOT touch: REZ-88's detector, REZ-90's plan, `employees_total`, any array,
+any supplier split/merge/publish state.
+
 ## Production workers projection — REZ-95 COMPLETE (REZ-91 ROLLED BACK + RE-DERIVED)
 5 Aug 2026 — `employees_total` is **production workers** = `Employee Male +
 Employee Female`. REZ-91's `sum()` over BGMEA's three employees keys was a
