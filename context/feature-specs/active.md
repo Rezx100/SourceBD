@@ -3,23 +3,26 @@
 This file keeps routine agent sessions from scanning every inactive feature spec.
 
 ## Active / Recent Spec
-- MEASURED, AWAITING FOUNDER DECISION (5 Aug 2026): **REZ-98 — BGMEA reg-number
-  array provenance** (Linear REZ-98, parent REZ-57). Detection and reporting
-  only; **no production writes**. `suppliers.bgmea_reg_numbers` is the only
-  denormalised register in `v_supplier_registry_ids_direct`; all four writers
-  union and none ever removes an element, so a number outlives the record that
-  put it there. Entry mechanism = `_find_existing` contact-match attach +
-  `_apply_source_specific` append, then `repair_bgmea_conflations.py` moving the
-  record away while `_recompute_parent` rebuilds only numeric columns.
-  Production: 5,801 suppliers show 6,775 numbers, **805 unbacked**, **664**
-  multi-number (165 all-backed / 493 some-unbacked / 6 entirely unbacked) plus
-  **55** single-number-unbacked; REZ-88's 199 is a strict subset. **All 805
-  unbacked numbers are live records on another supplier — zero phantoms.**
-  Option (a) backed-only removes 805 numbers from 554 suppliers, 61 lose the
-  pill, and leaves exactly the 199 REZ-88 owns. Per-number verification blocked:
-  190 citable claims vs 6,775 displayed numbers. New read-only
-  `ops/report_bgmea_array_provenance.py` + 16 pins. **STOPPED for the display
-  rule.** See `context/current-state.md` → "BGMEA reg-number array provenance".
+- COMPLETE in the working tree (5 Aug 2026): **REZ-98 — BGMEA reg-number array
+  provenance; option (a) backed-only display + append guards** (Linear REZ-98,
+  parent REZ-57). `suppliers.bgmea_reg_numbers` is the only denormalised
+  register in `v_supplier_registry_ids_direct`; all four writers union and none
+  ever removes an element, so a number outlives the record that put it there.
+  Entry mechanism = `_find_existing` contact-match attach + append, then
+  `repair_bgmea_conflations.py` moving the record away while `_recompute_parent`
+  rebuilt only numeric columns. Production: 5,801 suppliers showed 6,775
+  numbers, **805 unbacked**, **664** multi-number (165/493/6) plus **55**
+  single-number-unbacked; **all 805 are live records on another supplier — zero
+  phantoms**. **Founder chose option (a).** Migration
+  `20260805_rez98_registry_ids_bgmea_backed_only.sql` (**NOT applied**) —
+  dry-run predicate reproduces 6,775→5,970, 5,801→5,740, 664→**199** (exactly
+  REZ-90's scope). Guards added to `_apply_source_specific` and
+  `_recompute_parent`; scorer NOT changed. **SBI finding: all 61
+  entirely-unbacked suppliers also carry a residual `BGMEA` source_tag and hold
+  no BGMEA record, so repairing the array alone moves no score** — the tag is a
+  second append-only residue; 5 of them also carry the +4 register bonus.
+  Follow-up: the array + `source_tags` repair as its own snapshot/dry-run issue.
+  See `context/current-state.md` → "BGMEA reg-number array provenance".
 - COMPLETE (PR #104, 5 Aug 2026): **REZ-95 — REZ-91 regression; BGMEA's first
   employees column is not reliably "Management"** (Linear REZ-95, parent
   REZ-57). Both production applies done and verified. Step 1 rollback: 1,390

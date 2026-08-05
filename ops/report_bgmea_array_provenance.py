@@ -32,8 +32,14 @@ so each of those residues renders as "verified" with nothing having verified
 that specific number.
 
 This script measures that. It is READ-ONLY: there is no `--apply`, and it
-issues no UPDATE, INSERT or DELETE on any path. The display rule is a founder
-decision (REZ-98) and this reports the options rather than choosing one.
+issues no UPDATE, INSERT or DELETE on any path.
+
+The founder chose option (a), backed-only display, shipped as
+`supabase/migrations/20260805_rez98_registry_ids_bgmea_backed_only.sql`. That
+stops the false claim on the profile but does NOT clean the array, which still
+feeds SBI Pillar 1. This report therefore stays live as the sizing tool for the
+array repair, and its option counts stay in so the two rules can be compared
+again after any change.
 
 WHAT COUNTS AS BACKED
 ---------------------

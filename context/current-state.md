@@ -5,10 +5,55 @@ Last compacted for agent-token efficiency: 30 Jun 2026.
 ## Phase
 Phase 7 - Public Beta launch prep.
 
-## BGMEA reg-number array provenance — REZ-98 (measured; awaiting founder display rule)
-5 Aug 2026 — detection and reporting only. **No production writes.** New
-read-only `ops/report_bgmea_array_provenance.py` + 16 pins in
-`etl/tests/test_bgmea_array_provenance.py`.
+## BGMEA reg-number array provenance — REZ-98 (option (a) shipped; array repair follows)
+5 Aug 2026 — **founder decision: option (a), backed-only display.** Migration
+`20260805_rez98_registry_ids_bgmea_backed_only.sql` **NOT applied to
+production.** Plus two append-path guards. Read-only
+`ops/report_bgmea_array_provenance.py` + pins in
+`etl/tests/test_bgmea_array_provenance.py` and
+`etl/tests/test_bgmea_backed_only_display.py`.
+
+**The display rule.** The view's BGMEA branch now requires the supplier to hold
+an active BGMEA record for that number (`source_ref = 'general:'||value`, or
+the payload field for `member:{id}`-keyed rows). Every other branch is
+unchanged. Dry-run as a SELECT against production, the predicate reproduces
+exactly: **6,775 → 5,970 rows, 5,801 → 5,740 suppliers, 664 → 199
+multi-number**. Option (b) was rejected — a registration belonging to another
+company is not "unverified", it is wrong, and relabelling keeps a false
+identity claim in softer wording.
+
+**The guards.** `_apply_source_specific` now refuses to append a number whose
+active record sits on a *different* supplier (`_bgmea_reg_held_elsewhere`),
+logging `bgmea.reg_append_refused`; the other fragments still write, so only
+the disputed number is withheld. `repair_bgmea_conflations::_recompute_parent`
+now recomputes `bgmea_reg_numbers` from the parent's remaining active records
+the same way it already recomputes the numerics — dropping only elements
+nothing backs. That omission is what stranded the 805. Kept here rather than in
+REZ-89, whose non-goals explicitly protect the array-union behaviour of
+`_merge_into_profile` (a different function on the destination side).
+**Honest limit:** the append guard closes the cross-holder assertion, not the
+false attach that put the record there — that is `_find_existing`'s job
+(REZ-90).
+
+**SBI contamination — the founder's catch, and it is worse than the array.**
+`etl/scoring/sbi.py` Pillar 1 grants +5 on `_has_tag("BGMEA") or
+inputs.bgmea_reg_numbers`, plus a register-coverage +4. Measured (scorer NOT
+changed):
+
+- 5,740 of 5,801 hold at least one backed number → **no SBI change**. The
+  contamination is confined to the **61** entirely-unbacked suppliers.
+- **All 61 also carry the `BGMEA` source_tag, and none holds any active BGMEA
+  source record.** `source_tags` is unioned append-only by `_enrich_supplier`
+  exactly like the array, so the tag is a *second* residue carrying the same
+  false claim. **Repairing only the array would not move a single score** —
+  the `or` short-circuits on the tag. The repair must clean `source_tags` too,
+  or the scorer must key on records.
+- **5** of the 61 hold no other register, so they also carry the +4
+  coverage bonus: **+9 of Pillar 1 (max 25) on no BGMEA evidence at all.**
+
+**Known limit, accepted:** per-number verification is not currently possible —
+190 citable `bgmea_reg_number` claims against 6,775 displayed numbers.
+Backed-only is the interim proxy for provenance.
 
 **Mechanism (read from the writers, not inferred).** BGMEA is the only register
 in `v_supplier_registry_ids_direct` whose pill comes from a denormalised column

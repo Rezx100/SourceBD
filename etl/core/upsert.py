@@ -511,6 +511,33 @@ def _exec_unlocked_update(
     )
 
 
+def _bgmea_reg_held_elsewhere(cur, *, supplier_id: str, reg: str) -> bool:
+    """Whether another supplier already holds the live BGMEA record for `reg`.
+
+    A BGMEA registration identifies exactly one legal entity, so if the active
+    record for it sits on a different supplier, appending the number here would
+    assert someone else's identity. That is the shape REZ-98 measured: 805
+    published numbers whose live record belongs to another supplier, left
+    behind because the array unions and nothing ever removes an element.
+
+    `_upsert_source_record` runs before this, so THIS supplier's own record is
+    already stored and correctly excluded — only a genuine second holder trips
+    the guard. It closes the cross-holder assertion, not the false attach that
+    put the record here; that is `_find_existing`'s job.
+    """
+    cur.execute(
+        """select 1
+             from public.source_records sr
+            where sr.source_id = %s
+              and sr.status = 'active'
+              and sr.supplier_id <> %s
+              and (sr.source_ref = %s or sr.fields->>'bgmea_reg_number' = %s)
+            limit 1""",
+        (get_source_id("BGMEA"), supplier_id, f"general:{reg}", reg),
+    )
+    return cur.fetchone() is not None
+
+
 def _apply_source_specific(cur, *, supplier_id: str, rec: ScrapedRecord) -> None:
     """Set register-specific verified flags + reg numbers, and upgrade
     entity_type='unknown' to the source's default when a Tier 1-2
@@ -524,29 +551,39 @@ def _apply_source_specific(cur, *, supplier_id: str, rec: ScrapedRecord) -> None
     if code == "BGMEA":
         reg = rec.payload.get("bgmea_reg_number")
         if reg:
+            fragments: list[tuple[str, str, tuple[Any, ...]]] = [
+                ("bgmea_verified", "bgmea_verified = true", ()),
+                (
+                    "bgmea_reg_numbers",
+                    "bgmea_reg_numbers = (\n"
+                    "                       select array(select distinct unnest(\n"
+                    "                         coalesce(bgmea_reg_numbers,'{}'::text[])"
+                    " || ARRAY[%s]::text[]\n"
+                    "                       ))\n"
+                    "                     )",
+                    (reg,),
+                ),
+                (
+                    "entity_type",
+                    "entity_type = case when entity_type = 'unknown' "
+                    "then 'buying_house' else entity_type end",
+                    (),
+                ),
+            ]
+            if _bgmea_reg_held_elsewhere(cur, supplier_id=supplier_id, reg=reg):
+                # Withhold rather than assert: the number stays off this
+                # supplier until the conflation is resolved. Loud, because a
+                # silently accumulated number is what REZ-98 had to excavate.
+                fragments = [f for f in fragments if f[0] != "bgmea_reg_numbers"]
+                log.warning(
+                    "bgmea.reg_append_refused",
+                    supplier_id=supplier_id, reg=reg, ref=rec.source_ref,
+                )
             _exec_unlocked_update(
                 cur,
                 supplier_id=supplier_id,
                 locked=locked,
-                fragments=[
-                    ("bgmea_verified", "bgmea_verified = true", ()),
-                    (
-                        "bgmea_reg_numbers",
-                        "bgmea_reg_numbers = (\n"
-                        "                       select array(select distinct unnest(\n"
-                        "                         coalesce(bgmea_reg_numbers,'{}'::text[])"
-                        " || ARRAY[%s]::text[]\n"
-                        "                       ))\n"
-                        "                     )",
-                        (reg,),
-                    ),
-                    (
-                        "entity_type",
-                        "entity_type = case when entity_type = 'unknown' "
-                        "then 'buying_house' else entity_type end",
-                        (),
-                    ),
-                ],
+                fragments=fragments,
             )
     elif code == "BKMEA":
         reg = rec.payload.get("bkmea_reg_number")
