@@ -12,15 +12,20 @@ This file keeps routine agent sessions from scanning every inactive feature spec
   plan's 60 merges, the 6 exactly as named); keeper is the ref bearing the
   host's `company_name` (7 changed, **9 hosts match no ref at all**);
   `extension_base_name` is asked about the host as well as the excess, adding
-  `attach-host-as-facility`. Classes: split 154 / attach-as-facility 11 /
-  attach-host-as-facility 2 / merge 54 / review 6 / unresolved 3. **142 new
-  published rows** (12 splits re-point to an existing supplier). No member
-  pages re-fetched — names cached in `ops/plans/rez-90-ref-names.json`.
-  REZ-98's 61 reproduce and are disjoint from the 199; only 2 stranded
-  numbers reach a multi-ref host and both agree with REZ-98. Awaiting founder
-  approval before any execution. pytest 795. See `context/current-state.md`
+  `attach-host-as-facility`. **Founder-approved 5 Aug with one required
+  change, now shipped:** all 13 excess refs on the 9 no-host-match hosts are
+  forced to `review` — a row whose identity is unsettled cannot produce a
+  split. Classes: split 141 / attach-as-facility 11 / attach-host-as-facility
+  2 / merge 54 / review 19 / unresolved 3. **130 new published rows** (11
+  splits re-point to an existing supplier). No member pages re-fetched —
+  names cached in `ops/plans/rez-90-ref-names.json`. REZ-98's 61 reproduce
+  and are disjoint from the 199. The 9 hosts are filed as **REZ-102**
+  (group-of-companies shape; BKMEA/RSC corroborates the row while its whole
+  BGMEA set is foreign, which backed-only cannot see). **`--apply` stays
+  closed.** pytest 804. See `context/current-state.md`
   → "multi-member-ref plan revision".
-  Also open: **REZ-101** (RSC as a workforce floor, 802 suppliers),
+  Also open: **REZ-102** (the 9 group-of-companies hosts REZ-90 gated),
+  **REZ-101** (RSC as a workforce floor, 802 suppliers),
   **REZ-100** (extract the duplicated projection rules), **REZ-99** (repair the
   three BGMEA residues), **REZ-96** (premise contradicted — re-scope first).
 - COMPLETE in the working tree (5 Aug 2026): **REZ-89 — A8b; the BGMEA

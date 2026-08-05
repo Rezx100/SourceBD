@@ -381,10 +381,23 @@ def rez98_unbacked_suppliers(
     return out
 
 
-def classify_excess(host_name: str, keeper: RefInfo, excess: RefInfo) -> str:
-    """Classify one excess ref relative to the keeper that stays on the host."""
+def classify_excess(
+    host_name: str, keeper: RefInfo, excess: RefInfo, *, host_matched: bool = True
+) -> str:
+    """Classify one excess ref relative to the keeper that stays on the host.
+
+    ``host_matched`` is the verdict from `pick_keeper`. When it is False no ref
+    on the row bears the supplier's own name, so the keeper is an arbitrary
+    choice among strangers and every downstream comparison is measured against
+    it. Splitting on that basis leaves `DK KNIT WEAR LTD` holding `DK Design
+    Ltd.` — a row asserting a name no record backs, which is exactly the
+    pathology REZ-98 removed. Those refs go to `review` whatever they look
+    like; the row's identity has to be settled first.
+    """
     if not excess.live_name:
         return "unresolved"
+    if not host_matched:
+        return "review"
 
     keeper_name = keeper.live_name or host_name
     base_excess = extension_base_name(excess.live_name)
@@ -650,7 +663,9 @@ def main() -> int:
         for info in infos:
             if info.source_ref == keeper.source_ref:
                 continue
-            action = classify_excess(finding.company_name, keeper, info)
+            action = classify_excess(
+                finding.company_name, keeper, info, host_matched=host_matched
+            )
             counts[action] += 1
             target = ""
             if action == "split" and info.live_name:
@@ -678,6 +693,9 @@ def main() -> int:
     split_new = [r for r in splits if r["split_target"] == "new"]
     split_existing = [r for r in splits if r["split_target"] not in ("", "new")]
     residue_rows = [r for r in plan_rows if r["reg_residue"]]
+
+    no_host_match_slugs = {r["slug"] for r in no_host_match}
+    no_host_match_excess = sum(1 for r in plan_rows if r["slug"] in no_host_match_slugs)
 
     host_ids = {f.supplier_id for f in findings}
     action_by_ref = {(r["supplier_id"], r["excess_ref"]): r["action"] for r in plan_rows}
@@ -832,7 +850,14 @@ def main() -> int:
         f"## Hosts where NO ref matches the supplier's own name ({len(no_host_match)})",
         "",
         "Every registration on these rows names a different company than the row",
-        "does. Separate corruption — reported, not resolved here.",
+        f"does. All **{no_host_match_excess}** of their excess refs are forced to",
+        "`review` regardless of how they classify: the keeper is an arbitrary",
+        "choice among strangers, so splitting on it would leave the host",
+        "asserting a name no record backs. Separate corruption — reported, not",
+        "resolved here. Tracked as REZ-102: seven of the nine are corroborated",
+        "by their own BKMEA membership and two by RSC, so the row is a real",
+        "company whose entire BGMEA set is foreign, and five hold a coherent",
+        "group of companies (DK Design / DK Collection / DK Textile).",
         "",
         "| host slug | host `company_name` | refs |",
         "| -- | -- | -- |",

@@ -594,11 +594,12 @@ names byte-identically to the REZ-88 fetch, now checked in as
 `ops/plans/rez-90-ref-names.json` (426 refs) so the plan regenerates without
 the gitignored `ops/_tmp_*` snapshot.
 
-Revised classes: split **154** / attach-as-facility **11** /
-attach-host-as-facility **2** / merge **54** / review **6** / unresolved 3.
+Revised classes: split **141** / attach-as-facility **11** /
+attach-host-as-facility **2** / merge **54** / review **19** / unresolved 3.
 Transitions from the rejected plan: 8 split→attach-as-facility (REZ-87's
 Direction B patterns, no new definition written), 2 split→attach-host-as-
-facility, 6 merge→review, 7 keeper changes.
+facility, 6 merge→review, 13 split→review (the no-host-match gate below),
+7 keeper changes.
 
 Three rules, each replacing a defect:
 
@@ -619,13 +620,23 @@ Three rules, each replacing a defect:
    tie-break silently decides which company the row is. **9 hosts match no
    ref at all** (`dk-knitwear`, `jm-knitwear`, `ra-apparels`…) — reported as
    separate corruption, not resolved here.
+   **Founder-required change (5 Aug, approval condition):** all **13** excess
+   refs on those 9 hosts are forced to `review` by `classify_excess(...,
+   host_matched=False)`, ahead of every other verdict. The keeper there is an
+   arbitrary choice among strangers, so a split would leave `DK KNIT WEAR LTD`
+   holding `DK Design Ltd.` — the pathology REZ-98 removed. Pinned by
+   `TestHostMatchingNoRefCannotResolve`; the gate outranks merge and facility
+   too, and only `unresolved` (no name recovered) precedes it. Follow-up
+   filed as **REZ-102**.
 3. **A building can be on either side.** `extension_base_name` (REZ-87,
    single definition) is asked about the excess and about the host; when the
    host row is the unit, the excess is the parent and the host becomes its
    `facility_of` child.
 
-**Published-row cost: 142 new rows, not ~154.** 12 of the 154 splits name a
-company that already has a supplier row and should be re-pointed. An earlier
+**Published-row cost: 130 new rows, not ~154.** 11 of the 141 splits name a
+company that already has a supplier row and should be re-pointed. (Before the
+no-host-match gate this read 142 of 154 splits with 12 re-points; one of the
+13 gated rows had an existing target.) An earlier
 pass put this at 93 by also treating "another supplier publishes this reg
 number" as a target — **that is wrong and was removed.** REZ-98 proved every
 unbacked BGMEA number is a live record sitting elsewhere, so a supplier
@@ -636,14 +647,15 @@ not the owner; re-pointing there would repeat the original mistake. Those
 REZ-98 validation set: the 61 entirely-unbacked suppliers reproduce exactly,
 are disjoint from the 199 (necessarily — a row holding two records cannot
 hold none), and only **2** stranded numbers point at a multi-ref host
-(`iqbal-knitwear`→`ra-apparels` split, `speedwell-apparels`→`ritzy-apparels`
-merge). Both agree with REZ-98's adjudication. **The 61 are a different
-population; this plan does not repair them — that stays REZ-99.**
+(`iqbal-knitwear`→`ra-apparels`, now `review` under the no-host-match gate;
+`speedwell-apparels`→`ritzy-apparels` `merge`). Both agree with REZ-98's
+adjudication. **The 61 are a different population; this plan does not repair
+them — that stays REZ-99.**
 
-None of the 6 review counterparties exists as its own supplier row, so a
-merge would erase them with nothing to recover from.
+None of the 6 root-differs review counterparties exists as its own supplier
+row, so a merge would erase them with nothing to recover from.
 
-Verification: pytest **795** (764 baseline + 31), `ruff check etl ops
+Verification: pytest **804** (764 baseline + 40), `ruff check etl ops
 --no-cache` **44** (baseline; none in the touched files), `npx tsc --noEmit`
 clean, `npm test` 336/336. Parent epic: Linear REZ-57.
 
