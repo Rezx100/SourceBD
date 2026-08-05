@@ -5,6 +5,53 @@ Last compacted for agent-token efficiency: 30 Jun 2026.
 ## Phase
 Phase 7 - Public Beta launch prep.
 
+## Repair script on the A8 rule + field locks — REZ-89 (A8b) COMPLETE
+5 Aug 2026 — code correctness only; **the repair was NOT run against
+production** and the `--apply` gate stays closed. `ops/repair_bgmea_conflations.py`
+held a second implementation of the profile projection rules and had not been
+updated by A8 (REZ-68), A6 (REZ-66) or REZ-95, so a rerun would have undone all
+three at once.
+
+- **Numerics are now the A8 rule**, not max-merge: highest `source_tier` with a
+  non-zero value, then most recent `fetched_at`, then lower `source_records.id`.
+  `_numbers_from_record` now takes the whole record (it needs tier/fetch/id) and
+  returns `NumericCandidate`s rather than ints, which makes the old `max()`
+  merge unexpressible at the call sites.
+- **Both callers changed.** `_recompute_parent` picks the winner over the
+  parent's remaining records. `_merge_into_profile` now recomputes over every
+  active BGMEA/BKMEA record the *destination* holds, including the one just
+  moved in — a lone record cannot be ranked against a stored column, because the
+  column carries no provenance. Consequence: the projection can now lower a
+  destination's value. That is A8 working, not a regression.
+- **`employees_total` is `Employee Male + Employee Female`** (REZ-95 parity).
+  The old code max()'d *every* value in the BGMEA `employees` payload into
+  `employees_total`, `Management` included — on the 227-record band where the
+  first column exceeds the whole worker count, an apply would have published the
+  management figure under the "Production workers" label.
+- **A6 locks now hold.** `_locked_columns` filters both `rest.patch("suppliers")`
+  bodies; `bgmea_reg_numbers` (added to the recompute body by REZ-98) is
+  lock-checked like any other column, and a fully-locked supplier is not patched
+  at all rather than sent an empty body.
+- **Non-goals honoured:** `_compatible` / conflation detection untouched
+  (REZ-87), array-union and fill-only scalars untouched, and REZ-98's
+  backed-set recompute for `bgmea_reg_numbers` is unchanged.
+
+**Standing proposal, deliberately NOT implemented.** The projection helpers are
+still duplicated between this script and `ops/backfill_profile_columns.py` —
+that duplication is the root cause of all three defects, and it will drift
+again. Extracting them into one importable module (e.g. `etl/core/`) is the
+right fix but wider than REZ-89 authorises; a direct import is not a substitute,
+because `backfill_profile_columns` imports `psycopg` at module scope and the
+repair script exists precisely because the pooler is unreachable. Raised for a
+separate issue.
+
+**Residual divergence, known and left alone:** the canonical script gates BGMEA
+`num_machines` on `entity_type = 'factory'`; the repair script gates only on the
+`_CAPS` range. Narrowing it is a behaviour change beyond this issue.
+
+Tests: pytest 764 (749 baseline + 15), ruff at the 44 pre-existing baseline,
+`npx tsc --noEmit` and `npm test` clean.
+
 ## BGMEA reg-number array provenance — REZ-98 (option (a) shipped; array repair follows)
 5 Aug 2026 — **founder decision: option (a), backed-only display.** Migration
 `20260805_rez98_registry_ids_bgmea_backed_only.sql` **APPLIED to production
@@ -760,18 +807,25 @@ records stored no scraped name — the blind spot itself.
   former hosts' derived columns recomputed from REMAINING records only.
   Re-scan: 0 stowaways beyond the 3 ambiguous. All four founder cases
   live with full profiles.
-- **Profile projection, founder rule**: the repair projects the moved
-  record's stored fields (employees/machines/capacity/established/
-  factory_types/principal_products/contacts) onto the destination with
-  `backfill_profile_columns.py` semantics — numerics take the HIGHEST value
-  across sources (never summed), arrays union, scalars fill-only. Genesis
-  Fashion class (bare created profiles) converged this way.
-  **SUPERSEDED 5 Aug 2026 by A8 (REZ-68):** numerics now take the
-  highest-trust source, then most-recent `fetched_at`. Never summed still
-  holds. `ops/repair_bgmea_conflations.py` still implements the old
-  max-merge rule and therefore now contradicts the canonical script —
-  tracked as Linear REZ-89. Do not re-run that repair before REZ-89 lands
-  or it will undo A8's downward corrections.
+- **Profile projection**: the repair projects the moved record's stored
+  fields (employees/machines/capacity/established/factory_types/
+  principal_products/contacts) onto the destination with
+  `backfill_profile_columns.py` semantics — arrays union, scalars fill-only,
+  numerics resolved per the rule below. Genesis Fashion class (bare created
+  profiles) converged this way.
+  **The numeric rule changed on 5 Aug 2026.** It was the founder's 4 Aug
+  rule — the HIGHEST value across sources, never summed. A8 (REZ-68)
+  superseded the "highest" half: numerics now take the highest-trust
+  `source_tier` reporting a non-zero value, then the most recent
+  `fetched_at`, then the lower `source_records.id`. **Never summed across
+  records still holds** and is unchanged. The practical difference is that a
+  register may now correct a figure *downwards*; the old rule made published
+  numbers high-water marks. Within one BGMEA record, `employees_total` is
+  `Employee Male + Employee Female` (REZ-95) — that intra-record sum is a
+  different thing from summing across records, which remains forbidden.
+  `ops/repair_bgmea_conflations.py` was brought onto the A8 rule by REZ-89
+  (5 Aug 2026); before that it still max-merged and contradicted the
+  canonical script.
 - **`bgmea_web` now stores `scraped_company_name`** (uncitable) so future
   BGMEA records are detector-visible; `ops/check_supplier_conflations.py`
   widened to scan BGMEA general records via that field.
