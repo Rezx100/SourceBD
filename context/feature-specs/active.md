@@ -3,6 +3,13 @@
 This file keeps routine agent sessions from scanning every inactive feature spec.
 
 ## Active / Recent Spec
+- NEXT UP (5 Aug 2026): **REZ-90 — revise the multi-ref plan** (unblocked now
+  that REZ-87 is Done). Validation set: the 61 suppliers REZ-98 stripped of
+  their BGMEA pill, 56 of which are BKMEA knitwear members that picked up
+  another company's registration — the false-attach signature REZ-90 must fix.
+  Also open: **REZ-101** (RSC as a workforce floor, 802 suppliers),
+  **REZ-100** (extract the duplicated projection rules), **REZ-99** (repair the
+  three BGMEA residues), **REZ-96** (premise contradicted — re-scope first).
 - COMPLETE in the working tree (5 Aug 2026): **REZ-89 — A8b; the BGMEA
   conflation repair max-merged numerics and ignored field locks** (Linear
   REZ-89, parent REZ-57). Branched from `development` @ `ae0d9e9`.

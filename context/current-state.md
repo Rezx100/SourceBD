@@ -5,6 +5,37 @@ Last compacted for agent-token efficiency: 30 Jun 2026.
 ## Phase
 Phase 7 - Public Beta launch prep.
 
+## RSC is an unused independent workforce referee — REZ-101 filed
+5 Aug 2026 — found while auditing the founder's `KNIT BAZAAR (PVT.) LTD.`
+report (publishes 290 production workers; its own RSC card shows 1,350).
+
+**RSC never competes for `employees_total`.** Source-exclusivity in
+`ops/backfill_profile_columns.py` is BGMEA + BKMEA. `rsc_remediation.workers_count`
+enters only via `ops/backfill_rsc_employees.py`, which is COALESCE fill-only —
+so the moment either association reports anything, an audited third-party
+headcount is discarded. **802 published suppliers publish fewer workers than a
+single RSC-audited building holds** (305 publish less than half).
+
+**Decision: RSC is a FLOOR, not an outright winner.** `workers_count` is
+per-factory and RSC coverage is partial, so publishing *more* than RSC is
+usually a company larger than its audited building — only publishing *less* is
+proof of error. A straight win was rejected: it would cut 693 suppliers, 148 by
+more than half. Use `active` factory rows only (626 rows are inactive; the
+affected set drops 828 → **606**). When RSC wins, the gender split is blanked —
+RSC publishes no gender breakdown. **Once facilities roll up (REZ-71, REZ-92)
+the floor must be computed at group level**, or a merged mother is floored by
+one building's audit.
+
+**This vindicates REZ-95 independently.** Across 618 suppliers with both a BGMEA
+cohort payload and an RSC count, `Male + Female` is closer to RSC on 398 vs 101
+for the management-inclusive figure; median ratio **1.022** vs **1.629**. It
+also **contradicts REZ-96**, whose exceeds-band is not understated (94 of 103
+favour `Male + Female`) — flagged on that issue, re-scope before starting.
+
+Context: **2,596** published suppliers hold a BGMEA `employees` payload with
+`Management` populated and both worker cohorts blank, so BGMEA contributes no
+workforce figure at all for them post-REZ-95.
+
 ## Repair script on the A8 rule + field locks — REZ-89 (A8b) COMPLETE
 5 Aug 2026 — code correctness only; **the repair was NOT run against
 production** and the `--apply` gate stays closed. `ops/repair_bgmea_conflations.py`
