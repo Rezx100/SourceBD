@@ -14,9 +14,9 @@ This file keeps routine agent sessions from scanning every inactive feature spec
   numbers, **805 unbacked**, **664** multi-number (165/493/6) plus **55**
   single-number-unbacked; **all 805 are live records on another supplier — zero
   phantoms**. **Founder chose option (a).** Migration
-  `20260805_rez98_registry_ids_bgmea_backed_only.sql` (**NOT applied**) —
-  dry-run predicate reproduces 6,775→5,970, 5,801→5,740, 664→**199** (exactly
-  REZ-90's scope). Guards added to `_apply_source_specific` and
+  `20260805_rez98_registry_ids_bgmea_backed_only.sql` (**APPLIED to production
+  5 Aug 2026**) — live view returns 6,775→5,970, 5,801→5,740, 664→**199**
+  (exactly REZ-90's scope), matching the dry-run predicate row for row. Guards added to `_apply_source_specific` and
   `_recompute_parent`; scorer NOT changed. **SBI finding: all 61
   entirely-unbacked suppliers also carry a residual `BGMEA` source_tag and hold
   no BGMEA record, so repairing the array alone moves no score** — the tag is a
