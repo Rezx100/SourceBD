@@ -5,12 +5,78 @@ Last compacted for agent-token efficiency: 30 Jun 2026.
 ## Phase
 Phase 7 - Public Beta launch prep.
 
-## Workforce projection + facility roll-up — REZ-91 APPLIED
+## Production workers projection — REZ-95 IN PROGRESS (REZ-91 ROLLED BACK)
+5 Aug 2026 — REZ-91's `sum()` over BGMEA's three employees keys was a
+regression and is rolled back in production. Its `max()` **diagnosis** was
+right; the `sum()` **remedy** was wrong, because BGMEA's first column
+(`Management`) does not reliably mean management. On `fakir-fashion` it reads
+18,547 while Male 9,274 + Female 9,273 = 18,547 exactly — it is restating the
+total.
+
+Reproduced before any code change, over the 1,607 active BGMEA records holding
+both worker cohorts (`Employee Male` + `Employee Female` > 0):
+
+| band (`Management` vs Male+Female) | records | changed by REZ-91 | mean inflation |
+| -- | -- | -- | -- |
+| exactly equals | 192 | 165 | **2.0000×** |
+| exceeds | 227 | 202 | 1.6656× |
+| 50–100% | 254 | 223 | 2.3147× |
+| under 50% | 934 | 812 | 1.7877× |
+
+The exact-equality band's **2.0000×** is a pure doubling. 165 + 202 + 223 =
+**590 suppliers inflated**. The `changed` column sums to REZ-91's 1,390 rows,
+which is what ties the bands to the apply.
+
+**Ground truth (load-bearing evidence).** 198 suppliers hold both a BGMEA
+cohort payload and an independent `bkmea_employees_total`. Both registries
+count **production workers**, so adding a third figure leaves the definition
+they share. `Male + Female` wins in every band:
+
+| band | n | M+F closer | sum closer | mean err M+F | mean err sum |
+| -- | -- | -- | -- | -- | -- |
+| `Management` ≥ workers | 55 | **46** | 9 | **686** | 2,064 |
+| `Management` 50–95% | 27 | **23** | 4 | 1,357 | 2,862 |
+| `Management` under 50% | 116 | **94** | 22 | 860 | 979 |
+
+H&M bracket containment (33 M+F vs 27 sum, n=57) points the same way but is
+**weak corroboration only** — BKMEA is the decisive evidence. Brand workforce
+fields hold *ranges* (`1001-2000 Workers`, `>4000`); never
+`regexp_replace(v,'[^0-9]','','g')` them, which concatenates the bounds into a
+plausible-looking integer.
+
+**Step 1 rollback — APPLIED to production 5 Aug 2026 and verified.**
+`ops/rez95_rollback_employees_total.sql` (Supabase SQL API; psycopg is
+protocol-blocked from the dev machine). 1,390 rows restored from
+`public._rez91_employees_total_snapshot_20260805`; **10,912 / 10,912**
+suppliers now match the snapshot, **0** still differ, **0** sibling-column
+movement. Doubled examples restored: `zaber-and-zubair-fabrics` 18,682→9,341,
+`momo-fashions` 15,000→7,500, `sterling-denims` 7,404→3,702, `odyssey-craft`
+14,000→7,000, `pandora-sweater` 8,600→4,300, `akm-knitwear` 32,677→16,815,
+`coast-to-coast` 1,360→650. The restored values are still the old `max()`
+cohort — wrong in a known way, which beats inflated figures live in front of
+buyers.
+
+Founder decisions (do not re-ask): publish **production workers** =
+`Employee Male + Employee Female`; rename the field to **"Production workers"**
+on the hero card and the Capacity tab and drop the "workers + staff" subtitle,
+**in the same PR as the data change**; **never render** the first-column
+figure — keep it in the payload, no placeholder row.
+
+**Process rule this cost us:** REZ-91's dry-run was verified for arithmetic and
+mechanics and every one of those checks passed. What went unchecked was whether
+the three keys mean what their headers say. A dry-run that matches expectations
+exactly still cannot tell you the formula was right — any future numeric
+projection change must include a cross-source sanity test against an
+independent total wherever one exists, **before** apply.
+
+## Workforce projection + facility roll-up — REZ-91 ROLLED BACK (see REZ-95 above)
 5 Aug 2026 — founder spotted `COAST TO COAST (PVT.) LTD.` publishing the wrong
 workforce and asked what happens to an extension's data when it joins its
 mother. Investigation found two unrelated defects and one architectural gap.
 
-**REZ-91 (P0) — `employees_total` is the max cohort, not the sum.** COMPLETE.
+**REZ-91 (P0) — `employees_total` is the max cohort, not the sum.** The apply
+below was **reverted by REZ-95**; the section is kept for the diagnosis and the
+snapshot/rollback path. COMPLETE.
 Merged PR #101 into `development`. **APPLIED to production 5 Aug 2026**
 (founder-approved). Branched from `origin/development` @ `b7de8dd`. BGMEA
 workforce cohorts `{Management, Employee Male, Employee Female}` are now
