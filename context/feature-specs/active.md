@@ -3,6 +3,23 @@
 This file keeps routine agent sessions from scanning every inactive feature spec.
 
 ## Active / Recent Spec
+- REPORT COMPLETE, awaiting decision (6 Aug 2026): **REZ-102 — the nine
+  group-of-companies hosts + the backed-only identity gap** (Linear REZ-102,
+  parent REZ-57). Branched from `development` @ `b436660`. **Read-only; REZ-90's
+  `review` gate, the REZ-88 detector and REZ-99's three stranded numbers
+  untouched.** `ops/report_group_of_companies.py` →
+  `ops/plans/rez-102-group-of-companies-report.md`. The name-stem family
+  reading fails against premises/switchboard evidence: **2
+  group-corroborated / 3 refs-cohere-only / 4 no-link**, and the split does not
+  follow the stems. **L. A. T Sportwear is the best-evidenced ref on
+  `dk-knitwear`**, not a stray — DK's own BKMEA mailing address and rep mobile.
+  `scraped_company_name` is **0 of 20,224** in production, so the gap is
+  measured from the associate PDF + REZ-88 cache keyed by whole `source_ref`
+  (bare-number keying collided the two registers and read 609 instead of
+  **50**). 5,740 suppliers / 5,970 records, 1,816 nameable, **50 hold only
+  records naming someone else**; the nine are a strict subset. Options costed
+  fail-open 203 / fail-closed 4,357, **not chosen**. pytest 827. See
+  `context/current-state.md` → "group-of-companies + backed-only identity gap".
 - COMPLETE in the working tree (5 Aug 2026): **REZ-90 — revise the multi-ref
   plan** (Linear REZ-90, parent REZ-57). Branched from `development` @
   `6884e67`. **Plan only; no mutations; detector and its tests untouched.**
