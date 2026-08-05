@@ -27,9 +27,44 @@ You are a senior engineer working on **SourceBD**, a B2B intelligence SaaS for t
 7. **Server enforces auth and ownership.** Hiding UI is never a security control.
 8. **Never commit secrets or `context/current-issues.md`.**
 9. **Never push to `main` directly.** Work on `development`, open a PR.
+9a. **Every promotion step needs the founder's explicit go-ahead, asked for
+    one step at a time.** The three gates are: (1) landing work on
+    `development`, whether by merging a PR or pushing to it directly;
+    (2) promoting `development` to `main`, or cutting a `v*` tag;
+    (3) deploying to the VPS. Committing locally and pushing a feature
+    branch are free — landing it is not. Approval of one gate is never
+    approval of the next: "merge it" means land that work on `development`
+    and stop, then ask again before `main`, and again before deploy. Never
+    chain the three in a single action, and never infer approval from an
+    earlier "yes", from a green CI run, or from the work being finished.
 10. **Do not touch the pixelsport-backend VPS** (37.49.227.151 / nbawebcast). It hosts unrelated apps.
 11. **Working tree must be clean at the start of every spec/session.** Either committed or stashed (with an accurate label). Cross-session half-work left uncommitted in the tree contaminates the next spec's build + verification. (Added 8 Jun 2026 — R1 root cause.)
 12. **Before asserting any fact about a file, `git diff` it against HEAD.** `read_file` / the editor pane shows the **working tree**, never the committed state. State the ref you checked (HEAD / branch / SHA) whenever you report a file's state. Corollary: **a file failing to typecheck is not the same as a file being modified** — a downstream consumer breaks when its dependency changes without being dirty itself. `git status` is the truth on what's modified. (Added 8 Jun 2026 — R1 root cause.)
+
+## Naming issues so a human can follow
+
+Never refer to a Linear issue by its bare identifier. `REZ-102` is unreadable
+on its own — the founder tracks dozens of issues and cannot map a number to
+its content while reading. **Every first mention of an issue in a chat reply,
+Linear comment, commit body or PR description must carry a short plain
+description of what it is about**, in the founder's own vocabulary rather than
+the issue's full title:
+
+- Good: `REZ-102 (nine suppliers holding another company's BGMEA records)`
+- Good: `REZ-90 (the multi-ref split plan)`
+- Bad: `REZ-102`, `as covered in REZ-90`
+
+Rules of thumb:
+
+- Six words or fewer. Say what is *wrong* or what the work *is*, not the
+  ticket's formal title with its `[DATA][P1]` prefix.
+- Repeat mentions in the same reply may use the bare identifier once the
+  description has been given.
+- The same applies to PR numbers and commit SHAs: `PR #116 (the
+  group-of-companies report)`, not `#116`.
+- When writing a Linear description that references other issues, describe
+  them inline too. Linear renders the identifier as a link, but the reader
+  still cannot tell what it points at without hovering.
 
 ## Workflow per spec
 
