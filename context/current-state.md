@@ -7,8 +7,10 @@ Phase 7 - Public Beta launch prep.
 
 ## BGMEA reg-number array provenance — REZ-98 (option (a) shipped; array repair follows)
 5 Aug 2026 — **founder decision: option (a), backed-only display.** Migration
-`20260805_rez98_registry_ids_bgmea_backed_only.sql` **NOT applied to
-production.** Plus two append-path guards. Read-only
+`20260805_rez98_registry_ids_bgmea_backed_only.sql` **APPLIED to production
+5 Aug 2026**; the live view returns 5,970 numbers / 5,740 suppliers / 199
+multi-number, matching the dry-run exactly. Plus two append-path guards.
+Read-only
 `ops/report_bgmea_array_provenance.py` + pins in
 `etl/tests/test_bgmea_array_provenance.py` and
 `etl/tests/test_bgmea_backed_only_display.py`.

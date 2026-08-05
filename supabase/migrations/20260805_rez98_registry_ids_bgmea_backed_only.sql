@@ -29,6 +29,11 @@
 -- view cannot reach — see REZ-98 for that measurement.
 --
 -- Every other branch below is unchanged from the REZ-19 definition.
+--
+-- APPLIED to production 5 Aug 2026. The live view returns 5,970 BGMEA numbers
+-- across 5,740 suppliers with 199 multi-number, matching the dry-run exactly;
+-- the 11,403 non-BGMEA rows were unaffected. Rollback = re-run the pre-REZ-98
+-- definition (this file minus the `exists (...)` clause in the BGMEA branch).
 -- -----------------------------------------------------------------------------
 
 create or replace view public.v_supplier_registry_ids_direct as
