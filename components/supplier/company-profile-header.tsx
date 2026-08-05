@@ -103,7 +103,9 @@ export function CompanyProfileHeader<TAddress extends AddressRowRaw>({
   if (s.employees_total != null) {
     facts.push({
       key: "employees",
-      label: "Employees",
+      // "Production workers", not "Employees": the figure is BGMEA's
+      // Employee Male + Employee Female, which excludes staff (REZ-95).
+      label: "Production workers",
       icon: "employees",
       children: s.employees_total.toLocaleString(),
     });

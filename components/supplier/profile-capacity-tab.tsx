@@ -47,6 +47,13 @@ function pickWorkforce(
   }
 
   if (t != null && f != null && m != null) {
+    // Cross-source consistency guard — keep it. employees_total and
+    // employees_male/female each win their column independently (highest trust,
+    // then most recent), so the total can come from BKMEA while the split comes
+    // from BGMEA. When the split cannot account for the total the split is not
+    // describable, so it is withheld rather than shown against a total it
+    // contradicts. This is what suppressed coast-to-coast's split while
+    // employees_total was inflated to 1,360 against 510 + 200 (REZ-95).
     const sum = f + m;
     const ratio = sum / t;
     if (ratio < 0.9 || ratio > 1.1) {
@@ -144,10 +151,11 @@ function buildCapacityKpis(s: SupplierCapacity): ProfileKpiItem[] {
   if (wf.total != null) {
     items.push({
       key: "workforce-total",
-      label: "Total workforce",
+      // The figure is Employee Male + Employee Female, so it excludes staff.
+      // "Total workforce" / "workers + staff" both claimed otherwise (REZ-95).
+      label: "Production workers",
       value: wf.total.toLocaleString(),
       numValue: wf.total,
-      sub: "workers + staff",
     });
   }
   if (wf.showGenderSplit && wf.femalePct != null) {
@@ -167,7 +175,6 @@ function buildCapacityKpis(s: SupplierCapacity): ProfileKpiItem[] {
       label: "Male workers",
       value: wf.maleCount.toLocaleString(),
       numValue: wf.maleCount,
-      sub: "workers + staff",
     });
   }
   if (s.machines_sewing != null) {

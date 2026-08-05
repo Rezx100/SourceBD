@@ -14,9 +14,18 @@ the candidate set so a zero-reporting record cannot blank a real value.
 greatest() and `where x.val > coalesce(...)` are intentionally gone — a
 register may correct a number downwards.
 
-Within one BGMEA `employees` object (REZ-91): Management / Employee Male /
-Employee Female are disjoint cohorts — sum those recognised keys only.
-Unrecognised keys are skipped and reported. Do not sum every dict value.
+Within one BGMEA `employees` object (REZ-95): `employees_total` is
+**production workers** = `Employee Male` + `Employee Female`. The first column
+(`Management`) is NOT added. REZ-91 summed all three on the reasoning that they
+are disjoint cohorts; that inflated 590 suppliers and exactly doubled 165,
+because the first column does not reliably mean management — on `fakir-fashion`
+it reads 18,547 while Male 9,274 + Female 9,273 = 18,547 exactly, restating the
+total. Against BKMEA's independent worker total (n=198), `Male + Female` is
+closer in every band, including the band where a management figure is most
+credible. Both registries count production workers, so adding a third figure
+leaves the definition they share. The first column stays in the payload and is
+never surfaced. Unrecognised keys are skipped and reported; `Management` is
+recognised-but-excluded and so is not reported as unknown.
 
 Source-exclusivity (unchanged):
 - employees_total/male/female: BGMEA + BKMEA
@@ -56,12 +65,18 @@ TIER_RANK: dict[str, int] = {
     "tier6_crosscheck": 6,
 }
 
-# BGMEA workforce cohorts — disjoint groups in one factory. Sum these only
-# (REZ-91). Do not add future keys like "Total" here without an explicit
+# BGMEA production-worker cohorts — the only keys summed into employees_total
+# (REZ-95). Do not add future keys like "Total" here without an explicit
 # precedence rule; unrecognised keys are skipped and reported.
-BGMEA_EMPLOYEE_COHORT_KEYS: frozenset[str] = frozenset(
-    {"Management", "Employee Male", "Employee Female"}
-)
+BGMEA_WORKER_COHORT_KEYS: frozenset[str] = frozenset({"Employee Male", "Employee Female"})
+
+# Recognised but deliberately excluded from the worker total (REZ-95). BGMEA's
+# first column is sometimes a management headcount, sometimes a restatement of
+# the total, sometimes neither — on 419 of 1,607 records it is provably not
+# management (192 exactly equal Male+Female, 227 exceed the whole worker count).
+# It is genuine sourced data: keep it in the payload, never sum it, and never
+# render it. Listing it here keeps it out of the unknown-key report.
+BGMEA_NON_WORKER_EMPLOYEE_KEYS: frozenset[str] = frozenset({"Management"})
 
 
 @dataclass(frozen=True)
@@ -120,11 +135,13 @@ SQL_STATEMENTS: list[tuple[str, str]] = [
           union all
           select sr.supplier_id,
                  (
-                   -- REZ-91: sum recognised cohorts only (not max, not every key).
+                   -- REZ-95: production workers = Employee Male + Employee Female.
+                   -- 'Management' is deliberately NOT summed; it is not reliably a
+                   -- management headcount (REZ-91 regression). Not max either.
                    -- Empty-string values fail ~ '[0-9]' and are skipped.
                    select sum(nullif(regexp_replace(v.value::text, '[^0-9]', '', 'g'), '')::bigint)
                      from jsonb_each_text(sr.fields -> 'employees') v
-                    where v.key in ('Management', 'Employee Male', 'Employee Female')
+                    where v.key in ('Employee Male', 'Employee Female')
                       and v.value ~ '[0-9]'
                  ) as val,
                  sr.source_tier,
@@ -835,18 +852,25 @@ def _digits_int(raw: Any) -> int | None:
     return val if val != 0 else None
 
 
-def _bgmea_employees_total(
+def _bgmea_production_workers(
     fields: dict,
     *,
     unknown_keys: list[str] | None = None,
 ) -> int | None:
-    """Sum recognised BGMEA workforce cohorts (REZ-91).
+    """Sum BGMEA's production-worker cohorts (REZ-95).
 
-    Empty-string / non-digit / zero cohorts are skipped via ``_digits_int``.
-    Unrecognised keys are not added to the sum; when ``unknown_keys`` is
-    provided they are appended for reporting. Production payloads (5 Aug 2026)
-    carry only Management / Employee Male / Employee Female — no explicit
-    Total key — so there is no total-precedence branch today.
+    ``Employee Male + Employee Female`` only. ``Management`` is recognised and
+    deliberately excluded — it is not reliably a management headcount, and
+    adding it made the figure worse against BKMEA's independent worker total in
+    every band. Empty-string / non-digit / zero cohorts are skipped via
+    ``_digits_int``. Keys that are neither summed nor knowingly excluded are
+    appended to ``unknown_keys`` for reporting. Production payloads (5 Aug 2026)
+    carry only Management / Employee Male / Employee Female — no explicit Total
+    key — so there is no total-precedence branch today.
+
+    Feeds ``suppliers.employees_total``, which the profile renders as
+    "Production workers". The column name is unchanged; renaming it is not this
+    issue's scope.
     """
     emp = fields.get("employees")
     if not isinstance(emp, dict):
@@ -854,8 +878,8 @@ def _bgmea_employees_total(
     total = 0
     found = False
     for key, raw in emp.items():
-        if key not in BGMEA_EMPLOYEE_COHORT_KEYS:
-            if unknown_keys is not None:
+        if key not in BGMEA_WORKER_COHORT_KEYS:
+            if unknown_keys is not None and key not in BGMEA_NON_WORKER_EMPLOYEE_KEYS:
                 unknown_keys.append(str(key))
             continue
         n = _digits_int(raw)
@@ -920,7 +944,7 @@ def _candidates_for_column(
             if code == "BKMEA":
                 val = _digits_int(fields.get("bkmea_employees_total"))
             elif code == "BGMEA":
-                val = _bgmea_employees_total(fields, unknown_keys=unknown_employee_keys)
+                val = _bgmea_production_workers(fields, unknown_keys=unknown_employee_keys)
         elif column == "employees_male":
             if code == "BKMEA":
                 val = _digits_int(fields.get("bkmea_employees_male"))

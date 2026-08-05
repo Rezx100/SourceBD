@@ -3,13 +3,23 @@
 This file keeps routine agent sessions from scanning every inactive feature spec.
 
 ## Active / Recent Spec
-- IN PROGRESS / PR open (5 Aug 2026): **REZ-91 — employees_total sums
-  BGMEA cohorts, not max** (Linear REZ-91, parent REZ-57). Branched from
-  `origin/development` @ `b7de8dd`. SQL + Python mirror sum only
-  `Management` / `Employee Male` / `Employee Female`; unknown keys reported.
-  Dry-run: 1,390 upward `employees_total` corrections; `--apply` awaits
-  founder approval. Does not touch male/female, machines, capacity, or A8
-  cross-record rule. Coast-to-coast conflation remains REZ-90.
+- IN PROGRESS (5 Aug 2026): **REZ-95 — REZ-91 regression; BGMEA's first
+  employees column is not reliably "Management"** (Linear REZ-95, parent
+  REZ-57). Step 1 rollback **applied to production and verified** (1,390 rows
+  restored, 10,912/10,912 match snapshot, 0 sibling movement) via
+  `ops/rez95_rollback_employees_total.sql`. Remaining: re-derive
+  `employees_total` as `Employee Male + Employee Female` (dry-run awaiting
+  founder approval), rename the field to **"Production workers"** on the hero
+  card + Capacity tab in the SAME PR, never render the first-column figure.
+  Do NOT touch REZ-94, `employees_male`/`female`, machines or capacity, or
+  `etl/scrapers/bgmea_web.py`.
+- ROLLED BACK BY REZ-95 (5 Aug 2026): **REZ-91 — employees_total sums BGMEA
+  cohorts, not max** (Linear REZ-91, parent REZ-57). Merged PR #101 into
+  `development`. Production apply matched dry-run **1,390/1,390** upward;
+  sibling columns 0, but the `sum()` formula was wrong and the apply is
+  reverted. Rollback:
+  `public._rez91_employees_total_snapshot_20260805`. REZ-94 (BGMEA vs
+  BKMEA workforce winner) is a separate PR — do not fold in.
 - COMPLETE (merged PR #98, 5 Aug 2026): **REZ-87 — A7b Unify Python extension
   definition + Direction B patterns** (Linear REZ-87, parent REZ-57).
   Founder decision: Option 1 scoped to Python only — do NOT touch
