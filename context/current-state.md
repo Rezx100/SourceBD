@@ -5,6 +5,19 @@ Last compacted for agent-token efficiency: 30 Jun 2026.
 ## Phase
 Phase 7 - Public Beta launch prep.
 
+## Numeric projection rules in one module — REZ-100 COMPLETE
+6 Aug 2026 — pure move; no rule behaviour changed. Winner selection, caps,
+BGMEA worker cohorts and the per-source column map now live in
+`etl/core/projection.py` (confirmed against `architecture.md`: shared ETL
+primitives under `etl/core/`, same home as `field_locks`). Both
+`ops/backfill_profile_columns.py` and `ops/repair_bgmea_conflations.py` import
+it; neither imports the other. The module imports no `psycopg` / `httpx` /
+network client — asserted by `etl/tests/test_projection_module.py`. Existing
+projection and conflation-repair tests pass unmodified via re-exports.
+Residual `entity_type = 'factory'` gate on BGMEA `num_machines` left at the
+backfill call site and filed as **REZ-107**. No migration. No new dependency.
+Parent epic: Linear REZ-57. Unblocks REZ-94 and REZ-101.
+
 ## RSC is an unused independent workforce referee — REZ-101 filed
 5 Aug 2026 — found while auditing the founder's `KNIT BAZAAR (PVT.) LTD.`
 report (publishes 290 production workers; its own RSC card shows 1,350).

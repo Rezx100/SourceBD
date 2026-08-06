@@ -86,7 +86,6 @@ import json
 import os
 import re
 import sys
-from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
 
@@ -99,50 +98,25 @@ from etl.core.normalize import (
     normalize_company_name,
     normalize_phones,
 )
+from etl.core.projection import (
+    NUMERIC_CAPS,
+    NUMERIC_COLUMNS,
+    NumericCandidate,
+    bgmea_production_workers,
+    pick_numeric_winner,
+    value_for_column,
+    within_numeric_cap,
+)
 from etl.core.upsert import _FUZZY_THRESHOLD, _names_compatible
 
-DERIVED_COLUMNS = (
-    "employees_total",
-    "employees_male",
-    "employees_female",
-    "production_capacity_pcs_day",
-    "production_capacity_dozen_yearly",
-    "machines_sewing",
-)
+# Historical aliases — existing tests import these names from this module.
+_CAPS = NUMERIC_CAPS
+_bgmea_production_workers = bgmea_production_workers
+DERIVED_COLUMNS = NUMERIC_COLUMNS
 
 # The A8 winner needs source_tier / fetched_at / id alongside the payload;
 # source_ref backs the REZ-98 bgmea_reg_numbers recompute.
 _RECORD_SELECT = "id,source_id,source_ref,source_tier,fetched_at,fields"
-
-# Sanity caps carried over from ops/backfill_profile_columns.py.
-_CAPS = {
-    "employees_total": 200_000,
-    "employees_male": 200_000,
-    "employees_female": 200_000,
-    "machines_sewing": 20_000,
-    "production_capacity_pcs_day": 10_000_000,
-    "production_capacity_dozen_yearly": 200_000_000,
-}
-
-# Explicit integer ranking — do not rely on the Postgres enum's physical order.
-# Mirrors TIER_RANK in ops/backfill_profile_columns.py.
-TIER_RANK: dict[str, int] = {
-    "tier1_gov": 1,
-    "tier2_industry": 2,
-    "tier3_cert": 3,
-    "tier4_brand": 4,
-    "tier5_regulatory": 5,
-    "tier6_crosscheck": 6,
-}
-
-# BGMEA production-worker cohorts — the only keys summed into employees_total
-# (REZ-95). BGMEA's first column ("Management") is recognised and deliberately
-# excluded: on 192 records it exactly equals Male+Female and on 227 it exceeds
-# the whole worker count, so summing it published a management figure under the
-# "Production workers" label.
-BGMEA_WORKER_COHORT_KEYS: frozenset[str] = frozenset({"Employee Male", "Employee Female"})
-
-_DIGITS_RE = re.compile(r"[^0-9]")
 
 
 class Rest:
@@ -290,39 +264,12 @@ def _guard_matches(
 
 
 # ----------------------------------------------------------------------
-# Profile projection — REST port of ops/backfill_profile_columns.py rules for
-# the record shapes BGMEA and BKMEA store: numerics resolve by highest trust
-# then most recent fetch (A8 / REZ-68), arrays union, scalars/contacts fill
-# only when empty.
-#
-# NOTE: this is a second implementation of rules whose canonical home is
-# ops/backfill_profile_columns.py. That duplication is what let this file keep
-# max-merging for a full release cycle after A8 landed. Extracting both into
-# one importable module is the standing proposal on REZ-89.
+# Profile projection — REST I/O path over etl.core.projection rules.
+# Winner selection, caps, worker cohorts and the per-source column map live
+# in that module (REZ-100). Arrays union and scalars/contacts fill-only stay
+# here. This path does NOT gate BGMEA machines_sewing on entity_type=factory;
+# the canonical backfill does — left visible on purpose.
 # ----------------------------------------------------------------------
-@dataclass(frozen=True)
-class NumericCandidate:
-    """One non-zero numeric observation, carrying its A8 ranking keys."""
-
-    value: int
-    source_tier: str
-    fetched_at: datetime | None
-    record_id: str
-
-
-def _to_int(value: Any) -> int | None:
-    digits = _DIGITS_RE.sub("", str(value or ""))
-    return int(digits) if digits else None
-
-
-def _nonzero_int(value: Any) -> int | None:
-    """`_to_int` with zero treated as absent, not as a value.
-
-    A source publishing 0 must not blank a real figure, which is what
-    `nullif(..., 0)` guards in the canonical SQL.
-    """
-    val = _to_int(value)
-    return val or None
 
 
 def _parse_fetched_at(raw: Any) -> datetime | None:
@@ -334,29 +281,6 @@ def _parse_fetched_at(raw: Any) -> datetime | None:
         return datetime.fromisoformat(str(raw).replace("Z", "+00:00"))
     except ValueError:
         return None
-
-
-def _bgmea_production_workers(fields: dict[str, Any]) -> int | None:
-    """`Employee Male` + `Employee Female` within one record (REZ-95).
-
-    `Management` is recognised and excluded. Empty / non-digit / zero cohorts
-    are skipped, and a payload with no populated cohort yields no candidate
-    rather than 0.
-    """
-    employees = fields.get("employees")
-    if not isinstance(employees, dict):
-        return None
-    total = 0
-    found = False
-    for key, raw in employees.items():
-        if key not in BGMEA_WORKER_COHORT_KEYS:
-            continue
-        n = _nonzero_int(raw)
-        if n is None:
-            continue
-        total += n
-        found = True
-    return total if found else None
 
 
 def _numbers_from_record(record: dict[str, Any], source: str) -> dict[str, NumericCandidate]:
@@ -374,49 +298,14 @@ def _numbers_from_record(record: dict[str, Any], source: str) -> dict[str, Numer
     fetched_at = _parse_fetched_at(record.get("fetched_at"))
     record_id = str(record.get("id") or "")
     out: dict[str, NumericCandidate] = {}
-
-    def put(col: str, raw: Any) -> None:
-        val = _nonzero_int(raw)
-        if val is None or not (0 < val <= _CAPS[col]):
-            return
+    for col in DERIVED_COLUMNS:
+        val = value_for_column(fields, source, col)
+        if val is None or not within_numeric_cap(col, val):
+            continue
         out[col] = NumericCandidate(
             value=val, source_tier=tier, fetched_at=fetched_at, record_id=record_id
         )
-
-    if source == "BGMEA":
-        put("employees_total", _bgmea_production_workers(fields))
-        employees = fields.get("employees")
-        if isinstance(employees, dict):
-            put("employees_male", employees.get("Employee Male"))
-            put("employees_female", employees.get("Employee Female"))
-        put("machines_sewing", fields.get("num_machines"))
-        put("production_capacity_dozen_yearly", fields.get("production_capacity_dozen_yearly"))
-    elif source == "BKMEA":
-        put("employees_total", fields.get("bkmea_employees_total"))
-        put("employees_male", fields.get("bkmea_employees_male"))
-        put("employees_female", fields.get("bkmea_employees_female"))
-        put("machines_sewing", fields.get("bkmea_machines_sewing"))
-        put("production_capacity_pcs_day", fields.get("bkmea_production_capacity"))
     return out
-
-
-def pick_numeric_winner(candidates: list[NumericCandidate]) -> NumericCandidate | None:
-    """Highest trust, then most recent `fetched_at`, then lower record id.
-
-    Mirror of `pick_numeric_winner` in ops/backfill_profile_columns.py and of
-    the `distinct on ... order by` in its SQL. A record with no `fetched_at`
-    sorts last within its tier. Zeros never reach here.
-    """
-    if not candidates:
-        return None
-    return min(
-        candidates,
-        key=lambda c: (
-            TIER_RANK.get(c.source_tier, 99),
-            (0, -(c.fetched_at.timestamp())) if c.fetched_at is not None else (1, 0.0),
-            c.record_id,
-        ),
-    )
 
 
 def numeric_winners(
