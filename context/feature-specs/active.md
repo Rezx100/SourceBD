@@ -11,6 +11,14 @@ This file keeps routine agent sessions from scanning every inactive feature spec
   `num_machines` / `entity_type=factory` divergence filed as **REZ-107**.
   Unblocks REZ-94 and REZ-101. pytest 834. See `context/current-state.md` →
   "Numeric projection rules in one module".
+- COMPLETE in the working tree (6 Aug 2026): **REZ-86 — A6b; field locks on
+  contact_merge / address_norm / rsc_crosslink** (Linear REZ-86, parent
+  REZ-57). Branched from `development`. Promoted `locked_columns` to
+  `etl/core/field_locks.py` (moved, not copied); the three jobs omit locked
+  columns from their SET list and skip an empty UPDATE. Empty lock table =
+  byte-identical SQL. Fourth path `address_upgrade` (F11) STOP-AND-ASK'd, not
+  widened. No migration. pytest 840. See `context/current-state.md` →
+  "Field locks hold on the three post-upsert jobs".
 - REPORT COMPLETE, awaiting decision (6 Aug 2026): **REZ-102 — the nine
   group-of-companies hosts + the backed-only identity gap** (Linear REZ-102,
   parent REZ-57). Branched from `development` @ `b436660`. **Read-only; REZ-90's
