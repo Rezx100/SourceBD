@@ -26,12 +26,26 @@ tombstoned child has no row, so a database-backed caller never sees it. The
 pure function still accepts ``tombstoned=True`` so tests (and any future soft
 marker) can prove exclusion.
 
-NO DOUBLE-COUNT
----------------
-Children are keyed by ``supplier_id``; a duplicate id collapses to the first
-sighting. Only direct ``facility_of == parent.id`` children are accepted —
-nested facilities of facilities are not walked. That is how a child that is
-itself a duplicate of another child cannot contribute twice.
+WHAT ``supplier_id`` DEDUPE DOES — AND DOES NOT
+-----------------------------------------------
+Children are keyed by ``supplier_id``; the same id appearing twice in one
+call collapses to the first sighting. That is an input-list hygiene guard
+only. It does **not** detect two distinct supplier rows that describe the
+same physical building. That population is real and large (REZ-105 measured
+117 such clusters; knit-plus alone has three sibling rows). If those
+siblings are both attached as facilities of the same mother, this roll-up
+will sum them both. Preventing that is an upstream identity/merge problem,
+not something this module can invent from arithmetic.
+
+NESTED FACILITIES
+-----------------
+Only direct ``facility_of == parent.id`` children are accepted — facilities
+of facilities are not walked. That is safe **only** because REZ-71
+(``ops/backfill_facility_of.py``) must refuse to set ``facility_of`` when
+the candidate parent is itself a facility. That refusal is a hard constraint
+on REZ-71, not an assumption this docstring invents after the fact. If a
+future writer ever creates a facility→facility chain, this roll-up will
+silently drop the grandchild and understate the group total.
 
 NULL HANDLING
 -------------
@@ -149,7 +163,12 @@ def _dedupe_live_children(
     parent_id: str,
     children: list[FacilityBuilding],
 ) -> list[FacilityBuilding]:
-    """Live, directly-attached facilities, unique by supplier_id (first wins)."""
+    """Live, directly-attached facilities; same supplier_id twice → first wins.
+
+    Does not collapse distinct rows that happen to describe one building
+    (REZ-105). Nested facility→facility children are skipped — REZ-71 must
+    refuse to create those chains.
+    """
     seen: set[str] = set()
     out: list[FacilityBuilding] = []
     for child in children:
@@ -158,7 +177,8 @@ def _dedupe_live_children(
         if child.supplier_id == parent_id:
             continue
         # Only directly attached facilities. facility_of must equal the parent
-        # — None or a different mother means "not attached here".
+        # — None or a different mother means "not attached here". Nested
+        # chains are out of scope; REZ-71 must not create them.
         if child.facility_of != parent_id:
             continue
         if child.supplier_id in seen:
