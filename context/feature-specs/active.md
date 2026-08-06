@@ -3,6 +3,14 @@
 This file keeps routine agent sessions from scanning every inactive feature spec.
 
 ## Active / Recent Spec
+- COMPLETE in the working tree (6 Aug 2026): **REZ-100 — extract numeric
+  projection rules into one importable module** (Linear REZ-100, parent
+  REZ-57). Branched from `development`. Pure move into
+  `etl/core/projection.py`; both write paths import it; purity test guards
+  against `psycopg`/`httpx`. Existing tests unmodified. Residual BGMEA
+  `num_machines` / `entity_type=factory` divergence filed as **REZ-107**.
+  Unblocks REZ-94 and REZ-101. pytest 834. See `context/current-state.md` →
+  "Numeric projection rules in one module".
 - COMPLETE in the working tree (6 Aug 2026): **REZ-86 — A6b; field locks on
   contact_merge / address_norm / rsc_crosslink** (Linear REZ-86, parent
   REZ-57). Branched from `development`. Promoted `locked_columns` to

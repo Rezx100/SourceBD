@@ -6,111 +6,50 @@ from source_records.fields JSONB (BGMEA web, BKMEA detail, EPB).
 Idempotent. Safe to rerun. Dry-run is the default (REST); pass --apply to
 write via psycopg (founder approval required for production).
 
-Numeric merge rule (REZ-68 / A8): for each column, the winning value is from
-the highest-trust source_records.source_tier that reports a non-zero value,
-then among equal-tier sources the most recent fetched_at. Never the largest.
-Never sum *across* source records. Zeros are excluded via nullif(..., 0) in
-the candidate set so a zero-reporting record cannot blank a real value.
-greatest() and `where x.val > coalesce(...)` are intentionally gone — a
-register may correct a number downwards.
-
-Within one BGMEA `employees` object (REZ-95): `employees_total` is
-**production workers** = `Employee Male` + `Employee Female`. The first column
-(`Management`) is NOT added. REZ-91 summed all three on the reasoning that they
-are disjoint cohorts; that inflated 590 suppliers and exactly doubled 165,
-because the first column does not reliably mean management — on `fakir-fashion`
-it reads 18,547 while Male 9,274 + Female 9,273 = 18,547 exactly, restating the
-total. Against BKMEA's independent worker total (n=198), `Male + Female` is
-closer in every band, including the band where a management figure is most
-credible. Both registries count production workers, so adding a third figure
-leaves the definition they share. The first column stays in the payload and is
-never surfaced. Unrecognised keys are skipped and reported; `Management` is
-recognised-but-excluded and so is not reported as unknown.
-
-Source-exclusivity (unchanged):
-- employees_total/male/female: BGMEA + BKMEA
-- production_capacity_pcs_day: BKMEA only (native pcs/day)
-- production_capacity_dozen_yearly: BGMEA only (native dozen/year)
-- machines_sewing: BKMEA (bkmea_machines_sewing) + BGMEA factories (num_machines)
-- established_date: BGMEA only (latest-fetched)
-- factory_types / principal_products: array unions (additive)
+Numeric projection rules (winner selection, caps, BGMEA worker cohorts,
+per-source column map) live in ``etl.core.projection`` — shared with
+``ops/repair_bgmea_conflations.py`` (REZ-100). This module owns the SQL
+apply path, the REST dry-run I/O, and the residual
+``entity_type = 'factory'`` gate on BGMEA ``num_machines``.
 
 Each UPDATE skips suppliers with a live `supplier_field_locks` row on the
 target column (REZ-66 / A6). Released locks (`released_at` set) do not block.
+
+Arrays / established_date (not in the shared module):
+- established_date: BGMEA only (latest-fetched)
+- factory_types / principal_products: array unions (additive)
 """
 
 from __future__ import annotations
 
 import argparse
 import os
-import re
 import sys
 import time
 from collections import Counter
-from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
 
 import httpx
 import psycopg
 
+from etl.core.projection import (
+    BGMEA_NON_WORKER_EMPLOYEE_KEYS,  # noqa: F401 — re-export for tests
+    BGMEA_WORKER_COHORT_KEYS,  # noqa: F401 — re-export for tests
+    NUMERIC_COLUMNS,
+    NumericCandidate,
+    TIER_RANK,  # noqa: F401 — re-export for tests
+    bgmea_production_workers,
+    digits_int,
+    pick_numeric_winner,
+    value_for_column,
+    within_numeric_cap,
+)
 
-# Explicit integer ranking — do not rely on Postgres enum physical order.
-TIER_RANK: dict[str, int] = {
-    "tier1_gov": 1,
-    "tier2_industry": 2,
-    "tier3_cert": 3,
-    "tier4_brand": 4,
-    "tier5_regulatory": 5,
-    "tier6_crosscheck": 6,
-}
-
-# BGMEA production-worker cohorts — the only keys summed into employees_total
-# (REZ-95). Do not add future keys like "Total" here without an explicit
-# precedence rule; unrecognised keys are skipped and reported.
-BGMEA_WORKER_COHORT_KEYS: frozenset[str] = frozenset({"Employee Male", "Employee Female"})
-
-# Recognised but deliberately excluded from the worker total (REZ-95). BGMEA's
-# first column is sometimes a management headcount, sometimes a restatement of
-# the total, sometimes neither — on 419 of 1,607 records it is provably not
-# management (192 exactly equal Male+Female, 227 exceed the whole worker count).
-# It is genuine sourced data: keep it in the payload, never sum it, and never
-# render it. Listing it here keeps it out of the unknown-key report.
-BGMEA_NON_WORKER_EMPLOYEE_KEYS: frozenset[str] = frozenset({"Management"})
-
-
-@dataclass(frozen=True)
-class NumericCandidate:
-    """One non-zero numeric observation from an active source_record."""
-
-    supplier_id: str
-    value: int
-    source_tier: str
-    fetched_at: datetime | None
-    record_id: str
-    source_code: str
-
-
-def pick_numeric_winner(candidates: list[NumericCandidate]) -> NumericCandidate | None:
-    """Highest trust, then most recent fetched_at, then lower record_id.
-
-    Tiebreak (same tier, same fetched_at): lexicographically smaller
-    ``record_id`` wins — stated here so same-tier/same-fetched_at results
-    are deterministic across SQL (ORDER BY sr.id) and this Python mirror.
-    Zeros and NULLs must not appear in ``candidates`` (callers filter them).
-    """
-    if not candidates:
-        return None
-    return min(
-        candidates,
-        key=lambda c: (
-            TIER_RANK.get(c.source_tier, 99),
-            # None fetched_at sorts last (least preferred)
-            (0, -(c.fetched_at.timestamp())) if c.fetched_at is not None else (1, 0),
-            c.record_id,
-        ),
-    )
-
+# Re-exports under the historical private names so existing tests keep
+# importing from this module unmodified (REZ-100 pure move).
+_bgmea_production_workers = bgmea_production_workers
+_digits_int = digits_int
 
 
 SQL_STATEMENTS: list[tuple[str, str]] = [
@@ -816,16 +755,6 @@ from public.suppliers;
 """
 
 
-NUMERIC_COLUMNS: tuple[str, ...] = (
-    "employees_total",
-    "employees_male",
-    "employees_female",
-    "production_capacity_pcs_day",
-    "machines_sewing",
-    "production_capacity_dozen_yearly",
-)
-
-
 def _parse_fetched_at(raw: Any) -> datetime | None:
     if not raw:
         return None
@@ -836,58 +765,6 @@ def _parse_fetched_at(raw: Any) -> datetime | None:
         return datetime.fromisoformat(s)
     except ValueError:
         return None
-
-
-def _digits_int(raw: Any) -> int | None:
-    if raw is None:
-        return None
-    if isinstance(raw, bool):
-        return None
-    if isinstance(raw, int):
-        return raw if raw != 0 else None
-    text = re.sub(r"[^0-9]", "", str(raw))
-    if not text:
-        return None
-    val = int(text)
-    return val if val != 0 else None
-
-
-def _bgmea_production_workers(
-    fields: dict,
-    *,
-    unknown_keys: list[str] | None = None,
-) -> int | None:
-    """Sum BGMEA's production-worker cohorts (REZ-95).
-
-    ``Employee Male + Employee Female`` only. ``Management`` is recognised and
-    deliberately excluded — it is not reliably a management headcount, and
-    adding it made the figure worse against BKMEA's independent worker total in
-    every band. Empty-string / non-digit / zero cohorts are skipped via
-    ``_digits_int``. Keys that are neither summed nor knowingly excluded are
-    appended to ``unknown_keys`` for reporting. Production payloads (5 Aug 2026)
-    carry only Management / Employee Male / Employee Female — no explicit Total
-    key — so there is no total-precedence branch today.
-
-    Feeds ``suppliers.employees_total``, which the profile renders as
-    "Production workers". The column name is unchanged; renaming it is not this
-    issue's scope.
-    """
-    emp = fields.get("employees")
-    if not isinstance(emp, dict):
-        return None
-    total = 0
-    found = False
-    for key, raw in emp.items():
-        if key not in BGMEA_WORKER_COHORT_KEYS:
-            if unknown_keys is not None and key not in BGMEA_NON_WORKER_EMPLOYEE_KEYS:
-                unknown_keys.append(str(key))
-            continue
-        n = _digits_int(raw)
-        if n is None:
-            continue
-        total += n
-        found = True
-    return total if found else None
 
 
 class Rest:
@@ -929,7 +806,12 @@ def _candidates_for_column(
     *,
     unknown_employee_keys: list[str] | None = None,
 ) -> dict[str, list[NumericCandidate]]:
-    """Build per-supplier candidate lists mirroring the SQL statements."""
+    """Build per-supplier candidate lists mirroring the SQL statements.
+
+    Column mapping + caps live in ``etl.core.projection``. The
+    ``entity_type = 'factory'`` gate on BGMEA ``machines_sewing`` stays here
+    deliberately — the repair port does not apply it (REZ-100 non-goal).
+    """
     by_sup: dict[str, list[NumericCandidate]] = {}
     for sr in records:
         sid = sr.get("supplier_id")
@@ -939,55 +821,24 @@ def _candidates_for_column(
         fields = sr.get("fields") or {}
         if not isinstance(fields, dict):
             continue
-        val: int | None = None
-        if column == "employees_total":
-            if code == "BKMEA":
-                val = _digits_int(fields.get("bkmea_employees_total"))
-            elif code == "BGMEA":
-                val = _bgmea_production_workers(fields, unknown_keys=unknown_employee_keys)
-        elif column == "employees_male":
-            if code == "BKMEA":
-                val = _digits_int(fields.get("bkmea_employees_male"))
-            elif code == "BGMEA":
-                emp = fields.get("employees") if isinstance(fields.get("employees"), dict) else {}
-                val = _digits_int(emp.get("Employee Male"))
-        elif column == "employees_female":
-            if code == "BKMEA":
-                val = _digits_int(fields.get("bkmea_employees_female"))
-            elif code == "BGMEA":
-                emp = fields.get("employees") if isinstance(fields.get("employees"), dict) else {}
-                val = _digits_int(emp.get("Employee Female"))
-        elif column == "production_capacity_pcs_day":
-            if code == "BKMEA":
-                val = _digits_int(fields.get("bkmea_production_capacity"))
-        elif column == "production_capacity_dozen_yearly":
-            if code == "BGMEA":
-                val = _digits_int(fields.get("production_capacity_dozen_yearly"))
-        elif column == "machines_sewing":
-            if code == "BKMEA":
-                val = _digits_int(fields.get("bkmea_machines_sewing"))
-            elif code == "BGMEA":
-                val = _digits_int(fields.get("num_machines"))
-                if val is not None:
-                    if entity_type_by_supplier.get(sid) != "factory":
-                        val = None
-                    elif not (1 <= val <= 20000):
-                        val = None
+        unk = unknown_employee_keys if column == "employees_total" else None
+        val = value_for_column(fields, code, column, unknown_employee_keys=unk)
         if val is None:
             continue
-        if column in ("employees_total", "employees_male", "employees_female") and val > 200000:
-            continue
-        if column == "production_capacity_pcs_day" and val > 10000000:
-            continue
-        if column == "production_capacity_dozen_yearly" and val > 200000000:
+        # Residual divergence vs repair_bgmea_conflations: only the canonical
+        # path refuses BGMEA machine counts on non-factory entity types.
+        if column == "machines_sewing" and code == "BGMEA":
+            if entity_type_by_supplier.get(sid) != "factory":
+                continue
+        if not within_numeric_cap(column, val):
             continue
         by_sup.setdefault(sid, []).append(
             NumericCandidate(
-                supplier_id=sid,
                 value=val,
                 source_tier=sr.get("source_tier") or "",
                 fetched_at=_parse_fetched_at(sr.get("fetched_at")),
                 record_id=str(sr.get("id") or ""),
+                supplier_id=sid,
                 source_code=code,
             )
         )

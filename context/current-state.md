@@ -5,6 +5,19 @@ Last compacted for agent-token efficiency: 30 Jun 2026.
 ## Phase
 Phase 7 - Public Beta launch prep.
 
+## Numeric projection rules in one module — REZ-100 COMPLETE
+6 Aug 2026 — pure move; no rule behaviour changed. Winner selection, caps,
+BGMEA worker cohorts and the per-source column map now live in
+`etl/core/projection.py` (confirmed against `architecture.md`: shared ETL
+primitives under `etl/core/`, same home as `field_locks`). Both
+`ops/backfill_profile_columns.py` and `ops/repair_bgmea_conflations.py` import
+it; neither imports the other. The module imports no `psycopg` / `httpx` /
+network client — asserted by `etl/tests/test_projection_module.py`. Existing
+projection and conflation-repair tests pass unmodified via re-exports.
+Residual `entity_type = 'factory'` gate on BGMEA `num_machines` left at the
+backfill call site and filed as **REZ-107**. No migration. No new dependency.
+Parent epic: Linear REZ-57. Unblocks REZ-94 and REZ-101.
+
 ## Field locks hold on the three post-upsert jobs — REZ-86 (A6b) COMPLETE
 6 Aug 2026 — follow-up to REZ-66 (A6). `contact_merge`, `address_norm` and
 `rsc_crosslink` now load `supplier_field_locks` once per supplier and omit
