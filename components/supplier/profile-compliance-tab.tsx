@@ -29,6 +29,12 @@ export type ProfileComplianceCert = {
   expires_on: string | null;
   scope: string | null;
   document_url: string | null;
+  /**
+   * REZ-93: facility company_name when inherited from a facility_of child.
+   * Display-only — does not feed discover, pills, or t13. Suffixes like
+   * (Extension) / Unit-2 identify the building.
+   */
+  building_name?: string | null;
 };
 
 export type ProfileComplianceRsc = {
@@ -67,6 +73,13 @@ export type ProfileComplianceDocument = {
   original_url: string;
   fetched_at: string;
   file_size: number | null;
+  /**
+   * REZ-93: facility company_name when this doc was inherited from a
+   * facility_of child. Omitted/null for the mother's own documents.
+   * Suffixes like (Extension) / Unit-2 are intentional — they identify
+   * the building.
+   */
+  building_name?: string | null;
 };
 
 export type ProfileComplianceData = {
@@ -276,17 +289,33 @@ export function ProfileCertificationsCard({
   certifications: readonly ProfileComplianceCert[];
 }) {
   if (certifications.length === 0) return null;
+  const buildingCount = new Set(
+    certifications
+      .map((c) => c.building_name?.trim())
+      .filter((n): n is string => Boolean(n)),
+  ).size;
   return (
     <ProfileCard hoverable>
       <ProfileCardHeader
         title="Certifications"
-        meta={`${countActiveCerts(certifications)} active · ${countExpiringCerts(certifications)} expiring`}
+        meta={
+          buildingCount > 0
+            ? `${countActiveCerts(certifications)} active · ${countExpiringCerts(certifications)} expiring · ${buildingCount} building${buildingCount === 1 ? "" : "s"}`
+            : `${countActiveCerts(certifications)} active · ${countExpiringCerts(certifications)} expiring`
+        }
       />
       <div>
         {certifications.map((c, i) => (
           <CertRow key={i} cert={c} />
         ))}
       </div>
+      {buildingCount > 0 ? (
+        <ProfileFootnote>
+          Certificates labelled with a building name were issued for that
+          facility. They appear here for due diligence only — they do not make
+          the company searchable under that certification in Discover.
+        </ProfileFootnote>
+      ) : null}
     </ProfileCard>
   );
 }
@@ -311,11 +340,20 @@ export function ProfileDocumentsCard({
   className?: string;
 }) {
   if (documents.length === 0) return null;
+  const buildingCount = new Set(
+    documents
+      .map((d) => d.building_name?.trim())
+      .filter((n): n is string => Boolean(n)),
+  ).size;
   return (
     <ProfileCard className={className}>
       <ProfileCardHeader
         title="Compliance documents"
-        meta={`${documents.length} mirrored`}
+        meta={
+          buildingCount > 0
+            ? `${documents.length} mirrored · ${buildingCount} building${buildingCount === 1 ? "" : "s"}`
+            : `${documents.length} mirrored`
+        }
       />
       <div>
         {documents.map((d, i) => (
@@ -325,6 +363,9 @@ export function ProfileDocumentsCard({
       <ProfileFootnote>
         Mirror copies served from SourceBD&apos;s CDN for stable archival.
         Originals link back to the issuing authority.
+        {buildingCount > 0
+          ? " Documents labelled with a building name were inspected at that facility, not the main plant."
+          : null}
       </ProfileFootnote>
     </ProfileCard>
   );
@@ -404,6 +445,7 @@ function RegistryRow({ pill }: { pill: ProfileCompliancePill }) {
 function CertRow({ cert }: { cert: ProfileComplianceCert }) {
   const status = certStatus(cert);
   const shortStatus = certStatusShort(status);
+  const building = cert.building_name?.trim() || null;
   const expirySuffix =
     cert.expires_on && cert.kind !== "oeko_tex"
       ? ` · expires ${formatProfileDate(cert.expires_on)}`
@@ -433,6 +475,11 @@ function CertRow({ cert }: { cert: ProfileComplianceCert }) {
             {[cert.certificate_no, cert.issuer].filter(Boolean).join(" · ") || "—"}
             {expirySuffix}
           </span>
+          {building ? (
+            <span className="mt-0.5 block text-[12px] font-medium text-neutral-500">
+              {building}
+            </span>
+          ) : null}
         </>
       }
       status={
@@ -623,6 +670,10 @@ function BrandChip({ brand }: { brand: ProfileComplianceBrand }) {
 }
 
 function DocRow({ doc }: { doc: ProfileComplianceDocument }) {
+  const building = doc.building_name?.trim() || null;
+  const sizeMeta = doc.file_size ? (
+    <span className="font-mono">{fmtBytes(doc.file_size)}</span>
+  ) : null;
   return (
     <ProfileEvidenceRow
       mark={<ProfileSourceMark tag="RSC" />}
@@ -645,7 +696,19 @@ function DocRow({ doc }: { doc: ProfileComplianceDocument }) {
           </span>
         </>
       }
-      meta={doc.file_size ? <span className="font-mono">{fmtBytes(doc.file_size)}</span> : null}
+      meta={
+        building || sizeMeta ? (
+          <>
+            {building ? (
+              <span title="Inspection covers this building">
+                {building}
+                {sizeMeta ? " · " : null}
+              </span>
+            ) : null}
+            {sizeMeta}
+          </>
+        ) : null
+      }
       action={
         <>
           {/* Phones: plain compact text links instead of the padded

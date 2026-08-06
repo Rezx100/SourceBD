@@ -3,6 +3,17 @@
 This file keeps routine agent sessions from scanning every inactive feature spec.
 
 ## Active / Recent Spec
+- IN PROGRESS on `rez-93-facility-evidence-inherit` (6 Aug 2026): **REZ-93 —
+  facility RSC/compliance documents + certs on the mother, labelled by
+  building** (Linear REZ-93 / Extensions B0b, parent REZ-58). Read-path
+  only: migration `0095_buyer_supplier_profile_facility_documents.sql`
+  unions `compliance_documents` and `certifications` from live
+  `facility_of` children into `buyer_supplier_profile`, labelled with the
+  facility `company_name` (Extension / Unit-2 suffix kept). Deduped by row
+  id. Certs are **display-only** — discover/pills/t13 stay on the mother's
+  own id (containment test pins this). Pure merge rules in
+  `lib/facility-evidence.ts`. No facility attach. No production apply.
+  Blocks REZ-71 alongside REZ-92.
 - COMPLETE on `development` (6 Aug 2026, PR #125): **REZ-92 — facility group
   roll-up projection** (Linear REZ-92 / Extensions B0, parent REZ-58). Pure
   read-path module `etl/core/facility_rollup.py`: parent's own figures

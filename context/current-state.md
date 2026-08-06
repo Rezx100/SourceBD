@@ -5,6 +5,31 @@ Last compacted for agent-token efficiency: 30 Jun 2026.
 ## Phase
 Phase 7 - Public Beta launch prep.
 
+## Facility RSC/evidence on mother — REZ-93 (B0b) IN PROGRESS
+6 Aug 2026 — read-path only; no facilities attached; migration not applied.
+`buyer_supplier_profile` (mig `0095`) unions the mother's
+`compliance_documents` **and** `certifications` with those of live
+`facility_of` children. Inherited rows carry `building_name` = facility
+`company_name` with the Extension / Unit-2 suffix intact. Same row id twice
+→ once; same kind/doc_type across buildings → keep all. Parent's own rows
+omit `building_name` so a zero-facility payload keeps today's keys. Pure
+merge rules + containment tests in `lib/facility-evidence.ts`.
+
+**Certs are display-only (founder 6 Aug):** inherit all kinds labelled by
+building. Must not feed discover `p_cert_kinds` (`c.supplier_id = s.id`),
+registry pills (`v_supplier_registry_ids` on `s.id`), or t13 receipts
+(`source_records`). Containment pinned in tests so a later "fix" cannot
+wire facility_of into search. Founder re-measure: **21 cert rows on 15
+extension buildings in 15 families** (site-identified WRAP/GOTS/OEKO-TEX;
+no shared certificate_no with parent). Passing notes: Univogue 3 WRAP /
+Geebee 2 WRAP look unsuperseded; every OEKO-TEX has null expiry.
+
+Merge path (`ops/merge_duplicate_suppliers.py`) still re-points
+evidence/certs/RSC to the survivor and loses building attribution —
+finding only. PII: inheritance stays inside the SECURITY DEFINER RPC
+allow-list; no facility slug/id/contact emitted. Blocks REZ-71 with
+REZ-92. Parent epic: REZ-58.
+
 ## Facility group roll-up projection — REZ-92 (B0) COMPLETE
 6 Aug 2026 — projection + tests only; no UI; no facilities attached.
 `etl/core/facility_rollup.py` derives a mother company's group totals across
@@ -487,8 +512,9 @@ section + group-total render on the mother) lands, because attaching today
 makes mother profiles thinner, not richer — REZ-92's projection is pure
 Python with no read-path caller yet. Detection/reporting half of B1 is still
 safe; only `--apply` is blocked. REZ-95 (was REZ-91) and REZ-92 are done;
-**REZ-73 still required** before B1 `--apply`. REZ-93 (facility RSC/evidence
-on the mother) remains a separate thin-profile risk for safety docs.
+**REZ-73 still required** before B1 `--apply`. REZ-93 (facility RSC/compliance
+docs on the mother) is in progress on `rez-93-facility-evidence-inherit`
+(migration 0095 not applied; certs undecided).
 
 `coast-to-coast` is additionally a three-ref conflation (`general:1081` =
 the real company per BGMEA, `2768` = Coast To Coast Fashion, `3070` = Coast To
