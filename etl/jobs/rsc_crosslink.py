@@ -25,6 +25,7 @@ from __future__ import annotations
 import re
 
 from etl.core.db import db, get_source_id
+from etl.core.field_locks import locked_columns
 from etl.core.logging import get_logger
 
 log = get_logger("etl.jobs.rsc_crosslink")
@@ -134,16 +135,31 @@ def run() -> dict[str, int]:
             )
             cur_row = cur.fetchone()
             cd = cur_row if isinstance(cur_row, dict) else {"district": cur_row[0], "city": cur_row[1]}
+            # Skip locked columns (REZ-86 / A6b). Empty lock set keeps the
+            # historical SET list byte-identical (both coalesce fragments).
+            locked = locked_columns(cur, sid)
+            sets: list[str] = []
+            params: list[object] = []
+            if "district" not in locked:
+                sets.append("district = coalesce(district, %s)")
+                params.append(new_district)
+            if "city" not in locked:
+                sets.append("city = coalesce(city, %s)")
+                params.append(new_city)
+            if not sets:
+                continue
+            # Join with ", " and a trailing space before WHERE so the
+            # unlocked two-column form matches the pre-lock statement.
             cur.execute(
                 "update public.suppliers set "
-                "district = coalesce(district, %s), "
-                "city = coalesce(city, %s) "
-                "where id = %s",
-                (new_district, new_city, sid),
+                + ", ".join(sets)
+                + " "
+                + "where id = %s",
+                (*params, sid),
             )
-            if new_district and cd["district"] is None:
+            if new_district and cd["district"] is None and "district" not in locked:
                 stats["district_filled"] += 1
-            if new_city and cd["city"] is None:
+            if new_city and cd["city"] is None and "city" not in locked:
                 stats["city_filled"] += 1
             c.commit()
 

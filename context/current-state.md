@@ -5,6 +5,18 @@ Last compacted for agent-token efficiency: 30 Jun 2026.
 ## Phase
 Phase 7 - Public Beta launch prep.
 
+## Field locks hold on the three post-upsert jobs — REZ-86 (A6b) COMPLETE
+6 Aug 2026 — follow-up to REZ-66 (A6). `contact_merge`, `address_norm` and
+`rsc_crosslink` now load `supplier_field_locks` once per supplier and omit
+locked columns from their SET list (skip the UPDATE when every target column
+is locked). `locked_columns` moved from `etl/core/upsert.py` into
+`etl/core/field_locks.py` (single definition; upsert re-exports as
+`_locked_columns`). Empty lock table keeps each job's UPDATE SQL
+byte-identical. STOP-AND-ASK'd a fourth path — `etl/jobs/address_upgrade.py`
+(F11) — left alone this PR. No migration. Verification: pytest 840;
+ruff 44 pre-existing; `npx tsc --noEmit` clean; `npm test` 336/336.
+Parent epic: Linear REZ-57.
+
 ## RSC is an unused independent workforce referee — REZ-101 filed
 5 Aug 2026 — found while auditing the founder's `KNIT BAZAAR (PVT.) LTD.`
 report (publishes 290 production workers; its own RSC card shows 1,350).

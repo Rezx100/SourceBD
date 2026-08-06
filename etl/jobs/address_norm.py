@@ -21,6 +21,7 @@ import re
 from typing import Iterable
 
 from etl.core.db import db, get_source_id
+from etl.core.field_locks import locked_columns
 from etl.core.logging import get_logger
 
 log = get_logger("etl.jobs.address_norm")
@@ -383,14 +384,33 @@ def run_for(supplier_id: str) -> tuple[bool, bool]:
         )
         city_upd = bool(new_city and new_city != d["city"])
         dist_upd = bool(new_district and new_district != d["district"])
+        # Skip locked columns (REZ-86 / A6b). Empty lock set keeps the
+        # historical SET list byte-identical (both coalesce fragments).
+        locked = locked_columns(cur, supplier_id)
+        if "city" in locked:
+            city_upd = False
+        if "district" in locked:
+            dist_upd = False
         if city_upd or dist_upd:
-            cur.execute(
-                "update public.suppliers set "
-                "city = coalesce(city, %s), district = coalesce(district, %s) "
-                "where id = %s",
-                (new_city, new_district, supplier_id),
-            )
-            c.commit()
+            sets: list[str] = []
+            params: list[object] = []
+            if "city" not in locked:
+                sets.append("city = coalesce(city, %s)")
+                params.append(new_city)
+            if "district" not in locked:
+                sets.append("district = coalesce(district, %s)")
+                params.append(new_district)
+            if sets:
+                # Trailing space before WHERE matches the pre-lock statement
+                # when both fragments are present (byte-identical empty-lock bar).
+                cur.execute(
+                    "update public.suppliers set "
+                    + ", ".join(sets)
+                    + " "
+                    + "where id = %s",
+                    (*params, supplier_id),
+                )
+                c.commit()
         return city_upd, dist_upd
 
 
