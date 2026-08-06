@@ -958,13 +958,13 @@ def dry_run_numeric_diff(rest: Rest) -> dict[str, Any]:
 
 def format_dry_run_markdown(report: dict[str, Any]) -> str:
     lines: list[str] = [
-        "## REZ-91 dry-run (REST, no writes)",
+        "## Profile numeric dry-run (REST, no writes)",
         "",
-        "BGMEA `employees_total` is now the **sum** of recognised cohorts "
-        "(`Management`, `Employee Male`, `Employee Female`) within one record. "
-        "Cross-record winner rule is unchanged (REZ-68 / A8: highest "
-        "`source_tier`, then most recent `fetched_at`). Two records' totals "
-        "are never added to each other.",
+        "BGMEA `employees_total` is **production workers** = `Employee Male` + "
+        "`Employee Female` within one record (REZ-95). `Management` is recognised "
+        "and deliberately excluded. Cross-record winner rule is unchanged "
+        "(REZ-68 / A8: highest `source_tier`, then most recent `fetched_at`). "
+        "Two records' totals are never added to each other.",
         "",
         "### Suppliers changed per column",
         "",
