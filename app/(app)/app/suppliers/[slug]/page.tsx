@@ -90,6 +90,8 @@ type Cert = {
   expires_on: string | null;
   scope: string | null;
   document_url: string | null;
+  /** REZ-93: facility company_name when inherited; display-only. */
+  building_name?: string | null;
 };
 
 type RscRemediation = {
@@ -146,6 +148,8 @@ type ComplianceDocument = {
   original_url: string;
   fetched_at: string;
   file_size: number | null;
+  /** REZ-93: facility company_name when inherited; omitted for own docs. */
+  building_name?: string | null;
 };
 
 type ProfilePayload = {
