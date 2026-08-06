@@ -15,10 +15,16 @@ group total is a separate `GroupMetric` with `known_sum`, `facility_count`,
 when any building is NULL). Cross-source never-sum in `projection.py` is
 untouched — this module is deliberately separate so the two arithmetics cannot
 be confused. Tombstones = deleted merge losers (spec08); pure function also
-honours `tombstoned=True`. Children deduped by `supplier_id`; only direct
-`facility_of == parent.id`. A facility row gets no group total of its own.
-Never written back to `suppliers.*`. No migration. Unblocks REZ-71 `--apply`
-only after REZ-93 also lands. Parent epic: Linear REZ-58.
+honours `tombstoned=True`. `supplier_id` dedupe is input-list hygiene only —
+it does **not** collapse distinct sibling rows for one building (REZ-105's
+117 clusters); that remains an upstream identity problem. Only direct
+`facility_of == parent.id`; nested chains are skipped, which is safe only
+because REZ-71 must refuse facility→facility attach. A facility row gets no
+group total of its own. Never written back to `suppliers.*`. No migration.
+**Does not unblock REZ-71.** The projection has no caller yet (no view, RPC,
+or component); attaching today would still thin mother profiles. REZ-71
+`--apply` stays blocked until REZ-73 renders the group total on the mother.
+Parent epic: Linear REZ-58.
 
 ## Numeric projection rules in one module — REZ-100 COMPLETE
 6 Aug 2026 — pure move; no rule behaviour changed. Winner selection, caps,
@@ -476,11 +482,13 @@ Founder decisions 5 Aug:
 - Certification inheritance is **undecided** — an entity-level cert may cover all
   buildings where an RSC inspection never does. REZ-93 must report and ask.
 
-**REZ-71 (B1) bulk facility attach is BLOCKED** until REZ-92 → REZ-93 land,
-because attaching today makes mother profiles thinner, not richer.
-Detection/reporting half of B1 is still safe; only `--apply` is blocked.
-REZ-95 (was REZ-91) and REZ-92 are done; **REZ-93 still required** before B1
-`--apply`.
+**REZ-71 (B1) bulk facility attach is BLOCKED** until REZ-73 (Facilities
+section + group-total render on the mother) lands, because attaching today
+makes mother profiles thinner, not richer — REZ-92's projection is pure
+Python with no read-path caller yet. Detection/reporting half of B1 is still
+safe; only `--apply` is blocked. REZ-95 (was REZ-91) and REZ-92 are done;
+**REZ-73 still required** before B1 `--apply`. REZ-93 (facility RSC/evidence
+on the mother) remains a separate thin-profile risk for safety docs.
 
 `coast-to-coast` is additionally a three-ref conflation (`general:1081` =
 the real company per BGMEA, `2768` = Coast To Coast Fashion, `3070` = Coast To

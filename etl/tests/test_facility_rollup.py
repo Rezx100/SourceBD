@@ -185,8 +185,11 @@ def test_facility_row_gets_no_group_total() -> None:
     assert project_facility_group(facility, [_child("fac-b")]) is None
 
 
-def test_duplicate_child_id_counted_once() -> None:
-    """A child that is a duplicate of another child must not be counted twice."""
+def test_same_supplier_id_in_input_list_counted_once() -> None:
+    """Input-list hygiene: the same supplier_id twice collapses to one.
+
+    Does not claim to detect two distinct rows for one building (REZ-105).
+    """
     parent = _parent(employees_total=1000)
     children = [
         _child("fac-a", employees_total=500),
