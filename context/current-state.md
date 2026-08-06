@@ -5,6 +5,21 @@ Last compacted for agent-token efficiency: 30 Jun 2026.
 ## Phase
 Phase 7 - Public Beta launch prep.
 
+## Facility group roll-up projection — REZ-92 (B0) COMPLETE
+6 Aug 2026 — projection + tests only; no UI; no facilities attached.
+`etl/core/facility_rollup.py` derives a mother company's group totals across
+her live `facility_of` children without touching stored columns. Parent's own
+`employees_total` / `machines_sewing` / both capacity columns stay as `own`;
+group total is a separate `GroupMetric` with `known_sum`, `facility_count`,
+`unknown_count`, and `describe()` ("at least N across 4 buildings, 1 unknown"
+when any building is NULL). Cross-source never-sum in `projection.py` is
+untouched — this module is deliberately separate so the two arithmetics cannot
+be confused. Tombstones = deleted merge losers (spec08); pure function also
+honours `tombstoned=True`. Children deduped by `supplier_id`; only direct
+`facility_of == parent.id`. A facility row gets no group total of its own.
+Never written back to `suppliers.*`. No migration. Unblocks REZ-71 `--apply`
+only after REZ-93 also lands. Parent epic: Linear REZ-58.
+
 ## Numeric projection rules in one module — REZ-100 COMPLETE
 6 Aug 2026 — pure move; no rule behaviour changed. Winner selection, caps,
 BGMEA worker cohorts and the per-source column map now live in
@@ -436,9 +451,11 @@ columns × 10,912 suppliers, pre-apply). Expected set also kept as
 Supabase SQL API (psycopg protocol-blocked from dev machine). REZ-94 must not
 be folded into this PR.
 
-**No facility roll-up exists at all.** Verified 5 Aug: `facility_of` is set on
-**0 suppliers** and **no view or function in the database references it**. Both
-extension paths lose the building's contribution, by different mechanisms:
+**Facility roll-up projection now exists (REZ-92, 6 Aug)** as a pure Python
+read path — see section above. Verified 5 Aug (and still true until B1):
+`facility_of` is set on **0 suppliers** and **no DB view/function references
+it**. Both extension paths still lose the building's contribution on the live
+site until B1 attaches + UI lands, by different mechanisms:
 - *merge* re-points source records / evidence / claims / certifications to the
   survivor, so documents live on, but numerics **compete** (A8 tier-then-recency)
   and never sum — the extension's headcount is discarded, or *replaces* the
@@ -459,10 +476,11 @@ Founder decisions 5 Aug:
 - Certification inheritance is **undecided** — an entity-level cert may cover all
   buildings where an RSC inspection never does. REZ-93 must report and ask.
 
-**REZ-71 (B1) bulk facility attach is BLOCKED** until REZ-91 → REZ-92 → REZ-93
-land, because attaching today makes mother profiles thinner, not richer.
+**REZ-71 (B1) bulk facility attach is BLOCKED** until REZ-92 → REZ-93 land,
+because attaching today makes mother profiles thinner, not richer.
 Detection/reporting half of B1 is still safe; only `--apply` is blocked.
-REZ-91 applied; REZ-92 / REZ-93 still required before B1 `--apply`.
+REZ-95 (was REZ-91) and REZ-92 are done; **REZ-93 still required** before B1
+`--apply`.
 
 `coast-to-coast` is additionally a three-ref conflation (`general:1081` =
 the real company per BGMEA, `2768` = Coast To Coast Fashion, `3070` = Coast To
