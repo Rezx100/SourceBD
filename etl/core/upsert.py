@@ -26,6 +26,7 @@ from typing import Any
 from rapidfuzz import fuzz, process
 
 from etl.core.db import db, get_source_id
+from etl.core.field_locks import locked_columns as _locked_columns
 from etl.core.logging import get_logger
 from etl.core.normalize import (
     extension_base_name,
@@ -394,29 +395,6 @@ def _insert_supplier(
         ),
     )
     return str(cur.fetchone()["id"])
-
-
-def _locked_columns(cur, supplier_id: str) -> set[str]:
-    """Live field locks for one supplier (released_at IS NULL).
-
-    Loaded once per `_enrich_supplier` / `_apply_source_specific` call —
-    not per SET fragment. Empty set = no locks = ETL behaviour unchanged.
-    """
-    cur.execute(
-        """select column_name
-             from public.supplier_field_locks
-            where supplier_id = %s
-              and released_at is null""",
-        (supplier_id,),
-    )
-    rows = cur.fetchall() or []
-    out: set[str] = set()
-    for row in rows:
-        if isinstance(row, dict):
-            out.add(str(row["column_name"]))
-        else:
-            out.add(str(row[0]))
-    return out
 
 
 def _enrich_supplier(

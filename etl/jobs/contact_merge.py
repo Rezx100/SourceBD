@@ -28,6 +28,7 @@ import re
 from typing import Iterable
 
 from etl.core.db import db
+from etl.core.field_locks import locked_columns
 from etl.core.logging import get_logger
 from etl.core.normalize import normalize_phones
 
@@ -235,24 +236,36 @@ def run_for(supplier_id: str) -> dict[str, int]:
                     merged.setdefault(k, v)
 
         # Now write fill-only updates: COALESCE current value with merged.
+        # Skip any column with a live supplier_field_locks row (REZ-86 / A6b).
+        locked = locked_columns(cur, supplier_id)
         updates: dict[str, object] = {}
         for k in ("address_raw", "email_primary", "website"):
+            if k in locked:
+                continue
             if not cur_supplier.get(k) and merged.get(k):
                 updates[k] = merged[k]
                 counters[k] += 1
         # contact_name + contact_role are atomic: only set role when we
         # are setting the name in this write (otherwise role would attach
         # to whatever name was already there from an unknown source).
-        if not cur_supplier.get("contact_name") and merged.get("contact_name"):
+        if (
+            "contact_name" not in locked
+            and not cur_supplier.get("contact_name")
+            and merged.get("contact_name")
+        ):
             updates["contact_name"] = merged["contact_name"]
             counters["contact_name"] += 1
-            if not cur_supplier.get("contact_role") and merged.get("contact_role"):
+            if (
+                "contact_role" not in locked
+                and not cur_supplier.get("contact_role")
+                and merged.get("contact_role")
+            ):
                 updates["contact_role"] = merged["contact_role"]
                 counters["contact_role"] += 1
         # Phones: union (never lose existing entries).
         existing_phones = list(cur_supplier.get("phones") or [])
         added_phones = [p for p in merged_phones if p not in existing_phones]
-        if added_phones:
+        if added_phones and "phones" not in locked:
             updates["phones"] = existing_phones + added_phones
             counters["phones"] += len(added_phones)
 
