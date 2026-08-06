@@ -39,7 +39,38 @@ You are a senior engineer working on **SourceBD**, a B2B intelligence SaaS for t
     earlier "yes", from a green CI run, or from the work being finished.
 10. **Do not touch the pixelsport-backend VPS** (37.49.227.151 / nbawebcast). It hosts unrelated apps.
 11. **Working tree must be clean at the start of every spec/session.** Either committed or stashed (with an accurate label). Cross-session half-work left uncommitted in the tree contaminates the next spec's build + verification. (Added 8 Jun 2026 — R1 root cause.)
-12. **Before asserting any fact about a file, `git diff` it against HEAD.** `read_file` / the editor pane shows the **working tree**, never the committed state. State the ref you checked (HEAD / branch / SHA) whenever you report a file's state. Corollary: **a file failing to typecheck is not the same as a file being modified** — a downstream consumer breaks when its dependency changes without being dirty itself. `git status` is the truth on what's modified. (Added 8 Jun 2026 — R1 root cause.)
+12. **Never state or imply an order of work without reading the issues first.**
+    Ordering is a claim about dependencies, and dependencies live only in the
+    issue text — the `Blocked by`, `Blocks`, `Land X first` and `must not run
+    until` lines, which are frequently one-directional (an issue is often
+    named as a blocker *by the other issue*, with no mention on its own).
+    Before recommending what to do next, sequencing a set of issues, or
+    saying an issue is ready to start, read every open issue in the affected
+    epics **in full** — `list_issues` truncates descriptions and hides
+    exactly these lines, so use `get_issue` per issue. Then verify each named
+    blocker's real status rather than assuming. If reading them all is not
+    practical, say so and give no order at all. A confidently wrong sequence
+    costs more than no sequence. (Added 6 Aug 2026 — recommended running the
+    493-facility backfill while its own blocker said it must not run yet.)
+13. **Before asserting any fact about a file, `git diff` it against HEAD.** `read_file` / the editor pane shows the **working tree**, never the committed state. State the ref you checked (HEAD / branch / SHA) whenever you report a file's state. Corollary: **a file failing to typecheck is not the same as a file being modified** — a downstream consumer breaks when its dependency changes without being dirty itself. `git status` is the truth on what's modified. (Added 8 Jun 2026 — R1 root cause.)
+
+14. **Read the saved report before re-measuring production.** Every
+    measurement we have taken is written up in `ops/plans/*.md` with the
+    script that produced it beside it in `ops/`. Before scanning the
+    supplier table for a count, check whether the number already exists
+    there and re-run the existing script rather than writing a new one.
+    Two independently-written scripts measuring "the same" thing will
+    disagree, and then nobody knows which number is real. When a saved
+    figure is stale, re-run its script and update the report in place,
+    noting the date — do not leave two numbers for one question.
+15. **Dry-runs and snapshots never need approval; `--apply` always does.**
+    Reading production, printing a plan, and writing a
+    `_snapshot_<date>` table are safe and must not interrupt the founder
+    to ask. Anything that changes a row a buyer can see — `--apply`, a
+    migration against production, a merge, a publish or unpublish — stops
+    and waits for an explicit go-ahead, with the full dry-run output
+    posted first. Do not ask twice for the safe half, and never assume the
+    risky half.
 
 ## How to reply
 
