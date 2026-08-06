@@ -21,6 +21,7 @@ from pathlib import Path
 import pytest
 
 from etl.core.scraper import ScrapedRecord
+from etl.core.field_locks import locked_columns
 from etl.core.upsert import _apply_source_specific, _enrich_supplier, _locked_columns
 from etl.tests.conftest import FakeCursor
 
@@ -166,6 +167,8 @@ def test_released_lock_does_not_block() -> None:
     # FakeCursor only surfaces live locks; a released row is absent from the
     # SELECT ... WHERE released_at IS NULL result set.
     cur = FakeCursor(lock_rows=[])
+    assert locked_columns(cur, "sup-1") == set()
+    # upsert still re-exports the moved helper under the private name.
     assert _locked_columns(cur, "sup-1") == set()
     rec = _enrich_rec()
     _enrich_supplier(cur, supplier_id="sup-1", email=None, phones=[], rec=rec)
