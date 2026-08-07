@@ -3,14 +3,25 @@
 This file keeps routine agent sessions from scanning every inactive feature spec.
 
 ## Active / Recent Spec
-- IN PROGRESS on `rez-93-facility-evidence-inherit` (6 Aug 2026): **REZ-93 —
-  facility RSC/compliance documents + certs on the mother, labelled by
-  building** (Linear REZ-93 / Extensions B0b, parent REZ-58). Read-path
-  only: migration `0095_buyer_supplier_profile_facility_documents.sql`
-  unions `compliance_documents` and `certifications` from live
-  `facility_of` children into `buyer_supplier_profile`, labelled with the
-  facility `company_name` (Extension / Unit-2 suffix kept). Deduped by row
-  id. Certs are **display-only** — discover/pills/t13 stay on the mother's
+- COMPLETE in the working tree (8 Aug 2026): **REZ-72 — 301-redirect
+  unpublished facility slugs to mother profile** (Linear REZ-72 /
+  Extensions B2, parent REZ-58). Branched from `development`. Migration
+  `0096_facility_parent_slug.sql` — narrow SECURITY DEFINER RPC returns
+  only the published mother's slug. Both profile routes call it before
+  `notFound()` and `permanentRedirect` (308) within the same route group.
+  Unpublished non-facility and missing slugs still 404. Sitemap already
+  gates on `is_published` (pinned). Shared helper
+  `lib/facility-parent-redirect.ts`. No-op until REZ-71 attaches
+  facilities. Migration not applied to production. pytest 853; ruff 44;
+  tsc clean; npm test 361/361. Do not merge without founder go-ahead.
+- COMPLETE on `development` (6 Aug 2026, PR #128): **REZ-93 — facility
+  RSC/compliance documents + certs on the mother, labelled by building**
+  (Linear REZ-93 / Extensions B0b, parent REZ-58). Read-path only:
+  migration `0095_buyer_supplier_profile_facility_documents.sql` unions
+  `compliance_documents` and `certifications` from live `facility_of`
+  children into `buyer_supplier_profile`, labelled with the facility
+  `company_name` (Extension / Unit-2 suffix kept). Deduped by row id.
+  Certs are **display-only** — discover/pills/t13 stay on the mother's
   own id (containment test pins this). Pure merge rules in
   `lib/facility-evidence.ts`. No facility attach. No production apply.
   Blocks REZ-71 alongside REZ-92.

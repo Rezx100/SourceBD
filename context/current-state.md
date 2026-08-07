@@ -5,9 +5,23 @@ Last compacted for agent-token efficiency: 30 Jun 2026.
 ## Phase
 Phase 7 - Public Beta launch prep.
 
-## Facility RSC/evidence on mother — REZ-93 (B0b) IN PROGRESS
-6 Aug 2026 — read-path only; no facilities attached; migration not applied.
-`buyer_supplier_profile` (mig `0095`) unions the mother's
+## Facility slug → mother redirect — REZ-72 (B2) COMPLETE in working tree
+8 Aug 2026 — on `rez-72-facility-slug-redirect`. Before `notFound()` on both
+profile routes, call `facility_parent_slug(p_slug)` (mig `0096`): SECURITY
+DEFINER, returns only the published mother's slug when `facility_of` is set.
+`permanentRedirect` (308) stays inside the route group
+(`/suppliers/x` → `/suppliers/parent`, `/app/...` likewise). Unpublished
+non-facility and missing slugs still 404. Shared decision in
+`lib/facility-parent-redirect.ts`. Sitemap already `.eq("is_published", true)`
+on its single suppliers source — facilities drop on the next hourly ISR.
+No-op until REZ-71 attaches rows. Migration not applied to production.
+Verification: pytest 853; ruff 44 baseline; `npx tsc --noEmit` clean;
+`npm test` 361/361. Parent epic: REZ-58.
+
+## Facility RSC/evidence on mother — REZ-93 (B0b) COMPLETE
+6 Aug 2026 — merged PR #128 into `development`. Read-path only; no facilities
+attached; migration `0095` may still need production apply (check ledger).
+`buyer_supplier_profile` unions the mother's
 `compliance_documents` **and** `certifications` with those of live
 `facility_of` children. Inherited rows carry `building_name` = facility
 `company_name` with the Extension / Unit-2 suffix intact. Same row id twice
@@ -580,6 +594,8 @@ query `to_regclass` / `information_schema` directly, before assuming.
 | `0092_enforce_publish_tier_facility_guard` | 4 Aug 2026 | trigger fires on `is_published` + `facility_of` |
 | `0093_resolution_edges` | 4 Aug 2026 | table live, 0 rows (A5 `--apply` not yet run) |
 | `0094_supplier_field_locks` | 5 Aug 2026 | table live, 0 rows; `column_name` trigger verified |
+| `0095_buyer_supplier_profile_facility_documents` | not applied | REZ-93; facility docs/certs on mother RPC |
+| `0096_facility_parent_slug` | not applied | REZ-72; SECURITY DEFINER parent-slug lookup |
 
 Production baseline after all four: 10,845 published of 10,912 suppliers
 (unchanged by every migration above — all additive, no row writes).
