@@ -1,4 +1,4 @@
-import { SettingsPlanSkeleton } from "../../../loading";
+import { SettingsPlanSkeleton } from "../../../skeletons";
 
 export default function SettingsPlanLoading() {
   return <SettingsPlanSkeleton />;

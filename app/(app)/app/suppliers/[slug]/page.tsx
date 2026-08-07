@@ -6,7 +6,7 @@
 // strip, six tabs (Overview / Compliance default / Capacity / Brands /
 // Contact / Provenance), and the affiliation disclaimer footer.
 //
-// Distinct from the public anonymous `(marketing)/suppliers/[slug]` route
+// Distinct from the public anonymous `(public)/suppliers/[slug]` route
 // (F3 exit gate). This route is gated behind `(app)/app/*` middleware, calls
 // `public.buyer_supplier_profile` (migration 0024). No RPC changes.
 //

@@ -1,6 +1,6 @@
 // Shared tab-bar visual for both supplier profile routes
 
-// (app/(app)/app/suppliers/[slug] and app/(marketing)/suppliers/[slug]) so
+// (app/(app)/app/suppliers/[slug] and app/(public)/suppliers/[slug]) so
 
 // the two copies of the tab bar can't drift out of sync again.
 
