@@ -19,7 +19,7 @@
 //     CTA; no payload to un-blur in the browser.
 
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 
 import { ChatCircleDots } from "@phosphor-icons/react/dist/ssr";
 
@@ -39,6 +39,10 @@ import {
 } from "@/components/supplier/profile-contact-tab";
 import { ProfileProvenanceTab } from "@/components/supplier/profile-provenance-tab";
 import { ProfileComplianceTab } from "@/components/supplier/profile-compliance-tab";
+import {
+  fetchFacilityParentSlug,
+  resolveUnpublishedProfileMiss,
+} from "@/lib/facility-parent-redirect";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getServerRole } from "@/lib/auth";
 import { profileTabClass, profileTabCountClass, profileHeaderContactClass } from "@/lib/profile-tab-styles";
@@ -218,6 +222,16 @@ export default async function FactoryProfilePage({
           </div>
         </div>
       );
+    }
+    // REZ-72: unpublished facility slug → permanent redirect to mother.
+    const parentSlug = await fetchFacilityParentSlug(supabase, slug);
+    const miss = resolveUnpublishedProfileMiss({
+      profileFound: false,
+      parentSlug,
+      routeGroup: "app",
+    });
+    if (miss.action === "redirect") {
+      permanentRedirect(miss.path);
     }
     notFound();
   }

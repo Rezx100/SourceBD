@@ -22,7 +22,7 @@
 
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 
 import { Bell, ChatCircleDots, Prohibit } from "@phosphor-icons/react/dist/ssr";
 
@@ -38,6 +38,10 @@ import {
 import { ProfileContactTabMarketing } from "@/components/supplier/profile-contact-tab";
 import { ProfileProvenanceTab } from "@/components/supplier/profile-provenance-tab";
 import { ProfileComplianceTab } from "@/components/supplier/profile-compliance-tab";
+import {
+  fetchFacilityParentSlug,
+  resolveUnpublishedProfileMiss,
+} from "@/lib/facility-parent-redirect";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { profileTabClass, profileTabCountClass, profileHeaderContactClass, profileHeaderFollowClass } from "@/lib/profile-tab-styles";
 
@@ -259,6 +263,16 @@ export default async function PublicSupplierProfilePage({
           </div>
         </div>
       );
+    }
+    // REZ-72: unpublished facility slug → permanent redirect to mother.
+    const parentSlug = await fetchFacilityParentSlug(supabase, slug);
+    const miss = resolveUnpublishedProfileMiss({
+      profileFound: false,
+      parentSlug,
+      routeGroup: "marketing",
+    });
+    if (miss.action === "redirect") {
+      permanentRedirect(miss.path);
     }
     notFound();
   }
