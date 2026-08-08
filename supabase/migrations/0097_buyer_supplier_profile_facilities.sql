@@ -37,7 +37,19 @@
 --    moment B1 attaches. Every app consumer reads them through SECURITY
 --    DEFINER RPCs (buyer_supplier_profile, discover_*), which execute as
 --    the function owner and are unaffected by the revoke.
--- 3. `buyer_supplier_profile` gains a `facilities` key: one object per live
+-- 3. `v_supplier_addresses` (the INHERITING address view) is recreated with
+--    a donor-side gate its 0082 body never needed: the inheritance branch
+--    gates only the recipient (`child.is_published = true`) and relied on
+--    the direct view excluding unpublished rows. Once (1) relaxes the direct
+--    view, an unpublished facility could otherwise DONATE `_inherited`
+--    address rows — source_ref suffixed `#inherited:<facility slug>` — onto
+--    any published supplier whose extension base name matches the
+--    facility's company_name. Adding `and parent.is_published = true` keeps
+--    donation published-only, exactly mirroring the registry view's
+--    20260724 hardening. Behaviour today is unchanged (donors are all
+--    published pre-B1); a facility's addresses surface only through the
+--    facilities CTE below, never on a third party's profile.
+-- 4. `buyer_supplier_profile` gains a `facilities` key: one object per live
 --    child (`f.facility_of = s.id`, partial index idx_suppliers_facility_of
 --    — single-mother lookup, no suppliers scan), carrying:
 --      name (suffix intact), the four REZ-92 roll-up numerics
@@ -63,16 +75,37 @@
 -- NON-GOALS
 -- ---------
 -- No facility attach (B1/REZ-71). No facility profile route. No map pins
--- for facilities. t13_source_count, pills, discover and the parent's own
--- figures are untouched — the roll-up is computed app-side from the raw
--- per-building numerics, never written back. REZ-93's docs/certs
--- inheritance is carried forward unchanged (DISPLAY-ONLY).
+-- for facilities — the issue asks for a judgment on doing it later: yes,
+-- worth a follow-up issue once B1 lands. A buyer vetting a mother company
+-- cares where the extension building physically sits (a different district
+-- changes logistics), and the facility addresses are already in the geocode
+-- cache from when those rows were published, so the later work is render-
+-- only — add the facilities as labelled pins on the mother's existing
+-- Locations map, never a separate map. t13_source_count, pills, discover
+-- and the parent's own figures are untouched — the roll-up is computed
+-- app-side from the raw per-building numerics, never written back. REZ-93's
+-- docs/certs inheritance is carried forward unchanged (DISPLAY-ONLY).
+--
+-- APPLY-TIME VERIFICATION (run at the founder-gated apply, per AGENTS.md
+-- 9a/15; zero facilities exist pre-B1, so every recreated object must be
+-- row-identical before and after):
+--   1. Before: snapshot row counts and a content hash of
+--      v_supplier_addresses_direct, v_supplier_addresses,
+--      v_supplier_registry_ids_direct, v_supplier_registry_ids, and the
+--      buyer_supplier_profile payload for a sample of published slugs.
+--   2. After: the four views must be row-for-row identical (the relaxation
+--      adds rows only for facility_of rows, of which there are zero); the
+--      profile payloads must differ only by the added 'facilities' key
+--      (value '[]'); anonymous GET on both registry views must flip from
+--      200 to permission-denied (both address views already 401).
 --
 -- REVERSE
 -- -------
 --   Re-apply the 0095 function body (drops the facilities key), the 0082
---   addresses view body and the REZ-98 registry view body (both restore the
---   strict is_published predicate).
+--   addresses view bodies (restores the strict is_published predicate and
+--   drops the donor gate), and the REZ-98 registry view body; re-grant the
+--   registry views if the pre-0097 exposure is ever wanted back (it should
+--   not be).
 --
 -- Not applied in the authoring session — STOP AND ASK before production.
 
@@ -273,6 +306,53 @@ comment on view public.v_supplier_addresses_direct is
   'surface on the published mother profile via buyer_supplier_profile. '
   'Subset of v_supplier_addresses; the parent view UNIONs this with inherited '
   'rows for RSC sibling factories.';
+
+-- ---------------------------------------------------------------------------
+-- 1b. v_supplier_addresses — donor-side gate on the inheritance branch.
+--     Body identical to 0082 except the added `and parent.is_published = true`
+--     and this comment block. See header item 3 for the why.
+-- ---------------------------------------------------------------------------
+create or replace view public.v_supplier_addresses as
+select * from public.v_supplier_addresses_direct
+union all
+select child.id                                       as supplier_id,
+       parent_addr.source_code                        as source_code,
+       parent_addr.source_tier                        as source_tier,
+       (parent_addr.source_ref || '#inherited:' || parent.slug) as source_ref,
+       (parent_addr.address_kind || '_inherited')     as address_kind,
+       parent_addr.address                            as address,
+       null::text                                     as phone,   -- REZ-17
+       null::text                                     as email,   -- REZ-17
+       parent_addr.fetched_at                         as fetched_at
+  from public.suppliers child
+  join lateral (
+        select public.rsc_extension_base_name(child.company_name) as base
+       ) bn on true
+  join public.suppliers parent
+    on parent.id <> child.id
+   and lower(parent.company_name) = lower(bn.base)
+   -- REZ-73: donors must be published. The 0082 body relied on the direct
+   -- view excluding unpublished rows; the REZ-73 relaxation of that view
+   -- (attached facilities) makes the gate explicit here instead, so an
+   -- unpublished facility can never donate an inherited address — and its
+   -- slug via `#inherited:<slug>` — onto a name-matched stranger's profile.
+   and parent.is_published = true
+  join public.v_supplier_addresses_direct parent_addr
+    on parent_addr.supplier_id = parent.id
+ where bn.base is not null
+   and child.is_published = true  -- REZ-18: exclude inherited rows for unpublished child suppliers
+;
+
+comment on view public.v_supplier_addresses is
+  'All verified addresses per supplier (direct source rows + RSC sibling '
+  'inheritance). Inherited rows have address_kind suffixed with "_inherited" '
+  'and source_ref suffixed with "#inherited:<parent_slug>". '
+  'REZ-17: phone and email columns are always null. '
+  'REZ-18: only published suppliers appear (both direct and inherited branches). '
+  'REZ-73: inheritance donors must additionally be published — attached '
+  'facilities (facility_of not null, unpublished) are readable through '
+  'v_supplier_addresses_direct for the mother profile but never donate. '
+  'UI should label inherited rows as "Address (per parent factory <parent_slug>)".';
 
 -- ---------------------------------------------------------------------------
 -- 2. v_supplier_registry_ids_direct — keep attached facilities' own registry
@@ -689,11 +769,15 @@ as $$
   -- mother's. No slug / id / contact / completeness / SBI keys.
   facilities as (
     select coalesce(
-      jsonb_agg(fac.obj order by fac.facility_name),
+      -- Tiebreak on id (never emitted): same-named sibling facilities are a
+      -- real population (REZ-105), and jsonb_agg ties are otherwise
+      -- non-deterministic between runs.
+      jsonb_agg(fac.obj order by fac.facility_name, fac.facility_id),
       '[]'::jsonb
     ) as items
     from (
       select f.company_name as facility_name,
+             f.id as facility_id,
              jsonb_build_object(
                'name',                            f.company_name,
                'employees_total',                 f.employees_total,
@@ -854,3 +938,5 @@ comment on function public.buyer_supplier_profile(text) is
   'on buying_house pages and partner_buying_houses[] on factory pages contain '
   'only accepted relationships. Never returns contact PII (no '
   'phone/email/contact_name). Never emits facility slug or id.';
+
+notify pgrst, 'reload schema';

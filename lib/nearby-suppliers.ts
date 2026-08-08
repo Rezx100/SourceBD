@@ -117,8 +117,10 @@ export async function findNearbySupplierSites(
   const candidates = await scanEnvelope(supabase, centre, clampedRadius);
   if (candidates.length === 0) return [];
 
-  // address text → supplier. The view is already restricted to published
-  // suppliers; the explicit is_published check below is the real gate.
+  // address text → supplier. Since REZ-73 (0097) the view also carries
+  // UNPUBLISHED attached-facility rows (facility_of not null) so the mother
+  // profile can show building addresses — the explicit is_published check
+  // below is what keeps those rows off this map layer.
   const { data: addressRows, error: addressError } = await supabase
     .from("v_supplier_addresses")
     .select("supplier_id, address")

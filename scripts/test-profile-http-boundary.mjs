@@ -129,6 +129,21 @@ const FACILITIES_PAYLOAD = {
     slug: MOTHER_FAC,
     company_name: "Mother With Facilities Ltd",
   },
+  // Mother has her OWN RSC row at 41% — the facility line below must render
+  // the facility's 62%, never the mother's value (cross-wiring guard). The
+  // mother's own RSC card lives on the compliance tab, which Radix unmounts
+  // from the initial HTML, so the wire assertion is the negative one in
+  // FACILITY_LEAK_CANARIES ("41% remediated" must never appear).
+  rsc_remediation: {
+    progress_pct: 41,
+    workers_count: 1200,
+    remediation_status: "on_track",
+    training_status: null,
+    parent_group_name: null,
+    parent_group_factory_count: null,
+    fire_inspection_url: null,
+    structural_inspection_url: null,
+  },
   facilities: [
     {
       name: "Mother With Facilities Ltd (Extension)",
@@ -142,6 +157,21 @@ const FACILITIES_PAYLOAD = {
           address: "PLOT 9, EXAMPLE ROAD, GAZIPUR",
           source_code: "BGMEA",
           fetched_at: "2026-08-01T00:00:00Z",
+        },
+        {
+          // Same physical address from a second source, differently cased —
+          // the UI must collapse the duplicate display string. The doubled
+          // join string is in FACILITY_RENDER_EXCLUDES below; the raw
+          // lowercase form can never collide with the title-cased output.
+          kind: "factory",
+          address: "plot 9, example road, gazipur",
+          source_code: "DIFE",
+          fetched_at: "2026-08-01T00:00:00Z",
+          // Canaries: the RPC never emits address contact PII (0097
+          // containment pins the view columns). If the UI ever renders
+          // them, the bodyExcludes assertions fail at the wire.
+          phone: "+8801711000000",
+          email: "facility-leak@example.test",
         },
       ],
       pills: [
@@ -207,6 +237,21 @@ const FACILITY_LEAK_CANARIES = [
   "mother-with-facilities-ltd-unit-2",
   "00000000-0000-4000-8000-0000000000f1",
   "00000000-0000-4000-8000-0000000000f2",
+  // Address contact PII must never render for a facility.
+  "+8801711000000",
+  "facility-leak@example.test",
+  // The facility RSC line must use the facility's own 62%, never the
+  // mother's 41% (the mother's own RSC card is on the compliance tab and
+  // is not in the initial HTML, so this negative is the wire-level guard).
+  "41% remediated",
+];
+
+// Rendered-output negatives for the facilities cases: the duplicate
+// display address (two source rows, one physical address, differently
+// cased raw forms) must collapse to one line — if both rendered, this
+// exact doubled-join substring would appear in the HTML.
+const FACILITY_RENDER_EXCLUDES = [
+  "Plot 9, Example Road, Gazipur · Plot 9, Example Road, Gazipur",
 ];
 
 // Markers that only the Facilities card emits — a profile with zero
@@ -658,7 +703,7 @@ const CASES = [
     expect: {
       status: 200,
       bodyIncludes: ROLLUP_EXPECTATIONS,
-      bodyExcludes: FACILITY_LEAK_CANARIES,
+      bodyExcludes: [...FACILITY_LEAK_CANARIES, ...FACILITY_RENDER_EXCLUDES],
     },
   },
   {
@@ -710,7 +755,7 @@ const CASES = [
     expect: {
       status: 200,
       bodyIncludes: ROLLUP_EXPECTATIONS,
-      bodyExcludes: FACILITY_LEAK_CANARIES,
+      bodyExcludes: [...FACILITY_LEAK_CANARIES, ...FACILITY_RENDER_EXCLUDES],
     },
   },
   {

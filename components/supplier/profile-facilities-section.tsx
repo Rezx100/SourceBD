@@ -130,15 +130,22 @@ export function ProfileFacilitiesSection({
         figure are counted as unknown, never as zero.
       </ProfileFootnote>
 
-      {/* Per-building rows. */}
+      {/* Per-building rows. Same-named siblings are a real population
+          (REZ-105), so keys use the array index — the SQL orders
+          deterministically by (name, id) — and duplicate display strings
+          from two sources holding one address collapse to one line. */}
       <ul className="mt-5 flex flex-col gap-4 border-t border-neutral-100 pt-5">
-        {facilities.map((facility) => {
+        {facilities.map((facility, index) => {
           const name = formatCompanyName(facility.name);
-          const addresses = facility.addresses
-            .map((a) => toTitleCaseAddress(a.address))
-            .filter((a): a is string => Boolean(a));
+          const addresses = [
+            ...new Set(
+              facility.addresses
+                .map((a) => toTitleCaseAddress(a.address))
+                .filter((a): a is string => Boolean(a)),
+            ),
+          ];
           return (
-            <li key={facility.name} className="flex flex-col gap-1.5">
+            <li key={`${index}:${facility.name}`} className="flex flex-col gap-1.5">
               <h3 className="text-[15px] font-semibold leading-6 text-neutral-900">
                 {name}
               </h3>

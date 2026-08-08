@@ -24,7 +24,40 @@ from etl.core.upsert import _apply_source_specific
 from ops.repair_bgmea_conflations import backed_reg_numbers
 
 REPO = Path(__file__).resolve().parents[2]
-MIGRATION = REPO / "supabase" / "migrations" / "20260805_rez98_registry_ids_bgmea_backed_only.sql"
+MIGRATIONS_DIR = REPO / "supabase" / "migrations"
+
+# Every migration that has ever (re)defined v_supplier_registry_ids_direct,
+# in application order. The backed-only rule must hold in the LIVE shaper —
+# the last one — not merely in the historical REZ-98 file: 0097 recreated
+# the view (REZ-73 relaxation), and the rule had to be carried forward
+# there explicitly. A future recreation that forgets the rule is exactly
+# the regression this file exists to catch, so the definer set is pinned:
+# adding another definer fails here loudly instead of letting the
+# assertions keep running against a file nobody edits any more.
+_REGISTRY_VIEW_DEFINERS = [
+    "0021_v_supplier_registry_ids_inherited.sql",
+    "20260724202039_rez_medium_security_batch.sql",
+    "20260805_rez98_registry_ids_bgmea_backed_only.sql",
+    "0097_buyer_supplier_profile_facilities.sql",
+]
+
+
+def _live_registry_view_migration() -> Path:
+    definers = sorted(
+        path.name
+        for path in MIGRATIONS_DIR.glob("*.sql")
+        if "create or replace view public.v_supplier_registry_ids_direct"
+        in path.read_text(encoding="utf-8")
+    )
+    assert definers == sorted(_REGISTRY_VIEW_DEFINERS), (
+        "the set of migrations defining v_supplier_registry_ids_direct "
+        f"changed: {definers}. If a new migration recreates the view, carry "
+        "the REZ-98 backed-only BGMEA rule forward and update this pin."
+    )
+    return MIGRATIONS_DIR / _REGISTRY_VIEW_DEFINERS[-1]
+
+
+MIGRATION = _live_registry_view_migration()
 
 
 # --------------------------------------------------------------- migration ----

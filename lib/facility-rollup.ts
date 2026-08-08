@@ -177,6 +177,35 @@ export function assertFacilitiesContainment(args: {
     throw new Error(`facilities CTE emits forbidden key ${badKey[0]}`);
   }
 
+  // Whitelist, not just blacklist: the facilities object's key set must be
+  // exactly this. A renamed-key leak ('display_name', f.slug) passes a
+  // blacklist; it fails here. Extract the facilities jsonb_build_object and
+  // compare its top-level quoted keys.
+  const objMatch = /jsonb_build_object\(([\s\S]*?)\) as obj/.exec(
+    facilitiesBlock,
+  );
+  if (!objMatch) {
+    throw new Error("facilities CTE must build its object as `as obj`");
+  }
+  const emittedKeys = [...objMatch[1]!.matchAll(/'([a-z_]+)'\s*,/g)]
+    .map((m) => m[1])
+    .sort();
+  const allowedKeys = [
+    "addresses",
+    "employees_total",
+    "machines_sewing",
+    "name",
+    "pills",
+    "production_capacity_dozen_yearly",
+    "production_capacity_pcs_day",
+    "rsc",
+  ].sort();
+  if (JSON.stringify(emittedKeys) !== JSON.stringify(allowedKeys)) {
+    throw new Error(
+      `facilities object keys must be exactly ${allowedKeys.join(",")}; got ${emittedKeys.join(",")}`,
+    );
+  }
+
   // Payload exposes the new key.
   if (!/'facilities',\s*\(select items from facilities\)/.test(migrationSql)) {
     throw new Error("payload must include 'facilities', (select items from facilities)");
@@ -207,10 +236,30 @@ export function assertFacilitiesContainment(args: {
   }
   if (
     !/sr\.source_ref = 'general:' \|\| n\.value/.test(migrationSql) ||
+    !/sr\.fields->>'bgmea_reg_number' = n\.value/.test(migrationSql) ||
     !/src\.code = 'BGMEA'/.test(migrationSql)
   ) {
     throw new Error(
       "REZ-98 backed-only BGMEA rule must be carried forward unchanged",
+    );
+  }
+
+  // The address-inheriting view must be recreated here with the donor-side
+  // gate — without it, the relaxed direct view lets an unpublished facility
+  // donate `_inherited` addresses (and its slug via #inherited:<slug>) onto
+  // a name-matched stranger's profile.
+  const addressesInheritingBlock = sliceBetween(
+    "create or replace view public.v_supplier_addresses as",
+    "v_supplier_registry_ids_direct as",
+  );
+  if (!/and parent\.is_published = true/.test(addressesInheritingBlock)) {
+    throw new Error(
+      "v_supplier_addresses inheritance branch must gate donors on parent.is_published = true",
+    );
+  }
+  if (!/and child\.is_published = true/.test(addressesInheritingBlock)) {
+    throw new Error(
+      "v_supplier_addresses inheritance branch must keep the REZ-18 recipient gate",
     );
   }
 
@@ -244,16 +293,18 @@ export function assertFacilitiesContainment(args: {
       "pills CTE must not join facility_of — inherited certs are display-only",
     );
   }
+  // Require the actual join text, not the bare word — a comment containing
+  // "facility_of" must not satisfy these pins.
   const certsBlock = sliceBetween("certs as (", "rsc as (");
-  if (!/facility_of/.test(certsBlock)) {
+  if (!/f\.facility_of = s\.id/.test(certsBlock)) {
     throw new Error(
-      "certs CTE must union facility_of children (REZ-93 labelled inheritance)",
+      "certs CTE must union facility_of children via the f.facility_of = s.id join (REZ-93 labelled inheritance)",
     );
   }
   const docsBlock = sliceBetween("docs as (", "facilities as (");
-  if (!/facility_of/.test(docsBlock)) {
+  if (!/f\.facility_of = s\.id/.test(docsBlock)) {
     throw new Error(
-      "docs CTE must union facility_of children (REZ-93 labelled inheritance)",
+      "docs CTE must union facility_of children via the f.facility_of = s.id join (REZ-93 labelled inheritance)",
     );
   }
   if (!/DISPLAY-ONLY/.test(migrationSql)) {

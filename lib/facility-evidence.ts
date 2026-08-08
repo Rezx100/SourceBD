@@ -229,10 +229,12 @@ export function assertFacilityEvidenceContainment(args: {
     );
   }
 
+  // Require the actual join text, not the bare word — a comment containing
+  // "facility_of" must not satisfy this pin.
   const certsBlock = sliceBetween("certs as (", "rsc as (");
-  if (!/facility_of/.test(certsBlock)) {
+  if (!/f\.facility_of = s\.id/.test(certsBlock)) {
     throw new Error(
-      "certs CTE must union facility_of children (labelled inheritance)",
+      "certs CTE must union facility_of children via the f.facility_of = s.id join (labelled inheritance)",
     );
   }
   if (!/DISPLAY-ONLY/.test(profileMigrationSql)) {
