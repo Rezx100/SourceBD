@@ -21,9 +21,10 @@
  *   - /app/* without a session      -> 307 to /login (auth gate intact)
  *
  * Scope note (audited and accepted): the status guarantee covers document
- * GET/HEAD requests. RSC client-navigation requests (?_rsc=…) return 200 with
- * the redirect/not-found carried in the flight payload — that is Next's
- * designed client behavior, not the soft-200 this guard exists to kill.
+ * GET requests (probes issue GET only). RSC client-navigation requests
+ * (?_rsc=…) return 200 with the redirect/not-found carried in the flight
+ * payload — that is Next's designed client behavior, not the soft-200 this
+ * guard exists to kill.
  *
  * NEXT_PUBLIC_* variables are inlined at BUILD time, so the app must be
  * compiled against the stub — pointing env at `next start` is not enough.
@@ -36,7 +37,10 @@
  *                                                         # `next dev` with
  *                                                         # stub env
  *   node scripts/test-profile-http-boundary.mjs           # reuse a previous
- *                                                         # --build artifact
+ *                                                         # --build artifact;
+ *                                                         # refuses unless the
+ *                                                         # tree is clean and at
+ *                                                         # the built SHA
  *
  * No production resources are touched: the app under test is pointed at a
  * local stub that answers the exact RPC/REST/auth calls the routes make.
@@ -60,6 +64,7 @@ const MISSING = "this-slug-cannot-possibly-exist-http-guard";
 const UNPUBLISHED = "unpublished-plain-supplier-ltd";
 const RPC_DOWN = "facility-rpc-unavailable";
 const TIMEOUT = "profile-statement-timeout";
+const SELF = "self-parented-ltd";
 const GUARD_TOKEN = "http-guard-access-token";
 
 const requestLog = [];
@@ -160,6 +165,12 @@ function mockHandler(req, res) {
           },
           404,
         );
+      }
+      if (slug === SELF) {
+        // A row whose facility_of points at itself: the RPC echoes the
+        // requested slug. The route must treat that as no mapping (404),
+        // never a 308 to its own URL.
+        return json(SELF);
       }
       return json(slug === FACILITY ? MOTHER : null);
     }
@@ -293,7 +304,7 @@ function killPortOwner(port) {
         `Get-NetTCPConnection -LocalPort ${port} -State Listen -ErrorAction SilentlyContinue` +
           ` | Select-Object -ExpandProperty OwningProcess -Unique` +
           ` | ForEach-Object { $p = Get-Process -Id $_ -ErrorAction SilentlyContinue;` +
-          ` if ($p -and $p.ProcessName -match '^(node|npx)') { Stop-Process -Id $_ -Force -ErrorAction SilentlyContinue } }`,
+          ` if ($p -and $p.ProcessName -eq 'node') { Stop-Process -Id $_ -Force -ErrorAction SilentlyContinue } }`,
       ],
       { stdio: "ignore" },
     );
@@ -486,6 +497,11 @@ const CASES = [
     expect: { status: 200, bodyIncludes: SLOW_MARKER },
   },
   {
+    name: "marketing: self-parented slug -> 404, no self-redirect",
+    path: `/suppliers/${SELF}`,
+    expect: { status: 404, bodyIncludes: NOT_FOUND_MARKER },
+  },
+  {
     name: "marketing: published slug -> 200",
     path: `/suppliers/${MOTHER}`,
     expect: { status: 200 },
@@ -521,6 +537,12 @@ const CASES = [
     expect: { status: 200, bodyIncludes: SLOW_MARKER },
   },
   {
+    name: "app: self-parented slug -> 404, no self-redirect (authenticated)",
+    path: `/app/suppliers/${SELF}`,
+    auth: true,
+    expect: { status: 404, bodyIncludes: NOT_FOUND_MARKER },
+  },
+  {
     name: "app: published slug -> 200 (authenticated)",
     path: `/app/suppliers/${MOTHER}`,
     auth: true,
@@ -529,7 +551,9 @@ const CASES = [
   {
     name: "app: anonymous still gated -> 307 to /login",
     path: `/app/suppliers/${MOTHER}`,
-    expect: { status: 307, locationIncludes: "/login" },
+    // Middleware appends ?next=<original>, so assert the exact path and let
+    // the query vary.
+    expect: { status: 307, locationPath: "/login" },
   },
 ];
 
@@ -549,6 +573,15 @@ async function main() {
   try {
     if (mode === "build") {
       await runGuardBuild();
+      // The build takes minutes; if the tree moved during it, the artifact
+      // does not match the current state and the evidence would be void.
+      const marker = JSON.parse(readFileSync(MARKER, "utf8"));
+      const now = gitState();
+      if (marker.sha !== now.sha || marker.dirty !== now.dirty) {
+        throw new Error(
+          "tree changed while the guard build was running — rebuild and re-test.",
+        );
+      }
     } else if (mode === "reuse") {
       checkGuardBuild();
     }
@@ -569,36 +602,53 @@ async function main() {
     }
 
     for (const c of CASES) {
-      const got = await probe(c.path, {
-        auth: c.auth === true,
-        devMode: mode === "dev",
+      const opts = { auth: c.auth === true, devMode: mode === "dev" };
+      const hits = [await probe(c.path, opts)];
+      // Second hit: the marketing route is ISR-cached (revalidate = 300), so
+      // a regression replaying a cached miss as a soft-200 only shows on the
+      // replay. Assert both hits against the same expectation.
+      hits.push(await probe(c.path, { ...opts, devMode: false }));
+
+      const caseProblems = [];
+      hits.forEach((got, i) => {
+        const label = i === 0 ? "hit 1" : "hit 2 (replay)";
+        if (got.status !== c.expect.status) {
+          caseProblems.push(`${label}: status ${got.status} != ${c.expect.status}`);
+        }
+        if (c.expect.location) {
+          const loc = normalizeLocation(got.location);
+          if (loc !== c.expect.location) {
+            caseProblems.push(
+              `${label}: location ${got.location ?? "<none>"} != ${c.expect.location}`,
+            );
+          }
+        }
+        if (c.expect.locationPath) {
+          let pathname = null;
+          try {
+            pathname = new URL(got.location ?? "", APP_URL).pathname;
+          } catch {
+            pathname = null;
+          }
+          if (pathname !== c.expect.locationPath) {
+            caseProblems.push(
+              `${label}: location path ${pathname ?? "<unparseable>"} != ${c.expect.locationPath} (raw ${got.location ?? "<none>"})`,
+            );
+          }
+        }
+        if (c.expect.bodyIncludes && !got.body.includes(c.expect.bodyIncludes)) {
+          caseProblems.push(
+            `${label}: body missing "${c.expect.bodyIncludes}" (${got.bytes} bytes)`,
+          );
+        }
       });
-      const problems = [];
-      if (got.status !== c.expect.status) {
-        problems.push(`status ${got.status} != ${c.expect.status}`);
-      }
-      if (c.expect.location) {
-        const loc = normalizeLocation(got.location);
-        if (loc !== c.expect.location) {
-          problems.push(`location ${got.location ?? "<none>"} != ${c.expect.location}`);
-        }
-      }
-      if (c.expect.locationIncludes) {
-        const loc = got.location ?? "";
-        if (!loc.includes(c.expect.locationIncludes)) {
-          problems.push(`location ${loc ?? "<none>"} missing ${c.expect.locationIncludes}`);
-        }
-      }
-      if (c.expect.bodyIncludes) {
-        if (!got.body.includes(c.expect.bodyIncludes)) {
-          problems.push(`body missing "${c.expect.bodyIncludes}" (${got.bytes} bytes)`);
-        }
-      }
-      if (problems.length === 0) {
+
+      if (caseProblems.length === 0) {
+        const got = hits[0];
         console.log(`PASS  ${c.name}  [${got.status}${got.location ? ` -> ${got.location}` : ""}]`);
       } else {
         failures += 1;
-        console.log(`FAIL  ${c.name}  — ${problems.join("; ")}`);
+        console.log(`FAIL  ${c.name}  — ${caseProblems.join("; ")}`);
       }
     }
   } finally {

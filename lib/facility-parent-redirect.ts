@@ -9,7 +9,9 @@
  * Sitemap: unpublished facilities already drop out via `.eq("is_published", true)`.
  */
 
-export type FacilityRouteGroup = "marketing" | "app";
+// "public" is the loading-free app/(public) group serving /suppliers/[slug];
+// "app" is the authenticated /app/suppliers/[slug] route.
+export type FacilityRouteGroup = "public" | "app";
 
 export type UnpublishedProfileOutcome =
   | { action: "render" }

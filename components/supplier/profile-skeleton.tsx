@@ -1,6 +1,7 @@
-// I-027 — Skeleton silhouettes for the supplier-profile dossier. Shared by
-// both `/app/suppliers/[slug]/loading.tsx` and `/suppliers/[slug]/loading.tsx`
-// so the marketing + buyer routes show identical chrome while RSC streams.
+// I-027 — Skeleton silhouettes for the supplier-profile dossier. Used by the
+// admin/supplier detail `loading.tsx` files (the buyer and public profile
+// routes no longer have segment loadings — REZ-72 removed them so profile
+// misses emit real 404/308 statuses instead of a streamed soft-200).
 //
 // Dimensions mirror the real `.header-card`, `.metric-grid`, `.proto-card`,
 // and `.prov-list` declarations in `app/globals.css` so layout shift between
