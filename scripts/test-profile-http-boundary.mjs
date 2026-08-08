@@ -147,6 +147,9 @@ const FACILITIES_PAYLOAD = {
     parent_group_factory_count: null,
     fire_inspection_url: null,
     structural_inspection_url: null,
+    electrical_inspection_url: null,
+    boiler_inspection_url: null,
+    cap_url: null,
   },
   facilities: [
     {
@@ -222,6 +225,23 @@ const FACILITIES_PAYLOAD = {
     },
   ],
 };
+
+// Pre-apply production shape: the live RPC (20260725 catch-up body — 0095
+// never applied, verified via pg_get_functiondef 8 Aug 2026) has NO
+// facilities key at all. The pages' `payload.facilities ?? []` fallback is
+// the only thing carrying the deploy-before-apply window; pin it at the
+// wire on both route groups.
+const MOTHER_NOKEY = "mother-no-facilities-key-ltd";
+const NOKEY_PAYLOAD = {
+  ...HAPPY_PAYLOAD,
+  supplier: {
+    ...HAPPY_PAYLOAD.supplier,
+    id: "00000000-0000-4000-8000-000000000004",
+    slug: MOTHER_NOKEY,
+    company_name: "Mother No Facilities Key Ltd",
+  },
+};
+delete NOKEY_PAYLOAD.facilities;
 
 // Singular branch + high clamp + all-unknown metric: a mother with exactly
 // one attached building, every roll-up numeric null on BOTH buildings, and
@@ -367,6 +387,7 @@ function mockHandler(req, res) {
       if (slug === MOTHER) return json(HAPPY_PAYLOAD);
       if (slug === MOTHER_FAC) return json(FACILITIES_PAYLOAD);
       if (slug === MOTHER_ONE) return json(ONE_FACILITY_PAYLOAD);
+      if (slug === MOTHER_NOKEY) return json(NOKEY_PAYLOAD);
       return json(null);
     }
     if (url.pathname === "/rest/v1/rpc/facility_parent_slug") {
@@ -786,6 +807,11 @@ const CASES = [
     },
   },
   {
+    name: "public: payload without facilities key -> 200, no Facilities card",
+    path: `/suppliers/${MOTHER_NOKEY}`,
+    expect: { status: 200, bodyExcludes: NO_FACILITIES_EXCLUDES },
+  },
+  {
     name: "app: missing slug -> 404 (authenticated)",
     path: `/app/suppliers/${MISSING}`,
     auth: true,
@@ -846,6 +872,12 @@ const CASES = [
       bodyIncludes: ONE_FACILITY_EXPECTATIONS,
       bodyExcludes: ONE_FACILITY_LEAK_CANARIES,
     },
+  },
+  {
+    name: "app: payload without facilities key -> 200, no Facilities card (authenticated)",
+    path: `/app/suppliers/${MOTHER_NOKEY}`,
+    auth: true,
+    expect: { status: 200, bodyExcludes: NO_FACILITIES_EXCLUDES },
   },
   {
     name: "app: anonymous still gated -> 307 to /login",

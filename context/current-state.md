@@ -74,7 +74,23 @@ the group total), the singular meta ("1 extension building · 2 buildings in
 total"), RSC clamp branches (141→"100%", -5→"0%"), the all-unknown phrasing
 and the sanction badge in rendered HTML; slug/id/phone/email canaries, the
 mother's RSC value in facility phrasing, and a doubled duplicate-address
-join string absent — on both route groups. Stage 1 of REZ-71's stage plan;
+join string absent — on both route groups. Cycle-3 repairs: the boundary
+suite also pins the pre-apply wire case (a stub payload with the
+`facilities` key ABSENT — production's RPC emits no such key until this
+migration applies — rendering zero Facilities card via the `?? []`
+fallback); containment extraction is balanced-paren (a first-`)` slice
+could truncate on a parenthesised value and pass an injected key);
+the `order by fac.facility_name, fac.facility_id` tiebreak is pinned in
+containment; and a definer-set pin closes the silent-overwrite class for
+good — the exact set of migration files defining
+`buyer_supplier_profile`, `v_supplier_addresses_direct` and
+`v_supplier_addresses` is asserted in `lib/facility-rollup.test.ts`
+(the registry view's set is pinned on the Python side), so any future
+migration recreating one of them fails the suite until the author states
+which body is live. Production baseline for the Stage-2 recompute,
+measured 8 Aug 2026: 10,846 published of 10,913 supplier rows (the
+10,847/10,914 figures quoted earlier in the day were one row stale).
+Stage 1 of REZ-71's stage plan;
 lands before any attach work. Parent epic: REZ-58.
 
 ## Facility RSC/evidence on mother — REZ-93 (B0b) COMPLETE

@@ -238,7 +238,25 @@ export function assertFacilitiesContainment(args: {
       throw new Error(`facilities inner object anchor missing: ${build}`);
     }
     const open = facilitiesBlock.lastIndexOf("jsonb_build_object(", anchor);
-    const close = facilitiesBlock.indexOf(")", anchor);
+    // Balanced-paren extraction: a naive first-")" slice would truncate
+    // early on any parenthesised value (e.g. coalesce(...)) and could let
+    // a key injected after the truncation point pass the pin silently.
+    let depth = 0;
+    let close = -1;
+    for (let i = open + "jsonb_build_object".length; i < facilitiesBlock.length; i++) {
+      const ch = facilitiesBlock[i];
+      if (ch === "(") depth += 1;
+      else if (ch === ")") {
+        depth -= 1;
+        if (depth === 0) {
+          close = i;
+          break;
+        }
+      }
+    }
+    if (close === -1) {
+      throw new Error(`facilities inner object never closes: ${build}`);
+    }
     const inner = facilitiesBlock.slice(open, close);
     const innerKeys = [...inner.matchAll(/'([a-z_]+)'\s*,/g)]
       .map((m) => m[1])
@@ -248,6 +266,15 @@ export function assertFacilitiesContainment(args: {
         `facilities inner object keys must be exactly ${keys.join(",")}; got ${innerKeys.join(",")}`,
       );
     }
+  }
+
+  // Deterministic ordering pin: same-named sibling facilities are a real
+  // population (REZ-105), and jsonb_agg ties are non-deterministic without
+  // the id tiebreak. The React rows are index-keyed against this order.
+  if (!/order by fac\.facility_name, fac\.facility_id/.test(facilitiesBlock)) {
+    throw new Error(
+      "facilities jsonb_agg must order by (facility_name, facility_id) — deterministic for same-named siblings",
+    );
   }
 
   // Payload exposes the new key.

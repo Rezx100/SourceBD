@@ -1,7 +1,8 @@
 /**
  * REZ-93 — facility compliance-document + cert inheritance (pure merge rules).
  *
- * Mirrors the docs/certs CTEs in 0095_buyer_supplier_profile_facility_documents.sql.
+ * Mirrors the docs/certs CTEs carried by the live shaper,
+ * 20260808_rez73_buyer_supplier_profile_facilities.sql (originally 0095).
  * No database. Covers the acceptance cases on the Linear issue, plus display-only
  * containment so discover/pills/t13 cannot pick up facility certs.
  */

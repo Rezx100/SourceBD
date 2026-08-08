@@ -168,7 +168,7 @@ type ProfilePayload = {
   provenance: Provenance[];
   addresses: AddressRow[];
   documents: ComplianceDocument[];
-  /** REZ-73: attached extension buildings; [] until B1 (REZ-71) applies. */
+  /** REZ-73: attached extension buildings; key absent pre-migration, [] until B1 attaches. */
   facilities: ProfileFacility[];
 };
 

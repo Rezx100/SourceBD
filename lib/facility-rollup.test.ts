@@ -151,4 +151,77 @@ describe("20260808_rez73 migration containment", () => {
     );
     assert.doesNotThrow(() => assertFacilitiesContainment({ migrationSql }));
   });
+
+  it("pins the full definer set of every object 20260808 recreates", () => {
+    // The 0097→20260808 rename closed one silent-overwrite window, but the
+    // same class recurs the day anyone adds a later-sorting migration that
+    // recreates one of these objects without re-pinning. The set of files
+    // defining each object is closed: a new definer fails this test and
+    // forces the author to state which body is live.
+    const migrationsDir = path.join(process.cwd(), "supabase", "migrations");
+    const files = fs
+      .readdirSync(migrationsDir)
+      .filter((f) => f.endsWith(".sql"))
+      .sort();
+    const definersOf = (pattern: RegExp) =>
+      files.filter((f) =>
+        pattern.test(fs.readFileSync(path.join(migrationsDir, f), "utf8")),
+      );
+    const LIVE = "20260808_rez73_buyer_supplier_profile_facilities.sql";
+    const expected: Record<string, string[]> = {
+      "public.buyer_supplier_profile": [
+        "0024_buyer_supplier_profile_rpc.sql",
+        "0034_supplier_profile_editor.sql",
+        "0036_supplier_relationships.sql",
+        "0079_buyer_supplier_profile_strip_address_pii.sql",
+        "0095_buyer_supplier_profile_facility_documents.sql",
+        "20260725_rez_security_hardening_2.sql",
+        LIVE,
+      ],
+      "public.v_supplier_addresses_direct": [
+        "0014_rsc_inherited_addresses.sql",
+        "0015_btma_address_branches.sql",
+        "0016_bgapmea_address_branches.sql",
+        "0017_epb_address_branches.sql",
+        "0018_oeko_profile_address_branch.sql",
+        "0082_supplier_pii_hardening.sql",
+        LIVE,
+      ],
+      "public.v_supplier_addresses": [
+        "0004_supplier_address_views.sql",
+        "0014_rsc_inherited_addresses.sql",
+        "0015_btma_address_branches.sql",
+        "0016_bgapmea_address_branches.sql",
+        "0017_epb_address_branches.sql",
+        "0018_oeko_profile_address_branch.sql",
+        "0057_perf_hotfix_inheritance_views_rewrite.sql",
+        "0058_revert_inheritance_views_to_lateral.sql",
+        "0082_supplier_pii_hardening.sql",
+        LIVE,
+      ],
+    };
+    const patterns: [string, RegExp][] = [
+      [
+        "public.buyer_supplier_profile",
+        /create( or replace)? function public\.buyer_supplier_profile/i,
+      ],
+      [
+        "public.v_supplier_addresses_direct",
+        /create( or replace)? view public\.v_supplier_addresses_direct/i,
+      ],
+      [
+        "public.v_supplier_addresses",
+        /create( or replace)? view public\.v_supplier_addresses\b/i,
+      ],
+    ];
+    for (const [objectName, pattern] of patterns) {
+      const got = definersOf(pattern);
+      assert.deepEqual(
+        got,
+        [...(expected[objectName] ?? [])].sort(),
+        `${objectName} definers changed — if you added a migration recreating ` +
+          `it, state which body is live and update this pin`,
+      );
+    }
+  });
 });

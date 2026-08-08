@@ -78,8 +78,10 @@
 -- ----------------
 -- No facility slug, id, contact, completeness, entity_type, source_tags or
 -- SBI is emitted — the facility is unpublished for a reason; only its name,
--- addresses, registry pills, RSC progress and the four roll-up numerics
--- (the same figures its profile showed while it was published) surface.
+-- addresses, registry pills, RSC progress, is_sanctioned flag (a
+-- buyer-protection boolean, public while the building was published) and
+-- the four roll-up numerics (the same figures its profile showed while it
+-- was published) surface.
 -- Unpublished facility rows remain unreadable via PostgREST RLS; only this
 -- join surfaces them, and only for the published mother being viewed.
 --
@@ -964,8 +966,9 @@ comment on function public.buyer_supplier_profile(text) is
   'removed address contact PII; REZ-93 unions facility_of compliance_documents '
   'and certifications labelled by building_name — display-only, does not feed '
   'discover/pills/t13; REZ-73 adds facilities[] — per-building name, PII-stripped '
-  'direct addresses, direct registry pills, own RSC progress and the four '
-  'roll-up numerics for the app-side REZ-92 group total). partner_factories[] '
+  'direct addresses, direct registry pills, own RSC progress, is_sanctioned '
+  'flag and the four roll-up numerics for the app-side REZ-92 group total). '
+  'partner_factories[] '
   'on buying_house pages and partner_buying_houses[] on factory pages contain '
   'only accepted relationships. Never returns contact PII (no '
   'phone/email/contact_name). Never emits facility slug or id.';
