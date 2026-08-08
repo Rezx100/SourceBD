@@ -3,6 +3,17 @@
 This file keeps routine agent sessions from scanning every inactive feature spec.
 
 ## Active / Recent Spec
+- IN PROGRESS (8 Aug 2026): **REZ-73 — Facilities section + group roll-up on
+  the mother profile** (Linear REZ-73 / Extensions B3, parent REZ-58; widened
+  8 Aug: separate labelled group figures, never one combined total).
+  Branched from `development`. Migration
+  `0097_buyer_supplier_profile_facilities.sql` (facilities payload key +
+  both direct-view relaxations + registry-view anon revokes — NOT applied);
+  `lib/facility-rollup.ts` mirrors REZ-92 semantics;
+  `ProfileFacilitiesSection` on the Overview tab renders nothing while zero
+  facilities exist. Stage 1 of REZ-71's stage plan — lands before any attach
+  work. Do not merge without founder go-ahead. See `context/current-state.md`
+  → "Facilities section + group roll-up on mother".
 - COMPLETE in the working tree (8 Aug 2026): **REZ-72 — 301-redirect
   unpublished facility slugs to mother profile** (Linear REZ-72 /
   Extensions B2, parent REZ-58). Branched from `development`. Migration

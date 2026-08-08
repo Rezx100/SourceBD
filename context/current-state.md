@@ -18,6 +18,34 @@ No-op until REZ-71 attaches rows. Migration not applied to production.
 Verification: pytest 853; ruff 44 baseline; `npx tsc --noEmit` clean;
 `npm test` 361/361. Parent epic: REZ-58.
 
+## Facilities section + group roll-up on mother — REZ-73 (B3) IN PROGRESS
+8 Aug 2026 — on `rez-73-facilities-rollup`. Widened scope (founder, 8 Aug):
+the group roll-up renders as separate labelled figures, never one combined
+total; the mother's own figures are never replaced. Migration
+`0097_buyer_supplier_profile_facilities.sql` (**NOT applied**): (1) relaxes
+`v_supplier_addresses_direct` (0082 body carried) and
+`v_supplier_registry_ids_direct` (REZ-98 body carried, backed-only BGMEA
+intact) to `is_published = true OR facility_of IS NOT NULL`, so an attached
+facility keeps its own addresses and pills after A2 unpublishes it;
+(2) REVOKEs both registry views from anon/authenticated — verified
+anonymously readable in production 8 Aug (GET as anon → 200), which would
+otherwise enumerate unpublished facilities' pills the moment B1 attaches
+(the address views got the same revoke in 0082; all app consumers are
+SECURITY DEFINER RPCs, unaffected); (3) `buyer_supplier_profile` gains
+`facilities[]` — per-building name (suffix intact), the four REZ-92 roll-up
+numerics, PII-stripped direct addresses, direct registry pills, own RSC
+progress; never slug/id/contact/completeness. The inheriting
+`v_supplier_registry_ids` needs no change: its inheritance branch already
+gates donor AND recipient on `is_published` (20260724 batch). App-side
+roll-up `lib/facility-rollup.ts` mirrors `etl/core/facility_rollup.py`
+semantics (lockstep; en-US digit grouping is the deliberate presentation
+difference); `ProfileFacilitiesSection` on the Overview tab renders NOTHING
+when zero facilities — profiles are byte-identical until B1 attaches.
+Boundary: `scripts/test-profile-http-boundary.mjs` asserts the roll-up
+strings and building names in rendered HTML and slug/id canaries absent, on
+both route groups. Stage 1 of REZ-71's stage plan; lands before any attach
+work. Parent epic: REZ-58.
+
 ## Facility RSC/evidence on mother — REZ-93 (B0b) COMPLETE
 6 Aug 2026 — merged PR #128 into `development`. Read-path only; no facilities
 attached; migration `0095` may still need production apply (check ledger).
@@ -636,6 +664,15 @@ Production reproduction (Supabase REST; psycopg pooler blocked from this
 host): **199** BGMEA-sourced suppliers hold >1 distinct active member
 `source_ref`; **230** excess refs; all 199 lack `scraped_company_name`
 (pre-REZ-56 `bgmea_web`), so the name-based BGMEA scan was blind.
+
+**Agreed figure (8 Aug 2026, founder review of REZ-58 Stage 1).** The
+detector's headline count and this 199/230 are the same data under two
+units: the detector counts **(supplier × register) findings across BGMEA
++ BKMEA**, the ledger figure is BGMEA-only. Verified per-register against
+production 8 Aug: **BGMEA 199 suppliers / 230 excess; BKMEA 48 suppliers /
+52 excess; detector total 247 findings / 282 excess.** One number for the
+question going forward: **247/282 (= 199/230 BGMEA + 48/52 BKMEA)**. Any
+bulk data stage must leave this exactly unchanged before and after.
 
 Shipped: `multi_member_ref` signal class in
 `ops/check_supplier_conflations.py` (structural; ignores BKMEA `:detail`

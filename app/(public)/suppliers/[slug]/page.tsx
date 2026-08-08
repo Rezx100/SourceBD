@@ -31,6 +31,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CompanyProfileHeader } from "@/components/supplier/company-profile-header";
 import { ProfileOverviewTab } from "@/components/supplier/profile-overview-tab";
+import type { ProfileFacility } from "@/components/supplier/profile-facilities-section";
 import {
   ProfileCapacityTab,
   hasCapacityData,
@@ -174,6 +175,8 @@ type ProfilePayload = {
   provenance: Provenance[];
   addresses: AddressRowRaw[];
   documents: ComplianceDocument[];
+  /** REZ-73: attached extension buildings; [] until B1 (REZ-71) applies. */
+  facilities: ProfileFacility[];
 };
 
 function publicAddresses(rows: AddressRowRaw[]): PublicAddress[] {
@@ -404,6 +407,7 @@ export default async function PublicSupplierProfilePage({
               addresses={publicAddresses(payload.addresses)}
               discoverHref="/discover"
               slug={slug}
+              facilities={payload.facilities ?? []}
             />
           </TabsContent>
           <TabsContent value="compliance" id="compliance">

@@ -19,6 +19,11 @@
  *     (the 57014 branch must not collapse into a misleading 404)
  *   - published slug                -> 200 (happy path intact)
  *   - /app/* without a session      -> 307 to /login (auth gate intact)
+ *   - mother with facilities        -> 200, REZ-73 group roll-up rendered as
+ *     separate labelled figures with lower-bound phrasing, building names
+ *     present, slug/id canaries absent (REZ-73 boundary pin)
+ *   - published slug with zero facilities -> 200, no Facilities card markers
+ *     (REZ-73 no-op pin: profiles are unchanged until B1 attaches rows)
  *
  * Scope note (audited and accepted): the status guarantee covers document
  * GET requests (probes issue GET only). RSC client-navigation requests
@@ -62,6 +67,7 @@ const MARKER = join(ROOT, ".next", "http-guard-env.json");
 
 const MOTHER = "mother-company-ltd";
 const FACILITY = "mother-company-ltd-extension";
+const MOTHER_FAC = "mother-with-facilities-ltd";
 const MISSING = "this-slug-cannot-possibly-exist-http-guard";
 const UNPUBLISHED = "unpublished-plain-supplier-ltd";
 const RPC_DOWN = "facility-rpc-unavailable";
@@ -106,7 +112,106 @@ const HAPPY_PAYLOAD = {
   provenance: [],
   addresses: [],
   documents: [],
+  // REZ-73: zero facilities — the Facilities section must not render at all.
+  facilities: [],
 };
+
+// REZ-73 boundary fixture: a mother with two attached buildings, one with
+// all four roll-up numerics known and one with every numeric null. The
+// rendered group figures must be lower-bound phrased ("at least …"), the
+// building names must render, and nothing identifying the unpublished rows
+// (slug / id canaries) may leak into the HTML.
+const FACILITIES_PAYLOAD = {
+  ...HAPPY_PAYLOAD,
+  supplier: {
+    ...HAPPY_PAYLOAD.supplier,
+    id: "00000000-0000-4000-8000-000000000002",
+    slug: MOTHER_FAC,
+    company_name: "Mother With Facilities Ltd",
+  },
+  facilities: [
+    {
+      name: "Mother With Facilities Ltd (Extension)",
+      employees_total: 800,
+      machines_sewing: 200,
+      production_capacity_pcs_day: 3000,
+      production_capacity_dozen_yearly: 10000,
+      addresses: [
+        {
+          kind: "factory",
+          address: "PLOT 9, EXAMPLE ROAD, GAZIPUR",
+          source_code: "BGMEA",
+          fetched_at: "2026-08-01T00:00:00Z",
+        },
+      ],
+      pills: [
+        {
+          source_code: "BGMEA",
+          label: "BGMEA",
+          value: "12345",
+          verified: true,
+          source_url: null,
+        },
+      ],
+      rsc: {
+        progress_pct: 62,
+        workers_count: 800,
+        remediation_status: "on_track",
+        training_status: null,
+      },
+      // Canaries: the real RPC never emits these keys (0097 containment
+      // test pins that). If the UI ever starts rendering them, the
+      // bodyExcludes assertions below fail at the wire.
+      slug: "mother-with-facilities-ltd-extension",
+      id: "00000000-0000-4000-8000-0000000000f1",
+    },
+    {
+      name: "Mother With Facilities Ltd Unit-2",
+      employees_total: null,
+      machines_sewing: null,
+      production_capacity_pcs_day: null,
+      production_capacity_dozen_yearly: null,
+      addresses: [],
+      pills: [],
+      rsc: null,
+      slug: "mother-with-facilities-ltd-unit-2",
+      id: "00000000-0000-4000-8000-0000000000f2",
+    },
+  ],
+};
+
+// Roll-up expectations for FACILITIES_PAYLOAD (own 1200/400/5000/null +
+// extension 800/200/3000/10000 + Unit-2 all-null):
+//   employees 1200+800, 1 unknown of 3 buildings
+//   machines 400+200, 1 unknown
+//   pcs/day 5000+3000, 1 unknown
+//   dozen/yr 10000 only, 2 unknown
+const ROLLUP_EXPECTATIONS = [
+  "Employees — group total",
+  "at least 2,000 across 3 buildings, 1 unknown",
+  "Sewing machines — group total",
+  "at least 600 across 3 buildings, 1 unknown",
+  "Daily capacity (pcs) — group total",
+  "at least 8,000 across 3 buildings, 1 unknown",
+  "Yearly capacity (dozen) — group total",
+  "at least 10,000 across 3 buildings, 2 unknown",
+  "Mother With Facilities Ltd (Extension)",
+  "Mother With Facilities Ltd Unit-2",
+  "Plot 9, Example Road, Gazipur",
+  "BGMEA 12345",
+  "62% remediated",
+];
+
+const FACILITY_LEAK_CANARIES = [
+  "mother-with-facilities-ltd-extension",
+  "mother-with-facilities-ltd-unit-2",
+  "00000000-0000-4000-8000-0000000000f1",
+  "00000000-0000-4000-8000-0000000000f2",
+];
+
+// Markers that only the Facilities card emits — a profile with zero
+// attached buildings must render none of them.
+const NO_FACILITIES_EXCLUDES = ["— group total", "extension building"];
 
 const TEST_USER = {
   id: "00000000-0000-4000-8000-0000000000aa",
@@ -145,7 +250,9 @@ function mockHandler(req, res) {
           400,
         );
       }
-      return json(slug === MOTHER ? HAPPY_PAYLOAD : null);
+      if (slug === MOTHER) return json(HAPPY_PAYLOAD);
+      if (slug === MOTHER_FAC) return json(FACILITIES_PAYLOAD);
+      return json(null);
     }
     if (url.pathname === "/rest/v1/rpc/facility_parent_slug") {
       let slug = null;
@@ -543,7 +650,16 @@ const CASES = [
   {
     name: "public: published slug -> 200",
     path: `/suppliers/${MOTHER}`,
-    expect: { status: 200 },
+    expect: { status: 200, bodyExcludes: NO_FACILITIES_EXCLUDES },
+  },
+  {
+    name: "public: mother with facilities -> 200, roll-up figures rendered",
+    path: `/suppliers/${MOTHER_FAC}`,
+    expect: {
+      status: 200,
+      bodyIncludes: ROLLUP_EXPECTATIONS,
+      bodyExcludes: FACILITY_LEAK_CANARIES,
+    },
   },
   {
     name: "app: missing slug -> 404 (authenticated)",
@@ -585,7 +701,17 @@ const CASES = [
     name: "app: published slug -> 200 (authenticated)",
     path: `/app/suppliers/${MOTHER}`,
     auth: true,
-    expect: { status: 200 },
+    expect: { status: 200, bodyExcludes: NO_FACILITIES_EXCLUDES },
+  },
+  {
+    name: "app: mother with facilities -> 200, roll-up rendered (authenticated)",
+    path: `/app/suppliers/${MOTHER_FAC}`,
+    auth: true,
+    expect: {
+      status: 200,
+      bodyIncludes: ROLLUP_EXPECTATIONS,
+      bodyExcludes: FACILITY_LEAK_CANARIES,
+    },
   },
   {
     name: "app: anonymous still gated -> 307 to /login",
@@ -676,10 +802,22 @@ async function main() {
             );
           }
         }
-        if (c.expect.bodyIncludes && !got.body.includes(c.expect.bodyIncludes)) {
-          caseProblems.push(
-            `${label}: body missing "${c.expect.bodyIncludes}" (${got.bytes} bytes)`,
-          );
+        const includes = c.expect.bodyIncludes
+          ? Array.isArray(c.expect.bodyIncludes)
+            ? c.expect.bodyIncludes
+            : [c.expect.bodyIncludes]
+          : [];
+        for (const marker of includes) {
+          if (!got.body.includes(marker)) {
+            caseProblems.push(
+              `${label}: body missing "${marker}" (${got.bytes} bytes)`,
+            );
+          }
+        }
+        for (const marker of c.expect.bodyExcludes ?? []) {
+          if (got.body.includes(marker)) {
+            caseProblems.push(`${label}: body leaks "${marker}"`);
+          }
         }
       });
 

@@ -8,6 +8,10 @@ import type { LocationKind, LocationMapMarker } from "@/components/supplier/loca
 import { geocodeLocations } from "@/lib/barikoi";
 import { PrincipalProductsCard } from "@/components/supplier/principal-products-card";
 import {
+  ProfileFacilitiesSection,
+  type ProfileFacility,
+} from "@/components/supplier/profile-facilities-section";
+import {
   ProfileCard,
   ProfileCardHeader,
   ProfileTabStack,
@@ -35,6 +39,9 @@ export type ProfileOverviewSupplier = {
   factory_types: string[];
   principal_products: string[];
   employees_total: number | null;
+  machines_sewing: number | null;
+  production_capacity_pcs_day: number | null;
+  production_capacity_dozen_yearly: number | null;
   source_tags: string[];
 };
 
@@ -119,6 +126,7 @@ export async function ProfileOverviewTab<TAddress extends AddressRowRaw>({
   addresses,
   discoverHref,
   slug,
+  facilities = [],
 }: {
   supplier: ProfileOverviewSupplier;
   t13SourceCount: number;
@@ -128,6 +136,9 @@ export async function ProfileOverviewTab<TAddress extends AddressRowRaw>({
   /** Profile slug — excluded from the nearby-sites map layer and used to name
    *  the GeoJSON pin export. */
   slug?: string;
+  /** REZ-73: attached extension buildings of this mother company. Empty while
+   *  B1 has not run — the Facilities section then renders nothing at all. */
+  facilities?: readonly ProfileFacility[];
 }) {
   const overview = buildLocationOverview(addresses);
   const primaryAddress =
@@ -194,6 +205,8 @@ export async function ProfileOverviewTab<TAddress extends AddressRowRaw>({
           })}
         />
       </ProfileCard>
+
+      <ProfileFacilitiesSection own={s} facilities={facilities} />
 
       {overview.uniqueLocationCount > 0 ? (
         <ProfileCard id="locations">
