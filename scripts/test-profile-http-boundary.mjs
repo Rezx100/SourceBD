@@ -39,16 +39,18 @@
  *   node scripts/test-profile-http-boundary.mjs           # reuse a previous
  *                                                         # --build artifact;
  *                                                         # refuses unless the
- *                                                         # tree is clean and at
- *                                                         # the built SHA
+ *                                                         # tree content is
+ *                                                         # identical to the
+ *                                                         # built state
  *
  * No production resources are touched: the app under test is pointed at a
  * local stub that answers the exact RPC/REST/auth calls the routes make.
  */
 
 import { execSync, spawn } from "node:child_process";
+import { createHash } from "node:crypto";
 import http from "node:http";
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 const ROOT = process.cwd();
@@ -313,19 +315,46 @@ function killPortOwner(port) {
   });
 }
 
-function gitState() {
+// A content fingerprint of everything the build could read: HEAD SHA, the
+// porcelain status, the full tracked diff, and the content of untracked
+// files under bundle roots (the file-system router picks up new route files
+// with no tracked reference, so their bytes must move the fingerprint too).
+// Comparing this BEFORE and AFTER the build watches the whole build window:
+// a mid-build commit, edit, edit-revert-to-different-content, or untracked
+// route file appearing all change the fingerprint and void the evidence.
+function treeState() {
   try {
-    const sha = execSync("git rev-parse HEAD", { cwd: ROOT }).toString().trim();
-    const dirty =
-      execSync("git status --porcelain", { cwd: ROOT }).toString().trim().length > 0;
-    return { sha, dirty };
+    const opts = { cwd: ROOT, maxBuffer: 64 * 1024 * 1024 };
+    const sha = execSync("git rev-parse HEAD", opts).toString().trim();
+    const porcelain = execSync("git status --porcelain -uall", opts).toString();
+    const trackedDiff = execSync("git diff HEAD", opts).toString();
+    const hash = createHash("sha256");
+    hash.update(porcelain);
+    hash.update("\0");
+    hash.update(trackedDiff);
+    for (const line of porcelain.split("\n")) {
+      const m = line.match(/^\?\? (.+)$/);
+      if (!m) continue;
+      const p = m[1].trim().replace(/^"|"$/g, "");
+      if (!/^(app|components|lib|public)\//.test(p)) continue;
+      try {
+        if (statSync(join(ROOT, p)).isDirectory()) continue;
+        hash.update("\0" + p + "\0");
+        hash.update(readFileSync(join(ROOT, p)));
+      } catch {
+        // Vanished mid-read: the porcelain half of the fingerprint already
+        // moved, so the comparison still fails closed.
+      }
+    }
+    return { sha, treeHash: hash.digest("hex"), dirty: porcelain.trim().length > 0 };
   } catch {
-    return { sha: null, dirty: true };
+    return { sha: null, treeHash: null, dirty: true };
   }
 }
 
 function runGuardBuild() {
   console.log("building against stub Supabase (this takes several minutes)…");
+  const before = treeState();
   return new Promise((resolve, reject) => {
     const child = spawn("npm", ["run", "build"], {
       cwd: ROOT,
@@ -352,13 +381,23 @@ function runGuardBuild() {
           ),
         );
       }
-      const { sha, dirty } = gitState();
+      const after = treeState();
+      if (!before.sha || before.sha !== after.sha || before.treeHash !== after.treeHash) {
+        await killTree(child);
+        return reject(
+          new Error(
+            "the tree changed while the guard build was running " +
+              `(sha ${before.sha ?? "?"} -> ${after.sha ?? "?"}); ` +
+              "the artifact cannot be tied to any candidate. Rebuild on a settled tree.",
+          ),
+        );
+      }
       writeFileSync(
         MARKER,
         JSON.stringify({
           supabaseUrl: MOCK_URL,
-          sha,
-          dirty,
+          sha: after.sha,
+          treeHash: after.treeHash,
           builtAt: new Date().toISOString(),
         }),
       );
@@ -382,13 +421,13 @@ function checkGuardBuild() {
     console.error("ERROR: .next was not built against the stub. Run with --build.");
     process.exit(2);
   }
-  // Refuse to test a stale artifact: the build reflects the tree it was
-  // built from, not the tree that happens to be checked out now.
-  const { sha, dirty } = gitState();
-  if (!marker.sha || marker.sha !== sha || marker.dirty || dirty) {
+  // Refuse to test a stale artifact: the build reflects the exact tree
+  // content it was built from, not the tree that happens to be here now.
+  const now = treeState();
+  if (!marker.sha || marker.sha !== now.sha || marker.treeHash !== now.treeHash) {
     console.error(
-      `ERROR: stub-built artifact is stale (built from ${marker.sha ?? "unknown"}` +
-        `${marker.dirty ? " + dirty tree" : ""}; now ${sha ?? "unknown"}${dirty ? " + dirty tree" : ""}).\n` +
+      `ERROR: stub-built artifact is stale (built from sha ${marker.sha ?? "unknown"}; ` +
+        `now ${now.sha ?? "unknown"}, tree content ${marker.treeHash === now.treeHash ? "unchanged" : "differs"}).\n` +
         "Run with --build to rebuild against the current tree.",
     );
     process.exit(2);
@@ -472,37 +511,37 @@ const SLOW_MARKER = "Service temporarily slow";
 
 const CASES = [
   {
-    name: "marketing: missing slug -> 404",
+    name: "public: missing slug -> 404",
     path: `/suppliers/${MISSING}`,
     expect: { status: 404, bodyIncludes: NOT_FOUND_MARKER },
   },
   {
-    name: "marketing: unpublished non-facility slug -> 404",
+    name: "public: unpublished non-facility slug -> 404",
     path: `/suppliers/${UNPUBLISHED}`,
     expect: { status: 404, bodyIncludes: NOT_FOUND_MARKER },
   },
   {
-    name: "marketing: facility slug -> 308 to mother",
+    name: "public: facility slug -> 308 to mother",
     path: `/suppliers/${FACILITY}`,
     expect: { status: 308, location: `/suppliers/${MOTHER}` },
   },
   {
-    name: "marketing: facility RPC unavailable -> 404, not 500",
+    name: "public: facility RPC unavailable -> 404, not 500",
     path: `/suppliers/${RPC_DOWN}`,
     expect: { status: 404, bodyIncludes: NOT_FOUND_MARKER },
   },
   {
-    name: "marketing: profile timeout -> 200 slow card",
+    name: "public: profile timeout -> 200 slow card",
     path: `/suppliers/${TIMEOUT}`,
     expect: { status: 200, bodyIncludes: SLOW_MARKER },
   },
   {
-    name: "marketing: self-parented slug -> 404, no self-redirect",
+    name: "public: self-parented slug -> 404, no self-redirect",
     path: `/suppliers/${SELF}`,
     expect: { status: 404, bodyIncludes: NOT_FOUND_MARKER },
   },
   {
-    name: "marketing: published slug -> 200",
+    name: "public: published slug -> 200",
     path: `/suppliers/${MOTHER}`,
     expect: { status: 200 },
   },
@@ -572,16 +611,9 @@ async function main() {
   let failures = 0;
   try {
     if (mode === "build") {
+      // runGuardBuild fingerprints the tree before and after the build and
+      // refuses to tie the artifact to a tree that moved mid-build.
       await runGuardBuild();
-      // The build takes minutes; if the tree moved during it, the artifact
-      // does not match the current state and the evidence would be void.
-      const marker = JSON.parse(readFileSync(MARKER, "utf8"));
-      const now = gitState();
-      if (marker.sha !== now.sha || marker.dirty !== now.dirty) {
-        throw new Error(
-          "tree changed while the guard build was running — rebuild and re-test.",
-        );
-      }
     } else if (mode === "reuse") {
       checkGuardBuild();
     }
@@ -604,9 +636,11 @@ async function main() {
     for (const c of CASES) {
       const opts = { auth: c.auth === true, devMode: mode === "dev" };
       const hits = [await probe(c.path, opts)];
-      // Second hit: the marketing route is ISR-cached (revalidate = 300), so
-      // a regression replaying a cached miss as a soft-200 only shows on the
-      // replay. Assert both hits against the same expectation.
+      // Second hit: an idempotency pin — the miss path must answer the same
+      // status on every request, not just the first. (The public route is
+      // dynamic today — it awaits cookies() — so this is not an ISR cache
+      // replay; if the route is ever made static, the same second-hit
+      // assertion is what would catch a cached miss replaying as a 200.)
       hits.push(await probe(c.path, { ...opts, devMode: false }));
 
       const caseProblems = [];
@@ -624,15 +658,21 @@ async function main() {
           }
         }
         if (c.expect.locationPath) {
-          let pathname = null;
+          let parsed = null;
           try {
-            pathname = new URL(got.location ?? "", APP_URL).pathname;
+            parsed = new URL(got.location ?? "", APP_URL);
           } catch {
-            pathname = null;
+            parsed = null;
           }
-          if (pathname !== c.expect.locationPath) {
+          // Pin the host as well as the path: a Location pointing at
+          // evil.example/login must not satisfy a "/login" expectation.
+          if (
+            !parsed ||
+            parsed.pathname !== c.expect.locationPath ||
+            parsed.origin !== new URL(APP_URL).origin
+          ) {
             caseProblems.push(
-              `${label}: location path ${pathname ?? "<unparseable>"} != ${c.expect.locationPath} (raw ${got.location ?? "<none>"})`,
+              `${label}: location ${got.location ?? "<none>"} is not same-origin path ${c.expect.locationPath}`,
             );
           }
         }

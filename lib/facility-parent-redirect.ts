@@ -3,7 +3,7 @@
  *
  * When `buyer_supplier_profile` returns nothing, both profile routes call
  * `facility_parent_slug` before `notFound()`. Shared decision logic lives here
- * so the marketing and app routes cannot drift.
+ * so the public and app routes cannot drift.
  *
  * SQL SoT: `supabase/migrations/0096_facility_parent_slug.sql`
  * Sitemap: unpublished facilities already drop out via `.eq("is_published", true)`.
