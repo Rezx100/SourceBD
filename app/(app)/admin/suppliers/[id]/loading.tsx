@@ -1,4 +1,4 @@
-import { AdminDetailSkeleton } from "../../../loading";
+import { AdminDetailSkeleton } from "../../../skeletons";
 
 export default function AdminSupplierDetailLoading() {
   return <AdminDetailSkeleton />;

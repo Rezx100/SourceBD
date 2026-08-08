@@ -3,13 +3,15 @@
  *
  * When `buyer_supplier_profile` returns nothing, both profile routes call
  * `facility_parent_slug` before `notFound()`. Shared decision logic lives here
- * so the marketing and app routes cannot drift.
+ * so the public and app routes cannot drift.
  *
  * SQL SoT: `supabase/migrations/0096_facility_parent_slug.sql`
  * Sitemap: unpublished facilities already drop out via `.eq("is_published", true)`.
  */
 
-export type FacilityRouteGroup = "marketing" | "app";
+// "public" is the loading-free app/(public) group serving /suppliers/[slug];
+// "app" is the authenticated /app/suppliers/[slug] route.
+export type FacilityRouteGroup = "public" | "app";
 
 export type UnpublishedProfileOutcome =
   | { action: "render" }
@@ -65,6 +67,9 @@ type RpcClient = {
 
 /**
  * Server-side lookup. On RPC error, treat as no mapping (404) — never leak.
+ *
+ * A row whose `facility_of` points at itself would otherwise redirect to its
+ * own URL in an infinite loop; a self-mapping is treated as no mapping.
  */
 export async function fetchFacilityParentSlug(
   supabase: RpcClient,
@@ -76,7 +81,8 @@ export async function fetchFacilityParentSlug(
   if (error) return null;
   if (typeof data !== "string") return null;
   const trimmed = data.trim();
-  return trimmed.length > 0 ? trimmed : null;
+  if (trimmed.length === 0 || trimmed === slug) return null;
+  return trimmed;
 }
 
 /**

@@ -1,4 +1,4 @@
-import { UflpaSkeleton } from "../../../loading";
+import { UflpaSkeleton } from "../../../skeletons";
 
 export default function ComplianceUflpaLoading() {
   return <UflpaSkeleton />;

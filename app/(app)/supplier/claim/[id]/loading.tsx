@@ -1,4 +1,4 @@
-import { SupplierSkeleton } from "../../../loading";
+import { SupplierSkeleton } from "../../../skeletons";
 
 export default function SupplierClaimDetailLoading() {
   return <SupplierSkeleton />;

@@ -8,7 +8,7 @@
 //
 // No SaveButton, no saved-set lookup (anon visitors have no auth).
 // Contacts are not part of the RPC payload at all (see the doctrine
-// notes on `app/(marketing)/suppliers/[slug]/page.tsx`).
+// notes on `app/(public)/suppliers/[slug]/page.tsx`).
 
 import Link from "next/link";
 
