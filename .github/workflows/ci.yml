@@ -47,3 +47,31 @@ jobs:
           NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-anon-key
           NEXT_PUBLIC_APP_URL: https://sourcebd.net
           NEXT_PUBLIC_SITE_URL: https://sourcebd.net
+
+  http-boundary:
+    # REZ-72 durable guard: asserts the supplier profile miss path emits real
+    # 404/308 statuses on the wire (not a streamed soft-200). The script
+    # builds the app against a local Supabase stub and probes it over HTTP.
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Profile HTTP-boundary guard
+        run: node scripts/test-profile-http-boundary.mjs --build

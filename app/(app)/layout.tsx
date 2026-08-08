@@ -56,9 +56,9 @@ export default async function AppShellLayout({
 
   let role: Awaited<ReturnType<typeof getServerRole>> = null;
   // Per-call race timeout. When Supabase compute is under pressure, individual
-  // dashboard RPCs can stall for >30s and block the entire shell from rendering
-  // (auth'd users see app/loading.tsx with no chrome). Each fetch races against
-  // a 6s timeout; on miss we render the shell with whatever we did collect.
+  // dashboard RPCs can stall for >30s and block the entire shell from
+  // rendering. Each fetch races against a 6s timeout; on miss we render the
+  // shell with whatever we did collect.
   const withTimeout = <T,>(p: PromiseLike<T>, ms: number, fallback: T): Promise<T> =>
     Promise.race([
       Promise.resolve(p),

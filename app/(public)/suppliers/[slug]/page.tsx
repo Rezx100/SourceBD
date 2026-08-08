@@ -269,7 +269,7 @@ export default async function PublicSupplierProfilePage({
     const miss = resolveUnpublishedProfileMiss({
       profileFound: false,
       parentSlug,
-      routeGroup: "marketing",
+      routeGroup: "public",
     });
     if (miss.action === "redirect") {
       permanentRedirect(miss.path);

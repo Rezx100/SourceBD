@@ -18,18 +18,18 @@ describe("resolveUnpublishedProfileMiss", () => {
       resolveUnpublishedProfileMiss({
         profileFound: true,
         parentSlug: "babylon-garments-limited",
-        routeGroup: "marketing",
+        routeGroup: "public",
       }),
       { action: "render" },
     );
   });
 
-  it("2. facility slug redirects permanently to parent — marketing", () => {
+  it("2. facility slug redirects permanently to parent — public route group", () => {
     assert.deepEqual(
       resolveUnpublishedProfileMiss({
         profileFound: false,
         parentSlug: "babylon-garments-limited",
-        routeGroup: "marketing",
+        routeGroup: "public",
       }),
       {
         action: "redirect",
@@ -58,7 +58,7 @@ describe("resolveUnpublishedProfileMiss", () => {
       resolveUnpublishedProfileMiss({
         profileFound: false,
         parentSlug: null,
-        routeGroup: "marketing",
+        routeGroup: "public",
       }),
       { action: "not_found" },
     );
@@ -81,7 +81,7 @@ describe("resolveUnpublishedProfileMiss", () => {
       resolveUnpublishedProfileMiss({
         profileFound: false,
         parentSlug: null,
-        routeGroup: "marketing",
+        routeGroup: "public",
       }),
       { action: "not_found" },
     );
@@ -92,7 +92,7 @@ describe("resolveUnpublishedProfileMiss", () => {
       resolveUnpublishedProfileMiss({
         profileFound: false,
         parentSlug: "   ",
-        routeGroup: "marketing",
+        routeGroup: "public",
       }),
       { action: "not_found" },
     );
@@ -102,7 +102,7 @@ describe("resolveUnpublishedProfileMiss", () => {
 describe("facilityParentPath", () => {
   it("preserves each route group prefix", () => {
     assert.equal(
-      facilityParentPath("marketing", "silken-sewing-ltd"),
+      facilityParentPath("public", "silken-sewing-ltd"),
       "/suppliers/silken-sewing-ltd",
     );
     assert.equal(
@@ -133,6 +133,20 @@ describe("fetchFacilityParentSlug", () => {
   it("RPC error → null (never leak)", async () => {
     const supabase = {
       rpc: async () => ({ data: null, error: { message: "boom" } }),
+    };
+    assert.equal(await fetchFacilityParentSlug(supabase, "x"), null);
+  });
+
+  it("self-parenting row → null (no redirect loop to its own URL)", async () => {
+    const supabase = {
+      rpc: async () => ({ data: "self-parented-ltd", error: null }),
+    };
+    assert.equal(await fetchFacilityParentSlug(supabase, "self-parented-ltd"), null);
+  });
+
+  it("blank parent slug → null", async () => {
+    const supabase = {
+      rpc: async () => ({ data: "   ", error: null }),
     };
     assert.equal(await fetchFacilityParentSlug(supabase, "x"), null);
   });
