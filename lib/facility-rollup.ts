@@ -6,7 +6,7 @@
  * (REZ-92). The Python module is the ETL-side reference; this module is the
  * live computation for the web read path, fed by the raw per-building
  * numerics in the `facilities` key of `buyer_supplier_profile` (migration
- * 0097). If one changes, change both. Presentation differs deliberately:
+ * 20260808_rez73). If one changes, change both. Presentation differs deliberately:
  * `describeGroupMetric` renders en-US grouped digits ("5,200 across 3
  * buildings") where the Python `describe()` renders raw digits — the sums,
  * thresholds and lower-bound rules are the lockstep contract.
@@ -123,7 +123,7 @@ export function describeGroupMetric(m: GroupMetric): string {
 
 /** Paths pinned by containment tests — relative to repo root. */
 export const FACILITIES_PROFILE_MIGRATION =
-  "supabase/migrations/0097_buyer_supplier_profile_facilities.sql";
+  "supabase/migrations/20260808_rez73_buyer_supplier_profile_facilities.sql";
 
 /**
  * Pure checks on the migration text: the facilities CTE must exist, must
@@ -131,7 +131,7 @@ export const FACILITIES_PROFILE_MIGRATION =
  * and pills from the DIRECT views, must emit no identifying or PII keys,
  * and the payload must expose the facilities key. The REZ-93 inheritance
  * (certs/docs union) and the t13/pills isolation are re-pinned here against
- * this migration because 0097 is now the live shaper of the function.
+ * this migration because 20260808_rez73 is now the live shaper of the function.
  */
 export function assertFacilitiesContainment(args: {
   migrationSql: string;
@@ -170,8 +170,11 @@ export function assertFacilitiesContainment(args: {
   // Hard requirement (REZ-73): nothing that identifies the unpublished row
   // beyond its name and address, and no contact PII. Quoted-key match only —
   // f.id appears in join predicates and must stay legal there.
+  // is_sanctioned is deliberately NOT forbidden: it is a buyer-protection
+  // signal that was public while the building was published, and the UI
+  // badges it (a sanctioned building must not lose its marker at attach).
   const forbiddenKey =
-    /'(slug|id|completeness_pct|is_sanctioned|entity_type|source_tags|email_primary|phones|contact_name|contact_role|website|created_at|updated_at|phone|email)'\s*,/;
+    /'(slug|id|completeness_pct|entity_type|source_tags|email_primary|phones|contact_name|contact_role|website|created_at|updated_at|phone|email)'\s*,/;
   const badKey = forbiddenKey.exec(facilitiesBlock);
   if (badKey) {
     throw new Error(`facilities CTE emits forbidden key ${badKey[0]}`);
@@ -193,6 +196,7 @@ export function assertFacilitiesContainment(args: {
   const allowedKeys = [
     "addresses",
     "employees_total",
+    "is_sanctioned",
     "machines_sewing",
     "name",
     "pills",
@@ -204,6 +208,46 @@ export function assertFacilitiesContainment(args: {
     throw new Error(
       `facilities object keys must be exactly ${allowedKeys.join(",")}; got ${emittedKeys.join(",")}`,
     );
+  }
+
+  // The whitelist must reach the INNER objects too — the top-level pin alone
+  // would let a future `'source_ref', va.source_ref` slip into a facility's
+  // address object (source_ref can carry `#inherited:<slug>`).
+  const innerWhitelists: { build: string; keys: string[] }[] = [
+    {
+      build: "'kind',",
+      keys: ["address", "fetched_at", "kind", "source_code"],
+    },
+    {
+      build: "'source_code', p.source_code",
+      keys: ["label", "source_code", "source_url", "value", "verified"],
+    },
+    {
+      build: "'progress_pct',",
+      keys: [
+        "progress_pct",
+        "remediation_status",
+        "training_status",
+        "workers_count",
+      ],
+    },
+  ];
+  for (const { build, keys } of innerWhitelists) {
+    const anchor = facilitiesBlock.indexOf(build);
+    if (anchor === -1) {
+      throw new Error(`facilities inner object anchor missing: ${build}`);
+    }
+    const open = facilitiesBlock.lastIndexOf("jsonb_build_object(", anchor);
+    const close = facilitiesBlock.indexOf(")", anchor);
+    const inner = facilitiesBlock.slice(open, close);
+    const innerKeys = [...inner.matchAll(/'([a-z_]+)'\s*,/g)]
+      .map((m) => m[1])
+      .sort();
+    if (JSON.stringify(innerKeys) !== JSON.stringify([...keys].sort())) {
+      throw new Error(
+        `facilities inner object keys must be exactly ${keys.join(",")}; got ${innerKeys.join(",")}`,
+      );
+    }
   }
 
   // Payload exposes the new key.

@@ -4,7 +4,7 @@
  *
  * Mirrors the six acceptance cases of etl/tests/test_facility_rollup.py
  * (REZ-92) against the live web-side computation, plus the migration
- * containment pins for the 0097 facilities payload. No database.
+ * containment pins for the 20260808_rez73 facilities payload. No database.
  */
 import assert from "node:assert/strict";
 import fs from "node:fs";
@@ -142,7 +142,7 @@ describe("projectFacilityGroup", () => {
   });
 });
 
-describe("0097 migration containment", () => {
+describe("20260808_rez73 migration containment", () => {
   it("pins the facilities CTE shape, PII keys, and REZ-93 invariants", () => {
     // npm test runs from the repo root; compiled __dirname is a cache dir.
     const migrationSql = fs.readFileSync(

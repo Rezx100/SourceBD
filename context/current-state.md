@@ -22,7 +22,9 @@ Verification: pytest 853; ruff 44 baseline; `npx tsc --noEmit` clean;
 8 Aug 2026 — on `rez-73-facilities-rollup`. Widened scope (founder, 8 Aug):
 the group roll-up renders as separate labelled figures, never one combined
 total; the mother's own figures are never replaced. Migration
-`0097_buyer_supplier_profile_facilities.sql` (**NOT applied**): (1) relaxes
+`20260808_rez73_buyer_supplier_profile_facilities.sql` (**NOT applied**;
+timestamp-named, not 0097, so version-ordered replay cannot resurrect the
+superseded 20260725/20260805 bodies — audit-cycle-2 MAJOR): (1) relaxes
 `v_supplier_addresses_direct` (0082 body carried) and
 `v_supplier_registry_ids_direct` (REZ-98 body carried, backed-only BGMEA
 intact) to `is_published = true OR facility_of IS NOT NULL`, so an attached
@@ -33,39 +35,47 @@ otherwise enumerate unpublished facilities' pills the moment B1 attaches
 (the address views got the same revoke in 0082; all app consumers are
 SECURITY DEFINER RPCs, unaffected); (3) recreates the inheriting
 `v_supplier_addresses` with a NEW donor-side gate `parent.is_published =
-true` on its inheritance branch — the 0082 body gated only the recipient
-and relied on the direct view excluding unpublished rows, so post-(1) an
-unpublished facility could otherwise donate `_inherited` addresses (and its
-slug via `#inherited:<slug>`) onto a name-matched stranger's profile
-(audit-cycle-1 MAJOR; mirrors the registry view's 20260724 hardening);
-(4) `buyer_supplier_profile` gains `facilities[]` — per-building name
-(suffix intact), the four REZ-92 roll-up numerics, PII-stripped direct
-addresses, direct registry pills, own RSC progress; never
-slug/id/contact/completeness. The inheriting `v_supplier_registry_ids`
-needs no change: its inheritance branch already gates donor AND recipient
-on `is_published` (20260724 batch). App-side roll-up
-`lib/facility-rollup.ts` mirrors `etl/core/facility_rollup.py` semantics
-(lockstep; en-US digit grouping is the deliberate presentation difference);
-`ProfileFacilitiesSection` on the Overview tab renders NOTHING when zero
-facilities — profiles are byte-identical until B1 attaches. Audit cycle 1
-repairs folded in: deterministic facility ordering (jsonb_agg ties break on
-id — same-named siblings are real, REZ-105) with index-keyed React rows;
-per-facility duplicate display addresses collapse to one line; facilities
-object pinned by key WHITELIST (not just a blacklist) in the containment
-test; REZ-93 certs/docs pins now require the literal `f.facility_of = s.id`
-join text (a comment can no longer satisfy them); REZ-98 static test
-(`etl/tests/test_bgmea_backed_only_display.py`) resolves the LIVE view
-shaper and pins the definer set so a future recreation fails loud;
-`notify pgrst, 'reload schema'` ends 0097; apply-time verification
-checklist (view row-identity + anon 200→denied flip) is in the 0097
-header. Map pins for facilities: deferred to a follow-up issue after B1
-(judgment recorded in the 0097 header — render-only on the mother's
-existing Locations map, never a separate map). Boundary:
-`scripts/test-profile-http-boundary.mjs` asserts the roll-up strings and
-building names in rendered HTML; slug/id/phone/email canaries, the mother's
-RSC value in facility phrasing, and a doubled duplicate-address join string
-absent — on both route groups. Stage 1 of REZ-71's stage plan; lands before
-any attach work. Parent epic: REZ-58.
+true` (audit-cycle-1 MAJOR: post-(1) an unpublished facility could
+otherwise donate `_inherited` addresses — and its slug via
+`#inherited:<slug>` — onto a name-matched stranger's profile); (4)
+`buyer_supplier_profile` gains `facilities[]` — per-building name (suffix
+intact), the four REZ-92 roll-up numerics, PII-stripped direct addresses,
+direct registry pills, own RSC progress, `is_sanctioned` (a sanctioned
+building keeps its buyer-protection marker — audit-cycle-2 policy gap);
+never slug/id/contact/completeness. **Verified live 8 Aug (pg_get_viewdef /
+pg_get_functiondef): production's RPC body is the 20260725 catch-up — 0095
+(REZ-93's union) was never applied — so applying this migration also
+activates REZ-93's DB half (a no-op while zero facilities); the header's
+apply checklist and REVERSE (restore the 20260725 body, NOT 0095) say so
+explicitly.** The inheriting `v_supplier_registry_ids` needs no change:
+its inheritance branch already gates donor AND recipient on `is_published`
+(20260724 batch). App-side roll-up `lib/facility-rollup.ts` mirrors
+`etl/core/facility_rollup.py` semantics (lockstep; en-US digit grouping is
+the deliberate presentation difference); `ProfileFacilitiesSection` on the
+Overview tab renders NOTHING when zero facilities — profiles are
+byte-identical until B1 attaches. Chain guard (audit-cycle-2 MAJOR): A7's
+`_find_facility_parent` now refuses a parent that is itself a facility
+(`facility_of is null` on both lookups + regression test) — a building of
+a building would be invisible to the direct-children roll-up while 404ing
+via `facility_parent_slug`. Other cycle-1/2 repairs: deterministic facility
+ordering (jsonb_agg ties break on id — same-named siblings are real,
+REZ-105) with index-keyed React rows; per-facility duplicate display
+addresses collapse to one line; facilities object pinned by key WHITELIST
+including the inner address/pill/rsc objects; REZ-93 certs/docs pins
+require the literal `f.facility_of = s.id` join text; REZ-98 static test
+resolves the LIVE view shaper and pins the definer set; `npm test` cleans
+its compiled cache first (the 371 count was stale-inflated; true count
+reported at next run); `notify pgrst, 'reload schema'` ends the migration;
+map pins deferred to a follow-up issue after B1 (render-only on the
+mother's existing Locations map). Boundary:
+`scripts/test-profile-http-boundary.mjs` asserts the roll-up strings,
+building names, the mother's OWN employees figure (sentinel 1,234 alongside
+the group total), the singular meta ("1 extension building · 2 buildings in
+total"), RSC clamp branches (141→"100%", -5→"0%"), the all-unknown phrasing
+and the sanction badge in rendered HTML; slug/id/phone/email canaries, the
+mother's RSC value in facility phrasing, and a doubled duplicate-address
+join string absent — on both route groups. Stage 1 of REZ-71's stage plan;
+lands before any attach work. Parent epic: REZ-58.
 
 ## Facility RSC/evidence on mother — REZ-93 (B0b) COMPLETE
 6 Aug 2026 — merged PR #128 into `development`. Read-path only; no facilities
@@ -643,8 +653,9 @@ query `to_regclass` / `information_schema` directly, before assuming.
 | `0092_enforce_publish_tier_facility_guard` | 4 Aug 2026 | trigger fires on `is_published` + `facility_of` |
 | `0093_resolution_edges` | 4 Aug 2026 | table live, 0 rows (A5 `--apply` not yet run) |
 | `0094_supplier_field_locks` | 5 Aug 2026 | table live, 0 rows; `column_name` trigger verified |
-| `0095_buyer_supplier_profile_facility_documents` | not applied | REZ-93; facility docs/certs on mother RPC |
+| `0095_buyer_supplier_profile_facility_documents` | not applied | REZ-93; facility docs/certs on mother RPC. Live RPC body verified 8 Aug = 20260725 catch-up (no `building_name`) |
 | `0096_facility_parent_slug` | not applied | REZ-72; SECURITY DEFINER parent-slug lookup |
+| `20260808_rez73_buyer_supplier_profile_facilities` | not applied | REZ-73; facilities key + view relaxations + donor gate + registry revokes. Also activates 0095's body on apply |
 
 Production baseline after all four: 10,845 published of 10,912 suppliers
 (unchanged by every migration above — all additive, no row writes).

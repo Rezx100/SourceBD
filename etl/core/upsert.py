@@ -354,9 +354,20 @@ def _find_facility_parent(cur, base_name: str) -> str | None:
 
     Fuzzy matching is forbidden here: a dry run once proposed Anika→ANITA
     and Bando→BRAND, which would have been re-conflations.
+
+    A facility can never be a parent (`facility_of is null` on both
+    lookups): a building of a building would be invisible to the mother
+    profile's direct-children roll-up and would 404 via
+    facility_parent_slug. extension_base_name looping until stable already
+    steers stacked suffixes to the mother; this is the structural refusal
+    if a future pattern ever lands on a facility row anyway.
     """
     parent_slug = make_slug(base_name)
-    cur.execute("select id from public.suppliers where slug = %s", (parent_slug,))
+    cur.execute(
+        "select id from public.suppliers "
+        "where slug = %s and facility_of is null",
+        (parent_slug,),
+    )
     row = cur.fetchone()
     if row:
         return str(row["id"])
@@ -366,6 +377,7 @@ def _find_facility_parent(cur, base_name: str) -> str | None:
         cur.execute(
             "select id from public.suppliers "
             "where replace(company_name_norm, ' ', '') = %s "
+            "and facility_of is null "
             "order by created_at asc limit 1",
             (squashed,),
         )

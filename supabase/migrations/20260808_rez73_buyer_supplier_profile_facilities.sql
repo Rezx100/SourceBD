@@ -1,5 +1,12 @@
--- 0097 — buyer_supplier_profile facilities key (REZ-73 / Extensions B3,
--- widened 8 Aug 2026: group roll-up as separate labelled figures).
+-- 20260808_rez73 — buyer_supplier_profile facilities key (REZ-73 /
+-- Extensions B3, widened 8 Aug 2026: group roll-up as separate labelled
+-- figures).
+--
+-- NAMING: timestamp-named on purpose. This migration recreates objects also
+-- defined by 20260724202039 / 20260725 / 20260805; a numeric name (0097)
+-- sorts BEFORE those under version-ordered replay, so a fresh database
+-- (preview branch, db reset, disaster recovery) would silently end with the
+-- pre-REZ-73 objects. This name sorts after every definer it supersedes.
 --
 -- WHY
 -- ---
@@ -59,7 +66,11 @@
 --      addresses CTE from 0079 — kind/address/source_code/fetched_at, no
 --      phone/email), own registry pills from v_supplier_registry_ids_direct
 --      (NEVER the inheriting view — a facility must not inherit its
---      mother's pills), and its own active rsc_remediation progress.
+--      mother's pills), its own active rsc_remediation progress, and its
+--      is_sanctioned flag (a buyer-protection signal that was public while
+--      the building was published — a sanctioned building must not lose its
+--      marker at attach; the UI badges it, mirroring the mother's own
+--      sanctions treatment).
 --    Empty population → '[]'::jsonb; profiles render byte-identical while
 --    zero facilities are attached.
 --
@@ -86,6 +97,18 @@
 -- app-side from the raw per-building numerics, never written back. REZ-93's
 -- docs/certs inheritance is carried forward unchanged (DISPLAY-ONLY).
 --
+-- TRUE PRODUCTION PRE-STATE (verified live 8 Aug 2026 via
+-- pg_get_functiondef / pg_get_viewdef): the four views match their 0082 /
+-- REZ-98 bodies exactly, but buyer_supplier_profile in production is the
+-- 20260725_rez_security_hardening_2 catch-up body — migration 0095
+-- (REZ-93's certs/docs union) was never applied. This migration therefore
+-- does TWO things to the function at apply time: it brings REZ-93's
+-- certs/docs union live for the first time AND adds the facilities key.
+-- The REZ-93 half is a no-op while zero facilities exist (union branches
+-- empty, building_name keys omitted), and the REZ-93 UI half has been
+-- deployed since 6 Aug tolerating its absence — but the founder's apply
+-- go-ahead must name both halves, and the payload diff below is the proof.
+--
 -- APPLY-TIME VERIFICATION (run at the founder-gated apply, per AGENTS.md
 -- 9a/15; zero facilities exist pre-B1, so every recreated object must be
 -- row-identical before and after):
@@ -96,16 +119,20 @@
 --   2. After: the four views must be row-for-row identical (the relaxation
 --      adds rows only for facility_of rows, of which there are zero); the
 --      profile payloads must differ only by the added 'facilities' key
---      (value '[]'); anonymous GET on both registry views must flip from
---      200 to permission-denied (both address views already 401).
+--      (value '[]') — the REZ-93 union branches emit nothing at zero
+--      facilities, so any OTHER payload difference is a stop-and-report;
+--      anonymous GET on both registry views must flip from 200 to
+--      permission-denied (both address views already 401).
 --
 -- REVERSE
 -- -------
---   Re-apply the 0095 function body (drops the facilities key), the 0082
---   addresses view bodies (restores the strict is_published predicate and
---   drops the donor gate), and the REZ-98 registry view body; re-grant the
---   registry views if the pre-0097 exposure is ever wanted back (it should
---   not be).
+--   Re-apply the 20260725_rez_security_hardening_2 function body — that is
+--   the actual pre-state in production, NOT 0095 (re-applying 0095 would
+--   introduce REZ-93's union while believing it was removed). Re-apply the
+--   0082 addresses view bodies (restores the strict is_published predicate
+--   and drops the donor gate) and the REZ-98 registry view body; re-grant
+--   the registry views if the pre-20260808 exposure is ever wanted back
+--   (it should not be).
 --
 -- Not applied in the authoring session — STOP AND ASK before production.
 
@@ -784,6 +811,10 @@ as $$
                'machines_sewing',                 f.machines_sewing,
                'production_capacity_pcs_day',     f.production_capacity_pcs_day,
                'production_capacity_dozen_yearly', f.production_capacity_dozen_yearly,
+               -- Sanction status is a buyer-protection signal, not identity:
+               -- it was public while the building was published, and a
+               -- sanctioned building must not lose its marker at attach.
+               'is_sanctioned',                   f.is_sanctioned,
                'addresses', coalesce(fa.items, '[]'::jsonb),
                'pills',     coalesce(fp.items, '[]'::jsonb),
                'rsc',       fr.obj

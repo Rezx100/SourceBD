@@ -183,11 +183,11 @@ export function projectFacilityCertifications(
   return out;
 }
 
-/** Paths pinned by containment tests — relative to repo root. 0097 is the
+/** Paths pinned by containment tests — relative to repo root. 20260808_rez73 is the
  *  live shaper of buyer_supplier_profile; it carries REZ-93's certs/docs
  *  inheritance forward unchanged, so the pins run against it. */
 export const FACILITY_EVIDENCE_PROFILE_MIGRATION =
-  "supabase/migrations/0097_buyer_supplier_profile_facilities.sql";
+  "supabase/migrations/20260808_rez73_buyer_supplier_profile_facilities.sql";
 
 export const DISCOVER_CERT_FILTER_MIGRATIONS = [
   "supabase/migrations/0075_discover_text_postgrest_budget.sql",

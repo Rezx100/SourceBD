@@ -128,6 +128,10 @@ const FACILITIES_PAYLOAD = {
     id: "00000000-0000-4000-8000-000000000002",
     slug: MOTHER_FAC,
     company_name: "Mother With Facilities Ltd",
+    // Sentinel own figure: the header must keep rendering the mother's OWN
+    // 1,234 production workers alongside the group roll-up — a render-layer
+    // swap of own→group fails the "1,234" bodyIncludes below.
+    employees_total: 1234,
   },
   // Mother has her OWN RSC row at 41% — the facility line below must render
   // the facility's 62%, never the mother's value (cross-wiring guard). The
@@ -167,7 +171,7 @@ const FACILITIES_PAYLOAD = {
           address: "plot 9, example road, gazipur",
           source_code: "DIFE",
           fetched_at: "2026-08-01T00:00:00Z",
-          // Canaries: the RPC never emits address contact PII (0097
+          // Canaries: the RPC never emits address contact PII (20260808
           // containment pins the view columns). If the UI ever renders
           // them, the bodyExcludes assertions fail at the wire.
           phone: "+8801711000000",
@@ -189,11 +193,12 @@ const FACILITIES_PAYLOAD = {
         remediation_status: "on_track",
         training_status: null,
       },
-      // Canaries: the real RPC never emits these keys (0097 containment
+      // Canaries: the real RPC never emits these keys (20260808 containment
       // test pins that). If the UI ever starts rendering them, the
       // bodyExcludes assertions below fail at the wire.
       slug: "mother-with-facilities-ltd-extension",
       id: "00000000-0000-4000-8000-0000000000f1",
+      is_sanctioned: false,
     },
     {
       name: "Mother With Facilities Ltd Unit-2",
@@ -203,22 +208,80 @@ const FACILITIES_PAYLOAD = {
       production_capacity_dozen_yearly: null,
       addresses: [],
       pills: [],
-      rsc: null,
+      // Clamp branch: a negative progress renders "0% remediated", and the
+      // sanctions marker must survive attach (buyer-protection signal).
+      rsc: {
+        progress_pct: -5,
+        workers_count: null,
+        remediation_status: null,
+        training_status: null,
+      },
+      is_sanctioned: true,
       slug: "mother-with-facilities-ltd-unit-2",
       id: "00000000-0000-4000-8000-0000000000f2",
     },
   ],
 };
 
-// Roll-up expectations for FACILITIES_PAYLOAD (own 1200/400/5000/null +
+// Singular branch + high clamp + all-unknown metric: a mother with exactly
+// one attached building, every roll-up numeric null on BOTH buildings, and
+// an out-of-range RSC progress.
+const MOTHER_ONE = "solo-mother-ltd";
+const ONE_FACILITY_PAYLOAD = {
+  ...HAPPY_PAYLOAD,
+  supplier: {
+    ...HAPPY_PAYLOAD.supplier,
+    id: "00000000-0000-4000-8000-000000000003",
+    slug: MOTHER_ONE,
+    company_name: "Solo Mother Ltd",
+    employees_total: null,
+    machines_sewing: null,
+    production_capacity_pcs_day: null,
+    production_capacity_dozen_yearly: null,
+  },
+  facilities: [
+    {
+      name: "Solo Mother Ltd (Extension)",
+      employees_total: null,
+      machines_sewing: null,
+      production_capacity_pcs_day: null,
+      production_capacity_dozen_yearly: null,
+      addresses: [],
+      pills: [],
+      rsc: {
+        progress_pct: 141,
+        workers_count: null,
+        remediation_status: null,
+        training_status: null,
+      },
+      is_sanctioned: false,
+      slug: "solo-mother-ltd-extension",
+      id: "00000000-0000-4000-8000-0000000000f3",
+    },
+  ],
+};
+
+const ONE_FACILITY_EXPECTATIONS = [
+  "1 extension building · 2 buildings in total",
+  "unknown across 2 buildings, 2 unknown",
+  "100% remediated",
+  "Solo Mother Ltd (Extension)",
+];
+
+const ONE_FACILITY_LEAK_CANARIES = [
+  "solo-mother-ltd-extension",
+  "00000000-0000-4000-8000-0000000000f3",
+];
+
+// Roll-up expectations for FACILITIES_PAYLOAD (own 1234/400/5000/null +
 // extension 800/200/3000/10000 + Unit-2 all-null):
-//   employees 1200+800, 1 unknown of 3 buildings
+//   employees 1234+800, 1 unknown of 3 buildings
 //   machines 400+200, 1 unknown
 //   pcs/day 5000+3000, 1 unknown
 //   dozen/yr 10000 only, 2 unknown
 const ROLLUP_EXPECTATIONS = [
   "Employees — group total",
-  "at least 2,000 across 3 buildings, 1 unknown",
+  "at least 2,034 across 3 buildings, 1 unknown",
   "Sewing machines — group total",
   "at least 600 across 3 buildings, 1 unknown",
   "Daily capacity (pcs) — group total",
@@ -230,6 +293,12 @@ const ROLLUP_EXPECTATIONS = [
   "Plot 9, Example Road, Gazipur",
   "BGMEA 12345",
   "62% remediated",
+  // The mother's OWN figure still renders in the header (never replaced by
+  // the group total), the sanctioned building keeps its marker, and the
+  // negative RSC progress clamps to 0%.
+  "1,234",
+  "Sanctions flag",
+  "0% remediated",
 ];
 
 const FACILITY_LEAK_CANARIES = [
@@ -297,6 +366,7 @@ function mockHandler(req, res) {
       }
       if (slug === MOTHER) return json(HAPPY_PAYLOAD);
       if (slug === MOTHER_FAC) return json(FACILITIES_PAYLOAD);
+      if (slug === MOTHER_ONE) return json(ONE_FACILITY_PAYLOAD);
       return json(null);
     }
     if (url.pathname === "/rest/v1/rpc/facility_parent_slug") {
@@ -707,6 +777,15 @@ const CASES = [
     },
   },
   {
+    name: "public: mother with one facility -> 200, singular meta + all-unknown + clamp",
+    path: `/suppliers/${MOTHER_ONE}`,
+    expect: {
+      status: 200,
+      bodyIncludes: ONE_FACILITY_EXPECTATIONS,
+      bodyExcludes: ONE_FACILITY_LEAK_CANARIES,
+    },
+  },
+  {
     name: "app: missing slug -> 404 (authenticated)",
     path: `/app/suppliers/${MISSING}`,
     auth: true,
@@ -756,6 +835,16 @@ const CASES = [
       status: 200,
       bodyIncludes: ROLLUP_EXPECTATIONS,
       bodyExcludes: [...FACILITY_LEAK_CANARIES, ...FACILITY_RENDER_EXCLUDES],
+    },
+  },
+  {
+    name: "app: mother with one facility -> 200, singular meta (authenticated)",
+    path: `/app/suppliers/${MOTHER_ONE}`,
+    auth: true,
+    expect: {
+      status: 200,
+      bodyIncludes: ONE_FACILITY_EXPECTATIONS,
+      bodyExcludes: ONE_FACILITY_LEAK_CANARIES,
     },
   },
   {

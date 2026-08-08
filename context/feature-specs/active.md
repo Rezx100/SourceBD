@@ -7,8 +7,10 @@ This file keeps routine agent sessions from scanning every inactive feature spec
   the mother profile** (Linear REZ-73 / Extensions B3, parent REZ-58; widened
   8 Aug: separate labelled group figures, never one combined total).
   Branched from `development`. Migration
-  `0097_buyer_supplier_profile_facilities.sql` (facilities payload key +
-  both direct-view relaxations + registry-view anon revokes — NOT applied);
+  `20260808_rez73_buyer_supplier_profile_facilities.sql` (timestamp-named so
+  version-ordered replay cannot resurrect superseded bodies; facilities
+  payload key + both direct-view relaxations + address-inheritance donor
+  gate + registry-view anon revokes — NOT applied);
   `lib/facility-rollup.ts` mirrors REZ-92 semantics;
   `ProfileFacilitiesSection` on the Overview tab renders nothing while zero
   facilities exist. Stage 1 of REZ-71's stage plan — lands before any attach

@@ -7,7 +7,12 @@ import {
 import { formatCompanyName } from "@/lib/format-company-name";
 import { toTitleCaseAddress } from "@/lib/format-location";
 
-import { ProfileCard, ProfileCardHeader, ProfileFootnote } from "./profile-ui";
+import {
+  ProfileCard,
+  ProfileCardHeader,
+  ProfileFootnote,
+  ProfileStatusBadge,
+} from "./profile-ui";
 
 /**
  * REZ-73 — Facilities section on the mother profile (widened 8 Aug 2026:
@@ -48,6 +53,8 @@ export type ProfileFacility = FacilityRollupBuilding & {
   addresses: ProfileFacilityAddress[];
   pills: ProfileFacilityPill[];
   rsc: ProfileFacilityRsc | null;
+  /** Buyer-protection signal — a sanctioned building keeps its marker. */
+  is_sanctioned: boolean;
 };
 
 const ROLLUP_FIGURES: {
@@ -148,6 +155,14 @@ export function ProfileFacilitiesSection({
             <li key={`${index}:${facility.name}`} className="flex flex-col gap-1.5">
               <h3 className="text-[15px] font-semibold leading-6 text-neutral-900">
                 {name}
+                {facility.is_sanctioned ? (
+                  <>
+                    {" "}
+                    <ProfileStatusBadge tone="danger">
+                      Sanctions flag
+                    </ProfileStatusBadge>
+                  </>
+                ) : null}
               </h3>
               {addresses.length > 0 ? (
                 <p className="text-[13px] leading-5 text-neutral-600">

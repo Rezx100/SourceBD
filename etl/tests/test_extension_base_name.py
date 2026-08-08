@@ -228,6 +228,43 @@ def test_fuzzy_only_parent_candidate_treated_as_no_parent(patched_db) -> None:
     assert not any(base_slug in str(p) for s, p in cur.executed if s in fuzzy_sqls)
 
 
+def test_parent_lookup_refuses_a_facility_as_parent(patched_db) -> None:
+    """Chain guard (REZ-71 audit): a building of a building must never form.
+
+    Both parent lookups in `_find_facility_parent` must carry
+    `facility_of is null`; without it a stacked-suffix miss could attach a
+    new building to an existing FACILITY row, and the grandchild would be
+    invisible to the mother profile's direct-children roll-up while 404ing
+    via facility_parent_slug. CI has no database, so the pin is on the
+    issued SQL — the same layer the other parent-lookup tests assert at.
+    """
+    parent = "Master Cham Ltd"
+    ext = "Master Cham Ltd (Extension)"
+    cur = FakeCursor(
+        skip_rows=[],
+        squash_by_value={
+            normalize_company_name(parent).replace(" ", ""): {"id": "sup-squash-parent"}
+        },
+    )
+    patched_db(cur)
+    assert upsert_supplier_with_source(_rsc(ext)) == "sup-new"
+
+    base_slug = make_slug(parent)
+    base_squash = normalize_company_name(parent).replace(" ", "")
+    slug_lookups = [
+        s for s, p in cur.executed
+        if p and "where slug = %s" in s and p[0] == base_slug
+    ]
+    squash_lookups = [
+        s for s, p in cur.executed
+        if p and "replace(company_name_norm" in s and p[0] == base_squash
+    ]
+    assert slug_lookups, "parent slug lookup was never issued"
+    assert squash_lookups, "parent squash lookup was never issued"
+    for sql in slug_lookups + squash_lookups:
+        assert "facility_of is null" in sql, sql
+
+
 def test_u2_form_sets_facility_of_when_parent_exists(patched_db) -> None:
     """REZ-87 / REZ-90: (U-2) is a building, not a new company."""
     parent = "Anzir Apparels Ltd."

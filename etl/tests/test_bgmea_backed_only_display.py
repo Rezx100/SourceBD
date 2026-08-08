@@ -27,18 +27,21 @@ REPO = Path(__file__).resolve().parents[2]
 MIGRATIONS_DIR = REPO / "supabase" / "migrations"
 
 # Every migration that has ever (re)defined v_supplier_registry_ids_direct,
-# in application order. The backed-only rule must hold in the LIVE shaper —
-# the last one — not merely in the historical REZ-98 file: 0097 recreated
-# the view (REZ-73 relaxation), and the rule had to be carried forward
-# there explicitly. A future recreation that forgets the rule is exactly
-# the regression this file exists to catch, so the definer set is pinned:
-# adding another definer fails here loudly instead of letting the
+# in application order — which for this set coincides with filename order
+# under BOTH conventions (the REZ-73 recreation is deliberately
+# timestamp-named 20260808 so version-ordered replay cannot resurrect a
+# superseded body). The backed-only rule must hold in the LIVE shaper —
+# the last one — not merely in the historical REZ-98 file: 20260808_rez73
+# recreated the view (REZ-73 relaxation), and the rule had to be carried
+# forward there explicitly. A future recreation that forgets the rule is
+# exactly the regression this file exists to catch, so the definer set is
+# pinned: adding another definer fails here loudly instead of letting the
 # assertions keep running against a file nobody edits any more.
 _REGISTRY_VIEW_DEFINERS = [
     "0021_v_supplier_registry_ids_inherited.sql",
     "20260724202039_rez_medium_security_batch.sql",
     "20260805_rez98_registry_ids_bgmea_backed_only.sql",
-    "0097_buyer_supplier_profile_facilities.sql",
+    "20260808_rez73_buyer_supplier_profile_facilities.sql",
 ]
 
 
@@ -87,12 +90,21 @@ class TestMigrationShape:
         ):
             assert needle in sql, needle
 
-    def test_published_only_and_column_contract_are_preserved(self):
+    def test_branch_predicate_and_column_contract_are_preserved(self):
         # `create or replace view` requires the same column list; the parent
-        # view and the profile RPC both select from it by name.
+        # view and the profile RPC both select from it by name. The branch
+        # predicate itself is REZ-73's relaxation — published suppliers OR
+        # attached facilities — and every one of the seven branches must
+        # carry it; the historical published-only form must not survive
+        # anywhere in the live shaper.
         sql = MIGRATION.read_text(encoding="utf-8")
         assert "create or replace view public.v_supplier_registry_ids_direct" in sql
-        assert sql.count("s.is_published = true") >= 3
+        view_body = sql.split(
+            "create or replace view public.v_supplier_registry_ids_direct", 1
+        )[1]
+        assert view_body.count(
+            "(s.is_published = true or s.facility_of is not null)"
+        ) == 7
         for col in ("supplier_id", "source_code", "label", "value", "verified", "source_url"):
             assert col in sql, col
 
