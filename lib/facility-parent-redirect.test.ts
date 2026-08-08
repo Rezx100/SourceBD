@@ -136,6 +136,20 @@ describe("fetchFacilityParentSlug", () => {
     };
     assert.equal(await fetchFacilityParentSlug(supabase, "x"), null);
   });
+
+  it("self-parenting row → null (no redirect loop to its own URL)", async () => {
+    const supabase = {
+      rpc: async () => ({ data: "self-parented-ltd", error: null }),
+    };
+    assert.equal(await fetchFacilityParentSlug(supabase, "self-parented-ltd"), null);
+  });
+
+  it("blank parent slug → null", async () => {
+    const supabase = {
+      rpc: async () => ({ data: "   ", error: null }),
+    };
+    assert.equal(await fetchFacilityParentSlug(supabase, "x"), null);
+  });
 });
 
 describe("assertFacilityParentRedirectContract", () => {

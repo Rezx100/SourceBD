@@ -65,6 +65,9 @@ type RpcClient = {
 
 /**
  * Server-side lookup. On RPC error, treat as no mapping (404) — never leak.
+ *
+ * A row whose `facility_of` points at itself would otherwise redirect to its
+ * own URL in an infinite loop; a self-mapping is treated as no mapping.
  */
 export async function fetchFacilityParentSlug(
   supabase: RpcClient,
@@ -76,7 +79,8 @@ export async function fetchFacilityParentSlug(
   if (error) return null;
   if (typeof data !== "string") return null;
   const trimmed = data.trim();
-  return trimmed.length > 0 ? trimmed : null;
+  if (trimmed.length === 0 || trimmed === slug) return null;
+  return trimmed;
 }
 
 /**

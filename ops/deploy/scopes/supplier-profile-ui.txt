@@ -2,7 +2,7 @@
 # See docs/ENTERPRISE_DEPLOYMENT.md. Do not deploy unrelated dirty files.
 
 app/(app)/app/suppliers/[slug]/page.tsx
-app/(marketing)/suppliers/[slug]/page.tsx
+app/(public)/suppliers/[slug]/page.tsx
 
 components/supplier/profile-ui.tsx
 components/supplier/company-profile-header.tsx

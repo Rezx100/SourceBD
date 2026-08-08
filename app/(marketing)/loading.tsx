@@ -1,6 +1,8 @@
 // Marketing-shell Suspense fallback. Mirrors the homepage anatomy: hero copy,
-// CTA row, visual panel, stats, and feature cards. Segment-specific overrides
-// exist for /discover and /suppliers/[slug].
+// CTA row, visual panel, stats, and feature cards. A segment-specific override
+// exists for /discover. The public supplier profile is NOT in this group: it
+// lives in app/(public) with no loading.tsx anywhere above it, so its
+// notFound()/permanentRedirect() reach the wire as real 404/308 (REZ-72).
 
 import { Skeleton, SkeletonRegion } from "@/components/ui/skeleton";
 
