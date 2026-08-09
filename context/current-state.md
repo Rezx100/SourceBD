@@ -107,7 +107,12 @@ quote-aware (')' inside string values cannot truncate), pins exact
 VALUE expressions (name||slug and f.id-as-numeric fail), strips block
 comments before ORDER BY pins, and widens the EXECUTE recreate guard
 past format() to string/concat forms. Boundary two-sides legacy
-Employees/Daily capacity/Yearly capacity labels.
+Employees/Daily capacity/Yearly capacity labels. Cycle-6: exact-value
+pins extend to inner address/pill/rsc objects; quote-aware comment
+strip; jsonb_agg(fac.obj) ORDER BY pinned exactly; trigger pin requires
+PERFORM…FOR UPDATE + EXISTS on string-blanked body; dynamic EXECUTE
+detector ignores GRANT/trigger EXECUTE FUNCTION but catches
+dollar/E-string/concat/var recreates.
 Stage 1 of REZ-71's stage plan;
 lands before any attach work. Parent epic: REZ-58.
 

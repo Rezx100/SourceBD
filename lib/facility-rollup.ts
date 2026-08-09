@@ -264,9 +264,166 @@ function splitTopLevelArgs(body: string): string[] {
   return args.filter((a) => a.trim().length > 0);
 }
 
-/** Strip SQL line comments and block comments before pin scans. */
+/** Strip SQL comments without eating quoted / dollar-quoted content. */
 function stripSqlComments(sql: string): string {
-  return sql.replace(/\/\*[\s\S]*?\*\//g, "").replace(/--[^\n]*/g, "");
+  let out = "";
+  let i = 0;
+  let inSingle = false;
+  let inDollar: string | null = null;
+  while (i < sql.length) {
+    const ch = sql[i]!;
+    if (inDollar !== null) {
+      if (sql.startsWith(inDollar, i)) {
+        out += inDollar;
+        i += inDollar.length;
+        inDollar = null;
+        continue;
+      }
+      out += ch;
+      i += 1;
+      continue;
+    }
+    if (inSingle) {
+      out += ch;
+      if (ch === "'" && sql[i + 1] === "'") {
+        out += "'";
+        i += 2;
+        continue;
+      }
+      if (ch === "'") inSingle = false;
+      i += 1;
+      continue;
+    }
+    if (ch === "'") {
+      inSingle = true;
+      out += ch;
+      i += 1;
+      continue;
+    }
+    if (ch === "$") {
+      const m = /^\$([a-zA-Z_]*)\$/.exec(sql.slice(i));
+      if (m) {
+        inDollar = `$${m[1]}$`;
+        out += m[0];
+        i += m[0].length;
+        continue;
+      }
+    }
+    if (ch === "-" && sql[i + 1] === "-") {
+      while (i < sql.length && sql[i] !== "\n") i += 1;
+      continue;
+    }
+    if (ch === "/" && sql[i + 1] === "*") {
+      i += 2;
+      while (i < sql.length - 1 && !(sql[i] === "*" && sql[i + 1] === "/")) i += 1;
+      i += 2;
+      continue;
+    }
+    out += ch;
+    i += 1;
+  }
+  return out;
+}
+
+/** Replace string and dollar-quoted literals with spaces (keeps length-ish). */
+function blankSqlStrings(sql: string): string {
+  let out = "";
+  let i = 0;
+  while (i < sql.length) {
+    const ch = sql[i]!;
+    if (ch === "'") {
+      out += " ";
+      i += 1;
+      while (i < sql.length) {
+        if (sql[i] === "'" && sql[i + 1] === "'") {
+          i += 2;
+          continue;
+        }
+        if (sql[i] === "'") {
+          i += 1;
+          break;
+        }
+        i += 1;
+      }
+      continue;
+    }
+    if (ch === "$") {
+      const m = /^\$([a-zA-Z_]*)\$/.exec(sql.slice(i));
+      if (m) {
+        const closer = `$${m[1]}$`;
+        i += m[0].length;
+        const end = sql.indexOf(closer, i);
+        if (end === -1) break;
+        out += " ";
+        i = end + closer.length;
+        continue;
+      }
+    }
+    out += ch;
+    i += 1;
+  }
+  return out;
+}
+
+/**
+ * True when SQL contains a dynamic EXECUTE (format / dollar / E' / ' / var)
+ * whose argument text mentions a pinned object. Ignores GRANT EXECUTE and
+ * trigger EXECUTE FUNCTION.
+ */
+export function hasDynamicExecuteOfPinnedObject(sql: string): boolean {
+  const code = stripSqlComments(sql);
+  const pinned =
+    /buyer_supplier_profile|v_supplier_addresses(?:_direct)?/i;
+  let i = 0;
+  while (i < code.length) {
+    const m = /\bexecute\b/i.exec(code.slice(i));
+    if (!m || m.index === undefined) break;
+    const at = i + m.index;
+    const afterMatch = code.slice(at + m[0].length);
+    const ws = afterMatch.match(/^\s*/)?.[0].length ?? 0;
+    const trimmed = afterMatch.slice(ws);
+    if (/^(on|function|procedure)\b/i.test(trimmed)) {
+      i = at + m[0].length;
+      continue;
+    }
+    const payload = extractExecuteArgPayload(code, at + m[0].length + ws);
+    if (pinned.test(payload)) return true;
+    i = at + m[0].length;
+  }
+  return false;
+}
+
+/** Argument text of an EXECUTE — full expression until `;` (covers concat). */
+function extractExecuteArgPayload(sql: string, start: number): string {
+  const s = sql.slice(start);
+  if (/^format\s*\(/i.test(s)) {
+    return s.slice(0, 2000);
+  }
+  const semi = s.search(/;/);
+  return s.slice(0, semi === -1 ? 500 : semi);
+}
+
+function assertExactPairs(
+  label: string,
+  pairs: { key: string; value: string }[],
+  allowed: Record<string, string>,
+): void {
+  const byKey = Object.fromEntries(pairs.map((p) => [p.key, p.value]));
+  const wantKeys = Object.keys(allowed).sort();
+  const gotKeys = Object.keys(byKey).sort();
+  if (JSON.stringify(gotKeys) !== JSON.stringify(wantKeys)) {
+    throw new Error(
+      `${label} keys must be exactly ${wantKeys.join(",")}; got ${gotKeys.join(",")}`,
+    );
+  }
+  for (const [key, want] of Object.entries(allowed)) {
+    const got = byKey[key]!.replace(/\s+/g, " ");
+    if (got !== want.replace(/\s+/g, " ")) {
+      throw new Error(
+        `${label} value for '${key}' must be exactly ${want}; got ${byKey[key]}`,
+      );
+    }
+  }
 }
 
 /**
@@ -376,46 +533,70 @@ export function assertFacilitiesContainment(args: {
     );
   }
 
-  const innerWhitelists: { build: string; keys: string[] }[] = [
+  const innerSpecs: { firstKey: string; allowed: Record<string, string> }[] = [
     {
-      build: "'kind',",
-      keys: ["address", "fetched_at", "kind", "source_code"],
+      firstKey: "kind",
+      allowed: {
+        kind: "va.address_kind",
+        address: "va.address",
+        source_code: "va.source_code",
+        fetched_at: "va.fetched_at",
+      },
     },
     {
-      build: "'source_code', p.source_code",
-      keys: ["label", "source_code", "source_url", "value", "verified"],
+      firstKey: "source_code",
+      allowed: {
+        source_code: "p.source_code",
+        label: "p.label",
+        value: "p.value",
+        verified: "p.verified",
+        source_url: "p.source_url",
+      },
     },
     {
-      build: "'progress_pct',",
-      keys: [
-        "progress_pct",
-        "remediation_status",
-        "training_status",
-        "workers_count",
-      ],
+      firstKey: "progress_pct",
+      allowed: {
+        progress_pct: "rr.progress_pct",
+        workers_count: "rr.workers_count",
+        remediation_status: "rr.remediation_status",
+        training_status: "rr.training_status",
+      },
     },
   ];
-  for (const { build, keys } of innerWhitelists) {
-    const anchor = facilitiesCode.indexOf(build);
-    if (anchor === -1) {
-      throw new Error(`facilities inner object anchor missing: ${build}`);
+  const foundInner = new Set<string>();
+  searchFrom = 0;
+  while (searchFrom < facilitiesCode.length) {
+    const idx = facilitiesCode.indexOf("jsonb_build_object", searchFrom);
+    if (idx === -1) break;
+    const pairs = extractLiteralJsonbPairs(facilitiesCode, idx);
+    const first = pairs[0]?.key;
+    const spec = innerSpecs.find((s) => s.firstKey === first);
+    if (spec && !foundInner.has(spec.firstKey)) {
+      assertExactPairs(`facilities inner (${spec.firstKey})`, pairs, spec.allowed);
+      foundInner.add(spec.firstKey);
     }
-    const open = facilitiesCode.lastIndexOf("jsonb_build_object(", anchor);
-    const innerKeys = extractLiteralJsonbKeys(facilitiesCode, open);
-    if (JSON.stringify(innerKeys) !== JSON.stringify([...keys].sort())) {
+    searchFrom = idx + 1;
+  }
+  for (const spec of innerSpecs) {
+    if (!foundInner.has(spec.firstKey)) {
       throw new Error(
-        `facilities inner object keys must be exactly ${keys.join(",")}; got ${innerKeys.join(",")}`,
+        `facilities CTE missing inner jsonb_build_object starting with '${spec.firstKey}'`,
       );
     }
   }
 
-  if (
-    !/jsonb_agg\s*\([\s\S]*?\border\s+by\s+fac\.facility_name\s*,\s*fac\.facility_id\b/i.test(
-      facilitiesCode,
-    )
-  ) {
+  // Pin the live facilities jsonb_agg ORDER BY — not a decoy elsewhere.
+  const aggMatch =
+    /jsonb_agg\s*\(\s*fac\.obj\s+order\s+by\s+([^)]+)\)/i.exec(facilitiesCode);
+  if (!aggMatch) {
     throw new Error(
-      "facilities jsonb_agg must order by (facility_name, facility_id) — deterministic for same-named siblings",
+      "facilities jsonb_agg(fac.obj order by ...) clause missing",
+    );
+  }
+  const orderArgs = aggMatch[1]!.replace(/\s+/g, " ").trim().toLowerCase();
+  if (orderArgs !== "fac.facility_name, fac.facility_id") {
+    throw new Error(
+      `facilities jsonb_agg must order by fac.facility_name, fac.facility_id; got ${aggMatch[1]}`,
     );
   }
 
@@ -509,29 +690,61 @@ export function assertFacilitiesContainment(args: {
     throw new Error("migration must keep the REZ-93 DISPLAY-ONLY marker");
   }
 
-  // Chain-refusal trigger: pin the executable body, not a comment.
-  const triggerMatch = /create or replace function public\.enforce_facility_parent_is_company\(\)([\s\S]*?)\$\$;/.exec(
-    migrationSql,
-  );
-  if (!triggerMatch) {
+  // Chain-refusal trigger: require the executable PERFORM ... FOR UPDATE
+  // statements and EXISTS predicates on string-blanked body text so a
+  // raise-exception string or `if false` decoy cannot satisfy the pin.
+  const triggerFn =
+    /create or replace function public\.enforce_facility_parent_is_company\(\)([\s\S]*?)\$\$\s*;/i.exec(
+      migrationSql,
+    );
+  if (!triggerFn) {
     throw new Error(
       "migration must define enforce_facility_parent_is_company()",
     );
   }
-  const triggerBody = stripSqlComments(triggerMatch[1]!);
-  if (!/\bfor update\b/i.test(triggerBody)) {
+  // Extract only the plpgsql body between as $$ ... $$ — blanking the
+  // whole match would treat the body as one dollar-quoted string.
+  const bodyMatch = /as\s*\$\$([\s\S]*?)\$\$/i.exec(triggerFn[0]!);
+  if (!bodyMatch) {
     throw new Error(
-      "enforce_facility_parent_is_company must lock parent/children FOR UPDATE",
+      "enforce_facility_parent_is_company must use an as $$ ... $$ body",
     );
   }
-  if (!/p\.facility_of is not null/.test(triggerBody)) {
+  const triggerCode = blankSqlStrings(stripSqlComments(bodyMatch[1]!));
+  if (
+    !/perform\s+1\s+from\s+public\.suppliers\s+p\s+where\s+p\.id\s*=\s*new\.facility_of\s+for\s+update/i.test(
+      triggerCode,
+    )
+  ) {
     throw new Error(
-      "enforce_facility_parent_is_company must refuse a facility parent",
+      "enforce_facility_parent_is_company must PERFORM ... parent FOR UPDATE",
     );
   }
-  if (!/c\.facility_of = new\.id/.test(triggerBody)) {
+  if (
+    !/perform\s+1\s+from\s+public\.suppliers\s+c\s+where\s+c\.facility_of\s*=\s*new\.id\s+for\s+update/i.test(
+      triggerCode,
+    )
+  ) {
     throw new Error(
-      "enforce_facility_parent_is_company must refuse becoming a facility while children point here",
+      "enforce_facility_parent_is_company must PERFORM ... children FOR UPDATE",
+    );
+  }
+  if (
+    !/if\s+exists\s*\(\s*select\s+1\s+from\s+public\.suppliers\s+p\s+where\s+p\.id\s*=\s*new\.facility_of\s+and\s+p\.facility_of\s+is\s+not\s+null\s*\)/i.test(
+      triggerCode,
+    )
+  ) {
+    throw new Error(
+      "enforce_facility_parent_is_company must EXISTS-check parent.facility_of IS NOT NULL",
+    );
+  }
+  if (
+    !/if\s+exists\s*\(\s*select\s+1\s+from\s+public\.suppliers\s+c\s+where\s+c\.facility_of\s*=\s*new\.id\s*\)/i.test(
+      triggerCode,
+    )
+  ) {
+    throw new Error(
+      "enforce_facility_parent_is_company must EXISTS-check children pointing here",
     );
   }
   if (

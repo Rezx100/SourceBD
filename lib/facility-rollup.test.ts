@@ -15,6 +15,7 @@ import {
   FACILITIES_PROFILE_MIGRATION,
   assertFacilitiesContainment,
   describeGroupMetric,
+  hasDynamicExecuteOfPinnedObject,
   projectFacilityGroup,
   type FacilityRollupBuilding,
   type FacilityRollupOwn,
@@ -208,17 +209,51 @@ describe("20260808_rez73 migration containment", () => {
       "f.id as employees_total must fail the exact-value pin",
     );
     // Block-comment forged ORDER BY must not satisfy the pin.
-    const fakeOrder = base
-      .replace(
-        /jsonb_agg\(fac\.obj order by fac\.facility_name, fac\.facility_id\)/,
-        "jsonb_agg(fac.obj order by fac.facility_id) /* jsonb_agg(fac.obj order by fac.facility_name, fac.facility_id) */",
-      );
+    const fakeOrder = base.replace(
+      /jsonb_agg\(fac\.obj order by fac\.facility_name, fac\.facility_id\)/,
+      "jsonb_agg(fac.obj order by fac.facility_id) /* jsonb_agg(fac.obj order by fac.facility_name, fac.facility_id) */",
+    );
     assert.notEqual(fakeOrder, base);
     assert.throws(
       () => assertFacilitiesContainment({ migrationSql: fakeOrder }),
-      /order by \(facility_name, facility_id\)/i,
+      /jsonb_agg must order by fac\.facility_name|clause missing/i,
       "block-comment ORDER BY must not satisfy the pin",
     );
+    // Quote-split decoy: `/* ' */ ... /* ' */` must not resurrect a stripped order.
+    const quoteDecoy = base.replace(
+      /jsonb_agg\(fac\.obj order by fac\.facility_name, fac\.facility_id\)/,
+      "jsonb_agg(fac.obj order by fac.facility_id) /* ' */ jsonb_agg(fac.obj order by fac.facility_name, fac.facility_id) /* ' */",
+    );
+    assert.notEqual(quoteDecoy, base);
+    assert.throws(
+      () => assertFacilitiesContainment({ migrationSql: quoteDecoy }),
+      /jsonb_agg must order by fac\.facility_name|clause missing/i,
+      "quote-split ORDER BY decoy must not satisfy the pin",
+    );
+    // Inner value-side identity under allowed keys (facilities CTE only —
+    // the mother addresses CTE also has 'address', va.address).
+    const facSlice = (sql: string) => {
+      const a = sql.indexOf("facilities as (");
+      const b = sql.indexOf("partner_factories as (");
+      return { a, b, mid: sql.slice(a, b) };
+    };
+    for (const [label, from, to] of [
+      ["address||slug", /'address',\s*va\.address/, "'address', va.address || f.slug"],
+      ["label=slug", /'label',\s*p\.label/, "'label', f.slug"],
+      ["value=id", /'value',\s*p\.value/, "'value', f.id::text"],
+      ["source_url||slug", /'source_url',\s*p\.source_url/, "'source_url', p.source_url || f.slug"],
+      ["workers_count=id", /'workers_count',\s*rr\.workers_count/, "'workers_count', f.id"],
+    ] as const) {
+      const { a, b, mid } = facSlice(base);
+      assert.ok(from.test(mid), `${label} must exist in facilities CTE`);
+      const poisoned =
+        base.slice(0, a) + mid.replace(from, to) + base.slice(b);
+      assert.throws(
+        () => assertFacilitiesContainment({ migrationSql: poisoned }),
+        /inner|value for/i,
+        `${label} must fail inner exact-value pin`,
+      );
+    }
   });
 
   it("pins the full definer set of every object 20260808 recreates", () => {
@@ -295,23 +330,40 @@ describe("20260808_rez73 migration containment", () => {
           `it, state which body is live and update this pin`,
       );
     }
-    // Fail closed on any EXECUTE that rebuilds these objects — format(),
-    // string literal, or concat — they never match the create regex.
-    const DYNAMIC = [
-      /execute\s+format\s*\([\s\S]{0,240}(buyer_supplier_profile|v_supplier_addresses)/i,
-      /execute\s+'[^']{0,200}(buyer_supplier_profile|v_supplier_addresses)/i,
-      /execute\s+[\s\S]{0,120}\|\|[\s\S]{0,120}(buyer_supplier_profile|v_supplier_addresses)/i,
-    ];
+    // Fail closed on dynamic EXECUTE of pinned objects (format / $ / ' / var).
+    // GRANT EXECUTE and trigger EXECUTE FUNCTION are not dynamic.
     for (const f of files) {
       const sql = fs.readFileSync(path.join(migrationsDir, f), "utf8");
-      for (const re of DYNAMIC) {
-        assert.ok(
-          !re.test(sql),
-          `${f} dynamically recreates a pinned object via EXECUTE — ` +
-            `add an explicit CREATE and update the definer-set pin`,
-        );
-      }
+      assert.ok(
+        !hasDynamicExecuteOfPinnedObject(sql),
+        `${f} dynamically EXECUTEs a pinned object — add an explicit CREATE ` +
+          `and update the definer-set pin`,
+      );
     }
+    // Probes for the vectors the old format()-only pin missed.
+    for (const [label, snippet] of [
+      ["dollar", "EXECUTE $$CREATE OR REPLACE FUNCTION public.buyer_supplier_profile()$$"],
+      ["E-string", "EXECUTE E'CREATE OR REPLACE FUNCTION public.buyer_supplier_profile()'"],
+      ["concat", "EXECUTE 'CREATE OR REPLACE FUNCTION public.' || 'buyer_supplier_profile()'"],
+      ["var", "EXECUTE dyn_buyer_supplier_profile_stmt"],
+    ] as const) {
+      assert.ok(
+        hasDynamicExecuteOfPinnedObject(snippet),
+        `${label} EXECUTE vector must be detected`,
+      );
+    }
+    assert.ok(
+      !hasDynamicExecuteOfPinnedObject(
+        "grant execute on function public.buyer_supplier_profile(text) to anon",
+      ),
+      "GRANT EXECUTE must not trip the dynamic pin",
+    );
+    assert.ok(
+      !hasDynamicExecuteOfPinnedObject(
+        "for each row execute function public.enforce_facility_parent_is_company()",
+      ),
+      "trigger EXECUTE FUNCTION must not trip the dynamic pin",
+    );
   });
 
   it("pins the facility→facility parent refusal trigger body", () => {
@@ -336,10 +388,21 @@ describe("20260808_rez73 migration containment", () => {
         "$$;",
     );
     assert.notEqual(hollow, migrationSql);
+    // String-literal / dead-branch decoys must not satisfy the structural pin.
+    const stringOnly = migrationSql.replace(
+      /create or replace function public\.enforce_facility_parent_is_company\(\)[\s\S]*?\$\$;/,
+      "create or replace function public.enforce_facility_parent_is_company()\n" +
+        "returns trigger language plpgsql as $$\n" +
+        "begin\n" +
+        "  raise exception 'for update p.facility_of is not null c.facility_of = new.id';\n" +
+        "  return new;\n" +
+        "end;\n" +
+        "$$;",
+    );
     assert.throws(
-      () => assertFacilitiesContainment({ migrationSql: hollow }),
-      /FOR UPDATE|refuse|children|must define enforce_facility_parent/i,
-      "hollow trigger body with checks only in comments must fail",
+      () => assertFacilitiesContainment({ migrationSql: stringOnly }),
+      /PERFORM|EXISTS|must define/i,
+      "string-literal-only trigger tokens must fail",
     );
   });
 });
