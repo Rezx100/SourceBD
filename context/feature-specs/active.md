@@ -26,18 +26,13 @@ This file keeps routine agent sessions from scanning every inactive feature spec
   `lib/facility-evidence.ts`. No facility attach. No production apply.
   Blocks REZ-71 alongside REZ-92.
 - COMPLETE on `development` (6 Aug 2026, PR #125): **REZ-92 — facility group
-  roll-up projection** (Linear REZ-92 / Extensions B0, parent REZ-58). Pure
-  read-path module `etl/core/facility_rollup.py`: parent's own figures
-  unchanged + separate group total with explicit unknown handling ("at least
-  N across M buildings, K unknown"). Cross-source never-sum untouched;
-  nothing written back to `suppliers.*`; **no facilities attached**. No UI.
-  No migration. **Does not unblock REZ-71** — no view/RPC/component calls the
-  projection yet; `--apply` stays blocked until REZ-73 renders it.
-  `supplier_id` dedupe is list hygiene only (not REZ-105 sibling collapse).
-  Nested facility skip depends on REZ-71 refusing facility→facility attach.
-  See `context/current-state.md` → "Facility group roll-up projection".
-  Verification: pytest 853; ruff 44 baseline; `npx tsc --noEmit` clean;
-  `npm test` 336/336. Production read: `facility_of` still **0** of 10,912.
+  roll-up projection** (Linear REZ-92 / Extensions B0, parent REZ-58). Arithmetic
+  later moved into SQL under REZ-73 (Python module retired). See
+  `context/current-state.md` → "Facility group roll-up projection".
+- IN PROGRESS on `rez-73-facilities-lean`: **REZ-73 — Facilities section +
+  labelled group figures on mother profiles** (Linear REZ-73). Spike
+  `spike/rez-73-v1` preserved and abandoned on scope. Lean rewrite: migration
+  `0097_` + thin UI; SQL owns roll-up; budget under 400 product lines.
 - COMPLETE in the working tree (6 Aug 2026): **REZ-100 — extract numeric
   projection rules into one importable module** (Linear REZ-100, parent
   REZ-57). Branched from `development`. Pure move into
