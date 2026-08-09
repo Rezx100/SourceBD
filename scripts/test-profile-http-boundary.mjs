@@ -283,6 +283,10 @@ const ONE_FACILITY_PAYLOAD = {
 
 const ONE_FACILITY_EXPECTATIONS = [
   "1 extension building · 2 buildings in total",
+  "Production workers — group total",
+  "Sewing machines — group total",
+  "Daily output — group total",
+  "Annual output — group total",
   "unknown across 2 buildings, 2 unknown",
   "100% remediated",
   "Solo Mother Ltd (Extension)",
@@ -293,9 +297,9 @@ const ONE_FACILITY_LEAK_CANARIES = [
   "00000000-0000-4000-8000-0000000000f3",
 ];
 
-// Roll-up expectations for FACILITIES_PAYLOAD (own 1234/400/5000/null +
+// Production-workers arithmetic for FACILITIES_PAYLOAD (own 1234/400/5000/null +
 // extension 800/200/3000/10000 + Unit-2 all-null):
-//   employees 1234+800, 1 unknown of 3 buildings
+//   workers 1234+800, 1 unknown of 3 buildings
 //   machines 400+200, 1 unknown
 //   pcs/day 5000+3000, 1 unknown
 //   dozen/yr 10000 only, 2 unknown
@@ -341,6 +345,10 @@ const FACILITY_LEAK_CANARIES = [
 // exact doubled-join substring would appear in the HTML.
 const FACILITY_RENDER_EXCLUDES = [
   "Plot 9, Example Road, Gazipur · Plot 9, Example Road, Gazipur",
+  // Legacy REZ-95-wrong / capacity-drift labels must never reappear.
+  "Employees — group total",
+  "Daily capacity (pcs) — group total",
+  "Yearly capacity (dozen) — group total",
 ];
 
 // Markers that only the Facilities card emits — a profile with zero
@@ -803,7 +811,12 @@ const CASES = [
     expect: {
       status: 200,
       bodyIncludes: ONE_FACILITY_EXPECTATIONS,
-      bodyExcludes: ONE_FACILITY_LEAK_CANARIES,
+      bodyExcludes: [
+        ...ONE_FACILITY_LEAK_CANARIES,
+        "Employees — group total",
+        "Daily capacity (pcs) — group total",
+        "Yearly capacity (dozen) — group total",
+      ],
     },
   },
   {
@@ -870,7 +883,12 @@ const CASES = [
     expect: {
       status: 200,
       bodyIncludes: ONE_FACILITY_EXPECTATIONS,
-      bodyExcludes: ONE_FACILITY_LEAK_CANARIES,
+      bodyExcludes: [
+        ...ONE_FACILITY_LEAK_CANARIES,
+        "Employees — group total",
+        "Daily capacity (pcs) — group total",
+        "Yearly capacity (dozen) — group total",
+      ],
     },
   },
   {

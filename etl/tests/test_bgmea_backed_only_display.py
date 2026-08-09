@@ -68,7 +68,7 @@ def _live_registry_view_migration() -> Path:
     # Dynamic DO / EXECUTE format recreates never match the create needle —
     # fail closed if any migration uses them against this view.
     dynamic = re.compile(
-        r"execute\s+format\s*\([\s\S]{0,240}v_supplier_registry_ids",
+        r"execute\s+(?:format\s*\(|'|[\s\S]{0,80}\|\|)[\s\S]{0,200}v_supplier_registry_ids",
         re.IGNORECASE,
     )
     for path in MIGRATIONS_DIR.glob("*.sql"):

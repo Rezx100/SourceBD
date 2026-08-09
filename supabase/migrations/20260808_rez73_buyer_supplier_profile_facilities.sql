@@ -988,9 +988,15 @@ comment on function public.buyer_supplier_profile(text) is
 create or replace function public.enforce_facility_parent_is_company()
 returns trigger
 language plpgsql
+set search_path = public
 as $$
 begin
   if new.facility_of is not null then
+    -- Lock the candidate parent so a concurrent UPDATE cannot turn it into
+    -- a facility between our EXISTS check and commit (READ COMMITTED race).
+    perform 1 from public.suppliers p
+     where p.id = new.facility_of
+     for update;
     if exists (
       select 1 from public.suppliers p
        where p.id = new.facility_of
@@ -1003,14 +1009,20 @@ begin
     end if;
   end if;
   -- Becoming a facility while other rows already point here would open the
-  -- same silent-undercount window from the other direction.
-  if new.facility_of is not null and exists (
-    select 1 from public.suppliers c where c.facility_of = new.id
-  ) then
-    raise exception
-      'cannot mark supplier % as a facility while other rows reference it via facility_of',
-      new.id
-      using errcode = 'check_violation';
+  -- same silent-undercount window from the other direction. Lock children
+  -- first so a concurrent INSERT of a new child cannot sneak past.
+  if new.facility_of is not null then
+    perform 1 from public.suppliers c
+     where c.facility_of = new.id
+     for update;
+    if exists (
+      select 1 from public.suppliers c where c.facility_of = new.id
+    ) then
+      raise exception
+        'cannot mark supplier % as a facility while other rows reference it via facility_of',
+        new.id
+        using errcode = 'check_violation';
+    end if;
   end if;
   return new;
 end;

@@ -152,13 +152,11 @@ describe("20260808_rez73 migration containment", () => {
     assert.doesNotThrow(() => assertFacilitiesContainment({ migrationSql }));
   });
 
-  it("rejects concat / dollar-quote / mixed-case key leak vectors", () => {
+  it("rejects concat / dollar-quote / mixed-case / value-side / string-paren leak vectors", () => {
     const base = fs.readFileSync(
       path.join(process.cwd(), FACILITIES_PROFILE_MIGRATION),
       "utf8",
     );
-    // Inject after the legitimate 'rsc' key — a first-`) as obj` or
-    // /'[a-z_]+'/ lexer would keep the whitelist green while emitting slug.
     const rscAnchor = /'rsc',\s*fr\.obj/;
     assert.match(base, rscAnchor, "migration must contain the rsc key anchor");
     const inject = (keyExpr: string) => {
@@ -172,40 +170,63 @@ describe("20260808_rez73 migration containment", () => {
       ["mixed-case", "'Slug'"],
       ["source_ref literal", "'source_ref'"],
       ["sbi_total literal", "'sbi_total'"],
+      ["display_name after string paren", "'display_name'"],
     ] as const) {
       assert.throws(
         () => assertFacilitiesContainment({ migrationSql: inject(expr) }),
-        /forbidden key|lowercase snake literal|sbi_/i,
+        /forbidden key|lowercase snake literal|sbi_|exactly|value for/i,
         `${label} key expression must fail containment`,
       );
     }
-    // Nested `) as obj` before a forbidden key must not truncate the
-    // top-level whitelist extraction.
-    const truncated = base.replace(
-      rscAnchor,
-      `'rsc', (select (fr.obj) as obj), 'source_ref', f.slug`,
-    );
-    assert.notEqual(truncated, base);
+    // `)` inside a string value must not truncate the extract.
+    const stringParen = base.replace(rscAnchor, `'rsc', 'x)', 'display_name', f.slug`);
+    assert.notEqual(stringParen, base);
     assert.throws(
-      () => assertFacilitiesContainment({ migrationSql: truncated }),
-      /forbidden key|exactly|source_ref|lowercase snake literal/i,
-      "nested ) as obj truncation must fail containment",
+      () => assertFacilitiesContainment({ migrationSql: stringParen }),
+      /forbidden key|exactly|value for|lowercase snake literal/i,
+      "')' inside a string value must not truncate containment",
+    );
+    // Value-side identity under an allowed key.
+    const nameSlug = base.replace(
+      /'name',\s*f\.company_name/,
+      "'name', f.company_name || f.slug",
+    );
+    assert.notEqual(nameSlug, base);
+    assert.throws(
+      () => assertFacilitiesContainment({ migrationSql: nameSlug }),
+      /value for 'name'|exactly/i,
+      "name || slug must fail the exact-value pin",
+    );
+    const idAsEmployees = base.replace(
+      /'employees_total',\s*f\.employees_total/,
+      "'employees_total', f.id",
+    );
+    assert.notEqual(idAsEmployees, base);
+    assert.throws(
+      () => assertFacilitiesContainment({ migrationSql: idAsEmployees }),
+      /value for 'employees_total'|exactly/i,
+      "f.id as employees_total must fail the exact-value pin",
+    );
+    // Block-comment forged ORDER BY must not satisfy the pin.
+    const fakeOrder = base
+      .replace(
+        /jsonb_agg\(fac\.obj order by fac\.facility_name, fac\.facility_id\)/,
+        "jsonb_agg(fac.obj order by fac.facility_id) /* jsonb_agg(fac.obj order by fac.facility_name, fac.facility_id) */",
+      );
+    assert.notEqual(fakeOrder, base);
+    assert.throws(
+      () => assertFacilitiesContainment({ migrationSql: fakeOrder }),
+      /order by \(facility_name, facility_id\)/i,
+      "block-comment ORDER BY must not satisfy the pin",
     );
   });
 
   it("pins the full definer set of every object 20260808 recreates", () => {
-    // The 0097→20260808 rename closed one silent-overwrite window, but the
-    // same class recurs the day anyone adds a later-sorting migration that
-    // recreates one of these objects without re-pinning. The set of files
-    // defining each object is closed: a new definer fails this test and
-    // forces the author to state which body is live.
     const migrationsDir = path.join(process.cwd(), "supabase", "migrations");
     const files = fs
       .readdirSync(migrationsDir)
       .filter((f) => f.endsWith(".sql"))
       .sort();
-    // Normalise quoted identifiers and catch dynamic EXECUTE recreates so
-    // `"public".buyer_supplier_profile` / format(%I.%I) cannot slip past.
     const normalize = (sql: string) =>
       sql
         .replace(/"public"/gi, "public")
@@ -274,37 +295,51 @@ describe("20260808_rez73 migration containment", () => {
           `it, state which body is live and update this pin`,
       );
     }
-    // Dynamic DO / EXECUTE format(%I.%I) recreates are a separate bypass
-    // class: they never match the create regex, so fail closed if any
-    // migration uses them against these objects.
-    const DYNAMIC =
-      /execute\s+format\s*\([\s\S]{0,240}(buyer_supplier_profile|v_supplier_addresses)/i;
+    // Fail closed on any EXECUTE that rebuilds these objects — format(),
+    // string literal, or concat — they never match the create regex.
+    const DYNAMIC = [
+      /execute\s+format\s*\([\s\S]{0,240}(buyer_supplier_profile|v_supplier_addresses)/i,
+      /execute\s+'[^']{0,200}(buyer_supplier_profile|v_supplier_addresses)/i,
+      /execute\s+[\s\S]{0,120}\|\|[\s\S]{0,120}(buyer_supplier_profile|v_supplier_addresses)/i,
+    ];
     for (const f of files) {
       const sql = fs.readFileSync(path.join(migrationsDir, f), "utf8");
-      assert.ok(
-        !DYNAMIC.test(sql),
-        `${f} dynamically recreates a pinned object via EXECUTE format — ` +
-          `add an explicit CREATE and update the definer-set pin`,
-      );
+      for (const re of DYNAMIC) {
+        assert.ok(
+          !re.test(sql),
+          `${f} dynamically recreates a pinned object via EXECUTE — ` +
+            `add an explicit CREATE and update the definer-set pin`,
+        );
+      }
     }
   });
 
-  it("pins the facility→facility parent refusal trigger", () => {
+  it("pins the facility→facility parent refusal trigger body", () => {
     const migrationSql = fs.readFileSync(
       path.join(process.cwd(), FACILITIES_PROFILE_MIGRATION),
       "utf8",
     );
-    assert.match(
-      migrationSql,
-      /create or replace function public\.enforce_facility_parent_is_company/i,
+    // assertFacilitiesContainment now requires FOR UPDATE + both checks
+    // inside the function body (comment-only strings must not pass).
+    assert.doesNotThrow(() => assertFacilitiesContainment({ migrationSql }));
+    const hollow = migrationSql.replace(
+      /create or replace function public\.enforce_facility_parent_is_company\(\)[\s\S]*?\$\$;/,
+      // String.replace treats $$ as a single $ — use $$$$ for each $$.
+      "create or replace function public.enforce_facility_parent_is_company()\n" +
+        "returns trigger language plpgsql as $$\n" +
+        "begin\n" +
+        "  -- p.facility_of is not null\n" +
+        "  -- c.facility_of = new.id\n" +
+        "  -- for update\n" +
+        "  return new;\n" +
+        "end;\n" +
+        "$$;",
     );
-    assert.match(
-      migrationSql,
-      /p\.facility_of is not null/,
-    );
-    assert.match(
-      migrationSql,
-      /trg_suppliers_facility_parent_is_company/,
+    assert.notEqual(hollow, migrationSql);
+    assert.throws(
+      () => assertFacilitiesContainment({ migrationSql: hollow }),
+      /FOR UPDATE|refuse|children|must define enforce_facility_parent/i,
+      "hollow trigger body with checks only in comments must fail",
     );
   });
 });

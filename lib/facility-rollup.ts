@@ -2,26 +2,24 @@
  * Facility group roll-up for the mother profile — REZ-73 (widened 8 Aug 2026:
  * separate labelled figures, never one combined total).
  *
- * LOCKSTEP: this mirrors the semantics of `etl/core/facility_rollup.py`
- * (REZ-92). The Python module is the ETL-side reference; this module is the
- * live computation for the web read path, fed by the raw per-building
- * numerics in the `facilities` key of `buyer_supplier_profile` (migration
- * 20260808_rez73). If one changes, change both. Presentation differs deliberately:
- * `describeGroupMetric` renders en-US grouped digits ("5,200 across 3
- * buildings") where the Python `describe()` renders raw digits — the sums,
- * thresholds and lower-bound rules are the lockstep contract.
+ * Arithmetic LOCKSTEP with `etl/core/facility_rollup.py` (REZ-92): sums,
+ * unknown/lower-bound rules, and building counts. The Python module also
+ * filters nest/tombstone/parent-is-facility inputs for ETL callers that
+ * receive raw rows; this web path is fed by `buyer_supplier_profile`'s
+ * facilities[] which already scopes to direct children of a published
+ * mother, so those input-hygiene filters are not duplicated here.
+ * Presentation differs deliberately: `describeGroupMetric` renders en-US
+ * grouped digits ("5,200 across 3 buildings") where Python `describe()`
+ * renders raw digits.
  *
- * RULES (from the Python module's docstring):
+ * RULES:
  * - The mother's own figures are returned untouched and never summed into
  *   themselves — `own` mirrors the stored columns byte-for-byte.
  * - Across genuinely distinct buildings the arithmetic sum is real.
  * - `null` is unknown, never coerced to 0. Any unknown building makes the
  *   group total a lower bound: "at least N across M buildings, K unknown".
- * - Only direct children of the viewed mother are summed. REZ-71 refuses
- *   facility→facility chains; the SQL scopes children by
- *   `f.facility_of = s.id`, so nesting cannot arrive here — the input
- *   hygiene dedupe from the Python module (same supplier_id twice) is
- *   unnecessary because the payload carries no ids at all.
+ * - Only direct children of the viewed mother are summed (RPC scopes by
+ *   `f.facility_of = s.id`).
  */
 
 export const ROLLUP_COLUMNS = [
@@ -125,39 +123,26 @@ export function describeGroupMetric(m: GroupMetric): string {
 export const FACILITIES_PROFILE_MIGRATION =
   "supabase/migrations/20260808_rez73_buyer_supplier_profile_facilities.sql";
 
+type JsonbPair = { key: string; value: string };
+
 /**
- * Balanced-paren extract of a `jsonb_build_object(...)` body starting at
- * `openIdx` (index of the `j` in `jsonb_build_object`). Then split top-level
- * arguments and require every KEY argument (even indices) to be a lowercase
- * snake literal `'foo_bar'`. Concat (`'slu'||'g'`), dollar-quotes, mixed
- * case, and format()-built keys all fail closed — they bypass a naive
- * /'([a-z_]+)'/ whitelist lexer while still emitting identity.
+ * Quote/dollar-aware extract of a `jsonb_build_object(...)` body's
+ * key/value pairs starting at `openIdx`. A `)` inside a string value must
+ * not close the object — that truncation let `'rsc', 'x)', 'display_name',
+ * f.slug` pass a key-only whitelist while emitting identity. Every KEY
+ * must be a lowercase snake literal; VALUES are returned trimmed for the
+ * caller to pin exactly.
  */
-export function extractLiteralJsonbKeys(
+export function extractLiteralJsonbPairs(
   sql: string,
   openIdx: number,
-): string[] {
+): JsonbPair[] {
   const marker = "jsonb_build_object";
   const parenStart = sql.indexOf("(", openIdx);
   if (parenStart < 0 || !sql.slice(openIdx, parenStart).includes(marker)) {
-    throw new Error("extractLiteralJsonbKeys: not at a jsonb_build_object");
+    throw new Error("extractLiteralJsonbPairs: not at a jsonb_build_object");
   }
-  let depth = 0;
-  let close = -1;
-  for (let i = parenStart; i < sql.length; i++) {
-    const ch = sql[i];
-    if (ch === "(") depth += 1;
-    else if (ch === ")") {
-      depth -= 1;
-      if (depth === 0) {
-        close = i;
-        break;
-      }
-    }
-  }
-  if (close === -1) {
-    throw new Error("extractLiteralJsonbKeys: jsonb_build_object never closes");
-  }
+  const close = findMatchingParen(sql, parenStart);
   const body = sql.slice(parenStart + 1, close);
   const args = splitTopLevelArgs(body);
   if (args.length % 2 !== 0) {
@@ -165,7 +150,7 @@ export function extractLiteralJsonbKeys(
       `jsonb_build_object has an odd argument count (${args.length}) — key/value pairs required`,
     );
   }
-  const keys: string[] = [];
+  const pairs: JsonbPair[] = [];
   for (let i = 0; i < args.length; i += 2) {
     const keyArg = args[i]!.trim();
     const lit = /^'([a-z][a-z0-9_]*)'$/.exec(keyArg);
@@ -174,9 +159,62 @@ export function extractLiteralJsonbKeys(
         `facilities jsonb key must be a lowercase snake literal; got ${keyArg}`,
       );
     }
-    keys.push(lit[1]!);
+    pairs.push({ key: lit[1]!, value: args[i + 1]!.trim() });
   }
-  return keys.sort();
+  return pairs;
+}
+
+/** Sorted keys only — prefer extractLiteralJsonbPairs when values matter. */
+export function extractLiteralJsonbKeys(
+  sql: string,
+  openIdx: number,
+): string[] {
+  return extractLiteralJsonbPairs(sql, openIdx)
+    .map((p) => p.key)
+    .sort();
+}
+
+/** Find the `)` that closes the `(` at parenStart, ignoring parens inside quotes. */
+function findMatchingParen(sql: string, parenStart: number): number {
+  let depth = 0;
+  let inSingle = false;
+  let inDollar: string | null = null;
+  for (let i = parenStart; i < sql.length; i++) {
+    const ch = sql[i]!;
+    if (inDollar !== null) {
+      if (sql.startsWith(inDollar, i)) {
+        i += inDollar.length - 1;
+        inDollar = null;
+      }
+      continue;
+    }
+    if (inSingle) {
+      if (ch === "'" && sql[i + 1] === "'") {
+        i += 1;
+        continue;
+      }
+      if (ch === "'") inSingle = false;
+      continue;
+    }
+    if (ch === "'") {
+      inSingle = true;
+      continue;
+    }
+    if (ch === "$") {
+      const m = /^\$([a-zA-Z_]*)\$/.exec(sql.slice(i));
+      if (m) {
+        inDollar = `$${m[1]}$`;
+        i += m[0].length - 1;
+        continue;
+      }
+    }
+    if (ch === "(") depth += 1;
+    else if (ch === ")") {
+      depth -= 1;
+      if (depth === 0) return i;
+    }
+  }
+  throw new Error("findMatchingParen: never closes");
 }
 
 /** Split on commas that sit at paren/bracket depth 0 outside quotes. */
@@ -197,7 +235,7 @@ function splitTopLevelArgs(body: string): string[] {
     }
     if (inSingle) {
       if (ch === "'" && body[i + 1] === "'") {
-        i += 1; // escaped ''
+        i += 1;
         continue;
       }
       if (ch === "'") inSingle = false;
@@ -226,6 +264,11 @@ function splitTopLevelArgs(body: string): string[] {
   return args.filter((a) => a.trim().length > 0);
 }
 
+/** Strip SQL line comments and block comments before pin scans. */
+function stripSqlComments(sql: string): string {
+  return sql.replace(/\/\*[\s\S]*?\*\//g, "").replace(/--[^\n]*/g, "");
+}
+
 /**
  * Pure checks on the migration text: the facilities CTE must exist, must
  * join children through the partial-index predicate, must read addresses
@@ -250,10 +293,13 @@ export function assertFacilitiesContainment(args: {
     return migrationSql.slice(start, end);
   };
 
-  // The facilities CTE joins suppliers to itself ONLY via the partial-index
-  // predicate for the single viewed mother (0055/0056 lesson: no scans).
-  const facilitiesBlock = sliceBetween("facilities as (", "partner_factories as (");
-  if (!/join public\.suppliers f on f\.facility_of = s\.id/.test(facilitiesBlock)) {
+  const facilitiesBlock = sliceBetween(
+    "facilities as (",
+    "partner_factories as (",
+  );
+  if (
+    !/join public\.suppliers f on f\.facility_of = s\.id/.test(facilitiesBlock)
+  ) {
     throw new Error(
       "facilities CTE must join children via f.facility_of = s.id (partial index)",
     );
@@ -268,18 +314,9 @@ export function assertFacilitiesContainment(args: {
       "facility pills must come from v_supplier_registry_ids_direct — never the inheriting view",
     );
   }
-  // Strip SQL line comments before key / order pins so a comment cannot
-  // satisfy a substring guard while the live clause drifts.
-  const facilitiesCode = facilitiesBlock.replace(/--[^\n]*/g, "");
 
-  // Hard requirement (REZ-73): nothing that identifies the unpublished row
-  // beyond its name and address, and no contact PII. Quoted-key match only —
-  // f.id appears in join predicates and must stay legal there.
-  // is_sanctioned is deliberately NOT forbidden: it is a buyer-protection
-  // signal that was public while the building was published, and the UI
-  // badges it (a sanctioned building must not lose its marker at attach).
-  // source_ref / sbi_* are also forbidden: source_ref can carry
-  // `#inherited:<slug>`; SBI never leaves admin.
+  const facilitiesCode = stripSqlComments(facilitiesBlock);
+
   const forbiddenKey =
     /'(slug|id|completeness_pct|entity_type|source_tags|source_ref|sbi_total|sbi_score|email_primary|phones|contact_name|contact_role|website|created_at|updated_at|phone|email)'\s*,/i;
   const badKey = forbiddenKey.exec(facilitiesCode);
@@ -290,43 +327,55 @@ export function assertFacilitiesContainment(args: {
     throw new Error("facilities CTE emits a forbidden sbi_* key");
   }
 
-  const allowedKeys = [
-    "addresses",
-    "employees_total",
-    "is_sanctioned",
-    "machines_sewing",
-    "name",
-    "pills",
-    "production_capacity_dozen_yearly",
-    "production_capacity_pcs_day",
-    "rsc",
-  ].sort();
+  // Exact key AND value pins — key-only whitelists green identity under an
+  // allowed key (`f.company_name || f.slug`, `'employees_total', f.id`).
+  const allowedValues: Record<string, string> = {
+    name: "f.company_name",
+    employees_total: "f.employees_total",
+    machines_sewing: "f.machines_sewing",
+    production_capacity_pcs_day: "f.production_capacity_pcs_day",
+    production_capacity_dozen_yearly: "f.production_capacity_dozen_yearly",
+    is_sanctioned: "f.is_sanctioned",
+    addresses: "coalesce(fa.items, '[]'::jsonb)",
+    pills: "coalesce(fp.items, '[]'::jsonb)",
+    rsc: "fr.obj",
+  };
+  const allowedKeys = Object.keys(allowedValues).sort();
 
-  // Top-level facilities object: balanced-paren extract + fail-closed key
-  // lexer. A first-`) as obj` slice truncates on nested `) as obj` in a
-  // subselect and lets keys after the truncation point pass the whitelist
-  // silently; concat / dollar-quote / mixed-case key expressions bypass a
-  // /'([a-z_]+)'/ extractor entirely.
-  // Anchor on the per-facility object (name + employees_total), not an
-  // inner addresses/pills/rsc build_object.
-  const topOpen = facilitiesCode.search(
-    /jsonb_build_object\s*\(\s*'name'\s*,\s*f\.company_name/,
-  );
-  if (topOpen === -1) {
+  let foundFacilityObject = false;
+  let searchFrom = 0;
+  while (searchFrom < facilitiesCode.length) {
+    const idx = facilitiesCode.indexOf("jsonb_build_object", searchFrom);
+    if (idx === -1) break;
+    const pairs = extractLiteralJsonbPairs(facilitiesCode, idx);
+    if (pairs[0]?.key === "name") {
+      foundFacilityObject = true;
+      const byKey = Object.fromEntries(pairs.map((p) => [p.key, p.value]));
+      const emittedKeys = Object.keys(byKey).sort();
+      if (JSON.stringify(emittedKeys) !== JSON.stringify(allowedKeys)) {
+        throw new Error(
+          `facilities object keys must be exactly ${allowedKeys.join(",")}; got ${emittedKeys.join(",")}`,
+        );
+      }
+      for (const [key, want] of Object.entries(allowedValues)) {
+        const got = byKey[key]!.replace(/\s+/g, " ");
+        const wantNorm = want.replace(/\s+/g, " ");
+        if (got !== wantNorm) {
+          throw new Error(
+            `facilities object value for '${key}' must be exactly ${want}; got ${byKey[key]}`,
+          );
+        }
+      }
+      break;
+    }
+    searchFrom = idx + 1;
+  }
+  if (!foundFacilityObject) {
     throw new Error(
-      "facilities CTE must build its object as jsonb_build_object('name', f.company_name, ...)",
+      "facilities CTE must build a jsonb_build_object whose first key is 'name'",
     );
   }
-  const emittedKeys = extractLiteralJsonbKeys(facilitiesCode, topOpen);
-  if (JSON.stringify(emittedKeys) !== JSON.stringify(allowedKeys)) {
-    throw new Error(
-      `facilities object keys must be exactly ${allowedKeys.join(",")}; got ${emittedKeys.join(",")}`,
-    );
-  }
 
-  // The whitelist must reach the INNER objects too — the top-level pin alone
-  // would let a future `'source_ref', va.source_ref` slip into a facility's
-  // address object (source_ref can carry `#inherited:<slug>`).
   const innerWhitelists: { build: string; keys: string[] }[] = [
     {
       build: "'kind',",
@@ -360,9 +409,6 @@ export function assertFacilitiesContainment(args: {
     }
   }
 
-  // Deterministic ordering pin: same-named sibling facilities are a real
-  // population (REZ-105). Must be the jsonb_agg ORDER BY, not a comment or
-  // an unrelated ORDER BY elsewhere in the CTE.
   if (
     !/jsonb_agg\s*\([\s\S]*?\border\s+by\s+fac\.facility_name\s*,\s*fac\.facility_id\b/i.test(
       facilitiesCode,
@@ -373,13 +419,12 @@ export function assertFacilitiesContainment(args: {
     );
   }
 
-  // Payload exposes the new key.
   if (!/'facilities',\s*\(select items from facilities\)/.test(migrationSql)) {
-    throw new Error("payload must include 'facilities', (select items from facilities)");
+    throw new Error(
+      "payload must include 'facilities', (select items from facilities)",
+    );
   }
 
-  // The address-view relaxation that keeps facility addresses visible after
-  // the A2 trigger unpublishes them.
   if (
     !/sup\.is_published = true\s+or\s+sup\.facility_of is not null/.test(
       migrationSql,
@@ -390,9 +435,6 @@ export function assertFacilitiesContainment(args: {
     );
   }
 
-  // The registry-view relaxation that keeps facility pills visible — every
-  // one of the seven branches (BGMEA, BKMEA, RSC, EPB, BGAPMEA, BTMA, certs)
-  // must carry it, and REZ-98's backed-only BGMEA rule must survive intact.
   const relaxedBranches = migrationSql.match(
     /s\.is_published = true or s\.facility_of is not null/g,
   );
@@ -411,10 +453,6 @@ export function assertFacilitiesContainment(args: {
     );
   }
 
-  // The address-inheriting view must be recreated here with the donor-side
-  // gate — without it, the relaxed direct view lets an unpublished facility
-  // donate `_inherited` addresses (and its slug via #inherited:<slug>) onto
-  // a name-matched stranger's profile.
   const addressesInheritingBlock = sliceBetween(
     "create or replace view public.v_supplier_addresses as",
     "v_supplier_registry_ids_direct as",
@@ -430,10 +468,6 @@ export function assertFacilitiesContainment(args: {
     );
   }
 
-  // The relaxation is only safe because both registry views are revoked
-  // from anon/authenticated here (0082 precedent) — without the revokes an
-  // anonymous PostgREST caller could enumerate unpublished facilities'
-  // pills. Verified anonymously readable in production on 8 Aug 2026.
   for (const view of [
     "v_supplier_registry_ids_direct",
     "v_supplier_registry_ids",
@@ -447,7 +481,6 @@ export function assertFacilitiesContainment(args: {
     }
   }
 
-  // REZ-93 invariants re-pinned against this (now the live) shaper.
   const ringBlock = sliceBetween("ring as (", "pills as (");
   if (/facility_of/.test(ringBlock) || /certifications/.test(ringBlock)) {
     throw new Error(
@@ -460,8 +493,6 @@ export function assertFacilitiesContainment(args: {
       "pills CTE must not join facility_of — inherited certs are display-only",
     );
   }
-  // Require the actual join text, not the bare word — a comment containing
-  // "facility_of" must not satisfy these pins.
   const certsBlock = sliceBetween("certs as (", "rsc as (");
   if (!/f\.facility_of = s\.id/.test(certsBlock)) {
     throw new Error(
@@ -476,5 +507,39 @@ export function assertFacilitiesContainment(args: {
   }
   if (!/DISPLAY-ONLY/.test(migrationSql)) {
     throw new Error("migration must keep the REZ-93 DISPLAY-ONLY marker");
+  }
+
+  // Chain-refusal trigger: pin the executable body, not a comment.
+  const triggerMatch = /create or replace function public\.enforce_facility_parent_is_company\(\)([\s\S]*?)\$\$;/.exec(
+    migrationSql,
+  );
+  if (!triggerMatch) {
+    throw new Error(
+      "migration must define enforce_facility_parent_is_company()",
+    );
+  }
+  const triggerBody = stripSqlComments(triggerMatch[1]!);
+  if (!/\bfor update\b/i.test(triggerBody)) {
+    throw new Error(
+      "enforce_facility_parent_is_company must lock parent/children FOR UPDATE",
+    );
+  }
+  if (!/p\.facility_of is not null/.test(triggerBody)) {
+    throw new Error(
+      "enforce_facility_parent_is_company must refuse a facility parent",
+    );
+  }
+  if (!/c\.facility_of = new\.id/.test(triggerBody)) {
+    throw new Error(
+      "enforce_facility_parent_is_company must refuse becoming a facility while children point here",
+    );
+  }
+  if (
+    !/trg_suppliers_facility_parent_is_company/.test(migrationSql) ||
+    !/before insert or update of facility_of/.test(migrationSql)
+  ) {
+    throw new Error(
+      "migration must attach trg_suppliers_facility_parent_is_company on facility_of",
+    );
   }
 }

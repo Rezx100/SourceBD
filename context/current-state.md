@@ -100,7 +100,14 @@ blacklist; adversarial fixtures for concat/dollar/mixed-case/nested
 closed on EXECUTE format recreates (Python registry pin likewise);
 DB trigger `enforce_facility_parent_is_company` refuses facility→facility
 parents (and refuse becoming a facility while children already point
-here) — upsert pin alone left SQL UPDATE / backfill writers open.
+here) — upsert pin alone left SQL UPDATE / backfill writers open;
+cycle-5 adds FOR UPDATE locks against the READ COMMITTED race and pins
+the executable body (comment-only hollow bodies fail). Containment now
+quote-aware (')' inside string values cannot truncate), pins exact
+VALUE expressions (name||slug and f.id-as-numeric fail), strips block
+comments before ORDER BY pins, and widens the EXECUTE recreate guard
+past format() to string/concat forms. Boundary two-sides legacy
+Employees/Daily capacity/Yearly capacity labels.
 Stage 1 of REZ-71's stage plan;
 lands before any attach work. Parent epic: REZ-58.
 
