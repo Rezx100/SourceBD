@@ -391,13 +391,24 @@ const PINNED_OBJECT_NAME =
 export function hasDynamicExecuteOfPinnedObject(sql: string): boolean {
   const code = stripSqlComments(sql);
   if (hasPerformFormatOfPinnedObject(code)) return true;
-  // GUC / file round-trip that can feed EXECUTE later.
-  if (
-    /\bset_config\s*\(\s*'[^']*'\s*,\s*[^)]*buyer_supplier_profile/i.test(code) ||
-    /\bset_config\s*\(\s*'[^']*'\s*,\s*[^)]*v_supplier_addresses/i.test(code) ||
-    /\bset_config\s*\(\s*'[^']*'\s*,\s*[^)]*v_supplier_registry_ids/i.test(code)
-  ) {
-    return true;
+  // GUC round-trip / fragment store that can feed EXECUTE later.
+  {
+    let j = 0;
+    while (j < code.length) {
+      const m = /\bset_config\s*\(/i.exec(code.slice(j));
+      if (!m || m.index === undefined) break;
+      const paren = j + m.index + m[0].length - 1;
+      try {
+        const close = findMatchingParen(code, paren);
+        const args = code.slice(paren, close + 1);
+        if (PINNED_OBJECT_NAME.test(args) || payloadAssemblesPinnedName(args)) {
+          return true;
+        }
+        j = close + 1;
+      } catch {
+        j += m[0].length;
+      }
+    }
   }
   let i = 0;
   while (i < code.length) {
@@ -412,8 +423,6 @@ export function hasDynamicExecuteOfPinnedObject(sql: string): boolean {
       continue;
     }
     const payload = extractExecuteArgPayload(code, at + m[0].length + ws);
-    // Obfuscated / indirection EXECUTE — migrations must not hide DDL this way.
-    // replace/concat/format assembly is handled by payloadAssemblesPinnedName.
     if (
       /\b(convert_from|decode|encode|chr|current_setting|pg_read_file|set_config)\s*\(/i.test(
         payload,
@@ -423,6 +432,7 @@ export function hasDynamicExecuteOfPinnedObject(sql: string): boolean {
     }
     if (PINNED_OBJECT_NAME.test(payload)) return true;
     if (payloadAssemblesPinnedName(payload)) return true;
+    if (executeVarsAssemblePinned(code, payload, at)) return true;
     for (const varName of extractExecutedVarNames(payload)) {
       if (assignedVarMentionsPinned(code, varName, at)) return true;
     }
@@ -433,21 +443,132 @@ export function hasDynamicExecuteOfPinnedObject(sql: string): boolean {
 
 /** True when string fragments in an EXECUTE payload assemble a pinned name. */
 function payloadAssemblesPinnedName(payload: string): boolean {
-  // Evaluate simple replace('a','b','c') nests so buyer_X… → buyer_… is visible.
   let evaled = payload;
-  for (let n = 0; n < 8; n++) {
-    const m =
+  for (let n = 0; n < 12; n++) {
+    let changed = false;
+    const repl =
       /replace\s*\(\s*'([^']*)'\s*,\s*'([^']*)'\s*,\s*'([^']*)'\s*\)/i.exec(
         evaled,
       );
-    if (!m || m.index === undefined) break;
-    const out = m[1]!.split(m[2]!).join(m[3]!);
-    evaled =
-      evaled.slice(0, m.index) +
-      "'" +
-      out +
-      "'" +
-      evaled.slice(m.index + m[0].length);
+    if (repl && repl.index !== undefined) {
+      const out = repl[1]!.split(repl[2]!).join(repl[3]!);
+      evaled =
+        evaled.slice(0, repl.index) +
+        "'" +
+        out +
+        "'" +
+        evaled.slice(repl.index + repl[0].length);
+      changed = true;
+    }
+    const tr =
+      /translate\s*\(\s*'([^']*)'\s*,\s*'([^']*)'\s*,\s*'([^']*)'\s*\)/i.exec(
+        evaled,
+      );
+    if (tr && tr.index !== undefined) {
+      const from = tr[2]!;
+      const to = tr[3]!;
+      let out = "";
+      for (const ch of tr[1]!) {
+        const idx = from.indexOf(ch);
+        if (idx < 0) out += ch;
+        else if (idx < to.length) out += to[idx]!;
+      }
+      evaled =
+        evaled.slice(0, tr.index) +
+        "'" +
+        out +
+        "'" +
+        evaled.slice(tr.index + tr[0].length);
+      changed = true;
+    }
+    const ov =
+      /overlay\s*\(\s*'([^']*)'\s+placing\s+'([^']*)'\s+from\s+(\d+)(?:\s+for\s+(\d+))?\s*\)/i.exec(
+        evaled,
+      );
+    if (ov && ov.index !== undefined) {
+      const src = ov[1]!;
+      const place = ov[2]!;
+      const from = Number(ov[3]!) - 1;
+      const forLen = ov[4] !== undefined ? Number(ov[4]) : place.length;
+      const out =
+        src.slice(0, Math.max(0, from)) +
+        place +
+        src.slice(Math.max(0, from) + forLen);
+      evaled =
+        evaled.slice(0, ov.index) +
+        "'" +
+        out +
+        "'" +
+        evaled.slice(ov.index + ov[0].length);
+      changed = true;
+    }
+    const subFrom =
+      /(?:substring|substr)\s*\(\s*'([^']*)'\s+from\s+(\d+)(?:\s+for\s+(\d+))?\s*\)/i.exec(
+        evaled,
+      );
+    if (subFrom && subFrom.index !== undefined) {
+      const start = Number(subFrom[2]!) - 1;
+      const out =
+        subFrom[3] !== undefined
+          ? subFrom[1]!.slice(start, start + Number(subFrom[3]))
+          : subFrom[1]!.slice(start);
+      evaled =
+        evaled.slice(0, subFrom.index) +
+        "'" +
+        out +
+        "'" +
+        evaled.slice(subFrom.index + subFrom[0].length);
+      changed = true;
+    }
+    const subArgs =
+      /substr\s*\(\s*'([^']*)'\s*,\s*(\d+)(?:\s*,\s*(\d+))?\s*\)/i.exec(evaled);
+    if (subArgs && subArgs.index !== undefined) {
+      const start = Number(subArgs[2]!) - 1;
+      const out =
+        subArgs[3] !== undefined
+          ? subArgs[1]!.slice(start, start + Number(subArgs[3]))
+          : subArgs[1]!.slice(start);
+      evaled =
+        evaled.slice(0, subArgs.index) +
+        "'" +
+        out +
+        "'" +
+        evaled.slice(subArgs.index + subArgs[0].length);
+      changed = true;
+    }
+    const trimM =
+      /\b(?:btrim|ltrim|rtrim|trim)\s*\(\s*'([^']*)'\s*\)/i.exec(evaled);
+    if (trimM && trimM.index !== undefined) {
+      let out = trimM[1]!;
+      if (/btrim|trim/i.test(trimM[0]!)) out = out.trim();
+      else if (/ltrim/i.test(trimM[0]!)) out = out.replace(/^\s+/, "");
+      else out = out.replace(/\s+$/, "");
+      evaled =
+        evaled.slice(0, trimM.index) +
+        "'" +
+        out +
+        "'" +
+        evaled.slice(trimM.index + trimM[0].length);
+      changed = true;
+    }
+    if (!changed) break;
+  }
+  if (
+    /\b(overlay|translate|substring|substr|btrim|ltrim|rtrim|left|right|reverse)\s*\(/i.test(
+      evaled,
+    )
+  ) {
+    const litProbe: string[] = [];
+    for (const m of payload.matchAll(/E?'([^']*)'/gi)) litProbe.push(m[1]!);
+    const joined = litProbe.join("").toLowerCase();
+    if (
+      PINNED_OBJECT_NAME.test(joined) ||
+      /buyer_supplier|supplier_profile|v_supplier_addresses|v_supplier_registry/.test(
+        joined,
+      )
+    ) {
+      return true;
+    }
   }
   const literals: string[] = [];
   for (const m of evaled.matchAll(/E?'([^']*)'/gi)) literals.push(m[1]!);
@@ -457,13 +578,60 @@ function payloadAssemblesPinnedName(payload: string): boolean {
     literals.push(m[2]!);
   }
   if (PINNED_OBJECT_NAME.test(literals.join("").toLowerCase())) return true;
-  // format/concat/||/quote_ident fragments — strip punctuation.
   const collapsed = evaled
     .replace(/E?'([^']*)'/gi, "$1")
     .replace(/\$([A-Za-z0-9_]*)\$([^$]*)\$\1\$/g, "$2")
     .replace(/[^A-Za-z0-9_]+/g, "")
     .toLowerCase();
   return PINNED_OBJECT_NAME.test(collapsed);
+}
+
+/** Split-var || / concat of string fragments that jointly form a pinned name. */
+function executeVarsAssemblePinned(
+  code: string,
+  payload: string,
+  beforeIdx: number,
+): boolean {
+  if (!/\|\||\bconcat\s*\(/i.test(payload)) return false;
+  const vars = extractExecutedVarNames(payload);
+  if (vars.length < 1) return false;
+  const frags: string[] = [];
+  for (const v of vars) {
+    collectAssignStringLiterals(code, v, beforeIdx, frags, new Set());
+  }
+  return PINNED_OBJECT_NAME.test(frags.join("").toLowerCase());
+}
+
+function collectAssignStringLiterals(
+  code: string,
+  varName: string,
+  beforeIdx: number,
+  out: string[],
+  seen: Set<string>,
+): void {
+  const key = varName.toLowerCase();
+  if (seen.has(key)) return;
+  seen.add(key);
+  const window = code.slice(0, beforeIdx);
+  const assignRe = new RegExp(
+    `\\b${varName}\\s*(?::=|=)\\s*([^;]+);`,
+    "gi",
+  );
+  let m: RegExpExecArray | null;
+  let last: string | null = null;
+  while ((m = assignRe.exec(window)) !== null) last = m[1]!;
+  if (last === null) return;
+  for (const lit of last.matchAll(/E?'([^']*)'/gi)) out.push(lit[1]!);
+  for (const lit of last.matchAll(/\$([A-Za-z0-9_]*)\$([^$]*)\$\1\$/g)) {
+    out.push(lit[2]!);
+  }
+  const skip =
+    /^(format|concat|cast|upper|lower|trim|btrim|coalesce|quote_ident|replace|overlay|translate|substring|substr|null|true|false|text)$/i;
+  for (const id of last.matchAll(/\b([A-Za-z_][A-Za-z0-9_]*)\b/g)) {
+    if (!skip.test(id[1]!)) {
+      collectAssignStringLiterals(code, id[1]!, beforeIdx, out, seen);
+    }
+  }
 }
 
 function hasPerformFormatOfPinnedObject(code: string): boolean {
@@ -495,7 +663,7 @@ function assignedVarMentionsPinned(
   seen.add(key);
   const window = code.slice(0, beforeIdx);
   const obfuscated =
-    /\b(convert_from|decode|encode|chr|current_setting|pg_read_file|set_config|format|concat|replace|overlay|translate|regexp_replace|quote_ident)\s*\(/i;
+    /\b(convert_from|decode|encode|chr|current_setting|pg_read_file|set_config|format|concat|replace|overlay|translate|regexp_replace|quote_ident|substring|substr|btrim|ltrim|rtrim)\s*\(/i;
   const assignRe = new RegExp(
     `\\b${varName}\\s*(?::=|=)\\s*([^;]+);`,
     "gi",
@@ -542,37 +710,18 @@ function extractExecutedVarNames(payload: string): string[] {
     .replace(/\$([A-Za-z0-9_]*)\$([^$]*)\$\1\$/g, "$$$$");
   const names = new Set<string>();
   const skip =
-    /^(format|convert_from|decode|encode|chr|select|null|true|false|utf8|base64|text|concat|cast|upper|lower|trim|btrim|coalesce|quote_ident|quote_nullable|replace|overlay|translate|regexp_replace|array_to_string|array|as|using|alter|publication|add|table|public|from|where|and|or|into|values|set|update|delete|insert|create|drop|function|view|trigger|current_setting|pg_read_file|set_config)$/i;
+    /^(format|convert_from|decode|encode|chr|select|null|true|false|utf8|base64|text|concat|cast|upper|lower|trim|btrim|ltrim|rtrim|coalesce|quote_ident|quote_nullable|replace|overlay|translate|regexp_replace|substring|substr|array_to_string|array|as|using|alter|publication|add|table|public|from|where|and|or|into|values|set|update|delete|insert|create|drop|function|view|trigger|current_setting|pg_read_file|set_config)$/i;
   for (const id of stripped.matchAll(/\b([A-Za-z_][A-Za-z0-9_]*)\b/g)) {
     if (!skip.test(id[1]!)) names.add(id[1]!);
   }
   return [...names];
 }
 
-/** Argument text of an EXECUTE — full format(...) or expression until `;`. */
+/** Argument text of an EXECUTE — full expression until `;` (keeps || / concat tails). */
 function extractExecuteArgPayload(sql: string, start: number): string {
   const s = sql.slice(start);
-  // Leading open-paren / function call — take until matching close if starts with ident(
-  const call = /^([A-Za-z_][A-Za-z0-9_]*)\s*\(/i.exec(s);
-  if (call) {
-    const paren = call[0].length - 1;
-    try {
-      const close = findMatchingParen(s, paren);
-      return s.slice(0, close + 1);
-    } catch {
-      /* fall through */
-    }
-  }
-  if (/^\(/.test(s)) {
-    try {
-      const close = findMatchingParen(s, 0);
-      return s.slice(0, close + 1);
-    } catch {
-      /* fall through */
-    }
-  }
   const semi = s.search(/;/);
-  return s.slice(0, semi === -1 ? s.length : semi);
+  return s.slice(0, semi === -1 ? s.length : semi).trim();
 }
 
 /**
@@ -634,9 +783,12 @@ function assertNoDeadPathGaming(triggerCode: string): void {
   }
 }
 
-/** Ban runtime search_path mutation inside function bodies (header pin only). */
+/** Ban runtime search_path mutation inside function bodies (header pin only).
+ * Callers must pass comment-stripped SQL that still retains string literals
+ * so set_config('search_path', …) remains visible.
+ */
 function assertNoBodySearchPathMutation(body: string, label: string): void {
-  if (/\bset\s+(local\s+)?search_path\b/i.test(body)) {
+  if (/\bset\s+(local\s+|session\s+)?search_path\b/i.test(body)) {
     throw new Error(`${label} body must not SET search_path`);
   }
   if (/\bset_config\s*\(\s*'search_path'/i.test(body)) {
@@ -981,6 +1133,36 @@ export function assertFacilitiesContainment(args: {
       "v_supplier_addresses recipient gate must not be widened with OR",
     );
   }
+  if (
+    /\b(left|full|right|cross)\s+join public\.suppliers parent\b/i.test(
+      addressesNorm,
+    ) ||
+    /\b(left|full|right|cross)\s+join public\.v_supplier_addresses_direct\b/i.test(
+      addressesNorm,
+    )
+  ) {
+    throw new Error(
+      "v_supplier_addresses inheritance must use inner joins for parent and parent_addr",
+    );
+  }
+  const parentAddrOn = [
+    ...addressesNorm.matchAll(
+      /join public\.v_supplier_addresses_direct parent_addr\s+on\s+([\s\S]+?)(?=\s+where\b)/gi,
+    ),
+  ];
+  if (parentAddrOn.length !== 1) {
+    throw new Error(
+      "v_supplier_addresses must join parent_addr exactly once before WHERE",
+    );
+  }
+  const parentAddrPred = parentAddrOn[0]![1]!.replace(/\s+/g, " ").trim();
+  if (
+    !/^parent_addr\.supplier_id = parent\.id$/i.test(parentAddrPred)
+  ) {
+    throw new Error(
+      "v_supplier_addresses parent_addr join must be exactly on parent_addr.supplier_id = parent.id",
+    );
+  }
 
   for (const view of [
     "v_supplier_registry_ids_direct",
@@ -1060,7 +1242,7 @@ export function assertFacilitiesContainment(args: {
     throw new Error("buyer_supplier_profile must use an as $$ body");
   }
   assertNoBodySearchPathMutation(
-    blankSqlStrings(stripSqlComments(profileBodyMatch[1]!)),
+    stripSqlComments(profileBodyMatch[1]!),
     "buyer_supplier_profile",
   );
 
@@ -1133,11 +1315,12 @@ export function assertFacilitiesContainment(args: {
       "enforce_facility_parent_is_company must use an as $$ ... $$ body",
     );
   }
-  const triggerCode = blankSqlStrings(stripSqlComments(bodyMatch[1]!));
+  const triggerBodyRaw = stripSqlComments(bodyMatch[1]!);
   assertNoBodySearchPathMutation(
-    triggerCode,
+    triggerBodyRaw,
     "enforce_facility_parent_is_company",
   );
+  const triggerCode = blankSqlStrings(triggerBodyRaw);
   assertNoDeadPathGaming(triggerCode);
   const parentLock =
     /perform\s+1\s+from\s+public\.suppliers\s+p\s+where\s+p\.id\s*=\s*new\.facility_of\s+for\s+update/i;

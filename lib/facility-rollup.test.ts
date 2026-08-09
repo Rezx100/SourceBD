@@ -383,6 +383,26 @@ describe("20260808_rez73 migration containment", () => {
         "EXECUTE 'ALTER FUNCTION ' || quote_ident('buyer_supplier_profile') || '()';",
       ],
       [
+        "overlay-assemble",
+        "EXECUTE overlay('buyer_XXXXprofile' placing 'supplier_' from 7 for 4);",
+      ],
+      [
+        "translate-assemble",
+        "EXECUTE translate('buyerXsupplier_profile','X','_');",
+      ],
+      [
+        "substring-assemble",
+        "EXECUTE 'buyer_' || substring('xsupplier_profile' from 2);",
+      ],
+      [
+        "btrim-assemble",
+        "EXECUTE btrim(' buyer_')||'supplier_profile';",
+      ],
+      [
+        "split-var-concat",
+        "a := 'buyer_'; b := 'supplier_profile'; EXECUTE a||b;",
+      ],
+      [
         "current-setting",
         "EXECUTE current_setting('app.ddl');",
       ],
@@ -736,6 +756,24 @@ describe("20260808_rez73 migration containment", () => {
         /body must not SET search_path/i,
         "profile body SET search_path must fail",
       );
+      const sessionMut =
+        migrationSql.slice(0, asAt + asMarker.length) +
+        "\n  set session search_path = pg_temp, public;\n" +
+        migrationSql.slice(asAt + asMarker.length);
+      assert.throws(
+        () => assertFacilitiesContainment({ migrationSql: sessionMut }),
+        /body must not SET search_path/i,
+        "profile body SET SESSION search_path must fail",
+      );
+      const setConfigMut =
+        migrationSql.slice(0, asAt + asMarker.length) +
+        "\n  perform set_config('search_path', 'pg_temp, public', true);\n" +
+        migrationSql.slice(asAt + asMarker.length);
+      assert.throws(
+        () => assertFacilitiesContainment({ migrationSql: setConfigMut }),
+        /set_config\('search_path'\)|body must not/i,
+        "profile body set_config search_path must fail",
+      );
     }
 
     {
@@ -768,6 +806,32 @@ describe("20260808_rez73 migration containment", () => {
         /non-parent|parent→addresses_direct|parent\.is_published/i,
         "non-parent donor alias must fail",
       );
+      const parentAddrTrue = mid.replace(
+        /on parent_addr\.supplier_id = parent\.id/i,
+        "on true",
+      );
+      assert.throws(
+        () =>
+          assertFacilitiesContainment({
+            migrationSql:
+              migrationSql.slice(0, a) + parentAddrTrue + migrationSql.slice(b),
+          }),
+        /parent_addr/i,
+        "parent_addr ON true must fail",
+      );
+      const parentAddrOr = mid.replace(
+        /on parent_addr\.supplier_id = parent\.id/i,
+        "on parent_addr.supplier_id = parent.id or true",
+      );
+      assert.throws(
+        () =>
+          assertFacilitiesContainment({
+            migrationSql:
+              migrationSql.slice(0, a) + parentAddrOr + migrationSql.slice(b),
+          }),
+        /parent_addr/i,
+        "parent_addr OR true must fail",
+      );
     }
 
     const injectedExecute = migrationSql +
@@ -786,6 +850,32 @@ describe("20260808_rez73 migration containment", () => {
       /dynamically EXECUTE|pinned object/i,
       "DO format-fragment EXECUTE must fail containment",
     );
+
+    for (const [label, snip] of [
+      [
+        "overlay",
+        "\nDO $$ BEGIN EXECUTE overlay('buyer_XXXXprofile' placing 'supplier_' from 7 for 4); END $$;\n",
+      ],
+      [
+        "translate",
+        "\nDO $$ BEGIN EXECUTE translate('buyerXsupplier_profile','X','_'); END $$;\n",
+      ],
+      [
+        "substring",
+        "\nDO $$ BEGIN EXECUTE 'buyer_' || substring('xsupplier_profile' from 2); END $$;\n",
+      ],
+      [
+        "split-var",
+        "\nDO $$ DECLARE a text; b text; BEGIN a := 'buyer_'; b := 'supplier_profile'; EXECUTE a||b; END $$;\n",
+      ],
+    ] as const) {
+      assert.throws(
+        () =>
+          assertFacilitiesContainment({ migrationSql: migrationSql + snip }),
+        /dynamically EXECUTE|pinned object/i,
+        `DO ${label} EXECUTE must fail containment`,
+      );
+    }
 
     {
       const start = migrationSql.indexOf(
