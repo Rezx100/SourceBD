@@ -267,8 +267,19 @@ function splitTopLevelArgs(body: string): string[] {
   return args.filter((a) => a.trim().length > 0);
 }
 
-/** Strip SQL comments without eating quoted / dollar-quoted content. */
-function stripSqlComments(sql: string): string {
+/**
+ * Strip SQL comments without eating quoted content.
+ * Inside dollar-quoted regions, line and block comments are still stripped
+ * (PL/pgSQL bodies treat them as comments) so keyword-splitting smuggles
+ * cannot hide from containment scans.
+ * `blockReplacement` defaults to a space so left+comment+outer cannot
+ * collapse into leftouter; pass "" when scanning for EXE+comment+CUTE
+ * concatenation into EXECUTE.
+ */
+function stripSqlComments(
+  sql: string,
+  blockReplacement: string = " ",
+): string {
   let out = "";
   let i = 0;
   let inSingle = false;
@@ -280,6 +291,38 @@ function stripSqlComments(sql: string): string {
         out += inDollar;
         i += inDollar.length;
         inDollar = null;
+        continue;
+      }
+      // String literals inside the dollar body: copy verbatim.
+      if (inSingle) {
+        out += ch;
+        if (ch === "'" && sql[i + 1] === "'") {
+          out += "'";
+          i += 2;
+          continue;
+        }
+        if (ch === "'") inSingle = false;
+        i += 1;
+        continue;
+      }
+      if (ch === "'") {
+        inSingle = true;
+        out += ch;
+        i += 1;
+        continue;
+      }
+      if (ch === "-" && sql[i + 1] === "-") {
+        while (i < sql.length && sql[i] !== "\n") i += 1;
+        out += blockReplacement || " ";
+        continue;
+      }
+      if (ch === "/" && sql[i + 1] === "*") {
+        i += 2;
+        while (i < sql.length - 1 && !(sql[i] === "*" && sql[i + 1] === "/")) {
+          i += 1;
+        }
+        i += 2;
+        out += blockReplacement;
         continue;
       }
       out += ch;
@@ -314,18 +357,40 @@ function stripSqlComments(sql: string): string {
     }
     if (ch === "-" && sql[i + 1] === "-") {
       while (i < sql.length && sql[i] !== "\n") i += 1;
+      out += blockReplacement || " ";
       continue;
     }
     if (ch === "/" && sql[i + 1] === "*") {
       i += 2;
-      while (i < sql.length - 1 && !(sql[i] === "*" && sql[i + 1] === "/")) i += 1;
+      while (i < sql.length - 1 && !(sql[i] === "*" && sql[i + 1] === "/")) {
+        i += 1;
+      }
       i += 2;
+      out += blockReplacement;
       continue;
     }
     out += ch;
     i += 1;
   }
   return out;
+}
+
+/** True when `expr` is a single SQL string / dollar-quoted literal (optional E'). */
+function isPlainSqlStringLiteral(expr: string): boolean {
+  const t = expr.trim();
+  if (/^E?'([^']|'')*'$/i.test(t)) return true;
+  const dollar = /^\$([A-Za-z0-9_]*)\$([\s\S]*)\$\1\$$/.exec(t);
+  return dollar !== null;
+}
+
+/** Decode a plain SQL string / dollar literal; null if not plain. */
+function decodePlainSqlStringLiteral(expr: string): string | null {
+  const t = expr.trim();
+  const single = /^E?'((?:[^']|'')*)'$/i.exec(t);
+  if (single) return single[1]!.replace(/''/g, "'");
+  const dollar = /^\$([A-Za-z0-9_]*)\$([\s\S]*)\$\1\$$/.exec(t);
+  if (dollar) return dollar[2]!;
+  return null;
 }
 
 /** Replace string and dollar-quoted literals with spaces (keeps length-ish).
@@ -932,18 +997,21 @@ function assertNoDeadPathGaming(triggerCode: string): void {
  * Callers must pass comment-stripped SQL that still retains string literals.
  */
 function assertNoBodySearchPathMutation(body: string, label: string): void {
+  // Trailing \\b must not sit after a closing quote — "search_path"; has no
+  // word boundary between " and ;.
   if (
-    /\bset\s+(local\s+|session\s+)?("search_path"|search_path)\b/i.test(body)
+    /\bset\s+(local\s+|session\s+)?(("search_path")|search_path\b)/i.test(body)
   ) {
     throw new Error(`${label} body must not SET search_path`);
   }
-  if (/\breset\s+(all\b|("search_path"|search_path)\b)/i.test(body)) {
+  if (/\breset\s+(all\b|(("search_path")|search_path\b))/i.test(body)) {
     throw new Error(`${label} body must not RESET search_path`);
   }
   if (/\bset\s+schema\b/i.test(body)) {
     throw new Error(`${label} body must not SET SCHEMA`);
   }
-  // Any set_config whose first argument mentions search_path (any quoting / concat / chr).
+  // set_config first arg: only a plain string/dollar literal is allowed to
+  // prove it is not search_path. Any assembly (chr/format/||/var) fails closed.
   let i = 0;
   while (i < body.length) {
     const m = /\bset_config\s*\(/i.exec(body.slice(i));
@@ -951,19 +1019,24 @@ function assertNoBodySearchPathMutation(body: string, label: string): void {
     const paren = i + m.index + m[0].length - 1;
     try {
       const close = findMatchingParen(body, paren);
-      const args = body.slice(paren + 1, close);
-      const firstArg = args.split(",")[0] ?? "";
-      const collapsed = firstArg
-        .replace(/E?'([^']*)'/gi, "$1")
-        .replace(/\$([A-Za-z0-9_]*)\$([^$]*)\$\1\$/g, "$2")
-        .replace(/[^A-Za-z0-9_]+/g, "")
-        .toLowerCase();
-      if (collapsed.includes("search_path") || /search_path/i.test(firstArg)) {
+      const args = splitTopLevelArgs(body.slice(paren + 1, close));
+      const firstArg = args[0] ?? "";
+      if (!isPlainSqlStringLiteral(firstArg)) {
+        throw new Error(
+          `${label} body must not set_config with a non-literal first argument`,
+        );
+      }
+      const lit = decodePlainSqlStringLiteral(firstArg) ?? "";
+      if (lit.toLowerCase() === "search_path" || /search_path/i.test(firstArg)) {
         throw new Error(`${label} body must not set_config('search_path')`);
       }
       i = close + 1;
     } catch (e) {
-      if (e instanceof Error && /set_config\('search_path'\)/.test(e.message)) {
+      if (
+        e instanceof Error &&
+        (/set_config\('search_path'\)/.test(e.message) ||
+          /non-literal first argument/.test(e.message))
+      ) {
         throw e;
       }
       i += m[0].length;
@@ -973,22 +1046,25 @@ function assertNoBodySearchPathMutation(body: string, label: string): void {
 
 /** Fail closed: the Stage-1 migration must not contain dynamic EXECUTE at all. */
 function assertNoDynamicExecuteInMigration(sql: string): void {
-  const code = stripSqlComments(sql);
-  let i = 0;
-  while (i < code.length) {
-    const m = /\bexecute\b/i.exec(code.slice(i));
-    if (!m || m.index === undefined) break;
-    const at = i + m.index;
-    const after = code.slice(at + m[0].length);
-    const ws = after.match(/^\s*/)?.[0].length ?? 0;
-    const trimmed = after.slice(ws);
-    if (/^(on|function|procedure)\b/i.test(trimmed)) {
-      i = at + m[0].length;
-      continue;
+  // Scan both space-stripped and concat-stripped forms so EXE/*x*/CUTE
+  // (comment deleted with no spacer) cannot false-green.
+  for (const code of [stripSqlComments(sql, " "), stripSqlComments(sql, "")]) {
+    let i = 0;
+    while (i < code.length) {
+      const m = /\bexecute\b/i.exec(code.slice(i));
+      if (!m || m.index === undefined) break;
+      const at = i + m.index;
+      const after = code.slice(at + m[0].length);
+      const ws = after.match(/^\s*/)?.[0].length ?? 0;
+      const trimmed = after.slice(ws);
+      if (/^(on|function|procedure)\b/i.test(trimmed)) {
+        i = at + m[0].length;
+        continue;
+      }
+      throw new Error(
+        "20260808 migration must not contain dynamic EXECUTE (pinned-object rewrite vector)",
+      );
     }
-    throw new Error(
-      "20260808 migration must not contain dynamic EXECUTE (pinned-object rewrite vector)",
-    );
   }
 }
 
@@ -1285,7 +1361,7 @@ export function assertFacilitiesContainment(args: {
   }
   const parentJoins = [
     ...addressesNorm.matchAll(
-      /join public\.suppliers parent([\s\S]*?)join public\.v_supplier_addresses_direct/gi,
+      /\bjoin public\.suppliers parent([\s\S]*?)join public\.v_supplier_addresses_direct/gi,
     ),
   ];
   if (parentJoins.length !== 1) {
@@ -1295,7 +1371,7 @@ export function assertFacilitiesContainment(args: {
   }
   // No other suppliers aliases joining addresses_direct (non-parent donor).
   if (
-    /join public\.suppliers (?!parent\b)\w+/i.test(addressesNorm)
+    /\bjoin public\.suppliers (?!parent\b)\w+/i.test(addressesNorm)
   ) {
     throw new Error(
       "v_supplier_addresses inheritance must not join suppliers under a non-parent alias",
@@ -1371,7 +1447,7 @@ export function assertFacilitiesContainment(args: {
       "v_supplier_addresses inheritance must project null::text AS phone and email (REZ-17)",
     );
   }
-  if (/parent_addr\.(phone|email)\b/i.test(addressesNorm)) {
+  if (/(\(?\s*parent_addr\s*\)?)\s*\.\s*(phone|email)\b/i.test(addressesNorm)) {
     throw new Error(
       "v_supplier_addresses inheritance must not select parent_addr.phone/email",
     );

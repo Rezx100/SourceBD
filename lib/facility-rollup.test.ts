@@ -804,6 +804,42 @@ describe("20260808_rez73 migration containment", () => {
         /SET SCHEMA|body must not/i,
         "profile body SET SCHEMA must fail",
       );
+      const quotedSet =
+        migrationSql.slice(0, asAt + asMarker.length) +
+        '\n  set "search_path" to pg_temp, public;\n' +
+        migrationSql.slice(asAt + asMarker.length);
+      assert.throws(
+        () => assertFacilitiesContainment({ migrationSql: quotedSet }),
+        /body must not SET search_path/i,
+        'profile body SET "search_path" must fail',
+      );
+      const quotedReset =
+        migrationSql.slice(0, asAt + asMarker.length) +
+        '\n  reset "search_path";\n' +
+        migrationSql.slice(asAt + asMarker.length);
+      assert.throws(
+        () => assertFacilitiesContainment({ migrationSql: quotedReset }),
+        /body must not RESET search_path/i,
+        'profile body RESET "search_path" must fail',
+      );
+      const setConfigChr =
+        migrationSql.slice(0, asAt + asMarker.length) +
+        "\n  perform set_config(chr(115)||chr(101)||chr(97)||chr(114)||chr(99)||chr(104)||chr(95)||chr(112)||chr(97)||chr(116)||chr(104), 'pg_temp, public', true);\n" +
+        migrationSql.slice(asAt + asMarker.length);
+      assert.throws(
+        () => assertFacilitiesContainment({ migrationSql: setConfigChr }),
+        /non-literal first argument|set_config\('search_path'\)|body must not/i,
+        "profile body set_config(chr…) must fail",
+      );
+      const setConfigFormat =
+        migrationSql.slice(0, asAt + asMarker.length) +
+        "\n  perform set_config(format('%s_%s', 'search', 'path'), 'pg_temp, public', true);\n" +
+        migrationSql.slice(asAt + asMarker.length);
+      assert.throws(
+        () => assertFacilitiesContainment({ migrationSql: setConfigFormat }),
+        /non-literal first argument|set_config\('search_path'\)|body must not/i,
+        "profile body set_config(format…) must fail",
+      );
     }
 
     {
@@ -888,6 +924,32 @@ describe("20260808_rez73 migration containment", () => {
         /phone|email|REZ-17|null::text/i,
         "inheritance parent_addr.phone must fail",
       );
+      const phoneParen = mid.replace(
+        /null::text\s+as\s+phone/i,
+        "(parent_addr).phone as phone",
+      );
+      assert.throws(
+        () =>
+          assertFacilitiesContainment({
+            migrationSql:
+              migrationSql.slice(0, a) + phoneParen + migrationSql.slice(b),
+          }),
+        /phone|email|REZ-17|null::text|parent_addr/i,
+        "inheritance (parent_addr).phone must fail",
+      );
+      const commentOuter = mid.replace(
+        /join public\.suppliers parent/i,
+        "left/*x*/outer/*y*/join public.suppliers parent",
+      );
+      assert.throws(
+        () =>
+          assertFacilitiesContainment({
+            migrationSql:
+              migrationSql.slice(0, a) + commentOuter + migrationSql.slice(b),
+          }),
+        /inner joins|parent and parent_addr/i,
+        "comment-smuggled left outer join parent must fail",
+      );
     }
 
     const injectedExecute = migrationSql +
@@ -905,6 +967,15 @@ describe("20260808_rez73 migration containment", () => {
       () => assertFacilitiesContainment({ migrationSql: fragmentDo }),
       /dynamically EXECUTE|pinned object|must not contain dynamic EXECUTE/i,
       "DO format-fragment EXECUTE must fail containment",
+    );
+
+    const commentSplitExecute =
+      migrationSql +
+      "\nDO $$ BEGIN EXE/*x*/CUTE reverse('eliforp_reilppus_reyub'); END $$;\n";
+    assert.throws(
+      () => assertFacilitiesContainment({ migrationSql: commentSplitExecute }),
+      /must not contain dynamic EXECUTE|dynamically EXECUTE|pinned object/i,
+      "DO-body comment-split EXECUTE must fail containment",
     );
 
     for (const [label, snip] of [

@@ -352,8 +352,18 @@ const FACILITY_RENDER_EXCLUDES = [
 ];
 
 // Markers that only the Facilities card emits — a profile with zero
-// attached buildings must render none of them.
-const NO_FACILITIES_EXCLUDES = ["— group total", "extension building"];
+// attached buildings must render none of them. Soft-200 empty shells that
+// omit only weak strings must still fail these pins.
+const NO_FACILITIES_EXCLUDES = [
+  "— group total",
+  "extension building",
+  'id="facilities"',
+  "buildings in total",
+  "Group figures add this profile",
+];
+
+const ZERO_FACILITIES_INCLUDES = ["Mother Company Ltd"];
+const NOKEY_FACILITIES_INCLUDES = ["Mother No Facilities Key Ltd"];
 
 const TEST_USER = {
   id: "00000000-0000-4000-8000-0000000000aa",
@@ -794,7 +804,11 @@ const CASES = [
   {
     name: "public: published slug -> 200",
     path: `/suppliers/${MOTHER}`,
-    expect: { status: 200, bodyExcludes: NO_FACILITIES_EXCLUDES },
+    expect: {
+      status: 200,
+      bodyIncludes: ZERO_FACILITIES_INCLUDES,
+      bodyExcludes: NO_FACILITIES_EXCLUDES,
+    },
   },
   {
     name: "public: mother with facilities -> 200, roll-up figures rendered",
@@ -822,7 +836,11 @@ const CASES = [
   {
     name: "public: payload without facilities key -> 200, no Facilities card",
     path: `/suppliers/${MOTHER_NOKEY}`,
-    expect: { status: 200, bodyExcludes: NO_FACILITIES_EXCLUDES },
+    expect: {
+      status: 200,
+      bodyIncludes: NOKEY_FACILITIES_INCLUDES,
+      bodyExcludes: NO_FACILITIES_EXCLUDES,
+    },
   },
   {
     name: "app: missing slug -> 404 (authenticated)",
@@ -864,7 +882,11 @@ const CASES = [
     name: "app: published slug -> 200 (authenticated)",
     path: `/app/suppliers/${MOTHER}`,
     auth: true,
-    expect: { status: 200, bodyExcludes: NO_FACILITIES_EXCLUDES },
+    expect: {
+      status: 200,
+      bodyIncludes: ZERO_FACILITIES_INCLUDES,
+      bodyExcludes: NO_FACILITIES_EXCLUDES,
+    },
   },
   {
     name: "app: mother with facilities -> 200, roll-up rendered (authenticated)",
@@ -895,7 +917,11 @@ const CASES = [
     name: "app: payload without facilities key -> 200, no Facilities card (authenticated)",
     path: `/app/suppliers/${MOTHER_NOKEY}`,
     auth: true,
-    expect: { status: 200, bodyExcludes: NO_FACILITIES_EXCLUDES },
+    expect: {
+      status: 200,
+      bodyIncludes: NOKEY_FACILITIES_INCLUDES,
+      bodyExcludes: NO_FACILITIES_EXCLUDES,
+    },
   },
   {
     name: "app: anonymous still gated -> 307 to /login",
