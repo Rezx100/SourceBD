@@ -1207,7 +1207,7 @@ function assertHeaderSearchPathPublicOnly(header: string, label: string): void {
   }
 }
 
-/** Ban GRANT that restores read on relaxed views; require REVOKE on each. */
+/** Ban GRANT that restores read on relaxed data; require live REVOKE statements. */
 function assertRelaxedViewsFinalPrivileges(migrationSql: string): void {
   const views = [
     "v_supplier_registry_ids_direct",
@@ -1217,7 +1217,21 @@ function assertRelaxedViewsFinalPrivileges(migrationSql: string): void {
   ];
   const viewAlt = views.map((v) => `"?${v}"?`).join("|");
   for (const code of executeScanForms(migrationSql)) {
-    const grantRe = new RegExp(`${sqlKw("grant")}([\\s\\S]{0,400})`, "gi");
+    if (
+      new RegExp(
+        `${sqlKw("alter")}\\s+${sqlKw("default")}\\s+${sqlKw("privileges")}[\\s\\S]*?${sqlKw("grant")}`,
+        "i",
+      ).test(code)
+    ) {
+      throw new Error(
+        "migration must not ALTER DEFAULT PRIVILEGES to grant table SELECT",
+      );
+    }
+    // Scan each GRANT through the terminating ';' — no fixed char budget.
+    const grantRe = new RegExp(
+      `${sqlKw("grant")}([\\s\\S]*?)(?=;)`,
+      "gi",
+    );
     let m: RegExpExecArray | null;
     while ((m = grantRe.exec(code)) !== null) {
       const window = m[0];
@@ -1226,20 +1240,62 @@ function assertRelaxedViewsFinalPrivileges(migrationSql: string): void {
           "migration must not GRANT privileges ON ALL TABLES IN SCHEMA",
         );
       }
+      if (/default\s+privileges/i.test(window)) {
+        throw new Error(
+          "migration must not ALTER DEFAULT PRIVILEGES to grant table SELECT",
+        );
+      }
       if (new RegExp(viewAlt, "i").test(window)) {
         throw new Error(
           "migration must not GRANT privileges on relaxed registry/address views",
         );
       }
+      // Base-table / role shortcuts that restore facility-row visibility.
+      if (
+        /\b(pg_read_all_data)\b/i.test(window) ||
+        (/on\s+(?:table\s+)?(?:"?public"?\s*\.\s*)?"?suppliers"?\b/i.test(
+          window,
+        ) &&
+          /\b(select|all)\b/i.test(window))
+      ) {
+        throw new Error(
+          "migration must not GRANT suppliers SELECT or pg_read_all_data to clients",
+        );
+      }
+      if (/\bgrant\s+authenticated\s+to\s+anon\b/i.test(window)) {
+        throw new Error(
+          "migration must not GRANT role authenticated TO anon",
+        );
+      }
+    }
+    // Wrapper objects that re-export a relaxed view under a new name.
+    const wrapperRe = new RegExp(
+      `${sqlKw("create")}(?:\\s+${sqlKw("or")}\\s+${sqlKw("replace")})?\\s+(?:${sqlKw("materialized")}\\s+)?${sqlKw("view")}\\s+((?:"?public"?\\s*\\.\\s*)?"?[A-Za-z_][\\w]*"?)\\s+${sqlKw("as")}([\\s\\S]*?)(?=;)`,
+      "gi",
+    );
+    let w: RegExpExecArray | null;
+    while ((w = wrapperRe.exec(code)) !== null) {
+      const created = (w[1] ?? "").replace(/"/g, "").toLowerCase();
+      const body = w[2] ?? "";
+      const bare = created.replace(/^public\./, "");
+      if (
+        new RegExp(viewAlt, "i").test(body) &&
+        !views.some((v) => bare === v.toLowerCase())
+      ) {
+        throw new Error(
+          "migration must not CREATE a wrapper view selecting from relaxed registry/address views",
+        );
+      }
     }
   }
-  const code = stripSqlComments(migrationSql);
+  // REVOKEs must be live statements, not string-literal decoys.
+  const codeNoStrings = blankSqlStrings(stripSqlComments(migrationSql));
   for (const view of views) {
     if (
       !new RegExp(
         `revoke\\s+select\\s+on\\s+public\\.${view}\\s+from\\s+anon,\\s*authenticated`,
         "i",
-      ).test(code)
+      ).test(codeNoStrings)
     ) {
       throw new Error(
         `migration must revoke anon/authenticated on ${view}`,
@@ -1277,10 +1333,21 @@ function assertParentAddrAllowlist(addressesNorm: string): void {
       "v_supplier_addresses inheritance must not project parent_addr beyond the allowlisted columns",
     );
   }
-  // REZ-17: donor PII must not enter via the parent suppliers row either.
-  if (/\bparent\s*\.\s*(phone|email)\b/i.test(addressesNorm)) {
+  // REZ-17: donor PII must not enter via the parent suppliers row (any spelling).
+  if (
+    /(\(\s*"?parent"?\s*\)|"?parent"?)\s*\.\s*"?(phone|email|website|contact_name|email_primary|phones)"?\b/i.test(
+      addressesNorm,
+    )
+  ) {
     throw new Error(
       "v_supplier_addresses inheritance must not project parent.phone/email",
+    );
+  }
+  if (
+    /\(\s*select\b[\s\S]*?\b(phone|email)\b[\s\S]*?\)/i.test(addressesNorm)
+  ) {
+    throw new Error(
+      "v_supplier_addresses inheritance must not subquery parent contact PII",
     );
   }
 }

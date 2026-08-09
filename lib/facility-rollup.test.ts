@@ -1056,6 +1056,36 @@ describe("20260808_rez73 migration containment", () => {
         /parent\.phone\/email/i,
         "inheritance parent.phone must fail",
       );
+      const parentPhoneParen = mid.replace(
+        /parent_addr\.fetched_at\s+as\s+fetched_at/i,
+        "(parent).phone as phone_leak, parent_addr.fetched_at as fetched_at",
+      );
+      assert.notEqual(parentPhoneParen, mid);
+      assert.throws(
+        () =>
+          assertFacilitiesContainment({
+            migrationSql:
+              migrationSql.slice(0, a) + parentPhoneParen + migrationSql.slice(b),
+          }),
+        /parent\.phone\/email/i,
+        "inheritance (parent).phone must fail",
+      );
+      const parentPhoneQuoted = mid.replace(
+        /parent_addr\.fetched_at\s+as\s+fetched_at/i,
+        '("parent").phone as phone_leak, parent_addr.fetched_at as fetched_at',
+      );
+      assert.notEqual(parentPhoneQuoted, mid);
+      assert.throws(
+        () =>
+          assertFacilitiesContainment({
+            migrationSql:
+              migrationSql.slice(0, a) +
+              parentPhoneQuoted +
+              migrationSql.slice(b),
+          }),
+        /parent\.phone\/email/i,
+        'inheritance ("parent").phone must fail',
+      );
     }
 
     const injectedExecute = migrationSql +
@@ -1246,6 +1276,39 @@ describe("20260808_rez73 migration containment", () => {
       () => assertFacilitiesContainment({ migrationSql: grantCommentSplit }),
       /must not GRANT privileges on relaxed/i,
       "comment-split GRANT must fail containment",
+    );
+
+    const grantPadded =
+      migrationSql +
+      "\nGRANT SELECT ON TABLE " +
+      " ".repeat(450) +
+      "public.v_supplier_addresses_direct TO anon;\n";
+    assert.throws(
+      () => assertFacilitiesContainment({ migrationSql: grantPadded }),
+      /must not GRANT privileges on relaxed/i,
+      "padded GRANT SELECT ON TABLE must fail containment",
+    );
+
+    const grantAllTables =
+      migrationSql +
+      "\nGRANT SELECT ON ALL TABLES IN SCHEMA public TO anon;\n";
+    assert.throws(
+      () => assertFacilitiesContainment({ migrationSql: grantAllTables }),
+      /ALL TABLES IN SCHEMA/i,
+      "GRANT ON ALL TABLES IN SCHEMA must fail containment",
+    );
+
+    const revokeDecoy =
+      migrationSql
+        .replace(
+          /revoke select on public\.v_supplier_addresses_direct from anon, authenticated;/i,
+          "select 'revoke select on public.v_supplier_addresses_direct from anon, authenticated';",
+        ) +
+      "\nGRANT SELECT ON public.v_supplier_addresses_direct TO anon;\n";
+    assert.throws(
+      () => assertFacilitiesContainment({ migrationSql: revokeDecoy }),
+      /must revoke anon\/authenticated|must not GRANT privileges on relaxed/i,
+      "string-decoy REVOKE must fail containment",
     );
 
     for (const [label, snip] of [
