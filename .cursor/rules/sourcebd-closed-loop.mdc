@@ -1,0 +1,383 @@
+---
+description: Closed-loop adversarial acceptance — the implementer never declares its own work done
+alwaysApply: true
+---
+
+# Closed-loop adversarial acceptance
+
+Applies to **every** issue, at every priority, including docs and P2 chores.
+
+## 1. Completion authority
+
+The agent that wrote the change may never declare it finished. Passing tests, a
+green CI run, a clean typecheck and your own confidence are **evidence**, not
+completion.
+
+Work is finished only when an independent Acceptance Judge returns the literal
+token:
+
+```
+ACCEPTED_FOR_HUMAN_REVIEW
+```
+
+Nothing else counts. Not "looks good", not "all green", not "ready for review".
+
+## 2. Epistemic rule
+
+Treat every factual claim about current production or repository state as a
+hypothesis to verify — counts, Linear statuses, file locations, causal
+explanations, and anything asserted in a task prompt or a previous session's
+closeout. What is authoritative is the **acceptance criteria and the gates**:
+what is required, as opposed to what someone claims is currently true. When a
+hypothesis turns out to be wrong, say so plainly and continue from what you
+measured.
+
+Corollary: a Done status in Linear is a claim about a PR. It is never a claim
+about the database. Verify production directly before writing "complete"
+anywhere.
+
+## 3. Role separation
+
+**Implementation role — Worker.** May inspect the whole repository and its
+history. Receives the issue, full implementation context, and any confirmed
+findings. May modify code, tests and guards. Never judges or accepts its own
+work.
+
+**Independent audit roles.** Data Profiler, Invariant Auditor, Adversarial
+Critic, Acceptance Judge. The evidence-bundle rules in §6 apply to these roles
+and **not** to the Worker, which needs full context to do its job.
+
+No audit role may modify the candidate while auditing it. An auditor that finds
+a defect reports it to the orchestrator, which returns it to the Worker. An
+auditor that fixes what it found has just graded its own repair, which defeats
+the whole arrangement.
+
+## 4. Two kinds of gate
+
+**Evidence gate.** Verification and reconciliation of facts, with no candidate
+diff — for example establishing what production actually contains before any
+work starts. Do not run the audit chain over it and do not seek an acceptance
+token; there is nothing to accept. It ends by reporting the facts, the
+contradictions you could not resolve, and any decision that is the founder's.
+
+**Acceptance gate.** Anything that changes code or data. Runs the full loop
+below.
+
+## 5. The loop
+
+```
+IMPLEMENT -> VERIFY -> INDEPENDENT FAN-OUT -> JUDGE -> REPAIR -> RE-VERIFY -> RE-AUDIT
+```
+
+No iteration cap. Never stop because the loop feels long. If genuinely blocked —
+missing information, contradictory requirements, an external dependency,
+infrastructure that will not run — **stop and report the blocker**. Reporting a
+blocker is a success. Declaring victory to end the loop is not.
+
+## 6. Audit snapshot
+
+Every audit cycle applies to exactly one immutable candidate state. Before
+fan-out, record and carry with the bundle:
+
+- the candidate commit SHA;
+- the actual merge-base SHA;
+- the database snapshot or reference time, where data is involved;
+- the mutation-set fingerprint, where a mutation is proposed.
+
+Every audit role states the candidate SHA and evidence snapshot it reviewed. Do
+not modify the candidate while a cycle is running. If code, tests, guards,
+migration content or the relevant data assumptions change mid-cycle, that cycle
+is void — start a new one against the new SHA and fresh evidence. The Acceptance
+Judge may combine specialist verdicts only when all of them name the same
+candidate state.
+
+## 7. Evidence bundle: hide conclusions, not evidence
+
+Every audit role receives:
+
+1. the issue text, verbatim and in full;
+2. `AGENTS.md`, the lean boot set, and any repository rule that applies;
+3. the PR diff against its **actual merge base**, plus the `--stat`;
+4. the relevant **unchanged** source code needed to understand the changed paths;
+5. the new and changed tests, in full;
+6. raw verification command output, unedited;
+7. raw database and query evidence for the stage — schema state, counts, sampled
+   rows, the full dry-run plan;
+8. before-and-after metrics wherever data changed;
+9. the audit snapshot identifiers from §6.
+
+No audit role receives the Worker's reasoning, summary, claimed fixes, "this is
+now correct", or another agent's conclusions. The single exception is a re-audit
+of a previously reported defect, which additionally gets its own prior finding
+and the diff of the repair — never the assertion that the repair worked.
+
+`git diff development...HEAD` is **not** universally the right review diff. Use
+the PR's real merge base. On a stacked branch that command hands the auditors two
+issues at once while calling it one.
+
+## 8. Auditor independence
+
+Run the Data Profiler, Invariant Auditor and Adversarial Critic against the same
+frozen candidate, independently and in parallel. None sees another's findings
+before submitting its own verdict — three separate attempts at falsification, not
+a chain of anchored reviewers.
+
+Once all three return, the Acceptance Judge receives their findings **plus** the
+original primary evidence. The Judge may investigate further and may raise
+findings none of the specialists found.
+
+- **Data Profiler** — distributions, nulls, uniqueness, cardinalities, outliers,
+  on the real rows.
+- **Invariant Auditor** — business rules and referential integrity.
+- **Adversarial Critic** — a hostile senior engineer hunting counterexamples:
+  ordering, unreachable branches, leaked unpublished data, loops, malformed URLs,
+  null and self-referential and chained cases, query cost, convention violations,
+  unnecessary complexity.
+- **Requirements critic** — for code-only work, replace the Profiler with this
+  role: every explicit and implicit requirement, requirements read too narrowly,
+  behaviour that passes tests while violating intent, scope creep.
+- **Test adequacy critic** — assume a bug the suite missed and name the test that
+  exposes it. Weak assertions, over-mocking, missing negatives, untested
+  branches, tests asserting implementation rather than behaviour.
+
+The Acceptance Judge is not a vote counter. It inspects the primary evidence
+itself and may reject work every specialist passed. Specialist verdicts are
+evidence, not authority. Only the Judge may emit the acceptance token.
+
+## 9. Falsify, do not confirm
+
+Every audit prompt says: *assume this candidate contains a defect; find the
+counterexample.* Never *confirm this is correct* or *review whether this looks
+right*. Reviewers asked to confirm accumulate reasons to approve.
+
+## 10. Verdict block
+
+Every critic returns exactly this. The orchestrator may not read prose as
+acceptance:
+
+```
+VERDICT: ACCEPT | REJECT
+CANDIDATE_SHA: <sha>  EVIDENCE_SNAPSHOT: <ref>
+BLOCKERS: [...]
+MAJOR: [...]
+MINOR: [...]
+MISSING_TESTS: [...]
+REQUIRED_NEXT_ACTIONS: [...]
+ACCEPTANCE: true | false
+```
+
+## 11. How findings must be evidenced
+
+Every finding cites the most direct primary evidence for its kind:
+
+- **code** — file path and line or range;
+- **data** — stable row identifiers, the query or reconciliation that exposed it,
+  and the observed values;
+- **runtime** — the endpoint or operation, the request, the observed status or
+  output, and relevant logs;
+- **schema** — the database object, the catalogue query, and the observed
+  definition.
+
+Never manufacture a source-code location for a finding whose real evidence is
+data or runtime behaviour. A finding becomes NON-ISSUE only on concrete evidence
+of the same kind, never by argument.
+
+## 12. Objective exit conditions
+
+`ACCEPTANCE: true` requires all of:
+
+- zero BLOCKER findings;
+- zero unresolved MAJOR findings;
+- every explicit **and implicit** requirement demonstrably covered;
+- positive and negative paths exercised **at the observable boundary**;
+- the full verification gate green;
+- no unexplained regression;
+- a diff scoped to the issue, with no drive-by refactor and no debug code.
+
+MINOR findings may survive only when written down and genuinely inert.
+
+"Loop until the critic is satisfied" is forbidden as a stopping rule. A critic
+can be satisfied after one lazy pass. These conditions are the stopping rule.
+
+## 13. Rejection and repair loop
+
+Any BLOCKER or MAJOR finding means REJECT. On REJECT:
+
+1. Freeze the audit.
+2. Return the exact finding and its supporting evidence to the Worker.
+3. The Worker fixes the **root cause**, not the symptom.
+4. Add the appropriate durable guard (§16).
+5. Re-run targeted verification.
+6. Re-run the complete verification gate.
+7. Generate a fresh evidence bundle and a new audit snapshot.
+8. Re-run every audit role whose conclusions the change could affect.
+9. Run the Acceptance Judge again.
+
+A finding is never resolved because the Worker says it is; an auditor verifies
+the repair independently from primary evidence. Repeat until the Judge accepts,
+or until progress genuinely needs a human decision or an external dependency, in
+which case stop and name the blocker.
+
+**Never weaken an acceptance criterion, a test, an invariant or a detector rule
+in order to make the loop terminate.**
+
+## 14. The boundary rule
+
+Where the deliverable is something an outside caller observes — an HTTP status, a
+redirect, a rendered field, a row count, a file on disk — **at least one test
+must assert it at that boundary.** Helper-level unit tests never satisfy a
+behavioural requirement on their own.
+
+This rule exists because REZ-72 (the facility-slug redirect) shipped and deployed
+with 361 green tests, every one asserting a pure function's return value, while
+the route it was meant to fix streams its response and commits HTTP 200 before
+the redirect can be issued. The suite could not have caught it.
+
+## 15. Mechanical verification is not semantic verification
+
+`pytest`, `ruff check etl ops --no-cache`, `npx tsc --noEmit` and `npm test`
+answer "did our automation notice a problem". They never answer "did we build the
+right thing". Both gates are mandatory and separate. Investigate every failure
+rather than dismissing it as unrelated unless you can prove it pre-existing.
+
+## 16. Durable guards
+
+Every confirmed defect leaves behind a guard that would catch its class again,
+and the guard must fit the defect: a regression test, a data invariant, a SQL
+reconciliation assertion, a rule in the detector script, a database constraint, a
+validation rule, or a monitoring check. Do not manufacture artificial pytest
+coverage for a production-data anomaly that a reconciliation query catches
+properly. A repair is incomplete if the same class of defect could silently recur
+and there was a reasonable way to notice it automatically.
+
+## 17. Acceptance is not permission
+
+For any `--apply` or production mutation, `ACCEPTED_FOR_HUMAN_REVIEW` means only
+that the proposed mutation is sufficiently evidenced for the founder to decide
+whether to authorise it. It never authorises changing production. That takes a
+separate explicit instruction, after acceptance. This sits on top of hard rule 9a
+in `AGENTS.md`, not instead of it.
+
+## 18. Dry-run / apply consistency
+
+Approval attaches to the exact mutation set that was audited, not to the command
+that produced it. At the accepted dry-run, compute and record a fingerprint of
+the complete proposed mutation set, built from stable row identifiers and every
+field that determines the mutation.
+
+Immediately before `--apply`: re-run the dry-run against current production,
+recompute the fingerprint, recompute the relevant counts and invariants, and
+compare against the approved evidence. If the mutation set, fingerprint, source
+fields, counts or invariants have moved, the approval is **void**. Stop, show the
+difference, and require a fresh audit and a fresh approval. Where technically
+possible, guard the mutation against concurrent change while it runs.
+
+Never take an expected post-mutation figure from a prompt or an issue
+description. Derive it from the verified pre-state and the exact rows the dry-run
+proposes to change, state the arithmetic before applying, and treat any
+unexplained difference afterwards — in either direction — as a BLOCKER.
+
+Reference figures in issues are evidence, not truth. Recompute them. If a
+population count differs **by even one row**, stop: report the historical count,
+the observed count, the row-level identities responsible for every difference,
+and whether each is legitimate drift or a defect. The founder decides whether the
+changed population is acceptable.
+
+## 19. Dependent PRs
+
+If a later issue depends on an earlier PR that is not merged: do not silently
+branch from `development`, and do not silently fold two issues into one PR.
+Report the dependency and wait. If a stacked PR is authorised, branch from the
+prerequisite feature branch, target it where appropriate, audit only the commits
+belonging to the current issue, and show the cumulative diff against
+`development` separately.
+
+## 20. Evidence-based completion
+
+Before reporting, inspect the actual repository state: `git status`, the diff
+against the real merge base, the branch's base. Confirm the tree holds only
+intentional changes, no debug code, no generated artefacts, no formatting churn,
+and that the tests actually execute the changed production code.
+
+Banned phrases: "should work", "appears correct", "probably", "seems fixed",
+"tests should cover this". Back every claim with a command, a diff, a query, or a
+file and line.
+
+## 21. Epic-level acceptance
+
+Subtask acceptance never closes the parent problem. Issues, PRs, migrations,
+tests and Linear statuses are intermediate artefacts; none of them proves an epic
+solved.
+
+After every required change is deployed and any authorised mutation has
+completed, spawn a fresh independent epic-level critic that receives the epic's
+**original problem statement** and no implementation narrative. It reproduces the
+original symptom measurement against production and decides whether the
+user-visible problem is actually gone. Only that critic may recommend closing the
+epic, and closing it still needs the founder's approval.
+
+## 22. Reporting
+
+**Evidence stop.** The queries and commands used, the raw facts found, any
+bookkeeping-versus-actual-state discrepancy, population reconciliation, observed
+runtime behaviour, every contradiction left unresolved, and the single decision
+needed from the founder. Do not open a PR to satisfy a reporting format. End
+with: `Evidence gate complete. Waiting for your decision.`
+
+**Acceptance stop.** The issue, PR link, branch, SHA, the audit snapshot, the
+production evidence for the stage, tests and durable guards added, verification
+results, how many audit and repair cycles ran, what the critics found, how each
+finding was resolved, remaining MINOR findings, and the Judge's verdict. End
+with: `Ready for human review. Not merged.`
+
+## 23. Session prompt template
+
+```
+Work Linear issue <ID> — <the problem in the founder's words>.
+
+Operating mode: closed-loop adversarial acceptance, per this rule. You are the
+orchestrator. You may not decide this is done; the Acceptance Judge does, by
+returning ACCEPTED_FOR_HUMAN_REVIEW.
+
+Treat every factual claim in this prompt about current state as a hypothesis to
+verify. The acceptance criteria and gates are authoritative; the claims are not.
+
+Read first, in order: <ID> in full, then <parent epic>, then AGENTS.md and the
+lean boot set, then the code paths the change touches and their existing tests.
+Verify every named blocker against reality rather than its Linear status. Branch
+from the latest development with a clean working tree.
+
+<Evidence gate, if state must be established first: what to measure, and the
+ decision to bring back. Report and stop.>
+
+<Scope: what changes, what keeps its current behaviour, explicit non-goals.>
+
+<Observable behaviour required, as an outside caller sees it.>
+
+<The boundary the tests must assert at.>
+
+<Named counterexamples the critics must attempt.>
+
+Verification: pytest, ruff check etl ops --no-cache (44 baseline),
+npx tsc --noEmit, npm test.
+
+Fan out the independent auditors with the evidence bundle and none of your own
+reasoning, run the repair loop to acceptance, commit on a feature branch, open a
+PR, do not merge. Ask separately before landing on development, before main,
+before deploy, and before any --apply.
+```
+
+## 24. Required tail on every Linear issue
+
+- **Observable behaviour** — what an outside caller sees, in statuses, row counts
+  or rendered values. Never an internal function contract.
+- **Test boundary** — where the assertion must live.
+- **Named counterexamples** — self-reference, chains, nulls, unpublished parents,
+  re-runs and idempotency, and the state before the dependent issue runs.
+- **Reference figures marked as evidence, not truth**, with the instruction to
+  recompute and to stop on any row-level difference.
+- **Exit conditions** — zero blockers, zero majors, boundary covered,
+  verification green, a durable guard per defect found.
+- **Verdict token** — `ACCEPTED_FOR_HUMAN_REVIEW`, and a note that acceptance is
+  not permission to touch production.
+- The existing STOP-and-ask and production-apply gates from `AGENTS.md`.
