@@ -367,6 +367,26 @@ describe("20260808_rez73 migration containment", () => {
         "EXECUTE convert_from(decode('Ym95ZXI=', 'base64'), 'utf8');",
       ],
       [
+        "format-fragments",
+        "EXECUTE format('%s%s%s', 'buyer_', 'supplier_', 'profile');",
+      ],
+      [
+        "concat-fragments",
+        "EXECUTE concat('buyer_', 'supplier_', 'profile');",
+      ],
+      [
+        "replace-assemble",
+        "EXECUTE replace('buyerXsupplier_profile', 'X', '_');",
+      ],
+      [
+        "quote-ident-assemble",
+        "EXECUTE 'ALTER FUNCTION ' || quote_ident('buyer_supplier_profile') || '()';",
+      ],
+      [
+        "current-setting",
+        "EXECUTE current_setting('app.ddl');",
+      ],
+      [
         "convert-from-assign",
         "stmt := convert_from(decode('Q1JFQVRF', 'base64'), 'utf8'); EXECUTE stmt;",
       ],
@@ -631,7 +651,7 @@ describe("20260808_rez73 migration containment", () => {
     );
     assert.throws(
       () => assertFacilitiesContainment({ migrationSql: hollow }),
-      /PERFORM|EXISTS|RAISE|FOR UPDATE|constant-false|ERRCODE/i,
+      /PERFORM|EXISTS|RAISE|FOR UPDATE|constant-false|ERRCODE|wrap each refusal|exactly two/i,
       "comment-only trigger must fail",
     );
 
@@ -643,7 +663,7 @@ describe("20260808_rez73 migration containment", () => {
     );
     assert.throws(
       () => assertFacilitiesContainment({ migrationSql: stringOnly }),
-      /PERFORM|EXISTS|RAISE|FOR UPDATE|ERRCODE/i,
+      /PERFORM|EXISTS|RAISE|FOR UPDATE|ERRCODE|wrap each refusal|exactly two/i,
       "string-literal-only trigger tokens must fail",
     );
 
@@ -674,7 +694,7 @@ describe("20260808_rez73 migration containment", () => {
         "  return new;\nend;";
       assert.throws(
         () => assertFacilitiesContainment({ migrationSql: swapTrigger(body) }),
-        /IF predicates|exactly|LOOP|WHILE|CASE|EXCEPTION|ELSEIF|ELSIF|PERFORM|FOR UPDATE/i,
+        /IF predicates|exactly|LOOP|WHILE|CASE|EXCEPTION|ELSEIF|ELSIF|ELSE|PERFORM|FOR UPDATE|wrap each refusal/i,
         `${label} dead-path PERFORM must fail`,
       );
     }
@@ -700,12 +720,71 @@ describe("20260808_rez73 migration containment", () => {
       );
     }
 
+    {
+      const start = migrationSql.indexOf(
+        "create or replace function public.buyer_supplier_profile",
+      );
+      const asMarker = "as $$";
+      const asAt = migrationSql.indexOf(asMarker, start);
+      assert.ok(start >= 0 && asAt > start);
+      const bodyMut =
+        migrationSql.slice(0, asAt + asMarker.length) +
+        "\n  set local search_path = pg_temp, public;\n" +
+        migrationSql.slice(asAt + asMarker.length);
+      assert.throws(
+        () => assertFacilitiesContainment({ migrationSql: bodyMut }),
+        /body must not SET search_path/i,
+        "profile body SET search_path must fail",
+      );
+    }
+
+    {
+      const a = migrationSql.indexOf(
+        "create or replace view public.v_supplier_addresses as",
+      );
+      const b = migrationSql.indexOf("v_supplier_registry_ids_direct as");
+      assert.ok(a >= 0 && b > a);
+      const mid = migrationSql.slice(a, b);
+      const plainUnion = mid.replace(/\bunion all\b/i, "union");
+      assert.notEqual(plainUnion, mid);
+      assert.throws(
+        () =>
+          assertFacilitiesContainment({
+            migrationSql: migrationSql.slice(0, a) + plainUnion + migrationSql.slice(b),
+          }),
+        /plain UNION|UNION ALL/i,
+        "plain UNION inheritance branch must fail",
+      );
+      const donorAlias = mid.replace(
+        /join public\.suppliers parent/i,
+        "join public.suppliers donor",
+      ).replace(/\bparent\./g, "donor.");
+      assert.throws(
+        () =>
+          assertFacilitiesContainment({
+            migrationSql:
+              migrationSql.slice(0, a) + donorAlias + migrationSql.slice(b),
+          }),
+        /non-parent|parent→addresses_direct|parent\.is_published/i,
+        "non-parent donor alias must fail",
+      );
+    }
+
     const injectedExecute = migrationSql +
       "\nEXECUTE format('CREATE OR REPLACE FUNCTION public.buyer_supplier_profile() RETURNS void AS $x$ SELECT 1 $x$');\n";
     assert.throws(
       () => assertFacilitiesContainment({ migrationSql: injectedExecute }),
       /dynamically EXECUTE|pinned object/i,
       "injected dynamic EXECUTE must fail containment",
+    );
+
+    const fragmentDo =
+      migrationSql +
+      "\nDO $$ BEGIN EXECUTE format('%s%s%s', 'buyer_', 'supplier_', 'profile'); END $$;\n";
+    assert.throws(
+      () => assertFacilitiesContainment({ migrationSql: fragmentDo }),
+      /dynamically EXECUTE|pinned object/i,
+      "DO format-fragment EXECUTE must fail containment",
     );
 
     {
@@ -740,9 +819,39 @@ describe("20260808_rez73 migration containment", () => {
     );
     assert.throws(
       () => assertFacilitiesContainment({ migrationSql: ifFalseElseReturn }),
-      /IF predicates|exactly|LOOP|WHILE|before any RETURN|PERFORM/i,
+      /ELSE|IF predicates|exactly|LOOP|WHILE|before any RETURN|PERFORM|wrap each refusal/i,
       "IF FALSE ELSE RETURN NEW then PERFORM must fail",
     );
+
+    const missingOuters = swapTrigger(
+      "begin\n" + goodLocks + goodExists + "  return new;\nend;",
+    );
+    assert.throws(
+      () => assertFacilitiesContainment({ migrationSql: missingOuters }),
+      /wrap each refusal|exactly two/i,
+      "trigger without outer facility_of IFs must fail",
+    );
+
+    const goodLive =
+      "begin\n" +
+      "  if new.facility_of is not null then\n" +
+      "    perform 1 from public.suppliers p where p.id = new.facility_of for update;\n" +
+      "    if exists (\n" +
+      "      select 1 from public.suppliers p\n" +
+      "       where p.id = new.facility_of and p.facility_of is not null\n" +
+      "    ) then\n" +
+      "      raise exception 'x' using errcode = 'check_violation';\n" +
+      "    end if;\n" +
+      "  end if;\n" +
+      "  if new.facility_of is not null then\n" +
+      "    perform 1 from public.suppliers c where c.facility_of = new.id for update;\n" +
+      "    if exists (\n" +
+      "      select 1 from public.suppliers c where c.facility_of = new.id\n" +
+      "    ) then\n" +
+      "      raise exception 'y' using errcode = 'check_violation';\n" +
+      "    end if;\n" +
+      "  end if;\n" +
+      "  return new;\nend;";
 
     const aliasDo =
       migrationSql +
@@ -754,8 +863,7 @@ describe("20260808_rez73 migration containment", () => {
     );
 
     const noRaise = swapTrigger(
-      "begin\n" + goodLocks + goodExists.replace(/raise exception[\s\S]*?;/gi, "null;") +
-        "  return new;\nend;",
+      goodLive.replace(/raise exception[\s\S]*?;/gi, "null;"),
     );
     assert.throws(
       () => assertFacilitiesContainment({ migrationSql: noRaise }),
@@ -764,20 +872,15 @@ describe("20260808_rez73 migration containment", () => {
     );
 
     const messageOnly = swapTrigger(
-      "begin\n" +
-        goodLocks +
-        "  if exists (\n" +
-        "    select 1 from public.suppliers p\n" +
-        "     where p.id = new.facility_of and p.facility_of is not null\n" +
-        "  ) then\n" +
-        "    raise exception 'check_violation';\n" +
-        "  end if;\n" +
-        "  if exists (\n" +
-        "    select 1 from public.suppliers c where c.facility_of = new.id\n" +
-        "  ) then\n" +
-        "    raise exception 'check_violation';\n" +
-        "  end if;\n" +
-        "  return new;\nend;",
+      goodLive
+        .replace(
+          /raise exception 'x' using errcode = 'check_violation';/g,
+          "raise exception 'check_violation';",
+        )
+        .replace(
+          /raise exception 'y' using errcode = 'check_violation';/g,
+          "raise exception 'check_violation';",
+        ),
     );
     assert.throws(
       () => assertFacilitiesContainment({ migrationSql: messageOnly }),
@@ -788,8 +891,7 @@ describe("20260808_rez73 migration containment", () => {
     const swallowed = swapTrigger(
       "begin\n" +
         "  begin\n" +
-        goodLocks +
-        goodExists +
+        goodLive.replace(/^begin\n/, "").replace(/\nend;$/, "") +
         "  exception when others then\n" +
         "    return new;\n" +
         "  end;\n" +
@@ -797,16 +899,14 @@ describe("20260808_rez73 migration containment", () => {
     );
     assert.throws(
       () => assertFacilitiesContainment({ migrationSql: swallowed }),
-      /catch exceptions|EXCEPTION/i,
+      /catch exceptions|EXCEPTION|ELSE/i,
       "EXCEPTION WHEN OTHERS swallow must fail",
     );
 
     const earlyReturn = swapTrigger(
       "begin\n" +
         "  return null;\n" +
-        goodLocks +
-        goodExists +
-        "end;",
+        goodLive.replace(/^begin\n/, "").replace(/\nend;$/, ""),
     );
     assert.throws(
       () => assertFacilitiesContainment({ migrationSql: earlyReturn }),

@@ -391,6 +391,14 @@ const PINNED_OBJECT_NAME =
 export function hasDynamicExecuteOfPinnedObject(sql: string): boolean {
   const code = stripSqlComments(sql);
   if (hasPerformFormatOfPinnedObject(code)) return true;
+  // GUC / file round-trip that can feed EXECUTE later.
+  if (
+    /\bset_config\s*\(\s*'[^']*'\s*,\s*[^)]*buyer_supplier_profile/i.test(code) ||
+    /\bset_config\s*\(\s*'[^']*'\s*,\s*[^)]*v_supplier_addresses/i.test(code) ||
+    /\bset_config\s*\(\s*'[^']*'\s*,\s*[^)]*v_supplier_registry_ids/i.test(code)
+  ) {
+    return true;
+  }
   let i = 0;
   while (i < code.length) {
     const m = /\bexecute\b/i.exec(code.slice(i));
@@ -404,15 +412,58 @@ export function hasDynamicExecuteOfPinnedObject(sql: string): boolean {
       continue;
     }
     const payload = extractExecuteArgPayload(code, at + m[0].length + ws);
-    // Obfuscated EXECUTE — migrations must not hide DDL this way.
-    if (/\b(convert_from|decode|encode|chr)\s*\(/i.test(payload)) return true;
+    // Obfuscated / indirection EXECUTE — migrations must not hide DDL this way.
+    // replace/concat/format assembly is handled by payloadAssemblesPinnedName.
+    if (
+      /\b(convert_from|decode|encode|chr|current_setting|pg_read_file|set_config)\s*\(/i.test(
+        payload,
+      )
+    ) {
+      return true;
+    }
     if (PINNED_OBJECT_NAME.test(payload)) return true;
+    if (payloadAssemblesPinnedName(payload)) return true;
     for (const varName of extractExecutedVarNames(payload)) {
       if (assignedVarMentionsPinned(code, varName, at)) return true;
     }
     i = at + m[0].length;
   }
   return false;
+}
+
+/** True when string fragments in an EXECUTE payload assemble a pinned name. */
+function payloadAssemblesPinnedName(payload: string): boolean {
+  // Evaluate simple replace('a','b','c') nests so buyer_X… → buyer_… is visible.
+  let evaled = payload;
+  for (let n = 0; n < 8; n++) {
+    const m =
+      /replace\s*\(\s*'([^']*)'\s*,\s*'([^']*)'\s*,\s*'([^']*)'\s*\)/i.exec(
+        evaled,
+      );
+    if (!m || m.index === undefined) break;
+    const out = m[1]!.split(m[2]!).join(m[3]!);
+    evaled =
+      evaled.slice(0, m.index) +
+      "'" +
+      out +
+      "'" +
+      evaled.slice(m.index + m[0].length);
+  }
+  const literals: string[] = [];
+  for (const m of evaled.matchAll(/E?'([^']*)'/gi)) literals.push(m[1]!);
+  for (const m of evaled.matchAll(
+    /\$([A-Za-z0-9_]*)\$([^$]*)\$\1\$/g,
+  )) {
+    literals.push(m[2]!);
+  }
+  if (PINNED_OBJECT_NAME.test(literals.join("").toLowerCase())) return true;
+  // format/concat/||/quote_ident fragments — strip punctuation.
+  const collapsed = evaled
+    .replace(/E?'([^']*)'/gi, "$1")
+    .replace(/\$([A-Za-z0-9_]*)\$([^$]*)\$\1\$/g, "$2")
+    .replace(/[^A-Za-z0-9_]+/g, "")
+    .toLowerCase();
+  return PINNED_OBJECT_NAME.test(collapsed);
 }
 
 function hasPerformFormatOfPinnedObject(code: string): boolean {
@@ -443,7 +494,8 @@ function assignedVarMentionsPinned(
   if (seen.has(key)) return false;
   seen.add(key);
   const window = code.slice(0, beforeIdx);
-  const obfuscated = /\b(convert_from|decode|encode|chr)\s*\(/i;
+  const obfuscated =
+    /\b(convert_from|decode|encode|chr|current_setting|pg_read_file|set_config|format|concat|replace|overlay|translate|regexp_replace|quote_ident)\s*\(/i;
   const assignRe = new RegExp(
     `\\b${varName}\\s*(?::=|=)\\s*([^;]+);`,
     "gi",
@@ -451,18 +503,30 @@ function assignedVarMentionsPinned(
   let m: RegExpExecArray | null;
   while ((m = assignRe.exec(window)) !== null) {
     const rhs = m[1]!;
-    if (PINNED_OBJECT_NAME.test(rhs) || obfuscated.test(rhs)) return true;
+    if (
+      PINNED_OBJECT_NAME.test(rhs) ||
+      obfuscated.test(rhs) ||
+      payloadAssemblesPinnedName(rhs)
+    ) {
+      return true;
+    }
     for (const id of rhs.matchAll(/\b([A-Za-z_][A-Za-z0-9_]*)\b/g)) {
       if (assignedVarMentionsPinned(code, id[1]!, beforeIdx, seen)) return true;
     }
   }
   const intoRe = new RegExp(
-    `\\bselect\\b([\\s\\S]*?)\\binto\\s+(?:strict\\s+)?${varName}\\b`,
+    `\\bselect\\b([\\s\\S]*?)\\binto\\s+(?:strict\\s+)?${varName}\\b(?!\\s*\\.)`,
     "gi",
   );
   while ((m = intoRe.exec(window)) !== null) {
     const rhs = m[1]!;
-    if (PINNED_OBJECT_NAME.test(rhs) || obfuscated.test(rhs)) return true;
+    if (
+      PINNED_OBJECT_NAME.test(rhs) ||
+      obfuscated.test(rhs) ||
+      payloadAssemblesPinnedName(rhs)
+    ) {
+      return true;
+    }
     for (const id of rhs.matchAll(/\b([A-Za-z_][A-Za-z0-9_]*)\b/g)) {
       if (assignedVarMentionsPinned(code, id[1]!, beforeIdx, seen)) return true;
     }
@@ -472,10 +536,14 @@ function assignedVarMentionsPinned(
 
 /** Identifiers referenced in an EXECUTE payload (any call/concat/cast shape). */
 function extractExecutedVarNames(payload: string): string[] {
+  // Do not taint-trace words inside string / dollar literals (e.g. table names).
+  const stripped = payload
+    .replace(/E?'([^']*)'/gi, "''")
+    .replace(/\$([A-Za-z0-9_]*)\$([^$]*)\$\1\$/g, "$$$$");
   const names = new Set<string>();
   const skip =
-    /^(format|convert_from|decode|encode|chr|select|null|true|false|utf8|base64|text|concat|cast|upper|lower|trim|btrim|coalesce|quote_ident|quote_nullable|replace|array_to_string|array|as|using)$/i;
-  for (const id of payload.matchAll(/\b([A-Za-z_][A-Za-z0-9_]*)\b/g)) {
+    /^(format|convert_from|decode|encode|chr|select|null|true|false|utf8|base64|text|concat|cast|upper|lower|trim|btrim|coalesce|quote_ident|quote_nullable|replace|overlay|translate|regexp_replace|array_to_string|array|as|using|alter|publication|add|table|public|from|where|and|or|into|values|set|update|delete|insert|create|drop|function|view|trigger|current_setting|pg_read_file|set_config)$/i;
+  for (const id of stripped.matchAll(/\b([A-Za-z_][A-Za-z0-9_]*)\b/g)) {
     if (!skip.test(id[1]!)) names.add(id[1]!);
   }
   return [...names];
@@ -509,16 +577,17 @@ function extractExecuteArgPayload(sql: string, start: number): string {
 
 /**
  * Fail closed: only exact live IF predicates; ban LOOP/WHILE/CASE/ELSIF/ELSEIF/
- * EXCEPTION. END IF uses a real token match, not a 4-char lookback.
+ * ELSE/EXCEPTION. Require both outer `new.facility_of is not null` wrappers.
+ * END IF uses a real token match, not a 4-char lookback.
  */
 function assertNoDeadPathGaming(triggerCode: string): void {
   if (
-    /\b(?:loop|while|elsif|elseif|case\s+when|exception\s+when)\b/i.test(
+    /\b(?:loop|while|elsif|elseif|else|case\s+when|exception\s+when)\b/i.test(
       triggerCode,
     )
   ) {
     throw new Error(
-      "enforce_facility_parent_is_company must not use LOOP/WHILE/ELSIF/ELSEIF/CASE/EXCEPTION wrappers",
+      "enforce_facility_parent_is_company must not use LOOP/WHILE/ELSIF/ELSEIF/ELSE/CASE/EXCEPTION wrappers",
     );
   }
   const allowedExact = new Set([
@@ -526,6 +595,7 @@ function assertNoDeadPathGaming(triggerCode: string): void {
     "exists ( select 1 from public.suppliers p where p.id = new.facility_of and p.facility_of is not null )",
     "exists ( select 1 from public.suppliers c where c.facility_of = new.id )",
   ]);
+  let outerFacilityOfIfs = 0;
   let i = 0;
   while (i < triggerCode.length) {
     const m = /\bif\b/i.exec(triggerCode.slice(i));
@@ -554,7 +624,23 @@ function assertNoDeadPathGaming(triggerCode: string): void {
         "enforce_facility_parent_is_company IF predicates must be exactly new.facility_of IS NOT NULL or the live EXISTS checks",
       );
     }
+    if (pred === "new.facility_of is not null") outerFacilityOfIfs += 1;
     i = at + m[0].length + thenM.index + thenM[0].length;
+  }
+  if (outerFacilityOfIfs !== 2) {
+    throw new Error(
+      "enforce_facility_parent_is_company must wrap each refusal path in IF new.facility_of IS NOT NULL (exactly two)",
+    );
+  }
+}
+
+/** Ban runtime search_path mutation inside function bodies (header pin only). */
+function assertNoBodySearchPathMutation(body: string, label: string): void {
+  if (/\bset\s+(local\s+)?search_path\b/i.test(body)) {
+    throw new Error(`${label} body must not SET search_path`);
+  }
+  if (/\bset_config\s*\(\s*'search_path'/i.test(body)) {
+    throw new Error(`${label} body must not set_config('search_path')`);
   }
 }
 
@@ -822,9 +908,30 @@ export function assertFacilitiesContainment(args: {
     ),
   );
   const addressesNorm = addressesInheritingBlock.replace(/\s+/g, " ");
+  // Exactly one UNION ALL; ban plain UNION / INTERSECT / EXCEPT (extra donor branches).
+  if (/\bunion\b(?!\s+all\b)/i.test(addressesNorm)) {
+    throw new Error(
+      "v_supplier_addresses must not use plain UNION (only one UNION ALL inheritance branch)",
+    );
+  }
+  if (/\b(?:intersect|except)\b/i.test(addressesNorm)) {
+    throw new Error(
+      "v_supplier_addresses must not use INTERSECT/EXCEPT set operators",
+    );
+  }
   if ((addressesNorm.match(/\bunion\s+all\b/gi) ?? []).length !== 1) {
     throw new Error(
       "v_supplier_addresses must be exactly direct UNION ALL one inheritance branch",
+    );
+  }
+  const addressesDirectJoins = [
+    ...addressesNorm.matchAll(
+      /join public\.v_supplier_addresses_direct\b/gi,
+    ),
+  ];
+  if (addressesDirectJoins.length !== 1) {
+    throw new Error(
+      "v_supplier_addresses inheritance must join v_supplier_addresses_direct exactly once",
     );
   }
   const parentJoins = [
@@ -835,6 +942,14 @@ export function assertFacilitiesContainment(args: {
   if (parentJoins.length !== 1) {
     throw new Error(
       "v_supplier_addresses inheritance branch must have exactly one parent→addresses_direct join",
+    );
+  }
+  // No other suppliers aliases joining addresses_direct (non-parent donor).
+  if (
+    /join public\.suppliers (?!parent\b)\w+/i.test(addressesNorm)
+  ) {
+    throw new Error(
+      "v_supplier_addresses inheritance must not join suppliers under a non-parent alias",
     );
   }
   const parentJoin = parentJoins[0]!;
@@ -940,6 +1055,14 @@ export function assertFacilitiesContainment(args: {
       );
     }
   }
+  const profileBodyMatch = /as\s*\$\$([\s\S]*?)\$\$/i.exec(profileFn[0]!);
+  if (!profileBodyMatch) {
+    throw new Error("buyer_supplier_profile must use an as $$ body");
+  }
+  assertNoBodySearchPathMutation(
+    blankSqlStrings(stripSqlComments(profileBodyMatch[1]!)),
+    "buyer_supplier_profile",
+  );
 
   // Reverse comment block only — stop before the first CREATE so DDL cannot
   // host a decoy restore name.
@@ -1011,6 +1134,10 @@ export function assertFacilitiesContainment(args: {
     );
   }
   const triggerCode = blankSqlStrings(stripSqlComments(bodyMatch[1]!));
+  assertNoBodySearchPathMutation(
+    triggerCode,
+    "enforce_facility_parent_is_company",
+  );
   assertNoDeadPathGaming(triggerCode);
   const parentLock =
     /perform\s+1\s+from\s+public\.suppliers\s+p\s+where\s+p\.id\s*=\s*new\.facility_of\s+for\s+update/i;
