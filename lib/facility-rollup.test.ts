@@ -367,6 +367,14 @@ describe("20260808_rez73 migration containment", () => {
         "EXECUTE convert_from(decode('Ym95ZXI=', 'base64'), 'utf8');",
       ],
       [
+        "convert-from-assign",
+        "stmt := convert_from(decode('Q1JFQVRF', 'base64'), 'utf8'); EXECUTE stmt;",
+      ],
+      [
+        "convert-from-into-paren",
+        "select convert_from(decode('Q1JFQVRF', 'base64'), 'utf8') into stmt; EXECUTE (stmt);",
+      ],
+      [
         "registry-view",
         "EXECUTE format('CREATE OR REPLACE VIEW public.v_supplier_registry_ids_direct AS SELECT 1');",
       ],
@@ -502,13 +510,24 @@ describe("20260808_rez73 migration containment", () => {
         "decoy-correct then poisoned ORDER BY must fail",
       );
     }
-    // Comment-/value-disabled donor gate must fail (slice only — header
-    // comments also mention the predicate text).
+    // Donor gate must be an exact JOIN conjunct — OR-widening must fail.
     {
       const a = base.indexOf("create or replace view public.v_supplier_addresses as");
       const b = base.indexOf("v_supplier_registry_ids_direct as");
       assert.ok(a >= 0 && b > a);
       const mid = base.slice(a, b);
+      const orTrue =
+        base.slice(0, a) +
+        mid.replace(
+          /^(\s*)and parent\.is_published = true\s*$/m,
+          "$1and parent.is_published = true or true",
+        ) +
+        base.slice(b);
+      assert.throws(
+        () => assertFacilitiesContainment({ migrationSql: orTrue }),
+        /donor|parent\.is_published|OR/i,
+        "donor gate OR-true must fail",
+      );
       const commented =
         base.slice(0, a) +
         mid.replace(
@@ -588,9 +607,17 @@ describe("20260808_rez73 migration containment", () => {
       ["if false", "if false then\n%s\n  end if;\n"],
       ["if null", "if null then\n%s\n  end if;\n"],
       ["if not true", "if not true then\n%s\n  end if;\n"],
+      ["if not (true)", "if not (true) then\n%s\n  end if;\n"],
       ["if 1=0", "if 1 = 0 then\n%s\n  end if;\n"],
+      ["if (1=0)", "if (1 = 0) then\n%s\n  end if;\n"],
       ["if (false)", "if (false) then\n%s\n  end if;\n"],
+      ["if true = false", "if true = false then\n%s\n  end if;\n"],
+      ["if true is false", "if true is false then\n%s\n  end if;\n"],
       ["case when false", "case when false then\n%s\n  else null; end case;\n"],
+      ["case when (false)", "case when (false) then\n%s\n  else null; end case;\n"],
+      ["while not true", "while not true loop\n%s\n  end loop;\n"],
+      ["while (false)", "while (false) loop\n%s\n  end loop;\n"],
+      ["for 1..0", "for i in 1..0 loop\n%s\n  end loop;\n"],
     ] as const) {
       const body =
         "begin\n" +
@@ -599,8 +626,35 @@ describe("20260808_rez73 migration containment", () => {
         "  return new;\nend;";
       assert.throws(
         () => assertFacilitiesContainment({ migrationSql: swapTrigger(body) }),
-        /constant-false|CASE WHEN FALSE|PERFORM|FOR UPDATE/i,
+        /constant-false|CASE WHEN FALSE|WHILE|LOOP|PERFORM|FOR UPDATE/i,
         `${label} dead-path PERFORM must fail`,
+      );
+    }
+
+    const injectedExecute = migrationSql +
+      "\nEXECUTE format('CREATE OR REPLACE FUNCTION public.buyer_supplier_profile() RETURNS void AS $x$ SELECT 1 $x$');\n";
+    assert.throws(
+      () => assertFacilitiesContainment({ migrationSql: injectedExecute }),
+      /dynamically EXECUTE|pinned object/i,
+      "injected dynamic EXECUTE must fail containment",
+    );
+
+    {
+      const start = migrationSql.indexOf(
+        "create or replace function public.buyer_supplier_profile",
+      );
+      const asAt = migrationSql.indexOf("as $$", start);
+      assert.ok(start >= 0 && asAt > start);
+      const secDefComment =
+        migrationSql.slice(0, start) +
+        migrationSql
+          .slice(start, asAt)
+          .replace(/security\s+definer/i, "/* security definer */") +
+        migrationSql.slice(asAt);
+      assert.throws(
+        () => assertFacilitiesContainment({ migrationSql: secDefComment }),
+        /SECURITY DEFINER/i,
+        "comment-only SECURITY DEFINER must fail",
       );
     }
 

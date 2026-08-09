@@ -407,7 +407,9 @@ export function hasDynamicExecuteOfPinnedObject(sql: string): boolean {
     // Obfuscated EXECUTE — migrations must not hide DDL this way.
     if (/\b(convert_from|decode|encode|chr)\s*\(/i.test(payload)) return true;
     if (PINNED_OBJECT_NAME.test(payload)) return true;
-    const opaque = /^([A-Za-z_][A-Za-z0-9_]*)\s*;/.exec(trimmed);
+    const opaque =
+      /^([A-Za-z_][A-Za-z0-9_]*)\s*;/.exec(trimmed) ??
+      /^\(\s*([A-Za-z_][A-Za-z0-9_]*)\s*\)\s*;/.exec(trimmed);
     if (opaque) {
       const varName = opaque[1]!;
       if (assignedVarMentionsPinned(code, varName, at)) return true;
@@ -434,28 +436,29 @@ function hasPerformFormatOfPinnedObject(code: string): boolean {
   return false;
 }
 
-/** Prior assignments to `varName` before `beforeIdx` that mention a pinned object. */
+/** Prior assignments to `varName` before `beforeIdx` that mention a pinned object
+ * or obfuscate via convert_from/decode/encode/chr (fail-closed). */
 function assignedVarMentionsPinned(
   code: string,
   varName: string,
   beforeIdx: number,
 ): boolean {
   const window = code.slice(0, beforeIdx);
+  const obfuscated = /\b(convert_from|decode|encode|chr)\s*\(/i;
   const assignRe = new RegExp(
     `\\b${varName}\\s*(?::=|=)\\s*([^;]+);`,
     "gi",
   );
   let m: RegExpExecArray | null;
   while ((m = assignRe.exec(window)) !== null) {
-    if (PINNED_OBJECT_NAME.test(m[1]!)) return true;
+    if (PINNED_OBJECT_NAME.test(m[1]!) || obfuscated.test(m[1]!)) return true;
   }
-  // SELECT … INTO var  /  SELECT format(…) INTO var
   const intoRe = new RegExp(
     `\\bselect\\b([\\s\\S]*?)\\binto\\s+${varName}\\b`,
     "gi",
   );
   while ((m = intoRe.exec(window)) !== null) {
-    if (PINNED_OBJECT_NAME.test(m[1]!)) return true;
+    if (PINNED_OBJECT_NAME.test(m[1]!) || obfuscated.test(m[1]!)) return true;
   }
   return false;
 }
@@ -477,37 +480,45 @@ function extractExecuteArgPayload(sql: string, start: number): string {
   return s.slice(0, semi === -1 ? s.length : semi);
 }
 
+/** Constant-false / tautology-false predicates used to dead-host refusal code. */
+const CONST_FALSE_PRED =
+  String.raw`(?:\(\s*)?(?:false\b|null\b|not\s*\(\s*true\s*\)|not\s+true\b|true\s+is\s+false\b|true\s*=\s*false\b|false\s*=\s*true\b|false\s*::\s*boolean\b|\(\s*1\s*=\s*0\s*\)|1\s*=\s*0|0\s*=\s*1|2\s*=\s*3|1\s*=\s*2)(?:\s*\))?`;
+
 /**
- * Fail closed on constant-false / exception-swallow wrappers that could host
- * PERFORM / EXISTS / RAISE without executing them. Do not delete branches —
- * stripping `IF FALSE … ELSE … END IF` previously left a post-IF PERFORM
- * looking reachable after removing a live ELSE RETURN.
+ * Fail closed on wrappers that can host PERFORM / EXISTS / RAISE without
+ * executing them. Ban LOOP entirely (empty FOR / WHILE). Do not delete
+ * IF/ELSE branches — that previously left post-IF PERFORM looking reachable.
  */
 function assertNoDeadPathGaming(triggerCode: string): void {
-  if (
-    /\bif\s+(?:false\b|null\b|not\s+true\b|\(\s*false\s*\)|false\s*::\s*boolean\b|1\s*=\s*0|0\s*=\s*1)/i.test(
-      triggerCode,
-    )
-  ) {
+  if (/\bloop\b/i.test(triggerCode)) {
+    throw new Error(
+      "enforce_facility_parent_is_company must not use LOOP (FOR/WHILE can host dead PERFORM)",
+    );
+  }
+  if (new RegExp(String.raw`\bif\s+${CONST_FALSE_PRED}`, "i").test(triggerCode)) {
     throw new Error(
       "enforce_facility_parent_is_company must not wrap body in constant-false IF",
     );
   }
-  if (/\belsif\s+(?:false\b|null\b|not\s+true\b|1\s*=\s*0)/i.test(triggerCode)) {
+  if (
+    new RegExp(String.raw`\belsif\s+${CONST_FALSE_PRED}`, "i").test(triggerCode)
+  ) {
     throw new Error(
       "enforce_facility_parent_is_company must not use constant-false ELSIF",
     );
   }
   if (
-    /\bcase\s+when\s+(?:false\b|null\b|not\s+true\b|1\s*=\s*0)/i.test(triggerCode)
+    new RegExp(String.raw`\bcase\s+when\s+${CONST_FALSE_PRED}`, "i").test(
+      triggerCode,
+    )
   ) {
     throw new Error(
       "enforce_facility_parent_is_company must not wrap body in CASE WHEN FALSE",
     );
   }
-  if (/\bwhile\s+(?:false\b|null\b|1\s*=\s*0)/i.test(triggerCode)) {
+  if (/\bwhile\b/i.test(triggerCode)) {
     throw new Error(
-      "enforce_facility_parent_is_company must not wrap body in WHILE FALSE",
+      "enforce_facility_parent_is_company must not use WHILE",
     );
   }
   if (/\bexception\s+when\b/i.test(triggerCode)) {
@@ -552,6 +563,12 @@ export function assertFacilitiesContainment(args: {
   migrationSql: string;
 }): void {
   const { migrationSql } = args;
+
+  if (hasDynamicExecuteOfPinnedObject(migrationSql)) {
+    throw new Error(
+      "migration must not dynamically EXECUTE a pinned object (buyer_supplier_profile / address or registry views)",
+    );
+  }
 
   const sliceBetween = (startMarker: string, endMarker: string): string => {
     const start = migrationSql.indexOf(startMarker);
@@ -722,12 +739,24 @@ export function assertFacilitiesContainment(args: {
       "v_supplier_registry_ids_direct as",
     ),
   );
-  if (!/and parent\.is_published = true/.test(addressesInheritingBlock)) {
+  const addressesNorm = addressesInheritingBlock.replace(/\s+/g, " ");
+  // Donor gate must be an exact JOIN conjunct followed by the next JOIN —
+  // `= true or true` still contains the substring but widens the ON clause.
+  if (
+    !/\band parent\.is_published = true join public\.v_supplier_addresses_direct\b/i.test(
+      addressesNorm,
+    )
+  ) {
     throw new Error(
       "v_supplier_addresses inheritance branch must gate donors on parent.is_published = true",
     );
   }
-  if (!/and child\.is_published = true/.test(addressesInheritingBlock)) {
+  if (/\bparent\.is_published\s*=\s*true\s+or\b/i.test(addressesNorm)) {
+    throw new Error(
+      "v_supplier_addresses donor gate must not be widened with OR",
+    );
+  }
+  if (!/\band child\.is_published = true\b/i.test(addressesNorm)) {
     throw new Error(
       "v_supplier_addresses inheritance branch must keep the REZ-18 recipient gate",
     );
@@ -783,21 +812,38 @@ export function assertFacilitiesContainment(args: {
   if (!profileFn) {
     throw new Error("migration must define public.buyer_supplier_profile");
   }
-  if (!/security\s+definer/i.test(profileFn[0]!)) {
+  const profileAs = /as\s*\$\$/i.exec(profileFn[0]!);
+  if (!profileAs || profileAs.index === undefined) {
+    throw new Error("buyer_supplier_profile must use an as $$ body");
+  }
+  const profileHeader = stripSqlComments(
+    profileFn[0]!.slice(0, profileAs.index),
+  );
+  if (!/security\s+definer/i.test(profileHeader)) {
     throw new Error("buyer_supplier_profile must be SECURITY DEFINER");
   }
-  if (!/set\s+search_path\s*=\s*public\b/i.test(profileFn[0]!)) {
+  if (!/set\s+search_path\s*=\s*public\b/i.test(profileHeader)) {
     throw new Error("buyer_supplier_profile must set search_path = public");
   }
 
-  // Reverse must restore the live pre-state body (20260725), not 0095.
-  const reverseBlock = migrationSql.slice(
-    migrationSql.search(/--\s*REVERSE/i),
-    migrationSql.search(/--\s*FORWARD/i) > 0
-      ? migrationSql.search(/--\s*FORWARD/i)
-      : Math.min(migrationSql.length, (migrationSql.search(/--\s*REVERSE/i) || 0) + 2500),
+  // Reverse comment block only — stop before the first CREATE so DDL cannot
+  // host a decoy restore name.
+  const reverseStart = migrationSql.search(/--\s*REVERSE/i);
+  if (reverseStart < 0) {
+    throw new Error("migration must include a REVERSE section");
+  }
+  const reverseEnd = migrationSql.search(
+    /\ncreate\s+or\s+replace\b/i,
   );
-  if (!/20260725_rez_security_hardening_2/.test(reverseBlock)) {
+  const reverseBlock = migrationSql.slice(
+    reverseStart,
+    reverseEnd > reverseStart ? reverseEnd : reverseStart + 800,
+  );
+  if (
+    !/Re-apply the[\s\S]*?20260725_rez_security_hardening_2 function body/i.test(
+      reverseBlock,
+    )
+  ) {
     throw new Error(
       "REVERSE must name 20260725_rez_security_hardening_2 as the restore body",
     );
@@ -821,7 +867,16 @@ export function assertFacilitiesContainment(args: {
       "migration must define enforce_facility_parent_is_company()",
     );
   }
-  if (!/set\s+search_path\s*=\s*public\b/i.test(triggerFn[0]!)) {
+  const triggerAs = /as\s*\$\$/i.exec(triggerFn[0]!);
+  if (!triggerAs || triggerAs.index === undefined) {
+    throw new Error(
+      "enforce_facility_parent_is_company must use an as $$ ... $$ body",
+    );
+  }
+  const triggerHeader = stripSqlComments(
+    triggerFn[0]!.slice(0, triggerAs.index),
+  );
+  if (!/set\s+search_path\s*=\s*public\b/i.test(triggerHeader)) {
     throw new Error(
       "enforce_facility_parent_is_company must set search_path = public",
     );
