@@ -443,9 +443,51 @@ export function hasDynamicExecuteOfPinnedObject(sql: string): boolean {
 
 /** True when string fragments in an EXECUTE payload assemble a pinned name. */
 function payloadAssemblesPinnedName(payload: string): boolean {
-  let evaled = payload;
+  // Normalize Postgres E'…' (capital E only) and $tag$…$tag$ to plain '…'.
+  // Do NOT use the /i flag on E' — it would eat the trailing "e" of identifiers
+  // like replace(…)/profile'.
+  let evaled = payload
+    .replace(/(?<![A-Za-z0-9_])E'([^']*)'/g, "'$1'")
+    .replace(/\$([A-Za-z0-9_]*)\$([^$]*)\$\1\$/g, "'$2'");
   for (let n = 0; n < 12; n++) {
     let changed = false;
+    const rev = /\breverse\s*\(\s*'([^']*)'\s*\)/i.exec(evaled);
+    if (rev && rev.index !== undefined) {
+      const out = [...rev[1]!].reverse().join("");
+      evaled =
+        evaled.slice(0, rev.index) +
+        "'" +
+        out +
+        "'" +
+        evaled.slice(rev.index + rev[0].length);
+      changed = true;
+    }
+    const lr =
+      /\b(left|right|lpad|rpad)\s*\(\s*'([^']*)'\s*,\s*(\d+)(?:\s*,\s*'([^']*)')?\s*\)/i.exec(
+        evaled,
+      );
+    if (lr && lr.index !== undefined) {
+      const fn = lr[1]!.toLowerCase();
+      const s = lr[2]!;
+      const nArg = Number(lr[3]!);
+      let out = s;
+      if (fn === "left") out = s.slice(0, nArg);
+      else if (fn === "right") out = s.slice(Math.max(0, s.length - nArg));
+      else if (fn === "lpad") {
+        const fill = (lr[4] ?? " ").repeat(Math.max(0, nArg));
+        out = (fill + s).slice(-nArg);
+      } else {
+        const fill = (lr[4] ?? " ").repeat(Math.max(0, nArg));
+        out = (s + fill).slice(0, nArg);
+      }
+      evaled =
+        evaled.slice(0, lr.index) +
+        "'" +
+        out +
+        "'" +
+        evaled.slice(lr.index + lr[0].length);
+      changed = true;
+    }
     const repl =
       /replace\s*\(\s*'([^']*)'\s*,\s*'([^']*)'\s*,\s*'([^']*)'\s*\)/i.exec(
         evaled,
@@ -554,15 +596,22 @@ function payloadAssemblesPinnedName(payload: string): boolean {
     if (!changed) break;
   }
   if (
-    /\b(overlay|translate|substring|substr|btrim|ltrim|rtrim|left|right|reverse)\s*\(/i.test(
+    /\b(overlay|translate|substring|substr|btrim|ltrim|rtrim|left|right|reverse|lpad|rpad|format)\s*\(/i.test(
       evaled,
     )
   ) {
     const litProbe: string[] = [];
-    for (const m of payload.matchAll(/E?'([^']*)'/gi)) litProbe.push(m[1]!);
+    for (const m of evaled.matchAll(/E?'([^']*)'/gi)) litProbe.push(m[1]!);
+    for (const m of evaled.matchAll(
+      /\$([A-Za-z0-9_]*)\$([^$]*)\$\1\$/g,
+    )) {
+      litProbe.push(m[2]!);
+    }
     const joined = litProbe.join("").toLowerCase();
+    const reversed = [...joined].reverse().join("");
     if (
       PINNED_OBJECT_NAME.test(joined) ||
+      PINNED_OBJECT_NAME.test(reversed) ||
       /buyer_supplier|supplier_profile|v_supplier_addresses|v_supplier_registry/.test(
         joined,
       )
@@ -593,13 +642,109 @@ function executeVarsAssemblePinned(
   beforeIdx: number,
 ): boolean {
   if (!/\|\||\bconcat\s*\(/i.test(payload)) return false;
-  const vars = extractExecutedVarNames(payload);
-  if (vars.length < 1) return false;
   const frags: string[] = [];
-  for (const v of vars) {
-    collectAssignStringLiterals(code, v, beforeIdx, frags, new Set());
+  // Left-to-right || chain: mix literals and assign fragments in expression order.
+  const pipeParts = payload.split(/\|\|/).map((s) => s.trim());
+  if (pipeParts.length > 1) {
+    for (const part of pipeParts) {
+      const lit = /^E?'([^']*)'$/i.exec(part);
+      if (lit) {
+        frags.push(lit[1]!);
+        continue;
+      }
+      const dol = /^\$([A-Za-z0-9_]*)\$([^$]*)\$\1\$$/.exec(part);
+      if (dol) {
+        frags.push(dol[2]!);
+        continue;
+      }
+      const id = /^([A-Za-z_][A-Za-z0-9_]*)$/.exec(part);
+      if (id) {
+        collectAssignStringLiterals(code, id[1]!, beforeIdx, frags, new Set());
+      }
+    }
+    if (PINNED_OBJECT_NAME.test(frags.join("").toLowerCase())) return true;
   }
-  return PINNED_OBJECT_NAME.test(frags.join("").toLowerCase());
+  // concat(a, 'lit', …) — pull string lits and var assigns.
+  const concatM = /\bconcat\s*\(([\s\S]*)\)\s*$/i.exec(payload.trim());
+  if (concatM) {
+    const cFrags: string[] = [];
+    for (const lit of concatM[1]!.matchAll(/E?'([^']*)'/gi)) {
+      cFrags.push(lit[1]!);
+    }
+    for (const lit of concatM[1]!.matchAll(
+      /\$([A-Za-z0-9_]*)\$([^$]*)\$\1\$/g,
+    )) {
+      cFrags.push(lit[2]!);
+    }
+    for (const v of extractExecutedVarNames(concatM[1]!)) {
+      collectAssignStringLiterals(code, v, beforeIdx, cFrags, new Set());
+    }
+    // Order for concat is wrong if we collect lits then vars — also try
+    // expression-order by splitting on commas at depth 0 is hard; fail closed
+    // if any ordering of collected frags is unnecessary — check join of
+    // assign-then-lit and lit-then-assign by also testing sorted isn't needed:
+    // re-walk args roughly:
+    const ordered: string[] = [];
+    for (const arg of splitConcatArgs(concatM[1]!)) {
+      const aLit = /^E?'([^']*)'$/i.exec(arg.trim());
+      if (aLit) {
+        ordered.push(aLit[1]!);
+        continue;
+      }
+      const aDol = /^\$([A-Za-z0-9_]*)\$([^$]*)\$\1\$$/.exec(arg.trim());
+      if (aDol) {
+        ordered.push(aDol[2]!);
+        continue;
+      }
+      const aId = /^([A-Za-z_][A-Za-z0-9_]*)$/.exec(arg.trim());
+      if (aId) {
+        collectAssignStringLiterals(
+          code,
+          aId[1]!,
+          beforeIdx,
+          ordered,
+          new Set(),
+        );
+      }
+    }
+    if (PINNED_OBJECT_NAME.test(ordered.join("").toLowerCase())) return true;
+    if (PINNED_OBJECT_NAME.test(cFrags.join("").toLowerCase())) return true;
+  }
+  return false;
+}
+
+function splitConcatArgs(args: string): string[] {
+  const out: string[] = [];
+  let depth = 0;
+  let cur = "";
+  let inStr = false;
+  for (let i = 0; i < args.length; i++) {
+    const ch = args[i]!;
+    if (inStr) {
+      cur += ch;
+      if (ch === "'" && args[i + 1] === "'") {
+        cur += args[++i];
+        continue;
+      }
+      if (ch === "'") inStr = false;
+      continue;
+    }
+    if (ch === "'") {
+      inStr = true;
+      cur += ch;
+      continue;
+    }
+    if (ch === "(") depth += 1;
+    if (ch === ")") depth -= 1;
+    if (ch === "," && depth === 0) {
+      out.push(cur);
+      cur = "";
+      continue;
+    }
+    cur += ch;
+  }
+  if (cur.trim()) out.push(cur);
+  return out;
 }
 
 function collectAssignStringLiterals(
@@ -783,16 +928,67 @@ function assertNoDeadPathGaming(triggerCode: string): void {
   }
 }
 
-/** Ban runtime search_path mutation inside function bodies (header pin only).
- * Callers must pass comment-stripped SQL that still retains string literals
- * so set_config('search_path', …) remains visible.
+/** Ban runtime search_path / schema mutation inside function bodies (header pin only).
+ * Callers must pass comment-stripped SQL that still retains string literals.
  */
 function assertNoBodySearchPathMutation(body: string, label: string): void {
-  if (/\bset\s+(local\s+|session\s+)?search_path\b/i.test(body)) {
+  if (
+    /\bset\s+(local\s+|session\s+)?("search_path"|search_path)\b/i.test(body)
+  ) {
     throw new Error(`${label} body must not SET search_path`);
   }
-  if (/\bset_config\s*\(\s*'search_path'/i.test(body)) {
-    throw new Error(`${label} body must not set_config('search_path')`);
+  if (/\breset\s+(all\b|("search_path"|search_path)\b)/i.test(body)) {
+    throw new Error(`${label} body must not RESET search_path`);
+  }
+  if (/\bset\s+schema\b/i.test(body)) {
+    throw new Error(`${label} body must not SET SCHEMA`);
+  }
+  // Any set_config whose first argument mentions search_path (any quoting / concat / chr).
+  let i = 0;
+  while (i < body.length) {
+    const m = /\bset_config\s*\(/i.exec(body.slice(i));
+    if (!m || m.index === undefined) break;
+    const paren = i + m.index + m[0].length - 1;
+    try {
+      const close = findMatchingParen(body, paren);
+      const args = body.slice(paren + 1, close);
+      const firstArg = args.split(",")[0] ?? "";
+      const collapsed = firstArg
+        .replace(/E?'([^']*)'/gi, "$1")
+        .replace(/\$([A-Za-z0-9_]*)\$([^$]*)\$\1\$/g, "$2")
+        .replace(/[^A-Za-z0-9_]+/g, "")
+        .toLowerCase();
+      if (collapsed.includes("search_path") || /search_path/i.test(firstArg)) {
+        throw new Error(`${label} body must not set_config('search_path')`);
+      }
+      i = close + 1;
+    } catch (e) {
+      if (e instanceof Error && /set_config\('search_path'\)/.test(e.message)) {
+        throw e;
+      }
+      i += m[0].length;
+    }
+  }
+}
+
+/** Fail closed: the Stage-1 migration must not contain dynamic EXECUTE at all. */
+function assertNoDynamicExecuteInMigration(sql: string): void {
+  const code = stripSqlComments(sql);
+  let i = 0;
+  while (i < code.length) {
+    const m = /\bexecute\b/i.exec(code.slice(i));
+    if (!m || m.index === undefined) break;
+    const at = i + m.index;
+    const after = code.slice(at + m[0].length);
+    const ws = after.match(/^\s*/)?.[0].length ?? 0;
+    const trimmed = after.slice(ws);
+    if (/^(on|function|procedure)\b/i.test(trimmed)) {
+      i = at + m[0].length;
+      continue;
+    }
+    throw new Error(
+      "20260808 migration must not contain dynamic EXECUTE (pinned-object rewrite vector)",
+    );
   }
 }
 
@@ -882,6 +1078,7 @@ export function assertFacilitiesContainment(args: {
 }): void {
   const { migrationSql } = args;
 
+  assertNoDynamicExecuteInMigration(migrationSql);
   if (hasDynamicExecuteOfPinnedObject(migrationSql)) {
     throw new Error(
       "migration must not dynamically EXECUTE a pinned object (buyer_supplier_profile / address or registry views)",
@@ -1134,12 +1331,14 @@ export function assertFacilitiesContainment(args: {
     );
   }
   if (
-    /\b(left|full|right|cross)\s+join public\.suppliers parent\b/i.test(
+    /\b(left|full|right)(\s+outer)?\s+join public\.suppliers parent\b/i.test(
       addressesNorm,
     ) ||
-    /\b(left|full|right|cross)\s+join public\.v_supplier_addresses_direct\b/i.test(
+    /\bcross\s+join public\.suppliers parent\b/i.test(addressesNorm) ||
+    /\b(left|full|right)(\s+outer)?\s+join public\.v_supplier_addresses_direct\b/i.test(
       addressesNorm,
-    )
+    ) ||
+    /\bcross\s+join public\.v_supplier_addresses_direct\b/i.test(addressesNorm)
   ) {
     throw new Error(
       "v_supplier_addresses inheritance must use inner joins for parent and parent_addr",
@@ -1161,6 +1360,20 @@ export function assertFacilitiesContainment(args: {
   ) {
     throw new Error(
       "v_supplier_addresses parent_addr join must be exactly on parent_addr.supplier_id = parent.id",
+    );
+  }
+  // REZ-17: inheritance branch must project null phone/email (never parent_addr.phone/email).
+  if (
+    !/null::text\s+as\s+phone/i.test(addressesNorm) ||
+    !/null::text\s+as\s+email/i.test(addressesNorm)
+  ) {
+    throw new Error(
+      "v_supplier_addresses inheritance must project null::text AS phone and email (REZ-17)",
+    );
+  }
+  if (/parent_addr\.(phone|email)\b/i.test(addressesNorm)) {
+    throw new Error(
+      "v_supplier_addresses inheritance must not select parent_addr.phone/email",
     );
   }
 

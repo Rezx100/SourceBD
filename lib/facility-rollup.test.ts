@@ -403,6 +403,18 @@ describe("20260808_rez73 migration containment", () => {
         "a := 'buyer_'; b := 'supplier_profile'; EXECUTE a||b;",
       ],
       [
+        "reverse-assemble",
+        "EXECUTE reverse('eliforp_reilppus_reyub');",
+      ],
+      [
+        "hybrid-var-lit",
+        "a := 'buyer_'; EXECUTE a || 'supplier_profile';",
+      ],
+      [
+        "dollar-overlay",
+        "EXECUTE overlay($$buyer_XXXXprofile$$ placing $$supplier_$$ from 7 for 4);",
+      ],
+      [
         "current-setting",
         "EXECUTE current_setting('app.ddl');",
       ],
@@ -774,6 +786,24 @@ describe("20260808_rez73 migration containment", () => {
         /set_config\('search_path'\)|body must not/i,
         "profile body set_config search_path must fail",
       );
+      const setConfigDollar =
+        migrationSql.slice(0, asAt + asMarker.length) +
+        "\n  perform set_config($sp$search_path$sp$, 'pg_temp, public', true);\n" +
+        migrationSql.slice(asAt + asMarker.length);
+      assert.throws(
+        () => assertFacilitiesContainment({ migrationSql: setConfigDollar }),
+        /set_config\('search_path'\)|body must not/i,
+        "profile body set_config $$search_path$$ must fail",
+      );
+      const setSchema =
+        migrationSql.slice(0, asAt + asMarker.length) +
+        "\n  set schema 'pg_temp';\n" +
+        migrationSql.slice(asAt + asMarker.length);
+      assert.throws(
+        () => assertFacilitiesContainment({ migrationSql: setSchema }),
+        /SET SCHEMA|body must not/i,
+        "profile body SET SCHEMA must fail",
+      );
     }
 
     {
@@ -832,13 +862,39 @@ describe("20260808_rez73 migration containment", () => {
         /parent_addr/i,
         "parent_addr OR true must fail",
       );
+      const leftOuter = mid.replace(
+        /join public\.suppliers parent/i,
+        "left outer join public.suppliers parent",
+      );
+      assert.throws(
+        () =>
+          assertFacilitiesContainment({
+            migrationSql:
+              migrationSql.slice(0, a) + leftOuter + migrationSql.slice(b),
+          }),
+        /inner joins|parent and parent_addr/i,
+        "left outer join parent must fail",
+      );
+      const phoneLeak = mid.replace(
+        /null::text\s+as\s+phone/i,
+        "parent_addr.phone as phone",
+      );
+      assert.throws(
+        () =>
+          assertFacilitiesContainment({
+            migrationSql:
+              migrationSql.slice(0, a) + phoneLeak + migrationSql.slice(b),
+          }),
+        /phone|email|REZ-17|null::text/i,
+        "inheritance parent_addr.phone must fail",
+      );
     }
 
     const injectedExecute = migrationSql +
       "\nEXECUTE format('CREATE OR REPLACE FUNCTION public.buyer_supplier_profile() RETURNS void AS $x$ SELECT 1 $x$');\n";
     assert.throws(
       () => assertFacilitiesContainment({ migrationSql: injectedExecute }),
-      /dynamically EXECUTE|pinned object/i,
+      /dynamically EXECUTE|pinned object|must not contain dynamic EXECUTE/i,
       "injected dynamic EXECUTE must fail containment",
     );
 
@@ -847,7 +903,7 @@ describe("20260808_rez73 migration containment", () => {
       "\nDO $$ BEGIN EXECUTE format('%s%s%s', 'buyer_', 'supplier_', 'profile'); END $$;\n";
     assert.throws(
       () => assertFacilitiesContainment({ migrationSql: fragmentDo }),
-      /dynamically EXECUTE|pinned object/i,
+      /dynamically EXECUTE|pinned object|must not contain dynamic EXECUTE/i,
       "DO format-fragment EXECUTE must fail containment",
     );
 
@@ -868,11 +924,27 @@ describe("20260808_rez73 migration containment", () => {
         "split-var",
         "\nDO $$ DECLARE a text; b text; BEGIN a := 'buyer_'; b := 'supplier_profile'; EXECUTE a||b; END $$;\n",
       ],
+      [
+        "dollar-overlay",
+        "\nDO $$ BEGIN EXECUTE overlay($q$buyer_XXXXprofile$q$ placing $q$supplier_$q$ from 7 for 4); END $$;\n",
+      ],
+      [
+        "e-overlay",
+        "\nDO $$ BEGIN EXECUTE overlay(E'buyer_XXXXprofile' placing E'supplier_' from 7 for 4); END $$;\n",
+      ],
+      [
+        "reverse",
+        "\nDO $$ BEGIN EXECUTE reverse('eliforp_reilppus_reyub'); END $$;\n",
+      ],
+      [
+        "hybrid-var-lit",
+        "\nDO $$ DECLARE a text; BEGIN a := 'buyer_'; EXECUTE a || 'supplier_profile'; END $$;\n",
+      ],
     ] as const) {
       assert.throws(
         () =>
           assertFacilitiesContainment({ migrationSql: migrationSql + snip }),
-        /dynamically EXECUTE|pinned object/i,
+        /dynamically EXECUTE|pinned object|must not contain dynamic EXECUTE/i,
         `DO ${label} EXECUTE must fail containment`,
       );
     }
@@ -948,7 +1020,7 @@ describe("20260808_rez73 migration containment", () => {
       "\nDO $$ BEGIN a := convert_from(decode('Q1JFQVRF','base64'),'utf8'); b := a; EXECUTE b; END $$;\n";
     assert.throws(
       () => assertFacilitiesContainment({ migrationSql: aliasDo }),
-      /dynamically EXECUTE|pinned object/i,
+      /dynamically EXECUTE|pinned object|must not contain dynamic EXECUTE/i,
       "DO alias-chain EXECUTE must fail containment",
     );
 
