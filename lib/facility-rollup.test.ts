@@ -347,6 +347,10 @@ describe("20260808_rez73 migration containment", () => {
       ["concat", "EXECUTE 'CREATE OR REPLACE FUNCTION public.' || 'buyer_supplier_profile()'"],
       ["var-name", "EXECUTE dyn_buyer_supplier_profile_stmt;"],
       [
+        "comment-split",
+        "DO $$ BEGIN EXE/*x*/CUTE reverse('eliforp_reilppus_reyub'); END $$;",
+      ],
+      [
         "opaque-assign",
         "stmt := 'CREATE OR REPLACE FUNCTION public.buyer_supplier_profile()'; EXECUTE stmt;",
       ],
@@ -840,6 +844,24 @@ describe("20260808_rez73 migration containment", () => {
         /non-literal first argument|set_config\('search_path'\)|body must not/i,
         "profile body set_config(format…) must fail",
       );
+      const setConfigEhex =
+        migrationSql.slice(0, asAt + asMarker.length) +
+        "\n  perform set_config(E'\\\\x7365617263685f70617468', 'pg_temp, public', true);\n" +
+        migrationSql.slice(asAt + asMarker.length);
+      assert.throws(
+        () => assertFacilitiesContainment({ migrationSql: setConfigEhex }),
+        /non-literal first argument|set_config\('search_path'\)|body must not/i,
+        "profile body set_config(E'\\\\x…') must fail",
+      );
+      const setUescape =
+        migrationSql.slice(0, asAt + asMarker.length) +
+        '\n  set u&"search\\005fpath" to pg_temp, public;\n' +
+        migrationSql.slice(asAt + asMarker.length);
+      assert.throws(
+        () => assertFacilitiesContainment({ migrationSql: setUescape }),
+        /U&|body must not/i,
+        'profile body SET U&"search…" must fail',
+      );
     }
 
     {
@@ -950,6 +972,45 @@ describe("20260808_rez73 migration containment", () => {
         /inner joins|parent and parent_addr/i,
         "comment-smuggled left outer join parent must fail",
       );
+      const phoneStar = mid.replace(
+        /null::text\s+as\s+phone/i,
+        "parent_addr.* , null::text as phone",
+      );
+      assert.throws(
+        () =>
+          assertFacilitiesContainment({
+            migrationSql:
+              migrationSql.slice(0, a) + phoneStar + migrationSql.slice(b),
+          }),
+        /parent_addr\.\*|phone|email|REZ-17/i,
+        "inheritance parent_addr.* must fail",
+      );
+      const phoneQuoted = mid.replace(
+        /null::text\s+as\s+phone/i,
+        '("parent_addr").phone as phone',
+      );
+      assert.throws(
+        () =>
+          assertFacilitiesContainment({
+            migrationSql:
+              migrationSql.slice(0, a) + phoneQuoted + migrationSql.slice(b),
+          }),
+        /phone|email|REZ-17|parent_addr/i,
+        'inheritance ("parent_addr").phone must fail',
+      );
+      const phoneJson = mid.replace(
+        /null::text\s+as\s+phone/i,
+        "to_json(parent_addr)->>'phone' as phone",
+      );
+      assert.throws(
+        () =>
+          assertFacilitiesContainment({
+            migrationSql:
+              migrationSql.slice(0, a) + phoneJson + migrationSql.slice(b),
+          }),
+        /json-project|phone|email|REZ-17|parent_addr/i,
+        "inheritance to_json(parent_addr) must fail",
+      );
     }
 
     const injectedExecute = migrationSql +
@@ -976,6 +1037,38 @@ describe("20260808_rez73 migration containment", () => {
       () => assertFacilitiesContainment({ migrationSql: commentSplitExecute }),
       /must not contain dynamic EXECUTE|dynamically EXECUTE|pinned object/i,
       "DO-body comment-split EXECUTE must fail containment",
+    );
+    assert.ok(
+      hasDynamicExecuteOfPinnedObject(commentSplitExecute),
+      "hasDynamicExecuteOfPinnedObject must detect EXE/*x*/CUTE",
+    );
+
+    const newlineSplitExecute =
+      migrationSql +
+      "\nDO $$ BEGIN EXE--x\nCUTE reverse('eliforp_reilppus_reyub'); END $$;\n";
+    assert.throws(
+      () => assertFacilitiesContainment({ migrationSql: newlineSplitExecute }),
+      /must not contain dynamic EXECUTE|dynamically EXECUTE|pinned object/i,
+      "DO-body EXE--\\nCUTE must fail containment",
+    );
+
+    const alterAfter =
+      migrationSql +
+      "\nALTER FUNCTION public.buyer_supplier_profile(text) SET search_path = pg_temp, public;\n";
+    assert.throws(
+      () => assertFacilitiesContainment({ migrationSql: alterAfter }),
+      /ALTER FUNCTION|exactly one CREATE/i,
+      "ALTER FUNCTION after CREATE must fail containment",
+    );
+
+    const secondCreate =
+      migrationSql +
+      "\nCREATE OR REPLACE FUNCTION public.buyer_supplier_profile(p_slug text)\n" +
+      "RETURNS jsonb LANGUAGE sql SECURITY DEFINER SET search_path = pg_temp, public AS $$ SELECT '{}'::jsonb $$;\n";
+    assert.throws(
+      () => assertFacilitiesContainment({ migrationSql: secondCreate }),
+      /exactly one CREATE/i,
+      "second CREATE OR REPLACE buyer_supplier_profile must fail",
     );
 
     for (const [label, snip] of [

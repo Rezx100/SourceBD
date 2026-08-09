@@ -362,8 +362,17 @@ const NO_FACILITIES_EXCLUDES = [
   "Group figures add this profile",
 ];
 
-const ZERO_FACILITIES_INCLUDES = ["Mother Company Ltd"];
-const NOKEY_FACILITIES_INCLUDES = ["Mother No Facilities Key Ltd"];
+const ZERO_FACILITIES_INCLUDES = [
+  "Mother Company Ltd",
+  // Profile-body markers — generateMetadata title alone must not soft-200.
+  "Production workers",
+  "1,200",
+];
+const NOKEY_FACILITIES_INCLUDES = [
+  "Mother No Facilities Key Ltd",
+  "Production workers",
+  "1,200",
+];
 
 const TEST_USER = {
   id: "00000000-0000-4000-8000-0000000000aa",

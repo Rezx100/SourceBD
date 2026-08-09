@@ -375,9 +375,13 @@ function stripSqlComments(
   return out;
 }
 
-/** True when `expr` is a single SQL string / dollar-quoted literal (optional E'). */
+/** True when `expr` is a single SQL string / dollar-quoted literal (optional E').
+ * E'…' literals that contain backslash escapes are not "plain": Postgres
+ * expands \\x / \\ooo / etc., so containment must fail closed on them.
+ */
 function isPlainSqlStringLiteral(expr: string): boolean {
   const t = expr.trim();
+  if (/^E'/i.test(t) && /\\/.test(t)) return false;
   if (/^E?'([^']|'')*'$/i.test(t)) return true;
   const dollar = /^\$([A-Za-z0-9_]*)\$([\s\S]*)\$\1\$$/.exec(t);
   return dollar !== null;
@@ -385,12 +389,46 @@ function isPlainSqlStringLiteral(expr: string): boolean {
 
 /** Decode a plain SQL string / dollar literal; null if not plain. */
 function decodePlainSqlStringLiteral(expr: string): string | null {
+  if (!isPlainSqlStringLiteral(expr)) return null;
   const t = expr.trim();
   const single = /^E?'((?:[^']|'')*)'$/i.exec(t);
   if (single) return single[1]!.replace(/''/g, "'");
   const dollar = /^\$([A-Za-z0-9_]*)\$([\s\S]*)\$\1\$$/.exec(t);
   if (dollar) return dollar[2]!;
   return null;
+}
+
+/**
+ * Comment-stripped scan forms for EXECUTE detection: space-stripped and
+ * concat-stripped (EXE + block-comment + CUTE becomes EXECUTE).
+ */
+function executeScanForms(sql: string): string[] {
+  return [stripSqlComments(sql, " "), stripSqlComments(sql, "")];
+}
+
+/**
+ * Find dynamic EXECUTE starts. Matches normal `\bexecute\b` and
+ * letter-spaced forms (`EXE` + whitespace + `CUTE`) after comments are gone.
+ * Skips GRANT EXECUTE ON and trigger EXECUTE FUNCTION/PROCEDURE.
+ */
+function findDynamicExecuteStarts(code: string): number[] {
+  const starts: number[] = [];
+  const re = /\be\s*x\s*e\s*c\s*u\s*t\s*e\b/gi;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(code)) !== null) {
+    const at = m.index;
+    const after = code.slice(at + m[0].length);
+    const ws = after.match(/^\s*/)?.[0].length ?? 0;
+    const trimmed = after.slice(ws);
+    if (/^(on|function|procedure)\b/i.test(trimmed)) continue;
+    starts.push(at);
+  }
+  return starts;
+}
+
+/** Scan one normalised SQL string for dynamic EXECUTE (not GRANT/trigger). */
+function scanDynamicExecute(code: string, onHit: () => void): void {
+  if (findDynamicExecuteStarts(code).length > 0) onHit();
 }
 
 /** Replace string and dollar-quoted literals with spaces (keeps length-ish).
@@ -454,54 +492,60 @@ const PINNED_OBJECT_NAME =
  * trigger EXECUTE FUNCTION.
  */
 export function hasDynamicExecuteOfPinnedObject(sql: string): boolean {
-  const code = stripSqlComments(sql);
-  if (hasPerformFormatOfPinnedObject(code)) return true;
-  // GUC round-trip / fragment store that can feed EXECUTE later.
-  {
-    let j = 0;
-    while (j < code.length) {
-      const m = /\bset_config\s*\(/i.exec(code.slice(j));
-      if (!m || m.index === undefined) break;
-      const paren = j + m.index + m[0].length - 1;
-      try {
-        const close = findMatchingParen(code, paren);
-        const args = code.slice(paren, close + 1);
-        if (PINNED_OBJECT_NAME.test(args) || payloadAssemblesPinnedName(args)) {
-          return true;
+  for (const code of executeScanForms(sql)) {
+    if (hasPerformFormatOfPinnedObject(code)) return true;
+    {
+      let j = 0;
+      while (j < code.length) {
+        const m = /\bset_config\s*\(/i.exec(code.slice(j));
+        if (!m || m.index === undefined) break;
+        const paren = j + m.index + m[0].length - 1;
+        try {
+          const close = findMatchingParen(code, paren);
+          const args = code.slice(paren, close + 1);
+          if (PINNED_OBJECT_NAME.test(args) || payloadAssemblesPinnedName(args)) {
+            return true;
+          }
+          j = close + 1;
+        } catch {
+          j += m[0].length;
         }
-        j = close + 1;
-      } catch {
-        j += m[0].length;
       }
     }
-  }
-  let i = 0;
-  while (i < code.length) {
-    const m = /\bexecute\b/i.exec(code.slice(i));
-    if (!m || m.index === undefined) break;
-    const at = i + m.index;
-    const afterMatch = code.slice(at + m[0].length);
-    const ws = afterMatch.match(/^\s*/)?.[0].length ?? 0;
-    const trimmed = afterMatch.slice(ws);
-    if (/^(on|function|procedure)\b/i.test(trimmed)) {
-      i = at + m[0].length;
-      continue;
+    for (const at of findDynamicExecuteStarts(code)) {
+      const afterMatch = code.slice(at);
+      const kw = afterMatch.match(/^\be\s*x\s*e\s*c\s*u\s*t\s*e\b/i);
+      if (!kw) continue;
+      const afterKw = code.slice(at + kw[0].length);
+      const ws = afterKw.match(/^\s*/)?.[0].length ?? 0;
+      const payload = extractExecuteArgPayload(code, at + kw[0].length + ws);
+      if (
+        /\b(convert_from|decode|encode|chr|current_setting|pg_read_file|set_config)\s*\(/i.test(
+          payload,
+        )
+      ) {
+        return true;
+      }
+      if (PINNED_OBJECT_NAME.test(payload)) return true;
+      if (payloadAssemblesPinnedName(payload)) return true;
+      if (executeVarsAssemblePinned(code, payload, at)) return true;
+      for (const varName of extractExecutedVarNames(payload)) {
+        if (assignedVarMentionsPinned(code, varName, at)) return true;
+      }
+      // Spaced/comment-split EXECUTE of a reverse()-assembled pinned name.
+      if (/reverse\s*\(/i.test(payload) && /reyub|reilppus|eliforp/i.test(payload)) {
+        return true;
+      }
+      if (/reverse\s*\(/i.test(payload) && PINNED_OBJECT_NAME.test(
+        // Best-effort: if reverse arg is a plain literal, check its reverse.
+        (() => {
+          const lit = /reverse\s*\(\s*'([^']+)'\s*\)/i.exec(payload);
+          return lit ? lit[1]!.split("").reverse().join("") : "";
+        })(),
+      )) {
+        return true;
+      }
     }
-    const payload = extractExecuteArgPayload(code, at + m[0].length + ws);
-    if (
-      /\b(convert_from|decode|encode|chr|current_setting|pg_read_file|set_config)\s*\(/i.test(
-        payload,
-      )
-    ) {
-      return true;
-    }
-    if (PINNED_OBJECT_NAME.test(payload)) return true;
-    if (payloadAssemblesPinnedName(payload)) return true;
-    if (executeVarsAssemblePinned(code, payload, at)) return true;
-    for (const varName of extractExecutedVarNames(payload)) {
-      if (assignedVarMentionsPinned(code, varName, at)) return true;
-    }
-    i = at + m[0].length;
   }
   return false;
 }
@@ -1007,11 +1051,20 @@ function assertNoBodySearchPathMutation(body: string, label: string): void {
   if (/\breset\s+(all\b|(("search_path")|search_path\b))/i.test(body)) {
     throw new Error(`${label} body must not RESET search_path`);
   }
+  // Unicode-escaped identifiers (U&"search\005fpath") resolve to search_path
+  // in Postgres; fail closed on any U& SET/RESET target.
+  if (/\bset\s+(local\s+|session\s+)?u&"/i.test(body)) {
+    throw new Error(`${label} body must not SET a U&"…" identifier`);
+  }
+  if (/\breset\s+u&"/i.test(body)) {
+    throw new Error(`${label} body must not RESET a U&"…" identifier`);
+  }
   if (/\bset\s+schema\b/i.test(body)) {
     throw new Error(`${label} body must not SET SCHEMA`);
   }
   // set_config first arg: only a plain string/dollar literal is allowed to
-  // prove it is not search_path. Any assembly (chr/format/||/var) fails closed.
+  // prove it is not search_path. Any assembly (chr/format/||/var) or E-escape
+  // payload fails closed.
   let i = 0;
   while (i < body.length) {
     const m = /\bset_config\s*\(/i.exec(body.slice(i));
@@ -1046,23 +1099,43 @@ function assertNoBodySearchPathMutation(body: string, label: string): void {
 
 /** Fail closed: the Stage-1 migration must not contain dynamic EXECUTE at all. */
 function assertNoDynamicExecuteInMigration(sql: string): void {
-  // Scan both space-stripped and concat-stripped forms so EXE/*x*/CUTE
-  // (comment deleted with no spacer) cannot false-green.
-  for (const code of [stripSqlComments(sql, " "), stripSqlComments(sql, "")]) {
-    let i = 0;
-    while (i < code.length) {
-      const m = /\bexecute\b/i.exec(code.slice(i));
-      if (!m || m.index === undefined) break;
-      const at = i + m.index;
-      const after = code.slice(at + m[0].length);
-      const ws = after.match(/^\s*/)?.[0].length ?? 0;
-      const trimmed = after.slice(ws);
-      if (/^(on|function|procedure)\b/i.test(trimmed)) {
-        i = at + m[0].length;
-        continue;
-      }
+  for (const code of executeScanForms(sql)) {
+    scanDynamicExecute(code, () => {
       throw new Error(
         "20260808 migration must not contain dynamic EXECUTE (pinned-object rewrite vector)",
+      );
+    });
+  }
+}
+
+/** Exactly one CREATE for each pinned function; no ALTER FUNCTION/ROUTINE. */
+function assertPinnedFunctionsSingular(migrationSql: string): void {
+  const code = stripSqlComments(migrationSql);
+  for (const name of [
+    "buyer_supplier_profile",
+    "enforce_facility_parent_is_company",
+  ]) {
+    const creates = [
+      ...code.matchAll(
+        new RegExp(
+          `create\\s+or\\s+replace\\s+function\\s+public\\.${name}\\b`,
+          "gi",
+        ),
+      ),
+    ];
+    if (creates.length !== 1) {
+      throw new Error(
+        `migration must contain exactly one CREATE OR REPLACE for public.${name} (found ${creates.length})`,
+      );
+    }
+    if (
+      new RegExp(
+        `alter\\s+(?:function|routine)\\s+public\\.${name}\\b`,
+        "i",
+      ).test(code)
+    ) {
+      throw new Error(
+        `migration must not ALTER FUNCTION/ROUTINE public.${name}`,
       );
     }
   }
@@ -1155,6 +1228,7 @@ export function assertFacilitiesContainment(args: {
   const { migrationSql } = args;
 
   assertNoDynamicExecuteInMigration(migrationSql);
+  assertPinnedFunctionsSingular(migrationSql);
   if (hasDynamicExecuteOfPinnedObject(migrationSql)) {
     throw new Error(
       "migration must not dynamically EXECUTE a pinned object (buyer_supplier_profile / address or registry views)",
@@ -1438,7 +1512,7 @@ export function assertFacilitiesContainment(args: {
       "v_supplier_addresses parent_addr join must be exactly on parent_addr.supplier_id = parent.id",
     );
   }
-  // REZ-17: inheritance branch must project null phone/email (never parent_addr.phone/email).
+  // REZ-17: inheritance branch must project null phone/email (never parent_addr PII).
   if (
     !/null::text\s+as\s+phone/i.test(addressesNorm) ||
     !/null::text\s+as\s+email/i.test(addressesNorm)
@@ -1447,9 +1521,27 @@ export function assertFacilitiesContainment(args: {
       "v_supplier_addresses inheritance must project null::text AS phone and email (REZ-17)",
     );
   }
-  if (/(\(?\s*parent_addr\s*\)?)\s*\.\s*(phone|email)\b/i.test(addressesNorm)) {
+  if (
+    /(\(\s*"?parent_addr"?\s*\)|"?parent_addr"?)\s*\.\s*(phone|email)\b/i.test(
+      addressesNorm,
+    )
+  ) {
     throw new Error(
       "v_supplier_addresses inheritance must not select parent_addr.phone/email",
+    );
+  }
+  if (/\(?\s*"?parent_addr"?\s*\)?\s*\.\s*\*/i.test(addressesNorm)) {
+    throw new Error(
+      "v_supplier_addresses inheritance must not project parent_addr.*",
+    );
+  }
+  if (
+    /(row_to_json|to_json|jsonb_agg|to_jsonb)\s*\(\s*\(?\s*"?parent_addr"?\s*\)?\s*\)/i.test(
+      addressesNorm,
+    )
+  ) {
+    throw new Error(
+      "v_supplier_addresses inheritance must not json-project parent_addr",
     );
   }
 
