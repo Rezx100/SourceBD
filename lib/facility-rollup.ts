@@ -123,6 +123,9 @@ export function describeGroupMetric(m: GroupMetric): string {
 export const FACILITIES_PROFILE_MIGRATION =
   "supabase/migrations/20260808_rez73_buyer_supplier_profile_facilities.sql";
 
+/** PG dollar-quote opener `$tag$` — tag may include digits (`$e1$`). */
+const DOLLAR_TAG = /^\$([A-Za-z0-9_]*)\$/;
+
 type JsonbPair = { key: string; value: string };
 
 /**
@@ -201,7 +204,7 @@ function findMatchingParen(sql: string, parenStart: number): number {
       continue;
     }
     if (ch === "$") {
-      const m = /^\$([a-zA-Z_]*)\$/.exec(sql.slice(i));
+      const m = DOLLAR_TAG.exec(sql.slice(i));
       if (m) {
         inDollar = `$${m[1]}$`;
         i += m[0].length - 1;
@@ -246,7 +249,7 @@ function splitTopLevelArgs(body: string): string[] {
       continue;
     }
     if (ch === "$") {
-      const m = /^\$([a-zA-Z_]*)\$/.exec(body.slice(i));
+      const m = DOLLAR_TAG.exec(body.slice(i));
       if (m) {
         inDollar = `$${m[1]}$`;
         i += m[0].length - 1;
@@ -301,7 +304,7 @@ function stripSqlComments(sql: string): string {
       continue;
     }
     if (ch === "$") {
-      const m = /^\$([a-zA-Z_]*)\$/.exec(sql.slice(i));
+      const m = DOLLAR_TAG.exec(sql.slice(i));
       if (m) {
         inDollar = `$${m[1]}$`;
         out += m[0];
@@ -325,17 +328,24 @@ function stripSqlComments(sql: string): string {
   return out;
 }
 
-/** Replace string and dollar-quoted literals with spaces (keeps length-ish). */
-function blankSqlStrings(sql: string): string {
+/** Replace string and dollar-quoted literals with spaces (keeps length-ish).
+ * Exact literals in `preserve` survive so errcodes like check_violation remain
+ * visible after blanking.
+ */
+function blankSqlStrings(
+  sql: string,
+  preserve: ReadonlySet<string> = new Set(),
+): string {
   let out = "";
   let i = 0;
   while (i < sql.length) {
     const ch = sql[i]!;
     if (ch === "'") {
-      out += " ";
       i += 1;
+      let content = "";
       while (i < sql.length) {
         if (sql[i] === "'" && sql[i + 1] === "'") {
+          content += "'";
           i += 2;
           continue;
         }
@@ -343,18 +353,21 @@ function blankSqlStrings(sql: string): string {
           i += 1;
           break;
         }
+        content += sql[i];
         i += 1;
       }
+      out += preserve.has(content) ? ` '${content}' ` : " ";
       continue;
     }
     if (ch === "$") {
-      const m = /^\$([a-zA-Z_]*)\$/.exec(sql.slice(i));
+      const m = DOLLAR_TAG.exec(sql.slice(i));
       if (m) {
         const closer = `$${m[1]}$`;
         i += m[0].length;
         const end = sql.indexOf(closer, i);
         if (end === -1) break;
-        out += " ";
+        const content = sql.slice(i, end);
+        out += preserve.has(content) ? ` ${closer}${content}${closer} ` : " ";
         i = end + closer.length;
         continue;
       }
@@ -365,15 +378,18 @@ function blankSqlStrings(sql: string): string {
   return out;
 }
 
+const PINNED_OBJECT_NAME =
+  /buyer_supplier_profile|v_supplier_addresses(?:_direct)?/i;
+
 /**
  * True when SQL contains a dynamic EXECUTE (format / dollar / E' / ' / var)
- * whose argument text mentions a pinned object. Ignores GRANT EXECUTE and
- * trigger EXECUTE FUNCTION.
+ * whose argument text mentions a pinned object. Also catches PERFORM format(...)
+ * and opaque `EXECUTE stmt` when an earlier assignment to stmt embeds a pin.
+ * Ignores GRANT EXECUTE and trigger EXECUTE FUNCTION.
  */
 export function hasDynamicExecuteOfPinnedObject(sql: string): boolean {
   const code = stripSqlComments(sql);
-  const pinned =
-    /buyer_supplier_profile|v_supplier_addresses(?:_direct)?/i;
+  if (hasPerformFormatOfPinnedObject(code)) return true;
   let i = 0;
   while (i < code.length) {
     const m = /\bexecute\b/i.exec(code.slice(i));
@@ -387,20 +403,109 @@ export function hasDynamicExecuteOfPinnedObject(sql: string): boolean {
       continue;
     }
     const payload = extractExecuteArgPayload(code, at + m[0].length + ws);
-    if (pinned.test(payload)) return true;
+    if (PINNED_OBJECT_NAME.test(payload)) return true;
+    const opaque = /^([A-Za-z_][A-Za-z0-9_]*)\s*;/.exec(trimmed);
+    if (opaque) {
+      const varName = opaque[1]!;
+      if (assignedVarMentionsPinned(code, varName, at)) return true;
+    }
     i = at + m[0].length;
   }
   return false;
 }
 
-/** Argument text of an EXECUTE — full expression until `;` (covers concat). */
+function hasPerformFormatOfPinnedObject(code: string): boolean {
+  let i = 0;
+  while (i < code.length) {
+    const m = /\bperform\s+format\s*\(/i.exec(code.slice(i));
+    if (!m || m.index === undefined) break;
+    const paren = i + m.index + m[0].length - 1;
+    try {
+      const close = findMatchingParen(code, paren);
+      if (PINNED_OBJECT_NAME.test(code.slice(paren, close + 1))) return true;
+      i = close + 1;
+    } catch {
+      i += m[0].length;
+    }
+  }
+  return false;
+}
+
+/** Prior assignments to `varName` before `beforeIdx` that mention a pinned object. */
+function assignedVarMentionsPinned(
+  code: string,
+  varName: string,
+  beforeIdx: number,
+): boolean {
+  const re = new RegExp(
+    `\\b${varName}\\s*(?::=|=)\\s*([^;]+);`,
+    "gi",
+  );
+  const window = code.slice(0, beforeIdx);
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(window)) !== null) {
+    if (PINNED_OBJECT_NAME.test(m[1]!)) return true;
+  }
+  return false;
+}
+
+/** Argument text of an EXECUTE — full format(...) or expression until `;`. */
 function extractExecuteArgPayload(sql: string, start: number): string {
   const s = sql.slice(start);
-  if (/^format\s*\(/i.test(s)) {
-    return s.slice(0, 2000);
+  const formatOpen = /^format\s*\(/i.exec(s);
+  if (formatOpen) {
+    const paren = formatOpen[0].length - 1;
+    try {
+      const close = findMatchingParen(s, paren);
+      return s.slice(0, close + 1);
+    } catch {
+      return s;
+    }
   }
   const semi = s.search(/;/);
-  return s.slice(0, semi === -1 ? 500 : semi);
+  return s.slice(0, semi === -1 ? s.length : semi);
+}
+
+/**
+ * Drop `IF FALSE THEN … END IF` wrappers so dead-branch decoys cannot
+ * host the required PERFORM / EXISTS tokens.
+ */
+function stripFalsePlpgsqlBranches(sql: string): string {
+  let out = sql;
+  const re = /\bif\s+false\s+then\b/gi;
+  for (let n = 0; n < 32; n++) {
+    re.lastIndex = 0;
+    const m = re.exec(out);
+    if (!m || m.index === undefined) break;
+    const start = m.index;
+    const afterThen = start + m[0].length;
+    const endIf = findMatchingEndIf(out, afterThen);
+    if (endIf < 0) break;
+    out = out.slice(0, start) + " " + out.slice(endIf);
+  }
+  return out;
+}
+
+/** Index just past the `END IF` that closes the IF whose body starts at bodyStart. */
+function findMatchingEndIf(sql: string, bodyStart: number): number {
+  let depth = 1;
+  let i = bodyStart;
+  while (i < sql.length) {
+    const slice = sql.slice(i);
+    const ifM = /^(?:elsif\b|elseif\b|else\b|end\s+if\b|if\b)/i.exec(slice);
+    if (!ifM) {
+      i += 1;
+      continue;
+    }
+    const tok = ifM[0]!.toLowerCase().replace(/\s+/g, " ");
+    if (tok === "if") depth += 1;
+    else if (tok === "end if") {
+      depth -= 1;
+      if (depth === 0) return i + ifM[0].length;
+    }
+    i += ifM[0].length;
+  }
+  return -1;
 }
 
 function assertExactPairs(
@@ -523,7 +628,7 @@ export function assertFacilitiesContainment(args: {
           );
         }
       }
-      break;
+      // Do not break — a correct decoy before a poisoned live object must fail.
     }
     searchFrom = idx + 1;
   }
@@ -571,7 +676,8 @@ export function assertFacilitiesContainment(args: {
     const pairs = extractLiteralJsonbPairs(facilitiesCode, idx);
     const first = pairs[0]?.key;
     const spec = innerSpecs.find((s) => s.firstKey === first);
-    if (spec && !foundInner.has(spec.firstKey)) {
+    if (spec) {
+      // Pin every matching shape — not the first hit only.
       assertExactPairs(`facilities inner (${spec.firstKey})`, pairs, spec.allowed);
       foundInner.add(spec.firstKey);
     }
@@ -585,19 +691,24 @@ export function assertFacilitiesContainment(args: {
     }
   }
 
-  // Pin the live facilities jsonb_agg ORDER BY — not a decoy elsewhere.
-  const aggMatch =
-    /jsonb_agg\s*\(\s*fac\.obj\s+order\s+by\s+([^)]+)\)/i.exec(facilitiesCode);
-  if (!aggMatch) {
+  // Pin every live facilities jsonb_agg(fac.obj …) ORDER BY — blank strings
+  // first so a decoy inside a literal cannot satisfy the regex.
+  const facilitiesForAgg = blankSqlStrings(facilitiesCode);
+  const aggRe =
+    /jsonb_agg\s*\(\s*fac\.obj\s+order\s+by\s+([^)]+)\)/gi;
+  const aggMatches = [...facilitiesForAgg.matchAll(aggRe)];
+  if (aggMatches.length === 0) {
     throw new Error(
       "facilities jsonb_agg(fac.obj order by ...) clause missing",
     );
   }
-  const orderArgs = aggMatch[1]!.replace(/\s+/g, " ").trim().toLowerCase();
-  if (orderArgs !== "fac.facility_name, fac.facility_id") {
-    throw new Error(
-      `facilities jsonb_agg must order by fac.facility_name, fac.facility_id; got ${aggMatch[1]}`,
-    );
+  for (const aggMatch of aggMatches) {
+    const orderArgs = aggMatch[1]!.replace(/\s+/g, " ").trim().toLowerCase();
+    if (orderArgs !== "fac.facility_name, fac.facility_id") {
+      throw new Error(
+        `facilities jsonb_agg must order by fac.facility_name, fac.facility_id; got ${aggMatch[1]}`,
+      );
+    }
   }
 
   if (!/'facilities',\s*\(select items from facilities\)/.test(migrationSql)) {
@@ -690,9 +801,9 @@ export function assertFacilitiesContainment(args: {
     throw new Error("migration must keep the REZ-93 DISPLAY-ONLY marker");
   }
 
-  // Chain-refusal trigger: require the executable PERFORM ... FOR UPDATE
-  // statements and EXISTS predicates on string-blanked body text so a
-  // raise-exception string or `if false` decoy cannot satisfy the pin.
+  // Chain-refusal trigger: blank strings, strip `IF FALSE` wrappers, then
+  // require reachable PERFORM … FOR UPDATE before any RETURN NEW, and RAISE
+  // check_violation on both EXISTS refusal paths.
   const triggerFn =
     /create or replace function public\.enforce_facility_parent_is_company\(\)([\s\S]*?)\$\$\s*;/i.exec(
       migrationSql,
@@ -710,41 +821,47 @@ export function assertFacilitiesContainment(args: {
       "enforce_facility_parent_is_company must use an as $$ ... $$ body",
     );
   }
-  const triggerCode = blankSqlStrings(stripSqlComments(bodyMatch[1]!));
-  if (
-    !/perform\s+1\s+from\s+public\.suppliers\s+p\s+where\s+p\.id\s*=\s*new\.facility_of\s+for\s+update/i.test(
-      triggerCode,
-    )
-  ) {
+  const triggerCode = stripFalsePlpgsqlBranches(
+    blankSqlStrings(stripSqlComments(bodyMatch[1]!), new Set(["check_violation"])),
+  );
+  const parentLock =
+    /perform\s+1\s+from\s+public\.suppliers\s+p\s+where\s+p\.id\s*=\s*new\.facility_of\s+for\s+update/i;
+  const childLock =
+    /perform\s+1\s+from\s+public\.suppliers\s+c\s+where\s+c\.facility_of\s*=\s*new\.id\s+for\s+update/i;
+  const parentLockAt = triggerCode.search(parentLock);
+  const childLockAt = triggerCode.search(childLock);
+  if (parentLockAt < 0) {
     throw new Error(
       "enforce_facility_parent_is_company must PERFORM ... parent FOR UPDATE",
     );
   }
-  if (
-    !/perform\s+1\s+from\s+public\.suppliers\s+c\s+where\s+c\.facility_of\s*=\s*new\.id\s+for\s+update/i.test(
-      triggerCode,
-    )
-  ) {
+  if (childLockAt < 0) {
     throw new Error(
       "enforce_facility_parent_is_company must PERFORM ... children FOR UPDATE",
     );
   }
-  if (
-    !/if\s+exists\s*\(\s*select\s+1\s+from\s+public\.suppliers\s+p\s+where\s+p\.id\s*=\s*new\.facility_of\s+and\s+p\.facility_of\s+is\s+not\s+null\s*\)/i.test(
-      triggerCode,
-    )
-  ) {
+  const firstReturn = triggerCode.search(/\breturn\s+new\b/i);
+  if (firstReturn >= 0 && firstReturn < Math.min(parentLockAt, childLockAt)) {
     throw new Error(
-      "enforce_facility_parent_is_company must EXISTS-check parent.facility_of IS NOT NULL",
+      "enforce_facility_parent_is_company must PERFORM FOR UPDATE before RETURN NEW",
     );
   }
   if (
-    !/if\s+exists\s*\(\s*select\s+1\s+from\s+public\.suppliers\s+c\s+where\s+c\.facility_of\s*=\s*new\.id\s*\)/i.test(
+    !/if\s+exists\s*\(\s*select\s+1\s+from\s+public\.suppliers\s+p\s+where\s+p\.id\s*=\s*new\.facility_of\s+and\s+p\.facility_of\s+is\s+not\s+null\s*\)\s*then\s*raise\s+exception[\s\S]*?check_violation/i.test(
       triggerCode,
     )
   ) {
     throw new Error(
-      "enforce_facility_parent_is_company must EXISTS-check children pointing here",
+      "enforce_facility_parent_is_company must EXISTS-check parent.facility_of IS NOT NULL and RAISE check_violation",
+    );
+  }
+  if (
+    !/if\s+exists\s*\(\s*select\s+1\s+from\s+public\.suppliers\s+c\s+where\s+c\.facility_of\s*=\s*new\.id\s*\)\s*then\s*raise\s+exception[\s\S]*?check_violation/i.test(
+      triggerCode,
+    )
+  ) {
+    throw new Error(
+      "enforce_facility_parent_is_company must EXISTS-check children pointing here and RAISE check_violation",
     );
   }
   if (
