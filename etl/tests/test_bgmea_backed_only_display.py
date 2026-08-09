@@ -16,6 +16,7 @@ itself was dry-run as a SELECT against production and reproduced the expected
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 from typing import Any
 
@@ -46,17 +47,35 @@ _REGISTRY_VIEW_DEFINERS = [
 
 
 def _live_registry_view_migration() -> Path:
+    def _normalize(sql: str) -> str:
+        # Quoted-identifier recreates must still count as definers.
+        return (
+            sql.replace('"public"', "public")
+            .replace('"v_supplier_registry_ids_direct"', "v_supplier_registry_ids_direct")
+        )
+
     definers = sorted(
         path.name
         for path in MIGRATIONS_DIR.glob("*.sql")
         if "create or replace view public.v_supplier_registry_ids_direct"
-        in path.read_text(encoding="utf-8")
+        in _normalize(path.read_text(encoding="utf-8"))
     )
     assert definers == sorted(_REGISTRY_VIEW_DEFINERS), (
         "the set of migrations defining v_supplier_registry_ids_direct "
         f"changed: {definers}. If a new migration recreates the view, carry "
         "the REZ-98 backed-only BGMEA rule forward and update this pin."
     )
+    # Dynamic DO / EXECUTE format recreates never match the create needle —
+    # fail closed if any migration uses them against this view.
+    dynamic = re.compile(
+        r"execute\s+format\s*\([\s\S]{0,240}v_supplier_registry_ids",
+        re.IGNORECASE,
+    )
+    for path in MIGRATIONS_DIR.glob("*.sql"):
+        assert not dynamic.search(path.read_text(encoding="utf-8")), (
+            f"{path.name} dynamically recreates a registry view via EXECUTE "
+            "format — add an explicit CREATE and update the definer-set pin"
+        )
     return MIGRATIONS_DIR / _REGISTRY_VIEW_DEFINERS[-1]
 
 

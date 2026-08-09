@@ -126,6 +126,107 @@ export const FACILITIES_PROFILE_MIGRATION =
   "supabase/migrations/20260808_rez73_buyer_supplier_profile_facilities.sql";
 
 /**
+ * Balanced-paren extract of a `jsonb_build_object(...)` body starting at
+ * `openIdx` (index of the `j` in `jsonb_build_object`). Then split top-level
+ * arguments and require every KEY argument (even indices) to be a lowercase
+ * snake literal `'foo_bar'`. Concat (`'slu'||'g'`), dollar-quotes, mixed
+ * case, and format()-built keys all fail closed — they bypass a naive
+ * /'([a-z_]+)'/ whitelist lexer while still emitting identity.
+ */
+export function extractLiteralJsonbKeys(
+  sql: string,
+  openIdx: number,
+): string[] {
+  const marker = "jsonb_build_object";
+  const parenStart = sql.indexOf("(", openIdx);
+  if (parenStart < 0 || !sql.slice(openIdx, parenStart).includes(marker)) {
+    throw new Error("extractLiteralJsonbKeys: not at a jsonb_build_object");
+  }
+  let depth = 0;
+  let close = -1;
+  for (let i = parenStart; i < sql.length; i++) {
+    const ch = sql[i];
+    if (ch === "(") depth += 1;
+    else if (ch === ")") {
+      depth -= 1;
+      if (depth === 0) {
+        close = i;
+        break;
+      }
+    }
+  }
+  if (close === -1) {
+    throw new Error("extractLiteralJsonbKeys: jsonb_build_object never closes");
+  }
+  const body = sql.slice(parenStart + 1, close);
+  const args = splitTopLevelArgs(body);
+  if (args.length % 2 !== 0) {
+    throw new Error(
+      `jsonb_build_object has an odd argument count (${args.length}) — key/value pairs required`,
+    );
+  }
+  const keys: string[] = [];
+  for (let i = 0; i < args.length; i += 2) {
+    const keyArg = args[i]!.trim();
+    const lit = /^'([a-z][a-z0-9_]*)'$/.exec(keyArg);
+    if (!lit) {
+      throw new Error(
+        `facilities jsonb key must be a lowercase snake literal; got ${keyArg}`,
+      );
+    }
+    keys.push(lit[1]!);
+  }
+  return keys.sort();
+}
+
+/** Split on commas that sit at paren/bracket depth 0 outside quotes. */
+function splitTopLevelArgs(body: string): string[] {
+  const args: string[] = [];
+  let start = 0;
+  let depth = 0;
+  let inSingle = false;
+  let inDollar: string | null = null;
+  for (let i = 0; i < body.length; i++) {
+    const ch = body[i]!;
+    if (inDollar !== null) {
+      if (body.startsWith(inDollar, i)) {
+        i += inDollar.length - 1;
+        inDollar = null;
+      }
+      continue;
+    }
+    if (inSingle) {
+      if (ch === "'" && body[i + 1] === "'") {
+        i += 1; // escaped ''
+        continue;
+      }
+      if (ch === "'") inSingle = false;
+      continue;
+    }
+    if (ch === "'") {
+      inSingle = true;
+      continue;
+    }
+    if (ch === "$") {
+      const m = /^\$([a-zA-Z_]*)\$/.exec(body.slice(i));
+      if (m) {
+        inDollar = `$${m[1]}$`;
+        i += m[0].length - 1;
+        continue;
+      }
+    }
+    if (ch === "(" || ch === "[" || ch === "{") depth += 1;
+    else if (ch === ")" || ch === "]" || ch === "}") depth -= 1;
+    else if (ch === "," && depth === 0) {
+      args.push(body.slice(start, i));
+      start = i + 1;
+    }
+  }
+  args.push(body.slice(start));
+  return args.filter((a) => a.trim().length > 0);
+}
+
+/**
  * Pure checks on the migration text: the facilities CTE must exist, must
  * join children through the partial-index predicate, must read addresses
  * and pills from the DIRECT views, must emit no identifying or PII keys,
@@ -167,32 +268,28 @@ export function assertFacilitiesContainment(args: {
       "facility pills must come from v_supplier_registry_ids_direct — never the inheriting view",
     );
   }
+  // Strip SQL line comments before key / order pins so a comment cannot
+  // satisfy a substring guard while the live clause drifts.
+  const facilitiesCode = facilitiesBlock.replace(/--[^\n]*/g, "");
+
   // Hard requirement (REZ-73): nothing that identifies the unpublished row
   // beyond its name and address, and no contact PII. Quoted-key match only —
   // f.id appears in join predicates and must stay legal there.
   // is_sanctioned is deliberately NOT forbidden: it is a buyer-protection
   // signal that was public while the building was published, and the UI
   // badges it (a sanctioned building must not lose its marker at attach).
+  // source_ref / sbi_* are also forbidden: source_ref can carry
+  // `#inherited:<slug>`; SBI never leaves admin.
   const forbiddenKey =
-    /'(slug|id|completeness_pct|entity_type|source_tags|email_primary|phones|contact_name|contact_role|website|created_at|updated_at|phone|email)'\s*,/;
-  const badKey = forbiddenKey.exec(facilitiesBlock);
+    /'(slug|id|completeness_pct|entity_type|source_tags|source_ref|sbi_total|sbi_score|email_primary|phones|contact_name|contact_role|website|created_at|updated_at|phone|email)'\s*,/i;
+  const badKey = forbiddenKey.exec(facilitiesCode);
   if (badKey) {
     throw new Error(`facilities CTE emits forbidden key ${badKey[0]}`);
   }
-
-  // Whitelist, not just blacklist: the facilities object's key set must be
-  // exactly this. A renamed-key leak ('display_name', f.slug) passes a
-  // blacklist; it fails here. Extract the facilities jsonb_build_object and
-  // compare its top-level quoted keys.
-  const objMatch = /jsonb_build_object\(([\s\S]*?)\) as obj/.exec(
-    facilitiesBlock,
-  );
-  if (!objMatch) {
-    throw new Error("facilities CTE must build its object as `as obj`");
+  if (/'sbi_[a-z_]*'\s*,/i.test(facilitiesCode)) {
+    throw new Error("facilities CTE emits a forbidden sbi_* key");
   }
-  const emittedKeys = [...objMatch[1]!.matchAll(/'([a-z_]+)'\s*,/g)]
-    .map((m) => m[1])
-    .sort();
+
   const allowedKeys = [
     "addresses",
     "employees_total",
@@ -204,6 +301,23 @@ export function assertFacilitiesContainment(args: {
     "production_capacity_pcs_day",
     "rsc",
   ].sort();
+
+  // Top-level facilities object: balanced-paren extract + fail-closed key
+  // lexer. A first-`) as obj` slice truncates on nested `) as obj` in a
+  // subselect and lets keys after the truncation point pass the whitelist
+  // silently; concat / dollar-quote / mixed-case key expressions bypass a
+  // /'([a-z_]+)'/ extractor entirely.
+  // Anchor on the per-facility object (name + employees_total), not an
+  // inner addresses/pills/rsc build_object.
+  const topOpen = facilitiesCode.search(
+    /jsonb_build_object\s*\(\s*'name'\s*,\s*f\.company_name/,
+  );
+  if (topOpen === -1) {
+    throw new Error(
+      "facilities CTE must build its object as jsonb_build_object('name', f.company_name, ...)",
+    );
+  }
+  const emittedKeys = extractLiteralJsonbKeys(facilitiesCode, topOpen);
   if (JSON.stringify(emittedKeys) !== JSON.stringify(allowedKeys)) {
     throw new Error(
       `facilities object keys must be exactly ${allowedKeys.join(",")}; got ${emittedKeys.join(",")}`,
@@ -233,34 +347,12 @@ export function assertFacilitiesContainment(args: {
     },
   ];
   for (const { build, keys } of innerWhitelists) {
-    const anchor = facilitiesBlock.indexOf(build);
+    const anchor = facilitiesCode.indexOf(build);
     if (anchor === -1) {
       throw new Error(`facilities inner object anchor missing: ${build}`);
     }
-    const open = facilitiesBlock.lastIndexOf("jsonb_build_object(", anchor);
-    // Balanced-paren extraction: a naive first-")" slice would truncate
-    // early on any parenthesised value (e.g. coalesce(...)) and could let
-    // a key injected after the truncation point pass the pin silently.
-    let depth = 0;
-    let close = -1;
-    for (let i = open + "jsonb_build_object".length; i < facilitiesBlock.length; i++) {
-      const ch = facilitiesBlock[i];
-      if (ch === "(") depth += 1;
-      else if (ch === ")") {
-        depth -= 1;
-        if (depth === 0) {
-          close = i;
-          break;
-        }
-      }
-    }
-    if (close === -1) {
-      throw new Error(`facilities inner object never closes: ${build}`);
-    }
-    const inner = facilitiesBlock.slice(open, close);
-    const innerKeys = [...inner.matchAll(/'([a-z_]+)'\s*,/g)]
-      .map((m) => m[1])
-      .sort();
+    const open = facilitiesCode.lastIndexOf("jsonb_build_object(", anchor);
+    const innerKeys = extractLiteralJsonbKeys(facilitiesCode, open);
     if (JSON.stringify(innerKeys) !== JSON.stringify([...keys].sort())) {
       throw new Error(
         `facilities inner object keys must be exactly ${keys.join(",")}; got ${innerKeys.join(",")}`,
@@ -269,9 +361,13 @@ export function assertFacilitiesContainment(args: {
   }
 
   // Deterministic ordering pin: same-named sibling facilities are a real
-  // population (REZ-105), and jsonb_agg ties are non-deterministic without
-  // the id tiebreak. The React rows are index-keyed against this order.
-  if (!/order by fac\.facility_name, fac\.facility_id/.test(facilitiesBlock)) {
+  // population (REZ-105). Must be the jsonb_agg ORDER BY, not a comment or
+  // an unrelated ORDER BY elsewhere in the CTE.
+  if (
+    !/jsonb_agg\s*\([\s\S]*?\border\s+by\s+fac\.facility_name\s*,\s*fac\.facility_id\b/i.test(
+      facilitiesCode,
+    )
+  ) {
     throw new Error(
       "facilities jsonb_agg must order by (facility_name, facility_id) — deterministic for same-named siblings",
     );

@@ -128,7 +128,9 @@
 --
 -- REVERSE
 -- -------
---   Re-apply the 20260725_rez_security_hardening_2 function body — that is
+--   Drop trg_suppliers_facility_parent_is_company and
+--   enforce_facility_parent_is_company(). Re-apply the
+--   20260725_rez_security_hardening_2 function body — that is
 --   the actual pre-state in production, NOT 0095 (re-applying 0095 would
 --   introduce REZ-93's union while believing it was removed). Re-apply the
 --   0082 addresses view bodies (restores the strict is_published predicate
@@ -971,6 +973,59 @@ comment on function public.buyer_supplier_profile(text) is
   'partner_factories[] '
   'on buying_house pages and partner_buying_houses[] on factory pages contain '
   'only accepted relationships. Never returns contact PII (no '
-  'phone/email/contact_name). Never emits facility slug or id.';
+  'phone/email/contact_name). Never emits facility slug, id, source_ref '
+  'or SBI.';
+
+-- ---------------------------------------------------------------------------
+-- Facility→facility chain refusal (audit-cycle-4 MAJOR)
+-- ---------------------------------------------------------------------------
+-- 0091 only CHECKs facility_of <> id. REZ-92 and the facilities CTE walk
+-- only direct children (f.facility_of = s.id), so a building-of-a-building
+-- silently drops grandchildren from the group total while the mid-node
+-- 404s via facility_parent_slug. The upsert path already refuses
+-- facility parents (facility_of is null on both lookups); this trigger
+-- closes every other writer — including the REZ-71 backfill UPDATE.
+create or replace function public.enforce_facility_parent_is_company()
+returns trigger
+language plpgsql
+as $$
+begin
+  if new.facility_of is not null then
+    if exists (
+      select 1 from public.suppliers p
+       where p.id = new.facility_of
+         and p.facility_of is not null
+    ) then
+      raise exception
+        'cannot set facility_of to a facility row % — parent must be a company',
+        new.facility_of
+        using errcode = 'check_violation';
+    end if;
+  end if;
+  -- Becoming a facility while other rows already point here would open the
+  -- same silent-undercount window from the other direction.
+  if new.facility_of is not null and exists (
+    select 1 from public.suppliers c where c.facility_of = new.id
+  ) then
+    raise exception
+      'cannot mark supplier % as a facility while other rows reference it via facility_of',
+      new.id
+      using errcode = 'check_violation';
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists trg_suppliers_facility_parent_is_company
+  on public.suppliers;
+create trigger trg_suppliers_facility_parent_is_company
+  before insert or update of facility_of on public.suppliers
+  for each row execute function public.enforce_facility_parent_is_company();
+
+comment on function public.enforce_facility_parent_is_company() is
+  'REZ-73 / REZ-92 durable guard: facility_of targets must themselves be '
+  'companies (facility_of IS NULL), and a row that already has facility '
+  'children cannot become a facility. Complements the upsert pin and the '
+  '0091 self-reference CHECK.';
 
 notify pgrst, 'reload schema';

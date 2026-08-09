@@ -300,13 +300,13 @@ const ONE_FACILITY_LEAK_CANARIES = [
 //   pcs/day 5000+3000, 1 unknown
 //   dozen/yr 10000 only, 2 unknown
 const ROLLUP_EXPECTATIONS = [
-  "Employees — group total",
+  "Production workers — group total",
   "at least 2,034 across 3 buildings, 1 unknown",
   "Sewing machines — group total",
   "at least 600 across 3 buildings, 1 unknown",
-  "Daily capacity (pcs) — group total",
+  "Daily output — group total",
   "at least 8,000 across 3 buildings, 1 unknown",
-  "Yearly capacity (dozen) — group total",
+  "Annual output — group total",
   "at least 10,000 across 3 buildings, 2 unknown",
   "Mother With Facilities Ltd (Extension)",
   "Mother With Facilities Ltd Unit-2",

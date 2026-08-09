@@ -152,6 +152,47 @@ describe("20260808_rez73 migration containment", () => {
     assert.doesNotThrow(() => assertFacilitiesContainment({ migrationSql }));
   });
 
+  it("rejects concat / dollar-quote / mixed-case key leak vectors", () => {
+    const base = fs.readFileSync(
+      path.join(process.cwd(), FACILITIES_PROFILE_MIGRATION),
+      "utf8",
+    );
+    // Inject after the legitimate 'rsc' key — a first-`) as obj` or
+    // /'[a-z_]+'/ lexer would keep the whitelist green while emitting slug.
+    const rscAnchor = /'rsc',\s*fr\.obj/;
+    assert.match(base, rscAnchor, "migration must contain the rsc key anchor");
+    const inject = (keyExpr: string) => {
+      const out = base.replace(rscAnchor, `'rsc', fr.obj, ${keyExpr}, f.slug`);
+      assert.notEqual(out, base, `inject of ${keyExpr} must modify the SQL`);
+      return out;
+    };
+    for (const [label, expr] of [
+      ["concat", "('slu' || 'g')"],
+      ["dollar", "$k$slug$k$"],
+      ["mixed-case", "'Slug'"],
+      ["source_ref literal", "'source_ref'"],
+      ["sbi_total literal", "'sbi_total'"],
+    ] as const) {
+      assert.throws(
+        () => assertFacilitiesContainment({ migrationSql: inject(expr) }),
+        /forbidden key|lowercase snake literal|sbi_/i,
+        `${label} key expression must fail containment`,
+      );
+    }
+    // Nested `) as obj` before a forbidden key must not truncate the
+    // top-level whitelist extraction.
+    const truncated = base.replace(
+      rscAnchor,
+      `'rsc', (select (fr.obj) as obj), 'source_ref', f.slug`,
+    );
+    assert.notEqual(truncated, base);
+    assert.throws(
+      () => assertFacilitiesContainment({ migrationSql: truncated }),
+      /forbidden key|exactly|source_ref|lowercase snake literal/i,
+      "nested ) as obj truncation must fail containment",
+    );
+  });
+
   it("pins the full definer set of every object 20260808 recreates", () => {
     // The 0097→20260808 rename closed one silent-overwrite window, but the
     // same class recurs the day anyone adds a later-sorting migration that
@@ -163,9 +204,19 @@ describe("20260808_rez73 migration containment", () => {
       .readdirSync(migrationsDir)
       .filter((f) => f.endsWith(".sql"))
       .sort();
+    // Normalise quoted identifiers and catch dynamic EXECUTE recreates so
+    // `"public".buyer_supplier_profile` / format(%I.%I) cannot slip past.
+    const normalize = (sql: string) =>
+      sql
+        .replace(/"public"/gi, "public")
+        .replace(/"(buyer_supplier_profile)"/gi, "$1")
+        .replace(/"(v_supplier_addresses_direct)"/gi, "$1")
+        .replace(/"(v_supplier_addresses)"/gi, "$1");
     const definersOf = (pattern: RegExp) =>
       files.filter((f) =>
-        pattern.test(fs.readFileSync(path.join(migrationsDir, f), "utf8")),
+        pattern.test(
+          normalize(fs.readFileSync(path.join(migrationsDir, f), "utf8")),
+        ),
       );
     const LIVE = "20260808_rez73_buyer_supplier_profile_facilities.sql";
     const expected: Record<string, string[]> = {
@@ -203,15 +254,15 @@ describe("20260808_rez73 migration containment", () => {
     const patterns: [string, RegExp][] = [
       [
         "public.buyer_supplier_profile",
-        /create( or replace)? function public\.buyer_supplier_profile/i,
+        /create(?:\s+or\s+replace)?\s+function\s+public\.buyer_supplier_profile/i,
       ],
       [
         "public.v_supplier_addresses_direct",
-        /create( or replace)? view public\.v_supplier_addresses_direct/i,
+        /create(?:\s+or\s+replace)?\s+view\s+public\.v_supplier_addresses_direct/i,
       ],
       [
         "public.v_supplier_addresses",
-        /create( or replace)? view public\.v_supplier_addresses\b/i,
+        /create(?:\s+or\s+replace)?\s+view\s+public\.v_supplier_addresses\b/i,
       ],
     ];
     for (const [objectName, pattern] of patterns) {
@@ -223,5 +274,37 @@ describe("20260808_rez73 migration containment", () => {
           `it, state which body is live and update this pin`,
       );
     }
+    // Dynamic DO / EXECUTE format(%I.%I) recreates are a separate bypass
+    // class: they never match the create regex, so fail closed if any
+    // migration uses them against these objects.
+    const DYNAMIC =
+      /execute\s+format\s*\([\s\S]{0,240}(buyer_supplier_profile|v_supplier_addresses)/i;
+    for (const f of files) {
+      const sql = fs.readFileSync(path.join(migrationsDir, f), "utf8");
+      assert.ok(
+        !DYNAMIC.test(sql),
+        `${f} dynamically recreates a pinned object via EXECUTE format — ` +
+          `add an explicit CREATE and update the definer-set pin`,
+      );
+    }
+  });
+
+  it("pins the facility→facility parent refusal trigger", () => {
+    const migrationSql = fs.readFileSync(
+      path.join(process.cwd(), FACILITIES_PROFILE_MIGRATION),
+      "utf8",
+    );
+    assert.match(
+      migrationSql,
+      /create or replace function public\.enforce_facility_parent_is_company/i,
+    );
+    assert.match(
+      migrationSql,
+      /p\.facility_of is not null/,
+    );
+    assert.match(
+      migrationSql,
+      /trg_suppliers_facility_parent_is_company/,
+    );
   });
 });

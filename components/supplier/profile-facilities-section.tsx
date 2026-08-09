@@ -61,15 +61,15 @@ const ROLLUP_FIGURES: {
   column: keyof FacilityRollupOwn;
   label: string;
 }[] = [
-  { column: "employees_total", label: "Employees — group total" },
+  { column: "employees_total", label: "Production workers — group total" },
   { column: "machines_sewing", label: "Sewing machines — group total" },
   {
     column: "production_capacity_pcs_day",
-    label: "Daily capacity (pcs) — group total",
+    label: "Daily output — group total",
   },
   {
     column: "production_capacity_dozen_yearly",
-    label: "Yearly capacity (dozen) — group total",
+    label: "Annual output — group total",
   },
 ];
 

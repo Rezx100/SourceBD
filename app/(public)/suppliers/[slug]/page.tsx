@@ -13,7 +13,8 @@
 //      anonymous traffic). Inline mapper, not promoted to lib/.
 //
 // Hard contracts preserved:
-//   - RPC `public.buyer_supplier_profile` is unchanged (no DB migration).
+//   - RPC `public.buyer_supplier_profile` shaped by migration
+//     20260808_rez73 (facilities[] + REZ-93 union); no-op at zero facilities.
 //   - R1 glyph payload = `t13_source_count`. No SBI / pillar / grade.
 //   - Sanctions banner overrides chrome when an active hit exists; the
 //     Contact CTA is disabled in that branch.

@@ -8,7 +8,8 @@
 //
 // Distinct from the public anonymous `(public)/suppliers/[slug]` route
 // (F3 exit gate). This route is gated behind `(app)/app/*` middleware, calls
-// `public.buyer_supplier_profile` (migration 0024). No RPC changes.
+// `public.buyer_supplier_profile` (migration 20260808_rez73 — facilities[]
+// + REZ-93 union; no-op at zero facilities).
 //
 // SBI hard contract (ai-workflow-rules.md):
 //   * RPC does NOT join `sbi_scores`. Nothing here selects/renders any SBI value.

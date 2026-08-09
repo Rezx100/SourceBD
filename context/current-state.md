@@ -90,6 +90,17 @@ migration recreating one of them fails the suite until the author states
 which body is live. Production baseline for the Stage-2 recompute,
 measured 8 Aug 2026: 10,846 published of 10,913 supplier rows (the
 10,847/10,914 figures quoted earlier in the day were one row stale).
+Cycle-4 repairs (audit REJECT on 1ae74e2): Facilities roll-up headcount
+label is "Production workers — group total" (REZ-95 vocabulary — was
+"Employees"); capacity peers aligned to Daily/Annual output; containment
+key lexer is fail-closed (balanced-paren top-level extract + only
+lowercase snake literals accepted as keys; source_ref/sbi_* on the
+blacklist; adversarial fixtures for concat/dollar/mixed-case/nested
+`) as obj`); definer-set pin normalises quoted identifiers and fails
+closed on EXECUTE format recreates (Python registry pin likewise);
+DB trigger `enforce_facility_parent_is_company` refuses facility→facility
+parents (and refuse becoming a facility while children already point
+here) — upsert pin alone left SQL UPDATE / backfill writers open.
 Stage 1 of REZ-71's stage plan;
 lands before any attach work. Parent epic: REZ-58.
 
@@ -673,8 +684,9 @@ query `to_regclass` / `information_schema` directly, before assuming.
 | `0096_facility_parent_slug` | not applied | REZ-72; SECURITY DEFINER parent-slug lookup |
 | `20260808_rez73_buyer_supplier_profile_facilities` | not applied | REZ-73; facilities key + view relaxations + donor gate + registry revokes. Also activates 0095's body on apply |
 
-Production baseline after all four: 10,845 published of 10,912 suppliers
-(unchanged by every migration above — all additive, no row writes).
+Production baseline (re-verified 10 Aug 2026): 10,846 published of 10,913
+suppliers. Earlier ledger lines citing 10,845 / 10,912 were one-row stale
+at the time of writing and are historical, not current.
 
 Deploy-order hazard, twice hit: A4 and A6 query `resolution_edges` /
 `supplier_field_locks` unconditionally with no missing-table guard, so
