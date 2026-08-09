@@ -383,6 +383,18 @@ describe("20260808_rez73 migration containment", () => {
         "stmt := convert_from(decode('Q1JFQVRF', 'base64'), 'utf8'); EXECUTE stmt || '';",
       ],
       [
+        "convert-from-concat-fn",
+        "stmt := convert_from(decode('Q1JFQVRF', 'base64'), 'utf8'); EXECUTE concat(stmt, '');",
+      ],
+      [
+        "convert-from-lower",
+        "stmt := convert_from(decode('Q1JFQVRF', 'base64'), 'utf8'); EXECUTE lower(stmt);",
+      ],
+      [
+        "convert-from-alias-chain",
+        "a := convert_from(decode('Q1JFQVRF', 'base64'), 'utf8'); b := a; EXECUTE b;",
+      ],
+      [
         "convert-from-using",
         "stmt := convert_from(decode('Q1JFQVRF', 'base64'), 'utf8'); EXECUTE stmt USING 1;",
       ],
@@ -638,9 +650,20 @@ describe("20260808_rez73 migration containment", () => {
     for (const [label, wrapper] of [
       ["if false", "if false then\n%s\n  end if;\n"],
       ["if true and false", "if true and false then\n%s\n  end if;\n"],
+      [
+        "if facility_of and false",
+        "if new.facility_of is not null and false then\n%s\n  end if;\n",
+      ],
+      [
+        "if facility_of or true",
+        "if new.facility_of is not null or true then\n%s\n  end if;\n",
+      ],
+      [
+        "if exists where false",
+        "if exists (select 1 where false) then\n%s\n  end if;\n",
+      ],
       ["if 0 <> 0", "if 0 <> 0 then\n%s\n  end if;\n"],
-      ["if not (1 = 1)", "if not (1 = 1) then\n%s\n  end if;\n"],
-      ["if 1 < 0", "if 1 < 0 then\n%s\n  end if;\n"],
+      ["elseif false", "if new.facility_of is not null then null; elseif false then\n%s\n  end if;\n"],
       ["case when false", "case when false then\n%s\n  else null; end case;\n"],
       ["while not true", "while not true loop\n%s\n  end loop;\n"],
       ["for 1..0", "for i in 1..0 loop\n%s\n  end loop;\n"],
@@ -651,8 +674,29 @@ describe("20260808_rez73 migration containment", () => {
         "  return new;\nend;";
       assert.throws(
         () => assertFacilitiesContainment({ migrationSql: swapTrigger(body) }),
-        /IF predicates|LOOP|WHILE|CASE|EXCEPTION|PERFORM|FOR UPDATE/i,
+        /IF predicates|exactly|LOOP|WHILE|CASE|EXCEPTION|ELSEIF|ELSIF|PERFORM|FOR UPDATE/i,
         `${label} dead-path PERFORM must fail`,
+      );
+    }
+
+    {
+      const start = migrationSql.indexOf(
+        "create or replace function public.buyer_supplier_profile",
+      );
+      const asAt = migrationSql.indexOf("as $$", start);
+      const widened =
+        migrationSql.slice(0, start) +
+        migrationSql
+          .slice(start, asAt)
+          .replace(
+            /set\s+search_path\s*=\s*public/i,
+            "set search_path = public, pg_temp",
+          ) +
+        migrationSql.slice(asAt);
+      assert.throws(
+        () => assertFacilitiesContainment({ migrationSql: widened }),
+        /search_path = public exactly/i,
+        "widened search_path must fail",
       );
     }
 
@@ -696,8 +740,17 @@ describe("20260808_rez73 migration containment", () => {
     );
     assert.throws(
       () => assertFacilitiesContainment({ migrationSql: ifFalseElseReturn }),
-      /IF predicates|LOOP|WHILE|before any RETURN|PERFORM/i,
+      /IF predicates|exactly|LOOP|WHILE|before any RETURN|PERFORM/i,
       "IF FALSE ELSE RETURN NEW then PERFORM must fail",
+    );
+
+    const aliasDo =
+      migrationSql +
+      "\nDO $$ BEGIN a := convert_from(decode('Q1JFQVRF','base64'),'utf8'); b := a; EXECUTE b; END $$;\n";
+    assert.throws(
+      () => assertFacilitiesContainment({ migrationSql: aliasDo }),
+      /dynamically EXECUTE|pinned object/i,
+      "DO alias-chain EXECUTE must fail containment",
     );
 
     const noRaise = swapTrigger(

@@ -432,13 +432,16 @@ function hasPerformFormatOfPinnedObject(code: string): boolean {
   return false;
 }
 
-/** Prior assignments to `varName` before `beforeIdx` that mention a pinned object
- * or obfuscate via convert_from/decode/encode/chr (fail-closed). */
+/** True if `varName`'s assignment provenance (transitively) is pinned or obfuscated. */
 function assignedVarMentionsPinned(
   code: string,
   varName: string,
   beforeIdx: number,
+  seen: Set<string> = new Set(),
 ): boolean {
+  const key = varName.toLowerCase();
+  if (seen.has(key)) return false;
+  seen.add(key);
   const window = code.slice(0, beforeIdx);
   const obfuscated = /\b(convert_from|decode|encode|chr)\s*\(/i;
   const assignRe = new RegExp(
@@ -447,32 +450,33 @@ function assignedVarMentionsPinned(
   );
   let m: RegExpExecArray | null;
   while ((m = assignRe.exec(window)) !== null) {
-    if (PINNED_OBJECT_NAME.test(m[1]!) || obfuscated.test(m[1]!)) return true;
+    const rhs = m[1]!;
+    if (PINNED_OBJECT_NAME.test(rhs) || obfuscated.test(rhs)) return true;
+    for (const id of rhs.matchAll(/\b([A-Za-z_][A-Za-z0-9_]*)\b/g)) {
+      if (assignedVarMentionsPinned(code, id[1]!, beforeIdx, seen)) return true;
+    }
   }
   const intoRe = new RegExp(
     `\\bselect\\b([\\s\\S]*?)\\binto\\s+(?:strict\\s+)?${varName}\\b`,
     "gi",
   );
   while ((m = intoRe.exec(window)) !== null) {
-    if (PINNED_OBJECT_NAME.test(m[1]!) || obfuscated.test(m[1]!)) return true;
+    const rhs = m[1]!;
+    if (PINNED_OBJECT_NAME.test(rhs) || obfuscated.test(rhs)) return true;
+    for (const id of rhs.matchAll(/\b([A-Za-z_][A-Za-z0-9_]*)\b/g)) {
+      if (assignedVarMentionsPinned(code, id[1]!, beforeIdx, seen)) return true;
+    }
   }
   return false;
 }
 
-/** Identifiers an EXECUTE payload may be reading (opaque var / format arg / concat). */
+/** Identifiers referenced in an EXECUTE payload (any call/concat/cast shape). */
 function extractExecutedVarNames(payload: string): string[] {
   const names = new Set<string>();
   const skip =
-    /^(format|convert_from|decode|encode|chr|select|null|true|false|utf8|base64|text)$/i;
-  const p = payload.trim();
-  const bare = /^([A-Za-z_][A-Za-z0-9_]*)\b/.exec(p);
-  if (bare && !skip.test(bare[1]!)) names.add(bare[1]!);
-  const paren = /^\(\s*([A-Za-z_][A-Za-z0-9_]*)\s*\)/.exec(p);
-  if (paren) names.add(paren[1]!);
-  if (/^format\s*\(/i.test(p) || /\|\||::|\busing\b/i.test(p)) {
-    for (const id of p.matchAll(/\b([A-Za-z_][A-Za-z0-9_]*)\b/g)) {
-      if (!skip.test(id[1]!)) names.add(id[1]!);
-    }
+    /^(format|convert_from|decode|encode|chr|select|null|true|false|utf8|base64|text|concat|cast|upper|lower|trim|btrim|coalesce|quote_ident|quote_nullable|replace|array_to_string|array|as|using)$/i;
+  for (const id of payload.matchAll(/\b([A-Za-z_][A-Za-z0-9_]*)\b/g)) {
+    if (!skip.test(id[1]!)) names.add(id[1]!);
   }
   return [...names];
 }
@@ -480,14 +484,23 @@ function extractExecutedVarNames(payload: string): string[] {
 /** Argument text of an EXECUTE — full format(...) or expression until `;`. */
 function extractExecuteArgPayload(sql: string, start: number): string {
   const s = sql.slice(start);
-  const formatOpen = /^format\s*\(/i.exec(s);
-  if (formatOpen) {
-    const paren = formatOpen[0].length - 1;
+  // Leading open-paren / function call — take until matching close if starts with ident(
+  const call = /^([A-Za-z_][A-Za-z0-9_]*)\s*\(/i.exec(s);
+  if (call) {
+    const paren = call[0].length - 1;
     try {
       const close = findMatchingParen(s, paren);
       return s.slice(0, close + 1);
     } catch {
-      return s;
+      /* fall through */
+    }
+  }
+  if (/^\(/.test(s)) {
+    try {
+      const close = findMatchingParen(s, 0);
+      return s.slice(0, close + 1);
+    } catch {
+      /* fall through */
     }
   }
   const semi = s.search(/;/);
@@ -495,35 +508,53 @@ function extractExecuteArgPayload(sql: string, start: number): string {
 }
 
 /**
- * Fail closed: only the live IF shapes are allowed; ban LOOP/WHILE/CASE/ELSIF/
- * EXCEPTION wrappers that can host unreachable PERFORM / EXISTS / RAISE.
+ * Fail closed: only exact live IF predicates; ban LOOP/WHILE/CASE/ELSIF/ELSEIF/
+ * EXCEPTION. END IF uses a real token match, not a 4-char lookback.
  */
 function assertNoDeadPathGaming(triggerCode: string): void {
-  if (/\b(?:loop|while|elsif|case\s+when|exception\s+when)\b/i.test(triggerCode)) {
+  if (
+    /\b(?:loop|while|elsif|elseif|case\s+when|exception\s+when)\b/i.test(
+      triggerCode,
+    )
+  ) {
     throw new Error(
-      "enforce_facility_parent_is_company must not use LOOP/WHILE/ELSIF/CASE/EXCEPTION wrappers",
+      "enforce_facility_parent_is_company must not use LOOP/WHILE/ELSIF/ELSEIF/CASE/EXCEPTION wrappers",
     );
   }
+  const allowedExact = new Set([
+    "new.facility_of is not null",
+    "exists ( select 1 from public.suppliers p where p.id = new.facility_of and p.facility_of is not null )",
+    "exists ( select 1 from public.suppliers c where c.facility_of = new.id )",
+  ]);
   let i = 0;
   while (i < triggerCode.length) {
     const m = /\bif\b/i.exec(triggerCode.slice(i));
     if (!m || m.index === undefined) break;
     const at = i + m.index;
-    // Skip `END IF` — the trailing IF is not a predicate.
-    if (/\bend\s*$/i.test(triggerCode.slice(Math.max(0, at - 4), at))) {
+    // Skip END IF — require the preceding token to be END.
+    const before = triggerCode.slice(0, at);
+    if (/\bend\s+$/i.test(before)) {
       i = at + m[0].length;
       continue;
     }
-    const after = triggerCode.slice(at + m[0].length).replace(/^\s+/, "");
-    const allowed =
-      /^new\.facility_of\s+is\s+not\s+null\b/i.test(after) ||
-      /^exists\s*\(/i.test(after);
-    if (!allowed) {
+    const afterIf = triggerCode.slice(at + m[0].length);
+    const thenM = /\bthen\b/i.exec(afterIf);
+    if (!thenM || thenM.index === undefined) {
       throw new Error(
-        "enforce_facility_parent_is_company IF predicates must be new.facility_of IS NOT NULL or EXISTS (...)",
+        "enforce_facility_parent_is_company IF must have a THEN",
       );
     }
-    i = at + m[0].length;
+    const pred = afterIf
+      .slice(0, thenM.index)
+      .replace(/\s+/g, " ")
+      .trim()
+      .toLowerCase();
+    if (!allowedExact.has(pred)) {
+      throw new Error(
+        "enforce_facility_parent_is_company IF predicates must be exactly new.facility_of IS NOT NULL or the live EXISTS checks",
+      );
+    }
+    i = at + m[0].length + thenM.index + thenM[0].length;
   }
 }
 
@@ -791,16 +822,22 @@ export function assertFacilitiesContainment(args: {
     ),
   );
   const addressesNorm = addressesInheritingBlock.replace(/\s+/g, " ");
-  // Exact parent JOIN conjuncts through the next JOIN — no OR anywhere in that span.
-  const parentJoin =
-    /join public\.suppliers parent([\s\S]*?)join public\.v_supplier_addresses_direct/i.exec(
-      addressesNorm,
-    );
-  if (!parentJoin) {
+  if ((addressesNorm.match(/\bunion\s+all\b/gi) ?? []).length !== 1) {
     throw new Error(
-      "v_supplier_addresses inheritance branch must join parent then v_supplier_addresses_direct",
+      "v_supplier_addresses must be exactly direct UNION ALL one inheritance branch",
     );
   }
+  const parentJoins = [
+    ...addressesNorm.matchAll(
+      /join public\.suppliers parent([\s\S]*?)join public\.v_supplier_addresses_direct/gi,
+    ),
+  ];
+  if (parentJoins.length !== 1) {
+    throw new Error(
+      "v_supplier_addresses inheritance branch must have exactly one parent→addresses_direct join",
+    );
+  }
+  const parentJoin = parentJoins[0]!;
   if (/\bor\b/i.test(parentJoin[1]!)) {
     throw new Error(
       "v_supplier_addresses donor JOIN must not contain OR",
@@ -890,8 +927,18 @@ export function assertFacilitiesContainment(args: {
   if (!/security\s+definer/i.test(profileHeader)) {
     throw new Error("buyer_supplier_profile must be SECURITY DEFINER");
   }
-  if (!/set\s+search_path\s*=\s*public\b/i.test(profileHeader)) {
-    throw new Error("buyer_supplier_profile must set search_path = public");
+  {
+    const sets = [
+      ...profileHeader.matchAll(/set\s+search_path\s*=\s*([^\n;]+)/gi),
+    ];
+    if (
+      sets.length !== 1 ||
+      sets[0]![1]!.trim().toLowerCase() !== "public"
+    ) {
+      throw new Error(
+        "buyer_supplier_profile must set search_path = public exactly once",
+      );
+    }
   }
 
   // Reverse comment block only — stop before the first CREATE so DDL cannot
@@ -944,10 +991,18 @@ export function assertFacilitiesContainment(args: {
   const triggerHeader = stripSqlComments(
     triggerFn[0]!.slice(0, triggerAs.index),
   );
-  if (!/set\s+search_path\s*=\s*public\b/i.test(triggerHeader)) {
-    throw new Error(
-      "enforce_facility_parent_is_company must set search_path = public",
-    );
+  {
+    const sets = [
+      ...triggerHeader.matchAll(/set\s+search_path\s*=\s*([^\n;]+)/gi),
+    ];
+    if (
+      sets.length !== 1 ||
+      sets[0]![1]!.trim().toLowerCase() !== "public"
+    ) {
+      throw new Error(
+        "enforce_facility_parent_is_company must set search_path = public exactly once",
+      );
+    }
   }
   const bodyMatch = /as\s*\$\$([\s\S]*?)\$\$/i.exec(triggerFn[0]!);
   if (!bodyMatch) {
