@@ -519,6 +519,8 @@ export function hasDynamicExecuteOfPinnedObject(sql: string): boolean {
       const afterKw = code.slice(at + kw[0].length);
       const ws = afterKw.match(/^\s*/)?.[0].length ?? 0;
       const payload = extractExecuteArgPayload(code, at + kw[0].length + ws);
+      // E'…\…' can hex/octal-assemble a pinned name — fail closed.
+      if (/E'[^']*\\/i.test(payload)) return true;
       if (
         /\b(convert_from|decode|encode|chr|current_setting|pg_read_file|set_config)\s*\(/i.test(
           payload,
@@ -1108,36 +1110,163 @@ function assertNoDynamicExecuteInMigration(sql: string): void {
   }
 }
 
-/** Exactly one CREATE for each pinned function; no ALTER FUNCTION/ROUTINE. */
+/** Spaced keyword piece (matches comment-split CREATE after space-strip). */
+function sqlKw(letters: string): string {
+  return letters
+    .split("")
+    .map((ch) => ch.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
+    .join("\\s*");
+}
+
+/** Optional public. / "public". / public . before a function ident. */
+function pinnedFnNamePattern(name: string): string {
+  const schema = String.raw`(?:(?:"?public"?)\s*\.\s*)?`;
+  return `${schema}(?:"${name}"|${name})\\b`;
+}
+
+/**
+ * Exactly one CREATE [OR REPLACE] FUNCTION for each pinned name; no DROP /
+ * ALTER FUNCTION|ROUTINE (including comment-split and unqualified/quoted forms).
+ */
 function assertPinnedFunctionsSingular(migrationSql: string): void {
-  const code = stripSqlComments(migrationSql);
+  const forms = executeScanForms(migrationSql);
   for (const name of [
     "buyer_supplier_profile",
     "enforce_facility_parent_is_company",
   ]) {
-    const creates = [
-      ...code.matchAll(
+    const namePat = pinnedFnNamePattern(name);
+    const createRe = new RegExp(
+      `${sqlKw("create")}(?:\\s+${sqlKw("or")}\\s+${sqlKw("replace")})?\\s+${sqlKw("function")}\\s+${namePat}`,
+      "gi",
+    );
+    const createOrReplaceRe = new RegExp(
+      `${sqlKw("create")}\\s+${sqlKw("or")}\\s+${sqlKw("replace")}\\s+${sqlKw("function")}\\s+${namePat}`,
+      "gi",
+    );
+
+    let createCount = 0;
+    let createOrReplaceCount = 0;
+    for (const code of forms) {
+      createCount = Math.max(createCount, [...code.matchAll(createRe)].length);
+      createOrReplaceCount = Math.max(
+        createOrReplaceCount,
+        [...code.matchAll(createOrReplaceRe)].length,
+      );
+      if (
         new RegExp(
-          `create\\s+or\\s+replace\\s+function\\s+public\\.${name}\\b`,
-          "gi",
-        ),
-      ),
-    ];
-    if (creates.length !== 1) {
+          `${sqlKw("drop")}\\s+${sqlKw("function")}\\s+(?:if\\s+exists\\s+)?${namePat}`,
+          "i",
+        ).test(code)
+      ) {
+        throw new Error(`migration must not DROP FUNCTION ${name}`);
+      }
+      if (
+        new RegExp(
+          `${sqlKw("alter")}\\s+(?:${sqlKw("function")}|${sqlKw("routine")})\\s+${namePat}`,
+          "i",
+        ).test(code)
+      ) {
+        throw new Error(
+          `migration must not ALTER FUNCTION/ROUTINE ${name}`,
+        );
+      }
+    }
+    if (createCount !== 1 || createOrReplaceCount !== 1) {
       throw new Error(
-        `migration must contain exactly one CREATE OR REPLACE for public.${name} (found ${creates.length})`,
+        `migration must contain exactly one CREATE OR REPLACE FUNCTION for ${name} (found create=${createCount}, or-replace=${createOrReplaceCount})`,
       );
     }
+  }
+}
+
+/** Header may set search_path = public exactly once — no TO / quotes / U& / dual SET. */
+function assertHeaderSearchPathPublicOnly(header: string, label: string): void {
+  const h = header.replace(/\s+/g, " ");
+  if (/\bu\s*&\s*"/i.test(h)) {
+    throw new Error(`${label} header must not SET a U&"…" identifier`);
+  }
+  if (/\bset\s+(?:local\s+|session\s+)?"search_path"/i.test(h)) {
+    throw new Error(`${label} header must not SET quoted "search_path"`);
+  }
+  if (/\bset\s+(?:local\s+|session\s+)?search_path\s+to\b/i.test(h)) {
+    throw new Error(`${label} header must not SET search_path TO …`);
+  }
+  const sets = [
+    ...h.matchAll(
+      /\bset\s+(?:local\s+|session\s+)?(?:search_path|"search_path")\s*(?:=|to)\s*([^;]+)/gi,
+    ),
+  ];
+  if (
+    sets.length !== 1 ||
+    sets[0]![1]!.trim().toLowerCase() !== "public"
+  ) {
+    throw new Error(
+      `${label} must set search_path = public exactly once`,
+    );
+  }
+}
+
+/** Ban GRANT SELECT to anon/authenticated; require REVOKE on relaxed views. */
+function assertRelaxedViewsFinalPrivileges(migrationSql: string): void {
+  const code = stripSqlComments(migrationSql);
+  const views = [
+    "v_supplier_registry_ids_direct",
+    "v_supplier_registry_ids",
+    "v_supplier_addresses_direct",
+    "v_supplier_addresses",
+  ];
+  for (const view of views) {
     if (
       new RegExp(
-        `alter\\s+(?:function|routine)\\s+public\\.${name}\\b`,
+        `grant\\s+select\\s+on\\s+public\\.${view}\\b[\\s\\S]{0,120}?\\bto\\b[\\s\\S]{0,80}?\\b(anon|authenticated)\\b`,
         "i",
       ).test(code)
     ) {
       throw new Error(
-        `migration must not ALTER FUNCTION/ROUTINE public.${name}`,
+        `migration must not GRANT SELECT on public.${view} to anon/authenticated`,
       );
     }
+    if (
+      !new RegExp(
+        `revoke\\s+select\\s+on\\s+public\\.${view}\\s+from\\s+anon,\\s*authenticated`,
+        "i",
+      ).test(code)
+    ) {
+      throw new Error(
+        `migration must revoke anon/authenticated on ${view}`,
+      );
+    }
+  }
+}
+
+/** parent_addr may only appear as the join alias or allowlisted columns. */
+function assertParentAddrAllowlist(addressesNorm: string): void {
+  let rest = addressesNorm;
+  rest = rest.replace(
+    /join public\.v_supplier_addresses_direct parent_addr\b/gi,
+    "",
+  );
+  for (const col of [
+    "supplier_id",
+    "source_code",
+    "source_tier",
+    "source_ref",
+    "address_kind",
+    "address",
+    "fetched_at",
+  ]) {
+    rest = rest.replace(
+      new RegExp(
+        String.raw`\(\s*"?parent_addr"?\s*\)\s*\.\s*${col}\b|"?parent_addr"?\s*\.\s*${col}\b`,
+        "gi",
+      ),
+      "",
+    );
+  }
+  if (/parent_addr/i.test(rest)) {
+    throw new Error(
+      "v_supplier_addresses inheritance must not project parent_addr beyond the allowlisted columns",
+    );
   }
 }
 
@@ -1229,6 +1358,7 @@ export function assertFacilitiesContainment(args: {
 
   assertNoDynamicExecuteInMigration(migrationSql);
   assertPinnedFunctionsSingular(migrationSql);
+  assertRelaxedViewsFinalPrivileges(migrationSql);
   if (hasDynamicExecuteOfPinnedObject(migrationSql)) {
     throw new Error(
       "migration must not dynamically EXECUTE a pinned object (buyer_supplier_profile / address or registry views)",
@@ -1521,42 +1651,7 @@ export function assertFacilitiesContainment(args: {
       "v_supplier_addresses inheritance must project null::text AS phone and email (REZ-17)",
     );
   }
-  if (
-    /(\(\s*"?parent_addr"?\s*\)|"?parent_addr"?)\s*\.\s*(phone|email)\b/i.test(
-      addressesNorm,
-    )
-  ) {
-    throw new Error(
-      "v_supplier_addresses inheritance must not select parent_addr.phone/email",
-    );
-  }
-  if (/\(?\s*"?parent_addr"?\s*\)?\s*\.\s*\*/i.test(addressesNorm)) {
-    throw new Error(
-      "v_supplier_addresses inheritance must not project parent_addr.*",
-    );
-  }
-  if (
-    /(row_to_json|to_json|jsonb_agg|to_jsonb)\s*\(\s*\(?\s*"?parent_addr"?\s*\)?\s*\)/i.test(
-      addressesNorm,
-    )
-  ) {
-    throw new Error(
-      "v_supplier_addresses inheritance must not json-project parent_addr",
-    );
-  }
-
-  for (const view of [
-    "v_supplier_registry_ids_direct",
-    "v_supplier_registry_ids",
-  ]) {
-    if (
-      !new RegExp(
-        `revoke select on public\\.${view}\\s+from anon, authenticated`,
-      ).test(stripSqlComments(migrationSql))
-    ) {
-      throw new Error(`migration must revoke anon/authenticated on ${view}`);
-    }
-  }
+  assertParentAddrAllowlist(addressesNorm);
 
   const ringBlock = sliceBetween("ring as (", "pills as (");
   if (/facility_of/.test(ringBlock) || /certifications/.test(ringBlock)) {
@@ -1605,19 +1700,7 @@ export function assertFacilitiesContainment(args: {
   if (!/security\s+definer/i.test(profileHeader)) {
     throw new Error("buyer_supplier_profile must be SECURITY DEFINER");
   }
-  {
-    const sets = [
-      ...profileHeader.matchAll(/set\s+search_path\s*=\s*([^\n;]+)/gi),
-    ];
-    if (
-      sets.length !== 1 ||
-      sets[0]![1]!.trim().toLowerCase() !== "public"
-    ) {
-      throw new Error(
-        "buyer_supplier_profile must set search_path = public exactly once",
-      );
-    }
-  }
+  assertHeaderSearchPathPublicOnly(profileHeader, "buyer_supplier_profile");
   const profileBodyMatch = /as\s*\$\$([\s\S]*?)\$\$/i.exec(profileFn[0]!);
   if (!profileBodyMatch) {
     throw new Error("buyer_supplier_profile must use an as $$ body");
@@ -1677,19 +1760,10 @@ export function assertFacilitiesContainment(args: {
   const triggerHeader = stripSqlComments(
     triggerFn[0]!.slice(0, triggerAs.index),
   );
-  {
-    const sets = [
-      ...triggerHeader.matchAll(/set\s+search_path\s*=\s*([^\n;]+)/gi),
-    ];
-    if (
-      sets.length !== 1 ||
-      sets[0]![1]!.trim().toLowerCase() !== "public"
-    ) {
-      throw new Error(
-        "enforce_facility_parent_is_company must set search_path = public exactly once",
-      );
-    }
-  }
+  assertHeaderSearchPathPublicOnly(
+    triggerHeader,
+    "enforce_facility_parent_is_company",
+  );
   const bodyMatch = /as\s*\$\$([\s\S]*?)\$\$/i.exec(triggerFn[0]!);
   if (!bodyMatch) {
     throw new Error(

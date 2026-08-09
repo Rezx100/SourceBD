@@ -523,6 +523,8 @@ comment on view public.v_supplier_registry_ids_direct is
 -- facility's registry numbers by supplier_id.
 revoke select on public.v_supplier_registry_ids_direct from anon, authenticated;
 revoke select on public.v_supplier_registry_ids        from anon, authenticated;
+revoke select on public.v_supplier_addresses_direct    from anon, authenticated;
+revoke select on public.v_supplier_addresses           from anon, authenticated;
 
 -- ---------------------------------------------------------------------------
 -- 3. buyer_supplier_profile — 0095 body + facilities CTE + payload key.

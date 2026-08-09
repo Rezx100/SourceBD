@@ -943,7 +943,7 @@ describe("20260808_rez73 migration containment", () => {
             migrationSql:
               migrationSql.slice(0, a) + phoneLeak + migrationSql.slice(b),
           }),
-        /phone|email|REZ-17|null::text/i,
+        /phone|email|REZ-17|null::text|allowlisted|parent_addr/i,
         "inheritance parent_addr.phone must fail",
       );
       const phoneParen = mid.replace(
@@ -956,8 +956,64 @@ describe("20260808_rez73 migration containment", () => {
             migrationSql:
               migrationSql.slice(0, a) + phoneParen + migrationSql.slice(b),
           }),
-        /phone|email|REZ-17|null::text|parent_addr/i,
+        /phone|email|REZ-17|parent_addr|allowlisted/i,
         "inheritance (parent_addr).phone must fail",
+      );
+      const phoneQuoted = mid.replace(
+        /parent_addr\.fetched_at\s+as\s+fetched_at/i,
+        '("parent_addr").phone as phone_leak, parent_addr.fetched_at as fetched_at',
+      );
+      assert.notEqual(phoneQuoted, mid);
+      assert.throws(
+        () =>
+          assertFacilitiesContainment({
+            migrationSql:
+              migrationSql.slice(0, a) + phoneQuoted + migrationSql.slice(b),
+          }),
+        /allowlisted|parent_addr/i,
+        'inheritance ("parent_addr").phone with null phone kept must fail',
+      );
+      const phoneJson = mid.replace(
+        /parent_addr\.fetched_at\s+as\s+fetched_at/i,
+        "to_json(parent_addr)->>'phone' as phone_leak, parent_addr.fetched_at as fetched_at",
+      );
+      assert.notEqual(phoneJson, mid);
+      assert.throws(
+        () =>
+          assertFacilitiesContainment({
+            migrationSql:
+              migrationSql.slice(0, a) + phoneJson + migrationSql.slice(b),
+          }),
+        /allowlisted|parent_addr|json/i,
+        "inheritance to_json(parent_addr) with null phone kept must fail",
+      );
+      const phoneJsonbBuild = mid.replace(
+        /parent_addr\.fetched_at\s+as\s+fetched_at/i,
+        "jsonb_build_object('x', parent_addr)::text as address_leak, parent_addr.fetched_at as fetched_at",
+      );
+      assert.notEqual(phoneJsonbBuild, mid);
+      assert.throws(
+        () =>
+          assertFacilitiesContainment({
+            migrationSql:
+              migrationSql.slice(0, a) + phoneJsonbBuild + migrationSql.slice(b),
+          }),
+        /allowlisted|parent_addr/i,
+        "inheritance jsonb_build_object(parent_addr) must fail",
+      );
+      const phoneCast = mid.replace(
+        /parent_addr\.fetched_at\s+as\s+fetched_at/i,
+        "parent_addr::text as address_leak, parent_addr.fetched_at as fetched_at",
+      );
+      assert.notEqual(phoneCast, mid);
+      assert.throws(
+        () =>
+          assertFacilitiesContainment({
+            migrationSql:
+              migrationSql.slice(0, a) + phoneCast + migrationSql.slice(b),
+          }),
+        /allowlisted|parent_addr/i,
+        "inheritance parent_addr::text must fail",
       );
       const commentOuter = mid.replace(
         /join public\.suppliers parent/i,
@@ -973,43 +1029,18 @@ describe("20260808_rez73 migration containment", () => {
         "comment-smuggled left outer join parent must fail",
       );
       const phoneStar = mid.replace(
-        /null::text\s+as\s+phone/i,
-        "parent_addr.* , null::text as phone",
+        /parent_addr\.fetched_at\s+as\s+fetched_at/i,
+        "parent_addr.*, parent_addr.fetched_at as fetched_at",
       );
+      assert.notEqual(phoneStar, mid);
       assert.throws(
         () =>
           assertFacilitiesContainment({
             migrationSql:
               migrationSql.slice(0, a) + phoneStar + migrationSql.slice(b),
           }),
-        /parent_addr\.\*|phone|email|REZ-17/i,
+        /allowlisted|parent_addr|\.\*/i,
         "inheritance parent_addr.* must fail",
-      );
-      const phoneQuoted = mid.replace(
-        /null::text\s+as\s+phone/i,
-        '("parent_addr").phone as phone',
-      );
-      assert.throws(
-        () =>
-          assertFacilitiesContainment({
-            migrationSql:
-              migrationSql.slice(0, a) + phoneQuoted + migrationSql.slice(b),
-          }),
-        /phone|email|REZ-17|parent_addr/i,
-        'inheritance ("parent_addr").phone must fail',
-      );
-      const phoneJson = mid.replace(
-        /null::text\s+as\s+phone/i,
-        "to_json(parent_addr)->>'phone' as phone",
-      );
-      assert.throws(
-        () =>
-          assertFacilitiesContainment({
-            migrationSql:
-              migrationSql.slice(0, a) + phoneJson + migrationSql.slice(b),
-          }),
-        /json-project|phone|email|REZ-17|parent_addr/i,
-        "inheritance to_json(parent_addr) must fail",
       );
     }
 
@@ -1061,6 +1092,24 @@ describe("20260808_rez73 migration containment", () => {
       "ALTER FUNCTION after CREATE must fail containment",
     );
 
+    const alterCommentSplit =
+      migrationSql +
+      "\nALT/*x*/ER FUNCTION public.buyer_supplier_profile(text) SET search_path = pg_temp, public;\n";
+    assert.throws(
+      () => assertFacilitiesContainment({ migrationSql: alterCommentSplit }),
+      /ALTER FUNCTION|exactly one CREATE/i,
+      "comment-split ALTER FUNCTION must fail containment",
+    );
+
+    const alterUnqualified =
+      migrationSql +
+      "\nALTER FUNCTION buyer_supplier_profile(text) SET search_path = pg_temp, public;\n";
+    assert.throws(
+      () => assertFacilitiesContainment({ migrationSql: alterUnqualified }),
+      /ALTER FUNCTION|exactly one CREATE/i,
+      "unqualified ALTER FUNCTION must fail containment",
+    );
+
     const secondCreate =
       migrationSql +
       "\nCREATE OR REPLACE FUNCTION public.buyer_supplier_profile(p_slug text)\n" +
@@ -1069,6 +1118,46 @@ describe("20260808_rez73 migration containment", () => {
       () => assertFacilitiesContainment({ migrationSql: secondCreate }),
       /exactly one CREATE/i,
       "second CREATE OR REPLACE buyer_supplier_profile must fail",
+    );
+
+    const createCommentSplit =
+      migrationSql +
+      "\nCRE/*x*/ATE OR REPLACE FUNCTION public.buyer_supplier_profile(p_slug text)\n" +
+      "RETURNS jsonb LANGUAGE sql AS $$ SELECT '{}'::jsonb $$;\n";
+    assert.throws(
+      () => assertFacilitiesContainment({ migrationSql: createCommentSplit }),
+      /exactly one CREATE/i,
+      "comment-split second CREATE must fail containment",
+    );
+
+    const dropCreate =
+      migrationSql +
+      "\nDROP FUNCTION IF EXISTS public.buyer_supplier_profile(text);\n" +
+      "CREATE FUNCTION public.buyer_supplier_profile(p_slug text)\n" +
+      "RETURNS jsonb LANGUAGE sql SECURITY INVOKER AS $$ SELECT '{}'::jsonb $$;\n";
+    assert.throws(
+      () => assertFacilitiesContainment({ migrationSql: dropCreate }),
+      /DROP FUNCTION|exactly one CREATE/i,
+      "DROP + CREATE FUNCTION must fail containment",
+    );
+
+    const dualHeaderTo = migrationSql.replace(
+      /set\s+search_path\s*=\s*public/i,
+      "set search_path = public\nset search_path to pg_temp, public",
+    );
+    assert.throws(
+      () => assertFacilitiesContainment({ migrationSql: dualHeaderTo }),
+      /search_path = public exactly once|SET search_path TO/i,
+      "dual-header SET search_path TO must fail",
+    );
+
+    const grantAfter =
+      migrationSql +
+      "\nGRANT SELECT ON public.v_supplier_registry_ids_direct TO anon, authenticated;\n";
+    assert.throws(
+      () => assertFacilitiesContainment({ migrationSql: grantAfter }),
+      /GRANT SELECT|must not GRANT/i,
+      "GRANT SELECT after REVOKE must fail containment",
     );
 
     for (const [label, snip] of [
