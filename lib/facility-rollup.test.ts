@@ -371,8 +371,24 @@ describe("20260808_rez73 migration containment", () => {
         "stmt := convert_from(decode('Q1JFQVRF', 'base64'), 'utf8'); EXECUTE stmt;",
       ],
       [
+        "convert-from-format-pct",
+        "stmt := convert_from(decode('Q1JFQVRF', 'base64'), 'utf8'); EXECUTE format('%s', stmt);",
+      ],
+      [
+        "convert-from-format-var",
+        "stmt := convert_from(decode('Q1JFQVRF', 'base64'), 'utf8'); EXECUTE format(stmt);",
+      ],
+      [
+        "convert-from-concat",
+        "stmt := convert_from(decode('Q1JFQVRF', 'base64'), 'utf8'); EXECUTE stmt || '';",
+      ],
+      [
+        "convert-from-using",
+        "stmt := convert_from(decode('Q1JFQVRF', 'base64'), 'utf8'); EXECUTE stmt USING 1;",
+      ],
+      [
         "convert-from-into-paren",
-        "select convert_from(decode('Q1JFQVRF', 'base64'), 'utf8') into stmt; EXECUTE (stmt);",
+        "select convert_from(decode('Q1JFQVRF', 'base64'), 'utf8') into strict stmt; EXECUTE (stmt);",
       ],
       [
         "registry-view",
@@ -510,37 +526,53 @@ describe("20260808_rez73 migration containment", () => {
         "decoy-correct then poisoned ORDER BY must fail",
       );
     }
-    // Donor gate must be an exact JOIN conjunct — OR-widening must fail.
+    // Donor/recipient gates: exact conjuncts on blanked code — OR-widen and
+    // string decoys must fail.
     {
       const a = base.indexOf("create or replace view public.v_supplier_addresses as");
       const b = base.indexOf("v_supplier_registry_ids_direct as");
       assert.ok(a >= 0 && b > a);
       const mid = base.slice(a, b);
-      const orTrue =
-        base.slice(0, a) +
-        mid.replace(
+      for (const [label, from, to, pat] of [
+        [
+          "parent or-true",
           /^(\s*)and parent\.is_published = true\s*$/m,
           "$1and parent.is_published = true or true",
-        ) +
-        base.slice(b);
-      assert.throws(
-        () => assertFacilitiesContainment({ migrationSql: orTrue }),
-        /donor|parent\.is_published|OR/i,
-        "donor gate OR-true must fail",
-      );
-      const commented =
-        base.slice(0, a) +
-        mid.replace(
+          /donor|parent\.is_published|OR/i,
+        ],
+        [
+          "parent true-or",
+          /^(\s*)and parent\.is_published = true\s*$/m,
+          "$1and true or parent.is_published = false and parent.is_published = true",
+          /donor|parent\.is_published|OR/i,
+        ],
+        [
+          "child or-true",
+          /^(\s*)and child\.is_published = true\b.*$/m,
+          "$1and child.is_published = true or true",
+          /recipient|child\.is_published|OR/i,
+        ],
+        [
+          "parent comment-out",
           /^(\s*)and parent\.is_published = true\s*$/m,
           "$1-- and parent.is_published = true",
-        ) +
-        base.slice(b);
-      assert.notEqual(commented, base);
-      assert.throws(
-        () => assertFacilitiesContainment({ migrationSql: commented }),
-        /donor|parent\.is_published/i,
-        "commented-out donor gate must fail",
-      );
+          /donor|parent\.is_published/i,
+        ],
+        [
+          "parent string-decoy",
+          /^(\s*)and parent\.is_published = true\s*$/m,
+          "$1-- removed\n   , 'and parent.is_published = true join public.v_supplier_addresses_direct' as decoy",
+          /donor|parent\.is_published|join parent/i,
+        ],
+      ] as const) {
+        const poisoned =
+          base.slice(0, a) + mid.replace(from, to) + base.slice(b);
+        assert.throws(
+          () => assertFacilitiesContainment({ migrationSql: poisoned }),
+          pat,
+          `${label} must fail`,
+        );
+      }
     }
   });
 
@@ -605,28 +637,21 @@ describe("20260808_rez73 migration containment", () => {
 
     for (const [label, wrapper] of [
       ["if false", "if false then\n%s\n  end if;\n"],
-      ["if null", "if null then\n%s\n  end if;\n"],
-      ["if not true", "if not true then\n%s\n  end if;\n"],
-      ["if not (true)", "if not (true) then\n%s\n  end if;\n"],
-      ["if 1=0", "if 1 = 0 then\n%s\n  end if;\n"],
-      ["if (1=0)", "if (1 = 0) then\n%s\n  end if;\n"],
-      ["if (false)", "if (false) then\n%s\n  end if;\n"],
-      ["if true = false", "if true = false then\n%s\n  end if;\n"],
-      ["if true is false", "if true is false then\n%s\n  end if;\n"],
+      ["if true and false", "if true and false then\n%s\n  end if;\n"],
+      ["if 0 <> 0", "if 0 <> 0 then\n%s\n  end if;\n"],
+      ["if not (1 = 1)", "if not (1 = 1) then\n%s\n  end if;\n"],
+      ["if 1 < 0", "if 1 < 0 then\n%s\n  end if;\n"],
       ["case when false", "case when false then\n%s\n  else null; end case;\n"],
-      ["case when (false)", "case when (false) then\n%s\n  else null; end case;\n"],
       ["while not true", "while not true loop\n%s\n  end loop;\n"],
-      ["while (false)", "while (false) loop\n%s\n  end loop;\n"],
       ["for 1..0", "for i in 1..0 loop\n%s\n  end loop;\n"],
     ] as const) {
       const body =
         "begin\n" +
-        wrapper.replace("%s", goodLocks) +
-        goodExists +
+        wrapper.replace("%s", goodLocks + goodExists) +
         "  return new;\nend;";
       assert.throws(
         () => assertFacilitiesContainment({ migrationSql: swapTrigger(body) }),
-        /constant-false|CASE WHEN FALSE|WHILE|LOOP|PERFORM|FOR UPDATE/i,
+        /IF predicates|LOOP|WHILE|CASE|EXCEPTION|PERFORM|FOR UPDATE/i,
         `${label} dead-path PERFORM must fail`,
       );
     }
@@ -671,7 +696,7 @@ describe("20260808_rez73 migration containment", () => {
     );
     assert.throws(
       () => assertFacilitiesContainment({ migrationSql: ifFalseElseReturn }),
-      /constant-false|before any RETURN|PERFORM/i,
+      /IF predicates|LOOP|WHILE|before any RETURN|PERFORM/i,
       "IF FALSE ELSE RETURN NEW then PERFORM must fail",
     );
 

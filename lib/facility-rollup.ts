@@ -407,11 +407,7 @@ export function hasDynamicExecuteOfPinnedObject(sql: string): boolean {
     // Obfuscated EXECUTE — migrations must not hide DDL this way.
     if (/\b(convert_from|decode|encode|chr)\s*\(/i.test(payload)) return true;
     if (PINNED_OBJECT_NAME.test(payload)) return true;
-    const opaque =
-      /^([A-Za-z_][A-Za-z0-9_]*)\s*;/.exec(trimmed) ??
-      /^\(\s*([A-Za-z_][A-Za-z0-9_]*)\s*\)\s*;/.exec(trimmed);
-    if (opaque) {
-      const varName = opaque[1]!;
+    for (const varName of extractExecutedVarNames(payload)) {
       if (assignedVarMentionsPinned(code, varName, at)) return true;
     }
     i = at + m[0].length;
@@ -454,13 +450,31 @@ function assignedVarMentionsPinned(
     if (PINNED_OBJECT_NAME.test(m[1]!) || obfuscated.test(m[1]!)) return true;
   }
   const intoRe = new RegExp(
-    `\\bselect\\b([\\s\\S]*?)\\binto\\s+${varName}\\b`,
+    `\\bselect\\b([\\s\\S]*?)\\binto\\s+(?:strict\\s+)?${varName}\\b`,
     "gi",
   );
   while ((m = intoRe.exec(window)) !== null) {
     if (PINNED_OBJECT_NAME.test(m[1]!) || obfuscated.test(m[1]!)) return true;
   }
   return false;
+}
+
+/** Identifiers an EXECUTE payload may be reading (opaque var / format arg / concat). */
+function extractExecutedVarNames(payload: string): string[] {
+  const names = new Set<string>();
+  const skip =
+    /^(format|convert_from|decode|encode|chr|select|null|true|false|utf8|base64|text)$/i;
+  const p = payload.trim();
+  const bare = /^([A-Za-z_][A-Za-z0-9_]*)\b/.exec(p);
+  if (bare && !skip.test(bare[1]!)) names.add(bare[1]!);
+  const paren = /^\(\s*([A-Za-z_][A-Za-z0-9_]*)\s*\)/.exec(p);
+  if (paren) names.add(paren[1]!);
+  if (/^format\s*\(/i.test(p) || /\|\||::|\busing\b/i.test(p)) {
+    for (const id of p.matchAll(/\b([A-Za-z_][A-Za-z0-9_]*)\b/g)) {
+      if (!skip.test(id[1]!)) names.add(id[1]!);
+    }
+  }
+  return [...names];
 }
 
 /** Argument text of an EXECUTE — full format(...) or expression until `;`. */
@@ -480,52 +494,87 @@ function extractExecuteArgPayload(sql: string, start: number): string {
   return s.slice(0, semi === -1 ? s.length : semi);
 }
 
-/** Constant-false / tautology-false predicates used to dead-host refusal code. */
-const CONST_FALSE_PRED =
-  String.raw`(?:\(\s*)?(?:false\b|null\b|not\s*\(\s*true\s*\)|not\s+true\b|true\s+is\s+false\b|true\s*=\s*false\b|false\s*=\s*true\b|false\s*::\s*boolean\b|\(\s*1\s*=\s*0\s*\)|1\s*=\s*0|0\s*=\s*1|2\s*=\s*3|1\s*=\s*2)(?:\s*\))?`;
-
 /**
- * Fail closed on wrappers that can host PERFORM / EXISTS / RAISE without
- * executing them. Ban LOOP entirely (empty FOR / WHILE). Do not delete
- * IF/ELSE branches — that previously left post-IF PERFORM looking reachable.
+ * Fail closed: only the live IF shapes are allowed; ban LOOP/WHILE/CASE/ELSIF/
+ * EXCEPTION wrappers that can host unreachable PERFORM / EXISTS / RAISE.
  */
 function assertNoDeadPathGaming(triggerCode: string): void {
-  if (/\bloop\b/i.test(triggerCode)) {
+  if (/\b(?:loop|while|elsif|case\s+when|exception\s+when)\b/i.test(triggerCode)) {
     throw new Error(
-      "enforce_facility_parent_is_company must not use LOOP (FOR/WHILE can host dead PERFORM)",
+      "enforce_facility_parent_is_company must not use LOOP/WHILE/ELSIF/CASE/EXCEPTION wrappers",
     );
   }
-  if (new RegExp(String.raw`\bif\s+${CONST_FALSE_PRED}`, "i").test(triggerCode)) {
-    throw new Error(
-      "enforce_facility_parent_is_company must not wrap body in constant-false IF",
-    );
+  let i = 0;
+  while (i < triggerCode.length) {
+    const m = /\bif\b/i.exec(triggerCode.slice(i));
+    if (!m || m.index === undefined) break;
+    const at = i + m.index;
+    // Skip `END IF` — the trailing IF is not a predicate.
+    if (/\bend\s*$/i.test(triggerCode.slice(Math.max(0, at - 4), at))) {
+      i = at + m[0].length;
+      continue;
+    }
+    const after = triggerCode.slice(at + m[0].length).replace(/^\s+/, "");
+    const allowed =
+      /^new\.facility_of\s+is\s+not\s+null\b/i.test(after) ||
+      /^exists\s*\(/i.test(after);
+    if (!allowed) {
+      throw new Error(
+        "enforce_facility_parent_is_company IF predicates must be new.facility_of IS NOT NULL or EXISTS (...)",
+      );
+    }
+    i = at + m[0].length;
   }
-  if (
-    new RegExp(String.raw`\belsif\s+${CONST_FALSE_PRED}`, "i").test(triggerCode)
-  ) {
-    throw new Error(
-      "enforce_facility_parent_is_company must not use constant-false ELSIF",
-    );
+}
+
+/** Count `USING ERRCODE = 'check_violation'` outside string/dollar literals. */
+function countUsingErrcodeCheckViolation(sql: string): number {
+  let count = 0;
+  let i = 0;
+  let inSingle = false;
+  let inDollar: string | null = null;
+  while (i < sql.length) {
+    const ch = sql[i]!;
+    if (inDollar !== null) {
+      if (sql.startsWith(inDollar, i)) {
+        i += inDollar.length;
+        inDollar = null;
+        continue;
+      }
+      i += 1;
+      continue;
+    }
+    if (inSingle) {
+      if (ch === "'" && sql[i + 1] === "'") {
+        i += 2;
+        continue;
+      }
+      if (ch === "'") inSingle = false;
+      i += 1;
+      continue;
+    }
+    if (ch === "'") {
+      inSingle = true;
+      i += 1;
+      continue;
+    }
+    if (ch === "$") {
+      const m = DOLLAR_TAG.exec(sql.slice(i));
+      if (m) {
+        inDollar = `$${m[1]}$`;
+        i += m[0].length;
+        continue;
+      }
+    }
+    const hit = /^using\s+errcode\s*=\s*'check_violation'/i.exec(sql.slice(i));
+    if (hit) {
+      count += 1;
+      i += hit[0].length;
+      continue;
+    }
+    i += 1;
   }
-  if (
-    new RegExp(String.raw`\bcase\s+when\s+${CONST_FALSE_PRED}`, "i").test(
-      triggerCode,
-    )
-  ) {
-    throw new Error(
-      "enforce_facility_parent_is_company must not wrap body in CASE WHEN FALSE",
-    );
-  }
-  if (/\bwhile\b/i.test(triggerCode)) {
-    throw new Error(
-      "enforce_facility_parent_is_company must not use WHILE",
-    );
-  }
-  if (/\bexception\s+when\b/i.test(triggerCode)) {
-    throw new Error(
-      "enforce_facility_parent_is_company must not catch exceptions (RAISE must abort)",
-    );
-  }
+  return count;
 }
 
 function assertExactPairs(
@@ -733,32 +782,51 @@ export function assertFacilitiesContainment(args: {
     );
   }
 
-  const addressesInheritingBlock = stripSqlComments(
-    sliceBetween(
-      "create or replace view public.v_supplier_addresses as",
-      "v_supplier_registry_ids_direct as",
+  const addressesInheritingBlock = blankSqlStrings(
+    stripSqlComments(
+      sliceBetween(
+        "create or replace view public.v_supplier_addresses as",
+        "v_supplier_registry_ids_direct as",
+      ),
     ),
   );
   const addressesNorm = addressesInheritingBlock.replace(/\s+/g, " ");
-  // Donor gate must be an exact JOIN conjunct followed by the next JOIN —
-  // `= true or true` still contains the substring but widens the ON clause.
-  if (
-    !/\band parent\.is_published = true join public\.v_supplier_addresses_direct\b/i.test(
+  // Exact parent JOIN conjuncts through the next JOIN — no OR anywhere in that span.
+  const parentJoin =
+    /join public\.suppliers parent([\s\S]*?)join public\.v_supplier_addresses_direct/i.exec(
       addressesNorm,
+    );
+  if (!parentJoin) {
+    throw new Error(
+      "v_supplier_addresses inheritance branch must join parent then v_supplier_addresses_direct",
+    );
+  }
+  if (/\bor\b/i.test(parentJoin[1]!)) {
+    throw new Error(
+      "v_supplier_addresses donor JOIN must not contain OR",
+    );
+  }
+  if (
+    !/\bon parent\.id <> child\.id and lower\(parent\.company_name\) = lower\(bn\.base\) and parent\.is_published = true\s*$/i.test(
+      parentJoin[1]!.trim(),
     )
   ) {
     throw new Error(
       "v_supplier_addresses inheritance branch must gate donors on parent.is_published = true",
     );
   }
-  if (/\bparent\.is_published\s*=\s*true\s+or\b/i.test(addressesNorm)) {
-    throw new Error(
-      "v_supplier_addresses donor gate must not be widened with OR",
-    );
-  }
-  if (!/\band child\.is_published = true\b/i.test(addressesNorm)) {
+  if (
+    !/\bwhere bn\.base is not null and child\.is_published = true\b/i.test(
+      addressesNorm,
+    )
+  ) {
     throw new Error(
       "v_supplier_addresses inheritance branch must keep the REZ-18 recipient gate",
+    );
+  }
+  if (/\bchild\.is_published\s*=\s*true\s+or\b/i.test(addressesNorm)) {
+    throw new Error(
+      "v_supplier_addresses recipient gate must not be widened with OR",
     );
   }
 
@@ -930,15 +998,8 @@ export function assertFacilitiesContainment(args: {
       "enforce_facility_parent_is_company must EXISTS-check children pointing here and RAISE USING ERRCODE",
     );
   }
-  // Errcode value must be check_violation on the comment-stripped (unblanked) body.
-  const triggerRaw = stripSqlComments(bodyMatch[1]!);
-  if (
-    (
-      triggerRaw.match(
-        /using\s+errcode\s*=\s*'check_violation'/gi,
-      ) ?? []
-    ).length < 2
-  ) {
+  // Errcode value must be check_violation on live code — ignore string/dollar decoys.
+  if (countUsingErrcodeCheckViolation(stripSqlComments(bodyMatch[1]!)) < 2) {
     throw new Error(
       "enforce_facility_parent_is_company must RAISE USING ERRCODE = 'check_violation' on both refusal paths",
     );
