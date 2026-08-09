@@ -1042,6 +1042,20 @@ describe("20260808_rez73 migration containment", () => {
         /allowlisted|parent_addr|\.\*/i,
         "inheritance parent_addr.* must fail",
       );
+      const parentPhone = mid.replace(
+        /parent_addr\.fetched_at\s+as\s+fetched_at/i,
+        "parent.phone as phone_leak, parent_addr.fetched_at as fetched_at",
+      );
+      assert.notEqual(parentPhone, mid);
+      assert.throws(
+        () =>
+          assertFacilitiesContainment({
+            migrationSql:
+              migrationSql.slice(0, a) + parentPhone + migrationSql.slice(b),
+          }),
+        /parent\.phone\/email/i,
+        "inheritance parent.phone must fail",
+      );
     }
 
     const injectedExecute = migrationSql +
@@ -1137,8 +1151,36 @@ describe("20260808_rez73 migration containment", () => {
       "RETURNS jsonb LANGUAGE sql SECURITY INVOKER AS $$ SELECT '{}'::jsonb $$;\n";
     assert.throws(
       () => assertFacilitiesContainment({ migrationSql: dropCreate }),
-      /DROP FUNCTION|exactly one CREATE/i,
+      /must not DROP FUNCTION\/ROUTINE/i,
       "DROP + CREATE FUNCTION must fail containment",
+    );
+
+    const dropOnly =
+      migrationSql +
+      "\nDROP FUNCTION IF EXISTS public.buyer_supplier_profile(text);\n";
+    assert.throws(
+      () => assertFacilitiesContainment({ migrationSql: dropOnly }),
+      /must not DROP FUNCTION\/ROUTINE/i,
+      "DROP FUNCTION alone must fail containment",
+    );
+
+    const dropRoutine =
+      migrationSql +
+      "\nDROP ROUTINE IF EXISTS public.buyer_supplier_profile(text);\n";
+    assert.throws(
+      () => assertFacilitiesContainment({ migrationSql: dropRoutine }),
+      /must not DROP FUNCTION\/ROUTINE/i,
+      "DROP ROUTINE must fail containment",
+    );
+
+    const quotedCreate =
+      migrationSql +
+      '\nCREATE OR REPLACE FUNCTION public."buyer_supplier_profile"(p_slug text)\n' +
+      "RETURNS jsonb LANGUAGE sql SECURITY INVOKER AS $$ SELECT '{}'::jsonb $$;\n";
+    assert.throws(
+      () => assertFacilitiesContainment({ migrationSql: quotedCreate }),
+      /exactly one CREATE/i,
+      'quoted "buyer_supplier_profile" second CREATE must fail',
     );
 
     const dualHeaderTo = migrationSql.replace(
@@ -1147,8 +1189,18 @@ describe("20260808_rez73 migration containment", () => {
     );
     assert.throws(
       () => assertFacilitiesContainment({ migrationSql: dualHeaderTo }),
-      /search_path = public exactly once|SET search_path TO/i,
+      /SET search_path TO/i,
       "dual-header SET search_path TO must fail",
+    );
+
+    const soleHeaderTo = migrationSql.replace(
+      /set\s+search_path\s*=\s*public/i,
+      "set search_path to public",
+    );
+    assert.throws(
+      () => assertFacilitiesContainment({ migrationSql: soleHeaderTo }),
+      /SET search_path TO/i,
+      "sole SET search_path TO public must fail",
     );
 
     const grantAfter =
@@ -1156,8 +1208,44 @@ describe("20260808_rez73 migration containment", () => {
       "\nGRANT SELECT ON public.v_supplier_registry_ids_direct TO anon, authenticated;\n";
     assert.throws(
       () => assertFacilitiesContainment({ migrationSql: grantAfter }),
-      /GRANT SELECT|must not GRANT/i,
+      /must not GRANT privileges on relaxed/i,
       "GRANT SELECT after REVOKE must fail containment",
+    );
+
+    const grantOnTable =
+      migrationSql +
+      "\nGRANT SELECT ON TABLE public.v_supplier_addresses_direct TO anon, authenticated;\n";
+    assert.throws(
+      () => assertFacilitiesContainment({ migrationSql: grantOnTable }),
+      /must not GRANT privileges on relaxed/i,
+      "GRANT SELECT ON TABLE must fail containment",
+    );
+
+    const grantAll =
+      migrationSql +
+      "\nGRANT ALL ON public.v_supplier_addresses_direct TO anon, authenticated;\n";
+    assert.throws(
+      () => assertFacilitiesContainment({ migrationSql: grantAll }),
+      /must not GRANT privileges on relaxed/i,
+      "GRANT ALL on relaxed view must fail containment",
+    );
+
+    const grantPublic =
+      migrationSql +
+      "\nGRANT SELECT ON public.v_supplier_addresses_direct TO PUBLIC;\n";
+    assert.throws(
+      () => assertFacilitiesContainment({ migrationSql: grantPublic }),
+      /must not GRANT privileges on relaxed/i,
+      "GRANT SELECT TO PUBLIC must fail containment",
+    );
+
+    const grantCommentSplit =
+      migrationSql +
+      "\nGRA/*x*/NT SELECT ON public.v_supplier_addresses_direct TO anon;\n";
+    assert.throws(
+      () => assertFacilitiesContainment({ migrationSql: grantCommentSplit }),
+      /must not GRANT privileges on relaxed/i,
+      "comment-split GRANT must fail containment",
     );
 
     for (const [label, snip] of [

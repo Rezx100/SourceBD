@@ -1121,7 +1121,8 @@ function sqlKw(letters: string): string {
 /** Optional public. / "public". / public . before a function ident. */
 function pinnedFnNamePattern(name: string): string {
   const schema = String.raw`(?:(?:"?public"?)\s*\.\s*)?`;
-  return `${schema}(?:"${name}"|${name})\\b`;
+  // Do not put \\b after a closing quote — "name"( has no word boundary.
+  return `${schema}(?:"${name}"|${name})(?=\\s*\\(|\\s|$)`;
 }
 
 /**
@@ -1154,11 +1155,11 @@ function assertPinnedFunctionsSingular(migrationSql: string): void {
       );
       if (
         new RegExp(
-          `${sqlKw("drop")}\\s+${sqlKw("function")}\\s+(?:if\\s+exists\\s+)?${namePat}`,
+          `${sqlKw("drop")}\\s+(?:${sqlKw("function")}|${sqlKw("routine")})\\s+(?:if\\s+exists\\s+)?${namePat}`,
           "i",
         ).test(code)
       ) {
-        throw new Error(`migration must not DROP FUNCTION ${name}`);
+        throw new Error(`migration must not DROP FUNCTION/ROUTINE ${name}`);
       }
       if (
         new RegExp(
@@ -1206,26 +1207,34 @@ function assertHeaderSearchPathPublicOnly(header: string, label: string): void {
   }
 }
 
-/** Ban GRANT SELECT to anon/authenticated; require REVOKE on relaxed views. */
+/** Ban GRANT that restores read on relaxed views; require REVOKE on each. */
 function assertRelaxedViewsFinalPrivileges(migrationSql: string): void {
-  const code = stripSqlComments(migrationSql);
   const views = [
     "v_supplier_registry_ids_direct",
     "v_supplier_registry_ids",
     "v_supplier_addresses_direct",
     "v_supplier_addresses",
   ];
-  for (const view of views) {
-    if (
-      new RegExp(
-        `grant\\s+select\\s+on\\s+public\\.${view}\\b[\\s\\S]{0,120}?\\bto\\b[\\s\\S]{0,80}?\\b(anon|authenticated)\\b`,
-        "i",
-      ).test(code)
-    ) {
-      throw new Error(
-        `migration must not GRANT SELECT on public.${view} to anon/authenticated`,
-      );
+  const viewAlt = views.map((v) => `"?${v}"?`).join("|");
+  for (const code of executeScanForms(migrationSql)) {
+    const grantRe = new RegExp(`${sqlKw("grant")}([\\s\\S]{0,400})`, "gi");
+    let m: RegExpExecArray | null;
+    while ((m = grantRe.exec(code)) !== null) {
+      const window = m[0];
+      if (/all\s+tables\s+in\s+schema/i.test(window)) {
+        throw new Error(
+          "migration must not GRANT privileges ON ALL TABLES IN SCHEMA",
+        );
+      }
+      if (new RegExp(viewAlt, "i").test(window)) {
+        throw new Error(
+          "migration must not GRANT privileges on relaxed registry/address views",
+        );
+      }
     }
+  }
+  const code = stripSqlComments(migrationSql);
+  for (const view of views) {
     if (
       !new RegExp(
         `revoke\\s+select\\s+on\\s+public\\.${view}\\s+from\\s+anon,\\s*authenticated`,
@@ -1266,6 +1275,12 @@ function assertParentAddrAllowlist(addressesNorm: string): void {
   if (/parent_addr/i.test(rest)) {
     throw new Error(
       "v_supplier_addresses inheritance must not project parent_addr beyond the allowlisted columns",
+    );
+  }
+  // REZ-17: donor PII must not enter via the parent suppliers row either.
+  if (/\bparent\s*\.\s*(phone|email)\b/i.test(addressesNorm)) {
+    throw new Error(
+      "v_supplier_addresses inheritance must not project parent.phone/email",
     );
   }
 }
