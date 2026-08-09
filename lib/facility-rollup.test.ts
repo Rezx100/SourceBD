@@ -351,12 +351,24 @@ describe("20260808_rez73 migration containment", () => {
         "stmt := 'CREATE OR REPLACE FUNCTION public.buyer_supplier_profile()'; EXECUTE stmt;",
       ],
       [
+        "select-into",
+        "select format('CREATE OR REPLACE FUNCTION public.buyer_supplier_profile()') into stmt; execute stmt;",
+      ],
+      [
         "perform-format",
         "PERFORM format('CREATE OR REPLACE FUNCTION public.buyer_supplier_profile()');",
       ],
       [
         "digit-dollar",
         "EXECUTE $e1$CREATE OR REPLACE FUNCTION public.buyer_supplier_profile()$e1$;",
+      ],
+      [
+        "convert-from",
+        "EXECUTE convert_from(decode('Ym95ZXI=', 'base64'), 'utf8');",
+      ],
+      [
+        "registry-view",
+        "EXECUTE format('CREATE OR REPLACE VIEW public.v_supplier_registry_ids_direct AS SELECT 1');",
       ],
     ] as const) {
       assert.ok(
@@ -406,8 +418,60 @@ describe("20260808_rez73 migration containment", () => {
       assert.notEqual(poisoned, base);
       assert.throws(
         () => assertFacilitiesContainment({ migrationSql: poisoned }),
-        /inner|value for 'address'|exactly/i,
+        /shape|inner|value for 'address'|exactly/i,
         "decoy-first poisoned address must fail",
+      );
+    }
+    // Correct name-object decoy, then live object with different first key + slug.
+    {
+      const { a, b, mid } = facSlice(base);
+      const nameObj =
+        /jsonb_build_object\(\s*'name',\s*f\.company_name[\s\S]*?fr\.obj\s*\)/i.exec(
+          mid,
+        );
+      assert.ok(nameObj, "must find facilities name object");
+      const liveAlt =
+        "jsonb_build_object('display_name', f.company_name || f.slug, " +
+        "'employees_total', f.employees_total, 'machines_sewing', f.machines_sewing, " +
+        "'production_capacity_pcs_day', f.production_capacity_pcs_day, " +
+        "'production_capacity_dozen_yearly', f.production_capacity_dozen_yearly, " +
+        "'is_sanctioned', f.is_sanctioned, " +
+        "'addresses', coalesce(fa.items, '[]'::jsonb), " +
+        "'pills', coalesce(fp.items, '[]'::jsonb), 'rsc', fr.obj)";
+      const poisoned =
+        base.slice(0, a) +
+        mid.replace(nameObj[0]!, nameObj[0]! + ", " + liveAlt) +
+        base.slice(b);
+      assert.throws(
+        () => assertFacilitiesContainment({ migrationSql: poisoned }),
+        /first key must be name\|kind|display_name/i,
+        "decoy name + live display_name||slug must fail",
+      );
+    }
+    // Correct name-object decoy, then reordered live object with poisoned name.
+    {
+      const { a, b, mid } = facSlice(base);
+      const nameObj =
+        /jsonb_build_object\(\s*'name',\s*f\.company_name[\s\S]*?fr\.obj\s*\)/i.exec(
+          mid,
+        );
+      assert.ok(nameObj);
+      const liveAlt =
+        "jsonb_build_object('is_sanctioned', f.is_sanctioned, " +
+        "'name', f.company_name || f.slug, " +
+        "'employees_total', f.employees_total, 'machines_sewing', f.machines_sewing, " +
+        "'production_capacity_pcs_day', f.production_capacity_pcs_day, " +
+        "'production_capacity_dozen_yearly', f.production_capacity_dozen_yearly, " +
+        "'addresses', coalesce(fa.items, '[]'::jsonb), " +
+        "'pills', coalesce(fp.items, '[]'::jsonb), 'rsc', fr.obj)";
+      const poisoned =
+        base.slice(0, a) +
+        mid.replace(nameObj![0]!, nameObj![0]! + ", " + liveAlt) +
+        base.slice(b);
+      assert.throws(
+        () => assertFacilitiesContainment({ migrationSql: poisoned }),
+        /first key must be name\|kind|is_sanctioned/i,
+        "decoy name + reordered live object must fail",
       );
     }
     // Correct ORDER BY decoy in a string, live agg wrong.
@@ -420,7 +484,7 @@ describe("20260808_rez73 migration containment", () => {
       assert.notEqual(fakeOrder, base);
       assert.throws(
         () => assertFacilitiesContainment({ migrationSql: fakeOrder }),
-        /jsonb_agg must order by fac\.facility_name|clause missing|forbidden key|exactly/i,
+        /jsonb_agg must order by fac\.facility_name|clause missing|forbidden key|exactly|first key/i,
         "string-literal ORDER BY decoy must not satisfy the pin",
       );
     }
@@ -438,6 +502,27 @@ describe("20260808_rez73 migration containment", () => {
         "decoy-correct then poisoned ORDER BY must fail",
       );
     }
+    // Comment-/value-disabled donor gate must fail (slice only — header
+    // comments also mention the predicate text).
+    {
+      const a = base.indexOf("create or replace view public.v_supplier_addresses as");
+      const b = base.indexOf("v_supplier_registry_ids_direct as");
+      assert.ok(a >= 0 && b > a);
+      const mid = base.slice(a, b);
+      const commented =
+        base.slice(0, a) +
+        mid.replace(
+          /^(\s*)and parent\.is_published = true\s*$/m,
+          "$1-- and parent.is_published = true",
+        ) +
+        base.slice(b);
+      assert.notEqual(commented, base);
+      assert.throws(
+        () => assertFacilitiesContainment({ migrationSql: commented }),
+        /donor|parent\.is_published/i,
+        "commented-out donor gate must fail",
+      );
+    }
   });
 
   it("pins the facility→facility parent refusal trigger body", () => {
@@ -447,16 +532,31 @@ describe("20260808_rez73 migration containment", () => {
     );
     assert.doesNotThrow(() => assertFacilitiesContainment({ migrationSql }));
 
-    // Function replacer: String.replace treats $$ in a string replacement as $.
     const swapTrigger = (body: string) =>
       migrationSql.replace(
         /create or replace function public\.enforce_facility_parent_is_company\(\)[\s\S]*?\$\$;/,
         () =>
           "create or replace function public.enforce_facility_parent_is_company()\n" +
-          "returns trigger language plpgsql as $$\n" +
+          "returns trigger language plpgsql set search_path = public as $$\n" +
           body +
           "\n$$;",
       );
+
+    const goodLocks =
+      "  perform 1 from public.suppliers p where p.id = new.facility_of for update;\n" +
+      "  perform 1 from public.suppliers c where c.facility_of = new.id for update;\n";
+    const goodExists =
+      "  if exists (\n" +
+      "    select 1 from public.suppliers p\n" +
+      "     where p.id = new.facility_of and p.facility_of is not null\n" +
+      "  ) then\n" +
+      "    raise exception 'x' using errcode = 'check_violation';\n" +
+      "  end if;\n" +
+      "  if exists (\n" +
+      "    select 1 from public.suppliers c where c.facility_of = new.id\n" +
+      "  ) then\n" +
+      "    raise exception 'y' using errcode = 'check_violation';\n" +
+      "  end if;\n";
 
     const hollow = swapTrigger(
       "begin\n" +
@@ -466,10 +566,9 @@ describe("20260808_rez73 migration containment", () => {
         "  return new;\n" +
         "end;",
     );
-    assert.notEqual(hollow, migrationSql);
     assert.throws(
       () => assertFacilitiesContainment({ migrationSql: hollow }),
-      /PERFORM|EXISTS|RAISE|FOR UPDATE/i,
+      /PERFORM|EXISTS|RAISE|FOR UPDATE|constant-false|ERRCODE/i,
       "comment-only trigger must fail",
     );
 
@@ -481,82 +580,106 @@ describe("20260808_rez73 migration containment", () => {
     );
     assert.throws(
       () => assertFacilitiesContainment({ migrationSql: stringOnly }),
-      /PERFORM|EXISTS|RAISE|FOR UPDATE/i,
+      /PERFORM|EXISTS|RAISE|FOR UPDATE|ERRCODE/i,
       "string-literal-only trigger tokens must fail",
     );
 
-    const ifFalse = swapTrigger(
+    for (const [label, wrapper] of [
+      ["if false", "if false then\n%s\n  end if;\n"],
+      ["if null", "if null then\n%s\n  end if;\n"],
+      ["if not true", "if not true then\n%s\n  end if;\n"],
+      ["if 1=0", "if 1 = 0 then\n%s\n  end if;\n"],
+      ["if (false)", "if (false) then\n%s\n  end if;\n"],
+      ["case when false", "case when false then\n%s\n  else null; end case;\n"],
+    ] as const) {
+      const body =
+        "begin\n" +
+        wrapper.replace("%s", goodLocks) +
+        goodExists +
+        "  return new;\nend;";
+      assert.throws(
+        () => assertFacilitiesContainment({ migrationSql: swapTrigger(body) }),
+        /constant-false|CASE WHEN FALSE|PERFORM|FOR UPDATE/i,
+        `${label} dead-path PERFORM must fail`,
+      );
+    }
+
+    const ifFalseElseReturn = swapTrigger(
       "begin\n" +
         "  if false then\n" +
-        "    perform 1 from public.suppliers p where p.id = new.facility_of for update;\n" +
-        "    perform 1 from public.suppliers c where c.facility_of = new.id for update;\n" +
+        "    null;\n" +
+        "  else\n" +
+        "    return new;\n" +
         "  end if;\n" +
-        "  if exists (\n" +
-        "    select 1 from public.suppliers p\n" +
-        "     where p.id = new.facility_of and p.facility_of is not null\n" +
-        "  ) then\n" +
-        "    raise exception 'x' using errcode = 'check_violation';\n" +
-        "  end if;\n" +
-        "  if exists (\n" +
-        "    select 1 from public.suppliers c where c.facility_of = new.id\n" +
-        "  ) then\n" +
-        "    raise exception 'y' using errcode = 'check_violation';\n" +
-        "  end if;\n" +
-        "  return new;\n" +
+        goodLocks +
+        goodExists +
         "end;",
     );
     assert.throws(
-      () => assertFacilitiesContainment({ migrationSql: ifFalse }),
-      /PERFORM|FOR UPDATE|before RETURN/i,
-      "PERFORM only under IF FALSE must fail",
+      () => assertFacilitiesContainment({ migrationSql: ifFalseElseReturn }),
+      /constant-false|before any RETURN|PERFORM/i,
+      "IF FALSE ELSE RETURN NEW then PERFORM must fail",
     );
 
     const noRaise = swapTrigger(
+      "begin\n" + goodLocks + goodExists.replace(/raise exception[\s\S]*?;/gi, "null;") +
+        "  return new;\nend;",
+    );
+    assert.throws(
+      () => assertFacilitiesContainment({ migrationSql: noRaise }),
+      /RAISE|ERRCODE|EXISTS-check/i,
+      "EXISTS without RAISE must fail",
+    );
+
+    const messageOnly = swapTrigger(
       "begin\n" +
-        "  perform 1 from public.suppliers p where p.id = new.facility_of for update;\n" +
-        "  perform 1 from public.suppliers c where c.facility_of = new.id for update;\n" +
+        goodLocks +
         "  if exists (\n" +
         "    select 1 from public.suppliers p\n" +
         "     where p.id = new.facility_of and p.facility_of is not null\n" +
         "  ) then\n" +
-        "    null;\n" +
+        "    raise exception 'check_violation';\n" +
         "  end if;\n" +
         "  if exists (\n" +
         "    select 1 from public.suppliers c where c.facility_of = new.id\n" +
         "  ) then\n" +
-        "    null;\n" +
+        "    raise exception 'check_violation';\n" +
         "  end if;\n" +
-        "  return new;\n" +
-        "end;",
+        "  return new;\nend;",
     );
     assert.throws(
-      () => assertFacilitiesContainment({ migrationSql: noRaise }),
-      /RAISE check_violation|EXISTS-check/i,
-      "EXISTS without RAISE must fail",
+      () => assertFacilitiesContainment({ migrationSql: messageOnly }),
+      /USING ERRCODE|ERRCODE = 'check_violation'/i,
+      "raise exception 'check_violation' message-only must fail",
+    );
+
+    const swallowed = swapTrigger(
+      "begin\n" +
+        "  begin\n" +
+        goodLocks +
+        goodExists +
+        "  exception when others then\n" +
+        "    return new;\n" +
+        "  end;\n" +
+        "  return new;\nend;",
+    );
+    assert.throws(
+      () => assertFacilitiesContainment({ migrationSql: swallowed }),
+      /catch exceptions|EXCEPTION/i,
+      "EXCEPTION WHEN OTHERS swallow must fail",
     );
 
     const earlyReturn = swapTrigger(
       "begin\n" +
-        "  return new;\n" +
-        "  perform 1 from public.suppliers p where p.id = new.facility_of for update;\n" +
-        "  perform 1 from public.suppliers c where c.facility_of = new.id for update;\n" +
-        "  if exists (\n" +
-        "    select 1 from public.suppliers p\n" +
-        "     where p.id = new.facility_of and p.facility_of is not null\n" +
-        "  ) then\n" +
-        "    raise exception 'x' using errcode = 'check_violation';\n" +
-        "  end if;\n" +
-        "  if exists (\n" +
-        "    select 1 from public.suppliers c where c.facility_of = new.id\n" +
-        "  ) then\n" +
-        "    raise exception 'y' using errcode = 'check_violation';\n" +
-        "  end if;\n" +
+        "  return null;\n" +
+        goodLocks +
+        goodExists +
         "end;",
     );
     assert.throws(
       () => assertFacilitiesContainment({ migrationSql: earlyReturn }),
-      /before RETURN NEW|PERFORM/i,
-      "RETURN NEW before PERFORM must fail",
+      /before any RETURN|PERFORM/i,
+      "RETURN NULL before PERFORM must fail",
     );
   });
 });

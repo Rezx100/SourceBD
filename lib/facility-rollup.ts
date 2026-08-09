@@ -379,13 +379,14 @@ function blankSqlStrings(
 }
 
 const PINNED_OBJECT_NAME =
-  /buyer_supplier_profile|v_supplier_addresses(?:_direct)?/i;
+  /buyer_supplier_profile|v_supplier_addresses(?:_direct)?|v_supplier_registry_ids(?:_direct)?/i;
 
 /**
  * True when SQL contains a dynamic EXECUTE (format / dollar / E' / ' / var)
- * whose argument text mentions a pinned object. Also catches PERFORM format(...)
- * and opaque `EXECUTE stmt` when an earlier assignment to stmt embeds a pin.
- * Ignores GRANT EXECUTE and trigger EXECUTE FUNCTION.
+ * whose argument text mentions a pinned object. Also catches PERFORM format(...),
+ * opaque `EXECUTE stmt` after := / SELECT…INTO assignment, and obfuscated
+ * convert_from/decode/chr payloads (fail-closed). Ignores GRANT EXECUTE and
+ * trigger EXECUTE FUNCTION.
  */
 export function hasDynamicExecuteOfPinnedObject(sql: string): boolean {
   const code = stripSqlComments(sql);
@@ -403,6 +404,8 @@ export function hasDynamicExecuteOfPinnedObject(sql: string): boolean {
       continue;
     }
     const payload = extractExecuteArgPayload(code, at + m[0].length + ws);
+    // Obfuscated EXECUTE — migrations must not hide DDL this way.
+    if (/\b(convert_from|decode|encode|chr)\s*\(/i.test(payload)) return true;
     if (PINNED_OBJECT_NAME.test(payload)) return true;
     const opaque = /^([A-Za-z_][A-Za-z0-9_]*)\s*;/.exec(trimmed);
     if (opaque) {
@@ -437,13 +440,21 @@ function assignedVarMentionsPinned(
   varName: string,
   beforeIdx: number,
 ): boolean {
-  const re = new RegExp(
+  const window = code.slice(0, beforeIdx);
+  const assignRe = new RegExp(
     `\\b${varName}\\s*(?::=|=)\\s*([^;]+);`,
     "gi",
   );
-  const window = code.slice(0, beforeIdx);
   let m: RegExpExecArray | null;
-  while ((m = re.exec(window)) !== null) {
+  while ((m = assignRe.exec(window)) !== null) {
+    if (PINNED_OBJECT_NAME.test(m[1]!)) return true;
+  }
+  // SELECT … INTO var  /  SELECT format(…) INTO var
+  const intoRe = new RegExp(
+    `\\bselect\\b([\\s\\S]*?)\\binto\\s+${varName}\\b`,
+    "gi",
+  );
+  while ((m = intoRe.exec(window)) !== null) {
     if (PINNED_OBJECT_NAME.test(m[1]!)) return true;
   }
   return false;
@@ -467,45 +478,43 @@ function extractExecuteArgPayload(sql: string, start: number): string {
 }
 
 /**
- * Drop `IF FALSE THEN … END IF` wrappers so dead-branch decoys cannot
- * host the required PERFORM / EXISTS tokens.
+ * Fail closed on constant-false / exception-swallow wrappers that could host
+ * PERFORM / EXISTS / RAISE without executing them. Do not delete branches —
+ * stripping `IF FALSE … ELSE … END IF` previously left a post-IF PERFORM
+ * looking reachable after removing a live ELSE RETURN.
  */
-function stripFalsePlpgsqlBranches(sql: string): string {
-  let out = sql;
-  const re = /\bif\s+false\s+then\b/gi;
-  for (let n = 0; n < 32; n++) {
-    re.lastIndex = 0;
-    const m = re.exec(out);
-    if (!m || m.index === undefined) break;
-    const start = m.index;
-    const afterThen = start + m[0].length;
-    const endIf = findMatchingEndIf(out, afterThen);
-    if (endIf < 0) break;
-    out = out.slice(0, start) + " " + out.slice(endIf);
+function assertNoDeadPathGaming(triggerCode: string): void {
+  if (
+    /\bif\s+(?:false\b|null\b|not\s+true\b|\(\s*false\s*\)|false\s*::\s*boolean\b|1\s*=\s*0|0\s*=\s*1)/i.test(
+      triggerCode,
+    )
+  ) {
+    throw new Error(
+      "enforce_facility_parent_is_company must not wrap body in constant-false IF",
+    );
   }
-  return out;
-}
-
-/** Index just past the `END IF` that closes the IF whose body starts at bodyStart. */
-function findMatchingEndIf(sql: string, bodyStart: number): number {
-  let depth = 1;
-  let i = bodyStart;
-  while (i < sql.length) {
-    const slice = sql.slice(i);
-    const ifM = /^(?:elsif\b|elseif\b|else\b|end\s+if\b|if\b)/i.exec(slice);
-    if (!ifM) {
-      i += 1;
-      continue;
-    }
-    const tok = ifM[0]!.toLowerCase().replace(/\s+/g, " ");
-    if (tok === "if") depth += 1;
-    else if (tok === "end if") {
-      depth -= 1;
-      if (depth === 0) return i + ifM[0].length;
-    }
-    i += ifM[0].length;
+  if (/\belsif\s+(?:false\b|null\b|not\s+true\b|1\s*=\s*0)/i.test(triggerCode)) {
+    throw new Error(
+      "enforce_facility_parent_is_company must not use constant-false ELSIF",
+    );
   }
-  return -1;
+  if (
+    /\bcase\s+when\s+(?:false\b|null\b|not\s+true\b|1\s*=\s*0)/i.test(triggerCode)
+  ) {
+    throw new Error(
+      "enforce_facility_parent_is_company must not wrap body in CASE WHEN FALSE",
+    );
+  }
+  if (/\bwhile\s+(?:false\b|null\b|1\s*=\s*0)/i.test(triggerCode)) {
+    throw new Error(
+      "enforce_facility_parent_is_company must not wrap body in WHILE FALSE",
+    );
+  }
+  if (/\bexception\s+when\b/i.test(triggerCode)) {
+    throw new Error(
+      "enforce_facility_parent_is_company must not catch exceptions (RAISE must abort)",
+    );
+  }
 }
 
 function assertExactPairs(
@@ -589,9 +598,10 @@ export function assertFacilitiesContainment(args: {
     throw new Error("facilities CTE emits a forbidden sbi_* key");
   }
 
-  // Exact key AND value pins — key-only whitelists green identity under an
-  // allowed key (`f.company_name || f.slug`, `'employees_total', f.id`).
-  const allowedValues: Record<string, string> = {
+  // Exact key AND value pins for EVERY jsonb_build_object in the facilities
+  // CTE. First key must be one of the allowed shapes — a decoy name-object
+  // beside a live display_name / reordered object must not pass.
+  const allowedOuter: Record<string, string> = {
     name: "f.company_name",
     employees_total: "f.employees_total",
     machines_sewing: "f.machines_sewing",
@@ -602,91 +612,52 @@ export function assertFacilitiesContainment(args: {
     pills: "coalesce(fp.items, '[]'::jsonb)",
     rsc: "fr.obj",
   };
-  const allowedKeys = Object.keys(allowedValues).sort();
-
-  let foundFacilityObject = false;
+  const shapeByFirstKey: Record<string, Record<string, string>> = {
+    name: allowedOuter,
+    kind: {
+      kind: "va.address_kind",
+      address: "va.address",
+      source_code: "va.source_code",
+      fetched_at: "va.fetched_at",
+    },
+    source_code: {
+      source_code: "p.source_code",
+      label: "p.label",
+      value: "p.value",
+      verified: "p.verified",
+      source_url: "p.source_url",
+    },
+    progress_pct: {
+      progress_pct: "rr.progress_pct",
+      workers_count: "rr.workers_count",
+      remediation_status: "rr.remediation_status",
+      training_status: "rr.training_status",
+    },
+  };
+  const foundShapes = new Set<string>();
   let searchFrom = 0;
   while (searchFrom < facilitiesCode.length) {
     const idx = facilitiesCode.indexOf("jsonb_build_object", searchFrom);
     if (idx === -1) break;
     const pairs = extractLiteralJsonbPairs(facilitiesCode, idx);
-    if (pairs[0]?.key === "name") {
-      foundFacilityObject = true;
-      const byKey = Object.fromEntries(pairs.map((p) => [p.key, p.value]));
-      const emittedKeys = Object.keys(byKey).sort();
-      if (JSON.stringify(emittedKeys) !== JSON.stringify(allowedKeys)) {
-        throw new Error(
-          `facilities object keys must be exactly ${allowedKeys.join(",")}; got ${emittedKeys.join(",")}`,
-        );
-      }
-      for (const [key, want] of Object.entries(allowedValues)) {
-        const got = byKey[key]!.replace(/\s+/g, " ");
-        const wantNorm = want.replace(/\s+/g, " ");
-        if (got !== wantNorm) {
-          throw new Error(
-            `facilities object value for '${key}' must be exactly ${want}; got ${byKey[key]}`,
-          );
-        }
-      }
-      // Do not break — a correct decoy before a poisoned live object must fail.
-    }
-    searchFrom = idx + 1;
-  }
-  if (!foundFacilityObject) {
-    throw new Error(
-      "facilities CTE must build a jsonb_build_object whose first key is 'name'",
-    );
-  }
-
-  const innerSpecs: { firstKey: string; allowed: Record<string, string> }[] = [
-    {
-      firstKey: "kind",
-      allowed: {
-        kind: "va.address_kind",
-        address: "va.address",
-        source_code: "va.source_code",
-        fetched_at: "va.fetched_at",
-      },
-    },
-    {
-      firstKey: "source_code",
-      allowed: {
-        source_code: "p.source_code",
-        label: "p.label",
-        value: "p.value",
-        verified: "p.verified",
-        source_url: "p.source_url",
-      },
-    },
-    {
-      firstKey: "progress_pct",
-      allowed: {
-        progress_pct: "rr.progress_pct",
-        workers_count: "rr.workers_count",
-        remediation_status: "rr.remediation_status",
-        training_status: "rr.training_status",
-      },
-    },
-  ];
-  const foundInner = new Set<string>();
-  searchFrom = 0;
-  while (searchFrom < facilitiesCode.length) {
-    const idx = facilitiesCode.indexOf("jsonb_build_object", searchFrom);
-    if (idx === -1) break;
-    const pairs = extractLiteralJsonbPairs(facilitiesCode, idx);
     const first = pairs[0]?.key;
-    const spec = innerSpecs.find((s) => s.firstKey === first);
-    if (spec) {
-      // Pin every matching shape — not the first hit only.
-      assertExactPairs(`facilities inner (${spec.firstKey})`, pairs, spec.allowed);
-      foundInner.add(spec.firstKey);
+    if (!first || !(first in shapeByFirstKey)) {
+      throw new Error(
+        `facilities CTE jsonb_build_object first key must be name|kind|source_code|progress_pct; got ${first ?? "(empty)"}`,
+      );
     }
+    assertExactPairs(
+      `facilities shape (${first})`,
+      pairs,
+      shapeByFirstKey[first]!,
+    );
+    foundShapes.add(first);
     searchFrom = idx + 1;
   }
-  for (const spec of innerSpecs) {
-    if (!foundInner.has(spec.firstKey)) {
+  for (const need of Object.keys(shapeByFirstKey)) {
+    if (!foundShapes.has(need)) {
       throw new Error(
-        `facilities CTE missing inner jsonb_build_object starting with '${spec.firstKey}'`,
+        `facilities CTE missing jsonb_build_object starting with '${need}'`,
       );
     }
   }
@@ -745,9 +716,11 @@ export function assertFacilitiesContainment(args: {
     );
   }
 
-  const addressesInheritingBlock = sliceBetween(
-    "create or replace view public.v_supplier_addresses as",
-    "v_supplier_registry_ids_direct as",
+  const addressesInheritingBlock = stripSqlComments(
+    sliceBetween(
+      "create or replace view public.v_supplier_addresses as",
+      "v_supplier_registry_ids_direct as",
+    ),
   );
   if (!/and parent\.is_published = true/.test(addressesInheritingBlock)) {
     throw new Error(
@@ -767,7 +740,7 @@ export function assertFacilitiesContainment(args: {
     if (
       !new RegExp(
         `revoke select on public\\.${view}\\s+from anon, authenticated`,
-      ).test(migrationSql)
+      ).test(stripSqlComments(migrationSql))
     ) {
       throw new Error(`migration must revoke anon/authenticated on ${view}`);
     }
@@ -801,9 +774,44 @@ export function assertFacilitiesContainment(args: {
     throw new Error("migration must keep the REZ-93 DISPLAY-ONLY marker");
   }
 
-  // Chain-refusal trigger: blank strings, strip `IF FALSE` wrappers, then
-  // require reachable PERFORM … FOR UPDATE before any RETURN NEW, and RAISE
-  // check_violation on both EXISTS refusal paths.
+  // buyer_supplier_profile must stay SECURITY DEFINER with a fixed search_path
+  // so unpublished facility_of children are visible to the roll-up.
+  const profileFn =
+    /create or replace function public\.buyer_supplier_profile\s*\([\s\S]*?\$\$\s*;/i.exec(
+      migrationSql,
+    );
+  if (!profileFn) {
+    throw new Error("migration must define public.buyer_supplier_profile");
+  }
+  if (!/security\s+definer/i.test(profileFn[0]!)) {
+    throw new Error("buyer_supplier_profile must be SECURITY DEFINER");
+  }
+  if (!/set\s+search_path\s*=\s*public\b/i.test(profileFn[0]!)) {
+    throw new Error("buyer_supplier_profile must set search_path = public");
+  }
+
+  // Reverse must restore the live pre-state body (20260725), not 0095.
+  const reverseBlock = migrationSql.slice(
+    migrationSql.search(/--\s*REVERSE/i),
+    migrationSql.search(/--\s*FORWARD/i) > 0
+      ? migrationSql.search(/--\s*FORWARD/i)
+      : Math.min(migrationSql.length, (migrationSql.search(/--\s*REVERSE/i) || 0) + 2500),
+  );
+  if (!/20260725_rez_security_hardening_2/.test(reverseBlock)) {
+    throw new Error(
+      "REVERSE must name 20260725_rez_security_hardening_2 as the restore body",
+    );
+  }
+  if (!/NOT 0095|not 0095|NOT\s+0095/.test(reverseBlock)) {
+    throw new Error(
+      "REVERSE must warn that 0095 is not the production pre-state",
+    );
+  }
+
+  // Chain-refusal trigger: blank strings (no errcode preserve — that
+  // resurrected raise exception 'check_violation'), reject constant-false /
+  // EXCEPTION wrappers, require PERFORM before any RETURN, and RAISE with
+  // USING ERRCODE after blanking.
   const triggerFn =
     /create or replace function public\.enforce_facility_parent_is_company\(\)([\s\S]*?)\$\$\s*;/i.exec(
       migrationSql,
@@ -813,17 +821,19 @@ export function assertFacilitiesContainment(args: {
       "migration must define enforce_facility_parent_is_company()",
     );
   }
-  // Extract only the plpgsql body between as $$ ... $$ — blanking the
-  // whole match would treat the body as one dollar-quoted string.
+  if (!/set\s+search_path\s*=\s*public\b/i.test(triggerFn[0]!)) {
+    throw new Error(
+      "enforce_facility_parent_is_company must set search_path = public",
+    );
+  }
   const bodyMatch = /as\s*\$\$([\s\S]*?)\$\$/i.exec(triggerFn[0]!);
   if (!bodyMatch) {
     throw new Error(
       "enforce_facility_parent_is_company must use an as $$ ... $$ body",
     );
   }
-  const triggerCode = stripFalsePlpgsqlBranches(
-    blankSqlStrings(stripSqlComments(bodyMatch[1]!), new Set(["check_violation"])),
-  );
+  const triggerCode = blankSqlStrings(stripSqlComments(bodyMatch[1]!));
+  assertNoDeadPathGaming(triggerCode);
   const parentLock =
     /perform\s+1\s+from\s+public\.suppliers\s+p\s+where\s+p\.id\s*=\s*new\.facility_of\s+for\s+update/i;
   const childLock =
@@ -840,28 +850,42 @@ export function assertFacilitiesContainment(args: {
       "enforce_facility_parent_is_company must PERFORM ... children FOR UPDATE",
     );
   }
-  const firstReturn = triggerCode.search(/\breturn\s+new\b/i);
+  const firstReturn = triggerCode.search(/\breturn\b/i);
   if (firstReturn >= 0 && firstReturn < Math.min(parentLockAt, childLockAt)) {
     throw new Error(
-      "enforce_facility_parent_is_company must PERFORM FOR UPDATE before RETURN NEW",
+      "enforce_facility_parent_is_company must PERFORM FOR UPDATE before any RETURN",
     );
   }
+  // After blanking, require USING ERRCODE = (literal value is blanked).
   if (
-    !/if\s+exists\s*\(\s*select\s+1\s+from\s+public\.suppliers\s+p\s+where\s+p\.id\s*=\s*new\.facility_of\s+and\s+p\.facility_of\s+is\s+not\s+null\s*\)\s*then\s*raise\s+exception[\s\S]*?check_violation/i.test(
+    !/if\s+exists\s*\(\s*select\s+1\s+from\s+public\.suppliers\s+p\s+where\s+p\.id\s*=\s*new\.facility_of\s+and\s+p\.facility_of\s+is\s+not\s+null\s*\)\s*then\s*raise\s+exception[\s\S]*?using\s+errcode\s*=/i.test(
       triggerCode,
     )
   ) {
     throw new Error(
-      "enforce_facility_parent_is_company must EXISTS-check parent.facility_of IS NOT NULL and RAISE check_violation",
+      "enforce_facility_parent_is_company must EXISTS-check parent.facility_of IS NOT NULL and RAISE USING ERRCODE",
     );
   }
   if (
-    !/if\s+exists\s*\(\s*select\s+1\s+from\s+public\.suppliers\s+c\s+where\s+c\.facility_of\s*=\s*new\.id\s*\)\s*then\s*raise\s+exception[\s\S]*?check_violation/i.test(
+    !/if\s+exists\s*\(\s*select\s+1\s+from\s+public\.suppliers\s+c\s+where\s+c\.facility_of\s*=\s*new\.id\s*\)\s*then\s*raise\s+exception[\s\S]*?using\s+errcode\s*=/i.test(
       triggerCode,
     )
   ) {
     throw new Error(
-      "enforce_facility_parent_is_company must EXISTS-check children pointing here and RAISE check_violation",
+      "enforce_facility_parent_is_company must EXISTS-check children pointing here and RAISE USING ERRCODE",
+    );
+  }
+  // Errcode value must be check_violation on the comment-stripped (unblanked) body.
+  const triggerRaw = stripSqlComments(bodyMatch[1]!);
+  if (
+    (
+      triggerRaw.match(
+        /using\s+errcode\s*=\s*'check_violation'/gi,
+      ) ?? []
+    ).length < 2
+  ) {
+    throw new Error(
+      "enforce_facility_parent_is_company must RAISE USING ERRCODE = 'check_violation' on both refusal paths",
     );
   }
   if (
