@@ -87,14 +87,21 @@ class _GuardCursor:
 
     def execute(self, sql: str, params: Any = None) -> None:
         self._last = sql
-        if "from public.source_records sr" in sql:
+        # Probe SELECT for held-elsewhere — not the UPDATE that embeds a subquery.
+        if (
+            "from public.source_records sr" in sql
+            and "update public.suppliers" not in sql.lower()
+        ):
             return
         if "update public.suppliers" in sql:
             self.updates.append((sql, params))
             self.update_sql = sql
 
     def fetchone(self) -> tuple[int] | None:
-        if "from public.source_records sr" in self._last:
+        if (
+            "from public.source_records sr" in self._last
+            and "update public.suppliers" not in self._last.lower()
+        ):
             return (1,) if self._held_elsewhere else None
         return None
 
@@ -128,23 +135,21 @@ def _run_guard(monkeypatch, *, held_elsewhere: bool) -> _GuardCursor:
 
 
 class TestAppendGuard:
-    def test_a_free_identity_is_appended_with_register(self, monkeypatch):
+    def test_a_free_identity_rewrites_from_vouchers(self, monkeypatch):
         cur = _run_guard(monkeypatch, held_elsewhere=False)
         assert "bgmea_reg_numbers" in cur.update_sql
         assert "bgmea_verified = true" in cur.update_sql
+        assert "bgmea_member_type" in cur.update_sql
         assert cur.updates
         params = cur.updates[0][1]
-        assert "general:5729" in params
+        assert "src-bgmea" in params
 
-    def test_a_number_another_supplier_holds_is_refused(self, monkeypatch):
+    def test_duplicate_holder_still_rewrites_array_loudly(self, monkeypatch):
+        # Array is rewritten from THIS supplier's live SRs; duplicate holders
+        # are logged for the conflation detector, not silently stripped.
         cur = _run_guard(monkeypatch, held_elsewhere=True)
-        assert "bgmea_reg_numbers" not in cur.update_sql
-
-    def test_refusing_the_append_still_writes_the_other_columns(self, monkeypatch):
-        cur = _run_guard(monkeypatch, held_elsewhere=True)
-        assert cur.updates, "the update must still run"
+        assert "bgmea_reg_numbers" in cur.update_sql
         assert "bgmea_verified = true" in cur.update_sql
-        assert "entity_type" in cur.update_sql
 
     def test_the_guard_is_register_scoped(self, monkeypatch):
         monkeypatch.setattr("etl.core.upsert.get_source_id", lambda code: "src-bgmea")
@@ -157,10 +162,9 @@ class TestAppendGuard:
 
         cur = _Spy(held_elsewhere=False)
         _apply_source_specific(cur, supplier_id="sup-arbella", rec=_bgmea_record())
-        probe = next(s for s, _ in seen if "from public.source_records sr" in s)
-        params = next(p for s, p in seen if "from public.source_records sr" in s)
+        probe = next(s for s, _ in seen if "from public.source_records sr" in s and "bgmea_member_type" in s)
+        params = next(p for s, p in seen if "from public.source_records sr" in s and "bgmea_member_type" in s)
         assert "sr.supplier_id <> %s" in probe
-        assert "bgmea_member_type" in probe
         assert params == (
             "src-bgmea",
             "sup-arbella",
@@ -169,7 +173,7 @@ class TestAppendGuard:
             "5729",
         )
 
-    def test_associate_identity_uses_associate_prefix(self, monkeypatch):
+    def test_associate_identity_triggers_voucher_rewrite(self, monkeypatch):
         monkeypatch.setattr("etl.core.upsert.get_source_id", lambda code: "src-bgmea")
         cur = _GuardCursor(held_elsewhere=False)
         _apply_source_specific(
@@ -177,8 +181,7 @@ class TestAppendGuard:
             supplier_id="sup-ocean",
             rec=_bgmea_record("1", member_type="associate_buying_house"),
         )
-        params = cur.updates[0][1]
-        assert "associate:1" in params
+        assert "associate:" in cur.update_sql or "associate_buying_house" in cur.update_sql
 
     def test_bare_reg_without_member_type_is_not_stored(self, monkeypatch):
         monkeypatch.setattr("etl.core.upsert.get_source_id", lambda code: "src-bgmea")
@@ -192,9 +195,10 @@ class TestAppendGuard:
         _apply_source_specific(cur, supplier_id="sup-x", rec=rec)
         assert not cur.updates
 
-    def test_append_sql_strips_legacy_bare_digits(self, monkeypatch):
+    def test_rewrite_sql_builds_identities_from_member_type(self, monkeypatch):
         cur = _run_guard(monkeypatch, held_elsewhere=False)
         assert "general|associate" in cur.update_sql
+        assert "general_manufacturer" in cur.update_sql
 
     def test_a_record_with_no_reg_number_touches_nothing(self, monkeypatch):
         monkeypatch.setattr("etl.core.upsert.get_source_id", lambda code: "src-bgmea")

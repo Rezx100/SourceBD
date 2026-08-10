@@ -446,23 +446,19 @@ def _merge_into_profile(
             body[col] = val
 
     if source == "BGMEA" and reg:
-        from etl.core.bgmea_identity import identity_from_member_type, parse_identity
+        from etl.core.bgmea_identity import identity_from_member_type
 
         identity = identity_from_member_type(
             str(fields.get("bgmea_member_type") or "") or None,
             str(reg),
         )
         if identity:
-            held = [
-                str(n)
-                for n in (current.get("bgmea_reg_numbers") or [])
-                if parse_identity(str(n))
-            ]
-            regs = sorted({*held, identity})
+            # Rewrite from destination live vouchers (includes the moved row).
+            regs = sorted(backed_reg_numbers(records, source_codes))
             if regs != sorted(str(n) for n in (current.get("bgmea_reg_numbers") or [])):
                 body["bgmea_reg_numbers"] = regs
-        if not current.get("bgmea_verified"):
-            body["bgmea_verified"] = True
+            if not current.get("bgmea_verified"):
+                body["bgmea_verified"] = True
         tags = sorted({*(current.get("source_tags") or []), "BGMEA"})
         if tags != sorted(current.get("source_tags") or []):
             body["source_tags"] = tags

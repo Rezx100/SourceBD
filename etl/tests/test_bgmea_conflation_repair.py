@@ -408,7 +408,7 @@ class TestFieldLocksHoldAgainstTheRepair:
         _merge_into_profile(rest, "dest-1", self.MOVED, "BGMEA", "12345", SOURCE_CODES)
         body = rest.supplier_body
         assert body["employees_total"] == 1000
-        assert body["bgmea_reg_numbers"] == ["general:111", "general:12345"]
+        assert body["bgmea_reg_numbers"] == ["general:12345"]
 
     def test_merge_into_profile_skips_locked_columns(self):
         rest = FakeRest(

@@ -42,7 +42,7 @@ select sr.supplier_id as supplier_id,
              nullif(btrim(sr.source_ref), '')
            )
        end as value,
-       coalesce(s.bgmea_verified, false) as verified,
+       true as verified,
        case
          when sr.fields->>'bgmea_member_type' = 'general_manufacturer'
           and nullif(btrim(sr.fields->>'bgmea_member_id'), '') is not null

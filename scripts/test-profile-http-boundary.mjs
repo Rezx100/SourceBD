@@ -61,6 +61,8 @@ const APP_URL = `http://localhost:${APP_PORT}`;
 const MARKER = join(ROOT, ".next", "http-guard-env.json");
 
 const MOTHER = "mother-company-ltd";
+const ASSOCIATE_ONLY = "ocean-cross-international";
+const UNRESOLVED_BGMEA = "unresolved-bgmea-supplier";
 const FACILITY = "mother-company-ltd-extension";
 const MISSING = "this-slug-cannot-possibly-exist-http-guard";
 const UNPUBLISHED = "unpublished-plain-supplier-ltd";
@@ -108,6 +110,24 @@ const HAPPY_PAYLOAD = {
       inherited_from: null,
       inherited_from_name: null,
     },
+  ],
+  certifications: [],
+  rsc_remediation: null,
+  brand_attributions: [],
+  sanctions: [],
+  provenance: [],
+  addresses: [],
+  documents: [],
+};
+
+const ASSOCIATE_PAYLOAD = {
+  ...HAPPY_PAYLOAD,
+  supplier: {
+    ...HAPPY_PAYLOAD.supplier,
+    slug: ASSOCIATE_ONLY,
+    company_name: "Ocean Cross International",
+  },
+  pills: [
     {
       source_code: "BGMEA",
       label: "BGMEA Associate member #",
@@ -118,7 +138,27 @@ const HAPPY_PAYLOAD = {
       inherited_from_name: null,
     },
   ],
-  certifications: [],
+};
+
+const UNRESOLVED_PAYLOAD = {
+  ...HAPPY_PAYLOAD,
+  supplier: {
+    ...HAPPY_PAYLOAD.supplier,
+    slug: UNRESOLVED_BGMEA,
+    company_name: "Unresolved BGMEA Supplier",
+  },
+  pills: [
+    {
+      source_code: "BGMEA",
+      label: "BGMEA Reg #",
+      value: "1",
+      verified: false,
+      source_url: null,
+      inherited_from: null,
+      inherited_from_name: null,
+    },
+  ],
+};
   rsc_remediation: null,
   brand_attributions: [],
   sanctions: [],
@@ -229,7 +269,10 @@ function mockHandler(req, res) {
           400,
         );
       }
-      return json(slug === MOTHER ? HAPPY_PAYLOAD : null);
+      if (slug === MOTHER) return json(HAPPY_PAYLOAD);
+      if (slug === ASSOCIATE_ONLY) return json(ASSOCIATE_PAYLOAD);
+      if (slug === UNRESOLVED_BGMEA) return json(UNRESOLVED_PAYLOAD);
+      return json(null);
     }
     if (url.pathname === "/rest/v1/rpc/buyer_supplier_facility_panel") {
       let slug = null;
@@ -639,13 +682,12 @@ const CASES = [
     expect: { status: 200 },
   },
   {
-    name: "public: BGMEA register named + verification link (REZ-115)",
+    name: "public: BGMEA General register named + member_id link (REZ-115)",
     path: `/suppliers/${MOTHER}`,
     expect: {
       status: 200,
       bodyIncludesAll: [
         "General member",
-        "Associate member",
         "Verify on BGMEA",
         'href="https://www.bgmea.com.bd/member/951"',
       ],
@@ -653,14 +695,24 @@ const CASES = [
     },
   },
   {
-    name: "public: unresolved BGMEA withheld from Verified badge (REZ-115)",
-    path: `/suppliers/${MOTHER}`,
-    // Fixture has only register-resolved pills; assert Verified appears with
-    // register words, and a verified:false path is covered by unit UI contract
-    // that RegistryRow omits the badge when verified === false.
+    name: "public: Associate BGMEA named and must not deep-link /member (REZ-115)",
+    path: `/suppliers/${ASSOCIATE_ONLY}`,
     expect: {
       status: 200,
-      bodyIncludesAll: ["General member", "Verified"],
+      bodyIncludesAll: ["Associate member"],
+      bodyExcludes: [
+        "Verify on BGMEA",
+        "https://www.bgmea.com.bd/member/",
+      ],
+    },
+  },
+  {
+    name: "public: unresolved BGMEA withheld from Verified badge (REZ-115)",
+    path: `/suppliers/${UNRESOLVED_BGMEA}`,
+    expect: {
+      status: 200,
+      bodyIncludes: "1",
+      bodyExcludes: ["Verified"],
     },
   },
   {
