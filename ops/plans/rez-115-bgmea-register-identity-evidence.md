@@ -68,9 +68,16 @@ vouches for associate:100 or general:100.
 206 name-disagreement registrations (53 wholly foreign / 176 mixed) —
 `ops/plans/bgmea-identity-gap.md`; needs REZ-102 premises.
 
-## Fix shape (estimate ~320 product LOC + migration + backfill)
+## Post-apply reconciliation (2026-08-10)
 
-1. Store identities as `general:N` / `associate:N` in `bgmea_reg_numbers`.
-2. Display from live source_records with register labels + General deep-links.
-3. Associate: no HTML member page — `source_url` null (never link to General `/member/{N}`).
-4. Guards in upsert, conflation check, reconciliation query.
+| measure | value |
+| -- | -- |
+| snapshot_rows | **5801** (`_snapshot_bgmea_reg_identities_20260810`) |
+| applied mutations | **5801** (fingerprint re-matched before apply) |
+| published_bare_remaining | **0** |
+| published_identity_collisions | **0** |
+| display_collisions (label+value) | **0** |
+
+Hand-check (live BGMEA pages): DESH Reg 1 at `/member/951`; CONTINENTAL at `/member/816`; Enayet at `/member/1129`. Associates Ocean Cross / Unigarden / RIJ-TEX / Young Woo named in `bgmea-names.json` under bare digits matching their associate regs.
+
+Candidate accepted: `fadd0fe` — `ACCEPTED_FOR_HUMAN_REVIEW` (Judge). Autonomy applied migration 0101 + storage backfill.
