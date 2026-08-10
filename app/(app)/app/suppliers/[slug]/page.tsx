@@ -399,7 +399,9 @@ export default async function FactoryProfilePage({
             workersGroupLabel={workersGroupLabel}
           />
         </TabsContent>
-        <TabsContent value="compliance" id="compliance">
+        {/* forceMount: registry Verify links must be in the initial HTML
+            (REZ-115 / REZ-72 lesson). */}
+        <TabsContent value="compliance" id="compliance" forceMount className="data-[state=inactive]:hidden">
           <ProfileComplianceTab
             data={{
               pills: payload.pills,
