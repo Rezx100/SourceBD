@@ -147,24 +147,8 @@ const UNRESOLVED_PAYLOAD = {
     slug: UNRESOLVED_BGMEA,
     company_name: "Unresolved BGMEA Supplier",
   },
-  pills: [
-    {
-      source_code: "BGMEA",
-      label: "BGMEA Reg #",
-      value: "1",
-      verified: false,
-      source_url: null,
-      inherited_from: null,
-      inherited_from_name: null,
-    },
-  ],
-};
-  rsc_remediation: null,
-  brand_attributions: [],
-  sanctions: [],
-  provenance: [],
-  addresses: [],
-  documents: [],
+  // Production 0101 omits BGMEA pills when member_type is unknown — no Verified badge.
+  pills: [],
 };
 
 /** REZ-73/109 — mother facility panel shape from buyer_supplier_facility_panel. */
@@ -699,20 +683,26 @@ const CASES = [
     path: `/suppliers/${ASSOCIATE_ONLY}`,
     expect: {
       status: 200,
-      bodyIncludesAll: ["Associate member"],
+      bodyIncludesAll: ["Associate member", "1"],
       bodyExcludes: [
+        "General member",
         "Verify on BGMEA",
         "https://www.bgmea.com.bd/member/",
       ],
     },
   },
   {
-    name: "public: unresolved BGMEA withheld from Verified badge (REZ-115)",
+    name: "public: unresolved BGMEA omitted from Verified registry pills (REZ-115)",
     path: `/suppliers/${UNRESOLVED_BGMEA}`,
     expect: {
       status: 200,
-      bodyIncludes: "1",
-      bodyExcludes: ["Verified"],
+      bodyExcludes: [
+        "General member",
+        "Associate member",
+        "Verify on BGMEA",
+        "BGMEA General",
+        "BGMEA Associate",
+      ],
     },
   },
   {
