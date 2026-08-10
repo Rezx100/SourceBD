@@ -42,6 +42,12 @@ export type ProfileOverviewSupplier = {
   source_tags: string[];
 };
 
+/** REZ-114 — selected workers for prose (not raw employees_total). */
+export type OverviewWorkersProp = {
+  value: number | null;
+  caption?: string;
+};
+
 function sourceCodeLabel(code: string): string {
   if (code === "OEKO_TEX") return "OEKO-TEX";
   if (code === "BRAND_HM") return "H&M";
@@ -124,6 +130,8 @@ export async function ProfileOverviewTab<TAddress extends AddressRowRaw>({
   discoverHref,
   slug,
   facilitiesPanel = null,
+  workers,
+  workersGroupLabel,
 }: {
   supplier: ProfileOverviewSupplier;
   t13SourceCount: number;
@@ -135,6 +143,10 @@ export async function ProfileOverviewTab<TAddress extends AddressRowRaw>({
   slug?: string;
   /** REZ-73 panel from buyer_supplier_facility_panel; omit when empty/null. */
   facilitiesPanel?: FacilityPanel | null;
+  /** REZ-114 — when provided, narrative uses this instead of employees_total. */
+  workers?: OverviewWorkersProp;
+  /** REZ-114 — honest group workers label for Facilities section. */
+  workersGroupLabel?: string;
 }) {
   const overview = buildLocationOverview(addresses);
   const primaryAddress =
@@ -198,12 +210,16 @@ export async function ProfileOverviewTab<TAddress extends AddressRowRaw>({
             uniqueLocationCount: overview.uniqueLocationCount,
             factoryLocationCount:
               overview.groups.find((g) => g.title === "Factories")?.locations.length ?? 0,
+            workers,
           })}
         />
       </ProfileCard>
 
       {facilitiesPanel ? (
-        <ProfileFacilitiesSection panel={facilitiesPanel} />
+        <ProfileFacilitiesSection
+          panel={facilitiesPanel}
+          workersGroupLabel={workersGroupLabel}
+        />
       ) : null}
 
       {overview.uniqueLocationCount > 0 ? (
@@ -281,6 +297,7 @@ function buildNarrative(
     provenanceCount: number;
     uniqueLocationCount: number;
     factoryLocationCount: number;
+    workers?: OverviewWorkersProp;
   },
 ): CompanyNarrativeData {
   const name = formatCompanyName(s.company_name);
@@ -317,7 +334,16 @@ function buildNarrative(
       `${articleFor(s.factory_types[0]!)} [[${joinList(s.factory_types.map((t) => t.toLowerCase()))}]] operation`,
     );
   }
-  if (s.employees_total != null) {
+  // REZ-114: prefer selected workers; Unknown when null and prop provided.
+  if (counts.workers !== undefined) {
+    if (counts.workers.value != null) {
+      opsParts.push(
+        `a workforce of [[~${counts.workers.value.toLocaleString()}]]`,
+      );
+    } else {
+      opsParts.push(`a workforce of [[Unknown]]`);
+    }
+  } else if (s.employees_total != null) {
     opsParts.push(`a workforce of [[~${s.employees_total.toLocaleString()}]]`);
   }
   if (opsParts.length > 0) {

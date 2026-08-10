@@ -25,12 +25,14 @@ export type FacilityPill = {
 export type FacilityRsc = {
   progress_pct: number | null;
   workers_count: number | null;
+  fetched_at?: string | null;
   remediation_status: string | null;
   training_status: string | null;
 };
 
 export type FacilityRow = {
   name: string;
+  employees_total?: number | null;
   addresses: FacilityAddress[];
   pills: FacilityPill[];
   rsc: FacilityRsc | null;
@@ -107,6 +109,7 @@ function sanitizeRsc(raw: unknown): FacilityRsc | null {
       r.workers_count == null || r.workers_count === ""
         ? null
         : Number(r.workers_count),
+    fetched_at: r.fetched_at == null ? null : String(r.fetched_at),
     remediation_status:
       r.remediation_status == null ? null : String(r.remediation_status),
     training_status:
@@ -121,8 +124,13 @@ export function sanitizeFacilityPanel(raw: FacilityPanel): FacilityPanel {
     facilities: (raw.facilities ?? [])
       .map((f) => {
         const row = f as FacilityRow & Record<string, unknown>;
+        const empRaw = (row as Record<string, unknown>).employees_total;
         return {
           name: String(row?.name ?? ""),
+          employees_total:
+            empRaw == null || empRaw === ""
+              ? null
+              : Number(empRaw),
           addresses: sanitizeAddresses(row?.addresses),
           pills: sanitizePills(row?.pills),
           rsc: sanitizeRsc(row?.rsc),

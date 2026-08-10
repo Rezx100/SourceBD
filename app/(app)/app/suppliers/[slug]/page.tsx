@@ -28,6 +28,13 @@ import { SaveButton } from "@/components/save-button";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CompanyProfileHeader } from "@/components/supplier/company-profile-header";
+import { resolveProfileWorkers } from "@/lib/build-profile-workers";
+import {
+  formatWorkersHeadline,
+  isGroupWorkers,
+  workersCaption,
+  workersDisplayValue,
+} from "@/lib/profile-metrics";
 import { ProfileOverviewTab } from "@/components/supplier/profile-overview-tab";
 import {
   sanitizeFacilityPanel,
@@ -258,6 +265,22 @@ export default async function FactoryProfilePage({
       ? sanitizeFacilityPanel(facilityRaw as FacilityPanel)
       : null;
 
+  const rscSites = asRscSites(payload.rsc_remediation);
+  const workersResolved = resolveProfileWorkers({
+    companyName: s.company_name,
+    employeesTotal: s.employees_total,
+    rscSites,
+    panel: facilitiesPanel,
+  });
+  const workersHeadline = {
+    value: workersDisplayValue(workersResolved),
+    caption: workersCaption(workersResolved),
+    source: workersResolved.source,
+  };
+  const workersGroupLabel = isGroupWorkers(workersResolved)
+    ? formatWorkersHeadline(workersResolved)
+    : undefined;
+
   const { data: savedRow } = await supabase
     .from("saved_suppliers")
     .select("id")
@@ -299,6 +322,7 @@ export default async function FactoryProfilePage({
       <BlurFade delay={0.07}>
         <CompanyProfileHeader
           supplier={s}
+          workers={workersHeadline}
           t13SourceCount={payload.t13_source_count}
           pills={payload.pills}
           provenance={payload.provenance}
@@ -343,7 +367,7 @@ export default async function FactoryProfilePage({
           <TabsTrigger value="compliance" id="tab-trigger-compliance" className={profileTabClass}>
             Compliance
           </TabsTrigger>
-          {hasCapacityData(s) ? (
+          {hasCapacityData(s, workersHeadline) ? (
             <TabsTrigger value="capacity" className={profileTabClass}>
               Capacity
             </TabsTrigger>
@@ -371,6 +395,8 @@ export default async function FactoryProfilePage({
             discoverHref="/app/discover"
             slug={slug}
             facilitiesPanel={facilitiesPanel}
+            workers={workersHeadline}
+            workersGroupLabel={workersGroupLabel}
           />
         </TabsContent>
         <TabsContent value="compliance" id="compliance">
@@ -385,9 +411,9 @@ export default async function FactoryProfilePage({
             }}
           />
         </TabsContent>
-        {hasCapacityData(s) ? (
+        {hasCapacityData(s, workersHeadline) ? (
           <TabsContent value="capacity">
-            <ProfileCapacityTab supplier={s} />
+            <ProfileCapacityTab supplier={s} workers={workersHeadline} />
           </TabsContent>
         ) : null}
         <TabsContent value="contact">

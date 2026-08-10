@@ -33,6 +33,7 @@ import { MobileFilterSheet } from "@/components/discover/mobile-filter-sheet";
 import { EmptyState } from "@/components/ui/page-kit";
 import { fetchDiscoverFacets } from "@/lib/discover-facets";
 import { resolveDiscoverSmartQuery } from "@/lib/discover-smart-query";
+import { enrichDiscoverWorkers } from "@/lib/enrich-discover-workers";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -103,7 +104,10 @@ export default async function BuyerDiscoverPage({
       p_workers_min: null,
     });
     error = rpcError;
-    rows = (data ?? []) as DiscoverRow[];
+    rows = await enrichDiscoverWorkers(
+      supabase,
+      (data ?? []) as DiscoverRow[],
+    );
     totalCount = rows[0]?.total_count ?? 0;
     totalPages = Math.max(1, Math.ceil(Number(totalCount) / PAGE_SIZE));
 
