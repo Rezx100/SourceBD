@@ -146,6 +146,13 @@ describe("normaliseAddressKey — merges place-variant full addresses", () => {
     );
   });
 
+  it("REZ-112: Vawal equals Bhawal", () => {
+    assert.equal(
+      normaliseAddressKey("Bahadurpur, Vawal, Mirzapur"),
+      normaliseAddressKey("Bahadurpur, Bhawal, Mirzapur"),
+    );
+  });
+
   // Negatives: different addresses must NOT merge
   it("Sreepur and Sripur are NOT merged", () => {
     assert.notEqual(

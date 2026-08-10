@@ -94,6 +94,10 @@ const ABBREVIATION_PAIRS: ReadonlyArray<readonly [RegExp, string]> = [
   [/\brd\.?\b/g, "road"],
   [/\bave\.?\b/g, "avenue"],
   [/\bblvd\.?\b/g, "boulevard"],
+  // REZ-112: Post Office abbreviations. Do not require \\b after the optional
+  // trailing period — "p.o.-bhawal" has no word-boundary between '.' and '-'.
+  [/\bp\.?\s*o\.?(?=[\s,\-]|$)/g, "post"],
+  [/\bpost\s*:/g, "post"],
 ];
 
 /** Words that describe a kind of place rather than which place. Matching on

@@ -11,7 +11,15 @@ import {
 import { formatProfileDate, formatRegistryIdLabel } from "@/lib/format-supplier-profile";
 import { cn } from "@/lib/utils";
 
-import { rscDetailBlockVisible, rscWorkforceLabel } from "@/lib/rsc-workforce-label";
+import {
+  groupByBuilding,
+  rscProgressPct,
+  rscSiteLabel,
+} from "@/lib/compliance-building-groups";
+import { rscWorkforceLabel } from "@/lib/rsc-workforce-label";
+
+/** Initial docs shown per building before <details> expand (REZ-111). */
+const DOCS_PREVIEW_PER_BUILDING = 4;
 
 export type ProfileCompliancePill = {
   source_code: string;
@@ -288,27 +296,35 @@ export function ProfileRegistriesCard({
 }) {
   const registryPills = pills.filter((p) => REGISTRY_CODES.has(p.source_code));
   if (registryPills.length === 0) return null;
-  const buildingCount = new Set(
-    registryPills
-      .map((p) => p.building_name?.trim())
-      .filter((n): n is string => Boolean(n)),
-  ).size;
+  const groups = groupByBuilding(registryPills);
+  const buildingCount = groups.filter((g) => g.key !== "__main__").length;
   return (
     <ProfileCard hoverable>
       <ProfileCardHeader
         title="Registries"
         meta={registryPillsSummary(registryPills)}
       />
-      <div>
-        {registryPills.map((p, i) => (
-          <RegistryRow key={i} pill={p} />
+      <div className="space-y-3">
+        {groups.map((g) => (
+          <div key={g.key}>
+            {groups.length > 1 || g.key !== "__main__" ? (
+              <p className="mb-1.5 text-[12px] font-semibold uppercase tracking-wide text-neutral-500">
+                {g.label}
+              </p>
+            ) : null}
+            <div>
+              {g.items.map((p, i) => (
+                <RegistryRow key={`${g.key}-${i}`} pill={p} compact />
+              ))}
+            </div>
+          </div>
         ))}
       </div>
       {buildingCount > 0 ? (
         <ProfileFootnote>
-          Records labelled with a building name belong to that facility, not
-          the main plant. They appear here for due diligence only — they do
-          not make the company searchable under that registry in Discover.
+          Records under a building name belong to that facility, not the main
+          plant. They appear here for due diligence only — they do not make
+          the company searchable under that registry in Discover.
         </ProfileFootnote>
       ) : registryPills.some((p) => p.inherited_from != null) ? (
         <ProfileFootnote>
@@ -377,11 +393,8 @@ export function ProfileDocumentsCard({
   className?: string;
 }) {
   if (documents.length === 0) return null;
-  const buildingCount = new Set(
-    documents
-      .map((d) => d.building_name?.trim())
-      .filter((n): n is string => Boolean(n)),
-  ).size;
+  const groups = groupByBuilding(documents);
+  const buildingCount = groups.filter((g) => g.key !== "__main__").length;
   return (
     <ProfileCard className={className}>
       <ProfileCardHeader
@@ -392,16 +405,52 @@ export function ProfileDocumentsCard({
             : `${documents.length} mirrored`
         }
       />
-      <div>
-        {documents.map((d, i) => (
-          <DocRow key={i} doc={d} />
-        ))}
+      <div className="space-y-4">
+        {groups.map((g) => {
+          const preview = g.items.slice(0, DOCS_PREVIEW_PER_BUILDING);
+          const rest = g.items.slice(DOCS_PREVIEW_PER_BUILDING);
+          return (
+            <div key={g.key}>
+              {groups.length > 1 || g.key !== "__main__" ? (
+                <p className="mb-1.5 text-[12px] font-semibold uppercase tracking-wide text-neutral-500">
+                  {g.label}
+                  <span className="ml-2 font-mono font-medium normal-case tracking-normal text-neutral-400">
+                    {g.items.length}
+                  </span>
+                </p>
+              ) : null}
+              <div>
+                {preview.map((d, i) => (
+                  <DocRow key={`${g.key}-p-${i}`} doc={d} compact />
+                ))}
+              </div>
+              {rest.length > 0 ? (
+                <details className="group mt-1">
+                  <summary className="cursor-pointer list-none py-1.5 text-[13px] font-semibold text-brand-forest marker:content-none [&::-webkit-details-marker]:hidden">
+                    Show {rest.length} more
+                    <span className="ml-1 font-medium text-neutral-400 group-open:hidden">
+                      ↓
+                    </span>
+                    <span className="ml-1 hidden font-medium text-neutral-400 group-open:inline">
+                      ↑
+                    </span>
+                  </summary>
+                  <div>
+                    {rest.map((d, i) => (
+                      <DocRow key={`${g.key}-r-${i}`} doc={d} compact />
+                    ))}
+                  </div>
+                </details>
+              ) : null}
+            </div>
+          );
+        })}
       </div>
       <ProfileFootnote>
         Mirror copies served from SourceBD&apos;s CDN for stable archival.
         Originals link back to the issuing authority.
         {buildingCount > 0
-          ? " Documents labelled with a building name were inspected at that facility, not the main plant."
+          ? " Documents under a building name were inspected at that facility, not the main plant."
           : null}
       </ProfileFootnote>
     </ProfileCard>
@@ -419,11 +468,7 @@ export function ProfileComplianceTab({
       <div className="grid gap-4 lg:grid-cols-2">
         <ProfileRegistriesCard pills={data.pills} />
         <ProfileCertificationsCard certifications={data.certifications} />
-        {rscSites.length > 0
-          ? rscSites.map((rsc, i) => (
-              <RscCard key={i} rsc={rsc} />
-            ))
-          : null}
+        {rscSites.length > 0 ? <RscSitesCard sites={rscSites} /> : null}
         <ProfileSanctionsCard hits={data.sanctions} />
         {data.brand_attributions.length > 0 ? (
           <ProfileCard hoverable>
@@ -454,22 +499,29 @@ export function ProfileComplianceTab({
   );
 }
 
-function RegistryRow({ pill }: { pill: ProfileCompliancePill }) {
+function RegistryRow({
+  pill,
+  compact = false,
+}: {
+  pill: ProfileCompliancePill;
+  compact?: boolean;
+}) {
   const inherited = !!pill.inherited_from;
-  const building = pill.building_name?.trim() || null;
-  const meta = building
-    ? building
-    : inherited
-      ? `Inherited from parent group ${pill.inherited_from_name ?? ""}`.trim()
-      : `Verified via ${sourceFullName(pill.source_code)}`;
+  const shortName =
+    pill.source_code === "EPB"
+      ? "EPB"
+      : pill.source_code === "RSC"
+        ? "RSC"
+        : sourceFullName(pill.source_code);
   return (
     <ProfileEvidenceRow
-      markSize="lg"
+      markSize={compact ? "md" : "lg"}
       pillAlign="top"
-      mark={<ProfileSourceMark tag={pill.source_code} size="lg" />}
+      mark={<ProfileSourceMark tag={pill.source_code} size={compact ? "md" : "lg"} />}
       title={
         <>
-          {sourceFullName(pill.source_code)}
+          <span className="sm:hidden">{shortName}</span>
+          <span className="hidden sm:inline">{shortName}</span>
           {pill.value ? (
             <span
               className="ml-2 font-mono text-[13px] font-medium text-neutral-500"
@@ -481,18 +533,9 @@ function RegistryRow({ pill }: { pill: ProfileCompliancePill }) {
         </>
       }
       meta={
-        building ? (
-          <>
-            <span className="text-neutral-500">
-              Verified via {sourceFullName(pill.source_code)}
-            </span>
-            <span className="mt-0.5 block text-[12px] font-medium text-neutral-500">
-              {building}
-            </span>
-          </>
-        ) : (
-          meta
-        )
+        inherited
+          ? `Inherited from parent group ${pill.inherited_from_name ?? ""}`.trim()
+          : null
       }
       status={
         <ProfileStatusBadge tone={inherited ? "inherited" : "valid"}>
@@ -553,108 +596,88 @@ function CertRow({ cert }: { cert: ProfileComplianceCert }) {
   );
 }
 
-function RscCard({ rsc }: { rsc: ProfileComplianceRsc }) {
-  const pct =
-    rsc.progress_pct != null
-      ? Math.max(0, Math.min(100, Number(rsc.progress_pct)))
-      : null;
-  const building = rsc.building_name?.trim() || null;
+function RscSitesCard({ sites }: { sites: readonly ProfileComplianceRsc[] }) {
+  const buildingCount = sites.filter((s) => s.building_name?.trim()).length;
   return (
     <ProfileCard hoverable>
       <ProfileCardHeader
         title="RSC remediation"
         meta={
-          building
-            ? building
-            : pct != null
-              ? `${pct.toFixed(0)}% complete`
-              : "tracked"
+          buildingCount > 0
+            ? `${sites.length} site${sites.length === 1 ? "" : "s"} · ${buildingCount} building${buildingCount === 1 ? "" : "s"}`
+            : `${sites.length} site${sites.length === 1 ? "" : "s"}`
         }
       />
-      <div className="space-y-4">
-        {pct != null ? (
-          <>
-            <div className="flex flex-wrap items-baseline gap-2">
-              <span className="font-display text-[34px] font-bold leading-none tracking-[-0.02em] text-neutral-950">
-                {pct.toFixed(0)}
-                <span className="text-[18px]">%</span>
-              </span>
-              <span className="text-[13px] font-medium text-neutral-500">
-                remediation completed
-              </span>
-            </div>
-            <div className="relative h-2 rounded-full bg-neutral-100">
-              <div
-                className="h-full rounded-full bg-brand-forest"
-                style={{ width: `${pct}%` }}
-              />
-              <span
-                className="absolute top-1/2 h-4 w-px -translate-y-1/2 bg-neutral-400"
-                style={{ left: "95%" }}
-                title="Industry median 95%"
-              />
-            </div>
-            <div className="flex justify-between font-mono text-[12px] text-neutral-500">
-              <span>0%</span>
-              <span>100%</span>
-            </div>
-          </>
-        ) : null}
-        {rscDetailBlockVisible(rsc) ? (
-          <div>
-            <div className="flex items-center justify-between border-t border-neutral-100 py-2.5 text-[14px]">
-              <span className="text-neutral-600">Workforce covered</span>
-              <span className="font-semibold text-neutral-800">
-                {rscWorkforceLabel(rsc.workers_count)}
-              </span>
-            </div>
-            {rsc.remediation_status ? (
-              <div className="flex items-center justify-between border-t border-neutral-100 py-2.5 text-[14px]">
-                <span className="text-neutral-600">Remediation status</span>
-                <span
-                  className={cn(
-                    "inline-flex items-center gap-1.5 font-semibold",
-                    STATUS_TEXT_CLASS[statusTone(rsc.remediation_status)],
-                  )}
-                >
-                  <span
-                    className={cn(
-                      "h-1.5 w-1.5 rounded-full",
-                      STATUS_DOT_CLASS[statusTone(rsc.remediation_status)],
-                    )}
-                  />
-                  {rsc.remediation_status}
-                </span>
-              </div>
-            ) : null}
-            {rsc.training_status ? (
-              <div className="flex items-center justify-between border-t border-neutral-100 py-2.5 text-[14px]">
-                <span className="text-neutral-600">Training status</span>
-                <span
-                  className={cn(
-                    "inline-flex items-center gap-1.5 font-semibold",
-                    STATUS_TEXT_CLASS[statusTone(rsc.training_status)],
-                  )}
-                >
-                  <span
-                    className={cn(
-                      "h-1.5 w-1.5 rounded-full",
-                      STATUS_DOT_CLASS[statusTone(rsc.training_status)],
-                    )}
-                  />
-                  {rsc.training_status}
-                </span>
-              </div>
-            ) : null}
-          </div>
-        ) : null}
+      <div className="divide-y divide-neutral-100">
+        {sites.map((rsc, i) => (
+          <RscSiteRow key={i} rsc={rsc} />
+        ))}
       </div>
       <ProfileFootnote>
-        {building
-          ? "Tracked by the RMG Sustainability Council for this building — fire, structural, and electrical remediation on file."
-          : "Tracked by the RMG Sustainability Council under the post-Accord safety transition programme — covers fire, structural, and electrical remediation across all factory buildings on file."}
+        Tracked by the RMG Sustainability Council — fire, structural, and
+        electrical remediation on file per site. Workforce null stays unknown,
+        never zero.
       </ProfileFootnote>
     </ProfileCard>
+  );
+}
+
+function RscSiteRow({ rsc }: { rsc: ProfileComplianceRsc }) {
+  const pct = rscProgressPct(rsc.progress_pct);
+  const label = rscSiteLabel(rsc.building_name);
+  return (
+    <div className="py-3 first:pt-0 last:pb-0">
+      <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+        <p className="text-[14px] font-semibold text-neutral-900">{label}</p>
+        <p className="font-mono text-[13px] font-semibold text-neutral-800">
+          {pct != null ? `${pct.toFixed(0)}%` : "—"}
+        </p>
+      </div>
+      <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-neutral-100">
+        <div
+          className="h-full rounded-full bg-brand-forest"
+          style={{ width: `${pct ?? 0}%` }}
+          aria-hidden={pct == null}
+        />
+      </div>
+      <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-neutral-600">
+        <span className="font-medium text-neutral-800">
+          {rscWorkforceLabel(rsc.workers_count)}
+        </span>
+        {rsc.remediation_status ? (
+          <span
+            className={cn(
+              "inline-flex items-center gap-1 font-semibold",
+              STATUS_TEXT_CLASS[statusTone(rsc.remediation_status)],
+            )}
+          >
+            <span
+              className={cn(
+                "h-1.5 w-1.5 rounded-full",
+                STATUS_DOT_CLASS[statusTone(rsc.remediation_status)],
+              )}
+            />
+            {rsc.remediation_status}
+          </span>
+        ) : null}
+        {rsc.training_status ? (
+          <span
+            className={cn(
+              "inline-flex items-center gap-1 font-semibold",
+              STATUS_TEXT_CLASS[statusTone(rsc.training_status)],
+            )}
+          >
+            <span
+              className={cn(
+                "h-1.5 w-1.5 rounded-full",
+                STATUS_DOT_CLASS[statusTone(rsc.training_status)],
+              )}
+            />
+            {rsc.training_status}
+          </span>
+        ) : null}
+      </div>
+    </div>
   );
 }
 
@@ -741,78 +764,53 @@ function BrandChip({ brand }: { brand: ProfileComplianceBrand }) {
   );
 }
 
-function DocRow({ doc }: { doc: ProfileComplianceDocument }) {
-  const building = doc.building_name?.trim() || null;
+function DocRow({
+  doc,
+  compact = false,
+}: {
+  doc: ProfileComplianceDocument;
+  compact?: boolean;
+}) {
   const sizeMeta = doc.file_size ? (
     <span className="font-mono">{fmtBytes(doc.file_size)}</span>
   ) : null;
   return (
     <ProfileEvidenceRow
-      mark={<ProfileSourceMark tag="RSC" />}
+      mark={<ProfileSourceMark tag="RSC" size={compact ? "sm" : "md"} />}
       title={
-        <>
-          {/* Phones: doc-type badge as an eyebrow above the full name instead
-              of wrapping inline — reads as one clean two-line block instead
-              of a ragged wrap. sm+: unchanged inline pairing. */}
-          <span className="flex flex-col items-start gap-1 sm:hidden">
-            <span className="rounded bg-neutral-100 px-1.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-neutral-500">
-              {doc.doc_type}
-            </span>
-            <span>{DOC_TYPE_LONG[doc.doc_type]}</span>
+        <span className="inline-flex flex-wrap items-center gap-2">
+          <span className="rounded bg-neutral-100 px-1.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-neutral-600">
+            {doc.doc_type}
           </span>
-          <span className="hidden flex-wrap items-center gap-2 sm:flex">
-            <span className="rounded bg-neutral-100 px-1.5 py-0.5 text-[12px] font-semibold uppercase text-neutral-600">
-              {doc.doc_type}
+          {!compact ? (
+            <span className="hidden text-[13px] sm:inline">
+              {DOC_TYPE_LONG[doc.doc_type]}
             </span>
-            {DOC_TYPE_LONG[doc.doc_type]}
-          </span>
-        </>
+          ) : null}
+        </span>
       }
-      meta={
-        building || sizeMeta ? (
-          <>
-            {building ? (
-              <span title="Inspection covers this building">
-                {building}
-                {sizeMeta ? " · " : null}
-              </span>
-            ) : null}
-            {sizeMeta}
-          </>
-        ) : null
-      }
+      meta={sizeMeta}
       action={
-        <>
-          {/* Phones: plain compact text links instead of the padded
-              button-style tap target, which read as stray whitespace in a
-              list this dense. sm+: unchanged full-size tap targets. */}
-          <span className="flex items-center gap-4 sm:hidden">
-            {doc.mirror_url ? (
-              <a
-                href={doc.mirror_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-[13px] font-semibold text-brand-forest underline decoration-brand-forest/30 underline-offset-2"
-              >
-                Mirror
-              </a>
-            ) : null}
+        <span className="flex items-center gap-3">
+          {doc.mirror_url ? (
             <a
-              href={doc.original_url}
+              href={doc.mirror_url}
               target="_blank"
               rel="noopener noreferrer"
               className="text-[13px] font-semibold text-brand-forest underline decoration-brand-forest/30 underline-offset-2"
             >
-              Original
+              Mirror
             </a>
-          </span>
-          <span className="hidden items-center gap-2 sm:flex">
-            {doc.mirror_url ? (
-              <ProfileActionLink href={doc.mirror_url}>Mirror</ProfileActionLink>
-            ) : null}
-            <ProfileActionLink href={doc.original_url}>Original</ProfileActionLink>
-          </span>
-        </>
+          ) : null}
+          <a
+            href={doc.original_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[13px] font-semibold text-brand-forest underline decoration-brand-forest/30 underline-offset-2"
+          >
+            Original
+          </a>
+        </span>
       }
     />
   );
