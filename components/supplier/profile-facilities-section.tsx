@@ -1,6 +1,7 @@
 /**
- * REZ-73 / REZ-109 — Facilities section: buildings + group figures.
- * Arithmetic lives in buyer_supplier_facility_panel (SQL); this only renders.
+ * REZ-73 / REZ-109 / REZ-114 — Facilities section: buildings + group figures.
+ * Worker group totals come from profile-metrics (via workersGroupLabel), not
+ * panel.group.employees_total declared mix.
  */
 import {
   ProfileCard,
@@ -17,11 +18,10 @@ import { toTitleCaseAddress } from "@/lib/format-location";
 export type { FacilityPanel, FacilityRow } from "@/lib/format-facility-group";
 export { sanitizeFacilityPanel } from "@/lib/format-facility-group";
 
-const FIGURES: {
-  key: keyof FacilityPanel["group"];
+const CAPACITY_FIGURES: {
+  key: Exclude<keyof FacilityPanel["group"], "employees_total">;
   label: string;
 }[] = [
-  { key: "employees_total", label: "Production workers — group total" },
   { key: "machines_sewing", label: "Sewing machines — group total" },
   { key: "production_capacity_pcs_day", label: "Daily output — group total" },
   {
@@ -49,7 +49,14 @@ function FacilityRscLine({ rsc }: { rsc: FacilityRsc }) {
   );
 }
 
-export function ProfileFacilitiesSection({ panel }: { panel: FacilityPanel }) {
+export function ProfileFacilitiesSection({
+  panel,
+  workersGroupLabel,
+}: {
+  panel: FacilityPanel;
+  /** REZ-114 — formatWorkersHeadline result; never panel.group.employees_total. */
+  workersGroupLabel?: string;
+}) {
   if (!panel.facilities.length) return null;
   const n = panel.facilities.length;
   const buildings = panel.group.employees_total.building_count;
@@ -100,7 +107,15 @@ export function ProfileFacilitiesSection({ panel }: { panel: FacilityPanel }) {
           treated as zero.
         </p>
         <dl className="mt-3 grid gap-3 sm:grid-cols-2">
-          {FIGURES.map(({ key, label }) => (
+          <div>
+            <dt className="text-[12px] font-semibold text-neutral-500">
+              Production workers — group total
+            </dt>
+            <dd className="mt-0.5 text-[14px] text-neutral-800">
+              {workersGroupLabel ?? "Unknown"}
+            </dd>
+          </div>
+          {CAPACITY_FIGURES.map(({ key, label }) => (
             <div key={key}>
               <dt className="text-[12px] font-semibold text-neutral-500">
                 {label}
