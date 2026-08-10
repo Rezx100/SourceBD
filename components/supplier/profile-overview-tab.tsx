@@ -13,6 +13,10 @@ import {
   ProfileTabStack,
 } from "@/components/supplier/profile-ui";
 import {
+  ProfileFacilitiesSection,
+  type FacilityPanel,
+} from "@/components/supplier/profile-facilities-section";
+import {
   buildLocationOverview,
   CATEGORY_BY_GROUP,
   locationOverviewMeta,
@@ -119,6 +123,7 @@ export async function ProfileOverviewTab<TAddress extends AddressRowRaw>({
   addresses,
   discoverHref,
   slug,
+  facilitiesPanel = null,
 }: {
   supplier: ProfileOverviewSupplier;
   t13SourceCount: number;
@@ -128,6 +133,8 @@ export async function ProfileOverviewTab<TAddress extends AddressRowRaw>({
   /** Profile slug — excluded from the nearby-sites map layer and used to name
    *  the GeoJSON pin export. */
   slug?: string;
+  /** REZ-73 panel from buyer_supplier_facility_panel; omit when empty/null. */
+  facilitiesPanel?: FacilityPanel | null;
 }) {
   const overview = buildLocationOverview(addresses);
   const primaryAddress =
@@ -194,6 +201,10 @@ export async function ProfileOverviewTab<TAddress extends AddressRowRaw>({
           })}
         />
       </ProfileCard>
+
+      {facilitiesPanel ? (
+        <ProfileFacilitiesSection panel={facilitiesPanel} />
+      ) : null}
 
       {overview.uniqueLocationCount > 0 ? (
         <ProfileCard id="locations">
