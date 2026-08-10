@@ -34,6 +34,7 @@ from etl.core.normalize import (
     normalize_company_name,
     normalize_phones,
 )
+from etl.core.bgmea_identity import identity_from_member_type, parse_identity
 from etl.core.resolution_edges import apply_same_edge_canonical
 from etl.core.scraper import ScrapedRecord
 
@@ -489,29 +490,41 @@ def _exec_unlocked_update(
     )
 
 
-def _bgmea_reg_held_elsewhere(cur, *, supplier_id: str, reg: str) -> bool:
-    """Whether another supplier already holds the live BGMEA record for `reg`.
+def _bgmea_identity_held_elsewhere(cur, *, supplier_id: str, identity: str) -> bool:
+    """Whether another supplier already holds the live BGMEA record for `identity`.
 
-    A BGMEA registration identifies exactly one legal entity, so if the active
-    record for it sits on a different supplier, appending the number here would
-    assert someone else's identity. That is the shape REZ-98 measured: 805
-    published numbers whose live record belongs to another supplier, left
-    behind because the array unions and nothing ever removes an element.
+    REZ-115: identity is ``general:N`` or ``associate:N``. The same bare digit
+    on the other register is a different company and must not trip this guard.
 
     `_upsert_source_record` runs before this, so THIS supplier's own record is
     already stored and correctly excluded — only a genuine second holder trips
-    the guard. It closes the cross-holder assertion, not the false attach that
-    put the record here; that is `_find_existing`'s job.
+    the guard.
     """
+    parsed = parse_identity(identity)
+    if not parsed:
+        return True  # refuse to store anything without a register
+    register, number = parsed
+    if register == "general":
+        member_type = "general_manufacturer"
+        primary_ref = f"general:{number}"
+    elif register == "associate":
+        member_type = "associate_buying_house"
+        primary_ref = number
+    else:
+        return True
     cur.execute(
         """select 1
              from public.source_records sr
             where sr.source_id = %s
               and sr.status = 'active'
               and sr.supplier_id <> %s
-              and (sr.source_ref = %s or sr.fields->>'bgmea_reg_number' = %s)
+              and sr.fields->>'bgmea_member_type' = %s
+              and (
+                    sr.source_ref = %s
+                 or sr.fields->>'bgmea_reg_number' = %s
+              )
             limit 1""",
-        (get_source_id("BGMEA"), supplier_id, f"general:{reg}", reg),
+        (get_source_id("BGMEA"), supplier_id, member_type, primary_ref, number),
     )
     return cur.fetchone() is not None
 
@@ -528,18 +541,60 @@ def _apply_source_specific(cur, *, supplier_id: str, rec: ScrapedRecord) -> None
     code = rec.source_code
     if code == "BGMEA":
         reg = rec.payload.get("bgmea_reg_number")
-        if reg:
+        member_type = rec.payload.get("bgmea_member_type")
+        identity = identity_from_member_type(
+            str(member_type) if member_type else None,
+            str(reg) if reg else None,
+        )
+        if reg and not identity:
+            # Register unknown — never store a bare digit (REZ-115).
+            log.warning(
+                "bgmea.reg_append_unresolved",
+                supplier_id=supplier_id, reg=reg, ref=rec.source_ref,
+                member_type=member_type,
+            )
+        if identity:
+            bgmea_src = get_source_id("BGMEA")
+            if _bgmea_identity_held_elsewhere(
+                cur, supplier_id=supplier_id, identity=identity
+            ):
+                log.warning(
+                    "bgmea.reg_identity_duplicate_holder",
+                    supplier_id=supplier_id, identity=identity, ref=rec.source_ref,
+                )
+            # Rewrite from this supplier's live BGMEA vouchers — never
+            # strip-then-append a single id (that drops still-backed siblings).
             fragments: list[tuple[str, str, tuple[Any, ...]]] = [
                 ("bgmea_verified", "bgmea_verified = true", ()),
                 (
                     "bgmea_reg_numbers",
                     "bgmea_reg_numbers = (\n"
-                    "                       select array(select distinct unnest(\n"
-                    "                         coalesce(bgmea_reg_numbers,'{}'::text[])"
-                    " || ARRAY[%s]::text[]\n"
-                    "                       ))\n"
+                    "                       select coalesce(\n"
+                    "                         array_agg(DISTINCT i ORDER BY i),\n"
+                    "                         '{}'::text[]\n"
+                    "                       )\n"
+                    "                         from (\n"
+                    "                           select case sr.fields->>'bgmea_member_type'\n"
+                    "                             when 'general_manufacturer' then\n"
+                    "                               'general:' || coalesce(\n"
+                    "                                 nullif(btrim(sr.fields->>'bgmea_reg_number'), ''),\n"
+                    "                                 nullif(btrim(regexp_replace(sr.source_ref, '^general:', '')), '')\n"
+                    "                               )\n"
+                    "                             when 'associate_buying_house' then\n"
+                    "                               'associate:' || coalesce(\n"
+                    "                                 nullif(btrim(sr.fields->>'bgmea_reg_number'), ''),\n"
+                    "                                 nullif(btrim(sr.source_ref), '')\n"
+                    "                               )\n"
+                    "                           end as i\n"
+                    "                             from public.source_records sr\n"
+                    "                            where sr.supplier_id = suppliers.id\n"
+                    "                              and sr.source_id = %s\n"
+                    "                              and sr.status = 'active'\n"
+                    "                         ) q\n"
+                    "                        where i is not null\n"
+                    "                          and i ~ '^(general|associate):[0-9]+$'\n"
                     "                     )",
-                    (reg,),
+                    (bgmea_src,),
                 ),
                 (
                     "entity_type",
@@ -548,15 +603,6 @@ def _apply_source_specific(cur, *, supplier_id: str, rec: ScrapedRecord) -> None
                     (),
                 ),
             ]
-            if _bgmea_reg_held_elsewhere(cur, supplier_id=supplier_id, reg=reg):
-                # Withhold rather than assert: the number stays off this
-                # supplier until the conflation is resolved. Loud, because a
-                # silently accumulated number is what REZ-98 had to excavate.
-                fragments = [f for f in fragments if f[0] != "bgmea_reg_numbers"]
-                log.warning(
-                    "bgmea.reg_append_refused",
-                    supplier_id=supplier_id, reg=reg, ref=rec.source_ref,
-                )
             _exec_unlocked_update(
                 cur,
                 supplier_id=supplier_id,

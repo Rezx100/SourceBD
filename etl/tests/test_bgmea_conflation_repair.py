@@ -376,6 +376,8 @@ class TestFieldLocksHoldAgainstTheRepair:
         "employees": {"Employee Male": "600", "Employee Female": "400"},
         "factory_types": [{"Type": "Knit"}],
         "principal_products": ["T-Shirt"],
+        "bgmea_member_type": "general_manufacturer",
+        "bgmea_reg_number": "12345",
     }
 
     def _dest(self) -> dict:
@@ -393,20 +395,31 @@ class TestFieldLocksHoldAgainstTheRepair:
             "address_raw": None,
             "email_primary": None,
             "phones": None,
-            "bgmea_reg_numbers": ["111"],
+            "bgmea_reg_numbers": ["general:111"],
             "bgmea_verified": False,
             "source_tags": [],
         }
 
-    def test_merge_into_profile_writes_both_columns_when_unlocked(self):
+    def test_merge_into_profile_keeps_destination_live_vouchers(self):
+        dest = self._dest()
+        dest["bgmea_reg_numbers"] = ["general:111"]
         rest = FakeRest(
-            supplier=self._dest(),
-            records=[_bgmea_record("rec-moved", **self.MOVED)],
+            supplier=dest,
+            records=[
+                _bgmea_record(
+                    "rec-kept",
+                    ref="general:111",
+                    bgmea_member_type="general_manufacturer",
+                    bgmea_reg_number="111",
+                ),
+                _bgmea_record("rec-moved", **self.MOVED),
+            ],
         )
         _merge_into_profile(rest, "dest-1", self.MOVED, "BGMEA", "12345", SOURCE_CODES)
-        body = rest.supplier_body
-        assert body["employees_total"] == 1000
-        assert body["bgmea_reg_numbers"] == ["111", "12345"]
+        assert rest.supplier_body["bgmea_reg_numbers"] == [
+            "general:111",
+            "general:12345",
+        ]
 
     def test_merge_into_profile_skips_locked_columns(self):
         rest = FakeRest(

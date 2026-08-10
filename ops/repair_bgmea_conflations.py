@@ -446,11 +446,19 @@ def _merge_into_profile(
             body[col] = val
 
     if source == "BGMEA" and reg:
-        regs = sorted({*(current.get("bgmea_reg_numbers") or []), reg})
-        if regs != sorted(current.get("bgmea_reg_numbers") or []):
-            body["bgmea_reg_numbers"] = regs
-        if not current.get("bgmea_verified"):
-            body["bgmea_verified"] = True
+        from etl.core.bgmea_identity import identity_from_member_type
+
+        identity = identity_from_member_type(
+            str(fields.get("bgmea_member_type") or "") or None,
+            str(reg),
+        )
+        if identity:
+            # Rewrite from destination live vouchers (includes the moved row).
+            regs = sorted(backed_reg_numbers(records, source_codes))
+            if regs != sorted(str(n) for n in (current.get("bgmea_reg_numbers") or [])):
+                body["bgmea_reg_numbers"] = regs
+            if not current.get("bgmea_verified"):
+                body["bgmea_verified"] = True
         tags = sorted({*(current.get("source_tags") or []), "BGMEA"})
         if tags != sorted(current.get("source_tags") or []):
             body["source_tags"] = tags
@@ -462,27 +470,21 @@ def _merge_into_profile(
 
 
 def backed_reg_numbers(records: list[dict[str, Any]], source_codes: dict[str, str]) -> set[str]:
-    """BGMEA registration numbers the parent's REMAINING active records vouch for.
+    """BGMEA identities the parent's REMAINING active records vouch for.
 
-    `bgmea_web` keys general members as `general:{reg}`, so the ref is the
-    primary test; the stored payload field covers rows keyed `member:{id}`
-    because the register published no number for them. Pure — no I/O.
+    REZ-115: vouchers are register+number strings (`general:N` /
+    `associate:N`), never bare digits. Pure — no I/O.
     """
+    from etl.core.bgmea_identity import identity_from_source_record
+
     out: set[str] = set()
     for rec in records:
         if source_codes.get(rec.get("source_id")) != "BGMEA":
             continue
-        ref = (rec.get("source_ref") or "").strip()
-        if ref.startswith("general:"):
-            value = ref.split(":", 1)[1].strip()
-            if value:
-                out.add(value)
-        reg = ((rec.get("fields") or {}).get("bgmea_reg_number") or "")
-        reg = str(reg).strip()
-        if reg:
-            out.add(reg)
+        ident = identity_from_source_record(rec)
+        if ident:
+            out.add(ident)
     return out
-
 
 def _recompute_parent(rest: Rest, parent_id: str, source_codes: dict[str, str]) -> None:
     """Rebuild the parent's derived numbers from its REMAINING records only.
@@ -519,14 +521,17 @@ def _recompute_parent(rest: Rest, parent_id: str, source_codes: dict[str, str]) 
         "suppliers", {"select": "bgmea_reg_numbers", "id": f"eq.{parent_id}"}
     )
     held = [str(n) for n in ((current or {}).get("bgmea_reg_numbers") or [])]
-    backed = backed_reg_numbers(records, source_codes)
-    kept = [n for n in held if n in backed]
-    if len(kept) != len(held):
-        body["bgmea_reg_numbers"] = kept
-        print(
-            f"    {parent_id}: dropping {sorted(set(held) - set(kept))} from "
-            f"bgmea_reg_numbers (no remaining record backs them)"
-        )
+    backed = sorted(backed_reg_numbers(records, source_codes))
+    # REZ-115: rewrite from live vouchers. Never intersect bare legacy digits
+    # against prefixed identities (that silently empties a still-vouched array).
+    if backed != sorted(held):
+        body["bgmea_reg_numbers"] = backed
+        if set(held) - set(backed):
+            print(
+                f"    {parent_id}: rewriting bgmea_reg_numbers "
+                f"dropped={sorted(set(held) - set(backed))} "
+                f"kept={backed}"
+            )
 
     locked = _locked_columns(rest, parent_id)
     skipped = sorted(col for col in body if col in locked)
