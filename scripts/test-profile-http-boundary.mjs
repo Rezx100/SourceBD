@@ -108,10 +108,39 @@ const HAPPY_PAYLOAD = {
   documents: [],
 };
 
-/** REZ-73 — mother facility panel shape from buyer_supplier_facility_panel. */
+/** REZ-73/109 — mother facility panel shape from buyer_supplier_facility_panel. */
 const HAPPY_FACILITY_PANEL = {
   facility_count: 1,
-  facilities: [{ name: "Mother Company Ltd Extension" }],
+  facilities: [
+    {
+      name: "Mother Company Ltd Extension",
+      slug: "secret-facility-slug",
+      phone: "+8801",
+      email: "leak@example.com",
+      addresses: [
+        {
+          kind: "factory",
+          address: "Plot 1, Gazipur",
+          source_code: "RSC",
+        },
+      ],
+      pills: [
+        {
+          source_code: "RSC",
+          label: "RSC ID",
+          value: "99999",
+          verified: true,
+          source_url: "https://www.rsc-bd.org/",
+        },
+      ],
+      rsc: {
+        progress_pct: 80,
+        workers_count: 500,
+        remediation_status: "ontrack",
+        training_status: null,
+      },
+    },
+  ],
   group: {
     employees_total: {
       own: 1200,
@@ -607,6 +636,38 @@ const CASES = [
     },
   },
   {
+    name: "public: mother Facilities shows facility address (REZ-109)",
+    path: `/suppliers/${MOTHER}`,
+    expect: {
+      status: 200,
+      bodyIncludes: "Plot 1, Gazipur",
+    },
+  },
+  {
+    name: "public: mother Facilities shows facility registry pill (REZ-109)",
+    path: `/suppliers/${MOTHER}`,
+    expect: {
+      status: 200,
+      bodyIncludes: "RSC ID 99999",
+    },
+  },
+  {
+    name: "public: mother Facilities shows facility RSC progress (REZ-109)",
+    path: `/suppliers/${MOTHER}`,
+    expect: {
+      status: 200,
+      bodyIncludes: "80% remediated",
+    },
+  },
+  {
+    name: "public: mother Facilities omits facility secrets (REZ-109)",
+    path: `/suppliers/${MOTHER}`,
+    expect: {
+      status: 200,
+      bodyExcludes: ["secret-facility-slug", "+8801", "leak@example.com"],
+    },
+  },
+  {
     name: "public: mother Facilities labelled group totals on the wire",
     path: `/suppliers/${MOTHER}`,
     expect: {
@@ -678,6 +739,42 @@ const CASES = [
     expect: {
       status: 200,
       bodyIncludes: "Mother Company Ltd Extension",
+    },
+  },
+  {
+    name: "app: mother Facilities shows facility address (REZ-109)",
+    path: `/app/suppliers/${MOTHER}`,
+    auth: true,
+    expect: {
+      status: 200,
+      bodyIncludes: "Plot 1, Gazipur",
+    },
+  },
+  {
+    name: "app: mother Facilities shows facility registry pill (REZ-109)",
+    path: `/app/suppliers/${MOTHER}`,
+    auth: true,
+    expect: {
+      status: 200,
+      bodyIncludes: "RSC ID 99999",
+    },
+  },
+  {
+    name: "app: mother Facilities shows facility RSC progress (REZ-109)",
+    path: `/app/suppliers/${MOTHER}`,
+    auth: true,
+    expect: {
+      status: 200,
+      bodyIncludes: "80% remediated",
+    },
+  },
+  {
+    name: "app: mother Facilities omits facility secrets (REZ-109)",
+    path: `/app/suppliers/${MOTHER}`,
+    auth: true,
+    expect: {
+      status: 200,
+      bodyExcludes: ["secret-facility-slug", "+8801", "leak@example.com"],
     },
   },
   {
