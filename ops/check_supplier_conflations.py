@@ -543,6 +543,11 @@ def main() -> int:
             rez116_lines.append(f"  MOVE {spec.ref} missing from active BGMEA records")
     for hold in _REZ116_HOLDS:
         holders = ref_holders.get(hold.ref, set())
+        if not holders:
+            rez116_lines.append(
+                f"  HOLD {hold.ref} missing from active BGMEA records "
+                f"(must remain on {hold.current_slug!r}; never drop)"
+            )
         if hold.candidate_slug in holders:
             rez116_lines.append(
                 f"  HOLD {hold.ref} guessed onto {hold.candidate_slug!r} — forbidden"

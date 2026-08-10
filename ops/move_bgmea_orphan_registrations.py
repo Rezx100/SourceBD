@@ -287,33 +287,41 @@ def _identities_for_supplier(rest: Rest, source_id: str, supplier_id: str) -> li
     return sorted(set(out))
 
 
-def verify_mother_facility_registry_render(rest: Rest) -> None:
-    """Observable-boundary gate for moving onto an unpublished building.
+def verify_standard_stitches_facility_attribution(rest: Rest) -> None:
+    """Observable-boundary gate for general:5663 on the affected mother.
 
-    REZ-110: mother Compliance pills include facility registries labelled with
-    building_name. Probe a known live mother (birds-garments / Unit-2 #2455).
+    Must see facility-attributed Compliance pills on standard-stitches itself
+    (not a proxy mother). Pre-move the woven unit has no BGMEA yet, so any
+    pill with building_name on this mother proves the REZ-110 facility union
+    is live for this profile (today: RSC on EXTENSION).
     """
-    payload = rest.rpc_json("buyer_supplier_profile", {"p_slug": "birds-garments"})
+    payload = rest.rpc_json(
+        "buyer_supplier_profile", {"p_slug": "standard-stitches"}
+    )
     pills = payload.get("pills") or []
-    labelled = [
-        p
-        for p in pills
-        if p.get("building_name")
-        and p.get("source_code") == "BGMEA"
-        and str(p.get("value")) == "2455"
-    ]
+    labelled = [p for p in pills if p.get("building_name")]
     if not labelled:
         raise RuntimeError(
-            "BLOCKED: mother facility-registry render not observed on "
-            "birds-garments (expected BGMEA 2455 with building_name). "
-            "Do not move general:5663."
+            "BLOCKED: standard-stitches shows no facility-attributed pills "
+            "(building_name). Do not move general:5663."
         )
+
+
+def _locked_columns(rest: Rest, supplier_id: str) -> set[str]:
+    rows = rest.all_rows(
+        "supplier_field_locks",
+        {
+            "select": "column_name",
+            "supplier_id": f"eq.{supplier_id}",
+            "released_at": "is.null",
+        },
+    )
+    return {str(r["column_name"]) for r in rows if r.get("column_name")}
 
 
 def build_plan(rest: Rest) -> list[PlannedMove]:
     source_id = _bgmea_source_id(rest)
-    # Gate once for the building move.
-    verify_mother_facility_registry_render(rest)
+    verify_standard_stitches_facility_attribution(rest)
 
     plan: list[PlannedMove] = []
     for spec in MOVES:
@@ -334,7 +342,26 @@ def build_plan(rest: Rest) -> list[PlannedMove]:
 
         mother_slug = None
         facility_of = dest.get("facility_of")
-        if facility_of:
+        if spec.ref == "general:5663":
+            if not facility_of:
+                raise RuntimeError(
+                    "general:5663 destination must be an attached facility "
+                    "(facility_of required)"
+                )
+            mother = rest.one(
+                "suppliers",
+                {"select": "id,slug,is_published", "id": f"eq.{facility_of}"},
+            )
+            if not mother or not mother.get("is_published"):
+                raise RuntimeError(
+                    "general:5663: destination facility mother missing/unpublished"
+                )
+            if mother["slug"] != "standard-stitches":
+                raise RuntimeError(
+                    "general:5663 destination mother must be standard-stitches"
+                )
+            mother_slug = mother["slug"]
+        elif facility_of:
             mother = rest.one(
                 "suppliers",
                 {"select": "id,slug,is_published", "id": f"eq.{facility_of}"},
@@ -344,8 +371,6 @@ def build_plan(rest: Rest) -> list[PlannedMove]:
                     f"ref {spec.ref}: destination facility mother missing/unpublished"
                 )
             mother_slug = mother["slug"]
-            if spec.ref == "general:5663" and mother_slug != "standard-stitches":
-                raise RuntimeError("general:5663 destination mother must be standard-stitches")
 
         plan.append(
             PlannedMove(
@@ -365,9 +390,6 @@ def build_plan(rest: Rest) -> list[PlannedMove]:
                 notes=spec.notes,
             )
         )
-    if len(plan) != len(MOVES):
-        # If some already applied, plan may be shorter — caller reconciles.
-        pass
     return plan
 
 
@@ -424,45 +446,119 @@ def write_snapshot(plan: list[PlannedMove], rest: Rest) -> Path:
     return path
 
 
-def apply_plan(rest: Rest, plan: list[PlannedMove]) -> None:
-    source_id = _bgmea_source_id(rest)
-    for p in plan:
-        collision = rest.one(
-            "source_records",
-            {
-                "select": "id",
-                "supplier_id": f"eq.{p.to_supplier_id}",
-                "source_id": f"eq.{p.source_id}",
-                "source_ref": f"eq.{p.ref}",
-            },
-        )
-        if collision:
-            raise RuntimeError(f"destination already holds {p.ref} — abort")
-        moved = rest.patch(
-            "source_records",
-            {"id": f"eq.{p.source_record_id}", "supplier_id": f"eq.{p.from_supplier_id}"},
-            {"supplier_id": p.to_supplier_id},
-        )
-        if not moved:
-            raise RuntimeError(f"failed to move {p.ref} — record not on expected host")
-        rest.patch(
-            "evidence_claims",
-            {
-                "supplier_id": f"eq.{p.from_supplier_id}",
-                "subject_table": "eq.source_records",
-                "subject_id": f"eq.{p.source_record_id}",
-            },
-            {"supplier_id": p.to_supplier_id},
-        )
-
-    touched = {p.from_supplier_id for p in plan} | {p.to_supplier_id for p in plan}
-    for sid in sorted(touched):
+def _reconcile_identities(rest: Rest, source_id: str, supplier_ids: set[str]) -> None:
+    for sid in sorted(supplier_ids):
+        locked = _locked_columns(rest, sid)
+        if "bgmea_reg_numbers" in locked:
+            raise RuntimeError(
+                f"supplier {sid} has bgmea_reg_numbers locked — cannot reconcile; "
+                "restore from snapshot"
+            )
         identities = _identities_for_supplier(rest, source_id, sid)
-        rest.patch(
+        patched = rest.patch(
             "suppliers",
             {"id": f"eq.{sid}"},
             {"bgmea_reg_numbers": identities},
         )
+        if not patched:
+            raise RuntimeError(f"failed to write bgmea_reg_numbers for {sid}")
+        held = [str(x) for x in (patched[0].get("bgmea_reg_numbers") or [])]
+        if sorted(held) != identities:
+            raise RuntimeError(
+                f"bgmea_reg_numbers mismatch after write on {sid}: "
+                f"held={held} derived={identities}"
+            )
+
+
+def apply_plan(rest: Rest, plan: list[PlannedMove]) -> None:
+    """Apply one move at a time; halt on first failure (REST has no txn).
+
+    Re-running skips already-moved refs via build_plan, so a partial apply is
+    visible and continuable after repair — never silently invents drops.
+    """
+    source_id = _bgmea_source_id(rest)
+    completed: list[str] = []
+    for p in plan:
+        try:
+            collision = rest.one(
+                "source_records",
+                {
+                    "select": "id",
+                    "supplier_id": f"eq.{p.to_supplier_id}",
+                    "source_id": f"eq.{p.source_id}",
+                    "source_ref": f"eq.{p.ref}",
+                    "status": "eq.active",
+                },
+            )
+            if collision:
+                raise RuntimeError(f"destination already holds {p.ref} — abort")
+            moved = rest.patch(
+                "source_records",
+                {
+                    "id": f"eq.{p.source_record_id}",
+                    "supplier_id": f"eq.{p.from_supplier_id}",
+                },
+                {"supplier_id": p.to_supplier_id},
+            )
+            if not moved:
+                raise RuntimeError(
+                    f"failed to move {p.ref} — record not on expected host"
+                )
+            # Repoint all claims for this subject, regardless of prior supplier_id.
+            claim_rows = rest.all_rows(
+                "evidence_claims",
+                {
+                    "select": "id,supplier_id",
+                    "subject_table": "eq.source_records",
+                    "subject_id": f"eq.{p.source_record_id}",
+                },
+            )
+            stale = [
+                c for c in claim_rows if str(c.get("supplier_id")) != p.to_supplier_id
+            ]
+            if stale:
+                updated = rest.patch(
+                    "evidence_claims",
+                    {
+                        "subject_table": "eq.source_records",
+                        "subject_id": f"eq.{p.source_record_id}",
+                    },
+                    {"supplier_id": p.to_supplier_id},
+                )
+                if len(updated) < len(stale):
+                    raise RuntimeError(
+                        f"evidence_claims repoint incomplete for {p.ref}: "
+                        f"stale={len(stale)} updated={len(updated)}"
+                    )
+            _reconcile_identities(
+                rest, source_id, {p.from_supplier_id, p.to_supplier_id}
+            )
+            completed.append(p.ref)
+        except Exception:
+            print(
+                f"APPLY HALTED after {len(completed)} move(s): {completed}. "
+                f"Failed on {p.ref}. Restore from snapshot if needed.",
+                file=sys.stderr,
+            )
+            raise
+
+    if any(p.ref == "general:5663" for p in plan):
+        payload = rest.rpc_json(
+            "buyer_supplier_profile", {"p_slug": "standard-stitches"}
+        )
+        pills = payload.get("pills") or []
+        seen = [
+            p
+            for p in pills
+            if p.get("source_code") == "BGMEA"
+            and str(p.get("value")) == "5663"
+            and p.get("building_name")
+        ]
+        if not seen:
+            raise RuntimeError(
+                "POST-APPLY BLOCKER: standard-stitches does not show BGMEA 5663 "
+                "with building_name — restore general:5663 from snapshot"
+            )
 
 
 def print_plan(plan: list[PlannedMove], fp: str) -> None:
