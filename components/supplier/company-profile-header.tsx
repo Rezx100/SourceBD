@@ -42,6 +42,8 @@ export type CompanyProfileHeaderPill = {
   source_code: string;
   value: string | null;
   inherited_from?: string | null;
+  /** REZ-110: facility-held — ignored by resolveHeaderRegistration. */
+  building_name?: string | null;
 };
 
 export type CompanyProfileHeaderProvenance = {

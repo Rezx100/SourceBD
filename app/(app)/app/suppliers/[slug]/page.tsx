@@ -42,7 +42,7 @@ import {
   ProfileContactTabAppBuyer,
 } from "@/components/supplier/profile-contact-tab";
 import { ProfileProvenanceTab } from "@/components/supplier/profile-provenance-tab";
-import { ProfileComplianceTab } from "@/components/supplier/profile-compliance-tab";
+import { ProfileComplianceTab, asRscSites } from "@/components/supplier/profile-compliance-tab";
 import {
   fetchFacilityParentSlug,
   resolveUnpublishedProfileMiss,
@@ -88,6 +88,8 @@ type Pill = {
   source_url: string | null;
   inherited_from: string | null;
   inherited_from_name: string | null;
+  /** REZ-110: facility company_name when inherited; display-only. */
+  building_name?: string | null;
 };
 
 type Cert = {
@@ -114,6 +116,8 @@ type RscRemediation = {
   electrical_inspection_url: string | null;
   boiler_inspection_url: string | null;
   cap_url: string | null;
+  /** REZ-110: facility company_name when this site is a building. */
+  building_name?: string | null;
 };
 
 type BrandAttribution = {
@@ -121,6 +125,7 @@ type BrandAttribution = {
   display_name: string;
   source_url: string | null;
   last_seen_at: string;
+  building_name?: string | null;
 };
 
 type SanctionsHit = {
@@ -165,7 +170,8 @@ type ProfilePayload = {
   t13_source_count: number;
   pills: Pill[];
   certifications: Cert[];
-  rsc_remediation: RscRemediation | null;
+  /** REZ-110: jsonb array of sites; legacy single object still accepted. */
+  rsc_remediation: RscRemediation | RscRemediation[] | null;
   brand_attributions: BrandAttribution[];
   sanctions: SanctionsHit[];
   provenance: Provenance[];
@@ -372,7 +378,7 @@ export default async function FactoryProfilePage({
             data={{
               pills: payload.pills,
               certifications: payload.certifications,
-              rsc_remediation: payload.rsc_remediation,
+              rsc_remediation: asRscSites(payload.rsc_remediation),
               brand_attributions: payload.brand_attributions,
               sanctions: payload.sanctions,
               documents: payload.documents,

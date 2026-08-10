@@ -11,6 +11,8 @@ import {
 import { formatProfileDate, formatRegistryIdLabel } from "@/lib/format-supplier-profile";
 import { cn } from "@/lib/utils";
 
+import { rscDetailBlockVisible, rscWorkforceLabel } from "@/lib/rsc-workforce-label";
+
 export type ProfileCompliancePill = {
   source_code: string;
   label: string;
@@ -19,6 +21,8 @@ export type ProfileCompliancePill = {
   source_url: string | null;
   inherited_from: string | null;
   inherited_from_name: string | null;
+  /** REZ-110: facility company_name when inherited; display-only. */
+  building_name?: string | null;
 };
 
 export type ProfileComplianceCert = {
@@ -48,6 +52,8 @@ export type ProfileComplianceRsc = {
   structural_inspection_url: string | null;
   electrical_inspection_url: string | null;
   boiler_inspection_url: string | null;
+  /** REZ-110: facility company_name when this site is a building. */
+  building_name?: string | null;
   cap_url: string | null;
 };
 
@@ -56,6 +62,8 @@ export type ProfileComplianceBrand = {
   display_name: string;
   source_url: string | null;
   last_seen_at: string;
+  /** REZ-110: facility company_name when inherited; display-only. */
+  building_name?: string | null;
 };
 
 export type ProfileComplianceSanction = {
@@ -85,11 +93,22 @@ export type ProfileComplianceDocument = {
 export type ProfileComplianceData = {
   pills: readonly ProfileCompliancePill[];
   certifications: readonly ProfileComplianceCert[];
-  rsc_remediation: ProfileComplianceRsc | null;
+  /** REZ-110: one entry per site (mother + buildings). Null when none. */
+  rsc_remediation: readonly ProfileComplianceRsc[] | null;
   brand_attributions: readonly ProfileComplianceBrand[];
   sanctions: readonly ProfileComplianceSanction[];
   documents: readonly ProfileComplianceDocument[];
 };
+
+/** Normalise REZ-110 array or legacy single RSC object from the profile RPC. */
+export function asRscSites(raw: unknown): ProfileComplianceRsc[] | null {
+  if (raw == null) return null;
+  if (Array.isArray(raw)) {
+    return raw.length > 0 ? (raw as ProfileComplianceRsc[]) : null;
+  }
+  if (typeof raw === "object") return [raw as ProfileComplianceRsc];
+  return null;
+}
 
 const REGISTRY_CODES: ReadonlySet<string> = new Set([
   "BGMEA",
@@ -239,14 +258,21 @@ function countExpiringCerts(certs: readonly ProfileComplianceCert[]): number {
 function registryPillsSummary(pills: readonly ProfileCompliancePill[]): string {
   const direct = countDirect(pills);
   const inh = countInherited(pills);
+  const buildings = new Set(
+    pills
+      .map((p) => p.building_name?.trim())
+      .filter((n): n is string => Boolean(n)),
+  ).size;
   const parts: string[] = [];
-  if (direct > 0) {
+  if (buildings > 0) {
+    parts.push(
+      `${pills.length} record${pills.length === 1 ? "" : "s"} · ${buildings} building${buildings === 1 ? "" : "s"}`,
+    );
+  } else {
     parts.push(`${direct} verified record${direct === 1 ? "" : "s"}`);
+    if (inh > 0) parts.push(`${inh} inherited`);
   }
-  if (inh > 0) {
-    parts.push(`${inh} from parent group`);
-  }
-  return parts.length > 0 ? parts.join(" · ") : "no registry records";
+  return parts.join(" · ");
 }
 
 function fmtBytes(n: number): string {
@@ -262,6 +288,11 @@ export function ProfileRegistriesCard({
 }) {
   const registryPills = pills.filter((p) => REGISTRY_CODES.has(p.source_code));
   if (registryPills.length === 0) return null;
+  const buildingCount = new Set(
+    registryPills
+      .map((p) => p.building_name?.trim())
+      .filter((n): n is string => Boolean(n)),
+  ).size;
   return (
     <ProfileCard hoverable>
       <ProfileCardHeader
@@ -273,7 +304,13 @@ export function ProfileRegistriesCard({
           <RegistryRow key={i} pill={p} />
         ))}
       </div>
-      {registryPills.some((p) => p.inherited_from != null) ? (
+      {buildingCount > 0 ? (
+        <ProfileFootnote>
+          Records labelled with a building name belong to that facility, not
+          the main plant. They appear here for due diligence only — they do
+          not make the company searchable under that registry in Discover.
+        </ProfileFootnote>
+      ) : registryPills.some((p) => p.inherited_from != null) ? (
         <ProfileFootnote>
           Inherited registries resolve from the parent group&apos;s records
           and link back to the parent profile.
@@ -376,12 +413,17 @@ export function ProfileComplianceTab({
 }: {
   data: ProfileComplianceData;
 }) {
+  const rscSites = data.rsc_remediation ?? [];
   return (
     <ProfileTabStack>
       <div className="grid gap-4 lg:grid-cols-2">
         <ProfileRegistriesCard pills={data.pills} />
         <ProfileCertificationsCard certifications={data.certifications} />
-        {data.rsc_remediation ? <RscCard rsc={data.rsc_remediation} /> : null}
+        {rscSites.length > 0
+          ? rscSites.map((rsc, i) => (
+              <RscCard key={i} rsc={rsc} />
+            ))
+          : null}
         <ProfileSanctionsCard hits={data.sanctions} />
         {data.brand_attributions.length > 0 ? (
           <ProfileCard hoverable>
@@ -397,6 +439,9 @@ export function ProfileComplianceTab({
             <ProfileFootnote>
               Each chip traces to the brand&apos;s own published supplier
               disclosure. Full sources on the Brand attribution tab.
+              {data.brand_attributions.some((b) => b.building_name)
+                ? " Chips labelled with a building name were disclosed for that facility."
+                : null}
             </ProfileFootnote>
           </ProfileCard>
         ) : null}
@@ -411,9 +456,12 @@ export function ProfileComplianceTab({
 
 function RegistryRow({ pill }: { pill: ProfileCompliancePill }) {
   const inherited = !!pill.inherited_from;
-  const meta = inherited
-    ? `Inherited from parent group ${pill.inherited_from_name ?? ""}`.trim()
-    : `Verified via ${sourceFullName(pill.source_code)}`;
+  const building = pill.building_name?.trim() || null;
+  const meta = building
+    ? building
+    : inherited
+      ? `Inherited from parent group ${pill.inherited_from_name ?? ""}`.trim()
+      : `Verified via ${sourceFullName(pill.source_code)}`;
   return (
     <ProfileEvidenceRow
       markSize="lg"
@@ -432,7 +480,20 @@ function RegistryRow({ pill }: { pill: ProfileCompliancePill }) {
           ) : null}
         </>
       }
-      meta={meta}
+      meta={
+        building ? (
+          <>
+            <span className="text-neutral-500">
+              Verified via {sourceFullName(pill.source_code)}
+            </span>
+            <span className="mt-0.5 block text-[12px] font-medium text-neutral-500">
+              {building}
+            </span>
+          </>
+        ) : (
+          meta
+        )
+      }
       status={
         <ProfileStatusBadge tone={inherited ? "inherited" : "valid"}>
           {inherited ? "Inherited" : "Verified"}
@@ -497,11 +558,18 @@ function RscCard({ rsc }: { rsc: ProfileComplianceRsc }) {
     rsc.progress_pct != null
       ? Math.max(0, Math.min(100, Number(rsc.progress_pct)))
       : null;
+  const building = rsc.building_name?.trim() || null;
   return (
     <ProfileCard hoverable>
       <ProfileCardHeader
         title="RSC remediation"
-        meta={pct != null ? `${pct.toFixed(0)}% complete` : "tracked"}
+        meta={
+          building
+            ? building
+            : pct != null
+              ? `${pct.toFixed(0)}% complete`
+              : "tracked"
+        }
       />
       <div className="space-y-4">
         {pct != null ? (
@@ -532,16 +600,14 @@ function RscCard({ rsc }: { rsc: ProfileComplianceRsc }) {
             </div>
           </>
         ) : null}
-        {rsc.workers_count != null || rsc.remediation_status || rsc.training_status ? (
+        {rscDetailBlockVisible(rsc) ? (
           <div>
-            {rsc.workers_count != null ? (
-              <div className="flex items-center justify-between border-t border-neutral-100 py-2.5 text-[14px]">
-                <span className="text-neutral-600">Workforce covered</span>
-                <span className="font-semibold text-neutral-800">
-                  {rsc.workers_count.toLocaleString()} workers
-                </span>
-              </div>
-            ) : null}
+            <div className="flex items-center justify-between border-t border-neutral-100 py-2.5 text-[14px]">
+              <span className="text-neutral-600">Workforce covered</span>
+              <span className="font-semibold text-neutral-800">
+                {rscWorkforceLabel(rsc.workers_count)}
+              </span>
+            </div>
             {rsc.remediation_status ? (
               <div className="flex items-center justify-between border-t border-neutral-100 py-2.5 text-[14px]">
                 <span className="text-neutral-600">Remediation status</span>
@@ -584,9 +650,9 @@ function RscCard({ rsc }: { rsc: ProfileComplianceRsc }) {
         ) : null}
       </div>
       <ProfileFootnote>
-        Tracked by the RMG Sustainability Council under the post-Accord
-        safety transition programme — covers fire, structural, and
-        electrical remediation across all factory buildings on file.
+        {building
+          ? "Tracked by the RMG Sustainability Council for this building — fire, structural, and electrical remediation on file."
+          : "Tracked by the RMG Sustainability Council under the post-Accord safety transition programme — covers fire, structural, and electrical remediation across all factory buildings on file."}
       </ProfileFootnote>
     </ProfileCard>
   );
@@ -650,15 +716,21 @@ function SanctionsHitsCard({
 }
 
 function BrandChip({ brand }: { brand: ProfileComplianceBrand }) {
+  const building = brand.building_name?.trim() || null;
   const node = (
     <span
-      className="inline-flex items-center gap-2 rounded-full border border-neutral-200 bg-neutral-50 px-3 py-1.5 text-[13px] font-semibold text-neutral-800"
-      title={`Disclosed on ${brand.display_name}'s published factory list (${formatProfileDate(brand.last_seen_at)})`}
+      className="inline-flex flex-col items-start gap-0.5 rounded-full border border-neutral-200 bg-neutral-50 px-3 py-1.5 text-[13px] font-semibold text-neutral-800"
+      title={`Disclosed on ${brand.display_name}'s published factory list (${formatProfileDate(brand.last_seen_at)})${building ? ` · ${building}` : ""}`}
     >
-      {brand.display_name}
-      <span className="border-l border-neutral-200 pl-2 font-mono text-[13px] font-medium text-neutral-500">
-        {formatProfileDate(brand.last_seen_at)}
+      <span className="inline-flex items-center gap-2">
+        {brand.display_name}
+        <span className="border-l border-neutral-200 pl-2 font-mono text-[13px] font-medium text-neutral-500">
+          {formatProfileDate(brand.last_seen_at)}
+        </span>
       </span>
+      {building ? (
+        <span className="text-[11px] font-medium text-neutral-500">{building}</span>
+      ) : null}
     </span>
   );
   if (!brand.source_url) return node;
