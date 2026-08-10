@@ -226,6 +226,12 @@ def test_keraneganj():
     assert lex("keraneganj") == "keraniganj"
 
 
+def test_vawal_to_bhawal():
+    """REZ-112: Gazipur Bhawal / Vawal spelling twin."""
+    assert lex("vawal") == "bhawal"
+    assert lex("bhawal") == "bhawal"
+
+
 def test_depz_to_savar():
     assert lex("depz") == "savar"
 

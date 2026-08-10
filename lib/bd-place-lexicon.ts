@@ -96,6 +96,8 @@ export const BD_PLACE_LEXICON: ReadonlyArray<readonly [RegExp, string]> = [
   [/\bmirsharai\b/g, "mirsarai"],
   [/\basadgonj\b/g, "asadganj"],
   [/\bkeraneganj\b/g, "keraniganj"],
+  // REZ-112: Gazipur locality Bhawal / Vawal (Epyllion Bahadurpur twin)
+  [/\bvawal\b/g, "bhawal"],
 ];
 
 /**

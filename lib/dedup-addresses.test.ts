@@ -121,6 +121,66 @@ describe("mergeUniqueLocations — merges variants of one premises", () => {
 
     assert.equal(merged.length, 1);
   });
+
+  it("REZ-112: merges Epyllion Bahadurpur short BGMEA + long OEKO (Bhawal/Vawal)", () => {
+    const merged = mergeUniqueLocations([
+      row(
+        "Bahadurpur, P.O.-Bhawal, Mirzapur, Gazipur Sadar\nGazipur\nGazipur",
+        "BGMEA",
+        "factory",
+      ),
+      row(
+        "Bahadurpur, Post: Vawal Mirzapur, Gazipur Sadar, Gazipur - 1703, Bangladesh",
+        "OEKO_TEX",
+        "factory",
+      ),
+      row(
+        "Nayapara, Bhawal, Mirzapur, Gazipur Sadar, Gazipur - 1703, Bangladesh",
+        "OEKO_TEX",
+        "factory",
+      ),
+      row(
+        "Nina Kabbo, 227/A, Gulshan-Tejgaon Link Road, Tejgaon\nDhaka\nDhaka",
+        "BGMEA",
+        "mailing",
+      ),
+    ]);
+    const factories = merged.filter((l) => l.types.includes("factory"));
+    const mailings = merged.filter((l) => l.types.includes("mailing"));
+    assert.equal(factories.length, 2, "Nayapara + one Bahadurpur");
+    assert.equal(mailings.length, 1);
+    const bahadurpur = factories.find((l) =>
+      /bahadurpur/i.test(l.displayAddress),
+    );
+    assert.ok(bahadurpur);
+    assert.deepEqual(bahadurpur!.authorities.sort(), ["BGMEA", "OEKO_TEX"]);
+    assert.ok(factories.some((l) => /nayapara/i.test(l.displayAddress)));
+  });
+
+  it("REZ-112: does not merge Nayapara with Bahadurpur when both use Post/P.O. Bhawal", () => {
+    assert.equal(
+      mergeUniqueLocations([
+        row(
+          "Bahadurpur, P.O.-Bhawal, Mirzapur, Gazipur Sadar",
+          "BGMEA",
+          "factory",
+        ),
+        row(
+          "Nayapara, Post: Vawal Mirzapur, Gazipur Sadar, Gazipur - 1703, Bangladesh",
+          "OEKO_TEX",
+          "factory",
+        ),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      mergeUniqueLocations([
+        row("Bahadurpur, P.O.-Bhawal, Mirzapur, Gazipur Sadar", "BGMEA"),
+        row("Nayapara, P.O.-Bhawal, Mirzapur, Gazipur Sadar", "OEKO_TEX"),
+      ]).length,
+      2,
+    );
+  });
 });
 
 describe("mergeUniqueLocations — refuses to merge different premises", () => {
@@ -291,5 +351,12 @@ describe("normaliseAddressKey", () => {
 
   it("normalises CTG to chattogram", () => {
     assert.match(normaliseAddressKey("Kalurghat, CTG"), /chattogram/);
+  });
+
+  it("REZ-112: Vawal → bhawal and P.O./Post: → post", () => {
+    assert.match(normaliseAddressKey("Post: Vawal Mirzapur"), /bhawal/);
+    assert.match(normaliseAddressKey("P.O.-Bhawal, Mirzapur"), /bhawal/);
+    assert.match(normaliseAddressKey("P.O.-Bhawal"), /\bpost\b/);
+    assert.match(normaliseAddressKey("Post: Vawal"), /\bpost\b/);
   });
 });

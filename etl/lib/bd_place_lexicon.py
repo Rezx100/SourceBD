@@ -93,6 +93,8 @@ _LEXICON: list[tuple[re.Pattern[str], str]] = [
     (re.compile(r"\bmirsharai\b"), "mirsarai"),
     (re.compile(r"\basadgonj\b"), "asadganj"),
     (re.compile(r"\bkeraneganj\b"), "keraniganj"),
+    # REZ-112: Gazipur locality Bhawal / Vawal (Epyllion Bahadurpur twin)
+    (re.compile(r"\bvawal\b"), "bhawal"),
 ]
 
 
