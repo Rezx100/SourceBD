@@ -114,6 +114,9 @@ const HAPPY_FACILITY_PANEL = {
   facilities: [
     {
       name: "Mother Company Ltd Extension",
+      slug: "secret-facility-slug",
+      phone: "+8801",
+      email: "leak@example.com",
       addresses: [
         {
           kind: "factory",
@@ -641,11 +644,27 @@ const CASES = [
     },
   },
   {
+    name: "public: mother Facilities shows facility registry pill (REZ-109)",
+    path: `/suppliers/${MOTHER}`,
+    expect: {
+      status: 200,
+      bodyIncludes: "RSC ID 99999",
+    },
+  },
+  {
     name: "public: mother Facilities shows facility RSC progress (REZ-109)",
     path: `/suppliers/${MOTHER}`,
     expect: {
       status: 200,
       bodyIncludes: "80% remediated",
+    },
+  },
+  {
+    name: "public: mother Facilities omits facility secrets (REZ-109)",
+    path: `/suppliers/${MOTHER}`,
+    expect: {
+      status: 200,
+      bodyExcludes: ["secret-facility-slug", "+8801", "leak@example.com"],
     },
   },
   {
@@ -732,12 +751,30 @@ const CASES = [
     },
   },
   {
+    name: "app: mother Facilities shows facility registry pill (REZ-109)",
+    path: `/app/suppliers/${MOTHER}`,
+    auth: true,
+    expect: {
+      status: 200,
+      bodyIncludes: "RSC ID 99999",
+    },
+  },
+  {
     name: "app: mother Facilities shows facility RSC progress (REZ-109)",
     path: `/app/suppliers/${MOTHER}`,
     auth: true,
     expect: {
       status: 200,
       bodyIncludes: "80% remediated",
+    },
+  },
+  {
+    name: "app: mother Facilities omits facility secrets (REZ-109)",
+    path: `/app/suppliers/${MOTHER}`,
+    auth: true,
+    expect: {
+      status: 200,
+      bodyExcludes: ["secret-facility-slug", "+8801", "leak@example.com"],
     },
   },
   {

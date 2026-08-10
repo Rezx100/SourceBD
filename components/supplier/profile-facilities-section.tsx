@@ -31,9 +31,11 @@ const FIGURES: {
 ];
 
 function FacilityRscLine({ rsc }: { rsc: FacilityRsc }) {
+  const raw =
+    rsc.progress_pct == null ? null : Number(rsc.progress_pct);
   const pct =
-    rsc.progress_pct != null
-      ? Math.max(0, Math.min(100, Number(rsc.progress_pct)))
+    raw != null && Number.isFinite(raw)
+      ? Math.max(0, Math.min(100, raw))
       : null;
   const parts: string[] = [];
   if (pct != null) parts.push(`${pct.toFixed(0)}% remediated`);

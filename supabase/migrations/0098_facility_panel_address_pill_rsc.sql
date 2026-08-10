@@ -290,15 +290,20 @@ returns jsonb language sql stable security definer set search_path = public as $
   fac as (
     select b.company_name,
            coalesce((
-             select jsonb_agg(distinct jsonb_build_object(
+             select jsonb_agg(jsonb_build_object(
                'kind', va.address_kind,
                'address', va.address,
                'source_code', va.source_code
-             ))
-               from public.v_supplier_addresses_direct va
-              where va.supplier_id = b.id
-                and va.address is not null
-                and btrim(va.address) <> ''
+             ) order by va.address_kind, va.source_code, va.address)
+               from (
+                 select distinct on (va.address_kind, va.address, va.source_code)
+                        va.address_kind, va.address, va.source_code
+                   from public.v_supplier_addresses_direct va
+                  where va.supplier_id = b.id
+                    and va.address is not null
+                    and btrim(va.address) <> ''
+                  order by va.address_kind, va.address, va.source_code
+               ) va
            ), '[]'::jsonb) as addresses,
            coalesce((
              select jsonb_agg(jsonb_build_object(
@@ -320,6 +325,7 @@ returns jsonb language sql stable security definer set search_path = public as $
              )
                from public.rsc_remediation rr
               where rr.supplier_id = b.id and rr.active is true
+              order by rr.fetched_at desc nulls last
               limit 1
            ) as rsc
       from b
