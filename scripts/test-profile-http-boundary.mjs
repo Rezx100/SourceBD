@@ -108,10 +108,36 @@ const HAPPY_PAYLOAD = {
   documents: [],
 };
 
-/** REZ-73 — mother facility panel shape from buyer_supplier_facility_panel. */
+/** REZ-73/109 — mother facility panel shape from buyer_supplier_facility_panel. */
 const HAPPY_FACILITY_PANEL = {
   facility_count: 1,
-  facilities: [{ name: "Mother Company Ltd Extension" }],
+  facilities: [
+    {
+      name: "Mother Company Ltd Extension",
+      addresses: [
+        {
+          kind: "factory",
+          address: "Plot 1, Gazipur",
+          source_code: "RSC",
+        },
+      ],
+      pills: [
+        {
+          source_code: "RSC",
+          label: "RSC ID",
+          value: "99999",
+          verified: true,
+          source_url: "https://www.rsc-bd.org/",
+        },
+      ],
+      rsc: {
+        progress_pct: 80,
+        workers_count: 500,
+        remediation_status: "ontrack",
+        training_status: null,
+      },
+    },
+  ],
   group: {
     employees_total: {
       own: 1200,
@@ -607,6 +633,22 @@ const CASES = [
     },
   },
   {
+    name: "public: mother Facilities shows facility address (REZ-109)",
+    path: `/suppliers/${MOTHER}`,
+    expect: {
+      status: 200,
+      bodyIncludes: "Plot 1, Gazipur",
+    },
+  },
+  {
+    name: "public: mother Facilities shows facility RSC progress (REZ-109)",
+    path: `/suppliers/${MOTHER}`,
+    expect: {
+      status: 200,
+      bodyIncludes: "80% remediated",
+    },
+  },
+  {
     name: "public: mother Facilities labelled group totals on the wire",
     path: `/suppliers/${MOTHER}`,
     expect: {
@@ -678,6 +720,24 @@ const CASES = [
     expect: {
       status: 200,
       bodyIncludes: "Mother Company Ltd Extension",
+    },
+  },
+  {
+    name: "app: mother Facilities shows facility address (REZ-109)",
+    path: `/app/suppliers/${MOTHER}`,
+    auth: true,
+    expect: {
+      status: 200,
+      bodyIncludes: "Plot 1, Gazipur",
+    },
+  },
+  {
+    name: "app: mother Facilities shows facility RSC progress (REZ-109)",
+    path: `/app/suppliers/${MOTHER}`,
+    auth: true,
+    expect: {
+      status: 200,
+      bodyIncludes: "80% remediated",
     },
   },
   {
