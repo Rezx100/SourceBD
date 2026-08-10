@@ -71,7 +71,7 @@ describe("formatGroupMetric", () => {
 });
 
 describe("sanitizeFacilityPanel", () => {
-  it("keeps only facility name from over-emitted rows", () => {
+  it("keeps name, addresses, pills, rsc and strips secrets", () => {
     const cleaned = sanitizeFacilityPanel({
       facility_count: 1,
       facilities: [
@@ -81,7 +81,30 @@ describe("sanitizeFacilityPanel", () => {
           phone: "+8801",
           email: "x@y.z",
           id: "uuid",
-        } as { name: string },
+          addresses: [
+            {
+              kind: "factory",
+              address: "Gazipur",
+              source_code: "RSC",
+              phone: "leak",
+            },
+          ],
+          pills: [
+            {
+              source_code: "RSC",
+              label: "RSC ID",
+              value: "1",
+              verified: true,
+              source_url: "https://www.rsc-bd.org/",
+            },
+          ],
+          rsc: {
+            progress_pct: 50,
+            workers_count: 10,
+            remediation_status: "ok",
+            training_status: null,
+          },
+        } as never,
       ],
       group: {
         employees_total: m({
@@ -114,7 +137,28 @@ describe("sanitizeFacilityPanel", () => {
         }),
       },
     });
-    assert.deepEqual(cleaned.facilities, [{ name: "Unit-2" }]);
+    assert.deepEqual(cleaned.facilities, [
+      {
+        name: "Unit-2",
+        addresses: [{ kind: "factory", address: "Gazipur", source_code: "RSC" }],
+        pills: [
+          {
+            source_code: "RSC",
+            label: "RSC ID",
+            value: "1",
+            verified: true,
+            source_url: "https://www.rsc-bd.org/",
+          },
+        ],
+        rsc: {
+          progress_pct: 50,
+          workers_count: 10,
+          remediation_status: "ok",
+          training_status: null,
+        },
+      },
+    ]);
     assert.equal(JSON.stringify(cleaned.facilities).includes("secret"), false);
+    assert.equal(JSON.stringify(cleaned.facilities).includes("leak"), false);
   });
 });

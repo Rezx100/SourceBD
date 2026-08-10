@@ -1,15 +1,18 @@
 /**
- * REZ-73 — Facilities section: building list + labelled group figures.
+ * REZ-73 / REZ-109 — Facilities section: buildings + group figures.
  * Arithmetic lives in buyer_supplier_facility_panel (SQL); this only renders.
  */
 import {
   ProfileCard,
   ProfileCardHeader,
 } from "@/components/supplier/profile-ui";
+import { formatCompanyName } from "@/lib/format-company-name";
 import {
   formatGroupMetric,
   type FacilityPanel,
+  type FacilityRsc,
 } from "@/lib/format-facility-group";
+import { toTitleCaseAddress } from "@/lib/format-location";
 
 export type { FacilityPanel, FacilityRow } from "@/lib/format-facility-group";
 export { sanitizeFacilityPanel } from "@/lib/format-facility-group";
@@ -27,6 +30,25 @@ const FIGURES: {
   },
 ];
 
+function FacilityRscLine({ rsc }: { rsc: FacilityRsc }) {
+  const raw =
+    rsc.progress_pct == null ? null : Number(rsc.progress_pct);
+  const pct =
+    raw != null && Number.isFinite(raw)
+      ? Math.max(0, Math.min(100, raw))
+      : null;
+  const parts: string[] = [];
+  if (pct != null) parts.push(`${pct.toFixed(0)}% remediated`);
+  if (rsc.remediation_status) parts.push(rsc.remediation_status);
+  if (parts.length === 0) return null;
+  return (
+    <p className="mt-1 text-[13px] leading-5 text-neutral-600">
+      <span className="font-semibold text-neutral-700">RSC:</span>{" "}
+      {parts.join(" · ")}
+    </p>
+  );
+}
+
 export function ProfileFacilitiesSection({ panel }: { panel: FacilityPanel }) {
   if (!panel.facilities.length) return null;
   const n = panel.facilities.length;
@@ -38,11 +60,35 @@ export function ProfileFacilitiesSection({ panel }: { panel: FacilityPanel }) {
         meta={`${n} extension building${n === 1 ? "" : "s"} · ${buildings} buildings in total`}
       />
       <ul className="divide-y divide-neutral-200">
-        {panel.facilities.map((f, i) => (
-          <li key={`${f.name}-${i}`} className="py-4 first:pt-0 last:pb-0">
-            <p className="text-[15px] font-semibold text-neutral-900">{f.name}</p>
-          </li>
-        ))}
+        {panel.facilities.map((f, i) => {
+          const addresses = [
+            ...new Set(
+              f.addresses
+                .map((a) => toTitleCaseAddress(a.address))
+                .filter((a): a is string => Boolean(a)),
+            ),
+          ];
+          return (
+            <li key={`${f.name}-${i}`} className="py-4 first:pt-0 last:pb-0">
+              <p className="text-[15px] font-semibold text-neutral-900">
+                {formatCompanyName(f.name)}
+              </p>
+              {addresses.length > 0 ? (
+                <p className="mt-1 text-[13px] leading-5 text-neutral-600">
+                  {addresses.join(" · ")}
+                </p>
+              ) : null}
+              {f.pills.length > 0 ? (
+                <p className="mt-1 font-mono text-[12.5px] leading-5 text-neutral-500">
+                  {f.pills
+                    .map((p) => (p.value ? `${p.label} ${p.value}` : p.label))
+                    .join(" · ")}
+                </p>
+              ) : null}
+              {f.rsc ? <FacilityRscLine rsc={f.rsc} /> : null}
+            </li>
+          );
+        })}
       </ul>
       <div className="mt-5 border-t border-neutral-200 pt-4">
         <p className="text-[12.5px] font-semibold text-neutral-500">
