@@ -162,6 +162,20 @@ export function unknownWorkersLabel(): string {
   return "Unknown";
 }
 
+/** Observable header/card text for the Production workers fact. */
+export function formatProfileWorkersFact(workers: {
+  value: number | null;
+  caption: string;
+}): { valueText: string; caption: string } {
+  return {
+    valueText:
+      workers.value != null
+        ? workers.value.toLocaleString("en-US")
+        : unknownWorkersLabel(),
+    caption: workers.caption,
+  };
+}
+
 /** True when result is a group aggregate (mother + buildings). */
 export function isGroupWorkers(
   h: SelectedWorkers | GroupWorkersResult,

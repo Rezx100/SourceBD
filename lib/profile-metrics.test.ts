@@ -7,6 +7,7 @@ import { describe, it } from "node:test";
 import {
   aggregateGroupMetric,
   formatMachineGroup,
+  formatProfileWorkersFact,
   formatSourceLabel,
   formatWorkersHeadline,
   groupWorkers,
@@ -30,6 +31,34 @@ function site(
     rsc_fetched_at: partial.rsc_fetched_at ?? null,
   };
 }
+
+describe("formatProfileWorkersFact (header observable text)", () => {
+  it("Alliance: 3046 not 144", () => {
+    const f = formatProfileWorkersFact({
+      value: 3046,
+      caption: "RSC",
+    });
+    assert.equal(f.valueText, "3,046");
+    assert.notEqual(f.valueText, "144");
+  });
+
+  it("Esquire group: 6369 never 8107", () => {
+    const f = formatProfileWorkersFact({
+      value: 6369,
+      caption: "RSC · 2 of 2 sites",
+    });
+    assert.equal(f.valueText, "6,369");
+    assert.notEqual(f.valueText, "8,107");
+  });
+
+  it("neither source → Unknown", () => {
+    const f = formatProfileWorkersFact({
+      value: null,
+      caption: "No authority has published a workforce figure",
+    });
+    assert.equal(f.valueText, "Unknown");
+  });
+});
 
 describe("selectSiteWorkers", () => {
   it("Alliance-like: declared 144 + RSC 3046 → select 3046 RSC", () => {

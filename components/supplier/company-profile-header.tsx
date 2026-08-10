@@ -20,6 +20,7 @@ import {
 import { formatCompanyName } from "@/lib/format-company-name";
 import { resolveHeaderRegistration } from "@/lib/header-registration";
 import { formatCardLocation, toTitleCaseAddress } from "@/lib/format-location";
+import { formatProfileWorkersFact } from "@/lib/profile-metrics";
 import { profileHeaderChipClass } from "@/lib/profile-tab-styles";
 import { cn } from "@/lib/utils";
 
@@ -112,32 +113,34 @@ export function CompanyProfileHeader<TAddress extends AddressRowRaw>({
     });
   }
   if (workers.value != null) {
+    const fact = formatProfileWorkersFact(workers);
     facts.push({
       key: "employees",
       label: "Production workers",
       icon: "employees",
       children: (
         <span>
-          {workers.value.toLocaleString()}
-          {workers.caption ? (
+          {fact.valueText}
+          {fact.caption ? (
             <span className="mt-0.5 block text-[11px] font-normal text-neutral-500">
-              {workers.caption}
+              {fact.caption}
             </span>
           ) : null}
         </span>
       ),
     });
   } else {
+    const fact = formatProfileWorkersFact(workers);
     facts.push({
       key: "employees",
       label: "Production workers",
       icon: "employees",
       children: (
         <span>
-          Unknown
-          {workers.caption ? (
+          {fact.valueText}
+          {fact.caption ? (
             <span className="mt-0.5 block text-[11px] font-normal text-neutral-500">
-              {workers.caption}
+              {fact.caption}
             </span>
           ) : null}
         </span>
