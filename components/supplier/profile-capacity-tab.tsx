@@ -7,18 +7,13 @@ import {
   ProfileTabStack,
   type ProfileKpiItem,
 } from "@/components/supplier/profile-ui";
+import {
+  hasCapacityData as hasCapacityDataGate,
+  type CapacityGateSupplier,
+} from "@/lib/has-capacity-data";
 import type { WorkerSource } from "@/lib/profile-metrics";
 
-type SupplierCapacity = {
-  bepza_zone: string | null;
-  factory_types: string[];
-  employees_total: number | null;
-  employees_male: number | null;
-  employees_female: number | null;
-  machines_sewing: number | null;
-  production_capacity_pcs_day: number | null;
-  production_capacity_dozen_yearly: number | null;
-};
+type SupplierCapacity = CapacityGateSupplier;
 
 /** REZ-114 — selected workers headline (never raw employees_total alone). */
 export type CapacityWorkersProp = {
@@ -328,15 +323,5 @@ export function hasCapacityData(
   s: SupplierCapacity,
   workers?: CapacityWorkersProp,
 ): boolean {
-  return (
-    s.machines_sewing != null ||
-    s.production_capacity_dozen_yearly != null ||
-    s.production_capacity_pcs_day != null ||
-    s.employees_total != null ||
-    (workers !== undefined && workers.value != null) ||
-    s.employees_male != null ||
-    s.employees_female != null ||
-    Boolean(s.bepza_zone) ||
-    s.factory_types.length > 0
-  );
+  return hasCapacityDataGate(s, workers);
 }
