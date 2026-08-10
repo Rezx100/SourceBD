@@ -620,11 +620,12 @@ const CASES = [
     expect: { status: 200 },
   },
   {
-    name: "public: mother Facilities section + unknown-as-unknown group total",
+    name: "public: mother Facilities section + RSC-preferred group workers (REZ-114)",
     path: `/suppliers/${MOTHER}`,
     expect: {
       status: 200,
-      bodyIncludes: "at least 1,200 across 2 buildings, 1 unknown",
+      // Mother registry 1200 + building RSC 500 → RSC-only sum 500 across 1 of 2
+      bodyIncludes: "500 across 1 of 2 sites",
     },
   },
   {
@@ -724,12 +725,12 @@ const CASES = [
     expect: { status: 200 },
   },
   {
-    name: "app: mother Facilities section + unknown-as-unknown group total",
+    name: "app: mother Facilities section + RSC-preferred group workers (REZ-114)",
     path: `/app/suppliers/${MOTHER}`,
     auth: true,
     expect: {
       status: 200,
-      bodyIncludes: "at least 1,200 across 2 buildings, 1 unknown",
+      bodyIncludes: "500 across 1 of 2 sites",
     },
   },
   {
