@@ -624,7 +624,9 @@ function RscSiteRow({
       ) : null}
       <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-neutral-600">
         <span className="font-medium text-neutral-800">
-          {rscWorkforceLabel(rsc.workers_count)}
+          {rsc.workers_count != null
+            ? `${rscWorkforceLabel(rsc.workers_count)} · RSC`
+            : rscWorkforceLabel(rsc.workers_count)}
         </span>
         {rsc.remediation_status ? (
           <span

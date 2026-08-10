@@ -140,6 +140,7 @@ describe("sanitizeFacilityPanel", () => {
     assert.deepEqual(cleaned.facilities, [
       {
         name: "Unit-2",
+        employees_total: null,
         addresses: [{ kind: "factory", address: "Gazipur", source_code: "RSC" }],
         pills: [
           {
@@ -153,6 +154,7 @@ describe("sanitizeFacilityPanel", () => {
         rsc: {
           progress_pct: 50,
           workers_count: 10,
+          fetched_at: null,
           remediation_status: "ok",
           training_status: null,
         },
@@ -160,5 +162,37 @@ describe("sanitizeFacilityPanel", () => {
     ]);
     assert.equal(JSON.stringify(cleaned.facilities).includes("secret"), false);
     assert.equal(JSON.stringify(cleaned.facilities).includes("leak"), false);
+  });
+
+  it("keeps employees_total and rsc.fetched_at for REZ-114 selection", () => {
+    const cleaned = sanitizeFacilityPanel({
+      facility_count: 1,
+      facilities: [
+        {
+          name: "Unit-1",
+          employees_total: 568,
+          addresses: [],
+          pills: [],
+          rsc: {
+            progress_pct: null,
+            workers_count: 568,
+            fetched_at: "2026-07-01T00:00:00+00:00",
+            remediation_status: null,
+            training_status: null,
+          },
+        },
+      ],
+      group: {
+        employees_total: m({ own: 1, known_sum: 1 }),
+        machines_sewing: m({ own: null, known_sum: null }),
+        production_capacity_pcs_day: m({ own: null, known_sum: null }),
+        production_capacity_dozen_yearly: m({ own: null, known_sum: null }),
+      },
+    });
+    assert.equal(cleaned.facilities[0]!.employees_total, 568);
+    assert.equal(
+      cleaned.facilities[0]!.rsc?.fetched_at,
+      "2026-07-01T00:00:00+00:00",
+    );
   });
 });

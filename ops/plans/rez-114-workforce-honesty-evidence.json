@@ -1,0 +1,78 @@
+{
+  "issue": "REZ-114",
+  "generated_at": "2026-08-10T05:59:22.293034+00:00",
+  "mutation": "none",
+  "db_snapshot": "production stnrfxrxfonwexzcvvpv via execute_sql 2026-08-10",
+  "worker_distribution": {
+    "published_companies": 10272,
+    "both_figures": 1122,
+    "both_agree": 132,
+    "both_disagree": 990,
+    "disagree_gt_20pct": 593,
+    "disagree_fivefold": 70,
+    "fivefold_rsc_larger": 52,
+    "fivefold_declared_larger": 18,
+    "declared_only": 4738,
+    "rsc_only": 8,
+    "neither": 4404
+  },
+  "machine_capacity": {
+    "buildings": 584,
+    "buildings_with_machines": 33,
+    "buildings_with_annual_cap": 28,
+    "buildings_with_daily_cap": 8,
+    "mothers_with_buildings": 469,
+    "mothers_with_buildings_and_own_machines": 405
+  },
+  "spot_checks": {
+    "alliance-knit-composite": {
+      "employees_total": 144,
+      "employees_male": 140,
+      "employees_female": 4,
+      "rsc_workers": 3046,
+      "rsc_fetched_at": "2026-07-30T22:18:49.373839+00:00",
+      "assoc_fetched_at": "2026-08-02T06:37:08.464096+00:00",
+      "ratio_rsc_over_declared": 21.15
+    },
+    "esquire-knit-composite": {
+      "employees_total": 7539,
+      "rsc_workers": 5801,
+      "unit1_employees_total": 568,
+      "unit1_rsc_workers": 568,
+      "facility_panel_group_employees_known_sum": 8107,
+      "facility_panel_note": "8107 = mother declared 7539 + unit1 employees_total 568 (same as unit1 RSC). Mother RSC 5801 not used in group sum.",
+      "machines_own": 140,
+      "machines_known_sum": 140,
+      "machines_unknown_count": 1
+    },
+    "knit-bazaar": {
+      "employees_total": 290,
+      "rsc_workers": 1350
+    }
+  },
+  "sql": {
+    "worker_distribution": "\nwith published as (\n  select id, slug, company_name, facility_of, employees_total, machines_sewing,\n         production_capacity_pcs_day, production_capacity_dozen_yearly\n  from public.suppliers\n  where is_published = true\n),\nrsc_active as (\n  select supplier_id,\n         max(workers_count) as workers_count_max,\n         max(fetched_at) as fetched_max\n  from public.rsc_remediation\n  where active = true and workers_count is not null\n  group by supplier_id\n),\njoined as (\n  select p.*, r.workers_count_max as rsc_workers\n  from published p\n  left join rsc_active r on r.supplier_id = p.id\n)\nselect\n  count(*) as published_companies,\n  count(*) filter (where employees_total is not null and rsc_workers is not null) as both_figures,\n  count(*) filter (where employees_total is not null and rsc_workers is not null\n                   and employees_total = rsc_workers) as both_agree,\n  count(*) filter (where employees_total is not null and rsc_workers is not null\n                   and employees_total is distinct from rsc_workers) as both_disagree,\n  count(*) filter (where employees_total is not null and rsc_workers is not null\n                   and abs(employees_total - rsc_workers)::float\n                       / nullif(greatest(employees_total, rsc_workers),0) > 0.20) as disagree_gt_20pct,\n  count(*) filter (where employees_total is not null and rsc_workers is not null\n                   and (employees_total::float / nullif(rsc_workers,0) >= 5\n                        or rsc_workers::float / nullif(employees_total,0) >= 5)) as disagree_fivefold,\n  count(*) filter (where employees_total is not null and rsc_workers is null) as declared_only,\n  count(*) filter (where employees_total is null and rsc_workers is not null) as rsc_only,\n  count(*) filter (where employees_total is null and rsc_workers is null) as neither\nfrom joined;\n",
+    "machines": "\nselect\n  count(*) filter (where facility_of is not null) as buildings,\n  count(*) filter (where facility_of is not null and machines_sewing is not null) as buildings_with_machines,\n  count(*) filter (where facility_of is not null and production_capacity_dozen_yearly is not null) as buildings_with_annual_cap,\n  count(*) filter (where facility_of is not null and production_capacity_pcs_day is not null) as buildings_with_daily_cap,\n  count(distinct facility_of) filter (where facility_of is not null) as mothers_with_buildings,\n  (select count(*) from public.suppliers m\n    where exists (select 1 from public.suppliers c where c.facility_of = m.id)\n      and m.machines_sewing is not null) as mothers_with_buildings_and_own_machines\nfrom public.suppliers;\n"
+  },
+  "vs_brief": {
+    "published_10272": "match",
+    "both_1122": "match",
+    "agree_132": "match",
+    "disagree_gt20_593": "match",
+    "fivefold_70": "match",
+    "declared_only_4738": "match",
+    "rsc_only_8": "match",
+    "neither_4404": "match",
+    "buildings_584": "match",
+    "buildings_machines_33": "match",
+    "buildings_annual_28": "match",
+    "buildings_daily_8": "match",
+    "mothers_469": "match",
+    "mothers_own_machines_405": "match"
+  },
+  "policy_conflict": {
+    "REZ-101": "RSC is a FLOOR \u2014 only replace when RSC > declared; leave alone when declared > RSC",
+    "this_brief": "RSC is authority when present for the site; declared only when no RSC; contradicted declared never headline",
+    "decision_needed": true
+  }
+}

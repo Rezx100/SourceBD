@@ -30,6 +30,13 @@ import { BlurFade } from "@/components/ui/blur-fade";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CompanyProfileHeader } from "@/components/supplier/company-profile-header";
+import { resolveProfileWorkers } from "@/lib/build-profile-workers";
+import {
+  formatWorkersHeadline,
+  isGroupWorkers,
+  workersCaption,
+  workersDisplayValue,
+} from "@/lib/profile-metrics";
 import { ProfileOverviewTab } from "@/components/supplier/profile-overview-tab";
 import {
   sanitizeFacilityPanel,
@@ -297,6 +304,22 @@ export default async function PublicSupplierProfilePage({
       ? sanitizeFacilityPanel(facilityRaw as FacilityPanel)
       : null;
 
+  const rscSites = asRscSites(payload.rsc_remediation);
+  const workersResolved = resolveProfileWorkers({
+    companyName: s.company_name,
+    employeesTotal: s.employees_total,
+    rscSites,
+    panel: facilitiesPanel,
+  });
+  const workersHeadline = {
+    value: workersDisplayValue(workersResolved),
+    caption: workersCaption(workersResolved),
+    source: workersResolved.source,
+  };
+  const workersGroupLabel = isGroupWorkers(workersResolved)
+    ? formatWorkersHeadline(workersResolved)
+    : undefined;
+
   const hasLocality = !!(s.city || s.district);
   const ldType = hasLocality ? "LocalBusiness" : "Organization";
   const ld: Record<string, unknown> = {
@@ -328,6 +351,7 @@ export default async function PublicSupplierProfilePage({
         <BlurFade delay={0.07}>
           <CompanyProfileHeader
             supplier={s}
+            workers={workersHeadline}
             t13SourceCount={payload.t13_source_count}
             pills={payload.pills}
             provenance={payload.provenance}
@@ -421,6 +445,8 @@ export default async function PublicSupplierProfilePage({
               discoverHref="/discover"
               slug={slug}
               facilitiesPanel={facilitiesPanel}
+              workers={workersHeadline}
+              workersGroupLabel={workersGroupLabel}
             />
           </TabsContent>
           <TabsContent value="compliance" id="compliance">
@@ -437,7 +463,7 @@ export default async function PublicSupplierProfilePage({
           </TabsContent>
           {hasCapacityData(s) ? (
             <TabsContent value="capacity">
-              <ProfileCapacityTab supplier={s} />
+              <ProfileCapacityTab supplier={s} workers={workersHeadline} />
             </TabsContent>
           ) : null}
           <TabsContent value="contact">

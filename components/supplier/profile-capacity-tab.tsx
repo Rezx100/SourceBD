@@ -7,6 +7,7 @@ import {
   ProfileTabStack,
   type ProfileKpiItem,
 } from "@/components/supplier/profile-ui";
+import type { WorkerSource } from "@/lib/profile-metrics";
 
 type SupplierCapacity = {
   bepza_zone: string | null;
@@ -17,6 +18,13 @@ type SupplierCapacity = {
   machines_sewing: number | null;
   production_capacity_pcs_day: number | null;
   production_capacity_dozen_yearly: number | null;
+};
+
+/** REZ-114 — selected workers headline (never raw employees_total alone). */
+export type CapacityWorkersProp = {
+  value: number | null;
+  caption: string;
+  source: WorkerSource | null;
 };
 
 function pickWorkforce(
@@ -140,15 +148,51 @@ function pickWorkforce(
   };
 }
 
-function buildCapacityKpis(s: SupplierCapacity): ProfileKpiItem[] {
-  const wf = pickWorkforce(
-    s.employees_total,
-    s.employees_female,
-    s.employees_male,
-  );
+function buildCapacityKpis(
+  s: SupplierCapacity,
+  workers?: CapacityWorkersProp,
+): ProfileKpiItem[] {
+  const useSelected = workers !== undefined;
+  // When RSC is the selected authority, gender split is from registry and
+  // must not be shown against an RSC total.
+  const suppressGender = useSelected && workers.source === "RSC";
+  const wf = suppressGender
+    ? {
+        total: workers.value,
+        femaleCount: null,
+        maleCount: null,
+        femalePct: null,
+        showGenderSplit: false,
+        note: null as string | null,
+      }
+    : pickWorkforce(
+        useSelected ? workers.value : s.employees_total,
+        s.employees_female,
+        s.employees_male,
+      );
+
+  // Selected path: headline total is always workers.value (Unknown when null).
+  // Legacy path (no workers prop): keep prior omit-when-null behaviour.
+  if (useSelected) {
+    wf.total = workers.value;
+    if (workers.value == null) {
+      wf.showGenderSplit = false;
+      wf.femaleCount = null;
+      wf.maleCount = null;
+      wf.femalePct = null;
+    }
+  }
+
   const items: ProfileKpiItem[] = [];
 
-  if (wf.total != null) {
+  if (useSelected) {
+    items.push({
+      key: "workforce-total",
+      label: "Production workers",
+      value: workers.value != null ? workers.value.toLocaleString() : "Unknown",
+      numValue: workers.value ?? undefined,
+    });
+  } else if (wf.total != null) {
     items.push({
       key: "workforce-total",
       // The figure is Employee Male + Employee Female, so it excludes staff.
@@ -213,14 +257,33 @@ function buildCapacityKpis(s: SupplierCapacity): ProfileKpiItem[] {
   return items;
 }
 
-export function ProfileCapacityTab({ supplier: s }: { supplier: SupplierCapacity }) {
-  const wf = pickWorkforce(
-    s.employees_total,
-    s.employees_female,
-    s.employees_male,
-  );
-  const kpis = buildCapacityKpis(s);
+export function ProfileCapacityTab({
+  supplier: s,
+  workers,
+}: {
+  supplier: SupplierCapacity;
+  /** REZ-114 — when provided, KPI total uses this (not raw employees_total). */
+  workers?: CapacityWorkersProp;
+}) {
+  const useSelected = workers !== undefined;
+  const suppressGender = useSelected && workers.source === "RSC";
+  const wf = suppressGender
+    ? {
+        total: workers.value,
+        femaleCount: null,
+        maleCount: null,
+        femalePct: null,
+        showGenderSplit: false,
+        note: null as string | null,
+      }
+    : pickWorkforce(
+        useSelected ? workers.value : s.employees_total,
+        s.employees_female,
+        s.employees_male,
+      );
+  const kpis = buildCapacityKpis(s, workers);
   const meta =
+    (useSelected && workers.caption ? workers.caption : null) ??
     wf.note ??
     (kpis.length > 0 || s.factory_types.length > 0
       ? "self-disclosed · registry sources"

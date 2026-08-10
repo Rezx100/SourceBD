@@ -38,6 +38,12 @@ export type CompanyProfileHeaderSupplier = {
   employees_total: number | null;
 };
 
+/** REZ-114 — pre-selected workers headline (never raw employees_total alone). */
+export type ProfileWorkersHeadline = {
+  value: number | null;
+  caption: string;
+};
+
 export type CompanyProfileHeaderPill = {
   source_code: string;
   value: string | null;
@@ -61,6 +67,7 @@ const ENTITY_LABELS: Record<CompanyProfileHeaderSupplier["entity_type"], string 
 
 export function CompanyProfileHeader<TAddress extends AddressRowRaw>({
   supplier: s,
+  workers,
   t13SourceCount,
   pills,
   provenance,
@@ -70,6 +77,8 @@ export function CompanyProfileHeader<TAddress extends AddressRowRaw>({
   discoverHref,
 }: {
   supplier: CompanyProfileHeaderSupplier;
+  /** REZ-114 selection result — required for Production workers fact. */
+  workers: ProfileWorkersHeadline;
   t13SourceCount: number;
   pills: readonly CompanyProfileHeaderPill[];
   provenance: readonly CompanyProfileHeaderProvenance[];
@@ -102,14 +111,37 @@ export function CompanyProfileHeader<TAddress extends AddressRowRaw>({
       children: addressLabel,
     });
   }
-  if (s.employees_total != null) {
+  if (workers.value != null) {
     facts.push({
       key: "employees",
-      // "Production workers", not "Employees": the figure is BGMEA's
-      // Employee Male + Employee Female, which excludes staff (REZ-95).
       label: "Production workers",
       icon: "employees",
-      children: s.employees_total.toLocaleString(),
+      children: (
+        <span>
+          {workers.value.toLocaleString()}
+          {workers.caption ? (
+            <span className="mt-0.5 block text-[11px] font-normal text-neutral-500">
+              {workers.caption}
+            </span>
+          ) : null}
+        </span>
+      ),
+    });
+  } else {
+    facts.push({
+      key: "employees",
+      label: "Production workers",
+      icon: "employees",
+      children: (
+        <span>
+          Unknown
+          {workers.caption ? (
+            <span className="mt-0.5 block text-[11px] font-normal text-neutral-500">
+              {workers.caption}
+            </span>
+          ) : null}
+        </span>
+      ),
     });
   }
   const establishedLabel = formatMonthYear(s.established_date);
