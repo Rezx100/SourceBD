@@ -324,12 +324,16 @@ export function ProfileCapacityTab({
   );
 }
 
-export function hasCapacityData(s: SupplierCapacity): boolean {
+export function hasCapacityData(
+  s: SupplierCapacity,
+  workers?: CapacityWorkersProp,
+): boolean {
   return (
     s.machines_sewing != null ||
     s.production_capacity_dozen_yearly != null ||
     s.production_capacity_pcs_day != null ||
     s.employees_total != null ||
+    (workers !== undefined && workers.value != null) ||
     s.employees_male != null ||
     s.employees_female != null ||
     Boolean(s.bepza_zone) ||

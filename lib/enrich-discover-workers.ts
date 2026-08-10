@@ -1,17 +1,18 @@
 /**
- * REZ-114 — apply the same site worker selection used on profiles to list cards
- * (discover / saved / smart match). Overwrites employees_total with the selected
+ * REZ-114 — apply the same headline worker selection used on profiles to list
+ * cards (discover / saved / smart match). Overwrites employees_total with the
  * display value so DiscoverResultCard stays one code path.
+ *
+ * Uses production_workers_display_batch (mother + facility_of, RSC-preferred).
  */
 
-import { selectSiteWorkers } from "./profile-metrics";
-
-export type RscWorkersEntry = {
-  workers_count: number;
+export type DisplayWorkersEntry = {
+  value: number;
+  source: "RSC" | "registry";
   fetched_at: string | null;
 };
 
-export type RscWorkersById = Record<string, RscWorkersEntry>;
+export type DisplayWorkersById = Record<string, DisplayWorkersEntry>;
 
 type WithIdAndEmployees = {
   id: string;
@@ -22,17 +23,20 @@ type WithIdAndEmployees = {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type RpcClient = { rpc: (fn: string, args: { p_supplier_ids: string[] }) => any };
 
-function parseBatch(raw: unknown): RscWorkersById {
+export function parseDisplayBatch(raw: unknown): DisplayWorkersById {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) return {};
-  const out: RscWorkersById = {};
+  const out: DisplayWorkersById = {};
   for (const [id, v] of Object.entries(raw as Record<string, unknown>)) {
     if (!v || typeof v !== "object" || Array.isArray(v)) continue;
     const row = v as Record<string, unknown>;
-    const wc = row.workers_count;
-    if (typeof wc !== "number" || !Number.isFinite(wc)) continue;
+    const value = row.value;
+    if (typeof value !== "number" || !Number.isFinite(value)) continue;
+    const source = row.source === "RSC" || row.source === "registry" ? row.source : null;
+    if (!source) continue;
     const fa = row.fetched_at;
     out[id] = {
-      workers_count: wc,
+      value,
+      source,
       fetched_at: typeof fa === "string" ? fa : null,
     };
   }
@@ -40,36 +44,31 @@ function parseBatch(raw: unknown): RscWorkersById {
 }
 
 /** SECURITY DEFINER RPC — anon/authenticated may call. */
-export async function fetchRscWorkersBatch(
+export async function fetchDisplayWorkersBatch(
   supabase: RpcClient,
   supplierIds: string[],
-): Promise<RscWorkersById> {
+): Promise<DisplayWorkersById> {
   const ids = Array.from(new Set(supplierIds.filter(Boolean)));
   if (ids.length === 0) return {};
-  const { data, error } = await supabase.rpc("rsc_workers_batch", {
+  const { data, error } = await supabase.rpc("production_workers_display_batch", {
     p_supplier_ids: ids,
   });
   if (error) {
-    console.error("rsc_workers_batch failed", error.message);
+    console.error("production_workers_display_batch failed", error.message);
     return {};
   }
-  return parseBatch(data);
+  return parseDisplayBatch(data);
 }
 
-/** Pure: RSC when present, else registry, else null. Never invent. */
+/** Pure: prefer batch display value; else keep registry row as-is. */
 export function applyDiscoverWorkersSelection<T extends WithIdAndEmployees>(
   rows: T[],
-  rscById: RscWorkersById,
+  displayById: DisplayWorkersById,
 ): T[] {
   return rows.map((r) => {
-    const rsc = rscById[r.id];
-    const selected = selectSiteWorkers({
-      label: r.id,
-      employees_total: r.employees_total,
-      rsc_workers_count: rsc?.workers_count ?? null,
-      rsc_fetched_at: rsc?.fetched_at ?? null,
-    });
-    return { ...r, employees_total: selected.value };
+    const d = displayById[r.id];
+    if (!d) return r;
+    return { ...r, employees_total: d.value };
   });
 }
 
@@ -78,9 +77,9 @@ export async function enrichDiscoverWorkers<T extends WithIdAndEmployees>(
   rows: T[],
 ): Promise<T[]> {
   if (rows.length === 0) return rows;
-  const rscById = await fetchRscWorkersBatch(
+  const displayById = await fetchDisplayWorkersBatch(
     supabase,
     rows.map((r) => r.id),
   );
-  return applyDiscoverWorkersSelection(rows, rscById);
+  return applyDiscoverWorkersSelection(rows, displayById);
 }

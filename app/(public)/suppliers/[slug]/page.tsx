@@ -417,7 +417,7 @@ export default async function PublicSupplierProfilePage({
             <TabsTrigger value="compliance" id="tab-trigger-compliance" className={profileTabClass}>
               Compliance
             </TabsTrigger>
-            {hasCapacityData(s) ? (
+            {hasCapacityData(s, workersHeadline) ? (
               <TabsTrigger value="capacity" className={profileTabClass}>
                 Capacity
               </TabsTrigger>
@@ -461,7 +461,7 @@ export default async function PublicSupplierProfilePage({
               }}
             />
           </TabsContent>
-          {hasCapacityData(s) ? (
+          {hasCapacityData(s, workersHeadline) ? (
             <TabsContent value="capacity">
               <ProfileCapacityTab supplier={s} workers={workersHeadline} />
             </TabsContent>
