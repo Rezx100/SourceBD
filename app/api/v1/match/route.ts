@@ -15,6 +15,7 @@
 import { NextResponse } from "next/server";
 
 import { getServerRole } from "@/lib/auth";
+import { enrichDiscoverWorkers } from "@/lib/enrich-discover-workers";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
@@ -112,5 +113,14 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "match failed", detail: error.message }, { status: 500 });
   }
 
-  return NextResponse.json(data ?? { criteria_count: 0, total: 0, results: [] });
+  const doc = (data ?? { criteria_count: 0, total: 0, results: [] }) as {
+    criteria_count?: number;
+    total?: number;
+    results?: Array<{ id: string; employees_total: number | null } & Record<string, unknown>>;
+    [key: string]: unknown;
+  };
+  if (Array.isArray(doc.results) && doc.results.length > 0) {
+    doc.results = await enrichDiscoverWorkers(supabase, doc.results);
+  }
+  return NextResponse.json(doc);
 }

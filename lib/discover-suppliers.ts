@@ -16,8 +16,9 @@
 import { unstable_cache } from "next/cache";
 import { createClient } from "@supabase/supabase-js";
 
-import { TAG_DISCOVER_SUPPLIERS } from "@/lib/cache/tags";
 import type { DiscoverRow } from "@/components/discover/result-card";
+import { TAG_DISCOVER_SUPPLIERS } from "@/lib/cache/tags";
+import { enrichDiscoverWorkers } from "@/lib/enrich-discover-workers";
 
 export type DiscoverArgs = {
   p_q: string | null;
@@ -54,7 +55,11 @@ async function loadDiscover(args: DiscoverArgs): Promise<DiscoverResult> {
   });
   const { data, error } = await supabase.rpc("discover_suppliers", args);
   if (error) return { rows: [], error: error.message };
-  return { rows: (data ?? []) as DiscoverRow[], error: null };
+  const rows = await enrichDiscoverWorkers(
+    supabase,
+    (data ?? []) as DiscoverRow[],
+  );
+  return { rows, error: null };
 }
 
 export async function fetchPublicDiscoverSuppliers(

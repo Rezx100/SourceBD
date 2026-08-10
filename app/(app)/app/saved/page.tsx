@@ -13,6 +13,7 @@ import Link from "next/link";
 import { DiscoverResultCard, type DiscoverRow } from "@/components/discover/result-card";
 import { SaveButton } from "@/components/save-button";
 import { EmptyState, PageHeader } from "@/components/ui/page-kit";
+import { enrichDiscoverWorkers } from "@/lib/enrich-discover-workers";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -75,7 +76,10 @@ export default async function SavedSuppliersPage({
     p_offset: offset,
   });
 
-  const rows = (data ?? []) as SavedRow[];
+  const rows = await enrichDiscoverWorkers(
+    supabase,
+    (data ?? []) as SavedRow[],
+  );
   const totalCount = rows[0]?.total_count ?? 0;
   const totalPages = Math.max(1, Math.ceil(Number(totalCount) / PAGE_SIZE));
 
