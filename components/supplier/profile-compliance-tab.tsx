@@ -11,6 +11,8 @@ import {
 import { formatProfileDate, formatRegistryIdLabel } from "@/lib/format-supplier-profile";
 import { cn } from "@/lib/utils";
 
+import { rscDetailBlockVisible, rscWorkforceLabel } from "@/lib/rsc-workforce-label";
+
 export type ProfileCompliancePill = {
   source_code: string;
   label: string;
@@ -598,17 +600,12 @@ function RscCard({ rsc }: { rsc: ProfileComplianceRsc }) {
             </div>
           </>
         ) : null}
-        {rsc.workers_count != null ||
-        rsc.remediation_status ||
-        rsc.training_status ||
-        pct != null ? (
+        {rscDetailBlockVisible(rsc) ? (
           <div>
             <div className="flex items-center justify-between border-t border-neutral-100 py-2.5 text-[14px]">
               <span className="text-neutral-600">Workforce covered</span>
               <span className="font-semibold text-neutral-800">
-                {rsc.workers_count != null
-                  ? `${rsc.workers_count.toLocaleString()} workers`
-                  : "unknown"}
+                {rscWorkforceLabel(rsc.workers_count)}
               </span>
             </div>
             {rsc.remediation_status ? (
