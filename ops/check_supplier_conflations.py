@@ -91,12 +91,15 @@ from ops.repair_bgmea_conflations import Rest, _compatible as _host_record_compa
 from ops.unmerge_bkmea_suppliers import MERGED_SUPPLIERS_SQL  # noqa: E402
 
 # Every BGMEA general record, its scraped name (present on records written
-# after 4 Aug 2026), and the supplier it currently sits on.
+# after 4 Aug 2026), and the supplier it currently sits on. Associate-name
+# disagreements are tracked under REZ-102 / bgmea-identity-gap — not this scan.
 BGMEA_RECORDS_SQL = """
 select sr.id            as record_id,
        sr.supplier_id,
        sr.source_ref,
        sr.fields->>'scraped_company_name' as scraped_name,
+       sr.fields->>'bgmea_member_type' as member_type,
+       sr.fields->>'bgmea_reg_number' as reg_number,
        sup.company_name,
        sup.slug
   from public.source_records sr
@@ -104,6 +107,44 @@ select sr.id            as record_id,
   join public.suppliers sup on sup.id = sr.supplier_id
  where sr.source_ref like 'general:%'
  order by sup.company_name, sr.source_ref;
+"""
+
+# REZ-115: published suppliers still holding bare (register-less) digits, or
+# two published suppliers asserting the same register+number identity.
+BGMEA_IDENTITY_SQL = """
+with exploded as (
+  select s.id as supplier_id,
+         s.slug,
+         s.company_name,
+         n.value as identity
+    from public.suppliers s
+    cross join lateral unnest(coalesce(s.bgmea_reg_numbers, '{}'::text[])) as n(value)
+   where s.is_published = true
+)
+select identity,
+       count(*) as holders,
+       array_agg(supplier_id::text order by slug) as supplier_ids,
+       array_agg(slug order by slug) as slugs,
+       bool_or(identity !~ '^(general|associate):[0-9]+$') as bare_or_malformed
+  from exploded
+ group by identity
+having bool_or(identity !~ '^(general|associate):[0-9]+$')
+    or count(*) > 1
+ order by identity;
+"""
+
+# Display-side: two published companies still presenting the same register+number
+# via the live view (label encodes register; value is the digit).
+BGMEA_DISPLAY_COLLISION_SQL = """
+select label, value,
+       count(distinct supplier_id) as holders,
+       array_agg(distinct supplier_id::text order by supplier_id::text) as supplier_ids
+  from public.v_supplier_registry_ids_direct
+ where source_code = 'BGMEA'
+   and label in ('BGMEA General member #', 'BGMEA Associate member #')
+ group by label, value
+having count(distinct supplier_id) > 1
+ order by label, value;
 """
 
 # Active member refs for the structural multi-ref pass (BGMEA + BKMEA).
@@ -209,7 +250,9 @@ def _conflated_names(groups: dict[str, list[dict]]) -> list[tuple[str, str]]:
     return clashes
 
 
-def _load_via_psycopg(dsn: str) -> tuple[list[dict], list[dict], list[dict]]:
+def _load_via_psycopg(
+    dsn: str,
+) -> tuple[list[dict], list[dict], list[dict], list[dict], list[dict]]:
     with psycopg.connect(dsn, prepare_threshold=None, row_factory=dict_row) as conn:
         with conn.cursor() as cur:
             cur.execute(MERGED_SUPPLIERS_SQL)
@@ -220,10 +263,16 @@ def _load_via_psycopg(dsn: str) -> tuple[list[dict], list[dict], list[dict]]:
         with conn.cursor() as cur:
             cur.execute(STRUCTURAL_MEMBER_REFS_SQL)
             structural_rows = cur.fetchall()
-    return bkmea_name_rows, bgmea_name_rows, structural_rows
+        with conn.cursor() as cur:
+            cur.execute(BGMEA_IDENTITY_SQL)
+            identity_rows = cur.fetchall()
+        with conn.cursor() as cur:
+            cur.execute(BGMEA_DISPLAY_COLLISION_SQL)
+            display_rows = cur.fetchall()
+    return bkmea_name_rows, bgmea_name_rows, structural_rows, identity_rows, display_rows
 
 
-def _load_via_rest() -> tuple[list[dict], list[dict], list[dict]]:
+def _load_via_rest() -> tuple[list[dict], list[dict], list[dict], list[dict], list[dict]]:
     """Production reads when the Postgres pooler is unreachable from this host."""
     rest = Rest()
     sources = {
@@ -235,7 +284,10 @@ def _load_via_rest() -> tuple[list[dict], list[dict], list[dict]]:
 
     suppliers = {
         r["id"]: r
-        for r in rest.all_rows("suppliers", {"select": "id,company_name,slug"})
+        for r in rest.all_rows(
+            "suppliers",
+            {"select": "id,company_name,slug,is_published,bgmea_reg_numbers"},
+        )
     }
 
     bgmea_all = rest.all_rows(
@@ -243,6 +295,7 @@ def _load_via_rest() -> tuple[list[dict], list[dict], list[dict]]:
         {
             "select": "id,supplier_id,source_ref,status,fields",
             "source_id": f"eq.{bgmea_id}",
+            "status": "eq.active",
         },
     )
     bkmea_all = rest.all_rows(
@@ -266,6 +319,8 @@ def _load_via_rest() -> tuple[list[dict], list[dict], list[dict]]:
                 "supplier_id": r["supplier_id"],
                 "source_ref": r["source_ref"],
                 "scraped_name": fields.get("scraped_company_name"),
+                "member_type": fields.get("bgmea_member_type"),
+                "reg_number": fields.get("bgmea_reg_number"),
                 "company_name": sup.get("company_name"),
                 "slug": sup.get("slug"),
             }
@@ -328,7 +383,36 @@ def _load_via_rest() -> tuple[list[dict], list[dict], list[dict]]:
                     "slug": sup.get("slug"),
                 }
             )
-    return bkmea_name_rows, bgmea_name_rows, structural_rows
+
+    # REZ-115 stored-identity scan (client-side equivalent of BGMEA_IDENTITY_SQL).
+    from etl.core.bgmea_identity import parse_identity
+
+    by_ident: dict[str, list[dict]] = defaultdict(list)
+    for sid, sup in suppliers.items():
+        if not sup.get("is_published"):
+            continue
+        for raw in sup.get("bgmea_reg_numbers") or []:
+            ident = str(raw)
+            by_ident[ident].append(
+                {"supplier_id": sid, "slug": sup.get("slug"), "company_name": sup.get("company_name")}
+            )
+    identity_rows: list[dict] = []
+    for ident, holders in sorted(by_ident.items()):
+        bare = parse_identity(ident) is None
+        if bare or len(holders) > 1:
+            identity_rows.append(
+                {
+                    "identity": ident,
+                    "holders": len(holders),
+                    "supplier_ids": [h["supplier_id"] for h in holders],
+                    "slugs": [h.get("slug") for h in holders],
+                    "bare_or_malformed": bare,
+                }
+            )
+
+    # Display collisions require the view; skip on REST (psycopg path covers it).
+    display_rows: list[dict] = []
+    return bkmea_name_rows, bgmea_name_rows, structural_rows, identity_rows, display_rows
 
 
 def main() -> int:
@@ -343,13 +427,25 @@ def main() -> int:
 
     try:
         if args.rest:
-            bkmea_name_rows, bgmea_rows, structural_rows = _load_via_rest()
+            (
+                bkmea_name_rows,
+                bgmea_rows,
+                structural_rows,
+                identity_rows,
+                display_rows,
+            ) = _load_via_rest()
         else:
             dsn = os.environ.get("SUPABASE_DB_URL")
             if not dsn:
                 print("ERROR: SUPABASE_DB_URL not set (or pass --rest)", file=sys.stderr)
                 return 2
-            bkmea_name_rows, bgmea_rows, structural_rows = _load_via_psycopg(dsn)
+            (
+                bkmea_name_rows,
+                bgmea_rows,
+                structural_rows,
+                identity_rows,
+                display_rows,
+            ) = _load_via_psycopg(dsn)
     except Exception as exc:  # noqa: BLE001
         # A check that cannot run is not a passing check.
         print(f"ERROR: could not query suppliers: {exc}", file=sys.stderr)
@@ -395,6 +491,21 @@ def main() -> int:
     ]
     multi_excess = sum(f.excess for f in multi_findings)
 
+    bare_lines = [
+        f"  {r['identity']!r} on {r['slugs']} [{r['supplier_ids']}]"
+        for r in identity_rows
+        if r.get("bare_or_malformed")
+    ]
+    stored_collision_lines = [
+        f"  {r['identity']!r} shared by {r['holders']} published: {r['slugs']}"
+        for r in identity_rows
+        if not r.get("bare_or_malformed") and int(r.get("holders") or 0) > 1
+    ]
+    display_collision_lines = [
+        f"  {r['label']} {r['value']} shared by {r['holders']}: {r['supplier_ids']}"
+        for r in display_rows
+    ]
+
     failed = False
     if conflated:
         failed = True
@@ -419,6 +530,28 @@ def main() -> int:
             f"Plan only — see ops/plans/rez-88-multi-ref-plan.md. Do not mutate.\n"
         )
         print("\n".join(multi_lines))
+    if bare_lines:
+        failed = True
+        print(
+            f"FAIL: {len(bare_lines)} published BGMEA identity value(s) lack a register "
+            f"(REZ-115 — bare digits are not identities).\n"
+            f"Repair with: python ops/backfill_bgmea_reg_identities.py\n"
+        )
+        print("\n".join(bare_lines[:50]))
+    if stored_collision_lines:
+        failed = True
+        print(
+            f"FAIL: {len(stored_collision_lines)} BGMEA register+number identities "
+            f"are held by more than one published supplier (REZ-115).\n"
+        )
+        print("\n".join(stored_collision_lines[:50]))
+    if display_collision_lines:
+        failed = True
+        print(
+            f"FAIL: {len(display_collision_lines)} BGMEA display pills still collide "
+            f"across published suppliers (REZ-115 view).\n"
+        )
+        print("\n".join(display_collision_lines[:50]))
     if failed:
         return 1
 
@@ -430,8 +563,10 @@ def main() -> int:
             f"no named BGMEA record sits on the wrong supplier "
             f"({len(bgmea_rows)} BGMEA records scanned; {bgmea_unnamed} not yet "
             f"named — pre-4-Aug scrapes, checkable after the next bgmea_web run), "
-            f"and no supplier holds multiple distinct same-register member refs "
-            f"(structural multi_member_ref clean)."
+            f"no supplier holds multiple distinct same-register member refs "
+            f"(structural multi_member_ref clean), "
+            f"and no published BGMEA bare/colliding identities "
+            f"(REZ-115 identity scan clean)."
         )
     return 0
 

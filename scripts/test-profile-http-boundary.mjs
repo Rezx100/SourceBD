@@ -98,7 +98,17 @@ const HAPPY_PAYLOAD = {
     source_tags: ["BGMEA"],
   },
   t13_source_count: 1,
-  pills: [],
+  pills: [
+    {
+      source_code: "BGMEA",
+      label: "BGMEA General member #",
+      value: "1",
+      verified: true,
+      source_url: "https://www.bgmea.com.bd/member/1",
+      inherited_from: null,
+      inherited_from_name: null,
+    },
+  ],
   certifications: [],
   rsc_remediation: null,
   brand_attributions: [],
@@ -618,6 +628,18 @@ const CASES = [
     name: "public: published slug -> 200",
     path: `/suppliers/${MOTHER}`,
     expect: { status: 200 },
+  },
+  {
+    name: "public: BGMEA register named + verification link (REZ-115)",
+    path: `/suppliers/${MOTHER}`,
+    expect: {
+      status: 200,
+      bodyIncludesAll: [
+        "General member",
+        "Verify on BGMEA",
+        'href="https://www.bgmea.com.bd/member/1"',
+      ],
+    },
   },
   {
     name: "public: mother Facilities section + RSC-preferred group workers (REZ-114)",

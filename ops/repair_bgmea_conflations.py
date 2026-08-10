@@ -462,27 +462,21 @@ def _merge_into_profile(
 
 
 def backed_reg_numbers(records: list[dict[str, Any]], source_codes: dict[str, str]) -> set[str]:
-    """BGMEA registration numbers the parent's REMAINING active records vouch for.
+    """BGMEA identities the parent's REMAINING active records vouch for.
 
-    `bgmea_web` keys general members as `general:{reg}`, so the ref is the
-    primary test; the stored payload field covers rows keyed `member:{id}`
-    because the register published no number for them. Pure — no I/O.
+    REZ-115: vouchers are register+number strings (`general:N` /
+    `associate:N`), never bare digits. Pure — no I/O.
     """
+    from etl.core.bgmea_identity import identity_from_source_record
+
     out: set[str] = set()
     for rec in records:
         if source_codes.get(rec.get("source_id")) != "BGMEA":
             continue
-        ref = (rec.get("source_ref") or "").strip()
-        if ref.startswith("general:"):
-            value = ref.split(":", 1)[1].strip()
-            if value:
-                out.add(value)
-        reg = ((rec.get("fields") or {}).get("bgmea_reg_number") or "")
-        reg = str(reg).strip()
-        if reg:
-            out.add(reg)
+        ident = identity_from_source_record(rec)
+        if ident:
+            out.add(ident)
     return out
-
 
 def _recompute_parent(rest: Rest, parent_id: str, source_codes: dict[str, str]) -> None:
     """Rebuild the parent's derived numbers from its REMAINING records only.

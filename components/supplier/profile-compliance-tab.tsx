@@ -9,6 +9,7 @@ import {
   ProfileTabStack,
 } from "@/components/supplier/profile-ui";
 import { formatProfileDate, formatRegistryIdLabel } from "@/lib/format-supplier-profile";
+import { bgmeaRegisterPlainLabel } from "@/lib/bgmea-register-label";
 import { cn } from "@/lib/utils";
 
 import {
@@ -485,6 +486,9 @@ function RegistryRow({
       : pill.source_code === "RSC"
         ? "RSC"
         : sourceFullName(pill.source_code);
+  const registerWords =
+    pill.source_code === "BGMEA" ? bgmeaRegisterPlainLabel(pill.label) : null;
+  const verifyHref = pill.source_url;
   return (
     <ProfileEvidenceRow
       markSize={compact ? "md" : "lg"}
@@ -493,6 +497,11 @@ function RegistryRow({
       title={
         <>
           {shortName}
+          {registerWords ? (
+            <span className="ml-2 text-[13px] font-medium text-neutral-600">
+              {registerWords}
+            </span>
+          ) : null}
           {pill.value ? (
             <span
               className="ml-2 font-mono text-[13px] font-medium text-neutral-500"
@@ -512,6 +521,13 @@ function RegistryRow({
         <ProfileStatusBadge tone={inherited ? "inherited" : "valid"}>
           {inherited ? "Inherited" : "Verified"}
         </ProfileStatusBadge>
+      }
+      action={
+        verifyHref ? (
+          <ProfileActionLink href={verifyHref}>
+            {pill.source_code === "BGMEA" ? "Verify on BGMEA" : "Open source"}
+          </ProfileActionLink>
+        ) : null
       }
     />
   );
