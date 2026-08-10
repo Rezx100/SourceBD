@@ -65,6 +65,15 @@ class TestMigrationShapeRez115:
         for verb in ("update public.suppliers", "delete from", "insert into"):
             assert verb not in sql, verb
 
+    def test_migration_associate_never_builds_member_url_from_digit(self):
+        sql = MIGRATION_REZ115.read_text(encoding="utf-8")
+        # Associate branch must leave source_url null — the only /member/ builder
+        # is gated on general_manufacturer + bgmea_member_id.
+        assert "when sr.fields->>'bgmea_member_type' = 'general_manufacturer'" in sql
+        assert "bgmea_member_id" in sql
+        general_only = sql.split("union all")[0]
+        assert "bgmea_member_id" in general_only
+
 
 # ------------------------------------------------------------- append guard ----
 class _GuardCursor:
@@ -182,6 +191,10 @@ class TestAppendGuard:
         )
         _apply_source_specific(cur, supplier_id="sup-x", rec=rec)
         assert not cur.updates
+
+    def test_append_sql_strips_legacy_bare_digits(self, monkeypatch):
+        cur = _run_guard(monkeypatch, held_elsewhere=False)
+        assert "general|associate" in cur.update_sql
 
     def test_a_record_with_no_reg_number_touches_nothing(self, monkeypatch):
         monkeypatch.setattr("etl.core.upsert.get_source_id", lambda code: "src-bgmea")
@@ -307,6 +320,11 @@ class TestRecomputeParentDropsMovedNumbers:
         body = _recompute(["general:5729", "general:6631"], [])
         assert body["bgmea_reg_numbers"] == []
 
+    def test_bare_held_rewrites_to_prefixed_identity(self):
+        # Pre-backfill state: bare digits must not be intersected away.
+        body = _recompute(["6631"], self.REMAINING)
+        assert body["bgmea_reg_numbers"] == ["general:6631"]
+
     def test_order_is_preserved_for_the_survivors(self):
         remaining = [
             {
@@ -330,4 +348,4 @@ class TestRecomputeParentDropsMovedNumbers:
             ["general:6257", "general:4564", "general:1181", "general:2993"],
             remaining,
         )
-        assert body["bgmea_reg_numbers"] == ["general:6257", "general:1181"]
+        assert body["bgmea_reg_numbers"] == ["general:1181", "general:6257"]

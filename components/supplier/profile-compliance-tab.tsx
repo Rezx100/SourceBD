@@ -489,6 +489,7 @@ function RegistryRow({
   const registerWords =
     pill.source_code === "BGMEA" ? bgmeaRegisterPlainLabel(pill.label) : null;
   const verifyHref = pill.source_url;
+  const showVerified = pill.verified !== false && !inherited;
   return (
     <ProfileEvidenceRow
       markSize={compact ? "md" : "lg"}
@@ -518,9 +519,11 @@ function RegistryRow({
           : null
       }
       status={
-        <ProfileStatusBadge tone={inherited ? "inherited" : "valid"}>
-          {inherited ? "Inherited" : "Verified"}
-        </ProfileStatusBadge>
+        showVerified || inherited ? (
+          <ProfileStatusBadge tone={inherited ? "inherited" : "valid"}>
+            {inherited ? "Inherited" : "Verified"}
+          </ProfileStatusBadge>
+        ) : null
       }
       action={
         verifyHref ? (

@@ -84,13 +84,16 @@ def register_plain_label(register_key: str) -> str:
 def verification_url(register_key: str, number: str, *, member_id: str | None = None) -> str | None:
     """Outbound URL for the register page that shows this company.
 
-    General members have per-factory pages at /member/{id}.
+    General members have per-factory pages at /member/{bgmea_member_id}.
+    The registration number is NOT the member page id (DESH General #1 is
+    /member/951, not /member/1). Never fall back to the digit.
+
     Associate members are published only in the PDF register — there is no
     per-company HTML page. Returning None avoids linking Associate #N to the
     General member page for the same digit (the defect this issue fixes).
     """
     if register_key == "general":
-        mid = (member_id or number or "").strip()
+        mid = (member_id or "").strip()
         if not mid:
             return None
         return f"https://www.bgmea.com.bd/member/{mid}"

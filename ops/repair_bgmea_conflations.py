@@ -446,9 +446,21 @@ def _merge_into_profile(
             body[col] = val
 
     if source == "BGMEA" and reg:
-        regs = sorted({*(current.get("bgmea_reg_numbers") or []), reg})
-        if regs != sorted(current.get("bgmea_reg_numbers") or []):
-            body["bgmea_reg_numbers"] = regs
+        from etl.core.bgmea_identity import identity_from_member_type, parse_identity
+
+        identity = identity_from_member_type(
+            str(fields.get("bgmea_member_type") or "") or None,
+            str(reg),
+        )
+        if identity:
+            held = [
+                str(n)
+                for n in (current.get("bgmea_reg_numbers") or [])
+                if parse_identity(str(n))
+            ]
+            regs = sorted({*held, identity})
+            if regs != sorted(str(n) for n in (current.get("bgmea_reg_numbers") or [])):
+                body["bgmea_reg_numbers"] = regs
         if not current.get("bgmea_verified"):
             body["bgmea_verified"] = True
         tags = sorted({*(current.get("source_tags") or []), "BGMEA"})
@@ -513,14 +525,17 @@ def _recompute_parent(rest: Rest, parent_id: str, source_codes: dict[str, str]) 
         "suppliers", {"select": "bgmea_reg_numbers", "id": f"eq.{parent_id}"}
     )
     held = [str(n) for n in ((current or {}).get("bgmea_reg_numbers") or [])]
-    backed = backed_reg_numbers(records, source_codes)
-    kept = [n for n in held if n in backed]
-    if len(kept) != len(held):
-        body["bgmea_reg_numbers"] = kept
-        print(
-            f"    {parent_id}: dropping {sorted(set(held) - set(kept))} from "
-            f"bgmea_reg_numbers (no remaining record backs them)"
-        )
+    backed = sorted(backed_reg_numbers(records, source_codes))
+    # REZ-115: rewrite from live vouchers. Never intersect bare legacy digits
+    # against prefixed identities (that silently empties a still-vouched array).
+    if backed != sorted(held):
+        body["bgmea_reg_numbers"] = backed
+        if set(held) - set(backed):
+            print(
+                f"    {parent_id}: rewriting bgmea_reg_numbers "
+                f"dropped={sorted(set(held) - set(backed))} "
+                f"kept={backed}"
+            )
 
     locked = _locked_columns(rest, parent_id)
     skipped = sorted(col for col in body if col in locked)

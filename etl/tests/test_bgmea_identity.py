@@ -54,10 +54,11 @@ def test_parse_and_labels():
 
 
 def test_verification_url_never_cross_links_registers():
-    assert verification_url("general", "1") == "https://www.bgmea.com.bd/member/1"
-    assert verification_url("general", "1", member_id="99") == (
-        "https://www.bgmea.com.bd/member/99"
+    assert verification_url("general", "1", member_id="951") == (
+        "https://www.bgmea.com.bd/member/951"
     )
+    # Registration number is not the member page id — no digit fallback.
+    assert verification_url("general", "1") is None
     # Associate must not open the general member page for the same digit.
     assert verification_url("associate", "1") is None
     assert is_legacy_bare("1")

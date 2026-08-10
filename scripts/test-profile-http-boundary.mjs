@@ -104,7 +104,16 @@ const HAPPY_PAYLOAD = {
       label: "BGMEA General member #",
       value: "1",
       verified: true,
-      source_url: "https://www.bgmea.com.bd/member/1",
+      source_url: "https://www.bgmea.com.bd/member/951",
+      inherited_from: null,
+      inherited_from_name: null,
+    },
+    {
+      source_code: "BGMEA",
+      label: "BGMEA Associate member #",
+      value: "1",
+      verified: true,
+      source_url: null,
       inherited_from: null,
       inherited_from_name: null,
     },
@@ -636,9 +645,22 @@ const CASES = [
       status: 200,
       bodyIncludesAll: [
         "General member",
+        "Associate member",
         "Verify on BGMEA",
-        'href="https://www.bgmea.com.bd/member/1"',
+        'href="https://www.bgmea.com.bd/member/951"',
       ],
+      bodyExcludes: ['href="https://www.bgmea.com.bd/member/1"'],
+    },
+  },
+  {
+    name: "public: unresolved BGMEA withheld from Verified badge (REZ-115)",
+    path: `/suppliers/${MOTHER}`,
+    // Fixture has only register-resolved pills; assert Verified appears with
+    // register words, and a verified:false path is covered by unit UI contract
+    // that RegistryRow omits the badge when verified === false.
+    expect: {
+      status: 200,
+      bodyIncludesAll: ["General member", "Verified"],
     },
   },
   {

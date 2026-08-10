@@ -69,26 +69,35 @@ def _plan(conn: psycopg.Connection) -> tuple[list[dict[str, Any]], list[dict[str
                    s.is_published,
                    coalesce(s.bgmea_reg_numbers, '{}'::text[]) as held,
                    coalesce(
-                     json_agg(
-                       json_build_object(
-                         'source_ref', sr.source_ref,
-                         'member_type', sr.fields->>'bgmea_member_type',
-                         'reg', sr.fields->>'bgmea_reg_number'
-                       )
-                       order by sr.source_ref
-                     ) filter (where sr.id is not null),
+                     (
+                       select json_agg(
+                                json_build_object(
+                                  'source_ref', sr.source_ref,
+                                  'member_type', sr.fields->>'bgmea_member_type',
+                                  'reg', sr.fields->>'bgmea_reg_number'
+                                )
+                                order by sr.source_ref
+                              )
+                         from public.source_records sr
+                         join public.sources src
+                           on src.id = sr.source_id
+                          and src.code = 'BGMEA'
+                        where sr.supplier_id = s.id
+                          and sr.status = 'active'
+                     ),
                      '[]'::json
                    ) as records
               from public.suppliers s
-              left join public.source_records sr
-                on sr.supplier_id = s.id
-               and sr.status = 'active'
-              left join public.sources src
-                on src.id = sr.source_id
-               and src.code = 'BGMEA'
              where coalesce(array_length(s.bgmea_reg_numbers, 1), 0) > 0
-                or sr.id is not null
-             group by s.id
+                or exists (
+                      select 1
+                        from public.source_records sr
+                        join public.sources src
+                          on src.id = sr.source_id
+                         and src.code = 'BGMEA'
+                       where sr.supplier_id = s.id
+                         and sr.status = 'active'
+                    )
             """
         )
         suppliers = cur.fetchall()

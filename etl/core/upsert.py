@@ -559,10 +559,15 @@ def _apply_source_specific(cur, *, supplier_id: str, rec: ScrapedRecord) -> None
                 (
                     "bgmea_reg_numbers",
                     "bgmea_reg_numbers = (\n"
-                    "                       select array(select distinct unnest(\n"
-                    "                         coalesce(bgmea_reg_numbers,'{}'::text[])"
-                    " || ARRAY[%s]::text[]\n"
-                    "                       ))\n"
+                    "                       select array(\n"
+                    "                         select distinct x from (\n"
+                    "                           select v as x\n"
+                    "                             from unnest(coalesce(bgmea_reg_numbers,'{}'::text[])) v\n"
+                    "                            where v ~ '^(general|associate):[0-9]+$'\n"
+                    "                           union all\n"
+                    "                           select %s::text\n"
+                    "                         ) q\n"
+                    "                       )\n"
                     "                     )",
                     (identity,),
                 ),

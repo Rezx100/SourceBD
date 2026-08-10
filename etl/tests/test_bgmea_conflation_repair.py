@@ -376,6 +376,8 @@ class TestFieldLocksHoldAgainstTheRepair:
         "employees": {"Employee Male": "600", "Employee Female": "400"},
         "factory_types": [{"Type": "Knit"}],
         "principal_products": ["T-Shirt"],
+        "bgmea_member_type": "general_manufacturer",
+        "bgmea_reg_number": "12345",
     }
 
     def _dest(self) -> dict:
@@ -393,7 +395,7 @@ class TestFieldLocksHoldAgainstTheRepair:
             "address_raw": None,
             "email_primary": None,
             "phones": None,
-            "bgmea_reg_numbers": ["111"],
+            "bgmea_reg_numbers": ["general:111"],
             "bgmea_verified": False,
             "source_tags": [],
         }
@@ -406,7 +408,7 @@ class TestFieldLocksHoldAgainstTheRepair:
         _merge_into_profile(rest, "dest-1", self.MOVED, "BGMEA", "12345", SOURCE_CODES)
         body = rest.supplier_body
         assert body["employees_total"] == 1000
-        assert body["bgmea_reg_numbers"] == ["111", "12345"]
+        assert body["bgmea_reg_numbers"] == ["general:111", "general:12345"]
 
     def test_merge_into_profile_skips_locked_columns(self):
         rest = FakeRest(
