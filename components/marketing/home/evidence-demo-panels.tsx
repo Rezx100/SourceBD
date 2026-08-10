@@ -159,6 +159,8 @@ type Pill = {
   value: string | null;
   inherited_from: string | null;
   inherited_from_name: string | null;
+  /** REZ-110: facility-held — must not stand in for mother registries. */
+  building_name?: string | null;
 };
 
 type Cert = {
@@ -222,11 +224,13 @@ function certStatusLabel(c: Cert): string {
   return "Valid";
 }
 
-/** One row per registry source — drops repeat IDs for the same authority. */
+/** One row per registry source — drops repeat IDs for the same authority.
+ *  Facility-labelled pills (REZ-110) never stand in for the mother's filing. */
 function uniqueRegistryPills(pills: readonly Pill[]): Pill[] {
   const out: Pill[] = [];
   const seen = new Set<string>();
   for (const p of pills) {
+    if (p.building_name?.trim()) continue;
     if (!REGISTRY_CODES.has(p.source_code) || seen.has(p.source_code)) continue;
     seen.add(p.source_code);
     out.push(p);

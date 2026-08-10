@@ -263,7 +263,7 @@ describe("projectFacilityCertifications", () => {
 });
 
 describe("facility cert inheritance is display-only", () => {
-  it("pins discover/pills/t13 away from facility_of certs", () => {
+  it("pins discover/t13 away from facility inheritance; pills/rsc may union facilities display-only", () => {
     // npm test runs from the repo root; compiled __dirname is a cache dir.
     const root = process.cwd();
     const profileMigrationSql = fs.readFileSync(

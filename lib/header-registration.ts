@@ -6,14 +6,23 @@ export type RegistryPillLike = {
   source_code: string;
   value: string | null;
   inherited_from?: string | null;
+  /** REZ-110: facility-held pills — never treat as the mother's filing. */
+  building_name?: string | null;
 };
+
+/** Mother-owned registry pills only (exclude facility-labelled rows). */
+export function motherOwnPills<T extends RegistryPillLike>(
+  pills: readonly T[],
+): T[] {
+  return pills.filter((p) => !p.building_name?.trim());
+}
 
 /** Same `pill.value` field rendered in Compliance → Registries rows. */
 export function registryPillRef(
   pills: readonly RegistryPillLike[],
   sourceCode: string,
 ): string | null {
-  const matches = pills.filter(
+  const matches = motherOwnPills(pills).filter(
     (p) => p.source_code === sourceCode && p.value?.trim(),
   );
   if (matches.length === 0) return null;

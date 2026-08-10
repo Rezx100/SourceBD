@@ -212,10 +212,10 @@ async function loadPrincipleEvidence(): Promise<PrincipleEvidence | null> {
       // before inherited ones, most-evidence-relevant certs first (RPC
       // order). Capped only to bound card height, never to look sparse.
       const directRegistries = registryPills
-        .filter((p) => !p.inherited_from)
+        .filter((p) => !p.inherited_from && !(p as { building_name?: string | null }).building_name?.trim())
         .map(registryItem);
       const inheritedRegistries = registryPills
-        .filter((p) => p.inherited_from)
+        .filter((p) => p.inherited_from && !(p as { building_name?: string | null }).building_name?.trim())
         .map(registryItem);
       const certItems = payload.certifications.map(certTone);
       const allAuthorityItems = [
