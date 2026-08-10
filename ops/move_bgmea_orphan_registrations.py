@@ -470,15 +470,85 @@ def _reconcile_identities(rest: Rest, source_id: str, supplier_ids: set[str]) ->
             )
 
 
-def apply_plan(rest: Rest, plan: list[PlannedMove]) -> None:
-    """Apply one move at a time; halt on first failure (REST has no txn).
+def rez116_decision_violations(ref_holders: dict[str, set[str]]) -> list[str]:
+    """Pure REZ-116 MOVE/HOLD invariant check (durable guard for detector + tests)."""
+    lines: list[str] = []
+    for spec in MOVES:
+        holders = ref_holders.get(spec.ref, set())
+        allowed = {spec.from_slug, spec.to_slug}
+        bad = holders - allowed
+        if bad:
+            lines.append(
+                f"  MOVE {spec.ref} on {sorted(holders)} — allowed only "
+                f"{spec.from_slug!r} or {spec.to_slug!r} (provenance={spec.provenance})"
+            )
+        if not holders:
+            lines.append(f"  MOVE {spec.ref} missing from active BGMEA records")
+    for hold in HOLDS:
+        holders = ref_holders.get(hold.ref, set())
+        if not holders:
+            lines.append(
+                f"  HOLD {hold.ref} missing from active BGMEA records "
+                f"(must remain on {hold.current_slug!r}; never drop)"
+            )
+        if hold.candidate_slug in holders:
+            lines.append(
+                f"  HOLD {hold.ref} guessed onto {hold.candidate_slug!r} — forbidden"
+            )
+        if holders and hold.current_slug not in holders:
+            lines.append(
+                f"  HOLD {hold.ref} left {hold.current_slug!r}; now on {sorted(holders)}"
+            )
+    return lines
 
-    Re-running skips already-moved refs via build_plan, so a partial apply is
-    visible and continuable after repair — never silently invents drops.
+
+def assert_woven_bgmea_visible_on_mother(rest: Rest) -> None:
+    payload = rest.rpc_json(
+        "buyer_supplier_profile", {"p_slug": "standard-stitches"}
+    )
+    pills = payload.get("pills") or []
+    seen = [
+        p
+        for p in pills
+        if p.get("source_code") == "BGMEA"
+        and str(p.get("value")) == "5663"
+        and p.get("building_name")
+    ]
+    if not seen:
+        raise RuntimeError(
+            "POST-APPLY BLOCKER: standard-stitches does not show BGMEA 5663 "
+            "with building_name"
+        )
+
+
+def _compensate_move(rest: Rest, source_id: str, p: PlannedMove) -> None:
+    """Best-effort reverse of one move after a mid-apply failure."""
+    rest.patch(
+        "source_records",
+        {"id": f"eq.{p.source_record_id}"},
+        {"supplier_id": p.from_supplier_id},
+    )
+    rest.patch(
+        "evidence_claims",
+        {
+            "subject_table": "eq.source_records",
+            "subject_id": f"eq.{p.source_record_id}",
+        },
+        {"supplier_id": p.from_supplier_id},
+    )
+    _reconcile_identities(rest, source_id, {p.from_supplier_id, p.to_supplier_id})
+
+
+def apply_plan(rest: Rest, plan: list[PlannedMove]) -> None:
+    """Apply one move at a time; compensate the failed move before re-raise.
+
+    Prior completed moves stay applied (idempotent re-run skips them). The
+    failing move is rolled back to from_slug when the SR left the host.
     """
     source_id = _bgmea_source_id(rest)
     completed: list[str] = []
     for p in plan:
+        sr_moved = False
         try:
             collision = rest.one(
                 "source_records",
@@ -504,7 +574,7 @@ def apply_plan(rest: Rest, plan: list[PlannedMove]) -> None:
                 raise RuntimeError(
                     f"failed to move {p.ref} — record not on expected host"
                 )
-            # Repoint all claims for this subject, regardless of prior supplier_id.
+            sr_moved = True
             claim_rows = rest.all_rows(
                 "evidence_claims",
                 {
@@ -533,32 +603,29 @@ def apply_plan(rest: Rest, plan: list[PlannedMove]) -> None:
             _reconcile_identities(
                 rest, source_id, {p.from_supplier_id, p.to_supplier_id}
             )
+            if p.ref == "general:5663":
+                assert_woven_bgmea_visible_on_mother(rest)
             completed.append(p.ref)
         except Exception:
+            if sr_moved:
+                try:
+                    _compensate_move(rest, source_id, p)
+                    print(
+                        f"compensated {p.ref} back onto {p.from_slug}",
+                        file=sys.stderr,
+                    )
+                except Exception as comp_exc:  # noqa: BLE001
+                    print(
+                        f"COMPENSATION FAILED for {p.ref}: {comp_exc}. "
+                        "Restore from snapshot.",
+                        file=sys.stderr,
+                    )
             print(
                 f"APPLY HALTED after {len(completed)} move(s): {completed}. "
-                f"Failed on {p.ref}. Restore from snapshot if needed.",
+                f"Failed on {p.ref}.",
                 file=sys.stderr,
             )
             raise
-
-    if any(p.ref == "general:5663" for p in plan):
-        payload = rest.rpc_json(
-            "buyer_supplier_profile", {"p_slug": "standard-stitches"}
-        )
-        pills = payload.get("pills") or []
-        seen = [
-            p
-            for p in pills
-            if p.get("source_code") == "BGMEA"
-            and str(p.get("value")) == "5663"
-            and p.get("building_name")
-        ]
-        if not seen:
-            raise RuntimeError(
-                "POST-APPLY BLOCKER: standard-stitches does not show BGMEA 5663 "
-                "with building_name — restore general:5663 from snapshot"
-            )
 
 
 def print_plan(plan: list[PlannedMove], fp: str) -> None:

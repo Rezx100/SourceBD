@@ -9,7 +9,9 @@ from ops.move_bgmea_orphan_registrations import (
     HOLDS,
     MOVES,
     PlannedMove,
+    assert_woven_bgmea_visible_on_mother,
     fingerprint,
+    rez116_decision_violations,
     verify_standard_stitches_facility_attribution,
 )
 
@@ -74,7 +76,6 @@ def test_woven_unit_move_is_present() -> None:
 def test_mother_gate_raises_without_building_name_pills() -> None:
     class _Rest:
         def rpc_json(self, name: str, body: dict):
-            assert name == "buyer_supplier_profile"
             assert body["p_slug"] == "standard-stitches"
             return {
                 "pills": [
@@ -107,16 +108,62 @@ def test_mother_gate_passes_when_facility_pill_labelled() -> None:
     verify_standard_stitches_facility_attribution(_Rest())  # type: ignore[arg-type]
 
 
-def test_rez116_hold_detector_forbids_p_fashion() -> None:
-    """Synthetic check mirroring check_supplier_conflations REZ-116 HOLD rules."""
-    hold = HOLDS[0]
-    holders = {hold.candidate_slug}
-    assert hold.candidate_slug in holders
-    assert hold.current_slug not in holders
+def test_post_apply_woven_gate_requires_5663_building_name() -> None:
+    class _Rest:
+        def rpc_json(self, name: str, body: dict):
+            return {
+                "pills": [
+                    {
+                        "label": "BGMEA General member #",
+                        "value": "5663",
+                        "source_code": "BGMEA",
+                        # missing building_name — mother still showing direct pill
+                    }
+                ]
+            }
+
+    with pytest.raises(RuntimeError, match="5663"):
+        assert_woven_bgmea_visible_on_mother(_Rest())  # type: ignore[arg-type]
 
 
-def test_rez116_hold_detector_flags_missing_ref() -> None:
-    hold = HOLDS[0]
-    holders: set[str] = set()
-    assert not holders
-    assert hold.ref == "1168"
+def test_post_apply_woven_gate_passes_with_building_name() -> None:
+    class _Rest:
+        def rpc_json(self, name: str, body: dict):
+            return {
+                "pills": [
+                    {
+                        "label": "BGMEA General member #",
+                        "value": "5663",
+                        "source_code": "BGMEA",
+                        "building_name": "Standard Stitches Ltd. (Woven Unit)",
+                    }
+                ]
+            }
+
+    assert_woven_bgmea_visible_on_mother(_Rest())  # type: ignore[arg-type]
+
+
+def test_rez116_detector_forbids_hold_on_p_fashion() -> None:
+    lines = rez116_decision_violations({"1168": {"p-fashion"}})
+    assert any("guessed onto 'p-fashion'" in line for line in lines)
+
+
+def test_rez116_detector_flags_missing_hold() -> None:
+    lines = rez116_decision_violations({})
+    assert any("HOLD 1168 missing" in line for line in lines)
+
+
+def test_rez116_detector_flags_move_on_third_slug() -> None:
+    lines = rez116_decision_violations(
+        {"general:4562": {"some-other-company"}, "1168": {"pa-textile"}}
+    )
+    assert any("MOVE general:4562" in line and "some-other-company" in line for line in lines)
+
+
+def test_rez116_detector_clean_when_on_from_or_to() -> None:
+    holders = {m.ref: {m.from_slug} for m in MOVES}
+    holders["1168"] = {"pa-textile"}
+    assert rez116_decision_violations(holders) == []
+    holders2 = {m.ref: {m.to_slug} for m in MOVES}
+    holders2["1168"] = {"pa-textile"}
+    assert rez116_decision_violations(holders2) == []

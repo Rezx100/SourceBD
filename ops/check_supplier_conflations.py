@@ -509,11 +509,8 @@ def main() -> int:
     # REZ-116: founder-decided orphan moves / HOLD — never guess; never land
     # HOLD 1168 on p-fashion; each MOVE ref may only sit on from_slug (pre-apply)
     # or to_slug (post-apply).
-    from ops.move_bgmea_orphan_registrations import HOLDS as _REZ116_HOLDS
-    from ops.move_bgmea_orphan_registrations import MOVES as _REZ116_MOVES
+    from ops.move_bgmea_orphan_registrations import rez116_decision_violations
 
-    rez116_lines: list[str] = []
-    # Map source_ref -> current holder slug from structural BGMEA rows.
     ref_holders: dict[str, set[str]] = defaultdict(set)
     for row in structural_rows:
         if row.get("source_code") != "BGMEA":
@@ -522,40 +519,13 @@ def main() -> int:
         slug = str(row.get("slug") or "")
         if ref and slug:
             ref_holders[ref].add(slug)
-    # structural_rows may lack slug — fall back via bgmea name rows + REST shape.
     for row in bgmea_rows:
         ref = str(row.get("source_ref") or "")
-        # bgmea_rows carry company_name / supplier_id; slug may be absent.
         slug = str(row.get("slug") or "")
         if ref and slug:
             ref_holders[ref].add(slug)
 
-    for spec in _REZ116_MOVES:
-        holders = ref_holders.get(spec.ref, set())
-        allowed = {spec.from_slug, spec.to_slug}
-        bad = holders - allowed
-        if bad:
-            rez116_lines.append(
-                f"  MOVE {spec.ref} on {sorted(holders)} — allowed only "
-                f"{spec.from_slug!r} or {spec.to_slug!r} (provenance={spec.provenance})"
-            )
-        if not holders:
-            rez116_lines.append(f"  MOVE {spec.ref} missing from active BGMEA records")
-    for hold in _REZ116_HOLDS:
-        holders = ref_holders.get(hold.ref, set())
-        if not holders:
-            rez116_lines.append(
-                f"  HOLD {hold.ref} missing from active BGMEA records "
-                f"(must remain on {hold.current_slug!r}; never drop)"
-            )
-        if hold.candidate_slug in holders:
-            rez116_lines.append(
-                f"  HOLD {hold.ref} guessed onto {hold.candidate_slug!r} — forbidden"
-            )
-        if holders and hold.current_slug not in holders:
-            rez116_lines.append(
-                f"  HOLD {hold.ref} left {hold.current_slug!r}; now on {sorted(holders)}"
-            )
+    rez116_lines = rez116_decision_violations(ref_holders)
 
     failed = False
     if conflated:
