@@ -598,21 +598,19 @@ function RscCard({ rsc }: { rsc: ProfileComplianceRsc }) {
             </div>
           </>
         ) : null}
-        {rsc.workers_count != null || rsc.remediation_status || rsc.training_status ? (
+        {rsc.workers_count != null ||
+        rsc.remediation_status ||
+        rsc.training_status ||
+        pct != null ? (
           <div>
-            {rsc.workers_count != null ? (
-              <div className="flex items-center justify-between border-t border-neutral-100 py-2.5 text-[14px]">
-                <span className="text-neutral-600">Workforce covered</span>
-                <span className="font-semibold text-neutral-800">
-                  {rsc.workers_count.toLocaleString()} workers
-                </span>
-              </div>
-            ) : (
-              <div className="flex items-center justify-between border-t border-neutral-100 py-2.5 text-[14px]">
-                <span className="text-neutral-600">Workforce covered</span>
-                <span className="font-semibold text-neutral-800">unknown</span>
-              </div>
-            )}
+            <div className="flex items-center justify-between border-t border-neutral-100 py-2.5 text-[14px]">
+              <span className="text-neutral-600">Workforce covered</span>
+              <span className="font-semibold text-neutral-800">
+                {rsc.workers_count != null
+                  ? `${rsc.workers_count.toLocaleString()} workers`
+                  : "unknown"}
+              </span>
+            </div>
             {rsc.remediation_status ? (
               <div className="flex items-center justify-between border-t border-neutral-100 py-2.5 text-[14px]">
                 <span className="text-neutral-600">Remediation status</span>

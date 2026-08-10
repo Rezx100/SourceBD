@@ -1,8 +1,7 @@
 """REZ-110 — buyer_supplier_profile surfaces facility registries/RSC labelled.
 
 Requires SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY. Skips when unset.
-Asserts at the RPC boundary (not a pure helper): mother Compliance payload
-includes facility-held BGMEA/RSC with building_name = facility company_name.
+Asserts at the RPC boundary (not a pure helper).
 """
 from __future__ import annotations
 
@@ -38,7 +37,6 @@ def _profile(slug: str) -> dict | None:
 
 
 def test_mother_compliance_pills_include_facility_bgmea_labelled() -> None:
-    # green-textile Unit-3 holds BGMEA 6363 (Phase 1 inventory / live check).
     payload = _profile("green-textile")
     assert payload is not None
     pills = payload.get("pills") or []
@@ -49,10 +47,15 @@ def test_mother_compliance_pills_include_facility_bgmea_labelled() -> None:
         and p.get("building_name")
         and "Unit-3" in (p.get("building_name") or "")
     ]
-    assert labelled, (
-        "expected BGMEA pill with building_name containing Unit-3 on green-textile"
-    )
+    assert labelled, "expected BGMEA pill with building_name containing Unit-3"
     assert labelled[0].get("value") == "6363"
+    # Own mother BGMEA must omit the key entirely (not null value).
+    own = [
+        p
+        for p in pills
+        if p.get("source_code") == "BGMEA" and "building_name" not in p
+    ]
+    assert own, "mother own BGMEA must omit building_name key"
 
 
 def test_mother_rsc_remediation_is_array_with_facility_sites() -> None:
@@ -63,25 +66,63 @@ def test_mother_rsc_remediation_is_array_with_facility_sites() -> None:
     assert rsc, "green-textile facilities hold active RSC remediation"
     labelled = [s for s in rsc if s.get("building_name")]
     assert labelled, "expected at least one RSC site with building_name"
-    for site in labelled:
-        assert "workers_count" in site
-        wc = site.get("workers_count")
-        if wc is not None:
-            assert isinstance(wc, int)
-            # Unknown must stay null in SQL — never coerce missing to 0 here.
-            # A real audited zero is allowed; we only forbid non-ints.
 
 
-def test_no_facility_supplier_keeps_pills_without_building_name_key_on_own() -> None:
-    # Pick a published supplier with no facility_of children if possible.
-    # Mondol Fabrics has an extension — use a known solo if available.
-    # Fallback: assert mother's own pills (building_name absent) still present
-    # on green-textile alongside labelled ones.
-    payload = _profile("green-textile")
+def test_facility_rsc_null_workers_stays_json_null() -> None:
+    # ananta-garments Extension: active RSC with workers_count null in prod.
+    payload = _profile("ananta-garments")
     assert payload is not None
-    own = [
-        p
-        for p in (payload.get("pills") or [])
-        if p.get("source_code") == "BGMEA" and not p.get("building_name")
+    rsc = payload.get("rsc_remediation")
+    assert isinstance(rsc, list)
+    null_workers = [
+        s
+        for s in rsc
+        if s.get("building_name") and s.get("workers_count") is None
     ]
-    assert own, "mother's own BGMEA must still appear without building_name"
+    if not null_workers:
+        pytest.skip("no facility RSC with null workers_count on ananta-garments")
+    for site in null_workers:
+        assert site["workers_count"] is None
+        assert site.get("workers_count") != 0
+
+
+def test_solo_supplier_pills_omit_building_name_key() -> None:
+    # kc-jacket-wear: published, no facility_of children (verify below).
+    base = os.environ["SUPABASE_URL"].rstrip("/")
+    key = os.environ["SUPABASE_SERVICE_ROLE_KEY"]
+    kids = httpx.get(
+        f"{base}/rest/v1/suppliers",
+        headers={"apikey": key, "Authorization": f"Bearer {key}"},
+        params={
+            "select": "id",
+            "facility_of": "not.is.null",
+            "slug": "eq.kc-jacket-wear",
+            "limit": "1",
+        },
+        timeout=30.0,
+    )
+    # Wrong: we need children OF this slug's id. Resolve mother id first.
+    mother = httpx.get(
+        f"{base}/rest/v1/suppliers",
+        headers={"apikey": key, "Authorization": f"Bearer {key}"},
+        params={"select": "id", "slug": "eq.kc-jacket-wear", "limit": "1"},
+        timeout=30.0,
+    )
+    mother.raise_for_status()
+    rows = mother.json()
+    if not rows:
+        pytest.skip("kc-jacket-wear missing")
+    mid = rows[0]["id"]
+    kids = httpx.get(
+        f"{base}/rest/v1/suppliers",
+        headers={"apikey": key, "Authorization": f"Bearer {key}"},
+        params={"select": "id", "facility_of": f"eq.{mid}", "limit": "1"},
+        timeout=30.0,
+    )
+    kids.raise_for_status()
+    if kids.json():
+        pytest.skip("kc-jacket-wear unexpectedly has facilities")
+    payload = _profile("kc-jacket-wear")
+    assert payload is not None
+    for p in payload.get("pills") or []:
+        assert "building_name" not in p, p

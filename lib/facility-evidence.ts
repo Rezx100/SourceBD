@@ -255,6 +255,19 @@ export function assertFacilityEvidenceContainment(args: {
     throw new Error("facility RSC sites must carry building_name");
   }
 
+  const brandsBlock = sliceBetween("brands as (", "sanc as (");
+  if (!/facility_of/.test(brandsBlock)) {
+    throw new Error(
+      "brands CTE must union facility_of children labelled by building_name",
+    );
+  }
+  if (!/building_name/.test(brandsBlock)) {
+    throw new Error("facility brands must carry building_name");
+  }
+  if (!/DISPLAY-ONLY/.test(brandsBlock)) {
+    throw new Error("brands CTE must mark facility union as DISPLAY-ONLY");
+  }
+
   for (const sql of discoverMigrationSqls) {
     const blocks = [
       ...sql.matchAll(/from public\.certifications c[\s\S]{0,240}/g),
@@ -273,6 +286,22 @@ export function assertFacilityEvidenceContainment(args: {
         throw new Error(
           "discover cert filter must never join facility_of — would make a mother searchable on a building's cert",
         );
+      }
+    }
+    // REZ-110: registry / brand discover filters must stay on mother id.
+    if (/facility_of/.test(sql) && /p_registries|p_brand_codes/.test(sql)) {
+      // Allow facility_of only outside those filter windows — fail if a
+      // registries/brand join block also mentions facility_of.
+      const regBlocks = [
+        ...sql.matchAll(/p_registries[\s\S]{0,800}/g),
+        ...sql.matchAll(/p_brand_codes[\s\S]{0,800}/g),
+      ];
+      for (const m of regBlocks) {
+        if (/facility_of/.test(m[0])) {
+          throw new Error(
+            "discover registry/brand filters must never join facility_of",
+          );
+        }
       }
     }
   }
