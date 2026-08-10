@@ -3,6 +3,16 @@
  * Display-only — does not change discover, pills RPC, or source_records.
  */
 
+/** Normalise REZ-110 array or legacy single RSC object from the profile RPC. */
+export function asRscSites<T extends object>(raw: unknown): T[] | null {
+  if (raw == null) return null;
+  if (Array.isArray(raw)) {
+    return raw.length > 0 ? (raw as T[]) : null;
+  }
+  if (typeof raw === "object") return [raw as T];
+  return null;
+}
+
 export const MAIN_PLANT_LABEL = "Main plant";
 
 /** Stable key + buyer-facing label for a building_name field. */
@@ -49,15 +59,37 @@ export function groupByBuilding<T extends { building_name?: string | null }>(
   return order.map((k) => map.get(k)!);
 }
 
-/** Clamp RSC progress for display; null stays null. */
+/** Clamp RSC progress for display; null/NaN stay null. */
 export function rscProgressPct(
   progressPct: number | null | undefined,
 ): number | null {
   if (progressPct == null) return null;
-  return Math.max(0, Math.min(100, Number(progressPct)));
+  const n = Number(progressPct);
+  if (Number.isNaN(n)) return null;
+  return Math.max(0, Math.min(100, n));
 }
 
-/** Short site label for compact RSC rows. */
+export function shouldShowBuildingSectionHeading(
+  groupCount: number,
+  groupKey: string,
+): boolean {
+  return groupCount > 1 || groupKey !== "__main__";
+}
+
+/**
+ * RSC row title: suppress "Main plant" when there is only one unlabelled site
+ * (mirrors Registries/Docs heading gate).
+ */
+export function rscRowTitle(
+  buildingName: string | null | undefined,
+  siteCount: number,
+): string | null {
+  const { key, label } = buildingGroupKey(buildingName);
+  if (siteCount <= 1 && key === "__main__") return null;
+  return label;
+}
+
+/** Short site label for compact RSC rows (always returns a string). */
 export function rscSiteLabel(
   buildingName: string | null | undefined,
 ): string {

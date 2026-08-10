@@ -156,6 +156,31 @@ describe("mergeUniqueLocations — merges variants of one premises", () => {
     assert.deepEqual(bahadurpur!.authorities.sort(), ["BGMEA", "OEKO_TEX"]);
     assert.ok(factories.some((l) => /nayapara/i.test(l.displayAddress)));
   });
+
+  it("REZ-112: does not merge Nayapara with Bahadurpur when both use Post/P.O. Bhawal", () => {
+    assert.equal(
+      mergeUniqueLocations([
+        row(
+          "Bahadurpur, P.O.-Bhawal, Mirzapur, Gazipur Sadar",
+          "BGMEA",
+          "factory",
+        ),
+        row(
+          "Nayapara, Post: Vawal Mirzapur, Gazipur Sadar, Gazipur - 1703, Bangladesh",
+          "OEKO_TEX",
+          "factory",
+        ),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      mergeUniqueLocations([
+        row("Bahadurpur, P.O.-Bhawal, Mirzapur, Gazipur Sadar", "BGMEA"),
+        row("Nayapara, P.O.-Bhawal, Mirzapur, Gazipur Sadar", "OEKO_TEX"),
+      ]).length,
+      2,
+    );
+  });
 });
 
 describe("mergeUniqueLocations — refuses to merge different premises", () => {

@@ -3,10 +3,13 @@ import { describe, it } from "node:test";
 
 import {
   MAIN_PLANT_LABEL,
+  asRscSites,
   buildingGroupKey,
   groupByBuilding,
   rscProgressPct,
+  rscRowTitle,
   rscSiteLabel,
+  shouldShowBuildingSectionHeading,
 } from "./compliance-building-groups";
 
 describe("buildingGroupKey", () => {
@@ -75,16 +78,40 @@ describe("groupByBuilding", () => {
   });
 });
 
-describe("rscProgressPct / rscSiteLabel", () => {
-  it("clamps progress and leaves null alone", () => {
+describe("rscProgressPct / rscSiteLabel / headings", () => {
+  it("clamps progress and leaves null/NaN alone", () => {
     assert.equal(rscProgressPct(null), null);
     assert.equal(rscProgressPct(100), 100);
     assert.equal(rscProgressPct(-5), 0);
     assert.equal(rscProgressPct(140), 100);
+    assert.equal(rscProgressPct(Number.NaN), null);
   });
 
   it("labels missing building as Main plant", () => {
     assert.equal(rscSiteLabel(null), MAIN_PLANT_LABEL);
     assert.equal(rscSiteLabel("Green Textile Limited (Unit-3)"), "Green Textile Limited (Unit-3)");
+  });
+
+  it("suppresses Main plant heading and RSC title when only main", () => {
+    assert.equal(shouldShowBuildingSectionHeading(1, "__main__"), false);
+    assert.equal(shouldShowBuildingSectionHeading(2, "__main__"), true);
+    assert.equal(shouldShowBuildingSectionHeading(1, "unit-2"), true);
+    assert.equal(rscRowTitle(null, 1), null);
+    assert.equal(rscRowTitle(null, 2), MAIN_PLANT_LABEL);
+    assert.equal(rscRowTitle("Extension", 1), "Extension");
+  });
+});
+
+describe("asRscSites", () => {
+  it("returns null for null/undefined/empty array", () => {
+    assert.equal(asRscSites(null), null);
+    assert.equal(asRscSites(undefined), null);
+    assert.equal(asRscSites([]), null);
+  });
+
+  it("wraps a legacy single object and passes arrays through", () => {
+    const one = asRscSites({ progress_pct: 50 });
+    assert.equal(one!.length, 1);
+    assert.equal(asRscSites([{ a: 1 }, { a: 2 }])!.length, 2);
   });
 });

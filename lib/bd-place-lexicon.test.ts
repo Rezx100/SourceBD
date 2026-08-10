@@ -153,6 +153,10 @@ describe("normaliseAddressKey — merges place-variant full addresses", () => {
     );
   });
 
+  it("REZ-112: applyPlaceLexicon maps vawal directly", () => {
+    assert.equal(lex("vawal"), "bhawal");
+  });
+
   // Negatives: different addresses must NOT merge
   it("Sreepur and Sripur are NOT merged", () => {
     assert.notEqual(

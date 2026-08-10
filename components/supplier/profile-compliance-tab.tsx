@@ -12,14 +12,13 @@ import { formatProfileDate, formatRegistryIdLabel } from "@/lib/format-supplier-
 import { cn } from "@/lib/utils";
 
 import {
+  asRscSites as asRscSitesRaw,
   groupByBuilding,
   rscProgressPct,
-  rscSiteLabel,
+  rscRowTitle,
+  shouldShowBuildingSectionHeading,
 } from "@/lib/compliance-building-groups";
 import { rscWorkforceLabel } from "@/lib/rsc-workforce-label";
-
-/** Initial docs shown per building before <details> expand (REZ-111). */
-const DOCS_PREVIEW_PER_BUILDING = 4;
 
 export type ProfileCompliancePill = {
   source_code: string;
@@ -110,12 +109,7 @@ export type ProfileComplianceData = {
 
 /** Normalise REZ-110 array or legacy single RSC object from the profile RPC. */
 export function asRscSites(raw: unknown): ProfileComplianceRsc[] | null {
-  if (raw == null) return null;
-  if (Array.isArray(raw)) {
-    return raw.length > 0 ? (raw as ProfileComplianceRsc[]) : null;
-  }
-  if (typeof raw === "object") return [raw as ProfileComplianceRsc];
-  return null;
+  return asRscSitesRaw<ProfileComplianceRsc>(raw);
 }
 
 const REGISTRY_CODES: ReadonlySet<string> = new Set([
@@ -307,7 +301,7 @@ export function ProfileRegistriesCard({
       <div className="space-y-3">
         {groups.map((g) => (
           <div key={g.key}>
-            {groups.length > 1 || g.key !== "__main__" ? (
+            {shouldShowBuildingSectionHeading(groups.length, g.key) ? (
               <p className="mb-1.5 text-[12px] font-semibold uppercase tracking-wide text-neutral-500">
                 {g.label}
               </p>
@@ -406,45 +400,23 @@ export function ProfileDocumentsCard({
         }
       />
       <div className="space-y-4">
-        {groups.map((g) => {
-          const preview = g.items.slice(0, DOCS_PREVIEW_PER_BUILDING);
-          const rest = g.items.slice(DOCS_PREVIEW_PER_BUILDING);
-          return (
-            <div key={g.key}>
-              {groups.length > 1 || g.key !== "__main__" ? (
-                <p className="mb-1.5 text-[12px] font-semibold uppercase tracking-wide text-neutral-500">
-                  {g.label}
-                  <span className="ml-2 font-mono font-medium normal-case tracking-normal text-neutral-400">
-                    {g.items.length}
-                  </span>
-                </p>
-              ) : null}
-              <div>
-                {preview.map((d, i) => (
-                  <DocRow key={`${g.key}-p-${i}`} doc={d} compact />
-                ))}
-              </div>
-              {rest.length > 0 ? (
-                <details className="group mt-1">
-                  <summary className="cursor-pointer list-none py-1.5 text-[13px] font-semibold text-brand-forest marker:content-none [&::-webkit-details-marker]:hidden">
-                    Show {rest.length} more
-                    <span className="ml-1 font-medium text-neutral-400 group-open:hidden">
-                      ↓
-                    </span>
-                    <span className="ml-1 hidden font-medium text-neutral-400 group-open:inline">
-                      ↑
-                    </span>
-                  </summary>
-                  <div>
-                    {rest.map((d, i) => (
-                      <DocRow key={`${g.key}-r-${i}`} doc={d} compact />
-                    ))}
-                  </div>
-                </details>
-              ) : null}
+        {groups.map((g) => (
+          <div key={g.key}>
+            {shouldShowBuildingSectionHeading(groups.length, g.key) ? (
+              <p className="mb-1.5 text-[12px] font-semibold uppercase tracking-wide text-neutral-500">
+                {g.label}
+                <span className="ml-2 font-mono font-medium normal-case tracking-normal text-neutral-400">
+                  {g.items.length}
+                </span>
+              </p>
+            ) : null}
+            <div>
+              {g.items.map((d, i) => (
+                <DocRow key={`${g.key}-${i}`} doc={d} />
+              ))}
             </div>
-          );
-        })}
+          </div>
+        ))}
       </div>
       <ProfileFootnote>
         Mirror copies served from SourceBD&apos;s CDN for stable archival.
@@ -520,8 +492,7 @@ function RegistryRow({
       mark={<ProfileSourceMark tag={pill.source_code} size={compact ? "md" : "lg"} />}
       title={
         <>
-          <span className="sm:hidden">{shortName}</span>
-          <span className="hidden sm:inline">{shortName}</span>
+          {shortName}
           {pill.value ? (
             <span
               className="ml-2 font-mono text-[13px] font-medium text-neutral-500"
@@ -610,36 +581,47 @@ function RscSitesCard({ sites }: { sites: readonly ProfileComplianceRsc[] }) {
       />
       <div className="divide-y divide-neutral-100">
         {sites.map((rsc, i) => (
-          <RscSiteRow key={i} rsc={rsc} />
+          <RscSiteRow key={i} rsc={rsc} siteCount={sites.length} />
         ))}
       </div>
       <ProfileFootnote>
         Tracked by the RMG Sustainability Council — fire, structural, and
-        electrical remediation on file per site. Workforce null stays unknown,
-        never zero.
+        electrical remediation on file per site. Missing workforce counts show
+        as unknown, not zero.
       </ProfileFootnote>
     </ProfileCard>
   );
 }
 
-function RscSiteRow({ rsc }: { rsc: ProfileComplianceRsc }) {
+function RscSiteRow({
+  rsc,
+  siteCount,
+}: {
+  rsc: ProfileComplianceRsc;
+  siteCount: number;
+}) {
   const pct = rscProgressPct(rsc.progress_pct);
-  const label = rscSiteLabel(rsc.building_name);
+  const label = rscRowTitle(rsc.building_name, siteCount);
   return (
     <div className="py-3 first:pt-0 last:pb-0">
       <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-        <p className="text-[14px] font-semibold text-neutral-900">{label}</p>
+        {label ? (
+          <p className="text-[14px] font-semibold text-neutral-900">{label}</p>
+        ) : (
+          <p className="text-[14px] font-semibold text-neutral-900">Progress</p>
+        )}
         <p className="font-mono text-[13px] font-semibold text-neutral-800">
-          {pct != null ? `${pct.toFixed(0)}%` : "—"}
+          {pct != null && !Number.isNaN(pct) ? `${pct.toFixed(0)}%` : "—"}
         </p>
       </div>
-      <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-neutral-100">
-        <div
-          className="h-full rounded-full bg-brand-forest"
-          style={{ width: `${pct ?? 0}%` }}
-          aria-hidden={pct == null}
-        />
-      </div>
+      {pct != null && !Number.isNaN(pct) ? (
+        <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-neutral-100">
+          <div
+            className="h-full rounded-full bg-brand-forest"
+            style={{ width: `${pct}%` }}
+          />
+        </div>
+      ) : null}
       <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-neutral-600">
         <span className="font-medium text-neutral-800">
           {rscWorkforceLabel(rsc.workers_count)}
@@ -764,52 +746,33 @@ function BrandChip({ brand }: { brand: ProfileComplianceBrand }) {
   );
 }
 
-function DocRow({
-  doc,
-  compact = false,
-}: {
-  doc: ProfileComplianceDocument;
-  compact?: boolean;
-}) {
+function DocRow({ doc }: { doc: ProfileComplianceDocument }) {
   const sizeMeta = doc.file_size ? (
     <span className="font-mono">{fmtBytes(doc.file_size)}</span>
   ) : null;
   return (
     <ProfileEvidenceRow
-      mark={<ProfileSourceMark tag="RSC" size={compact ? "sm" : "md"} />}
+      mark={<ProfileSourceMark tag="RSC" size="sm" />}
       title={
         <span className="inline-flex flex-wrap items-center gap-2">
           <span className="rounded bg-neutral-100 px-1.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-neutral-600">
             {doc.doc_type}
           </span>
-          {!compact ? (
-            <span className="hidden text-[13px] sm:inline">
-              {DOC_TYPE_LONG[doc.doc_type]}
-            </span>
-          ) : null}
+          <span className="text-[13px] text-neutral-800 sm:hidden">
+            {doc.doc_type === "cap" ? "CAP" : doc.doc_type.toUpperCase()}
+          </span>
+          <span className="hidden text-[13px] text-neutral-800 sm:inline">
+            {DOC_TYPE_LONG[doc.doc_type]}
+          </span>
         </span>
       }
       meta={sizeMeta}
       action={
         <span className="flex items-center gap-3">
           {doc.mirror_url ? (
-            <a
-              href={doc.mirror_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-[13px] font-semibold text-brand-forest underline decoration-brand-forest/30 underline-offset-2"
-            >
-              Mirror
-            </a>
+            <ProfileActionLink href={doc.mirror_url}>Mirror</ProfileActionLink>
           ) : null}
-          <a
-            href={doc.original_url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-[13px] font-semibold text-brand-forest underline decoration-brand-forest/30 underline-offset-2"
-          >
-            Original
-          </a>
+          <ProfileActionLink href={doc.original_url}>Original</ProfileActionLink>
         </span>
       }
     />

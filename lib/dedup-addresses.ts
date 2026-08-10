@@ -129,6 +129,8 @@ const GENERIC_TOKENS = new Set([
   "south",
   "east",
   "west",
+  // REZ-112: P.O./Post: expands to "post" — administrative, not a place name.
+  "post",
 ]);
 
 /** Administrative names shared by thousands of suppliers. Low weight, so a
@@ -529,29 +531,37 @@ type Candidate = {
 /** Weighted containment over the smaller token set. Containment rather than
  *  Jaccard because one registry routinely records a fuller address than
  *  another; the short form should still merge into the long one. */
-function similarity(a: Candidate, b: Candidate): { score: number; distinctHits: number } {
+function similarity(a: Candidate, b: Candidate): {
+  score: number;
+  distinctHits: number;
+  unmatchedDistinct: number;
+} {
   const [small, large] = a.tokens.length <= b.tokens.length ? [a.tokens, b.tokens] : [b.tokens, a.tokens];
-  if (small.length === 0) return { score: 0, distinctHits: 0 };
+  if (small.length === 0) return { score: 0, distinctHits: 0, unmatchedDistinct: 0 };
 
   let total = 0;
   let matched = 0;
   let distinctHits = 0;
+  let unmatchedDistinct = 0;
   const used = new Set<number>();
 
   for (const token of small) {
     const weight = tokenWeight(token);
     total += weight;
+    let hit = false;
     for (let i = 0; i < large.length; i++) {
       if (used.has(i)) continue;
       if (!sameWord(token, large[i]!)) continue;
       used.add(i);
       matched += weight;
       if (weight === DISTINCT_WEIGHT) distinctHits += 1;
+      hit = true;
       break;
     }
+    if (!hit && weight === DISTINCT_WEIGHT) unmatchedDistinct += 1;
   }
 
-  return { score: total === 0 ? 0 : matched / total, distinctHits };
+  return { score: total === 0 ? 0 : matched / total, distinctHits, unmatchedDistinct };
 }
 
 function isSameLocation(a: Candidate, b: Candidate): boolean {
@@ -560,12 +570,15 @@ function isSameLocation(a: Candidate, b: Candidate): boolean {
   // Hard discriminator: different plot numbers, different premises.
   if (bothHaveIds && !idSetsOverlap(a.ids, b.ids)) return false;
 
-  const { score, distinctHits } = similarity(a, b);
+  const { score, distinctHits, unmatchedDistinct } = similarity(a, b);
   if (bothHaveIds) return score >= SHARED_ID_THRESHOLD;
   // Near-identical wording is the same place even when every word is
   // administrative — "Plot # C5-C7, BSCIC I/A, Kalurghat, Chattogram" has no
   // distinguishing word at all, yet two copies of it are plainly one location.
   if (score >= 0.95) return true;
+  // REZ-112: an unmatched village/locality token on the shorter side (e.g.
+  // Nayapara vs Bahadurpur) must not be overridden by shared P.O./Bhawal tails.
+  if (unmatchedDistinct > 0) return false;
   // Otherwise at least one distinguishing word must match, or
   // "Konabari, Gazipur" merges into "Chandra, Gazipur".
   return distinctHits > 0 && score >= MERGE_THRESHOLD;
