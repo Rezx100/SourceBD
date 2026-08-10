@@ -108,6 +108,42 @@ const HAPPY_PAYLOAD = {
   documents: [],
 };
 
+/** REZ-73 — mother facility panel shape from buyer_supplier_facility_panel. */
+const HAPPY_FACILITY_PANEL = {
+  facility_count: 1,
+  facilities: [{ name: "Mother Company Ltd Extension" }],
+  group: {
+    employees_total: {
+      own: 1200,
+      known_sum: 1200,
+      facility_count: 1,
+      building_count: 2,
+      unknown_count: 1,
+    },
+    machines_sewing: {
+      own: 400,
+      known_sum: 450,
+      facility_count: 1,
+      building_count: 2,
+      unknown_count: 0,
+    },
+    production_capacity_pcs_day: {
+      own: 5000,
+      known_sum: 6000,
+      facility_count: 1,
+      building_count: 2,
+      unknown_count: 0,
+    },
+    production_capacity_dozen_yearly: {
+      own: null,
+      known_sum: null,
+      facility_count: 1,
+      building_count: 2,
+      unknown_count: 2,
+    },
+  },
+};
+
 const TEST_USER = {
   id: "00000000-0000-4000-8000-0000000000aa",
   aud: "authenticated",
@@ -146,6 +182,15 @@ function mockHandler(req, res) {
         );
       }
       return json(slug === MOTHER ? HAPPY_PAYLOAD : null);
+    }
+    if (url.pathname === "/rest/v1/rpc/buyer_supplier_facility_panel") {
+      let slug = null;
+      try {
+        slug = JSON.parse(body || "{}").p_slug ?? null;
+      } catch {
+        slug = null;
+      }
+      return json(slug === MOTHER ? HAPPY_FACILITY_PANEL : null);
     }
     if (url.pathname === "/rest/v1/rpc/facility_parent_slug") {
       let slug = null;
@@ -546,6 +591,36 @@ const CASES = [
     expect: { status: 200 },
   },
   {
+    name: "public: mother Facilities section + unknown-as-unknown group total",
+    path: `/suppliers/${MOTHER}`,
+    expect: {
+      status: 200,
+      bodyIncludes: "at least 1,200 across 2 buildings, 1 unknown",
+    },
+  },
+  {
+    name: "public: mother Facilities lists extension building name",
+    path: `/suppliers/${MOTHER}`,
+    expect: {
+      status: 200,
+      bodyIncludes: "Mother Company Ltd Extension",
+    },
+  },
+  {
+    name: "public: mother Facilities labelled group totals on the wire",
+    path: `/suppliers/${MOTHER}`,
+    expect: {
+      status: 200,
+      bodyIncludesAll: [
+        "Production workers — group total",
+        "Sewing machines — group total",
+        "Daily output — group total",
+        "Annual output — group total",
+        "unknown across 2 buildings, 2 unknown",
+      ],
+    },
+  },
+  {
     name: "app: missing slug -> 404 (authenticated)",
     path: `/app/suppliers/${MISSING}`,
     auth: true,
@@ -586,6 +661,39 @@ const CASES = [
     path: `/app/suppliers/${MOTHER}`,
     auth: true,
     expect: { status: 200 },
+  },
+  {
+    name: "app: mother Facilities section + unknown-as-unknown group total",
+    path: `/app/suppliers/${MOTHER}`,
+    auth: true,
+    expect: {
+      status: 200,
+      bodyIncludes: "at least 1,200 across 2 buildings, 1 unknown",
+    },
+  },
+  {
+    name: "app: mother Facilities lists extension building name",
+    path: `/app/suppliers/${MOTHER}`,
+    auth: true,
+    expect: {
+      status: 200,
+      bodyIncludes: "Mother Company Ltd Extension",
+    },
+  },
+  {
+    name: "app: mother Facilities labelled group totals on the wire",
+    path: `/app/suppliers/${MOTHER}`,
+    auth: true,
+    expect: {
+      status: 200,
+      bodyIncludesAll: [
+        "Production workers — group total",
+        "Sewing machines — group total",
+        "Daily output — group total",
+        "Annual output — group total",
+        "unknown across 2 buildings, 2 unknown",
+      ],
+    },
   },
   {
     name: "app: anonymous still gated -> 307 to /login",
@@ -680,6 +788,24 @@ async function main() {
           caseProblems.push(
             `${label}: body missing "${c.expect.bodyIncludes}" (${got.bytes} bytes)`,
           );
+        }
+        if (Array.isArray(c.expect.bodyIncludesAll)) {
+          for (const needle of c.expect.bodyIncludesAll) {
+            if (!got.body.includes(needle)) {
+              caseProblems.push(
+                `${label}: body missing "${needle}" (${got.bytes} bytes)`,
+              );
+            }
+          }
+        }
+        if (Array.isArray(c.expect.bodyExcludes)) {
+          for (const needle of c.expect.bodyExcludes) {
+            if (got.body.includes(needle)) {
+              caseProblems.push(
+                `${label}: body must not contain "${needle}"`,
+              );
+            }
+          }
         }
       });
 

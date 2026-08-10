@@ -44,26 +44,14 @@ finding only. PII: inheritance stays inside the SECURITY DEFINER RPC
 allow-list; no facility slug/id/contact emitted. Blocks REZ-71 with
 REZ-92. Parent epic: REZ-58.
 
-## Facility group roll-up projection — REZ-92 (B0) COMPLETE
-6 Aug 2026 — projection + tests only; no UI; no facilities attached.
-`etl/core/facility_rollup.py` derives a mother company's group totals across
-her live `facility_of` children without touching stored columns. Parent's own
-`employees_total` / `machines_sewing` / both capacity columns stay as `own`;
-group total is a separate `GroupMetric` with `known_sum`, `facility_count`,
-`unknown_count`, and `describe()` ("at least N across 4 buildings, 1 unknown"
-when any building is NULL). Cross-source never-sum in `projection.py` is
-untouched — this module is deliberately separate so the two arithmetics cannot
-be confused. Tombstones = deleted merge losers (spec08); pure function also
-honours `tombstoned=True`. `supplier_id` dedupe is input-list hygiene only —
-it does **not** collapse distinct sibling rows for one building (REZ-105's
-117 clusters); that remains an upstream identity problem. Only direct
-`facility_of == parent.id`; nested chains are skipped, which is safe only
-because REZ-71 must refuse facility→facility attach. A facility row gets no
-group total of its own. Never written back to `suppliers.*`. No migration.
-**Does not unblock REZ-71.** The projection has no caller yet (no view, RPC,
-or component); attaching today would still thin mother profiles. REZ-71
-`--apply` stays blocked until REZ-73 renders the group total on the mother.
-Parent epic: Linear REZ-58.
+## Facility group roll-up projection — REZ-92 (B0) COMPLETE; arithmetic home moved in REZ-73
+6 Aug 2026 — REZ-92 shipped a pure Python projection (`etl/core/facility_rollup.py`)
+with no UI. **10 Aug 2026 (REZ-73 lean rewrite):** that Python module is retired.
+One home for the arithmetic: Postgres `buyer_supplier_facility_panel` /
+`_facility_group_metric` (migration `0097_`). The mother profile page reads
+group figures from that RPC; the UI only formats. Null ≠ 0; unknowns surface
+as "unknown" / "at least N … K unknown". Cross-source never-sum in
+`projection.py` is untouched. Parent epic: Linear REZ-58.
 
 ## Numeric projection rules in one module — REZ-100 COMPLETE
 6 Aug 2026 — pure move; no rule behaviour changed. Winner selection, caps,

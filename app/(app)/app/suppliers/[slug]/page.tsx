@@ -30,6 +30,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CompanyProfileHeader } from "@/components/supplier/company-profile-header";
 import { ProfileOverviewTab } from "@/components/supplier/profile-overview-tab";
 import {
+  sanitizeFacilityPanel,
+  type FacilityPanel,
+} from "@/components/supplier/profile-facilities-section";
+import {
   ProfileCapacityTab,
   hasCapacityData,
 } from "@/components/supplier/profile-capacity-tab";
@@ -188,9 +192,10 @@ export default async function FactoryProfilePage({
   const { slug } = await params;
   const supabase = await createSupabaseServerClient();
 
-  const { data, error } = await supabase.rpc("buyer_supplier_profile", {
-    p_slug: slug,
-  });
+  const [{ data, error }, { data: facilityRaw }] = await Promise.all([
+    supabase.rpc("buyer_supplier_profile", { p_slug: slug }),
+    supabase.rpc("buyer_supplier_facility_panel", { p_slug: slug }),
+  ]);
   if (error || data == null) {
     // Distinguish "row missing" (correct 404) from "DB timeout" (transient).
     // statement_timeout / canceling statement → 57014. Render a service-slow
@@ -238,6 +243,14 @@ export default async function FactoryProfilePage({
 
   const payload = data as ProfilePayload;
   const s = payload.supplier;
+  const facilitiesPanel =
+    facilityRaw &&
+    typeof facilityRaw === "object" &&
+    Array.isArray((facilityRaw as FacilityPanel).facilities) &&
+    (facilityRaw as FacilityPanel).facilities.length > 0 &&
+    (facilityRaw as FacilityPanel).group
+      ? sanitizeFacilityPanel(facilityRaw as FacilityPanel)
+      : null;
 
   const { data: savedRow } = await supabase
     .from("saved_suppliers")
@@ -351,6 +364,7 @@ export default async function FactoryProfilePage({
             addresses={payload.addresses}
             discoverHref="/app/discover"
             slug={slug}
+            facilitiesPanel={facilitiesPanel}
           />
         </TabsContent>
         <TabsContent value="compliance" id="compliance">

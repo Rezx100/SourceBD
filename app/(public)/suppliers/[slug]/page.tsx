@@ -32,6 +32,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CompanyProfileHeader } from "@/components/supplier/company-profile-header";
 import { ProfileOverviewTab } from "@/components/supplier/profile-overview-tab";
 import {
+  sanitizeFacilityPanel,
+  type FacilityPanel,
+} from "@/components/supplier/profile-facilities-section";
+import {
   ProfileCapacityTab,
   hasCapacityData,
 } from "@/components/supplier/profile-capacity-tab";
@@ -232,9 +236,10 @@ export default async function PublicSupplierProfilePage({
   const { slug } = await params;
   const supabase = await createSupabaseServerClient();
 
-  const { data, error } = await supabase.rpc("buyer_supplier_profile", {
-    p_slug: slug,
-  });
+  const [{ data, error }, { data: facilityRaw }] = await Promise.all([
+    supabase.rpc("buyer_supplier_profile", { p_slug: slug }),
+    supabase.rpc("buyer_supplier_facility_panel", { p_slug: slug }),
+  ]);
   if (error || data == null) {
     // Distinguish "row missing" (correct 404) from "DB timeout" (transient).
     const code = (error as { code?: string } | null)?.code ?? null;
@@ -280,6 +285,14 @@ export default async function PublicSupplierProfilePage({
   const payload = data as ProfilePayload;
   const s = payload.supplier;
   const nextPath = `/suppliers/${s.slug}`;
+  const facilitiesPanel =
+    facilityRaw &&
+    typeof facilityRaw === "object" &&
+    Array.isArray((facilityRaw as FacilityPanel).facilities) &&
+    (facilityRaw as FacilityPanel).facilities.length > 0 &&
+    (facilityRaw as FacilityPanel).group
+      ? sanitizeFacilityPanel(facilityRaw as FacilityPanel)
+      : null;
 
   const hasLocality = !!(s.city || s.district);
   const ldType = hasLocality ? "LocalBusiness" : "Organization";
@@ -404,6 +417,7 @@ export default async function PublicSupplierProfilePage({
               addresses={publicAddresses(payload.addresses)}
               discoverHref="/discover"
               slug={slug}
+              facilitiesPanel={facilitiesPanel}
             />
           </TabsContent>
           <TabsContent value="compliance" id="compliance">
