@@ -1,7 +1,15 @@
 # BGMEA registration attribution — findings and founder decisions
 
 Date: 2026-08-11
-Mutation: **none**. This is an evidence report. Nothing here has been applied.
+Mutation: **REZ-116 orphan moves applied 2026-08-11** (fingerprint
+`11ed6036f6586e7f831168e9eba08f108ba97a46d9c7688da6f6a66d7363e95d`).
+Snapshot: `ops/plans/_snapshot_rez116_orphan_moves_20260810T223530Z.json`.
+Candidate SHA: `b0d79efdab6db7a0198f4f9baff1e5904e24b1a7`.
+
+Section 1 post-apply: all 10 MOVE refs sit on their decision destinations;
+`1168` HOLD remains on `pa-textile`. Mother `standard-stitches` RPC shows
+BGMEA 5663 with `building_name` = Standard Stitches Ltd. (Woven Unit).
+Founder-knowledge provenance for `1604`/`1556` recorded in commit + Linear.
 
 ## Method
 
