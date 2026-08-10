@@ -449,7 +449,10 @@ export default async function PublicSupplierProfilePage({
               workersGroupLabel={workersGroupLabel}
             />
           </TabsContent>
-          <TabsContent value="compliance" id="compliance">
+          {/* forceMount: registry Verify links must be in the initial HTML so
+              buyers (and the HTTP boundary guard) can see BGMEA deep-links
+              without clicking Compliance first (REZ-115 / REZ-72 lesson). */}
+          <TabsContent value="compliance" id="compliance" forceMount className="data-[state=inactive]:hidden">
             <ProfileComplianceTab
               data={{
                 pills: payload.pills,
