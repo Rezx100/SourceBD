@@ -1,0 +1,802 @@
+{
+  "created_at": "20260810T223530Z",
+  "fingerprint": "11ed6036f6586e7f831168e9eba08f108ba97a46d9c7688da6f6a66d7363e95d",
+  "moves": [
+    {
+      "move": {
+        "ref": "general:4562",
+        "source_record_id": "a8285018-7d0d-4703-a353-49c2e4b28f33",
+        "source_id": "4296680f-cc81-42aa-a14b-dfbaea0f9f57",
+        "from_supplier_id": "f90199d9-c9ad-4ca6-b4c5-dfe75c329dda",
+        "from_slug": "vintage-denim-apparels",
+        "to_supplier_id": "da303c4b-31da-4744-9697-a3981331b131",
+        "to_slug": "vintage-denim",
+        "to_is_published": true,
+        "to_facility_of": null,
+        "mother_slug": null,
+        "identity": "general:4562",
+        "registered_name": "Vintage Denim Ltd.",
+        "provenance": "register_exact",
+        "notes": ""
+      },
+      "source_record": {
+        "id": "a8285018-7d0d-4703-a353-49c2e4b28f33",
+        "supplier_id": "f90199d9-c9ad-4ca6-b4c5-dfe75c329dda",
+        "source_id": "4296680f-cc81-42aa-a14b-dfbaea0f9f57",
+        "source_ref": "general:4562",
+        "status": "active",
+        "fields": {
+          "raw_tel": "682551795",
+          "directors": [
+            {
+              "Name": "Imran Islam Chowdhury",
+              "Email": "imran@vintagedenimbd.com",
+              "Position": "Managing Director",
+              "Mobile No.": "1711592386"
+            }
+          ],
+          "employees": {
+            "Management": "2400",
+            "Employee Male": "",
+            "Employee Female": ""
+          },
+          "epb_reg_no": "0",
+          "factory_fax": null,
+          "mailing_fax": "29810080",
+          "raw_address": "Gilarchala,\nGazipur\nSreepur",
+          "num_machines": 1375,
+          "factory_email": null,
+          "factory_phone": "682551795",
+          "factory_types": [
+            {
+              "Type": "Woven",
+              "Priority": "5"
+            }
+          ],
+          "mailing_email": "imran@vintagedenimbd.com",
+          "mailing_phone": "29801393",
+          "certifications": {},
+          "annual_turnover": [],
+          "bgmea_member_id": "4170",
+          "factory_address": "Gilarchala,\nGazipur\nSreepur",
+          "mailing_address": "Plot # 9 (7th Fl), Block - F, Senakallayan Commercial Complex\nGazipur\nTongi",
+          "bgmea_reg_number": "4562",
+          "established_date": "2007",
+          "bgmea_member_type": "general_manufacturer",
+          "principal_products": [
+            "Denim Pants"
+          ],
+          "production_capacity_dozen_yearly": 500000
+        },
+        "fetched_at": "2026-07-24T09:02:12.283299+00:00"
+      },
+      "evidence_claims": []
+    },
+    {
+      "move": {
+        "ref": "797",
+        "source_record_id": "dcb16ee2-72ec-4baa-84ac-9221e9ae8566",
+        "source_id": "4296680f-cc81-42aa-a14b-dfbaea0f9f57",
+        "from_supplier_id": "f7acd014-fa21-466a-9cb8-b5f480046d46",
+        "from_slug": "asdwa-fashion",
+        "to_supplier_id": "c394f8e1-3bfc-4725-9ca1-40c3f0343b9e",
+        "to_slug": "fashion-comfort-bd",
+        "to_is_published": true,
+        "to_facility_of": null,
+        "mother_slug": null,
+        "identity": "associate:797",
+        "registered_name": "Fashion Comfort (BD) Ltd.",
+        "provenance": "register_exact",
+        "notes": ""
+      },
+      "source_record": {
+        "id": "dcb16ee2-72ec-4baa-84ac-9221e9ae8566",
+        "supplier_id": "f7acd014-fa21-466a-9cb8-b5f480046d46",
+        "source_id": "4296680f-cc81-42aa-a14b-dfbaea0f9f57",
+        "source_ref": "797",
+        "status": "active",
+        "fields": {
+          "raw_tel": "8819917, 01711534052",
+          "raw_address": "House # 198/A (3rd Fl), Eastern Road # 1, New DOHS, Mohakhali, Dhaka",
+          "bgmea_reg_number": "797",
+          "bgmea_member_type": "associate_buying_house"
+        },
+        "fetched_at": "2026-05-14T01:00:59.362594+00:00"
+      },
+      "evidence_claims": []
+    },
+    {
+      "move": {
+        "ref": "460",
+        "source_record_id": "3da08850-cc10-456c-9038-2b28ed1513d8",
+        "source_id": "4296680f-cc81-42aa-a14b-dfbaea0f9f57",
+        "from_supplier_id": "dd9b8878-3d40-4b41-a113-0c7486995a47",
+        "from_slug": "channel-expor-tex-international",
+        "to_supplier_id": "c5e10d29-0571-46ae-872f-3ceb60e9d4f2",
+        "to_slug": "hm-textile",
+        "to_is_published": true,
+        "to_facility_of": null,
+        "mother_slug": null,
+        "identity": "associate:460",
+        "registered_name": "HM Textile",
+        "provenance": "register_exact",
+        "notes": ""
+      },
+      "source_record": {
+        "id": "3da08850-cc10-456c-9038-2b28ed1513d8",
+        "supplier_id": "dd9b8878-3d40-4b41-a113-0c7486995a47",
+        "source_id": "4296680f-cc81-42aa-a14b-dfbaea0f9f57",
+        "source_ref": "460",
+        "status": "active",
+        "fields": {
+          "raw_tel": "8850462, 8828925, 0171527049",
+          "raw_address": "House # 292 (Ground Floor), Road # 19/B, New DOHS, Mohakhali, Dhaka",
+          "bgmea_reg_number": "460",
+          "bgmea_member_type": "associate_buying_house"
+        },
+        "fetched_at": "2026-05-14T01:05:46.692103+00:00"
+      },
+      "evidence_claims": []
+    },
+    {
+      "move": {
+        "ref": "1464",
+        "source_record_id": "dd653c78-a220-43d6-b3da-62eb95aadbd3",
+        "source_id": "4296680f-cc81-42aa-a14b-dfbaea0f9f57",
+        "from_supplier_id": "2f23ace8-130c-4f30-80c0-26e11e194edf",
+        "from_slug": "dhaka-natex-sourcing",
+        "to_supplier_id": "6a0d1c06-e0fc-4f71-b9ef-927cd8363c04",
+        "to_slug": "natex-of-scandinavia-as-bangladesh",
+        "to_is_published": true,
+        "to_facility_of": null,
+        "mother_slug": null,
+        "identity": "associate:1464",
+        "registered_name": "Natex of Scandinavia A/S Bangladesh",
+        "provenance": "register_exact",
+        "notes": ""
+      },
+      "source_record": {
+        "id": "dd653c78-a220-43d6-b3da-62eb95aadbd3",
+        "supplier_id": "2f23ace8-130c-4f30-80c0-26e11e194edf",
+        "source_id": "4296680f-cc81-42aa-a14b-dfbaea0f9f57",
+        "source_ref": "1464",
+        "status": "active",
+        "fields": {
+          "raw_tel": "02-9844380, 01765292148",
+          "raw_address": "House # 260, Road # 3 (East), Baridhara DOHS, Dhaka",
+          "bgmea_reg_number": "1464",
+          "bgmea_member_type": "associate_buying_house"
+        },
+        "fetched_at": "2026-05-14T01:14:19.886511+00:00"
+      },
+      "evidence_claims": []
+    },
+    {
+      "move": {
+        "ref": "1128",
+        "source_record_id": "3c3b91a5-029e-4138-b11a-24a461eef6a9",
+        "source_id": "4296680f-cc81-42aa-a14b-dfbaea0f9f57",
+        "from_supplier_id": "13fa4ae7-31bc-44e8-a390-87ecadf906d1",
+        "from_slug": "the-fashion-island",
+        "to_supplier_id": "5b861346-66e1-431c-b23d-d480765bdd80",
+        "to_slug": "riviera-resources",
+        "to_is_published": true,
+        "to_facility_of": null,
+        "mother_slug": null,
+        "identity": "associate:1128",
+        "registered_name": "Riviera Resources Ltd.",
+        "provenance": "register_exact",
+        "notes": ""
+      },
+      "source_record": {
+        "id": "3c3b91a5-029e-4138-b11a-24a461eef6a9",
+        "supplier_id": "13fa4ae7-31bc-44e8-a390-87ecadf906d1",
+        "source_id": "4296680f-cc81-42aa-a14b-dfbaea0f9f57",
+        "source_ref": "1128",
+        "status": "active",
+        "fields": {
+          "raw_tel": "01711531437, 7286074-76",
+          "raw_address": "385/1/A, East Rampura, Banasree Road, Rampura, Dhaka",
+          "bgmea_reg_number": "1128",
+          "bgmea_member_type": "associate_buying_house"
+        },
+        "fetched_at": "2026-05-14T01:19:27.984371+00:00"
+      },
+      "evidence_claims": []
+    },
+    {
+      "move": {
+        "ref": "general:4298",
+        "source_record_id": "5a81daaf-c42d-4116-8b97-e37e444c8206",
+        "source_id": "4296680f-cc81-42aa-a14b-dfbaea0f9f57",
+        "from_supplier_id": "0aaf7757-6696-400a-b274-3c298891194e",
+        "from_slug": "section-seven-apparels",
+        "to_supplier_id": "e2970a2e-2453-4113-ab75-cb5e9d9526e8",
+        "to_slug": "section-seven",
+        "to_is_published": false,
+        "to_facility_of": null,
+        "mother_slug": null,
+        "identity": "general:4298",
+        "registered_name": "Section Seven Ltd.",
+        "provenance": "register_exact",
+        "notes": "destination unpublished \u2014 founder accepted 11 Aug"
+      },
+      "source_record": {
+        "id": "5a81daaf-c42d-4116-8b97-e37e444c8206",
+        "supplier_id": "0aaf7757-6696-400a-b274-3c298891194e",
+        "source_id": "4296680f-cc81-42aa-a14b-dfbaea0f9f57",
+        "source_ref": "general:4298",
+        "status": "active",
+        "fields": {
+          "raw_tel": "02-333341242, 02-333341961",
+          "directors": [
+            {
+              "Name": "Shahadat Musharraf Khan",
+              "Email": "smkhan@shirtmakersltd.com",
+              "Position": "Managing Director",
+              "Mobile No.": "01711568138"
+            }
+          ],
+          "employees": {
+            "Management": "4200",
+            "Employee Male": "1360",
+            "Employee Female": "600"
+          },
+          "epb_reg_no": "0",
+          "factory_fax": "02-222289197",
+          "mailing_fax": "02-333340821",
+          "raw_address": "Plot # 21-26 (Part), Road # 4, Sector # 3. CEPZ\nChittagong\nChittagong",
+          "num_machines": 1791,
+          "factory_email": "b.baruactg@shirtmakersltd.com",
+          "factory_phone": "02-333341242, 02-333341961",
+          "factory_types": [
+            {
+              "Type": "Woven",
+              "Priority": "5"
+            }
+          ],
+          "mailing_email": "hrd.ssl@sectionsevenltd.com",
+          "mailing_phone": "02-222285760, 031801242",
+          "certifications": {},
+          "annual_turnover": [],
+          "bgmea_member_id": "3400",
+          "factory_address": "Plot # 21-26 (Part), Road # 4, Sector # 3. CEPZ\nChittagong\nChittagong",
+          "mailing_address": "House # 128-130, Lane # 05, New DOHS, Mohakhali\nDhaka\nDhaka",
+          "bgmea_reg_number": "4298",
+          "established_date": "2006-01-01",
+          "bgmea_member_type": "general_manufacturer",
+          "principal_products": [
+            "Tops",
+            "Shirt",
+            "Bottom"
+          ],
+          "production_capacity_dozen_yearly": 819000
+        },
+        "fetched_at": "2026-07-24T08:21:03.925251+00:00"
+      },
+      "evidence_claims": []
+    },
+    {
+      "move": {
+        "ref": "1604",
+        "source_record_id": "25513668-ab2c-41f4-8436-ccef6a567adb",
+        "source_id": "4296680f-cc81-42aa-a14b-dfbaea0f9f57",
+        "from_supplier_id": "c6d0aeef-d453-4dd7-815c-bc6cc2ae88e6",
+        "from_slug": "raz-apparels",
+        "to_supplier_id": "80af028a-49e5-4d8e-b135-218ea5711787",
+        "to_slug": "ar-sourcing",
+        "to_is_published": true,
+        "to_facility_of": null,
+        "mother_slug": null,
+        "identity": "associate:1604",
+        "registered_name": "A.R.Z Sourcing BD",
+        "provenance": "founder_trade_knowledge_2026-08-11",
+        "notes": "no register entry for AR Sourcing; founder trade knowledge"
+      },
+      "source_record": {
+        "id": "25513668-ab2c-41f4-8436-ccef6a567adb",
+        "supplier_id": "c6d0aeef-d453-4dd7-815c-bc6cc2ae88e6",
+        "source_id": "4296680f-cc81-42aa-a14b-dfbaea0f9f57",
+        "source_ref": "1604",
+        "status": "active",
+        "fields": {
+          "raw_tel": "01971122814, 01714122814",
+          "raw_address": "House # 15, Road # 05, Sector # 09, Uttara, Dhaka",
+          "bgmea_reg_number": "1604",
+          "bgmea_member_type": "associate_buying_house"
+        },
+        "fetched_at": "2026-05-14T00:48:42.301403+00:00"
+      },
+      "evidence_claims": []
+    },
+    {
+      "move": {
+        "ref": "1556",
+        "source_record_id": "f9dd71d9-5944-48fd-ab04-2c6df73018d8",
+        "source_id": "4296680f-cc81-42aa-a14b-dfbaea0f9f57",
+        "from_supplier_id": "fea5cb82-8ecd-40ef-8105-21c3497bcfb9",
+        "from_slug": "md-tex",
+        "to_supplier_id": "148d7e0b-8fc8-475b-8640-8da7ea715e2d",
+        "to_slug": "sunrise-apparels",
+        "to_is_published": true,
+        "to_facility_of": null,
+        "mother_slug": null,
+        "identity": "associate:1556",
+        "registered_name": "Sunrise Apparel BD",
+        "provenance": "founder_trade_knowledge_2026-08-11",
+        "notes": "no register entry for Sunrise Apparels; founder trade knowledge"
+      },
+      "source_record": {
+        "id": "f9dd71d9-5944-48fd-ab04-2c6df73018d8",
+        "supplier_id": "fea5cb82-8ecd-40ef-8105-21c3497bcfb9",
+        "source_id": "4296680f-cc81-42aa-a14b-dfbaea0f9f57",
+        "source_ref": "1556",
+        "status": "active",
+        "fields": {
+          "raw_tel": "01815-110875",
+          "raw_address": "30 Shamsul Huda, 6/B, West High Label Road, Lalkhan Bazar, Chittagong",
+          "bgmea_reg_number": "1556",
+          "bgmea_member_type": "associate_buying_house"
+        },
+        "fetched_at": "2026-05-14T01:24:22.227943+00:00"
+      },
+      "evidence_claims": []
+    },
+    {
+      "move": {
+        "ref": "general:2431",
+        "source_record_id": "1fd9a88c-8052-43ce-9901-98d7044bf58b",
+        "source_id": "4296680f-cc81-42aa-a14b-dfbaea0f9f57",
+        "from_supplier_id": "cb8140fb-4fa6-4fd3-9559-9460d15bd1ae",
+        "from_slug": "bangladesh-dresses",
+        "to_supplier_id": "ebc78da6-3ee1-40e2-b01c-d8b579ce8be1",
+        "to_slug": "bangladesh-dressess-ltd-unit-2",
+        "to_is_published": true,
+        "to_facility_of": null,
+        "mother_slug": null,
+        "identity": "general:2431",
+        "registered_name": "Bangladesh Dresses Ltd.(Unit-2)",
+        "provenance": "register_exact",
+        "notes": "Unit-2 exclusively; not blended into parent"
+      },
+      "source_record": {
+        "id": "1fd9a88c-8052-43ce-9901-98d7044bf58b",
+        "supplier_id": "cb8140fb-4fa6-4fd3-9559-9460d15bd1ae",
+        "source_id": "4296680f-cc81-42aa-a14b-dfbaea0f9f57",
+        "source_ref": "general:2431",
+        "status": "active",
+        "fields": {
+          "raw_tel": "6226248",
+          "directors": [
+            {
+              "Name": "Md. Mayenuddin Biswas",
+              "Email": "babu@biswasgroup.com",
+              "Position": "Managing Director",
+              "Mobile No.": "1711537227"
+            }
+          ],
+          "employees": {
+            "Management": "200",
+            "Employee Male": "",
+            "Employee Female": ""
+          },
+          "epb_reg_no": "3271",
+          "factory_fax": null,
+          "mailing_fax": "28610685",
+          "raw_address": "Chota Bali, Meher\nDhaka\nSavar",
+          "num_machines": 150,
+          "factory_email": null,
+          "factory_phone": "6226248",
+          "factory_types": [
+            {
+              "Type": "Knit",
+              "Priority": "5"
+            }
+          ],
+          "mailing_email": "babu@biswasgroup.com",
+          "mailing_phone": "296688357",
+          "certifications": {},
+          "annual_turnover": [],
+          "bgmea_member_id": "515",
+          "factory_address": "Chota Bali, Meher\nDhaka\nSavar",
+          "mailing_address": "J.S. Bhaban, 299/2-A\nDhaka\nSonargaon Janapath Road",
+          "bgmea_reg_number": "2431",
+          "established_date": "1997",
+          "bgmea_member_type": "general_manufacturer",
+          "principal_products": [
+            "Knitted Garments"
+          ],
+          "production_capacity_dozen_yearly": 78000
+        },
+        "fetched_at": "2026-07-24T05:45:14.195779+00:00"
+      },
+      "evidence_claims": []
+    },
+    {
+      "move": {
+        "ref": "general:5663",
+        "source_record_id": "f8491f6f-520f-4551-93e6-082f9b3bf30a",
+        "source_id": "4296680f-cc81-42aa-a14b-dfbaea0f9f57",
+        "from_supplier_id": "a7797895-fe37-456d-ad00-cf6fe47ceb7d",
+        "from_slug": "standard-stitches",
+        "to_supplier_id": "e355b91f-8a25-4fdf-83cd-f977df34b634",
+        "to_slug": "standard-stitches-ltd-woven-unit",
+        "to_is_published": false,
+        "to_facility_of": "a7797895-fe37-456d-ad00-cf6fe47ceb7d",
+        "mother_slug": "standard-stitches",
+        "identity": "general:5663",
+        "registered_name": "Standard Stitches Ltd. (Woven Unit)",
+        "provenance": "register_exact",
+        "notes": "unpublished attached building; requires mother facility-registry render"
+      },
+      "source_record": {
+        "id": "f8491f6f-520f-4551-93e6-082f9b3bf30a",
+        "supplier_id": "a7797895-fe37-456d-ad00-cf6fe47ceb7d",
+        "source_id": "4296680f-cc81-42aa-a14b-dfbaea0f9f57",
+        "source_ref": "general:5663",
+        "status": "active",
+        "fields": {
+          "raw_tel": "8809666778834",
+          "directors": [
+            {
+              "Name": "Engr.  A.K.M. Mosharraf Hussain",
+              "Email": "mosharraf_h@standard-group.com",
+              "Position": "Managing Director",
+              "Mobile No.": "01713062177"
+            }
+          ],
+          "employees": {
+            "Management": "4921",
+            "Employee Male": "2085",
+            "Employee Female": "2000"
+          },
+          "epb_reg_no": "5573",
+          "factory_fax": "029893175",
+          "mailing_fax": "029893175",
+          "raw_address": "Bymile, Konabari, Gazipur Sadar\nGazipur\nGazipur",
+          "num_machines": 2290,
+          "factory_email": "info@standard-group.com",
+          "factory_phone": "8809666778834",
+          "factory_types": [
+            {
+              "Type": "Woven",
+              "Priority": "5"
+            }
+          ],
+          "mailing_email": "info@standard-group.com",
+          "mailing_phone": "8809666779977",
+          "certifications": {},
+          "annual_turnover": [],
+          "bgmea_member_id": "3684",
+          "factory_address": "Bymile, Konabari, Gazipur Sadar\nGazipur\nGazipur",
+          "mailing_address": "Civil Engineers Bhaban, 69, Mohakhali C/A\nDhaka\nDhaka",
+          "bgmea_reg_number": "5663",
+          "established_date": "2013-03-25",
+          "bgmea_member_type": "general_manufacturer",
+          "principal_products": [
+            "Shirt",
+            "Pants",
+            "Jacket",
+            "Shorts"
+          ],
+          "production_capacity_dozen_yearly": 500000
+        },
+        "fetched_at": "2026-07-24T08:36:06.770917+00:00"
+      },
+      "evidence_claims": []
+    }
+  ],
+  "suppliers": [
+    {
+      "supplier": {
+        "id": "0aaf7757-6696-400a-b274-3c298891194e",
+        "slug": "section-seven-apparels",
+        "company_name": "SECTION SEVEN APPARELS LIMITED",
+        "is_published": true,
+        "facility_of": null,
+        "bgmea_reg_numbers": [
+          "general:4298",
+          "general:5045"
+        ],
+        "bgmea_verified": true
+      },
+      "derived_identities": [
+        "general:4298",
+        "general:5045"
+      ]
+    },
+    {
+      "supplier": {
+        "id": "13fa4ae7-31bc-44e8-a390-87ecadf906d1",
+        "slug": "the-fashion-island",
+        "company_name": "THE FASHION ISLAND LTD.",
+        "is_published": true,
+        "facility_of": null,
+        "bgmea_reg_numbers": [
+          "associate:1128",
+          "associate:326",
+          "general:2534"
+        ],
+        "bgmea_verified": true
+      },
+      "derived_identities": [
+        "associate:1128",
+        "associate:326",
+        "general:2534"
+      ]
+    },
+    {
+      "supplier": {
+        "id": "148d7e0b-8fc8-475b-8640-8da7ea715e2d",
+        "slug": "sunrise-apparels",
+        "company_name": "SUNRISE APPARELS",
+        "is_published": true,
+        "facility_of": null,
+        "bgmea_reg_numbers": [],
+        "bgmea_verified": false
+      },
+      "derived_identities": []
+    },
+    {
+      "supplier": {
+        "id": "2f23ace8-130c-4f30-80c0-26e11e194edf",
+        "slug": "dhaka-natex-sourcing",
+        "company_name": "Dhaka Natex Sourcing Ltd.",
+        "is_published": true,
+        "facility_of": null,
+        "bgmea_reg_numbers": [
+          "associate:1196",
+          "associate:1255",
+          "associate:1464"
+        ],
+        "bgmea_verified": true
+      },
+      "derived_identities": [
+        "associate:1196",
+        "associate:1255",
+        "associate:1464"
+      ]
+    },
+    {
+      "supplier": {
+        "id": "5b861346-66e1-431c-b23d-d480765bdd80",
+        "slug": "riviera-resources",
+        "company_name": "RIVIERA RESOURCES LTD.",
+        "is_published": true,
+        "facility_of": null,
+        "bgmea_reg_numbers": [],
+        "bgmea_verified": false
+      },
+      "derived_identities": []
+    },
+    {
+      "supplier": {
+        "id": "6a0d1c06-e0fc-4f71-b9ef-927cd8363c04",
+        "slug": "natex-of-scandinavia-as-bangladesh",
+        "company_name": "Natex of Scandinavia A/S Bangladesh",
+        "is_published": true,
+        "facility_of": null,
+        "bgmea_reg_numbers": [],
+        "bgmea_verified": false
+      },
+      "derived_identities": []
+    },
+    {
+      "supplier": {
+        "id": "80af028a-49e5-4d8e-b135-218ea5711787",
+        "slug": "ar-sourcing",
+        "company_name": "AR SOURCING",
+        "is_published": true,
+        "facility_of": null,
+        "bgmea_reg_numbers": [],
+        "bgmea_verified": false
+      },
+      "derived_identities": []
+    },
+    {
+      "supplier": {
+        "id": "a7797895-fe37-456d-ad00-cf6fe47ceb7d",
+        "slug": "standard-stitches",
+        "company_name": "STANDARD STITCHES LIMITED",
+        "is_published": true,
+        "facility_of": null,
+        "bgmea_reg_numbers": [
+          "general:5350",
+          "general:5663"
+        ],
+        "bgmea_verified": true
+      },
+      "derived_identities": [
+        "general:5350",
+        "general:5663"
+      ]
+    },
+    {
+      "supplier": {
+        "id": "c394f8e1-3bfc-4725-9ca1-40c3f0343b9e",
+        "slug": "fashion-comfort-bd",
+        "company_name": "Fashion Comfort (BD) Ltd.",
+        "is_published": true,
+        "facility_of": null,
+        "bgmea_reg_numbers": [],
+        "bgmea_verified": false
+      },
+      "derived_identities": []
+    },
+    {
+      "supplier": {
+        "id": "c5e10d29-0571-46ae-872f-3ceb60e9d4f2",
+        "slug": "hm-textile",
+        "company_name": "HM Textile",
+        "is_published": true,
+        "facility_of": null,
+        "bgmea_reg_numbers": [],
+        "bgmea_verified": false
+      },
+      "derived_identities": []
+    },
+    {
+      "supplier": {
+        "id": "c6d0aeef-d453-4dd7-815c-bc6cc2ae88e6",
+        "slug": "raz-apparels",
+        "company_name": "R. A. Z APPARELS.",
+        "is_published": true,
+        "facility_of": null,
+        "bgmea_reg_numbers": [
+          "associate:1604"
+        ],
+        "bgmea_verified": true
+      },
+      "derived_identities": [
+        "associate:1604"
+      ]
+    },
+    {
+      "supplier": {
+        "id": "cb8140fb-4fa6-4fd3-9559-9460d15bd1ae",
+        "slug": "bangladesh-dresses",
+        "company_name": "Bangladesh Dresses Limited",
+        "is_published": true,
+        "facility_of": null,
+        "bgmea_reg_numbers": [
+          "general:1355",
+          "general:2431"
+        ],
+        "bgmea_verified": true
+      },
+      "derived_identities": [
+        "general:1355",
+        "general:2431"
+      ]
+    },
+    {
+      "supplier": {
+        "id": "da303c4b-31da-4744-9697-a3981331b131",
+        "slug": "vintage-denim",
+        "company_name": "Vintage Denim Ltd.",
+        "is_published": true,
+        "facility_of": null,
+        "bgmea_reg_numbers": [],
+        "bgmea_verified": false
+      },
+      "derived_identities": []
+    },
+    {
+      "supplier": {
+        "id": "dd9b8878-3d40-4b41-a113-0c7486995a47",
+        "slug": "channel-expor-tex-international",
+        "company_name": "Channel Expor-tex International",
+        "is_published": true,
+        "facility_of": null,
+        "bgmea_reg_numbers": [
+          "associate:338",
+          "associate:460",
+          "associate:62"
+        ],
+        "bgmea_verified": true
+      },
+      "derived_identities": [
+        "associate:338",
+        "associate:460",
+        "associate:62"
+      ]
+    },
+    {
+      "supplier": {
+        "id": "e2970a2e-2453-4113-ab75-cb5e9d9526e8",
+        "slug": "section-seven",
+        "company_name": "Section Seven Ltd",
+        "is_published": false,
+        "facility_of": null,
+        "bgmea_reg_numbers": [],
+        "bgmea_verified": false
+      },
+      "derived_identities": []
+    },
+    {
+      "supplier": {
+        "id": "e355b91f-8a25-4fdf-83cd-f977df34b634",
+        "slug": "standard-stitches-ltd-woven-unit",
+        "company_name": "Standard Stitches Ltd. (Woven Unit)",
+        "is_published": false,
+        "facility_of": "a7797895-fe37-456d-ad00-cf6fe47ceb7d",
+        "bgmea_reg_numbers": [],
+        "bgmea_verified": false
+      },
+      "derived_identities": []
+    },
+    {
+      "supplier": {
+        "id": "ebc78da6-3ee1-40e2-b01c-d8b579ce8be1",
+        "slug": "bangladesh-dressess-ltd-unit-2",
+        "company_name": "BANGLADESH DRESSESS LTD UNIT-2",
+        "is_published": true,
+        "facility_of": null,
+        "bgmea_reg_numbers": [],
+        "bgmea_verified": false
+      },
+      "derived_identities": []
+    },
+    {
+      "supplier": {
+        "id": "f7acd014-fa21-466a-9cb8-b5f480046d46",
+        "slug": "asdwa-fashion",
+        "company_name": "ASDWA FASHION LTD.",
+        "is_published": true,
+        "facility_of": null,
+        "bgmea_reg_numbers": [
+          "associate:797"
+        ],
+        "bgmea_verified": true
+      },
+      "derived_identities": [
+        "associate:797"
+      ]
+    },
+    {
+      "supplier": {
+        "id": "f90199d9-c9ad-4ca6-b4c5-dfe75c329dda",
+        "slug": "vintage-denim-apparels",
+        "company_name": "Vintage Denim Apparels Ltd.",
+        "is_published": true,
+        "facility_of": null,
+        "bgmea_reg_numbers": [
+          "general:4562",
+          "general:6213"
+        ],
+        "bgmea_verified": true
+      },
+      "derived_identities": [
+        "general:4562",
+        "general:6213"
+      ]
+    },
+    {
+      "supplier": {
+        "id": "fea5cb82-8ecd-40ef-8105-21c3497bcfb9",
+        "slug": "md-tex",
+        "company_name": "MD Tex",
+        "is_published": true,
+        "facility_of": null,
+        "bgmea_reg_numbers": [
+          "associate:1211",
+          "associate:1556"
+        ],
+        "bgmea_verified": true
+      },
+      "derived_identities": [
+        "associate:1211",
+        "associate:1556"
+      ]
+    }
+  ],
+  "holds": [
+    {
+      "ref": "1168",
+      "current_slug": "pa-textile",
+      "candidate_slug": "p-fashion",
+      "registered_name": "P.A. Fashion Ltd.",
+      "reason": "register has no P. Fashion entry; not P. A. Textile's; founder HOLD"
+    }
+  ]
+}

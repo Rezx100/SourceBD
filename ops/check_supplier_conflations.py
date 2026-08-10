@@ -506,6 +506,27 @@ def main() -> int:
         for r in display_rows
     ]
 
+    # REZ-116: founder-decided orphan moves / HOLD — never guess; never land
+    # HOLD 1168 on p-fashion; each MOVE ref may only sit on from_slug (pre-apply)
+    # or to_slug (post-apply).
+    from ops.move_bgmea_orphan_registrations import rez116_decision_violations
+
+    ref_holders: dict[str, set[str]] = defaultdict(set)
+    for row in structural_rows:
+        if row.get("source_code") != "BGMEA":
+            continue
+        ref = str(row.get("source_ref") or "")
+        slug = str(row.get("slug") or "")
+        if ref and slug:
+            ref_holders[ref].add(slug)
+    for row in bgmea_rows:
+        ref = str(row.get("source_ref") or "")
+        slug = str(row.get("slug") or "")
+        if ref and slug:
+            ref_holders[ref].add(slug)
+
+    rez116_lines = rez116_decision_violations(ref_holders)
+
     failed = False
     if conflated:
         failed = True
@@ -552,6 +573,13 @@ def main() -> int:
             f"across published suppliers (REZ-115 view).\n"
         )
         print("\n".join(display_collision_lines[:50]))
+    if rez116_lines:
+        failed = True
+        print(
+            f"FAIL: {len(rez116_lines)} REZ-116 orphan-decision invariant(s) broken "
+            f"(founder MOVE/HOLD table in ops/move_bgmea_orphan_registrations.py).\n"
+        )
+        print("\n".join(rez116_lines))
     if failed:
         return 1
 
