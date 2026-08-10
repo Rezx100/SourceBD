@@ -185,7 +185,7 @@ export function projectFacilityCertifications(
 
 /** Paths pinned by containment tests — relative to repo root. */
 export const FACILITY_EVIDENCE_PROFILE_MIGRATION =
-  "supabase/migrations/0095_buyer_supplier_profile_facility_documents.sql";
+  "supabase/migrations/0099_buyer_supplier_profile_facility_registries_rsc.sql";
 
 export const DISCOVER_CERT_FILTER_MIGRATIONS = [
   "supabase/migrations/0075_discover_text_postgrest_budget.sql",
@@ -221,10 +221,18 @@ export function assertFacilityEvidenceContainment(args: {
   }
 
   const pillsBlock = sliceBetween("pills as (", "certs as (");
-  if (/facility_of/.test(pillsBlock)) {
+  // REZ-110: pills may union facility_of for DISPLAY with building_name.
+  // Discover/t13 must still ignore these (ring + discover asserts below).
+  if (!/facility_of/.test(pillsBlock)) {
     throw new Error(
-      "pills CTE must not join facility_of — inherited certs are display-only",
+      "pills CTE must union facility_of children labelled by building_name (REZ-110)",
     );
+  }
+  if (!/building_name/.test(pillsBlock)) {
+    throw new Error("facility pills must carry building_name");
+  }
+  if (!/DISPLAY-ONLY/.test(pillsBlock)) {
+    throw new Error("pills CTE must mark facility union as DISPLAY-ONLY");
   }
 
   const certsBlock = sliceBetween("certs as (", "rsc as (");
@@ -234,7 +242,17 @@ export function assertFacilityEvidenceContainment(args: {
     );
   }
   if (!/DISPLAY-ONLY/.test(profileMigrationSql)) {
-    throw new Error("profile migration must document certs as DISPLAY-ONLY");
+    throw new Error("profile migration must document display-only inheritance");
+  }
+
+  const rscBlock = sliceBetween("rsc as (", "brands as (");
+  if (!/facility_of/.test(rscBlock)) {
+    throw new Error(
+      "rsc CTE must union facility_of children for per-building remediation",
+    );
+  }
+  if (!/building_name/.test(rscBlock)) {
+    throw new Error("facility RSC sites must carry building_name");
   }
 
   for (const sql of discoverMigrationSqls) {
