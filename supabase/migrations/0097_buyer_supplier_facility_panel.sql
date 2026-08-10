@@ -1,5 +1,7 @@
 -- 0097 REZ-73 mother facility panel. Static SQL. Numbered like 0095/0096.
 -- search_path fixed. No EXECUTE/format/dynamic identifiers.
+-- Scope: building names + group metric totals (null ≠ 0). Address/pill/RSC
+-- for unpublished facility_of children needs a view relaxation — filed separately.
 
 create or replace function public._facility_group_metric(p_own bigint, p_vals bigint[])
 returns jsonb language sql immutable set search_path = public as $$
@@ -26,35 +28,15 @@ returns jsonb language sql stable security definer set search_path = public as $
      where slug = p_slug and is_published and facility_of is null limit 1
   ),
   b as (
-    select f.id, f.company_name, f.employees_total, f.machines_sewing,
+    select f.company_name, f.employees_total, f.machines_sewing,
            f.production_capacity_pcs_day, f.production_capacity_dozen_yearly
       from m join public.suppliers f on f.facility_of = m.id
   )
   select case when not exists (select 1 from m) then null else jsonb_build_object(
     'facility_count', (select count(*)::int from b),
     'facilities', coalesce((
-      select jsonb_agg(jsonb_build_object(
-        'name', b.company_name,
-        'employees_total', b.employees_total,
-        'machines_sewing', b.machines_sewing,
-        'production_capacity_pcs_day', b.production_capacity_pcs_day,
-        'production_capacity_dozen_yearly', b.production_capacity_dozen_yearly,
-        'addresses', coalesce((
-          select jsonb_agg(jsonb_build_object(
-            'kind', va.address_kind, 'address', va.address, 'source_code', va.source_code
-          ) order by va.address_kind, va.source_code)
-          from public.v_supplier_addresses_direct va where va.supplier_id = b.id
-        ), '[]'::jsonb),
-        'rsc_progress_pct', (
-          select r.progress_pct from public.rsc_remediation r
-           where r.supplier_id = b.id and r.active limit 1),
-        'pills', coalesce((
-          select jsonb_agg(jsonb_build_object(
-            'source_code', p.source_code, 'label', p.label, 'value', p.value
-          ) order by p.source_code)
-          from public.v_supplier_registry_ids_direct p where p.supplier_id = b.id
-        ), '[]'::jsonb)
-      ) order by b.company_name) from b), '[]'::jsonb),
+      select jsonb_agg(jsonb_build_object('name', b.company_name)
+        order by b.company_name) from b), '[]'::jsonb),
     'group', jsonb_build_object(
       'employees_total', public._facility_group_metric(
         (select employees_total from m),

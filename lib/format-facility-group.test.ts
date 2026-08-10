@@ -5,6 +5,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
   formatGroupMetric,
+  sanitizeFacilityPanel,
   type GroupMetric,
 } from "./format-facility-group";
 
@@ -52,5 +53,68 @@ describe("formatGroupMetric", () => {
       ),
       "at least 1,800 across 3 buildings, 1 unknown",
     );
+  });
+  it("phrases all-unknown across buildings", () => {
+    assert.equal(
+      formatGroupMetric(
+        m({
+          own: null,
+          known_sum: null,
+          facility_count: 1,
+          building_count: 2,
+          unknown_count: 2,
+        }),
+      ),
+      "unknown across 2 buildings, 2 unknown",
+    );
+  });
+});
+
+describe("sanitizeFacilityPanel", () => {
+  it("keeps only facility name from over-emitted rows", () => {
+    const cleaned = sanitizeFacilityPanel({
+      facility_count: 1,
+      facilities: [
+        {
+          name: "Unit-2",
+          slug: "secret",
+          phone: "+8801",
+          email: "x@y.z",
+          id: "uuid",
+        } as { name: string },
+      ],
+      group: {
+        employees_total: m({
+          own: 1,
+          facility_count: 1,
+          building_count: 2,
+          unknown_count: 0,
+          known_sum: 1,
+        }),
+        machines_sewing: m({
+          own: 1,
+          facility_count: 1,
+          building_count: 2,
+          unknown_count: 0,
+          known_sum: 1,
+        }),
+        production_capacity_pcs_day: m({
+          own: 1,
+          facility_count: 1,
+          building_count: 2,
+          unknown_count: 0,
+          known_sum: 1,
+        }),
+        production_capacity_dozen_yearly: m({
+          own: null,
+          known_sum: null,
+          facility_count: 1,
+          building_count: 2,
+          unknown_count: 2,
+        }),
+      },
+    });
+    assert.deepEqual(cleaned.facilities, [{ name: "Unit-2" }]);
+    assert.equal(JSON.stringify(cleaned.facilities).includes("secret"), false);
   });
 });

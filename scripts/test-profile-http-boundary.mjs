@@ -111,24 +111,7 @@ const HAPPY_PAYLOAD = {
 /** REZ-73 — mother facility panel shape from buyer_supplier_facility_panel. */
 const HAPPY_FACILITY_PANEL = {
   facility_count: 1,
-  facilities: [
-    {
-      name: "Mother Company Ltd Extension",
-      employees_total: null,
-      machines_sewing: 50,
-      production_capacity_pcs_day: 1000,
-      production_capacity_dozen_yearly: null,
-      addresses: [
-        {
-          kind: "factory",
-          address: "Plot 2, Example Road",
-          source_code: "RSC",
-        },
-      ],
-      rsc_progress_pct: 42,
-      pills: [{ source_code: "RSC", label: "RSC", value: "BD-123" }],
-    },
-  ],
+  facilities: [{ name: "Mother Company Ltd Extension" }],
   group: {
     employees_total: {
       own: 1200,
@@ -624,6 +607,20 @@ const CASES = [
     },
   },
   {
+    name: "public: mother Facilities labelled group totals on the wire",
+    path: `/suppliers/${MOTHER}`,
+    expect: {
+      status: 200,
+      bodyIncludesAll: [
+        "Production workers — group total",
+        "Sewing machines — group total",
+        "Daily output — group total",
+        "Annual output — group total",
+        "unknown across 2 buildings, 2 unknown",
+      ],
+    },
+  },
+  {
     name: "app: missing slug -> 404 (authenticated)",
     path: `/app/suppliers/${MISSING}`,
     auth: true,
@@ -681,6 +678,21 @@ const CASES = [
     expect: {
       status: 200,
       bodyIncludes: "Mother Company Ltd Extension",
+    },
+  },
+  {
+    name: "app: mother Facilities labelled group totals on the wire",
+    path: `/app/suppliers/${MOTHER}`,
+    auth: true,
+    expect: {
+      status: 200,
+      bodyIncludesAll: [
+        "Production workers — group total",
+        "Sewing machines — group total",
+        "Daily output — group total",
+        "Annual output — group total",
+        "unknown across 2 buildings, 2 unknown",
+      ],
     },
   },
   {
@@ -776,6 +788,24 @@ async function main() {
           caseProblems.push(
             `${label}: body missing "${c.expect.bodyIncludes}" (${got.bytes} bytes)`,
           );
+        }
+        if (Array.isArray(c.expect.bodyIncludesAll)) {
+          for (const needle of c.expect.bodyIncludesAll) {
+            if (!got.body.includes(needle)) {
+              caseProblems.push(
+                `${label}: body missing "${needle}" (${got.bytes} bytes)`,
+              );
+            }
+          }
+        }
+        if (Array.isArray(c.expect.bodyExcludes)) {
+          for (const needle of c.expect.bodyExcludes) {
+            if (got.body.includes(needle)) {
+              caseProblems.push(
+                `${label}: body must not contain "${needle}"`,
+              );
+            }
+          }
         }
       });
 

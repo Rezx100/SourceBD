@@ -29,7 +29,10 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CompanyProfileHeader } from "@/components/supplier/company-profile-header";
 import { ProfileOverviewTab } from "@/components/supplier/profile-overview-tab";
-import type { FacilityPanel } from "@/components/supplier/profile-facilities-section";
+import {
+  sanitizeFacilityPanel,
+  type FacilityPanel,
+} from "@/components/supplier/profile-facilities-section";
 import {
   ProfileCapacityTab,
   hasCapacityData,
@@ -244,8 +247,9 @@ export default async function FactoryProfilePage({
     facilityRaw &&
     typeof facilityRaw === "object" &&
     Array.isArray((facilityRaw as FacilityPanel).facilities) &&
-    (facilityRaw as FacilityPanel).facilities.length > 0
-      ? (facilityRaw as FacilityPanel)
+    (facilityRaw as FacilityPanel).facilities.length > 0 &&
+    (facilityRaw as FacilityPanel).group
+      ? sanitizeFacilityPanel(facilityRaw as FacilityPanel)
       : null;
 
   const { data: savedRow } = await supabase
