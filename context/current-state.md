@@ -14,8 +14,9 @@ Production dry-run fingerprint
 (5 merges, 12 building attaches, 11 brand moves, 1 publish, 48 human).
 Review SQL now uses the same building extras as Python (`(U-2)`, Unit-II,
 `(Ext)`), attaches only building-shaped ids, requires one mother across
-both fuzzy names, and brand tickets use Ltd/Limited matching only (Liz
-Shafipur Unit → Liz Fashion; Kenpark Unit 2 and Knitex Ckl stay held).
+both fuzzy names, and brand tickets match Ltd/Limited/slug/norm on two
+separate bases (Liz Shafipur Unit → Liz Fashion; Kenpark Unit 2, Knitex
+Ckl, and a mid-name mill label stay held).
 Prior fingerprints `7734c386…` and `06173cde…` are void.
 `--apply` and production migration apply are not authorised. See
 `ops/plans/queue-release-plan.md`.

@@ -24,6 +24,7 @@ from etl.core.queue_release import (
     classify_fuzzy,
     classify_queue_row,
     is_building_shaped_name,
+    names_are_legal_form_variants,
     names_are_same_company,
     pick_merge_winner,
     refuse_nested_parent,
@@ -552,10 +553,13 @@ def test_fuzzy_two_mothers_across_names_needs_human():
 
 def test_sql_brand_and_unique_mother_are_wired():
     sql = MIGRATION.read_text(encoding="utf-8")
-    brand = sql.split("brand_disclosure_match_review", 1)[1]
-    assert "_queue_legal_form_variants" in brand
+    brand = sql.split("if q.queue_type::text = 'brand_disclosure_match_review'", 1)[1]
+    brand = brand.split("create or replace function public.admin_queue_decide", 1)[0]
+    assert "_queue_brand_name_match" in brand
     assert "_queue_building_base_name(brand.company_name)" in brand
-    assert "_queue_find_mother(brand.company_name)" not in brand
+    assert "_queue_paren_building_strip(brand.company_name)" in brand
+    assert "_queue_find_mother" not in brand
+    assert "_queue_mother_hits" not in brand
     fuzzy = sql.split("fuzzy_match_review", 1)[1].split(
         "brand_disclosure_match_review", 1
     )[0]
@@ -563,11 +567,20 @@ def test_sql_brand_and_unique_mother_are_wired():
     assert "coalesce(v_m1, v_m2)" not in fuzzy
     base_fn = sql.split("create or replace function public._queue_building_base_name", 1)[
         1
-    ].split("create or replace function public._queue_mother_hits", 1)[0]
+    ].split("create or replace function public._queue_paren_building_strip", 1)[0]
     assert r"\yunit([\s-]+[0-9]+)?\s*$" not in base_fn
+    assert r"\(\s*[^)]*\y(?:unit|building|shed|extension)\y[^)]*\)" not in base_fn
     assert "relocated" in base_fn
     assert r"\s+extension\s+buildings?" in base_fn
     assert "for i in 1..8 loop" in base_fn
+    paren_fn = sql.split(
+        "create or replace function public._queue_paren_building_strip", 1
+    )[1].split("create or replace function public._queue_mother_hits", 1)[0]
+    assert r"\(\s*[^)]*\y(?:unit|building|shed|extension)\y[^)]*\)" in paren_fn
+    lfv = sql.split("create or replace function public._queue_legal_form_variants", 1)[
+        1
+    ].split("create or replace function public._queue_brand_name_match", 1)[0]
+    assert "_queue_abbrev_name" in lfv
 
 
 def test_brand_only_unmatched_stays_hidden():
@@ -753,6 +766,34 @@ def test_brand_ckl_unit_does_not_attach_to_cmt_sister():
     assert plan.action == "needs_human"
 
 
+def test_brand_industry_vs_industries_is_legal_form():
+    assert names_are_legal_form_variants(
+        "Liz Fashion Industry Limited",
+        "LIZ FASHION INDUSTRIES LIMITED",
+    )
+
+
+def test_brand_washing_unit_then_unit_2_needs_human():
+    plan = classify_brand(
+        queue_id="pacific-washing-unit-2",
+        supplier_id="child",
+        company_name="Pacific Jeans Ltd. (Washing Unit) Unit-2",
+        is_published=False,
+        is_facility=False,
+        facility_of=None,
+        tier13_count=0,
+        published_matches=[
+            {
+                "id": "mother",
+                "slug": "pacific-jeans",
+                "company_name": "Pacific Jeans Ltd.",
+                "company_name_norm": "pacific jeans",
+            }
+        ],
+    )
+    assert plan.action == "needs_human"
+
+
 def test_fuzzy_missing_supplier_needs_human():
     plan = classify_queue_row(
         queue_id="q14b",
@@ -847,13 +888,21 @@ def test_migration_decide_mutates_suppliers_not_only_the_ticket():
     assert "elsif v_action = 'label_group'" not in body
     assert "if v_decision = 'release'" in body
     assert "member_ids" in body
-    brand = sql.split("brand_disclosure_match_review", 1)[1]
+    brand = sql.split("if q.queue_type::text = 'brand_disclosure_match_review'", 1)[1]
+    brand = brand.split("create or replace function public.admin_queue_decide", 1)[0]
     assert "_queue_is_building_shaped(brand.company_name)" in brand
-    assert "_queue_legal_form_variants" in brand
+    assert "_queue_brand_name_match" in brand
     assert "_queue_building_base_name(brand.company_name)" in brand
-    assert "_queue_find_mother(brand.company_name)" not in brand
+    assert "_queue_paren_building_strip(brand.company_name)" in brand
+    assert "_queue_find_mother" not in brand
+    assert "_queue_mother_hits" not in brand
     assert "_queue_names_same_company(s.company_name, brand.company_name)" not in brand
     assert "create or replace function public._queue_legal_stem" in sql
+    assert "create or replace function public._queue_abbrev_name" in sql
+    lfv = sql.split("create or replace function public._queue_legal_form_variants", 1)[
+        1
+    ].split("create or replace function public._queue_brand_name_match", 1)[0]
+    assert "_queue_abbrev_name" in lfv
 
 
 def test_unmigrated_decide_rejects_release():
@@ -872,7 +921,7 @@ def test_decide_route_still_calls_admin_queue_decide():
     assert "revalidatePath(\"/admin/queue\")" in src
     assert "revalidatePath(\"/discover\")" in src
     assert "queueDecideFromRequest" in src
-    assert "status: response.status" in src
+    assert "status: response.status," in src
     assert "approve|release" not in src
 
 
@@ -891,12 +940,17 @@ def test_ops_script_is_dry_run_by_default():
 def test_http_approve_is_rejected():
     src = DECIDE_ROUTE.read_text(encoding="utf-8")
     assert "queueDecideFromRequest" in src
-    assert "status: response.status" in src
+    assert "status: response.status," in src
     helper = (REPO / "lib" / "admin" / "queue-decide-decision.ts").read_text(
         encoding="utf-8"
     )
     assert "queueDecideFromRequest" in helper
     assert "Response.json(result.json, { status: result.status })" in helper
+    route_test = DECIDE_ROUTE.with_name("route.test.ts").read_text(encoding="utf-8")
+    assert 'import { POST } from "./route"' in route_test
+    assert 'decision: "approve"' in route_test
+    assert "res.status, 400" in route_test
+    assert "rpcCalls.length, 0" in route_test
 
 
 def test_sql_absorb_skips_unique_source_collision():
@@ -934,7 +988,7 @@ def test_decide_route_forwards_release_to_rpc():
     assert 'rpc("admin_queue_decide"' in src
     assert "p_decision: decision" in helper
     assert "queueDecideFromRequest" in src
-    assert "status: response.status" in src
+    assert "status: response.status," in src
     assert "approve|release" not in src
     assert "approve|release" not in helper
     assert "revalidatePath(\"/admin/queue\")" in src

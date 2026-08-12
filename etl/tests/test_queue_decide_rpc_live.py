@@ -23,6 +23,8 @@ HURRICANE_QUEUE = "ae1935ab-2672-4928-8188-28afc04c7eff"
 HURRICANE_CHILD = "ed35695c"
 HURRICANE_MOTHER = "766d04d7"
 SHAFPUR_QUEUE = "aefbd03e-17e7-4876-a3db-d6b035722bd5"
+KENPARK_QUEUE = "5d17c2ce-2a0a-4615-8a8a-c3c5c4707505"
+CKL_QUEUE = "33cbb2d5-5fe8-4a3f-a27f-0e269e99632e"
 
 
 def _rpc(name: str, payload: dict) -> httpx.Response:
@@ -74,3 +76,13 @@ def test_shafipur_brand_attaches_to_liz() -> None:
     plan = _plan(SHAFPUR_QUEUE)
     assert plan["action"] == "attach_facility"
     assert str(plan["parent_id"]).startswith(LIZ_MOTHER[:8])
+
+
+def test_kenpark_unit_2_plan_is_needs_human() -> None:
+    plan = _plan(KENPARK_QUEUE)
+    assert plan["action"] == "needs_human"
+
+
+def test_ckl_unit_plan_is_needs_human() -> None:
+    plan = _plan(CKL_QUEUE)
+    assert plan["action"] == "needs_human"

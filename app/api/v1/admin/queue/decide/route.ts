@@ -7,9 +7,9 @@
 import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 
-import { queueDecideFromRequest } from "@/lib/admin/queue-decide-decision";
-import { getServerRole } from "@/lib/auth";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { queueDecideFromRequest } from "../../../../../../lib/admin/queue-decide-decision";
+import { getServerRole } from "../../../../../../lib/auth";
+import { createSupabaseServerClient } from "../../../../../../lib/supabase/server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";

@@ -156,6 +156,69 @@ as $$
      );
 $$;
 
+-- Light port of Python normalize_company_name: industry/ind → industries,
+-- legal-suffix strip. Used so Ltd/Limited matching agrees with Python.
+create or replace function public._queue_abbrev_name(p_name text)
+returns text
+language plpgsql
+immutable
+as $$
+declare
+  n text;
+  nxt text;
+  i int;
+begin
+  n := lower(btrim(coalesce(p_name, '')));
+  if n = '' then
+    return null;
+  end if;
+  n := regexp_replace(n, '\s*&\s*', ' and ', 'g');
+  n := regexp_replace(n, '\yinds\.?\y', 'industries', 'g');
+  n := regexp_replace(n, '\yind\.?\y', 'industries', 'g');
+  n := regexp_replace(n, '\yindus\.?\y', 'industries', 'g');
+  n := regexp_replace(n, '\yindustry\y', 'industries', 'g');
+  n := regexp_replace(n, '[^a-z0-9\s]+', ' ', 'g');
+  n := btrim(regexp_replace(n, '\s+', ' ', 'g'));
+  for i in 1..4 loop
+    nxt := btrim(regexp_replace(
+      n,
+      '\s+(ltd|lts|limited|plc|pvt|private|co|company|corp|corporation|inc|incorporated|llc|llp)\s*$',
+      '',
+      'i'
+    ));
+    if nxt is not distinct from n then
+      exit;
+    end if;
+    n := nxt;
+  end loop;
+  return nullif(n, '');
+end;
+$$;
+
+create or replace function public._queue_slugify(p_name text)
+returns text
+language sql
+immutable
+as $$
+  select nullif(
+    btrim(
+      regexp_replace(
+        regexp_replace(
+          coalesce(public._queue_abbrev_name(p_name), ''),
+          '[^a-z0-9]+',
+          '-',
+          'g'
+        ),
+        '-+',
+        '-',
+        'g'
+      ),
+      '-'
+    ),
+    ''
+  );
+$$;
+
 -- Ltd/Limited/PLC/Pvt/spacing only. No edit-distance (brand tickets).
 create or replace function public._queue_legal_form_variants(a text, b text)
 returns boolean
@@ -182,10 +245,30 @@ begin
      or (a ~* '\yembroidery\y') is distinct from (b ~* '\yembroidery\y') then
     return false;
   end if;
-  sa := public._queue_legal_stem(lower(a));
-  sb := public._queue_legal_stem(lower(b));
+  sa := public._queue_legal_stem(coalesce(public._queue_abbrev_name(a), lower(a)));
+  sb := public._queue_legal_stem(coalesce(public._queue_abbrev_name(b), lower(b)));
   return length(sa) >= 10 and sa = sb;
 end;
+$$;
+
+-- Published-company match for brand tickets: stored norm/slug or legal-form.
+create or replace function public._queue_brand_name_match(
+  p_name text,
+  p_norm text,
+  p_slug text,
+  p_candidate text
+) returns boolean
+language sql
+immutable
+as $$
+  select coalesce(p_candidate, '') <> ''
+     and (
+       (coalesce(p_norm, '') <> ''
+        and p_norm = public._queue_abbrev_name(p_candidate))
+       or (coalesce(p_slug, '') <> ''
+           and p_slug = public._queue_slugify(p_candidate))
+       or public._queue_legal_form_variants(p_name, p_candidate)
+     );
 $$;
 
 -- Queue-local building predicate. Must not alter rsc_extension_base_name
@@ -252,7 +335,6 @@ begin
       '\(\s*factory[\s-]*[0-9]+\s*\)+\.?\s*$',
       '[-(]\s*annex(?:\s+building)?\s*\)?\.?\s*$',
       '\(\s*annex(?:\s+building)?\s*\)+\.?\s*$',
-      '\(\s*[^)]*\y(?:unit|building|shed|extension)\y[^)]*\)',
       '\(\s*(?:woven|sw|knit|sewing)\s+unit\s*\)+\.?\s*$',
       '\s+extension\s+buildings?\.?\s*$',
       '\s*-\s*extension(?:\s+\d+)?\.?\s*$',
@@ -283,6 +365,33 @@ begin
 end;
 $$;
 
+-- One-shot building-paren strip. Must not run inside the 8-pass loop:
+-- folding "(Washing Unit)" after trailing Unit-2 would attach
+-- "Pacific Jeans Ltd. (Washing Unit) Unit-2" to Pacific Jeans.
+create or replace function public._queue_paren_building_strip(p_name text)
+returns text
+language sql
+immutable
+as $$
+  select case
+    when coalesce(p_name, '') = '' then null
+    when stripped = '' then null
+    when lower(stripped) = lower(btrim(p_name)) then null
+    else stripped
+  end
+  from (
+    select btrim(
+      regexp_replace(
+        p_name,
+        '\(\s*[^)]*\y(?:unit|building|shed|extension)\y[^)]*\)',
+        '',
+        'gi'
+      ),
+      ' -,'
+    ) as stripped
+  ) s;
+$$;
+
 create or replace function public._queue_mother_hits(p_name text)
 returns setof uuid
 language plpgsql
@@ -293,34 +402,36 @@ as $$
 declare
   v_base text;
 begin
-  v_base := public._queue_building_base_name(p_name);
-  if v_base is null then
-    return;
-  end if;
-  return query
-    select s.id
-      from public.suppliers s
-     where s.is_published
-       and s.facility_of is null
-       and not public._queue_is_building_shaped(s.company_name)
-       and (
-         (
-           length(public._queue_legal_stem(s.company_name_norm)) >= 10
-           and public._queue_legal_stem(s.company_name_norm)
-             = public._queue_legal_stem(lower(v_base))
-         )
-         or public._queue_names_same_company(s.company_name, v_base)
-         or (
-           length(public._queue_legal_stem(lower(v_base))) >= 6
-           and length(public._queue_legal_stem(s.company_name_norm)) >= 6
-           and left(
-             public._queue_legal_stem(s.company_name_norm),
-             length(public._queue_legal_stem(lower(v_base)))
-           ) = public._queue_legal_stem(lower(v_base))
-           and length(public._queue_legal_stem(s.company_name_norm))
-             - length(public._queue_legal_stem(lower(v_base))) between 0 and 2
-         )
-       );
+  foreach v_base in array array_remove(array[
+    public._queue_building_base_name(p_name),
+    public._queue_paren_building_strip(p_name)
+  ], null)
+  loop
+    return query
+      select s.id
+        from public.suppliers s
+       where s.is_published
+         and s.facility_of is null
+         and not public._queue_is_building_shaped(s.company_name)
+         and (
+           (
+             length(public._queue_legal_stem(s.company_name_norm)) >= 10
+             and public._queue_legal_stem(s.company_name_norm)
+               = public._queue_legal_stem(lower(v_base))
+           )
+           or public._queue_names_same_company(s.company_name, v_base)
+           or (
+             length(public._queue_legal_stem(lower(v_base))) >= 6
+             and length(public._queue_legal_stem(s.company_name_norm)) >= 6
+             and left(
+               public._queue_legal_stem(s.company_name_norm),
+               length(public._queue_legal_stem(lower(v_base)))
+             ) = public._queue_legal_stem(lower(v_base))
+             and length(public._queue_legal_stem(s.company_name_norm))
+               - length(public._queue_legal_stem(lower(v_base))) between 0 and 2
+           )
+         );
+  end loop;
 end;
 $$;
 
@@ -700,8 +811,12 @@ begin
          and s.facility_of is null
          and not public._queue_is_building_shaped(s.company_name)
          and (
-           s.company_name_norm = brand.company_name_norm
-           or public._queue_legal_form_variants(s.company_name, brand.company_name)
+           (brand.company_name_norm is not null
+            and s.company_name_norm = brand.company_name_norm)
+           or (brand.slug is not null and s.slug = brand.slug)
+           or public._queue_brand_name_match(
+                s.company_name, s.company_name_norm, s.slug, brand.company_name
+              )
          );
       if v_match_n = 1 then
         select s.id into v_match
@@ -711,8 +826,12 @@ begin
            and s.facility_of is null
            and not public._queue_is_building_shaped(s.company_name)
            and (
-             s.company_name_norm = brand.company_name_norm
-             or public._queue_legal_form_variants(s.company_name, brand.company_name)
+             (brand.company_name_norm is not null
+              and s.company_name_norm = brand.company_name_norm)
+             or (brand.slug is not null and s.slug = brand.slug)
+             or public._queue_brand_name_match(
+                  s.company_name, s.company_name_norm, s.slug, brand.company_name
+                )
            );
         return jsonb_build_object(
           'action', 'attach_brand',
@@ -731,15 +850,20 @@ begin
     end if;
 
     if public._queue_is_building_shaped(brand.company_name) then
-      v_base := public._queue_building_base_name(brand.company_name);
-      if v_base is not null then
+      foreach v_base in array array_remove(array[
+        public._queue_building_base_name(brand.company_name),
+        public._queue_paren_building_strip(brand.company_name)
+      ], null)
+      loop
         select count(*) into v_match_n
           from public.suppliers s
          where s.is_published
            and s.facility_of is null
            and s.id is distinct from brand.id
            and not public._queue_is_building_shaped(s.company_name)
-           and public._queue_legal_form_variants(s.company_name, v_base);
+           and public._queue_brand_name_match(
+                 s.company_name, s.company_name_norm, s.slug, v_base
+               );
         if v_match_n = 1 then
           select s.id into v_match
             from public.suppliers s
@@ -747,7 +871,9 @@ begin
              and s.facility_of is null
              and s.id is distinct from brand.id
              and not public._queue_is_building_shaped(s.company_name)
-             and public._queue_legal_form_variants(s.company_name, v_base);
+             and public._queue_brand_name_match(
+                   s.company_name, s.company_name_norm, s.slug, v_base
+                 );
           return jsonb_build_object(
             'action', 'attach_facility',
             'parent_id', v_match,
@@ -755,7 +881,7 @@ begin
             'buyer_destination', 'Unit/building attaches to the published mother'
           );
         end if;
-      end if;
+      end loop;
     end if;
 
     return jsonb_build_object(
@@ -1071,9 +1197,13 @@ revoke all on function public._queue_edit_distance(text, text) from public;
 revoke all on function public._queue_compact_name(text) from public;
 revoke all on function public._queue_names_same_company(text, text) from public;
 revoke all on function public._queue_legal_stem(text) from public;
+revoke all on function public._queue_abbrev_name(text) from public;
+revoke all on function public._queue_slugify(text) from public;
 revoke all on function public._queue_legal_form_variants(text, text) from public;
+revoke all on function public._queue_brand_name_match(text, text, text, text) from public;
 revoke all on function public._queue_is_building_shaped(text) from public;
 revoke all on function public._queue_building_base_name(text) from public;
+revoke all on function public._queue_paren_building_strip(text) from public;
 revoke all on function public._queue_mother_hits(text) from public;
 revoke all on function public._queue_find_mother(text) from public;
 revoke all on function public._queue_unique_mother(text[]) from public;
