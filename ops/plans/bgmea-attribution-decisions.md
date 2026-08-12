@@ -131,6 +131,38 @@ same company (`snowtex-outer-wear` / `snowtex-outerwear`, `south-end-sweater` /
 `union-fashions`). Those are duplicate-company defects in their own right and are
 tracked separately — 27 such pairs exist.
 
+### Section 2 — Founder decisions (12 Aug 2026)
+
+**Policy:** Associate-register companies are buying houses. They must show the
+buying-house tag (`entity_type = buying_house`) and must not keep a factory tag.
+When an associate number sits on a factory that is a different company, take it
+off the factory and put it on the rightful buying-house profile (create one if
+missing).
+
+| # | ref | decision | destination / note |
+| -- | -- | -- | -- |
+| 1 | `953` | IMPORT + MOVE | New buying house **A. S. Fashion** (prop. Md. Shamsul Alam, Kadamtali CTG); off `as-knitwear` |
+| 2 | `231` | STAY + RETAG | Stay on `am-fashion`; set `entity_type=buying_house` (short trade name of same legal entity) |
+| 3 | `330` | IMPORT + MOVE | New buying house **A.R. Fashion**; off `ra-apparels`; not AKR/HAR |
+| 4 | `679` | STAY | Stay on `atima-fashions` (sister ops with Atima Knitwear; founder ruling) |
+| 5 | `1573` | IMPORT + MOVE | New buying house **Bangladesh Apparel Inc.**; off `desh-bangla-enterprise` |
+| 6 | `1020` | IMPORT + MOVE | New buying house **J.R. International**; off `jr-enterprise` |
+| 7 | `1398` | STAY | Stay on `jms-clothing` (sister trade identities; already buying_house) |
+| 8 | `1129` | IMPORT + MOVE | New buying house **M.N. Enterprise**; off `nm-fashion` |
+| 9 | `296` | IMPORT + MOVE | New buying house **Maxim International**; off `shan-knitting-and-processing` |
+| 10 | `1283` | MOVE + RETAG | `mim-fashion-wear`; set buying_house |
+| 11 | `528` | IMPORT + MOVE | New buying house **S.A. Fashion**; off `as-knitwear` |
+| 12 | `1261` | IMPORT + MOVE | New buying house **Tex Fashion (BD)**; off `tex-apparels` |
+| 13 | `331` | MOVE + RETAG | `union-fashion` (not `union-fashions`); set buying_house |
+| 14 | `general:4572` | STAY | Stay on main `kenpark-bangladesh` (parent identity for sub-units) |
+| 15 | `general:5756` | MOVE | `snowtex-outerwear` |
+| 16 | `general:3778` | MOVE | `south-end-sweater` |
+| 17 | `general:3624` | MOVE | `southeast-sweater` |
+| 18 | `general:2436` | MOVE | unpublished `univogue-garments-co-ltd-unit-2` (building; mother must keep showing building registries) |
+
+**Not chosen yet for the separate 158 (class 3c):** same buying-house policy applies;
+import/retag work is queued after this Section 2 pass.
+
 ---
 
 ## Section 3 — The 177 foreign registrations
