@@ -223,16 +223,25 @@ def test_associate_on_factory_allowlist() -> None:
         "am-fashion": "factory",
     }
     mt = {
-        "679": "associate",
+        "679": "associate_buying_house",
         "1398": "associate",
-        "953": "associate",
-        "231": "associate",
+        "953": "associate_buying_house",
+        "231": "associate_buying_house",
     }
     lines = rez117_associate_on_factory_violations(holders, entity, mt)
     assert any("953" in line for line in lines)
     assert any("231" in line for line in lines)
     assert not any("679" in line for line in lines)
     assert not any("1398" in line for line in lines)
+    # general_manufacturer must not trip the associate-on-factory guard
+    assert (
+        rez117_associate_on_factory_violations(
+            {"general:5756": {"cut-n-sew"}},
+            {"cut-n-sew": "factory"},
+            {"general:5756": "general_manufacturer"},
+        )
+        == []
+    )
 
 
 def test_univogue_unit2_gate_rejects_bad_attachment() -> None:

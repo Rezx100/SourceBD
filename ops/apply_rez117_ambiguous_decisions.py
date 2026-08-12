@@ -804,7 +804,9 @@ def rez117_associate_on_factory_violations(
         if ref.startswith("general:"):
             continue
         mt = (member_type_by_ref.get(ref) or "associate").lower()
-        if mt not in ("associate", ""):
+        if mt.startswith("general"):
+            continue
+        if not (mt.startswith("associate") or mt == ""):
             continue
         if ref in ASSOCIATE_ON_FACTORY_ALLOWLIST:
             continue
