@@ -32,7 +32,7 @@ from etl.core.normalize import make_slug, normalize_company_name  # noqa: E402
 SNAPSHOT_DIR = Path(__file__).resolve().parent / "plans"
 NAMES_PATH = SNAPSHOT_DIR / "bgmea-names.json"
 ACCEPTED_FINGERPRINT = (
-    "8ff592aa21d3987b7b01f1509c710a60b32ccbf7c92a8bf438c1859c1368f913"
+    "7dbe53dc01e5747b5b683d0cdc9ad39592e4ec5c240c19ecf6d435cc078d5a26"
 )
 
 Action = Literal["stay", "stay_retag", "move", "move_retag", "import_move"]
@@ -169,9 +169,11 @@ def fingerprint(plan: list[PlannedItem]) -> str:
             "action": p.action,
             "source_record_id": p.source_record_id,
             "from_supplier_id": p.from_supplier_id,
+            "from_slug": p.from_slug,
             "to_slug": p.to_slug,
             "to_supplier_id": p.to_supplier_id,
             "create_name": p.create_name,
+            "identity": p.identity,
             "set_buying_house": p.set_buying_house,
             "to_is_published": p.to_is_published,
             "to_facility_of": p.to_facility_of,
@@ -294,6 +296,58 @@ def assert_univogue_2436_visible_on_mother(rest: Rest) -> None:
         raise RuntimeError(
             "POST-APPLY: univogue-garments missing BGMEA 2436 with building_name"
         )
+
+
+def _bgmea_pill_values(payload: dict) -> set[str]:
+    out: set[str] = set()
+    for p in payload.get("pills") or []:
+        if p.get("source_code") == "BGMEA" and p.get("value") is not None:
+            out.add(str(p["value"]))
+    return out
+
+
+def assert_profile_entity_type(rest: Rest, slug: str, expected: str) -> None:
+    payload = rest.rpc_json("buyer_supplier_profile", {"p_slug": slug})
+    supplier = payload.get("supplier") or {}
+    got = supplier.get("entity_type") if isinstance(supplier, dict) else None
+    if got is None:
+        got = payload.get("entity_type")
+    if got != expected:
+        raise RuntimeError(
+            f"POST-APPLY: {slug} entity_type={got!r} want {expected!r}"
+        )
+
+
+def assert_bgmea_value_on_profile(rest: Rest, slug: str, value: str) -> None:
+    payload = rest.rpc_json("buyer_supplier_profile", {"p_slug": slug})
+    if value not in _bgmea_pill_values(payload):
+        raise RuntimeError(f"POST-APPLY: {slug} missing BGMEA pill value {value}")
+
+
+def assert_bgmea_value_absent_on_profile(rest: Rest, slug: str, value: str) -> None:
+    payload = rest.rpc_json("buyer_supplier_profile", {"p_slug": slug})
+    if value in _bgmea_pill_values(payload):
+        raise RuntimeError(f"POST-APPLY: {slug} still shows BGMEA pill value {value}")
+
+
+def assert_named_counterexample_profiles(rest: Rest) -> None:
+    """RPC/HTTP boundary for the issue's named counterexamples."""
+    assert_bgmea_value_absent_on_profile(rest, "as-knitwear", "953")
+    assert_bgmea_value_on_profile(rest, "as-fashion", "953")
+    assert_profile_entity_type(rest, "as-fashion", "buying_house")
+
+    assert_bgmea_value_on_profile(rest, "am-fashion", "231")
+    assert_profile_entity_type(rest, "am-fashion", "buying_house")
+
+    assert_bgmea_value_absent_on_profile(rest, "mirza-fashion-and-design", "331")
+    assert_bgmea_value_on_profile(rest, "union-fashion", "331")
+    assert_profile_entity_type(rest, "union-fashion", "buying_house")
+
+    assert_bgmea_value_on_profile(rest, "snowtex-outerwear", "5756")
+    assert_bgmea_value_on_profile(rest, "south-end-sweater", "3778")
+    assert_bgmea_value_on_profile(rest, "southeast-sweater", "3624")
+
+    assert_univogue_2436_visible_on_mother(rest)
 
 
 def build_plan(rest: Rest) -> list[PlannedItem]:
@@ -467,6 +521,11 @@ def _reconcile(rest: Rest, source_id: str, *supplier_ids: str) -> None:
 
 
 def _retag_buying_house(rest: Rest, supplier_id: str) -> None:
+    locked = _locked_columns(rest, supplier_id)
+    if "entity_type" in locked:
+        raise RuntimeError(
+            f"supplier {supplier_id} has entity_type locked — cannot retag buying_house"
+        )
     patched = rest.patch(
         "suppliers",
         {"id": f"eq.{supplier_id}"},
@@ -479,12 +538,14 @@ def _retag_buying_house(rest: Rest, supplier_id: str) -> None:
 def _compensate_move(
     rest: Rest, source_id: str, p: PlannedItem, dest_id: str
 ) -> None:
-    """Best-effort reverse of one move after a mid-apply failure."""
-    rest.patch(
+    """Reverse one move after a mid-apply failure; raise if reverse fails."""
+    moved = rest.patch(
         "source_records",
         {"id": f"eq.{p.source_record_id}"},
         {"supplier_id": p.from_supplier_id},
     )
+    if not moved or str(moved[0].get("supplier_id")) != p.from_supplier_id:
+        raise RuntimeError(f"compensate failed for source_record {p.ref}")
     rest.patch(
         "evidence_claims",
         {
@@ -493,6 +554,17 @@ def _compensate_move(
         },
         {"supplier_id": p.from_supplier_id},
     )
+    stale = rest.all_rows(
+        "evidence_claims",
+        {
+            "select": "id,supplier_id",
+            "subject_table": "eq.source_records",
+            "subject_id": f"eq.{p.source_record_id}",
+        },
+    )
+    for c in stale:
+        if str(c.get("supplier_id")) != p.from_supplier_id:
+            raise RuntimeError(f"compensate: evidence_claims still wrong for {p.ref}")
     _reconcile(rest, source_id, p.from_supplier_id, dest_id)
 
 
@@ -536,6 +608,14 @@ def apply_plan(rest: Rest, plan: list[PlannedItem]) -> None:
                 _retag_buying_house(rest, dest_id)
             continue
 
+        prior_claims = rest.all_rows(
+            "evidence_claims",
+            {
+                "select": "id,supplier_id",
+                "subject_table": "eq.source_records",
+                "subject_id": f"eq.{p.source_record_id}",
+            },
+        )
         moved = rest.patch(
             "source_records",
             {
@@ -546,28 +626,47 @@ def apply_plan(rest: Rest, plan: list[PlannedItem]) -> None:
         )
         if not moved:
             raise RuntimeError(f"failed to move {p.ref}")
-        claims = rest.patch(
-            "evidence_claims",
-            {
-                "subject_table": "eq.source_records",
-                "subject_id": f"eq.{p.source_record_id}",
-            },
-            {"supplier_id": dest_id},
-        )
-        # Zero claims is legitimate; non-empty must all point at dest.
-        for c in claims:
-            if str(c.get("supplier_id")) != dest_id:
-                raise RuntimeError(f"{p.ref}: evidence_claims not fully repointed")
-        if p.set_buying_house:
-            _retag_buying_house(rest, dest_id)
-        _reconcile(rest, source_id, p.from_supplier_id, dest_id)
-
-        if p.ref == "general:2436":
-            try:
+        try:
+            if prior_claims:
+                claims = rest.patch(
+                    "evidence_claims",
+                    {
+                        "subject_table": "eq.source_records",
+                        "subject_id": f"eq.{p.source_record_id}",
+                    },
+                    {"supplier_id": dest_id},
+                )
+                if len(claims) != len(prior_claims):
+                    raise RuntimeError(
+                        f"{p.ref}: evidence_claims patch incomplete "
+                        f"{len(claims)}/{len(prior_claims)}"
+                    )
+                for c in claims:
+                    if str(c.get("supplier_id")) != dest_id:
+                        raise RuntimeError(
+                            f"{p.ref}: evidence_claims not fully repointed"
+                        )
+            else:
+                leftover = rest.all_rows(
+                    "evidence_claims",
+                    {
+                        "select": "id,supplier_id",
+                        "subject_table": "eq.source_records",
+                        "subject_id": f"eq.{p.source_record_id}",
+                    },
+                )
+                if leftover:
+                    raise RuntimeError(
+                        f"{p.ref}: evidence_claims appeared during move — refuse"
+                    )
+            if p.set_buying_house:
+                _retag_buying_house(rest, dest_id)
+            _reconcile(rest, source_id, p.from_supplier_id, dest_id)
+            if p.ref == "general:2436":
                 assert_univogue_2436_visible_on_mother(rest)
-            except Exception:
-                _compensate_move(rest, source_id, p, dest_id)
-                raise
+        except Exception:
+            _compensate_move(rest, source_id, p, dest_id)
+            raise
 
 
 def rez117_decision_violations(ref_holders: dict[str, set[str]]) -> list[str]:
@@ -620,17 +719,16 @@ def rez117_associate_on_factory_violations(
     entity_by_slug: dict[str, str],
     member_type_by_ref: dict[str, str],
 ) -> list[str]:
-    """Associate SR on factory without founder allowlist."""
+    """Associate SR on factory without founder allowlist (scoped to the 18)."""
     lines: list[str] = []
+    decision_refs = {d.ref for d in DECISIONS}
     for ref, holders in sorted(ref_holders.items()):
-        mt = (member_type_by_ref.get(ref) or "").lower()
-        if mt not in ("associate", "") and not ref.startswith("general:"):
-            # bare associate refs are digits; general: is never associate register
-            pass
-        # Only check the 18 decision refs that are associate (non-general).
+        if ref not in decision_refs:
+            continue
         if ref.startswith("general:"):
             continue
-        if ref not in {d.ref for d in DECISIONS}:
+        mt = (member_type_by_ref.get(ref) or "associate").lower()
+        if mt not in ("associate", ""):
             continue
         if ref in ASSOCIATE_ON_FACTORY_ALLOWLIST:
             continue
@@ -677,8 +775,14 @@ def main() -> int:
     fp = fingerprint(plan)
     print_plan(plan, fp)
     if len(plan) != len(DECISIONS):
-        print(f"ERROR: plan size {len(plan)} != {len(DECISIONS)}", file=sys.stderr)
-        return 2
+        # Pre-apply dry-run must cover all 18. Residual plans after a partial
+        # apply are allowed only with --apply and a matching remainder fingerprint.
+        if not args.apply:
+            print(
+                f"ERROR: plan size {len(plan)} != {len(DECISIONS)}",
+                file=sys.stderr,
+            )
+            return 2
     if not args.apply:
         print(
             "\nDry-run only. Re-run with --apply --expect-fingerprint <sha> "
@@ -705,7 +809,6 @@ def main() -> int:
     if pending:
         print(f"ERROR: {len(pending)} moves still pending", file=sys.stderr)
         return 4
-    # Destination entity tags for retags.
     for d in DECISIONS:
         if not d.set_buying_house:
             continue
@@ -720,7 +823,7 @@ def main() -> int:
                 file=sys.stderr,
             )
             return 5
-    assert_univogue_2436_visible_on_mother(rest)
+    assert_named_counterexample_profiles(rest)
     print("apply complete.")
     return 0
 

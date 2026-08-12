@@ -2,7 +2,7 @@
 
 Mutation: **none applied yet**. Fingerprint for acceptance:
 
-`8ff592aa21d3987b7b01f1509c710a60b32ccbf7c92a8bf438c1859c1368f913`
+`7dbe53dc01e5747b5b683d0cdc9ad39592e4ec5c240c19ecf6d435cc078d5a26`
 
 Policy: Associate-register companies are buying houses (`entity_type=buying_house`). Take associate numbers off factories that are a different company; create a buying-house profile when needed.
 
@@ -34,5 +34,5 @@ Policy: Associate-register companies are buying houses (`entity_type=buying_hous
 
 ```
 PYTHONPATH=. python ops/apply_rez117_ambiguous_decisions.py --apply \
-  --expect-fingerprint 8ff592aa21d3987b7b01f1509c710a60b32ccbf7c92a8bf438c1859c1368f913
+  --expect-fingerprint 7dbe53dc01e5747b5b683d0cdc9ad39592e4ec5c240c19ecf6d435cc078d5a26
 ```
