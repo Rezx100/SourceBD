@@ -220,6 +220,25 @@ as $$
 $$;
 
 -- Ltd/Limited/PLC/Pvt/spacing only. No edit-distance (brand tickets).
+create or replace function public._queue_distinctive_mismatch(a text, b text)
+returns boolean
+language sql
+immutable
+as $$
+  select coalesce(a, '') <> ''
+     and coalesce(b, '') <> ''
+     and (
+       (a ~* '\yprinting\y') is distinct from (b ~* '\yprinting\y')
+       or (a ~* '\ypackaging\y') is distinct from (b ~* '\ypackaging\y')
+       or (a ~* '\ydyeing\y') is distinct from (b ~* '\ydyeing\y')
+       or (a ~* '\yspinning\y') is distinct from (b ~* '\yspinning\y')
+       or (a ~* '\yweaving\y') is distinct from (b ~* '\yweaving\y')
+       or (a ~* '\ywashing\y') is distinct from (b ~* '\ywashing\y')
+       or (a ~* '\yknitting\y') is distinct from (b ~* '\yknitting\y')
+       or (a ~* '\yembroidery\y') is distinct from (b ~* '\yembroidery\y')
+     );
+$$;
+
 create or replace function public._queue_legal_form_variants(a text, b text)
 returns boolean
 language plpgsql
@@ -235,14 +254,7 @@ begin
   if lower(btrim(a)) = lower(btrim(b)) then
     return true;
   end if;
-  if (a ~* '\yprinting\y') is distinct from (b ~* '\yprinting\y')
-     or (a ~* '\ypackaging\y') is distinct from (b ~* '\ypackaging\y')
-     or (a ~* '\ydyeing\y') is distinct from (b ~* '\ydyeing\y')
-     or (a ~* '\yspinning\y') is distinct from (b ~* '\yspinning\y')
-     or (a ~* '\yweaving\y') is distinct from (b ~* '\yweaving\y')
-     or (a ~* '\ywashing\y') is distinct from (b ~* '\ywashing\y')
-     or (a ~* '\yknitting\y') is distinct from (b ~* '\yknitting\y')
-     or (a ~* '\yembroidery\y') is distinct from (b ~* '\yembroidery\y') then
+  if public._queue_distinctive_mismatch(a, b) then
     return false;
   end if;
   sa := public._queue_legal_stem(coalesce(public._queue_abbrev_name(a), lower(a)));
@@ -335,7 +347,6 @@ begin
       '\(\s*factory[\s-]*[0-9]+\s*\)+\.?\s*$',
       '[-(]\s*annex(?:\s+building)?\s*\)?\.?\s*$',
       '\(\s*annex(?:\s+building)?\s*\)+\.?\s*$',
-      '\(\s*(?:woven|sw|knit|sewing)\s+unit\s*\)+\.?\s*$',
       '\s+extension\s+buildings?\.?\s*$',
       '\s*-\s*extension(?:\s+\d+)?\.?\s*$',
       '\.\s*-\s*[0-9]+\s*$',
@@ -365,9 +376,9 @@ begin
 end;
 $$;
 
--- One-shot building-paren strip. Must not run inside the 8-pass loop:
--- folding "(Washing Unit)" after trailing Unit-2 would attach
--- "Pacific Jeans Ltd. (Washing Unit) Unit-2" to Pacific Jeans.
+-- One trailing building paren only. Must not run inside the 8-pass loop
+-- and must not be global: folding "(Washing Unit) (Unit-2)" would attach
+-- that listing to Pacific Jeans.
 create or replace function public._queue_paren_building_strip(p_name text)
 returns text
 language sql
@@ -377,15 +388,16 @@ as $$
     when coalesce(p_name, '') = '' then null
     when stripped = '' then null
     when lower(stripped) = lower(btrim(p_name)) then null
+    when stripped ~ '[()]' then null
     else stripped
   end
   from (
     select btrim(
       regexp_replace(
         p_name,
-        '\(\s*[^)]*\y(?:unit|building|shed|extension)\y[^)]*\)',
+        '\(\s*[^()]*\y(?:unit|building|shed|extension)\y[^()]*\)\s*$',
         '',
-        'gi'
+        'i'
       ),
       ' -,'
     ) as stripped
@@ -419,7 +431,6 @@ begin
              and public._queue_legal_stem(s.company_name_norm)
                = public._queue_legal_stem(lower(v_base))
            )
-           or public._queue_names_same_company(s.company_name, v_base)
            or (
              length(public._queue_legal_stem(lower(v_base))) >= 6
              and length(public._queue_legal_stem(s.company_name_norm)) >= 6
@@ -428,7 +439,7 @@ begin
                length(public._queue_legal_stem(lower(v_base)))
              ) = public._queue_legal_stem(lower(v_base))
              and length(public._queue_legal_stem(s.company_name_norm))
-               - length(public._queue_legal_stem(lower(v_base))) between 0 and 2
+               - length(public._queue_legal_stem(lower(v_base))) between 0 and 1
            )
          );
   end loop;
@@ -1200,6 +1211,7 @@ revoke all on function public._queue_legal_stem(text) from public;
 revoke all on function public._queue_abbrev_name(text) from public;
 revoke all on function public._queue_slugify(text) from public;
 revoke all on function public._queue_legal_form_variants(text, text) from public;
+revoke all on function public._queue_distinctive_mismatch(text, text) from public;
 revoke all on function public._queue_brand_name_match(text, text, text, text) from public;
 revoke all on function public._queue_is_building_shaped(text) from public;
 revoke all on function public._queue_building_base_name(text) from public;

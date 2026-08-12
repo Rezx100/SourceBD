@@ -33,6 +33,17 @@ _BUILDING_PAREN_RE = re.compile(
     r"\(\s*[^)]*\b(?:unit|building|shed|extension)\b[^)]*\)",
     re.IGNORECASE,
 )
+# One trailing building paren only. A global sub would fold
+# "(Washing Unit) (Unit-2)" onto the garment mother.
+_BUILDING_PAREN_END_RE = re.compile(
+    r"\(\s*[^()]*\b(?:unit|building|shed|extension)\b[^()]*\)\s*$",
+    re.IGNORECASE,
+)
+_PROCESS_UNIT_PAREN_RE = re.compile(
+    r"\(\s*[^()]*\b(?:dyeing|embroidery|knitting|knit|packaging|"
+    r"printing|sewing|spinning|washing|weaving|woven)\b[^()]*\bunit\b[^()]*\)",
+    re.IGNORECASE,
+)
 _TRAILING_UNIT_RE = re.compile(r"\bunit(?:[\s-]+\d+)?\s*$", re.IGNORECASE)
 
 Action = Literal[
@@ -273,6 +284,22 @@ def names_are_legal_form_variants(a: str, b: str) -> bool:
     return len(sa) >= 10 and sa == sb
 
 
+def queue_building_base_name(name: str) -> str | None:
+    """Mother guess for Review. Refuses a base that folded a mill paren with another unit."""
+    base = extension_base_name(name)
+    if not base:
+        return None
+    if _PROCESS_UNIT_PAREN_RE.search(name) and not _PROCESS_UNIT_PAREN_RE.search(base):
+        remainder = _PROCESS_UNIT_PAREN_RE.sub("", name).strip(" -,")
+        if (
+            extension_base_name(remainder)
+            or paren_building_strip(remainder)
+            or _TRAILING_UNIT_RE.search(remainder)
+        ):
+            return None
+    return base
+
+
 def is_building_shaped_name(name: str) -> bool:
     """True for extension/unit/building listings, not a registered 'Unit Limited' company."""
     if not name or not str(name).strip():
@@ -284,14 +311,26 @@ def is_building_shaped_name(name: str) -> bool:
     return bool(_TRAILING_UNIT_RE.search(name.strip()))
 
 
+def paren_building_strip(name: str) -> str | None:
+    """Strip one trailing unit/building paren. Never all parens at once."""
+    if not name or not str(name).strip():
+        return None
+    stripped = _BUILDING_PAREN_END_RE.sub("", name).strip(" -,")
+    if not stripped or stripped.lower() == name.strip().lower():
+        return None
+    if "(" in stripped or ")" in stripped:
+        return None
+    return stripped
+
+
 def mother_name_candidates(name: str) -> list[str]:
     """Company-name guesses after stripping unit/building suffixes."""
     out: list[str] = []
-    base = extension_base_name(name)
+    base = queue_building_base_name(name)
     if base:
         out.append(base)
-    stripped = _BUILDING_PAREN_RE.sub("", name).strip(" -,")
-    if stripped and stripped.lower() != name.strip().lower():
+    stripped = paren_building_strip(name)
+    if stripped:
         out.append(stripped)
     return out
 
@@ -310,9 +349,9 @@ def _stem_is_register_mother(candidate: str, mother: str) -> bool:
         return False
     if sc == sm:
         return True
-    if sm.startswith(sc) and len(sm) - len(sc) <= 2:
+    if sm.startswith(sc) and len(sm) - len(sc) <= 1:
         return True
-    return sc.startswith(sm) and len(sc) - len(sm) <= 2
+    return sc.startswith(sm) and len(sc) - len(sm) <= 1
 
 
 def find_published_mother(
@@ -328,7 +367,6 @@ def find_published_mother(
                 mname = str(row.get("company_name") or "")
                 if (
                     names_are_legal_form_variants(cand, mname)
-                    or names_are_same_company(cand, mname)
                     or _stem_is_register_mother(cand, mname)
                     or row.get("slug") == make_slug(cand)
                     or row.get("company_name_norm") == normalize_company_name(cand)
@@ -703,11 +741,11 @@ def classify_brand(
         )
 
     bases: list[str] = []
-    ext_base = extension_base_name(company_name)
+    ext_base = queue_building_base_name(company_name)
     if ext_base:
         bases.append(ext_base)
-    paren_stripped = _BUILDING_PAREN_RE.sub("", company_name).strip(" -")
-    if paren_stripped and paren_stripped.lower() != company_name.strip().lower():
+    paren_stripped = paren_building_strip(company_name)
+    if paren_stripped:
         bases.append(paren_stripped)
     seen_bases: set[str] = set()
     for base in bases:

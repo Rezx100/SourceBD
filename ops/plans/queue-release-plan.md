@@ -10,10 +10,10 @@ Python dry-run is unchanged after the Review SQL repair (13 Aug 2026, later
 the same day): `(U-2)` was already a building in Python. Migration `0102`
 now uses the same extras, attaches only building-shaped ids, and requires one
 mother across both fuzzy names. Brand tickets match Ltd/Limited/slug/norm on
-two separate bases (end-anchored unit strip, and a one-shot building paren) —
+two separate bases (end-anchored unit strip, and one trailing building paren) —
 not the fuzzy mother search — so Liz Shafipur Unit attaches to Liz Fashion
-while Kenpark Unit 2, Knitex Ckl, and a mid-name mill label such as
-`(Washing Unit) Unit-2` stay held. Review matches this fingerprint.
+while Kenpark Unit 2, Knitex Ckl, and a mill label stacked with another unit
+(`(Washing Unit) (Unit-2)`) stay held. Review matches this fingerprint.
 
 Prior fingerprints `7734c386…` and `06173cde…` are void.
 

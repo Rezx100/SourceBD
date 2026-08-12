@@ -16,7 +16,7 @@ Review SQL now uses the same building extras as Python (`(U-2)`, Unit-II,
 `(Ext)`), attaches only building-shaped ids, requires one mother across
 both fuzzy names, and brand tickets match Ltd/Limited/slug/norm on two
 separate bases (Liz Shafipur Unit → Liz Fashion; Kenpark Unit 2, Knitex
-Ckl, and a mid-name mill label stay held).
+Ckl, and a mill label stacked with another unit stay held).
 Prior fingerprints `7734c386…` and `06173cde…` are void.
 `--apply` and production migration apply are not authorised. See
 `ops/plans/queue-release-plan.md`.

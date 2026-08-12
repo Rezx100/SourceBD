@@ -15,6 +15,12 @@ Module._resolveFilename = function resolveWithTestAliases(
   if (request === "server-only") {
     return path.join(__dirname, "server-only.cjs");
   }
+  if (request === "next/headers") {
+    return path.join(__dirname, "next-headers.cjs");
+  }
+  if (request === "next/cache") {
+    return path.join(__dirname, "next-cache.cjs");
+  }
   if (request.startsWith("@/")) {
     return orig.call(
       this,

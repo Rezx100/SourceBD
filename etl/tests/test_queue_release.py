@@ -15,6 +15,7 @@ Named counterexamples from production (13 Aug 2026):
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 from etl.core.queue_release import (
@@ -26,6 +27,7 @@ from etl.core.queue_release import (
     is_building_shaped_name,
     names_are_legal_form_variants,
     names_are_same_company,
+    paren_building_strip,
     pick_merge_winner,
     refuse_nested_parent,
 )
@@ -35,6 +37,134 @@ MIGRATION = REPO / "supabase" / "migrations" / "0102_admin_queue_release.sql"
 HUB = REPO / "supabase" / "migrations" / "0062_admin_queue_hub.sql"
 DECIDE_ROUTE = REPO / "app" / "api" / "v1" / "admin" / "queue" / "decide" / "route.ts"
 DECIDE_BUTTON = REPO / "components" / "admin-queue-decide-button.tsx"
+
+_SQL = MIGRATION.read_text(encoding="utf-8")
+_PAREN_END_SQL = r"\(\s*[^()]*\y(?:unit|building|shed|extension)\y[^()]*\)\s*$"
+_DISTINCTIVE = (
+    "printing",
+    "packaging",
+    "dyeing",
+    "spinning",
+    "weaving",
+    "washing",
+    "knitting",
+    "embroidery",
+)
+_PACIFIC_MOTHER = {
+    "id": "mother",
+    "slug": "pacific-jeans",
+    "company_name": "Pacific Jeans Ltd.",
+    "company_name_norm": "pacific jeans",
+}
+
+
+def _sql_fn(name: str) -> str:
+    key = f"create or replace function public.{name}"
+    return _SQL.split(key, 1)[1].split("create or replace function", 1)[0]
+
+
+def sql_paren_building_strip(name: str) -> str | None:
+    body = _sql_fn("_queue_paren_building_strip")
+    assert _PAREN_END_SQL in body
+    assert "'gi'" not in body
+    stripped = re.sub(
+        r"\(\s*[^()]*\b(?:unit|building|shed|extension)\b[^()]*\)\s*$",
+        "",
+        name,
+        count=1,
+        flags=re.I,
+    ).strip(" -,")
+    if not stripped or stripped.lower() == name.strip().lower():
+        return None
+    if re.search(r"[()]", stripped):
+        return None
+    return stripped
+
+
+def sql_abbrev_name(name: str) -> str | None:
+    body = _sql_fn("_queue_abbrev_name")
+    assert r"\yindustry\y" in body
+    n = name.lower().strip()
+    n = re.sub(r"\s*&\s*", " and ", n)
+    n = re.sub(r"\binds\.?\b", "industries", n)
+    n = re.sub(r"\bind\.?\b", "industries", n)
+    n = re.sub(r"\bindus\.?\b", "industries", n)
+    n = re.sub(r"\bindustry\b", "industries", n)
+    n = re.sub(r"[^a-z0-9\s]+", " ", n)
+    n = re.sub(r"\s+", " ", n).strip()
+    suffix = re.compile(
+        r"\s+(ltd|lts|limited|plc|pvt|private|co|company|corp|"
+        r"corporation|inc|incorporated|llc|llp)\s*$",
+        re.I,
+    )
+    for _ in range(4):
+        nxt = suffix.sub("", n).strip()
+        if nxt == n:
+            break
+        n = nxt
+    return n or None
+
+
+def sql_legal_stem(name: str) -> str:
+    n = re.sub(r"[^a-z0-9\s]+", " ", name.lower()).strip()
+    n = re.sub(r"\s+", " ", n)
+    stop = {"and", "bangladesh", "bd", "co", "company", "limited", "ltd", "plc", "private", "pvt", "the"}
+    parts = []
+    for tok in n.split():
+        if not tok or tok in stop:
+            continue
+        if len(tok) > 4 and tok.endswith("s"):
+            tok = tok[:-1]
+        parts.append(tok)
+    return "".join(parts)
+
+
+def sql_legal_form_variants(a: str, b: str) -> bool:
+    assert "_queue_abbrev_name" in _sql_fn("_queue_legal_form_variants")
+    if not a or not b:
+        return False
+    if a.strip().lower() == b.strip().lower():
+        return True
+    for tok in _DISTINCTIVE:
+        if bool(re.search(rf"\b{tok}\b", a, re.I)) != bool(
+            re.search(rf"\b{tok}\b", b, re.I)
+        ):
+            return False
+    sa = sql_legal_stem(sql_abbrev_name(a) or a.lower())
+    sb = sql_legal_stem(sql_abbrev_name(b) or b.lower())
+    return len(sa) >= 10 and sa == sb
+
+
+def sql_distinctive_mismatch(a: str, b: str) -> bool:
+    assert "_queue_distinctive_mismatch" in _SQL
+    for tok in _DISTINCTIVE:
+        if bool(re.search(rf"\b{tok}\b", a, re.I)) != bool(
+            re.search(rf"\b{tok}\b", b, re.I)
+        ):
+            return True
+    return False
+
+
+def sql_brand_facility_action(brand_name: str, mother_name: str) -> str:
+    """Review SQL brand-building destination without applying 0102."""
+    brand = _sql_fn("admin_queue_release_plan")
+    brand = brand.split("if q.queue_type::text = 'brand_disclosure_match_review'", 1)[1]
+    assert "_queue_paren_building_strip(public._queue_building_base_name" not in _SQL
+    from etl.core.queue_release import queue_building_base_name
+
+    bases = []
+    ext = queue_building_base_name(brand_name)
+    if ext:
+        bases.append(ext)
+    stripped = sql_paren_building_strip(brand_name)
+    if stripped:
+        bases.append(stripped)
+    for base in bases:
+        if sql_legal_form_variants(mother_name, base) or (
+            sql_abbrev_name(base) == sql_abbrev_name(mother_name)
+        ):
+            return "attach_facility"
+    return "needs_human"
 
 
 def test_typo_and_plural_are_same_company():
@@ -509,6 +639,20 @@ def test_brand_shafipur_unit_attaches_to_liz_fashion():
     assert plan.action == "attach_facility"
     assert plan.parent_id == "55c13ea8"
     assert plan.child_id == "30db28d1"
+    assert (
+        sql_brand_facility_action(
+            "Liz Fashion Industry Limited (Shafipur Unit)",
+            "LIZ FASHION INDUSTRY LIMITED",
+        )
+        == "attach_facility"
+    )
+    assert (
+        sql_brand_facility_action(
+            "Liz Fashion Industry Limited (Shafipur Unit)",
+            "LIZ FASHION INDUSTRIES LIMITED",
+        )
+        == "attach_facility"
+    )
 
 
 def test_building_extras_are_shaped_and_bare_unit_is_not_a_mother_candidate():
@@ -576,11 +720,20 @@ def test_sql_brand_and_unique_mother_are_wired():
     paren_fn = sql.split(
         "create or replace function public._queue_paren_building_strip", 1
     )[1].split("create or replace function public._queue_mother_hits", 1)[0]
-    assert r"\(\s*[^)]*\y(?:unit|building|shed|extension)\y[^)]*\)" in paren_fn
+    assert _PAREN_END_SQL in paren_fn
+    assert "'gi'" not in paren_fn
+    assert "stripped ~ '[()]'" in paren_fn
+    hits_fn = sql.split("create or replace function public._queue_mother_hits", 1)[1]
+    hits_fn = hits_fn.split("create or replace function public._queue_find_mother", 1)[0]
+    assert "_queue_names_same_company" not in hits_fn
+    assert "between 0 and 1" in hits_fn
+    assert "between 0 and 2" not in hits_fn
     lfv = sql.split("create or replace function public._queue_legal_form_variants", 1)[
         1
-    ].split("create or replace function public._queue_brand_name_match", 1)[0]
+    ].split("create or replace function public._queue_distinctive_mismatch", 1)[0]
     assert "_queue_abbrev_name" in lfv
+    assert "_queue_paren_building_strip(public._queue_building_base_name" not in sql
+    assert "_queue_distinctive_mismatch" in lfv
 
 
 def test_brand_only_unmatched_stays_hidden():
@@ -771,23 +924,86 @@ def test_brand_industry_vs_industries_is_legal_form():
         "Liz Fashion Industry Limited",
         "LIZ FASHION INDUSTRIES LIMITED",
     )
+    assert sql_legal_form_variants(
+        "Liz Fashion Industry Limited",
+        "LIZ FASHION INDUSTRIES LIMITED",
+    )
 
 
 def test_brand_washing_unit_then_unit_2_needs_human():
-    plan = classify_brand(
-        queue_id="pacific-washing-unit-2",
-        supplier_id="child",
-        company_name="Pacific Jeans Ltd. (Washing Unit) Unit-2",
-        is_published=False,
-        is_facility=False,
-        facility_of=None,
-        tier13_count=0,
+    names = (
+        "Pacific Jeans Ltd. (Washing Unit) Unit-2",
+        "Pacific Jeans Ltd. (Washing Unit) (Unit-2)",
+        "Pacific Jeans Ltd. (Washing Unit) (Unit 2)",
+        "Pacific Jeans Ltd. (Washing Unit) (Building 5)",
+        "Pacific Jeans Ltd. (Building 5) Unit-2",
+        "Pacific Jeans Ltd. (Building 5) (Unit-2)",
+        "Pacific Jeans Ltd. (Unit (Building 5))",
+        "Pacific Jeans Ltd. (Knit Unit) Unit-2",
+    )
+    for company_name in names:
+        plan = classify_brand(
+            queue_id="pacific-fold",
+            supplier_id="child",
+            company_name=company_name,
+            is_published=False,
+            is_facility=False,
+            facility_of=None,
+            tier13_count=0,
+            published_matches=[_PACIFIC_MOTHER],
+        )
+        assert plan.action == "needs_human", company_name
+        assert sql_brand_facility_action(company_name, "Pacific Jeans Ltd.") == (
+            "needs_human"
+        ), company_name
+        stripped = paren_building_strip(company_name)
+        if stripped:
+            assert stripped != "Pacific Jeans Ltd.", company_name
+        sql_stripped = sql_paren_building_strip(company_name)
+        if sql_stripped:
+            assert sql_stripped != "Pacific Jeans Ltd.", company_name
+
+
+def test_fuzzy_kenpark_unit_2_does_not_attach_to_k3():
+    plan = classify_fuzzy(
+        queue_id="5d17c2ce-2a0a-4615-8a8a-c3c5c4707505",
+        cert_id="dd738823",
+        target_id="89652ef0",
+        cert_name="Kenpark Bangladesh Apparel Pvt. Ltd. (Unit 2)",
+        target_name="Kenpark Bangladesh Apparel (Pvt.) Ltd (K-3)",
+        cert_has_rsc=False,
+        target_has_rsc=False,
+        cert_is_facility=False,
+        target_is_facility=False,
         published_matches=[
             {
-                "id": "mother",
-                "slug": "pacific-jeans",
-                "company_name": "Pacific Jeans Ltd.",
-                "company_name_norm": "pacific jeans",
+                "id": "89652ef0",
+                "slug": "kenpark-k3",
+                "company_name": "Kenpark Bangladesh Apparel (Pvt.) Ltd (K-3)",
+                "company_name_norm": "kenpark bangladesh apparel pvt ltd k 3",
+            }
+        ],
+    )
+    assert plan.action == "needs_human"
+
+
+def test_fuzzy_ckl_unit_does_not_attach_to_cmt_sister():
+    plan = classify_fuzzy(
+        queue_id="33cbb2d5-5fe8-4a3f-a27f-0e269e99632e",
+        cert_id="04742eea",
+        target_id="3e8db214",
+        cert_name="Consumer Knitex Limited (Ckl) – Unit 01",
+        target_name="Consumer Knitex Limited (CMT Bangladesh)",
+        cert_has_rsc=False,
+        target_has_rsc=False,
+        cert_is_facility=False,
+        target_is_facility=False,
+        published_matches=[
+            {
+                "id": "3e8db214",
+                "slug": "consumer-knitex-cmt",
+                "company_name": "Consumer Knitex Limited (CMT Bangladesh)",
+                "company_name_norm": "consumer knitex cmt bangladesh",
             }
         ],
     )
@@ -901,7 +1117,7 @@ def test_migration_decide_mutates_suppliers_not_only_the_ticket():
     assert "create or replace function public._queue_abbrev_name" in sql
     lfv = sql.split("create or replace function public._queue_legal_form_variants", 1)[
         1
-    ].split("create or replace function public._queue_brand_name_match", 1)[0]
+    ].split("create or replace function public._queue_distinctive_mismatch", 1)[0]
     assert "_queue_abbrev_name" in lfv
 
 
@@ -949,8 +1165,11 @@ def test_http_approve_is_rejected():
     route_test = DECIDE_ROUTE.with_name("route.test.ts").read_text(encoding="utf-8")
     assert 'import { POST } from "./route"' in route_test
     assert 'decision: "approve"' in route_test
+    assert 'decision: "release"' in route_test
     assert "res.status, 400" in route_test
+    assert "res.status, 200" in route_test
     assert "rpcCalls.length, 0" in route_test
+    assert "admin_queue_decide" in route_test
 
 
 def test_sql_absorb_skips_unique_source_collision():
