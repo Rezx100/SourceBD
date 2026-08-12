@@ -156,6 +156,38 @@ as $$
      );
 $$;
 
+-- Ltd/Limited/PLC/Pvt/spacing only. No edit-distance (brand tickets).
+create or replace function public._queue_legal_form_variants(a text, b text)
+returns boolean
+language plpgsql
+immutable
+as $$
+declare
+  sa text;
+  sb text;
+begin
+  if coalesce(a, '') = '' or coalesce(b, '') = '' then
+    return false;
+  end if;
+  if lower(btrim(a)) = lower(btrim(b)) then
+    return true;
+  end if;
+  if (a ~* '\yprinting\y') is distinct from (b ~* '\yprinting\y')
+     or (a ~* '\ypackaging\y') is distinct from (b ~* '\ypackaging\y')
+     or (a ~* '\ydyeing\y') is distinct from (b ~* '\ydyeing\y')
+     or (a ~* '\yspinning\y') is distinct from (b ~* '\yspinning\y')
+     or (a ~* '\yweaving\y') is distinct from (b ~* '\yweaving\y')
+     or (a ~* '\ywashing\y') is distinct from (b ~* '\ywashing\y')
+     or (a ~* '\yknitting\y') is distinct from (b ~* '\yknitting\y')
+     or (a ~* '\yembroidery\y') is distinct from (b ~* '\yembroidery\y') then
+    return false;
+  end if;
+  sa := public._queue_legal_stem(lower(a));
+  sb := public._queue_legal_stem(lower(b));
+  return length(sa) >= 10 and sa = sb;
+end;
+$$;
+
 -- Queue-local building predicate. Must not alter rsc_extension_base_name
 -- (IMMUTABLE, indexed by 0055/0056). Ports Python extension_base_name extras
 -- so Review treats (U-2) / Unit-II / (Ext) as buildings, not companies.
@@ -195,52 +227,59 @@ language plpgsql
 immutable
 as $$
 declare
-  v_base text;
+  v_cur text;
   v_next text;
+  v_rsc text;
   v_pat text;
+  i int;
 begin
   if coalesce(p_name, '') = '' then
     return null;
   end if;
-  v_base := public.rsc_extension_base_name(p_name);
-  if v_base is not null then
-    return v_base;
-  end if;
-  foreach v_pat in array array[
-    '\(\s*u[\s-]*[0-9]+\s*\)+\.?\s*$',
-    '\s+u[\s-]+[0-9]+\.?\s*$',
-    '-?\s*unit[\s-]+[ivxlcdm]+\.?\s*$',
-    '\(\s*ext\s*\)+\.?\s*$',
-    '\(\s*unit[\s-]*[0-9]+\s*\)+\.?\s*$',
-    '\(\s*factory[\s-]*[0-9]+\s*\)+\.?\s*$',
-    '[-(]\s*annex(?:\s+building)?\s*\)?\.?\s*$',
-    '\(\s*annex(?:\s+building)?\s*\)+\.?\s*$',
-    '\(\s*[^)]*\y(?:unit|building|shed|extension)\y[^)]*\)',
-    '\(\s*(?:woven|sw|knit|sewing)\s+unit\s*\)+\.?\s*$',
-    '\s+extension\s+buildings?\.?\s*$',
-    '\s*-\s*extension(?:\s+\d+)?\.?\s*$',
-    '\.\s*-\s*[0-9]+\s*$',
-    '\s*[-(]?\s*relocated\s*\)?\.?\s*$',
-    '\s*[-(]?\s*extended\s+buildings?\s*\)?\.?\s*$',
-    '\s*[-(]?\s*new\s+shed\s*\)?\.?\s*$',
-    '\s*\[\s*(?:new\s+)?(?:building|buildings|extension)s?\s*\]+\.?\s*$',
-    '\s*-?\s*unit[\s-]+[0-9]+(\s*[,-]\s*[0-9]+)*\s*$'
-  ] loop
-    v_next := nullif(btrim(regexp_replace(p_name, v_pat, '', 'i'), ' -,'), '');
-    if v_next is not null and v_next is distinct from btrim(p_name) then
-      return v_next;
+  v_cur := btrim(p_name);
+  for i in 1..8 loop
+    v_next := v_cur;
+    v_rsc := public.rsc_extension_base_name(v_next);
+    if v_rsc is not null then
+      v_next := v_rsc;
     end if;
+    foreach v_pat in array array[
+      '\(\s*u[\s-]*[0-9]+\s*\)+\.?\s*$',
+      '\s+u[\s-]+[0-9]+\.?\s*$',
+      '-?\s*unit[\s-]+[ivxlcdm]+\.?\s*$',
+      '\(\s*ext\s*\)+\.?\s*$',
+      '\(\s*unit[\s-]*[0-9]+\s*\)+\.?\s*$',
+      '\(\s*factory[\s-]*[0-9]+\s*\)+\.?\s*$',
+      '[-(]\s*annex(?:\s+building)?\s*\)?\.?\s*$',
+      '\(\s*annex(?:\s+building)?\s*\)+\.?\s*$',
+      '\(\s*[^)]*\y(?:unit|building|shed|extension)\y[^)]*\)',
+      '\(\s*(?:woven|sw|knit|sewing)\s+unit\s*\)+\.?\s*$',
+      '\s+extension\s+buildings?\.?\s*$',
+      '\s*-\s*extension(?:\s+\d+)?\.?\s*$',
+      '\.\s*-\s*[0-9]+\s*$',
+      '\s*[-(]?\s*relocated\s*\)?\.?\s*$',
+      '\s*[-(]?\s*extended\s+buildings?\s*\)?\.?\s*$',
+      '\s*[-(]?\s*new\s+shed\s*\)?\.?\s*$',
+      '\s*\[\s*(?:new\s+)?(?:building|buildings|extension)s?\s*\]+\.?\s*$',
+      '\s*-?\s*unit[\s-]+[0-9]+(\s*[,-]\s*[0-9]+)*\s*$'
+    ] loop
+      v_next := btrim(regexp_replace(v_next, v_pat, '', 'i'), ' -,');
+    end loop;
+    v_next := btrim(regexp_replace(
+      v_next,
+      '([A-Za-z])New\s+Buildings?\.?\s*$',
+      '\1',
+      'i'
+    ));
+    if v_next is not distinct from v_cur or v_next = '' then
+      exit;
+    end if;
+    v_cur := v_next;
   end loop;
-  v_next := nullif(btrim(regexp_replace(
-    p_name,
-    '([A-Za-z])New\s+Buildings?\.?\s*$',
-    '\1',
-    'i'
-  )), '');
-  if v_next is not null and v_next is distinct from btrim(p_name) then
-    return v_next;
+  if v_cur is not distinct from btrim(p_name) or v_cur = '' then
+    return null;
   end if;
-  return null;
+  return v_cur;
 end;
 $$;
 
@@ -662,12 +701,7 @@ begin
          and not public._queue_is_building_shaped(s.company_name)
          and (
            s.company_name_norm = brand.company_name_norm
-           or public._queue_names_same_company(s.company_name, brand.company_name)
-           or (
-             length(public._queue_legal_stem(s.company_name_norm)) >= 10
-             and public._queue_legal_stem(s.company_name_norm)
-               = public._queue_legal_stem(brand.company_name_norm)
-           )
+           or public._queue_legal_form_variants(s.company_name, brand.company_name)
          );
       if v_match_n = 1 then
         select s.id into v_match
@@ -678,12 +712,7 @@ begin
            and not public._queue_is_building_shaped(s.company_name)
            and (
              s.company_name_norm = brand.company_name_norm
-             or public._queue_names_same_company(s.company_name, brand.company_name)
-             or (
-               length(public._queue_legal_stem(s.company_name_norm)) >= 10
-               and public._queue_legal_stem(s.company_name_norm)
-                 = public._queue_legal_stem(brand.company_name_norm)
-             )
+             or public._queue_legal_form_variants(s.company_name, brand.company_name)
            );
         return jsonb_build_object(
           'action', 'attach_brand',
@@ -702,14 +731,30 @@ begin
     end if;
 
     if public._queue_is_building_shaped(brand.company_name) then
-      v_match := public._queue_find_mother(brand.company_name);
-      if v_match is not null then
-        return jsonb_build_object(
-          'action', 'attach_facility',
-          'parent_id', v_match,
-          'child_id', brand.id,
-          'buyer_destination', 'Unit/building attaches to the published mother'
-        );
+      v_base := public._queue_building_base_name(brand.company_name);
+      if v_base is not null then
+        select count(*) into v_match_n
+          from public.suppliers s
+         where s.is_published
+           and s.facility_of is null
+           and s.id is distinct from brand.id
+           and not public._queue_is_building_shaped(s.company_name)
+           and public._queue_legal_form_variants(s.company_name, v_base);
+        if v_match_n = 1 then
+          select s.id into v_match
+            from public.suppliers s
+           where s.is_published
+             and s.facility_of is null
+             and s.id is distinct from brand.id
+             and not public._queue_is_building_shaped(s.company_name)
+             and public._queue_legal_form_variants(s.company_name, v_base);
+          return jsonb_build_object(
+            'action', 'attach_facility',
+            'parent_id', v_match,
+            'child_id', brand.id,
+            'buyer_destination', 'Unit/building attaches to the published mother'
+          );
+        end if;
       end if;
     end if;
 
@@ -1026,6 +1071,7 @@ revoke all on function public._queue_edit_distance(text, text) from public;
 revoke all on function public._queue_compact_name(text) from public;
 revoke all on function public._queue_names_same_company(text, text) from public;
 revoke all on function public._queue_legal_stem(text) from public;
+revoke all on function public._queue_legal_form_variants(text, text) from public;
 revoke all on function public._queue_is_building_shaped(text) from public;
 revoke all on function public._queue_building_base_name(text) from public;
 revoke all on function public._queue_mother_hits(text) from public;

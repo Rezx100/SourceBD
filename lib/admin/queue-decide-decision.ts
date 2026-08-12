@@ -80,3 +80,19 @@ export async function executeQueueDecide(opts: {
   }
   return { status: 200, json: data };
 }
+
+/** HTTP Request → Response for POST /api/v1/admin/queue/decide. */
+export async function queueDecideFromRequest(
+  req: Request,
+  role: string | null,
+  rpc: QueueDecideRpc,
+): Promise<Response> {
+  let body: unknown;
+  try {
+    body = await req.json();
+  } catch {
+    return Response.json({ error: "invalid json" }, { status: 400 });
+  }
+  const result = await executeQueueDecide({ role, body, rpc });
+  return Response.json(result.json, { status: result.status });
+}

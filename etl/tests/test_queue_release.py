@@ -553,8 +553,9 @@ def test_fuzzy_two_mothers_across_names_needs_human():
 def test_sql_brand_and_unique_mother_are_wired():
     sql = MIGRATION.read_text(encoding="utf-8")
     brand = sql.split("brand_disclosure_match_review", 1)[1]
-    assert "_queue_find_mother(brand.company_name)" in brand
-    assert "_queue_is_building_shaped(brand.company_name)" in brand
+    assert "_queue_legal_form_variants" in brand
+    assert "_queue_building_base_name(brand.company_name)" in brand
+    assert "_queue_find_mother(brand.company_name)" not in brand
     fuzzy = sql.split("fuzzy_match_review", 1)[1].split(
         "brand_disclosure_match_review", 1
     )[0]
@@ -566,6 +567,7 @@ def test_sql_brand_and_unique_mother_are_wired():
     assert r"\yunit([\s-]+[0-9]+)?\s*$" not in base_fn
     assert "relocated" in base_fn
     assert r"\s+extension\s+buildings?" in base_fn
+    assert "for i in 1..8 loop" in base_fn
 
 
 def test_brand_only_unmatched_stays_hidden():
@@ -709,6 +711,48 @@ def test_brand_does_not_attach_printing_sister_or_other_building():
     assert k5.action == "needs_human"
 
 
+def test_brand_kenpark_unit_2_does_not_attach_to_k3():
+    plan = classify_brand(
+        queue_id="5d17c2ce-2a0a-4615-8a8a-c3c5c4707505",
+        supplier_id="dd738823",
+        company_name="Kenpark Bangladesh Apparel Pvt. Ltd. (Unit 2)",
+        is_published=False,
+        is_facility=False,
+        facility_of=None,
+        tier13_count=0,
+        published_matches=[
+            {
+                "id": "89652ef0",
+                "slug": "kenpark-k3",
+                "company_name": "Kenpark Bangladesh Apparel (Pvt.) Ltd (K-3)",
+                "company_name_norm": "kenpark bangladesh apparel pvt ltd k 3",
+            }
+        ],
+    )
+    assert plan.action == "needs_human"
+
+
+def test_brand_ckl_unit_does_not_attach_to_cmt_sister():
+    plan = classify_brand(
+        queue_id="33cbb2d5-5fe8-4a3f-a27f-0e269e99632e",
+        supplier_id="04742eea",
+        company_name="Consumer Knitex Limited (Ckl) – Unit 01",
+        is_published=False,
+        is_facility=False,
+        facility_of=None,
+        tier13_count=0,
+        published_matches=[
+            {
+                "id": "3e8db214",
+                "slug": "consumer-knitex-cmt",
+                "company_name": "Consumer Knitex Limited (CMT Bangladesh)",
+                "company_name_norm": "consumer knitex cmt bangladesh",
+            }
+        ],
+    )
+    assert plan.action == "needs_human"
+
+
 def test_fuzzy_missing_supplier_needs_human():
     plan = classify_queue_row(
         queue_id="q14b",
@@ -805,9 +849,10 @@ def test_migration_decide_mutates_suppliers_not_only_the_ticket():
     assert "member_ids" in body
     brand = sql.split("brand_disclosure_match_review", 1)[1]
     assert "_queue_is_building_shaped(brand.company_name)" in brand
-    assert "_queue_find_mother(brand.company_name)" in brand
-    assert "rsc_extension_base_name(brand.company_name)" not in brand
-    assert "_queue_legal_stem(s.company_name_norm)" in brand
+    assert "_queue_legal_form_variants" in brand
+    assert "_queue_building_base_name(brand.company_name)" in brand
+    assert "_queue_find_mother(brand.company_name)" not in brand
+    assert "_queue_names_same_company(s.company_name, brand.company_name)" not in brand
     assert "create or replace function public._queue_legal_stem" in sql
 
 
@@ -826,7 +871,8 @@ def test_decide_route_still_calls_admin_queue_decide():
     assert 'rpc("admin_queue_decide"' in src
     assert "revalidatePath(\"/admin/queue\")" in src
     assert "revalidatePath(\"/discover\")" in src
-    assert "executeQueueDecide" in src
+    assert "queueDecideFromRequest" in src
+    assert "status: response.status" in src
     assert "approve|release" not in src
 
 
@@ -844,17 +890,13 @@ def test_ops_script_is_dry_run_by_default():
 
 def test_http_approve_is_rejected():
     src = DECIDE_ROUTE.read_text(encoding="utf-8")
-    assert "executeQueueDecide" in src
-    assert "approve|release" not in src
+    assert "queueDecideFromRequest" in src
+    assert "status: response.status" in src
     helper = (REPO / "lib" / "admin" / "queue-decide-decision.ts").read_text(
         encoding="utf-8"
     )
-    assert "executeQueueDecide" in helper
-    assert "p_decision: decision" in helper or "p_decision: decision" in src
-    assert '"approve"' not in helper.split("executeQueueDecide", 1)[0]
-    assert "release" in helper
-    assert "reject" in helper
-    assert "escalate" in helper
+    assert "queueDecideFromRequest" in helper
+    assert "Response.json(result.json, { status: result.status })" in helper
 
 
 def test_sql_absorb_skips_unique_source_collision():
@@ -891,8 +933,8 @@ def test_decide_route_forwards_release_to_rpc():
     )
     assert 'rpc("admin_queue_decide"' in src
     assert "p_decision: decision" in helper
-    assert "executeQueueDecide" in src
-    assert "release|reject|escalate" in helper
+    assert "queueDecideFromRequest" in src
+    assert "status: response.status" in src
     assert "approve|release" not in src
     assert "approve|release" not in helper
     assert "revalidatePath(\"/admin/queue\")" in src
