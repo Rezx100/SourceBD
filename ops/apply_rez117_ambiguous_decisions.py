@@ -31,6 +31,9 @@ from etl.core.normalize import make_slug, normalize_company_name  # noqa: E402
 
 SNAPSHOT_DIR = Path(__file__).resolve().parent / "plans"
 NAMES_PATH = SNAPSHOT_DIR / "bgmea-names.json"
+ACCEPTED_FINGERPRINT = (
+    "8ff592aa21d3987b7b01f1509c710a60b32ccbf7c92a8bf438c1859c1368f913"
+)
 
 Action = Literal["stay", "stay_retag", "move", "move_retag", "import_move"]
 
@@ -75,6 +78,9 @@ DECISIONS: tuple[Decision, ...] = (
         "unpublished building; mother must show building_name",
     ),
 )
+
+# Associate refs allowed to remain on a factory host (founder STAY, no retag).
+ASSOCIATE_ON_FACTORY_ALLOWLIST: frozenset[str] = frozenset({"679", "1398"})
 
 
 class Rest:
@@ -151,6 +157,9 @@ class PlannedItem:
     identity: str
     set_buying_house: bool
     notes: str
+    to_is_published: bool | None = None
+    to_facility_of: str | None = None
+    mother_slug: str | None = None
 
 
 def fingerprint(plan: list[PlannedItem]) -> str:
@@ -164,6 +173,9 @@ def fingerprint(plan: list[PlannedItem]) -> str:
             "to_supplier_id": p.to_supplier_id,
             "create_name": p.create_name,
             "set_buying_house": p.set_buying_house,
+            "to_is_published": p.to_is_published,
+            "to_facility_of": p.to_facility_of,
+            "mother_slug": p.mother_slug,
         }
         for p in sorted(plan, key=lambda x: x.ref)
     ]
@@ -225,15 +237,63 @@ def _identities(rest: Rest, source_id: str, supplier_id: str) -> list[str]:
     return sorted(set(out))
 
 
-def _unique_slug(rest: Rest, base: str) -> str:
-    slug = base
-    n = 2
-    while True:
-        hit = rest.one("suppliers", {"select": "id", "slug": f"eq.{slug}"})
-        if not hit:
-            return slug
-        slug = f"{base}-{n}"
-        n += 1
+def _locked_columns(rest: Rest, supplier_id: str) -> set[str]:
+    rows = rest.all_rows(
+        "supplier_field_locks",
+        {
+            "select": "column_name",
+            "supplier_id": f"eq.{supplier_id}",
+            "released_at": "is.null",
+        },
+    )
+    return {str(r["column_name"]) for r in rows if r.get("column_name")}
+
+
+def _decision_dest_slug(d: Decision) -> str:
+    if d.action in ("stay", "stay_retag"):
+        return d.from_slug
+    if d.action in ("move", "move_retag"):
+        assert d.to_slug
+        return d.to_slug
+    return make_slug(d.registered_name)
+
+
+def _gate_univogue_unit2(rest: Rest, dest: dict) -> tuple[str, str]:
+    """Return (facility_of, mother_slug). Raise if attachment is wrong."""
+    facility_of = dest.get("facility_of")
+    if not facility_of:
+        raise RuntimeError(
+            "general:2436 destination must be an attached facility (facility_of required)"
+        )
+    mother = rest.one(
+        "suppliers",
+        {"select": "id,slug,is_published", "id": f"eq.{facility_of}"},
+    )
+    if not mother or not mother.get("is_published"):
+        raise RuntimeError("general:2436: destination facility mother missing/unpublished")
+    if mother["slug"] != "univogue-garments":
+        raise RuntimeError("general:2436 destination mother must be univogue-garments")
+    if dest.get("is_published"):
+        raise RuntimeError("general:2436 destination must remain unpublished building")
+    return str(facility_of), str(mother["slug"])
+
+
+def assert_univogue_2436_visible_on_mother(rest: Rest) -> None:
+    payload = rest.rpc_json(
+        "buyer_supplier_profile", {"p_slug": "univogue-garments"}
+    )
+    pills = payload.get("pills") or []
+    ok = [
+        x
+        for x in pills
+        if x.get("source_code") == "BGMEA"
+        and str(x.get("value")) == "2436"
+        and x.get("building_name")
+    ]
+    if not ok:
+        raise RuntimeError(
+            "POST-APPLY: univogue-garments missing BGMEA 2436 with building_name"
+        )
 
 
 def build_plan(rest: Rest) -> list[PlannedItem]:
@@ -242,23 +302,62 @@ def build_plan(rest: Rest) -> list[PlannedItem]:
     for d in DECISIONS:
         sr = _active_sr(rest, source_id, d.ref)
         host = _supplier(rest, d.from_slug)
+        dest_row: dict | None = None
         if str(sr["supplier_id"]) != str(host["id"]):
             if d.to_slug:
-                dest = _supplier(rest, d.to_slug)
-                if str(sr["supplier_id"]) == str(dest["id"]):
+                dest_row = _supplier(rest, d.to_slug)
+                if str(sr["supplier_id"]) == str(dest_row["id"]):
+                    # Already on destination — still plan a retag if needed.
+                    if d.set_buying_house and dest_row.get("entity_type") != "buying_house":
+                        plan.append(
+                            PlannedItem(
+                                ref=d.ref,
+                                action="stay_retag",
+                                source_record_id=str(sr["id"]),
+                                source_id=source_id,
+                                from_supplier_id=str(dest_row["id"]),
+                                from_slug=d.to_slug,
+                                to_supplier_id=str(dest_row["id"]),
+                                to_slug=d.to_slug,
+                                to_exists=True,
+                                create_name=None,
+                                identity=identity_from_source_record(sr) or "",
+                                set_buying_house=True,
+                                notes="idempotent retag after prior move",
+                                to_is_published=bool(dest_row.get("is_published")),
+                            )
+                        )
                     continue
             if d.action == "import_move":
-                # Already moved onto an imported row — treat as done.
                 holder = rest.one(
                     "suppliers",
                     {
-                        "select": "id,slug,company_name",
+                        "select": "id,slug,company_name,entity_type,is_published",
                         "id": f"eq.{sr['supplier_id']}",
                     },
                 )
                 if holder and normalize_company_name(
                     holder.get("company_name") or ""
                 ) == normalize_company_name(d.registered_name):
+                    if d.set_buying_house and holder.get("entity_type") != "buying_house":
+                        plan.append(
+                            PlannedItem(
+                                ref=d.ref,
+                                action="stay_retag",
+                                source_record_id=str(sr["id"]),
+                                source_id=source_id,
+                                from_supplier_id=str(holder["id"]),
+                                from_slug=str(holder["slug"]),
+                                to_supplier_id=str(holder["id"]),
+                                to_slug=str(holder["slug"]),
+                                to_exists=True,
+                                create_name=None,
+                                identity=identity_from_source_record(sr) or "",
+                                set_buying_house=True,
+                                notes="idempotent retag after prior import",
+                                to_is_published=bool(holder.get("is_published")),
+                            )
+                        )
                     continue
             raise RuntimeError(
                 f"{d.ref}: expected on {d.from_slug}, found supplier_id={sr['supplier_id']}"
@@ -271,29 +370,51 @@ def build_plan(rest: Rest) -> list[PlannedItem]:
         to_id: str | None = None
         to_exists = False
         create_name: str | None = None
+        to_is_published: bool | None = None
+        to_facility_of: str | None = None
+        mother_slug: str | None = None
+
         if d.action in ("stay", "stay_retag"):
             to_slug = d.from_slug
             to_id = str(host["id"])
             to_exists = True
+            to_is_published = bool(host.get("is_published"))
         elif d.action in ("move", "move_retag"):
             assert d.to_slug
-            dest = _supplier(rest, d.to_slug)
+            dest = dest_row or _supplier(rest, d.to_slug)
             to_slug = d.to_slug
             to_id = str(dest["id"])
             to_exists = True
+            to_is_published = bool(dest.get("is_published"))
+            if d.ref == "general:2436":
+                to_facility_of, mother_slug = _gate_univogue_unit2(rest, dest)
+            elif dest.get("facility_of"):
+                to_facility_of = str(dest["facility_of"])
         elif d.action == "import_move":
             create_name = d.registered_name
             to_slug = make_slug(d.registered_name)
             existing = rest.one(
                 "suppliers",
-                {"select": "id,slug,entity_type", "slug": f"eq.{to_slug}"},
+                {
+                    "select": "id,slug,entity_type,company_name,is_published",
+                    "slug": f"eq.{to_slug}",
+                },
             )
             if existing:
+                if normalize_company_name(
+                    existing.get("company_name") or ""
+                ) != normalize_company_name(d.registered_name):
+                    raise RuntimeError(
+                        f"{d.ref}: slug {to_slug!r} occupied by "
+                        f"{existing.get('company_name')!r} — refuse import_move"
+                    )
                 to_id = str(existing["id"])
                 to_exists = True
                 to_slug = existing["slug"]
+                to_is_published = bool(existing.get("is_published"))
             else:
                 to_exists = False
+                to_is_published = True
         else:
             raise RuntimeError(f"unknown action {d.action}")
 
@@ -312,6 +433,9 @@ def build_plan(rest: Rest) -> list[PlannedItem]:
                 identity=ident,
                 set_buying_house=d.set_buying_house,
                 notes=d.notes,
+                to_is_published=to_is_published,
+                to_facility_of=to_facility_of,
+                mother_slug=mother_slug,
             )
         )
     return plan
@@ -321,6 +445,11 @@ def _reconcile(rest: Rest, source_id: str, *supplier_ids: str) -> None:
     for sid in sorted(set(supplier_ids)):
         if not sid:
             continue
+        locked = _locked_columns(rest, sid)
+        if "bgmea_reg_numbers" in locked:
+            raise RuntimeError(
+                f"supplier {sid} has bgmea_reg_numbers locked — cannot reconcile"
+            )
         identities = _identities(rest, source_id, sid)
         patched = rest.patch(
             "suppliers",
@@ -329,14 +458,42 @@ def _reconcile(rest: Rest, source_id: str, *supplier_ids: str) -> None:
         )
         if not patched:
             raise RuntimeError(f"failed bgmea_reg_numbers write for {sid}")
+        held = [str(x) for x in (patched[0].get("bgmea_reg_numbers") or [])]
+        if sorted(held) != identities:
+            raise RuntimeError(
+                f"bgmea_reg_numbers mismatch after write on {sid}: "
+                f"held={held} derived={identities}"
+            )
 
 
 def _retag_buying_house(rest: Rest, supplier_id: str) -> None:
-    rest.patch(
+    patched = rest.patch(
         "suppliers",
         {"id": f"eq.{supplier_id}"},
         {"entity_type": "buying_house"},
     )
+    if not patched or patched[0].get("entity_type") != "buying_house":
+        raise RuntimeError(f"failed to retag buying_house on {supplier_id}")
+
+
+def _compensate_move(
+    rest: Rest, source_id: str, p: PlannedItem, dest_id: str
+) -> None:
+    """Best-effort reverse of one move after a mid-apply failure."""
+    rest.patch(
+        "source_records",
+        {"id": f"eq.{p.source_record_id}"},
+        {"supplier_id": p.from_supplier_id},
+    )
+    rest.patch(
+        "evidence_claims",
+        {
+            "subject_table": "eq.source_records",
+            "subject_id": f"eq.{p.source_record_id}",
+        },
+        {"supplier_id": p.from_supplier_id},
+    )
+    _reconcile(rest, source_id, p.from_supplier_id, dest_id)
 
 
 def apply_plan(rest: Rest, plan: list[PlannedItem]) -> None:
@@ -345,19 +502,24 @@ def apply_plan(rest: Rest, plan: list[PlannedItem]) -> None:
         dest_id = p.to_supplier_id
         if p.action == "import_move" and not p.to_exists:
             assert p.create_name
-            slug = _unique_slug(rest, make_slug(p.create_name))
+            # Exact audited slug only — never silent suffix divergence.
+            hit = rest.one("suppliers", {"select": "id", "slug": f"eq.{p.to_slug}"})
+            if hit:
+                raise RuntimeError(
+                    f"{p.ref}: approved slug {p.to_slug!r} appeared before create — "
+                    "fingerprint void"
+                )
             created = rest.insert(
                 "suppliers",
                 {
                     "company_name": p.create_name,
-                    "slug": slug,
+                    "slug": p.to_slug,
                     "company_name_norm": normalize_company_name(p.create_name),
                     "entity_type": "buying_house",
                     "is_published": True,
                 },
             )
             dest_id = str(created["id"])
-            p.to_slug = slug
             p.to_supplier_id = dest_id
         elif p.action == "import_move" and dest_id:
             if p.set_buying_house:
@@ -376,12 +538,15 @@ def apply_plan(rest: Rest, plan: list[PlannedItem]) -> None:
 
         moved = rest.patch(
             "source_records",
-            {"id": f"eq.{p.source_record_id}", "supplier_id": f"eq.{p.from_supplier_id}"},
+            {
+                "id": f"eq.{p.source_record_id}",
+                "supplier_id": f"eq.{p.from_supplier_id}",
+            },
             {"supplier_id": dest_id},
         )
         if not moved:
             raise RuntimeError(f"failed to move {p.ref}")
-        rest.patch(
+        claims = rest.patch(
             "evidence_claims",
             {
                 "subject_table": "eq.source_records",
@@ -389,50 +554,39 @@ def apply_plan(rest: Rest, plan: list[PlannedItem]) -> None:
             },
             {"supplier_id": dest_id},
         )
+        # Zero claims is legitimate; non-empty must all point at dest.
+        for c in claims:
+            if str(c.get("supplier_id")) != dest_id:
+                raise RuntimeError(f"{p.ref}: evidence_claims not fully repointed")
         if p.set_buying_house:
             _retag_buying_house(rest, dest_id)
         _reconcile(rest, source_id, p.from_supplier_id, dest_id)
 
         if p.ref == "general:2436":
-            payload = rest.rpc_json(
-                "buyer_supplier_profile", {"p_slug": "univogue-garments"}
-            )
-            pills = payload.get("pills") or []
-            ok = [
-                x
-                for x in pills
-                if x.get("source_code") == "BGMEA"
-                and str(x.get("value")) == "2436"
-                and x.get("building_name")
-            ]
-            if not ok:
-                raise RuntimeError(
-                    "POST-APPLY: univogue-garments missing BGMEA 2436 with building_name"
-                )
+            try:
+                assert_univogue_2436_visible_on_mother(rest)
+            except Exception:
+                _compensate_move(rest, source_id, p, dest_id)
+                raise
 
 
 def rez117_decision_violations(ref_holders: dict[str, set[str]]) -> list[str]:
-    """Pure REZ-117 placement invariant (durable guard for detector + tests)."""
+    """Post-apply placement: moves/imports must sit only on the destination."""
     lines: list[str] = []
     for d in DECISIONS:
         holders = ref_holders.get(d.ref, set())
         if not holders:
             lines.append(f"  {d.ref} missing from active BGMEA records")
             continue
+        dest = _decision_dest_slug(d)
         if d.action in ("stay", "stay_retag"):
-            allowed = {d.from_slug}
-        elif d.action in ("move", "move_retag"):
-            assert d.to_slug
-            allowed = {d.from_slug, d.to_slug}
-        elif d.action == "import_move":
-            allowed = {d.from_slug, make_slug(d.registered_name)}
+            allowed = {dest}
         else:
-            lines.append(f"  {d.ref} unknown action {d.action}")
-            continue
-        bad = holders - allowed
-        if bad:
+            # Destination only — from_slug still holding is a post-apply defect.
+            allowed = {dest}
+        if holders != allowed:
             lines.append(
-                f"  {d.ref} on {sorted(holders)} — allowed only {sorted(allowed)} "
+                f"  {d.ref} on {sorted(holders)} — must be exactly on {dest!r} "
                 f"({d.action})"
             )
     return lines
@@ -442,19 +596,13 @@ def rez117_buying_house_tag_violations(
     ref_holders: dict[str, set[str]],
     entity_by_slug: dict[str, str],
 ) -> list[str]:
-    """When a retag destination already holds the ref, it must be buying_house."""
+    """Destinations that hold a retag ref must be buying_house."""
     lines: list[str] = []
     for d in DECISIONS:
         if not d.set_buying_house:
             continue
         holders = ref_holders.get(d.ref, set())
-        if d.action in ("stay", "stay_retag"):
-            dest = d.from_slug
-        elif d.action in ("move", "move_retag"):
-            assert d.to_slug
-            dest = d.to_slug
-        else:
-            dest = make_slug(d.registered_name)
+        dest = _decision_dest_slug(d)
         if dest not in holders:
             continue
         et = entity_by_slug.get(dest)
@@ -464,6 +612,34 @@ def rez117_buying_house_tag_violations(
             lines.append(
                 f"  {d.ref} host {dest!r} entity_type={et!r} — need buying_house"
             )
+    return lines
+
+
+def rez117_associate_on_factory_violations(
+    ref_holders: dict[str, set[str]],
+    entity_by_slug: dict[str, str],
+    member_type_by_ref: dict[str, str],
+) -> list[str]:
+    """Associate SR on factory without founder allowlist."""
+    lines: list[str] = []
+    for ref, holders in sorted(ref_holders.items()):
+        mt = (member_type_by_ref.get(ref) or "").lower()
+        if mt not in ("associate", "") and not ref.startswith("general:"):
+            # bare associate refs are digits; general: is never associate register
+            pass
+        # Only check the 18 decision refs that are associate (non-general).
+        if ref.startswith("general:"):
+            continue
+        if ref not in {d.ref for d in DECISIONS}:
+            continue
+        if ref in ASSOCIATE_ON_FACTORY_ALLOWLIST:
+            continue
+        for slug in holders:
+            et = entity_by_slug.get(slug)
+            if et == "factory":
+                lines.append(
+                    f"  associate {ref} on factory {slug!r} — not in founder allowlist"
+                )
     return lines
 
 
@@ -504,7 +680,10 @@ def main() -> int:
         print(f"ERROR: plan size {len(plan)} != {len(DECISIONS)}", file=sys.stderr)
         return 2
     if not args.apply:
-        print("\nDry-run only. Re-run with --apply --expect-fingerprint <sha> after acceptance.")
+        print(
+            "\nDry-run only. Re-run with --apply --expect-fingerprint <sha> "
+            "after acceptance."
+        )
         return 0
     if not args.expect_fingerprint:
         print("ERROR: --apply requires --expect-fingerprint", file=sys.stderr)
@@ -513,7 +692,8 @@ def main() -> int:
     fp2 = fingerprint(plan2)
     if fp2 != args.expect_fingerprint or fp2 != fp:
         print(
-            f"ERROR: fingerprint mismatch approved={args.expect_fingerprint} dry={fp} now={fp2}",
+            f"ERROR: fingerprint mismatch approved={args.expect_fingerprint} "
+            f"dry={fp} now={fp2}",
             file=sys.stderr,
         )
         return 3
@@ -521,12 +701,26 @@ def main() -> int:
     print(f"\nsnapshot: {snap}")
     apply_plan(rest, plan2)
     leftover = build_plan(rest)
-    # stay/stay_retag still appear if we don't skip — build_plan continues for already-on-dest only for moves
-    # For stay actions, build_plan always includes them if still on from_slug. Filter:
     pending = [p for p in leftover if p.action not in ("stay", "stay_retag")]
     if pending:
         print(f"ERROR: {len(pending)} moves still pending", file=sys.stderr)
         return 4
+    # Destination entity tags for retags.
+    for d in DECISIONS:
+        if not d.set_buying_house:
+            continue
+        slug = _decision_dest_slug(d)
+        row = rest.one(
+            "suppliers", {"select": "slug,entity_type", "slug": f"eq.{slug}"}
+        )
+        if not row or row.get("entity_type") != "buying_house":
+            print(
+                f"ERROR: {d.ref} destination {slug} not buying_house "
+                f"({None if not row else row.get('entity_type')})",
+                file=sys.stderr,
+            )
+            return 5
+    assert_univogue_2436_visible_on_mother(rest)
     print("apply complete.")
     return 0
 

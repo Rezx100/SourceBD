@@ -534,23 +534,41 @@ def main() -> int:
     rez116_lines = rez116_decision_violations(ref_holders)
 
     from ops.apply_rez117_ambiguous_decisions import (
+        rez117_associate_on_factory_violations,
         rez117_buying_house_tag_violations,
         rez117_decision_violations,
     )
 
     rez117_lines = rez117_decision_violations(ref_holders)
     entity_by_slug: dict[str, str] = {}
+    member_type_by_ref: dict[str, str] = {}
     for row in structural_rows:
         slug = str(row.get("slug") or "")
         et = row.get("entity_type")
         if slug and et:
             entity_by_slug[slug] = str(et)
+        ref = str(row.get("source_ref") or "")
+        fields = row.get("fields") or {}
+        if isinstance(fields, dict) and ref:
+            mt = fields.get("bgmea_member_type")
+            if mt:
+                member_type_by_ref[ref] = str(mt)
+        # bare associate refs have no "general:" prefix
+        if ref and not ref.startswith("general:") and ref not in member_type_by_ref:
+            member_type_by_ref[ref] = "associate"
     for row in bgmea_rows:
         slug = str(row.get("slug") or "")
         et = row.get("entity_type")
         if slug and et:
             entity_by_slug[slug] = str(et)
+        ref = str(row.get("source_ref") or "")
+        mt = row.get("member_type")
+        if ref and mt:
+            member_type_by_ref[ref] = str(mt)
     rez117_tag_lines = rez117_buying_house_tag_violations(ref_holders, entity_by_slug)
+    rez117_assoc_factory_lines = rez117_associate_on_factory_violations(
+        ref_holders, entity_by_slug, member_type_by_ref
+    )
 
     failed = False
     if conflated:
@@ -619,6 +637,13 @@ def main() -> int:
             f"(associate destinations must be entity_type=buying_house).\n"
         )
         print("\n".join(rez117_tag_lines))
+    if rez117_assoc_factory_lines:
+        failed = True
+        print(
+            f"FAIL: {len(rez117_assoc_factory_lines)} REZ-117 associate-on-factory "
+            f"invariant(s) broken (not in founder allowlist).\n"
+        )
+        print("\n".join(rez117_assoc_factory_lines))
     if failed:
         return 1
 

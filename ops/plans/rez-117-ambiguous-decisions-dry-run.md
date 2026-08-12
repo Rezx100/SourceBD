@@ -2,7 +2,7 @@
 
 Mutation: **none applied yet**. Fingerprint for acceptance:
 
-`9f7e3c019716431bafb66ca38c7147f1726a5c4f939fdca971b766ff21af0bd9`
+`8ff592aa21d3987b7b01f1509c710a60b32ccbf7c92a8bf438c1859c1368f913`
 
 Policy: Associate-register companies are buying houses (`entity_type=buying_house`). Take associate numbers off factories that are a different company; create a buying-house profile when needed.
 
@@ -22,7 +22,9 @@ Policy: Associate-register companies are buying houses (`entity_type=buying_hous
 
 - `am-fashion`, `mim-fashion-wear`, `union-fashion` still `entity_type=factory` — retag is part of this mutation.
 - 953 and 528 both leave `as-knitwear` (factory) onto new buying houses.
-- Post-apply gate: mother `univogue-garments` must show BGMEA **2436** with `building_name`.
+- `univogue-garments-co-ltd-unit-2`: unpublished, `facility_of` → published mother `univogue-garments` (in fingerprint).
+- Post-apply gate: mother must show BGMEA **2436** with `building_name` (compensate on fail).
+- Durable detector is **post-apply strict**: move/import refs must sit only on destination; associate-on-factory fails except allowlist `679`, `1398`. Detector stays red until apply lands.
 
 ## Out of scope
 
@@ -32,5 +34,5 @@ Policy: Associate-register companies are buying houses (`entity_type=buying_hous
 
 ```
 PYTHONPATH=. python ops/apply_rez117_ambiguous_decisions.py --apply \
-  --expect-fingerprint 9f7e3c019716431bafb66ca38c7147f1726a5c4f939fdca971b766ff21af0bd9
+  --expect-fingerprint 8ff592aa21d3987b7b01f1509c710a60b32ccbf7c92a8bf438c1859c1368f913
 ```

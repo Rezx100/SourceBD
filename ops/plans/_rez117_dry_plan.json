@@ -1,5 +1,5 @@
 {
-  "fingerprint": "9f7e3c019716431bafb66ca38c7147f1726a5c4f939fdca971b766ff21af0bd9",
+  "fingerprint": "8ff592aa21d3987b7b01f1509c710a60b32ccbf7c92a8bf438c1859c1368f913",
   "plan": [
     {
       "ref": "953",
@@ -14,7 +14,10 @@
       "create_name": "A. S. Fashion",
       "identity": "associate:953",
       "set_buying_house": true,
-      "notes": "prop Md. Shamsul Alam"
+      "notes": "prop Md. Shamsul Alam",
+      "to_is_published": true,
+      "to_facility_of": null,
+      "mother_slug": null
     },
     {
       "ref": "231",
@@ -29,7 +32,10 @@
       "create_name": null,
       "identity": "associate:231",
       "set_buying_house": true,
-      "notes": "same legal entity"
+      "notes": "same legal entity",
+      "to_is_published": true,
+      "to_facility_of": null,
+      "mother_slug": null
     },
     {
       "ref": "330",
@@ -44,7 +50,10 @@
       "create_name": "A.R. Fashion",
       "identity": "associate:330",
       "set_buying_house": true,
-      "notes": "not AKR/HAR"
+      "notes": "not AKR/HAR",
+      "to_is_published": true,
+      "to_facility_of": null,
+      "mother_slug": null
     },
     {
       "ref": "679",
@@ -59,7 +68,10 @@
       "create_name": null,
       "identity": "associate:679",
       "set_buying_house": false,
-      "notes": "sister ops founder ruling"
+      "notes": "sister ops founder ruling",
+      "to_is_published": true,
+      "to_facility_of": null,
+      "mother_slug": null
     },
     {
       "ref": "1573",
@@ -74,7 +86,10 @@
       "create_name": "Bangladesh Apparel Inc.",
       "identity": "associate:1573",
       "set_buying_house": true,
-      "notes": ""
+      "notes": "",
+      "to_is_published": true,
+      "to_facility_of": null,
+      "mother_slug": null
     },
     {
       "ref": "1020",
@@ -89,7 +104,10 @@
       "create_name": "J.R. International",
       "identity": "associate:1020",
       "set_buying_house": true,
-      "notes": ""
+      "notes": "",
+      "to_is_published": true,
+      "to_facility_of": null,
+      "mother_slug": null
     },
     {
       "ref": "1398",
@@ -104,7 +122,10 @@
       "create_name": null,
       "identity": "associate:1398",
       "set_buying_house": false,
-      "notes": "sister trade identities"
+      "notes": "sister trade identities",
+      "to_is_published": true,
+      "to_facility_of": null,
+      "mother_slug": null
     },
     {
       "ref": "1129",
@@ -119,7 +140,10 @@
       "create_name": "M.N. Enterprise",
       "identity": "associate:1129",
       "set_buying_house": true,
-      "notes": ""
+      "notes": "",
+      "to_is_published": true,
+      "to_facility_of": null,
+      "mother_slug": null
     },
     {
       "ref": "296",
@@ -134,7 +158,10 @@
       "create_name": "Maxim International",
       "identity": "associate:296",
       "set_buying_house": true,
-      "notes": ""
+      "notes": "",
+      "to_is_published": true,
+      "to_facility_of": null,
+      "mother_slug": null
     },
     {
       "ref": "1283",
@@ -149,7 +176,10 @@
       "create_name": null,
       "identity": "associate:1283",
       "set_buying_house": true,
-      "notes": ""
+      "notes": "",
+      "to_is_published": true,
+      "to_facility_of": null,
+      "mother_slug": null
     },
     {
       "ref": "528",
@@ -164,7 +194,10 @@
       "create_name": "S.A. Fashion",
       "identity": "associate:528",
       "set_buying_house": true,
-      "notes": ""
+      "notes": "",
+      "to_is_published": true,
+      "to_facility_of": null,
+      "mother_slug": null
     },
     {
       "ref": "1261",
@@ -179,7 +212,10 @@
       "create_name": "Tex Fashion (BD)",
       "identity": "associate:1261",
       "set_buying_house": true,
-      "notes": ""
+      "notes": "",
+      "to_is_published": true,
+      "to_facility_of": null,
+      "mother_slug": null
     },
     {
       "ref": "331",
@@ -194,7 +230,10 @@
       "create_name": null,
       "identity": "associate:331",
       "set_buying_house": true,
-      "notes": ""
+      "notes": "",
+      "to_is_published": true,
+      "to_facility_of": null,
+      "mother_slug": null
     },
     {
       "ref": "general:4572",
@@ -209,7 +248,10 @@
       "create_name": null,
       "identity": "general:4572",
       "set_buying_house": false,
-      "notes": "parent identity"
+      "notes": "parent identity",
+      "to_is_published": true,
+      "to_facility_of": null,
+      "mother_slug": null
     },
     {
       "ref": "general:5756",
@@ -224,7 +266,10 @@
       "create_name": null,
       "identity": "general:5756",
       "set_buying_house": false,
-      "notes": ""
+      "notes": "",
+      "to_is_published": true,
+      "to_facility_of": null,
+      "mother_slug": null
     },
     {
       "ref": "general:3778",
@@ -239,7 +284,10 @@
       "create_name": null,
       "identity": "general:3778",
       "set_buying_house": false,
-      "notes": ""
+      "notes": "",
+      "to_is_published": true,
+      "to_facility_of": null,
+      "mother_slug": null
     },
     {
       "ref": "general:3624",
@@ -254,7 +302,10 @@
       "create_name": null,
       "identity": "general:3624",
       "set_buying_house": false,
-      "notes": ""
+      "notes": "",
+      "to_is_published": true,
+      "to_facility_of": null,
+      "mother_slug": null
     },
     {
       "ref": "general:2436",
@@ -269,7 +320,10 @@
       "create_name": null,
       "identity": "general:2436",
       "set_buying_house": false,
-      "notes": "unpublished building; mother must show building_name"
+      "notes": "unpublished building; mother must show building_name",
+      "to_is_published": false,
+      "to_facility_of": "94dec139-bd36-4e87-aba7-04801cb6e25d",
+      "mother_slug": "univogue-garments"
     }
   ]
 }
