@@ -10,7 +10,6 @@ Actions
 attach_facility     unpublished building → mother Facilities section
 already_attached    same, already done; close the ticket
 keep_separate       already a live company on Discover; close
-label_group         set parent_group_name so "Part of X Group" renders
 merge_into          absorb loser records onto winner; unpublish loser
 attach_brand        move a brand-only listing onto a published company
 publish             row already has Tier 1–3 evidence; make it visible
@@ -20,6 +19,7 @@ needs_human         do not auto-mutate
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field
 from typing import Any, Literal
 
@@ -28,6 +28,12 @@ from etl.core.normalize import (
     make_slug,
     normalize_company_name,
 )
+
+_BUILDING_PAREN_RE = re.compile(
+    r"\(\s*[^)]*\b(?:unit|building|shed|extension)\b[^)]*\)",
+    re.IGNORECASE,
+)
+_TRAILING_UNIT_RE = re.compile(r"\bunit(?:[\s-]+\d+)?\s*$", re.IGNORECASE)
 
 Action = Literal[
     "attach_facility",
@@ -56,10 +62,41 @@ GENERIC_TOKENS: frozenset[str] = frozenset(
         "limited",
         "ltd",
         "packaging",
+        "plc",
         "printing",
         "private",
         "pvt",
         "the",
+    }
+)
+
+LEGAL_FORM_TOKENS: frozenset[str] = frozenset(
+    {
+        "and",
+        "bangladesh",
+        "bd",
+        "co",
+        "company",
+        "limited",
+        "ltd",
+        "plc",
+        "private",
+        "pvt",
+        "the",
+    }
+)
+
+# Tokens that name a different mill/process. One side only → not the same company.
+DISTINCTIVE_TOKENS: frozenset[str] = frozenset(
+    {
+        "dyeing",
+        "embroidery",
+        "knitting",
+        "packaging",
+        "printing",
+        "spinning",
+        "washing",
+        "weaving",
     }
 )
 
@@ -135,9 +172,33 @@ def _stem_token(tok: str) -> str:
     return tok
 
 
-def _compact_name(norm: str) -> str:
-    parts = [_stem_token(t) for t in norm.split() if t and t not in GENERIC_TOKENS]
+def _compact_from_tokens(norm: str, stop: frozenset[str]) -> str:
+    parts = [_stem_token(t) for t in norm.split() if t and t not in stop]
     return "".join(parts)
+
+
+def _compact_name(norm: str) -> str:
+    return _compact_from_tokens(norm, GENERIC_TOKENS)
+
+
+def _legal_stem(norm: str) -> str:
+    return _compact_from_tokens(norm, LEGAL_FORM_TOKENS)
+
+
+def _content_tokens(norm: str) -> set[str]:
+    return {t for t in norm.split() if t and t not in LEGAL_FORM_TOKENS}
+
+
+def _distinctive_mismatch(a_norm: str, b_norm: str) -> bool:
+    extra = _content_tokens(a_norm) ^ _content_tokens(b_norm)
+    return bool(extra & DISTINCTIVE_TOKENS)
+
+
+def _trailing_digits(compact: str) -> str:
+    i = len(compact)
+    while i > 0 and compact[i - 1].isdigit():
+        i -= 1
+    return compact[i:]
 
 
 def _edit_distance(a: str, b: str) -> int:
@@ -172,6 +233,8 @@ def names_are_same_company(a: str, b: str) -> bool:
         return True
     if make_slug(a) == make_slug(b):
         return True
+    if _distinctive_mismatch(na, nb):
+        return False
     ca, cb = _compact_name(na), _compact_name(nb)
     if len(ca) < 10 or len(cb) < 10:
         return False
@@ -182,11 +245,43 @@ def names_are_same_company(a: str, b: str) -> bool:
         return False
     # Mega Knit vs Meghna Knit is distance 2 but a different company.
     # A.H. vs H.H. Textile, Rio vs Reo Fashion are distance 1 at the start.
-    # Only allow 1–2 edits when the compact stems share a long prefix.
-    longer = max(len(ca), len(cb))
+    # Kenpark (K-3) vs (K5) is distance 1 in a trailing building number.
+    if ca[:6] != cb[:6]:
+        return False
+    if _trailing_digits(ca) != _trailing_digits(cb):
+        return False
     if dist == 1:
-        return ca[:6] == cb[:6]
-    return longer >= 12 and ca[:6] == cb[:6]
+        return True
+    return max(len(ca), len(cb)) >= 12 and abs(len(ca) - len(cb)) <= 1
+
+
+def names_are_legal_form_variants(a: str, b: str) -> bool:
+    """True only for Ltd/Limited/PLC/Pvt/spacing variants of one legal name.
+
+    Used when searching all published companies (brand tickets). Edit
+    distance is too loose against the whole catalogue.
+    """
+    na = normalize_company_name(a)
+    nb = normalize_company_name(b)
+    if not na or not nb:
+        return False
+    if na == nb or make_slug(a) == make_slug(b):
+        return True
+    if _distinctive_mismatch(na, nb):
+        return False
+    sa, sb = _legal_stem(na), _legal_stem(nb)
+    return len(sa) >= 10 and sa == sb
+
+
+def is_building_shaped_name(name: str) -> bool:
+    """True for extension/unit/building listings, not a registered 'Unit Limited' company."""
+    if not name or not str(name).strip():
+        return False
+    if extension_base_name(name):
+        return True
+    if _BUILDING_PAREN_RE.search(name):
+        return True
+    return bool(_TRAILING_UNIT_RE.search(name.strip()))
 
 
 def classify_extension(
@@ -198,6 +293,7 @@ def classify_extension(
     child_facility_of: str | None,
     child_published: bool,
     parent_exists: bool,
+    parent_name: str = "",
 ) -> ReleasePlan:
     if child_facility_of and parent_id and child_facility_of == parent_id:
         return ReleasePlan(
@@ -238,24 +334,27 @@ def classify_extension(
             buyer_destination="Named mother is not visible to buyers",
             reason="cannot attach a building to an unpublished parent",
         )
-    if child_published or child_facility_of is None:
+    if parent_name and is_building_shaped_name(parent_name):
         return ReleasePlan(
             queue_id=queue_id,
             queue_type="group_parent_review",
-            action="attach_facility",
+            action="needs_human",
             parent_id=parent_id,
             child_id=child_id,
-            buyer_destination="Building moves onto the mother company profile",
-            reason="set facility_of; publish trigger unpublishes the child",
+            buyer_destination="Named mother is itself a building, not the company",
+            reason="refuse attaching onto another unit/extension",
         )
+    # child_published does not change the destination: attaching sets
+    # facility_of and the publish trigger unpublishes the child either way.
+    _ = child_published
     return ReleasePlan(
         queue_id=queue_id,
         queue_type="group_parent_review",
-        action="needs_human",
+        action="attach_facility",
         parent_id=parent_id,
         child_id=child_id,
-        buyer_destination="Unhandled extension state",
-        reason="child unpublished without facility_of",
+        buyer_destination="Building moves onto the mother company profile",
+        reason="set facility_of; publish trigger unpublishes the child",
     )
 
 
@@ -268,37 +367,9 @@ def classify_cluster(
     tok = (token or "").strip().lower()
     live = [m for m in members if m.get("id")]
     ids = tuple(str(m["id"]) for m in live)
-
-    if tok in GROUP_LABELS:
-        import re
-
-        group_name, pattern = GROUP_LABELS[tok]
-        rx = re.compile(pattern)
-        labelled = [
-            m
-            for m in live
-            if not m.get("facility_of")
-            and rx.search(str(m.get("company_name_norm") or ""))
-        ]
-        if len(labelled) >= 2:
-            return ReleasePlan(
-                queue_id=queue_id,
-                queue_type="group_parent_review",
-                action="label_group",
-                group_name=group_name,
-                member_ids=tuple(str(m["id"]) for m in labelled),
-                buyer_destination=f"Stay separate companies, labelled Part of {group_name}",
-                reason="tight prefix match on a known group stem",
-            )
-        return ReleasePlan(
-            queue_id=queue_id,
-            queue_type="group_parent_review",
-            action="keep_separate",
-            member_ids=ids,
-            buyer_destination="Already visible as separate companies",
-            reason="group stem matched fewer than two live members",
-        )
-
+    # Token clusters are not corporate groups. Auto-labelling "euro" stamped
+    # Euro Group onto Euro Centra / D.H. Euro Hi-Tech. Sister concerns stay
+    # separate companies (REZ-59); group tables are a later spec.
     return ReleasePlan(
         queue_id=queue_id,
         queue_type="group_parent_review",
@@ -307,7 +378,7 @@ def classify_cluster(
         buyer_destination="Already visible as separate companies",
         reason=(
             "common-word cluster, not a corporate group"
-            if tok in JUNK_CLUSTER_TOKENS or tok
+            if tok in JUNK_CLUSTER_TOKENS or tok in GROUP_LABELS
             else "token cluster is not a curated group"
         ),
     )
@@ -324,6 +395,8 @@ def classify_fuzzy(
     target_has_rsc: bool,
     cert_is_facility: bool,
     target_is_facility: bool,
+    cert_tier13: int = 0,
+    target_tier13: int = 0,
 ) -> ReleasePlan:
     if cert_id == target_id:
         return ReleasePlan(
@@ -354,13 +427,26 @@ def classify_fuzzy(
             buyer_destination="Two RSC-inspected buildings stay two profiles",
             reason="each side has its own RSC row",
         )
+    if is_building_shaped_name(cert_name) or is_building_shaped_name(target_name):
+        return ReleasePlan(
+            queue_id=queue_id,
+            queue_type="fuzzy_match_review",
+            action="keep_separate",
+            winner_id=target_id,
+            loser_id=cert_id,
+            buyer_destination="Building-shaped names stay separate; not merged into a company",
+            reason="REZ-58: extension/unit listings are facilities, not merge targets",
+        )
     if names_are_same_company(cert_name, target_name):
+        winner_id, loser_id = target_id, cert_id
+        if cert_tier13 > target_tier13:
+            winner_id, loser_id = cert_id, target_id
         return ReleasePlan(
             queue_id=queue_id,
             queue_type="fuzzy_match_review",
             action="merge_into",
-            winner_id=target_id,
-            loser_id=cert_id,
+            winner_id=winner_id,
+            loser_id=loser_id,
             buyer_destination="One company profile; cert evidence moves onto the register row",
             reason="names are spelling/plural/spacing variants of one company",
         )
@@ -415,32 +501,83 @@ def classify_brand(
             reason="active Tier 1–3 source_record present",
         )
 
-    exact = [
-        m
-        for m in published_matches
-        if m.get("company_name_norm") == normalize_company_name(company_name)
-        or m.get("slug") == make_slug(company_name)
-    ]
-    if len(exact) == 1:
-        match = exact[0]
+    exact: list[dict[str, Any]] = []
+    same: list[dict[str, Any]] = []
+    if not is_building_shaped_name(company_name):
+        exact = [
+            m
+            for m in published_matches
+            if not is_building_shaped_name(str(m.get("company_name") or ""))
+            and (
+                m.get("company_name_norm") == normalize_company_name(company_name)
+                or m.get("slug") == make_slug(company_name)
+            )
+        ]
+        if len(exact) == 1:
+            match = exact[0]
+            return ReleasePlan(
+                queue_id=queue_id,
+                queue_type="brand_disclosure_match_review",
+                action="attach_brand",
+                winner_id=str(match["id"]),
+                loser_id=supplier_id,
+                buyer_destination="Brand listing moves onto the existing published company",
+                reason="exact name/slug match to a published company",
+            )
+
+        same = [
+            m
+            for m in published_matches
+            if not is_building_shaped_name(str(m.get("company_name") or ""))
+            and names_are_legal_form_variants(
+                company_name,
+                str(m.get("company_name") or m.get("company_name_norm") or ""),
+            )
+        ]
+        if len(same) == 1:
+            match = same[0]
+            return ReleasePlan(
+                queue_id=queue_id,
+                queue_type="brand_disclosure_match_review",
+                action="attach_brand",
+                winner_id=str(match["id"]),
+                loser_id=supplier_id,
+                buyer_destination="Brand listing moves onto the existing published company",
+                reason="spelling/legal-form variant of one published company",
+            )
+    if len(exact) > 1 or len(same) > 1:
         return ReleasePlan(
             queue_id=queue_id,
             queue_type="brand_disclosure_match_review",
-            action="attach_brand",
-            winner_id=str(match["id"]),
+            action="needs_human",
             loser_id=supplier_id,
-            buyer_destination="Brand listing moves onto the existing published company",
-            reason="exact name/slug match to a published company",
+            buyer_destination="More than one published company could own this listing",
+            reason="ambiguous published match",
         )
 
-    base = extension_base_name(company_name)
-    if base:
+    bases: list[str] = []
+    ext_base = extension_base_name(company_name)
+    if ext_base:
+        bases.append(ext_base)
+    paren_stripped = _BUILDING_PAREN_RE.sub("", company_name).strip(" -")
+    if paren_stripped and paren_stripped.lower() != company_name.strip().lower():
+        bases.append(paren_stripped)
+    seen_bases: set[str] = set()
+    for base in bases:
+        key = normalize_company_name(base)
+        if not key or key in seen_bases:
+            continue
+        seen_bases.add(key)
         base_slug = make_slug(base)
         base_hits = [
             m
             for m in published_matches
-            if m.get("slug") == base_slug
-            or m.get("company_name_norm") == normalize_company_name(base)
+            if not is_building_shaped_name(str(m.get("company_name") or ""))
+            and (
+                m.get("slug") == base_slug
+                or m.get("company_name_norm") == normalize_company_name(base)
+                or names_are_legal_form_variants(base, str(m.get("company_name") or ""))
+            )
         ]
         if len(base_hits) == 1:
             match = base_hits[0]
@@ -453,16 +590,6 @@ def classify_brand(
                 buyer_destination="Unit/building attaches to the published mother",
                 reason="extension_base_name matches one published company",
             )
-
-    if len(exact) > 1:
-        return ReleasePlan(
-            queue_id=queue_id,
-            queue_type="brand_disclosure_match_review",
-            action="needs_human",
-            loser_id=supplier_id,
-            buyer_destination="More than one published company could own this listing",
-            reason="ambiguous published match",
-        )
 
     return ReleasePlan(
         queue_id=queue_id,
@@ -502,6 +629,7 @@ def classify_queue_row(
             child_facility_of=child.get("facility_of"),
             child_published=bool(child.get("is_published")),
             parent_exists=bool(parent.get("id")) if parent else bool(parent_id),
+            parent_name=str(parent.get("company_name") or ""),
         )
     if queue_type == "group_parent_review" and data.get("cluster_token"):
         return classify_cluster(
@@ -536,6 +664,8 @@ def classify_queue_row(
             target_has_rsc=bool(target.get("has_rsc")),
             cert_is_facility=bool(cert.get("facility_of")),
             target_is_facility=bool(target.get("facility_of")),
+            cert_tier13=int(cert.get("tier13_count") or 0),
+            target_tier13=int(target.get("tier13_count") or 0),
         )
     if queue_type == "brand_disclosure_match_review":
         row = brand_row or child or {}

@@ -6,7 +6,7 @@ import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { Sheet } from "@/components/ui/sheet";
 
-type Decision = "approve" | "reject" | "escalate";
+type Decision = "approve" | "release" | "reject" | "escalate";
 
 export function AdminQueueDecideButton({
   queueId,
@@ -91,7 +91,7 @@ export function AdminQueueDecideButton({
               className="min-h-[44px] w-full"
               onClick={() => {
                 setActive("approve");
-                decide("approve");
+                decide("release");
               }}
             >
               {pending && active === "approve" ? "Saving..." : "Release"}

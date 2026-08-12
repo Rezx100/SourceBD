@@ -74,7 +74,7 @@ as $$
      and tok not in (
        'accessories','accessory','and','bangladesh','bd','co','company',
        'industries','industry','international','limited','ltd','packaging',
-       'printing','private','pvt','the'
+       'plc','printing','private','pvt','the'
      );
 $$;
 
@@ -94,6 +94,14 @@ begin
   if lower(btrim(a_norm)) = lower(btrim(b_norm)) then
     return true;
   end if;
+  if (a_norm ~* '\yprinting\y') is distinct from (b_norm ~* '\yprinting\y')
+     or (a_norm ~* '\ypackaging\y') is distinct from (b_norm ~* '\ypackaging\y')
+     or (a_norm ~* '\ydyeing\y') is distinct from (b_norm ~* '\ydyeing\y')
+     or (a_norm ~* '\yspinning\y') is distinct from (b_norm ~* '\yspinning\y')
+     or (a_norm ~* '\yweaving\y') is distinct from (b_norm ~* '\yweaving\y')
+     or (a_norm ~* '\ywashing\y') is distinct from (b_norm ~* '\ywashing\y') then
+    return false;
+  end if;
   if length(ca) < 10 or length(cb) < 10 then
     return false;
   end if;
@@ -104,12 +112,46 @@ begin
   if dist > 2 then
     return false;
   end if;
+  if left(ca, 6) is distinct from left(cb, 6) then
+    return false;
+  end if;
+  if substring(ca from '\d+$') is distinct from substring(cb from '\d+$') then
+    return false;
+  end if;
   if dist = 1 then
-    return left(ca, 6) = left(cb, 6);
+    return true;
   end if;
   return greatest(length(ca), length(cb)) >= 12
-     and left(ca, 6) = left(cb, 6);
+     and abs(length(ca) - length(cb)) <= 1;
 end;
+$$;
+
+create or replace function public._queue_legal_stem(p_norm text)
+returns text
+language sql
+immutable
+as $$
+  select coalesce(string_agg(
+           case
+             when length(tok) > 4 and right(tok, 1) = 's' then left(tok, length(tok) - 1)
+             else tok
+           end,
+           ''
+           order by ord
+         ), '')
+    from unnest(regexp_split_to_array(
+           regexp_replace(
+             regexp_replace(lower(btrim(coalesce(p_norm, ''))), '[^a-z0-9\s]+', ' ', 'g'),
+             '\s+', ' ', 'g'
+           ),
+           '\s+'
+         ))
+         with ordinality as t(tok, ord)
+   where tok <> ''
+     and tok not in (
+       'and','bangladesh','bd','co','company','limited','ltd','plc',
+       'private','pvt','the'
+     );
 $$;
 
 create or replace function public._queue_absorb_supplier(p_winner uuid, p_loser uuid)
@@ -149,7 +191,13 @@ begin
 
   update public.compliance_documents d
      set supplier_id = p_winner
-   where d.supplier_id = p_loser;
+   where d.supplier_id = p_loser
+     and not exists (
+       select 1 from public.compliance_documents w
+        where w.supplier_id = p_winner
+          and w.doc_type = d.doc_type
+          and w.sha256 = d.sha256
+     );
 
   update public.rsc_remediation r
      set supplier_id = p_winner
@@ -205,6 +253,8 @@ declare
   v_tier13 int;
   v_cert_rsc boolean;
   v_target_rsc boolean;
+  v_cert_tier13 int;
+  v_target_tier13 int;
 begin
   select * into q from public.verification_queue where id = p_queue_id;
   if q.id is null then
@@ -243,6 +293,16 @@ begin
         'buyer_destination', 'Named mother is missing or not visible'
       );
     end if;
+    if public.rsc_extension_base_name(parent.company_name) is not null
+       or parent.company_name ~* '\yunit([\s-]+[0-9]+)?\s*$'
+       or parent.company_name ~* '\(\s*[^)]*\y(?:unit|building|shed|extension)\y[^)]*\)' then
+      return jsonb_build_object(
+        'action', 'needs_human',
+        'parent_id', v_parent_id,
+        'child_id', v_child_id,
+        'buyer_destination', 'Named mother is itself a building, not the company'
+      );
+    end if;
     return jsonb_build_object(
       'action', 'attach_facility',
       'parent_id', v_parent_id,
@@ -254,35 +314,8 @@ begin
   if q.queue_type::text = 'group_parent_review'
      and coalesce(q.source_data->>'cluster_token', '') <> '' then
     v_token := lower(q.source_data->>'cluster_token');
-    v_group := case v_token
-      when 'euro' then 'Euro Group'
-      when 'square' then 'Square Group'
-      when 'ananta' then 'Ananta Group'
-      when 'chorka' then 'Chorka Group'
-      when 'hams' then 'HAMS Group'
-      when 'jinnat' then 'Jinnat Group'
-      when 'noman' then 'Noman Group'
-      else null
-    end;
-    if v_group is not null then
-      select count(*) into v_match_n
-        from public.suppliers s
-       where s.facility_of is null
-         and s.id in (
-           select jsonb_array_elements_text(
-                    coalesce(q.source_data->'member_ids', '[]'::jsonb)
-                  )::uuid
-         )
-         and s.company_name_norm ~ ('(^|\s)' || v_token || '(\s|$)');
-      if v_match_n >= 2 then
-        return jsonb_build_object(
-          'action', 'label_group',
-          'group_name', v_group,
-          'token', v_token,
-          'buyer_destination', 'Stay separate companies, labelled Part of ' || v_group
-        );
-      end if;
-    end if;
+    -- Token clusters are not corporate groups. Auto-labelling "euro"
+    -- stamped Euro Group onto Euro Centra / D.H. Euro Hi-Tech.
     return jsonb_build_object(
       'action', 'keep_separate',
       'token', v_token,
@@ -323,19 +356,43 @@ begin
         'buyer_destination', 'Two RSC-inspected buildings stay two profiles'
       );
     end if;
-    if cert.slug is not null and cert.slug = target.slug then
+    if public.rsc_extension_base_name(cert.company_name) is not null
+       or public.rsc_extension_base_name(target.company_name) is not null
+       or cert.company_name ~* '\yunit([\s-]+[0-9]+)?\s*$'
+       or target.company_name ~* '\yunit([\s-]+[0-9]+)?\s*$'
+       or cert.company_name ~* '\(\s*[^)]*\y(?:unit|building|shed|extension)\y[^)]*\)'
+       or target.company_name ~* '\(\s*[^)]*\y(?:unit|building|shed|extension)\y[^)]*\)' then
       return jsonb_build_object(
-        'action', 'merge_into',
+        'action', 'keep_separate',
         'winner_id', v_target_id,
         'loser_id', v_cert_id,
-        'buyer_destination', 'One company profile; cert evidence moves onto the register row'
+        'buyer_destination', 'Building-shaped names stay separate; not merged into a company'
       );
     end if;
-    if public._queue_names_same_company(cert.company_name_norm, target.company_name_norm)
+    if (cert.slug is not null and cert.slug = target.slug)
+       or public._queue_names_same_company(cert.company_name_norm, target.company_name_norm)
        or public._queue_names_same_company(
             q.source_data->>'cert_supplier_name',
             q.source_data->>'target_supplier_name'
           ) then
+      select count(distinct sr.source_id) into v_cert_tier13
+        from public.source_records sr
+       where sr.supplier_id = v_cert_id
+         and sr.status = 'active'
+         and sr.source_tier in ('tier1_gov', 'tier2_industry', 'tier3_cert');
+      select count(distinct sr.source_id) into v_target_tier13
+        from public.source_records sr
+       where sr.supplier_id = v_target_id
+         and sr.status = 'active'
+         and sr.source_tier in ('tier1_gov', 'tier2_industry', 'tier3_cert');
+      if v_cert_tier13 > v_target_tier13 then
+        return jsonb_build_object(
+          'action', 'merge_into',
+          'winner_id', v_cert_id,
+          'loser_id', v_target_id,
+          'buyer_destination', 'One company profile; cert evidence moves onto the register row'
+        );
+      end if;
       return jsonb_build_object(
         'action', 'merge_into',
         'winner_id', v_target_id,
@@ -381,58 +438,101 @@ begin
       );
     end if;
 
-    select count(*) into v_match_n
-      from public.suppliers s
-     where s.id is distinct from brand.id
-       and s.is_published
-       and s.facility_of is null
-       and (
-         s.company_name_norm = brand.company_name_norm
-         or s.slug = brand.slug
-       );
-    if v_match_n = 1 then
-      select s.id into v_match
+    if public.rsc_extension_base_name(brand.company_name) is null
+       and brand.company_name !~* '\yunit([\s-]+[0-9]+)?\s*$'
+       and brand.company_name !~* '\(\s*[^)]*\y(?:unit|building|shed|extension)\y[^)]*\)' then
+      select count(*) into v_match_n
         from public.suppliers s
        where s.id is distinct from brand.id
          and s.is_published
          and s.facility_of is null
+         and public.rsc_extension_base_name(s.company_name) is null
          and (
            s.company_name_norm = brand.company_name_norm
            or s.slug = brand.slug
+           or (
+             length(public._queue_legal_stem(s.company_name_norm)) >= 10
+             and public._queue_legal_stem(s.company_name_norm)
+               = public._queue_legal_stem(brand.company_name_norm)
+           )
          );
-      return jsonb_build_object(
-        'action', 'attach_brand',
-        'winner_id', v_match,
-        'loser_id', brand.id,
-        'buyer_destination', 'Brand listing moves onto the existing published company'
-      );
-    end if;
-    if v_match_n > 1 then
-      return jsonb_build_object(
-        'action', 'needs_human',
-        'loser_id', brand.id,
-        'buyer_destination', 'More than one published company could own this listing'
-      );
+      if v_match_n = 1 then
+        select s.id into v_match
+          from public.suppliers s
+         where s.id is distinct from brand.id
+           and s.is_published
+           and s.facility_of is null
+           and public.rsc_extension_base_name(s.company_name) is null
+           and (
+             s.company_name_norm = brand.company_name_norm
+             or s.slug = brand.slug
+             or (
+               length(public._queue_legal_stem(s.company_name_norm)) >= 10
+               and public._queue_legal_stem(s.company_name_norm)
+                 = public._queue_legal_stem(brand.company_name_norm)
+             )
+           );
+        return jsonb_build_object(
+          'action', 'attach_brand',
+          'winner_id', v_match,
+          'loser_id', brand.id,
+          'buyer_destination', 'Brand listing moves onto the existing published company'
+        );
+      end if;
+      if v_match_n > 1 then
+        return jsonb_build_object(
+          'action', 'needs_human',
+          'loser_id', brand.id,
+          'buyer_destination', 'More than one published company could own this listing'
+        );
+      end if;
     end if;
 
     v_base := public.rsc_extension_base_name(brand.company_name);
+    if v_base is null then
+      v_base := nullif(btrim(regexp_replace(
+        brand.company_name,
+        '\(\s*[^)]*\y(?:unit|building|shed|extension)\y[^)]*\)',
+        '',
+        'i'
+      )), '');
+      if v_base is not distinct from btrim(brand.company_name) then
+        v_base := null;
+      end if;
+    end if;
     if v_base is not null then
       select count(*) into v_match_n
         from public.suppliers s
        where s.is_published
          and s.facility_of is null
+         and s.id is distinct from brand.id
+         and public.rsc_extension_base_name(s.company_name) is null
+         and s.company_name !~* '\yunit([\s-]+[0-9]+)?\s*$'
          and (
-           s.company_name_norm = lower(v_base)
-           or s.company_name ilike v_base
+           length(public._queue_legal_stem(s.company_name_norm)) >= 10
+           and (
+             public._queue_legal_stem(s.company_name_norm)
+               = public._queue_legal_stem(lower(v_base))
+             or public._queue_legal_stem(s.company_name)
+               = public._queue_legal_stem(v_base)
+           )
          );
       if v_match_n = 1 then
         select s.id into v_match
           from public.suppliers s
          where s.is_published
            and s.facility_of is null
+           and s.id is distinct from brand.id
+           and public.rsc_extension_base_name(s.company_name) is null
+           and s.company_name !~* '\yunit([\s-]+[0-9]+)?\s*$'
            and (
-             s.company_name_norm = lower(v_base)
-             or s.company_name ilike v_base
+             length(public._queue_legal_stem(s.company_name_norm)) >= 10
+             and (
+               public._queue_legal_stem(s.company_name_norm)
+                 = public._queue_legal_stem(lower(v_base))
+               or public._queue_legal_stem(s.company_name)
+                 = public._queue_legal_stem(v_base)
+             )
            );
         return jsonb_build_object(
           'action', 'attach_facility',
@@ -531,7 +631,15 @@ begin
       if v_parent is null or v_child is null then
         raise exception 'attach_facility missing parent/child' using errcode = '22023';
       end if;
-      if exists (select 1 from public.suppliers p where p.id = v_parent and p.facility_of is not null) then
+      if exists (
+        select 1 from public.suppliers p
+         where p.id = v_parent
+           and (
+             p.facility_of is not null
+             or public.rsc_extension_base_name(p.company_name) is not null
+             or p.company_name ~* '\yunit([\s-]+[0-9]+)?\s*$'
+           )
+      ) then
         raise exception 'refuse nested facility' using errcode = '22023';
       end if;
       update public.suppliers
@@ -574,8 +682,8 @@ begin
          and s.company_name_norm ~ ('(^|\s)' || v_token || '(\s|$)');
       v_admin := 'approve';
     else
-      -- already_attached / keep_separate / hold_no_register: destination is
-      -- already the live buyer-facing state. Close the ticket.
+      -- already_attached / keep_separate: destination is already live.
+      -- hold_no_register: cannot publish (Tier 1-3 gate); close the ticket.
       v_admin := 'approve';
     end if;
   else
@@ -758,6 +866,7 @@ $$;
 revoke all on function public._queue_edit_distance(text, text) from public;
 revoke all on function public._queue_compact_name(text) from public;
 revoke all on function public._queue_names_same_company(text, text) from public;
+revoke all on function public._queue_legal_stem(text) from public;
 revoke all on function public._queue_absorb_supplier(uuid, uuid) from public;
 revoke all on function public.admin_queue_release_plan(uuid) from public;
 grant execute on function public.admin_queue_decide(uuid, text, text) to authenticated;

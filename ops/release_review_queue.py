@@ -26,6 +26,7 @@ load_dotenv(Path(__file__).resolve().parents[1] / ".env")
 
 logging.getLogger("httpx").setLevel(logging.WARNING)
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from etl.core.normalize import extension_base_name  # noqa: E402
 from etl.core.queue_release import ReleasePlan, classify_queue_row  # noqa: E402
 
 SNAPSHOT_DIR = Path(__file__).resolve().parent / "plans"
@@ -164,28 +165,26 @@ def classify_all(rest: Rest, rows: list[dict]) -> list[ReleasePlan]:
         for mid in data.get("member_ids") or []:
             member_ids.append(str(mid))
     suppliers = load_suppliers(rest, _ids(supplier_ids + member_ids))
-    rsc_ids = load_rsc_ids(
-        rest,
-        _ids(
-            [
-                (row.get("source_data") or {}).get("cert_supplier_id")
-                or row.get("supplier_a_id")
-                for row in rows
-                if row.get("queue_type") == "fuzzy_match_review"
-            ]
-            + [
-                (row.get("source_data") or {}).get("target_supplier_id")
-                for row in rows
-                if row.get("queue_type") == "fuzzy_match_review"
-            ]
-        ),
+    fuzzy_ids = _ids(
+        [
+            (row.get("source_data") or {}).get("cert_supplier_id")
+            or row.get("supplier_a_id")
+            for row in rows
+            if row.get("queue_type") == "fuzzy_match_review"
+        ]
+        + [
+            (row.get("source_data") or {}).get("target_supplier_id")
+            for row in rows
+            if row.get("queue_type") == "fuzzy_match_review"
+        ]
     )
+    rsc_ids = load_rsc_ids(rest, fuzzy_ids)
     brand_ids = [
         str(row["supplier_a_id"])
         for row in rows
         if row.get("queue_type") == "brand_disclosure_match_review" and row.get("supplier_a_id")
     ]
-    tier13 = load_tier13_counts(rest, brand_ids) if brand_ids else {}
+    tier13 = load_tier13_counts(rest, list(dict.fromkeys(brand_ids + fuzzy_ids)))
     published = load_published_index(rest) if brand_ids else []
 
     plans: list[ReleasePlan] = []
@@ -234,8 +233,14 @@ def classify_all(rest: Rest, rows: list[dict]) -> list[ReleasePlan]:
             target_id = str(data.get("target_supplier_id") or "")
             cert = dict(suppliers.get(cert_id) or {})
             target = dict(suppliers.get(target_id) or {})
+            if cert_id in suppliers:
+                cert["id"] = cert_id
+            if target_id in suppliers:
+                target["id"] = target_id
             cert["has_rsc"] = cert_id in rsc_ids
             target["has_rsc"] = target_id in rsc_ids
+            cert["tier13_count"] = tier13.get(cert_id, 0)
+            target["tier13_count"] = tier13.get(target_id, 0)
             plans.append(
                 classify_queue_row(
                     queue_id=qid,
@@ -306,11 +311,24 @@ def absorb(rest: Rest, winner_id: str, loser_id: str) -> None:
         rest.patch("certifications", {"id": f"eq.{rec['id']}"}, {"supplier_id": winner_id})
 
     rest.patch("evidence_claims", {"supplier_id": f"eq.{loser_id}"}, {"supplier_id": winner_id})
-    rest.patch(
+    winner_docs = rest.all_rows(
         "compliance_documents",
-        {"supplier_id": f"eq.{loser_id}"},
-        {"supplier_id": winner_id},
+        {"select": "id,doc_type,sha256", "supplier_id": f"eq.{winner_id}"},
     )
+    have_d = {(r.get("doc_type"), r.get("sha256")) for r in winner_docs}
+    loser_docs = rest.all_rows(
+        "compliance_documents",
+        {"select": "id,doc_type,sha256", "supplier_id": f"eq.{loser_id}"},
+    )
+    for rec in loser_docs:
+        key = (rec.get("doc_type"), rec.get("sha256"))
+        if key in have_d:
+            continue
+        rest.patch(
+            "compliance_documents",
+            {"id": f"eq.{rec['id']}"},
+            {"supplier_id": winner_id},
+        )
     winner_rsc = rest.all_rows(
         "rsc_remediation",
         {"select": "id", "supplier_id": f"eq.{winner_id}"},
@@ -353,6 +371,20 @@ def apply_plan(rest: Rest, plan: ReleasePlan) -> None:
     if plan.action == "needs_human":
         return
     if plan.action == "attach_facility" and plan.parent_id and plan.child_id:
+        parents = rest.all_rows(
+            "suppliers",
+            {
+                "select": "id,facility_of,company_name",
+                "id": f"eq.{plan.parent_id}",
+            },
+        )
+        parent = parents[0] if parents else None
+        if (
+            not parent
+            or parent.get("facility_of")
+            or extension_base_name(str(parent.get("company_name") or ""))
+        ):
+            return
         rest.patch(
             "suppliers",
             {"id": f"eq.{plan.child_id}"},

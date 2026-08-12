@@ -10,8 +10,9 @@ Phase 7 - Public Beta launch prep.
 (0062 only closed the ticket). Migration `0102` makes Release attach /
 merge / publish / label, or close when the destination is already live.
 Production dry-run fingerprint
-`7734c3863b02e95311b8512400b280165ea65b5a73e675ce1ae515850c520c98`
-(6 merges, 6 building attaches, 6 brand moves, 1 publish, 7 human).
+`06173cdedba6b422d854d5d89545fb7f29beaf152e39fe3ab131748daea57626`
+(5 merges, 8 building attaches, 11 brand moves, 1 publish, 8 human).
+Prior fingerprint `7734c386…` is void.
 `--apply` and production migration apply are not authorised. See
 `ops/plans/queue-release-plan.md`.
 
