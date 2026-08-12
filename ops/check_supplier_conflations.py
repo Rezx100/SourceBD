@@ -101,7 +101,8 @@ select sr.id            as record_id,
        sr.fields->>'bgmea_member_type' as member_type,
        sr.fields->>'bgmea_reg_number' as reg_number,
        sup.company_name,
-       sup.slug
+       sup.slug,
+       sup.entity_type
   from public.source_records sr
   join public.sources s on s.id = sr.source_id and s.code = 'BGMEA'
   join public.suppliers sup on sup.id = sr.supplier_id
@@ -155,7 +156,8 @@ select sr.supplier_id,
        sr.source_ref,
        sr.status,
        sup.company_name,
-       sup.slug
+       sup.slug,
+       sup.entity_type
   from public.source_records sr
   join public.sources s on s.id = sr.source_id and s.code in ('BGMEA', 'BKMEA')
   join public.suppliers sup on sup.id = sr.supplier_id
@@ -286,7 +288,9 @@ def _load_via_rest() -> tuple[list[dict], list[dict], list[dict], list[dict], li
         r["id"]: r
         for r in rest.all_rows(
             "suppliers",
-            {"select": "id,company_name,slug,is_published,bgmea_reg_numbers"},
+            {
+                "select": "id,company_name,slug,is_published,bgmea_reg_numbers,entity_type"
+            },
         )
     }
 
@@ -323,6 +327,7 @@ def _load_via_rest() -> tuple[list[dict], list[dict], list[dict], list[dict], li
                 "reg_number": fields.get("bgmea_reg_number"),
                 "company_name": sup.get("company_name"),
                 "slug": sup.get("slug"),
+                "entity_type": sup.get("entity_type"),
             }
         )
 
@@ -381,6 +386,7 @@ def _load_via_rest() -> tuple[list[dict], list[dict], list[dict], list[dict], li
                     "status": r["status"],
                     "company_name": sup.get("company_name"),
                     "slug": sup.get("slug"),
+                    "entity_type": sup.get("entity_type"),
                 }
             )
 
@@ -527,6 +533,25 @@ def main() -> int:
 
     rez116_lines = rez116_decision_violations(ref_holders)
 
+    from ops.apply_rez117_ambiguous_decisions import (
+        rez117_buying_house_tag_violations,
+        rez117_decision_violations,
+    )
+
+    rez117_lines = rez117_decision_violations(ref_holders)
+    entity_by_slug: dict[str, str] = {}
+    for row in structural_rows:
+        slug = str(row.get("slug") or "")
+        et = row.get("entity_type")
+        if slug and et:
+            entity_by_slug[slug] = str(et)
+    for row in bgmea_rows:
+        slug = str(row.get("slug") or "")
+        et = row.get("entity_type")
+        if slug and et:
+            entity_by_slug[slug] = str(et)
+    rez117_tag_lines = rez117_buying_house_tag_violations(ref_holders, entity_by_slug)
+
     failed = False
     if conflated:
         failed = True
@@ -580,6 +605,20 @@ def main() -> int:
             f"(founder MOVE/HOLD table in ops/move_bgmea_orphan_registrations.py).\n"
         )
         print("\n".join(rez116_lines))
+    if rez117_lines:
+        failed = True
+        print(
+            f"FAIL: {len(rez117_lines)} REZ-117 ambiguous-decision invariant(s) broken "
+            f"(founder table in ops/apply_rez117_ambiguous_decisions.py).\n"
+        )
+        print("\n".join(rez117_lines))
+    if rez117_tag_lines:
+        failed = True
+        print(
+            f"FAIL: {len(rez117_tag_lines)} REZ-117 buying-house tag invariant(s) broken "
+            f"(associate destinations must be entity_type=buying_house).\n"
+        )
+        print("\n".join(rez117_tag_lines))
     if failed:
         return 1
 
