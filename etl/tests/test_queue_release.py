@@ -34,11 +34,13 @@ from etl.core.queue_release import (
 
 REPO = Path(__file__).resolve().parents[2]
 MIGRATION = REPO / "supabase" / "migrations" / "0102_admin_queue_release.sql"
+RSC_MIGRATION = REPO / "supabase" / "migrations" / "0014_rsc_inherited_addresses.sql"
 HUB = REPO / "supabase" / "migrations" / "0062_admin_queue_hub.sql"
 DECIDE_ROUTE = REPO / "app" / "api" / "v1" / "admin" / "queue" / "decide" / "route.ts"
 DECIDE_BUTTON = REPO / "components" / "admin-queue-decide-button.tsx"
 
 _SQL = MIGRATION.read_text(encoding="utf-8")
+_RSC = RSC_MIGRATION.read_text(encoding="utf-8")
 _PAREN_END_SQL = r"\(\s*[^()]*\y(?:unit|building|shed|extension)\y[^()]*\)\s*$"
 _DISTINCTIVE = (
     "printing",
@@ -67,6 +69,9 @@ def sql_paren_building_strip(name: str) -> str | None:
     body = _sql_fn("_queue_paren_building_strip")
     assert _PAREN_END_SQL in body
     assert "'gi'" not in body
+    assert "stripped ~ '[()]'" not in body
+    leftover_building = r"\(\s*[^()]*\y(?:unit|building|shed|extension)\y[^()]*\)"
+    assert leftover_building in body
     stripped = re.sub(
         r"\(\s*[^()]*\b(?:unit|building|shed|extension)\b[^()]*\)\s*$",
         "",
@@ -76,7 +81,11 @@ def sql_paren_building_strip(name: str) -> str | None:
     ).strip(" -,")
     if not stripped or stripped.lower() == name.strip().lower():
         return None
-    if re.search(r"[()]", stripped):
+    if re.search(
+        r"\(\s*[^()]*\b(?:unit|building|shed|extension)\b[^()]*\)",
+        stripped,
+        flags=re.I,
+    ):
         return None
     return stripped
 
@@ -145,26 +154,163 @@ def sql_distinctive_mismatch(a: str, b: str) -> bool:
     return False
 
 
-def sql_brand_facility_action(brand_name: str, mother_name: str) -> str:
+def sql_slugify(name: str) -> str | None:
+    assert "_queue_abbrev_name" in _sql_fn("_queue_slugify")
+    n = sql_abbrev_name(name) or ""
+    n = re.sub(r"[^a-z0-9]+", "-", n)
+    n = re.sub(r"-+", "-", n).strip("-")
+    return n or None
+
+
+def sql_brand_name_match(
+    pub_name: str,
+    pub_norm: str | None,
+    pub_slug: str | None,
+    candidate: str,
+) -> bool:
+    body = _sql_fn("_queue_brand_name_match")
+    assert "_queue_abbrev_name" in body
+    assert "_queue_slugify" in body
+    if not candidate:
+        return False
+    if pub_norm and pub_norm == sql_abbrev_name(candidate):
+        return True
+    slug = sql_slugify(candidate)
+    if pub_slug and slug and pub_slug == slug:
+        return True
+    return sql_legal_form_variants(pub_name, candidate)
+
+
+_RSC_STRIP = (
+    r"\s*[-(]\s*extension\s*\)?\s*$",
+    r"\s*[-(]\s*expansion(\s+buildings?)?\s*\)?\s*$",
+    r"\s*[-(]\s*new\s+building\s*\)?\s*$",
+    r"\s*[-(]\s*new\s+location\s*\)?\s*$",
+    r"\s*-?\s*unit[\s-]+[0-9]+(\s*[,-]\s*[0-9]+)*\s*$",
+    r"\s*-\s*[0-9]+\s*-\s*$",
+    r"\s+-\s*[0-9]+(\s*[,-]\s*[0-9]+)*\s*$",
+)
+
+
+def sql_rsc_extension_base_name(name: str) -> str | None:
+    """Port of 0014 rsc_extension_base_name. Not Python extension_base_name."""
+    fn = _RSC.split("create or replace function public.rsc_extension_base_name", 1)[1]
+    fn = fn.split("comment on function public.rsc_extension_base_name", 1)[0]
+    assert r"\s*\(\s*previously\s+[^)]*\)\s*$" in fn
+    for pat in _RSC_STRIP:
+        assert pat in fn, pat
+    v_clean = re.sub(r"\s*\(\s*previously\s+[^)]*\)\s*$", "", name, flags=re.I)
+    v = v_clean
+    for pat in _RSC_STRIP:
+        flags = 0 if pat == r"\s+-\s*[0-9]+(\s*[,-]\s*[0-9]+)*\s*$" else re.I
+        v = re.sub(pat, "", v, flags=flags)
+    v = v.strip()
+    if not v or v.lower() == v_clean.strip().lower():
+        return None
+    return v
+
+
+def sql_building_extras() -> list[str]:
+    body = _sql_fn("_queue_building_base_name")
+    assert r"(?:woven|sw|knit|sewing)" not in body
+    block = body.split("foreach v_pat in array array[", 1)[1].split("] loop", 1)[0]
+    pats = re.findall(r"'((?:\\'|[^'])*)'", block)
+    assert pats
+    return [p.replace(r"\y", r"\b") for p in pats]
+
+
+def sql_building_base_name(name: str) -> str | None:
+    """Port of SQL _queue_building_base_name (rsc + 0102 extras). Not Python."""
+    extras = sql_building_extras()
+    cur = name.strip()
+    for _ in range(8):
+        nxt = cur
+        rsc = sql_rsc_extension_base_name(nxt)
+        if rsc:
+            nxt = rsc
+        for pat in extras:
+            nxt = re.sub(pat, "", nxt, flags=re.I).strip(" -,")
+        nxt = re.sub(
+            r"([A-Za-z])New\s+Buildings?\.?\s*$",
+            r"\1",
+            nxt,
+            flags=re.I,
+        ).strip()
+        if nxt == cur or not nxt:
+            break
+        cur = nxt
+    if not cur or cur.lower() == name.strip().lower():
+        return None
+    return cur
+
+
+def sql_brand_facility_action(
+    brand_name: str,
+    mother_name: str,
+    *,
+    mother_norm: str | None = None,
+    mother_slug: str | None = None,
+) -> str:
     """Review SQL brand-building destination without applying 0102."""
     brand = _sql_fn("admin_queue_release_plan")
     brand = brand.split("if q.queue_type::text = 'brand_disclosure_match_review'", 1)[1]
     assert "_queue_paren_building_strip(public._queue_building_base_name" not in _SQL
-    from etl.core.queue_release import queue_building_base_name
-
-    bases = []
-    ext = queue_building_base_name(brand_name)
+    assert "_queue_building_base_name(brand.company_name)" in brand
+    bases: list[str] = []
+    ext = sql_building_base_name(brand_name)
     if ext:
         bases.append(ext)
     stripped = sql_paren_building_strip(brand_name)
     if stripped:
         bases.append(stripped)
+    norm = mother_norm if mother_norm is not None else sql_abbrev_name(mother_name)
+    slug = mother_slug if mother_slug is not None else sql_slugify(mother_name)
     for base in bases:
-        if sql_legal_form_variants(mother_name, base) or (
-            sql_abbrev_name(base) == sql_abbrev_name(mother_name)
-        ):
+        if sql_brand_name_match(mother_name, norm, slug, base):
             return "attach_facility"
     return "needs_human"
+
+
+def sql_mother_hit_ids(name: str, published: list[dict]) -> set[str]:
+    """Port of _queue_mother_hits against a published-row fixture."""
+    hits_fn = _sql_fn("_queue_mother_hits")
+    assert "_queue_abbrev_name" in hits_fn
+    assert "_queue_brand_name_match" in hits_fn
+    hits: set[str] = set()
+    bases: list[str] = []
+    for fn in (sql_building_base_name, sql_paren_building_strip):
+        base = fn(name)
+        if base:
+            bases.append(base)
+    for base in bases:
+        stem = sql_legal_stem(sql_abbrev_name(base) or base.lower())
+        for row in published:
+            if sql_brand_name_match(
+                row["company_name"],
+                row.get("company_name_norm"),
+                row.get("slug"),
+                base,
+            ):
+                hits.add(str(row["id"]))
+                continue
+            mstem = sql_legal_stem(str(row.get("company_name_norm") or ""))
+            if (
+                len(stem) >= 6
+                and len(mstem) >= 6
+                and mstem.startswith(stem)
+                and 0 <= len(mstem) - len(stem) <= 1
+            ):
+                hits.add(str(row["id"]))
+    return hits
+
+
+def sql_unique_mother_id(names: list[str], published: list[dict]) -> str | None:
+    hits: set[str] = set()
+    for name in names:
+        hits |= sql_mother_hit_ids(name, published)
+    if len(hits) != 1:
+        return None
+    return next(iter(hits))
 
 
 def test_typo_and_plural_are_same_company():
@@ -296,9 +442,17 @@ def test_refuse_nested_parent_on_a_building_name():
     )
 
 
+_LIZ_MOTHER = {
+    "id": "55c13ea8",
+    "slug": "liz-fashion-industries",
+    "company_name": "LIZ FASHION INDUSTRY LIMITED",
+    "company_name_norm": "liz fashion industries",
+}
+
+
 def test_fuzzy_valuka_unit_attaches_to_liz_fashion():
     plan = classify_fuzzy(
-        queue_id="q1c",
+        queue_id="7025396b",
         cert_id="a",
         target_id="b",
         cert_name="Liz Fashion Industry Ltd. (Valuka Unit)",
@@ -307,18 +461,16 @@ def test_fuzzy_valuka_unit_attaches_to_liz_fashion():
         target_has_rsc=False,
         cert_is_facility=False,
         target_is_facility=False,
-        published_matches=[
-            {
-                "id": "liz",
-                "slug": "liz-fashion-industry",
-                "company_name": "LIZ FASHION INDUSTRY LIMITED",
-                "company_name_norm": "liz fashion industry",
-            }
-        ],
+        published_matches=[_LIZ_MOTHER],
     )
     assert plan.action == "attach_facility"
-    assert plan.parent_id == "liz"
+    assert plan.parent_id == "55c13ea8"
     assert set(plan.member_ids) == {"a", "b"}
+    names = [
+        "Liz Fashion Industry Ltd. (Valuka Unit)",
+        "LIZ FASHION INDUSTRY LTD (Valuka Unit)",
+    ]
+    assert sql_unique_mother_id(names, [_LIZ_MOTHER]) == "55c13ea8"
 
 
 def test_u2_paren_is_building_shaped():
@@ -419,8 +571,8 @@ def test_fuzzy_hurricane_member_ids_exclude_mother():
         queue_id="ae1935ab-2672-4928-8188-28afc04c7eff",
         cert_id="ed35695c",
         target_id="766d04d7",
-        cert_name="Bengal Hurricane Ltd (Printing Unit)",
-        target_name="Bengal Hurricane Ltd",
+        cert_name="Bengal Hurricane Dyeing & Printing (Pvt.) Ltd. (Printing Unit)",
+        target_name="BENGAL HURRICANE DYEING & PRINTING (PVT) LTD.",
         cert_has_rsc=False,
         target_has_rsc=False,
         cert_is_facility=False,
@@ -429,14 +581,38 @@ def test_fuzzy_hurricane_member_ids_exclude_mother():
             {
                 "id": "766d04d7",
                 "slug": "bengal-hurricane",
-                "company_name": "Bengal Hurricane Ltd",
-                "company_name_norm": "bengal hurricane",
+                "company_name": "BENGAL HURRICANE DYEING & PRINTING (PVT) LTD.",
+                "company_name_norm": "bengal hurricane dyeing and printing",
             }
         ],
     )
     assert plan.action == "attach_facility"
     assert plan.parent_id == "766d04d7"
     assert plan.member_ids == ("ed35695c",)
+    hurricane = "Bengal Hurricane Dyeing & Printing (Pvt.) Ltd. (Printing Unit)"
+    assert paren_building_strip(hurricane) == (
+        "Bengal Hurricane Dyeing & Printing (Pvt.) Ltd."
+    )
+    assert sql_paren_building_strip(hurricane) == (
+        "Bengal Hurricane Dyeing & Printing (Pvt.) Ltd."
+    )
+    assert (
+        sql_unique_mother_id(
+            [
+                hurricane,
+                "BENGAL HURRICANE DYEING & PRINTING (PVT) LTD.",
+            ],
+            [
+                {
+                    "id": "766d04d7",
+                    "slug": "bengal-hurricane",
+                    "company_name": "BENGAL HURRICANE DYEING & PRINTING (PVT) LTD.",
+                    "company_name_norm": "bengal hurricane dyeing and printing",
+                }
+            ],
+        )
+        == "766d04d7"
+    )
 
 
 def test_fuzzy_trailing_unit_without_mother_needs_human():
@@ -627,14 +803,7 @@ def test_brand_shafipur_unit_attaches_to_liz_fashion():
         is_facility=False,
         facility_of=None,
         tier13_count=0,
-        published_matches=[
-            {
-                "id": "55c13ea8",
-                "slug": "liz-fashion-industry",
-                "company_name": "LIZ FASHION INDUSTRY LIMITED",
-                "company_name_norm": "liz fashion industries",
-            }
-        ],
+        published_matches=[_LIZ_MOTHER],
     )
     assert plan.action == "attach_facility"
     assert plan.parent_id == "55c13ea8"
@@ -643,6 +812,8 @@ def test_brand_shafipur_unit_attaches_to_liz_fashion():
         sql_brand_facility_action(
             "Liz Fashion Industry Limited (Shafipur Unit)",
             "LIZ FASHION INDUSTRY LIMITED",
+            mother_norm="liz fashion industries",
+            mother_slug="liz-fashion-industries",
         )
         == "attach_facility"
     )
@@ -650,6 +821,8 @@ def test_brand_shafipur_unit_attaches_to_liz_fashion():
         sql_brand_facility_action(
             "Liz Fashion Industry Limited (Shafipur Unit)",
             "LIZ FASHION INDUSTRIES LIMITED",
+            mother_norm="liz fashion industries",
+            mother_slug="liz-fashion-industries",
         )
         == "attach_facility"
     )
@@ -722,10 +895,14 @@ def test_sql_brand_and_unique_mother_are_wired():
     )[1].split("create or replace function public._queue_mother_hits", 1)[0]
     assert _PAREN_END_SQL in paren_fn
     assert "'gi'" not in paren_fn
-    assert "stripped ~ '[()]'" in paren_fn
+    assert "stripped ~ '[()]'" not in paren_fn
+    assert r"\y(?:unit|building|shed|extension)\y" in paren_fn
     hits_fn = sql.split("create or replace function public._queue_mother_hits", 1)[1]
     hits_fn = hits_fn.split("create or replace function public._queue_find_mother", 1)[0]
     assert "_queue_names_same_company" not in hits_fn
+    assert "_queue_abbrev_name" in hits_fn
+    assert "_queue_brand_name_match" in hits_fn
+    assert "_queue_legal_stem(lower(v_base))" not in hits_fn
     assert "between 0 and 1" in hits_fn
     assert "between 0 and 2" not in hits_fn
     lfv = sql.split("create or replace function public._queue_legal_form_variants", 1)[
@@ -877,6 +1054,37 @@ def test_brand_does_not_attach_printing_sister_or_other_building():
     assert k5.action == "needs_human"
 
 
+def test_brand_south_east_printing_unit_attaches():
+    plan = classify_brand(
+        queue_id="3567e858-df1d-4ecd-b5f0-5902b1530881",
+        supplier_id="dcf53dbd",
+        company_name="SOUTH EAST TEXTILES (PVT.) LTD. (PRINTING UNIT)",
+        is_published=False,
+        is_facility=False,
+        facility_of=None,
+        tier13_count=0,
+        published_matches=[
+            {
+                "id": "987316ab",
+                "slug": "south-east-textiles",
+                "company_name": "SOUTH EAST TEXTILES (PVT) LTD.",
+                "company_name_norm": "south east textiles",
+            }
+        ],
+    )
+    assert plan.action == "attach_facility"
+    assert plan.parent_id == "987316ab"
+    assert (
+        sql_brand_facility_action(
+            "SOUTH EAST TEXTILES (PVT.) LTD. (PRINTING UNIT)",
+            "SOUTH EAST TEXTILES (PVT) LTD.",
+            mother_norm="south east textiles",
+            mother_slug="south-east-textiles",
+        )
+        == "attach_facility"
+    )
+
+
 def test_brand_kenpark_unit_2_does_not_attach_to_k3():
     plan = classify_brand(
         queue_id="5d17c2ce-2a0a-4615-8a8a-c3c5c4707505",
@@ -896,6 +1104,15 @@ def test_brand_kenpark_unit_2_does_not_attach_to_k3():
         ],
     )
     assert plan.action == "needs_human"
+    assert (
+        sql_brand_facility_action(
+            "Kenpark Bangladesh Apparel Pvt. Ltd. (Unit 2)",
+            "Kenpark Bangladesh Apparel (Pvt.) Ltd (K-3)",
+            mother_norm="kenpark bangladesh apparel pvt ltd k 3",
+            mother_slug="kenpark-k3",
+        )
+        == "needs_human"
+    )
 
 
 def test_brand_ckl_unit_does_not_attach_to_cmt_sister():
@@ -917,6 +1134,15 @@ def test_brand_ckl_unit_does_not_attach_to_cmt_sister():
         ],
     )
     assert plan.action == "needs_human"
+    assert (
+        sql_brand_facility_action(
+            "Consumer Knitex Limited (Ckl) – Unit 01",
+            "Consumer Knitex Limited (CMT Bangladesh)",
+            mother_norm="consumer knitex cmt bangladesh",
+            mother_slug="consumer-knitex-cmt",
+        )
+        == "needs_human"
+    )
 
 
 def test_brand_industry_vs_industries_is_legal_form():
@@ -940,8 +1166,21 @@ def test_brand_washing_unit_then_unit_2_needs_human():
         "Pacific Jeans Ltd. (Building 5) (Unit-2)",
         "Pacific Jeans Ltd. (Unit (Building 5))",
         "Pacific Jeans Ltd. (Knit Unit) Unit-2",
+        "Pacific Jeans Ltd. (Sw Unit) Unit-2",
+        "Pacific Jeans Ltd. (SW Unit) Unit-2",
+        "Pacific Jeans Ltd. (Sw Unit) (Unit-2)",
+        "The Civil Engineers Ltd. (Sw Unit) Unit-2",
+        "The Civil Engineers Ltd. (Sw Unit) (Unit-2)",
     )
+    civil = {
+        "id": "civil",
+        "slug": "the-civil-engineers",
+        "company_name": "The Civil Engineers Ltd.",
+        "company_name_norm": "the civil engineers",
+    }
     for company_name in names:
+        mother_row = _PACIFIC_MOTHER if "Pacific" in company_name else civil
+        mother = str(mother_row["company_name"])
         plan = classify_brand(
             queue_id="pacific-fold",
             supplier_id="child",
@@ -950,21 +1189,45 @@ def test_brand_washing_unit_then_unit_2_needs_human():
             is_facility=False,
             facility_of=None,
             tier13_count=0,
-            published_matches=[_PACIFIC_MOTHER],
+            published_matches=[mother_row],
         )
         assert plan.action == "needs_human", company_name
-        assert sql_brand_facility_action(company_name, "Pacific Jeans Ltd.") == (
+        fuzzy = classify_fuzzy(
+            queue_id="pacific-fold-fuzzy",
+            cert_id="child",
+            target_id="sib",
+            cert_name=company_name,
+            target_name=company_name.replace("Unit-2", "Unit-3").replace(
+                "(Unit-2)", "(Unit-3)"
+            ),
+            cert_has_rsc=False,
+            target_has_rsc=False,
+            cert_is_facility=False,
+            target_is_facility=False,
+            published_matches=[mother_row],
+        )
+        assert fuzzy.action == "needs_human", company_name
+        assert sql_brand_facility_action(company_name, mother) == (
             "needs_human"
         ), company_name
+        sql_base = sql_building_base_name(company_name)
+        if sql_base:
+            assert sql_base != mother, company_name
         stripped = paren_building_strip(company_name)
         if stripped:
-            assert stripped != "Pacific Jeans Ltd.", company_name
+            assert stripped != mother, company_name
         sql_stripped = sql_paren_building_strip(company_name)
         if sql_stripped:
-            assert sql_stripped != "Pacific Jeans Ltd.", company_name
+            assert sql_stripped != mother, company_name
 
 
 def test_fuzzy_kenpark_unit_2_does_not_attach_to_k3():
+    k3 = {
+        "id": "89652ef0",
+        "slug": "kenpark-k3",
+        "company_name": "Kenpark Bangladesh Apparel (Pvt.) Ltd (K-3)",
+        "company_name_norm": "kenpark bangladesh apparel pvt ltd k 3",
+    }
     plan = classify_fuzzy(
         queue_id="5d17c2ce-2a0a-4615-8a8a-c3c5c4707505",
         cert_id="dd738823",
@@ -975,19 +1238,25 @@ def test_fuzzy_kenpark_unit_2_does_not_attach_to_k3():
         target_has_rsc=False,
         cert_is_facility=False,
         target_is_facility=False,
-        published_matches=[
-            {
-                "id": "89652ef0",
-                "slug": "kenpark-k3",
-                "company_name": "Kenpark Bangladesh Apparel (Pvt.) Ltd (K-3)",
-                "company_name_norm": "kenpark bangladesh apparel pvt ltd k 3",
-            }
-        ],
+        published_matches=[k3],
     )
     assert plan.action == "needs_human"
+    assert (
+        sql_unique_mother_id(
+            ["Kenpark Bangladesh Apparel Pvt. Ltd. (Unit 2)"],
+            [k3],
+        )
+        is None
+    )
 
 
 def test_fuzzy_ckl_unit_does_not_attach_to_cmt_sister():
+    cmt = {
+        "id": "3e8db214",
+        "slug": "consumer-knitex-cmt",
+        "company_name": "Consumer Knitex Limited (CMT Bangladesh)",
+        "company_name_norm": "consumer knitex cmt bangladesh",
+    }
     plan = classify_fuzzy(
         queue_id="33cbb2d5-5fe8-4a3f-a27f-0e269e99632e",
         cert_id="04742eea",
@@ -998,16 +1267,16 @@ def test_fuzzy_ckl_unit_does_not_attach_to_cmt_sister():
         target_has_rsc=False,
         cert_is_facility=False,
         target_is_facility=False,
-        published_matches=[
-            {
-                "id": "3e8db214",
-                "slug": "consumer-knitex-cmt",
-                "company_name": "Consumer Knitex Limited (CMT Bangladesh)",
-                "company_name_norm": "consumer knitex cmt bangladesh",
-            }
-        ],
+        published_matches=[cmt],
     )
     assert plan.action == "needs_human"
+    assert (
+        sql_unique_mother_id(
+            ["Consumer Knitex Limited (Ckl) – Unit 01"],
+            [cmt],
+        )
+        is None
+    )
 
 
 def test_fuzzy_missing_supplier_needs_human():

@@ -16,6 +16,7 @@ const ENV_KEYS = [
 
 interface RpcCall {
   fn: string;
+  params: Record<string, unknown>;
 }
 
 const realFetch = globalThis.fetch;
@@ -24,12 +25,32 @@ let rpcCalls: RpcCall[] = [];
 let rpcStatus = 200;
 let rpcBody: unknown = { action: "keep_separate" };
 
+async function rpcBodyFrom(input: unknown, init?: RequestInit): Promise<Record<string, unknown>> {
+  const raw =
+    typeof init?.body === "string"
+      ? init.body
+      : input instanceof Request
+        ? await input.clone().text()
+        : "";
+  if (!raw) return {};
+  try {
+    return JSON.parse(raw) as Record<string, unknown>;
+  } catch {
+    return {};
+  }
+}
+
 function stubFetch(): void {
   rpcCalls = [];
-  globalThis.fetch = (async (input: unknown) => {
+  globalThis.fetch = (async (input: unknown, init?: RequestInit) => {
     const url = typeof input === "string" ? input : (input as { url: string }).url;
     const match = /\/rpc\/(\w+)/.exec(url);
-    if (match) rpcCalls.push({ fn: match[1]! });
+    if (match) {
+      rpcCalls.push({
+        fn: match[1]!,
+        params: await rpcBodyFrom(input, init),
+      });
+    }
     return new Response(JSON.stringify(rpcBody), {
       status: rpcStatus,
       headers: { "Content-Type": "application/json" },
@@ -81,6 +102,8 @@ describe("POST /api/v1/admin/queue/decide", () => {
     assert.equal(res.status, 200);
     assert.equal(rpcCalls.length, 1);
     assert.equal(rpcCalls[0]?.fn, "admin_queue_decide");
+    assert.equal(rpcCalls[0]?.params.p_decision, "release");
+    assert.equal(rpcCalls[0]?.params.p_queue_id, QUEUE_ID);
     assert.deepEqual(await res.json(), { action: "keep_separate" });
   });
 
@@ -91,6 +114,8 @@ describe("POST /api/v1/admin/queue/decide", () => {
     assert.equal(res.status, 400);
     assert.equal(rpcCalls.length, 1);
     assert.equal(rpcCalls[0]?.fn, "admin_queue_decide");
+    assert.equal(rpcCalls[0]?.params.p_decision, "release");
+    assert.equal(rpcCalls[0]?.params.p_queue_id, QUEUE_ID);
     const json = (await res.json()) as { error: string };
     assert.equal(json.error, "admin_queue_decide failed");
   });

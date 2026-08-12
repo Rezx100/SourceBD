@@ -41,7 +41,7 @@ _BUILDING_PAREN_END_RE = re.compile(
 )
 _PROCESS_UNIT_PAREN_RE = re.compile(
     r"\(\s*[^()]*\b(?:dyeing|embroidery|knitting|knit|packaging|"
-    r"printing|sewing|spinning|washing|weaving|woven)\b[^()]*\bunit\b[^()]*\)",
+    r"printing|sewing|spinning|sw|washing|weaving|woven)\b[^()]*\bunit\b[^()]*\)",
     re.IGNORECASE,
 )
 _TRAILING_UNIT_RE = re.compile(r"\bunit(?:[\s-]+\d+)?\s*$", re.IGNORECASE)
@@ -318,7 +318,7 @@ def paren_building_strip(name: str) -> str | None:
     stripped = _BUILDING_PAREN_END_RE.sub("", name).strip(" -,")
     if not stripped or stripped.lower() == name.strip().lower():
         return None
-    if "(" in stripped or ")" in stripped:
+    if _BUILDING_PAREN_RE.search(stripped):
         return None
     return stripped
 

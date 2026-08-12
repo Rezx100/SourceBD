@@ -16,7 +16,12 @@ Review SQL now uses the same building extras as Python (`(U-2)`, Unit-II,
 `(Ext)`), attaches only building-shaped ids, requires one mother across
 both fuzzy names, and brand tickets match Ltd/Limited/slug/norm on two
 separate bases (Liz Shafipur Unit → Liz Fashion; Kenpark Unit 2, Knitex
-Ckl, and a mill label stacked with another unit stay held).
+Ckl, and a mill label stacked with another unit stay held). Fuzzy mother
+search abbreviates Industry→Industries and matches slug/norm so Valuka
+attaches to Liz Fashion (`liz fashion industries`). `(Sw Unit)` stacked
+with another unit stays held; a mill paren that is the only suffix still
+attaches (Hurricane Printing Unit, South East Printing Unit). Leftover
+`(Pvt.)` after that strip is not a leftover building.
 Prior fingerprints `7734c386…` and `06173cde…` are void.
 `--apply` and production migration apply are not authorised. See
 `ops/plans/queue-release-plan.md`.

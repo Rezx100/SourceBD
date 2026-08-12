@@ -388,7 +388,7 @@ as $$
     when coalesce(p_name, '') = '' then null
     when stripped = '' then null
     when lower(stripped) = lower(btrim(p_name)) then null
-    when stripped ~ '[()]' then null
+    when stripped ~* '\(\s*[^()]*\y(?:unit|building|shed|extension)\y[^()]*\)' then null
     else stripped
   end
   from (
@@ -413,12 +413,16 @@ set search_path = public
 as $$
 declare
   v_base text;
+  v_stem text;
 begin
   foreach v_base in array array_remove(array[
     public._queue_building_base_name(p_name),
     public._queue_paren_building_strip(p_name)
   ], null)
   loop
+    v_stem := public._queue_legal_stem(
+      coalesce(public._queue_abbrev_name(v_base), lower(v_base))
+    );
     return query
       select s.id
         from public.suppliers s
@@ -426,20 +430,18 @@ begin
          and s.facility_of is null
          and not public._queue_is_building_shaped(s.company_name)
          and (
-           (
-             length(public._queue_legal_stem(s.company_name_norm)) >= 10
-             and public._queue_legal_stem(s.company_name_norm)
-               = public._queue_legal_stem(lower(v_base))
+           public._queue_brand_name_match(
+             s.company_name, s.company_name_norm, s.slug, v_base
            )
            or (
-             length(public._queue_legal_stem(lower(v_base))) >= 6
+             length(v_stem) >= 6
              and length(public._queue_legal_stem(s.company_name_norm)) >= 6
              and left(
                public._queue_legal_stem(s.company_name_norm),
-               length(public._queue_legal_stem(lower(v_base)))
-             ) = public._queue_legal_stem(lower(v_base))
+               length(v_stem)
+             ) = v_stem
              and length(public._queue_legal_stem(s.company_name_norm))
-               - length(public._queue_legal_stem(lower(v_base))) between 0 and 1
+               - length(v_stem) between 0 and 1
            )
          );
   end loop;
