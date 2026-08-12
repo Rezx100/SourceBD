@@ -333,18 +333,25 @@ def assert_bgmea_value_absent_on_profile(rest: Rest, slug: str, value: str) -> N
 def assert_named_counterexample_profiles(rest: Rest) -> None:
     """RPC/HTTP boundary for the issue's named counterexamples."""
     assert_bgmea_value_absent_on_profile(rest, "as-knitwear", "953")
+    assert_bgmea_value_absent_on_profile(rest, "as-knitwear", "528")
     assert_bgmea_value_on_profile(rest, "as-fashion", "953")
     assert_profile_entity_type(rest, "as-fashion", "buying_house")
+    assert_bgmea_value_on_profile(rest, "sa-fashion", "528")
+    assert_profile_entity_type(rest, "sa-fashion", "buying_house")
 
     assert_bgmea_value_on_profile(rest, "am-fashion", "231")
     assert_profile_entity_type(rest, "am-fashion", "buying_house")
 
     assert_bgmea_value_absent_on_profile(rest, "mirza-fashion-and-design", "331")
+    assert_bgmea_value_absent_on_profile(rest, "union-fashions", "331")
     assert_bgmea_value_on_profile(rest, "union-fashion", "331")
     assert_profile_entity_type(rest, "union-fashion", "buying_house")
 
+    assert_bgmea_value_absent_on_profile(rest, "cut-n-sew", "5756")
     assert_bgmea_value_on_profile(rest, "snowtex-outerwear", "5756")
+    assert_bgmea_value_absent_on_profile(rest, "4a-yarn-dyeing", "3778")
     assert_bgmea_value_on_profile(rest, "south-end-sweater", "3778")
+    assert_bgmea_value_absent_on_profile(rest, "gm-fashion", "3624")
     assert_bgmea_value_on_profile(rest, "southeast-sweater", "3624")
 
     assert_univogue_2436_visible_on_mother(rest)
@@ -536,7 +543,14 @@ def _retag_buying_house(rest: Rest, supplier_id: str) -> None:
 
 
 def _compensate_move(
-    rest: Rest, source_id: str, p: PlannedItem, dest_id: str
+    rest: Rest,
+    source_id: str,
+    p: PlannedItem,
+    dest_id: str,
+    *,
+    created_dest: bool = False,
+    retagged_dest: bool = False,
+    prior_entity_type: str | None = None,
 ) -> None:
     """Reverse one move after a mid-apply failure; raise if reverse fails."""
     moved = rest.patch(
@@ -565,6 +579,19 @@ def _compensate_move(
     for c in stale:
         if str(c.get("supplier_id")) != p.from_supplier_id:
             raise RuntimeError(f"compensate: evidence_claims still wrong for {p.ref}")
+    if created_dest:
+        # Soft-delete path: unpublish so the orphan is not buyer-visible.
+        rest.patch(
+            "suppliers",
+            {"id": f"eq.{dest_id}"},
+            {"is_published": False},
+        )
+    elif retagged_dest and prior_entity_type and prior_entity_type != "buying_house":
+        rest.patch(
+            "suppliers",
+            {"id": f"eq.{dest_id}"},
+            {"entity_type": prior_entity_type},
+        )
     _reconcile(rest, source_id, p.from_supplier_id, dest_id)
 
 
@@ -572,9 +599,12 @@ def apply_plan(rest: Rest, plan: list[PlannedItem]) -> None:
     source_id = _bgmea_id(rest)
     for p in plan:
         dest_id = p.to_supplier_id
+        created_dest = False
+        retagged_dest = False
+        prior_entity_type: str | None = None
+
         if p.action == "import_move" and not p.to_exists:
             assert p.create_name
-            # Exact audited slug only — never silent suffix divergence.
             hit = rest.one("suppliers", {"select": "id", "slug": f"eq.{p.to_slug}"})
             if hit:
                 raise RuntimeError(
@@ -593,9 +623,19 @@ def apply_plan(rest: Rest, plan: list[PlannedItem]) -> None:
             )
             dest_id = str(created["id"])
             p.to_supplier_id = dest_id
+            created_dest = True
+            retagged_dest = True
+            prior_entity_type = None
         elif p.action == "import_move" and dest_id:
             if p.set_buying_house:
-                _retag_buying_house(rest, dest_id)
+                row = rest.one(
+                    "suppliers",
+                    {"select": "entity_type", "id": f"eq.{dest_id}"},
+                )
+                prior_entity_type = None if not row else row.get("entity_type")
+                if prior_entity_type != "buying_house":
+                    _retag_buying_house(rest, dest_id)
+                    retagged_dest = True
 
         if p.action in ("stay", "stay_retag"):
             if p.set_buying_house:
@@ -616,6 +656,13 @@ def apply_plan(rest: Rest, plan: list[PlannedItem]) -> None:
                 "subject_id": f"eq.{p.source_record_id}",
             },
         )
+        if p.set_buying_house and not created_dest and not retagged_dest:
+            row = rest.one(
+                "suppliers",
+                {"select": "entity_type", "id": f"eq.{dest_id}"},
+            )
+            prior_entity_type = None if not row else row.get("entity_type")
+
         moved = rest.patch(
             "source_records",
             {
@@ -625,6 +672,18 @@ def apply_plan(rest: Rest, plan: list[PlannedItem]) -> None:
             {"supplier_id": dest_id},
         )
         if not moved:
+            if created_dest:
+                rest.patch(
+                    "suppliers",
+                    {"id": f"eq.{dest_id}"},
+                    {"is_published": False},
+                )
+            elif retagged_dest and prior_entity_type and prior_entity_type != "buying_house":
+                rest.patch(
+                    "suppliers",
+                    {"id": f"eq.{dest_id}"},
+                    {"entity_type": prior_entity_type},
+                )
             raise RuntimeError(f"failed to move {p.ref}")
         try:
             if prior_claims:
@@ -641,11 +700,20 @@ def apply_plan(rest: Rest, plan: list[PlannedItem]) -> None:
                         f"{p.ref}: evidence_claims patch incomplete "
                         f"{len(claims)}/{len(prior_claims)}"
                     )
-                for c in claims:
-                    if str(c.get("supplier_id")) != dest_id:
-                        raise RuntimeError(
-                            f"{p.ref}: evidence_claims not fully repointed"
-                        )
+                verify = rest.all_rows(
+                    "evidence_claims",
+                    {
+                        "select": "id,supplier_id",
+                        "subject_table": "eq.source_records",
+                        "subject_id": f"eq.{p.source_record_id}",
+                    },
+                )
+                if len(verify) != len(prior_claims) or any(
+                    str(c.get("supplier_id")) != dest_id for c in verify
+                ):
+                    raise RuntimeError(
+                        f"{p.ref}: evidence_claims not fully repointed"
+                    )
             else:
                 leftover = rest.all_rows(
                     "evidence_claims",
@@ -659,13 +727,23 @@ def apply_plan(rest: Rest, plan: list[PlannedItem]) -> None:
                     raise RuntimeError(
                         f"{p.ref}: evidence_claims appeared during move — refuse"
                     )
-            if p.set_buying_house:
-                _retag_buying_house(rest, dest_id)
+            if p.set_buying_house and not created_dest:
+                if prior_entity_type != "buying_house":
+                    _retag_buying_house(rest, dest_id)
+                    retagged_dest = True
             _reconcile(rest, source_id, p.from_supplier_id, dest_id)
             if p.ref == "general:2436":
                 assert_univogue_2436_visible_on_mother(rest)
         except Exception:
-            _compensate_move(rest, source_id, p, dest_id)
+            _compensate_move(
+                rest,
+                source_id,
+                p,
+                dest_id,
+                created_dest=created_dest,
+                retagged_dest=retagged_dest,
+                prior_entity_type=prior_entity_type,
+            )
             raise
 
 
@@ -705,8 +783,6 @@ def rez117_buying_house_tag_violations(
         if dest not in holders:
             continue
         et = entity_by_slug.get(dest)
-        if et is None:
-            continue
         if et != "buying_house":
             lines.append(
                 f"  {d.ref} host {dest!r} entity_type={et!r} — need buying_house"

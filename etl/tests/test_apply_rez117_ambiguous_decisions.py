@@ -137,6 +137,13 @@ def test_fingerprint_order_independent_and_field_sensitive() -> None:
         for i in items
     ]
     assert fingerprint(items) != fingerprint(identity_flip)
+    from_slug_flip = [
+        PlannedItem(**{**i.__dict__, "from_slug": "other-host"})
+        if i.ref == "953"
+        else i
+        for i in items
+    ]
+    assert fingerprint(items) != fingerprint(from_slug_flip)
 
 
 def test_post_apply_forbids_953_solely_on_as_knitwear() -> None:
@@ -294,13 +301,17 @@ def test_named_counterexample_rpc_boundary() -> None:
         def rpc_json(self, name: str, body: dict):
             slug = body["p_slug"]
             calls.append(slug)
+            empty = {"pills": [], "supplier": {"entity_type": "factory"}}
             if slug == "as-knitwear":
-                return {"pills": [], "supplier": {"entity_type": "factory"}}
+                return empty
             if slug == "as-fashion":
                 return {
-                    "pills": [
-                        {"source_code": "BGMEA", "value": "953"},
-                    ],
+                    "pills": [{"source_code": "BGMEA", "value": "953"}],
+                    "supplier": {"entity_type": "buying_house"},
+                }
+            if slug == "sa-fashion":
+                return {
+                    "pills": [{"source_code": "BGMEA", "value": "528"}],
                     "supplier": {"entity_type": "buying_house"},
                 }
             if slug == "am-fashion":
@@ -308,13 +319,15 @@ def test_named_counterexample_rpc_boundary() -> None:
                     "pills": [{"source_code": "BGMEA", "value": "231"}],
                     "supplier": {"entity_type": "buying_house"},
                 }
-            if slug == "mirza-fashion-and-design":
-                return {"pills": [], "supplier": {"entity_type": "buying_house"}}
+            if slug in {"mirza-fashion-and-design", "union-fashions"}:
+                return empty
             if slug == "union-fashion":
                 return {
                     "pills": [{"source_code": "BGMEA", "value": "331"}],
                     "supplier": {"entity_type": "buying_house"},
                 }
+            if slug in {"cut-n-sew", "4a-yarn-dyeing", "gm-fashion"}:
+                return empty
             if slug in {
                 "snowtex-outerwear",
                 "south-end-sweater",
@@ -343,11 +356,18 @@ def test_named_counterexample_rpc_boundary() -> None:
             raise AssertionError(slug)
 
     assert_named_counterexample_profiles(_Rest())  # type: ignore[arg-type]
-    assert "as-knitwear" in calls
-    assert "as-fashion" in calls
-    assert "am-fashion" in calls
-    assert "union-fashion" in calls
-    assert "univogue-garments" in calls
+    for needed in (
+        "as-knitwear",
+        "as-fashion",
+        "sa-fashion",
+        "am-fashion",
+        "mirza-fashion-and-design",
+        "union-fashions",
+        "union-fashion",
+        "cut-n-sew",
+        "univogue-garments",
+    ):
+        assert needed in calls
 
 
 def test_named_counterexample_fails_when_953_still_on_factory() -> None:
@@ -361,6 +381,88 @@ def test_named_counterexample_fails_when_953_still_on_factory() -> None:
             return {"pills": [], "supplier": {"entity_type": "factory"}}
 
     with pytest.raises(RuntimeError, match="as-knitwear"):
+        assert_named_counterexample_profiles(_Rest())  # type: ignore[arg-type]
+
+
+def test_named_counterexample_fails_when_231_still_factory() -> None:
+    class _Rest:
+        def rpc_json(self, name: str, body: dict):
+            slug = body["p_slug"]
+            if slug == "as-knitwear":
+                return {"pills": [], "supplier": {"entity_type": "factory"}}
+            if slug == "as-fashion":
+                return {
+                    "pills": [{"source_code": "BGMEA", "value": "953"}],
+                    "supplier": {"entity_type": "buying_house"},
+                }
+            if slug == "sa-fashion":
+                return {
+                    "pills": [{"source_code": "BGMEA", "value": "528"}],
+                    "supplier": {"entity_type": "buying_house"},
+                }
+            if slug == "am-fashion":
+                return {
+                    "pills": [{"source_code": "BGMEA", "value": "231"}],
+                    "supplier": {"entity_type": "factory"},
+                }
+            return {"pills": [], "supplier": {"entity_type": "factory"}}
+
+    with pytest.raises(RuntimeError, match="am-fashion"):
+        assert_named_counterexample_profiles(_Rest())  # type: ignore[arg-type]
+
+
+def test_named_counterexample_fails_when_331_on_union_fashions() -> None:
+    class _Rest:
+        def rpc_json(self, name: str, body: dict):
+            slug = body["p_slug"]
+            ok_empty = {"pills": [], "supplier": {"entity_type": "factory"}}
+            if slug == "as-knitwear":
+                return ok_empty
+            if slug == "as-fashion":
+                return {
+                    "pills": [{"source_code": "BGMEA", "value": "953"}],
+                    "supplier": {"entity_type": "buying_house"},
+                }
+            if slug == "sa-fashion":
+                return {
+                    "pills": [{"source_code": "BGMEA", "value": "528"}],
+                    "supplier": {"entity_type": "buying_house"},
+                }
+            if slug == "am-fashion":
+                return {
+                    "pills": [{"source_code": "BGMEA", "value": "231"}],
+                    "supplier": {"entity_type": "buying_house"},
+                }
+            if slug == "mirza-fashion-and-design":
+                return ok_empty
+            if slug == "union-fashions":
+                return {
+                    "pills": [{"source_code": "BGMEA", "value": "331"}],
+                    "supplier": {"entity_type": "factory"},
+                }
+            return ok_empty
+
+    with pytest.raises(RuntimeError, match="union-fashions"):
+        assert_named_counterexample_profiles(_Rest())  # type: ignore[arg-type]
+
+
+def test_named_counterexample_fails_when_528_still_on_as_knitwear() -> None:
+    class _Rest:
+        def rpc_json(self, name: str, body: dict):
+            slug = body["p_slug"]
+            if slug == "as-knitwear":
+                return {
+                    "pills": [{"source_code": "BGMEA", "value": "528"}],
+                    "supplier": {"entity_type": "factory"},
+                }
+            if slug == "as-fashion":
+                return {
+                    "pills": [{"source_code": "BGMEA", "value": "953"}],
+                    "supplier": {"entity_type": "buying_house"},
+                }
+            return {"pills": [], "supplier": {"entity_type": "factory"}}
+
+    with pytest.raises(RuntimeError, match="528"):
         assert_named_counterexample_profiles(_Rest())  # type: ignore[arg-type]
 
 
