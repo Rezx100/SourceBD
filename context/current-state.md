@@ -12,7 +12,11 @@ merge / publish / label, or close when the destination is already live.
 Production dry-run fingerprint
 `000531700f970a9c9a2a2c129cac1d4131f646dcfc457f44f7fe84fe67d171d3`
 (5 merges, 12 building attaches, 11 brand moves, 1 publish, 48 human).
-Prior fingerprints `7734c386…` and `06173cde…` are void.
+Review SQL now uses the same building extras as Python (`(U-2)`, Unit-II,
+`(Ext)`), attaches only building-shaped ids, and requires one mother
+across both fuzzy names — so clicking Review cannot keep_separate Mark
+Fashion Wear (U-2) or hang a sister company on a mother. Prior
+fingerprints `7734c386…` and `06173cde…` are void.
 `--apply` and production migration apply are not authorised. See
 `ops/plans/queue-release-plan.md`.
 

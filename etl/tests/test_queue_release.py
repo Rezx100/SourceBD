@@ -7,7 +7,7 @@ Named counterexamples from production (13 Aug 2026):
 - M.A. vs N.M. Accessories → keep separate
 - Fakir Knitwears (Extension) already attached → close as already_attached
 - knit/trims/extension/euro token clusters → keep separate (already on Discover)
-- brand-only unmatched → hold_no_register (cannot publish)
+- brand-only unmatched → needs_human (cannot publish)
 - Section Seven with Tier 1–3 → publish
 - Liz Fashion Valuka Unit pair → keep separate (buildings, not a merge)
 - Azim & Son Unit 1 as named mother → needs_human (building, not company)
@@ -23,6 +23,7 @@ from etl.core.queue_release import (
     classify_extension,
     classify_fuzzy,
     classify_queue_row,
+    is_building_shaped_name,
     names_are_same_company,
     pick_merge_winner,
     refuse_nested_parent,
@@ -156,6 +157,9 @@ def test_refuse_nested_parent_on_a_building_name():
     assert refuse_nested_parent(None)
     assert refuse_nested_parent({"id": "u", "facility_of": "m", "company_name": "Foo Ltd"})
     assert refuse_nested_parent({"id": "u", "facility_of": None, "company_name": "Azim & Son Unit 1"})
+    assert refuse_nested_parent(
+        {"id": "u2", "facility_of": None, "company_name": "Mark Fashion Wear (Pvt.) Ltd. (U-2)"}
+    )
     assert not refuse_nested_parent(
         {"id": "m", "facility_of": None, "company_name": "Azim & Sons (Pvt.) Ltd."}
     )
@@ -184,6 +188,124 @@ def test_fuzzy_valuka_unit_attaches_to_liz_fashion():
     assert plan.action == "attach_facility"
     assert plan.parent_id == "liz"
     assert set(plan.member_ids) == {"a", "b"}
+
+
+def test_u2_paren_is_building_shaped():
+    assert is_building_shaped_name("Mark Fashion Wear (Pvt.) Ltd. (U-2)")
+    assert not is_building_shaped_name("Mark Fashion Wear (Pvte) Limited")
+
+
+def test_fuzzy_u2_without_unique_mother_needs_human():
+    plan = classify_fuzzy(
+        queue_id="a5c7886c-ce38-4bfc-b749-4ccd02ddafa2",
+        cert_id="60a14799",
+        target_id="0f4dee78",
+        cert_name="Mark Fashion Wear (Pvt.) Ltd. (U-2)",
+        target_name="Mark Fashion Wear (Pvte) Limited",
+        cert_has_rsc=False,
+        target_has_rsc=False,
+        cert_is_facility=False,
+        target_is_facility=False,
+        published_matches=[
+            {
+                "id": "60a14799",
+                "slug": "mark-fashion-wear-pvt-ltd-u-2",
+                "company_name": "Mark Fashion Wear (Pvt.) Ltd. (U-2)",
+                "company_name_norm": "mark fashion wear u 2",
+            },
+            {
+                "id": "0f4dee78",
+                "slug": "mark-fashion-wear-pvte-limited",
+                "company_name": "Mark Fashion Wear (Pvte) Limited",
+                "company_name_norm": "mark fashion wear pvte",
+            },
+        ],
+    )
+    assert plan.action == "needs_human"
+    assert plan.action != "keep_separate"
+
+
+def test_fuzzy_u2_attaches_only_the_building_when_mother_found():
+    plan = classify_fuzzy(
+        queue_id="a5c7886c",
+        cert_id="60a14799",
+        target_id="0f4dee78",
+        cert_name="Mark Fashion Wear (Pvt.) Ltd. (U-2)",
+        target_name="Mark Fashion Wear (Pvte) Limited",
+        cert_has_rsc=False,
+        target_has_rsc=False,
+        cert_is_facility=False,
+        target_is_facility=False,
+        published_matches=[
+            {
+                "id": "mother",
+                "slug": "mark-fashion-wear",
+                "company_name": "Mark Fashion Wear (Pvt.) Ltd.",
+                "company_name_norm": "mark fashion wear",
+            }
+        ],
+    )
+    assert plan.action == "attach_facility"
+    assert plan.parent_id == "mother"
+    assert plan.member_ids == ("60a14799",)
+    assert "0f4dee78" not in plan.member_ids
+
+
+def test_fuzzy_does_not_attach_printing_sister():
+    plan = classify_fuzzy(
+        queue_id="shine",
+        cert_id="print",
+        target_id="unit1",
+        cert_name="Shine Embroidery & Printing Ltd",
+        target_name="Shine Embroidery Ltd (Unit 1)",
+        cert_has_rsc=False,
+        target_has_rsc=False,
+        cert_is_facility=False,
+        target_is_facility=False,
+        published_matches=[
+            {
+                "id": "emb",
+                "slug": "shine-embroidery",
+                "company_name": "Shine Embroidery Ltd",
+                "company_name_norm": "shine embroidery",
+            },
+            {
+                "id": "print",
+                "slug": "shine-embroidery-printing",
+                "company_name": "Shine Embroidery & Printing Ltd",
+                "company_name_norm": "shine embroidery printing",
+            },
+        ],
+    )
+    assert plan.action == "attach_facility"
+    assert plan.parent_id == "emb"
+    assert plan.member_ids == ("unit1",)
+    assert "print" not in plan.member_ids
+
+
+def test_fuzzy_hurricane_member_ids_exclude_mother():
+    plan = classify_fuzzy(
+        queue_id="ae1935ab-2672-4928-8188-28afc04c7eff",
+        cert_id="ed35695c",
+        target_id="766d04d7",
+        cert_name="Bengal Hurricane Ltd (Printing Unit)",
+        target_name="Bengal Hurricane Ltd",
+        cert_has_rsc=False,
+        target_has_rsc=False,
+        cert_is_facility=False,
+        target_is_facility=False,
+        published_matches=[
+            {
+                "id": "766d04d7",
+                "slug": "bengal-hurricane",
+                "company_name": "Bengal Hurricane Ltd",
+                "company_name_norm": "bengal hurricane",
+            }
+        ],
+    )
+    assert plan.action == "attach_facility"
+    assert plan.parent_id == "766d04d7"
+    assert plan.member_ids == ("ed35695c",)
 
 
 def test_fuzzy_trailing_unit_without_mother_needs_human():
@@ -572,7 +694,11 @@ def test_migration_decide_mutates_suppliers_not_only_the_ticket():
     assert "update public.compliance_documents" in sql
     assert "w.doc_type = d.doc_type" in sql
     assert "w.sha256 = d.sha256" in sql
-    assert "rsc_extension_base_name(parent.company_name)" in sql
+    assert "_queue_is_building_shaped(parent.company_name)" in sql
+    assert "_queue_is_building_shaped" in sql
+    assert r"\(\s*u[\s-]*[0-9]+\s*\)+" in sql
+    assert "v_m1 is distinct from v_m2" in sql
+    assert "jsonb_build_array(v_cert_id, v_target_id)" not in sql
     assert "v_cert_tier13 > v_target_tier13" in sql
     assert "Building-shaped names need a register mother" in sql
     assert "Named mother is itself a building" in sql
@@ -614,7 +740,7 @@ def test_decide_route_still_calls_admin_queue_decide():
     assert 'rpc("admin_queue_decide"' in src
     assert "revalidatePath(\"/admin/queue\")" in src
     assert "revalidatePath(\"/discover\")" in src
-    assert '"release"' in src
+    assert "queueDecideRequestError" in src
     assert "approve|release" not in src
 
 
@@ -630,22 +756,57 @@ def test_ops_script_is_dry_run_by_default():
     assert "refuse_nested_parent" in src
 
 
+def test_http_approve_is_rejected():
+    src = DECIDE_ROUTE.read_text(encoding="utf-8")
+    assert "queueDecideRequestError" in src
+    assert "approve|release" not in src
+    helper = (REPO / "lib" / "admin" / "queue-decide-decision.ts").read_text(
+        encoding="utf-8"
+    )
+    assert '"approve"' not in helper
+    assert "release" in helper
+    assert "reject" in helper
+    assert "escalate" in helper
+
+
+def test_sql_absorb_skips_unique_source_collision():
+    sql = MIGRATION.read_text(encoding="utf-8")
+    absorb = sql.split("create or replace function public._queue_absorb_supplier", 1)[1]
+    assert "and not exists" in absorb
+    assert "w.source_ref is not distinct from sr.source_ref" in absorb
+    assert "w.doc_type = d.doc_type" in absorb
+    assert "w.sha256 = d.sha256" in absorb
+
+
+def test_sql_nested_refuse_uses_building_shaped():
+    sql = MIGRATION.read_text(encoding="utf-8")
+    body = sql.rsplit("create or replace function public.admin_queue_decide", 1)[1]
+    refuse = body.split("refuse nested facility", 1)[0]
+    assert "_queue_is_building_shaped(p.company_name)" in refuse
+    assert "rsc_extension_base_name(p.company_name)" not in refuse
+
+
 def test_review_button_posts_release_not_approve():
     src = DECIDE_BUTTON.read_text(encoding="utf-8")
     assert "Release" in src
     assert "does not change supplier evidence automatically" not in src
     assert 'decide("release")' in src
     assert 'decide("approve")' not in src
+    assert 'type Decision = "approve"' not in src
     assert "Release sends this to buyers" in src
 
 
 def test_decide_route_forwards_release_to_rpc():
     src = DECIDE_ROUTE.read_text(encoding="utf-8")
+    helper = (REPO / "lib" / "admin" / "queue-decide-decision.ts").read_text(
+        encoding="utf-8"
+    )
     assert 'rpc("admin_queue_decide"' in src
     assert "p_decision: decision" in src
-    assert '"release"' in src
-    assert "release|reject|escalate" in src
+    assert "queueDecideRequestError" in src
+    assert "release|reject|escalate" in helper
     assert "approve|release" not in src
+    assert "approve|release" not in helper
     assert "revalidatePath(\"/admin/queue\")" in src
     assert "revalidatePath(\"/discover\")" in src
     assert "revalidatePath(\"/app/discover\")" in src

@@ -455,7 +455,7 @@ def main() -> int:
                 "member_ids": list(p.member_ids),
             }
             for p in plans
-            if p.action not in {"keep_separate", "already_attached", "hold_no_register", "needs_human"}
+            if p.action not in {"keep_separate", "already_attached", "needs_human"}
         ],
     }
     path = SNAPSHOT_DIR / "queue-release-dry-run.json"

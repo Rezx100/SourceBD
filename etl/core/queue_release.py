@@ -13,8 +13,8 @@ keep_separate       already a live company on Discover; close
 merge_into          absorb loser records onto winner; unpublish loser
 attach_brand        move a brand-only listing onto a published company
 publish             row already has Tier 1–3 evidence; make it visible
-hold_no_register    brand-only, no published match; cannot publish
-needs_human         do not auto-mutate
+hold_no_register    unused on this path; unmatched brand-only is needs_human
+needs_human         do not auto-mutate; ticket stays open
 """
 
 from __future__ import annotations
@@ -544,16 +544,26 @@ def classify_fuzzy(
         )
         if mother:
             kids = tuple(
-                x
-                for x in (cert_id, target_id)
-                if x and x != str(mother["id"])
+                sid
+                for sid, sname in ((cert_id, cert_name), (target_id, target_name))
+                if sid and sid != str(mother["id"]) and is_building_shaped_name(sname)
             )
+            if not kids:
+                return ReleasePlan(
+                    queue_id=queue_id,
+                    queue_type="fuzzy_match_review",
+                    action="needs_human",
+                    winner_id=target_id,
+                    loser_id=cert_id,
+                    buyer_destination="Building-shaped names need a register mother",
+                    reason="REZ-58: extension/unit listings are facilities, not merge targets",
+                )
             return ReleasePlan(
                 queue_id=queue_id,
                 queue_type="fuzzy_match_review",
                 action="attach_facility",
                 parent_id=str(mother["id"]),
-                child_id=kids[0] if kids else cert_id,
+                child_id=kids[0],
                 member_ids=kids,
                 buyer_destination="Building moves onto the mother company profile",
                 reason="REZ-58: unit/building listings attach to the register company",

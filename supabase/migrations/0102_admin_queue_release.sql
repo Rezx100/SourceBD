@@ -156,6 +156,73 @@ as $$
      );
 $$;
 
+-- Queue-local building predicate. Must not alter rsc_extension_base_name
+-- (IMMUTABLE, indexed by 0055/0056). Ports Python extension_base_name extras
+-- so Review treats (U-2) / Unit-II / (Ext) as buildings, not companies.
+create or replace function public._queue_is_building_shaped(p_name text)
+returns boolean
+language sql
+immutable
+as $$
+  select coalesce(p_name, '') <> ''
+     and (
+       public.rsc_extension_base_name(p_name) is not null
+       or p_name ~* '\yunit([\s-]+[0-9]+)?\s*$'
+       or p_name ~* '\(\s*[^)]*\y(?:unit|building|shed|extension)\y[^)]*\)'
+       or p_name ~* '\(\s*u[\s-]*[0-9]+\s*\)+\.?\s*$'
+       or p_name ~* '\s+u[\s-]+[0-9]+\.?\s*$'
+       or p_name ~* '-?\s*unit[\s-]+[ivxlcdm]+\.?\s*$'
+       or p_name ~* '\(\s*ext\s*\)+\.?\s*$'
+       or p_name ~* '\(\s*unit[\s-]*[0-9]+\s*\)+\.?\s*$'
+       or p_name ~* '\(\s*factory[\s-]*[0-9]+\s*\)+\.?\s*$'
+       or p_name ~* '[-(]\s*annex(?:\s+building)?\s*\)?\.?\s*$'
+       or p_name ~* '\(\s*annex(?:\s+building)?\s*\)+\.?\s*$'
+       or p_name ~* '\(\s*(?:woven|sw|knit|sewing)\s+unit\s*\)+\.?\s*$'
+       or p_name ~* '\s*[-(]?\s*extended\s+buildings?\s*\)?\.?\s*$'
+       or p_name ~* '\s*[-(]?\s*new\s+shed\s*\)?\.?\s*$'
+       or p_name ~* '\s*\[\s*(?:new\s+)?(?:building|buildings|extension)s?\s*\]+\.?\s*$'
+     );
+$$;
+
+create or replace function public._queue_building_base_name(p_name text)
+returns text
+language plpgsql
+immutable
+as $$
+declare
+  v_base text;
+  v_next text;
+  v_pat text;
+begin
+  if coalesce(p_name, '') = '' then
+    return null;
+  end if;
+  v_base := public.rsc_extension_base_name(p_name);
+  if v_base is not null then
+    return v_base;
+  end if;
+  foreach v_pat in array array[
+    '\(\s*u[\s-]*[0-9]+\s*\)+\.?\s*$',
+    '\s+u[\s-]+[0-9]+\.?\s*$',
+    '-?\s*unit[\s-]+[ivxlcdm]+\.?\s*$',
+    '\(\s*ext\s*\)+\.?\s*$',
+    '\(\s*unit[\s-]*[0-9]+\s*\)+\.?\s*$',
+    '\(\s*factory[\s-]*[0-9]+\s*\)+\.?\s*$',
+    '[-(]\s*annex(?:\s+building)?\s*\)?\.?\s*$',
+    '\(\s*annex(?:\s+building)?\s*\)+\.?\s*$',
+    '\(\s*[^)]*\y(?:unit|building|shed|extension)\y[^)]*\)',
+    '\(\s*(?:woven|sw|knit|sewing)\s+unit\s*\)+\.?\s*$',
+    '\yunit([\s-]+[0-9]+)?\s*$'
+  ] loop
+    v_next := nullif(btrim(regexp_replace(p_name, v_pat, '', 'i'), ' -,'), '');
+    if v_next is not null and v_next is distinct from btrim(p_name) then
+      return v_next;
+    end if;
+  end loop;
+  return null;
+end;
+$$;
+
 create or replace function public._queue_find_mother(p_name text)
 returns uuid
 language plpgsql
@@ -171,18 +238,7 @@ begin
   if coalesce(p_name, '') = '' then
     return null;
   end if;
-  v_base := public.rsc_extension_base_name(p_name);
-  if v_base is null then
-    v_base := nullif(btrim(regexp_replace(
-      p_name,
-      '\(\s*[^)]*\y(?:unit|building|shed|extension)\y[^)]*\)',
-      '',
-      'i'
-    )), '');
-    if v_base is not distinct from btrim(p_name) then
-      v_base := null;
-    end if;
-  end if;
+  v_base := public._queue_building_base_name(p_name);
   if v_base is null then
     return null;
   end if;
@@ -190,8 +246,7 @@ begin
     from public.suppliers s
    where s.is_published
      and s.facility_of is null
-     and public.rsc_extension_base_name(s.company_name) is null
-     and s.company_name !~* '\yunit([\s-]+[0-9]+)?\s*$'
+     and not public._queue_is_building_shaped(s.company_name)
      and (
        (
          length(public._queue_legal_stem(s.company_name_norm)) >= 10
@@ -217,8 +272,7 @@ begin
     from public.suppliers s
    where s.is_published
      and s.facility_of is null
-     and public.rsc_extension_base_name(s.company_name) is null
-     and s.company_name !~* '\yunit([\s-]+[0-9]+)?\s*$'
+     and not public._queue_is_building_shaped(s.company_name)
      and (
        (
          length(public._queue_legal_stem(s.company_name_norm)) >= 10
@@ -344,6 +398,9 @@ declare
   v_target_tier13 int;
   v_cert_n int;
   v_target_n int;
+  v_m1 uuid;
+  v_m2 uuid;
+  v_members jsonb;
 begin
   select * into q from public.verification_queue where id = p_queue_id;
   if q.id is null then
@@ -382,9 +439,7 @@ begin
         'buyer_destination', 'Named mother is missing or not visible'
       );
     end if;
-    if public.rsc_extension_base_name(parent.company_name) is not null
-       or parent.company_name ~* '\yunit([\s-]+[0-9]+)?\s*$'
-       or parent.company_name ~* '\(\s*[^)]*\y(?:unit|building|shed|extension)\y[^)]*\)' then
+    if public._queue_is_building_shaped(parent.company_name) then
       v_match := public._queue_find_mother(parent.company_name);
       if v_match is not null and v_match is distinct from v_child_id then
         return jsonb_build_object(
@@ -455,22 +510,42 @@ begin
         'buyer_destination', 'Two RSC-inspected buildings stay two profiles'
       );
     end if;
-    if public.rsc_extension_base_name(cert.company_name) is not null
-       or public.rsc_extension_base_name(target.company_name) is not null
-       or cert.company_name ~* '\yunit([\s-]+[0-9]+)?\s*$'
-       or target.company_name ~* '\yunit([\s-]+[0-9]+)?\s*$'
-       or cert.company_name ~* '\(\s*[^)]*\y(?:unit|building|shed|extension)\y[^)]*\)'
-       or target.company_name ~* '\(\s*[^)]*\y(?:unit|building|shed|extension)\y[^)]*\)' then
-      v_match := coalesce(
-        public._queue_find_mother(cert.company_name),
-        public._queue_find_mother(target.company_name)
-      );
+    if public._queue_is_building_shaped(cert.company_name)
+       or public._queue_is_building_shaped(target.company_name) then
+      v_m1 := public._queue_find_mother(cert.company_name);
+      v_m2 := public._queue_find_mother(target.company_name);
+      if v_m1 is not null and v_m2 is not null and v_m1 is distinct from v_m2 then
+        return jsonb_build_object(
+          'action', 'needs_human',
+          'winner_id', v_target_id,
+          'loser_id', v_cert_id,
+          'buyer_destination', 'Building-shaped names need a register mother'
+        );
+      end if;
+      v_match := coalesce(v_m1, v_m2);
       if v_match is not null then
+        select coalesce(jsonb_agg(x.id order by x.ord), '[]'::jsonb)
+          into v_members
+          from (
+            select v_cert_id as id, cert.company_name as n, 1 as ord
+            union all
+            select v_target_id, target.company_name, 2
+          ) x
+         where x.id is distinct from v_match
+           and public._queue_is_building_shaped(x.n);
+        if jsonb_array_length(v_members) = 0 then
+          return jsonb_build_object(
+            'action', 'needs_human',
+            'winner_id', v_target_id,
+            'loser_id', v_cert_id,
+            'buyer_destination', 'Building-shaped names need a register mother'
+          );
+        end if;
         return jsonb_build_object(
           'action', 'attach_facility',
           'parent_id', v_match,
-          'child_id', v_cert_id,
-          'member_ids', jsonb_build_array(v_cert_id, v_target_id),
+          'child_id', (v_members->>0)::uuid,
+          'member_ids', v_members,
           'buyer_destination', 'Building moves onto the mother company profile'
         );
       end if;
@@ -755,8 +830,7 @@ begin
          where p.id = v_parent
            and (
              p.facility_of is not null
-             or public.rsc_extension_base_name(p.company_name) is not null
-             or p.company_name ~* '\yunit([\s-]+[0-9]+)?\s*$'
+             or public._queue_is_building_shaped(p.company_name)
            )
       ) then
         raise exception 'refuse nested facility' using errcode = '22023';
@@ -976,6 +1050,8 @@ revoke all on function public._queue_edit_distance(text, text) from public;
 revoke all on function public._queue_compact_name(text) from public;
 revoke all on function public._queue_names_same_company(text, text) from public;
 revoke all on function public._queue_legal_stem(text) from public;
+revoke all on function public._queue_is_building_shaped(text) from public;
+revoke all on function public._queue_building_base_name(text) from public;
 revoke all on function public._queue_find_mother(text) from public;
 revoke all on function public._queue_absorb_supplier(uuid, uuid) from public;
 revoke all on function public.admin_queue_release_plan(uuid) from public;

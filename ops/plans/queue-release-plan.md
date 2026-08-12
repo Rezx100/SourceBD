@@ -6,6 +6,12 @@ Open `verification_queue` rows: **1,332**. These are tickets, not 1,332 hidden c
 
 Fingerprint: `000531700f970a9c9a2a2c129cac1d4131f646dcfc457f44f7fe84fe67d171d3`
 
+Python dry-run is unchanged after the Review SQL repair (13 Aug 2026, later
+the same day): `(U-2)` was already a building in Python. Migration `0102`
+now uses the same extras, attaches only building-shaped ids, and requires
+one mother across both fuzzy names, so Review matches this fingerprint
+instead of keep_separate on Mark Fashion Wear (U-2).
+
 Prior fingerprints `7734c386…` and `06173cde…` are void.
 
 ## Classifier counts
