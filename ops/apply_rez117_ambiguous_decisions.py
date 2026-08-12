@@ -618,7 +618,8 @@ def apply_plan(rest: Rest, plan: list[PlannedItem]) -> None:
                     "slug": p.to_slug,
                     "company_name_norm": normalize_company_name(p.create_name),
                     "entity_type": "buying_house",
-                    "is_published": True,
+                    # Cannot publish until >=1 Tier1-3 SR is attached.
+                    "is_published": False,
                 },
             )
             dest_id = str(created["id"])
@@ -731,6 +732,16 @@ def apply_plan(rest: Rest, plan: list[PlannedItem]) -> None:
                 if prior_entity_type != "buying_house":
                     _retag_buying_house(rest, dest_id)
                     retagged_dest = True
+            if created_dest:
+                published = rest.patch(
+                    "suppliers",
+                    {"id": f"eq.{dest_id}"},
+                    {"is_published": True},
+                )
+                if not published or not published[0].get("is_published"):
+                    raise RuntimeError(
+                        f"{p.ref}: failed to publish imported buying house {p.to_slug}"
+                    )
             _reconcile(rest, source_id, p.from_supplier_id, dest_id)
             if p.ref == "general:2436":
                 assert_univogue_2436_visible_on_mother(rest)
