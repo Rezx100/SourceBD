@@ -487,6 +487,87 @@ def test_brand_with_tier13_publishes():
     assert plan.action == "publish"
 
 
+def test_brand_shafipur_unit_attaches_to_liz_fashion():
+    plan = classify_brand(
+        queue_id="aefbd03e-liz-shafipur",
+        supplier_id="30db28d1",
+        company_name="Liz Fashion Industry Limited (Shafipur Unit)",
+        is_published=False,
+        is_facility=False,
+        facility_of=None,
+        tier13_count=0,
+        published_matches=[
+            {
+                "id": "55c13ea8",
+                "slug": "liz-fashion-industry",
+                "company_name": "LIZ FASHION INDUSTRY LIMITED",
+                "company_name_norm": "liz fashion industries",
+            }
+        ],
+    )
+    assert plan.action == "attach_facility"
+    assert plan.parent_id == "55c13ea8"
+    assert plan.child_id == "30db28d1"
+
+
+def test_building_extras_are_shaped_and_bare_unit_is_not_a_mother_candidate():
+    assert is_building_shaped_name("Shangu Tex Ltd.-2")
+    assert is_building_shaped_name("MNR Sweaters Ltd Extension Building")
+    assert is_building_shaped_name("Foo Ltd (relocated)")
+    assert is_building_shaped_name("Liz Fashion Valuka Unit")
+    from etl.core.queue_release import mother_name_candidates
+
+    assert mother_name_candidates("Liz Fashion Valuka Unit") == []
+    assert mother_name_candidates("Ananta Unit") == []
+
+
+def test_fuzzy_two_mothers_across_names_needs_human():
+    plan = classify_fuzzy(
+        queue_id="two-mothers",
+        cert_id="u1",
+        target_id="u2",
+        cert_name="Northern Apparels Ltd (Unit 1)",
+        target_name="Northern Ltd (Unit 2)",
+        cert_has_rsc=False,
+        target_has_rsc=False,
+        cert_is_facility=False,
+        target_is_facility=False,
+        published_matches=[
+            {
+                "id": "a",
+                "slug": "northern-apparels",
+                "company_name": "Northern Apparels Ltd",
+                "company_name_norm": "northern apparels",
+            },
+            {
+                "id": "b",
+                "slug": "northern",
+                "company_name": "Northern Ltd",
+                "company_name_norm": "northern",
+            },
+        ],
+    )
+    assert plan.action == "needs_human"
+
+
+def test_sql_brand_and_unique_mother_are_wired():
+    sql = MIGRATION.read_text(encoding="utf-8")
+    brand = sql.split("brand_disclosure_match_review", 1)[1]
+    assert "_queue_find_mother(brand.company_name)" in brand
+    assert "_queue_is_building_shaped(brand.company_name)" in brand
+    fuzzy = sql.split("fuzzy_match_review", 1)[1].split(
+        "brand_disclosure_match_review", 1
+    )[0]
+    assert "_queue_unique_mother" in fuzzy
+    assert "coalesce(v_m1, v_m2)" not in fuzzy
+    base_fn = sql.split("create or replace function public._queue_building_base_name", 1)[
+        1
+    ].split("create or replace function public._queue_mother_hits", 1)[0]
+    assert r"\yunit([\s-]+[0-9]+)?\s*$" not in base_fn
+    assert "relocated" in base_fn
+    assert r"\s+extension\s+buildings?" in base_fn
+
+
 def test_brand_only_unmatched_stays_hidden():
     plan = classify_brand(
         queue_id="q11",
@@ -697,7 +778,10 @@ def test_migration_decide_mutates_suppliers_not_only_the_ticket():
     assert "_queue_is_building_shaped(parent.company_name)" in sql
     assert "_queue_is_building_shaped" in sql
     assert r"\(\s*u[\s-]*[0-9]+\s*\)+" in sql
-    assert "v_m1 is distinct from v_m2" in sql
+    assert "_queue_unique_mother" in sql
+    assert "coalesce(v_m1, v_m2)" not in sql
+    assert "relocated" in sql
+    assert r"\s+extension\s+buildings?" in sql
     assert "jsonb_build_array(v_cert_id, v_target_id)" not in sql
     assert "v_cert_tier13 > v_target_tier13" in sql
     assert "Building-shaped names need a register mother" in sql
@@ -720,8 +804,10 @@ def test_migration_decide_mutates_suppliers_not_only_the_ticket():
     assert "if v_decision = 'release'" in body
     assert "member_ids" in body
     brand = sql.split("brand_disclosure_match_review", 1)[1]
+    assert "_queue_is_building_shaped(brand.company_name)" in brand
+    assert "_queue_find_mother(brand.company_name)" in brand
+    assert "rsc_extension_base_name(brand.company_name)" not in brand
     assert "_queue_legal_stem(s.company_name_norm)" in brand
-    assert "_queue_legal_stem(brand.company_name_norm)" in brand
     assert "create or replace function public._queue_legal_stem" in sql
 
 
@@ -740,7 +826,7 @@ def test_decide_route_still_calls_admin_queue_decide():
     assert 'rpc("admin_queue_decide"' in src
     assert "revalidatePath(\"/admin/queue\")" in src
     assert "revalidatePath(\"/discover\")" in src
-    assert "queueDecideRequestError" in src
+    assert "executeQueueDecide" in src
     assert "approve|release" not in src
 
 
@@ -758,12 +844,14 @@ def test_ops_script_is_dry_run_by_default():
 
 def test_http_approve_is_rejected():
     src = DECIDE_ROUTE.read_text(encoding="utf-8")
-    assert "queueDecideRequestError" in src
+    assert "executeQueueDecide" in src
     assert "approve|release" not in src
     helper = (REPO / "lib" / "admin" / "queue-decide-decision.ts").read_text(
         encoding="utf-8"
     )
-    assert '"approve"' not in helper
+    assert "executeQueueDecide" in helper
+    assert "p_decision: decision" in helper or "p_decision: decision" in src
+    assert '"approve"' not in helper.split("executeQueueDecide", 1)[0]
     assert "release" in helper
     assert "reject" in helper
     assert "escalate" in helper
@@ -802,8 +890,8 @@ def test_decide_route_forwards_release_to_rpc():
         encoding="utf-8"
     )
     assert 'rpc("admin_queue_decide"' in src
-    assert "p_decision: decision" in src
-    assert "queueDecideRequestError" in src
+    assert "p_decision: decision" in helper
+    assert "executeQueueDecide" in src
     assert "release|reject|escalate" in helper
     assert "approve|release" not in src
     assert "approve|release" not in helper

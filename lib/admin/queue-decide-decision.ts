@@ -28,3 +28,55 @@ export function queueDecideRequestError(
   }
   return null;
 }
+
+export type QueueDecideRpc = (args: {
+  p_queue_id: string;
+  p_decision: string;
+  p_note: string | null;
+}) => Promise<{ data: unknown; error: { message: string } | null }>;
+
+/** Observable POST /api/v1/admin/queue/decide contract (status + RPC). */
+export async function executeQueueDecide(opts: {
+  role: string | null;
+  body: unknown;
+  rpc: QueueDecideRpc;
+}): Promise<{ status: number; json: unknown }> {
+  if (opts.role !== "admin") {
+    return { status: 403, json: { error: "admin only" } };
+  }
+  if (opts.body === null || typeof opts.body !== "object") {
+    return { status: 400, json: { error: "invalid json" } };
+  }
+  const body = opts.body as {
+    queue_id?: unknown;
+    decision?: unknown;
+    note?: unknown;
+  };
+  const queueId = typeof body.queue_id === "string" ? body.queue_id : "";
+  const decision = typeof body.decision === "string" ? body.decision : "";
+  const note = typeof body.note === "string" ? body.note : null;
+  const bad = queueDecideRequestError(queueId, decision);
+  if (bad) {
+    return { status: bad.status, json: { error: bad.error } };
+  }
+  const { data, error } = await opts.rpc({
+    p_queue_id: queueId,
+    p_decision: decision,
+    p_note: note,
+  });
+  if (error) {
+    const m = error.message.toLowerCase();
+    const code = m.includes("admin only")
+      ? 403
+      : m.includes("not found")
+        ? 404
+        : m.includes("already decided")
+          ? 409
+          : 400;
+    return {
+      status: code,
+      json: { error: "admin_queue_decide failed", detail: error.message },
+    };
+  }
+  return { status: 200, json: data };
+}

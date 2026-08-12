@@ -22,6 +22,7 @@ MARK_FASHION_QUEUE = "a5c7886c-ce38-4bfc-b749-4ccd02ddafa2"
 HURRICANE_QUEUE = "ae1935ab-2672-4928-8188-28afc04c7eff"
 HURRICANE_CHILD = "ed35695c"
 HURRICANE_MOTHER = "766d04d7"
+SHAFPUR_QUEUE = "aefbd03e-17e7-4876-a3db-d6b035722bd5"
 
 
 def _rpc(name: str, payload: dict) -> httpx.Response:
@@ -58,14 +59,18 @@ def test_release_plan_rpc_exists_or_skip() -> None:
 
 def test_mark_fashion_u2_is_not_keep_separate() -> None:
     plan = _plan(MARK_FASHION_QUEUE)
-    assert plan["action"] != "keep_separate"
-    assert plan["action"] in ("needs_human", "attach_facility")
+    assert plan["action"] == "needs_human"
 
 
 def test_hurricane_member_ids_exclude_mother() -> None:
     plan = _plan(HURRICANE_QUEUE)
-    if plan["action"] != "attach_facility":
-        pytest.skip(f"hurricane plan is {plan.get('action')}, not attach")
+    assert plan["action"] == "attach_facility"
     members = [str(x) for x in (plan.get("member_ids") or [])]
     assert any(m.startswith(HURRICANE_CHILD) for m in members)
     assert not any(m.startswith(HURRICANE_MOTHER) for m in members)
+
+
+def test_shafipur_brand_attaches_to_liz() -> None:
+    plan = _plan(SHAFPUR_QUEUE)
+    assert plan["action"] == "attach_facility"
+    assert str(plan["parent_id"]).startswith(LIZ_MOTHER[:8])

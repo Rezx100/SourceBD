@@ -8,9 +8,9 @@ Fingerprint: `000531700f970a9c9a2a2c129cac1d4131f646dcfc457f44f7fe84fe67d171d3`
 
 Python dry-run is unchanged after the Review SQL repair (13 Aug 2026, later
 the same day): `(U-2)` was already a building in Python. Migration `0102`
-now uses the same extras, attaches only building-shaped ids, and requires
-one mother across both fuzzy names, so Review matches this fingerprint
-instead of keep_separate on Mark Fashion Wear (U-2).
+now uses the same extras, attaches only building-shaped ids, requires one
+mother across both fuzzy names, and brand tickets use that mother search
+(Liz Shafipur Unit → Liz Fashion), so Review matches this fingerprint.
 
 Prior fingerprints `7734c386…` and `06173cde…` are void.
 

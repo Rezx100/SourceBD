@@ -181,6 +181,11 @@ as $$
        or p_name ~* '\s*[-(]?\s*extended\s+buildings?\s*\)?\.?\s*$'
        or p_name ~* '\s*[-(]?\s*new\s+shed\s*\)?\.?\s*$'
        or p_name ~* '\s*\[\s*(?:new\s+)?(?:building|buildings|extension)s?\s*\]+\.?\s*$'
+       or p_name ~* '\s+extension\s+buildings?\.?\s*$'
+       or p_name ~* '\s*-\s*extension(?:\s+\d+)?\.?\s*$'
+       or p_name ~* '\w\.\s*-\s*[0-9]+\s*$'
+       or p_name ~* '\s*[-(]?\s*relocated\s*\)?\.?\s*$'
+       or p_name ~* '[A-Za-z]New\s+Buildings?\.?\s*$'
      );
 $$;
 
@@ -212,14 +217,71 @@ begin
     '\(\s*annex(?:\s+building)?\s*\)+\.?\s*$',
     '\(\s*[^)]*\y(?:unit|building|shed|extension)\y[^)]*\)',
     '\(\s*(?:woven|sw|knit|sewing)\s+unit\s*\)+\.?\s*$',
-    '\yunit([\s-]+[0-9]+)?\s*$'
+    '\s+extension\s+buildings?\.?\s*$',
+    '\s*-\s*extension(?:\s+\d+)?\.?\s*$',
+    '\.\s*-\s*[0-9]+\s*$',
+    '\s*[-(]?\s*relocated\s*\)?\.?\s*$',
+    '\s*[-(]?\s*extended\s+buildings?\s*\)?\.?\s*$',
+    '\s*[-(]?\s*new\s+shed\s*\)?\.?\s*$',
+    '\s*\[\s*(?:new\s+)?(?:building|buildings|extension)s?\s*\]+\.?\s*$',
+    '\s*-?\s*unit[\s-]+[0-9]+(\s*[,-]\s*[0-9]+)*\s*$'
   ] loop
     v_next := nullif(btrim(regexp_replace(p_name, v_pat, '', 'i'), ' -,'), '');
     if v_next is not null and v_next is distinct from btrim(p_name) then
       return v_next;
     end if;
   end loop;
+  v_next := nullif(btrim(regexp_replace(
+    p_name,
+    '([A-Za-z])New\s+Buildings?\.?\s*$',
+    '\1',
+    'i'
+  )), '');
+  if v_next is not null and v_next is distinct from btrim(p_name) then
+    return v_next;
+  end if;
   return null;
+end;
+$$;
+
+create or replace function public._queue_mother_hits(p_name text)
+returns setof uuid
+language plpgsql
+stable
+security definer
+set search_path = public
+as $$
+declare
+  v_base text;
+begin
+  v_base := public._queue_building_base_name(p_name);
+  if v_base is null then
+    return;
+  end if;
+  return query
+    select s.id
+      from public.suppliers s
+     where s.is_published
+       and s.facility_of is null
+       and not public._queue_is_building_shaped(s.company_name)
+       and (
+         (
+           length(public._queue_legal_stem(s.company_name_norm)) >= 10
+           and public._queue_legal_stem(s.company_name_norm)
+             = public._queue_legal_stem(lower(v_base))
+         )
+         or public._queue_names_same_company(s.company_name, v_base)
+         or (
+           length(public._queue_legal_stem(lower(v_base))) >= 6
+           and length(public._queue_legal_stem(s.company_name_norm)) >= 6
+           and left(
+             public._queue_legal_stem(s.company_name_norm),
+             length(public._queue_legal_stem(lower(v_base)))
+           ) = public._queue_legal_stem(lower(v_base))
+           and length(public._queue_legal_stem(s.company_name_norm))
+             - length(public._queue_legal_stem(lower(v_base))) between 0 and 2
+         )
+       );
 end;
 $$;
 
@@ -231,66 +293,35 @@ security definer
 set search_path = public
 as $$
 declare
-  v_base text;
   v_id uuid;
   v_n int;
 begin
-  if coalesce(p_name, '') = '' then
-    return null;
-  end if;
-  v_base := public._queue_building_base_name(p_name);
-  if v_base is null then
-    return null;
-  end if;
-  select count(*) into v_n
-    from public.suppliers s
-   where s.is_published
-     and s.facility_of is null
-     and not public._queue_is_building_shaped(s.company_name)
-     and (
-       (
-         length(public._queue_legal_stem(s.company_name_norm)) >= 10
-         and public._queue_legal_stem(s.company_name_norm)
-           = public._queue_legal_stem(lower(v_base))
-       )
-       or public._queue_names_same_company(s.company_name, v_base)
-       or (
-         length(public._queue_legal_stem(lower(v_base))) >= 6
-         and length(public._queue_legal_stem(s.company_name_norm)) >= 6
-         and left(
-           public._queue_legal_stem(s.company_name_norm),
-           length(public._queue_legal_stem(lower(v_base)))
-         ) = public._queue_legal_stem(lower(v_base))
-         and length(public._queue_legal_stem(s.company_name_norm))
-           - length(public._queue_legal_stem(lower(v_base))) between 0 and 2
-       )
-     );
+  select count(distinct h), min(h) into v_n, v_id
+    from public._queue_mother_hits(p_name) as h;
   if v_n <> 1 then
     return null;
   end if;
-  select s.id into v_id
-    from public.suppliers s
-   where s.is_published
-     and s.facility_of is null
-     and not public._queue_is_building_shaped(s.company_name)
-     and (
-       (
-         length(public._queue_legal_stem(s.company_name_norm)) >= 10
-         and public._queue_legal_stem(s.company_name_norm)
-           = public._queue_legal_stem(lower(v_base))
-       )
-       or public._queue_names_same_company(s.company_name, v_base)
-       or (
-         length(public._queue_legal_stem(lower(v_base))) >= 6
-         and length(public._queue_legal_stem(s.company_name_norm)) >= 6
-         and left(
-           public._queue_legal_stem(s.company_name_norm),
-           length(public._queue_legal_stem(lower(v_base)))
-         ) = public._queue_legal_stem(lower(v_base))
-         and length(public._queue_legal_stem(s.company_name_norm))
-           - length(public._queue_legal_stem(lower(v_base))) between 0 and 2
-       )
-     );
+  return v_id;
+end;
+$$;
+
+create or replace function public._queue_unique_mother(p_names text[])
+returns uuid
+language plpgsql
+stable
+security definer
+set search_path = public
+as $$
+declare
+  v_id uuid;
+  v_n int;
+begin
+  select count(distinct h), min(h) into v_n, v_id
+    from unnest(coalesce(p_names, '{}'::text[])) as n
+    cross join lateral public._queue_mother_hits(n) as h;
+  if v_n <> 1 then
+    return null;
+  end if;
   return v_id;
 end;
 $$;
@@ -398,8 +429,6 @@ declare
   v_target_tier13 int;
   v_cert_n int;
   v_target_n int;
-  v_m1 uuid;
-  v_m2 uuid;
   v_members jsonb;
 begin
   select * into q from public.verification_queue where id = p_queue_id;
@@ -512,17 +541,9 @@ begin
     end if;
     if public._queue_is_building_shaped(cert.company_name)
        or public._queue_is_building_shaped(target.company_name) then
-      v_m1 := public._queue_find_mother(cert.company_name);
-      v_m2 := public._queue_find_mother(target.company_name);
-      if v_m1 is not null and v_m2 is not null and v_m1 is distinct from v_m2 then
-        return jsonb_build_object(
-          'action', 'needs_human',
-          'winner_id', v_target_id,
-          'loser_id', v_cert_id,
-          'buyer_destination', 'Building-shaped names need a register mother'
-        );
-      end if;
-      v_match := coalesce(v_m1, v_m2);
+      v_match := public._queue_unique_mother(
+        array[cert.company_name, target.company_name]
+      );
       if v_match is not null then
         select coalesce(jsonb_agg(x.id order by x.ord), '[]'::jsonb)
           into v_members
@@ -556,7 +577,7 @@ begin
         'buyer_destination', 'Building-shaped names need a register mother'
       );
     end if;
-    if (cert.slug is not null and cert.slug = target.slug)
+    if public._queue_names_same_company(cert.company_name, target.company_name)
        or public._queue_names_same_company(cert.company_name_norm, target.company_name_norm) then
       select count(distinct sr.source_id), count(*) into v_cert_tier13, v_cert_n
         from public.source_records sr
@@ -632,18 +653,16 @@ begin
       );
     end if;
 
-    if public.rsc_extension_base_name(brand.company_name) is null
-       and brand.company_name !~* '\yunit([\s-]+[0-9]+)?\s*$'
-       and brand.company_name !~* '\(\s*[^)]*\y(?:unit|building|shed|extension)\y[^)]*\)' then
+    if not public._queue_is_building_shaped(brand.company_name) then
       select count(*) into v_match_n
         from public.suppliers s
        where s.id is distinct from brand.id
          and s.is_published
          and s.facility_of is null
-         and public.rsc_extension_base_name(s.company_name) is null
+         and not public._queue_is_building_shaped(s.company_name)
          and (
            s.company_name_norm = brand.company_name_norm
-           or s.slug = brand.slug
+           or public._queue_names_same_company(s.company_name, brand.company_name)
            or (
              length(public._queue_legal_stem(s.company_name_norm)) >= 10
              and public._queue_legal_stem(s.company_name_norm)
@@ -656,10 +675,10 @@ begin
          where s.id is distinct from brand.id
            and s.is_published
            and s.facility_of is null
-           and public.rsc_extension_base_name(s.company_name) is null
+           and not public._queue_is_building_shaped(s.company_name)
            and (
              s.company_name_norm = brand.company_name_norm
-             or s.slug = brand.slug
+             or public._queue_names_same_company(s.company_name, brand.company_name)
              or (
                length(public._queue_legal_stem(s.company_name_norm)) >= 10
                and public._queue_legal_stem(s.company_name_norm)
@@ -682,52 +701,9 @@ begin
       end if;
     end if;
 
-    v_base := public.rsc_extension_base_name(brand.company_name);
-    if v_base is null then
-      v_base := nullif(btrim(regexp_replace(
-        brand.company_name,
-        '\(\s*[^)]*\y(?:unit|building|shed|extension)\y[^)]*\)',
-        '',
-        'i'
-      )), '');
-      if v_base is not distinct from btrim(brand.company_name) then
-        v_base := null;
-      end if;
-    end if;
-    if v_base is not null then
-      select count(*) into v_match_n
-        from public.suppliers s
-       where s.is_published
-         and s.facility_of is null
-         and s.id is distinct from brand.id
-         and public.rsc_extension_base_name(s.company_name) is null
-         and s.company_name !~* '\yunit([\s-]+[0-9]+)?\s*$'
-         and (
-           length(public._queue_legal_stem(s.company_name_norm)) >= 10
-           and (
-             public._queue_legal_stem(s.company_name_norm)
-               = public._queue_legal_stem(lower(v_base))
-             or public._queue_legal_stem(s.company_name)
-               = public._queue_legal_stem(v_base)
-           )
-         );
-      if v_match_n = 1 then
-        select s.id into v_match
-          from public.suppliers s
-         where s.is_published
-           and s.facility_of is null
-           and s.id is distinct from brand.id
-           and public.rsc_extension_base_name(s.company_name) is null
-           and s.company_name !~* '\yunit([\s-]+[0-9]+)?\s*$'
-           and (
-             length(public._queue_legal_stem(s.company_name_norm)) >= 10
-             and (
-               public._queue_legal_stem(s.company_name_norm)
-                 = public._queue_legal_stem(lower(v_base))
-               or public._queue_legal_stem(s.company_name)
-                 = public._queue_legal_stem(v_base)
-             )
-           );
+    if public._queue_is_building_shaped(brand.company_name) then
+      v_match := public._queue_find_mother(brand.company_name);
+      if v_match is not null then
         return jsonb_build_object(
           'action', 'attach_facility',
           'parent_id', v_match,
@@ -1052,7 +1028,9 @@ revoke all on function public._queue_names_same_company(text, text) from public;
 revoke all on function public._queue_legal_stem(text) from public;
 revoke all on function public._queue_is_building_shaped(text) from public;
 revoke all on function public._queue_building_base_name(text) from public;
+revoke all on function public._queue_mother_hits(text) from public;
 revoke all on function public._queue_find_mother(text) from public;
+revoke all on function public._queue_unique_mother(text[]) from public;
 revoke all on function public._queue_absorb_supplier(uuid, uuid) from public;
 revoke all on function public.admin_queue_release_plan(uuid) from public;
 grant execute on function public.admin_queue_decide(uuid, text, text) to authenticated;
