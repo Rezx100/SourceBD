@@ -1,4 +1,5 @@
-// /api/v1/admin/queue/decide — generic verification queue decisions.
+// /api/v1/admin/queue/decide — review-queue release.
+// Approve/release executes the classified buyer-facing mutation.
 // Specialized queues keep their own endpoints:
 // - cert_doc_review: /api/v1/admin/certifications/decide
 // - sanctions_hit: /api/v1/admin/sanctions/decide
@@ -41,9 +42,9 @@ export async function POST(req: Request) {
   if (!UUID_RE.test(queueId)) {
     return NextResponse.json({ error: "queue_id must be a UUID" }, { status: 400 });
   }
-  if (!["approve", "reject", "escalate"].includes(decision)) {
+  if (!["approve", "release", "reject", "escalate"].includes(decision)) {
     return NextResponse.json(
-      { error: "decision must be approve|reject|escalate" },
+      { error: "decision must be approve|release|reject|escalate" },
       { status: 400 },
     );
   }
@@ -72,5 +73,7 @@ export async function POST(req: Request) {
 
   revalidatePath("/admin");
   revalidatePath("/admin/queue");
+  revalidatePath("/discover");
+  revalidatePath("/app/discover");
   return NextResponse.json(data);
 }

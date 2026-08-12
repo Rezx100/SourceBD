@@ -3,6 +3,13 @@
 This file keeps routine agent sessions from scanning every inactive feature spec.
 
 ## Active / Recent Spec
+- IN PROGRESS on `rez-queue-release` (13 Aug 2026): **Review-queue
+  release** — clicking Release must mutate the buyer-facing profile
+  (attach building, merge spelling variants, move brand listings,
+  publish when register evidence exists) then close the ticket.
+  Migration `0102_admin_queue_release.sql`. Production dry-run
+  fingerprint in `ops/plans/queue-release-plan.md`. Do not `--apply`
+  or land on development without founder go-ahead.
 - COMPLETE in the working tree (8 Aug 2026): **REZ-72 — 301-redirect
   unpublished facility slugs to mother profile** (Linear REZ-72 /
   Extensions B2, parent REZ-58). Branched from `development`. Migration

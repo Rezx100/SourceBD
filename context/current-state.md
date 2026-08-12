@@ -5,6 +5,16 @@ Last compacted for agent-token efficiency: 30 Jun 2026.
 ## Phase
 Phase 7 - Public Beta launch prep.
 
+## Review-queue release — IN PROGRESS on `rez-queue-release`
+13 Aug 2026 — 1,332 open review tickets never mutated buyer-facing rows
+(0062 only closed the ticket). Migration `0102` makes Release attach /
+merge / publish / label, or close when the destination is already live.
+Production dry-run fingerprint
+`7734c3863b02e95311b8512400b280165ea65b5a73e675ce1ae515850c520c98`
+(6 merges, 6 building attaches, 6 brand moves, 1 publish, 7 human).
+`--apply` and production migration apply are not authorised. See
+`ops/plans/queue-release-plan.md`.
+
 ## Facility slug → mother redirect — REZ-72 (B2) COMPLETE in working tree
 8 Aug 2026 — on `rez-72-facility-slug-redirect`. Before `notFound()` on both
 profile routes, call `facility_parent_slug(p_slug)` (mig `0096`): SECURITY

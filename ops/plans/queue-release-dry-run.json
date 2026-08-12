@@ -1,0 +1,423 @@
+{
+  "generated_at": "2026-08-12T18:33:52.760343+00:00",
+  "open_rows": 1332,
+  "fingerprint": "7734c3863b02e95311b8512400b280165ea65b5a73e675ce1ae515850c520c98",
+  "counts": {
+    "keep_separate": 953,
+    "needs_human": 7,
+    "merge_into": 6,
+    "already_attached": 298,
+    "hold_no_register": 48,
+    "attach_brand": 6,
+    "publish": 1,
+    "label_group": 7,
+    "attach_facility": 6
+  },
+  "needs_human": [
+    {
+      "queue_id": "26e2163c-0e17-4186-bf3c-d1884bebbddb",
+      "queue_type": "fuzzy_match_review",
+      "reason": "cert or target supplier row gone",
+      "destination": "One side of this pair is missing"
+    },
+    {
+      "queue_id": "53078d50-bd5c-4c99-b7d1-117b6efb2887",
+      "queue_type": "fuzzy_match_review",
+      "reason": "cert or target supplier row gone",
+      "destination": "One side of this pair is missing"
+    },
+    {
+      "queue_id": "5014cfab-3d72-4205-af0c-2a904dcea6e3",
+      "queue_type": "fuzzy_match_review",
+      "reason": "cert or target supplier row gone",
+      "destination": "One side of this pair is missing"
+    },
+    {
+      "queue_id": "df366b4d-3e42-4633-8e31-7c63b5fe95ff",
+      "queue_type": "group_parent_review",
+      "reason": "facility_of disagrees with the queued parent",
+      "destination": "Attached to a different mother than this ticket names"
+    },
+    {
+      "queue_id": "d9ec7b72-8849-4e1f-b0d3-581e1e77ff2e",
+      "queue_type": "group_parent_review",
+      "reason": "facility_of disagrees with the queued parent",
+      "destination": "Attached to a different mother than this ticket names"
+    },
+    {
+      "queue_id": "a354ebb7-bc9b-4d5f-85c5-6b8513bce195",
+      "queue_type": "group_parent_review",
+      "reason": "facility_of disagrees with the queued parent",
+      "destination": "Attached to a different mother than this ticket names"
+    },
+    {
+      "queue_id": "0a13d3f5-7658-4472-98d0-5a996fcf165c",
+      "queue_type": "group_parent_review",
+      "reason": "facility_of disagrees with the queued parent",
+      "destination": "Attached to a different mother than this ticket names"
+    }
+  ],
+  "mutations": [
+    {
+      "queue_id": "7025396b-c7e0-4b59-a228-9186d31b9568",
+      "action": "merge_into",
+      "destination": "One company profile; cert evidence moves onto the register row",
+      "winner_id": "8a5f7152-8587-4047-8348-38ba59022d39",
+      "loser_id": "02178d15-2c87-43c5-a85e-5d7f1a543287",
+      "parent_id": null,
+      "child_id": null,
+      "group_name": null,
+      "member_ids": []
+    },
+    {
+      "queue_id": "dc85931e-a2ac-4ba5-86bb-fba82c2ff03a",
+      "action": "merge_into",
+      "destination": "One company profile; cert evidence moves onto the register row",
+      "winner_id": "318c4dee-0cff-49b8-8576-d65f3d03132b",
+      "loser_id": "05eb9f88-359a-4bb2-9138-dc216cf05e57",
+      "parent_id": null,
+      "child_id": null,
+      "group_name": null,
+      "member_ids": []
+    },
+    {
+      "queue_id": "82d0e991-c458-4308-9b70-4e53409e8c19",
+      "action": "merge_into",
+      "destination": "One company profile; cert evidence moves onto the register row",
+      "winner_id": "5156d9d1-c94a-45e9-bf6e-904b0106459e",
+      "loser_id": "95adb48f-9c60-49b2-a6cc-483f0741d0d5",
+      "parent_id": null,
+      "child_id": null,
+      "group_name": null,
+      "member_ids": []
+    },
+    {
+      "queue_id": "f348f8d8-df2c-45c7-bc68-3c85a94ecc3a",
+      "action": "merge_into",
+      "destination": "One company profile; cert evidence moves onto the register row",
+      "winner_id": "4498221e-e95b-43d2-9739-8e0e38273e5b",
+      "loser_id": "a96c7131-d0d7-4459-9253-9ea10c723d04",
+      "parent_id": null,
+      "child_id": null,
+      "group_name": null,
+      "member_ids": []
+    },
+    {
+      "queue_id": "0342afb6-294b-4217-94bc-eea94749f4d4",
+      "action": "attach_brand",
+      "destination": "Brand listing moves onto the existing published company",
+      "winner_id": "18816c3f-8c17-4d22-baf2-c05c960de060",
+      "loser_id": "44bb40e6-64d4-4fb9-8674-21e843192245",
+      "parent_id": null,
+      "child_id": null,
+      "group_name": null,
+      "member_ids": []
+    },
+    {
+      "queue_id": "25c66812-4dab-441e-bc5d-3c9b170a4bfb",
+      "action": "attach_brand",
+      "destination": "Brand listing moves onto the existing published company",
+      "winner_id": "f07ae073-51df-4f9c-83b2-b64a9c008011",
+      "loser_id": "fd4b78c6-f6a5-4224-8b7f-65c91677e468",
+      "parent_id": null,
+      "child_id": null,
+      "group_name": null,
+      "member_ids": []
+    },
+    {
+      "queue_id": "40e0b956-bd83-4c5d-954b-8a8f2faf6ffa",
+      "action": "attach_brand",
+      "destination": "Brand listing moves onto the existing published company",
+      "winner_id": "55291d91-d7be-4710-a74e-39898aa94e0e",
+      "loser_id": "fe7f22f1-9548-4d2f-9c18-eac9aa1e46a9",
+      "parent_id": null,
+      "child_id": null,
+      "group_name": null,
+      "member_ids": []
+    },
+    {
+      "queue_id": "997f24ba-058e-4a14-ad18-56c9c521c3ca",
+      "action": "attach_brand",
+      "destination": "Brand listing moves onto the existing published company",
+      "winner_id": "ad64f725-3b80-410b-aa4c-b09062a92705",
+      "loser_id": "29e67808-16a2-4355-8bf9-eed117dadc3b",
+      "parent_id": null,
+      "child_id": null,
+      "group_name": null,
+      "member_ids": []
+    },
+    {
+      "queue_id": "61aa0889-e913-4203-8f06-67e0d59a14c3",
+      "action": "attach_brand",
+      "destination": "Brand listing moves onto the existing published company",
+      "winner_id": "05c9072f-5459-4fbc-89c5-6775980baebc",
+      "loser_id": "27c32f02-2957-45f3-a9a1-89a092fdf1f3",
+      "parent_id": null,
+      "child_id": null,
+      "group_name": null,
+      "member_ids": []
+    },
+    {
+      "queue_id": "8b9334aa-fd7d-4ee8-90e4-31bfe3810682",
+      "action": "attach_brand",
+      "destination": "Brand listing moves onto the existing published company",
+      "winner_id": "c1418a7c-073e-455e-a97c-33db94bbfcdb",
+      "loser_id": "2550ac21-0386-4080-a042-30e739e727aa",
+      "parent_id": null,
+      "child_id": null,
+      "group_name": null,
+      "member_ids": []
+    },
+    {
+      "queue_id": "06f65f4c-e55c-45ce-bb15-4ca5c92bf506",
+      "action": "publish",
+      "destination": "Publish as its own company \u2014 register evidence exists",
+      "winner_id": "e2970a2e-2453-4113-ab75-cb5e9d9526e8",
+      "loser_id": null,
+      "parent_id": null,
+      "child_id": null,
+      "group_name": null,
+      "member_ids": []
+    },
+    {
+      "queue_id": "25fd39d2-fb86-44b4-afad-20dd79aa9fb3",
+      "action": "merge_into",
+      "destination": "One company profile; cert evidence moves onto the register row",
+      "winner_id": "fcb2fa3a-46de-431d-8337-1c71dcb7ac02",
+      "loser_id": "e9c19115-83fe-4f36-bf20-d7773c9eea0e",
+      "parent_id": null,
+      "child_id": null,
+      "group_name": null,
+      "member_ids": []
+    },
+    {
+      "queue_id": "44c4dc3a-c254-423d-975f-12a6050ec106",
+      "action": "merge_into",
+      "destination": "One company profile; cert evidence moves onto the register row",
+      "winner_id": "bf6d6748-6e05-475b-834f-bd3c15bfbbf5",
+      "loser_id": "c6a9b0f3-3d68-4e16-b68e-380ce7911867",
+      "parent_id": null,
+      "child_id": null,
+      "group_name": null,
+      "member_ids": []
+    },
+    {
+      "queue_id": "508369e2-bd8b-4319-be19-a561e456d932",
+      "action": "label_group",
+      "destination": "Stay separate companies, labelled Part of Euro Group",
+      "winner_id": null,
+      "loser_id": null,
+      "parent_id": null,
+      "child_id": null,
+      "group_name": "Euro Group",
+      "member_ids": [
+        "08a37f21-3b9e-4699-bf93-516a2220e1cf",
+        "a2eb1838-fac8-4243-ba32-2dde20b0079f",
+        "2323f29c-4e4c-4a7e-a600-e14d5f7928ae",
+        "60fb3cc1-0089-4c2c-a0a0-ace750ce725c",
+        "21150ec1-5841-4cdc-ab38-bef0fcc17c13",
+        "95adb48f-9c60-49b2-a6cc-483f0741d0d5",
+        "e5b0c9b7-6de8-4d19-b8bc-74ad7348a82e",
+        "050a33b1-275b-4947-8ab6-222948e1738c",
+        "2235175f-57cf-47dc-a75e-d33bd66b0acc",
+        "a17c806a-7b8b-45ae-aac4-d1b0647649dc",
+        "5156d9d1-c94a-45e9-bf6e-904b0106459e",
+        "84399ac9-39e7-4aad-82d2-eedd187bae7d",
+        "b58d0934-6516-41a8-a1bc-35b9a355770d",
+        "bb612761-7467-4265-aee7-e7c4d0629df1",
+        "a1d6838f-fddb-4466-8158-225b54931eb4",
+        "9d88509d-5389-45d6-b2e9-3fe72cc00848",
+        "b63084e2-b522-4cd9-9515-95d29a408038",
+        "97b76eb6-8c15-4f59-baf1-c2e7cf1943fa",
+        "c93a7150-9126-4816-8435-a179b4979639",
+        "a0f52eac-bc20-49af-bba3-4f5b6e8140e5",
+        "e04e58a0-6c37-4144-bdf0-e5df40967c14",
+        "d92db69b-1eaf-4835-b8fc-9c77aecab546",
+        "3f631fb2-cc12-4d17-b394-9ef580a7e75b",
+        "776602df-597c-457d-9ae4-9eaae5474d5b",
+        "72fef9f9-f0b0-42ab-b1f5-88dff61c47e9",
+        "fa719408-d3e9-489d-8532-0440fe521428",
+        "555e38b2-f9b2-446e-8f93-9b19ec8c6e27",
+        "f8778a81-b76b-4d5c-9254-8804ec51fab8",
+        "fd1bce37-c8e7-452d-813f-20a232c26fe9"
+      ]
+    },
+    {
+      "queue_id": "6895db34-80e8-4ec9-9777-45093ca1bdf2",
+      "action": "label_group",
+      "destination": "Stay separate companies, labelled Part of Square Group",
+      "winner_id": null,
+      "loser_id": null,
+      "parent_id": null,
+      "child_id": null,
+      "group_name": "Square Group",
+      "member_ids": [
+        "5da8d91b-32f6-4b2a-8dd5-128d4ded0db5",
+        "3cb7a053-5be3-4e45-a3ea-ceec8f35af62",
+        "eb9a982c-d3c9-4c7f-bebe-0a5cd3b9cc5a",
+        "77ffaffa-0d30-4fbe-b464-d5b193604c19",
+        "503b6b5e-44c7-4d81-a260-f8af53f21eee",
+        "6cf54899-22e4-466f-b01b-d7aa038ae4d0",
+        "3640f93d-6eba-4005-9f5c-4835b27cf0ff",
+        "ffb9d650-08e8-49af-bfc5-f15b25143ca0",
+        "fd578899-c703-4f5b-a11e-269cd54e1c2a",
+        "f2f8d890-2632-44f1-9840-4edea91b8fb9"
+      ]
+    },
+    {
+      "queue_id": "2c40150e-088f-4037-a649-956ae3dcdf0c",
+      "action": "label_group",
+      "destination": "Stay separate companies, labelled Part of Ananta Group",
+      "winner_id": null,
+      "loser_id": null,
+      "parent_id": null,
+      "child_id": null,
+      "group_name": "Ananta Group",
+      "member_ids": [
+        "998f2ae0-1ceb-42e3-92d8-9c9b8b63e5c8",
+        "074c3713-f00b-4641-bcfe-fe56b6e60cae",
+        "80a21921-1689-44ff-8591-97d2df86f64f",
+        "79f10535-db06-4148-a2e1-be32e8d5725a",
+        "7f59a7b2-6d34-439b-9eda-b2c078da1a0a",
+        "656f786d-a177-49be-8bad-59ff45c9c30a",
+        "7ae84e60-1a21-493d-bfd1-41ef165cc3b6",
+        "b893e013-46bf-4353-af1d-8e4b0c114e4f"
+      ]
+    },
+    {
+      "queue_id": "6e69e7c4-5c51-41a3-af33-95b6cb7176d8",
+      "action": "label_group",
+      "destination": "Stay separate companies, labelled Part of Chorka Group",
+      "winner_id": null,
+      "loser_id": null,
+      "parent_id": null,
+      "child_id": null,
+      "group_name": "Chorka Group",
+      "member_ids": [
+        "92193f4c-0034-48e4-81ee-d256e53128dd",
+        "229a1248-80fc-4b64-b257-e70b222e6234",
+        "a320e148-bed8-4027-80fc-47c047f8ce8c",
+        "18816c3f-8c17-4d22-baf2-c05c960de060",
+        "bfd881b8-6591-4c2f-a680-5a57a0c325a3",
+        "44bb40e6-64d4-4fb9-8674-21e843192245"
+      ]
+    },
+    {
+      "queue_id": "da3f1ae1-0cad-4412-8aae-8c59206cf11a",
+      "action": "label_group",
+      "destination": "Stay separate companies, labelled Part of HAMS Group",
+      "winner_id": null,
+      "loser_id": null,
+      "parent_id": null,
+      "child_id": null,
+      "group_name": "HAMS Group",
+      "member_ids": [
+        "7b7d7c7d-9b75-4975-93cb-2f68ff60908b",
+        "3f096272-19b4-4ef0-bc53-fce3a4e04e58",
+        "d7d4624a-924b-4012-b278-cc8632d48802",
+        "2873fd19-8921-4439-8de6-f44f04248a02",
+        "d20d2e79-a52e-493e-9e52-6448484b9491"
+      ]
+    },
+    {
+      "queue_id": "ef6acaa7-35ea-402c-907c-50fb2ebe7d34",
+      "action": "label_group",
+      "destination": "Stay separate companies, labelled Part of Jinnat Group",
+      "winner_id": null,
+      "loser_id": null,
+      "parent_id": null,
+      "child_id": null,
+      "group_name": "Jinnat Group",
+      "member_ids": [
+        "8ec733a2-8a12-4f99-bcdd-719a853875ca",
+        "28f430b6-6d24-4652-8c76-c9313f0df50e",
+        "f3ef1f23-bc0a-4a60-adfd-cc146693879d",
+        "ca1ec0b9-bc6a-4849-85a2-829e4581a763",
+        "9d44ef30-a285-4e18-b804-711daf89ad5e",
+        "3bb5a8b4-35be-49f5-a31d-cfdd3100d0c5"
+      ]
+    },
+    {
+      "queue_id": "6560af5b-56dc-4285-bc93-6fd80e2d1bf3",
+      "action": "label_group",
+      "destination": "Stay separate companies, labelled Part of Noman Group",
+      "winner_id": null,
+      "loser_id": null,
+      "parent_id": null,
+      "child_id": null,
+      "group_name": "Noman Group",
+      "member_ids": [
+        "9dd8a16a-c0df-4f59-9549-cb64c984ba6d",
+        "26080eb3-f731-4c4d-bfed-afc328ee272e",
+        "e2da291a-505d-467b-a8e2-9077678862b2",
+        "82b2b935-6760-4d21-8654-57eb2b55da5b"
+      ]
+    },
+    {
+      "queue_id": "720a6ffb-156a-48de-a146-c07abbefdc58",
+      "action": "attach_facility",
+      "destination": "Building moves onto the mother company profile",
+      "winner_id": null,
+      "loser_id": null,
+      "parent_id": "a176a63b-019b-415c-8037-0560086efd96",
+      "child_id": "e5eee38a-b62f-424f-a2e1-778d0db49c15",
+      "group_name": null,
+      "member_ids": []
+    },
+    {
+      "queue_id": "582ce555-421e-436d-a57e-928ce53efd16",
+      "action": "attach_facility",
+      "destination": "Building moves onto the mother company profile",
+      "winner_id": null,
+      "loser_id": null,
+      "parent_id": "9de90136-d342-441f-aaa3-db2071458d16",
+      "child_id": "5ad852f4-7101-458f-ad97-3e1190379c7e",
+      "group_name": null,
+      "member_ids": []
+    },
+    {
+      "queue_id": "5fec1dbc-6428-4d3d-ad71-fffb9a9e869e",
+      "action": "attach_facility",
+      "destination": "Building moves onto the mother company profile",
+      "winner_id": null,
+      "loser_id": null,
+      "parent_id": "5f6f5a83-520c-44d8-9e09-8cca76544ebc",
+      "child_id": "bac3e9e8-9a5a-489c-8f01-4d932424002c",
+      "group_name": null,
+      "member_ids": []
+    },
+    {
+      "queue_id": "bdf5b774-3d5d-4bf7-961c-2fab5314bdae",
+      "action": "attach_facility",
+      "destination": "Building moves onto the mother company profile",
+      "winner_id": null,
+      "loser_id": null,
+      "parent_id": "0b4d65d9-fcf8-4644-a494-b80717cdfd4c",
+      "child_id": "b6654dcc-6d4e-4c17-b20c-f064ed2d7240",
+      "group_name": null,
+      "member_ids": []
+    },
+    {
+      "queue_id": "39a36366-093d-4908-bb67-942bd245682f",
+      "action": "attach_facility",
+      "destination": "Building moves onto the mother company profile",
+      "winner_id": null,
+      "loser_id": null,
+      "parent_id": "263c7804-1121-4dae-b728-5d45f74fb543",
+      "child_id": "dc05827f-7cee-4b2b-ac09-a99220542778",
+      "group_name": null,
+      "member_ids": []
+    },
+    {
+      "queue_id": "90fe5d4b-104e-42e6-a7f6-21b635e6ade9",
+      "action": "attach_facility",
+      "destination": "Building moves onto the mother company profile",
+      "winner_id": null,
+      "loser_id": null,
+      "parent_id": "806a3f2d-6b27-4423-9823-55227e4bba9e",
+      "child_id": "fba9b52d-7c2a-4479-a177-25c53ddaaf4b",
+      "group_name": null,
+      "member_ids": []
+    }
+  ]
+}
