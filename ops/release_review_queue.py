@@ -26,8 +26,11 @@ load_dotenv(Path(__file__).resolve().parents[1] / ".env")
 
 logging.getLogger("httpx").setLevel(logging.WARNING)
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from etl.core.normalize import extension_base_name  # noqa: E402
-from etl.core.queue_release import ReleasePlan, classify_queue_row  # noqa: E402
+from etl.core.queue_release import (  # noqa: E402
+    ReleasePlan,
+    classify_queue_row,
+    refuse_nested_parent,
+)
 
 SNAPSHOT_DIR = Path(__file__).resolve().parent / "plans"
 
@@ -133,14 +136,15 @@ def load_rsc_ids(rest: Rest, ids: list[str]) -> set[str]:
     return found
 
 
-def load_tier13_counts(rest: Rest, ids: list[str]) -> dict[str, int]:
-    counts: dict[str, int] = {i: 0 for i in ids}
+def load_tier13_stats(rest: Rest, ids: list[str]) -> dict[str, tuple[int, int]]:
+    """Return {supplier_id: (distinct_tier13_sources, active_tier13_rows)}."""
+    stats: dict[str, tuple[set[str], int]] = {i: (set(), 0) for i in ids}
     for i in range(0, len(ids), 50):
         chunk = ids[i : i + 50]
         rows = rest.all_rows(
             "source_records",
             {
-                "select": "supplier_id",
+                "select": "supplier_id,source_id",
                 "supplier_id": f"in.({','.join(chunk)})",
                 "status": "eq.active",
                 "source_tier": "in.(tier1_gov,tier2_industry,tier3_cert)",
@@ -148,8 +152,10 @@ def load_tier13_counts(rest: Rest, ids: list[str]) -> dict[str, int]:
         )
         for row in rows:
             sid = str(row["supplier_id"])
-            counts[sid] = counts.get(sid, 0) + 1
-    return counts
+            sources, n = stats.get(sid, (set(), 0))
+            sources.add(str(row["source_id"]))
+            stats[sid] = (sources, n + 1)
+    return {sid: (len(sources), n) for sid, (sources, n) in stats.items()}
 
 
 def classify_all(rest: Rest, rows: list[dict]) -> list[ReleasePlan]:
@@ -184,8 +190,8 @@ def classify_all(rest: Rest, rows: list[dict]) -> list[ReleasePlan]:
         for row in rows
         if row.get("queue_type") == "brand_disclosure_match_review" and row.get("supplier_a_id")
     ]
-    tier13 = load_tier13_counts(rest, list(dict.fromkeys(brand_ids + fuzzy_ids)))
-    published = load_published_index(rest) if brand_ids else []
+    tier13 = load_tier13_stats(rest, list(dict.fromkeys(brand_ids + fuzzy_ids)))
+    published = load_published_index(rest)
 
     plans: list[ReleasePlan] = []
     for row in rows:
@@ -209,6 +215,7 @@ def classify_all(rest: Rest, rows: list[dict]) -> list[ReleasePlan]:
                     supplier_a_id=row.get("supplier_a_id"),
                     child=child,
                     parent=parent,
+                    published_matches=published,
                 )
             )
             continue
@@ -239,8 +246,12 @@ def classify_all(rest: Rest, rows: list[dict]) -> list[ReleasePlan]:
                 target["id"] = target_id
             cert["has_rsc"] = cert_id in rsc_ids
             target["has_rsc"] = target_id in rsc_ids
-            cert["tier13_count"] = tier13.get(cert_id, 0)
-            target["tier13_count"] = tier13.get(target_id, 0)
+            cert_d, cert_n = tier13.get(cert_id, (0, 0))
+            target_d, target_n = tier13.get(target_id, (0, 0))
+            cert["tier13_count"] = cert_d
+            target["tier13_count"] = target_d
+            cert["record_count"] = cert_n
+            target["record_count"] = target_n
             plans.append(
                 classify_queue_row(
                     queue_id=qid,
@@ -249,6 +260,7 @@ def classify_all(rest: Rest, rows: list[dict]) -> list[ReleasePlan]:
                     supplier_a_id=row.get("supplier_a_id"),
                     cert=cert,
                     target=target,
+                    published_matches=published,
                 )
             )
             continue
@@ -256,7 +268,7 @@ def classify_all(rest: Rest, rows: list[dict]) -> list[ReleasePlan]:
             sid = str(row.get("supplier_a_id") or "")
             brand = dict(suppliers.get(sid) or {})
             brand["id"] = sid
-            brand["tier13_count"] = tier13.get(sid, 0)
+            brand["tier13_count"] = tier13.get(sid, (0, 0))[0]
             plans.append(
                 classify_queue_row(
                     queue_id=qid,
@@ -370,7 +382,7 @@ def close_queue(rest: Rest, queue_id: str, action: str) -> None:
 def apply_plan(rest: Rest, plan: ReleasePlan) -> None:
     if plan.action == "needs_human":
         return
-    if plan.action == "attach_facility" and plan.parent_id and plan.child_id:
+    if plan.action == "attach_facility" and plan.parent_id:
         parents = rest.all_rows(
             "suppliers",
             {
@@ -379,28 +391,23 @@ def apply_plan(rest: Rest, plan: ReleasePlan) -> None:
             },
         )
         parent = parents[0] if parents else None
-        if (
-            not parent
-            or parent.get("facility_of")
-            or extension_base_name(str(parent.get("company_name") or ""))
-        ):
+        if refuse_nested_parent(parent):
             return
-        rest.patch(
-            "suppliers",
-            {"id": f"eq.{plan.child_id}"},
-            {"facility_of": plan.parent_id},
-        )
+        children = [c for c in (plan.child_id, *plan.member_ids) if c and c != plan.parent_id]
+        for cid in dict.fromkeys(children):
+            rest.patch(
+                "suppliers",
+                {"id": f"eq.{cid}"},
+                {"facility_of": plan.parent_id},
+            )
     elif plan.action in {"merge_into", "attach_brand"} and plan.winner_id and plan.loser_id:
         absorb(rest, plan.winner_id, plan.loser_id)
     elif plan.action == "publish" and plan.winner_id:
         rest.patch("suppliers", {"id": f"eq.{plan.winner_id}"}, {"is_published": True})
-    elif plan.action == "label_group" and plan.group_name and plan.member_ids:
-        for mid in plan.member_ids:
-            rest.patch(
-                "suppliers",
-                {"id": f"eq.{mid}", "parent_group_name": "is.null"},
-                {"parent_group_name": plan.group_name},
-            )
+    elif plan.action in {"keep_separate", "already_attached"}:
+        pass
+    else:
+        return
     close_queue(rest, plan.queue_id, plan.action)
 
 

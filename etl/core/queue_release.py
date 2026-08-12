@@ -284,6 +284,94 @@ def is_building_shaped_name(name: str) -> bool:
     return bool(_TRAILING_UNIT_RE.search(name.strip()))
 
 
+def mother_name_candidates(name: str) -> list[str]:
+    """Company-name guesses after stripping unit/building suffixes."""
+    out: list[str] = []
+    base = extension_base_name(name)
+    if base:
+        out.append(base)
+    stripped = _BUILDING_PAREN_RE.sub("", name).strip(" -,")
+    if stripped and stripped.lower() != name.strip().lower():
+        out.append(stripped)
+    return out
+
+
+def is_plausible_mother(row: dict[str, Any]) -> bool:
+    if row.get("facility_of"):
+        return False
+    return not is_building_shaped_name(str(row.get("company_name") or ""))
+
+
+def _stem_is_register_mother(candidate: str, mother: str) -> bool:
+    """True when candidate is the building-stripped stem of mother (Azim & Son → Sons)."""
+    sc = _legal_stem(normalize_company_name(candidate))
+    sm = _legal_stem(normalize_company_name(mother))
+    if len(sc) < 6 or len(sm) < 6:
+        return False
+    if sc == sm:
+        return True
+    if sm.startswith(sc) and len(sm) - len(sc) <= 2:
+        return True
+    return sc.startswith(sm) and len(sc) - len(sm) <= 2
+
+
+def find_published_mother(
+    names: list[str],
+    published: list[dict[str, Any]],
+) -> dict[str, Any] | None:
+    hits: dict[str, dict[str, Any]] = {}
+    for name in names:
+        for cand in mother_name_candidates(name):
+            for row in published:
+                if not is_plausible_mother(row):
+                    continue
+                mname = str(row.get("company_name") or "")
+                if (
+                    names_are_legal_form_variants(cand, mname)
+                    or names_are_same_company(cand, mname)
+                    or _stem_is_register_mother(cand, mname)
+                    or row.get("slug") == make_slug(cand)
+                    or row.get("company_name_norm") == normalize_company_name(cand)
+                ):
+                    hits[str(row["id"])] = row
+    if len(hits) == 1:
+        return next(iter(hits.values()))
+    return None
+
+
+def pick_merge_winner(
+    *,
+    cert_id: str,
+    target_id: str,
+    cert_name: str,
+    target_name: str,
+    cert_tier13: int,
+    target_tier13: int,
+    cert_records: int = 0,
+    target_records: int = 0,
+) -> tuple[str, str]:
+    """Distinct Tier 1–3 sources, then row count, then longer legal name.
+
+    Same order as merge_duplicate_suppliers._pick_winner. Ties must not
+    default to the queued target (that kept Bori Garmaent / Efried).
+    """
+    if cert_tier13 != target_tier13:
+        return (cert_id, target_id) if cert_tier13 > target_tier13 else (target_id, cert_id)
+    if cert_records != target_records:
+        return (cert_id, target_id) if cert_records > target_records else (target_id, cert_id)
+    if len(cert_name) != len(target_name):
+        return (cert_id, target_id) if len(cert_name) > len(target_name) else (target_id, cert_id)
+    return (cert_id, target_id)
+
+
+def refuse_nested_parent(parent: dict[str, Any] | None) -> bool:
+    if not parent:
+        return True
+    if parent.get("facility_of"):
+        return True
+    return is_building_shaped_name(str(parent.get("company_name") or ""))
+
+
 def classify_extension(
     *,
     queue_id: str,
@@ -294,6 +382,7 @@ def classify_extension(
     child_published: bool,
     parent_exists: bool,
     parent_name: str = "",
+    published_matches: list[dict[str, Any]] | None = None,
 ) -> ReleasePlan:
     if child_facility_of and parent_id and child_facility_of == parent_id:
         return ReleasePlan(
@@ -335,6 +424,24 @@ def classify_extension(
             reason="cannot attach a building to an unpublished parent",
         )
     if parent_name and is_building_shaped_name(parent_name):
+        mother = find_published_mother(
+            [parent_name, parent_name],
+            published_matches or [],
+        )
+        if mother and str(mother.get("id")) not in {parent_id, child_id}:
+            kids = tuple(
+                x for x in (child_id, parent_id) if x and x != str(mother["id"])
+            )
+            return ReleasePlan(
+                queue_id=queue_id,
+                queue_type="group_parent_review",
+                action="attach_facility",
+                parent_id=str(mother["id"]),
+                child_id=child_id,
+                member_ids=kids,
+                buyer_destination="Building moves onto the mother company profile",
+                reason="named parent is a building; attach onto the register company",
+            )
         return ReleasePlan(
             queue_id=queue_id,
             queue_type="group_parent_review",
@@ -397,6 +504,9 @@ def classify_fuzzy(
     target_is_facility: bool,
     cert_tier13: int = 0,
     target_tier13: int = 0,
+    cert_records: int = 0,
+    target_records: int = 0,
+    published_matches: list[dict[str, Any]] | None = None,
 ) -> ReleasePlan:
     if cert_id == target_id:
         return ReleasePlan(
@@ -428,19 +538,46 @@ def classify_fuzzy(
             reason="each side has its own RSC row",
         )
     if is_building_shaped_name(cert_name) or is_building_shaped_name(target_name):
+        mother = find_published_mother(
+            [cert_name, target_name],
+            published_matches or [],
+        )
+        if mother:
+            kids = tuple(
+                x
+                for x in (cert_id, target_id)
+                if x and x != str(mother["id"])
+            )
+            return ReleasePlan(
+                queue_id=queue_id,
+                queue_type="fuzzy_match_review",
+                action="attach_facility",
+                parent_id=str(mother["id"]),
+                child_id=kids[0] if kids else cert_id,
+                member_ids=kids,
+                buyer_destination="Building moves onto the mother company profile",
+                reason="REZ-58: unit/building listings attach to the register company",
+            )
         return ReleasePlan(
             queue_id=queue_id,
             queue_type="fuzzy_match_review",
-            action="keep_separate",
+            action="needs_human",
             winner_id=target_id,
             loser_id=cert_id,
-            buyer_destination="Building-shaped names stay separate; not merged into a company",
+            buyer_destination="Building-shaped names need a register mother",
             reason="REZ-58: extension/unit listings are facilities, not merge targets",
         )
     if names_are_same_company(cert_name, target_name):
-        winner_id, loser_id = target_id, cert_id
-        if cert_tier13 > target_tier13:
-            winner_id, loser_id = cert_id, target_id
+        winner_id, loser_id = pick_merge_winner(
+            cert_id=cert_id,
+            target_id=target_id,
+            cert_name=cert_name,
+            target_name=target_name,
+            cert_tier13=cert_tier13,
+            target_tier13=target_tier13,
+            cert_records=cert_records,
+            target_records=target_records,
+        )
         return ReleasePlan(
             queue_id=queue_id,
             queue_type="fuzzy_match_review",
@@ -594,10 +731,10 @@ def classify_brand(
     return ReleasePlan(
         queue_id=queue_id,
         queue_type="brand_disclosure_match_review",
-        action="hold_no_register",
+        action="needs_human",
         loser_id=supplier_id,
         buyer_destination="Stays hidden — brand list only, no Bangladesh register",
-        reason="publishing would violate the Tier 1–3 gate",
+        reason="publishing would violate the Tier 1–3 gate; do not close as released",
     )
 
 
@@ -630,6 +767,7 @@ def classify_queue_row(
             child_published=bool(child.get("is_published")),
             parent_exists=bool(parent.get("id")) if parent else bool(parent_id),
             parent_name=str(parent.get("company_name") or ""),
+            published_matches=published_matches or [],
         )
     if queue_type == "group_parent_review" and data.get("cluster_token"):
         return classify_cluster(
@@ -666,6 +804,9 @@ def classify_queue_row(
             target_is_facility=bool(target.get("facility_of")),
             cert_tier13=int(cert.get("tier13_count") or 0),
             target_tier13=int(target.get("tier13_count") or 0),
+            cert_records=int(cert.get("record_count") or 0),
+            target_records=int(target.get("record_count") or 0),
+            published_matches=published_matches or [],
         )
     if queue_type == "brand_disclosure_match_review":
         row = brand_row or child or {}

@@ -42,9 +42,9 @@ export async function POST(req: Request) {
   if (!UUID_RE.test(queueId)) {
     return NextResponse.json({ error: "queue_id must be a UUID" }, { status: 400 });
   }
-  if (!["approve", "release", "reject", "escalate"].includes(decision)) {
+  if (!["release", "reject", "escalate"].includes(decision)) {
     return NextResponse.json(
-      { error: "decision must be approve|release|reject|escalate" },
+      { error: "decision must be release|reject|escalate" },
       { status: 400 },
     );
   }

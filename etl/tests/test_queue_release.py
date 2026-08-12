@@ -24,6 +24,8 @@ from etl.core.queue_release import (
     classify_fuzzy,
     classify_queue_row,
     names_are_same_company,
+    pick_merge_winner,
+    refuse_nested_parent,
 )
 
 REPO = Path(__file__).resolve().parents[2]
@@ -112,8 +114,8 @@ def test_fuzzy_merge_moves_certs_onto_register_row():
         target_is_facility=False,
     )
     assert plan.action == "merge_into"
-    assert plan.winner_id == "reg"
-    assert plan.loser_id == "cert"
+    assert plan.winner_id == "cert"
+    assert plan.loser_id == "reg"
 
 
 def test_fuzzy_merge_prefers_side_with_more_register_evidence():
@@ -135,7 +137,31 @@ def test_fuzzy_merge_prefers_side_with_more_register_evidence():
     assert plan.loser_id == "efried"
 
 
-def test_fuzzy_valuka_unit_is_not_merged():
+def test_merge_winner_prefers_longer_legal_name_on_a_tie():
+    winner, loser = pick_merge_winner(
+        cert_id="garment",
+        target_id="garmaent",
+        cert_name="BORI GARMENT ACCESSORIES CO., LTD.",
+        target_name="Bori Garmaent Accessories Co.Ltd",
+        cert_tier13=1,
+        target_tier13=1,
+        cert_records=1,
+        target_records=1,
+    )
+    assert winner == "garment"
+    assert loser == "garmaent"
+
+
+def test_refuse_nested_parent_on_a_building_name():
+    assert refuse_nested_parent(None)
+    assert refuse_nested_parent({"id": "u", "facility_of": "m", "company_name": "Foo Ltd"})
+    assert refuse_nested_parent({"id": "u", "facility_of": None, "company_name": "Azim & Son Unit 1"})
+    assert not refuse_nested_parent(
+        {"id": "m", "facility_of": None, "company_name": "Azim & Sons (Pvt.) Ltd."}
+    )
+
+
+def test_fuzzy_valuka_unit_attaches_to_liz_fashion():
     plan = classify_fuzzy(
         queue_id="q1c",
         cert_id="a",
@@ -146,11 +172,21 @@ def test_fuzzy_valuka_unit_is_not_merged():
         target_has_rsc=False,
         cert_is_facility=False,
         target_is_facility=False,
+        published_matches=[
+            {
+                "id": "liz",
+                "slug": "liz-fashion-industry",
+                "company_name": "LIZ FASHION INDUSTRY LIMITED",
+                "company_name_norm": "liz fashion industry",
+            }
+        ],
     )
-    assert plan.action == "keep_separate"
+    assert plan.action == "attach_facility"
+    assert plan.parent_id == "liz"
+    assert set(plan.member_ids) == {"a", "b"}
 
 
-def test_fuzzy_trailing_unit_name_is_not_merged():
+def test_fuzzy_trailing_unit_without_mother_needs_human():
     plan = classify_fuzzy(
         queue_id="q1d",
         cert_id="a",
@@ -161,8 +197,9 @@ def test_fuzzy_trailing_unit_name_is_not_merged():
         target_has_rsc=False,
         cert_is_facility=False,
         target_is_facility=False,
+        published_matches=[],
     )
-    assert plan.action == "keep_separate"
+    assert plan.action == "needs_human"
 
 
 def test_fuzzy_keeps_meghna_and_mega_apart():
@@ -263,7 +300,7 @@ def test_knit_cluster_stays_separate_companies():
     assert plan.action == "keep_separate"
 
 
-def test_extension_building_parent_needs_human():
+def test_extension_building_parent_attaches_to_register_company():
     plan = classify_extension(
         queue_id="q6b",
         parent_id="unit1",
@@ -273,8 +310,18 @@ def test_extension_building_parent_needs_human():
         child_published=True,
         parent_exists=True,
         parent_name="Azim & Son Unit 1",
+        published_matches=[
+            {
+                "id": "azim",
+                "slug": "azim-and-sons",
+                "company_name": "Azim & Sons (Pvt.) Ltd.",
+                "company_name_norm": "azim sons",
+            }
+        ],
     )
-    assert plan.action == "needs_human"
+    assert plan.action == "attach_facility"
+    assert plan.parent_id == "azim"
+    assert set(plan.member_ids) == {"ext", "unit1"}
 
 
 def test_euro_cluster_stays_separate_companies():
@@ -329,7 +376,7 @@ def test_brand_only_unmatched_stays_hidden():
         tier13_count=0,
         published_matches=[],
     )
-    assert plan.action == "hold_no_register"
+    assert plan.action == "needs_human"
 
 
 def test_brand_exact_match_attaches_to_published_company():
@@ -416,7 +463,7 @@ def test_brand_sister_concern_is_not_attached_as_facility():
             }
         ],
     )
-    assert plan.action == "hold_no_register"
+    assert plan.action == "needs_human"
 
 
 def test_brand_does_not_attach_printing_sister_or_other_building():
@@ -437,7 +484,7 @@ def test_brand_does_not_attach_printing_sister_or_other_building():
             }
         ],
     )
-    assert printing.action == "hold_no_register"
+    assert printing.action == "needs_human"
 
     k5 = classify_brand(
         queue_id="q13d",
@@ -456,7 +503,7 @@ def test_brand_does_not_attach_printing_sister_or_other_building():
             }
         ],
     )
-    assert k5.action == "hold_no_register"
+    assert k5.action == "needs_human"
 
 
 def test_fuzzy_missing_supplier_needs_human():
@@ -527,8 +574,11 @@ def test_migration_decide_mutates_suppliers_not_only_the_ticket():
     assert "w.sha256 = d.sha256" in sql
     assert "rsc_extension_base_name(parent.company_name)" in sql
     assert "v_cert_tier13 > v_target_tier13" in sql
-    assert "Building-shaped names stay separate" in sql
+    assert "Building-shaped names need a register mother" in sql
     assert "Named mother is itself a building" in sql
+    assert "_queue_find_mother" in sql
+    assert "\\yknitting\\y" in sql
+    assert "\\yembroidery\\y" in sql
     cluster = sql.split("cluster_token", 1)[1].split("fuzzy_match_review", 1)[0]
     assert "'action', 'label_group'" not in cluster
     assert "'action', 'keep_separate'" in cluster
@@ -540,8 +590,9 @@ def test_migration_decide_mutates_suppliers_not_only_the_ticket():
     assert "perform public._queue_absorb_supplier" in body
     assert "update public.source_records" in sql
     assert "update public.verification_queue" in body
-    assert "hold_no_register: cannot publish" in body
+    assert "elsif v_action = 'label_group'" not in body
     assert "if v_decision = 'release'" in body
+    assert "member_ids" in body
     brand = sql.split("brand_disclosure_match_review", 1)[1]
     assert "_queue_legal_stem(s.company_name_norm)" in brand
     assert "_queue_legal_stem(brand.company_name_norm)" in brand
@@ -563,8 +614,8 @@ def test_decide_route_still_calls_admin_queue_decide():
     assert 'rpc("admin_queue_decide"' in src
     assert "revalidatePath(\"/admin/queue\")" in src
     assert "revalidatePath(\"/discover\")" in src
-    assert "revalidatePath(\"/app/discover\")" in src
     assert '"release"' in src
+    assert "approve|release" not in src
 
 
 def test_ops_script_is_dry_run_by_default():
@@ -576,7 +627,7 @@ def test_ops_script_is_dry_run_by_default():
     assert "compliance_documents" in src
     assert "sys.path.insert" in src
     assert "doc_type" in src
-    assert "extension_base_name" in src
+    assert "refuse_nested_parent" in src
 
 
 def test_review_button_posts_release_not_approve():
@@ -593,6 +644,8 @@ def test_decide_route_forwards_release_to_rpc():
     assert 'rpc("admin_queue_decide"' in src
     assert "p_decision: decision" in src
     assert '"release"' in src
+    assert "release|reject|escalate" in src
+    assert "approve|release" not in src
     assert "revalidatePath(\"/admin/queue\")" in src
     assert "revalidatePath(\"/discover\")" in src
     assert "revalidatePath(\"/app/discover\")" in src
