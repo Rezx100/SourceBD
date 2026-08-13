@@ -905,6 +905,7 @@ def test_sql_brand_and_unique_mother_are_wired():
     )[0]
     n_rr = loop.count("regexp_replace")
     n_foreach = loop.count("foreach v_pat")
+    assert n_foreach == 1
     assert n_rr == n_foreach + len(sql_building_loop_replaces())
     paren_fn = sql.split(
         "create or replace function public._queue_paren_building_strip", 1
@@ -1182,6 +1183,7 @@ def test_brand_washing_unit_then_unit_2_needs_human():
         "Pacific Jeans Ltd. (Building 5) (Unit-2)",
         "Pacific Jeans Ltd. (Unit (Building 5))",
         "Pacific Jeans Ltd. (Knit Unit) Unit-2",
+        "Pacific Jeans Ltd. (Knit Unit) (Unit-2)",
         "Pacific Jeans Ltd. (Sw Unit) Unit-2",
         "Pacific Jeans Ltd. (SW Unit) Unit-2",
         "Pacific Jeans Ltd. (Sw Unit) (Unit-2)",

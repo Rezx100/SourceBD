@@ -1,9 +1,9 @@
-"""Execute 0102's plan function against production rows, then roll back.
+"""Execute 0102 plan + decide against production rows, then roll back.
 
 CI has no Postgres. When SUPABASE_DB_URL is set, this session creates the
-0102 helpers + admin_queue_release_plan in an uncommitted transaction, reads
-named ticket destinations, and always rolls back. It never replaces
-admin_queue_decide (0062 stays live) and never commits.
+0102 helpers, admin_queue_release_plan, and (in the decide test)
+admin_queue_decide in an uncommitted transaction, then always rolls back.
+0062's live decide is restored when the transaction ends. Never commits.
 """
 
 from __future__ import annotations
@@ -27,8 +27,15 @@ SHAFPUR_QUEUE = "aefbd03e-17e7-4876-a3db-d6b035722bd5"
 KENPARK_QUEUE = "5d17c2ce-2a0a-4615-8a8a-c3c5c4707505"
 CKL_QUEUE = "33cbb2d5-5fe8-4a3f-a27f-0e269e99632e"
 SOUTH_EAST_QUEUE = "3567e858-df1d-4ecd-b5f0-5902b1530881"
+SOUTH_EAST_CHILD = "dcf53dbd-9f33-4002-9a57-a8021b56b097"
 SOUTH_EAST_PARENT = "987316ab"
 MARK_FASHION_QUEUE = "a5c7886c-ce38-4bfc-b749-4ccd02ddafa2"
+MERGE_QUEUE = "dc85931e-a2ac-4ba5-86bb-fba82c2ff03a"
+MERGE_LOSER = "318c4dee-0cff-49b8-8576-d65f3d03132b"
+BRAND_QUEUE = "1897bf34-734c-4135-92f9-f2b5ca126cbc"
+BRAND_LOSER = "81e973c3-74cb-48c5-a44f-c6eb307f46bc"
+PUBLISH_QUEUE = "06f65f4c-e55c-45ce-bb15-4ca5c92bf506"
+PUBLISH_WINNER = "e2970a2e-2453-4113-ab75-cb5e9d9526e8"
 
 
 def _dsn() -> str | None:
@@ -187,10 +194,27 @@ def test_sql_decide_release_mutates_valuka_and_holds_kenpark(plan_conn):
         )
 
         cur.execute(
-            "select reviewed_at from public.verification_queue where id = %s::uuid",
+            """
+            select reviewed_at from public.verification_queue where id = %s::uuid
+            """,
             (VALUKA_QUEUE,),
         )
         assert cur.fetchone()["reviewed_at"] is None
+        valuka_members = [
+            "02178d15-2c87-43c5-a85e-5d7f1a543287",
+            "8a5f7152-8587-4047-8348-38ba59022d39",
+        ]
+        cur.execute(
+            """
+            select count(*)::int as n
+              from public.suppliers
+             where id = any(%s::uuid[])
+               and is_published = true
+               and facility_of is null
+            """,
+            (valuka_members,),
+        )
+        assert cur.fetchone()["n"] == 2
 
         cur.execute(
             "select public.admin_queue_decide(%s::uuid, 'release', 'sql-audit') as r",
@@ -198,22 +222,159 @@ def test_sql_decide_release_mutates_valuka_and_holds_kenpark(plan_conn):
         )
         result = cur.fetchone()["r"]
         assert result["release_action"] == "attach_facility"
-        assert str(result["plan"]["parent_id"]).startswith(LIZ_MOTHER)
+        parent_id = str(result["plan"]["parent_id"])
+        assert parent_id.startswith(LIZ_MOTHER)
         members = [str(x) for x in (result["plan"].get("member_ids") or [])]
-        assert members
+        assert set(members) == set(valuka_members)
         cur.execute(
             """
             select count(*)::int as n
               from public.suppliers s
              where s.id = any(%s::uuid[])
-               and s.facility_of::text like %s
+               and s.facility_of = %s::uuid
+               and s.is_published = false
             """,
-            (members, LIZ_MOTHER + "%"),
+            (members, parent_id),
         )
         assert cur.fetchone()["n"] == len(members)
         cur.execute(
+            """
+            select facility_of is null as ok
+              from public.suppliers
+             where id = %s::uuid
+            """,
+            (parent_id,),
+        )
+        assert cur.fetchone()["ok"] is True
+        cur.execute(
             "select reviewed_at from public.verification_queue where id = %s::uuid",
             (VALUKA_QUEUE,),
+        )
+        assert cur.fetchone()["reviewed_at"] is not None
+
+        cur.execute("savepoint already_decided")
+        with pytest.raises(Exception, match="already decided"):
+            cur.execute(
+                "select public.admin_queue_decide(%s::uuid, 'release', null)",
+                (VALUKA_QUEUE,),
+            )
+        cur.execute("rollback to savepoint already_decided")
+        cur.execute(
+            """
+            select count(*)::int as n
+              from public.suppliers
+             where id = any(%s::uuid[])
+               and facility_of = %s::uuid
+               and is_published = false
+            """,
+            (valuka_members, parent_id),
+        )
+        assert cur.fetchone()["n"] == 2
+
+        cur.execute(
+            """
+            select facility_of, is_published
+              from public.suppliers
+             where id = %s::uuid
+            """,
+            (SOUTH_EAST_CHILD,),
+        )
+        se_before = cur.fetchone()
+        assert se_before["facility_of"] is None
+        cur.execute(
+            "select public.admin_queue_decide(%s::uuid, 'reject', 'sql-audit') as r",
+            (SOUTH_EAST_QUEUE,),
+        )
+        reject_r = cur.fetchone()["r"]
+        assert reject_r["decision"] == "reject"
+        cur.execute(
+            """
+            select facility_of, is_published
+              from public.suppliers
+             where id = %s::uuid
+            """,
+            (SOUTH_EAST_CHILD,),
+        )
+        se_after = cur.fetchone()
+        assert se_after["facility_of"] is None
+        assert se_after["is_published"] == se_before["is_published"]
+        cur.execute(
+            "select reviewed_at from public.verification_queue where id = %s::uuid",
+            (SOUTH_EAST_QUEUE,),
+        )
+        assert cur.fetchone()["reviewed_at"] is not None
+
+        cur.execute(
+            "select public.admin_queue_decide(%s::uuid, 'release', 'sql-audit') as r",
+            (MERGE_QUEUE,),
+        )
+        merge_r = cur.fetchone()["r"]
+        assert merge_r["release_action"] == "merge_into"
+        cur.execute(
+            """
+            select is_published
+              from public.suppliers
+             where id = %s::uuid
+            """,
+            (MERGE_LOSER,),
+        )
+        assert cur.fetchone()["is_published"] is False
+        cur.execute(
+            "select reviewed_at from public.verification_queue where id = %s::uuid",
+            (MERGE_QUEUE,),
+        )
+        assert cur.fetchone()["reviewed_at"] is not None
+
+        cur.execute(
+            "select public.admin_queue_decide(%s::uuid, 'release', 'sql-audit') as r",
+            (BRAND_QUEUE,),
+        )
+        brand_r = cur.fetchone()["r"]
+        assert brand_r["release_action"] == "attach_brand"
+        cur.execute(
+            """
+            select is_published
+              from public.suppliers
+             where id = %s::uuid
+            """,
+            (BRAND_LOSER,),
+        )
+        assert cur.fetchone()["is_published"] is False
+        cur.execute(
+            "select reviewed_at from public.verification_queue where id = %s::uuid",
+            (BRAND_QUEUE,),
+        )
+        assert cur.fetchone()["reviewed_at"] is not None
+
+        cur.execute(
+            """
+            select is_published
+              from public.suppliers
+             where id = %s::uuid
+            """,
+            (PUBLISH_WINNER,),
+        )
+        assert cur.fetchone()["is_published"] is False
+        cur.execute(
+            "select public.admin_queue_decide(%s::uuid, 'release', 'sql-audit') as r",
+            (PUBLISH_QUEUE,),
+        )
+        pub_r = cur.fetchone()["r"]
+        assert pub_r["release_action"] == "publish"
+        cur.execute(
+            """
+            select is_published, facility_of
+              from public.suppliers
+             where id = %s::uuid
+            """,
+            (PUBLISH_WINNER,),
+        )
+        pub_row = cur.fetchone()
+        assert pub_row["is_published"] is True
+        assert pub_row["facility_of"] is None
+        cur.execute(
+            "select reviewed_at from public.verification_queue where id = %s::uuid",
+            (PUBLISH_QUEUE,),
         )
         assert cur.fetchone()["reviewed_at"] is not None
 

@@ -995,8 +995,12 @@ begin
       ) then
         raise exception 'refuse nested facility' using errcode = '22023';
       end if;
+      -- Discover lists is_published = true with no facility_of filter (0076).
+      -- Unpublish here so attached buildings leave the buyer list even if
+      -- the 0092 facility_of trigger is absent.
       update public.suppliers
          set facility_of = v_parent,
+             is_published = false,
              updated_at = now()
        where id is distinct from v_parent
          and id in (

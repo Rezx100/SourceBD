@@ -27,7 +27,10 @@ Prior fingerprints `7734c386…` and `06173cde…` are void.
 `ops/plans/queue-release-plan.md`. 0102 unique-mother lookup uses
 `min(h::text)::uuid` (Postgres 17 has no `min(uuid)`). Named Review
 destinations are asserted by `etl/tests/test_queue_release_plan_sql.py`
-in a rolled-back session.
+in a rolled-back session. Attach sets `is_published = false` (Discover
+lists published rows with no facility_of filter). The same session
+proves Valuka members leave Discover, merge/brand/publish mutate, reject
+does not, and a second decide is refused.
 
 ## Facility slug → mother redirect — REZ-72 (B2) COMPLETE in working tree
 8 Aug 2026 — on `rez-72-facility-slug-redirect`. Before `notFound()` on both
