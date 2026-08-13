@@ -53,6 +53,24 @@ describe("POST /api/v1/admin/queue/decide", () => {
     ]);
   });
 
+  it("forwards reject and escalate to admin_queue_decide", async () => {
+    for (const decision of ["reject", "escalate"] as const) {
+      const calls: unknown[] = [];
+      const res = await queueDecideFromRequest(
+        post({ queue_id: QUEUE_ID, decision }),
+        "admin",
+        async (args) => {
+          calls.push(args);
+          return { data: { ok: true }, error: null };
+        },
+      );
+      assert.equal(res.status, 200);
+      assert.deepEqual(calls, [
+        { p_queue_id: QUEUE_ID, p_decision: decision, p_note: null },
+      ]);
+    }
+  });
+
   it("maps needs_human RPC errors to HTTP 400", async () => {
     const res = await queueDecideFromRequest(
       post({ queue_id: QUEUE_ID, decision: "release" }),

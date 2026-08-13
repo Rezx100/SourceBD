@@ -398,7 +398,7 @@ def apply_plan(rest: Rest, plan: ReleasePlan) -> None:
             rest.patch(
                 "suppliers",
                 {"id": f"eq.{cid}"},
-                {"facility_of": plan.parent_id},
+                {"facility_of": plan.parent_id, "is_published": False},
             )
     elif plan.action in {"merge_into", "attach_brand"} and plan.winner_id and plan.loser_id:
         absorb(rest, plan.winner_id, plan.loser_id)

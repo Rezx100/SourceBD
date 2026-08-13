@@ -1210,22 +1210,25 @@ begin
 end;
 $$;
 
-revoke all on function public._queue_edit_distance(text, text) from public;
-revoke all on function public._queue_compact_name(text) from public;
-revoke all on function public._queue_names_same_company(text, text) from public;
-revoke all on function public._queue_legal_stem(text) from public;
-revoke all on function public._queue_abbrev_name(text) from public;
-revoke all on function public._queue_slugify(text) from public;
-revoke all on function public._queue_legal_form_variants(text, text) from public;
-revoke all on function public._queue_distinctive_mismatch(text, text) from public;
-revoke all on function public._queue_brand_name_match(text, text, text, text) from public;
-revoke all on function public._queue_is_building_shaped(text) from public;
-revoke all on function public._queue_building_base_name(text) from public;
-revoke all on function public._queue_paren_building_strip(text) from public;
-revoke all on function public._queue_mother_hits(text) from public;
-revoke all on function public._queue_find_mother(text) from public;
-revoke all on function public._queue_unique_mother(text[]) from public;
-revoke all on function public._queue_absorb_supplier(uuid, uuid) from public;
-revoke all on function public.admin_queue_release_plan(uuid) from public;
+-- Revoke from public, anon, and authenticated. Revoking public alone
+-- leaves the default EXECUTE grant to anon/authenticated, so PostgREST
+-- could call SECURITY DEFINER absorb/plan without an admin check (0084).
+revoke all on function public._queue_edit_distance(text, text) from public, anon, authenticated;
+revoke all on function public._queue_compact_name(text) from public, anon, authenticated;
+revoke all on function public._queue_names_same_company(text, text) from public, anon, authenticated;
+revoke all on function public._queue_legal_stem(text) from public, anon, authenticated;
+revoke all on function public._queue_abbrev_name(text) from public, anon, authenticated;
+revoke all on function public._queue_slugify(text) from public, anon, authenticated;
+revoke all on function public._queue_legal_form_variants(text, text) from public, anon, authenticated;
+revoke all on function public._queue_distinctive_mismatch(text, text) from public, anon, authenticated;
+revoke all on function public._queue_brand_name_match(text, text, text, text) from public, anon, authenticated;
+revoke all on function public._queue_is_building_shaped(text) from public, anon, authenticated;
+revoke all on function public._queue_building_base_name(text) from public, anon, authenticated;
+revoke all on function public._queue_paren_building_strip(text) from public, anon, authenticated;
+revoke all on function public._queue_mother_hits(text) from public, anon, authenticated;
+revoke all on function public._queue_find_mother(text) from public, anon, authenticated;
+revoke all on function public._queue_unique_mother(text[]) from public, anon, authenticated;
+revoke all on function public._queue_absorb_supplier(uuid, uuid) from public, anon, authenticated;
+revoke all on function public.admin_queue_release_plan(uuid) from public, anon, authenticated;
 grant execute on function public.admin_queue_decide(uuid, text, text) to authenticated;
 grant execute on function public.admin_queue_list(text, text, int, int) to authenticated;

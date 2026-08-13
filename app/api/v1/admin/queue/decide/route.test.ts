@@ -108,6 +108,24 @@ describe("POST /api/v1/admin/queue/decide", () => {
     assert.deepEqual(await res.json(), { action: "keep_separate" });
   });
 
+  it("forwards reject to admin_queue_decide and keeps HTTP 200", async () => {
+    const res = await POST(post({ queue_id: QUEUE_ID, decision: "reject" }));
+    assert.equal(res.status, 200);
+    assert.equal(rpcCalls.length, 1);
+    assert.equal(rpcCalls[0]?.fn, "admin_queue_decide");
+    assert.equal(rpcCalls[0]?.params.p_decision, "reject");
+    assert.equal(rpcCalls[0]?.params.p_queue_id, QUEUE_ID);
+  });
+
+  it("forwards escalate to admin_queue_decide and keeps HTTP 200", async () => {
+    const res = await POST(post({ queue_id: QUEUE_ID, decision: "escalate" }));
+    assert.equal(res.status, 200);
+    assert.equal(rpcCalls.length, 1);
+    assert.equal(rpcCalls[0]?.fn, "admin_queue_decide");
+    assert.equal(rpcCalls[0]?.params.p_decision, "escalate");
+    assert.equal(rpcCalls[0]?.params.p_queue_id, QUEUE_ID);
+  });
+
   it("does not collapse a failed release RPC to HTTP 200", async () => {
     rpcStatus = 400;
     rpcBody = { message: "queue row needs a human destination: hold" };

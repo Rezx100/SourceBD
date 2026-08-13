@@ -22,7 +22,9 @@ VALUKA_QUEUE = "7025396b-c7e0-4b59-a228-9186d31b9568"
 LIZ_MOTHER = "55c13ea8"
 HURRICANE_QUEUE = "ae1935ab-2672-4928-8188-28afc04c7eff"
 HURRICANE_CHILD = "ed35695c"
+HURRICANE_CHILD_ID = "ed35695c-033d-4683-a7a6-b088a310d95d"
 HURRICANE_MOTHER = "766d04d7"
+HURRICANE_MOTHER_ID = "766d04d7-4264-4ae7-9ea7-f350047de379"
 SHAFPUR_QUEUE = "aefbd03e-17e7-4876-a3db-d6b035722bd5"
 KENPARK_QUEUE = "5d17c2ce-2a0a-4615-8a8a-c3c5c4707505"
 CKL_QUEUE = "33cbb2d5-5fe8-4a3f-a27f-0e269e99632e"
@@ -31,8 +33,10 @@ SOUTH_EAST_CHILD = "dcf53dbd-9f33-4002-9a57-a8021b56b097"
 SOUTH_EAST_PARENT = "987316ab"
 MARK_FASHION_QUEUE = "a5c7886c-ce38-4bfc-b749-4ccd02ddafa2"
 MERGE_QUEUE = "dc85931e-a2ac-4ba5-86bb-fba82c2ff03a"
+MERGE_WINNER = "05eb9f88-359a-4bb2-9138-dc216cf05e57"
 MERGE_LOSER = "318c4dee-0cff-49b8-8576-d65f3d03132b"
 BRAND_QUEUE = "1897bf34-734c-4135-92f9-f2b5ca126cbc"
+BRAND_WINNER = "af0b137c-558b-4cda-9c03-d3e557ab093a"
 BRAND_LOSER = "81e973c3-74cb-48c5-a44f-c6eb307f46bc"
 PUBLISH_QUEUE = "06f65f4c-e55c-45ce-bb15-4ca5c92bf506"
 PUBLISH_WINNER = "e2970a2e-2453-4113-ab75-cb5e9d9526e8"
@@ -64,6 +68,95 @@ def _statements(blob: str) -> list[str]:
     return out
 
 
+def _privilege_statements() -> list[str]:
+    sql = MIGRATION.read_text(encoding="utf-8")
+    marker = "revoke all on function public._queue_edit_distance"
+    tail = marker + sql.split(marker, 1)[1]
+    return [part.strip() + ";" for part in tail.split(";") if part.strip()]
+
+
+def _ids(cur, sql: str, args: tuple) -> list[str]:
+    cur.execute(sql, args)
+    return [str(r["id"]) for r in cur.fetchall()]
+
+
+def _absorb_before(cur, winner: str, loser: str) -> dict[str, list[str]]:
+    movable_sr = _ids(
+        cur,
+        """
+        select sr.id
+          from public.source_records sr
+         where sr.supplier_id = %s::uuid
+           and not exists (
+             select 1 from public.source_records w
+              where w.supplier_id = %s::uuid
+                and w.source_id = sr.source_id
+                and w.source_ref is not distinct from sr.source_ref
+           )
+        """,
+        (loser, winner),
+    )
+    claims = _ids(
+        cur,
+        "select id from public.evidence_claims where supplier_id = %s::uuid",
+        (loser,),
+    )
+    movable_certs = _ids(
+        cur,
+        """
+        select c.id
+          from public.certifications c
+         where c.supplier_id = %s::uuid
+           and not exists (
+             select 1 from public.certifications w
+              where w.supplier_id = %s::uuid
+                and w.kind = c.kind
+                and w.certificate_no is not distinct from c.certificate_no
+           )
+        """,
+        (loser, winner),
+    )
+    return {
+        "source_records": movable_sr,
+        "evidence_claims": claims,
+        "certifications": movable_certs,
+    }
+
+
+def _assert_absorbed(cur, winner: str, loser: str, before: dict[str, list[str]]) -> None:
+    cur.execute(
+        "select is_published from public.suppliers where id = %s::uuid",
+        (winner,),
+    )
+    assert cur.fetchone()["is_published"] is True
+    cur.execute(
+        "select is_published from public.suppliers where id = %s::uuid",
+        (loser,),
+    )
+    assert cur.fetchone()["is_published"] is False
+    moved = (
+        before["source_records"]
+        or before["evidence_claims"]
+        or before["certifications"]
+    )
+    assert moved, "loser had no unique source_records, claims, or certs to move"
+    for table, ids in before.items():
+        if not ids:
+            continue
+        cur.execute(
+            f"select count(*)::int as n from public.{table} "
+            "where id = any(%s::uuid[]) and supplier_id = %s::uuid",
+            (ids, winner),
+        )
+        assert cur.fetchone()["n"] == len(ids), table
+        cur.execute(
+            f"select count(*)::int as n from public.{table} "
+            "where id = any(%s::uuid[]) and supplier_id = %s::uuid",
+            (ids, loser),
+        )
+        assert cur.fetchone()["n"] == 0, table
+
+
 @pytest.fixture(scope="module")
 def plan_conn():
     dsn = _dsn()
@@ -76,6 +169,8 @@ def plan_conn():
     try:
         with conn.cursor() as cur:
             for stmt in _statements(_plan_helpers_sql()):
+                cur.execute(stmt)
+            for stmt in _privilege_statements():
                 cur.execute(stmt)
         yield conn
     finally:
@@ -165,6 +260,33 @@ def test_sql_knit_sw_stacked_does_not_fold_to_garment_base(plan_conn):
             assert cur.fetchone()["mid"] is None, name
 
 
+def test_sql_absorb_not_granted_to_anon_or_authenticated(plan_conn):
+    with plan_conn.cursor() as cur:
+        for role in ("anon", "authenticated"):
+            cur.execute(
+                """
+                select has_function_privilege(
+                         %s,
+                         'public._queue_absorb_supplier(uuid,uuid)'::regprocedure,
+                         'execute'
+                       ) as ok
+                """,
+                (role,),
+            )
+            assert cur.fetchone()["ok"] is False, role
+            cur.execute(
+                """
+                select has_function_privilege(
+                         %s,
+                         'public.admin_queue_release_plan(uuid)'::regprocedure,
+                         'execute'
+                       ) as ok
+                """,
+                (role,),
+            )
+            assert cur.fetchone()["ok"] is False, role
+
+
 def _decide_fn_sql() -> str:
     sql = MIGRATION.read_text(encoding="utf-8")
     blob = sql.split("create or replace function public.admin_queue_decide", 1)[1]
@@ -175,7 +297,7 @@ def _decide_fn_sql() -> str:
 def test_sql_decide_release_mutates_valuka_and_holds_kenpark(plan_conn):
     """Granted Review entrypoint in the same rolled-back session as the plan helpers."""
     import json
-    from psycopg.errors import InvalidParameterValue
+    from psycopg.errors import InvalidParameterValue, NoDataFound
 
     with plan_conn.cursor() as cur:
         cur.execute("set local lock_timeout = '8s'")
@@ -251,9 +373,29 @@ def test_sql_decide_release_mutates_valuka_and_holds_kenpark(plan_conn):
             (VALUKA_QUEUE,),
         )
         assert cur.fetchone()["reviewed_at"] is not None
+        cur.execute(
+            """
+            select count(*)::int as n
+              from public.suppliers
+             where is_published = true
+               and id = any(%s::uuid[])
+            """,
+            (valuka_members,),
+        )
+        assert cur.fetchone()["n"] == 0
+        cur.execute(
+            """
+            select count(*)::int as n
+              from public.suppliers
+             where is_published = true
+               and id = %s::uuid
+            """,
+            (parent_id,),
+        )
+        assert cur.fetchone()["n"] == 1
 
         cur.execute("savepoint already_decided")
-        with pytest.raises(Exception, match="already decided"):
+        with pytest.raises(NoDataFound, match="already decided"):
             cur.execute(
                 "select public.admin_queue_decide(%s::uuid, 'release', null)",
                 (VALUKA_QUEUE,),
@@ -272,6 +414,25 @@ def test_sql_decide_release_mutates_valuka_and_holds_kenpark(plan_conn):
         assert cur.fetchone()["n"] == 2
 
         cur.execute(
+            "select public.admin_queue_decide(%s::uuid, 'release', 'sql-audit') as r",
+            (HURRICANE_QUEUE,),
+        )
+        hurricane_r = cur.fetchone()["r"]
+        assert hurricane_r["release_action"] == "attach_facility"
+        assert str(hurricane_r["plan"]["parent_id"]) == HURRICANE_MOTHER_ID
+        cur.execute(
+            """
+            select facility_of, is_published
+              from public.suppliers
+             where id = %s::uuid
+            """,
+            (HURRICANE_CHILD_ID,),
+        )
+        hurricane_row = cur.fetchone()
+        assert str(hurricane_row["facility_of"]) == HURRICANE_MOTHER_ID
+        assert hurricane_row["is_published"] is False
+
+        cur.execute(
             """
             select facility_of, is_published
               from public.suppliers
@@ -281,6 +442,11 @@ def test_sql_decide_release_mutates_valuka_and_holds_kenpark(plan_conn):
         )
         se_before = cur.fetchone()
         assert se_before["facility_of"] is None
+        se_sr = _ids(
+            cur,
+            "select id from public.source_records where supplier_id = %s::uuid",
+            (SOUTH_EAST_CHILD,),
+        )
         cur.execute(
             "select public.admin_queue_decide(%s::uuid, 'reject', 'sql-audit') as r",
             (SOUTH_EAST_QUEUE,),
@@ -298,48 +464,44 @@ def test_sql_decide_release_mutates_valuka_and_holds_kenpark(plan_conn):
         se_after = cur.fetchone()
         assert se_after["facility_of"] is None
         assert se_after["is_published"] == se_before["is_published"]
+        se_sr_after = _ids(
+            cur,
+            "select id from public.source_records where supplier_id = %s::uuid",
+            (SOUTH_EAST_CHILD,),
+        )
+        assert se_sr_after == se_sr
         cur.execute(
             "select reviewed_at from public.verification_queue where id = %s::uuid",
             (SOUTH_EAST_QUEUE,),
         )
         assert cur.fetchone()["reviewed_at"] is not None
 
+        merge_before = _absorb_before(cur, MERGE_WINNER, MERGE_LOSER)
         cur.execute(
             "select public.admin_queue_decide(%s::uuid, 'release', 'sql-audit') as r",
             (MERGE_QUEUE,),
         )
         merge_r = cur.fetchone()["r"]
         assert merge_r["release_action"] == "merge_into"
-        cur.execute(
-            """
-            select is_published
-              from public.suppliers
-             where id = %s::uuid
-            """,
-            (MERGE_LOSER,),
-        )
-        assert cur.fetchone()["is_published"] is False
+        assert str(merge_r["plan"]["winner_id"]) == MERGE_WINNER
+        assert str(merge_r["plan"]["loser_id"]) == MERGE_LOSER
+        _assert_absorbed(cur, MERGE_WINNER, MERGE_LOSER, merge_before)
         cur.execute(
             "select reviewed_at from public.verification_queue where id = %s::uuid",
             (MERGE_QUEUE,),
         )
         assert cur.fetchone()["reviewed_at"] is not None
 
+        brand_before = _absorb_before(cur, BRAND_WINNER, BRAND_LOSER)
         cur.execute(
             "select public.admin_queue_decide(%s::uuid, 'release', 'sql-audit') as r",
             (BRAND_QUEUE,),
         )
         brand_r = cur.fetchone()["r"]
         assert brand_r["release_action"] == "attach_brand"
-        cur.execute(
-            """
-            select is_published
-              from public.suppliers
-             where id = %s::uuid
-            """,
-            (BRAND_LOSER,),
-        )
-        assert cur.fetchone()["is_published"] is False
+        assert str(brand_r["plan"]["winner_id"]) == BRAND_WINNER
+        assert str(brand_r["plan"]["loser_id"]) == BRAND_LOSER
+        _assert_absorbed(cur, BRAND_WINNER, BRAND_LOSER, brand_before)
         cur.execute(
             "select reviewed_at from public.verification_queue where id = %s::uuid",
             (BRAND_QUEUE,),
