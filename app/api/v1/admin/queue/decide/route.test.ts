@@ -86,6 +86,16 @@ afterEach(() => {
 });
 
 describe("POST /api/v1/admin/queue/decide", () => {
+  it("returns HTTP 403 from POST when bypass is off and there is no session", async () => {
+    delete process.env.DEV_ADMIN_BYPASS;
+    const res = await POST(post({ queue_id: QUEUE_ID, decision: "release" }));
+    assert.equal(res.status, 403);
+    assert.equal(
+      rpcCalls.filter((call) => call.fn === "admin_queue_decide").length,
+      0,
+    );
+  });
+
   it("rejects approve with HTTP 400 and does not call admin_queue_decide", async () => {
     const res = await POST(post({ queue_id: QUEUE_ID, decision: "approve" }));
     assert.equal(res.status, 400);

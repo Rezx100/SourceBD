@@ -94,6 +94,8 @@ def _child_evidence(cur, supplier_id: str) -> dict[str, list[str]]:
         "source_records": _owned_ids(cur, "source_records", supplier_id),
         "certifications": _owned_ids(cur, "certifications", supplier_id),
         "rsc_remediation": _owned_ids(cur, "rsc_remediation", supplier_id),
+        "compliance_documents": _owned_ids(cur, "compliance_documents", supplier_id),
+        "evidence_claims": _owned_ids(cur, "evidence_claims", supplier_id),
     }
 
 
@@ -292,6 +294,11 @@ def test_sql_knit_sw_stacked_does_not_fold_to_garment_base(plan_conn):
             assert cur.fetchone()["mid"] is None, name
 
 
+def test_sql_brand_without_register_needs_human(plan_conn):
+    plan = _plan(plan_conn, "0d270232-33c3-45d6-afb4-82628b2d98c4")
+    assert plan["action"] == "needs_human"
+
+
 def test_sql_absorb_not_granted_to_anon_or_authenticated(plan_conn):
     with plan_conn.cursor() as cur:
         for role in ("anon", "authenticated"):
@@ -347,7 +354,7 @@ def _decide_fn_sql() -> str:
 def test_sql_decide_release_mutates_valuka_and_holds_kenpark(plan_conn):
     """Granted Review entrypoint in the same rolled-back session as the plan helpers."""
     import json
-    from psycopg.errors import InvalidParameterValue, NoDataFound
+    from psycopg.errors import InsufficientPrivilege, InvalidParameterValue, NoDataFound
 
     with plan_conn.cursor() as cur:
         cur.execute("set local lock_timeout = '8s'")
@@ -364,6 +371,45 @@ def test_sql_decide_release_mutates_valuka_and_holds_kenpark(plan_conn):
         cur.execute(
             "select set_config('request.jwt.claim.sub', %s, true)", (admin_id,)
         )
+
+        cur.execute(
+            "select id from public.profiles where role::text = 'buyer' limit 1"
+        )
+        buyer = cur.fetchone()
+        assert buyer is not None
+        buyer_id = str(buyer["id"])
+        buyer_claims = json.dumps({"sub": buyer_id, "role": "authenticated"})
+        cur.execute("savepoint buyer_hold")
+        cur.execute("select set_config('request.jwt.claims', %s, true)", (buyer_claims,))
+        cur.execute(
+            "select set_config('request.jwt.claim.sub', %s, true)", (buyer_id,)
+        )
+        with pytest.raises(InsufficientPrivilege, match="admin only"):
+            cur.execute(
+                "select public.admin_queue_decide(%s::uuid, 'release', null)",
+                (VALUKA_QUEUE,),
+            )
+        cur.execute("rollback to savepoint buyer_hold")
+        cur.execute("select set_config('request.jwt.claims', %s, true)", (claims,))
+        cur.execute(
+            "select set_config('request.jwt.claim.sub', %s, true)", (admin_id,)
+        )
+        cur.execute(
+            """
+            select count(*)::int as n
+              from public.suppliers
+             where id = any(%s::uuid[])
+               and is_published = true
+               and facility_of is null
+            """,
+            (
+                [
+                    "02178d15-2c87-43c5-a85e-5d7f1a543287",
+                    "8a5f7152-8587-4047-8348-38ba59022d39",
+                ],
+            ),
+        )
+        assert cur.fetchone()["n"] == 2
 
         cur.execute(
             """
@@ -388,6 +434,9 @@ def test_sql_decide_release_mutates_valuka_and_holds_kenpark(plan_conn):
         )
         assert cur.fetchone()["n"] == 2
         valuka_evidence = {mid: _child_evidence(cur, mid) for mid in valuka_members}
+        assert valuka_evidence["8a5f7152-8587-4047-8348-38ba59022d39"][
+            "compliance_documents"
+        ]
 
         cur.execute(
             "select public.admin_queue_decide(%s::uuid, 'release', 'sql-audit') as r",
