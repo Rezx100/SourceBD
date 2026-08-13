@@ -5,6 +5,35 @@ Last compacted for agent-token efficiency: 30 Jun 2026.
 ## Phase
 Phase 7 - Public Beta launch prep.
 
+## Review-queue release — IN PROGRESS on `rez-queue-release`
+13 Aug 2026 — 1,332 open review tickets never mutated buyer-facing rows
+(0062 only closed the ticket). Migration `0102` makes Release attach /
+merge / publish / label, or close when the destination is already live.
+Production dry-run fingerprint
+`000531700f970a9c9a2a2c129cac1d4131f646dcfc457f44f7fe84fe67d171d3`
+(5 merges, 12 building attaches, 11 brand moves, 1 publish, 48 human).
+Review SQL now uses the same building extras as Python (`(U-2)`, Unit-II,
+`(Ext)`), attaches only building-shaped ids, requires one mother across
+both fuzzy names, and brand tickets match Ltd/Limited/slug/norm on two
+separate bases (Liz Shafipur Unit → Liz Fashion; Kenpark Unit 2, Knitex
+Ckl, and a mill label stacked with another unit stay held). Fuzzy mother
+search abbreviates Industry→Industries and matches slug/norm so Valuka
+attaches to Liz Fashion (`liz fashion industries`). `(Sw Unit)` stacked
+with another unit stays held; a mill paren that is the only suffix still
+attaches (Hurricane Printing Unit, South East Printing Unit). Leftover
+`(Pvt.)` after that strip is not a leftover building.
+Prior fingerprints `7734c386…` and `06173cde…` are void.
+`--apply` and production migration apply are not authorised. See
+`ops/plans/queue-release-plan.md`. 0102 unique-mother lookup uses
+`min(h::text)::uuid` (Postgres 17 has no `min(uuid)`). Named Review
+destinations are asserted by `etl/tests/test_queue_release_plan_sql.py`
+in a rolled-back session. Attach sets `is_published = false` (Discover
+lists published rows with no facility_of filter). Absorb and the plan
+function are revoked from public, anon, and authenticated. The same
+session proves Valuka members leave the published listing, Hurricane
+Printing Unit attaches, merge/brand move unique source_records onto the
+winner, reject does not, and a second decide is refused.
+
 ## Facility slug → mother redirect — REZ-72 (B2) COMPLETE in working tree
 8 Aug 2026 — on `rez-72-facility-slug-redirect`. Before `notFound()` on both
 profile routes, call `facility_parent_slug(p_slug)` (mig `0096`): SECURITY

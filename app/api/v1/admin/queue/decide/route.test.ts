@@ -1,0 +1,151 @@
+// Route-level tests for POST /api/v1/admin/queue/decide.
+// Approve must be HTTP 400 from the exported POST handler, with no RPC.
+// Release must call admin_queue_decide and keep the RPC status.
+
+import assert from "node:assert/strict";
+import { afterEach, beforeEach, describe, it } from "node:test";
+
+import { POST } from "./route";
+
+const QUEUE_ID = "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee";
+const ENV_KEYS = [
+  "DEV_ADMIN_BYPASS",
+  "NEXT_PUBLIC_SUPABASE_URL",
+  "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+] as const;
+
+interface RpcCall {
+  fn: string;
+  params: Record<string, unknown>;
+}
+
+const realFetch = globalThis.fetch;
+let savedEnv: Record<string, string | undefined> = {};
+let rpcCalls: RpcCall[] = [];
+let rpcStatus = 200;
+let rpcBody: unknown = { action: "keep_separate" };
+
+async function rpcBodyFrom(input: unknown, init?: RequestInit): Promise<Record<string, unknown>> {
+  const raw =
+    typeof init?.body === "string"
+      ? init.body
+      : input instanceof Request
+        ? await input.clone().text()
+        : "";
+  if (!raw) return {};
+  try {
+    return JSON.parse(raw) as Record<string, unknown>;
+  } catch {
+    return {};
+  }
+}
+
+function stubFetch(): void {
+  rpcCalls = [];
+  globalThis.fetch = (async (input: unknown, init?: RequestInit) => {
+    const url = typeof input === "string" ? input : (input as { url: string }).url;
+    const match = /\/rpc\/(\w+)/.exec(url);
+    if (match) {
+      rpcCalls.push({
+        fn: match[1]!,
+        params: await rpcBodyFrom(input, init),
+      });
+    }
+    return new Response(JSON.stringify(rpcBody), {
+      status: rpcStatus,
+      headers: { "Content-Type": "application/json" },
+    });
+  }) as typeof fetch;
+}
+
+function post(body: unknown): Request {
+  return new Request("https://sourcebd.net/api/v1/admin/queue/decide", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(body),
+  });
+}
+
+beforeEach(() => {
+  savedEnv = Object.fromEntries(ENV_KEYS.map((key) => [key, process.env[key]]));
+  process.env.DEV_ADMIN_BYPASS = "1";
+  process.env.NEXT_PUBLIC_SUPABASE_URL = "https://supabase.invalid";
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "anon";
+  rpcStatus = 200;
+  rpcBody = { action: "keep_separate" };
+  stubFetch();
+});
+
+afterEach(() => {
+  for (const key of ENV_KEYS) {
+    const value = savedEnv[key];
+    if (value === undefined) delete process.env[key];
+    else process.env[key] = value;
+  }
+  globalThis.fetch = realFetch;
+});
+
+describe("POST /api/v1/admin/queue/decide", () => {
+  it("returns HTTP 403 from POST when bypass is off and there is no session", async () => {
+    delete process.env.DEV_ADMIN_BYPASS;
+    const res = await POST(post({ queue_id: QUEUE_ID, decision: "release" }));
+    assert.equal(res.status, 403);
+    assert.equal(
+      rpcCalls.filter((call) => call.fn === "admin_queue_decide").length,
+      0,
+    );
+  });
+
+  it("rejects approve with HTTP 400 and does not call admin_queue_decide", async () => {
+    const res = await POST(post({ queue_id: QUEUE_ID, decision: "approve" }));
+    assert.equal(res.status, 400);
+    assert.deepEqual(await res.json(), {
+      error: "decision must be release|reject|escalate",
+    });
+    assert.equal(rpcCalls.length, 0);
+  });
+
+  it("forwards release to admin_queue_decide and keeps HTTP 200", async () => {
+    const res = await POST(
+      post({ queue_id: QUEUE_ID, decision: "release", note: "ok" }),
+    );
+    assert.equal(res.status, 200);
+    assert.equal(rpcCalls.length, 1);
+    assert.equal(rpcCalls[0]?.fn, "admin_queue_decide");
+    assert.equal(rpcCalls[0]?.params.p_decision, "release");
+    assert.equal(rpcCalls[0]?.params.p_queue_id, QUEUE_ID);
+    assert.equal(rpcCalls[0]?.params.p_note, "ok");
+    assert.deepEqual(await res.json(), { action: "keep_separate" });
+  });
+
+  it("forwards reject to admin_queue_decide and keeps HTTP 200", async () => {
+    const res = await POST(post({ queue_id: QUEUE_ID, decision: "reject" }));
+    assert.equal(res.status, 200);
+    assert.equal(rpcCalls.length, 1);
+    assert.equal(rpcCalls[0]?.fn, "admin_queue_decide");
+    assert.equal(rpcCalls[0]?.params.p_decision, "reject");
+    assert.equal(rpcCalls[0]?.params.p_queue_id, QUEUE_ID);
+  });
+
+  it("forwards escalate to admin_queue_decide and keeps HTTP 200", async () => {
+    const res = await POST(post({ queue_id: QUEUE_ID, decision: "escalate" }));
+    assert.equal(res.status, 200);
+    assert.equal(rpcCalls.length, 1);
+    assert.equal(rpcCalls[0]?.fn, "admin_queue_decide");
+    assert.equal(rpcCalls[0]?.params.p_decision, "escalate");
+    assert.equal(rpcCalls[0]?.params.p_queue_id, QUEUE_ID);
+  });
+
+  it("does not collapse a failed release RPC to HTTP 200", async () => {
+    rpcStatus = 400;
+    rpcBody = { message: "queue row needs a human destination: hold" };
+    const res = await POST(post({ queue_id: QUEUE_ID, decision: "release" }));
+    assert.equal(res.status, 400);
+    assert.equal(rpcCalls.length, 1);
+    assert.equal(rpcCalls[0]?.fn, "admin_queue_decide");
+    assert.equal(rpcCalls[0]?.params.p_decision, "release");
+    assert.equal(rpcCalls[0]?.params.p_queue_id, QUEUE_ID);
+    const json = (await res.json()) as { error: string };
+    assert.equal(json.error, "admin_queue_decide failed");
+  });
+});

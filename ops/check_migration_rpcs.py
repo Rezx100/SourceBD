@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Smoke-check key RPCs from migrations 0061-0070."""
+"""Smoke-check key RPCs from migrations 0061-0070 and 0102."""
 from __future__ import annotations
 
 import os
@@ -11,6 +11,7 @@ CHECKS = [
     ("0061", "discover_suppliers"),
     ("0062", "admin_queue_list"),
     ("0062", "admin_queue_decide"),
+    ("0102", "admin_queue_release_plan"),
     ("0063", "admin_etl_dashboard"),
     ("0064", "admin_etl_job_status"),
     ("0065", "admin_beta_dashboard"),

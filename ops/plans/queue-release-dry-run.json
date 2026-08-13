@@ -1,0 +1,635 @@
+{
+  "generated_at": "2026-08-12T21:56:45.379060+00:00",
+  "open_rows": 1332,
+  "fingerprint": "000531700f970a9c9a2a2c129cac1d4131f646dcfc457f44f7fe84fe67d171d3",
+  "counts": {
+    "keep_separate": 957,
+    "needs_human": 48,
+    "attach_facility": 12,
+    "merge_into": 5,
+    "already_attached": 298,
+    "attach_brand": 11,
+    "publish": 1
+  },
+  "needs_human": [
+    {
+      "queue_id": "26e2163c-0e17-4186-bf3c-d1884bebbddb",
+      "queue_type": "fuzzy_match_review",
+      "reason": "cert or target supplier row gone",
+      "destination": "One side of this pair is missing"
+    },
+    {
+      "queue_id": "a5c7886c-ce38-4bfc-b749-4ccd02ddafa2",
+      "queue_type": "fuzzy_match_review",
+      "reason": "REZ-58: extension/unit listings are facilities, not merge targets",
+      "destination": "Building-shaped names need a register mother"
+    },
+    {
+      "queue_id": "53078d50-bd5c-4c99-b7d1-117b6efb2887",
+      "queue_type": "fuzzy_match_review",
+      "reason": "cert or target supplier row gone",
+      "destination": "One side of this pair is missing"
+    },
+    {
+      "queue_id": "5014cfab-3d72-4205-af0c-2a904dcea6e3",
+      "queue_type": "fuzzy_match_review",
+      "reason": "cert or target supplier row gone",
+      "destination": "One side of this pair is missing"
+    },
+    {
+      "queue_id": "0d270232-33c3-45d6-afb4-82628b2d98c4",
+      "queue_type": "brand_disclosure_match_review",
+      "reason": "publishing would violate the Tier 1\u20133 gate; do not close as released",
+      "destination": "Stays hidden \u2014 brand list only, no Bangladesh register"
+    },
+    {
+      "queue_id": "bba60a0b-9ce8-4664-af83-8f711f6cdec1",
+      "queue_type": "brand_disclosure_match_review",
+      "reason": "publishing would violate the Tier 1\u20133 gate; do not close as released",
+      "destination": "Stays hidden \u2014 brand list only, no Bangladesh register"
+    },
+    {
+      "queue_id": "f003cea0-6a5b-4535-ba80-2c7789b60b70",
+      "queue_type": "brand_disclosure_match_review",
+      "reason": "publishing would violate the Tier 1\u20133 gate; do not close as released",
+      "destination": "Stays hidden \u2014 brand list only, no Bangladesh register"
+    },
+    {
+      "queue_id": "e77787ba-0509-4c40-a1bd-0f6d22a64f63",
+      "queue_type": "brand_disclosure_match_review",
+      "reason": "publishing would violate the Tier 1\u20133 gate; do not close as released",
+      "destination": "Stays hidden \u2014 brand list only, no Bangladesh register"
+    },
+    {
+      "queue_id": "6a99cc55-a139-4abc-8e32-97ec1a427bdf",
+      "queue_type": "brand_disclosure_match_review",
+      "reason": "publishing would violate the Tier 1\u20133 gate; do not close as released",
+      "destination": "Stays hidden \u2014 brand list only, no Bangladesh register"
+    },
+    {
+      "queue_id": "cd5c30cb-bfa7-4ba6-a822-f9aaec9a928c",
+      "queue_type": "brand_disclosure_match_review",
+      "reason": "publishing would violate the Tier 1\u20133 gate; do not close as released",
+      "destination": "Stays hidden \u2014 brand list only, no Bangladesh register"
+    },
+    {
+      "queue_id": "5034c20e-05a7-4ed6-986d-7f72dd9f2787",
+      "queue_type": "brand_disclosure_match_review",
+      "reason": "publishing would violate the Tier 1\u20133 gate; do not close as released",
+      "destination": "Stays hidden \u2014 brand list only, no Bangladesh register"
+    },
+    {
+      "queue_id": "663fdb76-f488-45a8-b697-fea37188facb",
+      "queue_type": "brand_disclosure_match_review",
+      "reason": "publishing would violate the Tier 1\u20133 gate; do not close as released",
+      "destination": "Stays hidden \u2014 brand list only, no Bangladesh register"
+    },
+    {
+      "queue_id": "8be80d8c-fbb0-4848-b26c-483701151122",
+      "queue_type": "brand_disclosure_match_review",
+      "reason": "publishing would violate the Tier 1\u20133 gate; do not close as released",
+      "destination": "Stays hidden \u2014 brand list only, no Bangladesh register"
+    },
+    {
+      "queue_id": "f4a7e935-96f8-4b49-8f9b-642f212c9272",
+      "queue_type": "brand_disclosure_match_review",
+      "reason": "publishing would violate the Tier 1\u20133 gate; do not close as released",
+      "destination": "Stays hidden \u2014 brand list only, no Bangladesh register"
+    },
+    {
+      "queue_id": "fa672129-f1b5-4fcb-b23b-21273db4cec1",
+      "queue_type": "brand_disclosure_match_review",
+      "reason": "publishing would violate the Tier 1\u20133 gate; do not close as released",
+      "destination": "Stays hidden \u2014 brand list only, no Bangladesh register"
+    },
+    {
+      "queue_id": "6249c1d1-3071-4f2f-9f65-e2b03afc54ab",
+      "queue_type": "brand_disclosure_match_review",
+      "reason": "publishing would violate the Tier 1\u20133 gate; do not close as released",
+      "destination": "Stays hidden \u2014 brand list only, no Bangladesh register"
+    },
+    {
+      "queue_id": "3c6d2890-93ae-464b-a7f0-cccc2440d6d1",
+      "queue_type": "brand_disclosure_match_review",
+      "reason": "publishing would violate the Tier 1\u20133 gate; do not close as released",
+      "destination": "Stays hidden \u2014 brand list only, no Bangladesh register"
+    },
+    {
+      "queue_id": "6725b2ca-9719-479e-9d60-d4e2196c8e22",
+      "queue_type": "brand_disclosure_match_review",
+      "reason": "publishing would violate the Tier 1\u20133 gate; do not close as released",
+      "destination": "Stays hidden \u2014 brand list only, no Bangladesh register"
+    },
+    {
+      "queue_id": "49d9aee2-0b0a-47c1-802b-93f0db214e88",
+      "queue_type": "brand_disclosure_match_review",
+      "reason": "publishing would violate the Tier 1\u20133 gate; do not close as released",
+      "destination": "Stays hidden \u2014 brand list only, no Bangladesh register"
+    },
+    {
+      "queue_id": "8ef566c9-62fa-456a-906f-48ec31b9681e",
+      "queue_type": "brand_disclosure_match_review",
+      "reason": "publishing would violate the Tier 1\u20133 gate; do not close as released",
+      "destination": "Stays hidden \u2014 brand list only, no Bangladesh register"
+    },
+    {
+      "queue_id": "6aca89ac-5ec6-4d31-9ff7-90fe84e99073",
+      "queue_type": "brand_disclosure_match_review",
+      "reason": "publishing would violate the Tier 1\u20133 gate; do not close as released",
+      "destination": "Stays hidden \u2014 brand list only, no Bangladesh register"
+    },
+    {
+      "queue_id": "fc0a38ac-f3d8-4f8c-be75-4f3d9c12bef2",
+      "queue_type": "brand_disclosure_match_review",
+      "reason": "publishing would violate the Tier 1\u20133 gate; do not close as released",
+      "destination": "Stays hidden \u2014 brand list only, no Bangladesh register"
+    },
+    {
+      "queue_id": "b3e5b6ca-0b0e-4831-bb6b-8c3c85d37596",
+      "queue_type": "brand_disclosure_match_review",
+      "reason": "publishing would violate the Tier 1\u20133 gate; do not close as released",
+      "destination": "Stays hidden \u2014 brand list only, no Bangladesh register"
+    },
+    {
+      "queue_id": "974c948a-8d94-4f1b-8333-a8e9c386b370",
+      "queue_type": "brand_disclosure_match_review",
+      "reason": "publishing would violate the Tier 1\u20133 gate; do not close as released",
+      "destination": "Stays hidden \u2014 brand list only, no Bangladesh register"
+    },
+    {
+      "queue_id": "3e7f1d9b-dcac-49fa-a6ff-30d82c48e5d5",
+      "queue_type": "brand_disclosure_match_review",
+      "reason": "publishing would violate the Tier 1\u20133 gate; do not close as released",
+      "destination": "Stays hidden \u2014 brand list only, no Bangladesh register"
+    },
+    {
+      "queue_id": "1e9ca954-e247-43d8-aba5-1a9a2707b953",
+      "queue_type": "brand_disclosure_match_review",
+      "reason": "publishing would violate the Tier 1\u20133 gate; do not close as released",
+      "destination": "Stays hidden \u2014 brand list only, no Bangladesh register"
+    },
+    {
+      "queue_id": "f70605ac-d432-4255-8790-a8fcfc41684e",
+      "queue_type": "brand_disclosure_match_review",
+      "reason": "publishing would violate the Tier 1\u20133 gate; do not close as released",
+      "destination": "Stays hidden \u2014 brand list only, no Bangladesh register"
+    },
+    {
+      "queue_id": "544be0d4-1dd6-4516-9e3f-da8492e8641e",
+      "queue_type": "brand_disclosure_match_review",
+      "reason": "publishing would violate the Tier 1\u20133 gate; do not close as released",
+      "destination": "Stays hidden \u2014 brand list only, no Bangladesh register"
+    },
+    {
+      "queue_id": "33cbb2d5-5fe8-4a3f-a27f-0e269e99632e",
+      "queue_type": "brand_disclosure_match_review",
+      "reason": "publishing would violate the Tier 1\u20133 gate; do not close as released",
+      "destination": "Stays hidden \u2014 brand list only, no Bangladesh register"
+    },
+    {
+      "queue_id": "e79910fb-8958-47bd-a927-f3452bad89d2",
+      "queue_type": "brand_disclosure_match_review",
+      "reason": "publishing would violate the Tier 1\u20133 gate; do not close as released",
+      "destination": "Stays hidden \u2014 brand list only, no Bangladesh register"
+    },
+    {
+      "queue_id": "7a2628dd-8181-4f60-8982-ce6af022604f",
+      "queue_type": "brand_disclosure_match_review",
+      "reason": "publishing would violate the Tier 1\u20133 gate; do not close as released",
+      "destination": "Stays hidden \u2014 brand list only, no Bangladesh register"
+    },
+    {
+      "queue_id": "6b444b65-0bd4-4105-88a1-85bb5976d65b",
+      "queue_type": "brand_disclosure_match_review",
+      "reason": "publishing would violate the Tier 1\u20133 gate; do not close as released",
+      "destination": "Stays hidden \u2014 brand list only, no Bangladesh register"
+    },
+    {
+      "queue_id": "df55c783-6a39-45a7-a823-ea24b953824a",
+      "queue_type": "brand_disclosure_match_review",
+      "reason": "publishing would violate the Tier 1\u20133 gate; do not close as released",
+      "destination": "Stays hidden \u2014 brand list only, no Bangladesh register"
+    },
+    {
+      "queue_id": "8e5a4506-fff9-489a-b056-31c203b9aa55",
+      "queue_type": "brand_disclosure_match_review",
+      "reason": "publishing would violate the Tier 1\u20133 gate; do not close as released",
+      "destination": "Stays hidden \u2014 brand list only, no Bangladesh register"
+    },
+    {
+      "queue_id": "9d627303-730c-430c-a160-771b87e2d2de",
+      "queue_type": "brand_disclosure_match_review",
+      "reason": "publishing would violate the Tier 1\u20133 gate; do not close as released",
+      "destination": "Stays hidden \u2014 brand list only, no Bangladesh register"
+    },
+    {
+      "queue_id": "aa7b6355-2812-43e8-be9b-e413047d0b6e",
+      "queue_type": "brand_disclosure_match_review",
+      "reason": "publishing would violate the Tier 1\u20133 gate; do not close as released",
+      "destination": "Stays hidden \u2014 brand list only, no Bangladesh register"
+    },
+    {
+      "queue_id": "c593bea2-2fee-4b86-bbd2-ecdf3d0ad835",
+      "queue_type": "brand_disclosure_match_review",
+      "reason": "publishing would violate the Tier 1\u20133 gate; do not close as released",
+      "destination": "Stays hidden \u2014 brand list only, no Bangladesh register"
+    },
+    {
+      "queue_id": "8a0ad610-7d60-4322-a742-3776038fadbc",
+      "queue_type": "brand_disclosure_match_review",
+      "reason": "publishing would violate the Tier 1\u20133 gate; do not close as released",
+      "destination": "Stays hidden \u2014 brand list only, no Bangladesh register"
+    },
+    {
+      "queue_id": "f1b5ab82-aec9-496b-81d6-6a287cc5d7d6",
+      "queue_type": "brand_disclosure_match_review",
+      "reason": "publishing would violate the Tier 1\u20133 gate; do not close as released",
+      "destination": "Stays hidden \u2014 brand list only, no Bangladesh register"
+    },
+    {
+      "queue_id": "cb98dd23-1771-43fd-b87b-711e1df8042d",
+      "queue_type": "brand_disclosure_match_review",
+      "reason": "publishing would violate the Tier 1\u20133 gate; do not close as released",
+      "destination": "Stays hidden \u2014 brand list only, no Bangladesh register"
+    },
+    {
+      "queue_id": "5d17c2ce-2a0a-4615-8a8a-c3c5c4707505",
+      "queue_type": "brand_disclosure_match_review",
+      "reason": "publishing would violate the Tier 1\u20133 gate; do not close as released",
+      "destination": "Stays hidden \u2014 brand list only, no Bangladesh register"
+    },
+    {
+      "queue_id": "d5a7925d-04b0-40e0-8110-268b5bddd8e2",
+      "queue_type": "brand_disclosure_match_review",
+      "reason": "publishing would violate the Tier 1\u20133 gate; do not close as released",
+      "destination": "Stays hidden \u2014 brand list only, no Bangladesh register"
+    },
+    {
+      "queue_id": "219adb2c-016f-47b3-af53-28abbf525efc",
+      "queue_type": "brand_disclosure_match_review",
+      "reason": "publishing would violate the Tier 1\u20133 gate; do not close as released",
+      "destination": "Stays hidden \u2014 brand list only, no Bangladesh register"
+    },
+    {
+      "queue_id": "df366b4d-3e42-4633-8e31-7c63b5fe95ff",
+      "queue_type": "group_parent_review",
+      "reason": "facility_of disagrees with the queued parent",
+      "destination": "Attached to a different mother than this ticket names"
+    },
+    {
+      "queue_id": "d9ec7b72-8849-4e1f-b0d3-581e1e77ff2e",
+      "queue_type": "group_parent_review",
+      "reason": "facility_of disagrees with the queued parent",
+      "destination": "Attached to a different mother than this ticket names"
+    },
+    {
+      "queue_id": "a354ebb7-bc9b-4d5f-85c5-6b8513bce195",
+      "queue_type": "group_parent_review",
+      "reason": "facility_of disagrees with the queued parent",
+      "destination": "Attached to a different mother than this ticket names"
+    },
+    {
+      "queue_id": "0a13d3f5-7658-4472-98d0-5a996fcf165c",
+      "queue_type": "group_parent_review",
+      "reason": "facility_of disagrees with the queued parent",
+      "destination": "Attached to a different mother than this ticket names"
+    },
+    {
+      "queue_id": "5bb93052-aebe-49dd-a861-9481e7115541",
+      "queue_type": "brand_disclosure_match_review",
+      "reason": "publishing would violate the Tier 1\u20133 gate; do not close as released",
+      "destination": "Stays hidden \u2014 brand list only, no Bangladesh register"
+    }
+  ],
+  "mutations": [
+    {
+      "queue_id": "7025396b-c7e0-4b59-a228-9186d31b9568",
+      "action": "attach_facility",
+      "destination": "Building moves onto the mother company profile",
+      "winner_id": null,
+      "loser_id": null,
+      "parent_id": "55c13ea8-9b91-4dba-8621-10ebb82ee12b",
+      "child_id": "02178d15-2c87-43c5-a85e-5d7f1a543287",
+      "group_name": null,
+      "member_ids": [
+        "02178d15-2c87-43c5-a85e-5d7f1a543287",
+        "8a5f7152-8587-4047-8348-38ba59022d39"
+      ]
+    },
+    {
+      "queue_id": "ae1935ab-2672-4928-8188-28afc04c7eff",
+      "action": "attach_facility",
+      "destination": "Building moves onto the mother company profile",
+      "winner_id": null,
+      "loser_id": null,
+      "parent_id": "766d04d7-4264-4ae7-9ea7-f350047de379",
+      "child_id": "ed35695c-033d-4683-a7a6-b088a310d95d",
+      "group_name": null,
+      "member_ids": [
+        "ed35695c-033d-4683-a7a6-b088a310d95d"
+      ]
+    },
+    {
+      "queue_id": "dc85931e-a2ac-4ba5-86bb-fba82c2ff03a",
+      "action": "merge_into",
+      "destination": "One company profile; cert evidence moves onto the register row",
+      "winner_id": "05eb9f88-359a-4bb2-9138-dc216cf05e57",
+      "loser_id": "318c4dee-0cff-49b8-8576-d65f3d03132b",
+      "parent_id": null,
+      "child_id": null,
+      "group_name": null,
+      "member_ids": []
+    },
+    {
+      "queue_id": "82d0e991-c458-4308-9b70-4e53409e8c19",
+      "action": "merge_into",
+      "destination": "One company profile; cert evidence moves onto the register row",
+      "winner_id": "5156d9d1-c94a-45e9-bf6e-904b0106459e",
+      "loser_id": "95adb48f-9c60-49b2-a6cc-483f0741d0d5",
+      "parent_id": null,
+      "child_id": null,
+      "group_name": null,
+      "member_ids": []
+    },
+    {
+      "queue_id": "f348f8d8-df2c-45c7-bc68-3c85a94ecc3a",
+      "action": "merge_into",
+      "destination": "One company profile; cert evidence moves onto the register row",
+      "winner_id": "a96c7131-d0d7-4459-9253-9ea10c723d04",
+      "loser_id": "4498221e-e95b-43d2-9739-8e0e38273e5b",
+      "parent_id": null,
+      "child_id": null,
+      "group_name": null,
+      "member_ids": []
+    },
+    {
+      "queue_id": "62f71536-b23b-4d05-a14e-8944169b8efa",
+      "action": "attach_brand",
+      "destination": "Brand listing moves onto the existing published company",
+      "winner_id": "3603fa42-9a81-4aad-a585-58ab844cc96b",
+      "loser_id": "0ada062c-bdef-4cfd-8974-cfdab7f2f3a8",
+      "parent_id": null,
+      "child_id": null,
+      "group_name": null,
+      "member_ids": []
+    },
+    {
+      "queue_id": "0342afb6-294b-4217-94bc-eea94749f4d4",
+      "action": "attach_brand",
+      "destination": "Brand listing moves onto the existing published company",
+      "winner_id": "18816c3f-8c17-4d22-baf2-c05c960de060",
+      "loser_id": "44bb40e6-64d4-4fb9-8674-21e843192245",
+      "parent_id": null,
+      "child_id": null,
+      "group_name": null,
+      "member_ids": []
+    },
+    {
+      "queue_id": "25c66812-4dab-441e-bc5d-3c9b170a4bfb",
+      "action": "attach_brand",
+      "destination": "Brand listing moves onto the existing published company",
+      "winner_id": "f07ae073-51df-4f9c-83b2-b64a9c008011",
+      "loser_id": "fd4b78c6-f6a5-4224-8b7f-65c91677e468",
+      "parent_id": null,
+      "child_id": null,
+      "group_name": null,
+      "member_ids": []
+    },
+    {
+      "queue_id": "ea36c926-b37e-4611-b531-9fb2e778f4a1",
+      "action": "attach_brand",
+      "destination": "Brand listing moves onto the existing published company",
+      "winner_id": "d7d4624a-924b-4012-b278-cc8632d48802",
+      "loser_id": "2873fd19-8921-4439-8de6-f44f04248a02",
+      "parent_id": null,
+      "child_id": null,
+      "group_name": null,
+      "member_ids": []
+    },
+    {
+      "queue_id": "ef71c0df-d1c8-4543-957e-58e64a41cbd5",
+      "action": "attach_brand",
+      "destination": "Brand listing moves onto the existing published company",
+      "winner_id": "880774ec-d5a6-4b52-9725-cb9b22fa03b7",
+      "loser_id": "186db962-ba32-486f-b383-e1e1a680ce4a",
+      "parent_id": null,
+      "child_id": null,
+      "group_name": null,
+      "member_ids": []
+    },
+    {
+      "queue_id": "204a72d0-039e-45fe-956d-41bda1cca7c5",
+      "action": "attach_facility",
+      "destination": "Unit/building attaches to the published mother",
+      "winner_id": null,
+      "loser_id": null,
+      "parent_id": "64fa1cb4-999e-42db-a226-784c810c643d",
+      "child_id": "851e48b6-6fa7-458f-83cd-5ab9529ec10d",
+      "group_name": null,
+      "member_ids": []
+    },
+    {
+      "queue_id": "40e0b956-bd83-4c5d-954b-8a8f2faf6ffa",
+      "action": "attach_brand",
+      "destination": "Brand listing moves onto the existing published company",
+      "winner_id": "55291d91-d7be-4710-a74e-39898aa94e0e",
+      "loser_id": "fe7f22f1-9548-4d2f-9c18-eac9aa1e46a9",
+      "parent_id": null,
+      "child_id": null,
+      "group_name": null,
+      "member_ids": []
+    },
+    {
+      "queue_id": "997f24ba-058e-4a14-ad18-56c9c521c3ca",
+      "action": "attach_brand",
+      "destination": "Brand listing moves onto the existing published company",
+      "winner_id": "ad64f725-3b80-410b-aa4c-b09062a92705",
+      "loser_id": "29e67808-16a2-4355-8bf9-eed117dadc3b",
+      "parent_id": null,
+      "child_id": null,
+      "group_name": null,
+      "member_ids": []
+    },
+    {
+      "queue_id": "61aa0889-e913-4203-8f06-67e0d59a14c3",
+      "action": "attach_brand",
+      "destination": "Brand listing moves onto the existing published company",
+      "winner_id": "05c9072f-5459-4fbc-89c5-6775980baebc",
+      "loser_id": "27c32f02-2957-45f3-a9a1-89a092fdf1f3",
+      "parent_id": null,
+      "child_id": null,
+      "group_name": null,
+      "member_ids": []
+    },
+    {
+      "queue_id": "8b9334aa-fd7d-4ee8-90e4-31bfe3810682",
+      "action": "attach_brand",
+      "destination": "Brand listing moves onto the existing published company",
+      "winner_id": "c1418a7c-073e-455e-a97c-33db94bbfcdb",
+      "loser_id": "2550ac21-0386-4080-a042-30e739e727aa",
+      "parent_id": null,
+      "child_id": null,
+      "group_name": null,
+      "member_ids": []
+    },
+    {
+      "queue_id": "3567e858-df1d-4ecd-b5f0-5902b1530881",
+      "action": "attach_facility",
+      "destination": "Unit/building attaches to the published mother",
+      "winner_id": null,
+      "loser_id": null,
+      "parent_id": "987316ab-d435-4892-b7c2-f59d968edc11",
+      "child_id": "dcf53dbd-9f33-4002-9a57-a8021b56b097",
+      "group_name": null,
+      "member_ids": []
+    },
+    {
+      "queue_id": "aefbd03e-17e7-4876-a3db-d6b035722bd5",
+      "action": "attach_facility",
+      "destination": "Unit/building attaches to the published mother",
+      "winner_id": null,
+      "loser_id": null,
+      "parent_id": "55c13ea8-9b91-4dba-8621-10ebb82ee12b",
+      "child_id": "30db28d1-4bfe-4f89-b33e-a5d030e693fb",
+      "group_name": null,
+      "member_ids": []
+    },
+    {
+      "queue_id": "7393ae34-47b8-4e6b-bd75-9dee3b2ff771",
+      "action": "attach_brand",
+      "destination": "Brand listing moves onto the existing published company",
+      "winner_id": "7ab0d65c-7c9e-44f5-8514-8f64f09e13e7",
+      "loser_id": "6b11f826-1676-4018-9900-b0629e023a4a",
+      "parent_id": null,
+      "child_id": null,
+      "group_name": null,
+      "member_ids": []
+    },
+    {
+      "queue_id": "1897bf34-734c-4135-92f9-f2b5ca126cbc",
+      "action": "attach_brand",
+      "destination": "Brand listing moves onto the existing published company",
+      "winner_id": "af0b137c-558b-4cda-9c03-d3e557ab093a",
+      "loser_id": "81e973c3-74cb-48c5-a44f-c6eb307f46bc",
+      "parent_id": null,
+      "child_id": null,
+      "group_name": null,
+      "member_ids": []
+    },
+    {
+      "queue_id": "06f65f4c-e55c-45ce-bb15-4ca5c92bf506",
+      "action": "publish",
+      "destination": "Publish as its own company \u2014 register evidence exists",
+      "winner_id": "e2970a2e-2453-4113-ab75-cb5e9d9526e8",
+      "loser_id": null,
+      "parent_id": null,
+      "child_id": null,
+      "group_name": null,
+      "member_ids": []
+    },
+    {
+      "queue_id": "25fd39d2-fb86-44b4-afad-20dd79aa9fb3",
+      "action": "merge_into",
+      "destination": "One company profile; cert evidence moves onto the register row",
+      "winner_id": "e9c19115-83fe-4f36-bf20-d7773c9eea0e",
+      "loser_id": "fcb2fa3a-46de-431d-8337-1c71dcb7ac02",
+      "parent_id": null,
+      "child_id": null,
+      "group_name": null,
+      "member_ids": []
+    },
+    {
+      "queue_id": "0606f2c3-86b3-4ab6-abb6-02f376350cea",
+      "action": "attach_facility",
+      "destination": "Building moves onto the mother company profile",
+      "winner_id": null,
+      "loser_id": null,
+      "parent_id": "0e239987-9a77-424b-9592-8ea928c4ede1",
+      "child_id": "55251ce0-bc26-4f5b-862f-c09c1cb4afc3",
+      "group_name": null,
+      "member_ids": [
+        "55251ce0-bc26-4f5b-862f-c09c1cb4afc3"
+      ]
+    },
+    {
+      "queue_id": "44c4dc3a-c254-423d-975f-12a6050ec106",
+      "action": "merge_into",
+      "destination": "One company profile; cert evidence moves onto the register row",
+      "winner_id": "bf6d6748-6e05-475b-834f-bd3c15bfbbf5",
+      "loser_id": "c6a9b0f3-3d68-4e16-b68e-380ce7911867",
+      "parent_id": null,
+      "child_id": null,
+      "group_name": null,
+      "member_ids": []
+    },
+    {
+      "queue_id": "720a6ffb-156a-48de-a146-c07abbefdc58",
+      "action": "attach_facility",
+      "destination": "Building moves onto the mother company profile",
+      "winner_id": null,
+      "loser_id": null,
+      "parent_id": "a176a63b-019b-415c-8037-0560086efd96",
+      "child_id": "e5eee38a-b62f-424f-a2e1-778d0db49c15",
+      "group_name": null,
+      "member_ids": []
+    },
+    {
+      "queue_id": "582ce555-421e-436d-a57e-928ce53efd16",
+      "action": "attach_facility",
+      "destination": "Building moves onto the mother company profile",
+      "winner_id": null,
+      "loser_id": null,
+      "parent_id": "9de90136-d342-441f-aaa3-db2071458d16",
+      "child_id": "5ad852f4-7101-458f-ad97-3e1190379c7e",
+      "group_name": null,
+      "member_ids": []
+    },
+    {
+      "queue_id": "5fec1dbc-6428-4d3d-ad71-fffb9a9e869e",
+      "action": "attach_facility",
+      "destination": "Building moves onto the mother company profile",
+      "winner_id": null,
+      "loser_id": null,
+      "parent_id": "5f6f5a83-520c-44d8-9e09-8cca76544ebc",
+      "child_id": "bac3e9e8-9a5a-489c-8f01-4d932424002c",
+      "group_name": null,
+      "member_ids": []
+    },
+    {
+      "queue_id": "bdf5b774-3d5d-4bf7-961c-2fab5314bdae",
+      "action": "attach_facility",
+      "destination": "Building moves onto the mother company profile",
+      "winner_id": null,
+      "loser_id": null,
+      "parent_id": "0b4d65d9-fcf8-4644-a494-b80717cdfd4c",
+      "child_id": "b6654dcc-6d4e-4c17-b20c-f064ed2d7240",
+      "group_name": null,
+      "member_ids": []
+    },
+    {
+      "queue_id": "39a36366-093d-4908-bb67-942bd245682f",
+      "action": "attach_facility",
+      "destination": "Building moves onto the mother company profile",
+      "winner_id": null,
+      "loser_id": null,
+      "parent_id": "263c7804-1121-4dae-b728-5d45f74fb543",
+      "child_id": "dc05827f-7cee-4b2b-ac09-a99220542778",
+      "group_name": null,
+      "member_ids": []
+    },
+    {
+      "queue_id": "90fe5d4b-104e-42e6-a7f6-21b635e6ade9",
+      "action": "attach_facility",
+      "destination": "Building moves onto the mother company profile",
+      "winner_id": null,
+      "loser_id": null,
+      "parent_id": "f7454ff7-f451-4157-a278-b6b4c104ddb7",
+      "child_id": "fba9b52d-7c2a-4479-a177-25c53ddaaf4b",
+      "group_name": null,
+      "member_ids": [
+        "fba9b52d-7c2a-4479-a177-25c53ddaaf4b",
+        "806a3f2d-6b27-4423-9823-55227e4bba9e"
+      ]
+    }
+  ]
+}
