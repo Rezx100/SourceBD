@@ -46,6 +46,8 @@ type Row = {
   reviewed_at: string | null;
   reviewed_by: string | null;
   created_at: string;
+  release_action: string | null;
+  buyer_destination: string | null;
   supplier: Supplier | null;
 };
 
@@ -234,6 +236,11 @@ const QUEUE_COLUMNS: Column<Row>[] = [
             ? ` · confidence ${confidenceValue(r.confidence)?.toFixed(2)}`
             : ""}
         </span>
+        {r.buyer_destination ? (
+          <span className="mt-1 block text-[13px] text-ink-secondary">
+            Buyer destination: {r.buyer_destination}
+          </span>
+        ) : null}
       </span>
     ),
   },
@@ -318,6 +325,7 @@ const QUEUE_COLUMNS: Column<Row>[] = [
         <AdminQueueDecideButton
           queueId={r.queue_id}
           label={`${queueLabel(r.queue_type)} review`}
+          destination={r.buyer_destination}
         />
       );
     },
@@ -331,7 +339,7 @@ function QueueHeader({ total }: { total?: number }) {
       title="Review queue"
       description={
         typeof total === "number"
-          ? `${total.toLocaleString()} review items in the current filter. Work the queue by type, open the supplier, and close generic review rows with an audit note.`
+          ? `${total.toLocaleString()} review items in the current filter. Release sends each row to the buyer-facing company profile it belongs on, then closes the ticket.`
           : "Work pending verification, matching, certification, and sanctions review items."
       }
     />

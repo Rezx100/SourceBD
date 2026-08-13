@@ -6,14 +6,16 @@ import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { Sheet } from "@/components/ui/sheet";
 
-type Decision = "approve" | "reject" | "escalate";
+type Decision = "release" | "reject" | "escalate";
 
 export function AdminQueueDecideButton({
   queueId,
   label,
+  destination,
 }: {
   queueId: string;
   label: string;
+  destination?: string | null;
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -69,8 +71,9 @@ export function AdminQueueDecideButton({
       <Sheet open={open} onClose={close} side="bottom" label={label}>
         <div className="flex flex-col gap-3 p-4">
           <p className="text-sm text-ink-secondary">
-            This closes the generic queue row and records an audit entry. It
-            does not change supplier evidence automatically.
+            {destination
+              ? `Release sends this to buyers as: ${destination}`
+              : "Release moves or publishes the profile so a buyer can see the right company. Reject closes the ticket without changing what buyers see."}
           </p>
           <textarea
             value={note}
@@ -81,21 +84,42 @@ export function AdminQueueDecideButton({
             className="w-full rounded-input border border-hairline bg-bg-l0 px-3 py-2 text-sm outline-none focus:border-accent-indigo"
           />
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-            {(["approve", "reject", "escalate"] as const).map((decision) => (
-              <Button
-                key={decision}
-                type="button"
-                variant={decision === "reject" ? "destructive" : "secondary"}
-                disabled={pending}
-                className="min-h-[44px] w-full capitalize"
-                onClick={() => {
-                  setActive(decision);
-                  decide(decision);
-                }}
-              >
-                {pending && active === decision ? "Saving..." : decision}
-              </Button>
-            ))}
+            <Button
+              type="button"
+              variant="secondary"
+              disabled={pending}
+              className="min-h-[44px] w-full"
+              onClick={() => {
+                setActive("release");
+                decide("release");
+              }}
+            >
+              {pending && active === "release" ? "Saving..." : "Release"}
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              disabled={pending}
+              className="min-h-[44px] w-full"
+              onClick={() => {
+                setActive("reject");
+                decide("reject");
+              }}
+            >
+              {pending && active === "reject" ? "Saving..." : "Reject"}
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              disabled={pending}
+              className="min-h-[44px] w-full"
+              onClick={() => {
+                setActive("escalate");
+                decide("escalate");
+              }}
+            >
+              {pending && active === "escalate" ? "Saving..." : "Escalate"}
+            </Button>
           </div>
           {error ? <p className="text-xs text-sem-red">{error}</p> : null}
         </div>
