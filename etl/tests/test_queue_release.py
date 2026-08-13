@@ -182,9 +182,9 @@ def sql_brand_name_match(
 
 
 _RR = re.compile(
-    r"regexp_replace\(\s*[^,]+,\s*'((?:\\'|[^'])*)'\s*,\s*'((?:\\'|[^'])*)'"
+    r"regexp_replace\(\s*.+?,\s*'((?:\\'|[^'])*)'\s*,\s*'((?:\\'|[^'])*)'"
     r"\s*(?:,\s*'([^']*)')?\s*\)",
-    re.I,
+    re.I | re.S,
 )
 
 
@@ -225,6 +225,7 @@ def sql_building_loop_replaces() -> list[tuple[str, str, str]]:
     loop = body.split("for i in 1..8 loop", 1)[1]
     loop = loop.split("if v_next is not distinct from v_cur", 1)[0]
     found = _RR.findall(loop)
+    found = [(pat, repl, flag) for pat, repl, flag in found if pat]
     assert found
     return [(pat.replace(r"\y", r"\b"), repl, flag) for pat, repl, flag in found]
 
@@ -899,6 +900,12 @@ def test_sql_brand_and_unique_mother_are_wired():
     assert "relocated" in base_fn
     assert r"\s+extension\s+buildings?" in base_fn
     assert "for i in 1..8 loop" in base_fn
+    loop = base_fn.split("for i in 1..8 loop", 1)[1].split(
+        "if v_next is not distinct from v_cur", 1
+    )[0]
+    n_rr = loop.count("regexp_replace")
+    n_foreach = loop.count("foreach v_pat")
+    assert n_rr == n_foreach + len(sql_building_loop_replaces())
     paren_fn = sql.split(
         "create or replace function public._queue_paren_building_strip", 1
     )[1].split("create or replace function public._queue_mother_hits", 1)[0]

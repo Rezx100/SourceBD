@@ -134,8 +134,10 @@ def test_sql_mark_fashion_u2_needs_human(plan_conn):
 def test_sql_knit_sw_stacked_does_not_fold_to_garment_base(plan_conn):
     names = (
         "Pacific Jeans Ltd. (Knit Unit) Unit-2",
+        "Pacific Jeans Ltd. (Knit Unit) (Unit-2)",
         "Pacific Jeans Ltd. (Sw Unit) Unit-2",
         "Pacific Jeans Ltd. (Washing Unit) Unit-2",
+        "Pacific Jeans Ltd. (Building 5) Unit-2",
         "The Civil Engineers Ltd. (Sw Unit) Unit-2",
     )
     with plan_conn.cursor() as cur:
@@ -147,5 +149,96 @@ def test_sql_knit_sw_stacked_does_not_fold_to_garment_base(plan_conn):
                     "Pacific Jeans Ltd.",
                     "The Civil Engineers Ltd.",
                 }, name
+            cur.execute(
+                "select count(*)::int as n from public._queue_mother_hits(%s)",
+                (name,),
+            )
+            assert cur.fetchone()["n"] == 0, name
             cur.execute("select public._queue_unique_mother(array[%s]) as mid", (name,))
             assert cur.fetchone()["mid"] is None, name
+
+
+def _decide_fn_sql() -> str:
+    sql = MIGRATION.read_text(encoding="utf-8")
+    blob = sql.split("create or replace function public.admin_queue_decide", 1)[1]
+    blob = blob.split("create or replace function public.admin_queue_list", 1)[0]
+    return "create or replace function public.admin_queue_decide" + blob
+
+
+def test_sql_decide_release_mutates_valuka_and_holds_kenpark(plan_conn):
+    """Granted Review entrypoint in the same rolled-back session as the plan helpers."""
+    import json
+    from psycopg.errors import InvalidParameterValue
+
+    with plan_conn.cursor() as cur:
+        cur.execute("set local lock_timeout = '8s'")
+        for stmt in _statements(_decide_fn_sql()):
+            cur.execute(stmt)
+        cur.execute(
+            "select id from public.profiles where role::text = 'admin' limit 1"
+        )
+        admin = cur.fetchone()
+        assert admin is not None
+        admin_id = str(admin["id"])
+        claims = json.dumps({"sub": admin_id, "role": "authenticated"})
+        cur.execute("select set_config('request.jwt.claims', %s, true)", (claims,))
+        cur.execute(
+            "select set_config('request.jwt.claim.sub', %s, true)", (admin_id,)
+        )
+
+        cur.execute(
+            "select reviewed_at from public.verification_queue where id = %s::uuid",
+            (VALUKA_QUEUE,),
+        )
+        assert cur.fetchone()["reviewed_at"] is None
+
+        cur.execute(
+            "select public.admin_queue_decide(%s::uuid, 'release', 'sql-audit') as r",
+            (VALUKA_QUEUE,),
+        )
+        result = cur.fetchone()["r"]
+        assert result["release_action"] == "attach_facility"
+        assert str(result["plan"]["parent_id"]).startswith(LIZ_MOTHER)
+        members = [str(x) for x in (result["plan"].get("member_ids") or [])]
+        assert members
+        cur.execute(
+            """
+            select count(*)::int as n
+              from public.suppliers s
+             where s.id = any(%s::uuid[])
+               and s.facility_of::text like %s
+            """,
+            (members, LIZ_MOTHER + "%"),
+        )
+        assert cur.fetchone()["n"] == len(members)
+        cur.execute(
+            "select reviewed_at from public.verification_queue where id = %s::uuid",
+            (VALUKA_QUEUE,),
+        )
+        assert cur.fetchone()["reviewed_at"] is not None
+
+        cur.execute("savepoint kenpark_hold")
+        with pytest.raises(InvalidParameterValue, match="human"):
+            cur.execute(
+                "select public.admin_queue_decide(%s::uuid, 'release', null)",
+                (KENPARK_QUEUE,),
+            )
+        cur.execute("rollback to savepoint kenpark_hold")
+        cur.execute(
+            "select reviewed_at from public.verification_queue where id = %s::uuid",
+            (KENPARK_QUEUE,),
+        )
+        assert cur.fetchone()["reviewed_at"] is None
+
+        cur.execute("savepoint ckl_hold")
+        with pytest.raises(InvalidParameterValue, match="human"):
+            cur.execute(
+                "select public.admin_queue_decide(%s::uuid, 'release', null)",
+                (CKL_QUEUE,),
+            )
+        cur.execute("rollback to savepoint ckl_hold")
+        cur.execute(
+            "select reviewed_at from public.verification_queue where id = %s::uuid",
+            (CKL_QUEUE,),
+        )
+        assert cur.fetchone()["reviewed_at"] is None
