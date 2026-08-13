@@ -459,7 +459,7 @@ declare
   v_id uuid;
   v_n int;
 begin
-  select count(distinct h), min(h) into v_n, v_id
+  select count(distinct h), min(h::text)::uuid into v_n, v_id
     from public._queue_mother_hits(p_name) as h;
   if v_n <> 1 then
     return null;
@@ -479,7 +479,7 @@ declare
   v_id uuid;
   v_n int;
 begin
-  select count(distinct h), min(h) into v_n, v_id
+  select count(distinct h), min(h::text)::uuid into v_n, v_id
     from unnest(coalesce(p_names, '{}'::text[])) as n
     cross join lateral public._queue_mother_hits(n) as h;
   if v_n <> 1 then

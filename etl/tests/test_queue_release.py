@@ -181,29 +181,29 @@ def sql_brand_name_match(
     return sql_legal_form_variants(pub_name, candidate)
 
 
-_RSC_STRIP = (
-    r"\s*[-(]\s*extension\s*\)?\s*$",
-    r"\s*[-(]\s*expansion(\s+buildings?)?\s*\)?\s*$",
-    r"\s*[-(]\s*new\s+building\s*\)?\s*$",
-    r"\s*[-(]\s*new\s+location\s*\)?\s*$",
-    r"\s*-?\s*unit[\s-]+[0-9]+(\s*[,-]\s*[0-9]+)*\s*$",
-    r"\s*-\s*[0-9]+\s*-\s*$",
-    r"\s+-\s*[0-9]+(\s*[,-]\s*[0-9]+)*\s*$",
+_RR = re.compile(
+    r"regexp_replace\(\s*[^,]+,\s*'((?:\\'|[^'])*)'\s*,\s*'((?:\\'|[^'])*)'"
+    r"\s*(?:,\s*'([^']*)')?\s*\)",
+    re.I,
 )
 
 
+def _pg_sub(pat: str, repl: str, text: str, flag: str | None) -> str:
+    flags = re.I if "i" in (flag or "").lower() else 0
+    count = 0 if "g" in (flag or "").lower() else 1
+    return re.sub(pat.replace(r"\y", r"\b"), repl, text, count=count, flags=flags)
+
+
 def sql_rsc_extension_base_name(name: str) -> str | None:
-    """Port of 0014 rsc_extension_base_name. Not Python extension_base_name."""
+    """Port of 0014 rsc_extension_base_name from its regexp_replace list."""
     fn = _RSC.split("create or replace function public.rsc_extension_base_name", 1)[1]
     fn = fn.split("comment on function public.rsc_extension_base_name", 1)[0]
-    assert r"\s*\(\s*previously\s+[^)]*\)\s*$" in fn
-    for pat in _RSC_STRIP:
-        assert pat in fn, pat
-    v_clean = re.sub(r"\s*\(\s*previously\s+[^)]*\)\s*$", "", name, flags=re.I)
+    found = _RR.findall(fn)
+    assert found
+    v_clean = _pg_sub(found[0][0], found[0][1], name, found[0][2])
     v = v_clean
-    for pat in _RSC_STRIP:
-        flags = 0 if pat == r"\s+-\s*[0-9]+(\s*[,-]\s*[0-9]+)*\s*$" else re.I
-        v = re.sub(pat, "", v, flags=flags)
+    for pat, repl, flag in found[1:]:
+        v = _pg_sub(pat, repl, v, flag)
     v = v.strip()
     if not v or v.lower() == v_clean.strip().lower():
         return None
@@ -219,9 +219,20 @@ def sql_building_extras() -> list[str]:
     return [p.replace(r"\y", r"\b") for p in pats]
 
 
+def sql_building_loop_replaces() -> list[tuple[str, str, str]]:
+    """Every regexp_replace inside the SQL 8-pass loop, not only the foreach array."""
+    body = _sql_fn("_queue_building_base_name")
+    loop = body.split("for i in 1..8 loop", 1)[1]
+    loop = loop.split("if v_next is not distinct from v_cur", 1)[0]
+    found = _RR.findall(loop)
+    assert found
+    return [(pat.replace(r"\y", r"\b"), repl, flag) for pat, repl, flag in found]
+
+
 def sql_building_base_name(name: str) -> str | None:
-    """Port of SQL _queue_building_base_name (rsc + 0102 extras). Not Python."""
+    """Port of SQL _queue_building_base_name (rsc + every 0102 8-pass replace)."""
     extras = sql_building_extras()
+    loop_replaces = sql_building_loop_replaces()
     cur = name.strip()
     for _ in range(8):
         nxt = cur
@@ -230,12 +241,8 @@ def sql_building_base_name(name: str) -> str | None:
             nxt = rsc
         for pat in extras:
             nxt = re.sub(pat, "", nxt, flags=re.I).strip(" -,")
-        nxt = re.sub(
-            r"([A-Za-z])New\s+Buildings?\.?\s*$",
-            r"\1",
-            nxt,
-            flags=re.I,
-        ).strip()
+        for pat, repl, flag in loop_replaces:
+            nxt = _pg_sub(pat, repl, nxt, flag).strip(" -,")
         if nxt == cur or not nxt:
             break
         cur = nxt
@@ -881,6 +888,8 @@ def test_sql_brand_and_unique_mother_are_wired():
         "brand_disclosure_match_review", 1
     )[0]
     assert "_queue_unique_mother" in fuzzy
+    assert "min(h::text)::uuid" in sql
+    assert re.search(r"min\(h\)(?!::)", sql) is None
     assert "coalesce(v_m1, v_m2)" not in fuzzy
     base_fn = sql.split("create or replace function public._queue_building_base_name", 1)[
         1
@@ -1219,6 +1228,12 @@ def test_brand_washing_unit_then_unit_2_needs_human():
         sql_stripped = sql_paren_building_strip(company_name)
         if sql_stripped:
             assert sql_stripped != mother, company_name
+        sibling = company_name.replace("Unit-2", "Unit-3").replace(
+            "(Unit-2)", "(Unit-3)"
+        )
+        assert sql_unique_mother_id([company_name, sibling], [mother_row]) is None, (
+            company_name
+        )
 
 
 def test_fuzzy_kenpark_unit_2_does_not_attach_to_k3():

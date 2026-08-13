@@ -104,6 +104,7 @@ describe("POST /api/v1/admin/queue/decide", () => {
     assert.equal(rpcCalls[0]?.fn, "admin_queue_decide");
     assert.equal(rpcCalls[0]?.params.p_decision, "release");
     assert.equal(rpcCalls[0]?.params.p_queue_id, QUEUE_ID);
+    assert.equal(rpcCalls[0]?.params.p_note, "ok");
     assert.deepEqual(await res.json(), { action: "keep_separate" });
   });
 

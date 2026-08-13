@@ -24,7 +24,10 @@ attaches (Hurricane Printing Unit, South East Printing Unit). Leftover
 `(Pvt.)` after that strip is not a leftover building.
 Prior fingerprints `7734c386…` and `06173cde…` are void.
 `--apply` and production migration apply are not authorised. See
-`ops/plans/queue-release-plan.md`.
+`ops/plans/queue-release-plan.md`. 0102 unique-mother lookup uses
+`min(h::text)::uuid` (Postgres 17 has no `min(uuid)`). Named Review
+destinations are asserted by `etl/tests/test_queue_release_plan_sql.py`
+in a rolled-back session.
 
 ## Facility slug → mother redirect — REZ-72 (B2) COMPLETE in working tree
 8 Aug 2026 — on `rez-72-facility-slug-redirect`. Before `notFound()` on both
