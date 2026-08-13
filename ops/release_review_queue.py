@@ -292,6 +292,8 @@ def classify_all(rest: Rest, rows: list[dict]) -> list[ReleasePlan]:
 
 
 def absorb(rest: Rest, winner_id: str, loser_id: str) -> None:
+    if not winner_id or not loser_id or winner_id == loser_id:
+        return
     winner_sr = rest.all_rows(
         "source_records",
         {"select": "id,source_id,source_ref", "supplier_id": f"eq.{winner_id}"},

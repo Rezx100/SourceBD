@@ -53,6 +53,21 @@ describe("POST /api/v1/admin/queue/decide", () => {
     ]);
   });
 
+  it("returns HTTP 403 and does not call admin_queue_decide when role is not admin", async () => {
+    const calls: unknown[] = [];
+    const res = await queueDecideFromRequest(
+      post({ queue_id: QUEUE_ID, decision: "release" }),
+      "buyer",
+      async (args) => {
+        calls.push(args);
+        return { data: { ok: true }, error: null };
+      },
+    );
+    assert.equal(res.status, 403);
+    assert.deepEqual(await res.json(), { error: "admin only" });
+    assert.equal(calls.length, 0);
+  });
+
   it("forwards reject and escalate to admin_queue_decide", async () => {
     for (const decision of ["reject", "escalate"] as const) {
       const calls: unknown[] = [];

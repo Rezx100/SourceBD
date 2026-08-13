@@ -1373,6 +1373,14 @@ def test_migration_decide_mutates_suppliers_not_only_the_ticket():
         "revoke all on function public.admin_queue_release_plan(uuid) "
         "from public, anon, authenticated"
     ) in sql
+    assert (
+        "revoke all on function public.admin_queue_decide(uuid, text, text) "
+        "from public, anon, authenticated"
+    ) in sql
+    assert (
+        "revoke all on function public.admin_queue_list(text, text, int, int) "
+        "from public, anon, authenticated"
+    ) in sql
     assert "grant execute on function public._queue_absorb_supplier" not in sql
     assert "grant execute on function public.admin_queue_release_plan" not in sql
     assert "classified buyer-facing mutation" in sql.lower()
@@ -1456,6 +1464,7 @@ def test_ops_script_is_dry_run_by_default():
     assert "doc_type" in src
     assert "refuse_nested_parent" in src
     assert '"is_published": False' in src or "'is_published': False" in src
+    assert "winner_id == loser_id" in src
 
 
 def test_http_approve_is_rejected():

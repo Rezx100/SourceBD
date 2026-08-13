@@ -26,6 +26,7 @@ HURRICANE_CHILD_ID = "ed35695c-033d-4683-a7a6-b088a310d95d"
 HURRICANE_MOTHER = "766d04d7"
 HURRICANE_MOTHER_ID = "766d04d7-4264-4ae7-9ea7-f350047de379"
 SHAFPUR_QUEUE = "aefbd03e-17e7-4876-a3db-d6b035722bd5"
+SHAFPUR_CHILD = "30db28d1-4bfe-4f89-b33e-a5d030e693fb"
 KENPARK_QUEUE = "5d17c2ce-2a0a-4615-8a8a-c3c5c4707505"
 CKL_QUEUE = "33cbb2d5-5fe8-4a3f-a27f-0e269e99632e"
 SOUTH_EAST_QUEUE = "3567e858-df1d-4ecd-b5f0-5902b1530881"
@@ -78,6 +79,37 @@ def _privilege_statements() -> list[str]:
 def _ids(cur, sql: str, args: tuple) -> list[str]:
     cur.execute(sql, args)
     return [str(r["id"]) for r in cur.fetchall()]
+
+
+def _owned_ids(cur, table: str, supplier_id: str) -> list[str]:
+    return _ids(
+        cur,
+        f"select id from public.{table} where supplier_id = %s::uuid order by id",
+        (supplier_id,),
+    )
+
+
+def _child_evidence(cur, supplier_id: str) -> dict[str, list[str]]:
+    return {
+        "source_records": _owned_ids(cur, "source_records", supplier_id),
+        "certifications": _owned_ids(cur, "certifications", supplier_id),
+        "rsc_remediation": _owned_ids(cur, "rsc_remediation", supplier_id),
+    }
+
+
+def _assert_evidence_stayed_on_child(
+    cur, child_id: str, mother_id: str, before: dict[str, list[str]]
+) -> None:
+    for table, ids in before.items():
+        assert _owned_ids(cur, table, child_id) == ids, table
+        if not ids:
+            continue
+        cur.execute(
+            f"select count(*)::int as n from public.{table} "
+            "where id = any(%s::uuid[]) and supplier_id = %s::uuid",
+            (ids, mother_id),
+        )
+        assert cur.fetchone()["n"] == 0, table
 
 
 def _absorb_before(cur, winner: str, loser: str) -> dict[str, list[str]]:
@@ -285,6 +317,24 @@ def test_sql_absorb_not_granted_to_anon_or_authenticated(plan_conn):
                 (role,),
             )
             assert cur.fetchone()["ok"] is False, role
+        for fn in (
+            "public.admin_queue_decide(uuid,text,text)",
+            "public.admin_queue_list(text,text,int,int)",
+        ):
+            cur.execute(
+                "select has_function_privilege('anon', %s::regprocedure, 'execute') as ok",
+                (fn,),
+            )
+            assert cur.fetchone()["ok"] is False, fn
+            cur.execute(
+                """
+                select has_function_privilege(
+                         'authenticated', %s::regprocedure, 'execute'
+                       ) as ok
+                """,
+                (fn,),
+            )
+            assert cur.fetchone()["ok"] is True, fn
 
 
 def _decide_fn_sql() -> str:
@@ -337,6 +387,7 @@ def test_sql_decide_release_mutates_valuka_and_holds_kenpark(plan_conn):
             (valuka_members,),
         )
         assert cur.fetchone()["n"] == 2
+        valuka_evidence = {mid: _child_evidence(cur, mid) for mid in valuka_members}
 
         cur.execute(
             "select public.admin_queue_decide(%s::uuid, 'release', 'sql-audit') as r",
@@ -373,11 +424,16 @@ def test_sql_decide_release_mutates_valuka_and_holds_kenpark(plan_conn):
             (VALUKA_QUEUE,),
         )
         assert cur.fetchone()["reviewed_at"] is not None
+        for mid in valuka_members:
+            _assert_evidence_stayed_on_child(
+                cur, mid, parent_id, valuka_evidence[mid]
+            )
         cur.execute(
             """
             select count(*)::int as n
               from public.suppliers
              where is_published = true
+               and is_sanctioned = false
                and id = any(%s::uuid[])
             """,
             (valuka_members,),
@@ -388,6 +444,7 @@ def test_sql_decide_release_mutates_valuka_and_holds_kenpark(plan_conn):
             select count(*)::int as n
               from public.suppliers
              where is_published = true
+               and is_sanctioned = false
                and id = %s::uuid
             """,
             (parent_id,),
@@ -413,6 +470,7 @@ def test_sql_decide_release_mutates_valuka_and_holds_kenpark(plan_conn):
         )
         assert cur.fetchone()["n"] == 2
 
+        hurricane_before = _child_evidence(cur, HURRICANE_CHILD_ID)
         cur.execute(
             "select public.admin_queue_decide(%s::uuid, 'release', 'sql-audit') as r",
             (HURRICANE_QUEUE,),
@@ -431,6 +489,54 @@ def test_sql_decide_release_mutates_valuka_and_holds_kenpark(plan_conn):
         hurricane_row = cur.fetchone()
         assert str(hurricane_row["facility_of"]) == HURRICANE_MOTHER_ID
         assert hurricane_row["is_published"] is False
+        _assert_evidence_stayed_on_child(
+            cur, HURRICANE_CHILD_ID, HURRICANE_MOTHER_ID, hurricane_before
+        )
+        cur.execute(
+            """
+            select is_published
+              from public.suppliers
+             where id = %s::uuid
+            """,
+            (HURRICANE_MOTHER_ID,),
+        )
+        assert cur.fetchone()["is_published"] is True
+
+        shafipur_before = _child_evidence(cur, SHAFPUR_CHILD)
+        cur.execute(
+            """
+            select facility_of, is_published
+              from public.suppliers
+             where id = %s::uuid
+            """,
+            (SHAFPUR_CHILD,),
+        )
+        shafipur_row = cur.fetchone()
+        cur.execute(
+            "select public.admin_queue_decide(%s::uuid, 'escalate', 'sql-audit') as r",
+            (SHAFPUR_QUEUE,),
+        )
+        esc_r = cur.fetchone()["r"]
+        assert esc_r["decision"] == "escalate"
+        cur.execute(
+            """
+            select facility_of, is_published
+              from public.suppliers
+             where id = %s::uuid
+            """,
+            (SHAFPUR_CHILD,),
+        )
+        shafipur_after = cur.fetchone()
+        assert shafipur_after["facility_of"] == shafipur_row["facility_of"]
+        assert shafipur_after["is_published"] == shafipur_row["is_published"]
+        _assert_evidence_stayed_on_child(
+            cur, SHAFPUR_CHILD, parent_id, shafipur_before
+        )
+        cur.execute(
+            "select reviewed_at from public.verification_queue where id = %s::uuid",
+            (SHAFPUR_QUEUE,),
+        )
+        assert cur.fetchone()["reviewed_at"] is not None
 
         cur.execute(
             """
@@ -535,11 +641,42 @@ def test_sql_decide_release_mutates_valuka_and_holds_kenpark(plan_conn):
         assert pub_row["is_published"] is True
         assert pub_row["facility_of"] is None
         cur.execute(
+            """
+            select count(*)::int as n
+              from public.source_records sr
+             where sr.supplier_id = %s::uuid
+               and sr.status = 'active'
+               and sr.source_tier in ('tier1_gov','tier2_industry','tier3_cert')
+            """,
+            (PUBLISH_WINNER,),
+        )
+        assert cur.fetchone()["n"] >= 1
+        cur.execute(
             "select reviewed_at from public.verification_queue where id = %s::uuid",
             (PUBLISH_QUEUE,),
         )
         assert cur.fetchone()["reviewed_at"] is not None
 
+        cur.execute(
+            """
+            select supplier_a_id, reviewed_at
+              from public.verification_queue
+             where id = %s::uuid
+            """,
+            (KENPARK_QUEUE,),
+        )
+        kenpark_q = cur.fetchone()
+        kenpark_sid = str(kenpark_q["supplier_a_id"])
+        kenpark_before = _child_evidence(cur, kenpark_sid)
+        cur.execute(
+            """
+            select facility_of, is_published
+              from public.suppliers
+             where id = %s::uuid
+            """,
+            (kenpark_sid,),
+        )
+        kenpark_sup = cur.fetchone()
         cur.execute("savepoint kenpark_hold")
         with pytest.raises(InvalidParameterValue, match="human"):
             cur.execute(
@@ -552,6 +689,18 @@ def test_sql_decide_release_mutates_valuka_and_holds_kenpark(plan_conn):
             (KENPARK_QUEUE,),
         )
         assert cur.fetchone()["reviewed_at"] is None
+        cur.execute(
+            """
+            select facility_of, is_published
+              from public.suppliers
+             where id = %s::uuid
+            """,
+            (kenpark_sid,),
+        )
+        kenpark_after = cur.fetchone()
+        assert kenpark_after["facility_of"] == kenpark_sup["facility_of"]
+        assert kenpark_after["is_published"] == kenpark_sup["is_published"]
+        assert _child_evidence(cur, kenpark_sid) == kenpark_before
 
         cur.execute("savepoint ckl_hold")
         with pytest.raises(InvalidParameterValue, match="human"):

@@ -1230,5 +1230,7 @@ revoke all on function public._queue_find_mother(text) from public, anon, authen
 revoke all on function public._queue_unique_mother(text[]) from public, anon, authenticated;
 revoke all on function public._queue_absorb_supplier(uuid, uuid) from public, anon, authenticated;
 revoke all on function public.admin_queue_release_plan(uuid) from public, anon, authenticated;
+revoke all on function public.admin_queue_decide(uuid, text, text) from public, anon, authenticated;
+revoke all on function public.admin_queue_list(text, text, int, int) from public, anon, authenticated;
 grant execute on function public.admin_queue_decide(uuid, text, text) to authenticated;
 grant execute on function public.admin_queue_list(text, text, int, int) to authenticated;
