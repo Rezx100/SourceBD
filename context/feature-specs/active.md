@@ -3,13 +3,17 @@
 This file keeps routine agent sessions from scanning every inactive feature spec.
 
 ## Active / Recent Spec
-- IN PROGRESS on `rez-queue-release` (13 Aug 2026): **Review-queue
-  release** — clicking Release must mutate the buyer-facing profile
-  (attach building, merge spelling variants, move brand listings,
-  publish when register evidence exists) then close the ticket.
-  Migration `0102_admin_queue_release.sql`. Production dry-run
-  fingerprint in `ops/plans/queue-release-plan.md`. Do not `--apply`
-  or land on development without founder go-ahead.
+- IN PROGRESS (15 Aug 2026): **EPB evidence + HS codes on existing companies,
+  independent of BGMEA/BKMEA flags** (Linear REZ-113 follow-on). Attach-only
+  of 1,953 matches applied on production (never minted the 224). Migration
+  `0103` applied 15 Aug (EPB Open is the exporter page). HS backfill applied
+  15 Aug (2,476 records; fingerprint
+  `855b487add34c1a26491aec5fc39b679fd0ebe81f85bcac8e265c5485d54f1b7`).
+  Frontend HS card is in the working tree, not on the server.
+- APPLIED on production (14 Aug 2026): **Review-queue release** —
+  1,282 tickets closed; 48 `needs_human` still open. 12 buildings
+  attached, 11 brand moves, 5 merges, 1 publish (Section Seven).
+  Migration `0102`. See `ops/plans/queue-release-plan.md`.
 - COMPLETE in the working tree (8 Aug 2026): **REZ-72 — 301-redirect
   unpublished facility slugs to mother profile** (Linear REZ-72 /
   Extensions B2, parent REZ-58). Branched from `development`. Migration

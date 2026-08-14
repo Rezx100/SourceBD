@@ -50,6 +50,7 @@ import {
 } from "@/components/supplier/profile-contact-tab";
 import { ProfileProvenanceTab } from "@/components/supplier/profile-provenance-tab";
 import { ProfileComplianceTab, asRscSites } from "@/components/supplier/profile-compliance-tab";
+import { hscodesFromRpc } from "@/lib/epb-hscodes";
 import {
   fetchFacilityParentSlug,
   resolveUnpublishedProfileMiss,
@@ -205,10 +206,12 @@ export default async function FactoryProfilePage({
   const { slug } = await params;
   const supabase = await createSupabaseServerClient();
 
-  const [{ data, error }, { data: facilityRaw }] = await Promise.all([
+  const [{ data, error }, { data: facilityRaw }, hsResult] = await Promise.all([
     supabase.rpc("buyer_supplier_profile", { p_slug: slug }),
     supabase.rpc("buyer_supplier_facility_panel", { p_slug: slug }),
+    supabase.rpc("supplier_epb_hscodes", { p_slug: slug }),
   ]);
+  const epbHs = hscodesFromRpc(hsResult);
   if (error || data == null) {
     // Distinguish "row missing" (correct 404) from "DB timeout" (transient).
     // statement_timeout / canceling statement → 57014. Render a service-slow
@@ -410,6 +413,8 @@ export default async function FactoryProfilePage({
               brand_attributions: payload.brand_attributions,
               sanctions: payload.sanctions,
               documents: payload.documents,
+              hscodes: epbHs.hscodes,
+              hscodesLoadError: epbHs.loadError,
             }}
           />
         </TabsContent>
