@@ -58,9 +58,10 @@ export function resolveRegistryUrl(
         : "https://accord.fairfactories.org/Pub.aspx";
 
     case "EPB":
-      // EPB does not publish per-company pages. Returning null tells the
-      // caller to render the ID as plain text instead of a misleading
-      // "Open ↗" to the homepage.
+      // Per-company pages live at edb.epb.gov.bd/exporter/{id}/{slug}.
+      // This helper only receives the registration number, not the path
+      // slug, so it cannot build that URL. Compliance uses the stored
+      // exporter URL from the EPB source record instead.
       return null;
 
     case "RJSC":

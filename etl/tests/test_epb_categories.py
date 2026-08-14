@@ -7,6 +7,7 @@ majority (SARADA FASHIONS, exporter 4083, category Knit — invisible until
 the 3 Aug 2026 live probe). The category pass widens coverage to them, and
 the founder's policy is ATTACH-ONLY: records from that pass carry
 `enrich_only=True` and can never mint a single-source EPB profile.
+Default `EpbScraper()` is attach-only on both passes; `--mint` is opt-in.
 
 Mocked cursors never parse SQL (the REZ-34 lesson), so the upsert tests pin
 the DECISIONS (which statements run), not the SQL text.
@@ -75,8 +76,7 @@ def test_matched_enrich_only_record_enriches(patched_db) -> None:
 
 
 def test_normal_record_still_creates(patched_db) -> None:
-    """Default behaviour is unchanged: without enrich_only an unmatched record
-    mints a supplier (the association pass keeps full-create)."""
+    """Opt-in mint (`--mint` / existing_only=False) still inserts when unmatched."""
     cur = FakeCursor(skip_rows=[])
     patched_db(cur)
 
@@ -107,17 +107,33 @@ class _FakeDoc:
         return self._body
 
 
-def _stub_acquire(monkeypatch, scraper: EpbScraper, pages: list[str]) -> list[AcquireRequest]:
+def _stub_acquire(
+    monkeypatch,
+    scraper: EpbScraper,
+    pages: list[str],
+    *,
+    detail_html: str = "<html></html>",
+) -> list[AcquireRequest]:
     requests: list[AcquireRequest] = []
 
     async def _acquire(request: AcquireRequest) -> Any:
         requests.append(request)
+        if request.url and "/exporter/" in request.url:
+            return _FakeDoc(detail_html)
         body = pages.pop(0) if pages else json.dumps({"exporters": [], "total": 0})
         return _FakeDoc(body)
 
     monkeypatch.setattr(scraper, "acquire", _acquire)
     scraper._xsrf = "token"
     return requests
+
+
+def _search_requests(requests: list[AcquireRequest]) -> list[AcquireRequest]:
+    return [r for r in requests if r.url.endswith("exporters-search")]
+
+
+def _detail_requests(requests: list[AcquireRequest]) -> list[AcquireRequest]:
+    return [r for r in requests if r.url and "/exporter/" in r.url]
 
 
 def test_category_pass_posts_category_filter_and_marks_enrich_only(monkeypatch) -> None:
@@ -139,9 +155,11 @@ def test_category_pass_posts_category_filter_and_marks_enrich_only(monkeypatch) 
     assert [r.source_ref for r in recs] == ["4083", "5172"]
     assert all(r.enrich_only for r in recs)
     assert all("epb_associations" not in r.payload for r in recs)
-    assert len(requests) == 1  # total reached after one page
-    assert requests[0].json_body["category_id"] == 2
-    assert requests[0].json_body["associations"] == []
+    search = _search_requests(requests)
+    assert len(search) == 1  # total reached after one page
+    assert search[0].json_body["category_id"] == 2
+    assert search[0].json_body["associations"] == []
+    assert len(_detail_requests(requests)) == 0
 
 
 def test_category_pass_skips_exporters_already_yielded(monkeypatch) -> None:
@@ -160,7 +178,7 @@ def test_category_pass_skips_exporters_already_yielded(monkeypatch) -> None:
 
 
 def test_association_pass_payload_unchanged(monkeypatch) -> None:
-    """Regression: the original pass keeps its filter and full-create records."""
+    """Association pass keeps its filter and, by default, attach-only records."""
     scraper = EpbScraper()
     requests = _stub_acquire(monkeypatch, scraper, [
         json.dumps({"exporters": [
@@ -173,8 +191,152 @@ def test_association_pass_payload_unchanged(monkeypatch) -> None:
 
     recs = asyncio.run(_collect())
 
+    assert scraper.existing_only is True
     assert [r.source_ref for r in recs] == ["7"]
-    assert recs[0].enrich_only is False
+    assert recs[0].enrich_only is True
     assert recs[0].payload["epb_associations"] == ["BGMEA"]
-    assert requests[0].json_body["associations"] == [1]
-    assert requests[0].json_body["category_id"] == 0
+    search = _search_requests(requests)
+    assert search[0].json_body["associations"] == [1]
+    assert search[0].json_body["category_id"] == 0
+    assert len(_detail_requests(requests)) == 0
+
+
+def test_association_pass_attaches_hscodes_from_detail_html(monkeypatch) -> None:
+    from pathlib import Path
+
+    html = (
+        Path(__file__).resolve().parent / "fixtures" / "epb_exporter_detail.html"
+    ).read_text(encoding="utf-8")
+    scraper = EpbScraper(existing_only=False)
+    _stub_acquire(
+        monkeypatch,
+        scraper,
+        [
+            json.dumps({"exporters": [
+                {"id": 7, "name": "Flagged Knitwear Ltd", "slug": "x",
+                 "epb_reg_no": "BD00007"},
+            ], "total": 1}),
+        ],
+        detail_html=html,
+    )
+
+    async def _collect() -> list[ScrapedRecord]:
+        return [r async for r in scraper._fetch_association(1, "BGMEA", {}, {}, set())]
+
+    recs = asyncio.run(_collect())
+    assert recs[0].enrich_only is False
+    assert recs[0].payload["epb_hscodes"][0]["code"] == "6103"
+    assert recs[0].payload["epb_hscodes"][0]["source_url"].endswith("/813")
+
+
+def test_detail_html_attaches_hscodes_on_unflagged_category_record(monkeypatch) -> None:
+    """Unflagged attach-only rows wait for backfill; fetch does not GET /exporter/."""
+    scraper = EpbScraper()
+    requests = _stub_acquire(
+        monkeypatch,
+        scraper,
+        [
+            json.dumps({"exporters": [
+                {"id": 2043, "name": "Interstoff Apparels Ltd.",
+                 "slug": "interstoff-apparels-ltd", "epb_reg_no": "BD04636"},
+            ], "total": 1}),
+        ],
+    )
+
+    async def _collect() -> list[ScrapedRecord]:
+        return [r async for r in scraper._fetch_category(8, "Knit & Woven", {}, {}, set())]
+
+    recs = asyncio.run(_collect())
+    assert len(recs) == 1
+    assert recs[0].enrich_only is True
+    assert "epb_hscodes" not in recs[0].payload
+    assert recs[0].payload["epb_reg_no"] == "BD04636"
+    assert len(_detail_requests(requests)) == 0
+
+
+def test_failed_detail_fetch_still_yields_search_record(monkeypatch) -> None:
+    scraper = EpbScraper()
+    requests: list[AcquireRequest] = []
+
+    async def _acquire(request: AcquireRequest) -> Any:
+        requests.append(request)
+        if request.url and "/exporter/" in request.url:
+            doc = _FakeDoc("")
+            doc.ok = False
+            doc.error_message = "timeout"
+            doc.fetch_status = SimpleNamespace(value="error")
+            return doc
+        return _FakeDoc(json.dumps({"exporters": [
+            {"id": 4083, "name": "SARADA FASHIONS LIMITED.", "slug": "sarada-fashions",
+             "epb_reg_no": "BD05918"},
+        ], "total": 1}))
+
+    monkeypatch.setattr(scraper, "acquire", _acquire)
+    scraper._xsrf = "token"
+
+    async def _collect() -> list[ScrapedRecord]:
+        return [r async for r in scraper._fetch_category(2, "Knit", {}, {}, set())]
+
+    recs = asyncio.run(_collect())
+    assert [r.source_ref for r in recs] == ["4083"]
+    assert recs[0].enrich_only is True
+    assert "epb_hscodes" not in recs[0].payload
+    assert recs[0].payload["epb_reg_no"] == "BD05918"
+    assert not any(r.url and "/exporter/" in r.url for r in requests)
+
+
+def test_default_epb_scraper_is_attach_only() -> None:
+    assert EpbScraper().existing_only is True
+    assert EpbScraper(existing_only=False).existing_only is False
+
+
+def test_existing_only_marks_association_pass_enrich_only(monkeypatch) -> None:
+    scraper = EpbScraper(existing_only=True)
+    _stub_acquire(monkeypatch, scraper, [
+        json.dumps({"exporters": [
+            {"id": 7, "name": "Flagged Knitwear Ltd", "slug": "x"},
+        ], "total": 1}),
+    ])
+
+    async def _collect() -> list[ScrapedRecord]:
+        return [r async for r in scraper._fetch_association(1, "BGMEA", {}, {}, set())]
+
+    recs = asyncio.run(_collect())
+    assert recs[0].enrich_only is True
+    assert recs[0].payload["epb_associations"] == ["BGMEA"]
+
+
+def test_mint_association_pass_may_create(monkeypatch) -> None:
+    scraper = EpbScraper(existing_only=False)
+    _stub_acquire(monkeypatch, scraper, [
+        json.dumps({"exporters": [
+            {"id": 7, "name": "Flagged Knitwear Ltd", "slug": "x"},
+        ], "total": 1}),
+    ])
+
+    async def _collect() -> list[ScrapedRecord]:
+        return [r async for r in scraper._fetch_association(1, "BGMEA", {}, {}, set())]
+
+    recs = asyncio.run(_collect())
+    assert recs[0].enrich_only is False
+
+
+def test_fetch_runs_category_pass_as_well_as_association(monkeypatch) -> None:
+    scraper = EpbScraper()
+    requests = _stub_acquire(monkeypatch, scraper, [])
+
+    async def _boot() -> tuple[dict, dict, dict]:
+        return {}, {}, {}
+
+    monkeypatch.setattr(scraper, "_bootstrap", _boot)
+
+    async def _collect() -> list[ScrapedRecord]:
+        return [r async for r in scraper.fetch()]
+
+    assert asyncio.run(_collect()) == []
+    search = _search_requests(requests)
+    assoc_filters = [r.json_body["associations"] for r in search]
+    cat_filters = [r.json_body["category_id"] for r in search]
+    assert [1] in assoc_filters
+    assert [2] in assoc_filters
+    assert set(RMG_CATEGORIES).issubset(set(cat_filters))

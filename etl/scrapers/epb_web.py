@@ -1,25 +1,36 @@
 """EPB Exporter Database scraper — RMG sector only.
 
 Source: Bangladesh Export Promotion Bureau Exporter Database
-(https://edb.epb.gov.bd/). Tier 1 government register.
+(https://edb.epb.gov.bd/). Tier 1 government register. EPB is an independent
+government entity: a company we already list must receive EPB evidence and
+HS codes when EPB publishes them, whether or not it carries a BGMEA/BKMEA
+association flag.
 
 Strategy
 --------
 The site is a Vue.js SPA backed by `POST /api/exporters-search`. Two
 enumeration passes over the same endpoint:
 
-1. **Association pass** (full-create, the original scope): filtering by
-   association id (BGMEA=1, BKMEA=2) returns the full BGMEA/BKMEA exporter
-   set inline as JSON — no per-detail-page fetches required.
-2. **Category pass** (attach-only, founder decision D, 4 Aug 2026): EPB's
-   register separates RMG from jute/fish/rice by CATEGORY, not by
+1. **Association pass** (attach-only by default): filtering by association
+   id (BGMEA=1, BKMEA=2) returns the full BGMEA/BKMEA exporter set inline
+   as JSON. Records attach onto companies we already list. Pass
+   `existing_only=False` (CLI `--mint`) only when the founder has
+   authorised minting from this pass.
+2. **Category pass** (always attach-only, founder decision D, 4 Aug 2026):
+   EPB's register separates RMG from jute/fish/rice by CATEGORY, not by
    association — of 5,939 approved exporters only 541 carry a BGMEA/BKMEA
    flag, so the association pass alone misses the unflagged RMG majority
-   (SARADA FASHIONS, exporter 4083, category Knit, no flags). Enumerating
-   the RMG category ids covers them, and every record from this pass
-   carries `enrich_only=True`: it enriches a supplier we already know and
-   is skipped otherwise, so widening coverage never mints a single-source
+   (SARADA FASHIONS, exporter 4083, category Knit, no flags; Interstoff
+   Apparels, exporter 2043, Knit & Woven, no flags). Enumerating the RMG
+   category ids covers them, and every record from this pass carries
+   `enrich_only=True`: it enriches a supplier we already know and is
+   skipped otherwise, so widening coverage never mints a single-source
    EPB profile.
+
+HS codes are not in the search JSON. They are server-rendered on each
+public exporter page (`/exporter/{id}/{slug}`). After the search row is
+built, one GET of that page fills `epb_hscodes`. A failed detail fetch
+still yields the search record.
 
 Jute, fish, plastic, leather, agriculture and other non-RMG exporters stay
 out of scope in both passes.
@@ -35,6 +46,7 @@ adds per-field evidence and the same admin controls as every other source.
 """
 from __future__ import annotations
 
+import html as htmlmod
 import json
 import re
 import urllib.parse
@@ -114,6 +126,17 @@ _UNCITABLE_FIELDS = (
     "epb_registered",
     "epb_associations",
     "epb_categories",
+    "epb_hscodes",
+)
+
+_HS_LINK = re.compile(
+    r'href=["\'](?:https://edb\.epb\.gov\.bd)?/hscode-exporters/(\d+)["\']'
+    r"[^>]*>\s*(\d+)\s*</a>",
+    re.IGNORECASE,
+)
+_HS_DESC = re.compile(
+    r'<div class="col-10">\s*(.*?)\s*</div>',
+    re.IGNORECASE | re.DOTALL,
 )
 
 
@@ -124,6 +147,11 @@ class EpbScraper(AcquiringScraper):
     fallback_transport = None
     rps = 1.0
     request_headers = _BROWSER_HEADERS
+
+    def __init__(self, existing_only: bool = True, **kwargs: Any) -> None:
+        super().__init__(**kwargs)
+        # Existing companies only by default: both passes attach, neither mints.
+        self.existing_only = existing_only
 
     async def fetch(self) -> AsyncIterator[ScrapedRecord]:
         districts, thanas, categories = await self._bootstrap()
@@ -209,7 +237,7 @@ class EpbScraper(AcquiringScraper):
             label=assoc_name,
             referer=f"{BASE}/association-exporters/{assoc_id}/{assoc_name.lower()}",
             assoc_name=assoc_name,
-            enrich_only=False,
+            enrich_only=self.existing_only,
             districts=districts,
             thanas=thanas,
             seen_ids=seen_ids,
@@ -346,6 +374,11 @@ class EpbScraper(AcquiringScraper):
                     enrich_only=enrich_only,
                 )
                 if rec is not None:
+                    # Attach-only rows are skipped at upsert when unmatched.
+                    # Do not GET the exporter page until a later backfill on
+                    # a stored source_record (or a --mint full-create).
+                    if not rec.enrich_only:
+                        rec = await self._attach_hscodes(rec)
                     yield rec
 
             offset += len(exporters)
@@ -458,8 +491,84 @@ class EpbScraper(AcquiringScraper):
             enrich_only=enrich_only,
         )
 
+    async def _attach_hscodes(self, rec: ScrapedRecord) -> ScrapedRecord:
+        """Fill HS codes from the public exporter HTML. Search JSON has none."""
+        detail_url = rec.payload.get("epb_detail_url")
+        if not isinstance(detail_url, str):
+            return rec
+        open_url = epb_registry_open_url(rec.source_ref, detail_url)
+        if open_url is None:
+            return rec
+        doc = await self.acquire(
+            AcquireRequest(
+                url=open_url,
+                headers=_BROWSER_HEADERS,
+                label=f"exporter {rec.source_ref} detail",
+            )
+        )
+        if not doc.ok:
+            self.log.warning(
+                "epb.detail_failed",
+                exporter=rec.source_ref,
+                status=doc.fetch_status.value,
+                error=doc.error_message,
+            )
+            return rec
+        codes = parse_epb_hscodes(doc.text())
+        if codes:
+            rec.payload["epb_hscodes"] = codes
+        return rec
+
 
 # ----------------------------------------------------------------------
+def parse_epb_hscodes(html: str | None) -> list[dict[str, str]]:
+    """Parse HS code badges from an EPB exporter detail page.
+
+    Live pages put an internal list id in the href
+    (``/hscode-exporters/813``) and the Harmonised System code in the
+    badge text (``6103``). Reconstructing ``/hscode-exporters/{code}``
+    points at a different product. Keep the live edb href; drop other hosts.
+    """
+    if not html:
+        return []
+    out: list[dict[str, str]] = []
+    seen: set[str] = set()
+    for match in _HS_LINK.finditer(html):
+        list_id, shown = match.group(1), match.group(2)
+        if not re.fullmatch(r"\d{4,6}", shown):
+            continue
+        if shown in seen:
+            continue
+        rest = html[match.end() : match.end() + 800]
+        desc_match = _HS_DESC.search(rest)
+        item: dict[str, str] = {
+            "code": shown,
+            "source_url": f"{BASE}/hscode-exporters/{list_id}",
+        }
+        if desc_match:
+            desc = htmlmod.unescape(
+                re.sub(r"<[^>]+>", " ", desc_match.group(1))
+            )
+            desc = re.sub(r"\s+", " ", desc).strip()
+            if desc:
+                item["description"] = desc
+        seen.add(shown)
+        out.append(item)
+    return out
+
+
+def epb_registry_open_url(source_ref: str | None, detail_url: str | None) -> str | None:
+    """Buyer-visible EPB Open href. Matches migration 0103 LIKE guard."""
+    ref = (source_ref or "").strip()
+    url = (detail_url or "").strip()
+    if not ref or not url:
+        return None
+    prefix = f"{BASE}/exporter/{ref}/"
+    if url.startswith(prefix):
+        return url
+    return None
+
+
 def _clean(s: Any) -> str | None:
     if not s or not isinstance(s, str):
         return None
