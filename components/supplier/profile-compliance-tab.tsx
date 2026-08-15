@@ -19,9 +19,7 @@ import {
   rscRowTitle,
   shouldShowBuildingSectionHeading,
 } from "@/lib/compliance-building-groups";
-import { asEpbHscodes, type ProfileEpbHscode } from "@/lib/epb-hscodes";
 import { EpbRegistryOpenMarkup } from "@/components/supplier/epb-buyer-links";
-import { ProfileEpbHscodesCard } from "@/components/supplier/epb-hscodes-card";
 import { rscWorkforceLabel } from "@/lib/rsc-workforce-label";
 
 export type ProfileCompliancePill = {
@@ -109,10 +107,6 @@ export type ProfileComplianceData = {
   brand_attributions: readonly ProfileComplianceBrand[];
   sanctions: readonly ProfileComplianceSanction[];
   documents: readonly ProfileComplianceDocument[];
-  /** HS codes from EPB. Omit/empty when the company has none. */
-  hscodes?: readonly ProfileEpbHscode[];
-  /** True when supplier_epb_hscodes failed; must not look like "no codes". */
-  hscodesLoadError?: boolean;
 };
 
 /** Normalise REZ-110 array or legacy single RSC object from the profile RPC. */
@@ -443,15 +437,10 @@ export function ProfileComplianceTab({
   data: ProfileComplianceData;
 }) {
   const rscSites = data.rsc_remediation ?? [];
-  const hscodes = asEpbHscodes(data.hscodes ?? []);
   return (
     <ProfileTabStack>
       <div className="grid gap-4 lg:grid-cols-2">
         <ProfileRegistriesCard pills={data.pills} />
-        <ProfileEpbHscodesCard
-          hscodes={hscodes}
-          loadError={!!data.hscodesLoadError}
-        />
         <ProfileCertificationsCard certifications={data.certifications} />
         {rscSites.length > 0 ? <RscSitesCard sites={rscSites} /> : null}
         <ProfileSanctionsCard hits={data.sanctions} />

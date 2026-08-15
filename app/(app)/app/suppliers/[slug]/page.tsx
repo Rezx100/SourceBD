@@ -400,6 +400,8 @@ export default async function FactoryProfilePage({
             facilitiesPanel={facilitiesPanel}
             workers={workersHeadline}
             workersGroupLabel={workersGroupLabel}
+            hscodes={epbHs.hscodes}
+            hscodesLoadError={epbHs.loadError}
           />
         </TabsContent>
         {/* forceMount: registry Verify links must be in the initial HTML
@@ -413,8 +415,6 @@ export default async function FactoryProfilePage({
               brand_attributions: payload.brand_attributions,
               sanctions: payload.sanctions,
               documents: payload.documents,
-              hscodes: epbHs.hscodes,
-              hscodesLoadError: epbHs.loadError,
             }}
           />
         </TabsContent>

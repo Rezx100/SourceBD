@@ -93,7 +93,7 @@ describe("EPB buyer Open/HS hrefs (rendered)", () => {
   });
 });
 
-describe("EPB HS Compliance card (buyer-visible)", () => {
+describe("EPB HS Overview card (buyer-visible)", () => {
   it("omits the card when there are no codes", () => {
     const html = renderToStaticMarkup(
       createElement(ProfileEpbHscodesCard, { hscodes: [] }),
@@ -105,13 +105,13 @@ describe("EPB HS Compliance card (buyer-visible)", () => {
     const html = renderToStaticMarkup(
       createElement(ProfileEpbHscodesCard, { hscodes: [], loadError: true }),
     );
-    assert.match(html, /EPB export products/);
+    assert.match(html, /Export products/);
     assert.match(html, /data-epb-hscodes-error/);
     assert.match(html, /could not load/);
     assert.doesNotMatch(html, /data-epb-hscodes=""/);
   });
 
-  it("renders HS codes with View list entry on the live list-id URL", () => {
+  it("groups codes for a buyer and does not render a source link", () => {
     const html = renderToStaticMarkup(
       createElement(ProfileEpbHscodesCard, {
         hscodes: [
@@ -120,19 +120,30 @@ describe("EPB HS Compliance card (buyer-visible)", () => {
             description: "Men's or boys' suits",
             source_url: "https://edb.epb.gov.bd/hscode-exporters/813",
           },
+          {
+            code: "6109",
+            description: "T-shirts, singlets and other vests",
+            source_url: "https://edb.epb.gov.bd/hscode-exporters/698",
+          },
+          {
+            code: "6205",
+            description: "Men's or boys' shirts",
+            source_url: "https://edb.epb.gov.bd/hscode-exporters/786",
+          },
         ],
       }),
     );
-    assert.match(html, /EPB export products/);
+    assert.match(html, /Export products/);
+    assert.match(html, /knit and woven apparel exporter/);
+    assert.match(html, /Knit apparel/);
+    assert.match(html, /Woven apparel/);
     assert.match(html, /data-epb-hscode="6103"/);
     assert.match(html, />6103</);
-    assert.match(html, /Men&#x27;s or boys&#x27; suits|Men's or boys' suits/);
-    assert.match(html, /View list entry/);
-    assert.match(
-      html,
-      /href="https:\/\/edb\.epb\.gov\.bd\/hscode-exporters\/813"/,
-    );
-    assert.doesNotMatch(html, /hscode-exporters\/6103/);
+    assert.match(html, /Men&#x27;s knit suits/);
+    assert.match(html, /T-shirts/);
+    assert.match(html, /Men&#x27;s woven shirts/);
+    assert.doesNotMatch(html, /View list entry/);
+    assert.doesNotMatch(html, /hscode-exporters/);
     assert.doesNotMatch(html, /https:\/\/epb\.gov\.bd/);
   });
 });

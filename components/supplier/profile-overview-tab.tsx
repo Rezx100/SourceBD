@@ -7,11 +7,8 @@ import {
 import type { LocationKind, LocationMapMarker } from "@/components/supplier/locations-map";
 import { geocodeLocations } from "@/lib/barikoi";
 import { PrincipalProductsCard } from "@/components/supplier/principal-products-card";
-import {
-  ProfileCard,
-  ProfileCardHeader,
-  ProfileTabStack,
-} from "@/components/supplier/profile-ui";
+import { asEpbHscodes, type ProfileEpbHscode } from "@/lib/epb-hscodes";
+import { ProfileEpbHscodesCard } from "@/components/supplier/epb-hscodes-card";
 import {
   ProfileFacilitiesSection,
   type FacilityPanel,
@@ -132,6 +129,8 @@ export async function ProfileOverviewTab<TAddress extends AddressRowRaw>({
   facilitiesPanel = null,
   workers,
   workersGroupLabel,
+  hscodes = [],
+  hscodesLoadError = false,
 }: {
   supplier: ProfileOverviewSupplier;
   t13SourceCount: number;
@@ -147,6 +146,8 @@ export async function ProfileOverviewTab<TAddress extends AddressRowRaw>({
   workers?: OverviewWorkersProp;
   /** REZ-114 — honest group workers label for Facilities section. */
   workersGroupLabel?: string;
+  hscodes?: readonly ProfileEpbHscode[];
+  hscodesLoadError?: boolean;
 }) {
   const overview = buildLocationOverview(addresses);
   const primaryAddress =
@@ -196,6 +197,10 @@ export async function ProfileOverviewTab<TAddress extends AddressRowRaw>({
   return (
     <ProfileTabStack>
       <PrincipalProductsCard products={s.principal_products} />
+      <ProfileEpbHscodesCard
+        hscodes={asEpbHscodes(hscodes)}
+        loadError={hscodesLoadError}
+      />
 
       <ProfileCard>
         {/* No trust-line meta and no bottom fact grid here — every one of
