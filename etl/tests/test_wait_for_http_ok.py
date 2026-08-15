@@ -87,3 +87,61 @@ def test_cli_fails_on_persistent_404_without_burning_attempts() -> None:
     finally:
         server.shutdown()
         server.server_close()
+
+
+def test_cli_fails_on_persistent_503_after_attempts() -> None:
+    hits = {"n": 0}
+
+    class Handler(BaseHTTPRequestHandler):
+        def do_GET(self) -> None:  # noqa: N802
+            hits["n"] += 1
+            self.send_response(503)
+            self.end_headers()
+            self.wfile.write(b"unhealthy")
+
+        def log_message(self, fmt: str, *args: object) -> None:
+            return
+
+    server = HTTPServer(("127.0.0.1", 0), Handler)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        url = f"http://127.0.0.1:{server.server_address[1]}/api/health"
+        result = _run(url, attempts=4)
+        assert result.returncode == 1
+        assert hits["n"] == 4
+        assert "still failing" in result.stderr
+    finally:
+        server.shutdown()
+        server.server_close()
+
+
+def test_cli_fails_on_persistent_502_after_attempts() -> None:
+    hits = {"n": 0}
+
+    class Handler(BaseHTTPRequestHandler):
+        def do_GET(self) -> None:  # noqa: N802
+            hits["n"] += 1
+            self.send_response(502)
+            self.end_headers()
+
+        def log_message(self, fmt: str, *args: object) -> None:
+            return
+
+    server = HTTPServer(("127.0.0.1", 0), Handler)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        url = f"http://127.0.0.1:{server.server_address[1]}/api/health"
+        result = _run(url, attempts=3)
+        assert result.returncode == 1
+        assert hits["n"] == 3
+    finally:
+        server.shutdown()
+        server.server_close()
+
+
+def test_cli_fails_when_nothing_is_listening() -> None:
+    result = _run("http://127.0.0.1:1/api/health", attempts=2)
+    assert result.returncode == 1
+    assert "still failing" in result.stderr
