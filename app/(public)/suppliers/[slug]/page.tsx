@@ -450,6 +450,8 @@ export default async function PublicSupplierProfilePage({
               facilitiesPanel={facilitiesPanel}
               workers={workersHeadline}
               workersGroupLabel={workersGroupLabel}
+              hscodes={epbHs.hscodes}
+              hscodesLoadError={epbHs.loadError}
             />
           </TabsContent>
           {/* forceMount: registry Verify links must be in the initial HTML so
@@ -464,8 +466,6 @@ export default async function PublicSupplierProfilePage({
                 brand_attributions: payload.brand_attributions,
                 sanctions: payload.sanctions,
                 documents: payload.documents,
-                hscodes: epbHs.hscodes,
-                hscodesLoadError: epbHs.loadError,
               }}
             />
           </TabsContent>
