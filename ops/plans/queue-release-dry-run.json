@@ -1,13 +1,13 @@
 {
-  "generated_at": "2026-08-12T21:56:45.379060+00:00",
-  "open_rows": 1332,
-  "fingerprint": "000531700f970a9c9a2a2c129cac1d4131f646dcfc457f44f7fe84fe67d171d3",
+  "generated_at": "2026-08-13T22:35:20.834350+00:00",
+  "open_rows": 1330,
+  "fingerprint": "0fe4bc1ae7639c42ac810a26cba47c84cd0dd64cb915a924b60e1645ed4d1164",
   "counts": {
     "keep_separate": 957,
     "needs_human": 48,
     "attach_facility": 12,
     "merge_into": 5,
-    "already_attached": 298,
+    "already_attached": 296,
     "attach_brand": 11,
     "publish": 1
   },

@@ -1,10 +1,16 @@
 # Review-queue release plan
 
-Measured 13 Aug 2026 against production. Dry-run only. Not applied.
+Applied 14 Aug 2026 against production. Pre-apply live Review plan matched the
+13 Aug counts except two already-closed tickets (Dhakarea Ltd Extension,
+Uni Gears LTD Extension) — close-only, no buyer-row change. Mutation set
+unchanged: 12 attach, 11 brand, 5 merge, 1 publish.
 
-Open `verification_queue` rows: **1,332**. These are tickets, not 1,332 hidden companies.
+Open `verification_queue` rows before apply: **1,330** (was 1,332). After
+apply: **48** held (`needs_human`). Closed this run: 29 mutations via
+`admin_queue_decide` + 1,253 close-only tickets.
 
-Fingerprint: `000531700f970a9c9a2a2c129cac1d4131f646dcfc457f44f7fe84fe67d171d3`
+Fingerprint of the 13 Aug 1,332-row Python plan (historical, now applied
+remainder): `000531700f970a9c9a2a2c129cac1d4131f646dcfc457f44f7fe84fe67d171d3`
 
 Re-measured 13 Aug 2026 after Review SQL mother-search and mill-paren repairs.
 Python destinations are unchanged from the earlier 00053170 plan. Mid-repair
@@ -44,4 +50,6 @@ python ops/release_review_queue.py
 python ops/release_review_queue.py --apply --expect-fingerprint 000531700f970a9c9a2a2c129cac1d4131f646dcfc457f44f7fe84fe67d171d3
 ```
 
-`--apply` is blocked until the founder authorises this exact fingerprint. Re-run the dry-run immediately before apply; if the fingerprint moved, approval is void.
+Applied 14 Aug 2026 after founder go-ahead. Snapshots:
+`_snapshot_20260814_queue_release_queue` (29 mutation tickets),
+`_snapshot_20260814_queue_release_suppliers` (58 supplier rows).

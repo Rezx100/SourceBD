@@ -108,6 +108,18 @@ def run(
         help="bkmea_detail only: re-fetch every member with a detail page, "
         "bypassing the pre-fetch hash gate (founder knob for a periodic full pass).",
     ),
+    existing_only: bool = typer.Option(
+        False,
+        "--existing-only",
+        help="Deprecated no-op: epb_web is attach-only by default.",
+        hidden=True,
+    ),
+    mint: bool = typer.Option(
+        False,
+        "--mint",
+        help="epb_web only: association pass may create suppliers. "
+        "Default is attach-only onto companies we already list.",
+    ),
 ) -> None:
     """Run a scraper or maintenance job end-to-end."""
     cls = RUNNABLE.get(scraper)
@@ -120,6 +132,19 @@ def run(
             typer.echo("--full-refresh only applies to bkmea_detail.")
             raise typer.Exit(1)
         kwargs["full_refresh"] = True
+    if mint and existing_only:
+        typer.echo("--mint and --existing-only cannot be combined.")
+        raise typer.Exit(1)
+    if mint:
+        if scraper != "epb_web":
+            typer.echo("--mint only applies to epb_web.")
+            raise typer.Exit(1)
+        kwargs["existing_only"] = False
+    elif existing_only:
+        if scraper != "epb_web":
+            typer.echo("--existing-only only applies to epb_web.")
+            raise typer.Exit(1)
+        kwargs["existing_only"] = True
     result = asyncio.run(cls(**kwargs).run())
     typer.echo(str(result))
 

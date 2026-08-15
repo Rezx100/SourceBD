@@ -5,7 +5,32 @@ Last compacted for agent-token efficiency: 30 Jun 2026.
 ## Phase
 Phase 7 - Public Beta launch prep.
 
-## Review-queue release — IN PROGRESS on `rez-queue-release`
+## EPB independent of association flags — IN PROGRESS (15 Aug 2026)
+Founder: EPB is a government register with HS codes. A company we already
+list must show EPB evidence and HS codes when EPB has them, whether or
+not BGMEA/BKMEA is flagged. Never mint EPB-only suppliers. Attach-only
+of **1,953** live EPB matches applied 15 Aug (fingerprint
+`662a52d109da5574b8a7cd10754da490f64695be4efe502f8ec398a6a0dcdc7d`).
+Production now **2,492** EPB records on **2,472** companies; company
+count unchanged at 10,922. The 224 unmatched were skipped. Migration
+`0103` applied 15 Aug: EPB Open is the exporter page (2,480 pills, 0
+homepages); six mismatched extras hidden. HS backfill applied 15 Aug:
+**2,476** records now store HS codes (16 EPB pages had none); fingerprint
+`855b487add34c1a26491aec5fc39b679fd0ebe81f85bcac8e265c5485d54f1b7`.
+Company count still 10,922. Frontend HS card is in the working tree, not
+on the server. See `ops/plans/rez-113-epb-coverage-evidence.md`.
+
+## Review-queue release — APPLIED on production 14 Aug 2026
+1,282 tickets released. 48 still open (`needs_human`: brand-only with no
+register mother, wrong-parent RSC, missing fuzzy rows). Buyer mutations
+this run: 12 buildings hung and unpublished (Valuka + Shafipur → Liz
+Fashion; Hurricane Printing Unit; South East Printing Unit; Azim units),
+11 brand listings absorbed, 5 spelling merges (losers unpublished),
+Section Seven published. Close-only: 957 already-live companies + 296
+already-hung buildings (2 of those 298 were released by hand on 13 Aug).
+Snapshots `_snapshot_20260814_queue_release_*`. See
+`ops/plans/queue-release-plan.md`.
+
 13 Aug 2026 — 1,332 open review tickets never mutated buyer-facing rows
 (0062 only closed the ticket). Migration `0102` makes Release attach /
 merge / publish / label, or close when the destination is already live.
@@ -23,8 +48,7 @@ with another unit stays held; a mill paren that is the only suffix still
 attaches (Hurricane Printing Unit, South East Printing Unit). Leftover
 `(Pvt.)` after that strip is not a leftover building.
 Prior fingerprints `7734c386…` and `06173cde…` are void.
-`--apply` and production migration apply are not authorised. See
-`ops/plans/queue-release-plan.md`. 0102 unique-mother lookup uses
+0102 unique-mother lookup uses
 `min(h::text)::uuid` (Postgres 17 has no `min(uuid)`). Named Review
 destinations are asserted by `etl/tests/test_queue_release_plan_sql.py`
 in a rolled-back session. Attach sets `is_published = false` (Discover
