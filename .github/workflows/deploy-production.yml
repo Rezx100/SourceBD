@@ -28,6 +28,9 @@ jobs:
             exit 1
           fi
 
+      - name: Checkout smoke helper
+        uses: actions/checkout@v4
+
       - name: Deploy to VPS via SSH
         uses: appleboy/ssh-action@v1.2.0
         env:
@@ -48,9 +51,6 @@ jobs:
               exit 1
             fi
             bash ops/deploy_vps.sh --ref="${DEPLOY_REF}" --require-git
-
-      - name: Checkout smoke helper
-        uses: actions/checkout@v4
 
       - name: Public smoke test
         # Caddy can return 503 for up to one health_interval after the web
