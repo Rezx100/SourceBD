@@ -49,6 +49,9 @@ jobs:
             fi
             bash ops/deploy_vps.sh --ref="${DEPLOY_REF}" --require-git
 
+      - name: Checkout smoke helper
+        uses: actions/checkout@v4
+
       - name: Public smoke test
         # Caddy can return 503 for up to one health_interval after the web
         # container is already serving 127.0.0.1:3000 (Deploy Production
@@ -56,17 +59,8 @@ jobs:
         # got 503, https://sourcebd.net/api/health was 200 seconds later).
         # Retry until the public URL is 200 or we exhaust the window.
         run: |
-          HOST="${{ secrets.VPS_HOST }}"
-          URL="http://${HOST}/api/health"
-          attempt=0
-          until body="$(curl --fail --silent --show-error --max-time 15 "$URL")"; do
-            attempt=$((attempt + 1))
-            if [ "$attempt" -ge 12 ]; then
-              echo "Public health still failing after ${attempt} attempts at ${URL}"
-              exit 1
-            fi
-            echo "Health not ready (attempt ${attempt}/12), retrying in 5s..."
-            sleep 5
-          done
-          printf '%s\n' "$body"
-          echo "Health check OK on ${HOST}"
+          python3 ops/wait_for_http_ok.py \
+            --url "http://${{ secrets.VPS_HOST }}/api/health" \
+            --attempts 12 \
+            --sleep 5
+          echo "Health check OK on ${{ secrets.VPS_HOST }}"

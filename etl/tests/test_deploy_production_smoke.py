@@ -9,11 +9,12 @@ ROOT = Path(__file__).resolve().parents[2]
 
 def test_gha_public_smoke_retries_instead_of_one_shot_curl() -> None:
     text = (ROOT / ".github/workflows/deploy-production.yml").read_text(encoding="utf-8")
+    assert "actions/checkout@v4" in text
+    assert text.index("actions/checkout@v4") < text.index("Public smoke test")
     _, smoke = text.split("Public smoke test", 1)
-    assert "until" in smoke
-    assert "attempt" in smoke
-    assert "sleep 5" in smoke
-    assert "-ge 12" in smoke
+    assert "ops/wait_for_http_ok.py" in smoke
+    assert "--attempts 12" in smoke
+    assert "--sleep 5" in smoke
     assert "api/health" in smoke
     assert 'curl --fail --silent --show-error --max-time 15 "http://${HOST}/api/health"' not in smoke
 
