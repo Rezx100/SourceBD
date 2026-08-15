@@ -101,10 +101,15 @@ describe("EPB HS wiring (observable call sites)", () => {
       assert.match(t, /hscodesLoadError/);
       assert.doesNotMatch(t, /hsResult\.error \? \[\]/);
       assert.match(t, /forceMount/);
+      assert.match(t, /hscodes=\{epbHs\.hscodes\}/);
     }
   });
 
-  it("Compliance omits an empty HS list but surfaces an RPC load error", () => {
+  it("Overview shows HS codes; Compliance does not; empty list is omitted", () => {
+    const overview = readFileSync(
+      join(process.cwd(), "components/supplier/profile-overview-tab.tsx"),
+      "utf8",
+    );
     const tab = readFileSync(
       join(process.cwd(), "components/supplier/profile-compliance-tab.tsx"),
       "utf8",
@@ -113,14 +118,16 @@ describe("EPB HS wiring (observable call sites)", () => {
       join(process.cwd(), "components/supplier/epb-hscodes-card.tsx"),
       "utf8",
     );
-    assert.match(tab, /<ProfileEpbHscodesCard/);
-    assert.match(tab, /loadError=\{!!data\.hscodesLoadError\}/);
+    assert.match(overview, /<ProfileEpbHscodesCard/);
+    assert.match(overview, /hscodesLoadError/);
+    assert.doesNotMatch(tab, /ProfileEpbHscodesCard/);
     assert.match(tab, /EpbRegistryOpenMarkup sourceUrl=\{pill\.source_url\}/);
     assert.match(card, /export function ProfileEpbHscodesCard/);
     assert.match(card, /if \(loadError\)/);
     assert.match(card, /<EpbHscodesUnavailable \/>/);
     assert.match(card, /if \(hscodes\.length === 0\) return null/);
-    assert.match(card, /View list entry/);
-    assert.match(card, /ProfileActionLink href=\{row\.source_url\}/);
+    assert.doesNotMatch(card, /View list entry/);
+    assert.doesNotMatch(card, /source_url/);
+    assert.match(card, /hsOverviewLede/);
   });
 });

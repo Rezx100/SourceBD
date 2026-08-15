@@ -46,6 +46,8 @@
     "lib/epb-hscodes.ts",
     "lib/epb-hscodes.test.ts",
     "lib/epb-hscodes-render.test.ts",
+    "lib/epb-hscode-labels.ts",
+    "lib/epb-hscode-labels.test.ts",
     "components/supplier/epb-buyer-links.tsx",
     "components/supplier/epb-hscodes-card.tsx",
     "components/supplier/profile-ui.tsx",
