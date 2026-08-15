@@ -10,6 +10,11 @@ import { PrincipalProductsCard } from "@/components/supplier/principal-products-
 import { asEpbHscodes, type ProfileEpbHscode } from "@/lib/epb-hscodes";
 import { ProfileEpbHscodesCard } from "@/components/supplier/epb-hscodes-card";
 import {
+  ProfileCard,
+  ProfileCardHeader,
+  ProfileTabStack,
+} from "@/components/supplier/profile-ui";
+import {
   ProfileFacilitiesSection,
   type FacilityPanel,
 } from "@/components/supplier/profile-facilities-section";
