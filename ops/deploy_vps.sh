@@ -69,7 +69,7 @@ main() {
 
 	cd "$REPO_DIR" || die "REPO_DIR $REPO_DIR not found"
 
-	if [ "$REQUIRE_GIT" -eq 1 ] && [ ! -d .git ]; then
+	if [ "$REQUIRE_GIT" -eq 1 ] && [ ! -d .git ] && [ ! -f .git ]; then
 		die "Git checkout required (--require-git) but $REPO_DIR has no .git — migrate VPS first (docs/ENTERPRISE_DEPLOYMENT.md)"
 	fi
 
@@ -77,7 +77,8 @@ main() {
 	COMMIT_SHA=""
 	CADDYFILE_CHANGED=1
 
-	if [ -d .git ]; then
+	if [ -d .git ] || [ -f .git ]; then
+		unset GIT_CONFIG_PARAMETERS
 		PREVIOUS_SHA="$(git rev-parse HEAD 2>/dev/null || true)"
 
 		# Drop an expired HTTPS PAT from origin and fetch with GITHUB_TOKEN

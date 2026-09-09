@@ -18,7 +18,8 @@ if [ -z "${GITHUB_TOKEN:-}" ]; then echo "GITHUB_TOKEN missing — cannot fetch 
 
 REPO_DIR="${APP_DIR:-/opt/sourcebd}"
 cd "$REPO_DIR" || { echo "REPO_DIR $REPO_DIR not found"; exit 1; }
-if [ ! -d .git ]; then echo "No .git in $REPO_DIR — run first-time VPS migration (docs/ENTERPRISE_DEPLOYMENT.md)"; exit 1; fi
+if [ ! -d .git ] && [ ! -f .git ]; then echo "No .git in $REPO_DIR — run first-time VPS migration (docs/ENTERPRISE_DEPLOYMENT.md)"; exit 1; fi
+unset GIT_CONFIG_PARAMETERS
 
 export GIT_CONFIG_GLOBAL=/dev/null
 export GIT_CONFIG_SYSTEM=/dev/null

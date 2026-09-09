@@ -14,6 +14,9 @@
 # system/global config drops a possible stale helper but also drops
 # safe.directory, so export safe.directory=* *before* any git config --local
 # (root SSH to a sourcebd-owned /opt/sourcebd).
+# GIT_CONFIG_PARAMETERS (git -c packed into the environment) also merges
+# with the overlay: leftover extraheader -> Duplicate header / HTTP 400;
+# leftover insteadOf -> expired PAT in GETURL. Unset it before any git.
 
 sourcebd_prepare_github_https_fetch() {
 	local token="${GITHUB_TOKEN:-${GH_TOKEN:-}}"
@@ -21,6 +24,7 @@ sourcebd_prepare_github_https_fetch() {
 		return 0
 	fi
 
+	unset GIT_CONFIG_PARAMETERS
 	export GIT_CONFIG_GLOBAL=/dev/null
 	export GIT_CONFIG_SYSTEM=/dev/null
 	export GIT_CONFIG_COUNT=1

@@ -110,7 +110,10 @@ def test_gha_passes_job_token_and_self_contained_vps_script() -> None:
     assert "x-access-token:" in remote
     assert "GIT_CONFIG_GLOBAL=/dev/null" in remote
     assert "GIT_CONFIG_SYSTEM=/dev/null" in remote
-    assert "--git-path config" in remote
+    assert "unset GIT_CONFIG_PARAMETERS" in remote
+    assert "[ ! -d .git ] && [ ! -f .git ]" in remote
+    assert "git rev-parse --git-path config 2>" in remote
+    assert "git rev-parse --git-path config.worktree 2>" in remote
     assert "credential.helper" in remote
     assert "safe.directory" in remote
     assert "GIT_CONFIG_COUNT=3" in remote
@@ -176,18 +179,21 @@ def test_health_route_json_commit_comes_from_commit_sha_env() -> None:
 
 def test_deploy_vps_prepares_github_https_fetch_before_git_fetch() -> None:
     text = (ROOT / "ops/deploy_vps.sh").read_text(encoding="utf-8")
-    _, git_block = text.split("if [ -d .git ]; then", 1)
+    assert "[ ! -d .git ] && [ ! -f .git ]" in text
+    assert "[ -d .git ] || [ -f .git ]" in text
+    _, git_block = text.split("if [ -d .git ] || [ -f .git ]; then", 1)
     code = [
         ln.strip()
         for ln in git_block.splitlines()
         if ln.strip() and not ln.strip().startswith("#")
     ]
+    unset_i = next(i for i, ln in enumerate(code) if ln == "unset GIT_CONFIG_PARAMETERS")
     source_i = next(i for i, ln in enumerate(code) if "github_https_fetch_auth.sh" in ln)
     prepare_i = next(
         i for i, ln in enumerate(code) if ln == "sourcebd_prepare_github_https_fetch"
     )
     fetch_i = next(i for i, ln in enumerate(code) if ln.startswith("git fetch"))
-    assert source_i < prepare_i < fetch_i
+    assert unset_i < source_i < prepare_i < fetch_i
 
 
 def test_deploy_vps_waits_for_public_health_before_returning() -> None:
