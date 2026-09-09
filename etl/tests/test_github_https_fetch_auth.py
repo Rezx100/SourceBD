@@ -8,6 +8,8 @@ import stat
 import subprocess
 from pathlib import Path
 
+import pytest
+
 ROOT = Path(__file__).resolve().parents[2]
 HELPER = ROOT / "ops" / "github_https_fetch_auth.sh"
 GHA_SCRIPT = ROOT / "ops" / "gha_vps_deploy.sh"
@@ -55,10 +57,16 @@ def _first_code_index(text: str, needle: str) -> int:
 def test_scripts_export_safe_directory_before_any_local_git_config() -> None:
     for path in (HELPER, GHA_SCRIPT):
         text = path.read_text(encoding="utf-8")
+        count1_i = _first_code_index(text, "GIT_CONFIG_COUNT=1")
         safe_i = _first_code_index(text, 'GIT_CONFIG_KEY_0="safe.directory"')
+        star_i = _first_code_index(text, 'GIT_CONFIG_VALUE_0="*"')
         local_i = _first_code_index(text, "git config --local")
+        remote_i = _first_code_index(text, "git remote set-url")
         extra_i = _first_code_index(text, "http.https://github.com/.extraheader")
+        assert count1_i < local_i, path.name
         assert safe_i < local_i < extra_i, path.name
+        assert star_i < local_i, path.name
+        assert safe_i < remote_i, path.name
 
 
 def _clean_git_env(extra: dict[str, str] | None = None) -> dict[str, str]:
@@ -411,7 +419,7 @@ def _inject_script_stop(text: str) -> str:
     for line in text.splitlines():
         lines.append(line)
         stripped = line.strip()
-        if not stripped or stripped.startswith("#"):
+        if not stripped:
             continue
         if line.rstrip().endswith("\\"):
             continue
@@ -442,7 +450,11 @@ def test_gha_entrypoint_parses_after_appleboy_script_stop_injection(
     ops.mkdir()
     fake = ops / "deploy_vps.sh"
     fake.write_text(
-        "#!/usr/bin/env bash\nprintf 'RAN=%s\\n' \"${1-}\"\n",
+        """#!/usr/bin/env bash
+set -Eeuo pipefail
+printf 'RAN=%s\\n' "${1-}"
+printf 'EXTRA_N=%s\\n' "$(git config --get-all http.https://github.com/.extraheader 2>/dev/null | grep -c . || true)"
+""",
         encoding="utf-8",
     )
     fake.chmod(fake.stat().st_mode | stat.S_IEXEC)
@@ -461,7 +473,9 @@ def test_gha_entrypoint_parses_after_appleboy_script_stop_injection(
         cwd=tmp_path,
     )
     assert result.returncode == 0, result.stderr + result.stdout
-    assert "RAN=--ref=abc1234deadbeefabc1234deadbeefabc1234de" in result.stdout
+    lines = dict(ln.split("=", 1) for ln in result.stdout.strip().splitlines())
+    assert lines["RAN"] == "--ref=abc1234deadbeefabc1234deadbeefabc1234de"
+    assert lines["EXTRA_N"].strip() == "1"
 
 
 def test_gha_entrypoint_script_stop_succeeds_when_extraheader_already_absent(
@@ -513,3 +527,75 @@ printf 'EXTRA_N=%s\\n' "$(git config --get-all http.https://github.com/.extrahea
     lines = dict(ln.split("=", 1) for ln in result.stdout.strip().splitlines())
     assert lines["RAN"] == "--ref=abc1234deadbeefabc1234deadbeefabc1234de"
     assert lines["EXTRA_N"].strip() == "1"
+
+
+def _chown_nobody(path: Path) -> None:
+    chown = subprocess.run(
+        ["sudo", "-n", "chown", "-R", "nobody:nogroup", str(path)],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    if chown.returncode != 0:
+        pytest.skip("passwordless sudo chown is required for dubious-ownership coverage")
+    subprocess.run(
+        ["sudo", "-n", "chmod", "-R", "a+rX", str(path)],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+
+def test_gha_entrypoint_clears_planted_extraheader_when_repo_owner_differs(
+    tmp_path: Path,
+) -> None:
+    """Root SSH into a sourcebd-owned tree: unsets must run under safe.directory=*."""
+    app = tmp_path / "opt" / "sourcebd"
+    app.mkdir(parents=True)
+    _git(app, "init")
+    _git(
+        app,
+        "remote",
+        "add",
+        "origin",
+        "https://x-access-token:expired-pat@github.com/Rezx100/SourceBD.git",
+    )
+    _plant_expired_github_http_overrides(app)
+    ops = app / "ops"
+    ops.mkdir()
+    fake = ops / "deploy_vps.sh"
+    fake.write_text(
+        """#!/usr/bin/env bash
+set -Eeuo pipefail
+printf 'ORIGIN=%s\\n' "$(git config --local --get remote.origin.url)"
+printf 'EXTRA_N=%s\\n' "$(git config --get-all http.https://github.com/.extraheader 2>/dev/null | grep -c . || true)"
+printf 'HELPERS=%s\\n' "$(git config --get-all credential.helper 2>/dev/null | tr '\\n' '|' || true)"
+""",
+        encoding="utf-8",
+    )
+    fake.chmod(fake.stat().st_mode | stat.S_IEXEC)
+    _chown_nobody(app)
+    sudo_env = {
+        "PATH": "/usr/bin:/bin:/usr/local/bin",
+        "HOME": "/root",
+        "GITHUB_TOKEN": "ghs_fresh_job_token",
+        "APP_DIR": str(app),
+        "DEPLOY_REF": "abc1234deadbeefabc1234deadbeefabc1234de",
+        "GIT_CONFIG_GLOBAL": "/dev/null",
+        "GIT_CONFIG_SYSTEM": "/dev/null",
+    }
+    result = subprocess.run(
+        ["sudo", "-n", "env", "-i", *[f"{k}={v}" for k, v in sudo_env.items()], "bash", str(GHA_SCRIPT)],
+        check=False,
+        capture_output=True,
+        text=True,
+        cwd=tmp_path,
+    )
+    if result.returncode != 0 and "sudo" in (result.stderr + result.stdout).lower() and "password" in (result.stderr + result.stdout).lower():
+        pytest.skip("passwordless sudo is required for root-on-foreign-tree coverage")
+    assert result.returncode == 0, result.stderr + result.stdout
+    lines = dict(ln.split("=", 1) for ln in result.stdout.strip().splitlines())
+    assert lines["ORIGIN"] == "https://github.com/Rezx100/SourceBD.git"
+    assert "expired-pat" not in lines["ORIGIN"]
+    assert lines["EXTRA_N"].strip() == "1"
+    assert "store" not in lines["HELPERS"]
