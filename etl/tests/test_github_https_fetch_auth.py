@@ -360,6 +360,10 @@ printf 'HELPERS=%s\\n' "$(git config --get-all credential.helper 2>/dev/null | t
 printf 'URLHELP=%s\\n' "$(git config --get-all credential.https://github.com/.helper 2>/dev/null || true)"
 printf 'SAFE=%s\\n' "${GIT_CONFIG_VALUE_2-}"
 printf 'REF=%s\\n' "${1-}"
+GIT_TRACE_CURL=1 git ls-remote origin >/dev/null 2>trace.curl || true
+printf 'AUTH_N=%s\\n' "$(grep -c 'Send header: AUTHORIZATION:' trace.curl || true)"
+printf 'HAS_LEFTOVER=%s\\n' "$(grep -c expiredlocal trace.curl || true)"
+printf 'HAS_DUPE=%s\\n' "$(grep -ci 'Duplicate header' trace.curl || true)"
 """,
         encoding="utf-8",
     )
@@ -380,6 +384,7 @@ printf 'REF=%s\\n' "${1-}"
             }
         ),
         cwd=tmp_path,
+        timeout=45,
     )
     assert result.returncode == 0, result.stderr + result.stdout
     lines = dict(ln.split("=", 1) for ln in result.stdout.strip().splitlines())
@@ -395,6 +400,9 @@ printf 'REF=%s\\n' "${1-}"
     assert lines["URLHELP"] == ""
     assert lines["SAFE"] == "*"
     assert lines["REF"] == f"--ref={pinned}"
+    assert lines["AUTH_N"].strip() == "1"
+    assert lines["HAS_LEFTOVER"].strip() == "0"
+    assert lines["HAS_DUPE"].strip() == "0"
     leftover = subprocess.run(
         ["git", "config", "--local", "--get-regexp", r"^url\..*\.insteadof$"],
         cwd=app,
@@ -404,6 +412,42 @@ printf 'REF=%s\\n' "${1-}"
         check=False,
     )
     assert leftover.stdout.strip() == ""
+
+
+def test_leftover_extraheader_plus_overlay_sends_two_authorization_headers(
+    tmp_path: Path,
+) -> None:
+    """Git sends every extraheader; overlay without unset is the 34315443132 class."""
+    repo = tmp_path / "app"
+    repo.mkdir()
+    _git(repo, "init")
+    _git(repo, "remote", "add", "origin", "https://github.com/Rezx100/SourceBD.git")
+    _git(
+        repo,
+        "config",
+        "--local",
+        EXTRAHEADER,
+        "AUTHORIZATION: basic expiredlocal",
+    )
+    env = _clean_git_env()
+    env["GIT_TERMINAL_PROMPT"] = "0"
+    env["GIT_TRACE_CURL"] = "1"
+    env["GIT_CONFIG_COUNT"] = "1"
+    env["GIT_CONFIG_KEY_0"] = EXTRAHEADER
+    env["GIT_CONFIG_VALUE_0"] = "AUTHORIZATION: basic jobtoken"
+    result = subprocess.run(
+        ["git", "ls-remote", "origin"],
+        cwd=repo,
+        check=False,
+        capture_output=True,
+        text=True,
+        env=env,
+        timeout=30,
+    )
+    auth_n = result.stderr.count("Send header: AUTHORIZATION:")
+    assert auth_n == 2, result.stderr[-800:]
+    assert "Duplicate header" in result.stderr or "error: 400" in result.stderr
+    assert result.returncode != 0
 
 
 DRONE_SSH_SCRIPT_STOP = (
