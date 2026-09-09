@@ -99,7 +99,8 @@ def test_gha_passes_job_token_and_self_contained_vps_script() -> None:
 
     remote = (ROOT / "ops" / "gha_vps_deploy.sh").read_text(encoding="utf-8")
     assert 'bash ops/deploy_vps.sh --ref="${DEPLOY_REF}" --require-git' in remote
-    assert "git remote set-url origin" in remote
+    assert "git config --file" in remote
+    assert "http.https://github.com/.extraheader" in remote
     assert r"s#^[Hh][Tt][Tt][Pp][Ss]://([^/@]+@)?[Gg][Ii][Tt][Hh][Uu][Bb]\.[Cc][Oo][Mm](:443)?/#https://github.com/#" in remote
     assert "unset-all include.path" in remote
     assert r"^includeIf\..*\.path$" in remote
@@ -111,10 +112,15 @@ def test_gha_passes_job_token_and_self_contained_vps_script() -> None:
     assert "GIT_CONFIG_GLOBAL=/dev/null" in remote
     assert "GIT_CONFIG_SYSTEM=/dev/null" in remote
     assert "unset GIT_CONFIG_PARAMETERS" in remote
+    assert any(ln.strip() == "unset GIT_CONFIG" for ln in remote.splitlines())
     assert "[ ! -d .git ] && [ ! -f .git ]" in remote
     assert "git rev-parse --git-path config 2>" in remote
     assert "git rev-parse --git-path config.worktree 2>" in remote
+    assert "--unset-all remote.origin.url" in remote
+    assert "--add remote.origin.url" in remote
+    assert r"^url\..*\.(push)?insteadof$" in remote
     assert "credential.helper" in remote
+    assert "if [ -f .git ] && [ -f ops/deploy_vps.sh ]" in remote
     assert "safe.directory" in remote
     assert "GIT_CONFIG_COUNT=3" in remote
     assert "unset-all http.https://github.com/.extraheader" in remote

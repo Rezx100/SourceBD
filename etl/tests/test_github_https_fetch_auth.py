@@ -196,7 +196,15 @@ def test_gha_remote_script_keeps_the_same_fetch_rewrites_as_the_helper() -> None
     assert "GIT_CONFIG_SYSTEM=/dev/null" in remote
     assert "unset GIT_CONFIG_PARAMETERS" in helper
     assert "unset GIT_CONFIG_PARAMETERS" in remote
+    assert any(ln.strip() == "unset GIT_CONFIG" for ln in helper.splitlines())
+    assert any(ln.strip() == "unset GIT_CONFIG" for ln in remote.splitlines())
+    assert "--unset-all remote.origin.url" in helper
+    assert "--unset-all remote.origin.url" in remote
+    assert "--add remote.origin.url" in helper
+    assert "--add remote.origin.url" in remote
     assert "[ ! -d .git ] && [ ! -f .git ]" in remote
+    assert r"^url\..*\.(push)?insteadof$" in helper
+    assert r"^url\..*\.(push)?insteadof$" in remote
     assert "git rev-parse --git-path config 2>" in helper
     assert "git rev-parse --git-path config 2>" in remote
     assert "git rev-parse --git-path config.worktree 2>" in helper
@@ -223,8 +231,8 @@ def test_gha_remote_script_keeps_the_same_fetch_rewrites_as_the_helper() -> None
     assert "config.worktree" in remote
     assert "extensions.worktreeConfig" in helper
     assert "extensions.worktreeConfig" in remote
-    assert r"^url\..*\.insteadof$" in helper
-    assert r"^url\..*\.insteadof$" in remote
+    assert r"^url\..*\.(push)?insteadof$" in helper
+    assert r"^url\..*\.(push)?insteadof$" in remote
     assert r"github\.com(:443)?" in helper
     assert r"github\.com(:443)?" in remote
     assert 'bash ops/deploy_vps.sh --ref="${DEPLOY_REF}" --require-git' in remote
@@ -246,13 +254,13 @@ def test_scripts_export_safe_directory_before_any_local_git_config() -> None:
         count1_i = _first_code_index(text, "GIT_CONFIG_COUNT=1")
         safe_i = _first_code_index(text, 'GIT_CONFIG_KEY_0="safe.directory"')
         star_i = _first_code_index(text, 'GIT_CONFIG_VALUE_0="*"')
-        local_i = _first_code_index(text, "git config --local")
-        remote_i = _first_code_index(text, "git remote set-url")
+        file_i = _first_code_index(text, "git config --file")
         extra_i = _first_code_index(text, "http.https://github.com/.extraheader")
-        assert count1_i < local_i, path.name
-        assert safe_i < local_i < extra_i, path.name
-        assert star_i < local_i, path.name
-        assert safe_i < remote_i, path.name
+        origin_i = _first_code_index(text, "--add remote.origin.url")
+        assert count1_i < file_i, path.name
+        assert safe_i < file_i < extra_i, path.name
+        assert star_i < file_i, path.name
+        assert safe_i < origin_i, path.name
 
 
 def _clean_git_env(extra: dict[str, str] | None = None) -> dict[str, str]:
@@ -277,6 +285,7 @@ def _clean_git_env(extra: dict[str, str] | None = None) -> dict[str, str]:
         "GIT_CONFIG_KEY_3",
         "GIT_CONFIG_VALUE_3",
         "GIT_CONFIG_PARAMETERS",
+        "GIT_CONFIG",
         "APP_DIR",
         "DEPLOY_REF",
         "LOCAL_GIT_HTTP",
@@ -480,6 +489,7 @@ printf 'MERGED_INSTEAD=%s\\n' "$(git config --get-regexp '^url\\..*\\.insteadof$
 printf 'INCLUDE=%s\\n' "$(git config --get include.path 2>/dev/null || true)"
 printf 'INCLUDEIF=%s\\n' "$(git config --get-regexp '^includeIf\\..*\\.path$' 2>/dev/null || true)"
 printf 'PARAMS=%s\\n' "${GIT_CONFIG_PARAMETERS-UNSET}"
+printf 'GITCFG=%s\\n' "${GIT_CONFIG-UNSET}"
 printf 'GITFILE=%s\\n' "$(if [ -f .git ]; then echo file; elif [ -d .git ]; then echo dir; else echo missing; fi)"
 """
         + _curl_probe_lines()
@@ -662,6 +672,14 @@ def test_gha_entrypoint_prepares_fetch_when_vps_helper_file_is_missing(
         "remote",
         "add",
         "origin",
+        "HTTPS://x-access-token:expired-pat@github.com:443/Rezx100/SourceBD.git",
+    )
+    _git(
+        app,
+        "remote",
+        "set-url",
+        "--add",
+        "origin",
         "https://x-access-token:expired-pat@github.com/Rezx100/SourceBD.git",
     )
     _git(
@@ -670,6 +688,13 @@ def test_gha_entrypoint_prepares_fetch_when_vps_helper_file_is_missing(
         "--local",
         "url.https://x-access-token:expired-pat@github.com/.insteadof",
         "https://github.com/",
+    )
+    _git(
+        app,
+        "config",
+        "--local",
+        "url.https://x-access-token:expired-https-pat@github.com/.insteadof",
+        "https://",
     )
     _plant_expired_github_http_overrides(app)
     inc = _plant_include_github_overrides(app)
@@ -702,6 +727,8 @@ def test_gha_entrypoint_prepares_fetch_when_vps_helper_file_is_missing(
     _write_gha_observer_deploy(app)
     assert not (app / "ops" / "github_https_fetch_auth.sh").exists()
     pinned = "273e86778f95b143bfa694aacbc92ecabf5ee591"
+    empty_cfg = tmp_path / "empty.gitconfig"
+    empty_cfg.write_text("", encoding="utf-8")
 
     try:
         result = subprocess.run(
@@ -716,6 +743,7 @@ def test_gha_entrypoint_prepares_fetch_when_vps_helper_file_is_missing(
                     "DEPLOY_REF": pinned,
                     "LOCAL_GIT_HTTP": local_url,
                     "GIT_CONFIG_PARAMETERS": f"{PARAMS_EXTRAHEADER} {PARAMS_INSTEAD}",
+                    "GIT_CONFIG": str(empty_cfg),
                 }
             ),
             cwd=tmp_path,
@@ -742,12 +770,15 @@ def test_gha_entrypoint_prepares_fetch_when_vps_helper_file_is_missing(
     assert "expired-pat" not in lines["GETURL"]
     assert "expired-wt-pat" not in lines["GETURL"]
     assert "expired-wtif-pat" not in lines["GETURL"]
+    assert "expired-https-pat" not in lines["GETURL"]
     assert "expired-pat" not in lines["MERGED_INSTEAD"]
     assert "expired-wt-pat" not in lines["MERGED_INSTEAD"]
     assert "expired-wtif-pat" not in lines["MERGED_INSTEAD"]
+    assert "expired-https-pat" not in lines["MERGED_INSTEAD"]
     assert lines["INCLUDE"] == ""
     assert lines["INCLUDEIF"] == ""
     assert lines["PARAMS"] == "UNSET"
+    assert lines["GITCFG"] == "UNSET"
     assert lines["GITFILE"] == "dir"
     assert lines["AUTH_N"].strip() == "1"
     assert lines["HAS_LEFTOVER"].strip() == "0"
@@ -1604,3 +1635,182 @@ def test_gha_entrypoint_prepares_fetch_on_linked_worktree_gitfile(
     assert lines["FETCH_RC"].strip() == "0"
     assert lines["GOT"].strip() == seed_sha
     assert httpd.expected_b64 in httpd.seen_b64
+
+
+def test_prepare_strips_origin_when_git_config_env_is_empty_file(
+    tmp_path: Path,
+) -> None:
+    repo = tmp_path / "app"
+    repo.mkdir()
+    _git(repo, "init")
+    _git(
+        repo,
+        "remote",
+        "add",
+        "origin",
+        "https://x-access-token:expired-pat@github.com/Rezx100/SourceBD.git",
+    )
+    empty = tmp_path / "empty.gitconfig"
+    empty.write_text("", encoding="utf-8")
+    lines = _prepare_then_github_probe(
+        repo,
+        "ghs_fresh_job_token",
+        extra={"GIT_CONFIG": str(empty)},
+    )
+    assert lines["GETURL"] == "https://github.com/Rezx100/SourceBD.git"
+    assert "expired-pat" not in lines["GETURL"]
+    assert lines["HAS_EXPIREDPAT"].strip() == "0"
+    assert lines["AUTH_N"].strip() == "1"
+    assert lines["HAS_DUPE"].strip() == "0"
+    assert "400" not in lines["LS_HTTP"]
+
+
+def test_prepare_strips_origin_when_git_config_env_is_dev_null(tmp_path: Path) -> None:
+    repo = tmp_path / "app"
+    repo.mkdir()
+    _git(repo, "init")
+    _git(
+        repo,
+        "remote",
+        "add",
+        "origin",
+        "https://x-access-token:expired-pat@github.com/Rezx100/SourceBD.git",
+    )
+    lines = _prepare_then_github_probe(
+        repo,
+        "ghs_fresh_job_token",
+        extra={"GIT_CONFIG": "/dev/null"},
+    )
+    assert lines["GETURL"] == "https://github.com/Rezx100/SourceBD.git"
+    assert "expired-pat" not in lines["GETURL"]
+    assert lines["HAS_EXPIREDPAT"].strip() == "0"
+    assert lines["AUTH_N"].strip() == "1"
+    assert lines["HAS_DUPE"].strip() == "0"
+
+
+def test_prepare_replaces_every_remote_origin_url_value(tmp_path: Path) -> None:
+    repo = tmp_path / "app"
+    repo.mkdir()
+    _git(repo, "init")
+    _git(
+        repo,
+        "remote",
+        "add",
+        "origin",
+        "https://x-access-token:expired-pat@github.com/Rezx100/SourceBD.git",
+    )
+    _git(
+        repo,
+        "remote",
+        "set-url",
+        "--add",
+        "origin",
+        "HTTPS://x-access-token:expired-pat@github.com:443/Rezx100/SourceBD.git",
+    )
+    lines = _prepare_then_github_probe(repo, "ghs_fresh_job_token")
+    assert lines["GETURL"] == "https://github.com/Rezx100/SourceBD.git"
+    assert "expired-pat" not in lines["GETURL"]
+    leftover = subprocess.run(
+        ["git", "config", "--get-all", "remote.origin.url"],
+        cwd=repo,
+        capture_output=True,
+        text=True,
+        env=_clean_git_env(),
+        check=False,
+    )
+    urls = [ln for ln in leftover.stdout.splitlines() if ln.strip()]
+    assert urls == ["https://github.com/Rezx100/SourceBD.git"]
+    assert lines["AUTH_N"].strip() == "1"
+    assert lines["HAS_DUPE"].strip() == "0"
+
+
+def test_gha_entrypoint_patches_merge_base_require_git_on_gitfile(
+    tmp_path: Path,
+) -> None:
+    """First deploy: VPS deploy_vps.sh still dies on a gitfile without a patch."""
+    main = tmp_path / "opt" / "sourcebd"
+    main.mkdir(parents=True)
+    _git(main, "init")
+    (main / "README").write_text("seed\n", encoding="utf-8")
+    _git(main, "add", "README")
+    _git(main, "commit", "-m", "seed")
+    _git(
+        main,
+        "remote",
+        "add",
+        "origin",
+        "HTTPS://x-access-token:expired-pat@github.com:443/Rezx100/SourceBD.git",
+    )
+    _plant_expired_github_http_overrides(main)
+    linked = tmp_path / "linked"
+    _git(main, "worktree", "add", str(linked), "HEAD")
+    assert (linked / ".git").is_file()
+    token = "ghs_fresh_job_token"
+    git_root, seed_sha = _seed_exportable_bare(tmp_path / "export")
+    httpd, local_url, _thread = _start_authed_git_http(git_root, token)
+    ops = linked / "ops"
+    ops.mkdir()
+    stub = ops / "deploy_vps.sh"
+    stub.write_text(
+        """#!/usr/bin/env bash
+set -Eeuo pipefail
+REQUIRE_GIT=0
+for arg in "$@"; do
+  case "$arg" in
+    --require-git) REQUIRE_GIT=1 ;;
+  esac
+done
+if [ "$REQUIRE_GIT" -eq 1 ] && [ ! -d .git ]; then
+  echo OLD_REQUIRE_GIT_DIE=yes
+  exit 1
+fi
+if [ -d .git ]; then
+  echo FETCH_BLOCK=dir
+  echo OLD_REQUIRE_GIT_DIE=no
+"""
+        + _curl_probe_lines()
+        + _local_fetch_lines()
+        + """
+else
+  echo FETCH_BLOCK=skip
+  echo OLD_REQUIRE_GIT_DIE=no
+fi
+""",
+        encoding="utf-8",
+    )
+    stub.chmod(stub.stat().st_mode | stat.S_IEXEC)
+    pinned = "273e86778f95b143bfa694aacbc92ecabf5ee591"
+    try:
+        result = subprocess.run(
+            ["bash", str(GHA_SCRIPT)],
+            check=False,
+            capture_output=True,
+            text=True,
+            env=_clean_git_env(
+                {
+                    "GITHUB_TOKEN": token,
+                    "APP_DIR": str(linked),
+                    "DEPLOY_REF": pinned,
+                    "LOCAL_GIT_HTTP": local_url,
+                    "GIT_CONFIG": "/dev/null",
+                }
+            ),
+            cwd=tmp_path,
+            timeout=45,
+        )
+    finally:
+        httpd.shutdown()
+        httpd.server_close()
+    assert result.returncode == 0, result.stderr + result.stdout
+    lines = dict(ln.split("=", 1) for ln in result.stdout.strip().splitlines() if "=" in ln)
+    assert lines.get("OLD_REQUIRE_GIT_DIE") == "no"
+    assert lines["FETCH_BLOCK"] == "dir"
+    assert lines["AUTH_N"].strip() == "1"
+    assert lines["HAS_DUPE"].strip() == "0"
+    assert "401" in lines["LS_HTTP"]
+    assert "400" not in lines["LS_HTTP"]
+    assert lines["FETCH_RC"].strip() == "0"
+    assert lines["GOT"].strip() == seed_sha
+    patched = stub.read_text(encoding="utf-8")
+    assert "[ ! -d .git ] && [ ! -f .git ]" in patched
+    assert "[ -d .git ] || [ -f .git ]" in patched

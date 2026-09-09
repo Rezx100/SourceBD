@@ -382,3 +382,38 @@ def test_cli_accepts_200_once_commit_matches() -> None:
     finally:
         server.shutdown()
         server.server_close()
+
+
+def test_cli_rejects_200_when_expected_sha_is_only_outside_json_commit() -> None:
+    decoy = "273e86778f95b143bfa694aacbc92ecabf5ee591"
+    live = "2f3a3d2fef6cbbbf716600f972f8b1b4be5ea77f"
+
+    class Handler(BaseHTTPRequestHandler):
+        def do_GET(self) -> None:
+            self.send_response(200)
+            self.end_headers()
+            body = (
+                '{"status":"ok","commit":"'
+                + live
+                + '","note":"'
+                + decoy
+                + '"}\n'
+            )
+            self.wfile.write(body.encode())
+
+        def log_message(self, fmt: str, *args: object) -> None:
+            return
+
+    server = HTTPServer(("127.0.0.1", 0), Handler)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        url = f"http://127.0.0.1:{server.server_address[1]}/api/health"
+        result = _run(url, attempts=2, expect_commit=decoy)
+        assert result.returncode == 1
+        assert result.stdout.strip() == ""
+        assert live in result.stderr
+        assert decoy in result.stderr
+    finally:
+        server.shutdown()
+        server.server_close()

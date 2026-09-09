@@ -9,9 +9,9 @@
 # becomes a syntax error.
 #
 # Trust overlay (safe.directory=*) MUST be exported before any
-# `git config --local`. Root SSH into a sourcebd-owned /opt/sourcebd
-# otherwise treats the tree as dubious, unsets become no-ops, and a
-# leftover extraheader is sent next to the job token.
+# `git config --file` / `--local`. Root SSH into a sourcebd-owned /opt/sourcebd
+# otherwise treats the tree as dubious, unsets become no-ops, and a leftover
+# extraheader is sent next to the job token.
 set -Eeuo pipefail
 
 if [ -z "${GITHUB_TOKEN:-}" ]; then echo "GITHUB_TOKEN missing — cannot fetch private repo on the VPS" >&2; exit 1; fi
@@ -20,6 +20,7 @@ REPO_DIR="${APP_DIR:-/opt/sourcebd}"
 cd "$REPO_DIR" || { echo "REPO_DIR $REPO_DIR not found"; exit 1; }
 if [ ! -d .git ] && [ ! -f .git ]; then echo "No .git in $REPO_DIR — run first-time VPS migration (docs/ENTERPRISE_DEPLOYMENT.md)"; exit 1; fi
 unset GIT_CONFIG_PARAMETERS
+unset GIT_CONFIG
 
 export GIT_CONFIG_GLOBAL=/dev/null
 export GIT_CONFIG_SYSTEM=/dev/null
@@ -28,12 +29,11 @@ export GIT_CONFIG_KEY_0="safe.directory"
 export GIT_CONFIG_VALUE_0="*"
 export GIT_TERMINAL_PROMPT=0
 
-origin="$(git config --local --get remote.origin.url 2>/dev/null || true)"
-if printf '%s' "$origin" | grep -qiE '^https://([^/@]+@)?github\.com(:443)?/'; then git remote set-url origin "$(printf '%s' "$origin" | sed -E 's#^[Hh][Tt][Tt][Pp][Ss]://([^/@]+@)?[Gg][Ii][Tt][Hh][Uu][Bb]\.[Cc][Oo][Mm](:443)?/#https://github.com/#')"; fi
 cfg="$(git rev-parse --git-path config 2>/dev/null || true)"
 wtc="$(git rev-parse --git-path config.worktree 2>/dev/null || true)"
-for f in "$cfg" "$wtc"; do [ -n "$f" ] && [ -f "$f" ] || continue; git config --file "$f" --unset-all include.path 2>/dev/null || true; git config --file "$f" --get-regexp '^includeIf\..*\.path$' 2>/dev/null | while read -r key val; do git config --file "$f" --unset-all "$key" || true; done || true; git config --file "$f" --get-regexp '^url\..*\.insteadof$' 2>/dev/null | while read -r key val; do git config --file "$f" --unset-all "$key" || true; done || true; git config --file "$f" --unset-all http.https://github.com/.extraheader 2>/dev/null || true; git config --file "$f" --unset-all http.extraHeader 2>/dev/null || true; git config --file "$f" --get-regexp '^http\..*extraheader$' 2>/dev/null | while read -r key val; do git config --file "$f" --unset-all "$key" || true; done || true; git config --file "$f" --unset-all credential.helper 2>/dev/null || true; git config --file "$f" --get-regexp '^credential\..*\.helper$' 2>/dev/null | while read -r key val; do git config --file "$f" --unset-all "$key" || true; done || true; done
-git config --local --unset-all extensions.worktreeConfig 2>/dev/null || true
+if [ -n "$cfg" ] && [ -f "$cfg" ]; then _o="$(git config --file "$cfg" --get-all remote.origin.url 2>/dev/null || true)"; printf '%s\n' "$_o" | while IFS= read -r origin; do [ -n "$origin" ] || continue; if printf '%s' "$origin" | grep -qiE '^https://([^/@]+@)?github\.com(:443)?/'; then c="$(printf '%s' "$origin" | sed -E 's#^[Hh][Tt][Tt][Pp][Ss]://([^/@]+@)?[Gg][Ii][Tt][Hh][Uu][Bb]\.[Cc][Oo][Mm](:443)?/#https://github.com/#')"; git config --file "$cfg" --unset-all remote.origin.url 2>/dev/null || true; git config --file "$cfg" --add remote.origin.url "$c"; fi; done; fi
+for f in "$cfg" "$wtc"; do [ -n "$f" ] && [ -f "$f" ] || continue; git config --file "$f" --unset-all include.path 2>/dev/null || true; git config --file "$f" --get-regexp '^includeIf\..*\.path$' 2>/dev/null | while read -r key val; do git config --file "$f" --unset-all "$key" || true; done || true; git config --file "$f" --get-regexp '^url\..*\.(push)?insteadof$' 2>/dev/null | while read -r key val; do git config --file "$f" --unset-all "$key" || true; done || true; git config --file "$f" --unset-all http.https://github.com/.extraheader 2>/dev/null || true; git config --file "$f" --unset-all http.extraHeader 2>/dev/null || true; git config --file "$f" --get-regexp '^http\..*extraheader$' 2>/dev/null | while read -r key val; do git config --file "$f" --unset-all "$key" || true; done || true; git config --file "$f" --unset-all credential.helper 2>/dev/null || true; git config --file "$f" --get-regexp '^credential\..*\.helper$' 2>/dev/null | while read -r key val; do git config --file "$f" --unset-all "$key" || true; done || true; done
+if [ -n "$cfg" ] && [ -f "$cfg" ]; then git config --file "$cfg" --unset-all extensions.worktreeConfig 2>/dev/null || true; fi
 
 auth="$(printf 'x-access-token:%s' "$GITHUB_TOKEN" | base64 | tr -d '\n')"
 export GIT_CONFIG_COUNT=3
@@ -44,4 +44,5 @@ export GIT_CONFIG_VALUE_1=""
 export GIT_CONFIG_KEY_2="safe.directory"
 export GIT_CONFIG_VALUE_2="*"
 
+if [ -f .git ] && [ -f ops/deploy_vps.sh ]; then sed -i -e 's/\[ "$REQUIRE_GIT" -eq 1 \] && \[ ! -d \.git \]; then/[ "$REQUIRE_GIT" -eq 1 ] \&\& [ ! -d .git ] \&\& [ ! -f .git ]; then/' -e 's/if \[ -d \.git \]; then/if [ -d .git ] || [ -f .git ]; then/' ops/deploy_vps.sh; fi
 bash ops/deploy_vps.sh --ref="${DEPLOY_REF}" --require-git
