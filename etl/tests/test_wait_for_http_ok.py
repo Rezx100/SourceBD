@@ -71,6 +71,42 @@ def test_cli_retries_503_then_accepts_200() -> None:
         server.server_close()
 
 
+def test_cli_retries_503_then_accepts_matching_commit_with_ts() -> None:
+    hits = {"n": 0}
+    sha = "273e86778f95b143bfa694aacbc92ecabf5ee591"
+
+    class Handler(BaseHTTPRequestHandler):
+        def do_GET(self) -> None:  # noqa: N802
+            hits["n"] += 1
+            if hits["n"] == 1:
+                self.send_response(503)
+                self.end_headers()
+                self.wfile.write(b"unhealthy")
+                return
+            self.send_response(200)
+            self.end_headers()
+            body = (
+                '{"status":"ok","commit":"%s","ts":"2026-09-09T11:56:09.919Z"}\n' % sha
+            )
+            self.wfile.write(body.encode())
+
+        def log_message(self, fmt: str, *args: object) -> None:
+            return
+
+    server = HTTPServer(("127.0.0.1", 0), Handler)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        url = f"http://127.0.0.1:{server.server_address[1]}/api/health"
+        result = _run(url, attempts=5, expect_commit=sha)
+        assert result.returncode == 0, result.stderr
+        assert sha in result.stdout
+        assert hits["n"] == 2
+    finally:
+        server.shutdown()
+        server.server_close()
+
+
 def test_cli_fails_on_persistent_404_without_burning_attempts() -> None:
     hits = {"n": 0}
 

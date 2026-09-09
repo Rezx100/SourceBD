@@ -12,14 +12,21 @@
 # overlay *adds* a value and does not replace leftovers in .git/config.
 # Unset those keys before exporting the job-token header. Nulling
 # system/global config drops a possible stale helper but also drops
-# safe.directory, so the overlay sets safe.directory=* (root SSH to a
-# sourcebd-owned /opt/sourcebd).
+# safe.directory, so export safe.directory=* *before* any git config --local
+# (root SSH to a sourcebd-owned /opt/sourcebd).
 
 sourcebd_prepare_github_https_fetch() {
 	local token="${GITHUB_TOKEN:-${GH_TOKEN:-}}"
 	if [ -z "$token" ]; then
 		return 0
 	fi
+
+	export GIT_CONFIG_GLOBAL=/dev/null
+	export GIT_CONFIG_SYSTEM=/dev/null
+	export GIT_CONFIG_COUNT=1
+	export GIT_CONFIG_KEY_0="safe.directory"
+	export GIT_CONFIG_VALUE_0="*"
+	export GIT_TERMINAL_PROMPT=0
 
 	local origin=""
 	origin="$(git config --local --get remote.origin.url 2>/dev/null || true)"
@@ -45,8 +52,6 @@ sourcebd_prepare_github_https_fetch() {
 
 	local auth
 	auth="$(printf 'x-access-token:%s' "$token" | base64 | tr -d '\n')"
-	export GIT_CONFIG_GLOBAL=/dev/null
-	export GIT_CONFIG_SYSTEM=/dev/null
 	export GIT_CONFIG_COUNT=3
 	export GIT_CONFIG_KEY_0="http.https://github.com/.extraheader"
 	export GIT_CONFIG_VALUE_0="AUTHORIZATION: basic ${auth}"
@@ -54,5 +59,4 @@ sourcebd_prepare_github_https_fetch() {
 	export GIT_CONFIG_VALUE_1=""
 	export GIT_CONFIG_KEY_2="safe.directory"
 	export GIT_CONFIG_VALUE_2="*"
-	export GIT_TERMINAL_PROMPT=0
 }

@@ -31,6 +31,8 @@ def test_gha_remote_script_keeps_the_same_fetch_rewrites_as_the_helper() -> None
     assert "safe.directory" in remote
     assert "GIT_CONFIG_COUNT=3" in helper
     assert "GIT_CONFIG_COUNT=3" in remote
+    assert "GIT_CONFIG_COUNT=1" in helper
+    assert "GIT_CONFIG_COUNT=1" in remote
     assert "unset-all http.https://github.com/.extraheader" in helper
     assert "unset-all http.https://github.com/.extraheader" in remote
     assert "unset-all http.extraHeader" in helper
@@ -38,6 +40,25 @@ def test_gha_remote_script_keeps_the_same_fetch_rewrites_as_the_helper() -> None
     assert "unset-all credential.helper" in helper
     assert "unset-all credential.helper" in remote
     assert 'bash ops/deploy_vps.sh --ref="${DEPLOY_REF}" --require-git' in remote
+
+
+def _first_code_index(text: str, needle: str) -> int:
+    for i, line in enumerate(text.splitlines()):
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#"):
+            continue
+        if needle in line:
+            return i
+    raise AssertionError(f"missing {needle!r}")
+
+
+def test_scripts_export_safe_directory_before_any_local_git_config() -> None:
+    for path in (HELPER, GHA_SCRIPT):
+        text = path.read_text(encoding="utf-8")
+        safe_i = _first_code_index(text, 'GIT_CONFIG_KEY_0="safe.directory"')
+        local_i = _first_code_index(text, "git config --local")
+        extra_i = _first_code_index(text, "http.https://github.com/.extraheader")
+        assert safe_i < local_i < extra_i, path.name
 
 
 def _clean_git_env(extra: dict[str, str] | None = None) -> dict[str, str]:
@@ -443,30 +464,10 @@ def test_gha_entrypoint_parses_after_appleboy_script_stop_injection(
     assert "RAN=--ref=abc1234deadbeefabc1234deadbeefabc1234de" in result.stdout
 
 
-DRONE_SSH_SCRIPT_STOP = (
-    "DRONE_SSH_PREV_COMMAND_EXIT_CODE=$? ; "
-    "if [ $DRONE_SSH_PREV_COMMAND_EXIT_CODE -ne 0 ]; then "
-    "exit $DRONE_SSH_PREV_COMMAND_EXIT_CODE; fi;"
-)
-
-
-def _inject_script_stop(text: str) -> str:
-    """appleboy/drone-ssh script_stop: exit-check after every newline that is not a continuation."""
-    lines: list[str] = []
-    for line in text.splitlines():
-        lines.append(line)
-        stripped = line.strip()
-        if not stripped or stripped.startswith("#"):
-            continue
-        if line.rstrip().endswith("\\"):
-            continue
-        lines.append(DRONE_SSH_SCRIPT_STOP)
-    return "\n".join(lines) + "\n"
-
-
-def test_gha_entrypoint_parses_after_appleboy_script_stop_injection(
+def test_gha_entrypoint_script_stop_succeeds_when_extraheader_already_absent(
     tmp_path: Path,
 ) -> None:
+    """Second deploy: leftover keys are already gone; unset-all must not abort script_stop."""
     injected = _inject_script_stop(GHA_SCRIPT.read_text(encoding="utf-8"))
     path = tmp_path / "injected.sh"
     path.write_text(injected, encoding="utf-8")
@@ -482,12 +483,15 @@ def test_gha_entrypoint_parses_after_appleboy_script_stop_injection(
     app.mkdir(parents=True)
     _git(app, "init")
     _git(app, "remote", "add", "origin", "https://github.com/Rezx100/SourceBD.git")
-    _plant_expired_github_http_overrides(app)
     ops = app / "ops"
     ops.mkdir()
     fake = ops / "deploy_vps.sh"
     fake.write_text(
-        "#!/usr/bin/env bash\nprintf 'RAN=%s\\n' \"${1-}\"\n",
+        """#!/usr/bin/env bash
+set -Eeuo pipefail
+printf 'RAN=%s\\n' "${1-}"
+printf 'EXTRA_N=%s\\n' "$(git config --get-all http.https://github.com/.extraheader 2>/dev/null | grep -c . || true)"
+""",
         encoding="utf-8",
     )
     fake.chmod(fake.stat().st_mode | stat.S_IEXEC)
@@ -506,4 +510,6 @@ def test_gha_entrypoint_parses_after_appleboy_script_stop_injection(
         cwd=tmp_path,
     )
     assert result.returncode == 0, result.stderr + result.stdout
-    assert "RAN=--ref=abc1234deadbeefabc1234deadbeefabc1234de" in result.stdout
+    lines = dict(ln.split("=", 1) for ln in result.stdout.strip().splitlines())
+    assert lines["RAN"] == "--ref=abc1234deadbeefabc1234deadbeefabc1234de"
+    assert lines["EXTRA_N"].strip() == "1"
