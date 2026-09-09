@@ -6,7 +6,10 @@ import base64
 import os
 import stat
 import subprocess
+import threading
+from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
+from urllib.parse import unquote, urlparse
 
 import pytest
 
@@ -16,6 +19,159 @@ GHA_SCRIPT = ROOT / "ops" / "gha_vps_deploy.sh"
 
 SED = r"s#https://[^/@]+@github\.com/#https://github.com/#"
 EXTRAHEADER = "http.https://github.com/.extraheader"
+
+# git-http-backend CGI probe used by tests that must observe fetch exit 0.
+# GitHub itself 401s a fixture token; AUTH_N/HAS_DUPE still use github.com.
+
+
+class _AuthedGitHTTPServer(HTTPServer):
+    git_root: Path
+    expected_b64: str
+    seen_b64: list[str]
+
+
+def _authorization_b64(token: str) -> str:
+    return base64.b64encode(f"x-access-token:{token}".encode()).decode()
+
+
+class _AuthedGitHandler(BaseHTTPRequestHandler):
+    server: _AuthedGitHTTPServer
+
+    def log_message(self, fmt: str, *args: object) -> None:
+        return
+
+    def _authorized(self) -> bool:
+        raw = self.headers.get("Authorization") or self.headers.get("AUTHORIZATION") or ""
+        if not raw.lower().startswith("basic "):
+            self.server.seen_b64.append("")
+            return False
+        got = raw.split(None, 1)[1].strip()
+        self.server.seen_b64.append(got)
+        return got == self.server.expected_b64
+
+    def do_GET(self) -> None:  # noqa: N802
+        self._cgi()
+
+    def do_POST(self) -> None:  # noqa: N802
+        self._cgi()
+
+    def _cgi(self) -> None:
+        if not self._authorized():
+            self.send_response(401)
+            self.send_header("WWW-Authenticate", 'Basic realm="git"')
+            self.end_headers()
+            self.wfile.write(b"unauthorized")
+            return
+        parsed = urlparse(self.path)
+        env = os.environ.copy()
+        env.update(
+            {
+                "GIT_HTTP_EXPORT_ALL": "1",
+                "GIT_PROJECT_ROOT": str(self.server.git_root),
+                "PATH_INFO": unquote(parsed.path),
+                "REQUEST_METHOD": self.command,
+                "QUERY_STRING": parsed.query,
+                "REMOTE_USER": "git",
+                "REMOTE_ADDR": "127.0.0.1",
+                "CONTENT_TYPE": self.headers.get("Content-Type", ""),
+            }
+        )
+        length = self.headers.get("Content-Length")
+        body = b""
+        if length:
+            body = self.rfile.read(int(length))
+            env["CONTENT_LENGTH"] = length
+        proc = subprocess.run(
+            ["git", "http-backend"],
+            input=body,
+            capture_output=True,
+            env=env,
+            check=False,
+        )
+        header_blob, sep, rest = proc.stdout.partition(b"\r\n\r\n")
+        if not sep:
+            header_blob, _, rest = proc.stdout.partition(b"\n\n")
+        status = 200
+        headers: list[tuple[str, str]] = []
+        for line in header_blob.decode("latin1", errors="replace").splitlines():
+            if line.lower().startswith("status:"):
+                try:
+                    status = int(line.split(":", 1)[1].strip().split()[0])
+                except ValueError:
+                    status = 200
+            elif ":" in line:
+                key, value = line.split(":", 1)
+                headers.append((key.strip(), value.strip()))
+        self.send_response(status)
+        for key, value in headers:
+            self.send_header(key, value)
+        self.end_headers()
+        self.wfile.write(rest)
+
+
+def _seed_exportable_bare(root: Path) -> tuple[Path, str]:
+    git_root = root / "gitroot"
+    git_root.mkdir(parents=True)
+    bare = git_root / "upstream.git"
+    subprocess.run(
+        ["git", "init", "--bare", str(bare)],
+        check=True,
+        capture_output=True,
+        text=True,
+        env=_clean_git_env(),
+    )
+    work = git_root / "seed"
+    subprocess.run(
+        ["git", "clone", str(bare), str(work)],
+        check=True,
+        capture_output=True,
+        text=True,
+        env=_clean_git_env(),
+    )
+    (work / "README").write_text("seed\n", encoding="utf-8")
+    _git(work, "add", "README")
+    _git(work, "commit", "-m", "seed")
+    _git(work, "push", "origin", "HEAD:refs/heads/main")
+    sha = subprocess.run(
+        ["git", "rev-parse", "HEAD"],
+        cwd=work,
+        check=True,
+        capture_output=True,
+        text=True,
+        env=_clean_git_env(),
+    ).stdout.strip()
+    return git_root, sha
+
+
+def _start_authed_git_http(git_root: Path, token: str) -> tuple[HTTPServer, str, threading.Thread]:
+    httpd = _AuthedGitHTTPServer(("127.0.0.1", 0), _AuthedGitHandler)
+    httpd.git_root = git_root
+    httpd.expected_b64 = _authorization_b64(token)
+    httpd.seen_b64 = []
+    thread = threading.Thread(target=httpd.serve_forever, daemon=True)
+    thread.start()
+    url = f"http://127.0.0.1:{httpd.server_address[1]}/upstream.git"
+    return httpd, url, thread
+
+
+def _curl_probe_lines() -> str:
+    return """
+GIT_TRACE_CURL=1 git ls-remote origin >/dev/null 2>trace.curl || true
+printf 'AUTH_N=%s\\n' "$(grep -c 'Send header: AUTHORIZATION:' trace.curl || true)"
+printf 'HAS_LEFTOVER=%s\\n' "$(grep -c expiredlocal trace.curl || true)"
+printf 'HAS_DUPE=%s\\n' "$(grep -ci 'Duplicate header' trace.curl || true)"
+printf 'LS_HTTP=%s\\n' "$(grep -E 'Recv header: HTTP/' trace.curl | head -1 | tr -d '\\r')"
+"""
+
+
+def _local_fetch_lines() -> str:
+    return """
+git remote set-url origin "${LOCAL_GIT_HTTP}"
+export GIT_CONFIG_KEY_0="http.${LOCAL_GIT_HTTP}/.extraheader"
+git fetch --quiet origin --tags
+printf 'FETCH_RC=%s\\n' "$?"
+printf 'GOT=%s\\n' "$(git rev-parse --verify FETCH_HEAD)"
+"""
 
 
 def test_gha_remote_script_keeps_the_same_fetch_rewrites_as_the_helper() -> None:
@@ -90,6 +246,7 @@ def _clean_git_env(extra: dict[str, str] | None = None) -> dict[str, str]:
         "GIT_CONFIG_VALUE_2",
         "APP_DIR",
         "DEPLOY_REF",
+        "LOCAL_GIT_HTTP",
     ):
         merged.pop(key, None)
     merged["GIT_CONFIG_GLOBAL"] = "/dev/null"
@@ -347,6 +504,9 @@ def test_gha_entrypoint_prepares_fetch_when_vps_helper_file_is_missing(
     ops = app / "ops"
     ops.mkdir()
     fake = ops / "deploy_vps.sh"
+    token = "ghs_fresh_job_token"
+    git_root, seed_sha = _seed_exportable_bare(tmp_path / "export")
+    httpd, local_url, _thread = _start_authed_git_http(git_root, token)
     fake.write_text(
         """#!/usr/bin/env bash
 set -Eeuo pipefail
@@ -360,32 +520,35 @@ printf 'HELPERS=%s\\n' "$(git config --get-all credential.helper 2>/dev/null | t
 printf 'URLHELP=%s\\n' "$(git config --get-all credential.https://github.com/.helper 2>/dev/null || true)"
 printf 'SAFE=%s\\n' "${GIT_CONFIG_VALUE_2-}"
 printf 'REF=%s\\n' "${1-}"
-GIT_TRACE_CURL=1 git ls-remote origin >/dev/null 2>trace.curl || true
-printf 'AUTH_N=%s\\n' "$(grep -c 'Send header: AUTHORIZATION:' trace.curl || true)"
-printf 'HAS_LEFTOVER=%s\\n' "$(grep -c expiredlocal trace.curl || true)"
-printf 'HAS_DUPE=%s\\n' "$(grep -ci 'Duplicate header' trace.curl || true)"
-""",
+"""
+        + _curl_probe_lines()
+        + _local_fetch_lines(),
         encoding="utf-8",
     )
     fake.chmod(fake.stat().st_mode | stat.S_IEXEC)
     assert not (ops / "github_https_fetch_auth.sh").exists()
     pinned = "273e86778f95b143bfa694aacbc92ecabf5ee591"
 
-    result = subprocess.run(
-        ["bash", str(GHA_SCRIPT)],
-        check=False,
-        capture_output=True,
-        text=True,
-        env=_clean_git_env(
-            {
-                "GITHUB_TOKEN": "ghs_fresh_job_token",
-                "APP_DIR": str(app),
-                "DEPLOY_REF": pinned,
-            }
-        ),
-        cwd=tmp_path,
-        timeout=45,
-    )
+    try:
+        result = subprocess.run(
+            ["bash", str(GHA_SCRIPT)],
+            check=False,
+            capture_output=True,
+            text=True,
+            env=_clean_git_env(
+                {
+                    "GITHUB_TOKEN": token,
+                    "APP_DIR": str(app),
+                    "DEPLOY_REF": pinned,
+                    "LOCAL_GIT_HTTP": local_url,
+                }
+            ),
+            cwd=tmp_path,
+            timeout=45,
+        )
+    finally:
+        httpd.shutdown()
+        httpd.server_close()
     assert result.returncode == 0, result.stderr + result.stdout
     lines = dict(ln.split("=", 1) for ln in result.stdout.strip().splitlines())
     assert lines["ORIGIN"] == "https://github.com/Rezx100/SourceBD.git"
@@ -403,6 +566,11 @@ printf 'HAS_DUPE=%s\\n' "$(grep -ci 'Duplicate header' trace.curl || true)"
     assert lines["AUTH_N"].strip() == "1"
     assert lines["HAS_LEFTOVER"].strip() == "0"
     assert lines["HAS_DUPE"].strip() == "0"
+    assert "401" in lines["LS_HTTP"]
+    assert "400" not in lines["LS_HTTP"]
+    assert lines["FETCH_RC"].strip() == "0"
+    assert lines["GOT"].strip() == seed_sha
+    assert httpd.expected_b64 in httpd.seen_b64
     leftover = subprocess.run(
         ["git", "config", "--local", "--get-regexp", r"^url\..*\.insteadof$"],
         cwd=app,
@@ -537,39 +705,51 @@ def test_gha_entrypoint_parses_after_appleboy_script_stop_injection(
     ops = app / "ops"
     ops.mkdir()
     fake = ops / "deploy_vps.sh"
+    token = "ghs_fresh_job_token"
+    git_root, seed_sha = _seed_exportable_bare(tmp_path / "export")
+    httpd, local_url, _thread = _start_authed_git_http(git_root, token)
     fake.write_text(
         """#!/usr/bin/env bash
 set -Eeuo pipefail
 printf 'RAN=%s\\n' "${1-}"
 printf 'EXTRA_N=%s\\n' "$(git config --get-all http.https://github.com/.extraheader 2>/dev/null | grep -c . || true)"
-GIT_TRACE_CURL=1 git ls-remote origin >/dev/null 2>trace.curl || true
-printf 'AUTH_N=%s\\n' "$(grep -c 'Send header: AUTHORIZATION:' trace.curl || true)"
-printf 'HAS_DUPE=%s\\n' "$(grep -ci 'Duplicate header' trace.curl || true)"
-""",
+"""
+        + _curl_probe_lines()
+        + _local_fetch_lines(),
         encoding="utf-8",
     )
     fake.chmod(fake.stat().st_mode | stat.S_IEXEC)
-    result = subprocess.run(
-        ["bash", str(path)],
-        check=False,
-        capture_output=True,
-        text=True,
-        env=_clean_git_env(
-            {
-                "GITHUB_TOKEN": "ghs_fresh_job_token",
-                "APP_DIR": str(app),
-                "DEPLOY_REF": "abc1234deadbeefabc1234deadbeefabc1234de",
-            }
-        ),
-        cwd=tmp_path,
-        timeout=45,
-    )
+    try:
+        result = subprocess.run(
+            ["bash", str(path)],
+            check=False,
+            capture_output=True,
+            text=True,
+            env=_clean_git_env(
+                {
+                    "GITHUB_TOKEN": token,
+                    "APP_DIR": str(app),
+                    "DEPLOY_REF": "abc1234deadbeefabc1234deadbeefabc1234de",
+                    "LOCAL_GIT_HTTP": local_url,
+                }
+            ),
+            cwd=tmp_path,
+            timeout=45,
+        )
+    finally:
+        httpd.shutdown()
+        httpd.server_close()
     assert result.returncode == 0, result.stderr + result.stdout
     lines = dict(ln.split("=", 1) for ln in result.stdout.strip().splitlines())
     assert lines["RAN"] == "--ref=abc1234deadbeefabc1234deadbeefabc1234de"
     assert lines["EXTRA_N"].strip() == "1"
     assert lines["AUTH_N"].strip() == "1"
     assert lines["HAS_DUPE"].strip() == "0"
+    assert "401" in lines["LS_HTTP"]
+    assert "400" not in lines["LS_HTTP"]
+    assert lines["FETCH_RC"].strip() == "0"
+    assert lines["GOT"].strip() == seed_sha
+    assert httpd.expected_b64 in httpd.seen_b64
 
 
 def test_gha_entrypoint_script_stop_succeeds_when_extraheader_already_absent(
@@ -664,10 +844,8 @@ set -Eeuo pipefail
 printf 'ORIGIN=%s\\n' "$(git config --local --get remote.origin.url)"
 printf 'EXTRA_N=%s\\n' "$(git config --get-all http.https://github.com/.extraheader 2>/dev/null | grep -c . || true)"
 printf 'HELPERS=%s\\n' "$(git config --get-all credential.helper 2>/dev/null | tr '\\n' '|' || true)"
-GIT_TRACE_CURL=1 git ls-remote origin >/dev/null 2>trace.curl || true
-printf 'AUTH_N=%s\\n' "$(grep -c 'Send header: AUTHORIZATION:' trace.curl || true)"
-printf 'HAS_DUPE=%s\\n' "$(grep -ci 'Duplicate header' trace.curl || true)"
-""",
+"""
+        + _curl_probe_lines(),
         encoding="utf-8",
     )
     fake.chmod(fake.stat().st_mode | stat.S_IEXEC)
@@ -699,3 +877,92 @@ printf 'HAS_DUPE=%s\\n' "$(grep -ci 'Duplicate header' trace.curl || true)"
     assert "store" not in lines["HELPERS"]
     assert lines["AUTH_N"].strip() == "1"
     assert lines["HAS_DUPE"].strip() == "0"
+    assert "401" in lines["LS_HTTP"]
+    assert "400" not in lines["LS_HTTP"]
+
+
+def test_helper_job_token_fetches_from_local_git_http(tmp_path: Path) -> None:
+    """Subsequent deploys: helper overlay must make git fetch exit 0."""
+    token = "ghs_fresh_job_token"
+    git_root, seed_sha = _seed_exportable_bare(tmp_path / "export")
+    httpd, local_url, _thread = _start_authed_git_http(git_root, token)
+    repo = tmp_path / "app"
+    repo.mkdir()
+    _git(repo, "init")
+    _git(repo, "remote", "add", "origin", "https://github.com/Rezx100/SourceBD.git")
+    _plant_expired_github_http_overrides(repo)
+    script = f"""
+set -Eeuo pipefail
+. {HELPER}
+cd {repo}
+sourcebd_prepare_github_https_fetch
+printf 'ORIGIN=%s\\n' "$(git config --local --get remote.origin.url)"
+printf 'KEY=%s\\n' "${{GIT_CONFIG_KEY_0-}}"
+GIT_TRACE_CURL=1 git ls-remote origin >/dev/null 2>trace.curl || true
+printf 'AUTH_N=%s\\n' "$(grep -c 'Send header: AUTHORIZATION:' trace.curl || true)"
+printf 'HAS_DUPE=%s\\n' "$(grep -ci 'Duplicate header' trace.curl || true)"
+printf 'LS_HTTP=%s\\n' "$(grep -E 'Recv header: HTTP/' trace.curl | head -1 | tr -d '\\r')"
+git remote set-url origin "{local_url}"
+export GIT_CONFIG_KEY_0="http.{local_url}/.extraheader"
+git fetch --quiet origin --tags
+printf 'FETCH_RC=%s\\n' "$?"
+printf 'GOT=%s\\n' "$(git rev-parse --verify FETCH_HEAD)"
+"""
+    try:
+        result = subprocess.run(
+            ["bash", "-c", script],
+            check=False,
+            capture_output=True,
+            text=True,
+            env=_clean_git_env({"GITHUB_TOKEN": token}),
+            cwd=repo,
+            timeout=45,
+        )
+    finally:
+        httpd.shutdown()
+        httpd.server_close()
+    assert result.returncode == 0, result.stderr + result.stdout
+    lines = dict(ln.split("=", 1) for ln in result.stdout.strip().splitlines())
+    assert lines["ORIGIN"] == "https://github.com/Rezx100/SourceBD.git"
+    assert lines["KEY"] == EXTRAHEADER
+    assert lines["AUTH_N"].strip() == "1"
+    assert lines["HAS_DUPE"].strip() == "0"
+    assert "401" in lines["LS_HTTP"]
+    assert "400" not in lines["LS_HTTP"]
+    assert lines["FETCH_RC"].strip() == "0"
+    assert lines["GOT"].strip() == seed_sha
+    assert httpd.expected_b64 in httpd.seen_b64
+
+
+def test_wrong_job_token_does_not_fetch_from_local_git_http(tmp_path: Path) -> None:
+    git_root, _seed_sha = _seed_exportable_bare(tmp_path / "export")
+    httpd, local_url, _thread = _start_authed_git_http(git_root, "ghs_server_token")
+    repo = tmp_path / "app"
+    repo.mkdir()
+    _git(repo, "init")
+    _git(repo, "remote", "add", "origin", "https://github.com/Rezx100/SourceBD.git")
+    script = f"""
+set -Eeuo pipefail
+. {HELPER}
+cd {repo}
+sourcebd_prepare_github_https_fetch
+git remote set-url origin "{local_url}"
+export GIT_CONFIG_KEY_0="http.{local_url}/.extraheader"
+git fetch --quiet origin --tags
+"""
+    try:
+        result = subprocess.run(
+            ["bash", "-c", script],
+            check=False,
+            capture_output=True,
+            text=True,
+            env=_clean_git_env({"GITHUB_TOKEN": "ghs_wrong_token"}),
+            cwd=repo,
+            timeout=45,
+        )
+    finally:
+        httpd.shutdown()
+        httpd.server_close()
+    assert result.returncode != 0
+    assert httpd.expected_b64 not in httpd.seen_b64
+    assert any(b64 for b64 in httpd.seen_b64)
