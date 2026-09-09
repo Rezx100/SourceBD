@@ -36,7 +36,8 @@ def _code_lines(script: str) -> list[str]:
 def test_gha_public_smoke_retries_instead_of_one_shot_curl() -> None:
     text = _workflow()
     names = [re.search(r"^name: (.+)$", step, re.M).group(1) for step in _job_steps(text)]
-    assert names.index("Checkout smoke helper") < names.index("Deploy to VPS via SSH")
+    assert names.index("Checkout smoke helper") < names.index("Resolve expected production commit")
+    assert names.index("Resolve expected production commit") < names.index("Deploy to VPS via SSH")
     assert names.index("Deploy to VPS via SSH") < names.index("Public smoke test")
 
     smoke = _step_named(text, "Public smoke test")
@@ -48,6 +49,8 @@ def test_gha_public_smoke_retries_instead_of_one_shot_curl() -> None:
     assert "--attempts 12" in run
     assert "--sleep 5" in run
     assert code[1].startswith('--url "http://${{ secrets.VPS_HOST }}/api/health"')
+    assert "--expect-commit" in run
+    assert '${{ steps.pin.outputs.sha }}' in run
     assert not any(ln.startswith("set +e") for ln in code)
     assert not any("|| true" in ln or "||true" in ln or "|| echo" in ln or "||exit 0" in ln for ln in code)
     assert 'curl --fail --silent --show-error --max-time 15 "http://${HOST}/api/health"' not in run
@@ -71,28 +74,29 @@ def test_gha_passes_job_token_and_self_contained_vps_script() -> None:
     deploy = _step_named(text, "Deploy to VPS via SSH")
     assert "GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}" in deploy
     assert "envs: DEPLOY_REF,APP_DIR,GITHUB_TOKEN" in deploy
-    assert "script_file: ops/gha_vps_deploy.sh" in deploy
+    # appleboy/ssh-action@v1.2.0 action.yml: script_path -> INPUT_SCRIPT_FILE.
+    # `script_file` is not a declared input and is dropped.
+    assert "script_path: ops/gha_vps_deploy.sh" in deploy
+    assert "script_file:" not in deploy
+    assert "uses: appleboy/ssh-action@v1.2.0" in deploy
     assert "command_timeout: 25m" in deploy
     assert "contents: read" in text
-    # Inline script would be the *old* VPS copy; the runner must send the file.
     assert "script: |" not in deploy
     assert "x-access-token:" not in deploy  # token stays in env, not YAML
 
     remote = (ROOT / "ops" / "gha_vps_deploy.sh").read_text(encoding="utf-8")
-    code = [
-        ln.strip()
-        for ln in remote.splitlines()
-        if ln.strip() and not ln.strip().startswith("#")
-    ]
-    assert any(ln.startswith("sourcebd_prepare_github_https_fetch") for ln in code)
     assert 'bash ops/deploy_vps.sh --ref="${DEPLOY_REF}" --require-git' in remote
     assert "git remote set-url origin" in remote
-    assert 's#https://[^/]*@github.com/#https://github.com/#' in remote
+    assert r"s#https://[^/@]+@github\.com/#https://github.com/#" in remote
     assert "http.https://github.com/.extraheader" in remote
     assert "AUTHORIZATION: basic" in remote
     assert "x-access-token:" in remote
+    assert "GIT_CONFIG_GLOBAL=/dev/null" in remote
+    assert "credential.helper" in remote
     assert 'git remote set-url origin "https://x-access-token' not in remote
     assert "GITHUB_TOKEN missing" in remote
+    assert "sourcebd_prepare_github_https_fetch() {" not in remote
+    assert "\ncase " not in remote and not remote.startswith("case ")
 
 
 def test_deploy_vps_prepares_github_https_fetch_before_git_fetch() -> None:

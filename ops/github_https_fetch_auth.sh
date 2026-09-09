@@ -16,17 +16,24 @@ sourcebd_prepare_github_https_fetch() {
 
 	local origin=""
 	origin="$(git config --local --get remote.origin.url 2>/dev/null || true)"
-	case "$origin" in
-		https://*github.com/*)
-			local clean
-			clean="$(printf '%s' "$origin" | sed -E 's#https://[^/]*@github.com/#https://github.com/#')"
-			git remote set-url origin "$clean"
-			;;
-	esac
+	if printf '%s' "$origin" | grep -qE '^https://([^/@]+@)?github\.com/'; then
+		git remote set-url origin "$(printf '%s' "$origin" | sed -E 's#https://[^/@]+@github\.com/#https://github.com/#')"
+	fi
+	# Local insteadOf can rewrite the cleaned URL back to an expired PAT.
+	git config --local --get-regexp '^url\..*\.insteadof$' 2>/dev/null | while read -r key val; do
+		if printf '%s' "$val" | grep -q github.com; then
+			git config --local --unset-all "$key" || true
+		fi
+	done || true
 
 	local auth
 	auth="$(printf 'x-access-token:%s' "$token" | base64 | tr -d '\n')"
-	export GIT_CONFIG_COUNT=1
+	export GIT_CONFIG_GLOBAL=/dev/null
+	export GIT_CONFIG_SYSTEM=/dev/null
+	export GIT_CONFIG_COUNT=2
 	export GIT_CONFIG_KEY_0="http.https://github.com/.extraheader"
 	export GIT_CONFIG_VALUE_0="AUTHORIZATION: basic ${auth}"
+	export GIT_CONFIG_KEY_1="credential.helper"
+	export GIT_CONFIG_VALUE_1=""
+	export GIT_TERMINAL_PROMPT=0
 }

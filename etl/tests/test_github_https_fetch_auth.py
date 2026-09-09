@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import base64
 import os
+import stat
 import subprocess
 from pathlib import Path
 
@@ -10,17 +12,22 @@ ROOT = Path(__file__).resolve().parents[2]
 HELPER = ROOT / "ops" / "github_https_fetch_auth.sh"
 GHA_SCRIPT = ROOT / "ops" / "gha_vps_deploy.sh"
 
-
-def _function_body(text: str) -> str:
-    start = text.index("sourcebd_prepare_github_https_fetch() {")
-    end = text.index("\n}", start) + 2
-    return text[start:end]
+SED = r"s#https://[^/@]+@github\.com/#https://github.com/#"
+EXTRAHEADER = "http.https://github.com/.extraheader"
 
 
-def test_gha_remote_script_embeds_the_same_fetch_auth_function() -> None:
-    helper = _function_body(HELPER.read_text(encoding="utf-8"))
-    embedded = _function_body(GHA_SCRIPT.read_text(encoding="utf-8"))
-    assert helper == embedded
+def test_gha_remote_script_keeps_the_same_fetch_rewrites_as_the_helper() -> None:
+    helper = HELPER.read_text(encoding="utf-8")
+    remote = GHA_SCRIPT.read_text(encoding="utf-8")
+    assert SED in helper
+    assert SED in remote
+    assert EXTRAHEADER in helper
+    assert EXTRAHEADER in remote
+    assert "GIT_CONFIG_GLOBAL=/dev/null" in helper
+    assert "GIT_CONFIG_GLOBAL=/dev/null" in remote
+    assert "credential.helper" in helper
+    assert "credential.helper" in remote
+    assert 'bash ops/deploy_vps.sh --ref="${DEPLOY_REF}" --require-git' in remote
 
 
 def _clean_git_env(extra: dict[str, str] | None = None) -> dict[str, str]:
@@ -35,6 +42,13 @@ def _clean_git_env(extra: dict[str, str] | None = None) -> dict[str, str]:
         "GIT_OBJECT_DIRECTORY",
         "GIT_CONFIG_GLOBAL",
         "GIT_CONFIG_SYSTEM",
+        "GIT_CONFIG_COUNT",
+        "GIT_CONFIG_KEY_0",
+        "GIT_CONFIG_VALUE_0",
+        "GIT_CONFIG_KEY_1",
+        "GIT_CONFIG_VALUE_1",
+        "APP_DIR",
+        "DEPLOY_REF",
     ):
         merged.pop(key, None)
     merged["GIT_CONFIG_GLOBAL"] = "/dev/null"
@@ -54,6 +68,8 @@ printf 'ORIGIN=%s\\n' "$(git config --local --get remote.origin.url)"
 printf 'COUNT=%s\\n' "${{GIT_CONFIG_COUNT-}}"
 printf 'KEY=%s\\n' "${{GIT_CONFIG_KEY_0-}}"
 printf 'VALUE=%s\\n' "${{GIT_CONFIG_VALUE_0-}}"
+printf 'GLOBAL=%s\\n' "${{GIT_CONFIG_GLOBAL-}}"
+printf 'HELPER=%s\\n' "${{GIT_CONFIG_VALUE_1-}}"
 """
     return subprocess.run(
         ["bash", "-c", script],
@@ -95,13 +111,41 @@ def test_strips_expired_https_userinfo_and_does_not_write_token_into_origin(
     assert lines["ORIGIN"] == "https://github.com/Rezx100/SourceBD.git"
     assert "expired-pat" not in lines["ORIGIN"]
     assert "ghs_fresh_job_token" not in lines["ORIGIN"]
-    assert lines["KEY"] == "http.https://github.com/.extraheader"
+    assert lines["KEY"] == EXTRAHEADER
     assert lines["VALUE"].startswith("AUTHORIZATION: basic ")
     assert "ghs_fresh_job_token" not in lines["VALUE"]
-    import base64
-
     decoded = base64.b64decode(lines["VALUE"].split(" ", 2)[2]).decode()
     assert decoded == "x-access-token:ghs_fresh_job_token"
+    assert lines["GLOBAL"] == "/dev/null"
+    assert lines["COUNT"] == "2"
+
+
+def test_unsets_local_insteadof_that_rewrites_github_to_an_expired_pat(
+    tmp_path: Path,
+) -> None:
+    repo = tmp_path / "app"
+    repo.mkdir()
+    _git(repo, "init")
+    _git(repo, "remote", "add", "origin", "https://github.com/Rezx100/SourceBD.git")
+    _git(
+        repo,
+        "config",
+        "--local",
+        "url.https://x-access-token:expired-pat@github.com/.insteadof",
+        "https://github.com/",
+    )
+    result = _run_prepare(repo, {"GITHUB_TOKEN": "ghs_fresh_job_token"})
+    assert result.returncode == 0, result.stderr
+    leftover = subprocess.run(
+        ["git", "config", "--local", "--get-regexp", r"^url\..*\.insteadof$"],
+        cwd=repo,
+        capture_output=True,
+        text=True,
+        env=_clean_git_env(),
+        check=False,
+    )
+    assert leftover.stdout.strip() == ""
+    assert "expired-pat" not in leftover.stdout
 
 
 def test_leaves_ssh_origin_and_skips_without_token(tmp_path: Path) -> None:
@@ -122,7 +166,7 @@ def test_leaves_ssh_origin_and_skips_without_token(tmp_path: Path) -> None:
     assert with_token.returncode == 0, with_token.stderr
     lines = dict(ln.split("=", 1) for ln in with_token.stdout.strip().splitlines())
     assert lines["ORIGIN"] == ssh_url
-    assert lines["KEY"] == "http.https://github.com/.extraheader"
+    assert lines["KEY"] == EXTRAHEADER
 
 
 def test_gha_remote_script_refuses_to_run_without_a_job_token(
@@ -138,3 +182,59 @@ def test_gha_remote_script_refuses_to_run_without_a_job_token(
     )
     assert result.returncode == 1
     assert "GITHUB_TOKEN missing" in result.stderr
+
+
+def test_gha_entrypoint_prepares_fetch_when_vps_helper_file_is_missing(
+    tmp_path: Path,
+) -> None:
+    """First deploy: VPS still has old deploy_vps.sh and no helper file."""
+    app = tmp_path / "opt" / "sourcebd"
+    app.mkdir(parents=True)
+    _git(app, "init")
+    _git(
+        app,
+        "remote",
+        "add",
+        "origin",
+        "https://x-access-token:expired-pat@github.com/Rezx100/SourceBD.git",
+    )
+    ops = app / "ops"
+    ops.mkdir()
+    fake = ops / "deploy_vps.sh"
+    fake.write_text(
+        """#!/usr/bin/env bash
+set -Eeuo pipefail
+printf 'ORIGIN=%s\\n' "$(git config --local --get remote.origin.url)"
+printf 'KEY=%s\\n' "${GIT_CONFIG_KEY_0-}"
+printf 'GLOBAL=%s\\n' "${GIT_CONFIG_GLOBAL-}"
+printf 'HAS_AUTH=%s\\n' "$(printf '%s' "${GIT_CONFIG_VALUE_0-}" | grep -c 'AUTHORIZATION: basic' || true)"
+printf 'REF=%s\\n' "${1-}"
+""",
+        encoding="utf-8",
+    )
+    fake.chmod(fake.stat().st_mode | stat.S_IEXEC)
+    assert not (ops / "github_https_fetch_auth.sh").exists()
+
+    result = subprocess.run(
+        ["bash", str(GHA_SCRIPT)],
+        check=False,
+        capture_output=True,
+        text=True,
+        env=_clean_git_env(
+            {
+                "GITHUB_TOKEN": "ghs_fresh_job_token",
+                "APP_DIR": str(app),
+                "DEPLOY_REF": "main",
+            }
+        ),
+        cwd=tmp_path,
+    )
+    assert result.returncode == 0, result.stderr + result.stdout
+    lines = dict(ln.split("=", 1) for ln in result.stdout.strip().splitlines())
+    assert lines["ORIGIN"] == "https://github.com/Rezx100/SourceBD.git"
+    assert "expired-pat" not in lines["ORIGIN"]
+    assert "ghs_fresh_job_token" not in lines["ORIGIN"]
+    assert lines["KEY"] == EXTRAHEADER
+    assert lines["GLOBAL"] == "/dev/null"
+    assert lines["HAS_AUTH"] == "1"
+    assert lines["REF"] == "--ref=main"
