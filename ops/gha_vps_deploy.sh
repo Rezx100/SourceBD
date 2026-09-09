@@ -18,15 +18,22 @@ if [ ! -d .git ]; then echo "No .git in $REPO_DIR — run first-time VPS migrati
 origin="$(git config --local --get remote.origin.url 2>/dev/null || true)"
 if printf '%s' "$origin" | grep -qE '^https://([^/@]+@)?github\.com/'; then git remote set-url origin "$(printf '%s' "$origin" | sed -E 's#https://[^/@]+@github\.com/#https://github.com/#')"; fi
 git config --local --get-regexp '^url\..*\.insteadof$' 2>/dev/null | while read -r key val; do if printf '%s' "$val" | grep -q github.com; then git config --local --unset-all "$key" || true; fi; done || true
+git config --local --unset-all http.https://github.com/.extraheader 2>/dev/null || true
+git config --local --unset-all http.extraHeader 2>/dev/null || true
+git config --local --get-regexp '^http\..*extraheader$' 2>/dev/null | while read -r key val; do git config --local --unset-all "$key" || true; done || true
+git config --local --unset-all credential.helper 2>/dev/null || true
+git config --local --get-regexp '^credential\..*\.helper$' 2>/dev/null | while read -r key val; do git config --local --unset-all "$key" || true; done || true
 
 auth="$(printf 'x-access-token:%s' "$GITHUB_TOKEN" | base64 | tr -d '\n')"
 export GIT_CONFIG_GLOBAL=/dev/null
 export GIT_CONFIG_SYSTEM=/dev/null
-export GIT_CONFIG_COUNT=2
+export GIT_CONFIG_COUNT=3
 export GIT_CONFIG_KEY_0="http.https://github.com/.extraheader"
 export GIT_CONFIG_VALUE_0="AUTHORIZATION: basic ${auth}"
 export GIT_CONFIG_KEY_1="credential.helper"
 export GIT_CONFIG_VALUE_1=""
+export GIT_CONFIG_KEY_2="safe.directory"
+export GIT_CONFIG_VALUE_2="*"
 export GIT_TERMINAL_PROMPT=0
 
 bash ops/deploy_vps.sh --ref="${DEPLOY_REF}" --require-git

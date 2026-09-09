@@ -27,6 +27,16 @@ def test_gha_remote_script_keeps_the_same_fetch_rewrites_as_the_helper() -> None
     assert "GIT_CONFIG_GLOBAL=/dev/null" in remote
     assert "credential.helper" in helper
     assert "credential.helper" in remote
+    assert "safe.directory" in helper
+    assert "safe.directory" in remote
+    assert "GIT_CONFIG_COUNT=3" in helper
+    assert "GIT_CONFIG_COUNT=3" in remote
+    assert "unset-all http.https://github.com/.extraheader" in helper
+    assert "unset-all http.https://github.com/.extraheader" in remote
+    assert "unset-all http.extraHeader" in helper
+    assert "unset-all http.extraHeader" in remote
+    assert "unset-all credential.helper" in helper
+    assert "unset-all credential.helper" in remote
     assert 'bash ops/deploy_vps.sh --ref="${DEPLOY_REF}" --require-git' in remote
 
 
@@ -47,6 +57,8 @@ def _clean_git_env(extra: dict[str, str] | None = None) -> dict[str, str]:
         "GIT_CONFIG_VALUE_0",
         "GIT_CONFIG_KEY_1",
         "GIT_CONFIG_VALUE_1",
+        "GIT_CONFIG_KEY_2",
+        "GIT_CONFIG_VALUE_2",
         "APP_DIR",
         "DEPLOY_REF",
     ):
@@ -70,6 +82,9 @@ printf 'KEY=%s\\n' "${{GIT_CONFIG_KEY_0-}}"
 printf 'VALUE=%s\\n' "${{GIT_CONFIG_VALUE_0-}}"
 printf 'GLOBAL=%s\\n' "${{GIT_CONFIG_GLOBAL-}}"
 printf 'HELPER=%s\\n' "${{GIT_CONFIG_VALUE_1-}}"
+printf 'SAFE=%s\\n' "${{GIT_CONFIG_VALUE_2-}}"
+printf 'EXTRA_N=%s\\n' "$(git config --get-all http.https://github.com/.extraheader 2>/dev/null | grep -c . || true)"
+printf 'HELPERS=%s\\n' "$(git config --get-all credential.helper 2>/dev/null | tr '\\n' '|' || true)"
 """
     return subprocess.run(
         ["bash", "-c", script],
@@ -117,7 +132,10 @@ def test_strips_expired_https_userinfo_and_does_not_write_token_into_origin(
     decoded = base64.b64decode(lines["VALUE"].split(" ", 2)[2]).decode()
     assert decoded == "x-access-token:ghs_fresh_job_token"
     assert lines["GLOBAL"] == "/dev/null"
-    assert lines["COUNT"] == "2"
+    assert lines["COUNT"] == "3"
+    assert lines["SAFE"] == "*"
+    assert lines["EXTRA_N"].strip() == "1"
+    assert "store" not in lines["HELPERS"]
 
 
 def test_unsets_local_insteadof_that_rewrites_github_to_an_expired_pat(
@@ -146,6 +164,97 @@ def test_unsets_local_insteadof_that_rewrites_github_to_an_expired_pat(
     )
     assert leftover.stdout.strip() == ""
     assert "expired-pat" not in leftover.stdout
+
+
+def _plant_expired_github_http_overrides(repo: Path) -> None:
+    _git(
+        repo,
+        "config",
+        "--local",
+        "http.https://github.com/.extraheader",
+        "AUTHORIZATION: basic expiredlocal",
+    )
+    _git(
+        repo,
+        "config",
+        "--local",
+        "http.extraHeader",
+        "AUTHORIZATION: basic expiredgeneric",
+    )
+    _git(repo, "config", "--local", "credential.helper", "store")
+    _git(
+        repo,
+        "config",
+        "--local",
+        "credential.https://github.com/.helper",
+        "store",
+    )
+
+
+def test_prepare_drops_leftover_extraheader_and_store_helper(tmp_path: Path) -> None:
+    repo = tmp_path / "app"
+    repo.mkdir()
+    _git(repo, "init")
+    _git(repo, "remote", "add", "origin", "https://github.com/Rezx100/SourceBD.git")
+    _plant_expired_github_http_overrides(repo)
+    result = _run_prepare(repo, {"GITHUB_TOKEN": "ghs_fresh_job_token"})
+    assert result.returncode == 0, result.stderr
+    lines = dict(ln.split("=", 1) for ln in result.stdout.strip().splitlines())
+    assert lines["EXTRA_N"].strip() == "1"
+    assert "expiredlocal" not in lines.get("VALUE", "")
+    decoded = base64.b64decode(lines["VALUE"].split(" ", 2)[2]).decode()
+    assert decoded == "x-access-token:ghs_fresh_job_token"
+    assert "store" not in lines["HELPERS"]
+    leftover_extra = subprocess.run(
+        ["git", "config", "--local", "--get-all", EXTRAHEADER],
+        cwd=repo,
+        capture_output=True,
+        text=True,
+        env=_clean_git_env(),
+        check=False,
+    )
+    assert leftover_extra.stdout.strip() == ""
+    leftover_helper = subprocess.run(
+        ["git", "config", "--local", "--get-all", "credential.helper"],
+        cwd=repo,
+        capture_output=True,
+        text=True,
+        env=_clean_git_env(),
+        check=False,
+    )
+    assert leftover_helper.stdout.strip() == ""
+    leftover_url_helper = subprocess.run(
+        ["git", "config", "--local", "--get-all", "credential.https://github.com/.helper"],
+        cwd=repo,
+        capture_output=True,
+        text=True,
+        env=_clean_git_env(),
+        check=False,
+    )
+    assert leftover_url_helper.stdout.strip() == ""
+    leftover_generic = subprocess.run(
+        ["git", "config", "--local", "--get-all", "http.extraHeader"],
+        cwd=repo,
+        capture_output=True,
+        text=True,
+        env=_clean_git_env(),
+        check=False,
+    )
+    assert leftover_generic.stdout.strip() == ""
+
+
+def test_long_job_token_base64_has_no_newline(tmp_path: Path) -> None:
+    repo = tmp_path / "app"
+    repo.mkdir()
+    _git(repo, "init")
+    _git(repo, "remote", "add", "origin", "https://github.com/Rezx100/SourceBD.git")
+    token = "ghs_" + ("a" * 200)
+    result = _run_prepare(repo, {"GITHUB_TOKEN": token})
+    assert result.returncode == 0, result.stderr
+    lines = dict(ln.split("=", 1) for ln in result.stdout.strip().splitlines())
+    b64 = lines["VALUE"].split(" ", 2)[2]
+    assert "\n" not in b64
+    assert base64.b64decode(b64).decode() == f"x-access-token:{token}"
 
 
 def test_leaves_ssh_origin_and_skips_without_token(tmp_path: Path) -> None:
@@ -205,6 +314,7 @@ def test_gha_entrypoint_prepares_fetch_when_vps_helper_file_is_missing(
         "url.https://x-access-token:expired-pat@github.com/.insteadof",
         "https://github.com/",
     )
+    _plant_expired_github_http_overrides(app)
     ops = app / "ops"
     ops.mkdir()
     fake = ops / "deploy_vps.sh"
@@ -215,12 +325,18 @@ printf 'ORIGIN=%s\\n' "$(git config --local --get remote.origin.url)"
 printf 'KEY=%s\\n' "${GIT_CONFIG_KEY_0-}"
 printf 'GLOBAL=%s\\n' "${GIT_CONFIG_GLOBAL-}"
 printf 'HAS_AUTH=%s\\n' "$(printf '%s' "${GIT_CONFIG_VALUE_0-}" | grep -c 'AUTHORIZATION: basic' || true)"
+printf 'EXTRA_N=%s\\n' "$(git config --get-all http.https://github.com/.extraheader 2>/dev/null | grep -c . || true)"
+printf 'GENERIC=%s\\n' "$(git config --get-all http.extraHeader 2>/dev/null || true)"
+printf 'HELPERS=%s\\n' "$(git config --get-all credential.helper 2>/dev/null | tr '\\n' '|' || true)"
+printf 'URLHELP=%s\\n' "$(git config --get-all credential.https://github.com/.helper 2>/dev/null || true)"
+printf 'SAFE=%s\\n' "${GIT_CONFIG_VALUE_2-}"
 printf 'REF=%s\\n' "${1-}"
 """,
         encoding="utf-8",
     )
     fake.chmod(fake.stat().st_mode | stat.S_IEXEC)
     assert not (ops / "github_https_fetch_auth.sh").exists()
+    pinned = "273e86778f95b143bfa694aacbc92ecabf5ee591"
 
     result = subprocess.run(
         ["bash", str(GHA_SCRIPT)],
@@ -231,7 +347,7 @@ printf 'REF=%s\\n' "${1-}"
             {
                 "GITHUB_TOKEN": "ghs_fresh_job_token",
                 "APP_DIR": str(app),
-                "DEPLOY_REF": "main",
+                "DEPLOY_REF": pinned,
             }
         ),
         cwd=tmp_path,
@@ -244,7 +360,12 @@ printf 'REF=%s\\n' "${1-}"
     assert lines["KEY"] == EXTRAHEADER
     assert lines["GLOBAL"] == "/dev/null"
     assert lines["HAS_AUTH"] == "1"
-    assert lines["REF"] == "--ref=main"
+    assert lines["EXTRA_N"].strip() == "1"
+    assert lines["GENERIC"] == ""
+    assert "store" not in lines["HELPERS"]
+    assert lines["URLHELP"] == ""
+    assert lines["SAFE"] == "*"
+    assert lines["REF"] == f"--ref={pinned}"
     leftover = subprocess.run(
         ["git", "config", "--local", "--get-regexp", r"^url\..*\.insteadof$"],
         cwd=app,
@@ -254,3 +375,135 @@ printf 'REF=%s\\n' "${1-}"
         check=False,
     )
     assert leftover.stdout.strip() == ""
+
+
+DRONE_SSH_SCRIPT_STOP = (
+    "DRONE_SSH_PREV_COMMAND_EXIT_CODE=$? ; "
+    "if [ $DRONE_SSH_PREV_COMMAND_EXIT_CODE -ne 0 ]; then "
+    "exit $DRONE_SSH_PREV_COMMAND_EXIT_CODE; fi;"
+)
+
+
+def _inject_script_stop(text: str) -> str:
+    """appleboy/drone-ssh script_stop: exit-check after every newline that is not a continuation."""
+    lines: list[str] = []
+    for line in text.splitlines():
+        lines.append(line)
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#"):
+            continue
+        if line.rstrip().endswith("\\"):
+            continue
+        lines.append(DRONE_SSH_SCRIPT_STOP)
+    return "\n".join(lines) + "\n"
+
+
+def test_gha_entrypoint_parses_after_appleboy_script_stop_injection(
+    tmp_path: Path,
+) -> None:
+    injected = _inject_script_stop(GHA_SCRIPT.read_text(encoding="utf-8"))
+    path = tmp_path / "injected.sh"
+    path.write_text(injected, encoding="utf-8")
+    syntax = subprocess.run(
+        ["bash", "-n", str(path)],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    assert syntax.returncode == 0, syntax.stderr
+
+    app = tmp_path / "opt" / "sourcebd"
+    app.mkdir(parents=True)
+    _git(app, "init")
+    _git(app, "remote", "add", "origin", "https://github.com/Rezx100/SourceBD.git")
+    _plant_expired_github_http_overrides(app)
+    ops = app / "ops"
+    ops.mkdir()
+    fake = ops / "deploy_vps.sh"
+    fake.write_text(
+        "#!/usr/bin/env bash\nprintf 'RAN=%s\\n' \"${1-}\"\n",
+        encoding="utf-8",
+    )
+    fake.chmod(fake.stat().st_mode | stat.S_IEXEC)
+    result = subprocess.run(
+        ["bash", str(path)],
+        check=False,
+        capture_output=True,
+        text=True,
+        env=_clean_git_env(
+            {
+                "GITHUB_TOKEN": "ghs_fresh_job_token",
+                "APP_DIR": str(app),
+                "DEPLOY_REF": "abc1234deadbeefabc1234deadbeefabc1234de",
+            }
+        ),
+        cwd=tmp_path,
+    )
+    assert result.returncode == 0, result.stderr + result.stdout
+    assert "RAN=--ref=abc1234deadbeefabc1234deadbeefabc1234de" in result.stdout
+
+
+DRONE_SSH_SCRIPT_STOP = (
+    "DRONE_SSH_PREV_COMMAND_EXIT_CODE=$? ; "
+    "if [ $DRONE_SSH_PREV_COMMAND_EXIT_CODE -ne 0 ]; then "
+    "exit $DRONE_SSH_PREV_COMMAND_EXIT_CODE; fi;"
+)
+
+
+def _inject_script_stop(text: str) -> str:
+    """appleboy/drone-ssh script_stop: exit-check after every newline that is not a continuation."""
+    lines: list[str] = []
+    for line in text.splitlines():
+        lines.append(line)
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#"):
+            continue
+        if line.rstrip().endswith("\\"):
+            continue
+        lines.append(DRONE_SSH_SCRIPT_STOP)
+    return "\n".join(lines) + "\n"
+
+
+def test_gha_entrypoint_parses_after_appleboy_script_stop_injection(
+    tmp_path: Path,
+) -> None:
+    injected = _inject_script_stop(GHA_SCRIPT.read_text(encoding="utf-8"))
+    path = tmp_path / "injected.sh"
+    path.write_text(injected, encoding="utf-8")
+    syntax = subprocess.run(
+        ["bash", "-n", str(path)],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    assert syntax.returncode == 0, syntax.stderr
+
+    app = tmp_path / "opt" / "sourcebd"
+    app.mkdir(parents=True)
+    _git(app, "init")
+    _git(app, "remote", "add", "origin", "https://github.com/Rezx100/SourceBD.git")
+    _plant_expired_github_http_overrides(app)
+    ops = app / "ops"
+    ops.mkdir()
+    fake = ops / "deploy_vps.sh"
+    fake.write_text(
+        "#!/usr/bin/env bash\nprintf 'RAN=%s\\n' \"${1-}\"\n",
+        encoding="utf-8",
+    )
+    fake.chmod(fake.stat().st_mode | stat.S_IEXEC)
+    result = subprocess.run(
+        ["bash", str(path)],
+        check=False,
+        capture_output=True,
+        text=True,
+        env=_clean_git_env(
+            {
+                "GITHUB_TOKEN": "ghs_fresh_job_token",
+                "APP_DIR": str(app),
+                "DEPLOY_REF": "abc1234deadbeefabc1234deadbeefabc1234de",
+            }
+        ),
+        cwd=tmp_path,
+    )
+    assert result.returncode == 0, result.stderr + result.stdout
+    assert "RAN=--ref=abc1234deadbeefabc1234deadbeefabc1234de" in result.stdout

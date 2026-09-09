@@ -106,10 +106,66 @@ def test_gha_passes_job_token_and_self_contained_vps_script() -> None:
     assert "x-access-token:" in remote
     assert "GIT_CONFIG_GLOBAL=/dev/null" in remote
     assert "credential.helper" in remote
+    assert "safe.directory" in remote
+    assert "GIT_CONFIG_COUNT=3" in remote
+    assert "unset-all http.https://github.com/.extraheader" in remote
+    assert "unset-all credential.helper" in remote
     assert 'git remote set-url origin "https://x-access-token' not in remote
     assert "GITHUB_TOKEN missing" in remote
     assert "sourcebd_prepare_github_https_fetch() {" not in remote
     assert "\ncase " not in remote and not remote.startswith("case ")
+
+    with_block = deploy.split("with:", 1)[1]
+    used = set(re.findall(r"^          ([a-z_]+):", with_block, re.M))
+    # appleboy/ssh-action@v1.2.0 action.yml `inputs:` (undeclared keys are dropped).
+    appleboy_v1_2_0 = {
+        "host",
+        "port",
+        "passphrase",
+        "username",
+        "password",
+        "protocol",
+        "sync",
+        "use_insecure_cipher",
+        "cipher",
+        "timeout",
+        "command_timeout",
+        "key",
+        "key_path",
+        "fingerprint",
+        "proxy_host",
+        "proxy_port",
+        "proxy_username",
+        "proxy_password",
+        "proxy_protocol",
+        "proxy_passphrase",
+        "proxy_timeout",
+        "proxy_key",
+        "proxy_key_path",
+        "proxy_fingerprint",
+        "proxy_cipher",
+        "proxy_use_insecure_cipher",
+        "script",
+        "script_path",
+        "script_stop",
+        "envs",
+        "envs_format",
+        "debug",
+        "allenvs",
+        "request_pty",
+    }
+    assert used <= appleboy_v1_2_0
+    assert "script_path" in used
+    assert "script_file" not in used
+    assert "script" not in used
+    assert "script_stop" in used
+
+
+def test_health_route_json_commit_comes_from_commit_sha_env() -> None:
+    text = (ROOT / "app/api/health/route.ts").read_text(encoding="utf-8")
+    assert "commit: process.env.COMMIT_SHA" in text
+    compose = (ROOT / "docker-compose.yml").read_text(encoding="utf-8")
+    assert ".deploy/deploy.env" in compose
 
 
 def test_deploy_vps_prepares_github_https_fetch_before_git_fetch() -> None:
@@ -213,6 +269,38 @@ def test_pin_commands_peel_annotated_tag_to_the_commit_health_reports(
         capture_output=True,
         env=env,
     )
+    (work / "f").write_text("y\n", encoding="utf-8")
+    subprocess.run(["git", "add", "f"], cwd=work, check=True, capture_output=True, env=env)
+    subprocess.run(["git", "commit", "-m", "c2"], cwd=work, check=True, capture_output=True, env=env)
+    commit2 = subprocess.run(
+        ["git", "rev-parse", "HEAD"],
+        cwd=work,
+        check=True,
+        capture_output=True,
+        text=True,
+        env=env,
+    ).stdout.strip()
+    subprocess.run(
+        ["git", "tag", "-a", "v2026.07.02-1", "-m", "earlier"],
+        cwd=work,
+        check=True,
+        capture_output=True,
+        env=env,
+    )
+    subprocess.run(
+        ["git", "push", "origin", "HEAD:main"],
+        cwd=work,
+        check=True,
+        capture_output=True,
+        env=env,
+    )
+    subprocess.run(
+        ["git", "push", "origin", "v2026.07.02-1"],
+        cwd=work,
+        check=True,
+        capture_output=True,
+        env=env,
+    )
 
     runner = tmp_path / "runner"
     subprocess.run(
@@ -221,25 +309,27 @@ def test_pin_commands_peel_annotated_tag_to_the_commit_health_reports(
         capture_output=True,
         env=env,
     )
-    pin_cmd = (
-        'git fetch --tags origin "$DEPLOY_REF" && '
-        'unpeeled="$(git rev-parse FETCH_HEAD)" && '
-        'EXPECT="$(git rev-parse "FETCH_HEAD^{commit}")" && '
-        'printf "unpeeled=%s\\npeeled=%s\\n" "$unpeeled" "$EXPECT"'
-    )
+    github_output = tmp_path / "github_output"
+    github_output.write_text("", encoding="utf-8")
+    pin_script = _run_script(_step_named(_workflow(), "Resolve expected production commit"))
     pin = subprocess.run(
-        [
-            "bash",
-            "-c",
-            pin_cmd,
-        ],
+        ["bash", "-c", pin_script],
         cwd=runner,
         check=True,
         capture_output=True,
         text=True,
-        env={**env, "DEPLOY_REF": "v2026.07.02-5"},
+        env={**env, "DEPLOY_REF": "v2026.07.02-5", "GITHUB_OUTPUT": str(github_output)},
     )
-    lines = dict(ln.split("=", 1) for ln in pin.stdout.strip().splitlines())
-    assert lines["unpeeled"] == tag_obj
-    assert lines["peeled"] == commit
-    assert lines["unpeeled"] != lines["peeled"]
+    unpeeled = subprocess.run(
+        ["git", "rev-parse", "FETCH_HEAD"],
+        cwd=runner,
+        check=True,
+        capture_output=True,
+        text=True,
+        env=env,
+    ).stdout.strip()
+    assert unpeeled == tag_obj
+    assert f"sha={commit}" in github_output.read_text(encoding="utf-8")
+    assert commit != commit2
+    assert commit not in (tag_obj,)
+    assert pin.returncode == 0

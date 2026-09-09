@@ -168,6 +168,26 @@ def test_cli_fails_when_expect_commit_is_empty() -> None:
     assert "non-empty SHA" in result.stderr
 
 
+def test_cli_fails_when_expect_commit_is_whitespace() -> None:
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(SCRIPT),
+            "--url",
+            "http://127.0.0.1:1/api/health",
+            "--attempts",
+            "1",
+            "--expect-commit",
+            "   ",
+        ],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 2
+    assert "non-empty SHA" in result.stderr
+
+
 def test_cli_fails_when_nothing_is_listening() -> None:
     result = _run("http://127.0.0.1:1/api/health", attempts=2)
     assert result.returncode == 1
