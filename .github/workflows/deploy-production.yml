@@ -28,6 +28,9 @@ jobs:
             exit 1
           fi
 
+      - name: Checkout smoke helper
+        uses: actions/checkout@v4
+
       - name: Deploy to VPS via SSH
         uses: appleboy/ssh-action@v1.2.0
         env:
@@ -50,7 +53,14 @@ jobs:
             bash ops/deploy_vps.sh --ref="${DEPLOY_REF}" --require-git
 
       - name: Public smoke test
+        # Caddy can return 503 for up to one health_interval after the web
+        # container is already serving 127.0.0.1:3000 (Deploy Production
+        # 31855403484, 15 Aug 2026: SSH deploy succeeded, first public curl
+        # got 503, https://sourcebd.net/api/health was 200 seconds later).
+        # Retry until the public URL is 200 or we exhaust the window.
         run: |
-          HOST="${{ secrets.VPS_HOST }}"
-          curl --fail --silent --show-error --max-time 15 "http://${HOST}/api/health"
-          echo "Health check OK on ${HOST}"
+          python3 ops/wait_for_http_ok.py \
+            --url "http://${{ secrets.VPS_HOST }}/api/health" \
+            --attempts 12 \
+            --sleep 5
+          echo "Health check OK on ${{ secrets.VPS_HOST }}"
