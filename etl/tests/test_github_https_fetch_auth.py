@@ -450,6 +450,50 @@ def test_leftover_extraheader_plus_overlay_sends_two_authorization_headers(
     assert result.returncode != 0
 
 
+def test_leftover_generic_extraheader_plus_overlay_sends_two_authorization_headers(
+    tmp_path: Path,
+) -> None:
+    repo = tmp_path / "app"
+    repo.mkdir()
+    _git(repo, "init")
+    _git(repo, "remote", "add", "origin", "https://github.com/Rezx100/SourceBD.git")
+    _git(
+        repo,
+        "config",
+        "--local",
+        "http.extraHeader",
+        "AUTHORIZATION: basic expiredgeneric",
+    )
+    env = _clean_git_env()
+    env["GIT_TERMINAL_PROMPT"] = "0"
+    env["GIT_TRACE_CURL"] = "1"
+    env["GIT_CONFIG_COUNT"] = "1"
+    env["GIT_CONFIG_KEY_0"] = EXTRAHEADER
+    env["GIT_CONFIG_VALUE_0"] = "AUTHORIZATION: basic jobtoken"
+    result = subprocess.run(
+        ["git", "ls-remote", "origin"],
+        cwd=repo,
+        check=False,
+        capture_output=True,
+        text=True,
+        env=env,
+        timeout=30,
+    )
+    extra_n = subprocess.run(
+        ["git", "config", "--get-all", EXTRAHEADER],
+        cwd=repo,
+        capture_output=True,
+        text=True,
+        env=env,
+        check=False,
+    )
+    assert extra_n.stdout.count("AUTHORIZATION") == 1
+    auth_n = result.stderr.count("Send header: AUTHORIZATION:")
+    assert auth_n == 2, result.stderr[-800:]
+    assert "Duplicate header" in result.stderr or "error: 400" in result.stderr
+    assert result.returncode != 0
+
+
 DRONE_SSH_SCRIPT_STOP = (
     "DRONE_SSH_PREV_COMMAND_EXIT_CODE=$? ; "
     "if [ $DRONE_SSH_PREV_COMMAND_EXIT_CODE -ne 0 ]; then "
@@ -498,6 +542,9 @@ def test_gha_entrypoint_parses_after_appleboy_script_stop_injection(
 set -Eeuo pipefail
 printf 'RAN=%s\\n' "${1-}"
 printf 'EXTRA_N=%s\\n' "$(git config --get-all http.https://github.com/.extraheader 2>/dev/null | grep -c . || true)"
+GIT_TRACE_CURL=1 git ls-remote origin >/dev/null 2>trace.curl || true
+printf 'AUTH_N=%s\\n' "$(grep -c 'Send header: AUTHORIZATION:' trace.curl || true)"
+printf 'HAS_DUPE=%s\\n' "$(grep -ci 'Duplicate header' trace.curl || true)"
 """,
         encoding="utf-8",
     )
@@ -515,11 +562,14 @@ printf 'EXTRA_N=%s\\n' "$(git config --get-all http.https://github.com/.extrahea
             }
         ),
         cwd=tmp_path,
+        timeout=45,
     )
     assert result.returncode == 0, result.stderr + result.stdout
     lines = dict(ln.split("=", 1) for ln in result.stdout.strip().splitlines())
     assert lines["RAN"] == "--ref=abc1234deadbeefabc1234deadbeefabc1234de"
     assert lines["EXTRA_N"].strip() == "1"
+    assert lines["AUTH_N"].strip() == "1"
+    assert lines["HAS_DUPE"].strip() == "0"
 
 
 def test_gha_entrypoint_script_stop_succeeds_when_extraheader_already_absent(
@@ -614,6 +664,9 @@ set -Eeuo pipefail
 printf 'ORIGIN=%s\\n' "$(git config --local --get remote.origin.url)"
 printf 'EXTRA_N=%s\\n' "$(git config --get-all http.https://github.com/.extraheader 2>/dev/null | grep -c . || true)"
 printf 'HELPERS=%s\\n' "$(git config --get-all credential.helper 2>/dev/null | tr '\\n' '|' || true)"
+GIT_TRACE_CURL=1 git ls-remote origin >/dev/null 2>trace.curl || true
+printf 'AUTH_N=%s\\n' "$(grep -c 'Send header: AUTHORIZATION:' trace.curl || true)"
+printf 'HAS_DUPE=%s\\n' "$(grep -ci 'Duplicate header' trace.curl || true)"
 """,
         encoding="utf-8",
     )
@@ -634,6 +687,7 @@ printf 'HELPERS=%s\\n' "$(git config --get-all credential.helper 2>/dev/null | t
         capture_output=True,
         text=True,
         cwd=tmp_path,
+        timeout=45,
     )
     if result.returncode != 0 and "sudo" in (result.stderr + result.stdout).lower() and "password" in (result.stderr + result.stdout).lower():
         pytest.skip("passwordless sudo is required for root-on-foreign-tree coverage")
@@ -643,3 +697,5 @@ printf 'HELPERS=%s\\n' "$(git config --get-all credential.helper 2>/dev/null | t
     assert "expired-pat" not in lines["ORIGIN"]
     assert lines["EXTRA_N"].strip() == "1"
     assert "store" not in lines["HELPERS"]
+    assert lines["AUTH_N"].strip() == "1"
+    assert lines["HAS_DUPE"].strip() == "0"
