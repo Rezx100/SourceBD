@@ -25,7 +25,7 @@ import { formatCompanyName } from "@/lib/format-company-name";
 import { formatCardLocation } from "@/lib/format-location";
 import { formatProfileDate } from "@/lib/format-supplier-profile";
 import { sourceLogo } from "@/lib/source-logos";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { getPublicSupplierOverview } from "@/lib/public-supplier-profile";
 import { cn } from "@/lib/utils";
 
 const REGISTRY_CODES = new Set([
@@ -150,6 +150,10 @@ function entityLabel(type: Supplier["entity_type"]): string {
 
 /** Bound profile RPCs — first eligible candidate wins; avoid a 12-row scan. */
 const PRINCIPLE_CANDIDATE_LIMIT = 6;
+/** Overview RPCs per render. A sanctioned first slug must not hide the
+ *  card. A 57014 means the database is sick — stop; do not serial-await
+ *  two more timeouts. */
+const PRINCIPLE_PROFILE_ATTEMPTS = 3;
 
 async function loadPrincipleEvidence(): Promise<PrincipleEvidence | null> {
   const certKinds = CERT_KINDS.map((c) => c.value);
@@ -178,20 +182,14 @@ async function loadPrincipleEvidence(): Promise<PrincipleEvidence | null> {
   if (rows.slice(0, 2).some((row) => row.t13_source_count < 1)) return null;
 
   try {
-    const supabase = await createSupabaseServerClient();
     const slugs = rows.map((r) => r.slug).filter((s): s is string => !!s);
-    const results = await Promise.all(
-      slugs.map(async (slug) => {
-        const { data, error: profileError } = await supabase.rpc(
-          "buyer_supplier_profile",
-          { p_slug: slug },
-        );
-        if (profileError || data == null) return null;
-        return data as ProfilePayload;
-      }),
-    );
-
-    for (const payload of results) {
+    let attempts = 0;
+    for (const slug of slugs) {
+      if (attempts >= PRINCIPLE_PROFILE_ATTEMPTS) break;
+      attempts += 1;
+      const pack = await getPublicSupplierOverview(slug);
+      if (pack.timedOut) break;
+      const payload = pack.data ? (pack.data as ProfilePayload) : null;
       if (!payload) continue;
       if (payload.supplier.is_sanctioned) continue;
       if (payload.t13_source_count < 3) continue;

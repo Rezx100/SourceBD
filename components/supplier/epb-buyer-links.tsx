@@ -47,7 +47,7 @@ export function EpbHscodesUnavailable() {
       data-epb-hscodes-error=""
       className="text-[14px] leading-6 text-neutral-600"
     >
-      EPB export products could not load. Refresh the page.
+      EPB export products could not load just now.
     </p>
   );
 }

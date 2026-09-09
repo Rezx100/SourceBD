@@ -49,17 +49,19 @@ import {
 import { ProfileContactTabMarketing } from "@/components/supplier/profile-contact-tab";
 import { ProfileProvenanceTab } from "@/components/supplier/profile-provenance-tab";
 import { ProfileComplianceTab, asRscSites } from "@/components/supplier/profile-compliance-tab";
-import { hscodesFromRpc } from "@/lib/epb-hscodes";
+import { resolveUnpublishedProfileMiss } from "@/lib/facility-parent-redirect";
 import {
-  fetchFacilityParentSlug,
-  resolveUnpublishedProfileMiss,
-} from "@/lib/facility-parent-redirect";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+  getPublicSupplierProfile,
+  ProfileStatementTimeout,
+} from "@/lib/public-supplier-profile";
+import { siteOriginFromEnv, urlOnSite } from "@/lib/site-origin";
 import { profileTabClass, profileTabCountClass, profileHeaderContactClass, profileHeaderFollowClass } from "@/lib/profile-tab-styles";
 
+export const dynamic = "force-static";
 export const revalidate = 300;
+export const dynamicParams = true;
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://sourcebd.net";
+const SITE_URL = siteOriginFromEnv();
 
 // ---------- payload shape (mirrors RPC RETURNS jsonb document) -------------
 
@@ -208,12 +210,15 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { slug } = await params;
   try {
-    const supabase = await createSupabaseServerClient();
-    const { data } = await supabase.rpc("buyer_supplier_profile", {
-      p_slug: slug,
-    });
-    if (!data) return { title: "Supplier — SourceBD" };
-    const payload = data as ProfilePayload;
+    const pack = await getPublicSupplierProfile(slug);
+    if (pack.timedOut) {
+      return {
+        title: "Service temporarily slow — SourceBD",
+        robots: { index: false, follow: false },
+      };
+    }
+    if (!pack.data) return { title: "Supplier — SourceBD" };
+    const payload = pack.data as ProfilePayload;
     const s = payload.supplier;
     const loc = [s.city, s.district, s.country].filter(Boolean).join(", ");
     const title = `${s.company_name} — Bangladesh RMG supplier on SourceBD`;
@@ -232,7 +237,16 @@ export async function generateMetadata({
         type: "profile",
       },
     };
-  } catch {
+  } catch (err) {
+    const isTimeout =
+      err instanceof ProfileStatementTimeout ||
+      (err instanceof Error && err.name === "ProfileStatementTimeout");
+    if (isTimeout) {
+      return {
+        title: "Service temporarily slow — SourceBD",
+        robots: { index: false, follow: false },
+      };
+    }
     return { title: "Supplier — SourceBD" };
   }
 }
@@ -245,52 +259,22 @@ export default async function PublicSupplierProfilePage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const supabase = await createSupabaseServerClient();
-
-  const [{ data, error }, { data: facilityRaw }, hsResult] = await Promise.all([
-    supabase.rpc("buyer_supplier_profile", { p_slug: slug }),
-    supabase.rpc("buyer_supplier_facility_panel", { p_slug: slug }),
-    supabase.rpc("supplier_epb_hscodes", { p_slug: slug }),
-  ]);
-  const epbHs = hscodesFromRpc(hsResult);
-  if (error || data == null) {
-    // Distinguish "row missing" (correct 404) from "DB timeout" (transient).
-    const code = (error as { code?: string } | null)?.code ?? null;
-    const msg = error?.message ?? "";
-    const isTimeout =
-      code === "57014" ||
-      /statement timeout|canceling statement|timed out/i.test(msg);
-    if (isTimeout) {
-      return (
-        <div className="mx-auto max-w-2xl px-4 py-12">
-          <div className="rounded-lg border border-amber-200 bg-amber-50 p-6">
-            <h1 className="text-lg font-semibold text-amber-900">
-              Service temporarily slow
-            </h1>
-            <p className="mt-2 text-sm text-amber-800">
-              The factory profile for{" "}
-              <span className="font-mono">{slug}</span> couldn&apos;t load
-              within the time limit. Please refresh in a few seconds.
-            </p>
-            <Link
-              href={`/suppliers/${slug}`}
-              className="mt-4 inline-flex items-center rounded-md bg-amber-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-amber-700"
-            >
-              Retry
-            </Link>
-          </div>
-        </div>
-      );
-    }
-    // REZ-72: unpublished facility slug → permanent redirect to mother.
-    const parentSlug = await fetchFacilityParentSlug(supabase, slug);
+  const pack = await getPublicSupplierProfile(slug);
+  if (pack.timedOut) {
+    // Middleware issues the uncached 307. Do not redirect() here:
+    // force-static would give that 307 s-maxage=300. A throw is not
+    // stored as a factory page.
+    throw new ProfileStatementTimeout(slug);
+  }
+  const { data, parentSlug, facilityRaw, facilityLoadError, epbHs } = pack;
+  if (data == null) {
     const miss = resolveUnpublishedProfileMiss({
       profileFound: false,
       parentSlug,
       routeGroup: "public",
     });
     if (miss.action === "redirect") {
-      permanentRedirect(miss.path);
+      permanentRedirect(urlOnSite(miss.path).toString());
     }
     notFound();
   }
@@ -343,7 +327,10 @@ export default async function PublicSupplierProfilePage({
   return (
     <>
       {/* Marketing layout main has no horizontal padding; app shell main uses px-4. */}
-      <div className="r7-profile-shell mx-auto flex max-w-[1280px] flex-col gap-4 overflow-x-clip px-4 pb-5 sm:pb-6 md:px-6">
+      <div
+        className="r7-profile-shell mx-auto flex max-w-[1280px] flex-col gap-4 overflow-x-clip px-4 pb-5 sm:pb-6 md:px-6"
+        {...(facilityLoadError ? { "data-facilities-error": "" } : {})}
+      >
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(ld) }}
@@ -448,6 +435,7 @@ export default async function PublicSupplierProfilePage({
               discoverHref="/discover"
               slug={slug}
               facilitiesPanel={facilitiesPanel}
+              facilitiesLoadError={facilityLoadError}
               workers={workersHeadline}
               workersGroupLabel={workersGroupLabel}
               hscodes={epbHs.hscodes}

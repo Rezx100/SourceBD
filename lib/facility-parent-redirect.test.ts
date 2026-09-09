@@ -137,6 +137,34 @@ describe("fetchFacilityParentSlug", () => {
     assert.equal(await fetchFacilityParentSlug(supabase, "x"), null);
   });
 
+  it("RPC statement timeout is not a no-mapping 404", async () => {
+    const supabase = {
+      rpc: async () => ({ data: null, error: { code: "57014" } }),
+    };
+    await assert.rejects(
+      () => fetchFacilityParentSlug(supabase, "x"),
+      (err: unknown) =>
+        err instanceof Error && err.name === "ProfileStatementTimeout",
+    );
+  });
+
+  it("timeout-shaped data with error null is not a no-mapping 404", async () => {
+    const supabase = {
+      rpc: async () => ({
+        data: {
+          code: "57014",
+          message: "canceling statement due to statement timeout",
+        },
+        error: null,
+      }),
+    };
+    await assert.rejects(
+      () => fetchFacilityParentSlug(supabase, "x"),
+      (err: unknown) =>
+        err instanceof Error && err.name === "ProfileStatementTimeout",
+    );
+  });
+
   it("self-parenting row → null (no redirect loop to its own URL)", async () => {
     const supabase = {
       rpc: async () => ({ data: "self-parented-ltd", error: null }),

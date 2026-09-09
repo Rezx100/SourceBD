@@ -22,6 +22,7 @@ import {
   TAG_DISCOVER_SUPPLIERS,
   tagSupplier,
 } from "@/lib/cache/tags";
+import { clearPublicProfileTimeoutShed } from "@/lib/public-supplier-profile";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -264,7 +265,10 @@ export async function POST(req: Request) {
     revalidateTag(TAG_DISCOVER_FACETS);
     revalidateTag(TAG_DISCOVER_SUPPLIERS);
     for (const o of outcomes) {
-      if (o.ok) revalidateTag(tagSupplier(o.slug));
+      if (o.ok) {
+        revalidateTag(tagSupplier(o.slug));
+        clearPublicProfileTimeoutShed(o.slug);
+      }
     }
   }
   return NextResponse.json({

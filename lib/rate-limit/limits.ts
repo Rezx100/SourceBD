@@ -40,6 +40,7 @@ const MARKETING_PREFIXES = [
   "/discover",
   "/suppliers",
   "/compliance",
+  "/temporarily-slow",
 ];
 
 const WRITE_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);

@@ -10,6 +10,7 @@ import {
   TAG_DISCOVER_SUPPLIERS,
   tagSupplier,
 } from "@/lib/cache/tags";
+import { clearPublicProfileTimeoutShed } from "@/lib/public-supplier-profile";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -97,6 +98,7 @@ export async function POST(req: Request) {
     const slug = (slugRow as { slug?: string } | null)?.slug;
     if (slug) {
       revalidateTag(tagSupplier(slug));
+      clearPublicProfileTimeoutShed(slug);
       revalidatePath(`/suppliers/${slug}`);
       revalidatePath(`/app/suppliers/${slug}`);
       revalidatePath("/discover");
