@@ -29,14 +29,9 @@ export GIT_TERMINAL_PROMPT=0
 
 origin="$(git config --local --get remote.origin.url 2>/dev/null || true)"
 if printf '%s' "$origin" | grep -qiE '^https://([^/@]+@)?github\.com(:443)?/'; then git remote set-url origin "$(printf '%s' "$origin" | sed -E 's#^[Hh][Tt][Tt][Pp][Ss]://([^/@]+@)?[Gg][Ii][Tt][Hh][Uu][Bb]\.[Cc][Oo][Mm](:443)?/#https://github.com/#')"; fi
-git config --local --unset-all include.path 2>/dev/null || true
-git config --local --get-regexp '^includeIf\..*\.path$' 2>/dev/null | while read -r key val; do git config --local --unset-all "$key" || true; done || true
-git config --local --get-regexp '^url\..*\.insteadof$' 2>/dev/null | while read -r key val; do if printf '%s' "$val" | grep -qi github.com; then git config --local --unset-all "$key" || true; fi; done || true
-git config --local --unset-all http.https://github.com/.extraheader 2>/dev/null || true
-git config --local --unset-all http.extraHeader 2>/dev/null || true
-git config --local --get-regexp '^http\..*extraheader$' 2>/dev/null | while read -r key val; do git config --local --unset-all "$key" || true; done || true
-git config --local --unset-all credential.helper 2>/dev/null || true
-git config --local --get-regexp '^credential\..*\.helper$' 2>/dev/null | while read -r key val; do git config --local --unset-all "$key" || true; done || true
+gitdir="$(git rev-parse --git-dir 2>/dev/null || true)"
+for f in "$gitdir/config" "$gitdir/config.worktree"; do [ -f "$f" ] || continue; git config --file "$f" --unset-all include.path 2>/dev/null || true; git config --file "$f" --get-regexp '^includeIf\..*\.path$' 2>/dev/null | while read -r key val; do git config --file "$f" --unset-all "$key" || true; done || true; git config --file "$f" --get-regexp '^url\..*\.insteadof$' 2>/dev/null | while read -r key val; do git config --file "$f" --unset-all "$key" || true; done || true; git config --file "$f" --unset-all http.https://github.com/.extraheader 2>/dev/null || true; git config --file "$f" --unset-all http.extraHeader 2>/dev/null || true; git config --file "$f" --get-regexp '^http\..*extraheader$' 2>/dev/null | while read -r key val; do git config --file "$f" --unset-all "$key" || true; done || true; git config --file "$f" --unset-all credential.helper 2>/dev/null || true; git config --file "$f" --get-regexp '^credential\..*\.helper$' 2>/dev/null | while read -r key val; do git config --file "$f" --unset-all "$key" || true; done || true; done
+git config --local --unset-all extensions.worktreeConfig 2>/dev/null || true
 
 auth="$(printf 'x-access-token:%s' "$GITHUB_TOKEN" | base64 | tr -d '\n')"
 export GIT_CONFIG_COUNT=3

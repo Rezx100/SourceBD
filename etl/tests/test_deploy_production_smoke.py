@@ -103,6 +103,8 @@ def test_gha_passes_job_token_and_self_contained_vps_script() -> None:
     assert r"s#^[Hh][Tt][Tt][Pp][Ss]://([^/@]+@)?[Gg][Ii][Tt][Hh][Uu][Bb]\.[Cc][Oo][Mm](:443)?/#https://github.com/#" in remote
     assert "unset-all include.path" in remote
     assert r"^includeIf\..*\.path$" in remote
+    assert "config.worktree" in remote
+    assert "extensions.worktreeConfig" in remote
     assert "http.https://github.com/.extraheader" in remote
     assert "AUTHORIZATION: basic" in remote
     assert "x-access-token:" in remote

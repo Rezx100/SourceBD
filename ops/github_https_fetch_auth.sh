@@ -35,28 +35,32 @@ sourcebd_prepare_github_https_fetch() {
 	if printf '%s' "$origin" | grep -qiE '^https://([^/@]+@)?github\.com(:443)?/'; then
 		git remote set-url origin "$(printf '%s' "$origin" | sed -E 's#^[Hh][Tt][Tt][Pp][Ss]://([^/@]+@)?[Gg][Ii][Tt][Hh][Uu][Bb]\.[Cc][Oo][Mm](:443)?/#https://github.com/#')"
 	fi
-	# include.path / includeIf extraheader, helper, and insteadOf are
-	# invisible to `git config --local --unset-all` of those keys.
-	git config --local --unset-all include.path 2>/dev/null || true
-	git config --local --get-regexp '^includeIf\..*\.path$' 2>/dev/null | while read -r key val; do
-		git config --local --unset-all "$key" || true
-	done || true
-	# Local insteadOf can rewrite the cleaned URL back to an expired PAT.
-	git config --local --get-regexp '^url\..*\.insteadof$' 2>/dev/null | while read -r key val; do
-		if printf '%s' "$val" | grep -qi github.com; then
-			git config --local --unset-all "$key" || true
-		fi
-	done || true
-
-	git config --local --unset-all http.https://github.com/.extraheader 2>/dev/null || true
-	git config --local --unset-all http.extraHeader 2>/dev/null || true
-	git config --local --get-regexp '^http\..*extraheader$' 2>/dev/null | while read -r key val; do
-		git config --local --unset-all "$key" || true
-	done || true
-	git config --local --unset-all credential.helper 2>/dev/null || true
-	git config --local --get-regexp '^credential\..*\.helper$' 2>/dev/null | while read -r key val; do
-		git config --local --unset-all "$key" || true
-	done || true
+	# Leftovers in include.path, includeIf, and config.worktree are
+	# invisible to `git config --local --unset-all` of the HTTP keys.
+	# insteadOf is dropped entirely (not only when the value mentions
+	# github.com) so a rewrite of https:// cannot re-inject a PAT.
+	local gitdir="" cfg=""
+	gitdir="$(git rev-parse --git-dir 2>/dev/null || true)"
+	for cfg in "$gitdir/config" "$gitdir/config.worktree"; do
+		[ -f "$cfg" ] || continue
+		git config --file "$cfg" --unset-all include.path 2>/dev/null || true
+		git config --file "$cfg" --get-regexp '^includeIf\..*\.path$' 2>/dev/null | while read -r key val; do
+			git config --file "$cfg" --unset-all "$key" || true
+		done || true
+		git config --file "$cfg" --get-regexp '^url\..*\.insteadof$' 2>/dev/null | while read -r key val; do
+			git config --file "$cfg" --unset-all "$key" || true
+		done || true
+		git config --file "$cfg" --unset-all http.https://github.com/.extraheader 2>/dev/null || true
+		git config --file "$cfg" --unset-all http.extraHeader 2>/dev/null || true
+		git config --file "$cfg" --get-regexp '^http\..*extraheader$' 2>/dev/null | while read -r key val; do
+			git config --file "$cfg" --unset-all "$key" || true
+		done || true
+		git config --file "$cfg" --unset-all credential.helper 2>/dev/null || true
+		git config --file "$cfg" --get-regexp '^credential\..*\.helper$' 2>/dev/null | while read -r key val; do
+			git config --file "$cfg" --unset-all "$key" || true
+		done || true
+	done
+	git config --local --unset-all extensions.worktreeConfig 2>/dev/null || true
 
 	local auth
 	auth="$(printf 'x-access-token:%s' "$token" | base64 | tr -d '\n')"
