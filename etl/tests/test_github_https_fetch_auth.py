@@ -17,7 +17,7 @@ ROOT = Path(__file__).resolve().parents[2]
 HELPER = ROOT / "ops" / "github_https_fetch_auth.sh"
 GHA_SCRIPT = ROOT / "ops" / "gha_vps_deploy.sh"
 
-SED = r"s#^[Hh][Tt][Tt][Pp][Ss]://([^/@]+@)?[Gg][Ii][Tt][Hh][Uu][Bb]\.[Cc][Oo][Mm](:443)?/#https://github.com/#"
+SED = r"s#^[Hh][Tt][Tt][Pp][Ss]?://([^/@]+@)?([Ww][Ww][Ww]\.)?[Gg][Ii][Tt][Hh][Uu][Bb]\.[Cc][Oo][Mm]\.?(:443)?/#https://github.com/#"
 EXTRAHEADER = "http.https://github.com/.extraheader"
 PARAMS_EXTRAHEADER = (
     "'http.https://github.com/.extraheader=AUTHORIZATION: basic expiredparams'"
@@ -233,9 +233,13 @@ def test_gha_remote_script_keeps_the_same_fetch_rewrites_as_the_helper() -> None
     assert "extensions.worktreeConfig" in remote
     assert r"^url\..*\.(push)?insteadof$" in helper
     assert r"^url\..*\.(push)?insteadof$" in remote
-    assert r"github\.com(:443)?" in helper
-    assert r"github\.com(:443)?" in remote
-    assert 'bash ops/deploy_vps.sh --ref="${DEPLOY_REF}" --require-git' in remote
+    assert r"^https?://([^/@]+@)?(www\.)?github\.com(\.|:443)?/" in helper
+    assert r"^https?://([^/@]+@)?(www\.)?github\.com(\.|:443)?/" in remote
+    assert r"github\.com(\.|:443)?" in helper
+    assert r"github\.com(\.|:443)?" in remote
+    assert 'bash "$_deploy" --ref="${DEPLOY_REF}" --require-git' in remote
+    assert "export REPO_DIR" in remote
+    assert "mktemp" in remote
 
 
 def _first_code_index(text: str, needle: str) -> int:
@@ -684,6 +688,14 @@ def test_gha_entrypoint_prepares_fetch_when_vps_helper_file_is_missing(
     )
     _git(
         app,
+        "remote",
+        "set-url",
+        "--add",
+        "origin",
+        "https://x-access-token:expired-www-pat@www.github.com/Rezx100/SourceBD.git",
+    )
+    _git(
+        app,
         "config",
         "--local",
         "url.https://x-access-token:expired-pat@github.com/.insteadof",
@@ -771,6 +783,7 @@ def test_gha_entrypoint_prepares_fetch_when_vps_helper_file_is_missing(
     assert "expired-wt-pat" not in lines["GETURL"]
     assert "expired-wtif-pat" not in lines["GETURL"]
     assert "expired-https-pat" not in lines["GETURL"]
+    assert "expired-www-pat" not in lines["GETURL"]
     assert "expired-pat" not in lines["MERGED_INSTEAD"]
     assert "expired-wt-pat" not in lines["MERGED_INSTEAD"]
     assert "expired-wtif-pat" not in lines["MERGED_INSTEAD"]
@@ -1250,6 +1263,26 @@ git fetch --quiet origin --tags
     assert result.returncode != 0
     assert httpd.expected_b64 not in httpd.seen_b64
     assert any(b64 for b64 in httpd.seen_b64)
+
+
+def test_prepare_strips_www_github_userinfo(tmp_path: Path) -> None:
+    repo = tmp_path / "app"
+    repo.mkdir()
+    _git(repo, "init")
+    _git(
+        repo,
+        "remote",
+        "add",
+        "origin",
+        "https://x-access-token:expired-www-pat@www.github.com/Rezx100/SourceBD.git",
+    )
+    lines = _prepare_then_github_probe(repo, "ghs_fresh_job_token")
+    assert lines["GETURL"] == "https://github.com/Rezx100/SourceBD.git"
+    assert "expired-www-pat" not in lines["GETURL"]
+    assert "www.github.com" not in lines["GETURL"]
+    assert lines["HAS_EXPIREDPAT"].strip() == "0"
+    assert lines["AUTH_N"].strip() == "1"
+    assert lines["HAS_DUPE"].strip() == "0"
 
 
 def test_prepare_strips_github_443_and_https_uppercase_userinfo(tmp_path: Path) -> None:
@@ -1742,16 +1775,10 @@ def test_gha_entrypoint_patches_merge_base_require_git_on_gitfile(
         "HTTPS://x-access-token:expired-pat@github.com:443/Rezx100/SourceBD.git",
     )
     _plant_expired_github_http_overrides(main)
-    linked = tmp_path / "linked"
-    _git(main, "worktree", "add", str(linked), "HEAD")
-    assert (linked / ".git").is_file()
-    token = "ghs_fresh_job_token"
-    git_root, seed_sha = _seed_exportable_bare(tmp_path / "export")
-    httpd, local_url, _thread = _start_authed_git_http(git_root, token)
-    ops = linked / "ops"
+    ops = main / "ops"
     ops.mkdir()
-    stub = ops / "deploy_vps.sh"
-    stub.write_text(
+    stub_main = ops / "deploy_vps.sh"
+    stub_main.write_text(
         """#!/usr/bin/env bash
 set -Eeuo pipefail
 REQUIRE_GIT=0
@@ -1764,6 +1791,8 @@ if [ "$REQUIRE_GIT" -eq 1 ] && [ ! -d .git ]; then
   echo OLD_REQUIRE_GIT_DIE=yes
   exit 1
 fi
+if ! git diff --quiet -- ops/deploy_vps.sh 2>/dev/null; then echo DIRTY_DEPLOY_VPS=yes; exit 1; fi
+echo DIRTY_DEPLOY_VPS=no
 if [ -d .git ]; then
   echo FETCH_BLOCK=dir
   echo OLD_REQUIRE_GIT_DIE=no
@@ -1778,7 +1807,16 @@ fi
 """,
         encoding="utf-8",
     )
-    stub.chmod(stub.stat().st_mode | stat.S_IEXEC)
+    stub_main.chmod(stub_main.stat().st_mode | stat.S_IEXEC)
+    _git(main, "add", "ops/deploy_vps.sh")
+    _git(main, "commit", "-m", "stub")
+    linked = tmp_path / "linked"
+    _git(main, "worktree", "add", str(linked), "HEAD")
+    assert (linked / ".git").is_file()
+    token = "ghs_fresh_job_token"
+    git_root, seed_sha = _seed_exportable_bare(tmp_path / "export")
+    httpd, local_url, _thread = _start_authed_git_http(git_root, token)
+    stub = linked / "ops" / "deploy_vps.sh"
     pinned = "273e86778f95b143bfa694aacbc92ecabf5ee591"
     try:
         result = subprocess.run(
@@ -1811,6 +1849,6 @@ fi
     assert "400" not in lines["LS_HTTP"]
     assert lines["FETCH_RC"].strip() == "0"
     assert lines["GOT"].strip() == seed_sha
-    patched = stub.read_text(encoding="utf-8")
-    assert "[ ! -d .git ] && [ ! -f .git ]" in patched
-    assert "[ -d .git ] || [ -f .git ]" in patched
+    on_disk = stub.read_text(encoding="utf-8")
+    assert "[ ! -d .git ] && [ ! -f .git ]" not in on_disk
+    assert lines.get("DIRTY_DEPLOY_VPS") == "no"

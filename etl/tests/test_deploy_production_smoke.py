@@ -98,10 +98,10 @@ def test_gha_passes_job_token_and_self_contained_vps_script() -> None:
     assert "x-access-token:" not in deploy  # token stays in env, not YAML
 
     remote = (ROOT / "ops" / "gha_vps_deploy.sh").read_text(encoding="utf-8")
-    assert 'bash ops/deploy_vps.sh --ref="${DEPLOY_REF}" --require-git' in remote
+    assert 'bash "$_deploy" --ref="${DEPLOY_REF}" --require-git' in remote
     assert "git config --file" in remote
     assert "http.https://github.com/.extraheader" in remote
-    assert r"s#^[Hh][Tt][Tt][Pp][Ss]://([^/@]+@)?[Gg][Ii][Tt][Hh][Uu][Bb]\.[Cc][Oo][Mm](:443)?/#https://github.com/#" in remote
+    assert r"s#^[Hh][Tt][Tt][Pp][Ss]?://([^/@]+@)?([Ww][Ww][Ww]\.)?[Gg][Ii][Tt][Hh][Uu][Bb]\.[Cc][Oo][Mm]\.?(:443)?/#https://github.com/#" in remote
     assert "unset-all include.path" in remote
     assert r"^includeIf\..*\.path$" in remote
     assert "config.worktree" in remote
@@ -121,6 +121,8 @@ def test_gha_passes_job_token_and_self_contained_vps_script() -> None:
     assert r"^url\..*\.(push)?insteadof$" in remote
     assert "credential.helper" in remote
     assert "if [ -f .git ] && [ -f ops/deploy_vps.sh ]" in remote
+    assert "export REPO_DIR" in remote
+    assert "mktemp" in remote
     assert "safe.directory" in remote
     assert "GIT_CONFIG_COUNT=3" in remote
     assert "unset-all http.https://github.com/.extraheader" in remote

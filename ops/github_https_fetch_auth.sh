@@ -48,8 +48,8 @@ sourcebd_prepare_github_https_fetch() {
 	if [ -n "$cfg" ] && [ -f "$cfg" ]; then
 		while IFS= read -r origin_line; do
 			[ -n "$origin_line" ] || continue
-			if printf '%s' "$origin_line" | grep -qiE '^https://([^/@]+@)?github\.com(:443)?/'; then
-				canon="$(printf '%s' "$origin_line" | sed -E 's#^[Hh][Tt][Tt][Pp][Ss]://([^/@]+@)?[Gg][Ii][Tt][Hh][Uu][Bb]\.[Cc][Oo][Mm](:443)?/#https://github.com/#')"
+			if printf '%s' "$origin_line" | grep -qiE '^https?://([^/@]+@)?(www\.)?github\.com(\.|:443)?/'; then
+				canon="$(printf '%s' "$origin_line" | sed -E 's#^[Hh][Tt][Tt][Pp][Ss]?://([^/@]+@)?([Ww][Ww][Ww]\.)?[Gg][Ii][Tt][Hh][Uu][Bb]\.[Cc][Oo][Mm]\.?(:443)?/#https://github.com/#')"
 			fi
 		done <<EOF
 $(git config --file "$cfg" --get-all remote.origin.url 2>/dev/null || true)
