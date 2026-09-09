@@ -198,6 +198,13 @@ def test_gha_entrypoint_prepares_fetch_when_vps_helper_file_is_missing(
         "origin",
         "https://x-access-token:expired-pat@github.com/Rezx100/SourceBD.git",
     )
+    _git(
+        app,
+        "config",
+        "--local",
+        "url.https://x-access-token:expired-pat@github.com/.insteadof",
+        "https://github.com/",
+    )
     ops = app / "ops"
     ops.mkdir()
     fake = ops / "deploy_vps.sh"
@@ -238,3 +245,12 @@ printf 'REF=%s\\n' "${1-}"
     assert lines["GLOBAL"] == "/dev/null"
     assert lines["HAS_AUTH"] == "1"
     assert lines["REF"] == "--ref=main"
+    leftover = subprocess.run(
+        ["git", "config", "--local", "--get-regexp", r"^url\..*\.insteadof$"],
+        cwd=app,
+        capture_output=True,
+        text=True,
+        env=_clean_git_env(),
+        check=False,
+    )
+    assert leftover.stdout.strip() == ""

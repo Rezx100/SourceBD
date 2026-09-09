@@ -41,14 +41,14 @@ jobs:
           DEPLOY_REF: ${{ github.event.inputs.ref }}
         run: |
           git fetch --tags origin "${DEPLOY_REF}"
-          EXPECT="$(git rev-parse FETCH_HEAD)"
+          EXPECT="$(git rev-parse "FETCH_HEAD^{commit}")"
           echo "sha=${EXPECT}" >> "$GITHUB_OUTPUT"
           echo "Expected production commit ${EXPECT}"
 
       - name: Deploy to VPS via SSH
         uses: appleboy/ssh-action@v1.2.0
         env:
-          DEPLOY_REF: ${{ github.event.inputs.ref }}
+          DEPLOY_REF: ${{ steps.pin.outputs.sha }}
           APP_DIR: ${{ secrets.VPS_APP_DIR }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:

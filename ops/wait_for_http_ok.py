@@ -93,12 +93,16 @@ def main(argv: list[str] | None = None) -> int:
     if args.attempts < 1:
         print("--attempts must be >= 1", file=sys.stderr)
         return 2
+    expect = args.expect_commit
+    if expect is not None and not expect.strip():
+        print("--expect-commit must be a non-empty SHA", file=sys.stderr)
+        return 2
     return wait_for_http_ok(
         args.url,
         args.attempts,
         args.sleep,
         args.timeout,
-        expect_commit=args.expect_commit or None,
+        expect_commit=expect,
     )
 
 
