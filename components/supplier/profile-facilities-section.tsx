@@ -49,6 +49,17 @@ function FacilityRscLine({ rsc }: { rsc: FacilityRsc }) {
   );
 }
 
+export function FacilitiesUnavailable() {
+  return (
+    <p
+      data-facilities-error=""
+      className="text-[14px] leading-6 text-neutral-600"
+    >
+      Facilities could not load just now.
+    </p>
+  );
+}
+
 export function ProfileFacilitiesSection({
   panel,
   workersGroupLabel,

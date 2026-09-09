@@ -52,9 +52,14 @@ import { ProfileProvenanceTab } from "@/components/supplier/profile-provenance-t
 import { ProfileComplianceTab, asRscSites } from "@/components/supplier/profile-compliance-tab";
 import { hscodesFromRpc } from "@/lib/epb-hscodes";
 import {
+  facilityPanelFromRpc,
+  isProfileRpcTimeout,
+} from "@/lib/public-supplier-profile";
+import {
   fetchFacilityParentSlug,
   resolveUnpublishedProfileMiss,
 } from "@/lib/facility-parent-redirect";
+import { urlOnSite } from "@/lib/site-origin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getServerRole } from "@/lib/auth";
 import { profileTabClass, profileTabCountClass, profileHeaderContactClass } from "@/lib/profile-tab-styles";
@@ -206,23 +211,23 @@ export default async function FactoryProfilePage({
   const { slug } = await params;
   const supabase = await createSupabaseServerClient();
 
-  const [{ data, error }, { data: facilityRaw }, hsResult] = await Promise.all([
+  const [profileResult, facilityResult, hsResult] = await Promise.all([
     supabase.rpc("buyer_supplier_profile", { p_slug: slug }),
     supabase.rpc("buyer_supplier_facility_panel", { p_slug: slug }),
     supabase.rpc("supplier_epb_hscodes", { p_slug: slug }),
   ]);
+  const { data, error } = profileResult;
+  const panelPack = facilityPanelFromRpc(facilityResult);
   const epbHs = hscodesFromRpc(hsResult);
-  if (error || data == null) {
-    // Distinguish "row missing" (correct 404) from "DB timeout" (transient).
-    // statement_timeout / canceling statement → 57014. Render a service-slow
-    // card instead of a misleading "Not found".
-    const code = (error as { code?: string } | null)?.code ?? null;
-    const msg = error?.message ?? "";
-    const isTimeout =
-      code === "57014" ||
-      /statement timeout|canceling statement|timed out/i.test(msg);
-    if (isTimeout) {
-      return (
+  const timeoutShapedData =
+    data && typeof data === "object" && !Array.isArray(data)
+      ? (data as { code?: string; message?: string })
+      : null;
+  if (
+    isProfileRpcTimeout(error) ||
+    isProfileRpcTimeout(timeoutShapedData)
+  ) {
+    return (
         <div className="mx-auto max-w-2xl px-4 py-12">
           <div className="rounded-lg border border-amber-200 bg-amber-50 p-6">
             <h1 className="text-lg font-semibold text-amber-900">
@@ -243,16 +248,46 @@ export default async function FactoryProfilePage({
           </div>
         </div>
       );
+  }
+  if (error || data == null) {
+    let parentSlug: string | null = null;
+    try {
+      parentSlug = await fetchFacilityParentSlug(supabase, slug);
+    } catch (err) {
+      const isParentTimeout =
+        err instanceof Error && err.name === "ProfileStatementTimeout";
+      if (isParentTimeout) {
+        return (
+          <div className="mx-auto max-w-2xl px-4 py-12">
+            <div className="rounded-lg border border-amber-200 bg-amber-50 p-6">
+              <h1 className="text-lg font-semibold text-amber-900">
+                Service temporarily slow
+              </h1>
+              <p className="mt-2 text-sm text-amber-800">
+                The factory profile for{" "}
+                <span className="font-mono">{slug}</span> couldn&apos;t load
+                within the time limit. Our database is under heavy load. Please
+                refresh in a few seconds.
+              </p>
+              <Link
+                href={`/app/suppliers/${slug}`}
+                className="mt-4 inline-flex items-center rounded-md bg-amber-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-amber-700"
+              >
+                Retry
+              </Link>
+            </div>
+          </div>
+        );
+      }
+      throw err;
     }
-    // REZ-72: unpublished facility slug → permanent redirect to mother.
-    const parentSlug = await fetchFacilityParentSlug(supabase, slug);
     const miss = resolveUnpublishedProfileMiss({
       profileFound: false,
       parentSlug,
       routeGroup: "app",
     });
     if (miss.action === "redirect") {
-      permanentRedirect(miss.path);
+      permanentRedirect(urlOnSite(miss.path).toString());
     }
     notFound();
   }
@@ -260,12 +295,12 @@ export default async function FactoryProfilePage({
   const payload = data as ProfilePayload;
   const s = payload.supplier;
   const facilitiesPanel =
-    facilityRaw &&
-    typeof facilityRaw === "object" &&
-    Array.isArray((facilityRaw as FacilityPanel).facilities) &&
-    (facilityRaw as FacilityPanel).facilities.length > 0 &&
-    (facilityRaw as FacilityPanel).group
-      ? sanitizeFacilityPanel(facilityRaw as FacilityPanel)
+    panelPack.facilityRaw &&
+    typeof panelPack.facilityRaw === "object" &&
+    Array.isArray((panelPack.facilityRaw as FacilityPanel).facilities) &&
+    (panelPack.facilityRaw as FacilityPanel).facilities.length > 0 &&
+    (panelPack.facilityRaw as FacilityPanel).group
+      ? sanitizeFacilityPanel(panelPack.facilityRaw as FacilityPanel)
       : null;
 
   const rscSites = asRscSites(payload.rsc_remediation);
@@ -320,7 +355,10 @@ export default async function FactoryProfilePage({
   }
 
   return (
-    <div className="r7-profile-shell mx-auto flex max-w-[1280px] flex-col gap-4 overflow-x-clip px-0 pb-5 sm:px-4 sm:pb-6 md:px-6">
+    <div
+      className="r7-profile-shell mx-auto flex max-w-[1280px] flex-col gap-4 overflow-x-clip px-0 pb-5 sm:px-4 sm:pb-6 md:px-6"
+      {...(panelPack.facilityLoadError ? { "data-facilities-error": "" } : {})}
+    >
       {s.is_sanctioned ? <SanctionsBanner /> : null}
       <BlurFade delay={0.07}>
         <CompanyProfileHeader
@@ -398,6 +436,7 @@ export default async function FactoryProfilePage({
             discoverHref="/app/discover"
             slug={slug}
             facilitiesPanel={facilitiesPanel}
+            facilitiesLoadError={panelPack.facilityLoadError}
             workers={workersHeadline}
             workersGroupLabel={workersGroupLabel}
             hscodes={epbHs.hscodes}

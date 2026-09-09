@@ -19,7 +19,7 @@ import {
 } from "@/components/marketing/home/evidence-anatomy-stage";
 import { CERT_KINDS } from "@/components/discover/filter-rail";
 import { fetchPublicDiscoverSuppliers } from "@/lib/discover-suppliers";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { getPublicSupplierOverview } from "@/lib/public-supplier-profile";
 
 type Supplier = {
   id: string;
@@ -176,7 +176,9 @@ function evidenceDensity(payload: ProfilePayload): number {
 
 /** Discover pool size — profile RPCs are fetched sequentially from this list. */
 const FEATURED_CANDIDATE_LIMIT = 6;
-/** Max profile RPCs per page render. Parallel stampedes hit statement timeout. */
+/** Overview RPCs per homepage render. First slug may be sanctioned;
+ *  do not spend the only attempt on a skip. A 57014 means the database
+ *  is sick — stop immediately; do not serial-await two more timeouts. */
 const FEATURED_PROFILE_ATTEMPTS = 3;
 /** Good-enough density to stop early (discover is already receipts-sorted). */
 const FEATURED_DENSITY_EARLY_EXIT = 10;
@@ -205,11 +207,7 @@ async function loadFeaturedProfile(): Promise<ProfilePayload | null> {
   if (error || rows.length === 0) return null;
 
   try {
-    const supabase = await createSupabaseServerClient();
     const slugs = rows.map((r) => r.slug).filter((s): s is string => !!s);
-
-    // Sequential on purpose: six parallel buyer_supplier_profile calls reliably
-    // trip statement timeout (57014) on the hosted DB and hide this section.
     let best: ProfilePayload | null = null;
     let bestScore = -1;
     let attempts = 0;
@@ -217,11 +215,10 @@ async function loadFeaturedProfile(): Promise<ProfilePayload | null> {
       if (attempts >= FEATURED_PROFILE_ATTEMPTS) break;
       attempts += 1;
 
-      const { data, error: profileError } = await supabase.rpc(
-        "buyer_supplier_profile",
-        { p_slug: slug },
-      );
-      if (profileError || data == null) continue;
+      const pack = await getPublicSupplierOverview(slug);
+      if (pack.timedOut) break;
+      const data = pack.data;
+      if (data == null) continue;
 
       const payload = data as ProfilePayload;
       if (payload.supplier.is_sanctioned) continue;

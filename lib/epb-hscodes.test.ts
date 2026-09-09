@@ -86,23 +86,49 @@ describe("hscodesFromRpc", () => {
       hscodesFromRpc({ data: [{ code: "6103" }], error: { message: "function missing" } }),
       { hscodes: [], loadError: true },
     );
+    assert.deepEqual(
+      hscodesFromRpc({
+        data: { code: "57014", message: "canceling statement due to statement timeout" },
+        error: null,
+      }),
+      { hscodes: [], loadError: true },
+    );
   });
 });
 
 describe("EPB HS wiring (observable call sites)", () => {
   it("both profile routes fetch supplier_epb_hscodes and do not swallow RPC errors", () => {
-    for (const rel of [
-      "app/(public)/suppliers/[slug]/page.tsx",
-      "app/(app)/app/suppliers/[slug]/page.tsx",
-    ]) {
-      const t = readFileSync(join(process.cwd(), rel), "utf8");
-      assert.match(t, /supplier_epb_hscodes/);
-      assert.match(t, /hscodesFromRpc/);
-      assert.match(t, /hscodesLoadError/);
-      assert.doesNotMatch(t, /hsResult\.error \? \[\]/);
-      assert.match(t, /forceMount/);
-      assert.match(t, /hscodes=\{epbHs\.hscodes\}/);
-    }
+    const helper = readFileSync(
+      join(process.cwd(), "lib/public-supplier-profile.ts"),
+      "utf8",
+    );
+    assert.match(helper, /supplier_epb_hscodes/);
+    assert.match(helper, /hscodesFromRpc/);
+    assert.doesNotMatch(helper, /hsResult\.error \? \[\]/);
+
+    const pub = readFileSync(
+      join(process.cwd(), "app/(public)/suppliers/[slug]/page.tsx"),
+      "utf8",
+    );
+    assert.match(pub, /getPublicSupplierProfile/);
+    assert.match(pub, /hscodesLoadError/);
+    assert.match(pub, /forceMount/);
+    assert.match(pub, /hscodes=\{epbHs\.hscodes\}/);
+    assert.match(pub, /facilitiesLoadError=\{facilityLoadError\}/);
+
+    const app = readFileSync(
+      join(process.cwd(), "app/(app)/app/suppliers/[slug]/page.tsx"),
+      "utf8",
+    );
+    assert.match(app, /supplier_epb_hscodes/);
+    assert.match(app, /hscodesFromRpc/);
+    assert.match(app, /hscodesLoadError/);
+    assert.doesNotMatch(app, /hsResult\.error \? \[\]/);
+    assert.match(app, /forceMount/);
+    assert.match(app, /hscodes=\{epbHs\.hscodes\}/);
+    assert.match(app, /facilitiesLoadError=\{panelPack\.facilityLoadError\}/);
+    assert.match(app, /facilityPanelFromRpc/);
+    assert.match(app, /isProfileRpcTimeout/);
   });
 
   it("Overview shows HS codes; Compliance does not; empty list is omitted", () => {
@@ -120,6 +146,8 @@ describe("EPB HS wiring (observable call sites)", () => {
     );
     assert.match(overview, /<ProfileEpbHscodesCard/);
     assert.match(overview, /hscodesLoadError/);
+    assert.match(overview, /facilitiesLoadError/);
+    assert.match(overview, /FacilitiesUnavailable/);
     assert.doesNotMatch(tab, /ProfileEpbHscodesCard/);
     assert.match(tab, /EpbRegistryOpenMarkup sourceUrl=\{pill\.source_url\}/);
     assert.match(card, /export function ProfileEpbHscodesCard/);
