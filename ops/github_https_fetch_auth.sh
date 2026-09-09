@@ -30,12 +30,20 @@ sourcebd_prepare_github_https_fetch() {
 
 	local origin=""
 	origin="$(git config --local --get remote.origin.url 2>/dev/null || true)"
-	if printf '%s' "$origin" | grep -qE '^https://([^/@]+@)?github\.com/'; then
-		git remote set-url origin "$(printf '%s' "$origin" | sed -E 's#https://[^/@]+@github\.com/#https://github.com/#')"
+	# Drop userinfo, :443, and scheme-case variants so leftover PATs cannot
+	# stay in origin (github.com:443 / HTTPS:// named counterexamples).
+	if printf '%s' "$origin" | grep -qiE '^https://([^/@]+@)?github\.com(:443)?/'; then
+		git remote set-url origin "$(printf '%s' "$origin" | sed -E 's#^[Hh][Tt][Tt][Pp][Ss]://([^/@]+@)?[Gg][Ii][Tt][Hh][Uu][Bb]\.[Cc][Oo][Mm](:443)?/#https://github.com/#')"
 	fi
+	# include.path / includeIf extraheader, helper, and insteadOf are
+	# invisible to `git config --local --unset-all` of those keys.
+	git config --local --unset-all include.path 2>/dev/null || true
+	git config --local --get-regexp '^includeIf\..*\.path$' 2>/dev/null | while read -r key val; do
+		git config --local --unset-all "$key" || true
+	done || true
 	# Local insteadOf can rewrite the cleaned URL back to an expired PAT.
 	git config --local --get-regexp '^url\..*\.insteadof$' 2>/dev/null | while read -r key val; do
-		if printf '%s' "$val" | grep -q github.com; then
+		if printf '%s' "$val" | grep -qi github.com; then
 			git config --local --unset-all "$key" || true
 		fi
 	done || true

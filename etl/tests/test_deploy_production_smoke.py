@@ -100,7 +100,9 @@ def test_gha_passes_job_token_and_self_contained_vps_script() -> None:
     remote = (ROOT / "ops" / "gha_vps_deploy.sh").read_text(encoding="utf-8")
     assert 'bash ops/deploy_vps.sh --ref="${DEPLOY_REF}" --require-git' in remote
     assert "git remote set-url origin" in remote
-    assert r"s#https://[^/@]+@github\.com/#https://github.com/#" in remote
+    assert r"s#^[Hh][Tt][Tt][Pp][Ss]://([^/@]+@)?[Gg][Ii][Tt][Hh][Uu][Bb]\.[Cc][Oo][Mm](:443)?/#https://github.com/#" in remote
+    assert "unset-all include.path" in remote
+    assert r"^includeIf\..*\.path$" in remote
     assert "http.https://github.com/.extraheader" in remote
     assert "AUTHORIZATION: basic" in remote
     assert "x-access-token:" in remote

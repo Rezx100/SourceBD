@@ -224,6 +224,33 @@ def test_cli_fails_when_expect_commit_is_whitespace() -> None:
     assert "non-empty SHA" in result.stderr
 
 
+def test_cli_accepts_padded_expect_commit() -> None:
+    sha = "273e86778f95b143bfa694aacbc92ecabf5ee591"
+
+    class Handler(BaseHTTPRequestHandler):
+        def do_GET(self) -> None:
+            self.send_response(200)
+            self.end_headers()
+            self.wfile.write(
+                f'{{"status":"ok","commit":"{sha}","ts":"2026-09-09T11:56:09.919Z"}}\n'.encode()
+            )
+
+        def log_message(self, fmt: str, *args: object) -> None:
+            return
+
+    server = HTTPServer(("127.0.0.1", 0), Handler)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        url = f"http://127.0.0.1:{server.server_address[1]}/api/health"
+        result = _run(url, attempts=2, expect_commit=f"  {sha}  ")
+        assert result.returncode == 0, result.stderr
+        assert sha in result.stdout
+    finally:
+        server.shutdown()
+        server.server_close()
+
+
 def test_cli_fails_when_nothing_is_listening() -> None:
     result = _run("http://127.0.0.1:1/api/health", attempts=2)
     assert result.returncode == 1
