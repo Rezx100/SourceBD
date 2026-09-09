@@ -1285,6 +1285,59 @@ def test_prepare_strips_www_github_userinfo(tmp_path: Path) -> None:
     assert lines["HAS_DUPE"].strip() == "0"
 
 
+def test_gha_entrypoint_strips_www_github_userinfo_when_it_is_the_only_origin(
+    tmp_path: Path,
+) -> None:
+    app = tmp_path / "opt" / "sourcebd"
+    app.mkdir(parents=True)
+    _git(app, "init")
+    _git(
+        app,
+        "remote",
+        "add",
+        "origin",
+        "https://x-access-token:expired-www-pat@www.github.com/Rezx100/SourceBD.git",
+    )
+    token = "ghs_fresh_job_token"
+    git_root, seed_sha = _seed_exportable_bare(tmp_path / "export")
+    httpd, local_url, _thread = _start_authed_git_http(git_root, token)
+    _write_gha_observer_deploy(app)
+    assert not (app / "ops" / "github_https_fetch_auth.sh").exists()
+    pinned = "273e86778f95b143bfa694aacbc92ecabf5ee591"
+    try:
+        result = subprocess.run(
+            ["bash", str(GHA_SCRIPT)],
+            check=False,
+            capture_output=True,
+            text=True,
+            env=_clean_git_env(
+                {
+                    "GITHUB_TOKEN": token,
+                    "APP_DIR": str(app),
+                    "DEPLOY_REF": pinned,
+                    "LOCAL_GIT_HTTP": local_url,
+                }
+            ),
+            cwd=tmp_path,
+            timeout=45,
+        )
+    finally:
+        httpd.shutdown()
+        httpd.server_close()
+    assert result.returncode == 0, result.stderr + result.stdout
+    lines = dict(ln.split("=", 1) for ln in result.stdout.strip().splitlines())
+    assert lines["GETURL"] == "https://github.com/Rezx100/SourceBD.git"
+    assert "expired-www-pat" not in lines["GETURL"]
+    assert "www.github.com" not in lines["GETURL"]
+    assert "expired-www-pat" not in lines["ORIGIN"]
+    assert lines["AUTH_N"].strip() == "1"
+    assert lines["HAS_DUPE"].strip() == "0"
+    assert "401" in lines["LS_HTTP"]
+    assert "400" not in lines["LS_HTTP"]
+    assert lines["FETCH_RC"].strip() == "0"
+    assert lines["GOT"].strip() == seed_sha
+
+
 def test_prepare_strips_github_443_and_https_uppercase_userinfo(tmp_path: Path) -> None:
     token = "ghs_fresh_job_token"
     for origin in (
