@@ -1064,6 +1064,9 @@ const CASES = [
     },
   },
   {
+    // Status 200 + slow title + Retry form is the missing-company
+    // counterexample. Do not bodyExcludes "Page not found": Next embeds
+    // app/not-found.tsx in the RSC payload of successful documents.
     name: "public: timeout destination -> 200 slow card, not CDN-cached",
     path: `/temporarily-slow?slug=${TIMEOUT}`,
     expect: {
@@ -1075,8 +1078,9 @@ const CASES = [
         'method="POST"',
         'name="slug"',
         `value="${TIMEOUT}"`,
+        "<title>Service temporarily slow",
       ],
-      bodyExcludes: ["?retry=1", NOT_FOUND_MARKER],
+      bodyExcludes: ["?retry=1"],
       cacheControlOnAllHits: true,
       cacheControlMustMatch: /private,\s*no-store/,
       cacheControlMustNotMatch: /s-maxage=[1-9]/,
@@ -1343,7 +1347,6 @@ const CASES = [
       status: 200,
       bodyIncludes: SLOW_MARKER,
       bodyIncludesAll: ["Retry", `/app/suppliers/${PARENT_TIMEOUT}`],
-      bodyExcludes: [NOT_FOUND_MARKER],
       cacheControlOnAllHits: true,
       cacheControlMustMatch: /no-store|\bprivate\b/,
       cacheControlMustNotMatch: /s-maxage=[1-9]/,
@@ -1357,7 +1360,6 @@ const CASES = [
       status: 200,
       bodyIncludes: SLOW_MARKER,
       bodyIncludesAll: ["Retry", `/app/suppliers/${PARENT_TIMEOUT_IN_DATA}`],
-      bodyExcludes: [NOT_FOUND_MARKER],
       cacheControlOnAllHits: true,
       cacheControlMustMatch: /no-store|\bprivate\b/,
       cacheControlMustNotMatch: /s-maxage=[1-9]/,
@@ -1413,7 +1415,6 @@ const CASES = [
       status: 200,
       bodyIncludes: SLOW_MARKER,
       bodyIncludesAll: ["Retry", `/app/suppliers/${TIMEOUT_IN_DATA}`],
-      bodyExcludes: [NOT_FOUND_MARKER],
       cacheControlOnAllHits: true,
       cacheControlMustMatch: /no-store|\bprivate\b/,
       cacheControlMustNotMatch: /s-maxage=[1-9]/,
@@ -1427,7 +1428,6 @@ const CASES = [
       status: 200,
       bodyIncludes: SLOW_MARKER,
       bodyIncludesAll: ["Retry", `/app/suppliers/${TIMEOUT}`],
-      bodyExcludes: [NOT_FOUND_MARKER],
       cacheControlOnAllHits: true,
       cacheControlMustMatch: /no-store|\bprivate\b/,
       cacheControlMustNotMatch: /s-maxage=[1-9]/,
