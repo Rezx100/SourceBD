@@ -52,7 +52,7 @@
 import { execSync, spawn } from "node:child_process";
 import { createHash } from "node:crypto";
 import http from "node:http";
-import { existsSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 const ROOT = process.cwd();
@@ -912,6 +912,30 @@ function assertSmaxage300(cc, problems, label) {
       `${label}: Cache-Control ${cc || "<none>"} missing s-maxage=300`,
     );
   }
+  if (/no-store|\bprivate\b|\bno-cache\b/.test(cc ?? "")) {
+    problems.push(
+      `${label}: Cache-Control ${cc || "<none>"} is not CDN-reusable`,
+    );
+  }
+}
+
+function productionTreeHas(dir, needle) {
+  for (const name of readdirSync(dir)) {
+    if (name === "node_modules" || name === ".next" || name === ".cache") {
+      continue;
+    }
+    const p = join(dir, name);
+    const st = statSync(p);
+    if (st.isDirectory()) {
+      if (productionTreeHas(p, needle)) return true;
+    } else if (
+      /\.(ts|tsx|js|mjs)$/.test(name) &&
+      !/\.test\.(ts|tsx|js)$/.test(name)
+    ) {
+      if (readFileSync(p, "utf8").includes(needle)) return true;
+    }
+  }
+  return false;
 }
 
 function assertAbsoluteOnSite(loc, { pathname, search }, problems, label) {
@@ -1045,6 +1069,14 @@ const CASES = [
     expect: {
       status: 200,
       bodyIncludes: SLOW_MARKER,
+      bodyIncludesAll: [
+        "Retry",
+        'action="/temporarily-slow/retry"',
+        'method="POST"',
+        'name="slug"',
+        `value="${TIMEOUT}"`,
+      ],
+      bodyExcludes: ["?retry=1", NOT_FOUND_MARKER],
       cacheControlOnAllHits: true,
       cacheControlMustMatch: /private,\s*no-store/,
       cacheControlMustNotMatch: /s-maxage=[1-9]/,
@@ -1060,8 +1092,9 @@ const CASES = [
         'data-epb-hscodes-error=""',
         "EPB export products could not load just now.",
       ],
-      bodyExcludes: ['data-epb-hscode="6103"', "0 HS code"],
+      bodyExcludes: ['data-epb-hscode="6103"', "0 HS code", "0 HS codes"],
       replayCacheControlMustMatch: /s-maxage=300/,
+      replayCacheControlMustNotMatch: /no-store|\bprivate\b|\bno-cache\b/,
       replayMustNotRpc: PACK_RPCS,
       hit1MustRpcExact: 1,
     },
@@ -1078,6 +1111,7 @@ const CASES = [
       ],
       bodyExcludes: ['data-epb-hscode="6103"', "0 HS code", "0 HS codes"],
       replayCacheControlMustMatch: /s-maxage=300/,
+      replayCacheControlMustNotMatch: /no-store|\bprivate\b|\bno-cache\b/,
       replayMustNotRpc: PACK_RPCS,
       hit1MustRpcExact: 1,
     },
@@ -1094,6 +1128,7 @@ const CASES = [
       ],
       bodyExcludes: ["Mother Company Ltd Extension", "0 extension building"],
       replayCacheControlMustMatch: /s-maxage=300/,
+      replayCacheControlMustNotMatch: /no-store|\bprivate\b|\bno-cache\b/,
       replayMustNotRpc: PACK_RPCS,
       hit1MustRpcExact: 1,
     },
@@ -1304,13 +1339,29 @@ const CASES = [
     name: "app: parent-lookup timeout on a miss -> 200 slow card, not 500",
     path: `/app/suppliers/${PARENT_TIMEOUT}`,
     auth: true,
-    expect: { status: 200, bodyIncludes: SLOW_MARKER },
+    expect: {
+      status: 200,
+      bodyIncludes: SLOW_MARKER,
+      bodyIncludesAll: ["Retry", `/app/suppliers/${PARENT_TIMEOUT}`],
+      bodyExcludes: [NOT_FOUND_MARKER],
+      cacheControlOnAllHits: true,
+      cacheControlMustMatch: /no-store|\bprivate\b/,
+      cacheControlMustNotMatch: /s-maxage=[1-9]/,
+    },
   },
   {
     name: "app: parent-lookup timeout in data (HTTP 200 body) -> 200 slow card",
     path: `/app/suppliers/${PARENT_TIMEOUT_IN_DATA}`,
     auth: true,
-    expect: { status: 200, bodyIncludes: SLOW_MARKER },
+    expect: {
+      status: 200,
+      bodyIncludes: SLOW_MARKER,
+      bodyIncludesAll: ["Retry", `/app/suppliers/${PARENT_TIMEOUT_IN_DATA}`],
+      bodyExcludes: [NOT_FOUND_MARKER],
+      cacheControlOnAllHits: true,
+      cacheControlMustMatch: /no-store|\bprivate\b/,
+      cacheControlMustNotMatch: /s-maxage=[1-9]/,
+    },
   },
   {
     name: "app: facility-panel-only timeout -> 200 with facilities error",
@@ -1337,7 +1388,7 @@ const CASES = [
         'data-epb-hscodes-error=""',
         "EPB export products could not load just now.",
       ],
-      bodyExcludes: ['data-epb-hscode="6103"', "0 HS code"],
+      bodyExcludes: ['data-epb-hscode="6103"', "0 HS code", "0 HS codes"],
     },
   },
   {
@@ -1358,13 +1409,29 @@ const CASES = [
     name: "app: profile timeout in data (HTTP 200 body) -> 200 slow card",
     path: `/app/suppliers/${TIMEOUT_IN_DATA}`,
     auth: true,
-    expect: { status: 200, bodyIncludes: SLOW_MARKER },
+    expect: {
+      status: 200,
+      bodyIncludes: SLOW_MARKER,
+      bodyIncludesAll: ["Retry", `/app/suppliers/${TIMEOUT_IN_DATA}`],
+      bodyExcludes: [NOT_FOUND_MARKER],
+      cacheControlOnAllHits: true,
+      cacheControlMustMatch: /no-store|\bprivate\b/,
+      cacheControlMustNotMatch: /s-maxage=[1-9]/,
+    },
   },
   {
     name: "app: profile timeout -> 200 slow card (authenticated)",
     path: `/app/suppliers/${TIMEOUT}`,
     auth: true,
-    expect: { status: 200, bodyIncludes: SLOW_MARKER },
+    expect: {
+      status: 200,
+      bodyIncludes: SLOW_MARKER,
+      bodyIncludesAll: ["Retry", `/app/suppliers/${TIMEOUT}`],
+      bodyExcludes: [NOT_FOUND_MARKER],
+      cacheControlOnAllHits: true,
+      cacheControlMustMatch: /no-store|\bprivate\b/,
+      cacheControlMustNotMatch: /s-maxage=[1-9]/,
+    },
   },
   {
     name: "app: self-parented slug -> 404, no self-redirect (authenticated)",
@@ -2107,6 +2174,20 @@ async function main() {
 
     {
       const problems = [];
+      if (productionTreeHas(join(ROOT, "app"), "revalidatePublicProfileTag")) {
+        problems.push("app/ production files contain revalidatePublicProfileTag");
+      }
+      if (productionTreeHas(join(ROOT, "lib"), "revalidatePublicProfileTag")) {
+        problems.push("lib/ production files contain revalidatePublicProfileTag");
+      }
+      extraPassed += extra(
+        "public: no revalidatePublicProfileTag in app/ or lib/ production files",
+        problems,
+      );
+    }
+
+    {
+      const problems = [];
       const first = await probe(`/suppliers/${MOTHER}`);
       if (first.status !== 200) {
         problems.push(`warmup GET ${first.status} != 200`);
@@ -2527,6 +2608,11 @@ async function main() {
         `after 9s without Retry, ${PROFILE_RPC} fired (${rpcBeforeWait} -> ${rpcCount(PROFILE_RPC)})`,
       );
     }
+    assertPrivateNoStore(
+      afterWait.cacheControl,
+      retryProblems,
+      "after 9s without Retry",
+    );
     const retryRes = await fetch(`${APP_URL}/temporarily-slow/retry`, {
       method: "POST",
       redirect: "manual",
@@ -2563,11 +2649,11 @@ async function main() {
     if (/name="robots"[^>]*noindex/i.test(recovered.body)) {
       retryProblems.push("after Retry, recovered factory page is noindex");
     }
-    if (!/s-maxage=300/.test(recovered.cacheControl ?? "")) {
-      retryProblems.push(
-        `after Retry, Cache-Control ${recovered.cacheControl || "<none>"} missing s-maxage=300`,
-      );
-    }
+    assertSmaxage300(
+      recovered.cacheControl,
+      retryProblems,
+      "after Retry",
+    );
     extraPassed += extra(
       "public: Retry recovers canonical factory page after timeout",
       retryProblems,
