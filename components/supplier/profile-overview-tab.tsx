@@ -16,6 +16,7 @@ import {
 } from "@/components/supplier/profile-ui";
 import {
   ProfileFacilitiesSection,
+  FacilitiesUnavailable,
   type FacilityPanel,
 } from "@/components/supplier/profile-facilities-section";
 import {
@@ -132,6 +133,7 @@ export async function ProfileOverviewTab<TAddress extends AddressRowRaw>({
   discoverHref,
   slug,
   facilitiesPanel = null,
+  facilitiesLoadError = false,
   workers,
   workersGroupLabel,
   hscodes = [],
@@ -147,6 +149,8 @@ export async function ProfileOverviewTab<TAddress extends AddressRowRaw>({
   slug?: string;
   /** REZ-73 panel from buyer_supplier_facility_panel; omit when empty/null. */
   facilitiesPanel?: FacilityPanel | null;
+  /** Panel RPC failed — not the same as "this company has no buildings". */
+  facilitiesLoadError?: boolean;
   /** REZ-114 — when provided, narrative uses this instead of employees_total. */
   workers?: OverviewWorkersProp;
   /** REZ-114 — honest group workers label for Facilities section. */
@@ -225,7 +229,12 @@ export async function ProfileOverviewTab<TAddress extends AddressRowRaw>({
         />
       </ProfileCard>
 
-      {facilitiesPanel ? (
+      {facilitiesLoadError ? (
+        <ProfileCard>
+          <ProfileCardHeader title="Facilities" />
+          <FacilitiesUnavailable />
+        </ProfileCard>
+      ) : facilitiesPanel ? (
         <ProfileFacilitiesSection
           panel={facilitiesPanel}
           workersGroupLabel={workersGroupLabel}

@@ -26,6 +26,11 @@ import {
   type RateLimitClass,
 } from "@/lib/rate-limit/limits";
 import { rlCheck } from "@/lib/rate-limit/check";
+import {
+  getCachedPublicSupplierProfile,
+  isPublicSupplierSlug,
+} from "@/lib/public-supplier-profile";
+import { urlOnSite } from "@/lib/site-origin";
 
 export const runtime = "nodejs";
 
@@ -41,10 +46,8 @@ export async function middleware(req: NextRequest) {
   // too, but this ensures correctness even when CF is bypassed or misconfigured.
   const host = req.headers.get("host") ?? "";
   if (host.startsWith("www.")) {
-    const url = req.nextUrl.clone();
-    url.host = host.replace(/^www\./, "");
-    url.port = "";
-    return NextResponse.redirect(url, { status: 301 });
+    const dest = urlOnSite(pathname, req.nextUrl.search);
+    return NextResponse.redirect(dest, { status: 301 });
   }
   // ────────────────────────────────────────────────────────────────────────
 
@@ -110,7 +113,7 @@ export async function middleware(req: NextRequest) {
   // equivalent. Suppliers stay on the marketing variant (no `/app`
   // equivalent for them). Anon visitors short-circuit on the cookie
   // probe so cold marketing traffic does not pay a DB round-trip.
-  if (req.method === "GET") {
+  if (req.method === "GET" || req.method === "HEAD") {
     const targetAppPath = appPathForMarketing(pathname);
     if (targetAppPath) {
       const hasSbCookie = req.cookies
@@ -131,13 +134,40 @@ export async function middleware(req: NextRequest) {
             .maybeSingle();
           const role = (profile?.role ?? null) as Role | null;
           if (role === "buyer" || role === "admin") {
-            const url = req.nextUrl.clone();
-            url.pathname = targetAppPath;
-            return NextResponse.redirect(url, { status: 307 });
+            return redirectOnSite(
+              targetAppPath,
+              req.nextUrl.search,
+              307,
+            );
           }
         }
       }
     }
+  }
+
+  // Public factory pages are force-static. A redirect() from the page
+  // inherits s-maxage=300. Issue the 307 here so Cache-Control can be
+  // private, no-store. Do not skip this on a query string: Retry lands
+  // on the canonical factory URL, and ?retry=1 must still 307 while
+  // the pack is 57014. Do not catch-and-fall-through: a throw here is
+  // 500, not an ISR-cached 307. The page throws on timedOut if this
+  // intercept is skipped.
+  if (req.method === "GET" || req.method === "HEAD") {
+    const publicSlug = publicSupplierSlugFromPath(pathname);
+    if (publicSlug) {
+      const pack = await getCachedPublicSupplierProfile(publicSlug);
+      if (pack.timedOut) {
+        return redirectOnSite(
+          "/temporarily-slow",
+          `?slug=${encodeURIComponent(publicSlug)}`,
+          307,
+        );
+      }
+    }
+  }
+
+  if (pathname === "/" || pathname === "/temporarily-slow") {
+    res.headers.set("Cache-Control", "private, no-store, max-age=0");
   }
 
   if (!needsAuthGate) return res;
@@ -184,10 +214,7 @@ export async function middleware(req: NextRequest) {
         { status: 403 },
       );
     }
-    const url = req.nextUrl.clone();
-    url.pathname = "/suspended";
-    url.search = "";
-    return NextResponse.redirect(url);
+    return NextResponse.redirect(urlOnSite("/suspended"));
   }
 
   if (isApi) {
@@ -200,10 +227,7 @@ export async function middleware(req: NextRequest) {
     if (role !== "supplier" && role !== "admin") return redirectToLogin(req);
   } else if (pathname === "/app" || pathname.startsWith("/app/")) {
     if (role === "supplier") {
-      const url = req.nextUrl.clone();
-      url.pathname = "/supplier";
-      url.search = "";
-      return NextResponse.redirect(url);
+      return NextResponse.redirect(urlOnSite("/supplier"));
     }
     if (role !== "buyer" && role !== "admin") return redirectToLogin(req);
   }
@@ -212,12 +236,14 @@ export async function middleware(req: NextRequest) {
 }
 
 function redirectToLogin(req: NextRequest) {
-  const url = req.nextUrl.clone();
-  url.pathname = "/login";
-  url.search = `?next=${encodeURIComponent(
-    req.nextUrl.pathname + req.nextUrl.search,
-  )}`;
-  return NextResponse.redirect(url);
+  return NextResponse.redirect(
+    urlOnSite(
+      "/login",
+      `?next=${encodeURIComponent(
+        req.nextUrl.pathname + req.nextUrl.search,
+      )}`,
+    ),
+  );
 }
 
 // I-034: marketing → app equivalent map. Only `/discover` and
@@ -225,12 +251,31 @@ function redirectToLogin(req: NextRequest) {
 // shown to logged-in buyers/admins by default; `/`, `/pricing`,
 // `/legal/*`, `/compliance/*` deliberately stay accessible to logged-in
 // users (legitimate destinations even when signed in).
+// 307/303 that must not follow the request Host or be CDN-cached.
+function redirectOnSite(
+  pathname: string,
+  search: string,
+  status: number,
+): NextResponse {
+  const dest = urlOnSite(pathname, search);
+  const res = NextResponse.redirect(dest, status);
+  res.headers.set("Cache-Control", "private, no-store, max-age=0");
+  return res;
+}
+
 function appPathForMarketing(pathname: string): string | null {
   if (pathname === "/discover") return "/app/discover";
   if (pathname.startsWith("/suppliers/")) {
     return "/app" + pathname;
   }
   return null;
+}
+
+function publicSupplierSlugFromPath(pathname: string): string | null {
+  const match = /^\/suppliers\/([^/]+)$/.exec(pathname);
+  const slug = match?.[1];
+  if (!slug || !isPublicSupplierSlug(slug)) return null;
+  return slug;
 }
 
 export const config = {

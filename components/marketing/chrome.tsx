@@ -15,9 +15,10 @@ import { MarketingFooter } from "@/components/marketing/footer";
 import { MarketingTopNav } from "@/components/marketing/top-nav";
 import { ScrollToTop } from "@/components/shell/scroll-to-top";
 import { SkipLink } from "@/components/ui/skip-link";
+import { siteOriginFromEnv } from "@/lib/site-origin";
 import { PostHogProvider } from "@/lib/posthog/provider";
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://sourcebd.net";
+const SITE_URL = siteOriginFromEnv();
 
 // M4: default OpenGraph + Twitter card metadata + `metadataBase` for the
 // marketing surface. Per-page `metadata` exports override these defaults

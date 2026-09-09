@@ -66,7 +66,9 @@ type RpcClient = {
 };
 
 /**
- * Server-side lookup. On RPC error, treat as no mapping (404) — never leak.
+ * Server-side lookup. On a non-timeout RPC error, treat as no mapping
+ * (404) — never leak. A statement timeout throws so callers can show the
+ * slow card instead of caching a 404.
  *
  * A row whose `facility_of` points at itself would otherwise redirect to its
  * own URL in an infinite loop; a self-mapping is treated as no mapping.
@@ -78,8 +80,36 @@ export async function fetchFacilityParentSlug(
   const { data, error } = await supabase.rpc("facility_parent_slug", {
     p_slug: slug,
   });
-  if (error) return null;
-  if (typeof data !== "string") return null;
+  if (error) {
+    const rec = error as { code?: string; message?: string } | null;
+    const code = rec?.code ?? "";
+    const msg = rec?.message ?? "";
+    if (
+      code === "57014" ||
+      /statement timeout|canceling statement|timed out/i.test(msg)
+    ) {
+      const err = new Error("profile-statement-timeout");
+      err.name = "ProfileStatementTimeout";
+      throw err;
+    }
+    return null;
+  }
+  if (typeof data !== "string") {
+    if (data && typeof data === "object") {
+      const rec = data as { code?: string; message?: string };
+      const code = String(rec.code ?? "");
+      const msg = rec.message ?? "";
+      if (
+        code === "57014" ||
+        /statement timeout|canceling statement|timed out/i.test(msg)
+      ) {
+        const err = new Error("profile-statement-timeout");
+        err.name = "ProfileStatementTimeout";
+        throw err;
+      }
+    }
+    return null;
+  }
   const trimmed = data.trim();
   if (trimmed.length === 0 || trimmed === slug) return null;
   return trimmed;

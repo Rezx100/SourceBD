@@ -77,5 +77,17 @@ export function hscodesFromRpc(result: {
   error: unknown;
 }): { hscodes: ProfileEpbHscode[]; loadError: boolean } {
   if (result.error) return { hscodes: [], loadError: true };
-  return { hscodes: asEpbHscodes(result.data), loadError: false };
+  const data = result.data;
+  if (data && typeof data === "object" && !Array.isArray(data)) {
+    const rec = data as { code?: unknown; message?: unknown };
+    const code = String(rec.code ?? "");
+    const msg = typeof rec.message === "string" ? rec.message : "";
+    if (
+      code === "57014" ||
+      /statement timeout|canceling statement|timed out/i.test(msg)
+    ) {
+      return { hscodes: [], loadError: true };
+    }
+  }
+  return { hscodes: asEpbHscodes(data), loadError: false };
 }
