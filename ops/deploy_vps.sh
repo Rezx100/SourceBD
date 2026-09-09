@@ -216,15 +216,24 @@ main() {
 	DEPLOY_ELAPSED_S="$(( $(date +%s) - DEPLOY_START_S ))"
 
 	step "Public health check"
-	if curl --silent --fail --max-time 5 http://109.104.153.228/api/health; then
-		echo
-		echo "  ✓ deploy OK — http://109.104.153.228 (commit $COMMIT_SHA)"
-		echo "  elapsed: ${DEPLOY_ELAPSED_S}s"
-		if [ -f "$DEPLOY_META_DIR/previous-sha" ]; then
-			echo "  rollback ref: $(cat "$DEPLOY_META_DIR/previous-sha")"
+	# Do not return after localhost is up: Caddy active health checks can
+	# keep serving 503 on :80/:443 for a full health_interval after the
+	# container is healthy. GitHub's public smoke runs the moment SSH
+	# exits, so a warn-and-continue here made a live deploy look failed
+	# (run 31855403484, 15 Aug 2026).
+	attempt=0
+	until curl --silent --fail --max-time 5 http://109.104.153.228/api/health >/dev/null; do
+		attempt=$((attempt+1))
+		if [ "$attempt" -gt 20 ]; then
+			die "Public /api/health did not recover in 60s — rollback: bash ops/deploy_vps.sh --ref=$(cat "$DEPLOY_META_DIR/previous-sha" 2>/dev/null || echo UNKNOWN) --require-git"
 		fi
-	else
-		warn "Public health check failed — verify Caddy is running + port 80 is open"
+		sleep 3
+	done
+	echo
+	echo "  ✓ deploy OK — http://109.104.153.228 (commit $COMMIT_SHA)"
+	echo "  elapsed: ${DEPLOY_ELAPSED_S}s"
+	if [ -f "$DEPLOY_META_DIR/previous-sha" ]; then
+		echo "  rollback ref: $(cat "$DEPLOY_META_DIR/previous-sha")"
 	fi
 }
 
