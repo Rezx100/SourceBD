@@ -80,6 +80,14 @@ main() {
 	if [ -d .git ]; then
 		PREVIOUS_SHA="$(git rev-parse HEAD 2>/dev/null || true)"
 
+		# Drop an expired HTTPS PAT from origin and fetch with GITHUB_TOKEN
+		# via http extraheader (never written into the remote URL).
+		if [ -f "$REPO_DIR/ops/github_https_fetch_auth.sh" ]; then
+			# shellcheck disable=SC1091
+			. "$REPO_DIR/ops/github_https_fetch_auth.sh"
+			sourcebd_prepare_github_https_fetch
+		fi
+
 		step "Fetching origin and checking out $CHECKOUT_TARGET"
 		git fetch --quiet origin --tags
 		git checkout "$CHECKOUT_TARGET" || die "Could not checkout $CHECKOUT_TARGET"

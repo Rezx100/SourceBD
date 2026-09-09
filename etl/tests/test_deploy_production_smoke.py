@@ -65,6 +65,52 @@ def test_caddy_does_not_keep_upstream_unhealthy_for_a_health_interval() -> None:
     assert any(line.startswith("reverse_proxy 127.0.0.1:3000") for line in directives)
 
 
+def test_gha_passes_job_token_and_self_contained_vps_script() -> None:
+    """Expired VPS HTTPS PATs must not be able to fail fetch (34315443132)."""
+    text = _workflow()
+    deploy = _step_named(text, "Deploy to VPS via SSH")
+    assert "GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}" in deploy
+    assert "envs: DEPLOY_REF,APP_DIR,GITHUB_TOKEN" in deploy
+    assert "script_file: ops/gha_vps_deploy.sh" in deploy
+    assert "command_timeout: 25m" in deploy
+    assert "contents: read" in text
+    # Inline script would be the *old* VPS copy; the runner must send the file.
+    assert "script: |" not in deploy
+    assert "x-access-token:" not in deploy  # token stays in env, not YAML
+
+    remote = (ROOT / "ops" / "gha_vps_deploy.sh").read_text(encoding="utf-8")
+    code = [
+        ln.strip()
+        for ln in remote.splitlines()
+        if ln.strip() and not ln.strip().startswith("#")
+    ]
+    assert any(ln.startswith("sourcebd_prepare_github_https_fetch") for ln in code)
+    assert 'bash ops/deploy_vps.sh --ref="${DEPLOY_REF}" --require-git' in remote
+    assert "git remote set-url origin" in remote
+    assert 's#https://[^/]*@github.com/#https://github.com/#' in remote
+    assert "http.https://github.com/.extraheader" in remote
+    assert "AUTHORIZATION: basic" in remote
+    assert "x-access-token:" in remote
+    assert 'git remote set-url origin "https://x-access-token' not in remote
+    assert "GITHUB_TOKEN missing" in remote
+
+
+def test_deploy_vps_prepares_github_https_fetch_before_git_fetch() -> None:
+    text = (ROOT / "ops/deploy_vps.sh").read_text(encoding="utf-8")
+    _, git_block = text.split("if [ -d .git ]; then", 1)
+    code = [
+        ln.strip()
+        for ln in git_block.splitlines()
+        if ln.strip() and not ln.strip().startswith("#")
+    ]
+    source_i = next(i for i, ln in enumerate(code) if "github_https_fetch_auth.sh" in ln)
+    prepare_i = next(
+        i for i, ln in enumerate(code) if ln == "sourcebd_prepare_github_https_fetch"
+    )
+    fetch_i = next(i for i, ln in enumerate(code) if ln.startswith("git fetch"))
+    assert source_i < prepare_i < fetch_i
+
+
 def test_deploy_vps_waits_for_public_health_before_returning() -> None:
     text = (ROOT / "ops/deploy_vps.sh").read_text(encoding="utf-8")
     _, public = text.split("Public health check", 1)
