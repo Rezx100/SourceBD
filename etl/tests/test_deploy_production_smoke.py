@@ -109,6 +109,8 @@ def test_gha_passes_job_token_and_self_contained_vps_script() -> None:
     assert "AUTHORIZATION: basic" in remote
     assert "x-access-token:" in remote
     assert "GIT_CONFIG_GLOBAL=/dev/null" in remote
+    assert "GIT_CONFIG_SYSTEM=/dev/null" in remote
+    assert "--git-path config" in remote
     assert "credential.helper" in remote
     assert "safe.directory" in remote
     assert "GIT_CONFIG_COUNT=3" in remote

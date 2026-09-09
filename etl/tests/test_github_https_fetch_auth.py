@@ -186,6 +186,12 @@ def test_gha_remote_script_keeps_the_same_fetch_rewrites_as_the_helper() -> None
     assert EXTRAHEADER in remote
     assert "GIT_CONFIG_GLOBAL=/dev/null" in helper
     assert "GIT_CONFIG_GLOBAL=/dev/null" in remote
+    assert "GIT_CONFIG_SYSTEM=/dev/null" in helper
+    assert "GIT_CONFIG_SYSTEM=/dev/null" in remote
+    assert "--git-path config" in helper
+    assert "--git-path config" in remote
+    assert "--git-path config.worktree" in helper
+    assert "--git-path config.worktree" in remote
     assert "credential.helper" in helper
     assert "credential.helper" in remote
     assert "safe.directory" in helper
@@ -358,7 +364,7 @@ def test_unsets_local_insteadof_that_rewrites_github_to_an_expired_pat(
     result = _run_prepare(repo, {"GITHUB_TOKEN": "ghs_fresh_job_token"})
     assert result.returncode == 0, result.stderr
     leftover = subprocess.run(
-        ["git", "config", "--local", "--get-regexp", r"^url\..*\.insteadof$"],
+        ["git", "config", "--get-regexp", r"^url\..*\.insteadof$"],
         cwd=repo,
         capture_output=True,
         text=True,
@@ -367,6 +373,15 @@ def test_unsets_local_insteadof_that_rewrites_github_to_an_expired_pat(
     )
     assert leftover.stdout.strip() == ""
     assert "expired-pat" not in leftover.stdout
+    geturl = subprocess.run(
+        ["git", "ls-remote", "--get-url", "origin"],
+        cwd=repo,
+        capture_output=True,
+        text=True,
+        env=_clean_git_env(),
+        check=True,
+    )
+    assert geturl.stdout.strip() == "https://github.com/Rezx100/SourceBD.git"
 
 
 def _plant_expired_github_http_overrides(repo: Path) -> None:
@@ -428,8 +443,8 @@ set -Eeuo pipefail
 cd {repo}
 sourcebd_prepare_github_https_fetch
 printf 'ORIGIN=%s\\n' "$(git config --local --get remote.origin.url)"
-printf 'INCLUDE=%s\\n' "$(git config --local --get include.path 2>/dev/null || true)"
-printf 'INCLUDEIF=%s\\n' "$(git config --local --get-regexp '^includeIf\\..*\\.path$' 2>/dev/null || true)"
+printf 'INCLUDE=%s\\n' "$(git config --get include.path 2>/dev/null || true)"
+printf 'INCLUDEIF=%s\\n' "$(git config --get-regexp '^includeIf\\..*\\.path$' 2>/dev/null || true)"
 printf 'INSTEAD=%s\\n' "$(git config --get-regexp '^url\\..*\\.insteadof$' 2>/dev/null || true)"
 printf 'GETURL=%s\\n' "$(git ls-remote --get-url origin 2>/dev/null || true)"
 printf 'HELPERS=%s\\n' "$(git config --get-all credential.helper 2>/dev/null | tr '\\n' '|' || true)"
@@ -579,6 +594,21 @@ def test_gha_entrypoint_prepares_fetch_when_vps_helper_file_is_missing(
     )
     _plant_expired_github_http_overrides(app)
     _plant_include_github_overrides(app)
+    _git(app, "config", "--local", "extensions.worktreeConfig", "true")
+    _git(
+        app,
+        "config",
+        "--worktree",
+        EXTRAHEADER,
+        "AUTHORIZATION: basic expiredworktree",
+    )
+    _git(
+        app,
+        "config",
+        "--worktree",
+        "url.https://x-access-token:expired-wt-pat@github.com/.insteadOf",
+        "https://github.com/",
+    )
     ops = app / "ops"
     ops.mkdir()
     fake = ops / "deploy_vps.sh"
@@ -598,6 +628,8 @@ printf 'HELPERS=%s\\n' "$(git config --get-all credential.helper 2>/dev/null | t
 printf 'URLHELP=%s\\n' "$(git config --get-all credential.https://github.com/.helper 2>/dev/null || true)"
 printf 'SAFE=%s\\n' "${GIT_CONFIG_VALUE_2-}"
 printf 'REF=%s\\n' "${1-}"
+printf 'GETURL=%s\\n' "$(git ls-remote --get-url origin 2>/dev/null || true)"
+printf 'MERGED_INSTEAD=%s\\n' "$(git config --get-regexp '^url\\..*\\.insteadof$' 2>/dev/null || true)"
 """
         + _curl_probe_lines()
         + _local_fetch_lines(),
@@ -641,6 +673,11 @@ printf 'REF=%s\\n' "${1-}"
     assert lines["URLHELP"] == ""
     assert lines["SAFE"] == "*"
     assert lines["REF"] == f"--ref={pinned}"
+    assert lines["GETURL"] == "https://github.com/Rezx100/SourceBD.git"
+    assert "expired-pat" not in lines["GETURL"]
+    assert "expired-wt-pat" not in lines["GETURL"]
+    assert "expired-pat" not in lines["MERGED_INSTEAD"]
+    assert "expired-wt-pat" not in lines["MERGED_INSTEAD"]
     assert lines["AUTH_N"].strip() == "1"
     assert lines["HAS_LEFTOVER"].strip() == "0"
     assert lines["HAS_DUPE"].strip() == "0"
@@ -1245,6 +1282,72 @@ def test_prepare_drops_worktree_include_path(tmp_path: Path) -> None:
     assert lines["INSTEAD"] == ""
     assert lines["GETURL"] == "https://github.com/Rezx100/SourceBD.git"
     assert lines["HAS_EXPIREDPAT"].strip() == "0"
+    assert lines["EXTRA_N"].strip() == "1"
+    assert lines["AUTH_N"].strip() == "1"
+    assert lines["HAS_DUPE"].strip() == "0"
+    assert "400" not in lines["LS_HTTP"]
+
+
+def test_prepare_drops_worktree_includeif(tmp_path: Path) -> None:
+    repo = tmp_path / "app"
+    repo.mkdir()
+    _git(repo, "init")
+    _git(repo, "remote", "add", "origin", "https://github.com/Rezx100/SourceBD.git")
+    inc = repo / ".git" / "wt-if.cfg"
+    inc.write_text(
+        '[http "https://github.com/"]\n'
+        "\textraheader = AUTHORIZATION: basic expiredwtif\n"
+        '[url "https://x-access-token:expired-pat@github.com/"]\n'
+        "\tinsteadOf = https://github.com/\n",
+        encoding="utf-8",
+    )
+    _git(repo, "config", "--local", "extensions.worktreeConfig", "true")
+    _git(
+        repo,
+        "config",
+        "--worktree",
+        f"includeIf.gitdir:{repo.resolve()}/.git.path",
+        str(inc.resolve()),
+    )
+    lines = _prepare_then_github_probe(repo, "ghs_fresh_job_token")
+    assert lines["INCLUDEIF"] == ""
+    assert lines["INSTEAD"] == ""
+    assert lines["GETURL"] == "https://github.com/Rezx100/SourceBD.git"
+    assert lines["HAS_EXPIREDPAT"].strip() == "0"
+    assert lines["AUTH_N"].strip() == "1"
+    assert lines["HAS_DUPE"].strip() == "0"
+    assert "400" not in lines["LS_HTTP"]
+
+
+def test_prepare_clears_common_dir_config_from_a_linked_worktree(tmp_path: Path) -> None:
+    main = tmp_path / "main"
+    main.mkdir()
+    _git(main, "init")
+    _git(main, "remote", "add", "origin", "https://github.com/Rezx100/SourceBD.git")
+    (main / "README").write_text("seed\n", encoding="utf-8")
+    _git(main, "add", "README")
+    _git(main, "commit", "-m", "seed")
+    _git(
+        main,
+        "config",
+        "--local",
+        EXTRAHEADER,
+        "AUTHORIZATION: basic expiredcommon",
+    )
+    _git(
+        main,
+        "config",
+        "--local",
+        "url.https://x-access-token:expired-pat@github.com/.insteadOf",
+        "https://github.com/",
+    )
+    linked = tmp_path / "linked"
+    _git(main, "worktree", "add", str(linked), "HEAD")
+    lines = _prepare_then_github_probe(linked, "ghs_fresh_job_token")
+    assert lines["GETURL"] == "https://github.com/Rezx100/SourceBD.git"
+    assert "expired-pat" not in lines["GETURL"]
+    assert lines["HAS_EXPIREDPAT"].strip() == "0"
+    assert lines["INSTEAD"] == ""
     assert lines["EXTRA_N"].strip() == "1"
     assert lines["AUTH_N"].strip() == "1"
     assert lines["HAS_DUPE"].strip() == "0"

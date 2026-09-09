@@ -39,10 +39,11 @@ sourcebd_prepare_github_https_fetch() {
 	# invisible to `git config --local --unset-all` of the HTTP keys.
 	# insteadOf is dropped entirely (not only when the value mentions
 	# github.com) so a rewrite of https:// cannot re-inject a PAT.
-	local gitdir="" cfg=""
-	gitdir="$(git rev-parse --git-dir 2>/dev/null || true)"
-	for cfg in "$gitdir/config" "$gitdir/config.worktree"; do
-		[ -f "$cfg" ] || continue
+	local cfg="" wtc=""
+	cfg="$(git rev-parse --git-path config 2>/dev/null || true)"
+	wtc="$(git rev-parse --git-path config.worktree 2>/dev/null || true)"
+	for cfg in "$cfg" "$wtc"; do
+		[ -n "$cfg" ] && [ -f "$cfg" ] || continue
 		git config --file "$cfg" --unset-all include.path 2>/dev/null || true
 		git config --file "$cfg" --get-regexp '^includeIf\..*\.path$' 2>/dev/null | while read -r key val; do
 			git config --file "$cfg" --unset-all "$key" || true
