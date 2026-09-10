@@ -15,6 +15,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     environment: production
+    permissions:
+      contents: read
 
     steps:
       - name: Validate deploy target
@@ -30,37 +32,44 @@ jobs:
 
       - name: Checkout smoke helper
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Resolve expected production commit
+        id: pin
+        env:
+          DEPLOY_REF: ${{ github.event.inputs.ref }}
+        run: |
+          git fetch --tags origin "${DEPLOY_REF}"
+          EXPECT="$(git rev-parse "FETCH_HEAD^{commit}")"
+          echo "sha=${EXPECT}" >> "$GITHUB_OUTPUT"
+          echo "Expected production commit ${EXPECT}"
 
       - name: Deploy to VPS via SSH
         uses: appleboy/ssh-action@v1.2.0
         env:
-          DEPLOY_REF: ${{ github.event.inputs.ref }}
+          DEPLOY_REF: ${{ steps.pin.outputs.sha }}
           APP_DIR: ${{ secrets.VPS_APP_DIR }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_PRIVATE_KEY }}
-          envs: DEPLOY_REF,APP_DIR
+          envs: DEPLOY_REF,APP_DIR,GITHUB_TOKEN
           script_stop: true
-          script: |
-            set -Eeuo pipefail
-            REPO_DIR="${APP_DIR:-/opt/sourcebd}"
-            cd "$REPO_DIR" || { echo "REPO_DIR $REPO_DIR not found"; exit 1; }
-            if [ ! -d .git ]; then
-              echo "No .git in $REPO_DIR — run first-time VPS migration (docs/ENTERPRISE_DEPLOYMENT.md)"
-              exit 1
-            fi
-            bash ops/deploy_vps.sh --ref="${DEPLOY_REF}" --require-git
+          command_timeout: 25m
+          script_path: ops/gha_vps_deploy.sh
 
       - name: Public smoke test
         # Caddy can return 503 for up to one health_interval after the web
         # container is already serving 127.0.0.1:3000 (Deploy Production
         # 31855403484, 15 Aug 2026: SSH deploy succeeded, first public curl
         # got 503, https://sourcebd.net/api/health was 200 seconds later).
-        # Retry until the public URL is 200 or we exhaust the window.
+        # Retry until the public URL is 200 with the requested commit.
         run: |
           python3 ops/wait_for_http_ok.py \
             --url "http://${{ secrets.VPS_HOST }}/api/health" \
             --attempts 12 \
-            --sleep 5
+            --sleep 5 \
+            --expect-commit "${{ steps.pin.outputs.sha }}"
           echo "Health check OK on ${{ secrets.VPS_HOST }}"
