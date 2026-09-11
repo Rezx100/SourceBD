@@ -5,6 +5,19 @@ Last compacted for agent-token efficiency: 30 Jun 2026.
 ## Phase
 Phase 7 - Public Beta launch prep.
 
+## Address premises merge — IN PROGRESS (11 Sep 2026)
+Founder posture: one row per premises on Locations; every alternate spelling
+stays visible as an "Also recorded as" pill with its authority. Conflicting
+plot numbers or conflicting leading village names still block a merge
+(Sreepur≠Sripur, Nawabganj≠Chapainawabganj). Matcher-only in
+`lib/dedup-addresses.ts`. Recomputed published baseline: **27,732** address
+rows, **9,921** suppliers, **3,274** multi-string groups by kind. Current
+matcher had merged 1,622 of those to one row and still split 1,652 (Habitus
+Fashion factory 3 rows, Fakhruddin Textile Mills factory 3 rows). New matcher
++ pills + fixture regression + HTTP cases for those two companies. No raw
+string, geocode-key, Python ETL or schema change. See
+`ops/plans/address-dedup-baseline.md`.
+
 ## EPB independent of association flags — IN PROGRESS (15 Aug 2026)
 Founder: EPB is a government register with HS codes. A company we already
 list must show EPB evidence and HS codes when EPB has them, whether or

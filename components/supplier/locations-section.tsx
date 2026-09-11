@@ -35,7 +35,7 @@ import {
   type LocationKind,
   type LocationMapMarker,
 } from "@/components/supplier/locations-map";
-import { CATEGORY_BY_GROUP, secondaryTypeLabels } from "@/lib/dedup-addresses";
+import { CATEGORY_BY_GROUP, secondaryTypeLabels, type AddressVariant } from "@/lib/dedup-addresses";
 import { toTitleCaseAddress } from "@/lib/format-location";
 
 /** Deep-link param that focuses one location on load. 1-based to match the
@@ -47,7 +47,7 @@ const SITE_PARAM = "site";
 export type SerializableLocation = {
   displayAddress: string;
   floors: string[];
-  variants: string[];
+  variants: AddressVariant[];
   types: string[];
   authorities: string[];
   /** Index into the `markers` array for this location, or null if not geocoded. */
@@ -188,6 +188,8 @@ function AddressRow({
               : "hover:bg-neutral-50",
       ].join(" ")}
       aria-current={isSelected ? "true" : undefined}
+      data-location-row=""
+      data-location-group={groupTitle}
     >
       <div className="flex min-w-0 items-start gap-2.5 sm:flex-1">
         <span
@@ -199,11 +201,7 @@ function AddressRow({
         <div className="min-w-0 pt-0.5 sm:pt-0">
           <p
             className="text-[14.5px] leading-[1.45] text-neutral-800"
-            title={
-              location.variants.length > 0
-                ? `Also recorded as: ${location.variants.join(" · ")}`
-                : undefined
-            }
+            data-location-display=""
           >
             {siteNumber !== null ? (
               <span className="sr-only">Site {siteNumber}. </span>
@@ -220,6 +218,31 @@ function AddressRow({
               </span>
             ) : null}
           </p>
+          {location.variants.length > 0 ? (
+            <div className="mt-1.5 flex flex-col gap-1" data-also-recorded="">
+              <p className="text-[12px] text-neutral-500">Also recorded as</p>
+              <ul className="flex flex-col gap-1">
+                {location.variants.map((variant) => (
+                  <li
+                    key={variant.address}
+                    className="flex flex-wrap items-center gap-1.5"
+                    data-also-recorded-as=""
+                  >
+                    <span className="text-[12.5px] leading-[1.4] text-neutral-600">
+                      {toTitleCaseAddress(variant.address)}
+                    </span>
+                    {variant.authorities.map((code) => (
+                      <AuthorityChip
+                        key={code}
+                        label={code.replace(/_/g, "-")}
+                        className="px-1.5 py-[2px] text-[10.5px] sm:text-[11px]"
+                      />
+                    ))}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
           {/* Hint text for ungeocoded rows (idle only — disappears after locate attempt) */}
           {isUngeocoded && locateState === "idle" ? (
             <p className="mt-0.5 text-[12px] text-neutral-400">

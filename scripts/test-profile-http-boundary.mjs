@@ -66,6 +66,8 @@ const MARKER = join(ROOT, ".next", "http-guard-env.json");
 const MOTHER = "mother-company-ltd";
 const ASSOCIATE_ONLY = "ocean-cross-international";
 const UNRESOLVED_BGMEA = "unresolved-bgmea-supplier";
+const HABITUS = "habitus-fashion";
+const FAKHRUDDIN = "fakhruddin-textile-mills";
 const FACILITY = "mother-company-ltd-extension";
 const MISSING = "this-slug-cannot-possibly-exist-http-guard";
 const UNPUBLISHED = "unpublished-plain-supplier-ltd";
@@ -188,6 +190,88 @@ const UNRESOLVED_PAYLOAD = {
   },
   // Production 0101 omits BGMEA pills when member_type is unknown — no Verified badge.
   pills: [],
+};
+
+const HABITUS_PAYLOAD = {
+  ...HAPPY_PAYLOAD,
+  supplier: {
+    ...HAPPY_PAYLOAD.supplier,
+    slug: HABITUS,
+    company_name: "HABITUS FASHION LIMITED",
+  },
+  addresses: [
+    {
+      kind: "factory",
+      address: "Gajaria Para, Kauitis\nGazipur\nGazipur",
+      source_code: "BGMEA",
+      fetched_at: "2026-07-24T06:42:34.407591Z",
+    },
+    {
+      kind: "factory",
+      address: "GAJARIA PARA, BHAWAL MIRZAPUR, GAZIPUR SADAR, GAZIPUR, SADAR, GAZIPUR",
+      source_code: "BKMEA",
+      fetched_at: "2026-08-02T05:04:41.110702Z",
+    },
+    {
+      kind: "factory",
+      address: "Gojariapara, Vhawal Mirzapur, Gazipur Sadar PS, Gazipur - 1703, Bangladesh",
+      source_code: "OEKO_TEX",
+      fetched_at: "2026-06-27T02:28:59.512381Z",
+    },
+    {
+      kind: "mailing",
+      address: "Fakir Khali Road, Boro Beraid, Badda\nDhaka\nDhaka",
+      source_code: "BGMEA",
+      fetched_at: "2026-07-24T06:42:34.407591Z",
+    },
+    {
+      kind: "mailing",
+      address: "FOKIRKHALI ROAD, BORO BERAID, BADDA, DHAKA, BADDA, DHAKA",
+      source_code: "BKMEA",
+      fetched_at: "2026-08-02T05:04:41.110702Z",
+    },
+  ],
+};
+
+const FAKHRUDDIN_PAYLOAD = {
+  ...HAPPY_PAYLOAD,
+  supplier: {
+    ...HAPPY_PAYLOAD.supplier,
+    slug: FAKHRUDDIN,
+    company_name: "FAKHRUDDIN TEXTILE MILLS LTD.",
+  },
+  addresses: [
+    {
+      kind: "factory",
+      address: "Kewa, Ghorgaria, Master Bari, Sreepur\nGazipur\nGazipur",
+      source_code: "BGMEA",
+      fetched_at: "2026-07-24T06:25:10.876Z",
+    },
+    {
+      kind: "factory",
+      address: "MOUZA KEWA, SREEPUR, GAZIPUR",
+      source_code: "BKMEA",
+      fetched_at: "2026-08-02T03:02:29.550386Z",
+    },
+    {
+      kind: "factory",
+      address: "Ghargaria Master Bari, Kewa, Sreepur, Gazipur - 1740, Bangladesh",
+      source_code: "OEKO_TEX",
+      fetched_at: "2026-06-27T02:27:01.510678Z",
+    },
+    {
+      kind: "mailing",
+      address: "235/B, Bir Uttam Mir Sawkat Sarak, Tejgaon I/A\nDhaka\nDhaka",
+      source_code: "BGMEA",
+      fetched_at: "2026-07-24T06:25:10.876Z",
+    },
+    {
+      kind: "mailing",
+      address: "235/B, TEJGAON I/A-1208, TEJGAON, DHAKA",
+      source_code: "BKMEA",
+      fetched_at: "2026-08-02T03:02:29.550386Z",
+    },
+  ],
 };
 
 /** REZ-73/109 — mother facility panel shape from buyer_supplier_facility_panel. */
@@ -401,6 +485,8 @@ function mockHandler(req, res) {
       }
       if (slug === ASSOCIATE_ONLY) return json(ASSOCIATE_PAYLOAD);
       if (slug === UNRESOLVED_BGMEA) return json(UNRESOLVED_PAYLOAD);
+      if (slug === HABITUS) return json(HABITUS_PAYLOAD);
+      if (slug === FAKHRUDDIN) return json(FAKHRUDDIN_PAYLOAD);
       return json(null);
     }
     if (url.pathname === "/rest/v1/rpc/supplier_epb_hscodes") {
@@ -1196,6 +1282,36 @@ const CASES = [
         "Verify on BGMEA",
         "BGMEA General",
         "BGMEA Associate",
+      ],
+    },
+  },
+  {
+    name: "public: Habitus Fashion factory is one premises with Also recorded as pills",
+    path: `/suppliers/${HABITUS}`,
+    expect: {
+      status: 200,
+      bodyIncludesAll: [
+        "HABITUS FASHION LIMITED",
+        "Also recorded as",
+        "data-also-recorded",
+        "2 unique locations",
+        "5 source records",
+        "OEKO-TEX",
+      ],
+    },
+  },
+  {
+    name: "public: Fakhruddin Textile Mills factory is one premises with Also recorded as pills",
+    path: `/suppliers/${FAKHRUDDIN}`,
+    expect: {
+      status: 200,
+      bodyIncludesAll: [
+        "FAKHRUDDIN TEXTILE MILLS",
+        "Also recorded as",
+        "data-also-recorded",
+        "2 unique locations",
+        "5 source records",
+        "Kewa",
       ],
     },
   },
