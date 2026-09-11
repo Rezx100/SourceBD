@@ -150,6 +150,7 @@ describe("published multi-string fixture", () => {
       ["safia-apparels", "factory"],
       ["chowdhury-accessories", "factory"],
       ["b2b-excellence", "factory"],
+      ["harrods-knitwear", "mailing"],
     ];
     for (const [slug, kind] of expectOne) {
       const n = mergeUniqueLocations(groupOf(slug, kind).rows).length;
@@ -162,5 +163,10 @@ describe("published multi-string fixture", () => {
     assert.equal(mergeUniqueLocations(groupOf("tory-fashion-wear", "factory").rows).length, 2);
     assert.equal(mergeUniqueLocations(groupOf("zaee-trims", "factory").rows).length, 2);
     assert.equal(mergeUniqueLocations(groupOf("columbia-multi-tech-jv", "registered").rows).length, 2);
+    assert.equal(
+      mergeUniqueLocations(groupOf("i-and-i-accessories", "factory").rows).length,
+      2,
+      "Dhaka Chunkutia stays apart from the merged Hathazari South Pahartali factory",
+    );
   });
 });
