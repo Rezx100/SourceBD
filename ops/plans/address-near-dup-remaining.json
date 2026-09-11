@@ -1,6 +1,6 @@
 {
-  "mergedToOne": 2195,
-  "stillMulti": 1079,
+  "mergedToOne": 2197,
+  "stillMulti": 1077,
   "conflictingIdMerges": 0,
   "named": [
     {
@@ -1018,8 +1018,8 @@
       "locations": 3,
       "displays": [
         "Address 1st: Plot #246-249, Adamjee, EPZ and Address 2nd: 97-101 Adamjee",
-        "Ananta Plaza, 136, Elephent Road 1205, Dhaka",
-        "Plot # 97 - 101, Adamjee EPZ, Siddirgonj, Narayanganj, Narayangonj"
+        "Plot # 97 - 101, Adamjee EPZ, Siddirgonj, Narayanganj, Narayangonj",
+        "Ananta Plaza, 136, Elephent Road 1205, Dhaka"
       ]
     },
     {
@@ -1338,8 +1338,8 @@
       "strings": 4,
       "locations": 3,
       "displays": [
-        "House # 2/1, Road # 5, Block # A, Nayanagar, Nishatnagar, Turag, Dhaka",
         "Plot # 130 (1-2), Road # 05, Block # C, Rajbari, Turag, Dhaka-1230",
+        "House # 2/1, Road # 5, Block # A, Nayanagar, Nishatnagar, Turag, Dhaka",
         "50, NEW CHAKTAI, HAJI DELOWAR HOSSAIN SOWDAGOR BUILDING, CHITTAGONG, New Chaktai, CHATTOGRAM"
       ]
     },
@@ -1495,8 +1495,8 @@
       "strings": 2,
       "locations": 2,
       "displays": [
-        "341/A, Kunia Pachar (Taragach) Chandura Road, Board Bazar, Gazipur",
-        "Rhima Tower, GA-99/5, Middle Badda, Dhaka-1212"
+        "Rhima Tower, GA-99/5, Middle Badda, Dhaka-1212",
+        "341/A, Kunia Pachar (Taragach) Chandura Road, Board Bazar, Gazipur"
       ]
     },
     {
@@ -3375,8 +3375,8 @@
       "strings": 2,
       "locations": 2,
       "displays": [
-        "HOLDING NO-700, KAMARJURI, HARIKEN ROAD, NATIONAL UNIVERSITY, GAZIPUR",
-        "House # 68, Road # 20, Sector # 11, Uttara, Dhaka"
+        "House # 68, Road # 20, Sector # 11, Uttara, Dhaka",
+        "HOLDING NO-700, KAMARJURI, HARIKEN ROAD, NATIONAL UNIVERSITY, GAZIPUR"
       ]
     },
     {
@@ -3619,17 +3619,6 @@
       "displays": [
         "Plot # 27, Holding # 1/A, Milk Vita Road, Sec-7, Pallabi, Dhaka, Mirpur",
         "HOUSE NO-01, ROAD NO.-09, BLOCK-A, MIRPUR-12, DHAKA-1216"
-      ]
-    },
-    {
-      "slug": "east-coast-knitwear",
-      "company_name": "East Coast Knitwear Pvt. Ltd.",
-      "kind": "factory",
-      "strings": 2,
-      "locations": 2,
-      "displays": [
-        "Takkarmath, Stadium Road, Siachor, Fatullah, Narayanganj - 1420, Bangladesh",
-        "KUTUBPUR, SIACHAR, FATULLAH, FATULLAH, NARAYANGANJ"
       ]
     },
     {
@@ -5618,8 +5607,8 @@
       "strings": 2,
       "locations": 2,
       "displays": [
-        "H-153/1, Tanvir Plaza, Bazar Bus Stand Road, Joydevpur, GAZIPUR",
-        "House # 06, 5D, Road # 14/A, Sector # 4, Uttara, Dhaka"
+        "House # 06, 5D, Road # 14/A, Sector # 4, Uttara, Dhaka",
+        "H-153/1, Tanvir Plaza, Bazar Bus Stand Road, Joydevpur, GAZIPUR"
       ]
     },
     {
@@ -7523,8 +7512,8 @@
       "strings": 3,
       "locations": 2,
       "displays": [
-        "Holding # 2419, South Khailkoir, National University, Gacha, Gazipur",
-        "Plot-5/1, 5/2, Kazipur Gudaragat, Mirpur-1"
+        "Plot-5/1, 5/2, Kazipur Gudaragat, Mirpur-1",
+        "Holding # 2419, South Khailkoir, National University, Gacha, Gazipur"
       ]
     },
     {
@@ -7534,8 +7523,8 @@
       "strings": 2,
       "locations": 2,
       "displays": [
-        "Holding No:2419, Dokhin Kailkor, National University, Gasa",
-        "Plot-5/1, 5/2, Kazipur Gudaragat, Mirpur-1"
+        "Plot-5/1, 5/2, Kazipur Gudaragat, Mirpur-1",
+        "Holding No:2419, Dokhin Kailkor, National University, Gasa"
       ]
     },
     {
@@ -7834,8 +7823,8 @@
       "strings": 2,
       "locations": 2,
       "displays": [
-        "216, SHRIFPUR, NATIONAL UNIVERSITY, GASA, GAZIPUR",
-        "House # 158 (1st Floor), Road # 1 (East), Baridhara DOHS, Dhaka"
+        "House # 158 (1st Floor), Road # 1 (East), Baridhara DOHS, Dhaka",
+        "216, SHRIFPUR, NATIONAL UNIVERSITY, GASA, GAZIPUR"
       ]
     },
     {
@@ -8846,8 +8835,8 @@
       "strings": 2,
       "locations": 2,
       "displays": [
-        "Sibrampur, Zirani Bazar, Gazipur, Kashimpur",
-        "KHAJUR BAGEN, ASHULIA, SAVER, DHAKA, GAZIPUR"
+        "KHAJUR BAGEN, ASHULIA, SAVER, DHAKA, GAZIPUR",
+        "Sibrampur, Zirani Bazar, Gazipur, Kashimpur"
       ]
     },
     {
@@ -10144,8 +10133,8 @@
       "strings": 2,
       "locations": 2,
       "displays": [
-        "SOUTH SALNA, P.O. SALNA BAZAR, SADAR, GAZIPUR",
-        "Ambag West Para, Gazipur, Konabari"
+        "Ambag West Para, Gazipur, Konabari",
+        "SOUTH SALNA, P.O. SALNA BAZAR, SADAR, GAZIPUR"
       ]
     },
     {
@@ -10303,17 +10292,6 @@
       ]
     },
     {
-      "slug": "shamser-knit-fashions",
-      "company_name": "SHAMSER KNIT FASHIONS LIMITED.",
-      "kind": "mailing",
-      "strings": 2,
-      "locations": 2,
-      "displays": [
-        "Shamser Plaza (3rd Floor), Ganak Bari, Ashulia, Dhaka, Savar",
-        "SREEPUR STAND, GANAKBARI, ASHULIA, SAVAR, DHAKA"
-      ]
-    },
-    {
       "slug": "shamsuddin-spinning-mills",
       "company_name": "Shamsuddin Spinning Mills Ltd.",
       "kind": "factory",
@@ -10443,17 +10421,6 @@
       "displays": [
         "342/343, Khadun, Tarabo, Narayanganj, Rupganj",
         "1101/1, MALIBAG CHOWDHURY PARA, DHAKA"
-      ]
-    },
-    {
-      "slug": "sikder-garments-accessories",
-      "company_name": "Sikder Garments Accessories Ltd",
-      "kind": "factory",
-      "strings": 2,
-      "locations": 2,
-      "displays": [
-        "Plot # 01, Road # 01, Dhour, Nishatnagar, Turag, Dhaka",
-        "Sarkar Bari, Dhour Chowrasta, Turag, 1230, Dhaka, Bangladesh"
       ]
     },
     {
@@ -10997,11 +10964,10 @@
       "company_name": "T & A INTERNATIONAL",
       "kind": "factory",
       "strings": 4,
-      "locations": 3,
+      "locations": 2,
       "displays": [
         "Plot No: 90, Block No: C, Ward No:04, Nolvogh Turag, Uttara, Dhaka-1230",
-        "18, RAJUK AVENUE (5TH FLOOR), DHAKA",
-        "Nayanogor, Block # B, Nishatnagar, Turagh, Uttara, Dhaka"
+        "18, RAJUK AVENUE (5TH FLOOR), DHAKA"
       ]
     },
     {
@@ -11068,6 +11034,17 @@
       "displays": [
         "Jamirdia, Masterbari, Valuka, Mymensingh",
         "Enayetnagar, Fatullah, Narayanganj - 1420, Bangladesh"
+      ]
+    },
+    {
+      "slug": "takwoa-accessories",
+      "company_name": "Takwoa Accessories",
+      "kind": "factory",
+      "strings": 2,
+      "locations": 2,
+      "displays": [
+        "Takwoa Tower, Holding No : 1773, Ward No: 35, East Kolmeshwar, Board Bazar, 1704, Gazipur, Bangladesh",
+        "Board Bazar, National University, Gazipur Sadar"
       ]
     },
     {
