@@ -195,6 +195,19 @@ const GENERIC_TOKENS = new Set([
   "purbo",
   "moddho",
   "madhya",
+  // Landmark / junction words. The name in front of these (Shamser Plaza,
+  // Sreepur Stand, Sarkar Bari, Ideal Mor, Dhour Chowrasta) is a building
+  // or stop, not a competing village.
+  "plaza",
+  "stand",
+  "stadium",
+  "chowrasta",
+  "mor",
+  // National University lexicon expands to "board bazar"; that post office
+  // is shared by half of Gazipur and must not be a leading place.
+  "board",
+  "bazar",
+  "bazaar",
 ]);
 
 /** Bangla script → English comparison tokens. Applied only to the match
@@ -263,6 +276,9 @@ const ADMIN_TOKENS = new Set([
   "dohs",
   "old",
   "new",
+  // Post-office tail at Turag. One-sided Nishatnagar must not block once
+  // Dhour/Turag already matches (plot vs Sarkar Bari at Dhour Chowrasta).
+  "nishatnagar",
 ]);
 
 /** District / division / country plus labels that appear on thousands of
@@ -1116,8 +1132,25 @@ function isLocalityToken(token: string): boolean {
   return false;
 }
 
+/** Words that mark the previous token as a building, stop, house or
+ *  junction rather than the village (Shamser Plaza, Sreepur Stand,
+ *  Sarkar Bari). Used only when picking a leading place. */
+const LANDMARK_FOLLOWERS = new Set([
+  "plaza",
+  "stand",
+  "stadium",
+  "mor",
+  "chowrasta",
+]);
+
+function isLandmarkName(tokens: string[], i: number): boolean {
+  return i + 1 < tokens.length && LANDMARK_FOLLOWERS.has(tokens[i + 1]!);
+}
+
 function firstTailedPlace(tokens: string[]): string | null {
-  for (const token of tokens) {
+  for (let i = 0; i < tokens.length; i++) {
+    if (isLandmarkName(tokens, i)) continue;
+    const token = tokens[i]!;
     if (tokenWeight(token) !== DISTINCT_WEIGHT) continue;
     if (/\d/.test(token)) continue;
     if (isLocalityToken(token)) return token;
@@ -1127,7 +1160,9 @@ function firstTailedPlace(tokens: string[]): string | null {
 
 function firstDistinctPlace(tokens: string[]): string | null {
   let fallback: string | null = null;
-  for (const token of tokens) {
+  for (let i = 0; i < tokens.length; i++) {
+    if (isLandmarkName(tokens, i)) continue;
+    const token = tokens[i]!;
     if (tokenWeight(token) !== DISTINCT_WEIGHT) continue;
     if (/\d/.test(token)) continue;
     if (token.length < 5) continue;

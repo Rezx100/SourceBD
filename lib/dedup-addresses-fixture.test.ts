@@ -154,6 +154,9 @@ describe("published multi-string fixture", () => {
       ["modish-attires", "factory"],
       ["modish-attires", "mailing"],
       ["best-style-composite", "factory"],
+      ["shamser-knit-fashions", "mailing"],
+      ["sikder-garments-accessories", "factory"],
+      ["east-coast-knitwear", "factory"],
     ];
     for (const [slug, kind] of expectOne) {
       const n = mergeUniqueLocations(groupOf(slug, kind).rows).length;
@@ -175,6 +178,36 @@ describe("published multi-string fixture", () => {
       mergeUniqueLocations(groupOf("goumati-knitwear", "factory").rows).length,
       2,
       "BSCIC Shashangaon stays apart from merged Talla Road Khapur/Knanpur",
+    );
+    assert.equal(
+      mergeUniqueLocations(groupOf("tropical-knitex", "factory").rows).length,
+      2,
+      "Chandra stays apart from Chandona in Kaliakoir",
+    );
+    assert.equal(
+      mergeUniqueLocations(groupOf("zas-apparels", "factory").rows).length,
+      2,
+      "company name plus postcode stays apart from Shantidhara Bhuigar",
+    );
+    assert.equal(
+      mergeUniqueLocations(groupOf("eslite-garments-bangladesh", "factory").rows).length,
+      2,
+      "Jamirdia stays apart from Square Masterbari when the village is named on only one side",
+    );
+    assert.equal(
+      mergeUniqueLocations(groupOf("takwoa-accessories", "factory").rows).length,
+      2,
+      "East Kolmeshwar tower stays apart from a Board Bazar post-office row",
+    );
+    assert.equal(
+      mergeUniqueLocations(groupOf("powertex-fashions", "factory").rows).length,
+      2,
+      "Mansur Plaza at Board Bazar stays apart from Kathora Industrial Park",
+    );
+    assert.equal(
+      mergeUniqueLocations(groupOf("givensee-garments", "factory").rows).length,
+      2,
+      "Hotapara stays apart from the merged Bishia/Kuribari/Monipur factory",
     );
   });
 });

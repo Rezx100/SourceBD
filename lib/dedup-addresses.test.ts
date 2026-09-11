@@ -1220,6 +1220,116 @@ describe("mergeUniqueLocations — one row per premises (founder posture)", () =
     );
   });
 
+  it("merges Shamser Plaza with Sreepur Stand at the same Ganakbari village", () => {
+    assert.equal(
+      displays([
+        row("Shamser Plaza (3rd Floor), Ganak Bari, Ashulia, Dhaka, Savar"),
+        row("SREEPUR STAND, GANAKBARI, ASHULIA, SAVAR, DHAKA"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges Plot 1 Road 1 Dhour with Sarkar Bari at Dhour Chowrasta", () => {
+    assert.equal(
+      displays([
+        row("Plot # 01, Road # 01, Dhour, Nishatnagar, Turag, Dhaka"),
+        row("Sarkar Bari, Dhour Chowrasta, Turag, 1230, Dhaka, Bangladesh"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges Takkarmath Stadium Road Siachor with Kutubpur Siachar Fatullah", () => {
+    assert.equal(
+      displays([
+        row("Takkarmath, Stadium Road, Siachor, Fatullah, Narayanganj - 1420, Bangladesh"),
+        row("KUTUBPUR, SIACHAR, FATULLAH, FATULLAH, NARAYANGANJ"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("does not merge Chandra with Chandona in Kaliakoir", () => {
+    assert.equal(
+      displays([
+        row("Chandra, Kaliakoir, Gazipur - 1751, Bangladesh"),
+        row("Chandona, Kaliakoir, Gazipur"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("does not merge a company-name-plus-postcode row with a named Fatullah village", () => {
+    assert.equal(
+      displays([
+        row("Shantidhara, Bhuigar, Fatullah, Narayanganj, Narayangonj"),
+        row("ZAS APPARELS (PVT.) LTD., 1420, Narayangonj, Bangladesh"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("does not merge Jamirdia with Square Masterbari when Jamirdia is named on only one side", () => {
+    assert.equal(
+      displays([
+        row("Holding#1125, Ideal Mor, Square Masterbari, Bhaluka, Mymensingh"),
+        row("Jamirdia, Habirbari, Valuka, Mymensingh"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("does not merge Hotapara with Bishia Kuribari Monipur", () => {
+    assert.equal(
+      displays([
+        row("Bishia, Kuribari, Monipur, Gazipur."),
+        row("Hotapara, Gazipur"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("still merges Mariam Complex with Chowdhury Bari at Vogra", () => {
+    assert.equal(
+      displays([
+        row("Chowdhury Bari, Gazipur, Vogra"),
+        row("MARIAM COMPLEX, CHOWDHURY BARI, GAZIPUR"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("does not merge two named towers in Gulshan that have different plots", () => {
+    assert.equal(
+      displays([
+        row("Plot # 10, Taher Tower (9th Floor), Gulshan North Circle, Dhaka, Gulshan-2"),
+        row("GREEN MEHER TOWER 12/A, GULSHAN NORTH AVENUE, GULSHAN, DHAKA"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("does not merge Mansur Plaza at Board Bazar with Kathora Industrial Park", () => {
+    assert.equal(
+      displays([
+        row("Mansur Plaza (3rd - 6th Floor), National University, Gazipur, Board Bazar"),
+        row("Dr. Panjab Ali, Dr. Assaduzzaman Industrial Park, Kathora, National University, Gazipur - 1704, Bangladesh"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("does not merge a Board Bazar post-office row with East Kolmeshwar tower", () => {
+    assert.equal(
+      displays([
+        row("Takwoa Tower, Holding No : 1773, Ward No: 35, East Kolmeshwar, Board Bazar, 1704, Gazipur, Bangladesh"),
+        row("Board Bazar, National University, Gazipur Sadar"),
+      ]).length,
+      2,
+    );
+  });
+
   it("keeps concatenated Adamjee plots 246-249 and 97-101 apart from the 97-101-only row", () => {
     assert.equal(
       displays([
