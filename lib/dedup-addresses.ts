@@ -120,6 +120,7 @@ const GENERIC_TOKENS = new Set([
   "plots",
   "holding",
   "house",
+  "housing",
   "block",
   "sector",
   "section",
@@ -184,6 +185,8 @@ const GENERIC_TOKENS = new Set([
   "shopping",
   "shoping",
   "name",
+  "near",
+  "opposite",
   "uttar",
   "dakhin",
   "dakshin",
@@ -644,6 +647,17 @@ function sameWord(a: string, b: string): boolean {
   let prefix = 0;
   while (prefix < a.length && prefix < b.length && a[prefix] === b[prefix]) prefix += 1;
   if (prefix >= 4 && levenshtein(a, b) === 1 && Math.min(a.length, b.length) >= 6) return true;
+  // Chadni/Chandni: one inserted letter after a 3-letter prefix. Both
+  // ending in a locality suffix is Mirpur/Mirzapur (insert z) and must not
+  // use this path.
+  if (
+    prefix >= 3 &&
+    levenshtein(a, b) === 1 &&
+    Math.min(a.length, b.length) >= 6 &&
+    !PLACE_TAILS.some((t) => a.endsWith(t) && b.endsWith(t))
+  ) {
+    return true;
+  }
   // Narsingpur/Narsimpur: same locality suffix, long shared prefix, two edits.
   for (const tail of PLACE_TAILS) {
     if (a.length > tail.length + 3 && b.length > tail.length + 3 && a.endsWith(tail) && b.endsWith(tail)) {

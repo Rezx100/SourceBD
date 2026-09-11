@@ -1210,6 +1210,16 @@ describe("mergeUniqueLocations — one row per premises (founder posture)", () =
     );
   });
 
+  it("merges Chadni Housing with Enayetnagar near Chandni Housing at Fatullah", () => {
+    assert.equal(
+      displays([
+        row("Chadni Housing, Fatullah, 1400, Narayanganj, Bangladesh"),
+        row("ENAYETNAGAR (NEAR CHANDNI HOUSING), FATULLAH, NARAYANGANJ."),
+      ]).length,
+      1,
+    );
+  });
+
   it("keeps concatenated Adamjee plots 246-249 and 97-101 apart from the 97-101-only row", () => {
     assert.equal(
       displays([

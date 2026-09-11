@@ -153,6 +153,7 @@ describe("published multi-string fixture", () => {
       ["harrods-knitwear", "mailing"],
       ["modish-attires", "factory"],
       ["modish-attires", "mailing"],
+      ["best-style-composite", "factory"],
     ];
     for (const [slug, kind] of expectOne) {
       const n = mergeUniqueLocations(groupOf(slug, kind).rows).length;
