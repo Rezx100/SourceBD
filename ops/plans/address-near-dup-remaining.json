@@ -1,6 +1,6 @@
 {
-  "mergedToOne": 2197,
-  "stillMulti": 1077,
+  "mergedToOne": 2180,
+  "stillMulti": 1094,
   "conflictingIdMerges": 0,
   "named": [
     {
@@ -136,6 +136,17 @@
       "displays": [
         "3452/A, Golden Beach Road, Chorpara, South Patenga, Chattogram",
         "398/A, Rampur, Halishahor, Chattogram"
+      ]
+    },
+    {
+      "slug": "aanytex",
+      "company_name": "AANYTEX LIMITED",
+      "kind": "factory",
+      "strings": 2,
+      "locations": 2,
+      "displays": [
+        "CH Plot # 1260, Harirampur, Turag, Dhaka",
+        "C H PLOT NO.# 1260, BAONIA, TURAG, DHAKA"
       ]
     },
     {
@@ -279,6 +290,17 @@
       "displays": [
         "243/1, New Circular Road, Elite House, 54 Motijheel C/A, 4th Floor, Moghbazar, Dhaka",
         "42, Bamnartak Kamarpara, Block-E, Ward -6, Road # 2, Turag, Dhaka"
+      ]
+    },
+    {
+      "slug": "abloom",
+      "company_name": "Abloom Limited",
+      "kind": "registered",
+      "strings": 2,
+      "locations": 2,
+      "displays": [
+        "House # 192, (Ground Floor), Lane # 2, West DOHS, Baridhara DOHS, Dhaka",
+        "Hosue # 155 (3rd Floor), Lane # 1, East, DOHS, Baridhara DOHS, Dhaka"
       ]
     },
     {
@@ -502,6 +524,17 @@
       ]
     },
     {
+      "slug": "ahmed-house-hold-products",
+      "company_name": "Ahmed House Hold Products (PVT) Ltd",
+      "kind": "registered",
+      "strings": 2,
+      "locations": 2,
+      "displays": [
+        "Plot# 1/6, Road37, Section# 7, Mirpur industrial Area, Dhaka",
+        "Plot # I/6, Road # 7, Sec. # 7, Mirpur I/A, Dhaka"
+      ]
+    },
+    {
       "slug": "ahsan-apparels",
       "company_name": "AHSAN APPARELS LTD.",
       "kind": "mailing",
@@ -532,6 +565,17 @@
       "displays": [
         "H-79, Block-D, International Airport Road, Dhaka, Banani",
         "55/1 Khataldia, Tongi, 1711, Gazipur, Bangladesh",
+        "1, HAJEE DELGONI MARKET, MOHAMMADPUR, DHAKA"
+      ]
+    },
+    {
+      "slug": "aim-knitwear",
+      "company_name": "AIM KNITWEAR LTD.",
+      "kind": "mailing",
+      "strings": 2,
+      "locations": 2,
+      "displays": [
+        "1/D, Uttar Adabar, Ring Road, Dhaka, Shamoli",
         "1, HAJEE DELGONI MARKET, MOHAMMADPUR, DHAKA"
       ]
     },
@@ -661,9 +705,10 @@
       "company_name": "A.K.M. KNIT WEAR LTD.",
       "kind": "factory",
       "strings": 3,
-      "locations": 2,
+      "locations": 3,
       "displays": [
         "14, Gedda, Karnapara, Ualil, Savar, 1340, Dhaka, Bangladesh",
+        "14, Gedda, Conpara, Ulail, Savar, Dhaka",
         "SHI-80, Peyarabagan, Bypass Road, Vogra, Ward-15, 1704, Gazipur, Bangladesh"
       ]
     },
@@ -1015,9 +1060,10 @@
       "company_name": "Ananta Apparels Limited",
       "kind": "factory",
       "strings": 6,
-      "locations": 3,
+      "locations": 4,
       "displays": [
         "Address 1st: Plot #246-249, Adamjee, EPZ and Address 2nd: 97-101 Adamjee",
+        "Plot # 246-249, Adamjee EPZ, Narayanganj, 1431, Narayanganj, Bangladesh",
         "Plot # 97 - 101, Adamjee EPZ, Siddirgonj, Narayanganj, Narayangonj",
         "Ananta Plaza, 136, Elephent Road 1205, Dhaka"
       ]
@@ -1348,9 +1394,10 @@
       "company_name": "ARTISTIC APPARELS LTD.",
       "kind": "registered",
       "strings": 3,
-      "locations": 2,
+      "locations": 3,
       "displays": [
         "House # 2/1, Road # 5, Block # A, Nayanagar, Nishatnagar, Turag, Dhaka",
+        "1/8, B-3, Block-A, Lalmatia, Dhaka",
         "Uttara, Dhaka, 43, Johnson Road"
       ]
     },
@@ -1949,6 +1996,17 @@
       ]
     },
     {
+      "slug": "balaka-stitch",
+      "company_name": "Balaka Stitch (Pvt) Ltd.",
+      "kind": "factory",
+      "strings": 2,
+      "locations": 2,
+      "displays": [
+        "Plot # 636, Shahriar Road, Sonda, National University, Gazipur",
+        "636, Sharifpur Road, Sonda, National University"
+      ]
+    },
+    {
       "slug": "bangla-japan-trading",
       "company_name": "BANGLA JAPAN TRADING LTD.",
       "kind": "factory",
@@ -2399,6 +2457,17 @@
       "displays": [
         "32/1, Dilu Road, New Eskaton, Dhaka",
         "59/BKEMAL ATATURK AVENUE, 4TH FLOOR, BANANI, DHAKA"
+      ]
+    },
+    {
+      "slug": "brannerson-apparel",
+      "company_name": "Brannerson Apparel Ltd.",
+      "kind": "factory",
+      "strings": 2,
+      "locations": 2,
+      "displays": [
+        "Plot#1/1, Gha Part, Rupnagar I/A, Section:#2, Mirpur, Dhaka",
+        "Plot # I/1, ‘GHA Part’, Pallabi, 1216, Dhaka, Bangladesh"
       ]
     },
     {
@@ -3435,6 +3504,17 @@
       ]
     },
     {
+      "slug": "dk-global-fashion-wear",
+      "company_name": "DK Global Fashion Wear Ltd",
+      "kind": "factory",
+      "strings": 2,
+      "locations": 2,
+      "displays": [
+        "Holding No. 330/1, West Souldubi, Kashimpur, 1740, Gazipur, Bangladesh",
+        "Holding # 01/22/1, Road # 06, Block # V, Beron, Dhaka"
+      ]
+    },
+    {
       "slug": "dk-knitwear",
       "company_name": "DK KNIT WEAR LTD",
       "kind": "registered",
@@ -3641,6 +3721,17 @@
       "displays": [
         "287, Alirmore, Dhaka, B. Baria",
         "121, Motijheel C/A, Dhaka"
+      ]
+    },
+    {
+      "slug": "echoknits",
+      "company_name": "ECHOKNITS LTD",
+      "kind": "factory",
+      "strings": 2,
+      "locations": 2,
+      "displays": [
+        "A-99/1 Baktarpur, Kaliakoir, 1750, Gazipur, Bangladesh",
+        "A-99/1, UttorBoktarpur, Gazipur, B. Baria"
       ]
     },
     {
@@ -4085,6 +4176,17 @@
       "displays": [
         "Kadamtoli, Shampur, Dhaka.",
         "Senwalia, Savar, Dhaka."
+      ]
+    },
+    {
+      "slug": "falcon-international",
+      "company_name": "Falcon International Ltd.",
+      "kind": "factory",
+      "strings": 2,
+      "locations": 2,
+      "displays": [
+        "Plot # 2/1 (2nd, 3rd & 4th Floor), Road # 7, Nobodoy Housing Society, Dhaka, Mohammadpur",
+        "2800/2, D.T. Road, Baro Quarter, Pahartoli, Chattogram - 4202, Bangladesh"
       ]
     },
     {
@@ -5900,6 +6002,17 @@
       ]
     },
     {
+      "slug": "jm-knitwear",
+      "company_name": "J. M. KNITWEAR LTD.",
+      "kind": "registered",
+      "strings": 2,
+      "locations": 2,
+      "displays": [
+        "House # 3, Road # 17, Block-C, Banani, Dhaka",
+        "Hosue # 5, Road # 6, Nikunjo, Dhaka"
+      ]
+    },
+    {
       "slug": "jms-clothing",
       "company_name": "JMS Clothing Ltd.",
       "kind": "registered",
@@ -6685,8 +6798,8 @@
       "strings": 2,
       "locations": 2,
       "displays": [
-        "1, TURAG HOUSING, BERIBADH",
-        "Apt # 2/A, Urban Lusan, Hosue # 49, Road # 6/A, Dhanmondi, Dhaka"
+        "Apt # 2/A, Urban Lusan, Hosue # 49, Road # 6/A, Dhanmondi, Dhaka",
+        "1, TURAG HOUSING, BERIBADH"
       ]
     },
     {
@@ -7108,6 +7221,17 @@
       ]
     },
     {
+      "slug": "manel-fashion",
+      "company_name": "Manel Fashion Ltd",
+      "kind": "factory",
+      "strings": 3,
+      "locations": 2,
+      "displays": [
+        "CB-4/1, Siraj Market (3rd-5th Floor), Kachukhet, Dhaka, Cantonment",
+        "79/1, BASON, VITIPARA"
+      ]
+    },
+    {
       "slug": "mango-knit-composite",
       "company_name": "MANGO KNIT COMPOSITE LIMITED",
       "kind": "mailing",
@@ -7345,8 +7469,8 @@
       "strings": 2,
       "locations": 2,
       "displays": [
-        "29, North Kafrul, Cantonment, Dhaka",
-        "Hosue # 20, Road # 18, Sector # 3, Uttara, Dhaka"
+        "Hosue # 20, Road # 18, Sector # 3, Uttara, Dhaka",
+        "29, North Kafrul, Cantonment, Dhaka"
       ]
     },
     {
@@ -7359,6 +7483,17 @@
         "23/4, Kunipara, Tejgaon Industrial Area, Dhaka - 1208, Bangladesh",
         "Village :Char Baushia Madhyamkandi, Post :Baushia, P.S: Gazaria, Dist: Munshigonj.",
         "Khatian No. 487, Jamgora, Zirabo, Ashulia, Savar, Dhaka"
+      ]
+    },
+    {
+      "slug": "mega-packaging-bangladesh",
+      "company_name": "Mega Packaging Bangladesh Ltd",
+      "kind": "registered",
+      "strings": 2,
+      "locations": 2,
+      "displays": [
+        "House-23 (Sunayana), Level-3, Sonargaon Janapath Road, Sector-12, Uttara, Dhaka-1230",
+        "23/4, Kunipara, Tejgaon I/A, Dhaka."
       ]
     },
     {
@@ -7957,8 +8092,8 @@
       "strings": 2,
       "locations": 2,
       "displays": [
-        "Plot No. 12893/95, Bus Terminal Road, Bahassarhat, Chandgaon, Chattogram",
-        "6657/40, Mahmudabad, South Pahartoli, Hathazari, Chattogram"
+        "6657/40, Mahmudabad, South Pahartoli, Hathazari, Chattogram",
+        "Plot No. 12893/95, Bus Terminal Road, Bahassarhat, Chandgaon, Chattogram"
       ]
     },
     {
@@ -7968,8 +8103,8 @@
       "strings": 2,
       "locations": 2,
       "displays": [
-        "12893/95, Bus Terminal Road, Bahassarhat, Chandgaon, Chattogram",
-        "6657/40, Mahmudabad, South Pahartoli, Hathazari, Chattogram"
+        "6657/40, Mahmudabad, South Pahartoli, Hathazari, Chattogram",
+        "12893/95, Bus Terminal Road, Bahassarhat, Chandgaon, Chattogram"
       ]
     },
     {
@@ -7981,6 +8116,17 @@
       "displays": [
         "Ward No: 08, Holding No: B-31 (235/236), Area: East Chandura, Shafipur, Kaliakoire Pourashava, Kaliakoire, Gazipur - 1700, Bangladesh",
         "Plot # B-8 & 9, BSCIC I/A, Gazipur, Konabari"
+      ]
+    },
+    {
+      "slug": "mukul-printing-and-packaging-industries",
+      "company_name": "Mukul Printing & Packaging Inds. Ltd",
+      "kind": "registered",
+      "strings": 2,
+      "locations": 2,
+      "displays": [
+        "House #16 (3rd fl), Road # 10, Sector # 1, Uttara Model Town, Dhaka-1230",
+        "House # 01 (D-1), Road # 03, Sector # 10 Uttara Model Town, Uttara, Dhaka."
       ]
     },
     {
@@ -8135,6 +8281,17 @@
       "displays": [
         "House # 53( Flat-A/3), Gausul Azam Avenue Road, Sector #, 14, Uttara, Dhaka",
         "House # 61 (1st Floor), Shah Mukdum Avenue, Sector 12, Uttara, Dhaka"
+      ]
+    },
+    {
+      "slug": "nehal-industries",
+      "company_name": "Nehal Industries Ltd",
+      "kind": "factory",
+      "strings": 2,
+      "locations": 2,
+      "displays": [
+        "Holding-213/1 (Present-D-119/1), Block-C, Ward-18, 1700, Gazipur, Bangladesh",
+        "Holding # D-119/1 (Old C-213/1), Block # C, Ward # 18, Tecknogopara, Gazipur-1700"
       ]
     },
     {
@@ -9268,8 +9425,8 @@
       "strings": 3,
       "locations": 2,
       "displays": [
-        "Plot-B-388, BSCIC, Hosiery I/A, Shasongaon, Fatullah, Narayanganj",
-        "Plot: B-167, 168 BSCIC I/A, Fatullah, 1420, Narayanganj, Bangladesh"
+        "Plot: B-167, 168 BSCIC I/A, Fatullah, 1420, Narayanganj, Bangladesh",
+        "Plot-B-388, BSCIC, Hosiery I/A, Shasongaon, Fatullah, Narayanganj"
       ]
     },
     {
@@ -10182,6 +10339,17 @@
       ]
     },
     {
+      "slug": "sayam-knit-fab",
+      "company_name": "SAYAM KNIT FAB",
+      "kind": "mailing",
+      "strings": 2,
+      "locations": 2,
+      "displays": [
+        "5/2, Haji Abdur Rahman Sarak, New Chashara, Jamtola, Fatullah, Narayanganj, Narayangonj",
+        "PLOT S-05 (PART) & S-06, BSCIC I/A, SHASONGAON, FATULLAH, NARAYANGANJ"
+      ]
+    },
+    {
       "slug": "sazid-accessories",
       "company_name": "Sazid Accessories Company",
       "kind": "factory",
@@ -10542,8 +10710,8 @@
       "strings": 4,
       "locations": 3,
       "displays": [
-        "PLOT-A/107, BSCIC HOSIERY I/E, SHASONGAON, FATULLAH, NARAYANGANJ",
         "House-SE-04, Road-137, Gulshan-1, Dhaka",
+        "PLOT-A/107, BSCIC HOSIERY I/E, SHASONGAON, FATULLAH, NARAYANGANJ",
         "PANCHABATI, NARAYANGANJ"
       ]
     },
@@ -11373,6 +11541,17 @@
     {
       "slug": "tm-jeans",
       "company_name": "TM Jeans Ltd",
+      "kind": "factory",
+      "strings": 4,
+      "locations": 2,
+      "displays": [
+        "Holding No-41, Word No-22, Bahadurpur, Mirzapur, Joydebpur, Gazipur - 1703, Bangladesh",
+        "Holding # 41, Ward # 22, Bhobanipur, Mirzapur, Joydebpur, Gazipur"
+      ]
+    },
+    {
+      "slug": "tm-jeans",
+      "company_name": "TM Jeans Ltd",
       "kind": "registered",
       "strings": 2,
       "locations": 2,
@@ -11578,6 +11757,17 @@
       "displays": [
         "Chandra, Kaliakoir, Gazipur - 1751, Bangladesh",
         "Chandona, Kaliakoir, Gazipur"
+      ]
+    },
+    {
+      "slug": "trouser-land",
+      "company_name": "Trouser Land Ltd.",
+      "kind": "factory",
+      "strings": 2,
+      "locations": 2,
+      "displays": [
+        "40/1 Rajnagar, Hazrat Shahjalal Road, Sataish, Tongi, Gazipur., Office: 45 kallayanpur, Main Road Dhaka-1207, Bangladesh, 1712",
+        "1460/1, Gacha Road, Kunia, National University, Gazipur Sadar"
       ]
     },
     {

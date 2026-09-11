@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import {
+  buildLocationOverview,
   cleanAddressString,
   idSetsOverlap,
   mergeUniqueLocations,
@@ -1230,6 +1231,16 @@ describe("mergeUniqueLocations — one row per premises (founder posture)", () =
     );
   });
 
+  it("merges two Sreepur Stand wordings when one also names Ganakbari", () => {
+    assert.equal(
+      displays([
+        row("Sreepur Bus stand, Sreepur, Ashulia, Savar, Dhaka - 1349, Bangladesh"),
+        row("Sreepur Stand, Ganakbari, Ashulia, Dhaka, Savar"),
+      ]).length,
+      1,
+    );
+  });
+
   it("merges Plot 1 Road 1 Dhour with Sarkar Bari at Dhour Chowrasta", () => {
     assert.equal(
       displays([
@@ -1339,6 +1350,127 @@ describe("mergeUniqueLocations — one row per premises (founder posture)", () =
       2,
     );
   });
+
+  it("keeps Address 1st/2nd wording apart even when the second plot list is parseable", () => {
+    assert.equal(
+      displays([
+        row("Address 1st: Plot #246-249, 97-101, Adamjee EPZ and Address 2nd: 97-101 Adamjee"),
+        row("Plot # 97 - 101, Adamjee EPZ, Siddirgonj, Narayanganj, Narayangonj"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("still merges a Comilla extra-plot subset when both sides list 220-227", () => {
+    assert.equal(
+      displays([
+        row("Plot 12-14, 220-227, Comilla EPZ"),
+        row("Plot 220-227, Comilla EPZ"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges the same BSCIC plot under Enayetnagar or Shasongaon labels", () => {
+    assert.equal(
+      displays([
+        row("Plot # A-81, BSCIC Industrial Area, Enayetnagar, Fatullah, Narayanganj"),
+        row("A-81, BSCIC I/E, SHASONGAON, FATULLAH, NARAYANGANJ"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("does not merge Plot 5 Nayapara with Plot 5 Bahadurpur", () => {
+    assert.equal(
+      displays([
+        row("Plot 5, Nayapara, Bhawal, Mirzapur, Gazipur Sadar"),
+        row("Plot 5, Bahadurpur, P.O.-Bhawal, Mirzapur, Gazipur Sadar"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("does not merge Plot 1 Nandirhat with Plot 1 Mahmudabad", () => {
+    assert.equal(
+      displays([
+        row("Plot 1, Mahmudabad, South Pahartali, Hathazari, Chattogram"),
+        row("Plot 1, Nandirhat, South Pahartali, Hathazari, Chattogram"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("does not merge House 1 Shamoli with House 1 Hajee Delgoni Mohammadpur", () => {
+    assert.equal(
+      displays([
+        row("1/D, Uttar Adabar, Ring Road, Dhaka, Shamoli", "BGMEA", "mailing"),
+        row("1, HAJEE DELGONI MARKET, MOHAMMADPUR, DHAKA", "BKMEA", "mailing"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("does not merge House 16 Sector 1 with House 01 (D-1) Sector 10 in Uttara", () => {
+    assert.equal(
+      displays([
+        row("House #16 (3rd fl), Road # 10, Sector # 1, Uttara Model Town, Dhaka-1230"),
+        row("House # 01 (D-1), Road # 03, Sector # 10 Uttara Model Town, Uttara, Dhaka."),
+      ]).length,
+      2,
+    );
+  });
+
+  it("does not merge House 3 Banani with Hosue 5 Nikunjo", () => {
+    assert.equal(
+      displays([
+        row("House # 3, Road # 17, Block-C, Banani, Dhaka"),
+        row("Hosue # 5, Road # 6, Nikunjo, Dhaka"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("does not merge Plot I/6 Road37 with Plot I/6 Road 7", () => {
+    assert.equal(
+      displays([
+        row("Plot# 1/6, Road37, Section# 7, Mirpur industrial Area, Dhaka"),
+        row("Plot # I/6, Road # 7, Sec. # 7, Mirpur I/A, Dhaka"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("does not merge Chandra, Chandona and Chandora as one premises", () => {
+    assert.equal(
+      displays([
+        row("Chandra, Kaliakoir, Gazipur - 1751, Bangladesh"),
+        row("Chandona, Kaliakoir, Gazipur"),
+        row("Chandora, Kaliakoir, Gazipur"),
+      ]).length,
+      3,
+    );
+  });
+
+  it("does not merge Kewa Sreepur with Sreepur Stand at Ganakbari", () => {
+    assert.equal(
+      displays([
+        row("Kewa, Sreepur, Gazipur"),
+        row("SREEPUR STAND, GANAKBARI, ASHULIA, SAVAR, DHAKA"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("does not merge Shamser Plaza with Anwar Plaza at the same Ganakbari village", () => {
+    assert.equal(
+      displays([
+        row("Shamser Plaza (3rd Floor), Ganak Bari, Ashulia, Dhaka, Savar"),
+        row("Anwar Plaza (3rd Floor), Ganak Bari, Dhaka, Savar"),
+      ]).length,
+      2,
+    );
+  });
 });
 
 describe("premisesIdentifiers — Ka/K, prefixes, brackets, slash lists", () => {
@@ -1352,7 +1484,7 @@ describe("premisesIdentifiers — Ka/K, prefixes, brackets, slash lists", () => 
     assert.equal(
       displays([
         row("CH Plot # 1260, Harirampur, Turag, Dhaka"),
-        row("C H PLOT NO.# 1260, BAONIA, TURAG, DHAKA"),
+        row("C H PLOT NO.# 1260, HARIRAMPUR, TURAG, DHAKA"),
       ]).length,
       1,
     );
@@ -1403,5 +1535,83 @@ describe("premisesIdentifiers — Ka/K, prefixes, brackets, slash lists", () => 
     );
     assert.ok([...ids].every((id) => Number(id) <= 11), `phone leaked into ids: ${[...ids]}`);
     assert.ok(ids.has("6") && ids.has("11"));
+  });
+
+  it("reads Holding C-120/14 (B) as the same holding as C-120/14 B", () => {
+    assert.equal(
+      displays([
+        row("Holding No. C-120/14 B, Ward No. 09, Sofipur, Kaliakair, Gazipur"),
+        row("Holding # C-120/14 (B), Shafipur, Ward # 9, Kaliakoir, Gazipur."),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges Uttara Export Processing Zone with Uttara EPZ on the same SFB", () => {
+    assert.equal(
+      displays([
+        row("MS-SFB # 1 & 2, Uttara Export Processing Zone, Shongalshi, Saidpur, Nilphamari"),
+        row("MSSFB # 1 & 2, Uttara EPZ, Shongalshi, Nilphamari, Dhaka"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("reads House # 01 (D-1) as house 1 so it can conflict with House 16", () => {
+    const ids = premisesIdentifiers("House # 01 (D-1), Road # 03, Sector # 10 Uttara Model Town");
+    assert.ok(ids.has("1"), `House 01 (D-1) ids: ${[...ids]}`);
+  });
+
+  it("reads Hosue # 5 as house 5", () => {
+    const ids = premisesIdentifiers("Hosue # 5, Road # 6, Nikunjo, Dhaka");
+    assert.ok(ids.has("5"), `Hosue # 5 ids: ${[...ids]}`);
+  });
+});
+
+describe("mergeUniqueLocations — empty rows, duplicates, overview buckets", () => {
+  it("drops null, empty and whitespace-only rows", () => {
+    const merged = mergeUniqueLocations([
+      { kind: "factory", address: "", source_code: "BGMEA", fetched_at: "2026-07-01T00:00:00Z" },
+      { kind: "factory", address: "   ", source_code: "BKMEA", fetched_at: "2026-07-02T00:00:00Z" },
+      row("Gajaria Para, Kauitis, Gazipur"),
+    ]);
+    assert.equal(merged.length, 1);
+  });
+
+  it("same spelling twice with two authorities is one location and no Also recorded as pill", () => {
+    const merged = mergeUniqueLocations([
+      row("Gajaria Para, Kauitis, Gazipur", "BGMEA"),
+      row("Gajaria Para, Kauitis, Gazipur", "OEKO_TEX"),
+    ]);
+    assert.equal(merged.length, 1);
+    assert.equal(merged[0]!.variants.length, 0);
+    assert.deepEqual(merged[0]!.authorities.sort(), ["BGMEA", "OEKO_TEX"]);
+  });
+
+  it("re-merging source_rows of a merged location is idempotent", () => {
+    const first = mergeUniqueLocations([
+      row("Gajaria Para, Kauitis\nGazipur\nGazipur", "BGMEA"),
+      row("Gojariapara, Vhawal Mirzapur, Gazipur Sadar PS, Gazipur - 1703, Bangladesh", "OEKO_TEX"),
+    ]);
+    assert.equal(first.length, 1);
+    const second = mergeUniqueLocations(first[0]!.source_rows);
+    assert.equal(second.length, 1);
+    assert.equal(second[0]!.source_rows.length, first[0]!.source_rows.length);
+  });
+
+  it("buildLocationOverview buckets mixed factory and mailing into two groups", () => {
+    const overview = buildLocationOverview([
+      row("Gajaria Para, Kauitis, Gazipur", "BGMEA", "factory"),
+      row("Fakir Khali Road, Boro Beraid, Badda, Dhaka", "BGMEA", "mailing"),
+    ]);
+    assert.equal(overview.uniqueLocationCount, 2);
+    assert.equal(overview.sourceRecordCount, 2);
+    assert.deepEqual(
+      overview.groups.map((g) => [g.title, g.locations.length]),
+      [
+        ["Factories", 1],
+        ["Mailing addresses", 1],
+      ],
+    );
   });
 });

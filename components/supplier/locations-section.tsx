@@ -27,6 +27,7 @@ import {
   MapPinLine,
 } from "@phosphor-icons/react";
 
+import { AlsoRecordedAs } from "@/components/supplier/also-recorded-as";
 import { AuthorityChip } from "@/components/supplier/authority-chip";
 import { LocationsAddressGroup } from "@/components/supplier/locations-address-group";
 import {
@@ -218,31 +219,7 @@ function AddressRow({
               </span>
             ) : null}
           </p>
-          {location.variants.length > 0 ? (
-            <div className="mt-1.5 flex flex-col gap-1" data-also-recorded="">
-              <p className="text-[12px] text-neutral-500">Also recorded as</p>
-              <ul className="flex flex-col gap-1">
-                {location.variants.map((variant) => (
-                  <li
-                    key={variant.address}
-                    className="flex flex-wrap items-center gap-1.5"
-                    data-also-recorded-as=""
-                  >
-                    <span className="text-[12.5px] leading-[1.4] text-neutral-600">
-                      {toTitleCaseAddress(variant.address)}
-                    </span>
-                    {variant.authorities.map((code) => (
-                      <AuthorityChip
-                        key={code}
-                        label={code.replace(/_/g, "-")}
-                        className="px-1.5 py-[2px] text-[10.5px] sm:text-[11px]"
-                      />
-                    ))}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ) : null}
+          <AlsoRecordedAs variants={location.variants} />
           {/* Hint text for ungeocoded rows (idle only — disappears after locate attempt) */}
           {isUngeocoded && locateState === "idle" ? (
             <p className="mt-0.5 text-[12px] text-neutral-400">

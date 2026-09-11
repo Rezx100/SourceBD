@@ -1294,10 +1294,17 @@ const CASES = [
         "HABITUS FASHION LIMITED",
         "Also recorded as",
         "data-also-recorded",
+        "data-also-recorded-as",
+        "data-location-row",
+        "Gojariapara",
         "2 unique locations",
         "5 source records",
         "OEKO-TEX",
       ],
+      bodyCount: {
+        'data-location-group="Factories"': 1,
+        'data-location-group="Mailing addresses"': 1,
+      },
     },
   },
   {
@@ -1309,10 +1316,17 @@ const CASES = [
         "FAKHRUDDIN TEXTILE MILLS",
         "Also recorded as",
         "data-also-recorded",
+        "data-also-recorded-as",
+        "data-location-row",
+        "Mouza Kewa",
         "2 unique locations",
         "5 source records",
         "Kewa",
       ],
+      bodyCount: {
+        'data-location-group="Factories"': 1,
+        'data-location-group="Mailing addresses"': 1,
+      },
     },
   },
   {
@@ -1845,6 +1859,17 @@ async function main() {
             if (!got.body.includes(needle)) {
               caseProblems.push(
                 `${label}: body missing "${needle}" (${got.bytes} bytes)`,
+              );
+            }
+          }
+        }
+        if (c.expect.bodyCount && typeof c.expect.bodyCount === "object") {
+          for (const [needle, n] of Object.entries(c.expect.bodyCount)) {
+            const escaped = needle.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+            const gotN = (got.body.match(new RegExp(escaped, "g")) ?? []).length;
+            if (gotN !== n) {
+              caseProblems.push(
+                `${label}: count of "${needle}" is ${gotN} != ${n}`,
               );
             }
           }

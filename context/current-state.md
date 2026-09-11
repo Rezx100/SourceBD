@@ -9,12 +9,12 @@ Phase 7 - Public Beta launch prep.
 Founder posture: one row per premises on Locations; every alternate spelling
 stays visible as an "Also recorded as" pill with its authority. Conflicting
 plot numbers or conflicting leading village names still block a merge
-(Sreepur≠Sripur, Nawabganj≠Chapainawabganj). Matcher-only in
+(Sreepur≠Sripur, Nawabganj≠Chapainawabganj, Chandra≠Chandona≠Chandora). Matcher-only in
 `lib/dedup-addresses.ts`. Recomputed published baseline: **27,732** address
 rows, **9,921** suppliers, **3,274** multi-string groups by kind. Current
 matcher had merged 1,622 of those to one row and still split 1,652 (Habitus
 Fashion factory 3 rows, Fakhruddin Textile Mills factory 3 rows). New matcher
-merges **2,197** to one row and still splits **1,077** (0 conflicting-plot pair
+merges **2,180** to one row and still splits **1,094** (0 conflicting-plot pair
 merges). Pills + fixture regression + HTTP cases for those two companies. No raw
 string, geocode-key, Python ETL or schema change. See
 `ops/plans/address-dedup-baseline.md`.

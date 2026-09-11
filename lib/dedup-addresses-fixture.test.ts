@@ -155,6 +155,7 @@ describe("published multi-string fixture", () => {
       ["modish-attires", "mailing"],
       ["best-style-composite", "factory"],
       ["shamser-knit-fashions", "mailing"],
+      ["shamser-knit-fashions", "factory"],
       ["sikder-garments-accessories", "factory"],
       ["east-coast-knitwear", "factory"],
     ];
@@ -208,6 +209,27 @@ describe("published multi-string fixture", () => {
       mergeUniqueLocations(groupOf("givensee-garments", "factory").rows).length,
       2,
       "Hotapara stays apart from the merged Bishia/Kuribari/Monipur factory",
+    );
+    assert.equal(
+      mergeUniqueLocations(groupOf("aim-knitwear", "mailing").rows).length,
+      2,
+      "Shamoli House 1 stays apart from Hajee Delgoni Mohammadpur",
+    );
+    assert.equal(
+      mergeUniqueLocations(groupOf("mukul-printing-and-packaging-industries", "registered").rows)
+        .length,
+      2,
+      "Uttara House 16 Sector 1 stays apart from House 01 Sector 10",
+    );
+    assert.equal(
+      mergeUniqueLocations(groupOf("jm-knitwear", "registered").rows).length,
+      2,
+      "Banani House 3 stays apart from Hosue 5 Nikunjo",
+    );
+    assert.equal(
+      mergeUniqueLocations(groupOf("ahmed-house-hold-products", "registered").rows).length,
+      2,
+      "Mirpur Plot I/6 Road37 stays apart from Road 7",
     );
   });
 });
