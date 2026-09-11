@@ -1,6 +1,6 @@
 {
-  "mergedToOne": 2194,
-  "stillMulti": 1080,
+  "mergedToOne": 2195,
+  "stillMulti": 1079,
   "conflictingIdMerges": 0,
   "named": [
     {
@@ -2189,17 +2189,6 @@
       "displays": [
         "House # 57, Road # 9, Block# F, APT# C3, Asset Novellee, Banani, Dhaka.",
         "438/1, West Shaildubi, Ward No. 05, Kashimpur, Gazipur Sadar"
-      ]
-    },
-    {
-      "slug": "best-style-composite",
-      "company_name": "BEST STYLE COMPOSITE LTD.",
-      "kind": "factory",
-      "strings": 2,
-      "locations": 2,
-      "displays": [
-        "Chadni Housing, Fatullah, 1400, Narayanganj, Bangladesh",
-        "ENAYETNAGAR (NEAR CHANDNI HOUSING), FATULLAH, NARAYANGANJ."
       ]
     },
     {

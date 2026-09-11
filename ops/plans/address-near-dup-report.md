@@ -2,8 +2,8 @@
 
 Fixture exported_at: 2026-09-11T00:00:00Z
 Groups in fixture: 3274
-Matcher merged to 1 location: **2194** (was 1,622 on the previous matcher)
-Groups still showing 2+ locations: **1080** (was 1,652)
+Matcher merged to 1 location: **2195** (was 1,622 on the previous matcher)
+Groups still showing 2+ locations: **1079** (was 1,652)
 Conflicting-plot merges (must be 0): **0**
 
 Named suppliers:
@@ -608,9 +608,6 @@ Remaining multi-location groups (slug, kind, locations):
 - benison-packaging-and-printing-industries (registered) 2 strings → 2
   - House # 57, Road # 9, Block# F, APT# C3, Asset Novellee, Banani, Dhaka.
   - 438/1, West Shaildubi, Ward No. 05, Kashimpur, Gazipur Sadar
-- best-style-composite (factory) 2 strings → 2
-  - Chadni Housing, Fatullah, 1400, Narayanganj, Bangladesh
-  - ENAYETNAGAR (NEAR CHANDNI HOUSING), FATULLAH, NARAYANGANJ.
 - beta-packaging (factory) 5 strings → 2
   - 7, Kewa Mouja, Bhangnaati, Sreepur, Gazipur
   - Mahona, Duptara, Rupgonj, Narayanganj
