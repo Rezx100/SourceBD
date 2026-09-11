@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { describe, it } from "node:test";
 
 import {
+  cleanAddressString,
   idSetsOverlap,
   mergeUniqueLocations,
   premisesIdentifiers,
@@ -66,6 +67,19 @@ describe("published multi-string fixture", () => {
     );
   });
 
+  it("merges zero-padded CEPZ and Uttara holdings that are the same premises", () => {
+    for (const [slug, kind] of [
+      ["technical-apparels", "factory"],
+      ["the-aladin-apparels", "factory"],
+      ["maksons-spinning-mills", "mailing"],
+      ["earthee-wear", "factory"],
+      ["anam-garments", "mailing"],
+    ] as const) {
+      const n = mergeUniqueLocations(groupOf(slug, kind).rows).length;
+      assert.equal(n, 1, `${slug} ${kind} still ${n} locations`);
+    }
+  });
+
   it("never merges a pair of source rows whose plot numbers conflict", () => {
     for (const group of fixture.groups) {
       const rows = group.rows;
@@ -90,6 +104,26 @@ describe("published multi-string fixture", () => {
       const strings = new Set(group.rows.map((r) => r.address.trim())).size;
       const n = mergeUniqueLocations(group.rows).length;
       assert.ok(n >= 1 && n <= strings, `${group.slug} ${group.kind}: ${n} locations from ${strings} strings`);
+    }
+  });
+
+  it("keeps every distinct cleaned spelling visible as the row or an Also recorded as variant", () => {
+    for (const group of fixture.groups) {
+      const merged = mergeUniqueLocations(group.rows);
+      const cleaned = new Set(
+        group.rows.map((r) => cleanAddressString(r.address)).filter(Boolean),
+      );
+      const visible = new Set<string>();
+      for (const loc of merged) {
+        visible.add(loc.displayAddress);
+        for (const variant of loc.variants) visible.add(variant.address);
+      }
+      for (const spelling of cleaned) {
+        assert.ok(
+          visible.has(spelling),
+          `${group.slug} ${group.kind} hid spelling: ${spelling}`,
+        );
+      }
     }
   });
 });

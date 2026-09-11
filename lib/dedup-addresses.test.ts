@@ -463,6 +463,76 @@ describe("mergeUniqueLocations — one row per premises (founder posture)", () =
       2,
     );
   });
+
+  it("merges Plot 01 / Sector 07 with Plot 1 / Sector 7 at CEPZ", () => {
+    assert.equal(
+      displays([
+        row("Plot # 1, Sector # 7, CEPZ, Chittagong"),
+        row("PLOT # 01, SECTOR # 07, CEPZ"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges Plot#5&7 Road-06 with Plot 5 & 7 Road 6 at Ashutia", () => {
+    assert.equal(
+      displays([
+        row("Plot # 5 & 7, Road # 6, Ashutia, Dhour, Turag, Dhaka"),
+        row("Plot#5&7, Road-06, Ashutia, Dhour, Turag, Dhaka-1230"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges House 17 Sector 01 Road 06 with House 17 Road 6 Sector 1 Uttara", () => {
+    assert.equal(
+      displays([
+        row("House # 17, Road # 6, Sector # 1, Uttara, Dhaka-1230", "BGMEA", "mailing"),
+        row("House- 17, Sector - 01, Road- 06, Uttara, Dhaka-1230", "BKMEA", "mailing"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges Holding 98 Choydana with 98 Choydana despite N-University lexicon drift", () => {
+    assert.equal(
+      displays([
+        row("98, Choydana, N-University, Gasa, Gazipur, 1704, Dhaka, Bangladesh"),
+        row("Holding # 98, Choydana, National University, Gazipur"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("does not merge House 1 Mirpur with Plot 1 CEPZ", () => {
+    assert.equal(
+      displays([
+        row("House # 1, Road # 9, Block - A, Section # 12, Dhaka, Mirpur"),
+        row("Plot # 1, Sector # 7, CEPZ, Chittagong"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("does not merge House 17 Road 6 with House 17 Road 3 in Uttara", () => {
+    assert.equal(
+      displays([
+        row("House # 17, Road # 6, Sector # 1, Uttara, Dhaka-1230", "BGMEA", "mailing"),
+        row("House # 17, Road # 3, Sector # 7, Uttara, Dhaka-1230", "BKMEA", "mailing"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("does not merge Plot 51 Uttara with Plot 51 CEPZ", () => {
+    assert.equal(
+      displays([
+        row("Plot 51, Uttara, Dhaka"),
+        row("Plot 51, CEPZ, Chittagong"),
+      ]).length,
+      2,
+    );
+  });
 });
 
 describe("premisesIdentifiers — Ka/K, prefixes, brackets, slash lists", () => {
@@ -513,5 +583,19 @@ describe("premisesIdentifiers — Ka/K, prefixes, brackets, slash lists", () => 
       ]).length,
       1,
     );
+  });
+
+  it("reads PLOT NO. 6 TO 11 as the same range as Plot 6-11", () => {
+    const a = premisesIdentifiers("PLOT NO. 6 TO 11, SECTOR 4/A, CEPZ");
+    const b = premisesIdentifiers("Plot # 6-11, Sector # 4/A, CEPZ");
+    assert.ok(idSetsOverlap(a, b), `6 TO 11 vs 6-11: ${[...a]} vs ${[...b]}`);
+  });
+
+  it("does not treat telephone numbers as plot identifiers", () => {
+    const ids = premisesIdentifiers(
+      "PLOT NO. 6 TO 11, SECTOR - 4/A, CHITTAGONG TEL: 741872, 741889, 741890 FAX: 00 88 031 741870",
+    );
+    assert.ok([...ids].every((id) => Number(id) <= 11), `phone leaked into ids: ${[...ids]}`);
+    assert.ok(ids.has("6") && ids.has("11"));
   });
 });

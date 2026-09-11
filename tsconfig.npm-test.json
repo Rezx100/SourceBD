@@ -18,6 +18,7 @@
     "lib/dedup-addresses.test.ts",
     "lib/dedup-addresses-fixture.test.ts",
     "ops/report_address_near_dups.ts",
+    "ops/scan_remaining_same_premises.ts",
     "lib/bd-place-lexicon.test.ts",
     "lib/compliance-building-groups.ts",
     "lib/compliance-building-groups.test.ts",

@@ -220,6 +220,8 @@ const ADMIN_TOKENS = new Set([
   "epz",
   "bscic",
   "dohs",
+  "old",
+  "new",
 ]);
 
 const GENERIC_WEIGHT = 0.2;
@@ -346,7 +348,9 @@ export function normaliseAddressKey(input: string): string {
   s = s.replace(/\b\d{4}\b(?=\s*(?:,|bangladesh|$))/g, " ");
   s = s.replace(/\bbangladesh\b/g, "");
   s = s.replace(/\bbd\b/g, "");
-  s = s.replace(/[#().,:;/\-]/g, " ");
+  s = s.replace(/\b\d+\s*\(\s*new\s*\)/gi, " ");
+  s = s.replace(/\(\s*(?:old|new)\s*\)/gi, " ");
+  s = s.replace(/[#().,:;/\-&]/g, " ");
   s = s.replace(/\s+/g, " ").trim();
   const deduped: string[] = [];
   for (const part of s.split(" ")) {
@@ -360,8 +364,9 @@ export function normaliseAddressKey(input: string): string {
 
 function tokens(key: string): string[] {
   const out: string[] = [];
-  for (const t of key.split(" ")) {
-    if (!t) continue;
+  for (const raw of key.split(" ")) {
+    if (!raw) continue;
+    const t = /^\d+$/.test(raw) ? String(Number(raw)) : raw;
     // Short tokens carrying a digit are plot fragments ("c5", "i10"), not noise.
     if (t.length >= 3 || /\d/.test(t)) {
       if (!out.includes(t)) out.push(t);
@@ -477,6 +482,7 @@ function neverSamePair(a: string, b: string): boolean {
 function sameWord(a: string, b: string): boolean {
   if (a === b) return true;
   if (neverSamePair(a, b)) return false;
+  if (/^\d+$/.test(a) && /^\d+$/.test(b)) return Number(a) === Number(b);
   if (/\d/.test(a) || /\d/.test(b)) return false;
   if (bengaliSoundKey(a) === bengaliSoundKey(b) && bengaliSoundKey(a).length >= 3) {
     return true;
@@ -535,6 +541,9 @@ function parseIdPiece(piece: string): string[] {
     .trim();
   if (!raw || !/\d/.test(raw)) return [];
   if (/^(?:\d+(?:st|nd|rd|th)|floor|fl|flr)$/i.test(raw)) return [];
+
+  const toRange = /^(\d+)\s+to\s+(\d+)$/i.exec(raw);
+  if (toRange) return expandRange("", Number(toRange[1]), Number(toRange[2]));
 
   // Prefixed range: C5-C7, A-12-A-14, B/336 - 337, Ka-12-Ka-14.
   const letterRange =
@@ -596,13 +605,16 @@ function looksLikeBareId(segment: string): boolean {
   const trimmed = segment.trim();
   if (!/\d/.test(trimmed)) return false;
   if (/^\d{4}$/.test(trimmed)) return false;
+  // Unlabelled 5+ digit runs are telephone / fax, not plot numbers.
+  if (/^\d{5,}$/.test(trimmed)) return false;
   if (trimmed.split(/\s+/).length > 3) return false;
   return !/[A-Za-z]{3,}/.test(trimmed);
 }
 
 /** Not every registry puts a comma after the number: "68/V Sagarika Road"
  *  carries the same identifier as "68/V, Sagarica Road". */
-const LEADING_ID_RE = /^([A-Za-z]{0,3}\d+(?:\/[A-Za-z0-9]+)?)\s+\S/;
+const LEADING_ID_RE = /^([A-Za-z]{0,3}[-]?\d+(?:\/[A-Za-z0-9]+)?)\s+\S/;
+const LEADING_RANGE_RE = /^(\d+)\s*[-–]\s*(\d+)(?:\b|$)/;
 
 function collectIdPieces(body: string, ids: Set<string>): void {
   for (const piece of body.split(/\s*(?:&|,|\band\b)\s*/i)) {
@@ -614,8 +626,11 @@ function collectIdPieces(body: string, ids: Set<string>): void {
  *  stripped first so "House 42/A (5th Floor)" does not mint a phantom id. */
 export function premisesIdentifiers(cleanedAddress: string): Set<string> {
   const { stripped } = extractFloors(cleanedAddress);
+  const withoutRenumber = stripped
+    .replace(/\b\d+\s*\(\s*new\s*\)/gi, " ")
+    .replace(/\(\s*(?:old|new)\s*\)/gi, " ");
   const ids = new Set<string>();
-  for (const segment of stripped.split(",")) {
+  for (const segment of withoutRenumber.split(",")) {
     const trimmed = collapsePlotInitials(stripIdBrackets(segment.trim()));
     if (!trimmed) continue;
     const labelled = LABELLED_ID_RE.exec(trimmed);
@@ -625,8 +640,13 @@ export function premisesIdentifiers(cleanedAddress: string): Set<string> {
     } else if (looksLikeBareId(trimmed)) {
       body = trimmed;
     } else {
+      const range = LEADING_RANGE_RE.exec(trimmed);
+      if (range) {
+        for (const id of expandRange("", Number(range[1]), Number(range[2]))) ids.add(id);
+        continue;
+      }
       const leading = LEADING_ID_RE.exec(trimmed);
-      if (leading) body = leading[1]!;
+      if (leading && !/^\d{5,}$/.test(leading[1]!.replace(/-/g, ""))) body = leading[1]!;
     }
     if (body) collectIdPieces(body, ids);
   }
@@ -656,6 +676,62 @@ export function idSetsOverlap(a: Set<string>, b: Set<string>): boolean {
       if (l.digits !== r.digits) continue;
       if ((l.letters === "") !== (r.letters === "")) return true;
     }
+  }
+  return false;
+}
+
+function overlappingIdCount(a: Set<string>, b: Set<string>): number {
+  let n = 0;
+  const used = new Set<string>();
+  for (const left of a) {
+    for (const right of b) {
+      if (used.has(right)) continue;
+      if (idSetsOverlap(new Set([left]), new Set([right]))) {
+        n += 1;
+        used.add(right);
+        break;
+      }
+    }
+  }
+  return n;
+}
+
+function digitTokens(tokens: string[]): Set<string> {
+  const out = new Set<string>();
+  for (const t of tokens) {
+    if (/^\d+$/.test(t)) out.add(String(Number(t)));
+  }
+  return out;
+}
+
+function overlappingIdDigits(ids: Set<string>): Set<string> {
+  const out = new Set<string>();
+  for (const id of ids) {
+    for (const d of id.match(/\d+/g) ?? []) out.add(String(Number(d)));
+  }
+  return out;
+}
+
+/** Road 6 vs Road 3 at the same house number are different premises.
+ *  Plot numbers themselves (50-51 vs A-51) are not a road conflict. */
+function extraDigitConflict(a: Candidate, b: Candidate): boolean {
+  const idDigits = new Set([
+    ...overlappingIdDigits(a.ids),
+    ...overlappingIdDigits(b.ids),
+  ]);
+  const extraA = [...digitTokens(a.tokens)].filter((d) => !idDigits.has(d));
+  const extraB = [...digitTokens(b.tokens)].filter((d) => !idDigits.has(d));
+  const onlyA = extraA.filter((d) => !extraB.includes(d));
+  const onlyB = extraB.filter((d) => !extraA.includes(d));
+  return onlyA.length > 0 && onlyB.length > 0;
+}
+
+function adminCompatible(a: Candidate, b: Candidate): boolean {
+  const aa = a.tokens.filter((t) => ADMIN_TOKENS.has(t));
+  const bb = b.tokens.filter((t) => ADMIN_TOKENS.has(t));
+  if (aa.length === 0 || bb.length === 0) return true;
+  for (const t of aa) {
+    if (bb.some((u) => sameWord(t, u))) return true;
   }
   return false;
 }
@@ -796,13 +872,6 @@ function isSameLocation(a: Candidate, b: Candidate): boolean {
   }
 
   const { score, distinctHits } = similarity(a, b);
-  if (idsOverlap) return score >= SHARED_ID_THRESHOLD;
-  // Near-identical wording is the same place even when every word is
-  // administrative — "Plot # C5-C7, BSCIC I/A, Kalurghat, Chattogram" has no
-  // distinguishing word at all, yet two copies of it are plainly one location.
-  if (score >= 0.95) return true;
-  // Shared leading village (Gajaria Para / Gojariapara) is enough identity
-  // that extra unmatched words (Kauitis, Mouza) no longer veto.
   const leadingMatch = (() => {
     const la = firstDistinctPlace(a.tokens);
     const lb = firstDistinctPlace(b.tokens);
@@ -811,6 +880,23 @@ function isSameLocation(a: Candidate, b: Candidate): boolean {
     if (lb && tokenInList(lb, a.tokens)) return true;
     return false;
   })();
+  if (idsOverlap) {
+    const overlapN = overlappingIdCount(a.ids, b.ids);
+    // Two named plots in common is the same campus even when one registry
+    // listed extra neighbouring plots (Comilla EPZ 220-227 ⊂ 12-14, 220-227).
+    if (overlapN >= 2) return true;
+    // House 17 Road 6 is not House 17 Road 3; Plot 51 Uttara is not Plot 51 CEPZ.
+    if (extraDigitConflict(a, b)) return false;
+    if (!adminCompatible(a, b)) return false;
+    if (leadingMatch) return true;
+    return score >= SHARED_ID_THRESHOLD;
+  }
+  // Near-identical wording is the same place even when every word is
+  // administrative — "Plot # C5-C7, BSCIC I/A, Kalurghat, Chattogram" has no
+  // distinguishing word at all, yet two copies of it are plainly one location.
+  if (score >= 0.95) return true;
+  // Shared leading village (Gajaria Para / Gojariapara) is enough identity
+  // that extra unmatched words (Kauitis, Mouza) no longer veto.
   if (leadingMatch && distinctHits > 0 && score >= 0.5) return true;
   // Otherwise at least one distinguishing word must match, or
   // "Konabari, Gazipur" merges into "Chandra, Gazipur".
