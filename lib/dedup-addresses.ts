@@ -9,13 +9,13 @@
 //
 // We merge by physical location first, then bucket each unique location into
 // a single UI group by primary type priority: Factory > Registered office >
-// Mailing.
+// Mailing. Alternate spellings stay visible as variants with their
+// authorities — one row per premises, not one row per registry string.
 //
-// The one rule that matters: plot / holding / house numbers are hard
-// discriminators. Two addresses naming different plots are different
-// premises no matter how similar the surrounding prose reads, because
-// collapsing them would destroy a registry fact. A leftover duplicate row is
-// a cosmetic problem; a wrongly merged factory is a data problem.
+// Hard blocks: conflicting plot / holding / house numbers, and conflicting
+// leading village names (including the never-same list Sreepur≠Sripur and
+// Nawabganj≠Chapainawabganj). Extra unmatched words that are not a competing
+// leading village no longer keep the same premises apart.
 
 import { applyPlaceLexicon } from "./bd-place-lexicon";
 
@@ -28,6 +28,12 @@ export type AddressRowRaw = {
   fetched_at: string;
 };
 
+/** One alternate registry spelling of a merged premises. */
+export type AddressVariant = {
+  address: string;
+  authorities: string[];
+};
+
 export type UniqueLocation<T extends AddressRowRaw = AddressRowRaw> = {
   displayAddress: string;
   authorities: string[];
@@ -36,8 +42,9 @@ export type UniqueLocation<T extends AddressRowRaw = AddressRowRaw> = {
   emails: string[];
   /** Floor markers stripped from the variants ("4th & 5th Floor"). */
   floors: string[];
-  /** Other spellings this premises was recorded under, for provenance. */
-  variants: string[];
+  /** Other spellings this premises was recorded under, each with the
+   *  authorities that used that wording. */
+  variants: AddressVariant[];
   fetched_at: string;
   source_rows: T[];
 };
@@ -131,7 +138,52 @@ const GENERIC_TOKENS = new Set([
   "west",
   // REZ-112: P.O./Post: expands to "post" — administrative, not a place name.
   "post",
+  // Village/admin wrappers that name a kind of place, not which place.
+  "mouza",
+  "para",
+  "thana",
+  "upazila",
+  "upazilla",
+  "zila",
+  "zilla",
+  "village",
+  "vill",
+  "ward",
+  "union",
+  "gpo",
+  "sharani",
+  "sharak",
+  "sharok",
 ]);
+
+/** Bangla script → English comparison tokens. Applied only to the match
+ *  key; raw registry strings are never rewritten. */
+const BANGLA_VOCAB: ReadonlyArray<readonly [RegExp, string]> = [
+  [/রোড/g, " road "],
+  [/সড়ক/g, " road "],
+  [/রাস্তা/g, " road "],
+  [/বাজার/g, " bazar "],
+  [/মৌজা/g, " mouza "],
+  [/প্লট/g, " plot "],
+  [/থানা/g, " thana "],
+  [/বাড়ি/g, " bari "],
+  [/পাড়া/g, " para "],
+  [/পারা/g, " para "],
+  [/গ্রাম/g, " village "],
+  [/এলাকা/g, " area "],
+  [/হাউস/g, " house "],
+  [/হোল্ডিং/g, " holding "],
+  [/ফ্লোর/g, " floor "],
+  [/উপজেলা/g, " upazila "],
+];
+
+/** Place pairs that a sound-key would otherwise fuse, but that are
+ *  different administrative units. Honour the lexicon negatives here
+ *  rather than in the geocode lexicon (this file only). */
+const NEVER_SAME: ReadonlyArray<readonly [string, string]> = [
+  ["sreepur", "sripur"],
+  ["nawabganj", "chapainawabganj"],
+];
 
 /** Administrative names shared by thousands of suppliers. Low weight, so a
  *  shared district can support a merge but can never cause one. */
@@ -262,7 +314,7 @@ export function cleanAddressString(raw: string | null | undefined): string {
 }
 
 const FLOOR_RE =
-  /\(?\s*\b(\d+\s*(?:st|nd|rd|th)?(?:\s*(?:&|and)\s*\d+\s*(?:st|nd|rd|th)?)*)\s*(?:floor|fl|flr)\b\.?\s*\)?/gi;
+  /\(?\s*\b(\d+\s*(?:st|nd|rd|th)?(?:\s*(?:,|&|and)\s*\d+\s*(?:st|nd|rd|th)?)*)\s*(?:floor|fl|flr)\b\.?\s*\)?/gi;
 
 /** Pull "(4th & 5th Fl)" out of the match key and keep it as a detail. */
 export function extractFloors(address: string): {
@@ -282,6 +334,7 @@ export function extractFloors(address: string): {
  *  consecutive duplicate words removed, empty tokens dropped. */
 export function normaliseAddressKey(input: string): string {
   let s = input.toLowerCase();
+  for (const [pat, rep] of BANGLA_VOCAB) s = s.replace(pat, rep);
   s = applyPlaceLexicon(s);
   for (const [pat, rep] of ABBREVIATION_PAIRS) s = s.replace(pat, rep);
   s = s.replace(/\bplot\s*(no\.?|number|#|:)\s*/g, "plot ");
@@ -383,11 +436,51 @@ function jaroWinkler(a: string, b: string): number {
   return jaro + prefix * 0.1 * (1 - jaro);
 }
 
+/** Bengali romanization sound-key. Collapses bh/v, z/j, inserted vowels
+ *  and doubled consonants so Gajaria≈Gojaria and Vhawal≈Bhawal. Never-same
+ *  pairs are rejected in `sameWord` even when their keys collide. */
+export function bengaliSoundKey(word: string): string {
+  let s = word.toLowerCase();
+  s = s.replace(/vh/g, "b");
+  s = s.replace(/bh/g, "b");
+  s = s.replace(/ph/g, "f");
+  s = s.replace(/gh/g, "g");
+  s = s.replace(/dh/g, "d");
+  s = s.replace(/th/g, "t");
+  s = s.replace(/kh/g, "k");
+  s = s.replace(/sh/g, "s");
+  s = s.replace(/zh/g, "j");
+  s = s.replace(/z/g, "j");
+  s = s.replace(/v/g, "b");
+  s = s.replace(/w/g, "u");
+  s = s.replace(/y/g, "i");
+  s = s.replace(/ee/g, "i");
+  s = s.replace(/oo/g, "u");
+  s = s.replace(/aa/g, "a");
+  s = s.replace(/[aeiou]+/g, "a");
+  s = s.replace(/(.)\1+/g, "$1");
+  return s;
+}
+
+function neverSamePair(a: string, b: string): boolean {
+  const left = a.toLowerCase();
+  const right = b.toLowerCase();
+  for (const [x, y] of NEVER_SAME) {
+    if ((left === x && right === y) || (left === y && right === x)) return true;
+  }
+  return false;
+}
+
 /** Same word, allowing for transliteration drift. Digits must match exactly —
- *  "246" and "249" are not a spelling variation. */
+ *  "246" and "249" are not a spelling variation. Sreepur≠Sripur even though
+ *  their sound-keys collide. */
 function sameWord(a: string, b: string): boolean {
   if (a === b) return true;
+  if (neverSamePair(a, b)) return false;
   if (/\d/.test(a) || /\d/.test(b)) return false;
+  if (bengaliSoundKey(a) === bengaliSoundKey(b) && bengaliSoundKey(a).length >= 3) {
+    return true;
+  }
   if (Math.abs(a.length - b.length) > 3) return false;
   if (jaroWinkler(a, b) < TOKEN_JW) return false;
   const ratio = 1 - levenshtein(a, b) / Math.max(a.length, b.length);
@@ -397,18 +490,27 @@ function sameWord(a: string, b: string): boolean {
 // ---------- premises identifiers ------------------------------------------
 
 // Registries write the label a dozen ways: "Plot # 9", "PLOT NO- B-336",
-// "Plot-M-8", "House No. 39". Swallow any run of separators after the label.
+// "Plot-M-8", "House No. 39", "CH Plot # 1260", "Plot (Ka-12)". Swallow any
+// run of separators after the label. Match the label anywhere in the segment
+// so a two-letter industrial prefix ("CH Plot", "C H PLOT") still counts.
 const LABELLED_ID_RE =
-  /^(?:plot|plots|holding|house|unit)\b[\s.:#-]*(?:no\.?|number)?[\s.:#-]*(.+)$/i;
+  /(?:plot|plots|holding|house|unit)\b[\s.:#-]*(?:no\.?|number|#|:)?[\s.:#-]*/i;
+
+/** Bengali ka/kha/ga letter-prefixes used as plot block letters. Ka = K. */
+function canonicalLetterPrefix(letters: string): string {
+  const u = letters.toUpperCase().replace(/[^A-Z]/g, "");
+  if (u === "KA") return "K";
+  return u;
+}
 
 /** Leading zeros are formatting, not identity: FS-02 is FS-2. */
 function normaliseId(prefix: string, value: string): string {
-  return `${prefix.toUpperCase().replace(/[^A-Z]/g, "")}${Number(value)}`;
+  return `${canonicalLetterPrefix(prefix)}${Number(value)}`;
 }
 
 /** Letters then digits, so "29/B", "B-29" and "B/29" all land on "B29". */
 function canonicalCompound(raw: string): string {
-  const letters = (raw.match(/[A-Za-z]+/g) ?? []).join("").toUpperCase();
+  const letters = canonicalLetterPrefix((raw.match(/[A-Za-z]+/g) ?? []).join(""));
   const digits = (raw.match(/\d+/g) ?? []).map((d) => String(Number(d))).join("/");
   return `${letters}${digits}`;
 }
@@ -422,14 +524,22 @@ function expandRange(prefix: string, from: number, to: number): string[] {
   return [normaliseId(prefix, String(from)), normaliseId(prefix, String(to))];
 }
 
-function parseIdPiece(piece: string): string[] {
-  const raw = piece.trim().replace(/\((?:part|pt)\.?\)/gi, "").trim();
-  if (!raw || !/\d/.test(raw)) return [];
+function stripIdBrackets(raw: string): string {
+  return raw.replace(/[()[\]{}]/g, " ").replace(/\s+/g, " ").trim();
+}
 
-  // Prefixed range: C5-C7, A-12-A-14, B/336 - 337.
+function parseIdPiece(piece: string): string[] {
+  const raw = stripIdBrackets(piece.replace(/\((?:part|pt)\.?\)/gi, ""))
+    .replace(/\s*\/\s*/g, "/")
+    .replace(/\s*-\s*/g, "-")
+    .trim();
+  if (!raw || !/\d/.test(raw)) return [];
+  if (/^(?:\d+(?:st|nd|rd|th)|floor|fl|flr)$/i.test(raw)) return [];
+
+  // Prefixed range: C5-C7, A-12-A-14, B/336 - 337, Ka-12-Ka-14.
   const letterRange =
-    /^([A-Za-z]{1,2})[-/\s]?(\d+)\s*[-–]\s*([A-Za-z]{1,2})?[-/\s]?(\d+)$/.exec(raw);
-  if (letterRange && (!letterRange[3] || letterRange[3].toUpperCase() === letterRange[1]!.toUpperCase())) {
+    /^([A-Za-z]{1,3})[-/\s]?(\d+)\s*[-–]\s*([A-Za-z]{1,3})?[-/\s]?(\d+)$/.exec(raw);
+  if (letterRange && (!letterRange[3] || canonicalLetterPrefix(letterRange[3]!) === canonicalLetterPrefix(letterRange[1]!))) {
     return expandRange(letterRange[1]!, Number(letterRange[2]), Number(letterRange[4]));
   }
 
@@ -442,16 +552,40 @@ function parseIdPiece(piece: string): string[] {
       const compound = parts.map((p) => String(Number(p))).join("/");
       return [compound, ...parts.map((p) => String(Number(p)))];
     }
+    // "A-169/170" is the same plots as "A-169-170": keep the compound and
+    // each lettered component so slash and dash lists overlap.
+    const letterSlash = /^([A-Za-z]{1,3})[-]?(\d+)$/.exec(parts[0]!);
+    if (letterSlash && parts.slice(1).every((p) => /^\d+$/.test(p))) {
+      const prefix = letterSlash[1]!;
+      const nums = [letterSlash[2]!, ...parts.slice(1)];
+      const ids = nums.map((n) => normaliseId(prefix, n));
+      return [`${canonicalLetterPrefix(prefix)}${nums.map((n) => String(Number(n))).join("/")}`, ...ids];
+    }
     return [canonicalCompound(raw)];
   }
 
-  const range = /^([A-Za-z]{1,2})?[-\s]?(\d+)\s*[-–]\s*(\d+)$/.exec(raw);
+  // Dash lists of three+ numbers are not a range: 12-13-14.
+  const dashList = raw.split(/\s*[-–]\s*/).map((p) => p.trim()).filter(Boolean);
+  if (dashList.length >= 3 && dashList.every((p) => /^\d+$/.test(p))) {
+    const compound = dashList.map((p) => String(Number(p))).join("/");
+    return [compound, ...dashList.map((p) => String(Number(p)))];
+  }
+
+  const range = /^([A-Za-z]{1,3})?[-\s]?(\d+)\s*[-–]\s*(\d+)$/.exec(raw);
   if (range) return expandRange(range[1] ?? "", Number(range[2]), Number(range[3]));
 
-  const single = /^([A-Za-z]{1,2})?[-\s]?(\d+)$/.exec(raw);
+  const single = /^([A-Za-z]{1,3})?[-\s]?(\d+)$/.exec(raw);
   if (single) return [normaliseId(single[1] ?? "", single[2]!)];
 
   return [];
+}
+
+/** Collapse "C H PLOT" / "C.H. Plot" so the industrial prefix stays on the id. */
+function collapsePlotInitials(segment: string): string {
+  return segment.replace(
+    /\b([A-Za-z])\s*[.\s]\s*([A-Za-z])\s+(?=(?:plot|plots|holding|house|unit)\b)/gi,
+    "$1$2 ",
+  );
 }
 
 /** A bare segment counts as an identifier only when it is short, contains a
@@ -468,35 +602,40 @@ function looksLikeBareId(segment: string): boolean {
 
 /** Not every registry puts a comma after the number: "68/V Sagarika Road"
  *  carries the same identifier as "68/V, Sagarica Road". */
-const LEADING_ID_RE = /^([A-Za-z]{0,2}\d+(?:\/[A-Za-z0-9]+)?)\s+\S/;
+const LEADING_ID_RE = /^([A-Za-z]{0,3}\d+(?:\/[A-Za-z0-9]+)?)\s+\S/;
 
-/** Plot / holding / house numbers named by an address. */
+function collectIdPieces(body: string, ids: Set<string>): void {
+  for (const piece of body.split(/\s*(?:&|,|\band\b)\s*/i)) {
+    for (const id of parseIdPiece(piece)) ids.add(id);
+  }
+}
+
+/** Plot / holding / house numbers named by an address. Floor markers are
+ *  stripped first so "House 42/A (5th Floor)" does not mint a phantom id. */
 export function premisesIdentifiers(cleanedAddress: string): Set<string> {
+  const { stripped } = extractFloors(cleanedAddress);
   const ids = new Set<string>();
-  for (const segment of cleanedAddress.split(",")) {
-    const trimmed = segment.trim();
+  for (const segment of stripped.split(",")) {
+    const trimmed = collapsePlotInitials(stripIdBrackets(segment.trim()));
     if (!trimmed) continue;
     const labelled = LABELLED_ID_RE.exec(trimmed);
-    let body: string;
+    let body: string | null = null;
     if (labelled) {
-      body = labelled[1]!;
+      body = trimmed.slice(labelled.index + labelled[0].length).trim();
     } else if (looksLikeBareId(trimmed)) {
       body = trimmed;
     } else {
       const leading = LEADING_ID_RE.exec(trimmed);
-      if (!leading) continue;
-      body = leading[1]!;
+      if (leading) body = leading[1]!;
     }
-    for (const piece of body.split(/\s*(?:&|,|\band\b)\s*/i)) {
-      for (const id of parseIdPiece(piece)) ids.add(id);
-    }
+    if (body) collectIdPieces(body, ids);
   }
   return ids;
 }
 
 function idParts(id: string): { letters: string; digits: string } {
   return {
-    letters: (id.match(/[A-Z]+/g) ?? []).join(""),
+    letters: canonicalLetterPrefix((id.match(/[A-Z]+/g) ?? []).join("")),
     digits: (id.match(/[0-9/]+/g) ?? []).join(""),
   };
 }
@@ -528,6 +667,48 @@ type Candidate = {
   ids: Set<string>;
 };
 
+function concatTokens(tokens: string[], start: number, count: number): string {
+  let out = "";
+  for (let i = 0; i < count; i++) out += tokens[start + i]!;
+  return out;
+}
+
+function largeWindowFree(used: Set<number>, start: number, count: number): boolean {
+  for (let i = 0; i < count; i++) {
+    if (used.has(start + i)) return false;
+  }
+  return true;
+}
+
+function markUsed(used: Set<number>, start: number, count: number): void {
+  for (let i = 0; i < count; i++) used.add(start + i);
+}
+
+/** Compound joining: "gajaria"+"para" = "gojariapara", "high"+"way" = "highway". */
+function findCompoundMatch(
+  small: string[],
+  i: number,
+  large: string[],
+  used: Set<number>,
+): { smallConsumed: number; largeStart: number; largeConsumed: number } | null {
+  const smallLeft = small.length - i;
+  // Longest first so "gajaria"+"para" beats a weaker single-token hit.
+  for (const smallN of [3, 2, 1]) {
+    if (smallN > smallLeft) continue;
+    const smallJoin = concatTokens(small, i, smallN);
+    for (const largeN of [3, 2, 1]) {
+      for (let j = 0; j < large.length; j++) {
+        if (j + largeN > large.length) continue;
+        if (!largeWindowFree(used, j, largeN)) continue;
+        const largeJoin = concatTokens(large, j, largeN);
+        if (!sameWord(smallJoin, largeJoin)) continue;
+        return { smallConsumed: smallN, largeStart: j, largeConsumed: largeN };
+      }
+    }
+  }
+  return null;
+}
+
 /** Weighted containment over the smaller token set. Containment rather than
  *  Jaccard because one registry routinely records a fuller address than
  *  another; the short form should still merge into the long one. */
@@ -545,40 +726,92 @@ function similarity(a: Candidate, b: Candidate): {
   let unmatchedDistinct = 0;
   const used = new Set<number>();
 
-  for (const token of small) {
-    const weight = tokenWeight(token);
-    total += weight;
-    let hit = false;
-    for (let i = 0; i < large.length; i++) {
-      if (used.has(i)) continue;
-      if (!sameWord(token, large[i]!)) continue;
-      used.add(i);
-      matched += weight;
-      if (weight === DISTINCT_WEIGHT) distinctHits += 1;
-      hit = true;
-      break;
+  for (let i = 0; i < small.length; ) {
+    const hit = findCompoundMatch(small, i, large, used);
+    if (hit) {
+      for (let k = 0; k < hit.smallConsumed; k++) {
+        const weight = tokenWeight(small[i + k]!);
+        total += weight;
+        matched += weight;
+        if (weight === DISTINCT_WEIGHT) distinctHits += 1;
+      }
+      markUsed(used, hit.largeStart, hit.largeConsumed);
+      i += hit.smallConsumed;
+      continue;
     }
-    if (!hit && weight === DISTINCT_WEIGHT) unmatchedDistinct += 1;
+    const weight = tokenWeight(small[i]!);
+    total += weight;
+    if (weight === DISTINCT_WEIGHT) unmatchedDistinct += 1;
+    i += 1;
   }
 
   return { score: total === 0 ? 0 : matched / total, distinctHits, unmatchedDistinct };
 }
 
+function firstDistinctPlace(tokens: string[]): string | null {
+  for (const token of tokens) {
+    if (tokenWeight(token) !== DISTINCT_WEIGHT) continue;
+    if (/\d/.test(token)) continue;
+    return token;
+  }
+  return null;
+}
+
+function tokenInList(token: string, tokens: string[]): boolean {
+  for (let i = 0; i < tokens.length; i++) {
+    if (sameWord(token, tokens[i]!)) return true;
+    if (i + 1 < tokens.length && sameWord(token, concatTokens(tokens, i, 2))) return true;
+    if (i + 2 < tokens.length && sameWord(token, concatTokens(tokens, i, 3))) return true;
+  }
+  return false;
+}
+
+/** Conflicting leading village names — Nayapara vs Bahadurpur — unless one
+ *  side's leading name appears in the other (order-swap / nested locality)
+ *  or a shared plot number already establishes identity and the names are
+ *  not a never-same pair. */
+function leadingVillageConflict(a: Candidate, b: Candidate): boolean {
+  const la = firstDistinctPlace(a.tokens);
+  const lb = firstDistinctPlace(b.tokens);
+  if (!la || !lb) return false;
+  if (sameWord(la, lb)) return false;
+  if (tokenInList(lb, a.tokens) || tokenInList(la, b.tokens)) return false;
+  return true;
+}
+
 function isSameLocation(a: Candidate, b: Candidate): boolean {
   const bothHaveIds = a.ids.size > 0 && b.ids.size > 0;
+  const idsOverlap = bothHaveIds && idSetsOverlap(a.ids, b.ids);
 
   // Hard discriminator: different plot numbers, different premises.
-  if (bothHaveIds && !idSetsOverlap(a.ids, b.ids)) return false;
+  if (bothHaveIds && !idsOverlap) return false;
 
-  const { score, distinctHits, unmatchedDistinct } = similarity(a, b);
-  if (bothHaveIds) return score >= SHARED_ID_THRESHOLD;
+  const villageConflict = leadingVillageConflict(a, b);
+  if (villageConflict) {
+    const la = firstDistinctPlace(a.tokens);
+    const lb = firstDistinctPlace(b.tokens);
+    // Shared plot still cannot fuse Sreepur with Sripur.
+    if (idsOverlap && la && lb && neverSamePair(la, lb)) return false;
+    if (!idsOverlap) return false;
+  }
+
+  const { score, distinctHits } = similarity(a, b);
+  if (idsOverlap) return score >= SHARED_ID_THRESHOLD;
   // Near-identical wording is the same place even when every word is
   // administrative — "Plot # C5-C7, BSCIC I/A, Kalurghat, Chattogram" has no
   // distinguishing word at all, yet two copies of it are plainly one location.
   if (score >= 0.95) return true;
-  // REZ-112: an unmatched village/locality token on the shorter side (e.g.
-  // Nayapara vs Bahadurpur) must not be overridden by shared P.O./Bhawal tails.
-  if (unmatchedDistinct > 0) return false;
+  // Shared leading village (Gajaria Para / Gojariapara) is enough identity
+  // that extra unmatched words (Kauitis, Mouza) no longer veto.
+  const leadingMatch = (() => {
+    const la = firstDistinctPlace(a.tokens);
+    const lb = firstDistinctPlace(b.tokens);
+    if (la && lb && sameWord(la, lb)) return true;
+    if (la && tokenInList(la, b.tokens)) return true;
+    if (lb && tokenInList(lb, a.tokens)) return true;
+    return false;
+  })();
+  if (leadingMatch && distinctHits > 0 && score >= 0.5) return true;
   // Otherwise at least one distinguishing word must match, or
   // "Konabari, Gazipur" merges into "Chandra, Gazipur".
   return distinctHits > 0 && score >= MERGE_THRESHOLD;
@@ -624,20 +857,32 @@ function rowToLocation<T extends AddressRowRaw>(row: T): UniqueLocation<T> {
   };
 }
 
+function addVariant<T extends AddressRowRaw>(
+  target: UniqueLocation<T>,
+  address: string,
+  authorities: readonly string[],
+): void {
+  const cleaned = cleanAddressString(address);
+  if (!cleaned || cleaned === target.displayAddress) return;
+  const existing = target.variants.find((v) => v.address === cleaned);
+  if (existing) {
+    for (const auth of authorities) {
+      if (!existing.authorities.includes(auth)) existing.authorities.push(auth);
+    }
+    return;
+  }
+  target.variants.push({ address: cleaned, authorities: [...authorities] });
+}
+
 function mergeLocations<T extends AddressRowRaw>(
   target: UniqueLocation<T>,
   donor: UniqueLocation<T>,
 ): void {
   // Ordering guarantees the target is at least as specific as the donor, so
   // the donor's wording is kept as provenance rather than promoted.
-  const donorDisplay = cleanAddressString(donor.displayAddress);
-  if (donorDisplay && donorDisplay !== target.displayAddress) {
-    if (!target.variants.includes(donorDisplay)) target.variants.push(donorDisplay);
-  }
+  addVariant(target, donor.displayAddress, donor.authorities);
   for (const variant of donor.variants) {
-    if (variant !== target.displayAddress && !target.variants.includes(variant)) {
-      target.variants.push(variant);
-    }
+    addVariant(target, variant.address, variant.authorities);
   }
   for (const floor of donor.floors) {
     if (!target.floors.includes(floor)) target.floors.push(floor);

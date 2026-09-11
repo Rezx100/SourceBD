@@ -3,8 +3,10 @@ import { describe, it } from "node:test";
 
 import {
   cleanAddressString,
+  idSetsOverlap,
   mergeUniqueLocations,
   normaliseAddressKey,
+  premisesIdentifiers,
   type AddressRowRaw,
 } from "./dedup-addresses";
 
@@ -358,5 +360,158 @@ describe("normaliseAddressKey", () => {
     assert.match(normaliseAddressKey("P.O.-Bhawal, Mirzapur"), /bhawal/);
     assert.match(normaliseAddressKey("P.O.-Bhawal"), /\bpost\b/);
     assert.match(normaliseAddressKey("Post: Vawal"), /\bpost\b/);
+  });
+
+  it("maps Bangla script road/bazar words into English comparison tokens", () => {
+    assert.match(normaliseAddressKey("মৌজা Kewa রোড"), /mouza/);
+    assert.match(normaliseAddressKey("মৌজা Kewa রোড"), /road/);
+  });
+});
+
+describe("mergeUniqueLocations — one row per premises (founder posture)", () => {
+  it("merges Habitus Fashion factory spellings into one premises with variants", () => {
+    const merged = mergeUniqueLocations([
+      row("Gajaria Para, Kauitis\nGazipur\nGazipur", "BGMEA", "factory"),
+      row(
+        "GAJARIA PARA, BHAWAL MIRZAPUR, GAZIPUR SADAR, GAZIPUR, SADAR, GAZIPUR",
+        "BKMEA",
+        "factory",
+      ),
+      row(
+        "Gojariapara, Vhawal Mirzapur, Gazipur Sadar PS, Gazipur - 1703, Bangladesh",
+        "OEKO_TEX",
+        "factory",
+      ),
+    ]);
+    assert.equal(merged.length, 1, `expected one factory, got: ${merged.map((l) => l.displayAddress).join(" | ")}`);
+    assert.deepEqual(merged[0]!.authorities.sort(), ["BGMEA", "BKMEA", "OEKO_TEX"]);
+    assert.ok(merged[0]!.variants.length >= 1, "alternate spellings must stay visible");
+    assert.ok(
+      merged[0]!.variants.some((v) => v.authorities.includes("BGMEA") || v.authorities.includes("BKMEA")),
+    );
+  });
+
+  it("merges Fakhruddin Textile Mills factory Kewa / Ghorgaria / Mouza Kewa", () => {
+    const merged = mergeUniqueLocations([
+      row("Kewa, Ghorgaria, Master Bari, Sreepur\nGazipur\nGazipur", "BGMEA"),
+      row("MOUZA KEWA, SREEPUR, GAZIPUR", "BKMEA"),
+      row(
+        "Ghargaria Master Bari, Kewa, Sreepur, Gazipur - 1740, Bangladesh",
+        "OEKO_TEX",
+      ),
+    ]);
+    assert.equal(merged.length, 1, `expected one Kewa factory, got: ${merged.map((l) => l.displayAddress).join(" | ")}`);
+    assert.deepEqual(merged[0]!.authorities.sort(), ["BGMEA", "BKMEA", "OEKO_TEX"]);
+  });
+
+  it("merges Fakir Khali / Fokirkhali mailing as one spelling variant", () => {
+    assert.equal(
+      displays([
+        row("Fakir Khali Road, Boro Beraid, Badda\nDhaka\nDhaka", "BGMEA", "mailing"),
+        row("FOKIRKHALI ROAD, BORO BERAID, BADDA, DHAKA, BADDA, DHAKA", "BKMEA", "mailing"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("joins High Way / Highway and Siddirganj / Siddirgonj as one premises", () => {
+    assert.equal(
+      displays([
+        row("Lithe Complex, Asian High Way, Shanarpar\nNarayanganj\nSiddirganj"),
+        row("LITHE COMPLEX, ASIAN HIGHWAY, SHANARPAR, SIDDIRGONJ,, , NARAYANGANJ"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("does not merge Sreepur with Sripur even on the same plot number", () => {
+    assert.equal(
+      displays([
+        row("Plot 5, Sreepur, Gazipur"),
+        row("Plot 5, Sripur, Gazipur"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("does not merge bare Nawabganj with Chapainawabganj", () => {
+    assert.equal(
+      displays([
+        row("Nawabganj, Dhaka"),
+        row("Chapainawabganj, Rajshahi"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("still keeps Nayapara and Bahadurpur apart when they share a Bhawal tail", () => {
+    assert.equal(
+      displays([
+        row("Bahadurpur, P.O.-Bhawal, Mirzapur, Gazipur Sadar", "BGMEA"),
+        row("Nayapara, P.O.-Bhawal, Mirzapur, Gazipur Sadar", "OEKO_TEX"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("does not merge a Dhaka mailing with a Narayanganj factory copied as mailing", () => {
+    assert.equal(
+      displays([
+        row("39, Dilkusha C/A,\nDhaka\nMotijheel", "BGMEA", "mailing"),
+        row("LITHE COMPLEX, ASIAN HIGHWAY, SHANARPAR, SIDDIRGONJ,, , NARAYANGANJ", "BKMEA", "mailing"),
+      ]).length,
+      2,
+    );
+  });
+});
+
+describe("premisesIdentifiers — Ka/K, prefixes, brackets, slash lists", () => {
+  it("treats Plot Ka-12 and Plot K-12 as the same identifier", () => {
+    const a = premisesIdentifiers("Plot Ka-12, BSCIC I/A");
+    const b = premisesIdentifiers("Plot K-12, BSCIC I/A");
+    assert.ok(idSetsOverlap(a, b), `Ka-12 vs K-12: ${[...a]} vs ${[...b]}`);
+  });
+
+  it("reads CH Plot # 1260 and C H PLOT NO.# 1260 as the same holding", () => {
+    assert.equal(
+      displays([
+        row("CH Plot # 1260, Harirampur, Turag, Dhaka"),
+        row("C H PLOT NO.# 1260, BAONIA, TURAG, DHAKA"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("reads a plot number through brackets", () => {
+    assert.equal(
+      displays([
+        row("Plot (B-336), BSCIC Hosiery I/A, Fatullah"),
+        row("PLOT NO- B-336, BSCIC HOSIERY I/A, FATULLAH"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("treats D/ 9-12 and D-9-12 as the same plot range", () => {
+    const a = premisesIdentifiers("Plot No. D/ 9-12, Block B, BSCIC I/E");
+    const b = premisesIdentifiers("Plot # D-9-12, Block - B, BSCIC I/A");
+    assert.ok(idSetsOverlap(a, b), `D/ 9-12 vs D-9-12: ${[...a]} vs ${[...b]}`);
+  });
+
+  it("treats A-169/170 and A-169-170 as the same plots", () => {
+    const a = premisesIdentifiers("Plot No. A-169/170, BSCIC I/A");
+    const b = premisesIdentifiers("PLOT NO A-169-170, BSCIC I/A");
+    assert.ok(idSetsOverlap(a, b), `slash vs dash: ${[...a]} vs ${[...b]}`);
+  });
+
+  it("does not let a floor list split plot P/04 into two premises", () => {
+    assert.equal(
+      displays([
+        row("Plot # P/04 (3rd & 4th Floor), Mohora CDA I/A, Kalurghat"),
+        row("PLOT NO. P/04 (1ST, 3RD & 4TH FLOOR), MOHORA, CDA INDUSTRIAL AREA, KALURGHAT"),
+        row("Plot No. P/04, Mohora CDA Industrial Area, Kalurghat"),
+      ]).length,
+      1,
+    );
   });
 });
