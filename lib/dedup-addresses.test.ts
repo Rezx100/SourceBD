@@ -748,6 +748,68 @@ describe("mergeUniqueLocations — one row per premises (founder posture)", () =
       1,
     );
   });
+
+  it("merges Kashor Habirbari with Kashor Master Bari Seed Store", () => {
+    assert.equal(
+      displays([
+        row("Village: Kashor, Word No-06, PO: Habirbari, Thana: Bhaluka, Mymensingh - 2240, Bangladesh"),
+        row("KASHOR, MASTER BARI, SEED STORE, BHALUKA, Mymensingh"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges H/0-10 Dalla with H/O-10 Dailla Demra", () => {
+    assert.equal(
+      displays([
+        row("H/0-10, 13, Dalla, Demra, Dhaka"),
+        row("H/O-10, Dailla, Demra, Dhaka - 1360, Bangladesh"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges SSFB No-03 with Plot SSFB-3 at Adamjee EPZ", () => {
+    assert.equal(
+      displays([
+        row("SSFB No-03, Plot-259-260, 277 & 278, EPZ, Siddhirganj, Narayanganj - 1431, Bangladesh"),
+        row("Plot # SSFB-3, Narayanganj, Adamjee EPZ"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges G.P.TA-50 with GPTA 50 at Mohakhali", () => {
+    assert.equal(
+      displays([
+        row("G.P.TA-50 (1st Floor), Airport Road, Mohakhali C/A, Gulshan, Dhaka-1212."),
+        row("GPTA 50, Mohakhali C/A, Gulshan, Dhaka-1212."),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges Nishchintapur with NISHNTIPUR at Mouchak", () => {
+    assert.equal(
+      displays([
+        row("Nishchintapur, Mouchak, Kaliakoir, Gazipur - 1751, Bangladesh"),
+        row("NISHNTIPUR, MOUCHAK, KALIAKOIR, GAZIPUR"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges CEPZ Plot 57-59 with a unit-list that also names Plot 57-59", () => {
+    assert.equal(
+      displays([
+        row(
+          "Unit-1 Production Unit Plot# 57-59, Sector 1, Export Processing Zone;, Unit-2 Washing Plot# 1-2, Sector 1, Export Processing Zone, 4223 Chittagong, Bangladesh",
+        ),
+        row("Plot#57, 58 & 59, Sector#1, CEPZ, Chattogram, Bangladesh, EPZ"),
+      ]).length,
+      1,
+    );
+  });
 });
 
 describe("premisesIdentifiers — Ka/K, prefixes, brackets, slash lists", () => {

@@ -14,7 +14,7 @@ plot numbers or conflicting leading village names still block a merge
 rows, **9,921** suppliers, **3,274** multi-string groups by kind. Current
 matcher had merged 1,622 of those to one row and still split 1,652 (Habitus
 Fashion factory 3 rows, Fakhruddin Textile Mills factory 3 rows). New matcher
-merges **2,115** to one row and still splits **1,159** (0 conflicting-plot pair
+merges **2,154** to one row and still splits **1,120** (0 conflicting-plot pair
 merges). Pills + fixture regression + HTTP cases for those two companies. No raw
 string, geocode-key, Python ETL or schema change. See
 `ops/plans/address-dedup-baseline.md`.

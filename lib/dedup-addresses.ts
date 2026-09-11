@@ -350,6 +350,8 @@ export function normaliseAddressKey(input: string): string {
   s = applyPlaceLexicon(s);
   for (const [pat, rep] of ABBREVIATION_PAIRS) s = s.replace(pat, rep);
   s = s.replace(/\bfac(?:tory)?\s*:/g, " ");
+  s = s.replace(/\b(mouza|vill(?:age)?|ward|word|holding|plot)(?=[a-z])/g, "$1 ");
+  s = s.replace(/\bword\b/g, "ward");
   s = s.replace(/\bplot\s*(no\.?|number|#|:)\s*/g, "plot ");
   s = s.replace(/\bblock\s*[-:]\s*/g, "block ");
   s = s.replace(/\broad\s*(no\.?|#|:)\s*/g, "road ");
@@ -363,6 +365,13 @@ export function normaliseAddressKey(input: string): string {
   s = s.replace(/\(\s*(?:old|new)\s*\)/gi, " ");
   s = s.replace(/[#().,:;/\-&]/g, " ");
   s = s.replace(/\s+/g, " ").trim();
+  let joined = s;
+  let prevJoin = "";
+  while (joined !== prevJoin) {
+    prevJoin = joined;
+    joined = joined.replace(/\b([a-z])\s+([a-z])\b/g, "$1$2");
+  }
+  s = joined;
   const deduped: string[] = [];
   for (const part of s.split(" ")) {
     if (!part) continue;
@@ -465,6 +474,7 @@ export function bengaliSoundKey(word: string): string {
   s = s.replace(/th/g, "t");
   s = s.replace(/kh/g, "k");
   s = s.replace(/sh/g, "s");
+  s = s.replace(/ch/g, "s");
   s = s.replace(/zh/g, "j");
   s = s.replace(/z/g, "j");
   s = s.replace(/v/g, "b");
@@ -527,7 +537,7 @@ function sameWord(a: string, b: string): boolean {
 // run of separators after the label. Match the label anywhere in the segment
 // so a two-letter industrial prefix ("CH Plot", "C H PLOT") still counts.
 const LABELLED_ID_RE =
-  /(?:plot|plots|holding|house|unit)\b[\s.:#-]*(?:no\.?|number|#|:)?[\s.:#-]*/i;
+  /(?:plot|plots|holding|hold|house)\b[\s.:#-]*(?:no\.?|number|#|:)?[\s.:#-]*/i;
 
 /** Bengali ka/kha/ga letter-prefixes used as plot block letters. Ka = K. */
 function canonicalLetterPrefix(letters: string): string {
@@ -639,6 +649,7 @@ function looksLikeBareId(segment: string): boolean {
   // Unlabelled 5+ digit runs are telephone / fax, not plot numbers.
   if (/^\d{5,}$/.test(trimmed)) return false;
   if (trimmed.split(/\s+/).length > 3) return false;
+  if (!/[A-Za-z]/.test(trimmed) && !/\d{2,}/.test(trimmed)) return false;
   return !/[A-Za-z]{3,}/.test(trimmed);
 }
 
@@ -678,13 +689,14 @@ function collectIdPieces(body: string, ids: Set<string>): void {
  *  stripped first so "House 42/A (5th Floor)" does not mint a phantom id. */
 export function premisesIdentifiers(cleanedAddress: string): Set<string> {
   const { stripped } = extractFloors(cleanedAddress);
+  const withHouseSlash = stripped.replace(/\bH\s*\/\s*[O0]\s*-?\s*(\d+)\b/gi, "H$1");
   const ids = new Set<string>();
   // Holding 574 (Former #295) and Plot 799 (Old #1010) keep the old number
   // as an alias so a later registry that still uses 295 / 1010 can merge.
-  for (const m of stripped.matchAll(/\((?:[^)]*\b(?:old|former)\b[^)]*)\)/gi)) {
+  for (const m of withHouseSlash.matchAll(/\((?:[^)]*\b(?:old|former)\b[^)]*)\)/gi)) {
     for (const n of m[0].match(/\d+/g) ?? []) ids.add(String(Number(n)));
   }
-  const withoutRenumber = stripped
+  const withoutRenumber = withHouseSlash
     .replace(/\b\d+\s*\(\s*new\s*\)/gi, " ")
     .replace(/\(\s*(?:old|new)\s*\)/gi, " ")
     .replace(/\((?:[^)]*\b(?:old|former)\b[^)]*)\)/gi, " ");
@@ -710,6 +722,7 @@ export function premisesIdentifiers(cleanedAddress: string): Set<string> {
       }
       const leading = LEADING_ID_RE.exec(leadingSeg);
       if (leading && !/^\d{5,}$/.test(leading[1]!.replace(/-/g, ""))) {
+        if (/^(?:po|gpo)[-]?\d{4}$/i.test(leading[1]!)) continue;
         collectIdPieces(leading[1]!, ids);
         const after = leadingSeg.slice(leading[1]!.length);
         for (const extra of after.split(/\s*(?:&|,|\band\b)\s*/i)) {
@@ -727,11 +740,24 @@ export function premisesIdentifiers(cleanedAddress: string): Set<string> {
   // EPZ standard factory buildings only: FSSFB#2 ≡ FS-SFB-2 ≡ FSFB # 01.
   // Must not mint ids from "Dhaka-1230", "Gulshan-1", or "Annex-2".
   for (const m of withoutRenumber.matchAll(
-    /\b((?:[A-Za-z]{1,4}[-/#.]*)?(?:FS)?SFB[-/#.\s]*\d+(?:\s*[&,]\s*\d+)*)\b/gi,
+    /\b((?:[A-Za-z]{1,4}[-/#.]*)?(?:FS)?SFB[-/#.\s]*(?:no\.?)?[-/#.\s]*\d+(?:\s*[&,]\s*\d+)*)\b/gi,
   )) {
-    const prefix = m[1]!.toUpperCase().replace(/[^A-Z]/g, "");
+    const prefix = m[1]!.toUpperCase().replace(/[^A-Z]/g, "").replace(/NO$/, "");
     if (!/(?:FS)?SFB$/i.test(prefix) && !prefix.includes("SFB")) continue;
     for (const n of m[1]!.match(/\d+/g) ?? []) ids.add(`${prefix}${Number(n)}`);
+  }
+  // G.P.TA-50 ≡ GPTA 50
+  for (const m of withoutRenumber.matchAll(
+    /\b([A-Za-z](?:\s*\.\s*[A-Za-z])+[A-Za-z]*)\s*-?\s*(\d{1,4})\b/g,
+  )) {
+    const letters = m[1]!.toUpperCase().replace(/[^A-Z]/g, "");
+    if (letters.length >= 3 && letters.length <= 8) ids.add(`${letters}${Number(m[2])}`);
+  }
+  for (const m of withoutRenumber.matchAll(/\b([A-Za-z]{4,8})\s+(\d{1,3})\b/g)) {
+    const letters = m[1]!.toLowerCase();
+    if (!GENERIC_TOKENS.has(letters) && !ADMIN_TOKENS.has(letters)) {
+      ids.add(`${m[1]!.toUpperCase()}${Number(m[2])}`);
+    }
   }
   return ids;
 }
@@ -986,7 +1012,9 @@ function isSameLocation(a: Candidate, b: Candidate): boolean {
   if (score >= 0.95) return true;
   // Shared leading village (Gajaria Para / Gojariapara) is enough identity
   // that extra unmatched words (Kauitis, Mouza) no longer veto.
-  if (leadingMatch && distinctHits > 0 && score >= 0.5) return true;
+  // Shared leading village is enough identity: extra landmarks (Master Bari,
+  // Seed Store, Kauitis) must not keep the same premises apart.
+  if (leadingMatch && distinctHits > 0) return true;
   // Otherwise at least one distinguishing word must match, or
   // "Konabari, Gazipur" merges into "Chandra, Gazipur".
   return distinctHits > 0 && score >= MERGE_THRESHOLD;
