@@ -1190,6 +1190,26 @@ describe("mergeUniqueLocations — one row per premises (founder posture)", () =
     );
   });
 
+  it("merges Haji Complex Iron Market with N.GANJ Iron Market at Police Line", () => {
+    assert.equal(
+      displays([
+        row("Haji Complex, Iron Market, Police Line, Narayanganj, Fatullah"),
+        row("HAJI COMPLEX, N.GANJ IRON MARKET, POLICE LINE, NARAYANGANJ"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges Talla Road Khapur with Knanpur at Fatullah", () => {
+    assert.equal(
+      displays([
+        row("Talla Road, Khapur, Fatullah, Narayanganj., 1400, Narayanganj, Bangladesh"),
+        row("TALLA ROAD, KNANPUR, FATULLAH, NARAYANGANJ"),
+      ]).length,
+      1,
+    );
+  });
+
   it("keeps concatenated Adamjee plots 246-249 and 97-101 apart from the 97-101-only row", () => {
     assert.equal(
       displays([

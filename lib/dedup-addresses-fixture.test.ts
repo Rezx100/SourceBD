@@ -151,6 +151,8 @@ describe("published multi-string fixture", () => {
       ["chowdhury-accessories", "factory"],
       ["b2b-excellence", "factory"],
       ["harrods-knitwear", "mailing"],
+      ["modish-attires", "factory"],
+      ["modish-attires", "mailing"],
     ];
     for (const [slug, kind] of expectOne) {
       const n = mergeUniqueLocations(groupOf(slug, kind).rows).length;
@@ -167,6 +169,11 @@ describe("published multi-string fixture", () => {
       mergeUniqueLocations(groupOf("i-and-i-accessories", "factory").rows).length,
       2,
       "Dhaka Chunkutia stays apart from the merged Hathazari South Pahartali factory",
+    );
+    assert.equal(
+      mergeUniqueLocations(groupOf("goumati-knitwear", "factory").rows).length,
+      2,
+      "BSCIC Shashangaon stays apart from merged Talla Road Khapur/Knanpur",
     );
   });
 });

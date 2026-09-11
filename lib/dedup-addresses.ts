@@ -134,6 +134,7 @@ const GENERIC_TOKENS = new Set([
   "market",
   "police",
   "station",
+  "line",
   "part",
   "north",
   "south",
@@ -580,12 +581,15 @@ function sameWord(a: string, b: string): boolean {
     if (sound.length >= 2 && Math.min(a.length, b.length) >= 4) return true;
   } else {
     // Ahakhalia / Akholia: one extra leading consonant after the sound-key.
+    // Originals must also be close in length so "line"+"narayanganj" cannot
+    // absorb a lone "narayanganj" through the concatenated sound-key.
     const [shortKey, longKey] = sound.length <= soundB.length ? [sound, soundB] : [soundB, sound];
     if (
       shortKey.length >= 2 &&
       longKey.length - shortKey.length <= 1 &&
       longKey.endsWith(shortKey) &&
-      Math.min(a.length, b.length) >= 6
+      Math.min(a.length, b.length) >= 6 &&
+      Math.abs(a.length - b.length) <= 3
     ) {
       return true;
     }
@@ -611,6 +615,25 @@ function sameWord(a: string, b: string): boolean {
           return true;
         }
       }
+    }
+  }
+  // Khapur/Knanpur: same locality suffix, same first letter, two edits, and
+  // the shorter stem is not a prefix of the longer (that is Mirpur⊂Mirzapur).
+  // Must run before the Jaro-Winkler gate: these stems are not prefix-similar.
+  for (const tail of PLACE_TAILS) {
+    if (
+      a.length > tail.length + 2 &&
+      b.length > tail.length + 2 &&
+      a.endsWith(tail) &&
+      b.endsWith(tail) &&
+      a[0] === b[0] &&
+      levenshtein(a, b) <= 2 &&
+      Math.min(a.length, b.length) >= 6
+    ) {
+      const sa = a.slice(0, -tail.length);
+      const sb = b.slice(0, -tail.length);
+      const [shortStem, longStem] = sa.length <= sb.length ? [sa, sb] : [sb, sa];
+      if (!longStem.startsWith(shortStem)) return true;
     }
   }
   if (Math.abs(a.length - b.length) > 3) return false;
