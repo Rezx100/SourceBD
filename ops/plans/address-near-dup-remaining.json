@@ -1,6 +1,6 @@
 {
-  "mergedToOne": 2192,
-  "stillMulti": 1082,
+  "mergedToOne": 2194,
+  "stillMulti": 1080,
   "conflictingIdMerges": 0,
   "named": [
     {
@@ -5037,11 +5037,10 @@
       "company_name": "Goumati Knitwear",
       "kind": "factory",
       "strings": 4,
-      "locations": 3,
+      "locations": 2,
       "displays": [
         "Plot # A-85, BSCIC Hosiery Ind. Estate, Shashangaon, Narayanganj, Narayangonj",
-        "Talla Road, Khapur, Fatullah, Narayanganj., 1400, Narayanganj, Bangladesh",
-        "TALLA ROAD, KNANPUR, FATULLAH, NARAYANGANJ"
+        "Talla Road, Khapur, Fatullah, Narayanganj., 1400, Narayanganj, Bangladesh"
       ]
     },
     {
@@ -7705,28 +7704,6 @@
       "displays": [
         "PLOT-A-85, BSCIC HOSIERY I/E, NARAYANGANJ",
         "Talla Road, Khapur, Narayanganj, Fatullah"
-      ]
-    },
-    {
-      "slug": "modish-attires",
-      "company_name": "MODISH ATTIRES LTD",
-      "kind": "factory",
-      "strings": 2,
-      "locations": 2,
-      "displays": [
-        "Haji Complex, Iron Market, Police Line, Narayanganj, Fatullah",
-        "HAJI COMPLEX, N.GANJ IRON MARKET, POLICE LINE, NARAYANGANJ"
-      ]
-    },
-    {
-      "slug": "modish-attires",
-      "company_name": "MODISH ATTIRES LTD",
-      "kind": "mailing",
-      "strings": 2,
-      "locations": 2,
-      "displays": [
-        "Haji Complex, Iron Market, Police Line, Narayanganj, Fatullah",
-        "HAJI COMPLEX, N.GANJ IRON MARKET, POLICE LINE, NARAYANGANJ"
       ]
     },
     {

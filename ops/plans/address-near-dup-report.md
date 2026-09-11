@@ -2,8 +2,8 @@
 
 Fixture exported_at: 2026-09-11T00:00:00Z
 Groups in fixture: 3274
-Matcher merged to 1 location: **2192** (was 1,622 on the previous matcher)
-Groups still showing 2+ locations: **1082** (was 1,652)
+Matcher merged to 1 location: **2194** (was 1,622 on the previous matcher)
+Groups still showing 2+ locations: **1080** (was 1,652)
 Conflicting-plot merges (must be 0): **0**
 
 Named suppliers:
@@ -1401,10 +1401,9 @@ Remaining multi-location groups (slug, kind, locations):
 - gold-land-international (mailing) 2 strings → 2
   - House # B/172, Road # 23, New DOHS, Dhaka, Mohakhali
   - HOUSE-488/A, ROAD-32, NEW DOHS, DHAKA
-- goumati-knitwear (factory) 4 strings → 3
+- goumati-knitwear (factory) 4 strings → 2
   - Plot # A-85, BSCIC Hosiery Ind. Estate, Shashangaon, Narayanganj, Narayangonj
   - Talla Road, Khapur, Fatullah, Narayanganj., 1400, Narayanganj, Bangladesh
-  - TALLA ROAD, KNANPUR, FATULLAH, NARAYANGANJ
 - goumati-knitwear (mailing) 2 strings → 2
   - Plot # A-85, BSCIC Hosiery Ind. Estate, Shashangaon, Narayanganj, Narayangonj
   - TALLA ROAD, KNANPUR, FATULLAH, NARAYANGANJ
@@ -2148,12 +2147,6 @@ Remaining multi-location groups (slug, kind, locations):
 - modele-de-capital-industries (mailing) 2 strings → 2
   - PLOT-A-85, BSCIC HOSIERY I/E, NARAYANGANJ
   - Talla Road, Khapur, Narayanganj, Fatullah
-- modish-attires (factory) 2 strings → 2
-  - Haji Complex, Iron Market, Police Line, Narayanganj, Fatullah
-  - HAJI COMPLEX, N.GANJ IRON MARKET, POLICE LINE, NARAYANGANJ
-- modish-attires (mailing) 2 strings → 2
-  - Haji Complex, Iron Market, Police Line, Narayanganj, Fatullah
-  - HAJI COMPLEX, N.GANJ IRON MARKET, POLICE LINE, NARAYANGANJ
 - mollah-knit-fashions (factory) 2 strings → 2
   - Plot # B-424-427, BSCIC I/E, Shasongaon, Enayetnagar, Fatullah, Narayangonj
   - PLOT-A23, BSCIC I/E, SHASONGAON, NARAYANGANJ
