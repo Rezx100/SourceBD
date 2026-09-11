@@ -177,6 +177,20 @@ const GENERIC_TOKENS = new Set([
   "madrasah",
   "industria",
   "zone",
+  "apartment",
+  "apt",
+  "flat",
+  "shopping",
+  "shoping",
+  "name",
+  "uttar",
+  "dakhin",
+  "dakshin",
+  "poschim",
+  "purba",
+  "purbo",
+  "moddho",
+  "madhya",
 ]);
 
 /** Bangla script → English comparison tokens. Applied only to the match
@@ -245,6 +259,32 @@ const ADMIN_TOKENS = new Set([
   "dohs",
   "old",
   "new",
+]);
+
+/** District / division / country plus labels that appear on thousands of
+ *  rows. Sharing one of these cannot override a village clash. Thana-level
+ *  admin (Pahartali, Mirpur, Savar) can: it is the containing area when one
+ *  registry named the village and the other named the union or post office. */
+const COARSE_ADMIN = new Set([
+  "bangladesh",
+  "dhaka",
+  "chattogram",
+  "gazipur",
+  "narayanganj",
+  "mymensingh",
+  "khulna",
+  "rajshahi",
+  "sylhet",
+  "barishal",
+  "rangpur",
+  "comilla",
+  "cumilla",
+  "sadar",
+  "old",
+  "new",
+  "epz",
+  "bscic",
+  "dohs",
 ]);
 
 const GENERIC_WEIGHT = 0.2;
@@ -379,6 +419,10 @@ export function normaliseAddressKey(input: string): string {
   s = s.replace(/\bbd\b/g, "");
   s = s.replace(/\b\d+\s*\(\s*new\s*\)/gi, " ");
   s = s.replace(/\(\s*(?:old|new)\s*\)/gi, " ");
+  s = s.replace(/['"]/g, " ");
+  // After abbreviation expansion, remaining punctuation is not identity.
+  // Leaving commas on tokens made "pahartali," miss the admin set and
+  // "mirpur-12," hide the extra-digit road/section conflict.
   s = s.replace(/[#().,:;/\-&]/g, " ");
   s = s.replace(/\s+/g, " ").trim();
   let joined = s;
@@ -545,21 +589,45 @@ function sameWord(a: string, b: string): boolean {
     ) {
       return true;
     }
-    // Interior sound-key edit: transposition/substitution at length ≥6
-    // (Borkan/Bokran); insert/delete only at length ≥8 (Chanmary/Chandmari)
-    // so Mirpur cannot fuse with Mirzapur (insert z, originals 6 and 8).
+    // Interior sound-key edit: transposition/substitution at length ≥5
+    // (kamiz/kamis, Borkan/Bokran); insert/delete at length ≥7 (Barenda/
+    // Barendra, Jamidia/Jamirdia) so Mirpur (6) cannot fuse with Mirzapur.
     if (sound.length >= 3 && soundB.length >= 3) {
       const d = levenshtein(sound, soundB);
       if (d === 1) {
-        if (sound.length === soundB.length && Math.min(a.length, b.length) >= 6) return true;
-        if (Math.min(a.length, b.length) >= 8) return true;
+        if (sound.length === soundB.length) {
+          const sameLetters = [...sound].sort().join("") === [...soundB].sort().join("");
+          if (sameLetters && Math.min(a.length, b.length) >= 6) return true;
+          // Budichor/Burishchar, Dogorgaon/Dohargaon: one consonant swap.
+          // kouchakuri/kaliakair do not share a 2-letter prefix or a locality tail.
+          if (
+            Math.min(a.length, b.length) >= 8 &&
+            (a.slice(0, 2) === b.slice(0, 2) ||
+              PLACE_TAILS.some((t) => a.endsWith(t) && b.endsWith(t)))
+          ) {
+            return true;
+          }
+        } else if (Math.min(a.length, b.length) >= 7) {
+          return true;
+        }
       }
     }
   }
   if (Math.abs(a.length - b.length) > 3) return false;
   if (jaroWinkler(a, b) < TOKEN_JW) return false;
   const ratio = 1 - levenshtein(a, b) / Math.max(a.length, b.length);
-  return ratio >= TOKEN_LEV;
+  if (ratio >= TOKEN_LEV) return true;
+  // Ananna/Anannya: shared prefix of 4+ and a single letter insert.
+  let prefix = 0;
+  while (prefix < a.length && prefix < b.length && a[prefix] === b[prefix]) prefix += 1;
+  if (prefix >= 4 && levenshtein(a, b) === 1 && Math.min(a.length, b.length) >= 6) return true;
+  // Narsingpur/Narsimpur: same locality suffix, long shared prefix, two edits.
+  for (const tail of PLACE_TAILS) {
+    if (a.length > tail.length + 3 && b.length > tail.length + 3 && a.endsWith(tail) && b.endsWith(tail)) {
+      if (prefix >= 4 && levenshtein(a, b) <= 2 && Math.min(a.length, b.length) >= 8) return true;
+    }
+  }
+  return false;
 }
 
 // ---------- premises identifiers ------------------------------------------
@@ -673,10 +741,10 @@ function collapsePlotInitials(segment: string): string {
  *  digit, and carries no real word — so "670" and "68/V" qualify while
  *  "Gazipur - 1712" and "Sm Tower" do not. Standalone four-digit numbers are
  *  treated as postcodes and ignored. */
-function looksLikeBareId(segment: string): boolean {
+function looksLikeBareId(segment: string, allowFourDigit = false): boolean {
   const trimmed = segment.trim();
   if (!/\d/.test(trimmed)) return false;
-  if (/^\d{4}$/.test(trimmed)) return false;
+  if (/^\d{4}$/.test(trimmed)) return allowFourDigit;
   if (/^-?\d{4}$/.test(trimmed)) return false;
   // Unlabelled 5+ digit runs are telephone / fax, not plot numbers.
   if (/^\d{5,}$/.test(trimmed)) return false;
@@ -729,6 +797,7 @@ function stripNonPremisesNumbers(raw: string): string {
       /\b(?:s\.?\s*a\.?|r\.?\s*s\.?|c\.?\s*s\.?|b\.?\s*s\.?)(?:\s*\/\s*(?:s\.?\s*a\.?|r\.?\s*s\.?|c\.?\s*s\.?|b\.?\s*s\.?)?)*\s+\d{2,}(?:\s*[-–]\s*\d{2,})?(?:\s*,\s*\d{2,}(?:\s*[-–]\s*\d{2,})?)*/gi,
       " ",
     )
+    .replace(/(?:^|,\s*)(?:s\.?\s*a\.?|r\.?\s*s\.?|c\.?\s*s\.?|b\.?\s*s\.?)[-/\s]+\d{1,4}\b/gi, " ")
     .replace(/\b(?:mouza|mauza)\s*(?:no\.?|number|#|:)?\s*\d+\b/gi, " ")
     .replace(/\b\d+\s*(?:no\.?|number)\s+(?:[a-z]+\s+)?(?:mouza|mauza)\b/gi, " ")
     .replace(/\b(?:ward|word)\s*(?:no\.?|number|#|:)?\s*[-#:]?\s*\d+\b/gi, " ")
@@ -755,7 +824,9 @@ export function premisesIdentifiers(cleanedAddress: string): Set<string> {
   );
   const BUILDING_TRAIL =
     /\b(?:bhaban|bhawan|court|tower|plaza|complex|centre|center)\s+(\d{2,4})\s*$/i;
-  for (const segment of withoutRenumber.split(",")) {
+  const segmentList = withoutRenumber.split(",");
+  const allowFourDigit = segmentList.filter((s) => /^\d{4}$/.test(s.trim())).length >= 2;
+  for (const segment of segmentList) {
     const trimmed = collapsePlotInitials(stripIdBrackets(segment.trim())).replace(
       /^(?:new|old|polo)[-\s]*/i,
       "",
@@ -767,7 +838,7 @@ export function premisesIdentifiers(cleanedAddress: string): Set<string> {
     let body: string | null = null;
     if (labelled) {
       body = trimmed.slice(labelled.index + labelled[0].length).trim();
-    } else if (looksLikeBareId(trimmed)) {
+    } else if (looksLikeBareId(trimmed, allowFourDigit)) {
       body = trimmed;
     } else {
       const leadingSeg = trimmed.replace(/^(?:new|old|polo)[-\s]*/i, "");
@@ -1000,10 +1071,21 @@ function similarity(a: Candidate, b: Candidate): {
 }
 
 function isLocalityToken(token: string): boolean {
+  // "bari" is usually a house name (Master Bari, Hobirbari), not the village.
   for (const tail of PLACE_TAILS) {
-    if (token.length > tail.length + 3 && token.endsWith(tail)) return true;
+    if (tail === "bari") continue;
+    if (token.length > tail.length + 2 && token.endsWith(tail)) return true;
   }
   return false;
+}
+
+function firstTailedPlace(tokens: string[]): string | null {
+  for (const token of tokens) {
+    if (tokenWeight(token) !== DISTINCT_WEIGHT) continue;
+    if (/\d/.test(token)) continue;
+    if (isLocalityToken(token)) return token;
+  }
+  return null;
 }
 
 function firstDistinctPlace(tokens: string[]): string | null {
@@ -1011,8 +1093,12 @@ function firstDistinctPlace(tokens: string[]): string | null {
   for (const token of tokens) {
     if (tokenWeight(token) !== DISTINCT_WEIGHT) continue;
     if (/\d/.test(token)) continue;
+    if (token.length < 5) continue;
     if (!fallback) fallback = token;
-    if (isLocalityToken(token)) return token;
+    if (isLocalityToken(token)) {
+      if (fallback && fallback.length >= 6 && fallback !== token) return fallback;
+      return token;
+    }
   }
   return fallback;
 }
@@ -1073,7 +1159,26 @@ function leadingVillageConflict(a: Candidate, b: Candidate): boolean {
   if (!la || !lb) return false;
   if (sameWord(la, lb)) return false;
   if (tokenInList(lb, a.tokens) || tokenInList(la, b.tokens)) return false;
+  const ta = firstTailedPlace(a.tokens);
+  const tb = firstTailedPlace(b.tokens);
+  if (ta && (tokenInList(ta, b.tokens) || (tb && sameWord(ta, tb)))) return false;
+  if (tb && tokenInList(tb, a.tokens)) return false;
+  // A tailed village named on only one side (Nandirhat vs Fatehabad,
+  // Jogirchala vs Telirchala) still blocks, even inside the same thana.
+  if (ta && !tokenInList(ta, b.tokens)) return true;
+  if (tb && !tokenInList(tb, a.tokens)) return true;
+  // Untailed names in the same thana: village vs union/PO (Mahmudabad vs
+  // Fatehabad at South Pahartali), not two competing villages.
+  if (sharedFineAdmin(a, b)) return false;
   return true;
+}
+
+function sharedFineAdmin(a: Candidate, b: Candidate): boolean {
+  for (const t of a.tokens) {
+    if (!ADMIN_TOKENS.has(t) || COARSE_ADMIN.has(t)) continue;
+    if (b.tokens.some((u) => sameWord(t, u))) return true;
+  }
+  return false;
 }
 
 function isSameLocation(a: Candidate, b: Candidate): boolean {
@@ -1099,6 +1204,10 @@ function isSameLocation(a: Candidate, b: Candidate): boolean {
     if (la && lb && sameWord(la, lb)) return true;
     if (la && tokenInList(la, b.tokens)) return true;
     if (lb && tokenInList(lb, a.tokens)) return true;
+    const ta = firstTailedPlace(a.tokens);
+    const tb = firstTailedPlace(b.tokens);
+    if (ta && tokenInList(ta, b.tokens)) return true;
+    if (tb && tokenInList(tb, a.tokens)) return true;
     return false;
   })();
   if (idsOverlap) {
@@ -1106,6 +1215,8 @@ function isSameLocation(a: Candidate, b: Candidate): boolean {
     // Two named plots in common is the same campus even when one registry
     // listed extra neighbouring plots (Comilla EPZ 220-227 ⊂ 12-14, 220-227).
     if (overlapN >= 2) return true;
+    // Same house/building name skips extra-digit (Mirpur-12 vs Avenue-4).
+    // Shared thana alone must not: House 17 Road 6 vs Road 3 in Uttara.
     if (leadingMatch) return true;
     if (extraDigitConflict(a, b)) return false;
     if (!adminCompatible(a, b)) return false;
@@ -1123,6 +1234,9 @@ function isSameLocation(a: Candidate, b: Candidate): boolean {
   // Shared leading village is enough identity: extra landmarks (Master Bari,
   // Seed Store, Kauitis) must not keep the same premises apart.
   if (leadingMatch && distinctHits > 0) return true;
+  // Village vs union/PO inside the same thana (Mahmudabad vs Fatehabad at
+  // South Pahartali). Tailed-village clashes never reach here.
+  if (sharedFineAdmin(a, b) && distinctHits > 0) return true;
   // Otherwise at least one distinguishing word must match, or
   // "Konabari, Gazipur" merges into "Chandra, Gazipur".
   return distinctHits > 0 && score >= MERGE_THRESHOLD;

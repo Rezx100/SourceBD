@@ -1032,6 +1032,173 @@ describe("mergeUniqueLocations — one row per premises (founder posture)", () =
       2,
     );
   });
+
+  it("merges Chandora holding D-84 with Chandora Shafipur as extra holding detail", () => {
+    assert.equal(
+      displays([
+        row("Ward No. 07, Holding No. D-84, Area: Chandora, Kaliakoir Pouroshova Kaliakoir, Gazipur-1751"),
+        row("Chandora, Shafipur, Kaliakoir, Gazipur"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges Plot 1113/A with the 1113-1115 list at Beron/Berun Jamgora", () => {
+    assert.equal(
+      displays([
+        row("Plot No. 1113/A, Beron, Jamgora Ashulia, Savar, Dhaka - 1341, Bangladesh"),
+        row("1113, 1114, 1115 Berun, Ashulia, Savar, Dhaka"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges Kamiz Achiya Chowdhury Complex with Kamis Asia Chowdhury Complex at Vogra", () => {
+    assert.equal(
+      displays([
+        row(
+          "Shee-101 Vogra Kamiz Achiya Chowdhury Commercial Complex, Vogra, Gazipur Sadar, Gazipur - 1703, Bangladesh",
+        ),
+        row("KAMIS ASIA CHOWDHURY COMMERCIAL COMPLEX, CHOWDHURY BARI, VOGRA, NATIONAL UNIVERSITY, GAZIPUR"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges Agrani Al-Monowar Apt D-5 with the same flat named by house 129", () => {
+    assert.equal(
+      displays([
+        row("House # 129, Apt # D-5, Agrani Al-Monowar Apartment, Ramna, Dhaka-1217"),
+        row("Agrani Al-Monowar Apartment, Flat # D-5, Ramna Century Avenue, Moghbazar, Ramna, Dhaka-1217"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges Peace Preenon house 167 with Peace Preennon house 167", () => {
+    assert.equal(
+      displays([
+        row('House Name "Peace Preenon", House # 167, (1st Floor), Road # 01, DOHS, Mirpur-12, Dhaka'),
+        row("PEACE PREENNON, HOUSE: 167(1ST FLOOR), ROAD-01, AVENUE-4, MIRPUR DOHS, MIRPUR, DHAKA"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges Ward 01 South Pahartali Mahmudabad with Fatehabad South Pahartali", () => {
+    assert.equal(
+      displays([
+        row("Mahmudabad, Ward No. 01, South Pahartali, Hathazari, Chattogram"),
+        row("South Pahartali, Ward # 01, Fatehabad, Hathazari, Chattogram"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("keeps Nandirhat apart from Mahmudabad even in the same South Pahartali ward", () => {
+    assert.equal(
+      displays([
+        row("Mahmudabad, Ward No. 01, South Pahartali, Hathazari, Chattogram"),
+        row("Nandirhat, Ward # 01, South Pahartali, Fatehabad, Hathazari, Chattogram"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("does not let a Fatehabad-only row fuse Nandirhat with Mahmudabad", () => {
+    assert.equal(
+      displays([
+        row("Mahmudabad, Ward No. 01, South Pahartali, Hathazari, Chattogram"),
+        row("South Pahartali, Ward # 01, Fatehabad, Hathazari, Chattogram"),
+        row("Nandirhat, Ward # 01, South Pahartali, Fatehabad, Hathazari, Chattogram"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("merges Barendra with Barenda at Kashimpur", () => {
+    assert.equal(displays([row("Barendra, Kashimpur, Gazipur"), row("BARENDA, GAZIPUR")]).length, 1);
+  });
+
+  it("merges Jamirdia with Jamidia at Bhaluka", () => {
+    assert.equal(
+      displays([
+        row("Jamirdia, Valuka, Seedstore, Mymensingh - 2240, Bangladesh"),
+        row("Jamidia, Valuka, Mymensingh"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges Anannya Shoping Complex with Ananna Shopping Complex at the same lane", () => {
+    assert.equal(
+      displays([
+        row("Anannya Shoping Complex (4th Floor), Lane # 13, Baridhara DOHS, Dhaka"),
+        row("ANANNA SHOPPING COMPLEX (4TH FLOOR), LANE-13, DHAKA"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges Jamirdia Square Masterbari with Jamirdia Hobirbari as the same village", () => {
+    assert.equal(
+      displays([
+        row("Jamirdia, Square Masterbari, Bhaluka, 2240, Mymensingh, Bangladesh"),
+        row("Jamirdia, Hobirbari, Mymensingh"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges Delpara Kutubpur with Delpara on the Dhaka-Narayanganj link road", () => {
+    assert.equal(
+      displays([
+        row("Delpara, Kutubpur, Fatullah, Narayanganj, Narayangonj"),
+        row("Dhaka Narayangonj Link Road, Delpara, Fatullah, Narayanganj - 1400, Bangladesh"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges Dhonaid Tajpur Road after stripping an unlabelled RS dag", () => {
+    assert.equal(
+      displays([
+        row("RS-61, Dhonaid, Tajpur Road, Yearpur, Zirabo, Ashulia, Savar, 1341, Dhaka, Bangladesh"),
+        row("Dhonaid, Tajpur Road, Norsinghopur, Ashulia, Savar, Dhaka"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges South Panishail Zirani Bazar under Joydevpur or Kashimpur labels", () => {
+    assert.equal(
+      displays([
+        row("South Panishail (Opposite of BKSP), Zirani Bazar, Gazipur, Joydevpur"),
+        row("South Panishail, Zirani Bazar, 1740, Kashimpur, Bangladesh"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges Uttar Narsingpur with Narsimpur at Kashipur Fatullah", () => {
+    assert.equal(
+      displays([
+        row("Uttar Narsingpur, Kashipur, Fatullah, Narayanganj - 1400, Bangladesh"),
+        row("NARSIMPUR, KASHIPUR, NARAYANGANJ"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("keeps concatenated Adamjee plots 246-249 and 97-101 apart from the 97-101-only row", () => {
+    assert.equal(
+      displays([
+        row("Address 1st: Plot #246-249, Adamjee, EPZ and Address 2nd: 97-101 Adamjee"),
+        row("Plot # 97 - 101, Adamjee EPZ, Siddirgonj, Narayanganj, Narayangonj"),
+      ]).length,
+      2,
+    );
+  });
 });
 
 describe("premisesIdentifiers — Ka/K, prefixes, brackets, slash lists", () => {
