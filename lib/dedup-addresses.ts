@@ -77,7 +77,7 @@ export type DedupedAddress<T extends AddressRowRaw = AddressRowRaw> = {
 const MERGE_THRESHOLD = 0.75;
 /** Relaxed threshold once both sides name the same plot number: the
  *  identifier already establishes identity, so spelling may drift freely. */
-const SHARED_ID_THRESHOLD = 0.6;
+const SHARED_ID_THRESHOLD = 0.42;
 /** A pair of words counts as the same word at this Jaro-Winkler score, but
  *  only if the edit-distance ratio also holds. Jaro-Winkler alone rewards a
  *  shared prefix too generously and would fuse Mirpur with Mirzapur. */
@@ -154,6 +154,16 @@ const GENERIC_TOKENS = new Set([
   "sharani",
   "sharak",
   "sharok",
+  // Size adjectives and honorifics, not which place.
+  "baro",
+  "boro",
+  "choto",
+  "chhoto",
+  "haji",
+  "hazi",
+  "alhaj",
+  "mohammad",
+  "mohammed",
 ]);
 
 /** Bangla script → English comparison tokens. Applied only to the match
@@ -339,6 +349,7 @@ export function normaliseAddressKey(input: string): string {
   for (const [pat, rep] of BANGLA_VOCAB) s = s.replace(pat, rep);
   s = applyPlaceLexicon(s);
   for (const [pat, rep] of ABBREVIATION_PAIRS) s = s.replace(pat, rep);
+  s = s.replace(/\bfac(?:tory)?\s*:/g, " ");
   s = s.replace(/\bplot\s*(no\.?|number|#|:)\s*/g, "plot ");
   s = s.replace(/\bblock\s*[-:]\s*/g, "block ");
   s = s.replace(/\broad\s*(no\.?|#|:)\s*/g, "road ");
@@ -462,7 +473,7 @@ export function bengaliSoundKey(word: string): string {
   s = s.replace(/ee/g, "i");
   s = s.replace(/oo/g, "u");
   s = s.replace(/aa/g, "a");
-  s = s.replace(/[aeiou]+/g, "a");
+  s = s.replace(/[aeiou]+/g, "");
   s = s.replace(/(.)\1+/g, "$1");
   return s;
 }
@@ -484,8 +495,24 @@ function sameWord(a: string, b: string): boolean {
   if (neverSamePair(a, b)) return false;
   if (/^\d+$/.test(a) && /^\d+$/.test(b)) return Number(a) === Number(b);
   if (/\d/.test(a) || /\d/.test(b)) return false;
-  if (bengaliSoundKey(a) === bengaliSoundKey(b) && bengaliSoundKey(a).length >= 3) {
-    return true;
+  const sound = bengaliSoundKey(a);
+  const soundB = bengaliSoundKey(b);
+  if (sound === soundB) {
+    // "anwar"/"anower" collapse to two consonants; still the same name when
+    // the original words are long enough that a two-letter key is not noise.
+    if (sound.length >= 3) return true;
+    if (sound.length >= 2 && Math.min(a.length, b.length) >= 5) return true;
+  } else {
+    // Ahakhalia / Akholia: one extra leading consonant after the sound-key.
+    const [shortKey, longKey] = sound.length <= soundB.length ? [sound, soundB] : [soundB, sound];
+    if (
+      shortKey.length >= 2 &&
+      longKey.length - shortKey.length <= 1 &&
+      longKey.endsWith(shortKey) &&
+      Math.min(a.length, b.length) >= 6
+    ) {
+      return true;
+    }
   }
   if (Math.abs(a.length - b.length) > 3) return false;
   if (jaroWinkler(a, b) < TOKEN_JW) return false;
@@ -536,11 +563,14 @@ function stripIdBrackets(raw: string): string {
 
 function parseIdPiece(piece: string): string[] {
   const raw = stripIdBrackets(piece.replace(/\((?:part|pt)\.?\)/gi, ""))
+    .replace(/(\d)\s+([A-Za-z])\b/g, "$1$2")
     .replace(/\s*\/\s*/g, "/")
     .replace(/\s*-\s*/g, "-")
     .trim();
   if (!raw || !/\d/.test(raw)) return [];
   if (/^(?:\d+(?:st|nd|rd|th)|floor|fl|flr)$/i.test(raw)) return [];
+  const letterSuffix = /^(\d+)([A-Za-z])$/.exec(raw);
+  if (letterSuffix) return [normaliseId(letterSuffix[2]!, letterSuffix[1]!)];
 
   const toRange = /^(\d+)\s+to\s+(\d+)$/i.exec(raw);
   if (toRange) return expandRange("", Number(toRange[1]), Number(toRange[2]));
@@ -605,6 +635,7 @@ function looksLikeBareId(segment: string): boolean {
   const trimmed = segment.trim();
   if (!/\d/.test(trimmed)) return false;
   if (/^\d{4}$/.test(trimmed)) return false;
+  if (/^-?\d{4}$/.test(trimmed)) return false;
   // Unlabelled 5+ digit runs are telephone / fax, not plot numbers.
   if (/^\d{5,}$/.test(trimmed)) return false;
   if (trimmed.split(/\s+/).length > 3) return false;
@@ -616,9 +647,30 @@ function looksLikeBareId(segment: string): boolean {
 const LEADING_ID_RE = /^([A-Za-z]{0,3}[-]?\d+(?:\/[A-Za-z0-9]+)?)\s+\S/;
 const LEADING_RANGE_RE = /^(\d+)\s*[-–]\s*(\d+)(?:\b|$)/;
 
+function plotBody(raw: string): string {
+  // "Plot No: S-18-19 BSCIC I/E" — the estate name is not part of the id.
+  const cut =
+    /\s+(?:bscic|epz|kepz|depz|industrial|estate|hosiery|hosieryi|chittagong|chattogram|dhaka|gazipur|narayanganj|fatullah|konabari|shasongaon|shashongaon|enayetnagar)\b/i.exec(
+      raw,
+    );
+  return (cut ? raw.slice(0, cut.index) : raw).trim();
+}
+
+function plotIdHead(body: string): string {
+  const trimmed = body.trim();
+  // Optional space before a single letter suffix ("12 P") but not before a
+  // following place-name ("12 BSCIC" must not mint B12).
+  const head =
+    /^((?:[A-Za-z]{1,3}[\s./-]*)?\d+(?:[A-Za-z]|\s+[A-Za-z]\b)?(?:\s*(?:[-/&,]|to|and)\s*(?:[A-Za-z]{1,3}[\s./-]*)?\d+(?:[A-Za-z]|\s+[A-Za-z]\b)?)*)/i.exec(
+      trimmed,
+    );
+  if (head?.[1] && /\d/.test(head[1]!)) return head[1]!.trim();
+  return plotBody(trimmed);
+}
+
 function collectIdPieces(body: string, ids: Set<string>): void {
-  for (const piece of body.split(/\s*(?:&|,|\band\b)\s*/i)) {
-    for (const id of parseIdPiece(piece)) ids.add(id);
+  for (const piece of plotIdHead(body).split(/\s*(?:&|,|\band\b)\s*/i)) {
+    for (const id of parseIdPiece(piece.replace(/^([A-Za-z]{1,3})\s+(?=\d)/, "$1"))) ids.add(id);
   }
 }
 
@@ -626,13 +678,23 @@ function collectIdPieces(body: string, ids: Set<string>): void {
  *  stripped first so "House 42/A (5th Floor)" does not mint a phantom id. */
 export function premisesIdentifiers(cleanedAddress: string): Set<string> {
   const { stripped } = extractFloors(cleanedAddress);
+  const ids = new Set<string>();
+  // Holding 574 (Former #295) and Plot 799 (Old #1010) keep the old number
+  // as an alias so a later registry that still uses 295 / 1010 can merge.
+  for (const m of stripped.matchAll(/\((?:[^)]*\b(?:old|former)\b[^)]*)\)/gi)) {
+    for (const n of m[0].match(/\d+/g) ?? []) ids.add(String(Number(n)));
+  }
   const withoutRenumber = stripped
     .replace(/\b\d+\s*\(\s*new\s*\)/gi, " ")
-    .replace(/\(\s*(?:old|new)\s*\)/gi, " ");
-  const ids = new Set<string>();
+    .replace(/\(\s*(?:old|new)\s*\)/gi, " ")
+    .replace(/\((?:[^)]*\b(?:old|former)\b[^)]*)\)/gi, " ");
+  const BUILDING_TRAIL =
+    /\b(?:bhaban|bhawan|court|tower|plaza|complex|centre|center)\s+(\d{2,4})\s*$/i;
   for (const segment of withoutRenumber.split(",")) {
     const trimmed = collapsePlotInitials(stripIdBrackets(segment.trim()));
     if (!trimmed) continue;
+    const trail = BUILDING_TRAIL.exec(trimmed);
+    if (trail) ids.add(String(Number(trail[1]!)));
     const labelled = LABELLED_ID_RE.exec(trimmed);
     let body: string | null = null;
     if (labelled) {
@@ -640,15 +702,36 @@ export function premisesIdentifiers(cleanedAddress: string): Set<string> {
     } else if (looksLikeBareId(trimmed)) {
       body = trimmed;
     } else {
-      const range = LEADING_RANGE_RE.exec(trimmed);
+      const leadingSeg = trimmed.replace(/^(?:new|old)\s+/i, "");
+      const range = LEADING_RANGE_RE.exec(leadingSeg);
       if (range) {
         for (const id of expandRange("", Number(range[1]), Number(range[2]))) ids.add(id);
         continue;
       }
-      const leading = LEADING_ID_RE.exec(trimmed);
-      if (leading && !/^\d{5,}$/.test(leading[1]!.replace(/-/g, ""))) body = leading[1]!;
+      const leading = LEADING_ID_RE.exec(leadingSeg);
+      if (leading && !/^\d{5,}$/.test(leading[1]!.replace(/-/g, ""))) {
+        collectIdPieces(leading[1]!, ids);
+        const after = leadingSeg.slice(leading[1]!.length);
+        for (const extra of after.split(/\s*(?:&|,|\band\b)\s*/i)) {
+          const head = plotIdHead(extra.trim());
+          if (head && /(?:[A-Za-z]{1,3}[-/\s]?)?\d/.test(head) && !/[A-Za-z]{4,}/.test(plotBody(head))) {
+            collectIdPieces(head, ids);
+          }
+        }
+        continue;
+      }
     }
     if (body) collectIdPieces(body, ids);
+  }
+
+  // EPZ standard factory buildings only: FSSFB#2 ≡ FS-SFB-2 ≡ FSFB # 01.
+  // Must not mint ids from "Dhaka-1230", "Gulshan-1", or "Annex-2".
+  for (const m of withoutRenumber.matchAll(
+    /\b((?:[A-Za-z]{1,4}[-/#.]*)?(?:FS)?SFB[-/#.\s]*\d+(?:\s*[&,]\s*\d+)*)\b/gi,
+  )) {
+    const prefix = m[1]!.toUpperCase().replace(/[^A-Z]/g, "");
+    if (!/(?:FS)?SFB$/i.test(prefix) && !prefix.includes("SFB")) continue;
+    for (const n of m[1]!.match(/\d+/g) ?? []) ids.add(`${prefix}${Number(n)}`);
   }
   return ids;
 }
@@ -673,7 +756,14 @@ export function idSetsOverlap(a: Set<string>, b: Set<string>): boolean {
     const l = idParts(left);
     for (const right of b) {
       const r = idParts(right);
-      if (l.digits !== r.digits) continue;
+      if (l.digits !== r.digits) {
+        const ls = l.digits.split("/").filter(Boolean);
+        const rs = r.digits.split("/").filter(Boolean);
+        const lettersOk =
+          l.letters === r.letters || l.letters === "" || r.letters === "";
+        if (lettersOk && ls.some((d) => rs.includes(d))) return true;
+        continue;
+      }
       if ((l.letters === "") !== (r.letters === "")) return true;
     }
   }
@@ -885,10 +975,9 @@ function isSameLocation(a: Candidate, b: Candidate): boolean {
     // Two named plots in common is the same campus even when one registry
     // listed extra neighbouring plots (Comilla EPZ 220-227 ⊂ 12-14, 220-227).
     if (overlapN >= 2) return true;
-    // House 17 Road 6 is not House 17 Road 3; Plot 51 Uttara is not Plot 51 CEPZ.
+    if (leadingMatch) return true;
     if (extraDigitConflict(a, b)) return false;
     if (!adminCompatible(a, b)) return false;
-    if (leadingMatch) return true;
     return score >= SHARED_ID_THRESHOLD;
   }
   // Near-identical wording is the same place even when every word is

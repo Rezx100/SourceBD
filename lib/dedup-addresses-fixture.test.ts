@@ -67,6 +67,14 @@ describe("published multi-string fixture", () => {
     );
   });
 
+  it("merges Anwar/Anower Tower and DEPZ FSSFB#2 factory groups", () => {
+    assert.equal(mergeUniqueLocations(groupOf("3m-label", "factory").rows).length, 1);
+    assert.equal(
+      mergeUniqueLocations(groupOf("kaixi-fashion-bangladesh", "factory").rows).length,
+      1,
+    );
+  });
+
   it("merges zero-padded CEPZ and Uttara holdings that are the same premises", () => {
     for (const [slug, kind] of [
       ["technical-apparels", "factory"],

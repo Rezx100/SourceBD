@@ -533,6 +533,221 @@ describe("mergeUniqueLocations — one row per premises (founder posture)", () =
       2,
     );
   });
+
+  it("merges Plot S-18-19 with Plot No: S-18-19 BSCIC I/E Konabari", () => {
+    assert.equal(
+      displays([
+        row("Plot # S-18-19, BSCIC Industrial Estate, Konabari, Gazipur"),
+        row("Plot No: S-18-19 BSCIC I/E, Konabari, Gazipur - 1700, Bangladesh"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges Plot A 12/13 with A12-A13 at BSCIC Dhamrai", () => {
+    assert.equal(
+      displays([
+        row("Plot No. A 12/13, BSCIC I/E, Dhamrai, 1350, Dhaka, Bangladesh"),
+        row("Plot No. A12-A13, BSCIC I/E. Dhamrai, Dhaka"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges Jarun (South) with Jaurn (South) Kashimpur", () => {
+    assert.equal(
+      displays([
+        row("Jarun (South), Kashimpur, Gazipur - 1700, Bangladesh"),
+        row("JAURN (SOUTH), KASHIMPUR, GAZIPUR"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges 31/A Issha Khan Road with 31 Ishkha Road", () => {
+    assert.equal(
+      displays([
+        row("31/A, Issha Khan Road, Narayangonj", "BGMEA", "mailing"),
+        row("31 ISHKHA ROAD., SADAR, NARAYANGANJ", "BKMEA", "mailing"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges NEW 129/B Mokaroba with New 129/B Mokorba Road", () => {
+    assert.equal(
+      displays([
+        row("NEW 129/B, MOKAROBA ROAD, NAGAR KHANPUR, NARAYANGANJ", "BGMEA", "mailing"),
+        row("New 129/B Mokorba Road, Nagar Khanpur, Narayanganj", "BKMEA", "mailing"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges F-14 Eastern Housing with Plot 14 Block F Pallabi", () => {
+    assert.equal(
+      displays([
+        row("Plot # 14, Block # F, Eastern Housing, Pollabi 2nd Part, Mirpur, Dhaka"),
+        row("F-14, Eastern Housing Main Road Pallabi, 2nd part"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges Anwar Tower with Anower Tower at Gouripur Ashulia", () => {
+    assert.equal(
+      displays([
+        row("ANWAR TOWER, B-BANGLA, GOURIPUR, ASHULIA, SAVAR, DHAKA, 1341, DHAKA, Bangladesh"),
+        row("Anower Tower, B-Bangla, Gouripur, Ashulia, Savar, 1341, Dhaka, Bangladesh"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges DEPZ FSSFB#2 with FS-SFB-2", () => {
+    assert.equal(
+      displays([
+        row("FSSFB#2, DEPZ (Old Zone), Ashulia, 1349, Savar, Bangladesh"),
+        row("FS-SFB-2, Dhaka EPZ (Old Zone), Ashulia, Savar"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges Kalurghat 12 P & 13 P with 12P AND 13P and keeps FIDC Road apart", () => {
+    const merged = displays([
+      row("Plot No. 12 P & 13 P, Kalurghat Heavy I/A, Chattogram - 4212, Bangladesh"),
+      row("PLOT NO. 12P AND 13P, KALURGHAT INDUSTRIAL AREA, CHITTAGONG"),
+      row("B-8/A-B, FIDC Road, BSCIC I/A, Chittagong"),
+    ]);
+    assert.equal(merged.length, 2);
+    assert.ok(merged.some((d) => /12/i.test(d)));
+    assert.ok(merged.some((d) => /FIDC/i.test(d)));
+  });
+
+  it("does not merge Green City Edge 86 Kakrail with 89 Kakrail", () => {
+    assert.equal(
+      displays([
+        row("GREEN CITY EDGE (12-14TH FLOOR), 86 KAKRAIL C/A, PALTAN, DHAKA", "BGMEA", "mailing"),
+        row("Green City Edge (12th -14th Floor), 89, Kakrail C/A Dhaka- 1000.", "BKMEA", "mailing"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("merges Baro Narayonpur with Boro Narayanpur at Dhamrai", () => {
+    assert.equal(
+      displays([
+        row("Baro Narayonpur, Saturia - Kalampur Road, Saturia, Dhamrai, Dhaka - 1350, Bangladesh"),
+        row("Boro Narayanpur, Amta, Dhamri, Dhaka"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges Akholia with Ahakhalia at Hazir Bazar", () => {
+    assert.equal(
+      displays([
+        row("Akholia, Hazir Bazar, Mollikbari, Valuka, Mymensingh"),
+        row("Ahakhalia, Hazir Bazar, Bhaluka, Mymensingh - 2240, Bangladesh"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges Hazi Mohammad Ismail Chowdhury Bhaban with Haji Ismail Chowdhury Bhaban", () => {
+    assert.equal(
+      displays([
+        row(
+          "Hazi Mohammad Ismail Chowdhury Bhaban (2nd Floor), Chandana Chowrasta, Gazipur Sadar, Gazipur - 1702, Bangladesh",
+        ),
+        row("Haji Ismail Chowdhury Bhaban, Chandana Chowrasta, Gazipur"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges FSFB.1 with FSFB # 01 at Karnaphuli EPZ", () => {
+    assert.equal(
+      displays([
+        row("FSFB.1, KARNAPHULI EXPORT PROCESSING ZONE, NORTH PATENGA, CHATTOGRAM"),
+        row("FSFB # 01, KARNAFULI EPZ; Patenga PS; Chittagong-4204"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges MS-SFB-01&02 with Plot MS-SFB # 01 & 02 at Adamjee EPZ", () => {
+    assert.equal(
+      displays([
+        row("MS-SFB-01&02 Adamjee EPZ, Shiddhirganj, Narayanganj, 1431, Narayanganj, Bangladesh"),
+        row("Plot # MS-SFB # 01 & 02, Adamjee Nagar, Siddirgonj, Narayangonj"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges Plot 799 (Old #1010-1011) with 799 OLD PLOT 1010, 1011 at Ambag", () => {
+    assert.equal(
+      displays([
+        row("Plot # 799(Old #1010-1011), Ambag, Mouza- Baghia, Gazipur"),
+        row("799 (OLD PLOT NO.: 1010, 1011) AMBAG, MOUZA BAGHIA"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges A-69 & 76 BSCIC with A-76 at Fatullah", () => {
+    assert.equal(
+      displays([
+        row("A-69 & 76 BSCIC I/A, Narayanganj, Fatullah"),
+        row("A-76 BSCIC HOSIERY I/A, FATULLAH, NARAYANGANJ"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges Natun Para Baipail Beside-DEPZ-2 with Notun Para Baipal", () => {
+    assert.equal(
+      displays([
+        row("Natun Para, Baipail (Beside-DEPZ-2), Savar, Dhaka, 1349, Dhaka, Bangladesh"),
+        row("NOTUN PARA, BAIPAL, BESIDE DEPZ-2, SAVAR, DHAKA"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges Plot S.A.-179 RS-1356 Jamgara with Plot 179 Jamgora", () => {
+    assert.equal(
+      displays([
+        row("Plot No. S.A.-179, R.S.-1356, Jamgara, Ashulia, Savar, Dhaka, Bangladesh, Zip Code-1349"),
+        row("Plot # 179, RS-1356, Jamgora, Ashulia, Dhaka"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges Holding 574 (Former #295) with Holding 295 at Boherarchala", () => {
+    assert.equal(
+      displays([
+        row(
+          "Holding # 574 (Former #295)Block # C, Word # 9, Boherarchala, Sreepur Municipality, Ansar Road, Sreepur, Gazipur",
+        ),
+        row("Kewa, Boherarchala, Holding # 295, Block # C, Ward # 09, Sreepur, Gazipur-1740"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges Fac: Choto Benairchar with Choto Binair Char", () => {
+    assert.equal(
+      displays([
+        row("Fac: Choto Benairchar, Araihazar, Narayangonj."),
+        row("Choto Binair Char, Araihazar, Narayangonj."),
+      ]).length,
+      1,
+    );
+  });
 });
 
 describe("premisesIdentifiers — Ka/K, prefixes, brackets, slash lists", () => {
