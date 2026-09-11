@@ -810,6 +810,228 @@ describe("mergeUniqueLocations — one row per premises (founder posture)", () =
       1,
     );
   });
+
+  it("merges Atlas Rangs Plaza with Altas Rangs Plaza at Agrabad", () => {
+    assert.equal(
+      displays([
+        row("Atlas Rangs Plaza (6th floor), 7, Shekh Mujib Road, Agrabad C/A, Chattogram"),
+        row("Altas Rangs Plaza (6th floor), 7, Shekh Mujib Road Agrabad C/A, Chattogram"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges Chanmary with Chandmari at Fatullah", () => {
+    assert.equal(
+      displays([
+        row("Chanmary, Narayanganj, Fatullah", "BGMEA", "mailing"),
+        row("CHANDMARI, FATULLAH, NARAYANGANJ", "BKMEA", "mailing"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges Borkan Monipur with Bokran Monipur", () => {
+    assert.equal(
+      displays([
+        row("Borkan Monipur, Hotapara, Mirzapur Union, Gazipur, Joydevpur"),
+        row("Bokran Monipur, Sadar, 1700, Gazipur, Bangladesh"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges Shooghat/Saughatm with Vulta/Bholta as one village spelling", () => {
+    assert.equal(
+      displays([
+        row("Shooghat, Vulta, Narayanganj, Rupganj"),
+        row("SAUGHATM, BHOLTA, NARAYANGANJ"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges Horihorpara with Harihapara at the same industrial park", () => {
+    assert.equal(
+      displays([
+        row("BSCIC INDUSTRIA PARK, HORIHORPARA, ENAYETNAGAR, FATULLAH, NARAYANGANJ"),
+        row("Harihapara, Shilpo Park, Fatullah, Narayanganj"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges Dasergaw with Dasergaul at Lokhonkhola", () => {
+    assert.equal(
+      displays([
+        row("Dasergaw, Lokhonkhola, Bandar, Narayanganj, 1400, Narayanganj, Bangladesh"),
+        row("Dasergaul, Lokhonkhola, Bandar, Narayanganj-1400"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges Kharuli holding 160 with Kharuail ward 7 and keeps Voradoba apart", () => {
+    const merged = mergeUniqueLocations([
+      row("Holding: 160, Kharuli, Ward no-07, Madrasha Mohalla-L(136-161/10), Municipal Area"),
+      row("Kharuail, 7 No. Ward, Bhaluka Municipality, Mymensingh - 2240, Bangladesh"),
+      row("Purana, Voradoba, Valuka, Mymensingh"),
+    ]);
+    assert.equal(merged.length, 2, `got: ${merged.map((l) => l.displayAddress).join(" | ")}`);
+  });
+
+  it("merges Shrikedia with Serkondia at Molla Market", () => {
+    assert.equal(
+      displays([
+        row("Shrikedia, Molla Market, Ashulia, Savar, 1341, Dhaka, Bangladesh"),
+        row("Serkondia, Molla Market, Ashulia, Savar, Dhaka"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges Telirchala with Telir Chala and keeps Jogirchala apart", () => {
+    const merged = mergeUniqueLocations([
+      row(
+        "414, Mouza, Kouchakuri (DAG No. SA 2006, 2008), Telirchala, Mouchak, Kaliakoir, Gazipur - 1751, Bangladesh",
+      ),
+      row("Jogirchala, Mouchak, Kaliakoir, Gazipur."),
+      row("Telir Chala Mouchak, Gazipur, Kaliakoir"),
+    ]);
+    assert.equal(merged.length, 2, `got: ${merged.map((l) => l.displayAddress).join(" | ")}`);
+  });
+
+  it("merges Budichor/Burishchar Dofpool/Dhoppole at the same complex", () => {
+    assert.equal(
+      displays([
+        row("A.T.M. COMPLEX, SOUTH BUDICHOR, DOFPOOL, HATHAZARI PS, CHITTAGONG-4330, BANGLADESH"),
+        row("A.T.M. Complex, South Burishchar, Dhoppole, Hathazari, Chittagong"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges BEZA Zone-6 with Zone-06 at Mirsarai under two estate names", () => {
+    assert.equal(
+      displays([
+        row("Bangabondhu Sheikh Mujib Shilpo Nagar Zone-6, BEZA, Mirsarai-4230, Chattogram."),
+        row(
+          "Bangladesh National Special Economic Zone, Zone-06, Mirsharai Economic Zone, BEZA, Mirsharai, Chittagong - 4320",
+        ),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges Le Meridien 79/A office-block wording with the shorter 79/A listing", () => {
+    assert.equal(
+      displays([
+        row(
+          "LE MERIDIEN DHAKA 5TH FLOOR (NORTH CORNER, OFFICE BLOCK-2, 3, 4) 79/A, COMMERCIAL AREA, AIRPORT ROAD, NIKUNJA-02, KHILKHET",
+          "BGMEA",
+          "mailing",
+        ),
+        row("Le Meridien (Level-05), 79/A, Commercial Space, Nikunja-2, Khilkhet, Dhaka", "BKMEA", "mailing"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges Kobi vs Kabi Jashimuddin Road 60/2-G and keeps the Adamjee factory apart", () => {
+    const merged = mergeUniqueLocations([
+      row("60/2-G, Kobi Jashimuddin Road, Tekpara, Pagar, Gazipur"),
+      row("Plot # 111-114, Adamjee EPZ, Adamjee Nagar, Siddhirgonj, Narayangonj"),
+      row("60/2-G Kabi Jashim Uddin Rd, Tekpara, Pegar, 1710, Tongi, Bangladesh"),
+    ]);
+    assert.equal(merged.length, 2, `got: ${merged.map((l) => l.displayAddress).join(" | ")}`);
+  });
+
+  it("merges Gazirchat with Gaziir Chat after stripping a dag number", () => {
+    assert.equal(
+      displays([
+        row("Daag-49, Kaichabari Road, Gazirchat Alia Madrasha, Ashulia, Savar, Dhaka, Bangladesh"),
+        row("Gaziir Chat Alia madrasha, Kaichabari Road, Dhamsona, Ashulia, Savar, Dhaka."),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges Nayadingi with Nayadighi and keeps the Mirpur plot apart", () => {
+    const merged = mergeUniqueLocations([
+      row("Plot - I/10, Block - K, Rupnagar Industrial Area, Mirpur-2, Rupnagar, Dhaka - 1216, Bangladesh"),
+      row("Nayadingi, Saturia, Saturia PS, Manikganj - 1810, Bangladesh"),
+      row("Nayadighi, Manikganj, Saturia"),
+    ]);
+    assert.equal(merged.length, 2, `got: ${merged.map((l) => l.displayAddress).join(" | ")}`);
+  });
+
+  it("merges POLO-B-46-47 with B-46/47 at BSCIC Fatullah", () => {
+    assert.equal(
+      displays([
+        row("B-46/47, 64/65, BLOCK-B, BSCIC HOSIERY I/E, FATULLAH, NARAYANGANJ"),
+        row("POLO-B-46-47, BSCIC I/A, SHASONGAON, FATULLAH, NARAYANGANJ, BANGLADESH"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges Dag 439 with Dug 439 at Dhour and keeps Bara Rangamatia apart", () => {
+    const merged = mergeUniqueLocations([
+      row("Dag No. 439, Dhour, Turag, Uttara, Dhaka, 1230, DHAKA, Bangladesh"),
+      row("Dug # 439, Dhour, Turag, Dhaka, Uttara"),
+      row("Bara Rangamatia, Ashulia, Savar, Dhaka"),
+    ]);
+    assert.equal(merged.length, 2, `got: ${merged.map((l) => l.displayAddress).join(" | ")}`);
+  });
+
+  it("merges Dogorgaon with Dohargaon and keeps Dogair Demra apart", () => {
+    const merged = mergeUniqueLocations([
+      row("Dogair, Purbopara, Choto Murgir Firm Sarulia, Demra, Dhaka"),
+      row("Dogorgaon, Baliapara, Rupgonj, Narayanganj, 1460, Narayanganj – Dhaka, Bangladesh"),
+      row("Dohargaon, P.O.-Balipara, P.S.-Rupgonj, Narayanganj"),
+    ]);
+    assert.equal(merged.length, 2, `got: ${merged.map((l) => l.displayAddress).join(" | ")}`);
+  });
+
+  it("merges Rugunathpur with Ragunahpur behind a bhaban vs union wrapper", () => {
+    assert.equal(
+      displays([
+        row("Chowdhury Bhaban, Rugunathpur, Jorargonj, Mirsharai, Chattogram"),
+        row("Durgapur Union, Ragunahpur, Jorargonj, Mirsharai, Chattogram"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges Mirzapur Purbapara with cadastral SA/RS lists of the same mouza", () => {
+    assert.equal(
+      displays([
+        row("SA/RS 595-1123, 592-1122, 593-1119, Mirzapur Mouza No # 8, Mirzapur Purba Para, Gazipur Sadar"),
+        row("Mirzapur Purbapara, 08 No Mirzapur Mouza, Mirzapur, Gazipur Sadar, Gazipur - 1703, Bangladesh"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("does not merge Mirpur with Mirzapur as a spelling of the same village", () => {
+    assert.equal(
+      displays([
+        row("Mirpur, Dhaka"),
+        row("Mirzapur, Gazipur"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("does not treat the word Village as a shared place named age", () => {
+    assert.equal(
+      displays([
+        row("Village Kewa, Sreepur, Gazipur"),
+        row("Village Konabari, Kaliakoir, Gazipur"),
+      ]).length,
+      2,
+    );
+  });
 });
 
 describe("premisesIdentifiers — Ka/K, prefixes, brackets, slash lists", () => {

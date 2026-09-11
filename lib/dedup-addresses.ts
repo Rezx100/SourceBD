@@ -82,7 +82,10 @@ const SHARED_ID_THRESHOLD = 0.42;
  *  only if the edit-distance ratio also holds. Jaro-Winkler alone rewards a
  *  shared prefix too generously and would fuse Mirpur with Mirzapur. */
 const TOKEN_JW = 0.9;
-const TOKEN_LEV = 0.78;
+/** Letter-level edit must stay stricter than Mirpur/Mirzapur (Damerau 1/8 =
+ *  0.875). Chanmary/Chandmari (2/9 ≈ 0.778) is handled by the sound-key
+ *  one-edit rule instead. */
+const TOKEN_LEV = 0.88;
 
 
 const ABBREVIATION_PAIRS: ReadonlyArray<readonly [RegExp, string]> = [
@@ -164,6 +167,16 @@ const GENERIC_TOKENS = new Set([
   "alhaj",
   "mohammad",
   "mohammed",
+  "dag",
+  "dug",
+  "daag",
+  "bhaban",
+  "bhawan",
+  "madrasha",
+  "madrasa",
+  "madrasah",
+  "industria",
+  "zone",
 ]);
 
 /** Bangla script → English comparison tokens. Applied only to the match
@@ -334,11 +347,13 @@ export function extractFloors(address: string): {
   floors: string[];
 } {
   const floors: string[] = [];
-  const stripped = address.replace(FLOOR_RE, (_match, label: string) => {
-    const normalised = `${label.replace(/\s+/g, " ").trim()} Floor`;
-    if (!floors.includes(normalised)) floors.push(normalised);
-    return " ";
-  });
+  const stripped = address
+    .replace(FLOOR_RE, (_match, label: string) => {
+      const normalised = `${label.replace(/\s+/g, " ").trim()} Floor`;
+      if (!floors.includes(normalised)) floors.push(normalised);
+      return " ";
+    })
+    .replace(/\([^)]*(?:floor|corner|block|office|level)[^)]*\)/gi, " ");
   return { stripped: stripped.replace(/\s{2,}/g, " ").replace(/\s+,/g, ","), floors };
 }
 
@@ -350,7 +365,8 @@ export function normaliseAddressKey(input: string): string {
   s = applyPlaceLexicon(s);
   for (const [pat, rep] of ABBREVIATION_PAIRS) s = s.replace(pat, rep);
   s = s.replace(/\bfac(?:tory)?\s*:/g, " ");
-  s = s.replace(/\b(mouza|vill(?:age)?|ward|word|holding|plot)(?=[a-z])/g, "$1 ");
+  s = s.replace(/\b(mouza|village|ward|word|holding|plot)(?=[a-z])/g, "$1 ");
+  s = s.replace(/\bvill(?!age)(?=[a-z])/g, "vill ");
   s = s.replace(/\bword\b/g, "ward");
   s = s.replace(/\bplot\s*(no\.?|number|#|:)\s*/g, "plot ");
   s = s.replace(/\bblock\s*[-:]\s*/g, "block ");
@@ -407,16 +423,21 @@ function levenshtein(a: string, b: string): number {
   if (a === b) return 0;
   if (a.length === 0) return b.length;
   if (b.length === 0) return a.length;
-  let prev = Array.from({ length: b.length + 1 }, (_, i) => i);
+  const rows = a.length + 1;
+  const cols = b.length + 1;
+  const d: number[][] = Array.from({ length: rows }, () => new Array<number>(cols).fill(0));
+  for (let i = 0; i < rows; i++) d[i]![0] = i;
+  for (let j = 0; j < cols; j++) d[0]![j] = j;
   for (let i = 1; i <= a.length; i++) {
-    const curr = [i];
     for (let j = 1; j <= b.length; j++) {
       const cost = a[i - 1] === b[j - 1] ? 0 : 1;
-      curr[j] = Math.min(curr[j - 1]! + 1, prev[j]! + 1, prev[j - 1]! + cost);
+      d[i]![j] = Math.min(d[i - 1]![j]! + 1, d[i]![j - 1]! + 1, d[i - 1]![j - 1]! + cost);
+      if (i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) {
+        d[i]![j] = Math.min(d[i]![j]!, d[i - 2]![j - 2]! + 1);
+      }
     }
-    prev = curr;
   }
-  return prev[b.length]!;
+  return d[a.length]![b.length]!;
 }
 
 function jaroWinkler(a: string, b: string): number {
@@ -510,8 +531,9 @@ function sameWord(a: string, b: string): boolean {
   if (sound === soundB) {
     // "anwar"/"anower" collapse to two consonants; still the same name when
     // the original words are long enough that a two-letter key is not noise.
+    // "kobi"/"kabi" are four letters with the same two-consonant key.
     if (sound.length >= 3) return true;
-    if (sound.length >= 2 && Math.min(a.length, b.length) >= 5) return true;
+    if (sound.length >= 2 && Math.min(a.length, b.length) >= 4) return true;
   } else {
     // Ahakhalia / Akholia: one extra leading consonant after the sound-key.
     const [shortKey, longKey] = sound.length <= soundB.length ? [sound, soundB] : [soundB, sound];
@@ -522,6 +544,16 @@ function sameWord(a: string, b: string): boolean {
       Math.min(a.length, b.length) >= 6
     ) {
       return true;
+    }
+    // Interior sound-key edit: transposition/substitution at length ≥6
+    // (Borkan/Bokran); insert/delete only at length ≥8 (Chanmary/Chandmari)
+    // so Mirpur cannot fuse with Mirzapur (insert z, originals 6 and 8).
+    if (sound.length >= 3 && soundB.length >= 3) {
+      const d = levenshtein(sound, soundB);
+      if (d === 1) {
+        if (sound.length === soundB.length && Math.min(a.length, b.length) >= 6) return true;
+        if (Math.min(a.length, b.length) >= 8) return true;
+      }
     }
   }
   if (Math.abs(a.length - b.length) > 3) return false;
@@ -649,7 +681,6 @@ function looksLikeBareId(segment: string): boolean {
   // Unlabelled 5+ digit runs are telephone / fax, not plot numbers.
   if (/^\d{5,}$/.test(trimmed)) return false;
   if (trimmed.split(/\s+/).length > 3) return false;
-  if (!/[A-Za-z]/.test(trimmed) && !/\d{2,}/.test(trimmed)) return false;
   return !/[A-Za-z]{3,}/.test(trimmed);
 }
 
@@ -685,6 +716,26 @@ function collectIdPieces(body: string, ids: Set<string>): void {
   }
 }
 
+/** Cadastral dag/SA/RS lists, mouza serials and ward numbers are not plot
+ *  identity. Leaving them in the identifier set blocked genuine premises
+ *  merges (Holding 160 vs "7 No. Ward", DAG 2006 vs Telirchala). */
+function stripNonPremisesNumbers(raw: string): string {
+  return raw
+    .replace(
+      /\b(?:dag|dug|daag|khatian)\b[\s.:#-]*(?:no\.?|number|#|:)?[\s.:#-]*[a-z]{0,4}[\s./-]*\d+(?:\s*[,&/-]\s*\d+)*/gi,
+      " ",
+    )
+    .replace(
+      /\b(?:s\.?\s*a\.?|r\.?\s*s\.?|c\.?\s*s\.?|b\.?\s*s\.?)(?:\s*\/\s*(?:s\.?\s*a\.?|r\.?\s*s\.?|c\.?\s*s\.?|b\.?\s*s\.?)?)*\s+\d{2,}(?:\s*[-–]\s*\d{2,})?(?:\s*,\s*\d{2,}(?:\s*[-–]\s*\d{2,})?)*/gi,
+      " ",
+    )
+    .replace(/\b(?:mouza|mauza)\s*(?:no\.?|number|#|:)?\s*\d+\b/gi, " ")
+    .replace(/\b\d+\s*(?:no\.?|number)\s+(?:[a-z]+\s+)?(?:mouza|mauza)\b/gi, " ")
+    .replace(/\b(?:ward|word)\s*(?:no\.?|number|#|:)?\s*[-#:]?\s*\d+\b/gi, " ")
+    .replace(/\b\d+\s*(?:no\.?|number)?\s*ward\b/gi, " ")
+    .replace(/\b(?:mohalla|moholla|mahalla)\s*[-:]?\s*[a-z]?\s*\([^)]*\)/gi, " ");
+}
+
 /** Plot / holding / house numbers named by an address. Floor markers are
  *  stripped first so "House 42/A (5th Floor)" does not mint a phantom id. */
 export function premisesIdentifiers(cleanedAddress: string): Set<string> {
@@ -696,14 +747,19 @@ export function premisesIdentifiers(cleanedAddress: string): Set<string> {
   for (const m of withHouseSlash.matchAll(/\((?:[^)]*\b(?:old|former)\b[^)]*)\)/gi)) {
     for (const n of m[0].match(/\d+/g) ?? []) ids.add(String(Number(n)));
   }
-  const withoutRenumber = withHouseSlash
-    .replace(/\b\d+\s*\(\s*new\s*\)/gi, " ")
-    .replace(/\(\s*(?:old|new)\s*\)/gi, " ")
-    .replace(/\((?:[^)]*\b(?:old|former)\b[^)]*)\)/gi, " ");
+  const withoutRenumber = stripNonPremisesNumbers(
+    withHouseSlash
+      .replace(/\b\d+\s*\(\s*new\s*\)/gi, " ")
+      .replace(/\(\s*(?:old|new)\s*\)/gi, " ")
+      .replace(/\((?:[^)]*\b(?:old|former)\b[^)]*)\)/gi, " "),
+  );
   const BUILDING_TRAIL =
     /\b(?:bhaban|bhawan|court|tower|plaza|complex|centre|center)\s+(\d{2,4})\s*$/i;
   for (const segment of withoutRenumber.split(",")) {
-    const trimmed = collapsePlotInitials(stripIdBrackets(segment.trim()));
+    const trimmed = collapsePlotInitials(stripIdBrackets(segment.trim())).replace(
+      /^(?:new|old|polo)[-\s]*/i,
+      "",
+    );
     if (!trimmed) continue;
     const trail = BUILDING_TRAIL.exec(trimmed);
     if (trail) ids.add(String(Number(trail[1]!)));
@@ -714,7 +770,7 @@ export function premisesIdentifiers(cleanedAddress: string): Set<string> {
     } else if (looksLikeBareId(trimmed)) {
       body = trimmed;
     } else {
-      const leadingSeg = trimmed.replace(/^(?:new|old)\s+/i, "");
+      const leadingSeg = trimmed.replace(/^(?:new|old|polo)[-\s]*/i, "");
       const range = LEADING_RANGE_RE.exec(leadingSeg);
       if (range) {
         for (const id of expandRange("", Number(range[1]), Number(range[2]))) ids.add(id);
@@ -752,6 +808,9 @@ export function premisesIdentifiers(cleanedAddress: string): Set<string> {
   )) {
     const letters = m[1]!.toUpperCase().replace(/[^A-Z]/g, "");
     if (letters.length >= 3 && letters.length <= 8) ids.add(`${letters}${Number(m[2])}`);
+  }
+  for (const m of withoutRenumber.matchAll(/\bzone[-/#.\s]*(\d{1,2})\b/gi)) {
+    ids.add(`ZONE${Number(m[1])}`);
   }
   for (const m of withoutRenumber.matchAll(/\b([A-Za-z]{4,8})\s+(\d{1,3})\b/g)) {
     const letters = m[1]!.toLowerCase();
@@ -940,20 +999,66 @@ function similarity(a: Candidate, b: Candidate): {
   return { score: total === 0 ? 0 : matched / total, distinctHits, unmatchedDistinct };
 }
 
+function isLocalityToken(token: string): boolean {
+  for (const tail of PLACE_TAILS) {
+    if (token.length > tail.length + 3 && token.endsWith(tail)) return true;
+  }
+  return false;
+}
+
 function firstDistinctPlace(tokens: string[]): string | null {
+  let fallback: string | null = null;
   for (const token of tokens) {
     if (tokenWeight(token) !== DISTINCT_WEIGHT) continue;
     if (/\d/.test(token)) continue;
-    return token;
+    if (!fallback) fallback = token;
+    if (isLocalityToken(token)) return token;
   }
-  return null;
+  return fallback;
+}
+
+/** Locality suffixes so "telirchala" also counts as "telir" + "chala". */
+const PLACE_TAILS = [
+  "para",
+  "pur",
+  "chala",
+  "char",
+  "bari",
+  "bazar",
+  "bazaar",
+  "ganj",
+  "gaon",
+  "ghat",
+  "hat",
+  "dighi",
+  "gram",
+  "nagar",
+  "khal",
+  "danga",
+  "chat",
+  "diar",
+] as const;
+
+function withPlaceStems(token: string): string[] {
+  const out = [token];
+  for (const tail of PLACE_TAILS) {
+    if (token.length > tail.length + 3 && token.endsWith(tail)) {
+      out.push(token.slice(0, -tail.length));
+    }
+  }
+  return out;
 }
 
 function tokenInList(token: string, tokens: string[]): boolean {
-  for (let i = 0; i < tokens.length; i++) {
-    if (sameWord(token, tokens[i]!)) return true;
-    if (i + 1 < tokens.length && sameWord(token, concatTokens(tokens, i, 2))) return true;
-    if (i + 2 < tokens.length && sameWord(token, concatTokens(tokens, i, 3))) return true;
+  const queries = withPlaceStems(token);
+  for (const q of queries) {
+    for (let i = 0; i < tokens.length; i++) {
+      for (const cand of withPlaceStems(tokens[i]!)) {
+        if (sameWord(q, cand)) return true;
+      }
+      if (i + 1 < tokens.length && sameWord(q, concatTokens(tokens, i, 2))) return true;
+      if (i + 2 < tokens.length && sameWord(q, concatTokens(tokens, i, 3))) return true;
+    }
   }
   return false;
 }
@@ -1004,6 +1109,9 @@ function isSameLocation(a: Candidate, b: Candidate): boolean {
     if (leadingMatch) return true;
     if (extraDigitConflict(a, b)) return false;
     if (!adminCompatible(a, b)) return false;
+    // Zone-6 + Mirsarai under two official estate names: the zone id and a
+    // matching place word are enough; the estate title need not match.
+    if (distinctHits > 0) return true;
     return score >= SHARED_ID_THRESHOLD;
   }
   // Near-identical wording is the same place even when every word is

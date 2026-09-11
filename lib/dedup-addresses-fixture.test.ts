@@ -134,4 +134,33 @@ describe("published multi-string fixture", () => {
       }
     }
   });
+
+  it("merges named same-premises spelling groups from the remaining-split sweep", () => {
+    const expectOne: Array<[string, string]> = [
+      ["dream-yard-attires", "mailing"],
+      ["cassiopea-fashion", "factory"],
+      ["bengal-fine-knitex", "factory"],
+      ["fashion-47-bd", "factory"],
+      ["gazaria-elastic-industries", "factory"],
+      ["jersey-knit-fashion", "factory"],
+      ["ma-j-and-j", "factory"],
+      ["modern-syntex", "factory"],
+      ["mondol-fabrics", "mailing"],
+      ["prudent-fashions", "factory"],
+      ["safia-apparels", "factory"],
+      ["chowdhury-accessories", "factory"],
+      ["b2b-excellence", "factory"],
+    ];
+    for (const [slug, kind] of expectOne) {
+      const n = mergeUniqueLocations(groupOf(slug, kind).rows).length;
+      assert.equal(n, 1, `${slug} ${kind} still ${n} locations`);
+    }
+    assert.equal(mergeUniqueLocations(groupOf("logos-apparels", "factory").rows).length, 2);
+    assert.equal(mergeUniqueLocations(groupOf("glory-textile-and-apparels", "factory").rows).length, 2);
+    assert.equal(mergeUniqueLocations(groupOf("prs-apparels", "factory").rows).length, 2);
+    assert.equal(mergeUniqueLocations(groupOf("rising-knit-textiles", "factory").rows).length, 2);
+    assert.equal(mergeUniqueLocations(groupOf("tory-fashion-wear", "factory").rows).length, 2);
+    assert.equal(mergeUniqueLocations(groupOf("zaee-trims", "factory").rows).length, 2);
+    assert.equal(mergeUniqueLocations(groupOf("columbia-multi-tech-jv", "registered").rows).length, 2);
+  });
 });
