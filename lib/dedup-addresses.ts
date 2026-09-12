@@ -316,6 +316,50 @@ const ADMIN_TOKENS = new Set([
   "tejgaon",
 ]);
 
+/** Urban housing neighbourhoods. "13 Niketon" / "187 Badda" is a second
+ *  house, not extra village detail after Turag. Keep this list in this
+ *  file — do not put it in the geocode lexicon. */
+const HOUSING_CAMPUS_PLACES = new Set([
+  "niketon",
+  "nikunja",
+  "badda",
+  "eskaton",
+  "banani",
+  "mohakhali",
+  "farmgate",
+  "kazipara",
+  "kalabagan",
+  "dhanmondi",
+  "mohammadpur",
+  "lalmatia",
+  "malibagh",
+  "malibag",
+  "mogbazar",
+  "moghbazar",
+  "kakrail",
+  "khilgaon",
+  "rampura",
+  "shantinagar",
+  "segunbagicha",
+  "paltan",
+  "motijheel",
+  "dilkusha",
+  "wari",
+  "kallyanpur",
+  "shamoli",
+  "shyamoli",
+  "adabor",
+  "cantonment",
+  "hatirjheel",
+  "hatirjhil",
+  "karwan",
+]);
+
+/** Village tails after a named house (12 Dhour after Turag, 13 Demra
+ *  after Dailla). A number here is extra geography of the same premises,
+ *  including 30 Dhour and No. 12 Dhour. */
+const VILLAGE_EXTRA_PLACES = new Set(["dhour", "dailla", "dalla", "demra", "turag"]);
+
 /** Pallabi is the thana inside Mirpur. Same house at those two labels is
  *  one premises; Uttara vs Mirpur is not. */
 const NESTED_ADMIN: ReadonlyArray<readonly [string, string]> = [["pallabi", "mirpur"]];
@@ -1462,9 +1506,18 @@ function extraHoldingConflict(a: Candidate, b: Candidate): boolean {
     (houseScale(aOnly).length > 0 && houseScale(bOnly).length === 0) ||
     (houseScale(bOnly).length > 0 && houseScale(aOnly).length === 0);
   if (!oneSided) return false;
+  const campusExtras = (ids: string[]) =>
+    ids.filter(
+      (id) =>
+        !villageExtraDigit(id, a.display) &&
+        !villageExtraDigit(id, b.display) &&
+        !roadExtraSharedWith(id, a.display, b) &&
+        !roadExtraSharedWith(id, b.display, a),
+    );
+  const extras = campusExtras(houseScale(aOnly).length > 0 ? houseScale(aOnly) : houseScale(bOnly));
   // House 62 vs 87 Tejgaon (same thana, second house). Not House 10 vs 13
-  // Dailla / 390 Dhour (extra detail at a shared village).
-  if (sharedFineAdmin(a, b)) return true;
+  // Dailla / 390 Dhour (extra village) or House 50 vs 7 Gulshan Avenue.
+  if (sharedFineAdmin(a, b) && extras.length > 0) return true;
   const la = firstDistinctPlace(a.tokens);
   const lb = firstDistinctPlace(b.tokens);
   const va = villageTokens(a.tokens);
@@ -1478,13 +1531,9 @@ function extraHoldingConflict(a: Candidate, b: Candidate): boolean {
   ) {
     return true;
   }
-  // House 62 vs 87 Niketon: extra house at the same first place.
-  // 13 Demra / 12 Dhour / 20 Dhour after Turag are village detail (house-scale
-  // extras below 30). Avenue numbers are roads, not a second campus.
-  const extras = (houseScale(aOnly).length > 0 ? houseScale(aOnly) : houseScale(bOnly)).filter(
-    (id) => !roadExtraSharedWith(id, a.display, b) && !roadExtraSharedWith(id, b.display, a),
-  );
-  return Boolean(la && lb && sameWord(la, lb) && extras.some((id) => Number(id) >= 30));
+  // House 62 vs 13 Niketon / 187 Badda: extra house at the same first place.
+  // 12 Dhour / 30 Dhour / No. 12 Dhour after Turag are village detail.
+  return Boolean(la && lb && sameWord(la, lb) && extras.length > 0);
 }
 
 function renumberAliasHint(a: Candidate, b: Candidate): boolean {
@@ -2449,6 +2498,8 @@ function roadHoldingEntries(display: string): Array<{ digit: string; tail: strin
     ...s.matchAll(/(?:^|,\s*)(\d{1,3})\s+(?:new\s+)?([a-z][^,]{0,40}?)\s+rd\b/g),
     ...s.matchAll(/(?:^|,\s*)(\d{1,3})\s*,\s*(?:new\s+)?([a-z][^,]{0,40}?)\s+avenue\b/g),
     ...s.matchAll(/(?:^|,\s*)(\d{1,3})\s+(?:new\s+)?([a-z][^,]{0,40}?)\s+avenue\b/g),
+    ...s.matchAll(/(?:^|,\s*)(\d{1,3})\s*,\s*(?:new\s+)?([a-z][^,]{0,40}?)\s+ave\.?\b/g),
+    ...s.matchAll(/(?:^|,\s*)(\d{1,3})\s+(?:new\s+)?([a-z][^,]{0,40}?)\s+ave\.?\b/g),
   ].map((m) => ({ digit: m[1]!, tail: m[2]! }));
 }
 
@@ -2456,15 +2507,66 @@ function roadHoldingDigits(display: string): Set<string> {
   return new Set(roadHoldingEntries(display).map((e) => e.digit));
 }
 
-/** 7 Gulshan Avenue is extra detail of a Gulshan campus. 87 Eskaton Road is not. */
+/** Unlabelled "7 Gulshan" / "7, Gulshan-1" of a Gulshan-only campus. */
+function adminPlaceExtraEntries(display: string): Array<{ digit: string; tail: string }> {
+  const s = display.toLowerCase();
+  const out: Array<{ digit: string; tail: string }> = [];
+  for (const m of s.matchAll(
+    /(?:^|,\s*)(\d{1,3})\s*,?\s*(?:new\s+)?([a-z]{3,})(?:-\d+)?\b/g,
+  )) {
+    const place = m[2]!;
+    if (!ADMIN_TOKENS.has(place)) continue;
+    out.push({ digit: m[1]!, tail: place });
+  }
+  return out;
+}
+
+function avenueIndexDigit(digit: string): boolean {
+  const n = Number(digit);
+  return Number.isFinite(n) && n > 0 && n < 20;
+}
+
+function hasForeignHousingCampus(other: Candidate, place: string): boolean {
+  for (const t of other.tokens) {
+    if (HOUSING_CAMPUS_PLACES.has(t) && t !== place) return true;
+  }
+  return false;
+}
+
+function placeTokensFromTail(tail: string): string[] {
+  return tail.split(/[^a-z]+/).filter(
+    (t) => t.length >= 3 && !GENERIC_TOKENS.has(t) && t !== "new",
+  );
+}
+
+function villageExtraDigit(digit: string, display: string): boolean {
+  const s = display.toLowerCase();
+  const re = new RegExp(
+    `(?:^|[,\\s])0*${digit}(?:[\\/.\\-][a-z]|\\/[a-z0-9]+)?\\s*,?\\s+(?:(?:new|east|west|inner)\\s+)?([a-z]{3,})\\b`,
+    "g",
+  );
+  for (const m of s.matchAll(re)) {
+    if (VILLAGE_EXTRA_PLACES.has(m[1]!)) return true;
+  }
+  return false;
+}
+
+/** 7 Gulshan Avenue is extra detail of a Gulshan-only campus. 87 Gulshan
+ *  Avenue on House 62 Niketon, and 87 Eskaton Road, are second houses. */
 function roadExtraSharedWith(digit: string, display: string, other: Candidate): boolean {
-  const entries = roadHoldingEntries(display).filter((e) => e.digit === digit);
+  if (!avenueIndexDigit(digit)) return false;
+  const entries = [
+    ...roadHoldingEntries(display).filter((e) => e.digit === digit),
+    ...adminPlaceExtraEntries(display).filter((e) => e.digit === digit),
+  ];
   if (entries.length === 0) return false;
   return entries.some((e) => {
-    const places = e.tail.split(/[^a-z]+/).filter(
-      (t) => t.length >= 3 && !GENERIC_TOKENS.has(t) && t !== "new",
+    const places = placeTokensFromTail(e.tail);
+    return places.some(
+      (p) =>
+        other.tokens.some((t) => t === p || sameWord(t, p)) &&
+        !hasForeignHousingCampus(other, p),
     );
-    return places.some((p) => other.tokens.some((t) => t === p || sameWord(t, p)));
   });
 }
 
@@ -2496,27 +2598,30 @@ function holdingWordingDigits(display: string): Set<string> {
     const lastPlot = lower.lastIndexOf("plot");
     return lastPlot >= 0 && lastPlot > lastHouse;
   };
-  // Unlabelled village numbers under 30 after a prior place (13 Demra,
-  // 12 Dhour, 20 Dhour) are extra detail. No.87 / #87 / 87-A, ADMIN places
-  // (87 Tejgaon), and house-scale extras ≥30 (87 Eskaton, 292 Inner Circular)
-  // are a second campus.
+  // Housing-campus / thana numbers are a second house (13 Niketon, 187
+  // Badda, 87 Tejgaon). Village tails after a named house (12 Dhour, 30
+  // Dhour, No. 12 Dhour) are extra geography. A following road word keeps
+  // 292 Inner Circular Rd as a second campus.
   const acceptPlaceHolding = (
     before: string,
     place: string,
     prefixed: boolean,
     unit: boolean,
-    digit: string,
+    after: string,
   ) => {
     if (skipPlace(place)) return false;
     if (labelledAdminBefore(before) || plotListTail(before)) return false;
-    if (prefixed || unit) return true;
+    if (/^(?:road|rd|avenue|ave)\b/.test(after.trimStart())) return true;
+    if (VILLAGE_EXTRA_PLACES.has(place)) return false;
+    if (HOUSING_CAMPUS_PLACES.has(place)) return true;
     if (ADMIN_TOKENS.has(place)) return true;
-    const n = Number(digit);
-    return Number.isFinite(n) && n >= 30;
+    // 87-A Badda is a campus unit, handled above. 793/120 Amtola is a
+    // cadastral id at a village, not a second house.
+    return Boolean(prefixed);
   };
   const placeHoldings = [
     ...withHo.matchAll(
-      /(?:^|,\s*|(?<=[a-z])\s+)((?:no\s*[:.\-]?|number|#)\s*)?(\d{1,2})([\/.\-]?[a-z]|\/[a-z0-9]+)?\s+(?:(?:new|east|west|inner)\s+)?([a-z]{3,})\b/g,
+      /(?:^|,\s*|(?<=[a-z])\s+)((?:no\s*[:.\-]?|number|#)\s*)?(\d{1,3})([\/.\-]?[a-z]|\/[a-z0-9]+)?\s+(?:(?:new|east|west|inner)\s+)?([a-z]{3,})\b/g,
     ),
   ]
     .filter((m) =>
@@ -2525,7 +2630,7 @@ function holdingWordingDigits(display: string): Set<string> {
         m[4]!,
         Boolean(m[1]),
         Boolean(m[3]),
-        m[2]!,
+        withHo.slice((m.index ?? 0) + m[0].length),
       ),
     )
     .map((m) => m[2]!);
@@ -2533,7 +2638,13 @@ function holdingWordingDigits(display: string): Set<string> {
     ...withHo.matchAll(/(?:^|,\s*)(\d{1,3})\s*,\s*(?:new\s+)?([a-z]{2,})/g),
   ]
     .filter((m) =>
-      acceptPlaceHolding(withHo.slice(0, m.index ?? 0), m[2]!, false, false, m[1]!),
+      acceptPlaceHolding(
+        withHo.slice(0, m.index ?? 0),
+        m[2]!,
+        false,
+        false,
+        withHo.slice((m.index ?? 0) + m[0].length),
+      ),
     )
     .map((m) => m[1]!);
   const roadHoldings = [...roadHoldingDigits(display)];
