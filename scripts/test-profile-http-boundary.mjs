@@ -1302,7 +1302,7 @@ const CASES = [
         "5 source records",
         "OEKO-TEX",
       ],
-      alsoRecordedPair: { spelling: /Gojariapara|Gajaria/i, authority: /OEKO_TEX|OEKO-TEX/ },
+      alsoRecordedPair: { spelling: /Gajaria/i, authority: /BGMEA/ },
       bodyCount: {
         'data-location-group="Factories"': 1,
         'data-location-group="Mailing addresses"': 1,

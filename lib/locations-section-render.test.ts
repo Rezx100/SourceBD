@@ -86,6 +86,10 @@ describe("Locations Also recorded as — rendered HTML boundary", () => {
     assert.doesNotMatch(html, /\[object Object\]/);
     const alsoBlocks = html.match(/data-also-recorded-as=""[^>]*>[\s\S]*?<\/li>/g) ?? [];
     assert.ok(alsoBlocks.length >= 1);
+    assert.ok(
+      alsoBlocks.some((block) => /Gajaria/i.test(block) && /BGMEA/.test(block)),
+      "BGMEA must sit on the Gajaria Also recorded as pill",
+    );
     for (const block of alsoBlocks) {
       assert.match(block, />BGMEA<|>BKMEA<|>OEKO-TEX</);
     }
