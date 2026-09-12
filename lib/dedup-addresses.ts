@@ -1664,6 +1664,7 @@ function extraHoldingConflict(a: Candidate, b: Candidate): boolean {
   }
   if (extraPlaceConflict(a, b)) return true;
   if (extraRoadPlaceConflict(a, b)) return true;
+  if (ordinalStreetConflict(a, b)) return true;
   // Apt # 2/C at shared Plot+Holding must not absorb House 13 or Building
   // 13: the apt skipped minting 2, so both-plotIds would swallow them.
   // House 13 vs Building # 13 already share N in houseIds (Building
@@ -2877,10 +2878,11 @@ const EXTRA_PLACE_SKIP_RE = (() => {
     if (extraPlaceSkipToken(t)) skip.add(t);
   }
   const alt = [...skip].sort((a, b) => b.length - a.length).join("|");
-  // ASCII hyphen/slash, en/em dash, minus U+2212, non-breaking hyphen U+2011.
-  const compassAbbr = String.raw`(?:[sn][\.\s/\-–—−‑]*[ew]\.?|[ew][\.\s/\-–—−‑]*[sn]\.?|[sn][ew]\.?)`;
+  // Dash punctuation (Pd), minus U+2212, soft hyphen U+00AD, underscore.
+  const dash = String.raw`\s./_\-\u00AD\u2010-\u2015\u2212`;
+  const compassAbbr = String.raw`(?:[sn][${dash}]*[ew]\.?|[ew][${dash}]*[sn]\.?|[sn][ew]\.?)`;
   const skipWord = `(?:${alt}|${compassAbbr})`;
-  const sep = String.raw`[\s./\-–—−‑]+`;
+  const sep = String.raw`[${dash}]+`;
   // Do not skip a GENERIC token when it is the name of the following
   // thoroughfare (Station Road). Allow hyphen/slash stacked adjectives
   // and glued compass compounds (SouthEast).
@@ -2891,11 +2893,11 @@ const EXTRA_PLACE_SKIP_RE = (() => {
  *  Plot # 10, Airport still has to see 10 as the digit before Airport. */
 const PLOT_DIGIT_LEAD =
   String.raw`\b(?:plot|plots)\b[\s.:#-]*(?:no\.?|number|#|:)?[\s.:#-]*`;
-const EXTRA_DIGIT_SAT_LEAD = String.raw`(?:^|,\s*|\bsat[\s.\-]*)`;
-const EXTRA_DIGIT_LEAD = String.raw`(?:^|,\s*|(?<=[a-z])\s+|\bsat[\s.\-]*|${PLOT_DIGIT_LEAD})`;
+const EXTRA_DIGIT_SAT_LEAD = String.raw`(?:^|,\s*|\bsat[\s.\u00AD\u2010-\u2015\u2212_\-]*)`;
+const EXTRA_DIGIT_LEAD = String.raw`(?:^|,\s*|(?<=[a-z])\s+|\bsat[\s.\u00AD\u2010-\u2015\u2212_\-]*|${PLOT_DIGIT_LEAD})`;
 /** 7/A, 87-A, 87A, 1236/E are units. 38/South and 7-Baro are skip-run glue. */
 const EXTRA_DIGIT_UNIT = String.raw`(?:[\/.][a-z](?![a-z])|\/[0-9]+|-[a-z](?![a-z])|[a-z](?![a-z0-9]))?`;
-const EXTRA_DIGIT_GLUE = String.raw`[\s./\-–—−‑]*`;
+const EXTRA_DIGIT_GLUE = String.raw`[\s./_\-\u00AD\u2010-\u2015\u2212]*`;
 const ROAD_HOLDING_TAILS = [
   "road",
   "rd",
@@ -2934,14 +2936,6 @@ function clauseHasBuildingName(after: string): boolean {
   );
 }
 
-/** "10 Airport" / "10 Green" with no Road suffix. Housing, village-extra,
- *  and admin tails already mint elsewhere; skip tokens must not. */
-function isPlaceTailToken(place: string): boolean {
-  return (PLACE_TAILS as readonly string[]).some(
-    (tail) => place === tail || (place.length > tail.length + 3 && place.endsWith(tail)),
-  );
-}
-
 function labelledAdminBefore(before: string): boolean {
   return /(?:ward|block|sector|section|plot|plots|union|dag|dug|road|rd|avenue)\s*(?:#|no\.?|number)?[\s.:-]*$/i.test(
     before,
@@ -2975,7 +2969,7 @@ function acceptExtraPlace(
   if (HOUSING_CAMPUS_PLACES.has(place)) return true;
   if (ADMIN_TOKENS.has(place)) return true;
   if (isBuildingNameFollower(after) || clauseHasBuildingName(after)) return false;
-  if (isPlaceTailToken(place)) return false;
+  if ((PLACE_TAILS as readonly string[]).includes(place)) return false;
   return true;
 }
 
@@ -3018,6 +3012,35 @@ function roadHoldingEntries(display: string): Array<{ digit: string; tail: strin
 
 function roadHoldingDigits(display: string): Set<string> {
   return new Set(roadHoldingEntries(display).map((e) => String(Number(e.digit))));
+}
+
+/** 1st Lane vs 2nd Lane at the same house/plot. Skip minting "st" as a
+ *  holding so inverted 12/1 1st Lane still merges; keep the ordinal. */
+function ordinalStreetEntries(display: string): Array<{ n: string; word: string }> {
+  const s = display.toLowerCase();
+  const out: Array<{ n: string; word: string }> = [];
+  for (const m of s.matchAll(
+    /\b(\d{1,2})(?:st|nd|rd|th)\s+(lane|roads?|rd|streets?|st|avenues?|ave)\b/g,
+  )) {
+    const raw = m[2]!;
+    const word =
+      raw === "rd" || raw === "road" || raw === "roads"
+        ? "road"
+        : raw === "st" || raw === "street" || raw === "streets"
+          ? "street"
+          : raw === "ave" || raw === "avenue" || raw === "avenues"
+            ? "avenue"
+            : "lane";
+    out.push({ n: m[1]!, word });
+  }
+  return out;
+}
+
+function ordinalStreetConflict(a: Candidate, b: Candidate): boolean {
+  const ea = ordinalStreetEntries(a.display);
+  const eb = ordinalStreetEntries(b.display);
+  if (ea.length === 0 || eb.length === 0) return false;
+  return ea.some((x) => eb.some((y) => x.n !== y.n || x.word !== y.word));
 }
 
 /** Unlabelled "7 Gulshan" / "7, Gulshan-1" of a Gulshan-only campus. */
@@ -3202,18 +3225,66 @@ function roadTailsShare(a: string[], b: string[]): boolean {
 }
 
 function extraNameShare(a: string[], b: string[]): boolean {
-  if (roadTailsShare(a, b)) return true;
   const sa = a.join("");
   const sb = b.join("");
   if (!sa || !sb) return false;
-  // Jhajar / Jajhar at Plot 702. Airport vs Green stays far apart.
-  if (Math.min(sa.length, sb.length) >= 6 && levenshtein(sa, sb) <= 2) return true;
+  const housingish = (p: string) =>
+    HOUSING_CAMPUS_PLACES.has(p) || ADMIN_TOKENS.has(p);
+  // Baizid Bostami Road vs Baizid: the admin token sits on both tails.
+  if (a.some((p) => b.some((q) => p === q && housingish(p)))) return true;
+  if (a.length === 1 && b.length === 1) {
+    const nearHousing = (p: string) =>
+      housingish(p) ||
+      [...HOUSING_CAMPUS_PLACES].some(
+        (h) => sameWord(p, h) && p.length === h.length,
+      );
+    if (nearHousing(sa) || housingish(sb) || nearHousing(sb) || housingish(sa)) {
+      if (sa === sb) return true;
+      // palton/paltan. Banani/Barani differ in sound-key. Rampura/Rampur
+      // differ in length.
+      return (
+        sameWord(sa, sb) &&
+        sa.length === sb.length &&
+        bengaliSoundKey(sa) === bengaliSoundKey(sb)
+      );
+    }
+  }
+  if (
+    a.some((p) =>
+      b.some((q) => paraStemShare(p, q)),
+    )
+  ) {
+    return true;
+  }
+  if (roadTailsShare(a, b)) return true;
+  if (sa.length === sb.length && sa.length >= 6 && levenshtein(sa, sb) <= 2) {
+    return true;
+  }
   const [short, long] = sa.length <= sb.length ? [sa, sb] : [sb, sa];
   if (long.startsWith(short) && short.length >= 5) {
     const rest = long.slice(short.length);
-    if (["par", "para", "pur", "bari", "nagar", "gram"].includes(rest)) return true;
+    if (rest === "par" || rest === "para") return true;
   }
   return false;
+}
+
+/** Dattopara vs Datta Para, Palashbari vs Polash Bari. Do not stem -pur
+ *  (Greenpur / Bananipur). */
+function paraStemShare(a: string, b: string): boolean {
+  const stems = (t: string): string[] => {
+    const out = [t];
+    if (t.length > 7 && t.endsWith("para")) out.push(t.slice(0, -4));
+    else if (t.length > 6 && t.endsWith("par")) out.push(t.slice(0, -3));
+    if (t.length > 7 && t.endsWith("bari")) out.push(t.slice(0, -4));
+    return out;
+  };
+  return stems(a).some((x) => stems(b).some((y) => x === y || sameWord(x, y)));
+}
+
+function isLocalityTailPlace(place: string): boolean {
+  return (PLACE_TAILS as readonly string[]).some(
+    (tail) => place.length > tail.length + 3 && place.endsWith(tail),
+  );
 }
 
 function extraNamedOnOther(places: string[], other: Candidate): boolean {
@@ -3240,7 +3311,7 @@ function bareProperRoadPlaces(display: string): Array<{ digit: string; places: s
     if (extraPlaceSkipToken(place)) return;
     if (HOUSING_CAMPUS_PLACES.has(place) || ADMIN_TOKENS.has(place)) return;
     if (VILLAGE_EXTRA_PLACES.has(place)) return;
-    if (isPlaceTailToken(place)) return;
+    if ((PLACE_TAILS as readonly string[]).includes(place)) return;
     if (isThoroughfareWord(place)) return;
     if (clauseHasBuildingName(after)) return;
     // Union / South / Baro between the digit and the name is a village
@@ -3322,9 +3393,13 @@ function extraRoadPlaceConflict(a: Candidate, b: Candidate): boolean {
     for (const y of eb) {
       if (x.digit !== y.digit) continue;
       if (extraNameShare(x.places, y.places)) continue;
-      if (
-        extraNamedOnOther(x.places, b) && extraNamedOnOther(y.places, a)
-      ) {
+      // Two English roads at the same digit, even when each string names
+      // the other road as leftover wording (Airport Road, Green vs Green
+      // Road, Airport). Mixed road↔bare inverted village+road may still
+      // use extraNamedOnOther (Shutivola + Fakirkhali, Sowdagor + CDA,
+      // BSCIC + Konabari).
+      if (x.src === "road" && y.src === "road") return true;
+      if (extraNamedOnOther(x.places, b) && extraNamedOnOther(y.places, a)) {
         continue;
       }
       if (
@@ -3333,14 +3408,18 @@ function extraRoadPlaceConflict(a: Candidate, b: Candidate): boolean {
       ) {
         return true;
       }
-      // Airport Road vs unsuffixed Green, Kazi Avenue vs Panthapath: both
-      // are named roads, neither is housing/admin. Shamim Complex is not a
-      // road tail (building follower). Jubilee vs Jublee shares via sameWord.
-      // Inverted village+road (Shutivola + Fakirkhali, Sowdagor Lane + CDA)
-      // name both extras on both strings — that is one premises.
       const xRoadish = x.src === "road" || x.src === "bare";
       const yRoadish = y.src === "road" || y.src === "bare";
-      if (xRoadish && yRoadish) return true;
+      if (!(xRoadish && yRoadish)) continue;
+      // 244 Singair Road vs 244 Hemayetpur: the -pur name is the village
+      // of the holding, not a second road. Green vs Greenpur are both bare.
+      if (
+        (x.src === "road" && y.places.some(isLocalityTailPlace)) ||
+        (y.src === "road" && x.places.some(isLocalityTailPlace))
+      ) {
+        continue;
+      }
+      return true;
     }
   }
   return false;

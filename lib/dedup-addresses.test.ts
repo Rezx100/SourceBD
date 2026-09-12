@@ -3855,6 +3855,126 @@ describe("mergeUniqueLocations — empty rows, duplicates, overview buckets", ()
       1,
       "12/1 Hossain Uddin Khan 1st Lane vs inverted Lalbagh Road",
     );
+    assertBothOrders(
+      row("12/1, Hossain Uddin Khan 1st Lane, Lalbag, Dhaka"),
+      row("12/1, Hossain Uddin Khan 2nd Lane, Lalbag, Dhaka"),
+      2,
+      "12/1 1st Lane vs 2nd Lane",
+    );
+    assertBothOrders(
+      row("Plot # 10, 1st Lane, Gulshan-1, Dhaka"),
+      row("Plot # 10, 2nd Lane, Gulshan-1, Dhaka"),
+      2,
+      "Plot 10 1st Lane vs 2nd Lane",
+    );
+    assertBothOrders(
+      row("Plot # 10, 1st Street, Gulshan-1, Dhaka"),
+      row("Plot # 10, 2nd Street, Gulshan-1, Dhaka"),
+      2,
+      "Plot 10 1st Street vs 2nd Street",
+    );
+    assertBothOrders(
+      row("Plot # 10, 10 Airport Road, Green, Gulshan-1, Dhaka"),
+      row("Plot # 10, 10 Green Road, Airport, Gulshan-1, Dhaka"),
+      2,
+      "Plot 10 Airport Road, Green vs Green Road, Airport",
+    );
+    assertBothOrders(
+      row("House # 50, Road # 3, 7 Airport Road, Green, Gulshan-1, Dhaka"),
+      row("House # 50, Road # 3, 7 Green Road, Airport, Gulshan-1, Dhaka"),
+      2,
+      "House 50 7 Airport Road, Green vs 7 Green Road, Airport",
+    );
+    assertBothOrders(
+      row("Plot # 10, 10 Airport Road, Green House, Gulshan-1, Dhaka"),
+      row("Plot # 10, 10 Green Road, Airport Plaza, Gulshan-1, Dhaka"),
+      2,
+      "Plot 10 Airport Road, Green House vs Green Road, Airport Plaza",
+    );
+    assertBothOrders(
+      row("Plot # 10, 10 Banani, Gulshan-1, Dhaka"),
+      row("Plot # 10, 10 Barani, Gulshan-1, Dhaka"),
+      2,
+      "Plot 10 Banani vs Plot 10 Barani",
+    );
+    assertBothOrders(
+      row("Plot # 10, 10 Banani, Gulshan-1, Dhaka"),
+      row("Plot # 10, 10 Bananipur, Gulshan-1, Dhaka"),
+      2,
+      "Plot 10 Banani vs Plot 10 Bananipur",
+    );
+    assertBothOrders(
+      row("Plot # 10, 10 Green, Gulshan-1, Dhaka"),
+      row("Plot # 10, 10 Greenpur, Gulshan-1, Dhaka"),
+      2,
+      "Plot 10 Green vs Plot 10 Greenpur",
+    );
+    assertBothOrders(
+      row("Plot # 10, 10 Rampura, Gulshan-1, Dhaka"),
+      row("Plot # 10, 10 Rampur, Gulshan-1, Dhaka"),
+      2,
+      "Plot 10 Rampura vs Plot 10 Rampur",
+    );
+    assertBothOrders(
+      row("Plot # 10, Green View, Gulshan-1, Dhaka"),
+      row("Plot # 10, Airport City, Gulshan-1, Dhaka"),
+      2,
+      "Plot 10 Green View vs Plot 10 Airport City",
+    );
+    assertBothOrders(
+      row("Plot # 10, 1st Lane, Gulshan-1, Dhaka"),
+      row("Plot # 10, 3rd Lane, Gulshan-1, Dhaka"),
+      2,
+      "Plot 10 1st Lane vs 3rd Lane",
+    );
+    assertBothOrders(
+      row("Plot # 10, 1st Lane, Gulshan-1, Dhaka"),
+      row("Plot # 10, 1st Road, Gulshan-1, Dhaka"),
+      2,
+      "Plot 10 1st Lane vs 1st Road",
+    );
+    assertBothOrders(
+      row("Plot # 10, 1st Avenue, Gulshan-1, Dhaka"),
+      row("Plot # 10, 2nd Avenue, Gulshan-1, Dhaka"),
+      2,
+      "Plot 10 1st Avenue vs 2nd Avenue",
+    );
+    assertBothOrders(
+      row("House # 12, 1st Lane, Lalbag, Dhaka"),
+      row("House # 12, 2nd Lane, Lalbag, Dhaka"),
+      2,
+      "House 12 1st Lane vs 2nd Lane",
+    );
+    assertBothOrders(
+      campusRow(),
+      row("House # 50, Road # 3, 7 S‐E Banani, Gulshan-1, Dhaka"),
+      2,
+      "House 50 vs 7 S-E Banani U+2010 hyphen",
+    );
+    assertBothOrders(
+      campusRow(),
+      row("House # 50, Road # 3, 7 S‒E Banani, Gulshan-1, Dhaka"),
+      2,
+      "House 50 vs 7 S-E Banani U+2012 figure dash",
+    );
+    assertBothOrders(
+      campusRow(),
+      row("House # 50, Road # 3, 7 S―E Banani, Gulshan-1, Dhaka"),
+      2,
+      "House 50 vs 7 S-E Banani U+2015 horizontal bar",
+    );
+    assertBothOrders(
+      campusRow(),
+      row("House # 50, Road # 3, 7 S_E Banani, Gulshan-1, Dhaka"),
+      2,
+      "House 50 vs 7 S_E Banani underscore",
+    );
+    assertBothOrders(
+      campusRow(),
+      row("House # 50, Road # 3, 7 S\u00ADE Banani, Gulshan-1, Dhaka"),
+      2,
+      "House 50 vs 7 S-E Banani U+00AD soft hyphen",
+    );
     for (const other of [
       "House # 13 (Old Zone 2)",
       "House # 13 (Old #13)",

@@ -541,6 +541,62 @@ describe("Locations Also recorded as — rendered HTML boundary", () => {
         otherRe: /Building # 13/,
         otherName: "Apt # 2/C vs Building 13",
       },
+      {
+        left: row("Plot # 10, 10 Airport Road, Green, Gulshan-1, Dhaka", "BGMEA", "factory"),
+        right: row("Plot # 10, 10 Green Road, Airport, Gulshan-1, Dhaka", "BKMEA", "factory"),
+        keepRe: /Airport Road/i,
+        otherRe: /Green Road/i,
+        otherName: "Plot 10 Airport Road, Green vs Green Road, Airport",
+      },
+      {
+        left: row("12/1, Hossain Uddin Khan 1st Lane, Lalbag, Dhaka", "BGMEA", "factory"),
+        right: row("12/1, Hossain Uddin Khan 2nd Lane, Lalbag, Dhaka", "BKMEA", "factory"),
+        keepRe: /1st Lane/i,
+        otherRe: /2nd Lane/i,
+        otherName: "12/1 1st Lane vs 2nd Lane",
+      },
+      {
+        left: row("House # 50, Road # 3, Gulshan-1, Dhaka", "BGMEA", "factory"),
+        right: row("House # 50, Road # 3, 7 S‐E Banani, Gulshan-1, Dhaka", "BKMEA", "factory"),
+        keepRe: /House # 50, Road # 3, Gulshan-1/,
+        otherRe: /S‐E Banani|S-E Banani/i,
+        otherName: "House 50 vs 7 S-E Banani U+2010",
+      },
+      {
+        left: row("Plot # 10, 10 Banani, Gulshan-1, Dhaka", "BGMEA", "factory"),
+        right: row("Plot # 10, 10 Barani, Gulshan-1, Dhaka", "BKMEA", "factory"),
+        keepRe: /\bBanani\b/i,
+        otherRe: /Barani/i,
+        otherName: "Plot 10 Banani vs Plot 10 Barani",
+      },
+      {
+        left: row("Plot # 10, 10 Banani, Gulshan-1, Dhaka", "BGMEA", "factory"),
+        right: row("Plot # 10, 10 Bananipur, Gulshan-1, Dhaka", "BKMEA", "factory"),
+        keepRe: /\bBanani\b/i,
+        otherRe: /Bananipur/i,
+        otherName: "Plot 10 Banani vs Plot 10 Bananipur",
+      },
+      {
+        left: row("Plot # 10, 10 Rampura, Gulshan-1, Dhaka", "BGMEA", "factory"),
+        right: row("Plot # 10, 10 Rampur, Gulshan-1, Dhaka", "BKMEA", "factory"),
+        keepRe: /Rampura/i,
+        otherRe: /\bRampur\b/i,
+        otherName: "Plot 10 Rampura vs Plot 10 Rampur",
+      },
+      {
+        left: row("Plot # 10, 1st Avenue, Gulshan-1, Dhaka", "BGMEA", "factory"),
+        right: row("Plot # 10, 2nd Avenue, Gulshan-1, Dhaka", "BKMEA", "factory"),
+        keepRe: /1st Avenue/i,
+        otherRe: /2nd Avenue/i,
+        otherName: "Plot 10 1st Avenue vs 2nd Avenue",
+      },
+      {
+        left: row("House # 50, Road # 3, Gulshan-1, Dhaka", "BGMEA", "factory"),
+        right: row("House # 50, Road # 3, 7 S‒E Banani, Gulshan-1, Dhaka", "BKMEA", "factory"),
+        keepRe: /House # 50, Road # 3, Gulshan-1/,
+        otherRe: /S‒E Banani|S-E Banani/i,
+        otherName: "House 50 vs 7 S-E Banani U+2012",
+      },
     ];
     for (const c of cases) {
       assertSplitAddressRowHtml(c.left, c.right, c.keepRe, c.otherRe, c.otherName);
