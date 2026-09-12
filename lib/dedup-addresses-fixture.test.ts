@@ -6,6 +6,7 @@ import { describe, it } from "node:test";
 import {
   cleanAddressString,
   idSetsOverlap,
+  leftoverUniqueDigitConflict,
   mergeUniqueLocations,
   normaliseAddressKey,
   premisesIdentifiers,
@@ -101,7 +102,8 @@ describe("published multi-string fixture", () => {
         for (let j = i + 1; j < rows.length; j++) {
           const a = premisesIdentifiers(rows[i]!.address);
           const b = premisesIdentifiers(rows[j]!.address);
-          if (a.size === 0 || b.size === 0 || idSetsOverlap(a, b)) continue;
+          if (a.size === 0 || b.size === 0) continue;
+          if (idSetsOverlap(a, b) && !leftoverUniqueDigitConflict(a, b)) continue;
           const merged = mergeUniqueLocations([rows[i]!, rows[j]!]);
           assert.equal(
             merged.length,
@@ -126,6 +128,11 @@ describe("published multi-string fixture", () => {
           for (let j = i + 1; j < rows.length; j++) {
             const ib = premisesIdentifiers(rows[j]!.address);
             if (ib.size === 0) continue;
+            if (leftoverUniqueDigitConflict(ia, ib)) {
+              assert.fail(
+                `${group.slug} ${group.kind} fused leftover unique digits at ${loc.displayAddress}`,
+              );
+            }
             if (idSetsOverlap(ia, ib)) continue;
             const bridged = hingeIds.some((ih) => idSetsOverlap(ia, ih) && idSetsOverlap(ib, ih));
             assert.ok(
@@ -631,6 +638,20 @@ describe("published multi-string fixture", () => {
       locOf(paxar, /Plot # 167-169, Dhaka EPZ-Ext\. Area, Savar, Dhaka-1349/, "paxar ext-only"),
       locOf(paxar, /EPZ-Old\. Area/, "paxar concat"),
       "paxar Ext-only vs Ext+Old concat",
+    );
+
+    const pacific = once("pacific-casuals", "factory");
+    assert.equal(pacific.length, 2, `pacific-casuals factory still ${pacific.length}`);
+    assert.notEqual(
+      locOf(pacific, /Plot # 31-32, Sector # 01, CEPZ/, "pacific 31-32 sector 01"),
+      locOf(pacific, /PLOT NO# 29 \(PART\), SECTOR# 05/, "pacific plot 29 concat"),
+      "pacific-casuals 31-32 Sector 01 vs Plot 29 Sector 05 concat",
+    );
+    assert.ok(
+      !pacific
+        .find((l) => l.source_rows.some((r) => /PLOT NO# 29 \(PART\), SECTOR# 05/.test(r.address)))!
+        .source_rows.some((r) => /Plot # 31-32, Sector # 01, CEPZ/.test(r.address)),
+      "pacific-casuals campus-only source row must not sit in the concat location",
     );
 
     const euro = once("euro-knit-spin-garments", "factory");

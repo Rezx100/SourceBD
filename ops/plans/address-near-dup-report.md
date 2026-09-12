@@ -2,8 +2,8 @@
 
 Fixture exported_at: 2026-09-11T00:00:00Z
 Groups in fixture: 3274
-Matcher merged to 1 location: **2078** (was 1,622 on the previous matcher)
-Groups still showing 2+ locations: **1196** (was 1,652)
+Matcher merged to 1 location: **2076** (was 1,622 on the previous matcher)
+Groups still showing 2+ locations: **1198** (was 1,652)
 Conflicting-plot merges (must be 0): **0**
 Named over-merges (must be 0): **0**
 Named under-merges (must be 0): **0**
@@ -1036,6 +1036,9 @@ Remaining multi-location groups (slug, kind, locations):
 - daeyu-bangladesh (factory) 4 strings → 2
   - 731, Bhannara, Mouchak, Kaliakoir, 1751, Gazipur, Bangladesh
   - Plot No. 106-123, DEPZ-EXT. Area, Ganakbari, Savar, Dhaka - 1349, Bangladesh
+- daf-knitwear (factory) 2 strings → 2
+  - 135/142, Nasirabad Industrial Area, Chittagong, Chattogram - 4210, Bangladesh
+  - 132/142, Nasirabad I/A, Chittagong
 - dal-knitwear (factory) 2 strings → 2
   - SATTAR COMPLEX, PLOT # 1/2, DR. M. A. RASHID ROAD, AOUCHPARA (SOUTH), TONGI, GAZIPUR
   - Hatiabo, Porabari, PO: B.O.F, Gazipur City Corporation
@@ -2746,6 +2749,9 @@ Remaining multi-location groups (slug, kind, locations):
 - pacific-attires (mailing) 2 strings → 2
   - CO: 7th floor, NHT Fashions Ltd, Plot # 20-22, Sectors # 5, CEPZ, Chattogram.
   - Plot # 09-13, Sector # 05, CEPZ, Chittagong
+- pacific-casuals (factory) 3 strings → 2
+  - PLOT NO# 31-32, SECTOR# 01, & PLOT NO# 29 (PART), SECTOR# 05, CEPZ, CHOTTOGRAM, CEPZ, CHATTOGRAM
+  - Plot # 31-32, Sector # 01, CEPZ, Chittagong
 - pacific-casuals (mailing) 2 strings → 2
   - FOUZDERHAT INDUSTRIAL AREA, DHAKA-CHATTAGRAM TRUNK ROAD(8 K, M, POINT), LATIFPUR WARD#08, JAFRABAD, Akbar-Shah, CHATTOGRAM
   - Plot # 31-32, Sector # 01, CEPZ, Chittagong

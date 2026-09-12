@@ -1,6 +1,6 @@
 {
-  "mergedToOne": 2078,
-  "stillMulti": 1196,
+  "mergedToOne": 2076,
+  "stillMulti": 1198,
   "conflictingIdMerges": 0,
   "overMergeHits": [],
   "absorptionHits": [],
@@ -4321,6 +4321,17 @@
       "displays": [
         "731, Bhannara, Mouchak, Kaliakoir, 1751, Gazipur, Bangladesh",
         "Plot No. 106-123, DEPZ-EXT. Area, Ganakbari, Savar, Dhaka - 1349, Bangladesh"
+      ]
+    },
+    {
+      "slug": "daf-knitwear",
+      "company_name": "DAF Knitwears Ltd.",
+      "kind": "factory",
+      "strings": 2,
+      "locations": 2,
+      "displays": [
+        "135/142, Nasirabad Industrial Area, Chittagong, Chattogram - 4210, Bangladesh",
+        "132/142, Nasirabad I/A, Chittagong"
       ]
     },
     {
@@ -10423,6 +10434,17 @@
       "displays": [
         "CO: 7th floor, NHT Fashions Ltd, Plot # 20-22, Sectors # 5, CEPZ, Chattogram.",
         "Plot # 09-13, Sector # 05, CEPZ, Chittagong"
+      ]
+    },
+    {
+      "slug": "pacific-casuals",
+      "company_name": "PACIFIC CASUALS LTD.",
+      "kind": "factory",
+      "strings": 3,
+      "locations": 2,
+      "displays": [
+        "PLOT NO# 31-32, SECTOR# 01, & PLOT NO# 29 (PART), SECTOR# 05, CEPZ, CHOTTOGRAM, CEPZ, CHATTOGRAM",
+        "Plot # 31-32, Sector # 01, CEPZ, Chittagong"
       ]
     },
     {

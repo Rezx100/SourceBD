@@ -1433,6 +1433,31 @@ export function idSetsOverlap(a: Set<string>, b: Set<string>): boolean {
   return false;
 }
 
+/** 132/142 vs 135/142 (and 792/120 vs 793/120) share a slash tail but name
+ *  different heads. Overlap on the tail must not fuse those plots. */
+export function leftoverUniqueDigitConflict(a: Set<string>, b: Set<string>): boolean {
+  const compounds = (ids: Set<string>): Array<readonly [number, number]> => {
+    const out: Array<readonly [number, number]> = [];
+    for (const id of ids) {
+      const m = /^(\d+)\/(\d+)$/.exec(id);
+      if (!m) continue;
+      out.push([Number(m[1]), Number(m[2])]);
+    }
+    return out;
+  };
+  const ca = compounds(a);
+  const cb = compounds(b);
+  for (const [ah, at] of ca) {
+    for (const [bh, bt] of cb) {
+      if (at !== bt || ah === bh || ah < 10 || bh < 10) continue;
+      const aHasB = ca.some(([h, t]) => h === bh && t === bt);
+      const bHasA = cb.some(([h, t]) => h === ah && t === at);
+      if (!aHasB && !bHasA) return true;
+    }
+  }
+  return false;
+}
+
 function overlappingIdCount(a: Set<string>, b: Set<string>): number {
   let n = 0;
   const used = new Set<string>();
@@ -1624,12 +1649,16 @@ function cadastralDagIdsFromDisplay(display: string): Set<string> {
  *  leftover plots that the holding-only row names as cadastral ids stay one.
  *  A road or house digit in undifferentiated ids does not cover a leftover plot. */
 function leftoverPlotOnHouseOnly(a: Candidate, b: Candidate): boolean {
-  const plotCampus = (c: Candidate) => c.plotIds.size > 0 && campusHouseIds(c).size > 0;
+  const hasPlots = (c: Candidate) => c.plotIds.size > 0;
   const noPlots = (c: Candidate) => c.plotIds.size === 0 && campusHouseIds(c).size > 0;
+  const houseExtra = (c: Candidate) =>
+    campusHouseIds(c).size > 0 || cadastralDagIdsFromDisplay(c.display).size > 0;
   const leftoverPlot = (plotSide: Candidate, houseSide: Candidate) => {
     const cover = new Set(houseSide.plotIds);
     // House 14 covers Plot 14 on the same road. HOLDING NO-08 is not plot 8.
     for (const id of houseSide.houseIds) cover.add(id);
+    // Plot 49/1 vs Holding 49/1 is the same cadastral id, two labels.
+    for (const id of houseSide.holdingIds) cover.add(id);
     // Holding-only cover is cadastral dag numbers from the display, not
     // undifferentiated ids (HOLDING NO-08 is not plot 8; Banani road 10
     // is not leftover plot 10). Nilorn Dag 1977-1978 still covers Plot 1977.
@@ -1639,19 +1668,46 @@ function leftoverPlotOnHouseOnly(a: Candidate, b: Candidate): boolean {
     if ([...plotSide.plotIds].some((id) => !idSetsOverlap(new Set([id]), cover))) {
       return true;
     }
-    // Plot 8 + Holding 1 is not House 8 / HO-08 even when the plot number
-    // matches the house-only row.
-    if (houseSide.houseIds.size > 0 && plotSide.holdingIds.size > 0) {
-      return [...plotSide.holdingIds].some(
-        (id) =>
-          !idSetsOverlap(new Set([id]), campusHouseIds(houseSide)) &&
-          !idSetsOverlap(new Set([id]), cover),
-      );
+    // Plot 8 + Holding 1 is not House 8 / Holding 8 / HO-08 even when the
+    // plot number matches. Plot 49/1 vs Holding 49/1 has no extra holding.
+    if (plotSide.holdingIds.size > 0) {
+      const houseCover = campusHouseIds(houseSide);
+      if (
+        [...plotSide.holdingIds].some(
+          (id) =>
+            !idSetsOverlap(new Set([id]), houseCover) &&
+            !idSetsOverlap(new Set([id]), cover),
+        )
+      ) {
+        return true;
+      }
+      // Plot 8 + Holding 1 is not House 1 + House 8 restating both numbers.
+      if (
+        houseCover.size >= 2 &&
+        [...plotSide.plotIds].every((id) => idSetsOverlap(new Set([id]), houseCover)) &&
+        [...plotSide.holdingIds].some((id) => idSetsOverlap(new Set([id]), houseCover))
+      ) {
+        return true;
+      }
     }
     return false;
   };
-  if (plotCampus(a) && noPlots(b) && leftoverPlot(a, b)) return true;
-  if (plotCampus(b) && noPlots(a) && leftoverPlot(b, a)) return true;
+  // Plot # 8 & 10 vs House 10 even when the plot side has no Holding label.
+  if (hasPlots(a) && noPlots(b) && leftoverPlot(a, b)) return true;
+  if (hasPlots(b) && noPlots(a) && leftoverPlot(b, a)) return true;
+  // Plot 10 + Dag/Holding must not then absorb Plot 8 & 10 as a neighbour
+  // list (overlap 1). Plot 23-24 vs Plot 23, 24, 25 is a neighbour list
+  // (overlap 2) even when one spelling also names Holding 87.
+  if (hasPlots(a) && hasPlots(b) && houseExtra(a) !== houseExtra(b)) {
+    const plotOnly = houseExtra(a) ? b : a;
+    const withExtra = houseExtra(a) ? a : b;
+    if (
+      leftoverPlot(plotOnly, withExtra) &&
+      overlappingIdCount(a.ids, b.ids) < 2
+    ) {
+      return true;
+    }
+  }
   return false;
 }
 
@@ -2194,6 +2250,7 @@ function isSameLocation(a: Candidate, b: Candidate): boolean {
   const idsOverlap = bothHaveIds && idSetsOverlap(a.ids, b.ids);
 
   // Hard discriminator: different plot numbers, different premises.
+  if (bothHaveIds && leftoverUniqueDigitConflict(a.ids, b.ids)) return false;
   if (bothHaveIds && !idsOverlap) return false;
 
   // Labelled road/sector conflict always wins, including overlapN ≥ 2
@@ -2467,6 +2524,8 @@ function isNumericAmpersandJoin(left: string, right: string): boolean {
 }
 
 function looksLikeCampusPart(part: string): boolean {
+  // Plot 31-32 Sector 01 & Plot 29 Sector 05 is two campuses, not a plot list.
+  if (/\b(?:plot|plots)\b/i.test(part) && /\b(?:sector|block)\b/i.test(part)) return true;
   const words = part
     .toLowerCase()
     .replace(/[^a-z]+/g, " ")
@@ -2492,8 +2551,19 @@ function looksLikeCampusPart(part: string): boolean {
   return words.length === 1 && words[0]!.length >= 6;
 }
 
+function plotSectorCampusCount(display: string): number {
+  const parts = display.toLowerCase().split(/\b(?:plot|plots)\b/);
+  let n = 0;
+  for (let i = 1; i < parts.length; i++) {
+    if (/\b(?:sector|block)\b/.test(parts[i]!.slice(0, 80))) n += 1;
+  }
+  return n;
+}
+
 function hasTwoCampusWording(display: string): boolean {
   const s = display.toLowerCase();
+  // "Plot 31-32, Sector 01, Plot 29, Sector 05" is two campuses even without &.
+  if (plotSectorCampusCount(display) >= 2) return true;
   if (/\baddress\s*1st\b/.test(s) && /\baddress\s*2nd\b/.test(s)) return true;
   if (/\bextended\s+address\b/.test(s)) return true;
   if (/\bmailing\s+address\s*:/.test(s)) return true;
@@ -2539,7 +2609,7 @@ function roadHoldingEntries(display: string): Array<{ digit: string; tail: strin
 }
 
 function roadHoldingDigits(display: string): Set<string> {
-  return new Set(roadHoldingEntries(display).map((e) => e.digit));
+  return new Set(roadHoldingEntries(display).map((e) => String(Number(e.digit))));
 }
 
 /** Unlabelled "7 Gulshan" / "7, Gulshan-1" of a Gulshan-only campus. */
@@ -2585,9 +2655,10 @@ function villageExtraDigit(digit: string, display: string): boolean {
  *  a Gulshan-only campus. 7 Tejgaon, 7 Dhaka, and 10 Gulshan Avenue are not. */
 function roadExtraSharedWith(digit: string, display: string, other: Candidate): boolean {
   if (String(Number(digit)) !== "7") return false;
+  const n = Number(digit);
   const entries = [
-    ...roadHoldingEntries(display).filter((e) => e.digit === digit),
-    ...adminPlaceExtraEntries(display).filter((e) => e.digit === digit),
+    ...roadHoldingEntries(display).filter((e) => Number(e.digit) === n),
+    ...adminPlaceExtraEntries(display).filter((e) => Number(e.digit) === n),
   ];
   if (entries.length === 0) return false;
   return entries.some((e) => {
@@ -2646,9 +2717,9 @@ function holdingWordingDigits(display: string): Set<string> {
     if (VILLAGE_EXTRA_PLACES.has(place)) return false;
     if (HOUSING_CAMPUS_PLACES.has(place)) return true;
     if (ADMIN_TOKENS.has(place)) return true;
-    // 793/120 Amtola and No.793 Amtola are cadastral / extra village wording,
-    // not a second house. Prefixed 87 Eskaton is ADMIN/housing above.
-    return false;
+    // No.187 Bashundhara is a second house. No.793 Amtola / No.12 Kewa are
+    // village-extra above. Prefixed 87 Eskaton is ADMIN/housing above.
+    return Boolean(prefixed);
   };
   const placeHoldings = [
     ...withHo.matchAll(
@@ -2666,20 +2737,26 @@ function holdingWordingDigits(display: string): Set<string> {
     )
     .map((m) => m[2]!);
   const commaHoldings = [
-    ...withHo.matchAll(/(?:^|,\s*)(\d{1,3})\s*,\s*(?:new\s+)?([a-z]{2,})/g),
+    ...withHo.matchAll(
+      /(?:^|,\s*)((?:no\s*[:.\-]?|number|#)\s*)?(\d{1,3})\s*,\s*(?:new\s+)?([a-z]{2,})/g,
+    ),
   ]
     .filter((m) =>
       acceptPlaceHolding(
         withHo.slice(0, m.index ?? 0),
-        m[2]!,
-        false,
+        m[3]!,
+        Boolean(m[1]),
         false,
         withHo.slice((m.index ?? 0) + m[0].length),
       ),
     )
-    .map((m) => m[1]!);
+    .map((m) => m[2]!);
   const roadHoldings = [...roadHoldingDigits(display)];
-  return new Set([...houseNums, ...placeHoldings, ...commaHoldings, ...roadHoldings]);
+  return new Set(
+    [...houseNums, ...placeHoldings, ...commaHoldings, ...roadHoldings].map((d) =>
+      String(Number(d)),
+    ),
+  );
 }
 
 function hasTwoHoldings(display: string): boolean {
@@ -2749,6 +2826,7 @@ export function sourceRowsHaveConflictingIds<T extends AddressRowRaw>(
     for (const rb of right) {
       const ib = premisesIdentifiers(rb.address);
       if (ib.size === 0) continue;
+      if (leftoverUniqueDigitConflict(ia, ib)) return true;
       if (idSetsOverlap(ia, ib)) continue;
       const bridged = hingeIds.some((ih) => idSetsOverlap(ia, ih) && idSetsOverlap(ib, ih));
       if (!bridged) return true;

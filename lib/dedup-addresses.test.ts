@@ -2678,6 +2678,48 @@ describe("mergeUniqueLocations — empty rows, duplicates, overview buckets", ()
     );
     assert.equal(
       displays([
+        row("House # 62 (1st Floor), Road # 3, Block-B, Niketon, Gulshan, Dhaka"),
+        row("House # 62, Road # 3, Block-B, Niketon, No.187 Bashundhara, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62 (1st Floor), Road # 3, Block-B, Niketon, Gulshan, Dhaka"),
+        row("House # 62, Road # 3, Block-B, Niketon, #187 Bashundhara, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62 (1st Floor), Road # 3, Block-B, Niketon, Gulshan, Dhaka"),
+        row("House # 62, Road # 3, Block-B, Niketon, No.13 Bashundhara, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62 (1st Floor), Road # 3, Block-B, Niketon, Gulshan, Dhaka"),
+        row("House # 62, Road # 3, Block-B, Niketon, No.100 Bashundhara, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62 (1st Floor), Road # 3, Block-B, Niketon, Gulshan, Dhaka"),
+        row("House # 62, Road # 3, Block-B, Niketon, No.187 Aftabnagar, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62, Tejgaon, Dhaka"),
+        row("House # 62, No. 87, Tejgaon, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
         row(
           "Holding # 85/3, Road # 1, Block -A, 793/120 Amtola, Kathgora, Ashulia, Dhaka",
         ),
@@ -2717,6 +2759,111 @@ describe("mergeUniqueLocations — empty rows, duplicates, overview buckets", ()
         row("Holding # 1/A, Dag 10, Gulshan, Dhaka"),
       ]).length,
       2,
+    );
+    {
+      const leftover = mergeUniqueLocations([
+        row(
+          "Plot # 10, Holding # 1/A, Road # 9, Block-A, Gulshan, Dhaka-1212, Bangladesh",
+        ),
+        row("Plot # 8 & 10, Gulshan, Dhaka"),
+        row(
+          "Holding # 1/A, Dag 10, Road # 9, Block-A, Gulshan, Dhaka-1212, Bangladesh",
+        ),
+      ]);
+      assert.equal(leftover.length, 2);
+      const plotEight = leftover.find((loc) =>
+        loc.source_rows.some((r) => /Plot # 8 & 10/.test(r.address)),
+      );
+      const dag = leftover.find((loc) =>
+        loc.source_rows.some((r) => /Dag 10/.test(r.address)),
+      );
+      assert.ok(plotEight, "Plot 8 & 10 row missing");
+      assert.ok(dag, "Dag 10 row missing");
+      assert.notEqual(plotEight, dag);
+    }
+    assert.equal(
+      displays([
+        row("Plot # 8 & 10, Gulshan, Dhaka"),
+        row("House 10, Gulshan, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("132/142, Nasirabad I/A, Chittagong"),
+        row("135/142, Nasirabad Industrial Area, Chittagong, Chattogram - 4210, Bangladesh"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("Plot # 49/1, Block # A, Tak Kathora, Word # 20, Salna Bazar, Gazipur"),
+        row(
+          "Holding No. 49/1, Block A, Vill- Tak Kathora, Word No- 20, Post- Salna Bazar, Gazipur City Corporation, Gazipur - 1703, Bangladesh",
+        ),
+      ]).length,
+      1,
+      "Plot 49/1 vs Holding 49/1 of the same cadastral id is one premises",
+    );
+    assert.equal(
+      displays([
+        row("Plot # 23-24, Union - Telulzora, Hemayetpur, Dhaka, Savar"),
+        row(
+          "Holding No. 87, Plot No. 23, 24, 25, Hemayetpur, Tetuljhora Union, Savar, Dhaka - 1340, Bangladesh",
+        ),
+      ]).length,
+      1,
+      "neighbour Plot 23-24 vs Plot 23, 24, 25 stays one row even with extra holding 87",
+    );
+    assert.equal(
+      displays([
+        row("Plot # 8, Holding # 1/A, Dag 10, Gulshan, Dhaka"),
+        row("House 8, House 1, Gulshan, Dhaka"),
+      ]).length,
+      2,
+      "Plot 8 + Holding 1 vs House 1 + House 8 restatement stays two rows",
+    );
+    {
+      const cepz = mergeUniqueLocations([
+        row("Plot # 31-32, Sector # 01, CEPZ, Chittagong"),
+        row(
+          "PLOT NO# 31-32, SECTOR# 01, & PLOT NO# 29 (PART), SECTOR# 05, CEPZ, CHOTTOGRAM, CEPZ, CHATTOGRAM",
+        ),
+        row(
+          "Plot #31-31, Sector #01, Plot #29 (Part), Sector #05, EPZ, Chittagong EPZ PS, Chattogram - 4223, Bangladesh",
+        ),
+      ]);
+      assert.equal(cepz.length, 2, "pacific-casuals campus-only vs two-campus concat");
+      const campusOnly = cepz.find((loc) =>
+        loc.source_rows.some((r) => /Plot # 31-32, Sector # 01, CEPZ/.test(r.address)),
+      );
+      const concat = cepz.find((loc) =>
+        loc.source_rows.some((r) => /PLOT NO# 29 \(PART\), SECTOR# 05/.test(r.address)),
+      );
+      assert.ok(campusOnly, "campus-only row missing");
+      assert.ok(concat, "concat row missing");
+      assert.notEqual(campusOnly, concat);
+      assert.ok(
+        concat!.source_rows.some((r) =>
+          /Plot #31-31, Sector #01, Plot #29 \(Part\)/.test(r.address),
+        ),
+        "comma two-campus spelling must sit on the concat row",
+      );
+    }
+    assert.equal(
+      displays([
+        row("House # 50, Road # 3, Gulshan-1, Dhaka"),
+        row("House # 50, Road # 3, 07 Gulshan Avenue, Gulshan-1, Dhaka"),
+      ]).length,
+      1,
+    );
+    assert.equal(
+      displays([
+        row("House # 50, Road # 3, Gulshan-1, Dhaka"),
+        row("House # 50, Road # 3, 7 Gulshan Avenue, Gulshan-1, Dhaka"),
+        row("House # 50, Road # 3, 07 Gulshan Avenue, Gulshan-1, Dhaka"),
+      ]).length,
+      1,
     );
     assert.equal(
       displays([
