@@ -1605,6 +1605,96 @@ describe("mergeUniqueLocations — one row per premises (founder posture)", () =
     assert.equal(merged.length, 1);
     assert.equal(merged[0]!.variants.length, 0);
   });
+
+  it("does not merge Nandirhat with Mahmudabad on Plot 12-14", () => {
+    assert.equal(
+      displays([
+        row("Plot 12-14, Mahmudabad, South Pahartali, Hathazari, Chattogram"),
+        row("Plot 12-14, Nandirhat, South Pahartali, Hathazari, Chattogram"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("does not merge Nayapara with Bahadurpur on lettered Plot A-5 BSCIC", () => {
+    assert.equal(
+      displays([
+        row("Plot A-5, Nayapara, near BSCIC, Gazipur"),
+        row("Plot A-5, Bahadurpur, BSCIC, Gazipur"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("does not merge BSCIC A-81 Enayetnagar with A-81 Sripur", () => {
+    assert.equal(
+      displays([
+        row("Plot # A-81, BSCIC Industrial Area, Enayetnagar, Fatullah, Narayanganj"),
+        row("A-81, BSCIC I/E, Sripur, Gazipur"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("does not merge Sreepur Stand at Sreepur Gazipur with Ganakbari Ashulia", () => {
+    assert.equal(
+      displays([
+        row("Sreepur Stand, Sreepur, Gazipur"),
+        row("Sreepur Stand, Ganakbari, Ashulia, Dhaka, Savar"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("does not merge Plot 12-14 in Uttara with Plot 12-14 at CEPZ", () => {
+    assert.equal(
+      displays([
+        row("Plot # 12-14, Sector # 1, Uttara, Dhaka"),
+        row("Plot # 12-14, Sector # 1, CEPZ, Chattogram"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("does not merge Holding 50/1 with Holding 51/1", () => {
+    assert.equal(
+      displays([
+        row("Holding 50/1, Tongi, Gazipur"),
+        row("Holding 51/1, Tongi, Gazipur"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("does not merge Mohammadpur Plot 2/1 with Chattogram 2800/2", () => {
+    assert.equal(
+      displays([
+        row("Plot 2/1, Mohammadpur, Dhaka"),
+        row("2800/2, Chattogram"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("does not merge Purbachandra with Purba Chandona on the same holding", () => {
+    assert.equal(
+      displays([
+        row("Holding 1, Shaheed Mosharaf Hossain Road, Purbachandra, Kaliakoir, Gazipur"),
+        row("Holding 1, Shaheed Mosharaf Hossain Road, Purba Chandona, Kaliakoir, Gazipur"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("does not merge Nayapara with Bahadurpur on Holding 1 just because both sit on Shaheed Mosharaf Hossain Road", () => {
+    assert.equal(
+      displays([
+        row("Holding 1, Shaheed Mosharaf Hossain Road, Nayapara, Gazipur"),
+        row("Holding 1, Shaheed Mosharaf Hossain Road, Bahadurpur, Gazipur"),
+      ]).length,
+      2,
+    );
+  });
 });
 
 describe("premisesIdentifiers — Ka/K, prefixes, brackets, slash lists", () => {

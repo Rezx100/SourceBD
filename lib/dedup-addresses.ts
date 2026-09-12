@@ -214,6 +214,17 @@ const GENERIC_TOKENS = new Set([
   "board",
   "bazar",
   "bazaar",
+  // Road honorifics. If these stay distinct they become firstDistinctPlace
+  // ahead of the village (Shaheed Mosharaf Hossain Road vs Nayapara).
+  "shaheed",
+  "shahid",
+  "mosharraf",
+  "mosharof",
+  "mosharaf",
+  // Renumber labels in "Holding-213/1 (Present-D-119/1)".
+  "present",
+  "former",
+  "current",
 ]);
 
 /** Bangla script → English comparison tokens. Applied only to the match
@@ -600,13 +611,21 @@ function neverSamePair(a: string, b: string): boolean {
  *  village — so Kewa+Sreepur cannot fuse Kewa+Sripur, and a shared plot
  *  cannot fuse Chandra with Chandona. */
 function neverSameAcross(aTokens: string[], bTokens: string[]): boolean {
+  const PREFIX = /^(?:purbo|purba|purb|uttar|dakshin|dokkhin|south|north)/;
   const collect = (list: string[]): Set<string> => {
     const out = new Set<string>();
-    for (const t of list) {
+    const add = (t: string) => {
+      if (!t) return;
       out.add(t);
       for (const st of withPlaceStems(t)) out.add(st);
-    }
-    for (let i = 0; i < list.length - 1; i++) out.add(concatTokens(list, i, 2));
+      const stripped = t.replace(PREFIX, "");
+      if (stripped && stripped !== t) {
+        out.add(stripped);
+        for (const st of withPlaceStems(stripped)) out.add(st);
+      }
+    };
+    for (const t of list) add(t);
+    for (let i = 0; i < list.length - 1; i++) add(concatTokens(list, i, 2));
     return out;
   };
   const a = collect(aTokens);
@@ -784,10 +803,14 @@ function parseIdPieceCore(piece: string): string[] {
     const parts = raw.split("/").map((p) => p.trim()).filter(Boolean);
     const allNumeric = parts.every((p) => /^\d+$/.test(p));
     if (allNumeric) {
-      // "22/23" may be a pair written with a slash and "22-23" the same pair
-      // written with a dash, so register the components alongside the compound.
-      const compound = parts.map((p) => String(Number(p))).join("/");
-      return [compound, ...parts.map((p) => String(Number(p)))];
+      // "22/23" is a plot pair (same as 22-23). "50/1" and "2/1" are a
+      // holding plus a unit suffix — minting 1 and 2 as extra ids fused
+      // Mohammadpur 2/1 with Chattogram 2800/2.
+      const nums = parts.map((p) => Number(p));
+      const compound = nums.map(String).join("/");
+      const looksLikeRange = nums.length >= 2 && nums.every((n) => n >= 10);
+      if (looksLikeRange) return [compound, ...nums.map(String)];
+      return [compound];
     }
     // "A-169/170" is the same plots as "A-169-170": keep the compound and
     // each lettered component so slash and dash lists overlap.
@@ -930,14 +953,18 @@ export function premisesIdentifiers(cleanedAddress: string): Set<string> {
   const ids = new Set<string>();
   // Holding 574 (Former #295) and Plot 799 (Old #1010) keep the old number
   // as an alias so a later registry that still uses 295 / 1010 can merge.
-  for (const m of withHouseSlash.matchAll(/\((?:[^)]*\b(?:old|former)\b[^)]*)\)/gi)) {
+  // "Holding-213/1 (Present-D-119/1)" is the same: present and old numbers
+  // both name this premises.
+  const RENUMBER_PAREN =
+    /\((?:[^)]*\b(?:old|former|present)\b[^)]*)\)/gi;
+  for (const m of withHouseSlash.matchAll(RENUMBER_PAREN)) {
     for (const n of m[0].match(/\d+/g) ?? []) ids.add(String(Number(n)));
   }
   const withoutRenumber = stripNonPremisesNumbers(
     withHouseSlash
       .replace(/\b\d+\s*\(\s*new\s*\)/gi, " ")
       .replace(/\(\s*(?:old|new)\s*\)/gi, " ")
-      .replace(/\((?:[^)]*\b(?:old|former)\b[^)]*)\)/gi, " "),
+      .replace(RENUMBER_PAREN, " "),
   );
   const BUILDING_TRAIL =
     /\b(?:bhaban|bhawan|court|tower|plaza|complex|centre|center)\s+(\d{2,4})\s*$/i;
@@ -1016,6 +1043,25 @@ function idParts(id: string): { letters: string; digits: string } {
   };
 }
 
+function slashFragments(digits: string): string[] {
+  return digits.split("/").filter(Boolean);
+}
+
+/** Plot pairs like 22/23 share any plot number. Holding/unit forms like
+ *  50/1 overlap only when the first number matches (50/1 ≡ 50, not 51/1). */
+function slashDigitsOverlap(leftDigits: string, rightDigits: string): boolean {
+  if (leftDigits === rightDigits) return true;
+  const ls = slashFragments(leftDigits);
+  const rs = slashFragments(rightDigits);
+  if (ls.length === 0 || rs.length === 0) return false;
+  const rangeLike = (parts: string[]) =>
+    parts.length >= 2 && parts.every((p) => /^\d+$/.test(p) && Number(p) >= 10);
+  if (rangeLike(ls) || rangeLike(rs)) {
+    return ls.some((d) => rs.includes(d));
+  }
+  return ls[0] === rs[0];
+}
+
 /** Do two addresses name a plot in common?
  *
  *  "A-51" and "50-51" are the same premises: one registry carried the block
@@ -1030,11 +1076,9 @@ export function idSetsOverlap(a: Set<string>, b: Set<string>): boolean {
     for (const right of b) {
       const r = idParts(right);
       if (l.digits !== r.digits) {
-        const ls = l.digits.split("/").filter(Boolean);
-        const rs = r.digits.split("/").filter(Boolean);
         const lettersOk =
           l.letters === r.letters || l.letters === "" || r.letters === "";
-        if (lettersOk && ls.some((d) => rs.includes(d))) return true;
+        if (lettersOk && slashDigitsOverlap(l.digits, r.digits)) return true;
         continue;
       }
       if ((l.letters === "") !== (r.letters === "")) return true;
@@ -1308,29 +1352,17 @@ function sameBuildingLandmark(a: Candidate, b: Candidate): boolean {
   return false;
 }
 
-const ESTATE_TOKENS = new Set(["bscic", "epz", "cepz", "depz", "kepz"]);
+/** Fatullah BSCIC is recorded as Enayetnagar or Shasongaon on the same
+ *  lettered plot. Those two union labels are not competing villages. */
+const ESTATE_UNION_ALIASES: ReadonlyArray<ReadonlySet<string>> = [
+  new Set(["enayetnagar", "shasongaon", "shashongaon"]),
+];
 
-function sharedEstate(a: Candidate, b: Candidate): boolean {
-  for (const t of a.tokens) {
-    if (ESTATE_TOKENS.has(t) && b.tokens.includes(t)) return true;
+function estateUnionAlias(a: string, b: string): boolean {
+  for (const group of ESTATE_UNION_ALIASES) {
+    if (group.has(a) && group.has(b)) return true;
   }
   return false;
-}
-
-/** A stray "near BSCIC" / "EPZ" token is not an estate plot. Letter-prefixed
- *  overlapping ids (A-81, B-336, SFB) are. */
-function overlappingIdHasLetter(a: Candidate, b: Candidate): boolean {
-  for (const left of a.ids) {
-    for (const right of b.ids) {
-      if (!idSetsOverlap(new Set([left]), new Set([right]))) continue;
-      if (/[a-z]/i.test(left) || /[a-z]/i.test(right)) return true;
-    }
-  }
-  return false;
-}
-
-function sharedEstatePlot(a: Candidate, b: Candidate): boolean {
-  return sharedEstate(a, b) && overlappingIdHasLetter(a, b);
 }
 
 function twoSidedTailedClash(a: Candidate, b: Candidate): boolean {
@@ -1340,6 +1372,7 @@ function twoSidedTailedClash(a: Candidate, b: Candidate): boolean {
   const tb = firstTailedPlace(b.tokens);
   if (!ta || !tb) return false;
   if (sameWord(ta, tb)) return false;
+  if (estateUnionAlias(ta, tb)) return false;
   if (tokenInList(ta, vb) || tokenInList(tb, va)) return false;
   const la = firstDistinctPlace(a.tokens);
   const lb = firstDistinctPlace(b.tokens);
@@ -1474,17 +1507,14 @@ function isSameLocation(a: Candidate, b: Candidate): boolean {
 
   const overlapN = idsOverlap ? overlappingIdCount(a.ids, b.ids) : 0;
 
-  // Two named tailed villages stay apart even on a shared house/plot,
-  // unless both name the same lettered BSCIC/EPZ plot (A-81 Enayetnagar
-  // vs Shasongaon). A stray "near BSCIC" token is not that exception.
-  if (twoSidedTailedClash(a, b) && !(idsOverlap && sharedEstatePlot(a, b))) {
-    return false;
-  }
+  // Two named tailed villages stay apart even on a shared house/plot.
+  // Enayetnagar vs Shasongaon is the only estate-union alias exception.
+  if (twoSidedTailedClash(a, b)) return false;
 
-  // Same named plaza/stand is the premises (Sreepur Stand vs Sreepur Bus
-  // Stand). Never-same names already returned above, so Sreepur Stand at
-  // Sripur cannot take this path.
-  if (sameBuildingLandmark(a, b)) return true;
+  // Same named plaza/stand is the premises only inside the same admin
+  // area (Sreepur Stand vs Sreepur Bus Stand at Ganakbari). Gazipur
+  // Sreepur Stand is not Ganakbari Ashulia.
+  if (sameBuildingLandmark(a, b)) return adminCompatible(a, b);
 
   if (leadingVillageConflict(a, b)) {
     const va = villageTokens(a.tokens);
@@ -1493,12 +1523,25 @@ function isSameLocation(a: Candidate, b: Candidate): boolean {
     const tb = firstTailedPlace(b.tokens);
     const tailedClash =
       Boolean(ta && !tokenInList(ta, vb)) || Boolean(tb && !tokenInList(tb, va));
-    if (idsOverlap && sharedEstatePlot(a, b)) {
-      // union labels on the same lettered estate plot
+    const unionAlias = Boolean(ta && tb && estateUnionAlias(ta, tb));
+    const la = firstDistinctPlace(a.tokens);
+    const lb = firstDistinctPlace(b.tokens);
+    const competingPlaces = Boolean(
+      la &&
+        lb &&
+        !sameWord(la, lb) &&
+        !tokenInList(la, vb) &&
+        !tokenInList(lb, va),
+    );
+    if (unionAlias) {
+      // Fatullah BSCIC recorded under two union names
     } else if (tailedClash && overlapN < 2) {
       // One-sided tailed village + a single shared house number is still
       // two premises (Shamoli vs Mohammadpur). Two overlapping holdings
       // (present + old) may carry an extra landmark (Tecknogopara).
+      return false;
+    } else if (tailedClash && overlapN >= 2 && competingPlaces) {
+      // Plot 12-14 at Nandirhat is not Plot 12-14 at Mahmudabad.
       return false;
     } else if (!idsOverlap) {
       return false;
@@ -1524,7 +1567,14 @@ function isSameLocation(a: Candidate, b: Candidate): boolean {
   if (idsOverlap) {
     // Two named plots in common is the same campus even when one registry
     // listed extra neighbouring plots (Comilla EPZ 220-227 ⊂ 12-14, 220-227).
-    if (overlapN >= 2) return true;
+    // Different admin areas on the same plot numbers stay apart (Uttara vs CEPZ).
+    if (overlapN >= 2) {
+      if (!adminCompatible(a, b)) return false;
+      if (extraDigitConflict(a, b)) return false;
+      return true;
+    }
+    // overlapN == 1: a shared holding is identity. Do not require matching
+    // thana tokens first — F-14 Pallabi vs Plot 14 Mirpur, Peace Preenon.
     if (leadingMatch) return true;
     if (extraDigitConflict(a, b)) return false;
     if (!adminCompatible(a, b)) return false;

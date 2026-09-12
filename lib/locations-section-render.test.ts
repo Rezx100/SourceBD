@@ -100,7 +100,9 @@ describe("Locations Also recorded as — rendered HTML boundary", () => {
     assert.match(html, /Also recorded as/);
     assert.match(html, /Mouza Kewa|Ghorgaria|Ghargaria/);
     assert.match(html, />OEKO-TEX</);
-    assert.match(html, /data-also-recorded-authorities="[^"]*(?:BGMEA|BKMEA)/);
+    assert.match(html, /data-also-recorded-authorities="[^"]*OEKO_TEX/);
+    const alsoBlocks = html.match(/data-also-recorded-as=""[^>]*>[\s\S]*?<\/li>/g) ?? [];
+    assert.ok(alsoBlocks.some((block) => /Ghorgaria|Ghargaria|Mouza Kewa/i.test(block) && /OEKO-TEX/.test(block)));
     assert.doesNotMatch(html, /\[object Object\]/);
   });
 

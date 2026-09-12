@@ -260,6 +260,16 @@ describe("published multi-string fixture", () => {
       2,
       "CEPZ Plot 1-5 stays apart from Plot 57-59",
     );
+    {
+      const group = groupOf("univogue-garments", "factory");
+      const uni = mergeUniqueLocations(group.rows);
+      const locOf = (needle: RegExp) => {
+        const i = uni.findIndex((l) => l.source_rows.some((r) => needle.test(r.address)));
+        assert.ok(i >= 0, `univogue missing ${needle}`);
+        return i;
+      };
+      assert.notEqual(locOf(/Plot # 1-5/), locOf(/Plot#57/), "univogue 1-5 vs 57-59");
+    }
     assert.equal(
       mergeUniqueLocations(groupOf("liz-fashion-industries", "factory").rows).length,
       3,
@@ -269,6 +279,11 @@ describe("published multi-string fixture", () => {
       mergeUniqueLocations(groupOf("aanytex", "factory").rows).length,
       2,
       "Harirampur stays apart from Baonia on CH Plot 1260",
+    );
+    assert.equal(
+      mergeUniqueLocations(groupOf("blue-planet-knit-composite", "factory").rows).length,
+      2,
+      "Sreepur stays apart from Sripur at Bartopa",
     );
   });
 });
