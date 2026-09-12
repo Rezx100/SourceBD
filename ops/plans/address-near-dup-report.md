@@ -1400,8 +1400,8 @@ Remaining multi-location groups (slug, kind, locations):
   - House # 67/D (2nd Floor), Road # 11, Block - E, Dhaka, Banani
   - PRIDE HAMZA, H#54, R#01, SECTOR#6, UTTARA, DHAKA
 - fashion-knitwear (factory) 2 strings → 2
-  - 791/755 HAJI JANAB ALI BUILDING, D.T. ROAD, ASKARABAD, MONSURABAD, CHITTAGONG, BANGLADESH
   - 69/1, NORTH CHASHARA, NARAYANGANJ
+  - 791/755 HAJI JANAB ALI BUILDING, D.T. ROAD, ASKARABAD, MONSURABAD, CHITTAGONG, BANGLADESH
 - fashion-makers (mailing) 2 strings → 2
   - Ekushey Tower (8th Floor), 20-21, Main Road, Dhaka, Mirpur
   - GARGARIA MASTER BARI, KEWA, SREEPUR, GAZIPUR
@@ -1830,7 +1830,7 @@ Remaining multi-location groups (slug, kind, locations):
   - 156, SHANTINAGAR, DHAKA
 - ismail-spinning-mills (mailing) 3 strings → 2
   - Gawsia Kashem Center (1st & 2nd floor) 10/2 Arambag, Motijheel C/A, Dhaka-1000.
-  - Adamjee Court, 115-120 Motijheel C/A, Dhaka-1000.
+  - Adamjee Court, Annex-2 Building (4th Floor) 115-120 Motijheel C/A, Dhaka- 1000.
 - israq-cotton-mills (mailing) 2 strings → 2
   - Sylvania Apartment, House # Ka-6/A, Nodda, Gulshan, Dhaka-1212. House # 15, Road # 72, Gulshan-2
   - House # 15, Road # 72, Gulshan -2, Dhaka-1212.
@@ -1995,8 +1995,8 @@ Remaining multi-location groups (slug, kind, locations):
   - 78/3/A, R K Mission Road, Wari, Sutrapur, Dhaka
   - 78/3A, R.K Mission Road, Gopibagh Dhaka-1203
 - khan-sourcing-bd (registered) 2 strings → 2
-  - House # 47, Ishakha Avenue, Sector # 06, Uttara, Dhaka
   - Sohani Tower, Flat # 105, Mohammadpur, Muradpur, Chittagong
+  - House # 47, Ishakha Avenue, Sector # 06, Uttara, Dhaka
 - khansons-textiles (factory) 2 strings → 2
   - BSCIC, Kawnia, Barisal.
   - Rupatoli, Barisal.
