@@ -2256,6 +2256,27 @@ describe("mergeUniqueLocations — empty rows, duplicates, overview buckets", ()
     );
     assert.equal(
       displays([
+        row("House # 62 (1st Floor), Road # 3, Block-B, Niketon, Gulshan, Dhaka"),
+        row("House # 62, Road # 3, Block-B, Niketon, 87 Eskaton, Gulshan-1, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 161 (5th Floor), Road # 1, DOHS, Baridhara DOHS, Dhaka"),
+        row("74 East Kazipara, House # 161 (5th Floor), Road # 1, DOHS, Baridhara DOHS, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 430, Road # 30, New DOHS, Baridhara, Dhaka"),
+        row("292 Inner Circular Rd, House # 430, Road # 30, New DOHS, Baridhara, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
         row("House # 161 (5th Floor), Road # 1, DOHS, Baridhara DOHS, Dhaka"),
         row(
           "74, East Kazipara, House # 161 (5th Floor), Road # 1, DOHS, Mirpur, Dhaka, Baridhara DOHS, Dhaka",
@@ -2591,5 +2612,78 @@ describe("mergeUniqueLocations — empty rows, duplicates, overview buckets", ()
     const ids = premisesIdentifiers("Plot 62-8, Niketon, Dhaka");
     assert.equal(ids.has("65"), false);
     assert.equal(ids.has("68"), false);
+    assert.equal(ids.has("62"), true);
+    assert.equal(ids.has("8"), true);
+    assert.equal(
+      displays([
+        row("Plot 62-8, Niketon, Dhaka"),
+        row("Plot 68, Niketon, Dhaka"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("completes a 2-digit abbreviated range end without promoting a 1-digit end", () => {
+    const konabari = premisesIdentifiers("Plot# 371-72, BSCIC, Konabari");
+    assert.equal(konabari.has("371"), true);
+    assert.equal(konabari.has("372"), true);
+    assert.equal(konabari.has("72"), false);
+    const peace = premisesIdentifiers("Plot 167-69, Dhaka EPZ");
+    assert.equal(peace.has("167"), true);
+    assert.equal(peace.has("169"), true);
+    const talent = premisesIdentifiers("Plot 215-16, BSCIC");
+    assert.equal(talent.has("215"), true);
+    assert.equal(talent.has("216"), true);
+    const epz = premisesIdentifiers("Plot 1703-04, DEPZ");
+    assert.equal(epz.has("1703"), true);
+    assert.equal(epz.has("1704"), true);
+    assert.equal(
+      displays([
+        row("Plot# 371-72, BSCIC, Konabari"),
+        row("Plot No. 371-372, Basic, Konabari"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("does not absorb Plot 27 Holding 1 into House 1 in the same thana", () => {
+    assert.equal(
+      displays([
+        row("Plot # 27, Holding # 1/A, Gulshan, Dhaka"),
+        row("HOUSE NO-01, ROAD NO.-09, BLOCK-A, GULSHAN, DHAKA"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("Plot # 27, Holding # 1/A, Tejgaon, Dhaka"),
+        row("HOUSE NO-01, ROAD NO.-09, BLOCK-A, TEJGAON, DHAKA"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("merges neighbour plot lists and keeps House 365/4 Baridhara together", () => {
+    assert.equal(
+      displays([
+        row("PLOT # 10 & 14, ROAD # 2, BLOCK # K, RUPNAGAR I/A, MIRPUR-2"),
+        row("Plot No # 14, Road No # 2, Block # K, Rupnagar I/A, Mirpur-2"),
+      ]).length,
+      1,
+    );
+    assert.equal(
+      displays([
+        row("HOUSE # 365/4, ROAD # 06, (WEST) BARIDARA, DOHS, DHAKA-1206, NARAYANGANJ"),
+        row("House # 365/4, Road # 6 (west0, Dhaka, Baridhara DOHS"),
+      ]).length,
+      1,
+    );
+    assert.equal(
+      displays([
+        row("House # 365/4, Road # 6, Dhaka, Baridhara DOHS"),
+        row("House # 365/4, Road # 6, Dhaka, Baridhara DOHS"),
+      ]).length,
+      1,
+    );
   });
 });

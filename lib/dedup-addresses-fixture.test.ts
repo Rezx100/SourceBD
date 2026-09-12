@@ -788,6 +788,38 @@ describe("published multi-string fixture", () => {
       "earthee Plot 27 Holding 1/A vs House 01 Mirpur-12",
     );
 
+    assert.equal(
+      mergeUniqueLocations(groupOf("rezaul-apparels", "factory").rows).length,
+      1,
+      "rezaul-apparels factory Plot 371-72 vs 371-372",
+    );
+    assert.equal(
+      mergeUniqueLocations(groupOf("crony-tex-sweater", "mailing").rows).length,
+      1,
+      "crony-tex-sweater mailing House 365/4 Baridhara",
+    );
+    assert.equal(
+      mergeUniqueLocations(groupOf("lodestar-fashions", "factory").rows).length,
+      1,
+      "lodestar-fashions factory M-16 vs M-8,9 & 16",
+    );
+    assert.equal(
+      mergeUniqueLocations(groupOf("expert-global-trims", "factory").rows).length,
+      1,
+      "expert-global-trims factory M/5 vs M 5,6",
+    );
+    const universal = once("universal-trims", "factory");
+    assert.equal(
+      locOf(universal, /Plot No # 14/, "universal plot 14"),
+      locOf(universal, /PLOT # 10 & 14/, "universal plot 10 and 14"),
+      "universal-trims Plot 14 vs PLOT 10 & 14",
+    );
+    assert.notEqual(
+      locOf(universal, /Plot No # 14/, "universal plot 14 vs J/8"),
+      locOf(universal, /House J\/8/, "universal house J/8"),
+      "universal-trims House J/8 stays a third row",
+    );
+
     const cityImport = once("city-import", "registered");
     assert.equal(cityImport.length, 2, `city-import registered still ${cityImport.length}`);
     assert.notEqual(

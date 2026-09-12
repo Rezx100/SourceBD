@@ -64,6 +64,11 @@ const namedSlugs = [
   "virtual-knitwear",
   "talent-apparels",
   "earthee-wear",
+  "rezaul-apparels",
+  "crony-tex-sweater",
+  "lodestar-fashions",
+  "expert-global-trims",
+  "universal-trims",
 ];
 const mustStayMulti: Array<{ slug: string; kind: string; minLocations: number }> = [
   { slug: "siji-garments", kind: "factory", minLocations: 2 },
@@ -75,6 +80,8 @@ const mustStayMulti: Array<{ slug: string; kind: string; minLocations: number }>
   { slug: "city-import", kind: "registered", minLocations: 2 },
   { slug: "db-trims", kind: "registered", minLocations: 2 },
   { slug: "earthee-wear", kind: "mailing", minLocations: 2 },
+  { slug: "virtual-knitwear", kind: "mailing", minLocations: 2 },
+  { slug: "db-trims", kind: "factory", minLocations: 2 },
 ];
 const mustNotAbsorb: Array<{
   slug: string;
@@ -139,6 +146,10 @@ const mustMergeToOne: Array<{ slug: string; kind: string }> = [
   { slug: "mn-tex", kind: "factory" },
   { slug: "virtual-knitwear", kind: "factory" },
   { slug: "talent-apparels", kind: "factory" },
+  { slug: "rezaul-apparels", kind: "factory" },
+  { slug: "crony-tex-sweater", kind: "mailing" },
+  { slug: "lodestar-fashions", kind: "factory" },
+  { slug: "expert-global-trims", kind: "factory" },
 ];
 const mustCoLocate: Array<{ slug: string; kind: string; left: RegExp; right: RegExp }> = [
   {
@@ -146,6 +157,12 @@ const mustCoLocate: Array<{ slug: string; kind: string; left: RegExp; right: Reg
     kind: "registered",
     left: /South Avenue Tower, 6th floor, House # 50/,
     right: /South Avenue Tower \(6th floor\), House # 50/,
+  },
+  {
+    slug: "universal-trims",
+    kind: "factory",
+    left: /Plot No # 14/,
+    right: /PLOT # 10 & 14/,
   },
 ];
 const stillSplit: Array<{
