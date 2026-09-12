@@ -2786,6 +2786,103 @@ describe("mergeUniqueLocations — empty rows, duplicates, overview buckets", ()
     );
     assert.equal(
       displays([
+        row("House # 62, Road # 3, Block-B, Niketon, 187 Bashundhara, Dhaka"),
+        row("House # 62, Road # 3, Block-B, Niketon, 187 Aftabnagar, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62, Road # 3, Block-B, Niketon, No.187 Bashundhara, Dhaka"),
+        row("House # 62, Road # 3, Block-B, Niketon, 187 Aftabnagar, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62, Road # 3, Block-B, Niketon, 187 Bashundhara, Dhaka"),
+        row("House # 62, Road # 3, Block-B, Niketon, No.187 Aftabnagar, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62, Road # 3, Block-B, Niketon, 13 Bashundhara, Dhaka"),
+        row("House # 62, Road # 3, Block-B, Niketon, 13 Aftabnagar, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62, Road # 3, Block-B, Niketon, Number 187 Bashundhara, Dhaka"),
+        row("House # 62, Road # 3, Block-B, Niketon, Number 187 Aftabnagar, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62, Road # 3, Block-B, Niketon, Number 187 Bashundhara, Dhaka"),
+        row("House # 62, Road # 3, Block-B, Niketon, Number 13 Bashundhara, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62, Road # 3, Block-B, Niketon, Number 187 Bashundhara, Dhaka"),
+        row("House # 62, Road # 3, Block-B, Niketon, No.187 Bashundhara, Dhaka"),
+      ]).length,
+      1,
+    );
+    assert.equal(
+      displays([
+        row("House # 62, Road # 3, Block-B, Niketon, Holding # 187, Aftabnagar, Dhaka"),
+        row("House # 62, Road # 3, Block-B, Niketon, No.187 Bashundhara, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62, Road # 3, Block-B, Niketon, 187 Badda, Dhaka"),
+        row("House # 62, Road # 3, Block-B, Niketon, 187 Eskaton, Dhaka"),
+      ]).length,
+      2,
+    );
+    {
+      const bridged = mergeUniqueLocations([
+        row("House # 62, Road # 3, Block-B, Niketon, No.187 Bashundhara, Dhaka"),
+        row("House # 62, Road # 3, Block-B, Niketon, 187 Bashundhara, Dhaka"),
+        row("House # 62, Road # 3, Block-B, Niketon, 187 Aftabnagar, Dhaka"),
+      ]);
+      assert.equal(bridged.length, 2);
+      const aftab = bridged.find((loc) =>
+        loc.source_rows.some((r) => /Aftabnagar/.test(r.address)),
+      );
+      const bash = bridged.find((loc) =>
+        loc.source_rows.some((r) => /Bashundhara/.test(r.address)),
+      );
+      assert.ok(aftab);
+      assert.ok(bash);
+      assert.notEqual(aftab, bash);
+    }
+    {
+      const numbered = mergeUniqueLocations([
+        row("House # 62 (1st Floor), Road # 3, Block-B, Niketon, Gulshan, Dhaka"),
+        row("House # 62, Road # 3, Block-B, Niketon, Number 187 Bashundhara, Dhaka"),
+        row("House # 62, Road # 3, Block-B, Niketon, Number 13 Bashundhara, Dhaka"),
+      ]);
+      assert.equal(numbered.length, 3);
+      const n187 = numbered.find((loc) =>
+        loc.source_rows.some((r) => /Number 187 Bashundhara/.test(r.address)),
+      );
+      const n13 = numbered.find((loc) =>
+        loc.source_rows.some((r) => /Number 13 Bashundhara/.test(r.address)),
+      );
+      assert.ok(n187);
+      assert.ok(n13);
+      assert.notEqual(n187, n13);
+    }
+    assert.equal(
+      displays([
         row("House # 02/02, Road #03, Durgapur, Zirabo, Ashulia, Savar, Dhaka"),
         row(
           "Holding no: 02/02, Road No: 03, Durgapur, Zirabo, Ashulia, Savar, Dhaka-1341. Bangladesh",
@@ -2873,6 +2970,14 @@ describe("mergeUniqueLocations — empty rows, duplicates, overview buckets", ()
       assert.ok(plotEight, "Plot 8 & 10 row missing");
       assert.ok(dag, "Dag 10 row missing");
       assert.notEqual(plotEight, dag);
+      assert.ok(
+        !plotEight!.source_rows.some((r) => /Plot # 10, Holding/.test(r.address)),
+        "Plot 8 & 10 must not sit on the Plot 10 location",
+      );
+      assert.ok(
+        dag!.source_rows.some((r) => /Plot # 10, Holding/.test(r.address)),
+        "Dag 10 must sit with Plot 10",
+      );
     }
     assert.equal(
       displays([
@@ -2994,6 +3099,48 @@ describe("mergeUniqueLocations — empty rows, duplicates, overview buckets", ()
       ]).length,
       2,
     );
+    assert.equal(
+      displays([
+        row("House # 50, Road # 3, 7 Gulshan Avenue, Gulshan-1, Dhaka"),
+        row("House # 50, Road # 3, 7 Banani Road, Gulshan-1, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 50, Road # 3, 7 Gulshan Avenue, Gulshan-1, Dhaka"),
+        row("House # 50, Road # 3, 7 Banani Avenue, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 50, Road # 3, No.7 Gulshan Avenue, Gulshan-1, Dhaka"),
+        row("House # 50, Road # 3, No.7 Banani Road, Gulshan-1, Dhaka"),
+      ]).length,
+      2,
+    );
+    {
+      const avenues = mergeUniqueLocations([
+        row("House # 50, Road # 3, Gulshan-1, Dhaka"),
+        row("House # 50, Road # 3, 7 Gulshan Avenue, Gulshan-1, Dhaka"),
+        row("House # 50, Road # 3, 7 Banani Avenue, Dhaka"),
+      ]);
+      assert.equal(avenues.length, 2);
+      const campus = avenues.find((loc) =>
+        loc.source_rows.some((r) => /House # 50, Road # 3, Gulshan-1, Dhaka/.test(r.address)),
+      );
+      const banani = avenues.find((loc) =>
+        loc.source_rows.some((r) => /Banani Avenue/.test(r.address)),
+      );
+      assert.ok(campus);
+      assert.ok(banani);
+      assert.notEqual(campus, banani);
+      assert.ok(
+        campus!.source_rows.some((r) => /7 Gulshan Avenue/.test(r.address)),
+        "House 50 must stay with 7 Gulshan Avenue",
+      );
+    }
     assert.equal(
       displays([
         row("Plot # 8 & 10, Block-A, Gulshan, Dhaka"),

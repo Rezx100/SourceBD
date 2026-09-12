@@ -353,6 +353,9 @@ const HOUSING_CAMPUS_PLACES = new Set([
   "hatirjheel",
   "hatirjhil",
   "karwan",
+  "bashundhara",
+  "aftabnagar",
+  "gulshan",
 ]);
 
 /** Village tails after a named house (12 Dhour after Turag, 13 Demra
@@ -1547,9 +1550,25 @@ function extraHoldingConflict(a: Candidate, b: Candidate): boolean {
   const wordingB = premisesWordingIds(b);
   const aOnly = [...wordingA].filter((id) => !idSetsOverlap(new Set([id]), wordingB));
   const bOnly = [...wordingB].filter((id) => !idSetsOverlap(new Set([id]), wordingA));
-  const digitExtra = (ids: string[]) => ids.filter((id) => /^\d+$/.test(id));
-  if (digitExtra(aOnly).length > 0 && digitExtra(bOnly).length > 0) return true;
+  const extraNumericKeys = (ids: string[]) => {
+    const out: string[] = [];
+    for (const id of ids) {
+      if (/^\d{1,3}$/.test(id)) {
+        out.push(id);
+        continue;
+      }
+      const parts = idParts(id);
+      if (parts.letters === "NUMBER" && /^\d{1,3}$/.test(parts.digits)) {
+        out.push(String(Number(parts.digits)));
+      }
+    }
+    return out;
+  };
+  if (overlappingIdCount(a.ids, b.ids) < 2) {
+    if (extraNumericKeys(aOnly).length > 0 && extraNumericKeys(bOnly).length > 0) return true;
+  }
   if (extraPlaceConflict(a, b)) return true;
+  if (extraRoadPlaceConflict(a, b)) return true;
   // Plot 389 vs Plot 389 House 6 is the same campus, not two holdings.
   // Neighbour plot lists (M-16 vs M-8,9 & 16) are not house campuses.
   if (a.plotIds.size > 0 && b.plotIds.size > 0) return false;
@@ -2362,6 +2381,8 @@ function isSameLocation(a: Candidate, b: Candidate): boolean {
       // Plot 8 & 10 + Holding 1 is not House 1 and House 10. Neighbour plot
       // lists (Plot 10 & 14 vs Plot 14) are not House-only, so they pass.
       if (leftoverPlotOnHouseOnly(a, b) && !renumberAliasHint(a, b)) return false;
+      // Unprefixed 187 Bashundhara vs 187 Aftabnagar share {62,187}.
+      if (extraHoldingConflict(a, b)) return false;
       if (leadingMatch || sharedFineAdmin(a, b) || fatullahBscicEstatePair(a, b)) return true;
       const la = firstDistinctPlace(a.tokens);
       const lb = firstDistinctPlace(b.tokens);
@@ -2819,6 +2840,28 @@ function premisesWordingIds(c: Candidate): Set<string> {
   return out;
 }
 
+/** 7 Gulshan Avenue is not 7 Banani Road. Spelling of the same road
+ *  (Maymashingo vs Mymensing) has no housing-campus tail, so it stays one. */
+function extraRoadPlaceConflict(a: Candidate, b: Candidate): boolean {
+  const housingTails = (display: string) =>
+    roadHoldingEntries(display)
+      .map((e) => ({
+        digit: String(Number(e.digit)),
+        places: placeTokensFromTail(e.tail).filter((p) => HOUSING_CAMPUS_PLACES.has(p)),
+      }))
+      .filter((e) => e.places.length > 0);
+  const ea = housingTails(a.display);
+  const eb = housingTails(b.display);
+  for (const x of ea) {
+    for (const y of eb) {
+      if (x.digit !== y.digit) continue;
+      const share = x.places.some((p) => y.places.some((q) => sameWord(p, q)));
+      if (!share) return true;
+    }
+  }
+  return false;
+}
+
 function extraPlacePairs(display: string): Array<{ digit: string; place: string }> {
   const s = display.toLowerCase();
   const withHo = s.replace(/\bh\s*[./]?\s*[o0]\s*[./]?\s*-?\s*(\d+)/g, "house $1");
@@ -2889,6 +2932,20 @@ function extraPlacePairs(display: string): Array<{ digit: string; place: string 
     const after = withHo.slice((m.index ?? 0) + m[0].length);
     if (/^(?:road|rd|avenue|ave)\b/.test(after.trimStart())) continue;
     out.push({ digit: String(Number(m[2]!)), place: m[3]! });
+  }
+  for (const m of withHo.matchAll(
+    /\b(?:house|hosue|holding|hold)\s*(?:#|no\.?|number)?[\s.:-]*(\d{1,3})\s*,\s*(?:new\s+)?([a-z]{2,})\b/g,
+  )) {
+    const place = m[2]!;
+    if (skipPlace(place) || place === "road" || place === "avenue" || place === "ave") continue;
+    if (VILLAGE_EXTRA_PLACES.has(place)) continue;
+    if (
+      !HOUSING_CAMPUS_PLACES.has(place) &&
+      !ADMIN_TOKENS.has(place)
+    ) {
+      continue;
+    }
+    out.push({ digit: String(Number(m[1]!)), place });
   }
   return out;
 }
