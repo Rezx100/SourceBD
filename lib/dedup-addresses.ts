@@ -2123,6 +2123,9 @@ function isSameLocation(a: Candidate, b: Candidate): boolean {
     // Different admin areas on the same plot numbers stay apart (Uttara vs CEPZ).
     if (overlapN >= 2) {
       if (extraDigitConflict(a, b)) return false;
+      // Plot 8 & 10 + Holding 1 is not House 1 and House 10. Neighbour plot
+      // lists (Plot 10 & 14 vs Plot 14) are not House-only, so they pass.
+      if (leftoverPlotOnHouseOnly(a, b) && !renumberAliasHint(a, b)) return false;
       if (leadingMatch || sharedFineAdmin(a, b) || fatullahBscicEstatePair(a, b)) return true;
       const la = firstDistinctPlace(a.tokens);
       const lb = firstDistinctPlace(b.tokens);
@@ -2356,7 +2359,7 @@ function hasTwoCampusWording(display: string): boolean {
 
 function hasTwoHoldings(display: string): boolean {
   const s = display.toLowerCase();
-  const houseNums = [...s.matchAll(/\bhouse\s*(?:#|no\.?|number)?\s*(\d+)\b/g)].map(
+  const houseNums = [...s.matchAll(/\b(?:house|hosue)\s*(?:#|no\.?|number)?[\s.-]*(\d+)\b/g)].map(
     (m) => m[1]!,
   );
   const roadHoldings = [
@@ -2366,10 +2369,10 @@ function hasTwoHoldings(display: string): boolean {
     // in a cadastral list is not a second campus.
     ...s.matchAll(/(?:^|,\s*)(\d{1,3})\s*,\s*(?:new\s+)?[a-z]{2,}/g),
     ...s.matchAll(/(?:^|,\s*)(\d{1,3})\s+(?:new\s+)?[a-z][^,]{0,40}?\s+rd\b/g),
-    // "87 Eskaton" / "74 East Kazipara" without "Road". Dhour/Diyabari
-    // leftovers must not count as a second campus.
+    // Unlabelled 1–2 digit holding before a place ("87 Badda", "87 Niketon").
+    // Three-digit leftovers (390 Dhour) stay extra detail, not a second campus.
     ...s.matchAll(
-      /(?:^|,\s*|(?<=[a-z])\s+)(\d{1,3})\s+(?:(?:new|east|west|inner)\s+)?(?:[a-z]{3,}\s+)*(?:[a-z]*para|avenue|eskaton|banani|mohakhali|farmgate|motijheel|dilu|kakrail|dhanmondi)\b/g,
+      /(?:^|,\s*|(?<=[a-z])\s+)(\d{1,2})\s+(?:(?:new|east|west|inner)\s+)?[a-z]{3,}\b/g,
     ),
   ].map((m) => m[1]!);
   return new Set([...houseNums, ...roadHoldings]).size >= 2;
@@ -2388,7 +2391,8 @@ function labelledRoleIds(cleanedAddress: string): {
   const houseIds = new Set<string>();
   const holdingIds = new Set<string>();
   const { stripped } = extractFloors(cleanedAddress);
-  for (const segment of stripped.split(",")) {
+  const withHouseSlash = stripped.replace(/\bH\s*\/\s*[O0]\s*-?\s*(\d+)\b/gi, "House $1");
+  for (const segment of withHouseSlash.split(",")) {
     const trimmed = collapsePlotInitials(segment.trim());
     if (!trimmed) continue;
     const labelled = LABELLED_ID_RE.exec(trimmed);

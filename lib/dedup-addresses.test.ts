@@ -2284,6 +2284,27 @@ describe("mergeUniqueLocations — empty rows, duplicates, overview buckets", ()
     );
     assert.equal(
       displays([
+        row("House # 62 (1st Floor), Road # 3, Block-B, Niketon, Gulshan, Dhaka"),
+        row("House # 62, Road # 3, Block-B, Niketon, 87 Badda, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62 (1st Floor), Road # 3, Block-B, Niketon, Gulshan, Dhaka"),
+        row("House # 62, Road # 3, Block-B, 87 Niketon, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62, Tejgaon, Dhaka"),
+        row("House # 62, 87 Tejgaon, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
         row("House # 161 (5th Floor), Road # 1, DOHS, Baridhara DOHS, Dhaka"),
         row("74 East Kazipara, House # 161 (5th Floor), Road # 1, DOHS, Baridhara DOHS, Dhaka"),
       ]).length,
@@ -2740,6 +2761,48 @@ describe("mergeUniqueLocations — empty rows, duplicates, overview buckets", ()
       displays([
         row("Plot # 2, Holding # 50, Gulshan, Dhaka"),
         row("HOUSE NO-50, ROAD NO.-09, BLOCK-A, GULSHAN, DHAKA"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("Plot # 8 & 10, Holding # 1/A, Gulshan, Dhaka"),
+        row("HOUSE NO-01, HOUSE NO-10, GULSHAN, DHAKA"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("Plot # 8, Holding # 1/A, 10 Banani Road, Gulshan, Dhaka"),
+        row("HOUSE NO-01, 10 Banani Road, GULSHAN, DHAKA"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("Plot # 8, Holding # 1/A, Gulshan, Dhaka"),
+        row("H/O-01, ROAD NO.-09, BLOCK-A, GULSHAN, DHAKA"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("Plot # 10, Holding # 1/A, Milk Vita Road, Sec-7, Pallabi, Dhaka, Mirpur"),
+        row("HOUSE NO-01, ROAD NO.-09, BLOCK-A, MIRPUR-12, DHAKA-1216, , DHAKA"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("Plot # 27, Holding # 1/A, Mohakhali, Dhaka"),
+        row("HOUSE NO-01, ROAD NO.-09, BLOCK-A, MOHAKHALI, DHAKA"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("Plot # 27, Holding # 1/A, Dhanmondi, Dhaka"),
+        row("HOUSE NO-01, ROAD NO.-09, BLOCK-A, DHANMONDI, DHAKA"),
       ]).length,
       2,
     );
