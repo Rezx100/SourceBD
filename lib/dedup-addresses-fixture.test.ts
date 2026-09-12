@@ -230,6 +230,15 @@ describe("published multi-string fixture", () => {
       2,
       "Chandra stays apart from Chandona in Kaliakoir",
     );
+    {
+      const urban = mergeUniqueLocations(groupOf("urban-global", "factory").rows);
+      const fused = urban.some(
+        (loc) =>
+          loc.source_rows.some((r) => /793\/120/.test(r.address)) &&
+          loc.source_rows.some((r) => /792\/120/.test(r.address)),
+      );
+      assert.equal(fused, false, "urban-global fused 792/120 Amtola with 793/120 Amtola");
+    }
     assert.equal(
       mergeUniqueLocations(groupOf("zas-apparels", "factory").rows).length,
       2,

@@ -358,7 +358,15 @@ const HOUSING_CAMPUS_PLACES = new Set([
 /** Village tails after a named house (12 Dhour after Turag, 13 Demra
  *  after Dailla). A number here is extra geography of the same premises,
  *  including 30 Dhour and No. 12 Dhour. */
-const VILLAGE_EXTRA_PLACES = new Set(["dhour", "dailla", "dalla", "demra", "turag"]);
+const VILLAGE_EXTRA_PLACES = new Set([
+  "dhour",
+  "dailla",
+  "dalla",
+  "demra",
+  "turag",
+  "amtola",
+  "kewa",
+]);
 
 /** Pallabi is the thana inside Mirpur. Same house at those two labels is
  *  one premises; Uttara vs Mirpur is not. */
@@ -995,8 +1003,20 @@ function parseIdPieceCore(piece: string): string[] {
       // Mohammadpur 2/1 with Chattogram 2800/2.
       const nums = parts.map((p) => Number(p));
       const compound = nums.map(String).join("/");
-      const looksLikeRange = nums.length >= 2 && nums.every((n) => n >= 10);
+      const looksLikeRange =
+        nums.length >= 2 &&
+        nums.every((n) => n >= 10) &&
+        Math.abs(nums[0]! - nums[nums.length - 1]!) <= 30;
       if (looksLikeRange) return [compound, ...nums.map(String)];
+      // Cadastral 793/120: the head is the plot, 120 is the mouza sheet.
+      // Minting 120 fused 792/120 with 793/120 on a shared sheet number.
+      if (
+        nums.length === 2 &&
+        nums.every((n) => n >= 10) &&
+        Math.abs(nums[0]! - nums[1]!) > 30
+      ) {
+        return [compound, String(nums[0])];
+      }
       return [compound];
     }
     // "A-169/170" is the same plots as "A-169-170". "C-120/14" is holding
@@ -1493,6 +1513,7 @@ function extraDigitConflict(a: Candidate, b: Candidate): boolean {
  *  Mirpur-12 leftovers are not holdings — those stay extraDigitConflict. */
 function extraHoldingConflict(a: Candidate, b: Candidate): boolean {
   if (a.ids.size === 0 || b.ids.size === 0) return false;
+  if (renumberAliasHint(a, b)) return false;
   const aOnly = [...a.ids].filter((id) => !idSetsOverlap(new Set([id]), b.ids));
   const bOnly = [...b.ids].filter((id) => !idSetsOverlap(new Set([id]), a.ids));
   const digitExtra = (ids: string[]) => ids.filter((id) => /^\d+$/.test(id));
@@ -1501,7 +1522,7 @@ function extraHoldingConflict(a: Candidate, b: Candidate): boolean {
   // Neighbour plot lists (M-16 vs M-8,9 & 16) are not house campuses.
   if (a.plotIds.size > 0 && b.plotIds.size > 0) return false;
   if (campusHouseIds(a).size === 0 || campusHouseIds(b).size === 0) return false;
-  const houseScale = (ids: string[]) => ids.filter((id) => /^\d{1,2}$/.test(id));
+  const houseScale = (ids: string[]) => ids.filter((id) => /^\d{1,3}$/.test(id));
   const oneSided =
     (houseScale(aOnly).length > 0 && houseScale(bOnly).length === 0) ||
     (houseScale(bOnly).length > 0 && houseScale(aOnly).length === 0);
@@ -1607,13 +1628,27 @@ function leftoverPlotOnHouseOnly(a: Candidate, b: Candidate): boolean {
   const noPlots = (c: Candidate) => c.plotIds.size === 0 && campusHouseIds(c).size > 0;
   const leftoverPlot = (plotSide: Candidate, houseSide: Candidate) => {
     const cover = new Set(houseSide.plotIds);
+    // House 14 covers Plot 14 on the same road. HOLDING NO-08 is not plot 8.
+    for (const id of houseSide.houseIds) cover.add(id);
     // Holding-only cover is cadastral dag numbers from the display, not
     // undifferentiated ids (HOLDING NO-08 is not plot 8; Banani road 10
     // is not leftover plot 10). Nilorn Dag 1977-1978 still covers Plot 1977.
     if (houseSide.houseIds.size === 0 && houseSide.holdingIds.size > 0) {
       for (const id of cadastralDagIdsFromDisplay(houseSide.display)) cover.add(id);
     }
-    return [...plotSide.plotIds].some((id) => !idSetsOverlap(new Set([id]), cover));
+    if ([...plotSide.plotIds].some((id) => !idSetsOverlap(new Set([id]), cover))) {
+      return true;
+    }
+    // Plot 8 + Holding 1 is not House 8 / HO-08 even when the plot number
+    // matches the house-only row.
+    if (houseSide.houseIds.size > 0 && plotSide.holdingIds.size > 0) {
+      return [...plotSide.holdingIds].some(
+        (id) =>
+          !idSetsOverlap(new Set([id]), campusHouseIds(houseSide)) &&
+          !idSetsOverlap(new Set([id]), cover),
+      );
+    }
+    return false;
   };
   if (plotCampus(a) && noPlots(b) && leftoverPlot(a, b)) return true;
   if (plotCampus(b) && noPlots(a) && leftoverPlot(b, a)) return true;
@@ -2521,11 +2556,6 @@ function adminPlaceExtraEntries(display: string): Array<{ digit: string; tail: s
   return out;
 }
 
-function avenueIndexDigit(digit: string): boolean {
-  const n = Number(digit);
-  return Number.isFinite(n) && n > 0 && n < 20;
-}
-
 function hasForeignHousingCampus(other: Candidate, place: string): boolean {
   for (const t of other.tokens) {
     if (HOUSING_CAMPUS_PLACES.has(t) && t !== place) return true;
@@ -2551,10 +2581,10 @@ function villageExtraDigit(digit: string, display: string): boolean {
   return false;
 }
 
-/** 7 Gulshan Avenue is extra detail of a Gulshan-only campus. 87 Gulshan
- *  Avenue on House 62 Niketon, and 87 Eskaton Road, are second houses. */
+/** House 50 + 7 Gulshan / 7 Gulshan Avenue / 7 Gulshan-1 is extra detail of
+ *  a Gulshan-only campus. 7 Tejgaon, 7 Dhaka, and 10 Gulshan Avenue are not. */
 function roadExtraSharedWith(digit: string, display: string, other: Candidate): boolean {
-  if (!avenueIndexDigit(digit)) return false;
+  if (String(Number(digit)) !== "7") return false;
   const entries = [
     ...roadHoldingEntries(display).filter((e) => e.digit === digit),
     ...adminPlaceExtraEntries(display).filter((e) => e.digit === digit),
@@ -2564,8 +2594,9 @@ function roadExtraSharedWith(digit: string, display: string, other: Candidate): 
     const places = placeTokensFromTail(e.tail);
     return places.some(
       (p) =>
-        other.tokens.some((t) => t === p || sameWord(t, p)) &&
-        !hasForeignHousingCampus(other, p),
+        p === "gulshan" &&
+        other.tokens.some((t) => t === "gulshan" || sameWord(t, "gulshan")) &&
+        !hasForeignHousingCampus(other, "gulshan"),
     );
   });
 }
@@ -2615,9 +2646,9 @@ function holdingWordingDigits(display: string): Set<string> {
     if (VILLAGE_EXTRA_PLACES.has(place)) return false;
     if (HOUSING_CAMPUS_PLACES.has(place)) return true;
     if (ADMIN_TOKENS.has(place)) return true;
-    // 87-A Badda is a campus unit, handled above. 793/120 Amtola is a
-    // cadastral id at a village, not a second house.
-    return Boolean(prefixed);
+    // 793/120 Amtola and No.793 Amtola are cadastral / extra village wording,
+    // not a second house. Prefixed 87 Eskaton is ADMIN/housing above.
+    return false;
   };
   const placeHoldings = [
     ...withHo.matchAll(
@@ -2765,6 +2796,9 @@ export function mergeUniqueLocations<T extends AddressRowRaw>(
         if (!candidates[target]!.tokens.includes(token)) candidates[target]!.tokens.push(token);
       }
       for (const id of candidate.ids) candidates[target]!.ids.add(id);
+      for (const id of candidate.plotIds) candidates[target]!.plotIds.add(id);
+      for (const id of candidate.houseIds) candidates[target]!.houseIds.add(id);
+      for (const id of candidate.holdingIds) candidates[target]!.holdingIds.add(id);
     }
   }
   for (const location of merged) {

@@ -1903,7 +1903,6 @@ async function main() {
           let found = false;
           let m;
           while ((m = rowRe.exec(got.body))) {
-            if (m[1] !== "button") continue;
             const group = /data-location-group="([^"]*)"/.exec(m[2])?.[1] ?? "";
             if (pair.group && group !== pair.group) continue;
             const liRe = /<li\b([^>]*)>([\s\S]*?)<\/li>/gi;
@@ -1933,7 +1932,6 @@ async function main() {
           let found = false;
           let m;
           while ((m = rowRe.exec(got.body))) {
-            if (m[1] !== "button") continue;
             const attrs = m[2];
             const inner = m[3];
             const group = /data-location-group="([^"]*)"/.exec(attrs)?.[1] ?? "";
