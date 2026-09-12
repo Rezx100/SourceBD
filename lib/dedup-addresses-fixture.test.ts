@@ -729,17 +729,63 @@ describe("published multi-string fixture", () => {
     );
 
     const caretex = once("caretex-sourcing", "registered");
-    assert.ok(caretex.length >= 2, `caretex-sourcing registered still ${caretex.length}`);
+    assert.equal(caretex.length, 3, `caretex-sourcing registered still ${caretex.length}`);
     assert.notEqual(
       locOf(caretex, /House # 161 \(5th Floor\), Road # 1, DOHS, Baridhara DOHS/, "caretex 161-only"),
       locOf(caretex, /74, East Kazipara/, "caretex kazipara"),
       "caretex House 161-only vs 74 Kazipara concat",
+    );
+    assert.notEqual(
+      locOf(caretex, /House # 161 \(5th Floor\), Road # 1, DOHS, Baridhara DOHS/, "caretex baridhara"),
+      locOf(caretex, /Pallabi, Mirpur DOHS/, "caretex pallabi"),
+      "caretex Baridhara DOHS vs Pallabi/Mirpur DOHS",
+    );
+    assert.notEqual(
+      locOf(caretex, /Pallabi, Mirpur DOHS/, "caretex pallabi vs kazipara"),
+      locOf(caretex, /74, East Kazipara/, "caretex kazipara vs pallabi"),
+      "caretex Pallabi vs 74 Kazipara concat",
     );
     assert.ok(
       !caretex[locOf(caretex, /74, East Kazipara/, "caretex kazipara src")]!.source_rows.some((r) =>
         /House # 161 \(5th Floor\), Road # 1, DOHS, Baridhara DOHS, Dhaka$/.test(r.address),
       ),
       "caretex campus-only source row must not sit in the Kazipara concat location",
+    );
+    assert.ok(
+      !caretex[locOf(caretex, /74, East Kazipara/, "caretex kazipara pallabi src")]!.source_rows.some(
+        (r) => /Pallabi, Mirpur DOHS/.test(r.address),
+      ),
+      "caretex Pallabi source row must not sit in the Kazipara concat location",
+    );
+
+    const dbTrims = once("db-trims", "registered");
+    assert.equal(dbTrims.length, 2, `db-trims registered still ${dbTrims.length}`);
+    assert.equal(
+      locOf(dbTrims, /South Avenue Tower, 6th floor, House # 50/, "db-trims sat comma"),
+      locOf(dbTrims, /South Avenue Tower \(6th floor\), House # 50/, "db-trims sat no-comma"),
+      "db-trims South Avenue Tower spellings",
+    );
+    assert.notEqual(
+      locOf(dbTrims, /102, Green Road/, "db-trims green road"),
+      locOf(dbTrims, /South Avenue Tower, 6th floor, House # 50/, "db-trims sat vs green"),
+      "db-trims Green Road vs South Avenue Tower",
+    );
+
+    const mnTex = once("mn-tex", "factory");
+    assert.equal(mnTex.length, 1, `mn-tex factory still ${mnTex.length}`);
+
+    const virtualKnit = once("virtual-knitwear", "factory");
+    assert.equal(virtualKnit.length, 1, `virtual-knitwear factory still ${virtualKnit.length}`);
+
+    const talent = once("talent-apparels", "factory");
+    assert.equal(talent.length, 1, `talent-apparels factory still ${talent.length}`);
+
+    const eartheeMail = once("earthee-wear", "mailing");
+    assert.equal(eartheeMail.length, 2, `earthee-wear mailing still ${eartheeMail.length}`);
+    assert.notEqual(
+      locOf(eartheeMail, /Plot # 27, Holding # 1\/A/, "earthee plot 27"),
+      locOf(eartheeMail, /HOUSE NO-01, ROAD NO\.-09/, "earthee house 01"),
+      "earthee Plot 27 Holding 1/A vs House 01 Mirpur-12",
     );
 
     const cityImport = once("city-import", "registered");

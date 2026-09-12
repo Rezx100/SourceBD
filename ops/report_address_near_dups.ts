@@ -59,6 +59,11 @@ const namedSlugs = [
   "loyal-apparels",
   "knittex-industries",
   "mt-sweater",
+  "db-trims",
+  "mn-tex",
+  "virtual-knitwear",
+  "talent-apparels",
+  "earthee-wear",
 ];
 const mustStayMulti: Array<{ slug: string; kind: string; minLocations: number }> = [
   { slug: "siji-garments", kind: "factory", minLocations: 2 },
@@ -66,8 +71,10 @@ const mustStayMulti: Array<{ slug: string; kind: string; minLocations: number }>
   { slug: "blue-bird-fashion", kind: "registered", minLocations: 3 },
   { slug: "alif-manufacturing", kind: "factory", minLocations: 2 },
   { slug: "aliens-texwear", kind: "factory", minLocations: 2 },
-  { slug: "caretex-sourcing", kind: "registered", minLocations: 2 },
+  { slug: "caretex-sourcing", kind: "registered", minLocations: 3 },
   { slug: "city-import", kind: "registered", minLocations: 2 },
+  { slug: "db-trims", kind: "registered", minLocations: 2 },
+  { slug: "earthee-wear", kind: "mailing", minLocations: 2 },
 ];
 const mustNotAbsorb: Array<{
   slug: string;
@@ -105,6 +112,12 @@ const mustNotAbsorb: Array<{
     campusOnly: /Plot # 167-169, Dhaka EPZ-Ext\. Area, Savar, Dhaka-1349/,
     concat: /EPZ-Old\. Area/,
   },
+  {
+    slug: "earthee-wear",
+    kind: "mailing",
+    campusOnly: /Plot # 27, Holding # 1\/A, Milk Vita Road/,
+    concat: /HOUSE NO-01, ROAD NO\.-09/,
+  },
 ];
 const mustMergeToOne: Array<{ slug: string; kind: string }> = [
   { slug: "habitus-fashion", kind: "factory" },
@@ -123,6 +136,17 @@ const mustMergeToOne: Array<{ slug: string; kind: string }> = [
   { slug: "mt-sweater", kind: "factory" },
   { slug: "falcon-international-knit-composite", kind: "factory" },
   { slug: "falcon-international-knit-composite", kind: "mailing" },
+  { slug: "mn-tex", kind: "factory" },
+  { slug: "virtual-knitwear", kind: "factory" },
+  { slug: "talent-apparels", kind: "factory" },
+];
+const mustCoLocate: Array<{ slug: string; kind: string; left: RegExp; right: RegExp }> = [
+  {
+    slug: "db-trims",
+    kind: "registered",
+    left: /South Avenue Tower, 6th floor, House # 50/,
+    right: /South Avenue Tower \(6th floor\), House # 50/,
+  },
 ];
 const stillSplit: Array<{
   slug: string;
@@ -183,15 +207,31 @@ const overMergeHits = mustStayMulti.flatMap((watch) => {
   }
   return [];
 });
-const underMergeHits = mustMergeToOne.flatMap((watch) => {
-  const group = fixture.groups.find((g) => g.slug === watch.slug && g.kind === watch.kind);
-  if (!group) return [{ ...watch, locations: 0, reason: "missing-from-fixture" }];
-  const locations = mergeUniqueLocations(group.rows).length;
-  if (locations !== 1) {
-    return [{ slug: watch.slug, kind: watch.kind, locations }];
-  }
-  return [];
-});
+const underMergeHits = [
+  ...mustMergeToOne.flatMap((watch) => {
+    const group = fixture.groups.find((g) => g.slug === watch.slug && g.kind === watch.kind);
+    if (!group) return [{ ...watch, locations: 0, reason: "missing-from-fixture" }];
+    const locations = mergeUniqueLocations(group.rows).length;
+    if (locations !== 1) {
+      return [{ slug: watch.slug, kind: watch.kind, locations }];
+    }
+    return [];
+  }),
+  ...mustCoLocate.flatMap((watch) => {
+    const group = fixture.groups.find((g) => g.slug === watch.slug && g.kind === watch.kind);
+    if (!group) return [{ slug: watch.slug, kind: watch.kind, reason: "missing-from-fixture" }];
+    const merged = mergeUniqueLocations(group.rows);
+    const leftLoc = merged.find((loc) => loc.source_rows.some((r) => watch.left.test(r.address)));
+    const rightLoc = merged.find((loc) => loc.source_rows.some((r) => watch.right.test(r.address)));
+    if (!leftLoc || !rightLoc) {
+      return [{ slug: watch.slug, kind: watch.kind, reason: "missing-row" }];
+    }
+    if (leftLoc !== rightLoc) {
+      return [{ slug: watch.slug, kind: watch.kind, reason: "pair-still-split" }];
+    }
+    return [];
+  }),
+];
 const absorptionHits = mustNotAbsorb.flatMap((watch) => {
   const group = fixture.groups.find((g) => g.slug === watch.slug && g.kind === watch.kind);
   if (!group) return [{ ...watch, reason: "missing-from-fixture" }];

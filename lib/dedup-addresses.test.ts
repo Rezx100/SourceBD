@@ -2265,6 +2265,13 @@ describe("mergeUniqueLocations — empty rows, duplicates, overview buckets", ()
     );
     assert.equal(
       displays([
+        row("House # 161 (5th Floor), Road # 1, DOHS, Baridhara DOHS, Dhaka"),
+        row("House # 161, Road # 1, Pallabi, Mirpur DOHS, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
         row("Baridhara DOHS, Dhaka, House # 430, Road # 30, New DOHS"),
         row("Shatabdi Center, 292, Inner Circular Rd, House # 430, Dhaka"),
       ]).length,
@@ -2426,6 +2433,13 @@ describe("mergeUniqueLocations — empty rows, duplicates, overview buckets", ()
     );
     assert.equal(
       displays([
+        row("Bora, Sreepur, Gazipur"),
+        row("Bara Bari, Sreepur, Gazipur"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
         row("Bora Dharmapur, Lalmai, Kotwali, Comilla."),
         row("Kaichabari, Savar, Dhaka."),
       ]).length,
@@ -2490,6 +2504,13 @@ describe("mergeUniqueLocations — empty rows, duplicates, overview buckets", ()
       ]).length,
       1,
     );
+    assert.equal(
+      displays([
+        row("House 2, Pallabi, Uttara, Dhaka"),
+        row("House 2, Mirpur, Uttara, Dhaka"),
+      ]).length,
+      2,
+    );
   });
 
   it("merges Office and Factory wording with the same village spelling", () => {
@@ -2517,5 +2538,58 @@ describe("mergeUniqueLocations — empty rows, duplicates, overview buckets", ()
       ]).length,
       1,
     );
+  });
+
+  it("merges the same holdings when one spelling omits a comma or plot label", () => {
+    assert.equal(
+      displays([
+        row(
+          "South Avenue Tower, 6th floor, House # 50, Road # 3, 7, Gulshan Avenue, Gulshan-1, Dhaka-1212",
+        ),
+        row(
+          "South Avenue Tower (6th floor), House # 50, Road # 03, 7 Gulshan Avenue, Gulshan-1, Dhaka-1212",
+        ),
+      ]).length,
+      1,
+    );
+    assert.equal(
+      displays([
+        row("323, 324, Moynarbagh, Hossain Market, Uttar Badda, Dhaka"),
+        row("House# 323, 324, Moynarbagh, Hossain Market, Uttar Badda, 1212, Dhaka, Bangladesh"),
+      ]).length,
+      1,
+    );
+    assert.equal(
+      displays([
+        row("Plot # S.A.-7,8, R.S.-11,12,13, Karamtola, Pubail"),
+        row("PLOT NO-S.A. 7-8, R.S-11,12,13 MOUZA, KARAMTOLA, PUBAIL,, , GAZIPUR"),
+      ]).length,
+      1,
+    );
+    assert.equal(
+      displays([
+        row(
+          "PLOT NO-215, 216 & 217/B, BSCIC I/A, SHASONGAON, FATULLAH, NARAYANGANJ., FATULLAH, NARAYANGANJ",
+        ),
+        row("PLOT # 215,216 & 217/B, BSCIC I/A, SHASONGAON"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("does not absorb Plot 27 Holding 1/A into House 1 at Mirpur-12", () => {
+    assert.equal(
+      displays([
+        row("Plot # 27, Holding # 1/A, Milk Vita Road, Sec-7, Pallabi, Dhaka, Mirpur"),
+        row("HOUSE NO-01, ROAD NO.-09, BLOCK-A, MIRPUR-12, DHAKA-1216, , DHAKA"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("does not expand Plot 62-8 into plots 62 through 68", () => {
+    const ids = premisesIdentifiers("Plot 62-8, Niketon, Dhaka");
+    assert.equal(ids.has("65"), false);
+    assert.equal(ids.has("68"), false);
   });
 });

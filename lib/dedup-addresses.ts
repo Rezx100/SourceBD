@@ -302,6 +302,8 @@ const ADMIN_TOKENS = new Set([
   "dohs",
   "old",
   "new",
+  // Baridhara DOHS is not Mirpur/Pallabi DOHS (Caretex House 161).
+  "baridhara",
   // Post-office tail at Turag. One-sided Nishatnagar must not block once
   // Dhour/Turag already matches (plot vs Sarkar Bari at Dhour Chowrasta).
   "nishatnagar",
@@ -321,11 +323,10 @@ function nestedAdminCompatible(a: { tokens: string[] }, b: { tokens: string[] })
     const pairAndCoarse = new Set<string>([x, y, ...COARSE_ADMIN, "dohs"]);
     const aExtra = aa.filter((t) => !pairAndCoarse.has(t));
     const bExtra = bb.filter((t) => !pairAndCoarse.has(t));
-    // Pallabi vs Uttara+Mirpur is not nested; Pallabi vs Mirpur-12 is.
-    if (aExtra.length > 0 || bExtra.length > 0) {
-      const sharedExtra = aExtra.some((t) => bExtra.some((u) => sameWord(t, u)));
-      if (!sharedExtra) continue;
-    }
+    // Pallabi vs Mirpur-12 is nested. Pallabi vs Uttara+Mirpur is not,
+    // and neither is Pallabi+Uttara vs Mirpur+Uttara — a shared third
+    // thana is not the nested pair.
+    if (aExtra.length > 0 || bExtra.length > 0) continue;
     if (
       (aa.includes(x) && bb.includes(y)) ||
       (aa.includes(y) && bb.includes(x)) ||
@@ -724,8 +725,8 @@ function sameWord(a: string, b: string): boolean {
   ) {
     return false;
   }
-  // "bora" is a village; "boro"/"baro" are size adjectives on Bari.
-  const sizeAdj = new Set(["baro", "boro", "choto", "chhoto"]);
+  // "bora" is a village; "boro"/"baro"/"bara" are size adjectives on Bari.
+  const sizeAdj = new Set(["baro", "boro", "bara", "choto", "chhoto"]);
   if (sizeAdj.has(a) !== sizeAdj.has(b)) return false;
   const sound = bengaliSoundKey(a);
   const soundB = bengaliSoundKey(b);
@@ -882,7 +883,8 @@ function canonicalCompound(raw: string): string {
 function completeRangeEnd(from: number, to: number): number {
   const fromS = String(from);
   const toS = String(to);
-  if (toS.length < fromS.length && to < from) {
+  // 1703-04 → 1704 (prefix at least two digits). "62-8" is not 62-68.
+  if (toS.length < fromS.length && to < from && fromS.length - toS.length >= 2) {
     const completed = Number(fromS.slice(0, fromS.length - toS.length) + toS);
     if (completed > from && completed - from <= 30) return completed;
   }
@@ -1431,6 +1433,34 @@ function extraHoldingConflict(a: Candidate, b: Candidate): boolean {
   return digitExtra(aOnly).length > 0 && digitExtra(bOnly).length > 0;
 }
 
+/** House 62-only vs House 62+87 Eskaton; Plot 27+Holding 1 vs House 1. */
+function oneSidedExtraDigitHolding(a: Candidate, b: Candidate): boolean {
+  if (a.ids.size === 0 || b.ids.size === 0) return false;
+  const aOnly = [...a.ids].filter((id) => !idSetsOverlap(new Set([id]), b.ids));
+  const bOnly = [...b.ids].filter((id) => !idSetsOverlap(new Set([id]), a.ids));
+  const digitExtra = (ids: string[]) => ids.filter((id) => /^\d+$/.test(id));
+  const aD = digitExtra(aOnly).length;
+  const bD = digitExtra(bOnly).length;
+  return (aD > 0) !== (bD > 0);
+}
+
+/** Pallabi vs Mirpur with Uttara (or any third thana) on either side. */
+function nestedPairCrossWithExtra(a: Candidate, b: Candidate): boolean {
+  const aa = a.tokens.filter((t) => ADMIN_TOKENS.has(t));
+  const bb = b.tokens.filter((t) => ADMIN_TOKENS.has(t));
+  for (const [x, y] of NESTED_ADMIN) {
+    const cross =
+      (aa.includes(x) && !aa.includes(y) && bb.includes(y) && !bb.includes(x)) ||
+      (aa.includes(y) && !aa.includes(x) && bb.includes(x) && !bb.includes(y));
+    if (!cross) continue;
+    const pairAndCoarse = new Set<string>([x, y, ...COARSE_ADMIN, "dohs"]);
+    const aExtra = aa.filter((t) => !pairAndCoarse.has(t));
+    const bExtra = bb.filter((t) => !pairAndCoarse.has(t));
+    if (aExtra.length > 0 || bExtra.length > 0) return true;
+  }
+  return false;
+}
+
 function adminCompatible(a: Candidate, b: Candidate): boolean {
   const aa = a.tokens.filter((t) => ADMIN_TOKENS.has(t));
   const bb = b.tokens.filter((t) => ADMIN_TOKENS.has(t));
@@ -1447,6 +1477,7 @@ type Candidate = {
   tokens: string[];
   ids: Set<string>;
   multiClause: boolean;
+  twoCampus: boolean;
 };
 
 function concatTokens(tokens: string[], start: number, count: number): string {
@@ -1943,8 +1974,16 @@ function sharedFineAdmin(a: Candidate, b: Candidate): boolean {
 function isSameLocation(a: Candidate, b: Candidate): boolean {
   // Concatenated two-campus wording ("Address 1st" + "Address 2nd") is not
   // the same row as a single-campus listing, even when one plot list overlaps.
-  if (a.multiClause !== b.multiClause) return false;
+  // House 50 + 7 Gulshan written with or without a comma still is one
+  // premises; EPZ Ext vs Ext+Old is not, even on the same plot numbers.
+  if (a.multiClause !== b.multiClause) {
+    const bothNamed = a.ids.size > 0 && b.ids.size > 0;
+    const overlap = bothNamed ? overlappingIdCount(a.ids, b.ids) : 0;
+    const sameHoldings = bothNamed && overlap === a.ids.size && overlap === b.ids.size;
+    if (!sameHoldings || a.twoCampus || b.twoCampus) return false;
+  }
   if (neverSameAcross(a.tokens, b.tokens)) return false;
+  if (nestedPairCrossWithExtra(a, b)) return false;
 
   const bothHaveIds = a.ids.size > 0 && b.ids.size > 0;
   const idsOverlap = bothHaveIds && idSetsOverlap(a.ids, b.ids);
@@ -2070,6 +2109,9 @@ function isSameLocation(a: Candidate, b: Candidate): boolean {
       return false;
     }
     if (extraHoldingConflict(a, b)) return false;
+    // Plot 27 + Holding 1 at Pallabi is not House 1 at Mirpur-12. Neighbour
+    // plot lists and old/present aliases are not nested-thana cases.
+    if (oneSidedExtraDigitHolding(a, b) && nestedAdminCompatible(a, b)) return false;
     if (leadingMatch) return true;
     if (!adminCompatible(a, b)) return false;
     // Zone-6 + Mirsarai under two official estate names: the zone id and a
@@ -2225,15 +2267,17 @@ function looksLikeCampusPart(part: string): boolean {
     if (words.length >= 1) return true;
     // "G-88/1, BSCIC" after the repeated thana was dropped.
     // Floor leftovers "(GR &" are not a second campus.
+    // "PLOT NO-215, 216" is a plot list: "no-215" is not G-88.
     if (/\b(?:gr|gf|fl|floor)\b/i.test(part)) return false;
-    return /[a-z]-\d|\d\/\d/i.test(part);
+    const holding = part.replace(/\b(?:plot|plots|holding|house|no|number|#)\b/gi, " ");
+    return /[a-z]-\d|\d\/\d/i.test(holding);
   }
   // After clean drops a repeated thana, the second campus may be one village
   // ("Meherbari"). Floor atoms are already stripped. "Office" is not a campus.
   return words.length === 1 && words[0]!.length >= 6;
 }
 
-function isMultiClauseAddress(display: string): boolean {
+function hasTwoCampusWording(display: string): boolean {
   const s = display.toLowerCase();
   if (/\baddress\s*1st\b/.test(s) && /\baddress\s*2nd\b/.test(s)) return true;
   if (/\bextended\s+address\b/.test(s)) return true;
@@ -2247,18 +2291,9 @@ function isMultiClauseAddress(display: string): boolean {
   const unitNums = s.match(/\bunit-\d+\b/g) ?? [];
   if (new Set(unitNums).size >= 2) return true;
   if (/\bext(?:ended)?\.?\s*area\b/.test(s) && /\bold\.?\s*area\b/.test(s)) return true;
-  const houseNums = [...s.matchAll(/\bhouse\s*(?:#|no\.?|number)?\s*(\d+)\b/g)].map(
-    (m) => m[1]!,
-  );
-  const roadHoldings = [
-    ...s.matchAll(/(?:^|,\s*)(\d{1,3})\s*,\s*(?:new\s+)?[a-z][^,]{0,40}?\s+road\b/g),
-    ...s.matchAll(/(?:^|,\s*)(\d{1,3})\s+(?:new\s+)?[a-z][^,]{0,40}?\s+road\b/g),
-    ...s.matchAll(/(?:^|,\s*)(\d{1,3})\s*,\s*(?:new\s+)?[a-z]/g),
-  ].map((m) => m[1]!);
-  if (new Set([...houseNums, ...roadHoldings]).size >= 2) return true;
   // Two full addresses joined with "&" or " AND " (Ramarbag … & G-88/1).
   // Floor lists ("4th & 5th Fl", "LEVEL # 6 & 7") and plot lists
-  // ("MSSFB # 1 & 2") are not two campuses.
+  // ("PLOT # 215,216 & 217/B") are not two campuses.
   const { stripped } = extractFloors(display);
   const ampersandParts = stripped
     .split(/\s*(?:&|\band\b)\s*/i)
@@ -2274,12 +2309,33 @@ function isMultiClauseAddress(display: string): boolean {
   return false;
 }
 
+function hasTwoHoldings(display: string): boolean {
+  const s = display.toLowerCase();
+  const houseNums = [...s.matchAll(/\bhouse\s*(?:#|no\.?|number)?\s*(\d+)\b/g)].map(
+    (m) => m[1]!,
+  );
+  const roadHoldings = [
+    ...s.matchAll(/(?:^|,\s*)(\d{1,3})\s*,\s*(?:new\s+)?[a-z][^,]{0,40}?\s+road\b/g),
+    ...s.matchAll(/(?:^|,\s*)(\d{1,3})\s+(?:new\s+)?[a-z][^,]{0,40}?\s+road\b/g),
+    // "7, Gulshan" / "74, East Kazipara". Require two letters so "8, R.S."
+    // in a cadastral list is not a second campus.
+    ...s.matchAll(/(?:^|,\s*)(\d{1,3})\s*,\s*(?:new\s+)?[a-z]{2,}/g),
+  ].map((m) => m[1]!);
+  return new Set([...houseNums, ...roadHoldings]).size >= 2;
+}
+
+function isMultiClauseAddress(display: string): boolean {
+  return hasTwoCampusWording(display) || hasTwoHoldings(display);
+}
+
 function candidateFor(display: string): Candidate {
   const { stripped } = extractFloors(display);
+  const twoCampus = hasTwoCampusWording(display);
   return {
     tokens: tokens(normaliseAddressKey(stripped)),
     ids: premisesIdentifiers(stripped),
-    multiClause: isMultiClauseAddress(display),
+    multiClause: twoCampus || hasTwoHoldings(display),
+    twoCampus,
   };
 }
 

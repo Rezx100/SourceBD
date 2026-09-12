@@ -1,6 +1,6 @@
 {
-  "mergedToOne": 2075,
-  "stillMulti": 1199,
+  "mergedToOne": 2074,
+  "stillMulti": 1200,
   "conflictingIdMerges": 0,
   "overMergeHits": [],
   "absorptionHits": [],
@@ -414,14 +414,16 @@
         {
           "kind": "registered",
           "strings": 3,
-          "locations": 2,
+          "locations": 3,
           "display": [
             "74, East Kazipara, House # 161 (5th Floor), Road # 1, DOHS, Mirpur, Dhaka, Baridhara DOHS",
-            "House # 161 (5th Floor), Road # 1, DOHS, Baridhara DOHS, Dhaka"
+            "House # 161 (5th Floor), Road # 1, DOHS, Baridhara DOHS, Dhaka",
+            "House # 161, Road # 1, Pallabi, Mirpur DOHS, Dhaka"
           ],
           "variantCount": [
             0,
-            1
+            0,
+            0
           ]
         }
       ]
@@ -520,6 +522,127 @@
           ],
           "variantCount": [
             1
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "db-trims",
+      "groups": [
+        {
+          "kind": "factory",
+          "strings": 3,
+          "locations": 2,
+          "display": [
+            "Holding No. 503/2, Nayapara, Kashimpur, Gazipur",
+            "Sardagonj, Kashimpur, Gazipur - 1700, Bangladesh"
+          ],
+          "variantCount": [
+            0,
+            1
+          ]
+        },
+        {
+          "kind": "registered",
+          "strings": 3,
+          "locations": 2,
+          "display": [
+            "South Avenue Tower, 6th floor, House # 50, Road # 3, 7, Gulshan Avenue, Gulshan-1, Dhaka-1212",
+            "102, Green Road, Farmgate, Tejgaon, Dhaka-1215"
+          ],
+          "variantCount": [
+            1,
+            0
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "mn-tex",
+      "groups": [
+        {
+          "kind": "factory",
+          "strings": 2,
+          "locations": 1,
+          "display": [
+            "House# 323, 324, Moynarbagh, Hossain Market, Uttar Badda, 1212, Dhaka, Bangladesh"
+          ],
+          "variantCount": [
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "virtual-knitwear",
+      "groups": [
+        {
+          "kind": "factory",
+          "strings": 2,
+          "locations": 1,
+          "display": [
+            "Plot # S.A.-7, 8, R.S.-11, 12, 13, Karamtola, Pubail, Gazipur"
+          ],
+          "variantCount": [
+            1
+          ]
+        },
+        {
+          "kind": "mailing",
+          "strings": 2,
+          "locations": 2,
+          "display": [
+            "Zawad House, House # 73 (3rd Floor), Road # 14, Sector # 13, Uttara, Dhaka",
+            "6, NORTH GULSHAN C/A, 1ST FLOOR, PLAZA BUILDING, DHAKA"
+          ],
+          "variantCount": [
+            0,
+            0
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "talent-apparels",
+      "groups": [
+        {
+          "kind": "factory",
+          "strings": 2,
+          "locations": 1,
+          "display": [
+            "PLOT NO-215, 216 & 217/B, BSCIC I/A, SHASONGAON, FATULLAH, NARAYANGANJ."
+          ],
+          "variantCount": [
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "earthee-wear",
+      "groups": [
+        {
+          "kind": "factory",
+          "strings": 2,
+          "locations": 1,
+          "display": [
+            "House # 1, Road # 9, Block - A, Section # 12, Dhaka, Mirpur"
+          ],
+          "variantCount": [
+            1
+          ]
+        },
+        {
+          "kind": "mailing",
+          "strings": 2,
+          "locations": 2,
+          "display": [
+            "Plot # 27, Holding # 1/A, Milk Vita Road, Sec-7, Pallabi, Dhaka, Mirpur",
+            "HOUSE NO-01, ROAD NO.-09, BLOCK-A, MIRPUR-12, DHAKA-1216"
+          ],
+          "variantCount": [
+            0,
+            0
           ]
         }
       ]
@@ -3352,10 +3475,11 @@
       "company_name": "Caretex Sourcing Ltd.",
       "kind": "registered",
       "strings": 3,
-      "locations": 2,
+      "locations": 3,
       "displays": [
         "74, East Kazipara, House # 161 (5th Floor), Road # 1, DOHS, Mirpur, Dhaka, Baridhara DOHS",
-        "House # 161 (5th Floor), Road # 1, DOHS, Baridhara DOHS, Dhaka"
+        "House # 161 (5th Floor), Road # 1, DOHS, Baridhara DOHS, Dhaka",
+        "House # 161, Road # 1, Pallabi, Mirpur DOHS, Dhaka"
       ]
     },
     {
@@ -3969,6 +4093,17 @@
       ]
     },
     {
+      "slug": "crony-tex-sweater",
+      "company_name": "CRONY TEX SWEATER LTD",
+      "kind": "mailing",
+      "strings": 2,
+      "locations": 2,
+      "displays": [
+        "HOUSE # 365/4, ROAD # 06, (WEST) BARIDARA, DOHS, DHAKA-1206, NARAYANGANJ",
+        "House # 365/4, Road # 6 (west0, Dhaka, Baridhara DOHS"
+      ]
+    },
+    {
       "slug": "crown-knitwear",
       "company_name": "Crown Knitwear Ltd",
       "kind": "factory",
@@ -4127,10 +4262,9 @@
       "company_name": "DB Trims Ltd",
       "kind": "registered",
       "strings": 3,
-      "locations": 3,
+      "locations": 2,
       "displays": [
         "South Avenue Tower, 6th floor, House # 50, Road # 3, 7, Gulshan Avenue, Gulshan-1, Dhaka-1212",
-        "South Avenue Tower (6th floor), House # 50, Road # 03, 7 Gulshan Avenue, Gulshan-1, Dhaka-1212",
         "102, Green Road, Farmgate, Tejgaon, Dhaka-1215"
       ]
     },
@@ -4817,8 +4951,8 @@
       "strings": 2,
       "locations": 2,
       "displays": [
-        "Road # 8, House #451, Baridhara DOHS, Dhaka",
-        "Rupayan Golden Age (Level- 6), Office Space-6, Block-, CWN(99), Gulshan, Dhaka"
+        "Rupayan Golden Age (Level- 6), Office Space-6, Block-, CWN(99), Gulshan, Dhaka",
+        "Road # 8, House #451, Baridhara DOHS, Dhaka"
       ]
     },
     {
@@ -4906,9 +5040,20 @@
       "locations": 4,
       "displays": [
         "House # 17, Road # 2, Hilview, East Nasirabad, Nasirabad, Chittagong",
-        "House # 542 (2nd Floor), Lane 12, DOHS, Baridhara DOHS, Dhaka",
         "House # 16 (2nd Fl), Road # 4, Sector # 3, Uttara, Dhaka",
+        "House # 542 (2nd Floor), Lane 12, DOHS, Baridhara DOHS, Dhaka",
         "House # 343, Apt # D/2, Road # 5, Baridhara DOHS, Dhaka"
+      ]
+    },
+    {
+      "slug": "expert-global-trims",
+      "company_name": "Expert Global Trims",
+      "kind": "factory",
+      "strings": 2,
+      "locations": 2,
+      "displays": [
+        "House# M 5, 6, Road# 22, Block# M, Eastern Housing, Pallabi, Mirupur-12, 1216, Dhaka, Bangladesh",
+        "Plot-M/5, Road-22, Block-M, Eastern Housing, Mirpur, Pallabi 2nd Part, Dhaka-1216"
       ]
     },
     {
@@ -7995,6 +8140,17 @@
       ]
     },
     {
+      "slug": "lodestar-fashions",
+      "company_name": "Lodestar Fashions Ltd.",
+      "kind": "factory",
+      "strings": 2,
+      "locations": 2,
+      "displays": [
+        "Plot-M-8, 9 & 16, Section-14, Mirpur, -, 1216, Dhaka, Bangladesh",
+        "M-16, Section # 14, Dhaka, Mirpur"
+      ]
+    },
+    {
       "slug": "logos-apparels",
       "company_name": "LOGOS APPARELS LIMITED",
       "kind": "factory",
@@ -9012,17 +9168,6 @@
       "displays": [
         "Road- 29/K, Plot- 5/7, Rupnagar I/A, Mirpur PS, Dhaka - 1216, Bangladesh",
         "Purbo Basta, Dhalla Bazar, Singair, Manikganj - 1820, Bangladesh"
-      ]
-    },
-    {
-      "slug": "mn-tex",
-      "company_name": "MN Tex",
-      "kind": "factory",
-      "strings": 2,
-      "locations": 2,
-      "displays": [
-        "House# 323, 324, Moynarbagh, Hossain Market, Uttar Badda, 1212, Dhaka, Bangladesh",
-        "323, 324, Moynarbagh, Hossain Market, Uttar Badda, Dhaka"
       ]
     },
     {
@@ -11266,6 +11411,17 @@
       ]
     },
     {
+      "slug": "rezaul-apparels",
+      "company_name": "Rezaul Apparels (Pvt.) Ltd",
+      "kind": "factory",
+      "strings": 3,
+      "locations": 2,
+      "displays": [
+        "Plot No. 371-372, Basic, Konabari, Gazipur - 1700, Bangladesh",
+        "Plot# 371-72, BSCIC, Konabari, Gazipur"
+      ]
+    },
+    {
       "slug": "rhino-apparels",
       "company_name": "RHINO APPARELS LTD.",
       "kind": "factory",
@@ -12758,17 +12914,6 @@
       ]
     },
     {
-      "slug": "talent-apparels",
-      "company_name": "TALENT APPARELS LTD.",
-      "kind": "factory",
-      "strings": 2,
-      "locations": 2,
-      "displays": [
-        "PLOT NO-215, 216 & 217/B, BSCIC I/A, SHASONGAON, FATULLAH, NARAYANGANJ.",
-        "PLOT # 215, 216 & 217/B, BSCIC I/A, SHASONGAON"
-      ]
-    },
-    {
       "slug": "tamishna-dyeing-industries",
       "company_name": "Tamishna Dyeing Industries Ltd",
       "kind": "factory",
@@ -13033,8 +13178,8 @@
       "strings": 2,
       "locations": 2,
       "displays": [
-        "Plot # 389, Road # 6, Baridhara DOHS, Dhaka",
-        "50, PURANA PALTAN LANE (4TH FLOOR), PALTAN, DHAKA"
+        "50, PURANA PALTAN LANE (4TH FLOOR), PALTAN, DHAKA",
+        "Plot # 389, Road # 6, Baridhara DOHS, Dhaka"
       ]
     },
     {
@@ -13453,10 +13598,11 @@
       "company_name": "UNIVERSAL TRIMS",
       "kind": "factory",
       "strings": 3,
-      "locations": 2,
+      "locations": 3,
       "displays": [
         "Factory: House J/8, Road: N/7, Block- J, Eastern Housing, Pallabi, 1216, Dhaka, Bangladesh",
-        "Plot No # 14, Road No # 2, Block # K, Rupnagar I/A, Mirpur-2, 1216, Dhaka, Bangladesh"
+        "Plot No # 14, Road No # 2, Block # K, Rupnagar I/A, Mirpur-2, 1216, Dhaka, Bangladesh",
+        "PLOT # 10 & 14, ROAD # 2, BLOCK # K, RUPNAGAR I/A, MIRPUR-2, MIRPUR, DHAKA"
       ]
     },
     {
@@ -13513,17 +13659,6 @@
       "displays": [
         "Gilarchala, Sreepur PS, Gazipur - 1740, Bangladesh",
         "Bohararchala, Sreepur, Gazipur - 1740, Bangladesh"
-      ]
-    },
-    {
-      "slug": "virtual-knitwear",
-      "company_name": "VIRTUAL KNITWEAR LTD.",
-      "kind": "factory",
-      "strings": 2,
-      "locations": 2,
-      "displays": [
-        "Plot # S.A.-7, 8, R.S.-11, 12, 13, Karamtola, Pubail, Gazipur",
-        "PLOT NO-S.A. 7-8, R.S-11, 12, 13 MOUZA, KARAMTOLA, PUBAIL, GAZIPUR"
       ]
     },
     {
