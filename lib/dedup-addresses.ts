@@ -1539,10 +1539,17 @@ function extraDigitConflict(a: Candidate, b: Candidate): boolean {
 function extraHoldingConflict(a: Candidate, b: Candidate): boolean {
   if (a.ids.size === 0 || b.ids.size === 0) return false;
   if (renumberAliasHint(a, b)) return false;
-  const aOnly = [...a.ids].filter((id) => !idSetsOverlap(new Set([id]), b.ids));
-  const bOnly = [...b.ids].filter((id) => !idSetsOverlap(new Set([id]), a.ids));
+  // Prefixed No./# extras live in holdingWordingDigits, not premisesIdentifiers.
+  // Union them so No.187 vs No.13 XOR and No.187 vs 187 of the same extra merge.
+  // A house-label head (2 from House 02/02) is already in the slash id and
+  // must not XOR against a twin that writes Holding no: 02/02.
+  const wordingA = premisesWordingIds(a);
+  const wordingB = premisesWordingIds(b);
+  const aOnly = [...wordingA].filter((id) => !idSetsOverlap(new Set([id]), wordingB));
+  const bOnly = [...wordingB].filter((id) => !idSetsOverlap(new Set([id]), wordingA));
   const digitExtra = (ids: string[]) => ids.filter((id) => /^\d+$/.test(id));
   if (digitExtra(aOnly).length > 0 && digitExtra(bOnly).length > 0) return true;
+  if (extraPlaceConflict(a, b)) return true;
   // Plot 389 vs Plot 389 House 6 is the same campus, not two holdings.
   // Neighbour plot lists (M-16 vs M-8,9 & 16) are not house campuses.
   if (a.plotIds.size > 0 && b.plotIds.size > 0) return false;
@@ -2208,10 +2215,12 @@ function isSameLocation(a: Candidate, b: Candidate): boolean {
   // House 50 + 7 Gulshan written with or without a comma still is one
   // premises; EPZ Ext vs Ext+Old is not, even on the same plot numbers.
   if (a.multiClause !== b.multiClause) {
-    const bothNamed = a.ids.size > 0 && b.ids.size > 0;
-    const overlap = bothNamed ? overlappingIdCount(a.ids, b.ids) : 0;
+    const wordingA = premisesWordingIds(a);
+    const wordingB = premisesWordingIds(b);
+    const bothNamed = wordingA.size > 0 && wordingB.size > 0;
+    const overlap = bothNamed ? overlappingIdCount(wordingA, wordingB) : 0;
     const sameHoldings =
-      bothNamed && overlap === a.ids.size && overlap === b.ids.size;
+      bothNamed && overlap === wordingA.size && overlap === wordingB.size;
     // Ext+Old / Address 1st+2nd stay apart even on a shared plot list.
     if (a.twoCampus || b.twoCampus) return false;
     // Idless Hariken Road vs Plot 70 is not a two-campus XOR; other gates decide.
@@ -2219,11 +2228,11 @@ function isSameLocation(a: Candidate, b: Candidate): boolean {
       // House 50 + 7 Gulshan Avenue is one premises when one spelling omits
       // the avenue number. House 62 vs 87 Eskaton is not.
       if (!sameHoldings) {
-        const extras = [...a.ids, ...b.ids].filter(
+        const extras = [...wordingA, ...wordingB].filter(
           (id) =>
             !(
-              idSetsOverlap(new Set([id]), a.ids) &&
-              idSetsOverlap(new Set([id]), b.ids)
+              idSetsOverlap(new Set([id]), wordingA) &&
+              idSetsOverlap(new Set([id]), wordingB)
             ),
         );
         const multi = a.multiClause ? a : b;
@@ -2233,12 +2242,15 @@ function isSameLocation(a: Candidate, b: Candidate): boolean {
           extras.every((id) => roadExtraSharedWith(id, multi.display, other));
         if (!onlyRoadExtras) return false;
       }
-      const extraWording = (multi: Candidate, other: Candidate) =>
-        [...holdingWordingDigits(multi.display)].some(
+      const extraWording = (multi: Candidate, other: Candidate) => {
+        const otherWording = premisesWordingIds(other);
+        return [...holdingWordingDigits(multi.display)].some(
           (digit) =>
-            !idSetsOverlap(new Set([digit]), other.ids) &&
-            !roadExtraSharedWith(digit, multi.display, other),
+            !idSetsOverlap(new Set([digit]), otherWording) &&
+            !roadExtraSharedWith(digit, multi.display, other) &&
+            !villageExtraDigit(digit, multi.display),
         );
+      };
       if (a.multiClause && extraWording(a, b)) return false;
       if (b.multiClause && extraWording(b, a)) return false;
     }
@@ -2553,11 +2565,18 @@ function looksLikeCampusPart(part: string): boolean {
 
 function plotSectorCampusCount(display: string): number {
   const parts = display.toLowerCase().split(/\b(?:plot|plots)\b/);
-  let n = 0;
+  const sectors = new Set<string>();
   for (let i = 1; i < parts.length; i++) {
-    if (/\b(?:sector|block)\b/.test(parts[i]!.slice(0, 80))) n += 1;
+    const head = parts[i]!.slice(0, 80);
+    const m =
+      /\b(?:sector|block)\b[\s.:#\-]*(?:no\.?|number|#|:)?[\s.:#\-]*([a-z0-9]+)/i.exec(
+        head,
+      );
+    if (!m) continue;
+    const raw = m[1]!;
+    sectors.add(/^\d+$/.test(raw) ? String(Number(raw)) : raw);
   }
-  return n;
+  return sectors.size;
 }
 
 function hasTwoCampusWording(display: string): boolean {
@@ -2589,22 +2608,40 @@ function hasTwoCampusWording(display: string): boolean {
     for (let i = 0; i < ampersandParts.length - 1; i++) {
       if (isNumericAmpersandJoin(ampersandParts[i]!, ampersandParts[i + 1]!)) numericJoin = true;
     }
-    if (!numericJoin && ampersandParts.every(looksLikeCampusPart)) return true;
+    if (!numericJoin && ampersandParts.every(looksLikeCampusPart)) {
+      const sectors = new Set<string>();
+      let allPlotSector = true;
+      for (const part of ampersandParts) {
+        const m =
+          /\b(?:sector|block)\b[\s.:#\-]*(?:no\.?|number|#|:)?[\s.:#\-]*([a-z0-9]+)/i.exec(
+            part,
+          );
+        if (/\b(?:plot|plots)\b/i.test(part) && m) {
+          const raw = m[1]!;
+          sectors.add(/^\d+$/.test(raw) ? String(Number(raw)) : raw);
+        } else {
+          allPlotSector = false;
+        }
+      }
+      // Plot 8 Block-A & Plot 10 Block-A is a plot list, not two campuses.
+      if (!(allPlotSector && sectors.size < 2)) return true;
+    }
   }
   return false;
 }
 
 function roadHoldingEntries(display: string): Array<{ digit: string; tail: string }> {
   const s = display.toLowerCase();
+  const p = String.raw`(?:(?:no\s*[:.\-]?|number|#)\s*)?`;
   return [
-    ...s.matchAll(/(?:^|,\s*)(\d{1,3})\s*,\s*(?:new\s+)?([a-z][^,]{0,40}?)\s+road\b/g),
-    ...s.matchAll(/(?:^|,\s*)(\d{1,3})\s+(?:new\s+)?([a-z][^,]{0,40}?)\s+road\b/g),
-    ...s.matchAll(/(?:^|,\s*)(\d{1,3})\s*,\s*(?:new\s+)?([a-z][^,]{0,40}?)\s+rd\b/g),
-    ...s.matchAll(/(?:^|,\s*)(\d{1,3})\s+(?:new\s+)?([a-z][^,]{0,40}?)\s+rd\b/g),
-    ...s.matchAll(/(?:^|,\s*)(\d{1,3})\s*,\s*(?:new\s+)?([a-z][^,]{0,40}?)\s+avenue\b/g),
-    ...s.matchAll(/(?:^|,\s*)(\d{1,3})\s+(?:new\s+)?([a-z][^,]{0,40}?)\s+avenue\b/g),
-    ...s.matchAll(/(?:^|,\s*)(\d{1,3})\s*,\s*(?:new\s+)?([a-z][^,]{0,40}?)\s+ave\.?\b/g),
-    ...s.matchAll(/(?:^|,\s*)(\d{1,3})\s+(?:new\s+)?([a-z][^,]{0,40}?)\s+ave\.?\b/g),
+    ...s.matchAll(new RegExp(String.raw`(?:^|,\s*)${p}(\d{1,3})\s*,\s*(?:new\s+)?([a-z][^,]{0,40}?)\s+road\b`, "g")),
+    ...s.matchAll(new RegExp(String.raw`(?:^|,\s*)${p}(\d{1,3})\s+(?:new\s+)?([a-z][^,]{0,40}?)\s+road\b`, "g")),
+    ...s.matchAll(new RegExp(String.raw`(?:^|,\s*)${p}(\d{1,3})\s*,\s*(?:new\s+)?([a-z][^,]{0,40}?)\s+rd\b`, "g")),
+    ...s.matchAll(new RegExp(String.raw`(?:^|,\s*)${p}(\d{1,3})\s+(?:new\s+)?([a-z][^,]{0,40}?)\s+rd\b`, "g")),
+    ...s.matchAll(new RegExp(String.raw`(?:^|,\s*)${p}(\d{1,3})\s*,\s*(?:new\s+)?([a-z][^,]{0,40}?)\s+avenue\b`, "g")),
+    ...s.matchAll(new RegExp(String.raw`(?:^|,\s*)${p}(\d{1,3})\s+(?:new\s+)?([a-z][^,]{0,40}?)\s+avenue\b`, "g")),
+    ...s.matchAll(new RegExp(String.raw`(?:^|,\s*)${p}(\d{1,3})\s*,\s*(?:new\s+)?([a-z][^,]{0,40}?)\s+ave\.?\b`, "g")),
+    ...s.matchAll(new RegExp(String.raw`(?:^|,\s*)${p}(\d{1,3})\s+(?:new\s+)?([a-z][^,]{0,40}?)\s+ave\.?\b`, "g")),
   ].map((m) => ({ digit: m[1]!, tail: m[2]! }));
 }
 
@@ -2617,7 +2654,7 @@ function adminPlaceExtraEntries(display: string): Array<{ digit: string; tail: s
   const s = display.toLowerCase();
   const out: Array<{ digit: string; tail: string }> = [];
   for (const m of s.matchAll(
-    /(?:^|,\s*)(\d{1,3})\s*,?\s*(?:new\s+)?([a-z]{3,})(?:-\d+)?\b/g,
+    /(?:^|,\s*)(?:(?:no\s*[:.\-]?|number|#)\s*)?(\d{1,3})\s*,?\s*(?:new\s+)?([a-z]{3,})(?:-\d+)?\b/g,
   )) {
     const place = m[2]!;
     if (!ADMIN_TOKENS.has(place)) continue;
@@ -2679,7 +2716,7 @@ function holdingWordingDigits(display: string): Set<string> {
   const withHo = s.replace(/\bh\s*[./]?\s*[o0]\s*[./]?\s*-?\s*(\d+)/g, "house $1");
   const houseNums = [
     ...withHo.matchAll(
-      /\b(?:house|hosue|holding|hold)\s*(?:#|no\.?|number)?[\s.-]*(\d+)\b/g,
+      /\b(?:house|hosue|holding|hold)\s*(?:#|no\.?|number)?[\s.:-]*(\d+)\b/g,
     ),
   ].map((m) => m[1]!);
   const skipPlace = (place: string) =>
@@ -2757,6 +2794,118 @@ function holdingWordingDigits(display: string): Set<string> {
       String(Number(d)),
     ),
   );
+}
+
+/** Ids plus holding-wording extras that are not already a slash/range
+ *  head on this row. House 02/02's wording 2 is not a second house;
+ *  Holding 306/1's wording 306 is not a second house vs B-306/1;
+ *  No.187 on a House 62 campus is. */
+function wordingDigitCovered(digit: string, ids: Set<string>): boolean {
+  if (idSetsOverlap(new Set([digit]), ids)) return true;
+  const n = String(Number(digit));
+  if (n === "NaN") return false;
+  for (const id of ids) {
+    const head = slashFragments(idParts(id).digits)[0];
+    if (head && String(Number(head)) === n) return true;
+  }
+  return false;
+}
+
+function premisesWordingIds(c: Candidate): Set<string> {
+  const out = new Set(c.ids);
+  for (const digit of holdingWordingDigits(c.display)) {
+    if (!wordingDigitCovered(digit, c.ids)) out.add(digit);
+  }
+  return out;
+}
+
+function extraPlacePairs(display: string): Array<{ digit: string; place: string }> {
+  const s = display.toLowerCase();
+  const withHo = s.replace(/\bh\s*[./]?\s*[o0]\s*[./]?\s*-?\s*(\d+)/g, "house $1");
+  const skipPlace = (place: string) =>
+    GENERIC_TOKENS.has(place) ||
+    place === "storied" ||
+    place === "storey" ||
+    place === "rd" ||
+    place === "st" ||
+    place === "old" ||
+    place === "new";
+  const labelledAdminBefore = (before: string) =>
+    /(?:ward|block|sector|section|plot|plots|union|dag|dug|road|rd|avenue)\s*(?:#|no\.?|number)?[\s.:-]*$/i.test(
+      before,
+    );
+  const plotListTail = (before: string) => {
+    const lower = before.toLowerCase();
+    const lastHouse = Math.max(lower.lastIndexOf("house"), lower.lastIndexOf("holding"));
+    const lastPlot = lower.lastIndexOf("plot");
+    return lastPlot >= 0 && lastPlot > lastHouse;
+  };
+  const acceptPlaceHolding = (
+    before: string,
+    place: string,
+    prefixed: boolean,
+    after: string,
+  ) => {
+    if (skipPlace(place)) return false;
+    if (labelledAdminBefore(before) || plotListTail(before)) return false;
+    if (/^(?:road|rd|avenue|ave)\b/.test(after.trimStart())) return true;
+    if (VILLAGE_EXTRA_PLACES.has(place)) return false;
+    if (HOUSING_CAMPUS_PLACES.has(place)) return true;
+    if (ADMIN_TOKENS.has(place)) return true;
+    return Boolean(prefixed);
+  };
+  const out: Array<{ digit: string; place: string }> = [];
+  for (const m of withHo.matchAll(
+    /(?:^|,\s*|(?<=[a-z])\s+)((?:no\s*[:.\-]?|number|#)\s*)?(\d{1,3})([\/.\-]?[a-z]|\/[a-z0-9]+)?\s+(?:(?:new|east|west|inner)\s+)?([a-z]{3,})\b/g,
+  )) {
+    if (
+      !acceptPlaceHolding(
+        withHo.slice(0, m.index ?? 0),
+        m[4]!,
+        Boolean(m[1]),
+        withHo.slice((m.index ?? 0) + m[0].length),
+      )
+    ) {
+      continue;
+    }
+    const after = withHo.slice((m.index ?? 0) + m[0].length);
+    // "6 Maymashingo Road" is a road extra, not a second house at a place.
+    if (/^(?:road|rd|avenue|ave)\b/.test(after.trimStart())) continue;
+    out.push({ digit: String(Number(m[2]!)), place: m[4]! });
+  }
+  for (const m of withHo.matchAll(
+    /(?:^|,\s*)((?:no\s*[:.\-]?|number|#)\s*)?(\d{1,3})\s*,\s*(?:new\s+)?([a-z]{2,})/g,
+  )) {
+    if (
+      !acceptPlaceHolding(
+        withHo.slice(0, m.index ?? 0),
+        m[3]!,
+        Boolean(m[1]),
+        withHo.slice((m.index ?? 0) + m[0].length),
+      )
+    ) {
+      continue;
+    }
+    const after = withHo.slice((m.index ?? 0) + m[0].length);
+    if (/^(?:road|rd|avenue|ave)\b/.test(after.trimStart())) continue;
+    out.push({ digit: String(Number(m[2]!)), place: m[3]! });
+  }
+  return out;
+}
+
+/** No.187 Bashundhara is not No.187 Aftabnagar even when the digit matches. */
+function extraPlaceConflict(a: Candidate, b: Candidate): boolean {
+  const pa = extraPlacePairs(a.display);
+  const pb = extraPlacePairs(b.display);
+  for (const x of pa) {
+    for (const y of pb) {
+      if (x.digit !== y.digit) continue;
+      if (sameWord(x.place, y.place)) continue;
+      if (VILLAGE_EXTRA_PLACES.has(x.place) || VILLAGE_EXTRA_PLACES.has(y.place)) continue;
+      return true;
+    }
+  }
+  return false;
 }
 
 function hasTwoHoldings(display: string): boolean {
@@ -2965,7 +3114,6 @@ export function locationOverviewMeta(
   return `${uniqueCount} unique ${locLabel} · ${recordCount} source ${recLabel}`;
 }
 
-/** Legacy adapter — header primary address lookup. */
 export function dedupAddresses<T extends AddressRowRaw>(
   rows: readonly T[],
 ): DedupedAddress<T>[] {
