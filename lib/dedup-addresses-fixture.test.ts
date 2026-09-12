@@ -5,6 +5,7 @@ import { describe, it } from "node:test";
 
 import {
   cleanAddressString,
+  extraHoldingsConflict,
   idSetsOverlap,
   leftoverUniqueDigitConflict,
   mergeUniqueLocations,
@@ -103,7 +104,13 @@ describe("published multi-string fixture", () => {
           const a = premisesIdentifiers(rows[i]!.address);
           const b = premisesIdentifiers(rows[j]!.address);
           if (a.size === 0 || b.size === 0) continue;
-          if (idSetsOverlap(a, b) && !leftoverUniqueDigitConflict(a, b)) continue;
+          if (
+            idSetsOverlap(a, b) &&
+            !leftoverUniqueDigitConflict(a, b) &&
+            !extraHoldingsConflict(rows[i]!.address, rows[j]!.address)
+          ) {
+            continue;
+          }
           const merged = mergeUniqueLocations([rows[i]!, rows[j]!]);
           assert.equal(
             merged.length,
@@ -327,6 +334,39 @@ describe("published multi-string fixture", () => {
       3,
       "Chandora, Chandona and Chandra stay three premises",
     );
+    {
+      const aboni = mergeUniqueLocations(groupOf("aboni-knitwear", "factory").rows);
+      assert.equal(aboni.length, 2, `aboni-knitwear factory still ${aboni.length}`);
+      const locOf = (needle: RegExp) => {
+        const i = aboni.findIndex((l) => l.source_rows.some((r) => needle.test(r.address)));
+        assert.ok(i >= 0, `aboni missing ${needle}`);
+        return i;
+      };
+      assert.equal(
+        locOf(/160-171/),
+        locOf(/Plot- 169-171/),
+        "aboni 160-171 sits with Plot 169-171 leftover neighbour list",
+      );
+      assert.notEqual(
+        locOf(/Kandi Boilapur/),
+        locOf(/Plot- 169-171/),
+        "aboni Kandi Boilapur stays off the Hamayetpur plot campus",
+      );
+    }
+    {
+      const wicus = mergeUniqueLocations(groupOf("sg-wicus-bd", "factory").rows);
+      assert.equal(wicus.length, 2, `sg-wicus-bd factory still ${wicus.length}`);
+      const locOf = (needle: RegExp) => {
+        const i = wicus.findIndex((l) => l.source_rows.some((r) => needle.test(r.address)));
+        assert.ok(i >= 0, `sg-wicus missing ${needle}`);
+        return i;
+      };
+      assert.notEqual(
+        locOf(/Plot # 73-76/),
+        locOf(/Plot No\. 73, 77-80/),
+        "sg-wicus Plot 73-76 stays apart from Plot 73, 77-80 Old Zone",
+      );
+    }
     assert.equal(
       mergeUniqueLocations(groupOf("aanytex", "factory").rows).length,
       2,

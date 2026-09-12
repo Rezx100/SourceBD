@@ -32,6 +32,17 @@ function displays(rows: AddressRowRaw[]): string[] {
   return mergeUniqueLocations(rows).map((l) => l.displayAddress);
 }
 
+function permutations<T>(items: T[]): T[][] {
+  if (items.length <= 1) return [items];
+  const out: T[][] = [];
+  for (let i = 0; i < items.length; i++) {
+    for (const rest of permutations([...items.slice(0, i), ...items.slice(i + 1)])) {
+      out.push([items[i]!, ...rest]);
+    }
+  }
+  return out;
+}
+
 describe("mergeUniqueLocations — merges variants of one premises", () => {
   it("merges a one-letter transliteration difference (Kainzanul / Kainjanul)", () => {
     const merged = mergeUniqueLocations([
@@ -2951,6 +2962,34 @@ describe("mergeUniqueLocations — empty rows, duplicates, overview buckets", ()
       2,
     );
     {
+      const plot10 = row(
+        "Plot # 10, Holding # 1/A, Road # 9, Block-A, Gulshan, Dhaka-1212, Bangladesh",
+      );
+      const plotEight = row("Plot # 8 & 10, Holding # 1/A, Gulshan, Dhaka");
+      const dag = row("Holding # 1/A, Dag 10, Gulshan, Dhaka");
+      for (const ordered of permutations([plot10, plotEight, dag])) {
+        const leftover = mergeUniqueLocations(ordered);
+        assert.equal(leftover.length, 2, "Holding leftover 3-row must stay two Locations rows");
+        const eightLoc = leftover.find((loc) =>
+          loc.source_rows.some((r) => /Plot # 8 & 10/.test(r.address)),
+        );
+        const dagLoc = leftover.find((loc) =>
+          loc.source_rows.some((r) => /Dag 10/.test(r.address)),
+        );
+        assert.ok(eightLoc, "Plot 8 & 10 Holding row missing");
+        assert.ok(dagLoc, "Dag 10 row missing");
+        assert.notEqual(eightLoc, dagLoc);
+        assert.ok(
+          !eightLoc!.source_rows.some((r) => /Plot # 10, Holding/.test(r.address)),
+          "Plot 8 & 10 Holding must not sit on the Plot 10 location",
+        );
+        assert.ok(
+          dagLoc!.source_rows.some((r) => /Plot # 10, Holding/.test(r.address)),
+          "Dag 10 must sit with Plot 10",
+        );
+      }
+    }
+    {
       const leftover = mergeUniqueLocations([
         row(
           "Plot # 10, Holding # 1/A, Road # 9, Block-A, Gulshan, Dhaka-1212, Bangladesh",
@@ -3141,6 +3180,246 @@ describe("mergeUniqueLocations — empty rows, duplicates, overview buckets", ()
         "House 50 must stay with 7 Gulshan Avenue",
       );
     }
+    assert.equal(
+      displays([
+        row("House # 50, Road # 3, No.7 Gulshan, Gulshan-1, Dhaka"),
+        row("House # 50, Road # 3, 7 Banani Road, Gulshan-1, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 50, Road # 3, No.7 Gulshan, Gulshan-1, Dhaka"),
+        row("House # 50, Road # 3, No.7 Banani Road, Gulshan-1, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 50, Road # 3, 7 Gulshan, Gulshan-1, Dhaka"),
+        row("House # 50, Road # 3, 7 Banani Road, Gulshan-1, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 50, Road # 3, 7 Gulshan Avenue, Gulshan-1, Dhaka"),
+        row("House # 50, Road # 3, 7 Banani, Gulshan-1, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 50, Road # 3, 7 Gulshan Avenue, Gulshan-1, Dhaka"),
+        row("House # 50, Road # 3, No.7 Banani, Gulshan-1, Dhaka"),
+      ]).length,
+      2,
+    );
+    for (const bananiTail of [
+      "7 Banani Street",
+      "7 Banani Lane",
+      "7 Banani Boulevard",
+      "7 Banani Drive",
+      "7 Banani Close",
+    ]) {
+      assert.equal(
+        displays([
+          row("House # 50, Road # 3, 7 Gulshan Avenue, Gulshan-1, Dhaka"),
+          row(`House # 50, Road # 3, ${bananiTail}, Gulshan-1, Dhaka`),
+        ]).length,
+        2,
+        `7 Gulshan Avenue vs ${bananiTail}`,
+      );
+    }
+    assert.equal(
+      displays([
+        row("House # 50, Road # 3, 7 Gulshan Lane, Gulshan-1, Dhaka"),
+        row("House # 50, Road # 3, 7 Banani Road, Gulshan-1, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 50, Road # 3, SAT 7 Gulshan Avenue, Gulshan-1, Dhaka"),
+        row("House # 50, Road # 3, 7 Banani Road, Gulshan-1, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 50, Road # 3, SAT 7 Gulshan, Gulshan-1, Dhaka"),
+        row("House # 50, Road # 3, 7 Banani Road, Gulshan-1, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 50, Road # 3, 7 Gulshan Avenue, Gulshan-1, Dhaka"),
+        row("House # 50, Road # 3, SAT 7 Banani Road, Gulshan-1, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 50, Road # 3, Gulshan-1, Dhaka"),
+        row("House # 50, Road # 3, 7 Banani Road, Gulshan-1, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 50, Road # 3, Gulshan-1, Dhaka"),
+        row("House # 50, Road # 3, No.7 Banani Road, Gulshan-1, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 50, Road # 3, Gulshan-1, Dhaka"),
+        row("House # 50, Road # 3, 7 Banani, Gulshan-1, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 50, Road # 3, Gulshan-1, Dhaka"),
+        row("House # 50, Road # 3, SAT 7 Gulshan Avenue, Gulshan-1, Dhaka"),
+      ]).length,
+      1,
+    );
+    for (const other of [
+      "7 Tejgaon Road",
+      "7 Mirpur Road",
+      "7 Uttara Road",
+      "7 Pallabi Road",
+      "7 Baridhara Road",
+      "7 Tejgaon",
+      "7 Mohakhali",
+      "7 Badda",
+      "7 Eskaton",
+    ]) {
+      assert.equal(
+        displays([
+          row("House # 50, Road # 3, 7 Gulshan Avenue, Gulshan-1, Dhaka"),
+          row(`House # 50, Road # 3, ${other}, Gulshan-1, Dhaka`),
+        ]).length,
+        2,
+        `7 Gulshan Avenue vs ${other} with Gulshan-1`,
+      );
+    }
+    {
+      const mixed = [
+        row("House # 50, Road # 3, Gulshan-1, Dhaka"),
+        row("House # 50, Road # 3, 7 Gulshan, Gulshan-1, Dhaka"),
+        row("House # 50, Road # 3, 7 Banani Road, Gulshan-1, Dhaka"),
+      ];
+      for (const ordered of permutations(mixed)) {
+        const locs = mergeUniqueLocations(ordered);
+        assert.equal(locs.length, 2, "House50 + 7 Gulshan + 7 Banani Road");
+        const campus = locs.find((loc) =>
+          loc.source_rows.some((r) => /House # 50, Road # 3, Gulshan-1, Dhaka/.test(r.address)),
+        );
+        const banani = locs.find((loc) =>
+          loc.source_rows.some((r) => /Banani Road/.test(r.address)),
+        );
+        assert.ok(campus);
+        assert.ok(banani);
+        assert.notEqual(campus, banani);
+        assert.ok(
+          campus!.source_rows.some((r) => /7 Gulshan/.test(r.address)),
+          "House 50 must stay with 7 Gulshan",
+        );
+        assert.ok(
+          !campus!.source_rows.some((r) => /Banani Road/.test(r.address)),
+          "7 Banani Road must not sit on the House 50 / 7 Gulshan row",
+        );
+      }
+    }
+    {
+      const withGulshan1 = [
+        row("House # 50, Road # 3, Gulshan-1, Dhaka"),
+        row("House # 50, Road # 3, 7 Gulshan Avenue, Gulshan-1, Dhaka"),
+        row("House # 50, Road # 3, 7 Banani Road, Gulshan-1, Dhaka"),
+      ];
+      for (const ordered of permutations(withGulshan1)) {
+        const locs = mergeUniqueLocations(ordered);
+        assert.equal(locs.length, 2, "House50 + 7 Gulshan Avenue + 7 Banani Road Gulshan-1");
+        const campus = locs.find((loc) =>
+          loc.source_rows.some((r) => /House # 50, Road # 3, Gulshan-1, Dhaka/.test(r.address)),
+        );
+        assert.ok(campus);
+        assert.ok(
+          campus!.source_rows.some((r) => /7 Gulshan Avenue/.test(r.address)),
+          "House 50 must stay with 7 Gulshan Avenue",
+        );
+        assert.ok(
+          !campus!.source_rows.some((r) => /Banani Road/.test(r.address)),
+        );
+      }
+    }
+    assert.equal(
+      displays([
+        row("House # 62, Plot # 10, Number 187 Bashundhara, Dhaka"),
+        row("House # 62, Plot # 10, Number 13 Bashundhara, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62, Plot # 10, 187 Bashundhara, Dhaka"),
+        row("House # 62, Plot # 10, 13 Bashundhara, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62, Holding # 1, Number 187 Bashundhara, Dhaka"),
+        row("House # 62, Holding # 1, Number 13 Bashundhara, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62, House # 10, Number 187 Bashundhara, Dhaka"),
+        row("House # 62, House # 10, Number 13 Bashundhara, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62, Road # 3, Block-B, Niketon, Number 187 Bashundhara, Dhaka"),
+        row("House # 62, Road # 3, Block-B, Niketon, Number 100 Bashundhara, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62, Road # 3, Block-B, Niketon, Number 187 Bashundhara, Dhaka"),
+        row("House # 62, Road # 3, Block-B, Niketon, Number 186 Bashundhara, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62, Number 87, Tejgaon, Dhaka"),
+        row("House # 62, Number 13, Tejgaon, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62, Road # 3, Block-B, Niketon, 187, Aftabnagar, Dhaka"),
+        row("House # 62, Road # 3, Block-B, Niketon, No.187 Bashundhara, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62, Road # 3, Block-B, Niketon, 12 Badda, Dhaka"),
+        row("House # 62, Road # 3, Block-B, Niketon, 12 Eskaton, Dhaka"),
+      ]).length,
+      2,
+    );
     assert.equal(
       displays([
         row("Plot # 8 & 10, Block-A, Gulshan, Dhaka"),

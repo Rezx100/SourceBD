@@ -108,7 +108,7 @@ const GROUP_KIND = CATEGORY_BY_GROUP as Record<string, LocationKind>;
 
 type LocateState = "idle" | "loading" | "success" | "failed";
 
-function AddressRow({
+export function AddressRow({
   location,
   groupTitle,
   isSelected,

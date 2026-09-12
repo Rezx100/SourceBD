@@ -1,11 +1,10 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, it } from "node:test";
 
 import { LocationRowMarkup } from "../components/supplier/also-recorded-as";
+import { AddressRow } from "../components/supplier/locations-section";
 import {
   buildLocationOverview,
   type AddressRowRaw,
@@ -143,15 +142,34 @@ describe("Locations Also recorded as — rendered HTML boundary", () => {
     );
   });
 
-  it("LocationsSection renders AlsoRecordedAs from the shared pill component", () => {
-    const src = readFileSync(
-      join(process.cwd(), "components/supplier/locations-section.tsx"),
-      "utf8",
+  it("LocationsSection AddressRow HTML contains Also recorded as pills", () => {
+    const html = renderToStaticMarkup(
+      createElement(AddressRow, {
+        location: {
+          displayAddress: "House # 50, Road # 3, Gulshan-1, Dhaka",
+          floors: [],
+          variants: [
+            {
+              address: "House # 50, Road # 3, 7 Gulshan Avenue, Gulshan-1, Dhaka",
+              authorities: ["BGMEA"],
+            },
+          ],
+          types: ["factory"],
+          authorities: ["BGMEA"],
+          markerIndex: null,
+        },
+        groupTitle: "Factories",
+        isSelected: false,
+        locateState: "idle",
+        showSiteNumber: false,
+        onClick: () => undefined,
+      }),
     );
-    assert.match(src, /import \{ AlsoRecordedAs \} from "@\/components\/supplier\/also-recorded-as"/);
-    assert.match(src, /<AlsoRecordedAs variants=\{location.variants\} \/>/);
-    assert.match(src, /data-location-row=""/);
-    assert.match(src, /data-location-group=\{groupTitle\}/);
+    assert.match(html, /Also recorded as/);
+    assert.match(html, /data-also-recorded-as=/);
+    assert.match(html, /7 Gulshan Avenue/);
+    assert.match(html, /data-location-row=""/);
+    assert.match(html, /data-location-group="Factories"/);
   });
 
   it("does not count a Mailing Also-recorded-as pill as the Factories row", () => {

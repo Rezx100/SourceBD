@@ -21,6 +21,12 @@ Module._resolveFilename = function resolveWithTestAliases(
   if (request === "next/cache") {
     return path.join(__dirname, "next-cache.cjs");
   }
+  if (request === "@phosphor-icons/react") {
+    return path.join(__dirname, "phosphor-icons-react.cjs");
+  }
+  if (typeof request === "string" && request.endsWith(".css")) {
+    return path.join(__dirname, "empty-css.cjs");
+  }
   if (request.startsWith("@/")) {
     return orig.call(
       this,

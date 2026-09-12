@@ -1550,6 +1550,10 @@ function extraHoldingConflict(a: Candidate, b: Candidate): boolean {
   const wordingB = premisesWordingIds(b);
   const aOnly = [...wordingA].filter((id) => !idSetsOverlap(new Set([id]), wordingB));
   const bOnly = [...wordingB].filter((id) => !idSetsOverlap(new Set([id]), wordingA));
+  // NUMBER187 vs NUMBER13, and unprefixed 187 vs 13 at Bashundhara, stay
+  // two Locations rows even when they also share Plot / Holding / House.
+  // Bare leftover plot digits (aboni 160-171 vs 169-171+195) are not this:
+  // those ids are not extraPlacePairs / NUMBER* second houses.
   const extraNumericKeys = (ids: string[]) => {
     const out: string[] = [];
     for (const id of ids) {
@@ -1564,8 +1568,27 @@ function extraHoldingConflict(a: Candidate, b: Candidate): boolean {
     }
     return out;
   };
+  const houseExtraNumerics = (ids: string[], c: Candidate) => {
+    const placeDigits = new Set(extraPlacePairs(c.display).map((p) => p.digit));
+    const out: string[] = [];
+    for (const id of ids) {
+      const parts = idParts(id);
+      if (parts.letters === "NUMBER" && /^\d{1,3}$/.test(parts.digits)) {
+        out.push(String(Number(parts.digits)));
+        continue;
+      }
+      if (/^\d{1,3}$/.test(id) && placeDigits.has(id)) out.push(id);
+    }
+    return out;
+  };
   if (overlappingIdCount(a.ids, b.ids) < 2) {
     if (extraNumericKeys(aOnly).length > 0 && extraNumericKeys(bOnly).length > 0) return true;
+  }
+  if (
+    houseExtraNumerics(aOnly, a).length > 0 &&
+    houseExtraNumerics(bOnly, b).length > 0
+  ) {
+    return true;
   }
   if (extraPlaceConflict(a, b)) return true;
   if (extraRoadPlaceConflict(a, b)) return true;
@@ -1731,6 +1754,22 @@ function leftoverPlotOnHouseOnly(a: Candidate, b: Candidate): boolean {
       leftoverPlot(plotOnly, withExtra) &&
       overlappingIdCount(a.ids, b.ids) < 2
     ) {
+      return true;
+    }
+  }
+  // Plot 8 & 10 + Holding 1/A is not Plot 10 + Holding 1/A. Shared holding
+  // 1 plus plot 10 looks like overlapN>=2 neighbour identity; the leftover
+  // plot 8 still is leftover. Neighbour lists with 2+ shared plots
+  // (23-24 ⊂ 23,24,25) and Plot 10 & 14 vs Plot 14 (no holding on both)
+  // stay one row.
+  if (
+    hasPlots(a) &&
+    hasPlots(b) &&
+    campusHouseIds(a).size > 0 &&
+    campusHouseIds(b).size > 0
+  ) {
+    const plotOverlap = overlappingIdCount(a.plotIds, b.plotIds);
+    if (plotOverlap < 2 && (leftoverPlot(a, b) || leftoverPlot(b, a))) {
       return true;
     }
   }
@@ -2651,19 +2690,45 @@ function hasTwoCampusWording(display: string): boolean {
   return false;
 }
 
+const THOROUGHFARE_AFTER_RE =
+  /^(?:road|rd|avenue|ave\.?|street|st\b|lane|boulevard|blvd|drive|drv|close)\b/;
+const ROAD_HOLDING_TAILS = [
+  "road",
+  "rd",
+  "avenue",
+  String.raw`ave\.?`,
+  "street",
+  "st",
+  "lane",
+  "boulevard",
+  "blvd",
+  "drive",
+  "close",
+];
+
+function isThoroughfareAfter(after: string): boolean {
+  return THOROUGHFARE_AFTER_RE.test(after.trimStart());
+}
+
 function roadHoldingEntries(display: string): Array<{ digit: string; tail: string }> {
   const s = display.toLowerCase();
   const p = String.raw`(?:(?:no\s*[:.\-]?|number|#)\s*)?`;
-  return [
-    ...s.matchAll(new RegExp(String.raw`(?:^|,\s*)${p}(\d{1,3})\s*,\s*(?:new\s+)?([a-z][^,]{0,40}?)\s+road\b`, "g")),
-    ...s.matchAll(new RegExp(String.raw`(?:^|,\s*)${p}(\d{1,3})\s+(?:new\s+)?([a-z][^,]{0,40}?)\s+road\b`, "g")),
-    ...s.matchAll(new RegExp(String.raw`(?:^|,\s*)${p}(\d{1,3})\s*,\s*(?:new\s+)?([a-z][^,]{0,40}?)\s+rd\b`, "g")),
-    ...s.matchAll(new RegExp(String.raw`(?:^|,\s*)${p}(\d{1,3})\s+(?:new\s+)?([a-z][^,]{0,40}?)\s+rd\b`, "g")),
-    ...s.matchAll(new RegExp(String.raw`(?:^|,\s*)${p}(\d{1,3})\s*,\s*(?:new\s+)?([a-z][^,]{0,40}?)\s+avenue\b`, "g")),
-    ...s.matchAll(new RegExp(String.raw`(?:^|,\s*)${p}(\d{1,3})\s+(?:new\s+)?([a-z][^,]{0,40}?)\s+avenue\b`, "g")),
-    ...s.matchAll(new RegExp(String.raw`(?:^|,\s*)${p}(\d{1,3})\s*,\s*(?:new\s+)?([a-z][^,]{0,40}?)\s+ave\.?\b`, "g")),
-    ...s.matchAll(new RegExp(String.raw`(?:^|,\s*)${p}(\d{1,3})\s+(?:new\s+)?([a-z][^,]{0,40}?)\s+ave\.?\b`, "g")),
-  ].map((m) => ({ digit: m[1]!, tail: m[2]! }));
+  const lead = String.raw`(?:^|,\s*|\bsat\s+)`;
+  const out: Array<{ digit: string; tail: string }> = [];
+  for (const word of ROAD_HOLDING_TAILS) {
+    const comma = new RegExp(
+      String.raw`${lead}${p}(\d{1,3})\s*,\s*(?:new\s+)?([a-z][^,]{0,40}?)\s+${word}\b`,
+      "g",
+    );
+    const space = new RegExp(
+      String.raw`${lead}${p}(\d{1,3})\s+(?:new\s+)?([a-z][^,]{0,40}?)\s+${word}\b`,
+      "g",
+    );
+    for (const re of [comma, space]) {
+      for (const m of s.matchAll(re)) out.push({ digit: m[1]!, tail: m[2]! });
+    }
+  }
+  return out;
 }
 
 function roadHoldingDigits(display: string): Set<string> {
@@ -2675,7 +2740,7 @@ function adminPlaceExtraEntries(display: string): Array<{ digit: string; tail: s
   const s = display.toLowerCase();
   const out: Array<{ digit: string; tail: string }> = [];
   for (const m of s.matchAll(
-    /(?:^|,\s*)(?:(?:no\s*[:.\-]?|number|#)\s*)?(\d{1,3})\s*,?\s*(?:new\s+)?([a-z]{3,})(?:-\d+)?\b/g,
+    /(?:^|,\s*|\bsat\s+)(?:(?:no\s*[:.\-]?|number|#)\s*)?(\d{1,3})\s*,?\s*(?:new\s+)?([a-z]{3,})(?:-\d+)?\b/g,
   )) {
     const place = m[2]!;
     if (!ADMIN_TOKENS.has(place)) continue;
@@ -2714,20 +2779,21 @@ function villageExtraDigit(digit: string, display: string): boolean {
 function roadExtraSharedWith(digit: string, display: string, other: Candidate): boolean {
   if (String(Number(digit)) !== "7") return false;
   const n = Number(digit);
+  const gulshanOnOther =
+    other.tokens.some((t) => t === "gulshan" || sameWord(t, "gulshan")) &&
+    !hasForeignHousingCampus(other, "gulshan");
+  if (!gulshanOnOther) return false;
+  if (
+    extraPlacePairs(display).some((p) => p.digit === String(n) && p.place === "gulshan")
+  ) {
+    return true;
+  }
   const entries = [
     ...roadHoldingEntries(display).filter((e) => Number(e.digit) === n),
     ...adminPlaceExtraEntries(display).filter((e) => Number(e.digit) === n),
   ];
   if (entries.length === 0) return false;
-  return entries.some((e) => {
-    const places = placeTokensFromTail(e.tail);
-    return places.some(
-      (p) =>
-        p === "gulshan" &&
-        other.tokens.some((t) => t === "gulshan" || sameWord(t, "gulshan")) &&
-        !hasForeignHousingCampus(other, "gulshan"),
-    );
-  });
+  return entries.some((e) => placeTokensFromTail(e.tail).some((p) => p === "gulshan"));
 }
 
 function holdingWordingDigits(display: string): Set<string> {
@@ -2758,6 +2824,7 @@ function holdingWordingDigits(display: string): Set<string> {
     const lastPlot = lower.lastIndexOf("plot");
     return lastPlot >= 0 && lastPlot > lastHouse;
   };
+  const roles = labelledRoleIds(display);
   // Housing-campus / thana numbers are a second house (13 Niketon, 187
   // Badda, 87 Tejgaon). Village tails after a named house (12 Dhour, 30
   // Dhour, No. 12 Dhour) are extra geography. A following road word keeps
@@ -2768,10 +2835,14 @@ function holdingWordingDigits(display: string): Set<string> {
     prefixed: boolean,
     unit: boolean,
     after: string,
+    digit: string,
   ) => {
     if (skipPlace(place)) return false;
-    if (labelledAdminBefore(before) || plotListTail(before)) return false;
-    if (/^(?:road|rd|avenue|ave)\b/.test(after.trimStart())) return true;
+    if (labelledAdminBefore(before)) return false;
+    if (plotListTail(before) && idSetsOverlap(new Set([digit]), roles.plotIds)) {
+      return false;
+    }
+    if (isThoroughfareAfter(after)) return true;
     if (VILLAGE_EXTRA_PLACES.has(place)) return false;
     if (HOUSING_CAMPUS_PLACES.has(place)) return true;
     if (ADMIN_TOKENS.has(place)) return true;
@@ -2791,6 +2862,7 @@ function holdingWordingDigits(display: string): Set<string> {
         Boolean(m[1]),
         Boolean(m[3]),
         withHo.slice((m.index ?? 0) + m[0].length),
+        String(Number(m[2]!)),
       ),
     )
     .map((m) => m[2]!);
@@ -2806,6 +2878,7 @@ function holdingWordingDigits(display: string): Set<string> {
         Boolean(m[1]),
         false,
         withHo.slice((m.index ?? 0) + m[0].length),
+        String(Number(m[2]!)),
       ),
     )
     .map((m) => m[2]!);
@@ -2840,18 +2913,25 @@ function premisesWordingIds(c: Candidate): Set<string> {
   return out;
 }
 
-/** 7 Gulshan Avenue is not 7 Banani Road. Spelling of the same road
- *  (Maymashingo vs Mymensing) has no housing-campus tail, so it stays one. */
+/** 7 Gulshan Avenue is not 7 Banani Road / 7 Tejgaon Road / 7 Banani.
+ *  Spelling of the same road (Maymashingo vs Mymensing) has no housing or
+ *  admin tail, so it stays one. */
 function extraRoadPlaceConflict(a: Candidate, b: Candidate): boolean {
-  const housingTails = (display: string) =>
-    roadHoldingEntries(display)
-      .map((e) => ({
-        digit: String(Number(e.digit)),
-        places: placeTokensFromTail(e.tail).filter((p) => HOUSING_CAMPUS_PLACES.has(p)),
-      }))
-      .filter((e) => e.places.length > 0);
-  const ea = housingTails(a.display);
-  const eb = housingTails(b.display);
+  const namedExtraTails = (display: string) => {
+    const out: Array<{ digit: string; places: string[] }> = [];
+    const keepPlace = (p: string) => HOUSING_CAMPUS_PLACES.has(p) || ADMIN_TOKENS.has(p);
+    for (const e of roadHoldingEntries(display)) {
+      const places = placeTokensFromTail(e.tail).filter(keepPlace);
+      if (places.length > 0) out.push({ digit: String(Number(e.digit)), places });
+    }
+    for (const p of extraPlacePairs(display)) {
+      if (!keepPlace(p.place)) continue;
+      out.push({ digit: p.digit, places: [p.place] });
+    }
+    return out;
+  };
+  const ea = namedExtraTails(a.display);
+  const eb = namedExtraTails(b.display);
   for (const x of ea) {
     for (const y of eb) {
       if (x.digit !== y.digit) continue;
@@ -2883,15 +2963,20 @@ function extraPlacePairs(display: string): Array<{ digit: string; place: string 
     const lastPlot = lower.lastIndexOf("plot");
     return lastPlot >= 0 && lastPlot > lastHouse;
   };
+  const roles = labelledRoleIds(display);
   const acceptPlaceHolding = (
     before: string,
     place: string,
     prefixed: boolean,
     after: string,
+    digit: string,
   ) => {
     if (skipPlace(place)) return false;
-    if (labelledAdminBefore(before) || plotListTail(before)) return false;
-    if (/^(?:road|rd|avenue|ave)\b/.test(after.trimStart())) return true;
+    if (labelledAdminBefore(before)) return false;
+    if (plotListTail(before) && idSetsOverlap(new Set([digit]), roles.plotIds)) {
+      return false;
+    }
+    if (isThoroughfareAfter(after)) return true;
     if (VILLAGE_EXTRA_PLACES.has(place)) return false;
     if (HOUSING_CAMPUS_PLACES.has(place)) return true;
     if (ADMIN_TOKENS.has(place)) return true;
@@ -2907,14 +2992,23 @@ function extraPlacePairs(display: string): Array<{ digit: string; place: string 
         m[4]!,
         Boolean(m[1]),
         withHo.slice((m.index ?? 0) + m[0].length),
+        String(Number(m[2]!)),
       )
     ) {
       continue;
     }
     const after = withHo.slice((m.index ?? 0) + m[0].length);
+    const place = m[4]!;
     // "6 Maymashingo Road" is a road extra, not a second house at a place.
-    if (/^(?:road|rd|avenue|ave)\b/.test(after.trimStart())) continue;
-    out.push({ digit: String(Number(m[2]!)), place: m[4]! });
+    // "7 Gulshan Avenue" / "7 Tejgaon Road" still mint 7@gulshan / 7@tejgaon.
+    if (
+      isThoroughfareAfter(after) &&
+      !HOUSING_CAMPUS_PLACES.has(place) &&
+      !ADMIN_TOKENS.has(place)
+    ) {
+      continue;
+    }
+    out.push({ digit: String(Number(m[2]!)), place });
   }
   for (const m of withHo.matchAll(
     /(?:^|,\s*)((?:no\s*[:.\-]?|number|#)\s*)?(\d{1,3})\s*,\s*(?:new\s+)?([a-z]{2,})/g,
@@ -2925,13 +3019,21 @@ function extraPlacePairs(display: string): Array<{ digit: string; place: string 
         m[3]!,
         Boolean(m[1]),
         withHo.slice((m.index ?? 0) + m[0].length),
+        String(Number(m[2]!)),
       )
     ) {
       continue;
     }
     const after = withHo.slice((m.index ?? 0) + m[0].length);
-    if (/^(?:road|rd|avenue|ave)\b/.test(after.trimStart())) continue;
-    out.push({ digit: String(Number(m[2]!)), place: m[3]! });
+    const place = m[3]!;
+    if (
+      isThoroughfareAfter(after) &&
+      !HOUSING_CAMPUS_PLACES.has(place) &&
+      !ADMIN_TOKENS.has(place)
+    ) {
+      continue;
+    }
+    out.push({ digit: String(Number(m[2]!)), place });
   }
   for (const m of withHo.matchAll(
     /\b(?:house|hosue|holding|hold)\s*(?:#|no\.?|number)?[\s.:-]*(\d{1,3})\s*,\s*(?:new\s+)?([a-z]{2,})\b/g,
@@ -3014,6 +3116,11 @@ function candidateFor(display: string): Candidate {
     twoCampus,
     display: stripped,
   };
+}
+
+/** Extra house/avenue/place conflict visible to fixture guards. */
+export function extraHoldingsConflict(addressA: string, addressB: string): boolean {
+  return extraHoldingConflict(candidateFor(addressA), candidateFor(addressB));
 }
 
 export function isRenumberAliasRow(address: string): boolean {
