@@ -429,7 +429,11 @@ const FLOOR_RE =
 const GROUND_FLOOR_SPAN_RE =
   /\bground\s+to\s+\d+\s*(?:st|nd|rd|th)?\s*floor(?:\s*(?:&|and)\s*\d+\s*(?:st|nd|rd|th)?\s*floor(?:\s+to\s+\d+\s*(?:st|nd|rd|th)?\s*floor)?)*/gi;
 
-const LEVEL_LIST_RE = /\blevel\s*[#:]?\s*\d+(?:\s*(?:,|&|and)\s*\d+)*/gi;
+const GROUND_AND_FLOOR_RE =
+  /\(?\s*\bground\s*(?:floor|fl|flr)?\s*(?:&|and)\s*\d+\s*(?:st|nd|rd|th)?\s*(?:floor|fl|flr)\b\.?\s*\)?/gi;
+
+const LEVEL_LIST_RE =
+  /\blevels?\s*[-#:]?\s*\d+(?:\s*(?:st|nd|rd|th))?(?:\s*(?:,|&|and)\s*\d+(?:\s*(?:st|nd|rd|th))?)*/gi;
 
 const ROOM_LIST_RE =
   /\broom\s*(?:no\.?|number|#|:)?\s*[-:]?\s*\d+(?:\s*(?:,|&|and)\s*\d+)*/gi;
@@ -446,6 +450,10 @@ export function extractFloors(address: string): {
   };
   const stripped = address
     .replace(GROUND_FLOOR_SPAN_RE, (match) => {
+      remember(match);
+      return " ";
+    })
+    .replace(GROUND_AND_FLOOR_RE, (match) => {
       remember(match);
       return " ";
     })
@@ -689,12 +697,24 @@ function sameWord(a: string, b: string): boolean {
     // Originals must also be close in length so "line"+"narayanganj" cannot
     // absorb a lone "narayanganj" through the concatenated sound-key.
     const [shortKey, longKey] = sound.length <= soundB.length ? [sound, soundB] : [soundB, sound];
+    const sharedLocalityTail = PLACE_TAILS.some(
+      (t) => t.length >= 3 && a.endsWith(t) && b.endsWith(t) && a !== b,
+    );
     if (
+      !sharedLocalityTail &&
       shortKey.length >= 2 &&
       longKey.length - shortKey.length <= 1 &&
       longKey.endsWith(shortKey) &&
       Math.min(a.length, b.length) >= 6 &&
       Math.abs(a.length - b.length) <= 3
+    ) {
+      return true;
+    }
+    // Emeraid / Emerald: one letter in a 7+ letter building name.
+    if (
+      levenshtein(a, b) === 1 &&
+      Math.min(a.length, b.length) >= 7 &&
+      a.slice(0, 4) === b.slice(0, 4)
     ) {
       return true;
     }
@@ -1288,7 +1308,7 @@ function overlappingIdDigits(ids: Set<string>): Set<string> {
 
 /** Road 6 vs Road 3 at the same house number are different premises.
  *  Plot numbers themselves (50-51 vs A-51) are not a road conflict. */
-const LABELLED_DIGIT_HEADS = new Set(["road", "sector"]);
+const LABELLED_DIGIT_HEADS = new Set(["road", "sector", "house"]);
 
 function labelledDigits(tokens: string[]): Map<string, Set<string>> {
   const out = new Map<string, Set<string>>();
@@ -1507,7 +1527,9 @@ function isBuildingLandmarkName(tokens: string[], i: number): boolean {
  *  Stand) must not count as the other side's village. */
 function villageTokens(tokens: string[]): string[] {
   return tokens.filter(
-    (_, i) => !isBuildingLandmarkName(tokens, i) && !isStreetPhrase(tokens, i),
+    (_, i) =>
+      !isBuildingLandmarkName(tokens, i) &&
+      (!isStreetPhrase(tokens, i) || isLocalityToken(tokens[i]!)),
   );
 }
 
@@ -1521,6 +1543,9 @@ function buildingLandmarkHeads(tokens: string[]): Array<{ name: string; kind: st
     const name = tokens[nameIdx]!;
     if (tokenWeight(name) === GENERIC_WEIGHT) continue;
     out.push({ name, kind });
+    if (nameIdx > 0 && tokenWeight(tokens[nameIdx - 1]!) === DISTINCT_WEIGHT) {
+      out.push({ name: concatTokens(tokens, nameIdx - 1, 2), kind });
+    }
   }
   return out;
 }
@@ -1614,22 +1639,53 @@ function firstTailedPlace(tokens: string[]): string | null {
   return null;
 }
 
+const NOT_A_PLACE = new Set([
+  "spinners",
+  "knitters",
+  "garments",
+  "fashion",
+  "limited",
+  "ltd",
+  "pvt",
+  "apparels",
+  "textiles",
+  "mills",
+  "knitting",
+  "composite",
+  "knitwear",
+  "hosiery",
+  "company",
+  "tel",
+  "fax",
+]);
+
 function firstDistinctPlace(tokens: string[]): string | null {
   let fallback: string | null = null;
   for (let i = 0; i < tokens.length; i++) {
-    if (isLandmarkName(tokens, i) || isStreetPhrase(tokens, i)) continue;
     const token = tokens[i]!;
+    if (isLandmarkName(tokens, i)) continue;
+    // "Degerchala Road" is still Degerchala. "Nazrul Islam Road" is not a village.
+    if (isStreetPhrase(tokens, i) && !isLocalityToken(token)) continue;
     if (tokenWeight(token) !== DISTINCT_WEIGHT) continue;
     if (/\d/.test(token)) continue;
-    // Four-letter mouza names (Kewa Mouja). Other short tokens are noise
-    // (Shee-101) and must not steal the village from a later Vogra.
+    if (NOT_A_PLACE.has(token)) continue;
+    // Four-letter mouza names (Kewa Mouja, Kewa, Sreepur, Mouza Kewa).
+    // Shee-101 stays skipped: next is a digit, not a place.
     if (token.length < 5) {
       const next = tokens[i + 1];
-      if (next !== "mouza" && next !== "mouja") continue;
+      const prev = i > 0 ? tokens[i - 1] : undefined;
+      const mouzaNext = next === "mouza" || next === "mouja";
+      const mouzaPrev = prev === "mouza" || prev === "mouja";
+      const nextIsPlace = Boolean(
+        next &&
+          !/\d/.test(next) &&
+          (isLocalityToken(next) || ADMIN_TOKENS.has(next)),
+      );
+      if (!mouzaNext && !mouzaPrev && !nextIsPlace) continue;
     }
     if (!fallback) fallback = token;
     if (isLocalityToken(token)) {
-      // Untailed villages (Vogra, Mouna, Dhanua) win over a later thana.
+      // Untailed villages (Vogra, Mouna, Dhanua, Kewa) win over a later thana.
       if (fallback && fallback !== token && !isLocalityToken(fallback)) return fallback;
       return token;
     }
@@ -1666,6 +1722,17 @@ function withPlaceStems(token: string): string[] {
   for (const tail of PLACE_TAILS) {
     if (token.length > tail.length + 3 && token.endsWith(tail)) {
       out.push(token.slice(0, -tail.length));
+    }
+  }
+  const prefix = /^(?:uttor|uttar|dakshin|dakkhin|dokkhin|purbo|purba)(.+)$/.exec(token);
+  const rest = prefix?.[1];
+  if (rest && rest.length >= 6) {
+    if (!out.includes(rest)) out.push(rest);
+    for (const tail of PLACE_TAILS) {
+      if (rest.length > tail.length + 3 && rest.endsWith(tail)) {
+        const stem = rest.slice(0, -tail.length);
+        if (!out.includes(stem)) out.push(stem);
+      }
     }
   }
   return out;
@@ -1781,6 +1848,8 @@ function isSameLocation(a: Candidate, b: Candidate): boolean {
   // enough (Uttara vs Mirpur plaza; Gazipur vs Ashulia).
   if (sameBuildingLandmark(a, b)) {
     if (sharedFineAdmin(a, b)) return true;
+    // Sujat Plaza house 2 at Mirpur-12 vs Pallabi: nested thanas, same house.
+    if (idsOverlap) return true;
     if (competingAdminDistricts(a, b)) return false;
   }
 
@@ -1865,7 +1934,9 @@ function isSameLocation(a: Candidate, b: Candidate): boolean {
         lb &&
         !sameWord(la, lb) &&
         !tokenInList(la, vb) &&
-        !tokenInList(lb, va)
+        !tokenInList(lb, va) &&
+        !NOT_A_PLACE.has(la) &&
+        !NOT_A_PLACE.has(lb)
       ) {
         return false;
       }
@@ -2000,6 +2071,7 @@ function isNumericOrFloorAtom(raw: string): boolean {
   if (!t) return false;
   if (/^(?:ground|floor|fl|flr|level|lvl|room|rooms|to)$/.test(t)) return true;
   if (/^\d+[a-z]?$/.test(t)) return true;
+  if (/^[a-z]\d+[a-z]?$/.test(t)) return true;
   if (/^\d+(?:st|nd|rd|th)$/.test(t)) return true;
   return false;
 }
@@ -2015,7 +2087,6 @@ function isNumericAmpersandJoin(left: string, right: string): boolean {
 }
 
 function looksLikeCampusPart(part: string): boolean {
-  if (!part.includes(",")) return false;
   const words = part
     .toLowerCase()
     .replace(/[^a-z]+/g, " ")
@@ -2027,7 +2098,10 @@ function looksLikeCampusPart(part: string): boolean {
           w,
         ),
     );
-  return words.length >= 1;
+  if (part.includes(",")) return words.length >= 1;
+  // After clean drops a repeated thana, the second campus may be one village
+  // ("Meherbari"). Floor atoms are already stripped.
+  return words.length === 1 && words[0]!.length >= 6;
 }
 
 function isMultiClauseAddress(display: string): boolean {
@@ -2044,6 +2118,10 @@ function isMultiClauseAddress(display: string): boolean {
   const unitNums = s.match(/\bunit-\d+\b/g) ?? [];
   if (new Set(unitNums).size >= 2) return true;
   if (/\bext(?:ended)?\.?\s*area\b/.test(s) && /\bold\.?\s*area\b/.test(s)) return true;
+  const houseNums = [...s.matchAll(/\bhouse\s*(?:#|no\.?|number)?\s*(\d+)\b/g)].map(
+    (m) => m[1]!,
+  );
+  if (new Set(houseNums).size >= 2) return true;
   // Two full addresses joined with "&" or " AND " (Ramarbag … & G-88/1).
   // Floor lists ("4th & 5th Fl", "LEVEL # 6 & 7") and plot lists
   // ("MSSFB # 1 & 2") are not two campuses.

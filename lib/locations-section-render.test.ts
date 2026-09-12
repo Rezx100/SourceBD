@@ -20,6 +20,11 @@ function row(address: string, source_code: string, kind: string): AddressRowRaw 
   };
 }
 
+function locationRowHtml(html: string, group: string): string | undefined {
+  const chunks = html.split(/(?=<div data-location-row="")/).filter(Boolean);
+  return chunks.find((chunk) => chunk.includes(`data-location-group="${group}"`));
+}
+
 function renderOverview(rows: AddressRowRaw[]): string {
   const overview = buildLocationOverview(rows);
   return overview.groups
@@ -82,19 +87,18 @@ describe("Locations Also recorded as — rendered HTML boundary", () => {
     assert.match(html, /data-also-recorded-authorities="[^"]*(?:BGMEA|BKMEA)/);
     assert.match(html, /Gojariapara/);
     assert.match(html, /Kauitis|Gajaria Para/);
-    const factoryRow = html.match(
-      /<div[^>]*data-location-group="Factories"[^>]*>[\s\S]*?<\/div>/,
-    )?.[0];
+    const factoryRow = locationRowHtml(html, "Factories");
     assert.ok(factoryRow, "Habitus Factories row missing");
     assert.match(factoryRow, /data-location-display=""/);
     assert.match(factoryRow, /Gojariapara|Gojaria/i);
     assert.match(factoryRow, />OEKO-TEX</);
+    assert.match(factoryRow, /data-also-recorded-as=/);
     assert.doesNotMatch(html, /\[object Object\]/);
-    const alsoBlocks = html.match(/data-also-recorded-as=""[^>]*>[\s\S]*?<\/li>/g) ?? [];
+    const alsoBlocks = factoryRow.match(/<li[^>]*data-also-recorded-as=""[^>]*>[\s\S]*?<\/li>/g) ?? [];
     assert.ok(alsoBlocks.length >= 1);
     assert.ok(
       alsoBlocks.some((block) => /Gajaria/i.test(block) && /BGMEA/.test(block)),
-      "BGMEA must sit on the Gajaria Also recorded as pill",
+      "BGMEA must sit on the Gajaria Also recorded as pill on the Factories row",
     );
     for (const block of alsoBlocks) {
       assert.match(block, />BGMEA<|>BKMEA<|>OEKO-TEX</);
@@ -107,11 +111,12 @@ describe("Locations Also recorded as — rendered HTML boundary", () => {
     const mailingRows = html.match(/data-location-group="Mailing addresses"/g) ?? [];
     assert.equal(factoryRows.length, 1);
     assert.equal(mailingRows.length, 1);
-    assert.match(html, /Also recorded as/);
-    assert.match(html, /Mouza Kewa|Ghorgaria|Ghargaria/);
-    assert.match(html, />OEKO-TEX</);
-    assert.match(html, /data-also-recorded-authorities="[^"]*OEKO_TEX/);
-    const alsoBlocks = html.match(/data-also-recorded-as=""[^>]*>[\s\S]*?<\/li>/g) ?? [];
+    const factoryRow = locationRowHtml(html, "Factories");
+    assert.ok(factoryRow, "Fakhruddin Factories row missing");
+    assert.match(factoryRow, /Mouza Kewa|Ghorgaria|Ghargaria|Kewa/i);
+    assert.match(factoryRow, />OEKO-TEX</);
+    assert.match(factoryRow, /data-also-recorded-as=/);
+    const alsoBlocks = factoryRow.match(/<li[^>]*data-also-recorded-as=""[^>]*>[\s\S]*?<\/li>/g) ?? [];
     assert.ok(
       alsoBlocks.some(
         (block) => /Ghorgaria|Ghargaria/i.test(block) && /OEKO-TEX/.test(block),

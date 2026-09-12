@@ -9,7 +9,7 @@ import {
   mergeUniqueLocations,
   normaliseAddressKey,
   premisesIdentifiers,
-  sourceRowsHaveConflictingIds,
+  isRenumberAliasRow,
   type AddressRowRaw,
 } from "./dedup-addresses";
 
@@ -117,11 +117,23 @@ describe("published multi-string fixture", () => {
     for (const group of fixture.groups) {
       const merged = mergeUniqueLocations(group.rows);
       for (const loc of merged) {
-        assert.equal(
-          sourceRowsHaveConflictingIds(loc.source_rows, loc.source_rows),
-          false,
-          `${group.slug} ${group.kind} fused unbridged ids at ${loc.displayAddress}`,
-        );
+        const rows = loc.source_rows;
+        const hinges = rows.filter((row) => isRenumberAliasRow(row.address));
+        const hingeIds = hinges.map((row) => premisesIdentifiers(row.address));
+        for (let i = 0; i < rows.length; i++) {
+          const ia = premisesIdentifiers(rows[i]!.address);
+          if (ia.size === 0) continue;
+          for (let j = i + 1; j < rows.length; j++) {
+            const ib = premisesIdentifiers(rows[j]!.address);
+            if (ib.size === 0) continue;
+            if (idSetsOverlap(ia, ib)) continue;
+            const bridged = hingeIds.some((ih) => idSetsOverlap(ia, ih) && idSetsOverlap(ib, ih));
+            assert.ok(
+              bridged,
+              `${group.slug} ${group.kind} fused unbridged ids at ${loc.displayAddress}`,
+            );
+          }
+        }
       }
     }
   });
@@ -177,6 +189,14 @@ describe("published multi-string fixture", () => {
       ["shamser-knit-fashions", "factory"],
       ["sikder-garments-accessories", "factory"],
       ["east-coast-knitwear", "factory"],
+      ["asf-fabrics-mills", "mailing"],
+      ["mango-knit-composite", "factory"],
+      ["mondol-fashions", "mailing"],
+      ["sfu-fashion", "factory"],
+      ["fin-bangla-apparels", "factory"],
+      ["bangladesh-naxis", "registered"],
+      ["echoknits", "factory"],
+      ["bangladesh-spinners-and-knitters", "factory"],
     ];
     for (const [slug, kind] of expectOne) {
       const n = mergeUniqueLocations(groupOf(slug, kind).rows).length;
@@ -562,12 +582,18 @@ describe("published multi-string fixture", () => {
     };
 
     const beta = once("beta-packaging", "factory");
+    assert.equal(beta.length, 4, `beta-packaging factory still ${beta.length}`);
     const kewa = locOf(beta, /Kewa Mouja/, "beta kewa");
     const dhanua = locOf(beta, /Dhanua, Maona/, "beta dhanua");
     const satiabari = locOf(beta, /Satiabari, Rajendrapur/, "beta satiabari");
     assert.notEqual(dhanua, satiabari, "beta Dhanua vs Satiabari");
     assert.notEqual(kewa, dhanua, "beta Kewa vs Dhanua");
     assert.notEqual(kewa, satiabari, "beta Kewa vs Satiabari");
+    assert.notEqual(
+      locOf(beta, /Mahona, Duptara/, "beta mahona"),
+      dhanua,
+      "beta Mahona vs Dhanua",
+    );
     assert.equal(
       locOf(beta, /Bhangnahati, Sreepur/, "beta bhangnahati"),
       kewa,
@@ -575,6 +601,7 @@ describe("published multi-string fixture", () => {
     );
 
     const peakFactory = once("peak-apparels", "factory");
+    assert.equal(peakFactory.length, 2, `peak-apparels factory still ${peakFactory.length}`);
     assert.notEqual(
       locOf(peakFactory, /Vogra/, "peak vogra"),
       locOf(peakFactory, /242 SHARIFPUR/, "peak sharifpur"),
@@ -592,6 +619,7 @@ describe("published multi-string fixture", () => {
     );
 
     const euro = once("euro-knit-spin-garments", "factory");
+    assert.equal(euro.length, 2, `euro-knit-spin-garments factory still ${euro.length}`);
     assert.notEqual(
       locOf(euro, /Nayamati, Kutubpur/, "euro nayamati"),
       locOf(euro, /B-94/, "euro B-94"),
@@ -612,6 +640,48 @@ describe("published multi-string fixture", () => {
       locOf(agami, /Nayapara, Kathgora/, "agami nayapara"),
       locOf(agami, /Kathgara, Bishmail/, "agami bishmail"),
       "agami Nayapara vs Bishmail/Kathgara",
+    );
+  });
+
+  it("keeps competing Kewa/Chodhona, Jamirdia/Meherbari, and House 62/82 apart", () => {
+    const once = (slug: string, kind: string) => mergeUniqueLocations(groupOf(slug, kind).rows);
+    const locOf = (
+      merged: ReturnType<typeof mergeUniqueLocations>,
+      needle: RegExp,
+      label: string,
+    ) => {
+      const i = merged.findIndex((l) => l.source_rows.some((r) => needle.test(r.address)));
+      assert.ok(i >= 0, `${label} missing ${needle}`);
+      return i;
+    };
+
+    const siji = once("siji-garments", "factory");
+    assert.equal(siji.length, 2, `siji-garments factory still ${siji.length}`);
+    assert.notEqual(
+      locOf(siji, /Teknog Para, Chodhona/, "siji chodhona"),
+      locOf(siji, /Kewa, Sreepur/, "siji kewa"),
+      "siji Teknog/Chodhona vs Kewa on plot 47",
+    );
+
+    const kamal = once("kamal-yarn", "factory");
+    assert.equal(kamal.length, 2, `kamal-yarn factory still ${kamal.length}`);
+    assert.notEqual(
+      locOf(kamal, /Meherbari/, "kamal meherbari"),
+      locOf(kamal, /Jamirdia, Habirbari, P\.S: Valuka/, "kamal jamirdia-only"),
+      "kamal-yarn Meherbari concat vs Jamirdia-only",
+    );
+    assert.ok(
+      !kamal[locOf(kamal, /Meherbari/, "kamal concat")]!.source_rows.some((r) =>
+        /P\.S: Valuka/.test(r.address),
+      ),
+      "kamal-yarn campus-only source row must not sit in the concat location",
+    );
+
+    const blueBird = once("blue-bird-fashion", "registered");
+    assert.notEqual(
+      locOf(blueBird, /House # 62 \(1st Floor\), Road # 3, Block-B, Niketon/, "blue-bird 62-only"),
+      locOf(blueBird, /House # 82/, "blue-bird 82 concat"),
+      "blue-bird House 62-only vs House 82 concat",
     );
   });
 

@@ -36,7 +36,38 @@ const fixture = JSON.parse(
   readFileSync(join(root, "lib/fixtures/v-supplier-addresses-multi-string.json"), "utf8"),
 ) as Fixture;
 
-const namedSlugs = ["habitus-fashion", "fakhruddin-textile-mills"];
+const namedSlugs = [
+  "habitus-fashion",
+  "fakhruddin-textile-mills",
+  "siji-garments",
+  "kamal-yarn",
+  "blue-bird-fashion",
+  "asf-fabrics-mills",
+  "mango-knit-composite",
+  "mondol-fashions",
+  "sfu-fashion",
+  "fin-bangla-apparels",
+  "bangladesh-naxis",
+  "echoknits",
+  "bangladesh-spinners-and-knitters",
+];
+const mustStayMulti: Array<{ slug: string; kind: string; minLocations: number }> = [
+  { slug: "siji-garments", kind: "factory", minLocations: 2 },
+  { slug: "kamal-yarn", kind: "factory", minLocations: 2 },
+  { slug: "blue-bird-fashion", kind: "registered", minLocations: 2 },
+];
+const mustMergeToOne: Array<{ slug: string; kind: string }> = [
+  { slug: "habitus-fashion", kind: "factory" },
+  { slug: "fakhruddin-textile-mills", kind: "factory" },
+  { slug: "asf-fabrics-mills", kind: "mailing" },
+  { slug: "mango-knit-composite", kind: "factory" },
+  { slug: "mondol-fashions", kind: "mailing" },
+  { slug: "sfu-fashion", kind: "factory" },
+  { slug: "fin-bangla-apparels", kind: "factory" },
+  { slug: "bangladesh-naxis", kind: "registered" },
+  { slug: "echoknits", kind: "factory" },
+  { slug: "bangladesh-spinners-and-knitters", kind: "factory" },
+];
 const stillSplit: Array<{
   slug: string;
   company_name: string;
@@ -87,6 +118,24 @@ const named = namedSlugs.map((slug) => {
 });
 
 const stillMulti = stillSplit.length;
+const overMergeHits = mustStayMulti.flatMap((watch) => {
+  const group = fixture.groups.find((g) => g.slug === watch.slug && g.kind === watch.kind);
+  if (!group) return [{ ...watch, locations: 0, reason: "missing-from-fixture" }];
+  const locations = mergeUniqueLocations(group.rows).length;
+  if (locations < watch.minLocations) {
+    return [{ slug: watch.slug, kind: watch.kind, minLocations: watch.minLocations, locations }];
+  }
+  return [];
+});
+const underMergeHits = mustMergeToOne.flatMap((watch) => {
+  const group = fixture.groups.find((g) => g.slug === watch.slug && g.kind === watch.kind);
+  if (!group) return [{ ...watch, locations: 0, reason: "missing-from-fixture" }];
+  const locations = mergeUniqueLocations(group.rows).length;
+  if (locations !== 1) {
+    return [{ slug: watch.slug, kind: watch.kind, locations }];
+  }
+  return [];
+});
 const lines = [
   "# Address near-dup report",
   "",
@@ -95,6 +144,8 @@ const lines = [
   `Matcher merged to 1 location: **${mergedToOne}** (was 1,622 on the previous matcher)`,
   `Groups still showing 2+ locations: **${stillMulti}** (was 1,652)`,
   `Conflicting-plot merges (must be 0): **${conflictingIdMerges}**`,
+  `Named over-merges (must be 0): **${overMergeHits.length}**`,
+  `Named under-merges (must be 0): **${underMergeHits.length}**`,
   "",
   "Named suppliers:",
   ...named.flatMap((n) => [
@@ -117,8 +168,32 @@ for (const g of stillSplit) {
 writeFileSync(join(root, "ops/plans/address-near-dup-report.md"), `${lines.join("\n")}\n`);
 writeFileSync(
   join(root, "ops/plans/address-near-dup-remaining.json"),
-  JSON.stringify({ mergedToOne, stillMulti, conflictingIdMerges, named, stillSplit }, null, 2),
+  JSON.stringify(
+    {
+      mergedToOne,
+      stillMulti,
+      conflictingIdMerges,
+      overMergeHits,
+      underMergeHits,
+      named,
+      stillSplit,
+    },
+    null,
+    2,
+  ),
 );
 console.log(
-  JSON.stringify({ groups: fixture.groups.length, mergedToOne, stillMulti, conflictingIdMerges, named }, null, 2),
+  JSON.stringify(
+    {
+      groups: fixture.groups.length,
+      mergedToOne,
+      stillMulti,
+      conflictingIdMerges,
+      overMergeHits,
+      underMergeHits,
+      named,
+    },
+    null,
+    2,
+  ),
 );

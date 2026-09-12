@@ -2173,4 +2173,143 @@ describe("mergeUniqueLocations — empty rows, duplicates, overview buckets", ()
       2,
     );
   });
+
+  it("does not fuse Kewa, Sreepur with Dhanua or Satiabari through the thana", () => {
+    assert.equal(
+      displays([
+        row("Kewa, Sreepur, Gazipur"),
+        row("Dhanua, Maona, Sreepur, Gazipur"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("MOUZA KEWA, SREEPUR, GAZIPUR"),
+        row("Dhanua, Maona, Sreepur, Gazipur"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("SA Plot No-47, Kewa, Sreepur, Gazipur - 1740, Bangladesh"),
+        row("S.A Plot # 47, Teknog Para, Chodhona, Dhaka, Sreepur"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("does not treat Ismail as Bishmail", () => {
+    assert.equal(
+      displays([
+        row("Ismail, Ashulia, Savar, Dhaka"),
+        row("62, Kathgara, Bishmail, Zirabo Road, Ashulia, Dhaka, Savar"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("keeps House 62-only apart from a House 62 and House 82 concatenation", () => {
+    assert.equal(
+      displays([
+        row("House # 62 (1st Floor), Road # 3, Block-B, Niketon, Gulshan, Dhaka"),
+        row(
+          "Bodywears International, House # 62, Road # 3, Block B, Niketon, House # 82 (1st Floor), Gulshan-1, Dhaka",
+        ),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62, Road # 3, Niketon, Gulshan, Dhaka"),
+        row("House # 82, Road # 3, Niketon, Gulshan, Dhaka"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("merges hyphenated floor lists with the same house", () => {
+    assert.equal(
+      displays([
+        row("Siaam Tower, Level-9 & 10, Plot # 15, Sector # 3, Dhaka, Uttara"),
+        row("SIAAM TOWER (LEVEL 9TH & 10TH), PLOT 15, SECTOR 3, UTTARA NEW MODEL TOWN"),
+      ]).length,
+      1,
+    );
+    assert.equal(
+      displays([
+        row("380/3, (Ground & 2nd Floor), Banasree Road, East Rampura, Dhaka"),
+        row("380/3 BANASREE ROAD, EAST RAMPURA"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges Senakalayan Bhaban with Sena Kalyan Bhaban at the same suite", () => {
+    assert.equal(
+      displays([
+        row("Senakalayan Bhaban (Floor # 11), Suite # 1106, 195 Motijheel C/A, Dhaka-1000."),
+        row("Sena Kalyan Bhaban (Floor-11) Suite # 1106, 195 Motijheel C/A, Dhaka."),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges Sujat Plaza house 2 at Mirpur-12 with Pallabi", () => {
+    assert.equal(
+      displays([
+        row("2 No, Sujat Nagar, Sujat Plaza, Dhaka, Mirpur-12"),
+        row("2, SUJAT NAGAR, SUJAT PLAZA, PALLABI, DHAKA"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges Degerchala with Degerchala Road Chaydana on holding 72", () => {
+    assert.equal(
+      displays([
+        row("72, DEGERCHALA, NATIONAL UNIVERSITY, GAZIPUR"),
+        row("72, Degerchala Road, Chaydana, National University, Gazipur"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges Emerald with Emeraid and Baktarpur with UttorBoktarpur on the same house", () => {
+    assert.equal(
+      displays([
+        row("ADD Emerald, House # 18/3, Tallabagh, Sobhanbagh, Dhaka-1207"),
+        row("ADDL Emeraid, Apt # A1 & B1, 18/3, Tallabagh, Sobhanbagh, Dhaka-1207"),
+      ]).length,
+      1,
+    );
+    assert.equal(
+      displays([
+        row("A-99/1 Baktarpur, Kaliakoir, 1750, Gazipur, Bangladesh"),
+        row("A-99/1, UttorBoktarpur, Gazipur, B. Baria"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges a company-name CEPZ dump with Plot 6-11 South Halisahar", () => {
+    assert.equal(
+      displays([
+        row(
+          "BANGLADESH SPINNERS & KNITTERS (PVT) LTD. PLOT NO. 6 TO 11, SECTOR - 4/A, CHITTAGONG EXPORT PROCESSING ZONE, CHITTAGONG TEL: 741872",
+        ),
+        row("Plot # 6-11, Sector # 4/A, South Halisahar, CEPZ, Bandar, 4223, Chattogram, Bangladesh"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("does not absorb Jamirdia-only into a Jamirdia and Meherbari concatenation", () => {
+    assert.equal(
+      displays([
+        row("Jamirdia, Habirbari, Valuka, Mymensingh & Meherbari, Valuka, Mymensingh."),
+        row("Jamirdia, Habirbari, P.S: Valuka, Mymensingh - 2240, Bangladesh"),
+      ]).length,
+      2,
+    );
+  });
 });

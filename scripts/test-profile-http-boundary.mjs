@@ -1334,6 +1334,11 @@ const CASES = [
         "Ghargaria",
       ],
       alsoRecordedPair: { spelling: /Ghargaria|Ghorgaria/i, authority: /OEKO_TEX|OEKO-TEX/ },
+      factoryRowIncludes: {
+        group: "Factories",
+        display: /Kewa|Ghorgaria|Ghargaria/i,
+        needle: /OEKO-TEX|OEKO_TEX/,
+      },
       bodyCount: {
         'data-location-group="Factories"': 1,
         'data-location-group="Mailing addresses"': 1,
@@ -1876,22 +1881,30 @@ async function main() {
         }
         if (c.expect.alsoRecordedPair) {
           const pair = c.expect.alsoRecordedPair;
-          const liRe = /<li\b([^>]*)>([\s\S]*?)<\/li>/gi;
+          const rowRe = /<(button|div)\b([^>]*data-location-row=""[^>]*)>([\s\S]*?)<\/\1>/gi;
           let found = false;
           let m;
-          while ((m = liRe.exec(got.body))) {
-            if (!/\bdata-also-recorded-as=/.test(m[1])) continue;
-            const auth = /data-also-recorded-authorities="([^"]*)"/.exec(m[1]);
-            const authorities = auth?.[1] ?? "";
-            const text = m[2].replace(/<[^>]+>/g, " ");
-            if (pair.spelling.test(text) && pair.authority.test(authorities)) {
-              found = true;
-              break;
+          while ((m = rowRe.exec(got.body))) {
+            if (m[1] !== "button") continue;
+            const group = /data-location-group="([^"]*)"/.exec(m[2])?.[1] ?? "";
+            if (group !== "Factories") continue;
+            const liRe = /<li\b([^>]*)>([\s\S]*?)<\/li>/gi;
+            let li;
+            while ((li = liRe.exec(m[3]))) {
+              if (!/\bdata-also-recorded-as=/.test(li[1])) continue;
+              const auth = /data-also-recorded-authorities="([^"]*)"/.exec(li[1]);
+              const authorities = auth?.[1] ?? "";
+              const text = li[2].replace(/<[^>]+>/g, " ");
+              if (pair.spelling.test(text) && pair.authority.test(authorities)) {
+                found = true;
+                break;
+              }
             }
+            if (found) break;
           }
           if (!found) {
             caseProblems.push(
-              `${label}: no data-also-recorded-as node pairs ${pair.spelling} with ${pair.authority}`,
+              `${label}: no Factories data-location-row pairs ${pair.spelling} with ${pair.authority}`,
             );
           }
         }
@@ -1901,6 +1914,7 @@ async function main() {
           let found = false;
           let m;
           while ((m = rowRe.exec(got.body))) {
+            if (m[1] !== "button") continue;
             const attrs = m[2];
             const inner = m[3];
             const group = /data-location-group="([^"]*)"/.exec(attrs)?.[1] ?? "";
