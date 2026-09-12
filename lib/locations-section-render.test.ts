@@ -105,6 +105,13 @@ describe("Locations Also recorded as — rendered HTML boundary", () => {
     for (const block of alsoBlocks) {
       assert.match(block, />BGMEA<|>BKMEA<|>OEKO-TEX</);
     }
+    const mailingRow = locationRowHtml(html, "Mailing addresses");
+    assert.ok(mailingRow, "Habitus Mailing row missing");
+    const mailingAlso = mailingRow.match(/<li[^>]*data-also-recorded-as=""[^>]*>[\s\S]*?<\/li>/g) ?? [];
+    assert.ok(
+      mailingAlso.some((block) => /Fakir Khali|FOKIRKHALI/i.test(block) && /BGMEA|BKMEA/.test(block)),
+      "Habitus mailing Also recorded as must pair Fakir Khali/FOKIRKHALI with BGMEA or BKMEA",
+    );
   });
 
   it("Fakhruddin Textile Mills shows one Factories row with Kewa / Ghorgaria variants", () => {
@@ -126,6 +133,10 @@ describe("Locations Also recorded as — rendered HTML boundary", () => {
       "OEKO-TEX must sit on the Ghargaria/Ghorgaria Also recorded as pill",
     );
     assert.doesNotMatch(html, /\[object Object\]/);
+    const mailingRow = locationRowHtml(html, "Mailing addresses");
+    assert.ok(mailingRow, "Fakhruddin Mailing row missing");
+    assert.match(mailingRow, /235\/B/);
+    assert.match(mailingRow, /BGMEA|BKMEA/);
   });
 
   it("LocationsSection renders AlsoRecordedAs from the shared pill component", () => {

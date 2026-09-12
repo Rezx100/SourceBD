@@ -1452,7 +1452,40 @@ function extraHoldingConflict(a: Candidate, b: Candidate): boolean {
   const aOnly = [...a.ids].filter((id) => !idSetsOverlap(new Set([id]), b.ids));
   const bOnly = [...b.ids].filter((id) => !idSetsOverlap(new Set([id]), a.ids));
   const digitExtra = (ids: string[]) => ids.filter((id) => /^\d+$/.test(id));
-  return digitExtra(aOnly).length > 0 && digitExtra(bOnly).length > 0;
+  if (digitExtra(aOnly).length > 0 && digitExtra(bOnly).length > 0) return true;
+  // Plot 389 vs Plot 389 House 6 is the same campus, not two holdings.
+  // Neighbour plot lists (M-16 vs M-8,9 & 16) are not house campuses.
+  if (a.plotIds.size > 0 && b.plotIds.size > 0) return false;
+  if (campusHouseIds(a).size === 0 || campusHouseIds(b).size === 0) return false;
+  const houseScale = (ids: string[]) => ids.filter((id) => /^\d{1,2}$/.test(id));
+  const oneSided =
+    (houseScale(aOnly).length > 0 && houseScale(bOnly).length === 0) ||
+    (houseScale(bOnly).length > 0 && houseScale(aOnly).length === 0);
+  if (!oneSided) return false;
+  // House 62 vs 87 Tejgaon (same thana, second house). Not House 10 vs 13
+  // Dailla / 390 Dhour (extra detail at a shared village).
+  if (sharedFineAdmin(a, b)) return true;
+  const la = firstDistinctPlace(a.tokens);
+  const lb = firstDistinctPlace(b.tokens);
+  const va = villageTokens(a.tokens);
+  const vb = villageTokens(b.tokens);
+  if (
+    la &&
+    lb &&
+    !sameWord(la, lb) &&
+    !tokenInList(la, vb) &&
+    !tokenInList(lb, va)
+  ) {
+    return true;
+  }
+  // House 62 vs 87 Niketon: extra house-scale number at the same place.
+  // House 10 vs 13 Dailla is extra village detail (13 < 20), not a second campus.
+  const extras = houseScale(aOnly).length > 0 ? houseScale(aOnly) : houseScale(bOnly);
+  const samePlace =
+    (la && lb && sameWord(la, lb)) ||
+    (la && tokenInList(la, vb)) ||
+    (lb && tokenInList(lb, va));
+  return Boolean(samePlace && extras.some((id) => Number(id) >= 20));
 }
 
 function renumberAliasHint(a: Candidate, b: Candidate): boolean {
@@ -1498,27 +1531,42 @@ type Candidate = {
   holdingIds: Set<string>;
   multiClause: boolean;
   twoCampus: boolean;
+  display: string;
 };
 
 function campusHouseIds(c: Candidate): Set<string> {
   return new Set([...c.houseIds, ...c.holdingIds]);
 }
 
+/** Dag 1977-1978 on a holding-only row is the same cadastral as Plot 1977-1978. */
+function cadastralDagIdsFromDisplay(display: string): Set<string> {
+  const out = new Set<string>();
+  const re =
+    /\b(?:dag|dug|daag)\b[\s.:#-]*(?:no\.?|number|#|:)?[\s.:#-]*(\d+)(?:\s*[-–/,]\s*(\d+))?/gi;
+  for (const m of display.matchAll(re)) {
+    out.add(String(Number(m[1]!)));
+    if (m[2]) out.add(String(Number(m[2]!)));
+  }
+  return out;
+}
+
 /** Plot 27 + Holding 1 is not House 1. Plot 10 & 14 vs Plot 14 is not this.
  *  Holding 137 + Plot 1977 vs Holding 137 + Dag 1977 is the same premises:
- *  the Dag row is holding-only, not a House-on-Road listing. */
+ *  leftover plots that the holding-only row names as cadastral ids stay one.
+ *  A road or house digit in undifferentiated ids does not cover a leftover plot. */
 function leftoverPlotOnHouseOnly(a: Candidate, b: Candidate): boolean {
   const plotCampus = (c: Candidate) => c.plotIds.size > 0 && campusHouseIds(c).size > 0;
-  const houseOnly = (c: Candidate) =>
-    c.houseIds.size > 0 && c.plotIds.size === 0 && c.holdingIds.size === 0;
-  const houseOverlap = (plotSide: Candidate, houseSide: Candidate) =>
-    [...campusHouseIds(plotSide)].some((id) =>
-      idSetsOverlap(new Set([id]), houseSide.houseIds),
-    );
-  const leftoverPlot = (plotSide: Candidate, houseSide: Candidate) =>
-    [...plotSide.plotIds].some((id) => !idSetsOverlap(new Set([id]), houseSide.ids));
-  if (plotCampus(a) && houseOnly(b) && houseOverlap(a, b) && leftoverPlot(a, b)) return true;
-  if (plotCampus(b) && houseOnly(a) && houseOverlap(b, a) && leftoverPlot(b, a)) return true;
+  const noPlots = (c: Candidate) => c.plotIds.size === 0 && campusHouseIds(c).size > 0;
+  const leftoverPlot = (plotSide: Candidate, houseSide: Candidate) => {
+    const cover = new Set(houseSide.plotIds);
+    if (houseSide.houseIds.size === 0 && houseSide.holdingIds.size > 0) {
+      for (const id of houseSide.ids) cover.add(id);
+      for (const id of cadastralDagIdsFromDisplay(houseSide.display)) cover.add(id);
+    }
+    return [...plotSide.plotIds].some((id) => !idSetsOverlap(new Set([id]), cover));
+  };
+  if (plotCampus(a) && noPlots(b) && leftoverPlot(a, b)) return true;
+  if (plotCampus(b) && noPlots(a) && leftoverPlot(b, a)) return true;
   return false;
 }
 
@@ -2021,8 +2069,23 @@ function isSameLocation(a: Candidate, b: Candidate): boolean {
   if (a.multiClause !== b.multiClause) {
     const bothNamed = a.ids.size > 0 && b.ids.size > 0;
     const overlap = bothNamed ? overlappingIdCount(a.ids, b.ids) : 0;
-    const sameHoldings = bothNamed && overlap === a.ids.size && overlap === b.ids.size;
-    if (!sameHoldings || a.twoCampus || b.twoCampus) return false;
+    const sameHoldings =
+      bothNamed && overlap === a.ids.size && overlap === b.ids.size;
+    // Ext+Old / Address 1st+2nd stay apart even on a shared plot list.
+    if (a.twoCampus || b.twoCampus) return false;
+    // Idless Hariken Road vs Plot 70 is not a two-campus XOR; other gates decide.
+    if (bothNamed) {
+      // House 50 + 7 Gulshan with or without a comma still is one premises.
+      if (!sameHoldings) return false;
+      // House 323, 324 vs unlabelled 323, 324 is the same holdings. House 62
+      // vs "No. 87 Eskaton" on the same 62 is not: 87 never entered ids.
+      const extraWording = (multi: Candidate, other: Candidate) =>
+        [...holdingWordingDigits(multi.display)].some(
+          (digit) => !idSetsOverlap(new Set([digit]), other.ids),
+        );
+      if (a.multiClause && extraWording(a, b)) return false;
+      if (b.multiClause && extraWording(b, a)) return false;
+    }
   }
   if (neverSameAcross(a.tokens, b.tokens)) return false;
   if (nestedPairCrossWithExtra(a, b)) return false;
@@ -2042,6 +2105,10 @@ function isSameLocation(a: Candidate, b: Candidate): boolean {
   // Two named tailed villages stay apart even on a shared house/plot.
   // Enayetnagar vs Shasongaon is the only estate-union alias exception.
   if (twoSidedTailedClash(a, b)) return false;
+
+  // Plot+Holding vs House/Holding-only must not merge just because they share
+  // a plaza/stand in the same thana (Shamser Plaza Uttara leftover plots).
+  if (leftoverPlotOnHouseOnly(a, b) && !renumberAliasHint(a, b)) return false;
 
   // Same named plaza/stand is the premises only inside the same fine
   // admin area (Sreepur Stand at Ganakbari). Sharing "Dhaka" is not
@@ -2357,25 +2424,71 @@ function hasTwoCampusWording(display: string): boolean {
   return false;
 }
 
-function hasTwoHoldings(display: string): boolean {
+function holdingWordingDigits(display: string): Set<string> {
   const s = display.toLowerCase();
-  const houseNums = [...s.matchAll(/\b(?:house|hosue)\s*(?:#|no\.?|number)?[\s.-]*(\d+)\b/g)].map(
-    (m) => m[1]!,
-  );
+  // Do not rewrite H/O here: H/0-10, 13, Dalla vs H/O-10 Dailla is one premises.
+  const houseNums = [
+    ...s.matchAll(
+      /\b(?:house|hosue|holding|hold)\s*(?:#|no\.?|number)?[\s.-]*(\d+)\b/g,
+    ),
+  ].map((m) => m[1]!);
+  const skipPlace = (place: string) =>
+    GENERIC_TOKENS.has(place) ||
+    place === "storied" ||
+    place === "storey" ||
+    place === "rd" ||
+    place === "st" ||
+    place === "old" ||
+    place === "new";
+  const priorHasPlace = (before: string, place: string) => {
+    if (ADMIN_TOKENS.has(place)) return true;
+    const tokens = before.split(/[^a-z]+/).filter(Boolean);
+    return tokens.some(
+      (t) =>
+        t.length >= 3 &&
+        t !== place &&
+        !GENERIC_TOKENS.has(t) &&
+        !skipPlace(t) &&
+        !/^\d+$/.test(t),
+    );
+  };
+  const labelledAdminBefore = (before: string) =>
+    /(?:ward|block|sector|section|plot|plots|union|dag|dug|road|rd|avenue)\s*(?:#|no\.?|number)?[\s.:-]*$/i.test(
+      before,
+    );
+  const plotListTail = (before: string) => {
+    const lower = before.toLowerCase();
+    const lastHouse = Math.max(lower.lastIndexOf("house"), lower.lastIndexOf("holding"));
+    const lastPlot = lower.lastIndexOf("plot");
+    return lastPlot >= 0 && lastPlot > lastHouse;
+  };
+  const acceptPlaceHolding = (before: string, place: string, _digit: string) => {
+    if (skipPlace(place)) return false;
+    if (labelledAdminBefore(before) || plotListTail(before)) return false;
+    return ADMIN_TOKENS.has(place) || priorHasPlace(before, place);
+  };
+  const placeHoldings = [
+    ...s.matchAll(
+      /(?:^|,\s*|(?<=[a-z])\s+)(?:(?:no\.?|number|#)\s+)?(\d{1,2})(?:\/[a-z0-9]+)?\s+(?:(?:new|east|west|inner)\s+)?([a-z]{3,})\b/g,
+    ),
+  ]
+    .filter((m) => acceptPlaceHolding(s.slice(0, m.index ?? 0), m[2]!, m[1]!))
+    .map((m) => m[1]!);
+  const commaHoldings = [
+    ...s.matchAll(/(?:^|,\s*)(\d{1,3})\s*,\s*(?:new\s+)?([a-z]{2,})/g),
+  ]
+    .filter((m) => acceptPlaceHolding(s.slice(0, m.index ?? 0), m[2]!, m[1]!))
+    .map((m) => m[1]!);
   const roadHoldings = [
     ...s.matchAll(/(?:^|,\s*)(\d{1,3})\s*,\s*(?:new\s+)?[a-z][^,]{0,40}?\s+road\b/g),
     ...s.matchAll(/(?:^|,\s*)(\d{1,3})\s+(?:new\s+)?[a-z][^,]{0,40}?\s+road\b/g),
-    // "7, Gulshan" / "74, East Kazipara". Require two letters so "8, R.S."
-    // in a cadastral list is not a second campus.
-    ...s.matchAll(/(?:^|,\s*)(\d{1,3})\s*,\s*(?:new\s+)?[a-z]{2,}/g),
     ...s.matchAll(/(?:^|,\s*)(\d{1,3})\s+(?:new\s+)?[a-z][^,]{0,40}?\s+rd\b/g),
-    // Unlabelled 1–2 digit holding before a place ("87 Badda", "87 Niketon").
-    // Three-digit leftovers (390 Dhour) stay extra detail, not a second campus.
-    ...s.matchAll(
-      /(?:^|,\s*|(?<=[a-z])\s+)(\d{1,2})\s+(?:(?:new|east|west|inner)\s+)?[a-z]{3,}\b/g,
-    ),
   ].map((m) => m[1]!);
-  return new Set([...houseNums, ...roadHoldings]).size >= 2;
+  return new Set([...houseNums, ...placeHoldings, ...commaHoldings, ...roadHoldings]);
+}
+
+function hasTwoHoldings(display: string): boolean {
+  return holdingWordingDigits(display).size >= 2;
 }
 
 function isMultiClauseAddress(display: string): boolean {
@@ -2418,6 +2531,7 @@ function candidateFor(display: string): Candidate {
     holdingIds: roles.holdingIds,
     multiClause: twoCampus || hasTwoHoldings(display),
     twoCampus,
+    display: stripped,
   };
 }
 

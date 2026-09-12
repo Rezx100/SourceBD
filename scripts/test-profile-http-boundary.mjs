@@ -1303,6 +1303,13 @@ const CASES = [
         "OEKO-TEX",
       ],
       alsoRecordedPair: { spelling: /Gajaria/i, authority: /BGMEA/ },
+      alsoRecordedPairs: [
+        {
+          group: "Mailing addresses",
+          spelling: /Fakir Khali|FOKIRKHALI/i,
+          authority: /BGMEA|BKMEA/,
+        },
+      ],
       factoryRowIncludes: {
         group: "Factories",
         display: /Gojariapara|Gojaria/i,
@@ -1334,6 +1341,13 @@ const CASES = [
         "Ghargaria",
       ],
       alsoRecordedPair: { spelling: /Ghargaria|Ghorgaria/i, authority: /OEKO_TEX|OEKO-TEX/ },
+      alsoRecordedPairs: [
+        {
+          group: "Mailing addresses",
+          spelling: /235\/B/,
+          authority: /BGMEA|BKMEA/,
+        },
+      ],
       factoryRowIncludes: {
         group: "Factories",
         display: /Kewa|Ghorgaria|Ghargaria/i,
@@ -1879,15 +1893,19 @@ async function main() {
             }
           }
         }
-        if (c.expect.alsoRecordedPair) {
-          const pair = c.expect.alsoRecordedPair;
+        if (c.expect.alsoRecordedPair || c.expect.alsoRecordedPairs) {
+          const pairs = [
+            ...(c.expect.alsoRecordedPair ? [c.expect.alsoRecordedPair] : []),
+            ...(Array.isArray(c.expect.alsoRecordedPairs) ? c.expect.alsoRecordedPairs : []),
+          ];
+          for (const pair of pairs) {
           const rowRe = /<(button|div)\b([^>]*data-location-row=""[^>]*)>([\s\S]*?)<\/\1>/gi;
           let found = false;
           let m;
           while ((m = rowRe.exec(got.body))) {
             if (m[1] !== "button") continue;
             const group = /data-location-group="([^"]*)"/.exec(m[2])?.[1] ?? "";
-            if (group !== "Factories") continue;
+            if (pair.group && group !== pair.group) continue;
             const liRe = /<li\b([^>]*)>([\s\S]*?)<\/li>/gi;
             let li;
             while ((li = liRe.exec(m[3]))) {
@@ -1904,8 +1922,9 @@ async function main() {
           }
           if (!found) {
             caseProblems.push(
-              `${label}: no Factories data-location-row pairs ${pair.spelling} with ${pair.authority}`,
+              `${label}: no ${pair.group ?? "location"} data-location-row pairs ${pair.spelling} with ${pair.authority}`,
             );
+          }
           }
         }
         if (c.expect.factoryRowIncludes) {

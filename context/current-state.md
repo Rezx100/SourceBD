@@ -15,10 +15,11 @@ rows, **9,921** suppliers, **3,274** multi-string groups by kind. Current
 matcher had merged 1,622 of those to one row and still split 1,652 (Habitus
 Fashion factory 3 rows, Fakhruddin Textile Mills factory 3 rows). New matcher
 merges **2,078** to one row and still splits **1,196** (0 conflicting-plot pair
-merges; 0 named over-merges). Leftover-plot split is Plot+Holding vs House-only
-even when two house numbers overlap (Plot 8 & 10 vs House 1 and House 10 stay
-two; H/O-01 is House-only; neighbour plot lists and House 6 on Plot 389 stay
-one). Pills + fixture regression + HTTP cases for those two companies. No raw
+merges; 0 named over-merges). Leftover-plot split is Plot+Holding vs House- or
+Holding-only even when two numbers overlap or they share a plaza; leftover
+plots are not covered by a road digit. Campus-only House 62 stays apart from
+No. 87 / Holding 87 / H/O-62 concat. Neighbour plot lists, House 6 on Plot 389,
+and House 6 plus 390 Dhour stay one. Pills + fixture regression + HTTP cases for those two companies. No raw
 string, geocode-key, Python ETL or schema change. See
 `ops/plans/address-dedup-baseline.md`.
 
