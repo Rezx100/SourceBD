@@ -74,7 +74,7 @@ const FAKHRUDDIN: AddressRowRaw[] = [
     "BGMEA",
     "mailing",
   ),
-  row("235/B, BIR UTTAM MIR SAWKAT SARAK, TEJGAON I/A, DHAKA", "BKMEA", "mailing"),
+  row("235/B, TEJGAON I/A-1208, TEJGAON, DHAKA", "BKMEA", "mailing"),
 ];
 
 describe("Locations Also recorded as — rendered HTML boundary", () => {
@@ -136,7 +136,11 @@ describe("Locations Also recorded as — rendered HTML boundary", () => {
     const mailingRow = locationRowHtml(html, "Mailing addresses");
     assert.ok(mailingRow, "Fakhruddin Mailing row missing");
     assert.match(mailingRow, /235\/B/);
-    assert.match(mailingRow, /BGMEA|BKMEA/);
+    const mailingAlso = mailingRow.match(/<li[^>]*data-also-recorded-as=""[^>]*>[\s\S]*?<\/li>/g) ?? [];
+    assert.ok(
+      mailingAlso.some((block) => /TEJGAON I\/A-1208/i.test(block) && /BKMEA/.test(block)),
+      "Fakhruddin mailing Also recorded as must pair TEJGAON I/A-1208 with BKMEA",
+    );
   });
 
   it("LocationsSection renders AlsoRecordedAs from the shared pill component", () => {

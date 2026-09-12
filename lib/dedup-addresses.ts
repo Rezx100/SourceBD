@@ -1099,7 +1099,7 @@ function stripNonPremisesNumbers(raw: string): string {
  *  stripped first so "House 42/A (5th Floor)" does not mint a phantom id. */
 export function premisesIdentifiers(cleanedAddress: string): Set<string> {
   const { stripped } = extractFloors(cleanedAddress);
-  const withHouseSlash = stripped.replace(/\bH\s*\/\s*[O0]\s*-?\s*(\d+)\b/gi, "H$1");
+  const withHouseSlash = stripped.replace(/\bH\s*[./]?\s*[O0]\s*[./]?\s*-?\s*(\d+)\b/gi, "H$1");
   const ids = new Set<string>();
   // Holding 574 (Former #295) and Plot 799 (Old #1010) keep the old number
   // as an alias so a later registry that still uses 295 / 1010 can merge.
@@ -1478,14 +1478,13 @@ function extraHoldingConflict(a: Candidate, b: Candidate): boolean {
   ) {
     return true;
   }
-  // House 62 vs 87 Niketon: extra house-scale number at the same place.
-  // House 10 vs 13 Dailla is extra village detail (13 < 20), not a second campus.
-  const extras = houseScale(aOnly).length > 0 ? houseScale(aOnly) : houseScale(bOnly);
-  const samePlace =
-    (la && lb && sameWord(la, lb)) ||
-    (la && tokenInList(la, vb)) ||
-    (lb && tokenInList(lb, va));
-  return Boolean(samePlace && extras.some((id) => Number(id) >= 20));
+  // House 62 vs 87 Niketon: extra house at the same first place.
+  // 13 Demra / 12 Dhour / 20 Dhour after Turag are village detail (house-scale
+  // extras below 30). Avenue numbers are roads, not a second campus.
+  const extras = (houseScale(aOnly).length > 0 ? houseScale(aOnly) : houseScale(bOnly)).filter(
+    (id) => !roadExtraSharedWith(id, a.display, b) && !roadExtraSharedWith(id, b.display, a),
+  );
+  return Boolean(la && lb && sameWord(la, lb) && extras.some((id) => Number(id) >= 30));
 }
 
 function renumberAliasHint(a: Candidate, b: Candidate): boolean {
@@ -1559,8 +1558,10 @@ function leftoverPlotOnHouseOnly(a: Candidate, b: Candidate): boolean {
   const noPlots = (c: Candidate) => c.plotIds.size === 0 && campusHouseIds(c).size > 0;
   const leftoverPlot = (plotSide: Candidate, houseSide: Candidate) => {
     const cover = new Set(houseSide.plotIds);
+    // Holding-only cover is cadastral dag numbers from the display, not
+    // undifferentiated ids (HOLDING NO-08 is not plot 8; Banani road 10
+    // is not leftover plot 10). Nilorn Dag 1977-1978 still covers Plot 1977.
     if (houseSide.houseIds.size === 0 && houseSide.holdingIds.size > 0) {
-      for (const id of houseSide.ids) cover.add(id);
       for (const id of cadastralDagIdsFromDisplay(houseSide.display)) cover.add(id);
     }
     return [...plotSide.plotIds].some((id) => !idSetsOverlap(new Set([id]), cover));
@@ -2075,13 +2076,28 @@ function isSameLocation(a: Candidate, b: Candidate): boolean {
     if (a.twoCampus || b.twoCampus) return false;
     // Idless Hariken Road vs Plot 70 is not a two-campus XOR; other gates decide.
     if (bothNamed) {
-      // House 50 + 7 Gulshan with or without a comma still is one premises.
-      if (!sameHoldings) return false;
-      // House 323, 324 vs unlabelled 323, 324 is the same holdings. House 62
-      // vs "No. 87 Eskaton" on the same 62 is not: 87 never entered ids.
+      // House 50 + 7 Gulshan Avenue is one premises when one spelling omits
+      // the avenue number. House 62 vs 87 Eskaton is not.
+      if (!sameHoldings) {
+        const extras = [...a.ids, ...b.ids].filter(
+          (id) =>
+            !(
+              idSetsOverlap(new Set([id]), a.ids) &&
+              idSetsOverlap(new Set([id]), b.ids)
+            ),
+        );
+        const multi = a.multiClause ? a : b;
+        const other = a.multiClause ? b : a;
+        const onlyRoadExtras =
+          extras.length > 0 &&
+          extras.every((id) => roadExtraSharedWith(id, multi.display, other));
+        if (!onlyRoadExtras) return false;
+      }
       const extraWording = (multi: Candidate, other: Candidate) =>
         [...holdingWordingDigits(multi.display)].some(
-          (digit) => !idSetsOverlap(new Set([digit]), other.ids),
+          (digit) =>
+            !idSetsOverlap(new Set([digit]), other.ids) &&
+            !roadExtraSharedWith(digit, multi.display, other),
         );
       if (a.multiClause && extraWording(a, b)) return false;
       if (b.multiClause && extraWording(b, a)) return false;
@@ -2424,11 +2440,41 @@ function hasTwoCampusWording(display: string): boolean {
   return false;
 }
 
+function roadHoldingEntries(display: string): Array<{ digit: string; tail: string }> {
+  const s = display.toLowerCase();
+  return [
+    ...s.matchAll(/(?:^|,\s*)(\d{1,3})\s*,\s*(?:new\s+)?([a-z][^,]{0,40}?)\s+road\b/g),
+    ...s.matchAll(/(?:^|,\s*)(\d{1,3})\s+(?:new\s+)?([a-z][^,]{0,40}?)\s+road\b/g),
+    ...s.matchAll(/(?:^|,\s*)(\d{1,3})\s*,\s*(?:new\s+)?([a-z][^,]{0,40}?)\s+rd\b/g),
+    ...s.matchAll(/(?:^|,\s*)(\d{1,3})\s+(?:new\s+)?([a-z][^,]{0,40}?)\s+rd\b/g),
+    ...s.matchAll(/(?:^|,\s*)(\d{1,3})\s*,\s*(?:new\s+)?([a-z][^,]{0,40}?)\s+avenue\b/g),
+    ...s.matchAll(/(?:^|,\s*)(\d{1,3})\s+(?:new\s+)?([a-z][^,]{0,40}?)\s+avenue\b/g),
+  ].map((m) => ({ digit: m[1]!, tail: m[2]! }));
+}
+
+function roadHoldingDigits(display: string): Set<string> {
+  return new Set(roadHoldingEntries(display).map((e) => e.digit));
+}
+
+/** 7 Gulshan Avenue is extra detail of a Gulshan campus. 87 Eskaton Road is not. */
+function roadExtraSharedWith(digit: string, display: string, other: Candidate): boolean {
+  const entries = roadHoldingEntries(display).filter((e) => e.digit === digit);
+  if (entries.length === 0) return false;
+  return entries.some((e) => {
+    const places = e.tail.split(/[^a-z]+/).filter(
+      (t) => t.length >= 3 && !GENERIC_TOKENS.has(t) && t !== "new",
+    );
+    return places.some((p) => other.tokens.some((t) => t === p || sameWord(t, p)));
+  });
+}
+
 function holdingWordingDigits(display: string): Set<string> {
   const s = display.toLowerCase();
-  // Do not rewrite H/O here: H/0-10, 13, Dalla vs H/O-10 Dailla is one premises.
+  // Rewrite H/O, H/0, HO-62, H.O. 87 to house so House 62 + H/O-87 is two
+  // holdings. Comma 13, Dalla after H/O-10 is still skipped below.
+  const withHo = s.replace(/\bh\s*[./]?\s*[o0]\s*[./]?\s*-?\s*(\d+)/g, "house $1");
   const houseNums = [
-    ...s.matchAll(
+    ...withHo.matchAll(
       /\b(?:house|hosue|holding|hold)\s*(?:#|no\.?|number)?[\s.-]*(\d+)\b/g,
     ),
   ].map((m) => m[1]!);
@@ -2440,18 +2486,6 @@ function holdingWordingDigits(display: string): Set<string> {
     place === "st" ||
     place === "old" ||
     place === "new";
-  const priorHasPlace = (before: string, place: string) => {
-    if (ADMIN_TOKENS.has(place)) return true;
-    const tokens = before.split(/[^a-z]+/).filter(Boolean);
-    return tokens.some(
-      (t) =>
-        t.length >= 3 &&
-        t !== place &&
-        !GENERIC_TOKENS.has(t) &&
-        !skipPlace(t) &&
-        !/^\d+$/.test(t),
-    );
-  };
   const labelledAdminBefore = (before: string) =>
     /(?:ward|block|sector|section|plot|plots|union|dag|dug|road|rd|avenue)\s*(?:#|no\.?|number)?[\s.:-]*$/i.test(
       before,
@@ -2462,28 +2496,47 @@ function holdingWordingDigits(display: string): Set<string> {
     const lastPlot = lower.lastIndexOf("plot");
     return lastPlot >= 0 && lastPlot > lastHouse;
   };
-  const acceptPlaceHolding = (before: string, place: string, _digit: string) => {
+  // Unlabelled village numbers under 30 after a prior place (13 Demra,
+  // 12 Dhour, 20 Dhour) are extra detail. No.87 / #87 / 87-A, ADMIN places
+  // (87 Tejgaon), and house-scale extras ≥30 (87 Eskaton, 292 Inner Circular)
+  // are a second campus.
+  const acceptPlaceHolding = (
+    before: string,
+    place: string,
+    prefixed: boolean,
+    unit: boolean,
+    digit: string,
+  ) => {
     if (skipPlace(place)) return false;
     if (labelledAdminBefore(before) || plotListTail(before)) return false;
-    return ADMIN_TOKENS.has(place) || priorHasPlace(before, place);
+    if (prefixed || unit) return true;
+    if (ADMIN_TOKENS.has(place)) return true;
+    const n = Number(digit);
+    return Number.isFinite(n) && n >= 30;
   };
   const placeHoldings = [
-    ...s.matchAll(
-      /(?:^|,\s*|(?<=[a-z])\s+)(?:(?:no\.?|number|#)\s+)?(\d{1,2})(?:\/[a-z0-9]+)?\s+(?:(?:new|east|west|inner)\s+)?([a-z]{3,})\b/g,
+    ...withHo.matchAll(
+      /(?:^|,\s*|(?<=[a-z])\s+)((?:no\s*[:.\-]?|number|#)\s*)?(\d{1,2})([\/.\-]?[a-z]|\/[a-z0-9]+)?\s+(?:(?:new|east|west|inner)\s+)?([a-z]{3,})\b/g,
     ),
   ]
-    .filter((m) => acceptPlaceHolding(s.slice(0, m.index ?? 0), m[2]!, m[1]!))
-    .map((m) => m[1]!);
+    .filter((m) =>
+      acceptPlaceHolding(
+        withHo.slice(0, m.index ?? 0),
+        m[4]!,
+        Boolean(m[1]),
+        Boolean(m[3]),
+        m[2]!,
+      ),
+    )
+    .map((m) => m[2]!);
   const commaHoldings = [
-    ...s.matchAll(/(?:^|,\s*)(\d{1,3})\s*,\s*(?:new\s+)?([a-z]{2,})/g),
+    ...withHo.matchAll(/(?:^|,\s*)(\d{1,3})\s*,\s*(?:new\s+)?([a-z]{2,})/g),
   ]
-    .filter((m) => acceptPlaceHolding(s.slice(0, m.index ?? 0), m[2]!, m[1]!))
+    .filter((m) =>
+      acceptPlaceHolding(withHo.slice(0, m.index ?? 0), m[2]!, false, false, m[1]!),
+    )
     .map((m) => m[1]!);
-  const roadHoldings = [
-    ...s.matchAll(/(?:^|,\s*)(\d{1,3})\s*,\s*(?:new\s+)?[a-z][^,]{0,40}?\s+road\b/g),
-    ...s.matchAll(/(?:^|,\s*)(\d{1,3})\s+(?:new\s+)?[a-z][^,]{0,40}?\s+road\b/g),
-    ...s.matchAll(/(?:^|,\s*)(\d{1,3})\s+(?:new\s+)?[a-z][^,]{0,40}?\s+rd\b/g),
-  ].map((m) => m[1]!);
+  const roadHoldings = [...roadHoldingDigits(display)];
   return new Set([...houseNums, ...placeHoldings, ...commaHoldings, ...roadHoldings]);
 }
 
@@ -2504,7 +2557,10 @@ function labelledRoleIds(cleanedAddress: string): {
   const houseIds = new Set<string>();
   const holdingIds = new Set<string>();
   const { stripped } = extractFloors(cleanedAddress);
-  const withHouseSlash = stripped.replace(/\bH\s*\/\s*[O0]\s*-?\s*(\d+)\b/gi, "House $1");
+  const withHouseSlash = stripped.replace(
+    /\bH\s*[./]?\s*[O0]\s*[./]?\s*-?\s*(\d+)\b/gi,
+    "House $1",
+  );
   for (const segment of withHouseSlash.split(",")) {
     const trimmed = collapsePlotInitials(segment.trim());
     if (!trimmed) continue;

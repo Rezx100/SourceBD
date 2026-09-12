@@ -1344,7 +1344,7 @@ const CASES = [
       alsoRecordedPairs: [
         {
           group: "Mailing addresses",
-          spelling: /235\/B/,
+          spelling: /TEJGAON I\/A-1208/i,
           authority: /BGMEA|BKMEA/,
         },
       ],

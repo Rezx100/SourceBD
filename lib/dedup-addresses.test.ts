@@ -2382,8 +2382,150 @@ describe("mergeUniqueLocations — empty rows, duplicates, overview buckets", ()
     );
     assert.equal(
       displays([
+        row("House # 62 (1st Floor), Road # 3, Block-B, Niketon, Gulshan, Dhaka"),
+        row("House # 62, Road # 3, Block-B, Niketon, No.87 Eskaton, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62 (1st Floor), Road # 3, Block-B, Niketon, Gulshan, Dhaka"),
+        row("House # 62, Road # 3, Block-B, Niketon, No: 87 Eskaton, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62 (1st Floor), Road # 3, Block-B, Niketon, Gulshan, Dhaka"),
+        row("House # 62, Road # 3, Block-B, Niketon, No:87 Eskaton, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62 (1st Floor), Road # 3, Block-B, Niketon, Gulshan, Dhaka"),
+        row("House # 62, Road # 3, Block-B, Niketon, No-87 Eskaton, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62 (1st Floor), Road # 3, Block-B, Niketon, Gulshan, Dhaka"),
+        row("House # 62, Road # 3, Block-B, Niketon, No . 87 Eskaton, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62 (1st Floor), Road # 3, Block-B, Niketon, Gulshan, Dhaka"),
+        row("House # 62, Road # 3, Block-B, Niketon, #87 Eskaton, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62 (1st Floor), Road # 3, Block-B, Niketon, Gulshan, Dhaka"),
+        row("House # 62, Road # 3, Block-B, Niketon, 87-A Badda, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62 (1st Floor), Road # 3, Block-B, Niketon, Gulshan, Dhaka"),
+        row("House # 62, Road # 3, Block-B, Niketon, 87A Badda, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62 (1st Floor), Road # 3, Block-B, Niketon, Gulshan, Dhaka"),
+        row("House # 62, Road # 3, Block-B, Niketon, 87.A Badda, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62 (1st Floor), Road # 3, Block-B, Niketon, Gulshan, Dhaka"),
+        row("HO-62, 87 Badda, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62 (1st Floor), Road # 3, Block-B, Niketon, Gulshan, Dhaka"),
+        row("HO- 62, 87 Badda, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62 (1st Floor), Road # 3, Block-B, Niketon, Gulshan, Dhaka"),
+        row("HO-62 87 Badda, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62 (1st Floor), Road # 3, Block-B, Niketon, Gulshan, Dhaka"),
+        row("House # 62, Road # 3, Block-B, Niketon, H/O-87 Eskaton, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62 (1st Floor), Road # 3, Block-B, Niketon, Gulshan, Dhaka"),
+        row("House # 62, Road # 3, Block-B, Niketon, HO-87 Eskaton, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62 (1st Floor), Road # 3, Block-B, Niketon, Gulshan, Dhaka"),
+        row("House # 62, Road # 3, Block-B, Niketon, H.O. 87 Eskaton, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
         row("House 10, Dailla, Demra, Dhaka"),
         row("House 10, 13 Dailla, Demra, Dhaka"),
+      ]).length,
+      1,
+    );
+    assert.equal(
+      displays([
+        row("House 10, Dailla, Demra, Dhaka"),
+        row("House 10, Dailla, 13 Demra, Dhaka"),
+      ]).length,
+      1,
+    );
+    assert.equal(
+      displays([
+        row("House 10, Demra, Dhaka"),
+        row("House 10, Demra, 13 Dailla, Dhaka"),
+      ]).length,
+      1,
+    );
+    assert.equal(
+      displays([
+        row("House # 50, Road # 3, Gulshan-1, Dhaka"),
+        row(
+          "South Avenue Tower, 6th floor, House # 50, Road # 3, 7, Gulshan Avenue, Gulshan-1, Dhaka-1212",
+        ),
+      ]).length,
+      1,
+    );
+    assert.equal(
+      displays([
+        row("House # 06, Road-07, Block-B, Turag, Dhaka-1230"),
+        row("House # 06, Road-07, Block-B, Turag, 12 Dhour, Dhaka-1230"),
+      ]).length,
+      1,
+    );
+    assert.equal(
+      displays([
+        row("House # 06, Road-07, Block-B, Turag, Dhaka-1230"),
+        row("House # 06, Road-07, Block-B, 20 Dhour, Turag, Dhaka-1230"),
       ]).length,
       1,
     );
@@ -2929,6 +3071,48 @@ describe("mergeUniqueLocations — empty rows, duplicates, overview buckets", ()
       displays([
         row("Plot # 8, Holding # 1/A, Gulshan, Dhaka"),
         row("H/O-01, ROAD NO.-09, BLOCK-A, GULSHAN, DHAKA"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("Plot # 8, Holding # 1/A, Gulshan, Dhaka"),
+        row("HOLDING NO-08, GULSHAN, DHAKA"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("Plot # 10, Holding # 1/A, Gulshan, Dhaka"),
+        row("HOLDING NO-10, GULSHAN, DHAKA"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("Plot # 10, Holding # 1/A, 10 Banani Road, Gulshan, Dhaka"),
+        row("HOLDING NO-01, 10 Banani Road, GULSHAN, DHAKA"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("Plot # 8, Holding # 1/A, Shamser Plaza, Uttara, Dhaka"),
+        row("HOLDING NO-08, Shamser Plaza, Uttara, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("Plot # 8, Holding # 1/A, Gulshan, Dhaka"),
+        row("HO-01, ROAD NO.-09, BLOCK-A, GULSHAN, DHAKA"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("Plot # 8, Holding # 1/A, Gulshan, Dhaka"),
+        row("HO 01, ROAD NO.-09, BLOCK-A, GULSHAN, DHAKA"),
       ]).length,
       2,
     );
