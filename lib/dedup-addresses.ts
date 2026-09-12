@@ -310,6 +310,10 @@ const ADMIN_TOKENS = new Set([
   // Post-office tail at Turag. One-sided Nishatnagar must not block once
   // Dhour/Turag already matches (plot vs Sarkar Bari at Dhour Chowrasta).
   "nishatnagar",
+  // Dhaka thanas. Sharing Gulshan must not count as a leading village
+  // (Plot 27 Holding 1 vs House 1 at Gulshan).
+  "gulshan",
+  "tejgaon",
 ]);
 
 /** Pallabi is the thana inside Mirpur. Same house at those two labels is
@@ -366,6 +370,10 @@ const COARSE_ADMIN = new Set([
   "epz",
   "bscic",
   "dohs",
+  // Gulshan and Tejgaon are thanas, not a reason to skip a plot-vs-house
+  // conflict (Moyeen Center House 9B vs Bilquis Tower Plot 6).
+  "gulshan",
+  "tejgaon",
 ]);
 
 const GENERIC_WEIGHT = 0.2;
@@ -1112,7 +1120,13 @@ export function premisesIdentifiers(cleanedAddress: string): Set<string> {
   }
   const withoutRenumber = stripNonPremisesNumbers(
     withHouseSlash
-      .replace(/\b\d+\s*\(\s*new\s*\)/gi, " ")
+      // Unlabelled "86 (NEW)" on B.B. Road is the later holding number of
+      // "60 (OLD)" — drop it so the shared 60 still matches. A labelled
+      // "Plot-6 ( New)" is the plot itself and must stay (Bilquis Tower).
+      .replace(
+        /(?<!(?:plot|plots|holding|house|unit)[\s#.:-]*)\b\d+\s*\(\s*new\s*\)/gi,
+        " ",
+      )
       .replace(/\(\s*(?:old|new)\s*\)/gi, " ")
       .replace(RENUMBER_PAREN, " "),
   );
@@ -1452,13 +1466,17 @@ function oneSidedExtraDigitHolding(a: Candidate, b: Candidate): boolean {
   return (aD > 0) !== (bD > 0);
 }
 
+function extraBareDigits(a: Candidate, b: Candidate): number[] {
+  const aOnly = [...a.ids].filter((id) => !idSetsOverlap(new Set([id]), b.ids));
+  const bOnly = [...b.ids].filter((id) => !idSetsOverlap(new Set([id]), a.ids));
+  return [...aOnly, ...bOnly].filter((id) => /^\d+$/.test(id)).map(Number);
+}
+
 /** Plot 10 & 14 vs Plot 14: every extra digit is a neighbour of an overlap. */
 const NEIGHBOUR_PLOT_GAP = 10;
 
 function neighbourPlotExtras(a: Candidate, b: Candidate): boolean {
-  const aOnly = [...a.ids].filter((id) => !idSetsOverlap(new Set([id]), b.ids));
-  const bOnly = [...b.ids].filter((id) => !idSetsOverlap(new Set([id]), a.ids));
-  const extras = [...aOnly, ...bOnly].filter((id) => /^\d+$/.test(id)).map(Number);
+  const extras = extraBareDigits(a, b);
   if (extras.length === 0) return false;
   const overlapDigits: number[] = [];
   for (const id of a.ids) {
@@ -1467,6 +1485,23 @@ function neighbourPlotExtras(a: Candidate, b: Candidate): boolean {
   }
   if (overlapDigits.length === 0) return false;
   return extras.every((e) => overlapDigits.some((o) => Math.abs(e - o) <= NEIGHBOUR_PLOT_GAP));
+}
+
+function overlapBareDigits(a: Candidate, b: Candidate): number[] {
+  const out: number[] = [];
+  for (const id of a.ids) {
+    if (!idSetsOverlap(new Set([id]), b.ids)) continue;
+    for (const d of id.match(/\d+/g) ?? []) out.push(Number(d));
+  }
+  return out;
+}
+
+/** Plot 27 leftover on House 1, not House 6 added onto Plot 389. */
+function farLargerExtras(a: Candidate, b: Candidate): boolean {
+  const extras = extraBareDigits(a, b);
+  const overlap = overlapBareDigits(a, b);
+  if (extras.length === 0 || overlap.length === 0) return false;
+  return extras.some((e) => overlap.every((o) => e - o > NEIGHBOUR_PLOT_GAP));
 }
 
 /** SSFB-3, M-5, M-16: a lettered overlap is the campus pin, not House 1. */
@@ -2151,15 +2186,16 @@ function isSameLocation(a: Candidate, b: Candidate): boolean {
       return false;
     }
     if (extraHoldingConflict(a, b)) return false;
-    // Plot 27 + Holding 1 is not House 1 (Pallabi vs Mirpur-12, or the same
-    // Gulshan/Tejgaon thana). Neighbour plot lists (10 & 14 vs 14, M-16 vs
-    // M-8,9 & 16) and former-number aliases are the same campus. nestedAdmin
-    // is true for both-Mirpur, so it must not be the gate.
+    // Plot 27 leftover on House 1 is a second premises. House 6 on Plot 389
+    // is extra detail. Neighbour plot lists and former-number aliases stay one
+    // campus. nestedAdmin is true for both-Mirpur, so it must not be the gate.
     if (
       oneSidedExtraDigitHolding(a, b) &&
       !letteredIdOverlap(a, b) &&
       !renumberAliasHint(a, b) &&
-      !neighbourPlotExtras(a, b)
+      !neighbourPlotExtras(a, b) &&
+      !leadingMatch &&
+      farLargerExtras(a, b)
     ) {
       return false;
     }
@@ -2371,11 +2407,11 @@ function hasTwoHoldings(display: string): boolean {
     // "7, Gulshan" / "74, East Kazipara". Require two letters so "8, R.S."
     // in a cadastral list is not a second campus.
     ...s.matchAll(/(?:^|,\s*)(\d{1,3})\s*,\s*(?:new\s+)?[a-z]{2,}/g),
-    // "87 Eskaton, Gulshan-1" / "74 East Kazipara" without a comma after
-    // the holding. Skip plot/holding/house/section so "27 Holding" is not
-    // a second campus.
+    ...s.matchAll(/(?:^|,\s*)(\d{1,3})\s+(?:new\s+)?[a-z][^,]{0,40}?\s+rd\b/g),
+    // "87 Eskaton" / "74 East Kazipara" without "Road". Dhour/Diyabari
+    // leftovers must not count as a second campus.
     ...s.matchAll(
-      /(?:^|,\s*)(\d{1,3})\s+(?:new\s+)?(?!holding\b|house\b|plot\b|road\b|sector\b|block\b|section\b|ward\b|word\b|floor\b)[a-z]{4,}/g,
+      /(?:^|,\s*)(\d{1,3})\s+(?:(?:new|east|west|inner)\s+)?(?:[a-z]{3,}\s+)*(?:[a-z]*para|avenue|eskaton)\b/g,
     ),
   ].map((m) => m[1]!);
   return new Set([...houseNums, ...roadHoldings]).size >= 2;

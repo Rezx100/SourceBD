@@ -2,8 +2,8 @@
 
 Fixture exported_at: 2026-09-11T00:00:00Z
 Groups in fixture: 3274
-Matcher merged to 1 location: **2074** (was 1,622 on the previous matcher)
-Groups still showing 2+ locations: **1200** (was 1,652)
+Matcher merged to 1 location: **2078** (was 1,622 on the previous matcher)
+Groups still showing 2+ locations: **1196** (was 1,652)
 Conflicting-plot merges (must be 0): **0**
 Named over-merges (must be 0): **0**
 Named under-merges (must be 0): **0**
@@ -36,6 +36,12 @@ Named suppliers:
 - virtual-knitwear: factory 2 strings → 1 location(s); mailing 2 strings → 2 location(s)
 - talent-apparels: factory 2 strings → 1 location(s)
 - earthee-wear: factory 2 strings → 1 location(s); mailing 2 strings → 2 location(s)
+- rezaul-apparels: factory 3 strings → 1 location(s)
+- crony-tex-sweater: factory 2 strings → 1 location(s); mailing 2 strings → 1 location(s)
+- lodestar-fashions: factory 2 strings → 1 location(s)
+- expert-global-trims: factory 2 strings → 1 location(s)
+- universal-trims: factory 3 strings → 2 location(s)
+- incredible-fashions: factory 3 strings → 1 location(s); registered 2 strings → 2 location(s)
 
 Remaining multi-location groups (slug, kind, locations):
 
@@ -1010,9 +1016,6 @@ Remaining multi-location groups (slug, kind, locations):
   - HOUSE # 365/4, ROAD # 06, (WEST) BARIDARA, DOHS, DHAKA-1206
   - CHOWDHURYGAON, KASHIPUR, HATKHOLA-1421, FATULLAH, NARAYANGANJ
   - S. A-646, SHAHANGOAN, ENAYETNAGAR, FATULLAH, NARAYANGANJ
-- crony-tex-sweater (mailing) 2 strings → 2
-  - HOUSE # 365/4, ROAD # 06, (WEST) BARIDARA, DOHS, DHAKA-1206, NARAYANGANJ
-  - House # 365/4, Road # 6 (west0, Dhaka, Baridhara DOHS
 - crown-knitwear (factory) 2 strings → 2
   - Plot # 781 & 782, Vogra, Joydevpur, Gazipur
   - Jamirdia, Bhaluka, Mymensingh
@@ -1247,8 +1250,8 @@ Remaining multi-location groups (slug, kind, locations):
   - Akulichala, Sakashor, Maddapara, Kaliakoir, Kaliakair PS, Gazipur - 1750, Bangladesh
   - Nagchala, Sakashore, Kliakair, Gazipur - 1750, Bangladesh
 - etam-international-l-sourcing-shanghai (registered) 2 strings → 2
-  - Rupayan Golden Age (Level- 6), Office Space-6, Block-, CWN(99), Gulshan, Dhaka
   - Road # 8, House #451, Baridhara DOHS, Dhaka
+  - Rupayan Golden Age (Level- 6), Office Space-6, Block-, CWN(99), Gulshan, Dhaka
 - euphoria-apparels (mailing) 2 strings → 2
   - Bengal Square, 437, Tejgaon I/A, Dhaka
   - JAMGARA, ASHULIA, SAVAR, DHAKA
@@ -1275,9 +1278,6 @@ Remaining multi-location groups (slug, kind, locations):
   - House # 16 (2nd Fl), Road # 4, Sector # 3, Uttara, Dhaka
   - House # 542 (2nd Floor), Lane 12, DOHS, Baridhara DOHS, Dhaka
   - House # 343, Apt # D/2, Road # 5, Baridhara DOHS, Dhaka
-- expert-global-trims (factory) 2 strings → 2
-  - House# M 5, 6, Road# 22, Block# M, Eastern Housing, Pallabi, Mirupur-12, 1216, Dhaka, Bangladesh
-  - Plot-M/5, Road-22, Block-M, Eastern Housing, Mirpur, Pallabi 2nd Part, Dhaka-1216
 - explore-fashion (registered) 2 strings → 2
   - House # 225 (3rd Floor), Lake Road, Lane # 15, New DOHS, Mohakhali, Dhaka
   - House # 23 (1st Floor), Road # 7D, Sector # 9, Uttara, Dhaka
@@ -1414,8 +1414,8 @@ Remaining multi-location groups (slug, kind, locations):
   - 1363/A, 1364 Askarabad, D.T. Road, Double Mooring, Chittagong
   - 1363/A/1364 Askarabad, D.T. Road, Chattogram, Chattogram - 4000, Bangladesh
 - fashion-world (registered) 2 strings → 2
-  - Road # 8, House # 478, Baridhara DOHS, Gulshan, Dhaka
   - House # 15 (3rd Floor), Road # 11, North Nikonja, Dhaka
+  - Road # 8, House # 478, Baridhara DOHS, Gulshan, Dhaka
 - fashion-xpress (registered) 2 strings → 2
   - 12/4, BK Das Road, Farashgonj, Sutrapur, Dhaka
   - KA - 140, Joar Sahara Bazar, Badda, Dhaka
@@ -2145,9 +2145,6 @@ Remaining multi-location groups (slug, kind, locations):
 - liz-fashion-industries (mailing) 2 strings → 2
   - HOLDING#1, BUILDING#2 (GROUND-6TH FLOOR), BLOCK#C, SHAHEED MOSHARRAF HOSSAIN ROAD, PURBA CHANDONA, SHAFIPUR, KALIAKOIR, GAZIPUR
   - House # 316, Road# 04, DOHS Baridhara, Dhaka 1206, Bangladesh.
-- lodestar-fashions (factory) 2 strings → 2
-  - Plot-M-8, 9 & 16, Section-14, Mirpur, -, 1216, Dhaka, Bangladesh
-  - M-16, Section # 14, Dhaka, Mirpur
 - logos-apparels (factory) 4 strings → 2
   - 414, Mouza, Kouchakuri (DAG No. SA 2006, 2008), Telirchala, Mouchak, Kaliakoir, Gazipur - 1751, Bangladesh
   - Jogirchala, Mouchak, Kaliakoir, Gazipur.
@@ -3056,9 +3053,6 @@ Remaining multi-location groups (slug, kind, locations):
 - renaissance-apparels (factory) 3 strings → 2
   - C.S. Plot No. 659 & 660, Mouza 93, RI Park, Islampur, Gazipur Sadar, Gazipur - 1700, Bangladesh
   - B.K Bari, Mirzapur Bazar, Gazipur Sadar, Gazipur - 1703, Bangladesh
-- rezaul-apparels (factory) 3 strings → 2
-  - Plot No. 371-372, Basic, Konabari, Gazipur - 1700, Bangladesh
-  - Plot# 371-72, BSCIC, Konabari, Gazipur
 - rhino-apparels (factory) 2 strings → 2
   - 6528, Madrasa Road, North Gazirchat, Ashulia
   - 506, UTTAR KHAILKURGACHA, NATIONAL UNIVERSITY, GAZIPUR
@@ -3333,8 +3327,8 @@ Remaining multi-location groups (slug, kind, locations):
   - Shirirchala, Bhabanipur, Gazipur - 1740, Bangladesh
   - PANCHABATI, NARAYANGANJ
 - sm-knitwear (mailing) 4 strings → 3
-  - House-SE-04, Road-137, Gulshan-1, Dhaka
   - PLOT-A/107, BSCIC HOSIERY I/E, SHASONGAON, FATULLAH, NARAYANGANJ
+  - House-SE-04, Road-137, Gulshan-1, Dhaka
   - PANCHABATI, NARAYANGANJ
 - sm-sourcing (factory) 7 strings → 4
   - 165, Baizid Bostami Road, Nasirabad I/Area, Chattogram
@@ -3671,10 +3665,9 @@ Remaining multi-location groups (slug, kind, locations):
   - South Pahartali, Ward # 1, Nandirhat, P.O.: Fatehabad-4335, Thana-Hathazari, Chattogram
   - Fullhar, Modonpur, Bandor, Narayanganj - 1412, Bangladesh
   - Enayetnagar, Godnail, Siddhirgonj, Narayanganj - 1430, Bangladesh
-- universal-trims (factory) 3 strings → 3
+- universal-trims (factory) 3 strings → 2
   - Factory: House J/8, Road: N/7, Block- J, Eastern Housing, Pallabi, 1216, Dhaka, Bangladesh
   - Plot No # 14, Road No # 2, Block # K, Rupnagar I/A, Mirpur-2, 1216, Dhaka, Bangladesh
-  - PLOT # 10 & 14, ROAD # 2, BLOCK # K, RUPNAGAR I/A, MIRPUR-2, MIRPUR, DHAKA
 - univogue-garments (factory) 3 strings → 3
   - Unit-1 Production Unit Plot# 57-59, Sector 1, Export Processing Zone;, Unit-2 Washing Plot# 1-2, Sector 1, Export Processing Zone;, Unit-3 Central Cutting Plot# 25-27, Sector-4, Export Processing Zone;, Unit-4 Head Office/Production Unit Plot# 1-5, Sector-1/A, Export Processing Zone, 4223 Chittagong, Bangladesh
   - Plot#57, 58 & 59, Sector#1, CEPZ, Chattogram, Bangladesh, EPZ
@@ -3732,8 +3725,8 @@ Remaining multi-location groups (slug, kind, locations):
   - Auto Complex, 221, Dewanhat, Banani C/A, Chittagong
   - 2106, Kunia, Boro Bari, National University, Gazipur
 - western-dresses (mailing) 2 strings → 2
-  - 238, Tejgaon I/A, Gulshan Link Road, 1208, Dhaka
   - Estern Trade Center, 9/A, Jublee Road, Chittagong
+  - 238, Tejgaon I/A, Gulshan Link Road, 1208, Dhaka
 - work-field-knitwear (factory) 2 strings → 2
   - East Isdair, Upozila Road, Narayanganj, B. Baria
   - EAST ISDAIR UPAZILA ROAD, NARAYANGANJ

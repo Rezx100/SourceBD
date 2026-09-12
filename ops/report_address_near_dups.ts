@@ -69,6 +69,7 @@ const namedSlugs = [
   "lodestar-fashions",
   "expert-global-trims",
   "universal-trims",
+  "incredible-fashions",
 ];
 const mustStayMulti: Array<{ slug: string; kind: string; minLocations: number }> = [
   { slug: "siji-garments", kind: "factory", minLocations: 2 },
@@ -82,6 +83,7 @@ const mustStayMulti: Array<{ slug: string; kind: string; minLocations: number }>
   { slug: "earthee-wear", kind: "mailing", minLocations: 2 },
   { slug: "virtual-knitwear", kind: "mailing", minLocations: 2 },
   { slug: "db-trims", kind: "factory", minLocations: 2 },
+  { slug: "incredible-fashions", kind: "registered", minLocations: 2 },
 ];
 const mustNotAbsorb: Array<{
   slug: string;

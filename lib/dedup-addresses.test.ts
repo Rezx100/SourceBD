@@ -2646,6 +2646,30 @@ describe("mergeUniqueLocations — empty rows, duplicates, overview buckets", ()
     );
   });
 
+  it("keeps an unlabelled old/new holding pair on the same road as one premises", () => {
+    assert.equal(
+      displays([
+        row("60, B.B. Road, Enayet Nagor, Narayanganj"),
+        row("60 (OLD), 86 (NEW) B. B. ROAD, SADAR, NARAYANGANJ"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("two different Gulshan buildings stay two (Moyeen Center vs Bilquis Tower)", () => {
+    const bilquis = premisesIdentifiers(
+      "Bilquis Tower (4th Floor), Plot-6 ( New), Gulshan-02 Circle, Dhaka-1212",
+    );
+    assert.equal(bilquis.has("6"), true);
+    assert.equal(
+      displays([
+        row("Moyeen Center, House # 9B, Road # 3(2), Gulshan, Dhaka"),
+        row("Bilquis Tower (4th Floor), Plot-6 ( New), Gulshan-02 Circle, Dhaka-1212"),
+      ]).length,
+      2,
+    );
+  });
+
   it("does not absorb Plot 27 Holding 1 into House 1 in the same thana", () => {
     assert.equal(
       displays([

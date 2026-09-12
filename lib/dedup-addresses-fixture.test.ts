@@ -808,6 +808,11 @@ describe("published multi-string fixture", () => {
       1,
       "expert-global-trims factory M/5 vs M 5,6",
     );
+    assert.equal(
+      mergeUniqueLocations(groupOf("incredible-fashions", "registered").rows).length,
+      2,
+      "incredible-fashions registered Moyeen Center vs Bilquis Tower",
+    );
     const universal = once("universal-trims", "factory");
     assert.equal(
       locOf(universal, /Plot No # 14/, "universal plot 14"),
