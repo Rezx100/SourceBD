@@ -2878,8 +2878,9 @@ const EXTRA_PLACE_SKIP_RE = (() => {
     if (extraPlaceSkipToken(t)) skip.add(t);
   }
   const alt = [...skip].sort((a, b) => b.length - a.length).join("|");
-  // Dash punctuation (Pd), minus U+2212, soft hyphen U+00AD, underscore.
-  const dash = String.raw`\s./_\-\u00AD\u2010-\u2015\u2212`;
+  // Unicode dash punctuation (Pd), math minus (Sm, used as a hyphen),
+  // soft hyphen, ZWSP, underscore.
+  const dash = String.raw`\s./_\u00AD\u200B\p{Pd}\u2212`;
   const compassAbbr = String.raw`(?:[sn][${dash}]*[ew]\.?|[ew][${dash}]*[sn]\.?|[sn][ew]\.?)`;
   const skipWord = `(?:${alt}|${compassAbbr})`;
   const sep = String.raw`[${dash}]+`;
@@ -2893,11 +2894,12 @@ const EXTRA_PLACE_SKIP_RE = (() => {
  *  Plot # 10, Airport still has to see 10 as the digit before Airport. */
 const PLOT_DIGIT_LEAD =
   String.raw`\b(?:plot|plots)\b[\s.:#-]*(?:no\.?|number|#|:)?[\s.:#-]*`;
-const EXTRA_DIGIT_SAT_LEAD = String.raw`(?:^|,\s*|\bsat[\s.\u00AD\u2010-\u2015\u2212_\-]*)`;
-const EXTRA_DIGIT_LEAD = String.raw`(?:^|,\s*|(?<=[a-z])\s+|\bsat[\s.\u00AD\u2010-\u2015\u2212_\-]*|${PLOT_DIGIT_LEAD})`;
+const EXTRA_DIGIT_SAT_LEAD = String.raw`(?:^|,\s*|\bsat[\s.\u00AD\u200B\p{Pd}\u2212_]*)`;
+const EXTRA_DIGIT_LEAD = String.raw`(?:^|,\s*|(?<=[a-z])\s+|\bsat[\s.\u00AD\u200B\p{Pd}\u2212_]*|${PLOT_DIGIT_LEAD})`;
 /** 7/A, 87-A, 87A, 1236/E are units. 38/South and 7-Baro are skip-run glue. */
 const EXTRA_DIGIT_UNIT = String.raw`(?:[\/.][a-z](?![a-z])|\/[0-9]+|-[a-z](?![a-z])|[a-z](?![a-z0-9]))?`;
-const EXTRA_DIGIT_GLUE = String.raw`[\s./_\-\u00AD\u2010-\u2015\u2212]*`;
+const EXTRA_DIGIT_GLUE = String.raw`[\s./_\u00AD\u200B\p{Pd}\u2212]*`;
+const EXTRA_RE_FLAGS = "gu";
 const ROAD_HOLDING_TAILS = [
   "road",
   "rd",
@@ -2940,6 +2942,22 @@ function labelledAdminBefore(before: string): boolean {
   return /(?:ward|block|sector|section|plot|plots|union|dag|dug|road|rd|avenue)\s*(?:#|no\.?|number)?[\s.:-]*$/i.test(
     before,
   );
+}
+
+/** Ward / block / sector numbers are admin labels, not a second holding
+ *  even when a road name follows (Ward # 5, Mosque Road). Plot # 140 on
+ *  DEPZ Road still has to mint. */
+function labelledWardSectorBefore(before: string): boolean {
+  return /(?:ward|block|sector|section)\s*(?:#|no\.?|number)?[\s.:-]*$/i.test(
+    before,
+  );
+}
+
+function labelledWardSectorDigit(s: string, m: RegExpMatchArray): boolean {
+  const start = m.index ?? 0;
+  const digitAt = m[0]!.search(/\d/);
+  const head = digitAt >= 0 ? m[0]!.slice(0, digitAt) : "";
+  return labelledWardSectorBefore(s.slice(0, start) + head);
 }
 
 function plotListTail(before: string): boolean {
@@ -2992,17 +3010,26 @@ function roadHoldingEntries(display: string): Array<{ digit: string; tail: strin
   for (const word of ROAD_HOLDING_TAILS) {
     const comma = new RegExp(
       String.raw`${lead}${p}(\d{1,3})\s*,\s*${EXTRA_PLACE_SKIP_RE}([a-z][^,]{0,40}?)\s+${word}\b`,
-      "g",
+      EXTRA_RE_FLAGS,
     );
     const space = new RegExp(
       String.raw`${lead}${p}(\d{1,3})${EXTRA_DIGIT_GLUE}${EXTRA_PLACE_SKIP_RE}([a-z][^,]{0,40}?)\s+${word}\b`,
-      "g",
+      EXTRA_RE_FLAGS,
     );
-    for (const re of [comma, space]) {
+    const intervening = new RegExp(
+      String.raw`${EXTRA_DIGIT_LEAD}${p}(\d{1,3})\s*,\s*${EXTRA_PLACE_SKIP_RE}[a-z]{3,}\s*,\s*${EXTRA_PLACE_SKIP_RE}([a-z][^,]{0,40}?)\s+${word}\b`,
+      EXTRA_RE_FLAGS,
+    );
+    const interveningSpace = new RegExp(
+      String.raw`${EXTRA_DIGIT_LEAD}${p}(\d{1,3})${EXTRA_DIGIT_GLUE}${EXTRA_PLACE_SKIP_RE}[a-z]{3,}\s*,\s*${EXTRA_PLACE_SKIP_RE}([a-z][^,]{0,40}?)\s+${word}\b`,
+      EXTRA_RE_FLAGS,
+    );
+    for (const re of [comma, space, intervening, interveningSpace]) {
       for (const m of s.matchAll(re)) {
         const tail = m[2]!;
         // "1st Lane" is an ordinal street, not holding 1 at tail "st".
         if (/^(?:st|nd|rd|th)$/.test(tail.trim())) continue;
+        if (labelledWardSectorDigit(s, m)) continue;
         out.push({ digit: m[1]!, tail });
       }
     }
@@ -3019,9 +3046,11 @@ function roadHoldingDigits(display: string): Set<string> {
 function ordinalStreetEntries(display: string): Array<{ n: string; word: string }> {
   const s = display.toLowerCase();
   const out: Array<{ n: string; word: string }> = [];
-  for (const m of s.matchAll(
-    /\b(\d{1,2})(?:st|nd|rd|th)\s+(lane|roads?|rd|streets?|st|avenues?|ave)\b/g,
-  )) {
+  const re = new RegExp(
+    String.raw`\b(\d{1,2})(?:st|nd|rd|th)[\s./_\u00AD\u200B\p{Pd}\u2212]*(ln|lane|gali|blvd|boulevard|drive|drv|close|roads?|rd|streets?|st|avenues?|ave)\b`,
+    EXTRA_RE_FLAGS,
+  );
+  for (const m of s.matchAll(re)) {
     const raw = m[2]!;
     const word =
       raw === "rd" || raw === "road" || raw === "roads"
@@ -3030,17 +3059,39 @@ function ordinalStreetEntries(display: string): Array<{ n: string; word: string 
           ? "street"
           : raw === "ave" || raw === "avenue" || raw === "avenues"
             ? "avenue"
-            : "lane";
+            : raw === "blvd" || raw === "boulevard"
+              ? "boulevard"
+              : raw === "drive" || raw === "drv"
+                ? "drive"
+                : raw === "close"
+                  ? "close"
+                  : "lane";
     out.push({ n: m[1]!, word });
   }
   return out;
 }
 
+function unOrdinalLane(display: string): boolean {
+  return (
+    /\blane\b/i.test(display) &&
+    !/\b\d{1,2}(?:st|nd|rd|th)/i.test(display)
+  );
+}
+
 function ordinalStreetConflict(a: Candidate, b: Candidate): boolean {
   const ea = ordinalStreetEntries(a.display);
   const eb = ordinalStreetEntries(b.display);
-  if (ea.length === 0 || eb.length === 0) return false;
-  return ea.some((x) => eb.some((y) => x.n !== y.n || x.word !== y.word));
+  if (ea.length > 0 && eb.length > 0) {
+    return ea.some((x) => eb.some((y) => x.n !== y.n || x.word !== y.word));
+  }
+  // "Lane" vs "2nd Lane" — un-ordinal is first; a later ordinal is not.
+  if (ea.length === 0 && eb.length > 0 && unOrdinalLane(a.display)) {
+    return eb.some((y) => y.word === "lane" && y.n !== "1");
+  }
+  if (eb.length === 0 && ea.length > 0 && unOrdinalLane(b.display)) {
+    return ea.some((y) => y.word === "lane" && y.n !== "1");
+  }
+  return false;
 }
 
 /** Unlabelled "7 Gulshan" / "7, Gulshan-1" of a Gulshan-only campus. */
@@ -3050,7 +3101,7 @@ function adminPlaceExtraEntries(display: string): Array<{ digit: string; tail: s
   for (const m of s.matchAll(
     new RegExp(
       String.raw`${EXTRA_DIGIT_SAT_LEAD}(?:(?:no\s*[:.\-]?|number|#)\s*)?(\d{1,3})\s*,?\s*${EXTRA_PLACE_SKIP_RE}([a-z]{3,})(?:-\d+)?\b`,
-      "g",
+      EXTRA_RE_FLAGS,
     ),
   )) {
     const place = m[2]!;
@@ -3088,14 +3139,31 @@ function roadNameTokensFromTail(tail: string): string[] {
     "drv",
     "close",
   ]);
-  return tail.split(/[^a-z]+/).filter((t) => t.length >= 3 && !thorough.has(t) && t !== "new");
+  const raw = tail
+    .toLowerCase()
+    .split(/[^a-z]+/)
+    .filter((t) => t.length >= 1 && !thorough.has(t) && t !== "new");
+  const out: string[] = [];
+  for (let i = 0; i < raw.length; i++) {
+    const t = raw[i]!;
+    const nxt = raw[i + 1];
+    // "D EPZ" is DEPZ. Do not drop the single letter (length < 3) and
+    // then XOR DEPZ vs EPZ as two roads.
+    if (t.length === 1 && nxt && nxt.length >= 3) {
+      out.push(t + nxt);
+      i += 1;
+      continue;
+    }
+    if (t.length >= 3) out.push(t);
+  }
+  return out;
 }
 
 function villageExtraDigit(digit: string, display: string): boolean {
   const s = display.toLowerCase();
   const re = new RegExp(
     `(?:^|[,\\s]|\\bsat[\\s.\\-]*)0*${digit}(?:[\\/.][a-z](?![a-z])|\\/[0-9]+)?\\s*,?\\s*${EXTRA_PLACE_SKIP_RE}([a-z]{3,})\\b`,
-    "g",
+    EXTRA_RE_FLAGS,
   );
   for (const m of s.matchAll(re)) {
     if (VILLAGE_EXTRA_PLACES.has(m[1]!)) return true;
@@ -3152,7 +3220,7 @@ function holdingWordingDigits(display: string): Set<string> {
     ...withHo.matchAll(
       new RegExp(
         String.raw`${EXTRA_DIGIT_LEAD}((?:no\s*[:.\-]?|number|#)\s*)?(\d{1,3})${EXTRA_DIGIT_UNIT}${EXTRA_DIGIT_GLUE}${EXTRA_PLACE_SKIP_RE}([a-z]{3,})\b`,
-        "g",
+        EXTRA_RE_FLAGS,
       ),
     ),
   ]
@@ -3168,7 +3236,7 @@ function holdingWordingDigits(display: string): Set<string> {
     ...withHo.matchAll(
       new RegExp(
         String.raw`${EXTRA_DIGIT_SAT_LEAD}((?:no\s*[:.\-]?|number|#)\s*)?(\d{1,3})\s*,\s*${EXTRA_PLACE_SKIP_RE}([a-z]{2,})`,
-        "g",
+        EXTRA_RE_FLAGS,
       ),
     ),
   ]
@@ -3248,7 +3316,19 @@ function extraNameShare(a: string[], b: string[]): boolean {
         bengaliSoundKey(sa) === bengaliSoundKey(sb)
       );
     }
+    const [short, long] = sa.length <= sb.length ? [sa, sb] : [sb, sa];
+    // Green vs Greenpara / Greennagar is a second place, not a spelling.
+    // Palashbari vs Polash is not prefix+tail (palashbari does not start
+    // with polash).
+    if (
+      long.startsWith(short) &&
+      (PLACE_TAILS as readonly string[]).includes(long.slice(short.length))
+    ) {
+      return false;
+    }
   }
+  // Dighirpar vs Dighir Par, Dattopara vs Datta Para, Palashbari vs Polash Bari.
+  if (joinedParaShare(a, b)) return true;
   if (
     a.some((p) =>
       b.some((q) => paraStemShare(p, q)),
@@ -3260,30 +3340,91 @@ function extraNameShare(a: string[], b: string[]): boolean {
   if (sa.length === sb.length && sa.length >= 6 && levenshtein(sa, sb) <= 2) {
     return true;
   }
-  const [short, long] = sa.length <= sb.length ? [sa, sb] : [sb, sa];
-  if (long.startsWith(short) && short.length >= 5) {
-    const rest = long.slice(short.length);
-    if (rest === "par" || rest === "para") return true;
-  }
   return false;
 }
 
-/** Dattopara vs Datta Para, Palashbari vs Polash Bari. Do not stem -pur
- *  (Greenpur / Bananipur). */
+/** Compound para/par/bari vs the stem plus that tail as its own token. */
+function joinedParaShare(a: string[], b: string[]): boolean {
+  const tails = new Set(["para", "par", "bari"]);
+  const check = (compound: string[], parts: string[]): boolean => {
+    if (compound.length !== 1) return false;
+    const t = compound[0]!;
+    for (const tail of ["para", "par", "bari"] as const) {
+      if (!t.endsWith(tail) || t.length <= tail.length + 2) continue;
+      const stem = t.slice(0, -tail.length);
+      if (
+        parts.some((p) => tails.has(p)) &&
+        parts.some((p) => p === stem || sameWord(p, stem))
+      ) {
+        return true;
+      }
+    }
+    return false;
+  };
+  return check(a, b) || check(b, a);
+}
+
+/** Dighirpar vs "Dighir Par" — the split tail is on the other string. */
+function paraSpellingShare(
+  aPlace: string,
+  bPlace: string,
+  aDisplay: string,
+  bDisplay: string,
+): boolean {
+  const aLow = aDisplay.toLowerCase();
+  const bLow = bDisplay.toLowerCase();
+  const tryStem = (compound: string, stem: string, stemDisplay: string): boolean => {
+    for (const tail of ["para", "par", "bari"] as const) {
+      if (!compound.endsWith(tail) || compound.length <= tail.length + 2) continue;
+      const s = compound.slice(0, -tail.length);
+      if (!(stem === s || sameWord(stem, s))) continue;
+      const esc = stem.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      if (new RegExp(String.raw`\b${esc}\s+${tail}\b`).test(stemDisplay)) return true;
+    }
+    return false;
+  };
+  return tryStem(aPlace, bPlace, bLow) || tryStem(bPlace, aPlace, aLow);
+}
+
+/** Dattopara vs Datta (stem datto≠datta). Greenpara vs Green is not a spelling. */
 function paraStemShare(a: string, b: string): boolean {
-  const stems = (t: string): string[] => {
-    const out = [t];
+  const stripped = (t: string): string[] => {
+    const out: string[] = [];
     if (t.length > 7 && t.endsWith("para")) out.push(t.slice(0, -4));
     else if (t.length > 6 && t.endsWith("par")) out.push(t.slice(0, -3));
     if (t.length > 7 && t.endsWith("bari")) out.push(t.slice(0, -4));
     return out;
   };
-  return stems(a).some((x) => stems(b).some((y) => x === y || sameWord(x, y)));
+  const sa = stripped(a);
+  const sb = stripped(b);
+  if (sa.length > 0 && sb.length > 0) {
+    return sa.some((x) => sb.some((y) => x === y || sameWord(x, y)));
+  }
+  if (sa.length > 0) return sa.some((x) => x !== b && sameWord(x, b));
+  if (sb.length > 0) return sb.some((y) => y !== a && sameWord(y, a));
+  return false;
 }
 
 function isLocalityTailPlace(place: string): boolean {
   return (PLACE_TAILS as readonly string[]).some(
     (tail) => place.length > tail.length + 3 && place.endsWith(tail),
+  );
+}
+
+function extraNamedOnOtherNonHousing(places: string[], other: Candidate): boolean {
+  if (places.length === 0) return false;
+  const meaningful = places.filter(
+    (p) => p.length >= 3 && !isThoroughfareWord(p) && !GENERIC_TOKENS.has(p),
+  );
+  const names = meaningful.length > 0 ? meaningful : places;
+  return names.some((p) =>
+    other.tokens.some(
+      (t) =>
+        !isThoroughfareWord(t) &&
+        !GENERIC_TOKENS.has(t) &&
+        !HOUSING_CAMPUS_PLACES.has(t) &&
+        extraNameShare([p], [t]),
+    ),
   );
 }
 
@@ -3320,6 +3461,10 @@ function bareProperRoadPlaces(display: string): Array<{ digit: string; places: s
     if (/[a-z]/.test(gap)) return;
     if (clauseHasThoroughfare(after)) return;
     const next = after.trimStart().match(/^([a-z]{3,})\b/)?.[1];
+    if (next === "par" || next === "para" || next === "bari") {
+      out.push({ digit: String(Number(digit)), places: [place, next] });
+      return;
+    }
     if (next && (PLACE_TAILS as readonly string[]).includes(next)) return;
     if (isBuildingNameFollower(after)) return;
     const canon = tokens(normaliseAddressKey(place));
@@ -3329,7 +3474,7 @@ function bareProperRoadPlaces(display: string): Array<{ digit: string; places: s
   for (const m of s.matchAll(
     new RegExp(
       String.raw`${EXTRA_DIGIT_LEAD}((?:no\s*[:.\-]?|number|#)\s*)?(\d{1,3})${EXTRA_DIGIT_UNIT}(${EXTRA_DIGIT_GLUE})${EXTRA_PLACE_SKIP_RE}([a-z]{3,})\b`,
-      "g",
+      EXTRA_RE_FLAGS,
     ),
   )) {
     push(m[2]!, m[4]!, m[3]!, s.slice((m.index ?? 0) + m[0].length));
@@ -3337,7 +3482,7 @@ function bareProperRoadPlaces(display: string): Array<{ digit: string; places: s
   for (const m of s.matchAll(
     new RegExp(
       String.raw`${EXTRA_DIGIT_SAT_LEAD}((?:no\s*[:.\-]?|number|#)\s*)?(\d{1,3})(\s*,\s*${EXTRA_PLACE_SKIP_RE})([a-z]{3,})`,
-      "g",
+      EXTRA_RE_FLAGS,
     ),
   )) {
     push(m[2]!, m[4]!, m[3]!, s.slice((m.index ?? 0) + m[0].length));
@@ -3345,10 +3490,33 @@ function bareProperRoadPlaces(display: string): Array<{ digit: string; places: s
   for (const m of s.matchAll(
     new RegExp(
       String.raw`${PLOT_DIGIT_LEAD}(\d{1,3})\s*,\s*${EXTRA_PLACE_SKIP_RE}([a-z]{3,})\b`,
-      "g",
+      EXTRA_RE_FLAGS,
     ),
   )) {
     push(m[1]!, m[2]!, ",", s.slice((m.index ?? 0) + m[0].length));
+  }
+  return out;
+}
+
+/** "Shutivola, 404, Fakirkhali Road" — the village sits before the plot
+ *  digit. Do not skip it because a road follows (that is the road of
+ *  the same premises). */
+function leadingVillageExtras(display: string): Array<{ digit: string; places: string[] }> {
+  const s = rewriteHouseOffice(display).toLowerCase();
+  const out: Array<{ digit: string; places: string[] }> = [];
+  for (const m of s.matchAll(
+    new RegExp(
+      String.raw`(^|,\s*)([a-z]{3,})\s*,\s*(?:(?:no\s*[:.\-]?|number|#)\s*)?(\d{1,3})\b`,
+      EXTRA_RE_FLAGS,
+    ),
+  )) {
+    const place = m[2]!;
+    if (extraPlaceSkipToken(place)) continue;
+    if (isThoroughfareWord(place)) continue;
+    if ((PLACE_TAILS as readonly string[]).includes(place)) continue;
+    if (HOUSING_CAMPUS_PLACES.has(place) || ADMIN_TOKENS.has(place)) continue;
+    if (GENERIC_TOKENS.has(place)) continue;
+    out.push({ digit: String(Number(m[3]!)), places: [place] });
   }
   return out;
 }
@@ -3385,6 +3553,9 @@ function extraRoadPlaceConflict(a: Candidate, b: Candidate): boolean {
     for (const p of bareProperRoadPlaces(display)) {
       out.push({ ...p, src: "bare" });
     }
+    for (const p of leadingVillageExtras(display)) {
+      out.push({ ...p, src: "bare" });
+    }
     return out;
   };
   const ea = namedExtraTails(a.display);
@@ -3399,7 +3570,49 @@ function extraRoadPlaceConflict(a: Candidate, b: Candidate): boolean {
       // use extraNamedOnOther (Shutivola + Fakirkhali, Sowdagor + CDA,
       // BSCIC + Konabari).
       if (x.src === "road" && y.src === "road") return true;
-      if (extraNamedOnOther(x.places, b) && extraNamedOnOther(y.places, a)) {
+      // Shared extra at this digit (Dighirpar vs Dighir Par, Kulgaon vs
+      // Kulgoan). Other extras at the digit are leftover wording, not a
+      // second premises. Airport vs Green do not share an extra.
+      if (
+        ea.some(
+          (p) =>
+            p.digit === x.digit &&
+            eb.some(
+              (q) =>
+                q.digit === y.digit &&
+                (extraNameShare(p.places, q.places) ||
+                  (p.places.length === 1 &&
+                    q.places.length === 1 &&
+                    paraSpellingShare(p.places[0]!, q.places[0]!, a.display, b.display))),
+            ),
+        )
+      ) {
+        continue;
+      }
+      const xRoadish = x.src === "road" || x.src === "bare";
+      const yRoadish = y.src === "road" || y.src === "bare";
+      if (xRoadish && yRoadish) {
+        if (x.src === "road" && y.places.some(isLocalityTailPlace)) {
+          if (extraNamedOnOther(y.places, a)) continue;
+        }
+        if (y.src === "road" && x.places.some(isLocalityTailPlace)) {
+          if (extraNamedOnOther(x.places, b)) continue;
+        }
+        // Airport vs Green leftover are two single-token extras.
+        // Sowdagor Lane vs CDA is a multi-word road vs a short extra.
+        if (x.places.length === 1 && y.places.length === 1) return true;
+        if (
+          extraNamedOnOtherNonHousing(x.places, b) &&
+          extraNamedOnOtherNonHousing(y.places, a)
+        ) {
+          continue;
+        }
+        return true;
+      }
+      if (
+        extraNamedOnOtherNonHousing(x.places, b) &&
+        extraNamedOnOtherNonHousing(y.places, a)
+      ) {
         continue;
       }
       if (
@@ -3408,18 +3621,6 @@ function extraRoadPlaceConflict(a: Candidate, b: Candidate): boolean {
       ) {
         return true;
       }
-      const xRoadish = x.src === "road" || x.src === "bare";
-      const yRoadish = y.src === "road" || y.src === "bare";
-      if (!(xRoadish && yRoadish)) continue;
-      // 244 Singair Road vs 244 Hemayetpur: the -pur name is the village
-      // of the holding, not a second road. Green vs Greenpur are both bare.
-      if (
-        (x.src === "road" && y.places.some(isLocalityTailPlace)) ||
-        (y.src === "road" && x.places.some(isLocalityTailPlace))
-      ) {
-        continue;
-      }
-      return true;
     }
   }
   return false;
@@ -3432,7 +3633,7 @@ function extraPlacePairs(display: string): Array<{ digit: string; place: string 
   for (const m of withHo.matchAll(
     new RegExp(
       String.raw`${EXTRA_DIGIT_LEAD}((?:no\s*[:.\-]?|number|#)\s*)?(\d{1,3})${EXTRA_DIGIT_UNIT}${EXTRA_DIGIT_GLUE}${EXTRA_PLACE_SKIP_RE}([a-z]{3,})\b`,
-      "g",
+      EXTRA_RE_FLAGS,
     ),
   )) {
     const after = withHo.slice((m.index ?? 0) + m[0].length);
@@ -3452,7 +3653,7 @@ function extraPlacePairs(display: string): Array<{ digit: string; place: string 
   for (const m of withHo.matchAll(
     new RegExp(
       String.raw`${EXTRA_DIGIT_SAT_LEAD}((?:no\s*[:.\-]?|number|#)\s*)?(\d{1,3})\s*,\s*${EXTRA_PLACE_SKIP_RE}([a-z]{2,})`,
-      "g",
+      EXTRA_RE_FLAGS,
     ),
   )) {
     const after = withHo.slice((m.index ?? 0) + m[0].length);
@@ -3470,7 +3671,7 @@ function extraPlacePairs(display: string): Array<{ digit: string; place: string 
   for (const m of withHo.matchAll(
     new RegExp(
       String.raw`\b(?:house|hosue|holding|hold|building|bldg|flat|apartment|apt|unit)\s*(?:#|no\.?|number)?[\s.:-]*(\d{1,3})\s*,\s*${EXTRA_PLACE_SKIP_RE}([a-z]{2,})\b`,
-      "g",
+      EXTRA_RE_FLAGS,
     ),
   )) {
     const place = m[2]!;
@@ -3492,6 +3693,7 @@ function extraPlaceConflict(a: Candidate, b: Candidate): boolean {
     for (const y of pb) {
       if (x.digit !== y.digit) continue;
       if (extraNameShare([x.place], [y.place])) continue;
+      if (paraSpellingShare(x.place, y.place, a.display, b.display)) continue;
       if (VILLAGE_EXTRA_PLACES.has(x.place) || VILLAGE_EXTRA_PLACES.has(y.place)) continue;
       return true;
     }

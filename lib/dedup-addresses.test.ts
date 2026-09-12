@@ -3892,6 +3892,48 @@ describe("mergeUniqueLocations — empty rows, duplicates, overview buckets", ()
       "Plot 10 Airport Road, Green House vs Green Road, Airport Plaza",
     );
     assertBothOrders(
+      row("Plot # 10, 10 Airport Road, Green, Gulshan-1, Dhaka"),
+      row("Plot # 10, 10 Green, Airport, Gulshan-1, Dhaka"),
+      2,
+      "Plot 10 Airport Road, Green vs Green, Airport leftover",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport, Green, Gulshan-1, Dhaka"),
+      row("Plot # 10, Green, Airport, Gulshan-1, Dhaka"),
+      2,
+      "Plot 10 Airport, Green vs Green, Airport leftover",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport, Green, Gulshan-1, Dhaka"),
+      row("Plot # 10, 10 Green Road, Airport, Gulshan-1, Dhaka"),
+      2,
+      "Plot 10 Airport, Green vs Green Road, Airport leftover",
+    );
+    assertBothOrders(
+      row("Plot # 10, 10 Airport Avenue, Green, Gulshan-1, Dhaka"),
+      row("Plot # 10, 10 Green, Airport, Gulshan-1, Dhaka"),
+      2,
+      "Plot 10 Airport Avenue, Green vs Green, Airport leftover",
+    );
+    assertBothOrders(
+      campusRow(),
+      row("House # 50, Road # 3, 7 Airport Road, Green, Gulshan-1, Dhaka"),
+      2,
+      "House 50 vs 7 Airport Road, Green leftover",
+    );
+    assertBothOrders(
+      row("House # 50, Road # 3, 7 Airport Road, Green, Gulshan-1, Dhaka"),
+      row("House # 50, Road # 3, 7 Green, Airport, Gulshan-1, Dhaka"),
+      2,
+      "House 50 7 Airport Road, Green vs 7 Green, Airport leftover",
+    );
+    assertBothOrders(
+      row("House # 50, Road # 3, 7 Airport Road, Green, Gulshan-1, Dhaka"),
+      row("House # 50, Road # 3, 7 Green, Airport, Gulshan-1, Dhaka"),
+      2,
+      "7 Airport Road, Green vs 7 Green, Airport leftover",
+    );
+    assertBothOrders(
       row("Plot # 10, 10 Banani, Gulshan-1, Dhaka"),
       row("Plot # 10, 10 Barani, Gulshan-1, Dhaka"),
       2,
@@ -3908,6 +3950,62 @@ describe("mergeUniqueLocations — empty rows, duplicates, overview buckets", ()
       row("Plot # 10, 10 Greenpur, Gulshan-1, Dhaka"),
       2,
       "Plot 10 Green vs Plot 10 Greenpur",
+    );
+    assertBothOrders(
+      row("Plot # 10, 10 Airport Road, Gulshan-1, Dhaka"),
+      row("Plot # 10, 10 Greenpur, Gulshan-1, Dhaka"),
+      2,
+      "Plot 10 Airport Road vs Plot 10 Greenpur",
+    );
+    assertBothOrders(
+      row("Plot # 10, 10 Green Road, Gulshan-1, Dhaka"),
+      row("Plot # 10, 10 Greenpur, Gulshan-1, Dhaka"),
+      2,
+      "Plot 10 Green Road vs Plot 10 Greenpur",
+    );
+    assertBothOrders(
+      row("Plot # 10, 10 Green Road, Gulshan-1, Dhaka"),
+      row("Plot # 10, 10 Bananipur, Gulshan-1, Dhaka"),
+      2,
+      "Plot 10 Green Road vs Plot 10 Bananipur",
+    );
+    assertBothOrders(
+      row("Plot # 10, 10 Airport Road, Gulshan-1, Dhaka"),
+      row("Plot # 10, 10 Bananipur, Gulshan-1, Dhaka"),
+      2,
+      "Plot 10 Airport Road vs Plot 10 Bananipur",
+    );
+    for (const other of ["Greenpara", "Greenpar", "Greenbari", "Greennagar"]) {
+      assertBothOrders(
+        row("Plot # 10, 10 Green, Gulshan-1, Dhaka"),
+        row(`Plot # 10, 10 ${other}, Gulshan-1, Dhaka`),
+        2,
+        `Plot 10 Green vs Plot 10 ${other}`,
+      );
+    }
+    assertBothOrders(
+      row("244, Singair Road, Hemayetpur, Savar, Dhaka"),
+      row("244, Hemayetpur, Savar, Dhaka"),
+      1,
+      "244 Singair Road Hemayetpur vs 244 Hemayetpur",
+    );
+    assertBothOrders(
+      row("309, Polash Bari, Ashuliya, Savar, Dhaka"),
+      row("309, Palashbari, Ashulia, Savar, Dhaka"),
+      1,
+      "309 Polash Bari vs Palashbari",
+    );
+    assertBothOrders(
+      row("138, BAIZID BOSTAMI ROAD, CHATTOGRAM"),
+      row("138 BAIZID BOSTAMI ROAD NASIRABAD I/A, Bayjid Bostami, Chattogram"),
+      1,
+      "138 Baizid Bostami Road vs Nasirabad I/A",
+    );
+    assertBothOrders(
+      row("671, Dattopara, Hossain Market, Tongi, Gazipur"),
+      row("Hossain Market, 671, Datta Para, Tongi, Gazipur"),
+      1,
+      "671 Dattopara vs 671 Datta Para",
     );
     assertBothOrders(
       row("Plot # 10, 10 Rampura, Gulshan-1, Dhaka"),
@@ -3946,6 +4044,50 @@ describe("mergeUniqueLocations — empty rows, duplicates, overview buckets", ()
       "House 12 1st Lane vs 2nd Lane",
     );
     assertBothOrders(
+      row("Plot # 10, 1st Ln, Gulshan-1, Dhaka"),
+      row("Plot # 10, 2nd Ln, Gulshan-1, Dhaka"),
+      2,
+      "Plot 10 1st Ln vs 2nd Ln",
+    );
+    assertBothOrders(
+      row("Plot # 10, 1st Ln, Gulshan-1, Dhaka"),
+      row("Plot # 10, 2nd Lane, Gulshan-1, Dhaka"),
+      2,
+      "Plot 10 1st Ln vs 2nd Lane",
+    );
+    assertBothOrders(
+      row("Plot # 10, 1st-Lane, Gulshan-1, Dhaka"),
+      row("Plot # 10, 2nd-Lane, Gulshan-1, Dhaka"),
+      2,
+      "Plot 10 1st-Lane vs 2nd-Lane hyphen",
+    );
+    assertBothOrders(
+      row("Plot # 10, 1stLane, Gulshan-1, Dhaka"),
+      row("Plot # 10, 2ndLane, Gulshan-1, Dhaka"),
+      2,
+      "Plot 10 1stLane vs 2ndLane glued",
+    );
+    assertBothOrders(
+      row("Plot # 10, Lane, Gulshan-1, Dhaka"),
+      row("Plot # 10, 2nd Lane, Gulshan-1, Dhaka"),
+      2,
+      "Plot 10 un-ordinal Lane vs 2nd Lane",
+    );
+    assertBothOrders(
+      row("Plot # 10, 1st Gali, Gulshan-1, Dhaka"),
+      row("Plot # 10, 2nd Gali, Gulshan-1, Dhaka"),
+      2,
+      "Plot 10 1st Gali vs 2nd Gali",
+    );
+    for (const word of ["Boulevard", "Blvd", "Drive", "Close"]) {
+      assertBothOrders(
+        row(`Plot # 10, 1st ${word}, Gulshan-1, Dhaka`),
+        row(`Plot # 10, 2nd ${word}, Gulshan-1, Dhaka`),
+        2,
+        `Plot 10 1st ${word} vs 2nd ${word}`,
+      );
+    }
+    assertBothOrders(
       campusRow(),
       row("House # 50, Road # 3, 7 S‐E Banani, Gulshan-1, Dhaka"),
       2,
@@ -3974,6 +4116,30 @@ describe("mergeUniqueLocations — empty rows, duplicates, overview buckets", ()
       row("House # 50, Road # 3, 7 S\u00ADE Banani, Gulshan-1, Dhaka"),
       2,
       "House 50 vs 7 S-E Banani U+00AD soft hyphen",
+    );
+    assertBothOrders(
+      campusRow(),
+      row("House # 50, Road # 3, 7 S\uFF0DE Banani, Gulshan-1, Dhaka"),
+      2,
+      "House 50 vs 7 S-E Banani U+FF0D fullwidth hyphen-minus",
+    );
+    assertBothOrders(
+      campusRow(),
+      row("House # 50, Road # 3, 7 S\uFE63E Banani, Gulshan-1, Dhaka"),
+      2,
+      "House 50 vs 7 S-E Banani U+FE63 small hyphen-minus",
+    );
+    assertBothOrders(
+      campusRow(),
+      row("House # 50, Road # 3, 7 S\uFE58E Banani, Gulshan-1, Dhaka"),
+      2,
+      "House 50 vs 7 S-E Banani U+FE58 small em dash",
+    );
+    assertBothOrders(
+      campusRow(),
+      row("House # 50, Road # 3, 7 S\u2E3AE Banani, Gulshan-1, Dhaka"),
+      2,
+      "House 50 vs 7 S-E Banani U+2E3A two-em dash",
     );
     for (const other of [
       "House # 13 (Old Zone 2)",
@@ -5109,6 +5275,37 @@ describe("mergeUniqueLocations — empty rows, duplicates, overview buckets", ()
         row("House # 06, Road-07, Block-B, 390 Dhour, P.O- Nishat Nagar, Turag, Dhaka-1230"),
       ]).length,
       1,
+    );
+  });
+
+  it("merges Holding 106 Faidabad/Faridabad and Plot 140 Baron DEPZ / D EPZ", () => {
+    assertBothOrders(
+      row(
+        "Holding # 106, Ward # 5, East Faridabad, Baitur Rahmat Jame Mosque Road\nDhaka\nDakshinkhan",
+      ),
+      row(
+        "Holding No. 106, Ward No. 5, Baitur Rahmat Jame Mosque Road, East Faidabad (Atipara), Dakshinkhan, Dhaka - 1230, Bangladesh",
+      ),
+      1,
+      "Holding 106 East Faridabad vs East Faidabad with Ward 5",
+    );
+    assertBothOrders(
+      row("Union Plaza, Plot # 140, Baron, D EPZ Road, Ashulia\nDhaka\nDhaka"),
+      row("Union Plaza, 140 Baron, DEPZ Road, Ashulia, Savar, Dhaka - 1349, Bangladesh"),
+      1,
+      "Union Plaza 140 Baron D EPZ vs DEPZ Road",
+    );
+    assertBothOrders(
+      row("Plot # 10, 10 Airport Road, Green, Gulshan-1, Dhaka"),
+      row("Plot # 10, 10 Green Road, Airport, Gulshan-1, Dhaka"),
+      2,
+      "Airport Road leftover vs Green Road leftover stays two rows",
+    );
+    assertBothOrders(
+      row("House # 50, Road # 3, Gulshan-1, Dhaka"),
+      row("House # 50, Road # 3, 7 Gulshan, Gulshan-1, Dhaka"),
+      1,
+      "House 50 vs 7 Gulshan after DEPZ join",
     );
   });
 

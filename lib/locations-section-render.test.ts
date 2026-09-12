@@ -549,6 +549,76 @@ describe("Locations Also recorded as — rendered HTML boundary", () => {
         otherName: "Plot 10 Airport Road, Green vs Green Road, Airport",
       },
       {
+        left: row("Plot # 10, 10 Airport Road, Green, Gulshan-1, Dhaka", "BGMEA", "factory"),
+        right: row("Plot # 10, 10 Green, Airport, Gulshan-1, Dhaka", "BKMEA", "factory"),
+        keepRe: /Airport Road/i,
+        otherRe: /10 Green, Airport/i,
+        otherName: "Plot 10 Airport Road, Green vs Green, Airport leftover",
+      },
+      {
+        left: row("Plot # 10, Airport, Green, Gulshan-1, Dhaka", "BGMEA", "factory"),
+        right: row("Plot # 10, Green, Airport, Gulshan-1, Dhaka", "BKMEA", "factory"),
+        keepRe: /Airport, Green/i,
+        otherRe: /Green, Airport/i,
+        otherName: "Plot 10 Airport, Green vs Green, Airport leftover",
+      },
+      {
+        left: row("Plot # 10, 10 Airport Road, Gulshan-1, Dhaka", "BGMEA", "factory"),
+        right: row("Plot # 10, 10 Greenpur, Gulshan-1, Dhaka", "BKMEA", "factory"),
+        keepRe: /Airport Road/i,
+        otherRe: /Greenpur/i,
+        otherName: "Plot 10 Airport Road vs Greenpur",
+      },
+      {
+        left: row("Plot # 10, 10 Green, Gulshan-1, Dhaka", "BGMEA", "factory"),
+        right: row("Plot # 10, 10 Greenpara, Gulshan-1, Dhaka", "BKMEA", "factory"),
+        keepRe: /\bGreen\b/i,
+        otherRe: /Greenpara/i,
+        otherName: "Plot 10 Green vs Greenpara",
+      },
+      {
+        left: row("Plot # 10, 10 Green, Gulshan-1, Dhaka", "BGMEA", "factory"),
+        right: row("Plot # 10, 10 Greennagar, Gulshan-1, Dhaka", "BKMEA", "factory"),
+        keepRe: /\bGreen\b/i,
+        otherRe: /Greennagar/i,
+        otherName: "Plot 10 Green vs Greennagar",
+      },
+      {
+        left: row("Plot # 10, 1st Ln, Gulshan-1, Dhaka", "BGMEA", "factory"),
+        right: row("Plot # 10, 2nd Ln, Gulshan-1, Dhaka", "BKMEA", "factory"),
+        keepRe: /1st Ln/i,
+        otherRe: /2nd Ln/i,
+        otherName: "Plot 10 1st Ln vs 2nd Ln",
+      },
+      {
+        left: row("Plot # 10, 1stLane, Gulshan-1, Dhaka", "BGMEA", "factory"),
+        right: row("Plot # 10, 2ndLane, Gulshan-1, Dhaka", "BKMEA", "factory"),
+        keepRe: /1stLane/i,
+        otherRe: /2ndLane/i,
+        otherName: "Plot 10 1stLane vs 2ndLane glued",
+      },
+      {
+        left: row("Plot # 10, Lane, Gulshan-1, Dhaka", "BGMEA", "factory"),
+        right: row("Plot # 10, 2nd Lane, Gulshan-1, Dhaka", "BKMEA", "factory"),
+        keepRe: /Plot # 10, Lane/,
+        otherRe: /2nd Lane/i,
+        otherName: "Plot 10 un-ordinal Lane vs 2nd Lane",
+      },
+      {
+        left: row("Plot # 10, 1st Gali, Gulshan-1, Dhaka", "BGMEA", "factory"),
+        right: row("Plot # 10, 2nd Gali, Gulshan-1, Dhaka", "BKMEA", "factory"),
+        keepRe: /1st Gali/i,
+        otherRe: /2nd Gali/i,
+        otherName: "Plot 10 1st Gali vs 2nd Gali",
+      },
+      {
+        left: row("House # 50, Road # 3, Gulshan-1, Dhaka", "BGMEA", "factory"),
+        right: row("House # 50, Road # 3, 7 S\uFF0DE Banani, Gulshan-1, Dhaka", "BKMEA", "factory"),
+        keepRe: /House # 50, Road # 3, Gulshan-1/,
+        otherRe: /Banani/i,
+        otherName: "House 50 vs 7 S-E Banani U+FF0D",
+      },
+      {
         left: row("12/1, Hossain Uddin Khan 1st Lane, Lalbag, Dhaka", "BGMEA", "factory"),
         right: row("12/1, Hossain Uddin Khan 2nd Lane, Lalbag, Dhaka", "BKMEA", "factory"),
         keepRe: /1st Lane/i,
@@ -634,6 +704,36 @@ describe("Locations Also recorded as — rendered HTML boundary", () => {
       /Jhajar|Jajhar/i,
       /Jhajar|Jajhar/i,
       "Plot 702 Jhajar vs Jajhar",
+    );
+    assertMergedAddressRowHtml(
+      row(
+        "Holding # 106, Ward # 5, East Faridabad, Baitur Rahmat Jame Mosque Road\nDhaka\nDakshinkhan",
+        "BGMEA",
+        "factory",
+      ),
+      row(
+        "Holding No. 106, Ward No. 5, Baitur Rahmat Jame Mosque Road, East Faidabad (Atipara), Dakshinkhan, Dhaka - 1230, Bangladesh",
+        "OEKO_TEX",
+        "factory",
+      ),
+      /Faridabad|Faidabad/i,
+      /Faridabad|Faidabad/i,
+      "Holding 106 Faridabad vs Faidabad Ward 5",
+    );
+    assertMergedAddressRowHtml(
+      row(
+        "Union Plaza, Plot # 140, Baron, D EPZ Road, Ashulia\nDhaka\nDhaka",
+        "BGMEA",
+        "factory",
+      ),
+      row(
+        "Union Plaza, 140 Baron, DEPZ Road, Ashulia, Savar, Dhaka - 1349, Bangladesh",
+        "OEKO_TEX",
+        "factory",
+      ),
+      /Union Plaza/i,
+      /DEPZ|D EPZ/i,
+      "Union Plaza 140 Baron D EPZ vs DEPZ Road",
     );
   });
 
