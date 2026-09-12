@@ -70,10 +70,7 @@ for (const group of fixture.groups) {
         const a = idSets[i]!;
         const b = idSets[j]!;
         if (a.size > 0 && b.size > 0 && !idSetsOverlap(a, b)) {
-          // Chain-through-overlap is allowed; only count a direct merge of a conflicting pair.
-          if (mergeUniqueLocations([loc.source_rows[i]!, loc.source_rows[j]!]).length === 1) {
-            conflictingIdMerges += 1;
-          }
+          conflictingIdMerges += 1;
         }
       }
     }

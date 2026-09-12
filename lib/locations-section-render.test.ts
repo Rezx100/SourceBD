@@ -1,4 +1,6 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, it } from "node:test";
@@ -77,10 +79,16 @@ describe("Locations Also recorded as — rendered HTML boundary", () => {
     assert.equal(mailingRows.length, 1);
     assert.match(html, /Also recorded as/);
     assert.match(html, /data-also-recorded-as=/);
+    assert.match(html, /data-also-recorded-authorities="[^"]*(?:BGMEA|BKMEA)/);
     assert.match(html, /Gojariapara/);
     assert.match(html, /Kauitis|Gajaria Para/);
     assert.match(html, />OEKO-TEX</);
     assert.doesNotMatch(html, /\[object Object\]/);
+    const alsoBlocks = html.match(/data-also-recorded-as=""[^>]*>[\s\S]*?<\/li>/g) ?? [];
+    assert.ok(alsoBlocks.length >= 1);
+    for (const block of alsoBlocks) {
+      assert.match(block, />BGMEA<|>BKMEA<|>OEKO-TEX</);
+    }
   });
 
   it("Fakhruddin Textile Mills shows one Factories row with Kewa / Ghorgaria variants", () => {
@@ -92,6 +100,18 @@ describe("Locations Also recorded as — rendered HTML boundary", () => {
     assert.match(html, /Also recorded as/);
     assert.match(html, /Mouza Kewa|Ghorgaria|Ghargaria/);
     assert.match(html, />OEKO-TEX</);
+    assert.match(html, /data-also-recorded-authorities="[^"]*(?:BGMEA|BKMEA)/);
     assert.doesNotMatch(html, /\[object Object\]/);
+  });
+
+  it("LocationsSection renders AlsoRecordedAs from the shared pill component", () => {
+    const src = readFileSync(
+      join(process.cwd(), "components/supplier/locations-section.tsx"),
+      "utf8",
+    );
+    assert.match(src, /import \{ AlsoRecordedAs \} from "@\/components\/supplier\/also-recorded-as"/);
+    assert.match(src, /<AlsoRecordedAs variants=\{location.variants\} \/>/);
+    assert.match(src, /data-location-row=""/);
+    assert.match(src, /data-location-group=\{groupTitle\}/);
   });
 });

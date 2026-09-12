@@ -37,6 +37,10 @@ function groupOf(slug: string, kind: string): FixtureGroup {
   return g;
 }
 
+function visibleKey(address: string): string {
+  return address.replace(/\s+/g, " ").trim().toLowerCase();
+}
+
 describe("published multi-string fixture", () => {
   it("records the recomputed published baseline", () => {
     assert.equal(fixture.baseline.published_address_rows, 27732);
@@ -107,6 +111,26 @@ describe("published multi-string fixture", () => {
     }
   });
 
+  it("never leaves two conflicting-id source rows inside one merged location", () => {
+    for (const group of fixture.groups) {
+      const merged = mergeUniqueLocations(group.rows);
+      for (const loc of merged) {
+        const idSets = loc.source_rows.map((r) => premisesIdentifiers(r.address));
+        for (let i = 0; i < idSets.length; i++) {
+          for (let j = i + 1; j < idSets.length; j++) {
+            const a = idSets[i]!;
+            const b = idSets[j]!;
+            if (a.size === 0 || b.size === 0) continue;
+            assert.ok(
+              idSetsOverlap(a, b),
+              `${group.slug} ${group.kind} fused ${[...a]} vs ${[...b]} in one location`,
+            );
+          }
+        }
+      }
+    }
+  });
+
   it("does not invent extra locations beyond the distinct strings", () => {
     for (const group of fixture.groups) {
       const strings = new Set(group.rows.map((r) => r.address.trim())).size;
@@ -123,12 +147,12 @@ describe("published multi-string fixture", () => {
       );
       const visible = new Set<string>();
       for (const loc of merged) {
-        visible.add(loc.displayAddress);
-        for (const variant of loc.variants) visible.add(variant.address);
+        visible.add(visibleKey(loc.displayAddress));
+        for (const variant of loc.variants) visible.add(visibleKey(variant.address));
       }
       for (const spelling of cleaned) {
         assert.ok(
-          visible.has(spelling),
+          visible.has(visibleKey(spelling)),
           `${group.slug} ${group.kind} hid spelling: ${spelling}`,
         );
       }
@@ -230,6 +254,21 @@ describe("published multi-string fixture", () => {
       mergeUniqueLocations(groupOf("ahmed-house-hold-products", "registered").rows).length,
       2,
       "Mirpur Plot I/6 Road37 stays apart from Road 7",
+    );
+    assert.equal(
+      mergeUniqueLocations(groupOf("univogue-garments", "factory").rows).length,
+      2,
+      "CEPZ Plot 1-5 stays apart from Plot 57-59",
+    );
+    assert.equal(
+      mergeUniqueLocations(groupOf("liz-fashion-industries", "factory").rows).length,
+      3,
+      "Chandora, Chandona and Chandra stay three premises",
+    );
+    assert.equal(
+      mergeUniqueLocations(groupOf("aanytex", "factory").rows).length,
+      2,
+      "Harirampur stays apart from Baonia on CH Plot 1260",
     );
   });
 });

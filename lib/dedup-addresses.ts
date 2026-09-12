@@ -431,6 +431,8 @@ export function extractFloors(address: string): {
 export function normaliseAddressKey(input: string): string {
   let s = input.toLowerCase();
   for (const [pat, rep] of BANGLA_VOCAB) s = s.replace(pat, rep);
+  // Hyphens must not hide Chapainawabganj from the lexicon / never-same list.
+  s = s.replace(/\bchapai[-_]+nawabganj\b/g, "chapainawabganj");
   s = applyPlaceLexicon(s);
   for (const [pat, rep] of ABBREVIATION_PAIRS) s = s.replace(pat, rep);
   s = s.replace(/\bfac(?:tory)?\s*:/g, " ");
@@ -590,6 +592,27 @@ function neverSamePair(a: string, b: string): boolean {
   const right = b.toLowerCase();
   for (const [x, y] of NEVER_SAME) {
     if ((left === x && right === y) || (left === y && right === x)) return true;
+  }
+  return false;
+}
+
+/** Never-same names anywhere in the token lists — not only as the leading
+ *  village — so Kewa+Sreepur cannot fuse Kewa+Sripur, and a shared plot
+ *  cannot fuse Chandra with Chandona. */
+function neverSameAcross(aTokens: string[], bTokens: string[]): boolean {
+  const collect = (list: string[]): Set<string> => {
+    const out = new Set<string>();
+    for (const t of list) {
+      out.add(t);
+      for (const st of withPlaceStems(t)) out.add(st);
+    }
+    for (let i = 0; i < list.length - 1; i++) out.add(concatTokens(list, i, 2));
+    return out;
+  };
+  const a = collect(aTokens);
+  const b = collect(bTokens);
+  for (const [x, y] of NEVER_SAME) {
+    if ((a.has(x) && b.has(y)) || (a.has(y) && b.has(x))) return true;
   }
   return false;
 }
@@ -1218,6 +1241,13 @@ function isLandmarkName(tokens: string[], i: number): boolean {
   return i + 1 < tokens.length && LANDMARK_FOLLOWERS.has(tokens[i + 1]!);
 }
 
+/** "Sharifpur Road" is a street, not a village named Sharifpur. */
+const STREET_FOLLOWERS = new Set(["road", "street", "avenue", "rd", "lane"]);
+
+function isStreetName(tokens: string[], i: number): boolean {
+  return i + 1 < tokens.length && STREET_FOLLOWERS.has(tokens[i + 1]!);
+}
+
 /** Landmark heads that are buildings or stops, not the village they sit in.
  *  Junctions (Dhour Chowrasta) keep the place name in villageTokens so a
  *  plot at Dhour can still match. */
@@ -1230,7 +1260,9 @@ function isBuildingLandmarkName(tokens: string[], i: number): boolean {
 /** Tokens that can name a village. Landmark heads (Shamser Plaza, Sreepur
  *  Stand) must not count as the other side's village. */
 function villageTokens(tokens: string[]): string[] {
-  return tokens.filter((_, i) => !isBuildingLandmarkName(tokens, i));
+  return tokens.filter(
+    (_, i) => !isBuildingLandmarkName(tokens, i) && !isStreetName(tokens, i),
+  );
 }
 
 function buildingLandmarkHeads(tokens: string[]): Array<{ name: string; kind: string }> {
@@ -1285,9 +1317,41 @@ function sharedEstate(a: Candidate, b: Candidate): boolean {
   return false;
 }
 
+/** A stray "near BSCIC" / "EPZ" token is not an estate plot. Letter-prefixed
+ *  overlapping ids (A-81, B-336, SFB) are. */
+function overlappingIdHasLetter(a: Candidate, b: Candidate): boolean {
+  for (const left of a.ids) {
+    for (const right of b.ids) {
+      if (!idSetsOverlap(new Set([left]), new Set([right]))) continue;
+      if (/[a-z]/i.test(left) || /[a-z]/i.test(right)) return true;
+    }
+  }
+  return false;
+}
+
+function sharedEstatePlot(a: Candidate, b: Candidate): boolean {
+  return sharedEstate(a, b) && overlappingIdHasLetter(a, b);
+}
+
+function twoSidedTailedClash(a: Candidate, b: Candidate): boolean {
+  const va = villageTokens(a.tokens);
+  const vb = villageTokens(b.tokens);
+  const ta = firstTailedPlace(a.tokens);
+  const tb = firstTailedPlace(b.tokens);
+  if (!ta || !tb) return false;
+  if (sameWord(ta, tb)) return false;
+  if (tokenInList(ta, vb) || tokenInList(tb, va)) return false;
+  const la = firstDistinctPlace(a.tokens);
+  const lb = firstDistinctPlace(b.tokens);
+  if (la && lb && sameWord(la, lb)) return false;
+  if (la && tokenInList(la, vb)) return false;
+  if (lb && tokenInList(lb, va)) return false;
+  return true;
+}
+
 function firstTailedPlace(tokens: string[]): string | null {
   for (let i = 0; i < tokens.length; i++) {
-    if (isLandmarkName(tokens, i)) continue;
+    if (isLandmarkName(tokens, i) || isStreetName(tokens, i)) continue;
     const token = tokens[i]!;
     if (tokenWeight(token) !== DISTINCT_WEIGHT) continue;
     if (/\d/.test(token)) continue;
@@ -1299,7 +1363,7 @@ function firstTailedPlace(tokens: string[]): string | null {
 function firstDistinctPlace(tokens: string[]): string | null {
   let fallback: string | null = null;
   for (let i = 0; i < tokens.length; i++) {
-    if (isLandmarkName(tokens, i)) continue;
+    if (isLandmarkName(tokens, i) || isStreetName(tokens, i)) continue;
     const token = tokens[i]!;
     if (tokenWeight(token) !== DISTINCT_WEIGHT) continue;
     if (/\d/.test(token)) continue;
@@ -1396,6 +1460,7 @@ function isSameLocation(a: Candidate, b: Candidate): boolean {
   // Concatenated two-campus wording ("Address 1st" + "Address 2nd") is not
   // the same row as a single-campus listing, even when one plot list overlaps.
   if (a.multiClause !== b.multiClause) return false;
+  if (neverSameAcross(a.tokens, b.tokens)) return false;
 
   const bothHaveIds = a.ids.size > 0 && b.ids.size > 0;
   const idsOverlap = bothHaveIds && idSetsOverlap(a.ids, b.ids);
@@ -1403,24 +1468,39 @@ function isSameLocation(a: Candidate, b: Candidate): boolean {
   // Hard discriminator: different plot numbers, different premises.
   if (bothHaveIds && !idsOverlap) return false;
 
-  // Same named plaza/stand is the premises (Sreepur Stand vs Sreepur Bus Stand).
+  // Labelled road/sector conflict always wins, including overlapN ≥ 2
+  // (Plot 12-14 Road 6 vs Road 3; House 17 Road 6 Sector 1 vs Road 3).
+  if (labelledDigitConflict(a, b)) return false;
+
+  const overlapN = idsOverlap ? overlappingIdCount(a.ids, b.ids) : 0;
+
+  // Two named tailed villages stay apart even on a shared house/plot,
+  // unless both name the same lettered BSCIC/EPZ plot (A-81 Enayetnagar
+  // vs Shasongaon). A stray "near BSCIC" token is not that exception.
+  if (twoSidedTailedClash(a, b) && !(idsOverlap && sharedEstatePlot(a, b))) {
+    return false;
+  }
+
+  // Same named plaza/stand is the premises (Sreepur Stand vs Sreepur Bus
+  // Stand). Never-same names already returned above, so Sreepur Stand at
+  // Sripur cannot take this path.
   if (sameBuildingLandmark(a, b)) return true;
 
   if (leadingVillageConflict(a, b)) {
-    // Tailed village names (Nayapara/Bahadurpur, Mohammadpur vs Shamoli)
-    // always win, even when a plot or house number overlaps — except two
-    // union labels on the same BSCIC/EPZ plot (Enayetnagar vs Shasongaon).
     const va = villageTokens(a.tokens);
     const vb = villageTokens(b.tokens);
     const ta = firstTailedPlace(a.tokens);
     const tb = firstTailedPlace(b.tokens);
     const tailedClash =
       Boolean(ta && !tokenInList(ta, vb)) || Boolean(tb && !tokenInList(tb, va));
-    if (idsOverlap && sharedEstate(a, b)) {
-      const la = firstDistinctPlace(a.tokens);
-      const lb = firstDistinctPlace(b.tokens);
-      if (la && lb && neverSamePair(la, lb)) return false;
-    } else if (tailedClash || !idsOverlap) {
+    if (idsOverlap && sharedEstatePlot(a, b)) {
+      // union labels on the same lettered estate plot
+    } else if (tailedClash && overlapN < 2) {
+      // One-sided tailed village + a single shared house number is still
+      // two premises (Shamoli vs Mohammadpur). Two overlapping holdings
+      // (present + old) may carry an extra landmark (Tecknogopara).
+      return false;
+    } else if (!idsOverlap) {
       return false;
     }
   }
@@ -1442,14 +1522,9 @@ function isSameLocation(a: Candidate, b: Candidate): boolean {
     return false;
   })();
   if (idsOverlap) {
-    const overlapN = overlappingIdCount(a.ids, b.ids);
     // Two named plots in common is the same campus even when one registry
     // listed extra neighbouring plots (Comilla EPZ 220-227 ⊂ 12-14, 220-227).
     if (overlapN >= 2) return true;
-    // Same house/building name skips extra-digit (Mirpur-12 vs Avenue-4).
-    // Shared thana alone must not: House 17 Road 6 vs Road 3 in Uttara.
-    // Labelled Road37 vs Road 7 still blocks even when the plot matches.
-    if (labelledDigitConflict(a, b)) return false;
     if (leadingMatch) return true;
     if (extraDigitConflict(a, b)) return false;
     if (!adminCompatible(a, b)) return false;
@@ -1515,14 +1590,21 @@ function rowToLocation<T extends AddressRowRaw>(row: T): UniqueLocation<T> {
   };
 }
 
+function visibleSpellingKey(address: string): string {
+  return address.replace(/\s+/g, " ").trim().toLowerCase();
+}
+
 function addVariant<T extends AddressRowRaw>(
   target: UniqueLocation<T>,
   address: string,
   authorities: readonly string[],
 ): void {
   const cleaned = cleanAddressString(address);
-  if (!cleaned || cleaned === target.displayAddress) return;
-  const existing = target.variants.find((v) => v.address === cleaned);
+  if (!cleaned) return;
+  if (visibleSpellingKey(cleaned) === visibleSpellingKey(target.displayAddress)) return;
+  const existing = target.variants.find(
+    (v) => visibleSpellingKey(v.address) === visibleSpellingKey(cleaned),
+  );
   if (existing) {
     for (const auth of authorities) {
       if (!existing.authorities.includes(auth)) existing.authorities.push(auth);
@@ -1577,6 +1659,22 @@ function candidateFor(display: string): Candidate {
   };
 }
 
+function sourceRowsHaveConflictingIds<T extends AddressRowRaw>(
+  left: readonly T[],
+  right: readonly T[],
+): boolean {
+  for (const ra of left) {
+    const ia = premisesIdentifiers(ra.address);
+    if (ia.size === 0) continue;
+    for (const rb of right) {
+      const ib = premisesIdentifiers(rb.address);
+      if (ib.size === 0) continue;
+      if (!idSetsOverlap(ia, ib)) return true;
+    }
+  }
+  return false;
+}
+
 /** Merge records describing the same premises into one location, keeping the
  *  most specific wording and refusing to merge conflicting plot numbers. */
 export function mergeUniqueLocations<T extends AddressRowRaw>(
@@ -1599,7 +1697,10 @@ export function mergeUniqueLocations<T extends AddressRowRaw>(
     const candidate = candidateFor(location.displayAddress);
     let target = -1;
     for (let i = 0; i < merged.length; i++) {
-      if (isSameLocation(candidates[i]!, candidate)) {
+      if (
+        isSameLocation(candidates[i]!, candidate) &&
+        !sourceRowsHaveConflictingIds(merged[i]!.source_rows, location.source_rows)
+      ) {
         target = i;
         break;
       }

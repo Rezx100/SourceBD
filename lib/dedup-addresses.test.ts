@@ -1471,6 +1471,140 @@ describe("mergeUniqueLocations — one row per premises (founder posture)", () =
       2,
     );
   });
+
+  it("does not merge Chandra with Chandona on the same plot number", () => {
+    assert.equal(
+      displays([
+        row("Plot 5, Chandra, Kaliakoir, Gazipur"),
+        row("Plot 5, Chandona, Kaliakoir, Gazipur"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("does not fuse Chandra into Chandora via a shared holding", () => {
+    const merged = mergeUniqueLocations([
+      row("Holding D-84, Chandora, Shafipur, Kaliakoir, Gazipur"),
+      row("Holding D-84, Chandora, Kaliakoir, Gazipur"),
+      row("Holding D-84, Chandra, Kaliakoir, Gazipur"),
+    ]);
+    assert.equal(merged.length, 2);
+    assert.equal(merged.filter((l) => /\bChandra\b/i.test(l.displayAddress)).length, 1);
+    assert.equal(merged.filter((l) => /\bChandora\b/i.test(l.displayAddress)).length, 1);
+  });
+
+  it("does not merge Kewa Sreepur with Kewa Sripur", () => {
+    assert.equal(
+      displays([
+        row("Kewa, Sreepur, Gazipur"),
+        row("Kewa, Sripur, Gazipur"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("does not fuse Sreepur with Sripur through a Kewa-only middle string", () => {
+    assert.equal(
+      displays([
+        row("Kewa, Sreepur, Gazipur"),
+        row("Kewa, Gazipur"),
+        row("Kewa, Sripur, Gazipur"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("does not merge hyphenated Chapai-Nawabganj with bare Nawabganj", () => {
+    assert.equal(
+      displays([
+        row("Chapai-Nawabganj, Rajshahi"),
+        row("Nawabganj, Dhaka"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("does not merge Plot 12-14 Road 6 with Plot 12-14 Road 3", () => {
+    assert.equal(
+      displays([
+        row("Plot # 12-14, Road # 6, Sector # 1, Uttara, Dhaka"),
+        row("Plot # 12-14, Road # 3, Sector # 1, Uttara, Dhaka"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("does not merge Sreepur Stand at Sreepur with Sreepur Stand at Sripur", () => {
+    assert.equal(
+      displays([
+        row("Sreepur Stand, Sreepur, Gazipur"),
+        row("Sreepur Stand, Sripur, Gazipur"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("does not merge Nayapara with Bahadurpur just because both mention BSCIC", () => {
+    assert.equal(
+      displays([
+        row("Plot 5, Nayapara, near BSCIC, Gazipur"),
+        row("Plot 5, Bahadurpur, BSCIC, Gazipur"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("does not merge Harirampur with Baonia on CH Plot 1260 when both mention EPZ", () => {
+    assert.equal(
+      displays([
+        row("CH Plot # 1260, Harirampur, Turag, Dhaka, EPZ"),
+        row("C H PLOT NO.# 1260, BAONIA, TURAG, DHAKA, EPZ"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("does not chain CEPZ Plot 1-5 onto Plot 57-59 through a unit-list that names both", () => {
+    assert.equal(
+      displays([
+        row("Plot # 1-5, Sector 1/A, CEPZ, Chattogram"),
+        row("Plot#57, 58 & 59, Sector#1, CEPZ, Chattogram"),
+        row(
+          "Unit-1 Production Unit Plot# 57-59, Sector 1, Export Processing Zone;, Unit-2 Washing Plot# 1-2, Sector 1, Export Processing Zone, 4223 Chittagong, Bangladesh",
+        ),
+      ]).length,
+      2,
+    );
+  });
+
+  it("merges the same holding written as present and old numbers despite one-sided Tecknogopara", () => {
+    assert.equal(
+      displays([
+        row("Holding-213/1 (Present-D-119/1), Gazipur"),
+        row("Holding # D-119/1 (Old C-213/1), Tecknogopara, Gazipur"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges Plot 636 Shahriar Road with Sharifpur Road at Sonda", () => {
+    assert.equal(
+      displays([
+        row("Plot # 636, Shahriar Road, Sonda"),
+        row("636, Sharifpur Road, Sonda"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("does not repeat a case-only spelling as Also recorded as", () => {
+    const merged = mergeUniqueLocations([
+      row("122/A, Tejgaon I/A, Dhaka", "BGMEA", "mailing"),
+      row("122/A, TEJGAON I/A, DHAKA", "BKMEA", "mailing"),
+    ]);
+    assert.equal(merged.length, 1);
+    assert.equal(merged[0]!.variants.length, 0);
+  });
 });
 
 describe("premisesIdentifiers — Ka/K, prefixes, brackets, slash lists", () => {

@@ -15,6 +15,7 @@ export function AlsoRecordedAs({ variants }: { variants: AddressVariant[] }) {
             key={variant.address}
             className="flex flex-wrap items-center gap-1.5"
             data-also-recorded-as=""
+            data-also-recorded-authorities={variant.authorities.join(",")}
           >
             <span className="text-[12.5px] leading-[1.4] text-neutral-600">
               {toTitleCaseAddress(variant.address)}
