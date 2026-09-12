@@ -7,6 +7,7 @@ import {
   cleanAddressString,
   idSetsOverlap,
   mergeUniqueLocations,
+  normaliseAddressKey,
   premisesIdentifiers,
   type AddressRowRaw,
 } from "./dedup-addresses";
@@ -269,6 +270,8 @@ describe("published multi-string fixture", () => {
         return i;
       };
       assert.notEqual(locOf(/Plot # 1-5/), locOf(/Plot#57/), "univogue 1-5 vs 57-59");
+      assert.equal(locOf(/Unit-1/), locOf(/Plot#57/), "univogue unit-list sits with 57-59");
+      assert.notEqual(locOf(/Unit-1/), locOf(/Plot # 1-5/), "univogue unit-list is not the 1-5 campus");
     }
     assert.equal(
       mergeUniqueLocations(groupOf("liz-fashion-industries", "factory").rows).length,
@@ -285,5 +288,90 @@ describe("published multi-string fixture", () => {
       2,
       "Sreepur stays apart from Sripur at Bartopa",
     );
+    {
+      const bp = mergeUniqueLocations(groupOf("blue-planet-knit-composite", "factory").rows);
+      const locOf = (needle: RegExp) => {
+        const i = bp.findIndex((l) => l.source_rows.some((r) => needle.test(r.address)));
+        assert.ok(i >= 0, `blue-planet missing ${needle}`);
+        return i;
+      };
+      assert.notEqual(locOf(/SREEPUR/), locOf(/Sripur/), "blue-planet SREEPUR vs Sripur source rows");
+    }
+    assert.equal(
+      mergeUniqueLocations(groupOf("belkuchi-spinning-mills", "factory").rows).length,
+      2,
+      "Moishtek Sonargaon stays apart from Mouchak Kaliakoir",
+    );
+    assert.equal(
+      mergeUniqueLocations(groupOf("alif-lam-mim-printing-accessories", "factory").rows).length,
+      3,
+      "Shubadda, Chunkutia and Bramonkritta stay three premises",
+    );
+    {
+      const lib = mergeUniqueLocations(groupOf("liberty-knitwear", "factory").rows);
+      const locOf = (needle: RegExp) => {
+        const i = lib.findIndex((l) => l.source_rows.some((r) => needle.test(r.address)));
+        assert.ok(i >= 0, `liberty missing ${needle}`);
+        return i;
+      };
+      assert.notEqual(locOf(/Chandra/i), locOf(/Ramarbag, Kutubpur/i), "liberty Chandra vs Ramarbag");
+    }
+    {
+      const lan = mergeUniqueLocations(groupOf("lantabur-apparels", "factory").rows);
+      const satra = lan.findIndex((l) =>
+        l.source_rows.some((r) => /Satrapara/i.test(r.address)),
+      );
+      const holding = lan.findIndex((l) =>
+        l.source_rows.some((r) => /Holding No\. 574\/1/i.test(r.address)),
+      );
+      assert.ok(satra >= 0 && holding >= 0, "lantabur missing Satrapara or 574/1");
+      assert.notEqual(satra, holding, "lantabur Satrapara is not the Kewa holding");
+    }
+    assert.equal(
+      mergeUniqueLocations(groupOf("satil-knitwear", "factory").rows).length,
+      1,
+      "Sashongaon vs Enayetnagar on B-329/330 is one Fatullah BSCIC plot",
+    );
+    assert.equal(
+      mergeUniqueLocations(groupOf("texture-knitwear", "factory").rows).length,
+      1,
+      "A-45 Enayetnagar vs Shasangaon is one Fatullah BSCIC plot",
+    );
+    {
+      const fame = mergeUniqueLocations(groupOf("fame-apparels", "factory").rows);
+      const locOf = (needle: RegExp) =>
+        fame.findIndex((l) => l.source_rows.some((r) => needle.test(r.address)));
+      assert.equal(
+        locOf(/Shilpanagary/i),
+        locOf(/SHASONGAON/),
+        "fame B-188 Shilpanagary vs SHASONGAON",
+      );
+    }
+  });
+
+  it("never co-locates a never-same place pair in one location", () => {
+    const pairs: Array<[string, string]> = [
+      ["sreepur", "sripur"],
+      ["nawabganj", "chapainawabganj"],
+      ["chandra", "chandona"],
+      ["chandra", "chandora"],
+      ["chandona", "chandora"],
+    ];
+    for (const group of fixture.groups) {
+      const merged = mergeUniqueLocations(group.rows);
+      for (const loc of merged) {
+        const blob = loc.source_rows
+          .map((r) => ` ${normaliseAddressKey(r.address)} `)
+          .join(" ");
+        for (const [x, y] of pairs) {
+          const hasX = new RegExp(`\\b${x}\\b`).test(blob);
+          const hasY = new RegExp(`\\b${y}\\b`).test(blob);
+          assert.ok(
+            !(hasX && hasY),
+            `${group.slug} ${group.kind} co-located ${x} with ${y}`,
+          );
+        }
+      }
+    }
   });
 });

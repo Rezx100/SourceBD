@@ -1381,6 +1381,26 @@ describe("mergeUniqueLocations — one row per premises (founder posture)", () =
     );
   });
 
+  it("merges B-329/330 Enayetnagar with Sashongaon as the same Fatullah BSCIC plot", () => {
+    assert.equal(
+      displays([
+        row("B-329/330, BSCIC I/A, ENAYETNAGAR, , NARAYANGANJ"),
+        row("B-329/330, BSCIC  I/A, Sashongaon, Fatullah,, 1400, Narayanganj, Bangladesh"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges A-45 Enayetnagar with Shasangaon as the same Fatullah BSCIC plot", () => {
+    assert.equal(
+      displays([
+        row("A-45, BSCIC I/A, Enayetnagar, Fatullah, Narayanganj"),
+        row("A-45, BSCIC I/A, Shasangaon, Fatullah, Narayanganj"),
+      ]).length,
+      1,
+    );
+  });
+
   it("does not merge Plot 5 Nayapara with Plot 5 Bahadurpur", () => {
     assert.equal(
       displays([
@@ -1691,6 +1711,119 @@ describe("mergeUniqueLocations — one row per premises (founder posture)", () =
       displays([
         row("Holding 1, Shaheed Mosharaf Hossain Road, Nayapara, Gazipur"),
         row("Holding 1, Shaheed Mosharaf Hossain Road, Bahadurpur, Gazipur"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("does not merge Satrapara with Sreepur", () => {
+    assert.equal(
+      displays([
+        row("Satrapara, Trishal, Mymensingh"),
+        row("Sreepur, Gazipur"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("does not merge Moishtek Sonargaon with Mouchak Kaliakoir", () => {
+    assert.equal(
+      displays([
+        row("Moishtek, Sonargaon, Narayangonj."),
+        row("Mouchak, Kaliakoir, Gazipur."),
+      ]).length,
+      2,
+    );
+  });
+
+  it("does not fuse two campuses through an ampersand concatenation", () => {
+    assert.equal(
+      displays([
+        row("G-88/1, Chandra, Pallibyddut, Kaliakoir, Gazipur"),
+        row("Ramarbag, Kutubpur, Fatullah, Narayanganj"),
+        row(
+          "RAMARBAG, KUTUBPUR, FATULLAH, NARAYANGANJ & G-88/1, CHANDRA, PALLI BIDDYUT, KALIAKOIR, GAZIPUR",
+        ),
+      ]).length,
+      3,
+    );
+  });
+
+  it("does not merge Holding 12/1 with Plot 12-14", () => {
+    assert.equal(
+      displays([
+        row("Holding 12/1, Tongi, Gazipur"),
+        row("Plot 12-14, Tongi, Gazipur"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("does not merge Holding C-120/14 with Plot C-14", () => {
+    assert.equal(
+      displays([
+        row("Holding No. C-120/14, Shafipur, Gazipur"),
+        row("Plot C-14, Shafipur, Gazipur"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("does not merge Sreepur Stand at Gazipur Dhaka with Ganakbari Ashulia", () => {
+    assert.equal(
+      displays([
+        row("Sreepur Stand, Sreepur, Gazipur, Dhaka"),
+        row("Sreepur Stand, Ganakbari, Ashulia, Dhaka, Savar"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("does not merge Shamser Plaza at Uttara with Shamser Plaza at Mirpur", () => {
+    assert.equal(
+      displays([
+        row("Shamser Plaza, Uttara, Dhaka"),
+        row("Shamser Plaza, Mirpur, Dhaka"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("does not merge the same plot lists at Comilla EPZ and CEPZ", () => {
+    assert.equal(
+      displays([
+        row("Plot # 12-14, 220-227, Comilla EPZ"),
+        row("Plot # 12-14, 220-227, CEPZ, Chattogram"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("does not merge Plot 12-14 Kakrail with Plot 12-14 Banani", () => {
+    assert.equal(
+      displays([
+        row("Plot 12-14, Kakrail, Dhaka"),
+        row("Plot 12-14, Banani, Dhaka"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("does not let a present-holding unit suffix merge House 1", () => {
+    assert.equal(
+      displays([
+        row("Holding-213/1 (Present-D-119/1), Gazipur"),
+        row("House 1, Gazipur"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("does not merge Nayapara with Bahadurpur on Kazi Nazrul Islam Road", () => {
+    assert.equal(
+      displays([
+        row("Nayapara, Kazi Nazrul Islam Road, Gazipur"),
+        row("Bahadurpur, Kazi Nazrul Islam Road, Gazipur"),
       ]).length,
       2,
     );

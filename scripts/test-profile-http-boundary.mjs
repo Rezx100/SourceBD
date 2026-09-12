@@ -1324,6 +1324,8 @@ const CASES = [
         "2 unique locations",
         "5 source records",
         "Kewa",
+        "OEKO-TEX",
+        "Ghargaria",
       ],
       bodyCount: {
         'data-location-group="Factories"': 1,

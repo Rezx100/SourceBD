@@ -102,7 +102,12 @@ describe("Locations Also recorded as — rendered HTML boundary", () => {
     assert.match(html, />OEKO-TEX</);
     assert.match(html, /data-also-recorded-authorities="[^"]*OEKO_TEX/);
     const alsoBlocks = html.match(/data-also-recorded-as=""[^>]*>[\s\S]*?<\/li>/g) ?? [];
-    assert.ok(alsoBlocks.some((block) => /Ghorgaria|Ghargaria|Mouza Kewa/i.test(block) && /OEKO-TEX/.test(block)));
+    assert.ok(
+      alsoBlocks.some(
+        (block) => /Ghorgaria|Ghargaria/i.test(block) && /OEKO-TEX/.test(block),
+      ),
+      "OEKO-TEX must sit on the Ghargaria/Ghorgaria Also recorded as pill",
+    );
     assert.doesNotMatch(html, /\[object Object\]/);
   });
 
