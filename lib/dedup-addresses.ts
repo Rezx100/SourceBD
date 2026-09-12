@@ -289,6 +289,7 @@ const ADMIN_TOKENS = new Set([
   "pallabi",
   "kafrul",
   "baizid",
+  "biazid",
   "chandgaon",
   "siddhirganj",
   "agrabad",
@@ -317,6 +318,14 @@ function nestedAdminCompatible(a: { tokens: string[] }, b: { tokens: string[] })
     const aHas = aa.includes(x) || aa.includes(y);
     const bHas = bb.includes(x) || bb.includes(y);
     if (!aHas || !bHas) continue;
+    const pairAndCoarse = new Set<string>([x, y, ...COARSE_ADMIN, "dohs"]);
+    const aExtra = aa.filter((t) => !pairAndCoarse.has(t));
+    const bExtra = bb.filter((t) => !pairAndCoarse.has(t));
+    // Pallabi vs Uttara+Mirpur is not nested; Pallabi vs Mirpur-12 is.
+    if (aExtra.length > 0 || bExtra.length > 0) {
+      const sharedExtra = aExtra.some((t) => bExtra.some((u) => sameWord(t, u)));
+      if (!sharedExtra) continue;
+    }
     if (
       (aa.includes(x) && bb.includes(y)) ||
       (aa.includes(y) && bb.includes(x)) ||
@@ -453,7 +462,7 @@ const GROUND_FLOOR_SPAN_RE =
   /\bground\s+to\s+\d+\s*(?:st|nd|rd|th)?\s*floor(?:\s*(?:&|and)\s*\d+\s*(?:st|nd|rd|th)?\s*floor(?:\s+to\s+\d+\s*(?:st|nd|rd|th)?\s*floor)?)*/gi;
 
 const GROUND_AND_FLOOR_RE =
-  /\(?\s*\bground\s*(?:floor|fl|flr)?\s*(?:&|and)\s*\d+\s*(?:st|nd|rd|th)?\s*(?:floor|fl|flr)\b\.?\s*\)?/gi;
+  /\(?\s*\b(?:ground|gr|gf)\.?\s*(?:floor|fl|flr)?\s*(?:&|and)\s*\d+\s*(?:st|nd|rd|th)?\s*(?:floor|fl|flr)?\b\.?\s*\)?/gi;
 
 const LEVEL_LIST_RE =
   /\blevels?\s*[-#:]?\s*\d+(?:\s*(?:st|nd|rd|th))?(?:\s*(?:,|&|and)\s*\d+(?:\s*(?:st|nd|rd|th))?)*/gi;
@@ -715,6 +724,9 @@ function sameWord(a: string, b: string): boolean {
   ) {
     return false;
   }
+  // "bora" is a village; "boro"/"baro" are size adjectives on Bari.
+  const sizeAdj = new Set(["baro", "boro", "choto", "chhoto"]);
+  if (sizeAdj.has(a) !== sizeAdj.has(b)) return false;
   const sound = bengaliSoundKey(a);
   const soundB = bengaliSoundKey(b);
   if (sound === soundB) {
@@ -867,13 +879,24 @@ function canonicalCompound(raw: string): string {
   return `${letters}${digits}`;
 }
 
+function completeRangeEnd(from: number, to: number): number {
+  const fromS = String(from);
+  const toS = String(to);
+  if (toS.length < fromS.length && to < from) {
+    const completed = Number(fromS.slice(0, fromS.length - toS.length) + toS);
+    if (completed > from && completed - from <= 30) return completed;
+  }
+  return to;
+}
+
 function expandRange(prefix: string, from: number, to: number): string[] {
-  if (to > from && to - from <= 30) {
+  const end = completeRangeEnd(from, to);
+  if (end > from && end - from <= 30) {
     const out: string[] = [];
-    for (let n = from; n <= to; n++) out.push(normaliseId(prefix, String(n)));
+    for (let n = from; n <= end; n++) out.push(normaliseId(prefix, String(n)));
     return out;
   }
-  return [normaliseId(prefix, String(from)), normaliseId(prefix, String(to))];
+  return [normaliseId(prefix, String(from)), normaliseId(prefix, String(end))];
 }
 
 function stripIdBrackets(raw: string): string {
@@ -1150,9 +1173,14 @@ export function premisesIdentifiers(cleanedAddress: string): Set<string> {
       ids.add(`${m[1]!.toUpperCase()}${Number(m[2])}`);
     }
   }
-  // "87, New Eskaton Road" is a second holding, not just House 62's street.
+  // "87, New Eskaton Road" and "87 New Eskaton Road" are a second holding.
   for (const m of withoutRenumber.matchAll(
     /(?:^|,\s*)(\d{1,4})\s*,\s*(?:new\s+)?[A-Za-z][^,]{0,40}?\s+Road\b/gi,
+  )) {
+    ids.add(String(Number(m[1]!)));
+  }
+  for (const m of withoutRenumber.matchAll(
+    /(?:^|,\s*)(\d{1,4})\s+(?:new\s+)?[A-Za-z][^,]{0,40}?\s+Road\b/gi,
   )) {
     ids.add(String(Number(m[1]!)));
   }
@@ -1722,20 +1750,30 @@ function isLeadingThanaToken(token: string): boolean {
   return token === "sreepur" || token === "sripur";
 }
 
+/** "Sura Bari" / "Kaicha Bari" is the village, not the following thana. */
+function isBariVillageHead(tokens: string[], i: number): boolean {
+  const token = tokens[i]!;
+  if (!token || token.length < 3 || token.length > 12 || /\d/.test(token)) return false;
+  if (ADMIN_TOKENS.has(token) || NOT_A_PLACE.has(token)) return false;
+  return i + 1 < tokens.length && tokens[i + 1] === "bari";
+}
+
 function firstDistinctPlace(tokens: string[]): string | null {
   let fallback: string | null = null;
   for (let i = 0; i < tokens.length; i++) {
     const token = tokens[i]!;
     if (isLandmarkName(tokens, i)) continue;
     // "Degerchala Road" is still Degerchala. "Nazrul Islam Road" is not a village.
-    if (isStreetPhrase(tokens, i) && !isLocalityToken(token)) continue;
+    if (isStreetPhrase(tokens, i) && !isLocalityToken(token) && !isBariVillageHead(tokens, i)) continue;
     if (tokenWeight(token) !== DISTINCT_WEIGHT) continue;
     if (/\d/.test(token)) continue;
     if (NOT_A_PLACE.has(token)) continue;
+    const bariHead = isBariVillageHead(tokens, i);
     // Four-letter mouza names (Kewa Mouja, Kewa, Sreepur, Mouza Kewa).
     // Shee-101 stays skipped: next is a digit, not a place.
     // "Bora Dharmapur" skips Bora: Dharmapur is the village, not a thana.
-    if (token.length < 5) {
+    // "Sura Bari, Kashimpur" keeps Sura: Bari is the house-suffix, not a skip.
+    if (token.length < 5 && !bariHead) {
       const next = tokens[i + 1];
       const prev = i > 0 ? tokens[i - 1] : undefined;
       const mouzaNext = next === "mouza" || next === "mouja";
@@ -1751,7 +1789,7 @@ function firstDistinctPlace(tokens: string[]): string | null {
       if (!mouzaNext && !mouzaPrev && !nextIsThana && nextIsLocality) continue;
     }
     if (!fallback) fallback = token;
-    if (isLocalityToken(token)) {
+    if (isLocalityToken(token) || bariHead) {
       // Untailed villages (Vogra, Mouna, Dhanua, Kewa) win over a later thana.
       // Four-letter Bora must not beat Dharmapur.
       if (
@@ -2186,7 +2224,9 @@ function looksLikeCampusPart(part: string): boolean {
   if (part.includes(",")) {
     if (words.length >= 1) return true;
     // "G-88/1, BSCIC" after the repeated thana was dropped.
-    return /\d/.test(part);
+    // Floor leftovers "(GR &" are not a second campus.
+    if (/\b(?:gr|gf|fl|floor)\b/i.test(part)) return false;
+    return /[a-z]-\d|\d\/\d/i.test(part);
   }
   // After clean drops a repeated thana, the second campus may be one village
   // ("Meherbari"). Floor atoms are already stripped. "Office" is not a campus.
@@ -2210,9 +2250,11 @@ function isMultiClauseAddress(display: string): boolean {
   const houseNums = [...s.matchAll(/\bhouse\s*(?:#|no\.?|number)?\s*(\d+)\b/g)].map(
     (m) => m[1]!,
   );
-  const roadHoldings = [...s.matchAll(/(?:^|,\s*)(\d+)\s*,\s*(?:new\s+)?[a-z][^,]{0,40}?\s+road\b/g)].map(
-    (m) => m[1]!,
-  );
+  const roadHoldings = [
+    ...s.matchAll(/(?:^|,\s*)(\d{1,3})\s*,\s*(?:new\s+)?[a-z][^,]{0,40}?\s+road\b/g),
+    ...s.matchAll(/(?:^|,\s*)(\d{1,3})\s+(?:new\s+)?[a-z][^,]{0,40}?\s+road\b/g),
+    ...s.matchAll(/(?:^|,\s*)(\d{1,3})\s*,\s*(?:new\s+)?[a-z]/g),
+  ].map((m) => m[1]!);
   if (new Set([...houseNums, ...roadHoldings]).size >= 2) return true;
   // Two full addresses joined with "&" or " AND " (Ramarbag … & G-88/1).
   // Floor lists ("4th & 5th Fl", "LEVEL # 6 & 7") and plot lists

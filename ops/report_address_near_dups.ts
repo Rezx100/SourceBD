@@ -53,12 +53,21 @@ const namedSlugs = [
   "alif-manufacturing",
   "shiplu-textile-and-spinning-mills",
   "fahad-knit-fashion",
+  "aliens-texwear",
+  "caretex-sourcing",
+  "city-import",
+  "loyal-apparels",
+  "knittex-industries",
+  "mt-sweater",
 ];
 const mustStayMulti: Array<{ slug: string; kind: string; minLocations: number }> = [
   { slug: "siji-garments", kind: "factory", minLocations: 2 },
   { slug: "kamal-yarn", kind: "factory", minLocations: 2 },
   { slug: "blue-bird-fashion", kind: "registered", minLocations: 3 },
   { slug: "alif-manufacturing", kind: "factory", minLocations: 2 },
+  { slug: "aliens-texwear", kind: "factory", minLocations: 2 },
+  { slug: "caretex-sourcing", kind: "registered", minLocations: 2 },
+  { slug: "city-import", kind: "registered", minLocations: 2 },
 ];
 const mustNotAbsorb: Array<{
   slug: string;
@@ -78,6 +87,24 @@ const mustNotAbsorb: Array<{
     campusOnly: /P\.S: Valuka/,
     concat: /Meherbari/,
   },
+  {
+    slug: "caretex-sourcing",
+    kind: "registered",
+    campusOnly: /House # 161 \(5th Floor\), Road # 1, DOHS, Baridhara DOHS, Dhaka$/,
+    concat: /74, East Kazipara/,
+  },
+  {
+    slug: "city-import",
+    kind: "registered",
+    campusOnly: /House # 430, Road # 30, New DOHS/,
+    concat: /292, Inner Circular/,
+  },
+  {
+    slug: "paxar-bangladesh",
+    kind: "factory",
+    campusOnly: /Plot # 167-169, Dhaka EPZ-Ext\. Area, Savar, Dhaka-1349/,
+    concat: /EPZ-Old\. Area/,
+  },
 ];
 const mustMergeToOne: Array<{ slug: string; kind: string }> = [
   { slug: "habitus-fashion", kind: "factory" },
@@ -93,6 +120,9 @@ const mustMergeToOne: Array<{ slug: string; kind: string }> = [
   { slug: "shiplu-textile-and-spinning-mills", kind: "factory" },
   { slug: "shiplu-textile-and-spinning-mills", kind: "mailing" },
   { slug: "fahad-knit-fashion", kind: "factory" },
+  { slug: "mt-sweater", kind: "factory" },
+  { slug: "falcon-international-knit-composite", kind: "factory" },
+  { slug: "falcon-international-knit-composite", kind: "mailing" },
 ];
 const stillSplit: Array<{
   slug: string;

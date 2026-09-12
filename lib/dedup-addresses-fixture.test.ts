@@ -200,6 +200,9 @@ describe("published multi-string fixture", () => {
       ["shiplu-textile-and-spinning-mills", "factory"],
       ["shiplu-textile-and-spinning-mills", "mailing"],
       ["fahad-knit-fashion", "factory"],
+      ["mt-sweater", "factory"],
+      ["falcon-international-knit-composite", "factory"],
+      ["falcon-international-knit-composite", "mailing"],
     ];
     for (const [slug, kind] of expectOne) {
       const n = mergeUniqueLocations(groupOf(slug, kind).rows).length;
@@ -706,6 +709,55 @@ describe("published multi-string fixture", () => {
       locOf(alif, /Kaicha Bari, Ashulia/, "alif ashulia"),
       "alif Comilla vs Ashulia",
     );
+    assert.notEqual(
+      locOf(alif, /Bora Dharmapur, Lalmai/, "alif comilla savar"),
+      locOf(alif, /Kaichabari, Savar/, "alif savar"),
+      "alif Comilla vs Savar",
+    );
+    assert.equal(
+      locOf(alif, /Kaicha Bari, Ashulia/, "alif ashulia savar"),
+      locOf(alif, /Kaichabari, Savar/, "alif savar pair"),
+      "alif Ashulia vs Savar same premises",
+    );
+
+    const aliens = once("aliens-texwear", "factory");
+    assert.equal(aliens.length, 2, `aliens-texwear factory still ${aliens.length}`);
+    assert.notEqual(
+      locOf(aliens, /Hatimara/, "aliens hatimara"),
+      locOf(aliens, /SURA BARI/, "aliens sura bari"),
+      "aliens Hatimara vs SURA BARI",
+    );
+
+    const caretex = once("caretex-sourcing", "registered");
+    assert.ok(caretex.length >= 2, `caretex-sourcing registered still ${caretex.length}`);
+    assert.notEqual(
+      locOf(caretex, /House # 161 \(5th Floor\), Road # 1, DOHS, Baridhara DOHS/, "caretex 161-only"),
+      locOf(caretex, /74, East Kazipara/, "caretex kazipara"),
+      "caretex House 161-only vs 74 Kazipara concat",
+    );
+    assert.ok(
+      !caretex[locOf(caretex, /74, East Kazipara/, "caretex kazipara src")]!.source_rows.some((r) =>
+        /House # 161 \(5th Floor\), Road # 1, DOHS, Baridhara DOHS, Dhaka$/.test(r.address),
+      ),
+      "caretex campus-only source row must not sit in the Kazipara concat location",
+    );
+
+    const cityImport = once("city-import", "registered");
+    assert.equal(cityImport.length, 2, `city-import registered still ${cityImport.length}`);
+    assert.notEqual(
+      locOf(cityImport, /House # 430, Road # 30, New DOHS/, "city 430-only"),
+      locOf(cityImport, /292, Inner Circular/, "city 292"),
+      "city-import House 430-only vs 292 Inner Circular concat",
+    );
+
+    const loyal = once("loyal-apparels", "factory");
+    assert.equal(loyal.length, 2, `loyal-apparels factory still ${loyal.length}`);
+
+    const knittexMail = once("knittex-industries", "mailing");
+    assert.equal(knittexMail.length, 2, `knittex-industries mailing still ${knittexMail.length}`);
+
+    const mtSweater = once("mt-sweater", "factory");
+    assert.equal(mtSweater.length, 1, `mt-sweater factory still ${mtSweater.length}`);
   });
 
   it("never co-locates a never-same place pair in one location", () => {

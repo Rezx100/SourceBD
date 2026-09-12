@@ -1,6 +1,6 @@
 {
-  "mergedToOne": 2072,
-  "stillMulti": 1202,
+  "mergedToOne": 2075,
+  "stillMulti": 1199,
   "conflictingIdMerges": 0,
   "overMergeHits": [],
   "absorptionHits": [],
@@ -370,6 +370,153 @@
           "locations": 1,
           "display": [
             "MALANCHANAGAR, ROAD NO-03, POLICE LINE, TAGARPAR, FATULLAH, NARAYANGANJ."
+          ],
+          "variantCount": [
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "aliens-texwear",
+      "groups": [
+        {
+          "kind": "factory",
+          "strings": 3,
+          "locations": 2,
+          "display": [
+            "Hatimara, Kashimpur, 1700, Gazipur, Bangladesh",
+            "SURA BARI, KASHIMPUR, GAZIPUR"
+          ],
+          "variantCount": [
+            1,
+            0
+          ]
+        },
+        {
+          "kind": "mailing",
+          "strings": 2,
+          "locations": 2,
+          "display": [
+            "HOUSE # 16 (FLAT NO.-302), ROAD # 07, SECTOR # 11, UTTARA, DHAKA",
+            "Hatimara, Kashimpur, Gazipur"
+          ],
+          "variantCount": [
+            0,
+            0
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "caretex-sourcing",
+      "groups": [
+        {
+          "kind": "registered",
+          "strings": 3,
+          "locations": 2,
+          "display": [
+            "74, East Kazipara, House # 161 (5th Floor), Road # 1, DOHS, Mirpur, Dhaka, Baridhara DOHS",
+            "House # 161 (5th Floor), Road # 1, DOHS, Baridhara DOHS, Dhaka"
+          ],
+          "variantCount": [
+            0,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "city-import",
+      "groups": [
+        {
+          "kind": "registered",
+          "strings": 2,
+          "locations": 2,
+          "display": [
+            "Shatabdi Center, 292, Inner Circular Rd(10th House # 430, Road # 30, Fl.) Suite-10B Mohakhali, Dhaka, Fakirapool, Dhaka Tel: 9886968, 01199851345",
+            "Baridhara DOHS, Dhaka, House # 430, Road # 30, New DOHS"
+          ],
+          "variantCount": [
+            0,
+            0
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "loyal-apparels",
+      "groups": [
+        {
+          "kind": "factory",
+          "strings": 4,
+          "locations": 2,
+          "display": [
+            "403 Kulgoan, Hathazari Road, Jalalabad, Biazid, Bayjid Bostami PS, Chattogram - 4214, Bangladesh",
+            "434, Kulgaon, Baluchara, Jalalabad, Chittagong, Baizid"
+          ],
+          "variantCount": [
+            2,
+            0
+          ]
+        },
+        {
+          "kind": "mailing",
+          "strings": 2,
+          "locations": 2,
+          "display": [
+            "403, KULGAON, HATHAZARI ROAD, BALUCHARA, JALALABAD, BAYAZID, CHATTOGRAM",
+            "434, Kulgaon, Baluchara, Jalalabad, Chittagong, Baizid"
+          ],
+          "variantCount": [
+            0,
+            0
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "knittex-industries",
+      "groups": [
+        {
+          "kind": "factory",
+          "strings": 4,
+          "locations": 3,
+          "display": [
+            "Shanta Virtue, Plot 14 ( 8th & 9th floor), Road #13/A, Sector 04, Uttara, 1230, Dhaka, Bangladesh",
+            "PLOT-247-252, BAIMILE, KONABARI, GAZIPUR",
+            "161 Lohakair, Kashimpur, Gazipur."
+          ],
+          "variantCount": [
+            0,
+            1,
+            0
+          ]
+        },
+        {
+          "kind": "mailing",
+          "strings": 3,
+          "locations": 2,
+          "display": [
+            "Shanta Virtue, Plot # 14 (8th & 9th Floor), Road # 14/A, Sector # 4, Uttara, Dhaka",
+            "House # 4 (Gr. & 1st floor), Road # 13, Sector # 04, Uttara Model Town, Dhaka-1230."
+          ],
+          "variantCount": [
+            0,
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "mt-sweater",
+      "groups": [
+        {
+          "kind": "factory",
+          "strings": 2,
+          "locations": 1,
+          "display": [
+            "Plot No-1703-04, Gacha Road, Gacha, Gazipur Sadar, Gazipur - 1704, Bangladesh"
           ],
           "variantCount": [
             1
@@ -1161,6 +1308,17 @@
       "displays": [
         "House # 14, Road # 20, Sector # 04, Uttara Model Town, Dhaka",
         "08, DAGERCHALA, NATIONAL UNIVERSITY, GAZIPUR, BANGLADESH."
+      ]
+    },
+    {
+      "slug": "aliens-texwear",
+      "company_name": "ALIENS TEXWEAR LTD",
+      "kind": "factory",
+      "strings": 3,
+      "locations": 2,
+      "displays": [
+        "Hatimara, Kashimpur, 1700, Gazipur, Bangladesh",
+        "SURA BARI, KASHIMPUR, GAZIPUR"
       ]
     },
     {
@@ -3190,6 +3348,17 @@
       ]
     },
     {
+      "slug": "caretex-sourcing",
+      "company_name": "Caretex Sourcing Ltd.",
+      "kind": "registered",
+      "strings": 3,
+      "locations": 2,
+      "displays": [
+        "74, East Kazipara, House # 161 (5th Floor), Road # 1, DOHS, Mirpur, Dhaka, Baridhara DOHS",
+        "House # 161 (5th Floor), Road # 1, DOHS, Baridhara DOHS, Dhaka"
+      ]
+    },
+    {
       "slug": "carton-craft",
       "company_name": "Carton Craft Ltd",
       "kind": "factory",
@@ -3396,6 +3565,17 @@
       "displays": [
         "28/C/2, Toyenbee Circular Road (1st Floor), Motijheel, Dhaka-1000",
         "173, Fakirapool (2nd & 3rd Floor), Dhaka-1000"
+      ]
+    },
+    {
+      "slug": "city-import",
+      "company_name": "City Import",
+      "kind": "registered",
+      "strings": 2,
+      "locations": 2,
+      "displays": [
+        "Shatabdi Center, 292, Inner Circular Rd(10th House # 430, Road # 30, Fl.) Suite-10B Mohakhali, Dhaka, Fakirapool, Dhaka Tel: 9886968, 01199851345",
+        "Baridhara DOHS, Dhaka, House # 430, Road # 30, New DOHS"
       ]
     },
     {
@@ -3947,9 +4127,10 @@
       "company_name": "DB Trims Ltd",
       "kind": "registered",
       "strings": 3,
-      "locations": 2,
+      "locations": 3,
       "displays": [
         "South Avenue Tower, 6th floor, House # 50, Road # 3, 7, Gulshan Avenue, Gulshan-1, Dhaka-1212",
+        "South Avenue Tower (6th floor), House # 50, Road # 03, 7 Gulshan Avenue, Gulshan-1, Dhaka-1212",
         "102, Green Road, Farmgate, Tejgaon, Dhaka-1215"
       ]
     },
@@ -4874,28 +5055,6 @@
       ]
     },
     {
-      "slug": "falcon-international-knit-composite",
-      "company_name": "FALCON INTERNATIONAL KNIT COMPOSITE",
-      "kind": "factory",
-      "strings": 2,
-      "locations": 2,
-      "displays": [
-        "Plot # 2/1 (Basement, Ground, 1st Fl), Road # 7, Nobodoy Housing Society, Dhaka, Mohammadpur",
-        "PLOT-2/1, (GF &1ST FLOOR), ROAD-7, BLOCK-A, NOBODOY HOUSING SOCIETY, DHAKA"
-      ]
-    },
-    {
-      "slug": "falcon-international-knit-composite",
-      "company_name": "FALCON INTERNATIONAL KNIT COMPOSITE",
-      "kind": "mailing",
-      "strings": 2,
-      "locations": 2,
-      "displays": [
-        "Plot # 2/1, Road # 7, Block-A, Nobodoy Housing Society, Adabor, Dhaka, Mohammadpur",
-        "PLOT-2/1, (GF &1ST FLOOR), ROAD-7, BLOCK-A, NOBODOY HOUSING SOCIETY, DHAKA"
-      ]
-    },
-    {
       "slug": "fame-apparels",
       "company_name": "FAME APPARELS LTD.",
       "kind": "factory",
@@ -5670,17 +5829,6 @@
       "displays": [
         "75, Ibrahimpur, (2nd, 3rd & 4th Floor), Dhaka, Mirpur",
         "CHAYATOL MARKET, SURABARI, GAZIPUR"
-      ]
-    },
-    {
-      "slug": "garments-manufacture-jinlite-bangladesh",
-      "company_name": "Garments Manufacture JINLITE Bangladesh Ltd.",
-      "kind": "factory",
-      "strings": 4,
-      "locations": 2,
-      "displays": [
-        "MS SFB3#, MS SFB 4#, Plot no.117-121&131-135&141-147, Mongla EPZ, Mongla, Bagerhat, 9351, Khulna, Bangladesh",
-        "Plot No. 117-121, 131-135 & 141-147, MSSFB#3, MSSFB#4, Mongla EPZ, BAGERHAT-9351, KHULNA, BANGLADESH"
       ]
     },
     {
@@ -7574,11 +7722,10 @@
       "company_name": "KNITTEX INDUSTRIES LTD",
       "kind": "mailing",
       "strings": 3,
-      "locations": 3,
+      "locations": 2,
       "displays": [
         "Shanta Virtue, Plot # 14 (8th & 9th Floor), Road # 14/A, Sector # 4, Uttara, Dhaka",
-        "House # 4 (Gr. & 1st floor), Road # 13, Sector # 04, Uttara Model Town, Dhaka-1230.",
-        "HOUSE-4, (GR &1ST FLOOR), ROAD-13, SECTOR-04, DHAKA"
+        "House # 4 (Gr. & 1st floor), Road # 13, Sector # 04, Uttara Model Town, Dhaka-1230."
       ]
     },
     {
@@ -7874,11 +8021,10 @@
       "company_name": "LOYAL APPARELS LTD.",
       "kind": "factory",
       "strings": 4,
-      "locations": 3,
+      "locations": 2,
       "displays": [
         "403 Kulgoan, Hathazari Road, Jalalabad, Biazid, Bayjid Bostami PS, Chattogram - 4214, Bangladesh",
-        "434, Kulgaon, Baluchara, Jalalabad, Chittagong, Baizid",
-        "403, KULGAON, HATHAZARI ROAD, JALALABAD, BAIZID"
+        "434, Kulgaon, Baluchara, Jalalabad, Chittagong, Baizid"
       ]
     },
     {
@@ -8869,6 +9015,17 @@
       ]
     },
     {
+      "slug": "mn-tex",
+      "company_name": "MN Tex",
+      "kind": "factory",
+      "strings": 2,
+      "locations": 2,
+      "displays": [
+        "House# 323, 324, Moynarbagh, Hossain Market, Uttar Badda, 1212, Dhaka, Bangladesh",
+        "323, 324, Moynarbagh, Hossain Market, Uttar Badda, Dhaka"
+      ]
+    },
+    {
       "slug": "modele-de-capital-industries",
       "company_name": "Modele De Capital Ind Ltd",
       "kind": "factory",
@@ -9234,17 +9391,6 @@
       ]
     },
     {
-      "slug": "mt-sweater",
-      "company_name": "MT SWEATER LTD",
-      "kind": "factory",
-      "strings": 2,
-      "locations": 2,
-      "displays": [
-        "Plot No-1703-04, Gacha Road, Gacha, Gazipur Sadar, Gazipur - 1704, Bangladesh",
-        "Gacha, Plot # 1703-1704, Gacha Road, Gacha, Gazipur Sadar"
-      ]
-    },
-    {
       "slug": "muazuddin-knit-fashion",
       "company_name": "Muazuddin Knit Fashion Limited",
       "kind": "factory",
@@ -9556,17 +9702,6 @@
       ]
     },
     {
-      "slug": "next-mode",
-      "company_name": "NEXT MODE LTD",
-      "kind": "factory",
-      "strings": 2,
-      "locations": 2,
-      "displays": [
-        "PLOT NO: B-215, 216 & 217, BSCIC I/A, SHASHONGAON, ENAYETNAGAR, FATULLAH, NARAYANGANJ",
-        "215, 216 & 217/B, BSCIC INDUSTRIAL AREA, SHASHONGAON, FATULLAH, NARAYANGANJ"
-      ]
-    },
-    {
       "slug": "nice-yarn",
       "company_name": "NICE YARN LTD.",
       "kind": "factory",
@@ -9575,17 +9710,6 @@
       "displays": [
         "4, Mudafa Purbo Para, Tongi, Gazipur",
         "BORO DEWRA, SING BARI ROAD, TONGI, GAZIPUR"
-      ]
-    },
-    {
-      "slug": "nine-2-nine-intimates",
-      "company_name": "NINE 2 NINE INTIMATES LTD.",
-      "kind": "factory",
-      "strings": 3,
-      "locations": 2,
-      "displays": [
-        "35/ A&B, Kalurghat Heavy Industrial Area, Chattogram - 4208, Bangladesh",
-        "35, A&B KALURGHAT HEAVY I/A, F.I.D.C. ROAD, CHATTOGRAM"
       ]
     },
     {
@@ -10022,18 +10146,6 @@
       "displays": [
         "CO: 7th floor, NHT Fashions Ltd, Plot # 20-22, Sectors # 5, CEPZ, Chattogram.",
         "Plot # 09-13, Sector # 05, CEPZ, Chittagong"
-      ]
-    },
-    {
-      "slug": "pacific-casuals",
-      "company_name": "PACIFIC CASUALS LTD.",
-      "kind": "factory",
-      "strings": 3,
-      "locations": 3,
-      "displays": [
-        "PLOT NO# 31-32, SECTOR# 01, & PLOT NO# 29 (PART), SECTOR# 05, CEPZ, CHOTTOGRAM, CEPZ, CHATTOGRAM",
-        "Plot #31-31, Sector #01, Plot #29 (Part), Sector #05, EPZ, Chittagong EPZ PS, Chattogram - 4223, Bangladesh",
-        "Plot # 31-32, Sector # 01, CEPZ, Chittagong"
       ]
     },
     {
@@ -11151,17 +11263,6 @@
       "displays": [
         "C.S. Plot No. 659 & 660, Mouza 93, RI Park, Islampur, Gazipur Sadar, Gazipur - 1700, Bangladesh",
         "B.K Bari, Mirzapur Bazar, Gazipur Sadar, Gazipur - 1703, Bangladesh"
-      ]
-    },
-    {
-      "slug": "rezaul-apparels",
-      "company_name": "Rezaul Apparels (Pvt.) Ltd",
-      "kind": "factory",
-      "strings": 3,
-      "locations": 2,
-      "displays": [
-        "Plot No. 371-372, Basic, Konabari, Gazipur - 1700, Bangladesh",
-        "Plot# 371-72, BSCIC, Konabari, Gazipur"
       ]
     },
     {
@@ -12657,14 +12758,14 @@
       ]
     },
     {
-      "slug": "talisman",
-      "company_name": "Talisman Ltd.",
+      "slug": "talent-apparels",
+      "company_name": "TALENT APPARELS LTD.",
       "kind": "factory",
       "strings": 2,
       "locations": 2,
       "displays": [
-        "Plot # 05, 07-10, 13-16 & 170-176 and SFB-07, DEPZ Extension Area, Ganakbari, Ashulia PS, 1349, Dhaka, Bangladesh",
-        "FS SFB # 7 (1st Fl), Plot # 7-10 & 13-16, DEPZ Extension Area, Dhaka"
+        "PLOT NO-215, 216 & 217/B, BSCIC I/A, SHASONGAON, FATULLAH, NARAYANGANJ.",
+        "PLOT # 215, 216 & 217/B, BSCIC I/A, SHASONGAON"
       ]
     },
     {
@@ -12784,11 +12885,10 @@
       "company_name": "Tex Design",
       "kind": "registered",
       "strings": 3,
-      "locations": 3,
+      "locations": 2,
       "displays": [
         "House # 131, Flat-D, Road # 4, Block - A, Banani, Dhaka",
-        "Jahan Building # 1, 23 Agrabad C/A, Agrabad, Chittagong",
-        "House # 131, Flat # G & H, Banani, Dhaka"
+        "Jahan Building # 1, 23 Agrabad C/A, Agrabad, Chittagong"
       ]
     },
     {
@@ -13418,6 +13518,17 @@
     {
       "slug": "virtual-knitwear",
       "company_name": "VIRTUAL KNITWEAR LTD.",
+      "kind": "factory",
+      "strings": 2,
+      "locations": 2,
+      "displays": [
+        "Plot # S.A.-7, 8, R.S.-11, 12, 13, Karamtola, Pubail, Gazipur",
+        "PLOT NO-S.A. 7-8, R.S-11, 12, 13 MOUZA, KARAMTOLA, PUBAIL, GAZIPUR"
+      ]
+    },
+    {
+      "slug": "virtual-knitwear",
+      "company_name": "VIRTUAL KNITWEAR LTD.",
       "kind": "mailing",
       "strings": 2,
       "locations": 2,
@@ -13644,7 +13755,7 @@
       "locations": 2,
       "displays": [
         "35, A&B Kalurghat Heavy I/A, Chattogram - 4208, Bangladesh",
-        "Plot # 35/A & B, Kalurghat Heavy I/A, Chattogram"
+        "35/A-B KALURGHAT HEAVY INDUSTRIES AREA, CHATTOGRAM-4208 AND EXTENDED ADDRESS--- 49/P, KALURGHAT HEAVY INDUSTRIES AREA (PART)"
       ]
     },
     {

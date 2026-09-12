@@ -2247,6 +2247,54 @@ describe("mergeUniqueLocations — empty rows, duplicates, overview buckets", ()
     );
     assert.equal(
       displays([
+        row("House # 62 (1st Floor), Road # 3, Block-B, Niketon, Gulshan, Dhaka"),
+        row(
+          "Bodystretch Bangladesh, House # 62, Road # 3, Block-B, Niketon, 87 New Eskaton Road, Gulshan-1, Dhaka",
+        ),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 161 (5th Floor), Road # 1, DOHS, Baridhara DOHS, Dhaka"),
+        row(
+          "74, East Kazipara, House # 161 (5th Floor), Road # 1, DOHS, Mirpur, Dhaka, Baridhara DOHS, Dhaka",
+        ),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("Baridhara DOHS, Dhaka, House # 430, Road # 30, New DOHS"),
+        row("Shatabdi Center, 292, Inner Circular Rd, House # 430, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("403, KULGAON, HATHAZARI ROAD, JALALABAD, BAIZID"),
+        row(
+          "403 Kulgoan, Hathazari Road, Jalalabad, Biazid, Bayjid Bostami PS, Chattogram - 4214, Bangladesh",
+        ),
+      ]).length,
+      1,
+    );
+    assert.equal(
+      displays([
+        row("HOUSE-4, (GR &1ST FLOOR), ROAD-13, SECTOR-04, DHAKA"),
+        row("House # 4 (Gr. & 1st floor), Road # 13, Sector # 04, Uttara Model Town, Dhaka-1230."),
+      ]).length,
+      1,
+    );
+    assert.equal(
+      displays([
+        row("Plot No-1703-04, Gacha Road, Gacha"),
+        row("Gacha, Plot # 1703-1704, Gacha Road, Gacha"),
+      ]).length,
+      1,
+    );
+    assert.equal(
+      displays([
         row("Ramarbag, Fatullah & G-88/1, BSCIC, Fatullah"),
         row("Ramarbag, Fatullah"),
       ]).length,
@@ -2355,6 +2403,34 @@ describe("mergeUniqueLocations — empty rows, duplicates, overview buckets", ()
       ]).length,
       2,
     );
+    assert.equal(
+      displays([
+        row("Hatimara, Kashimpur, Gazipur"),
+        row("SURA BARI, KASHIMPUR, GAZIPUR"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("Bora, Sreepur, Gazipur"),
+        row("Boro Bari, Sreepur, Gazipur"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("Bera, Sreepur, Gazipur"),
+        row("Baro Bari, Sreepur, Gazipur"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("Bora Dharmapur, Lalmai, Kotwali, Comilla."),
+        row("Kaichabari, Savar, Dhaka."),
+      ]).length,
+      2,
+    );
   });
 
   it("does not merge the same house at a plaza in Uttara with Mirpur or Gazipur with Ashulia", () => {
@@ -2392,6 +2468,27 @@ describe("mergeUniqueLocations — empty rows, duplicates, overview buckets", ()
         row("Anwar Tower, House 12, Mirpur, Dhaka"),
       ]).length,
       2,
+    );
+    assert.equal(
+      displays([
+        row("2, City Plaza, CEPZ, Chattogram"),
+        row("2, City Plaza, DEPZ, Savar"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House 2, Pallabi, Dhaka"),
+        row("House 2, Uttara, Mirpur, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("2, Sujat Plaza, Pallabi, Dhaka"),
+        row("2, Sujat Plaza, Mirpur-12, Dhaka"),
+      ]).length,
+      1,
     );
   });
 

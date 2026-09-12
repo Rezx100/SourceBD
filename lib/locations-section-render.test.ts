@@ -21,7 +21,9 @@ function row(address: string, source_code: string, kind: string): AddressRowRaw 
 }
 
 function locationRowHtml(html: string, group: string): string | undefined {
-  const chunks = html.split(/(?=<div data-location-row="")/).filter(Boolean);
+  const chunks = html
+    .split(/(?=<(?:div|button)\b[^>]*data-location-row)/)
+    .filter(Boolean);
   return chunks.find((chunk) => chunk.includes(`data-location-group="${group}"`));
 }
 
@@ -135,5 +137,18 @@ describe("Locations Also recorded as — rendered HTML boundary", () => {
     assert.match(src, /<AlsoRecordedAs variants=\{location.variants\} \/>/);
     assert.match(src, /data-location-row=""/);
     assert.match(src, /data-location-group=\{groupTitle\}/);
+  });
+
+  it("does not count a Mailing Also-recorded-as pill as the Factories row", () => {
+    const html = [
+      `<button data-location-row="" data-location-group="Factories"><p data-location-display="">Kewa</p></button>`,
+      `<button data-location-row="" data-location-group="Mailing addresses"><p data-location-display="">Badda</p><li data-also-recorded-as="">Gajaria · BGMEA</li></button>`,
+    ].join("");
+    const factoryRow = locationRowHtml(html, "Factories");
+    assert.ok(factoryRow, "Factories button missing");
+    assert.doesNotMatch(factoryRow, /Gajaria/);
+    assert.doesNotMatch(factoryRow, /BGMEA/);
+    const mailingRow = locationRowHtml(html, "Mailing addresses");
+    assert.match(mailingRow ?? "", /Gajaria/);
   });
 });
