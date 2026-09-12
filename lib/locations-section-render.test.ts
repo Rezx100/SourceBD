@@ -7,6 +7,7 @@ import { LocationRowMarkup } from "../components/supplier/also-recorded-as";
 import { AddressRow } from "../components/supplier/locations-section";
 import {
   buildLocationOverview,
+  mergeUniqueLocations,
   type AddressRowRaw,
 } from "./dedup-addresses";
 
@@ -139,6 +140,51 @@ describe("Locations Also recorded as — rendered HTML boundary", () => {
     assert.ok(
       mailingAlso.some((block) => /TEJGAON I\/A-1208/i.test(block) && /BKMEA/.test(block)),
       "Fakhruddin mailing Also recorded as must pair TEJGAON I/A-1208 with BKMEA",
+    );
+  });
+
+  it("matcher-split extras render as two Locations rows, not Also recorded as", () => {
+    const rows = [
+      row("House # 50, Road # 3, No.7 Gulshan, Gulshan-1, Dhaka", "BGMEA", "factory"),
+      row("House # 50, Road # 3, 7 Banani Road, Gulshan-1, Dhaka", "BKMEA", "factory"),
+    ];
+    const locs = mergeUniqueLocations(rows);
+    assert.equal(locs.length, 2);
+    const html = locs
+      .map((loc) =>
+        renderToStaticMarkup(
+          createElement(AddressRow, {
+            location: {
+              displayAddress: loc.displayAddress,
+              floors: loc.floors,
+              variants: loc.variants,
+              types: loc.types,
+              authorities: loc.authorities,
+              markerIndex: null,
+            },
+            groupTitle: "Factories",
+            isSelected: false,
+            locateState: "idle",
+            showSiteNumber: false,
+            onClick: () => undefined,
+          }),
+        ),
+      )
+      .join("");
+    assert.equal((html.match(/data-location-row=""/g) ?? []).length, 2);
+    const chunks = html
+      .split(/(?=<(?:div|button)\b[^>]*data-location-row)/)
+      .filter((chunk) => /data-location-row=""/.test(chunk));
+    assert.equal(chunks.length, 2);
+    const gulshanRow = chunks.find((chunk) => /No\.7 Gulshan|7 Gulshan/i.test(chunk));
+    const bananiRow = chunks.find((chunk) => /Banani Road/i.test(chunk));
+    assert.ok(gulshanRow, "Gulshan Locations row missing");
+    assert.ok(bananiRow, "Banani Road Locations row missing");
+    assert.notEqual(gulshanRow, bananiRow);
+    const gulshanAlso = gulshanRow!.match(/<li[^>]*data-also-recorded-as=""[^>]*>[\s\S]*?<\/li>/g) ?? [];
+    assert.ok(
+      !gulshanAlso.some((block) => /Banani Road/i.test(block)),
+      "Banani Road must not sit in Also recorded as on the Gulshan row",
     );
   });
 
