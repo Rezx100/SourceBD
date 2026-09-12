@@ -9,6 +9,7 @@ import {
   mergeUniqueLocations,
   normaliseAddressKey,
   premisesIdentifiers,
+  sourceRowsHaveConflictingIds,
   type AddressRowRaw,
 } from "./dedup-addresses";
 
@@ -112,25 +113,15 @@ describe("published multi-string fixture", () => {
     }
   });
 
-  it("never leaves an id-bearing source row that does not overlap the location's other ids", () => {
+  it("never leaves an unbridged non-overlapping id pair in one location", () => {
     for (const group of fixture.groups) {
       const merged = mergeUniqueLocations(group.rows);
       for (const loc of merged) {
-        const idSets = loc.source_rows.map((r) => premisesIdentifiers(r.address));
-        for (let i = 0; i < idSets.length; i++) {
-          const a = idSets[i]!;
-          if (a.size === 0) continue;
-          const others = new Set<string>();
-          for (let j = 0; j < idSets.length; j++) {
-            if (i === j || idSets[j]!.size === 0) continue;
-            for (const id of idSets[j]!) others.add(id);
-          }
-          if (others.size === 0) continue;
-          assert.ok(
-            idSetsOverlap(a, others),
-            `${group.slug} ${group.kind} fused ${[...a]} vs others ${[...others]}`,
-          );
-        }
+        assert.equal(
+          sourceRowsHaveConflictingIds(loc.source_rows, loc.source_rows),
+          false,
+          `${group.slug} ${group.kind} fused unbridged ids at ${loc.displayAddress}`,
+        );
       }
     }
   });
@@ -261,8 +252,8 @@ describe("published multi-string fixture", () => {
     );
     assert.equal(
       mergeUniqueLocations(groupOf("univogue-garments", "factory").rows).length,
-      2,
-      "CEPZ Plot 1-5 stays apart from Plot 57-59",
+      3,
+      "CEPZ Plot 1-5, Plot 57-59, and the Unit-1; Unit-2; … concat stay three rows",
     );
     {
       const group = groupOf("univogue-garments", "factory");
@@ -273,8 +264,21 @@ describe("published multi-string fixture", () => {
         return i;
       };
       assert.notEqual(locOf(/Plot # 1-5/), locOf(/Plot#57/), "univogue 1-5 vs 57-59");
-      assert.equal(locOf(/Unit-1/), locOf(/Plot#57/), "univogue unit-list sits with 57-59");
+      assert.notEqual(locOf(/Unit-1/), locOf(/Plot#57/), "univogue unit-list is not the 57-59 campus");
       assert.notEqual(locOf(/Unit-1/), locOf(/Plot # 1-5/), "univogue unit-list is not the 1-5 campus");
+      const concat = uni[locOf(/Unit-1/)]!;
+      assert.ok(
+        concat.source_rows.some((r) => /Unit-2/.test(r.address) && /Unit-3/.test(r.address)),
+        "univogue Unit-2/Unit-3 sit on the concat row",
+      );
+      assert.ok(
+        !uni[locOf(/Plot#57/)]!.source_rows.some((r) => /Unit-2/.test(r.address)),
+        "univogue Unit-2 is not the 57-59 campus-only row",
+      );
+      assert.ok(
+        !uni[locOf(/Plot # 1-5/)]!.source_rows.some((r) => /Unit-3/.test(r.address)),
+        "univogue Unit-3 is not the 1-5 campus-only row",
+      );
     }
     assert.equal(
       mergeUniqueLocations(groupOf("liz-fashion-industries", "factory").rows).length,
@@ -312,12 +316,13 @@ describe("published multi-string fixture", () => {
     );
     {
       const lib = mergeUniqueLocations(groupOf("liberty-knitwear", "factory").rows);
+      assert.equal(lib.length, 3, `liberty-knitwear factory still ${lib.length}`);
       const locOf = (needle: RegExp) => {
         const i = lib.findIndex((l) => l.source_rows.some((r) => needle.test(r.address)));
         assert.ok(i >= 0, `liberty missing ${needle}`);
         return i;
       };
-      assert.notEqual(locOf(/Chandra/i), locOf(/Ramarbag, Kutubpur/i), "liberty Chandra vs Ramarbag");
+      assert.notEqual(locOf(/Pallibyddut/), locOf(/Fatullah PS/), "liberty Chandra vs Ramarbag");
     }
     {
       const lan = mergeUniqueLocations(groupOf("lantabur-apparels", "factory").rows);
@@ -356,95 +361,257 @@ describe("published multi-string fixture", () => {
   });
 
   it("keeps concatenated campuses apart and same-house floor lists together", () => {
+    const once = (slug: string, kind: string) => mergeUniqueLocations(groupOf(slug, kind).rows);
     const locOf = (
-      slug: string,
-      kind: string,
+      merged: ReturnType<typeof mergeUniqueLocations>,
       needle: RegExp,
+      label: string,
     ) => {
-      const merged = mergeUniqueLocations(groupOf(slug, kind).rows);
       const i = merged.findIndex((l) => l.source_rows.some((r) => needle.test(r.address)));
-      assert.ok(i >= 0, `${slug} ${kind} missing ${needle}`);
+      assert.ok(i >= 0, `${label} missing ${needle}`);
       return i;
     };
+    const campusOutsideConcat = (
+      merged: ReturnType<typeof mergeUniqueLocations>,
+      campus: RegExp,
+      concat: RegExp,
+      label: string,
+    ) => {
+      const campusI = locOf(merged, campus, label);
+      const concatI = locOf(merged, concat, `${label} concat`);
+      assert.notEqual(campusI, concatI, label);
+      assert.ok(
+        !merged[concatI]!.source_rows.some((r) => campus.test(r.address)),
+        `${label}: campus-only source row must not sit in the concat location`,
+      );
+    };
+
+    const knit = once("knit-plus", "factory");
+    assert.equal(knit.length, 4, `knit-plus factory still ${knit.length}`);
+    campusOutsideConcat(
+      knit,
+      /Jaharchanda, Belma, Ashulia, Dhaka/,
+      /DYEING UNIT-JAHAR CHANDA/,
+      "knit-plus Jaharchanda-only vs dyeing concat",
+    );
+    campusOutsideConcat(
+      knit,
+      /Plot # 2036, Mouchak, Kaliakoir/,
+      /DYEING UNIT-JAHAR CHANDA/,
+      "knit-plus Mouchak vs dyeing concat",
+    );
     assert.notEqual(
-      locOf("knit-plus", "factory", /Plot # 2036, Mouchak/),
-      locOf("knit-plus", "factory", /Jaharchanda, Belma, Ashulia, Dhaka/),
+      locOf(knit, /Plot # 2036, Mouchak, Kaliakoir/, "knit-plus Mouchak"),
+      locOf(knit, /Jaharchanda, Belma, Ashulia, Dhaka/, "knit-plus Jaharchanda"),
       "knit-plus Mouchak vs Jaharchanda",
     );
-    assert.notEqual(
-      locOf("salek-textile", "factory", /Shafipur, Kaliakor/),
-      locOf("salek-textile", "factory", /Mahana, Bhabanipur/),
-      "salek Shafipur vs Bhabanipur",
+
+    const salek = once("salek-textile", "factory");
+    campusOutsideConcat(
+      salek,
+      /Shafipur, Kaliakor/,
+      /Rotor Unit:/,
+      "salek Shafipur vs rotor/fabric concat",
+    );
+    campusOutsideConcat(
+      salek,
+      /Mahana, Bhabanipur/,
+      /Rotor Unit:/,
+      "salek Bhabanipur vs rotor/fabric concat",
+    );
+
+    const rahman = once("rahman-sports-wear", "factory");
+    assert.equal(rahman.length, 3, `rahman-sports-wear factory still ${rahman.length}`);
+    campusOutsideConcat(
+      rahman,
+      /Plot # B-369, 370, 371 BSCIC Hosiery Industrial Estate/,
+      /EXTENDED ADDRESS/,
+      "rahman B-369 vs extended concat",
+    );
+    campusOutsideConcat(
+      rahman,
+      /Purbo Keodhala, Madanpur, Bandar, Narayanganj - 1400/,
+      /EXTENDED ADDRESS/,
+      "rahman OEKO Purbo-only vs extended concat",
     );
     assert.notEqual(
-      locOf("rahman-sports-wear", "factory", /Plot # B-369, 370, 371 BSCIC/),
-      locOf("rahman-sports-wear", "factory", /Purbo Keodhala, Madanpur/),
+      locOf(rahman, /Plot # B-369, 370, 371 BSCIC Hosiery Industrial Estate/, "rahman B-369"),
+      locOf(rahman, /Purbo Keodhala, Madanpur, Bandar, Narayanganj - 1400/, "rahman OEKO Purbo"),
       "rahman B-369 vs Purbo Keodhala",
     );
-    assert.notEqual(
-      locOf("belkuchi-spinning-mills", "mailing", /Dilkusha/),
-      locOf("belkuchi-spinning-mills", "mailing", /Sena Kalyan Bhaban, \(14th floor\)/),
-      "belkuchi Dilkusha vs Motijheel-only",
+
+    const belkuchi = once("belkuchi-spinning-mills", "mailing");
+    campusOutsideConcat(
+      belkuchi,
+      /Rahmat Tower/,
+      /Mailing Address:/,
+      "belkuchi Dilkusha vs mailing concat",
     );
-    assert.notEqual(
-      locOf("anowara-fashions", "factory", /35\/A Hajiganj Road/),
-      locOf("anowara-fashions", "factory", /NORTH HAJIGONJ/),
+    campusOutsideConcat(
+      belkuchi,
+      /Sena Kalyan Bhaban, \(14th floor\)/,
+      /Mailing Address:/,
+      "belkuchi Motijheel-only vs mailing concat",
+    );
+
+    const anowara = once("anowara-fashions", "factory");
+    campusOutsideConcat(
+      anowara,
+      /35\/A Hajiganj Road, Narayanganj - 1400/,
+      /AND EXTENDED/,
       "anowara 35/A vs North Hajigonj concat",
     );
+
+    const liberty = once("liberty-knitwear", "factory");
+    assert.equal(liberty.length, 3, `liberty-knitwear factory still ${liberty.length}`);
+    campusOutsideConcat(
+      liberty,
+      /Pallibyddut/,
+      /NARAYANGANJ & G-88/,
+      "liberty Chandra-only vs AND concat",
+    );
+    campusOutsideConcat(
+      liberty,
+      /Fatullah PS/,
+      /NARAYANGANJ & G-88/,
+      "liberty Ramarbag-only vs AND concat",
+    );
+    assert.notEqual(
+      locOf(liberty, /Pallibyddut/, "liberty Chandra"),
+      locOf(liberty, /Fatullah PS/, "liberty Ramarbag"),
+      "liberty Chandra vs Ramarbag",
+    );
+
+    const fashion2000 = once("fashion-2000", "factory");
     assert.equal(
-      locOf("fashion-2000", "factory", /367\/1, Senpara, Parbatta/),
-      locOf("fashion-2000", "factory", /GROUND TO 3RD FLOOR/),
+      locOf(fashion2000, /367\/1, Senpara, Parbatta/, "fashion-2000 house"),
+      locOf(fashion2000, /GROUND TO 3RD FLOOR/, "fashion-2000 floors"),
       "fashion-2000 same house with floor span",
     );
+    const kss = once("kss-knit-composite", "mailing");
     assert.equal(
-      locOf("kss-knit-composite", "mailing", /Mehnaz Mansur Tower, House # 11\/A, Road # 130/),
-      locOf("kss-knit-composite", "mailing", /LEVEL # 6 & 7/),
+      locOf(kss, /Mehnaz Mansur Tower, House # 11\/A, Road # 130/, "kss house"),
+      locOf(kss, /LEVEL # 6 & 7/, "kss levels"),
       "kss-knit same house with level list",
     );
+    const samir = once("samir-spinning-mills", "mailing");
     assert.equal(
-      locOf("samir-spinning-mills", "mailing", /Room # 22/),
-      locOf("samir-spinning-mills", "mailing", /Room No- 22 & 34/),
+      locOf(samir, /Room # 22/, "samir room 22"),
+      locOf(samir, /Room No- 22 & 34/, "samir rooms"),
       "samir same house with room list",
     );
+    const lantabur = once("lantabur-apparels", "factory");
     assert.equal(
-      locOf("lantabur-apparels", "factory", /Holding # 295/),
-      locOf("lantabur-apparels", "factory", /Holding No\. 574\/1, Kewa Boherarchala, Sreepur/),
+      locOf(lantabur, /Holding # 295/, "lantabur 295"),
+      locOf(lantabur, /Holding No\. 574\/1, Kewa Boherarchala, Sreepur/, "lantabur 574/1"),
       "lantabur 295 sits with 574/1",
     );
     assert.notEqual(
-      locOf("lantabur-apparels", "factory", /Holding No\. 574\/1/),
-      locOf("lantabur-apparels", "factory", /Satrapara/),
+      locOf(lantabur, /Holding No\. 574\/1/, "lantabur 574/1"),
+      locOf(lantabur, /Satrapara/, "lantabur Satrapara"),
       "lantabur Satrapara is not the Kewa holding",
     );
+    const crony = once("crony-tex-sweater", "factory");
     assert.equal(
-      locOf("crony-tex-sweater", "factory", /Block # B, BSCIC I\/E/),
-      locOf("crony-tex-sweater", "factory", /SHASHONGAON/),
+      locOf(crony, /Block # B, BSCIC I\/E/, "crony block B"),
+      locOf(crony, /SHASHONGAON/, "crony shashongaon"),
       "crony Fatullah BSCIC vs SHASHONGAON",
     );
+    const alamode = once("alamode-apparels", "factory");
     assert.equal(
-      locOf("alamode-apparels", "factory", /Kalughat/),
-      locOf("alamode-apparels", "factory", /kalurgaht/),
+      locOf(alamode, /Kalughat/, "alamode kalughat"),
+      locOf(alamode, /kalurgaht/, "alamode kalurgaht"),
       "alamode Kalughat vs kalurgaht",
     );
+    const arrayFashion = once("array-fashion", "factory");
     assert.notEqual(
-      locOf("array-fashion", "factory", /South Bagber/),
-      locOf("array-fashion", "factory", /Shaibrampur/),
+      locOf(arrayFashion, /South Bagber/, "array bagber"),
+      locOf(arrayFashion, /Shaibrampur/, "array shaibrampur"),
       "array-fashion South Bagber vs Shaibrampur",
     );
+    const victory = once("victory-knitting", "factory");
     assert.equal(
-      locOf("victory-knitting", "factory", /Rajul Plot # 24/),
-      locOf("victory-knitting", "factory", /RAJUK , PLOT-24/),
+      locOf(victory, /Rajul Plot # 24/, "victory rajul"),
+      locOf(victory, /RAJUK , PLOT-24/, "victory rajuk"),
       "victory Rajul vs RAJUK",
     );
+    const doreen = once("doreen-garments", "factory");
     assert.equal(
-      locOf("doreen-garments", "factory", /Dakkhin Panishail, N\.K\. Link Road/),
-      locOf("doreen-garments", "factory", /Dhakkin Panishail, Kashempur/),
+      locOf(doreen, /Dakkhin Panishail, N\.K\. Link Road/, "doreen dakkhin"),
+      locOf(doreen, /Dhakkin Panishail, Kashempur/, "doreen dhakkin"),
       "doreen Dhakkin Panishail vs Dakkhin Panishail",
     );
+    const cottonFair = once("cotton-fair", "factory");
     assert.notEqual(
-      locOf("cotton-fair", "factory", /65\/2, NAYAMATI ROAD/),
-      locOf("cotton-fair", "factory", /A-65\/66 BSCIC/),
+      locOf(cottonFair, /65\/2, NAYAMATI ROAD/, "cotton 65/2"),
+      locOf(cottonFair, /A-65\/66 BSCIC/, "cotton A-65/66"),
       "cotton-fair 65/2 vs A-65/66",
+    );
+  });
+
+  it("keeps competing villages and Ext/Old concatenations on separate location rows", () => {
+    const once = (slug: string, kind: string) => mergeUniqueLocations(groupOf(slug, kind).rows);
+    const locOf = (
+      merged: ReturnType<typeof mergeUniqueLocations>,
+      needle: RegExp,
+      label: string,
+    ) => {
+      const i = merged.findIndex((l) => l.source_rows.some((r) => needle.test(r.address)));
+      assert.ok(i >= 0, `${label} missing ${needle}`);
+      return i;
+    };
+
+    const beta = once("beta-packaging", "factory");
+    const kewa = locOf(beta, /Kewa Mouja/, "beta kewa");
+    const dhanua = locOf(beta, /Dhanua, Maona/, "beta dhanua");
+    const satiabari = locOf(beta, /Satiabari, Rajendrapur/, "beta satiabari");
+    assert.notEqual(dhanua, satiabari, "beta Dhanua vs Satiabari");
+    assert.notEqual(kewa, dhanua, "beta Kewa vs Dhanua");
+    assert.notEqual(kewa, satiabari, "beta Kewa vs Satiabari");
+    assert.equal(
+      locOf(beta, /Bhangnahati, Sreepur/, "beta bhangnahati"),
+      kewa,
+      "beta Bhangnahati sits with Kewa Mouja",
+    );
+
+    const peakFactory = once("peak-apparels", "factory");
+    assert.notEqual(
+      locOf(peakFactory, /Vogra/, "peak vogra"),
+      locOf(peakFactory, /242 SHARIFPUR/, "peak sharifpur"),
+      "peak-apparels factory Vogra vs 242 Sharifpur",
+    );
+    const peakMail = once("peak-apparels", "mailing");
+    assert.equal(peakMail.length, 2, "peak-apparels mailing Vogra vs Sharifpur");
+
+    const paxar = once("paxar-bangladesh", "factory");
+    assert.equal(paxar.length, 2, `paxar-bangladesh factory still ${paxar.length}`);
+    assert.notEqual(
+      locOf(paxar, /Plot # 167-169, Dhaka EPZ-Ext\. Area, Savar, Dhaka-1349/, "paxar ext-only"),
+      locOf(paxar, /EPZ-Old\. Area/, "paxar concat"),
+      "paxar Ext-only vs Ext+Old concat",
+    );
+
+    const euro = once("euro-knit-spin-garments", "factory");
+    assert.notEqual(
+      locOf(euro, /Nayamati, Kutubpur/, "euro nayamati"),
+      locOf(euro, /B-94/, "euro B-94"),
+      "euro-knit Nayamati vs B-94 BSCIC",
+    );
+
+    const howAreYou = once("how-are-you-textile-industries", "factory");
+    assert.equal(howAreYou.length, 2, `how-are-you factory still ${howAreYou.length}`);
+    assert.notEqual(
+      locOf(howAreYou, /MOUNA \(MASTERBARI\) KEYA/, "how-are-you mouna"),
+      locOf(howAreYou, /Plot-2023\(SA\), Gilarchala/, "how-are-you gilarchala"),
+      "how-are-you Mouna vs Gilarchala Plot-2023",
+    );
+
+    const agami = once("agami-apparels", "factory");
+    assert.equal(agami.length, 2, `agami-apparels factory still ${agami.length}`);
+    assert.notEqual(
+      locOf(agami, /Nayapara, Kathgora/, "agami nayapara"),
+      locOf(agami, /Kathgara, Bishmail/, "agami bishmail"),
+      "agami Nayapara vs Bishmail/Kathgara",
     );
   });
 

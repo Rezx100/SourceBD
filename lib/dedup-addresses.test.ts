@@ -246,6 +246,15 @@ describe("mergeUniqueLocations — refuses to merge different premises", () => {
       row("Hossain Market (5th Floor), 671, Datta Para,Tongi\nGazipur\nGazipur"),
     ]);
     assert.equal(out.length, 2, `expected one location per holding, got: ${out.join(" | ")}`);
+    assert.equal(
+      displays([
+        row("671, Dattopara, Hossain Market, Tongi, Gazipur"),
+        row("Hossain Market, 670, Datta Para, Tongi, Gazipur"),
+        row("670-671, Datta Para, Tongi, Gazipur"),
+      ]).length,
+      2,
+      "670 vs 671 stay two holdings even with a 670-671 bridge row",
+    );
   });
 });
 
@@ -800,7 +809,7 @@ describe("mergeUniqueLocations — one row per premises (founder posture)", () =
     );
   });
 
-  it("merges CEPZ Plot 57-59 with a unit-list that also names Plot 57-59", () => {
+  it("keeps a Unit-1; Unit-2 semicolon list apart from the Plot 57-59 campus-only row", () => {
     assert.equal(
       displays([
         row(
@@ -808,7 +817,7 @@ describe("mergeUniqueLocations — one row per premises (founder posture)", () =
         ),
         row("Plot#57, 58 & 59, Sector#1, CEPZ, Chattogram, Bangladesh, EPZ"),
       ]).length,
-      1,
+      2,
     );
   });
 
@@ -1593,7 +1602,7 @@ describe("mergeUniqueLocations — one row per premises (founder posture)", () =
           "Unit-1 Production Unit Plot# 57-59, Sector 1, Export Processing Zone;, Unit-2 Washing Plot# 1-2, Sector 1, Export Processing Zone, 4223 Chittagong, Bangladesh",
         ),
       ]).length,
-      2,
+      3,
     );
   });
 
@@ -1888,6 +1897,16 @@ describe("mergeUniqueLocations — one row per premises (founder posture)", () =
     );
   });
 
+  it("does not merge Holding C-120/14 with Plot C-120", () => {
+    assert.equal(
+      displays([
+        row("Holding No. C-120/14, Shafipur, Gazipur"),
+        row("Plot C-120, Shafipur, Gazipur"),
+      ]).length,
+      2,
+    );
+  });
+
   it("does not merge Sreepur Stand at Gazipur Dhaka with Ganakbari Ashulia", () => {
     assert.equal(
       displays([
@@ -2088,6 +2107,70 @@ describe("mergeUniqueLocations — empty rows, duplicates, overview buckets", ()
         ["Factories", 1],
         ["Mailing addresses", 1],
       ],
+    );
+  });
+
+  it("does not fuse competing villages through a shared thana or Kewa hinge", () => {
+    assert.equal(
+      displays([
+        row("7, Kewa Mouja, Bhangnaati, Sreepur, Gazipur"),
+        row("Dhanua, Maona, Sreepur, Gazipur"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("7, Kewa Mouja, Bhangnaati, Sreepur, Gazipur"),
+        row("Satiabari, Rajendrapur, Sreepur, Gazipur-1740"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("Dhanua, Maona, Sreepur, Gazipur"),
+        row("Satiabari, Rajendrapur, Sreepur, Gazipur-1740"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("Vogra, National University, Gazipur, Joydevpur"),
+        row("242 SHARIFPUR, NATIONAL UNIVERSITY, JOYDEVPUR, GAZIPUR, BANGLADESH"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("Nayamati, Kutubpur, Fatullah, Narayanganj-1400"),
+        row("PLOT # B-94, 95, 96 & 111 BSCIC HOSIERY I/A, FATULLAH,, FATULLAH, NARAYANGANJ"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("MOUNA (MASTERBARI) KEYA, SREEPUR, GAZIPUR., 1740, Gazipur, Bangladesh"),
+        row("Plot-2023(SA), Gilarchala, Sreepur Mouza-Kewa 1740 Gazipur, Gazipur, Bangladesh"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("Nayapara, Kathgora, Ashulia, Savar PS, Dhaka - 1341, Bangladesh"),
+        row("62, Kathgara, Bishmail, Zirabo Road, Ashulia, Dhaka, Savar"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("keeps Ext-only EPZ plots apart from an Ext+Old concatenation", () => {
+    assert.equal(
+      displays([
+        row("Plot # 167-169, Dhaka EPZ-Ext. Area, Savar, Dhaka-1349"),
+        row(
+          "Plot No. 167-169, Dhaka EPZ-Ext. Area, and 17-20 & 29-32, Dhaka EPZ-Old. Area, Savar, Dhaka - 1349, Bangladesh",
+        ),
+      ]).length,
+      2,
     );
   });
 });

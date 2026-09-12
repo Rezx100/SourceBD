@@ -9,9 +9,8 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import {
-  idSetsOverlap,
   mergeUniqueLocations,
-  premisesIdentifiers,
+  sourceRowsHaveConflictingIds,
   type AddressRowRaw,
 } from "../lib/dedup-addresses";
 
@@ -64,17 +63,8 @@ for (const group of fixture.groups) {
     });
   }
   for (const loc of merged) {
-    const idSets = loc.source_rows.map((r) => premisesIdentifiers(r.address));
-    for (let i = 0; i < idSets.length; i++) {
-      const a = idSets[i]!;
-      if (a.size === 0) continue;
-      const others = new Set<string>();
-      for (let j = 0; j < idSets.length; j++) {
-        if (i === j || idSets[j]!.size === 0) continue;
-        for (const id of idSets[j]!) others.add(id);
-      }
-      if (others.size === 0) continue;
-      if (!idSetsOverlap(a, others)) conflictingIdMerges += 1;
+    if (sourceRowsHaveConflictingIds(loc.source_rows, loc.source_rows)) {
+      conflictingIdMerges += 1;
     }
   }
 }

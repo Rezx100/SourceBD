@@ -1303,6 +1303,11 @@ const CASES = [
         "OEKO-TEX",
       ],
       alsoRecordedPair: { spelling: /Gajaria/i, authority: /BGMEA/ },
+      factoryRowIncludes: {
+        group: "Factories",
+        display: /Gojariapara|Gojaria/i,
+        needle: /OEKO-TEX|OEKO_TEX/,
+      },
       bodyCount: {
         'data-location-group="Factories"': 1,
         'data-location-group="Mailing addresses"': 1,
@@ -1887,6 +1892,29 @@ async function main() {
           if (!found) {
             caseProblems.push(
               `${label}: no data-also-recorded-as node pairs ${pair.spelling} with ${pair.authority}`,
+            );
+          }
+        }
+        if (c.expect.factoryRowIncludes) {
+          const want = c.expect.factoryRowIncludes;
+          const rowRe = /<(button|div)\b([^>]*data-location-row=""[^>]*)>([\s\S]*?)<\/\1>/gi;
+          let found = false;
+          let m;
+          while ((m = rowRe.exec(got.body))) {
+            const attrs = m[2];
+            const inner = m[3];
+            const group = /data-location-group="([^"]*)"/.exec(attrs)?.[1] ?? "";
+            if (group !== want.group) continue;
+            const display = /data-location-display=""[^>]*>([\s\S]*?)<\/p>/.exec(inner)?.[1] ?? "";
+            const displayText = display.replace(/<[^>]+>/g, " ");
+            if (want.display.test(displayText) && want.needle.test(inner)) {
+              found = true;
+              break;
+            }
+          }
+          if (!found) {
+            caseProblems.push(
+              `${label}: no ${want.group} data-location-row with display ${want.display} includes ${want.needle}`,
             );
           }
         }

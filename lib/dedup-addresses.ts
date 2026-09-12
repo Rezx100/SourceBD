@@ -1119,8 +1119,15 @@ function slashDigitsOverlap(leftDigits: string, rightDigits: string): boolean {
     parts.length >= 2 &&
     parts.every((p) => /^\d+$/.test(p) && Number(p) >= 10) &&
     Math.abs(Number(parts[0]) - Number(parts[parts.length - 1]!)) <= 30;
-  const leftUnit = ls.length === 2 && Number(ls[1]) < 10;
-  const rightUnit = rs.length === 2 && Number(rs[1]) < 10;
+  // Holding C-120/14 is a subunit of 120, not plots 120 and 14. A suffix
+  // ≥10 still counts as a unit when the gap is wider than a plot range.
+  const unitLike = (parts: string[]) =>
+    parts.length === 2 &&
+    /^\d+$/.test(parts[0]!) &&
+    /^\d+$/.test(parts[1]!) &&
+    (Number(parts[1]) < 10 || Math.abs(Number(parts[0]) - Number(parts[1]!)) > 30);
+  const leftUnit = unitLike(ls);
+  const rightUnit = unitLike(rs);
   if (rangeLike(ls) || rangeLike(rs)) {
     if (leftUnit || rightUnit) return false;
     return ls.some((d) => rs.includes(d));
@@ -1614,10 +1621,16 @@ function firstDistinctPlace(tokens: string[]): string | null {
     const token = tokens[i]!;
     if (tokenWeight(token) !== DISTINCT_WEIGHT) continue;
     if (/\d/.test(token)) continue;
-    if (token.length < 5) continue;
+    // Four-letter mouza names (Kewa Mouja). Other short tokens are noise
+    // (Shee-101) and must not steal the village from a later Vogra.
+    if (token.length < 5) {
+      const next = tokens[i + 1];
+      if (next !== "mouza" && next !== "mouja") continue;
+    }
     if (!fallback) fallback = token;
     if (isLocalityToken(token)) {
-      if (fallback && fallback.length >= 6 && fallback !== token) return fallback;
+      // Untailed villages (Vogra, Mouna, Dhanua) win over a later thana.
+      if (fallback && fallback !== token && !isLocalityToken(fallback)) return fallback;
       return token;
     }
   }
@@ -1645,6 +1658,7 @@ const PLACE_TAILS = [
   "chat",
   "diar",
   "shail",
+  "mail",
 ] as const;
 
 function withPlaceStems(token: string): string[] {
@@ -1669,6 +1683,22 @@ function tokenInList(token: string, tokens: string[]): boolean {
     }
   }
   return false;
+}
+
+/** Id-less village vs plotted campus that never names that village.
+ *  Only a tailed locality on the id-less side is identity (Nayamati's
+ *  Kutubpur vs B-94 BSCIC). Untailed house names (Sarkar Bari at Dhour)
+ *  may still nest into a plotted row that already names the village. */
+function idlessVillageAgainstPlots(a: Candidate, b: Candidate): boolean {
+  const idless = a.ids.size === 0 && b.ids.size > 0 ? a : b.ids.size === 0 && a.ids.size > 0 ? b : null;
+  const plotted = a.ids.size > 0 && b.ids.size === 0 ? a : b.ids.size > 0 && a.ids.size === 0 ? b : null;
+  if (!idless || !plotted) return false;
+  const villages = villageTokens(plotted.tokens);
+  const lead = firstDistinctPlace(idless.tokens);
+  if (lead && tokenInList(lead, villages)) return false;
+  const tailed = firstTailedPlace(idless.tokens);
+  if (!tailed) return false;
+  return !tokenInList(tailed, villages);
 }
 
 /** Conflicting leading village names — Nayapara vs Bahadurpur — unless one
@@ -1753,6 +1783,8 @@ function isSameLocation(a: Candidate, b: Candidate): boolean {
     if (sharedFineAdmin(a, b)) return true;
     if (competingAdminDistricts(a, b)) return false;
   }
+
+  if (!idsOverlap && idlessVillageAgainstPlots(a, b)) return false;
 
   if (leadingVillageConflict(a, b)) {
     const va = villageTokens(a.tokens);
@@ -2009,6 +2041,9 @@ function isMultiClauseAddress(display: string): boolean {
   ).length;
   if (unitHits >= 2) return true;
   if (/\bdyeing\s+unit\b/.test(s) && /\b(?:germents?|garments?)\s+section\b/.test(s)) return true;
+  const unitNums = s.match(/\bunit-\d+\b/g) ?? [];
+  if (new Set(unitNums).size >= 2) return true;
+  if (/\bext(?:ended)?\.?\s*area\b/.test(s) && /\bold\.?\s*area\b/.test(s)) return true;
   // Two full addresses joined with "&" or " AND " (Ramarbag … & G-88/1).
   // Floor lists ("4th & 5th Fl", "LEVEL # 6 & 7") and plot lists
   // ("MSSFB # 1 & 2") are not two campuses.
@@ -2036,11 +2071,11 @@ function candidateFor(display: string): Candidate {
   };
 }
 
-function isRenumberAliasRow(address: string): boolean {
+export function isRenumberAliasRow(address: string): boolean {
   return /\((?:[^)]*\b(?:old|former|present)\b[^)]*)\)/i.test(address);
 }
 
-function sourceRowsHaveConflictingIds<T extends AddressRowRaw>(
+export function sourceRowsHaveConflictingIds<T extends AddressRowRaw>(
   left: readonly T[],
   right: readonly T[],
 ): boolean {

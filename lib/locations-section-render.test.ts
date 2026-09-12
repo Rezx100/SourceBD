@@ -82,7 +82,13 @@ describe("Locations Also recorded as — rendered HTML boundary", () => {
     assert.match(html, /data-also-recorded-authorities="[^"]*(?:BGMEA|BKMEA)/);
     assert.match(html, /Gojariapara/);
     assert.match(html, /Kauitis|Gajaria Para/);
-    assert.match(html, />OEKO-TEX</);
+    const factoryRow = html.match(
+      /<div[^>]*data-location-group="Factories"[^>]*>[\s\S]*?<\/div>/,
+    )?.[0];
+    assert.ok(factoryRow, "Habitus Factories row missing");
+    assert.match(factoryRow, /data-location-display=""/);
+    assert.match(factoryRow, /Gojariapara|Gojaria/i);
+    assert.match(factoryRow, />OEKO-TEX</);
     assert.doesNotMatch(html, /\[object Object\]/);
     const alsoBlocks = html.match(/data-also-recorded-as=""[^>]*>[\s\S]*?<\/li>/g) ?? [];
     assert.ok(alsoBlocks.length >= 1);

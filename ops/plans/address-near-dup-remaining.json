@@ -1,6 +1,6 @@
 {
-  "mergedToOne": 2101,
-  "stillMulti": 1173,
+  "mergedToOne": 2083,
+  "stillMulti": 1191,
   "conflictingIdMerges": 0,
   "named": [
     {
@@ -326,6 +326,17 @@
       ]
     },
     {
+      "slug": "aboni-knitwear",
+      "company_name": "ABONI KNITWEAR LTD.",
+      "kind": "factory",
+      "strings": 4,
+      "locations": 2,
+      "displays": [
+        "Plot- 169-171, 195-196, 200, Hamayetpur, Tetuljhora Union, Savar, Dhaka - 1340, Bangladesh",
+        "Kandi Boilapur, Horindhara, Tetulzhora, Hemayetpur, Savar, Dhaka"
+      ]
+    },
+    {
       "slug": "abs-trims",
       "company_name": "ABS Trims Ltd",
       "kind": "factory",
@@ -521,6 +532,17 @@
       "displays": [
         "1049/1180, Nasirabad industrial Area Baizid Bostami Road, Chattogram.",
         "Barimojlis, Sonargaon Narayangonj."
+      ]
+    },
+    {
+      "slug": "agami-apparels",
+      "company_name": "Agami Apparels Ltd",
+      "kind": "factory",
+      "strings": 2,
+      "locations": 2,
+      "displays": [
+        "62, Kathgara, Bishmail, Zirabo Road, Ashulia, Dhaka, Savar",
+        "Nayapara, Kathgora, Ashulia, Savar PS, Dhaka - 1341, Bangladesh"
       ]
     },
     {
@@ -727,10 +749,9 @@
       "company_name": "A.K.M. KNIT WEAR LTD.",
       "kind": "factory",
       "strings": 3,
-      "locations": 3,
+      "locations": 2,
       "displays": [
         "14, Gedda, Karnapara, Ualil, Savar, 1340, Dhaka, Bangladesh",
-        "14, Gedda, Conpara, Ulail, Savar, Dhaka",
         "SHI-80, Peyarabagan, Bypass Road, Vogra, Ward-15, 1704, Gazipur, Bangladesh"
       ]
     },
@@ -2115,10 +2136,11 @@
       "company_name": "Bakhtiar Textile Mills Ltd.",
       "kind": "factory",
       "strings": 4,
-      "locations": 3,
+      "locations": 4,
       "displays": [
         "Sholakuri, Bhabanipur, Sherpur, Bogra",
         "Muradpur, Sakashwar, Kaliakoir, Gazipur.",
+        "Abdar, Telihati, Sreepur, Gazipur.",
         "Vill & P.O- Shafipur, P.S- Kaliakoir, Dist- Gazipur."
       ]
     },
@@ -2461,10 +2483,12 @@
       "company_name": "Beta Packaging Ltd",
       "kind": "factory",
       "strings": 5,
-      "locations": 2,
+      "locations": 4,
       "displays": [
         "7, Kewa Mouja, Bhangnaati, Sreepur, Gazipur",
-        "Mahona, Duptara, Rupgonj, Narayanganj"
+        "Satiabari, Rajendrapur, Sreepur, Gazipur-1740",
+        "Mahona, Duptara, Rupgonj, Narayanganj",
+        "Dhanua, Maona, Sreepur, Gazipur"
       ]
     },
     {
@@ -2697,6 +2721,28 @@
       "displays": [
         "Resourceful Palton City (11th Floor), 51/51A, Purana Paltan, Dhaka",
         "83, BORPA, RUPGONJ, NARAYANGANJ, RUPGANJ"
+      ]
+    },
+    {
+      "slug": "bright-accessories-industries",
+      "company_name": "Bright Accessories Industries Ltd",
+      "kind": "factory",
+      "strings": 2,
+      "locations": 2,
+      "displays": [
+        "138, Baijeed Bostami Road, Nasirabad Industrial Area, Chittagong-4210",
+        "Chandranagar, BSCIC Road, East Nasirabad, Baizid, Chattogram"
+      ]
+    },
+    {
+      "slug": "bright-accessories-industries",
+      "company_name": "Bright Accessories Industries Ltd",
+      "kind": "registered",
+      "strings": 2,
+      "locations": 2,
+      "displays": [
+        "138, Baijeed Bostami Road, Nasirabad Industrial Area, Chittagong-4210",
+        "Chandranagar, BSCIC Road, East Nasirabad, Baizid, Chattogram"
       ]
     },
     {
@@ -3657,6 +3703,17 @@
     {
       "slug": "denim-asia",
       "company_name": "Denim Asia Limited",
+      "kind": "factory",
+      "strings": 4,
+      "locations": 2,
+      "displays": [
+        "Holding No. E31, Ward No. 9, Shafipur, Kailiakoir, Gazipur.",
+        "Takpara, Ratonpur Road, Safipur Bazar, 1751, Kaliakoir, Gazipur, Bangladesh"
+      ]
+    },
+    {
+      "slug": "denim-asia",
+      "company_name": "Denim Asia Limited",
       "kind": "mailing",
       "strings": 2,
       "locations": 2,
@@ -4208,6 +4265,17 @@
       ]
     },
     {
+      "slug": "es-fashion",
+      "company_name": "ES FASHION",
+      "kind": "factory",
+      "strings": 2,
+      "locations": 2,
+      "displays": [
+        "DEWANBARI, NORTH KASHIPUR, FATULLAH, NARAYANGANJ",
+        "Uttor Kashipur"
+      ]
+    },
+    {
       "slug": "eslite-garments-bangladesh",
       "company_name": "Eslite Garments (Bangladesh) Co., Ltd.",
       "kind": "factory",
@@ -4293,6 +4361,17 @@
       "displays": [
         "37, ESHA KHAN ROAD, HAZIGONJ, SADAR, NARAYANGANJ",
         "Jamgora, Shimultola, Ashulia, Savar, Dhaka., 1344, Bangladesh"
+      ]
+    },
+    {
+      "slug": "euro-knit-spin-garments",
+      "company_name": "EURO KNIT SPIN GARMENTS LTD.",
+      "kind": "factory",
+      "strings": 3,
+      "locations": 2,
+      "displays": [
+        "B-94, 95, 96 & 111, BSCIC Industrial Area, Fatullah, 1400, Narayanganj, Bangladesh",
+        "Nayamati, Kutubpur, Fatullah, Narayanganj-1400"
       ]
     },
     {
@@ -5152,6 +5231,17 @@
       ]
     },
     {
+      "slug": "four-h-intimates",
+      "company_name": "FOUR H INTIMATES LTD",
+      "kind": "factory",
+      "strings": 2,
+      "locations": 2,
+      "displays": [
+        "H. M. RAHMAN PLAZA, DHANIALAPARA, 1154 D. T. ROAD, CHATTOGRAM",
+        "1154, Dt Road, West Dhanialapara, Chittagong"
+      ]
+    },
+    {
       "slug": "freeland-industries",
       "company_name": "FREELAND INDUSTRIES LTD.",
       "kind": "factory",
@@ -5159,7 +5249,7 @@
       "locations": 2,
       "displays": [
         "Mir Mansion (4th & 5th Floor), 1600 B/2443 Rajakhali Road, Bakalia, Chittagong",
-        "Freeland Industries Ltd., Mir Mansion (4th & 5th Floor), Rajakhali Road, Bakolia, Chattogram"
+        "MIR MANSION (4TH & 5TH FLOOR), 1600 B/2442, RAJAKALI ROAD, BAKALIA, CHATTOGRAM."
       ]
     },
     {
@@ -5349,6 +5439,17 @@
         "House # 230, Road # 16 (Lake Road), New DOHS, Mohakhali, Dhaka",
         "House # 457, Road # 8, DOHS, Baridhara DOHS, Dhaka",
         "House # 325, Road # 5, DOHS, Baridhara DOHS, Dhaka"
+      ]
+    },
+    {
+      "slug": "global-outerwear",
+      "company_name": "Global Outerwear Ltd.",
+      "kind": "factory",
+      "strings": 3,
+      "locations": 2,
+      "displays": [
+        "89, Berulia Road, Tati, Savar, Dhaka - 1340, Bangladesh",
+        "South Krishnapur, Berulia Road, Savar, 1340, Dhaka, Bangladesh"
       ]
     },
     {
@@ -5863,6 +5964,17 @@
       ]
     },
     {
+      "slug": "how-are-you-textile-industries",
+      "company_name": "How Are You Textile Industry Ltd.",
+      "kind": "factory",
+      "strings": 2,
+      "locations": 2,
+      "displays": [
+        "Plot-2023(SA), Gilarchala, Sreepur Mouza-Kewa 1740 Gazipur, Gazipur, Bangladesh",
+        "MOUNA (MASTERBARI) KEYA, SREEPUR, GAZIPUR., 1740, Gazipur, Bangladesh"
+      ]
+    },
+    {
       "slug": "hr-fashion",
       "company_name": "H.R FASHION",
       "kind": "factory",
@@ -6284,17 +6396,6 @@
       "displays": [
         "Rangs Arcade (5th Floor), 153/A, Gulshan Avenue, Dhaka, Gulshan-2",
         "156, SHANTINAGAR, DHAKA"
-      ]
-    },
-    {
-      "slug": "ismail-spinning-mills",
-      "company_name": "Ismail Spinning Mills Ltd.",
-      "kind": "factory",
-      "strings": 3,
-      "locations": 2,
-      "displays": [
-        "Mawna, Uttarpara, Sreepur, Gazipur.",
-        "Mulaid, Mowna, Sreepur, Gazipur."
       ]
     },
     {
@@ -7181,6 +7282,17 @@
       ]
     },
     {
+      "slug": "l-usine-fashion",
+      "company_name": "L Usine Fashion Ltd.",
+      "kind": "factory",
+      "strings": 2,
+      "locations": 2,
+      "displays": [
+        "Holding No-44/2, Block No-D, Ward No-07, Sreepur Municipality, Sreepur, Gazipur - 1740, Bangladesh",
+        "Channapara, Gazipur, Sreepur"
+      ]
+    },
+    {
       "slug": "lakhsma-innerwear",
       "company_name": "Lakhsma Innerwear Ltd",
       "kind": "factory",
@@ -8043,14 +8155,37 @@
       ]
     },
     {
+      "slug": "maxim-label-and-packaging-bd",
+      "company_name": "Maxim Label & Packaging (BD) Pvt. Ltd",
+      "kind": "factory",
+      "strings": 2,
+      "locations": 2,
+      "displays": [
+        "Holding No-05/343/3, Bangabandhu Road, Ward No-05, Block-A, Police Station, Ashulia Savar, Dhaka - 1341, Bangladesh",
+        "House # 05/343, Ward # 05, Block-A, Bangabandhu Road, Ashulia, Dhaka"
+      ]
+    },
+    {
       "slug": "mb-knit-fashion",
       "company_name": "MB Knit Fashion Ltd",
       "kind": "factory",
       "strings": 3,
-      "locations": 2,
+      "locations": 3,
       "displays": [
         "B/164-166, 185-187, BSCIC Industrial Estate, Fatullah, Narayanganj - 1420, Bangladesh",
-        "A/122, BSCIC Inds. Estate, Fatullah, Narayanganj, Narayangonj"
+        "A/122, BSCIC Inds. Estate, Fatullah, Narayanganj, Narayangonj",
+        "B-164-165-166-185-186-187, BSCIC I/E, SHASONGAON, FATULLAH, NARAYANGANJ"
+      ]
+    },
+    {
+      "slug": "mb-knit-fashion",
+      "company_name": "MB Knit Fashion Ltd",
+      "kind": "mailing",
+      "strings": 2,
+      "locations": 2,
+      "displays": [
+        "B/164-165 & B/185-187, BSCIC I/E, Fatullah, Narayanganj, Narayangonj",
+        "B-164-165-166-185-186-187, BSCIC I/E, SHASONGAON, FATULLAH, NARAYANGANJ"
       ]
     },
     {
@@ -8672,6 +8807,17 @@
       "displays": [
         "46/A, Purana Palton (3rd fl), Dhaka-1000",
         "RS # 1001, Kutubpur, Fatullah, Narayanganj"
+      ]
+    },
+    {
+      "slug": "mother-textile-mills",
+      "company_name": "Mother Textile Mills Ltd.",
+      "kind": "factory",
+      "strings": 2,
+      "locations": 2,
+      "displays": [
+        "Plot # 437, Sreepur, P.O. Kashimpur Gazipur-1740.",
+        "Chhota Gobindapur, Sreepur, Gazipur."
       ]
     },
     {
@@ -9686,6 +9832,28 @@
         "PARK (BANGLADESH) COMPANY LTD. Plot#7-11, Sector# 01& Plot#94-95 Sector#03 KEPZ North Patenga, EPZ Chattogram",
         "Plot No.94-95, Sector No.03, Karnaphuli Export Processing Zone( KEPZ), Potenga, Chittagong - 4204, Bangladesh",
         "PLOT NO- 7-11, SECTOR-1, KARNAPHULI EPZ, NORTH PATENGA, CHATTOGRAM"
+      ]
+    },
+    {
+      "slug": "paxar-bangladesh",
+      "company_name": "Paxar Bangladesh Ltd",
+      "kind": "factory",
+      "strings": 2,
+      "locations": 2,
+      "displays": [
+        "Plot No. 167-169, Dhaka EPZ-Ext. Area, and 17-20 & 29-32, Dhaka EPZ-Old. Area, Savar, Dhaka - 1349, Bangladesh",
+        "Plot # 167-169, Dhaka EPZ-Ext. Area, Savar, Dhaka-1349"
+      ]
+    },
+    {
+      "slug": "peak-apparels",
+      "company_name": "PEAK APPARELS LTD.",
+      "kind": "factory",
+      "strings": 4,
+      "locations": 2,
+      "displays": [
+        "242, Sharifpur, National University, Joydepur, 1704, Gazipur, Bangladesh",
+        "Vogra, National University, Gazipur, Joydevpur"
       ]
     },
     {
@@ -10795,6 +10963,17 @@
       ]
     },
     {
+      "slug": "rose-sweater",
+      "company_name": "Rose Sweaters Ltd.",
+      "kind": "factory",
+      "strings": 3,
+      "locations": 2,
+      "displays": [
+        "Holding#C-140/01, Vogra Bypass, Bishaw Road, Vason, Joydevpur",
+        "Bejoy Sarak, Moghar Khal, Gazipur, Joydevpur"
+      ]
+    },
+    {
       "slug": "roshawa-spinning-mills",
       "company_name": "ROSHAWA Spinning Mills Ltd",
       "kind": "factory",
@@ -11417,6 +11596,17 @@
       "displays": [
         "342/343, Khadun, Tarabo, Narayanganj, Rupganj",
         "1101/1, MALIBAG CHOWDHURY PARA, DHAKA"
+      ]
+    },
+    {
+      "slug": "silver-composite-textile-mills",
+      "company_name": "Silver Composite Textile Mills Ltd.",
+      "kind": "factory",
+      "strings": 2,
+      "locations": 2,
+      "displays": [
+        "36 BK Bari, Mirzapur, Gazipur.",
+        "B.K Bari, Taltoly, Monipur, Mirzapur Bazar, Gazipur, Gazipur Sadar"
       ]
     },
     {
@@ -12739,9 +12929,10 @@
       "company_name": "Univogue Garments Co. Ltd.",
       "kind": "factory",
       "strings": 3,
-      "locations": 2,
+      "locations": 3,
       "displays": [
         "Unit-1 Production Unit Plot# 57-59, Sector 1, Export Processing Zone;, Unit-2 Washing Plot# 1-2, Sector 1, Export Processing Zone;, Unit-3 Central Cutting Plot# 25-27, Sector-4, Export Processing Zone;, Unit-4 Head Office/Production Unit Plot# 1-5, Sector-1/A, Export Processing Zone, 4223 Chittagong, Bangladesh",
+        "Plot#57, 58 & 59, Sector#1, CEPZ, Chattogram, Bangladesh, EPZ",
         "Plot # 1-5, Sector 1/A, Road # 5, CEPZ, Chittagong"
       ]
     },
@@ -12886,6 +13077,17 @@
       "displays": [
         "Plot # A-23, S-6, BSCIC I/E, Kalurghat, Chittagong",
         "A-6(PART), 7, 8(PART), BSCIC INDUSTRIAL ESTATE, KALURGHAT"
+      ]
+    },
+    {
+      "slug": "west-fashion",
+      "company_name": "WEST FASHION",
+      "kind": "factory",
+      "strings": 2,
+      "locations": 2,
+      "displays": [
+        "C-177, Enayetnagar, Laki Bazar, Siddirganj, Narayangonj - 1430, Bangladesh",
+        "SUMIL PARA, ADAMJEE NAGAR, SIDDIRGANJ, NARAYANGANJ"
       ]
     },
     {
