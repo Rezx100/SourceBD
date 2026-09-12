@@ -3354,7 +3354,12 @@ describe("mergeUniqueLocations — empty rows, duplicates, overview buckets", ()
       "Dokhin",
       "Uttor",
       "Purbbo",
+      "Dakkhin",
+      "Poshchim",
       "Street",
+      "S-E",
+      "S/E",
+      "SE.",
     ]) {
       assertBothOrders(
         campusRow(),
@@ -3442,6 +3447,54 @@ describe("mergeUniqueLocations — empty rows, duplicates, overview buckets", ()
       "7 Gulshan Avenue vs 7 Green Road",
     );
     assertBothOrders(
+      row("Plot # 10, 10 Airport Road, Gulshan-1, Dhaka"),
+      row("Plot # 10, 10 Green Road, Gulshan-1, Dhaka"),
+      2,
+      "Plot 10 Airport Road vs Plot 10 Green Road",
+    );
+    assertBothOrders(
+      row("Plot # 10, 10 Airport, Gulshan-1, Dhaka"),
+      row("Plot # 10, 10 Green, Gulshan-1, Dhaka"),
+      2,
+      "Plot 10 Airport vs Plot 10 Green",
+    );
+    assertBothOrders(
+      row("4 JUBILEE ROAD, JIBAN BIMA BHABAN, CHATTOGRAM"),
+      row("Jiban Bima Bhaban, 4, Chittagong, Jublee Road"),
+      1,
+      "Jubilee Road vs Jublee Road inverted Jiban Bima Bhaban",
+    );
+    assertBothOrders(
+      row("216, Shamim Complex, Sataish Road, Gazipura, Tongi, Gazipur"),
+      row("Shamim Complex, 216, Sataish Road, Gazipura, Tongi, Gazipur"),
+      1,
+      "Shamim Complex 216 inverted vs Sataish Road",
+    );
+    assertBothOrders(
+      row("House # 50, Road # 3, 7 Airport Avenue, Gulshan-1, Dhaka"),
+      row("House # 50, Road # 3, 7 Green Avenue, Gulshan-1, Dhaka"),
+      2,
+      "7 Airport Avenue vs 7 Green Avenue",
+    );
+    assertBothOrders(
+      row("House # 50, Road # 3, 7 Kazi Nazrul Islam Avenue, Gulshan-1, Dhaka"),
+      row("House # 50, Road # 3, 7 Airport Road, Gulshan-1, Dhaka"),
+      2,
+      "7 Kazi Nazrul Islam Avenue vs 7 Airport Road",
+    );
+    assertBothOrders(
+      row("House # 50, Road # 3, 7 Shaheed Tajuddin Ahmed Avenue, Gulshan-1, Dhaka"),
+      row("House # 50, Road # 3, 7 Airport Road, Gulshan-1, Dhaka"),
+      2,
+      "7 Shaheed Tajuddin Ahmed Avenue vs 7 Airport Road",
+    );
+    assertBothOrders(
+      campusRow(),
+      row("House # 50, Road # 3, 7 Panthapath, Gulshan-1, Dhaka"),
+      2,
+      "House 50 vs 7 Panthapath",
+    );
+    assertBothOrders(
       row("Plot # 10, 10 Choto Banani, Gulshan-1, Dhaka"),
       row("Plot # 10, 10 Gulshan, Gulshan-1, Dhaka"),
       2,
@@ -3516,6 +3569,32 @@ describe("mergeUniqueLocations — empty rows, duplicates, overview buckets", ()
       1,
       "House 14 Apt 2/C is the same house as House 14",
     );
+    for (const unit of ["Apt # 2", "Flat # 2", "Unit # 2", "Apt # 401"]) {
+      assertBothOrders(
+        row(`House # 14, ${unit}, Road # 20, Sector # 04, Uttara Model Town, Dhaka`),
+        row("HOUSE #14, ROAD #20, SECTOR #04, UTTARA, DHAKA"),
+        1,
+        `House 14 ${unit} is the same house as House 14`,
+      );
+    }
+    assertBothOrders(
+      row("House # 14, Unit # 11-J, Road # 20, Sector # 04, Uttara Model Town, Dhaka"),
+      row("HOUSE #14, ROAD #20, SECTOR #04, UTTARA, DHAKA"),
+      1,
+      "House 14 Unit 11-J is the same house as House 14",
+    );
+    assertBothOrders(
+      row("House # 26, Apt # 401, Road # 13, Sector # 4, Uttara, Dhaka"),
+      row("House # 26, Road # 13, Sector # 4, Uttara, Dhaka"),
+      1,
+      "House 26 Apt 401 is the same house as House 26",
+    );
+    assertBothOrders(
+      row("House # 139, Lane # 1, Apt # 4 (1st Floor), DOHS, Dhaka"),
+      row("House # 139, Lane # 1, DOHS, Dhaka"),
+      1,
+      "House 139 Apt 4 is the same house as House 139",
+    );
     assertBothOrders(
       row("01, Hariken Road, Doulatpur, National University, 1704, Gazipur, Bangladesh"),
       row("01, Haricane Road, Dowlatpur, National University, Gazipur"),
@@ -3560,6 +3639,26 @@ describe("mergeUniqueLocations — empty rows, duplicates, overview buckets", ()
       2,
       "House 187 vs Head Office 13 Plot+Holding",
     );
+    assertBothOrders(
+      row("House # 62, Plot # 10, Holding # 1, House # 187, Tejgaon, Dhaka"),
+      row("House # 62, Plot # 10, Holding # 1, Head-Office 13, Tejgaon, Dhaka"),
+      2,
+      "House 187 vs Head-Office 13 Plot+Holding",
+    );
+    assertBothOrders(
+      row("House # 62, Plot # 10, Holding # 1, House # 187, Tejgaon, Dhaka"),
+      row("House # 62, Plot # 10, Holding # 1, HeadOffice 13, Tejgaon, Dhaka"),
+      2,
+      "House 187 vs HeadOffice 13 Plot+Holding",
+    );
+    for (const subunit of ["Apt # 2/C", "Unit # 11-J", "Apt D-5", "Apt # 187/A"]) {
+      assertBothOrders(
+        row(`House # 62, Plot # 10, Holding # 1, ${subunit}, Tejgaon, Dhaka`),
+        row("House # 62, Plot # 10, Holding # 1, House # 13, Tejgaon, Dhaka"),
+        2,
+        `${subunit} vs House 13 Plot+Holding`,
+      );
+    }
     for (const other of [
       "House # 13 (Old Zone 2)",
       "House # 13 (Old #13)",

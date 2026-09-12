@@ -940,7 +940,25 @@ function aptFlatUnitBareHouseBody(body: string): boolean {
 
 /** Head Office 13 is House 13. H-O-13 is H/O, including a hyphen between H and O. */
 function rewriteHeadOffice(raw: string): string {
-  return raw.replace(/\bhead\s+office\b/gi, "House");
+  return raw
+    .replace(/\bhead[\s\-]*office\b/gi, "House")
+    .replace(/\bheadoffice\b/gi, "House");
+}
+
+function addressHasHouseOrHoldingLabel(display: string): boolean {
+  return /\b(?:house|hosue|holding|hold)\b/i.test(display);
+}
+
+/** House / H/O / Head Office digits only — not Building, Apt, or Holding.
+ *  Building # 3 on a holding list is extra detail; House 13 at a shared
+ *  Plot+Holding is a second premises. */
+function houseLabelDigits(display: string): Set<string> {
+  const out = new Set<string>();
+  const withHo = rewriteHouseOffice(display);
+  const re =
+    /\b(?:house|hosue)\b[\s.:#-]*(?:no\.?|number|#|:)?[\s.:#-]*(\d{1,3})\b/gi;
+  for (const m of withHo.matchAll(re)) out.add(String(Number(m[1]!)));
+  return out;
 }
 
 function rewriteHoHolding(raw: string, asHouse: boolean): string {
@@ -1242,11 +1260,15 @@ export function premisesIdentifiers(cleanedAddress: string): Set<string> {
     if (labelled) {
       body = trimmed.slice(labelled.index + labelled[0].length).trim();
       // Apt # 2/C / Unit # 11-J are the unit inside the house, not house 2
-      // / house 11. Apt D-5 still mints D5 so Agrani overlaps. Apt # 187
-      // is a labelled house and falls through to collectIdPieces.
-      if (isAptFlatUnitLabel(labelled[0]!) && !aptFlatUnitBareHouseBody(body)) {
-        if (/^[A-Za-z]/.test(body)) collectIdPieces(body, ids);
-        continue;
+      // / house 11. Apt D-5 still mints D5 so Agrani overlaps. Apt # 2 on
+      // House 14 is that house's unit, not a second house. Apt # 187 with
+      // no house label is a labelled house and falls through.
+      if (isAptFlatUnitLabel(labelled[0]!)) {
+        if (!aptFlatUnitBareHouseBody(body)) {
+          if (/^[A-Za-z]/.test(body)) collectIdPieces(body, ids);
+          continue;
+        }
+        if (addressHasHouseOrHoldingLabel(withHouseSlash)) continue;
       }
     } else if (looksLikeBareId(trimmed, allowFourDigit)) {
       body = trimmed;
@@ -1654,6 +1676,25 @@ function extraHoldingConflict(a: Candidate, b: Candidate): boolean {
   }
   if (extraPlaceConflict(a, b)) return true;
   if (extraRoadPlaceConflict(a, b)) return true;
+  // Apt # 2/C at shared Plot+Holding must not absorb House 13: the apt
+  // side skipped minting 2, so both-plotIds would swallow the house.
+  // Building # 3 on 1670/2091, Holding 87 on a neighbour plot list, and
+  // House 323 vs unlabelled 323, 324 are not this — they lack a shared
+  // plot AND holding, or the extra is not a House label.
+  {
+    const ha = houseLabelDigits(a.display);
+    const hb = houseLabelDigits(b.display);
+    const aOnlyH = [...ha].filter((id) => !hb.has(id));
+    const bOnlyH = [...hb].filter((id) => !ha.has(id));
+    if (
+      overlappingIdCount(a.plotIds, b.plotIds) > 0 &&
+      overlappingIdCount(a.holdingIds, b.holdingIds) > 0 &&
+      ((aOnlyH.length > 0 && bOnlyH.length === 0) ||
+        (bOnlyH.length > 0 && aOnlyH.length === 0))
+    ) {
+      return true;
+    }
+  }
   // Plot 389 vs Plot 389 House 6 is the same campus, not two holdings.
   // Neighbour plot lists (M-16 vs M-8,9 & 16) are not house campuses.
   if (a.plotIds.size > 0 && b.plotIds.size > 0) return false;
@@ -2795,6 +2836,9 @@ const EXTRA_PLACE_SKIP_ALIASES = [
   "dokhin",
   "uttor",
   "purbbo",
+  "dakkhin",
+  "poshchim",
+  "pashim",
   "street",
 ] as const;
 /** Skip a run of size/direction/honorific tokens after an extra digit so
@@ -2813,7 +2857,8 @@ function extraPlaceSkipToken(place: string): boolean {
     place === "st" ||
     place === "old" ||
     place === "new" ||
-    place === "inner"
+    place === "inner" ||
+    place === "unit"
   );
 }
 const EXTRA_PLACE_SKIP_RE = (() => {
@@ -2829,12 +2874,13 @@ const EXTRA_PLACE_SKIP_RE = (() => {
     "old",
     "new",
     "inner",
+    "unit",
     ...EXTRA_PLACE_SKIP_ALIASES,
   ]) {
     if (extraPlaceSkipToken(t)) skip.add(t);
   }
   const alt = [...skip].sort((a, b) => b.length - a.length).join("|");
-  const compassAbbr = String.raw`(?:[sn]\.[\s\-]*[ew]\.?|[ew]\.[\s\-]*[sn]\.?|[sn][ew])`;
+  const compassAbbr = String.raw`(?:[sn][\.\s/\-–—]*[ew]\.?|[ew][\.\s/\-–—]*[sn]\.?|[sn][ew]\.?)`;
   const skipWord = `(?:${alt}|${compassAbbr})`;
   const sep = String.raw`[\s/\-–—]+`;
   // Do not skip a GENERIC token when it is the name of the following
@@ -2981,9 +3027,13 @@ function holdingWordingDigits(display: string): Set<string> {
     ...withHo.matchAll(
       /\b(?:house|hosue|holding|hold|building|bldg)\s*(?:#|no\.?|number)?[\s.:-]*(\d+)\b/g,
     ),
-    ...withHo.matchAll(
-      /\b(?:flat|apartment|apt|unit)\s*(?:#|no\.?|number)?[\s.:-]*(\d+)(?![A-Za-z]|[./\-][A-Za-z])/gi,
-    ),
+    ...(addressHasHouseOrHoldingLabel(withHo)
+      ? []
+      : [
+          ...withHo.matchAll(
+            /\b(?:flat|apartment|apt|unit)\s*(?:#|no\.?|number)?[\s.:-]*(\d+)(?![A-Za-z]|[./\-][A-Za-z])/gi,
+          ),
+        ]),
   ].map((m) => m[1]!);
   const skipPlace = (place: string) => extraPlaceSkipToken(place);
   const labelledAdminBefore = (before: string) =>
@@ -2996,7 +3046,6 @@ function holdingWordingDigits(display: string): Set<string> {
     const lastPlot = lower.lastIndexOf("plot");
     return lastPlot >= 0 && lastPlot > lastHouse;
   };
-  const roles = labelledRoleIds(display);
   // Housing-campus / thana numbers are a second house (13 Niketon, 187
   // Badda, 87 Tejgaon). Village tails after a named house (12 Dhour, 30
   // Dhour, No. 12 Dhour) are extra geography. A following road word keeps
@@ -3011,7 +3060,7 @@ function holdingWordingDigits(display: string): Set<string> {
   ) => {
     if (skipPlace(place)) return false;
     if (labelledAdminBefore(before)) return false;
-    if (plotListTail(before) && idSetsOverlap(new Set([digit]), roles.plotIds)) {
+    if (plotListTail(before)) {
       if (!HOUSING_CAMPUS_PLACES.has(place) && !ADMIN_TOKENS.has(place)) {
         return false;
       }
@@ -3022,6 +3071,8 @@ function holdingWordingDigits(display: string): Set<string> {
     if (ADMIN_TOKENS.has(place)) return true;
     // No.187 Bashundhara is a second house. No.793 Amtola / No.12 Kewa are
     // village-extra above. Prefixed 87 Eskaton is ADMIN/housing above.
+    // Unprefixed Panthapath (no Road suffix) is still a second premises.
+    if (place.length >= 8) return true;
     return Boolean(prefixed);
   };
   const placeHoldings = [
@@ -3093,10 +3144,72 @@ function premisesWordingIds(c: Candidate): Set<string> {
   return out;
 }
 
-/** Housing / admin / GENERIC-as-road-name extras at the same digit are
- *  different premises (7 Gulshan Avenue vs 7 Airport Road, Plot 10 Station
- *  Road vs 10 Banani Road). Two proper road names at the same digit are
- *  spelling of one road (Hariken vs Haricane, Jasimuddin vs Jashim Uddin). */
+/** Housing / admin / GENERIC-as-road-name extras, or two proper road names
+ *  that are not spellings of each other (Airport vs Green). Hariken vs
+ *  Haricane / Jasimuddin vs Jashim Uddin stay one via sameWord or a close
+ *  concatenated tail. */
+function roadTailsShare(a: string[], b: string[]): boolean {
+  if (a.some((p) => b.some((q) => sameWord(p, q)))) return true;
+  const sa = a.join("");
+  const sb = b.join("");
+  if (!sa || !sb) return false;
+  if (sameWord(sa, sb)) return true;
+  return Math.min(sa.length, sb.length) >= 7 && levenshtein(sa, sb) <= 3;
+}
+
+/** "10 Airport" / "10 Green" with no Road suffix. Housing, village-extra,
+ *  and admin tails already mint elsewhere; skip tokens must not. */
+function isPlaceTailToken(place: string): boolean {
+  return (PLACE_TAILS as readonly string[]).some(
+    (tail) => place === tail || (place.length > tail.length + 3 && place.endsWith(tail)),
+  );
+}
+
+function bareProperRoadPlaces(display: string): Array<{ digit: string; places: string[] }> {
+  const s = rewriteHouseOffice(display).toLowerCase();
+  const out: Array<{ digit: string; places: string[] }> = [];
+  const push = (digit: string, place: string, gap: string, after: string) => {
+    if (place.length < 5) return;
+    if (extraPlaceSkipToken(place)) return;
+    if (HOUSING_CAMPUS_PLACES.has(place) || ADMIN_TOKENS.has(place)) return;
+    if (VILLAGE_EXTRA_PLACES.has(place)) return;
+    if (isPlaceTailToken(place)) return;
+    // Union / South / Baro between the digit and the name is a village
+    // wrapper, not "10 Airport". Road-suffixed tails belong to
+    // roadHoldingEntries (80/6 Maymashingo Road at digit 6, not 80).
+    if (/[a-z]/.test(gap)) return;
+    if (isThoroughfareAfter(after)) return;
+    const next = after.trimStart().match(/^([a-z]{3,})\b/)?.[1];
+    if (next && (PLACE_TAILS as readonly string[]).includes(next)) return;
+    if (
+      next &&
+      /^(?:complex|tower|plaza|bhaban|bhawan|bahan|centre|center|market|court)$/.test(next)
+    ) {
+      return;
+    }
+    const canon = tokens(normaliseAddressKey(place));
+    if (canon.some((t) => ADMIN_TOKENS.has(t) || GENERIC_TOKENS.has(t))) return;
+    out.push({ digit: String(Number(digit)), places: [place] });
+  };
+  for (const m of s.matchAll(
+    new RegExp(
+      String.raw`${EXTRA_DIGIT_LEAD}((?:no\s*[:.\-]?|number|#)\s*)?(\d{1,3})([\/.\-]?[a-z]|\/[a-z0-9]+)?(\s+${EXTRA_PLACE_SKIP_RE})([a-z]{5,})\b`,
+      "g",
+    ),
+  )) {
+    push(m[2]!, m[5]!, m[4]!, s.slice((m.index ?? 0) + m[0].length));
+  }
+  for (const m of s.matchAll(
+    new RegExp(
+      String.raw`${EXTRA_DIGIT_SAT_LEAD}((?:no\s*[:.\-]?|number|#)\s*)?(\d{1,3})(\s*,\s*${EXTRA_PLACE_SKIP_RE})([a-z]{5,})`,
+      "g",
+    ),
+  )) {
+    push(m[2]!, m[4]!, m[3]!, s.slice((m.index ?? 0) + m[0].length));
+  }
+  return out;
+}
+
 function isDiscriminatingRoadPlace(place: string): boolean {
   return (
     HOUSING_CAMPUS_PLACES.has(place) ||
@@ -3107,36 +3220,50 @@ function isDiscriminatingRoadPlace(place: string): boolean {
 
 function extraRoadPlaceConflict(a: Candidate, b: Candidate): boolean {
   const namedExtraTails = (display: string) => {
-    const out: Array<{ digit: string; places: string[] }> = [];
+    const out: Array<{ digit: string; places: string[]; src: "road" | "admin" | "bare" }> = [];
     const keepHousingAdmin = (p: string) =>
       HOUSING_CAMPUS_PLACES.has(p) || ADMIN_TOKENS.has(p);
     for (const e of roadHoldingEntries(display)) {
       const places = roadNameTokensFromTail(e.tail);
-      if (places.length > 0) out.push({ digit: String(Number(e.digit)), places });
+      if (places.length > 0) {
+        out.push({ digit: String(Number(e.digit)), places, src: "road" });
+      }
     }
     for (const e of adminPlaceExtraEntries(display)) {
       const places = placeTokensFromTail(e.tail).filter(keepHousingAdmin);
-      if (places.length > 0) out.push({ digit: String(Number(e.digit)), places });
+      if (places.length > 0) {
+        out.push({ digit: String(Number(e.digit)), places, src: "admin" });
+      }
     }
     for (const p of extraPlacePairs(display)) {
       if (!keepHousingAdmin(p.place)) continue;
-      out.push({ digit: p.digit, places: [p.place] });
+      out.push({ digit: p.digit, places: [p.place], src: "admin" });
+    }
+    for (const p of bareProperRoadPlaces(display)) {
+      out.push({ ...p, src: "bare" });
     }
     return out;
   };
   const ea = namedExtraTails(a.display);
   const eb = namedExtraTails(b.display);
+  const plotOverlap = (digit: string) =>
+    idSetsOverlap(new Set([digit]), a.plotIds) && idSetsOverlap(new Set([digit]), b.plotIds);
   for (const x of ea) {
     for (const y of eb) {
       if (x.digit !== y.digit) continue;
-      const share = x.places.some((p) => y.places.some((q) => sameWord(p, q)));
-      if (share) continue;
+      if (roadTailsShare(x.places, y.places)) continue;
       if (
         x.places.some(isDiscriminatingRoadPlace) ||
         y.places.some(isDiscriminatingRoadPlace)
       ) {
         return true;
       }
+      // Kazi Nazrul Avenue vs Airport Road: both are named roads, neither
+      // is housing/admin. Unsuffixed Airport vs Green only when the digit is
+      // the shared plot (Plot 10 Airport vs Plot 10 Green), not 216 Shamim
+      // Complex vs 216 Sataish Road.
+      if (x.src === "road" && y.src === "road") return true;
+      if (x.src === "bare" && y.src === "bare" && plotOverlap(x.digit)) return true;
     }
   }
   return false;
@@ -3156,7 +3283,6 @@ function extraPlacePairs(display: string): Array<{ digit: string; place: string 
     const lastPlot = lower.lastIndexOf("plot");
     return lastPlot >= 0 && lastPlot > lastHouse;
   };
-  const roles = labelledRoleIds(display);
   const acceptPlaceHolding = (
     before: string,
     place: string,
@@ -3166,7 +3292,7 @@ function extraPlacePairs(display: string): Array<{ digit: string; place: string 
   ) => {
     if (skipPlace(place)) return false;
     if (labelledAdminBefore(before)) return false;
-    if (plotListTail(before) && idSetsOverlap(new Set([digit]), roles.plotIds)) {
+    if (plotListTail(before)) {
       if (!HOUSING_CAMPUS_PLACES.has(place) && !ADMIN_TOKENS.has(place)) {
         return false;
       }
@@ -3175,6 +3301,7 @@ function extraPlacePairs(display: string): Array<{ digit: string; place: string 
     if (VILLAGE_EXTRA_PLACES.has(place)) return false;
     if (HOUSING_CAMPUS_PLACES.has(place)) return true;
     if (ADMIN_TOKENS.has(place)) return true;
+    if (place.length >= 8) return true;
     return Boolean(prefixed);
   };
   const out: Array<{ digit: string; place: string }> = [];
@@ -3289,6 +3416,7 @@ function labelledRoleIds(cleanedAddress: string): {
   const holdingIds = new Set<string>();
   const { stripped } = extractFloors(cleanedAddress);
   const withHouseSlash = rewriteHouseOffice(stripped);
+  const hasHouseOrHolding = addressHasHouseOrHoldingLabel(withHouseSlash);
   for (const segment of withHouseSlash.split(",")) {
     const trimmed = collapsePlotInitials(segment.trim());
     if (!trimmed) continue;
@@ -3297,11 +3425,12 @@ function labelledRoleIds(cleanedAddress: string): {
     const body = trimmed.slice(labelled.index + labelled[0].length).trim();
     if (!body) continue;
     const label = labelled[0]!;
-    // Apt D-5 / Flat D-5 / Apt # 2/C are the same flat as the house they
-    // sit in, not a second house number. Building # 187 / Apt # 13 still
-    // count as labelled houses.
-    if (isAptFlatUnitLabel(label) && !aptFlatUnitBareHouseBody(body)) {
-      continue;
+    // Apt # 2 on House 14 / Apt D-5 / Apt # 2/C are the unit inside the
+    // named house. Apt # 187 with no house label, and Building # 187, are
+    // labelled houses XOR House 13 at a shared plot.
+    if (isAptFlatUnitLabel(label)) {
+      if (!aptFlatUnitBareHouseBody(body)) continue;
+      if (hasHouseOrHolding) continue;
     }
     if (/(?:building|bldg)/i.test(label) && !/^\d{1,3}\b/.test(body)) {
       continue;

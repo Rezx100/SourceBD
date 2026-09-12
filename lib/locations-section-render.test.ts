@@ -361,6 +361,39 @@ describe("Locations Also recorded as — rendered HTML boundary", () => {
         otherName: "7 Gulshan Avenue vs 7 Airport Road",
       },
       {
+        left: row("Plot # 10, 10 Airport Road, Gulshan-1, Dhaka", "BGMEA", "factory"),
+        right: row("Plot # 10, 10 Green Road, Gulshan-1, Dhaka", "BKMEA", "factory"),
+        keepRe: /Airport Road/i,
+        otherRe: /Green Road/i,
+        otherName: "Plot 10 Airport Road vs Plot 10 Green Road",
+      },
+      {
+        left: row("House # 50, Road # 3, Gulshan-1, Dhaka", "BGMEA", "factory"),
+        right: row(
+          "House # 50, Road # 3, 7 S-E Banani, Gulshan-1, Dhaka",
+          "BKMEA",
+          "factory",
+        ),
+        keepRe: /House # 50, Road # 3, Gulshan-1/,
+        otherRe: /S-E Banani/i,
+        otherName: "House 50 vs 7 S-E Banani",
+      },
+      {
+        left: row(
+          "House # 62, Plot # 10, Holding # 1, House # 187, Tejgaon, Dhaka",
+          "BGMEA",
+          "factory",
+        ),
+        right: row(
+          "House # 62, Plot # 10, Holding # 1, Head-Office 13, Tejgaon, Dhaka",
+          "BKMEA",
+          "factory",
+        ),
+        keepRe: /House # 187/,
+        otherRe: /Head-Office 13/,
+        otherName: "House 187 vs Head-Office 13",
+      },
+      {
         left: row(
           "House # 62, Plot # 10, Holding # 1, Building # 187, Tejgaon, Dhaka",
           "BGMEA",
@@ -397,10 +430,39 @@ describe("Locations Also recorded as — rendered HTML boundary", () => {
         otherRe: /House # 13 \(Old Zone 2\)/,
         otherName: "House 187 vs House 13 (Old Zone 2)",
       },
+      {
+        left: row(
+          "House # 62, Plot # 10, Holding # 1, Apt # 2/C, Tejgaon, Dhaka",
+          "BGMEA",
+          "factory",
+        ),
+        right: row("House # 62, Plot # 10, Holding # 1, House # 13, Tejgaon, Dhaka", "BKMEA", "factory"),
+        keepRe: /Apt # 2\/C/,
+        otherRe: /House # 13/,
+        otherName: "Apt # 2/C vs House 13",
+      },
+      {
+        left: row("Plot # 10, 10 Airport, Gulshan-1, Dhaka", "BGMEA", "factory"),
+        right: row("Plot # 10, 10 Green, Gulshan-1, Dhaka", "BKMEA", "factory"),
+        keepRe: /Airport/i,
+        otherRe: /Green/i,
+        otherName: "Plot 10 Airport vs Plot 10 Green",
+      },
     ];
     for (const c of cases) {
       assertSplitAddressRowHtml(c.left, c.right, c.keepRe, c.otherRe, c.otherName);
     }
+  });
+
+  it("shows HOUSE #14 as Also recorded as of House 14, Apt # 2 (one Locations row)", () => {
+    const html = renderAddressRows([
+      row("House # 14, Apt # 2, Road # 20, Sector # 04, Uttara Model Town, Dhaka", "BGMEA", "factory"),
+      row("HOUSE #14, ROAD #20, SECTOR #04, UTTARA, DHAKA", "BKMEA", "factory"),
+    ]);
+    assert.equal((html.match(/data-location-row=""/g) ?? []).length, 1, html);
+    assert.match(html, /House # 14, Apt # 2/);
+    assert.match(html, /House #14/);
+    assert.match(html, /Also recorded as/);
   });
 
   it("LocationsSection AddressRow HTML contains Also recorded as pills", () => {
