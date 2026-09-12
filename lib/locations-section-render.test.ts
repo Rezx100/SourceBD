@@ -27,6 +27,71 @@ function locationRowHtml(html: string, group: string): string | undefined {
   return chunks.find((chunk) => chunk.includes(`data-location-group="${group}"`));
 }
 
+function renderAddressRows(rows: AddressRowRaw[]): string {
+  return mergeUniqueLocations(rows)
+    .map((loc) =>
+      renderToStaticMarkup(
+        createElement(AddressRow, {
+          location: {
+            displayAddress: loc.displayAddress,
+            floors: loc.floors,
+            variants: loc.variants,
+            types: loc.types,
+            authorities: loc.authorities,
+            markerIndex: null,
+          },
+          groupTitle: "Factories",
+          isSelected: false,
+          locateState: "idle",
+          showSiteNumber: false,
+          onClick: () => undefined,
+        }),
+      ),
+    )
+    .join("");
+}
+
+function locationChunks(html: string): string[] {
+  return html
+    .split(/(?=<(?:div|button)\b[^>]*data-location-row)/)
+    .filter((chunk) => /data-location-row=""/.test(chunk));
+}
+
+function displayHtml(chunk: string): string {
+  const alsoIdx = chunk.search(/data-also-recorded-as=/);
+  return alsoIdx >= 0 ? chunk.slice(0, alsoIdx) : chunk;
+}
+
+function assertSplitAddressRowHtml(
+  left: AddressRowRaw,
+  right: AddressRowRaw,
+  keepRe: RegExp,
+  otherRe: RegExp,
+  otherName: string,
+) {
+  for (const ordered of [
+    [left, right],
+    [right, left],
+  ]) {
+    const locs = mergeUniqueLocations(ordered);
+    assert.equal(locs.length, 2, `${otherName} matcher split`);
+    const html = renderAddressRows(ordered);
+    assert.equal((html.match(/data-location-row=""/g) ?? []).length, 2, `${otherName} row count`);
+    const chunks = locationChunks(html);
+    assert.equal(chunks.length, 2, `${otherName} chunks`);
+    const keep = chunks.find((chunk) => keepRe.test(displayHtml(chunk)));
+    const other = chunks.find((chunk) => otherRe.test(displayHtml(chunk)));
+    assert.ok(keep, `${otherName} keep row missing`);
+    assert.ok(other, `${otherName} other row missing`);
+    assert.notEqual(keep, other, `${otherName} fused into one row`);
+    const also = keep!.match(/<li[^>]*data-also-recorded-as=""[^>]*>[\s\S]*?<\/li>/g) ?? [];
+    assert.ok(
+      !also.some((block) => otherRe.test(block)),
+      `${otherName} must not sit in Also recorded as on the keep row`,
+    );
+  }
+}
+
 function renderOverview(rows: AddressRowRaw[]): string {
   const overview = buildLocationOverview(rows);
   return overview.groups
@@ -144,48 +209,95 @@ describe("Locations Also recorded as — rendered HTML boundary", () => {
   });
 
   it("matcher-split extras render as two Locations rows, not Also recorded as", () => {
-    const rows = [
-      row("House # 50, Road # 3, No.7 Gulshan, Gulshan-1, Dhaka", "BGMEA", "factory"),
-      row("House # 50, Road # 3, 7 Banani Road, Gulshan-1, Dhaka", "BKMEA", "factory"),
-    ];
-    const locs = mergeUniqueLocations(rows);
-    assert.equal(locs.length, 2);
-    const html = locs
-      .map((loc) =>
-        renderToStaticMarkup(
-          createElement(AddressRow, {
-            location: {
-              displayAddress: loc.displayAddress,
-              floors: loc.floors,
-              variants: loc.variants,
-              types: loc.types,
-              authorities: loc.authorities,
-              markerIndex: null,
-            },
-            groupTitle: "Factories",
-            isSelected: false,
-            locateState: "idle",
-            showSiteNumber: false,
-            onClick: () => undefined,
-          }),
+    const cases: Array<{
+      left: AddressRowRaw;
+      right: AddressRowRaw;
+      keepRe: RegExp;
+      otherRe: RegExp;
+      otherName: string;
+    }> = [
+      {
+        left: row("House # 50, Road # 3, No.7 Gulshan, Gulshan-1, Dhaka", "BGMEA", "factory"),
+        right: row("House # 50, Road # 3, 7 Banani Road, Gulshan-1, Dhaka", "BKMEA", "factory"),
+        keepRe: /No\.7 Gulshan|7 Gulshan/i,
+        otherRe: /Banani Road/i,
+        otherName: "No.7 Gulshan vs Banani Road",
+      },
+      {
+        left: row("House # 50, Road # 3, Gulshan-1, Dhaka", "BGMEA", "factory"),
+        right: row("House # 50, Road # 3, 7 Baro Banani, Gulshan-1, Dhaka", "BKMEA", "factory"),
+        keepRe: /House # 50, Road # 3, Gulshan-1/,
+        otherRe: /Baro Banani/i,
+        otherName: "House 50 vs 7 Baro Banani",
+      },
+      {
+        left: row("House # 50, Road # 3, 7 Baro Gulshan, Gulshan-1, Dhaka", "BGMEA", "factory"),
+        right: row("House # 50, Road # 3, 7 Banani Road, Gulshan-1, Dhaka", "BKMEA", "factory"),
+        keepRe: /Baro Gulshan/i,
+        otherRe: /Banani Road/i,
+        otherName: "7 Baro Gulshan vs Banani Road",
+      },
+      {
+        left: row("Plot # 10, 10 Choto Gulshan, Gulshan-1, Dhaka", "BGMEA", "factory"),
+        right: row("Plot # 10, 10 Banani Road, Gulshan-1, Dhaka", "BKMEA", "factory"),
+        keepRe: /Choto Gulshan/i,
+        otherRe: /Banani Road/i,
+        otherName: "Plot 10 Choto Gulshan vs Banani Road",
+      },
+      {
+        left: row("Plot # 10, 10 Gulshan, Gulshan-1, Dhaka", "BGMEA", "factory"),
+        right: row("Plot # 10, 10 Banani Road, Gulshan-1, Dhaka", "BKMEA", "factory"),
+        keepRe: /10 Gulshan/i,
+        otherRe: /Banani Road/i,
+        otherName: "Plot 10 Gulshan vs Banani Road",
+      },
+      {
+        left: row("House # 50, Road # 3, Gulshan-1, Dhaka", "BGMEA", "factory"),
+        right: row("House # 50, Road # 3, 7 South Banani, Gulshan-1, Dhaka", "BKMEA", "factory"),
+        keepRe: /House # 50, Road # 3, Gulshan-1/,
+        otherRe: /South Banani/i,
+        otherName: "House 50 vs 7 South Banani",
+      },
+      {
+        left: row("House # 50, Road # 3, 7 South Gulshan, Gulshan-1, Dhaka", "BGMEA", "factory"),
+        right: row("House # 50, Road # 3, 7 Banani Road, Gulshan-1, Dhaka", "BKMEA", "factory"),
+        keepRe: /South Gulshan/i,
+        otherRe: /Banani Road/i,
+        otherName: "7 South Gulshan vs Banani Road",
+      },
+      {
+        left: row("House # 50, Road # 3, SAT7 South Gulshan, Gulshan-1, Dhaka", "BGMEA", "factory"),
+        right: row("House # 50, Road # 3, 7 Banani Road, Gulshan-1, Dhaka", "BKMEA", "factory"),
+        keepRe: /SAT7 South Gulshan|Sat7 South Gulshan/i,
+        otherRe: /Banani Road/i,
+        otherName: "SAT7 South Gulshan vs Banani Road",
+      },
+      {
+        left: row(
+          "House # 62, Plot # 10, Holding # 1, House # 187, Tejgaon, Dhaka",
+          "BGMEA",
+          "factory",
         ),
-      )
-      .join("");
-    assert.equal((html.match(/data-location-row=""/g) ?? []).length, 2);
-    const chunks = html
-      .split(/(?=<(?:div|button)\b[^>]*data-location-row)/)
-      .filter((chunk) => /data-location-row=""/.test(chunk));
-    assert.equal(chunks.length, 2);
-    const gulshanRow = chunks.find((chunk) => /No\.7 Gulshan|7 Gulshan/i.test(chunk));
-    const bananiRow = chunks.find((chunk) => /Banani Road/i.test(chunk));
-    assert.ok(gulshanRow, "Gulshan Locations row missing");
-    assert.ok(bananiRow, "Banani Road Locations row missing");
-    assert.notEqual(gulshanRow, bananiRow);
-    const gulshanAlso = gulshanRow!.match(/<li[^>]*data-also-recorded-as=""[^>]*>[\s\S]*?<\/li>/g) ?? [];
-    assert.ok(
-      !gulshanAlso.some((block) => /Banani Road/i.test(block)),
-      "Banani Road must not sit in Also recorded as on the Gulshan row",
-    );
+        right: row("House # 62, Plot # 10, Holding # 1, House # 13, Tejgaon, Dhaka", "BKMEA", "factory"),
+        keepRe: /House # 187/,
+        otherRe: /House # 13/,
+        otherName: "House 187 vs House 13",
+      },
+      {
+        left: row(
+          "House # 62, Plot # 10, Holding # 1, House # 187, Tejgaon, Dhaka",
+          "BGMEA",
+          "factory",
+        ),
+        right: row("House # 62, Plot # 10, Holding # 1, H/O-13, Tejgaon, Dhaka", "BKMEA", "factory"),
+        keepRe: /House # 187/,
+        otherRe: /H\/O-13/,
+        otherName: "House 187 vs H/O-13",
+      },
+    ];
+    for (const c of cases) {
+      assertSplitAddressRowHtml(c.left, c.right, c.keepRe, c.otherRe, c.otherName);
+    }
   });
 
   it("LocationsSection AddressRow HTML contains Also recorded as pills", () => {

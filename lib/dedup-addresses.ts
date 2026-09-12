@@ -1578,6 +1578,14 @@ function extraHoldingConflict(a: Candidate, b: Candidate): boolean {
         out.push(String(Number(parts.digits)));
         continue;
       }
+      // H/O-13 / HO-187 are H13 / H187 in premisesIdentifiers, not 13 / 187.
+      if (
+        (parts.letters === "H" || parts.letters === "HO") &&
+        /^\d{1,3}$/.test(parts.digits)
+      ) {
+        out.push(String(Number(parts.digits)));
+        continue;
+      }
       if (/^\d{1,3}$/.test(id) && (placeDigits.has(id) || houseDigits.has(id))) out.push(id);
     }
     return out;
@@ -1633,9 +1641,16 @@ function extraHoldingConflict(a: Candidate, b: Candidate): boolean {
 }
 
 function renumberAliasHint(a: Candidate, b: Candidate): boolean {
-  const hint = (tokens: string[]) =>
-    tokens.some((t) => t === "former" || t === "formerly" || t === "previously");
-  return hint(a.tokens) || hint(b.tokens);
+  const hint = (display: string, tokens: string[]) => {
+    // (Former #295) / (Old #1010) are holding aliases. (Old Zone) is not.
+    if (/\((?:[^)]*\b(?:old|former|present)\b[^)]*\d[^)]*)\)/i.test(display)) {
+      return true;
+    }
+    // Bare "formerly" still marks an alias. "7 Former Gulshan" is an
+    // adjective before a housing name, not a renumber of Banani Road.
+    return tokens.some((t) => t === "formerly" || t === "previously");
+  };
+  return hint(a.display, a.tokens) || hint(b.display, b.tokens);
 }
 
 /** Pallabi vs Mirpur with Uttara (or any third thana) on either side. */
@@ -2693,10 +2708,38 @@ function hasTwoCampusWording(display: string): boolean {
 
 const THOROUGHFARE_AFTER_RE =
   /^(?:road|rd|avenue|ave\.?|street|st\b|lane|boulevard|blvd|drive|drv|close)\b/;
-/** Compass / Bangla-direction adjectives between an extra digit and the
- *  housing or thana name. "7 South Banani" is 7@banani, not a place named
- *  south. East/west/new/inner already skipped as prefixes. */
-const EXTRA_PLACE_DIRECTION_RE = String.raw`(?:(?:new|east|west|inner|south|north|old|uttar|dakhin|dakshin|purba|purbo|poschim|boro|moddho|madhya)\s+)?`;
+/** Skip a run of size/direction/honorific tokens after an extra digit so
+ *  "7 Baro Banani" / "7 South East Banani" mint Banani, not baro/south.
+ *  Housing, village-extra, and admin place names stay capturable. */
+function extraPlaceSkipToken(place: string): boolean {
+  if (HOUSING_CAMPUS_PLACES.has(place)) return false;
+  if (VILLAGE_EXTRA_PLACES.has(place)) return false;
+  if (ADMIN_TOKENS.has(place) && place !== "old" && place !== "new") return false;
+  return (
+    GENERIC_TOKENS.has(place) ||
+    place === "storied" ||
+    place === "storey" ||
+    place === "rd" ||
+    place === "st" ||
+    place === "old" ||
+    place === "new" ||
+    place === "inner"
+  );
+}
+const EXTRA_PLACE_SKIP_RE = (() => {
+  const skip = new Set<string>();
+  for (const t of GENERIC_TOKENS) {
+    if (extraPlaceSkipToken(t)) skip.add(t);
+  }
+  for (const t of ["storied", "storey", "rd", "st", "old", "new", "inner"]) {
+    if (extraPlaceSkipToken(t)) skip.add(t);
+  }
+  const alt = [...skip].sort((a, b) => b.length - a.length).join("|");
+  return `(?:(?:${alt})\\s+)*`;
+})();
+/** SAT 7 / SAT7 / SAT-7 all introduce the extra digit 7. */
+const EXTRA_DIGIT_SAT_LEAD = String.raw`(?:^|,\s*|\bsat[\s\-]*)`;
+const EXTRA_DIGIT_LEAD = String.raw`(?:^|,\s*|(?<=[a-z])\s+|\bsat[\s\-]*)`;
 const ROAD_HOLDING_TAILS = [
   "road",
   "rd",
@@ -2718,15 +2761,15 @@ function isThoroughfareAfter(after: string): boolean {
 function roadHoldingEntries(display: string): Array<{ digit: string; tail: string }> {
   const s = display.toLowerCase();
   const p = String.raw`(?:(?:no\s*[:.\-]?|number|#)\s*)?`;
-  const lead = String.raw`(?:^|,\s*|\bsat\s+)`;
+  const lead = EXTRA_DIGIT_SAT_LEAD;
   const out: Array<{ digit: string; tail: string }> = [];
   for (const word of ROAD_HOLDING_TAILS) {
     const comma = new RegExp(
-      String.raw`${lead}${p}(\d{1,3})\s*,\s*${EXTRA_PLACE_DIRECTION_RE}([a-z][^,]{0,40}?)\s+${word}\b`,
+      String.raw`${lead}${p}(\d{1,3})\s*,\s*${EXTRA_PLACE_SKIP_RE}([a-z][^,]{0,40}?)\s+${word}\b`,
       "g",
     );
     const space = new RegExp(
-      String.raw`${lead}${p}(\d{1,3})\s+${EXTRA_PLACE_DIRECTION_RE}([a-z][^,]{0,40}?)\s+${word}\b`,
+      String.raw`${lead}${p}(\d{1,3})\s+${EXTRA_PLACE_SKIP_RE}([a-z][^,]{0,40}?)\s+${word}\b`,
       "g",
     );
     for (const re of [comma, space]) {
@@ -2745,7 +2788,10 @@ function adminPlaceExtraEntries(display: string): Array<{ digit: string; tail: s
   const s = display.toLowerCase();
   const out: Array<{ digit: string; tail: string }> = [];
   for (const m of s.matchAll(
-    /(?:^|,\s*|\bsat\s+)(?:(?:no\s*[:.\-]?|number|#)\s*)?(\d{1,3})\s*,?\s*(?:(?:new|east|west|inner|south|north|old|uttar|dakhin|dakshin|purba|purbo|poschim|boro|moddho|madhya)\s+)?([a-z]{3,})(?:-\d+)?\b/g,
+    new RegExp(
+      String.raw`${EXTRA_DIGIT_SAT_LEAD}(?:(?:no\s*[:.\-]?|number|#)\s*)?(\d{1,3})\s*,?\s*${EXTRA_PLACE_SKIP_RE}([a-z]{3,})(?:-\d+)?\b`,
+      "g",
+    ),
   )) {
     const place = m[2]!;
     if (!ADMIN_TOKENS.has(place)) continue;
@@ -2770,7 +2816,7 @@ function placeTokensFromTail(tail: string): string[] {
 function villageExtraDigit(digit: string, display: string): boolean {
   const s = display.toLowerCase();
   const re = new RegExp(
-    `(?:^|[,\\s])0*${digit}(?:[\\/.\\-][a-z]|\\/[a-z0-9]+)?\\s*,?\\s+${EXTRA_PLACE_DIRECTION_RE}([a-z]{3,})\\b`,
+    `(?:^|[,\\s]|\\bsat[\\s\\-]*)0*${digit}(?:[\\/.\\-][a-z]|\\/[a-z0-9]+)?\\s*,?\\s+${EXTRA_PLACE_SKIP_RE}([a-z]{3,})\\b`,
     "g",
   );
   for (const m of s.matchAll(re)) {
@@ -2782,8 +2828,9 @@ function villageExtraDigit(digit: string, display: string): boolean {
 /** House 50 + 7 Gulshan / 7 Gulshan Avenue / 7 Gulshan-1 is extra detail of
  *  a Gulshan-only campus. 7 Tejgaon, 7 Dhaka, and 10 Gulshan Avenue are not. */
 function roadExtraSharedWith(digit: string, display: string, other: Candidate): boolean {
-  if (String(Number(digit)) !== "7") return false;
-  const n = Number(digit);
+  const numeric = /^\d+$/.test(digit) ? digit : idParts(digit).digits;
+  if (String(Number(numeric)) !== "7") return false;
+  const n = Number(numeric);
   const gulshanOnOther =
     other.tokens.some((t) => t === "gulshan" || sameWord(t, "gulshan")) &&
     !hasForeignHousingCampus(other, "gulshan");
@@ -2860,7 +2907,7 @@ function holdingWordingDigits(display: string): Set<string> {
   const placeHoldings = [
     ...withHo.matchAll(
       new RegExp(
-        String.raw`(?:^|,\s*|(?<=[a-z])\s+)((?:no\s*[:.\-]?|number|#)\s*)?(\d{1,3})([\/.\-]?[a-z]|\/[a-z0-9]+)?\s+${EXTRA_PLACE_DIRECTION_RE}([a-z]{3,})\b`,
+        String.raw`${EXTRA_DIGIT_LEAD}((?:no\s*[:.\-]?|number|#)\s*)?(\d{1,3})([\/.\-]?[a-z]|\/[a-z0-9]+)?\s+${EXTRA_PLACE_SKIP_RE}([a-z]{3,})\b`,
         "g",
       ),
     ),
@@ -2879,7 +2926,7 @@ function holdingWordingDigits(display: string): Set<string> {
   const commaHoldings = [
     ...withHo.matchAll(
       new RegExp(
-        String.raw`(?:^|,\s*)((?:no\s*[:.\-]?|number|#)\s*)?(\d{1,3})\s*,\s*${EXTRA_PLACE_DIRECTION_RE}([a-z]{2,})`,
+        String.raw`${EXTRA_DIGIT_SAT_LEAD}((?:no\s*[:.\-]?|number|#)\s*)?(\d{1,3})\s*,\s*${EXTRA_PLACE_SKIP_RE}([a-z]{2,})`,
         "g",
       ),
     ),
@@ -3004,7 +3051,7 @@ function extraPlacePairs(display: string): Array<{ digit: string; place: string 
   const out: Array<{ digit: string; place: string }> = [];
   for (const m of withHo.matchAll(
     new RegExp(
-      String.raw`(?:^|,\s*|(?<=[a-z])\s+)((?:no\s*[:.\-]?|number|#)\s*)?(\d{1,3})([\/.\-]?[a-z]|\/[a-z0-9]+)?\s+${EXTRA_PLACE_DIRECTION_RE}([a-z]{3,})\b`,
+      String.raw`${EXTRA_DIGIT_LEAD}((?:no\s*[:.\-]?|number|#)\s*)?(\d{1,3})([\/.\-]?[a-z]|\/[a-z0-9]+)?\s+${EXTRA_PLACE_SKIP_RE}([a-z]{3,})\b`,
       "g",
     ),
   )) {
@@ -3034,7 +3081,7 @@ function extraPlacePairs(display: string): Array<{ digit: string; place: string 
   }
   for (const m of withHo.matchAll(
     new RegExp(
-      String.raw`(?:^|,\s*)((?:no\s*[:.\-]?|number|#)\s*)?(\d{1,3})\s*,\s*${EXTRA_PLACE_DIRECTION_RE}([a-z]{2,})`,
+      String.raw`${EXTRA_DIGIT_SAT_LEAD}((?:no\s*[:.\-]?|number|#)\s*)?(\d{1,3})\s*,\s*${EXTRA_PLACE_SKIP_RE}([a-z]{2,})`,
       "g",
     ),
   )) {
@@ -3062,7 +3109,7 @@ function extraPlacePairs(display: string): Array<{ digit: string; place: string 
   }
   for (const m of withHo.matchAll(
     new RegExp(
-      String.raw`\b(?:house|hosue|holding|hold)\s*(?:#|no\.?|number)?[\s.:-]*(\d{1,3})\s*,\s*${EXTRA_PLACE_DIRECTION_RE}([a-z]{2,})\b`,
+      String.raw`\b(?:house|hosue|holding|hold)\s*(?:#|no\.?|number)?[\s.:-]*(\d{1,3})\s*,\s*${EXTRA_PLACE_SKIP_RE}([a-z]{2,})\b`,
       "g",
     ),
   )) {
