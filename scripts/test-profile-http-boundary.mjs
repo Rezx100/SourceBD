@@ -1302,6 +1302,7 @@ const CASES = [
         "5 source records",
         "OEKO-TEX",
       ],
+      alsoRecordedPair: { spelling: /Gojariapara|Gajaria/i, authority: /OEKO_TEX|OEKO-TEX/ },
       bodyCount: {
         'data-location-group="Factories"': 1,
         'data-location-group="Mailing addresses"': 1,
@@ -1327,6 +1328,7 @@ const CASES = [
         "OEKO-TEX",
         "Ghargaria",
       ],
+      alsoRecordedPair: { spelling: /Ghargaria|Ghorgaria/i, authority: /OEKO_TEX|OEKO-TEX/ },
       bodyCount: {
         'data-location-group="Factories"': 1,
         'data-location-group="Mailing addresses"': 1,
@@ -1865,6 +1867,27 @@ async function main() {
                 `${label}: body missing "${needle}" (${got.bytes} bytes)`,
               );
             }
+          }
+        }
+        if (c.expect.alsoRecordedPair) {
+          const pair = c.expect.alsoRecordedPair;
+          const liRe = /<li\b([^>]*)>([\s\S]*?)<\/li>/gi;
+          let found = false;
+          let m;
+          while ((m = liRe.exec(got.body))) {
+            if (!/\bdata-also-recorded-as=/.test(m[1])) continue;
+            const auth = /data-also-recorded-authorities="([^"]*)"/.exec(m[1]);
+            const authorities = auth?.[1] ?? "";
+            const text = m[2].replace(/<[^>]+>/g, " ");
+            if (pair.spelling.test(text) && pair.authority.test(authorities)) {
+              found = true;
+              break;
+            }
+          }
+          if (!found) {
+            caseProblems.push(
+              `${label}: no data-also-recorded-as node pairs ${pair.spelling} with ${pair.authority}`,
+            );
           }
         }
         if (c.expect.bodyCount && typeof c.expect.bodyCount === "object") {

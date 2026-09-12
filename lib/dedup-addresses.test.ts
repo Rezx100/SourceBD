@@ -1759,6 +1759,125 @@ describe("mergeUniqueLocations — one row per premises (founder posture)", () =
     );
   });
 
+  it("does not merge Holding 12/1 with Plot 12-13 or Plot 12 or Holding 12", () => {
+    assert.equal(
+      displays([
+        row("Holding 12/1, Tongi, Gazipur"),
+        row("Plot 12-13, Tongi, Gazipur"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("Holding 12/1, Tongi, Gazipur"),
+        row("Plot 12, Tongi, Gazipur"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("Holding 12/1, Tongi, Gazipur"),
+        row("Holding 12, Tongi, Gazipur"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("does not merge Holding 50/1 with Plot 50-51", () => {
+    assert.equal(
+      displays([
+        row("Holding 50/1, Tongi, Gazipur"),
+        row("Plot 50-51, Tongi, Gazipur"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("does not merge 65/2 Nayamati with A-65/66 BSCIC", () => {
+    assert.equal(
+      displays([
+        row("65/2, NAYAMATI ROAD, NARAYANGANJ"),
+        row("A-65/66 BSCIC, Fatullah, Narayanganj"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("does not merge B-329 Sonargaon with B-329 Enayetnagar", () => {
+    assert.equal(
+      displays([
+        row("B-329, Sonargaon, Narayanganj"),
+        row("B-329, Enayetnagar, Fatullah"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("does not merge Moishtek Sonargaon with Sashongaon when they share no plot", () => {
+    assert.equal(
+      displays([
+        row("Moishtek, Sonargaon, Narayangonj."),
+        row("B-329/330, Sashongaon, Fatullah"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("does not mint house 12 from Present-D-119/12", () => {
+    assert.equal(
+      displays([
+        row("Holding-213/1 (Present-D-119/12), Gazipur"),
+        row("House 12, Gazipur"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("does not fuse two campuses through AND or a glued ampersand", () => {
+    assert.equal(
+      displays([
+        row("G-88/1, Chandra, Pallibyddut, Kaliakoir, Gazipur"),
+        row("Ramarbag, Kutubpur, Fatullah, Narayanganj"),
+        row(
+          "RAMARBAG, KUTUBPUR, FATULLAH, NARAYANGANJ AND G-88/1, CHANDRA, PALLI BIDDYUT, KALIAKOIR, GAZIPUR",
+        ),
+      ]).length,
+      3,
+    );
+    assert.equal(
+      displays([
+        row("G-88/1, Chandra, Pallibyddut, Kaliakoir, Gazipur"),
+        row("Ramarbag, Kutubpur, Fatullah, Narayanganj"),
+        row("RAMARBAG, KUTUBPUR, FATULLAH, NARAYANGANJ&G-88/1, CHANDRA, PALLI BIDDYUT, KALIAKOIR, GAZIPUR"),
+      ]).length,
+      3,
+    );
+  });
+
+  it("merges the same house when a floor or room list uses &", () => {
+    assert.equal(
+      displays([
+        row("367/1, Senpara, Parbatta, Mirpur-10"),
+        row("367/1, GROUND TO 3RD FLOOR & 6TH FLOOR TO 10TH FLOOR, SENPARA, PARBATA, MIRPUR-10"),
+      ]).length,
+      1,
+    );
+    assert.equal(
+      displays([
+        row("Mehnaz Mansur Tower, House # 11/A, Road # 130, Gulshan-1"),
+        row("MEHNAZ MANSUR TOWER, HOUSE # 11/A, LEVEL # 6 & 7, ROAD # 130, GULSHAN # 1, GULSHAN, DHAKA"),
+      ]).length,
+      1,
+    );
+    assert.equal(
+      displays([
+        row("89, Motijheel C/A (1st floor), Room # 22, Dhaka-1000."),
+        row("89 Motijheel C/A (1st Floor), Room No- 22 & 34, Dhaka-1000."),
+      ]).length,
+      1,
+    );
+  });
+
   it("does not merge Holding C-120/14 with Plot C-14", () => {
     assert.equal(
       displays([

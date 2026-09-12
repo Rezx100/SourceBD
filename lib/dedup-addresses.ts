@@ -138,6 +138,9 @@ const GENERIC_TOKENS = new Set([
   "complex",
   "tower",
   "market",
+  "bhaban",
+  "bhawan",
+  "union",
   "police",
   "station",
   "line",
@@ -423,13 +426,37 @@ export function cleanAddressString(raw: string | null | undefined): string {
 const FLOOR_RE =
   /\(?\s*\b(\d+\s*(?:st|nd|rd|th)?(?:\s*(?:,|&|and)\s*\d+\s*(?:st|nd|rd|th)?)*)\s*(?:floor|fl|flr)\b\.?\s*\)?/gi;
 
+const GROUND_FLOOR_SPAN_RE =
+  /\bground\s+to\s+\d+\s*(?:st|nd|rd|th)?\s*floor(?:\s*(?:&|and)\s*\d+\s*(?:st|nd|rd|th)?\s*floor(?:\s+to\s+\d+\s*(?:st|nd|rd|th)?\s*floor)?)*/gi;
+
+const LEVEL_LIST_RE = /\blevel\s*[#:]?\s*\d+(?:\s*(?:,|&|and)\s*\d+)*/gi;
+
+const ROOM_LIST_RE =
+  /\broom\s*(?:no\.?|number|#|:)?\s*[-:]?\s*\d+(?:\s*(?:,|&|and)\s*\d+)*/gi;
+
 /** Pull "(4th & 5th Fl)" out of the match key and keep it as a detail. */
 export function extractFloors(address: string): {
   stripped: string;
   floors: string[];
 } {
   const floors: string[] = [];
+  const remember = (label: string) => {
+    const normalised = label.replace(/\s+/g, " ").trim();
+    if (normalised && !floors.includes(normalised)) floors.push(normalised);
+  };
   const stripped = address
+    .replace(GROUND_FLOOR_SPAN_RE, (match) => {
+      remember(match);
+      return " ";
+    })
+    .replace(LEVEL_LIST_RE, (match) => {
+      remember(match);
+      return " ";
+    })
+    .replace(ROOM_LIST_RE, (match) => {
+      remember(match);
+      return " ";
+    })
     .replace(FLOOR_RE, (_match, label: string) => {
       const normalised = `${label.replace(/\s+/g, " ").trim()} Floor`;
       if (!floors.includes(normalised)) floors.push(normalised);
@@ -644,6 +671,9 @@ function neverSameAcross(aTokens: string[], bTokens: string[]): boolean {
 function sameWord(a: string, b: string): boolean {
   if (a === b) return true;
   if (neverSamePair(a, b)) return false;
+  if (a.endsWith("gaht") || b.endsWith("gaht")) {
+    return sameWord(a.replace(/gaht$/, "ghat"), b.replace(/gaht$/, "ghat"));
+  }
   if (/^\d+$/.test(a) && /^\d+$/.test(b)) return Number(a) === Number(b);
   if (/\d/.test(a) || /\d/.test(b)) return false;
   const sound = bengaliSoundKey(a);
@@ -689,10 +719,14 @@ function sameWord(a: string, b: string): boolean {
         } else if (
           Math.min(a.length, b.length) >= 7 &&
           (a.slice(0, 3) === b.slice(0, 3) ||
-            PLACE_TAILS.some((t) => a.endsWith(t) && b.endsWith(t)) ||
             // Shooghat/Saughatm: sgt ⊂ sgtm. satrapara/sreepur (strpr vs
             // srpr) and moishtek/mouchak (mstk vs msk) do not prefix-match.
-            longKey.startsWith(shortKey))
+            longKey.startsWith(shortKey) ||
+            // Horihorpara/Harihapara, Rugunathpur/Ragunahpur: same tail and
+            // a 4-letter prefix one edit apart. Sonargaon/Sashongaon (sona
+            // vs sash) is a different place and must not use this path.
+            (PLACE_TAILS.some((t) => a.endsWith(t) && b.endsWith(t)) &&
+              levenshtein(a.slice(0, 4), b.slice(0, 4)) <= 1))
         ) {
           // Barenda/Barendra share a 3-letter prefix. satrapara/sreepur
           // and moishtek/mouchak only share a sound-key insert.
@@ -727,7 +761,7 @@ function sameWord(a: string, b: string): boolean {
   // Ananna/Anannya: shared prefix of 4+ and a single letter insert.
   let prefix = 0;
   while (prefix < a.length && prefix < b.length && a[prefix] === b[prefix]) prefix += 1;
-  if (prefix >= 4 && levenshtein(a, b) === 1 && Math.min(a.length, b.length) >= 6) return true;
+  if (prefix >= 4 && levenshtein(a, b) === 1 && Math.min(a.length, b.length) >= 5) return true;
   // Chadni/Chandni: one inserted letter after a 3-letter prefix. Both
   // ending in a locality suffix is Mirpur/Mirzapur (insert z) and must not
   // use this path.
@@ -979,7 +1013,11 @@ export function premisesIdentifiers(cleanedAddress: string): Set<string> {
     for (const n of m[0].match(/\d+/g) ?? []) {
       const value = Number(n);
       // The unit suffix in Present-D-119/1 is not house 1.
-      if (value >= 10) ids.add(String(value));
+      // Present-D-119/12 is not house 12.
+      if (value < 10) continue;
+      const slashUnit = new RegExp(String.raw`(^|[\D])\d+/${value}(?:\D|$)`, "i");
+      if (slashUnit.test(m[0])) continue;
+      ids.add(String(value));
     }
   }
   const withoutRenumber = stripNonPremisesNumbers(
@@ -1070,7 +1108,8 @@ function slashFragments(digits: string): string[] {
 }
 
 /** Plot pairs like 22/23 share any plot number. Holding/unit forms like
- *  50/1 overlap only when the first number matches (50/1 ≡ 50, not 51/1). */
+ *  50/1 overlap a lone parent or a 2-wide range only when an old/present
+ *  alias sits on the same row (Holding 574 (Former #295) ≡ 574/1). */
 function slashDigitsOverlap(leftDigits: string, rightDigits: string): boolean {
   if (leftDigits === rightDigits) return true;
   const ls = slashFragments(leftDigits);
@@ -1080,9 +1119,13 @@ function slashDigitsOverlap(leftDigits: string, rightDigits: string): boolean {
     parts.length >= 2 &&
     parts.every((p) => /^\d+$/.test(p) && Number(p) >= 10) &&
     Math.abs(Number(parts[0]) - Number(parts[parts.length - 1]!)) <= 30;
+  const leftUnit = ls.length === 2 && Number(ls[1]) < 10;
+  const rightUnit = rs.length === 2 && Number(rs[1]) < 10;
   if (rangeLike(ls) || rangeLike(rs)) {
+    if (leftUnit || rightUnit) return false;
     return ls.some((d) => rs.includes(d));
   }
+  if (leftUnit || rightUnit) return false;
   return ls[0] === rs[0];
 }
 
@@ -1091,12 +1134,34 @@ function isUnitSuffixId(id: string): boolean {
   return parts.length === 2 && Number(parts[1]) < 10;
 }
 
-/** Bare numbers that came from a 3+ consecutive plot range (12-14). */
+function unitParentPair(left: string, right: string): boolean {
+  const L = idParts(left);
+  const R = idParts(right);
+  if (L.letters && R.letters && L.letters !== R.letters) return false;
+  if (isUnitSuffixId(left) && !isUnitSuffixId(right)) {
+    return slashFragments(L.digits)[0] === R.digits;
+  }
+  if (isUnitSuffixId(right) && !isUnitSuffixId(left)) {
+    return slashFragments(R.digits)[0] === L.digits;
+  }
+  return false;
+}
+
+function hasCompanionAlias(ids: Set<string>, id: string): boolean {
+  const parent = isUnitSuffixId(id) ? slashFragments(idParts(id).digits)[0] : idParts(id).digits;
+  for (const other of ids) {
+    if (other === id) continue;
+    const od = idParts(other).digits;
+    if (od === parent) continue;
+    if (isUnitSuffixId(other) && slashFragments(od)[0] === parent) continue;
+    return true;
+  }
+  return false;
+}
+
+/** Bare / lettered numbers that came from a 3+ consecutive plot range (12-14). */
 function consecutiveBareRange(ids: Set<string>): Set<string> {
-  const nums = [...ids]
-    .filter((id) => /^\d+$/.test(id))
-    .map(Number)
-    .sort((a, b) => a - b);
+  const nums = consecutiveNumericValues(ids);
   const inRange = new Set<string>();
   if (nums.length < 3) return inRange;
   let run: number[] = [nums[0]!];
@@ -1114,6 +1179,27 @@ function consecutiveBareRange(ids: Set<string>): Set<string> {
   return inRange;
 }
 
+function twoWideBareRange(ids: Set<string>): Set<string> {
+  const nums = consecutiveNumericValues(ids);
+  const out = new Set<string>();
+  for (let i = 0; i < nums.length - 1; i++) {
+    if (nums[i + 1] === nums[i]! + 1) {
+      out.add(String(nums[i]));
+      out.add(String(nums[i + 1]));
+    }
+  }
+  return out;
+}
+
+function consecutiveNumericValues(ids: Set<string>): number[] {
+  const nums = new Set<number>();
+  for (const id of ids) {
+    const digits = idParts(id).digits;
+    if (/^\d+$/.test(digits)) nums.add(Number(digits));
+  }
+  return [...nums].sort((a, b) => a - b);
+}
+
 /** Do two addresses name a plot in common?
  *
  *  "A-51" and "50-51" are the same premises: one registry carried the block
@@ -1124,18 +1210,33 @@ function consecutiveBareRange(ids: Set<string>): Set<string> {
 export function idSetsOverlap(a: Set<string>, b: Set<string>): boolean {
   const rangeA = consecutiveBareRange(a);
   const rangeB = consecutiveBareRange(b);
+  const twoA = twoWideBareRange(a);
+  const twoB = twoWideBareRange(b);
+  const blockedParent = (unitSide: "a" | "b", parentDigits: string): boolean => {
+    const range = unitSide === "a" ? rangeB : rangeA;
+    const two = unitSide === "a" ? twoB : twoA;
+    return range.has(parentDigits) || two.has(parentDigits);
+  };
   for (const left of a) {
     if (b.has(left)) return true;
     const l = idParts(left);
     for (const right of b) {
       const r = idParts(right);
+      const lettersOk =
+        l.letters === r.letters || l.letters === "" || r.letters === "";
       if (l.digits !== r.digits) {
-        const lettersOk =
-          l.letters === r.letters || l.letters === "" || r.letters === "";
         if (lettersOk && slashDigitsOverlap(l.digits, r.digits)) {
-          // Holding 12/1 is not Plot 12-14 just because 12 is in the range.
-          if (isUnitSuffixId(left) && rangeB.has(r.digits)) continue;
-          if (isUnitSuffixId(right) && rangeA.has(l.digits)) continue;
+          if (isUnitSuffixId(left) && blockedParent("a", r.digits)) continue;
+          if (isUnitSuffixId(right) && blockedParent("b", l.digits)) continue;
+          return true;
+        }
+        if (lettersOk && unitParentPair(left, right)) {
+          const parentDigits = isUnitSuffixId(left)
+            ? slashFragments(l.digits)[0]!
+            : l.digits;
+          if (isUnitSuffixId(left) && blockedParent("a", parentDigits)) continue;
+          if (isUnitSuffixId(right) && blockedParent("b", parentDigits)) continue;
+          if (!hasCompanionAlias(a, left) && !hasCompanionAlias(b, right)) continue;
           return true;
         }
         continue;
@@ -1338,6 +1439,9 @@ const LANDMARK_FOLLOWERS = new Set([
   "stadium",
   "mor",
   "chowrasta",
+  "bhaban",
+  "bhawan",
+  "union",
 ]);
 
 function isLandmarkName(tokens: string[], i: number): boolean {
@@ -1353,6 +1457,15 @@ function isStreetName(tokens: string[], i: number): boolean {
 
 function isStreetPhrase(tokens: string[], i: number): boolean {
   if (isStreetName(tokens, i)) return true;
+  const token = tokens[i]!;
+  // A village sitting before "N.K. Link Road" is still the village. Only an
+  // immediate "Sharifpur Road" follower makes the token a street name.
+  if (
+    isLocalityToken(token) &&
+    !(i + 1 < tokens.length && STREET_FOLLOWERS.has(tokens[i + 1]!))
+  ) {
+    return false;
+  }
   // "Nazrul Islam Road": the distinct tokens before the follower are the
   // street name. Stop if a generic or a locality sits in between (that is
   // "Eastern Housing Main Road", where Eastern is the estate).
@@ -1377,7 +1490,7 @@ function isStreetPhrase(tokens: string[], i: number): boolean {
 /** Landmark heads that are buildings or stops, not the village they sit in.
  *  Junctions (Dhour Chowrasta) keep the place name in villageTokens so a
  *  plot at Dhour can still match. */
-const BUILDING_LANDMARK_FOLLOWERS = new Set(["plaza", "stand", "stadium"]);
+const BUILDING_LANDMARK_FOLLOWERS = new Set(["plaza", "stand", "stadium", "bhaban", "bhawan"]);
 
 function isBuildingLandmarkName(tokens: string[], i: number): boolean {
   return i + 1 < tokens.length && BUILDING_LANDMARK_FOLLOWERS.has(tokens[i + 1]!);
@@ -1447,9 +1560,21 @@ const ESTATE_UNION_CANON = [
 ] as const;
 
 function estateUnionAlias(a: string, b: string): boolean {
-  const hit = (t: string) =>
-    ESTATE_UNION_CANON.some((n) => t === n || sameWord(t, n));
-  return hit(a) && hit(b);
+  return ESTATE_UNION_CANON.includes(a as (typeof ESTATE_UNION_CANON)[number]) &&
+    ESTATE_UNION_CANON.includes(b as (typeof ESTATE_UNION_CANON)[number]);
+}
+
+function fatullahBscicEstatePair(a: Candidate, b: Candidate): boolean {
+  if (!a.tokens.includes("bscic") || !b.tokens.includes("bscic")) return false;
+  const aFat = a.tokens.includes("fatullah");
+  const bFat = b.tokens.includes("fatullah");
+  const aEst = a.tokens.some((t) =>
+    ESTATE_UNION_CANON.includes(t as (typeof ESTATE_UNION_CANON)[number]),
+  );
+  const bEst = b.tokens.some((t) =>
+    ESTATE_UNION_CANON.includes(t as (typeof ESTATE_UNION_CANON)[number]),
+  );
+  return (aFat && bEst) || (bFat && aEst);
 }
 
 function twoSidedTailedClash(a: Candidate, b: Candidate): boolean {
@@ -1460,6 +1585,7 @@ function twoSidedTailedClash(a: Candidate, b: Candidate): boolean {
   if (!ta || !tb) return false;
   if (sameWord(ta, tb)) return false;
   if (estateUnionAlias(ta, tb)) return false;
+  if (fatullahBscicEstatePair(a, b)) return false;
   if (tokenInList(ta, vb) || tokenInList(tb, va)) return false;
   const la = firstDistinctPlace(a.tokens);
   const lb = firstDistinctPlace(b.tokens);
@@ -1518,6 +1644,7 @@ const PLACE_TAILS = [
   "danga",
   "chat",
   "diar",
+  "shail",
 ] as const;
 
 function withPlaceStems(token: string): string[] {
@@ -1552,13 +1679,21 @@ function leadingVillageConflict(a: Candidate, b: Candidate): boolean {
   const lb = firstDistinctPlace(b.tokens);
   if (!la || !lb) return false;
   if (sameWord(la, lb)) return false;
+  if (estateUnionAlias(la, lb)) return false;
   const va = villageTokens(a.tokens);
   const vb = villageTokens(b.tokens);
   if (tokenInList(lb, va) || tokenInList(la, vb)) return false;
+  const competingLead =
+    !tokenInList(la, vb) &&
+    !tokenInList(lb, va) &&
+    !estateUnionAlias(la, lb);
   const ta = firstTailedPlace(a.tokens);
   const tb = firstTailedPlace(b.tokens);
-  if (ta && (tokenInList(ta, vb) || (tb && sameWord(ta, tb)))) return false;
-  if (tb && tokenInList(tb, va)) return false;
+  if (ta && (tokenInList(ta, vb) || (tb && sameWord(ta, tb)))) {
+    // Shared later Kashimpur must not clear South Bagber vs Shibrampur.
+    if (!competingLead) return false;
+  }
+  if (tb && tokenInList(tb, va) && !competingLead) return false;
   // A tailed village named on only one side (Nandirhat vs Fatehabad,
   // Jogirchala vs Telirchala) still blocks, even inside the same thana.
   if (ta && !tokenInList(ta, vb)) return true;
@@ -1632,7 +1767,8 @@ function isSameLocation(a: Candidate, b: Candidate): boolean {
       (ta && tb && estateUnionAlias(ta, tb)) ||
         (la && lb && estateUnionAlias(la, lb)) ||
         (ta && lb && estateUnionAlias(ta, lb)) ||
-        (la && tb && estateUnionAlias(la, tb)),
+        (la && tb && estateUnionAlias(la, tb)) ||
+        (overlapN >= 2 && fatullahBscicEstatePair(a, b)),
     );
     const competingPlaces = Boolean(
       la &&
@@ -1665,6 +1801,14 @@ function isSameLocation(a: Candidate, b: Candidate): boolean {
     const vb = villageTokens(b.tokens);
     if (la && lb && sameWord(la, lb)) return true;
     if (la && lb && estateUnionAlias(la, lb)) return true;
+    const competingLead =
+      Boolean(la) &&
+      Boolean(lb) &&
+      !sameWord(la!, lb!) &&
+      !estateUnionAlias(la!, lb!) &&
+      !tokenInList(la!, vb) &&
+      !tokenInList(lb!, va);
+    if (competingLead) return false;
     if (la && tokenInList(la, vb)) return true;
     if (lb && tokenInList(lb, va)) return true;
     const ta = firstTailedPlace(a.tokens);
@@ -1679,7 +1823,7 @@ function isSameLocation(a: Candidate, b: Candidate): boolean {
     // Different admin areas on the same plot numbers stay apart (Uttara vs CEPZ).
     if (overlapN >= 2) {
       if (extraDigitConflict(a, b)) return false;
-      if (leadingMatch || sharedFineAdmin(a, b)) return true;
+      if (leadingMatch || sharedFineAdmin(a, b) || fatullahBscicEstatePair(a, b)) return true;
       const la = firstDistinctPlace(a.tokens);
       const lb = firstDistinctPlace(b.tokens);
       const va = villageTokens(a.tokens);
@@ -1819,29 +1963,66 @@ function mergeLocations<T extends AddressRowRaw>(
   target.source_rows.push(...donor.source_rows);
 }
 
+function isNumericOrFloorAtom(raw: string): boolean {
+  const t = raw.toLowerCase().replace(/[.,;:]+$/g, "").trim();
+  if (!t) return false;
+  if (/^(?:ground|floor|fl|flr|level|lvl|room|rooms|to)$/.test(t)) return true;
+  if (/^\d+[a-z]?$/.test(t)) return true;
+  if (/^\d+(?:st|nd|rd|th)$/.test(t)) return true;
+  return false;
+}
+
+function isNumericAmpersandJoin(left: string, right: string): boolean {
+  const leftToks = left.trim().split(/\s+/).filter(Boolean);
+  const rightToks = right.trim().split(/\s+/).filter(Boolean);
+  if (leftToks.length === 0 || rightToks.length === 0) return false;
+  return (
+    isNumericOrFloorAtom(leftToks[leftToks.length - 1]!) &&
+    isNumericOrFloorAtom(rightToks[0]!)
+  );
+}
+
+function looksLikeCampusPart(part: string): boolean {
+  if (!part.includes(",")) return false;
+  const words = part
+    .toLowerCase()
+    .replace(/[^a-z]+/g, " ")
+    .split(/\s+/)
+    .filter(
+      (w) =>
+        w.length >= 5 &&
+        !["plot", "plots", "holding", "house", "block", "sector", "floor", "bscic", "level"].includes(
+          w,
+        ),
+    );
+  return words.length >= 1;
+}
+
 function isMultiClauseAddress(display: string): boolean {
   const s = display.toLowerCase();
   if (/\baddress\s*1st\b/.test(s) && /\baddress\s*2nd\b/.test(s)) return true;
-  // Two full addresses joined with " & " (Ramarbag … & G-88/1, Chandra …).
-  // Floor lists ("4th & 5th Fl") and plot lists ("MSSFB # 1 & 2",
-  // "Plot A-23, 24, 25 & 26") are not two campuses.
+  if (/\bextended\s+address\b/.test(s)) return true;
+  if (/\bmailing\s+address\s*:/.test(s)) return true;
+  if (/\band\s+extended\b/.test(s)) return true;
+  const unitHits = [/\brotor\s+unit\b/, /\bfabric\s+unit\b/, /\bdyeing\s+unit\b/].filter((re) =>
+    re.test(s),
+  ).length;
+  if (unitHits >= 2) return true;
+  if (/\bdyeing\s+unit\b/.test(s) && /\b(?:germents?|garments?)\s+section\b/.test(s)) return true;
+  // Two full addresses joined with "&" or " AND " (Ramarbag … & G-88/1).
+  // Floor lists ("4th & 5th Fl", "LEVEL # 6 & 7") and plot lists
+  // ("MSSFB # 1 & 2") are not two campuses.
   const { stripped } = extractFloors(display);
-  const ampersandParts = stripped.split(/\s+&\s+/);
+  const ampersandParts = stripped
+    .split(/\s*(?:&|\band\b)\s*/i)
+    .map((part) => part.trim())
+    .filter(Boolean);
   if (ampersandParts.length >= 2) {
-    const looksLikeCampus = (part: string): boolean => {
-      if (!part.includes(",")) return false;
-      const words = part
-        .toLowerCase()
-        .replace(/[^a-z]+/g, " ")
-        .split(/\s+/)
-        .filter(
-          (w) =>
-            w.length >= 5 &&
-            !["plot", "plots", "holding", "house", "block", "sector", "floor", "bscic"].includes(w),
-        );
-      return words.length >= 1;
-    };
-    if (ampersandParts.every(looksLikeCampus)) return true;
+    let numericJoin = false;
+    for (let i = 0; i < ampersandParts.length - 1; i++) {
+      if (isNumericAmpersandJoin(ampersandParts[i]!, ampersandParts[i + 1]!)) numericJoin = true;
+    }
+    if (!numericJoin && ampersandParts.every(looksLikeCampusPart)) return true;
   }
   return false;
 }
@@ -1855,17 +2036,25 @@ function candidateFor(display: string): Candidate {
   };
 }
 
+function isRenumberAliasRow(address: string): boolean {
+  return /\((?:[^)]*\b(?:old|former|present)\b[^)]*)\)/i.test(address);
+}
+
 function sourceRowsHaveConflictingIds<T extends AddressRowRaw>(
   left: readonly T[],
   right: readonly T[],
 ): boolean {
+  const hinges = [...left, ...right].filter((row) => isRenumberAliasRow(row.address));
+  const hingeIds = hinges.map((row) => premisesIdentifiers(row.address));
   for (const ra of left) {
     const ia = premisesIdentifiers(ra.address);
     if (ia.size === 0) continue;
     for (const rb of right) {
       const ib = premisesIdentifiers(rb.address);
       if (ib.size === 0) continue;
-      if (!idSetsOverlap(ia, ib)) return true;
+      if (idSetsOverlap(ia, ib)) continue;
+      const bridged = hingeIds.some((ih) => idSetsOverlap(ia, ih) && idSetsOverlap(ib, ih));
+      if (!bridged) return true;
     }
   }
   return false;

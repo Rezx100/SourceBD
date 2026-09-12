@@ -112,21 +112,24 @@ describe("published multi-string fixture", () => {
     }
   });
 
-  it("never leaves two conflicting-id source rows inside one merged location", () => {
+  it("never leaves an id-bearing source row that does not overlap the location's other ids", () => {
     for (const group of fixture.groups) {
       const merged = mergeUniqueLocations(group.rows);
       for (const loc of merged) {
         const idSets = loc.source_rows.map((r) => premisesIdentifiers(r.address));
         for (let i = 0; i < idSets.length; i++) {
-          for (let j = i + 1; j < idSets.length; j++) {
-            const a = idSets[i]!;
-            const b = idSets[j]!;
-            if (a.size === 0 || b.size === 0) continue;
-            assert.ok(
-              idSetsOverlap(a, b),
-              `${group.slug} ${group.kind} fused ${[...a]} vs ${[...b]} in one location`,
-            );
+          const a = idSets[i]!;
+          if (a.size === 0) continue;
+          const others = new Set<string>();
+          for (let j = 0; j < idSets.length; j++) {
+            if (i === j || idSets[j]!.size === 0) continue;
+            for (const id of idSets[j]!) others.add(id);
           }
+          if (others.size === 0) continue;
+          assert.ok(
+            idSetsOverlap(a, others),
+            `${group.slug} ${group.kind} fused ${[...a]} vs others ${[...others]}`,
+          );
         }
       }
     }
@@ -339,14 +342,110 @@ describe("published multi-string fixture", () => {
     );
     {
       const fame = mergeUniqueLocations(groupOf("fame-apparels", "factory").rows);
-      const locOf = (needle: RegExp) =>
-        fame.findIndex((l) => l.source_rows.some((r) => needle.test(r.address)));
+      const locOf = (needle: RegExp) => {
+        const i = fame.findIndex((l) => l.source_rows.some((r) => needle.test(r.address)));
+        assert.ok(i >= 0, `fame missing ${needle}`);
+        return i;
+      };
       assert.equal(
         locOf(/Shilpanagary/i),
         locOf(/SHASONGAON/),
         "fame B-188 Shilpanagary vs SHASONGAON",
       );
     }
+  });
+
+  it("keeps concatenated campuses apart and same-house floor lists together", () => {
+    const locOf = (
+      slug: string,
+      kind: string,
+      needle: RegExp,
+    ) => {
+      const merged = mergeUniqueLocations(groupOf(slug, kind).rows);
+      const i = merged.findIndex((l) => l.source_rows.some((r) => needle.test(r.address)));
+      assert.ok(i >= 0, `${slug} ${kind} missing ${needle}`);
+      return i;
+    };
+    assert.notEqual(
+      locOf("knit-plus", "factory", /Plot # 2036, Mouchak/),
+      locOf("knit-plus", "factory", /Jaharchanda, Belma, Ashulia, Dhaka/),
+      "knit-plus Mouchak vs Jaharchanda",
+    );
+    assert.notEqual(
+      locOf("salek-textile", "factory", /Shafipur, Kaliakor/),
+      locOf("salek-textile", "factory", /Mahana, Bhabanipur/),
+      "salek Shafipur vs Bhabanipur",
+    );
+    assert.notEqual(
+      locOf("rahman-sports-wear", "factory", /Plot # B-369, 370, 371 BSCIC/),
+      locOf("rahman-sports-wear", "factory", /Purbo Keodhala, Madanpur/),
+      "rahman B-369 vs Purbo Keodhala",
+    );
+    assert.notEqual(
+      locOf("belkuchi-spinning-mills", "mailing", /Dilkusha/),
+      locOf("belkuchi-spinning-mills", "mailing", /Sena Kalyan Bhaban, \(14th floor\)/),
+      "belkuchi Dilkusha vs Motijheel-only",
+    );
+    assert.notEqual(
+      locOf("anowara-fashions", "factory", /35\/A Hajiganj Road/),
+      locOf("anowara-fashions", "factory", /NORTH HAJIGONJ/),
+      "anowara 35/A vs North Hajigonj concat",
+    );
+    assert.equal(
+      locOf("fashion-2000", "factory", /367\/1, Senpara, Parbatta/),
+      locOf("fashion-2000", "factory", /GROUND TO 3RD FLOOR/),
+      "fashion-2000 same house with floor span",
+    );
+    assert.equal(
+      locOf("kss-knit-composite", "mailing", /Mehnaz Mansur Tower, House # 11\/A, Road # 130/),
+      locOf("kss-knit-composite", "mailing", /LEVEL # 6 & 7/),
+      "kss-knit same house with level list",
+    );
+    assert.equal(
+      locOf("samir-spinning-mills", "mailing", /Room # 22/),
+      locOf("samir-spinning-mills", "mailing", /Room No- 22 & 34/),
+      "samir same house with room list",
+    );
+    assert.equal(
+      locOf("lantabur-apparels", "factory", /Holding # 295/),
+      locOf("lantabur-apparels", "factory", /Holding No\. 574\/1, Kewa Boherarchala, Sreepur/),
+      "lantabur 295 sits with 574/1",
+    );
+    assert.notEqual(
+      locOf("lantabur-apparels", "factory", /Holding No\. 574\/1/),
+      locOf("lantabur-apparels", "factory", /Satrapara/),
+      "lantabur Satrapara is not the Kewa holding",
+    );
+    assert.equal(
+      locOf("crony-tex-sweater", "factory", /Block # B, BSCIC I\/E/),
+      locOf("crony-tex-sweater", "factory", /SHASHONGAON/),
+      "crony Fatullah BSCIC vs SHASHONGAON",
+    );
+    assert.equal(
+      locOf("alamode-apparels", "factory", /Kalughat/),
+      locOf("alamode-apparels", "factory", /kalurgaht/),
+      "alamode Kalughat vs kalurgaht",
+    );
+    assert.notEqual(
+      locOf("array-fashion", "factory", /South Bagber/),
+      locOf("array-fashion", "factory", /Shaibrampur/),
+      "array-fashion South Bagber vs Shaibrampur",
+    );
+    assert.equal(
+      locOf("victory-knitting", "factory", /Rajul Plot # 24/),
+      locOf("victory-knitting", "factory", /RAJUK , PLOT-24/),
+      "victory Rajul vs RAJUK",
+    );
+    assert.equal(
+      locOf("doreen-garments", "factory", /Dakkhin Panishail, N\.K\. Link Road/),
+      locOf("doreen-garments", "factory", /Dhakkin Panishail, Kashempur/),
+      "doreen Dhakkin Panishail vs Dakkhin Panishail",
+    );
+    assert.notEqual(
+      locOf("cotton-fair", "factory", /65\/2, NAYAMATI ROAD/),
+      locOf("cotton-fair", "factory", /A-65\/66 BSCIC/),
+      "cotton-fair 65/2 vs A-65/66",
+    );
   });
 
   it("never co-locates a never-same place pair in one location", () => {
