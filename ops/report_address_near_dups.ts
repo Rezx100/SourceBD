@@ -50,11 +50,34 @@ const namedSlugs = [
   "bangladesh-naxis",
   "echoknits",
   "bangladesh-spinners-and-knitters",
+  "alif-manufacturing",
+  "shiplu-textile-and-spinning-mills",
+  "fahad-knit-fashion",
 ];
 const mustStayMulti: Array<{ slug: string; kind: string; minLocations: number }> = [
   { slug: "siji-garments", kind: "factory", minLocations: 2 },
   { slug: "kamal-yarn", kind: "factory", minLocations: 2 },
-  { slug: "blue-bird-fashion", kind: "registered", minLocations: 2 },
+  { slug: "blue-bird-fashion", kind: "registered", minLocations: 3 },
+  { slug: "alif-manufacturing", kind: "factory", minLocations: 2 },
+];
+const mustNotAbsorb: Array<{
+  slug: string;
+  kind: string;
+  campusOnly: RegExp;
+  concat: RegExp;
+}> = [
+  {
+    slug: "blue-bird-fashion",
+    kind: "registered",
+    campusOnly: /House # 62 \(1st Floor\), Road # 3, Block-B, Niketon/,
+    concat: /87, New Eskaton/,
+  },
+  {
+    slug: "kamal-yarn",
+    kind: "factory",
+    campusOnly: /P\.S: Valuka/,
+    concat: /Meherbari/,
+  },
 ];
 const mustMergeToOne: Array<{ slug: string; kind: string }> = [
   { slug: "habitus-fashion", kind: "factory" },
@@ -67,6 +90,9 @@ const mustMergeToOne: Array<{ slug: string; kind: string }> = [
   { slug: "bangladesh-naxis", kind: "registered" },
   { slug: "echoknits", kind: "factory" },
   { slug: "bangladesh-spinners-and-knitters", kind: "factory" },
+  { slug: "shiplu-textile-and-spinning-mills", kind: "factory" },
+  { slug: "shiplu-textile-and-spinning-mills", kind: "mailing" },
+  { slug: "fahad-knit-fashion", kind: "factory" },
 ];
 const stillSplit: Array<{
   slug: string;
@@ -136,6 +162,25 @@ const underMergeHits = mustMergeToOne.flatMap((watch) => {
   }
   return [];
 });
+const absorptionHits = mustNotAbsorb.flatMap((watch) => {
+  const group = fixture.groups.find((g) => g.slug === watch.slug && g.kind === watch.kind);
+  if (!group) return [{ ...watch, reason: "missing-from-fixture" }];
+  const merged = mergeUniqueLocations(group.rows);
+  const campusLoc = merged.find((loc) =>
+    loc.source_rows.some((r) => watch.campusOnly.test(r.address)),
+  );
+  const concatLoc = merged.find((loc) =>
+    loc.source_rows.some((r) => watch.concat.test(r.address)),
+  );
+  if (!campusLoc || !concatLoc) {
+    return [{ slug: watch.slug, kind: watch.kind, reason: "missing-row" }];
+  }
+  if (campusLoc === concatLoc) {
+    return [{ slug: watch.slug, kind: watch.kind, reason: "campus-inside-concat" }];
+  }
+  return [];
+});
+const namedOverMerges = overMergeHits.length + absorptionHits.length;
 const lines = [
   "# Address near-dup report",
   "",
@@ -144,7 +189,7 @@ const lines = [
   `Matcher merged to 1 location: **${mergedToOne}** (was 1,622 on the previous matcher)`,
   `Groups still showing 2+ locations: **${stillMulti}** (was 1,652)`,
   `Conflicting-plot merges (must be 0): **${conflictingIdMerges}**`,
-  `Named over-merges (must be 0): **${overMergeHits.length}**`,
+  `Named over-merges (must be 0): **${namedOverMerges}**`,
   `Named under-merges (must be 0): **${underMergeHits.length}**`,
   "",
   "Named suppliers:",
@@ -174,6 +219,7 @@ writeFileSync(
       stillMulti,
       conflictingIdMerges,
       overMergeHits,
+      absorptionHits,
       underMergeHits,
       named,
       stillSplit,
@@ -190,6 +236,7 @@ console.log(
       stillMulti,
       conflictingIdMerges,
       overMergeHits,
+      absorptionHits,
       underMergeHits,
       named,
     },

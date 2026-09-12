@@ -197,6 +197,9 @@ describe("published multi-string fixture", () => {
       ["bangladesh-naxis", "registered"],
       ["echoknits", "factory"],
       ["bangladesh-spinners-and-knitters", "factory"],
+      ["shiplu-textile-and-spinning-mills", "factory"],
+      ["shiplu-textile-and-spinning-mills", "mailing"],
+      ["fahad-knit-fashion", "factory"],
     ];
     for (const [slug, kind] of expectOne) {
       const n = mergeUniqueLocations(groupOf(slug, kind).rows).length;
@@ -678,10 +681,30 @@ describe("published multi-string fixture", () => {
     );
 
     const blueBird = once("blue-bird-fashion", "registered");
+    assert.equal(blueBird.length, 3, `blue-bird-fashion registered still ${blueBird.length}`);
     assert.notEqual(
       locOf(blueBird, /House # 62 \(1st Floor\), Road # 3, Block-B, Niketon/, "blue-bird 62-only"),
       locOf(blueBird, /House # 82/, "blue-bird 82 concat"),
       "blue-bird House 62-only vs House 82 concat",
+    );
+    assert.notEqual(
+      locOf(blueBird, /House # 62 \(1st Floor\), Road # 3, Block-B, Niketon/, "blue-bird 62-only eskaton"),
+      locOf(blueBird, /87, New Eskaton/, "blue-bird eskaton concat"),
+      "blue-bird House 62-only vs 87 Eskaton concat",
+    );
+    assert.ok(
+      !blueBird[locOf(blueBird, /87, New Eskaton/, "blue-bird eskaton src")]!.source_rows.some((r) =>
+        /House # 62 \(1st Floor\), Road # 3, Block-B, Niketon/.test(r.address),
+      ),
+      "blue-bird campus-only source row must not sit in the Eskaton concat location",
+    );
+
+    const alif = once("alif-manufacturing", "factory");
+    assert.equal(alif.length, 2, `alif-manufacturing factory still ${alif.length}`);
+    assert.notEqual(
+      locOf(alif, /Bora Dharmapur, Lalmai/, "alif comilla"),
+      locOf(alif, /Kaicha Bari, Ashulia/, "alif ashulia"),
+      "alif Comilla vs Ashulia",
     );
   });
 

@@ -306,6 +306,29 @@ const ADMIN_TOKENS = new Set([
   "nishatnagar",
 ]);
 
+/** Pallabi is the thana inside Mirpur. Same house at those two labels is
+ *  one premises; Uttara vs Mirpur is not. */
+const NESTED_ADMIN: ReadonlyArray<readonly [string, string]> = [["pallabi", "mirpur"]];
+
+function nestedAdminCompatible(a: { tokens: string[] }, b: { tokens: string[] }): boolean {
+  const aa = a.tokens.filter((t) => ADMIN_TOKENS.has(t));
+  const bb = b.tokens.filter((t) => ADMIN_TOKENS.has(t));
+  for (const [x, y] of NESTED_ADMIN) {
+    const aHas = aa.includes(x) || aa.includes(y);
+    const bHas = bb.includes(x) || bb.includes(y);
+    if (!aHas || !bHas) continue;
+    if (
+      (aa.includes(x) && bb.includes(y)) ||
+      (aa.includes(y) && bb.includes(x)) ||
+      (aa.includes(x) && bb.includes(x)) ||
+      (aa.includes(y) && bb.includes(y))
+    ) {
+      return true;
+    }
+  }
+  return false;
+}
+
 /** District / division / country plus labels that appear on thousands of
  *  rows. Sharing one of these cannot override a village clash. Thana-level
  *  admin (Pahartali, Mirpur, Savar) can: it is the containing area when one
@@ -684,6 +707,14 @@ function sameWord(a: string, b: string): boolean {
   }
   if (/^\d+$/.test(a) && /^\d+$/.test(b)) return Number(a) === Number(b);
   if (/\d/.test(a) || /\d/.test(b)) return false;
+  // "bari"/"para" as their own token are house suffixes, not villages.
+  // sameWord("bora","bari") would otherwise clear Comilla vs Ashulia.
+  if (
+    (PLACE_TAILS as readonly string[]).includes(a) ||
+    (PLACE_TAILS as readonly string[]).includes(b)
+  ) {
+    return false;
+  }
   const sound = bengaliSoundKey(a);
   const soundB = bengaliSoundKey(b);
   if (sound === soundB) {
@@ -718,6 +749,12 @@ function sameWord(a: string, b: string): boolean {
     ) {
       return true;
     }
+    // MALANCHANAGAR / Malanacho Nagar: compare the nagar-stripped stems.
+    const nagarStem = (w: string) =>
+      w.endsWith("nagar") && w.length > 8 ? w.slice(0, -5) : w;
+    const na = nagarStem(a);
+    const nb = nagarStem(b);
+    if (na !== a || nb !== b) return sameWord(na, nb);
     // Interior sound-key edit: transposition/substitution at length ≥5
     // (kamiz/kamis, Borkan/Bokran); insert/delete at length ≥7 (Barenda/
     // Barendra, Jamidia/Jamirdia) so Mirpur (6) cannot fuse with Mirzapur.
@@ -1113,6 +1150,12 @@ export function premisesIdentifiers(cleanedAddress: string): Set<string> {
       ids.add(`${m[1]!.toUpperCase()}${Number(m[2])}`);
     }
   }
+  // "87, New Eskaton Road" is a second holding, not just House 62's street.
+  for (const m of withoutRenumber.matchAll(
+    /(?:^|,\s*)(\d{1,4})\s*,\s*(?:new\s+)?[A-Za-z][^,]{0,40}?\s+Road\b/gi,
+  )) {
+    ids.add(String(Number(m[1]!)));
+  }
   return ids;
 }
 
@@ -1349,6 +1392,17 @@ function extraDigitConflict(a: Candidate, b: Candidate): boolean {
   return onlyA.length > 0 && onlyB.length > 0;
 }
 
+/** Two concatenations that share one house but name different second
+ *  holdings (House 62+87 Eskaton vs House 62+82 Niketon). Avenue or
+ *  Mirpur-12 leftovers are not holdings — those stay extraDigitConflict. */
+function extraHoldingConflict(a: Candidate, b: Candidate): boolean {
+  if (a.ids.size === 0 || b.ids.size === 0) return false;
+  const aOnly = [...a.ids].filter((id) => !idSetsOverlap(new Set([id]), b.ids));
+  const bOnly = [...b.ids].filter((id) => !idSetsOverlap(new Set([id]), a.ids));
+  const digitExtra = (ids: string[]) => ids.filter((id) => /^\d+$/.test(id));
+  return digitExtra(aOnly).length > 0 && digitExtra(bOnly).length > 0;
+}
+
 function adminCompatible(a: Candidate, b: Candidate): boolean {
   const aa = a.tokens.filter((t) => ADMIN_TOKENS.has(t));
   const bb = b.tokens.filter((t) => ADMIN_TOKENS.has(t));
@@ -1505,6 +1559,8 @@ function isStreetPhrase(tokens: string[], i: number): boolean {
         // name. Nazrul Islam Road has only letters in between.
         if (/\d/.test(mid)) return false;
         if (isLocalityToken(mid)) return false;
+        // Comma-stripped "Malanacho Nagar, Road 03" is not "Malanacho Nagar Road".
+        if ((PLACE_TAILS as readonly string[]).includes(mid)) return false;
         if (tokenWeight(mid) !== DISTINCT_WEIGHT) return false;
       }
       return true;
@@ -1659,6 +1715,13 @@ const NOT_A_PLACE = new Set([
   "fax",
 ]);
 
+/** Thanas that follow a mouza in "Kewa, Sreepur, Gazipur". Not ADMIN_TOKENS:
+ *  putting Sreepur there would also treat it as a shared district. */
+function isLeadingThanaToken(token: string): boolean {
+  if (ADMIN_TOKENS.has(token)) return true;
+  return token === "sreepur" || token === "sripur";
+}
+
 function firstDistinctPlace(tokens: string[]): string | null {
   let fallback: string | null = null;
   for (let i = 0; i < tokens.length; i++) {
@@ -1671,22 +1734,34 @@ function firstDistinctPlace(tokens: string[]): string | null {
     if (NOT_A_PLACE.has(token)) continue;
     // Four-letter mouza names (Kewa Mouja, Kewa, Sreepur, Mouza Kewa).
     // Shee-101 stays skipped: next is a digit, not a place.
+    // "Bora Dharmapur" skips Bora: Dharmapur is the village, not a thana.
     if (token.length < 5) {
       const next = tokens[i + 1];
       const prev = i > 0 ? tokens[i - 1] : undefined;
       const mouzaNext = next === "mouza" || next === "mouja";
       const mouzaPrev = prev === "mouza" || prev === "mouja";
+      const nextIsThana = Boolean(next && isLeadingThanaToken(next));
       const nextIsPlace = Boolean(
         next &&
           !/\d/.test(next) &&
           (isLocalityToken(next) || ADMIN_TOKENS.has(next)),
       );
+      const nextIsLocality = Boolean(next && isLocalityToken(next));
       if (!mouzaNext && !mouzaPrev && !nextIsPlace) continue;
+      if (!mouzaNext && !mouzaPrev && !nextIsThana && nextIsLocality) continue;
     }
     if (!fallback) fallback = token;
     if (isLocalityToken(token)) {
       // Untailed villages (Vogra, Mouna, Dhanua, Kewa) win over a later thana.
-      if (fallback && fallback !== token && !isLocalityToken(fallback)) return fallback;
+      // Four-letter Bora must not beat Dharmapur.
+      if (
+        fallback &&
+        fallback !== token &&
+        !isLocalityToken(fallback) &&
+        (fallback.length >= 5 || isLeadingThanaToken(token))
+      ) {
+        return fallback;
+      }
       return token;
     }
   }
@@ -1816,7 +1891,13 @@ function competingAdminDistricts(a: Candidate, b: Candidate): boolean {
 function sharedFineAdmin(a: Candidate, b: Candidate): boolean {
   for (const t of a.tokens) {
     if (!ADMIN_TOKENS.has(t) || COARSE_ADMIN.has(t)) continue;
-    if (b.tokens.some((u) => sameWord(t, u))) return true;
+    if (
+      b.tokens.some(
+        (u) => ADMIN_TOKENS.has(u) && !COARSE_ADMIN.has(u) && sameWord(t, u),
+      )
+    ) {
+      return true;
+    }
   }
   return false;
 }
@@ -1845,11 +1926,10 @@ function isSameLocation(a: Candidate, b: Candidate): boolean {
 
   // Same named plaza/stand is the premises only inside the same fine
   // admin area (Sreepur Stand at Ganakbari). Sharing "Dhaka" is not
-  // enough (Uttara vs Mirpur plaza; Gazipur vs Ashulia).
+  // enough (Uttara vs Mirpur plaza; Gazipur vs Ashulia). Pallabi vs
+  // Mirpur-12 is the same thana under two labels, not a global ids gate.
   if (sameBuildingLandmark(a, b)) {
-    if (sharedFineAdmin(a, b)) return true;
-    // Sujat Plaza house 2 at Mirpur-12 vs Pallabi: nested thanas, same house.
-    if (idsOverlap) return true;
+    if (sharedFineAdmin(a, b) || nestedAdminCompatible(a, b)) return true;
     if (competingAdminDistricts(a, b)) return false;
   }
 
@@ -1946,8 +2026,13 @@ function isSameLocation(a: Candidate, b: Candidate): boolean {
     }
     // overlapN == 1: a shared holding is identity. Do not require matching
     // thana tokens first — F-14 Pallabi vs Plot 14 Mirpur, Peace Preenon.
+    // Competing thanas that are not nested (Uttara vs Mirpur Anwar Tower)
+    // still stay apart.
+    if (competingAdminDistricts(a, b) && !nestedAdminCompatible(a, b) && !sharedFineAdmin(a, b)) {
+      return false;
+    }
+    if (extraHoldingConflict(a, b)) return false;
     if (leadingMatch) return true;
-    if (extraDigitConflict(a, b)) return false;
     if (!adminCompatible(a, b)) return false;
     // Zone-6 + Mirsarai under two official estate names: the zone id and a
     // matching place word are enough; the estate title need not match.
@@ -2094,13 +2179,17 @@ function looksLikeCampusPart(part: string): boolean {
     .filter(
       (w) =>
         w.length >= 5 &&
-        !["plot", "plots", "holding", "house", "block", "sector", "floor", "bscic", "level"].includes(
+        !["plot", "plots", "holding", "house", "block", "sector", "floor", "bscic", "level", "office", "factory", "factories", "mailing"].includes(
           w,
         ),
     );
-  if (part.includes(",")) return words.length >= 1;
+  if (part.includes(",")) {
+    if (words.length >= 1) return true;
+    // "G-88/1, BSCIC" after the repeated thana was dropped.
+    return /\d/.test(part);
+  }
   // After clean drops a repeated thana, the second campus may be one village
-  // ("Meherbari"). Floor atoms are already stripped.
+  // ("Meherbari"). Floor atoms are already stripped. "Office" is not a campus.
   return words.length === 1 && words[0]!.length >= 6;
 }
 
@@ -2121,7 +2210,10 @@ function isMultiClauseAddress(display: string): boolean {
   const houseNums = [...s.matchAll(/\bhouse\s*(?:#|no\.?|number)?\s*(\d+)\b/g)].map(
     (m) => m[1]!,
   );
-  if (new Set(houseNums).size >= 2) return true;
+  const roadHoldings = [...s.matchAll(/(?:^|,\s*)(\d+)\s*,\s*(?:new\s+)?[a-z][^,]{0,40}?\s+road\b/g)].map(
+    (m) => m[1]!,
+  );
+  if (new Set([...houseNums, ...roadHoldings]).size >= 2) return true;
   // Two full addresses joined with "&" or " AND " (Ramarbag … & G-88/1).
   // Floor lists ("4th & 5th Fl", "LEVEL # 6 & 7") and plot lists
   // ("MSSFB # 1 & 2") are not two campuses.

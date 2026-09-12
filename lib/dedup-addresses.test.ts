@@ -2225,6 +2225,33 @@ describe("mergeUniqueLocations — empty rows, duplicates, overview buckets", ()
       ]).length,
       2,
     );
+    assert.equal(
+      displays([
+        row("House # 62 (1st Floor), Road # 3, Block-B, Niketon, Gulshan, Dhaka"),
+        row(
+          "Bodystretch Bangladesh, House # 62, Road # 3, Block-B, Niketon, 87, New Eskaton Road, Gulshan-1, Dhaka, New Eskaton, Dhaka",
+        ),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row(
+          "Bodystretch Bangladesh, House # 62, Road # 3, Block-B, Niketon, 87, New Eskaton Road, Gulshan-1, Dhaka, New Eskaton, Dhaka",
+        ),
+        row(
+          "Bodywears International, House # 62, Road # 3, Block B, Niketon, House # 82 (1st Floor), Gulshan-1, Dhaka",
+        ),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("Ramarbag, Fatullah & G-88/1, BSCIC, Fatullah"),
+        row("Ramarbag, Fatullah"),
+      ]).length,
+      2,
+    );
   });
 
   it("merges hyphenated floor lists with the same house", () => {
@@ -2310,6 +2337,88 @@ describe("mergeUniqueLocations — empty rows, duplicates, overview buckets", ()
         row("Jamirdia, Habirbari, P.S: Valuka, Mymensingh - 2240, Bangladesh"),
       ]).length,
       2,
+    );
+  });
+
+  it("does not fuse Bora Dharmapur in Comilla with Kaicha Bari in Ashulia", () => {
+    assert.equal(
+      displays([
+        row("Bora Dharmapur, Lalmai, Kotwali, Comilla."),
+        row("Kaicha Bari, Ashulia, Dhaka."),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("Bora, Sreepur, Gazipur"),
+        row("Master Bari, Sreepur, Gazipur"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("does not merge the same house at a plaza in Uttara with Mirpur or Gazipur with Ashulia", () => {
+    assert.equal(
+      displays([
+        row("2, City Plaza, Uttara, Dhaka"),
+        row("2, City Plaza, Mirpur, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("2, Shamser Plaza, Gazipur"),
+        row("2, Shamser Plaza, Ashulia"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("2, Sreepur Stand, Gazipur"),
+        row("2, Sreepur Stand, Ashulia"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("2, Sujat Plaza, Mirpur-12, Dhaka"),
+        row("2, Sujat Plaza, Uttara, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("Anwar Tower, House 12, Uttara, Dhaka"),
+        row("Anwar Tower, House 12, Mirpur, Dhaka"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("merges Office and Factory wording with the same village spelling", () => {
+    assert.equal(
+      displays([
+        row("Office & Factory: Kotwalirchar, Madhabdi, Narsingdi."),
+        row("Kotwalirchar, Madhabdi, Norshindi."),
+      ]).length,
+      1,
+    );
+    assert.equal(
+      displays([
+        row("Office & Factory: Vogra, Gazipur"),
+        row("Vogra, Gazipur"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges Malanchanagar with Malanacho Nagar on the same road", () => {
+    assert.equal(
+      displays([
+        row("MALANCHANAGAR, ROAD NO-03, POLICE LINE, TAGARPAR, FATULLAH"),
+        row("Malanacho Nagar, Road # 03, West Esdair, Tagarpar"),
+      ]).length,
+      1,
     );
   });
 });
