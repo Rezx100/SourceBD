@@ -1124,7 +1124,7 @@ export function premisesIdentifiers(cleanedAddress: string): Set<string> {
       // "60 (OLD)" — drop it so the shared 60 still matches. A labelled
       // "Plot-6 ( New)" is the plot itself and must stay (Bilquis Tower).
       .replace(
-        /(?<!(?:plot|plots|holding|house|unit)[\s#.:-]*)\b\d+\s*\(\s*new\s*\)/gi,
+        /(?<!(?:plot|plots|holding|house|unit)(?:[\s#.:-]*(?:no\.?|number|#|:))*[\s#.:-]*)\b\d+\s*\(\s*new\s*\)/gi,
         " ",
       )
       .replace(/\(\s*(?:old|new)\s*\)/gi, " ")
@@ -1455,66 +1455,6 @@ function extraHoldingConflict(a: Candidate, b: Candidate): boolean {
   return digitExtra(aOnly).length > 0 && digitExtra(bOnly).length > 0;
 }
 
-/** House 62-only vs House 62+87 Eskaton; Plot 27+Holding 1 vs House 1. */
-function oneSidedExtraDigitHolding(a: Candidate, b: Candidate): boolean {
-  if (a.ids.size === 0 || b.ids.size === 0) return false;
-  const aOnly = [...a.ids].filter((id) => !idSetsOverlap(new Set([id]), b.ids));
-  const bOnly = [...b.ids].filter((id) => !idSetsOverlap(new Set([id]), a.ids));
-  const digitExtra = (ids: string[]) => ids.filter((id) => /^\d+$/.test(id));
-  const aD = digitExtra(aOnly).length;
-  const bD = digitExtra(bOnly).length;
-  return (aD > 0) !== (bD > 0);
-}
-
-function extraBareDigits(a: Candidate, b: Candidate): number[] {
-  const aOnly = [...a.ids].filter((id) => !idSetsOverlap(new Set([id]), b.ids));
-  const bOnly = [...b.ids].filter((id) => !idSetsOverlap(new Set([id]), a.ids));
-  return [...aOnly, ...bOnly].filter((id) => /^\d+$/.test(id)).map(Number);
-}
-
-/** Plot 10 & 14 vs Plot 14: every extra digit is a neighbour of an overlap. */
-const NEIGHBOUR_PLOT_GAP = 10;
-
-function neighbourPlotExtras(a: Candidate, b: Candidate): boolean {
-  const extras = extraBareDigits(a, b);
-  if (extras.length === 0) return false;
-  const overlapDigits: number[] = [];
-  for (const id of a.ids) {
-    if (!idSetsOverlap(new Set([id]), b.ids)) continue;
-    for (const d of id.match(/\d+/g) ?? []) overlapDigits.push(Number(d));
-  }
-  if (overlapDigits.length === 0) return false;
-  return extras.every((e) => overlapDigits.some((o) => Math.abs(e - o) <= NEIGHBOUR_PLOT_GAP));
-}
-
-function overlapBareDigits(a: Candidate, b: Candidate): number[] {
-  const out: number[] = [];
-  for (const id of a.ids) {
-    if (!idSetsOverlap(new Set([id]), b.ids)) continue;
-    for (const d of id.match(/\d+/g) ?? []) out.push(Number(d));
-  }
-  return out;
-}
-
-/** Plot 27 leftover on House 1, not House 6 added onto Plot 389. */
-function farLargerExtras(a: Candidate, b: Candidate): boolean {
-  const extras = extraBareDigits(a, b);
-  const overlap = overlapBareDigits(a, b);
-  if (extras.length === 0 || overlap.length === 0) return false;
-  return extras.some((e) => overlap.every((o) => e - o > NEIGHBOUR_PLOT_GAP));
-}
-
-/** SSFB-3, M-5, M-16: a lettered overlap is the campus pin, not House 1. */
-function letteredIdOverlap(a: Candidate, b: Candidate): boolean {
-  for (const left of a.ids) {
-    for (const right of b.ids) {
-      if (!idSetsOverlap(new Set([left]), new Set([right]))) continue;
-      if (/[a-z]/i.test(left) || /[a-z]/i.test(right)) return true;
-    }
-  }
-  return false;
-}
-
 function renumberAliasHint(a: Candidate, b: Candidate): boolean {
   const hint = (tokens: string[]) =>
     tokens.some((t) => t === "former" || t === "formerly" || t === "previously");
@@ -1553,9 +1493,34 @@ function adminCompatible(a: Candidate, b: Candidate): boolean {
 type Candidate = {
   tokens: string[];
   ids: Set<string>;
+  plotIds: Set<string>;
+  houseIds: Set<string>;
+  holdingIds: Set<string>;
   multiClause: boolean;
   twoCampus: boolean;
 };
+
+function campusHouseIds(c: Candidate): Set<string> {
+  return new Set([...c.houseIds, ...c.holdingIds]);
+}
+
+/** Plot 27 + Holding 1 is not House 1. Plot 10 & 14 vs Plot 14 is not this.
+ *  Holding 137 + Plot 1977 vs Holding 137 + Dag 1977 is the same premises:
+ *  the Dag row is holding-only, not a House-on-Road listing. */
+function leftoverPlotOnHouseOnly(a: Candidate, b: Candidate): boolean {
+  const plotCampus = (c: Candidate) => c.plotIds.size > 0 && campusHouseIds(c).size > 0;
+  const houseOnly = (c: Candidate) =>
+    c.houseIds.size > 0 && c.plotIds.size === 0 && c.holdingIds.size === 0;
+  const houseOverlap = (plotSide: Candidate, houseSide: Candidate) =>
+    [...campusHouseIds(plotSide)].some((id) =>
+      idSetsOverlap(new Set([id]), houseSide.houseIds),
+    );
+  const leftoverPlot = (plotSide: Candidate, houseSide: Candidate) =>
+    [...plotSide.plotIds].some((id) => !idSetsOverlap(new Set([id]), houseSide.ids));
+  if (plotCampus(a) && houseOnly(b) && houseOverlap(a, b) && leftoverPlot(a, b)) return true;
+  if (plotCampus(b) && houseOnly(a) && houseOverlap(b, a) && leftoverPlot(b, a)) return true;
+  return false;
+}
 
 function concatTokens(tokens: string[], start: number, count: number): string {
   let out = "";
@@ -2186,17 +2151,10 @@ function isSameLocation(a: Candidate, b: Candidate): boolean {
       return false;
     }
     if (extraHoldingConflict(a, b)) return false;
-    // Plot 27 leftover on House 1 is a second premises. House 6 on Plot 389
-    // is extra detail. Neighbour plot lists and former-number aliases stay one
-    // campus. nestedAdmin is true for both-Mirpur, so it must not be the gate.
-    if (
-      oneSidedExtraDigitHolding(a, b) &&
-      !letteredIdOverlap(a, b) &&
-      !renumberAliasHint(a, b) &&
-      !neighbourPlotExtras(a, b) &&
-      !leadingMatch &&
-      farLargerExtras(a, b)
-    ) {
+    // Plot+Holding vs House-only is two premises even when the leftover plot
+    // sits close to the house number or they share Niketon/Banani.
+    // Neighbour plot lists and House 6 on Plot 389 are not this shape.
+    if (leftoverPlotOnHouseOnly(a, b) && !renumberAliasHint(a, b)) {
       return false;
     }
     if (leadingMatch) return true;
@@ -2411,7 +2369,7 @@ function hasTwoHoldings(display: string): boolean {
     // "87 Eskaton" / "74 East Kazipara" without "Road". Dhour/Diyabari
     // leftovers must not count as a second campus.
     ...s.matchAll(
-      /(?:^|,\s*)(\d{1,3})\s+(?:(?:new|east|west|inner)\s+)?(?:[a-z]{3,}\s+)*(?:[a-z]*para|avenue|eskaton)\b/g,
+      /(?:^|,\s*|(?<=[a-z])\s+)(\d{1,3})\s+(?:(?:new|east|west|inner)\s+)?(?:[a-z]{3,}\s+)*(?:[a-z]*para|avenue|eskaton|banani|mohakhali|farmgate|motijheel|dilu|kakrail|dhanmondi)\b/g,
     ),
   ].map((m) => m[1]!);
   return new Set([...houseNums, ...roadHoldings]).size >= 2;
@@ -2421,12 +2379,39 @@ function isMultiClauseAddress(display: string): boolean {
   return hasTwoCampusWording(display) || hasTwoHoldings(display);
 }
 
+function labelledRoleIds(cleanedAddress: string): {
+  plotIds: Set<string>;
+  houseIds: Set<string>;
+  holdingIds: Set<string>;
+} {
+  const plotIds = new Set<string>();
+  const houseIds = new Set<string>();
+  const holdingIds = new Set<string>();
+  const { stripped } = extractFloors(cleanedAddress);
+  for (const segment of stripped.split(",")) {
+    const trimmed = collapsePlotInitials(segment.trim());
+    if (!trimmed) continue;
+    const labelled = LABELLED_ID_RE.exec(trimmed);
+    if (!labelled) continue;
+    const body = trimmed.slice(labelled.index + labelled[0].length).trim();
+    if (!body) continue;
+    const label = labelled[0]!;
+    const bucket = /plot/i.test(label) ? plotIds : /hold/i.test(label) ? holdingIds : houseIds;
+    collectIdPieces(body, bucket);
+  }
+  return { plotIds, houseIds, holdingIds };
+}
+
 function candidateFor(display: string): Candidate {
   const { stripped } = extractFloors(display);
   const twoCampus = hasTwoCampusWording(display);
+  const roles = labelledRoleIds(stripped);
   return {
     tokens: tokens(normaliseAddressKey(stripped)),
     ids: premisesIdentifiers(stripped),
+    plotIds: roles.plotIds,
+    houseIds: roles.houseIds,
+    holdingIds: roles.holdingIds,
     multiClause: twoCampus || hasTwoHoldings(display),
     twoCampus,
   };

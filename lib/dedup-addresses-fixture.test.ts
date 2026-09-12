@@ -813,6 +813,16 @@ describe("published multi-string fixture", () => {
       2,
       "incredible-fashions registered Moyeen Center vs Bilquis Tower",
     );
+    assert.equal(
+      mergeUniqueLocations(groupOf("rahimaaziz-knitspin", "mailing").rows).length,
+      1,
+      "rahimaaziz-knitspin mailing 60 OLD / 86 NEW",
+    );
+    assert.equal(
+      mergeUniqueLocations(groupOf("nilorn-bangladesh", "factory").rows).length,
+      1,
+      "nilorn-bangladesh factory Holding 137/1 Plot vs Dag 1977-1978",
+    );
     const universal = once("universal-trims", "factory");
     assert.equal(
       locOf(universal, /Plot No # 14/, "universal plot 14"),

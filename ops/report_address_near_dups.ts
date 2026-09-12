@@ -70,6 +70,8 @@ const namedSlugs = [
   "expert-global-trims",
   "universal-trims",
   "incredible-fashions",
+  "rahimaaziz-knitspin",
+  "nilorn-bangladesh",
 ];
 const mustStayMulti: Array<{ slug: string; kind: string; minLocations: number }> = [
   { slug: "siji-garments", kind: "factory", minLocations: 2 },
@@ -84,6 +86,7 @@ const mustStayMulti: Array<{ slug: string; kind: string; minLocations: number }>
   { slug: "virtual-knitwear", kind: "mailing", minLocations: 2 },
   { slug: "db-trims", kind: "factory", minLocations: 2 },
   { slug: "incredible-fashions", kind: "registered", minLocations: 2 },
+  { slug: "universal-trims", kind: "factory", minLocations: 2 },
 ];
 const mustNotAbsorb: Array<{
   slug: string;
@@ -152,6 +155,9 @@ const mustMergeToOne: Array<{ slug: string; kind: string }> = [
   { slug: "crony-tex-sweater", kind: "mailing" },
   { slug: "lodestar-fashions", kind: "factory" },
   { slug: "expert-global-trims", kind: "factory" },
+  { slug: "rahimaaziz-knitspin", kind: "mailing" },
+  { slug: "nilorn-bangladesh", kind: "factory" },
+  { slug: "the-delta-accessories", kind: "registered" },
 ];
 const mustCoLocate: Array<{ slug: string; kind: string; left: RegExp; right: RegExp }> = [
   {

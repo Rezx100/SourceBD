@@ -768,6 +768,49 @@
           ]
         }
       ]
+    },
+    {
+      "slug": "rahimaaziz-knitspin",
+      "groups": [
+        {
+          "kind": "factory",
+          "strings": 3,
+          "locations": 1,
+          "display": [
+            "60, B.B. Road, Enayet Nagor, Narayanganj, Futullah"
+          ],
+          "variantCount": [
+            2
+          ]
+        },
+        {
+          "kind": "mailing",
+          "strings": 2,
+          "locations": 1,
+          "display": [
+            "60, B.B. Road, Enayet Nagor, Narayanganj"
+          ],
+          "variantCount": [
+            1
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "nilorn-bangladesh",
+      "groups": [
+        {
+          "kind": "factory",
+          "strings": 2,
+          "locations": 1,
+          "display": [
+            "Holding No. 137/1, Plot No. 1977-1978, Ford Nagar, Dhalla Bazar, Singair, Manikganj - 1820, Bangladesh"
+          ],
+          "variantCount": [
+            1
+          ]
+        }
+      ]
     }
   ],
   "stillSplit": [

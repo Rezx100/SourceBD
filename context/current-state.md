@@ -15,7 +15,9 @@ rows, **9,921** suppliers, **3,274** multi-string groups by kind. Current
 matcher had merged 1,622 of those to one row and still split 1,652 (Habitus
 Fashion factory 3 rows, Fakhruddin Textile Mills factory 3 rows). New matcher
 merges **2,078** to one row and still splits **1,196** (0 conflicting-plot pair
-merges; 0 named over-merges). Pills + fixture regression + HTTP cases for those two companies. No raw
+merges; 0 named over-merges). Leftover-plot split is Plot+Holding vs House-only
+(Plot 8/10/11 vs House 1 stay two; neighbour plot lists and House 6 on Plot 389
+stay one). Pills + fixture regression + HTTP cases for those two companies. No raw
 string, geocode-key, Python ETL or schema change. See
 `ops/plans/address-dedup-baseline.md`.
 

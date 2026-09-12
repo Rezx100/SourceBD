@@ -2257,7 +2257,28 @@ describe("mergeUniqueLocations — empty rows, duplicates, overview buckets", ()
     assert.equal(
       displays([
         row("House # 62 (1st Floor), Road # 3, Block-B, Niketon, Gulshan, Dhaka"),
-        row("House # 62, Road # 3, Block-B, Niketon, 87 Eskaton, Gulshan-1, Dhaka"),
+        row("House # 62, Road # 3, Block-B, Niketon, 87 Banani, Gulshan-1, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62 (1st Floor), Road # 3, Block-B, Niketon, Gulshan, Dhaka"),
+        row("House # 62, Road # 3, Block-B, Niketon, 87 Mohakhali, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62 (1st Floor), Road # 3, Block-B, Niketon, Gulshan, Dhaka"),
+        row("House # 62, Road # 3, Block-B, Niketon, 87 Farmgate, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62 (1st Floor), Road # 3, Block-B, Niketon, Gulshan, Dhaka"),
+        row("House # 62, Road # 3, Block-B, Niketon 87 Eskaton, Gulshan-1, Dhaka"),
       ]).length,
       2,
     );
@@ -2661,6 +2682,8 @@ describe("mergeUniqueLocations — empty rows, duplicates, overview buckets", ()
       "Bilquis Tower (4th Floor), Plot-6 ( New), Gulshan-02 Circle, Dhaka-1212",
     );
     assert.equal(bilquis.has("6"), true);
+    assert.equal(premisesIdentifiers("Plot No. 6 (New), Gulshan").has("6"), true);
+    assert.equal(premisesIdentifiers("Plot No 6 (New), Gulshan").has("6"), true);
     assert.equal(
       displays([
         row("Moyeen Center, House # 9B, Road # 3(2), Gulshan, Dhaka"),
@@ -2670,7 +2693,56 @@ describe("mergeUniqueLocations — empty rows, duplicates, overview buckets", ()
     );
   });
 
-  it("does not absorb Plot 27 Holding 1 into House 1 in the same thana", () => {
+  it("does not absorb a leftover plot into a house-only row", () => {
+    assert.equal(
+      displays([
+        row("Plot # 8, Holding # 1/A, Gulshan, Dhaka"),
+        row("HOUSE NO-01, ROAD NO.-09, BLOCK-A, GULSHAN, DHAKA"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("Plot # 10, Holding # 1/A, Gulshan, Dhaka"),
+        row("HOUSE NO-01, ROAD NO.-09, BLOCK-A, GULSHAN, DHAKA"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("Plot # 11, Holding # 1/A, Tejgaon, Dhaka"),
+        row("HOUSE NO-01, ROAD NO.-09, BLOCK-A, TEJGAON, DHAKA"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("Plot # 8, Holding # 1/A, Milk Vita Road, Sec-7, Pallabi, Dhaka, Mirpur"),
+        row("HOUSE NO-01, ROAD NO.-09, BLOCK-A, MIRPUR-12, DHAKA-1216, , DHAKA"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("Plot # 27, Holding # 1/A, Niketon, Dhaka"),
+        row("HOUSE NO-01, ROAD NO.-09, BLOCK-A, NIKETON, DHAKA"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("Plot # 27, Holding # 1/A, Banani, Dhaka"),
+        row("HOUSE NO-01, ROAD NO.-09, BLOCK-A, BANANI, DHAKA"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("Plot # 2, Holding # 50, Gulshan, Dhaka"),
+        row("HOUSE NO-50, ROAD NO.-09, BLOCK-A, GULSHAN, DHAKA"),
+      ]).length,
+      2,
+    );
     assert.equal(
       displays([
         row("Plot # 27, Holding # 1/A, Gulshan, Dhaka"),
@@ -2684,6 +2756,43 @@ describe("mergeUniqueLocations — empty rows, duplicates, overview buckets", ()
         row("HOUSE NO-01, ROAD NO.-09, BLOCK-A, TEJGAON, DHAKA"),
       ]).length,
       2,
+    );
+    assert.equal(
+      displays([
+        row("Plot # 389, Baridhara DOHS, Dhaka"),
+        row("Plot # 389, House 6, Baridhara DOHS, Dhaka"),
+      ]).length,
+      1,
+    );
+    assert.equal(
+      displays([
+        row("Plot 1 & 27, Mirpur, Dhaka"),
+        row("Plot 1, Mirpur, Dhaka"),
+      ]).length,
+      1,
+    );
+    assert.equal(
+      displays([
+        row("Plot 1 & 14, Mirpur, Dhaka"),
+        row("Plot 1, Mirpur, Dhaka"),
+      ]).length,
+      1,
+    );
+    assert.equal(
+      displays([
+        row("Holding # 137/1, Dag No.-1977-1978, Fordnagor, Dhalla Bazar, Singair, Manikganj."),
+        row(
+          "Holding No. 137/1, Plot No. 1977-1978, Ford Nagar, Dhalla Bazar, Singair, Manikganj - 1820, Bangladesh",
+        ),
+      ]).length,
+      1,
+    );
+    assert.equal(
+      displays([
+        row("House # 06, Road-07, Block-B, Turag, Dhaka-1230"),
+        row("House # 06, Road-07, Block-B, 390 Dhour, P.O- Nishat Nagar, Turag, Dhaka-1230"),
+      ]).length,
+      1,
     );
   });
 

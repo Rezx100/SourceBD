@@ -42,6 +42,8 @@ Named suppliers:
 - expert-global-trims: factory 2 strings → 1 location(s)
 - universal-trims: factory 3 strings → 2 location(s)
 - incredible-fashions: factory 3 strings → 1 location(s); registered 2 strings → 2 location(s)
+- rahimaaziz-knitspin: factory 3 strings → 1 location(s); mailing 2 strings → 1 location(s)
+- nilorn-bangladesh: factory 2 strings → 1 location(s)
 
 Remaining multi-location groups (slug, kind, locations):
 
