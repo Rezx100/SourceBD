@@ -174,6 +174,7 @@ const GENERIC_TOKENS = new Set([
   "chhoto",
   "haji",
   "hazi",
+  "haj",
   "alhaj",
   "mohammad",
   "mohammed",
@@ -342,6 +343,7 @@ const HOUSING_CAMPUS_PLACES = new Set([
   "shantinagar",
   "segunbagicha",
   "paltan",
+  "palton",
   "motijheel",
   "dilkusha",
   "wari",
@@ -1585,6 +1587,7 @@ function extraDigitConflict(a: Candidate, b: Candidate): boolean {
  *  holdings (House 62+87 Eskaton vs House 62+82 Niketon). Avenue or
  *  Mirpur-12 leftovers are not holdings — those stay extraDigitConflict. */
 function extraHoldingConflict(a: Candidate, b: Candidate): boolean {
+  if (cleanAddressString(a.display) === cleanAddressString(b.display)) return false;
   if (a.ids.size === 0 || b.ids.size === 0) return false;
   if (renumberAliasHint(a, b)) return false;
   // Prefixed No./# extras live in holdingWordingDigits, not premisesIdentifiers.
@@ -2385,6 +2388,7 @@ function sharedFineAdmin(a: Candidate, b: Candidate): boolean {
 }
 
 function isSameLocation(a: Candidate, b: Candidate): boolean {
+  if (cleanAddressString(a.display) === cleanAddressString(b.display)) return true;
   // Concatenated two-campus wording ("Address 1st" + "Address 2nd") is not
   // the same row as a single-campus listing, even when one plot list overlaps.
   // House 50 + 7 Gulshan written with or without a comma still is one
@@ -2808,7 +2812,7 @@ function hasTwoCampusWording(display: string): boolean {
 }
 
 const THOROUGHFARE_ALT =
-  String.raw`(?:road|rd|avenue|ave\.?|street|st\b|lane|boulevard|blvd|drive|drv|close)\b`;
+  String.raw`(?:road|rd|avenue|ave\.?|street|st\b|lane|gali|goli|path|sarak|boulevard|blvd|drive|drv|close)\b`;
 const THOROUGHFARE_AFTER_RE = new RegExp(`^${THOROUGHFARE_ALT}`);
 /** Stem aliases of GENERIC skip tokens, plus "street" the same way St/Lane skip. */
 const EXTRA_PLACE_SKIP_ALIASES = [
@@ -2838,11 +2842,16 @@ const EXTRA_PLACE_SKIP_ALIASES = [
   // Bengali "new" — Naya Palton vs Noya Paltan mint palton, not naya/noya.
   "naya",
   "noya",
+  // Kind-of-place field heads and a common "south" misspelling. Not which place.
+  "area",
+  "space",
+  "export",
+  "shouth",
 ] as const;
 /** Skip a run of size/direction/honorific tokens after an extra digit so
  *  "7 Baro Banani" / "7 South East Banani" mint Banani, not baro/south.
  *  Housing, village-extra, and admin place names stay capturable. */
-function extraPlaceSkipToken(place: string): boolean {
+function isExactPlaceSkipToken(place: string): boolean {
   if (HOUSING_CAMPUS_PLACES.has(place)) return false;
   if (VILLAGE_EXTRA_PLACES.has(place)) return false;
   if (ADMIN_TOKENS.has(place) && place !== "old" && place !== "new") return false;
@@ -2859,10 +2868,46 @@ function extraPlaceSkipToken(place: string): boolean {
     place === "unit"
   );
 }
+
+/** Compass/size stems used only for OCR peel (Kakhin ≈ Dakhin). Not which place. */
+const EXTRA_PLACE_SKIP_FUZZY = [
+  ...EXTRA_PLACE_SKIP_ALIASES.filter((t) => t.length >= 5),
+  "dakhin",
+  "dakshin",
+  "south",
+  "north",
+  "east",
+  "west",
+  "uttar",
+  "poschim",
+  "purba",
+  "purbo",
+  "moddho",
+  "madhya",
+  "baro",
+  "boro",
+  "choto",
+  "chhoto",
+] as const;
+
+function extraPlaceSkipToken(place: string): boolean {
+  if (isExactPlaceSkipToken(place)) return true;
+  if (HOUSING_CAMPUS_PLACES.has(place)) return false;
+  if (VILLAGE_EXTRA_PLACES.has(place)) return false;
+  if (ADMIN_TOKENS.has(place) && place !== "old" && place !== "new") return false;
+  // Kakhin ≈ Dakhin. Cheap length+edit check only — extraNameShare on the
+  // whole GENERIC set hung the fixture suite.
+  if (place.length < 5) return false;
+  for (const t of EXTRA_PLACE_SKIP_FUZZY) {
+    if (t.length < 5 || Math.abs(place.length - t.length) > 1) continue;
+    if (place === t || levenshtein(place, t) <= 1) return true;
+  }
+  return false;
+}
 const EXTRA_PLACE_SKIP_RE = (() => {
   const skip = new Set<string>();
   for (const t of GENERIC_TOKENS) {
-    if (extraPlaceSkipToken(t)) skip.add(t);
+    if (isExactPlaceSkipToken(t)) skip.add(t);
   }
   for (const t of [
     "storied",
@@ -2875,7 +2920,7 @@ const EXTRA_PLACE_SKIP_RE = (() => {
     "unit",
     ...EXTRA_PLACE_SKIP_ALIASES,
   ]) {
-    if (extraPlaceSkipToken(t)) skip.add(t);
+    if (isExactPlaceSkipToken(t)) skip.add(t);
   }
   const alt = [...skip].sort((a, b) => b.length - a.length).join("|");
   // Unicode dash punctuation (Pd), math minus (Sm, used as a hyphen),
@@ -2915,7 +2960,7 @@ const ROAD_HOLDING_TAILS = [
 ];
 
 function isThoroughfareWord(place: string): boolean {
-  return /^(?:road|rd|avenue|ave|street|st|lane|boulevard|blvd|drive|drv|close)$/.test(
+  return /^(?:road|rd|avenue|ave|street|st|lane|gali|goli|path|sarak|boulevard|blvd|drive|drv|close)$/.test(
     place,
   );
 }
@@ -2924,7 +2969,7 @@ function isBuildingNameFollower(after: string): boolean {
   const next = after.trimStart().match(/^([a-z]{3,})\b/)?.[1];
   return Boolean(
     next &&
-      /^(?:complex|tower|plaza|bhaban|bhawan|bahan|centre|center|market|court|building)$/.test(
+      /^(?:complex|tower|plaza|bhaban|bhawan|bahan|centre|center|market|court|building|chamber|mansion|housing)$/.test(
         next,
       ),
   );
@@ -2933,7 +2978,7 @@ function isBuildingNameFollower(after: string): boolean {
 /** City Heart Building — "city" is not a second road; the clause names the building. */
 function clauseHasBuildingName(after: string): boolean {
   const clause = after.split(",")[0] ?? "";
-  return /(?:^|\s)(?:complex|tower|plaza|bhaban|bhawan|bahan|centre|center|market|court|building)\b/.test(
+  return /(?:^|\s)(?:complex|tower|plaza|bhaban|bhawan|bahan|centre|center|market|court|building|chamber|mansion|housing)\b/.test(
     clause,
   );
 }
@@ -2991,6 +3036,17 @@ function acceptExtraPlace(
   return true;
 }
 
+function labelledBuildingHouseBefore(before: string): boolean {
+  return /(?:building|bldg|house|hosue|flat|apartment|apt|unit)\s*(?:#|no\.?|number)?[\s.:-]*$/i.test(
+    before,
+  );
+}
+
+function extraDigitTruncatesLongerNumber(s: string, m: RegExpMatchArray): boolean {
+  const end = (m.index ?? 0) + m[0].length;
+  return /\d$/.test(m[0]) && /^\d/.test(s.slice(end));
+}
+
 function isThoroughfareAfter(after: string): boolean {
   return THOROUGHFARE_AFTER_RE.test(after.trimStart());
 }
@@ -3043,39 +3099,76 @@ function roadHoldingDigits(display: string): Set<string> {
 
 /** 1st Lane vs 2nd Lane at the same house/plot. Skip minting "st" as a
  *  holding so inverted 12/1 1st Lane still merges; keep the ordinal. */
+const STREET_WORD_ALT =
+  String.raw`ln|lane|gali|goli|blvd|boulevard|drive|drv|close|roads?|rd|streets?|st|avenues?|ave|path|sarak`;
+
+function canonStreetWord(raw: string): string {
+  if (raw === "rd" || raw === "road" || raw === "roads" || raw === "sarak") return "road";
+  if (raw === "st" || raw === "street" || raw === "streets") return "street";
+  if (raw === "ave" || raw === "avenue" || raw === "avenues") return "avenue";
+  if (raw === "blvd" || raw === "boulevard") return "boulevard";
+  if (raw === "drive" || raw === "drv") return "drive";
+  if (raw === "close") return "close";
+  if (raw === "path") return "path";
+  return "lane";
+}
+
+function spelledOrdinalN(word: string): string | undefined {
+  switch (word) {
+    case "first":
+      return "1";
+    case "second":
+      return "2";
+    case "third":
+      return "3";
+    case "fourth":
+      return "4";
+    case "fifth":
+      return "5";
+    default:
+      return undefined;
+  }
+}
+
 function ordinalStreetEntries(display: string): Array<{ n: string; word: string }> {
   const s = display.toLowerCase();
   const out: Array<{ n: string; word: string }> = [];
-  const re = new RegExp(
-    String.raw`\b(\d{1,2})(?:st|nd|rd|th)[\s./_\u00AD\u200B\p{Pd}\u2212]*(ln|lane|gali|blvd|boulevard|drive|drv|close|roads?|rd|streets?|st|avenues?|ave)\b`,
+  const numeric = new RegExp(
+    String.raw`\b(\d{1,2})(?:st|nd|rd|th)[\s./_\u00AD\u200B\p{Pd}\u2212]*(${STREET_WORD_ALT})\b`,
     EXTRA_RE_FLAGS,
   );
-  for (const m of s.matchAll(re)) {
-    const raw = m[2]!;
-    const word =
-      raw === "rd" || raw === "road" || raw === "roads"
-        ? "road"
-        : raw === "st" || raw === "street" || raw === "streets"
-          ? "street"
-          : raw === "ave" || raw === "avenue" || raw === "avenues"
-            ? "avenue"
-            : raw === "blvd" || raw === "boulevard"
-              ? "boulevard"
-              : raw === "drive" || raw === "drv"
-                ? "drive"
-                : raw === "close"
-                  ? "close"
-                  : "lane";
-    out.push({ n: m[1]!, word });
+  for (const m of s.matchAll(numeric)) {
+    out.push({ n: m[1]!, word: canonStreetWord(m[2]!) });
+  }
+  const spelled = new RegExp(
+    String.raw`\b(first|second|third|fourth|fifth)[\s./_\u00AD\u200B\p{Pd}\u2212]*(${STREET_WORD_ALT})\b`,
+    EXTRA_RE_FLAGS,
+  );
+  for (const m of s.matchAll(spelled)) {
+    const n = spelledOrdinalN(m[1]!);
+    if (!n) continue;
+    out.push({ n, word: canonStreetWord(m[2]!) });
   }
   return out;
 }
 
-function unOrdinalLane(display: string): boolean {
-  return (
-    /\blane\b/i.test(display) &&
-    !/\b\d{1,2}(?:st|nd|rd|th)/i.test(display)
-  );
+function unOrdinalStreetEntries(display: string): Array<{ word: string }> {
+  const s = display.toLowerCase();
+  const out: Array<{ word: string }> = [];
+  const re = new RegExp(String.raw`\b(${STREET_WORD_ALT})\b`, EXTRA_RE_FLAGS);
+  for (const m of s.matchAll(re)) {
+    const before = s.slice(Math.max(0, (m.index ?? 0) - 16), m.index ?? 0);
+    if (
+      new RegExp(
+        String.raw`(?:\d{1,2}(?:st|nd|rd|th)|first|second|third|fourth|fifth)[\s./_\u00AD\u200B\p{Pd}\u2212]*$`,
+        EXTRA_RE_FLAGS.replace("g", ""),
+      ).test(before)
+    ) {
+      continue;
+    }
+    out.push({ word: canonStreetWord(m[1]!) });
+  }
+  return out;
 }
 
 function ordinalStreetConflict(a: Candidate, b: Candidate): boolean {
@@ -3084,12 +3177,14 @@ function ordinalStreetConflict(a: Candidate, b: Candidate): boolean {
   if (ea.length > 0 && eb.length > 0) {
     return ea.some((x) => eb.some((y) => x.n !== y.n || x.word !== y.word));
   }
-  // "Lane" vs "2nd Lane" — un-ordinal is first; a later ordinal is not.
-  if (ea.length === 0 && eb.length > 0 && unOrdinalLane(a.display)) {
-    return eb.some((y) => y.word === "lane" && y.n !== "1");
+  // "Street" / "Gali" / "Lane" vs "2nd Street" — un-ordinal is first.
+  if (ea.length === 0 && eb.length > 0) {
+    const ua = unOrdinalStreetEntries(a.display);
+    return eb.some((y) => y.n !== "1" && ua.some((u) => u.word === y.word));
   }
-  if (eb.length === 0 && ea.length > 0 && unOrdinalLane(b.display)) {
-    return ea.some((y) => y.word === "lane" && y.n !== "1");
+  if (eb.length === 0 && ea.length > 0) {
+    const ub = unOrdinalStreetEntries(b.display);
+    return ea.some((y) => y.n !== "1" && ub.some((u) => u.word === y.word));
   }
   return false;
 }
@@ -3147,14 +3242,15 @@ function roadNameTokensFromTail(tail: string): string[] {
   for (let i = 0; i < raw.length; i++) {
     const t = raw[i]!;
     const nxt = raw[i + 1];
-    // "D EPZ" is DEPZ. Do not drop the single letter (length < 3) and
-    // then XOR DEPZ vs EPZ as two roads.
-    if (t.length === 1 && nxt && nxt.length >= 3) {
+    // "D EPZ" is DEPZ. "C DA" is CDA. "I A" is IA. Do not drop the
+    // single letter and then XOR DEPZ vs EPZ or IA vs A as two roads.
+    if (t.length === 1 && nxt) {
       out.push(t + nxt);
       i += 1;
       continue;
     }
-    if (t.length >= 3) out.push(t);
+    if (t.length >= 2) out.push(t);
+    else if (t.length === 1 && !nxt) out.push(t);
   }
   return out;
 }
@@ -3326,6 +3422,17 @@ function extraNameShare(a: string[], b: string[]): boolean {
     ) {
       return false;
     }
+    // Chanduddan vs Chand Uddan — the split second word is not a locality tail.
+    if (
+      long.startsWith(short) &&
+      short.length >= 5 &&
+      long.length - short.length >= 4 &&
+      !GENERIC_TOKENS.has(long.slice(short.length)) &&
+      !ADMIN_TOKENS.has(long.slice(short.length)) &&
+      !isThoroughfareWord(long.slice(short.length))
+    ) {
+      return true;
+    }
   }
   // Dighirpar vs Dighir Par, Dattopara vs Datta Para, Palashbari vs Polash Bari.
   if (joinedParaShare(a, b)) return true;
@@ -3340,7 +3447,36 @@ function extraNameShare(a: string[], b: string[]): boolean {
   if (sa.length === sb.length && sa.length >= 6 && levenshtein(sa, sb) <= 2) {
     return true;
   }
+  // Jajhor vs Jazor. Same stem, one letter dropped; Green vs Greene is
+  // already sameWord.
+  if (
+    Math.min(sa.length, sb.length) >= 5 &&
+    Math.abs(sa.length - sb.length) <= 1 &&
+    levenshtein(sa, sb) <= 2
+  ) {
+    return true;
+  }
+  // Baro Bagh vs Barabagh — size adjective glued onto the same stem.
+  if (a.length === 1 && b.length === 1) {
+    const [short, long] = sa.length <= sb.length ? [sa, sb] : [sb, sa];
+    const sizeAdj = new Set(["baro", "boro", "bara", "choto", "chhoto"]);
+    const prefix = long.slice(0, long.length - short.length);
+    if (prefix && long.endsWith(short) && sizeAdj.has(prefix)) return true;
+  }
+  // Chand Uddan vs Chanduddan — tokens of one side join to the other.
+  if (a.length > 1 && a.join("") === sb) return true;
+  if (b.length > 1 && b.join("") === sa) return true;
   return false;
+}
+
+/** B.B / D.T. initials vs a full road or village name. I A vs A and
+ *  C DA vs DA are both short and still two roads. */
+function initialismVsLongName(a: string[], b: string[]): boolean {
+  const sa = a.join("");
+  const sb = b.join("");
+  if (!sa || !sb) return false;
+  const [short, long] = sa.length <= sb.length ? [sa, sb] : [sb, sa];
+  return short.length <= 2 && long.length >= 5;
 }
 
 /** Compound para/par/bari vs the stem plus that tail as its own token. */
@@ -3406,9 +3542,23 @@ function paraStemShare(a: string, b: string): boolean {
 }
 
 function isLocalityTailPlace(place: string): boolean {
+  if (place.length >= 7 && place.endsWith("kur")) return true;
   return (PLACE_TAILS as readonly string[]).some(
     (tail) => place.length > tail.length + 3 && place.endsWith(tail),
   );
+}
+
+function isVillageishPlace(place: string): boolean {
+  if (place.length >= 7 && place.endsWith("kur")) return true;
+  return (PLACE_TAILS as readonly string[]).some(
+    (tail) => place.length > tail.length && place.endsWith(tail),
+  );
+}
+
+/** Unsuffixed English road names that sit after a village (Hemayetpur, Green).
+ *  Short BD villages (Gacha, Begum) must not be treated as this. */
+function isUnsuffixedRoadExtra(place: string): boolean {
+  return /^(?:airport|green|dit|panthapath|pantha)$/.test(place);
 }
 
 function extraNamedOnOtherNonHousing(places: string[], other: Candidate): boolean {
@@ -3417,14 +3567,19 @@ function extraNamedOnOtherNonHousing(places: string[], other: Candidate): boolea
     (p) => p.length >= 3 && !isThoroughfareWord(p) && !GENERIC_TOKENS.has(p),
   );
   const names = meaningful.length > 0 ? meaningful : places;
-  return names.some((p) =>
-    other.tokens.some(
-      (t) =>
-        !isThoroughfareWord(t) &&
-        !GENERIC_TOKENS.has(t) &&
-        !HOUSING_CAMPUS_PLACES.has(t) &&
-        extraNameShare([p], [t]),
-    ),
+  // Every token of the extra, not a leftover substring (Nazrul of
+  // Kazi Nazrul Islam Avenue vs leftover Nazrul next to Green).
+  return (
+    names.length > 0 &&
+    names.every((p) =>
+      other.tokens.some(
+        (t) =>
+          !isThoroughfareWord(t) &&
+          !GENERIC_TOKENS.has(t) &&
+          !HOUSING_CAMPUS_PLACES.has(t) &&
+          extraNameShare([p], [t]),
+      ),
+    )
   );
 }
 
@@ -3451,10 +3606,50 @@ function bareProperRoadPlaces(display: string): Array<{ digit: string; places: s
     if (place.length < 3) return;
     if (extraPlaceSkipToken(place)) return;
     if (HOUSING_CAMPUS_PLACES.has(place) || ADMIN_TOKENS.has(place)) return;
+    if (/^(?:cepz|kepz|depz|epz|bscic)$/.test(place)) return;
     if (VILLAGE_EXTRA_PLACES.has(place)) return;
     if ((PLACE_TAILS as readonly string[]).includes(place)) return;
     if (isThoroughfareWord(place)) return;
+    if (
+      /^(?:suite|suit|room|shop|house|hosue|holding|hold|plot|plots|building|bldg|flat|apartment|apt|unit|ward|block|sector|section|floor|dag|dug)$/.test(
+        place,
+      )
+    ) {
+      return;
+    }
     if (clauseHasBuildingName(after)) return;
+    if (isLocalityTailPlace(place)) {
+      const nextClause = (after.trimStart().startsWith(",")
+        ? after.split(",")[1]
+        : after.split(",")[0]) ?? "";
+      // Shastapur, Upaziala Road — the next field is the street of this
+      // village, not a second extra (Green after Hemayetpur has no road
+      // word and still skips the locality).
+      if (
+        !clauseHasThoroughfare(nextClause) &&
+        !isThoroughfareAfter(nextClause.trimStart())
+      ) {
+        const following = after.match(
+          new RegExp(
+            String.raw`^\s*,\s*${EXTRA_PLACE_SKIP_RE}([a-z]{3,})\b`,
+            "u",
+          ),
+        )?.[1];
+        if (
+          following &&
+          !HOUSING_CAMPUS_PLACES.has(following) &&
+          !ADMIN_TOKENS.has(following) &&
+          !GENERIC_TOKENS.has(following) &&
+          !extraPlaceSkipToken(following) &&
+          !isVillageishPlace(following) &&
+          !isThoroughfareWord(following) &&
+          !(PLACE_TAILS as readonly string[]).includes(following) &&
+          isUnsuffixedRoadExtra(following)
+        ) {
+          return;
+        }
+      }
+    }
     // Union / South / Baro between the digit and the name is a village
     // wrapper, not "10 Airport". Road-suffixed tails belong to
     // roadHoldingEntries (80/6 Maymashingo Road at digit 6, not 80).
@@ -3477,6 +3672,9 @@ function bareProperRoadPlaces(display: string): Array<{ digit: string; places: s
       EXTRA_RE_FLAGS,
     ),
   )) {
+    if (extraDigitTruncatesLongerNumber(s, m)) continue;
+    if (labelledBuildingHouseBefore(s.slice(0, m.index ?? 0))) continue;
+    if (labelledWardSectorDigit(s, m)) continue;
     push(m[2]!, m[4]!, m[3]!, s.slice((m.index ?? 0) + m[0].length));
   }
   for (const m of s.matchAll(
@@ -3485,6 +3683,9 @@ function bareProperRoadPlaces(display: string): Array<{ digit: string; places: s
       EXTRA_RE_FLAGS,
     ),
   )) {
+    if (extraDigitTruncatesLongerNumber(s, m)) continue;
+    if (labelledBuildingHouseBefore(s.slice(0, m.index ?? 0))) continue;
+    if (labelledWardSectorDigit(s, m)) continue;
     push(m[2]!, m[4]!, m[3]!, s.slice((m.index ?? 0) + m[0].length));
   }
   for (const m of s.matchAll(
@@ -3493,7 +3694,138 @@ function bareProperRoadPlaces(display: string): Array<{ digit: string; places: s
       EXTRA_RE_FLAGS,
     ),
   )) {
+    if (extraDigitTruncatesLongerNumber(s, m)) continue;
+    if (labelledWardSectorDigit(s, m)) continue;
     push(m[1]!, m[2]!, ",", s.slice((m.index ?? 0) + m[0].length));
+  }
+  // Plot 10, Gulshan, Green / Plot 10, 10, Gulshan, Green — unsuffixed
+  // Green after a campus token or a restated plot digit. Do not take the
+  // last comma field (Dhaka); walk each field and skip housing/admin.
+  const skipPrefix = new RegExp(String.raw`^${EXTRA_PLACE_SKIP_RE}`, "u");
+  const restatedDigit = new RegExp(
+    String.raw`^(?:(?:no\s*[:.\-]?|number|#)\s*)?\d{1,3}${EXTRA_DIGIT_UNIT}$`,
+    "u",
+  );
+  const labelledField =
+    /^(?:house|hosue|holding|hold|plot|plots|building|bldg|flat|apartment|apt|unit|ward|block|sector|section|floor|dag|dug|suite|suit|room|shop|area|space|export|level)\b/;
+  const restatedPlotList = new RegExp(
+    String.raw`^(?:&|and)?\s*(?:(?:no\s*[:.\-]?|number|#)\s*)?\d{1,3}(?:\s*[&/,]\s*\d{1,3})*$`,
+    "u",
+  );
+  const otherPlotHead = new RegExp(
+    String.raw`^(?:(?:no\s*[:.\-]?|number|#)\s*)?(\d{1,3})\b`,
+    "u",
+  );
+  for (const m of s.matchAll(
+    new RegExp(
+      String.raw`${EXTRA_DIGIT_LEAD}((?:no\s*[:.\-]?|number|#)\s*)?(\d{1,3})${EXTRA_DIGIT_UNIT}`,
+      EXTRA_RE_FLAGS,
+    ),
+  )) {
+    if (extraDigitTruncatesLongerNumber(s, m)) continue;
+    if (labelledBuildingHouseBefore(s.slice(0, m.index ?? 0))) continue;
+    if (labelledWardSectorDigit(s, m)) continue;
+    const digit = String(Number(m[2]!));
+    if (out.some((e) => e.digit === digit)) continue;
+    const after = s.slice((m.index ?? 0) + m[0].length);
+    let seenThoroughfare = false;
+    let seenCampus = false;
+    let skippedCampus = 0;
+    let allowMint = false;
+    const afterFields = after.split(",");
+    for (let fi = 0; fi < afterFields.length; fi++) {
+      const rawField = afterFields[fi]!;
+      let trimmed = rawField.replace(/^[\s./_\u00AD\u200B\p{Pd}\u2212]+/u, "");
+      if (!trimmed) continue;
+      trimmed = trimmed.replace(/^\([^)]*\)\s*/u, "");
+      if (!trimmed) continue;
+      if (restatedDigit.test(trimmed) || restatedPlotList.test(trimmed)) {
+        allowMint = true;
+        continue;
+      }
+      if (labelledField.test(trimmed)) continue;
+      const otherPlot = otherPlotHead.exec(trimmed);
+      if (otherPlot && String(Number(otherPlot[1]!)) !== digit) break;
+      if (/\b(?:estate|bscic|epz|cepz|kepz|depz|university|industrial)\b/.test(trimmed)) {
+        seenCampus = true;
+        continue;
+      }
+      if (seenCampus) continue;
+      if (clauseHasBuildingName(trimmed) || clauseHasBuildingName(` ${trimmed}`)) {
+        break;
+      }
+      if (clauseHasThoroughfare(rawField) || isThoroughfareAfter(trimmed)) {
+        seenThoroughfare = true;
+        continue;
+      }
+      // Leftover after Airport Road / Kazi Avenue is not a second extra
+      // at this digit (Green leftover, Hemayetpur after Singair Road).
+      if (seenThoroughfare) continue;
+      // Union - Telulzora is the union title, not a competing extra.
+      // Walk on to Hemayetpur. "Village Road" already continued above.
+      if (
+        /^(?:union|mouza|mouja|thana|upazila|upazilla|village|vill|post|gpo)\b/.test(
+          trimmed,
+        )
+      ) {
+        allowMint = true;
+        continue;
+      }
+      // "6 No Dogri" — No is the label of 6, not a two-letter place.
+      if (/^(?:no\.?|number|#)\s+(?!\d)/.test(trimmed)) {
+        trimmed = trimmed.replace(/^(?:no\.?|number|#)\s+/u, "");
+        allowMint = true;
+      }
+      let skipped = trimmed.replace(skipPrefix, "").replace(/^[.\s/_-]+/u, "");
+      // Peel OCR'd skip adjectives in this field (Kakhin Panishali).
+      for (;;) {
+        const skipHead = skipped.match(/^([a-z]{3,})\b/);
+        if (!skipHead || !extraPlaceSkipToken(skipHead[1]!)) break;
+        skipped = skipped.slice(skipHead[0].length).replace(/^[.\s/_-]+/u, "");
+        allowMint = true;
+      }
+      const pm = skipped.match(/^([a-z]{3,})\b/);
+      if (!pm) continue;
+      const place = pm[1]!;
+      const afterPlace = skipped.slice(pm[0].length);
+      const restFields = afterFields.slice(fi + 1).join(",");
+      const afterForPush = restFields ? `${afterPlace},${restFields}` : afterPlace;
+      const next = afterPlace.trimStart().match(/^([a-z]{3,})\b/)?.[1];
+      // Housing / admin / -pur localities sit between the digit and the
+      // road extra (Hemayetpur, Airport vs Hemayetpur, Green). Skip them
+      // and keep walking; first-loop "10 Greenpara" still mints via push.
+      // A second skip is a thana after a village (Sastapur, Narayanganj,
+      // Fatullah) — stop rather than mint the later thana as a road extra.
+      if (
+        HOUSING_CAMPUS_PLACES.has(place) ||
+        ADMIN_TOKENS.has(place)
+      ) {
+        skippedCampus += 1;
+        allowMint = true;
+        if (skippedCampus > 1) break;
+        continue;
+      }
+      if (isLocalityTailPlace(place)) {
+        const before = out.length;
+        push(m[2]!, place, ",", afterForPush);
+        if (out.length > before) break;
+        skippedCampus += 1;
+        allowMint = true;
+        if (skippedCampus > 1) break;
+        continue;
+      }
+      // "Ford Nagar" is the village clause. Do not walk on to the thana
+      // (Singair) as a second extra.
+      if (next && (PLACE_TAILS as readonly string[]).includes(next)) {
+        break;
+      }
+      // Holding # 83, Rupganj — labelled skip only. First loops / leading
+      // village own that field. Walker mints Green after Gulshan or after
+      // a restated plot digit, not the thana after a holding label.
+      if (!allowMint) break;
+      push(m[2]!, place, ",", afterForPush);
+      break;
+    }
   }
   return out;
 }
@@ -3529,35 +3861,49 @@ function isDiscriminatingRoadPlace(place: string): boolean {
   );
 }
 
+function namedExtraTails(
+  display: string,
+): Array<{ digit: string; places: string[]; src: "road" | "admin" | "bare" }> {
+  const out: Array<{ digit: string; places: string[]; src: "road" | "admin" | "bare" }> = [];
+  const keepHousingAdmin = (p: string) =>
+    HOUSING_CAMPUS_PLACES.has(p) || ADMIN_TOKENS.has(p);
+  for (const e of roadHoldingEntries(display)) {
+    const places = roadNameTokensFromTail(e.tail);
+    if (places.length > 0) {
+      out.push({ digit: String(Number(e.digit)), places, src: "road" });
+    }
+  }
+  for (const e of adminPlaceExtraEntries(display)) {
+    const places = placeTokensFromTail(e.tail).filter(keepHousingAdmin);
+    if (places.length > 0) {
+      out.push({ digit: String(Number(e.digit)), places, src: "admin" });
+    }
+  }
+  for (const p of extraPlacePairs(display)) {
+    if (!keepHousingAdmin(p.place)) continue;
+    out.push({ digit: p.digit, places: [p.place], src: "admin" });
+  }
+  const bare = bareProperRoadPlaces(display);
+  for (const p of bare) {
+    out.push({ ...p, src: "bare" });
+  }
+  for (const p of leadingVillageExtras(display)) {
+    // Same village already minted as a bare extra (Paragaon vs Paragaon).
+    // Do not drop Fatehabad just because Hathazari was also minted.
+    if (
+      bare.some(
+        (b) => b.digit === p.digit && extraNameShare(b.places, p.places),
+      )
+    ) {
+      continue;
+    }
+    out.push({ ...p, src: "bare" });
+  }
+  return out;
+}
+
 function extraRoadPlaceConflict(a: Candidate, b: Candidate): boolean {
-  const namedExtraTails = (display: string) => {
-    const out: Array<{ digit: string; places: string[]; src: "road" | "admin" | "bare" }> = [];
-    const keepHousingAdmin = (p: string) =>
-      HOUSING_CAMPUS_PLACES.has(p) || ADMIN_TOKENS.has(p);
-    for (const e of roadHoldingEntries(display)) {
-      const places = roadNameTokensFromTail(e.tail);
-      if (places.length > 0) {
-        out.push({ digit: String(Number(e.digit)), places, src: "road" });
-      }
-    }
-    for (const e of adminPlaceExtraEntries(display)) {
-      const places = placeTokensFromTail(e.tail).filter(keepHousingAdmin);
-      if (places.length > 0) {
-        out.push({ digit: String(Number(e.digit)), places, src: "admin" });
-      }
-    }
-    for (const p of extraPlacePairs(display)) {
-      if (!keepHousingAdmin(p.place)) continue;
-      out.push({ digit: p.digit, places: [p.place], src: "admin" });
-    }
-    for (const p of bareProperRoadPlaces(display)) {
-      out.push({ ...p, src: "bare" });
-    }
-    for (const p of leadingVillageExtras(display)) {
-      out.push({ ...p, src: "bare" });
-    }
-    return out;
-  };
+  if (cleanAddressString(a.display) === cleanAddressString(b.display)) return false;
   const ea = namedExtraTails(a.display);
   const eb = namedExtraTails(b.display);
   for (const x of ea) {
@@ -3569,25 +3915,33 @@ function extraRoadPlaceConflict(a: Candidate, b: Candidate): boolean {
       // Road, Airport). Mixed road↔bare inverted village+road may still
       // use extraNamedOnOther (Shutivola + Fakirkhali, Sowdagor + CDA,
       // BSCIC + Konabari).
-      if (x.src === "road" && y.src === "road") return true;
-      // Shared extra at this digit (Dighirpar vs Dighir Par, Kulgaon vs
-      // Kulgoan). Other extras at the digit are leftover wording, not a
-      // second premises. Airport vs Green do not share an extra.
-      if (
-        ea.some(
-          (p) =>
-            p.digit === x.digit &&
-            eb.some(
-              (q) =>
-                q.digit === y.digit &&
-                (extraNameShare(p.places, q.places) ||
-                  (p.places.length === 1 &&
-                    q.places.length === 1 &&
-                    paraSpellingShare(p.places[0]!, q.places[0]!, a.display, b.display))),
-            ),
-        )
-      ) {
-        continue;
+      if (x.src === "road" && y.src === "road") {
+        // B.B vs Bangabandhu / D.T. vs Asharabad. I A vs A and C DA vs
+        // DA are both short and still two roads.
+        if (!initialismVsLongName(x.places, y.places)) return true;
+      }
+      // Shared village/road extra at this digit (Valuka on both, Satarkul
+      // on both, Jubilee/Jublee). Other extras at the digit (Badda, Jiban)
+      // are leftover wording, not a second premises. Gulshan/Banani
+      // housing on both must not license Airport vs Green.
+      {
+        const housingish = (p: string) =>
+          HOUSING_CAMPUS_PLACES.has(p) || ADMIN_TOKENS.has(p);
+        if (
+          ea.some(
+            (p) =>
+              p.digit === x.digit &&
+              !p.places.some(housingish) &&
+              eb.some(
+                (q) =>
+                  q.digit === y.digit &&
+                  !q.places.some(housingish) &&
+                  extraNameShare(p.places, q.places),
+              ),
+          )
+        ) {
+          continue;
+        }
       }
       const xRoadish = x.src === "road" || x.src === "bare";
       const yRoadish = y.src === "road" || y.src === "bare";
@@ -3598,8 +3952,21 @@ function extraRoadPlaceConflict(a: Candidate, b: Candidate): boolean {
         if (y.src === "road" && x.places.some(isLocalityTailPlace)) {
           if (extraNamedOnOther(x.places, b)) continue;
         }
-        // Airport vs Green leftover are two single-token extras.
-        // Sowdagor Lane vs CDA is a multi-word road vs a short extra.
+        // Village + road of one premises (Shutivola + Fakirkhali, Dighirpar
+        // + Nazma Khatun Lane). The village extra sits on both strings.
+        if (x.src === "road" && ea.some((p) => extraNameShare(p.places, y.places))) {
+          continue;
+        }
+        if (y.src === "road" && eb.some((q) => extraNameShare(q.places, x.places))) {
+          continue;
+        }
+        // Airport vs Green leftover are two single-token extras. Do this
+        // before leftover-token every() so stuffed "Airport Road, Green"
+        // vs "Green, Airport" stay two rows. Sowdagor Lane vs CDA is
+        // multi-word vs a short extra and falls through to every().
+        if (initialismVsLongName(x.places, y.places)) {
+          continue;
+        }
         if (x.places.length === 1 && y.places.length === 1) return true;
         if (
           extraNamedOnOtherNonHousing(x.places, b) &&
@@ -3687,6 +4054,7 @@ function extraPlacePairs(display: string): Array<{ digit: string; place: string 
 
 /** No.187 Bashundhara is not No.187 Aftabnagar even when the digit matches. */
 function extraPlaceConflict(a: Candidate, b: Candidate): boolean {
+  if (cleanAddressString(a.display) === cleanAddressString(b.display)) return false;
   const pa = extraPlacePairs(a.display);
   const pb = extraPlacePairs(b.display);
   for (const x of pa) {
@@ -3763,7 +4131,10 @@ function candidateFor(display: string): Candidate {
 
 /** Extra house/avenue/place conflict visible to fixture guards. */
 export function extraHoldingsConflict(addressA: string, addressB: string): boolean {
-  return extraHoldingConflict(candidateFor(addressA), candidateFor(addressB));
+  return extraHoldingConflict(
+    candidateFor(cleanAddressString(addressA)),
+    candidateFor(cleanAddressString(addressB)),
+  );
 }
 
 export function isRenumberAliasRow(address: string): boolean {

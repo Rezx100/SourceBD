@@ -107,10 +107,17 @@ function assertMergedAddressRowHtml(
     assert.equal(locs.length, 1, `${otherName} matcher merge`);
     const html = renderAddressRows(ordered);
     assert.equal((html.match(/data-location-row=""/g) ?? []).length, 1, `${otherName} row count`);
-    assert.match(html, keepRe, `${otherName} keep display`);
-    assert.match(html, alsoRe, `${otherName} Also recorded as spelling`);
-    assert.match(html, /Also recorded as/);
-    assert.match(html, /data-also-recorded-as=/);
+    const chunks = locationChunks(html);
+    assert.equal(chunks.length, 1, `${otherName} chunks`);
+    const chunk = chunks[0]!;
+    const disp = displayHtml(chunk);
+    assert.match(disp, keepRe, `${otherName} keep display`);
+    const also = chunk.match(/<li[^>]*data-also-recorded-as=""[^>]*>[\s\S]*?<\/li>/g) ?? [];
+    assert.ok(also.length > 0, `${otherName} Also recorded as pill`);
+    assert.ok(
+      also.some((block) => alsoRe.test(block)),
+      `${otherName} Also recorded as spelling must sit in an Also <li>`,
+    );
   }
 }
 
@@ -605,6 +612,41 @@ describe("Locations Also recorded as — rendered HTML boundary", () => {
         otherName: "Plot 10 un-ordinal Lane vs 2nd Lane",
       },
       {
+        left: row("Plot # 10, Street, Gulshan-1, Dhaka", "BGMEA", "factory"),
+        right: row("Plot # 10, 2nd Street, Gulshan-1, Dhaka", "BKMEA", "factory"),
+        keepRe: /Plot # 10, Street/,
+        otherRe: /2nd Street/i,
+        otherName: "Plot 10 un-ordinal Street vs 2nd Street",
+      },
+      {
+        left: row("Plot # 10, Gali, Gulshan-1, Dhaka", "BGMEA", "factory"),
+        right: row("Plot # 10, 2nd Gali, Gulshan-1, Dhaka", "BKMEA", "factory"),
+        keepRe: /Plot # 10, Gali/,
+        otherRe: /2nd Gali/i,
+        otherName: "Plot 10 un-ordinal Gali vs 2nd Gali",
+      },
+      {
+        left: row("Plot # 10, Gulshan, Airport Road, Dhaka", "BGMEA", "factory"),
+        right: row("Plot # 10, Gulshan, Green, Dhaka", "BKMEA", "factory"),
+        keepRe: /Airport Road/i,
+        otherRe: /\bGreen\b/i,
+        otherName: "Plot 10 Gulshan Airport Road vs Gulshan Green",
+      },
+      {
+        left: row("Plot # 10, 10 Kazi Nazrul Islam Avenue, Green, Dhaka", "BGMEA", "factory"),
+        right: row("Plot # 10, 10 Green, Nazrul, Dhaka", "BKMEA", "factory"),
+        keepRe: /Kazi Nazrul Islam Avenue, Green/,
+        otherRe: /Green, Nazrul/,
+        otherName: "Kazi Nazrul Islam Avenue leftover vs Green Nazrul",
+      },
+      {
+        left: row("10, C DA Road, Chittagong", "BGMEA", "factory"),
+        right: row("10, DA Road, Chittagong", "BKMEA", "factory"),
+        keepRe: /C DA Road/i,
+        otherRe: /10, DA Road/i,
+        otherName: "C DA Road vs DA Road",
+      },
+      {
         left: row("Plot # 10, 1st Gali, Gulshan-1, Dhaka", "BGMEA", "factory"),
         right: row("Plot # 10, 2nd Gali, Gulshan-1, Dhaka", "BKMEA", "factory"),
         keepRe: /1st Gali/i,
@@ -684,13 +726,39 @@ describe("Locations Also recorded as — rendered HTML boundary", () => {
   });
 
   it("shows Building # 13 as Also recorded as of House 13 at the same Plot+Holding", () => {
-    assertMergedAddressRowHtml(
-      row("House # 62, Plot # 10, Holding # 1, House # 13, Tejgaon, Dhaka", "BGMEA", "factory"),
-      row("House # 62, Plot # 10, Holding # 1, Building # 13, Tejgaon, Dhaka", "BKMEA", "factory"),
-      /House # 13/,
-      /Building # 13/,
-      "House 13 vs Building # 13",
+    const house13 = row(
+      "House # 62, Plot # 10, Holding # 1, House # 13, Tejgaon, Dhaka",
+      "BGMEA",
+      "factory",
     );
+    const building13 = row(
+      "House # 62, Plot # 10, Holding # 1, Building # 13, Tejgaon, Dhaka",
+      "BKMEA",
+      "factory",
+    );
+    for (const ordered of [
+      [house13, building13],
+      [building13, house13],
+    ]) {
+      assert.equal(
+        mergeUniqueLocations(ordered).length,
+        1,
+        "House 13 vs Building # 13 matcher merge",
+      );
+      const html = renderAddressRows(ordered);
+      assert.equal((html.match(/data-location-row=""/g) ?? []).length, 1);
+      const chunk = locationChunks(html)[0]!;
+      const disp = displayHtml(chunk);
+      const also = chunk.match(/<li[^>]*data-also-recorded-as=""[^>]*>[\s\S]*?<\/li>/g) ?? [];
+      const houseDisp = /House # 13/.test(disp);
+      const bldgDisp = /Building # 13/.test(disp);
+      const houseAlso = also.some((block) => /House # 13/.test(block));
+      const bldgAlso = also.some((block) => /Building # 13/.test(block));
+      assert.ok(
+        (houseDisp && bldgAlso) || (bldgDisp && houseAlso),
+        "House 13 vs Building # 13 Also <li> isolation",
+      );
+    }
     assertMergedAddressRowHtml(
       row("67, City Heart Building, Suite # 4/3, Naya Paltan, Dhaka", "BGMEA", "mailing"),
       row("SUIT-4/3, CITY HEART, 67 NAYAPALTAN, PALTAN, DHAKA", "BKMEA", "mailing"),
@@ -734,6 +802,39 @@ describe("Locations Also recorded as — rendered HTML boundary", () => {
       /Union Plaza/i,
       /DEPZ|D EPZ/i,
       "Union Plaza 140 Baron D EPZ vs DEPZ Road",
+    );
+    assertMergedAddressRowHtml(
+      row("Plot # 23-24, Union - Telulzora, Hemayetpur\nDhaka\nSavar", "BGMEA", "factory"),
+      row(
+        "Holding No. 87, Plot No. 23, 24, 25, Hemayetpur, Tetuljhora Union, Savar, Dhaka - 1340, Bangladesh",
+        "OEKO_TEX",
+        "factory",
+      ),
+      /23-24|Holding No\. 87/i,
+      /Telulzora|Tetuljhora|Hemayetpur/i,
+      "Plot 23-24 Telulzora vs Holding 87 Hemayetpur",
+    );
+    assertMergedAddressRowHtml(
+      row("South Nayapara, 6, Dogri Mouja, Bhawal\nGazipur\nMirjapur", "BGMEA", "factory"),
+      row(
+        "South Noyapara, 6 No Dogri, P.O : Bhawal, Mirzapur, Gazipur Sadar PS, Gazipur - 1703, Bangladesh",
+        "OEKO_TEX",
+        "factory",
+      ),
+      /Nayapara|Noyapara/i,
+      /Nayapara|Noyapara|Dogri/i,
+      "6 Dogri Mouja vs 6 No Dogri",
+    );
+    assertMergedAddressRowHtml(
+      row(
+        "Plot # 16 - 18, Dakhin Panishail, EPZ-Kaliakoir Road, Kashimpur, Gazipur - 1349, Bangladesh",
+        "OEKO_TEX",
+        "factory",
+      ),
+      row("PLOT # 16-18, KAKHIN PANISHALI, EPZ-KALIAKOIR, KASHIMPUR, GAZIPUR", "BKMEA", "factory"),
+      /Panishail|PANISHALI/i,
+      /Panishail|PANISHALI|Kakhin|Dakhin/i,
+      "Dakhin Panishail vs Kakhin Panishali",
     );
   });
 
