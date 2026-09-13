@@ -5854,7 +5854,25 @@ describe("mergeUniqueLocations — empty rows, duplicates, overview buckets", ()
       2,
       "Plot 10 First Lane vs Sixth Lane",
     );
-    for (const other of ["Greenpark", "Greenfield", "Greenland", "Greenwich"]) {
+    for (const other of [
+      "Greenpark",
+      "Greenfield",
+      "Greenland",
+      "Greenwich",
+      "Greenway",
+      "Greenwood",
+      "Greenbelt",
+      "Greenhill",
+      "Greenview",
+      "Greenacre",
+      "Greentown",
+      "Greenridge",
+      "Greenbank",
+      "Greenwoods",
+      "Greenpoint",
+      "Greenmount",
+      "Greenleaf",
+    ]) {
       assertBothOrders(
         row("Plot # 10, 10 Green, Gulshan-1, Dhaka"),
         row(`Plot # 10, 10 ${other}, Gulshan-1, Dhaka`),
@@ -5862,6 +5880,211 @@ describe("mergeUniqueLocations — empty rows, duplicates, overview buckets", ()
         `Plot 10 Green vs Plot 10 ${other}`,
       );
     }
+    assertBothOrders(
+      row("Plot # 10, Green, Dhaka"),
+      row("Plot # 10, Greenwood, Dhaka"),
+      2,
+      "Plot 10 Green vs Greenwood without restated 10",
+    );
+    for (const word of ["Gully", "Gulley", "Galli"]) {
+      assertBothOrders(
+        row(`10, C DA ${word}, Chittagong`),
+        row(`10, DA ${word}, Chittagong`),
+        2,
+        `C DA ${word} vs DA ${word}`,
+      );
+      assertBothOrders(
+        row(`Plot # 10, C DA ${word}, Chittagong`),
+        row(`Plot # 10, DA ${word}, Chittagong`),
+        2,
+        `Plot # 10 C DA ${word} vs DA ${word}`,
+      );
+      assertBothOrders(
+        row(`10, C DA ${word}, Chittagong`),
+        row(`10, CDA ${word}, Chittagong`),
+        1,
+        `C DA ${word} vs CDA ${word} spelling`,
+      );
+    }
+    assertBothOrders(
+      row("10, I A Gully, Dhaka"),
+      row("10, A Gully, Dhaka"),
+      2,
+      "I A Gully vs A Gully",
+    );
+    assertBothOrders(
+      row("10, C DA Gully, Chittagong"),
+      row("10, DA Gali, Chittagong"),
+      2,
+      "C DA Gully vs DA Gali",
+    );
+    for (const word of ["Alley", "Gally", "Guli"]) {
+      assertBothOrders(
+        row(`Plot # 10, 1st ${word}, Gulshan-1, Dhaka`),
+        row(`Plot # 10, 2nd ${word}, Gulshan-1, Dhaka`),
+        2,
+        `Plot 10 1st ${word} vs 2nd ${word}`,
+      );
+    }
+    assertBothOrders(
+      row("Plot # 10, 12th Lane, Gulshan-1, Dhaka"),
+      row("Plot # 10, Twelfth Lane, Gulshan-1, Dhaka"),
+      1,
+      "Plot 10 12th Lane vs Twelfth Lane",
+    );
+    assertBothOrders(
+      row("Plot # 10, 12th Street, Gulshan-1, Dhaka"),
+      row("Plot # 10, Twelfth Street, Gulshan-1, Dhaka"),
+      1,
+      "Plot 10 12th Street vs Twelfth Street",
+    );
+    assertBothOrders(
+      row("Plot # 10, 13th Lane, Gulshan-1, Dhaka"),
+      row("Plot # 10, Thirteenth Lane, Gulshan-1, Dhaka"),
+      1,
+      "Plot 10 13th Lane vs Thirteenth Lane",
+    );
+    assertBothOrders(
+      row("Plot # 10, 20th Lane, Gulshan-1, Dhaka"),
+      row("Plot # 10, Twentieth Lane, Gulshan-1, Dhaka"),
+      1,
+      "Plot 10 20th Lane vs Twentieth Lane",
+    );
+    assertBothOrders(
+      row("Plot # 10, 1st Lane, Gulshan-1, Dhaka"),
+      row("Plot # 10, Twelfth Lane, Gulshan-1, Dhaka"),
+      2,
+      "Plot 10 1st Lane vs Twelfth Lane",
+    );
+    assertBothOrders(
+      row("Plot # 10, First Lane, Gulshan-1, Dhaka"),
+      row("Plot # 10, Twelfth Lane, Gulshan-1, Dhaka"),
+      2,
+      "Plot 10 First Lane vs Twelfth Lane",
+    );
+    assertBothOrders(
+      row("Plot # 10, 1st Street, Gulshan-1, Dhaka"),
+      row("Plot # 10, Twelfth Street, Gulshan-1, Dhaka"),
+      2,
+      "Plot 10 1st Street vs Twelfth Street",
+    );
+    assertBothOrders(
+      row("Plot # 10, Joydebpur Road, Dhaka"),
+      row("Plot # 10, Tejgaon Road, Dhaka"),
+      2,
+      "Plot 10 Joydebpur Road vs Tejgaon Road",
+    );
+    assertBothOrders(
+      row("Plot # 10, Singair Road, Dhaka"),
+      row("Plot # 10, Joydebpur Road, Dhaka"),
+      2,
+      "Plot 10 Singair Road vs Joydebpur Road",
+    );
+    assertBothOrders(
+      row("Plot # 10, Shahriar Road, Dhaka"),
+      row("Plot # 10, Sharifpur Road, Dhaka"),
+      2,
+      "Plot 10 Shahriar Road vs Sharifpur Road without Sonda",
+    );
+    assertBothOrders(
+      row("Plot # 10, Valuka, Joydebpur Road, Dhaka"),
+      row("Plot # 10, Valuka, Tejgaon Road, Dhaka"),
+      2,
+      "Plot 10 Valuka Joydebpur Road vs Tejgaon Road",
+    );
+    assertBothOrders(
+      row("Plot # 10, Valuka, Kazi Nazrul Islam Road, Dhaka"),
+      row("Plot # 10, Valuka, Tejgaon Road, Dhaka"),
+      2,
+      "Plot 10 Valuka Kazi vs Tejgaon Road",
+    );
+    assertBothOrders(
+      row("Plot # 10, Valuka, Singair Road, Dhaka"),
+      row("Plot # 10, Valuka, Joydebpur Road, Dhaka"),
+      2,
+      "Plot 10 Valuka Singair vs Joydebpur Road",
+    );
+    assertBothOrders(
+      row("Plot # 10, 10, Valuka, Joydebpur Road, Dhaka"),
+      row("Plot # 10, 10, Valuka, Tejgaon Road, Dhaka"),
+      2,
+      "stuffed Plot 10 Valuka Joydebpur vs Tejgaon",
+    );
+    assertBothOrders(
+      row("Plot # 10, Satarkul, Joydebpur Road, Dhaka"),
+      row("Plot # 10, Satarkul, Tejgaon Road, Dhaka"),
+      2,
+      "Plot 10 Satarkul Joydebpur vs Tejgaon",
+    );
+    assertBothOrders(
+      row("Plot # 10, Hemayetpur, Joydebpur Road, Dhaka"),
+      row("Plot # 10, Hemayetpur, Tejgaon Road, Dhaka"),
+      2,
+      "Plot 10 Hemayetpur Joydebpur vs Tejgaon",
+    );
+    assertBothOrders(
+      row("Plot # 636, Shahriar Road, Sonda"),
+      row("636, Sharifpur Road, Sonda"),
+      1,
+      "Plot 636 Shahriar vs Sharifpur at Sonda after named-road XOR",
+    );
+    assertBothOrders(
+      row("Plot # 10, C DA Road, Chittagong"),
+      row("Plot # 10, DA, Chittagong"),
+      2,
+      "Plot # 10 C DA Road vs Plot # unsuffixed DA",
+    );
+    assertBothOrders(
+      row("Plot # 140, C DA Road, Chittagong"),
+      row("Plot # 140, DA, Chittagong"),
+      2,
+      "Plot # 140 C DA Road vs unsuffixed DA",
+    );
+    assertBothOrders(
+      row("Plot # 10, C DA Gali, Chittagong"),
+      row("Plot # 10, DA, Chittagong"),
+      2,
+      "Plot # 10 C DA Gali vs Plot # unsuffixed DA",
+    );
+    assertBothOrders(
+      row("Plot # 10, I A Road, Dhaka"),
+      row("Plot # 10, A, Dhaka"),
+      2,
+      "Plot # 10 I A Road vs Plot # unsuffixed A",
+    );
+    assertBothOrders(
+      row("10, I A Road, Dhaka"),
+      row("10, A, Dhaka"),
+      2,
+      "unlabelled I A Road vs unsuffixed A",
+    );
+    assertBothOrders(
+      row("10 CDA Road, Chittagong"),
+      row("10 DA, Chittagong"),
+      2,
+      "10 CDA Road vs 10 DA no comma",
+    );
+    assertBothOrders(
+      row("10, C DA Road, Chittagong"),
+      row("10 DA, Chittagong"),
+      2,
+      "10 C DA Road vs 10 DA no comma",
+    );
+    assertBothOrders(
+      row("Plot # 23-24, Union - Telulzora, Hemayetpur, Dhaka, Savar"),
+      row("Plot # 23-24, Union, Dogri, Hemayetpur, Dhaka, Savar"),
+      2,
+      "Plot 23-24 Union Telulzora vs Union Dogri",
+    );
+    assert.equal(
+      displays([
+        row("Plot # 10, Valuka, Joydebpur Road, Dhaka"),
+        row("Plot # 10, Valuka, Tejgaon Road, Dhaka"),
+        row("Plot # 10, Valuka, Station Road, Dhaka"),
+      ]).length,
+      3,
+      "three-string Valuka Joydebpur+Tejgaon+Station",
+    );
     assertBothOrders(
       row("House # 50, Road # 3, Gulshan-1, Dhaka"),
       row("House # 50, Road # 3, 7 Kakhin Banani, Gulshan-1, Dhaka"),
