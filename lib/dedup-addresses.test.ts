@@ -6345,6 +6345,72 @@ describe("mergeUniqueLocations — empty rows, duplicates, overview buckets", ()
       "Plot 10 Mohammadpur vs Shahjadpur at Sonda",
     );
     assertBothOrders(
+      row("Plot # 10, Rampura Road, Sonda"),
+      row("Plot # 10, Rampur Road, Sonda"),
+      2,
+      "Plot 10 Rampura vs Rampur at Sonda",
+    );
+    assertBothOrders(
+      row("Plot # 10, Rampura Road, Dhaka"),
+      row("Plot # 10, Rampur Road, Dhaka"),
+      2,
+      "Plot 10 Rampura vs Rampur no Sonda",
+    );
+    assertBothOrders(
+      row("Plot # 10, Keraniganj Road, Dhaka"),
+      row("Plot # 10, Narayanganj Road, Dhaka"),
+      2,
+      "Plot 10 Keraniganj vs Narayanganj",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, Dhaka"),
+      row("Plot # 10, Airpark Road, Dhaka"),
+      2,
+      "Plot 10 Airport vs Airpark",
+    );
+    assertBothOrders(
+      row("Plot # 10, Hariken Road, Dhaka"),
+      row("Plot # 10, Horizon Road, Dhaka"),
+      2,
+      "Plot 10 Hariken vs Horizon",
+    );
+    assertBothOrders(
+      row("Plot # 10, Hariken Road, Dhaka"),
+      row("Plot # 10, Harijan Road, Dhaka"),
+      2,
+      "Plot 10 Hariken vs Harijan",
+    );
+    assertBothOrders(
+      row("Plot # 10, Green Road, Dhaka"),
+      row("Plot # 10, Grain Road, Dhaka"),
+      2,
+      "Plot 10 Green vs Grain",
+    );
+    assertBothOrders(
+      row("Plot # 10, Station Road, Sonda"),
+      row("Plot # 10, Staten Road, Sonda"),
+      2,
+      "Plot 10 Station vs Staten at Sonda",
+    );
+    assertBothOrders(
+      row("Plot # 10, Station Road, Sonda"),
+      row("Plot # 10, Stationary Road, Sonda"),
+      2,
+      "Plot 10 Station vs Stationary at Sonda",
+    );
+    assertBothOrders(
+      row("Plot # 10, Mirpur Road, Sonda"),
+      row("Plot # 10, Rampur Road, Sonda"),
+      2,
+      "Plot 10 Mirpur vs Rampur at Sonda",
+    );
+    assertBothOrders(
+      row("Plot # 10, Chandora Road, Sonda"),
+      row("Plot # 10, Bashundhara Road, Sonda"),
+      2,
+      "Plot 10 Chandora vs Bashundhara at Sonda",
+    );
+    assertBothOrders(
       row("Plot # 23-24, Telulzora Union, Hemayetpur, Dhaka, Savar"),
       row(
         "Holding No. 87, Plot No. 23, 24, 25, Hemayetpur, Tetuljhora Union, Savar, Dhaka - 1340, Bangladesh",
@@ -6392,6 +6458,109 @@ describe("mergeUniqueLocations — empty rows, duplicates, overview buckets", ()
         displays(ordered).length,
         2,
         "three-string Telulzora+Village Dogri+Holding 87 permutation",
+      );
+    }
+    assertBothOrders(
+      row("Plot # 23-24, Village, Hemayetpur, Dhaka, Savar"),
+      row(
+        "Holding No. 87, Plot No. 23, 24, 25, Hemayetpur, Tetuljhora Union, Savar, Dhaka - 1340, Bangladesh",
+      ),
+      1,
+      "Village Hemayetpur vs Holding 87",
+    );
+    assertBothOrders(
+      row("Plot # 23-24, Vill, Hemayetpur, Dhaka, Savar"),
+      row(
+        "Holding No. 87, Plot No. 23, 24, 25, Hemayetpur, Tetuljhora Union, Savar, Dhaka - 1340, Bangladesh",
+      ),
+      1,
+      "Vill Hemayetpur vs Holding 87",
+    );
+    assertBothOrders(
+      row("Plot # 23-24, Hemayetpur Village, Dhaka, Savar"),
+      row(
+        "Holding No. 87, Plot No. 23, 24, 25, Hemayetpur, Tetuljhora Union, Savar, Dhaka - 1340, Bangladesh",
+      ),
+      1,
+      "Hemayetpur Village title-after vs Holding 87",
+    );
+    for (const ordered of permutations([
+      row("Plot # 23-24, Union - Telulzora, Hemayetpur, Dhaka, Savar"),
+      row("Plot # 23-24, Village, Hemayetpur, Dhaka, Savar"),
+      row(
+        "Holding No. 87, Plot No. 23, 24, 25, Hemayetpur, Tetuljhora Union, Savar, Dhaka - 1340, Bangladesh",
+      ),
+    ])) {
+      assert.equal(
+        displays(ordered).length,
+        1,
+        "three-string hyphen+Village Hemayetpur+Holding 87 permutation",
+      );
+    }
+    assertBothOrders(
+      row("Plot # 23-24, Union Plaza, Hemayetpur, Dhaka, Savar"),
+      row(
+        "Holding No. 87, Plot No. 23, 24, 25, Hemayetpur, Tetuljhora Union, Savar, Dhaka - 1340, Bangladesh",
+      ),
+      2,
+      "Union Plaza vs Holding 87 Tetuljhora",
+    );
+    assertBothOrders(
+      row("Plot # 23-24, Union Complex, Hemayetpur, Dhaka, Savar"),
+      row(
+        "Holding No. 87, Plot No. 23, 24, 25, Hemayetpur, Tetuljhora Union, Savar, Dhaka - 1340, Bangladesh",
+      ),
+      2,
+      "Union Complex vs Holding 87 Tetuljhora",
+    );
+    assertBothOrders(
+      row("Plot # 23-24, Union Tower, Hemayetpur, Dhaka, Savar"),
+      row(
+        "Holding No. 87, Plot No. 23, 24, 25, Hemayetpur, Tetuljhora Union, Savar, Dhaka - 1340, Bangladesh",
+      ),
+      2,
+      "Union Tower vs Holding 87 Tetuljhora",
+    );
+    assertBothOrders(
+      row("Plot # 23-24, Union Market, Hemayetpur, Dhaka, Savar"),
+      row(
+        "Holding No. 87, Plot No. 23, 24, 25, Hemayetpur, Tetuljhora Union, Savar, Dhaka - 1340, Bangladesh",
+      ),
+      2,
+      "Union Market vs Holding 87 Tetuljhora",
+    );
+    for (const ordered of permutations([
+      row("Plot # 23-24, Union - Telulzora, Hemayetpur, Dhaka, Savar"),
+      row("Plot # 23-24, Union Plaza, Hemayetpur, Dhaka, Savar"),
+      row(
+        "Holding No. 87, Plot No. 23, 24, 25, Hemayetpur, Tetuljhora Union, Savar, Dhaka - 1340, Bangladesh",
+      ),
+    ])) {
+      assert.equal(
+        displays(ordered).length,
+        2,
+        "three-string hyphen+Union Plaza+Holding 87 permutation",
+      );
+    }
+    assertBothOrders(
+      row("Plot # 23-24, Village of Dogri, Hemayetpur, Dhaka, Savar"),
+      row(
+        "Holding No. 87, Plot No. 23, 24, 25, Hemayetpur, Tetuljhora Union, Savar, Dhaka - 1340, Bangladesh",
+      ),
+      2,
+      "Village of Dogri vs Holding 87 Tetuljhora",
+    );
+    for (const ordered of permutations([
+      row("Plot # 23-24, Union - Telulzora, Hemayetpur, Dhaka, Savar"),
+      row("Plot # 23-24, Village of Dogri, Hemayetpur, Dhaka, Savar"),
+      row(
+        "Holding No. 87, Plot No. 23, 24, 25, Hemayetpur, Tetuljhora Union, Savar, Dhaka - 1340, Bangladesh",
+      ),
+    ])) {
+      assert.equal(
+        displays(ordered).length,
+        2,
+        "three-string Telulzora+Village of Dogri+Holding 87 permutation",
       );
     }
   });

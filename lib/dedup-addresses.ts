@@ -3554,34 +3554,54 @@ function extraNameShare(a: string[], b: string[]): boolean {
   return false;
 }
 
-/** Same street spelling (Joydebpur/Joydevpur, C DA/CDA). Not Sharifpur vs
- *  Faridpur — those extraNameShare only through roadTailsShare lev 3. */
+/** Same street spelling (Joydebpur/Joydevpur, C DA/CDA, Hariken/Haricane).
+ *  Not Rampura vs Rampur, Keraniganj vs Narayanganj, Airport vs Airpark. */
 function sameNamedRoadSpelling(a: string[], b: string[]): boolean {
   const sa = a.join("");
   const sb = b.join("");
   if (!sa || !sb) return false;
   if (sa === sb) return true;
-  if (sameWord(sa, sb)) return true;
+  if (isCompetingRoadExtraToken(sa) || isCompetingRoadExtraToken(sb)) {
+    return false;
+  }
+  // Rampura vs Rampur share -pur but isLocalityTailPlace("rampur") is
+  // false (length === tail+3). Unequal-length shared tails are two roads.
   if (
-    a.some((p) =>
-      b.some(
-        (q) =>
-          (p === q || sameWord(p, q)) &&
-          p.length >= 4 &&
-          !(PLACE_TAILS as readonly string[]).includes(p),
-      ),
+    sa.length !== sb.length &&
+    PLACE_TAILS.some(
+      (t) => t.length >= 3 && sa.endsWith(t) && sb.endsWith(t) && sa !== sb,
     )
   ) {
-    return true;
+    return false;
   }
-  // Hariken vs Haricane / Shuhrawardhi vs Shorawardi: extraNameShare via
-  // roadTailsShare lev 3 and sound-key lev 1. Sharifpur vs Faridpur is
-  // the same string-lev 3 but sound-key lev 2 (two different -pur roads).
-  if (extraNameShare(a, b)) {
-    const ka = bengaliSoundKey(sa);
-    const kb = bengaliSoundKey(sb);
-    if (ka && kb && levenshtein(ka, kb) <= 1) return true;
+  if (sameWord(sa, sb) && sa.length !== sb.length) {
+    // Rampura vs Rampur (one side is a -pur locality). Jubilee vs Jublee is
+    // a one-letter road spelling (lev 1). Station vs Staten shares a
+    // sound-key at lev 2; Chandora vs Bashundhara is lev 6.
+    if (
+      PLACE_TAILS.some(
+        (t) => t.length >= 3 && (sa.endsWith(t) || sb.endsWith(t)),
+      )
+    ) {
+      return false;
+    }
+    return levenshtein(sa, sb) <= 1;
   }
+  // Two -pur/-ganj roads: Joydebpur/Joydevpur share a sound-key. Mirpur vs
+  // Rampur and Rampura vs Rampur do not.
+  if (
+    PLACE_TAILS.some(
+      (t) => t.length >= 3 && sa.endsWith(t) && sb.endsWith(t),
+    )
+  ) {
+    if (sa === sb) return true;
+    if (sa.length !== sb.length) return false;
+    return bengaliSoundKey(sa) === bengaliSoundKey(sb);
+  }
+  if (sameWord(sa, sb)) return true;
+  const [x, y] = sa <= sb ? [sa, sb] : [sb, sa];
+  if (x === "haricane" && y === "hariken") return true;
+  if (x === "shorawardi" && y === "shuhrawardhi") return true;
   return false;
 }
 
@@ -4019,10 +4039,12 @@ function bareProperRoadPlaces(
         const kind = trimmed.match(
           /^(union|mouza|mouja|thana|upazila|upazilla|village|vill|post|gpo)\b/,
         )![1]!;
-        const rest = trimmed.replace(
-          /^(?:union|mouza|mouja|thana|upazila|upazilla|village|vill|post|gpo)\b[\s./_\u00AD\u200B\p{Pd}\u2212]*/u,
-          "",
-        );
+        const rest = trimmed
+          .replace(
+            /^(?:union|mouza|mouja|thana|upazila|upazilla|village|vill|post|gpo)\b[\s./_\u00AD\u200B\p{Pd}\u2212]*/u,
+            "",
+          )
+          .replace(/^(?:of|the)\s+/u, "");
         const skipOwnName = /^(?:union|village|vill|post|gpo|thana|upazila|upazilla)$/.test(
           kind,
         );
@@ -4235,7 +4257,7 @@ function unionNamesFromDisplay(display: string): string[] {
   };
   const title = String.raw`(?:union|village|vill)`;
   const lead = new RegExp(
-    String.raw`\b${title}\b[\s./_\u00AD\u200B\p{Pd}\u2212]*,?\s*([a-z]{3,})\b`,
+    String.raw`\b${title}\b[\s./_\u00AD\u200B\p{Pd}\u2212]*,?\s*(?:(?:of|the)\s+)?([a-z]{3,})\b`,
     EXTRA_RE_FLAGS,
   );
   for (const m of s.matchAll(lead)) push(m[1]!);
@@ -4260,16 +4282,32 @@ function unionNameShare(a: string[], b: string[]): boolean {
   );
 }
 
+/** "Union Plaza" / "Union Tower" — a building named Union, not a union name. */
+function unionBuildingFromDisplay(display: string): boolean {
+  const s = rewriteHouseOffice(display).toLowerCase();
+  return new RegExp(
+    String.raw`\bunion\b[\s./_\u00AD\u200B\p{Pd}\u2212]*,?\s*(?:plaza|tower|complex|centre|center|bhaban|bhawan|building|market|court|chamber|mansion)\b`,
+    EXTRA_RE_FLAGS,
+  ).test(s);
+}
+
 function extraRoadPlaceConflict(a: Candidate, b: Candidate): boolean {
   if (cleanAddressString(a.display) === cleanAddressString(b.display)) return false;
   const unionsA = unionNamesFromDisplay(a.display);
   const unionsB = unionNamesFromDisplay(b.display);
+  if (unionBuildingFromDisplay(a.display) && unionsB.length > 0) return true;
+  if (unionBuildingFromDisplay(b.display) && unionsA.length > 0) return true;
   if (
     unionsA.length > 0 &&
     unionsB.length > 0 &&
     !unionsA.some((x) => unionsB.some((y) => unionNameShare([x], [y])))
   ) {
-    return true;
+    // Village, Hemayetpur vs Tetuljhora Union — Hemayetpur is the shared
+    // village on Holding 87, not a second union. Village, Dogri is not
+    // named on Holding, so this still XORs.
+    const aOnB = unionsA.every((u) => extraNamedOnOther([u], b));
+    const bOnA = unionsB.every((u) => extraNamedOnOther([u], a));
+    if (!(aOnB || bOnA)) return true;
   }
   const ea = namedExtraTails(a.display);
   const eb = namedExtraTails(b.display);
