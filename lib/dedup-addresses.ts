@@ -2951,6 +2951,73 @@ const EXTRA_PLACE_SKIP_RE = (() => {
   const skipUnit = `(?:(?!${skipWord}(?=${sep}?${THOROUGHFARE_ALT}))${skipWord}(?:${sep}|(?=${skipWord})))`;
   return `(?:${skipUnit})*`;
 })();
+/** Compass / new / old / inner name the road (East Airport vs West Airport,
+ *  New Eskaton vs Old Eskaton). Extra-place minting still peels those so
+ *  7 South Banani stays Banani. */
+const ROAD_DIRECTION_KEEP = new Set([
+  "east",
+  "west",
+  "north",
+  "south",
+  "old",
+  "new",
+  "inner",
+  "outer",
+  "upper",
+  "lower",
+  "left",
+  "right",
+  "southern",
+  "northern",
+  "eastern",
+  "western",
+  "paschim",
+  "pashchim",
+  "pachim",
+  "dokkhin",
+  "dokhin",
+  "uttor",
+  "purbbo",
+  "dakkhin",
+  "poshchim",
+  "pashim",
+  "poshim",
+  "uttar",
+  "dakhin",
+  "dakshin",
+  "poschim",
+  "purba",
+  "purbo",
+  "naya",
+  "noya",
+  "shouth",
+]);
+const EXTRA_ROAD_SKIP_RE = (() => {
+  const skip = new Set<string>();
+  for (const t of GENERIC_TOKENS) {
+    if (isExactPlaceSkipToken(t) && !ROAD_DIRECTION_KEEP.has(t)) skip.add(t);
+  }
+  for (const t of [
+    "storied",
+    "storey",
+    "rd",
+    "st",
+    "old",
+    "new",
+    "inner",
+    "unit",
+    ...EXTRA_PLACE_SKIP_ALIASES,
+  ]) {
+    if (isExactPlaceSkipToken(t) && !ROAD_DIRECTION_KEEP.has(t)) skip.add(t);
+  }
+  if (skip.size === 0) return "";
+  const alt = [...skip].sort((a, b) => b.length - a.length).join("|");
+  const dash = String.raw`\s./_\u00AD\u200B\p{Pd}\u2212`;
+  const skipWord = `(?:${alt})`;
+  const sep = String.raw`[${dash}]+`;
+  const skipUnit = `(?:(?!${skipWord}(?=${sep}?${THOROUGHFARE_ALT}))${skipWord}(?:${sep}|(?=${skipWord})))`;
+  return `(?:${skipUnit})*`;
+})();
 /** SAT 7 / SAT7 / SAT-7 / SAT.7 all introduce the extra digit 7.
  *  Plot # 10, Airport still has to see 10 as the digit before Airport. */
 const PLOT_DIGIT_LEAD =
@@ -3092,19 +3159,19 @@ function roadHoldingEntries(display: string): Array<{ digit: string; tail: strin
   const out: Array<{ digit: string; tail: string }> = [];
   for (const word of ROAD_HOLDING_TAILS) {
     const comma = new RegExp(
-      String.raw`${lead}${p}(\d{1,3})\s*,\s*${EXTRA_PLACE_SKIP_RE}([a-z][^,]{0,40}?)\s+${word}\b`,
+      String.raw`${lead}${p}(\d{1,3})\s*,\s*${EXTRA_ROAD_SKIP_RE}([a-z][^,]{0,40}?)\s+${word}\b`,
       EXTRA_RE_FLAGS,
     );
     const space = new RegExp(
-      String.raw`${lead}${p}(\d{1,3})${EXTRA_DIGIT_GLUE}${EXTRA_PLACE_SKIP_RE}([a-z][^,]{0,40}?)\s+${word}\b`,
+      String.raw`${lead}${p}(\d{1,3})${EXTRA_DIGIT_GLUE}${EXTRA_ROAD_SKIP_RE}([a-z][^,]{0,40}?)\s+${word}\b`,
       EXTRA_RE_FLAGS,
     );
     const intervening = new RegExp(
-      String.raw`${EXTRA_DIGIT_LEAD}${p}(\d{1,3})\s*,\s*${EXTRA_PLACE_SKIP_RE}[a-z]{3,}\s*,\s*${EXTRA_PLACE_SKIP_RE}([a-z][^,]{0,40}?)\s+${word}\b`,
+      String.raw`${EXTRA_DIGIT_LEAD}${p}(\d{1,3})\s*,\s*${EXTRA_PLACE_SKIP_RE}[a-z]{3,}\s*,\s*${EXTRA_ROAD_SKIP_RE}([a-z][^,]{0,40}?)\s+${word}\b`,
       EXTRA_RE_FLAGS,
     );
     const interveningSpace = new RegExp(
-      String.raw`${EXTRA_DIGIT_LEAD}${p}(\d{1,3})${EXTRA_DIGIT_GLUE}${EXTRA_PLACE_SKIP_RE}[a-z]{3,}\s*,\s*${EXTRA_PLACE_SKIP_RE}([a-z][^,]{0,40}?)\s+${word}\b`,
+      String.raw`${EXTRA_DIGIT_LEAD}${p}(\d{1,3})${EXTRA_DIGIT_GLUE}${EXTRA_PLACE_SKIP_RE}[a-z]{3,}\s*,\s*${EXTRA_ROAD_SKIP_RE}([a-z][^,]{0,40}?)\s+${word}\b`,
       EXTRA_RE_FLAGS,
     );
     for (const re of [comma, space, intervening, interveningSpace]) {
@@ -3308,7 +3375,7 @@ function roadNameTokensFromTail(tail: string): string[] {
   const raw = tail
     .toLowerCase()
     .split(/[^a-z]+/)
-    .filter((t) => t.length >= 1 && !thorough.has(t) && t !== "new");
+    .filter((t) => t.length >= 1 && !thorough.has(t));
   const out: string[] = [];
   for (let i = 0; i < raw.length; i++) {
     const t = raw[i]!;
@@ -3604,18 +3671,33 @@ function coreSameNamedRoadSpelling(sa: string, sb: string): boolean {
 }
 
 function sameNamedRoadSpelling(a: string[], b: string[]): boolean {
-  if (coreSameNamedRoadSpelling(a.join(""), b.join(""))) return true;
-  // Kobi Jasimuddin vs Kazi Jashim Uddin — a short first token is the
-  // honorific, not the road. Station vs Staten has no such prefix.
+  // Peel compass / new / old before joining. East vs West share a sound-key
+  // ("st"), so sameWord cannot tell them apart. Exact remainder "airport"
+  // with different compass is two roads; Joydebpur vs Joydevpur still
+  // matches as a spelling after the peel. Honorifics (kobi/kazi) follow.
+  if (
+    a.length >= 2 &&
+    b.length >= 2 &&
+    ROAD_DIRECTION_KEEP.has(a[0]!) &&
+    ROAD_DIRECTION_KEEP.has(b[0]!)
+  ) {
+    const ra = a.slice(1).join("");
+    const rb = b.slice(1).join("");
+    if (ra && rb && ra === rb && a[0] !== b[0]) return false;
+    return coreSameNamedRoadSpelling(ra, rb);
+  }
   if (
     a.length >= 2 &&
     b.length >= 2 &&
     a[0]!.length <= 5 &&
     b[0]!.length <= 5
   ) {
-    return coreSameNamedRoadSpelling(a.slice(1).join(""), b.slice(1).join(""));
+    const ra = a.slice(1).join("");
+    const rb = b.slice(1).join("");
+    if (ra && rb && ra === rb && !sameWord(a[0]!, b[0]!)) return false;
+    return coreSameNamedRoadSpelling(ra, rb);
   }
-  return false;
+  return coreSameNamedRoadSpelling(a.join(""), b.join(""));
 }
 
 /** Shahriar vs Sharifpur at Sonda (Balaka Stitch Plot 636). Not extraNameShare
@@ -4006,6 +4088,9 @@ function bareProperRoadPlaces(
       if (!trimmed) continue;
       trimmed = trimmed.replace(/^\([^)]*\)\s*/u, "");
       if (!trimmed) continue;
+      // "The Village of Hemayetpur" — The is not a competing extra.
+      trimmed = trimmed.replace(/^(?:the|a|an)\s+/u, "");
+      if (!trimmed) continue;
       if (skipNextAsUnionName) {
         skipNextAsUnionName = false;
         const head = trimmed.match(/^([a-z]{3,})\b/)?.[1];
@@ -4057,7 +4142,7 @@ function bareProperRoadPlaces(
             /^(?:union|mouza|mouja|thana|upazila|upazilla|village|vill|post|gpo)\b[\s./_\u00AD\u200B\p{Pd}\u2212]*/u,
             "",
           )
-          .replace(/^(?:of|the)\s+/u, "");
+          .replace(/^(?:(?:of|the)\s+)+/u, "");
         const skipOwnName = /^(?:union|village|vill|post|gpo|thana|upazila|upazilla)$/.test(
           kind,
         );
@@ -4251,6 +4336,8 @@ function namedExtraTails(
 }
 
 function unionNameSkipToken(place: string): boolean {
+  // "The Village of Hemayetpur" title-after otherwise captures "the".
+  if (/^(?:the|a|an)$/.test(place)) return true;
   if (extraPlaceSkipToken(place)) return true;
   if (isThoroughfareWord(place)) return true;
   if (ADMIN_TOKENS.has(place) || HOUSING_CAMPUS_PLACES.has(place)) return true;
@@ -4270,10 +4357,19 @@ function unionNamesFromDisplay(display: string): string[] {
   };
   const title = String.raw`(?:union|village|vill)`;
   const lead = new RegExp(
-    String.raw`\b${title}\b[\s./_\u00AD\u200B\p{Pd}\u2212]*,?\s*(?:(?:of|the)\s+)?([a-z]{3,})\b`,
+    String.raw`(?:the\s+)?\b${title}\b[\s./_\u00AD\u200B\p{Pd}\u2212]*,?\s*(?:(?:of|the)\s+)*([a-z]{3,})\b`,
     EXTRA_RE_FLAGS,
   );
   for (const m of s.matchAll(lead)) push(m[1]!);
+  // Village, Hemayetpur, Dogri — Dogri is a second village after the title,
+  // not Dhaka (ADMIN skip).
+  const afterLead = new RegExp(
+    String.raw`(?:the\s+)?\b${title}\b[\s./_\u00AD\u200B\p{Pd}\u2212]*,?\s*(?:(?:of|the)\s+)*[a-z]{3,}\b((?:[\s,./_\u00AD\u200B\p{Pd}\u2212]+[a-z]{3,}\b)*)`,
+    EXTRA_RE_FLAGS,
+  );
+  for (const m of s.matchAll(afterLead)) {
+    for (const tok of (m[1] ?? "").split(/[^a-z]+/).filter(Boolean)) push(tok);
+  }
   const trail = new RegExp(
     String.raw`\b([a-z]{3,})\s+${title}\b`,
     EXTRA_RE_FLAGS,
@@ -4295,13 +4391,28 @@ function unionNameShare(a: string[], b: string[]): boolean {
   );
 }
 
-/** "Union Plaza" / "Union Tower" — a building named Union, not a union name. */
+/** "Union Plaza" / "Union Tower" / "Union House" — a building named Union,
+ *  not a union name. "Union of Plaza" is the same building. */
 function unionBuildingFromDisplay(display: string): boolean {
   const s = rewriteHouseOffice(display).toLowerCase();
   return new RegExp(
-    String.raw`\bunion\b[\s./_\u00AD\u200B\p{Pd}\u2212]*,?\s*(?:plaza|tower|complex|centre|center|bhaban|bhawan|building|market|court|chamber|mansion)\b`,
+    String.raw`\bunion\b[\s./_\u00AD\u200B\p{Pd}\u2212]*,?\s*(?:(?:of|the)\s+)?(?:plaza|tower|complex|centre|center|bhaban|bhawan|building|market|court|chamber|mansion|house|housing)\b`,
     EXTRA_RE_FLAGS,
   ).test(s);
+}
+
+function hasVillageKindTitle(display: string): boolean {
+  const s = rewriteHouseOffice(display).toLowerCase();
+  return new RegExp(
+    String.raw`(?:the\s+)?\b(?:village|vill)\b`,
+    EXTRA_RE_FLAGS,
+  ).test(s);
+}
+
+function hasUnionKindTitle(display: string): boolean {
+  if (unionBuildingFromDisplay(display)) return false;
+  const s = rewriteHouseOffice(display).toLowerCase();
+  return new RegExp(String.raw`\bunion\b`, EXTRA_RE_FLAGS).test(s);
 }
 
 function extraRoadPlaceConflict(a: Candidate, b: Candidate): boolean {
@@ -4317,10 +4428,35 @@ function extraRoadPlaceConflict(a: Candidate, b: Candidate): boolean {
   ) {
     // Village, Hemayetpur vs Tetuljhora Union — Hemayetpur is the shared
     // village on Holding 87, not a second union. Village, Dogri is not
-    // named on Holding, so this still XORs.
-    const aOnB = unionsA.every((u) => extraNamedOnOther([u], b));
-    const bOnA = unionsB.every((u) => extraNamedOnOther([u], a));
-    if (!(aOnB || bOnA)) return true;
+    // named on Holding, so this still XORs. Village, Hemayetpur vs
+    // Village, Dogri both title a village: extraNamedOnOther of a shared
+    // trailing Hemayetpur must not license that.
+    const villageWrapOfUnion =
+      (hasVillageKindTitle(a.display) &&
+        hasUnionKindTitle(b.display) &&
+        !hasVillageKindTitle(b.display) &&
+        unionsA.every((u) => extraNamedOnOther([u], b))) ||
+      (hasVillageKindTitle(b.display) &&
+        hasUnionKindTitle(a.display) &&
+        !hasVillageKindTitle(a.display) &&
+        unionsB.every((u) => extraNamedOnOther([u], a)));
+    if (!villageWrapOfUnion) return true;
+  }
+  // Shared Hemayetpur does not license unmatched Dogri when both strings
+  // title a village.
+  if (hasVillageKindTitle(a.display) && hasVillageKindTitle(b.display)) {
+    const unmatchedA = unionsA.filter(
+      (u) => !unionsB.some((v) => unionNameShare([u], [v])),
+    );
+    const unmatchedB = unionsB.filter(
+      (u) => !unionsA.some((v) => unionNameShare([u], [v])),
+    );
+    if (
+      unmatchedA.some((u) => !extraNamedOnOther([u], b)) ||
+      unmatchedB.some((u) => !extraNamedOnOther([u], a))
+    ) {
+      return true;
+    }
   }
   const ea = namedExtraTails(a.display);
   const eb = namedExtraTails(b.display);
