@@ -1196,6 +1196,104 @@ describe("Locations Also recorded as — rendered HTML boundary", () => {
         otherRe: /Outer Airport Road/i,
         otherName: "Plot 10 Inner Airport vs Outer Airport",
       },
+      {
+        left: row("Plot # 23-24, Union - Telulzora, Hemayetpur, Dhaka, Savar", "BGMEA", "factory"),
+        right: row("Plot # 23-24, Village, Dogri, Hemayetpur, Dhaka, Savar", "BKMEA", "factory"),
+        keepRe: /Telulzora/i,
+        otherRe: /Village,\s*Dogri/i,
+        otherName: "Union hyphen Telulzora vs Village Dogri",
+      },
+      {
+        left: row("Plot # 23-24, Union - Telulzora, Hemayetpur, Dhaka, Savar", "BGMEA", "factory"),
+        right: row("Plot # 23-24, Village, Dogri, Hemayetpur, Dhaka, Savar", "BKMEA", "factory"),
+        keepRe: /Village,\s*Dogri/i,
+        otherRe: /Telulzora/i,
+        otherName: "Village Dogri vs Union hyphen Telulzora",
+      },
+      {
+        left: row("Plot # 23-24, Union - Telulzora, Hemayetpur, Dhaka, Savar", "BGMEA", "factory"),
+        right: row("Plot # 23-24, Village of Dogri, Hemayetpur, Dhaka, Savar", "BKMEA", "factory"),
+        keepRe: /Telulzora/i,
+        otherRe: /Village of Dogri/i,
+        otherName: "Union hyphen Telulzora vs Village of Dogri",
+      },
+      {
+        left: row("Plot # 23-24, Union - Dogri, Hemayetpur, Dhaka, Savar", "BGMEA", "factory"),
+        right: row("Plot # 23-24, Village, Hemayetpur, Dhaka, Savar", "BKMEA", "factory"),
+        keepRe: /Union\s*-\s*Dogri/i,
+        otherRe: /Village,\s*Hemayetpur/i,
+        otherName: "Union hyphen Dogri vs Village Hemayetpur",
+      },
+      {
+        left: row("Plot # 10, East Mirpur Road, Sonda", "BGMEA", "factory"),
+        right: row("Plot # 10, West Mirpur Road, Sonda", "BKMEA", "factory"),
+        keepRe: /East Mirpur Road/i,
+        otherRe: /West Mirpur Road/i,
+        otherName: "Plot 10 East Mirpur vs West Mirpur at Sonda",
+      },
+      {
+        left: row("Plot # 10, East Mirpur Road, Dhaka", "BGMEA", "factory"),
+        right: row("Plot # 10, West Mirpur Road, Dhaka", "BKMEA", "factory"),
+        keepRe: /East Mirpur Road/i,
+        otherRe: /West Mirpur Road/i,
+        otherName: "Plot 10 East Mirpur vs West Mirpur at Dhaka",
+      },
+      {
+        left: row("Plot # 10, East Mirpur Road", "BGMEA", "factory"),
+        right: row("Plot # 10, West Mirpur Road", "BKMEA", "factory"),
+        keepRe: /East Mirpur Road/i,
+        otherRe: /West Mirpur Road/i,
+        otherName: "Plot 10 East Mirpur vs West Mirpur no village",
+      },
+      {
+        left: row("Plot # 10, East Tejgaon Road, Sonda", "BGMEA", "factory"),
+        right: row("Plot # 10, West Tejgaon Road, Sonda", "BKMEA", "factory"),
+        keepRe: /East Tejgaon Road/i,
+        otherRe: /West Tejgaon Road/i,
+        otherName: "Plot 10 East Tejgaon vs West Tejgaon at Sonda",
+      },
+      {
+        left: row("Plot # 10, East Tejgaon Road, Dhaka", "BGMEA", "factory"),
+        right: row("Plot # 10, West Tejgaon Road, Dhaka", "BKMEA", "factory"),
+        keepRe: /East Tejgaon Road/i,
+        otherRe: /West Tejgaon Road/i,
+        otherName: "Plot 10 East Tejgaon vs West Tejgaon at Dhaka",
+      },
+      {
+        left: row("Plot # 10, East Joydebpur Road, Sonda", "BGMEA", "factory"),
+        right: row("Plot # 10, West Joydebpur Road, Sonda", "BKMEA", "factory"),
+        keepRe: /East Joydebpur Road/i,
+        otherRe: /West Joydebpur Road/i,
+        otherName: "Plot 10 East Joydebpur vs West Joydebpur same remainder",
+      },
+      {
+        left: row("Plot # 10, EastAirport Road, Dhaka", "BGMEA", "factory"),
+        right: row("Plot # 10, WestAirport Road, Dhaka", "BKMEA", "factory"),
+        keepRe: /EastAirport|Eastairport/i,
+        otherRe: /WestAirport|Westairport/i,
+        otherName: "Plot 10 EastAirport vs WestAirport concatenated",
+      },
+      {
+        left: row("Plot # 10, East Airport Road, Dhaka", "BGMEA", "factory"),
+        right: row("Plot # 10, WestAirport Road, Dhaka", "BKMEA", "factory"),
+        keepRe: /East Airport Road/i,
+        otherRe: /WestAirport|Westairport/i,
+        otherName: "Plot 10 East Airport spaced vs WestAirport glued",
+      },
+      {
+        left: row("Plot # 10, North East Airport Road, Dhaka", "BGMEA", "factory"),
+        right: row("Plot # 10, South West Airport Road, Dhaka", "BKMEA", "factory"),
+        keepRe: /North East Airport Road/i,
+        otherRe: /South West Airport Road/i,
+        otherName: "Plot 10 North East Airport vs South West Airport",
+      },
+      {
+        left: row("Plot # 10, East Airport Road, Sonda", "BGMEA", "factory"),
+        right: row("Plot # 10, West Airport Road, Sonda", "BKMEA", "factory"),
+        keepRe: /East Airport Road/i,
+        otherRe: /West Airport Road/i,
+        otherName: "Plot 10 East Airport vs West Airport at Sonda",
+      },
     ];
     for (const c of cases) {
       assertSplitAddressRowHtml(c.left, c.right, c.keepRe, c.otherRe, c.otherName);
@@ -1581,13 +1679,44 @@ describe("Locations Also recorded as — rendered HTML boundary", () => {
         "three-string Telulzora+Village Hemayetpur+Village Dogri row count",
       );
       const chunks = locationChunks(html);
-      const dogriRow = chunks.find((chunk) => /Dogri/i.test(displayHtml(chunk)));
+      const dogriRow = chunks.find((chunk) => /Village,\s*Dogri/i.test(displayHtml(chunk)));
       assert.ok(dogriRow, "Village Dogri row missing");
-      const also = dogriRow!.match(/<li[^>]*data-also-recorded-as=""[^>]*>[\s\S]*?<\/li>/g) ?? [];
+      const telulzoraRow = chunks.find((chunk) => /Telulzora/i.test(displayHtml(chunk)));
+      const hemayetpurRow = chunks.find((chunk) =>
+        /Village,\s*Hemayetpur/i.test(displayHtml(chunk)),
+      );
       assert.ok(
-        !also.some((block) => /Village,\s*Hemayetpur/i.test(block)),
+        telulzoraRow || hemayetpurRow,
+        "Telulzora / Village Hemayetpur row missing",
+      );
+      assert.notEqual(telulzoraRow, dogriRow, "Telulzora fused into Village Dogri");
+      assert.notEqual(hemayetpurRow, dogriRow, "Village Hemayetpur fused into Village Dogri");
+      const dogriAlso = dogriRow!.match(/<li[^>]*data-also-recorded-as=""[^>]*>[\s\S]*?<\/li>/g) ?? [];
+      assert.ok(
+        !dogriAlso.some((block) => /Village,\s*Hemayetpur/i.test(block)),
         "Village Hemayetpur must not sit in Also recorded as on the Village Dogri row",
       );
+      assert.ok(
+        !dogriAlso.some((block) => /Telulzora/i.test(block)),
+        "Telulzora must not sit in Also recorded as on the Village Dogri row",
+      );
+      const keepRow = telulzoraRow ?? hemayetpurRow!;
+      const keepAlso = keepRow.match(/<li[^>]*data-also-recorded-as=""[^>]*>[\s\S]*?<\/li>/g) ?? [];
+      assert.ok(
+        !keepAlso.some((block) => /Village,\s*Dogri/i.test(block)),
+        "Village Dogri must not sit in Also recorded as of Telulzora/Hemayetpur",
+      );
+      if (telulzoraRow) {
+        assert.ok(
+          keepAlso.some((block) => /Village,\s*Hemayetpur/i.test(block)),
+          "Village Hemayetpur must sit in Also recorded as of Telulzora, not Dogri",
+        );
+      } else {
+        assert.ok(
+          keepAlso.some((block) => /Telulzora/i.test(block)),
+          "Telulzora must sit in Also recorded as of Village Hemayetpur, not Dogri",
+        );
+      }
     }
   });
 
@@ -1656,6 +1785,64 @@ describe("Locations Also recorded as — rendered HTML boundary", () => {
       /Union\s*-\s*Telulzora|Union,\s*Telulzora/i,
       "Plot 23-24 Union hyphen vs Union comma",
     );
+    {
+      const commaT = row(
+        "Plot # 23-24, Union, Telulzora, Hemayetpur, Dhaka, Savar",
+        "BGMEA",
+        "factory",
+      );
+      const villageH = row("Plot # 23-24, Village, Hemayetpur, Dhaka, Savar", "BKMEA", "factory");
+      for (const ordered of [
+        [commaT, villageH],
+        [villageH, commaT],
+      ]) {
+        assert.equal(
+          mergeUniqueLocations(ordered).length,
+          1,
+          "Union comma Telulzora vs Village Hemayetpur matcher merge",
+        );
+        const html = renderAddressRows(ordered);
+        assert.equal((html.match(/data-location-row=""/g) ?? []).length, 1);
+        const chunk = locationChunks(html)[0]!;
+        const disp = displayHtml(chunk);
+        const also = chunk.match(/<li[^>]*data-also-recorded-as=""[^>]*>[\s\S]*?<\/li>/g) ?? [];
+        const tDisp = /Union,\s*Telulzora/i.test(disp);
+        const hDisp = /Village,\s*Hemayetpur/i.test(disp);
+        const tAlso = also.some((block) => /Union,\s*Telulzora/i.test(block));
+        const hAlso = also.some((block) => /Village,\s*Hemayetpur/i.test(block));
+        assert.ok(
+          (tDisp && hAlso && !tAlso) || (hDisp && tAlso && !hAlso),
+          "Union comma Telulzora vs Village Hemayetpur Also <li> isolation",
+        );
+      }
+    }
+    {
+      const east = row("Plot # 10, East Joydebpur Road, Sonda", "BGMEA", "factory");
+      const west = row("Plot # 10, West Joydevpur Road, Sonda", "BKMEA", "factory");
+      for (const ordered of [
+        [east, west],
+        [west, east],
+      ]) {
+        assert.equal(
+          mergeUniqueLocations(ordered).length,
+          1,
+          "Plot 10 East Joydebpur vs West Joydevpur matcher merge",
+        );
+        const html = renderAddressRows(ordered);
+        assert.equal((html.match(/data-location-row=""/g) ?? []).length, 1);
+        const chunk = locationChunks(html)[0]!;
+        const disp = displayHtml(chunk);
+        const also = chunk.match(/<li[^>]*data-also-recorded-as=""[^>]*>[\s\S]*?<\/li>/g) ?? [];
+        const eastDisp = /East Joydebpur Road/i.test(disp);
+        const westDisp = /West Joydevpur Road/i.test(disp);
+        const eastAlso = also.some((block) => /East Joydebpur Road/i.test(block));
+        const westAlso = also.some((block) => /West Joydevpur Road/i.test(block));
+        assert.ok(
+          (eastDisp && westAlso && !eastAlso) || (westDisp && eastAlso && !westAlso),
+          "Plot 10 East Joydebpur vs West Joydevpur Also <li> isolation",
+        );
+      }
+    }
     assertMergedAddressRowHtml(
       row("Plot # 10, 6th Lane, Gulshan-1, Dhaka", "BGMEA", "factory"),
       row("Plot # 10, Sixth Lane, Gulshan-1, Dhaka", "BKMEA", "factory"),

@@ -1,6 +1,6 @@
 {
-  "mergedToOne": 2076,
-  "stillMulti": 1198,
+  "mergedToOne": 2068,
+  "stillMulti": 1206,
   "conflictingIdMerges": 0,
   "overMergeHits": [],
   "absorptionHits": [],
@@ -858,6 +858,17 @@
         "5007/A, Ward # 41, South Patenga, Golden Beach Road, Chattogram",
         "1935/A, South Kattali, Pahartali, Chattogram",
         "Noth Fatehabad, 1 No. Ward, South Pahartoli, Nondirhat, Hathazari, Chattogram"
+      ]
+    },
+    {
+      "slug": "a-and-a-socks",
+      "company_name": "A & A SOCKS LTD",
+      "kind": "factory",
+      "strings": 2,
+      "locations": 2,
+      "displays": [
+        "701, Kamarjuri, Hariken Road, National University, Gazipur - 1704, Bangladesh",
+        "701, KAMARIJUR, HARICAN ROAD, NATIONAL UNIVERSITY, GAZIPUR"
       ]
     },
     {
@@ -1854,6 +1865,17 @@
       "displays": [
         "Plot- 94, Dagerchala Road, Mouza- Baliari, National University, 1704, Gazipur, Bangladesh",
         "10, Dager Chala, National University, Gazipur, Board Bazar"
+      ]
+    },
+    {
+      "slug": "amc-knit-composite",
+      "company_name": "AMC KNIT COMPOSITE LTD.",
+      "kind": "mailing",
+      "strings": 2,
+      "locations": 2,
+      "displays": [
+        "Mid Town Complex (4th Floor), 79, B. B. Road, Narayanganj",
+        "MID TOWN COMPLEX (4TH FLOOR), 79 B.B. ROAD, SADAR, NARAYANGANJ"
       ]
     },
     {
@@ -3187,6 +3209,17 @@
       "displays": [
         "105/A, Flat # C, Dhaka, Kakrail",
         "55/B, INNER CIRCULAR ROAD, DHAKA"
+      ]
+    },
+    {
+      "slug": "benimoy-textile-mills",
+      "company_name": "Benimoy Textile Mills",
+      "kind": "factory",
+      "strings": 2,
+      "locations": 2,
+      "displays": [
+        "43, Kabi Jashim Uddin Road, Pagar, Gazipur, Tongi",
+        "43 No Kabi Jashim Uddin Road (Zaymat Khan Road), Pagar"
       ]
     },
     {
@@ -4588,6 +4621,17 @@
       "displays": [
         "Mohakhali Tower (4th Floor), 82, Mohakhali C/A, Mohakhali, Dhaka",
         "House # 260, 3rd Floor, Lane # 03, Baridhara DOHS, Dhaka"
+      ]
+    },
+    {
+      "slug": "dhaka-socks-manufacturing",
+      "company_name": "Dhaka Socks Manufacturing Company Limited",
+      "kind": "factory",
+      "strings": 3,
+      "locations": 2,
+      "displays": [
+        "700, Kamarjuri, Harican Road, National University, Gazipur",
+        "HOLDING NO-700, KAMARJURI, HARIKEN ROAD, NATIONAL UNIVERSITY, GAZIPUR"
       ]
     },
     {
@@ -6592,9 +6636,10 @@
       "company_name": "H.B FASHION LTD",
       "kind": "factory",
       "strings": 3,
-      "locations": 2,
+      "locations": 3,
       "displays": [
         "590, Col. Jhones Road, North Kattali, Pahartali, Chittagong",
+        "590 COLPNEL JHONES ROAD, NORTH KATTALI, PAHARTOLI, CHATTOGRAM",
         "19, S. M MALEH ROAD, NARAYANGANJ"
       ]
     },
@@ -6707,6 +6752,17 @@
       "displays": [
         "HOLDING#1, (GROUND-4TH FLOOR), BLOCK-C, SHAHEED MOSHARRAF HOSSAIN ROAD, PURBO CHANDRAGONG, SHAFIPUR, KALIAKOIR, GAZIPUR",
         "E-13, Lutfan Tower (11th Floor), Middle Badda, Dhaka"
+      ]
+    },
+    {
+      "slug": "hong-kong-fashions",
+      "company_name": "Hong Kong Fashions Ltd",
+      "kind": "factory",
+      "strings": 2,
+      "locations": 2,
+      "displays": [
+        "4 No. Hazi Dudu Mia Road, Pagar, Tongi, 1710, Gazipur, Bangladesh",
+        "4, Hazi Dudu Mia Road, Pagar, Gazipur, B. Baria"
       ]
     },
     {
@@ -8058,6 +8114,17 @@
       "displays": [
         "House # 24/A, Road # 2, Sector # 3, Dhaka",
         "BAHADURPUR, KAULTIA, GAZIPUR, BANGLADESH"
+      ]
+    },
+    {
+      "slug": "kumudini-apparels",
+      "company_name": "KUMUDINI APPARELS",
+      "kind": "factory",
+      "strings": 2,
+      "locations": 2,
+      "displays": [
+        "72, Serajuddowla Road, Narayanganj, Khanpur",
+        "72 SIRAJUDDOLA ROAD, KHANPUR, SADAR, NARAYANGANJ"
       ]
     },
     {
@@ -11102,6 +11169,17 @@
       ]
     },
     {
+      "slug": "ra-dyeing-and-printing-industries",
+      "company_name": "R.A DYEING & PRINTING INDUSTRIES (PVT)LTD",
+      "kind": "mailing",
+      "strings": 2,
+      "locations": 2,
+      "displays": [
+        "60, B. B. Road, Narayanganj",
+        "60, B.B ROAD, NARAYANGANJ"
+      ]
+    },
+    {
       "slug": "ra-spinning-mills",
       "company_name": "R.A Spinning Mills Ltd.",
       "kind": "factory",
@@ -12834,6 +12912,17 @@
       "displays": [
         "RAHMATULLAH MANSION, 5/1/1, SEMPSON ROAD, DHAKA",
         "Shampur, Hemayetpur, Savar, Dhaka"
+      ]
+    },
+    {
+      "slug": "star-padding-industries",
+      "company_name": "Star Padding Inds. Limited",
+      "kind": "factory",
+      "strings": 2,
+      "locations": 2,
+      "displays": [
+        "299 Bayezid Bostami Road, Nasirabad, Bayjid Bostami, Chittagong - 4212, Bangladesh",
+        "299, Baizid Bostami Road, Nasirabad I/A, Chattogram"
       ]
     },
     {

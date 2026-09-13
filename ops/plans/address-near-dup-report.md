@@ -2,8 +2,8 @@
 
 Fixture exported_at: 2026-09-11T00:00:00Z
 Groups in fixture: 3274
-Matcher merged to 1 location: **2076** (was 1,622 on the previous matcher)
-Groups still showing 2+ locations: **1198** (was 1,652)
+Matcher merged to 1 location: **2068** (was 1,622 on the previous matcher)
+Groups still showing 2+ locations: **1206** (was 1,652)
 Conflicting-plot merges (must be 0): **0**
 Named over-merges (must be 0): **0**
 Named under-merges (must be 0): **0**
@@ -61,6 +61,9 @@ Remaining multi-location groups (slug, kind, locations):
   - 5007/A, Ward # 41, South Patenga, Golden Beach Road, Chattogram
   - 1935/A, South Kattali, Pahartali, Chattogram
   - Noth Fatehabad, 1 No. Ward, South Pahartoli, Nondirhat, Hathazari, Chattogram
+- a-and-a-socks (factory) 2 strings → 2
+  - 701, Kamarjuri, Hariken Road, National University, Gazipur - 1704, Bangladesh
+  - 701, KAMARIJUR, HARICAN ROAD, NATIONAL UNIVERSITY, GAZIPUR
 - a-and-c-bd (registered) 2 strings → 2
   - A Plus Industries. (Reg:, House # 26 (3rd Floor), Block-G, Road # 7, 30 Dilu Road G/F, New, Banani, Dhaka, Eskaton
   - AJ Heights, Cha-72/1/D, Level # 7-11, Pragoti Sharani, Badda, Dhaka
@@ -337,6 +340,9 @@ Remaining multi-location groups (slug, kind, locations):
 - amazing-fashions (factory) 2 strings → 2
   - Plot- 94, Dagerchala Road, Mouza- Baliari, National University, 1704, Gazipur, Bangladesh
   - 10, Dager Chala, National University, Gazipur, Board Bazar
+- amc-knit-composite (mailing) 2 strings → 2
+  - Mid Town Complex (4th Floor), 79, B. B. Road, Narayanganj
+  - MID TOWN COMPLEX (4TH FLOOR), 79 B.B. ROAD, SADAR, NARAYANGANJ
 - amcaba (registered) 4 strings → 2
   - B.H. Plaza (6th floor), Ka-50/2, Abdul Aziz Sharak, Progoti Sharani, Badda, Dhaka
   - Jamuna Future Park, Ka-244, Kuril, Progoti Sharani, Baridhara, Dhaka
@@ -718,6 +724,9 @@ Remaining multi-location groups (slug, kind, locations):
 - bengal-fine-knitex (mailing) 2 strings → 2
   - 105/A, Flat # C, Dhaka, Kakrail
   - 55/B, INNER CIRCULAR ROAD, DHAKA
+- benimoy-textile-mills (factory) 2 strings → 2
+  - 43, Kabi Jashim Uddin Road, Pagar, Gazipur, Tongi
+  - 43 No Kabi Jashim Uddin Road (Zaymat Khan Road), Pagar
 - benison-apparels (factory) 2 strings → 2
   - 1327 Tejgaon I/A, Dhaka
   - PANCHABATI (BESIDE BANANI CINEMA HALL), NARAYANGANJ
@@ -1111,6 +1120,9 @@ Remaining multi-location groups (slug, kind, locations):
 - dhaka-natex-sourcing (registered) 2 strings → 2
   - Mohakhali Tower (4th Floor), 82, Mohakhali C/A, Mohakhali, Dhaka
   - House # 260, 3rd Floor, Lane # 03, Baridhara DOHS, Dhaka
+- dhaka-socks-manufacturing (factory) 3 strings → 2
+  - 700, Kamarjuri, Harican Road, National University, Gazipur
+  - HOLDING NO-700, KAMARJURI, HARIKEN ROAD, NATIONAL UNIVERSITY, GAZIPUR
 - dhaka-socks-manufacturing (mailing) 2 strings → 2
   - House # 68, Road # 20, Sector # 11, Uttara, Dhaka
   - HOLDING NO-700, KAMARJURI, HARIKEN ROAD, NATIONAL UNIVERSITY, GAZIPUR
@@ -1668,8 +1680,9 @@ Remaining multi-location groups (slug, kind, locations):
 - hasan-trims-and-accessories (registered) 2 strings → 2
   - 52/B, Nasirabad I/Area, Baizid Bostami, Chattogram
   - 1154/A 1583, 24 No. Word, North Agrabad, Chattogram
-- hb-fashion (factory) 3 strings → 2
+- hb-fashion (factory) 3 strings → 3
   - 590, Col. Jhones Road, North Kattali, Pahartali, Chittagong
+  - 590 COLPNEL JHONES ROAD, NORTH KATTALI, PAHARTOLI, CHATTOGRAM
   - 19, S. M MALEH ROAD, NARAYANGANJ
 - hb-fashion (mailing) 3 strings → 3
   - Plot # B26(P) & B 27 Faujdarhat Bscic I/A, Block # A, Sagorika Road, South Kattali, Pahartoli, Chittagong
@@ -1702,6 +1715,9 @@ Remaining multi-location groups (slug, kind, locations):
 - hmn-fashion (mailing) 2 strings → 2
   - HOLDING#1, (GROUND-4TH FLOOR), BLOCK-C, SHAHEED MOSHARRAF HOSSAIN ROAD, PURBO CHANDRAGONG, SHAFIPUR, KALIAKOIR, GAZIPUR
   - E-13, Lutfan Tower (11th Floor), Middle Badda, Dhaka
+- hong-kong-fashions (factory) 2 strings → 2
+  - 4 No. Hazi Dudu Mia Road, Pagar, Tongi, 1710, Gazipur, Bangladesh
+  - 4, Hazi Dudu Mia Road, Pagar, Gazipur, B. Baria
 - hongkong-shanghai-manjala-textiles (factory) 2 strings → 2
   - Kanchpur, Sonargaon, Narayangonj.
   - Dhonua, Sreepur, Gazipur.
@@ -2085,6 +2101,9 @@ Remaining multi-location groups (slug, kind, locations):
 - ks-apparels (factory) 2 strings → 2
   - House # 24/A, Road # 2, Sector # 3, Dhaka
   - BAHADURPUR, KAULTIA, GAZIPUR, BANGLADESH
+- kumudini-apparels (factory) 2 strings → 2
+  - 72, Serajuddowla Road, Narayanganj, Khanpur
+  - 72 SIRAJUDDOLA ROAD, KHANPUR, SADAR, NARAYANGANJ
 - l-usine-fashion (factory) 2 strings → 2
   - Holding No-44/2, Block No-D, Ward No-07, Sreepur Municipality, Sreepur, Gazipur - 1740, Bangladesh
   - Channapara, Gazipur, Sreepur
@@ -2934,6 +2953,9 @@ Remaining multi-location groups (slug, kind, locations):
 - ra-dyeing-and-printing-industries (factory) 2 strings → 2
   - 60, B.B ROAD, NARAYANGANJ
   - Enayet Nagar, Narayanganj, Fatullah
+- ra-dyeing-and-printing-industries (mailing) 2 strings → 2
+  - 60, B. B. Road, Narayanganj
+  - 60, B.B ROAD, NARAYANGANJ
 - ra-spinning-mills (factory) 2 strings → 2
   - Kewa, Mawna, Sreepur, Gazipur.
   - Bhabanipur, Gazipur Sadar
@@ -3421,6 +3443,9 @@ Remaining multi-location groups (slug, kind, locations):
 - star-knitwear (factory) 3 strings → 2
   - RAHMATULLAH MANSION, 5/1/1, SEMPSON ROAD, DHAKA
   - Shampur, Hemayetpur, Savar, Dhaka
+- star-padding-industries (factory) 2 strings → 2
+  - 299 Bayezid Bostami Road, Nasirabad, Bayjid Bostami, Chittagong - 4212, Bangladesh
+  - 299, Baizid Bostami Road, Nasirabad I/A, Chattogram
 - starlet-apparels (mailing) 2 strings → 2
   - Sena Kalyan Bhaban, Level-20, Suit-2002, 195 Motijheel C/A, Motijheel, Dhaka
   - ROAD # 1, PLOT # 223-224, BSCIC HOSIERY I/E, FATULLAH, SADAR, NARAYANGANJ

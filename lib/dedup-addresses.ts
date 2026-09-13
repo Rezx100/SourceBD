@@ -3670,20 +3670,54 @@ function coreSameNamedRoadSpelling(sa: string, sb: string): boolean {
   return false;
 }
 
+function peelConcatenatedDirections(token: string): { dirs: string[]; rest: string } {
+  const dirs: string[] = [];
+  let rest = token;
+  const keys = [...ROAD_DIRECTION_KEEP].sort((a, b) => b.length - a.length);
+  for (;;) {
+    const hit = keys.find((d) => rest.length > d.length + 2 && rest.startsWith(d));
+    if (!hit) break;
+    dirs.push(hit);
+    rest = rest.slice(hit.length);
+  }
+  return { dirs, rest };
+}
+
+function peelRoadDirectionPrefix(tokens: string[]): { dirs: string[]; rest: string[] } {
+  const dirs: string[] = [];
+  const rest = [...tokens];
+  while (rest.length > 0 && ROAD_DIRECTION_KEEP.has(rest[0]!)) {
+    dirs.push(rest.shift()!);
+  }
+  if (rest.length === 1) {
+    const glued = peelConcatenatedDirections(rest[0]!);
+    if (glued.dirs.length > 0 && glued.rest.length >= 3) {
+      dirs.push(...glued.dirs);
+      rest[0] = glued.rest;
+    }
+  }
+  return { dirs, rest };
+}
+
 function sameNamedRoadSpelling(a: string[], b: string[]): boolean {
   // Peel compass / new / old before joining. East vs West share a sound-key
   // ("st"), so sameWord cannot tell them apart. Exact remainder "airport"
-  // with different compass is two roads; Joydebpur vs Joydevpur still
-  // matches as a spelling after the peel. Honorifics (kobi/kazi) follow.
+  // or "mirpur" with different compass is two roads; Joydebpur vs Joydevpur
+  // still matches as a spelling after the peel. Honorifics (kobi/kazi)
+  // follow. Concatenated EastAirport vs WestAirport peels the same way.
+  const pa = peelRoadDirectionPrefix(a);
+  const pb = peelRoadDirectionPrefix(b);
   if (
-    a.length >= 2 &&
-    b.length >= 2 &&
-    ROAD_DIRECTION_KEEP.has(a[0]!) &&
-    ROAD_DIRECTION_KEEP.has(b[0]!)
+    pa.dirs.length > 0 &&
+    pb.dirs.length > 0 &&
+    pa.rest.length > 0 &&
+    pb.rest.length > 0
   ) {
-    const ra = a.slice(1).join("");
-    const rb = b.slice(1).join("");
-    if (ra && rb && ra === rb && a[0] !== b[0]) return false;
+    const ra = pa.rest.join("");
+    const rb = pb.rest.join("");
+    if (ra && rb && ra === rb && pa.dirs.join("\0") !== pb.dirs.join("\0")) {
+      return false;
+    }
     return coreSameNamedRoadSpelling(ra, rb);
   }
   if (
@@ -4347,8 +4381,10 @@ function unionNameSkipToken(place: string): boolean {
   );
 }
 
-/** "Union - Telulzora", "Village, Dogri", and "Tetuljhora Union". Not Union Plaza. */
-function unionNamesFromDisplay(display: string): string[] {
+/** "Union - Telulzora", "Village, Dogri", and "Tetuljhora Union". Not Union Plaza.
+ *  Lead/trail only — trailing Hemayetpur after the titled name is not the
+ *  union's own name (that is afterLead in unionNamesFromDisplay). */
+function primaryTitledNamesFromDisplay(display: string): string[] {
   const s = rewriteHouseOffice(display).toLowerCase();
   const names: string[] = [];
   const push = (n: string) => {
@@ -4361,22 +4397,37 @@ function unionNamesFromDisplay(display: string): string[] {
     EXTRA_RE_FLAGS,
   );
   for (const m of s.matchAll(lead)) push(m[1]!);
-  // Village, Hemayetpur, Dogri — Dogri is a second village after the title,
-  // not Dhaka (ADMIN skip). Union, Dogri, Hemayetpur also lists Hemayetpur
-  // after the union name so Village Hemayetpur can still see it; unmatched
-  // Dogri vs Telulzora is XORed in extraRoadPlaceConflict.
-  const afterLead = new RegExp(
-    String.raw`(?:the\s+)?\b${title}\b[\s./_\u00AD\u200B\p{Pd}\u2212]*,?\s*(?:(?:of|the)\s+)*[a-z]{3,}\b((?:[\s,./_\u00AD\u200B\p{Pd}\u2212]+[a-z]{3,}\b)*)`,
-    EXTRA_RE_FLAGS,
-  );
-  for (const m of s.matchAll(afterLead)) {
-    for (const tok of (m[1] ?? "").split(/[^a-z]+/).filter(Boolean)) push(tok);
-  }
   const trail = new RegExp(
     String.raw`\b([a-z]{3,})\s+${title}\b`,
     EXTRA_RE_FLAGS,
   );
   for (const m of s.matchAll(trail)) push(m[1]!);
+  return names;
+}
+
+/** "Union - Telulzora", "Village, Dogri", and "Tetuljhora Union". Not Union Plaza. */
+function unionNamesFromDisplay(display: string): string[] {
+  const names = [...primaryTitledNamesFromDisplay(display)];
+  const push = (n: string) => {
+    if (n.length < 3 || unionNameSkipToken(n)) return;
+    if (!names.includes(n)) names.push(n);
+  };
+  const s = rewriteHouseOffice(display).toLowerCase();
+  const title = String.raw`(?:union|village|vill)`;
+  // Village, Hemayetpur, Dogri — Dogri is a second village after the title,
+  // not Dhaka (ADMIN skip). Unmatched Dogri vs Telulzora is XORed from
+  // primaries; afterLead must not license that share.
+  const afterLead = new RegExp(
+    String.raw`(?:the\s+)?\b${title}\b[\s./_\u00AD\u200B\p{Pd}\u2212]*,?\s*(?:(?:of|the)\s+)*[a-z]{3,}\b((?:[\s,./_\u00AD\u200B\p{Pd}\u2212]+[a-z]{3,}\b)*)`,
+    EXTRA_RE_FLAGS,
+  );
+  for (const m of s.matchAll(afterLead)) {
+    const first = (m[1] ?? "")
+      .split(/[^a-z]+/)
+      .filter(Boolean)
+      .find((tok) => tok.length >= 3 && !unionNameSkipToken(tok));
+    if (first) push(first);
+  }
   return names;
 }
 
@@ -4405,12 +4456,18 @@ function unionBuildingFromDisplay(display: string): boolean {
 
 function hasVillageKindTitle(display: string): boolean {
   const s = rewriteHouseOffice(display).toLowerCase();
-  if (new RegExp(String.raw`(?:the\s+)?\b(?:village|vill)\b`, "u").test(s)) {
+  return new RegExp(String.raw`(?:the\s+)?\b(?:village|vill)\b`, "u").test(s);
+}
+
+function unionPrimaryCanWrapVillage(unionPrimaries: string[], villagePrimaries: string[]): boolean {
+  if (unionPrimaries.length === 0) return false;
+  if (
+    unionPrimaries.some((u) => villagePrimaries.some((v) => unionNameShare([u], [v])))
+  ) {
     return true;
   }
-  // "Union, Dogri" at the start of a field is Village, Dogri. "Tetuljhora
-  // Union, Savar" is the union name then the next field, not that shape.
-  return /(?:^|,)\s*union\s*,\s*[a-z]{3,}/u.test(s);
+  // Telulzora / Tetuljhora (min 8, same as unionNameShare). Dogri is not this.
+  return unionPrimaries.some((u) => u.length >= 8);
 }
 
 function hasUnionKindTitle(display: string): boolean {
@@ -4423,27 +4480,30 @@ function extraRoadPlaceConflict(a: Candidate, b: Candidate): boolean {
   if (cleanAddressString(a.display) === cleanAddressString(b.display)) return false;
   const unionsA = unionNamesFromDisplay(a.display);
   const unionsB = unionNamesFromDisplay(b.display);
+  const primA = primaryTitledNamesFromDisplay(a.display);
+  const primB = primaryTitledNamesFromDisplay(b.display);
   if (unionBuildingFromDisplay(a.display) && unionsB.length > 0) return true;
   if (unionBuildingFromDisplay(b.display) && unionsA.length > 0) return true;
+  const villageWrapOfUnion =
+    (hasVillageKindTitle(a.display) &&
+      hasUnionKindTitle(b.display) &&
+      !hasVillageKindTitle(b.display) &&
+      primA.length > 0 &&
+      primA.every((u) => extraNamedOnOther([u], b)) &&
+      unionPrimaryCanWrapVillage(primB, primA)) ||
+    (hasVillageKindTitle(b.display) &&
+      hasUnionKindTitle(a.display) &&
+      !hasVillageKindTitle(a.display) &&
+      primB.length > 0 &&
+      primB.every((u) => extraNamedOnOther([u], a)) &&
+      unionPrimaryCanWrapVillage(primA, primB));
   if (
-    unionsA.length > 0 &&
-    unionsB.length > 0 &&
-    !unionsA.some((x) => unionsB.some((y) => unionNameShare([x], [y])))
+    primA.length > 0 &&
+    primB.length > 0 &&
+    !primA.some((x) => primB.some((y) => unionNameShare([x], [y])))
   ) {
-    // Village, Hemayetpur vs Tetuljhora Union — Hemayetpur is the shared
-    // village on Holding 87, not a second union. Village, Dogri is not
-    // named on Holding, so this still XORs. Village, Hemayetpur vs
-    // Village, Dogri both title a village: extraNamedOnOther of a shared
-    // trailing Hemayetpur must not license that.
-    const villageWrapOfUnion =
-      (hasVillageKindTitle(a.display) &&
-        hasUnionKindTitle(b.display) &&
-        !hasVillageKindTitle(b.display) &&
-        unionsA.every((u) => extraNamedOnOther([u], b))) ||
-      (hasVillageKindTitle(b.display) &&
-        hasUnionKindTitle(a.display) &&
-        !hasVillageKindTitle(a.display) &&
-        unionsB.every((u) => extraNamedOnOther([u], a)));
+    // Village, Hemayetpur vs Tetuljhora Union / Union - Telulzora. Shared
+    // trailing Hemayetpur must not wrap Union - Dogri or Village, Dogri.
     if (!villageWrapOfUnion) return true;
   }
   // Shared Hemayetpur does not license unmatched Dogri when both strings
@@ -4477,6 +4537,27 @@ function extraRoadPlaceConflict(a: Candidate, b: Candidate): boolean {
       return true;
     }
   }
+  // Village, Hemayetpur, Dogri vs Holding — afterLead Dogri is not wrap.
+  const extraA = unionsA.filter(
+    (u) => !primA.some((p) => unionNameShare([u], [p])),
+  );
+  const extraB = unionsB.filter(
+    (u) => !primB.some((p) => unionNameShare([u], [p])),
+  );
+  if (
+    extraA.some(
+      (u) =>
+        !extraNamedOnOther([u], b) &&
+        !unionsB.some((v) => unionNameShare([u], [v])),
+    ) ||
+    extraB.some(
+      (u) =>
+        !extraNamedOnOther([u], a) &&
+        !unionsA.some((v) => unionNameShare([u], [v])),
+    )
+  ) {
+    return true;
+  }
   const ea = namedExtraTails(a.display);
   const eb = namedExtraTails(b.display);
   // C DA Road vs unsuffixed "10, DA" — the two-letter leftover is never
@@ -4504,14 +4585,13 @@ function extraRoadPlaceConflict(a: Candidate, b: Candidate): boolean {
       // second premises. Leftover DA / named-road XOR still run when the
       // extra is not the union name.
       {
-        const unionsShare = unionsA.some((u) =>
-          unionsB.some((v) => unionNameShare([u], [v])),
+        const sharedPrimary = primA.filter((u) =>
+          primB.some((v) => unionNameShare([u], [v])),
         );
-        const unionPlaces = [...unionsA, ...unionsB];
         if (
-          unionsShare &&
-          (unionNameShare(x.places, unionPlaces) ||
-            unionNameShare(y.places, unionPlaces))
+          sharedPrimary.length > 0 &&
+          (unionNameShare(x.places, sharedPrimary) ||
+            unionNameShare(y.places, sharedPrimary))
         ) {
           continue;
         }
@@ -4680,6 +4760,13 @@ function extraRoadPlaceConflict(a: Candidate, b: Candidate): boolean {
           extraNamedOnOtherNonHousing(x.places, b) &&
           extraNamedOnOtherNonHousing(y.places, a)
         ) {
+          if (
+            x.src === "road" &&
+            y.src === "road" &&
+            !sameNamedRoadSpelling(x.places, y.places)
+          ) {
+            return true;
+          }
           continue;
         }
         return true;
@@ -4688,6 +4775,13 @@ function extraRoadPlaceConflict(a: Candidate, b: Candidate): boolean {
         extraNamedOnOtherNonHousing(x.places, b) &&
         extraNamedOnOtherNonHousing(y.places, a)
       ) {
+        if (
+          x.src === "road" &&
+          y.src === "road" &&
+          !sameNamedRoadSpelling(x.places, y.places)
+        ) {
+          return true;
+        }
         continue;
       }
       if (

@@ -6777,6 +6777,192 @@ describe("mergeUniqueLocations — empty rows, duplicates, overview buckets", ()
       2,
       "The Village of Dogri vs Holding 87 Tetuljhora",
     );
+    assertBothOrders(
+      row("Plot # 23-24, Union - Telulzora, Hemayetpur, Dhaka, Savar"),
+      row("Plot # 23-24, Village, Dogri, Hemayetpur, Dhaka, Savar"),
+      2,
+      "Union hyphen Telulzora vs Village Dogri",
+    );
+    assertBothOrders(
+      row("Plot # 23-24, Union - Telulzora, Hemayetpur, Dhaka, Savar"),
+      row("Plot # 23-24, Village of Dogri, Hemayetpur, Dhaka, Savar"),
+      2,
+      "Union hyphen Telulzora vs Village of Dogri",
+    );
+    assertBothOrders(
+      row("Plot # 23-24, Union - Telulzora, Hemayetpur, Dhaka, Savar"),
+      row("Plot # 23-24, Vill, Dogri, Hemayetpur, Dhaka, Savar"),
+      2,
+      "Union hyphen Telulzora vs Vill Dogri",
+    );
+    assertBothOrders(
+      row("Plot # 23-24, Union - Telulzora, Hemayetpur, Dhaka, Savar"),
+      row("Plot # 23-24, Village of the Dogri, Hemayetpur, Dhaka, Savar"),
+      2,
+      "Union hyphen Telulzora vs Village of the Dogri",
+    );
+    assertBothOrders(
+      row("Plot # 23-24, Union - Telulzora, Hemayetpur, Dhaka, Savar"),
+      row("Plot # 23-24, The Village of Dogri, Hemayetpur, Dhaka, Savar"),
+      2,
+      "Union hyphen Telulzora vs The Village of Dogri",
+    );
+    assertBothOrders(
+      row("Plot # 23-24, Union, Telulzora, Hemayetpur, Dhaka, Savar"),
+      row("Plot # 23-24, Village, Hemayetpur, Dhaka, Savar"),
+      1,
+      "Union comma Telulzora vs Village Hemayetpur",
+    );
+    assertBothOrders(
+      row("Plot # 23-24, Union - Dogri, Hemayetpur, Dhaka, Savar"),
+      row("Plot # 23-24, Village, Hemayetpur, Dhaka, Savar"),
+      2,
+      "Union hyphen Dogri vs Village Hemayetpur",
+    );
+    for (const ordered of permutations([
+      row("Plot # 23-24, Union, Telulzora, Hemayetpur, Dhaka, Savar"),
+      row("Plot # 23-24, Village, Hemayetpur, Dhaka, Savar"),
+      row("Plot # 23-24, Village, Dogri, Hemayetpur, Dhaka, Savar"),
+    ])) {
+      assert.equal(
+        displays(ordered).length,
+        2,
+        "three-string comma Telulzora+Village Hemayetpur+Village Dogri permutation",
+      );
+    }
+    for (const ordered of permutations([
+      row("Plot # 23-24, Union - Telulzora, Hemayetpur, Dhaka, Savar"),
+      row("Plot # 23-24, Union, Telulzora, Hemayetpur, Dhaka, Savar"),
+      row("Plot # 23-24, Village, Hemayetpur, Dhaka, Savar"),
+    ])) {
+      assert.equal(
+        displays(ordered).length,
+        1,
+        "three-string hyphen+comma Telulzora+Village Hemayetpur permutation",
+      );
+    }
+    assertBothOrders(
+      row("Plot # 10, East Mirpur Road, Sonda"),
+      row("Plot # 10, West Mirpur Road, Sonda"),
+      2,
+      "Plot 10 East Mirpur vs West Mirpur at Sonda",
+    );
+    assertBothOrders(
+      row("Plot # 10, East Mirpur Road, Dhaka"),
+      row("Plot # 10, West Mirpur Road, Dhaka"),
+      2,
+      "Plot 10 East Mirpur vs West Mirpur at Dhaka",
+    );
+    assertBothOrders(
+      row("Plot # 10, East Mirpur Road"),
+      row("Plot # 10, West Mirpur Road"),
+      2,
+      "Plot 10 East Mirpur vs West Mirpur no village",
+    );
+    assertBothOrders(
+      row("Plot # 10, East Tejgaon Road, Sonda"),
+      row("Plot # 10, West Tejgaon Road, Sonda"),
+      2,
+      "Plot 10 East Tejgaon vs West Tejgaon at Sonda",
+    );
+    assertBothOrders(
+      row("Plot # 10, East Tejgaon Road, Dhaka"),
+      row("Plot # 10, West Tejgaon Road, Dhaka"),
+      2,
+      "Plot 10 East Tejgaon vs West Tejgaon at Dhaka",
+    );
+    assertBothOrders(
+      row("Plot # 10, East Joydebpur Road, Sonda"),
+      row("Plot # 10, West Joydebpur Road, Sonda"),
+      2,
+      "Plot 10 East Joydebpur vs West Joydebpur same remainder",
+    );
+    assertBothOrders(
+      row("Plot # 10, East Circular Road, Dhaka"),
+      row("Plot # 10, West Circular Road, Dhaka"),
+      2,
+      "Plot 10 East Circular vs West Circular",
+    );
+    assertBothOrders(
+      row("Plot # 10, North Mirpur Road, Sonda"),
+      row("Plot # 10, South Mirpur Road, Sonda"),
+      2,
+      "Plot 10 North Mirpur vs South Mirpur at Sonda",
+    );
+    assertBothOrders(
+      row("Plot # 10, Eastern Mirpur Road, Sonda"),
+      row("Plot # 10, Western Mirpur Road, Sonda"),
+      2,
+      "Plot 10 Eastern Mirpur vs Western Mirpur at Sonda",
+    );
+    assertBothOrders(
+      row("Plot # 10, EastAirport Road, Dhaka"),
+      row("Plot # 10, WestAirport Road, Dhaka"),
+      2,
+      "Plot 10 EastAirport vs WestAirport concatenated",
+    );
+    assertBothOrders(
+      row("Plot # 10, East Airport Road, Dhaka"),
+      row("Plot # 10, WestAirport Road, Dhaka"),
+      2,
+      "Plot 10 East Airport spaced vs WestAirport glued",
+    );
+    assertBothOrders(
+      row("Plot # 10, North East Airport Road, Dhaka"),
+      row("Plot # 10, South West Airport Road, Dhaka"),
+      2,
+      "Plot 10 North East Airport vs South West Airport",
+    );
+    assertBothOrders(
+      row("Plot # 10, New East Airport Road, Dhaka"),
+      row("Plot # 10, Old West Airport Road, Dhaka"),
+      2,
+      "Plot 10 New East Airport vs Old West Airport",
+    );
+    for (const ordered of permutations([
+      row("Plot # 10, East Mirpur Road, Dhaka"),
+      row("Plot # 10, West Mirpur Road, Dhaka"),
+      row("Plot # 10, Green Road, Dhaka"),
+    ])) {
+      assert.equal(
+        displays(ordered).length,
+        3,
+        "three-string East Mirpur+West Mirpur+Green permutation",
+      );
+    }
+    for (const ordered of permutations([
+      row("Plot # 10, EastAirport Road, Dhaka"),
+      row("Plot # 10, WestAirport Road, Dhaka"),
+      row("Plot # 10, Green Road, Dhaka"),
+    ])) {
+      assert.equal(
+        displays(ordered).length,
+        3,
+        "three-string EastAirport+WestAirport+Green permutation",
+      );
+    }
+    for (const ordered of permutations([
+      row("Plot # 10, East Airport Road, Dhaka"),
+      row("Plot # 10, WestAirport Road, Dhaka"),
+      row("Plot # 10, Green Road, Dhaka"),
+    ])) {
+      assert.equal(
+        displays(ordered).length,
+        3,
+        "three-string East Airport+WestAirport glued+Green permutation",
+      );
+    }
+    for (const ordered of permutations([
+      row("Plot # 10, North East Airport Road, Dhaka"),
+      row("Plot # 10, South West Airport Road, Dhaka"),
+      row("Plot # 10, Green Road, Dhaka"),
+    ])) {
+      assert.equal(
+        displays(ordered).length,
+        3,
+        "three-string North East+South West Airport+Green permutation",
+      );
+    }
   });
 
   it("merges neighbour plot lists and keeps House 365/4 Baridhara together", () => {
