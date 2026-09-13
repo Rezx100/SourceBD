@@ -709,6 +709,97 @@ describe("Locations Also recorded as — rendered HTML boundary", () => {
         otherRe: /S‒E Banani|S-E Banani/i,
         otherName: "House 50 vs 7 S-E Banani U+2012",
       },
+      {
+        left: row("Plot # 10, Valuka, Airport Road, Dhaka", "BGMEA", "factory"),
+        right: row("Plot # 10, Valuka, Green, Dhaka", "BKMEA", "factory"),
+        keepRe: /Airport Road/i,
+        otherRe: /\bGreen\b/i,
+        otherName: "Plot 10 Valuka Airport Road vs Green",
+      },
+      {
+        left: row("Plot # 10, Satarkul, Airport Road, Dhaka", "BGMEA", "factory"),
+        right: row("Plot # 10, Satarkul, Green, Dhaka", "BKMEA", "factory"),
+        keepRe: /Airport Road/i,
+        otherRe: /\bGreen\b/i,
+        otherName: "Plot 10 Satarkul Airport Road vs Green",
+      },
+      {
+        left: row("Plot # 10, Fatullah, Airport Road, Dhaka", "BGMEA", "factory"),
+        right: row("Plot # 10, Fatullah, Green, Dhaka", "BKMEA", "factory"),
+        keepRe: /Airport Road/i,
+        otherRe: /\bGreen\b/i,
+        otherName: "Plot 10 Fatullah Airport Road vs Green",
+      },
+      {
+        left: row("Plot # 10, Hemayetpur, Airport Road, Dhaka", "BGMEA", "factory"),
+        right: row("Plot # 10, Hemayetpur, Greenpur, Dhaka", "BKMEA", "factory"),
+        keepRe: /Airport Road/i,
+        otherRe: /Greenpur/i,
+        otherName: "Plot 10 Hemayetpur Airport Road vs Greenpur",
+      },
+      {
+        left: row("Plot # 10, Airport Road, Dhaka", "BGMEA", "factory"),
+        right: row("Plot # 10, Green, Dhaka", "BKMEA", "factory"),
+        keepRe: /Airport Road/i,
+        otherRe: /Plot # 10, Green/,
+        otherName: "Plot # 10 Airport Road vs unsuffixed Green",
+      },
+      {
+        left: row("Plot # 10, C DA Road, Chittagong", "BGMEA", "factory"),
+        right: row("Plot # 10, DA Road, Chittagong", "BKMEA", "factory"),
+        keepRe: /C DA Road/i,
+        otherRe: /Plot # 10, DA Road/i,
+        otherName: "Plot # 10 C DA Road vs DA Road",
+      },
+      {
+        left: row("Plot # 10, Airport Path, Dhaka", "BGMEA", "factory"),
+        right: row("Plot # 10, Green Path, Dhaka", "BKMEA", "factory"),
+        keepRe: /Airport Path/i,
+        otherRe: /Green Path/i,
+        otherName: "Airport Path vs Green Path",
+      },
+      {
+        left: row("10, C DA Gali, Chittagong", "BGMEA", "factory"),
+        right: row("10, DA Gali, Chittagong", "BKMEA", "factory"),
+        keepRe: /C DA Gali/i,
+        otherRe: /10, DA Gali/i,
+        otherName: "C DA Gali vs DA Gali",
+      },
+      {
+        left: row("Plot # 10, 1st Gully, Gulshan-1, Dhaka", "BGMEA", "factory"),
+        right: row("Plot # 10, 2nd Gully, Gulshan-1, Dhaka", "BKMEA", "factory"),
+        keepRe: /1st Gully/i,
+        otherRe: /2nd Gully/i,
+        otherName: "Plot 10 1st Gully vs 2nd Gully",
+      },
+      {
+        left: row("Plot # 10, Street, Gulshan-1, Dhaka", "BGMEA", "factory"),
+        right: row("Plot # 10, 2nd Lane, Gulshan-1, Dhaka", "BKMEA", "factory"),
+        keepRe: /Plot # 10, Street/,
+        otherRe: /2nd Lane/i,
+        otherName: "Plot 10 un-ordinal Street vs 2nd Lane",
+      },
+      {
+        left: row("Plot # 10, 10 Green, Gulshan-1, Dhaka", "BGMEA", "factory"),
+        right: row("Plot # 10, 10 Greenpark, Gulshan-1, Dhaka", "BKMEA", "factory"),
+        keepRe: /\bGreen\b/i,
+        otherRe: /Greenpark/i,
+        otherName: "Plot 10 Green vs Greenpark",
+      },
+      {
+        left: row("Plot # 10, 10 Green, Gulshan-1, Dhaka", "BGMEA", "factory"),
+        right: row("Plot # 10, 10 Greenfield, Gulshan-1, Dhaka", "BKMEA", "factory"),
+        keepRe: /\bGreen\b/i,
+        otherRe: /Greenfield/i,
+        otherName: "Plot 10 Green vs Greenfield",
+      },
+      {
+        left: row("House # 50, Road # 3, Gulshan-1, Dhaka", "BGMEA", "factory"),
+        right: row("House # 50, Road # 3, 7 Kakhin Banani, Gulshan-1, Dhaka", "BKMEA", "factory"),
+        keepRe: /House # 50, Road # 3, Gulshan-1/,
+        otherRe: /Kakhin Banani/i,
+        otherName: "House 50 vs 7 Kakhin Banani",
+      },
     ];
     for (const c of cases) {
       assertSplitAddressRowHtml(c.left, c.right, c.keepRe, c.otherRe, c.otherName);
@@ -772,6 +863,27 @@ describe("Locations Also recorded as — rendered HTML boundary", () => {
       /Jhajar|Jajhar/i,
       /Jhajar|Jajhar/i,
       "Plot 702 Jhajar vs Jajhar",
+    );
+    assertMergedAddressRowHtml(
+      row("Plot # 23-24, Union - Telulzora, Hemayetpur, Dhaka, Savar", "BGMEA", "factory"),
+      row("Plot # 23-24, Union, Telulzora, Hemayetpur, Dhaka, Savar", "BKMEA", "factory"),
+      /Telulzora/i,
+      /Telulzora/i,
+      "Plot 23-24 Union hyphen vs Union comma",
+    );
+    assertMergedAddressRowHtml(
+      row("Plot # 10, 6th Lane, Gulshan-1, Dhaka", "BGMEA", "factory"),
+      row("Plot # 10, Sixth Lane, Gulshan-1, Dhaka", "BKMEA", "factory"),
+      /6th Lane|Sixth Lane/i,
+      /6th Lane|Sixth Lane/i,
+      "Plot 10 6th Lane vs Sixth Lane",
+    );
+    assertMergedAddressRowHtml(
+      row("Plot # 10, Satarkul, Badda, Dhaka", "BGMEA", "factory"),
+      row("Plot # 10, Satarkul, Jiban, Dhaka", "BKMEA", "factory"),
+      /Satarkul/i,
+      /Badda|Jiban/i,
+      "Plot 10 Satarkul Badda vs Jiban",
     );
     assertMergedAddressRowHtml(
       row(
