@@ -3465,13 +3465,19 @@ function extraNameShare(a: string[], b: string[]): boolean {
       );
     }
     const [short, long] = sa.length <= sb.length ? [sa, sb] : [sb, sa];
-    // Green vs Greenpara / Greennagar is a second place, not a spelling.
-    // Palashbari vs Polash is not prefix+tail (palashbari does not start
-    // with polash).
+    // Green vs Greenpara / Greenpark is a second place, not a spelling.
+    // Gazirchat vs Gazir is the same village (Maddya Gazirchat vs
+    // Gazir Chat) — only English competing stems stay false here.
     if (
       long.startsWith(short) &&
-      ((PLACE_TAILS as readonly string[]).includes(long.slice(short.length)) ||
-        /^(?:park|field|land|wich|way)$/.test(long.slice(short.length)))
+      /^(?:park|field|land|wich|way)$/.test(long.slice(short.length))
+    ) {
+      return false;
+    }
+    if (
+      isCompetingRoadExtraToken(short) &&
+      long.startsWith(short) &&
+      (PLACE_TAILS as readonly string[]).includes(long.slice(short.length))
     ) {
       return false;
     }
@@ -3534,11 +3540,11 @@ function initialismVsLongName(a: string[], b: string[]): boolean {
 
 /** Compound para/par/bari vs the stem plus that tail as its own token. */
 function joinedParaShare(a: string[], b: string[]): boolean {
-  const tails = new Set(["para", "par", "bari"]);
+  const tails = new Set(["para", "par", "bari", "chat", "ghat"]);
   const check = (compound: string[], parts: string[]): boolean => {
     if (compound.length !== 1) return false;
     const t = compound[0]!;
-    for (const tail of ["para", "par", "bari"] as const) {
+    for (const tail of ["para", "par", "bari", "chat", "ghat"] as const) {
       if (!t.endsWith(tail) || t.length <= tail.length + 2) continue;
       const stem = t.slice(0, -tail.length);
       if (
@@ -3563,7 +3569,7 @@ function paraSpellingShare(
   const aLow = aDisplay.toLowerCase();
   const bLow = bDisplay.toLowerCase();
   const tryStem = (compound: string, stem: string, stemDisplay: string): boolean => {
-    for (const tail of ["para", "par", "bari"] as const) {
+    for (const tail of ["para", "par", "bari", "chat", "ghat"] as const) {
       if (!compound.endsWith(tail) || compound.length <= tail.length + 2) continue;
       const s = compound.slice(0, -tail.length);
       if (!(stem === s || sameWord(stem, s))) continue;

@@ -804,7 +804,7 @@ describe("Locations Also recorded as — rendered HTML boundary", () => {
         left: row("10, C DA Road, Chittagong", "BGMEA", "factory"),
         right: row("10, DA, Chittagong", "BKMEA", "factory"),
         keepRe: /C DA Road/i,
-        otherRe: /10, DA,/,
+        otherRe: /10,\s*DA,/i,
         otherName: "C DA Road vs unsuffixed DA",
       },
       {
