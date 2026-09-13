@@ -3556,9 +3556,7 @@ function extraNameShare(a: string[], b: string[]): boolean {
 
 /** Same street spelling (Joydebpur/Joydevpur, C DA/CDA, Hariken/Haricane).
  *  Not Rampura vs Rampur, Keraniganj vs Narayanganj, Airport vs Airpark. */
-function sameNamedRoadSpelling(a: string[], b: string[]): boolean {
-  const sa = a.join("");
-  const sb = b.join("");
+function coreSameNamedRoadSpelling(sa: string, sb: string): boolean {
   if (!sa || !sb) return false;
   if (sa === sb) return true;
   if (isCompetingRoadExtraToken(sa) || isCompetingRoadExtraToken(sb)) {
@@ -3602,6 +3600,21 @@ function sameNamedRoadSpelling(a: string[], b: string[]): boolean {
   const [x, y] = sa <= sb ? [sa, sb] : [sb, sa];
   if (x === "haricane" && y === "hariken") return true;
   if (x === "shorawardi" && y === "shuhrawardhi") return true;
+  return false;
+}
+
+function sameNamedRoadSpelling(a: string[], b: string[]): boolean {
+  if (coreSameNamedRoadSpelling(a.join(""), b.join(""))) return true;
+  // Kobi Jasimuddin vs Kazi Jashim Uddin — a short first token is the
+  // honorific, not the road. Station vs Staten has no such prefix.
+  if (
+    a.length >= 2 &&
+    b.length >= 2 &&
+    a[0]!.length <= 5 &&
+    b[0]!.length <= 5
+  ) {
+    return coreSameNamedRoadSpelling(a.slice(1).join(""), b.slice(1).join(""));
+  }
   return false;
 }
 
