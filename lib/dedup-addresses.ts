@@ -3630,9 +3630,31 @@ function extraLooksLikeCompetingRoad(e: {
   places: string[];
   src: "road" | "admin" | "bare";
 }): boolean {
-  if (e.src === "road") return true;
   if (e.src === "admin") return false;
-  return e.places.length === 1 && isCompetingRoadExtraToken(e.places[0]!);
+  return e.places.some(isCompetingRoadExtraToken);
+}
+
+/** "10, C DA Road" vs "10, DA" — DA is not minted as a 2-letter extra. */
+function unsuffixedInitialismLeftover(
+  road: {
+    digit: string;
+    places: string[];
+    src: "road" | "admin" | "bare";
+  },
+  otherDisplay: string,
+): boolean {
+  if (road.src !== "road" || road.places.length !== 1) return false;
+  const p = road.places[0]!;
+  if (p.length < 3 || p.length > 4) return false;
+  const suf = p.slice(1);
+  if (suf.length < 1 || suf.length > 3) return false;
+  const digit = road.digit.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const esc = suf.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const re = new RegExp(
+    String.raw`(?:^|,\s*)${digit}\s*,\s*${esc}(?:\s*[,.]|$)`,
+    "u",
+  );
+  return re.test(otherDisplay.toLowerCase());
 }
 
 function extraNamedOnOtherNonHousing(places: string[], other: Candidate): boolean {
@@ -3827,8 +3849,12 @@ function bareProperRoadPlaces(display: string): Array<{ digit: string; places: s
       if (!trimmed) continue;
       if (skipNextAsUnionName) {
         skipNextAsUnionName = false;
-        allowMint = true;
-        continue;
+        const head = trimmed.match(/^([a-z]{3,})\b/)?.[1];
+        // Mouja, Green — Green is the road, not the union's name.
+        if (!head || !isCompetingRoadExtraToken(head)) {
+          allowMint = true;
+          continue;
+        }
       }
       if (restatedDigit.test(trimmed) || restatedPlotList.test(trimmed)) {
         allowMint = true;
@@ -3862,12 +3888,25 @@ function bareProperRoadPlaces(display: string): Array<{ digit: string; places: s
         )
       ) {
         allowMint = true;
+        const kind = trimmed.match(
+          /^(union|mouza|mouja|thana|upazila|upazilla|village|vill|post|gpo)\b/,
+        )![1]!;
         const rest = trimmed.replace(
           /^(?:union|mouza|mouja|thana|upazila|upazilla|village|vill|post|gpo)\b[\s./_\u00AD\u200B\p{Pd}\u2212]*/u,
           "",
         );
-        if (!rest) skipNextAsUnionName = true;
-        continue;
+        const skipOwnName = /^(?:union|village|vill|post|gpo|thana|upazila|upazilla)$/.test(
+          kind,
+        );
+        if (rest) {
+          if (skipOwnName) continue;
+          trimmed = rest;
+        } else if (skipOwnName) {
+          skipNextAsUnionName = true;
+          continue;
+        } else {
+          continue;
+        }
       }
       // "6 No Dogri" — No is the label of 6, not a two-letter place.
       if (/^(?:no\.?|number|#)\s+(?!\d)/.test(trimmed)) {
@@ -4018,25 +4057,24 @@ function extraRoadPlaceConflict(a: Candidate, b: Candidate): boolean {
   if (cleanAddressString(a.display) === cleanAddressString(b.display)) return false;
   const ea = namedExtraTails(a.display);
   const eb = namedExtraTails(b.display);
+  // C DA Road vs unsuffixed "10, DA" — the two-letter leftover is never
+  // minted, so the pair loop never sees it.
+  for (const x of ea) {
+    if (unsuffixedInitialismLeftover(x, b.display)) return true;
+  }
+  for (const y of eb) {
+    if (unsuffixedInitialismLeftover(y, a.display)) return true;
+  }
   for (const x of ea) {
     for (const y of eb) {
       if (x.digit !== y.digit) continue;
       if (extraNameShare(x.places, y.places)) continue;
-      // Two English roads at the same digit, even when each string names
-      // the other road as leftover wording (Airport Road, Green vs Green
-      // Road, Airport). Mixed road↔bare inverted village+road may still
-      // use extraNamedOnOther (Shutivola + Fakirkhali, Sowdagor + CDA,
-      // BSCIC + Konabari).
-      if (x.src === "road" && y.src === "road") {
-        // B.B vs Bangabandhu / D.T. vs Asharabad. I A vs A and C DA vs
-        // DA are both short and still two roads.
-        if (!initialismVsLongName(x.places, y.places)) return true;
-      }
-      // Shared village extra at this digit (Satarkul on both). Other extras
-      // at the digit (Badda, Jiban) are leftover wording, not a second
-      // premises. A shared village must not license two English roads
-      // (Valuka on both of Airport vs Green, Hemayetpur on Airport vs
-      // Greenpur). Gulshan/Banani housing is already excluded.
+      // Shared village extra at this digit (Satarkul on both, Sonda on
+      // Shahriar vs Sharifpur). Other extras at the digit (Badda, Jiban)
+      // are leftover wording, not a second premises. A shared village must
+      // not license two English roads (Valuka on both of Airport vs Green).
+      // Run this before both-road XOR so named-road spellings at a shared
+      // village still merge. Gulshan/Banani housing is already excluded.
       {
         const housingish = (p: string) =>
           HOUSING_CAMPUS_PLACES.has(p) || ADMIN_TOKENS.has(p);
@@ -4055,6 +4093,24 @@ function extraRoadPlaceConflict(a: Candidate, b: Candidate): boolean {
           !(extraLooksLikeCompetingRoad(x) && extraLooksLikeCompetingRoad(y))
         ) {
           continue;
+        }
+      }
+      // Two English roads at the same digit, even when each string names
+      // the other road as leftover wording (Airport Road, Green vs Green
+      // Road, Airport). Mixed road↔bare inverted village+road may still
+      // use extraNamedOnOther (Shutivola + Fakirkhali, Sowdagor + CDA,
+      // BSCIC + Konabari). Airport vs Joydebpur is still two roads.
+      if (x.src === "road" && y.src === "road") {
+        if (initialismVsLongName(x.places, y.places)) {
+          // B.B vs Bangabandhu
+        } else if (extraLooksLikeCompetingRoad(x) || extraLooksLikeCompetingRoad(y)) {
+          return true;
+        } else if (
+          x.places.length === 1 &&
+          y.places.length === 1 &&
+          (x.places[0]!.length <= 3 || y.places[0]!.length <= 3)
+        ) {
+          return true;
         }
       }
       const xRoadish = x.src === "road" || x.src === "bare";
@@ -4079,9 +4135,65 @@ function extraRoadPlaceConflict(a: Candidate, b: Candidate): boolean {
         // vs "Green, Airport" stay two rows. Sowdagor Lane vs CDA is
         // multi-word vs a short extra and falls through to every().
         if (initialismVsLongName(x.places, y.places)) {
+          const shortBare =
+            (x.src === "road" &&
+              y.src === "bare" &&
+              y.places.join("").length <= 3) ||
+            (y.src === "road" &&
+              x.src === "bare" &&
+              x.places.join("").length <= 3);
+          if (shortBare) return true;
           continue;
         }
-        if (x.places.length === 1 && y.places.length === 1) return true;
+        if (x.places.length === 1 && y.places.length === 1) {
+          if (extraLooksLikeCompetingRoad(x) && extraLooksLikeCompetingRoad(y)) {
+            return true;
+          }
+          if (
+            x.src === "road" &&
+            y.src === "road" &&
+            (x.places[0]!.length <= 3 || y.places[0]!.length <= 3)
+          ) {
+            return true;
+          }
+          if (x.src === "road" && y.src === "bare" && extraLooksLikeCompetingRoad(y)) {
+            return true;
+          }
+          if (y.src === "road" && x.src === "bare" && extraLooksLikeCompetingRoad(x)) {
+            return true;
+          }
+          if (
+            x.src === "road" &&
+            y.src === "road" &&
+            (extraLooksLikeCompetingRoad(x) || extraLooksLikeCompetingRoad(y))
+          ) {
+            return true;
+          }
+          if (x.src !== "road" && y.src !== "road") return true;
+          // Plot 397 Joydebpur Road, Chandona vs Plot 397 Chandona — the
+          // village leftover is already named on the road string.
+          // Airport vs Green leftover already returned above.
+          if (
+            x.src === "road" &&
+            !extraLooksLikeCompetingRoad(x) &&
+            !extraLooksLikeCompetingRoad(y) &&
+            extraNamedOnOther(y.places, a)
+          ) {
+            continue;
+          }
+          if (
+            y.src === "road" &&
+            !extraLooksLikeCompetingRoad(x) &&
+            !extraLooksLikeCompetingRoad(y) &&
+            extraNamedOnOther(x.places, b)
+          ) {
+            continue;
+          }
+          // Shahriar vs Sharifpur at Sonda: two named roads at the same
+          // plot, not Airport vs Green leftover.
+          if (x.src === "road" && y.src === "road") continue;
+          return true;
+        }
         if (
           extraNamedOnOtherNonHousing(x.places, b) &&
           extraNamedOnOtherNonHousing(y.places, a)

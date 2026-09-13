@@ -5720,8 +5720,8 @@ describe("mergeUniqueLocations — empty rows, duplicates, overview buckets", ()
       for (const ordered of permutations(three)) {
         assert.equal(
           mergeUniqueLocations(ordered).length,
-          3,
-          "Plot # 10 Airport Road + Green Road + unsuffixed Green",
+          2,
+          "Plot # 10 Airport Road stays apart from Green Road / unsuffixed Green",
         );
       }
     }
@@ -5931,6 +5931,44 @@ describe("mergeUniqueLocations — empty rows, duplicates, overview buckets", ()
       row("House # 04, Road # 02, Block # A, Chand Uddan, Mohammadpur, Dhaka"),
       1,
       "Chanduddan vs Chand Uddan after Greenpark false-path",
+    );
+    assertBothOrders(
+      row("Plot # 397, Chandona, Chowrasta, Joydevpur\nGazipur\nGazipur"),
+      row(
+        "Plot # 397 joydebpur road,chandona Chowrast, Gazipur Sadar, Gazipur 1702, Bangladesh, Gazipur, Bangladesh",
+      ),
+      1,
+      "Plot 397 Chandona vs Joydebpur Road Chandona",
+    );
+    assertBothOrders(
+      row("186, Maddya Gazirchat, Ashulia-EPZ Road\nDhaka\nSavar"),
+      row("186, Maddhya Gazir Chat, Ashulia EPZ Road, , DHAKA"),
+      1,
+      "186 Maddya Gazirchat vs Maddhya Gazir Chat Ashulia EPZ Road",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, Dhaka"),
+      row("Plot # 10, Joydebpur Road, Dhaka"),
+      2,
+      "Plot 10 Airport Road vs Joydebpur Road",
+    );
+    assertBothOrders(
+      row("244, Singair Road, Hemayetpur, Savar, Dhaka"),
+      row("244, Hemayetpur, Savar, Dhaka"),
+      1,
+      "244 Singair Road Hemayetpur vs 244 Hemayetpur after village-on-road KEEP",
+    );
+    assertBothOrders(
+      row("778, Asharabad, Chittagong, D.T. Road"),
+      row("778, D.T. Road, Asharabad, Chittagong"),
+      1,
+      "D.T. Road Asharabad vs unsuffixed DA leftover wiring",
+    );
+    assertBothOrders(
+      row("10, C DA Road, Chittagong"),
+      row("10, CDA Road, Chittagong"),
+      1,
+      "10 C DA vs CDA spelling after unsuffixed DA leftover",
     );
   });
 

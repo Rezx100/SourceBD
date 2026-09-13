@@ -800,6 +800,20 @@ describe("Locations Also recorded as — rendered HTML boundary", () => {
         otherRe: /Kakhin Banani/i,
         otherName: "House 50 vs 7 Kakhin Banani",
       },
+      {
+        left: row("10, C DA Road, Chittagong", "BGMEA", "factory"),
+        right: row("10, DA, Chittagong", "BKMEA", "factory"),
+        keepRe: /C DA Road/i,
+        otherRe: /10, DA,/,
+        otherName: "C DA Road vs unsuffixed DA",
+      },
+      {
+        left: row("Plot # 10, Airport Road, Dhaka", "BGMEA", "factory"),
+        right: row("Plot # 10, Joydebpur Road, Dhaka", "BKMEA", "factory"),
+        keepRe: /Airport Road/i,
+        otherRe: /Joydebpur Road/i,
+        otherName: "Plot 10 Airport Road vs Joydebpur Road",
+      },
     ];
     for (const c of cases) {
       assertSplitAddressRowHtml(c.left, c.right, c.keepRe, c.otherRe, c.otherName);
@@ -914,6 +928,24 @@ describe("Locations Also recorded as — rendered HTML boundary", () => {
       /Union Plaza/i,
       /DEPZ|D EPZ/i,
       "Union Plaza 140 Baron D EPZ vs DEPZ Road",
+    );
+    assertMergedAddressRowHtml(
+      row("Plot # 397, Chandona, Chowrasta, Joydevpur\nGazipur\nGazipur", "BGMEA", "factory"),
+      row(
+        "Plot # 397 joydebpur road,chandona Chowrast, Gazipur Sadar, Gazipur 1702, Bangladesh, Gazipur, Bangladesh",
+        "BKMEA",
+        "factory",
+      ),
+      /Chandona|Joydebpur|Joydevpur/i,
+      /Chandona|Joydebpur|Joydevpur/i,
+      "Plot 397 Chandona vs Joydebpur Road Chandona",
+    );
+    assertMergedAddressRowHtml(
+      row("186, Maddya Gazirchat, Ashulia-EPZ Road\nDhaka\nSavar", "BGMEA", "factory"),
+      row("186, Maddhya Gazir Chat, Ashulia EPZ Road, , DHAKA", "BKMEA", "factory"),
+      /Gazirchat|Gazir Chat/i,
+      /Gazirchat|Gazir Chat/i,
+      "186 Maddya Gazirchat vs Maddhya Gazir Chat",
     );
     assertMergedAddressRowHtml(
       row("Plot # 23-24, Union - Telulzora, Hemayetpur\nDhaka\nSavar", "BGMEA", "factory"),
