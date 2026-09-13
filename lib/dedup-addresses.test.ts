@@ -6193,6 +6193,127 @@ describe("mergeUniqueLocations — empty rows, duplicates, overview buckets", ()
       1,
       "10 C DA vs CDA spelling after unsuffixed DA leftover",
     );
+    assertBothOrders(
+      row("Plot # 10, C DA Road, Chittagong"),
+      row("Plot # 10, DA Chittagong"),
+      2,
+      "Plot # 10 C DA Road vs Plot # DA Chittagong no comma",
+    );
+    assertBothOrders(
+      row("10, C DA Road, Chittagong"),
+      row("10, DA Chittagong"),
+      2,
+      "10 C DA Road vs 10 DA Chittagong no comma",
+    );
+    assertBothOrders(
+      row("10, C DA Road, Chittagong"),
+      row("10 DA Chittagong"),
+      2,
+      "10 C DA Road vs 10 DA Chittagong no comma after digit",
+    );
+    assertBothOrders(
+      row("Plot # 10, I A Road, Dhaka"),
+      row("Plot # 10, A Dhaka"),
+      2,
+      "Plot # 10 I A Road vs Plot # A Dhaka no comma",
+    );
+    assertBothOrders(
+      row("Plot # 10, Joydebpur Road, Valuka"),
+      row("Plot # 10, Tejgaon Road, Valuka"),
+      2,
+      "Plot 10 Joydebpur vs Tejgaon Valuka after the road",
+    );
+    assertBothOrders(
+      row("Plot # 10, Joydebpur Road, Valuka, Dhaka"),
+      row("Plot # 10, Tejgaon Road, Valuka, Dhaka"),
+      2,
+      "Plot 10 Joydebpur vs Tejgaon Valuka after with Dhaka",
+    );
+    assertBothOrders(
+      row("Plot # 10, Singair Road, Hemayetpur"),
+      row("Plot # 10, Joydebpur Road, Hemayetpur"),
+      2,
+      "Plot 10 Singair vs Joydebpur Hemayetpur after the road",
+    );
+    assertBothOrders(
+      row("Plot # 10, Shahriar Road, Valuka"),
+      row("Plot # 10, Sharifpur Road, Valuka"),
+      2,
+      "Plot 10 Shahriar vs Sharifpur Valuka after the road",
+    );
+    assertBothOrders(
+      row("Plot # 10, Joydebpur Road, Sonda"),
+      row("Plot # 10, Tejgaon Road, Sonda"),
+      2,
+      "Plot 10 Joydebpur vs Tejgaon Sonda after the road",
+    );
+    assertBothOrders(
+      row("Plot # 636, Shahriar Road, Sonda"),
+      row("636, Sharifpur Road, Sonda"),
+      1,
+      "Plot 636 Shahriar vs Sharifpur at Sonda after village-after XOR",
+    );
+    assert.equal(
+      displays([
+        row("Plot # 10, Joydebpur Road, Valuka"),
+        row("Plot # 10, Tejgaon Road, Valuka"),
+        row("Plot # 10, Station Road, Valuka"),
+      ]).length,
+      3,
+      "three-string Joydebpur+Tejgaon+Station Valuka after",
+    );
+    assertBothOrders(
+      row("Plot # 23-24, Union, Dogri, Hemayetpur, Dhaka, Savar"),
+      row(
+        "Holding No. 87, Plot No. 23, 24, 25, Hemayetpur, Tetuljhora Union, Savar, Dhaka - 1340, Bangladesh",
+      ),
+      2,
+      "Union Dogri vs Holding 87 Tetuljhora must not share a Locations row",
+    );
+    assert.equal(
+      displays([
+        row("Plot # 23-24, Union - Telulzora, Hemayetpur, Dhaka, Savar"),
+        row("Plot # 23-24, Union, Dogri, Hemayetpur, Dhaka, Savar"),
+        row(
+          "Holding No. 87, Plot No. 23, 24, 25, Hemayetpur, Tetuljhora Union, Savar, Dhaka - 1340, Bangladesh",
+        ),
+      ]).length,
+      2,
+      "three-string Telulzora+Dogri+Holding 87 Dogri stays its own row",
+    );
+    for (const ordered of permutations([
+      row("Plot # 23-24, Union - Telulzora, Hemayetpur, Dhaka, Savar"),
+      row("Plot # 23-24, Union, Dogri, Hemayetpur, Dhaka, Savar"),
+      row(
+        "Holding No. 87, Plot No. 23, 24, 25, Hemayetpur, Tetuljhora Union, Savar, Dhaka - 1340, Bangladesh",
+      ),
+    ])) {
+      assert.equal(
+        displays(ordered).length,
+        2,
+        "three-string Telulzora+Dogri+Holding 87 permutation",
+      );
+    }
+    assertBothOrders(
+      row("Plot # 23-24, Union - Telulzora, Hemayetpur, Dhaka, Savar"),
+      row("Plot # 23-24, Union, Telulzora, Hemayetpur, Dhaka, Savar"),
+      1,
+      "Union hyphen vs comma Telulzora after Dogri XOR",
+    );
+    assertBothOrders(
+      row("Plot # 23-24, Union - Telulzora, Hemayetpur\nDhaka\nSavar"),
+      row(
+        "Holding No. 87, Plot No. 23, 24, 25, Hemayetpur, Tetuljhora Union, Savar, Dhaka - 1340, Bangladesh",
+      ),
+      1,
+      "neighbour Plot 23-24 Telulzora vs Holding 87 after Dogri XOR",
+    );
+    assertBothOrders(
+      row("244, Singair Road, Hemayetpur, Savar, Dhaka"),
+      row("244, Hemayetpur, Savar, Dhaka"),
+      1,
+      "244 Singair vs Hemayetpur after village-after named-road XOR",
+    );
   });
 
   it("merges neighbour plot lists and keeps House 365/4 Baridhara together", () => {

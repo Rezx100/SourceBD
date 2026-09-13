@@ -3554,6 +3554,16 @@ function extraNameShare(a: string[], b: string[]): boolean {
   return false;
 }
 
+/** Shahriar vs Sharifpur at Sonda (Balaka Stitch Plot 636). Not extraNameShare
+ *  globally — Plot 10 Shahriar vs Sharifpur without Sonda stays two rows. */
+function namedRoadNearSpelling(a: string[], b: string[]): boolean {
+  if (extraNameShare(a, b)) return true;
+  const sa = a.join("");
+  const sb = b.join("");
+  if (!sa || !sb) return false;
+  return Math.min(sa.length, sb.length) >= 8 && levenshtein(sa, sb) <= 4;
+}
+
 /** B.B / D.T. initials vs a full road or village name. I A vs A and
  *  C DA vs DA are both short and still two roads. */
 function initialismVsLongName(a: string[], b: string[]): boolean {
@@ -3685,15 +3695,17 @@ function unsuffixedInitialismLeftover(
   const digit = road.digit.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   const esc = suf.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   // Plot # 10, DA and "10 DA" (no comma) and 2-letter I A vs unsuffixed A.
-  // `(?<![a-z])` so CDA does not match leftover DA.
+  // `(?<![a-z])` so CDA does not match leftover DA. DA Chittagong (city after
+  // the leftover, no comma) is still leftover; DA Road is the thoroughfare.
   const re = new RegExp(
-    String.raw`(?:^|,\s*|${PLOT_DIGIT_LEAD})${digit}\s*,?\s*(?<![a-z])${esc}(?:\s*[,.]|$)`,
+    String.raw`(?:^|,\s*|${PLOT_DIGIT_LEAD})${digit}\s*,?\s*(?<![a-z])${esc}(?:\s*[,.]|$|\s+(?!${THOROUGHFARE_ALT})[a-z]{3,}\b)`,
     "u",
   );
   return re.test(otherDisplay.toLowerCase());
 }
 
-/** Sonda after Shahriar Road. Valuka before Joydebpur Road is not this. */
+/** Village tokens after the last thoroughfare field. Valuka before the road
+ *  is not this. Sonda after Shahriar Road is. */
 function leftoverPlacesAfterThoroughfare(display: string): string[] {
   const fields = display.toLowerCase().split(",");
   const out: string[] = [];
@@ -3725,7 +3737,13 @@ function leftoverPlacesAfterThoroughfare(display: string): string[] {
 function sharedVillageAfterThoroughfare(a: string, b: string): boolean {
   const aa = leftoverPlacesAfterThoroughfare(a);
   const bb = leftoverPlacesAfterThoroughfare(b);
-  return aa.some((p) => bb.some((q) => extraNameShare([p], [q])));
+  // Valuka / Hemayetpur after two named roads are a shared upazila, not the
+  // same street. Sonda after Shahriar vs Sharifpur is Balaka Stitch Plot 636.
+  return aa.some(
+    (p) =>
+      /^(?:sonda|shonda)$/.test(p) &&
+      bb.some((q) => extraNameShare([p], [q])),
+  );
 }
 
 function extraNamedOnOtherNonHousing(places: string[], other: Candidate): boolean {
@@ -4136,8 +4154,58 @@ function namedExtraTails(
   return out;
 }
 
+function unionNameSkipToken(place: string): boolean {
+  if (extraPlaceSkipToken(place)) return true;
+  if (isThoroughfareWord(place)) return true;
+  if (ADMIN_TOKENS.has(place) || HOUSING_CAMPUS_PLACES.has(place)) return true;
+  if (GENERIC_TOKENS.has(place)) return true;
+  return /^(?:plaza|tower|complex|centre|center|bhaban|bhawan|building|market|court|chamber|mansion|housing|no|number|ward|plot|plots|holding|house|hosue)$/.test(
+    place,
+  );
+}
+
+/** "Union - Telulzora" and "Tetuljhora Union". Not Union Plaza. */
+function unionNamesFromDisplay(display: string): string[] {
+  const s = rewriteHouseOffice(display).toLowerCase();
+  const names: string[] = [];
+  const push = (n: string) => {
+    if (n.length < 3 || unionNameSkipToken(n)) return;
+    if (!names.includes(n)) names.push(n);
+  };
+  const lead = new RegExp(
+    String.raw`\bunion\b[\s./_\u00AD\u200B\p{Pd}\u2212]*,?\s*([a-z]{3,})\b`,
+    EXTRA_RE_FLAGS,
+  );
+  for (const m of s.matchAll(lead)) push(m[1]!);
+  const trail = new RegExp(String.raw`\b([a-z]{3,})\s+union\b`, EXTRA_RE_FLAGS);
+  for (const m of s.matchAll(trail)) push(m[1]!);
+  return names;
+}
+
+/** Telulzora vs Tetuljhora (lev 3). Dogri vs Tetuljhora is not this. */
+function unionNameShare(a: string[], b: string[]): boolean {
+  if (extraNameShare(a, b)) return true;
+  const sa = a.join("");
+  const sb = b.join("");
+  if (!sa || !sb) return false;
+  return (
+    Math.min(sa.length, sb.length) >= 8 &&
+    Math.abs(sa.length - sb.length) <= 1 &&
+    levenshtein(sa, sb) <= 3
+  );
+}
+
 function extraRoadPlaceConflict(a: Candidate, b: Candidate): boolean {
   if (cleanAddressString(a.display) === cleanAddressString(b.display)) return false;
+  const unionsA = unionNamesFromDisplay(a.display);
+  const unionsB = unionNamesFromDisplay(b.display);
+  if (
+    unionsA.length > 0 &&
+    unionsB.length > 0 &&
+    !unionsA.some((x) => unionsB.some((y) => unionNameShare([x], [y])))
+  ) {
+    return true;
+  }
   const ea = namedExtraTails(a.display);
   const eb = namedExtraTails(b.display);
   // C DA Road vs unsuffixed "10, DA" — the two-letter leftover is never
@@ -4286,6 +4354,7 @@ function extraRoadPlaceConflict(a: Candidate, b: Candidate): boolean {
           if (
             x.src === "road" &&
             y.src === "road" &&
+            namedRoadNearSpelling(x.places, y.places) &&
             sharedVillageAfterThoroughfare(a.display, b.display)
           ) {
             continue;
