@@ -4362,7 +4362,9 @@ function unionNamesFromDisplay(display: string): string[] {
   );
   for (const m of s.matchAll(lead)) push(m[1]!);
   // Village, Hemayetpur, Dogri — Dogri is a second village after the title,
-  // not Dhaka (ADMIN skip).
+  // not Dhaka (ADMIN skip). Union, Dogri, Hemayetpur also lists Hemayetpur
+  // after the union name so Village Hemayetpur can still see it; unmatched
+  // Dogri vs Telulzora is XORed in extraRoadPlaceConflict.
   const afterLead = new RegExp(
     String.raw`(?:the\s+)?\b${title}\b[\s./_\u00AD\u200B\p{Pd}\u2212]*,?\s*(?:(?:of|the)\s+)*[a-z]{3,}\b((?:[\s,./_\u00AD\u200B\p{Pd}\u2212]+[a-z]{3,}\b)*)`,
     EXTRA_RE_FLAGS,
@@ -4403,10 +4405,12 @@ function unionBuildingFromDisplay(display: string): boolean {
 
 function hasVillageKindTitle(display: string): boolean {
   const s = rewriteHouseOffice(display).toLowerCase();
-  return new RegExp(
-    String.raw`(?:the\s+)?\b(?:village|vill)\b`,
-    EXTRA_RE_FLAGS,
-  ).test(s);
+  if (new RegExp(String.raw`(?:the\s+)?\b(?:village|vill)\b`, "u").test(s)) {
+    return true;
+  }
+  // "Union, Dogri" at the start of a field is Village, Dogri. "Tetuljhora
+  // Union, Savar" is the union name then the next field, not that shape.
+  return /(?:^|,)\s*union\s*,\s*[a-z]{3,}/u.test(s);
 }
 
 function hasUnionKindTitle(display: string): boolean {
@@ -4445,6 +4449,21 @@ function extraRoadPlaceConflict(a: Candidate, b: Candidate): boolean {
   // Shared Hemayetpur does not license unmatched Dogri when both strings
   // title a village.
   if (hasVillageKindTitle(a.display) && hasVillageKindTitle(b.display)) {
+    const unmatchedA = unionsA.filter(
+      (u) => !unionsB.some((v) => unionNameShare([u], [v])),
+    );
+    const unmatchedB = unionsB.filter(
+      (u) => !unionsA.some((v) => unionNameShare([u], [v])),
+    );
+    if (
+      unmatchedA.some((u) => !extraNamedOnOther([u], b)) ||
+      unmatchedB.some((u) => !extraNamedOnOther([u], a))
+    ) {
+      return true;
+    }
+  }
+  // Shared Hemayetpur after Union, Dogri must not license Telulzora vs Dogri.
+  if (hasUnionKindTitle(a.display) && hasUnionKindTitle(b.display)) {
     const unmatchedA = unionsA.filter(
       (u) => !unionsB.some((v) => unionNameShare([u], [v])),
     );
