@@ -6314,6 +6314,86 @@ describe("mergeUniqueLocations — empty rows, duplicates, overview buckets", ()
       1,
       "244 Singair vs Hemayetpur after village-after named-road XOR",
     );
+    assertBothOrders(
+      row("Plot # 10, Faridabad Road, Sonda"),
+      row("Plot # 10, Faridpur Road, Sonda"),
+      2,
+      "Plot 10 Faridabad vs Faridpur at Sonda",
+    );
+    assertBothOrders(
+      row("Plot # 10, Faridabad Road, Dhaka"),
+      row("Plot # 10, Faridpur Road, Dhaka"),
+      2,
+      "Plot 10 Faridabad vs Faridpur no Sonda",
+    );
+    assertBothOrders(
+      row("Plot # 10, Sharifpur Road, Sonda"),
+      row("Plot # 10, Faridpur Road, Sonda"),
+      2,
+      "Plot 10 Sharifpur vs Faridpur at Sonda",
+    );
+    assertBothOrders(
+      row("Plot # 10, Sharifpur Road, Dhaka"),
+      row("Plot # 10, Faridpur Road, Dhaka"),
+      2,
+      "Plot 10 Sharifpur vs Faridpur no Sonda",
+    );
+    assertBothOrders(
+      row("Plot # 10, Mohammadpur Road, Sonda"),
+      row("Plot # 10, Shahjadpur Road, Sonda"),
+      2,
+      "Plot 10 Mohammadpur vs Shahjadpur at Sonda",
+    );
+    assertBothOrders(
+      row("Plot # 23-24, Telulzora Union, Hemayetpur, Dhaka, Savar"),
+      row(
+        "Holding No. 87, Plot No. 23, 24, 25, Hemayetpur, Tetuljhora Union, Savar, Dhaka - 1340, Bangladesh",
+      ),
+      1,
+      "Telulzora Union title-after vs Holding 87",
+    );
+    for (const ordered of permutations([
+      row("Plot # 23-24, Union - Telulzora, Hemayetpur, Dhaka, Savar"),
+      row("Plot # 23-24, Telulzora Union, Hemayetpur, Dhaka, Savar"),
+      row(
+        "Holding No. 87, Plot No. 23, 24, 25, Hemayetpur, Tetuljhora Union, Savar, Dhaka - 1340, Bangladesh",
+      ),
+    ])) {
+      assert.equal(
+        displays(ordered).length,
+        1,
+        "three-string hyphen+title-after Telulzora+Holding 87 permutation",
+      );
+    }
+    assertBothOrders(
+      row("Plot # 23-24, Village, Dogri, Hemayetpur, Dhaka, Savar"),
+      row(
+        "Holding No. 87, Plot No. 23, 24, 25, Hemayetpur, Tetuljhora Union, Savar, Dhaka - 1340, Bangladesh",
+      ),
+      2,
+      "Village Dogri vs Holding 87 Tetuljhora",
+    );
+    assertBothOrders(
+      row("Plot # 23-24, Vill, Dogri, Hemayetpur, Dhaka, Savar"),
+      row(
+        "Holding No. 87, Plot No. 23, 24, 25, Hemayetpur, Tetuljhora Union, Savar, Dhaka - 1340, Bangladesh",
+      ),
+      2,
+      "Vill Dogri vs Holding 87 Tetuljhora",
+    );
+    for (const ordered of permutations([
+      row("Plot # 23-24, Union - Telulzora, Hemayetpur, Dhaka, Savar"),
+      row("Plot # 23-24, Village, Dogri, Hemayetpur, Dhaka, Savar"),
+      row(
+        "Holding No. 87, Plot No. 23, 24, 25, Hemayetpur, Tetuljhora Union, Savar, Dhaka - 1340, Bangladesh",
+      ),
+    ])) {
+      assert.equal(
+        displays(ordered).length,
+        2,
+        "three-string Telulzora+Village Dogri+Holding 87 permutation",
+      );
+    }
   });
 
   it("merges neighbour plot lists and keeps House 365/4 Baridhara together", () => {

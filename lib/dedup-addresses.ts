@@ -3554,14 +3554,45 @@ function extraNameShare(a: string[], b: string[]): boolean {
   return false;
 }
 
-/** Shahriar vs Sharifpur at Sonda (Balaka Stitch Plot 636). Not extraNameShare
- *  globally — Plot 10 Shahriar vs Sharifpur without Sonda stays two rows. */
-function namedRoadNearSpelling(a: string[], b: string[]): boolean {
-  if (extraNameShare(a, b)) return true;
+/** Same street spelling (Joydebpur/Joydevpur, C DA/CDA). Not Sharifpur vs
+ *  Faridpur — those extraNameShare only through roadTailsShare lev 3. */
+function sameNamedRoadSpelling(a: string[], b: string[]): boolean {
   const sa = a.join("");
   const sb = b.join("");
   if (!sa || !sb) return false;
-  return Math.min(sa.length, sb.length) >= 8 && levenshtein(sa, sb) <= 4;
+  if (sa === sb) return true;
+  if (sameWord(sa, sb)) return true;
+  if (
+    a.some((p) =>
+      b.some(
+        (q) =>
+          (p === q || sameWord(p, q)) &&
+          p.length >= 4 &&
+          !(PLACE_TAILS as readonly string[]).includes(p),
+      ),
+    )
+  ) {
+    return true;
+  }
+  // Hariken vs Haricane / Shuhrawardhi vs Shorawardi: extraNameShare via
+  // roadTailsShare lev 3 and sound-key lev 1. Sharifpur vs Faridpur is
+  // the same string-lev 3 but sound-key lev 2 (two different -pur roads).
+  if (extraNameShare(a, b)) {
+    const ka = bengaliSoundKey(sa);
+    const kb = bengaliSoundKey(sb);
+    if (ka && kb && levenshtein(ka, kb) <= 1) return true;
+  }
+  return false;
+}
+
+/** Shahriar vs Sharifpur at Sonda (Balaka Stitch Plot 636). Not extraNameShare
+ *  globally — Plot 10 Shahriar vs Sharifpur without Sonda stays two rows.
+ *  Sharifpur vs Faridpur extraNameShares via roadTailsShare; that is not this. */
+function namedRoadNearSpelling(a: string[], b: string[]): boolean {
+  const sa = a.join("");
+  const sb = b.join("");
+  const [x, y] = sa <= sb ? [sa, sb] : [sb, sa];
+  return x === "shahriar" && y === "sharifpur";
 }
 
 /** B.B / D.T. initials vs a full road or village name. I A vs A and
@@ -3858,6 +3889,9 @@ function bareProperRoadPlaces(
       out.push({ digit: String(Number(digit)), places: [place, next] });
       return;
     }
+    // "Telulzora Union" / "Tetuljhora Union" — the title after the name is
+    // the same skip as "Union - Telulzora", not a competing extra.
+    if (next && /^(?:union|village|vill)$/.test(next)) return;
     if (next && (PLACE_TAILS as readonly string[]).includes(next)) return;
     if (isBuildingNameFollower(after)) return;
     const canon = tokens(normaliseAddressKey(place));
@@ -4000,6 +4034,33 @@ function bareProperRoadPlaces(
           continue;
         } else {
           continue;
+        }
+      }
+      // "Telulzora Union" — title after the name, same skip as title-before
+      // so the walker reaches Hemayetpur. Do not skipNext: the next field
+      // is the village, not the union's own name.
+      {
+        const trail = trimmed.match(
+          /^([a-z]{3,})\s+(union|village|vill)\b(.*)$/u,
+        );
+        if (
+          trail &&
+          !unionNameSkipToken(trail[1]!) &&
+          !isThoroughfareWord(trail[1]!) &&
+          !HOUSING_CAMPUS_PLACES.has(trail[1]!) &&
+          !ADMIN_TOKENS.has(trail[1]!)
+        ) {
+          allowMint = true;
+          unionMint = true;
+          const rest = trail[3]!.replace(
+            /^[\s./_\u00AD\u200B\p{Pd}\u2212]+/u,
+            "",
+          );
+          if (rest) {
+            trimmed = rest;
+          } else {
+            continue;
+          }
         }
       }
       // "6 No Dogri" — No is the label of 6, not a two-letter place.
@@ -4164,7 +4225,7 @@ function unionNameSkipToken(place: string): boolean {
   );
 }
 
-/** "Union - Telulzora" and "Tetuljhora Union". Not Union Plaza. */
+/** "Union - Telulzora", "Village, Dogri", and "Tetuljhora Union". Not Union Plaza. */
 function unionNamesFromDisplay(display: string): string[] {
   const s = rewriteHouseOffice(display).toLowerCase();
   const names: string[] = [];
@@ -4172,12 +4233,16 @@ function unionNamesFromDisplay(display: string): string[] {
     if (n.length < 3 || unionNameSkipToken(n)) return;
     if (!names.includes(n)) names.push(n);
   };
+  const title = String.raw`(?:union|village|vill)`;
   const lead = new RegExp(
-    String.raw`\bunion\b[\s./_\u00AD\u200B\p{Pd}\u2212]*,?\s*([a-z]{3,})\b`,
+    String.raw`\b${title}\b[\s./_\u00AD\u200B\p{Pd}\u2212]*,?\s*([a-z]{3,})\b`,
     EXTRA_RE_FLAGS,
   );
   for (const m of s.matchAll(lead)) push(m[1]!);
-  const trail = new RegExp(String.raw`\b([a-z]{3,})\s+union\b`, EXTRA_RE_FLAGS);
+  const trail = new RegExp(
+    String.raw`\b([a-z]{3,})\s+${title}\b`,
+    EXTRA_RE_FLAGS,
+  );
   for (const m of s.matchAll(trail)) push(m[1]!);
   return names;
 }
@@ -4219,7 +4284,32 @@ function extraRoadPlaceConflict(a: Candidate, b: Candidate): boolean {
   for (const x of ea) {
     for (const y of eb) {
       if (x.digit !== y.digit) continue;
-      if (extraNameShare(x.places, y.places)) continue;
+      if (x.src === "road" && y.src === "road") {
+        if (sameNamedRoadSpelling(x.places, y.places)) continue;
+      } else if (
+        extraNameShare(x.places, y.places) ||
+        unionNameShare(x.places, y.places)
+      ) {
+        continue;
+      }
+      // Title-after "Telulzora Union" still mints telulzora as a bare extra
+      // vs Holding's Hemayetpur at plots 23-24. When both displays already
+      // name the same union, that extra is leftover union wording, not a
+      // second premises. Leftover DA / named-road XOR still run when the
+      // extra is not the union name.
+      {
+        const unionsShare = unionsA.some((u) =>
+          unionsB.some((v) => unionNameShare([u], [v])),
+        );
+        const unionPlaces = [...unionsA, ...unionsB];
+        if (
+          unionsShare &&
+          (unionNameShare(x.places, unionPlaces) ||
+            unionNameShare(y.places, unionPlaces))
+        ) {
+          continue;
+        }
+      }
       // Shared village extra at this digit (Satarkul on both, Sonda on
       // Shahriar vs Sharifpur). Other extras at the digit (Badda, Jiban)
       // are leftover wording, not a second premises. A shared village must
@@ -4247,9 +4337,16 @@ function extraRoadPlaceConflict(a: Candidate, b: Candidate): boolean {
           // Valuka before Joydebpur vs Tejgaon must not license two named
           // roads. Hemayetpur must not license Telulzora vs Dogri.
           if (
-            ((x.src === "road" && y.src === "road") ||
-              (x.src === "union" && y.src === "union")) &&
-            !extraNameShare(x.places, y.places)
+            x.src === "road" &&
+            y.src === "road" &&
+            !sameNamedRoadSpelling(x.places, y.places)
+          ) {
+            // fall through to XOR
+          } else if (
+            x.src === "union" &&
+            y.src === "union" &&
+            !extraNameShare(x.places, y.places) &&
+            !unionNameShare(x.places, y.places)
           ) {
             // fall through to XOR
           } else {
@@ -4278,18 +4375,28 @@ function extraRoadPlaceConflict(a: Candidate, b: Candidate): boolean {
       const xRoadish = x.src === "road" || x.src === "bare" || x.src === "union";
       const yRoadish = y.src === "road" || y.src === "bare" || y.src === "union";
       if (xRoadish && yRoadish) {
-        if (x.src === "road" && y.places.some(isLocalityTailPlace)) {
+        if (x.src === "road" && y.src !== "road" && y.places.some(isLocalityTailPlace)) {
           if (extraNamedOnOther(y.places, a)) continue;
         }
-        if (y.src === "road" && x.places.some(isLocalityTailPlace)) {
+        if (y.src === "road" && x.src !== "road" && x.places.some(isLocalityTailPlace)) {
           if (extraNamedOnOther(x.places, b)) continue;
         }
         // Village + road of one premises (Shutivola + Fakirkhali, Dighirpar
         // + Nazma Khatun Lane). The village extra sits on both strings.
-        if (x.src === "road" && ea.some((p) => extraNameShare(p.places, y.places))) {
+        // Two named roads extraNameShare through roadTailsShare (Sharifpur
+        // vs Faridpur lev 3) is not this.
+        if (
+          x.src === "road" &&
+          y.src !== "road" &&
+          ea.some((p) => extraNameShare(p.places, y.places))
+        ) {
           continue;
         }
-        if (y.src === "road" && eb.some((q) => extraNameShare(q.places, x.places))) {
+        if (
+          y.src === "road" &&
+          x.src !== "road" &&
+          eb.some((q) => extraNameShare(q.places, x.places))
+        ) {
           continue;
         }
         // Airport vs Green leftover are two single-token extras. Do this
@@ -4337,6 +4444,7 @@ function extraRoadPlaceConflict(a: Candidate, b: Candidate): boolean {
           // Airport vs Green leftover already returned above.
           if (
             x.src === "road" &&
+            y.src !== "road" &&
             !extraLooksLikeCompetingRoad(x) &&
             !extraLooksLikeCompetingRoad(y) &&
             extraNamedOnOther(y.places, a)
@@ -4345,6 +4453,7 @@ function extraRoadPlaceConflict(a: Candidate, b: Candidate): boolean {
           }
           if (
             y.src === "road" &&
+            x.src !== "road" &&
             !extraLooksLikeCompetingRoad(x) &&
             !extraLooksLikeCompetingRoad(y) &&
             extraNamedOnOther(x.places, b)
