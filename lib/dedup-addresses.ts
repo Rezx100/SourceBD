@@ -3658,9 +3658,11 @@ function isCompetingRoadExtraToken(place: string): boolean {
   return false;
 }
 
+type ExtraSrc = "road" | "admin" | "bare" | "union";
+
 function extraLooksLikeCompetingRoad(e: {
   places: string[];
-  src: "road" | "admin" | "bare";
+  src: ExtraSrc;
 }): boolean {
   if (e.src === "admin") return false;
   return e.places.some(isCompetingRoadExtraToken);
@@ -3671,7 +3673,7 @@ function unsuffixedInitialismLeftover(
   road: {
     digit: string;
     places: string[];
-    src: "road" | "admin" | "bare";
+    src: ExtraSrc;
   },
   otherDisplay: string,
 ): boolean {
@@ -3692,15 +3694,38 @@ function unsuffixedInitialismLeftover(
 }
 
 /** Sonda after Shahriar Road. Valuka before Joydebpur Road is not this. */
-function extraPlaceFollowsThoroughfare(display: string, places: string[]): boolean {
-  const s = display.toLowerCase();
-  return places.some((place) => {
-    const esc = place.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    return new RegExp(
-      String.raw`(?:^|[^a-z])(?:${THOROUGHFARE_ALT}).{0,80}(?:^|[^a-z])${esc}(?:$|[^a-z])`,
-      "u",
-    ).test(s);
-  });
+function leftoverPlacesAfterThoroughfare(display: string): string[] {
+  const fields = display.toLowerCase().split(",");
+  const out: string[] = [];
+  let seen = false;
+  for (const raw of fields) {
+    const trimmed = raw.replace(/^[\s./_\u00AD\u200B\p{Pd}\u2212]+/u, "");
+    if (clauseHasThoroughfare(trimmed) || isThoroughfareAfter(trimmed)) {
+      seen = true;
+      continue;
+    }
+    if (!seen) continue;
+    const head = trimmed.match(/^([a-z]{3,})\b/)?.[1];
+    if (
+      !head ||
+      isCompetingRoadExtraToken(head) ||
+      HOUSING_CAMPUS_PLACES.has(head) ||
+      ADMIN_TOKENS.has(head) ||
+      extraPlaceSkipToken(head) ||
+      isThoroughfareWord(head) ||
+      GENERIC_TOKENS.has(head)
+    ) {
+      continue;
+    }
+    out.push(head);
+  }
+  return out;
+}
+
+function sharedVillageAfterThoroughfare(a: string, b: string): boolean {
+  const aa = leftoverPlacesAfterThoroughfare(a);
+  const bb = leftoverPlacesAfterThoroughfare(b);
+  return aa.some((p) => bb.some((q) => extraNameShare([p], [q])));
 }
 
 function extraNamedOnOtherNonHousing(places: string[], other: Candidate): boolean {
@@ -3741,9 +3766,11 @@ function extraNamedOnOther(places: string[], other: Candidate): boolean {
   );
 }
 
-function bareProperRoadPlaces(display: string): Array<{ digit: string; places: string[] }> {
+function bareProperRoadPlaces(
+  display: string,
+): Array<{ digit: string; places: string[]; union?: boolean }> {
   const s = rewriteHouseOffice(display).toLowerCase();
-  const out: Array<{ digit: string; places: string[] }> = [];
+  const out: Array<{ digit: string; places: string[]; union?: boolean }> = [];
   const push = (digit: string, place: string, gap: string, after: string) => {
     if (place.length < 3) return;
     if (extraPlaceSkipToken(place)) return;
@@ -3886,6 +3913,7 @@ function bareProperRoadPlaces(display: string): Array<{ digit: string; places: s
     let skippedCampus = 0;
     let allowMint = false;
     let skipNextAsUnionName = false;
+    let unionMint = false;
     const afterFields = after.split(",");
     for (let fi = 0; fi < afterFields.length; fi++) {
       const rawField = afterFields[fi]!;
@@ -3902,6 +3930,7 @@ function bareProperRoadPlaces(display: string): Array<{ digit: string; places: s
           continue;
         }
         allowMint = true;
+        unionMint = true;
       }
       if (restatedDigit.test(trimmed) || restatedPlotList.test(trimmed)) {
         allowMint = true;
@@ -3922,22 +3951,9 @@ function bareProperRoadPlaces(display: string): Array<{ digit: string; places: s
         seenThoroughfare = true;
         continue;
       }
-      // Leftover Green after Airport Road is not a second extra. Sonda
-      // after Shahriar Road is the village of this plot.
-      if (seenThoroughfare) {
-        const head = trimmed.match(/^([a-z]{3,})\b/)?.[1];
-        if (
-          !head ||
-          isCompetingRoadExtraToken(head) ||
-          HOUSING_CAMPUS_PLACES.has(head) ||
-          ADMIN_TOKENS.has(head) ||
-          extraPlaceSkipToken(head) ||
-          isThoroughfareWord(head)
-        ) {
-          continue;
-        }
-        allowMint = true;
-      }
+      // Leftover after Airport Road / Kazi Avenue is not a second extra
+      // at this digit (Green leftover, Hemayetpur after Singair Road).
+      if (seenThoroughfare) continue;
       // Union - Telulzora is the union title plus the union name, not a
       // competing extra. Skip the kind word and the union's own name so
       // hyphen and comma spellings both walk on to Hemayetpur.
@@ -3960,6 +3976,7 @@ function bareProperRoadPlaces(display: string): Array<{ digit: string; places: s
         );
         if (rest) {
           trimmed = rest;
+          if (skipOwnName) unionMint = true;
         } else if (skipOwnName) {
           skipNextAsUnionName = true;
           continue;
@@ -4033,7 +4050,14 @@ function bareProperRoadPlaces(display: string): Array<{ digit: string; places: s
       // village own that field. Walker mints Green after Gulshan or after
       // a restated plot digit, not the thana after a holding label.
       if (!allowMint) break;
+      const before = out.length;
       push(m[2]!, place, ",", afterForPush);
+      if (out.length > before && unionMint) {
+        out[out.length - 1]!.union = true;
+        unionMint = false;
+        allowMint = true;
+        continue;
+      }
       break;
     }
   }
@@ -4073,8 +4097,8 @@ function isDiscriminatingRoadPlace(place: string): boolean {
 
 function namedExtraTails(
   display: string,
-): Array<{ digit: string; places: string[]; src: "road" | "admin" | "bare" }> {
-  const out: Array<{ digit: string; places: string[]; src: "road" | "admin" | "bare" }> = [];
+): Array<{ digit: string; places: string[]; src: ExtraSrc }> {
+  const out: Array<{ digit: string; places: string[]; src: ExtraSrc }> = [];
   const keepHousingAdmin = (p: string) =>
     HOUSING_CAMPUS_PLACES.has(p) || ADMIN_TOKENS.has(p);
   for (const e of roadHoldingEntries(display)) {
@@ -4095,7 +4119,7 @@ function namedExtraTails(
   }
   const bare = bareProperRoadPlaces(display);
   for (const p of bare) {
-    out.push({ ...p, src: "bare" });
+    out.push({ digit: p.digit, places: p.places, src: p.union ? "union" : "bare" });
   }
   for (const p of leadingVillageExtras(display)) {
     // Same village already minted as a bare extra (Paragaon vs Paragaon).
@@ -4153,31 +4177,13 @@ function extraRoadPlaceConflict(a: Candidate, b: Candidate): boolean {
           !(extraLooksLikeCompetingRoad(x) && extraLooksLikeCompetingRoad(y))
         ) {
           // Valuka before Joydebpur vs Tejgaon must not license two named
-          // roads. Sonda after Shahriar vs Sharifpur is leftover-after-road
-          // of the same plot.
+          // roads. Hemayetpur must not license Telulzora vs Dogri.
           if (
-            x.src === "road" &&
-            y.src === "road" &&
+            ((x.src === "road" && y.src === "road") ||
+              (x.src === "union" && y.src === "union")) &&
             !extraNameShare(x.places, y.places)
           ) {
-            const sharedAfterRoad = ea.some(
-              (p) =>
-                p.digit === x.digit &&
-                !p.places.some(housingish) &&
-                extraPlaceFollowsThoroughfare(a.display, p.places) &&
-                eb.some(
-                  (q) =>
-                    q.digit === y.digit &&
-                    !q.places.some(housingish) &&
-                    extraNameShare(p.places, q.places) &&
-                    extraPlaceFollowsThoroughfare(b.display, q.places),
-                ),
-            );
-            if (!sharedAfterRoad) {
-              // fall through to XOR
-            } else {
-              continue;
-            }
+            // fall through to XOR
           } else {
             continue;
           }
@@ -4201,8 +4207,8 @@ function extraRoadPlaceConflict(a: Candidate, b: Candidate): boolean {
           return true;
         }
       }
-      const xRoadish = x.src === "road" || x.src === "bare";
-      const yRoadish = y.src === "road" || y.src === "bare";
+      const xRoadish = x.src === "road" || x.src === "bare" || x.src === "union";
+      const yRoadish = y.src === "road" || y.src === "bare" || y.src === "union";
       if (xRoadish && yRoadish) {
         if (x.src === "road" && y.places.some(isLocalityTailPlace)) {
           if (extraNamedOnOther(y.places, a)) continue;
@@ -4274,6 +4280,13 @@ function extraRoadPlaceConflict(a: Candidate, b: Candidate): boolean {
             !extraLooksLikeCompetingRoad(x) &&
             !extraLooksLikeCompetingRoad(y) &&
             extraNamedOnOther(x.places, b)
+          ) {
+            continue;
+          }
+          if (
+            x.src === "road" &&
+            y.src === "road" &&
+            sharedVillageAfterThoroughfare(a.display, b.display)
           ) {
             continue;
           }
