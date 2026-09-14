@@ -8799,6 +8799,201 @@ describe("mergeUniqueLocations — empty rows, duplicates, overview buckets", ()
       "KEEP mixed same-stem Plot 10 leftover AirportCircular vs Plot omitted AirportCircular",
     );
     assertBothOrders(
+      row("Airport Road, Airport Road, Sonda"),
+      row("Airport Road, Airpark Road, Sonda"),
+      2,
+      "leftover restated Airport Road vs Airpark Road Plot omitted",
+    );
+    assertBothOrders(
+      row("Airport Road, Airport Road, Dhaka"),
+      row("Airport Road, Airpark Road, Dhaka"),
+      2,
+      "leftover restated Airport Road vs Airpark Road Plot omitted Dhaka",
+    );
+    assertBothOrders(
+      row("Airport Road, Airport Road"),
+      row("Airport Road, Airpark Road"),
+      2,
+      "leftover restated Airport Road vs Airpark Road Plot omitted no village",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, Airport Road, Sonda"),
+      row("Plot # 10, Airport Road, Airpark Road, Sonda"),
+      2,
+      "Plot 10 leftover restated Airport Road vs Airpark Road",
+    );
+    assertBothOrders(
+      row("House 10, Airport Road, Airport Road, Sonda"),
+      row("House 10, Airport Road, Airpark Road, Sonda"),
+      2,
+      "House 10 leftover restated Airport Road vs Airpark Road",
+    );
+    assertBothOrders(
+      row("Airport Road, Sonda"),
+      row("Airpark Road, Sonda"),
+      2,
+      "leftover PRIMARY Airport Road vs Airpark Road Plot omitted",
+    );
+    assertBothOrders(
+      row("Airport Road, Dhaka"),
+      row("Airpark Road, Dhaka"),
+      2,
+      "leftover PRIMARY Airport Road vs Airpark Road Plot omitted Dhaka",
+    );
+    assertBothOrders(
+      row("Airport Road"),
+      row("Airpark Road"),
+      2,
+      "leftover PRIMARY Airport Road vs Airpark Road Plot omitted no village",
+    );
+    assertBothOrders(
+      row("Airport Street, Sonda"),
+      row("Airpark Street, Sonda"),
+      2,
+      "leftover PRIMARY Airport Street vs Airpark Street Plot omitted",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, Sonda"),
+      row("Airpark Road, Sonda"),
+      2,
+      "mixed Plot 10 leftover PRIMARY Airport Road vs Plot omitted Airpark Road",
+    );
+    assertBothOrders(
+      row("Green Road, Dhaka"),
+      row("Greenwood Road, Dhaka"),
+      2,
+      "leftover PRIMARY Green Road vs Greenwood Road Plot omitted",
+    );
+    assertBothOrders(
+      row("East Rampura Road, Dhaka"),
+      row("West Rampura Road, Dhaka"),
+      1,
+      "KEEP leftover PRIMARY East Rampura Road vs West Rampura Road Plot omitted",
+    );
+    assertBothOrders(
+      row("East Gulshan Road, Dhaka"),
+      row("West Gulshan Road, Dhaka"),
+      2,
+      "leftover PRIMARY East Gulshan Road vs West Gulshan Road Plot omitted",
+    );
+    assertBothOrders(
+      row("East Gulshan, Dhaka"),
+      row("West Gulshan, Dhaka"),
+      2,
+      "leftover PRIMARY East Gulshan vs West Gulshan Plot omitted no-Road",
+    );
+    assertBothOrders(
+      row("Airport Road, AirportCircularRoad, Sonda"),
+      row("Airport Road, AirparkCircularRoad, Sonda"),
+      2,
+      "leftover glued AirportCircularRoad vs AirparkCircularRoad Plot omitted",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, AirportCircularRoad, Sonda"),
+      row("Plot # 10, Airport Road, AirparkCircularRoad, Sonda"),
+      2,
+      "Plot 10 leftover glued AirportCircularRoad vs AirparkCircularRoad",
+    );
+    assertBothOrders(
+      row("Airport Road, Airport CircularRoad, Sonda"),
+      row("Airport Road, Airpark CircularRoad, Sonda"),
+      2,
+      "leftover Airport CircularRoad vs Airpark CircularRoad Plot omitted",
+    );
+    assertBothOrders(
+      row("Plot # 10, Green Road, Airport, Sonda"),
+      row("Plot # 10, Green Road, Airpark, Sonda"),
+      2,
+      "Plot 10 leftover Green Road leftover Airport vs Airpark",
+    );
+    assertBothOrders(
+      row("Plot # 10, Green Road, Airport, Dhaka"),
+      row("Plot # 10, Green Road, Airpark, Dhaka"),
+      2,
+      "Plot 10 leftover Green Road leftover Airport vs Airpark Dhaka",
+    );
+    assertBothOrders(
+      row("Plot # 10, Green Road, Airport Road, Sonda"),
+      row("Plot # 10, Green Road, Airpark Road, Sonda"),
+      2,
+      "Plot 10 leftover Green Road leftover restated Airport Road",
+    );
+    assertBothOrders(
+      row("Airport Court, Airport, Sonda"),
+      row("Airport Court, Airpark, Sonda"),
+      2,
+      "leftover after Court leftover Airport vs Airpark Plot omitted",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Court, Airport, Sonda"),
+      row("Plot # 10, Airport Court, Airpark, Sonda"),
+      2,
+      "Plot 10 leftover after Court leftover Airport vs Airpark",
+    );
+    assertBothOrders(
+      row("Airport Court Airport, Sonda"),
+      row("Airport Court Airpark, Sonda"),
+      2,
+      "leftover after Court same-field leftover Airport vs Airpark Plot omitted",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Court Airport, Sonda"),
+      row("Plot # 10, Airport Court Airpark, Sonda"),
+      2,
+      "Plot 10 leftover after Court same-field leftover Airport vs Airpark",
+    );
+    assertBothOrders(
+      row("Airport Plaza, Airport Road, Sonda"),
+      row("Airport Plaza, Airpark Road, Sonda"),
+      2,
+      "leftover after Plaza comma restated Airport Road vs Airpark Road Plot omitted",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Plaza, Airport Road, Sonda"),
+      row("Plot # 10, Airport Plaza, Airpark Road, Sonda"),
+      2,
+      "Plot 10 leftover after Plaza comma restated Airport Road vs Airpark Road",
+    );
+    assertBothOrders(
+      row("Airport Road, Green, Sonda"),
+      row("Green, Airport, Sonda"),
+      2,
+      "leftover Airport Road Green vs Green Airport Plot omitted",
+    );
+    for (const ordered of permutations([
+      row("Airport Road, Sonda"),
+      row("Airpark Road, Sonda"),
+      row("Green Road, Dhaka"),
+    ])) {
+      assert.equal(
+        displays(ordered).length,
+        3,
+        "three-string leftover PRIMARY Airport Road+Airpark Road+Green permutation",
+      );
+    }
+    for (const ordered of permutations([
+      row("Airport Road, Airport Road, Sonda"),
+      row("Airport Road, Airpark Road, Sonda"),
+      row("Green Road, Dhaka"),
+    ])) {
+      assert.equal(
+        displays(ordered).length,
+        3,
+        "three-string leftover restated Airport Road+Airpark Road+Green permutation",
+      );
+    }
+    for (const ordered of permutations([
+      row("Airport Court, Airport, Sonda"),
+      row("Airport Court, Airpark, Sonda"),
+      row("Green Road, Dhaka"),
+    ])) {
+      assert.equal(
+        displays(ordered).length,
+        3,
+        "three-string leftover after Court leftover Airport+Airpark+Green permutation",
+      );
+    }
+    assertBothOrders(
       row("Airport Road, East Airport Road Joydebpur, Sonda"),
       row("Airport Road, West Airport Road Joydevpur, Sonda"),
       2,

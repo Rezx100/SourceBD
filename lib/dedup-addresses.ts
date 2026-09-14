@@ -1597,7 +1597,11 @@ function extraHoldingConflict(a: Candidate, b: Candidate): boolean {
   // idless village spellings (Borkan Monipur vs Bokran Monipur).
   if (a.ids.size === 0 || b.ids.size === 0) {
     const leftoverCompeting = (c: Candidate) =>
-      namedExtraTails(c.display).some((e) => extraLooksLikeCompetingRoad(e));
+      namedExtraTails(c.display).some(
+        (e) =>
+          extraLooksLikeCompetingRoad(e) ||
+          (e.src === "road" && e.digit === "leftover"),
+      );
     return leftoverCompeting(a) && leftoverCompeting(b) && extraRoadPlaceConflict(a, b);
   }
   // Prefixed No./# extras live in holdingWordingDigits, not premisesIdentifiers.
@@ -3089,6 +3093,12 @@ function isBuildingNameFollower(after: string): boolean {
 const BUILDING_NAME_RE =
   /(?:^|\s)(?:complex|tower|plaza|bhaban|bhawan|bahan|centre|center|market|court|building|chamber|mansion|housing)\b/;
 
+function isBuildingNameWord(place: string): boolean {
+  return /^(?:complex|tower|plaza|bhaban|bhawan|bahan|centre|center|market|court|building|chamber|mansion|housing)$/.test(
+    place,
+  );
+}
+
 /** City Heart Building — "city" is not a second road; the clause names the building. */
 function clauseHasBuildingName(after: string): boolean {
   const clause = after.split(",")[0] ?? "";
@@ -4350,6 +4360,8 @@ function lastKeptRoadDirection(text: string): string | null {
  *  Sonda / East Rampura (campus). */
 function isLeftoverNamedRemainder(place: string): boolean {
   if (!place || place.length < 3) return false;
+  // ISSUE East Gulshan vs West Gulshan. Rampura stays campus skip.
+  if (place === "gulshan") return true;
   if (HOUSING_CAMPUS_PLACES.has(place)) return false;
   if (isCompetingRoadStem(place)) return true;
   return /^(?:joydebpur|joydevpur|mirpur|tejgaon|circular|station|staten)$/.test(place);
@@ -4393,6 +4405,27 @@ function peelLeftoverGluedChunk(
 ): { dirs: string[]; names: string[] } | null {
   if (!rest) return { dirs: [], names: [] };
   if (rest.length > 48) return null;
+  // AirportCircularRoad — leftover AirportCircular Road already peels when
+  // Road is a separate token. Do not strip "st" from northeast.
+  const thoroughEnds = [
+    "boulevard",
+    "avenue",
+    "street",
+    "drive",
+    "close",
+    "lane",
+    "path",
+    "road",
+    "rd",
+    "ave",
+    "blvd",
+    "drv",
+  ];
+  for (const word of thoroughEnds) {
+    if (rest.length <= word.length + 3 || !rest.endsWith(word)) continue;
+    const inner = peelLeftoverGluedChunk(rest.slice(0, -word.length));
+    if (inner && inner.names.length > 0) return inner;
+  }
   const dirKeys = [...ROAD_DIRECTION_KEEP]
     .filter((d) => isKeptRoadDirectionToken(d))
     .sort((a, b) => b.length - a.length);
@@ -4513,6 +4546,7 @@ function peelLeftoverIssueRoad(field: string): {
     const tok = takeTok();
     if (!tok) break;
     if (isThoroughfareWord(tok)) continue;
+    if (isBuildingNameWord(tok)) continue;
     if (isSpacedHonorificCandidate(tok)) {
       sawHonorific = true;
       continue;
@@ -4568,6 +4602,7 @@ function leftoverPeeledMintable(
   afterThoroughfare = false,
   afterIssueRemainderThoroughfare = false,
   afterAirportFamilyThoroughfare = false,
+  allowUnsuffixedCompeting = false,
 ): boolean {
   const names =
     peeled.names.length > 0 ? peeled.names : peeled.name ? [peeled.name] : [];
@@ -4576,14 +4611,25 @@ function leftoverPeeledMintable(
   }
   if (peeled.dirs.length > 0 || peeled.sawHonorific) return true;
   if (names.length >= 2 && names.some((n) => isCompetingRoadStem(n))) return true;
+  // Leading Green, Airport — leftover-mint the unsuffixed competing field
+  // before a thoroughfare is seen. Do not leftover-mint leftover Green after
+  // Airport Road / Nazrul: that shared leftover extra licenses a merge.
+  if (
+    allowUnsuffixedCompeting &&
+    names.length === 1 &&
+    isCompetingRoadStem(names[0]!)
+  ) {
+    return true;
+  }
   // Circular Road, Airport — leftover competing stem after an ISSUE remainder
   // thoroughfare. Airport Road leftover Airport vs Airpark still mints.
-  // Do not leftover-mint single Green after Nazrul Avenue or Airport Road:
-  // that shared leftover extra licenses Green vs Nazrul merge.
+  // Leftover Airport after Green Road / Court also mints. Do not leftover-mint
+  // single Green after Nazrul Avenue or Airport Road.
   if (!afterThoroughfare || !names.some((n) => isCompetingRoadStem(n))) {
     return false;
   }
   if (afterIssueRemainderThoroughfare) return true;
+  if (leftoverAirportFamilyStem(names)) return true;
   return afterAirportFamilyThoroughfare && leftoverAirportFamilyStem(names);
 }
 
@@ -4592,6 +4638,7 @@ function leftoverPlacesFromPeeled(
   afterThoroughfare = false,
   afterIssueRemainderThoroughfare = false,
   afterAirportFamilyThoroughfare = false,
+  allowUnsuffixedCompeting = false,
 ): string[] | null {
   if (
     !leftoverPeeledMintable(
@@ -4599,6 +4646,7 @@ function leftoverPlacesFromPeeled(
       afterThoroughfare,
       afterIssueRemainderThoroughfare,
       afterAirportFamilyThoroughfare,
+      allowUnsuffixedCompeting,
     )
   ) {
     return null;
@@ -4658,12 +4706,14 @@ function appendLeftoverIssueRoadExtras(
     afterThoroughfare: boolean,
     afterIssueRemainderThoroughfare: boolean,
     afterAirportFamilyThoroughfare: boolean,
+    allowUnsuffixedCompeting = false,
   ): boolean => {
     const places = leftoverPlacesFromPeeled(
       peelLeftoverIssueRoad(text),
       afterThoroughfare,
       afterIssueRemainderThoroughfare,
       afterAirportFamilyThoroughfare,
+      allowUnsuffixedCompeting,
     );
     if (!places) return false;
     if (already(places)) return true;
@@ -4686,19 +4736,29 @@ function appendLeftoverIssueRoadExtras(
     const issueTf = thoroughfareFieldHasIssueRemainder(trimmed);
     const airportTf = thoroughfareFieldHasAirportFamily(trimmed);
     const afterBuilding = remainderAfterBuildingName(trimmed);
+    const buildingField = clauseHasBuildingName(fieldForTf);
     if (
       afterBuilding &&
       tryMint(
         afterBuilding,
         true,
         issueTf || afterIssueRemainderThoroughfare,
-        airportTf || afterAirportFamilyThoroughfare,
+        leftoverAirportFamilyStem(
+          thoroughfareFieldLeftoverNames(trimmed).length > 0
+            ? thoroughfareFieldLeftoverNames(trimmed)
+            : peelLeftoverIssueRoad(trimmed).names,
+        ) ||
+          airportTf ||
+          afterAirportFamilyThoroughfare,
       )
     ) {
-      if (clauseHasThoroughfare(field) || isThoroughfareAfter(fieldForTf)) {
-        seenThoroughfare = true;
-        if (issueTf) afterIssueRemainderThoroughfare = true;
-        if (airportTf) afterAirportFamilyThoroughfare = true;
+      seenThoroughfare = true;
+      if (issueTf) afterIssueRemainderThoroughfare = true;
+      if (
+        airportTf ||
+        leftoverAirportFamilyStem(peelLeftoverIssueRoad(trimmed).names)
+      ) {
+        afterAirportFamilyThoroughfare = true;
       }
       continue;
     }
@@ -4717,23 +4777,52 @@ function appendLeftoverIssueRoadExtras(
       continue;
     }
     if (clauseHasThoroughfare(field) || isThoroughfareAfter(fieldForTf)) {
+      const wasSeen = seenThoroughfare;
       seenThoroughfare = true;
       if (issueTf) afterIssueRemainderThoroughfare = true;
       if (airportTf) afterAirportFamilyThoroughfare = true;
+      // Field 1 PRIMARY Airport Road: wasSeen=false so leftover extras do
+      // not leftover-mint [airport] from the thoroughfare itself (KEEP
+      // mixed same-stem Plot leftover AirportCircular vs omit). Field 2
+      // leftover restated Airport Road: wasSeen=true leftover-mints.
       tryMint(
         trimmed,
-        true,
+        wasSeen,
         issueTf || afterIssueRemainderThoroughfare,
-        false,
+        wasSeen && (airportTf || afterAirportFamilyThoroughfare),
       );
       continue;
     }
+    if (buildingField) {
+      seenThoroughfare = true;
+      if (leftoverAirportFamilyStem(peelLeftoverIssueRoad(trimmed).names)) {
+        afterAirportFamilyThoroughfare = true;
+      }
+    }
+    const peeledField = peelLeftoverIssueRoad(trimmed);
+    const fieldNames =
+      peeledField.names.length > 0
+        ? peeledField.names
+        : peeledField.name
+          ? [peeledField.name]
+          : [];
     tryMint(
       trimmed,
       seenThoroughfare,
       afterIssueRemainderThoroughfare,
       afterAirportFamilyThoroughfare,
+      !seenThoroughfare || buildingField,
     );
+    if (
+      !clauseHasThoroughfare(field) &&
+      !isThoroughfareAfter(fieldForTf) &&
+      fieldNames.some((n) => isCompetingRoadStem(n))
+    ) {
+      seenThoroughfare = true;
+      if (leftoverAirportFamilyStem(fieldNames)) {
+        afterAirportFamilyThoroughfare = true;
+      }
+    }
   }
 }
 
@@ -5303,6 +5392,47 @@ function isDiscriminatingRoadPlace(place: string): boolean {
   );
 }
 
+/** Plot-omitted PRIMARY Airport Road vs Airpark Road. Skip when leftover
+ *  competing extras already mint (KEEP mixed same-stem Plot leftover
+ *  AirportCircular vs omit). Skip housing-campus names so leftover PRIMARY
+ *  East Rampura Road Plot omitted stays one row. */
+function leftoverPrimaryThoroughfareRoadExtras(
+  display: string,
+): Array<{ digit: string; places: string[]; src: ExtraSrc }> {
+  const out: Array<{ digit: string; places: string[]; src: ExtraSrc }> = [];
+  const s = rewriteHouseOffice(display).toLowerCase();
+  for (const field of s.split(",")) {
+    let trimmed = field.replace(/^[\s./_\u00AD\u200B\p{Pd}\u2212]+/u, "");
+    if (!trimmed) continue;
+    trimmed = trimmed.replace(/^\([^)]*\)\s*/u, "");
+    if (!trimmed) continue;
+    trimmed = trimmed.replace(/^(?:the|a|an)\s+/u, "");
+    if (!trimmed) continue;
+    if (LEFTOVER_LABELLED_FIELD.test(trimmed)) continue;
+    const fieldForTf = trimmed.replace(/_/g, " ");
+    if (!(clauseHasThoroughfare(field) || isThoroughfareAfter(fieldForTf))) {
+      continue;
+    }
+    const m = new RegExp(THOROUGHFARE_ALT, "u").exec(fieldForTf);
+    if (!m) continue;
+    const before = fieldForTf.slice(0, m.index).trim();
+    if (!before) continue;
+    const places = roadNameTokensFromTail(before);
+    if (places.length !== 1) continue;
+    if (places.some((p) => HOUSING_CAMPUS_PLACES.has(p))) continue;
+    if (
+      !places.some((p) => isCompetingRoadStem(p)) &&
+      !COMPETING_ROAD_STEMS.some(
+        (stem) => places.join("").startsWith(stem) && places.join("").length > stem.length,
+      )
+    ) {
+      continue;
+    }
+    out.push({ digit: "leftover", places, src: "road" });
+  }
+  return out;
+}
+
 function namedExtraTails(
   display: string,
 ): Array<{ digit: string; places: string[]; src: ExtraSrc }> {
@@ -5340,6 +5470,25 @@ function namedExtraTails(
       continue;
     }
     out.push({ ...p, src: "bare" });
+  }
+  const leftoverCompetingAlready = bare.some((p) =>
+    extraLooksLikeCompetingRoad({
+      places: p.places,
+      src: p.union ? "union" : "bare",
+    }),
+  );
+  if (!leftoverCompetingAlready) {
+    for (const extra of leftoverPrimaryThoroughfareRoadExtras(display)) {
+      if (
+        out.some(
+          (e) =>
+            e.digit === extra.digit && e.places.join("\0") === extra.places.join("\0"),
+        )
+      ) {
+        continue;
+      }
+      out.push(extra);
+    }
   }
   return out;
 }
