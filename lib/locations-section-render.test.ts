@@ -1399,6 +1399,164 @@ describe("Locations Also recorded as — rendered HTML boundary", () => {
         otherRe: /South West Road/i,
         otherName: "Plot 10 North East vs South West no Airport",
       },
+      {
+        left: row("Plot # 10, BabaAirport Road, Dhaka", "BGMEA", "factory"),
+        right: row("Plot # 10, Babu Airpark Road, Dhaka", "BKMEA", "factory"),
+        keepRe: /Babu Airpark Road/i,
+        otherRe: /BabaAirport|Babaairport/i,
+        otherName: "Plot 10 BabaAirport glued vs Babu Airpark spaced",
+      },
+      {
+        left: row("Plot # 10, BabaAirport Road, Dhaka", "BGMEA", "factory"),
+        right: row("Plot # 10, Babu Airpark Road, Dhaka", "BKMEA", "factory"),
+        keepRe: /BabaAirport|Babaairport/i,
+        otherRe: /Babu Airpark Road/i,
+        otherName: "Plot 10 Babu Airpark vs BabaAirport glued reverse",
+      },
+      {
+        left: row("Plot # 10, Baba Airport Road, Dhaka", "BGMEA", "factory"),
+        right: row("Plot # 10, BabuAirpark Road, Dhaka", "BKMEA", "factory"),
+        keepRe: /Baba Airport Road/i,
+        otherRe: /BabuAirpark|Babuairpark/i,
+        otherName: "Plot 10 Baba Airport spaced vs BabuAirpark glued",
+      },
+      {
+        left: row("Plot # 10, BabaAirport Road, Sonda", "BGMEA", "factory"),
+        right: row("Plot # 10, Babu Airpark Road, Sonda", "BKMEA", "factory"),
+        keepRe: /Babu Airpark Road/i,
+        otherRe: /BabaAirport|Babaairport/i,
+        otherName: "Plot 10 BabaAirport glued vs Babu Airpark spaced at Sonda",
+      },
+      {
+        left: row("Plot # 10, BabaAirport Road", "BGMEA", "factory"),
+        right: row("Plot # 10, Babu Airpark Road", "BKMEA", "factory"),
+        keepRe: /Babu Airpark Road/i,
+        otherRe: /BabaAirport|Babaairport/i,
+        otherName: "Plot 10 BabaAirport glued vs Babu Airpark spaced no village",
+      },
+      {
+        left: row("Plot # 10, BabaAirport Road, Valuka", "BGMEA", "factory"),
+        right: row("Plot # 10, Babu Airpark Road, Valuka", "BKMEA", "factory"),
+        keepRe: /Babu Airpark Road/i,
+        otherRe: /BabaAirport|Babaairport/i,
+        otherName: "Plot 10 BabaAirport glued vs Babu Airpark spaced at Valuka",
+      },
+      {
+        left: row("Plot # 10, ShahidAirport Road, Dhaka", "BGMEA", "factory"),
+        right: row("Plot # 10, ShahedAirpark Road, Dhaka", "BKMEA", "factory"),
+        keepRe: /ShahidAirport|Shahidairport/i,
+        otherRe: /ShahedAirpark|Shahedairpark/i,
+        otherName: "Plot 10 ShahidAirport vs ShahedAirpark",
+      },
+      {
+        left: row("Plot # 10, MasterAirport Road, Dhaka", "BGMEA", "factory"),
+        right: row("Plot # 10, MastarAirpark Road, Dhaka", "BKMEA", "factory"),
+        keepRe: /MasterAirport|Masterairport/i,
+        otherRe: /MastarAirpark|Mastarairpark/i,
+        otherName: "Plot 10 MasterAirport vs MastarAirpark",
+      },
+      {
+        left: row("Plot # 10, SheikhAirport Road, Dhaka", "BGMEA", "factory"),
+        right: row("Plot # 10, ShaikhAirpark Road, Dhaka", "BKMEA", "factory"),
+        keepRe: /SheikhAirport|Sheikhairport/i,
+        otherRe: /ShaikhAirpark|Shaikhairpark/i,
+        otherName: "Plot 10 SheikhAirport vs ShaikhAirpark",
+      },
+      {
+        left: row("Plot # 10, Sheikh Airport Road, Dhaka", "BGMEA", "factory"),
+        right: row("Plot # 10, Shaikh Airpark Road, Dhaka", "BKMEA", "factory"),
+        keepRe: /Sheikh Airport Road/i,
+        otherRe: /Shaikh Airpark Road/i,
+        otherName: "Plot 10 Sheikh Airport vs Shaikh Airpark spaced",
+      },
+      {
+        left: row("Plot # 10, AlAirport Road, Dhaka", "BGMEA", "factory"),
+        right: row("Plot # 10, AlAirpark Road, Dhaka", "BKMEA", "factory"),
+        keepRe: /AlAirport|Alairport/i,
+        otherRe: /AlAirpark|Alairpark/i,
+        otherName: "Plot 10 AlAirport vs AlAirpark",
+      },
+      {
+        left: row("Plot # 10, MdAirport Road, Dhaka", "BGMEA", "factory"),
+        right: row("Plot # 10, MdAirpark Road, Dhaka", "BKMEA", "factory"),
+        keepRe: /MdAirport|Mdairport/i,
+        otherRe: /MdAirpark|Mdairpark/i,
+        otherName: "Plot 10 MdAirport vs MdAirpark",
+      },
+      {
+        left: row("Plot # 10, NewBabaAirport Road, Dhaka", "BGMEA", "factory"),
+        right: row("Plot # 10, OldBabuAirpark Road, Dhaka", "BKMEA", "factory"),
+        keepRe: /NewBabaAirport|Newbabaairport/i,
+        otherRe: /OldBabuAirpark|Oldbabuairpark/i,
+        otherName: "Plot 10 NewBabaAirport vs OldBabuAirpark",
+      },
+      {
+        left: row("Plot # 10, EastBabaAirport Road, Dhaka", "BGMEA", "factory"),
+        right: row("Plot # 10, WestBabuAirpark Road, Dhaka", "BKMEA", "factory"),
+        keepRe: /EastBabaAirport|Eastbabaairport/i,
+        otherRe: /WestBabuAirpark|Westbabuairpark/i,
+        otherName: "Plot 10 EastBabaAirport vs WestBabuAirpark",
+      },
+      {
+        left: row("Plot # 10, InnerBabaAirport Road, Dhaka", "BGMEA", "factory"),
+        right: row("Plot # 10, OuterBabuAirpark Road, Dhaka", "BKMEA", "factory"),
+        keepRe: /InnerBabaAirport|Innerbabaairport/i,
+        otherRe: /OuterBabuAirpark|Outerbabuairpark/i,
+        otherName: "Plot 10 InnerBabaAirport vs OuterBabuAirpark",
+      },
+      {
+        left: row("Plot # 10, PaschimBabaAirport Road, Dhaka", "BGMEA", "factory"),
+        right: row("Plot # 10, PurboBabuAirpark Road, Dhaka", "BKMEA", "factory"),
+        keepRe: /PaschimBabaAirport|Paschimbabaairport/i,
+        otherRe: /PurboBabuAirpark|Purbobabuairpark/i,
+        otherName: "Plot 10 PaschimBabaAirport vs PurboBabuAirpark",
+      },
+      {
+        left: row("Plot # 23-24, Dogri Union, Hemayetpur, Dhaka, Savar", "BGMEA", "factory"),
+        right: row("Plot # 23-24, Village, Hemayetpur, Dhaka, Savar", "BKMEA", "factory"),
+        keepRe: /Dogri Union/i,
+        otherRe: /Village,\s*Hemayetpur/i,
+        otherName: "Dogri Union title-after vs Village Hemayetpur",
+      },
+      {
+        left: row("Plot # 23-24, Faridabad Union, Hemayetpur, Dhaka, Savar", "BGMEA", "factory"),
+        right: row("Plot # 23-24, Village, Hemayetpur, Dhaka, Savar", "BKMEA", "factory"),
+        keepRe: /Faridabad Union/i,
+        otherRe: /Village,\s*Hemayetpur/i,
+        otherName: "Faridabad Union title-after vs Village Hemayetpur",
+      },
+      {
+        left: row("Plot # 23-24, Chandona Union, Hemayetpur, Dhaka, Savar", "BGMEA", "factory"),
+        right: row("Plot # 23-24, Village, Hemayetpur, Dhaka, Savar", "BKMEA", "factory"),
+        keepRe: /Chandona Union/i,
+        otherRe: /Village,\s*Hemayetpur/i,
+        otherName: "Chandona Union title-after vs Village Hemayetpur",
+      },
+      {
+        left: row("Plot # 23-24, Union - Tetultola, Hemayetpur, Dhaka, Savar", "BGMEA", "factory"),
+        right: row("Plot # 23-24, Village, Hemayetpur, Dhaka, Savar", "BKMEA", "factory"),
+        keepRe: /Tetultola/i,
+        otherRe: /Village,\s*Hemayetpur/i,
+        otherName: "Union hyphen Tetultola vs Village Hemayetpur",
+      },
+      {
+        left: row("Plot # 23-24, Union - Tetultola, Hemayetpur, Dhaka, Savar", "BGMEA", "factory"),
+        right: row(
+          "Holding No. 87, Plot No. 23, 24, 25, Hemayetpur, Tetuljhora Union, Savar, Dhaka - 1340, Bangladesh",
+          "OEKO_TEX",
+          "factory",
+        ),
+        keepRe: /Holding No\. 87/i,
+        otherRe: /Tetultola/i,
+        otherName: "Union hyphen Tetultola vs Holding 87",
+      },
+      {
+        left: row("Plot # 23-24, Union - Telultola, Hemayetpur, Dhaka, Savar", "BGMEA", "factory"),
+        right: row("Plot # 23-24, Village, Hemayetpur, Dhaka, Savar", "BKMEA", "factory"),
+        keepRe: /Telultola/i,
+        otherRe: /Village,\s*Hemayetpur/i,
+        otherName: "Union hyphen Telultola vs Village Hemayetpur",
+      },
     ];
     for (const c of cases) {
       assertSplitAddressRowHtml(c.left, c.right, c.keepRe, c.otherRe, c.otherName);
@@ -1431,6 +1589,63 @@ describe("Locations Also recorded as — rendered HTML boundary", () => {
         }
         if (/BabuAirpark|Babuairpark/i.test(disp)) {
           assert.ok(!/BabaAirport|Babaairport/i.test(alsoText));
+        }
+      }
+    }
+  });
+
+  it("keeps mixed BabaAirport glued and Babu Airpark spaced as two rows with Green as its own row", () => {
+    const baba = row("Plot # 10, BabaAirport Road, Dhaka", "BGMEA", "factory");
+    const babu = row("Plot # 10, Babu Airpark Road, Dhaka", "BKMEA", "factory");
+    const green = row("Plot # 10, Green Road, Dhaka", "OEKO_TEX", "factory");
+    const perms = [
+      [baba, babu, green],
+      [baba, green, babu],
+      [babu, baba, green],
+      [babu, green, baba],
+      [green, baba, babu],
+      [green, babu, baba],
+    ];
+    for (const ordered of perms) {
+      const html = renderAddressRows(ordered);
+      assert.equal(mergeUniqueLocations(ordered).length, 3);
+      assert.equal((html.match(/data-location-row=""/g) ?? []).length, 3);
+      for (const chunk of locationChunks(html)) {
+        const disp = displayHtml(chunk);
+        const also = chunk.match(/<li[^>]*data-also-recorded-as=""[^>]*>[\s\S]*?<\/li>/g) ?? [];
+        const alsoText = also.join(" ");
+        if (/BabaAirport|Babaairport/i.test(disp)) {
+          assert.ok(!/Babu Airpark|Babuairpark/i.test(alsoText));
+        }
+        if (/Babu Airpark/i.test(disp)) {
+          assert.ok(!/BabaAirport|Babaairport/i.test(alsoText));
+        }
+      }
+    }
+  });
+
+  it("keeps Village Hemayetpur out of Also recorded as of Faridabad Union when Village Dogri is a third row", () => {
+    const union = row("Plot # 23-24, Faridabad Union, Hemayetpur, Dhaka, Savar", "BGMEA", "factory");
+    const villageH = row("Plot # 23-24, Village, Hemayetpur, Dhaka, Savar", "BKMEA", "factory");
+    const villageD = row("Plot # 23-24, Village, Dogri, Hemayetpur, Dhaka, Savar", "OEKO_TEX", "factory");
+    const perms = [
+      [union, villageH, villageD],
+      [union, villageD, villageH],
+      [villageH, union, villageD],
+      [villageH, villageD, union],
+      [villageD, union, villageH],
+      [villageD, villageH, union],
+    ];
+    for (const ordered of perms) {
+      const html = renderAddressRows(ordered);
+      assert.equal(mergeUniqueLocations(ordered).length, 3);
+      assert.equal((html.match(/data-location-row=""/g) ?? []).length, 3);
+      for (const chunk of locationChunks(html)) {
+        const disp = displayHtml(chunk);
+        const also = chunk.match(/<li[^>]*data-also-recorded-as=""[^>]*>[\s\S]*?<\/li>/g) ?? [];
+        const alsoText = also.join(" ");
+        if (/Faridabad Union/i.test(disp)) {
+          assert.ok(!/Village,\s*Hemayetpur/i.test(alsoText));
         }
       }
     }

@@ -3735,6 +3735,30 @@ function peelGluedHonorific(token: string): { prefix: string | null; rest: strin
   return { prefix: null, rest: token };
 }
 
+function isCompetingRoadStem(place: string): boolean {
+  return isCompetingRoadExtraToken(place) || place === "airpark";
+}
+
+const COMPETING_ROAD_STEMS = ["panthapath", "airport", "airpark", "pantha", "green", "dit"];
+
+/** Airport vs Airpark after compass / honorific peel, glued or spaced. */
+function competingRoadStemOf(tokens: string[]): string | null {
+  const { rest } = peelRoadDirectionPrefix(tokens);
+  if (rest.length === 0) return null;
+  const last = rest[rest.length - 1]!;
+  if (isCompetingRoadStem(last)) return last;
+  const joined = rest.join("");
+  for (const stem of COMPETING_ROAD_STEMS) {
+    if (last.length > stem.length && last.endsWith(stem) && isCompetingRoadStem(stem)) {
+      return stem;
+    }
+    if (joined.length > stem.length && joined.endsWith(stem) && isCompetingRoadStem(stem)) {
+      return stem;
+    }
+  }
+  return null;
+}
+
 function sameNamedRoadSpelling(a: string[], b: string[]): boolean {
   // Peel compass / new / old before joining. East vs West share a sound-key
   // ("st"), so sameWord cannot tell them apart. Exact remainder "airport"
@@ -3743,6 +3767,20 @@ function sameNamedRoadSpelling(a: string[], b: string[]): boolean {
   // follow. Concatenated EastAirport vs WestAirport peels the same way.
   // Leftover compass (Northeast vs Southwest, North East vs South West)
   // is still two roads — not a remainder for sameWord("east","west").
+  // Mixed BabaAirport vs Babu Airpark, and 6-letter SheikhAirport vs
+  // ShaikhAirpark, must not sameWord-merge the full join: the competing
+  // stems airport vs airpark are two roads even when honorific peel skips.
+  const stemA = competingRoadStemOf(a);
+  const stemB = competingRoadStemOf(b);
+  if (
+    stemA &&
+    stemB &&
+    isCompetingRoadStem(stemA) &&
+    isCompetingRoadStem(stemB) &&
+    !coreSameNamedRoadSpelling(stemA, stemB)
+  ) {
+    return false;
+  }
   const pa = peelRoadDirectionPrefix(a);
   const pb = peelRoadDirectionPrefix(b);
   if (pa.dirs.length > 0 && pb.dirs.length > 0) {
@@ -4438,8 +4476,11 @@ function primaryTitledNamesFromDisplay(display: string): string[] {
     if (!names.includes(n)) names.push(n);
   };
   const title = String.raw`(?:union|village|vill)`;
+  // Title-after "Dogri Union, Hemayetpur" must not capture trailing
+  // Hemayetpur as a union primary (that is afterLead). Negative lookbehind
+  // skips a title that already has its name in front.
   const lead = new RegExp(
-    String.raw`(?:the\s+)?\b${title}\b[\s./_\u00AD\u200B\p{Pd}\u2212]*,?\s*(?:(?:of|the)\s+)*([a-z]{3,})\b`,
+    String.raw`(?<![a-z]{3,}\s)(?:the\s+)?\b${title}\b[\s./_\u00AD\u200B\p{Pd}\u2212]*,?\s*(?:(?:of|the)\s+)*([a-z]{3,})\b`,
     EXTRA_RE_FLAGS,
   );
   for (const m of s.matchAll(lead)) push(m[1]!);
@@ -4477,12 +4518,19 @@ function unionNamesFromDisplay(display: string): string[] {
   return names;
 }
 
-/** Telulzora vs Tetuljhora (lev 3). Dogri vs Tetuljhora is not this. */
+/** Telulzora / Tetuljhora spellings (zora/jhora/jora/zor). Not Tetultola. */
+function isTelulzoraFamily(name: string): boolean {
+  return /^te[lzt]ul(?:jhora|jora|zora|zor)$/.test(name);
+}
+
+/** Telulzora vs Tetuljhora (lev 3). Tetultola is tola, not this family. */
 function unionNameShare(a: string[], b: string[]): boolean {
-  if (extraNameShare(a, b)) return true;
   const sa = a.join("");
   const sb = b.join("");
   if (!sa || !sb) return false;
+  if (isTelulzoraFamily(sa) !== isTelulzoraFamily(sb)) return false;
+  if (extraNameShare(a, b)) return true;
+  if (!isTelulzoraFamily(sa) || !isTelulzoraFamily(sb)) return false;
   return (
     Math.min(sa.length, sb.length) >= 8 &&
     Math.abs(sa.length - sb.length) <= 1 &&
@@ -4506,7 +4554,7 @@ function hasVillageKindTitle(display: string): boolean {
 }
 
 function isTelulzoraUnionName(name: string): boolean {
-  return unionNameShare([name], ["telulzora"]) || unionNameShare([name], ["tetuljhora"]);
+  return isTelulzoraFamily(name);
 }
 
 function unionPrimaryCanWrapVillage(unionPrimaries: string[], villagePrimaries: string[]): boolean {
