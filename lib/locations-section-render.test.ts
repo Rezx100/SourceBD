@@ -2342,6 +2342,69 @@ describe("Locations Also recorded as — rendered HTML boundary", () => {
         otherName: "Plot 10 leftover Airport Sheikh East Joydebpur vs Airport Shaikh West Joydevpur",
       },
       {
+        left: row("Plot # 10, Airport Road, AirportCircular, Sonda", "BGMEA", "factory"),
+        right: row("Plot # 10, Airport Road, AirparkCircular, Sonda", "BKMEA", "factory"),
+        keepRe: /Airportcircular/i,
+        otherRe: /Airparkcircular/i,
+        otherName: "Plot 10 leftover one-token AirportCircular vs AirparkCircular",
+      },
+      {
+        left: row("Plot # 10, Airport Court, Airport Sheikh East Circular, Sonda", "BGMEA", "factory"),
+        right: row("Plot # 10, Airport Court, Airpark Shaikh West Circular, Sonda", "BKMEA", "factory"),
+        keepRe: /Airport Sheikh East Circular/i,
+        otherRe: /Airpark Shaikh West Circular/i,
+        otherName: "Plot 10 leftover honorific-after-stem Circular after Airport Court",
+      },
+      {
+        left: row("Plot # 10, Airport Road, Airport Hajee East Circular, Sonda", "BGMEA", "factory"),
+        right: row("Plot # 10, Airport Road, Airpark Hajee West Circular, Sonda", "BKMEA", "factory"),
+        keepRe: /Airport Hajee East Circular/i,
+        otherRe: /Airpark Hajee West Circular/i,
+        otherName: "Plot 10 leftover Hajee East Circular vs Hajee West Circular",
+      },
+      {
+        left: row("Airport Road, Airport Sheikh East Circular, Sonda", "BGMEA", "factory"),
+        right: row("Airport Road, Airpark Shaikh West Circular, Sonda", "BKMEA", "factory"),
+        keepRe: /Airport Sheikh East Circular/i,
+        otherRe: /Airpark Shaikh West Circular/i,
+        otherName: "leftover honorific-after-stem Circular with Plot omitted",
+      },
+      {
+        left: row("House 10, East Airport Joydebpur, Sonda", "BGMEA", "factory"),
+        right: row("House 10, West Airport Joydevpur, Sonda", "BKMEA", "factory"),
+        keepRe: /East Airport Joydebpur/i,
+        otherRe: /West Airport Joydevpur/i,
+        otherName: "House 10 leftover East Airport Joydebpur vs West Airport Joydevpur",
+      },
+      {
+        left: row("Airport Road, East Airport Joydebpur, Sonda", "BGMEA", "factory"),
+        right: row("Airport Road, West Airport Joydevpur, Sonda", "BKMEA", "factory"),
+        keepRe: /East Airport Joydebpur/i,
+        otherRe: /West Airport Joydevpur/i,
+        otherName: "leftover East Airport Joydebpur vs West Airport Joydevpur Plot omitted",
+      },
+      {
+        left: row("Plot # 10, Airport Road, East Station Joydebpur, Sonda", "BGMEA", "factory"),
+        right: row("Plot # 10, Airport Road, West Station Joydevpur, Sonda", "BKMEA", "factory"),
+        keepRe: /East Station Joydebpur/i,
+        otherRe: /West Station Joydevpur/i,
+        otherName: "Plot 10 leftover East Station Joydebpur vs West Station Joydevpur",
+      },
+      {
+        left: row("Plot # 10, Circular Road, Airport, Sonda", "BGMEA", "factory"),
+        right: row("Plot # 10, Circular Road, Airpark, Sonda", "BKMEA", "factory"),
+        keepRe: /Circular Road, Airport/i,
+        otherRe: /Circular Road, Airpark/i,
+        otherName: "Plot 10 leftover Circular Road Airport vs Airpark",
+      },
+      {
+        left: row("Circular Road, Airport, Sonda", "BGMEA", "factory"),
+        right: row("Circular Road, Airpark, Sonda", "BKMEA", "factory"),
+        keepRe: /Circular Road, Airport/i,
+        otherRe: /Circular Road, Airpark/i,
+        otherName: "leftover Circular Road Airport vs Airpark Plot omitted",
+      },
+      {
         left: row("Plot # 10, Airport Road, East Airport Joydebpur, Sonda", "BGMEA", "factory"),
         right: row("Plot # 10, Airport Road, West Airport Joydebpur, Sonda", "BKMEA", "factory"),
         keepRe: /East Airport Joydebpur/i,
@@ -3354,6 +3417,170 @@ describe("Locations Also recorded as — rendered HTML boundary", () => {
           assert.ok(
             !/East Airport Joydebpur/i.test(alsoText),
             "East Airport Joydebpur must not sit in Also of West Airport Joydevpur",
+          );
+        }
+      }
+    }
+  });
+
+  it("keeps leftover Airparkcircular out of Also of Airportcircular", () => {
+    const east = row("Plot # 10, Airport Road, AirportCircular, Sonda", "BGMEA", "factory");
+    const west = row("Plot # 10, Airport Road, AirparkCircular, Sonda", "BKMEA", "factory");
+    for (const ordered of [
+      [east, west],
+      [west, east],
+    ]) {
+      const html = renderAddressRows(ordered);
+      assert.equal(mergeUniqueLocations(ordered).length, 2, "leftover AirportCircular vs AirparkCircular matcher");
+      assert.equal((html.match(/data-location-row=""/g) ?? []).length, 2);
+      for (const chunk of locationChunks(html)) {
+        const disp = displayHtml(chunk);
+        const also = chunk.match(/<li[^>]*data-also-recorded-as=""[^>]*>[\s\S]*?<\/li>/g) ?? [];
+        const alsoText = also.join(" ");
+        if (/Airportcircular/i.test(disp) && !/Airparkcircular/i.test(disp)) {
+          assert.ok(
+            !/Airparkcircular/i.test(alsoText),
+            "Airparkcircular must not sit in Also of Airportcircular",
+          );
+        }
+        if (/Airparkcircular/i.test(disp)) {
+          assert.ok(
+            !/Airportcircular/i.test(alsoText),
+            "Airportcircular must not sit in Also of Airparkcircular",
+          );
+        }
+      }
+    }
+  });
+
+  it("keeps leftover Airpark Shaikh West Circular with Plot omitted out of Also of Airport Sheikh East Circular", () => {
+    const east = row("Airport Road, Airport Sheikh East Circular, Sonda", "BGMEA", "factory");
+    const west = row("Airport Road, Airpark Shaikh West Circular, Sonda", "BKMEA", "factory");
+    for (const ordered of [
+      [east, west],
+      [west, east],
+    ]) {
+      const html = renderAddressRows(ordered);
+      assert.equal(
+        mergeUniqueLocations(ordered).length,
+        2,
+        "leftover honorific-after-stem Circular with Plot omitted matcher",
+      );
+      assert.equal((html.match(/data-location-row=""/g) ?? []).length, 2);
+      for (const chunk of locationChunks(html)) {
+        const disp = displayHtml(chunk);
+        const also = chunk.match(/<li[^>]*data-also-recorded-as=""[^>]*>[\s\S]*?<\/li>/g) ?? [];
+        const alsoText = also.join(" ");
+        if (/Airport Sheikh East Circular/i.test(disp) && !/Airpark Shaikh West Circular/i.test(disp)) {
+          assert.ok(
+            !/Airpark Shaikh West Circular/i.test(alsoText),
+            "Airpark must not sit in Also of leftover Airport Circular with Plot omitted",
+          );
+        }
+        if (/Airpark Shaikh West Circular/i.test(disp)) {
+          assert.ok(
+            !/Airport Sheikh East Circular/i.test(alsoText),
+            "Airport must not sit in Also of leftover Airpark Circular with Plot omitted",
+          );
+        }
+      }
+    }
+  });
+
+  it("keeps leftover West Airport Joydevpur with Plot omitted out of Also of East Airport Joydebpur", () => {
+    const east = row("Airport Road, East Airport Joydebpur, Sonda", "BGMEA", "factory");
+    const west = row("Airport Road, West Airport Joydevpur, Sonda", "BKMEA", "factory");
+    for (const ordered of [
+      [east, west],
+      [west, east],
+    ]) {
+      const html = renderAddressRows(ordered);
+      assert.equal(
+        mergeUniqueLocations(ordered).length,
+        2,
+        "leftover East Airport Joydebpur vs West Airport Joydevpur Plot omitted matcher",
+      );
+      assert.equal((html.match(/data-location-row=""/g) ?? []).length, 2);
+      for (const chunk of locationChunks(html)) {
+        const disp = displayHtml(chunk);
+        const also = chunk.match(/<li[^>]*data-also-recorded-as=""[^>]*>[\s\S]*?<\/li>/g) ?? [];
+        const alsoText = also.join(" ");
+        if (/East Airport Joydebpur/i.test(disp) && !/West Airport Joydevpur/i.test(disp)) {
+          assert.ok(
+            !/West Airport Joydevpur/i.test(alsoText),
+            "West Airport Joydevpur must not sit in Also of East with Plot omitted",
+          );
+        }
+        if (/West Airport Joydevpur/i.test(disp)) {
+          assert.ok(
+            !/East Airport Joydebpur/i.test(alsoText),
+            "East Airport Joydebpur must not sit in Also of West with Plot omitted",
+          );
+        }
+      }
+    }
+  });
+
+  it("keeps leftover West Station Joydevpur out of Also of East Station Joydebpur", () => {
+    const east = row("Plot # 10, Airport Road, East Station Joydebpur, Sonda", "BGMEA", "factory");
+    const west = row("Plot # 10, Airport Road, West Station Joydevpur, Sonda", "BKMEA", "factory");
+    for (const ordered of [
+      [east, west],
+      [west, east],
+    ]) {
+      const html = renderAddressRows(ordered);
+      assert.equal(mergeUniqueLocations(ordered).length, 2, "leftover East Station Joydebpur vs West Station Joydevpur matcher");
+      assert.equal((html.match(/data-location-row=""/g) ?? []).length, 2);
+      for (const chunk of locationChunks(html)) {
+        const disp = displayHtml(chunk);
+        const also = chunk.match(/<li[^>]*data-also-recorded-as=""[^>]*>[\s\S]*?<\/li>/g) ?? [];
+        const alsoText = also.join(" ");
+        if (/East Station Joydebpur/i.test(disp) && !/West Station Joydevpur/i.test(disp)) {
+          assert.ok(
+            !/West Station Joydevpur/i.test(alsoText),
+            "West Station Joydevpur must not sit in Also of East Station Joydebpur",
+          );
+        }
+        if (/West Station Joydevpur/i.test(disp)) {
+          assert.ok(
+            !/East Station Joydebpur/i.test(alsoText),
+            "East Station Joydebpur must not sit in Also of West Station Joydevpur",
+          );
+        }
+      }
+    }
+  });
+
+  it("keeps leftover Airparkcircular out of Also of Airportcircular with Green as its own row", () => {
+    const east = row("Plot # 10, Airport Road, AirportCircular, Sonda", "BGMEA", "factory");
+    const west = row("Plot # 10, Airport Road, AirparkCircular, Sonda", "BKMEA", "factory");
+    const green = row("Plot # 10, Green Road, Dhaka", "OEKO_TEX", "factory");
+    const perms = [
+      [east, west, green],
+      [east, green, west],
+      [west, east, green],
+      [west, green, east],
+      [green, east, west],
+      [green, west, east],
+    ];
+    for (const ordered of perms) {
+      const html = renderAddressRows(ordered);
+      assert.equal(mergeUniqueLocations(ordered).length, 3, "leftover AirportCircular+AirparkCircular+Green matcher");
+      assert.equal((html.match(/data-location-row=""/g) ?? []).length, 3);
+      for (const chunk of locationChunks(html)) {
+        const disp = displayHtml(chunk);
+        const also = chunk.match(/<li[^>]*data-also-recorded-as=""[^>]*>[\s\S]*?<\/li>/g) ?? [];
+        const alsoText = also.join(" ");
+        if (/Airportcircular/i.test(disp) && !/Airparkcircular/i.test(disp)) {
+          assert.ok(
+            !/Airparkcircular/i.test(alsoText),
+            "Airparkcircular must not sit in Also of Airportcircular with Green",
+          );
+        }
+        if (/Airparkcircular/i.test(disp)) {
+          assert.ok(
+            !/Airportcircular/i.test(alsoText),
+            "Airportcircular must not sit in Also of Airparkcircular with Green",
           );
         }
       }

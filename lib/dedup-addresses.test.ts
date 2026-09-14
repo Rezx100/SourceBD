@@ -8583,6 +8583,161 @@ describe("mergeUniqueLocations — empty rows, duplicates, overview buckets", ()
       "Plot 10 leftover Doctor after stem plus Joydebpur",
     );
     assertBothOrders(
+      row("Plot # 10, Airport Road, AirportCircular, Sonda"),
+      row("Plot # 10, Airport Road, AirparkCircular, Sonda"),
+      2,
+      "Plot 10 leftover one-token AirportCircular vs AirparkCircular",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, AirportJoydebpur, Sonda"),
+      row("Plot # 10, Airport Road, AirparkJoydebpur, Sonda"),
+      2,
+      "Plot 10 leftover one-token AirportJoydebpur vs AirparkJoydebpur",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, AirportJoydebpur, Sonda"),
+      row("Plot # 10, Airport Road, AirparkJoydevpur, Sonda"),
+      2,
+      "Plot 10 leftover one-token AirportJoydebpur vs AirparkJoydevpur competing-stem XOR",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, CircularAirport, Sonda"),
+      row("Plot # 10, Airport Road, CircularAirpark, Sonda"),
+      2,
+      "Plot 10 leftover one-token CircularAirport vs CircularAirpark",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, EastCircularAirport, Sonda"),
+      row("Plot # 10, Airport Road, WestCircularAirpark, Sonda"),
+      2,
+      "Plot 10 leftover one-token EastCircularAirport vs WestCircularAirpark",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, AirportEastCircular, Sonda"),
+      row("Plot # 10, Airport Road, AirparkWestCircular, Sonda"),
+      2,
+      "Plot 10 leftover one-token AirportEastCircular vs AirparkWestCircular",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Court, Airport Sheikh East Circular, Sonda"),
+      row("Plot # 10, Airport Court, Airpark Shaikh West Circular, Sonda"),
+      2,
+      "Plot 10 leftover honorific-after-stem Circular after Airport Court",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, Airport Hajee East Circular, Sonda"),
+      row("Plot # 10, Airport Road, Airpark Hajee West Circular, Sonda"),
+      2,
+      "Plot 10 leftover Hajee East Circular vs Hajee West Circular",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, Airport Al-Haj East Circular, Sonda"),
+      row("Plot # 10, Airport Road, Airpark Al-Haj West Circular, Sonda"),
+      2,
+      "Plot 10 leftover both Al-Haj hyphen Circular",
+    );
+    assertBothOrders(
+      row("Airport Road, Airport Sheikh East Circular, Sonda"),
+      row("Airport Road, Airpark Shaikh West Circular, Sonda"),
+      2,
+      "leftover honorific-after-stem Circular with Plot omitted",
+    );
+    assertBothOrders(
+      row("House 10, Airport Sheikh East Circular, Sonda"),
+      row("House 10, Airpark Shaikh West Circular, Sonda"),
+      2,
+      "House 10 leftover honorific-after-stem Circular",
+    );
+    assertBothOrders(
+      row("Plot # 10, Circular Road, Airport, Sonda"),
+      row("Plot # 10, Circular Road, Airpark, Sonda"),
+      2,
+      "Plot 10 leftover Circular Road Airport vs Airpark",
+    );
+    assertBothOrders(
+      row("Circular Road, Airport, Sonda"),
+      row("Circular Road, Airpark, Sonda"),
+      2,
+      "leftover Circular Road Airport vs Airpark Plot omitted",
+    );
+    assertBothOrders(
+      row("Airport Road, East Airport Joydebpur, Sonda"),
+      row("Airport Road, West Airport Joydevpur, Sonda"),
+      2,
+      "leftover East Airport Joydebpur vs West Airport Joydevpur Plot omitted",
+    );
+    assertBothOrders(
+      row("Airport Road, East Joydebpur, Sonda"),
+      row("Airport Road, West Joydevpur, Sonda"),
+      1,
+      "KEEP leftover East Joydebpur vs West Joydevpur Plot omitted",
+    );
+    assertBothOrders(
+      row("House 10, East Airport Joydebpur, Sonda"),
+      row("House 10, West Airport Joydevpur, Sonda"),
+      2,
+      "House 10 leftover East Airport Joydebpur vs West Airport Joydevpur",
+    );
+    assertBothOrders(
+      row("House # 10, Airport Road, East Airport Joydebpur, Sonda"),
+      row("House # 10, Airport Road, West Airport Joydevpur, Sonda"),
+      2,
+      "House # 10 Airport Road leftover East Airport Joydebpur vs West Airport Joydevpur",
+    );
+    assertBothOrders(
+      row("Holding 10, East Airport Joydebpur, Sonda"),
+      row("Holding 10, West Airport Joydevpur, Sonda"),
+      2,
+      "Holding 10 leftover East Airport Joydebpur vs West Airport Joydevpur",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, East Station Joydebpur, Sonda"),
+      row("Plot # 10, Airport Road, West Station Joydevpur, Sonda"),
+      2,
+      "Plot 10 leftover East Station Joydebpur vs West Station Joydevpur",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, East Station, Sonda"),
+      row("Plot # 10, Airport Road, West Station, Sonda"),
+      2,
+      "Plot 10 leftover East Station vs West Station",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, East Station Joydebpur, Sonda"),
+      row("Plot # 10, Airport Road, West Station Joydebpur, Sonda"),
+      2,
+      "Plot 10 leftover East Station Joydebpur vs West Station Joydebpur same spelling",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, Hajee East Airport Joydebpur, Sonda"),
+      row("Plot # 10, Airport Road, Hajee West Airport Joydevpur, Sonda"),
+      2,
+      "Plot 10 leftover Hajee East Airport Joydebpur vs Hajee West Airport Joydevpur",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Court, East Airport Joydebpur, Sonda"),
+      row("Plot # 10, Airport Court, West Airport Joydevpur, Sonda"),
+      2,
+      "Plot 10 leftover after Airport Court East Airport Joydebpur vs West Airport Joydevpur",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, AirportCircular Joydebpur, Sonda"),
+      row("Plot # 10, Airport Road, AirparkCircular Joydevpur, Sonda"),
+      2,
+      "Plot 10 leftover AirportCircular Joydebpur vs AirparkCircular Joydevpur",
+    );
+    for (const ordered of permutations([
+      row("Plot # 10, Airport Road, AirportCircular, Sonda"),
+      row("Plot # 10, Airport Road, AirparkCircular, Sonda"),
+      row("Plot # 10, Green Road, Dhaka"),
+    ])) {
+      assert.equal(
+        displays(ordered).length,
+        3,
+        "three-string leftover AirportCircular+AirparkCircular+Green permutation",
+      );
+    }
+    assertBothOrders(
       row("Plot # 10, Airport Road, Airport Kobi East Joydebpur, Sonda"),
       row("Plot # 10, Airport Road, Airpark Kazi West Joydebpur, Sonda"),
       2,
