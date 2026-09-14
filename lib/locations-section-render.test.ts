@@ -1691,6 +1691,90 @@ describe("Locations Also recorded as — rendered HTML boundary", () => {
         otherName: "Plot 10 Airport East vs Airpark West at Valuka",
       },
       {
+        left: row("Plot # 10, Airport East, Dhaka", "BGMEA", "factory"),
+        right: row("Plot # 10, Airpark West Road, Dhaka", "BKMEA", "factory"),
+        keepRe: /Airport East/i,
+        otherRe: /Airpark West Road/i,
+        otherName: "Plot 10 Airport East no-Road vs Airpark West Road",
+      },
+      {
+        left: row("Plot # 10, Airport East Road, Dhaka", "BGMEA", "factory"),
+        right: row("Plot # 10, Airpark West, Dhaka", "BKMEA", "factory"),
+        keepRe: /Airport East Road/i,
+        otherRe: /Airpark West/i,
+        otherName: "Plot 10 Airport East Road vs Airpark West no-Road",
+      },
+      {
+        left: row("Plot # 10, AirportEastRoad, Dhaka", "BGMEA", "factory"),
+        right: row("Plot # 10, AirparkWestRoad, Dhaka", "BKMEA", "factory"),
+        keepRe: /AirportEastRoad|Airporteastroad/i,
+        otherRe: /AirparkWestRoad|Airparkwestroad/i,
+        otherName: "Plot 10 AirportEastRoad vs AirparkWestRoad",
+      },
+      {
+        left: row("Plot # 10, Airport Road East, Dhaka", "BGMEA", "factory"),
+        right: row("Plot # 10, Airport Road West, Dhaka", "BKMEA", "factory"),
+        keepRe: /Airport Road East/i,
+        otherRe: /Airport Road West/i,
+        otherName: "Plot 10 Airport Road East vs Airport Road West",
+      },
+      {
+        left: row("Plot # 10, East Mirpur, Sonda", "BGMEA", "factory"),
+        right: row("Plot # 10, West Mirpur, Sonda", "BKMEA", "factory"),
+        keepRe: /East Mirpur/i,
+        otherRe: /West Mirpur/i,
+        otherName: "Plot 10 East Mirpur vs West Mirpur no-Road at Sonda",
+      },
+      {
+        left: row("Plot # 10, East Tejgaon, Sonda", "BGMEA", "factory"),
+        right: row("Plot # 10, West Tejgaon, Sonda", "BKMEA", "factory"),
+        keepRe: /East Tejgaon/i,
+        otherRe: /West Tejgaon/i,
+        otherName: "Plot 10 East Tejgaon vs West Tejgaon no-Road at Sonda",
+      },
+      {
+        left: row("Plot # 10, East Circular, Dhaka", "BGMEA", "factory"),
+        right: row("Plot # 10, West Circular, Dhaka", "BKMEA", "factory"),
+        keepRe: /East Circular/i,
+        otherRe: /West Circular/i,
+        otherName: "Plot 10 East Circular vs West Circular no-Road",
+      },
+      {
+        left: row("Plot # 10, East Airport, Dhaka", "BGMEA", "factory"),
+        right: row("Plot # 10, West Airport, Dhaka", "BKMEA", "factory"),
+        keepRe: /East Airport/i,
+        otherRe: /West Airport/i,
+        otherName: "Plot 10 East Airport vs West Airport no-Road",
+      },
+      {
+        left: row("Plot # 23-24, Dogri, Union, Hemayetpur, Dhaka, Savar", "BGMEA", "factory"),
+        right: row("Plot # 23-24, Village, Hemayetpur, Dhaka, Savar", "BKMEA", "factory"),
+        keepRe: /Dogri,\s*Union/i,
+        otherRe: /Village,\s*Hemayetpur/i,
+        otherName: "Dogri, Union vs Village Hemayetpur",
+      },
+      {
+        left: row("Plot # 23-24, Faridabad, Union, Hemayetpur, Dhaka, Savar", "BGMEA", "factory"),
+        right: row("Plot # 23-24, Village, Hemayetpur, Dhaka, Savar", "BKMEA", "factory"),
+        keepRe: /Faridabad,\s*Union/i,
+        otherRe: /Village,\s*Hemayetpur/i,
+        otherName: "Faridabad, Union vs Village Hemayetpur",
+      },
+      {
+        left: row("Plot # 23-24, Tetultola, Union, Hemayetpur, Dhaka, Savar", "BGMEA", "factory"),
+        right: row("Plot # 23-24, Village, Hemayetpur, Dhaka, Savar", "BKMEA", "factory"),
+        keepRe: /Tetultola,\s*Union/i,
+        otherRe: /Village,\s*Hemayetpur/i,
+        otherName: "Tetultola, Union vs Village Hemayetpur",
+      },
+      {
+        left: row("Plot # 23-24, Chandona, Union, Hemayetpur, Dhaka, Savar", "BGMEA", "factory"),
+        right: row("Plot # 23-24, Village, Hemayetpur, Dhaka, Savar", "BKMEA", "factory"),
+        keepRe: /Chandona,\s*Union/i,
+        otherRe: /Village,\s*Hemayetpur/i,
+        otherName: "Chandona, Union vs Village Hemayetpur",
+      },
+      {
         left: row("Plot # 10, ShahidAirport Road, Dhaka", "BGMEA", "factory"),
         right: row("Plot # 10, Shahed Airpark Road, Dhaka", "BKMEA", "factory"),
         keepRe: /ShahidAirport|Shahidairport/i,
@@ -1964,6 +2048,93 @@ describe("Locations Also recorded as — rendered HTML boundary", () => {
         }
         if (/Airpark West/i.test(disp)) {
           assert.ok(!/Airport East/i.test(alsoText));
+        }
+      }
+    }
+  });
+
+  it("keeps mixed no-Road Airport East out of Also recorded as of Airpark West Road with Green as its own row", () => {
+    const airport = row("Plot # 10, Airport East, Dhaka", "BGMEA", "factory");
+    const airpark = row("Plot # 10, Airpark West Road, Dhaka", "BKMEA", "factory");
+    const green = row("Plot # 10, Green Road, Dhaka", "OEKO_TEX", "factory");
+    const perms = [
+      [airport, airpark, green],
+      [airport, green, airpark],
+      [airpark, airport, green],
+      [airpark, green, airport],
+      [green, airport, airpark],
+      [green, airpark, airport],
+    ];
+    for (const ordered of perms) {
+      const html = renderAddressRows(ordered);
+      assert.equal(mergeUniqueLocations(ordered).length, 3, "mixed Airport East no-Road+Airpark West Road+Green matcher");
+      assert.equal((html.match(/data-location-row=""/g) ?? []).length, 3);
+      for (const chunk of locationChunks(html)) {
+        const disp = displayHtml(chunk);
+        const also = chunk.match(/<li[^>]*data-also-recorded-as=""[^>]*>[\s\S]*?<\/li>/g) ?? [];
+        const alsoText = also.join(" ");
+        if (/Airport East/i.test(disp) && !/Airpark West/i.test(disp)) {
+          assert.ok(!/Airpark West/i.test(alsoText), "Airpark West must not sit in Also of Airport East");
+        }
+        if (/Airpark West/i.test(disp)) {
+          assert.ok(!/Airport East/i.test(alsoText), "Airport East must not sit in Also of Airpark West");
+        }
+      }
+    }
+  });
+
+  it("keeps Village Dogri off the Telulzora-Union row that wraps Village Hemayetpur", () => {
+    const union = row("Plot # 23-24, Telulzora-Union, Hemayetpur, Dhaka, Savar", "BGMEA", "factory");
+    const villageH = row("Plot # 23-24, Village, Hemayetpur, Dhaka, Savar", "BKMEA", "factory");
+    const villageD = row("Plot # 23-24, Village, Dogri, Hemayetpur, Dhaka, Savar", "OEKO_TEX", "factory");
+    const perms = [
+      [union, villageH, villageD],
+      [union, villageD, villageH],
+      [villageH, union, villageD],
+      [villageH, villageD, union],
+      [villageD, union, villageH],
+      [villageD, villageH, union],
+    ];
+    for (const ordered of perms) {
+      const html = renderAddressRows(ordered);
+      assert.equal(mergeUniqueLocations(ordered).length, 2, "Telulzora-Union+VH+VD matcher");
+      assert.equal((html.match(/data-location-row=""/g) ?? []).length, 2);
+      for (const chunk of locationChunks(html)) {
+        const disp = displayHtml(chunk);
+        const also = chunk.match(/<li[^>]*data-also-recorded-as=""[^>]*>[\s\S]*?<\/li>/g) ?? [];
+        const alsoText = also.join(" ");
+        if (/Telulzora-Union|Village,\s*Hemayetpur/i.test(disp) && !/Village,\s*Dogri/i.test(disp)) {
+          assert.ok(!/Village,\s*Dogri/i.test(alsoText), "Village Dogri must not sit in Also of Telulzora-Union");
+        }
+      }
+    }
+  });
+
+  it("keeps Village Hemayetpur out of Also recorded as of Dogri, Union when Village Dogri sits with the union", () => {
+    const union = row("Plot # 23-24, Dogri, Union, Hemayetpur, Dhaka, Savar", "BGMEA", "factory");
+    const villageH = row("Plot # 23-24, Village, Hemayetpur, Dhaka, Savar", "BKMEA", "factory");
+    const villageD = row("Plot # 23-24, Village, Dogri, Hemayetpur, Dhaka, Savar", "OEKO_TEX", "factory");
+    const perms = [
+      [union, villageH, villageD],
+      [union, villageD, villageH],
+      [villageH, union, villageD],
+      [villageH, villageD, union],
+      [villageD, union, villageH],
+      [villageD, villageH, union],
+    ];
+    for (const ordered of perms) {
+      const html = renderAddressRows(ordered);
+      assert.equal(mergeUniqueLocations(ordered).length, 2, "Dogri, Union+VH+VD matcher");
+      assert.equal((html.match(/data-location-row=""/g) ?? []).length, 2);
+      for (const chunk of locationChunks(html)) {
+        const disp = displayHtml(chunk);
+        const also = chunk.match(/<li[^>]*data-also-recorded-as=""[^>]*>[\s\S]*?<\/li>/g) ?? [];
+        const alsoText = also.join(" ");
+        if (/Dogri,\s*Union|Village,\s*Dogri/i.test(disp)) {
+          assert.ok(
+            !/Village,\s*Hemayetpur/i.test(alsoText),
+            "Village Hemayetpur must not sit in Also of Dogri, Union",
+          );
         }
       }
     }
@@ -2865,6 +3036,44 @@ describe("Locations Also recorded as — rendered HTML boundary", () => {
         new RegExp(`${spelling.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}|Holding No\\. 87`, "i"),
         new RegExp(`${spelling.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}|Holding No\\. 87`, "i"),
         `${spelling} vs Holding 87`,
+      );
+    }
+    assertMergedAddressRowHtml(
+      row("Plot # 23-24, Telulzora, Union, Hemayetpur, Dhaka, Savar", "BGMEA", "factory"),
+      row(
+        "Holding No. 87, Plot No. 23, 24, 25, Hemayetpur, Tetuljhora Union, Savar, Dhaka - 1340, Bangladesh",
+        "OEKO_TEX",
+        "factory",
+      ),
+      /Telulzora,\s*Union|Holding No\. 87/i,
+      /Telulzora,\s*Union|Holding No\. 87/i,
+      "Telulzora, Union vs Holding 87",
+    );
+    assertMergedAddressRowHtml(
+      row("Plot # 23-24, Telulzor, Union, Hemayetpur, Dhaka, Savar", "BGMEA", "factory"),
+      row(
+        "Holding No. 87, Plot No. 23, 24, 25, Hemayetpur, Tetuljhora Union, Savar, Dhaka - 1340, Bangladesh",
+        "OEKO_TEX",
+        "factory",
+      ),
+      /Telulzor,\s*Union|Holding No\. 87/i,
+      /Telulzor,\s*Union|Holding No\. 87/i,
+      "Telulzor, Union vs Holding 87",
+    );
+    assertMergedAddressRowHtml(
+      row("Plot # 23-24, Dogri, Union, Hemayetpur, Dhaka, Savar", "BGMEA", "factory"),
+      row("Plot # 23-24, Union - Dogri, Hemayetpur, Dhaka, Savar", "BKMEA", "factory"),
+      /Dogri,\s*Union|Union\s*-\s*Dogri/i,
+      /Dogri,\s*Union|Union\s*-\s*Dogri/i,
+      "Dogri, Union vs Union hyphen Dogri",
+    );
+    for (const spelling of ["Telulzora-Union", "Tetuljhora-Union", "Telulzor-Union"]) {
+      assertMergedAddressRowHtml(
+        row(`Plot # 23-24, ${spelling}, Hemayetpur, Dhaka, Savar`, "BGMEA", "factory"),
+        row("Plot # 23-24, Village, Hemayetpur, Dhaka, Savar", "BKMEA", "factory"),
+        new RegExp(`${spelling.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}|Village,\\s*Hemayetpur`, "i"),
+        new RegExp(`${spelling.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}|Village,\\s*Hemayetpur`, "i"),
+        `${spelling} vs Village Hemayetpur`,
       );
     }
     {
