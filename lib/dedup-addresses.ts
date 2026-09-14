@@ -3150,9 +3150,19 @@ function isThoroughfareAfter(after: string): boolean {
 
 /** "Kobi Jasimuddin Road" is a road extra, not a second house at "kobi". */
 function clauseHasThoroughfare(after: string): boolean {
-  if (isThoroughfareAfter(after)) return true;
-  const clause = after.split(",")[0] ?? "";
+  const normalised = after.replace(/_/g, " ");
+  if (isThoroughfareAfter(normalised)) return true;
+  const clause = normalised.split(",")[0] ?? "";
   return new RegExp(`(?:^|\\s)${THOROUGHFARE_ALT}`).test(clause);
+}
+
+/** Text after the first road/street word in a field. Airport Road_East
+ *  Joydebpur and Airport Road East Joydebpur both yield " East Joydebpur". */
+function remainderAfterThoroughfare(field: string): string {
+  const normalised = field.replace(/_/g, " ");
+  const m = new RegExp(THOROUGHFARE_ALT, "u").exec(normalised);
+  if (!m) return "";
+  return normalised.slice(m.index + m[0].length);
 }
 
 function roadHoldingEntries(display: string): Array<{ digit: string; tail: string }> {
@@ -3190,33 +3200,32 @@ function roadHoldingEntries(display: string): Array<{ digit: string; tail: strin
         if (/^(?:st|nd|rd|th)$/.test(tail.trim())) continue;
         if (labelledWardSectorDigit(s, m)) continue;
         const afterWord = s.slice((m.index ?? 0) + m[0].length);
-        const trailDirHit = afterWord.match(
-          /^[\s,./_\u00AD\u200B\p{Pd}\u2212]*([a-z]{3,})\b(.*)$/u,
+        // Whole-field "Airport Road, East" / stacked "Airport Road North
+        // East" attach compasses on the road tail. Same-field leftover
+        // "Airport Road East Joydebpur" / "Road_East Joydebpur" must not —
+        // the leftover walker mints East Joydebpur so Joydebpur vs
+        // Joydevpur can still same-spell, and so Airport vs Mirpur at the
+        // same leftover stays two roads. "South Auchpara" / "Dakkhin Khan"
+        // keep a village remainder after the compass, so they do not attach.
+        const trail = peelLeftoverIssueRoad(afterWord);
+        const trailRest = trail.after.replace(
+          /^[\s./_\u00AD\u200B\p{Pd}\u2212]+/u,
+          "",
         );
-        const trailRest = trailDirHit?.[2] ?? "";
-        const trailNext = trailRest
-          .match(/^[\s./_\u00AD\u200B\p{Pd}\u2212]*([a-z]{3,})\b/u)?.[1];
-        // "Airport Road, East" / "Airport Road East" — compass is the whole
-        // field. "Rashid Road, South Auchpara" and "Mazar Road, Dakkhin Khan"
-        // start a village name, not a road direction.
-        const trailDir =
-          trailDirHit &&
-          ROAD_DIRECTION_KEEP.has(trailDirHit[1]!) &&
-          (trailRest.trimStart() === "" ||
-            trailRest.trimStart().startsWith(",") ||
-            trailRest.trimStart().startsWith(".") ||
-            (Boolean(trailNext) && ROAD_DIRECTION_KEEP.has(trailNext!)))
-            ? trailDirHit[1]
-            : undefined;
-        let withDir =
-          trailDir &&
-          ROAD_DIRECTION_KEEP.has(trailDir) &&
-          !new RegExp(`(?:^|[^a-z])${trailDir}(?:$|[^a-z])`).test(tail)
-            ? `${tail} ${trailDir}`
-            : tail;
-        // "East, Airport Road" — the prefix compass sits in an intervening
-        // field, not in the road tail. Attach it the same way as a trailing
-        // "Airport Road, East" compass.
+        const attachTrail =
+          trail.dirs.length > 0 &&
+          !trail.name &&
+          (trailRest === "" ||
+            trailRest.startsWith(",") ||
+            trailRest.startsWith("."));
+        let withDir = tail;
+        if (attachTrail) {
+          for (const d of trail.dirs) {
+            if (!new RegExp(`(?:^|[^a-z])${d}(?:$|[^a-z])`).test(withDir)) {
+              withDir = `${withDir} ${d}`;
+            }
+          }
+        }
         const prefixDir = lastKeptRoadDirection(m[0]!);
         if (
           prefixDir &&
@@ -4241,11 +4250,102 @@ function lastKeptRoadDirection(text: string): string | null {
   return dirs.length > 0 ? dirs[dirs.length - 1]! : null;
 }
 
-/** East Joydebpur / East Mirpur / East Tejgaon after Airport Road. Not
- *  South Auchpara / Dakkhin Khan / East Dhaka / East Sonda. */
-function isIssueNamedRoadRemainder(place: string): boolean {
+/** East Joydebpur / East Mirpur / East Tejgaon / East Airport after a
+ *  thoroughfare. Not South Auchpara / Dakkhin Khan / East Dhaka / East
+ *  Sonda / East Rampura (campus). */
+function isLeftoverNamedRemainder(place: string): boolean {
+  if (!place || place.length < 3) return false;
+  if (HOUSING_CAMPUS_PLACES.has(place)) return false;
   if (isCompetingRoadStem(place)) return true;
   return /^(?:joydebpur|joydevpur|mirpur|tejgaon|circular)$/.test(place);
+}
+
+function isIssueNamedRoadRemainder(place: string): boolean {
+  return isLeftoverNamedRemainder(place);
+}
+
+function peelGluedLeftoverToken(
+  tok: string,
+): { honorifics: string[]; dirs: string[]; name: string } | null {
+  const glued = peelConcatenatedDirections(tok);
+  if (
+    glued.dirs.length > 0 &&
+    glued.dirs.every((d) => isKeptRoadDirectionToken(d)) &&
+    isLeftoverNamedRemainder(glued.rest)
+  ) {
+    return { honorifics: [], dirs: glued.dirs, name: glued.rest };
+  }
+  for (let n = 2; n <= 10 && n < tok.length - 3; n++) {
+    const prefix = tok.slice(0, n);
+    if (!isSpacedHonorificCandidate(prefix)) continue;
+    const inner = peelConcatenatedDirections(tok.slice(n));
+    if (
+      inner.dirs.length > 0 &&
+      inner.dirs.every((d) => isKeptRoadDirectionToken(d)) &&
+      isLeftoverNamedRemainder(inner.rest)
+    ) {
+      return { honorifics: [prefix], dirs: inner.dirs, name: inner.rest };
+    }
+    const rest = tok.slice(n);
+    if (isLeftoverNamedRemainder(rest)) {
+      return { honorifics: [prefix], dirs: [], name: rest };
+    }
+  }
+  return null;
+}
+
+/** Compass + ISSUE remainder in one leftover field, including honorifics
+ *  before or after the stem, glued EastJoydebpur, and a restated Road
+ *  word (East Mirpur Road). Airport Sheikh East peels the same way as
+ *  Sheikh East Airport. Village remainders (South Auchpara) stay in
+ *  after so trailDir does not attach. */
+function peelLeftoverIssueRoad(field: string): {
+  dirs: string[];
+  name: string | null;
+  after: string;
+  sawHonorific: boolean;
+} {
+  let rest = field.replace(/_/g, " ");
+  rest = rest.replace(/^[\s,./_\u00AD\u200B\p{Pd}\u2212]+/u, "");
+  const dirs: string[] = [];
+  const leftoverToks: string[] = [];
+  let sawHonorific = false;
+  const takeTok = (): string | null => {
+    rest = rest.replace(/^[\s./_\u00AD\u200B\p{Pd}\u2212]+/u, "");
+    if (!rest || rest.startsWith(",") || rest.startsWith(";")) return null;
+    const m = rest.match(/^([a-z]{2,})(?![a-z])/);
+    if (!m) return null;
+    rest = rest.slice(m[0].length);
+    return m[1]!;
+  };
+  for (let n = 0; n < 10; n++) {
+    const tok = takeTok();
+    if (!tok) break;
+    if (isThoroughfareWord(tok)) continue;
+    if (isSpacedHonorificCandidate(tok)) {
+      sawHonorific = true;
+      continue;
+    }
+    if (isKeptRoadDirectionToken(tok)) {
+      dirs.push(tok);
+      continue;
+    }
+    const glued = peelGluedLeftoverToken(tok);
+    if (glued) {
+      if (glued.honorifics.length > 0) sawHonorific = true;
+      dirs.push(...glued.dirs);
+      leftoverToks.push(glued.name);
+      continue;
+    }
+    leftoverToks.push(tok);
+  }
+  if (leftoverToks.length === 1 && isLeftoverNamedRemainder(leftoverToks[0]!)) {
+    return { dirs, name: leftoverToks[0]!, after: rest, sawHonorific };
+  }
+  if (leftoverToks.length > 0) {
+    rest = `${leftoverToks.join(" ")}${rest ? ` ${rest}` : ""}`;
+  }
+  return { dirs, name: null, after: rest, sawHonorific };
 }
 
 function bareProperRoadPlaces(
@@ -4559,59 +4659,51 @@ function bareProperRoadPlaces(
       if (clauseHasBuildingName(trimmed) || clauseHasBuildingName(` ${trimmed}`)) {
         break;
       }
-      if (clauseHasThoroughfare(rawField) || isThoroughfareAfter(trimmed)) {
+      const mintPeeledLeftover = (
+        peeled: ReturnType<typeof peelLeftoverIssueRoad>,
+      ): boolean => {
+        if (
+          !peeled.name ||
+          !isLeftoverNamedRemainder(peeled.name) ||
+          (peeled.dirs.length === 0 && !peeled.sawHonorific)
+        ) {
+          return false;
+        }
+        let afterPlace = peeled.after.replace(
+          new RegExp(String.raw`^[\s./_\u00AD\u200B\p{Pd}\u2212]*${THOROUGHFARE_ALT}`),
+          "",
+        );
+        const restFields = afterFields.slice(fi + 1).join(",");
+        const afterForPush = restFields ? `${afterPlace},${restFields}` : afterPlace;
+        const before = out.length;
+        push(m[2]!, peeled.name, ",", afterForPush, peeled.dirs.join(" "));
+        return out.length > before;
+      };
+      const mintLeftoverNamedRoad = (): boolean =>
+        mintPeeledLeftover(peelLeftoverIssueRoad(trimmed));
+      const fieldForTf = trimmed.replace(/_/g, " ");
+      if (clauseHasThoroughfare(rawField) || isThoroughfareAfter(fieldForTf)) {
+        // Same-field leftover (Airport Road East Joydebpur / Road_East
+        // Joydebpur / EastJoydebpur glued / Sheikh East Airport after the
+        // road word) mints from the text after the road word. A later
+        // leftover field that restates a Road word (Airport Road, East
+        // Mirpur Road) still mints from the field start.
+        const afterTf = remainderAfterThoroughfare(trimmed);
+        if (afterTf && mintPeeledLeftover(peelLeftoverIssueRoad(afterTf))) {
+          seenThoroughfare = true;
+          break;
+        }
+        if (seenThoroughfare && mintLeftoverNamedRoad()) break;
         seenThoroughfare = true;
         continue;
       }
       // Leftover after Airport Road is not a second extra (Green leftover,
       // Hemayetpur after Singair Road) unless it is a compass plus an
-      // ISSUE-named locality (East Joydebpur / East Mirpur / East Tejgaon).
-      // South Auchpara / Dakkhin Khan / East Dhaka / East Sonda stay skipped.
+      // ISSUE-named locality (East Joydebpur / East Mirpur / East Tejgaon),
+      // an honorific leftover, or glued EastJoydebpur. South Auchpara /
+      // Dakkhin Khan / East Dhaka / East Sonda stay skipped.
       if (seenThoroughfare) {
-        let field = trimmed;
-        const leftoverDirs: string[] = [];
-        for (;;) {
-          const h = field.match(/^([a-z]{3,})(?![a-z])/);
-          if (!h) break;
-          const tok = h[1]!;
-          if (isKeptRoadDirectionToken(tok)) {
-            leftoverDirs.push(tok);
-            field = field
-              .slice(h[0].length)
-              .replace(/^[\s./_\u00AD\u200B\p{Pd}\u2212]+/u, "");
-            continue;
-          }
-          const glued = peelConcatenatedDirections(tok);
-          if (
-            glued.dirs.length > 0 &&
-            glued.dirs.every((d) => isKeptRoadDirectionToken(d)) &&
-            (glued.rest.length === 0 || isKeptRoadDirectionToken(glued.rest))
-          ) {
-            leftoverDirs.push(...glued.dirs.filter((d) => isKeptRoadDirectionToken(d)));
-            if (glued.rest && isKeptRoadDirectionToken(glued.rest)) {
-              leftoverDirs.push(glued.rest);
-            }
-            field = field
-              .slice(h[0].length)
-              .replace(/^[\s./_\u00AD\u200B\p{Pd}\u2212]+/u, "");
-            continue;
-          }
-          break;
-        }
-        const name = field.match(/^([a-z]{3,})(?![a-z])/)?.[1];
-        if (
-          leftoverDirs.length > 0 &&
-          name &&
-          isIssueNamedRoadRemainder(name) &&
-          !HOUSING_CAMPUS_PLACES.has(name)
-        ) {
-          const afterPlace = field.slice(name.length);
-          const restFields = afterFields.slice(fi + 1).join(",");
-          const afterForPush = restFields ? `${afterPlace},${restFields}` : afterPlace;
-          const before = out.length;
-          push(m[2]!, name, ",", afterForPush, leftoverDirs.join(" "));
-          if (out.length > before) break;
-        }
+        if (mintLeftoverNamedRoad()) break;
         continue;
       }
       // Union - Telulzora is the union title plus the union name, not a
