@@ -8673,6 +8673,303 @@ describe("mergeUniqueLocations — empty rows, duplicates, overview buckets", ()
       "KEEP leftover East Joydebpur vs West Joydevpur Plot omitted",
     );
     assertBothOrders(
+      row("Airport Road, AirportCircular Road, Sonda"),
+      row("Airport Road, AirparkCircular Road, Sonda"),
+      2,
+      "leftover AirportCircular Road vs AirparkCircular Road Plot omitted",
+    );
+    assertBothOrders(
+      row("Airport Road, AirportCircular Road, Dhaka"),
+      row("Airport Road, AirparkCircular Road, Dhaka"),
+      2,
+      "leftover AirportCircular Road vs AirparkCircular Road Plot omitted Dhaka",
+    );
+    assertBothOrders(
+      row("Airport Road, AirportCircular Road"),
+      row("Airport Road, AirparkCircular Road"),
+      2,
+      "leftover AirportCircular Road vs AirparkCircular Road Plot omitted no village",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, AirportCircular Road, Sonda"),
+      row("Plot # 10, Airport Road, AirparkCircular Road, Sonda"),
+      2,
+      "Plot 10 leftover AirportCircular Road vs AirparkCircular Road",
+    );
+    assertBothOrders(
+      row("Airport Road, Airport Sheikh East Circular Road, Sonda"),
+      row("Airport Road, Airpark Shaikh West Circular Road, Sonda"),
+      2,
+      "leftover honorific Circular Road Plot omitted",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, Airport Sheikh East Circular Road, Sonda"),
+      row("Plot # 10, Airport Road, Airpark Shaikh West Circular Road, Sonda"),
+      2,
+      "Plot 10 leftover honorific Circular Road",
+    );
+    assertBothOrders(
+      row("House 10, Airport Sheikh East Circular Road, Sonda"),
+      row("House 10, Airpark Shaikh West Circular Road, Sonda"),
+      2,
+      "House 10 leftover honorific Circular Road",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Court, Airport Sheikh East Circular Road, Sonda"),
+      row("Plot # 10, Airport Court, Airpark Shaikh West Circular Road, Sonda"),
+      2,
+      "Plot 10 leftover after Court honorific Circular Road",
+    );
+    assertBothOrders(
+      row("Airport Court, Airport Sheikh East Circular Road, Sonda"),
+      row("Airport Court, Airpark Shaikh West Circular Road, Sonda"),
+      2,
+      "leftover after Court honorific Circular Road Plot omitted",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Court Airport Sheikh East Circular, Sonda"),
+      row("Plot # 10, Airport Court Airpark Shaikh West Circular, Sonda"),
+      2,
+      "Plot 10 leftover after Court same-field honorific Circular",
+    );
+    assertBothOrders(
+      row("Airport Court Airport Sheikh East Circular, Sonda"),
+      row("Airport Court Airpark Shaikh West Circular, Sonda"),
+      2,
+      "leftover after Court same-field honorific Circular Plot omitted",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Court AirportCircular, Sonda"),
+      row("Plot # 10, Airport Court AirparkCircular, Sonda"),
+      2,
+      "Plot 10 leftover after Court same-field AirportCircular",
+    );
+    assertBothOrders(
+      row("Airport Court East Airport Joydebpur, Sonda"),
+      row("Airport Court West Airport Joydevpur, Sonda"),
+      2,
+      "leftover after Court same-field East Airport Joydebpur Plot omitted",
+    );
+    assertBothOrders(
+      row("Airport Road, Airport, Sonda"),
+      row("Airport Road, Airpark, Sonda"),
+      2,
+      "leftover Airport Road leftover Airport vs Airpark Plot omitted",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, Airport, Sonda"),
+      row("Plot # 10, Airport Road, Airpark, Sonda"),
+      2,
+      "Plot 10 leftover Airport Road leftover Airport vs Airpark",
+    );
+    assertBothOrders(
+      row("House 10, Airport Road, Airport, Sonda"),
+      row("House 10, Airport Road, Airpark, Sonda"),
+      2,
+      "House 10 leftover Airport Road leftover Airport vs Airpark",
+    );
+    assertBothOrders(
+      row("Airport Road Airport, Sonda"),
+      row("Airport Road Airpark, Sonda"),
+      2,
+      "leftover same-field Airport Road Airport vs Airpark Plot omitted",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, AirportCircular, Sonda"),
+      row("Airport Road, AirparkCircular, Sonda"),
+      2,
+      "mixed Plot 10 leftover AirportCircular vs Plot omitted AirparkCircular",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, Airport Sheikh East Circular, Sonda"),
+      row("Airport Road, Airpark Shaikh West Circular, Sonda"),
+      2,
+      "mixed Plot 10 leftover honorific Circular vs Plot omitted",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, AirportCircular Road, Sonda"),
+      row("Airport Road, AirparkCircular Road, Sonda"),
+      2,
+      "mixed Plot 10 leftover AirportCircular Road vs Plot omitted",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, AirportCircular, Sonda"),
+      row("Airport Road, AirportCircular, Sonda"),
+      1,
+      "KEEP mixed same-stem Plot 10 leftover AirportCircular vs Plot omitted AirportCircular",
+    );
+    assertBothOrders(
+      row("Airport Road, East Airport Road Joydebpur, Sonda"),
+      row("Airport Road, West Airport Road Joydevpur, Sonda"),
+      2,
+      "leftover restated East Airport Road Joydebpur vs West Airport Road Joydevpur Plot omitted",
+    );
+    assertBothOrders(
+      row("Airport Road, East Airport Road Joydebpur"),
+      row("Airport Road, West Airport Road Joydevpur"),
+      2,
+      "leftover restated East Airport Road Joydebpur Plot omitted no village",
+    );
+    assertBothOrders(
+      row("Airport Road, East Airport Road, Sonda"),
+      row("Airport Road, West Airpark Road, Sonda"),
+      2,
+      "leftover restated East Airport Road vs West Airpark Road Plot omitted",
+    );
+    assertBothOrders(
+      row("House 10, Airport Road, East Airport Road Joydebpur, Sonda"),
+      row("House 10, Airport Road, West Airport Road Joydevpur, Sonda"),
+      2,
+      "House 10 leftover restated East Airport Road Joydebpur Plot omitted",
+    );
+    assertBothOrders(
+      row("House # 10, Airport Road, East Airport Road Joydebpur, Sonda"),
+      row("House # 10, Airport Road, West Airport Road Joydevpur, Sonda"),
+      2,
+      "House # 10 leftover restated East Airport Road Joydebpur",
+    );
+    assertBothOrders(
+      row("Airport Court, East Airport Road Joydebpur, Sonda"),
+      row("Airport Court, West Airport Road Joydevpur, Sonda"),
+      2,
+      "leftover after Court restated East Airport Road Joydebpur Plot omitted",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Court, East Airport Road Joydebpur, Sonda"),
+      row("Plot # 10, Airport Court, West Airport Road Joydevpur, Sonda"),
+      2,
+      "Plot 10 leftover after Court restated East Airport Road Joydebpur",
+    );
+    assertBothOrders(
+      row("Airport Court East Airport Road Joydebpur, Sonda"),
+      row("Airport Court West Airport Road Joydevpur, Sonda"),
+      2,
+      "leftover after Court same-field restated East Airport Road Joydebpur Plot omitted",
+    );
+    assertBothOrders(
+      row("East Airport Road Joydebpur, Sonda"),
+      row("West Airport Road Joydevpur, Sonda"),
+      2,
+      "leftover PRIMARY East Airport Road Joydebpur vs West Airport Road Joydevpur Plot omitted",
+    );
+    assertBothOrders(
+      row("East Airport Road, Sonda"),
+      row("West Airport Road, Sonda"),
+      2,
+      "leftover PRIMARY East Airport Road vs West Airport Road Plot omitted",
+    );
+    assertBothOrders(
+      row("East Mirpur Road, Sonda"),
+      row("West Mirpur Road, Sonda"),
+      2,
+      "leftover PRIMARY East Mirpur Road vs West Mirpur Road Plot omitted",
+    );
+    assertBothOrders(
+      row("East Circular Road, Dhaka"),
+      row("West Circular Road, Dhaka"),
+      2,
+      "leftover PRIMARY East Circular Road vs West Circular Road Plot omitted",
+    );
+    assertBothOrders(
+      row("East Tejgaon Road, Dhaka"),
+      row("West Tejgaon Road, Dhaka"),
+      2,
+      "leftover PRIMARY East Tejgaon Road vs West Tejgaon Road Plot omitted",
+    );
+    assertBothOrders(
+      row("East Green Road, Dhaka"),
+      row("West Green Road, Dhaka"),
+      2,
+      "leftover PRIMARY East Green Road vs West Green Road Plot omitted",
+    );
+    assertBothOrders(
+      row("East Station Road Joydebpur, Sonda"),
+      row("West Station Road Joydevpur, Sonda"),
+      2,
+      "leftover PRIMARY East Station Road Joydebpur vs West Station Road Joydevpur Plot omitted",
+    );
+    assertBothOrders(
+      row("Airport Road, East Station Road Joydebpur, Sonda"),
+      row("Airport Road, West Station Road Joydevpur, Sonda"),
+      2,
+      "leftover restated East Station Road Joydebpur Plot omitted",
+    );
+    assertBothOrders(
+      row("Airport Road, East Mirpur Road Joydebpur, Sonda"),
+      row("Airport Road, West Mirpur Road Joydevpur, Sonda"),
+      2,
+      "leftover restated East Mirpur Road Joydebpur Plot omitted",
+    );
+    assertBothOrders(
+      row("Airport Road, Airport Sheikh East Airport Road Joydebpur, Sonda"),
+      row("Airport Road, Airpark Shaikh West Airport Road Joydevpur, Sonda"),
+      2,
+      "leftover honorific restated Airport Road Joydebpur Plot omitted",
+    );
+    assertBothOrders(
+      row("East Joydebpur Road, Sonda"),
+      row("West Joydebpur Road, Sonda"),
+      2,
+      "leftover PRIMARY East Joydebpur Road vs West Joydebpur Road same spelling Plot omitted",
+    );
+    assertBothOrders(
+      row("Airport Road, East Joydebpur Road, Sonda"),
+      row("Airport Road, West Joydevpur Road, Sonda"),
+      1,
+      "KEEP leftover East Joydebpur Road vs West Joydevpur Road Plot omitted",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, East Airport Joydebpur, Sonda"),
+      row("Airport Road, West Airport Joydevpur, Sonda"),
+      2,
+      "mixed Plot 10 leftover East Airport Joydebpur vs Plot omitted West Airport Joydevpur",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, East Airport Road Joydebpur, Sonda"),
+      row("Airport Road, West Airport Road Joydevpur, Sonda"),
+      2,
+      "mixed Plot 10 leftover restated East Airport Road Joydebpur vs Plot omitted",
+    );
+    assertBothOrders(
+      row("Plot # 10, East Mirpur Road, Sonda"),
+      row("East Mirpur Road, Sonda"),
+      1,
+      "KEEP mixed same-stem Plot 10 PRIMARY East Mirpur Road vs Plot omitted",
+    );
+    for (const ordered of permutations([
+      row("Airport Road, AirportCircular Road, Sonda"),
+      row("Airport Road, AirparkCircular Road, Sonda"),
+      row("Green Road, Dhaka"),
+    ])) {
+      assert.equal(
+        displays(ordered).length,
+        3,
+        "three-string leftover AirportCircular Road Plot omitted+Green permutation",
+      );
+    }
+    for (const ordered of permutations([
+      row("Airport Road, Airport Sheikh East Circular Road, Sonda"),
+      row("Airport Road, Airpark Shaikh West Circular Road, Sonda"),
+      row("Green Road, Dhaka"),
+    ])) {
+      assert.equal(
+        displays(ordered).length,
+        3,
+        "three-string leftover honorific Circular Road Plot omitted+Green permutation",
+      );
+    }
+    for (const ordered of permutations([
+      row("Airport Road, East Airport Road Joydebpur, Sonda"),
+      row("Airport Road, West Airport Road Joydevpur, Sonda"),
+      row("Green Road, Dhaka"),
+    ])) {
+      assert.equal(
+        displays(ordered).length,
+        3,
+        "three-string leftover restated Plot omitted+Green permutation",
+      );
+    }
+    assertBothOrders(
       row("House 10, East Airport Joydebpur, Sonda"),
       row("House 10, West Airport Joydevpur, Sonda"),
       2,
