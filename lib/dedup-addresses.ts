@@ -3691,6 +3691,25 @@ function peelConcatenatedDirections(token: string): { dirs: string[]; rest: stri
   return { dirs, rest };
 }
 
+function peelConcatenatedTrailingDirections(token: string): { dirs: string[]; rest: string } {
+  const dirs: string[] = [];
+  let rest = token.replace(/[\s./_\u00AD\u200B\p{Pd}\u2212]+/gu, "");
+  const keys = [...ROAD_DIRECTION_KEEP].sort((a, b) => b.length - a.length);
+  for (;;) {
+    const hit = keys.find((d) => {
+      if (!rest.endsWith(d)) return false;
+      const left = rest.slice(0, -d.length);
+      if (left.length === 0) return false;
+      if (ROAD_DIRECTION_KEEP.has(left)) return true;
+      return left.length >= 3 && rest.length > d.length + 2;
+    });
+    if (!hit) break;
+    dirs.unshift(hit);
+    rest = rest.slice(0, -hit.length);
+  }
+  return { dirs, rest };
+}
+
 function peelRoadDirectionPrefix(tokens: string[]): { dirs: string[]; rest: string[] } {
   const dirs: string[] = [];
   const rest = [...tokens];
@@ -3716,8 +3735,33 @@ function peelRoadDirectionPrefix(tokens: string[]): { dirs: string[]; rest: stri
       rest[0] = glued.rest;
     }
   };
+  const takeTrailingCompass = () => {
+    while (rest.length > 0 && ROAD_DIRECTION_KEEP.has(rest[rest.length - 1]!)) {
+      dirs.push(rest.pop()!);
+    }
+    if (rest.length === 0) return;
+    const lastIdx = rest.length - 1;
+    const glued = peelConcatenatedTrailingDirections(rest[lastIdx]!);
+    if (glued.dirs.length === 0) return;
+    if (glued.rest.length === 0) {
+      dirs.push(...glued.dirs);
+      rest.pop();
+      return;
+    }
+    if (ROAD_DIRECTION_KEEP.has(glued.rest)) {
+      dirs.push(...glued.dirs, glued.rest);
+      rest.pop();
+      return;
+    }
+    if (glued.rest.length >= 3) {
+      dirs.push(...glued.dirs);
+      rest[lastIdx] = glued.rest;
+    }
+  };
   takeLeadingCompass();
   takeLeadingCompass();
+  takeTrailingCompass();
+  takeTrailingCompass();
   return { dirs, rest };
 }
 
@@ -3770,6 +3814,8 @@ function sameNamedRoadSpelling(a: string[], b: string[]): boolean {
   // Mixed BabaAirport vs Babu Airpark, and 6-letter SheikhAirport vs
   // ShaikhAirpark, must not sameWord-merge the full join: the competing
   // stems airport vs airpark are two roads even when honorific peel skips.
+  // Trailing compass (Airport East vs Airpark West, Airport East vs
+  // Airport West) peels the same way as a leading compass.
   const stemA = competingRoadStemOf(a);
   const stemB = competingRoadStemOf(b);
   if (
@@ -3917,7 +3963,7 @@ function isVillageishPlace(place: string): boolean {
 /** Unsuffixed English road names that sit after a village (Hemayetpur, Green).
  *  Short BD villages (Gacha, Begum) must not be treated as this. */
 function isUnsuffixedRoadExtra(place: string): boolean {
-  return /^(?:airport|green|dit|panthapath|pantha)$/.test(place);
+  return /^(?:airport|airpark|green|dit|panthapath|pantha)$/.test(place);
 }
 
 /** Airport / Green leftover, or Greenpur (Green + locality tail). Not Badda. */
@@ -4119,6 +4165,12 @@ function bareProperRoadPlaces(
     if (clauseHasThoroughfare(after)) return;
     const next = after.trimStart().match(/^([a-z]{3,})\b/)?.[1];
     if (next === "par" || next === "para" || next === "bari") {
+      out.push({ digit: String(Number(digit)), places: [place, next] });
+      return;
+    }
+    // "Airport East" / "Airpark West" without a Road word still name the
+    // compass. Mint it so sameNamedRoadSpelling can peel trailing dirs.
+    if (next && ROAD_DIRECTION_KEEP.has(next) && isCompetingRoadStem(place)) {
       out.push({ digit: String(Number(digit)), places: [place, next] });
       return;
     }
@@ -4476,16 +4528,18 @@ function primaryTitledNamesFromDisplay(display: string): string[] {
     if (!names.includes(n)) names.push(n);
   };
   const title = String.raw`(?:union|village|vill)`;
-  // Title-after "Dogri Union, Hemayetpur" must not capture trailing
-  // Hemayetpur as a union primary (that is afterLead). Negative lookbehind
-  // skips a title that already has its name in front.
+  const titleSep = String.raw`[\s./_\u00AD\u200B\p{Pd}\u2212]`;
+  // Title-after "Dogri Union, Hemayetpur" and hyphen "Dogri-Union,
+  // Hemayetpur" must not capture trailing Hemayetpur as a union primary
+  // (that is afterLead). Negative lookbehind skips a title that already
+  // has its name in front, including Dogri-Union / Dogri/Union.
   const lead = new RegExp(
-    String.raw`(?<![a-z]{3,}\s)(?:the\s+)?\b${title}\b[\s./_\u00AD\u200B\p{Pd}\u2212]*,?\s*(?:(?:of|the)\s+)*([a-z]{3,})\b`,
+    String.raw`(?<![a-z]{3,}${titleSep}+)(?:the\s+)?\b${title}\b${titleSep}*,?\s*(?:(?:of|the)\s+)*([a-z]{3,})\b`,
     EXTRA_RE_FLAGS,
   );
   for (const m of s.matchAll(lead)) push(m[1]!);
   const trail = new RegExp(
-    String.raw`\b([a-z]{3,})\s+${title}\b`,
+    String.raw`\b([a-z]{3,})${titleSep}+${title}\b`,
     EXTRA_RE_FLAGS,
   );
   for (const m of s.matchAll(trail)) push(m[1]!);
@@ -4523,19 +4577,16 @@ function isTelulzoraFamily(name: string): boolean {
   return /^te[lzt]ul(?:jhora|jora|zora|zor)$/.test(name);
 }
 
-/** Telulzora vs Tetuljhora (lev 3). Tetultola is tola, not this family. */
+/** Telulzora vs Tetuljhora, including Telulzor (len 8 vs 10). Tetultola is tola, not this family. */
 function unionNameShare(a: string[], b: string[]): boolean {
   const sa = a.join("");
   const sb = b.join("");
   if (!sa || !sb) return false;
-  if (isTelulzoraFamily(sa) !== isTelulzoraFamily(sb)) return false;
-  if (extraNameShare(a, b)) return true;
-  if (!isTelulzoraFamily(sa) || !isTelulzoraFamily(sb)) return false;
-  return (
-    Math.min(sa.length, sb.length) >= 8 &&
-    Math.abs(sa.length - sb.length) <= 1 &&
-    levenshtein(sa, sb) <= 3
-  );
+  const fa = isTelulzoraFamily(sa);
+  const fb = isTelulzoraFamily(sb);
+  if (fa && fb) return true;
+  if (fa !== fb) return false;
+  return extraNameShare(a, b);
 }
 
 /** "Union Plaza" / "Union Tower" / "Union House" — a building named Union,
@@ -4670,8 +4721,12 @@ function extraRoadPlaceConflict(a: Candidate, b: Candidate): boolean {
   for (const x of ea) {
     for (const y of eb) {
       if (x.digit !== y.digit) continue;
+      const competingStems =
+        competingRoadStemOf(x.places) && competingRoadStemOf(y.places);
       if (x.src === "road" && y.src === "road") {
         if (sameNamedRoadSpelling(x.places, y.places)) continue;
+      } else if (competingStems && !sameNamedRoadSpelling(x.places, y.places)) {
+        // Airport vs Airpark leftover, including no-Road trailing compass.
       } else if (
         extraNameShare(x.places, y.places) ||
         unionNameShare(x.places, y.places)
@@ -4727,6 +4782,8 @@ function extraRoadPlaceConflict(a: Candidate, b: Candidate): boolean {
             !sameNamedRoadSpelling(x.places, y.places)
           ) {
             // fall through to XOR
+          } else if (competingStems && !sameNamedRoadSpelling(x.places, y.places)) {
+            // Airport East vs Airpark West leftover / no-Road
           } else if (
             x.src === "union" &&
             y.src === "union" &&
@@ -4860,9 +4917,9 @@ function extraRoadPlaceConflict(a: Candidate, b: Candidate): boolean {
           extraNamedOnOtherNonHousing(y.places, a)
         ) {
           if (
-            x.src === "road" &&
-            y.src === "road" &&
-            !sameNamedRoadSpelling(x.places, y.places)
+            !sameNamedRoadSpelling(x.places, y.places) &&
+            ((x.src === "road" && y.src === "road") ||
+              (competingRoadStemOf(x.places) && competingRoadStemOf(y.places)))
           ) {
             return true;
           }
@@ -4875,9 +4932,9 @@ function extraRoadPlaceConflict(a: Candidate, b: Candidate): boolean {
         extraNamedOnOtherNonHousing(y.places, a)
       ) {
         if (
-          x.src === "road" &&
-          y.src === "road" &&
-          !sameNamedRoadSpelling(x.places, y.places)
+          !sameNamedRoadSpelling(x.places, y.places) &&
+          ((x.src === "road" && y.src === "road") ||
+            (competingRoadStemOf(x.places) && competingRoadStemOf(y.places)))
         ) {
           return true;
         }
