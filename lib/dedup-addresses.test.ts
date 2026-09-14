@@ -8428,6 +8428,124 @@ describe("mergeUniqueLocations — empty rows, duplicates, overview buckets", ()
       2,
       "Plot 10 leftover honorific-after-stem Airport Sheikh East Mirpur",
     );
+    for (const village of ["Sonda", "Dhaka", ""]) {
+      const tail = village ? `, ${village}` : "";
+      const at = village ? ` at ${village}` : "";
+      assertBothOrders(
+        row(`Plot # 10, Airport Road, Airport Sheikh East Circular${tail}`),
+        row(`Plot # 10, Airport Road, Airpark Shaikh West Circular${tail}`),
+        2,
+        `Plot 10 leftover honorific-after-stem Airport Sheikh East Circular${at}`,
+      );
+    }
+    assertBothOrders(
+      row("Plot # 10, Airport Road, Airport East Circular, Sonda"),
+      row("Plot # 10, Airport Road, Airpark West Circular, Sonda"),
+      2,
+      "Plot 10 leftover Airport East Circular vs Airpark West Circular",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, East Airport Circular, Sonda"),
+      row("Plot # 10, Airport Road, West Airpark Circular, Sonda"),
+      2,
+      "Plot 10 leftover East Airport Circular vs West Airpark Circular",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, East Airport Circular, Sonda"),
+      row("Plot # 10, Airport Road, West Airport Circular, Sonda"),
+      2,
+      "Plot 10 leftover East Airport Circular vs West Airport Circular same stem",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, Airport Circular, Sonda"),
+      row("Plot # 10, Airport Road, Airpark Circular, Sonda"),
+      2,
+      "Plot 10 leftover Airport Circular vs Airpark Circular no compass",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, Airport Sheikh Circular, Sonda"),
+      row("Plot # 10, Airport Road, Airpark Shaikh Circular, Sonda"),
+      2,
+      "Plot 10 leftover Airport Sheikh Circular vs Airpark Shaikh Circular",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, Airport Joydebpur, Sonda"),
+      row("Plot # 10, Airport Road, Airpark Joydebpur, Sonda"),
+      2,
+      "Plot 10 leftover Airport Joydebpur vs Airpark Joydebpur no compass",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Street, Airport Sheikh East Circular, Sonda"),
+      row("Plot # 10, Airport Street, Airpark Shaikh West Circular, Sonda"),
+      2,
+      "Plot 10 leftover honorific-after-stem Circular after Airport Street",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road Airport Sheikh East Circular, Sonda"),
+      row("Plot # 10, Airport Road Airpark Shaikh West Circular, Sonda"),
+      2,
+      "Plot 10 same-field leftover honorific-after-stem Circular",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, Northeast Airport Circular, Sonda"),
+      row("Plot # 10, Airport Road, Southeast Airpark Circular, Sonda"),
+      2,
+      "Plot 10 leftover Northeast Airport Circular vs Southeast Airpark Circular",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, Airport Sheikh Northeast Circular, Sonda"),
+      row("Plot # 10, Airport Road, Airpark Shaikh Southeast Circular, Sonda"),
+      2,
+      "Plot 10 leftover Airport Sheikh Northeast Circular vs Airpark Shaikh Southeast",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, East Airport Joydebpur, Sonda"),
+      row("Plot # 10, Airport Road, West Airport Joydevpur, Sonda"),
+      2,
+      "Plot 10 leftover East Airport Joydebpur vs West Airport Joydevpur",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, East Mirpur Joydebpur, Sonda"),
+      row("Plot # 10, Airport Road, West Mirpur Joydevpur, Sonda"),
+      2,
+      "Plot 10 leftover East Mirpur Joydebpur vs West Mirpur Joydevpur",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, East Green Joydebpur, Sonda"),
+      row("Plot # 10, Airport Road, West Green Joydevpur, Sonda"),
+      2,
+      "Plot 10 leftover East Green Joydebpur vs West Green Joydevpur",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, East Circular Joydebpur, Sonda"),
+      row("Plot # 10, Airport Road, West Circular Joydevpur, Sonda"),
+      2,
+      "Plot 10 leftover East Circular Joydebpur vs West Circular Joydevpur",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, East Tejgaon Joydebpur, Sonda"),
+      row("Plot # 10, Airport Road, West Tejgaon Joydevpur, Sonda"),
+      2,
+      "Plot 10 leftover East Tejgaon Joydebpur vs West Tejgaon Joydevpur",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, Airport Sheikh East Joydebpur, Sonda"),
+      row("Plot # 10, Airport Road, Airport Shaikh West Joydevpur, Sonda"),
+      2,
+      "Plot 10 leftover Airport Sheikh East Joydebpur vs Airport Shaikh West Joydevpur same stem",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, EastAirportJoydebpur, Sonda"),
+      row("Plot # 10, Airport Road, WestAirportJoydevpur, Sonda"),
+      2,
+      "Plot 10 leftover one-token EastAirportJoydebpur vs WestAirportJoydevpur",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, Northeast Airport Joydebpur, Sonda"),
+      row("Plot # 10, Airport Road, Southeast Airport Joydevpur, Sonda"),
+      2,
+      "Plot 10 leftover Northeast Airport Joydebpur vs Southeast Airport Joydevpur",
+    );
     assertBothOrders(
       row("Plot # 10, Airport Street, Airport Sheikh East Joydebpur, Sonda"),
       row("Plot # 10, Airport Street, Airpark Shaikh West Joydebpur, Sonda"),
@@ -8940,6 +9058,28 @@ describe("mergeUniqueLocations — empty rows, duplicates, overview buckets", ()
         displays(ordered).length,
         3,
         "three-string leftover Northeast Airport+Southeast+Green permutation",
+      );
+    }
+    for (const ordered of permutations([
+      row("Plot # 10, Airport Road, Airport Sheikh East Circular, Sonda"),
+      row("Plot # 10, Airport Road, Airpark Shaikh West Circular, Sonda"),
+      row("Plot # 10, Green Road, Dhaka"),
+    ])) {
+      assert.equal(
+        displays(ordered).length,
+        3,
+        "three-string leftover honorific-after-stem Circular+Green permutation",
+      );
+    }
+    for (const ordered of permutations([
+      row("Plot # 10, Airport Road, East Airport Joydebpur, Sonda"),
+      row("Plot # 10, Airport Road, West Airport Joydevpur, Sonda"),
+      row("Plot # 10, Green Road, Dhaka"),
+    ])) {
+      assert.equal(
+        displays(ordered).length,
+        3,
+        "three-string leftover East Airport Joydebpur+West Airport Joydevpur+Green permutation",
       );
     }
     const holding87 = row(

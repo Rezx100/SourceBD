@@ -3892,21 +3892,35 @@ function isCompetingRoadStem(place: string): boolean {
 
 const COMPETING_ROAD_STEMS = ["panthapath", "airport", "airpark", "pantha", "green", "dit"];
 
-/** Airport vs Airpark after compass / honorific peel, glued or spaced. */
+function competingStemInToken(token: string): string | null {
+  if (isCompetingRoadStem(token)) return token;
+  for (const stem of COMPETING_ROAD_STEMS) {
+    if (token.length > stem.length && token.endsWith(stem) && isCompetingRoadStem(stem)) {
+      return stem;
+    }
+  }
+  return null;
+}
+
+/** Airport vs Airpark after compass / honorific peel, glued or spaced.
+ *  Leftover Airport Circular / Airport Joydebpur still names airport when
+ *  it is not the last token. */
 function competingRoadStemOf(tokens: string[]): string | null {
   const stripped = tokens.map((t) => t.replace(/(?:road|rd)$/u, "")).filter((t) => t.length > 0);
   const { rest } = peelRoadDirectionPrefix(stripped.length > 0 ? stripped : tokens);
   if (rest.length === 0) return null;
   const last = rest[rest.length - 1]!;
-  if (isCompetingRoadStem(last)) return last;
+  const lastStem = competingStemInToken(last);
+  if (lastStem) return lastStem;
   const joined = rest.join("");
   for (const stem of COMPETING_ROAD_STEMS) {
-    if (last.length > stem.length && last.endsWith(stem) && isCompetingRoadStem(stem)) {
-      return stem;
-    }
     if (joined.length > stem.length && joined.endsWith(stem) && isCompetingRoadStem(stem)) {
       return stem;
     }
+  }
+  for (let i = rest.length - 2; i >= 0; i--) {
+    const earlier = competingStemInToken(rest[i]!);
+    if (earlier) return earlier;
   }
   return null;
 }
@@ -3959,6 +3973,57 @@ function sameNamedRoadSpelling(a: string[], b: string[]): boolean {
         pa.dirs.join("\0") !== pb.dirs.join("\0")
       ) {
         return false;
+      }
+      // Leftover East Airport Joydebpur vs West Airport Joydevpur: trailing
+      // KEEP spelling is not the road. Do not strip a one-token remainder
+      // (East Joydebpur vs West Joydevpur still KEEP).
+      if (
+        pa.rest.length >= 2 &&
+        pb.rest.length >= 2 &&
+        isLeftoverNamedRemainder(pa.rest[pa.rest.length - 1]!) &&
+        isLeftoverNamedRemainder(pb.rest[pb.rest.length - 1]!) &&
+        coreSameNamedRoadSpelling(
+          pa.rest[pa.rest.length - 1]!,
+          pb.rest[pb.rest.length - 1]!,
+        ) &&
+        pa.dirs.join("\0") !== pb.dirs.join("\0")
+      ) {
+        const headA = pa.rest.slice(0, -1);
+        const headB = pb.rest.slice(0, -1);
+        const ha = headA.join("");
+        const hb = headB.join("");
+        if (ha && hb) {
+          if (ha === hb) return false;
+          const headStemA = competingRoadStemOf(headA);
+          const headStemB = competingRoadStemOf(headB);
+          if (
+            headStemA &&
+            headStemB &&
+            isCompetingRoadStem(headStemA) &&
+            isCompetingRoadStem(headStemB) &&
+            !coreSameNamedRoadSpelling(headStemA, headStemB)
+          ) {
+            return false;
+          }
+          if (
+            headStemA &&
+            headStemB &&
+            isCompetingRoadStem(headStemA) &&
+            isCompetingRoadStem(headStemB) &&
+            coreSameNamedRoadSpelling(headStemA, headStemB)
+          ) {
+            return false;
+          }
+          if (
+            headA.length === 1 &&
+            headB.length === 1 &&
+            isLeftoverNamedRemainder(headA[0]!) &&
+            isLeftoverNamedRemainder(headB[0]!) &&
+            coreSameNamedRoadSpelling(headA[0]!, headB[0]!)
+          ) {
+            return false;
+          }
+        }
       }
       return coreSameNamedRoadSpelling(ra, rb);
     }
@@ -4284,16 +4349,33 @@ function foldGluedDirectionRest(glued: {
   return { dirs, rest };
 }
 
+function peelCompetingStemThenRemainder(rest: string): string[] | null {
+  if (!rest) return null;
+  const stems = [...COMPETING_ROAD_STEMS].sort((a, b) => b.length - a.length);
+  for (const stem of stems) {
+    if (!isCompetingRoadStem(stem)) continue;
+    if (rest.startsWith(stem) && rest.length > stem.length) {
+      const tail = rest.slice(stem.length);
+      if (isLeftoverNamedRemainder(tail)) return [stem, tail];
+    }
+  }
+  return null;
+}
+
 function peelGluedLeftoverToken(
   tok: string,
-): { honorifics: string[]; dirs: string[]; name: string | null } | null {
+): { honorifics: string[]; dirs: string[]; names: string[] } | null {
   const glued = foldGluedDirectionRest(peelConcatenatedDirections(tok));
   if (glued.dirs.length > 0 && glued.dirs.every((d) => isKeptRoadDirectionToken(d))) {
     if (isLeftoverNamedRemainder(glued.rest)) {
-      return { honorifics: [], dirs: glued.dirs, name: glued.rest };
+      return { honorifics: [], dirs: glued.dirs, names: [glued.rest] };
+    }
+    const peeledRest = peelCompetingStemThenRemainder(glued.rest);
+    if (peeledRest) {
+      return { honorifics: [], dirs: glued.dirs, names: peeledRest };
     }
     if (glued.rest === "") {
-      return { honorifics: [], dirs: glued.dirs, name: null };
+      return { honorifics: [], dirs: glued.dirs, names: [] };
     }
   }
   for (let n = 2; n <= 10 && n < tok.length - 3; n++) {
@@ -4302,15 +4384,23 @@ function peelGluedLeftoverToken(
     const inner = foldGluedDirectionRest(peelConcatenatedDirections(tok.slice(n)));
     if (inner.dirs.length > 0 && inner.dirs.every((d) => isKeptRoadDirectionToken(d))) {
       if (isLeftoverNamedRemainder(inner.rest)) {
-        return { honorifics: [prefix], dirs: inner.dirs, name: inner.rest };
+        return { honorifics: [prefix], dirs: inner.dirs, names: [inner.rest] };
+      }
+      const peeledInner = peelCompetingStemThenRemainder(inner.rest);
+      if (peeledInner) {
+        return { honorifics: [prefix], dirs: inner.dirs, names: peeledInner };
       }
       if (inner.rest === "") {
-        return { honorifics: [prefix], dirs: inner.dirs, name: null };
+        return { honorifics: [prefix], dirs: inner.dirs, names: [] };
       }
     }
     const rest = tok.slice(n);
     if (isLeftoverNamedRemainder(rest)) {
-      return { honorifics: [prefix], dirs: [], name: rest };
+      return { honorifics: [prefix], dirs: [], names: [rest] };
+    }
+    const peeledHon = peelCompetingStemThenRemainder(rest);
+    if (peeledHon) {
+      return { honorifics: [prefix], dirs: [], names: peeledHon };
     }
   }
   return null;
@@ -4357,7 +4447,7 @@ function peelLeftoverIssueRoad(field: string): {
     if (glued) {
       if (glued.honorifics.length > 0) sawHonorific = true;
       dirs.push(...glued.dirs);
-      if (glued.name) leftoverToks.push(glued.name);
+      leftoverToks.push(...glued.names);
       continue;
     }
     leftoverToks.push(tok);
@@ -4705,7 +4795,9 @@ function bareProperRoadPlaces(
         if (
           names.length === 0 ||
           !names.every((n) => isLeftoverNamedRemainder(n)) ||
-          (peeled.dirs.length === 0 && !peeled.sawHonorific)
+          (peeled.dirs.length === 0 &&
+            !peeled.sawHonorific &&
+            !(names.length >= 2 && names.some((n) => isCompetingRoadStem(n))))
         ) {
           return false;
         }
