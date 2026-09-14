@@ -5628,6 +5628,123 @@ describe("Locations Also recorded as — rendered HTML boundary", () => {
       /Greenwood/i,
       "leftover House 10 leftover PRIMARY Green vs Greenwood Sonda",
     );
+    assertXorAddressRowHtml(
+      row("Fashion Plaza, Green, Dhaka", "BGMEA", "factory"),
+      row("Fashion Plaza, Greenwood, Dhaka", "BKMEA", "factory"),
+      /Fashion Plaza, Green,/i,
+      /Greenwood/i,
+      "leftover after Fashion Plaza leftover Green vs leftover Greenwood Dhaka",
+    );
+    assertXorAddressRowHtml(
+      row("Circular Road, Green, Dhaka", "BGMEA", "factory"),
+      row("Circular Road, Greenwood, Dhaka", "BKMEA", "factory"),
+      /Circular Road, Green,/i,
+      /Greenwood/i,
+      "leftover after Circular Road leftover Green vs leftover Greenwood Dhaka",
+    );
+    assertXorAddressRowHtml(
+      row("Kazi Nazrul Islam Avenue, Green, Dhaka", "BGMEA", "factory"),
+      row("Kazi Nazrul Islam Avenue, Greenwood, Dhaka", "BKMEA", "factory"),
+      /Kazi Nazrul Islam Avenue, Green,/i,
+      /Greenwood/i,
+      "leftover Green vs leftover Greenwood after Kazi Nazrul Islam Avenue Dhaka",
+    );
+    assertXorAddressRowHtml(
+      row("Mirpur Road, Green, Dhaka", "BGMEA", "factory"),
+      row("Mirpur Road, Greenwood, Dhaka", "BKMEA", "factory"),
+      /Mirpur Road, Green,/i,
+      /Greenwood/i,
+      "leftover Green vs leftover Greenwood after Mirpur Road Dhaka",
+    );
+    assertXorAddressRowHtml(
+      row("House 10, Green Street, Sonda", "BGMEA", "factory"),
+      row("House 10, Greenwood, Sonda", "BKMEA", "factory"),
+      /Green Street/i,
+      /Greenwood/i,
+      "leftover House 10 leftover Green Street vs leftover Greenwood Sonda",
+    );
+    assertXorAddressRowHtml(
+      row("House 10, Green Road, Sonda", "BGMEA", "factory"),
+      row("House 10, Greenwood, Sonda", "BKMEA", "factory"),
+      /Green Road/i,
+      /Greenwood/i,
+      "leftover House 10 leftover Green Road vs leftover Greenwood Sonda",
+    );
+    assertXorAddressRowHtml(
+      row("Green, Savar", "BGMEA", "factory"),
+      row("Greenwood, Savar", "BKMEA", "factory"),
+      /Green, Savar/i,
+      /Greenwood, Savar/i,
+      "leftover PRIMARY Green vs Greenwood Plot omitted no-Road Savar",
+    );
+    assertXorAddressRowHtml(
+      row("Green Street, Dhaka", "BGMEA", "factory"),
+      row("Greenwood, Dhaka", "BKMEA", "factory"),
+      /Green Street/i,
+      /Greenwood/i,
+      "leftover Green Street vs leftover Greenwood no-House Dhaka",
+    );
+    assertXorAddressRowHtml(
+      row("House 50, West Gulshan, Dhaka", "BGMEA", "factory"),
+      row("7 East Gulshan, Dhaka", "BKMEA", "factory"),
+      /West Gulshan/i,
+      /East Gulshan/i,
+      "House 50 West Gulshan vs 7 East Gulshan",
+    );
+    for (const ordered of [
+      [
+        row("Fashion Plaza, Green, Dhaka", "BGMEA", "factory"),
+        row("Fashion Plaza, Greenwood, Dhaka", "BKMEA", "factory"),
+        row("Fashion Plaza, Airport, Dhaka", "OEKO_TEX", "factory"),
+      ],
+      [
+        row("Fashion Plaza, Airport, Dhaka", "OEKO_TEX", "factory"),
+        row("Fashion Plaza, Green, Dhaka", "BGMEA", "factory"),
+        row("Fashion Plaza, Greenwood, Dhaka", "BKMEA", "factory"),
+      ],
+    ]) {
+      const html = renderAddressRows(ordered);
+      assert.equal(
+        mergeUniqueLocations(ordered).length,
+        3,
+        "three-string leftover after Fashion Plaza leftover Green+Greenwood+Airport matcher",
+      );
+      assert.equal((html.match(/data-location-row=""/g) ?? []).length, 3);
+      for (const chunk of locationChunks(html)) {
+        const disp = displayHtml(chunk);
+        const also = chunk.match(/<li[^>]*data-also-recorded-as=""[^>]*>[\s\S]*?<\/li>/g) ?? [];
+        const alsoText = also.join(" ");
+        if (/Fashion Plaza, Green,/i.test(disp) && !/Greenwood/i.test(disp)) {
+          assert.ok(!/Greenwood/i.test(alsoText), "Greenwood must not sit in Also of Fashion Plaza leftover Green");
+        }
+        if (/Greenwood/i.test(disp) && !/Fashion Plaza, Green,/i.test(disp)) {
+          assert.ok(
+            !/Fashion Plaza, Green,/i.test(alsoText),
+            "Green must not sit in Also of Fashion Plaza leftover Greenwood",
+          );
+        }
+      }
+    }
+    for (const ordered of [
+      [
+        row("House 50, East Gulshan, Dhaka", "BGMEA", "factory"),
+        row("7 West Gulshan, Dhaka", "BKMEA", "factory"),
+        row("Green, Dhaka", "OEKO_TEX", "factory"),
+      ],
+      [
+        row("Green, Dhaka", "OEKO_TEX", "factory"),
+        row("House 50, East Gulshan, Dhaka", "BGMEA", "factory"),
+        row("7 West Gulshan, Dhaka", "BKMEA", "factory"),
+      ],
+    ]) {
+      const html = renderAddressRows(ordered);
+      assert.equal(
+        mergeUniqueLocations(ordered).length,
+        3,
+        "three-string House 50 East + 7 West + Green matcher",
+      );
+      assert.equal((html.match(/data-location-row=""/g) ?? []).length, 3);
+    }
   });
 
   it("keeps House 50 East Gulshan vs unlabeled 7 West Gulshan as two rows", () => {

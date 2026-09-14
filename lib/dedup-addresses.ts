@@ -4327,6 +4327,43 @@ function extraLooksLikeCompetingRoad(e: {
   return false;
 }
 
+/** Green Street src=road at House 10 vs leftover Greenwood leftover-digit /
+ *  same house digit. Not a global src=road mixed-digit XOR. */
+function leftoverCompetingPrefixConflict(
+  x: { places: string[]; src: ExtraSrc },
+  y: { places: string[]; src: ExtraSrc },
+): boolean {
+  if (sameNamedRoadSpelling(x.places, y.places)) return false;
+  if (!extraLooksLikeCompetingRoad(x) || !extraLooksLikeCompetingRoad(y)) {
+    return false;
+  }
+  const xPrefix = x.places.some((p) => leftoverCompetingStemPrefix(p));
+  const yPrefix = y.places.some((p) => leftoverCompetingStemPrefix(p));
+  const xStem = x.places.some((p) => isCompetingRoadStem(p));
+  const yStem = y.places.some((p) => isCompetingRoadStem(p));
+  return (
+    (xStem && yPrefix && !xPrefix) ||
+    (yStem && xPrefix && !yPrefix) ||
+    (xPrefix && yPrefix && x.places.join("\0") !== y.places.join("\0"))
+  );
+}
+
+/** Leftover-minting Green after Nazrul Avenue must still XOR Green vs Nazrul.
+ *  A's leftover Green extraNameShares B's Green and would otherwise continue
+ *  the Nazrul-road vs Green pair. */
+function leftoverCompetingVsNamedRoadConflict(
+  x: { places: string[]; src: ExtraSrc },
+  y: { places: string[]; src: ExtraSrc },
+): boolean {
+  if (sameNamedRoadSpelling(x.places, y.places)) return false;
+  const xComp = extraLooksLikeCompetingRoad(x);
+  const yComp = extraLooksLikeCompetingRoad(y);
+  if (xComp === yComp) return false;
+  if (x.src === "road" && yComp && !xComp) return true;
+  if (y.src === "road" && xComp && !yComp) return true;
+  return false;
+}
+
 /** "10, C DA Road" vs "10, DA" — DA is not minted as a 2-letter extra. */
 function unsuffixedInitialismLeftover(
   road: {
@@ -4726,6 +4763,7 @@ function leftoverPeeledMintable(
   afterIssueRemainderThoroughfare = false,
   afterAirportFamilyThoroughfare = false,
   allowUnsuffixedCompeting = false,
+  afterBuildingLandmark = false,
 ): boolean {
   const names =
     peeled.names.length > 0 ? peeled.names : peeled.name ? [peeled.name] : [];
@@ -4758,6 +4796,29 @@ function leftoverPeeledMintable(
   ) {
     return true;
   }
+  // Fashion Plaza leftover Green / leftover Greenwood. Court / Tower / Market
+  // are not building-landmark heads; leftover-mint still so leftover XOR can
+  // split leftover Green vs leftover Greenwood after the building. Airport
+  // Plaza already leftover-mints via afterAirportFamilyThoroughfare.
+  if (
+    afterBuildingLandmark &&
+    names.some((n) => isCompetingRoadStem(n) || leftoverCompetingStemPrefix(n))
+  ) {
+    return true;
+  }
+  // After Circular / Nazrul / Mirpur / Dit / Airport Link leftover-mint Green
+  // AND Greenwood so leftover XOR can split them. Greenwood is a competing-stem
+  // prefix, not isCompetingRoadStem, so the Issue-remainder gate never
+  // leftover-minted it. Leftover-minting Green after Nazrul must still XOR
+  // Green vs Nazrul (KEEP Plot # 10, 10 Kazi Nazrul Islam Avenue, Green vs
+  // Plot # 10, 10 Green, Nazrul). Do not leftover-mint multi-token leftover
+  // PRIMARY (International Airport) — names.every already refuses that.
+  if (
+    afterThoroughfare &&
+    names.some((n) => isCompetingRoadStem(n) || leftoverCompetingStemPrefix(n))
+  ) {
+    return true;
+  }
   // Circular Road, Airport — leftover competing stem after an ISSUE remainder
   // thoroughfare. Airport Road leftover Airport vs Airpark still mints.
   // Leftover Airport after Green Road / Court also mints.
@@ -4775,6 +4836,7 @@ function leftoverPlacesFromPeeled(
   afterIssueRemainderThoroughfare = false,
   afterAirportFamilyThoroughfare = false,
   allowUnsuffixedCompeting = false,
+  afterBuildingLandmark = false,
 ): string[] | null {
   if (
     !leftoverPeeledMintable(
@@ -4783,6 +4845,7 @@ function leftoverPlacesFromPeeled(
       afterIssueRemainderThoroughfare,
       afterAirportFamilyThoroughfare,
       allowUnsuffixedCompeting,
+      afterBuildingLandmark,
     )
   ) {
     return null;
@@ -4843,6 +4906,7 @@ function appendLeftoverIssueRoadExtras(
     afterIssueRemainderThoroughfare: boolean,
     afterAirportFamilyThoroughfare: boolean,
     allowUnsuffixedCompeting = false,
+    afterBuildingLandmark = false,
   ): boolean => {
     const places = leftoverPlacesFromPeeled(
       peelLeftoverIssueRoad(text),
@@ -4850,6 +4914,7 @@ function appendLeftoverIssueRoadExtras(
       afterIssueRemainderThoroughfare,
       afterAirportFamilyThoroughfare,
       allowUnsuffixedCompeting,
+      afterBuildingLandmark,
     );
     if (!places) return false;
     if (already(places)) return true;
@@ -4859,6 +4924,7 @@ function appendLeftoverIssueRoadExtras(
   let seenThoroughfare = false;
   let afterIssueRemainderThoroughfare = false;
   let afterAirportFamilyThoroughfare = false;
+  let afterBuildingLandmark = false;
   for (const field of s.split(",")) {
     let trimmed = field.replace(/^[\s./_\u00AD\u200B\p{Pd}\u2212]+/u, "");
     if (!trimmed) continue;
@@ -4886,9 +4952,12 @@ function appendLeftoverIssueRoadExtras(
         ) ||
           airportTf ||
           afterAirportFamilyThoroughfare,
+        false,
+        true,
       )
     ) {
       seenThoroughfare = true;
+      afterBuildingLandmark = true;
       if (issueTf) afterIssueRemainderThoroughfare = true;
       if (
         airportTf ||
@@ -4905,6 +4974,8 @@ function appendLeftoverIssueRoadExtras(
         true,
         issueTf,
         airportTf || afterAirportFamilyThoroughfare,
+        false,
+        afterBuildingLandmark,
       )
     ) {
       seenThoroughfare = true;
@@ -4926,11 +4997,14 @@ function appendLeftoverIssueRoadExtras(
         wasSeen,
         issueTf || afterIssueRemainderThoroughfare,
         wasSeen && (airportTf || afterAirportFamilyThoroughfare),
+        false,
+        afterBuildingLandmark,
       );
       continue;
     }
     if (buildingField) {
       seenThoroughfare = true;
+      afterBuildingLandmark = true;
       if (leftoverAirportFamilyStem(peelLeftoverIssueRoad(trimmed).names)) {
         afterAirportFamilyThoroughfare = true;
       }
@@ -4948,6 +5022,7 @@ function appendLeftoverIssueRoadExtras(
       afterIssueRemainderThoroughfare,
       afterAirportFamilyThoroughfare,
       !seenThoroughfare || buildingField,
+      afterBuildingLandmark,
     );
     if (
       !clauseHasThoroughfare(field) &&
@@ -5289,6 +5364,7 @@ function bareProperRoadPlaces(
       const mintLeftoverNamedRoad = (): boolean =>
         mintPeeledLeftover(peelLeftoverIssueRoad(trimmed));
       if (clauseHasBuildingName(trimmed) || clauseHasBuildingName(` ${trimmed}`)) {
+        seenThoroughfare = true;
         const afterBuilding = remainderAfterBuildingName(trimmed);
         if (
           afterBuilding &&
@@ -5300,11 +5376,29 @@ function bareProperRoadPlaces(
         if (
           later.some((field) => {
             const t = field.replace(/^[\s./_\u00AD\u200B\p{Pd}\u2212]+/u, "");
-            if (leftoverPeeledMintable(peelLeftoverIssueRoad(t))) return true;
+            if (
+              leftoverPeeledMintable(
+                peelLeftoverIssueRoad(t),
+                true,
+                false,
+                false,
+                false,
+                true,
+              )
+            ) {
+              return true;
+            }
             const afterLaterBuilding = remainderAfterBuildingName(t);
             if (
               afterLaterBuilding &&
-              leftoverPeeledMintable(peelLeftoverIssueRoad(afterLaterBuilding))
+              leftoverPeeledMintable(
+                peelLeftoverIssueRoad(afterLaterBuilding),
+                true,
+                false,
+                false,
+                false,
+                true,
+              )
             ) {
               return true;
             }
@@ -5848,6 +5942,8 @@ function extraRoadPlaceConflict(a: Candidate, b: Candidate): boolean {
   }
   for (const x of ea) {
     for (const y of eb) {
+      if (leftoverCompetingPrefixConflict(x, y)) return true;
+      if (leftoverCompetingVsNamedRoadConflict(x, y)) return true;
       if (x.digit !== y.digit) {
         if (
           !(
