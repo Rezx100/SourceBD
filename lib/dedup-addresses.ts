@@ -3181,15 +3181,40 @@ function roadHoldingEntries(display: string): Array<{ digit: string; tail: strin
         if (/^(?:st|nd|rd|th)$/.test(tail.trim())) continue;
         if (labelledWardSectorDigit(s, m)) continue;
         const afterWord = s.slice((m.index ?? 0) + m[0].length);
-        const trailDir = afterWord.match(
-          /^[\s./_\u00AD\u200B\p{Pd}\u2212]*([a-z]{3,})\b/u,
-        )?.[1];
-        const withDir =
+        const trailDirHit = afterWord.match(
+          /^[\s,./_\u00AD\u200B\p{Pd}\u2212]*([a-z]{3,})\b(.*)$/u,
+        );
+        const trailRest = trailDirHit?.[2] ?? "";
+        const trailNext = trailRest
+          .match(/^[\s./_\u00AD\u200B\p{Pd}\u2212]*([a-z]{3,})\b/u)?.[1];
+        // "Airport Road, East" / "Airport Road East" — compass is the whole
+        // field. "Rashid Road, South Auchpara" and "Mazar Road, Dakkhin Khan"
+        // start a village name, not a road direction.
+        const trailDir =
+          trailDirHit &&
+          ROAD_DIRECTION_KEEP.has(trailDirHit[1]!) &&
+          (trailRest.trimStart() === "" ||
+            trailRest.trimStart().startsWith(",") ||
+            trailRest.trimStart().startsWith(".") ||
+            (Boolean(trailNext) && ROAD_DIRECTION_KEEP.has(trailNext!)))
+            ? trailDirHit[1]
+            : undefined;
+        let withDir =
           trailDir &&
           ROAD_DIRECTION_KEEP.has(trailDir) &&
           !new RegExp(`(?:^|[^a-z])${trailDir}(?:$|[^a-z])`).test(tail)
             ? `${tail} ${trailDir}`
             : tail;
+        // "East, Airport Road" — the prefix compass sits in an intervening
+        // field, not in the road tail. Attach it the same way as a trailing
+        // "Airport Road, East" compass.
+        const prefixDir = lastKeptRoadDirection(m[0]!);
+        if (
+          prefixDir &&
+          !new RegExp(`(?:^|[^a-z])${prefixDir}(?:$|[^a-z])`).test(withDir)
+        ) {
+          withDir = `${prefixDir} ${withDir}`;
+        }
         out.push({ digit: m[1]!, tail: withDir });
       }
     }
@@ -4205,7 +4230,9 @@ function bareProperRoadPlaces(
       isCompetingRoadExtraToken(followingUnsuffixed) &&
       !isCompetingRoadExtraToken(place) &&
       !HOUSING_CAMPUS_PLACES.has(place) &&
-      !ADMIN_TOKENS.has(place)
+      !ADMIN_TOKENS.has(place) &&
+      !compassPlace &&
+      !skipDir
     ) {
       return;
     }
@@ -4215,10 +4242,12 @@ function bareProperRoadPlaces(
         : after.split(",")[0]) ?? "";
       // Shastapur, Upaziala Road — the next field is the street of this
       // village, not a second extra (Green after Hemayetpur has no road
-      // word and still skips the locality).
+      // word and still skips the locality). Keep East Joydebpur when a
+      // compass was peeled before the locality.
       if (
         !clauseHasThoroughfare(nextClause) &&
-        !isThoroughfareAfter(nextClause.trimStart())
+        !isThoroughfareAfter(nextClause.trimStart()) &&
+        !skipDir
       ) {
         if (
           followingUnsuffixed &&
@@ -4268,6 +4297,36 @@ function bareProperRoadPlaces(
     }
     if (compassNext) {
       out.push({ digit: String(Number(digit)), places: [place, next!] });
+      return;
+    }
+    // Sheikh Airport East — honorific + competing stem + trailing compass.
+    // Minting the honorific alone lets sheikh≈shaikh extraNameShare merge
+    // two roads. Do not restore a global prefixed XOR.
+    if (
+      next &&
+      isCompetingRoadStem(next) &&
+      !isCompetingRoadStem(place) &&
+      !isLocalityTailPlace(place) &&
+      !compassPlace
+    ) {
+      const consumed = nextRaw.replace(
+        new RegExp(
+          String.raw`^[\s,./_\u00AD\u200B\p{Pd}\u2212]*${next.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\b`,
+          "u",
+        ),
+        "",
+      );
+      const trail =
+        consumed.trimStart().match(/^([a-z]{3,})\b/)?.[1] ??
+        consumed.match(/^[\s,./_\u00AD\u200B\p{Pd}\u2212]+([a-z]{3,})\b/u)?.[1];
+      const trailCompass =
+        Boolean(trail) &&
+        ROAD_DIRECTION_KEEP.has(trail!) &&
+        !/^(?:naya|noya)$/.test(trail!);
+      out.push({
+        digit: String(Number(digit)),
+        places: trailCompass ? [place, next, trail!] : [place, next],
+      });
       return;
     }
     // "Telulzora Union" / "Telulzora-Union" — the title after the name is
@@ -4498,7 +4557,9 @@ function bareProperRoadPlaces(
       if (
         followingPlace &&
         isCompetingRoadExtraToken(followingPlace) &&
-        !isCompetingRoadExtraToken(place)
+        !isCompetingRoadExtraToken(place) &&
+        !(ROAD_DIRECTION_KEEP.has(place) && !/^(?:naya|noya)$/.test(place)) &&
+        !lastKeptRoadDirection(peeledSkip)
       ) {
         allowMint = true;
         continue;
@@ -4725,7 +4786,9 @@ function unionPrimaryCanWrapVillage(unionPrimaries: string[], villagePrimaries: 
 function hasUnionKindTitle(display: string): boolean {
   if (unionBuildingFromDisplay(display)) return false;
   const s = rewriteHouseOffice(display).toLowerCase();
-  return new RegExp(String.raw`\bunion\b`, EXTRA_RE_FLAGS).test(s);
+  // `_` is a word character, so `\bunion\b` misses Telulzora_Union.
+  // Letter-boundary still ignores glued TelulzoraUnion (no separator).
+  return new RegExp(String.raw`(?<![a-z])union(?![a-z])`, EXTRA_RE_FLAGS).test(s);
 }
 
 function extraRoadPlaceConflict(a: Candidate, b: Candidate): boolean {
@@ -4927,10 +4990,24 @@ function extraRoadPlaceConflict(a: Candidate, b: Candidate): boolean {
       const yRoadish = y.src === "road" || y.src === "bare" || y.src === "union";
       if (xRoadish && yRoadish) {
         if (x.src === "road" && y.src !== "road" && y.places.some(isLocalityTailPlace)) {
-          if (extraNamedOnOther(y.places, a)) continue;
+          if (extraNamedOnOther(y.places, a)) {
+            if (
+              sameNamedRoadSpelling(x.places, y.places) ||
+              !(competingStems || namedRoadDirs)
+            ) {
+              continue;
+            }
+          }
         }
         if (y.src === "road" && x.src !== "road" && x.places.some(isLocalityTailPlace)) {
-          if (extraNamedOnOther(x.places, b)) continue;
+          if (extraNamedOnOther(x.places, b)) {
+            if (
+              sameNamedRoadSpelling(x.places, y.places) ||
+              !(competingStems || namedRoadDirs)
+            ) {
+              continue;
+            }
+          }
         }
         // Village + road of one premises (Shutivola + Fakirkhali, Dighirpar
         // + Nazma Khatun Lane). The village extra sits on both strings.
