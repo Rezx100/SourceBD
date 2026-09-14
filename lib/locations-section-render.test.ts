@@ -5599,6 +5599,140 @@ describe("Locations Also recorded as — rendered HTML boundary", () => {
     );
   });
 
+  it("keeps leftover PRIMARY Green vs Greenwood no-Road as two rows", () => {
+    assertXorAddressRowHtml(
+      row("Green, Dhaka", "BGMEA", "factory"),
+      row("Greenwood, Dhaka", "BKMEA", "factory"),
+      /Green, Dhaka/i,
+      /Greenwood, Dhaka/i,
+      "leftover PRIMARY Green vs Greenwood Plot omitted no-Road Dhaka",
+    );
+    assertXorAddressRowHtml(
+      row("Green Road, Dhaka", "BGMEA", "factory"),
+      row("Greenwood, Dhaka", "BKMEA", "factory"),
+      /Green Road, Dhaka/i,
+      /Greenwood, Dhaka/i,
+      "leftover Green Road vs leftover Greenwood no-Road Dhaka",
+    );
+    assertXorAddressRowHtml(
+      row("Green Road, Dhaka", "BGMEA", "factory"),
+      row("Greenwood Road, Dhaka", "BKMEA", "factory"),
+      /Green Road, Dhaka/i,
+      /Greenwood Road, Dhaka/i,
+      "leftover PRIMARY Green Road vs Greenwood Road Plot omitted",
+    );
+    assertXorAddressRowHtml(
+      row("House 10, Green, Sonda", "BGMEA", "factory"),
+      row("House 10, Greenwood, Sonda", "BKMEA", "factory"),
+      /House 10, Green,/i,
+      /Greenwood/i,
+      "leftover House 10 leftover PRIMARY Green vs Greenwood Sonda",
+    );
+  });
+
+  it("keeps House 50 East Gulshan vs unlabeled 7 West Gulshan as two rows", () => {
+    assertXorAddressRowHtml(
+      row("House 50, East Gulshan, Dhaka", "BGMEA", "factory"),
+      row("7 West Gulshan, Dhaka", "BKMEA", "factory"),
+      /East Gulshan/i,
+      /West Gulshan/i,
+      "House 50 East Gulshan vs 7 West Gulshan",
+    );
+    assertXorAddressRowHtml(
+      row("House 50, South Gulshan, Dhaka", "BGMEA", "factory"),
+      row("7 East Gulshan, Dhaka", "BKMEA", "factory"),
+      /South Gulshan/i,
+      /East Gulshan/i,
+      "House 50 South Gulshan vs 7 East Gulshan",
+    );
+    assertXorAddressRowHtml(
+      row("House 50, South Gulshan, Dhaka", "BGMEA", "factory"),
+      row("7 North Gulshan, Dhaka", "BKMEA", "factory"),
+      /South Gulshan/i,
+      /North Gulshan/i,
+      "House 50 South Gulshan vs 7 North Gulshan",
+    );
+  });
+
+  it("keeps leftover PRIMARY East Gulshan vs West Gulshan no-Road as two rows", () => {
+    assertXorAddressRowHtml(
+      row("East Gulshan, Dhaka", "BGMEA", "factory"),
+      row("West Gulshan, Dhaka", "BKMEA", "factory"),
+      /East Gulshan/i,
+      /West Gulshan/i,
+      "leftover PRIMARY East Gulshan vs West Gulshan Plot omitted no-Road",
+    );
+  });
+
+  it("keeps leftover after Plaza restated Airport vs Airpark at Sonda Keraniganj Ashulia as two rows", () => {
+    assertXorAddressRowHtml(
+      row("Airport Plaza, Airport Road, Sonda", "BGMEA", "factory"),
+      row("Airport Plaza, Airpark Road, Sonda", "BKMEA", "factory"),
+      /Airport Road/i,
+      /Airpark Road/i,
+      "leftover after Plaza comma restated Airport Road vs Airpark Road Plot omitted Sonda",
+    );
+    assertXorAddressRowHtml(
+      row("Airport Plaza, Airport Road, Keraniganj", "BGMEA", "factory"),
+      row("Airport Plaza, Airpark Road, Keraniganj", "BKMEA", "factory"),
+      /Airport Road/i,
+      /Airpark Road/i,
+      "leftover after Plaza comma restated Airport Road vs Airpark Road Plot omitted Keraniganj",
+    );
+    assertXorAddressRowHtml(
+      row("Airport Plaza, Airport Road, Ashulia", "BGMEA", "factory"),
+      row("Airport Plaza, Airpark Road, Ashulia", "BKMEA", "factory"),
+      /Airport Road/i,
+      /Airpark Road/i,
+      "leftover after Plaza comma restated Airport Road vs Airpark Road Plot omitted Ashulia",
+    );
+    assertXorAddressRowHtml(
+      row("Airport Bhaban, Airport Road, Tongi", "BGMEA", "factory"),
+      row("Airport Bhaban, Airpark Road, Tongi", "BKMEA", "factory"),
+      /Airport Road/i,
+      /Airpark Road/i,
+      "leftover after Bhaban comma restated Airport Road vs Airpark Road Plot omitted Tongi",
+    );
+  });
+
+  it("keeps leftover Airport Road leftover Green vs leftover Airport at Savar and leftover Street", () => {
+    assertXorAddressRowHtml(
+      row("Airport Road, Green, Savar", "BGMEA", "factory"),
+      row("Airport Road, Airport, Savar", "BKMEA", "factory"),
+      /Airport Road, Green/i,
+      /Airport Road, Airport/i,
+      "leftover Airport Road leftover Green vs leftover Airport Plot omitted Savar",
+    );
+    assertXorAddressRowHtml(
+      row("Airport Road, Green", "BGMEA", "factory"),
+      row("Airport Road, Airport", "BKMEA", "factory"),
+      /Airport Road, Green/i,
+      /Airport Road, Airport/i,
+      "leftover Airport Road leftover Green vs leftover Airport Plot omitted no village",
+    );
+    assertXorAddressRowHtml(
+      row("Airport Street, Green, Sonda", "BGMEA", "factory"),
+      row("Airport Street, Airport, Sonda", "BKMEA", "factory"),
+      /Airport Street, Green/i,
+      /Airport Street, Airport/i,
+      "leftover Airport Street leftover Green vs leftover Airport Plot omitted",
+    );
+    assertXorAddressRowHtml(
+      row("House 10, Airport Road, Green, Sonda", "BGMEA", "factory"),
+      row("House 10, Airport Road, Airport, Sonda", "BKMEA", "factory"),
+      /Airport Road, Green/i,
+      /Airport Road, Airport/i,
+      "leftover House 10 leftover Airport Road leftover Green vs leftover Airport",
+    );
+    assertXorAddressRowHtml(
+      row("Airport Road, Green, Dhaka", "BGMEA", "factory"),
+      row("Airport Road, Greenwood, Dhaka", "BKMEA", "factory"),
+      /Airport Road, Green,/i,
+      /Greenwood/i,
+      "leftover Airport Road leftover Green vs leftover Greenwood Plot omitted Dhaka",
+    );
+  });
+
   it("LocationsSection AddressRow HTML contains Also recorded as pills", () => {
     const html = renderToStaticMarkup(
       createElement(AddressRow, {

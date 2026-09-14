@@ -3519,14 +3519,18 @@ function villageExtraDigit(digit: string, display: string): boolean {
 /** Unlabelled "7 South Gulshan, Dhaka" is the neighbourhood index of House 50
  *  at South Gulshan, not a second house. House 7 / Holding 7 / Plot 7 stay
  *  labelled ids. 7 South Gulshan Avenue / 7 South Banani are not this. */
+const GULSHAN_NEIGHBORHOOD_COMPASS =
+  "(?:south|north|east|west|northern|southern|eastern|western|baro|boro|choto|chhoto)";
+
 function unlabeledLeadingGulshanNeighborhood(display: string): boolean {
   const withHo = rewriteHouseOffice(display).toLowerCase();
   if (addressHasHouseOrHoldingLabel(withHo)) return false;
   if (/\b(?:plot|plots)\b/i.test(withHo)) return false;
   if (
-    !/(?:^|,\s*)\d{1,3}\s+(?:(?:south|north|east|west|northern|southern|eastern|western|baro|boro|choto|chhoto)\s+)*gulshan\b(?!\s+(?:road|rd|street|st|avenue|lane|drive))/i.test(
-      withHo,
-    )
+    !new RegExp(
+      String.raw`(?:^|,\s*)\d{1,3}\s+(?:${GULSHAN_NEIGHBORHOOD_COMPASS}\s+)*gulshan\b(?!\s+(?:road|rd|street|st|avenue|lane|drive))`,
+      "i",
+    ).test(withHo)
   ) {
     return false;
   }
@@ -3534,6 +3538,32 @@ function unlabeledLeadingGulshanNeighborhood(display: string): boolean {
     if (HOUSING_CAMPUS_PLACES.has(t) && t !== "gulshan") return false;
   }
   return true;
+}
+
+function normalizeGulshanCompassToken(token: string): string {
+  if (token === "eastern") return "east";
+  if (token === "western") return "west";
+  if (token === "northern") return "north";
+  if (token === "southern") return "south";
+  return token;
+}
+
+/** Compass remainder immediately before a neighbourhood Gulshan (not Gulshan
+ *  Road / Avenue). Empty string is unsuffixed Gulshan. Null is no such field. */
+function gulshanNeighborhoodCompassKey(display: string): string | null {
+  const withHo = rewriteHouseOffice(display).toLowerCase();
+  const re = new RegExp(
+    String.raw`(?:${GULSHAN_NEIGHBORHOOD_COMPASS}\s+)*gulshan\b(?!\s+(?:road|rd|street|st|avenue|lane|drive))`,
+    "i",
+  );
+  const m = re.exec(withHo);
+  if (!m) return null;
+  const raw = m[0].replace(/\bgulshan\b/i, "").trim().toLowerCase();
+  if (!raw) return "";
+  return raw
+    .split(/\s+/)
+    .map(normalizeGulshanCompassToken)
+    .join(" ");
 }
 
 function gulshanHouseNeighborhoodAlias(a: Candidate, b: Candidate): boolean {
@@ -3546,10 +3576,21 @@ function gulshanHouseNeighborhoodAlias(a: Candidate, b: Candidate): boolean {
   if (!aGulshan || !bGulshan) return false;
   const aHouse = addressHasHouseOrHoldingLabel(a.display);
   const bHouse = addressHasHouseOrHoldingLabel(b.display);
-  return (
-    (aHouse && !bHouse && unlabeledLeadingGulshanNeighborhood(b.display)) ||
-    (bHouse && !aHouse && unlabeledLeadingGulshanNeighborhood(a.display))
-  );
+  if (
+    !(
+      (aHouse && !bHouse && unlabeledLeadingGulshanNeighborhood(b.display)) ||
+      (bHouse && !aHouse && unlabeledLeadingGulshanNeighborhood(a.display))
+    )
+  ) {
+    return false;
+  }
+  // House 50, South Gulshan vs 7 South Gulshan is one campus. House 50, East
+  // Gulshan vs 7 West Gulshan is two roads. Unsuffixed Gulshan vs West Gulshan
+  // is not the same remainder.
+  const compassA = gulshanNeighborhoodCompassKey(a.display);
+  const compassB = gulshanNeighborhoodCompassKey(b.display);
+  if (compassA === null || compassB === null) return false;
+  return compassA === compassB;
 }
 
 /** House 50 + 7 Gulshan / 7 Gulshan Avenue / 7 Gulshan-1 is extra detail of
@@ -4696,13 +4737,15 @@ function leftoverPeeledMintable(
   }
   if (peeled.dirs.length > 0 || peeled.sawHonorific) return true;
   if (names.length >= 2 && names.some((n) => isCompetingRoadStem(n))) return true;
-  // Leading Green, Airport — leftover-mint the unsuffixed competing field
-  // before a thoroughfare is seen. Do not leftover-mint leftover Green after
-  // Nazrul: that shared leftover extra licenses Green vs Nazrul merge.
+  // Leading Green, Airport, Greenwood — leftover-mint the unsuffixed
+  // competing field before a thoroughfare is seen. Greenwood is a competing
+  // stem prefix, not isCompetingRoadStem. Do not leftover-mint leftover Green
+  // after Nazrul: that shared leftover extra licenses Green vs Nazrul merge.
+  // Do not leftover-mint multi-token leftover PRIMARY (International Airport).
   if (
     allowUnsuffixedCompeting &&
     names.length === 1 &&
-    isCompetingRoadStem(names[0]!)
+    (isCompetingRoadStem(names[0]!) || leftoverCompetingStemPrefix(names[0]!))
   ) {
     return true;
   }
@@ -4909,7 +4952,7 @@ function appendLeftoverIssueRoadExtras(
     if (
       !clauseHasThoroughfare(field) &&
       !isThoroughfareAfter(fieldForTf) &&
-      fieldNames.some((n) => isCompetingRoadStem(n))
+      fieldNames.some((n) => isCompetingRoadStem(n) || leftoverCompetingStemPrefix(n))
     ) {
       seenThoroughfare = true;
       if (leftoverAirportFamilyStem(fieldNames)) {

@@ -9068,6 +9068,213 @@ describe("mergeUniqueLocations — empty rows, duplicates, overview buckets", ()
       2,
       "KEEP House 50 vs 7 South Banani short form",
     );
+    assertBothOrders(
+      row("Green, Dhaka"),
+      row("Greenwood, Dhaka"),
+      2,
+      "leftover PRIMARY Green vs Greenwood Plot omitted no-Road Dhaka",
+    );
+    assertBothOrders(
+      row("Green, Savar"),
+      row("Greenwood, Savar"),
+      2,
+      "leftover PRIMARY Green vs Greenwood Plot omitted no-Road Savar",
+    );
+    assertBothOrders(
+      row("Green, Tongi"),
+      row("Greenwood, Tongi"),
+      2,
+      "leftover PRIMARY Green vs Greenwood Plot omitted no-Road Tongi",
+    );
+    assertBothOrders(
+      row("Green, Ashulia"),
+      row("Greenwood, Ashulia"),
+      2,
+      "leftover PRIMARY Green vs Greenwood Plot omitted no-Road Ashulia",
+    );
+    assertBothOrders(
+      row("Green, Keraniganj"),
+      row("Greenwood, Keraniganj"),
+      2,
+      "leftover PRIMARY Green vs Greenwood Plot omitted no-Road Keraniganj",
+    );
+    assertBothOrders(
+      row("Green, Uttara"),
+      row("Greenwood, Uttara"),
+      2,
+      "leftover PRIMARY Green vs Greenwood Plot omitted no-Road Uttara",
+    );
+    assertBothOrders(
+      row("Green, Mirpur"),
+      row("Greenwood, Mirpur"),
+      2,
+      "leftover PRIMARY Green vs Greenwood Plot omitted no-Road Mirpur",
+    );
+    assertBothOrders(
+      row("Green Road, Dhaka"),
+      row("Greenwood, Dhaka"),
+      2,
+      "leftover Green Road vs leftover Greenwood no-Road Dhaka",
+    );
+    assertBothOrders(
+      row("House 10, Green, Sonda"),
+      row("House 10, Greenwood, Sonda"),
+      2,
+      "leftover House 10 leftover PRIMARY Green vs Greenwood Sonda",
+    );
+    assertBothOrders(
+      row("Plot # 10, Green, Dhaka"),
+      row("Greenwood, Dhaka"),
+      2,
+      "mixed Plot leftover PRIMARY Green vs omit Greenwood Dhaka",
+    );
+    assertBothOrders(
+      row("House 50, East Gulshan, Dhaka"),
+      row("7 West Gulshan, Dhaka"),
+      2,
+      "House 50 East Gulshan vs 7 West Gulshan",
+    );
+    assertBothOrders(
+      row("House 50, West Gulshan, Dhaka"),
+      row("7 East Gulshan, Dhaka"),
+      2,
+      "House 50 West Gulshan vs 7 East Gulshan",
+    );
+    assertBothOrders(
+      row("House 50, South Gulshan, Dhaka"),
+      row("7 East Gulshan, Dhaka"),
+      2,
+      "House 50 South Gulshan vs 7 East Gulshan",
+    );
+    assertBothOrders(
+      row("House 50, South Gulshan, Dhaka"),
+      row("7 West Gulshan, Dhaka"),
+      2,
+      "House 50 South Gulshan vs 7 West Gulshan",
+    );
+    assertBothOrders(
+      row("House 50, South Gulshan, Dhaka"),
+      row("7 North Gulshan, Dhaka"),
+      2,
+      "House 50 South Gulshan vs 7 North Gulshan",
+    );
+    assertBothOrders(
+      row("House 50, North Gulshan, Dhaka"),
+      row("7 South Gulshan, Dhaka"),
+      2,
+      "House 50 North Gulshan vs 7 South Gulshan",
+    );
+    assertBothOrders(
+      row("House 50, East Gulshan, Dhaka"),
+      row("7 South Gulshan, Dhaka"),
+      2,
+      "House 50 East Gulshan vs 7 South Gulshan",
+    );
+    assertBothOrders(
+      row("House 50, Gulshan, Dhaka"),
+      row("7 West Gulshan, Dhaka"),
+      2,
+      "House 50 Gulshan vs 7 West Gulshan",
+    );
+    assertBothOrders(
+      row("House # 50, East Gulshan, Dhaka"),
+      row("7 West Gulshan, Dhaka"),
+      2,
+      "House # 50 East Gulshan vs 7 West Gulshan",
+    );
+    assertBothOrders(
+      row("House No. 50, East Gulshan, Dhaka"),
+      row("7 West Gulshan, Dhaka"),
+      2,
+      "House No. 50 East Gulshan vs 7 West Gulshan",
+    );
+    assertBothOrders(
+      row("Holding 50, East Gulshan, Dhaka"),
+      row("7 West Gulshan, Dhaka"),
+      2,
+      "Holding 50 East Gulshan vs 7 West Gulshan",
+    );
+    assertBothOrders(
+      row("House 50, Eastern Gulshan, Dhaka"),
+      row("7 Western Gulshan, Dhaka"),
+      2,
+      "House 50 Eastern Gulshan vs 7 Western Gulshan",
+    );
+    assertBothOrders(
+      row("House 50, East Gulshan, Sonda"),
+      row("7 West Gulshan, Sonda"),
+      2,
+      "House 50 East Gulshan vs 7 West Gulshan Sonda",
+    );
+    assertBothOrders(
+      row("House # 50, South Gulshan, Dhaka"),
+      row("7 South Gulshan, Dhaka"),
+      1,
+      "KEEP House # 50 vs 7 South Gulshan short form",
+    );
+    assertBothOrders(
+      row("House No. 50, South Gulshan, Dhaka"),
+      row("7 South Gulshan, Dhaka"),
+      1,
+      "KEEP House No. 50 vs 7 South Gulshan short form",
+    );
+    assertBothOrders(
+      row("Holding 50, South Gulshan, Dhaka"),
+      row("7 South Gulshan, Dhaka"),
+      1,
+      "KEEP Holding 50 vs 7 South Gulshan short form",
+    );
+    assertBothOrders(
+      row("House 50, South Gulshan, Dhaka"),
+      row("7 South Gulshan Avenue, Dhaka"),
+      2,
+      "KEEP House 50 vs 7 South Gulshan Avenue",
+    );
+    assertBothOrders(
+      row("House 50, East Gulshan Road, Dhaka"),
+      row("7 West Gulshan Road, Dhaka"),
+      2,
+      "KEEP House 50 East Gulshan Road vs 7 West Gulshan Road",
+    );
+    assertBothOrders(
+      row("House 187, Gulshan, Dhaka"),
+      row("House 13, Gulshan, Dhaka"),
+      2,
+      "KEEP House 187 vs House 13",
+    );
+    for (const ordered of permutations([
+      row("Green, Dhaka"),
+      row("Greenwood, Dhaka"),
+      row("Airport, Dhaka"),
+    ])) {
+      assert.equal(
+        displays(ordered).length,
+        3,
+        "three-string leftover PRIMARY Green+Greenwood+Airport no-Road Dhaka permutation",
+      );
+    }
+    for (const ordered of permutations([
+      row("House 50, East Gulshan, Dhaka"),
+      row("7 West Gulshan, Dhaka"),
+      row("Green Road, Dhaka"),
+    ])) {
+      assert.equal(
+        displays(ordered).length,
+        3,
+        "three-string House 50 East + 7 West + Green permutation",
+      );
+    }
+    for (const ordered of permutations([
+      row("House 50, South Gulshan, Dhaka"),
+      row("7 East Gulshan, Dhaka"),
+      row("7 West Gulshan, Dhaka"),
+    ])) {
+      assert.equal(
+        displays(ordered).length,
+        3,
+        "three-string House 50 South + 7 East + 7 West permutation",
+      );
+    }
     for (const ordered of permutations([
       row("Airport Plaza, Airport Road, Savar"),
       row("Airport Plaza, Airpark Road, Savar"),
