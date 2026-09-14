@@ -1591,6 +1591,10 @@ function extraDigitConflict(a: Candidate, b: Candidate): boolean {
 function extraHoldingConflict(a: Candidate, b: Candidate): boolean {
   if (cleanAddressString(a.display) === cleanAddressString(b.display)) return false;
   if (renumberAliasHint(a, b)) return false;
+  // House 50 vs unlabeled 7 South Gulshan: {50} vs {7} must not extraNumericKeys
+  // XOR. extraNumericKeys stays gated on overlappingIdCount < 2 for House 187
+  // vs House 13 and House 50 vs 7 South Banani.
+  if (gulshanHouseNeighborhoodAlias(a, b)) return false;
   // Plot-omitted leftover extras mint at digit "leftover"; Plot # 10 leftover
   // extras mint at the plot digit. Mixed leftover-digit Airport vs Airpark
   // still XOR. Do not run the full extraRoadPlaceConflict union gates on
@@ -2403,6 +2407,16 @@ function sharedFineAdmin(a: Candidate, b: Candidate): boolean {
 
 function isSameLocation(a: Candidate, b: Candidate): boolean {
   if (cleanAddressString(a.display) === cleanAddressString(b.display)) return true;
+  // House 50, South Gulshan vs unlabeled 7 South Gulshan is one campus.
+  // Do not let the multi-clause holding XOR ({50} vs {7}) or the !idsOverlap
+  // hard split treat 7 as a second house. House 50 vs 7 South Banani is not
+  // this. extraNumericKeys stays gated on overlappingIdCount < 2.
+  if (gulshanHouseNeighborhoodAlias(a, b)) {
+    if (labelledDigitConflict(a, b)) return false;
+    if (twoSidedTailedClash(a, b)) return false;
+    if (competingLandmarks(a, b)) return false;
+    return true;
+  }
   // Concatenated two-campus wording ("Address 1st" + "Address 2nd") is not
   // the same row as a single-campus listing, even when one plot list overlaps.
   // House 50 + 7 Gulshan written with or without a comma still is one
@@ -2455,8 +2469,13 @@ function isSameLocation(a: Candidate, b: Candidate): boolean {
   const idsOverlap = bothHaveIds && idSetsOverlap(a.ids, b.ids);
 
   // Hard discriminator: different plot numbers, different premises.
+  // House 50, South Gulshan vs unlabeled 7 South Gulshan is one campus
+  // (ISSUE short form). 7 is the neighbourhood index, not a second house.
+  // House 50 vs 7 South Banani still hard-splits: Banani is not this.
   if (bothHaveIds && leftoverUniqueDigitConflict(a.ids, b.ids)) return false;
-  if (bothHaveIds && !idsOverlap) return false;
+  if (bothHaveIds && !idsOverlap && !gulshanHouseNeighborhoodAlias(a, b)) {
+    return false;
+  }
 
   // Labelled road/sector conflict always wins, including overlapN ≥ 2
   // (Plot 12-14 Road 6 vs Road 3; House 17 Road 6 Sector 1 vs Road 3).
@@ -2476,7 +2495,12 @@ function isSameLocation(a: Candidate, b: Candidate): boolean {
   // admin area (Sreepur Stand at Ganakbari). Sharing "Dhaka" is not
   // enough (Uttara vs Mirpur plaza; Gazipur vs Ashulia). Pallabi vs
   // Mirpur-12 is the same thana under two labels, not a global ids gate.
+  // Plaza/Bhaban at Savar/Tongi/Keraniganj/Ashulia must not swallow
+  // leftover Airport Road vs Airpark Road (or leftover Green vs Airport).
+  // Court/Tower/Market are not building-landmark heads, so leftover XOR
+  // already runs there.
   if (sameBuildingLandmark(a, b)) {
+    if (extraHoldingConflict(a, b)) return false;
     if (sharedFineAdmin(a, b) || nestedAdminCompatible(a, b)) return true;
     if (competingAdminDistricts(a, b)) return false;
   }
@@ -2516,11 +2540,12 @@ function isSameLocation(a: Candidate, b: Candidate): boolean {
     } else if (tailedClash && overlapN >= 2 && competingPlaces) {
       // Plot 12-14 at Nandirhat is not Plot 12-14 at Mahmudabad.
       return false;
-    } else if (!idsOverlap) {
+    } else if (!idsOverlap && !gulshanHouseNeighborhoodAlias(a, b)) {
       return false;
     }
   }
   if (competingLandmarks(a, b)) return false;
+  if (gulshanHouseNeighborhoodAlias(a, b)) return true;
 
   const { score, distinctHits } = similarity(a, b);
   const leadingMatch = (() => {
@@ -3491,6 +3516,42 @@ function villageExtraDigit(digit: string, display: string): boolean {
   return false;
 }
 
+/** Unlabelled "7 South Gulshan, Dhaka" is the neighbourhood index of House 50
+ *  at South Gulshan, not a second house. House 7 / Holding 7 / Plot 7 stay
+ *  labelled ids. 7 South Gulshan Avenue / 7 South Banani are not this. */
+function unlabeledLeadingGulshanNeighborhood(display: string): boolean {
+  const withHo = rewriteHouseOffice(display).toLowerCase();
+  if (addressHasHouseOrHoldingLabel(withHo)) return false;
+  if (/\b(?:plot|plots)\b/i.test(withHo)) return false;
+  if (
+    !/(?:^|,\s*)\d{1,3}\s+(?:(?:south|north|east|west|northern|southern|eastern|western|baro|boro|choto|chhoto)\s+)*gulshan\b(?!\s+(?:road|rd|street|st|avenue|lane|drive))/i.test(
+      withHo,
+    )
+  ) {
+    return false;
+  }
+  for (const t of tokens(normaliseAddressKey(cleanAddressString(display)))) {
+    if (HOUSING_CAMPUS_PLACES.has(t) && t !== "gulshan") return false;
+  }
+  return true;
+}
+
+function gulshanHouseNeighborhoodAlias(a: Candidate, b: Candidate): boolean {
+  const aGulshan =
+    a.tokens.some((t) => t === "gulshan" || sameWord(t, "gulshan")) &&
+    !hasForeignHousingCampus(a, "gulshan");
+  const bGulshan =
+    b.tokens.some((t) => t === "gulshan" || sameWord(t, "gulshan")) &&
+    !hasForeignHousingCampus(b, "gulshan");
+  if (!aGulshan || !bGulshan) return false;
+  const aHouse = addressHasHouseOrHoldingLabel(a.display);
+  const bHouse = addressHasHouseOrHoldingLabel(b.display);
+  return (
+    (aHouse && !bHouse && unlabeledLeadingGulshanNeighborhood(b.display)) ||
+    (bHouse && !aHouse && unlabeledLeadingGulshanNeighborhood(a.display))
+  );
+}
+
 /** House 50 + 7 Gulshan / 7 Gulshan Avenue / 7 Gulshan-1 is extra detail of
  *  a Gulshan-only campus. 7 Tejgaon, 7 Dhaka, and 10 Gulshan Avenue are not. */
 function roadExtraSharedWith(digit: string, display: string, other: Candidate): boolean {
@@ -3951,6 +4012,11 @@ function competingRoadStemOf(tokens: string[]): string | null {
       return stem;
     }
   }
+  for (const stem of COMPETING_ROAD_STEMS) {
+    if (joined.length > stem.length && joined.startsWith(stem) && isCompetingRoadStem(stem)) {
+      return stem;
+    }
+  }
   for (let i = rest.length - 2; i >= 0; i--) {
     const earlier = competingStemInToken(rest[i]!);
     if (earlier) return earlier;
@@ -4208,6 +4274,7 @@ function extraLooksLikeCompetingRoad(e: {
 }): boolean {
   if (e.src === "admin") return false;
   if (e.places.some(isCompetingRoadExtraToken)) return true;
+  if (e.places.some((p) => leftoverCompetingStemPrefix(p))) return true;
   const stem = competingRoadStemOf(e.places);
   if (stem && isCompetingRoadStem(stem)) return true;
   if (
@@ -4564,15 +4631,20 @@ function peelLeftoverIssueRoad(field: string): {
     }
     leftoverToks.push(tok);
   }
-  const leftoverNames = leftoverToks.filter((t) => isLeftoverNamedRemainder(t));
+  const leftoverNames = leftoverToks.filter(
+    (t) => isLeftoverNamedRemainder(t) || leftoverCompetingStemPrefix(t),
+  );
   // Honorific-after-stem plus Joydebpur, or compass plus two ISSUE names,
   // still leftover-mints. Unrecognised honorifics (Hajee / Al-Haj) sitting
   // between a stem and a remainder must not drop mint. Village remainders
-  // (South Auchpara) stay in after.
+  // (South Auchpara) stay in after. Greenwood after Airport Road still mints.
   if (
     leftoverNames.length >= 1 &&
     leftoverToks.every(
-      (t) => isLeftoverNamedRemainder(t) || isSpacedHonorificCandidate(t),
+      (t) =>
+        isLeftoverNamedRemainder(t) ||
+        leftoverCompetingStemPrefix(t) ||
+        isSpacedHonorificCandidate(t),
     )
   ) {
     return {
@@ -4597,6 +4669,16 @@ function leftoverAirportFamilyStem(names: string[]): boolean {
   });
 }
 
+/** Greenwood after Airport Road. Not a leftover named remainder of its own. */
+function leftoverCompetingStemPrefix(place: string): boolean {
+  return COMPETING_ROAD_STEMS.some(
+    (stem) =>
+      isCompetingRoadStem(stem) &&
+      place.startsWith(stem) &&
+      place.length > stem.length,
+  );
+}
+
 function leftoverPeeledMintable(
   peeled: ReturnType<typeof peelLeftoverIssueRoad>,
   afterThoroughfare = false,
@@ -4606,14 +4688,17 @@ function leftoverPeeledMintable(
 ): boolean {
   const names =
     peeled.names.length > 0 ? peeled.names : peeled.name ? [peeled.name] : [];
-  if (names.length === 0 || !names.every((n) => isLeftoverNamedRemainder(n))) {
+  if (
+    names.length === 0 ||
+    !names.every((n) => isLeftoverNamedRemainder(n) || leftoverCompetingStemPrefix(n))
+  ) {
     return false;
   }
   if (peeled.dirs.length > 0 || peeled.sawHonorific) return true;
   if (names.length >= 2 && names.some((n) => isCompetingRoadStem(n))) return true;
   // Leading Green, Airport — leftover-mint the unsuffixed competing field
   // before a thoroughfare is seen. Do not leftover-mint leftover Green after
-  // Airport Road / Nazrul: that shared leftover extra licenses a merge.
+  // Nazrul: that shared leftover extra licenses Green vs Nazrul merge.
   if (
     allowUnsuffixedCompeting &&
     names.length === 1 &&
@@ -4621,16 +4706,24 @@ function leftoverPeeledMintable(
   ) {
     return true;
   }
+  // Airport Road leftover Green / leftover Greenwood still leftover-mints so
+  // leftover XOR can split leftover Green vs leftover Airport. Do not
+  // leftover-mint single Green after Nazrul Avenue.
+  if (
+    afterAirportFamilyThoroughfare &&
+    names.some((n) => isCompetingRoadStem(n) || leftoverCompetingStemPrefix(n))
+  ) {
+    return true;
+  }
   // Circular Road, Airport — leftover competing stem after an ISSUE remainder
   // thoroughfare. Airport Road leftover Airport vs Airpark still mints.
-  // Leftover Airport after Green Road / Court also mints. Do not leftover-mint
-  // single Green after Nazrul Avenue or Airport Road.
+  // Leftover Airport after Green Road / Court also mints.
   if (!afterThoroughfare || !names.some((n) => isCompetingRoadStem(n))) {
     return false;
   }
   if (afterIssueRemainderThoroughfare) return true;
   if (leftoverAirportFamilyStem(names)) return true;
-  return afterAirportFamilyThoroughfare && leftoverAirportFamilyStem(names);
+  return false;
 }
 
 function leftoverPlacesFromPeeled(
@@ -6159,6 +6252,14 @@ export function sourceRowsHaveConflictingIds<T extends AddressRowRaw>(
       if (ib.size === 0) continue;
       if (leftoverUniqueDigitConflict(ia, ib)) return true;
       if (idSetsOverlap(ia, ib)) continue;
+      if (
+        gulshanHouseNeighborhoodAlias(
+          candidateFor(cleanAddressString(ra.address)),
+          candidateFor(cleanAddressString(rb.address)),
+        )
+      ) {
+        continue;
+      }
       const bridged = hingeIds.some((ih) => idSetsOverlap(ia, ih) && idSetsOverlap(ib, ih));
       if (!bridged) return true;
     }

@@ -121,6 +121,37 @@ function assertMergedAddressRowHtml(
   }
 }
 
+function assertXorAddressRowHtml(
+  left: AddressRowRaw,
+  right: AddressRowRaw,
+  leftRe: RegExp,
+  rightRe: RegExp,
+  otherName: string,
+) {
+  for (const ordered of [
+    [left, right],
+    [right, left],
+  ]) {
+    const locs = mergeUniqueLocations(ordered);
+    assert.equal(locs.length, 2, `${otherName} matcher split`);
+    const html = renderAddressRows(ordered);
+    assert.equal((html.match(/data-location-row=""/g) ?? []).length, 2, `${otherName} row count`);
+    const chunks = locationChunks(html);
+    assert.equal(chunks.length, 2, `${otherName} chunks`);
+    for (const chunk of chunks) {
+      const disp = displayHtml(chunk);
+      const also = chunk.match(/<li[^>]*data-also-recorded-as=""[^>]*>[\s\S]*?<\/li>/g) ?? [];
+      const alsoText = also.join(" ");
+      if (leftRe.test(disp) && !rightRe.test(disp)) {
+        assert.ok(!rightRe.test(alsoText), `${otherName} right must not sit in Also of left`);
+      }
+      if (rightRe.test(disp) && !leftRe.test(disp)) {
+        assert.ok(!leftRe.test(alsoText), `${otherName} left must not sit in Also of right`);
+      }
+    }
+  }
+}
+
 function renderOverview(rows: AddressRowRaw[]): string {
   const overview = buildLocationOverview(rows);
   return overview.groups
@@ -5434,6 +5465,137 @@ describe("Locations Also recorded as — rendered HTML boundary", () => {
       /Panishail|PANISHALI/i,
       /Panishail|PANISHALI|Kakhin|Dakhin/i,
       "Dakhin Panishail vs Kakhin Panishali",
+    );
+  });
+
+  it("keeps leftover Airport Road leftover Green vs leftover Airport as two rows", () => {
+    assertXorAddressRowHtml(
+      row("Airport Road, Green, Sonda", "BGMEA", "factory"),
+      row("Airport Road, Airport, Sonda", "BKMEA", "factory"),
+      /Airport Road, Green/i,
+      /Airport Road, Airport/i,
+      "leftover Airport Road leftover Green vs leftover Airport Plot omitted",
+    );
+    assertXorAddressRowHtml(
+      row("Airport Road, Green, Dhaka", "BGMEA", "factory"),
+      row("Airport Road, Airport, Dhaka", "BKMEA", "factory"),
+      /Airport Road, Green/i,
+      /Airport Road, Airport/i,
+      "leftover Airport Road leftover Green vs leftover Airport Plot omitted Dhaka",
+    );
+    assertXorAddressRowHtml(
+      row("Plot # 10, Airport Road, Green, Sonda", "BGMEA", "factory"),
+      row("Plot # 10, Airport Road, Airport, Sonda", "BKMEA", "factory"),
+      /Airport Road, Green/i,
+      /Airport Road, Airport/i,
+      "Plot 10 leftover Airport Road leftover Green vs leftover Airport",
+    );
+    assertXorAddressRowHtml(
+      row("Airport Road, Greenwood, Sonda", "BGMEA", "factory"),
+      row("Airport Road, Airport, Sonda", "BKMEA", "factory"),
+      /Greenwood/i,
+      /Airport Road, Airport/i,
+      "leftover Airport Road leftover Greenwood vs leftover Airport Plot omitted",
+    );
+    assertXorAddressRowHtml(
+      row("Plot # 10, Airport Road, Green, Sonda", "BGMEA", "factory"),
+      row("Plot # 10, Airport Road, Greenwood, Sonda", "BKMEA", "factory"),
+      /Airport Road, Green,/i,
+      /Greenwood/i,
+      "Plot 10 leftover Airport Road leftover Green vs leftover Greenwood",
+    );
+    assertXorAddressRowHtml(
+      row("Airport Court, Green, Sonda", "BGMEA", "factory"),
+      row("Airport Court, Airport, Sonda", "BKMEA", "factory"),
+      /Airport Court, Green/i,
+      /Airport Court, Airport/i,
+      "leftover after Court leftover Green vs leftover Airport Plot omitted",
+    );
+  });
+
+  it("keeps leftover after Plaza restated Airport vs Airpark at Savar as two rows", () => {
+    assertXorAddressRowHtml(
+      row("Airport Plaza, Airport Road, Savar", "BGMEA", "factory"),
+      row("Airport Plaza, Airpark Road, Savar", "BKMEA", "factory"),
+      /Airport Road/i,
+      /Airpark Road/i,
+      "leftover after Plaza comma restated Airport Road vs Airpark Road Plot omitted Savar",
+    );
+    assertXorAddressRowHtml(
+      row("Plot # 10, Airport Plaza, Airport Road, Savar", "BGMEA", "factory"),
+      row("Plot # 10, Airport Plaza, Airpark Road, Savar", "BKMEA", "factory"),
+      /Airport Road/i,
+      /Airpark Road/i,
+      "Plot 10 leftover after Plaza comma restated Airport Road vs Airpark Road Savar",
+    );
+    assertXorAddressRowHtml(
+      row("Airport Plaza, Airport Road, Tongi", "BGMEA", "factory"),
+      row("Airport Plaza, Airpark Road, Tongi", "BKMEA", "factory"),
+      /Airport Road/i,
+      /Airpark Road/i,
+      "leftover after Plaza comma restated Airport Road vs Airpark Road Plot omitted Tongi",
+    );
+    assertXorAddressRowHtml(
+      row("Airport Bhaban, Airport Road, Savar", "BGMEA", "factory"),
+      row("Airport Bhaban, Airpark Road, Savar", "BKMEA", "factory"),
+      /Airport Road/i,
+      /Airpark Road/i,
+      "leftover after Bhaban comma restated Airport Road vs Airpark Road Plot omitted Savar",
+    );
+    assertXorAddressRowHtml(
+      row("Airport Plaza, Airport, Savar", "BGMEA", "factory"),
+      row("Airport Plaza, Airpark, Savar", "BKMEA", "factory"),
+      /Airport Plaza, Airport,/i,
+      /Airpark/i,
+      "leftover after Plaza leftover Airport vs leftover Airpark Plot omitted Savar",
+    );
+    assertXorAddressRowHtml(
+      row("Airport Plaza, Green, Savar", "BGMEA", "factory"),
+      row("Airport Plaza, Airport, Savar", "BKMEA", "factory"),
+      /Airport Plaza, Green/i,
+      /Airport Plaza, Airport/i,
+      "leftover after Plaza leftover Green vs leftover Airport Plot omitted Savar",
+    );
+    assertXorAddressRowHtml(
+      row("Airport Plaza, Green, Savar", "BGMEA", "factory"),
+      row("Airport Plaza, Airpark, Savar", "BKMEA", "factory"),
+      /Airport Plaza, Green/i,
+      /Airpark/i,
+      "leftover after Plaza leftover Green vs leftover Airpark Plot omitted Savar",
+    );
+    for (const ordered of [
+      [
+        row("Airport Plaza, Green, Savar", "BGMEA", "factory"),
+        row("Airport Plaza, Airport, Savar", "BKMEA", "factory"),
+        row("Airport Plaza, Airpark, Savar", "OEKO_TEX", "factory"),
+      ],
+      [
+        row("Airport Plaza, Airpark, Savar", "OEKO_TEX", "factory"),
+        row("Airport Plaza, Green, Savar", "BGMEA", "factory"),
+        row("Airport Plaza, Airport, Savar", "BKMEA", "factory"),
+      ],
+    ]) {
+      const html = renderAddressRows(ordered);
+      assert.equal(mergeUniqueLocations(ordered).length, 3, "three-string Plaza leftover Green+Airport+Airpark Savar matcher");
+      assert.equal((html.match(/data-location-row=""/g) ?? []).length, 3);
+      for (const chunk of locationChunks(html)) {
+        const disp = displayHtml(chunk);
+        const also = chunk.match(/<li[^>]*data-also-recorded-as=""[^>]*>[\s\S]*?<\/li>/g) ?? [];
+        const alsoText = also.join(" ");
+        if (/Airport Plaza, Airport,/i.test(disp) && !/Airpark/i.test(disp)) {
+          assert.ok(!/Airpark/i.test(alsoText), "Airpark must not sit in Also of Plaza leftover Airport at Savar");
+        }
+      }
+    }
+  });
+
+  it("merges House 50 vs 7 South Gulshan short form into one row", () => {
+    assertMergedAddressRowHtml(
+      row("House 50, South Gulshan, Dhaka", "BGMEA", "factory"),
+      row("7 South Gulshan, Dhaka", "BKMEA", "factory"),
+      /House 50|7 South Gulshan/i,
+      /House 50|7 South Gulshan/i,
+      "House 50 vs 7 South Gulshan short form",
     );
   });
 

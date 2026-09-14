@@ -8960,6 +8960,136 @@ describe("mergeUniqueLocations — empty rows, duplicates, overview buckets", ()
       2,
       "leftover Airport Road Green vs Green Airport Plot omitted",
     );
+    assertBothOrders(
+      row("Airport Road, Green, Sonda"),
+      row("Airport Road, Airport, Sonda"),
+      2,
+      "leftover Airport Road leftover Green vs leftover Airport Plot omitted",
+    );
+    assertBothOrders(
+      row("Airport Road, Green, Dhaka"),
+      row("Airport Road, Airport, Dhaka"),
+      2,
+      "leftover Airport Road leftover Green vs leftover Airport Plot omitted Dhaka",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, Green, Sonda"),
+      row("Plot # 10, Airport Road, Airport, Sonda"),
+      2,
+      "Plot 10 leftover Airport Road leftover Green vs leftover Airport",
+    );
+    assertBothOrders(
+      row("Airport Road, Greenwood, Sonda"),
+      row("Airport Road, Airport, Sonda"),
+      2,
+      "leftover Airport Road leftover Greenwood vs leftover Airport Plot omitted",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, Green, Sonda"),
+      row("Plot # 10, Airport Road, Greenwood, Sonda"),
+      2,
+      "Plot 10 leftover Airport Road leftover Green vs leftover Greenwood",
+    );
+    assertBothOrders(
+      row("Airport Road, Green, Dhaka"),
+      row("Airport Road, Greenwood, Dhaka"),
+      2,
+      "leftover Airport Road leftover Green vs leftover Greenwood Plot omitted Dhaka",
+    );
+    assertBothOrders(
+      row("Airport Plaza, Airport Road, Savar"),
+      row("Airport Plaza, Airpark Road, Savar"),
+      2,
+      "leftover after Plaza comma restated Airport Road vs Airpark Road Plot omitted Savar",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Plaza, Airport Road, Savar"),
+      row("Plot # 10, Airport Plaza, Airpark Road, Savar"),
+      2,
+      "Plot 10 leftover after Plaza comma restated Airport Road vs Airpark Road Savar",
+    );
+    assertBothOrders(
+      row("Airport Plaza, Airport Road, Tongi"),
+      row("Airport Plaza, Airpark Road, Tongi"),
+      2,
+      "leftover after Plaza comma restated Airport Road vs Airpark Road Plot omitted Tongi",
+    );
+    assertBothOrders(
+      row("Airport Plaza, Airport Road, Keraniganj"),
+      row("Airport Plaza, Airpark Road, Keraniganj"),
+      2,
+      "leftover after Plaza comma restated Airport Road vs Airpark Road Plot omitted Keraniganj",
+    );
+    assertBothOrders(
+      row("Airport Plaza, Airport Road, Ashulia"),
+      row("Airport Plaza, Airpark Road, Ashulia"),
+      2,
+      "leftover after Plaza comma restated Airport Road vs Airpark Road Plot omitted Ashulia",
+    );
+    assertBothOrders(
+      row("Airport Bhaban, Airport Road, Savar"),
+      row("Airport Bhaban, Airpark Road, Savar"),
+      2,
+      "leftover after Bhaban comma restated Airport Road vs Airpark Road Plot omitted Savar",
+    );
+    assertBothOrders(
+      row("Airport Plaza, Airport, Savar"),
+      row("Airport Plaza, Airpark, Savar"),
+      2,
+      "leftover after Plaza leftover Airport vs leftover Airpark Plot omitted Savar",
+    );
+    assertBothOrders(
+      row("Airport Plaza, Green, Savar"),
+      row("Airport Plaza, Airport, Savar"),
+      2,
+      "leftover after Plaza leftover Green vs leftover Airport Plot omitted Savar",
+    );
+    assertBothOrders(
+      row("Airport Plaza, Green, Savar"),
+      row("Airport Plaza, Airpark, Savar"),
+      2,
+      "leftover after Plaza leftover Green vs leftover Airpark Plot omitted Savar",
+    );
+    assertBothOrders(
+      row("Airport Court, Green, Sonda"),
+      row("Airport Court, Airport, Sonda"),
+      2,
+      "leftover after Court leftover Green vs leftover Airport Plot omitted",
+    );
+    assertBothOrders(
+      row("House 50, South Gulshan, Dhaka"),
+      row("7 South Gulshan, Dhaka"),
+      1,
+      "KEEP House 50 vs 7 South Gulshan short form",
+    );
+    assertBothOrders(
+      row("House 50, South Banani, Dhaka"),
+      row("7 South Banani, Dhaka"),
+      2,
+      "KEEP House 50 vs 7 South Banani short form",
+    );
+    for (const ordered of permutations([
+      row("Airport Plaza, Airport Road, Savar"),
+      row("Airport Plaza, Airpark Road, Savar"),
+      row("Airport Plaza, Green, Savar"),
+    ])) {
+      assert.equal(
+        displays(ordered).length,
+        3,
+        "three-string leftover after Plaza restated Airport+Airpark+Green Savar permutation",
+      );
+    }
+    for (const ordered of permutations([
+      row("Airport Plaza, Green, Savar"),
+      row("Airport Plaza, Airport, Savar"),
+      row("Airport Plaza, Airpark, Savar"),
+    ])) {
+      assert.equal(
+        displays(ordered).length,
+        3,
+        "three-string leftover after Plaza leftover Green+Airport+Airpark Savar permutation",
+      );
+    }
     for (const ordered of permutations([
       row("Airport Road, Sonda"),
       row("Airpark Road, Sonda"),
