@@ -3775,6 +3775,35 @@ function peelRoadDirectionPrefix(tokens: string[]): { dirs: string[]; rest: stri
   return { dirs, rest };
 }
 
+function compassCanon(token: string): string {
+  if (/^(?:east|eastern|purba|purbo|purbbo)$/.test(token)) return "east";
+  if (
+    /^(?:west|western|paschim|pashchim|pachim|poshchim|pashim|poshim|poschim)$/.test(
+      token,
+    )
+  ) {
+    return "west";
+  }
+  if (/^(?:north|northern|uttar|uttor)$/.test(token)) return "north";
+  if (
+    /^(?:south|southern|shouth|dakhin|dakshin|dokkhin|dokhin|dakkhin)$/.test(
+      token,
+    )
+  ) {
+    return "south";
+  }
+  if (/^(?:new|naya|noya)$/.test(token)) return "new";
+  return token;
+}
+
+/** East vs West of the same stem is two roads. North vs Uttar is not. */
+function roadDirectionSetsDiffer(a: string[], b: string[]): boolean {
+  const pa = peelRoadDirectionPrefix(a);
+  const pb = peelRoadDirectionPrefix(b);
+  if (pa.dirs.length === 0 || pb.dirs.length === 0) return false;
+  return pa.dirs.map(compassCanon).join("\0") !== pb.dirs.map(compassCanon).join("\0");
+}
+
 /** BabaAirport / BabuAirpark — a short honorific glued onto airport/airpark. */
 function peelGluedHonorific(token: string): { prefix: string | null; rest: string } {
   for (let n = 3; n <= 5; n++) {
@@ -4796,9 +4825,7 @@ function extraRoadPlaceConflict(a: Candidate, b: Candidate): boolean {
       if (x.digit !== y.digit) continue;
       const competingStems =
         competingRoadStemOf(x.places) && competingRoadStemOf(y.places);
-      const namedRoadDirs =
-        peelRoadDirectionPrefix(x.places).dirs.length > 0 &&
-        peelRoadDirectionPrefix(y.places).dirs.length > 0;
+      const namedRoadDirs = roadDirectionSetsDiffer(x.places, y.places);
       if (x.src === "road" && y.src === "road") {
         if (sameNamedRoadSpelling(x.places, y.places)) continue;
       } else if (
@@ -4918,8 +4945,7 @@ function extraRoadPlaceConflict(a: Candidate, b: Candidate): boolean {
           if (
             !(
               (competingRoadStemOf(x.places) && competingRoadStemOf(y.places)) ||
-              (peelRoadDirectionPrefix(x.places).dirs.length > 0 &&
-                peelRoadDirectionPrefix(y.places).dirs.length > 0)
+              namedRoadDirs
             )
           ) {
             continue;
@@ -4934,8 +4960,7 @@ function extraRoadPlaceConflict(a: Candidate, b: Candidate): boolean {
           if (
             !(
               (competingRoadStemOf(x.places) && competingRoadStemOf(y.places)) ||
-              (peelRoadDirectionPrefix(x.places).dirs.length > 0 &&
-                peelRoadDirectionPrefix(y.places).dirs.length > 0)
+              namedRoadDirs
             )
           ) {
             continue;
@@ -5020,8 +5045,7 @@ function extraRoadPlaceConflict(a: Candidate, b: Candidate): boolean {
             !sameNamedRoadSpelling(x.places, y.places) &&
             ((x.src === "road" && y.src === "road") ||
               (competingRoadStemOf(x.places) && competingRoadStemOf(y.places)) ||
-              (peelRoadDirectionPrefix(x.places).dirs.length > 0 &&
-                peelRoadDirectionPrefix(y.places).dirs.length > 0))
+              namedRoadDirs)
           ) {
             return true;
           }
@@ -5037,8 +5061,7 @@ function extraRoadPlaceConflict(a: Candidate, b: Candidate): boolean {
           !sameNamedRoadSpelling(x.places, y.places) &&
           ((x.src === "road" && y.src === "road") ||
             (competingRoadStemOf(x.places) && competingRoadStemOf(y.places)) ||
-            (peelRoadDirectionPrefix(x.places).dirs.length > 0 &&
-              peelRoadDirectionPrefix(y.places).dirs.length > 0))
+            namedRoadDirs)
         ) {
           return true;
         }

@@ -7556,10 +7556,22 @@ describe("mergeUniqueLocations — empty rows, duplicates, overview buckets", ()
       "Plot 10 Inner Airport vs Outer Airport no-Road",
     );
     assertBothOrders(
-      row("Plot # 10, New Airport, Dhaka"),
-      row("Plot # 10, Old Airport, Dhaka"),
-      2,
-      "Plot 10 New Airport vs Old Airport no-Road",
+      row("144, 147, 148, 152, 154, East Narashinghpur, Ashulia, 1341, Dhaka, Bangladesh"),
+      row("144, 147, 148, East Narasinghpur, Ashulia, Dhaka"),
+      1,
+      "East Narashinghpur vs East Narasinghpur same compass village",
+    );
+    assertBothOrders(
+      row("Holding No. 505, Uttar Khailkur, Board Bazar, Tongi PS, Gazipur - 1704, Bangladesh"),
+      row("Holding # 505, North Khailkur, National University, Gazipur"),
+      1,
+      "Uttar Khailkur vs North Khailkur same compass",
+    );
+    assertBothOrders(
+      row("37, South Shastapur, Upazila Road, Fatullah, Narayanganj - 1420, Bangladesh"),
+      row("37, South Sastapur, Narayanganj, Fatullah"),
+      1,
+      "South Shastapur vs South Sastapur same compass village",
     );
     for (const ordered of permutations([
       row("Plot # 10, East Mirpur, Sonda"),
