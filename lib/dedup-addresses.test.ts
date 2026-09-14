@@ -6963,6 +6963,115 @@ describe("mergeUniqueLocations — empty rows, duplicates, overview buckets", ()
         "three-string North East+South West Airport+Green permutation",
       );
     }
+    assertBothOrders(
+      row("Plot # 23-24, Union - Telulzora, Hemayetpur, Dhaka, Savar"),
+      row("Plot # 23-24, Village, Hemayetpur, Dhaka, Savar"),
+      1,
+      "Union hyphen Telulzora vs Village Hemayetpur",
+    );
+    assertBothOrders(
+      row("Plot # 23-24, Union - Faridabad, Hemayetpur, Dhaka, Savar"),
+      row("Plot # 23-24, Village, Hemayetpur, Dhaka, Savar"),
+      2,
+      "Union hyphen Faridabad vs Village Hemayetpur",
+    );
+    assertBothOrders(
+      row("Plot # 23-24, Union, Faridabad, Hemayetpur, Dhaka, Savar"),
+      row("Plot # 23-24, Village, Hemayetpur, Dhaka, Savar"),
+      2,
+      "Union comma Faridabad vs Village Hemayetpur",
+    );
+    assertBothOrders(
+      row("Plot # 23-24, Union - Chandona, Hemayetpur, Dhaka, Savar"),
+      row("Plot # 23-24, Village, Hemayetpur, Dhaka, Savar"),
+      2,
+      "Union hyphen Chandona vs Village Hemayetpur",
+    );
+    assertBothOrders(
+      row("Plot # 23-24, Union - Chandora, Hemayetpur, Dhaka, Savar"),
+      row("Plot # 23-24, Village, Hemayetpur, Dhaka, Savar"),
+      2,
+      "Union hyphen Chandora vs Village Hemayetpur",
+    );
+    assertBothOrders(
+      row("Plot # 23-24, Union - Chandra, Hemayetpur, Dhaka, Savar"),
+      row("Plot # 23-24, Village, Hemayetpur, Dhaka, Savar"),
+      2,
+      "Union hyphen Chandra vs Village Hemayetpur",
+    );
+    assertBothOrders(
+      row("Plot # 23-24, Union - Kaliakoir, Hemayetpur, Dhaka, Savar"),
+      row("Plot # 23-24, Village, Hemayetpur, Dhaka, Savar"),
+      2,
+      "Union hyphen Kaliakoir vs Village Hemayetpur",
+    );
+    assertBothOrders(
+      row("Plot # 10, BabaAirport Road, Dhaka"),
+      row("Plot # 10, BabuAirpark Road, Dhaka"),
+      2,
+      "Plot 10 BabaAirport vs BabuAirpark concatenated",
+    );
+    assertBothOrders(
+      row("Plot # 10, BabaAirport Road, Sonda"),
+      row("Plot # 10, BabuAirpark Road, Sonda"),
+      2,
+      "Plot 10 BabaAirport vs BabuAirpark concatenated at Sonda",
+    );
+    assertBothOrders(
+      row("Plot # 10, BabaAirport Road"),
+      row("Plot # 10, BabuAirpark Road"),
+      2,
+      "Plot 10 BabaAirport vs BabuAirpark concatenated no village",
+    );
+    for (const ordered of permutations([
+      row("Plot # 10, BabaAirport Road, Dhaka"),
+      row("Plot # 10, BabuAirpark Road, Dhaka"),
+      row("Plot # 10, Green Road, Dhaka"),
+    ])) {
+      assert.equal(
+        displays(ordered).length,
+        3,
+        "three-string BabaAirport+BabuAirpark+Green permutation",
+      );
+    }
+    assertBothOrders(
+      row("Plot # 10, Northeast Road, Dhaka"),
+      row("Plot # 10, Southwest Road, Dhaka"),
+      2,
+      "Plot 10 Northeast vs Southwest one-token",
+    );
+    assertBothOrders(
+      row("Plot # 10, Northeast Road, Dhaka"),
+      row("Plot # 10, Northwest Road, Dhaka"),
+      2,
+      "Plot 10 Northeast vs Northwest one-token",
+    );
+    assertBothOrders(
+      row("Plot # 10, Southeast Road, Dhaka"),
+      row("Plot # 10, Southwest Road, Dhaka"),
+      2,
+      "Plot 10 Southeast vs Southwest one-token",
+    );
+    assertBothOrders(
+      row("Plot # 10, North East Road, Dhaka"),
+      row("Plot # 10, South West Road, Dhaka"),
+      2,
+      "Plot 10 North East vs South West no Airport",
+    );
+    assertBothOrders(
+      row(
+        "701, Kamarjuri, Hariken Road, National University, Gazipur - 1704, Bangladesh",
+      ),
+      row("701, KAMARIJUR, HARICAN ROAD, NATIONAL UNIVERSITY, GAZIPUR"),
+      1,
+      "701 Kamarjuri Hariken vs Harican",
+    );
+    assertBothOrders(
+      row("Plot # 10, Hariken Road, Dhaka"),
+      row("Plot # 10, Harican Road, Dhaka"),
+      1,
+      "Plot 10 Hariken vs Harican",
+    );
   });
 
   it("merges neighbour plot lists and keeps House 365/4 Baridhara together", () => {

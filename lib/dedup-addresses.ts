@@ -3666,6 +3666,8 @@ function coreSameNamedRoadSpelling(sa: string, sb: string): boolean {
   if (sameWord(sa, sb)) return true;
   const [x, y] = sa <= sb ? [sa, sb] : [sb, sa];
   if (x === "haricane" && y === "hariken") return true;
+  if (x === "harican" && y === "hariken") return true;
+  if (x === "harican" && y === "haricane") return true;
   if (x === "shorawardi" && y === "shuhrawardhi") return true;
   return false;
 }
@@ -3675,7 +3677,13 @@ function peelConcatenatedDirections(token: string): { dirs: string[]; rest: stri
   let rest = token;
   const keys = [...ROAD_DIRECTION_KEEP].sort((a, b) => b.length - a.length);
   for (;;) {
-    const hit = keys.find((d) => rest.length > d.length + 2 && rest.startsWith(d));
+    const hit = keys.find((d) => {
+      if (!rest.startsWith(d)) return false;
+      const left = rest.slice(d.length);
+      if (left.length === 0) return false;
+      if (ROAD_DIRECTION_KEEP.has(left)) return true;
+      return left.length >= 3 && rest.length > d.length + 2;
+    });
     if (!hit) break;
     dirs.push(hit);
     rest = rest.slice(hit.length);
@@ -3686,17 +3694,45 @@ function peelConcatenatedDirections(token: string): { dirs: string[]; rest: stri
 function peelRoadDirectionPrefix(tokens: string[]): { dirs: string[]; rest: string[] } {
   const dirs: string[] = [];
   const rest = [...tokens];
-  while (rest.length > 0 && ROAD_DIRECTION_KEEP.has(rest[0]!)) {
-    dirs.push(rest.shift()!);
-  }
-  if (rest.length === 1) {
+  const takeLeadingCompass = () => {
+    while (rest.length > 0 && ROAD_DIRECTION_KEEP.has(rest[0]!)) {
+      dirs.push(rest.shift()!);
+    }
+    if (rest.length !== 1) return;
     const glued = peelConcatenatedDirections(rest[0]!);
-    if (glued.dirs.length > 0 && glued.rest.length >= 3) {
+    if (glued.dirs.length === 0) return;
+    if (glued.rest.length === 0) {
+      dirs.push(...glued.dirs);
+      rest.shift();
+      return;
+    }
+    if (ROAD_DIRECTION_KEEP.has(glued.rest)) {
+      dirs.push(...glued.dirs, glued.rest);
+      rest.shift();
+      return;
+    }
+    if (glued.rest.length >= 3) {
       dirs.push(...glued.dirs);
       rest[0] = glued.rest;
     }
-  }
+  };
+  takeLeadingCompass();
+  takeLeadingCompass();
   return { dirs, rest };
+}
+
+/** BabaAirport / BabuAirpark — a short honorific glued onto airport/airpark. */
+function peelGluedHonorific(token: string): { prefix: string | null; rest: string } {
+  for (let n = 3; n <= 5; n++) {
+    if (token.length < n + 6) continue;
+    const prefix = token.slice(0, n);
+    const rest = token.slice(n);
+    if (ROAD_DIRECTION_KEEP.has(prefix)) continue;
+    if (isCompetingRoadExtraToken(rest) || rest === "airpark") {
+      return { prefix, rest };
+    }
+  }
+  return { prefix: null, rest: token };
 }
 
 function sameNamedRoadSpelling(a: string[], b: string[]): boolean {
@@ -3705,20 +3741,23 @@ function sameNamedRoadSpelling(a: string[], b: string[]): boolean {
   // or "mirpur" with different compass is two roads; Joydebpur vs Joydevpur
   // still matches as a spelling after the peel. Honorifics (kobi/kazi)
   // follow. Concatenated EastAirport vs WestAirport peels the same way.
+  // Leftover compass (Northeast vs Southwest, North East vs South West)
+  // is still two roads — not a remainder for sameWord("east","west").
   const pa = peelRoadDirectionPrefix(a);
   const pb = peelRoadDirectionPrefix(b);
-  if (
-    pa.dirs.length > 0 &&
-    pb.dirs.length > 0 &&
-    pa.rest.length > 0 &&
-    pb.rest.length > 0
-  ) {
+  if (pa.dirs.length > 0 && pb.dirs.length > 0) {
     const ra = pa.rest.join("");
     const rb = pb.rest.join("");
-    if (ra && rb && ra === rb && pa.dirs.join("\0") !== pb.dirs.join("\0")) {
-      return false;
+    if (ra && rb) {
+      if (ra === rb && pa.dirs.join("\0") !== pb.dirs.join("\0")) {
+        return false;
+      }
+      return coreSameNamedRoadSpelling(ra, rb);
     }
-    return coreSameNamedRoadSpelling(ra, rb);
+    if (!ra && !rb) {
+      return pa.dirs.join("\0") === pb.dirs.join("\0");
+    }
+    return false;
   }
   if (
     a.length >= 2 &&
@@ -3730,6 +3769,13 @@ function sameNamedRoadSpelling(a: string[], b: string[]): boolean {
     const rb = b.slice(1).join("");
     if (ra && rb && ra === rb && !sameWord(a[0]!, b[0]!)) return false;
     return coreSameNamedRoadSpelling(ra, rb);
+  }
+  if (a.length === 1 && b.length === 1) {
+    const ga = peelGluedHonorific(a[0]!);
+    const gb = peelGluedHonorific(b[0]!);
+    if (ga.prefix && gb.prefix) {
+      return coreSameNamedRoadSpelling(ga.rest, gb.rest);
+    }
   }
   return coreSameNamedRoadSpelling(a.join(""), b.join(""));
 }
@@ -4459,6 +4505,10 @@ function hasVillageKindTitle(display: string): boolean {
   return new RegExp(String.raw`(?:the\s+)?\b(?:village|vill)\b`, "u").test(s);
 }
 
+function isTelulzoraUnionName(name: string): boolean {
+  return unionNameShare([name], ["telulzora"]) || unionNameShare([name], ["tetuljhora"]);
+}
+
 function unionPrimaryCanWrapVillage(unionPrimaries: string[], villagePrimaries: string[]): boolean {
   if (unionPrimaries.length === 0) return false;
   if (
@@ -4466,8 +4516,9 @@ function unionPrimaryCanWrapVillage(unionPrimaries: string[], villagePrimaries: 
   ) {
     return true;
   }
-  // Telulzora / Tetuljhora (min 8, same as unionNameShare). Dogri is not this.
-  return unionPrimaries.some((u) => u.length >= 8);
+  // Holding 87's Tetuljhora Union / BGMEA Union - Telulzora. Length>=8
+  // also wrapped Faridabad / Chandona / Kaliakoir onto Village Hemayetpur.
+  return unionPrimaries.some(isTelulzoraUnionName);
 }
 
 function hasUnionKindTitle(display: string): boolean {

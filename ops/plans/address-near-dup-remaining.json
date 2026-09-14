@@ -1,6 +1,6 @@
 {
-  "mergedToOne": 2068,
-  "stillMulti": 1206,
+  "mergedToOne": 2070,
+  "stillMulti": 1204,
   "conflictingIdMerges": 0,
   "overMergeHits": [],
   "absorptionHits": [],
@@ -858,17 +858,6 @@
         "5007/A, Ward # 41, South Patenga, Golden Beach Road, Chattogram",
         "1935/A, South Kattali, Pahartali, Chattogram",
         "Noth Fatehabad, 1 No. Ward, South Pahartoli, Nondirhat, Hathazari, Chattogram"
-      ]
-    },
-    {
-      "slug": "a-and-a-socks",
-      "company_name": "A & A SOCKS LTD",
-      "kind": "factory",
-      "strings": 2,
-      "locations": 2,
-      "displays": [
-        "701, Kamarjuri, Hariken Road, National University, Gazipur - 1704, Bangladesh",
-        "701, KAMARIJUR, HARICAN ROAD, NATIONAL UNIVERSITY, GAZIPUR"
       ]
     },
     {
@@ -4621,17 +4610,6 @@
       "displays": [
         "Mohakhali Tower (4th Floor), 82, Mohakhali C/A, Mohakhali, Dhaka",
         "House # 260, 3rd Floor, Lane # 03, Baridhara DOHS, Dhaka"
-      ]
-    },
-    {
-      "slug": "dhaka-socks-manufacturing",
-      "company_name": "Dhaka Socks Manufacturing Company Limited",
-      "kind": "factory",
-      "strings": 3,
-      "locations": 2,
-      "displays": [
-        "700, Kamarjuri, Harican Road, National University, Gazipur",
-        "HOLDING NO-700, KAMARJURI, HARIKEN ROAD, NATIONAL UNIVERSITY, GAZIPUR"
       ]
     },
     {

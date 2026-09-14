@@ -1294,9 +1294,145 @@ describe("Locations Also recorded as — rendered HTML boundary", () => {
         otherRe: /West Airport Road/i,
         otherName: "Plot 10 East Airport vs West Airport at Sonda",
       },
+      {
+        left: row("Plot # 23-24, Union - Faridabad, Hemayetpur, Dhaka, Savar", "BGMEA", "factory"),
+        right: row("Plot # 23-24, Village, Hemayetpur, Dhaka, Savar", "BKMEA", "factory"),
+        keepRe: /Faridabad/i,
+        otherRe: /Village,\s*Hemayetpur/i,
+        otherName: "Union hyphen Faridabad vs Village Hemayetpur",
+      },
+      {
+        left: row("Plot # 23-24, Union - Faridabad, Hemayetpur, Dhaka, Savar", "BGMEA", "factory"),
+        right: row("Plot # 23-24, Village, Hemayetpur, Dhaka, Savar", "BKMEA", "factory"),
+        keepRe: /Village,\s*Hemayetpur/i,
+        otherRe: /Faridabad/i,
+        otherName: "Village Hemayetpur vs Union hyphen Faridabad",
+      },
+      {
+        left: row("Plot # 23-24, Union - Chandona, Hemayetpur, Dhaka, Savar", "BGMEA", "factory"),
+        right: row("Plot # 23-24, Village, Hemayetpur, Dhaka, Savar", "BKMEA", "factory"),
+        keepRe: /Chandona/i,
+        otherRe: /Village,\s*Hemayetpur/i,
+        otherName: "Union hyphen Chandona vs Village Hemayetpur",
+      },
+      {
+        left: row("Plot # 23-24, Union - Chandora, Hemayetpur, Dhaka, Savar", "BGMEA", "factory"),
+        right: row("Plot # 23-24, Village, Hemayetpur, Dhaka, Savar", "BKMEA", "factory"),
+        keepRe: /Chandora/i,
+        otherRe: /Village,\s*Hemayetpur/i,
+        otherName: "Union hyphen Chandora vs Village Hemayetpur",
+      },
+      {
+        left: row("Plot # 23-24, Union - Kaliakoir, Hemayetpur, Dhaka, Savar", "BGMEA", "factory"),
+        right: row("Plot # 23-24, Village, Hemayetpur, Dhaka, Savar", "BKMEA", "factory"),
+        keepRe: /Kaliakoir/i,
+        otherRe: /Village,\s*Hemayetpur/i,
+        otherName: "Union hyphen Kaliakoir vs Village Hemayetpur",
+      },
+      {
+        left: row("Plot # 23-24, Union - Chandra, Hemayetpur, Dhaka, Savar", "BGMEA", "factory"),
+        right: row("Plot # 23-24, Village, Hemayetpur, Dhaka, Savar", "BKMEA", "factory"),
+        keepRe: /Chandra/i,
+        otherRe: /Village,\s*Hemayetpur/i,
+        otherName: "Union hyphen Chandra vs Village Hemayetpur",
+      },
+      {
+        left: row("Plot # 23-24, Union, Faridabad, Hemayetpur, Dhaka, Savar", "BGMEA", "factory"),
+        right: row("Plot # 23-24, Village, Hemayetpur, Dhaka, Savar", "BKMEA", "factory"),
+        keepRe: /Union,\s*Faridabad/i,
+        otherRe: /Village,\s*Hemayetpur/i,
+        otherName: "Union comma Faridabad vs Village Hemayetpur",
+      },
+      {
+        left: row("Plot # 10, BabaAirport Road, Dhaka", "BGMEA", "factory"),
+        right: row("Plot # 10, BabuAirpark Road, Dhaka", "BKMEA", "factory"),
+        keepRe: /BabaAirport|Babaairport/i,
+        otherRe: /BabuAirpark|Babuairpark/i,
+        otherName: "Plot 10 BabaAirport vs BabuAirpark concatenated",
+      },
+      {
+        left: row("Plot # 10, BabaAirport Road, Dhaka", "BGMEA", "factory"),
+        right: row("Plot # 10, BabuAirpark Road, Dhaka", "BKMEA", "factory"),
+        keepRe: /BabuAirpark|Babuairpark/i,
+        otherRe: /BabaAirport|Babaairport/i,
+        otherName: "Plot 10 BabuAirpark vs BabaAirport concatenated",
+      },
+      {
+        left: row("Plot # 10, BabaAirport Road, Sonda", "BGMEA", "factory"),
+        right: row("Plot # 10, BabuAirpark Road, Sonda", "BKMEA", "factory"),
+        keepRe: /BabaAirport|Babaairport/i,
+        otherRe: /BabuAirpark|Babuairpark/i,
+        otherName: "Plot 10 BabaAirport vs BabuAirpark concatenated at Sonda",
+      },
+      {
+        left: row("Plot # 10, BabaAirport Road", "BGMEA", "factory"),
+        right: row("Plot # 10, BabuAirpark Road", "BKMEA", "factory"),
+        keepRe: /BabaAirport|Babaairport/i,
+        otherRe: /BabuAirpark|Babuairpark/i,
+        otherName: "Plot 10 BabaAirport vs BabuAirpark concatenated no village",
+      },
+      {
+        left: row("Plot # 10, Northeast Road, Dhaka", "BGMEA", "factory"),
+        right: row("Plot # 10, Southwest Road, Dhaka", "BKMEA", "factory"),
+        keepRe: /Northeast Road/i,
+        otherRe: /Southwest Road/i,
+        otherName: "Plot 10 Northeast vs Southwest one-token",
+      },
+      {
+        left: row("Plot # 10, Northeast Road, Dhaka", "BGMEA", "factory"),
+        right: row("Plot # 10, Northwest Road, Dhaka", "BKMEA", "factory"),
+        keepRe: /Northeast Road/i,
+        otherRe: /Northwest Road/i,
+        otherName: "Plot 10 Northeast vs Northwest one-token",
+      },
+      {
+        left: row("Plot # 10, Southeast Road, Dhaka", "BGMEA", "factory"),
+        right: row("Plot # 10, Southwest Road, Dhaka", "BKMEA", "factory"),
+        keepRe: /Southeast Road/i,
+        otherRe: /Southwest Road/i,
+        otherName: "Plot 10 Southeast vs Southwest one-token",
+      },
+      {
+        left: row("Plot # 10, North East Road, Dhaka", "BGMEA", "factory"),
+        right: row("Plot # 10, South West Road, Dhaka", "BKMEA", "factory"),
+        keepRe: /North East Road/i,
+        otherRe: /South West Road/i,
+        otherName: "Plot 10 North East vs South West no Airport",
+      },
     ];
     for (const c of cases) {
       assertSplitAddressRowHtml(c.left, c.right, c.keepRe, c.otherRe, c.otherName);
+    }
+  });
+
+  it("keeps concatenated BabuAirpark out of Also recorded as of BabaAirport with Green as its own row", () => {
+    const baba = row("Plot # 10, BabaAirport Road, Dhaka", "BGMEA", "factory");
+    const babu = row("Plot # 10, BabuAirpark Road, Dhaka", "BKMEA", "factory");
+    const green = row("Plot # 10, Green Road, Dhaka", "OEKO_TEX", "factory");
+    const perms = [
+      [baba, babu, green],
+      [baba, green, babu],
+      [babu, baba, green],
+      [babu, green, baba],
+      [green, baba, babu],
+      [green, babu, baba],
+    ];
+    for (const ordered of perms) {
+      const html = renderAddressRows(ordered);
+      assert.equal(mergeUniqueLocations(ordered).length, 3);
+      assert.equal((html.match(/data-location-row=""/g) ?? []).length, 3);
+      for (const chunk of locationChunks(html)) {
+        const disp = displayHtml(chunk);
+        const also = chunk.match(/<li[^>]*data-also-recorded-as=""[^>]*>[\s\S]*?<\/li>/g) ?? [];
+        const alsoText = also.join(" ");
+        if (/BabaAirport|Babaairport/i.test(disp)) {
+          assert.equal(also.length, 0, "Babuairpark must not sit in Also of Babaairport");
+          assert.ok(!/BabuAirpark|Babuairpark/i.test(alsoText));
+        }
+        if (/BabuAirpark|Babuairpark/i.test(disp)) {
+          assert.ok(!/BabaAirport|Babaairport/i.test(alsoText));
+        }
+      }
     }
   });
 
@@ -1840,6 +1976,99 @@ describe("Locations Also recorded as — rendered HTML boundary", () => {
         assert.ok(
           (eastDisp && westAlso && !eastAlso) || (westDisp && eastAlso && !westAlso),
           "Plot 10 East Joydebpur vs West Joydevpur Also <li> isolation",
+        );
+      }
+    }
+    {
+      const hyphenT = row(
+        "Plot # 23-24, Union - Telulzora, Hemayetpur, Dhaka, Savar",
+        "BGMEA",
+        "factory",
+      );
+      const villageH = row("Plot # 23-24, Village, Hemayetpur, Dhaka, Savar", "BKMEA", "factory");
+      for (const ordered of [
+        [hyphenT, villageH],
+        [villageH, hyphenT],
+      ]) {
+        assert.equal(
+          mergeUniqueLocations(ordered).length,
+          1,
+          "Union hyphen Telulzora vs Village Hemayetpur matcher merge",
+        );
+        const html = renderAddressRows(ordered);
+        assert.equal((html.match(/data-location-row=""/g) ?? []).length, 1);
+        const chunk = locationChunks(html)[0]!;
+        const disp = displayHtml(chunk);
+        const also = chunk.match(/<li[^>]*data-also-recorded-as=""[^>]*>[\s\S]*?<\/li>/g) ?? [];
+        const tDisp = /Union\s*-\s*Telulzora/i.test(disp);
+        const hDisp = /Village,\s*Hemayetpur/i.test(disp);
+        const tAlso = also.some((block) => /Union\s*-\s*Telulzora/i.test(block));
+        const hAlso = also.some((block) => /Village,\s*Hemayetpur/i.test(block));
+        assert.ok(
+          (tDisp && hAlso && !tAlso) || (hDisp && tAlso && !hAlso),
+          "Union hyphen Telulzora vs Village Hemayetpur Also <li> isolation",
+        );
+      }
+    }
+    {
+      const hariken = row("Plot # 10, Hariken Road, Dhaka", "BGMEA", "factory");
+      const harican = row("Plot # 10, Harican Road, Dhaka", "BKMEA", "factory");
+      for (const ordered of [
+        [hariken, harican],
+        [harican, hariken],
+      ]) {
+        assert.equal(
+          mergeUniqueLocations(ordered).length,
+          1,
+          "Plot 10 Hariken vs Harican matcher merge",
+        );
+        const html = renderAddressRows(ordered);
+        assert.equal((html.match(/data-location-row=""/g) ?? []).length, 1);
+        const chunk = locationChunks(html)[0]!;
+        const disp = displayHtml(chunk);
+        const also = chunk.match(/<li[^>]*data-also-recorded-as=""[^>]*>[\s\S]*?<\/li>/g) ?? [];
+        const kenDisp = /Hariken Road/i.test(disp);
+        const canDisp = /Harican Road/i.test(disp);
+        const kenAlso = also.some((block) => /Hariken Road/i.test(block));
+        const canAlso = also.some((block) => /Harican Road/i.test(block));
+        assert.ok(
+          (kenDisp && canAlso && !kenAlso) || (canDisp && kenAlso && !canAlso),
+          "Plot 10 Hariken vs Harican Also <li> isolation",
+        );
+      }
+    }
+    {
+      const fixtureKen = row(
+        "701, Kamarjuri, Hariken Road, National University, Gazipur - 1704, Bangladesh",
+        "BGMEA",
+        "factory",
+      );
+      const fixtureCan = row(
+        "701, KAMARIJUR, HARICAN ROAD, NATIONAL UNIVERSITY, GAZIPUR",
+        "BKMEA",
+        "factory",
+      );
+      for (const ordered of [
+        [fixtureKen, fixtureCan],
+        [fixtureCan, fixtureKen],
+      ]) {
+        assert.equal(
+          mergeUniqueLocations(ordered).length,
+          1,
+          "701 Kamarjuri Hariken vs Harican matcher merge",
+        );
+        const html = renderAddressRows(ordered);
+        assert.equal((html.match(/data-location-row=""/g) ?? []).length, 1);
+        const chunk = locationChunks(html)[0]!;
+        const also = chunk.match(/<li[^>]*data-also-recorded-as=""[^>]*>[\s\S]*?<\/li>/g) ?? [];
+        assert.ok(also.length > 0, "701 Kamarjuri Hariken vs Harican Also recorded as pill");
+        const alsoText = also.join(" ");
+        const disp = displayHtml(chunk);
+        const kenOnDisp = /Hariken/i.test(disp);
+        const canOnDisp = /Harican/i.test(disp);
+        assert.ok(
+          (kenOnDisp && /Harican/i.test(alsoText)) || (canOnDisp && /Hariken/i.test(alsoText)),
+          "701 Kamarjuri Hariken vs Harican Also <li> isolation",
         );
       }
     }

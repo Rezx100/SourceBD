@@ -2,8 +2,8 @@
 
 Fixture exported_at: 2026-09-11T00:00:00Z
 Groups in fixture: 3274
-Matcher merged to 1 location: **2068** (was 1,622 on the previous matcher)
-Groups still showing 2+ locations: **1206** (was 1,652)
+Matcher merged to 1 location: **2070** (was 1,622 on the previous matcher)
+Groups still showing 2+ locations: **1204** (was 1,652)
 Conflicting-plot merges (must be 0): **0**
 Named over-merges (must be 0): **0**
 Named under-merges (must be 0): **0**
@@ -61,9 +61,6 @@ Remaining multi-location groups (slug, kind, locations):
   - 5007/A, Ward # 41, South Patenga, Golden Beach Road, Chattogram
   - 1935/A, South Kattali, Pahartali, Chattogram
   - Noth Fatehabad, 1 No. Ward, South Pahartoli, Nondirhat, Hathazari, Chattogram
-- a-and-a-socks (factory) 2 strings → 2
-  - 701, Kamarjuri, Hariken Road, National University, Gazipur - 1704, Bangladesh
-  - 701, KAMARIJUR, HARICAN ROAD, NATIONAL UNIVERSITY, GAZIPUR
 - a-and-c-bd (registered) 2 strings → 2
   - A Plus Industries. (Reg:, House # 26 (3rd Floor), Block-G, Road # 7, 30 Dilu Road G/F, New, Banani, Dhaka, Eskaton
   - AJ Heights, Cha-72/1/D, Level # 7-11, Pragoti Sharani, Badda, Dhaka
@@ -1120,9 +1117,6 @@ Remaining multi-location groups (slug, kind, locations):
 - dhaka-natex-sourcing (registered) 2 strings → 2
   - Mohakhali Tower (4th Floor), 82, Mohakhali C/A, Mohakhali, Dhaka
   - House # 260, 3rd Floor, Lane # 03, Baridhara DOHS, Dhaka
-- dhaka-socks-manufacturing (factory) 3 strings → 2
-  - 700, Kamarjuri, Harican Road, National University, Gazipur
-  - HOLDING NO-700, KAMARJURI, HARIKEN ROAD, NATIONAL UNIVERSITY, GAZIPUR
 - dhaka-socks-manufacturing (mailing) 2 strings → 2
   - House # 68, Road # 20, Sector # 11, Uttara, Dhaka
   - HOLDING NO-700, KAMARJURI, HARIKEN ROAD, NATIONAL UNIVERSITY, GAZIPUR
