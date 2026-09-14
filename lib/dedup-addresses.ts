@@ -605,8 +605,10 @@ export function normaliseAddressKey(input: string): string {
   s = s.replace(/['"]/g, " ");
   // After abbreviation expansion, remaining punctuation is not identity.
   // Leaving commas on tokens made "pahartali," miss the admin set and
-  // "mirpur-12," hide the extra-digit road/section conflict.
-  s = s.replace(/[#().,:;/\-&]/g, " ");
+  // "mirpur-12," hide the extra-digit road/section conflict. Underscore is
+  // a title/road separator (Village_Hemayetpur, Airport Road_East), not a
+  // letter — leaving it glued village_hemayetpur as a competing village.
+  s = s.replace(/[#().,:;/\-&_]/g, " ");
   s = s.replace(/\s+/g, " ").trim();
   let joined = s;
   let prevJoin = "";
@@ -2847,6 +2849,10 @@ const EXTRA_PLACE_SKIP_ALIASES = [
   "space",
   "export",
   "shouth",
+  // 2-letter honorifics. "Md. Airport East" never reaches [a-z]{3,} extra
+  // mint otherwise, so airport≈airpark extraNameShare merges two roads.
+  "md",
+  "dr",
 ] as const;
 /** Skip a run of size/direction/honorific tokens after an extra digit so
  *  "7 Baro Banani" / "7 South East Banani" mint Banani, not baro/south.
@@ -2913,7 +2919,7 @@ function peelExtraPlaceSkip(
   let rest = after;
   for (let n = 0; n < 4; n++) {
     if (!extraPlaceSkipToken(p)) break;
-    const nxt = rest.match(/^\s*([a-z]{3,})\b/);
+    const nxt = rest.match(/^[\s_]*([a-z]{3,})\b/);
     if (!nxt) break;
     p = nxt[1]!;
     rest = rest.slice(nxt[0].length);
@@ -3157,21 +3163,24 @@ function roadHoldingEntries(display: string): Array<{ digit: string; tail: strin
   // road extra on Sowdagor Lane.
   const lead = String.raw`(?:${EXTRA_DIGIT_SAT_LEAD}|${PLOT_DIGIT_LEAD})`;
   const out: Array<{ digit: string; tail: string }> = [];
+  // `_` is a word character, so `\s+road\b` never sees "Airport Road_East".
+  // Treat underscore as a separator the way trailDirHit / titleSep already do.
+  const roadGap = String.raw`(?:\s+|_)`;
   for (const word of ROAD_HOLDING_TAILS) {
     const comma = new RegExp(
-      String.raw`${lead}${p}(\d{1,3})\s*,\s*${EXTRA_ROAD_SKIP_RE}([a-z][^,]{0,40}?)\s+${word}\b`,
+      String.raw`${lead}${p}(\d{1,3})\s*,\s*${EXTRA_ROAD_SKIP_RE}([a-z][^,]{0,40}?)${roadGap}${word}(?![a-z])`,
       EXTRA_RE_FLAGS,
     );
     const space = new RegExp(
-      String.raw`${lead}${p}(\d{1,3})${EXTRA_DIGIT_GLUE}${EXTRA_ROAD_SKIP_RE}([a-z][^,]{0,40}?)\s+${word}\b`,
+      String.raw`${lead}${p}(\d{1,3})${EXTRA_DIGIT_GLUE}${EXTRA_ROAD_SKIP_RE}([a-z][^,]{0,40}?)${roadGap}${word}(?![a-z])`,
       EXTRA_RE_FLAGS,
     );
     const intervening = new RegExp(
-      String.raw`${EXTRA_DIGIT_LEAD}${p}(\d{1,3})\s*,\s*${EXTRA_PLACE_SKIP_RE}[a-z]{3,}\s*,\s*${EXTRA_ROAD_SKIP_RE}([a-z][^,]{0,40}?)\s+${word}\b`,
+      String.raw`${EXTRA_DIGIT_LEAD}${p}(\d{1,3})\s*,\s*${EXTRA_PLACE_SKIP_RE}[a-z]{3,}(?![a-z])\s*,\s*${EXTRA_ROAD_SKIP_RE}([a-z][^,]{0,40}?)${roadGap}${word}(?![a-z])`,
       EXTRA_RE_FLAGS,
     );
     const interveningSpace = new RegExp(
-      String.raw`${EXTRA_DIGIT_LEAD}${p}(\d{1,3})${EXTRA_DIGIT_GLUE}${EXTRA_PLACE_SKIP_RE}[a-z]{3,}\s*,\s*${EXTRA_ROAD_SKIP_RE}([a-z][^,]{0,40}?)\s+${word}\b`,
+      String.raw`${EXTRA_DIGIT_LEAD}${p}(\d{1,3})${EXTRA_DIGIT_GLUE}${EXTRA_PLACE_SKIP_RE}[a-z]{3,}(?![a-z])\s*,\s*${EXTRA_ROAD_SKIP_RE}([a-z][^,]{0,40}?)${roadGap}${word}(?![a-z])`,
       EXTRA_RE_FLAGS,
     );
     for (const re of [comma, space, intervening, interveningSpace]) {
@@ -3745,9 +3754,34 @@ function peelConcatenatedTrailingDirections(token: string): { dirs: string[]; re
   return { dirs, rest };
 }
 
+/** Sheikh / Shaikh / Md / Dr / Doctor — not which road. Joydebpur is not this. */
+function isSpacedHonorificCandidate(token: string): boolean {
+  if (/^(?:md|dr)$/.test(token)) return true;
+  if (ROAD_DIRECTION_KEEP.has(token)) return false;
+  if (isCompetingRoadStem(token)) return false;
+  if (isThoroughfareWord(token)) return false;
+  if (ADMIN_TOKENS.has(token) || HOUSING_CAMPUS_PLACES.has(token)) return false;
+  if (/^(?:union|village|vill)$/.test(token)) return false;
+  if (extraPlaceSkipToken(token) && !ROAD_DIRECTION_KEEP.has(token)) return true;
+  return /^(?:sheikh|shaikh|shaykh|sheik|shaik|doctor|docter|mister|master|moulana|maulana|mawlana|professor|profesor|kazi|kobi|kabi|baba|babu)$/.test(
+    token,
+  );
+}
+
 function peelRoadDirectionPrefix(tokens: string[]): { dirs: string[]; rest: string[] } {
   const dirs: string[] = [];
   const rest = [...tokens];
+  // Sheikh East Airport — skip the honorific so East peels. Do not strip
+  // Joydebpur (not an honorific; KEEP East Joydebpur vs West Joydevpur).
+  while (
+    rest.length > 1 &&
+    isSpacedHonorificCandidate(rest[0]!) &&
+    rest
+      .slice(1)
+      .some((t) => isCompetingRoadStem(t) || ROAD_DIRECTION_KEEP.has(t))
+  ) {
+    rest.shift();
+  }
   const takeLeadingCompass = () => {
     while (rest.length > 0 && ROAD_DIRECTION_KEEP.has(rest[0]!)) {
       dirs.push(rest.shift()!);
@@ -3899,6 +3933,22 @@ function sameNamedRoadSpelling(a: string[], b: string[]): boolean {
     const rb = pb.rest.join("");
     if (ra && rb) {
       if (ra === rb && pa.dirs.join("\0") !== pb.dirs.join("\0")) {
+        return false;
+      }
+      // Sheikh Airport East vs Shaikh Airport West — honorific spelling
+      // makes ra!==rb, but both competing stems are airport. Do not let
+      // sheikh≈shaikh license East vs West. Joydebpur vs Joydevpur has no
+      // competing stem and still coreSameNamedRoadSpelling KEEP.
+      const restStemA = competingRoadStemOf(pa.rest);
+      const restStemB = competingRoadStemOf(pb.rest);
+      if (
+        restStemA &&
+        restStemB &&
+        isCompetingRoadStem(restStemA) &&
+        isCompetingRoadStem(restStemB) &&
+        coreSameNamedRoadSpelling(restStemA, restStemB) &&
+        pa.dirs.join("\0") !== pb.dirs.join("\0")
+      ) {
         return false;
       }
       return coreSameNamedRoadSpelling(ra, rb);
@@ -4161,13 +4211,41 @@ function extraNamedOnOther(places: string[], other: Candidate): boolean {
   );
 }
 
-function lastKeptRoadDirection(text: string): string | null {
+function isKeptRoadDirectionToken(token: string): boolean {
+  return ROAD_DIRECTION_KEEP.has(token) && !/^(?:naya|noya)$/.test(token);
+}
+
+/** Every KEEP compass in a skip run, including glued Northeast / Southeast.
+ *  lastKeptRoadDirection alone collapsed North East Airport and South East
+ *  Airport to the same East Airport extra. */
+function keptRoadDirections(text: string): string[] {
+  const dirs: string[] = [];
   const toks = text.toLowerCase().split(/[^a-z]+/).filter(Boolean);
-  for (let i = toks.length - 1; i >= 0; i--) {
-    const t = toks[i]!;
-    if (ROAD_DIRECTION_KEEP.has(t) && !/^(?:naya|noya)$/.test(t)) return t;
+  for (const t of toks) {
+    if (isKeptRoadDirectionToken(t)) {
+      dirs.push(t);
+      continue;
+    }
+    const glued = peelConcatenatedDirections(t);
+    if (glued.dirs.length === 0) continue;
+    for (const d of glued.dirs) {
+      if (isKeptRoadDirectionToken(d)) dirs.push(d);
+    }
+    if (glued.rest && isKeptRoadDirectionToken(glued.rest)) dirs.push(glued.rest);
   }
-  return null;
+  return dirs;
+}
+
+function lastKeptRoadDirection(text: string): string | null {
+  const dirs = keptRoadDirections(text);
+  return dirs.length > 0 ? dirs[dirs.length - 1]! : null;
+}
+
+/** East Joydebpur / East Mirpur / East Tejgaon after Airport Road. Not
+ *  South Auchpara / Dakkhin Khan / East Dhaka / East Sonda. */
+function isIssueNamedRoadRemainder(place: string): boolean {
+  if (isCompetingRoadStem(place)) return true;
+  return /^(?:joydebpur|joydevpur|mirpur|tejgaon|circular)$/.test(place);
 }
 
 function bareProperRoadPlaces(
@@ -4185,15 +4263,12 @@ function bareProperRoadPlaces(
     if (place.length < 3) return;
     const nextRaw = after.trimStart();
     const next =
-      nextRaw.match(/^([a-z]{3,})\b/)?.[1] ??
-      nextRaw.match(/^[\s,./_\u00AD\u200B\p{Pd}\u2212]+([a-z]{3,})\b/u)?.[1];
-    const skipDir = lastKeptRoadDirection(skipped);
-    const compassPlace =
-      ROAD_DIRECTION_KEEP.has(place) && !/^(?:naya|noya)$/.test(place);
-    const compassNext =
-      Boolean(next) &&
-      ROAD_DIRECTION_KEEP.has(next!) &&
-      !/^(?:naya|noya)$/.test(next!);
+      nextRaw.match(/^([a-z]{2,})(?![a-z])/)?.[1] ??
+      nextRaw.match(/^[\s,./_\u00AD\u200B\p{Pd}\u2212]+([a-z]{2,})(?![a-z])/u)?.[1];
+    const skipDirs = keptRoadDirections(skipped);
+    const skipDir = skipDirs.length > 0 ? skipDirs[skipDirs.length - 1]! : null;
+    const compassPlace = isKeptRoadDirectionToken(place);
+    const compassNext = Boolean(next) && isKeptRoadDirectionToken(next!);
     if (extraPlaceSkipToken(place) && !(compassPlace && next && next.length >= 3)) {
       return;
     }
@@ -4273,6 +4348,52 @@ function bareProperRoadPlaces(
       out.push({ digit: String(Number(digit)), places: [place, next] });
       return;
     }
+    // Honorific + compass + competing stem in any token order (Sheikh East
+    // Airport, East Sheikh Airport, Sheikh Airport East, stacked North East).
+    // CompassPlace+next used to drop the stem. Do not restore a global
+    // prefixed XOR (East Joydebpur vs West Joydevpur stays one premises).
+    const seq: string[] = [place];
+    {
+      let rest = after;
+      for (let n = 0; n < 6; n++) {
+        const hit = rest.match(
+          /^[\s,./_\u00AD\u200B\p{Pd}\u2212]+([a-z]{2,})(?![a-z])/u,
+        );
+        if (!hit) break;
+        const tok = hit[1]!;
+        if (/^(?:union|village|vill)$/.test(tok)) break;
+        if (ADMIN_TOKENS.has(tok) || HOUSING_CAMPUS_PLACES.has(tok)) break;
+        if (isThoroughfareWord(tok)) break;
+        if (/^(?:plot|plots|holding|house|hosue)$/.test(tok)) break;
+        seq.push(tok);
+        rest = rest.slice(hit[0].length);
+      }
+    }
+    const stemIdx = seq.findIndex((t) => isCompetingRoadStem(t));
+    if (stemIdx >= 0) {
+      const stem = seq[stemIdx]!;
+      const before = seq.slice(0, stemIdx);
+      const afterStem = seq.slice(stemIdx + 1);
+      const honorifics = before.filter((t) => isSpacedHonorificCandidate(t));
+      const dirsBefore = [
+        ...skipDirs,
+        ...before.filter((t) => isKeptRoadDirectionToken(t)),
+      ];
+      const dirsAfter = afterStem.filter((t) => isKeptRoadDirectionToken(t));
+      const leftoverBefore = before.filter(
+        (t) => !isSpacedHonorificCandidate(t) && !isKeptRoadDirectionToken(t),
+      );
+      if (
+        leftoverBefore.length === 0 &&
+        (honorifics.length > 0 || dirsBefore.length > 0 || dirsAfter.length > 0)
+      ) {
+        out.push({
+          digit: String(Number(digit)),
+          places: [...honorifics, ...dirsBefore, stem, ...dirsAfter],
+        });
+        return;
+      }
+    }
     // Prefix "East Mirpur" / trailing "Airport East" / "Mirpur East"
     // without a Road word. Compass + thana/campus is a named road
     // (East vs West Mirpur); bare Mirpur/Gulshan without a compass is not.
@@ -4286,22 +4407,21 @@ function bareProperRoadPlaces(
       out.push({ digit: String(Number(digit)), places: [place, next] });
       return;
     }
-    if (skipDir && !compassPlace) {
+    if (skipDirs.length > 0 && !compassPlace) {
       if (next && /^(?:union|village|vill)$/.test(next)) return;
       if (compassNext) {
-        out.push({ digit: String(Number(digit)), places: [skipDir, place, next!] });
+        out.push({ digit: String(Number(digit)), places: [...skipDirs, place, next!] });
         return;
       }
-      out.push({ digit: String(Number(digit)), places: [skipDir, place] });
+      out.push({ digit: String(Number(digit)), places: [...skipDirs, place] });
       return;
     }
     if (compassNext) {
       out.push({ digit: String(Number(digit)), places: [place, next!] });
       return;
     }
-    // Sheikh Airport East — honorific + competing stem + trailing compass.
-    // Minting the honorific alone lets sheikh≈shaikh extraNameShare merge
-    // two roads. Do not restore a global prefixed XOR.
+    // Sheikh Airport East — honorific + competing stem + trailing compass
+    // when the sequence walker did not already mint (leftover before stem).
     if (
       next &&
       isCompetingRoadStem(next) &&
@@ -4311,18 +4431,15 @@ function bareProperRoadPlaces(
     ) {
       const consumed = nextRaw.replace(
         new RegExp(
-          String.raw`^[\s,./_\u00AD\u200B\p{Pd}\u2212]*${next.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\b`,
+          String.raw`^[\s,./_\u00AD\u200B\p{Pd}\u2212]*${next.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?![a-z])`,
           "u",
         ),
         "",
       );
       const trail =
-        consumed.trimStart().match(/^([a-z]{3,})\b/)?.[1] ??
-        consumed.match(/^[\s,./_\u00AD\u200B\p{Pd}\u2212]+([a-z]{3,})\b/u)?.[1];
-      const trailCompass =
-        Boolean(trail) &&
-        ROAD_DIRECTION_KEEP.has(trail!) &&
-        !/^(?:naya|noya)$/.test(trail!);
+        consumed.trimStart().match(/^([a-z]{3,})(?![a-z])/)?.[1] ??
+        consumed.match(/^[\s,./_\u00AD\u200B\p{Pd}\u2212]+([a-z]{3,})(?![a-z])/u)?.[1];
+      const trailCompass = Boolean(trail) && isKeptRoadDirectionToken(trail!);
       out.push({
         digit: String(Number(digit)),
         places: trailCompass ? [place, next, trail!] : [place, next],
@@ -4340,7 +4457,7 @@ function bareProperRoadPlaces(
   };
   for (const m of s.matchAll(
     new RegExp(
-      String.raw`${EXTRA_DIGIT_LEAD}((?:no\s*[:.\-]?|number|#)\s*)?(\d{1,3})${EXTRA_DIGIT_UNIT}(${EXTRA_DIGIT_GLUE})(${EXTRA_PLACE_SKIP_RE})([a-z]{3,})\b`,
+      String.raw`${EXTRA_DIGIT_LEAD}((?:no\s*[:.\-]?|number|#)\s*)?(\d{1,3})${EXTRA_DIGIT_UNIT}(${EXTRA_DIGIT_GLUE})(${EXTRA_PLACE_SKIP_RE})([a-z]{3,})(?![a-z])`,
       EXTRA_RE_FLAGS,
     ),
   )) {
@@ -4362,7 +4479,7 @@ function bareProperRoadPlaces(
   }
   for (const m of s.matchAll(
     new RegExp(
-      String.raw`${PLOT_DIGIT_LEAD}(\d{1,3})\s*,\s*(${EXTRA_PLACE_SKIP_RE})([a-z]{3,})\b`,
+      String.raw`${PLOT_DIGIT_LEAD}(\d{1,3})\s*,\s*(${EXTRA_PLACE_SKIP_RE})([a-z]{3,})(?![a-z])`,
       EXTRA_RE_FLAGS,
     ),
   )) {
@@ -4446,25 +4563,73 @@ function bareProperRoadPlaces(
         seenThoroughfare = true;
         continue;
       }
-      // Leftover after Airport Road / Kazi Avenue is not a second extra
-      // at this digit (Green leftover, Hemayetpur after Singair Road).
-      if (seenThoroughfare) continue;
+      // Leftover after Airport Road is not a second extra (Green leftover,
+      // Hemayetpur after Singair Road) unless it is a compass plus an
+      // ISSUE-named locality (East Joydebpur / East Mirpur / East Tejgaon).
+      // South Auchpara / Dakkhin Khan / East Dhaka / East Sonda stay skipped.
+      if (seenThoroughfare) {
+        let field = trimmed;
+        const leftoverDirs: string[] = [];
+        for (;;) {
+          const h = field.match(/^([a-z]{3,})(?![a-z])/);
+          if (!h) break;
+          const tok = h[1]!;
+          if (isKeptRoadDirectionToken(tok)) {
+            leftoverDirs.push(tok);
+            field = field
+              .slice(h[0].length)
+              .replace(/^[\s./_\u00AD\u200B\p{Pd}\u2212]+/u, "");
+            continue;
+          }
+          const glued = peelConcatenatedDirections(tok);
+          if (
+            glued.dirs.length > 0 &&
+            glued.dirs.every((d) => isKeptRoadDirectionToken(d)) &&
+            (glued.rest.length === 0 || isKeptRoadDirectionToken(glued.rest))
+          ) {
+            leftoverDirs.push(...glued.dirs.filter((d) => isKeptRoadDirectionToken(d)));
+            if (glued.rest && isKeptRoadDirectionToken(glued.rest)) {
+              leftoverDirs.push(glued.rest);
+            }
+            field = field
+              .slice(h[0].length)
+              .replace(/^[\s./_\u00AD\u200B\p{Pd}\u2212]+/u, "");
+            continue;
+          }
+          break;
+        }
+        const name = field.match(/^([a-z]{3,})(?![a-z])/)?.[1];
+        if (
+          leftoverDirs.length > 0 &&
+          name &&
+          isIssueNamedRoadRemainder(name) &&
+          !HOUSING_CAMPUS_PLACES.has(name)
+        ) {
+          const afterPlace = field.slice(name.length);
+          const restFields = afterFields.slice(fi + 1).join(",");
+          const afterForPush = restFields ? `${afterPlace},${restFields}` : afterPlace;
+          const before = out.length;
+          push(m[2]!, name, ",", afterForPush, leftoverDirs.join(" "));
+          if (out.length > before) break;
+        }
+        continue;
+      }
       // Union - Telulzora is the union title plus the union name, not a
       // competing extra. Skip the kind word and the union's own name so
       // hyphen and comma spellings both walk on to Hemayetpur.
       // "Village Road" already continued above as a thoroughfare.
       if (
-        /^(?:union|mouza|mouja|thana|upazila|upazilla|village|vill|post|gpo)\b/.test(
+        /^(?:union|mouza|mouja|thana|upazila|upazilla|village|vill|post|gpo)(?![a-z])/.test(
           trimmed,
         )
       ) {
         allowMint = true;
         const kind = trimmed.match(
-          /^(union|mouza|mouja|thana|upazila|upazilla|village|vill|post|gpo)\b/,
+          /^(union|mouza|mouja|thana|upazila|upazilla|village|vill|post|gpo)(?![a-z])/,
         )![1]!;
         const rest = trimmed
           .replace(
-            /^(?:union|mouza|mouja|thana|upazila|upazilla|village|vill|post|gpo)\b[\s./_\u00AD\u200B\p{Pd}\u2212]*/u,
+            /^(?:union|mouza|mouja|thana|upazila|upazilla|village|vill|post|gpo)(?![a-z])[\s./_\u00AD\u200B\p{Pd}\u2212]*/u,
             "",
           )
           .replace(/^(?:(?:of|the)\s+)+/u, "");
@@ -4692,17 +4857,19 @@ function primaryTitledNamesFromDisplay(display: string): string[] {
   };
   const title = String.raw`(?:union|village|vill)`;
   const titleSep = String.raw`[\s,./_\u00AD\u200B\p{Pd}\u2212]`;
+  const titleBound = String.raw`(?<![a-z])${title}(?![a-z])`;
   // Title-after "Dogri Union, Hemayetpur" and hyphen "Dogri-Union,
   // Hemayetpur" must not capture trailing Hemayetpur as a union primary
   // (that is afterLead). Negative lookbehind skips a title that already
   // has its name in front, including Dogri-Union / Dogri/Union.
+  // `_` is a word character, so `\bunion\b` misses Union_Telulzora.
   const lead = new RegExp(
-    String.raw`(?<![a-z]{3,}${titleSep}+)(?:the\s+)?\b${title}\b${titleSep}*,?\s*(?:(?:of|the)\s+)*([a-z]{3,})\b`,
+    String.raw`(?<![a-z]{3,}${titleSep}+)(?:the\s+)?${titleBound}${titleSep}*,?\s*(?:(?:of|the)\s+)*([a-z]{3,})(?![a-z])`,
     EXTRA_RE_FLAGS,
   );
   for (const m of s.matchAll(lead)) push(m[1]!);
   const trail = new RegExp(
-    String.raw`\b([a-z]{3,})${titleSep}+${title}\b`,
+    String.raw`([a-z]{3,})${titleSep}+${titleBound}`,
     EXTRA_RE_FLAGS,
   );
   for (const m of s.matchAll(trail)) push(m[1]!);
@@ -4722,7 +4889,7 @@ function unionNamesFromDisplay(display: string): string[] {
   // not Dhaka (ADMIN skip). Unmatched Dogri vs Telulzora is XORed from
   // primaries; afterLead must not license that share.
   const afterLead = new RegExp(
-    String.raw`(?:the\s+)?\b${title}\b[\s./_\u00AD\u200B\p{Pd}\u2212]*,?\s*(?:(?:of|the)\s+)*[a-z]{3,}\b((?:[\s,./_\u00AD\u200B\p{Pd}\u2212]+[a-z]{3,}\b)*)`,
+    String.raw`(?:the\s+)?(?<![a-z])${title}(?![a-z])[\s./_\u00AD\u200B\p{Pd}\u2212]*,?\s*(?:(?:of|the)\s+)*[a-z]{3,}(?![a-z])((?:[\s,./_\u00AD\u200B\p{Pd}\u2212]+[a-z]{3,}(?![a-z]))*)`,
     EXTRA_RE_FLAGS,
   );
   for (const m of s.matchAll(afterLead)) {
@@ -4764,7 +4931,7 @@ function unionBuildingFromDisplay(display: string): boolean {
 
 function hasVillageKindTitle(display: string): boolean {
   const s = rewriteHouseOffice(display).toLowerCase();
-  return new RegExp(String.raw`(?:the\s+)?\b(?:village|vill)\b`, "u").test(s);
+  return new RegExp(String.raw`(?:the\s+)?(?<![a-z])(?:village|vill)(?![a-z])`, "u").test(s);
 }
 
 function isTelulzoraUnionName(name: string): boolean {
