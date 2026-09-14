@@ -2265,6 +2265,174 @@ describe("Locations Also recorded as — rendered HTML boundary", () => {
         otherName: "Plot 10 same-field leftover Sheikh East Airport no comma",
       },
       {
+        left: row("Plot # 10, Airport Road, Airport Sheikh East Joydebpur, Sonda", "BGMEA", "factory"),
+        right: row("Plot # 10, Airport Road, Airpark Shaikh West Joydebpur, Sonda", "BKMEA", "factory"),
+        keepRe: /Airport Sheikh East Joydebpur/i,
+        otherRe: /Airpark Shaikh West Joydebpur/i,
+        otherName: "Plot 10 leftover honorific-after-stem Airport Sheikh East Joydebpur",
+      },
+      {
+        left: row("Plot # 10, Airport Road, Airport Sheikh East Joydebpur, Dhaka", "BGMEA", "factory"),
+        right: row("Plot # 10, Airport Road, Airpark Shaikh West Joydebpur, Dhaka", "BKMEA", "factory"),
+        keepRe: /Airport Sheikh East Joydebpur/i,
+        otherRe: /Airpark Shaikh West Joydebpur/i,
+        otherName: "Plot 10 leftover honorific-after-stem Joydebpur at Dhaka",
+      },
+      {
+        left: row("Plot # 10, Airport Road, East Airport Joydebpur, Sonda", "BGMEA", "factory"),
+        right: row("Plot # 10, Airport Road, West Airport Joydebpur, Sonda", "BKMEA", "factory"),
+        keepRe: /East Airport Joydebpur/i,
+        otherRe: /West Airport Joydebpur/i,
+        otherName: "Plot 10 leftover East Airport Joydebpur vs West Airport Joydebpur",
+      },
+      {
+        left: row("Plot # 10, Airport Road, Joydebpur East Airport, Sonda", "BGMEA", "factory"),
+        right: row("Plot # 10, Airport Road, Joydebpur West Airpark, Sonda", "BKMEA", "factory"),
+        keepRe: /Joydebpur East Airport/i,
+        otherRe: /Joydebpur West Airpark/i,
+        otherName: "Plot 10 leftover Joydebpur East Airport vs Joydebpur West Airpark",
+      },
+      {
+        left: row("Plot # 10, Airport Road, Sheikh East Joydebpur Airport, Sonda", "BGMEA", "factory"),
+        right: row("Plot # 10, Airport Road, Shaikh West Joydebpur Airpark, Sonda", "BKMEA", "factory"),
+        keepRe: /Sheikh East Joydebpur Airport/i,
+        otherRe: /Shaikh West Joydebpur Airpark/i,
+        otherName: "Plot 10 leftover Sheikh East Joydebpur Airport vs Shaikh West Joydebpur Airpark",
+      },
+      {
+        left: row("Plot # 10, Airport Road, East Mirpur Joydebpur, Sonda", "BGMEA", "factory"),
+        right: row("Plot # 10, Airport Road, West Mirpur Joydebpur, Sonda", "BKMEA", "factory"),
+        keepRe: /East Mirpur Joydebpur/i,
+        otherRe: /West Mirpur Joydebpur/i,
+        otherName: "Plot 10 leftover East Mirpur Joydebpur vs West Mirpur Joydebpur",
+      },
+      {
+        left: row("Plot # 10, Airport Road, East Green Joydebpur, Sonda", "BGMEA", "factory"),
+        right: row("Plot # 10, Airport Road, West Green Joydebpur, Sonda", "BKMEA", "factory"),
+        keepRe: /East Green Joydebpur/i,
+        otherRe: /West Green Joydebpur/i,
+        otherName: "Plot 10 leftover East Green Joydebpur vs West Green Joydebpur",
+      },
+      {
+        left: row("Plot # 10, Airport Road, North East Airport Joydebpur, Sonda", "BGMEA", "factory"),
+        right: row("Plot # 10, Airport Road, South East Airport Joydebpur, Sonda", "BKMEA", "factory"),
+        keepRe: /North East Airport Joydebpur/i,
+        otherRe: /South East Airport Joydebpur/i,
+        otherName: "Plot 10 leftover spaced North East Airport Joydebpur",
+      },
+      {
+        left: row("Plot # 10, Airport Road, Northeast Joydebpur, Sonda", "BGMEA", "factory"),
+        right: row("Plot # 10, Airport Road, Southeast Joydebpur, Sonda", "BKMEA", "factory"),
+        keepRe: /Northeast Joydebpur/i,
+        otherRe: /Southeast Joydebpur/i,
+        otherName: "Plot 10 leftover Northeast Joydebpur vs Southeast Joydebpur",
+      },
+      {
+        left: row("Plot # 10, Airport Road, Northeast Joydebpur, Dhaka", "BGMEA", "factory"),
+        right: row("Plot # 10, Airport Road, Southeast Joydebpur, Dhaka", "BKMEA", "factory"),
+        keepRe: /Northeast Joydebpur/i,
+        otherRe: /Southeast Joydebpur/i,
+        otherName: "Plot 10 leftover Northeast Joydebpur vs Southeast at Dhaka",
+      },
+      {
+        left: row("Plot # 10, Airport Road, Northeast Airport, Dhaka", "BGMEA", "factory"),
+        right: row("Plot # 10, Airport Road, Southeast Airport, Dhaka", "BKMEA", "factory"),
+        keepRe: /Northeast Airport/i,
+        otherRe: /Southeast Airport/i,
+        otherName: "Plot 10 leftover Northeast Airport vs Southeast Airport",
+      },
+      {
+        left: row("Plot # 10, Airport Road, Northeast Airport, Dhaka", "BGMEA", "factory"),
+        right: row("Plot # 10, Airport Road, Southeast Airpark, Dhaka", "BKMEA", "factory"),
+        keepRe: /Northeast Airport/i,
+        otherRe: /Southeast Airpark/i,
+        otherName: "Plot 10 leftover Northeast Airport vs Southeast Airpark",
+      },
+      {
+        left: row("Plot # 10, Airport Road, Northeast Mirpur, Sonda", "BGMEA", "factory"),
+        right: row("Plot # 10, Airport Road, Southeast Mirpur, Sonda", "BKMEA", "factory"),
+        keepRe: /Northeast Mirpur/i,
+        otherRe: /Southeast Mirpur/i,
+        otherName: "Plot 10 leftover Northeast Mirpur vs Southeast Mirpur",
+      },
+      {
+        left: row("Plot # 10, Airport Road, Northwest Joydebpur, Sonda", "BGMEA", "factory"),
+        right: row("Plot # 10, Airport Road, Southwest Joydebpur, Sonda", "BKMEA", "factory"),
+        keepRe: /Northwest Joydebpur/i,
+        otherRe: /Southwest Joydebpur/i,
+        otherName: "Plot 10 leftover Northwest Joydebpur vs Southwest Joydebpur",
+      },
+      {
+        left: row("Plot # 10, Airport Road Northeast Joydebpur, Sonda", "BGMEA", "factory"),
+        right: row("Plot # 10, Airport Road Southeast Joydebpur, Sonda", "BKMEA", "factory"),
+        keepRe: /Airport Road Northeast Joydebpur/i,
+        otherRe: /Airport Road Southeast Joydebpur/i,
+        otherName: "Plot 10 same-field Airport Road Northeast Joydebpur vs Southeast",
+      },
+      {
+        left: row("Plot # 10, Airport Road_Northeast Joydebpur, Sonda", "BGMEA", "factory"),
+        right: row("Plot # 10, Airport Road_Southeast Joydebpur, Sonda", "BKMEA", "factory"),
+        keepRe: /Airport Road_Northeast Joydebpur/i,
+        otherRe: /Airport Road_Southeast Joydebpur/i,
+        otherName: "Plot 10 Airport Road_Northeast Joydebpur vs Road_Southeast leftover",
+      },
+      {
+        left: row("Plot # 10, Airport Road, Northeast Mirpur Road, Sonda", "BGMEA", "factory"),
+        right: row("Plot # 10, Airport Road, Southeast Mirpur Road, Sonda", "BKMEA", "factory"),
+        keepRe: /Northeast Mirpur Road/i,
+        otherRe: /Southeast Mirpur Road/i,
+        otherName: "Plot 10 leftover restated Northeast Mirpur Road vs Southeast",
+      },
+      {
+        left: row("Plot # 10, Airport Road, Sheikh Northeast Airport, Dhaka", "BGMEA", "factory"),
+        right: row("Plot # 10, Airport Road, Shaikh Southeast Airpark, Dhaka", "BKMEA", "factory"),
+        keepRe: /Sheikh Northeast Airport/i,
+        otherRe: /Shaikh Southeast Airpark/i,
+        otherName: "Plot 10 leftover Sheikh Northeast Airport vs Shaikh Southeast Airpark",
+      },
+      {
+        left: row("Plot # 10, Airport Road, New Northeast Airport, Dhaka", "BGMEA", "factory"),
+        right: row("Plot # 10, Airport Road, Old Southeast Airport, Dhaka", "BKMEA", "factory"),
+        keepRe: /New Northeast Airport/i,
+        otherRe: /Old Southeast Airport/i,
+        otherName: "Plot 10 leftover New Northeast Airport vs Old Southeast Airport",
+      },
+      {
+        left: row("Plot # 10, Airport Road, Inner Northeast Airport, Dhaka", "BGMEA", "factory"),
+        right: row("Plot # 10, Airport Road, Outer Southeast Airport, Dhaka", "BKMEA", "factory"),
+        keepRe: /Inner Northeast Airport/i,
+        otherRe: /Outer Southeast Airport/i,
+        otherName: "Plot 10 leftover Inner Northeast vs Outer Southeast Airport",
+      },
+      {
+        left: row("Plot # 10, Airport Road, Northeast Joydebpur, Sonda", "BGMEA", "factory"),
+        right: row("Plot # 10, Airport Road, West Joydebpur, Sonda", "BKMEA", "factory"),
+        keepRe: /Northeast Joydebpur/i,
+        otherRe: /West Joydebpur/i,
+        otherName: "Plot 10 leftover Northeast Joydebpur vs West Joydebpur",
+      },
+      {
+        left: row("Plot # 10, Airport Road, North East Joydebpur, Sonda", "BGMEA", "factory"),
+        right: row("Plot # 10, Airport Road, Southeast Joydebpur, Sonda", "BKMEA", "factory"),
+        keepRe: /North East Joydebpur/i,
+        otherRe: /Southeast Joydebpur/i,
+        otherName: "Plot 10 leftover spaced North East Joydebpur vs oneword Southeast",
+      },
+      {
+        left: row("Plot # 10, Airport Road, Northeast Joydebpur, Sonda", "BGMEA", "factory"),
+        right: row("Plot # 10, Airport Road, South East Joydebpur, Sonda", "BKMEA", "factory"),
+        keepRe: /Northeast Joydebpur/i,
+        otherRe: /South East Joydebpur/i,
+        otherName: "Plot 10 leftover Northeast Joydebpur vs spaced South East Joydebpur",
+      },
+      {
+        left: row("Plot # 10, Airport Road, North East Joydebpur, Sonda", "BGMEA", "factory"),
+        right: row("Plot # 10, Airport Road, South East Joydebpur, Sonda", "BKMEA", "factory"),
+        keepRe: /North East Joydebpur/i,
+        otherRe: /South East Joydebpur/i,
+        otherName: "Plot 10 leftover spaced North East Joydebpur vs South East Joydebpur",
+      },
+      {
         left: row("Plot # 10, Sheikh_Airport East, Dhaka", "BGMEA", "factory"),
         right: row("Plot # 10, Shaikh_Airpark West, Dhaka", "BKMEA", "factory"),
         keepRe: /Sheikh_Airport East/i,
@@ -2899,6 +3067,183 @@ describe("Locations Also recorded as — rendered HTML boundary", () => {
         }
       }
     }
+  });
+
+  it("keeps leftover Airpark Shaikh West Joydebpur out of Also of Airport Sheikh East Joydebpur", () => {
+    const east = row(
+      "Plot # 10, Airport Road, Airport Sheikh East Joydebpur, Sonda",
+      "BGMEA",
+      "factory",
+    );
+    const west = row(
+      "Plot # 10, Airport Road, Airpark Shaikh West Joydebpur, Sonda",
+      "BKMEA",
+      "factory",
+    );
+    for (const ordered of [
+      [east, west],
+      [west, east],
+    ]) {
+      const html = renderAddressRows(ordered);
+      assert.equal(
+        mergeUniqueLocations(ordered).length,
+        2,
+        "leftover honorific-after-stem Joydebpur matcher",
+      );
+      assert.equal((html.match(/data-location-row=""/g) ?? []).length, 2);
+      for (const chunk of locationChunks(html)) {
+        const disp = displayHtml(chunk);
+        const also = chunk.match(/<li[^>]*data-also-recorded-as=""[^>]*>[\s\S]*?<\/li>/g) ?? [];
+        const alsoText = also.join(" ");
+        if (/Airport Sheikh East Joydebpur/i.test(disp) && !/Airpark Shaikh West Joydebpur/i.test(disp)) {
+          assert.ok(
+            !/Airpark Shaikh West Joydebpur/i.test(alsoText),
+            "Airpark must not sit in Also of leftover Airport Sheikh East Joydebpur",
+          );
+        }
+        if (/Airpark Shaikh West Joydebpur/i.test(disp)) {
+          assert.ok(
+            !/Airport Sheikh East Joydebpur/i.test(alsoText),
+            "Airport must not sit in Also of leftover Airpark Shaikh West Joydebpur",
+          );
+        }
+      }
+    }
+  });
+
+  it("keeps leftover Southeast Joydebpur out of Also of Northeast Joydebpur", () => {
+    const north = row("Plot # 10, Airport Road, Northeast Joydebpur, Sonda", "BGMEA", "factory");
+    const south = row("Plot # 10, Airport Road, Southeast Joydebpur, Sonda", "BKMEA", "factory");
+    for (const ordered of [
+      [north, south],
+      [south, north],
+    ]) {
+      const html = renderAddressRows(ordered);
+      assert.equal(mergeUniqueLocations(ordered).length, 2, "leftover Northeast vs Southeast Joydebpur matcher");
+      assert.equal((html.match(/data-location-row=""/g) ?? []).length, 2);
+      for (const chunk of locationChunks(html)) {
+        const disp = displayHtml(chunk);
+        const also = chunk.match(/<li[^>]*data-also-recorded-as=""[^>]*>[\s\S]*?<\/li>/g) ?? [];
+        const alsoText = also.join(" ");
+        if (/Northeast Joydebpur/i.test(disp) && !/Southeast Joydebpur/i.test(disp)) {
+          assert.ok(
+            !/Southeast Joydebpur/i.test(alsoText),
+            "Southeast must not sit in Also of leftover Northeast Joydebpur",
+          );
+        }
+        if (/Southeast Joydebpur/i.test(disp)) {
+          assert.ok(
+            !/Northeast Joydebpur/i.test(alsoText),
+            "Northeast must not sit in Also of leftover Southeast Joydebpur",
+          );
+        }
+      }
+    }
+  });
+
+  it("keeps leftover honorific-after-stem Airpark out of Also of Airport with Green as its own row", () => {
+    const east = row(
+      "Plot # 10, Airport Road, Airport Sheikh East Joydebpur, Sonda",
+      "BGMEA",
+      "factory",
+    );
+    const west = row(
+      "Plot # 10, Airport Road, Airpark Shaikh West Joydebpur, Sonda",
+      "BKMEA",
+      "factory",
+    );
+    const green = row("Plot # 10, Green Road, Dhaka", "OEKO_TEX", "factory");
+    const perms = [
+      [east, west, green],
+      [east, green, west],
+      [west, east, green],
+      [west, green, east],
+      [green, east, west],
+      [green, west, east],
+    ];
+    for (const ordered of perms) {
+      const html = renderAddressRows(ordered);
+      assert.equal(
+        mergeUniqueLocations(ordered).length,
+        3,
+        "leftover honorific-after-stem Joydebpur+Green matcher",
+      );
+      assert.equal((html.match(/data-location-row=""/g) ?? []).length, 3);
+      for (const chunk of locationChunks(html)) {
+        const disp = displayHtml(chunk);
+        const also = chunk.match(/<li[^>]*data-also-recorded-as=""[^>]*>[\s\S]*?<\/li>/g) ?? [];
+        const alsoText = also.join(" ");
+        if (/Airport Sheikh East Joydebpur/i.test(disp) && !/Airpark Shaikh West Joydebpur/i.test(disp)) {
+          assert.ok(
+            !/Airpark Shaikh West Joydebpur/i.test(alsoText),
+            "Airpark must not sit in Also of leftover Airport with Green",
+          );
+        }
+        if (/Airpark Shaikh West Joydebpur/i.test(disp)) {
+          assert.ok(
+            !/Airport Sheikh East Joydebpur/i.test(alsoText),
+            "Airport must not sit in Also of leftover Airpark with Green",
+          );
+        }
+      }
+    }
+  });
+
+  it("keeps leftover Southeast Joydebpur out of Also of Northeast with Green as its own row", () => {
+    const north = row("Plot # 10, Airport Road, Northeast Joydebpur, Sonda", "BGMEA", "factory");
+    const south = row("Plot # 10, Airport Road, Southeast Joydebpur, Sonda", "BKMEA", "factory");
+    const green = row("Plot # 10, Green Road, Dhaka", "OEKO_TEX", "factory");
+    const perms = [
+      [north, south, green],
+      [north, green, south],
+      [south, north, green],
+      [south, green, north],
+      [green, north, south],
+      [green, south, north],
+    ];
+    for (const ordered of perms) {
+      const html = renderAddressRows(ordered);
+      assert.equal(
+        mergeUniqueLocations(ordered).length,
+        3,
+        "leftover Northeast Joydebpur+Southeast+Green matcher",
+      );
+      assert.equal((html.match(/data-location-row=""/g) ?? []).length, 3);
+      for (const chunk of locationChunks(html)) {
+        const disp = displayHtml(chunk);
+        const also = chunk.match(/<li[^>]*data-also-recorded-as=""[^>]*>[\s\S]*?<\/li>/g) ?? [];
+        const alsoText = also.join(" ");
+        if (/Northeast Joydebpur/i.test(disp) && !/Southeast Joydebpur/i.test(disp)) {
+          assert.ok(
+            !/Southeast Joydebpur/i.test(alsoText),
+            "Southeast must not sit in Also of leftover Northeast with Green",
+          );
+        }
+        if (/Southeast Joydebpur/i.test(disp)) {
+          assert.ok(
+            !/Northeast Joydebpur/i.test(alsoText),
+            "Northeast must not sit in Also of leftover Southeast with Green",
+          );
+        }
+      }
+    }
+  });
+
+  it("keeps leftover West Joydevpur in Also recorded as of leftover East Joydebpur", () => {
+    assertMergedAddressRowHtml(
+      row("Plot # 10, Airport Road, East Joydebpur, Sonda", "BGMEA", "factory"),
+      row("Plot # 10, Airport Road, West Joydevpur, Sonda", "BKMEA", "factory"),
+      /East Joydebpur|West Joydevpur/i,
+      /East Joydebpur|West Joydevpur/i,
+      "leftover East Joydebpur vs West Joydevpur KEEP spelling",
+    );
+    assertMergedAddressRowHtml(
+      row("Plot # 10, Airport Road, Sheikh East Joydebpur, Sonda", "BGMEA", "factory"),
+      row("Plot # 10, Airport Road, Shaikh West Joydevpur, Sonda", "BKMEA", "factory"),
+      /Sheikh East Joydebpur|Shaikh West Joydevpur/i,
+      /Sheikh East Joydebpur|Shaikh West Joydevpur/i,
+      "leftover Sheikh East Joydebpur vs Shaikh West Joydevpur KEEP spelling",
+    );
   });
 
   it("keeps Village Dogri off the Telulzora-Union row that wraps Village Hemayetpur", () => {

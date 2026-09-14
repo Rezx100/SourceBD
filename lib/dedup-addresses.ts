@@ -4264,27 +4264,49 @@ function isIssueNamedRoadRemainder(place: string): boolean {
   return isLeftoverNamedRemainder(place);
 }
 
+/** peelConcatenatedDirections("northeast") yields dirs=[north] rest=east.
+ *  Fold a leftover compass rest so Northeast Joydebpur mints like
+ *  spaced North East Joydebpur. EastJoydebpur still yields name=joydebpur. */
+function foldGluedDirectionRest(glued: {
+  dirs: string[];
+  rest: string;
+}): { dirs: string[]; rest: string } {
+  const dirs = [...glued.dirs];
+  let rest = glued.rest;
+  if (
+    rest &&
+    isKeptRoadDirectionToken(rest) &&
+    dirs.every((d) => isKeptRoadDirectionToken(d))
+  ) {
+    dirs.push(rest);
+    rest = "";
+  }
+  return { dirs, rest };
+}
+
 function peelGluedLeftoverToken(
   tok: string,
-): { honorifics: string[]; dirs: string[]; name: string } | null {
-  const glued = peelConcatenatedDirections(tok);
-  if (
-    glued.dirs.length > 0 &&
-    glued.dirs.every((d) => isKeptRoadDirectionToken(d)) &&
-    isLeftoverNamedRemainder(glued.rest)
-  ) {
-    return { honorifics: [], dirs: glued.dirs, name: glued.rest };
+): { honorifics: string[]; dirs: string[]; name: string | null } | null {
+  const glued = foldGluedDirectionRest(peelConcatenatedDirections(tok));
+  if (glued.dirs.length > 0 && glued.dirs.every((d) => isKeptRoadDirectionToken(d))) {
+    if (isLeftoverNamedRemainder(glued.rest)) {
+      return { honorifics: [], dirs: glued.dirs, name: glued.rest };
+    }
+    if (glued.rest === "") {
+      return { honorifics: [], dirs: glued.dirs, name: null };
+    }
   }
   for (let n = 2; n <= 10 && n < tok.length - 3; n++) {
     const prefix = tok.slice(0, n);
     if (!isSpacedHonorificCandidate(prefix)) continue;
-    const inner = peelConcatenatedDirections(tok.slice(n));
-    if (
-      inner.dirs.length > 0 &&
-      inner.dirs.every((d) => isKeptRoadDirectionToken(d)) &&
-      isLeftoverNamedRemainder(inner.rest)
-    ) {
-      return { honorifics: [prefix], dirs: inner.dirs, name: inner.rest };
+    const inner = foldGluedDirectionRest(peelConcatenatedDirections(tok.slice(n)));
+    if (inner.dirs.length > 0 && inner.dirs.every((d) => isKeptRoadDirectionToken(d))) {
+      if (isLeftoverNamedRemainder(inner.rest)) {
+        return { honorifics: [prefix], dirs: inner.dirs, name: inner.rest };
+      }
+      if (inner.rest === "") {
+        return { honorifics: [prefix], dirs: inner.dirs, name: null };
+      }
     }
     const rest = tok.slice(n);
     if (isLeftoverNamedRemainder(rest)) {
@@ -4302,6 +4324,7 @@ function peelGluedLeftoverToken(
 function peelLeftoverIssueRoad(field: string): {
   dirs: string[];
   name: string | null;
+  names: string[];
   after: string;
   sawHonorific: boolean;
 } {
@@ -4334,18 +4357,29 @@ function peelLeftoverIssueRoad(field: string): {
     if (glued) {
       if (glued.honorifics.length > 0) sawHonorific = true;
       dirs.push(...glued.dirs);
-      leftoverToks.push(glued.name);
+      if (glued.name) leftoverToks.push(glued.name);
       continue;
     }
     leftoverToks.push(tok);
   }
-  if (leftoverToks.length === 1 && isLeftoverNamedRemainder(leftoverToks[0]!)) {
-    return { dirs, name: leftoverToks[0]!, after: rest, sawHonorific };
+  // Honorific-after-stem plus Joydebpur, or compass plus two ISSUE names,
+  // still leftover-mints. Village remainders (South Auchpara) stay in after.
+  if (
+    leftoverToks.length >= 1 &&
+    leftoverToks.every((t) => isLeftoverNamedRemainder(t))
+  ) {
+    return {
+      dirs,
+      name: leftoverToks[0]!,
+      names: leftoverToks,
+      after: rest,
+      sawHonorific,
+    };
   }
   if (leftoverToks.length > 0) {
     rest = `${leftoverToks.join(" ")}${rest ? ` ${rest}` : ""}`;
   }
-  return { dirs, name: null, after: rest, sawHonorific };
+  return { dirs, name: null, names: [], after: rest, sawHonorific };
 }
 
 function bareProperRoadPlaces(
@@ -4662,21 +4696,24 @@ function bareProperRoadPlaces(
       const mintPeeledLeftover = (
         peeled: ReturnType<typeof peelLeftoverIssueRoad>,
       ): boolean => {
+        const names =
+          peeled.names.length > 0
+            ? peeled.names
+            : peeled.name
+              ? [peeled.name]
+              : [];
         if (
-          !peeled.name ||
-          !isLeftoverNamedRemainder(peeled.name) ||
+          names.length === 0 ||
+          !names.every((n) => isLeftoverNamedRemainder(n)) ||
           (peeled.dirs.length === 0 && !peeled.sawHonorific)
         ) {
           return false;
         }
-        let afterPlace = peeled.after.replace(
-          new RegExp(String.raw`^[\s./_\u00AD\u200B\p{Pd}\u2212]*${THOROUGHFARE_ALT}`),
-          "",
-        );
-        const restFields = afterFields.slice(fi + 1).join(",");
-        const afterForPush = restFields ? `${afterPlace},${restFields}` : afterPlace;
         const before = out.length;
-        push(m[2]!, peeled.name, ",", afterForPush, peeled.dirs.join(" "));
+        out.push({
+          digit: String(Number(m[2]!)),
+          places: [...peeled.dirs, ...names],
+        });
         return out.length > before;
       };
       const mintLeftoverNamedRoad = (): boolean =>
