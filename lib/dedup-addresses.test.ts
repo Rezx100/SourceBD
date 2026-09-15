@@ -9297,10 +9297,166 @@ describe("mergeUniqueLocations — empty rows, duplicates, overview buckets", ()
       "KEEP Plot 10 leftover Green after Nazrul vs leftover Green, Nazrul",
     );
     assertBothOrders(
+      row("Nazrul Avenue, Green, Dhaka"),
+      row("Green, Nazrul, Dhaka"),
+      2,
+      "leftover Nazrul Avenue leftover Green vs leftover Green, Nazrul Dhaka",
+    );
+    assertBothOrders(
+      row("Kazi Nazrul Islam Avenue, Green, Dhaka"),
+      row("Green, Nazrul, Dhaka"),
+      2,
+      "leftover Kazi Nazrul leftover Green vs leftover Green, Nazrul Dhaka",
+    );
+    assertBothOrders(
+      row("Kazi Nazrul Islam Avenue, Green, Dhaka"),
+      row("Green, Dhaka"),
+      2,
+      "leftover Kazi Nazrul leftover Green vs leftover PRIMARY Green Dhaka",
+    );
+    assertBothOrders(
+      row("Nazrul Avenue, Green, Savar"),
+      row("Green, Savar"),
+      2,
+      "leftover Nazrul Avenue leftover Green vs leftover PRIMARY Green Savar",
+    );
+    assertBothOrders(
+      row("Mirpur Road, Green, Dhaka"),
+      row("Green, Mirpur, Dhaka"),
+      2,
+      "leftover Mirpur Road leftover Green vs leftover Green, Mirpur Dhaka",
+    );
+    assertBothOrders(
+      row("Circular Road, Green, Dhaka"),
+      row("Green, Circular, Dhaka"),
+      2,
+      "leftover Circular Road leftover Green vs leftover Green, Circular Dhaka",
+    );
+    assertBothOrders(
+      row("Elephant Road, Green, Dhaka"),
+      row("Green, Dhaka"),
+      2,
+      "leftover Elephant Road leftover Green vs leftover PRIMARY Green Dhaka",
+    );
+    assertBothOrders(
+      row("Dit Road, Green, Dhaka"),
+      row("Green, Dhaka"),
+      2,
+      "leftover Dit Road leftover Green vs leftover PRIMARY Green Dhaka",
+    );
+    assertBothOrders(
+      row("Airport Link Road, Green, Dhaka"),
+      row("Green, Dhaka"),
+      2,
+      "leftover Airport Link Road leftover Green vs leftover PRIMARY Green Dhaka",
+    );
+    assertBothOrders(
+      row("House 10, Nazrul Avenue, Green, Dhaka"),
+      row("House 10, Green, Nazrul, Dhaka"),
+      2,
+      "leftover House 10 leftover Nazrul leftover Green vs leftover Green, Nazrul",
+    );
+    assertBothOrders(
+      row("House 10, Green Street, Sonda"),
+      row("House 10, Airport, Sonda"),
+      2,
+      "leftover House 10 leftover Green Street vs leftover Airport Sonda",
+    );
+    assertBothOrders(
+      row("House 10, Green Road, Sonda"),
+      row("House 10, Airport, Sonda"),
+      2,
+      "leftover House 10 leftover Green Road vs leftover Airport Sonda",
+    );
+    assertBothOrders(
+      row("House 10, Green Street, Dhaka"),
+      row("House 10, Airport, Dhaka"),
+      2,
+      "leftover House 10 leftover Green Street vs leftover Airport Dhaka",
+    );
+    assertBothOrders(
+      row("House 10, Green Street, Tongi"),
+      row("House 10, Airport, Tongi"),
+      2,
+      "leftover House 10 leftover Green Street vs leftover Airport Tongi",
+    );
+    assertBothOrders(
+      row("House 10, Green Street"),
+      row("House 10, Airport"),
+      2,
+      "leftover House 10 leftover Green Street vs leftover Airport no village",
+    );
+    assertBothOrders(
+      row("House 5, Green Street, Sonda"),
+      row("House 5, Airport, Sonda"),
+      2,
+      "leftover House 5 leftover Green Street vs leftover Airport Sonda",
+    );
+    assertBothOrders(
+      row("House # 10, Green Street, Sonda"),
+      row("House # 10, Airport, Sonda"),
+      2,
+      "leftover House # 10 leftover Green Street vs leftover Airport Sonda",
+    );
+    assertBothOrders(
+      row("Holding 87, Green Street, Sonda"),
+      row("Holding 87, Airport, Sonda"),
+      2,
+      "leftover Holding 87 leftover Green Street vs leftover Airport Sonda",
+    );
+    assertBothOrders(
+      row("House 10 Green Street, Sonda"),
+      row("House 10 Greenwood, Sonda"),
+      2,
+      "leftover House 10 Green Street vs leftover Greenwood same-field Sonda",
+    );
+    assertBothOrders(
+      row("House 10 Green Road, Sonda"),
+      row("House 10 Greenwood, Sonda"),
+      2,
+      "leftover House 10 Green Road vs leftover Greenwood same-field Sonda",
+    );
+    assertBothOrders(
+      row("House # 10 Green Street, Sonda"),
+      row("House # 10 Greenwood, Sonda"),
+      2,
+      "leftover House # 10 Green Street vs leftover Greenwood same-field Sonda",
+    );
+    assertBothOrders(
+      row("House No. 10 Green Street, Savar"),
+      row("House No. 10 Greenwood, Savar"),
+      2,
+      "leftover House No. 10 Green Street vs leftover Greenwood same-field Savar",
+    );
+    assertBothOrders(
+      row("Holding 10 Green Avenue, Dhaka"),
+      row("Holding 10 Greenwood, Dhaka"),
+      2,
+      "leftover Holding 10 Green Avenue vs leftover Greenwood same-field Dhaka",
+    );
+    assertBothOrders(
+      row("House 10 Greenwood Road, Sonda"),
+      row("House 10 Green, Sonda"),
+      2,
+      "leftover House 10 Greenwood Road vs leftover Green same-field Sonda",
+    );
+    assertBothOrders(
+      row("Kazi Nazrul Islam Avenue, Green, Dhaka"),
+      row("Plot # 10, 10 Green, Nazrul, Dhaka"),
+      2,
+      "mixed omit leftover Green after Nazrul vs Plot leftover Green, Nazrul",
+    );
+    assertBothOrders(
       row("Plot # 10, Green, Dhaka"),
       row("Greenwood, Dhaka"),
       2,
       "mixed Plot leftover PRIMARY Green vs omit Greenwood Dhaka",
+    );
+    assertBothOrders(
+      row("162, Green View R/A, Road No-3/B, Port Connecting Road, Pahartoli, Ctg."),
+      row("162, Green View R/A, Road No - 3/B Port Connecting Road, 4202, Chittagong, Bangladesh"),
+      1,
+      "KEEP Green View R/A Port Connecting Road comma vs glued Road No",
     );
     assertBothOrders(
       row("House 50, East Gulshan, Dhaka"),
@@ -9458,6 +9614,28 @@ describe("mergeUniqueLocations — empty rows, duplicates, overview buckets", ()
         displays(ordered).length,
         3,
         "three-string leftover after Kazi Nazrul Islam Avenue leftover Green+Greenwood+Airport permutation",
+      );
+    }
+    for (const ordered of permutations([
+      row("Kazi Nazrul Islam Avenue, Green, Dhaka"),
+      row("Kazi Nazrul Islam Avenue, Greenwood, Dhaka"),
+      row("Green, Dhaka"),
+    ])) {
+      assert.equal(
+        displays(ordered).length,
+        3,
+        "three-string leftover after Nazrul leftover Green+Greenwood+PRIMARY Green permutation",
+      );
+    }
+    for (const ordered of permutations([
+      row("House 10, Green Street, Sonda"),
+      row("House 10, Greenwood, Sonda"),
+      row("House 10, Airport, Sonda"),
+    ])) {
+      assert.equal(
+        displays(ordered).length,
+        3,
+        "three-string leftover House 10 leftover Green Street leftover Greenwood leftover Airport permutation",
       );
     }
     for (const ordered of permutations([

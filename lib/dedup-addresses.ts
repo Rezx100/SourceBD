@@ -4348,6 +4348,22 @@ function leftoverCompetingPrefixConflict(
   );
 }
 
+/** House 10 Green Street src=road at the house digit vs leftover Airport
+ *  leftover-digit. leftoverCompetingPrefixConflict only XOR stem vs prefix.
+ *  Do not expand mixed-digit XOR to src=road globally. */
+function leftoverCompetingStemConflict(
+  x: { places: string[]; src: ExtraSrc },
+  y: { places: string[]; src: ExtraSrc },
+): boolean {
+  if (sameNamedRoadSpelling(x.places, y.places)) return false;
+  if (!extraLooksLikeCompetingRoad(x) || !extraLooksLikeCompetingRoad(y)) {
+    return false;
+  }
+  const sx = competingRoadStemOf(x.places);
+  const sy = competingRoadStemOf(y.places);
+  return Boolean(sx && sy && sx !== sy);
+}
+
 /** Leftover-minting Green after Nazrul Avenue must still XOR Green vs Nazrul.
  *  A's leftover Green extraNameShares B's Green and would otherwise continue
  *  the Nazrul-road vs Green pair. */
@@ -4893,6 +4909,17 @@ function leftoverDigitFromDisplay(s: string): string {
 const LEFTOVER_LABELLED_FIELD =
   /^(?:house|hosue|holding|hold|plot|plots|building|bldg|flat|apartment|apt|unit|ward|block|sector|section|floor|dag|dug|suite|suit|room|shop|area|space|export|level)\b/;
 
+/** "House 10 Green Street" / "House # 10 Greenwood" — peel the remainder so
+ *  leftover extras still leftover-mint when the comma after the house number
+ *  is omitted. Do not peel Plot / Building labelled fields. */
+function leftoverLabelledHouseRemainder(trimmed: string): string {
+  const m =
+    /^(?:house|hosue|holding|hold)(?:\s+(?:no\.?|number|#))?\s*[.:#\-]*\s*\d{1,3}\s+(?!\d)(.+)$/u.exec(
+      trimmed,
+    );
+  return m ? m[1]!.trim() : "";
+}
+
 function appendLeftoverIssueRoadExtras(
   s: string,
   out: Array<{ digit: string; places: string[]; union?: boolean }>,
@@ -4932,7 +4959,14 @@ function appendLeftoverIssueRoadExtras(
     if (!trimmed) continue;
     trimmed = trimmed.replace(/^(?:the|a|an)\s+/u, "");
     if (!trimmed) continue;
-    if (LEFTOVER_LABELLED_FIELD.test(trimmed)) continue;
+    if (LEFTOVER_LABELLED_FIELD.test(trimmed)) {
+      const houseRemainder = leftoverLabelledHouseRemainder(trimmed);
+      if (!houseRemainder) continue;
+      trimmed = houseRemainder;
+      // House 10 Green Street — the house number is already seen, so leftover
+      // Green / leftover Greenwood still leftover-mint (comma omitted).
+      seenThoroughfare = true;
+    }
     const fieldForTf = trimmed.replace(/_/g, " ");
     const afterTf = remainderAfterThoroughfare(trimmed);
     const issueTf = thoroughfareFieldHasIssueRemainder(trimmed);
@@ -5663,6 +5697,123 @@ function leftoverPrimaryThoroughfareRoadExtras(
   return out;
 }
 
+/** Thoroughfare name-token groups. Skip housing. Peel House 10 Nazrul Avenue
+ *  same-field. Multi-token leftover PRIMARY (International Airport) is
+ *  dropped later when the group names the shared competing stem. */
+function leftoverNamedThoroughfarePlaceGroups(display: string): string[][] {
+  const out: string[][] = [];
+  const s = rewriteHouseOffice(display).toLowerCase();
+  for (const field of s.split(",")) {
+    let trimmed = field.replace(/^[\s./_\u00AD\u200B\p{Pd}\u2212]+/u, "");
+    if (!trimmed) continue;
+    trimmed = trimmed.replace(/^\([^)]*\)\s*/u, "");
+    if (!trimmed) continue;
+    trimmed = trimmed.replace(/^(?:the|a|an)\s+/u, "");
+    if (!trimmed) continue;
+    if (LEFTOVER_LABELLED_FIELD.test(trimmed)) {
+      const houseRemainder = leftoverLabelledHouseRemainder(trimmed);
+      if (!houseRemainder) continue;
+      trimmed = houseRemainder;
+    }
+    const fieldForTf = trimmed.replace(/_/g, " ");
+    if (!(clauseHasThoroughfare(trimmed) || isThoroughfareAfter(fieldForTf))) {
+      continue;
+    }
+    const m = new RegExp(THOROUGHFARE_ALT, "u").exec(fieldForTf);
+    if (!m) continue;
+    const before = fieldForTf.slice(0, m.index).trim();
+    if (!before) continue;
+    const places = roadNameTokensFromTail(before);
+    if (places.length === 0) continue;
+    if (places.some((p) => HOUSING_CAMPUS_PLACES.has(p))) continue;
+    out.push(places);
+  }
+  return out;
+}
+
+function leftoverHeadHasThoroughfareOn(places: string[], display: string): boolean {
+  if (places.length === 0) return false;
+  const s = rewriteHouseOffice(display).toLowerCase().replace(/_/g, " ");
+  const joined = places
+    .map((p) => p.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
+    .join("[\\s./_-]+");
+  return new RegExp(`${joined}\\s+${THOROUGHFARE_ALT}`, "u").test(s);
+}
+
+/** Leftover-minting Green after Nazrul extraNameShares leftover PRIMARY Green
+ *  / leftover Green, Nazrul. XOR when leftover competing extras share a stem
+ *  and one display names a thoroughfare the other does not. Do not restore a
+ *  global prefixed XOR (East Joydebpur vs West Joydevpur stays one row). */
+function leftoverCompetingRestatedAsPrimaryConflict(
+  a: Candidate,
+  b: Candidate,
+): boolean {
+  const ea = namedExtraTails(a.display);
+  const eb = namedExtraTails(b.display);
+  let sharedStem: string | null = null;
+  for (const x of ea) {
+    if (sharedStem) break;
+    for (const y of eb) {
+      if (!extraLooksLikeCompetingRoad(x) || !extraLooksLikeCompetingRoad(y)) {
+        continue;
+      }
+      if (leftoverCompetingPrefixConflict(x, y)) continue;
+      if (!extraNameShare(x.places, y.places)) continue;
+      const sx = competingRoadStemOf(x.places);
+      const sy = competingRoadStemOf(y.places);
+      if (!sx || sx !== sy) continue;
+      // Green View / Greenwood leftover-prefix extras extraNameShare a green
+      // stem but are not leftover Green after Nazrul.
+      if (
+        x.places.some((p) => leftoverCompetingStemPrefix(p)) ||
+        y.places.some((p) => leftoverCompetingStemPrefix(p))
+      ) {
+        continue;
+      }
+      if (
+        !x.places.some((p) => isCompetingRoadStem(p)) ||
+        !y.places.some((p) => isCompetingRoadStem(p))
+      ) {
+        continue;
+      }
+      sharedStem = sx;
+      break;
+    }
+  }
+  if (!sharedStem) return false;
+  const groupsA = leftoverNamedThoroughfarePlaceGroups(a.display);
+  const groupsB = leftoverNamedThoroughfarePlaceGroups(b.display);
+  const dropInternationalPrimary = (places: string[]) =>
+    places.length !== 1 &&
+    places.some((p) => isCompetingRoadStem(p) || leftoverCompetingStemPrefix(p)) &&
+    places.some((p) => p === sharedStem || extraNameShare([p], [sharedStem]));
+  const groupShare = (xs: string[], ys: string[]) =>
+    xs.every((p) => ys.some((q) => extraNameShare([p], [q])));
+  const headsFrom = (
+    groups: string[][],
+    otherGroups: string[][],
+    otherDisplay: string,
+  ): string[] => {
+    const heads: string[] = [];
+    for (const places of groups) {
+      if (dropInternationalPrimary(places)) continue;
+      if (otherGroups.some((g) => groupShare(places, g))) continue;
+      // Port Connecting Road glued after Road No still writes "... Connecting Road".
+      if (leftoverHeadHasThoroughfareOn(places, otherDisplay)) continue;
+      for (const h of places) {
+        if (h !== sharedStem && !extraNameShare([h], [sharedStem])) heads.push(h);
+      }
+    }
+    return heads;
+  };
+  const headsA = headsFrom(groupsA, groupsB, b.display);
+  const headsB = headsFrom(groupsB, groupsA, a.display);
+  if (headsA.length === 0 && headsB.length === 0) return false;
+  const share = (xs: string[], ys: string[]) =>
+    xs.some((x) => ys.some((y) => extraNameShare([x], [y])));
+  return !share(headsA, headsB);
+}
+
 function namedExtraTails(
   display: string,
 ): Array<{ digit: string; places: string[]; src: ExtraSrc }> {
@@ -5940,9 +6091,11 @@ function extraRoadPlaceConflict(a: Candidate, b: Candidate): boolean {
   for (const y of eb) {
     if (unsuffixedInitialismLeftover(y, a.display)) return true;
   }
+  if (leftoverCompetingRestatedAsPrimaryConflict(a, b)) return true;
   for (const x of ea) {
     for (const y of eb) {
       if (leftoverCompetingPrefixConflict(x, y)) return true;
+      if (leftoverCompetingStemConflict(x, y)) return true;
       if (leftoverCompetingVsNamedRoadConflict(x, y)) return true;
       if (x.digit !== y.digit) {
         if (
