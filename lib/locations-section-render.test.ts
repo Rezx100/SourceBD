@@ -5891,6 +5891,64 @@ describe("Locations Also recorded as — rendered HTML boundary", () => {
       /International Airport/i,
       "leftover House 10 leftover PRIMARY Green vs leftover International Airport Sonda",
     );
+    assertXorAddressRowHtml(
+      row("House 10, Green Street, Sonda", "BGMEA", "factory"),
+      row("House 10, InternationalAirport, Sonda", "BKMEA", "factory"),
+      /Green Street/i,
+      /InternationalAirport/i,
+      "leftover House 10 leftover Green Street vs leftover InternationalAirport glued Sonda",
+    );
+    assertXorAddressRowHtml(
+      row("House 10, Greenwood, Sonda", "BGMEA", "factory"),
+      row("House 10, InternationalAirport, Sonda", "BKMEA", "factory"),
+      /Greenwood/i,
+      /InternationalAirport/i,
+      "leftover House 10 leftover Greenwood vs leftover InternationalAirport glued Sonda",
+    );
+    assertXorAddressRowHtml(
+      row("House 10, Green, Sonda", "BGMEA", "factory"),
+      row("House 10, InternationalAirport, Sonda", "BKMEA", "factory"),
+      /House 10, Green, Sonda/i,
+      /InternationalAirport/i,
+      "leftover House 10 leftover PRIMARY Green vs leftover InternationalAirport glued Sonda",
+    );
+    assertXorAddressRowHtml(
+      row("House 10, Green Street, Sonda", "BGMEA", "factory"),
+      row("House 10, IntlAirport, Sonda", "BKMEA", "factory"),
+      /Green Street/i,
+      /IntlAirport/i,
+      "leftover House 10 leftover Green Street vs leftover IntlAirport glued Sonda",
+    );
+    assertXorAddressRowHtml(
+      row("House 10, Green Street, Sonda", "BGMEA", "factory"),
+      row("House 10, LinkAirport, Sonda", "BKMEA", "factory"),
+      /Green Street/i,
+      /LinkAirport/i,
+      "leftover House 10 leftover Green Street vs leftover LinkAirport glued Sonda",
+    );
+    assertXorAddressRowHtml(
+      row("House 10, Green Street, Sonda", "BGMEA", "factory"),
+      row("House 10, MohakhaliAirport, Sonda", "BKMEA", "factory"),
+      /Green Street/i,
+      /MohakhaliAirport/i,
+      "leftover House 10 leftover Green Street vs leftover MohakhaliAirport glued Sonda",
+    );
+    assertXorAddressRowHtml(
+      row("Nazrul Avenue, Green, Dhaka", "BGMEA", "factory"),
+      row("Nazrul Street, Green, Dhaka", "BKMEA", "factory"),
+      /Nazrul Avenue, Green,/i,
+      /Nazrul Street, Green,/i,
+      "leftover Nazrul Avenue leftover Green vs leftover Nazrul Street leftover Green Dhaka",
+    );
+    assertThreeXorAddressRowHtml(
+      row("House 10, Green Street, Sonda", "BGMEA", "factory"),
+      row("House 10, Greenwood, Sonda", "BKMEA", "factory"),
+      row("House 10, InternationalAirport, Sonda", "OEKO_TEX", "factory"),
+      /Green Street/i,
+      /Greenwood/i,
+      /InternationalAirport/i,
+      "three-string leftover House 10 leftover Green Street leftover Greenwood leftover InternationalAirport glued",
+    );
     assertThreeXorAddressRowHtml(
       row("Nazrul Avenue, Green, Dhaka", "BGMEA", "factory"),
       row("Nazrul Avenue, Greenwood, Dhaka", "BKMEA", "factory"),

@@ -9310,6 +9310,18 @@ describe("mergeUniqueLocations — empty rows, duplicates, overview buckets", ()
     );
     assertBothOrders(
       row("Nazrul Avenue, Green, Dhaka"),
+      row("Nazrul Street, Green, Dhaka"),
+      2,
+      "leftover Nazrul Avenue leftover Green vs leftover Nazrul Street leftover Green Dhaka",
+    );
+    assertBothOrders(
+      row("Nazrul Avenue, Green, Dhaka"),
+      row("Green, Nazrul Street, Dhaka"),
+      2,
+      "KEEP leftover Nazrul Avenue leftover Green vs leftover Green, Nazrul Street Dhaka",
+    );
+    assertBothOrders(
+      row("Nazrul Avenue, Green, Dhaka"),
       row("Green, Nazrul Road, Dhaka"),
       2,
       "leftover Nazrul Avenue leftover Green vs leftover Green, Nazrul Road Dhaka",
@@ -9583,6 +9595,234 @@ describe("mergeUniqueLocations — empty rows, duplicates, overview buckets", ()
       row("House 10, Green, Sonda"),
       1,
       "KEEP leftover House 10 leftover Green Street vs leftover unsuffixed Green Sonda",
+    );
+    assertBothOrders(
+      row("House 10, Green Street, Sonda"),
+      row("House 10, InternationalAirport, Sonda"),
+      2,
+      "leftover House 10 leftover Green Street vs leftover InternationalAirport glued Sonda",
+    );
+    assertBothOrders(
+      row("House 10, Greenwood, Sonda"),
+      row("House 10, InternationalAirport, Sonda"),
+      2,
+      "leftover House 10 leftover Greenwood vs leftover InternationalAirport glued Sonda",
+    );
+    assertBothOrders(
+      row("House 10, Green, Sonda"),
+      row("House 10, InternationalAirport, Sonda"),
+      2,
+      "leftover House 10 leftover PRIMARY Green vs leftover InternationalAirport glued Sonda",
+    );
+    assertBothOrders(
+      row("House 10, Green Street, Sonda"),
+      row("House 10, IntlAirport, Sonda"),
+      2,
+      "leftover House 10 leftover Green Street vs leftover IntlAirport glued Sonda",
+    );
+    assertBothOrders(
+      row("House 10, Green Street, Sonda"),
+      row("House 10, LinkAirport, Sonda"),
+      2,
+      "leftover House 10 leftover Green Street vs leftover LinkAirport glued Sonda",
+    );
+    assertBothOrders(
+      row("House 10, Green Street, Sonda"),
+      row("House 10, MohakhaliAirport, Sonda"),
+      2,
+      "leftover House 10 leftover Green Street vs leftover MohakhaliAirport glued Sonda",
+    );
+    assertBothOrders(
+      row("House 10, Greenwood, Sonda"),
+      row("House 10, LinkAirport, Sonda"),
+      2,
+      "leftover House 10 leftover Greenwood vs leftover LinkAirport glued Sonda",
+    );
+    assertBothOrders(
+      row("House 10, Green, Sonda"),
+      row("House 10, LinkAirport, Sonda"),
+      2,
+      "leftover House 10 leftover PRIMARY Green vs leftover LinkAirport glued Sonda",
+    );
+    assertBothOrders(
+      row("House 10, Greenwood, Sonda"),
+      row("House 10, MohakhaliAirport, Sonda"),
+      2,
+      "leftover House 10 leftover Greenwood vs leftover MohakhaliAirport glued Sonda",
+    );
+    assertBothOrders(
+      row("House 10, Green, Sonda"),
+      row("House 10, MohakhaliAirport, Sonda"),
+      2,
+      "leftover House 10 leftover PRIMARY Green vs leftover MohakhaliAirport glued Sonda",
+    );
+    assertBothOrders(
+      row("House 10, Greenwood, Sonda"),
+      row("House 10, IntlAirport, Sonda"),
+      2,
+      "leftover House 10 leftover Greenwood vs leftover IntlAirport glued Sonda",
+    );
+    assertBothOrders(
+      row("House 10, Green, Sonda"),
+      row("House 10, IntlAirport, Sonda"),
+      2,
+      "leftover House 10 leftover PRIMARY Green vs leftover IntlAirport glued Sonda",
+    );
+    assertBothOrders(
+      row("House 10, Green Street, Dhaka"),
+      row("House 10, InternationalAirport, Dhaka"),
+      2,
+      "leftover House 10 leftover Green Street vs leftover InternationalAirport glued Dhaka",
+    );
+    assertBothOrders(
+      row("House 10, Green Street, Savar"),
+      row("House 10, InternationalAirport, Savar"),
+      2,
+      "leftover House 10 leftover Green Street vs leftover InternationalAirport glued Savar",
+    );
+    assertBothOrders(
+      row("House 10, Green Street, Tongi"),
+      row("House 10, InternationalAirport, Tongi"),
+      2,
+      "leftover House 10 leftover Green Street vs leftover InternationalAirport glued Tongi",
+    );
+    assertBothOrders(
+      row("House 10, Green Street, Gazipur"),
+      row("House 10, InternationalAirport, Gazipur"),
+      2,
+      "leftover House 10 leftover Green Street vs leftover InternationalAirport glued Gazipur",
+    );
+    assertBothOrders(
+      row("House 10, Green Street, Valuka"),
+      row("House 10, InternationalAirport, Valuka"),
+      2,
+      "leftover House 10 leftover Green Street vs leftover InternationalAirport glued Valuka",
+    );
+    assertBothOrders(
+      row("House 10, Green Street"),
+      row("House 10, InternationalAirport"),
+      2,
+      "leftover House 10 leftover Green Street vs leftover InternationalAirport glued no village",
+    );
+    assertBothOrders(
+      row("House 5, Green Street, Sonda"),
+      row("House 5, InternationalAirport, Sonda"),
+      2,
+      "leftover House 5 leftover Green Street vs leftover InternationalAirport glued Sonda",
+    );
+    assertBothOrders(
+      row("House # 10, Green Street, Sonda"),
+      row("House # 10, InternationalAirport, Sonda"),
+      2,
+      "leftover House # 10 leftover Green Street vs leftover InternationalAirport glued Sonda",
+    );
+    assertBothOrders(
+      row("House No. 10, Green Street, Sonda"),
+      row("House No. 10, InternationalAirport, Sonda"),
+      2,
+      "leftover House No. 10 leftover Green Street vs leftover InternationalAirport glued Sonda",
+    );
+    assertBothOrders(
+      row("Holding 10, Green Street, Sonda"),
+      row("Holding 10, InternationalAirport, Sonda"),
+      2,
+      "leftover Holding 10 leftover Green Street vs leftover InternationalAirport glued Sonda",
+    );
+    assertBothOrders(
+      row("Holding 87, Green Street, Sonda"),
+      row("Holding 87, InternationalAirport, Sonda"),
+      2,
+      "leftover Holding 87 leftover Green Street vs leftover InternationalAirport glued Sonda",
+    );
+    assertBothOrders(
+      row("House 10, Green Road, Sonda"),
+      row("House 10, InternationalAirport, Sonda"),
+      2,
+      "leftover House 10 leftover Green Road vs leftover InternationalAirport glued Sonda",
+    );
+    assertBothOrders(
+      row("House 10, Green Street, Sonda"),
+      row("House 10, InternationalAirpark, Sonda"),
+      2,
+      "leftover House 10 leftover Green Street vs leftover InternationalAirpark glued Sonda",
+    );
+    assertBothOrders(
+      row("House 10, Green Street, Sonda"),
+      row("House 10, CargoAirport, Sonda"),
+      2,
+      "leftover House 10 leftover Green Street vs leftover CargoAirport glued Sonda",
+    );
+    assertBothOrders(
+      row("House 10, Green Street, Sonda"),
+      row("House 10, DomesticAirport, Sonda"),
+      2,
+      "leftover House 10 leftover Green Street vs leftover DomesticAirport glued Sonda",
+    );
+    assertBothOrders(
+      row("House 10, Green Street, Sonda"),
+      row("House 10, HajeeInternationalAirport, Sonda"),
+      2,
+      "leftover House 10 leftover Green Street vs leftover HajeeInternationalAirport glued Sonda",
+    );
+    assertBothOrders(
+      row("House 10, Green Street, Sonda"),
+      row("House 10, InternationalAirportRoad, Sonda"),
+      2,
+      "leftover House 10 leftover Green Street vs leftover InternationalAirportRoad glued Sonda",
+    );
+    assertBothOrders(
+      row("House 10 Green Street, Sonda"),
+      row("House 10, InternationalAirport, Sonda"),
+      2,
+      "leftover House 10 Green Street vs leftover InternationalAirport same-field Sonda",
+    );
+    assertBothOrders(
+      row("House 10, Green Street, Sonda"),
+      row("House 10, AirportLink, Sonda"),
+      2,
+      "KEEP leftover House 10 leftover Green Street vs leftover AirportLink glued Sonda",
+    );
+    assertBothOrders(
+      row("House 10, Green Street, Sonda"),
+      row("House 10, International-Airport, Sonda"),
+      2,
+      "KEEP leftover House 10 leftover Green Street vs leftover International-Airport hyphen Sonda",
+    );
+    assertBothOrders(
+      row("House 10, Green Street, Sonda"),
+      row("House 10, International_Airport, Sonda"),
+      2,
+      "KEEP leftover House 10 leftover Green Street vs leftover International_Airport Sonda",
+    );
+    assertBothOrders(
+      row("House 10, Green Street, Sonda"),
+      row("House 10, International.Airport, Sonda"),
+      2,
+      "KEEP leftover House 10 leftover Green Street vs leftover International.Airport Sonda",
+    );
+    assertBothOrders(
+      row("House 10, Green Street, Sonda"),
+      row("House 10, EastAirport, Sonda"),
+      2,
+      "KEEP leftover House 10 leftover Green Street vs leftover EastAirport glued Sonda",
+    );
+    assertBothOrders(
+      row("House 10, Green Street, Sonda"),
+      row("House 10, AirportGate, Sonda"),
+      2,
+      "KEEP leftover House 10 leftover Green Street vs leftover AirportGate glued Sonda",
+    );
+    assertBothOrders(
+      row("Green Street, Sonda"),
+      row("InternationalAirport, Sonda"),
+      2,
+      "KEEP leftover Green Street vs leftover InternationalAirport no-House Sonda",
+    );
+    assertBothOrders(
+      row("House 10, Green Street, Sonda"),
+      row("House 10, Airport, Sonda"),
+      2,
+      "KEEP leftover House 10 leftover Green Street vs leftover Airport unsuffixed Sonda after glued airport family",
     );
     assertBothOrders(
       row("House 10 Green Street, Sonda"),
@@ -9908,6 +10148,17 @@ describe("mergeUniqueLocations — empty rows, duplicates, overview buckets", ()
         displays(ordered).length,
         3,
         "three-string leftover House 10 leftover Green Street leftover Greenwood leftover Airport Link permutation",
+      );
+    }
+    for (const ordered of permutations([
+      row("House 10, Green Street, Sonda"),
+      row("House 10, Greenwood, Sonda"),
+      row("House 10, InternationalAirport, Sonda"),
+    ])) {
+      assert.equal(
+        displays(ordered).length,
+        3,
+        "three-string leftover House 10 leftover Green Street leftover Greenwood leftover InternationalAirport glued permutation",
       );
     }
     for (const ordered of permutations([

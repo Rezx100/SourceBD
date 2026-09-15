@@ -5697,14 +5697,29 @@ function leftoverPrimaryThoroughfareRoadExtras(
   return out;
 }
 
-/** Thoroughfare name-token groups. Peel House 10 Nazrul Avenue same-field.
- *  Housing-campus heads (Kakrail Road) still count when leftover-mint Green
- *  after that road extraNameShares leftover PRIMARY Green. Multi-token leftover
- *  PRIMARY (International Airport) is dropped later when the group names the
- *  shared competing stem. leftoverPrimaryThoroughfareRoadExtras still skips
- *  housing so leftover PRIMARY East Rampura Road Plot omitted stays one row. */
-function leftoverNamedThoroughfarePlaceGroups(display: string): string[][] {
-  const out: string[][] = [];
+function leftoverThoroughfareKindCanonical(word: string): string {
+  const w = word.toLowerCase().replace(/\.$/, "");
+  if (w === "rd" || w === "road") return "road";
+  if (w === "ave" || w === "avenue") return "avenue";
+  if (w === "st" || w === "street") return "street";
+  if (/^(?:lane|gali|goli|gully|gulley|galli)$/.test(w)) return "lane";
+  if (w === "blvd" || w === "boulevard") return "boulevard";
+  if (w === "drv" || w === "drive") return "drive";
+  return w;
+}
+
+/** Thoroughfare name-token groups with the thoroughfare word. Peel House 10
+ *  Nazrul Avenue same-field. Housing-campus heads (Kakrail Road) still count
+ *  when leftover-mint Green after that road extraNameShares leftover PRIMARY
+ *  Green. Multi-token leftover PRIMARY (International Airport) is dropped later
+ *  when the group names the shared competing stem. leftoverPrimaryThoroughfareRoadExtras
+ *  still skips housing so leftover PRIMARY East Rampura Road Plot omitted stays
+ *  one row. leftover Nazrul Avenue leftover Green vs leftover Nazrul Street
+ *  leftover Green is two roads. */
+function leftoverNamedThoroughfareKindGroups(
+  display: string,
+): Array<{ places: string[]; kind: string }> {
+  const out: Array<{ places: string[]; kind: string }> = [];
   const s = rewriteHouseOffice(display).toLowerCase();
   for (const field of s.split(",")) {
     let trimmed = field.replace(/^[\s./_\u00AD\u200B\p{Pd}\u2212]+/u, "");
@@ -5728,9 +5743,13 @@ function leftoverNamedThoroughfarePlaceGroups(display: string): string[][] {
     if (!before) continue;
     const places = roadNameTokensFromTail(before);
     if (places.length === 0) continue;
-    out.push(places);
+    out.push({ places, kind: leftoverThoroughfareKindCanonical(m[0]!) });
   }
   return out;
+}
+
+function leftoverNamedThoroughfarePlaceGroups(display: string): string[][] {
+  return leftoverNamedThoroughfareKindGroups(display).map((g) => g.places);
 }
 
 function leftoverHeadHasThoroughfareOn(places: string[], display: string): boolean {
@@ -5881,9 +5900,15 @@ function leftoverAirportFamilyNamedOn(display: string): boolean {
       if (isThoroughfareWord(tok) || isBuildingNameWord(tok)) continue;
       toks.push(tok);
     }
-    if (toks.length < 2) continue; // leftover Airport / leftover Airport Road are leftover-minted extras
+    if (toks.length === 0) continue;
     const stem = competingRoadStemOf(toks);
-    if (stem === "airport" || stem === "airpark") return true;
+    if (stem !== "airport" && stem !== "airpark") continue;
+    // leftover Airport / leftover Airport Road leftover-mint as extras
+    // (tok === stem). leftover InternationalAirport / leftover LinkAirport /
+    // leftover IntlAirport glued are one [a-z]{2,} token longer than the stem.
+    if (toks.length >= 2) return true;
+    const stripped = toks[0]!.replace(/(?:road|rd)$/u, "");
+    if (stripped.length > stem.length) return true;
   }
   return false;
 }
@@ -5898,6 +5923,34 @@ function leftoverCompetingVsAirportFamilyDisplayConflict(
   const eb = namedExtraTails(b.display);
   if (ea.some(greenExtra) && leftoverAirportFamilyNamedOn(b.display)) return true;
   if (eb.some(greenExtra) && leftoverAirportFamilyNamedOn(a.display)) return true;
+  return false;
+}
+
+/** leftover Green after Nazrul Avenue vs leftover Green after Nazrul Street:
+ *  leftover-mint Green extras extraNameShare, leftoverNamedThoroughfarePlaceGroups
+ *  both write Nazrul WITH a thoroughfare, leftoverHeadHasThoroughfareOn empties
+ *  heads, leftoverCompetingAfterThoroughfareVsPrimaryConflict both afterTf.
+ *  Avenue vs Street is two roads. leftover Gali vs leftover Lane stay one
+ *  spelling (same kind). Gated on leftoverSharedCompetingStem so leftover
+ *  East Joydebpur vs leftover West Joydevpur Plot omitted stays one row. */
+function leftoverCompetingNamedThoroughfareKindConflict(
+  a: Candidate,
+  b: Candidate,
+): boolean {
+  if (!leftoverSharedCompetingStem(a, b)) return false;
+  const groupsA = leftoverNamedThoroughfareKindGroups(a.display);
+  const groupsB = leftoverNamedThoroughfareKindGroups(b.display);
+  if (groupsA.length === 0 || groupsB.length === 0) return false;
+  const groupShare = (xs: string[], ys: string[]) =>
+    xs.every((p) => ys.some((q) => extraNameShare([p], [q])));
+  for (const x of groupsA) {
+    for (const y of groupsB) {
+      if (!groupShare(x.places, y.places) && !groupShare(y.places, x.places)) {
+        continue;
+      }
+      if (x.kind !== y.kind) return true;
+    }
+  }
   return false;
 }
 
@@ -6223,6 +6276,7 @@ function extraRoadPlaceConflict(a: Candidate, b: Candidate): boolean {
   }
   if (leftoverCompetingRestatedAsPrimaryConflict(a, b)) return true;
   if (leftoverCompetingAfterThoroughfareVsPrimaryConflict(a, b)) return true;
+  if (leftoverCompetingNamedThoroughfareKindConflict(a, b)) return true;
   if (leftoverCompetingVsAirportFamilyDisplayConflict(a, b)) return true;
   for (const x of ea) {
     for (const y of eb) {
