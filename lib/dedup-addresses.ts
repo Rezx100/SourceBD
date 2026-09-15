@@ -5697,9 +5697,12 @@ function leftoverPrimaryThoroughfareRoadExtras(
   return out;
 }
 
-/** Thoroughfare name-token groups. Skip housing. Peel House 10 Nazrul Avenue
- *  same-field. Multi-token leftover PRIMARY (International Airport) is
- *  dropped later when the group names the shared competing stem. */
+/** Thoroughfare name-token groups. Peel House 10 Nazrul Avenue same-field.
+ *  Housing-campus heads (Kakrail Road) still count when leftover-mint Green
+ *  after that road extraNameShares leftover PRIMARY Green. Multi-token leftover
+ *  PRIMARY (International Airport) is dropped later when the group names the
+ *  shared competing stem. leftoverPrimaryThoroughfareRoadExtras still skips
+ *  housing so leftover PRIMARY East Rampura Road Plot omitted stays one row. */
 function leftoverNamedThoroughfarePlaceGroups(display: string): string[][] {
   const out: string[][] = [];
   const s = rewriteHouseOffice(display).toLowerCase();
@@ -5725,7 +5728,6 @@ function leftoverNamedThoroughfarePlaceGroups(display: string): string[][] {
     if (!before) continue;
     const places = roadNameTokensFromTail(before);
     if (places.length === 0) continue;
-    if (places.some((p) => HOUSING_CAMPUS_PLACES.has(p))) continue;
     out.push(places);
   }
   return out;
@@ -5740,19 +5742,12 @@ function leftoverHeadHasThoroughfareOn(places: string[], display: string): boole
   return new RegExp(`${joined}\\s+${THOROUGHFARE_ALT}`, "u").test(s);
 }
 
-/** Leftover-minting Green after Nazrul extraNameShares leftover PRIMARY Green
- *  / leftover Green, Nazrul. XOR when leftover competing extras share a stem
- *  and one display names a thoroughfare the other does not. Do not restore a
- *  global prefixed XOR (East Joydebpur vs West Joydevpur stays one row). */
-function leftoverCompetingRestatedAsPrimaryConflict(
-  a: Candidate,
-  b: Candidate,
-): boolean {
+/** Leftover Green extras that extraNameShare a stem, not Greenwood / Green View
+ *  leftover-prefix extras. */
+function leftoverSharedCompetingStem(a: Candidate, b: Candidate): string | null {
   const ea = namedExtraTails(a.display);
   const eb = namedExtraTails(b.display);
-  let sharedStem: string | null = null;
   for (const x of ea) {
-    if (sharedStem) break;
     for (const y of eb) {
       if (!extraLooksLikeCompetingRoad(x) || !extraLooksLikeCompetingRoad(y)) {
         continue;
@@ -5762,8 +5757,6 @@ function leftoverCompetingRestatedAsPrimaryConflict(
       const sx = competingRoadStemOf(x.places);
       const sy = competingRoadStemOf(y.places);
       if (!sx || sx !== sy) continue;
-      // Green View / Greenwood leftover-prefix extras extraNameShare a green
-      // stem but are not leftover Green after Nazrul.
       if (
         x.places.some((p) => leftoverCompetingStemPrefix(p)) ||
         y.places.some((p) => leftoverCompetingStemPrefix(p))
@@ -5776,10 +5769,147 @@ function leftoverCompetingRestatedAsPrimaryConflict(
       ) {
         continue;
       }
-      sharedStem = sx;
-      break;
+      return sx;
     }
   }
+  return null;
+}
+
+/** leftover Green after Nazrul Avenue vs leftover PRIMARY Green / leftover
+ *  Green, Nazrul. Building names (Fashion Plaza) are not thoroughfares. */
+function leftoverCompetingStemFieldOrder(
+  display: string,
+  stem: string,
+): { afterTf: boolean; asPrimary: boolean } {
+  let seenTf = false;
+  let afterTf = false;
+  let asPrimary = false;
+  const s = rewriteHouseOffice(display).toLowerCase();
+  const fieldHasStem = (places: string[]): boolean => {
+    if (places.length === 0) return false;
+    if (places.some((p) => leftoverCompetingStemPrefix(p))) return false;
+    if (!places.some((p) => isCompetingRoadStem(p))) return false;
+    return competingRoadStemOf(places) === stem;
+  };
+  const mark = (isAfter: boolean) => {
+    if (isAfter) afterTf = true;
+    else asPrimary = true;
+  };
+  for (const field of s.split(",")) {
+    let trimmed = field.replace(/^[\s./_\u00AD\u200B\p{Pd}\u2212]+/u, "");
+    if (!trimmed) continue;
+    trimmed = trimmed.replace(/^\([^)]*\)\s*/u, "");
+    if (!trimmed) continue;
+    trimmed = trimmed.replace(/^(?:the|a|an)\s+/u, "");
+    if (!trimmed) continue;
+    if (LEFTOVER_LABELLED_FIELD.test(trimmed)) {
+      const houseRemainder = leftoverLabelledHouseRemainder(trimmed);
+      if (!houseRemainder) continue;
+      trimmed = houseRemainder;
+    }
+    const fieldForTf = trimmed.replace(/_/g, " ");
+    const isTf = clauseHasThoroughfare(trimmed) || isThoroughfareAfter(fieldForTf);
+    if (isTf) {
+      const m = new RegExp(THOROUGHFARE_ALT, "u").exec(fieldForTf);
+      const before = m ? fieldForTf.slice(0, m.index).trim() : "";
+      if (before && fieldHasStem(roadNameTokensFromTail(before))) mark(seenTf);
+      const after = remainderAfterThoroughfare(trimmed);
+      if (after) {
+        const peeled = peelLeftoverIssueRoad(after);
+        const names =
+          peeled.names.length > 0 ? peeled.names : peeled.name ? [peeled.name] : [];
+        if (fieldHasStem(names)) mark(true);
+      }
+      seenTf = true;
+      continue;
+    }
+    const peeled = peelLeftoverIssueRoad(trimmed);
+    const names =
+      peeled.names.length > 0 ? peeled.names : peeled.name ? [peeled.name] : [];
+    if (fieldHasStem(names)) mark(seenTf);
+  }
+  return { afterTf, asPrimary };
+}
+
+/** leftover Green after a named thoroughfare vs leftover Green written before
+ *  that thoroughfare (Green, Nazrul Avenue) or leftover PRIMARY Green (Green,
+ *  Dhaka / Green, Kakrail). leftoverHeadHasThoroughfareOn otherwise treats
+ *  leftover Green, Nazrul Avenue as restatement of the same road. Fashion
+ *  Plaza leftover Green vs leftover PRIMARY Green stays one row — Plaza is
+ *  not a thoroughfare. */
+function leftoverCompetingAfterThoroughfareVsPrimaryConflict(
+  a: Candidate,
+  b: Candidate,
+): boolean {
+  const sharedStem = leftoverSharedCompetingStem(a, b);
+  if (!sharedStem) return false;
+  const posA = leftoverCompetingStemFieldOrder(a.display, sharedStem);
+  const posB = leftoverCompetingStemFieldOrder(b.display, sharedStem);
+  return (
+    (posA.afterTf && !posA.asPrimary && posB.asPrimary && !posB.afterTf) ||
+    (posB.afterTf && !posB.asPrimary && posA.asPrimary && !posA.afterTf)
+  );
+}
+
+/** leftover Airport Link / leftover International Airport are not leftover-minted
+ *  extras (multi-token leftover PRIMARY; leftoverPrimaryThoroughfareRoadExtras
+ *  skips places.length !== 1). XOR leftover Green Street / leftover Greenwood /
+ *  leftover PRIMARY Green extras against that leftover PRIMARY airport family
+ *  without leftover-minting International Airport. Airport Plaza is a building,
+ *  not leftover Airport Link. */
+function leftoverAirportFamilyNamedOn(display: string): boolean {
+  const s = rewriteHouseOffice(display).toLowerCase();
+  for (const field of s.split(",")) {
+    let trimmed = field.replace(/^[\s./_\u00AD\u200B\p{Pd}\u2212]+/u, "");
+    if (!trimmed) continue;
+    trimmed = trimmed.replace(/^\([^)]*\)\s*/u, "");
+    if (!trimmed) continue;
+    trimmed = trimmed.replace(/^(?:the|a|an)\s+/u, "");
+    if (!trimmed) continue;
+    if (LEFTOVER_LABELLED_FIELD.test(trimmed)) {
+      const houseRemainder = leftoverLabelledHouseRemainder(trimmed);
+      if (!houseRemainder) continue;
+      trimmed = houseRemainder;
+    }
+    if (clauseHasBuildingName(trimmed) || clauseHasBuildingName(` ${trimmed}`)) {
+      continue;
+    }
+    const fieldForTf = trimmed.replace(/_/g, " ");
+    const toks: string[] = [];
+    for (const m of fieldForTf.matchAll(/[a-z]{2,}/g)) {
+      const tok = m[0]!;
+      if (isThoroughfareWord(tok) || isBuildingNameWord(tok)) continue;
+      toks.push(tok);
+    }
+    if (toks.length < 2) continue; // leftover Airport / leftover Airport Road are leftover-minted extras
+    const stem = competingRoadStemOf(toks);
+    if (stem === "airport" || stem === "airpark") return true;
+  }
+  return false;
+}
+
+function leftoverCompetingVsAirportFamilyDisplayConflict(
+  a: Candidate,
+  b: Candidate,
+): boolean {
+  const greenExtra = (e: { places: string[]; src: ExtraSrc }) =>
+    extraLooksLikeCompetingRoad(e) && competingRoadStemOf(e.places) === "green";
+  const ea = namedExtraTails(a.display);
+  const eb = namedExtraTails(b.display);
+  if (ea.some(greenExtra) && leftoverAirportFamilyNamedOn(b.display)) return true;
+  if (eb.some(greenExtra) && leftoverAirportFamilyNamedOn(a.display)) return true;
+  return false;
+}
+
+/** Leftover-minting Green after Nazrul extraNameShares leftover PRIMARY Green
+ *  / leftover Green, Nazrul. XOR when leftover competing extras share a stem
+ *  and one display names a thoroughfare the other does not. Do not restore a
+ *  global prefixed XOR (East Joydebpur vs West Joydevpur stays one row). */
+function leftoverCompetingRestatedAsPrimaryConflict(
+  a: Candidate,
+  b: Candidate,
+): boolean {
+  const sharedStem = leftoverSharedCompetingStem(a, b);
   if (!sharedStem) return false;
   const groupsA = leftoverNamedThoroughfarePlaceGroups(a.display);
   const groupsB = leftoverNamedThoroughfarePlaceGroups(b.display);
@@ -6092,6 +6222,8 @@ function extraRoadPlaceConflict(a: Candidate, b: Candidate): boolean {
     if (unsuffixedInitialismLeftover(y, a.display)) return true;
   }
   if (leftoverCompetingRestatedAsPrimaryConflict(a, b)) return true;
+  if (leftoverCompetingAfterThoroughfareVsPrimaryConflict(a, b)) return true;
+  if (leftoverCompetingVsAirportFamilyDisplayConflict(a, b)) return true;
   for (const x of ea) {
     for (const y of eb) {
       if (leftoverCompetingPrefixConflict(x, y)) return true;

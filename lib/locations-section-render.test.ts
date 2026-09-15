@@ -152,6 +152,57 @@ function assertXorAddressRowHtml(
   }
 }
 
+function threeRowPerms(
+  a: AddressRowRaw,
+  b: AddressRowRaw,
+  c: AddressRowRaw,
+): AddressRowRaw[][] {
+  return [
+    [a, b, c],
+    [a, c, b],
+    [b, a, c],
+    [b, c, a],
+    [c, a, b],
+    [c, b, a],
+  ];
+}
+
+function assertThreeXorAddressRowHtml(
+  a: AddressRowRaw,
+  b: AddressRowRaw,
+  c: AddressRowRaw,
+  aRe: RegExp,
+  bRe: RegExp,
+  cRe: RegExp,
+  otherName: string,
+) {
+  for (const ordered of threeRowPerms(a, b, c)) {
+    const html = renderAddressRows(ordered);
+    assert.equal(mergeUniqueLocations(ordered).length, 3, `${otherName} matcher`);
+    assert.equal((html.match(/data-location-row=""/g) ?? []).length, 3, `${otherName} row count`);
+    for (const chunk of locationChunks(html)) {
+      const disp = displayHtml(chunk);
+      const also = chunk.match(/<li[^>]*data-also-recorded-as=""[^>]*>[\s\S]*?<\/li>/g) ?? [];
+      const alsoText = also.join(" ");
+      const hitA = aRe.test(disp);
+      const hitB = bRe.test(disp);
+      const hitC = cRe.test(disp);
+      if (hitA && !hitB && !hitC) {
+        assert.ok(!bRe.test(alsoText), `${otherName} B must not sit in Also of A`);
+        assert.ok(!cRe.test(alsoText), `${otherName} C must not sit in Also of A`);
+      }
+      if (hitB && !hitA && !hitC) {
+        assert.ok(!aRe.test(alsoText), `${otherName} A must not sit in Also of B`);
+        assert.ok(!cRe.test(alsoText), `${otherName} C must not sit in Also of B`);
+      }
+      if (hitC && !hitA && !hitB) {
+        assert.ok(!aRe.test(alsoText), `${otherName} A must not sit in Also of C`);
+        assert.ok(!bRe.test(alsoText), `${otherName} B must not sit in Also of C`);
+      }
+    }
+  }
+}
+
 function renderOverview(rows: AddressRowRaw[]): string {
   const overview = buildLocationOverview(rows);
   return overview.groups
@@ -5683,6 +5734,198 @@ describe("Locations Also recorded as — rendered HTML boundary", () => {
       /Nazrul Avenue, Green,/i,
       /Green, Nazrul,/i,
       "leftover Nazrul Avenue leftover Green vs leftover Green, Nazrul Dhaka",
+    );
+    assertXorAddressRowHtml(
+      row("Nazrul Avenue, Green, Dhaka", "BGMEA", "factory"),
+      row("Green, Nazrul Avenue, Dhaka", "BKMEA", "factory"),
+      /Nazrul Avenue, Green,/i,
+      /Green, Nazrul Avenue/i,
+      "leftover Nazrul Avenue leftover Green vs leftover Green, Nazrul Avenue Dhaka",
+    );
+    assertXorAddressRowHtml(
+      row("Kazi Nazrul Islam Avenue, Green, Dhaka", "BGMEA", "factory"),
+      row("Green, Kazi Nazrul Islam Avenue, Dhaka", "BKMEA", "factory"),
+      /Kazi Nazrul Islam Avenue, Green,/i,
+      /Green, Kazi Nazrul Islam Avenue/i,
+      "leftover Kazi Nazrul leftover Green vs leftover Green, Kazi Nazrul Islam Avenue",
+    );
+    assertXorAddressRowHtml(
+      row("Mirpur Road, Green, Dhaka", "BGMEA", "factory"),
+      row("Green, Mirpur Road, Dhaka", "BKMEA", "factory"),
+      /Mirpur Road, Green,/i,
+      /Green, Mirpur Road/i,
+      "leftover Mirpur Road leftover Green vs leftover Green, Mirpur Road Dhaka",
+    );
+    assertXorAddressRowHtml(
+      row("Circular Road, Green, Dhaka", "BGMEA", "factory"),
+      row("Green, Circular Road, Dhaka", "BKMEA", "factory"),
+      /Circular Road, Green,/i,
+      /Green, Circular Road/i,
+      "leftover Circular Road leftover Green vs leftover Green, Circular Road Dhaka",
+    );
+    assertXorAddressRowHtml(
+      row("Elephant Road, Green, Dhaka", "BGMEA", "factory"),
+      row("Green, Elephant Road, Dhaka", "BKMEA", "factory"),
+      /Elephant Road, Green,/i,
+      /Green, Elephant Road/i,
+      "leftover Elephant Road leftover Green vs leftover Green, Elephant Road Dhaka",
+    );
+    assertXorAddressRowHtml(
+      row("Airport Link Road, Green, Dhaka", "BGMEA", "factory"),
+      row("Green, Airport Link Road, Dhaka", "BKMEA", "factory"),
+      /Airport Link Road, Green,/i,
+      /Green, Airport Link Road/i,
+      "leftover Airport Link Road leftover Green vs leftover Green, Airport Link Road Dhaka",
+    );
+    assertXorAddressRowHtml(
+      row("Kakrail Road, Green, Dhaka", "BGMEA", "factory"),
+      row("Green, Dhaka", "BKMEA", "factory"),
+      /Kakrail Road, Green,/i,
+      /data-location-display="">Green, Dhaka/i,
+      "leftover Kakrail Road leftover Green vs leftover PRIMARY Green Dhaka",
+    );
+    {
+      const kakrailGreen = row("Kakrail Road, Green, Dhaka", "BGMEA", "factory");
+      const primaryGreen = row("Green, Dhaka", "BKMEA", "factory");
+      for (const ordered of [
+        [kakrailGreen, primaryGreen],
+        [primaryGreen, kakrailGreen],
+      ]) {
+        const html = renderAddressRows(ordered);
+        assert.equal(mergeUniqueLocations(ordered).length, 2);
+        assert.equal((html.match(/data-location-row=""/g) ?? []).length, 2);
+        for (const chunk of locationChunks(html)) {
+          const disp = displayHtml(chunk);
+          const also = chunk.match(/<li[^>]*data-also-recorded-as=""[^>]*>[\s\S]*?<\/li>/g) ?? [];
+          if (/Kakrail Road, Green,/i.test(disp) && !/Greenwood/i.test(disp)) {
+            assert.equal(
+              also.length,
+              0,
+              "leftover PRIMARY Green must not sit in Also of leftover Green after Kakrail",
+            );
+          }
+          if (/data-location-display="">Green, Dhaka/i.test(chunk) && !/Kakrail/i.test(disp)) {
+            assert.equal(
+              also.length,
+              0,
+              "leftover Green after Kakrail must not sit in Also of leftover PRIMARY Green",
+            );
+          }
+        }
+      }
+    }
+    assertXorAddressRowHtml(
+      row("Kakrail Road, Green, Dhaka", "BGMEA", "factory"),
+      row("Green, Kakrail, Dhaka", "BKMEA", "factory"),
+      /Kakrail Road, Green,/i,
+      /Green, Kakrail,/i,
+      "leftover Kakrail Road leftover Green vs leftover Green, Kakrail Dhaka",
+    );
+    assertXorAddressRowHtml(
+      row("House 10, Kakrail Road, Green, Dhaka", "BGMEA", "factory"),
+      row("House 10, Green, Kakrail, Dhaka", "BKMEA", "factory"),
+      /Kakrail Road, Green,/i,
+      /Green, Kakrail,/i,
+      "leftover House 10 leftover Kakrail leftover Green vs leftover Green, Kakrail",
+    );
+    assertXorAddressRowHtml(
+      row("New Eskaton Road, Green, Dhaka", "BGMEA", "factory"),
+      row("Green, Dhaka", "BKMEA", "factory"),
+      /New Eskaton Road, Green,/i,
+      /data-location-display="">Green, Dhaka/i,
+      "leftover New Eskaton Road leftover Green vs leftover PRIMARY Green Dhaka",
+    );
+    assertXorAddressRowHtml(
+      row("Banani Road, Green, Dhaka", "BGMEA", "factory"),
+      row("Green, Dhaka", "BKMEA", "factory"),
+      /Banani Road, Green,/i,
+      /data-location-display="">Green, Dhaka/i,
+      "leftover Banani Road leftover Green vs leftover PRIMARY Green Dhaka",
+    );
+    assertXorAddressRowHtml(
+      row("Dhanmondi Road, Green, Dhaka", "BGMEA", "factory"),
+      row("Green, Dhaka", "BKMEA", "factory"),
+      /Dhanmondi Road, Green,/i,
+      /data-location-display="">Green, Dhaka/i,
+      "leftover Dhanmondi Road leftover Green vs leftover PRIMARY Green Dhaka",
+    );
+    assertXorAddressRowHtml(
+      row("Gulshan Avenue, Green, Dhaka", "BGMEA", "factory"),
+      row("Green, Dhaka", "BKMEA", "factory"),
+      /Gulshan Avenue, Green,/i,
+      /data-location-display="">Green, Dhaka/i,
+      "leftover Gulshan Avenue leftover Green vs leftover PRIMARY Green Dhaka",
+    );
+    assertXorAddressRowHtml(
+      row("House 10, Green Street, Sonda", "BGMEA", "factory"),
+      row("House 10, Airport Link, Sonda", "BKMEA", "factory"),
+      /Green Street/i,
+      /Airport Link/i,
+      "leftover House 10 leftover Green Street vs leftover Airport Link Sonda",
+    );
+    assertXorAddressRowHtml(
+      row("House 10, Green Street, Sonda", "BGMEA", "factory"),
+      row("House 10, Airport Link Road, Sonda", "BKMEA", "factory"),
+      /Green Street/i,
+      /Airport Link Road/i,
+      "leftover House 10 leftover Green Street vs leftover Airport Link Road Sonda",
+    );
+    assertXorAddressRowHtml(
+      row("House 10, Green Street, Sonda", "BGMEA", "factory"),
+      row("House 10, International Airport, Sonda", "BKMEA", "factory"),
+      /Green Street/i,
+      /International Airport/i,
+      "leftover House 10 leftover Green Street vs leftover International Airport Sonda",
+    );
+    assertXorAddressRowHtml(
+      row("House 10, Greenwood, Sonda", "BGMEA", "factory"),
+      row("House 10, International Airport, Sonda", "BKMEA", "factory"),
+      /Greenwood/i,
+      /International Airport/i,
+      "leftover House 10 leftover Greenwood vs leftover International Airport Sonda",
+    );
+    assertXorAddressRowHtml(
+      row("House 10, Green, Sonda", "BGMEA", "factory"),
+      row("House 10, International Airport, Sonda", "BKMEA", "factory"),
+      /House 10, Green, Sonda/i,
+      /International Airport/i,
+      "leftover House 10 leftover PRIMARY Green vs leftover International Airport Sonda",
+    );
+    assertThreeXorAddressRowHtml(
+      row("Nazrul Avenue, Green, Dhaka", "BGMEA", "factory"),
+      row("Nazrul Avenue, Greenwood, Dhaka", "BKMEA", "factory"),
+      row("Green, Nazrul Avenue, Dhaka", "OEKO_TEX", "factory"),
+      /Nazrul Avenue, Green,/i,
+      /Greenwood/i,
+      /Green, Nazrul Avenue/i,
+      "three-string leftover after Nazrul leftover Green+Greenwood+leftover Green, Nazrul Avenue",
+    );
+    assertThreeXorAddressRowHtml(
+      row("Kakrail Road, Green, Dhaka", "BGMEA", "factory"),
+      row("Kakrail Road, Greenwood, Dhaka", "BKMEA", "factory"),
+      row("Green, Dhaka", "OEKO_TEX", "factory"),
+      /Kakrail Road, Green,/i,
+      /Greenwood/i,
+      /data-location-display="">Green, Dhaka/i,
+      "three-string leftover after Kakrail leftover Green+Greenwood+PRIMARY Green",
+    );
+    assertThreeXorAddressRowHtml(
+      row("House 10, Green Street, Sonda", "BGMEA", "factory"),
+      row("House 10, Greenwood, Sonda", "BKMEA", "factory"),
+      row("House 10, International Airport, Sonda", "OEKO_TEX", "factory"),
+      /Green Street/i,
+      /Greenwood/i,
+      /International Airport/i,
+      "three-string leftover House 10 leftover Green Street leftover Greenwood leftover International Airport",
+    );
+    assertThreeXorAddressRowHtml(
+      row("House 10, Green Street, Sonda", "BGMEA", "factory"),
+      row("House 10, Greenwood, Sonda", "BKMEA", "factory"),
+      row("House 10, Airport Link, Sonda", "OEKO_TEX", "factory"),
+      /Green Street/i,
+      /Greenwood/i,
+      /Airport Link/i,
+      "three-string leftover House 10 leftover Green Street leftover Greenwood leftover Airport Link",
     );
     assertXorAddressRowHtml(
       row("Kazi Nazrul Islam Avenue, Green, Dhaka", "BGMEA", "factory"),
