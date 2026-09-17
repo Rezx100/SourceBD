@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "outDir": "node_modules/.cache/sourcebd-tests",
+    "outDir": ".tests-build",
     "module": "commonjs",
     "target": "es2022",
     "moduleResolution": "node",

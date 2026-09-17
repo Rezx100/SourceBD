@@ -4,7 +4,9 @@ const Module = require("module");
 const path = require("path");
 
 const repoRoot = path.join(__dirname, "..");
-const outDir = path.join(repoRoot, "node_modules", ".cache", "sourcebd-tests");
+// Outside node_modules on purpose: Node >= 22 test runner refuses to load
+// test files from under node_modules ("Could not find ...").
+const outDir = path.join(repoRoot, ".tests-build");
 const orig = Module._resolveFilename;
 Module._resolveFilename = function resolveWithTestAliases(
   request,

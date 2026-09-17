@@ -76,8 +76,7 @@ _preflight.*
 .deploy/
 
 # Local agent/editor config
-.claude/settings.local.json
-CLAUDE.local.md
+.claude/
 .cursor/settings.local.json
 
 # Accidental DB dumps
@@ -91,3 +90,6 @@ CLAUDE.local.md
 # Unrelated browser-saved help page
 API Access _ OneProvider.htm
 API Access _ OneProvider_files/
+
+# compiled node:test output (npm test)
+.tests-build/
