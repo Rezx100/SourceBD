@@ -66,6 +66,8 @@ const MARKER = join(ROOT, ".next", "http-guard-env.json");
 const MOTHER = "mother-company-ltd";
 const ASSOCIATE_ONLY = "ocean-cross-international";
 const UNRESOLVED_BGMEA = "unresolved-bgmea-supplier";
+const HABITUS = "habitus-fashion";
+const FAKHRUDDIN = "fakhruddin-textile-mills";
 const FACILITY = "mother-company-ltd-extension";
 const MISSING = "this-slug-cannot-possibly-exist-http-guard";
 const UNPUBLISHED = "unpublished-plain-supplier-ltd";
@@ -188,6 +190,88 @@ const UNRESOLVED_PAYLOAD = {
   },
   // Production 0101 omits BGMEA pills when member_type is unknown — no Verified badge.
   pills: [],
+};
+
+const HABITUS_PAYLOAD = {
+  ...HAPPY_PAYLOAD,
+  supplier: {
+    ...HAPPY_PAYLOAD.supplier,
+    slug: HABITUS,
+    company_name: "HABITUS FASHION LIMITED",
+  },
+  addresses: [
+    {
+      kind: "factory",
+      address: "Gajaria Para, Kauitis\nGazipur\nGazipur",
+      source_code: "BGMEA",
+      fetched_at: "2026-07-24T06:42:34.407591Z",
+    },
+    {
+      kind: "factory",
+      address: "GAJARIA PARA, BHAWAL MIRZAPUR, GAZIPUR SADAR, GAZIPUR, SADAR, GAZIPUR",
+      source_code: "BKMEA",
+      fetched_at: "2026-08-02T05:04:41.110702Z",
+    },
+    {
+      kind: "factory",
+      address: "Gojariapara, Vhawal Mirzapur, Gazipur Sadar PS, Gazipur - 1703, Bangladesh",
+      source_code: "OEKO_TEX",
+      fetched_at: "2026-06-27T02:28:59.512381Z",
+    },
+    {
+      kind: "mailing",
+      address: "Fakir Khali Road, Boro Beraid, Badda\nDhaka\nDhaka",
+      source_code: "BGMEA",
+      fetched_at: "2026-07-24T06:42:34.407591Z",
+    },
+    {
+      kind: "mailing",
+      address: "FOKIRKHALI ROAD, BORO BERAID, BADDA, DHAKA, BADDA, DHAKA",
+      source_code: "BKMEA",
+      fetched_at: "2026-08-02T05:04:41.110702Z",
+    },
+  ],
+};
+
+const FAKHRUDDIN_PAYLOAD = {
+  ...HAPPY_PAYLOAD,
+  supplier: {
+    ...HAPPY_PAYLOAD.supplier,
+    slug: FAKHRUDDIN,
+    company_name: "FAKHRUDDIN TEXTILE MILLS LTD.",
+  },
+  addresses: [
+    {
+      kind: "factory",
+      address: "Kewa, Ghorgaria, Master Bari, Sreepur\nGazipur\nGazipur",
+      source_code: "BGMEA",
+      fetched_at: "2026-07-24T06:25:10.876Z",
+    },
+    {
+      kind: "factory",
+      address: "MOUZA KEWA, SREEPUR, GAZIPUR",
+      source_code: "BKMEA",
+      fetched_at: "2026-08-02T03:02:29.550386Z",
+    },
+    {
+      kind: "factory",
+      address: "Ghargaria Master Bari, Kewa, Sreepur, Gazipur - 1740, Bangladesh",
+      source_code: "OEKO_TEX",
+      fetched_at: "2026-06-27T02:27:01.510678Z",
+    },
+    {
+      kind: "mailing",
+      address: "235/B, Bir Uttam Mir Sawkat Sarak, Tejgaon I/A\nDhaka\nDhaka",
+      source_code: "BGMEA",
+      fetched_at: "2026-07-24T06:25:10.876Z",
+    },
+    {
+      kind: "mailing",
+      address: "235/B, TEJGAON I/A-1208, TEJGAON, DHAKA",
+      source_code: "BKMEA",
+      fetched_at: "2026-08-02T03:02:29.550386Z",
+    },
+  ],
 };
 
 /** REZ-73/109 — mother facility panel shape from buyer_supplier_facility_panel. */
@@ -401,6 +485,8 @@ function mockHandler(req, res) {
       }
       if (slug === ASSOCIATE_ONLY) return json(ASSOCIATE_PAYLOAD);
       if (slug === UNRESOLVED_BGMEA) return json(UNRESOLVED_PAYLOAD);
+      if (slug === HABITUS) return json(HABITUS_PAYLOAD);
+      if (slug === FAKHRUDDIN) return json(FAKHRUDDIN_PAYLOAD);
       return json(null);
     }
     if (url.pathname === "/rest/v1/rpc/supplier_epb_hscodes") {
@@ -1200,6 +1286,80 @@ const CASES = [
     },
   },
   {
+    name: "public: Habitus Fashion factory is one premises with Also recorded as pills",
+    path: `/suppliers/${HABITUS}`,
+    expect: {
+      status: 200,
+      bodyIncludesAll: [
+        "HABITUS FASHION LIMITED",
+        "Also recorded as",
+        "data-also-recorded",
+        "data-also-recorded-as",
+        "data-location-row",
+        "data-also-recorded-authorities",
+        "Gojariapara",
+        "2 unique locations",
+        "5 source records",
+        "OEKO-TEX",
+      ],
+      alsoRecordedPair: { spelling: /Gajaria/i, authority: /BGMEA/ },
+      alsoRecordedPairs: [
+        {
+          group: "Mailing addresses",
+          spelling: /Fakir Khali|FOKIRKHALI/i,
+          authority: /BGMEA|BKMEA/,
+        },
+      ],
+      factoryRowIncludes: {
+        group: "Factories",
+        display: /Gojariapara|Gojaria/i,
+        needle: /OEKO-TEX|OEKO_TEX/,
+      },
+      bodyCount: {
+        'data-location-group="Factories"': 1,
+        'data-location-group="Mailing addresses"': 1,
+      },
+    },
+  },
+  {
+    name: "public: Fakhruddin Textile Mills factory is one premises with Also recorded as pills",
+    path: `/suppliers/${FAKHRUDDIN}`,
+    expect: {
+      status: 200,
+      bodyIncludesAll: [
+        "FAKHRUDDIN TEXTILE MILLS",
+        "Also recorded as",
+        "data-also-recorded",
+        "data-also-recorded-as",
+        "data-location-row",
+        "data-also-recorded-authorities",
+        "Mouza Kewa",
+        "2 unique locations",
+        "5 source records",
+        "Kewa",
+        "OEKO-TEX",
+        "Ghargaria",
+      ],
+      alsoRecordedPair: { spelling: /Ghargaria|Ghorgaria/i, authority: /OEKO_TEX|OEKO-TEX/ },
+      alsoRecordedPairs: [
+        {
+          group: "Mailing addresses",
+          spelling: /TEJGAON I\/A-1208/i,
+          authority: /BGMEA|BKMEA/,
+        },
+      ],
+      factoryRowIncludes: {
+        group: "Factories",
+        display: /Kewa|Ghorgaria|Ghargaria/i,
+        needle: /OEKO-TEX|OEKO_TEX/,
+      },
+      bodyCount: {
+        'data-location-group="Factories"': 1,
+        'data-location-group="Mailing addresses"': 1,
+      },
+    },
+  },
+  {
     name: "public: mother Facilities section + RSC-preferred group workers (REZ-114)",
     path: `/suppliers/${MOTHER}`,
     expect: {
@@ -1729,6 +1889,73 @@ async function main() {
             if (!got.body.includes(needle)) {
               caseProblems.push(
                 `${label}: body missing "${needle}" (${got.bytes} bytes)`,
+              );
+            }
+          }
+        }
+        if (c.expect.alsoRecordedPair || c.expect.alsoRecordedPairs) {
+          const pairs = [
+            ...(c.expect.alsoRecordedPair ? [c.expect.alsoRecordedPair] : []),
+            ...(Array.isArray(c.expect.alsoRecordedPairs) ? c.expect.alsoRecordedPairs : []),
+          ];
+          for (const pair of pairs) {
+          const rowRe = /<(button|div)\b([^>]*data-location-row=""[^>]*)>([\s\S]*?)<\/\1>/gi;
+          let found = false;
+          let m;
+          while ((m = rowRe.exec(got.body))) {
+            const group = /data-location-group="([^"]*)"/.exec(m[2])?.[1] ?? "";
+            if (pair.group && group !== pair.group) continue;
+            const liRe = /<li\b([^>]*)>([\s\S]*?)<\/li>/gi;
+            let li;
+            while ((li = liRe.exec(m[3]))) {
+              if (!/\bdata-also-recorded-as=/.test(li[1])) continue;
+              const auth = /data-also-recorded-authorities="([^"]*)"/.exec(li[1]);
+              const authorities = auth?.[1] ?? "";
+              const text = li[2].replace(/<[^>]+>/g, " ");
+              if (pair.spelling.test(text) && pair.authority.test(authorities)) {
+                found = true;
+                break;
+              }
+            }
+            if (found) break;
+          }
+          if (!found) {
+            caseProblems.push(
+              `${label}: no ${pair.group ?? "location"} data-location-row pairs ${pair.spelling} with ${pair.authority}`,
+            );
+          }
+          }
+        }
+        if (c.expect.factoryRowIncludes) {
+          const want = c.expect.factoryRowIncludes;
+          const rowRe = /<(button|div)\b([^>]*data-location-row=""[^>]*)>([\s\S]*?)<\/\1>/gi;
+          let found = false;
+          let m;
+          while ((m = rowRe.exec(got.body))) {
+            const attrs = m[2];
+            const inner = m[3];
+            const group = /data-location-group="([^"]*)"/.exec(attrs)?.[1] ?? "";
+            if (group !== want.group) continue;
+            const display = /data-location-display=""[^>]*>([\s\S]*?)<\/p>/.exec(inner)?.[1] ?? "";
+            const displayText = display.replace(/<[^>]+>/g, " ");
+            if (want.display.test(displayText) && want.needle.test(inner)) {
+              found = true;
+              break;
+            }
+          }
+          if (!found) {
+            caseProblems.push(
+              `${label}: no ${want.group} data-location-row with display ${want.display} includes ${want.needle}`,
+            );
+          }
+        }
+        if (c.expect.bodyCount && typeof c.expect.bodyCount === "object") {
+          for (const [needle, n] of Object.entries(c.expect.bodyCount)) {
+            const escaped = needle.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+            const gotN = (got.body.match(new RegExp(escaped, "g")) ?? []).length;
+            if (gotN !== n) {
+              caseProblems.push(
+                `${label}: count of "${needle}" is ${gotN} != ${n}`,
               );
             }
           }

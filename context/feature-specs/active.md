@@ -3,6 +3,12 @@
 This file keeps routine agent sessions from scanning every inactive feature spec.
 
 ## Active / Recent Spec
+- IN PROGRESS (11 Sep 2026): **one row per premises on Locations** — matcher
+  only in `lib/dedup-addresses.ts` (compound joining, Bengali sound-key with
+  Sreepur≠Sripur and Nawabganj≠Chapainawabganj never-same, structural village
+  veto, Ka/K identifier parser). Visible "Also recorded as" pills. Fixture of
+  3,274 published multi-string-by-kind groups. Raw strings, geocode keys,
+  Python ETL and schema untouched.
 - IN PROGRESS (15 Aug 2026): **EPB evidence + HS codes on existing companies,
   independent of BGMEA/BKMEA flags** (Linear REZ-113 follow-on). Attach-only
   of 1,953 matches applied on production (never minted the 224). Migration

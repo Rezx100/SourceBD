@@ -2,9 +2,12 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import {
+  buildLocationOverview,
   cleanAddressString,
+  idSetsOverlap,
   mergeUniqueLocations,
   normaliseAddressKey,
+  premisesIdentifiers,
   type AddressRowRaw,
 } from "./dedup-addresses";
 
@@ -27,6 +30,26 @@ function row(address: string, source_code = "BGMEA", kind = "factory"): AddressR
 
 function displays(rows: AddressRowRaw[]): string[] {
   return mergeUniqueLocations(rows).map((l) => l.displayAddress);
+}
+
+function permutations<T>(items: T[]): T[][] {
+  if (items.length <= 1) return [items];
+  const out: T[][] = [];
+  for (let i = 0; i < items.length; i++) {
+    for (const rest of permutations([...items.slice(0, i), ...items.slice(i + 1)])) {
+      out.push([items[i]!, ...rest]);
+    }
+  }
+  return out;
+}
+
+function assertBothOrders(a: AddressRowRaw, b: AddressRowRaw, n: number, msg: string) {
+  assert.equal(displays([a, b]).length, n, msg);
+  assert.equal(displays([b, a]).length, n, `${msg} reverse`);
+}
+
+function campusRow() {
+  return row("House # 50, Road # 3, Gulshan-1, Dhaka");
 }
 
 describe("mergeUniqueLocations — merges variants of one premises", () => {
@@ -243,6 +266,15 @@ describe("mergeUniqueLocations — refuses to merge different premises", () => {
       row("Hossain Market (5th Floor), 671, Datta Para,Tongi\nGazipur\nGazipur"),
     ]);
     assert.equal(out.length, 2, `expected one location per holding, got: ${out.join(" | ")}`);
+    assert.equal(
+      displays([
+        row("671, Dattopara, Hossain Market, Tongi, Gazipur"),
+        row("Hossain Market, 670, Datta Para, Tongi, Gazipur"),
+        row("670-671, Datta Para, Tongi, Gazipur"),
+      ]).length,
+      2,
+      "670 vs 671 stay two holdings even with a 670-671 bridge row",
+    );
   });
 });
 
@@ -358,5 +390,10727 @@ describe("normaliseAddressKey", () => {
     assert.match(normaliseAddressKey("P.O.-Bhawal, Mirzapur"), /bhawal/);
     assert.match(normaliseAddressKey("P.O.-Bhawal"), /\bpost\b/);
     assert.match(normaliseAddressKey("Post: Vawal"), /\bpost\b/);
+  });
+
+  it("maps Bangla script road/bazar words into English comparison tokens", () => {
+    assert.match(normaliseAddressKey("মৌজা Kewa রোড"), /mouza/);
+    assert.match(normaliseAddressKey("মৌজা Kewa রোড"), /road/);
+  });
+});
+
+describe("mergeUniqueLocations — one row per premises (founder posture)", () => {
+  it("merges Habitus Fashion factory spellings into one premises with variants", () => {
+    const merged = mergeUniqueLocations([
+      row("Gajaria Para, Kauitis\nGazipur\nGazipur", "BGMEA", "factory"),
+      row(
+        "GAJARIA PARA, BHAWAL MIRZAPUR, GAZIPUR SADAR, GAZIPUR, SADAR, GAZIPUR",
+        "BKMEA",
+        "factory",
+      ),
+      row(
+        "Gojariapara, Vhawal Mirzapur, Gazipur Sadar PS, Gazipur - 1703, Bangladesh",
+        "OEKO_TEX",
+        "factory",
+      ),
+    ]);
+    assert.equal(merged.length, 1, `expected one factory, got: ${merged.map((l) => l.displayAddress).join(" | ")}`);
+    assert.deepEqual(merged[0]!.authorities.sort(), ["BGMEA", "BKMEA", "OEKO_TEX"]);
+    assert.ok(merged[0]!.variants.length >= 1, "alternate spellings must stay visible");
+    assert.ok(
+      merged[0]!.variants.some((v) => v.authorities.includes("BGMEA") || v.authorities.includes("BKMEA")),
+    );
+  });
+
+  it("merges Fakhruddin Textile Mills factory Kewa / Ghorgaria / Mouza Kewa", () => {
+    const merged = mergeUniqueLocations([
+      row("Kewa, Ghorgaria, Master Bari, Sreepur\nGazipur\nGazipur", "BGMEA"),
+      row("MOUZA KEWA, SREEPUR, GAZIPUR", "BKMEA"),
+      row(
+        "Ghargaria Master Bari, Kewa, Sreepur, Gazipur - 1740, Bangladesh",
+        "OEKO_TEX",
+      ),
+    ]);
+    assert.equal(merged.length, 1, `expected one Kewa factory, got: ${merged.map((l) => l.displayAddress).join(" | ")}`);
+    assert.deepEqual(merged[0]!.authorities.sort(), ["BGMEA", "BKMEA", "OEKO_TEX"]);
+  });
+
+  it("merges Fakir Khali / Fokirkhali mailing as one spelling variant", () => {
+    assert.equal(
+      displays([
+        row("Fakir Khali Road, Boro Beraid, Badda\nDhaka\nDhaka", "BGMEA", "mailing"),
+        row("FOKIRKHALI ROAD, BORO BERAID, BADDA, DHAKA, BADDA, DHAKA", "BKMEA", "mailing"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("joins High Way / Highway and Siddirganj / Siddirgonj as one premises", () => {
+    assert.equal(
+      displays([
+        row("Lithe Complex, Asian High Way, Shanarpar\nNarayanganj\nSiddirganj"),
+        row("LITHE COMPLEX, ASIAN HIGHWAY, SHANARPAR, SIDDIRGONJ,, , NARAYANGANJ"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("does not merge Sreepur with Sripur even on the same plot number", () => {
+    assert.equal(
+      displays([
+        row("Plot 5, Sreepur, Gazipur"),
+        row("Plot 5, Sripur, Gazipur"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("does not merge bare Nawabganj with Chapainawabganj", () => {
+    assert.equal(
+      displays([
+        row("Nawabganj, Dhaka"),
+        row("Chapainawabganj, Rajshahi"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("still keeps Nayapara and Bahadurpur apart when they share a Bhawal tail", () => {
+    assert.equal(
+      displays([
+        row("Bahadurpur, P.O.-Bhawal, Mirzapur, Gazipur Sadar", "BGMEA"),
+        row("Nayapara, P.O.-Bhawal, Mirzapur, Gazipur Sadar", "OEKO_TEX"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("does not merge a Dhaka mailing with a Narayanganj factory copied as mailing", () => {
+    assert.equal(
+      displays([
+        row("39, Dilkusha C/A,\nDhaka\nMotijheel", "BGMEA", "mailing"),
+        row("LITHE COMPLEX, ASIAN HIGHWAY, SHANARPAR, SIDDIRGONJ,, , NARAYANGANJ", "BKMEA", "mailing"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("merges Plot 01 / Sector 07 with Plot 1 / Sector 7 at CEPZ", () => {
+    assert.equal(
+      displays([
+        row("Plot # 1, Sector # 7, CEPZ, Chittagong"),
+        row("PLOT # 01, SECTOR # 07, CEPZ"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges Plot#5&7 Road-06 with Plot 5 & 7 Road 6 at Ashutia", () => {
+    assert.equal(
+      displays([
+        row("Plot # 5 & 7, Road # 6, Ashutia, Dhour, Turag, Dhaka"),
+        row("Plot#5&7, Road-06, Ashutia, Dhour, Turag, Dhaka-1230"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges House 17 Sector 01 Road 06 with House 17 Road 6 Sector 1 Uttara", () => {
+    assert.equal(
+      displays([
+        row("House # 17, Road # 6, Sector # 1, Uttara, Dhaka-1230", "BGMEA", "mailing"),
+        row("House- 17, Sector - 01, Road- 06, Uttara, Dhaka-1230", "BKMEA", "mailing"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges Holding 98 Choydana with 98 Choydana despite N-University lexicon drift", () => {
+    assert.equal(
+      displays([
+        row("98, Choydana, N-University, Gasa, Gazipur, 1704, Dhaka, Bangladesh"),
+        row("Holding # 98, Choydana, National University, Gazipur"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("does not merge House 1 Mirpur with Plot 1 CEPZ", () => {
+    assert.equal(
+      displays([
+        row("House # 1, Road # 9, Block - A, Section # 12, Dhaka, Mirpur"),
+        row("Plot # 1, Sector # 7, CEPZ, Chittagong"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("does not merge House 17 Road 6 with House 17 Road 3 in Uttara", () => {
+    assert.equal(
+      displays([
+        row("House # 17, Road # 6, Sector # 1, Uttara, Dhaka-1230", "BGMEA", "mailing"),
+        row("House # 17, Road # 3, Sector # 7, Uttara, Dhaka-1230", "BKMEA", "mailing"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("does not merge Plot 51 Uttara with Plot 51 CEPZ", () => {
+    assert.equal(
+      displays([
+        row("Plot 51, Uttara, Dhaka"),
+        row("Plot 51, CEPZ, Chittagong"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("merges Plot S-18-19 with Plot No: S-18-19 BSCIC I/E Konabari", () => {
+    assert.equal(
+      displays([
+        row("Plot # S-18-19, BSCIC Industrial Estate, Konabari, Gazipur"),
+        row("Plot No: S-18-19 BSCIC I/E, Konabari, Gazipur - 1700, Bangladesh"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges Plot A 12/13 with A12-A13 at BSCIC Dhamrai", () => {
+    assert.equal(
+      displays([
+        row("Plot No. A 12/13, BSCIC I/E, Dhamrai, 1350, Dhaka, Bangladesh"),
+        row("Plot No. A12-A13, BSCIC I/E. Dhamrai, Dhaka"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges Jarun (South) with Jaurn (South) Kashimpur", () => {
+    assert.equal(
+      displays([
+        row("Jarun (South), Kashimpur, Gazipur - 1700, Bangladesh"),
+        row("JAURN (SOUTH), KASHIMPUR, GAZIPUR"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges 31/A Issha Khan Road with 31 Ishkha Road", () => {
+    assert.equal(
+      displays([
+        row("31/A, Issha Khan Road, Narayangonj", "BGMEA", "mailing"),
+        row("31 ISHKHA ROAD., SADAR, NARAYANGANJ", "BKMEA", "mailing"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges NEW 129/B Mokaroba with New 129/B Mokorba Road", () => {
+    assert.equal(
+      displays([
+        row("NEW 129/B, MOKAROBA ROAD, NAGAR KHANPUR, NARAYANGANJ", "BGMEA", "mailing"),
+        row("New 129/B Mokorba Road, Nagar Khanpur, Narayanganj", "BKMEA", "mailing"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges F-14 Eastern Housing with Plot 14 Block F Pallabi", () => {
+    assert.equal(
+      displays([
+        row("Plot # 14, Block # F, Eastern Housing, Pollabi 2nd Part, Mirpur, Dhaka"),
+        row("F-14, Eastern Housing Main Road Pallabi, 2nd part"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges Anwar Tower with Anower Tower at Gouripur Ashulia", () => {
+    assert.equal(
+      displays([
+        row("ANWAR TOWER, B-BANGLA, GOURIPUR, ASHULIA, SAVAR, DHAKA, 1341, DHAKA, Bangladesh"),
+        row("Anower Tower, B-Bangla, Gouripur, Ashulia, Savar, 1341, Dhaka, Bangladesh"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges DEPZ FSSFB#2 with FS-SFB-2", () => {
+    assert.equal(
+      displays([
+        row("FSSFB#2, DEPZ (Old Zone), Ashulia, 1349, Savar, Bangladesh"),
+        row("FS-SFB-2, Dhaka EPZ (Old Zone), Ashulia, Savar"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges Kalurghat 12 P & 13 P with 12P AND 13P and keeps FIDC Road apart", () => {
+    const merged = displays([
+      row("Plot No. 12 P & 13 P, Kalurghat Heavy I/A, Chattogram - 4212, Bangladesh"),
+      row("PLOT NO. 12P AND 13P, KALURGHAT INDUSTRIAL AREA, CHITTAGONG"),
+      row("B-8/A-B, FIDC Road, BSCIC I/A, Chittagong"),
+    ]);
+    assert.equal(merged.length, 2);
+    assert.ok(merged.some((d) => /12/i.test(d)));
+    assert.ok(merged.some((d) => /FIDC/i.test(d)));
+  });
+
+  it("does not merge Green City Edge 86 Kakrail with 89 Kakrail", () => {
+    assert.equal(
+      displays([
+        row("GREEN CITY EDGE (12-14TH FLOOR), 86 KAKRAIL C/A, PALTAN, DHAKA", "BGMEA", "mailing"),
+        row("Green City Edge (12th -14th Floor), 89, Kakrail C/A Dhaka- 1000.", "BKMEA", "mailing"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("merges Baro Narayonpur with Boro Narayanpur at Dhamrai", () => {
+    assert.equal(
+      displays([
+        row("Baro Narayonpur, Saturia - Kalampur Road, Saturia, Dhamrai, Dhaka - 1350, Bangladesh"),
+        row("Boro Narayanpur, Amta, Dhamri, Dhaka"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges Akholia with Ahakhalia at Hazir Bazar", () => {
+    assert.equal(
+      displays([
+        row("Akholia, Hazir Bazar, Mollikbari, Valuka, Mymensingh"),
+        row("Ahakhalia, Hazir Bazar, Bhaluka, Mymensingh - 2240, Bangladesh"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges Hazi Mohammad Ismail Chowdhury Bhaban with Haji Ismail Chowdhury Bhaban", () => {
+    assert.equal(
+      displays([
+        row(
+          "Hazi Mohammad Ismail Chowdhury Bhaban (2nd Floor), Chandana Chowrasta, Gazipur Sadar, Gazipur - 1702, Bangladesh",
+        ),
+        row("Haji Ismail Chowdhury Bhaban, Chandana Chowrasta, Gazipur"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges FSFB.1 with FSFB # 01 at Karnaphuli EPZ", () => {
+    assert.equal(
+      displays([
+        row("FSFB.1, KARNAPHULI EXPORT PROCESSING ZONE, NORTH PATENGA, CHATTOGRAM"),
+        row("FSFB # 01, KARNAFULI EPZ; Patenga PS; Chittagong-4204"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges MS-SFB-01&02 with Plot MS-SFB # 01 & 02 at Adamjee EPZ", () => {
+    assert.equal(
+      displays([
+        row("MS-SFB-01&02 Adamjee EPZ, Shiddhirganj, Narayanganj, 1431, Narayanganj, Bangladesh"),
+        row("Plot # MS-SFB # 01 & 02, Adamjee Nagar, Siddirgonj, Narayangonj"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges Plot 799 (Old #1010-1011) with 799 OLD PLOT 1010, 1011 at Ambag", () => {
+    assert.equal(
+      displays([
+        row("Plot # 799(Old #1010-1011), Ambag, Mouza- Baghia, Gazipur"),
+        row("799 (OLD PLOT NO.: 1010, 1011) AMBAG, MOUZA BAGHIA"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges A-69 & 76 BSCIC with A-76 at Fatullah", () => {
+    assert.equal(
+      displays([
+        row("A-69 & 76 BSCIC I/A, Narayanganj, Fatullah"),
+        row("A-76 BSCIC HOSIERY I/A, FATULLAH, NARAYANGANJ"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges Natun Para Baipail Beside-DEPZ-2 with Notun Para Baipal", () => {
+    assert.equal(
+      displays([
+        row("Natun Para, Baipail (Beside-DEPZ-2), Savar, Dhaka, 1349, Dhaka, Bangladesh"),
+        row("NOTUN PARA, BAIPAL, BESIDE DEPZ-2, SAVAR, DHAKA"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges Plot S.A.-179 RS-1356 Jamgara with Plot 179 Jamgora", () => {
+    assert.equal(
+      displays([
+        row("Plot No. S.A.-179, R.S.-1356, Jamgara, Ashulia, Savar, Dhaka, Bangladesh, Zip Code-1349"),
+        row("Plot # 179, RS-1356, Jamgora, Ashulia, Dhaka"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges Holding 574 (Former #295) with Holding 295 at Boherarchala", () => {
+    assert.equal(
+      displays([
+        row(
+          "Holding # 574 (Former #295)Block # C, Word # 9, Boherarchala, Sreepur Municipality, Ansar Road, Sreepur, Gazipur",
+        ),
+        row("Kewa, Boherarchala, Holding # 295, Block # C, Ward # 09, Sreepur, Gazipur-1740"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges Fac: Choto Benairchar with Choto Binair Char", () => {
+    assert.equal(
+      displays([
+        row("Fac: Choto Benairchar, Araihazar, Narayangonj."),
+        row("Choto Binair Char, Araihazar, Narayangonj."),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges Kashor Habirbari with Kashor Master Bari Seed Store", () => {
+    assert.equal(
+      displays([
+        row("Village: Kashor, Word No-06, PO: Habirbari, Thana: Bhaluka, Mymensingh - 2240, Bangladesh"),
+        row("KASHOR, MASTER BARI, SEED STORE, BHALUKA, Mymensingh"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges H/0-10 Dalla with H/O-10 Dailla Demra", () => {
+    assert.equal(
+      displays([
+        row("H/0-10, 13, Dalla, Demra, Dhaka"),
+        row("H/O-10, Dailla, Demra, Dhaka - 1360, Bangladesh"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges SSFB No-03 with Plot SSFB-3 at Adamjee EPZ", () => {
+    assert.equal(
+      displays([
+        row("SSFB No-03, Plot-259-260, 277 & 278, EPZ, Siddhirganj, Narayanganj - 1431, Bangladesh"),
+        row("Plot # SSFB-3, Narayanganj, Adamjee EPZ"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges G.P.TA-50 with GPTA 50 at Mohakhali", () => {
+    assert.equal(
+      displays([
+        row("G.P.TA-50 (1st Floor), Airport Road, Mohakhali C/A, Gulshan, Dhaka-1212."),
+        row("GPTA 50, Mohakhali C/A, Gulshan, Dhaka-1212."),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges Nishchintapur with NISHNTIPUR at Mouchak", () => {
+    assert.equal(
+      displays([
+        row("Nishchintapur, Mouchak, Kaliakoir, Gazipur - 1751, Bangladesh"),
+        row("NISHNTIPUR, MOUCHAK, KALIAKOIR, GAZIPUR"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("keeps a Unit-1; Unit-2 semicolon list apart from the Plot 57-59 campus-only row", () => {
+    assert.equal(
+      displays([
+        row(
+          "Unit-1 Production Unit Plot# 57-59, Sector 1, Export Processing Zone;, Unit-2 Washing Plot# 1-2, Sector 1, Export Processing Zone, 4223 Chittagong, Bangladesh",
+        ),
+        row("Plot#57, 58 & 59, Sector#1, CEPZ, Chattogram, Bangladesh, EPZ"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("merges Atlas Rangs Plaza with Altas Rangs Plaza at Agrabad", () => {
+    assert.equal(
+      displays([
+        row("Atlas Rangs Plaza (6th floor), 7, Shekh Mujib Road, Agrabad C/A, Chattogram"),
+        row("Altas Rangs Plaza (6th floor), 7, Shekh Mujib Road Agrabad C/A, Chattogram"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges Chanmary with Chandmari at Fatullah", () => {
+    assert.equal(
+      displays([
+        row("Chanmary, Narayanganj, Fatullah", "BGMEA", "mailing"),
+        row("CHANDMARI, FATULLAH, NARAYANGANJ", "BKMEA", "mailing"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges Borkan Monipur with Bokran Monipur", () => {
+    assert.equal(
+      displays([
+        row("Borkan Monipur, Hotapara, Mirzapur Union, Gazipur, Joydevpur"),
+        row("Bokran Monipur, Sadar, 1700, Gazipur, Bangladesh"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges Shooghat/Saughatm with Vulta/Bholta as one village spelling", () => {
+    assert.equal(
+      displays([
+        row("Shooghat, Vulta, Narayanganj, Rupganj"),
+        row("SAUGHATM, BHOLTA, NARAYANGANJ"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges Horihorpara with Harihapara at the same industrial park", () => {
+    assert.equal(
+      displays([
+        row("BSCIC INDUSTRIA PARK, HORIHORPARA, ENAYETNAGAR, FATULLAH, NARAYANGANJ"),
+        row("Harihapara, Shilpo Park, Fatullah, Narayanganj"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges Dasergaw with Dasergaul at Lokhonkhola", () => {
+    assert.equal(
+      displays([
+        row("Dasergaw, Lokhonkhola, Bandar, Narayanganj, 1400, Narayanganj, Bangladesh"),
+        row("Dasergaul, Lokhonkhola, Bandar, Narayanganj-1400"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges Kharuli holding 160 with Kharuail ward 7 and keeps Voradoba apart", () => {
+    const merged = mergeUniqueLocations([
+      row("Holding: 160, Kharuli, Ward no-07, Madrasha Mohalla-L(136-161/10), Municipal Area"),
+      row("Kharuail, 7 No. Ward, Bhaluka Municipality, Mymensingh - 2240, Bangladesh"),
+      row("Purana, Voradoba, Valuka, Mymensingh"),
+    ]);
+    assert.equal(merged.length, 2, `got: ${merged.map((l) => l.displayAddress).join(" | ")}`);
+  });
+
+  it("merges Shrikedia with Serkondia at Molla Market", () => {
+    assert.equal(
+      displays([
+        row("Shrikedia, Molla Market, Ashulia, Savar, 1341, Dhaka, Bangladesh"),
+        row("Serkondia, Molla Market, Ashulia, Savar, Dhaka"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges Telirchala with Telir Chala and keeps Jogirchala apart", () => {
+    const merged = mergeUniqueLocations([
+      row(
+        "414, Mouza, Kouchakuri (DAG No. SA 2006, 2008), Telirchala, Mouchak, Kaliakoir, Gazipur - 1751, Bangladesh",
+      ),
+      row("Jogirchala, Mouchak, Kaliakoir, Gazipur."),
+      row("Telir Chala Mouchak, Gazipur, Kaliakoir"),
+    ]);
+    assert.equal(merged.length, 2, `got: ${merged.map((l) => l.displayAddress).join(" | ")}`);
+  });
+
+  it("merges Budichor/Burishchar Dofpool/Dhoppole at the same complex", () => {
+    assert.equal(
+      displays([
+        row("A.T.M. COMPLEX, SOUTH BUDICHOR, DOFPOOL, HATHAZARI PS, CHITTAGONG-4330, BANGLADESH"),
+        row("A.T.M. Complex, South Burishchar, Dhoppole, Hathazari, Chittagong"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges BEZA Zone-6 with Zone-06 at Mirsarai under two estate names", () => {
+    assert.equal(
+      displays([
+        row("Bangabondhu Sheikh Mujib Shilpo Nagar Zone-6, BEZA, Mirsarai-4230, Chattogram."),
+        row(
+          "Bangladesh National Special Economic Zone, Zone-06, Mirsharai Economic Zone, BEZA, Mirsharai, Chittagong - 4320",
+        ),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges Le Meridien 79/A office-block wording with the shorter 79/A listing", () => {
+    assert.equal(
+      displays([
+        row(
+          "LE MERIDIEN DHAKA 5TH FLOOR (NORTH CORNER, OFFICE BLOCK-2, 3, 4) 79/A, COMMERCIAL AREA, AIRPORT ROAD, NIKUNJA-02, KHILKHET",
+          "BGMEA",
+          "mailing",
+        ),
+        row("Le Meridien (Level-05), 79/A, Commercial Space, Nikunja-2, Khilkhet, Dhaka", "BKMEA", "mailing"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges Kobi vs Kabi Jashimuddin Road 60/2-G and keeps the Adamjee factory apart", () => {
+    const merged = mergeUniqueLocations([
+      row("60/2-G, Kobi Jashimuddin Road, Tekpara, Pagar, Gazipur"),
+      row("Plot # 111-114, Adamjee EPZ, Adamjee Nagar, Siddhirgonj, Narayangonj"),
+      row("60/2-G Kabi Jashim Uddin Rd, Tekpara, Pegar, 1710, Tongi, Bangladesh"),
+    ]);
+    assert.equal(merged.length, 2, `got: ${merged.map((l) => l.displayAddress).join(" | ")}`);
+  });
+
+  it("merges Gazirchat with Gaziir Chat after stripping a dag number", () => {
+    assert.equal(
+      displays([
+        row("Daag-49, Kaichabari Road, Gazirchat Alia Madrasha, Ashulia, Savar, Dhaka, Bangladesh"),
+        row("Gaziir Chat Alia madrasha, Kaichabari Road, Dhamsona, Ashulia, Savar, Dhaka."),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges Nayadingi with Nayadighi and keeps the Mirpur plot apart", () => {
+    const merged = mergeUniqueLocations([
+      row("Plot - I/10, Block - K, Rupnagar Industrial Area, Mirpur-2, Rupnagar, Dhaka - 1216, Bangladesh"),
+      row("Nayadingi, Saturia, Saturia PS, Manikganj - 1810, Bangladesh"),
+      row("Nayadighi, Manikganj, Saturia"),
+    ]);
+    assert.equal(merged.length, 2, `got: ${merged.map((l) => l.displayAddress).join(" | ")}`);
+  });
+
+  it("merges POLO-B-46-47 with B-46/47 at BSCIC Fatullah", () => {
+    assert.equal(
+      displays([
+        row("B-46/47, 64/65, BLOCK-B, BSCIC HOSIERY I/E, FATULLAH, NARAYANGANJ"),
+        row("POLO-B-46-47, BSCIC I/A, SHASONGAON, FATULLAH, NARAYANGANJ, BANGLADESH"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges Dag 439 with Dug 439 at Dhour and keeps Bara Rangamatia apart", () => {
+    const merged = mergeUniqueLocations([
+      row("Dag No. 439, Dhour, Turag, Uttara, Dhaka, 1230, DHAKA, Bangladesh"),
+      row("Dug # 439, Dhour, Turag, Dhaka, Uttara"),
+      row("Bara Rangamatia, Ashulia, Savar, Dhaka"),
+    ]);
+    assert.equal(merged.length, 2, `got: ${merged.map((l) => l.displayAddress).join(" | ")}`);
+  });
+
+  it("merges Dogorgaon with Dohargaon and keeps Dogair Demra apart", () => {
+    const merged = mergeUniqueLocations([
+      row("Dogair, Purbopara, Choto Murgir Firm Sarulia, Demra, Dhaka"),
+      row("Dogorgaon, Baliapara, Rupgonj, Narayanganj, 1460, Narayanganj – Dhaka, Bangladesh"),
+      row("Dohargaon, P.O.-Balipara, P.S.-Rupgonj, Narayanganj"),
+    ]);
+    assert.equal(merged.length, 2, `got: ${merged.map((l) => l.displayAddress).join(" | ")}`);
+  });
+
+  it("merges Rugunathpur with Ragunahpur behind a bhaban vs union wrapper", () => {
+    assert.equal(
+      displays([
+        row("Chowdhury Bhaban, Rugunathpur, Jorargonj, Mirsharai, Chattogram"),
+        row("Durgapur Union, Ragunahpur, Jorargonj, Mirsharai, Chattogram"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges Mirzapur Purbapara with cadastral SA/RS lists of the same mouza", () => {
+    assert.equal(
+      displays([
+        row("SA/RS 595-1123, 592-1122, 593-1119, Mirzapur Mouza No # 8, Mirzapur Purba Para, Gazipur Sadar"),
+        row("Mirzapur Purbapara, 08 No Mirzapur Mouza, Mirzapur, Gazipur Sadar, Gazipur - 1703, Bangladesh"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("does not merge Mirpur with Mirzapur as a spelling of the same village", () => {
+    assert.equal(
+      displays([
+        row("Mirpur, Dhaka"),
+        row("Mirzapur, Gazipur"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("does not treat the word Village as a shared place named age", () => {
+    assert.equal(
+      displays([
+        row("Village Kewa, Sreepur, Gazipur"),
+        row("Village Konabari, Kaliakoir, Gazipur"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("merges Chandora holding D-84 with Chandora Shafipur as extra holding detail", () => {
+    assert.equal(
+      displays([
+        row("Ward No. 07, Holding No. D-84, Area: Chandora, Kaliakoir Pouroshova Kaliakoir, Gazipur-1751"),
+        row("Chandora, Shafipur, Kaliakoir, Gazipur"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges Plot 1113/A with the 1113-1115 list at Beron/Berun Jamgora", () => {
+    assert.equal(
+      displays([
+        row("Plot No. 1113/A, Beron, Jamgora Ashulia, Savar, Dhaka - 1341, Bangladesh"),
+        row("1113, 1114, 1115 Berun, Ashulia, Savar, Dhaka"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges Kamiz Achiya Chowdhury Complex with Kamis Asia Chowdhury Complex at Vogra", () => {
+    assert.equal(
+      displays([
+        row(
+          "Shee-101 Vogra Kamiz Achiya Chowdhury Commercial Complex, Vogra, Gazipur Sadar, Gazipur - 1703, Bangladesh",
+        ),
+        row("KAMIS ASIA CHOWDHURY COMMERCIAL COMPLEX, CHOWDHURY BARI, VOGRA, NATIONAL UNIVERSITY, GAZIPUR"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges Agrani Al-Monowar Apt D-5 with the same flat named by house 129", () => {
+    assert.equal(
+      displays([
+        row("House # 129, Apt # D-5, Agrani Al-Monowar Apartment, Ramna, Dhaka-1217"),
+        row("Agrani Al-Monowar Apartment, Flat # D-5, Ramna Century Avenue, Moghbazar, Ramna, Dhaka-1217"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges Peace Preenon house 167 with Peace Preennon house 167", () => {
+    assert.equal(
+      displays([
+        row('House Name "Peace Preenon", House # 167, (1st Floor), Road # 01, DOHS, Mirpur-12, Dhaka'),
+        row("PEACE PREENNON, HOUSE: 167(1ST FLOOR), ROAD-01, AVENUE-4, MIRPUR DOHS, MIRPUR, DHAKA"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges Ward 01 South Pahartali Mahmudabad with Fatehabad South Pahartali", () => {
+    assert.equal(
+      displays([
+        row("Mahmudabad, Ward No. 01, South Pahartali, Hathazari, Chattogram"),
+        row("South Pahartali, Ward # 01, Fatehabad, Hathazari, Chattogram"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("keeps Nandirhat apart from Mahmudabad even in the same South Pahartali ward", () => {
+    assert.equal(
+      displays([
+        row("Mahmudabad, Ward No. 01, South Pahartali, Hathazari, Chattogram"),
+        row("Nandirhat, Ward # 01, South Pahartali, Fatehabad, Hathazari, Chattogram"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("does not let a Fatehabad-only row fuse Nandirhat with Mahmudabad", () => {
+    assert.equal(
+      displays([
+        row("Mahmudabad, Ward No. 01, South Pahartali, Hathazari, Chattogram"),
+        row("South Pahartali, Ward # 01, Fatehabad, Hathazari, Chattogram"),
+        row("Nandirhat, Ward # 01, South Pahartali, Fatehabad, Hathazari, Chattogram"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("merges Barendra with Barenda at Kashimpur", () => {
+    assert.equal(displays([row("Barendra, Kashimpur, Gazipur"), row("BARENDA, GAZIPUR")]).length, 1);
+  });
+
+  it("merges Jamirdia with Jamidia at Bhaluka", () => {
+    assert.equal(
+      displays([
+        row("Jamirdia, Valuka, Seedstore, Mymensingh - 2240, Bangladesh"),
+        row("Jamidia, Valuka, Mymensingh"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges Anannya Shoping Complex with Ananna Shopping Complex at the same lane", () => {
+    assert.equal(
+      displays([
+        row("Anannya Shoping Complex (4th Floor), Lane # 13, Baridhara DOHS, Dhaka"),
+        row("ANANNA SHOPPING COMPLEX (4TH FLOOR), LANE-13, DHAKA"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges Jamirdia Square Masterbari with Jamirdia Hobirbari as the same village", () => {
+    assert.equal(
+      displays([
+        row("Jamirdia, Square Masterbari, Bhaluka, 2240, Mymensingh, Bangladesh"),
+        row("Jamirdia, Hobirbari, Mymensingh"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges Delpara Kutubpur with Delpara on the Dhaka-Narayanganj link road", () => {
+    assert.equal(
+      displays([
+        row("Delpara, Kutubpur, Fatullah, Narayanganj, Narayangonj"),
+        row("Dhaka Narayangonj Link Road, Delpara, Fatullah, Narayanganj - 1400, Bangladesh"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges Dhonaid Tajpur Road after stripping an unlabelled RS dag", () => {
+    assert.equal(
+      displays([
+        row("RS-61, Dhonaid, Tajpur Road, Yearpur, Zirabo, Ashulia, Savar, 1341, Dhaka, Bangladesh"),
+        row("Dhonaid, Tajpur Road, Norsinghopur, Ashulia, Savar, Dhaka"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges South Panishail Zirani Bazar under Joydevpur or Kashimpur labels", () => {
+    assert.equal(
+      displays([
+        row("South Panishail (Opposite of BKSP), Zirani Bazar, Gazipur, Joydevpur"),
+        row("South Panishail, Zirani Bazar, 1740, Kashimpur, Bangladesh"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges Uttar Narsingpur with Narsimpur at Kashipur Fatullah", () => {
+    assert.equal(
+      displays([
+        row("Uttar Narsingpur, Kashipur, Fatullah, Narayanganj - 1400, Bangladesh"),
+        row("NARSIMPUR, KASHIPUR, NARAYANGANJ"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges Haji Complex Iron Market with N.GANJ Iron Market at Police Line", () => {
+    assert.equal(
+      displays([
+        row("Haji Complex, Iron Market, Police Line, Narayanganj, Fatullah"),
+        row("HAJI COMPLEX, N.GANJ IRON MARKET, POLICE LINE, NARAYANGANJ"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges Talla Road Khapur with Knanpur at Fatullah", () => {
+    assert.equal(
+      displays([
+        row("Talla Road, Khapur, Fatullah, Narayanganj., 1400, Narayanganj, Bangladesh"),
+        row("TALLA ROAD, KNANPUR, FATULLAH, NARAYANGANJ"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges Chadni Housing with Enayetnagar near Chandni Housing at Fatullah", () => {
+    assert.equal(
+      displays([
+        row("Chadni Housing, Fatullah, 1400, Narayanganj, Bangladesh"),
+        row("ENAYETNAGAR (NEAR CHANDNI HOUSING), FATULLAH, NARAYANGANJ."),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges Shamser Plaza with Sreepur Stand at the same Ganakbari village", () => {
+    assert.equal(
+      displays([
+        row("Shamser Plaza (3rd Floor), Ganak Bari, Ashulia, Dhaka, Savar"),
+        row("SREEPUR STAND, GANAKBARI, ASHULIA, SAVAR, DHAKA"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges two Sreepur Stand wordings when one also names Ganakbari", () => {
+    assert.equal(
+      displays([
+        row("Sreepur Bus stand, Sreepur, Ashulia, Savar, Dhaka - 1349, Bangladesh"),
+        row("Sreepur Stand, Ganakbari, Ashulia, Dhaka, Savar"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges Plot 1 Road 1 Dhour with Sarkar Bari at Dhour Chowrasta", () => {
+    assert.equal(
+      displays([
+        row("Plot # 01, Road # 01, Dhour, Nishatnagar, Turag, Dhaka"),
+        row("Sarkar Bari, Dhour Chowrasta, Turag, 1230, Dhaka, Bangladesh"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges Takkarmath Stadium Road Siachor with Kutubpur Siachar Fatullah", () => {
+    assert.equal(
+      displays([
+        row("Takkarmath, Stadium Road, Siachor, Fatullah, Narayanganj - 1420, Bangladesh"),
+        row("KUTUBPUR, SIACHAR, FATULLAH, FATULLAH, NARAYANGANJ"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("does not merge Chandra with Chandona in Kaliakoir", () => {
+    assert.equal(
+      displays([
+        row("Chandra, Kaliakoir, Gazipur - 1751, Bangladesh"),
+        row("Chandona, Kaliakoir, Gazipur"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("does not merge a company-name-plus-postcode row with a named Fatullah village", () => {
+    assert.equal(
+      displays([
+        row("Shantidhara, Bhuigar, Fatullah, Narayanganj, Narayangonj"),
+        row("ZAS APPARELS (PVT.) LTD., 1420, Narayangonj, Bangladesh"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("does not merge Jamirdia with Square Masterbari when Jamirdia is named on only one side", () => {
+    assert.equal(
+      displays([
+        row("Holding#1125, Ideal Mor, Square Masterbari, Bhaluka, Mymensingh"),
+        row("Jamirdia, Habirbari, Valuka, Mymensingh"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("does not merge Hotapara with Bishia Kuribari Monipur", () => {
+    assert.equal(
+      displays([
+        row("Bishia, Kuribari, Monipur, Gazipur."),
+        row("Hotapara, Gazipur"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("still merges Mariam Complex with Chowdhury Bari at Vogra", () => {
+    assert.equal(
+      displays([
+        row("Chowdhury Bari, Gazipur, Vogra"),
+        row("MARIAM COMPLEX, CHOWDHURY BARI, GAZIPUR"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("does not merge two named towers in Gulshan that have different plots", () => {
+    assert.equal(
+      displays([
+        row("Plot # 10, Taher Tower (9th Floor), Gulshan North Circle, Dhaka, Gulshan-2"),
+        row("GREEN MEHER TOWER 12/A, GULSHAN NORTH AVENUE, GULSHAN, DHAKA"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("does not merge Mansur Plaza at Board Bazar with Kathora Industrial Park", () => {
+    assert.equal(
+      displays([
+        row("Mansur Plaza (3rd - 6th Floor), National University, Gazipur, Board Bazar"),
+        row("Dr. Panjab Ali, Dr. Assaduzzaman Industrial Park, Kathora, National University, Gazipur - 1704, Bangladesh"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("does not merge a Board Bazar post-office row with East Kolmeshwar tower", () => {
+    assert.equal(
+      displays([
+        row("Takwoa Tower, Holding No : 1773, Ward No: 35, East Kolmeshwar, Board Bazar, 1704, Gazipur, Bangladesh"),
+        row("Board Bazar, National University, Gazipur Sadar"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("keeps concatenated Adamjee plots 246-249 and 97-101 apart from the 97-101-only row", () => {
+    assert.equal(
+      displays([
+        row("Address 1st: Plot #246-249, Adamjee, EPZ and Address 2nd: 97-101 Adamjee"),
+        row("Plot # 97 - 101, Adamjee EPZ, Siddirgonj, Narayanganj, Narayangonj"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("keeps Address 1st/2nd wording apart even when the second plot list is parseable", () => {
+    assert.equal(
+      displays([
+        row("Address 1st: Plot #246-249, 97-101, Adamjee EPZ and Address 2nd: 97-101 Adamjee"),
+        row("Plot # 97 - 101, Adamjee EPZ, Siddirgonj, Narayanganj, Narayangonj"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("still merges a Comilla extra-plot subset when both sides list 220-227", () => {
+    assert.equal(
+      displays([
+        row("Plot 12-14, 220-227, Comilla EPZ"),
+        row("Plot 220-227, Comilla EPZ"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges the same BSCIC plot under Enayetnagar or Shasongaon labels", () => {
+    assert.equal(
+      displays([
+        row("Plot # A-81, BSCIC Industrial Area, Enayetnagar, Fatullah, Narayanganj"),
+        row("A-81, BSCIC I/E, SHASONGAON, FATULLAH, NARAYANGANJ"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges B-329/330 Enayetnagar with Sashongaon as the same Fatullah BSCIC plot", () => {
+    assert.equal(
+      displays([
+        row("B-329/330, BSCIC I/A, ENAYETNAGAR, , NARAYANGANJ"),
+        row("B-329/330, BSCIC  I/A, Sashongaon, Fatullah,, 1400, Narayanganj, Bangladesh"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges A-45 Enayetnagar with Shasangaon as the same Fatullah BSCIC plot", () => {
+    assert.equal(
+      displays([
+        row("A-45, BSCIC I/A, Enayetnagar, Fatullah, Narayanganj"),
+        row("A-45, BSCIC I/A, Shasangaon, Fatullah, Narayanganj"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("does not merge Plot 5 Nayapara with Plot 5 Bahadurpur", () => {
+    assert.equal(
+      displays([
+        row("Plot 5, Nayapara, Bhawal, Mirzapur, Gazipur Sadar"),
+        row("Plot 5, Bahadurpur, P.O.-Bhawal, Mirzapur, Gazipur Sadar"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("does not merge Plot 1 Nandirhat with Plot 1 Mahmudabad", () => {
+    assert.equal(
+      displays([
+        row("Plot 1, Mahmudabad, South Pahartali, Hathazari, Chattogram"),
+        row("Plot 1, Nandirhat, South Pahartali, Hathazari, Chattogram"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("does not merge House 1 Shamoli with House 1 Hajee Delgoni Mohammadpur", () => {
+    assert.equal(
+      displays([
+        row("1/D, Uttar Adabar, Ring Road, Dhaka, Shamoli", "BGMEA", "mailing"),
+        row("1, HAJEE DELGONI MARKET, MOHAMMADPUR, DHAKA", "BKMEA", "mailing"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("does not merge House 16 Sector 1 with House 01 (D-1) Sector 10 in Uttara", () => {
+    assert.equal(
+      displays([
+        row("House #16 (3rd fl), Road # 10, Sector # 1, Uttara Model Town, Dhaka-1230"),
+        row("House # 01 (D-1), Road # 03, Sector # 10 Uttara Model Town, Uttara, Dhaka."),
+      ]).length,
+      2,
+    );
+  });
+
+  it("does not merge House 3 Banani with Hosue 5 Nikunjo", () => {
+    assert.equal(
+      displays([
+        row("House # 3, Road # 17, Block-C, Banani, Dhaka"),
+        row("Hosue # 5, Road # 6, Nikunjo, Dhaka"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("does not merge Plot I/6 Road37 with Plot I/6 Road 7", () => {
+    assert.equal(
+      displays([
+        row("Plot# 1/6, Road37, Section# 7, Mirpur industrial Area, Dhaka"),
+        row("Plot # I/6, Road # 7, Sec. # 7, Mirpur I/A, Dhaka"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("does not merge Chandra, Chandona and Chandora as one premises", () => {
+    assert.equal(
+      displays([
+        row("Chandra, Kaliakoir, Gazipur - 1751, Bangladesh"),
+        row("Chandona, Kaliakoir, Gazipur"),
+        row("Chandora, Kaliakoir, Gazipur"),
+      ]).length,
+      3,
+    );
+  });
+
+  it("does not merge Kewa Sreepur with Sreepur Stand at Ganakbari", () => {
+    assert.equal(
+      displays([
+        row("Kewa, Sreepur, Gazipur"),
+        row("SREEPUR STAND, GANAKBARI, ASHULIA, SAVAR, DHAKA"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("does not merge Shamser Plaza with Anwar Plaza at the same Ganakbari village", () => {
+    assert.equal(
+      displays([
+        row("Shamser Plaza (3rd Floor), Ganak Bari, Ashulia, Dhaka, Savar"),
+        row("Anwar Plaza (3rd Floor), Ganak Bari, Dhaka, Savar"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("does not merge Chandra with Chandona on the same plot number", () => {
+    assert.equal(
+      displays([
+        row("Plot 5, Chandra, Kaliakoir, Gazipur"),
+        row("Plot 5, Chandona, Kaliakoir, Gazipur"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("does not fuse Chandra into Chandora via a shared holding", () => {
+    const merged = mergeUniqueLocations([
+      row("Holding D-84, Chandora, Shafipur, Kaliakoir, Gazipur"),
+      row("Holding D-84, Chandora, Kaliakoir, Gazipur"),
+      row("Holding D-84, Chandra, Kaliakoir, Gazipur"),
+    ]);
+    assert.equal(merged.length, 2);
+    assert.equal(merged.filter((l) => /\bChandra\b/i.test(l.displayAddress)).length, 1);
+    assert.equal(merged.filter((l) => /\bChandora\b/i.test(l.displayAddress)).length, 1);
+  });
+
+  it("does not merge Kewa Sreepur with Kewa Sripur", () => {
+    assert.equal(
+      displays([
+        row("Kewa, Sreepur, Gazipur"),
+        row("Kewa, Sripur, Gazipur"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("does not fuse Sreepur with Sripur through a Kewa-only middle string", () => {
+    assert.equal(
+      displays([
+        row("Kewa, Sreepur, Gazipur"),
+        row("Kewa, Gazipur"),
+        row("Kewa, Sripur, Gazipur"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("does not merge hyphenated Chapai-Nawabganj with bare Nawabganj", () => {
+    assert.equal(
+      displays([
+        row("Chapai-Nawabganj, Rajshahi"),
+        row("Nawabganj, Dhaka"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("does not merge Plot 12-14 Road 6 with Plot 12-14 Road 3", () => {
+    assert.equal(
+      displays([
+        row("Plot # 12-14, Road # 6, Sector # 1, Uttara, Dhaka"),
+        row("Plot # 12-14, Road # 3, Sector # 1, Uttara, Dhaka"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("does not merge Sreepur Stand at Sreepur with Sreepur Stand at Sripur", () => {
+    assert.equal(
+      displays([
+        row("Sreepur Stand, Sreepur, Gazipur"),
+        row("Sreepur Stand, Sripur, Gazipur"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("does not merge Nayapara with Bahadurpur just because both mention BSCIC", () => {
+    assert.equal(
+      displays([
+        row("Plot 5, Nayapara, near BSCIC, Gazipur"),
+        row("Plot 5, Bahadurpur, BSCIC, Gazipur"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("does not merge Harirampur with Baonia on CH Plot 1260 when both mention EPZ", () => {
+    assert.equal(
+      displays([
+        row("CH Plot # 1260, Harirampur, Turag, Dhaka, EPZ"),
+        row("C H PLOT NO.# 1260, BAONIA, TURAG, DHAKA, EPZ"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("does not chain CEPZ Plot 1-5 onto Plot 57-59 through a unit-list that names both", () => {
+    assert.equal(
+      displays([
+        row("Plot # 1-5, Sector 1/A, CEPZ, Chattogram"),
+        row("Plot#57, 58 & 59, Sector#1, CEPZ, Chattogram"),
+        row(
+          "Unit-1 Production Unit Plot# 57-59, Sector 1, Export Processing Zone;, Unit-2 Washing Plot# 1-2, Sector 1, Export Processing Zone, 4223 Chittagong, Bangladesh",
+        ),
+      ]).length,
+      3,
+    );
+  });
+
+  it("merges the same holding written as present and old numbers despite one-sided Tecknogopara", () => {
+    assert.equal(
+      displays([
+        row("Holding-213/1 (Present-D-119/1), Gazipur"),
+        row("Holding # D-119/1 (Old C-213/1), Tecknogopara, Gazipur"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges Plot 636 Shahriar Road with Sharifpur Road at Sonda", () => {
+    assert.equal(
+      displays([
+        row("Plot # 636, Shahriar Road, Sonda"),
+        row("636, Sharifpur Road, Sonda"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("does not repeat a case-only spelling as Also recorded as", () => {
+    const merged = mergeUniqueLocations([
+      row("122/A, Tejgaon I/A, Dhaka", "BGMEA", "mailing"),
+      row("122/A, TEJGAON I/A, DHAKA", "BKMEA", "mailing"),
+    ]);
+    assert.equal(merged.length, 1);
+    assert.equal(merged[0]!.variants.length, 0);
+  });
+
+  it("does not merge Nandirhat with Mahmudabad on Plot 12-14", () => {
+    assert.equal(
+      displays([
+        row("Plot 12-14, Mahmudabad, South Pahartali, Hathazari, Chattogram"),
+        row("Plot 12-14, Nandirhat, South Pahartali, Hathazari, Chattogram"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("does not merge Nayapara with Bahadurpur on lettered Plot A-5 BSCIC", () => {
+    assert.equal(
+      displays([
+        row("Plot A-5, Nayapara, near BSCIC, Gazipur"),
+        row("Plot A-5, Bahadurpur, BSCIC, Gazipur"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("does not merge BSCIC A-81 Enayetnagar with A-81 Sripur", () => {
+    assert.equal(
+      displays([
+        row("Plot # A-81, BSCIC Industrial Area, Enayetnagar, Fatullah, Narayanganj"),
+        row("A-81, BSCIC I/E, Sripur, Gazipur"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("does not merge Sreepur Stand at Sreepur Gazipur with Ganakbari Ashulia", () => {
+    assert.equal(
+      displays([
+        row("Sreepur Stand, Sreepur, Gazipur"),
+        row("Sreepur Stand, Ganakbari, Ashulia, Dhaka, Savar"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("does not merge Plot 12-14 in Uttara with Plot 12-14 at CEPZ", () => {
+    assert.equal(
+      displays([
+        row("Plot # 12-14, Sector # 1, Uttara, Dhaka"),
+        row("Plot # 12-14, Sector # 1, CEPZ, Chattogram"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("does not merge Holding 50/1 with Holding 51/1", () => {
+    assert.equal(
+      displays([
+        row("Holding 50/1, Tongi, Gazipur"),
+        row("Holding 51/1, Tongi, Gazipur"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("does not merge Mohammadpur Plot 2/1 with Chattogram 2800/2", () => {
+    assert.equal(
+      displays([
+        row("Plot 2/1, Mohammadpur, Dhaka"),
+        row("2800/2, Chattogram"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("does not merge Purbachandra with Purba Chandona on the same holding", () => {
+    assert.equal(
+      displays([
+        row("Holding 1, Shaheed Mosharaf Hossain Road, Purbachandra, Kaliakoir, Gazipur"),
+        row("Holding 1, Shaheed Mosharaf Hossain Road, Purba Chandona, Kaliakoir, Gazipur"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("does not merge Nayapara with Bahadurpur on Holding 1 just because both sit on Shaheed Mosharaf Hossain Road", () => {
+    assert.equal(
+      displays([
+        row("Holding 1, Shaheed Mosharaf Hossain Road, Nayapara, Gazipur"),
+        row("Holding 1, Shaheed Mosharaf Hossain Road, Bahadurpur, Gazipur"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("does not merge Satrapara with Sreepur", () => {
+    assert.equal(
+      displays([
+        row("Satrapara, Trishal, Mymensingh"),
+        row("Sreepur, Gazipur"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("does not merge Moishtek Sonargaon with Mouchak Kaliakoir", () => {
+    assert.equal(
+      displays([
+        row("Moishtek, Sonargaon, Narayangonj."),
+        row("Mouchak, Kaliakoir, Gazipur."),
+      ]).length,
+      2,
+    );
+  });
+
+  it("does not fuse two campuses through an ampersand concatenation", () => {
+    assert.equal(
+      displays([
+        row("G-88/1, Chandra, Pallibyddut, Kaliakoir, Gazipur"),
+        row("Ramarbag, Kutubpur, Fatullah, Narayanganj"),
+        row(
+          "RAMARBAG, KUTUBPUR, FATULLAH, NARAYANGANJ & G-88/1, CHANDRA, PALLI BIDDYUT, KALIAKOIR, GAZIPUR",
+        ),
+      ]).length,
+      3,
+    );
+  });
+
+  it("does not merge Holding 12/1 with Plot 12-14", () => {
+    assert.equal(
+      displays([
+        row("Holding 12/1, Tongi, Gazipur"),
+        row("Plot 12-14, Tongi, Gazipur"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("does not merge Holding 12/1 with Plot 12-13 or Plot 12 or Holding 12", () => {
+    assert.equal(
+      displays([
+        row("Holding 12/1, Tongi, Gazipur"),
+        row("Plot 12-13, Tongi, Gazipur"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("Holding 12/1, Tongi, Gazipur"),
+        row("Plot 12, Tongi, Gazipur"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("Holding 12/1, Tongi, Gazipur"),
+        row("Holding 12, Tongi, Gazipur"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("does not merge Holding 50/1 with Plot 50-51", () => {
+    assert.equal(
+      displays([
+        row("Holding 50/1, Tongi, Gazipur"),
+        row("Plot 50-51, Tongi, Gazipur"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("does not merge 65/2 Nayamati with A-65/66 BSCIC", () => {
+    assert.equal(
+      displays([
+        row("65/2, NAYAMATI ROAD, NARAYANGANJ"),
+        row("A-65/66 BSCIC, Fatullah, Narayanganj"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("does not merge B-329 Sonargaon with B-329 Enayetnagar", () => {
+    assert.equal(
+      displays([
+        row("B-329, Sonargaon, Narayanganj"),
+        row("B-329, Enayetnagar, Fatullah"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("does not merge Moishtek Sonargaon with Sashongaon when they share no plot", () => {
+    assert.equal(
+      displays([
+        row("Moishtek, Sonargaon, Narayangonj."),
+        row("B-329/330, Sashongaon, Fatullah"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("does not mint house 12 from Present-D-119/12", () => {
+    assert.equal(
+      displays([
+        row("Holding-213/1 (Present-D-119/12), Gazipur"),
+        row("House 12, Gazipur"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("does not fuse two campuses through AND or a glued ampersand", () => {
+    assert.equal(
+      displays([
+        row("G-88/1, Chandra, Pallibyddut, Kaliakoir, Gazipur"),
+        row("Ramarbag, Kutubpur, Fatullah, Narayanganj"),
+        row(
+          "RAMARBAG, KUTUBPUR, FATULLAH, NARAYANGANJ AND G-88/1, CHANDRA, PALLI BIDDYUT, KALIAKOIR, GAZIPUR",
+        ),
+      ]).length,
+      3,
+    );
+    assert.equal(
+      displays([
+        row("G-88/1, Chandra, Pallibyddut, Kaliakoir, Gazipur"),
+        row("Ramarbag, Kutubpur, Fatullah, Narayanganj"),
+        row("RAMARBAG, KUTUBPUR, FATULLAH, NARAYANGANJ&G-88/1, CHANDRA, PALLI BIDDYUT, KALIAKOIR, GAZIPUR"),
+      ]).length,
+      3,
+    );
+  });
+
+  it("merges the same house when a floor or room list uses &", () => {
+    assert.equal(
+      displays([
+        row("367/1, Senpara, Parbatta, Mirpur-10"),
+        row("367/1, GROUND TO 3RD FLOOR & 6TH FLOOR TO 10TH FLOOR, SENPARA, PARBATA, MIRPUR-10"),
+      ]).length,
+      1,
+    );
+    assert.equal(
+      displays([
+        row("Mehnaz Mansur Tower, House # 11/A, Road # 130, Gulshan-1"),
+        row("MEHNAZ MANSUR TOWER, HOUSE # 11/A, LEVEL # 6 & 7, ROAD # 130, GULSHAN # 1, GULSHAN, DHAKA"),
+      ]).length,
+      1,
+    );
+    assert.equal(
+      displays([
+        row("89, Motijheel C/A (1st floor), Room # 22, Dhaka-1000."),
+        row("89 Motijheel C/A (1st Floor), Room No- 22 & 34, Dhaka-1000."),
+      ]).length,
+      1,
+    );
+  });
+
+  it("does not merge Holding C-120/14 with Plot C-14", () => {
+    assert.equal(
+      displays([
+        row("Holding No. C-120/14, Shafipur, Gazipur"),
+        row("Plot C-14, Shafipur, Gazipur"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("does not merge Holding C-120/14 with Plot C-120", () => {
+    assert.equal(
+      displays([
+        row("Holding No. C-120/14, Shafipur, Gazipur"),
+        row("Plot C-120, Shafipur, Gazipur"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("does not merge Sreepur Stand at Gazipur Dhaka with Ganakbari Ashulia", () => {
+    assert.equal(
+      displays([
+        row("Sreepur Stand, Sreepur, Gazipur, Dhaka"),
+        row("Sreepur Stand, Ganakbari, Ashulia, Dhaka, Savar"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("does not merge Shamser Plaza at Uttara with Shamser Plaza at Mirpur", () => {
+    assert.equal(
+      displays([
+        row("Shamser Plaza, Uttara, Dhaka"),
+        row("Shamser Plaza, Mirpur, Dhaka"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("does not merge the same plot lists at Comilla EPZ and CEPZ", () => {
+    assert.equal(
+      displays([
+        row("Plot # 12-14, 220-227, Comilla EPZ"),
+        row("Plot # 12-14, 220-227, CEPZ, Chattogram"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("does not merge Plot 12-14 Kakrail with Plot 12-14 Banani", () => {
+    assert.equal(
+      displays([
+        row("Plot 12-14, Kakrail, Dhaka"),
+        row("Plot 12-14, Banani, Dhaka"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("does not let a present-holding unit suffix merge House 1", () => {
+    assert.equal(
+      displays([
+        row("Holding-213/1 (Present-D-119/1), Gazipur"),
+        row("House 1, Gazipur"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("does not merge Nayapara with Bahadurpur on Kazi Nazrul Islam Road", () => {
+    assert.equal(
+      displays([
+        row("Nayapara, Kazi Nazrul Islam Road, Gazipur"),
+        row("Bahadurpur, Kazi Nazrul Islam Road, Gazipur"),
+      ]).length,
+      2,
+    );
+  });
+});
+
+describe("premisesIdentifiers — Ka/K, prefixes, brackets, slash lists", () => {
+  it("treats Plot Ka-12 and Plot K-12 as the same identifier", () => {
+    const a = premisesIdentifiers("Plot Ka-12, BSCIC I/A");
+    const b = premisesIdentifiers("Plot K-12, BSCIC I/A");
+    assert.ok(idSetsOverlap(a, b), `Ka-12 vs K-12: ${[...a]} vs ${[...b]}`);
+  });
+
+  it("reads CH Plot # 1260 and C H PLOT NO.# 1260 as the same holding", () => {
+    assert.equal(
+      displays([
+        row("CH Plot # 1260, Harirampur, Turag, Dhaka"),
+        row("C H PLOT NO.# 1260, HARIRAMPUR, TURAG, DHAKA"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("reads a plot number through brackets", () => {
+    assert.equal(
+      displays([
+        row("Plot (B-336), BSCIC Hosiery I/A, Fatullah"),
+        row("PLOT NO- B-336, BSCIC HOSIERY I/A, FATULLAH"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("treats D/ 9-12 and D-9-12 as the same plot range", () => {
+    const a = premisesIdentifiers("Plot No. D/ 9-12, Block B, BSCIC I/E");
+    const b = premisesIdentifiers("Plot # D-9-12, Block - B, BSCIC I/A");
+    assert.ok(idSetsOverlap(a, b), `D/ 9-12 vs D-9-12: ${[...a]} vs ${[...b]}`);
+  });
+
+  it("treats A-169/170 and A-169-170 as the same plots", () => {
+    const a = premisesIdentifiers("Plot No. A-169/170, BSCIC I/A");
+    const b = premisesIdentifiers("PLOT NO A-169-170, BSCIC I/A");
+    assert.ok(idSetsOverlap(a, b), `slash vs dash: ${[...a]} vs ${[...b]}`);
+  });
+
+  it("does not let a floor list split plot P/04 into two premises", () => {
+    assert.equal(
+      displays([
+        row("Plot # P/04 (3rd & 4th Floor), Mohora CDA I/A, Kalurghat"),
+        row("PLOT NO. P/04 (1ST, 3RD & 4TH FLOOR), MOHORA, CDA INDUSTRIAL AREA, KALURGHAT"),
+        row("Plot No. P/04, Mohora CDA Industrial Area, Kalurghat"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("reads PLOT NO. 6 TO 11 as the same range as Plot 6-11", () => {
+    const a = premisesIdentifiers("PLOT NO. 6 TO 11, SECTOR 4/A, CEPZ");
+    const b = premisesIdentifiers("Plot # 6-11, Sector # 4/A, CEPZ");
+    assert.ok(idSetsOverlap(a, b), `6 TO 11 vs 6-11: ${[...a]} vs ${[...b]}`);
+  });
+
+  it("does not treat telephone numbers as plot identifiers", () => {
+    const ids = premisesIdentifiers(
+      "PLOT NO. 6 TO 11, SECTOR - 4/A, CHITTAGONG TEL: 741872, 741889, 741890 FAX: 00 88 031 741870",
+    );
+    assert.ok([...ids].every((id) => Number(id) <= 11), `phone leaked into ids: ${[...ids]}`);
+    assert.ok(ids.has("6") && ids.has("11"));
+  });
+
+  it("reads Holding C-120/14 (B) as the same holding as C-120/14 B", () => {
+    assert.equal(
+      displays([
+        row("Holding No. C-120/14 B, Ward No. 09, Sofipur, Kaliakair, Gazipur"),
+        row("Holding # C-120/14 (B), Shafipur, Ward # 9, Kaliakoir, Gazipur."),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges Uttara Export Processing Zone with Uttara EPZ on the same SFB", () => {
+    assert.equal(
+      displays([
+        row("MS-SFB # 1 & 2, Uttara Export Processing Zone, Shongalshi, Saidpur, Nilphamari"),
+        row("MSSFB # 1 & 2, Uttara EPZ, Shongalshi, Nilphamari, Dhaka"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("reads House # 01 (D-1) as house 1 so it can conflict with House 16", () => {
+    const ids = premisesIdentifiers("House # 01 (D-1), Road # 03, Sector # 10 Uttara Model Town");
+    assert.ok(ids.has("1"), `House 01 (D-1) ids: ${[...ids]}`);
+  });
+
+  it("reads Hosue # 5 as house 5", () => {
+    const ids = premisesIdentifiers("Hosue # 5, Road # 6, Nikunjo, Dhaka");
+    assert.ok(ids.has("5"), `Hosue # 5 ids: ${[...ids]}`);
+  });
+});
+
+describe("mergeUniqueLocations — empty rows, duplicates, overview buckets", () => {
+  it("drops null, empty and whitespace-only rows", () => {
+    const merged = mergeUniqueLocations([
+      { kind: "factory", address: "", source_code: "BGMEA", fetched_at: "2026-07-01T00:00:00Z" },
+      { kind: "factory", address: "   ", source_code: "BKMEA", fetched_at: "2026-07-02T00:00:00Z" },
+      row("Gajaria Para, Kauitis, Gazipur"),
+    ]);
+    assert.equal(merged.length, 1);
+  });
+
+  it("same spelling twice with two authorities is one location and no Also recorded as pill", () => {
+    const merged = mergeUniqueLocations([
+      row("Gajaria Para, Kauitis, Gazipur", "BGMEA"),
+      row("Gajaria Para, Kauitis, Gazipur", "OEKO_TEX"),
+    ]);
+    assert.equal(merged.length, 1);
+    assert.equal(merged[0]!.variants.length, 0);
+    assert.deepEqual(merged[0]!.authorities.sort(), ["BGMEA", "OEKO_TEX"]);
+  });
+
+  it("re-merging source_rows of a merged location is idempotent", () => {
+    const first = mergeUniqueLocations([
+      row("Gajaria Para, Kauitis\nGazipur\nGazipur", "BGMEA"),
+      row("Gojariapara, Vhawal Mirzapur, Gazipur Sadar PS, Gazipur - 1703, Bangladesh", "OEKO_TEX"),
+    ]);
+    assert.equal(first.length, 1);
+    const second = mergeUniqueLocations(first[0]!.source_rows);
+    assert.equal(second.length, 1);
+    assert.equal(second[0]!.source_rows.length, first[0]!.source_rows.length);
+  });
+
+  it("buildLocationOverview buckets mixed factory and mailing into two groups", () => {
+    const overview = buildLocationOverview([
+      row("Gajaria Para, Kauitis, Gazipur", "BGMEA", "factory"),
+      row("Fakir Khali Road, Boro Beraid, Badda, Dhaka", "BGMEA", "mailing"),
+    ]);
+    assert.equal(overview.uniqueLocationCount, 2);
+    assert.equal(overview.sourceRecordCount, 2);
+    assert.deepEqual(
+      overview.groups.map((g) => [g.title, g.locations.length]),
+      [
+        ["Factories", 1],
+        ["Mailing addresses", 1],
+      ],
+    );
+  });
+
+  it("does not fuse competing villages through a shared thana or Kewa hinge", () => {
+    assert.equal(
+      displays([
+        row("7, Kewa Mouja, Bhangnaati, Sreepur, Gazipur"),
+        row("Dhanua, Maona, Sreepur, Gazipur"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("7, Kewa Mouja, Bhangnaati, Sreepur, Gazipur"),
+        row("Satiabari, Rajendrapur, Sreepur, Gazipur-1740"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("Dhanua, Maona, Sreepur, Gazipur"),
+        row("Satiabari, Rajendrapur, Sreepur, Gazipur-1740"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("Vogra, National University, Gazipur, Joydevpur"),
+        row("242 SHARIFPUR, NATIONAL UNIVERSITY, JOYDEVPUR, GAZIPUR, BANGLADESH"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("Nayamati, Kutubpur, Fatullah, Narayanganj-1400"),
+        row("PLOT # B-94, 95, 96 & 111 BSCIC HOSIERY I/A, FATULLAH,, FATULLAH, NARAYANGANJ"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("MOUNA (MASTERBARI) KEYA, SREEPUR, GAZIPUR., 1740, Gazipur, Bangladesh"),
+        row("Plot-2023(SA), Gilarchala, Sreepur Mouza-Kewa 1740 Gazipur, Gazipur, Bangladesh"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("Nayapara, Kathgora, Ashulia, Savar PS, Dhaka - 1341, Bangladesh"),
+        row("62, Kathgara, Bishmail, Zirabo Road, Ashulia, Dhaka, Savar"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("keeps Ext-only EPZ plots apart from an Ext+Old concatenation", () => {
+    assert.equal(
+      displays([
+        row("Plot # 167-169, Dhaka EPZ-Ext. Area, Savar, Dhaka-1349"),
+        row(
+          "Plot No. 167-169, Dhaka EPZ-Ext. Area, and 17-20 & 29-32, Dhaka EPZ-Old. Area, Savar, Dhaka - 1349, Bangladesh",
+        ),
+      ]).length,
+      2,
+    );
+  });
+
+  it("does not fuse Kewa, Sreepur with Dhanua or Satiabari through the thana", () => {
+    assert.equal(
+      displays([
+        row("Kewa, Sreepur, Gazipur"),
+        row("Dhanua, Maona, Sreepur, Gazipur"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("MOUZA KEWA, SREEPUR, GAZIPUR"),
+        row("Dhanua, Maona, Sreepur, Gazipur"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("SA Plot No-47, Kewa, Sreepur, Gazipur - 1740, Bangladesh"),
+        row("S.A Plot # 47, Teknog Para, Chodhona, Dhaka, Sreepur"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("does not treat Ismail as Bishmail", () => {
+    assert.equal(
+      displays([
+        row("Ismail, Ashulia, Savar, Dhaka"),
+        row("62, Kathgara, Bishmail, Zirabo Road, Ashulia, Dhaka, Savar"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("keeps House 62-only apart from a House 62 and House 82 concatenation", () => {
+    assert.equal(
+      displays([
+        row("House # 62 (1st Floor), Road # 3, Block-B, Niketon, Gulshan, Dhaka"),
+        row(
+          "Bodywears International, House # 62, Road # 3, Block B, Niketon, House # 82 (1st Floor), Gulshan-1, Dhaka",
+        ),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62, Road # 3, Niketon, Gulshan, Dhaka"),
+        row("House # 82, Road # 3, Niketon, Gulshan, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62 (1st Floor), Road # 3, Block-B, Niketon, Gulshan, Dhaka"),
+        row(
+          "Bodystretch Bangladesh, House # 62, Road # 3, Block-B, Niketon, 87, New Eskaton Road, Gulshan-1, Dhaka, New Eskaton, Dhaka",
+        ),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row(
+          "Bodystretch Bangladesh, House # 62, Road # 3, Block-B, Niketon, 87, New Eskaton Road, Gulshan-1, Dhaka, New Eskaton, Dhaka",
+        ),
+        row(
+          "Bodywears International, House # 62, Road # 3, Block B, Niketon, House # 82 (1st Floor), Gulshan-1, Dhaka",
+        ),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62 (1st Floor), Road # 3, Block-B, Niketon, Gulshan, Dhaka"),
+        row(
+          "Bodystretch Bangladesh, House # 62, Road # 3, Block-B, Niketon, 87 New Eskaton Road, Gulshan-1, Dhaka",
+        ),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62 (1st Floor), Road # 3, Block-B, Niketon, Gulshan, Dhaka"),
+        row("House # 62, Road # 3, Block-B, Niketon, 87 Banani, Gulshan-1, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62 (1st Floor), Road # 3, Block-B, Niketon, Gulshan, Dhaka"),
+        row("House # 62, Road # 3, Block-B, Niketon, 87 Mohakhali, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62 (1st Floor), Road # 3, Block-B, Niketon, Gulshan, Dhaka"),
+        row("House # 62, Road # 3, Block-B, Niketon, 87 Farmgate, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62 (1st Floor), Road # 3, Block-B, Niketon, Gulshan, Dhaka"),
+        row("House # 62, Road # 3, Block-B, Niketon 87 Eskaton, Gulshan-1, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62 (1st Floor), Road # 3, Block-B, Niketon, Gulshan, Dhaka"),
+        row("House # 62, Road # 3, Block-B, Niketon, 87 Badda, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62 (1st Floor), Road # 3, Block-B, Niketon, Gulshan, Dhaka"),
+        row("House # 62, Road # 3, Block-B, 87 Niketon, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62, Tejgaon, Dhaka"),
+        row("House # 62, 87 Tejgaon, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62 (1st Floor), Road # 3, Block-B, Niketon, Gulshan, Dhaka"),
+        row("House # 62, Road # 3, Block-B, Niketon, No. 87 Eskaton, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62 (1st Floor), Road # 3, Block-B, Niketon, Gulshan, Dhaka"),
+        row("House # 62, Road # 3, Block-B, Niketon, No 87 Eskaton, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62 (1st Floor), Road # 3, Block-B, Niketon, Gulshan, Dhaka"),
+        row("House # 62, Road # 3, Block-B, Niketon, Holding No. 87 Eskaton, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62 (1st Floor), Road # 3, Block-B, Niketon, Gulshan, Dhaka"),
+        row("House # 62, Road # 3, Block-B, Niketon, Holding # 87, Eskaton, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62 (1st Floor), Road # 3, Block-B, Niketon, Gulshan, Dhaka"),
+        row("House # 62, Road # 3, Block-B, Niketon, Holding # 87 Eskaton, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62 (1st Floor), Road # 3, Block-B, Niketon, Gulshan, Dhaka"),
+        row("House # 62, Road # 3, Block-B, Niketon, 87/A Badda, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62 (1st Floor), Road # 3, Block-B, Niketon, Gulshan, Dhaka"),
+        row("House # 62, Road # 3, Block-B, Niketon, 87/1 Eskaton, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62 (1st Floor), Road # 3, Block-B, Niketon, Gulshan, Dhaka"),
+        row("H/O-62, 87 Badda, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62 (1st Floor), Road # 3, Block-B, Niketon, Gulshan, Dhaka"),
+        row("H/0-62, 87 Badda, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62 (1st Floor), Road # 3, Block-B, Niketon, Gulshan, Dhaka"),
+        row("Holding # 62, 87 Badda, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("HOUSE 62 ROAD 3 BLOCK B NIKETON GULSHAN"),
+        row("HOUSE 62 ROAD 3 BLOCK B NIKETON 87 BADDA"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62 (1st Floor), Road # 3, Block-B, Niketon, Gulshan, Dhaka"),
+        row("House # 62, Road # 3, Block-B, Niketon, No.87 Eskaton, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62 (1st Floor), Road # 3, Block-B, Niketon, Gulshan, Dhaka"),
+        row("House # 62, Road # 3, Block-B, Niketon, No: 87 Eskaton, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62 (1st Floor), Road # 3, Block-B, Niketon, Gulshan, Dhaka"),
+        row("House # 62, Road # 3, Block-B, Niketon, No:87 Eskaton, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62 (1st Floor), Road # 3, Block-B, Niketon, Gulshan, Dhaka"),
+        row("House # 62, Road # 3, Block-B, Niketon, No-87 Eskaton, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62 (1st Floor), Road # 3, Block-B, Niketon, Gulshan, Dhaka"),
+        row("House # 62, Road # 3, Block-B, Niketon, No . 87 Eskaton, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62 (1st Floor), Road # 3, Block-B, Niketon, Gulshan, Dhaka"),
+        row("House # 62, Road # 3, Block-B, Niketon, #87 Eskaton, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62 (1st Floor), Road # 3, Block-B, Niketon, Gulshan, Dhaka"),
+        row("House # 62, Road # 3, Block-B, Niketon, 87-A Badda, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62 (1st Floor), Road # 3, Block-B, Niketon, Gulshan, Dhaka"),
+        row("House # 62, Road # 3, Block-B, Niketon, 87A Badda, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62 (1st Floor), Road # 3, Block-B, Niketon, Gulshan, Dhaka"),
+        row("House # 62, Road # 3, Block-B, Niketon, 87.A Badda, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62 (1st Floor), Road # 3, Block-B, Niketon, Gulshan, Dhaka"),
+        row("HO-62, 87 Badda, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62 (1st Floor), Road # 3, Block-B, Niketon, Gulshan, Dhaka"),
+        row("HO- 62, 87 Badda, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62 (1st Floor), Road # 3, Block-B, Niketon, Gulshan, Dhaka"),
+        row("HO-62 87 Badda, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62 (1st Floor), Road # 3, Block-B, Niketon, Gulshan, Dhaka"),
+        row("House # 62, Road # 3, Block-B, Niketon, H/O-87 Eskaton, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62 (1st Floor), Road # 3, Block-B, Niketon, Gulshan, Dhaka"),
+        row("House # 62, Road # 3, Block-B, Niketon, HO-87 Eskaton, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62 (1st Floor), Road # 3, Block-B, Niketon, Gulshan, Dhaka"),
+        row("House # 62, Road # 3, Block-B, Niketon, H.O. 87 Eskaton, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House 10, Dailla, Demra, Dhaka"),
+        row("House 10, 13 Dailla, Demra, Dhaka"),
+      ]).length,
+      1,
+    );
+    assert.equal(
+      displays([
+        row("House 10, Dailla, Demra, Dhaka"),
+        row("House 10, Dailla, 13 Demra, Dhaka"),
+      ]).length,
+      1,
+    );
+    assert.equal(
+      displays([
+        row("House 10, Demra, Dhaka"),
+        row("House 10, Demra, 13 Dailla, Dhaka"),
+      ]).length,
+      1,
+    );
+    assert.equal(
+      displays([
+        row("House # 50, Road # 3, Gulshan-1, Dhaka"),
+        row(
+          "South Avenue Tower, 6th floor, House # 50, Road # 3, 7, Gulshan Avenue, Gulshan-1, Dhaka-1212",
+        ),
+      ]).length,
+      1,
+    );
+    assert.equal(
+      displays([
+        row("House # 50, Road # 3, Gulshan-1, Dhaka"),
+        row("House # 50, Road # 3, 7 Gulshan, Gulshan-1, Dhaka"),
+      ]).length,
+      1,
+    );
+    assert.equal(
+      displays([
+        row("House # 50, Road # 3, Gulshan-1, Dhaka"),
+        row("House # 50, Road # 3, 7, Gulshan, Gulshan-1, Dhaka"),
+      ]).length,
+      1,
+    );
+    assert.equal(
+      displays([
+        row("House # 50, Road # 3, Gulshan-1, Dhaka"),
+        row("House # 50, Road # 3, 7 Gulshan Ave, Gulshan-1, Dhaka"),
+      ]).length,
+      1,
+    );
+    assert.equal(
+      displays([
+        row("House # 62, Tejgaon, Dhaka"),
+        row("House # 62, 13 Tejgaon, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62, Tejgaon, Dhaka"),
+        row("House # 62, 19 Tejgaon, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62, Tejgaon, Dhaka"),
+        row("House # 62, 20 Tejgaon, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62, Tejgaon, Dhaka"),
+        row("House # 62, 7 Tejgaon, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62, Tejgaon, Dhaka"),
+        row("House # 62, 7, Tejgaon, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62, Uttara, Dhaka"),
+        row("House # 62, 13 Uttara, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62, Mirpur, Dhaka"),
+        row("House # 62, 13 Mirpur, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62, Savar, Dhaka"),
+        row("House # 62, 13 Savar, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62, Tongi, Dhaka"),
+        row("House # 62, 13 Tongi, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62, Ashulia, Dhaka"),
+        row("House # 62, 13 Ashulia, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62, Baridhara, Dhaka"),
+        row("House # 62, 13 Baridhara, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 50, Road # 3, Gulshan-1, Dhaka"),
+        row("House # 50, Road # 3, 1 Gulshan Avenue, Gulshan-1, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 50, Road # 3, Gulshan-1, Dhaka"),
+        row("House # 50, Road # 3, 10 Gulshan Avenue, Gulshan-1, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 50, Road # 3, Gulshan-1, Dhaka"),
+        row("House # 50, Road # 3, 13 Gulshan Avenue, Gulshan-1, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 50, Road # 3, Gulshan-1, Dhaka"),
+        row("House # 50, Road # 3, 19 Gulshan Avenue, Gulshan-1, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62, Gulshan, Dhaka"),
+        row("House # 62, 10 Gulshan Avenue, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 50, Road # 3, Gulshan-1, Dhaka"),
+        row("House # 50, Road # 3, 7 Dhaka, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62 (1st Floor), Road # 3, Block-B, Niketon, Gulshan, Dhaka"),
+        row("House # 62, Road # 3, Block-B, Niketon, 187 Bashundhara, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62 (1st Floor), Road # 3, Block-B, Niketon, Gulshan, Dhaka"),
+        row("House # 62, Road # 3, Block-B, Niketon, 13 Bashundhara, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62 (1st Floor), Road # 3, Block-B, Niketon, Gulshan, Dhaka"),
+        row("House # 62, Road # 3, Block-B, Niketon, 100 Bashundhara, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62 (1st Floor), Road # 3, Block-B, Niketon, Gulshan, Dhaka"),
+        row("House # 62, Road # 3, Block-B, Niketon, No.187 Bashundhara, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62 (1st Floor), Road # 3, Block-B, Niketon, Gulshan, Dhaka"),
+        row("House # 62, Road # 3, Block-B, Niketon, #187 Bashundhara, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62 (1st Floor), Road # 3, Block-B, Niketon, Gulshan, Dhaka"),
+        row("House # 62, Road # 3, Block-B, Niketon, No.13 Bashundhara, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62 (1st Floor), Road # 3, Block-B, Niketon, Gulshan, Dhaka"),
+        row("House # 62, Road # 3, Block-B, Niketon, No.100 Bashundhara, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62 (1st Floor), Road # 3, Block-B, Niketon, Gulshan, Dhaka"),
+        row("House # 62, Road # 3, Block-B, Niketon, No.187 Aftabnagar, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62, Tejgaon, Dhaka"),
+        row("House # 62, No. 87, Tejgaon, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62, Road # 3, Block-B, Niketon, No.187 Bashundhara, Dhaka"),
+        row("House # 62, Road # 3, Block-B, Niketon, No.13 Bashundhara, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62, Road # 3, Block-B, Niketon, No.187 Bashundhara, Dhaka"),
+        row("House # 62, Road # 3, Block-B, Niketon, No.100 Bashundhara, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62, No. 87, Tejgaon, Dhaka"),
+        row("House # 62, No. 13, Tejgaon, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62, No. 87, Tejgaon, Dhaka"),
+        row("House # 62, 13 Tejgaon, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62, Road # 3, Block-B, Niketon, No.187 Bashundhara, Dhaka"),
+        row("House # 62, Road # 3, Block-B, Niketon, 187 Bashundhara, Dhaka"),
+      ]).length,
+      1,
+    );
+    assert.equal(
+      displays([
+        row("House # 62, Road # 3, Block-B, Niketon, No.187 Bashundhara, Dhaka"),
+        row("House # 62, Road # 3, Block-B, Niketon, Holding # 187, Bashundhara, Dhaka"),
+      ]).length,
+      1,
+    );
+    {
+      const extras = mergeUniqueLocations([
+        row("House # 62 (1st Floor), Road # 3, Block-B, Niketon, Gulshan, Dhaka"),
+        row("House # 62, Road # 3, Block-B, Niketon, No.187 Bashundhara, Dhaka"),
+        row("House # 62, Road # 3, Block-B, Niketon, No.13 Bashundhara, Dhaka"),
+      ]);
+      assert.equal(extras.length, 3);
+      const no187 = extras.find((loc) =>
+        loc.source_rows.some((r) => /No\.187 Bashundhara/.test(r.address)),
+      );
+      const no13 = extras.find((loc) =>
+        loc.source_rows.some((r) => /No\.13 Bashundhara/.test(r.address)),
+      );
+      assert.ok(no187);
+      assert.ok(no13);
+      assert.notEqual(no187, no13);
+    }
+    assert.equal(
+      displays([
+        row("House # 62, Road # 3, Block-B, Niketon, No.187 Bashundhara, Dhaka"),
+        row("House # 62, Road # 3, Block-B, Niketon, No.187 Aftabnagar, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62, Road # 3, Block-B, Niketon, 187 Bashundhara, Dhaka"),
+        row("House # 62, Road # 3, Block-B, Niketon, 187 Aftabnagar, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62, Road # 3, Block-B, Niketon, No.187 Bashundhara, Dhaka"),
+        row("House # 62, Road # 3, Block-B, Niketon, 187 Aftabnagar, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62, Road # 3, Block-B, Niketon, 187 Bashundhara, Dhaka"),
+        row("House # 62, Road # 3, Block-B, Niketon, No.187 Aftabnagar, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62, Road # 3, Block-B, Niketon, 13 Bashundhara, Dhaka"),
+        row("House # 62, Road # 3, Block-B, Niketon, 13 Aftabnagar, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62, Road # 3, Block-B, Niketon, Number 187 Bashundhara, Dhaka"),
+        row("House # 62, Road # 3, Block-B, Niketon, Number 187 Aftabnagar, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62, Road # 3, Block-B, Niketon, Number 187 Bashundhara, Dhaka"),
+        row("House # 62, Road # 3, Block-B, Niketon, Number 13 Bashundhara, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62, Road # 3, Block-B, Niketon, Number 187 Bashundhara, Dhaka"),
+        row("House # 62, Road # 3, Block-B, Niketon, No.187 Bashundhara, Dhaka"),
+      ]).length,
+      1,
+    );
+    assert.equal(
+      displays([
+        row("House # 62, Road # 3, Block-B, Niketon, Holding # 187, Aftabnagar, Dhaka"),
+        row("House # 62, Road # 3, Block-B, Niketon, No.187 Bashundhara, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62, Road # 3, Block-B, Niketon, 187 Badda, Dhaka"),
+        row("House # 62, Road # 3, Block-B, Niketon, 187 Eskaton, Dhaka"),
+      ]).length,
+      2,
+    );
+    {
+      const bridged = mergeUniqueLocations([
+        row("House # 62, Road # 3, Block-B, Niketon, No.187 Bashundhara, Dhaka"),
+        row("House # 62, Road # 3, Block-B, Niketon, 187 Bashundhara, Dhaka"),
+        row("House # 62, Road # 3, Block-B, Niketon, 187 Aftabnagar, Dhaka"),
+      ]);
+      assert.equal(bridged.length, 2);
+      const aftab = bridged.find((loc) =>
+        loc.source_rows.some((r) => /Aftabnagar/.test(r.address)),
+      );
+      const bash = bridged.find((loc) =>
+        loc.source_rows.some((r) => /Bashundhara/.test(r.address)),
+      );
+      assert.ok(aftab);
+      assert.ok(bash);
+      assert.notEqual(aftab, bash);
+    }
+    {
+      const numbered = mergeUniqueLocations([
+        row("House # 62 (1st Floor), Road # 3, Block-B, Niketon, Gulshan, Dhaka"),
+        row("House # 62, Road # 3, Block-B, Niketon, Number 187 Bashundhara, Dhaka"),
+        row("House # 62, Road # 3, Block-B, Niketon, Number 13 Bashundhara, Dhaka"),
+      ]);
+      assert.equal(numbered.length, 3);
+      const n187 = numbered.find((loc) =>
+        loc.source_rows.some((r) => /Number 187 Bashundhara/.test(r.address)),
+      );
+      const n13 = numbered.find((loc) =>
+        loc.source_rows.some((r) => /Number 13 Bashundhara/.test(r.address)),
+      );
+      assert.ok(n187);
+      assert.ok(n13);
+      assert.notEqual(n187, n13);
+    }
+    assert.equal(
+      displays([
+        row("House # 02/02, Road #03, Durgapur, Zirabo, Ashulia, Savar, Dhaka"),
+        row(
+          "Holding no: 02/02, Road No: 03, Durgapur, Zirabo, Ashulia, Savar, Dhaka-1341. Bangladesh",
+        ),
+      ]).length,
+      1,
+    );
+    assert.equal(
+      displays([
+        row("House No.6/2, Road No-02, Block# B, Dhorengartek, Nishat Nagar, Turag Dhaka"),
+        row(
+          "House no: 6/2, Road no-2, Block - B, Dhorengartek, Nishat nagar, Turag, 1230, Dhaka, Bangladesh",
+        ),
+      ]).length,
+      1,
+    );
+    assert.equal(
+      displays([
+        row("Holding # 306/1, Shirin Chowdhury Industrial tower, Vogra (Chowdhury Bari), Gazipur"),
+        row(
+          "SHIRIN CHOWDHURY INDUSTRIAL TOWER, HOLDING NO. B-306/1, VOGRA (CHOWDHURY BARI), NATIONAL UNIVERSITY, GAZIPUR",
+        ),
+      ]).length,
+      1,
+    );
+    assert.equal(
+      displays([
+        row(
+          "Holding # 85/3, Road # 1, Block -A, 793/120 Amtola, Kathgora, Ashulia, Dhaka",
+        ),
+        row(
+          "Holding -85/3, Road-01, Block- A, 792/120, Amtola, Kathgora, Ashulia PS, 1340, Dhaka, Bangladesh",
+        ),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House 10, Amtola, Ashulia, Dhaka"),
+        row("House 10, No.793 Amtola, Ashulia, Dhaka"),
+      ]).length,
+      1,
+    );
+    assert.equal(
+      displays([
+        row("House 10, Kewa, Sreepur, Gazipur"),
+        row("House 10, No.12 Kewa, Sreepur, Gazipur"),
+      ]).length,
+      1,
+    );
+    assert.equal(
+      displays([
+        row("House 10, Kewa, Sreepur, Gazipur"),
+        row("House 10, 12 Kewa, Sreepur, Gazipur"),
+      ]).length,
+      1,
+    );
+    assert.equal(
+      mergeUniqueLocations([
+        row(
+          "Plot # 10, Holding # 1/A, Road # 9, Block-A, Gulshan, Dhaka-1212, Bangladesh",
+        ),
+        row("Plot # 8 & 10, Holding # 1/A, Gulshan, Dhaka"),
+        row("Holding # 1/A, Dag 10, Gulshan, Dhaka"),
+      ]).length,
+      2,
+    );
+    {
+      const plot10 = row(
+        "Plot # 10, Holding # 1/A, Road # 9, Block-A, Gulshan, Dhaka-1212, Bangladesh",
+      );
+      const plotEight = row("Plot # 8 & 10, Holding # 1/A, Gulshan, Dhaka");
+      const dag = row("Holding # 1/A, Dag 10, Gulshan, Dhaka");
+      for (const ordered of permutations([plot10, plotEight, dag])) {
+        const leftover = mergeUniqueLocations(ordered);
+        assert.equal(leftover.length, 2, "Holding leftover 3-row must stay two Locations rows");
+        const eightLoc = leftover.find((loc) =>
+          loc.source_rows.some((r) => /Plot # 8 & 10/.test(r.address)),
+        );
+        const dagLoc = leftover.find((loc) =>
+          loc.source_rows.some((r) => /Dag 10/.test(r.address)),
+        );
+        assert.ok(eightLoc, "Plot 8 & 10 Holding row missing");
+        assert.ok(dagLoc, "Dag 10 row missing");
+        assert.notEqual(eightLoc, dagLoc);
+        assert.ok(
+          !eightLoc!.source_rows.some((r) => /Plot # 10, Holding/.test(r.address)),
+          "Plot 8 & 10 Holding must not sit on the Plot 10 location",
+        );
+        assert.ok(
+          dagLoc!.source_rows.some((r) => /Plot # 10, Holding/.test(r.address)),
+          "Dag 10 must sit with Plot 10",
+        );
+      }
+    }
+    {
+      const leftover = mergeUniqueLocations([
+        row(
+          "Plot # 10, Holding # 1/A, Road # 9, Block-A, Gulshan, Dhaka-1212, Bangladesh",
+        ),
+        row("Plot # 8 & 10, Gulshan, Dhaka"),
+        row(
+          "Holding # 1/A, Dag 10, Road # 9, Block-A, Gulshan, Dhaka-1212, Bangladesh",
+        ),
+      ]);
+      assert.equal(leftover.length, 2);
+      const plotEight = leftover.find((loc) =>
+        loc.source_rows.some((r) => /Plot # 8 & 10/.test(r.address)),
+      );
+      const dag = leftover.find((loc) =>
+        loc.source_rows.some((r) => /Dag 10/.test(r.address)),
+      );
+      assert.ok(plotEight, "Plot 8 & 10 row missing");
+      assert.ok(dag, "Dag 10 row missing");
+      assert.notEqual(plotEight, dag);
+      assert.ok(
+        !plotEight!.source_rows.some((r) => /Plot # 10, Holding/.test(r.address)),
+        "Plot 8 & 10 must not sit on the Plot 10 location",
+      );
+      assert.ok(
+        dag!.source_rows.some((r) => /Plot # 10, Holding/.test(r.address)),
+        "Dag 10 must sit with Plot 10",
+      );
+    }
+    assert.equal(
+      displays([
+        row("Plot # 8 & 10, Gulshan, Dhaka"),
+        row("House 10, Gulshan, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("132/142, Nasirabad I/A, Chittagong"),
+        row("135/142, Nasirabad Industrial Area, Chittagong, Chattogram - 4210, Bangladesh"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("Plot # 49/1, Block # A, Tak Kathora, Word # 20, Salna Bazar, Gazipur"),
+        row(
+          "Holding No. 49/1, Block A, Vill- Tak Kathora, Word No- 20, Post- Salna Bazar, Gazipur City Corporation, Gazipur - 1703, Bangladesh",
+        ),
+      ]).length,
+      1,
+      "Plot 49/1 vs Holding 49/1 of the same cadastral id is one premises",
+    );
+    assert.equal(
+      displays([
+        row("Plot # 23-24, Union - Telulzora, Hemayetpur, Dhaka, Savar"),
+        row(
+          "Holding No. 87, Plot No. 23, 24, 25, Hemayetpur, Tetuljhora Union, Savar, Dhaka - 1340, Bangladesh",
+        ),
+      ]).length,
+      1,
+      "neighbour Plot 23-24 vs Plot 23, 24, 25 stays one row even with extra holding 87",
+    );
+    assert.equal(
+      displays([
+        row("Plot # 8, Holding # 1/A, Dag 10, Gulshan, Dhaka"),
+        row("House 8, House 1, Gulshan, Dhaka"),
+      ]).length,
+      2,
+      "Plot 8 + Holding 1 vs House 1 + House 8 restatement stays two rows",
+    );
+    {
+      const cepz = mergeUniqueLocations([
+        row("Plot # 31-32, Sector # 01, CEPZ, Chittagong"),
+        row(
+          "PLOT NO# 31-32, SECTOR# 01, & PLOT NO# 29 (PART), SECTOR# 05, CEPZ, CHOTTOGRAM, CEPZ, CHATTOGRAM",
+        ),
+        row(
+          "Plot #31-31, Sector #01, Plot #29 (Part), Sector #05, EPZ, Chittagong EPZ PS, Chattogram - 4223, Bangladesh",
+        ),
+      ]);
+      assert.equal(cepz.length, 2, "pacific-casuals campus-only vs two-campus concat");
+      const campusOnly = cepz.find((loc) =>
+        loc.source_rows.some((r) => /Plot # 31-32, Sector # 01, CEPZ/.test(r.address)),
+      );
+      const concat = cepz.find((loc) =>
+        loc.source_rows.some((r) => /PLOT NO# 29 \(PART\), SECTOR# 05/.test(r.address)),
+      );
+      assert.ok(campusOnly, "campus-only row missing");
+      assert.ok(concat, "concat row missing");
+      assert.notEqual(campusOnly, concat);
+      assert.ok(
+        concat!.source_rows.some((r) =>
+          /Plot #31-31, Sector #01, Plot #29 \(Part\)/.test(r.address),
+        ),
+        "comma two-campus spelling must sit on the concat row",
+      );
+    }
+    assert.equal(
+      displays([
+        row("House # 50, Road # 3, Gulshan-1, Dhaka"),
+        row("House # 50, Road # 3, 07 Gulshan Avenue, Gulshan-1, Dhaka"),
+      ]).length,
+      1,
+    );
+    assert.equal(
+      displays([
+        row("House # 50, Road # 3, Gulshan-1, Dhaka"),
+        row("House # 50, Road # 3, 7 Gulshan Avenue, Gulshan-1, Dhaka"),
+        row("House # 50, Road # 3, 07 Gulshan Avenue, Gulshan-1, Dhaka"),
+      ]).length,
+      1,
+    );
+    assert.equal(
+      displays([
+        row("House # 50, Road # 3, Gulshan-1, Dhaka"),
+        row("House # 50, Road # 3, No.7 Gulshan Avenue, Gulshan-1, Dhaka"),
+      ]).length,
+      1,
+    );
+    assert.equal(
+      displays([
+        row("House # 50, Road # 3, Gulshan-1, Dhaka"),
+        row("House # 50, Road # 3, #7 Gulshan Avenue, Gulshan-1, Dhaka"),
+      ]).length,
+      1,
+    );
+    assert.equal(
+      displays([
+        row("House # 50, Road # 3, Gulshan-1, Dhaka"),
+        row("House # 50, Road # 3, No.07 Gulshan Avenue, Gulshan-1, Dhaka"),
+      ]).length,
+      1,
+    );
+    assert.equal(
+      displays([
+        row("House # 50, Road # 3, Gulshan-1, Dhaka"),
+        row("House # 50, Road # 3, 7 Gulshan Avenue, Gulshan-1, Dhaka"),
+        row("House # 50, Road # 3, No.7 Gulshan Avenue, Gulshan-1, Dhaka"),
+      ]).length,
+      1,
+    );
+    assert.equal(
+      displays([
+        row("House # 50, Road # 3, 7 Gulshan Avenue, Gulshan-1, Dhaka"),
+        row("House # 50, Road # 3, No.187 Bashundhara, Gulshan-1, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 50, Road # 3, 7 Gulshan Avenue, Gulshan-1, Dhaka"),
+        row("House # 50, Road # 3, 7 Banani Road, Gulshan-1, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 50, Road # 3, 7 Gulshan Avenue, Gulshan-1, Dhaka"),
+        row("House # 50, Road # 3, 7 Banani Avenue, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 50, Road # 3, No.7 Gulshan Avenue, Gulshan-1, Dhaka"),
+        row("House # 50, Road # 3, No.7 Banani Road, Gulshan-1, Dhaka"),
+      ]).length,
+      2,
+    );
+    {
+      const avenues = mergeUniqueLocations([
+        row("House # 50, Road # 3, Gulshan-1, Dhaka"),
+        row("House # 50, Road # 3, 7 Gulshan Avenue, Gulshan-1, Dhaka"),
+        row("House # 50, Road # 3, 7 Banani Avenue, Dhaka"),
+      ]);
+      assert.equal(avenues.length, 2);
+      const campus = avenues.find((loc) =>
+        loc.source_rows.some((r) => /House # 50, Road # 3, Gulshan-1, Dhaka/.test(r.address)),
+      );
+      const banani = avenues.find((loc) =>
+        loc.source_rows.some((r) => /Banani Avenue/.test(r.address)),
+      );
+      assert.ok(campus);
+      assert.ok(banani);
+      assert.notEqual(campus, banani);
+      assert.ok(
+        campus!.source_rows.some((r) => /7 Gulshan Avenue/.test(r.address)),
+        "House 50 must stay with 7 Gulshan Avenue",
+      );
+    }
+    assert.equal(
+      displays([
+        row("House # 50, Road # 3, No.7 Gulshan, Gulshan-1, Dhaka"),
+        row("House # 50, Road # 3, 7 Banani Road, Gulshan-1, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 50, Road # 3, No.7 Gulshan, Gulshan-1, Dhaka"),
+        row("House # 50, Road # 3, No.7 Banani Road, Gulshan-1, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 50, Road # 3, 7 Gulshan, Gulshan-1, Dhaka"),
+        row("House # 50, Road # 3, 7 Banani Road, Gulshan-1, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 50, Road # 3, 7 Gulshan Avenue, Gulshan-1, Dhaka"),
+        row("House # 50, Road # 3, 7 Banani, Gulshan-1, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 50, Road # 3, 7 Gulshan Avenue, Gulshan-1, Dhaka"),
+        row("House # 50, Road # 3, No.7 Banani, Gulshan-1, Dhaka"),
+      ]).length,
+      2,
+    );
+    for (const bananiTail of [
+      "7 Banani Street",
+      "7 Banani Lane",
+      "7 Banani Boulevard",
+      "7 Banani Drive",
+      "7 Banani Close",
+    ]) {
+      assert.equal(
+        displays([
+          row("House # 50, Road # 3, 7 Gulshan Avenue, Gulshan-1, Dhaka"),
+          row(`House # 50, Road # 3, ${bananiTail}, Gulshan-1, Dhaka`),
+        ]).length,
+        2,
+        `7 Gulshan Avenue vs ${bananiTail}`,
+      );
+    }
+    assert.equal(
+      displays([
+        row("House # 50, Road # 3, 7 Gulshan Lane, Gulshan-1, Dhaka"),
+        row("House # 50, Road # 3, 7 Banani Road, Gulshan-1, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 50, Road # 3, SAT 7 Gulshan Avenue, Gulshan-1, Dhaka"),
+        row("House # 50, Road # 3, 7 Banani Road, Gulshan-1, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 50, Road # 3, SAT 7 Gulshan, Gulshan-1, Dhaka"),
+        row("House # 50, Road # 3, 7 Banani Road, Gulshan-1, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 50, Road # 3, 7 Gulshan Avenue, Gulshan-1, Dhaka"),
+        row("House # 50, Road # 3, SAT 7 Banani Road, Gulshan-1, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 50, Road # 3, Gulshan-1, Dhaka"),
+        row("House # 50, Road # 3, 7 Banani Road, Gulshan-1, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 50, Road # 3, Gulshan-1, Dhaka"),
+        row("House # 50, Road # 3, No.7 Banani Road, Gulshan-1, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 50, Road # 3, Gulshan-1, Dhaka"),
+        row("House # 50, Road # 3, 7 Banani, Gulshan-1, Dhaka"),
+      ]).length,
+      2,
+    );
+    for (const adj of [
+      "South",
+      "North",
+      "Old",
+      "Uttar",
+      "Dakhin",
+      "Dakshin",
+      "Purba",
+      "Purbo",
+      "Poschim",
+      "Boro",
+      "Baro",
+      "Choto",
+      "Chhoto",
+      "Moddho",
+      "Madhya",
+      "Part",
+      "Near",
+      "Opposite",
+      "Former",
+      "Current",
+      "Present",
+    ]) {
+      assertBothOrders(
+        campusRow(),
+        row(`House # 50, Road # 3, 7 ${adj} Banani, Gulshan-1, Dhaka`),
+        2,
+        `House 50 vs 7 ${adj} Banani`,
+      );
+      assertBothOrders(
+        row(`House # 50, Road # 3, 7 ${adj} Gulshan, Gulshan-1, Dhaka`),
+        row("House # 50, Road # 3, 7 Banani Road, Gulshan-1, Dhaka"),
+        2,
+        `7 ${adj} Gulshan vs 7 Banani Road`,
+      );
+    }
+    for (const stacked of [
+      "South East",
+      "South West",
+      "North East",
+      "North West",
+      "New South",
+      "Old South",
+      "East South",
+      "New East",
+      "South-East",
+      "South-West",
+      "North-East",
+      "South–East",
+      "South/East",
+      "SE",
+      "S.E.",
+      "SouthEast",
+      "New-South",
+      "Southern",
+      "Northern",
+      "Eastern",
+      "Western",
+      "Paschim",
+      "Pashchim",
+      "Pachim",
+      "Dokkhin",
+      "Dokhin",
+      "Uttor",
+      "Purbbo",
+      "Dakkhin",
+      "Poshchim",
+      "Street",
+      "S-E",
+      "S/E",
+      "SE.",
+    ]) {
+      assertBothOrders(
+        campusRow(),
+        row(`House # 50, Road # 3, 7 ${stacked} Banani, Gulshan-1, Dhaka`),
+        2,
+        `House 50 vs 7 ${stacked} Banani`,
+      );
+      assertBothOrders(
+        row(`House # 50, Road # 3, 7 ${stacked} Gulshan, Gulshan-1, Dhaka`),
+        row("House # 50, Road # 3, 7 Banani Road, Gulshan-1, Dhaka"),
+        2,
+        `7 ${stacked} Gulshan vs 7 Banani Road`,
+      );
+    }
+    assertBothOrders(
+      campusRow(),
+      row("House # 50, Road # 3, 7 South Gulshan, Gulshan-1, Dhaka"),
+      1,
+      "House 50 vs 7 South Gulshan",
+    );
+    assertBothOrders(
+      row("House # 50, Road # 3, No.7 South Banani, Gulshan-1, Dhaka"),
+      row("House # 50, Road # 3, 7 Banani Road, Gulshan-1, Dhaka"),
+      1,
+      "No.7 South Banani vs 7 Banani Road",
+    );
+    assertBothOrders(
+      campusRow(),
+      row("House # 50, Road # 3, SAT7 South Banani, Gulshan-1, Dhaka"),
+      2,
+      "House 50 vs SAT7 South Banani",
+    );
+    for (const sat of [
+      "SAT7 Gulshan",
+      "SAT7 South Gulshan",
+      "SAT-7 South Gulshan",
+      "SAT7 South-East Gulshan",
+    ]) {
+      assertBothOrders(
+        row(`House # 50, Road # 3, ${sat}, Gulshan-1, Dhaka`),
+        row("House # 50, Road # 3, 7 Banani Road, Gulshan-1, Dhaka"),
+        2,
+        `${sat} vs 7 Banani Road`,
+      );
+    }
+    assertBothOrders(
+      row("Plot # 10, 10 Gulshan, Gulshan-1, Dhaka"),
+      row("Plot # 10, 10 Banani Road, Gulshan-1, Dhaka"),
+      2,
+      "Plot 10 Gulshan vs 10 Banani Road",
+    );
+    for (const adj of [
+      "Choto",
+      "Baro",
+      "Chhoto",
+      "Part",
+      "South East",
+      "South-East",
+      "Paschim",
+      "Street",
+    ]) {
+      assertBothOrders(
+        row(`Plot # 10, 10 ${adj} Gulshan, Gulshan-1, Dhaka`),
+        row("Plot # 10, 10 Banani Road, Gulshan-1, Dhaka"),
+        2,
+        `Plot 10 ${adj} Gulshan vs 10 Banani Road`,
+      );
+    }
+    assertBothOrders(
+      row("Plot # 10, 10 Station Road, Gulshan-1, Dhaka"),
+      row("Plot # 10, 10 Banani Road, Gulshan-1, Dhaka"),
+      2,
+      "Plot 10 Station Road vs 10 Banani Road",
+    );
+    assertBothOrders(
+      row("House # 50, Road # 3, 7 Gulshan Avenue, Gulshan-1, Dhaka"),
+      row("House # 50, Road # 3, 7 Airport Road, Gulshan-1, Dhaka"),
+      2,
+      "7 Gulshan Avenue vs 7 Airport Road",
+    );
+    assertBothOrders(
+      row("House # 50, Road # 3, 7 Gulshan Avenue, Gulshan-1, Dhaka"),
+      row("House # 50, Road # 3, 7 Green Road, Gulshan-1, Dhaka"),
+      2,
+      "7 Gulshan Avenue vs 7 Green Road",
+    );
+    assertBothOrders(
+      row("Plot # 10, 10 Airport Road, Gulshan-1, Dhaka"),
+      row("Plot # 10, 10 Green Road, Gulshan-1, Dhaka"),
+      2,
+      "Plot 10 Airport Road vs Plot 10 Green Road",
+    );
+    assertBothOrders(
+      row("Plot # 10, 10 Airport, Gulshan-1, Dhaka"),
+      row("Plot # 10, 10 Green, Gulshan-1, Dhaka"),
+      2,
+      "Plot 10 Airport vs Plot 10 Green",
+    );
+    assertBothOrders(
+      row("4 JUBILEE ROAD, JIBAN BIMA BHABAN, CHATTOGRAM"),
+      row("Jiban Bima Bhaban, 4, Chittagong, Jublee Road"),
+      1,
+      "Jubilee Road vs Jublee Road inverted Jiban Bima Bhaban",
+    );
+    assertBothOrders(
+      row("216, Shamim Complex, Sataish Road, Gazipura, Tongi, Gazipur"),
+      row("Shamim Complex, 216, Sataish Road, Gazipura, Tongi, Gazipur"),
+      1,
+      "Shamim Complex 216 inverted vs Sataish Road",
+    );
+    assertBothOrders(
+      row("House # 50, Road # 3, 7 Airport Avenue, Gulshan-1, Dhaka"),
+      row("House # 50, Road # 3, 7 Green Avenue, Gulshan-1, Dhaka"),
+      2,
+      "7 Airport Avenue vs 7 Green Avenue",
+    );
+    assertBothOrders(
+      row("House # 50, Road # 3, 7 Kazi Nazrul Islam Avenue, Gulshan-1, Dhaka"),
+      row("House # 50, Road # 3, 7 Airport Road, Gulshan-1, Dhaka"),
+      2,
+      "7 Kazi Nazrul Islam Avenue vs 7 Airport Road",
+    );
+    assertBothOrders(
+      row("House # 50, Road # 3, 7 Shaheed Tajuddin Ahmed Avenue, Gulshan-1, Dhaka"),
+      row("House # 50, Road # 3, 7 Airport Road, Gulshan-1, Dhaka"),
+      2,
+      "7 Shaheed Tajuddin Ahmed Avenue vs 7 Airport Road",
+    );
+    assertBothOrders(
+      campusRow(),
+      row("House # 50, Road # 3, 7 Panthapath, Gulshan-1, Dhaka"),
+      2,
+      "House 50 vs 7 Panthapath",
+    );
+    assertBothOrders(
+      row("Plot # 10, 10 Airport Road, Gulshan-1, Dhaka"),
+      row("Plot # 10, 10 Green, Gulshan-1, Dhaka"),
+      2,
+      "Plot 10 Airport Road vs Plot 10 Green unsuffixed",
+    );
+    assertBothOrders(
+      row("Plot # 10, 10 Airport, Gulshan-1, Dhaka"),
+      row("Plot # 10, 10 Green Road, Gulshan-1, Dhaka"),
+      2,
+      "Plot 10 Airport vs Plot 10 Green Road",
+    );
+    assertBothOrders(
+      row("Plot # 10, 10 Airport, Gulshan-1, Dhaka"),
+      row("Plot # 10, 10 Green Ave, Gulshan-1, Dhaka"),
+      2,
+      "Plot 10 Airport vs Plot 10 Green Ave",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport, Gulshan-1, Dhaka"),
+      row("Plot # 10, Green, Gulshan-1, Dhaka"),
+      2,
+      "Plot 10 Airport vs Plot 10 Green without restated digit",
+    );
+    assertBothOrders(
+      row("7 Airport, Gulshan-1, Dhaka"),
+      row("7 Green, Gulshan-1, Dhaka"),
+      2,
+      "7 Airport vs 7 Green without Plot",
+    );
+    assertBothOrders(
+      row("Plot # 10, 10 Kazi Nazrul Islam Avenue, Gulshan-1, Dhaka"),
+      row("Plot # 10, 10 Airport, Gulshan-1, Dhaka"),
+      2,
+      "Plot 10 Kazi Nazrul Islam Avenue vs Plot 10 Airport",
+    );
+    assertBothOrders(
+      row("House # 50, Road # 3, 7 Kazi Nazrul Islam Avenue, Gulshan-1, Dhaka"),
+      row("House # 50, Road # 3, 7 Panthapath, Gulshan-1, Dhaka"),
+      2,
+      "7 Kazi Nazrul Islam Avenue vs 7 Panthapath",
+    );
+    assertBothOrders(
+      row("House # 50, Road # 3, 7 Airport Avenue, Gulshan-1, Dhaka"),
+      row("House # 50, Road # 3, 7 Green, Gulshan-1, Dhaka"),
+      2,
+      "7 Airport Avenue vs 7 Green unsuffixed",
+    );
+    for (const extra of ["7 Airport", "7 Green", "7 DIT", "7 Pantha Path"]) {
+      assertBothOrders(
+        campusRow(),
+        row(`House # 50, Road # 3, ${extra}, Gulshan-1, Dhaka`),
+        2,
+        `House 50 vs ${extra} unsuffixed`,
+      );
+    }
+    {
+      const mixed = [
+        campusRow(),
+        row("House # 50, Road # 3, 7 Airport, Gulshan-1, Dhaka"),
+        row("House # 50, Road # 3, 7 Green, Gulshan-1, Dhaka"),
+      ];
+      for (const ordered of permutations(mixed)) {
+        const locs = mergeUniqueLocations(ordered);
+        assert.equal(locs.length, 3, "House50 + 7 Airport + 7 Green unsuffixed");
+        const campus = locs.find((loc) =>
+          loc.source_rows.some((r) => /House # 50, Road # 3, Gulshan-1, Dhaka/.test(r.address)),
+        );
+        assert.ok(campus);
+        assert.ok(
+          !campus!.source_rows.some((r) => /7 Airport/.test(r.address)),
+          "campus must not sit on 7 Airport",
+        );
+        assert.ok(
+          !campus!.source_rows.some((r) => /7 Green/.test(r.address)),
+          "campus must not sit on 7 Green",
+        );
+      }
+    }
+    for (const stacked of [
+      "Outer",
+      "Upper",
+      "Lower",
+      "Middle",
+      "Central",
+      "South.East",
+      "S−E",
+      "S‑E",
+      "Poshim",
+      "Pashim",
+      "S E",
+      "Inner",
+    ]) {
+      assertBothOrders(
+        campusRow(),
+        row(`House # 50, Road # 3, 7 ${stacked} Banani, Gulshan-1, Dhaka`),
+        2,
+        `House 50 vs 7 ${stacked} Banani`,
+      );
+    }
+    assertBothOrders(
+      campusRow(),
+      row("House # 50, Road # 3, SAT.7 South Banani, Gulshan-1, Dhaka"),
+      2,
+      "House 50 vs SAT.7 South Banani",
+    );
+    assertBothOrders(
+      campusRow(),
+      row("House # 50, Road # 3, 7-Baro Banani, Gulshan-1, Dhaka"),
+      2,
+      "House 50 vs 7-Baro Banani glued",
+    );
+    assertBothOrders(
+      campusRow(),
+      row("House # 50, Road # 3, 7-South-East Banani, Gulshan-1, Dhaka"),
+      2,
+      "House 50 vs 7-South-East Banani glued",
+    );
+    assertBothOrders(
+      campusRow(),
+      row("House # 50, Road # 3, 7SE Banani, Gulshan-1, Dhaka"),
+      2,
+      "House 50 vs 7SE Banani glued",
+    );
+    assertBothOrders(
+      row("Plot # 10, 10 Choto Banani, Gulshan-1, Dhaka"),
+      row("Plot # 10, 10 Gulshan, Gulshan-1, Dhaka"),
+      2,
+      "Plot 10 Choto Banani vs Plot 10 Gulshan",
+    );
+    assertBothOrders(
+      row("Plot # 7, 7 Gulshan, Gulshan-1, Dhaka"),
+      row("Plot # 7, 7 Banani Road, Gulshan-1, Dhaka"),
+      2,
+      "Plot 7 Gulshan vs 7 Banani Road",
+    );
+    assertBothOrders(
+      row("Plot # 7, 7 Gulshan Avenue, Gulshan-1, Dhaka"),
+      row("Plot # 7, 7 Banani, Gulshan-1, Dhaka"),
+      2,
+      "Plot 7 Gulshan Avenue vs 7 Banani",
+    );
+    assertBothOrders(
+      row("House # 62, Plot # 10, Holding # 1, House # 187, Tejgaon, Dhaka"),
+      row("House # 62, Plot # 10, Holding # 1, House # 13, Tejgaon, Dhaka"),
+      2,
+      "House 187 vs House 13 Plot+Holding Tejgaon",
+    );
+    assertBothOrders(
+      row("House # 62, Plot # 10, Holding # 1, House # 187, Bashundhara, Dhaka"),
+      row("House # 62, Plot # 10, Holding # 1, House # 13, Bashundhara, Dhaka"),
+      2,
+      "House 187 vs House 13 Plot+Holding Bashundhara",
+    );
+    assertBothOrders(
+      row("House # 62, Plot # 10, Holding # 1, House # 187, Tejgaon, Dhaka"),
+      row("House # 62, Plot # 10, Holding # 1, H/O-13, Tejgaon, Dhaka"),
+      2,
+      "House 187 vs H/O-13 Plot+Holding",
+    );
+    assertBothOrders(
+      row("House # 62, Plot # 10, Holding # 1, H/O-187, Tejgaon, Dhaka"),
+      row("House # 62, Plot # 10, Holding # 1, House # 13, Tejgaon, Dhaka"),
+      2,
+      "H/O-187 vs House 13 Plot+Holding",
+    );
+    assertBothOrders(
+      row("House # 62, Plot # 10, Holding # 1, H/O-187, Tejgaon, Dhaka"),
+      row("House # 62, Plot # 10, Holding # 1, H/O-13, Tejgaon, Dhaka"),
+      2,
+      "H/O-187 vs H/O-13 Plot+Holding",
+    );
+    assertBothOrders(
+      row("House # 62, Plot # 10, Holding # 1, HO-187, Tejgaon, Dhaka"),
+      row("House # 62, Plot # 10, Holding # 1, House # 13, Tejgaon, Dhaka"),
+      2,
+      "HO-187 vs House 13 Plot+Holding",
+    );
+    for (const labelled of [
+      "Building # 187",
+      "Building No. 187",
+      "Bldg # 187",
+      "Flat # 187",
+      "Apt # 187",
+      "Unit # 187",
+    ]) {
+      assertBothOrders(
+        row(`House # 62, Plot # 10, Holding # 1, ${labelled}, Tejgaon, Dhaka`),
+        row("House # 62, Plot # 10, Holding # 1, House # 13, Tejgaon, Dhaka"),
+        2,
+        `${labelled} vs House 13 Plot+Holding`,
+      );
+    }
+    assertBothOrders(
+      row("House # 14, Apt # 2/C, Road # 20, Sector # 04, Uttara Model Town, Dhaka"),
+      row("HOUSE #14, ROAD #20, SECTOR #04, UTTARA, DHAKA"),
+      1,
+      "House 14 Apt 2/C is the same house as House 14",
+    );
+    for (const unit of ["Apt # 2", "Flat # 2", "Unit # 2", "Apt # 401"]) {
+      assertBothOrders(
+        row(`House # 14, ${unit}, Road # 20, Sector # 04, Uttara Model Town, Dhaka`),
+        row("HOUSE #14, ROAD #20, SECTOR #04, UTTARA, DHAKA"),
+        1,
+        `House 14 ${unit} is the same house as House 14`,
+      );
+    }
+    assertBothOrders(
+      row("House # 14, Unit # 11-J, Road # 20, Sector # 04, Uttara Model Town, Dhaka"),
+      row("HOUSE #14, ROAD #20, SECTOR #04, UTTARA, DHAKA"),
+      1,
+      "House 14 Unit 11-J is the same house as House 14",
+    );
+    assertBothOrders(
+      row("House # 26, Apt # 401, Road # 13, Sector # 4, Uttara, Dhaka"),
+      row("House # 26, Road # 13, Sector # 4, Uttara, Dhaka"),
+      1,
+      "House 26 Apt 401 is the same house as House 26",
+    );
+    assertBothOrders(
+      row("House # 139, Lane # 1, Apt # 4 (1st Floor), DOHS, Dhaka"),
+      row("House # 139, Lane # 1, DOHS, Dhaka"),
+      1,
+      "House 139 Apt 4 is the same house as House 139",
+    );
+    assertBothOrders(
+      row("01, Hariken Road, Doulatpur, National University, 1704, Gazipur, Bangladesh"),
+      row("01, Haricane Road, Dowlatpur, National University, Gazipur"),
+      1,
+      "Hariken Road vs Haricane Road spelling",
+    );
+    assertBothOrders(
+      row("93, Shuhrawardhi Avenue (2nd Fl), Dhaka, Baridhara"),
+      row("93 Shorawardi Avenue, Baridhara, Dhaka."),
+      1,
+      "Shuhrawardhi Avenue vs Shorawardi Avenue spelling",
+    );
+    assertBothOrders(
+      row("196, Kobi Jasimuddin Road, Pagar, Tongi, Gazipur Sadar PS, Gazipur - 1710, Bangladesh"),
+      row("196, Kazi Jashim Uddin Road, Pagar, Gazipur, Tongi"),
+      1,
+      "Jasimuddin Road vs Jashim Uddin Road spelling",
+    );
+    assertBothOrders(
+      row(
+        "Police Plaza Concord, Floor # 11, Unit # 11-J, Plot # 02, Road # 144, Gulshan Model Town, Gulshan-1, Dhaka-1212.",
+      ),
+      row("Police Plaza Cocord, Floor-11, Unit-11-J, Plot # 02, Road # 144, Gulshan, Dhaka"),
+      1,
+      "Police Plaza Concord vs Cocord with Unit 11-J",
+    );
+    assertBothOrders(
+      row("House # 62, Plot # 10, Holding # 1, House # 187, Tejgaon, Dhaka"),
+      row("House # 62, Plot # 10, Holding # 1, Building # 13, Tejgaon, Dhaka"),
+      2,
+      "House 187 vs Building # 13 Plot+Holding",
+    );
+    assertBothOrders(
+      row("House # 62, Plot # 10, Holding # 1, House # 187, Tejgaon, Dhaka"),
+      row("House # 62, Plot # 10, Holding # 1, H-O-13, Tejgaon, Dhaka"),
+      2,
+      "House 187 vs H-O-13 Plot+Holding",
+    );
+    assertBothOrders(
+      row("House # 62, Plot # 10, Holding # 1, House # 187, Tejgaon, Dhaka"),
+      row("House # 62, Plot # 10, Holding # 1, Head Office 13, Tejgaon, Dhaka"),
+      2,
+      "House 187 vs Head Office 13 Plot+Holding",
+    );
+    assertBothOrders(
+      row("House # 62, Plot # 10, Holding # 1, House # 187, Tejgaon, Dhaka"),
+      row("House # 62, Plot # 10, Holding # 1, Head-Office 13, Tejgaon, Dhaka"),
+      2,
+      "House 187 vs Head-Office 13 Plot+Holding",
+    );
+    assertBothOrders(
+      row("House # 62, Plot # 10, Holding # 1, House # 187, Tejgaon, Dhaka"),
+      row("House # 62, Plot # 10, Holding # 1, HeadOffice 13, Tejgaon, Dhaka"),
+      2,
+      "House 187 vs HeadOffice 13 Plot+Holding",
+    );
+    for (const subunit of ["Apt # 2/C", "Unit # 11-J", "Apt D-5", "Apt # 187/A"]) {
+      assertBothOrders(
+        row(`House # 62, Plot # 10, Holding # 1, ${subunit}, Tejgaon, Dhaka`),
+        row("House # 62, Plot # 10, Holding # 1, House # 13, Tejgaon, Dhaka"),
+        2,
+        `${subunit} vs House 13 Plot+Holding`,
+      );
+    }
+    for (const building of ["Building # 13", "Bldg # 13", "Building No. 13"]) {
+      assertBothOrders(
+        row("House # 62, Plot # 10, Holding # 1, House # 13, Tejgaon, Dhaka"),
+        row(`House # 62, Plot # 10, Holding # 1, ${building}, Tejgaon, Dhaka`),
+        1,
+        `House 13 vs ${building} Plot+Holding`,
+      );
+    }
+    for (const subunit of ["Apt # 2/C", "Unit # 11-J", "Apt D-5", "Apt # 187/A"]) {
+      assertBothOrders(
+        row(`House # 62, Plot # 10, Holding # 1, ${subunit}, Tejgaon, Dhaka`),
+        row("House # 62, Plot # 10, Holding # 1, Building # 13, Tejgaon, Dhaka"),
+        2,
+        `${subunit} vs Building 13 Plot+Holding`,
+      );
+    }
+    assertBothOrders(
+      row("House # 62, Plot # 10, Holding # 1, Apt # 2/C, Tejgaon, Dhaka"),
+      row("House # 62, Plot # 10, Holding # 1, Building # 187, Tejgaon, Dhaka"),
+      2,
+      "Apt # 2/C vs Building 187 Plot+Holding",
+    );
+    assertBothOrders(
+      row("67, City Heart Building, Suite # 4/3, Naya Paltan, Dhaka"),
+      row("SUIT-4/3, CITY HEART, 67 NAYAPALTAN, PALTAN, DHAKA"),
+      1,
+      "City Heart Building 67 vs inverted Naya Paltan",
+    );
+    assertBothOrders(
+      row("Plot # 702, Jhajar, National University, Board bazar, Gazipur"),
+      row("Plot-702, Jajhar, National University, Gazipur"),
+      1,
+      "Plot 702 Jhajar vs Jajhar spelling",
+    );
+    assertBothOrders(
+      row("16, Naya Palton (4th Floor), Mosjid Goli, Dhaka"),
+      row("16, Noya Paltan (3rd fl), Masjid Goli, Dhaka"),
+      1,
+      "16 Naya Palton vs Noya Paltan spelling",
+    );
+    assertBothOrders(
+      row("Plot - 404, Shutivola, Fakirkhali Road, Badda, 1212, Dhaka, Bangladesh"),
+      row("Shutivola, 404, Fakirkhali Road, Badda, Dhaka"),
+      1,
+      "Plot 404 Shutivola inverted vs Fakirkhali Road",
+    );
+    assertBothOrders(
+      row(
+        "687, AL-HAJ NURUL AMIN SOWDAGOR LANE, SOUTH AGRABAD, ROAD# 20, CDA R/A, AGRABAD, CHITTAGONG, BANGLADESH",
+      ),
+      row("687, CDA R/A, Road # 20, Alhaj Nurul Amin Sowdagar Lane, Chittagong, South Agrabad"),
+      1,
+      "687 Sowdagor Lane inverted vs CDA R/A",
+    );
+    assertBothOrders(
+      row("Munna Complex, 228 Dighirpar, Nazma Khatun Lane, Dewanhat, Chittagong"),
+      row("MUNNA COMPLEX, 228, DIGHIR PAR, DEWANHAT, DOUBLEMOORING, CHATTOGRAM"),
+      1,
+      "Munna Complex 228 Dighirpar vs Dighir Par",
+    );
+    assertBothOrders(
+      row("1236/E, Baker Ali Fakir Tack, 38, South Middle Halishahar, Chittagong, Bandar"),
+      row("1236/E Baker Ali Fakir Tack, 38/South Middle Halishahar"),
+      1,
+      "1236/E Halishahar vs 38/South Middle Halishahar",
+    );
+    assertBothOrders(
+      row("12/1, Hossain Uddin Khan 1st Lane, Lalbag, Nabanganj, Dhaka, Lalbagh"),
+      row("12/1 Hossain Uddin Khan, 1st Lane, Lalbagh Road, Lalbagh, 1211, Dhaka, Bangladesh"),
+      1,
+      "12/1 Hossain Uddin Khan 1st Lane vs inverted Lalbagh Road",
+    );
+    assertBothOrders(
+      row("12/1, Hossain Uddin Khan 1st Lane, Lalbag, Dhaka"),
+      row("12/1, Hossain Uddin Khan 2nd Lane, Lalbag, Dhaka"),
+      2,
+      "12/1 1st Lane vs 2nd Lane",
+    );
+    assertBothOrders(
+      row("Plot # 10, 1st Lane, Gulshan-1, Dhaka"),
+      row("Plot # 10, 2nd Lane, Gulshan-1, Dhaka"),
+      2,
+      "Plot 10 1st Lane vs 2nd Lane",
+    );
+    assertBothOrders(
+      row("Plot # 10, 1st Street, Gulshan-1, Dhaka"),
+      row("Plot # 10, 2nd Street, Gulshan-1, Dhaka"),
+      2,
+      "Plot 10 1st Street vs 2nd Street",
+    );
+    assertBothOrders(
+      row("Plot # 10, 10 Airport Road, Green, Gulshan-1, Dhaka"),
+      row("Plot # 10, 10 Green Road, Airport, Gulshan-1, Dhaka"),
+      2,
+      "Plot 10 Airport Road, Green vs Green Road, Airport",
+    );
+    assertBothOrders(
+      row("House # 50, Road # 3, 7 Airport Road, Green, Gulshan-1, Dhaka"),
+      row("House # 50, Road # 3, 7 Green Road, Airport, Gulshan-1, Dhaka"),
+      2,
+      "House 50 7 Airport Road, Green vs 7 Green Road, Airport",
+    );
+    assertBothOrders(
+      row("Plot # 10, 10 Airport Road, Green House, Gulshan-1, Dhaka"),
+      row("Plot # 10, 10 Green Road, Airport Plaza, Gulshan-1, Dhaka"),
+      2,
+      "Plot 10 Airport Road, Green House vs Green Road, Airport Plaza",
+    );
+    assertBothOrders(
+      row("Plot # 10, 10 Airport Road, Green, Gulshan-1, Dhaka"),
+      row("Plot # 10, 10 Green, Airport, Gulshan-1, Dhaka"),
+      2,
+      "Plot 10 Airport Road, Green vs Green, Airport leftover",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport, Green, Gulshan-1, Dhaka"),
+      row("Plot # 10, Green, Airport, Gulshan-1, Dhaka"),
+      2,
+      "Plot 10 Airport, Green vs Green, Airport leftover",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport, Green, Gulshan-1, Dhaka"),
+      row("Plot # 10, 10 Green Road, Airport, Gulshan-1, Dhaka"),
+      2,
+      "Plot 10 Airport, Green vs Green Road, Airport leftover",
+    );
+    assertBothOrders(
+      row("Plot # 10, 10 Airport Avenue, Green, Gulshan-1, Dhaka"),
+      row("Plot # 10, 10 Green, Airport, Gulshan-1, Dhaka"),
+      2,
+      "Plot 10 Airport Avenue, Green vs Green, Airport leftover",
+    );
+    assertBothOrders(
+      campusRow(),
+      row("House # 50, Road # 3, 7 Airport Road, Green, Gulshan-1, Dhaka"),
+      2,
+      "House 50 vs 7 Airport Road, Green leftover",
+    );
+    assertBothOrders(
+      row("House # 50, Road # 3, 7 Airport Road, Green, Gulshan-1, Dhaka"),
+      row("House # 50, Road # 3, 7 Green, Airport, Gulshan-1, Dhaka"),
+      2,
+      "House 50 7 Airport Road, Green vs 7 Green, Airport leftover",
+    );
+    assertBothOrders(
+      row("House # 50, Road # 3, 7 Airport Road, Green, Gulshan-1, Dhaka"),
+      row("House # 50, Road # 3, 7 Green, Airport, Gulshan-1, Dhaka"),
+      2,
+      "7 Airport Road, Green vs 7 Green, Airport leftover",
+    );
+    assertBothOrders(
+      row("Plot # 10, 10 Banani, Gulshan-1, Dhaka"),
+      row("Plot # 10, 10 Barani, Gulshan-1, Dhaka"),
+      2,
+      "Plot 10 Banani vs Plot 10 Barani",
+    );
+    assertBothOrders(
+      row("Plot # 10, 10 Banani, Gulshan-1, Dhaka"),
+      row("Plot # 10, 10 Bananipur, Gulshan-1, Dhaka"),
+      2,
+      "Plot 10 Banani vs Plot 10 Bananipur",
+    );
+    assertBothOrders(
+      row("Plot # 10, 10 Green, Gulshan-1, Dhaka"),
+      row("Plot # 10, 10 Greenpur, Gulshan-1, Dhaka"),
+      2,
+      "Plot 10 Green vs Plot 10 Greenpur",
+    );
+    assertBothOrders(
+      row("Plot # 10, 10 Airport Road, Gulshan-1, Dhaka"),
+      row("Plot # 10, 10 Greenpur, Gulshan-1, Dhaka"),
+      2,
+      "Plot 10 Airport Road vs Plot 10 Greenpur",
+    );
+    assertBothOrders(
+      row("Plot # 10, 10 Green Road, Gulshan-1, Dhaka"),
+      row("Plot # 10, 10 Greenpur, Gulshan-1, Dhaka"),
+      2,
+      "Plot 10 Green Road vs Plot 10 Greenpur",
+    );
+    assertBothOrders(
+      row("Plot # 10, 10 Green Road, Gulshan-1, Dhaka"),
+      row("Plot # 10, 10 Bananipur, Gulshan-1, Dhaka"),
+      2,
+      "Plot 10 Green Road vs Plot 10 Bananipur",
+    );
+    assertBothOrders(
+      row("Plot # 10, 10 Airport Road, Gulshan-1, Dhaka"),
+      row("Plot # 10, 10 Bananipur, Gulshan-1, Dhaka"),
+      2,
+      "Plot 10 Airport Road vs Plot 10 Bananipur",
+    );
+    for (const other of ["Greenpara", "Greenpar", "Greenbari", "Greennagar"]) {
+      assertBothOrders(
+        row("Plot # 10, 10 Green, Gulshan-1, Dhaka"),
+        row(`Plot # 10, 10 ${other}, Gulshan-1, Dhaka`),
+        2,
+        `Plot 10 Green vs Plot 10 ${other}`,
+      );
+    }
+    assertBothOrders(
+      row("244, Singair Road, Hemayetpur, Savar, Dhaka"),
+      row("244, Hemayetpur, Savar, Dhaka"),
+      1,
+      "244 Singair Road Hemayetpur vs 244 Hemayetpur",
+    );
+    assertBothOrders(
+      row("309, Polash Bari, Ashuliya, Savar, Dhaka"),
+      row("309, Palashbari, Ashulia, Savar, Dhaka"),
+      1,
+      "309 Polash Bari vs Palashbari",
+    );
+    assertBothOrders(
+      row("138, BAIZID BOSTAMI ROAD, CHATTOGRAM"),
+      row("138 BAIZID BOSTAMI ROAD NASIRABAD I/A, Bayjid Bostami, Chattogram"),
+      1,
+      "138 Baizid Bostami Road vs Nasirabad I/A",
+    );
+    assertBothOrders(
+      row("671, Dattopara, Hossain Market, Tongi, Gazipur"),
+      row("Hossain Market, 671, Datta Para, Tongi, Gazipur"),
+      1,
+      "671 Dattopara vs 671 Datta Para",
+    );
+    assertBothOrders(
+      row("Plot # 10, 10 Rampura, Gulshan-1, Dhaka"),
+      row("Plot # 10, 10 Rampur, Gulshan-1, Dhaka"),
+      2,
+      "Plot 10 Rampura vs Plot 10 Rampur",
+    );
+    assertBothOrders(
+      row("Plot # 10, Green View, Gulshan-1, Dhaka"),
+      row("Plot # 10, Airport City, Gulshan-1, Dhaka"),
+      2,
+      "Plot 10 Green View vs Plot 10 Airport City",
+    );
+    assertBothOrders(
+      row("Plot # 10, 1st Lane, Gulshan-1, Dhaka"),
+      row("Plot # 10, 3rd Lane, Gulshan-1, Dhaka"),
+      2,
+      "Plot 10 1st Lane vs 3rd Lane",
+    );
+    assertBothOrders(
+      row("Plot # 10, 1st Lane, Gulshan-1, Dhaka"),
+      row("Plot # 10, 1st Road, Gulshan-1, Dhaka"),
+      2,
+      "Plot 10 1st Lane vs 1st Road",
+    );
+    assertBothOrders(
+      row("Plot # 10, 1st Avenue, Gulshan-1, Dhaka"),
+      row("Plot # 10, 2nd Avenue, Gulshan-1, Dhaka"),
+      2,
+      "Plot 10 1st Avenue vs 2nd Avenue",
+    );
+    assertBothOrders(
+      row("House # 12, 1st Lane, Lalbag, Dhaka"),
+      row("House # 12, 2nd Lane, Lalbag, Dhaka"),
+      2,
+      "House 12 1st Lane vs 2nd Lane",
+    );
+    assertBothOrders(
+      row("Plot # 10, 1st Ln, Gulshan-1, Dhaka"),
+      row("Plot # 10, 2nd Ln, Gulshan-1, Dhaka"),
+      2,
+      "Plot 10 1st Ln vs 2nd Ln",
+    );
+    assertBothOrders(
+      row("Plot # 10, 1st Ln, Gulshan-1, Dhaka"),
+      row("Plot # 10, 2nd Lane, Gulshan-1, Dhaka"),
+      2,
+      "Plot 10 1st Ln vs 2nd Lane",
+    );
+    assertBothOrders(
+      row("Plot # 10, 1st-Lane, Gulshan-1, Dhaka"),
+      row("Plot # 10, 2nd-Lane, Gulshan-1, Dhaka"),
+      2,
+      "Plot 10 1st-Lane vs 2nd-Lane hyphen",
+    );
+    assertBothOrders(
+      row("Plot # 10, 1stLane, Gulshan-1, Dhaka"),
+      row("Plot # 10, 2ndLane, Gulshan-1, Dhaka"),
+      2,
+      "Plot 10 1stLane vs 2ndLane glued",
+    );
+    assertBothOrders(
+      row("Plot # 10, Lane, Gulshan-1, Dhaka"),
+      row("Plot # 10, 2nd Lane, Gulshan-1, Dhaka"),
+      2,
+      "Plot 10 un-ordinal Lane vs 2nd Lane",
+    );
+    assertBothOrders(
+      row("Plot # 10, 1st Gali, Gulshan-1, Dhaka"),
+      row("Plot # 10, 2nd Gali, Gulshan-1, Dhaka"),
+      2,
+      "Plot 10 1st Gali vs 2nd Gali",
+    );
+    for (const word of ["Boulevard", "Blvd", "Drive", "Close"]) {
+      assertBothOrders(
+        row(`Plot # 10, 1st ${word}, Gulshan-1, Dhaka`),
+        row(`Plot # 10, 2nd ${word}, Gulshan-1, Dhaka`),
+        2,
+        `Plot 10 1st ${word} vs 2nd ${word}`,
+      );
+    }
+    assertBothOrders(
+      campusRow(),
+      row("House # 50, Road # 3, 7 S‐E Banani, Gulshan-1, Dhaka"),
+      2,
+      "House 50 vs 7 S-E Banani U+2010 hyphen",
+    );
+    assertBothOrders(
+      campusRow(),
+      row("House # 50, Road # 3, 7 S‒E Banani, Gulshan-1, Dhaka"),
+      2,
+      "House 50 vs 7 S-E Banani U+2012 figure dash",
+    );
+    assertBothOrders(
+      campusRow(),
+      row("House # 50, Road # 3, 7 S―E Banani, Gulshan-1, Dhaka"),
+      2,
+      "House 50 vs 7 S-E Banani U+2015 horizontal bar",
+    );
+    assertBothOrders(
+      campusRow(),
+      row("House # 50, Road # 3, 7 S_E Banani, Gulshan-1, Dhaka"),
+      2,
+      "House 50 vs 7 S_E Banani underscore",
+    );
+    assertBothOrders(
+      campusRow(),
+      row("House # 50, Road # 3, 7 S\u00ADE Banani, Gulshan-1, Dhaka"),
+      2,
+      "House 50 vs 7 S-E Banani U+00AD soft hyphen",
+    );
+    assertBothOrders(
+      campusRow(),
+      row("House # 50, Road # 3, 7 S\uFF0DE Banani, Gulshan-1, Dhaka"),
+      2,
+      "House 50 vs 7 S-E Banani U+FF0D fullwidth hyphen-minus",
+    );
+    assertBothOrders(
+      campusRow(),
+      row("House # 50, Road # 3, 7 S\uFE63E Banani, Gulshan-1, Dhaka"),
+      2,
+      "House 50 vs 7 S-E Banani U+FE63 small hyphen-minus",
+    );
+    assertBothOrders(
+      campusRow(),
+      row("House # 50, Road # 3, 7 S\uFE58E Banani, Gulshan-1, Dhaka"),
+      2,
+      "House 50 vs 7 S-E Banani U+FE58 small em dash",
+    );
+    assertBothOrders(
+      campusRow(),
+      row("House # 50, Road # 3, 7 S\u2E3AE Banani, Gulshan-1, Dhaka"),
+      2,
+      "House 50 vs 7 S-E Banani U+2E3A two-em dash",
+    );
+    for (const other of [
+      "House # 13 (Old Zone 2)",
+      "House # 13 (Old #13)",
+      "House # 13 (old 2)",
+      "House # 13 (Old, Plot 2)",
+    ]) {
+      assertBothOrders(
+        row("House # 62, Plot # 10, Holding # 1, House # 187, Tejgaon, Dhaka"),
+        row(`House # 62, Plot # 10, Holding # 1, ${other}, Tejgaon, Dhaka`),
+        2,
+        `House 187 vs ${other} Plot+Holding`,
+      );
+    }
+    assertBothOrders(
+      row("House # 62, Plot # 10, Holding # 1, House # 187 (Old Zone 2), Tejgaon, Dhaka"),
+      row("House # 62, Plot # 10, Holding # 1, House # 13, Tejgaon, Dhaka"),
+      2,
+      "House 187 (Old Zone 2) vs House 13 Plot+Holding",
+    );
+    assertBothOrders(
+      row("House # 62, Plot # 10, Holding # 1, House # 187 (Former #187), Tejgaon, Dhaka"),
+      row("House # 62, Plot # 10, Holding # 1, House # 13, Tejgaon, Dhaka"),
+      2,
+      "House 187 (Former #187) vs House 13 Plot+Holding",
+    );
+    assertBothOrders(
+      row("House # 62, Plot # 10, Holding # 1, House # 187, Tejgaon, Dhaka"),
+      row("House # 62, Plot # 10, Holding # 1, House # 13 (Old Zone), Tejgaon, Dhaka"),
+      2,
+      "House 187 vs House 13 (Old Zone) Plot+Holding",
+    );
+    {
+      const southBanani = [
+        row("House # 50, Road # 3, Gulshan-1, Dhaka"),
+        row("House # 50, Road # 3, 7 Gulshan, Gulshan-1, Dhaka"),
+        row("House # 50, Road # 3, 7 South Banani, Gulshan-1, Dhaka"),
+      ];
+      for (const ordered of permutations(southBanani)) {
+        const locs = mergeUniqueLocations(ordered);
+        assert.equal(locs.length, 2, "House50 + 7 Gulshan + 7 South Banani");
+        const campus = locs.find((loc) =>
+          loc.source_rows.some((r) => /House # 50, Road # 3, Gulshan-1, Dhaka/.test(r.address)),
+        );
+        assert.ok(campus);
+        assert.ok(
+          campus!.source_rows.some((r) => /7 Gulshan/.test(r.address)),
+          "House 50 must stay with 7 Gulshan",
+        );
+        assert.ok(
+          !campus!.source_rows.some((r) => /South Banani/.test(r.address)),
+          "7 South Banani must not sit on the House 50 / 7 Gulshan row",
+        );
+      }
+    }
+    {
+      const southGulshan = [
+        row("House # 50, Road # 3, Gulshan-1, Dhaka"),
+        row("House # 50, Road # 3, 7 South Gulshan, Gulshan-1, Dhaka"),
+        row("House # 50, Road # 3, 7 Banani Road, Gulshan-1, Dhaka"),
+      ];
+      for (const ordered of permutations(southGulshan)) {
+        const locs = mergeUniqueLocations(ordered);
+        assert.equal(locs.length, 2, "House50 + 7 South Gulshan + 7 Banani Road");
+        const campus = locs.find((loc) =>
+          loc.source_rows.some((r) => /House # 50, Road # 3, Gulshan-1, Dhaka/.test(r.address)),
+        );
+        assert.ok(campus);
+        assert.ok(
+          campus!.source_rows.some((r) => /7 South Gulshan/.test(r.address)),
+          "House 50 must stay with 7 South Gulshan",
+        );
+        assert.ok(!campus!.source_rows.some((r) => /Banani Road/.test(r.address)));
+      }
+    }
+    for (const extra of [
+      "7 Choto Banani",
+      "7 Baro Banani",
+      "7 South East Banani",
+      "7 South-East Banani",
+      "7 Southern Banani",
+      "7 Paschim Banani",
+    ]) {
+      const mixed = [
+        row("House # 50, Road # 3, Gulshan-1, Dhaka"),
+        row("House # 50, Road # 3, 7 Gulshan, Gulshan-1, Dhaka"),
+        row(`House # 50, Road # 3, ${extra}, Gulshan-1, Dhaka`),
+      ];
+      for (const ordered of permutations(mixed)) {
+        const locs = mergeUniqueLocations(ordered);
+        assert.equal(locs.length, 2, `House50 + 7 Gulshan + ${extra}`);
+        const campus = locs.find((loc) =>
+          loc.source_rows.some((r) => /House # 50, Road # 3, Gulshan-1, Dhaka/.test(r.address)),
+        );
+        assert.ok(campus);
+        assert.ok(
+          campus!.source_rows.some((r) => /7 Gulshan/.test(r.address)),
+          `House 50 must stay with 7 Gulshan beside ${extra}`,
+        );
+        assert.ok(
+          !campus!.source_rows.some((r) => r.address.includes(extra)),
+          `${extra} must not sit on the House 50 / 7 Gulshan row`,
+        );
+      }
+    }
+    for (const gulshanExtra of [
+      "7 Choto Gulshan",
+      "7 Baro Gulshan",
+      "7 South-East Gulshan",
+    ]) {
+      const mixed = [
+        row("House # 50, Road # 3, Gulshan-1, Dhaka"),
+        row(`House # 50, Road # 3, ${gulshanExtra}, Gulshan-1, Dhaka`),
+        row("House # 50, Road # 3, 7 Banani Road, Gulshan-1, Dhaka"),
+      ];
+      for (const ordered of permutations(mixed)) {
+        const locs = mergeUniqueLocations(ordered);
+        assert.equal(locs.length, 2, `House50 + ${gulshanExtra} + 7 Banani Road`);
+        const campus = locs.find((loc) =>
+          loc.source_rows.some((r) => /House # 50, Road # 3, Gulshan-1, Dhaka/.test(r.address)),
+        );
+        assert.ok(campus);
+        assert.ok(
+          campus!.source_rows.some((r) => r.address.includes(gulshanExtra)),
+          `House 50 must stay with ${gulshanExtra}`,
+        );
+        assert.ok(
+          !campus!.source_rows.some((r) => /Banani Road/.test(r.address)),
+          `7 Banani Road must not sit on the House 50 / ${gulshanExtra} row`,
+        );
+      }
+    }
+    assert.equal(
+      displays([
+        row("House # 50, Road # 3, Gulshan-1, Dhaka"),
+        row("House # 50, Road # 3, SAT 7 Gulshan Avenue, Gulshan-1, Dhaka"),
+      ]).length,
+      1,
+    );
+    for (const other of [
+      "7 Tejgaon Road",
+      "7 Mirpur Road",
+      "7 Uttara Road",
+      "7 Pallabi Road",
+      "7 Baridhara Road",
+      "7 Airport Road",
+      "7 Green Road",
+      "7 Tejgaon",
+      "7 Mohakhali",
+      "7 Badda",
+      "7 Eskaton",
+    ]) {
+      assert.equal(
+        displays([
+          row("House # 50, Road # 3, 7 Gulshan Avenue, Gulshan-1, Dhaka"),
+          row(`House # 50, Road # 3, ${other}, Gulshan-1, Dhaka`),
+        ]).length,
+        2,
+        `7 Gulshan Avenue vs ${other} with Gulshan-1`,
+      );
+    }
+    {
+      const mixed = [
+        row("House # 50, Road # 3, Gulshan-1, Dhaka"),
+        row("House # 50, Road # 3, 7 Gulshan, Gulshan-1, Dhaka"),
+        row("House # 50, Road # 3, 7 Banani Road, Gulshan-1, Dhaka"),
+      ];
+      for (const ordered of permutations(mixed)) {
+        const locs = mergeUniqueLocations(ordered);
+        assert.equal(locs.length, 2, "House50 + 7 Gulshan + 7 Banani Road");
+        const campus = locs.find((loc) =>
+          loc.source_rows.some((r) => /House # 50, Road # 3, Gulshan-1, Dhaka/.test(r.address)),
+        );
+        const banani = locs.find((loc) =>
+          loc.source_rows.some((r) => /Banani Road/.test(r.address)),
+        );
+        assert.ok(campus);
+        assert.ok(banani);
+        assert.notEqual(campus, banani);
+        assert.ok(
+          campus!.source_rows.some((r) => /7 Gulshan/.test(r.address)),
+          "House 50 must stay with 7 Gulshan",
+        );
+        assert.ok(
+          !campus!.source_rows.some((r) => /Banani Road/.test(r.address)),
+          "7 Banani Road must not sit on the House 50 / 7 Gulshan row",
+        );
+      }
+    }
+    {
+      const withGulshan1 = [
+        row("House # 50, Road # 3, Gulshan-1, Dhaka"),
+        row("House # 50, Road # 3, 7 Gulshan Avenue, Gulshan-1, Dhaka"),
+        row("House # 50, Road # 3, 7 Banani Road, Gulshan-1, Dhaka"),
+      ];
+      for (const ordered of permutations(withGulshan1)) {
+        const locs = mergeUniqueLocations(ordered);
+        assert.equal(locs.length, 2, "House50 + 7 Gulshan Avenue + 7 Banani Road Gulshan-1");
+        const campus = locs.find((loc) =>
+          loc.source_rows.some((r) => /House # 50, Road # 3, Gulshan-1, Dhaka/.test(r.address)),
+        );
+        assert.ok(campus);
+        assert.ok(
+          campus!.source_rows.some((r) => /7 Gulshan Avenue/.test(r.address)),
+          "House 50 must stay with 7 Gulshan Avenue",
+        );
+        assert.ok(
+          !campus!.source_rows.some((r) => /Banani Road/.test(r.address)),
+        );
+      }
+    }
+    assert.equal(
+      displays([
+        row("House # 62, Plot # 10, Number 187 Bashundhara, Dhaka"),
+        row("House # 62, Plot # 10, Number 13 Bashundhara, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62, Plot # 10, 187 Bashundhara, Dhaka"),
+        row("House # 62, Plot # 10, 13 Bashundhara, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62, Holding # 1, Number 187 Bashundhara, Dhaka"),
+        row("House # 62, Holding # 1, Number 13 Bashundhara, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62, House # 10, Number 187 Bashundhara, Dhaka"),
+        row("House # 62, House # 10, Number 13 Bashundhara, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62, Road # 3, Block-B, Niketon, Number 187 Bashundhara, Dhaka"),
+        row("House # 62, Road # 3, Block-B, Niketon, Number 100 Bashundhara, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62, Road # 3, Block-B, Niketon, Number 187 Bashundhara, Dhaka"),
+        row("House # 62, Road # 3, Block-B, Niketon, Number 186 Bashundhara, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62, Number 87, Tejgaon, Dhaka"),
+        row("House # 62, Number 13, Tejgaon, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62, Road # 3, Block-B, Niketon, 187, Aftabnagar, Dhaka"),
+        row("House # 62, Road # 3, Block-B, Niketon, No.187 Bashundhara, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62, Road # 3, Block-B, Niketon, 12 Badda, Dhaka"),
+        row("House # 62, Road # 3, Block-B, Niketon, 12 Eskaton, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("Plot # 8 & 10, Block-A, Gulshan, Dhaka"),
+        row("Plot # 8, Block-A & Plot # 10, Block-A, Gulshan, Dhaka"),
+      ]).length,
+      1,
+    );
+    assert.equal(
+      displays([
+        row("Plot # 31-32, Sector # 01, CEPZ, Chittagong"),
+        row("Plot # 31-32, Sector # 01, Plot # 33, Sector # 01, CEPZ, Chittagong"),
+      ]).length,
+      1,
+    );
+    assert.equal(
+      displays([
+        row("House # 50, Road # 3, Gulshan-1, Dhaka"),
+        row("House # 50, Road # 3, 87, Gulshan Avenue, Gulshan-1, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62 (1st Floor), Road # 3, Block-B, Niketon, Gulshan, Dhaka"),
+        row("House # 62, Road # 3, Block-B, Niketon, 87 Gulshan Avenue, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62 (1st Floor), Road # 3, Block-B, Niketon, Gulshan, Dhaka"),
+        row("House # 62, Road # 3, Block-B, Niketon, 87 Gulshan Road, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62 (1st Floor), Road # 3, Block-B, Niketon, Gulshan, Dhaka"),
+        row("House # 62, Road # 3, Block-B, Niketon, 87 Gulshan, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62 (1st Floor), Road # 3, Block-B, Niketon, Gulshan, Dhaka"),
+        row("House # 62, Road # 3, Block-B, Niketon, 87 Banani Road, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62 (1st Floor), Road # 3, Block-B, Niketon, Gulshan, Dhaka"),
+        row("House # 62, Road # 3, Block-B, Niketon, 10 Gulshan Avenue, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62 (1st Floor), Road # 3, Block-B, Niketon, Gulshan, Dhaka"),
+        row("House # 62, Road # 3, Block-B, 13 Niketon, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62 (1st Floor), Road # 3, Block-B, Niketon, Gulshan, Dhaka"),
+        row("House # 62, Road # 3, Block-B, 20 Niketon, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62 (1st Floor), Road # 3, Block-B, Niketon, Gulshan, Dhaka"),
+        row("House # 62, Road # 3, Block-B, 29 Niketon, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62 (1st Floor), Road # 3, Block-B, Niketon, Gulshan, Dhaka"),
+        row("House # 62, Road # 3, Block-B, Niketon, 12 Eskaton, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62 (1st Floor), Road # 3, Block-B, Niketon, Gulshan, Dhaka"),
+        row("House # 62, Road # 3, Block-B, Niketon, 25 Eskaton, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62 (1st Floor), Road # 3, Block-B, Niketon, Gulshan, Dhaka"),
+        row("House # 62, Road # 3, Block-B, Niketon, 12 Badda, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62 (1st Floor), Road # 3, Block-B, Niketon, Gulshan, Dhaka"),
+        row("House # 62, Road # 3, Block-B, Niketon, 29 Badda, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62 (1st Floor), Road # 3, Block-B, Niketon, Gulshan, Dhaka"),
+        row("House # 62, Road # 3, Block-B, Niketon, 187 Badda, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62 (1st Floor), Road # 3, Block-B, Niketon, Gulshan, Dhaka"),
+        row("House # 62, Road # 3, Block-B, Niketon, 100 Badda, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 62 (1st Floor), Road # 3, Block-B, Niketon, Gulshan, Dhaka"),
+        row("House # 62, Road # 3, Block-B, Niketon, No.187 Eskaton, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 06, Road-07, Block-B, Turag, Dhaka-1230"),
+        row("House # 06, Road-07, Block-B, Turag, 12 Dhour, Dhaka-1230"),
+      ]).length,
+      1,
+    );
+    assert.equal(
+      displays([
+        row("House # 06, Road-07, Block-B, Turag, Dhaka-1230"),
+        row("House # 06, Road-07, Block-B, 20 Dhour, Turag, Dhaka-1230"),
+      ]).length,
+      1,
+    );
+    assert.equal(
+      displays([
+        row("House # 06, Road-07, Block-B, Turag, Dhaka-1230"),
+        row("House # 06, Road-07, Block-B, Turag, 30 Dhour, Dhaka-1230"),
+      ]).length,
+      1,
+    );
+    assert.equal(
+      displays([
+        row("House # 06, Road-07, Block-B, Turag, Dhaka-1230"),
+        row("House # 06, Road-07, Block-B, 30 Dhour, Turag, Dhaka-1230"),
+      ]).length,
+      1,
+    );
+    assert.equal(
+      displays([
+        row("House # 06, Road-07, Block-B, Turag, Dhaka-1230"),
+        row("House # 06, Road-07, Block-B, 32 Dhour, Turag, Dhaka-1230"),
+      ]).length,
+      1,
+    );
+    assert.equal(
+      displays([
+        row("House # 06, Road-07, Block-B, Turag, Dhaka-1230"),
+        row("House # 06, Road-07, Block-B, 87 Dhour, Turag, Dhaka-1230"),
+      ]).length,
+      1,
+    );
+    assert.equal(
+      displays([
+        row("House # 06, Road-07, Block-B, Turag, Dhaka-1230"),
+        row("House # 06, Road-07, Block-B, Turag, No. 12 Dhour, Dhaka-1230"),
+      ]).length,
+      1,
+    );
+    assert.equal(
+      displays([
+        row("House # 06, Road-07, Block-B, Turag, Dhaka-1230"),
+        row("House # 06, Road-07, Block-B, Turag, #12 Dhour, Dhaka-1230"),
+      ]).length,
+      1,
+    );
+    assert.equal(
+      displays([
+        row("House # 06, Road-07, Block-B, Turag, Dhaka-1230"),
+        row("House # 06, Road-07, Block-B, Turag, 12-A Dhour, Dhaka-1230"),
+      ]).length,
+      1,
+    );
+    assert.equal(
+      displays([
+        row("House 10, Dailla, Demra, Dhaka"),
+        row("House 10, Dailla, 30 Demra, Dhaka"),
+      ]).length,
+      1,
+    );
+    assert.equal(
+      displays([
+        row("House # 06, Road-07, Block-B, Turag, Dhaka-1230"),
+        row("House # 06, Road-07, Block-B, 10 storied, Turag, Dhaka-1230"),
+      ]).length,
+      1,
+    );
+    assert.equal(
+      displays([
+        row("House # 161 (5th Floor), Road # 1, DOHS, Baridhara DOHS, Dhaka"),
+        row("74 East Kazipara, House # 161 (5th Floor), Road # 1, DOHS, Baridhara DOHS, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 430, Road # 30, New DOHS, Baridhara, Dhaka"),
+        row("292 Inner Circular Rd, House # 430, Road # 30, New DOHS, Baridhara, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 161 (5th Floor), Road # 1, DOHS, Baridhara DOHS, Dhaka"),
+        row(
+          "74, East Kazipara, House # 161 (5th Floor), Road # 1, DOHS, Mirpur, Dhaka, Baridhara DOHS, Dhaka",
+        ),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House # 161 (5th Floor), Road # 1, DOHS, Baridhara DOHS, Dhaka"),
+        row("House # 161, Road # 1, Pallabi, Mirpur DOHS, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("Baridhara DOHS, Dhaka, House # 430, Road # 30, New DOHS"),
+        row("Shatabdi Center, 292, Inner Circular Rd, House # 430, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("403, KULGAON, HATHAZARI ROAD, JALALABAD, BAIZID"),
+        row(
+          "403 Kulgoan, Hathazari Road, Jalalabad, Biazid, Bayjid Bostami PS, Chattogram - 4214, Bangladesh",
+        ),
+      ]).length,
+      1,
+    );
+    assert.equal(
+      displays([
+        row("HOUSE-4, (GR &1ST FLOOR), ROAD-13, SECTOR-04, DHAKA"),
+        row("House # 4 (Gr. & 1st floor), Road # 13, Sector # 04, Uttara Model Town, Dhaka-1230."),
+      ]).length,
+      1,
+    );
+    assert.equal(
+      displays([
+        row("Plot No-1703-04, Gacha Road, Gacha"),
+        row("Gacha, Plot # 1703-1704, Gacha Road, Gacha"),
+      ]).length,
+      1,
+    );
+    assert.equal(
+      displays([
+        row("Ramarbag, Fatullah & G-88/1, BSCIC, Fatullah"),
+        row("Ramarbag, Fatullah"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("merges hyphenated floor lists with the same house", () => {
+    assert.equal(
+      displays([
+        row("Siaam Tower, Level-9 & 10, Plot # 15, Sector # 3, Dhaka, Uttara"),
+        row("SIAAM TOWER (LEVEL 9TH & 10TH), PLOT 15, SECTOR 3, UTTARA NEW MODEL TOWN"),
+      ]).length,
+      1,
+    );
+    assert.equal(
+      displays([
+        row("380/3, (Ground & 2nd Floor), Banasree Road, East Rampura, Dhaka"),
+        row("380/3 BANASREE ROAD, EAST RAMPURA"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges Senakalayan Bhaban with Sena Kalyan Bhaban at the same suite", () => {
+    assert.equal(
+      displays([
+        row("Senakalayan Bhaban (Floor # 11), Suite # 1106, 195 Motijheel C/A, Dhaka-1000."),
+        row("Sena Kalyan Bhaban (Floor-11) Suite # 1106, 195 Motijheel C/A, Dhaka."),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges Sujat Plaza house 2 at Mirpur-12 with Pallabi", () => {
+    assert.equal(
+      displays([
+        row("2 No, Sujat Nagar, Sujat Plaza, Dhaka, Mirpur-12"),
+        row("2, SUJAT NAGAR, SUJAT PLAZA, PALLABI, DHAKA"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges Degerchala with Degerchala Road Chaydana on holding 72", () => {
+    assert.equal(
+      displays([
+        row("72, DEGERCHALA, NATIONAL UNIVERSITY, GAZIPUR"),
+        row("72, Degerchala Road, Chaydana, National University, Gazipur"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges Emerald with Emeraid and Baktarpur with UttorBoktarpur on the same house", () => {
+    assert.equal(
+      displays([
+        row("ADD Emerald, House # 18/3, Tallabagh, Sobhanbagh, Dhaka-1207"),
+        row("ADDL Emeraid, Apt # A1 & B1, 18/3, Tallabagh, Sobhanbagh, Dhaka-1207"),
+      ]).length,
+      1,
+    );
+    assert.equal(
+      displays([
+        row("A-99/1 Baktarpur, Kaliakoir, 1750, Gazipur, Bangladesh"),
+        row("A-99/1, UttorBoktarpur, Gazipur, B. Baria"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges a company-name CEPZ dump with Plot 6-11 South Halisahar", () => {
+    assert.equal(
+      displays([
+        row(
+          "BANGLADESH SPINNERS & KNITTERS (PVT) LTD. PLOT NO. 6 TO 11, SECTOR - 4/A, CHITTAGONG EXPORT PROCESSING ZONE, CHITTAGONG TEL: 741872",
+        ),
+        row("Plot # 6-11, Sector # 4/A, South Halisahar, CEPZ, Bandar, 4223, Chattogram, Bangladesh"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("does not absorb Jamirdia-only into a Jamirdia and Meherbari concatenation", () => {
+    assert.equal(
+      displays([
+        row("Jamirdia, Habirbari, Valuka, Mymensingh & Meherbari, Valuka, Mymensingh."),
+        row("Jamirdia, Habirbari, P.S: Valuka, Mymensingh - 2240, Bangladesh"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("does not fuse Bora Dharmapur in Comilla with Kaicha Bari in Ashulia", () => {
+    assert.equal(
+      displays([
+        row("Bora Dharmapur, Lalmai, Kotwali, Comilla."),
+        row("Kaicha Bari, Ashulia, Dhaka."),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("Bora, Sreepur, Gazipur"),
+        row("Master Bari, Sreepur, Gazipur"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("Hatimara, Kashimpur, Gazipur"),
+        row("SURA BARI, KASHIMPUR, GAZIPUR"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("Bora, Sreepur, Gazipur"),
+        row("Boro Bari, Sreepur, Gazipur"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("Bera, Sreepur, Gazipur"),
+        row("Baro Bari, Sreepur, Gazipur"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("Bora, Sreepur, Gazipur"),
+        row("Bara Bari, Sreepur, Gazipur"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("Bora Dharmapur, Lalmai, Kotwali, Comilla."),
+        row("Kaichabari, Savar, Dhaka."),
+      ]).length,
+      2,
+    );
+  });
+
+  it("does not merge the same house at a plaza in Uttara with Mirpur or Gazipur with Ashulia", () => {
+    assert.equal(
+      displays([
+        row("2, City Plaza, Uttara, Dhaka"),
+        row("2, City Plaza, Mirpur, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("2, Shamser Plaza, Gazipur"),
+        row("2, Shamser Plaza, Ashulia"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("2, Sreepur Stand, Gazipur"),
+        row("2, Sreepur Stand, Ashulia"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("2, Sujat Plaza, Mirpur-12, Dhaka"),
+        row("2, Sujat Plaza, Uttara, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("Anwar Tower, House 12, Uttara, Dhaka"),
+        row("Anwar Tower, House 12, Mirpur, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("2, City Plaza, CEPZ, Chattogram"),
+        row("2, City Plaza, DEPZ, Savar"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("House 2, Pallabi, Dhaka"),
+        row("House 2, Uttara, Mirpur, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("2, Sujat Plaza, Pallabi, Dhaka"),
+        row("2, Sujat Plaza, Mirpur-12, Dhaka"),
+      ]).length,
+      1,
+    );
+    assert.equal(
+      displays([
+        row("House 2, Pallabi, Uttara, Dhaka"),
+        row("House 2, Mirpur, Uttara, Dhaka"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("merges Office and Factory wording with the same village spelling", () => {
+    assert.equal(
+      displays([
+        row("Office & Factory: Kotwalirchar, Madhabdi, Narsingdi."),
+        row("Kotwalirchar, Madhabdi, Norshindi."),
+      ]).length,
+      1,
+    );
+    assert.equal(
+      displays([
+        row("Office & Factory: Vogra, Gazipur"),
+        row("Vogra, Gazipur"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges Malanchanagar with Malanacho Nagar on the same road", () => {
+    assert.equal(
+      displays([
+        row("MALANCHANAGAR, ROAD NO-03, POLICE LINE, TAGARPAR, FATULLAH"),
+        row("Malanacho Nagar, Road # 03, West Esdair, Tagarpar"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges the same holdings when one spelling omits a comma or plot label", () => {
+    assert.equal(
+      displays([
+        row(
+          "South Avenue Tower, 6th floor, House # 50, Road # 3, 7, Gulshan Avenue, Gulshan-1, Dhaka-1212",
+        ),
+        row(
+          "South Avenue Tower (6th floor), House # 50, Road # 03, 7 Gulshan Avenue, Gulshan-1, Dhaka-1212",
+        ),
+      ]).length,
+      1,
+    );
+    assert.equal(
+      displays([
+        row("323, 324, Moynarbagh, Hossain Market, Uttar Badda, Dhaka"),
+        row("House# 323, 324, Moynarbagh, Hossain Market, Uttar Badda, 1212, Dhaka, Bangladesh"),
+      ]).length,
+      1,
+    );
+    assert.equal(
+      displays([
+        row("Plot # S.A.-7,8, R.S.-11,12,13, Karamtola, Pubail"),
+        row("PLOT NO-S.A. 7-8, R.S-11,12,13 MOUZA, KARAMTOLA, PUBAIL,, , GAZIPUR"),
+      ]).length,
+      1,
+    );
+    assert.equal(
+      displays([
+        row(
+          "PLOT NO-215, 216 & 217/B, BSCIC I/A, SHASONGAON, FATULLAH, NARAYANGANJ., FATULLAH, NARAYANGANJ",
+        ),
+        row("PLOT # 215,216 & 217/B, BSCIC I/A, SHASONGAON"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("does not absorb Plot 27 Holding 1/A into House 1 at Mirpur-12", () => {
+    assert.equal(
+      displays([
+        row("Plot # 27, Holding # 1/A, Milk Vita Road, Sec-7, Pallabi, Dhaka, Mirpur"),
+        row("HOUSE NO-01, ROAD NO.-09, BLOCK-A, MIRPUR-12, DHAKA-1216, , DHAKA"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("does not expand Plot 62-8 into plots 62 through 68", () => {
+    const ids = premisesIdentifiers("Plot 62-8, Niketon, Dhaka");
+    assert.equal(ids.has("65"), false);
+    assert.equal(ids.has("68"), false);
+    assert.equal(ids.has("62"), true);
+    assert.equal(ids.has("8"), true);
+    assert.equal(
+      displays([
+        row("Plot 62-8, Niketon, Dhaka"),
+        row("Plot 68, Niketon, Dhaka"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("completes a 2-digit abbreviated range end without promoting a 1-digit end", () => {
+    const konabari = premisesIdentifiers("Plot# 371-72, BSCIC, Konabari");
+    assert.equal(konabari.has("371"), true);
+    assert.equal(konabari.has("372"), true);
+    assert.equal(konabari.has("72"), false);
+    const peace = premisesIdentifiers("Plot 167-69, Dhaka EPZ");
+    assert.equal(peace.has("167"), true);
+    assert.equal(peace.has("169"), true);
+    const talent = premisesIdentifiers("Plot 215-16, BSCIC");
+    assert.equal(talent.has("215"), true);
+    assert.equal(talent.has("216"), true);
+    const epz = premisesIdentifiers("Plot 1703-04, DEPZ");
+    assert.equal(epz.has("1703"), true);
+    assert.equal(epz.has("1704"), true);
+    assert.equal(
+      displays([
+        row("Plot# 371-72, BSCIC, Konabari"),
+        row("Plot No. 371-372, Basic, Konabari"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("keeps an unlabelled old/new holding pair on the same road as one premises", () => {
+    assert.equal(
+      displays([
+        row("60, B.B. Road, Enayet Nagor, Narayanganj"),
+        row("60 (OLD), 86 (NEW) B. B. ROAD, SADAR, NARAYANGANJ"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("two different Gulshan buildings stay two (Moyeen Center vs Bilquis Tower)", () => {
+    const bilquis = premisesIdentifiers(
+      "Bilquis Tower (4th Floor), Plot-6 ( New), Gulshan-02 Circle, Dhaka-1212",
+    );
+    assert.equal(bilquis.has("6"), true);
+    assert.equal(premisesIdentifiers("Plot No. 6 (New), Gulshan").has("6"), true);
+    assert.equal(premisesIdentifiers("Plot No 6 (New), Gulshan").has("6"), true);
+    assert.equal(
+      displays([
+        row("Moyeen Center, House # 9B, Road # 3(2), Gulshan, Dhaka"),
+        row("Bilquis Tower (4th Floor), Plot-6 ( New), Gulshan-02 Circle, Dhaka-1212"),
+      ]).length,
+      2,
+    );
+  });
+
+  it("does not absorb a leftover plot into a house-only row", () => {
+    assert.equal(
+      displays([
+        row("Plot # 8, Holding # 1/A, Gulshan, Dhaka"),
+        row("HOUSE NO-01, ROAD NO.-09, BLOCK-A, GULSHAN, DHAKA"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("Plot # 10, Holding # 1/A, Gulshan, Dhaka"),
+        row("HOUSE NO-01, ROAD NO.-09, BLOCK-A, GULSHAN, DHAKA"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("Plot # 11, Holding # 1/A, Tejgaon, Dhaka"),
+        row("HOUSE NO-01, ROAD NO.-09, BLOCK-A, TEJGAON, DHAKA"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("Plot # 8, Holding # 1/A, Milk Vita Road, Sec-7, Pallabi, Dhaka, Mirpur"),
+        row("HOUSE NO-01, ROAD NO.-09, BLOCK-A, MIRPUR-12, DHAKA-1216, , DHAKA"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("Plot # 27, Holding # 1/A, Niketon, Dhaka"),
+        row("HOUSE NO-01, ROAD NO.-09, BLOCK-A, NIKETON, DHAKA"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("Plot # 27, Holding # 1/A, Banani, Dhaka"),
+        row("HOUSE NO-01, ROAD NO.-09, BLOCK-A, BANANI, DHAKA"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("Plot # 2, Holding # 50, Gulshan, Dhaka"),
+        row("HOUSE NO-50, ROAD NO.-09, BLOCK-A, GULSHAN, DHAKA"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("Plot # 8 & 10, Holding # 1/A, Gulshan, Dhaka"),
+        row("HOUSE NO-01, HOUSE NO-10, GULSHAN, DHAKA"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("Plot # 8 & 10, Holding # 1/A, Gulshan, Dhaka"),
+        row("HOLDING NO-01, HOLDING NO-10, GULSHAN, DHAKA"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("Plot # 8 & 10, Holding # 1/A, Gulshan, Dhaka"),
+        row("H/O-01, H/O-10, GULSHAN, DHAKA"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("Plot # 8 & 10, Holding # 1/A, Gulshan, Dhaka"),
+        row("HOUSE NO-10, GULSHAN, DHAKA"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("Plot # 10, Holding # 1/A, 10 Banani Road, Gulshan, Dhaka"),
+        row("HOUSE NO-01, 10 Banani Road, GULSHAN, DHAKA"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("Plot # 10, Holding # 1/A, Gulshan, Dhaka"),
+        row("HOUSE NO-01, 10 Banani Road, GULSHAN, DHAKA"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("Plot # 8, Holding # 1/A, Gulshan, Dhaka"),
+        row("HOUSE NO-01, HOUSE NO-08, GULSHAN, DHAKA"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("Plot # 8, Holding # 1/A, Shamser Plaza, Uttara, Dhaka"),
+        row("HOUSE NO-01, Shamser Plaza, Uttara, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("Plot # 8, Holding # 1/A, Shamser Plaza, Pallabi, Dhaka"),
+        row("HOUSE NO-01, Shamser Plaza, MIRPUR-12, DHAKA"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("Plot # 8, Holding # 1/A, 10 Banani Road, Gulshan, Dhaka"),
+        row("HOUSE NO-01, 10 Banani Road, GULSHAN, DHAKA"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("Plot # 8, Holding # 1/A, Gulshan, Dhaka"),
+        row("H/O-01, ROAD NO.-09, BLOCK-A, GULSHAN, DHAKA"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("Plot # 8, Holding # 1/A, Gulshan, Dhaka"),
+        row("HO-08, GULSHAN, DHAKA"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("Plot # 8, Holding # 1/A, Gulshan, Dhaka"),
+        row("HOLDING NO-08, GULSHAN, DHAKA"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("Plot # 10, Holding # 1/A, Gulshan, Dhaka"),
+        row("HOLDING NO-10, GULSHAN, DHAKA"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("Plot # 10, Holding # 1/A, 10 Banani Road, Gulshan, Dhaka"),
+        row("HOLDING NO-01, 10 Banani Road, GULSHAN, DHAKA"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("Plot # 8, Holding # 1/A, Shamser Plaza, Uttara, Dhaka"),
+        row("HOLDING NO-08, Shamser Plaza, Uttara, Dhaka"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("Plot # 8, Holding # 1/A, Gulshan, Dhaka"),
+        row("HO-01, ROAD NO.-09, BLOCK-A, GULSHAN, DHAKA"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("Plot # 8, Holding # 1/A, Gulshan, Dhaka"),
+        row("HO 01, ROAD NO.-09, BLOCK-A, GULSHAN, DHAKA"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("Plot # 10, Holding # 1/A, Milk Vita Road, Sec-7, Pallabi, Dhaka, Mirpur"),
+        row("HOUSE NO-01, ROAD NO.-09, BLOCK-A, MIRPUR-12, DHAKA-1216, , DHAKA"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("Plot # 27, Holding # 1/A, Mohakhali, Dhaka"),
+        row("HOUSE NO-01, ROAD NO.-09, BLOCK-A, MOHAKHALI, DHAKA"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("Plot # 27, Holding # 1/A, Dhanmondi, Dhaka"),
+        row("HOUSE NO-01, ROAD NO.-09, BLOCK-A, DHANMONDI, DHAKA"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("Plot # 27, Holding # 1/A, Gulshan, Dhaka"),
+        row("HOUSE NO-01, ROAD NO.-09, BLOCK-A, GULSHAN, DHAKA"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("Plot # 27, Holding # 1/A, Tejgaon, Dhaka"),
+        row("HOUSE NO-01, ROAD NO.-09, BLOCK-A, TEJGAON, DHAKA"),
+      ]).length,
+      2,
+    );
+    assert.equal(
+      displays([
+        row("Plot # 389, Baridhara DOHS, Dhaka"),
+        row("Plot # 389, House 6, Baridhara DOHS, Dhaka"),
+      ]).length,
+      1,
+    );
+    assert.equal(
+      displays([
+        row("Plot 1 & 27, Mirpur, Dhaka"),
+        row("Plot 1, Mirpur, Dhaka"),
+      ]).length,
+      1,
+    );
+    assert.equal(
+      displays([
+        row("Plot 1 & 14, Mirpur, Dhaka"),
+        row("Plot 1, Mirpur, Dhaka"),
+      ]).length,
+      1,
+    );
+    assert.equal(
+      displays([
+        row("Holding # 137/1, Dag No.-1977-1978, Fordnagor, Dhalla Bazar, Singair, Manikganj."),
+        row(
+          "Holding No. 137/1, Plot No. 1977-1978, Ford Nagar, Dhalla Bazar, Singair, Manikganj - 1820, Bangladesh",
+        ),
+      ]).length,
+      1,
+    );
+    assert.equal(
+      displays([
+        row("House # 06, Road-07, Block-B, Turag, Dhaka-1230"),
+        row("House # 06, Road-07, Block-B, 390 Dhour, P.O- Nishat Nagar, Turag, Dhaka-1230"),
+      ]).length,
+      1,
+    );
+  });
+
+  it("merges Holding 106 Faidabad/Faridabad and Plot 140 Baron DEPZ / D EPZ", () => {
+    assertBothOrders(
+      row(
+        "Holding # 106, Ward # 5, East Faridabad, Baitur Rahmat Jame Mosque Road\nDhaka\nDakshinkhan",
+      ),
+      row(
+        "Holding No. 106, Ward No. 5, Baitur Rahmat Jame Mosque Road, East Faidabad (Atipara), Dakshinkhan, Dhaka - 1230, Bangladesh",
+      ),
+      1,
+      "Holding 106 East Faridabad vs East Faidabad with Ward 5",
+    );
+    assertBothOrders(
+      row("Union Plaza, Plot # 140, Baron, D EPZ Road, Ashulia\nDhaka\nDhaka"),
+      row("Union Plaza, 140 Baron, DEPZ Road, Ashulia, Savar, Dhaka - 1349, Bangladesh"),
+      1,
+      "Union Plaza 140 Baron D EPZ vs DEPZ Road",
+    );
+    assertBothOrders(
+      row("Plot # 10, 10 Airport Road, Green, Gulshan-1, Dhaka"),
+      row("Plot # 10, 10 Green Road, Airport, Gulshan-1, Dhaka"),
+      2,
+      "Airport Road leftover vs Green Road leftover stays two rows",
+    );
+    assertBothOrders(
+      row("House # 50, Road # 3, Gulshan-1, Dhaka"),
+      row("House # 50, Road # 3, 7 Gulshan, Gulshan-1, Dhaka"),
+      1,
+      "House 50 vs 7 Gulshan after DEPZ join",
+    );
+  });
+
+  it("keeps two named extras apart when they share a third extra, un-ordinal streets, and C DA vs DA", () => {
+    assertBothOrders(
+      row("Plot # 10, Gulshan, Airport Road, Dhaka"),
+      row("Plot # 10, Gulshan, Green, Dhaka"),
+      2,
+      "Plot 10 Gulshan Airport Road vs Gulshan Green",
+    );
+    assertBothOrders(
+      row("Plot # 10, 10, Gulshan, Airport Road, Dhaka"),
+      row("Plot # 10, 10, Gulshan, Green, Dhaka"),
+      2,
+      "Plot 10 stuffed Gulshan Airport Road vs Gulshan Green",
+    );
+    assertBothOrders(
+      row("House # 50, Road # 3, 7, Gulshan, Airport Road, Dhaka"),
+      row("House # 50, Road # 3, 7, Gulshan, Green, Dhaka"),
+      2,
+      "7 Gulshan Airport Road vs 7 Gulshan Green",
+    );
+    assertBothOrders(
+      row("Plot # 10, Banani, Airport Road, Dhaka"),
+      row("Plot # 10, Banani, Green, Dhaka"),
+      2,
+      "Plot 10 Banani Airport Road vs Banani Green",
+    );
+    assertBothOrders(
+      row("Plot # 10, Dhanmondi, Airport Road, Dhaka"),
+      row("Plot # 10, Dhanmondi, Green, Dhaka"),
+      2,
+      "Plot 10 Dhanmondi Airport Road vs Dhanmondi Green",
+    );
+    assertBothOrders(
+      row("Plot # 10, Hemayetpur, Airport Road, Dhaka"),
+      row("Plot # 10, Hemayetpur, Green, Dhaka"),
+      2,
+      "Plot 10 Hemayetpur Airport Road vs Hemayetpur Green",
+    );
+    assertBothOrders(
+      row("Plot # 10, 10 Gulshan, Airport Road, Dhaka"),
+      row("Plot # 10, 10 Gulshan, Green Road, Dhaka"),
+      2,
+      "Plot 10 Gulshan Airport Road vs Gulshan Green Road both-road",
+    );
+    assertBothOrders(
+      row("Plot # 10, 10 Kazi Nazrul Islam Avenue, Green, Dhaka"),
+      row("Plot # 10, 10 Green, Nazrul, Dhaka"),
+      2,
+      "Kazi Nazrul Islam Avenue leftover vs Green Nazrul",
+    );
+    assertBothOrders(
+      row("Plot # 10, 10 Shaheed Tajuddin Ahmed Avenue, Green, Dhaka"),
+      row("Plot # 10, 10 Green, Tajuddin, Dhaka"),
+      2,
+      "Tajuddin Ahmed Avenue leftover vs Green Tajuddin",
+    );
+    assertBothOrders(
+      row("Plot # 10, 10 Kobi Jasimuddin Road, Green, Dhaka"),
+      row("Plot # 10, 10 Green, Jasimuddin, Dhaka"),
+      2,
+      "Jasimuddin Road leftover vs Green Jasimuddin",
+    );
+    assertBothOrders(
+      row("Plot # 10, Street, Gulshan-1, Dhaka"),
+      row("Plot # 10, 2nd Street, Gulshan-1, Dhaka"),
+      2,
+      "Plot 10 un-ordinal Street vs 2nd Street",
+    );
+    assertBothOrders(
+      row("Plot # 10, Gali, Gulshan-1, Dhaka"),
+      row("Plot # 10, 2nd Gali, Gulshan-1, Dhaka"),
+      2,
+      "Plot 10 un-ordinal Gali vs 2nd Gali",
+    );
+    assertBothOrders(
+      row("Plot # 10, Ln, Gulshan-1, Dhaka"),
+      row("Plot # 10, 2nd Ln, Gulshan-1, Dhaka"),
+      2,
+      "Plot 10 un-ordinal Ln vs 2nd Ln",
+    );
+    assertBothOrders(
+      row("Plot # 10, Boulevard, Gulshan-1, Dhaka"),
+      row("Plot # 10, 2nd Boulevard, Gulshan-1, Dhaka"),
+      2,
+      "Plot 10 un-ordinal Boulevard vs 2nd Boulevard",
+    );
+    assertBothOrders(
+      row("12/1, Hossain Uddin Khan Street, Lalbag, Dhaka"),
+      row("12/1, Hossain Uddin Khan 2nd Street, Lalbag, Dhaka"),
+      2,
+      "12/1 Hossain Street vs 2nd Street",
+    );
+    assertBothOrders(
+      row("Plot # 10, First Street, Gulshan-1, Dhaka"),
+      row("Plot # 10, 2nd Street, Gulshan-1, Dhaka"),
+      2,
+      "Plot 10 First Street vs 2nd Street",
+    );
+    assertBothOrders(
+      row("Plot # 10, 1st Street, Gulshan-1, Dhaka"),
+      row("Plot # 10, Second Street, Gulshan-1, Dhaka"),
+      2,
+      "Plot 10 1st Street vs Second Street",
+    );
+    assertBothOrders(
+      row("Plot # 10, 2nd Lane, Gulshan-1, Dhaka"),
+      row("Plot # 10, Second Lane, Gulshan-1, Dhaka"),
+      1,
+      "Plot 10 2nd Lane vs Second Lane",
+    );
+    assertBothOrders(
+      row("Plot # 10, 1st Goli, Gulshan-1, Dhaka"),
+      row("Plot # 10, 2nd Goli, Gulshan-1, Dhaka"),
+      2,
+      "Plot 10 1st Goli vs 2nd Goli",
+    );
+    assertBothOrders(
+      row("Plot # 10, 1st Path, Gulshan-1, Dhaka"),
+      row("Plot # 10, 2nd Path, Gulshan-1, Dhaka"),
+      2,
+      "Plot 10 1st Path vs 2nd Path",
+    );
+    assertBothOrders(
+      row("Plot # 10, 1st Sarak, Gulshan-1, Dhaka"),
+      row("Plot # 10, 2nd Sarak, Gulshan-1, Dhaka"),
+      2,
+      "Plot 10 1st Sarak vs 2nd Sarak",
+    );
+    assertBothOrders(
+      row("10, C DA Road, Chittagong"),
+      row("10, DA Road, Chittagong"),
+      2,
+      "C DA Road vs DA Road",
+    );
+    assertBothOrders(
+      row("Plot # 10, 10 C DA Avenue, Chittagong"),
+      row("Plot # 10, 10 DA Avenue, Chittagong"),
+      2,
+      "C DA Avenue vs DA Avenue",
+    );
+    assertBothOrders(
+      row("10, I A Road, Dhaka"),
+      row("10, A Road, Dhaka"),
+      2,
+      "I A Road vs A Road",
+    );
+    assertBothOrders(
+      row("10, C DA Road, Chittagong"),
+      row("10, CDA Road, Chittagong"),
+      1,
+      "C DA Road vs CDA Road spelling",
+    );
+    assertBothOrders(
+      row("10, I A Road, Dhaka"),
+      row("10, IA Road, Dhaka"),
+      1,
+      "I A Road vs IA Road spelling",
+    );
+    assertBothOrders(
+      row("Union Plaza, Plot # 140, Baron, D EPZ Road, Ashulia\nDhaka\nDhaka"),
+      row("Union Plaza, 140 Baron, DEPZ Road, Ashulia, Savar, Dhaka - 1349, Bangladesh"),
+      1,
+      "140 Baron D EPZ vs DEPZ after C DA join",
+    );
+    assertBothOrders(
+      row("244, Singair Road, Hemayetpur, Savar, Dhaka"),
+      row("244, Hemayetpur, Savar, Dhaka"),
+      1,
+      "244 Singair Road Hemayetpur vs 244 Hemayetpur after third-extra XOR",
+    );
+    assertBothOrders(
+      row("Munna Complex, 228 Dighirpar, Nazma Khatun Lane, Dewanhat, Chittagong"),
+      row("MUNNA COMPLEX, 228, DIGHIR PAR, DEWANHAT, DOUBLEMOORING, CHATTOGRAM"),
+      1,
+      "Munna Complex Dighirpar vs Dighir Par after third-extra XOR",
+    );
+    assertBothOrders(
+      row("12/1, Hossain Uddin Khan 1st Lane, Lalbag, Nabanganj, Dhaka, Lalbagh"),
+      row("12/1 Hossain Uddin Khan, 1st Lane, Lalbagh Road, Lalbagh, 1211, Dhaka, Bangladesh"),
+      1,
+      "12/1 1st Lane inverted Lalbagh Road after un-ordinal streets",
+    );
+    assertBothOrders(
+      row("60, Bangabandhu Road, Narayanganj"),
+      row("60, B.B ROAD, NARAYANGANJ"),
+      1,
+      "Bangabandhu Road vs B.B Road initials",
+    );
+    assertBothOrders(
+      row("285, (147/3 New), Hazaribag, Godnail, Siddhirganj PS, Narayanganj - 1432, Bangladesh"),
+      row("285, (147/3 New) Hazaribag, Godnail"),
+      1,
+      "Hazaribag Godnail comma vs parenthetical on same holding",
+    );
+    assertBothOrders(
+      row("Ward No. 06, Holding No. B-50/3, Area: Kalampur, Kaliakoir Pouroshova Kaliakoir, Gazipur-1751"),
+      row("Ward No-6, Holding -B-50/3, Kalampur, Kaliakoir, Gazipur"),
+      1,
+      "Ward 6 Area Kalampur vs Kalampur holding",
+    );
+    assertBothOrders(
+      row("89, MOTIJHEEL, C/A, LUCKY CHAMBER (4TH FLOOR), ROOM NO.77-79 & 82-84, DHAKA"),
+      row("Lucky Chamber (4th Floor), Rm # 77 -79 & 82-84, 89 Motijheel C/A, Dhaka"),
+      1,
+      "Lucky Chamber Motijheel vs room-list Motijheel",
+    );
+    assertBothOrders(
+      row("778, D. T. ROAD, ASHKARABAD, DOUBLEMOORING, CHATTOGRAM"),
+      row("778, Asharabad, Chittagong, D.T. Road"),
+      1,
+      "D.T. Road Ashkarabad vs Asharabad D.T. Road",
+    );
+    assertBothOrders(
+      row("House No: 04, Road No: 02, Block No: A, Chanduddan, Mohammadpur, Dhaka - 1207, Bangladesh"),
+      row("House # 04, Road # 02, Block # A, Chand Uddan, Mohammadpur, Dhaka"),
+      1,
+      "Chanduddan vs Chand Uddan at Road 02",
+    );
+    assertBothOrders(
+      row("101/1/A, BARABAGH, SECTION-2, MIRPUR-2, 1216, MIRPUR, DHAKA"),
+      row("101/1/A, Baro Bagh, Section-02, Mirpur, Dhaka - 1216, Bangladesh"),
+      1,
+      "Barabagh vs Baro Bagh section 2",
+    );
+    assertBothOrders(
+      row("Plot # 10, Gulshan, Airport Road, Dhaka"),
+      row("Plot # 10, Gulshan, Green, Dhaka"),
+      2,
+      "Gulshan third extra still does not fuse Airport vs Green",
+    );
+    assertBothOrders(
+      row("83, Borpa, Tarabo, Rupganj PS, Narayanganj - 1460, Bangladesh"),
+      row("Borpa, Holding # 83, Rupganj, Narayangonj"),
+      1,
+      "Holding 83 Borpa vs Borpa Holding 83 Rupganj",
+    );
+    assertBothOrders(
+      row("BSCIC I/A, Plot No: B-218, 219, 220, 221, 225, 226 Shasongaon, Fatullah, 1421, Narayanganj, Bangladesh"),
+      row("BSCIC I/A, Plot No: B-218, 219, 220, 221, 225, 226 Shasongaon"),
+      1,
+      "BSCIC plot list Shasongaon vs Shasongaon Fatullah",
+    );
+    assertBothOrders(
+      row("375, Shaheed Siddik Road, South Khaikur, National University, 1704, Gazipur, Bangladesh"),
+      row("375, South Khailkur, National University, Gazipur"),
+      1,
+      "Siddik Road South Khaikur vs South Khailkur",
+    );
+    assertBothOrders(
+      row("160 Shashongaon, Enayetnagor, Fatullah, Narayanganj - 1400, Bangladesh"),
+      row("160, SHASHONGAON, ENAYETNAGAR, FATULLAH, NARAYANGANJ"),
+      1,
+      "Shashongaon Enayetnagor vs Shashongaon Enayetnagar",
+    );
+    assertBothOrders(
+      row("33, Rajabari, Atipara, Uttarkhan, 1230, Dhaka, Bangladesh"),
+      row("33, RAZA BARI, ATEPARA, UTTAR KHAN, DHAKA"),
+      1,
+      "Rajabari Atipara vs Raza Bari Atepara",
+    );
+    assertBothOrders(
+      row("168 NO, GODNAIL, ARAMBAG, SHIDDIRGANG. NARAYANGANJ., SIDDIRGONJ"),
+      row("168 NO.GODNAIL, ARAMBAG"),
+      1,
+      "168 Godnail comma vs 168 NO.GODNAIL glued",
+    );
+    assertBothOrders(
+      row("21/A, Chanpara, Uttarkhan, Uttara, Dhaka - 1230, Bangladesh"),
+      row("21/A Chanpara, Uttarkhan, Uttara, Dhaka-1230"),
+      1,
+      "21/A comma Chanpara vs 21/A space Chanpara",
+    );
+    assertBothOrders(
+      row("NANDIR HAT, FATEHABAD, 1, SOUTH PAHARTOLI, HATHAZARI, CHATTOGRAM"),
+      row("Nandirhat, Fatehabad, 1 No. South Pahartoli, Hathazari, Chittagong"),
+      1,
+      "Nandir Hat Fatehabad 1 Pahartoli vs Nandirhat Fatehabad",
+    );
+    assertBothOrders(
+      row("138/1 Teknagopara, Chandona, Bason, Gazipur City, 1702, Gazipur, Bangladesh"),
+      row("138/1, Teknagapara, Chandona, Bason, Gazipur City"),
+      1,
+      "Teknagopara vs Teknagapara at 138/1 Chandona",
+    );
+    assertBothOrders(
+      row("Plot # 23-24, Union - Telulzora, Hemayetpur\nDhaka\nSavar"),
+      row(
+        "Holding No. 87, Plot No. 23, 24, 25, Hemayetpur, Tetuljhora Union, Savar, Dhaka - 1340, Bangladesh",
+      ),
+      1,
+      "neighbour Plot 23-24 Union Telulzora vs Holding 87 Hemayetpur (fixture newlines)",
+    );
+    assertBothOrders(
+      row("South Nayapara, 6, Dogri Mouja, Bhawal\nGazipur\nMirjapur"),
+      row(
+        "South Noyapara, 6 No Dogri, P.O : Bhawal, Mirzapur, Gazipur Sadar PS, Gazipur - 1703, Bangladesh",
+      ),
+      1,
+      "6 Dogri Mouja vs 6 No Dogri Noyapara",
+    );
+    assertBothOrders(
+      row(
+        "Plot # 16 - 18, Dakhin Panishail, EPZ-Kaliakoir Road, Kashimpur, Gazipur - 1349, Bangladesh",
+      ),
+      row("PLOT # 16-18, KAKHIN PANISHALI, EPZ-KALIAKOIR, KASHIMPUR, GAZIPUR"),
+      1,
+      "Dakhin Panishail vs Kakhin Panishali at Plot 16-18",
+    );
+    assertBothOrders(
+      row("553/2, Sharifpur, National University, Gacha, Gazipur Sadar, Gazipur - 1700, Bangladesh"),
+      row("553/2, Sharifpur, Gacha, National University, Gazipur"),
+      1,
+      "553/2 Sharifpur Gacha vs Sharifpur National University Gacha",
+    );
+    assertBothOrders(
+      row("808/1, Shewrapara, Begum Rokeya Sarani, Mirpur, Dhaka"),
+      row("808/1, 808/2, Shewrapara, Mirpur PS, Dhaka - 1216, Bangladesh"),
+      1,
+      "808/1 Shewrapara vs 808/1 808/2 Shewrapara",
+    );
+  });
+
+  it("keeps two roads apart when they only share a village, and still merges union and ordinal spellings", () => {
+    for (const village of ["Valuka", "Satarkul", "Fatullah", "Kaliakoir"]) {
+      assertBothOrders(
+        row(`Plot # 10, ${village}, Airport Road, Dhaka`),
+        row(`Plot # 10, ${village}, Green, Dhaka`),
+        2,
+        `Plot 10 ${village} Airport Road vs Green`,
+      );
+      assertBothOrders(
+        row(`Plot # 10, 10, ${village}, Airport Road, Dhaka`),
+        row(`Plot # 10, 10, ${village}, Green, Dhaka`),
+        2,
+        `Plot 10 stuffed ${village} Airport Road vs Green`,
+      );
+    }
+    assertBothOrders(
+      row("Plot # 10, Bhaluka, Airport Road, Dhaka"),
+      row("Plot # 10, Valuka, Green, Dhaka"),
+      2,
+      "Plot 10 Bhaluka Airport Road vs Valuka Green",
+    );
+    assertBothOrders(
+      row("7, Valuka, Airport Road, Dhaka"),
+      row("7, Valuka, Green, Dhaka"),
+      2,
+      "7 Valuka Airport Road vs Green",
+    );
+    assertBothOrders(
+      row("House # 50, Road # 3, 7, Valuka, Airport Road, Dhaka"),
+      row("House # 50, Road # 3, 7, Valuka, Green, Dhaka"),
+      2,
+      "House50 7 Valuka Airport Road vs Green",
+    );
+    assertBothOrders(
+      row("Plot # 10, Mouja, Airport Road, Dhaka"),
+      row("Plot # 10, Mouja, Green, Dhaka"),
+      2,
+      "Plot 10 Mouja Airport Road vs Green",
+    );
+    assertBothOrders(
+      row("Plot # 10, Hemayetpur, Airport Road, Dhaka"),
+      row("Plot # 10, Hemayetpur, Greenpur, Dhaka"),
+      2,
+      "Plot 10 Hemayetpur Airport Road vs Greenpur",
+    );
+    assertBothOrders(
+      row("Plot # 10, 10 Hemayetpur, Airport Road, Dhaka"),
+      row("Plot # 10, 10 Greenpur, Dhaka"),
+      2,
+      "Plot 10 stuffed Hemayetpur Airport vs Greenpur",
+    );
+    assertBothOrders(
+      row("Plot # 10, Kashimpur, Airport Road, Dhaka"),
+      row("Plot # 10, Kashimpur, Greenpur, Dhaka"),
+      2,
+      "Plot 10 Kashimpur Airport Road vs Greenpur",
+    );
+    assertBothOrders(
+      row("Plot # 10, Hemayetpur, Dhaka"),
+      row("Plot # 10, Greenpara, Dhaka"),
+      2,
+      "Plot 10 Hemayetpur vs Greenpara",
+    );
+    assertBothOrders(
+      row("Plot # 10, Satarkul, Badda, Dhaka"),
+      row("Plot # 10, Satarkul, Jiban, Dhaka"),
+      1,
+      "Plot 10 Satarkul Badda vs Jiban leftover villages",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, Dhaka"),
+      row("Plot # 10, Green, Dhaka"),
+      2,
+      "Plot # 10 Airport Road vs unsuffixed Green without restated 10",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, Dhaka"),
+      row("Plot # 10, Green Road, Dhaka"),
+      2,
+      "Plot # 10 Airport Road vs Green Road without restated 10",
+    );
+    {
+      const three = [
+        row("Plot # 10, Airport Road, Dhaka"),
+        row("Plot # 10, Green Road, Dhaka"),
+        row("Plot # 10, Green, Dhaka"),
+      ];
+      for (const ordered of permutations(three)) {
+        assert.equal(
+          mergeUniqueLocations(ordered).length,
+          2,
+          "Plot # 10 Airport Road stays apart from Green Road / unsuffixed Green",
+        );
+      }
+    }
+    assertBothOrders(
+      row("Plot # 10, C DA Road, Chittagong"),
+      row("Plot # 10, DA Road, Chittagong"),
+      2,
+      "Plot # 10 C DA Road vs DA Road without restated 10",
+    );
+    assertBothOrders(
+      row("Plot # 140, C DA Road, Chittagong"),
+      row("Plot # 140, DA Road, Chittagong"),
+      2,
+      "Plot # 140 C DA Road vs DA Road",
+    );
+    assertBothOrders(
+      row("Plot # 10, I A Road, Dhaka"),
+      row("Plot # 10, A Road, Dhaka"),
+      2,
+      "Plot # 10 I A vs A Road without restated 10",
+    );
+    assertBothOrders(
+      row("Plot # 10, 10 Airport Road, Green, Dhaka"),
+      row("Plot # 10, 10 Green, Airport, Dhaka"),
+      2,
+      "leftover with restated 10 Airport vs Green still two rows",
+    );
+    assertBothOrders(
+      row("10 C DA Road, Chittagong"),
+      row("10 CDA Road, Chittagong"),
+      1,
+      "10 C DA vs CDA spelling without comma",
+    );
+    assertBothOrders(
+      row("10 D EPZ Road, Ashulia"),
+      row("10 DEPZ Road, Ashulia"),
+      1,
+      "10 D EPZ vs DEPZ spelling",
+    );
+    {
+      const house50roads = [
+        row("House # 50, Road # 3, 7 Airport Road, Dhaka"),
+        row("House # 50, Road # 3, 7 Green Road, Dhaka"),
+      ];
+      for (const ordered of permutations(house50roads)) {
+        assert.equal(
+          mergeUniqueLocations(ordered).length,
+          2,
+          "House50 7 Airport Road vs 7 Green Road",
+        );
+      }
+    }
+    assertBothOrders(
+      row("Plot # 10, Airport Path, Dhaka"),
+      row("Plot # 10, Green Path, Dhaka"),
+      2,
+      "Airport Path leftover vs Green Path",
+    );
+    assertBothOrders(
+      row("Plot # 10, Bir Uttam Aminul Haque Sarak, Dhaka"),
+      row("Plot # 10, Green, Aminul, Dhaka"),
+      2,
+      "Bir Uttam Aminul Haque Sarak leftover vs Green Aminul",
+    );
+    assertBothOrders(
+      row("10, C DA Gali, Chittagong"),
+      row("10, DA Gali, Chittagong"),
+      2,
+      "C DA Gali vs DA Gali",
+    );
+    assertBothOrders(
+      row("10, C DA Path, Chittagong"),
+      row("10, DA Path, Chittagong"),
+      2,
+      "C DA Path vs DA Path",
+    );
+    assertBothOrders(
+      row("10, C DA Sarak, Chittagong"),
+      row("10, DA Sarak, Chittagong"),
+      2,
+      "C DA Sarak vs DA Sarak",
+    );
+    assertBothOrders(
+      row("10, I A Gali, Dhaka"),
+      row("10, A Gali, Dhaka"),
+      2,
+      "I A Gali vs A Gali",
+    );
+    assertBothOrders(
+      row("10, C DA Road, Chittagong"),
+      row("10, DA, Chittagong"),
+      2,
+      "C DA Road vs unsuffixed DA",
+    );
+    for (const word of ["Gully", "Gulley", "Galli"]) {
+      assertBothOrders(
+        row(`Plot # 10, 1st ${word}, Gulshan-1, Dhaka`),
+        row(`Plot # 10, 2nd ${word}, Gulshan-1, Dhaka`),
+        2,
+        `Plot 10 1st ${word} vs 2nd ${word}`,
+      );
+    }
+    assertBothOrders(
+      row("Plot # 10, Street, Gulshan-1, Dhaka"),
+      row("Plot # 10, 2nd Lane, Gulshan-1, Dhaka"),
+      2,
+      "Plot 10 un-ordinal Street vs 2nd Lane",
+    );
+    assertBothOrders(
+      row("Plot # 10, Road, Gulshan-1, Dhaka"),
+      row("Plot # 10, 2nd Street, Gulshan-1, Dhaka"),
+      2,
+      "Plot 10 un-ordinal Road vs 2nd Street",
+    );
+    assertBothOrders(
+      row("Plot # 10, 6th Lane, Gulshan-1, Dhaka"),
+      row("Plot # 10, Sixth Lane, Gulshan-1, Dhaka"),
+      1,
+      "Plot 10 6th Lane vs Sixth Lane",
+    );
+    assertBothOrders(
+      row("Plot # 10, 1st Lane, Gulshan-1, Dhaka"),
+      row("Plot # 10, Sixth Lane, Gulshan-1, Dhaka"),
+      2,
+      "Plot 10 1st Lane vs Sixth Lane",
+    );
+    assertBothOrders(
+      row("Plot # 10, First Lane, Gulshan-1, Dhaka"),
+      row("Plot # 10, Sixth Lane, Gulshan-1, Dhaka"),
+      2,
+      "Plot 10 First Lane vs Sixth Lane",
+    );
+    for (const other of [
+      "Greenpark",
+      "Greenfield",
+      "Greenland",
+      "Greenwich",
+      "Greenway",
+      "Greenwood",
+      "Greenbelt",
+      "Greenhill",
+      "Greenview",
+      "Greenacre",
+      "Greentown",
+      "Greenridge",
+      "Greenbank",
+      "Greenwoods",
+      "Greenpoint",
+      "Greenmount",
+      "Greenleaf",
+    ]) {
+      assertBothOrders(
+        row("Plot # 10, 10 Green, Gulshan-1, Dhaka"),
+        row(`Plot # 10, 10 ${other}, Gulshan-1, Dhaka`),
+        2,
+        `Plot 10 Green vs Plot 10 ${other}`,
+      );
+    }
+    assertBothOrders(
+      row("Plot # 10, Green, Dhaka"),
+      row("Plot # 10, Greenwood, Dhaka"),
+      2,
+      "Plot 10 Green vs Greenwood without restated 10",
+    );
+    for (const word of ["Gully", "Gulley", "Galli"]) {
+      assertBothOrders(
+        row(`10, C DA ${word}, Chittagong`),
+        row(`10, DA ${word}, Chittagong`),
+        2,
+        `C DA ${word} vs DA ${word}`,
+      );
+      assertBothOrders(
+        row(`Plot # 10, C DA ${word}, Chittagong`),
+        row(`Plot # 10, DA ${word}, Chittagong`),
+        2,
+        `Plot # 10 C DA ${word} vs DA ${word}`,
+      );
+      assertBothOrders(
+        row(`10, C DA ${word}, Chittagong`),
+        row(`10, CDA ${word}, Chittagong`),
+        1,
+        `C DA ${word} vs CDA ${word} spelling`,
+      );
+    }
+    assertBothOrders(
+      row("10, I A Gully, Dhaka"),
+      row("10, A Gully, Dhaka"),
+      2,
+      "I A Gully vs A Gully",
+    );
+    assertBothOrders(
+      row("10, C DA Gully, Chittagong"),
+      row("10, DA Gali, Chittagong"),
+      2,
+      "C DA Gully vs DA Gali",
+    );
+    for (const word of ["Alley", "Gally", "Guli"]) {
+      assertBothOrders(
+        row(`Plot # 10, 1st ${word}, Gulshan-1, Dhaka`),
+        row(`Plot # 10, 2nd ${word}, Gulshan-1, Dhaka`),
+        2,
+        `Plot 10 1st ${word} vs 2nd ${word}`,
+      );
+    }
+    assertBothOrders(
+      row("Plot # 10, 12th Lane, Gulshan-1, Dhaka"),
+      row("Plot # 10, Twelfth Lane, Gulshan-1, Dhaka"),
+      1,
+      "Plot 10 12th Lane vs Twelfth Lane",
+    );
+    assertBothOrders(
+      row("Plot # 10, 12th Street, Gulshan-1, Dhaka"),
+      row("Plot # 10, Twelfth Street, Gulshan-1, Dhaka"),
+      1,
+      "Plot 10 12th Street vs Twelfth Street",
+    );
+    assertBothOrders(
+      row("Plot # 10, 13th Lane, Gulshan-1, Dhaka"),
+      row("Plot # 10, Thirteenth Lane, Gulshan-1, Dhaka"),
+      1,
+      "Plot 10 13th Lane vs Thirteenth Lane",
+    );
+    assertBothOrders(
+      row("Plot # 10, 20th Lane, Gulshan-1, Dhaka"),
+      row("Plot # 10, Twentieth Lane, Gulshan-1, Dhaka"),
+      1,
+      "Plot 10 20th Lane vs Twentieth Lane",
+    );
+    assertBothOrders(
+      row("Plot # 10, 1st Lane, Gulshan-1, Dhaka"),
+      row("Plot # 10, Twelfth Lane, Gulshan-1, Dhaka"),
+      2,
+      "Plot 10 1st Lane vs Twelfth Lane",
+    );
+    assertBothOrders(
+      row("Plot # 10, First Lane, Gulshan-1, Dhaka"),
+      row("Plot # 10, Twelfth Lane, Gulshan-1, Dhaka"),
+      2,
+      "Plot 10 First Lane vs Twelfth Lane",
+    );
+    assertBothOrders(
+      row("Plot # 10, 1st Street, Gulshan-1, Dhaka"),
+      row("Plot # 10, Twelfth Street, Gulshan-1, Dhaka"),
+      2,
+      "Plot 10 1st Street vs Twelfth Street",
+    );
+    assertBothOrders(
+      row("Plot # 10, Joydebpur Road, Dhaka"),
+      row("Plot # 10, Tejgaon Road, Dhaka"),
+      2,
+      "Plot 10 Joydebpur Road vs Tejgaon Road",
+    );
+    assertBothOrders(
+      row("Plot # 10, Singair Road, Dhaka"),
+      row("Plot # 10, Joydebpur Road, Dhaka"),
+      2,
+      "Plot 10 Singair Road vs Joydebpur Road",
+    );
+    assertBothOrders(
+      row("Plot # 10, Shahriar Road, Dhaka"),
+      row("Plot # 10, Sharifpur Road, Dhaka"),
+      2,
+      "Plot 10 Shahriar Road vs Sharifpur Road without Sonda",
+    );
+    assertBothOrders(
+      row("Plot # 10, Valuka, Joydebpur Road, Dhaka"),
+      row("Plot # 10, Valuka, Tejgaon Road, Dhaka"),
+      2,
+      "Plot 10 Valuka Joydebpur Road vs Tejgaon Road",
+    );
+    assertBothOrders(
+      row("Plot # 10, Valuka, Kazi Nazrul Islam Road, Dhaka"),
+      row("Plot # 10, Valuka, Tejgaon Road, Dhaka"),
+      2,
+      "Plot 10 Valuka Kazi vs Tejgaon Road",
+    );
+    assertBothOrders(
+      row("Plot # 10, Valuka, Singair Road, Dhaka"),
+      row("Plot # 10, Valuka, Joydebpur Road, Dhaka"),
+      2,
+      "Plot 10 Valuka Singair vs Joydebpur Road",
+    );
+    assertBothOrders(
+      row("Plot # 10, 10, Valuka, Joydebpur Road, Dhaka"),
+      row("Plot # 10, 10, Valuka, Tejgaon Road, Dhaka"),
+      2,
+      "stuffed Plot 10 Valuka Joydebpur vs Tejgaon",
+    );
+    assertBothOrders(
+      row("Plot # 10, Satarkul, Joydebpur Road, Dhaka"),
+      row("Plot # 10, Satarkul, Tejgaon Road, Dhaka"),
+      2,
+      "Plot 10 Satarkul Joydebpur vs Tejgaon",
+    );
+    assertBothOrders(
+      row("Plot # 10, Hemayetpur, Joydebpur Road, Dhaka"),
+      row("Plot # 10, Hemayetpur, Tejgaon Road, Dhaka"),
+      2,
+      "Plot 10 Hemayetpur Joydebpur vs Tejgaon",
+    );
+    assertBothOrders(
+      row("Plot # 636, Shahriar Road, Sonda"),
+      row("636, Sharifpur Road, Sonda"),
+      1,
+      "Plot 636 Shahriar vs Sharifpur at Sonda after named-road XOR",
+    );
+    assertBothOrders(
+      row("Plot # 10, C DA Road, Chittagong"),
+      row("Plot # 10, DA, Chittagong"),
+      2,
+      "Plot # 10 C DA Road vs Plot # unsuffixed DA",
+    );
+    assertBothOrders(
+      row("Plot # 140, C DA Road, Chittagong"),
+      row("Plot # 140, DA, Chittagong"),
+      2,
+      "Plot # 140 C DA Road vs unsuffixed DA",
+    );
+    assertBothOrders(
+      row("Plot # 10, C DA Gali, Chittagong"),
+      row("Plot # 10, DA, Chittagong"),
+      2,
+      "Plot # 10 C DA Gali vs Plot # unsuffixed DA",
+    );
+    assertBothOrders(
+      row("Plot # 10, I A Road, Dhaka"),
+      row("Plot # 10, A, Dhaka"),
+      2,
+      "Plot # 10 I A Road vs Plot # unsuffixed A",
+    );
+    assertBothOrders(
+      row("10, I A Road, Dhaka"),
+      row("10, A, Dhaka"),
+      2,
+      "unlabelled I A Road vs unsuffixed A",
+    );
+    assertBothOrders(
+      row("10 CDA Road, Chittagong"),
+      row("10 DA, Chittagong"),
+      2,
+      "10 CDA Road vs 10 DA no comma",
+    );
+    assertBothOrders(
+      row("10, C DA Road, Chittagong"),
+      row("10 DA, Chittagong"),
+      2,
+      "10 C DA Road vs 10 DA no comma",
+    );
+    assertBothOrders(
+      row("Plot # 23-24, Union - Telulzora, Hemayetpur, Dhaka, Savar"),
+      row("Plot # 23-24, Union, Dogri, Hemayetpur, Dhaka, Savar"),
+      2,
+      "Plot 23-24 Union Telulzora vs Union Dogri",
+    );
+    assert.equal(
+      displays([
+        row("Plot # 10, Valuka, Joydebpur Road, Dhaka"),
+        row("Plot # 10, Valuka, Tejgaon Road, Dhaka"),
+        row("Plot # 10, Valuka, Station Road, Dhaka"),
+      ]).length,
+      3,
+      "three-string Valuka Joydebpur+Tejgaon+Station",
+    );
+    assertBothOrders(
+      row("House # 50, Road # 3, Gulshan-1, Dhaka"),
+      row("House # 50, Road # 3, 7 Kakhin Banani, Gulshan-1, Dhaka"),
+      2,
+      "House 50 vs 7 Kakhin Banani",
+    );
+    assertBothOrders(
+      row("Plot # 23-24, Union - Telulzora, Hemayetpur, Dhaka, Savar"),
+      row("Plot # 23-24, Union, Telulzora, Hemayetpur, Dhaka, Savar"),
+      1,
+      "Plot 23-24 Union hyphen vs Union comma Telulzora",
+    );
+    assertBothOrders(
+      row("Plot # 23-24, Union - Telulzora, Hemayetpur, Dhaka, Savar"),
+      row(
+        "Holding No. 87, Plot No. 23, 24, 25, Hemayetpur, Tetuljhora Union, Savar, Dhaka - 1340, Bangladesh",
+      ),
+      1,
+      "neighbour Plot 23-24 Union hyphen vs Holding 87 after union-comma merge",
+    );
+    assertBothOrders(
+      row("House # 50, Road # 3, Gulshan-1, Dhaka"),
+      row("House # 50, Road # 3, 7 South Banani, Gulshan-1, Dhaka"),
+      2,
+      "House 50 vs 7 South Banani still two rows",
+    );
+    assertBothOrders(
+      row("House # 50, Road # 3, Gulshan-1, Dhaka"),
+      row("House # 50, Road # 3, 7 Dakhin Banani, Gulshan-1, Dhaka"),
+      2,
+      "House 50 vs 7 Dakhin Banani still two rows",
+    );
+    assertBothOrders(
+      row("House # 50, Road # 3, Gulshan-1, Dhaka"),
+      row("House # 50, Road # 3, 7 Baro Gulshan, Gulshan-1, Dhaka"),
+      1,
+      "House 50 vs 7 Baro Gulshan still one row",
+    );
+    assertBothOrders(
+      row("12/1, Hossain Uddin Khan 1st Lane, Lalbag, Nabanganj, Dhaka, Lalbagh"),
+      row("12/1 Hossain Uddin Khan, 1st Lane, Lalbagh Road, Lalbagh, 1211, Dhaka, Bangladesh"),
+      1,
+      "12/1 1st Lane inverted Lalbagh Road after un-ordinal Street vs Lane",
+    );
+    assertBothOrders(
+      row(
+        "687, AL-HAJ NURUL AMIN SOWDAGOR LANE, SOUTH AGRABAD, ROAD# 20, CDA R/A, AGRABAD, CHITTAGONG, BANGLADESH",
+      ),
+      row("687, CDA R/A, Road # 20, Alhaj Nurul Amin Sowdagar Lane, Chittagong, South Agrabad"),
+      1,
+      "Sowdagor Lane vs CDA after Path/Sarak tails",
+    );
+    assertBothOrders(
+      row("House 10, Amtola, Ashulia, Dhaka"),
+      row("House 10, No.793 Amtola, Ashulia, Dhaka"),
+      1,
+      "House 10 Amtola vs No.793 Amtola after village third-extra",
+    );
+    assertBothOrders(
+      row("House 10, Kewa, Ashulia, Dhaka"),
+      row("House 10, No.12 Kewa, Ashulia, Dhaka"),
+      1,
+      "House 10 Kewa vs No.12 Kewa after village third-extra",
+    );
+    assertBothOrders(
+      row("House No: 04, Road No: 02, Block No: A, Chanduddan, Mohammadpur, Dhaka - 1207, Bangladesh"),
+      row("House # 04, Road # 02, Block # A, Chand Uddan, Mohammadpur, Dhaka"),
+      1,
+      "Chanduddan vs Chand Uddan after Greenpark false-path",
+    );
+    assertBothOrders(
+      row("Plot # 397, Chandona, Chowrasta, Joydevpur\nGazipur\nGazipur"),
+      row(
+        "Plot # 397 joydebpur road,chandona Chowrast, Gazipur Sadar, Gazipur 1702, Bangladesh, Gazipur, Bangladesh",
+      ),
+      1,
+      "Plot 397 Chandona vs Joydebpur Road Chandona",
+    );
+    assertBothOrders(
+      row("186, Maddya Gazirchat, Ashulia-EPZ Road\nDhaka\nSavar"),
+      row("186, Maddhya Gazir Chat, Ashulia EPZ Road, , DHAKA"),
+      1,
+      "186 Maddya Gazirchat vs Maddhya Gazir Chat Ashulia EPZ Road",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, Dhaka"),
+      row("Plot # 10, Joydebpur Road, Dhaka"),
+      2,
+      "Plot 10 Airport Road vs Joydebpur Road",
+    );
+    assertBothOrders(
+      row("244, Singair Road, Hemayetpur, Savar, Dhaka"),
+      row("244, Hemayetpur, Savar, Dhaka"),
+      1,
+      "244 Singair Road Hemayetpur vs 244 Hemayetpur after village-on-road KEEP",
+    );
+    assertBothOrders(
+      row("778, Asharabad, Chittagong, D.T. Road"),
+      row("778, D.T. Road, Asharabad, Chittagong"),
+      1,
+      "D.T. Road Asharabad vs unsuffixed DA leftover wiring",
+    );
+    assertBothOrders(
+      row("10, C DA Road, Chittagong"),
+      row("10, CDA Road, Chittagong"),
+      1,
+      "10 C DA vs CDA spelling after unsuffixed DA leftover",
+    );
+    assertBothOrders(
+      row("Plot # 10, C DA Road, Chittagong"),
+      row("Plot # 10, DA Chittagong"),
+      2,
+      "Plot # 10 C DA Road vs Plot # DA Chittagong no comma",
+    );
+    assertBothOrders(
+      row("10, C DA Road, Chittagong"),
+      row("10, DA Chittagong"),
+      2,
+      "10 C DA Road vs 10 DA Chittagong no comma",
+    );
+    assertBothOrders(
+      row("10, C DA Road, Chittagong"),
+      row("10 DA Chittagong"),
+      2,
+      "10 C DA Road vs 10 DA Chittagong no comma after digit",
+    );
+    assertBothOrders(
+      row("Plot # 10, I A Road, Dhaka"),
+      row("Plot # 10, A Dhaka"),
+      2,
+      "Plot # 10 I A Road vs Plot # A Dhaka no comma",
+    );
+    assertBothOrders(
+      row("Plot # 10, Joydebpur Road, Valuka"),
+      row("Plot # 10, Tejgaon Road, Valuka"),
+      2,
+      "Plot 10 Joydebpur vs Tejgaon Valuka after the road",
+    );
+    assertBothOrders(
+      row("Plot # 10, Joydebpur Road, Valuka, Dhaka"),
+      row("Plot # 10, Tejgaon Road, Valuka, Dhaka"),
+      2,
+      "Plot 10 Joydebpur vs Tejgaon Valuka after with Dhaka",
+    );
+    assertBothOrders(
+      row("Plot # 10, Singair Road, Hemayetpur"),
+      row("Plot # 10, Joydebpur Road, Hemayetpur"),
+      2,
+      "Plot 10 Singair vs Joydebpur Hemayetpur after the road",
+    );
+    assertBothOrders(
+      row("Plot # 10, Shahriar Road, Valuka"),
+      row("Plot # 10, Sharifpur Road, Valuka"),
+      2,
+      "Plot 10 Shahriar vs Sharifpur Valuka after the road",
+    );
+    assertBothOrders(
+      row("Plot # 10, Joydebpur Road, Sonda"),
+      row("Plot # 10, Tejgaon Road, Sonda"),
+      2,
+      "Plot 10 Joydebpur vs Tejgaon Sonda after the road",
+    );
+    assertBothOrders(
+      row("Plot # 636, Shahriar Road, Sonda"),
+      row("636, Sharifpur Road, Sonda"),
+      1,
+      "Plot 636 Shahriar vs Sharifpur at Sonda after village-after XOR",
+    );
+    assert.equal(
+      displays([
+        row("Plot # 10, Joydebpur Road, Valuka"),
+        row("Plot # 10, Tejgaon Road, Valuka"),
+        row("Plot # 10, Station Road, Valuka"),
+      ]).length,
+      3,
+      "three-string Joydebpur+Tejgaon+Station Valuka after",
+    );
+    assertBothOrders(
+      row("Plot # 23-24, Union, Dogri, Hemayetpur, Dhaka, Savar"),
+      row(
+        "Holding No. 87, Plot No. 23, 24, 25, Hemayetpur, Tetuljhora Union, Savar, Dhaka - 1340, Bangladesh",
+      ),
+      2,
+      "Union Dogri vs Holding 87 Tetuljhora must not share a Locations row",
+    );
+    assert.equal(
+      displays([
+        row("Plot # 23-24, Union - Telulzora, Hemayetpur, Dhaka, Savar"),
+        row("Plot # 23-24, Union, Dogri, Hemayetpur, Dhaka, Savar"),
+        row(
+          "Holding No. 87, Plot No. 23, 24, 25, Hemayetpur, Tetuljhora Union, Savar, Dhaka - 1340, Bangladesh",
+        ),
+      ]).length,
+      2,
+      "three-string Telulzora+Dogri+Holding 87 Dogri stays its own row",
+    );
+    for (const ordered of permutations([
+      row("Plot # 23-24, Union - Telulzora, Hemayetpur, Dhaka, Savar"),
+      row("Plot # 23-24, Union, Dogri, Hemayetpur, Dhaka, Savar"),
+      row(
+        "Holding No. 87, Plot No. 23, 24, 25, Hemayetpur, Tetuljhora Union, Savar, Dhaka - 1340, Bangladesh",
+      ),
+    ])) {
+      assert.equal(
+        displays(ordered).length,
+        2,
+        "three-string Telulzora+Dogri+Holding 87 permutation",
+      );
+    }
+    assertBothOrders(
+      row("Plot # 23-24, Union - Telulzora, Hemayetpur, Dhaka, Savar"),
+      row("Plot # 23-24, Union, Telulzora, Hemayetpur, Dhaka, Savar"),
+      1,
+      "Union hyphen vs comma Telulzora after Dogri XOR",
+    );
+    assertBothOrders(
+      row("Plot # 23-24, Union - Telulzora, Hemayetpur\nDhaka\nSavar"),
+      row(
+        "Holding No. 87, Plot No. 23, 24, 25, Hemayetpur, Tetuljhora Union, Savar, Dhaka - 1340, Bangladesh",
+      ),
+      1,
+      "neighbour Plot 23-24 Telulzora vs Holding 87 after Dogri XOR",
+    );
+    assertBothOrders(
+      row("244, Singair Road, Hemayetpur, Savar, Dhaka"),
+      row("244, Hemayetpur, Savar, Dhaka"),
+      1,
+      "244 Singair vs Hemayetpur after village-after named-road XOR",
+    );
+    assertBothOrders(
+      row("Plot # 10, Faridabad Road, Sonda"),
+      row("Plot # 10, Faridpur Road, Sonda"),
+      2,
+      "Plot 10 Faridabad vs Faridpur at Sonda",
+    );
+    assertBothOrders(
+      row("Plot # 10, Faridabad Road, Dhaka"),
+      row("Plot # 10, Faridpur Road, Dhaka"),
+      2,
+      "Plot 10 Faridabad vs Faridpur no Sonda",
+    );
+    assertBothOrders(
+      row("Plot # 10, Sharifpur Road, Sonda"),
+      row("Plot # 10, Faridpur Road, Sonda"),
+      2,
+      "Plot 10 Sharifpur vs Faridpur at Sonda",
+    );
+    assertBothOrders(
+      row("Plot # 10, Sharifpur Road, Dhaka"),
+      row("Plot # 10, Faridpur Road, Dhaka"),
+      2,
+      "Plot 10 Sharifpur vs Faridpur no Sonda",
+    );
+    assertBothOrders(
+      row("Plot # 10, Mohammadpur Road, Sonda"),
+      row("Plot # 10, Shahjadpur Road, Sonda"),
+      2,
+      "Plot 10 Mohammadpur vs Shahjadpur at Sonda",
+    );
+    assertBothOrders(
+      row("Plot # 10, Rampura Road, Sonda"),
+      row("Plot # 10, Rampur Road, Sonda"),
+      2,
+      "Plot 10 Rampura vs Rampur at Sonda",
+    );
+    assertBothOrders(
+      row("Plot # 10, Rampura Road, Dhaka"),
+      row("Plot # 10, Rampur Road, Dhaka"),
+      2,
+      "Plot 10 Rampura vs Rampur no Sonda",
+    );
+    assertBothOrders(
+      row("Plot # 10, Keraniganj Road, Dhaka"),
+      row("Plot # 10, Narayanganj Road, Dhaka"),
+      2,
+      "Plot 10 Keraniganj vs Narayanganj",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, Dhaka"),
+      row("Plot # 10, Airpark Road, Dhaka"),
+      2,
+      "Plot 10 Airport vs Airpark",
+    );
+    assertBothOrders(
+      row("Plot # 10, Hariken Road, Dhaka"),
+      row("Plot # 10, Horizon Road, Dhaka"),
+      2,
+      "Plot 10 Hariken vs Horizon",
+    );
+    assertBothOrders(
+      row("Plot # 10, Hariken Road, Dhaka"),
+      row("Plot # 10, Harijan Road, Dhaka"),
+      2,
+      "Plot 10 Hariken vs Harijan",
+    );
+    assertBothOrders(
+      row("Plot # 10, Green Road, Dhaka"),
+      row("Plot # 10, Grain Road, Dhaka"),
+      2,
+      "Plot 10 Green vs Grain",
+    );
+    assertBothOrders(
+      row("Plot # 10, Station Road, Sonda"),
+      row("Plot # 10, Staten Road, Sonda"),
+      2,
+      "Plot 10 Station vs Staten at Sonda",
+    );
+    assertBothOrders(
+      row("Plot # 10, Station Road, Sonda"),
+      row("Plot # 10, Stationary Road, Sonda"),
+      2,
+      "Plot 10 Station vs Stationary at Sonda",
+    );
+    assertBothOrders(
+      row("Plot # 10, Mirpur Road, Sonda"),
+      row("Plot # 10, Rampur Road, Sonda"),
+      2,
+      "Plot 10 Mirpur vs Rampur at Sonda",
+    );
+    assertBothOrders(
+      row("Plot # 10, Chandora Road, Sonda"),
+      row("Plot # 10, Bashundhara Road, Sonda"),
+      2,
+      "Plot 10 Chandora vs Bashundhara at Sonda",
+    );
+    assertBothOrders(
+      row("Plot # 23-24, Telulzora Union, Hemayetpur, Dhaka, Savar"),
+      row(
+        "Holding No. 87, Plot No. 23, 24, 25, Hemayetpur, Tetuljhora Union, Savar, Dhaka - 1340, Bangladesh",
+      ),
+      1,
+      "Telulzora Union title-after vs Holding 87",
+    );
+    for (const ordered of permutations([
+      row("Plot # 23-24, Union - Telulzora, Hemayetpur, Dhaka, Savar"),
+      row("Plot # 23-24, Telulzora Union, Hemayetpur, Dhaka, Savar"),
+      row(
+        "Holding No. 87, Plot No. 23, 24, 25, Hemayetpur, Tetuljhora Union, Savar, Dhaka - 1340, Bangladesh",
+      ),
+    ])) {
+      assert.equal(
+        displays(ordered).length,
+        1,
+        "three-string hyphen+title-after Telulzora+Holding 87 permutation",
+      );
+    }
+    assertBothOrders(
+      row("Plot # 23-24, Village, Dogri, Hemayetpur, Dhaka, Savar"),
+      row(
+        "Holding No. 87, Plot No. 23, 24, 25, Hemayetpur, Tetuljhora Union, Savar, Dhaka - 1340, Bangladesh",
+      ),
+      2,
+      "Village Dogri vs Holding 87 Tetuljhora",
+    );
+    assertBothOrders(
+      row("Plot # 23-24, Vill, Dogri, Hemayetpur, Dhaka, Savar"),
+      row(
+        "Holding No. 87, Plot No. 23, 24, 25, Hemayetpur, Tetuljhora Union, Savar, Dhaka - 1340, Bangladesh",
+      ),
+      2,
+      "Vill Dogri vs Holding 87 Tetuljhora",
+    );
+    for (const ordered of permutations([
+      row("Plot # 23-24, Union - Telulzora, Hemayetpur, Dhaka, Savar"),
+      row("Plot # 23-24, Village, Dogri, Hemayetpur, Dhaka, Savar"),
+      row(
+        "Holding No. 87, Plot No. 23, 24, 25, Hemayetpur, Tetuljhora Union, Savar, Dhaka - 1340, Bangladesh",
+      ),
+    ])) {
+      assert.equal(
+        displays(ordered).length,
+        2,
+        "three-string Telulzora+Village Dogri+Holding 87 permutation",
+      );
+    }
+    assertBothOrders(
+      row("Plot # 23-24, Village, Hemayetpur, Dhaka, Savar"),
+      row(
+        "Holding No. 87, Plot No. 23, 24, 25, Hemayetpur, Tetuljhora Union, Savar, Dhaka - 1340, Bangladesh",
+      ),
+      1,
+      "Village Hemayetpur vs Holding 87",
+    );
+    assertBothOrders(
+      row("Plot # 23-24, Vill, Hemayetpur, Dhaka, Savar"),
+      row(
+        "Holding No. 87, Plot No. 23, 24, 25, Hemayetpur, Tetuljhora Union, Savar, Dhaka - 1340, Bangladesh",
+      ),
+      1,
+      "Vill Hemayetpur vs Holding 87",
+    );
+    assertBothOrders(
+      row("Plot # 23-24, Hemayetpur Village, Dhaka, Savar"),
+      row(
+        "Holding No. 87, Plot No. 23, 24, 25, Hemayetpur, Tetuljhora Union, Savar, Dhaka - 1340, Bangladesh",
+      ),
+      1,
+      "Hemayetpur Village title-after vs Holding 87",
+    );
+    for (const ordered of permutations([
+      row("Plot # 23-24, Union - Telulzora, Hemayetpur, Dhaka, Savar"),
+      row("Plot # 23-24, Village, Hemayetpur, Dhaka, Savar"),
+      row(
+        "Holding No. 87, Plot No. 23, 24, 25, Hemayetpur, Tetuljhora Union, Savar, Dhaka - 1340, Bangladesh",
+      ),
+    ])) {
+      assert.equal(
+        displays(ordered).length,
+        1,
+        "three-string hyphen+Village Hemayetpur+Holding 87 permutation",
+      );
+    }
+    assertBothOrders(
+      row("Plot # 23-24, Union Plaza, Hemayetpur, Dhaka, Savar"),
+      row(
+        "Holding No. 87, Plot No. 23, 24, 25, Hemayetpur, Tetuljhora Union, Savar, Dhaka - 1340, Bangladesh",
+      ),
+      2,
+      "Union Plaza vs Holding 87 Tetuljhora",
+    );
+    assertBothOrders(
+      row("Plot # 23-24, Union Complex, Hemayetpur, Dhaka, Savar"),
+      row(
+        "Holding No. 87, Plot No. 23, 24, 25, Hemayetpur, Tetuljhora Union, Savar, Dhaka - 1340, Bangladesh",
+      ),
+      2,
+      "Union Complex vs Holding 87 Tetuljhora",
+    );
+    assertBothOrders(
+      row("Plot # 23-24, Union Tower, Hemayetpur, Dhaka, Savar"),
+      row(
+        "Holding No. 87, Plot No. 23, 24, 25, Hemayetpur, Tetuljhora Union, Savar, Dhaka - 1340, Bangladesh",
+      ),
+      2,
+      "Union Tower vs Holding 87 Tetuljhora",
+    );
+    assertBothOrders(
+      row("Plot # 23-24, Union Market, Hemayetpur, Dhaka, Savar"),
+      row(
+        "Holding No. 87, Plot No. 23, 24, 25, Hemayetpur, Tetuljhora Union, Savar, Dhaka - 1340, Bangladesh",
+      ),
+      2,
+      "Union Market vs Holding 87 Tetuljhora",
+    );
+    for (const ordered of permutations([
+      row("Plot # 23-24, Union - Telulzora, Hemayetpur, Dhaka, Savar"),
+      row("Plot # 23-24, Union Plaza, Hemayetpur, Dhaka, Savar"),
+      row(
+        "Holding No. 87, Plot No. 23, 24, 25, Hemayetpur, Tetuljhora Union, Savar, Dhaka - 1340, Bangladesh",
+      ),
+    ])) {
+      assert.equal(
+        displays(ordered).length,
+        2,
+        "three-string hyphen+Union Plaza+Holding 87 permutation",
+      );
+    }
+    assertBothOrders(
+      row("Plot # 23-24, Village of Dogri, Hemayetpur, Dhaka, Savar"),
+      row(
+        "Holding No. 87, Plot No. 23, 24, 25, Hemayetpur, Tetuljhora Union, Savar, Dhaka - 1340, Bangladesh",
+      ),
+      2,
+      "Village of Dogri vs Holding 87 Tetuljhora",
+    );
+    for (const ordered of permutations([
+      row("Plot # 23-24, Union - Telulzora, Hemayetpur, Dhaka, Savar"),
+      row("Plot # 23-24, Village of Dogri, Hemayetpur, Dhaka, Savar"),
+      row(
+        "Holding No. 87, Plot No. 23, 24, 25, Hemayetpur, Tetuljhora Union, Savar, Dhaka - 1340, Bangladesh",
+      ),
+    ])) {
+      assert.equal(
+        displays(ordered).length,
+        2,
+        "three-string Telulzora+Village of Dogri+Holding 87 permutation",
+      );
+    }
+    assertBothOrders(
+      row("Plot # 23-24, Village, Hemayetpur, Dhaka, Savar"),
+      row("Plot # 23-24, Village, Dogri, Hemayetpur, Dhaka, Savar"),
+      2,
+      "Village Hemayetpur vs Village Dogri",
+    );
+    assertBothOrders(
+      row("Plot # 23-24, Vill, Hemayetpur, Dhaka, Savar"),
+      row("Plot # 23-24, Village of Dogri, Hemayetpur, Dhaka, Savar"),
+      2,
+      "Vill Hemayetpur vs Village of Dogri",
+    );
+    assertBothOrders(
+      row("Plot # 23-24, Village, Hemayetpur, Dhaka, Savar"),
+      row("Plot # 23-24, Union, Dogri, Hemayetpur, Dhaka, Savar"),
+      2,
+      "Village Hemayetpur vs Union Dogri",
+    );
+    for (const ordered of permutations([
+      row("Plot # 23-24, Union - Telulzora, Hemayetpur, Dhaka, Savar"),
+      row("Plot # 23-24, Village, Hemayetpur, Dhaka, Savar"),
+      row("Plot # 23-24, Village, Dogri, Hemayetpur, Dhaka, Savar"),
+    ])) {
+      assert.equal(
+        displays(ordered).length,
+        2,
+        "three-string Telulzora+Village Hemayetpur+Village Dogri permutation",
+      );
+    }
+    assertBothOrders(
+      row("Plot # 23-24, Village, Hemayetpur, Dogri, Dhaka, Savar"),
+      row(
+        "Holding No. 87, Plot No. 23, 24, 25, Hemayetpur, Tetuljhora Union, Savar, Dhaka - 1340, Bangladesh",
+      ),
+      2,
+      "Village Hemayetpur Dogri vs Holding 87 Tetuljhora",
+    );
+    for (const ordered of permutations([
+      row("Plot # 23-24, Union - Telulzora, Hemayetpur, Dhaka, Savar"),
+      row("Plot # 23-24, Village, Hemayetpur, Dogri, Dhaka, Savar"),
+      row(
+        "Holding No. 87, Plot No. 23, 24, 25, Hemayetpur, Tetuljhora Union, Savar, Dhaka - 1340, Bangladesh",
+      ),
+    ])) {
+      assert.equal(
+        displays(ordered).length,
+        2,
+        "three-string Telulzora+Village Hemayetpur Dogri+Holding 87 permutation",
+      );
+    }
+    assertBothOrders(
+      row("Plot # 23-24, Union House, Hemayetpur, Dhaka, Savar"),
+      row(
+        "Holding No. 87, Plot No. 23, 24, 25, Hemayetpur, Tetuljhora Union, Savar, Dhaka - 1340, Bangladesh",
+      ),
+      2,
+      "Union House vs Holding 87 Tetuljhora",
+    );
+    assertBothOrders(
+      row("Plot # 23-24, Union Housing, Hemayetpur, Dhaka, Savar"),
+      row(
+        "Holding No. 87, Plot No. 23, 24, 25, Hemayetpur, Tetuljhora Union, Savar, Dhaka - 1340, Bangladesh",
+      ),
+      2,
+      "Union Housing vs Holding 87 Tetuljhora",
+    );
+    assertBothOrders(
+      row("Plot # 23-24, Union of Plaza, Hemayetpur, Dhaka, Savar"),
+      row(
+        "Holding No. 87, Plot No. 23, 24, 25, Hemayetpur, Tetuljhora Union, Savar, Dhaka - 1340, Bangladesh",
+      ),
+      2,
+      "Union of Plaza vs Holding 87 Tetuljhora",
+    );
+    assertBothOrders(
+      row("Plot # 23-24, Union the Plaza, Hemayetpur, Dhaka, Savar"),
+      row(
+        "Holding No. 87, Plot No. 23, 24, 25, Hemayetpur, Tetuljhora Union, Savar, Dhaka - 1340, Bangladesh",
+      ),
+      2,
+      "Union the Plaza vs Holding 87 Tetuljhora",
+    );
+    for (const ordered of permutations([
+      row("Plot # 23-24, Union - Telulzora, Hemayetpur, Dhaka, Savar"),
+      row("Plot # 23-24, Union House, Hemayetpur, Dhaka, Savar"),
+      row(
+        "Holding No. 87, Plot No. 23, 24, 25, Hemayetpur, Tetuljhora Union, Savar, Dhaka - 1340, Bangladesh",
+      ),
+    ])) {
+      assert.equal(
+        displays(ordered).length,
+        2,
+        "three-string hyphen+Union House+Holding 87 permutation",
+      );
+    }
+    for (const ordered of permutations([
+      row("Plot # 23-24, Union - Telulzora, Hemayetpur, Dhaka, Savar"),
+      row("Plot # 23-24, Union of Plaza, Hemayetpur, Dhaka, Savar"),
+      row(
+        "Holding No. 87, Plot No. 23, 24, 25, Hemayetpur, Tetuljhora Union, Savar, Dhaka - 1340, Bangladesh",
+      ),
+    ])) {
+      assert.equal(
+        displays(ordered).length,
+        2,
+        "three-string hyphen+Union of Plaza+Holding 87 permutation",
+      );
+    }
+    assertBothOrders(
+      row("Plot # 10, East Airport Road, Dhaka"),
+      row("Plot # 10, West Airport Road, Dhaka"),
+      2,
+      "Plot 10 East Airport vs West Airport",
+    );
+    assertBothOrders(
+      row("Plot # 10, East Airport Road, Sonda"),
+      row("Plot # 10, West Airport Road, Sonda"),
+      2,
+      "Plot 10 East Airport vs West Airport at Sonda",
+    );
+    assertBothOrders(
+      row("Plot # 10, Baba Airport Road, Dhaka"),
+      row("Plot # 10, Babu Airpark Road, Dhaka"),
+      2,
+      "Plot 10 Baba Airport vs Babu Airpark",
+    );
+    assertBothOrders(
+      row("Plot # 10, New Eskaton Road, Dhaka"),
+      row("Plot # 10, Old Eskaton Road, Dhaka"),
+      2,
+      "Plot 10 New Eskaton vs Old Eskaton",
+    );
+    assertBothOrders(
+      row("Plot # 10, East Rampura Road, Dhaka"),
+      row("Plot # 10, West Rampura Road, Dhaka"),
+      2,
+      "Plot 10 East Rampura vs West Rampura",
+    );
+    assertBothOrders(
+      row("Plot # 10, Inner Airport Road, Dhaka"),
+      row("Plot # 10, Outer Airport Road, Dhaka"),
+      2,
+      "Plot 10 Inner Airport vs Outer Airport",
+    );
+    assertBothOrders(
+      row("Plot # 10, North Gulshan Road, Dhaka"),
+      row("Plot # 10, South Gulshan Road, Dhaka"),
+      2,
+      "Plot 10 North Gulshan vs South Gulshan",
+    );
+    assertBothOrders(
+      row("Plot # 10, East Joydebpur Road, Chandona"),
+      row("Plot # 10, West Joydevpur Road, Chandona"),
+      1,
+      "Plot 10 East Joydebpur vs West Joydevpur spelling",
+    );
+    assertBothOrders(
+      row("Plot # 23-24, Village of the Hemayetpur, Dhaka, Savar"),
+      row(
+        "Holding No. 87, Plot No. 23, 24, 25, Hemayetpur, Tetuljhora Union, Savar, Dhaka - 1340, Bangladesh",
+      ),
+      1,
+      "Village of the Hemayetpur vs Holding 87",
+    );
+    assertBothOrders(
+      row("Plot # 23-24, The Village of Hemayetpur, Dhaka, Savar"),
+      row(
+        "Holding No. 87, Plot No. 23, 24, 25, Hemayetpur, Tetuljhora Union, Savar, Dhaka - 1340, Bangladesh",
+      ),
+      1,
+      "The Village of Hemayetpur vs Holding 87",
+    );
+    for (const ordered of permutations([
+      row("Plot # 23-24, Union - Telulzora, Hemayetpur, Dhaka, Savar"),
+      row("Plot # 23-24, Village of the Hemayetpur, Dhaka, Savar"),
+      row(
+        "Holding No. 87, Plot No. 23, 24, 25, Hemayetpur, Tetuljhora Union, Savar, Dhaka - 1340, Bangladesh",
+      ),
+    ])) {
+      assert.equal(
+        displays(ordered).length,
+        1,
+        "three-string hyphen+Village of the Hemayetpur+Holding 87 permutation",
+      );
+    }
+    for (const ordered of permutations([
+      row("Plot # 23-24, Union - Telulzora, Hemayetpur, Dhaka, Savar"),
+      row("Plot # 23-24, The Village of Hemayetpur, Dhaka, Savar"),
+      row(
+        "Holding No. 87, Plot No. 23, 24, 25, Hemayetpur, Tetuljhora Union, Savar, Dhaka - 1340, Bangladesh",
+      ),
+    ])) {
+      assert.equal(
+        displays(ordered).length,
+        1,
+        "three-string hyphen+The Village of Hemayetpur+Holding 87 permutation",
+      );
+    }
+    assertBothOrders(
+      row("Plot # 23-24, Village of the Dogri, Hemayetpur, Dhaka, Savar"),
+      row(
+        "Holding No. 87, Plot No. 23, 24, 25, Hemayetpur, Tetuljhora Union, Savar, Dhaka - 1340, Bangladesh",
+      ),
+      2,
+      "Village of the Dogri vs Holding 87 Tetuljhora",
+    );
+    assertBothOrders(
+      row("Plot # 23-24, The Village of Dogri, Hemayetpur, Dhaka, Savar"),
+      row(
+        "Holding No. 87, Plot No. 23, 24, 25, Hemayetpur, Tetuljhora Union, Savar, Dhaka - 1340, Bangladesh",
+      ),
+      2,
+      "The Village of Dogri vs Holding 87 Tetuljhora",
+    );
+    assertBothOrders(
+      row("Plot # 23-24, Union - Telulzora, Hemayetpur, Dhaka, Savar"),
+      row("Plot # 23-24, Village, Dogri, Hemayetpur, Dhaka, Savar"),
+      2,
+      "Union hyphen Telulzora vs Village Dogri",
+    );
+    assertBothOrders(
+      row("Plot # 23-24, Union - Telulzora, Hemayetpur, Dhaka, Savar"),
+      row("Plot # 23-24, Village of Dogri, Hemayetpur, Dhaka, Savar"),
+      2,
+      "Union hyphen Telulzora vs Village of Dogri",
+    );
+    assertBothOrders(
+      row("Plot # 23-24, Union - Telulzora, Hemayetpur, Dhaka, Savar"),
+      row("Plot # 23-24, Vill, Dogri, Hemayetpur, Dhaka, Savar"),
+      2,
+      "Union hyphen Telulzora vs Vill Dogri",
+    );
+    assertBothOrders(
+      row("Plot # 23-24, Union - Telulzora, Hemayetpur, Dhaka, Savar"),
+      row("Plot # 23-24, Village of the Dogri, Hemayetpur, Dhaka, Savar"),
+      2,
+      "Union hyphen Telulzora vs Village of the Dogri",
+    );
+    assertBothOrders(
+      row("Plot # 23-24, Union - Telulzora, Hemayetpur, Dhaka, Savar"),
+      row("Plot # 23-24, The Village of Dogri, Hemayetpur, Dhaka, Savar"),
+      2,
+      "Union hyphen Telulzora vs The Village of Dogri",
+    );
+    assertBothOrders(
+      row("Plot # 23-24, Union, Telulzora, Hemayetpur, Dhaka, Savar"),
+      row("Plot # 23-24, Village, Hemayetpur, Dhaka, Savar"),
+      1,
+      "Union comma Telulzora vs Village Hemayetpur",
+    );
+    assertBothOrders(
+      row("Plot # 23-24, Union - Dogri, Hemayetpur, Dhaka, Savar"),
+      row("Plot # 23-24, Village, Hemayetpur, Dhaka, Savar"),
+      2,
+      "Union hyphen Dogri vs Village Hemayetpur",
+    );
+    for (const ordered of permutations([
+      row("Plot # 23-24, Union, Telulzora, Hemayetpur, Dhaka, Savar"),
+      row("Plot # 23-24, Village, Hemayetpur, Dhaka, Savar"),
+      row("Plot # 23-24, Village, Dogri, Hemayetpur, Dhaka, Savar"),
+    ])) {
+      assert.equal(
+        displays(ordered).length,
+        2,
+        "three-string comma Telulzora+Village Hemayetpur+Village Dogri permutation",
+      );
+    }
+    for (const ordered of permutations([
+      row("Plot # 23-24, Union - Telulzora, Hemayetpur, Dhaka, Savar"),
+      row("Plot # 23-24, Union, Telulzora, Hemayetpur, Dhaka, Savar"),
+      row("Plot # 23-24, Village, Hemayetpur, Dhaka, Savar"),
+    ])) {
+      assert.equal(
+        displays(ordered).length,
+        1,
+        "three-string hyphen+comma Telulzora+Village Hemayetpur permutation",
+      );
+    }
+    assertBothOrders(
+      row("Plot # 10, East Mirpur Road, Sonda"),
+      row("Plot # 10, West Mirpur Road, Sonda"),
+      2,
+      "Plot 10 East Mirpur vs West Mirpur at Sonda",
+    );
+    assertBothOrders(
+      row("Plot # 10, East Mirpur Road, Dhaka"),
+      row("Plot # 10, West Mirpur Road, Dhaka"),
+      2,
+      "Plot 10 East Mirpur vs West Mirpur at Dhaka",
+    );
+    assertBothOrders(
+      row("Plot # 10, East Mirpur Road"),
+      row("Plot # 10, West Mirpur Road"),
+      2,
+      "Plot 10 East Mirpur vs West Mirpur no village",
+    );
+    assertBothOrders(
+      row("Plot # 10, East Tejgaon Road, Sonda"),
+      row("Plot # 10, West Tejgaon Road, Sonda"),
+      2,
+      "Plot 10 East Tejgaon vs West Tejgaon at Sonda",
+    );
+    assertBothOrders(
+      row("Plot # 10, East Tejgaon Road, Dhaka"),
+      row("Plot # 10, West Tejgaon Road, Dhaka"),
+      2,
+      "Plot 10 East Tejgaon vs West Tejgaon at Dhaka",
+    );
+    assertBothOrders(
+      row("Plot # 10, East Joydebpur Road, Sonda"),
+      row("Plot # 10, West Joydebpur Road, Sonda"),
+      2,
+      "Plot 10 East Joydebpur vs West Joydebpur same remainder",
+    );
+    assertBothOrders(
+      row("Plot # 10, East Circular Road, Dhaka"),
+      row("Plot # 10, West Circular Road, Dhaka"),
+      2,
+      "Plot 10 East Circular vs West Circular",
+    );
+    assertBothOrders(
+      row("Plot # 10, North Mirpur Road, Sonda"),
+      row("Plot # 10, South Mirpur Road, Sonda"),
+      2,
+      "Plot 10 North Mirpur vs South Mirpur at Sonda",
+    );
+    assertBothOrders(
+      row("Plot # 10, Eastern Mirpur Road, Sonda"),
+      row("Plot # 10, Western Mirpur Road, Sonda"),
+      2,
+      "Plot 10 Eastern Mirpur vs Western Mirpur at Sonda",
+    );
+    assertBothOrders(
+      row("Plot # 10, EastAirport Road, Dhaka"),
+      row("Plot # 10, WestAirport Road, Dhaka"),
+      2,
+      "Plot 10 EastAirport vs WestAirport concatenated",
+    );
+    assertBothOrders(
+      row("Plot # 10, East Airport Road, Dhaka"),
+      row("Plot # 10, WestAirport Road, Dhaka"),
+      2,
+      "Plot 10 East Airport spaced vs WestAirport glued",
+    );
+    assertBothOrders(
+      row("Plot # 10, North East Airport Road, Dhaka"),
+      row("Plot # 10, South West Airport Road, Dhaka"),
+      2,
+      "Plot 10 North East Airport vs South West Airport",
+    );
+    assertBothOrders(
+      row("Plot # 10, New East Airport Road, Dhaka"),
+      row("Plot # 10, Old West Airport Road, Dhaka"),
+      2,
+      "Plot 10 New East Airport vs Old West Airport",
+    );
+    for (const ordered of permutations([
+      row("Plot # 10, East Mirpur Road, Dhaka"),
+      row("Plot # 10, West Mirpur Road, Dhaka"),
+      row("Plot # 10, Green Road, Dhaka"),
+    ])) {
+      assert.equal(
+        displays(ordered).length,
+        3,
+        "three-string East Mirpur+West Mirpur+Green permutation",
+      );
+    }
+    for (const ordered of permutations([
+      row("Plot # 10, EastAirport Road, Dhaka"),
+      row("Plot # 10, WestAirport Road, Dhaka"),
+      row("Plot # 10, Green Road, Dhaka"),
+    ])) {
+      assert.equal(
+        displays(ordered).length,
+        3,
+        "three-string EastAirport+WestAirport+Green permutation",
+      );
+    }
+    for (const ordered of permutations([
+      row("Plot # 10, East Airport Road, Dhaka"),
+      row("Plot # 10, WestAirport Road, Dhaka"),
+      row("Plot # 10, Green Road, Dhaka"),
+    ])) {
+      assert.equal(
+        displays(ordered).length,
+        3,
+        "three-string East Airport+WestAirport glued+Green permutation",
+      );
+    }
+    for (const ordered of permutations([
+      row("Plot # 10, North East Airport Road, Dhaka"),
+      row("Plot # 10, South West Airport Road, Dhaka"),
+      row("Plot # 10, Green Road, Dhaka"),
+    ])) {
+      assert.equal(
+        displays(ordered).length,
+        3,
+        "three-string North East+South West Airport+Green permutation",
+      );
+    }
+    assertBothOrders(
+      row("Plot # 23-24, Union - Telulzora, Hemayetpur, Dhaka, Savar"),
+      row("Plot # 23-24, Village, Hemayetpur, Dhaka, Savar"),
+      1,
+      "Union hyphen Telulzora vs Village Hemayetpur",
+    );
+    assertBothOrders(
+      row("Plot # 23-24, Union - Faridabad, Hemayetpur, Dhaka, Savar"),
+      row("Plot # 23-24, Village, Hemayetpur, Dhaka, Savar"),
+      2,
+      "Union hyphen Faridabad vs Village Hemayetpur",
+    );
+    assertBothOrders(
+      row("Plot # 23-24, Union, Faridabad, Hemayetpur, Dhaka, Savar"),
+      row("Plot # 23-24, Village, Hemayetpur, Dhaka, Savar"),
+      2,
+      "Union comma Faridabad vs Village Hemayetpur",
+    );
+    assertBothOrders(
+      row("Plot # 23-24, Union - Chandona, Hemayetpur, Dhaka, Savar"),
+      row("Plot # 23-24, Village, Hemayetpur, Dhaka, Savar"),
+      2,
+      "Union hyphen Chandona vs Village Hemayetpur",
+    );
+    assertBothOrders(
+      row("Plot # 23-24, Union - Chandora, Hemayetpur, Dhaka, Savar"),
+      row("Plot # 23-24, Village, Hemayetpur, Dhaka, Savar"),
+      2,
+      "Union hyphen Chandora vs Village Hemayetpur",
+    );
+    assertBothOrders(
+      row("Plot # 23-24, Union - Chandra, Hemayetpur, Dhaka, Savar"),
+      row("Plot # 23-24, Village, Hemayetpur, Dhaka, Savar"),
+      2,
+      "Union hyphen Chandra vs Village Hemayetpur",
+    );
+    assertBothOrders(
+      row("Plot # 23-24, Union - Kaliakoir, Hemayetpur, Dhaka, Savar"),
+      row("Plot # 23-24, Village, Hemayetpur, Dhaka, Savar"),
+      2,
+      "Union hyphen Kaliakoir vs Village Hemayetpur",
+    );
+    assertBothOrders(
+      row("Plot # 10, BabaAirport Road, Dhaka"),
+      row("Plot # 10, BabuAirpark Road, Dhaka"),
+      2,
+      "Plot 10 BabaAirport vs BabuAirpark concatenated",
+    );
+    assertBothOrders(
+      row("Plot # 10, BabaAirport Road, Sonda"),
+      row("Plot # 10, BabuAirpark Road, Sonda"),
+      2,
+      "Plot 10 BabaAirport vs BabuAirpark concatenated at Sonda",
+    );
+    assertBothOrders(
+      row("Plot # 10, BabaAirport Road"),
+      row("Plot # 10, BabuAirpark Road"),
+      2,
+      "Plot 10 BabaAirport vs BabuAirpark concatenated no village",
+    );
+    for (const ordered of permutations([
+      row("Plot # 10, BabaAirport Road, Dhaka"),
+      row("Plot # 10, BabuAirpark Road, Dhaka"),
+      row("Plot # 10, Green Road, Dhaka"),
+    ])) {
+      assert.equal(
+        displays(ordered).length,
+        3,
+        "three-string BabaAirport+BabuAirpark+Green permutation",
+      );
+    }
+    assertBothOrders(
+      row("Plot # 10, Northeast Road, Dhaka"),
+      row("Plot # 10, Southwest Road, Dhaka"),
+      2,
+      "Plot 10 Northeast vs Southwest one-token",
+    );
+    assertBothOrders(
+      row("Plot # 10, Northeast Road, Dhaka"),
+      row("Plot # 10, Northwest Road, Dhaka"),
+      2,
+      "Plot 10 Northeast vs Northwest one-token",
+    );
+    assertBothOrders(
+      row("Plot # 10, Southeast Road, Dhaka"),
+      row("Plot # 10, Southwest Road, Dhaka"),
+      2,
+      "Plot 10 Southeast vs Southwest one-token",
+    );
+    assertBothOrders(
+      row("Plot # 10, North East Road, Dhaka"),
+      row("Plot # 10, South West Road, Dhaka"),
+      2,
+      "Plot 10 North East vs South West no Airport",
+    );
+    assertBothOrders(
+      row(
+        "701, Kamarjuri, Hariken Road, National University, Gazipur - 1704, Bangladesh",
+      ),
+      row("701, KAMARIJUR, HARICAN ROAD, NATIONAL UNIVERSITY, GAZIPUR"),
+      1,
+      "701 Kamarjuri Hariken vs Harican",
+    );
+    assertBothOrders(
+      row("Plot # 10, Hariken Road, Dhaka"),
+      row("Plot # 10, Harican Road, Dhaka"),
+      1,
+      "Plot 10 Hariken vs Harican",
+    );
+    assertBothOrders(
+      row("Plot # 10, BabaAirport Road, Dhaka"),
+      row("Plot # 10, Babu Airpark Road, Dhaka"),
+      2,
+      "Plot 10 BabaAirport glued vs Babu Airpark spaced",
+    );
+    assertBothOrders(
+      row("Plot # 10, Baba Airport Road, Dhaka"),
+      row("Plot # 10, BabuAirpark Road, Dhaka"),
+      2,
+      "Plot 10 Baba Airport spaced vs BabuAirpark glued",
+    );
+    for (const village of ["Dhaka", "Sonda", "Valuka", ""]) {
+      const tail = village ? `, ${village}` : "";
+      assertBothOrders(
+        row(`Plot # 10, BabaAirport Road${tail}`),
+        row(`Plot # 10, Babu Airpark Road${tail}`),
+        2,
+        `Plot 10 BabaAirport glued vs Babu Airpark spaced${village ? ` at ${village}` : " no village"}`,
+      );
+    }
+    for (const ordered of permutations([
+      row("Plot # 10, BabaAirport Road, Dhaka"),
+      row("Plot # 10, Babu Airpark Road, Dhaka"),
+      row("Plot # 10, Green Road, Dhaka"),
+    ])) {
+      assert.equal(
+        displays(ordered).length,
+        3,
+        "three-string BabaAirport glued+Babu Airpark spaced+Green permutation",
+      );
+    }
+    assertBothOrders(
+      row("Plot # 10, ShahidAirport Road, Dhaka"),
+      row("Plot # 10, ShahedAirpark Road, Dhaka"),
+      2,
+      "Plot 10 ShahidAirport vs ShahedAirpark",
+    );
+    assertBothOrders(
+      row("Plot # 10, ShahidAirport Road, Dhaka"),
+      row("Plot # 10, Shahed Airpark Road, Dhaka"),
+      2,
+      "Plot 10 ShahidAirport glued vs Shahed Airpark spaced",
+    );
+    assertBothOrders(
+      row("Plot # 10, Shahid Airport Road, Dhaka"),
+      row("Plot # 10, Shahed Airpark Road, Dhaka"),
+      2,
+      "Plot 10 Shahid Airport vs Shahed Airpark spaced",
+    );
+    assertBothOrders(
+      row("Plot # 10, MasterAirport Road, Dhaka"),
+      row("Plot # 10, MastarAirpark Road, Dhaka"),
+      2,
+      "Plot 10 MasterAirport vs MastarAirpark",
+    );
+    assertBothOrders(
+      row("Plot # 10, SheikhAirport Road, Dhaka"),
+      row("Plot # 10, ShaikhAirpark Road, Dhaka"),
+      2,
+      "Plot 10 SheikhAirport vs ShaikhAirpark",
+    );
+    assertBothOrders(
+      row("Plot # 10, Sheikh Airport Road, Dhaka"),
+      row("Plot # 10, Shaikh Airpark Road, Dhaka"),
+      2,
+      "Plot 10 Sheikh Airport vs Shaikh Airpark spaced",
+    );
+    assertBothOrders(
+      row("Plot # 10, SheikhAirport Road, Dhaka"),
+      row("Plot # 10, Shaikh Airpark Road, Dhaka"),
+      2,
+      "Plot 10 SheikhAirport glued vs Shaikh Airpark spaced",
+    );
+    assertBothOrders(
+      row("Plot # 10, AlAirport Road, Dhaka"),
+      row("Plot # 10, AlAirpark Road, Dhaka"),
+      2,
+      "Plot 10 AlAirport vs AlAirpark",
+    );
+    assertBothOrders(
+      row("Plot # 10, MdAirport Road, Dhaka"),
+      row("Plot # 10, MdAirpark Road, Dhaka"),
+      2,
+      "Plot 10 MdAirport vs MdAirpark",
+    );
+    assertBothOrders(
+      row("Plot # 10, NewBabaAirport Road, Dhaka"),
+      row("Plot # 10, OldBabuAirpark Road, Dhaka"),
+      2,
+      "Plot 10 NewBabaAirport vs OldBabuAirpark",
+    );
+    assertBothOrders(
+      row("Plot # 10, NewBabaAirport Road, Sonda"),
+      row("Plot # 10, OldBabuAirpark Road, Sonda"),
+      2,
+      "Plot 10 NewBabaAirport vs OldBabuAirpark at Sonda",
+    );
+    assertBothOrders(
+      row("Plot # 10, EastBabaAirport Road, Dhaka"),
+      row("Plot # 10, WestBabuAirpark Road, Dhaka"),
+      2,
+      "Plot 10 EastBabaAirport vs WestBabuAirpark",
+    );
+    assertBothOrders(
+      row("Plot # 10, InnerBabaAirport Road, Dhaka"),
+      row("Plot # 10, OuterBabuAirpark Road, Dhaka"),
+      2,
+      "Plot 10 InnerBabaAirport vs OuterBabuAirpark",
+    );
+    assertBothOrders(
+      row("Plot # 10, PaschimBabaAirport Road, Dhaka"),
+      row("Plot # 10, PurboBabuAirpark Road, Dhaka"),
+      2,
+      "Plot 10 PaschimBabaAirport vs PurboBabuAirpark",
+    );
+    assertBothOrders(
+      row("Plot # 10, NewShahidAirport Road, Dhaka"),
+      row("Plot # 10, OldShahedAirpark Road, Dhaka"),
+      2,
+      "Plot 10 NewShahidAirport vs OldShahedAirpark",
+    );
+    assertBothOrders(
+      row("Plot # 10, SirajAirport Road, Dhaka"),
+      row("Plot # 10, SirajAirpark Road, Dhaka"),
+      2,
+      "Plot 10 SirajAirport vs SirajAirpark",
+    );
+    assertBothOrders(
+      row("Plot # 23-24, Dogri Union, Hemayetpur, Dhaka, Savar"),
+      row("Plot # 23-24, Village, Hemayetpur, Dhaka, Savar"),
+      2,
+      "Dogri Union title-after vs Village Hemayetpur",
+    );
+    assertBothOrders(
+      row("Plot # 23-24, Faridabad Union, Hemayetpur, Dhaka, Savar"),
+      row("Plot # 23-24, Village, Hemayetpur, Dhaka, Savar"),
+      2,
+      "Faridabad Union title-after vs Village Hemayetpur",
+    );
+    assertBothOrders(
+      row("Plot # 23-24, Faridabad Union, Hemayetpur, Dhaka, Savar"),
+      row("Plot # 23-24, Village of Hemayetpur, Dhaka, Savar"),
+      2,
+      "Faridabad Union title-after vs Village of Hemayetpur",
+    );
+    for (const union of ["Chandona", "Chandora", "Chandra", "Sreepur", "Nawabganj", "Kaliakoir", "Dhamrai"]) {
+      assertBothOrders(
+        row(`Plot # 23-24, ${union} Union, Hemayetpur, Dhaka, Savar`),
+        row("Plot # 23-24, Village, Hemayetpur, Dhaka, Savar"),
+        2,
+        `${union} Union title-after vs Village Hemayetpur`,
+      );
+    }
+    for (const ordered of permutations([
+      row("Plot # 23-24, Faridabad Union, Hemayetpur, Dhaka, Savar"),
+      row("Plot # 23-24, Village, Hemayetpur, Dhaka, Savar"),
+      row("Plot # 23-24, Village, Dogri, Hemayetpur, Dhaka, Savar"),
+    ])) {
+      assert.equal(
+        displays(ordered).length,
+        3,
+        "three-string Faridabad Union+Village Hemayetpur+Village Dogri permutation",
+      );
+    }
+    assertBothOrders(
+      row("Plot # 23-24, Telulzora Union, Hemayetpur, Dhaka, Savar"),
+      row("Plot # 23-24, Village, Hemayetpur, Dhaka, Savar"),
+      1,
+      "Telulzora Union title-after vs Village Hemayetpur",
+    );
+    assertBothOrders(
+      row("Plot # 23-24, Union - Tetultola, Hemayetpur, Dhaka, Savar"),
+      row("Plot # 23-24, Village, Hemayetpur, Dhaka, Savar"),
+      2,
+      "Union hyphen Tetultola vs Village Hemayetpur",
+    );
+    assertBothOrders(
+      row("Plot # 23-24, Union, Tetultola, Hemayetpur, Dhaka, Savar"),
+      row("Plot # 23-24, Village, Hemayetpur, Dhaka, Savar"),
+      2,
+      "Union comma Tetultola vs Village Hemayetpur",
+    );
+    assertBothOrders(
+      row("Plot # 23-24, Tetultola Union, Hemayetpur, Dhaka, Savar"),
+      row("Plot # 23-24, Village, Hemayetpur, Dhaka, Savar"),
+      2,
+      "Tetultola Union title-after vs Village Hemayetpur",
+    );
+    assertBothOrders(
+      row("Plot # 23-24, Union - Tetultola, Hemayetpur, Dhaka, Savar"),
+      row(
+        "Holding No. 87, Plot No. 23, 24, 25, Hemayetpur, Tetuljhora Union, Savar, Dhaka - 1340, Bangladesh",
+      ),
+      2,
+      "Union hyphen Tetultola vs Holding 87",
+    );
+    assertBothOrders(
+      row("Plot # 23-24, Union - Telultola, Hemayetpur, Dhaka, Savar"),
+      row("Plot # 23-24, Village, Hemayetpur, Dhaka, Savar"),
+      2,
+      "Union hyphen Telultola vs Village Hemayetpur",
+    );
+    assertBothOrders(
+      row("Plot # 23-24, Union - Teluljora, Hemayetpur, Dhaka, Savar"),
+      row("Plot # 23-24, Village, Hemayetpur, Dhaka, Savar"),
+      1,
+      "Union hyphen Teluljora vs Village Hemayetpur",
+    );
+    assertBothOrders(
+      row("Plot # 23-24, Union - Tetuljora, Hemayetpur, Dhaka, Savar"),
+      row("Plot # 23-24, Village, Hemayetpur, Dhaka, Savar"),
+      1,
+      "Union hyphen Tetuljora vs Village Hemayetpur",
+    );
+    assertBothOrders(
+      row("Plot # 23-24, Union - Tezuljhora, Hemayetpur, Dhaka, Savar"),
+      row("Plot # 23-24, Village, Hemayetpur, Dhaka, Savar"),
+      1,
+      "Union hyphen Tezuljhora vs Village Hemayetpur",
+    );
+    assertBothOrders(
+      row("Plot # 23-24, Union - Telulzor, Hemayetpur, Dhaka, Savar"),
+      row("Plot # 23-24, Village, Hemayetpur, Dhaka, Savar"),
+      1,
+      "Union hyphen Telulzor vs Village Hemayetpur",
+    );
+    for (const village of ["Dhaka", "Sonda", "Valuka", ""]) {
+      const tail = village ? `, ${village}` : "";
+      assertBothOrders(
+        row(`Plot # 10, Airport East Road${tail}`),
+        row(`Plot # 10, Airpark West Road${tail}`),
+        2,
+        `Plot 10 Airport East vs Airpark West${village ? ` at ${village}` : " no village"}`,
+      );
+    }
+    assertBothOrders(
+      row("Plot # 10, Airport East Road, Dhaka"),
+      row("Plot # 10, Airpark East Road, Dhaka"),
+      2,
+      "Plot 10 Airport East vs Airpark East",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport North Road, Dhaka"),
+      row("Plot # 10, Airpark North Road, Dhaka"),
+      2,
+      "Plot 10 Airport North vs Airpark North",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport South Road, Sonda"),
+      row("Plot # 10, Airpark South Road, Sonda"),
+      2,
+      "Plot 10 Airport South vs Airpark South at Sonda",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport West Road, Dhaka"),
+      row("Plot # 10, Airpark East Road, Dhaka"),
+      2,
+      "Plot 10 Airport West vs Airpark East",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport East, Dhaka"),
+      row("Plot # 10, Airpark West, Dhaka"),
+      2,
+      "Plot 10 Airport East vs Airpark West no-Road",
+    );
+    assertBothOrders(
+      row("Plot # 10, AirportEast Road, Dhaka"),
+      row("Plot # 10, AirparkWest Road, Dhaka"),
+      2,
+      "Plot 10 AirportEast vs AirparkWest glued",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport-East Road, Dhaka"),
+      row("Plot # 10, Airpark-West Road, Dhaka"),
+      2,
+      "Plot 10 Airport-East vs Airpark-West hyphen",
+    );
+    assertBothOrders(
+      row("Plot # 10, Baba Airport East Road, Dhaka"),
+      row("Plot # 10, Babu Airpark West Road, Dhaka"),
+      2,
+      "Plot 10 Baba Airport East vs Babu Airpark West",
+    );
+    assertBothOrders(
+      row("Plot # 10, BabaAirport East Road, Dhaka"),
+      row("Plot # 10, Babu Airpark West Road, Dhaka"),
+      2,
+      "Plot 10 BabaAirport East vs Babu Airpark West",
+    );
+    assertBothOrders(
+      row("Plot # 10, Inner Airport East Road, Dhaka"),
+      row("Plot # 10, Outer Airpark West Road, Dhaka"),
+      2,
+      "Plot 10 Inner Airport East vs Outer Airpark West",
+    );
+    assertBothOrders(
+      row("Plot # 10, New Airport East Road, Dhaka"),
+      row("Plot # 10, Old Airpark West Road, Dhaka"),
+      2,
+      "Plot 10 New Airport East vs Old Airpark West",
+    );
+    assertBothOrders(
+      row("Plot # 10, Sheikh Airport East Road, Dhaka"),
+      row("Plot # 10, Shaikh Airpark West Road, Dhaka"),
+      2,
+      "Plot 10 Sheikh Airport East vs Shaikh Airpark West",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport East Road, Green, Dhaka"),
+      row("Plot # 10, Airpark West Road, Green, Dhaka"),
+      2,
+      "Plot 10 leftover Airport East vs Airpark West Green",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport East Road, Dhaka"),
+      row("Plot # 10, Airport West Road, Dhaka"),
+      2,
+      "Plot 10 Airport East vs Airport West",
+    );
+    assertBothOrders(
+      row("Plot # 10, East Airport Road, Dhaka"),
+      row("Plot # 10, Airpark East Road, Dhaka"),
+      2,
+      "Plot 10 East Airport vs Airpark East",
+    );
+    for (const ordered of permutations([
+      row("Plot # 10, Airport East Road, Dhaka"),
+      row("Plot # 10, Airpark West Road, Dhaka"),
+      row("Plot # 10, Green Road, Dhaka"),
+    ])) {
+      assert.equal(
+        displays(ordered).length,
+        3,
+        "three-string Airport East+Airpark West+Green permutation",
+      );
+    }
+    assertBothOrders(
+      row("Plot # 10, Airport East, Dhaka"),
+      row("Plot # 10, Airpark West Road, Dhaka"),
+      2,
+      "Plot 10 Airport East no-Road vs Airpark West Road",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport East Road, Dhaka"),
+      row("Plot # 10, Airpark West, Dhaka"),
+      2,
+      "Plot 10 Airport East Road vs Airpark West no-Road",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport East Road, Dhaka"),
+      row("Plot # 10, AirparkWest, Dhaka"),
+      2,
+      "Plot 10 Airport East Road vs AirparkWest no-Road",
+    );
+    assertBothOrders(
+      row("Plot # 10, AirportEast Road, Dhaka"),
+      row("Plot # 10, Airpark West, Dhaka"),
+      2,
+      "Plot 10 AirportEast Road vs Airpark West no-Road",
+    );
+    assertBothOrders(
+      row("Plot # 10, AirportEast, Dhaka"),
+      row("Plot # 10, Airpark West Road, Dhaka"),
+      2,
+      "Plot 10 AirportEast no-Road vs Airpark West Road",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport East, Dhaka"),
+      row("Plot # 10, Airpark East Road, Dhaka"),
+      2,
+      "Plot 10 Airport East no-Road vs Airpark East Road",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport East, Dhaka"),
+      row("Plot # 10, Airport West Road, Dhaka"),
+      2,
+      "Plot 10 Airport East no-Road vs Airport West Road",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport East, Green, Dhaka"),
+      row("Plot # 10, Airpark West Road, Green, Dhaka"),
+      2,
+      "Plot 10 leftover Airport East no-Road vs Airpark West Road Green",
+    );
+    assertBothOrders(
+      row("Plot # 10, AirportEastRoad, Dhaka"),
+      row("Plot # 10, AirparkWestRoad, Dhaka"),
+      2,
+      "Plot 10 AirportEastRoad vs AirparkWestRoad",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road East, Dhaka"),
+      row("Plot # 10, Airport Road West, Dhaka"),
+      2,
+      "Plot 10 Airport Road East vs Airport Road West",
+    );
+    for (const ordered of permutations([
+      row("Plot # 10, Airport East, Dhaka"),
+      row("Plot # 10, Airpark West Road, Dhaka"),
+      row("Plot # 10, Green Road, Dhaka"),
+    ])) {
+      assert.equal(
+        displays(ordered).length,
+        3,
+        "three-string Airport East no-Road+Airpark West Road+Green permutation",
+      );
+    }
+    for (const village of ["Sonda", "Dhaka", ""]) {
+      const tail = village ? `, ${village}` : "";
+      assertBothOrders(
+        row(`Plot # 10, East Mirpur${tail}`),
+        row(`Plot # 10, West Mirpur${tail}`),
+        2,
+        `Plot 10 East Mirpur vs West Mirpur${village ? ` at ${village}` : " no village"} no-Road`,
+      );
+      assertBothOrders(
+        row(`Plot # 10, Mirpur East${tail}`),
+        row(`Plot # 10, Mirpur West${tail}`),
+        2,
+        `Plot 10 Mirpur East vs Mirpur West${village ? ` at ${village}` : " no village"} no-Road`,
+      );
+    }
+    assertBothOrders(
+      row("Plot # 10, East Tejgaon, Sonda"),
+      row("Plot # 10, West Tejgaon, Sonda"),
+      2,
+      "Plot 10 East Tejgaon vs West Tejgaon no-Road at Sonda",
+    );
+    assertBothOrders(
+      row("Plot # 10, East Circular, Dhaka"),
+      row("Plot # 10, West Circular, Dhaka"),
+      2,
+      "Plot 10 East Circular vs West Circular no-Road",
+    );
+    assertBothOrders(
+      row("Plot # 10, East Joydebpur"),
+      row("Plot # 10, West Joydebpur"),
+      2,
+      "Plot 10 East Joydebpur vs West Joydebpur no-Road",
+    );
+    assertBothOrders(
+      row("Plot # 10, North Mirpur, Sonda"),
+      row("Plot # 10, South Mirpur, Sonda"),
+      2,
+      "Plot 10 North Mirpur vs South Mirpur no-Road at Sonda",
+    );
+    assertBothOrders(
+      row("Plot # 10, Eastern Mirpur, Sonda"),
+      row("Plot # 10, Western Mirpur, Sonda"),
+      2,
+      "Plot 10 Eastern Mirpur vs Western Mirpur no-Road at Sonda",
+    );
+    assertBothOrders(
+      row("Plot # 10, East Airport, Dhaka"),
+      row("Plot # 10, West Airport, Dhaka"),
+      2,
+      "Plot 10 East Airport vs West Airport no-Road",
+    );
+    assertBothOrders(
+      row("Plot # 10, East Green, Dhaka"),
+      row("Plot # 10, West Green, Dhaka"),
+      2,
+      "Plot 10 East Green vs West Green no-Road",
+    );
+    assertBothOrders(
+      row("Plot # 10, East Mirpur Road, Sonda"),
+      row("Plot # 10, West Mirpur, Sonda"),
+      2,
+      "Plot 10 East Mirpur Road vs West Mirpur no-Road mixed",
+    );
+    assertBothOrders(
+      row("Plot # 10, Paschim Mirpur, Sonda"),
+      row("Plot # 10, Purbo Mirpur, Sonda"),
+      2,
+      "Plot 10 Paschim Mirpur vs Purbo Mirpur no-Road",
+    );
+    assertBothOrders(
+      row("Plot # 10, Inner Airport, Dhaka"),
+      row("Plot # 10, Outer Airport, Dhaka"),
+      2,
+      "Plot 10 Inner Airport vs Outer Airport no-Road",
+    );
+    assertBothOrders(
+      row("144, 147, 148, 152, 154, East Narashinghpur, Ashulia, 1341, Dhaka, Bangladesh"),
+      row("144, 147, 148, East Narasinghpur, Ashulia, Dhaka"),
+      1,
+      "East Narashinghpur vs East Narasinghpur same compass village",
+    );
+    assertBothOrders(
+      row("Holding No. 505, Uttar Khailkur, Board Bazar, Tongi PS, Gazipur - 1704, Bangladesh"),
+      row("Holding # 505, North Khailkur, National University, Gazipur"),
+      1,
+      "Uttar Khailkur vs North Khailkur same compass",
+    );
+    assertBothOrders(
+      row("37, South Shastapur, Upazila Road, Fatullah, Narayanganj - 1420, Bangladesh"),
+      row("37, South Sastapur, Narayanganj, Fatullah"),
+      1,
+      "South Shastapur vs South Sastapur same compass village",
+    );
+    for (const ordered of permutations([
+      row("Plot # 10, East Mirpur, Sonda"),
+      row("Plot # 10, West Mirpur, Sonda"),
+      row("Plot # 10, Green Road, Sonda"),
+    ])) {
+      assert.equal(
+        displays(ordered).length,
+        3,
+        "three-string East Mirpur+West Mirpur+Green no-Road permutation",
+      );
+    }
+    for (const union of [
+      "Dogri, Union",
+      "Faridabad, Union",
+      "Tetultola, Union",
+      "Chandona, Union",
+      "Dogri,Union",
+    ]) {
+      assertBothOrders(
+        row(`Plot # 23-24, ${union}, Hemayetpur, Dhaka, Savar`),
+        row("Plot # 23-24, Village, Hemayetpur, Dhaka, Savar"),
+        2,
+        `${union} title-after vs Village Hemayetpur`,
+      );
+    }
+    assertBothOrders(
+      row("Plot # 23-24, Dogri, Union, Hemayetpur, Dhaka, Savar"),
+      row("Plot # 23-24, Village of Hemayetpur, Dhaka, Savar"),
+      2,
+      "Dogri, Union vs Village of Hemayetpur",
+    );
+    assertBothOrders(
+      row("Plot # 23-24, Dogri, Union, Hemayetpur, Dhaka, Savar"),
+      row("Plot # 23-24, Village of the Hemayetpur, Dhaka, Savar"),
+      2,
+      "Dogri, Union vs Village of the Hemayetpur",
+    );
+    assertBothOrders(
+      row("Plot # 23-24, Dogri, Union, Hemayetpur, Dhaka, Savar"),
+      row("Plot # 23-24, The Village of Hemayetpur, Dhaka, Savar"),
+      2,
+      "Dogri, Union vs The Village of Hemayetpur",
+    );
+    assertBothOrders(
+      row("Plot # 23-24, Dogri, Union, Hemayetpur, Dhaka, Savar"),
+      row("Plot # 23-24, Union - Dogri, Hemayetpur, Dhaka, Savar"),
+      1,
+      "Dogri, Union vs Union hyphen Dogri",
+    );
+    assertBothOrders(
+      row("Plot # 23-24, Telulzora, Union, Hemayetpur, Dhaka, Savar"),
+      row(
+        "Holding No. 87, Plot No. 23, 24, 25, Hemayetpur, Tetuljhora Union, Savar, Dhaka - 1340, Bangladesh",
+      ),
+      1,
+      "Telulzora, Union vs Holding 87",
+    );
+    assertBothOrders(
+      row("Plot # 23-24, Telulzor, Union, Hemayetpur, Dhaka, Savar"),
+      row(
+        "Holding No. 87, Plot No. 23, 24, 25, Hemayetpur, Tetuljhora Union, Savar, Dhaka - 1340, Bangladesh",
+      ),
+      1,
+      "Telulzor, Union vs Holding 87",
+    );
+    for (const spelling of [
+      "Telulzora-Union",
+      "Tetuljhora-Union",
+      "Telulzor-Union",
+      "Teluljora-Union",
+      "Tezuljhora-Union",
+    ]) {
+      assertBothOrders(
+        row(`Plot # 23-24, ${spelling}, Hemayetpur, Dhaka, Savar`),
+        row("Plot # 23-24, Village, Hemayetpur, Dhaka, Savar"),
+        1,
+        `${spelling} vs Village Hemayetpur`,
+      );
+    }
+    for (const ordered of permutations([
+      row("Plot # 23-24, Dogri, Union, Hemayetpur, Dhaka, Savar"),
+      row("Plot # 23-24, Village, Hemayetpur, Dhaka, Savar"),
+      row("Plot # 23-24, Village, Dogri, Hemayetpur, Dhaka, Savar"),
+    ])) {
+      assert.equal(
+        displays(ordered).length,
+        2,
+        "three-string Dogri, Union+Village Hemayetpur+Village Dogri permutation",
+      );
+    }
+    for (const ordered of permutations([
+      row("Plot # 23-24, Telulzora-Union, Hemayetpur, Dhaka, Savar"),
+      row("Plot # 23-24, Village, Hemayetpur, Dhaka, Savar"),
+      row("Plot # 23-24, Village, Dogri, Hemayetpur, Dhaka, Savar"),
+    ])) {
+      assert.equal(
+        displays(ordered).length,
+        2,
+        "three-string Telulzora-Union+Village Hemayetpur+Village Dogri permutation",
+      );
+    }
+    for (const union of [
+      "Dogri-Union",
+      "Faridabad-Union",
+      "Chandona-Union",
+      "Chandora-Union",
+      "Chandra-Union",
+      "Sreepur-Union",
+      "Nawabganj-Union",
+      "Kaliakoir-Union",
+      "Dhamrai-Union",
+      "Sripur-Union",
+      "Tetultola-Union",
+      "Dogri/Union",
+      "Dogri_Union",
+      "Dogri.Union",
+      "Dogri. Union",
+      "Dogri\u2013Union",
+      "Dogri\u2014Union",
+      "Dogri-Vill",
+      "Dogri-Village",
+    ]) {
+      assertBothOrders(
+        row(`Plot # 23-24, ${union}, Hemayetpur, Dhaka, Savar`),
+        row("Plot # 23-24, Village, Hemayetpur, Dhaka, Savar"),
+        2,
+        `${union} title-after vs Village Hemayetpur`,
+      );
+    }
+    assertBothOrders(
+      row("Plot # 23-24, Dogri-Union, Hemayetpur, Dhaka, Savar"),
+      row("Plot # 23-24, Village of Hemayetpur, Dhaka, Savar"),
+      2,
+      "Dogri-Union vs Village of Hemayetpur",
+    );
+    assertBothOrders(
+      row("Plot # 23-24, Dogri-Union, Hemayetpur, Dhaka, Savar"),
+      row("Plot # 23-24, Village of the Hemayetpur, Dhaka, Savar"),
+      2,
+      "Dogri-Union vs Village of the Hemayetpur",
+    );
+    assertBothOrders(
+      row("Plot # 23-24, Dogri-Union, Hemayetpur, Dhaka, Savar"),
+      row("Plot # 23-24, The Village of Hemayetpur, Dhaka, Savar"),
+      2,
+      "Dogri-Union vs The Village of Hemayetpur",
+    );
+    assertBothOrders(
+      row("Plot # 23-24, Dogri-Union, Hemayetpur, Dhaka, Savar"),
+      row("Plot # 23-24, Vill, Hemayetpur, Dhaka, Savar"),
+      2,
+      "Dogri-Union vs Vill Hemayetpur",
+    );
+    assertBothOrders(
+      row("Plot # 23-24, Dogri-Union, Hemayetpur, Dhaka, Savar"),
+      row("Plot # 23-24, Union - Dogri, Hemayetpur, Dhaka, Savar"),
+      1,
+      "Dogri-Union vs Union hyphen Dogri",
+    );
+    assertBothOrders(
+      row("Plot # 23-24, Dogri-Union, Hemayetpur, Dhaka, Savar"),
+      row("Plot # 23-24, Village, Dogri, Hemayetpur, Dhaka, Savar"),
+      1,
+      "Dogri-Union vs Village Dogri",
+    );
+    assertBothOrders(
+      row("Plot # 23-24, Telulzora-Union, Hemayetpur, Dhaka, Savar"),
+      row(
+        "Holding No. 87, Plot No. 23, 24, 25, Hemayetpur, Tetuljhora Union, Savar, Dhaka - 1340, Bangladesh",
+      ),
+      1,
+      "Telulzora-Union vs Holding 87",
+    );
+    for (const spelling of [
+      "Union - Telulzor",
+      "Telulzor Union",
+      "Village, Telulzor",
+      "Union, Telulzor",
+      "Union - Tezulzor",
+      "Telulzor-Union",
+    ]) {
+      assertBothOrders(
+        row(`Plot # 23-24, ${spelling}, Hemayetpur, Dhaka, Savar`),
+        row(
+          "Holding No. 87, Plot No. 23, 24, 25, Hemayetpur, Tetuljhora Union, Savar, Dhaka - 1340, Bangladesh",
+        ),
+        1,
+        `${spelling} vs Holding 87`,
+      );
+    }
+    for (const ordered of permutations([
+      row("Plot # 23-24, Faridabad-Union, Hemayetpur, Dhaka, Savar"),
+      row("Plot # 23-24, Village, Hemayetpur, Dhaka, Savar"),
+      row("Plot # 23-24, Village, Dogri, Hemayetpur, Dhaka, Savar"),
+    ])) {
+      assert.equal(
+        displays(ordered).length,
+        3,
+        "three-string Faridabad-Union+Village Hemayetpur+Village Dogri permutation",
+      );
+    }
+    for (const ordered of permutations([
+      row("Plot # 23-24, Union - Tetultola, Hemayetpur, Dhaka, Savar"),
+      row("Plot # 23-24, Village, Hemayetpur, Dhaka, Savar"),
+      row("Plot # 23-24, Village, Dogri, Hemayetpur, Dhaka, Savar"),
+    ])) {
+      assert.equal(
+        displays(ordered).length,
+        3,
+        "three-string Tetultola+Village Hemayetpur+Village Dogri permutation",
+      );
+    }
+    for (const village of ["Sonda", "Dhaka", "Valuka", ""]) {
+      const tail = village ? `, ${village}` : "";
+      assertBothOrders(
+        row(`Plot # 10, East Joydebpur${tail}`),
+        row(`Plot # 10, West Joydebpur Road${tail}`),
+        2,
+        `Plot 10 East Joydebpur vs West Joydebpur Road mixed${village ? ` at ${village}` : " no village"}`,
+      );
+      assertBothOrders(
+        row(`Plot # 10, West Joydebpur Road${tail}`),
+        row(`Plot # 10, East Joydebpur${tail}`),
+        2,
+        `Plot 10 West Joydebpur Road vs East Joydebpur mixed${village ? ` at ${village}` : " no village"}`,
+      );
+    }
+    assertBothOrders(
+      row("Plot # 10, Joydebpur East, Sonda"),
+      row("Plot # 10, Joydebpur West Road, Sonda"),
+      2,
+      "Plot 10 Joydebpur East vs Joydebpur West Road mixed at Sonda",
+    );
+    assertBothOrders(
+      row("Plot # 10, East Joydebpur, Green, Sonda"),
+      row("Plot # 10, West Joydebpur Road, Green, Sonda"),
+      2,
+      "Plot 10 leftover East Joydebpur vs West Joydebpur Road Green mixed",
+    );
+    assertBothOrders(
+      row("Plot # 10, East Joydebpur Road, Sonda"),
+      row("Plot # 10, West Joydebpur Road, Sonda"),
+      2,
+      "Plot 10 East Joydebpur vs West Joydebpur both-Road",
+    );
+    assertBothOrders(
+      row("Plot # 10, East Joydebpur, Sonda"),
+      row("Plot # 10, West Joydebpur, Sonda"),
+      2,
+      "Plot 10 East Joydebpur vs West Joydebpur both-no-Road at Sonda",
+    );
+    assertBothOrders(
+      row("Plot # 10, East Joydebpur"),
+      row("Plot # 10, West Joydevpur Road"),
+      1,
+      "Plot 10 East Joydebpur vs West Joydevpur mixed spelling",
+    );
+    assertBothOrders(
+      row("Plot # 10, East Sreepur, Sonda"),
+      row("Plot # 10, West Sreepur Road, Sonda"),
+      2,
+      "Plot 10 East Sreepur vs West Sreepur Road mixed",
+    );
+    assertBothOrders(
+      row("Plot # 10, East Nawabganj, Sonda"),
+      row("Plot # 10, West Nawabganj Road, Sonda"),
+      2,
+      "Plot 10 East Nawabganj vs West Nawabganj Road mixed",
+    );
+    assertBothOrders(
+      row("Plot # 10, East Faridpur, Sonda"),
+      row("Plot # 10, West Faridpur Road, Sonda"),
+      2,
+      "Plot 10 East Faridpur vs West Faridpur Road mixed",
+    );
+    assertBothOrders(
+      row("Plot # 10, East Gazipur, Sonda"),
+      row("Plot # 10, West Gazipur Road, Sonda"),
+      2,
+      "Plot 10 East Gazipur vs West Gazipur Road mixed",
+    );
+    assertBothOrders(
+      row(
+        "144, 147, 148, 152, 154, East Narashinghpur, Ashulia, 1341, Dhaka, Bangladesh",
+      ),
+      row(
+        "144, 147, 148, 152, 154, West Narasinghpur Road, Ashulia, 1341, Dhaka, Bangladesh",
+      ),
+      2,
+      "144 East Narashinghpur vs West Narasinghpur Road mixed",
+    );
+    for (const ordered of permutations([
+      row("Plot # 10, East Joydebpur, Sonda"),
+      row("Plot # 10, West Joydebpur Road, Sonda"),
+      row("Plot # 10, Green Road, Sonda"),
+    ])) {
+      assert.equal(
+        displays(ordered).length,
+        3,
+        "three-string East Joydebpur+West Joydebpur Road+Green permutation",
+      );
+    }
+    for (const village of ["Dhaka", "Sonda", ""]) {
+      const tail = village ? `, ${village}` : "";
+      assertBothOrders(
+        row(`Plot # 10, Airport Road, East${tail}`),
+        row(`Plot # 10, Airport Road, West${tail}`),
+        2,
+        `Plot 10 Airport Road, East vs West${village ? ` at ${village}` : " no village"}`,
+      );
+    }
+    assertBothOrders(
+      row("Plot # 10, Airport Rd, East, Dhaka"),
+      row("Plot # 10, Airport Rd, West, Dhaka"),
+      2,
+      "Plot 10 Airport Rd, East vs West",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road,East, Dhaka"),
+      row("Plot # 10, Airport Road,West, Dhaka"),
+      2,
+      "Plot 10 Airport Road,East vs West no-space",
+    );
+    for (const stem of ["Mirpur", "Tejgaon", "Circular", "Joydebpur", "Green"]) {
+      assertBothOrders(
+        row(`Plot # 10, ${stem} Road, East, Sonda`),
+        row(`Plot # 10, ${stem} Road, West, Sonda`),
+        2,
+        `Plot 10 ${stem} Road, East vs West at Sonda`,
+      );
+    }
+    assertBothOrders(
+      row("Plot # 10, Airport Road, North, Dhaka"),
+      row("Plot # 10, Airport Road, South, Dhaka"),
+      2,
+      "Plot 10 Airport Road, North vs South",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, Eastern, Dhaka"),
+      row("Plot # 10, Airport Road, Western, Dhaka"),
+      2,
+      "Plot 10 Airport Road, Eastern vs Western",
+    );
+    assertBothOrders(
+      row("Plot # 10, East, Airport Road, Dhaka"),
+      row("Plot # 10, West, Airport Road, Dhaka"),
+      2,
+      "Plot 10 East, Airport Road vs West, Airport Road",
+    );
+    assertBothOrders(
+      row("Plot # 10, East, Airport, Dhaka"),
+      row("Plot # 10, West, Airport, Dhaka"),
+      2,
+      "Plot 10 East, Airport vs West, Airport no-Road",
+    );
+    assertBothOrders(
+      row("Plot # 10, East, Mirpur, Sonda"),
+      row("Plot # 10, West, Mirpur, Sonda"),
+      2,
+      "Plot 10 East, Mirpur vs West, Mirpur no-Road",
+    );
+    assertBothOrders(
+      row("Plot # 10, East, Mirpur Road, Sonda"),
+      row("Plot # 10, West, Mirpur Road, Sonda"),
+      2,
+      "Plot 10 East, Mirpur Road vs West, Mirpur Road",
+    );
+    assertBothOrders(
+      row("Plot # 10, East, Joydebpur, Sonda"),
+      row("Plot # 10, West, Joydebpur, Sonda"),
+      2,
+      "Plot 10 East, Joydebpur vs West, Joydebpur no-Road",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road East, Dhaka"),
+      row("Plot # 10, Airport Road West, Dhaka"),
+      2,
+      "Plot 10 Airport Road East vs West space KEEP",
+    );
+    assertBothOrders(
+      row(
+        "Simco Complex, 43, Chalaban, Shah Kabir Mazar Road, Dakshinkhan, Uttara, Dhaka - 1230, Bangladesh",
+      ),
+      row(
+        "Simco Complex, 43, Chalaban, Shah Kabir Mazar Road, Dakkhin Khan, Dhaka",
+      ),
+      1,
+      "olio-apparels Dakshinkhan vs Dakkhin Khan",
+    );
+    assertBothOrders(
+      row("02, Dr. M.A. Rashid Road, South Auchpara, Ward # 54, Tongi, Dhaka"),
+      row("02, DR. M A RASHID ROAD, AUCHPARA, TONGI, GAZIPUR - 1711, Bangladesh"),
+      1,
+      "stuff South Auchpara vs Auchpara",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, East, Dhaka"),
+      row("Plot # 10, Airpark Road, West, Dhaka"),
+      2,
+      "Plot 10 Airport Road, East vs Airpark Road, West",
+    );
+    for (const ordered of permutations([
+      row("Plot # 10, Airport Road, East, Dhaka"),
+      row("Plot # 10, Airport Road, West, Dhaka"),
+      row("Plot # 10, Green Road, Dhaka"),
+    ])) {
+      assert.equal(
+        displays(ordered).length,
+        3,
+        "three-string Airport Road, East+West+Green permutation",
+      );
+    }
+    for (const village of ["Dhaka", "Sonda", ""]) {
+      const tail = village ? `, ${village}` : "";
+      assertBothOrders(
+        row(`Plot # 10, Sheikh Airport East${tail}`),
+        row(`Plot # 10, Shaikh Airpark West${tail}`),
+        2,
+        `Plot 10 Sheikh Airport East vs Shaikh Airpark West no-Road${village ? ` at ${village}` : ""}`,
+      );
+    }
+    assertBothOrders(
+      row("Plot # 10, Sheikh Airport East Road, Dhaka"),
+      row("Plot # 10, Shaikh Airpark West, Dhaka"),
+      2,
+      "Plot 10 Sheikh Airport East Road vs Shaikh Airpark West no-Road mixed",
+    );
+    assertBothOrders(
+      row("Plot # 10, Sheikh Airport East, Dhaka"),
+      row("Plot # 10, Shaikh Airpark West Road, Dhaka"),
+      2,
+      "Plot 10 Sheikh Airport East no-Road vs Shaikh Airpark West Road mixed",
+    );
+    assertBothOrders(
+      row("Plot # 23-24, Telulzora_Union, Hemayetpur, Dhaka, Savar"),
+      row("Plot # 23-24, Village, Hemayetpur, Dhaka, Savar"),
+      1,
+      "Telulzora_Union vs Village Hemayetpur",
+    );
+    assertBothOrders(
+      row("Plot # 23-24, Telulzora_Union, Hemayetpur, Dhaka, Savar"),
+      row(
+        "Holding No. 87, Plot No. 23, 24, 25, Hemayetpur, Tetuljhora Union, Savar, Dhaka - 1340, Bangladesh",
+      ),
+      1,
+      "Telulzora_Union vs Holding 87",
+    );
+    for (const village of ["Dhaka", "Sonda", ""]) {
+      const tail = village ? `, ${village}` : "";
+      assertBothOrders(
+        row(`Plot # 10, North East Airport${tail}`),
+        row(`Plot # 10, South East Airport${tail}`),
+        2,
+        `Plot 10 North East Airport vs South East Airport no-Road${village ? ` at ${village}` : ""}`,
+      );
+      assertBothOrders(
+        row(`Plot # 10, North-East Airport${tail}`),
+        row(`Plot # 10, South-East Airport${tail}`),
+        2,
+        `Plot 10 North-East vs South-East Airport hyphen${village ? ` at ${village}` : ""}`,
+      );
+      assertBothOrders(
+        row(`Plot # 10, Northeast Airport${tail}`),
+        row(`Plot # 10, Southeast Airport${tail}`),
+        2,
+        `Plot 10 Northeast vs Southeast Airport oneword${village ? ` at ${village}` : ""}`,
+      );
+      assertBothOrders(
+        row(`Plot # 10, Airport Road_East${tail}`),
+        row(`Plot # 10, Airport Road_West${tail}`),
+        2,
+        `Plot 10 Airport Road_East vs Road_West${village ? ` at ${village}` : ""}`,
+      );
+    }
+    assertBothOrders(
+      row("Plot # 10, North West Airport, Dhaka"),
+      row("Plot # 10, South West Airport, Dhaka"),
+      2,
+      "Plot 10 North West Airport vs South West Airport no-Road",
+    );
+    assertBothOrders(
+      row("Plot # 10, North East Mirpur, Sonda"),
+      row("Plot # 10, South East Mirpur, Sonda"),
+      2,
+      "Plot 10 North East Mirpur vs South East Mirpur no-Road",
+    );
+    assertBothOrders(
+      row("Plot # 10, North East Circular, Sonda"),
+      row("Plot # 10, South East Circular, Sonda"),
+      2,
+      "Plot 10 North East Circular vs South East Circular no-Road",
+    );
+    assertBothOrders(
+      row("Plot # 10, North East Tejgaon, Sonda"),
+      row("Plot # 10, South East Tejgaon, Sonda"),
+      2,
+      "Plot 10 North East Tejgaon vs South East Tejgaon no-Road",
+    );
+    assertBothOrders(
+      row("Plot # 10, North East Airport Road, Dhaka"),
+      row("Plot # 10, South East Airport Road, Dhaka"),
+      2,
+      "Plot 10 North East Airport Road vs South East Airport Road KEEP",
+    );
+    assertBothOrders(
+      row("Plot # 10, North East Airport, Dhaka"),
+      row("Plot # 10, South West Airport, Dhaka"),
+      2,
+      "Plot 10 North East vs South West Airport no-Road KEEP",
+    );
+    assertBothOrders(
+      row("Plot # 10, North, East Airport, Dhaka"),
+      row("Plot # 10, South, East Airport, Dhaka"),
+      2,
+      "Plot 10 North, East Airport vs South, East Airport comma KEEP",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, East Joydebpur, Sonda"),
+      row("Plot # 10, Airport Road, West Joydebpur, Sonda"),
+      2,
+      "Plot 10 Airport Road, East Joydebpur vs West Joydebpur",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, East Mirpur, Sonda"),
+      row("Plot # 10, Airport Road, West Mirpur, Sonda"),
+      2,
+      "Plot 10 Airport Road, East Mirpur vs West Mirpur",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, East Tejgaon, Sonda"),
+      row("Plot # 10, Airport Road, West Tejgaon, Sonda"),
+      2,
+      "Plot 10 Airport Road, East Tejgaon vs West Tejgaon",
+    );
+    assertBothOrders(
+      row("Plot # 10, Mirpur Road, East Joydebpur, Sonda"),
+      row("Plot # 10, Mirpur Road, West Joydebpur, Sonda"),
+      2,
+      "Plot 10 Mirpur Road, East Joydebpur vs West Joydebpur",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, East, Joydebpur, Sonda"),
+      row("Plot # 10, Airport Road, West, Joydebpur, Sonda"),
+      2,
+      "Plot 10 Airport Road, East, Joydebpur vs West, Joydebpur KEEP",
+    );
+    assertBothOrders(
+      row("Plot # 10, Sheikh Airport East, Dhaka"),
+      row("Plot # 10, Shaikh Airport West, Dhaka"),
+      2,
+      "Plot 10 Sheikh Airport East vs Shaikh Airport West same stem",
+    );
+    assertBothOrders(
+      row("Plot # 10, Sheikh Airport East Road, Dhaka"),
+      row("Plot # 10, Shaikh Airport West Road, Dhaka"),
+      2,
+      "Plot 10 Sheikh Airport East Road vs Shaikh Airport West Road same stem",
+    );
+    assertBothOrders(
+      row("Plot # 10, Sheikh Airpark East, Dhaka"),
+      row("Plot # 10, Shaikh Airpark West, Dhaka"),
+      2,
+      "Plot 10 Sheikh Airpark East vs Shaikh Airpark West",
+    );
+    assertBothOrders(
+      row("Plot # 10, Sheikh Airport East, Dhaka"),
+      row("Plot # 10, Sheikh Airport West, Dhaka"),
+      2,
+      "Plot 10 Sheikh Airport East vs Sheikh Airport West same-honorific KEEP",
+    );
+    for (const village of ["Dhaka", "Sonda", ""]) {
+      const tail = village ? `, ${village}` : "";
+      assertBothOrders(
+        row(`Plot # 10, Sheikh East Airport${tail}`),
+        row(`Plot # 10, Shaikh West Airpark${tail}`),
+        2,
+        `Plot 10 Sheikh East Airport vs Shaikh West Airpark${village ? ` at ${village}` : ""}`,
+      );
+      assertBothOrders(
+        row(`Plot # 10, East Sheikh Airport${tail}`),
+        row(`Plot # 10, West Shaikh Airpark${tail}`),
+        2,
+        `Plot 10 East Sheikh Airport vs West Shaikh Airpark${village ? ` at ${village}` : ""}`,
+      );
+    }
+    assertBothOrders(
+      row("Plot # 10, Sheikh East Airport Road, Dhaka"),
+      row("Plot # 10, Shaikh West Airpark, Dhaka"),
+      2,
+      "Plot 10 Sheikh East Airport Road vs Shaikh West Airpark mixed",
+    );
+    assertBothOrders(
+      row("Plot # 10, Sheikh East Airport, Dhaka"),
+      row("Plot # 10, Shaikh West Airpark Road, Dhaka"),
+      2,
+      "Plot 10 Sheikh East Airport no-Road vs Shaikh West Airpark Road mixed",
+    );
+    assertBothOrders(
+      row("Plot # 10, Sheikh North Airport, Dhaka"),
+      row("Plot # 10, Shaikh South Airpark, Dhaka"),
+      2,
+      "Plot 10 Sheikh North Airport vs Shaikh South Airpark",
+    );
+    assertBothOrders(
+      row("Plot # 10, Doctor East Airport, Dhaka"),
+      row("Plot # 10, Docter West Airpark, Dhaka"),
+      2,
+      "Plot 10 Doctor East Airport vs Docter West Airpark",
+    );
+    assertBothOrders(
+      row("Plot # 10, Md Sheikh Airport East, Dhaka"),
+      row("Plot # 10, Md Shaikh Airpark West, Dhaka"),
+      2,
+      "Plot 10 Md Sheikh Airport East vs Md Shaikh Airpark West",
+    );
+    assertBothOrders(
+      row("Plot # 10, Md. Airport East, Dhaka"),
+      row("Plot # 10, Airpark West, Dhaka"),
+      2,
+      "Plot 10 Md. Airport East vs Airpark West",
+    );
+    assertBothOrders(
+      row("Plot # 10, Md Airport East, Dhaka"),
+      row("Plot # 10, Airpark West, Dhaka"),
+      2,
+      "Plot 10 Md Airport East vs Airpark West",
+    );
+    assertBothOrders(
+      row("Plot # 10, Dr. Airport East, Dhaka"),
+      row("Plot # 10, Airpark West, Dhaka"),
+      2,
+      "Plot 10 Dr. Airport East vs Airpark West",
+    );
+    assertBothOrders(
+      row("Plot # 10, Sheikh North East Airport, Dhaka"),
+      row("Plot # 10, Shaikh South East Airpark, Dhaka"),
+      2,
+      "Plot 10 Sheikh North East Airport vs Shaikh South East Airpark",
+    );
+    assertBothOrders(
+      row("Plot # 10, Sheikh_Airport East, Dhaka"),
+      row("Plot # 10, Shaikh_Airpark West, Dhaka"),
+      2,
+      "Plot 10 Sheikh_Airport East vs Shaikh_Airpark West",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Rd_East, Dhaka"),
+      row("Plot # 10, Airport Rd_West, Dhaka"),
+      2,
+      "Plot 10 Airport Rd_East vs Rd_West",
+    );
+    assertBothOrders(
+      row("Plot # 10, Mirpur Road_East, Sonda"),
+      row("Plot # 10, Mirpur Road_West, Sonda"),
+      2,
+      "Plot 10 Mirpur Road_East vs Road_West",
+    );
+    assertBothOrders(
+      row("Plot # 10, Joydebpur Road_East, Sonda"),
+      row("Plot # 10, Joydebpur Road_West, Sonda"),
+      2,
+      "Plot 10 Joydebpur Road_East vs Road_West",
+    );
+    for (const village of ["Sonda", "Dhaka", ""]) {
+      const tail = village ? `, ${village}` : "";
+      assertBothOrders(
+        row(`Plot # 10, Airport Road East Joydebpur${tail}`),
+        row(`Plot # 10, Airport Road West Joydebpur${tail}`),
+        2,
+        `Plot 10 Airport Road East Joydebpur vs West${village ? ` at ${village}` : ""}`,
+      );
+      assertBothOrders(
+        row(`Plot # 10, Airport Road_East Joydebpur${tail}`),
+        row(`Plot # 10, Airport Road_West Joydebpur${tail}`),
+        2,
+        `Plot 10 Airport Road_East Joydebpur vs Road_West${village ? ` at ${village}` : ""}`,
+      );
+      assertBothOrders(
+        row(`Plot # 10, Airport Road, Sheikh East Airport${tail}`),
+        row(`Plot # 10, Airport Road, Shaikh West Airpark${tail}`),
+        2,
+        `Plot 10 leftover Sheikh East Airport vs Shaikh West Airpark${village ? ` at ${village}` : ""}`,
+      );
+    }
+    for (const locality of ["Mirpur", "Tejgaon", "Circular", "Green", "Airport"]) {
+      assertBothOrders(
+        row(`Plot # 10, Airport Road East ${locality}, Sonda`),
+        row(`Plot # 10, Airport Road West ${locality}, Sonda`),
+        2,
+        `Plot 10 Airport Road East ${locality} vs West same-field`,
+      );
+      assertBothOrders(
+        row(`Plot # 10, Airport Road_East ${locality}, Sonda`),
+        row(`Plot # 10, Airport Road_West ${locality}, Sonda`),
+        2,
+        `Plot 10 Airport Road_East ${locality} vs Road_West leftover`,
+      );
+    }
+    assertBothOrders(
+      row("Plot # 10, Mirpur Road East Joydebpur, Sonda"),
+      row("Plot # 10, Mirpur Road West Joydebpur, Sonda"),
+      2,
+      "Plot 10 Mirpur Road East Joydebpur vs West same-field",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Rd East Joydebpur, Sonda"),
+      row("Plot # 10, Airport Rd West Joydebpur, Sonda"),
+      2,
+      "Plot 10 Airport Rd East Joydebpur vs West same-field",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Rd_East Joydebpur, Sonda"),
+      row("Plot # 10, Airport Rd_West Joydebpur, Sonda"),
+      2,
+      "Plot 10 Airport Rd_East Joydebpur vs Rd_West leftover",
+    );
+    assertBothOrders(
+      row("Plot # 10, Mirpur Road_East Joydebpur, Sonda"),
+      row("Plot # 10, Mirpur Road_West Joydebpur, Sonda"),
+      2,
+      "Plot 10 Mirpur Road_East Joydebpur vs Road_West leftover",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road East-Joydebpur, Sonda"),
+      row("Plot # 10, Airport Road West-Joydebpur, Sonda"),
+      2,
+      "Plot 10 Airport Road East-Joydebpur hyphen same-field",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road EastJoydebpur, Sonda"),
+      row("Plot # 10, Airport Road West Joydebpur, Sonda"),
+      2,
+      "Plot 10 Airport Road EastJoydebpur glued same-field",
+    );
+    for (const word of ["Street", "Avenue", "Lane"]) {
+      assertBothOrders(
+        row(`Plot # 10, Airport ${word} East Joydebpur, Sonda`),
+        row(`Plot # 10, Airport ${word} West Joydebpur, Sonda`),
+        2,
+        `Plot 10 Airport ${word} East Joydebpur vs West same-field`,
+      );
+    }
+    assertBothOrders(
+      row("Plot # 10, Airport Road, EastJoydebpur, Sonda"),
+      row("Plot # 10, Airport Road, West Joydebpur, Sonda"),
+      2,
+      "Plot 10 leftover EastJoydebpur glued vs West Joydebpur",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, EastJoydebpur, Sonda"),
+      row("Plot # 10, Airport Road, WestJoydebpur, Sonda"),
+      2,
+      "Plot 10 leftover EastJoydebpur vs WestJoydebpur both-glued",
+    );
+    for (const [glued, spaced] of [
+      ["EastAirport", "WestAirport"],
+      ["EastMirpur", "West Mirpur"],
+      ["EastTejgaon", "West Tejgaon"],
+      ["EastCircular", "West Circular"],
+    ] as const) {
+      assertBothOrders(
+        row(`Plot # 10, Airport Road, ${glued}, Sonda`),
+        row(`Plot # 10, Airport Road, ${spaced}, Sonda`),
+        2,
+        `Plot 10 leftover ${glued} vs ${spaced}`,
+      );
+    }
+    assertBothOrders(
+      row("Plot # 10, Airport Street, EastJoydebpur, Sonda"),
+      row("Plot # 10, Airport Street, West Joydebpur, Sonda"),
+      2,
+      "Plot 10 leftover EastJoydebpur after Airport Street",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, East Sheikh Airport, Dhaka"),
+      row("Plot # 10, Airport Road, West Shaikh Airpark, Dhaka"),
+      2,
+      "Plot 10 leftover East Sheikh Airport vs West Shaikh Airpark",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, Sheikh East Joydebpur, Sonda"),
+      row("Plot # 10, Airport Road, Shaikh West Joydebpur, Sonda"),
+      2,
+      "Plot 10 leftover Sheikh East Joydebpur vs Shaikh West Joydebpur",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, Sheikh East Airport, Dhaka"),
+      row("Plot # 10, Airport Road, Shaikh West Airport, Dhaka"),
+      2,
+      "Plot 10 leftover Sheikh East Airport vs Shaikh West Airport same stem",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, Sheikh Airport East, Dhaka"),
+      row("Plot # 10, Airport Road, Shaikh Airport West, Dhaka"),
+      2,
+      "Plot 10 leftover Sheikh Airport East vs Shaikh Airport West",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, Md East Airport, Dhaka"),
+      row("Plot # 10, Airport Road, Dr West Airpark, Dhaka"),
+      2,
+      "Plot 10 leftover Md East Airport vs Dr West Airpark",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, Doctor East Airport, Dhaka"),
+      row("Plot # 10, Airport Road, Docter West Airpark, Dhaka"),
+      2,
+      "Plot 10 leftover Doctor East Airport vs Docter West Airpark",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, Haji East Airport, Dhaka"),
+      row("Plot # 10, Airport Road, Haji West Airpark, Dhaka"),
+      2,
+      "Plot 10 leftover Haji East Airport vs Haji West Airpark",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, Md Sheikh East Airport, Dhaka"),
+      row("Plot # 10, Airport Road, Dr Shaikh West Airpark, Dhaka"),
+      2,
+      "Plot 10 leftover two honorifics Md Sheikh vs Dr Shaikh",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, Airport Sheikh East, Dhaka"),
+      row("Plot # 10, Airport Road, Airpark Shaikh West, Dhaka"),
+      2,
+      "Plot 10 leftover honorific after stem Airport Sheikh East",
+    );
+    for (const village of ["Sonda", "Dhaka", ""]) {
+      const tail = village ? `, ${village}` : "";
+      const at = village ? ` at ${village}` : "";
+      assertBothOrders(
+        row(`Plot # 10, Airport Road, Airport Sheikh East Joydebpur${tail}`),
+        row(`Plot # 10, Airport Road, Airpark Shaikh West Joydebpur${tail}`),
+        2,
+        `Plot 10 leftover honorific-after-stem Airport Sheikh East Joydebpur${at}`,
+      );
+      assertBothOrders(
+        row(`Plot # 10, Airport Road, Northeast Joydebpur${tail}`),
+        row(`Plot # 10, Airport Road, Southeast Joydebpur${tail}`),
+        2,
+        `Plot 10 leftover Northeast Joydebpur vs Southeast${at}`,
+      );
+      assertBothOrders(
+        row(`Plot # 10, Airport Road, Northeast Airport${tail}`),
+        row(`Plot # 10, Airport Road, Southeast Airport${tail}`),
+        2,
+        `Plot 10 leftover Northeast Airport vs Southeast Airport${at}`,
+      );
+    }
+    assertBothOrders(
+      row("Plot # 10, Airport Road, Airport Sheikh East Mirpur, Sonda"),
+      row("Plot # 10, Airport Road, Airpark Shaikh West Mirpur, Sonda"),
+      2,
+      "Plot 10 leftover honorific-after-stem Airport Sheikh East Mirpur",
+    );
+    for (const village of ["Sonda", "Dhaka", ""]) {
+      const tail = village ? `, ${village}` : "";
+      const at = village ? ` at ${village}` : "";
+      assertBothOrders(
+        row(`Plot # 10, Airport Road, Airport Sheikh East Circular${tail}`),
+        row(`Plot # 10, Airport Road, Airpark Shaikh West Circular${tail}`),
+        2,
+        `Plot 10 leftover honorific-after-stem Airport Sheikh East Circular${at}`,
+      );
+    }
+    assertBothOrders(
+      row("Plot # 10, Airport Road, Airport East Circular, Sonda"),
+      row("Plot # 10, Airport Road, Airpark West Circular, Sonda"),
+      2,
+      "Plot 10 leftover Airport East Circular vs Airpark West Circular",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, East Airport Circular, Sonda"),
+      row("Plot # 10, Airport Road, West Airpark Circular, Sonda"),
+      2,
+      "Plot 10 leftover East Airport Circular vs West Airpark Circular",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, East Airport Circular, Sonda"),
+      row("Plot # 10, Airport Road, West Airport Circular, Sonda"),
+      2,
+      "Plot 10 leftover East Airport Circular vs West Airport Circular same stem",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, Airport Circular, Sonda"),
+      row("Plot # 10, Airport Road, Airpark Circular, Sonda"),
+      2,
+      "Plot 10 leftover Airport Circular vs Airpark Circular no compass",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, Airport Sheikh Circular, Sonda"),
+      row("Plot # 10, Airport Road, Airpark Shaikh Circular, Sonda"),
+      2,
+      "Plot 10 leftover Airport Sheikh Circular vs Airpark Shaikh Circular",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, Airport Joydebpur, Sonda"),
+      row("Plot # 10, Airport Road, Airpark Joydebpur, Sonda"),
+      2,
+      "Plot 10 leftover Airport Joydebpur vs Airpark Joydebpur no compass",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Street, Airport Sheikh East Circular, Sonda"),
+      row("Plot # 10, Airport Street, Airpark Shaikh West Circular, Sonda"),
+      2,
+      "Plot 10 leftover honorific-after-stem Circular after Airport Street",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road Airport Sheikh East Circular, Sonda"),
+      row("Plot # 10, Airport Road Airpark Shaikh West Circular, Sonda"),
+      2,
+      "Plot 10 same-field leftover honorific-after-stem Circular",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, Northeast Airport Circular, Sonda"),
+      row("Plot # 10, Airport Road, Southeast Airpark Circular, Sonda"),
+      2,
+      "Plot 10 leftover Northeast Airport Circular vs Southeast Airpark Circular",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, Airport Sheikh Northeast Circular, Sonda"),
+      row("Plot # 10, Airport Road, Airpark Shaikh Southeast Circular, Sonda"),
+      2,
+      "Plot 10 leftover Airport Sheikh Northeast Circular vs Airpark Shaikh Southeast",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, East Airport Joydebpur, Sonda"),
+      row("Plot # 10, Airport Road, West Airport Joydevpur, Sonda"),
+      2,
+      "Plot 10 leftover East Airport Joydebpur vs West Airport Joydevpur",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, East Mirpur Joydebpur, Sonda"),
+      row("Plot # 10, Airport Road, West Mirpur Joydevpur, Sonda"),
+      2,
+      "Plot 10 leftover East Mirpur Joydebpur vs West Mirpur Joydevpur",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, East Green Joydebpur, Sonda"),
+      row("Plot # 10, Airport Road, West Green Joydevpur, Sonda"),
+      2,
+      "Plot 10 leftover East Green Joydebpur vs West Green Joydevpur",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, East Circular Joydebpur, Sonda"),
+      row("Plot # 10, Airport Road, West Circular Joydevpur, Sonda"),
+      2,
+      "Plot 10 leftover East Circular Joydebpur vs West Circular Joydevpur",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, East Tejgaon Joydebpur, Sonda"),
+      row("Plot # 10, Airport Road, West Tejgaon Joydevpur, Sonda"),
+      2,
+      "Plot 10 leftover East Tejgaon Joydebpur vs West Tejgaon Joydevpur",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, Airport Sheikh East Joydebpur, Sonda"),
+      row("Plot # 10, Airport Road, Airport Shaikh West Joydevpur, Sonda"),
+      2,
+      "Plot 10 leftover Airport Sheikh East Joydebpur vs Airport Shaikh West Joydevpur same stem",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, EastAirportJoydebpur, Sonda"),
+      row("Plot # 10, Airport Road, WestAirportJoydevpur, Sonda"),
+      2,
+      "Plot 10 leftover one-token EastAirportJoydebpur vs WestAirportJoydevpur",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, Northeast Airport Joydebpur, Sonda"),
+      row("Plot # 10, Airport Road, Southeast Airport Joydevpur, Sonda"),
+      2,
+      "Plot 10 leftover Northeast Airport Joydebpur vs Southeast Airport Joydevpur",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Street, Airport Sheikh East Joydebpur, Sonda"),
+      row("Plot # 10, Airport Street, Airpark Shaikh West Joydebpur, Sonda"),
+      2,
+      "Plot 10 leftover honorific-after-stem after Airport Street",
+    );
+    assertBothOrders(
+      row("Plot # 10, Circular Road, Airport Sheikh East Joydebpur, Sonda"),
+      row("Plot # 10, Circular Road, Airpark Shaikh West Joydebpur, Sonda"),
+      2,
+      "Plot 10 leftover honorific-after-stem after Circular Road",
+    );
+    assertBothOrders(
+      row("Plot # 10, Mirpur Road, Airport Sheikh East Joydebpur, Sonda"),
+      row("Plot # 10, Mirpur Road, Airpark Shaikh West Joydebpur, Sonda"),
+      2,
+      "Plot 10 leftover honorific-after-stem after Mirpur Road",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, Airport Md Sheikh East Joydebpur, Sonda"),
+      row("Plot # 10, Airport Road, Airpark Dr Shaikh West Joydebpur, Sonda"),
+      2,
+      "Plot 10 leftover two honorifics after stem plus Joydebpur",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, Airport Baba East Joydebpur, Sonda"),
+      row("Plot # 10, Airport Road, Airpark Babu West Joydebpur, Sonda"),
+      2,
+      "Plot 10 leftover Baba after stem plus Joydebpur",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, Airport Doctor East Joydebpur, Sonda"),
+      row("Plot # 10, Airport Road, Airpark Docter West Joydebpur, Sonda"),
+      2,
+      "Plot 10 leftover Doctor after stem plus Joydebpur",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, AirportCircular, Sonda"),
+      row("Plot # 10, Airport Road, AirparkCircular, Sonda"),
+      2,
+      "Plot 10 leftover one-token AirportCircular vs AirparkCircular",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, AirportJoydebpur, Sonda"),
+      row("Plot # 10, Airport Road, AirparkJoydebpur, Sonda"),
+      2,
+      "Plot 10 leftover one-token AirportJoydebpur vs AirparkJoydebpur",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, AirportJoydebpur, Sonda"),
+      row("Plot # 10, Airport Road, AirparkJoydevpur, Sonda"),
+      2,
+      "Plot 10 leftover one-token AirportJoydebpur vs AirparkJoydevpur competing-stem XOR",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, CircularAirport, Sonda"),
+      row("Plot # 10, Airport Road, CircularAirpark, Sonda"),
+      2,
+      "Plot 10 leftover one-token CircularAirport vs CircularAirpark",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, EastCircularAirport, Sonda"),
+      row("Plot # 10, Airport Road, WestCircularAirpark, Sonda"),
+      2,
+      "Plot 10 leftover one-token EastCircularAirport vs WestCircularAirpark",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, AirportEastCircular, Sonda"),
+      row("Plot # 10, Airport Road, AirparkWestCircular, Sonda"),
+      2,
+      "Plot 10 leftover one-token AirportEastCircular vs AirparkWestCircular",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Court, Airport Sheikh East Circular, Sonda"),
+      row("Plot # 10, Airport Court, Airpark Shaikh West Circular, Sonda"),
+      2,
+      "Plot 10 leftover honorific-after-stem Circular after Airport Court",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, Airport Hajee East Circular, Sonda"),
+      row("Plot # 10, Airport Road, Airpark Hajee West Circular, Sonda"),
+      2,
+      "Plot 10 leftover Hajee East Circular vs Hajee West Circular",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, Airport Al-Haj East Circular, Sonda"),
+      row("Plot # 10, Airport Road, Airpark Al-Haj West Circular, Sonda"),
+      2,
+      "Plot 10 leftover both Al-Haj hyphen Circular",
+    );
+    assertBothOrders(
+      row("Airport Road, Airport Sheikh East Circular, Sonda"),
+      row("Airport Road, Airpark Shaikh West Circular, Sonda"),
+      2,
+      "leftover honorific-after-stem Circular with Plot omitted",
+    );
+    assertBothOrders(
+      row("House 10, Airport Sheikh East Circular, Sonda"),
+      row("House 10, Airpark Shaikh West Circular, Sonda"),
+      2,
+      "House 10 leftover honorific-after-stem Circular",
+    );
+    assertBothOrders(
+      row("Plot # 10, Circular Road, Airport, Sonda"),
+      row("Plot # 10, Circular Road, Airpark, Sonda"),
+      2,
+      "Plot 10 leftover Circular Road Airport vs Airpark",
+    );
+    assertBothOrders(
+      row("Circular Road, Airport, Sonda"),
+      row("Circular Road, Airpark, Sonda"),
+      2,
+      "leftover Circular Road Airport vs Airpark Plot omitted",
+    );
+    assertBothOrders(
+      row("Airport Road, East Airport Joydebpur, Sonda"),
+      row("Airport Road, West Airport Joydevpur, Sonda"),
+      2,
+      "leftover East Airport Joydebpur vs West Airport Joydevpur Plot omitted",
+    );
+    assertBothOrders(
+      row("Airport Road, East Joydebpur, Sonda"),
+      row("Airport Road, West Joydevpur, Sonda"),
+      1,
+      "KEEP leftover East Joydebpur vs West Joydevpur Plot omitted",
+    );
+    assertBothOrders(
+      row("Airport Road, AirportCircular Road, Sonda"),
+      row("Airport Road, AirparkCircular Road, Sonda"),
+      2,
+      "leftover AirportCircular Road vs AirparkCircular Road Plot omitted",
+    );
+    assertBothOrders(
+      row("Airport Road, AirportCircular Road, Dhaka"),
+      row("Airport Road, AirparkCircular Road, Dhaka"),
+      2,
+      "leftover AirportCircular Road vs AirparkCircular Road Plot omitted Dhaka",
+    );
+    assertBothOrders(
+      row("Airport Road, AirportCircular Road"),
+      row("Airport Road, AirparkCircular Road"),
+      2,
+      "leftover AirportCircular Road vs AirparkCircular Road Plot omitted no village",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, AirportCircular Road, Sonda"),
+      row("Plot # 10, Airport Road, AirparkCircular Road, Sonda"),
+      2,
+      "Plot 10 leftover AirportCircular Road vs AirparkCircular Road",
+    );
+    assertBothOrders(
+      row("Airport Road, Airport Sheikh East Circular Road, Sonda"),
+      row("Airport Road, Airpark Shaikh West Circular Road, Sonda"),
+      2,
+      "leftover honorific Circular Road Plot omitted",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, Airport Sheikh East Circular Road, Sonda"),
+      row("Plot # 10, Airport Road, Airpark Shaikh West Circular Road, Sonda"),
+      2,
+      "Plot 10 leftover honorific Circular Road",
+    );
+    assertBothOrders(
+      row("House 10, Airport Sheikh East Circular Road, Sonda"),
+      row("House 10, Airpark Shaikh West Circular Road, Sonda"),
+      2,
+      "House 10 leftover honorific Circular Road",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Court, Airport Sheikh East Circular Road, Sonda"),
+      row("Plot # 10, Airport Court, Airpark Shaikh West Circular Road, Sonda"),
+      2,
+      "Plot 10 leftover after Court honorific Circular Road",
+    );
+    assertBothOrders(
+      row("Airport Court, Airport Sheikh East Circular Road, Sonda"),
+      row("Airport Court, Airpark Shaikh West Circular Road, Sonda"),
+      2,
+      "leftover after Court honorific Circular Road Plot omitted",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Court Airport Sheikh East Circular, Sonda"),
+      row("Plot # 10, Airport Court Airpark Shaikh West Circular, Sonda"),
+      2,
+      "Plot 10 leftover after Court same-field honorific Circular",
+    );
+    assertBothOrders(
+      row("Airport Court Airport Sheikh East Circular, Sonda"),
+      row("Airport Court Airpark Shaikh West Circular, Sonda"),
+      2,
+      "leftover after Court same-field honorific Circular Plot omitted",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Court AirportCircular, Sonda"),
+      row("Plot # 10, Airport Court AirparkCircular, Sonda"),
+      2,
+      "Plot 10 leftover after Court same-field AirportCircular",
+    );
+    assertBothOrders(
+      row("Airport Court East Airport Joydebpur, Sonda"),
+      row("Airport Court West Airport Joydevpur, Sonda"),
+      2,
+      "leftover after Court same-field East Airport Joydebpur Plot omitted",
+    );
+    assertBothOrders(
+      row("Airport Road, Airport, Sonda"),
+      row("Airport Road, Airpark, Sonda"),
+      2,
+      "leftover Airport Road leftover Airport vs Airpark Plot omitted",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, Airport, Sonda"),
+      row("Plot # 10, Airport Road, Airpark, Sonda"),
+      2,
+      "Plot 10 leftover Airport Road leftover Airport vs Airpark",
+    );
+    assertBothOrders(
+      row("House 10, Airport Road, Airport, Sonda"),
+      row("House 10, Airport Road, Airpark, Sonda"),
+      2,
+      "House 10 leftover Airport Road leftover Airport vs Airpark",
+    );
+    assertBothOrders(
+      row("Airport Road Airport, Sonda"),
+      row("Airport Road Airpark, Sonda"),
+      2,
+      "leftover same-field Airport Road Airport vs Airpark Plot omitted",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, AirportCircular, Sonda"),
+      row("Airport Road, AirparkCircular, Sonda"),
+      2,
+      "mixed Plot 10 leftover AirportCircular vs Plot omitted AirparkCircular",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, Airport Sheikh East Circular, Sonda"),
+      row("Airport Road, Airpark Shaikh West Circular, Sonda"),
+      2,
+      "mixed Plot 10 leftover honorific Circular vs Plot omitted",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, AirportCircular Road, Sonda"),
+      row("Airport Road, AirparkCircular Road, Sonda"),
+      2,
+      "mixed Plot 10 leftover AirportCircular Road vs Plot omitted",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, AirportCircular, Sonda"),
+      row("Airport Road, AirportCircular, Sonda"),
+      1,
+      "KEEP mixed same-stem Plot 10 leftover AirportCircular vs Plot omitted AirportCircular",
+    );
+    assertBothOrders(
+      row("Airport Road, Airport Road, Sonda"),
+      row("Airport Road, Airpark Road, Sonda"),
+      2,
+      "leftover restated Airport Road vs Airpark Road Plot omitted",
+    );
+    assertBothOrders(
+      row("Airport Road, Airport Road, Dhaka"),
+      row("Airport Road, Airpark Road, Dhaka"),
+      2,
+      "leftover restated Airport Road vs Airpark Road Plot omitted Dhaka",
+    );
+    assertBothOrders(
+      row("Airport Road, Airport Road"),
+      row("Airport Road, Airpark Road"),
+      2,
+      "leftover restated Airport Road vs Airpark Road Plot omitted no village",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, Airport Road, Sonda"),
+      row("Plot # 10, Airport Road, Airpark Road, Sonda"),
+      2,
+      "Plot 10 leftover restated Airport Road vs Airpark Road",
+    );
+    assertBothOrders(
+      row("House 10, Airport Road, Airport Road, Sonda"),
+      row("House 10, Airport Road, Airpark Road, Sonda"),
+      2,
+      "House 10 leftover restated Airport Road vs Airpark Road",
+    );
+    assertBothOrders(
+      row("Airport Road, Sonda"),
+      row("Airpark Road, Sonda"),
+      2,
+      "leftover PRIMARY Airport Road vs Airpark Road Plot omitted",
+    );
+    assertBothOrders(
+      row("Airport Road, Dhaka"),
+      row("Airpark Road, Dhaka"),
+      2,
+      "leftover PRIMARY Airport Road vs Airpark Road Plot omitted Dhaka",
+    );
+    assertBothOrders(
+      row("Airport Road"),
+      row("Airpark Road"),
+      2,
+      "leftover PRIMARY Airport Road vs Airpark Road Plot omitted no village",
+    );
+    assertBothOrders(
+      row("Airport Street, Sonda"),
+      row("Airpark Street, Sonda"),
+      2,
+      "leftover PRIMARY Airport Street vs Airpark Street Plot omitted",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, Sonda"),
+      row("Airpark Road, Sonda"),
+      2,
+      "mixed Plot 10 leftover PRIMARY Airport Road vs Plot omitted Airpark Road",
+    );
+    assertBothOrders(
+      row("Green Road, Dhaka"),
+      row("Greenwood Road, Dhaka"),
+      2,
+      "leftover PRIMARY Green Road vs Greenwood Road Plot omitted",
+    );
+    assertBothOrders(
+      row("East Rampura Road, Dhaka"),
+      row("West Rampura Road, Dhaka"),
+      1,
+      "KEEP leftover PRIMARY East Rampura Road vs West Rampura Road Plot omitted",
+    );
+    assertBothOrders(
+      row("East Gulshan Road, Dhaka"),
+      row("West Gulshan Road, Dhaka"),
+      2,
+      "leftover PRIMARY East Gulshan Road vs West Gulshan Road Plot omitted",
+    );
+    assertBothOrders(
+      row("East Gulshan, Dhaka"),
+      row("West Gulshan, Dhaka"),
+      2,
+      "leftover PRIMARY East Gulshan vs West Gulshan Plot omitted no-Road",
+    );
+    assertBothOrders(
+      row("Airport Road, AirportCircularRoad, Sonda"),
+      row("Airport Road, AirparkCircularRoad, Sonda"),
+      2,
+      "leftover glued AirportCircularRoad vs AirparkCircularRoad Plot omitted",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, AirportCircularRoad, Sonda"),
+      row("Plot # 10, Airport Road, AirparkCircularRoad, Sonda"),
+      2,
+      "Plot 10 leftover glued AirportCircularRoad vs AirparkCircularRoad",
+    );
+    assertBothOrders(
+      row("Airport Road, Airport CircularRoad, Sonda"),
+      row("Airport Road, Airpark CircularRoad, Sonda"),
+      2,
+      "leftover Airport CircularRoad vs Airpark CircularRoad Plot omitted",
+    );
+    assertBothOrders(
+      row("Plot # 10, Green Road, Airport, Sonda"),
+      row("Plot # 10, Green Road, Airpark, Sonda"),
+      2,
+      "Plot 10 leftover Green Road leftover Airport vs Airpark",
+    );
+    assertBothOrders(
+      row("Plot # 10, Green Road, Airport, Dhaka"),
+      row("Plot # 10, Green Road, Airpark, Dhaka"),
+      2,
+      "Plot 10 leftover Green Road leftover Airport vs Airpark Dhaka",
+    );
+    assertBothOrders(
+      row("Plot # 10, Green Road, Airport Road, Sonda"),
+      row("Plot # 10, Green Road, Airpark Road, Sonda"),
+      2,
+      "Plot 10 leftover Green Road leftover restated Airport Road",
+    );
+    assertBothOrders(
+      row("Airport Court, Airport, Sonda"),
+      row("Airport Court, Airpark, Sonda"),
+      2,
+      "leftover after Court leftover Airport vs Airpark Plot omitted",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Court, Airport, Sonda"),
+      row("Plot # 10, Airport Court, Airpark, Sonda"),
+      2,
+      "Plot 10 leftover after Court leftover Airport vs Airpark",
+    );
+    assertBothOrders(
+      row("Airport Court Airport, Sonda"),
+      row("Airport Court Airpark, Sonda"),
+      2,
+      "leftover after Court same-field leftover Airport vs Airpark Plot omitted",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Court Airport, Sonda"),
+      row("Plot # 10, Airport Court Airpark, Sonda"),
+      2,
+      "Plot 10 leftover after Court same-field leftover Airport vs Airpark",
+    );
+    assertBothOrders(
+      row("Airport Plaza, Airport Road, Sonda"),
+      row("Airport Plaza, Airpark Road, Sonda"),
+      2,
+      "leftover after Plaza comma restated Airport Road vs Airpark Road Plot omitted",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Plaza, Airport Road, Sonda"),
+      row("Plot # 10, Airport Plaza, Airpark Road, Sonda"),
+      2,
+      "Plot 10 leftover after Plaza comma restated Airport Road vs Airpark Road",
+    );
+    assertBothOrders(
+      row("Airport Road, Green, Sonda"),
+      row("Green, Airport, Sonda"),
+      2,
+      "leftover Airport Road Green vs Green Airport Plot omitted",
+    );
+    assertBothOrders(
+      row("Airport Road, Green, Sonda"),
+      row("Airport Road, Airport, Sonda"),
+      2,
+      "leftover Airport Road leftover Green vs leftover Airport Plot omitted",
+    );
+    assertBothOrders(
+      row("Airport Road, Green, Dhaka"),
+      row("Airport Road, Airport, Dhaka"),
+      2,
+      "leftover Airport Road leftover Green vs leftover Airport Plot omitted Dhaka",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, Green, Sonda"),
+      row("Plot # 10, Airport Road, Airport, Sonda"),
+      2,
+      "Plot 10 leftover Airport Road leftover Green vs leftover Airport",
+    );
+    assertBothOrders(
+      row("Airport Road, Greenwood, Sonda"),
+      row("Airport Road, Airport, Sonda"),
+      2,
+      "leftover Airport Road leftover Greenwood vs leftover Airport Plot omitted",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, Green, Sonda"),
+      row("Plot # 10, Airport Road, Greenwood, Sonda"),
+      2,
+      "Plot 10 leftover Airport Road leftover Green vs leftover Greenwood",
+    );
+    assertBothOrders(
+      row("Airport Road, Green, Dhaka"),
+      row("Airport Road, Greenwood, Dhaka"),
+      2,
+      "leftover Airport Road leftover Green vs leftover Greenwood Plot omitted Dhaka",
+    );
+    assertBothOrders(
+      row("Airport Plaza, Airport Road, Savar"),
+      row("Airport Plaza, Airpark Road, Savar"),
+      2,
+      "leftover after Plaza comma restated Airport Road vs Airpark Road Plot omitted Savar",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Plaza, Airport Road, Savar"),
+      row("Plot # 10, Airport Plaza, Airpark Road, Savar"),
+      2,
+      "Plot 10 leftover after Plaza comma restated Airport Road vs Airpark Road Savar",
+    );
+    assertBothOrders(
+      row("Airport Plaza, Airport Road, Tongi"),
+      row("Airport Plaza, Airpark Road, Tongi"),
+      2,
+      "leftover after Plaza comma restated Airport Road vs Airpark Road Plot omitted Tongi",
+    );
+    assertBothOrders(
+      row("Airport Plaza, Airport Road, Keraniganj"),
+      row("Airport Plaza, Airpark Road, Keraniganj"),
+      2,
+      "leftover after Plaza comma restated Airport Road vs Airpark Road Plot omitted Keraniganj",
+    );
+    assertBothOrders(
+      row("Airport Plaza, Airport Road, Ashulia"),
+      row("Airport Plaza, Airpark Road, Ashulia"),
+      2,
+      "leftover after Plaza comma restated Airport Road vs Airpark Road Plot omitted Ashulia",
+    );
+    assertBothOrders(
+      row("Airport Bhaban, Airport Road, Savar"),
+      row("Airport Bhaban, Airpark Road, Savar"),
+      2,
+      "leftover after Bhaban comma restated Airport Road vs Airpark Road Plot omitted Savar",
+    );
+    assertBothOrders(
+      row("Airport Plaza, Airport, Savar"),
+      row("Airport Plaza, Airpark, Savar"),
+      2,
+      "leftover after Plaza leftover Airport vs leftover Airpark Plot omitted Savar",
+    );
+    assertBothOrders(
+      row("Airport Plaza, Green, Savar"),
+      row("Airport Plaza, Airport, Savar"),
+      2,
+      "leftover after Plaza leftover Green vs leftover Airport Plot omitted Savar",
+    );
+    assertBothOrders(
+      row("Airport Plaza, Green, Savar"),
+      row("Airport Plaza, Airpark, Savar"),
+      2,
+      "leftover after Plaza leftover Green vs leftover Airpark Plot omitted Savar",
+    );
+    assertBothOrders(
+      row("Airport Court, Green, Sonda"),
+      row("Airport Court, Airport, Sonda"),
+      2,
+      "leftover after Court leftover Green vs leftover Airport Plot omitted",
+    );
+    assertBothOrders(
+      row("House 50, South Gulshan, Dhaka"),
+      row("7 South Gulshan, Dhaka"),
+      1,
+      "KEEP House 50 vs 7 South Gulshan short form",
+    );
+    assertBothOrders(
+      row("House 50, South Banani, Dhaka"),
+      row("7 South Banani, Dhaka"),
+      2,
+      "KEEP House 50 vs 7 South Banani short form",
+    );
+    assertBothOrders(
+      row("Green, Dhaka"),
+      row("Greenwood, Dhaka"),
+      2,
+      "leftover PRIMARY Green vs Greenwood Plot omitted no-Road Dhaka",
+    );
+    assertBothOrders(
+      row("Green, Savar"),
+      row("Greenwood, Savar"),
+      2,
+      "leftover PRIMARY Green vs Greenwood Plot omitted no-Road Savar",
+    );
+    assertBothOrders(
+      row("Green, Tongi"),
+      row("Greenwood, Tongi"),
+      2,
+      "leftover PRIMARY Green vs Greenwood Plot omitted no-Road Tongi",
+    );
+    assertBothOrders(
+      row("Green, Ashulia"),
+      row("Greenwood, Ashulia"),
+      2,
+      "leftover PRIMARY Green vs Greenwood Plot omitted no-Road Ashulia",
+    );
+    assertBothOrders(
+      row("Green, Keraniganj"),
+      row("Greenwood, Keraniganj"),
+      2,
+      "leftover PRIMARY Green vs Greenwood Plot omitted no-Road Keraniganj",
+    );
+    assertBothOrders(
+      row("Green, Uttara"),
+      row("Greenwood, Uttara"),
+      2,
+      "leftover PRIMARY Green vs Greenwood Plot omitted no-Road Uttara",
+    );
+    assertBothOrders(
+      row("Green, Mirpur"),
+      row("Greenwood, Mirpur"),
+      2,
+      "leftover PRIMARY Green vs Greenwood Plot omitted no-Road Mirpur",
+    );
+    assertBothOrders(
+      row("Green Road, Dhaka"),
+      row("Greenwood, Dhaka"),
+      2,
+      "leftover Green Road vs leftover Greenwood no-Road Dhaka",
+    );
+    assertBothOrders(
+      row("House 10, Green, Sonda"),
+      row("House 10, Greenwood, Sonda"),
+      2,
+      "leftover House 10 leftover PRIMARY Green vs Greenwood Sonda",
+    );
+    assertBothOrders(
+      row("Fashion Plaza, Green, Dhaka"),
+      row("Fashion Plaza, Greenwood, Dhaka"),
+      2,
+      "leftover after Fashion Plaza leftover Green vs leftover Greenwood Dhaka",
+    );
+    assertBothOrders(
+      row("Fashion Plaza, Green, Savar"),
+      row("Fashion Plaza, Greenwood, Savar"),
+      2,
+      "leftover after Fashion Plaza leftover Green vs leftover Greenwood Savar",
+    );
+    assertBothOrders(
+      row("Green Plaza, Green, Dhaka"),
+      row("Green Plaza, Greenwood, Dhaka"),
+      2,
+      "leftover after Green Plaza leftover Green vs leftover Greenwood Dhaka",
+    );
+    assertBothOrders(
+      row("Fashion Bhaban, Green, Dhaka"),
+      row("Fashion Bhaban, Greenwood, Dhaka"),
+      2,
+      "leftover after Fashion Bhaban leftover Green vs leftover Greenwood Dhaka",
+    );
+    assertBothOrders(
+      row("Fashion Tower, Green, Dhaka"),
+      row("Fashion Tower, Greenwood, Dhaka"),
+      2,
+      "leftover after Fashion Tower leftover Green vs leftover Greenwood Dhaka",
+    );
+    assertBothOrders(
+      row("Fashion Court, Green, Dhaka"),
+      row("Fashion Court, Greenwood, Dhaka"),
+      2,
+      "leftover after Fashion Court leftover Green vs leftover Greenwood Dhaka",
+    );
+    assertBothOrders(
+      row("Fashion Market, Green, Dhaka"),
+      row("Fashion Market, Greenwood, Dhaka"),
+      2,
+      "leftover after Fashion Market leftover Green vs leftover Greenwood Dhaka",
+    );
+    assertBothOrders(
+      row("Kazi Nazrul Islam Avenue, Green, Dhaka"),
+      row("Kazi Nazrul Islam Avenue, Greenwood, Dhaka"),
+      2,
+      "leftover Green vs leftover Greenwood after Kazi Nazrul Islam Avenue Dhaka",
+    );
+    assertBothOrders(
+      row("Nazrul Avenue, Green, Savar"),
+      row("Nazrul Avenue, Greenwood, Savar"),
+      2,
+      "leftover Green vs leftover Greenwood after Nazrul Avenue Savar",
+    );
+    assertBothOrders(
+      row("Mirpur Road, Green, Dhaka"),
+      row("Mirpur Road, Greenwood, Dhaka"),
+      2,
+      "leftover Green vs leftover Greenwood after Mirpur Road Dhaka",
+    );
+    assertBothOrders(
+      row("Circular Road, Green, Dhaka"),
+      row("Circular Road, Greenwood, Dhaka"),
+      2,
+      "leftover Green vs leftover Greenwood after Circular Road Dhaka",
+    );
+    assertBothOrders(
+      row("Dit Road, Green, Dhaka"),
+      row("Dit Road, Greenwood, Dhaka"),
+      2,
+      "leftover Green vs leftover Greenwood after Dit Road Dhaka",
+    );
+    assertBothOrders(
+      row("Panthapath, Green, Dhaka"),
+      row("Panthapath, Greenwood, Dhaka"),
+      2,
+      "leftover Green vs leftover Greenwood after Panthapath Dhaka",
+    );
+    assertBothOrders(
+      row("Airport Link Road, Green, Dhaka"),
+      row("Airport Link Road, Greenwood, Dhaka"),
+      2,
+      "leftover Green vs leftover Greenwood after Airport Link Road Dhaka",
+    );
+    assertBothOrders(
+      row("Plot # 10, Kazi Nazrul Islam Avenue, Green, Dhaka"),
+      row("Plot # 10, Kazi Nazrul Islam Avenue, Greenwood, Dhaka"),
+      2,
+      "leftover Plot 10 leftover Nazrul Avenue leftover Green vs leftover Greenwood",
+    );
+    assertBothOrders(
+      row("Plot # 10, Fashion Plaza, Green, Dhaka"),
+      row("Plot # 10, Fashion Plaza, Greenwood, Dhaka"),
+      2,
+      "leftover Plot 10 leftover Fashion Plaza leftover Green vs leftover Greenwood",
+    );
+    assertBothOrders(
+      row("House 10, Fashion Plaza, Green, Dhaka"),
+      row("House 10, Fashion Plaza, Greenwood, Dhaka"),
+      2,
+      "leftover House 10 leftover Fashion Plaza leftover Green vs leftover Greenwood",
+    );
+    assertBothOrders(
+      row("House 10, Green Street, Sonda"),
+      row("House 10, Greenwood, Sonda"),
+      2,
+      "leftover House 10 leftover Green Street vs leftover Greenwood Sonda",
+    );
+    assertBothOrders(
+      row("House 10, Green Road, Sonda"),
+      row("House 10, Greenwood, Sonda"),
+      2,
+      "leftover House 10 leftover Green Road vs leftover Greenwood Sonda",
+    );
+    assertBothOrders(
+      row("House 10, Green Avenue, Dhaka"),
+      row("House 10, Greenwood, Dhaka"),
+      2,
+      "leftover House 10 leftover Green Avenue vs leftover Greenwood Dhaka",
+    );
+    assertBothOrders(
+      row("House 10, Green Lane, Sonda"),
+      row("House 10, Greenwood, Sonda"),
+      2,
+      "leftover House 10 leftover Green Lane vs leftover Greenwood Sonda",
+    );
+    assertBothOrders(
+      row("House 10, Green Rd, Dhaka"),
+      row("House 10, Greenwood, Dhaka"),
+      2,
+      "leftover House 10 leftover Green Rd vs leftover Greenwood Dhaka",
+    );
+    assertBothOrders(
+      row("House # 10, Green Street, Sonda"),
+      row("House # 10, Greenwood, Sonda"),
+      2,
+      "leftover House # 10 leftover Green Street vs leftover Greenwood Sonda",
+    );
+    assertBothOrders(
+      row("House No. 10, Green Street, Savar"),
+      row("House No. 10, Greenwood, Savar"),
+      2,
+      "leftover House No. 10 leftover Green Street vs leftover Greenwood Savar",
+    );
+    assertBothOrders(
+      row("Holding 10, Green Avenue, Dhaka"),
+      row("Holding 10, Greenwood, Dhaka"),
+      2,
+      "leftover Holding 10 leftover Green Avenue vs leftover Greenwood Dhaka",
+    );
+    assertBothOrders(
+      row("House 10, Greenwood Road, Sonda"),
+      row("House 10, Green, Sonda"),
+      2,
+      "leftover House 10 leftover Greenwood Road vs leftover Green no-Road Sonda",
+    );
+    assertBothOrders(
+      row("House 10, Green Street, Sonda"),
+      row("House 10, Greenwood Street, Sonda"),
+      2,
+      "KEEP leftover House 10 leftover Green Street vs leftover Greenwood Street Sonda",
+    );
+    assertBothOrders(
+      row("Green Street, Dhaka"),
+      row("Greenwood, Dhaka"),
+      2,
+      "leftover Green Street vs leftover Greenwood no-House Dhaka",
+    );
+    assertBothOrders(
+      row("Plot # 10, 10 Kazi Nazrul Islam Avenue, Green, Dhaka"),
+      row("Plot # 10, 10 Green, Nazrul, Dhaka"),
+      2,
+      "KEEP Plot 10 leftover Green after Nazrul vs leftover Green, Nazrul",
+    );
+    assertBothOrders(
+      row("Nazrul Avenue, Green, Dhaka"),
+      row("Green, Nazrul, Dhaka"),
+      2,
+      "leftover Nazrul Avenue leftover Green vs leftover Green, Nazrul Dhaka",
+    );
+    assertBothOrders(
+      row("Nazrul Avenue, Green, Dhaka"),
+      row("Green, Nazrul Avenue, Dhaka"),
+      2,
+      "leftover Nazrul Avenue leftover Green vs leftover Green, Nazrul Avenue Dhaka",
+    );
+    assertBothOrders(
+      row("Nazrul Avenue, Green, Dhaka"),
+      row("Nazrul Street, Green, Dhaka"),
+      2,
+      "leftover Nazrul Avenue leftover Green vs leftover Nazrul Street leftover Green Dhaka",
+    );
+    assertBothOrders(
+      row("Nazrul Avenue, Green, Dhaka"),
+      row("Green, Nazrul Street, Dhaka"),
+      2,
+      "KEEP leftover Nazrul Avenue leftover Green vs leftover Green, Nazrul Street Dhaka",
+    );
+    assertBothOrders(
+      row("Nazrul Avenue, Green, Dhaka"),
+      row("Green, Nazrul Road, Dhaka"),
+      2,
+      "leftover Nazrul Avenue leftover Green vs leftover Green, Nazrul Road Dhaka",
+    );
+    assertBothOrders(
+      row("Nazrul Avenue, Green, Dhaka"),
+      row("Green, Nazrul Ave, Dhaka"),
+      2,
+      "leftover Nazrul Avenue leftover Green vs leftover Green, Nazrul Ave Dhaka",
+    );
+    assertBothOrders(
+      row("Kazi Nazrul Islam Avenue, Green, Dhaka"),
+      row("Green, Kazi Nazrul Islam Avenue, Dhaka"),
+      2,
+      "leftover Kazi Nazrul leftover Green vs leftover Green, Kazi Nazrul Islam Avenue",
+    );
+    assertBothOrders(
+      row("Mirpur Road, Green, Dhaka"),
+      row("Green, Mirpur Road, Dhaka"),
+      2,
+      "leftover Mirpur Road leftover Green vs leftover Green, Mirpur Road Dhaka",
+    );
+    assertBothOrders(
+      row("Circular Road, Green, Dhaka"),
+      row("Green, Circular Road, Dhaka"),
+      2,
+      "leftover Circular Road leftover Green vs leftover Green, Circular Road Dhaka",
+    );
+    assertBothOrders(
+      row("Elephant Road, Green, Dhaka"),
+      row("Green, Elephant Road, Dhaka"),
+      2,
+      "leftover Elephant Road leftover Green vs leftover Green, Elephant Road Dhaka",
+    );
+    assertBothOrders(
+      row("Airport Link Road, Green, Dhaka"),
+      row("Green, Airport Link Road, Dhaka"),
+      2,
+      "leftover Airport Link Road leftover Green vs leftover Green, Airport Link Road Dhaka",
+    );
+    assertBothOrders(
+      row("Kakrail Road, Green, Dhaka"),
+      row("Green, Dhaka"),
+      2,
+      "leftover Kakrail Road leftover Green vs leftover PRIMARY Green Dhaka",
+    );
+    assertBothOrders(
+      row("Kakrail Road, Green, Dhaka"),
+      row("Green, Kakrail, Dhaka"),
+      2,
+      "leftover Kakrail Road leftover Green vs leftover Green, Kakrail Dhaka",
+    );
+    assertBothOrders(
+      row("Kakrail Road, Green, Savar"),
+      row("Green, Savar"),
+      2,
+      "leftover Kakrail Road leftover Green vs leftover PRIMARY Green Savar",
+    );
+    assertBothOrders(
+      row("House 10, Kakrail Road, Green, Dhaka"),
+      row("House 10, Green, Kakrail, Dhaka"),
+      2,
+      "leftover House 10 leftover Kakrail leftover Green vs leftover Green, Kakrail",
+    );
+    assertBothOrders(
+      row("New Eskaton Road, Green, Dhaka"),
+      row("Green, Dhaka"),
+      2,
+      "leftover New Eskaton Road leftover Green vs leftover PRIMARY Green Dhaka",
+    );
+    assertBothOrders(
+      row("Banani Road, Green, Dhaka"),
+      row("Green, Dhaka"),
+      2,
+      "leftover Banani Road leftover Green vs leftover PRIMARY Green Dhaka",
+    );
+    assertBothOrders(
+      row("Dhanmondi Road, Green, Dhaka"),
+      row("Green, Dhaka"),
+      2,
+      "leftover Dhanmondi Road leftover Green vs leftover PRIMARY Green Dhaka",
+    );
+    assertBothOrders(
+      row("Gulshan Avenue, Green, Dhaka"),
+      row("Green, Dhaka"),
+      2,
+      "leftover Gulshan Avenue leftover Green vs leftover PRIMARY Green Dhaka",
+    );
+    assertBothOrders(
+      row("New Eskaton Road, Green, Dhaka"),
+      row("Green, Eskaton, Dhaka"),
+      2,
+      "leftover New Eskaton Road leftover Green vs leftover Green, Eskaton Dhaka",
+    );
+    assertBothOrders(
+      row("Kakrail Road, Green, Dhaka"),
+      row("10 Green, Kakrail, Dhaka"),
+      2,
+      "leftover 10 Green, Kakrail vs leftover Green after Kakrail no-Plot",
+    );
+    assertBothOrders(
+      row("Kakrail Road, Green, Dhaka"),
+      row("Plot # 10, 10 Green, Kakrail, Dhaka"),
+      2,
+      "mixed omit leftover Green after Kakrail vs Plot leftover Green, Kakrail",
+    );
+    assertBothOrders(
+      row("Nazrul Avenue, Green, Sonda"),
+      row("Green, Nazrul Avenue, Sonda"),
+      2,
+      "leftover Nazrul Avenue leftover Green vs leftover Green, Nazrul Avenue Sonda",
+    );
+    assertBothOrders(
+      row("House 10, Green Street, Dhaka"),
+      row("House 10, Airport Link, Dhaka"),
+      2,
+      "leftover House 10 leftover Green Street vs leftover Airport Link Dhaka",
+    );
+    assertBothOrders(
+      row("House 5, Green Street, Sonda"),
+      row("House 5, Airport Link, Sonda"),
+      2,
+      "leftover House 5 leftover Green Street vs leftover Airport Link Sonda",
+    );
+    assertBothOrders(
+      row("House 10, Green Avenue, Sonda"),
+      row("House 10, Airport Link, Sonda"),
+      2,
+      "leftover House 10 leftover Green Avenue vs leftover Airport Link Sonda",
+    );
+    assertBothOrders(
+      row("Fashion Plaza, Green, Dhaka"),
+      row("Green, Dhaka"),
+      1,
+      "KEEP leftover after Fashion Plaza leftover Green vs leftover PRIMARY Green Dhaka",
+    );
+    assertBothOrders(
+      row("Pragati Sarani, Green, Dhaka"),
+      row("Green, Dhaka"),
+      1,
+      "KEEP leftover Pragati Sarani leftover Green vs leftover PRIMARY Green Dhaka",
+    );
+    assertBothOrders(
+      row("Kazi Nazrul Islam Avenue, Green, Dhaka"),
+      row("Green, Nazrul, Dhaka"),
+      2,
+      "leftover Kazi Nazrul leftover Green vs leftover Green, Nazrul Dhaka",
+    );
+    assertBothOrders(
+      row("Kazi Nazrul Islam Avenue, Green, Dhaka"),
+      row("Green, Dhaka"),
+      2,
+      "leftover Kazi Nazrul leftover Green vs leftover PRIMARY Green Dhaka",
+    );
+    assertBothOrders(
+      row("Nazrul Avenue, Green, Savar"),
+      row("Green, Savar"),
+      2,
+      "leftover Nazrul Avenue leftover Green vs leftover PRIMARY Green Savar",
+    );
+    assertBothOrders(
+      row("Mirpur Road, Green, Dhaka"),
+      row("Green, Mirpur, Dhaka"),
+      2,
+      "leftover Mirpur Road leftover Green vs leftover Green, Mirpur Dhaka",
+    );
+    assertBothOrders(
+      row("Circular Road, Green, Dhaka"),
+      row("Green, Circular, Dhaka"),
+      2,
+      "leftover Circular Road leftover Green vs leftover Green, Circular Dhaka",
+    );
+    assertBothOrders(
+      row("Elephant Road, Green, Dhaka"),
+      row("Green, Dhaka"),
+      2,
+      "leftover Elephant Road leftover Green vs leftover PRIMARY Green Dhaka",
+    );
+    assertBothOrders(
+      row("Dit Road, Green, Dhaka"),
+      row("Green, Dhaka"),
+      2,
+      "leftover Dit Road leftover Green vs leftover PRIMARY Green Dhaka",
+    );
+    assertBothOrders(
+      row("Airport Link Road, Green, Dhaka"),
+      row("Green, Dhaka"),
+      2,
+      "leftover Airport Link Road leftover Green vs leftover PRIMARY Green Dhaka",
+    );
+    assertBothOrders(
+      row("House 10, Nazrul Avenue, Green, Dhaka"),
+      row("House 10, Green, Nazrul, Dhaka"),
+      2,
+      "leftover House 10 leftover Nazrul leftover Green vs leftover Green, Nazrul",
+    );
+    assertBothOrders(
+      row("House 10, Green Street, Sonda"),
+      row("House 10, Airport, Sonda"),
+      2,
+      "leftover House 10 leftover Green Street vs leftover Airport Sonda",
+    );
+    assertBothOrders(
+      row("House 10, Green Street, Sonda"),
+      row("House 10, Airport Link, Sonda"),
+      2,
+      "leftover House 10 leftover Green Street vs leftover Airport Link Sonda",
+    );
+    assertBothOrders(
+      row("House 10, Green Street, Sonda"),
+      row("House 10, Airport Link Road, Sonda"),
+      2,
+      "leftover House 10 leftover Green Street vs leftover Airport Link Road Sonda",
+    );
+    assertBothOrders(
+      row("House 10, Green Street, Sonda"),
+      row("House 10, International Airport, Sonda"),
+      2,
+      "leftover House 10 leftover Green Street vs leftover International Airport Sonda",
+    );
+    assertBothOrders(
+      row("House 10, Green Street, Sonda"),
+      row("House 10, International Airport Road, Sonda"),
+      2,
+      "leftover House 10 leftover Green Street vs leftover International Airport Road Sonda",
+    );
+    assertBothOrders(
+      row("House 10, Greenwood, Sonda"),
+      row("House 10, International Airport, Sonda"),
+      2,
+      "leftover House 10 leftover Greenwood vs leftover International Airport Sonda",
+    );
+    assertBothOrders(
+      row("House 10, Green, Sonda"),
+      row("House 10, International Airport, Sonda"),
+      2,
+      "leftover House 10 leftover PRIMARY Green vs leftover International Airport Sonda",
+    );
+    assertBothOrders(
+      row("House 10, Greenwood, Sonda"),
+      row("House 10, Airport Link, Sonda"),
+      2,
+      "leftover House 10 leftover Greenwood vs leftover Airport Link Sonda",
+    );
+    assertBothOrders(
+      row("Holding 87, Green Street, Sonda"),
+      row("Holding 87, International Airport, Sonda"),
+      2,
+      "leftover Holding 87 leftover Green Street vs leftover International Airport Sonda",
+    );
+    assertBothOrders(
+      row("House 10, Green Road, Sonda"),
+      row("House 10, Airport Link, Sonda"),
+      2,
+      "leftover House 10 leftover Green Road vs leftover Airport Link Sonda",
+    );
+    assertBothOrders(
+      row("International Airport, Dhaka"),
+      row("Airport, Dhaka"),
+      1,
+      "KEEP leftover International Airport vs leftover Airport no-Road Dhaka",
+    );
+    assertBothOrders(
+      row("Airport Road, Dhaka"),
+      row("International Airport Road, Dhaka"),
+      1,
+      "KEEP leftover Airport Road vs leftover International Airport Road Dhaka",
+    );
+    assertBothOrders(
+      row("House 10, Green Street, Sonda"),
+      row("House 10, Green, Sonda"),
+      1,
+      "KEEP leftover House 10 leftover Green Street vs leftover unsuffixed Green Sonda",
+    );
+    assertBothOrders(
+      row("House 10, Green Street, Sonda"),
+      row("House 10, InternationalAirport, Sonda"),
+      2,
+      "leftover House 10 leftover Green Street vs leftover InternationalAirport glued Sonda",
+    );
+    assertBothOrders(
+      row("House 10, Greenwood, Sonda"),
+      row("House 10, InternationalAirport, Sonda"),
+      2,
+      "leftover House 10 leftover Greenwood vs leftover InternationalAirport glued Sonda",
+    );
+    assertBothOrders(
+      row("House 10, Green, Sonda"),
+      row("House 10, InternationalAirport, Sonda"),
+      2,
+      "leftover House 10 leftover PRIMARY Green vs leftover InternationalAirport glued Sonda",
+    );
+    assertBothOrders(
+      row("House 10, Green Street, Sonda"),
+      row("House 10, IntlAirport, Sonda"),
+      2,
+      "leftover House 10 leftover Green Street vs leftover IntlAirport glued Sonda",
+    );
+    assertBothOrders(
+      row("House 10, Green Street, Sonda"),
+      row("House 10, LinkAirport, Sonda"),
+      2,
+      "leftover House 10 leftover Green Street vs leftover LinkAirport glued Sonda",
+    );
+    assertBothOrders(
+      row("House 10, Green Street, Sonda"),
+      row("House 10, MohakhaliAirport, Sonda"),
+      2,
+      "leftover House 10 leftover Green Street vs leftover MohakhaliAirport glued Sonda",
+    );
+    assertBothOrders(
+      row("House 10, Greenwood, Sonda"),
+      row("House 10, LinkAirport, Sonda"),
+      2,
+      "leftover House 10 leftover Greenwood vs leftover LinkAirport glued Sonda",
+    );
+    assertBothOrders(
+      row("House 10, Green, Sonda"),
+      row("House 10, LinkAirport, Sonda"),
+      2,
+      "leftover House 10 leftover PRIMARY Green vs leftover LinkAirport glued Sonda",
+    );
+    assertBothOrders(
+      row("House 10, Greenwood, Sonda"),
+      row("House 10, MohakhaliAirport, Sonda"),
+      2,
+      "leftover House 10 leftover Greenwood vs leftover MohakhaliAirport glued Sonda",
+    );
+    assertBothOrders(
+      row("House 10, Green, Sonda"),
+      row("House 10, MohakhaliAirport, Sonda"),
+      2,
+      "leftover House 10 leftover PRIMARY Green vs leftover MohakhaliAirport glued Sonda",
+    );
+    assertBothOrders(
+      row("House 10, Greenwood, Sonda"),
+      row("House 10, IntlAirport, Sonda"),
+      2,
+      "leftover House 10 leftover Greenwood vs leftover IntlAirport glued Sonda",
+    );
+    assertBothOrders(
+      row("House 10, Green, Sonda"),
+      row("House 10, IntlAirport, Sonda"),
+      2,
+      "leftover House 10 leftover PRIMARY Green vs leftover IntlAirport glued Sonda",
+    );
+    assertBothOrders(
+      row("House 10, Green Street, Dhaka"),
+      row("House 10, InternationalAirport, Dhaka"),
+      2,
+      "leftover House 10 leftover Green Street vs leftover InternationalAirport glued Dhaka",
+    );
+    assertBothOrders(
+      row("House 10, Green Street, Savar"),
+      row("House 10, InternationalAirport, Savar"),
+      2,
+      "leftover House 10 leftover Green Street vs leftover InternationalAirport glued Savar",
+    );
+    assertBothOrders(
+      row("House 10, Green Street, Tongi"),
+      row("House 10, InternationalAirport, Tongi"),
+      2,
+      "leftover House 10 leftover Green Street vs leftover InternationalAirport glued Tongi",
+    );
+    assertBothOrders(
+      row("House 10, Green Street, Gazipur"),
+      row("House 10, InternationalAirport, Gazipur"),
+      2,
+      "leftover House 10 leftover Green Street vs leftover InternationalAirport glued Gazipur",
+    );
+    assertBothOrders(
+      row("House 10, Green Street, Valuka"),
+      row("House 10, InternationalAirport, Valuka"),
+      2,
+      "leftover House 10 leftover Green Street vs leftover InternationalAirport glued Valuka",
+    );
+    assertBothOrders(
+      row("House 10, Green Street"),
+      row("House 10, InternationalAirport"),
+      2,
+      "leftover House 10 leftover Green Street vs leftover InternationalAirport glued no village",
+    );
+    assertBothOrders(
+      row("House 5, Green Street, Sonda"),
+      row("House 5, InternationalAirport, Sonda"),
+      2,
+      "leftover House 5 leftover Green Street vs leftover InternationalAirport glued Sonda",
+    );
+    assertBothOrders(
+      row("House # 10, Green Street, Sonda"),
+      row("House # 10, InternationalAirport, Sonda"),
+      2,
+      "leftover House # 10 leftover Green Street vs leftover InternationalAirport glued Sonda",
+    );
+    assertBothOrders(
+      row("House No. 10, Green Street, Sonda"),
+      row("House No. 10, InternationalAirport, Sonda"),
+      2,
+      "leftover House No. 10 leftover Green Street vs leftover InternationalAirport glued Sonda",
+    );
+    assertBothOrders(
+      row("Holding 10, Green Street, Sonda"),
+      row("Holding 10, InternationalAirport, Sonda"),
+      2,
+      "leftover Holding 10 leftover Green Street vs leftover InternationalAirport glued Sonda",
+    );
+    assertBothOrders(
+      row("Holding 87, Green Street, Sonda"),
+      row("Holding 87, InternationalAirport, Sonda"),
+      2,
+      "leftover Holding 87 leftover Green Street vs leftover InternationalAirport glued Sonda",
+    );
+    assertBothOrders(
+      row("House 10, Green Road, Sonda"),
+      row("House 10, InternationalAirport, Sonda"),
+      2,
+      "leftover House 10 leftover Green Road vs leftover InternationalAirport glued Sonda",
+    );
+    assertBothOrders(
+      row("House 10, Green Street, Sonda"),
+      row("House 10, InternationalAirpark, Sonda"),
+      2,
+      "leftover House 10 leftover Green Street vs leftover InternationalAirpark glued Sonda",
+    );
+    assertBothOrders(
+      row("House 10, Green Street, Sonda"),
+      row("House 10, CargoAirport, Sonda"),
+      2,
+      "leftover House 10 leftover Green Street vs leftover CargoAirport glued Sonda",
+    );
+    assertBothOrders(
+      row("House 10, Green Street, Sonda"),
+      row("House 10, DomesticAirport, Sonda"),
+      2,
+      "leftover House 10 leftover Green Street vs leftover DomesticAirport glued Sonda",
+    );
+    assertBothOrders(
+      row("House 10, Green Street, Sonda"),
+      row("House 10, HajeeInternationalAirport, Sonda"),
+      2,
+      "leftover House 10 leftover Green Street vs leftover HajeeInternationalAirport glued Sonda",
+    );
+    assertBothOrders(
+      row("House 10, Green Street, Sonda"),
+      row("House 10, InternationalAirportRoad, Sonda"),
+      2,
+      "leftover House 10 leftover Green Street vs leftover InternationalAirportRoad glued Sonda",
+    );
+    assertBothOrders(
+      row("House 10 Green Street, Sonda"),
+      row("House 10, InternationalAirport, Sonda"),
+      2,
+      "leftover House 10 Green Street vs leftover InternationalAirport same-field Sonda",
+    );
+    assertBothOrders(
+      row("House 10, Green Street, Sonda"),
+      row("House 10, AirportLink, Sonda"),
+      2,
+      "KEEP leftover House 10 leftover Green Street vs leftover AirportLink glued Sonda",
+    );
+    assertBothOrders(
+      row("House 10, Green Street, Sonda"),
+      row("House 10, International-Airport, Sonda"),
+      2,
+      "KEEP leftover House 10 leftover Green Street vs leftover International-Airport hyphen Sonda",
+    );
+    assertBothOrders(
+      row("House 10, Green Street, Sonda"),
+      row("House 10, International_Airport, Sonda"),
+      2,
+      "KEEP leftover House 10 leftover Green Street vs leftover International_Airport Sonda",
+    );
+    assertBothOrders(
+      row("House 10, Green Street, Sonda"),
+      row("House 10, International.Airport, Sonda"),
+      2,
+      "KEEP leftover House 10 leftover Green Street vs leftover International.Airport Sonda",
+    );
+    assertBothOrders(
+      row("House 10, Green Street, Sonda"),
+      row("House 10, EastAirport, Sonda"),
+      2,
+      "KEEP leftover House 10 leftover Green Street vs leftover EastAirport glued Sonda",
+    );
+    assertBothOrders(
+      row("House 10, Green Street, Sonda"),
+      row("House 10, AirportGate, Sonda"),
+      2,
+      "KEEP leftover House 10 leftover Green Street vs leftover AirportGate glued Sonda",
+    );
+    assertBothOrders(
+      row("Green Street, Sonda"),
+      row("InternationalAirport, Sonda"),
+      2,
+      "KEEP leftover Green Street vs leftover InternationalAirport no-House Sonda",
+    );
+    assertBothOrders(
+      row("House 10, Green Street, Sonda"),
+      row("House 10, Airport, Sonda"),
+      2,
+      "KEEP leftover House 10 leftover Green Street vs leftover Airport unsuffixed Sonda after glued airport family",
+    );
+    assertBothOrders(
+      row("House 10 Green Street, Sonda"),
+      row("House 10, Airport Link, Sonda"),
+      2,
+      "leftover House 10 Green Street vs leftover Airport Link same-field Sonda",
+    );
+    assertBothOrders(
+      row("House 10, Green Road, Sonda"),
+      row("House 10, Airport, Sonda"),
+      2,
+      "leftover House 10 leftover Green Road vs leftover Airport Sonda",
+    );
+    assertBothOrders(
+      row("House 10, Green Street, Dhaka"),
+      row("House 10, Airport, Dhaka"),
+      2,
+      "leftover House 10 leftover Green Street vs leftover Airport Dhaka",
+    );
+    assertBothOrders(
+      row("House 10, Green Street, Tongi"),
+      row("House 10, Airport, Tongi"),
+      2,
+      "leftover House 10 leftover Green Street vs leftover Airport Tongi",
+    );
+    assertBothOrders(
+      row("House 10, Green Street"),
+      row("House 10, Airport"),
+      2,
+      "leftover House 10 leftover Green Street vs leftover Airport no village",
+    );
+    assertBothOrders(
+      row("House 5, Green Street, Sonda"),
+      row("House 5, Airport, Sonda"),
+      2,
+      "leftover House 5 leftover Green Street vs leftover Airport Sonda",
+    );
+    assertBothOrders(
+      row("House # 10, Green Street, Sonda"),
+      row("House # 10, Airport, Sonda"),
+      2,
+      "leftover House # 10 leftover Green Street vs leftover Airport Sonda",
+    );
+    assertBothOrders(
+      row("Holding 87, Green Street, Sonda"),
+      row("Holding 87, Airport, Sonda"),
+      2,
+      "leftover Holding 87 leftover Green Street vs leftover Airport Sonda",
+    );
+    assertBothOrders(
+      row("House 10 Green Street, Sonda"),
+      row("House 10 Greenwood, Sonda"),
+      2,
+      "leftover House 10 Green Street vs leftover Greenwood same-field Sonda",
+    );
+    assertBothOrders(
+      row("House 10 Green Road, Sonda"),
+      row("House 10 Greenwood, Sonda"),
+      2,
+      "leftover House 10 Green Road vs leftover Greenwood same-field Sonda",
+    );
+    assertBothOrders(
+      row("House # 10 Green Street, Sonda"),
+      row("House # 10 Greenwood, Sonda"),
+      2,
+      "leftover House # 10 Green Street vs leftover Greenwood same-field Sonda",
+    );
+    assertBothOrders(
+      row("House No. 10 Green Street, Savar"),
+      row("House No. 10 Greenwood, Savar"),
+      2,
+      "leftover House No. 10 Green Street vs leftover Greenwood same-field Savar",
+    );
+    assertBothOrders(
+      row("Holding 10 Green Avenue, Dhaka"),
+      row("Holding 10 Greenwood, Dhaka"),
+      2,
+      "leftover Holding 10 Green Avenue vs leftover Greenwood same-field Dhaka",
+    );
+    assertBothOrders(
+      row("House 10 Greenwood Road, Sonda"),
+      row("House 10 Green, Sonda"),
+      2,
+      "leftover House 10 Greenwood Road vs leftover Green same-field Sonda",
+    );
+    assertBothOrders(
+      row("Kazi Nazrul Islam Avenue, Green, Dhaka"),
+      row("Plot # 10, 10 Green, Nazrul, Dhaka"),
+      2,
+      "mixed omit leftover Green after Nazrul vs Plot leftover Green, Nazrul",
+    );
+    assertBothOrders(
+      row("Plot # 10, Green, Dhaka"),
+      row("Greenwood, Dhaka"),
+      2,
+      "mixed Plot leftover PRIMARY Green vs omit Greenwood Dhaka",
+    );
+    assertBothOrders(
+      row("162, Green View R/A, Road No-3/B, Port Connecting Road, Pahartoli, Ctg."),
+      row("162, Green View R/A, Road No - 3/B Port Connecting Road, 4202, Chittagong, Bangladesh"),
+      1,
+      "KEEP Green View R/A Port Connecting Road comma vs glued Road No",
+    );
+    assertBothOrders(
+      row("House 50, East Gulshan, Dhaka"),
+      row("7 West Gulshan, Dhaka"),
+      2,
+      "House 50 East Gulshan vs 7 West Gulshan",
+    );
+    assertBothOrders(
+      row("House 50, West Gulshan, Dhaka"),
+      row("7 East Gulshan, Dhaka"),
+      2,
+      "House 50 West Gulshan vs 7 East Gulshan",
+    );
+    assertBothOrders(
+      row("House 50, South Gulshan, Dhaka"),
+      row("7 East Gulshan, Dhaka"),
+      2,
+      "House 50 South Gulshan vs 7 East Gulshan",
+    );
+    assertBothOrders(
+      row("House 50, South Gulshan, Dhaka"),
+      row("7 West Gulshan, Dhaka"),
+      2,
+      "House 50 South Gulshan vs 7 West Gulshan",
+    );
+    assertBothOrders(
+      row("House 50, South Gulshan, Dhaka"),
+      row("7 North Gulshan, Dhaka"),
+      2,
+      "House 50 South Gulshan vs 7 North Gulshan",
+    );
+    assertBothOrders(
+      row("House 50, North Gulshan, Dhaka"),
+      row("7 South Gulshan, Dhaka"),
+      2,
+      "House 50 North Gulshan vs 7 South Gulshan",
+    );
+    assertBothOrders(
+      row("House 50, East Gulshan, Dhaka"),
+      row("7 South Gulshan, Dhaka"),
+      2,
+      "House 50 East Gulshan vs 7 South Gulshan",
+    );
+    assertBothOrders(
+      row("House 50, Gulshan, Dhaka"),
+      row("7 West Gulshan, Dhaka"),
+      2,
+      "House 50 Gulshan vs 7 West Gulshan",
+    );
+    assertBothOrders(
+      row("House # 50, East Gulshan, Dhaka"),
+      row("7 West Gulshan, Dhaka"),
+      2,
+      "House # 50 East Gulshan vs 7 West Gulshan",
+    );
+    assertBothOrders(
+      row("House No. 50, East Gulshan, Dhaka"),
+      row("7 West Gulshan, Dhaka"),
+      2,
+      "House No. 50 East Gulshan vs 7 West Gulshan",
+    );
+    assertBothOrders(
+      row("Holding 50, East Gulshan, Dhaka"),
+      row("7 West Gulshan, Dhaka"),
+      2,
+      "Holding 50 East Gulshan vs 7 West Gulshan",
+    );
+    assertBothOrders(
+      row("House 50, Eastern Gulshan, Dhaka"),
+      row("7 Western Gulshan, Dhaka"),
+      2,
+      "House 50 Eastern Gulshan vs 7 Western Gulshan",
+    );
+    assertBothOrders(
+      row("House 50, East Gulshan, Sonda"),
+      row("7 West Gulshan, Sonda"),
+      2,
+      "House 50 East Gulshan vs 7 West Gulshan Sonda",
+    );
+    assertBothOrders(
+      row("House # 50, South Gulshan, Dhaka"),
+      row("7 South Gulshan, Dhaka"),
+      1,
+      "KEEP House # 50 vs 7 South Gulshan short form",
+    );
+    assertBothOrders(
+      row("House No. 50, South Gulshan, Dhaka"),
+      row("7 South Gulshan, Dhaka"),
+      1,
+      "KEEP House No. 50 vs 7 South Gulshan short form",
+    );
+    assertBothOrders(
+      row("Holding 50, South Gulshan, Dhaka"),
+      row("7 South Gulshan, Dhaka"),
+      1,
+      "KEEP Holding 50 vs 7 South Gulshan short form",
+    );
+    assertBothOrders(
+      row("House 50, South Gulshan, Dhaka"),
+      row("7 South Gulshan Avenue, Dhaka"),
+      2,
+      "KEEP House 50 vs 7 South Gulshan Avenue",
+    );
+    assertBothOrders(
+      row("House 50, East Gulshan Road, Dhaka"),
+      row("7 West Gulshan Road, Dhaka"),
+      2,
+      "KEEP House 50 East Gulshan Road vs 7 West Gulshan Road",
+    );
+    assertBothOrders(
+      row("House 187, Gulshan, Dhaka"),
+      row("House 13, Gulshan, Dhaka"),
+      2,
+      "KEEP House 187 vs House 13",
+    );
+    for (const ordered of permutations([
+      row("Green, Dhaka"),
+      row("Greenwood, Dhaka"),
+      row("Airport, Dhaka"),
+    ])) {
+      assert.equal(
+        displays(ordered).length,
+        3,
+        "three-string leftover PRIMARY Green+Greenwood+Airport no-Road Dhaka permutation",
+      );
+    }
+    for (const ordered of permutations([
+      row("Fashion Plaza, Green, Dhaka"),
+      row("Fashion Plaza, Greenwood, Dhaka"),
+      row("Fashion Plaza, Airport, Dhaka"),
+    ])) {
+      assert.equal(
+        displays(ordered).length,
+        3,
+        "three-string leftover after Fashion Plaza leftover Green+Greenwood+Airport permutation",
+      );
+    }
+    for (const ordered of permutations([
+      row("Circular Road, Green, Dhaka"),
+      row("Circular Road, Greenwood, Dhaka"),
+      row("Circular Road, Airport, Dhaka"),
+    ])) {
+      assert.equal(
+        displays(ordered).length,
+        3,
+        "three-string leftover after Circular Road leftover Green+Greenwood+Airport permutation",
+      );
+    }
+    for (const ordered of permutations([
+      row("Kazi Nazrul Islam Avenue, Green, Dhaka"),
+      row("Kazi Nazrul Islam Avenue, Greenwood, Dhaka"),
+      row("Kazi Nazrul Islam Avenue, Airport, Dhaka"),
+    ])) {
+      assert.equal(
+        displays(ordered).length,
+        3,
+        "three-string leftover after Kazi Nazrul Islam Avenue leftover Green+Greenwood+Airport permutation",
+      );
+    }
+    for (const ordered of permutations([
+      row("Kazi Nazrul Islam Avenue, Green, Dhaka"),
+      row("Kazi Nazrul Islam Avenue, Greenwood, Dhaka"),
+      row("Green, Dhaka"),
+    ])) {
+      assert.equal(
+        displays(ordered).length,
+        3,
+        "three-string leftover after Nazrul leftover Green+Greenwood+PRIMARY Green permutation",
+      );
+    }
+    for (const ordered of permutations([
+      row("Nazrul Avenue, Green, Dhaka"),
+      row("Nazrul Avenue, Greenwood, Dhaka"),
+      row("Green, Nazrul Avenue, Dhaka"),
+    ])) {
+      assert.equal(
+        displays(ordered).length,
+        3,
+        "three-string leftover after Nazrul leftover Green+Greenwood+leftover Green, Nazrul Avenue permutation",
+      );
+    }
+    for (const ordered of permutations([
+      row("Kakrail Road, Green, Dhaka"),
+      row("Kakrail Road, Greenwood, Dhaka"),
+      row("Green, Dhaka"),
+    ])) {
+      assert.equal(
+        displays(ordered).length,
+        3,
+        "three-string leftover after Kakrail leftover Green+Greenwood+PRIMARY Green permutation",
+      );
+    }
+    for (const ordered of permutations([
+      row("House 10, Green Street, Sonda"),
+      row("House 10, Greenwood, Sonda"),
+      row("House 10, Airport, Sonda"),
+    ])) {
+      assert.equal(
+        displays(ordered).length,
+        3,
+        "three-string leftover House 10 leftover Green Street leftover Greenwood leftover Airport permutation",
+      );
+    }
+    for (const ordered of permutations([
+      row("House 10, Green Street, Sonda"),
+      row("House 10, Greenwood, Sonda"),
+      row("House 10, International Airport, Sonda"),
+    ])) {
+      assert.equal(
+        displays(ordered).length,
+        3,
+        "three-string leftover House 10 leftover Green Street leftover Greenwood leftover International Airport permutation",
+      );
+    }
+    for (const ordered of permutations([
+      row("House 10, Green Street, Sonda"),
+      row("House 10, Greenwood, Sonda"),
+      row("House 10, Airport Link, Sonda"),
+    ])) {
+      assert.equal(
+        displays(ordered).length,
+        3,
+        "three-string leftover House 10 leftover Green Street leftover Greenwood leftover Airport Link permutation",
+      );
+    }
+    for (const ordered of permutations([
+      row("House 10, Green Street, Sonda"),
+      row("House 10, Greenwood, Sonda"),
+      row("House 10, InternationalAirport, Sonda"),
+    ])) {
+      assert.equal(
+        displays(ordered).length,
+        3,
+        "three-string leftover House 10 leftover Green Street leftover Greenwood leftover InternationalAirport glued permutation",
+      );
+    }
+    for (const ordered of permutations([
+      row("House 50, East Gulshan, Dhaka"),
+      row("7 West Gulshan, Dhaka"),
+      row("Green Road, Dhaka"),
+    ])) {
+      assert.equal(
+        displays(ordered).length,
+        3,
+        "three-string House 50 East + 7 West + Green permutation",
+      );
+    }
+    for (const ordered of permutations([
+      row("House 50, South Gulshan, Dhaka"),
+      row("7 East Gulshan, Dhaka"),
+      row("7 West Gulshan, Dhaka"),
+    ])) {
+      assert.equal(
+        displays(ordered).length,
+        3,
+        "three-string House 50 South + 7 East + 7 West permutation",
+      );
+    }
+    for (const ordered of permutations([
+      row("Airport Plaza, Airport Road, Savar"),
+      row("Airport Plaza, Airpark Road, Savar"),
+      row("Airport Plaza, Green, Savar"),
+    ])) {
+      assert.equal(
+        displays(ordered).length,
+        3,
+        "three-string leftover after Plaza restated Airport+Airpark+Green Savar permutation",
+      );
+    }
+    for (const ordered of permutations([
+      row("Airport Plaza, Green, Savar"),
+      row("Airport Plaza, Airport, Savar"),
+      row("Airport Plaza, Airpark, Savar"),
+    ])) {
+      assert.equal(
+        displays(ordered).length,
+        3,
+        "three-string leftover after Plaza leftover Green+Airport+Airpark Savar permutation",
+      );
+    }
+    for (const ordered of permutations([
+      row("Airport Road, Sonda"),
+      row("Airpark Road, Sonda"),
+      row("Green Road, Dhaka"),
+    ])) {
+      assert.equal(
+        displays(ordered).length,
+        3,
+        "three-string leftover PRIMARY Airport Road+Airpark Road+Green permutation",
+      );
+    }
+    for (const ordered of permutations([
+      row("Airport Road, Airport Road, Sonda"),
+      row("Airport Road, Airpark Road, Sonda"),
+      row("Green Road, Dhaka"),
+    ])) {
+      assert.equal(
+        displays(ordered).length,
+        3,
+        "three-string leftover restated Airport Road+Airpark Road+Green permutation",
+      );
+    }
+    for (const ordered of permutations([
+      row("Airport Court, Airport, Sonda"),
+      row("Airport Court, Airpark, Sonda"),
+      row("Green Road, Dhaka"),
+    ])) {
+      assert.equal(
+        displays(ordered).length,
+        3,
+        "three-string leftover after Court leftover Airport+Airpark+Green permutation",
+      );
+    }
+    assertBothOrders(
+      row("Airport Road, East Airport Road Joydebpur, Sonda"),
+      row("Airport Road, West Airport Road Joydevpur, Sonda"),
+      2,
+      "leftover restated East Airport Road Joydebpur vs West Airport Road Joydevpur Plot omitted",
+    );
+    assertBothOrders(
+      row("Airport Road, East Airport Road Joydebpur"),
+      row("Airport Road, West Airport Road Joydevpur"),
+      2,
+      "leftover restated East Airport Road Joydebpur Plot omitted no village",
+    );
+    assertBothOrders(
+      row("Airport Road, East Airport Road, Sonda"),
+      row("Airport Road, West Airpark Road, Sonda"),
+      2,
+      "leftover restated East Airport Road vs West Airpark Road Plot omitted",
+    );
+    assertBothOrders(
+      row("House 10, Airport Road, East Airport Road Joydebpur, Sonda"),
+      row("House 10, Airport Road, West Airport Road Joydevpur, Sonda"),
+      2,
+      "House 10 leftover restated East Airport Road Joydebpur Plot omitted",
+    );
+    assertBothOrders(
+      row("House # 10, Airport Road, East Airport Road Joydebpur, Sonda"),
+      row("House # 10, Airport Road, West Airport Road Joydevpur, Sonda"),
+      2,
+      "House # 10 leftover restated East Airport Road Joydebpur",
+    );
+    assertBothOrders(
+      row("Airport Court, East Airport Road Joydebpur, Sonda"),
+      row("Airport Court, West Airport Road Joydevpur, Sonda"),
+      2,
+      "leftover after Court restated East Airport Road Joydebpur Plot omitted",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Court, East Airport Road Joydebpur, Sonda"),
+      row("Plot # 10, Airport Court, West Airport Road Joydevpur, Sonda"),
+      2,
+      "Plot 10 leftover after Court restated East Airport Road Joydebpur",
+    );
+    assertBothOrders(
+      row("Airport Court East Airport Road Joydebpur, Sonda"),
+      row("Airport Court West Airport Road Joydevpur, Sonda"),
+      2,
+      "leftover after Court same-field restated East Airport Road Joydebpur Plot omitted",
+    );
+    assertBothOrders(
+      row("East Airport Road Joydebpur, Sonda"),
+      row("West Airport Road Joydevpur, Sonda"),
+      2,
+      "leftover PRIMARY East Airport Road Joydebpur vs West Airport Road Joydevpur Plot omitted",
+    );
+    assertBothOrders(
+      row("East Airport Road, Sonda"),
+      row("West Airport Road, Sonda"),
+      2,
+      "leftover PRIMARY East Airport Road vs West Airport Road Plot omitted",
+    );
+    assertBothOrders(
+      row("East Mirpur Road, Sonda"),
+      row("West Mirpur Road, Sonda"),
+      2,
+      "leftover PRIMARY East Mirpur Road vs West Mirpur Road Plot omitted",
+    );
+    assertBothOrders(
+      row("East Circular Road, Dhaka"),
+      row("West Circular Road, Dhaka"),
+      2,
+      "leftover PRIMARY East Circular Road vs West Circular Road Plot omitted",
+    );
+    assertBothOrders(
+      row("East Tejgaon Road, Dhaka"),
+      row("West Tejgaon Road, Dhaka"),
+      2,
+      "leftover PRIMARY East Tejgaon Road vs West Tejgaon Road Plot omitted",
+    );
+    assertBothOrders(
+      row("East Green Road, Dhaka"),
+      row("West Green Road, Dhaka"),
+      2,
+      "leftover PRIMARY East Green Road vs West Green Road Plot omitted",
+    );
+    assertBothOrders(
+      row("East Station Road Joydebpur, Sonda"),
+      row("West Station Road Joydevpur, Sonda"),
+      2,
+      "leftover PRIMARY East Station Road Joydebpur vs West Station Road Joydevpur Plot omitted",
+    );
+    assertBothOrders(
+      row("Airport Road, East Station Road Joydebpur, Sonda"),
+      row("Airport Road, West Station Road Joydevpur, Sonda"),
+      2,
+      "leftover restated East Station Road Joydebpur Plot omitted",
+    );
+    assertBothOrders(
+      row("Airport Road, East Mirpur Road Joydebpur, Sonda"),
+      row("Airport Road, West Mirpur Road Joydevpur, Sonda"),
+      2,
+      "leftover restated East Mirpur Road Joydebpur Plot omitted",
+    );
+    assertBothOrders(
+      row("Airport Road, Airport Sheikh East Airport Road Joydebpur, Sonda"),
+      row("Airport Road, Airpark Shaikh West Airport Road Joydevpur, Sonda"),
+      2,
+      "leftover honorific restated Airport Road Joydebpur Plot omitted",
+    );
+    assertBothOrders(
+      row("East Joydebpur Road, Sonda"),
+      row("West Joydebpur Road, Sonda"),
+      2,
+      "leftover PRIMARY East Joydebpur Road vs West Joydebpur Road same spelling Plot omitted",
+    );
+    assertBothOrders(
+      row("Airport Road, East Joydebpur Road, Sonda"),
+      row("Airport Road, West Joydevpur Road, Sonda"),
+      1,
+      "KEEP leftover East Joydebpur Road vs West Joydevpur Road Plot omitted",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, East Airport Joydebpur, Sonda"),
+      row("Airport Road, West Airport Joydevpur, Sonda"),
+      2,
+      "mixed Plot 10 leftover East Airport Joydebpur vs Plot omitted West Airport Joydevpur",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, East Airport Road Joydebpur, Sonda"),
+      row("Airport Road, West Airport Road Joydevpur, Sonda"),
+      2,
+      "mixed Plot 10 leftover restated East Airport Road Joydebpur vs Plot omitted",
+    );
+    assertBothOrders(
+      row("Plot # 10, East Mirpur Road, Sonda"),
+      row("East Mirpur Road, Sonda"),
+      1,
+      "KEEP mixed same-stem Plot 10 PRIMARY East Mirpur Road vs Plot omitted",
+    );
+    for (const ordered of permutations([
+      row("Airport Road, AirportCircular Road, Sonda"),
+      row("Airport Road, AirparkCircular Road, Sonda"),
+      row("Green Road, Dhaka"),
+    ])) {
+      assert.equal(
+        displays(ordered).length,
+        3,
+        "three-string leftover AirportCircular Road Plot omitted+Green permutation",
+      );
+    }
+    for (const ordered of permutations([
+      row("Airport Road, Airport Sheikh East Circular Road, Sonda"),
+      row("Airport Road, Airpark Shaikh West Circular Road, Sonda"),
+      row("Green Road, Dhaka"),
+    ])) {
+      assert.equal(
+        displays(ordered).length,
+        3,
+        "three-string leftover honorific Circular Road Plot omitted+Green permutation",
+      );
+    }
+    for (const ordered of permutations([
+      row("Airport Road, East Airport Road Joydebpur, Sonda"),
+      row("Airport Road, West Airport Road Joydevpur, Sonda"),
+      row("Green Road, Dhaka"),
+    ])) {
+      assert.equal(
+        displays(ordered).length,
+        3,
+        "three-string leftover restated Plot omitted+Green permutation",
+      );
+    }
+    assertBothOrders(
+      row("House 10, East Airport Joydebpur, Sonda"),
+      row("House 10, West Airport Joydevpur, Sonda"),
+      2,
+      "House 10 leftover East Airport Joydebpur vs West Airport Joydevpur",
+    );
+    assertBothOrders(
+      row("House # 10, Airport Road, East Airport Joydebpur, Sonda"),
+      row("House # 10, Airport Road, West Airport Joydevpur, Sonda"),
+      2,
+      "House # 10 Airport Road leftover East Airport Joydebpur vs West Airport Joydevpur",
+    );
+    assertBothOrders(
+      row("Holding 10, East Airport Joydebpur, Sonda"),
+      row("Holding 10, West Airport Joydevpur, Sonda"),
+      2,
+      "Holding 10 leftover East Airport Joydebpur vs West Airport Joydevpur",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, East Station Joydebpur, Sonda"),
+      row("Plot # 10, Airport Road, West Station Joydevpur, Sonda"),
+      2,
+      "Plot 10 leftover East Station Joydebpur vs West Station Joydevpur",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, East Station, Sonda"),
+      row("Plot # 10, Airport Road, West Station, Sonda"),
+      2,
+      "Plot 10 leftover East Station vs West Station",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, East Station Joydebpur, Sonda"),
+      row("Plot # 10, Airport Road, West Station Joydebpur, Sonda"),
+      2,
+      "Plot 10 leftover East Station Joydebpur vs West Station Joydebpur same spelling",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, Hajee East Airport Joydebpur, Sonda"),
+      row("Plot # 10, Airport Road, Hajee West Airport Joydevpur, Sonda"),
+      2,
+      "Plot 10 leftover Hajee East Airport Joydebpur vs Hajee West Airport Joydevpur",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Court, East Airport Joydebpur, Sonda"),
+      row("Plot # 10, Airport Court, West Airport Joydevpur, Sonda"),
+      2,
+      "Plot 10 leftover after Airport Court East Airport Joydebpur vs West Airport Joydevpur",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, AirportCircular Joydebpur, Sonda"),
+      row("Plot # 10, Airport Road, AirparkCircular Joydevpur, Sonda"),
+      2,
+      "Plot 10 leftover AirportCircular Joydebpur vs AirparkCircular Joydevpur",
+    );
+    for (const ordered of permutations([
+      row("Plot # 10, Airport Road, AirportCircular, Sonda"),
+      row("Plot # 10, Airport Road, AirparkCircular, Sonda"),
+      row("Plot # 10, Green Road, Dhaka"),
+    ])) {
+      assert.equal(
+        displays(ordered).length,
+        3,
+        "three-string leftover AirportCircular+AirparkCircular+Green permutation",
+      );
+    }
+    assertBothOrders(
+      row("Plot # 10, Airport Road, Airport Kobi East Joydebpur, Sonda"),
+      row("Plot # 10, Airport Road, Airpark Kazi West Joydebpur, Sonda"),
+      2,
+      "Plot 10 leftover Kobi after stem plus Joydebpur",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, East Airport Joydebpur, Sonda"),
+      row("Plot # 10, Airport Road, West Airport Joydebpur, Sonda"),
+      2,
+      "Plot 10 leftover East Airport Joydebpur vs West Airport Joydebpur",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, Joydebpur East Airport, Sonda"),
+      row("Plot # 10, Airport Road, Joydebpur West Airpark, Sonda"),
+      2,
+      "Plot 10 leftover Joydebpur East Airport vs Joydebpur West Airpark",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, Sheikh East Joydebpur Airport, Sonda"),
+      row("Plot # 10, Airport Road, Shaikh West Joydebpur Airpark, Sonda"),
+      2,
+      "Plot 10 leftover Sheikh East Joydebpur Airport vs Shaikh West Joydebpur Airpark",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, Sheikh East Airport Joydebpur, Sonda"),
+      row("Plot # 10, Airport Road, Shaikh West Airpark Joydebpur, Sonda"),
+      2,
+      "Plot 10 leftover Sheikh East Airport Joydebpur vs Shaikh West Airpark Joydebpur",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, East Mirpur Joydebpur, Sonda"),
+      row("Plot # 10, Airport Road, West Mirpur Joydebpur, Sonda"),
+      2,
+      "Plot 10 leftover East Mirpur Joydebpur vs West Mirpur Joydebpur",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, East Green Joydebpur, Sonda"),
+      row("Plot # 10, Airport Road, West Green Joydebpur, Sonda"),
+      2,
+      "Plot 10 leftover East Green Joydebpur vs West Green Joydebpur",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, East Airport Mirpur, Sonda"),
+      row("Plot # 10, Airport Road, West Airport Mirpur, Sonda"),
+      2,
+      "Plot 10 leftover East Airport Mirpur vs West Airport Mirpur",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road Airport Sheikh East Joydebpur, Sonda"),
+      row("Plot # 10, Airport Road Airpark Shaikh West Joydebpur, Sonda"),
+      2,
+      "Plot 10 same-field leftover honorific-after-stem Joydebpur",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, EastAirport Joydebpur, Sonda"),
+      row("Plot # 10, Airport Road, WestAirport Joydebpur, Sonda"),
+      2,
+      "Plot 10 leftover glued EastAirport plus Joydebpur",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, Airport East Joydebpur, Sonda"),
+      row("Plot # 10, Airport Road, Airpark West Joydebpur, Sonda"),
+      2,
+      "Plot 10 leftover Airport East Joydebpur no honorific",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, East Airport Road Joydebpur, Sonda"),
+      row("Plot # 10, Airport Road, West Airport Road Joydebpur, Sonda"),
+      2,
+      "Plot 10 leftover restated East Airport Road Joydebpur",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, SheikhEastAirport Joydebpur, Sonda"),
+      row("Plot # 10, Airport Road, ShaikhWestAirpark Joydebpur, Sonda"),
+      2,
+      "Plot 10 leftover glued SheikhEastAirport Joydebpur",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, North East Airport Joydebpur, Sonda"),
+      row("Plot # 10, Airport Road, South East Airport Joydebpur, Sonda"),
+      2,
+      "Plot 10 leftover spaced North East Airport Joydebpur",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, Airport Sheikh East Joydebpur, Sonda"),
+      row("Plot # 10, Airport Road, West Joydebpur, Sonda"),
+      2,
+      "Plot 10 mixed leftover honorific-after-stem vs leftover comma West Joydebpur",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, Northeast Airport, Dhaka"),
+      row("Plot # 10, Airport Road, Southeast Airpark, Dhaka"),
+      2,
+      "Plot 10 leftover Northeast Airport vs Southeast Airpark",
+    );
+    for (const remainder of ["Mirpur", "Tejgaon", "Circular", "Green"]) {
+      assertBothOrders(
+        row(`Plot # 10, Airport Road, Northeast ${remainder}, Sonda`),
+        row(`Plot # 10, Airport Road, Southeast ${remainder}, Sonda`),
+        2,
+        `Plot 10 leftover Northeast ${remainder} vs Southeast`,
+      );
+      assertBothOrders(
+        row(`Plot # 10, Airport Road, Northwest ${remainder}, Sonda`),
+        row(`Plot # 10, Airport Road, Southwest ${remainder}, Sonda`),
+        2,
+        `Plot 10 leftover Northwest ${remainder} vs Southwest`,
+      );
+    }
+    assertBothOrders(
+      row("Plot # 10, Airport Road, Northwest Joydebpur, Sonda"),
+      row("Plot # 10, Airport Road, Southwest Joydebpur, Sonda"),
+      2,
+      "Plot 10 leftover Northwest Joydebpur vs Southwest Joydebpur",
+    );
+    for (const road of [
+      "Mirpur Road",
+      "Airport Street",
+      "Airport Avenue",
+      "Airport Boulevard",
+      "Circular Road",
+      "Green Road",
+    ]) {
+      assertBothOrders(
+        row(`Plot # 10, ${road}, Northeast Joydebpur, Sonda`),
+        row(`Plot # 10, ${road}, Southeast Joydebpur, Sonda`),
+        2,
+        `Plot 10 leftover Northeast Joydebpur after ${road}`,
+      );
+    }
+    assertBothOrders(
+      row("Plot # 10, Airport Road, Northeast-Joydebpur, Sonda"),
+      row("Plot # 10, Airport Road, Southeast-Joydebpur, Sonda"),
+      2,
+      "Plot 10 leftover hyphen Northeast-Joydebpur vs Southeast-Joydebpur",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, Northeast-Airport, Dhaka"),
+      row("Plot # 10, Airport Road, Southeast-Airport, Dhaka"),
+      2,
+      "Plot 10 leftover hyphen Northeast-Airport vs Southeast-Airport",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, Northeast_Airport, Dhaka"),
+      row("Plot # 10, Airport Road, Southeast_Airport, Dhaka"),
+      2,
+      "Plot 10 leftover Northeast_Airport vs Southeast_Airport",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, Northeast.Joydebpur, Sonda"),
+      row("Plot # 10, Airport Road, Southeast.Joydebpur, Sonda"),
+      2,
+      "Plot 10 leftover Northeast.Joydebpur vs Southeast.Joydebpur",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, NorthEast Joydebpur, Sonda"),
+      row("Plot # 10, Airport Road, SouthEast Joydebpur, Sonda"),
+      2,
+      "Plot 10 leftover camel NorthEast Joydebpur vs SouthEast",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, NORTHEAST Joydebpur, Sonda"),
+      row("Plot # 10, Airport Road, SOUTHEAST Joydebpur, Sonda"),
+      2,
+      "Plot 10 leftover caps NORTHEAST Joydebpur vs SOUTHEAST",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road Northeast Joydebpur, Sonda"),
+      row("Plot # 10, Airport Road Southeast Joydebpur, Sonda"),
+      2,
+      "Plot 10 same-field Airport Road Northeast Joydebpur vs Southeast",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road Northeast Airport, Dhaka"),
+      row("Plot # 10, Airport Road Southeast Airport, Dhaka"),
+      2,
+      "Plot 10 same-field Airport Road Northeast Airport vs Southeast",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road_Northeast Joydebpur, Sonda"),
+      row("Plot # 10, Airport Road_Southeast Joydebpur, Sonda"),
+      2,
+      "Plot 10 Airport Road_Northeast Joydebpur vs Road_Southeast leftover",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, Sheikh Northeast Airport, Dhaka"),
+      row("Plot # 10, Airport Road, Shaikh Southeast Airpark, Dhaka"),
+      2,
+      "Plot 10 leftover Sheikh Northeast Airport vs Shaikh Southeast Airpark",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, Northeast Mirpur Road, Sonda"),
+      row("Plot # 10, Airport Road, Southeast Mirpur Road, Sonda"),
+      2,
+      "Plot 10 leftover restated Northeast Mirpur Road vs Southeast Mirpur Road",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, Northeast Joydebpur Road, Sonda"),
+      row("Plot # 10, Airport Road, Southeast Joydebpur Road, Sonda"),
+      2,
+      "Plot 10 leftover restated Northeast Joydebpur Road vs Southeast",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, Northeast Airport Road, Dhaka"),
+      row("Plot # 10, Airport Road, Southeast Airport Road, Dhaka"),
+      2,
+      "Plot 10 leftover restated Northeast Airport Road vs Southeast",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, New Northeast Airport, Dhaka"),
+      row("Plot # 10, Airport Road, Old Southeast Airport, Dhaka"),
+      2,
+      "Plot 10 leftover New Northeast Airport vs Old Southeast Airport",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, Inner Northeast Airport, Dhaka"),
+      row("Plot # 10, Airport Road, Outer Southeast Airport, Dhaka"),
+      2,
+      "Plot 10 leftover Inner Northeast vs Outer Southeast Airport",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, Northeast Joydebpur, Sonda"),
+      row("Plot # 10, Airport Road, West Joydebpur, Sonda"),
+      2,
+      "Plot 10 leftover Northeast Joydebpur vs West Joydebpur",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, North East Joydebpur, Sonda"),
+      row("Plot # 10, Airport Road, Southeast Joydebpur, Sonda"),
+      2,
+      "Plot 10 leftover spaced North East Joydebpur vs oneword Southeast",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, Northeast Joydebpur, Sonda"),
+      row("Plot # 10, Airport Road, South East Joydebpur, Sonda"),
+      2,
+      "Plot 10 leftover Northeast Joydebpur vs spaced South East Joydebpur",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, North East Joydebpur, Sonda"),
+      row("Plot # 10, Airport Road, South East Joydebpur, Sonda"),
+      2,
+      "Plot 10 leftover spaced North East Joydebpur vs South East Joydebpur",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, North-East Joydebpur, Sonda"),
+      row("Plot # 10, Airport Road, South-East Joydebpur, Sonda"),
+      2,
+      "Plot 10 leftover hyphen North-East Joydebpur vs South-East",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, North-East Airport, Dhaka"),
+      row("Plot # 10, Airport Road, South-East Airport, Dhaka"),
+      2,
+      "Plot 10 leftover hyphen North-East Airport vs South-East",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, NortheastJoydebpur, Sonda"),
+      row("Plot # 10, Airport Road, SoutheastJoydebpur, Sonda"),
+      2,
+      "Plot 10 leftover one-token NortheastJoydebpur vs SoutheastJoydebpur",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, NortheastAirport, Dhaka"),
+      row("Plot # 10, Airport Road, SoutheastAirport, Dhaka"),
+      2,
+      "Plot 10 leftover one-token NortheastAirport vs SoutheastAirport",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, Joydebpur Sheikh East, Sonda"),
+      row("Plot # 10, Airport Road, Joydebpur Shaikh West, Sonda"),
+      2,
+      "Plot 10 leftover honorific-after-remainder Joydebpur Sheikh East",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, Sheikh North East Airport, Dhaka"),
+      row("Plot # 10, Airport Road, Shaikh South East Airpark, Dhaka"),
+      2,
+      "Plot 10 leftover Sheikh North East Airport vs Shaikh South East Airpark",
+    );
+    assertBothOrders(
+      row("Plot # 10, Mirpur Road, Sheikh East Airport, Dhaka"),
+      row("Plot # 10, Mirpur Road, Shaikh West Airpark, Dhaka"),
+      2,
+      "Plot 10 leftover Sheikh East Airport after Mirpur Road",
+    );
+    assertBothOrders(
+      row("Plot # 10, Circular Road, Sheikh East Joydebpur, Sonda"),
+      row("Plot # 10, Circular Road, Shaikh West Joydebpur, Sonda"),
+      2,
+      "Plot 10 leftover Sheikh East Joydebpur after Circular Road",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, Baba East Airport, Dhaka"),
+      row("Plot # 10, Airport Road, Babu West Airpark, Dhaka"),
+      2,
+      "Plot 10 leftover Baba East Airport vs Babu West Airpark",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road Sheikh East Airport, Dhaka"),
+      row("Plot # 10, Airport Road Shaikh West Airpark, Dhaka"),
+      2,
+      "Plot 10 same-field leftover Sheikh East Airport no comma",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, SheikhEastAirport, Dhaka"),
+      row("Plot # 10, Airport Road, ShaikhWestAirpark, Dhaka"),
+      2,
+      "Plot 10 leftover glued SheikhEastAirport vs ShaikhWestAirpark",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, Sheikh EastJoydebpur, Sonda"),
+      row("Plot # 10, Airport Road, Shaikh WestJoydebpur, Sonda"),
+      2,
+      "Plot 10 leftover Sheikh EastJoydebpur glued remainder",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, Sheikh East Airport Road, Dhaka"),
+      row("Plot # 10, Airport Road, Shaikh West Airpark Road, Dhaka"),
+      2,
+      "Plot 10 leftover honorific field that restates Road",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, East Mirpur Road, Sonda"),
+      row("Plot # 10, Airport Road, West Mirpur Road, Sonda"),
+      2,
+      "Plot 10 leftover East Mirpur Road vs West Mirpur Road restated",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, East Joydebpur Road, Sonda"),
+      row("Plot # 10, Airport Road, West Joydebpur Road, Sonda"),
+      2,
+      "Plot 10 leftover East Joydebpur Road vs West Joydebpur Road restated",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, East Tejgaon Road, Sonda"),
+      row("Plot # 10, Airport Road, West Tejgaon Road, Sonda"),
+      2,
+      "Plot 10 leftover East Tejgaon Road vs West restated",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, East Circular Road, Sonda"),
+      row("Plot # 10, Airport Road, West Circular Road, Sonda"),
+      2,
+      "Plot 10 leftover East Circular Road vs West restated",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, East Airport Road, Sonda"),
+      row("Plot # 10, Airport Road, West Airport Road, Sonda"),
+      2,
+      "Plot 10 leftover East Airport Road vs West Airport Road restated",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, East Joydebpur, Sonda"),
+      row("Plot # 10, Airport Road, West Joydebpur Road, Sonda"),
+      2,
+      "Plot 10 leftover East Joydebpur vs West Joydebpur Road mixed restated",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road East Joydebpur, Sonda"),
+      row("Plot # 10, Airport Road West Joydevpur, Sonda"),
+      1,
+      "Plot 10 Airport Road East Joydebpur vs West Joydevpur KEEP spelling",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, East Joydebpur, Sonda"),
+      row("Plot # 10, Airport Road, West Joydevpur, Sonda"),
+      1,
+      "Plot 10 leftover East Joydebpur vs West Joydevpur KEEP spelling",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, Sheikh East Joydebpur, Sonda"),
+      row("Plot # 10, Airport Road, Shaikh West Joydevpur, Sonda"),
+      1,
+      "Plot 10 leftover Sheikh East Joydebpur vs Shaikh West Joydevpur KEEP spelling",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, EastJoydebpur, Sonda"),
+      row("Plot # 10, Airport Road, WestJoydevpur, Sonda"),
+      1,
+      "Plot 10 leftover glued EastJoydebpur vs WestJoydevpur KEEP spelling",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, Airport Sheikh East Joydebpur, Sonda"),
+      row("Plot # 10, Airport Road, Airpark Shaikh West Joydevpur, Sonda"),
+      2,
+      "Plot 10 leftover honorific-after-stem Joydebpur vs Joydevpur competing stem",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, East Rampura, Dhaka"),
+      row("Plot # 10, Airport Road, West Rampura, Dhaka"),
+      1,
+      "Plot 10 leftover East Rampura vs West Rampura campus KEEP",
+    );
+    assertBothOrders(
+      row("Plot # 10, Airport Road, East Dhaka"),
+      row("Plot # 10, Airport Road, West Dhaka"),
+      1,
+      "Plot 10 leftover East Dhaka vs West Dhaka MINOR KEEP",
+    );
+    for (const ordered of permutations([
+      row("Plot # 10, Airport Road East Joydebpur, Sonda"),
+      row("Plot # 10, Airport Road West Joydebpur, Sonda"),
+      row("Plot # 10, Green Road, Dhaka"),
+    ])) {
+      assert.equal(
+        displays(ordered).length,
+        3,
+        "three-string Airport Road East Joydebpur+West+Green permutation",
+      );
+    }
+    for (const ordered of permutations([
+      row("Plot # 10, Airport Road_East Joydebpur, Sonda"),
+      row("Plot # 10, Airport Road_West Joydebpur, Sonda"),
+      row("Plot # 10, Green Road, Dhaka"),
+    ])) {
+      assert.equal(
+        displays(ordered).length,
+        3,
+        "three-string Airport Road_East Joydebpur+West+Green permutation",
+      );
+    }
+    for (const ordered of permutations([
+      row("Plot # 10, Airport Road, Sheikh East Airport, Dhaka"),
+      row("Plot # 10, Airport Road, Shaikh West Airpark, Dhaka"),
+      row("Plot # 10, Green Road, Dhaka"),
+    ])) {
+      assert.equal(
+        displays(ordered).length,
+        3,
+        "three-string leftover Sheikh East Airport+Shaikh West Airpark+Green permutation",
+      );
+    }
+    for (const ordered of permutations([
+      row("Plot # 10, Airport Road, EastJoydebpur, Sonda"),
+      row("Plot # 10, Airport Road, West Joydebpur, Sonda"),
+      row("Plot # 10, Green Road, Dhaka"),
+    ])) {
+      assert.equal(
+        displays(ordered).length,
+        3,
+        "three-string leftover EastJoydebpur+West Joydebpur+Green permutation",
+      );
+    }
+    for (const ordered of permutations([
+      row("Plot # 10, Airport Road, Airport Sheikh East Joydebpur, Sonda"),
+      row("Plot # 10, Airport Road, Airpark Shaikh West Joydebpur, Sonda"),
+      row("Plot # 10, Green Road, Dhaka"),
+    ])) {
+      assert.equal(
+        displays(ordered).length,
+        3,
+        "three-string leftover honorific-after-stem Joydebpur+Green permutation",
+      );
+    }
+    for (const ordered of permutations([
+      row("Plot # 10, Airport Road, Northeast Joydebpur, Sonda"),
+      row("Plot # 10, Airport Road, Southeast Joydebpur, Sonda"),
+      row("Plot # 10, Green Road, Dhaka"),
+    ])) {
+      assert.equal(
+        displays(ordered).length,
+        3,
+        "three-string leftover Northeast Joydebpur+Southeast+Green permutation",
+      );
+    }
+    for (const ordered of permutations([
+      row("Plot # 10, Airport Road, Northeast Airport, Dhaka"),
+      row("Plot # 10, Airport Road, Southeast Airport, Dhaka"),
+      row("Plot # 10, Green Road, Dhaka"),
+    ])) {
+      assert.equal(
+        displays(ordered).length,
+        3,
+        "three-string leftover Northeast Airport+Southeast+Green permutation",
+      );
+    }
+    for (const ordered of permutations([
+      row("Plot # 10, Airport Road, Airport Sheikh East Circular, Sonda"),
+      row("Plot # 10, Airport Road, Airpark Shaikh West Circular, Sonda"),
+      row("Plot # 10, Green Road, Dhaka"),
+    ])) {
+      assert.equal(
+        displays(ordered).length,
+        3,
+        "three-string leftover honorific-after-stem Circular+Green permutation",
+      );
+    }
+    for (const ordered of permutations([
+      row("Plot # 10, Airport Road, East Airport Joydebpur, Sonda"),
+      row("Plot # 10, Airport Road, West Airport Joydevpur, Sonda"),
+      row("Plot # 10, Green Road, Dhaka"),
+    ])) {
+      assert.equal(
+        displays(ordered).length,
+        3,
+        "three-string leftover East Airport Joydebpur+West Airport Joydevpur+Green permutation",
+      );
+    }
+    const holding87 = row(
+      "Holding No. 87, Plot No. 23, 24, 25, Hemayetpur, Tetuljhora Union, Savar, Dhaka - 1340, Bangladesh",
+    );
+    const villageHemayetpur = row("Plot # 23-24, Village, Hemayetpur, Dhaka, Savar");
+    assertBothOrders(
+      row("Plot # 23-24, Union_Telulzora, Hemayetpur, Dhaka, Savar"),
+      villageHemayetpur,
+      1,
+      "Union_Telulzora vs Village Hemayetpur",
+    );
+    assertBothOrders(
+      row("Plot # 23-24, Union_Telulzora, Hemayetpur, Dhaka, Savar"),
+      holding87,
+      1,
+      "Union_Telulzora vs Holding 87",
+    );
+    assertBothOrders(
+      row("Plot # 23-24, Union_Telulzora, Hemayetpur, Dhaka, Savar"),
+      row("Plot # 23-24, Union - Telulzora, Hemayetpur, Dhaka, Savar"),
+      1,
+      "Union_Telulzora vs Union hyphen Telulzora",
+    );
+    assertBothOrders(
+      row("Plot # 23-24, Union_Telulzora, Hemayetpur, Dhaka, Savar"),
+      row("Plot # 23-24, Telulzora Union, Hemayetpur, Dhaka, Savar"),
+      1,
+      "Union_Telulzora vs Telulzora Union",
+    );
+    assertBothOrders(
+      row("Plot # 23-24, Union_Telulzora, Hemayetpur, Dhaka, Savar"),
+      row("Plot # 23-24, Telulzora_Union, Hemayetpur, Dhaka, Savar"),
+      1,
+      "Union_Telulzora vs Telulzora_Union",
+    );
+    assertBothOrders(
+      row("Plot # 23-24, Union_Telulzora, Hemayetpur, Dhaka, Savar"),
+      row("Plot # 23-24, Union, Telulzora, Hemayetpur, Dhaka, Savar"),
+      1,
+      "Union_Telulzora vs Union, Telulzora",
+    );
+    assertBothOrders(
+      row("Plot # 23-24, Village_Hemayetpur, Dhaka, Savar"),
+      row("Plot # 23-24, Union, Telulzora, Hemayetpur, Dhaka, Savar"),
+      1,
+      "Village_Hemayetpur vs Union, Telulzora",
+    );
+    assertBothOrders(
+      row("Plot # 23-24, Village_Hemayetpur, Dhaka, Savar"),
+      holding87,
+      1,
+      "Village_Hemayetpur vs Holding 87",
+    );
+    assertBothOrders(
+      row("Plot # 23-24, Vill_Hemayetpur, Dhaka, Savar"),
+      holding87,
+      1,
+      "Vill_Hemayetpur vs Holding 87",
+    );
+    assertBothOrders(
+      row("Plot # 23-24, Hemayetpur_Village, Dhaka, Savar"),
+      holding87,
+      1,
+      "Hemayetpur_Village vs Holding 87",
+    );
+    assertBothOrders(
+      row("Plot # 23-24, TelulzoraUnion, Hemayetpur, Dhaka, Savar"),
+      villageHemayetpur,
+      2,
+      "glued TelulzoraUnion vs Village Hemayetpur KEEP",
+    );
+    for (const ordered of permutations([
+      row("Plot # 10, North East Airport, Dhaka"),
+      row("Plot # 10, South East Airport, Dhaka"),
+      row("Plot # 10, Green Road, Dhaka"),
+    ])) {
+      assert.equal(
+        displays(ordered).length,
+        3,
+        "three-string North East+South East Airport+Green permutation",
+      );
+    }
+    for (const ordered of permutations([
+      row("Plot # 10, Sheikh East Airport, Dhaka"),
+      row("Plot # 10, Shaikh West Airpark, Dhaka"),
+      row("Plot # 10, Green Road, Dhaka"),
+    ])) {
+      assert.equal(
+        displays(ordered).length,
+        3,
+        "three-string Sheikh East Airport+Shaikh West Airpark+Green permutation",
+      );
+    }
+    for (const ordered of permutations([
+      row("Plot # 10, Airport Road_East, Dhaka"),
+      row("Plot # 10, Airport Road_West, Dhaka"),
+      row("Plot # 10, Green Road, Dhaka"),
+    ])) {
+      assert.equal(
+        displays(ordered).length,
+        3,
+        "three-string Airport Road_East+West+Green permutation",
+      );
+    }
+    for (const ordered of permutations([
+      row("Plot # 23-24, Union_Telulzora, Hemayetpur, Dhaka, Savar"),
+      row("Plot # 23-24, Village, Hemayetpur, Dhaka, Savar"),
+      row("Plot # 23-24, Village, Dogri, Hemayetpur, Dhaka, Savar"),
+    ])) {
+      assert.equal(
+        displays(ordered).length,
+        2,
+        "three-string Union_Telulzora+VH+VD permutation",
+      );
+    }
+  });
+
+  it("merges neighbour plot lists and keeps House 365/4 Baridhara together", () => {
+    assert.equal(
+      displays([
+        row("PLOT # 10 & 14, ROAD # 2, BLOCK # K, RUPNAGAR I/A, MIRPUR-2"),
+        row("Plot No # 14, Road No # 2, Block # K, Rupnagar I/A, Mirpur-2"),
+      ]).length,
+      1,
+    );
+    assert.equal(
+      displays([
+        row("HOUSE # 365/4, ROAD # 06, (WEST) BARIDARA, DOHS, DHAKA-1206, NARAYANGANJ"),
+        row("House # 365/4, Road # 6 (west0, Dhaka, Baridhara DOHS"),
+      ]).length,
+      1,
+    );
+    assert.equal(
+      displays([
+        row("House # 365/4, Road # 6, Dhaka, Baridhara DOHS"),
+        row("House # 365/4, Road # 6, Dhaka, Baridhara DOHS"),
+      ]).length,
+      1,
+    );
   });
 });
