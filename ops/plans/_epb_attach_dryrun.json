@@ -1,0 +1,685 @@
+{
+  "generated_at": "2026-08-14T21:40:07.818296+00:00",
+  "live_unique": 2716,
+  "live_from_association_pass": 554,
+  "live_from_category_pass_only": 2162,
+  "snapshot_suppliers": 10922,
+  "snapshot_epb": 539,
+  "buckets": {
+    "already_has_epb": 539,
+    "matched_published_mother": 2475,
+    "matched_bgmea_or_bkmea": 2385,
+    "would_attach": 1953,
+    "would_attach_bgmea_or_bkmea": 1872,
+    "would_attach_published_assoc_mother": 1866,
+    "no_match": 224
+  },
+  "named": {
+    "sarada-fashions": {
+      "source_ref": "4083",
+      "company_name": "SARADA FASHIONS LIMITED.",
+      "slug": "sarada-fashions",
+      "norm": "sarada fashions",
+      "pass": "category:Knit,(NB)",
+      "epb_reg_no": "BD05918",
+      "detail_url": "https://edb.epb.gov.bd/exporter/4083/sarada-fashions-limited",
+      "outcome": "would_attach",
+      "host": {
+        "id": "e7684798-f177-4749-9dc3-c6aba30e061d",
+        "slug": "sarada-fashions",
+        "company_name": "SARADA FASHIONS LTD.",
+        "company_name_norm": "sarada fashions",
+        "is_published": true,
+        "is_facility": false,
+        "has_bkmea": true,
+        "has_bgmea": false
+      }
+    },
+    "epyllion-knitwear": {
+      "source_ref": "2314",
+      "company_name": "EPYLLION KNITWEARS LIMITED",
+      "slug": "epyllion-knitwear",
+      "norm": "epyllion knitwear",
+      "pass": "category:Knit & Woven,(B)",
+      "epb_reg_no": "BD04474",
+      "detail_url": "https://edb.epb.gov.bd/exporter/2314/epyllion-knitwears-limited",
+      "outcome": "would_attach",
+      "host": {
+        "id": "723ed4a0-8315-4a65-a6ea-d8744ce7b529",
+        "slug": "epyllion-knitwear",
+        "company_name": "EPYLLION KNITWEARS LTD.",
+        "company_name_norm": "epyllion knitwear",
+        "is_published": true,
+        "is_facility": false,
+        "has_bkmea": false,
+        "has_bgmea": true
+      }
+    },
+    "epyllion-style": {
+      "source_ref": "4879",
+      "company_name": "EPYLLION STYLE LIMITED",
+      "slug": "epyllion-style",
+      "norm": "epyllion style",
+      "pass": "category:(B),Knit & Woven",
+      "epb_reg_no": "BD04859",
+      "detail_url": "https://edb.epb.gov.bd/exporter/4879/epyllion-style-limited",
+      "outcome": "would_attach",
+      "host": {
+        "id": "47d1f473-bf72-4a28-a2ee-493d9753e529",
+        "slug": "epyllion-style",
+        "company_name": "EPYLLION STYLE LTD.",
+        "company_name_norm": "epyllion style",
+        "is_published": true,
+        "is_facility": false,
+        "has_bkmea": false,
+        "has_bgmea": true
+      }
+    },
+    "interstoff-apparels": {
+      "source_ref": "2043",
+      "company_name": "Interstoff Apparels Ltd.",
+      "slug": "interstoff-apparels",
+      "norm": "interstoff apparels",
+      "pass": "category:(B),Knit & Woven",
+      "epb_reg_no": "BD04636",
+      "detail_url": "https://edb.epb.gov.bd/exporter/2043/interstoff-apparels-ltd",
+      "outcome": "would_attach",
+      "host": {
+        "id": "7643ae29-b8db-4729-a740-bcf1cac59ff4",
+        "slug": "interstoff-apparels",
+        "company_name": "INTERSTOFF APPARELS LTD",
+        "company_name_norm": "interstoff apparels",
+        "is_published": true,
+        "is_facility": false,
+        "has_bkmea": true,
+        "has_bgmea": true
+      }
+    },
+    "interstoff-clothing": {
+      "source_ref": "2329",
+      "company_name": "Interstoff Clothing Ltd.",
+      "slug": "interstoff-clothing",
+      "norm": "interstoff clothing",
+      "pass": "category:(B),Knit & Woven",
+      "epb_reg_no": "BD03913",
+      "detail_url": "https://edb.epb.gov.bd/exporter/2329/interstoff-clothing-ltd",
+      "outcome": "would_attach",
+      "host": {
+        "id": "ba890de2-df88-4170-b08a-ff4b9e64c113",
+        "slug": "interstoff-clothing",
+        "company_name": "Interstoff Clothing Ltd.",
+        "company_name_norm": "interstoff clothing",
+        "is_published": true,
+        "is_facility": false,
+        "has_bkmea": false,
+        "has_bgmea": true
+      }
+    }
+  },
+  "would_attach_sample": [
+    {
+      "source_ref": "564",
+      "company_name": "Azim Garments Ltd",
+      "pass": "association:BGMEA",
+      "host_slug": "azim-garments",
+      "host_name": "Azim Garments Ltd.",
+      "published": true
+    },
+    {
+      "source_ref": "3654",
+      "company_name": "BANGA FASHION LIMITED",
+      "pass": "association:BGMEA",
+      "host_slug": "banga-fashion",
+      "host_name": "BANGA FASHION LTD",
+      "published": true
+    },
+    {
+      "source_ref": "4225",
+      "company_name": "CROYDON KOWLOON DESIGNS LTD.",
+      "pass": "association:BGMEA",
+      "host_slug": "croydon-kowloon-designs",
+      "host_name": "Croydon-Kowloon Designs Ltd",
+      "published": true
+    },
+    {
+      "source_ref": "5358",
+      "company_name": "ECOFACT LIMITED",
+      "pass": "association:BGMEA",
+      "host_slug": "ecofact",
+      "host_name": "Ecofact Limited",
+      "published": true
+    },
+    {
+      "source_ref": "158",
+      "company_name": "HMN Fashion Ltd",
+      "pass": "association:BGMEA",
+      "host_slug": "hmn-fashion",
+      "host_name": "HMN FASHION LTD.",
+      "published": true
+    },
+    {
+      "source_ref": "452",
+      "company_name": "Jeans & Polo Ltd.",
+      "pass": "association:BGMEA",
+      "host_slug": "jeans-and-polo",
+      "host_name": "JEANS & POLO LTD",
+      "published": true
+    },
+    {
+      "source_ref": "4126",
+      "company_name": "M.T. SWEATERS LTD",
+      "pass": "association:BGMEA",
+      "host_slug": "mt-sweater",
+      "host_name": "MT SWEATER LTD",
+      "published": true
+    },
+    {
+      "source_ref": "5940",
+      "company_name": "NEW FASHION (NF) LIMITED",
+      "pass": "association:BGMEA",
+      "host_slug": "new-fashion-nf",
+      "host_name": "New Fashion (NF) Ltd.",
+      "published": true
+    },
+    {
+      "source_ref": "5946",
+      "company_name": "Oishee Apparels Limited",
+      "pass": "association:BGMEA",
+      "host_slug": "oishee-apparels",
+      "host_name": "Oishee Apparels Limited",
+      "published": true
+    },
+    {
+      "source_ref": "2394",
+      "company_name": "PACIFIC ATTIRES LIMITED",
+      "pass": "association:BGMEA",
+      "host_slug": "pacific-attires",
+      "host_name": "Pacific Attires Limited",
+      "published": true
+    },
+    {
+      "source_ref": "5392",
+      "company_name": "SAL TEXTILE IND. LTD",
+      "pass": "association:BGMEA",
+      "host_slug": "sal-textile-industries",
+      "host_name": "Sal Textile Ind. Ltd.",
+      "published": true
+    },
+    {
+      "source_ref": "1944",
+      "company_name": "WEGA KNITEX LIMITED",
+      "pass": "association:BGMEA",
+      "host_slug": "wega-knitex",
+      "host_name": "Wega Knitex Ltd.",
+      "published": true
+    },
+    {
+      "source_ref": "3956",
+      "company_name": "East Coast Knitwear (Pvt) Ltd",
+      "pass": "association:BKMEA",
+      "host_slug": "east-coast-knitwear",
+      "host_name": "East Coast Knitwear Pvt. Ltd.",
+      "published": true
+    },
+    {
+      "source_ref": "2345",
+      "company_name": "TITAS KNITWEAR LTD.",
+      "pass": "association:BKMEA",
+      "host_slug": "titas-knitwear",
+      "host_name": "TITAS KNITWEAR LTD",
+      "published": true
+    },
+    {
+      "source_ref": "5958",
+      "company_name": "Trisen Sweater Limited",
+      "pass": "association:BKMEA",
+      "host_slug": "trisen-swearter",
+      "host_name": "TRISEN SWEARTER LIMITED",
+      "published": true
+    },
+    {
+      "source_ref": "3380",
+      "company_name": "TUNIC STYLE WEAR LTD.",
+      "pass": "association:BKMEA",
+      "host_slug": "tunic-style-wear",
+      "host_name": "TUNIC STYLE WEAR LTD.",
+      "published": true
+    },
+    {
+      "source_ref": "2276",
+      "company_name": "3S INTERNATIONAL LTD.",
+      "pass": "category:(NB),Knit",
+      "host_slug": "3s-international",
+      "host_name": "3S International Ltd.",
+      "published": true
+    },
+    {
+      "source_ref": "5324",
+      "company_name": "A & A SOCKS LTD.",
+      "pass": "category:Knit,(NB)",
+      "host_slug": "a-and-a-socks",
+      "host_name": "A & A SOCKS LTD",
+      "published": true
+    },
+    {
+      "source_ref": "4267",
+      "company_name": "A ONE POLAR LTD.",
+      "pass": "category:Knit,(B)",
+      "host_slug": "a-one-polar",
+      "host_name": "A-ONE POLAR LTD",
+      "published": true
+    },
+    {
+      "source_ref": "4152",
+      "company_name": "A-MORE KNITWEAR LTD",
+      "pass": "category:(NB),Knit",
+      "host_slug": "a-more-knitwear",
+      "host_name": "A-MORE KNITWEAR LTD.",
+      "published": true
+    },
+    {
+      "source_ref": "1529",
+      "company_name": "A.M.S Knitwear Ltd.",
+      "pass": "category:Knit,(NB)",
+      "host_slug": "ams-knitwear",
+      "host_name": "A. M. S KNITWEAR LTD.",
+      "published": true
+    },
+    {
+      "source_ref": "3286",
+      "company_name": "A.R.R. DISMATICS LTD.",
+      "pass": "category:(NB),Knit",
+      "host_slug": "arr-dismatics",
+      "host_name": "A. R. R. DISMATICS LTD",
+      "published": true
+    },
+    {
+      "source_ref": "4433",
+      "company_name": "Abdullah Fashions Ltd",
+      "pass": "category:(NB),Knit",
+      "host_slug": "abdullah-fashions",
+      "host_name": "Abdullah Fashions",
+      "published": true
+    },
+    {
+      "source_ref": "634",
+      "company_name": "Abdullah Knitwears Limited",
+      "pass": "category:(NB),Knit",
+      "host_slug": "abdullah-knitwear",
+      "host_name": "ABDULLAH KNITWEARS LTD.",
+      "published": true
+    },
+    {
+      "source_ref": "5113",
+      "company_name": "ABLOOM DESIGN LTD.",
+      "pass": "category:(B),Knit",
+      "host_slug": "abloom-design",
+      "host_name": "ABLOOM DESIGN LTD.",
+      "published": true
+    },
+    {
+      "source_ref": "3335",
+      "company_name": "Aboni Knitwear Ltd",
+      "pass": "category:Knit,(B)",
+      "host_slug": "aboni-knitwear",
+      "host_name": "ABONI KNITWEAR LTD.",
+      "published": true
+    },
+    {
+      "source_ref": "4668",
+      "company_name": "Aboni Textiles Ltd",
+      "pass": "category:Knit,(B)",
+      "host_slug": "aboni-textiles",
+      "host_name": "Aboni Textiles Ltd.",
+      "published": true
+    },
+    {
+      "source_ref": "3488",
+      "company_name": "ABS APPARELS",
+      "pass": "category:(NB),Knit",
+      "host_slug": "abs-apparels",
+      "host_name": "ABS APPARELS.",
+      "published": true
+    },
+    {
+      "source_ref": "212",
+      "company_name": "Acelon Knit Composite Ltd.",
+      "pass": "category:Knit,(NB)",
+      "host_slug": "acelon-knit-composite",
+      "host_name": "ACELON KNIT COMPOSITE LIMITED",
+      "published": true
+    },
+    {
+      "source_ref": "3943",
+      "company_name": "ACS TEXTILES (BANGLADESH) LTD.",
+      "pass": "category:Home Textile,(NB),Knit",
+      "host_slug": "acs-textiles-bangladesh",
+      "host_name": "ACS Textiles (Bangladesh) Ltd.",
+      "published": true
+    },
+    {
+      "source_ref": "5639",
+      "company_name": "Actual Garments BD Ltd",
+      "pass": "category:Knit,(NB)",
+      "host_slug": "actual-garments-bd",
+      "host_name": "Actual Garments BD Ltd.",
+      "published": true
+    },
+    {
+      "source_ref": "1681",
+      "company_name": "Adiyat Apparels Ltd.",
+      "pass": "category:Knit,(NB)",
+      "host_slug": "adiyat-apparels",
+      "host_name": "Adiyat Apparels Ltd.",
+      "published": true
+    },
+    {
+      "source_ref": "3840",
+      "company_name": "ADOR COMPOSITE LIMITED",
+      "pass": "category:(NB),Knit",
+      "host_slug": "ador-composite",
+      "host_name": "ADOR COMPOSITE LTD.",
+      "published": true
+    },
+    {
+      "source_ref": "1121",
+      "company_name": "ADRI KNITWEAR LTD",
+      "pass": "category:Knit,(NB)",
+      "host_slug": "adri-knitwear",
+      "host_name": "ADRI KNITWEAR LTD.",
+      "published": true
+    },
+    {
+      "source_ref": "5330",
+      "company_name": "ADURY FASHION & PRINT LTD.",
+      "pass": "category:(B),Knit",
+      "host_slug": "adury-fashion-and-print",
+      "host_name": "Adury Fashion & Print Ltd.",
+      "published": true
+    },
+    {
+      "source_ref": "3819",
+      "company_name": "ADVANCE WORLD LTD",
+      "pass": "category:(NB),Knit",
+      "host_slug": "advance-world",
+      "host_name": "ADVANCE WORLD LTD.",
+      "published": true
+    },
+    {
+      "source_ref": "3429",
+      "company_name": "AFRIN KNIT COMPOSITE LTD.",
+      "pass": "category:(NB),Knit",
+      "host_slug": "afrin-knit-composite",
+      "host_name": "AFRIN KNIT COMPOSITE LTD.",
+      "published": true
+    },
+    {
+      "source_ref": "4973",
+      "company_name": "AHAVA COMPOSITE LTD.",
+      "pass": "category:(NB),Knit",
+      "host_slug": "ahava-composite",
+      "host_name": "Ahava Composite Ltd.",
+      "published": true
+    },
+    {
+      "source_ref": "2420",
+      "company_name": "AHMED FASHIONS",
+      "pass": "category:(B),Knit",
+      "host_slug": "ahmed-fashions",
+      "host_name": "Ahmed Fashions",
+      "published": true
+    },
+    {
+      "source_ref": "2830",
+      "company_name": "Ahmed Socks Industries",
+      "pass": "category:(NB),Knit",
+      "host_slug": "ahmed-socks-industries",
+      "host_name": "Ahmed Socks Industries",
+      "published": true
+    }
+  ],
+  "no_match_sample": [
+    {
+      "source_ref": "3229",
+      "company_name": "A.R CREATION BD",
+      "pass": "category:Knit",
+      "slug": "ar-creation-bd"
+    },
+    {
+      "source_ref": "1434",
+      "company_name": "ASL APPARELS LIMITED",
+      "pass": "category:(NB),Knit",
+      "slug": "asl-apparels"
+    },
+    {
+      "source_ref": "1458",
+      "company_name": "BELLE VOUZ LTD.",
+      "pass": "category:Knit",
+      "slug": "belle-vouz"
+    },
+    {
+      "source_ref": "4874",
+      "company_name": "Best Design and Fashion Ltd",
+      "pass": "category:(NB),Knit",
+      "slug": "best-design-and-fashion"
+    },
+    {
+      "source_ref": "681",
+      "company_name": "COAST TO COAST FASHION LTD.",
+      "pass": "category:Knit",
+      "slug": "coast-to-coast-fashion"
+    },
+    {
+      "source_ref": "4888",
+      "company_name": "F.M. KNITWEAR LTD.",
+      "pass": "category:Knit,(NB)",
+      "slug": "fm-knitwear"
+    },
+    {
+      "source_ref": "5129",
+      "company_name": "FRILL TEX",
+      "pass": "category:Knit,(NB)",
+      "slug": "frill-tex"
+    },
+    {
+      "source_ref": "1765",
+      "company_name": "M/S BISHAL KNIT WEAR LIMITED",
+      "pass": "category:(NB),Knit",
+      "slug": "ms-bishal-knitwear"
+    },
+    {
+      "source_ref": "2482",
+      "company_name": "M/S. BLUEBIRDS TEX",
+      "pass": "category:Knit,(NB)",
+      "slug": "ms-bluebirds-tex"
+    },
+    {
+      "source_ref": "864",
+      "company_name": "M/S. Knit Syndicate",
+      "pass": "category:(B),Knit",
+      "slug": "ms-knit-syndicate"
+    },
+    {
+      "source_ref": "1106",
+      "company_name": "Mrittika International Ltd.",
+      "pass": "category:(NB),Knit",
+      "slug": "mrittika-international"
+    },
+    {
+      "source_ref": "651",
+      "company_name": "New M.R. Textile",
+      "pass": "category:(NB),Knit",
+      "slug": "new-mr-textile"
+    },
+    {
+      "source_ref": "2263",
+      "company_name": "PRITAM KNITWEAR (PVY) LTD.",
+      "pass": "category:(NB),Knit",
+      "slug": "pritam-knitwear-pvy"
+    },
+    {
+      "source_ref": "707",
+      "company_name": "Quality & Commitment Garments Bangladesh Ltd.",
+      "pass": "category:(NB),Knit",
+      "slug": "quality-and-commitment-garments-bangladesh"
+    },
+    {
+      "source_ref": "1865",
+      "company_name": "TOWA PERSONAL PROTECTIVE DEVICE BANGLADESH LTD",
+      "pass": "category:Knit,(B)",
+      "slug": "towa-personal-protective-device-bangladesh"
+    },
+    {
+      "source_ref": "3808",
+      "company_name": "A.M. Desing Ltd.",
+      "pass": "category:Woven,(B)",
+      "slug": "am-desing"
+    },
+    {
+      "source_ref": "3473",
+      "company_name": "Ayubpur Textile Mills Ltd",
+      "pass": "category:(NB),Woven,Terry Towel",
+      "slug": "ayubpur-textile-mills"
+    },
+    {
+      "source_ref": "1511",
+      "company_name": "BRAC Aarong",
+      "pass": "category:Woven,(NB)",
+      "slug": "brac-aarong"
+    },
+    {
+      "source_ref": "4674",
+      "company_name": "CAT Garment Co. Limited",
+      "pass": "category:Woven,(B)",
+      "slug": "cat-garment"
+    },
+    {
+      "source_ref": "55",
+      "company_name": "EUSEBIO SPORTING BD LTD",
+      "pass": "category:(B),Woven",
+      "slug": "eusebio-sporting-bd"
+    },
+    {
+      "source_ref": "2651",
+      "company_name": "Fashion Zone Ltd.",
+      "pass": "category:Woven,(B)",
+      "slug": "fashion-zone"
+    },
+    {
+      "source_ref": "1150",
+      "company_name": "Hamid Fabrics Ltd.",
+      "pass": "category:Woven,(B)",
+      "slug": "hamid-fabrics"
+    },
+    {
+      "source_ref": "647",
+      "company_name": "ISHWARDI MATSUOKA BANGLADESH LTD",
+      "pass": "category:(B),Woven",
+      "slug": "ishwardi-matsuoka-bangladesh"
+    },
+    {
+      "source_ref": "5144",
+      "company_name": "JW APPAREL LIMITED",
+      "pass": "category:Woven,(B)",
+      "slug": "jw-apparel"
+    },
+    {
+      "source_ref": "1629",
+      "company_name": "Lhotse (BD) Limited.",
+      "pass": "category:(B),Woven",
+      "slug": "lhotse-bd"
+    },
+    {
+      "source_ref": "1142",
+      "company_name": "M/S EXPO DRESS LTD",
+      "pass": "category:Woven,(B)",
+      "slug": "ms-expo-dress"
+    },
+    {
+      "source_ref": "3006",
+      "company_name": "SHAH AMANAT ACCESSORIES LTD.",
+      "pass": "category:Woven,(B)",
+      "slug": "shah-amanat-accessories"
+    },
+    {
+      "source_ref": "5526",
+      "company_name": "SS-EDWARD APPARELS LIMITED",
+      "pass": "category:(NB),Woven",
+      "slug": "ss-edward-apparels"
+    },
+    {
+      "source_ref": "4153",
+      "company_name": "Thianis Apparels Ltd.",
+      "pass": "category:Woven,(B)",
+      "slug": "thianis-apparels"
+    },
+    {
+      "source_ref": "3098",
+      "company_name": "A.B ENTERPRISE",
+      "pass": "category:Knit & Woven,(NB)",
+      "slug": "ab-enterprise"
+    },
+    {
+      "source_ref": "2735",
+      "company_name": "Abanti Colour TexLtd",
+      "pass": "category:Knit & Woven,(B)",
+      "slug": "abanti-colour-texltd"
+    },
+    {
+      "source_ref": "1626",
+      "company_name": "ALVIRA FASHION CLOTHING LTD.",
+      "pass": "category:(NB),Knit & Woven",
+      "slug": "alvira-fashion-clothing"
+    },
+    {
+      "source_ref": "2681",
+      "company_name": "Ast Garnents Ltd",
+      "pass": "category:Knit & Woven",
+      "slug": "ast-garnents"
+    },
+    {
+      "source_ref": "1269",
+      "company_name": "Come On Fashion",
+      "pass": "category:Knit & Woven,(NB)",
+      "slug": "come-on-fashion"
+    },
+    {
+      "source_ref": "4045",
+      "company_name": "EVERTOBE (BD) LIMITED",
+      "pass": "category:Knit & Woven,(B)",
+      "slug": "evertobe-bd"
+    },
+    {
+      "source_ref": "2930",
+      "company_name": "Fashion Revolve",
+      "pass": "category:(NB),Knit & Woven",
+      "slug": "fashion-revolve"
+    },
+    {
+      "source_ref": "5754",
+      "company_name": "FAYEZ FASHIONS",
+      "pass": "category:(NB),Knit & Woven",
+      "slug": "fayez-fashions"
+    },
+    {
+      "source_ref": "558",
+      "company_name": "Greenvalley Fashion Wear Ltd",
+      "pass": "category:Knit & Woven",
+      "slug": "greenvalley-fashion-wear"
+    },
+    {
+      "source_ref": "2802",
+      "company_name": "HKD (Hi-Tech) Limited",
+      "pass": "category:Knit & Woven,(B)",
+      "slug": "hkd-hi-tech"
+    },
+    {
+      "source_ref": "3588",
+      "company_name": "HKD UNI-TECH LIMITED",
+      "pass": "category:Knit & Woven,(B)",
+      "slug": "hkd-uni-tech"
+    }
+  ],
+  "would_attach_count": 1953,
+  "no_match_count": 224
+}

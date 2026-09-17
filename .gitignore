@@ -76,7 +76,8 @@ _preflight.*
 .deploy/
 
 # Local agent/editor config
-.claude/
+.claude/settings.local.json
+CLAUDE.local.md
 .cursor/settings.local.json
 
 # Accidental DB dumps

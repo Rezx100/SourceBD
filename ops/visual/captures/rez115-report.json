@@ -1,0 +1,537 @@
+{
+  "issue": "REZ-115",
+  "base": "https://sourcebd.net",
+  "ts": "2026-08-10T18:59:18.996Z",
+  "health": {
+    "status": "ok",
+    "commit": "6656e714df4cd30a2cf836df1344162a1b18bab7",
+    "ts": "2026-08-10T18:59:19.083Z"
+  },
+  "pairs": [
+    [
+      "desh-garments",
+      "ocean-cross-international"
+    ],
+    [
+      "continental-garments-industries",
+      "unigarden-incorporate"
+    ],
+    [
+      "enayet-garments",
+      "rij-tex-international"
+    ]
+  ],
+  "threeWay": [
+    "birds-garments",
+    "young-woo-trading",
+    "birds-fadrex"
+  ],
+  "pages": [
+    {
+      "slug": "desh-garments",
+      "width": 1280,
+      "http": {
+        "url": "https://sourcebd.net/suppliers/desh-garments",
+        "status": 200,
+        "location": null
+      },
+      "status": 200,
+      "h1": "Desh Garments Limited",
+      "shot": "E:\\SourceBD\\ops\\visual\\captures\\rez115-desh-garments-compliance-w1280.png",
+      "registries": {
+        "complianceText": "Registries\n2 verified records\nBGMEAGeneral member1\nVerified\nVerify on BGMEA\nRSC11422\nVerified\nOpen source\nRSC remediation\n1 site\n\nProgress\n\n100%\n\n874 workers · RSC\ninitialcompleted\ncompleted\n\nTracked by the RMG Sustainability Council — fire, structural, and electrical remediation on file per site. Missing workforce counts show as unknown, not zero.\n\nSanctions screening\n6 of 6 watchlists clear · re-screened weekly\nUFLPA\nClear\nCBP Entity List\nCBP WRO\nClear\nU.S. Customs & Border Protection\nOFAC SDN\nClear\nU.S. Treasury\nOFSI\nClear\nHM Treasury\nEU Sanctions\nClear\nEuropean Commission\nDOL ILAB\nClear\nU.S. Labor Dept.\n\nName + address + registry IDs cross-checked against all 6 watchlists above.\n\nCompliance documents\n6 mirrored\nBOILER\nRSC boiler safety inspection\n400 KB\nMirror\nOriginal\nCAP\nCorrective Action Plan\n147 KB\nMirror\nOriginal\nCAP\nCorrective Action Plan\n147 KB\nMirror\nOriginal\nELECTRICAL\nRSC electrical inspection report\n4.5 MB\nMirror\nOriginal\nFIRE\nRSC fire-safety inspection report\n4.4 MB\nMirror\nOriginal\nSTRUCTURAL\nRSC structural inspection report\n4.5 MB\nMirror\nOriginal\n\nMirror copies served from SourceBD's CDN for stable archival. Originals link back to the issuing authority.",
+        "hasGeneral": true,
+        "hasAssociate": false,
+        "hasVerified": true,
+        "bgmeaLinks": [
+          {
+            "text": "Verify on BGMEA",
+            "href": "https://www.bgmea.com.bd/member/951"
+          }
+        ]
+      },
+      "provenance": null,
+      "outbound": [
+        {
+          "url": "https://www.bgmea.com.bd/member/951",
+          "status": 200,
+          "location": null
+        }
+      ]
+    },
+    {
+      "slug": "ocean-cross-international",
+      "width": 1280,
+      "http": {
+        "url": "https://sourcebd.net/suppliers/ocean-cross-international",
+        "status": 200,
+        "location": null
+      },
+      "status": 200,
+      "h1": "Ocean Cross International",
+      "shot": "E:\\SourceBD\\ops\\visual\\captures\\rez115-ocean-cross-international-compliance-w1280.png",
+      "registries": {
+        "complianceText": "Registries\n1 verified record\nBGMEAAssociate member1\nVerified\nSanctions screening\n6 of 6 watchlists clear · re-screened weekly\nUFLPA\nClear\nCBP Entity List\nCBP WRO\nClear\nU.S. Customs & Border Protection\nOFAC SDN\nClear\nU.S. Treasury\nOFSI\nClear\nHM Treasury\nEU Sanctions\nClear\nEuropean Commission\nDOL ILAB\nClear\nU.S. Labor Dept.\n\nName + address + registry IDs cross-checked against all 6 watchlists above.",
+        "hasGeneral": false,
+        "hasAssociate": true,
+        "hasVerified": true,
+        "bgmeaLinks": []
+      },
+      "provenance": null,
+      "outbound": []
+    },
+    {
+      "slug": "continental-garments-industries",
+      "width": 1280,
+      "http": {
+        "url": "https://sourcebd.net/suppliers/continental-garments-industries",
+        "status": 200,
+        "location": null
+      },
+      "status": 200,
+      "h1": "Continental Garments Ind. (pvt.) Ltd.",
+      "shot": "E:\\SourceBD\\ops\\visual\\captures\\rez115-continental-garments-industries-compliance-w1280.png",
+      "registries": {
+        "complianceText": "Registries\n2 verified records\nBGMEAGeneral member10\nVerified\nVerify on BGMEA\nRSC10283\nVerified\nOpen source\nCertifications\n2 active · 0 expiring\nGOTS — Global Organic Textile Standard\nValid · 142 days\nGOTS-16860 · Control Union Certifications B.V. · expires 31 Dec 2026\nOEKO-TEX® STANDARD 100\nEvergreen\n75691-100 · OEKO-TEX\nRSC remediation\n1 site\n\nProgress\n\n100%\n\n2,300 workers · RSC\ninitialcompleted\nongoing\n\nTracked by the RMG Sustainability Council — fire, structural, and electrical remediation on file per site. Missing workforce counts show as unknown, not zero.\n\nSanctions screening\n6 of 6 watchlists clear · re-screened weekly\nUFLPA\nClear\nCBP Entity List\nCBP WRO\nClear\nU.S. Customs & Border Protection\nOFAC SDN\nClear\nU.S. Treasury\nOFSI\nClear\nHM Treasury\nEU Sanctions\nClear\nEuropean Commission\nDOL ILAB\nClear\nU.S. Labor Dept.\n\nName + address + registry IDs cross-checked against all 6 watchlists above.\n\nBrand attribution\n1 brand disclosed\nNext plc supplier list\n18 May 2026\n\nEach chip traces to the brand's own published supplier disclosure. Full sources on the Brand attribution tab.\n\nCompliance documents\n5 mirrored\nBOILER\nRSC boiler safety inspection\n3.3 MB\nMirror\nOriginal\nCAP\nCorrective Action Plan\n145 KB\nMirror\nOriginal\nCAP\nCorrective Action Plan\n145 KB\nMirror\nOriginal\nELECTRICAL\nRSC electrical inspection report\n544 KB\nMirror\nOriginal\nFIRE\nRSC fire-safety inspection report\n743 KB\nMirror\nOriginal\n\nMirror copies served from SourceBD's CDN for stable archival. Originals link back to the issuing authority.",
+        "hasGeneral": true,
+        "hasAssociate": false,
+        "hasVerified": true,
+        "bgmeaLinks": [
+          {
+            "text": "Verify on BGMEA",
+            "href": "https://www.bgmea.com.bd/member/816"
+          }
+        ]
+      },
+      "provenance": null,
+      "outbound": [
+        {
+          "url": "https://www.bgmea.com.bd/member/816",
+          "status": 200,
+          "location": null
+        }
+      ]
+    },
+    {
+      "slug": "unigarden-incorporate",
+      "width": 1280,
+      "http": {
+        "url": "https://sourcebd.net/suppliers/unigarden-incorporate",
+        "status": 200,
+        "location": null
+      },
+      "status": 200,
+      "h1": "Unigarden Incorporate",
+      "shot": "E:\\SourceBD\\ops\\visual\\captures\\rez115-unigarden-incorporate-compliance-w1280.png",
+      "registries": {
+        "complianceText": "Registries\n1 verified record\nBGMEAAssociate member10\nVerified\nSanctions screening\n6 of 6 watchlists clear · re-screened weekly\nUFLPA\nClear\nCBP Entity List\nCBP WRO\nClear\nU.S. Customs & Border Protection\nOFAC SDN\nClear\nU.S. Treasury\nOFSI\nClear\nHM Treasury\nEU Sanctions\nClear\nEuropean Commission\nDOL ILAB\nClear\nU.S. Labor Dept.\n\nName + address + registry IDs cross-checked against all 6 watchlists above.",
+        "hasGeneral": false,
+        "hasAssociate": true,
+        "hasVerified": true,
+        "bgmeaLinks": []
+      },
+      "provenance": null,
+      "outbound": []
+    },
+    {
+      "slug": "enayet-garments",
+      "width": 1280,
+      "http": {
+        "url": "https://sourcebd.net/suppliers/enayet-garments",
+        "status": 200,
+        "location": null
+      },
+      "status": 200,
+      "h1": "Enayet Garments Ltd.",
+      "shot": "E:\\SourceBD\\ops\\visual\\captures\\rez115-enayet-garments-compliance-w1280.png",
+      "registries": {
+        "complianceText": "Registries\n1 verified record\nBGMEAGeneral member1007\nVerified\nVerify on BGMEA\nSanctions screening\n6 of 6 watchlists clear · re-screened weekly\nUFLPA\nClear\nCBP Entity List\nCBP WRO\nClear\nU.S. Customs & Border Protection\nOFAC SDN\nClear\nU.S. Treasury\nOFSI\nClear\nHM Treasury\nEU Sanctions\nClear\nEuropean Commission\nDOL ILAB\nClear\nU.S. Labor Dept.\n\nName + address + registry IDs cross-checked against all 6 watchlists above.",
+        "hasGeneral": true,
+        "hasAssociate": false,
+        "hasVerified": true,
+        "bgmeaLinks": [
+          {
+            "text": "Verify on BGMEA",
+            "href": "https://www.bgmea.com.bd/member/1129"
+          }
+        ]
+      },
+      "provenance": null,
+      "outbound": [
+        {
+          "url": "https://www.bgmea.com.bd/member/1129",
+          "status": 200,
+          "location": null
+        }
+      ]
+    },
+    {
+      "slug": "rij-tex-international",
+      "width": 1280,
+      "http": {
+        "url": "https://sourcebd.net/suppliers/rij-tex-international",
+        "status": 200,
+        "location": null
+      },
+      "status": 200,
+      "h1": "Rij-tex International Ltd.",
+      "shot": "E:\\SourceBD\\ops\\visual\\captures\\rez115-rij-tex-international-compliance-w1280.png",
+      "registries": {
+        "complianceText": "Registries\n1 verified record\nBGMEAAssociate member1007\nVerified\nSanctions screening\n6 of 6 watchlists clear · re-screened weekly\nUFLPA\nClear\nCBP Entity List\nCBP WRO\nClear\nU.S. Customs & Border Protection\nOFAC SDN\nClear\nU.S. Treasury\nOFSI\nClear\nHM Treasury\nEU Sanctions\nClear\nEuropean Commission\nDOL ILAB\nClear\nU.S. Labor Dept.\n\nName + address + registry IDs cross-checked against all 6 watchlists above.",
+        "hasGeneral": false,
+        "hasAssociate": true,
+        "hasVerified": true,
+        "bgmeaLinks": []
+      },
+      "provenance": null,
+      "outbound": []
+    },
+    {
+      "slug": "birds-garments",
+      "width": 1280,
+      "http": {
+        "url": "https://sourcebd.net/suppliers/birds-garments",
+        "status": 200,
+        "location": null
+      },
+      "status": 200,
+      "h1": "Birds Garments Ltd.",
+      "shot": "E:\\SourceBD\\ops\\visual\\captures\\rez115-birds-garments-compliance-w1280.png",
+      "registries": {
+        "complianceText": "Registries\n2 records · 1 building\n\nMAIN PLANT\n\nBGMEAGeneral member100\nVerified\nVerify on BGMEA\n\nBIRDS GARMENTS LTD. UNIT-2\n\nBGMEAGeneral member2455\nVerified\nVerify on BGMEA\n\nRecords under a building name belong to that facility, not the main plant. They appear here for due diligence only — they do not make the company searchable under that registry in Discover.\n\nSanctions screening\n6 of 6 watchlists clear · re-screened weekly\nUFLPA\nClear\nCBP Entity List\nCBP WRO\nClear\nU.S. Customs & Border Protection\nOFAC SDN\nClear\nU.S. Treasury\nOFSI\nClear\nHM Treasury\nEU Sanctions\nClear\nEuropean Commission\nDOL ILAB\nClear\nU.S. Labor Dept.\n\nName + address + registry IDs cross-checked against all 6 watchlists above.",
+        "hasGeneral": true,
+        "hasAssociate": false,
+        "hasVerified": true,
+        "bgmeaLinks": [
+          {
+            "text": "Verify on BGMEA",
+            "href": "https://www.bgmea.com.bd/member/596"
+          },
+          {
+            "text": "Verify on BGMEA",
+            "href": "https://www.bgmea.com.bd/member/597"
+          }
+        ]
+      },
+      "provenance": null,
+      "outbound": [
+        {
+          "url": "https://www.bgmea.com.bd/member/596",
+          "status": 200,
+          "location": null
+        },
+        {
+          "url": "https://www.bgmea.com.bd/member/597",
+          "status": 200,
+          "location": null
+        }
+      ]
+    },
+    {
+      "slug": "young-woo-trading",
+      "width": 1280,
+      "http": {
+        "url": "https://sourcebd.net/suppliers/young-woo-trading",
+        "status": 200,
+        "location": null
+      },
+      "status": 200,
+      "h1": "Young Woo Trading CO. Ltd.",
+      "shot": "E:\\SourceBD\\ops\\visual\\captures\\rez115-young-woo-trading-compliance-w1280.png",
+      "registries": {
+        "complianceText": "Registries\n1 verified record\nBGMEAAssociate member100\nVerified\nSanctions screening\n6 of 6 watchlists clear · re-screened weekly\nUFLPA\nClear\nCBP Entity List\nCBP WRO\nClear\nU.S. Customs & Border Protection\nOFAC SDN\nClear\nU.S. Treasury\nOFSI\nClear\nHM Treasury\nEU Sanctions\nClear\nEuropean Commission\nDOL ILAB\nClear\nU.S. Labor Dept.\n\nName + address + registry IDs cross-checked against all 6 watchlists above.",
+        "hasGeneral": false,
+        "hasAssociate": true,
+        "hasVerified": true,
+        "bgmeaLinks": []
+      },
+      "provenance": null,
+      "outbound": []
+    },
+    {
+      "slug": "birds-fadrex",
+      "width": 1280,
+      "http": {
+        "url": "https://sourcebd.net/suppliers/birds-fadrex",
+        "status": 200,
+        "location": null
+      },
+      "status": 200,
+      "h1": "Birds Fadrex Ltd.",
+      "shot": "E:\\SourceBD\\ops\\visual\\captures\\rez115-birds-fadrex-compliance-w1280.png",
+      "registries": {
+        "complianceText": "Registries\n1 verified record\nBGMEAGeneral member2163\nVerified\nVerify on BGMEA\nSanctions screening\n6 of 6 watchlists clear · re-screened weekly\nUFLPA\nClear\nCBP Entity List\nCBP WRO\nClear\nU.S. Customs & Border Protection\nOFAC SDN\nClear\nU.S. Treasury\nOFSI\nClear\nHM Treasury\nEU Sanctions\nClear\nEuropean Commission\nDOL ILAB\nClear\nU.S. Labor Dept.\n\nName + address + registry IDs cross-checked against all 6 watchlists above.",
+        "hasGeneral": true,
+        "hasAssociate": false,
+        "hasVerified": true,
+        "bgmeaLinks": [
+          {
+            "text": "Verify on BGMEA",
+            "href": "https://www.bgmea.com.bd/member/595"
+          }
+        ]
+      },
+      "provenance": null,
+      "outbound": [
+        {
+          "url": "https://www.bgmea.com.bd/member/595",
+          "status": 200,
+          "location": null
+        }
+      ]
+    },
+    {
+      "slug": "desh-garments",
+      "width": 390,
+      "http": {
+        "url": "https://sourcebd.net/suppliers/desh-garments",
+        "status": 200,
+        "location": null
+      },
+      "status": 200,
+      "h1": "Desh Garments Limited",
+      "shot": "E:\\SourceBD\\ops\\visual\\captures\\rez115-desh-garments-compliance-w390.png",
+      "registries": {
+        "complianceText": "Registries\n2 verified records\nBGMEAGeneral member1\nVerified\nVerify on BGMEA\nRSC11422\nVerified\nOpen source\nRSC remediation\n1 site\n\nProgress\n\n100%\n\n874 workers · RSC\ninitialcompleted\ncompleted\n\nTracked by the RMG Sustainability Council — fire, structural, and electrical remediation on file per site. Missing workforce counts show as unknown, not zero.\n\nSanctions screening\n6 of 6 watchlists clear · re-screened weekly\nUFLPA\nClear\nCBP Entity List\nCBP WRO\nClear\nU.S. Customs & Border Protection\nOFAC SDN\nClear\nU.S. Treasury\nOFSI\nClear\nHM Treasury\nEU Sanctions\nClear\nEuropean Commission\nDOL ILAB\nClear\nU.S. Labor Dept.\n\nName + address + registry IDs cross-checked against all 6 watchlists above.\n\nCompliance documents\n6 mirrored\nBOILER\nBOILER\n400 KB\nMirror\nOriginal\nCAP\nCAP\n147 KB\nMirror\nOriginal\nCAP\nCAP\n147 KB\nMirror\nOriginal\nELECTRICAL\nELECTRICAL\n4.5 MB\nMirror\nOriginal\nFIRE\nFIRE\n4.4 MB\nMirror\nOriginal\nSTRUCTURAL\nSTRUCTURAL\n4.5 MB\nMirror\nOriginal\n\nMirror copies served from SourceBD's CDN for stable archival. Originals link back to the issuing authority.",
+        "hasGeneral": true,
+        "hasAssociate": false,
+        "hasVerified": true,
+        "bgmeaLinks": [
+          {
+            "text": "Verify on BGMEA",
+            "href": "https://www.bgmea.com.bd/member/951"
+          }
+        ]
+      },
+      "provenance": null,
+      "outbound": [
+        {
+          "url": "https://www.bgmea.com.bd/member/951",
+          "status": 200,
+          "location": null
+        }
+      ]
+    },
+    {
+      "slug": "ocean-cross-international",
+      "width": 390,
+      "http": {
+        "url": "https://sourcebd.net/suppliers/ocean-cross-international",
+        "status": 200,
+        "location": null
+      },
+      "status": 200,
+      "h1": "Ocean Cross International",
+      "shot": "E:\\SourceBD\\ops\\visual\\captures\\rez115-ocean-cross-international-compliance-w390.png",
+      "registries": {
+        "complianceText": "Registries\n1 verified record\nBGMEAAssociate member1\nVerified\nSanctions screening\n6 of 6 watchlists clear · re-screened weekly\nUFLPA\nClear\nCBP Entity List\nCBP WRO\nClear\nU.S. Customs & Border Protection\nOFAC SDN\nClear\nU.S. Treasury\nOFSI\nClear\nHM Treasury\nEU Sanctions\nClear\nEuropean Commission\nDOL ILAB\nClear\nU.S. Labor Dept.\n\nName + address + registry IDs cross-checked against all 6 watchlists above.",
+        "hasGeneral": false,
+        "hasAssociate": true,
+        "hasVerified": true,
+        "bgmeaLinks": []
+      },
+      "provenance": null,
+      "outbound": []
+    },
+    {
+      "slug": "continental-garments-industries",
+      "width": 390,
+      "http": {
+        "url": "https://sourcebd.net/suppliers/continental-garments-industries",
+        "status": 200,
+        "location": null
+      },
+      "status": 200,
+      "h1": "Continental Garments Ind. (pvt.) Ltd.",
+      "shot": "E:\\SourceBD\\ops\\visual\\captures\\rez115-continental-garments-industries-compliance-w390.png",
+      "registries": {
+        "complianceText": "Registries\n2 verified records\nBGMEAGeneral member10\nVerified\nVerify on BGMEA\nRSC10283\nVerified\nOpen source\nCertifications\n2 active · 0 expiring\nGOTS\nValid\nGOTS-16860 · expires 31 Dec 2026\nOEKO-TEX®\nEvergreen\n75691-100\nRSC remediation\n1 site\n\nProgress\n\n100%\n\n2,300 workers · RSC\ninitialcompleted\nongoing\n\nTracked by the RMG Sustainability Council — fire, structural, and electrical remediation on file per site. Missing workforce counts show as unknown, not zero.\n\nSanctions screening\n6 of 6 watchlists clear · re-screened weekly\nUFLPA\nClear\nCBP Entity List\nCBP WRO\nClear\nU.S. Customs & Border Protection\nOFAC SDN\nClear\nU.S. Treasury\nOFSI\nClear\nHM Treasury\nEU Sanctions\nClear\nEuropean Commission\nDOL ILAB\nClear\nU.S. Labor Dept.\n\nName + address + registry IDs cross-checked against all 6 watchlists above.\n\nBrand attribution\n1 brand disclosed\nNext plc supplier list\n18 May 2026\n\nEach chip traces to the brand's own published supplier disclosure. Full sources on the Brand attribution tab.\n\nCompliance documents\n5 mirrored\nBOILER\nBOILER\n3.3 MB\nMirror\nOriginal\nCAP\nCAP\n145 KB\nMirror\nOriginal\nCAP\nCAP\n145 KB\nMirror\nOriginal\nELECTRICAL\nELECTRICAL\n544 KB\nMirror\nOriginal\nFIRE\nFIRE\n743 KB\nMirror\nOriginal\n\nMirror copies served from SourceBD's CDN for stable archival. Originals link back to the issuing authority.",
+        "hasGeneral": true,
+        "hasAssociate": false,
+        "hasVerified": true,
+        "bgmeaLinks": [
+          {
+            "text": "Verify on BGMEA",
+            "href": "https://www.bgmea.com.bd/member/816"
+          }
+        ]
+      },
+      "provenance": null,
+      "outbound": [
+        {
+          "url": "https://www.bgmea.com.bd/member/816",
+          "status": 200,
+          "location": null
+        }
+      ]
+    },
+    {
+      "slug": "unigarden-incorporate",
+      "width": 390,
+      "http": {
+        "url": "https://sourcebd.net/suppliers/unigarden-incorporate",
+        "status": 200,
+        "location": null
+      },
+      "status": 200,
+      "h1": "Unigarden Incorporate",
+      "shot": "E:\\SourceBD\\ops\\visual\\captures\\rez115-unigarden-incorporate-compliance-w390.png",
+      "registries": {
+        "complianceText": "Registries\n1 verified record\nBGMEAAssociate member10\nVerified\nSanctions screening\n6 of 6 watchlists clear · re-screened weekly\nUFLPA\nClear\nCBP Entity List\nCBP WRO\nClear\nU.S. Customs & Border Protection\nOFAC SDN\nClear\nU.S. Treasury\nOFSI\nClear\nHM Treasury\nEU Sanctions\nClear\nEuropean Commission\nDOL ILAB\nClear\nU.S. Labor Dept.\n\nName + address + registry IDs cross-checked against all 6 watchlists above.",
+        "hasGeneral": false,
+        "hasAssociate": true,
+        "hasVerified": true,
+        "bgmeaLinks": []
+      },
+      "provenance": null,
+      "outbound": []
+    },
+    {
+      "slug": "enayet-garments",
+      "width": 390,
+      "http": {
+        "url": "https://sourcebd.net/suppliers/enayet-garments",
+        "status": 200,
+        "location": null
+      },
+      "status": 200,
+      "h1": "Enayet Garments Ltd.",
+      "shot": "E:\\SourceBD\\ops\\visual\\captures\\rez115-enayet-garments-compliance-w390.png",
+      "registries": {
+        "complianceText": "Registries\n1 verified record\nBGMEAGeneral member1007\nVerified\nVerify on BGMEA\nSanctions screening\n6 of 6 watchlists clear · re-screened weekly\nUFLPA\nClear\nCBP Entity List\nCBP WRO\nClear\nU.S. Customs & Border Protection\nOFAC SDN\nClear\nU.S. Treasury\nOFSI\nClear\nHM Treasury\nEU Sanctions\nClear\nEuropean Commission\nDOL ILAB\nClear\nU.S. Labor Dept.\n\nName + address + registry IDs cross-checked against all 6 watchlists above.",
+        "hasGeneral": true,
+        "hasAssociate": false,
+        "hasVerified": true,
+        "bgmeaLinks": [
+          {
+            "text": "Verify on BGMEA",
+            "href": "https://www.bgmea.com.bd/member/1129"
+          }
+        ]
+      },
+      "provenance": null,
+      "outbound": [
+        {
+          "url": "https://www.bgmea.com.bd/member/1129",
+          "status": 200,
+          "location": null
+        }
+      ]
+    },
+    {
+      "slug": "rij-tex-international",
+      "width": 390,
+      "http": {
+        "url": "https://sourcebd.net/suppliers/rij-tex-international",
+        "status": 200,
+        "location": null
+      },
+      "status": 200,
+      "h1": "Rij-tex International Ltd.",
+      "shot": "E:\\SourceBD\\ops\\visual\\captures\\rez115-rij-tex-international-compliance-w390.png",
+      "registries": {
+        "complianceText": "Registries\n1 verified record\nBGMEAAssociate member1007\nVerified\nSanctions screening\n6 of 6 watchlists clear · re-screened weekly\nUFLPA\nClear\nCBP Entity List\nCBP WRO\nClear\nU.S. Customs & Border Protection\nOFAC SDN\nClear\nU.S. Treasury\nOFSI\nClear\nHM Treasury\nEU Sanctions\nClear\nEuropean Commission\nDOL ILAB\nClear\nU.S. Labor Dept.\n\nName + address + registry IDs cross-checked against all 6 watchlists above.",
+        "hasGeneral": false,
+        "hasAssociate": true,
+        "hasVerified": true,
+        "bgmeaLinks": []
+      },
+      "provenance": null,
+      "outbound": []
+    },
+    {
+      "slug": "birds-garments",
+      "width": 390,
+      "http": {
+        "url": "https://sourcebd.net/suppliers/birds-garments",
+        "status": 200,
+        "location": null
+      },
+      "status": 200,
+      "h1": "Birds Garments Ltd.",
+      "shot": "E:\\SourceBD\\ops\\visual\\captures\\rez115-birds-garments-compliance-w390.png",
+      "registries": {
+        "complianceText": "Registries\n2 records · 1 building\n\nMAIN PLANT\n\nBGMEAGeneral member100\nVerified\nVerify on BGMEA\n\nBIRDS GARMENTS LTD. UNIT-2\n\nBGMEAGeneral member2455\nVerified\nVerify on BGMEA\n\nRecords under a building name belong to that facility, not the main plant. They appear here for due diligence only — they do not make the company searchable under that registry in Discover.\n\nSanctions screening\n6 of 6 watchlists clear · re-screened weekly\nUFLPA\nClear\nCBP Entity List\nCBP WRO\nClear\nU.S. Customs & Border Protection\nOFAC SDN\nClear\nU.S. Treasury\nOFSI\nClear\nHM Treasury\nEU Sanctions\nClear\nEuropean Commission\nDOL ILAB\nClear\nU.S. Labor Dept.\n\nName + address + registry IDs cross-checked against all 6 watchlists above.",
+        "hasGeneral": true,
+        "hasAssociate": false,
+        "hasVerified": true,
+        "bgmeaLinks": [
+          {
+            "text": "Verify on BGMEA",
+            "href": "https://www.bgmea.com.bd/member/596"
+          },
+          {
+            "text": "Verify on BGMEA",
+            "href": "https://www.bgmea.com.bd/member/597"
+          }
+        ]
+      },
+      "provenance": null,
+      "outbound": [
+        {
+          "url": "https://www.bgmea.com.bd/member/596",
+          "status": 200,
+          "location": null
+        },
+        {
+          "url": "https://www.bgmea.com.bd/member/597",
+          "status": 200,
+          "location": null
+        }
+      ]
+    },
+    {
+      "slug": "young-woo-trading",
+      "width": 390,
+      "http": {
+        "url": "https://sourcebd.net/suppliers/young-woo-trading",
+        "status": 200,
+        "location": null
+      },
+      "status": 200,
+      "h1": "Young Woo Trading CO. Ltd.",
+      "shot": "E:\\SourceBD\\ops\\visual\\captures\\rez115-young-woo-trading-compliance-w390.png",
+      "registries": {
+        "complianceText": "Registries\n1 verified record\nBGMEAAssociate member100\nVerified\nSanctions screening\n6 of 6 watchlists clear · re-screened weekly\nUFLPA\nClear\nCBP Entity List\nCBP WRO\nClear\nU.S. Customs & Border Protection\nOFAC SDN\nClear\nU.S. Treasury\nOFSI\nClear\nHM Treasury\nEU Sanctions\nClear\nEuropean Commission\nDOL ILAB\nClear\nU.S. Labor Dept.\n\nName + address + registry IDs cross-checked against all 6 watchlists above.",
+        "hasGeneral": false,
+        "hasAssociate": true,
+        "hasVerified": true,
+        "bgmeaLinks": []
+      },
+      "provenance": null,
+      "outbound": []
+    },
+    {
+      "slug": "birds-fadrex",
+      "width": 390,
+      "http": {
+        "url": "https://sourcebd.net/suppliers/birds-fadrex",
+        "status": 200,
+        "location": null
+      },
+      "status": 200,
+      "h1": "Birds Fadrex Ltd.",
+      "shot": "E:\\SourceBD\\ops\\visual\\captures\\rez115-birds-fadrex-compliance-w390.png",
+      "registries": {
+        "complianceText": "Registries\n1 verified record\nBGMEAGeneral member2163\nVerified\nVerify on BGMEA\nSanctions screening\n6 of 6 watchlists clear · re-screened weekly\nUFLPA\nClear\nCBP Entity List\nCBP WRO\nClear\nU.S. Customs & Border Protection\nOFAC SDN\nClear\nU.S. Treasury\nOFSI\nClear\nHM Treasury\nEU Sanctions\nClear\nEuropean Commission\nDOL ILAB\nClear\nU.S. Labor Dept.\n\nName + address + registry IDs cross-checked against all 6 watchlists above.",
+        "hasGeneral": true,
+        "hasAssociate": false,
+        "hasVerified": true,
+        "bgmeaLinks": [
+          {
+            "text": "Verify on BGMEA",
+            "href": "https://www.bgmea.com.bd/member/595"
+          }
+        ]
+      },
+      "provenance": null,
+      "outbound": [
+        {
+          "url": "https://www.bgmea.com.bd/member/595",
+          "status": 200,
+          "location": null
+        }
+      ]
+    }
+  ]
+}
