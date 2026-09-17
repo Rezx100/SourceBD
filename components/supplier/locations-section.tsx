@@ -27,6 +27,7 @@ import {
   MapPinLine,
 } from "@phosphor-icons/react";
 
+import { AlsoRecordedAs } from "@/components/supplier/also-recorded-as";
 import { AuthorityChip } from "@/components/supplier/authority-chip";
 import { LocationsAddressGroup } from "@/components/supplier/locations-address-group";
 import {
@@ -35,7 +36,7 @@ import {
   type LocationKind,
   type LocationMapMarker,
 } from "@/components/supplier/locations-map";
-import { CATEGORY_BY_GROUP, secondaryTypeLabels } from "@/lib/dedup-addresses";
+import { CATEGORY_BY_GROUP, secondaryTypeLabels, type AddressVariant } from "@/lib/dedup-addresses";
 import { toTitleCaseAddress } from "@/lib/format-location";
 
 /** Deep-link param that focuses one location on load. 1-based to match the
@@ -47,7 +48,7 @@ const SITE_PARAM = "site";
 export type SerializableLocation = {
   displayAddress: string;
   floors: string[];
-  variants: string[];
+  variants: AddressVariant[];
   types: string[];
   authorities: string[];
   /** Index into the `markers` array for this location, or null if not geocoded. */
@@ -107,7 +108,7 @@ const GROUP_KIND = CATEGORY_BY_GROUP as Record<string, LocationKind>;
 
 type LocateState = "idle" | "loading" | "success" | "failed";
 
-function AddressRow({
+export function AddressRow({
   location,
   groupTitle,
   isSelected,
@@ -188,6 +189,8 @@ function AddressRow({
               : "hover:bg-neutral-50",
       ].join(" ")}
       aria-current={isSelected ? "true" : undefined}
+      data-location-row=""
+      data-location-group={groupTitle}
     >
       <div className="flex min-w-0 items-start gap-2.5 sm:flex-1">
         <span
@@ -199,11 +202,7 @@ function AddressRow({
         <div className="min-w-0 pt-0.5 sm:pt-0">
           <p
             className="text-[14.5px] leading-[1.45] text-neutral-800"
-            title={
-              location.variants.length > 0
-                ? `Also recorded as: ${location.variants.join(" · ")}`
-                : undefined
-            }
+            data-location-display=""
           >
             {siteNumber !== null ? (
               <span className="sr-only">Site {siteNumber}. </span>
@@ -220,6 +219,7 @@ function AddressRow({
               </span>
             ) : null}
           </p>
+          <AlsoRecordedAs variants={location.variants} />
           {/* Hint text for ungeocoded rows (idle only — disappears after locate attempt) */}
           {isUngeocoded && locateState === "idle" ? (
             <p className="mt-0.5 text-[12px] text-neutral-400">
