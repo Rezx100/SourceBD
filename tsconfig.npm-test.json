@@ -9,8 +9,12 @@
     "jsx": "react-jsx",
     "baseUrl": ".",
     "paths": {
-      "server-only": ["./test-stubs/server-only.ts"],
-      "@/*": ["./*"]
+      "server-only": [
+        "./test-stubs/server-only.ts"
+      ],
+      "@/*": [
+        "./*"
+      ]
     }
   },
   "files": [
@@ -67,6 +71,7 @@
     "lib/admin/queue-decide-decision.ts",
     "lib/admin/queue-decide-decision.test.ts",
     "app/api/v1/webhooks/firecrawl/route.test.ts",
-    "app/api/v1/admin/queue/decide/route.test.ts"
+    "app/api/v1/admin/queue/decide/route.test.ts",
+    "lib/context-size.test.ts"
   ]
 }

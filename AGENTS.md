@@ -6,21 +6,27 @@ You are a senior engineer working on **SourceBD**, a B2B intelligence SaaS for t
 
 1. **Data moat first, SaaS second.** Until Phase 0 (data enrichment) is complete and `context/current-state.md` says so, do NOT build app features. Database + ETL pipeline only.
 2. **One spec at a time.** Never combine specs in a single session.
-3. **Use scoped context loading before work.** Do not read every file in
-   `/context/` for routine tasks. Start with the lean boot set:
-   1. `context/agent-brief.md`
-   2. `context/current-state.md`
-   3. `context/feature-specs/active.md`
+3. **Boot lean, read once, grep first.** Read, in this order, exactly once
+   per session and never again in that session:
+   1. `AGENTS.md`
+   2. `context/agent-brief.md`
+   3. `context/current-state.md` (capped at 16 KB)
+   4. `context/feature-specs/active.md` (capped at 6 KB)
    Then read only the task-relevant source of truth:
    - Frontend/design work: `context/frontend-design-spec.md` plus the active
-     FE spec.
+     FE spec. (Suspended for the design-system rebuild — see
+     `feature-specs/ds-rebuild-must-stay.md` §1.)
    - ETL/data work: `context/architecture.md`, `context/code-standards.md`,
      and the active ETL spec.
    - Security/auth/RLS work: `context/architecture.md`,
      `context/ai-workflow-rules.md`, and the relevant feature spec.
    - Logo/source-mark work: `context/logos.lock.md`.
-   Read `context/archive/*` or inactive `context/feature-specs/*` only when a
-   specific historical decision, regression, or named spec requires it.
+   History lives in `context/archive/*` and is never read whole: grep for
+   the heading you need and read that section only. Same for any file over
+   ~10 KB you did not write this session. The boot files are stable-first,
+   volatile-last on purpose; do not edit `AGENTS.md` or `agent-brief.md`
+   mid-session, and do not re-read a boot file after editing it — you know
+   what you wrote.
 4. **No new tools.** Use only what's listed in architecture.md. If you think a new tool is needed, STOP and ask.
 5. **Source trust hierarchy is law.** Tier 1 (gov/regulatory) > Tier 2 (BGMEA/BKMEA/BTMA/BGAPMEA) > Tier 3 (cert bodies) > Tier 4 (brand disclosures) > Tier 5 (US/UK/EU regulatory) > Tier 6 (cross-check only). Never let a Tier 6 source overwrite higher-tier data.
 6. **No Tier 6 record enters the database alone.** It must be corroborated by ≥1 Tier 1–3 source.
@@ -72,7 +78,9 @@ You are a senior engineer working on **SourceBD**, a B2B intelligence SaaS for t
     posted first. Do not ask twice for the safe half, and never assume the
     risky half.
 16. **You never decide that your own work is done.** Every issue runs the
-    closed-loop protocol in `.cursor/rules/sourcebd-closed-loop.mdc`:
+    closed-loop protocol in `.cursor/rules/sourcebd-closed-loop.mdc` — load
+    that file when implementation ends and verification begins (it is no
+    longer injected on every turn):
     implement, verify, fan out independent auditors, repair, re-verify,
     re-audit, with no iteration cap. Auditors run independently against one
     frozen candidate and receive full evidence — the issue text, the diff
@@ -145,9 +153,12 @@ Rules of thumb:
    mark the active spec/task "in progress".
 2. Implement EXACTLY what the spec says. No drive-by refactors.
 3. Run build/lint/typecheck/tests. Fix everything that breaks.
-4. Update `context/current-state.md` → "complete" and add only concise
-   architectural decisions. Move verbose shipped-spec closeouts to
-   `context/archive/`, not the daily boot files.
+4. Update `context/current-state.md` → "complete" in ONE line, and move the
+   closeout detail to `context/archive/state-<period>.md` and the spec entry to
+   `context/archive/specs-shipped-2026.md` in the same PR. `npm test` fails when
+   `current-state.md` exceeds 16 KB or `active.md` exceeds 6 KB
+   (`lib/context-size.test.ts`); that failure is the signal to archive, never to
+   raise the cap.
 5. Commit on `development` branch. Open PR.
 
 ## Debugging mode (when reading current-issues.md)
