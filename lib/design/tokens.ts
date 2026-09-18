@@ -41,18 +41,20 @@ export const light = {
     strong: "#7F8B98", // input and control outlines (3:1 against surface)
   },
 
-  // Brand / primary action / links.
+  // Brand green (fixed, founder decision 18 Sep 2026): primary action, logo,
+  // active nav mark, link text. Never a state colour and never a badge fill,
+  // so it cannot be read as "verified" (spec §9).
   brand: {
-    DEFAULT: "#2648C7",
-    hover: "#1E3AA3",
-    active: "#1A2F7D",
+    DEFAULT: "#1B5E20",
+    hover: "#164D1A",
+    active: "#103A13",
     on: "#FFFFFF",
-    tint: "#EEF3FF",
-    "tint-strong": "#DCE6FF",
-    ink: "#1E3AA3",
-    line: "#B9CCFF",
+    tint: "#E9F3EA",
+    "tint-strong": "#D3E7D5",
+    ink: "#1B5E20",
+    line: "#A7CFAB",
   },
-  focus: { DEFAULT: "#3B63E0" },
+  focus: { DEFAULT: "#2E7D32" },
 
   // Verified fact · valid certificate.
   positive: {
@@ -110,20 +112,21 @@ export const light = {
   // Loading skeleton.
   skeleton: { DEFAULT: "#E6EAEE", shine: "#F6F7F9" },
 
-  // Source trust rank. One hue, darkest = most trusted, so the order reads at
-  // a glance and survives colour-blindness (it is a lightness ramp).
+  // Source trust rank. A neutral lightness ramp on the ink scale, darkest =
+  // most trusted, so the order reads at a glance, survives colour-blindness,
+  // and leaves colour free for status (spec §9: near-monochrome shell).
   tier: {
-    "1": "#14224F",
+    "1": "#12171D",
     "1-on": "#FFFFFF",
-    "2": "#1E3AA3",
+    "2": "#2A323B",
     "2-on": "#FFFFFF",
-    "3": "#3B63E0",
+    "3": "#4A5561",
     "3-on": "#FFFFFF",
-    "4": "#DCE6FF",
-    "4-on": "#1A2F7D",
+    "4": "#DDE3E9",
+    "4-on": "#12171D",
     "5": "#FFFFFF",
-    "5-on": "#1E3AA3",
-    "5-line": "#B9CCFF",
+    "5-on": "#2A323B",
+    "5-line": "#7F8B98",
   },
 } satisfies ColorSet;
 
@@ -142,7 +145,7 @@ export const tiers: ReadonlyArray<{ rank: TierRank; label: string }> = [
 // Non-colour tokens
 // ---------------------------------------------------------------------------
 
-/** One family (founder decision 18 Sep 2026). Numbers use its tabular figures. */
+/** One family, Inter (founder decision 18 Sep 2026, §7 Q2). Numbers use its tabular figures. */
 export const fontFamily = {
   sans: [
     "var(--font-sans)",
@@ -225,6 +228,23 @@ export const zIndex = {
 export const maxWidth = {
   prose: "68ch",
   content: "75rem", // 1200
+};
+
+/**
+ * Density (spec §9). Fixed heights and paddings the rebuilt pieces share, in
+ * px, so a table row, a card and a control line up from one page to the next.
+ * Tailwind spacing stays on the default 4px grid; these are the named stops.
+ */
+export const density = {
+  tableRow: 36, // admin and directory rows, 13px text
+  tableRowRelaxed: 44, // buyer-facing lists
+  control: 32, // inputs, filters, secondary buttons
+  controlLarge: 40, // primary buttons, marketing forms
+  cardPadding: 16, // supplier card
+  panelPadding: 20, // profile sections
+  gutter: 24, // page side padding at ≥1024px; 16 below
+  sidebar: 232, // app shell nav width
+  factRow: 28, // label/value row in the facts panel
 };
 
 // ---------------------------------------------------------------------------
@@ -321,4 +341,5 @@ export const contrastPairs: ContrastPair[] = [
   { fg: "focus", bg: "surface", min: UI, use: "focus ring" },
   { fg: "focus", bg: "canvas", min: UI, use: "focus ring" },
   { fg: "sanction.line", bg: "surface", min: UI, use: "sanction outline" },
+  { fg: "tier.5-line", bg: "surface", min: UI, use: "tier 5 outline" },
 ];

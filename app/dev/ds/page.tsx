@@ -17,6 +17,7 @@ import {
   contrastPairs,
   contrastRatio,
   cssVarName,
+  density,
   fontSize,
   light,
   resolve,
@@ -27,7 +28,7 @@ import {
 
 export const dynamic = "force-dynamic";
 
-// Design-system gallery — step 3 of the rebuild: tokens only, no components yet.
+// Design-system gallery — tokens plus the locked direction (spec §9). No components yet.
 // Dev only and admin only, both checked on the server; otherwise 404.
 //
 // Spec §2 "nothing fake": the company names below are read live from the
@@ -162,20 +163,90 @@ export default async function DesignSystemGallery() {
     <main className="mx-auto max-w-content space-y-10 px-4 py-8 sm:px-6 lg:py-12">
       <header className="space-y-2">
         <p className="text-xs font-medium uppercase tracking-wide text-ink-subtle">
-          Dev only · Design rebuild · Step 3
+          Dev only · Design rebuild · Direction locked 18 Sep 2026
         </p>
         <h1 className="text-4xl font-bold text-ink-strong">Tokens</h1>
         <p className="max-w-prose text-lg text-ink-muted">
           Every colour, size and shadow the new design is allowed to use. One family (Inter),
-          light only for now, colours named by job so a dark set can be added later. No
-          components or pages yet.
+          light only for now, colours named by job so a dark set can be added later. Brand green
+          is fixed; the rest of the shell is near-monochrome so colour is left for status.
         </p>
       </header>
 
       <Section
+        id="direction"
+        title="Direction"
+        note="Locked in ds-rebuild-must-stay.md §9. Patterns taken from the references, never their brand."
+      >
+        <dl className="grid grid-cols-1 gap-x-8 gap-y-3 text-sm sm:grid-cols-2">
+          <div>
+            <dt className="font-semibold text-ink-strong">Type</dt>
+            <dd className="text-ink-muted">Inter only. App body 14, table cells 13, captions 12. Headings semibold, tight tracking from 20 up.</dd>
+          </div>
+          <div>
+            <dt className="font-semibold text-ink-strong">Colour roles</dt>
+            <dd className="text-ink-muted">Ink on white and off-white. Brand green for primary action, links and the active nav mark only. Status gets its own tint; sanction red is reserved.</dd>
+          </div>
+          <div>
+            <dt className="font-semibold text-ink-strong">Spacing</dt>
+            <dd className="text-ink-muted tabular-nums">4px grid. Card padding {density.cardPadding}, panel padding {density.panelPadding}, page gutter {density.gutter} (16 on phones), sidebar {density.sidebar}.</dd>
+          </div>
+          <div>
+            <dt className="font-semibold text-ink-strong">Radius</dt>
+            <dd className="text-ink-muted">5px on controls, badges and cards; 6px on panels and tables; 8px only on dialogs. Never 12 in the app.</dd>
+          </div>
+          <div>
+            <dt className="font-semibold text-ink-strong">Density</dt>
+            <dd className="text-ink-muted tabular-nums">Table row {density.tableRow} (admin, directory) or {density.tableRowRelaxed} (buyer lists). Control {density.control}, primary {density.controlLarge}. Fact row {density.factRow}. Hairline dividers, no card shadows in lists.</dd>
+          </div>
+          <div>
+            <dt className="font-semibold text-ink-strong">References (Mobbin)</dt>
+            <dd className="text-ink-muted">Shell: Vanta. Directory: Zendesk Reach. Profile: Attio. Tone: Midday.</dd>
+          </div>
+        </dl>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div className="overflow-hidden rounded-md border border-line bg-surface">
+            <div className="flex items-center justify-between border-b border-line px-4 py-2 text-xs text-ink-subtle">
+              <span>Table row · {density.tableRow}px</span>
+              <span className="tabular-nums">1–25 of 10,266</span>
+            </div>
+            {[0, 1, 2].map((i) => (
+              <div
+                key={i}
+                style={{ height: density.tableRow }}
+                className="flex items-center gap-3 border-b border-line-subtle px-4 text-sm last:border-b-0"
+              >
+                <span className="h-3 w-40 rounded-sm bg-skeleton" />
+                <span className="ml-auto h-3 w-16 rounded-sm bg-skeleton" />
+              </div>
+            ))}
+          </div>
+          <div className="flex flex-wrap items-center gap-2 rounded-md border border-line bg-surface p-4">
+            <button
+              type="button"
+              style={{ height: density.controlLarge }}
+              className="rounded bg-brand px-4 text-sm font-semibold text-brand-on hover:bg-brand-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 active:bg-brand-active"
+            >
+              Primary
+            </button>
+            <button
+              type="button"
+              style={{ height: density.control }}
+              className="rounded border border-line-strong bg-surface px-3 text-sm font-medium text-ink-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2"
+            >
+              Secondary
+            </button>
+            <a href="#direction" className="text-sm font-medium text-brand-ink underline underline-offset-2">
+              Link
+            </a>
+          </div>
+        </div>
+      </Section>
+
+      <Section
         id="tiers"
         title="Source rank"
-        note="One hue, darkest is most trusted. The order reads without a legend and does not rely on telling colours apart."
+        note="A neutral lightness ramp, darkest is most trusted. The order reads without a legend, does not rely on telling colours apart, and leaves colour free for status."
       >
         <ol className="flex flex-wrap gap-2">
           {tiers.map((t) => (
