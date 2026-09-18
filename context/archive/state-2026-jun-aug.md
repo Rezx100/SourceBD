@@ -2551,3 +2551,21 @@ At the start of the token-optimization task, the repo already had a large uncomm
 
 ## Historical Record
 The old full tracker was archived at `context/archive/progress-tracker-archive-2026-06-25.md`. Use that archive for old shipped-spec details, architectural decisions, and production smoke history.
+
+## Address premises merge — IN PROGRESS (11 Sep 2026)
+Founder posture: one row per premises on Locations; every alternate spelling
+stays visible as an "Also recorded as" pill with its authority. Conflicting
+plot numbers or conflicting leading village names still block a merge
+(Sreepur≠Sripur, Nawabganj≠Chapainawabganj, Chandra≠Chandona≠Chandora). Matcher-only in
+`lib/dedup-addresses.ts`. Recomputed published baseline: **27,732** address
+rows, **9,921** suppliers, **3,274** multi-string groups by kind. Current
+matcher had merged 1,622 of those to one row and still split 1,652 (Habitus
+Fashion factory 3 rows, Fakhruddin Textile Mills factory 3 rows). New matcher
+merges **2,078** to one row and still splits **1,196** (0 conflicting-plot pair
+merges; 0 named over-merges). Leftover-plot split is Plot+Holding vs House- or
+Holding-only even when two numbers overlap or they share a plaza; leftover
+plots are not covered by a road digit. Campus-only House 62 stays apart from
+No. 87 / Holding 87 / H/O-62 concat. Neighbour plot lists, House 6 on Plot 389,
+and House 6 plus 390 Dhour stay one. Pills + fixture regression + HTTP cases for those two companies. No raw
+string, geocode-key, Python ETL or schema change. See
+`ops/plans/address-dedup-baseline.md`.

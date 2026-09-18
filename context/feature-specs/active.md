@@ -5,6 +5,9 @@ spec ships, move its entry to `context/archive/specs-shipped-2026.md` in the
 same PR. Read once per session.
 
 ## In progress
+- **Address premises merge — one row per premises on Locations** (11 Sep;
+  PR #159 on `development` 17 Sep). Matcher-only in `lib/dedup-addresses.ts`,
+  "Also recorded as" pills; raw strings, geocode keys, ETL and schema untouched.
 - **EPB evidence + HS codes on existing companies** (REZ-113 follow-on).
   Data side APPLIED on production 15 Aug (migration `0103`, attach-only,
   HS backfill). Frontend HS card in working tree, not on server.

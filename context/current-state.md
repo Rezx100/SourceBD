@@ -14,6 +14,11 @@ Launch-readiness closeout: deploy to VPS `109.104.153.228`, apply required
 migrations, run the 30-day zero P1/P2 Sentry incident window.
 
 ## In progress
+- **Address premises merge — one row per premises on Locations** (11 Sep,
+  landed on `development` 17 Sep via PR #159). Matcher-only in
+  `lib/dedup-addresses.ts`; alternate spellings stay as "Also recorded as"
+  pills. No raw-string, geocode-key, ETL or schema change. Evidence:
+  `ops/plans/address-dedup-baseline.md`.
 - **EPB evidence + HS codes on existing companies, independent of BGMEA/BKMEA
   flags** (REZ-113 follow-on, 15 Aug). Attach-only of 1,953 EPB matches and
   the HS backfill are APPLIED on production (2,492 EPB records on 2,472

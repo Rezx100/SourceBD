@@ -69,7 +69,7 @@ main() {
 
 	cd "$REPO_DIR" || die "REPO_DIR $REPO_DIR not found"
 
-	if [ "$REQUIRE_GIT" -eq 1 ] && [ ! -d .git ]; then
+	if [ "$REQUIRE_GIT" -eq 1 ] && [ ! -d .git ] && [ ! -f .git ]; then
 		die "Git checkout required (--require-git) but $REPO_DIR has no .git — migrate VPS first (docs/ENTERPRISE_DEPLOYMENT.md)"
 	fi
 
@@ -77,8 +77,17 @@ main() {
 	COMMIT_SHA=""
 	CADDYFILE_CHANGED=1
 
-	if [ -d .git ]; then
+	if [ -d .git ] || [ -f .git ]; then
+		unset GIT_CONFIG_PARAMETERS
 		PREVIOUS_SHA="$(git rev-parse HEAD 2>/dev/null || true)"
+
+		# Drop an expired HTTPS PAT from origin and fetch with GITHUB_TOKEN
+		# via http extraheader (never written into the remote URL).
+		if [ -f "$REPO_DIR/ops/github_https_fetch_auth.sh" ]; then
+			# shellcheck disable=SC1091
+			. "$REPO_DIR/ops/github_https_fetch_auth.sh"
+			sourcebd_prepare_github_https_fetch
+		fi
 
 		step "Fetching origin and checking out $CHECKOUT_TARGET"
 		git fetch --quiet origin --tags
@@ -216,15 +225,24 @@ main() {
 	DEPLOY_ELAPSED_S="$(( $(date +%s) - DEPLOY_START_S ))"
 
 	step "Public health check"
-	if curl --silent --fail --max-time 5 http://109.104.153.228/api/health; then
-		echo
-		echo "  ✓ deploy OK — http://109.104.153.228 (commit $COMMIT_SHA)"
-		echo "  elapsed: ${DEPLOY_ELAPSED_S}s"
-		if [ -f "$DEPLOY_META_DIR/previous-sha" ]; then
-			echo "  rollback ref: $(cat "$DEPLOY_META_DIR/previous-sha")"
+	# Do not return after localhost is up: Caddy active health checks can
+	# keep serving 503 on :80/:443 for a full health_interval after the
+	# container is healthy. GitHub's public smoke runs the moment SSH
+	# exits, so a warn-and-continue here made a live deploy look failed
+	# (run 31855403484, 15 Aug 2026).
+	attempt=0
+	until curl --silent --fail --max-time 5 http://109.104.153.228/api/health >/dev/null; do
+		attempt=$((attempt+1))
+		if [ "$attempt" -gt 20 ]; then
+			die "Public /api/health did not recover in 60s — rollback: bash ops/deploy_vps.sh --ref=$(cat "$DEPLOY_META_DIR/previous-sha" 2>/dev/null || echo UNKNOWN) --require-git"
 		fi
-	else
-		warn "Public health check failed — verify Caddy is running + port 80 is open"
+		sleep 3
+	done
+	echo
+	echo "  ✓ deploy OK — http://109.104.153.228 (commit $COMMIT_SHA)"
+	echo "  elapsed: ${DEPLOY_ELAPSED_S}s"
+	if [ -f "$DEPLOY_META_DIR/previous-sha" ]; then
+		echo "  rollback ref: $(cat "$DEPLOY_META_DIR/previous-sha")"
 	fi
 }
 

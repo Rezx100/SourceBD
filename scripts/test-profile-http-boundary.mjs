@@ -52,7 +52,7 @@
 import { execSync, spawn } from "node:child_process";
 import { createHash } from "node:crypto";
 import http from "node:http";
-import { existsSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 const ROOT = process.cwd();
@@ -66,6 +66,8 @@ const MARKER = join(ROOT, ".next", "http-guard-env.json");
 const MOTHER = "mother-company-ltd";
 const ASSOCIATE_ONLY = "ocean-cross-international";
 const UNRESOLVED_BGMEA = "unresolved-bgmea-supplier";
+const HABITUS = "habitus-fashion";
+const FAKHRUDDIN = "fakhruddin-textile-mills";
 const FACILITY = "mother-company-ltd-extension";
 const MISSING = "this-slug-cannot-possibly-exist-http-guard";
 const UNPUBLISHED = "unpublished-plain-supplier-ltd";
@@ -188,6 +190,88 @@ const UNRESOLVED_PAYLOAD = {
   },
   // Production 0101 omits BGMEA pills when member_type is unknown — no Verified badge.
   pills: [],
+};
+
+const HABITUS_PAYLOAD = {
+  ...HAPPY_PAYLOAD,
+  supplier: {
+    ...HAPPY_PAYLOAD.supplier,
+    slug: HABITUS,
+    company_name: "HABITUS FASHION LIMITED",
+  },
+  addresses: [
+    {
+      kind: "factory",
+      address: "Gajaria Para, Kauitis\nGazipur\nGazipur",
+      source_code: "BGMEA",
+      fetched_at: "2026-07-24T06:42:34.407591Z",
+    },
+    {
+      kind: "factory",
+      address: "GAJARIA PARA, BHAWAL MIRZAPUR, GAZIPUR SADAR, GAZIPUR, SADAR, GAZIPUR",
+      source_code: "BKMEA",
+      fetched_at: "2026-08-02T05:04:41.110702Z",
+    },
+    {
+      kind: "factory",
+      address: "Gojariapara, Vhawal Mirzapur, Gazipur Sadar PS, Gazipur - 1703, Bangladesh",
+      source_code: "OEKO_TEX",
+      fetched_at: "2026-06-27T02:28:59.512381Z",
+    },
+    {
+      kind: "mailing",
+      address: "Fakir Khali Road, Boro Beraid, Badda\nDhaka\nDhaka",
+      source_code: "BGMEA",
+      fetched_at: "2026-07-24T06:42:34.407591Z",
+    },
+    {
+      kind: "mailing",
+      address: "FOKIRKHALI ROAD, BORO BERAID, BADDA, DHAKA, BADDA, DHAKA",
+      source_code: "BKMEA",
+      fetched_at: "2026-08-02T05:04:41.110702Z",
+    },
+  ],
+};
+
+const FAKHRUDDIN_PAYLOAD = {
+  ...HAPPY_PAYLOAD,
+  supplier: {
+    ...HAPPY_PAYLOAD.supplier,
+    slug: FAKHRUDDIN,
+    company_name: "FAKHRUDDIN TEXTILE MILLS LTD.",
+  },
+  addresses: [
+    {
+      kind: "factory",
+      address: "Kewa, Ghorgaria, Master Bari, Sreepur\nGazipur\nGazipur",
+      source_code: "BGMEA",
+      fetched_at: "2026-07-24T06:25:10.876Z",
+    },
+    {
+      kind: "factory",
+      address: "MOUZA KEWA, SREEPUR, GAZIPUR",
+      source_code: "BKMEA",
+      fetched_at: "2026-08-02T03:02:29.550386Z",
+    },
+    {
+      kind: "factory",
+      address: "Ghargaria Master Bari, Kewa, Sreepur, Gazipur - 1740, Bangladesh",
+      source_code: "OEKO_TEX",
+      fetched_at: "2026-06-27T02:27:01.510678Z",
+    },
+    {
+      kind: "mailing",
+      address: "235/B, Bir Uttam Mir Sawkat Sarak, Tejgaon I/A\nDhaka\nDhaka",
+      source_code: "BGMEA",
+      fetched_at: "2026-07-24T06:25:10.876Z",
+    },
+    {
+      kind: "mailing",
+      address: "235/B, TEJGAON I/A-1208, TEJGAON, DHAKA",
+      source_code: "BKMEA",
+      fetched_at: "2026-08-02T03:02:29.550386Z",
+    },
+  ],
 };
 
 /** REZ-73/109 — mother facility panel shape from buyer_supplier_facility_panel. */
@@ -401,6 +485,8 @@ function mockHandler(req, res) {
       }
       if (slug === ASSOCIATE_ONLY) return json(ASSOCIATE_PAYLOAD);
       if (slug === UNRESOLVED_BGMEA) return json(UNRESOLVED_PAYLOAD);
+      if (slug === HABITUS) return json(HABITUS_PAYLOAD);
+      if (slug === FAKHRUDDIN) return json(FAKHRUDDIN_PAYLOAD);
       return json(null);
     }
     if (url.pathname === "/rest/v1/rpc/supplier_epb_hscodes") {
@@ -912,6 +998,30 @@ function assertSmaxage300(cc, problems, label) {
       `${label}: Cache-Control ${cc || "<none>"} missing s-maxage=300`,
     );
   }
+  if (/no-store|\bprivate\b|\bno-cache\b/.test(cc ?? "")) {
+    problems.push(
+      `${label}: Cache-Control ${cc || "<none>"} is not CDN-reusable`,
+    );
+  }
+}
+
+function productionTreeHas(dir, needle) {
+  for (const name of readdirSync(dir)) {
+    if (name === "node_modules" || name === ".next" || name === ".cache") {
+      continue;
+    }
+    const p = join(dir, name);
+    const st = statSync(p);
+    if (st.isDirectory()) {
+      if (productionTreeHas(p, needle)) return true;
+    } else if (
+      /\.(ts|tsx|js|mjs)$/.test(name) &&
+      !/\.test\.(ts|tsx|js)$/.test(name)
+    ) {
+      if (readFileSync(p, "utf8").includes(needle)) return true;
+    }
+  }
+  return false;
 }
 
 function assertAbsoluteOnSite(loc, { pathname, search }, problems, label) {
@@ -1040,11 +1150,23 @@ const CASES = [
     },
   },
   {
+    // Status 200 + slow title + Retry form is the missing-company
+    // counterexample. Do not bodyExcludes "Page not found": Next embeds
+    // app/not-found.tsx in the RSC payload of successful documents.
     name: "public: timeout destination -> 200 slow card, not CDN-cached",
     path: `/temporarily-slow?slug=${TIMEOUT}`,
     expect: {
       status: 200,
       bodyIncludes: SLOW_MARKER,
+      bodyIncludesAll: [
+        "Retry",
+        'action="/temporarily-slow/retry"',
+        'method="POST"',
+        'name="slug"',
+        `value="${TIMEOUT}"`,
+        "<title>Service temporarily slow",
+      ],
+      bodyExcludes: ["?retry=1"],
       cacheControlOnAllHits: true,
       cacheControlMustMatch: /private,\s*no-store/,
       cacheControlMustNotMatch: /s-maxage=[1-9]/,
@@ -1060,8 +1182,9 @@ const CASES = [
         'data-epb-hscodes-error=""',
         "EPB export products could not load just now.",
       ],
-      bodyExcludes: ['data-epb-hscode="6103"', "0 HS code"],
+      bodyExcludes: ['data-epb-hscode="6103"', "0 HS code", "0 HS codes"],
       replayCacheControlMustMatch: /s-maxage=300/,
+      replayCacheControlMustNotMatch: /no-store|\bprivate\b|\bno-cache\b/,
       replayMustNotRpc: PACK_RPCS,
       hit1MustRpcExact: 1,
     },
@@ -1078,6 +1201,7 @@ const CASES = [
       ],
       bodyExcludes: ['data-epb-hscode="6103"', "0 HS code", "0 HS codes"],
       replayCacheControlMustMatch: /s-maxage=300/,
+      replayCacheControlMustNotMatch: /no-store|\bprivate\b|\bno-cache\b/,
       replayMustNotRpc: PACK_RPCS,
       hit1MustRpcExact: 1,
     },
@@ -1094,6 +1218,7 @@ const CASES = [
       ],
       bodyExcludes: ["Mother Company Ltd Extension", "0 extension building"],
       replayCacheControlMustMatch: /s-maxage=300/,
+      replayCacheControlMustNotMatch: /no-store|\bprivate\b|\bno-cache\b/,
       replayMustNotRpc: PACK_RPCS,
       hit1MustRpcExact: 1,
     },
@@ -1158,6 +1283,80 @@ const CASES = [
         "BGMEA General",
         "BGMEA Associate",
       ],
+    },
+  },
+  {
+    name: "public: Habitus Fashion factory is one premises with Also recorded as pills",
+    path: `/suppliers/${HABITUS}`,
+    expect: {
+      status: 200,
+      bodyIncludesAll: [
+        "HABITUS FASHION LIMITED",
+        "Also recorded as",
+        "data-also-recorded",
+        "data-also-recorded-as",
+        "data-location-row",
+        "data-also-recorded-authorities",
+        "Gojariapara",
+        "2 unique locations",
+        "5 source records",
+        "OEKO-TEX",
+      ],
+      alsoRecordedPair: { spelling: /Gajaria/i, authority: /BGMEA/ },
+      alsoRecordedPairs: [
+        {
+          group: "Mailing addresses",
+          spelling: /Fakir Khali|FOKIRKHALI/i,
+          authority: /BGMEA|BKMEA/,
+        },
+      ],
+      factoryRowIncludes: {
+        group: "Factories",
+        display: /Gojariapara|Gojaria/i,
+        needle: /OEKO-TEX|OEKO_TEX/,
+      },
+      bodyCount: {
+        'data-location-group="Factories"': 1,
+        'data-location-group="Mailing addresses"': 1,
+      },
+    },
+  },
+  {
+    name: "public: Fakhruddin Textile Mills factory is one premises with Also recorded as pills",
+    path: `/suppliers/${FAKHRUDDIN}`,
+    expect: {
+      status: 200,
+      bodyIncludesAll: [
+        "FAKHRUDDIN TEXTILE MILLS",
+        "Also recorded as",
+        "data-also-recorded",
+        "data-also-recorded-as",
+        "data-location-row",
+        "data-also-recorded-authorities",
+        "Mouza Kewa",
+        "2 unique locations",
+        "5 source records",
+        "Kewa",
+        "OEKO-TEX",
+        "Ghargaria",
+      ],
+      alsoRecordedPair: { spelling: /Ghargaria|Ghorgaria/i, authority: /OEKO_TEX|OEKO-TEX/ },
+      alsoRecordedPairs: [
+        {
+          group: "Mailing addresses",
+          spelling: /TEJGAON I\/A-1208/i,
+          authority: /BGMEA|BKMEA/,
+        },
+      ],
+      factoryRowIncludes: {
+        group: "Factories",
+        display: /Kewa|Ghorgaria|Ghargaria/i,
+        needle: /OEKO-TEX|OEKO_TEX/,
+      },
+      bodyCount: {
+        'data-location-group="Factories"': 1,
+        'data-location-group="Mailing addresses"': 1,
+      },
     },
   },
   {
@@ -1304,13 +1503,27 @@ const CASES = [
     name: "app: parent-lookup timeout on a miss -> 200 slow card, not 500",
     path: `/app/suppliers/${PARENT_TIMEOUT}`,
     auth: true,
-    expect: { status: 200, bodyIncludes: SLOW_MARKER },
+    expect: {
+      status: 200,
+      bodyIncludes: SLOW_MARKER,
+      bodyIncludesAll: ["Retry", `/app/suppliers/${PARENT_TIMEOUT}`],
+      cacheControlOnAllHits: true,
+      cacheControlMustMatch: /no-store|\bprivate\b/,
+      cacheControlMustNotMatch: /s-maxage=[1-9]/,
+    },
   },
   {
     name: "app: parent-lookup timeout in data (HTTP 200 body) -> 200 slow card",
     path: `/app/suppliers/${PARENT_TIMEOUT_IN_DATA}`,
     auth: true,
-    expect: { status: 200, bodyIncludes: SLOW_MARKER },
+    expect: {
+      status: 200,
+      bodyIncludes: SLOW_MARKER,
+      bodyIncludesAll: ["Retry", `/app/suppliers/${PARENT_TIMEOUT_IN_DATA}`],
+      cacheControlOnAllHits: true,
+      cacheControlMustMatch: /no-store|\bprivate\b/,
+      cacheControlMustNotMatch: /s-maxage=[1-9]/,
+    },
   },
   {
     name: "app: facility-panel-only timeout -> 200 with facilities error",
@@ -1337,7 +1550,7 @@ const CASES = [
         'data-epb-hscodes-error=""',
         "EPB export products could not load just now.",
       ],
-      bodyExcludes: ['data-epb-hscode="6103"', "0 HS code"],
+      bodyExcludes: ['data-epb-hscode="6103"', "0 HS code", "0 HS codes"],
     },
   },
   {
@@ -1358,13 +1571,27 @@ const CASES = [
     name: "app: profile timeout in data (HTTP 200 body) -> 200 slow card",
     path: `/app/suppliers/${TIMEOUT_IN_DATA}`,
     auth: true,
-    expect: { status: 200, bodyIncludes: SLOW_MARKER },
+    expect: {
+      status: 200,
+      bodyIncludes: SLOW_MARKER,
+      bodyIncludesAll: ["Retry", `/app/suppliers/${TIMEOUT_IN_DATA}`],
+      cacheControlOnAllHits: true,
+      cacheControlMustMatch: /no-store|\bprivate\b/,
+      cacheControlMustNotMatch: /s-maxage=[1-9]/,
+    },
   },
   {
     name: "app: profile timeout -> 200 slow card (authenticated)",
     path: `/app/suppliers/${TIMEOUT}`,
     auth: true,
-    expect: { status: 200, bodyIncludes: SLOW_MARKER },
+    expect: {
+      status: 200,
+      bodyIncludes: SLOW_MARKER,
+      bodyIncludesAll: ["Retry", `/app/suppliers/${TIMEOUT}`],
+      cacheControlOnAllHits: true,
+      cacheControlMustMatch: /no-store|\bprivate\b/,
+      cacheControlMustNotMatch: /s-maxage=[1-9]/,
+    },
   },
   {
     name: "app: self-parented slug -> 404, no self-redirect (authenticated)",
@@ -1662,6 +1889,73 @@ async function main() {
             if (!got.body.includes(needle)) {
               caseProblems.push(
                 `${label}: body missing "${needle}" (${got.bytes} bytes)`,
+              );
+            }
+          }
+        }
+        if (c.expect.alsoRecordedPair || c.expect.alsoRecordedPairs) {
+          const pairs = [
+            ...(c.expect.alsoRecordedPair ? [c.expect.alsoRecordedPair] : []),
+            ...(Array.isArray(c.expect.alsoRecordedPairs) ? c.expect.alsoRecordedPairs : []),
+          ];
+          for (const pair of pairs) {
+          const rowRe = /<(button|div)\b([^>]*data-location-row=""[^>]*)>([\s\S]*?)<\/\1>/gi;
+          let found = false;
+          let m;
+          while ((m = rowRe.exec(got.body))) {
+            const group = /data-location-group="([^"]*)"/.exec(m[2])?.[1] ?? "";
+            if (pair.group && group !== pair.group) continue;
+            const liRe = /<li\b([^>]*)>([\s\S]*?)<\/li>/gi;
+            let li;
+            while ((li = liRe.exec(m[3]))) {
+              if (!/\bdata-also-recorded-as=/.test(li[1])) continue;
+              const auth = /data-also-recorded-authorities="([^"]*)"/.exec(li[1]);
+              const authorities = auth?.[1] ?? "";
+              const text = li[2].replace(/<[^>]+>/g, " ");
+              if (pair.spelling.test(text) && pair.authority.test(authorities)) {
+                found = true;
+                break;
+              }
+            }
+            if (found) break;
+          }
+          if (!found) {
+            caseProblems.push(
+              `${label}: no ${pair.group ?? "location"} data-location-row pairs ${pair.spelling} with ${pair.authority}`,
+            );
+          }
+          }
+        }
+        if (c.expect.factoryRowIncludes) {
+          const want = c.expect.factoryRowIncludes;
+          const rowRe = /<(button|div)\b([^>]*data-location-row=""[^>]*)>([\s\S]*?)<\/\1>/gi;
+          let found = false;
+          let m;
+          while ((m = rowRe.exec(got.body))) {
+            const attrs = m[2];
+            const inner = m[3];
+            const group = /data-location-group="([^"]*)"/.exec(attrs)?.[1] ?? "";
+            if (group !== want.group) continue;
+            const display = /data-location-display=""[^>]*>([\s\S]*?)<\/p>/.exec(inner)?.[1] ?? "";
+            const displayText = display.replace(/<[^>]+>/g, " ");
+            if (want.display.test(displayText) && want.needle.test(inner)) {
+              found = true;
+              break;
+            }
+          }
+          if (!found) {
+            caseProblems.push(
+              `${label}: no ${want.group} data-location-row with display ${want.display} includes ${want.needle}`,
+            );
+          }
+        }
+        if (c.expect.bodyCount && typeof c.expect.bodyCount === "object") {
+          for (const [needle, n] of Object.entries(c.expect.bodyCount)) {
+            const escaped = needle.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+            const gotN = (got.body.match(new RegExp(escaped, "g")) ?? []).length;
+            if (gotN !== n) {
+              caseProblems.push(
+                `${label}: count of "${needle}" is ${gotN} != ${n}`,
               );
             }
           }
@@ -2107,6 +2401,20 @@ async function main() {
 
     {
       const problems = [];
+      if (productionTreeHas(join(ROOT, "app"), "revalidatePublicProfileTag")) {
+        problems.push("app/ production files contain revalidatePublicProfileTag");
+      }
+      if (productionTreeHas(join(ROOT, "lib"), "revalidatePublicProfileTag")) {
+        problems.push("lib/ production files contain revalidatePublicProfileTag");
+      }
+      extraPassed += extra(
+        "public: no revalidatePublicProfileTag in app/ or lib/ production files",
+        problems,
+      );
+    }
+
+    {
+      const problems = [];
       const first = await probe(`/suppliers/${MOTHER}`);
       if (first.status !== 200) {
         problems.push(`warmup GET ${first.status} != 200`);
@@ -2527,6 +2835,11 @@ async function main() {
         `after 9s without Retry, ${PROFILE_RPC} fired (${rpcBeforeWait} -> ${rpcCount(PROFILE_RPC)})`,
       );
     }
+    assertPrivateNoStore(
+      afterWait.cacheControl,
+      retryProblems,
+      "after 9s without Retry",
+    );
     const retryRes = await fetch(`${APP_URL}/temporarily-slow/retry`, {
       method: "POST",
       redirect: "manual",
@@ -2563,11 +2876,11 @@ async function main() {
     if (/name="robots"[^>]*noindex/i.test(recovered.body)) {
       retryProblems.push("after Retry, recovered factory page is noindex");
     }
-    if (!/s-maxage=300/.test(recovered.cacheControl ?? "")) {
-      retryProblems.push(
-        `after Retry, Cache-Control ${recovered.cacheControl || "<none>"} missing s-maxage=300`,
-      );
-    }
+    assertSmaxage300(
+      recovered.cacheControl,
+      retryProblems,
+      "after Retry",
+    );
     extraPassed += extra(
       "public: Retry recovers canonical factory page after timeout",
       retryProblems,

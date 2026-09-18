@@ -26,15 +26,15 @@
 
 	encode zstd gzip
 
+	# No health_uri: Caddy active checks mark the upstream unhealthy
+	# for a full health_interval (30s) after a container restart, so
+	# public /api/health returns 503 while 127.0.0.1:3000 is already
+	# OK. Docker HEALTHCHECK + ops/deploy_vps.sh wait instead.
 	reverse_proxy 127.0.0.1:3000 {
 		# Tell Next.js the original scheme was HTTPS.
 		header_up X-Forwarded-Proto https
 		# Pass the real client IP from Cloudflare's header.
 		header_up X-Real-IP {header.CF-Connecting-IP}
-
-		health_uri /api/health
-		health_interval 30s
-		health_timeout 5s
 	}
 
 	header -Server
@@ -52,13 +52,10 @@
 :80 {
 	encode zstd gzip
 
+	# No health_uri — see :443 reverse_proxy comment.
 	reverse_proxy 127.0.0.1:3000 {
 		header_up X-Forwarded-Proto http
 		header_up X-Real-IP {header.CF-Connecting-IP}
-
-		health_uri /api/health
-		health_interval 30s
-		health_timeout 5s
 	}
 
 	header -Server
