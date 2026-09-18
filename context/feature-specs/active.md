@@ -19,6 +19,13 @@ same PR. Read once per session.
   and stay off-limits to the builder; see the spec's section 1.
 
 ## Queued
+- **Buyer dashboard v3.2 + V2 AI** — `handoff-dashboard-v3.2-implementation.md`
+  (18 Sep). Six approved screens onto the real app, saved searches, multi-
+  supplier RFQs with questions and drafts, compare, CSV export, HS photo
+  catalogue, OpenAI layer (key founder-set in `.env`, server-side only).
+  Starts after the design-system rebuild's kit lands; six founder
+  questions in its §8 first (Q5–Q6, added 18 Sep, cover the on-demand
+  shipments layer in §4.8 — ImportYeti API, paid, never scraped).
 - **Entity resolution core** — `spec-resolution-core.md` (4 Aug). Batch
   resolution stage over immutable `staging_records`; LLM adjudicator for the
   review band only; Firecrawl `/v2/extract` not approved. Prerequisite:

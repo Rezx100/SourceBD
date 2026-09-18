@@ -1,0 +1,41 @@
+{
+  "supplier": {
+    "slug": "aboni-knitwear",
+    "company_name": "ABONI KNITWEAR LTD.",
+    "display_name": "Aboni Knitwear Ltd",
+    "district": "Dhaka",
+    "address": "PLOT-169-171, UNION: TETULZHORA, HAMAYETPUR, SAVAR, DHAKA",
+    "entity_type": "factory",
+    "employees_total": 3314,
+    "established": "1985",
+    "sources": ["EPB", "RSC", "BGMEA", "BKMEA", "BGAPMEA", "OEKO_TEX", "GOTS", "WRAP", "BRAND_HM", "BRAND_ASOS", "BRAND_NEXT"],
+    "hs_codes_source": "public.supplier_epb_hscodes('aboni-knitwear')",
+    "queried_at": "2026-09-18"
+  },
+  "generator": {
+    "tool": "Higgsfield MCP",
+    "model": "marketing_studio_image",
+    "aspect_ratio": "1:1",
+    "resolution": "1k",
+    "credits_per_image": 2,
+    "generated_at": "2026-09-18T05:39Z",
+    "style_prompt_suffix": "ghost mannequin (or flat lay for small pieces), front view, centred, soft even studio light, plain warm off-white seamless background (#F6F5F1), no model, no logos, no text, no props, sharp fabric texture, consistent series style",
+    "usage_rule": "Illustrative catalogue photo keyed to an HS chapter heading, never presented as the supplier's own product. The UI labels it 'Photos are illustrative'. In V2 a supplier-attested upload replaces it.",
+    "cdn_base": "https://d8j0ntlcm91z4.cloudfront.net/user_3FSy2KsCOKnj95m61txRrp4tU0T/",
+    "note": "Files were not copied into the repo: this session's egress policy blocks the CDN host. Download each rawUrl from the Higgsfield gallery (or with the URLs below on a machine that can reach the CDN) into this folder as hs-<code>.png."
+  },
+  "products": [
+    {"hs": "6102", "heading": "Women's or girls' overcoats and similar articles, knitted or crocheted", "subject": "women's knitted cotton overcoat-style long cardigan coat, oatmeal", "job_id": "0973a0a9-4470-4fbb-b716-7d9817803f85", "file": "hf_20260918_053910_0973a0a9-4470-4fbb-b716-7d9817803f85.png", "source_url": "https://edb.epb.gov.bd/hscode-exporters/769"},
+    {"hs": "6103", "heading": "Men's or boys' suits, ensembles, etc, knitted or crocheted", "subject": "men's knitted cotton tracksuit ensemble, charcoal", "job_id": "e286dd20-9d42-4119-9a8e-4ec1170040aa", "file": "hf_20260918_053910_e286dd20-9d42-4119-9a8e-4ec1170040aa.png", "source_url": "https://edb.epb.gov.bd/hscode-exporters/813"},
+    {"hs": "6104", "heading": "Women's or girls' suits, ensembles, etc, knitted or crocheted", "subject": "women's knitted co-ord ensemble, sage green", "job_id": "b074fbfd-68ae-45d0-bf79-b63489d1ab13", "file": "hf_20260918_053910_b074fbfd-68ae-45d0-bf79-b63489d1ab13.png", "source_url": "https://edb.epb.gov.bd/hscode-exporters/814"},
+    {"hs": "6105", "heading": "Men's or boys' shirts, knitted or crocheted", "subject": "men's knitted cotton piqué polo shirt, navy", "job_id": "a35f4b25-5687-4eb1-84eb-4d95907a9744", "file": "hf_20260918_053911_a35f4b25-5687-4eb1-84eb-4d95907a9744.png", "source_url": "https://edb.epb.gov.bd/hscode-exporters/694"},
+    {"hs": "6106", "heading": "Women's or girls' blouses, etc, knitted or crocheted", "subject": "women's knitted jersey blouse, dusty rose", "job_id": "f3819fdb-212b-472c-a4b3-705bbfb720f7", "file": "hf_20260918_053910_f3819fdb-212b-472c-a4b3-705bbfb720f7.png", "source_url": "https://edb.epb.gov.bd/hscode-exporters/695"},
+    {"hs": "6107", "heading": "Men's or boys' briefs and similar articles, knitted or crocheted", "subject": "three-pack of men's knitted cotton boxer briefs, flat lay", "job_id": "9a64a194-dd11-4c06-90c0-4ec48daa842c", "file": "hf_20260918_053910_9a64a194-dd11-4c06-90c0-4ec48daa842c.png", "source_url": "https://edb.epb.gov.bd/hscode-exporters/696"},
+    {"hs": "6108", "heading": "Women's or girls' panties and similar articles, knitted or crocheted", "subject": "women's knitted cotton nightdress, pale blue", "job_id": "e5bb124b-ea2a-4f14-93ae-8e6380343c52", "file": "hf_20260918_053911_e5bb124b-ea2a-4f14-93ae-8e6380343c52.png", "source_url": "https://edb.epb.gov.bd/hscode-exporters/697"},
+    {"hs": "6109", "heading": "T-shirts, singlets and other vests, knitted or crocheted", "subject": "plain white crew-neck cotton jersey t-shirt", "job_id": "dced786b-f91c-416f-8edf-4f4c49ad9c96", "file": "hf_20260918_053910_dced786b-f91c-416f-8edf-4f4c49ad9c96.png", "source_url": "https://edb.epb.gov.bd/hscode-exporters/698"},
+    {"hs": "6110", "heading": "Jerseys, pullovers, cardigans and similar articles, knitted or crocheted", "subject": "men's knitted cotton crew-neck pullover, forest green", "job_id": "7692a1ed-097a-410b-81b3-3bdbf2a8b0bc", "file": "hf_20260918_053910_7692a1ed-097a-410b-81b3-3bdbf2a8b0bc.png", "source_url": "https://edb.epb.gov.bd/hscode-exporters/699"},
+    {"hs": "6111", "heading": "Babies' garments and clothing accessories, knitted or crocheted", "subject": "baby's knitted cotton long-sleeve bodysuit, flat lay", "job_id": "96fdfa8a-0cc9-4334-be38-649dbf6f616c", "file": "hf_20260918_053910_96fdfa8a-0cc9-4334-be38-649dbf6f616c.png", "source_url": "https://edb.epb.gov.bd/hscode-exporters/700"},
+    {"hs": "6114", "heading": "Other garments, knitted or crocheted, nes", "subject": "women's knitted cotton jersey jumpsuit, black", "job_id": "c619cbc2-f799-4cef-825a-f8e6fc5eb0a8", "file": "hf_20260918_053910_c619cbc2-f799-4cef-825a-f8e6fc5eb0a8.png", "source_url": "https://edb.epb.gov.bd/hscode-exporters/778"},
+    {"hs": "6115", "heading": "Panty hose, tights, etc, and footwear, knitted or crocheted", "subject": "pair of knitted cotton ribbed crew socks, heather grey, flat lay", "job_id": "c00662e0-6971-48a3-b42c-66e7a07c4bb0", "file": "hf_20260918_053910_c00662e0-6971-48a3-b42c-66e7a07c4bb0.png", "source_url": "https://edb.epb.gov.bd/hscode-exporters/779"}
+  ]
+}
