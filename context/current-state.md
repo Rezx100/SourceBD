@@ -24,7 +24,8 @@ migrations, run the 30-day zero P1/P2 Sentry incident window.
   on branch `rez-73-facilities-lean`. Lean rewrite: migration `0097_` + thin
   UI; SQL owns the roll-up; under 400 product lines.
 - **Design-system rebuild** — spec `feature-specs/ds-rebuild-must-stay.md`,
-  awaiting founder answers to its four questions. No code yet.
+  in progress on branch `design-rebuild` (18 Sep): tokens + `/dev/ds` gallery
+  built, awaiting founder review. Old pages on that branch are unstyled until rebuilt.
 
 ## Founder rules still in force (one line each; detail in archive)
 - EPB is a government register: show its evidence and HS codes whenever EPB has them, flagged or not. Never mint EPB-only suppliers. (15 Aug)

@@ -13,9 +13,10 @@ same PR. Read once per session.
   branch `rez-73-facilities-lean`. Migration `0097_` + thin UI; SQL owns the
   roll-up; under 400 product lines.
 - **Design-system rebuild** — `feature-specs/ds-rebuild-must-stay.md`.
-  Awaiting founder answers (dark mode, fonts, source logos, product icons).
-  No code until the founder says go. Old design files are off-limits to the
-  builder; see the spec's section 1.
+  IN PROGRESS on branch `design-rebuild` (18 Sep). Step 3 built: tokens
+  (`lib/design/tokens.ts`) and the gallery at `/dev/ds`. No page rebuilds
+  yet. Old design files are archived under `context/archive/old-design/`
+  and stay off-limits to the builder; see the spec's section 1.
 
 ## Queued
 - **Entity resolution core** — `spec-resolution-core.md` (4 Aug). Batch

@@ -72,6 +72,8 @@
     "lib/admin/queue-decide-decision.test.ts",
     "app/api/v1/webhooks/firecrawl/route.test.ts",
     "app/api/v1/admin/queue/decide/route.test.ts",
-    "lib/context-size.test.ts"
+    "lib/context-size.test.ts",
+    "lib/design/tokens.ts",
+    "lib/design/tokens.test.ts"
   ]
 }

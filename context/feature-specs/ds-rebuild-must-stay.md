@@ -1,13 +1,13 @@
 # Design rebuild — the "must stay" list
 
-Status: draft for founder approval. No code until approved.
+Status: build started 18 Sep 2026 on branch `design-rebuild` (founder go-ahead). Step 3 (tokens + gallery at `/dev/ds`) built; no page rebuilds yet.
 Written from product rules and the database only. No old design file was opened for this list.
 
 ## 1. Rules of the rebuild
 
 - The old design is deleted, not adapted. Nothing from it is kept "because it worked".
 - The builder may not open: `app/globals.css`, `tailwind.config.ts`, `components/ui/*`, `context/frontend-design-spec.md`, `context/design-brief-phase1.md`, `ops/design-mockups/`, `ops/visual/`.
-- Those files move to `context/archive/` on day one of the build so nobody reads them by accident.
+- Those files move to `context/archive/` on day one of the build so nobody reads them by accident. Done 18 Sep: all are under `context/archive/old-design/` except `components/ui/*`, which 138 files still import — each piece moves out as the last page using it is rebuilt. The new `tailwind.config.ts`, `app/ds.css` and `lib/design/tokens.ts` are the rebuild's own files and are open to the builder.
 - Built on its own branch. One switch at the end. Old and new never run together.
 - Every page on all four surfaces is rebuilt. No page keeps old styling.
 - One spec. Clean working tree at start. Founder approves each gate.
@@ -83,7 +83,7 @@ Shared: login, signup, forgot/reset password, suspended, not found, error.
 
 ## 7. Questions for you
 
-1. Dark mode: yes, no, or later?
-2. Fonts: one family or two? Any you want or refuse?
+1. Dark mode: yes, no, or later? — **Later** (18 Sep). Tokens are named by job so a dark set drops in.
+2. Fonts: one family or two? Any you want or refuse? — **One family** (18 Sep). Builder picked Inter; founder to confirm in the gallery.
 3. Do the third-party source logos stay as images, or become text marks?
 4. Do public Discover cards show product icons, or text only?

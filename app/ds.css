@@ -1,0 +1,50 @@
+/* Design-system rebuild entry stylesheet.
+   No colour values in this file — they all come from lib/design/tokens.ts
+   through tailwind.config.ts. `lib/design/tokens.test.ts` enforces that. */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    color-scheme: light;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-canvas font-sans text-base text-ink antialiased;
+    min-width: 320px;
+  }
+
+  /* One visible keyboard focus everywhere (spec §3: keyboard works everywhere). */
+  :focus-visible {
+    @apply outline outline-2 outline-offset-2 outline-focus;
+  }
+}
+
+@layer utilities {
+  /* Locked state surface: a striped panel, never a blur over real data. */
+  .locked-pattern {
+    background-color: rgb(var(--ds-locked));
+    background-image: repeating-linear-gradient(
+      135deg,
+      rgb(var(--ds-locked-stripe)) 0,
+      rgb(var(--ds-locked-stripe)) 6px,
+      transparent 6px,
+      transparent 12px
+    );
+  }
+}
+
+/* Spec §2: works without animation when the device asks for that. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
