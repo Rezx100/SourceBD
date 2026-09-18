@@ -1,39 +1,15 @@
 import type { Metadata, Viewport } from "next";
-import { Archivo, Hanken_Grotesk, IBM_Plex_Mono, Syne } from "next/font/google";
-import "./globals.css";
+import { Inter } from "next/font/google";
+import "./ds.css";
 import { cn } from "@/lib/utils";
 
-// Unified platform typography (decision 2026-06-18). The app surfaces now
-// share the marketing stack so the whole platform reads as one company:
-// Archivo (display) + Hanken Grotesk (body) + IBM Plex Mono (mono). This
-// supersedes the M6a split — `--font-*` and `--mkt-font-*` now resolve to
-// the same families.
-const display = Archivo({
+// Design-system rebuild (spec ds-rebuild-must-stay.md). One family for the
+// whole platform (founder decision 18 Sep 2026); numbers use its tabular
+// figures. The Tailwind `font-sans` stack reads `--font-sans`.
+const sans = Inter({
   subsets: ["latin"],
-  variable: "--font-display",
+  variable: "--font-sans",
   display: "swap",
-  weight: ["500", "600", "700", "800", "900"],
-});
-
-const body = Hanken_Grotesk({
-  subsets: ["latin"],
-  variable: "--font-body",
-  display: "swap",
-  weight: ["400", "500", "600", "700"],
-});
-
-const mono = IBM_Plex_Mono({
-  subsets: ["latin"],
-  variable: "--font-mono",
-  display: "swap",
-  weight: ["400", "500", "600"],
-});
-
-const brand = Syne({
-  subsets: ["latin"],
-  variable: "--font-brand",
-  display: "swap",
-  weight: ["500", "600", "700"],
 });
 
 export const metadata: Metadata = {
@@ -58,13 +34,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html
       lang="en"
-      className={cn(
-        display.variable,
-        body.variable,
-        mono.variable,
-        brand.variable,
-        "font-sans",
-      )}
+      className={cn(sans.variable, "font-sans")}
     >
       <body suppressHydrationWarning>{children}</body>
     </html>

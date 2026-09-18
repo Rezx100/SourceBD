@@ -1,9 +1,11 @@
 ---
 description: Closed-loop adversarial acceptance — the implementer never declares its own work done
-alwaysApply: true
+alwaysApply: false
 ---
 
 # Closed-loop adversarial acceptance
+
+> Load this rule when implementation is finished and verification begins (AGENTS.md rule 16). It is not needed while reading, planning, or writing code, so it is no longer injected on every turn.
 
 Applies to **every** issue, at every priority, including docs and P2 chores.
 

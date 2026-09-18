@@ -1,0 +1,58 @@
+{
+ "components": [
+  {
+   "name": "ResultsList",
+   "group": "Data display",
+   "height": 1560,
+   "width": 1440,
+   "file": "results.html",
+   "caption": "Results \u2014 cards in the shell",
+   "readme": "# ResultsList \u2014 result cards (v3.2)\n\nThe search result page, rendered inside the AppShell at 1440 so it reads as a screen. One `canvas`, one white `surface` panel with a `line` border, cards separated by `line-subtle` hairlines. Every value is production (18 Sep 2026): the query \"Knitted shirts \u00b7 GOTS valid\" returns 320 suppliers (HS 6105 exporters holding a valid GOTS).\n\n**Panel header:** select-all \u00b7 query as `title` \u00b7 live count in `caption` \u00b7 Sort (default: most sources) \u00b7 Save search \u00b7 Export CSV \u00b7 card / table toggle (`seg`). **Footer:** \"1\u201325 of 320\", per-page, Prev / Next.\n\n**Card, top to bottom \u2014 the reference's anatomy, kept band for band:**\n\n1. **Identity.** 48px logo slot (initials on the top source's `tier` mark; a real logo replaces it), name in `title` that wraps at any length (the 101-character Zaheen name is the sample), the **source-mark row** where the reference has \"Verified\" (20px rank squares, `eyebrow` code, count), then the meta line at 14px \u2014 type \u00b7 district \u00b7 est. \u00b7 workers \u2014 each fact followed by a 16px mark of the register it came from. Actions top-right: Save \u00b7 Open record \u00b7 Send RFQ (`brand`, disabled on a sanctioned record).\n2. **Highlight chips.** Facts that answer the search, in status hues only: `positive-tint` for valid / active, `caution-tint` for expiring, expired, behind schedule or no longer covered, outline `neu` for neutral facts (EPB exporter \u00b7 N lines, Listed by), dashed `quiet` for nothing on file. Never brand, never a score. \"+N more\" opens the Highlights popover.\n3. **Four tiles + photo strip.** Tiles (2\u00d72, \u2265172px wide, `line-subtle` hairline, no fill): Certificates \u00b7 Export lines \u00b7 Listed by \u00b7 Registers, each label (13px `ink-muted`) \u00b7 value (15px 500, never wraps) \u00b7 a link into the sheet tab. A missing value is `\u2014` in `quiet-ink` with the reason beneath (\"none on 4 registers\"). The strip holds 132px photo tiles keyed by EPB HS code \u2014 caption `HS 6105` in mono + a short heading that fits without clamping \u2014 a \"+N \u203a\" pill at the right edge, and the note \"Photos illustrative, keyed to the HS code\". A record with no export lines shows one dashed `quiet` slot naming the register checked.\n\n**Which photos, in which order.** Photos are a catalogue keyed to the 4-digit HS heading (`design/assets/products/hs/manifest.json`: the 46 headings with 20+ exporters), shared by every supplier who exports that line until the supplier uploads their own (V2). So that neighbouring cards do not all lead with the same navy polo, a supplier's strip shows its **least-common lines first** (by exporter count on EPB) \u2014 Aboni leads with socks and jumpsuits, a hat exporter with hats. A heading without a photo keeps its place and shows the code on the `surface-sunken` ground with \"no photo yet\"; nothing is substituted.\n4. **Why matched (V2 only).** One line in `smart`, tagged `V2`, naming the filters met \u2014 never a number.\n\n**States.** Selected: filled checkbox + 3px `brand` inset rule (the card stays white). Sanctioned: 4px `sanction` bar, a one-line `sanction-ink` notice under the meta, the Sanctioned badge first in the chip row, Send RFQ disabled \u2014 nothing in the layout can hide it (Zaheen is a labelled sample; not sanctioned in production). Nothing on file: quiet, never a warning (A.R. Fashion).\n\nRhythm: 14px body, 13px labels, `space-4` between bands, `space-3` inside a band, `space-5` card padding. Photos are inlined as data URIs when rendering PNGs; the published preview keeps the manifest's CDN URL with `onerror` hiding a failed image so the slot still looks intentional."
+  },
+  {
+   "name": "ResultsTable",
+   "group": "Data display",
+   "height": 900,
+   "width": 1440,
+   "file": "table.html",
+   "caption": "Results \u2014 table view in the shell",
+   "readme": "# ResultsTable \u2014 the toggle's other state\n\nSame panel header and footer as ResultsList, with the table toggle on. `row-dense` 36px rows in `table` text; a long name wraps and grows its row rather than truncating. Header on `surface-sunken` in `eyebrow` mono.\n\nColumns: **Supplier** (24px initials tile on the top source's tier, name in 500, place in `ink-muted`) \u00b7 **Sources** (count in mono `figure` + the first four rank marks + \"+N\") \u00b7 **Certificates** (two 22px status chips + \"+N\": `GOTS valid`, `WRAP 11 d`, `WRAP expired`, `GOTS 44 d` \u2014 the number is days to expiry when inside 90) \u00b7 **Export lines** (the supplier's three least-common lines as 28px HS-keyed thumbs + \"+N\"; a heading without a photo shows its code on the sunken ground) \u00b7 **Type** \u00b7 **Workers** (right-aligned, tabular) \u00b7 Save and Send RFQ.\n\nRows are the real top eight for the query, sorted by most sources, plus the two state samples: the sanctioned row carries the 4px `sanction` inset and a `sanction-ink` line under the name with Send RFQ disabled; the nothing-on-file row says why each cell is empty. Selected is the filled checkbox and a 3px `brand` inset \u2014 no tinted row. No match column in V1."
+  },
+  {
+   "name": "SupplierSheet",
+   "group": "Overlays",
+   "height": 1240,
+   "width": 1440,
+   "file": "sheet.html",
+   "caption": "Supplier record \u2014 sheet over the results",
+   "readme": "# SupplierSheet \u2014 the record over the results\n\nOpens from Open record or the name, as an 880px `surface` sheet with a `line` left rule and `shadow-lg` over a 32% `surface-inverse` scrim; the results keep their scroll and selection behind it.\n\n**Bar** (52px): close \u00b7 \"Supplier record\" \u00b7 read date, source count and \"pages unchanged since read\" \u00b7 Share \u00b7 more. **Head:** 48px logo, name in `heading-lg` (wraps), the meta line with a mark per fact plus the BGMEA number in `code`, then the full source-mark row with the source names spelled out. **Tabs** with counts in mono: Overview \u00b7 Products 12 \u00b7 Certificates 4 \u00b7 Safety RSC \u00b7 Sources 11 \u00b7 Locations 1 \u00b7 Facilities \u00b7 RFQs 0. Tabs scroll to sections; the active one has a 2px `brand` underline.\n\n**Overview** is two columns: a plain-language summary made only of facts, then the **FactsPanel** \u2014 28px rows, label 150px in `ink-muted`, value in `ink`, and the mark of the register each fact came from at the right; \"Not on file\" in `quiet-ink` with what was checked. Beside it the **contact card, locked by default**: a striped `locked` / `locked-stripe` top that says exactly what is hidden (1 email \u00b7 6 phones \u00b7 website \u00b7 2 named representatives, from which registers) and a white foot that says the RFQ still reaches the supplier. Never a blur.\n\n**Products:** four `stat` blocks (HS lines \u00b7 Product list \u00b7 Certified scope \u00b7 Buyer lists, each with its source) and a six-up grid of HS-keyed photo tiles, \"All 12 lines \u203a\", and the illustrative note. **Certificates:** one card per certificate with the issuer's rank mark, scheme, state badge (valid / expiring with days left / no expiry on file / expired), number in `code`, issuer and scope in `caption`, link to the issuer's page. **Safety:** RSC remediation on a 6px `positive` meter with status words, and the five report links (a missing one is a dashed quiet chip).\n\n**Action bar**, sticky on `surface-glass`: Send RFQ (`brand`, `control-lg`) \u00b7 Save to list \u00b7 Compare \u00b7 \"Every fact links to its source page\". A sanctioned record adds the sanction banner under the bar on every tab and disables Send RFQ."
+  },
+  {
+   "name": "ProductSheet",
+   "group": "Overlays",
+   "height": 760,
+   "width": 1440,
+   "file": "productsheet.html",
+   "caption": "Product line \u2014 nested sheet with back",
+   "readme": "# ProductSheet \u2014 one HS export line\n\nA nested sheet reached from a photo tile, with Back and a breadcrumb (supplier / `HS 6105`) in the bar. Left: the 320px illustrative photo with its caption (generated per HS heading, not the supplier's product; a supplier-attested upload replaces it in V2). Right: `eyebrow` \"HS 6105 \u00b7 EPB export line\", the official heading in `heading`, then a FactsPanel \u2014 chapter, the EPB exporter page with read date, exporting since (not on file: EPB lists lines, not dates), other lines in `code`, certified scope with its state badge, the BGMEA product list, buyer lists, and price \u00b7 MOQ \u00b7 lead time (supplier-attested, shown only when attested) \u2014 each with its source mark. Actions: Send RFQ for this line (`brand`) and \"Other exporters of 6105 \u00b7 1,635\", which runs the code across the catalogue with its live count."
+  },
+  {
+   "name": "RFQComposer",
+   "group": "Overlays",
+   "height": 860,
+   "width": 1440,
+   "file": "rfq.html",
+   "caption": "RFQ composer \u2014 rail, editor with variables, preview",
+   "readme": "# RFQComposer \u2014 request for quote\n\nA 1180px dialog (`radius-lg`, `shadow-lg`) over the results. The reference's three columns, kept because each earns its width: a **rail** on `canvas` (Suppliers \u00b7 Product \u00b7 Details 2/6 \u00b7 Questions 10 \u00b7 Follow-up rules V2), each step with a count and a `caution-ink` line naming what is still missing; the **editor** with the template switch (First contact / Repeat supplier), Attach, Insert variable and the `smart` V2 \"Improve wording\", a subject and body with inline **variables** (`brand-tint` chips; a missing one is `caution-tint`), the product table (a missing target price reads \"Missing\" in `caution-ink`) and the question list with REQUIRED stamps; and the **preview** on `surface-sunken` that shows the message exactly as the supplier receives it, missing fields still flagged.\n\nThe message cites the record \u2014 certificate number, expiry, HS line \u2014 so the supplier knows the buyer read it. The footer counts what is missing; Send RFQ stays disabled until the required fields are filled; Save draft always works. The buyer's own email and phone are never shared, and the supplier's contact details are not needed on this side: SourceBD delivers."
+  },
+  {
+   "name": "RFQList",
+   "group": "Data display",
+   "height": 700,
+   "width": 1440,
+   "file": "rfqlist.html",
+   "caption": "RFQ list \u2014 status chips, table, toast",
+   "readme": "# RFQList \u2014 the RFQs page\n\nPage heading with the live counts (7 sent \u00b7 0 quotes \u2014 production, 18 Sep 2026), search, Fields, Sort and + New RFQ (`brand`); a row of status chips with counts (All \u00b7 Awaiting reply \u00b7 Quoted \u00b7 Reply overdue \u00b7 Draft \u00b7 Closed); a 36px-row table \u2014 RFQ name with the HS code in `code`, supplier with its tier tile, quantity (tabular, right-aligned), status badge (`positive` for sent / awaiting, `caution` for overdue, `typ` for draft with the number of fields still missing), sent and ship-by dates, action. The rows are the real production RFQs as stored, plus the draft from RFQComposer at the top.\n\nThe toast (`surface-inverse`, `signal` dot) confirms a draft save and names the supplier. At launch almost every buyer sees the EmptyState copy instead of this table: \"Your first RFQ lands here. Suppliers answer inside the platform, with the record attached.\" "
+  }
+ ]
+}
