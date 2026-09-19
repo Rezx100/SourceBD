@@ -15,7 +15,8 @@ import { PhotoThumbs } from "./photo-tiles";
 
 const COLS = [44, 310, 128, 215, 135, 88, 74] as const;
 
-export function Th({ className, children }: { className?: string; children?: React.ReactNode }) {
+/** A column with no visible heading still needs a name for a screen reader. */
+export function Th({ className, srLabel, children }: { className?: string; srLabel?: string; children?: React.ReactNode }) {
   return (
     <th
       scope="col"
@@ -24,7 +25,7 @@ export function Th({ className, children }: { className?: string; children?: Rea
         className,
       )}
     >
-      {children}
+      {children ?? (srLabel ? <span className="sr-only">{srLabel}</span> : null)}
     </th>
   );
 }
@@ -44,14 +45,14 @@ export function ResultsTable({ rows }: { rows: readonly TableRowModel[] }) {
       </colgroup>
       <thead>
         <tr>
-          <Th />
+          <Th srLabel="Select" />
           <Th>Supplier</Th>
           <Th>Sources</Th>
           <Th>Certificates</Th>
           <Th>Export lines</Th>
           <Th>Type</Th>
           <Th className="text-right">Workers</Th>
-          <Th />
+          <Th srLabel="Actions" />
         </tr>
       </thead>
       <tbody className="[&>tr:last-child>td]:border-b-0">
@@ -111,7 +112,17 @@ export function ResultsTable({ rows }: { rows: readonly TableRowModel[] }) {
               )}
             </Td>
             <Td className="whitespace-nowrap">{r.type}</Td>
-            <Td className="text-right tabular-nums">{r.workers === null ? <span className="text-quiet-ink">—</span> : formatCount(r.workers)}</Td>
+            <Td className="text-right tabular-nums">
+              {r.workers === null ? (
+                <span className="text-quiet-ink">—</span>
+              ) : (
+                <>
+                  {formatCount(r.workers)}
+                  {/* A group sum printed bare reads as this site's headcount. */}
+                  {r.workersCoverage ? <span className="block text-xs font-normal text-ink-subtle">{r.workersCoverage}</span> : null}
+                </>
+              )}
+            </Td>
             <Td>
               <span className="flex w-full justify-end gap-1.5">
                 <Button icon aria-label="Save" className="h-7 w-7">

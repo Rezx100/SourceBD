@@ -73,6 +73,8 @@ export type TableRowModel = {
   linesEmptyReason: string | null;
   type: string;
   workers: number | null;
+  /** "1 of 2 sites" when the figure is a group sum; null when it is this site's. */
+  workersCoverage: string | null;
   sanctioned: boolean;
   sanctionSample?: boolean;
   selected?: boolean;
@@ -106,7 +108,8 @@ export type SupplierSheetModel = {
   pagesUnchanged: boolean | null;
   sanctioned: boolean;
   sanctionSample?: boolean;
-  tabs: { label: string; count: string | null; active?: boolean }[];
+  /** `href` is null for a tab whose section the sheet does not render yet: the link is inert, never a dead fragment. */
+  tabs: { label: string; count: string | null; href: string | null; active?: boolean }[];
   summary: string | null;
   facts: FactRow[];
   /** What the locked card may claim today: only that details on the record are hidden. Kinds and registers arrive with `contact_counts` (REZ-C §4.3). */
@@ -119,7 +122,8 @@ export type SupplierSheetModel = {
     onEpb: boolean;
     exporterHref: string | null;
     exporterRef: string | null;
-    chapter: string | null;
+    /** Every distinct 4-digit chapter the lines span, ascending. */
+    chapters: string[];
     productListCount: number;
     certifiedScope: { scheme: string; scope: string } | null;
     buyerLists: string[];
@@ -127,6 +131,8 @@ export type SupplierSheetModel = {
   };
   certs: CertModel[];
   certsCaption: string | null;
+  /** Buildings holding a certificate of their own; named so the record does not appear to hold it, and so "none" is never printed over one. */
+  certBuildings: string[];
   /** The mother's own RSC row; every row the RPC returns is active (the inactive state is REZ-C's). */
   rsc: {
     ref: string | null;
@@ -145,6 +151,8 @@ export type ProductSheetModel = {
   sanctioned: boolean;
   sanctionSample?: boolean;
   hs: string;
+  /** The record's own EPB page carries this line. False → the sheet never calls it an EPB export line. */
+  exported: boolean;
   heading: string;
   photo: PhotoTileModel;
   generatedOn: string | null;
@@ -161,6 +169,9 @@ export type RfqRowModel = {
   supplierInitials: string | null;
   supplierTier: TierRank | null;
   supplierCount: number;
+  /** A sanctioned target shows on this row too — a sanction may not be hidden by layout (spec §2). */
+  sanctioned: boolean;
+  sanctionSample?: boolean;
   quantity: string;
   status: { tone: "positive" | "caution" | "type"; label: string; icon?: IconName };
   sent: string | null;
@@ -175,4 +186,10 @@ export type RfqListModel = {
   rows: RfqRowModel[];
   footer: string;
   toast: { text: string; href: string | null } | null;
+  /**
+   * `rfq_list` failed. Without this an unread list renders the empty state —
+   * which sells the feature by stating "you have no RFQs yet", a fact the
+   * failed read does not support.
+   */
+  error?: boolean;
 };

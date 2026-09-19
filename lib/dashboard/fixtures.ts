@@ -4,23 +4,42 @@
 // 19 Sep 2026 (rebuild spec §3 "Real records to test with"). Nothing here is
 // invented: if a column is null on production it is null here, and the payloads
 // are trimmed only by dropping keys the kit never reads (`documents`,
-// `partner_factories`, `sanctions`, `supplier_about`, …). `lib/dashboard/fixtures.test.ts`
-// re-checks a sample of these values against the shapes the builders expect.
+// `partner_factories`, `sanctions`, `supplier_about`, …).
+// `lib/dashboard/fixtures.test.ts` re-checks the row counts and the named
+// values against the payloads the RPCs returned on that read, so a fixture
+// that drifts from production fails the suite instead of passing quietly.
+//
+// Every literal here is a value production holds. Where a state the screens
+// must render has no production record — a sanctioned supplier, a pill a
+// parent factory lends to a satellite — the fixture composes it from real
+// rows and says so in a comment; it never attaches an invented number, URL or
+// name to a named real company (ds-rebuild-must-stay §2).
 //
 // Contact fields are deliberately added to one fixture — marked `leaked`, and
 // never returned by the RPC — so the boundary test can prove they never reach
 // the HTML. Used only by tests and the /dev/ds screenshot harness, never by a page.
 
-import type { HsLine, ProfilePayload, RecordInput } from "./build-models";
+import type { HsLine, ProfilePayload, ProfilePill, RecordInput } from "./build-models";
 
 export const TODAY = new Date("2026-09-18T10:00:00Z");
 
+/** The longest name a buyer can reach: 100 characters (spec §3). Real, published. */
 export const ZAHEEN_NAME =
   "Zaheen Knitwears Limited (Shed - 3, 4, 5, 10, 11, 12, 13) & (Building - Security, ETP and Fire Pump)";
 
-/** A 125-character name, the longest the spec asks the screens to carry (§3, §6). Real record. */
+/**
+ * The longest name of all: 125 characters (spec §3, §6). Real record, slug
+ * `indochine-apparel-bangladesh-limited-plot-54-56-previously-baxter-brenton-bd-clothing-manufacturing-co-ltd-extension`,
+ * unpublished — so it reaches admin lists only, but the card, table row and
+ * sheet must still carry it whole.
+ */
 export const LONG_NAME_125 =
-  "Ananta Huaxiang Ltd. (Unit-2) & Ananta Apparels Limited (Shed 1, 2, 3, 4 and the Security, ETP, Boiler and Fire Pump Buildings)";
+  "Indochine Apparel (Bangladesh) Limited, Plot 54-56 (Previously Baxter Brenton (BD) Clothing Manufacturing Co. Ltd (Extension)";
+
+/** Brand disclosure-list files, shared by the records that appear on them. */
+const ASOS_LIST = "https://www.asosplc.com/media/cmzk3m5n/factory-list-april-2026.pdf";
+const HM_LIST = "https://hmgroup.com/wp-content/uploads/spur/HM-Group-Supplier-List-May-2026 .xlsx";
+const NEXT_LIST = "https://www.nextplc.co.uk/~/media/Files/N/next-plc-v4/Tier 1 -2 - 3 lists/T1 2025.pdf";
 
 // ---------------------------------------------------------------------------
 // Aboni Knitwear — the rich record: 11 registers, 4 certificates, 12 HS lines,
@@ -164,24 +183,9 @@ export function aboniProfile(): ProfilePayload {
       },
     ],
     brand_attributions: [
-      {
-        source_code: "BRAND_ASOS",
-        display_name: "ASOS supplier list",
-        source_url: "https://www.asosplc.com/media/cmzk3m5n/factory-list-april-2026.pdf",
-        last_seen_at: "2026-07-30T21:27:35.655595+00:00",
-      },
-      {
-        source_code: "BRAND_HM",
-        display_name: "H&M Group supplier list",
-        source_url: "https://hmgroup.com/wp-content/uploads/spur/HM-Group-Supplier-List-May-2026 .xlsx",
-        last_seen_at: "2026-06-26T23:02:29.477664+00:00",
-      },
-      {
-        source_code: "BRAND_NEXT",
-        display_name: "Next plc supplier list",
-        source_url: "https://www.nextplc.co.uk/~/media/Files/N/next-plc-v4/Tier 1 -2 - 3 lists/T1 2025.pdf",
-        last_seen_at: "2026-05-18T22:44:33.591105+00:00",
-      },
+      { source_code: "BRAND_ASOS", display_name: "ASOS supplier list", source_url: ASOS_LIST, last_seen_at: "2026-07-30T21:27:35.655595+00:00" },
+      { source_code: "BRAND_HM", display_name: "H&M Group supplier list", source_url: HM_LIST, last_seen_at: "2026-06-26T23:02:29.477664+00:00" },
+      { source_code: "BRAND_NEXT", display_name: "Next plc supplier list", source_url: NEXT_LIST, last_seen_at: "2026-05-18T22:44:33.591105+00:00" },
     ],
     provenance: [
       { source_code: "EPB", display_name: "Export Promotion Bureau", tier: "tier1_gov", source_ref: "3335", source_url: "https://epb.gov.bd", last_seen_at: "2026-08-14T21:58:33.681609+00:00" },
@@ -194,30 +198,9 @@ export function aboniProfile(): ProfilePayload {
       { source_code: "GOTS", display_name: "Global Organic Textile Standard", tier: "tier3_cert", source_ref: "gots-SCO029726", source_url: "https://global-standard.org", last_seen_at: "2026-06-26T22:56:55.664165+00:00" },
       { source_code: "OEKO_TEX", display_name: "OEKO-TEX", tier: "tier3_cert", source_ref: "oeko-tex-32597", source_url: "https://www.oeko-tex.com", last_seen_at: "2026-06-26T22:59:24.032164+00:00" },
       { source_code: "WRAP", display_name: "Worldwide Responsible Accredited Production", tier: "tier3_cert", source_ref: "wrap-7865", source_url: "https://wrapcompliance.org", last_seen_at: "2026-07-24T05:15:34.811285+00:00" },
-      {
-        source_code: "BRAND_ASOS",
-        display_name: "ASOS supplier list",
-        tier: "tier4_brand",
-        source_ref: "b376ef6e0404ae78",
-        source_url: "https://www.asosplc.com/media/cmzk3m5n/factory-list-april-2026.pdf",
-        last_seen_at: "2026-07-30T21:27:35.655595+00:00",
-      },
-      {
-        source_code: "BRAND_HM",
-        display_name: "H&M Group supplier list",
-        tier: "tier4_brand",
-        source_ref: "aae431e7c9e0b1c9",
-        source_url: "https://hmgroup.com/wp-content/uploads/spur/HM-Group-Supplier-List-May-2026 .xlsx",
-        last_seen_at: "2026-06-26T23:02:29.477664+00:00",
-      },
-      {
-        source_code: "BRAND_NEXT",
-        display_name: "Next plc supplier list",
-        tier: "tier4_brand",
-        source_ref: "0c3207180f592be8",
-        source_url: "https://www.nextplc.co.uk/~/media/Files/N/next-plc-v4/Tier 1 -2 - 3 lists/T1 2025.pdf",
-        last_seen_at: "2026-05-18T22:44:33.591105+00:00",
-      },
+      { source_code: "BRAND_ASOS", display_name: "ASOS supplier list", tier: "tier4_brand", source_ref: "b376ef6e0404ae78", source_url: ASOS_LIST, last_seen_at: "2026-07-30T21:27:35.655595+00:00" },
+      { source_code: "BRAND_HM", display_name: "H&M Group supplier list", tier: "tier4_brand", source_ref: "aae431e7c9e0b1c9", source_url: HM_LIST, last_seen_at: "2026-06-26T23:02:29.477664+00:00" },
+      { source_code: "BRAND_NEXT", display_name: "Next plc supplier list", tier: "tier4_brand", source_ref: "0c3207180f592be8", source_url: NEXT_LIST, last_seen_at: "2026-05-18T22:44:33.591105+00:00" },
     ],
     addresses: [
       { kind: "factory", address: "Kandi Boilapur, Horindhara, Tetulzhora, Hemayetpur, Savar, Dhaka", source_code: "BGAPMEA", fetched_at: "2026-06-26T23:24:31.412898+00:00" },
@@ -265,7 +248,9 @@ export const ABONI_HS: HsLine[] = ABONI_LINES.map(([code, description]) => ({
 }));
 
 export function aboniInput(): RecordInput {
-  return { profile: aboniProfile(), hscodes: ABONI_HS, workers: { value: 3166, source: "RSC" }, today: TODAY };
+  // `production_workers_display_batch` returns the group figure: 2,662 (mother)
+  // + 504 (New Shed) across both RSC sites, with the later of the two reads.
+  return { profile: aboniProfile(), hscodes: ABONI_HS, workers: { value: 3166, source: "RSC", fetched_at: "2026-07-30T22:13:40.757784+00:00" }, today: TODAY };
 }
 
 // ---------------------------------------------------------------------------
@@ -382,7 +367,7 @@ export function zaheenSampleInput(): RecordInput & { leaked: { email_primary: st
   return {
     profile,
     hscodes: [],
-    workers: { value: 1634, source: "RSC" },
+    workers: { value: 1634, source: "RSC", fetched_at: "2026-08-07T05:56:42.605291+00:00" },
     today: TODAY,
     sanctionSample: true,
     leaked: { email_primary: "leak-test@example.invalid", phones: ["+880 1700 000000"] },
@@ -400,8 +385,12 @@ export function sanctionedInput(): RecordInput {
 }
 
 // ---------------------------------------------------------------------------
-// S M Knitwears — two EPB registrations, 24 HS lines across chapters 61 and 62,
-// and an RSC row that belongs to a building, not to the company itself.
+// S M Knitwears — two EPB registrations, six certificates (four of them
+// OEKO-TEX), 24 HS lines across chapters 61 and 62, and an RSC row that
+// belongs to a building, not to the company itself. Re-read from production
+// 19 Sep 2026; the earlier copy of this fixture was short by two pills, two
+// certificates, four provenance rows and seven addresses, and carried two
+// OEKO-TEX profile URLs that do not exist.
 // ---------------------------------------------------------------------------
 
 const SM_LINES: [string, string, string][] = [
@@ -437,8 +426,15 @@ export const SM_HS: HsLine[] = SM_LINES.map(([code, description, ref]) => ({
   source_url: `https://edb.epb.gov.bd/hscode-exporters/${ref}`,
 }));
 
-export function smKnitwearInput(): RecordInput {
-  const profile = {
+const OEKO_PROFILE = "https://services.oeko-tex.com/newoekotex/portal/for-new-website/customer_profile";
+const SM_OEKO_100 = `${OEKO_PROFILE}/9741~1wdI2V~Gc5OsM1AI-9iRdEvDZMRbc_8T2o/`;
+const SM_OEKO_MIG = `${OEKO_PROFILE}/9741~1wdJ30~0zOmRMa0vLmWt5szv_SPcXWqjS8/`;
+const SM_OEKO_ORGANIC = `${OEKO_PROFILE}/9741~1wdJ9J~Ksz0Rv6pcvUMkowB-S4SQ0iKJ8Q/`;
+const SM_OEKO_STEP = `${OEKO_PROFILE}/9741~1wdIu4~GVy9ryLmhCJyFXIcyGxS6EZ-Ti8/`;
+const ACCORD_FILE = "https://accord2.fairfactories.org/accord_v2_files/1/Audit_Files";
+
+export function smKnitwearProfile(): ProfilePayload {
+  return {
     supplier: {
       id: "c07aca81-045c-4f7e-8812-2c19e512b5df",
       slug: "sm-knitwear",
@@ -476,8 +472,10 @@ export function smKnitwearInput(): RecordInput {
       { source_code: "EPB", label: "EPB Reg #", value: "BD04237", source_url: "https://edb.epb.gov.bd/exporter/1000/sm-knitwears-limited" },
       { source_code: "EPB", label: "EPB Reg #", value: "BD05278", source_url: "https://edb.epb.gov.bd/exporter/3660/sm-knit-wear" },
       { source_code: "GOTS", label: "GOTS Cert #", value: "GOTS-28946", source_url: "https://www.global-trace-base.org/SCO031435/certificate-document" },
-      { source_code: "OEKO_TEX", label: "OEKO_TEX Cert #", value: "9741-100", source_url: "https://services.oeko-tex.com/newoekotex/portal/for-new-website/customer_profile/9741~1wdI2V~x/" },
-      { source_code: "OEKO_TEX", label: "OEKO_TEX Cert #", value: "9741-mig", source_url: "https://services.oeko-tex.com/newoekotex/portal/for-new-website/customer_profile/9741~1wdJ30~x/" },
+      { source_code: "OEKO_TEX", label: "OEKO_TEX Cert #", value: "9741-100", source_url: SM_OEKO_100 },
+      { source_code: "OEKO_TEX", label: "OEKO_TEX Cert #", value: "9741-mig", source_url: SM_OEKO_MIG },
+      { source_code: "OEKO_TEX", label: "OEKO_TEX Cert #", value: "9741-organic-cotton", source_url: SM_OEKO_ORGANIC },
+      { source_code: "OEKO_TEX", label: "OEKO_TEX Cert #", value: "9741-step", source_url: SM_OEKO_STEP },
       { source_code: "RSC", label: "RSC ID", value: "10902", source_url: "https://www.rsc-bd.org/" },
       { source_code: "WRAP", label: "WRAP Cert #", value: "124992", source_url: "https://wrapcompliance.org/certified-facility/124992/" },
       { source_code: "RSC", label: "RSC ID", value: "24545", source_url: "https://www.rsc-bd.org/", building_name: "S M Knitwears Limited. (Extension)" },
@@ -493,24 +491,10 @@ export function smKnitwearInput(): RecordInput {
           "Operations: Dyeing, Embroidery, embellishment, Finishing, Knitting, Manufacturing, Packing, Pre-treatment , Printing, Washing, laundering | Products: Babies` apparel, Children`s apparel, Dyed fabrics, Men`s apparel, Unisex apparel, Women`s apparel",
         document_url: "https://www.global-trace-base.org/SCO031435/certificate-document",
       },
-      {
-        kind: "oeko_tex",
-        certificate_no: "9741-100",
-        issuer: "OEKO-TEX",
-        issued_on: null,
-        expires_on: null,
-        scope: "OEKO-TEX STANDARD 100",
-        document_url: "https://services.oeko-tex.com/newoekotex/portal/for-new-website/customer_profile/9741~1wdI2V~x/",
-      },
-      {
-        kind: "oeko_tex",
-        certificate_no: "9741-mig",
-        issuer: "OEKO-TEX",
-        issued_on: null,
-        expires_on: null,
-        scope: "OEKO-TEX MADE IN GREEN",
-        document_url: "https://services.oeko-tex.com/newoekotex/portal/for-new-website/customer_profile/9741~1wdJ30~x/",
-      },
+      { kind: "oeko_tex", certificate_no: "9741-mig", issuer: "OEKO-TEX", issued_on: null, expires_on: null, scope: "OEKO-TEX MADE IN GREEN", document_url: SM_OEKO_MIG },
+      { kind: "oeko_tex", certificate_no: "9741-step", issuer: "OEKO-TEX", issued_on: null, expires_on: null, scope: "OEKO-TEX STeP", document_url: SM_OEKO_STEP },
+      { kind: "oeko_tex", certificate_no: "9741-organic-cotton", issuer: "OEKO-TEX", issued_on: null, expires_on: null, scope: "OEKO-TEX ORGANIC COTTON", document_url: SM_OEKO_ORGANIC },
+      { kind: "oeko_tex", certificate_no: "9741-100", issuer: "OEKO-TEX", issued_on: null, expires_on: null, scope: "OEKO-TEX STANDARD 100", document_url: SM_OEKO_100 },
       {
         kind: "wrap",
         certificate_no: "124992",
@@ -530,26 +514,16 @@ export function smKnitwearInput(): RecordInput {
         remediation_status: "behindschedule",
         training_status: "yet to start",
         fetched_at: "2026-09-11T05:42:11.689462+00:00",
-        fire_inspection_url: "https://accord2.fairfactories.org/accord_v2_files/1/Audit_Files/318263.pdf",
-        structural_inspection_url: "https://accord2.fairfactories.org/accord_v2_files/1/Audit_Files/319770.pdf",
-        electrical_inspection_url: "https://accord2.fairfactories.org/accord_v2_files/1/Audit_Files/320253.pdf",
-        boiler_inspection_url: "https://accord2.fairfactories.org/accord_v2_files/1/Audit_Files/394192.pdf",
+        fire_inspection_url: `${ACCORD_FILE}/318263.pdf`,
+        structural_inspection_url: `${ACCORD_FILE}/319770.pdf`,
+        electrical_inspection_url: `${ACCORD_FILE}/320253.pdf`,
+        boiler_inspection_url: `${ACCORD_FILE}/394192.pdf`,
         cap_url: "https://accord2.fairfactories.org/web/Audits/Audits/DownloadCAPFile?id=24545",
       },
     ],
     brand_attributions: [
-      {
-        source_code: "BRAND_ASOS",
-        display_name: "ASOS supplier list",
-        source_url: "https://www.asosplc.com/media/cmzk3m5n/factory-list-april-2026.pdf",
-        last_seen_at: "2026-07-30T21:30:12.583394+00:00",
-      },
-      {
-        source_code: "BRAND_NEXT",
-        display_name: "Next plc supplier list",
-        source_url: "https://www.nextplc.co.uk/~/media/Files/N/next-plc-v4/Tier 1 -2 - 3 lists/T1 2025.pdf",
-        last_seen_at: "2026-05-18T22:47:25.686932+00:00",
-      },
+      { source_code: "BRAND_ASOS", display_name: "ASOS supplier list", source_url: ASOS_LIST, last_seen_at: "2026-07-30T21:30:12.583394+00:00" },
+      { source_code: "BRAND_NEXT", display_name: "Next plc supplier list", source_url: NEXT_LIST, last_seen_at: "2026-05-18T22:47:25.686932+00:00" },
     ],
     provenance: [
       { source_code: "EPB", display_name: "Export Promotion Bureau", tier: "tier1_gov", source_ref: "3660", source_url: "https://epb.gov.bd", last_seen_at: "2026-08-14T21:58:34.196427+00:00" },
@@ -559,26 +533,16 @@ export function smKnitwearInput(): RecordInput {
       { source_code: "BGAPMEA", display_name: "Bangladesh Garment Accessories & Packaging MEA", tier: "tier2_industry", source_ref: "1475", source_url: "https://bgapmea.org", last_seen_at: "2026-06-27T00:08:50.965602+00:00" },
       { source_code: "BGMEA", display_name: "Bangladesh Garment Manufacturers & Exporters Assoc.", tier: "tier2_industry", source_ref: "general:3532", source_url: "https://www.bgmea.com.bd", last_seen_at: "2026-07-24T08:31:15.197346+00:00" },
       { source_code: "BKMEA", display_name: "Bangladesh Knitwear Manufacturers & Exporters Assoc.", tier: "tier2_industry", source_ref: "1088:detail", source_url: "https://member.bkmea.com", last_seen_at: "2026-08-02T07:30:59.695104+00:00" },
+      { source_code: "BKMEA", display_name: "Bangladesh Knitwear Manufacturers & Exporters Assoc.", tier: "tier2_industry", source_ref: "2430:detail", source_url: "https://member.bkmea.com", last_seen_at: "2026-08-02T06:16:28.212183+00:00" },
+      { source_code: "BKMEA", display_name: "Bangladesh Knitwear Manufacturers & Exporters Assoc.", tier: "tier2_industry", source_ref: "625:detail", source_url: "https://member.bkmea.com", last_seen_at: "2026-08-02T04:24:23.083491+00:00" },
+      { source_code: "BKMEA", display_name: "Bangladesh Knitwear Manufacturers & Exporters Assoc.", tier: "tier2_industry", source_ref: "631", source_url: "https://member.bkmea.com", last_seen_at: "2026-08-02T03:03:44.843323+00:00" },
       { source_code: "BKMEA", display_name: "Bangladesh Knitwear Manufacturers & Exporters Assoc.", tier: "tier2_industry", source_ref: "1092", source_url: "https://member.bkmea.com", last_seen_at: "2026-08-02T02:52:03.913142+00:00" },
+      { source_code: "BKMEA", display_name: "Bangladesh Knitwear Manufacturers & Exporters Assoc.", tier: "tier2_industry", source_ref: "1858", source_url: "https://member.bkmea.com", last_seen_at: "2026-08-02T02:37:15.992235+00:00" },
       { source_code: "GOTS", display_name: "Global Organic Textile Standard", tier: "tier3_cert", source_ref: "gots-SCO031435", source_url: "https://global-standard.org", last_seen_at: "2026-06-26T23:43:58.851503+00:00" },
       { source_code: "OEKO_TEX", display_name: "OEKO-TEX", tier: "tier3_cert", source_ref: "oeko-tex-9741", source_url: "https://www.oeko-tex.com", last_seen_at: "2026-06-27T02:52:22.993559+00:00" },
       { source_code: "WRAP", display_name: "Worldwide Responsible Accredited Production", tier: "tier3_cert", source_ref: "wrap-124992", source_url: "https://wrapcompliance.org", last_seen_at: "2026-07-24T05:27:53.080573+00:00" },
-      {
-        source_code: "BRAND_ASOS",
-        display_name: "ASOS supplier list",
-        tier: "tier4_brand",
-        source_ref: "288cf7788eeaacbc",
-        source_url: "https://www.asosplc.com/media/cmzk3m5n/factory-list-april-2026.pdf",
-        last_seen_at: "2026-07-30T21:30:12.583394+00:00",
-      },
-      {
-        source_code: "BRAND_NEXT",
-        display_name: "Next plc supplier list",
-        tier: "tier4_brand",
-        source_ref: "e79d762bb0cd7386",
-        source_url: "https://www.nextplc.co.uk/~/media/Files/N/next-plc-v4/Tier 1 -2 - 3 lists/T1 2025.pdf",
-        last_seen_at: "2026-05-18T22:47:25.686932+00:00",
-      },
+      { source_code: "BRAND_ASOS", display_name: "ASOS supplier list", tier: "tier4_brand", source_ref: "288cf7788eeaacbc", source_url: ASOS_LIST, last_seen_at: "2026-07-30T21:30:12.583394+00:00" },
+      { source_code: "BRAND_NEXT", display_name: "Next plc supplier list", tier: "tier4_brand", source_ref: "e79d762bb0cd7386", source_url: NEXT_LIST, last_seen_at: "2026-05-18T22:47:25.686932+00:00" },
     ],
     addresses: [
       { kind: "factory", address: "7 No. Kewa, Shreepur, Gazipur", source_code: "BGAPMEA", fetched_at: "2026-06-27T00:08:50.965602+00:00" },
@@ -586,10 +550,316 @@ export function smKnitwearInput(): RecordInput {
       { kind: "factory", address: "SHIRIRCHALA, BHABANIPUR, GAZIPUR SADAR, SADAR, GAZIPUR", source_code: "BKMEA", fetched_at: "2026-08-02T03:03:44.843323+00:00" },
       { kind: "factory", address: "PLOT-A/107, BSCIC HOSIERY I/E, SHASONGAON, FATULLAH, NARAYANGANJ", source_code: "BKMEA", fetched_at: "2026-08-02T02:37:15.992235+00:00" },
       { kind: "factory", address: "SHIRIRCHALA, BHABANIPUR, GAZIPUR SADAR, SADAR, GAZIPUR", source_code: "BKMEA", fetched_at: "2026-08-02T04:24:23.083491+00:00" },
+      { kind: "factory", address: "PLOT-A/107, BSCIC HOSIERY I/E, SHASONGAON, FATULLAH, NARAYANGANJ", source_code: "BKMEA", fetched_at: "2026-08-02T06:16:28.212183+00:00" },
+      { kind: "factory", address: "PANCHABATI, , NARAYANGANJ", source_code: "BKMEA", fetched_at: "2026-08-02T07:30:59.695104+00:00" },
+      { kind: "factory", address: "Shirirchala, Bhabanipur, Gazipur - 1740, Bangladesh", source_code: "OEKO_TEX", fetched_at: "2026-06-27T02:52:22.993559+00:00" },
       { kind: "mailing", address: "House-SE-04, Road-137, Gulshan-1\nDhaka\nDhaka", source_code: "BGMEA", fetched_at: "2026-07-24T08:31:15.197346+00:00" },
       { kind: "mailing", address: "HOUSE-SE-4, ROAD-137, GULSHAN, DHAKA", source_code: "BKMEA", fetched_at: "2026-08-02T04:24:23.083491+00:00" },
+      { kind: "mailing", address: "PLOT-A/107, BSCIC HOSIERY I/E, SHASONGAON, FATULLAH, NARAYANGANJ", source_code: "BKMEA", fetched_at: "2026-08-02T06:16:28.212183+00:00" },
+      { kind: "mailing", address: "PLOT-A/107, BSCIC HOSIERY I/E, SHASONGAON, FATULLAH, NARAYANGANJ", source_code: "BKMEA", fetched_at: "2026-08-02T02:37:15.992235+00:00" },
+      { kind: "mailing", address: "HOUSE-SE-4, ROAD-137, GULSHAN, DHAKA", source_code: "BKMEA", fetched_at: "2026-08-02T03:03:44.843323+00:00" },
+      { kind: "mailing", address: "PANCHABATI, , NARAYANGANJ", source_code: "BKMEA", fetched_at: "2026-08-02T07:30:59.695104+00:00" },
       { kind: "registered", address: "House # SE-04, Road # 137, Gulshan-01, Dhaka-1212", source_code: "BGAPMEA", fetched_at: "2026-06-27T00:08:50.965602+00:00" },
     ],
-  } as ProfilePayload;
-  return { profile, hscodes: SM_HS, workers: { value: 907, source: "RSC" }, today: TODAY };
+  };
+}
+
+export function smKnitwearInput(): RecordInput {
+  // `production_workers_display_batch` returns the Extension building's RSC
+  // figure; the mother itself has no RSC row (1 of 2 sites — the builder says so).
+  return {
+    profile: smKnitwearProfile(),
+    hscodes: SM_HS,
+    workers: { value: 907, source: "RSC", fetched_at: "2026-09-11T05:42:11.689462+00:00" },
+    today: TODAY,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// A satellite carrying its parent factory's registrations.
+//
+// `v_supplier_registry_ids` unions a published parent's pills onto a published
+// satellite, suffixes the label " (parent factory)" and sets `inherited_from`
+// (RSC excluded). No published record matches today — every satellite the join
+// finds is still unpublished, so the union returns 0 rows on 19 Sep 2026 — but
+// `buyer_supplier_profile` will serve those pills the day one is published, and
+// the kit must never print another company's register number as this record's
+// own. The rows below are the real AB Apparels pair: the satellite's own RSC
+// pill, plus the parent's five direct pills exactly as the view composes them.
+// ---------------------------------------------------------------------------
+
+const AB_PARENT_ID = "031f12df-4718-4ae8-bdde-eb7ddb13ed25";
+const AB_PARENT_NAME = "AB APPARELS LTD";
+
+const AB_INHERITED: ProfilePill[] = [
+  { source_code: "BGMEA", label: "BGMEA General member # (parent factory)", value: "6077", source_url: "https://www.bgmea.com.bd/member/54", inherited_from: AB_PARENT_ID, inherited_from_name: AB_PARENT_NAME },
+  { source_code: "EPB", label: "EPB Reg # (parent factory)", value: "BD05954", source_url: "https://edb.epb.gov.bd/exporter/313/ab-apparels-ltd", inherited_from: AB_PARENT_ID, inherited_from_name: AB_PARENT_NAME },
+  { source_code: "GOTS", label: "GOTS Cert # (parent factory)", value: "GOTS-28029", source_url: "https://www.global-trace-base.org/SCO030289/certificate-document", inherited_from: AB_PARENT_ID, inherited_from_name: AB_PARENT_NAME },
+  { source_code: "OEKO_TEX", label: "OEKO_TEX Cert # (parent factory)", value: "37940-100", source_url: `${OEKO_PROFILE}/37940~1wdFS1~ZJtEexz6qelegSJxNT3xwxzaLi4/`, inherited_from: AB_PARENT_ID, inherited_from_name: AB_PARENT_NAME },
+  { source_code: "OEKO_TEX", label: "OEKO_TEX Cert # (parent factory)", value: "37940-step", source_url: `${OEKO_PROFILE}/37940~1wdIgO~JKpnIVYTB-a5H9KfXELKkiXTrQQ/`, inherited_from: AB_PARENT_ID, inherited_from_name: AB_PARENT_NAME },
+];
+
+export function inheritedPillsInput(): RecordInput {
+  const profile: ProfilePayload = {
+    supplier: {
+      id: "3d64d325-29a1-4352-8675-5619a277dcaa",
+      slug: "ab-apparels-ltd-extension",
+      company_name: "AB APPARELS LTD (extension)",
+      entity_type: "factory",
+      city: "Dhaka",
+      district: "Dhaka",
+      address_raw: null,
+      is_sanctioned: false,
+      parent_group_name: null,
+      established_date: null,
+      factory_types: [],
+      principal_products: [],
+      employees_total: 651,
+      machines_sewing: null,
+      production_capacity_pcs_day: null,
+      production_capacity_dozen_yearly: null,
+      supplier_moq: null,
+      supplier_lead_time_days: null,
+      source_tags: ["RSC"],
+    },
+    t13_source_count: 1,
+    // Own first, then the parent's — the order the view's UNION ALL produces.
+    pills: [{ source_code: "RSC", label: "RSC ID", value: "25817", source_url: "https://www.rsc-bd.org/" }, ...AB_INHERITED],
+    certifications: [],
+    rsc_remediation: null,
+    brand_attributions: [],
+    provenance: [
+      { source_code: "RSC", display_name: "RMG Sustainability Council", tier: "tier1_gov", source_ref: "25817", source_url: "https://rsc-bd.org", last_seen_at: "2026-09-18T05:31:44.000000+00:00" },
+    ],
+    addresses: [],
+  };
+  return { profile, hscodes: [], workers: null, today: TODAY };
+}
+
+// ---------------------------------------------------------------------------
+// A mother whose building holds registrations and a certificate of its own.
+//
+// `buyer_supplier_profile` unions a `facility_of` child's pills and
+// certificates onto the mother, labelled `building_name`. Hossain Dyeing &
+// Printing Mills (published) carries one OEKO-TEX pill and certificate of its
+// own; its UNIT-2 building carries a BKMEA registration and a GOTS
+// certificate. Read from production 19 Sep 2026.
+//
+// The kit must not count the building's rows as the record's — and must not
+// print the bare negative "not in BGMEA, BKMEA, …" over a payload that carries
+// a BKMEA registration, even a building's.
+// ---------------------------------------------------------------------------
+
+export const HOSSAIN_BUILDING = "HOSSAIN DYEING & PRINTING MILLS LTD. (UNIT-2)";
+const HOSSAIN_OEKO = `${OEKO_PROFILE}/13350~1wdGeD~-g80hYqmxAGBrqTTLKQTcbWCm8w/`;
+const HOSSAIN_GOTS = "https://www.global-trace-base.org/SCO000060/certificate-document";
+
+export function buildingRegistrationsInput(): RecordInput {
+  const profile: ProfilePayload = {
+    supplier: {
+      id: "4543927f-de94-47b1-a6be-9009302737ef",
+      slug: "hossain-dyeing-and-printing-mills",
+      company_name: "Hossain Dyeing & Printing Mills Ltd.",
+      entity_type: "factory",
+      city: "Gazipur",
+      district: "Gazipur",
+      address_raw: "Bangladesh\nGazipur - 1710",
+      is_sanctioned: false,
+      parent_group_name: null,
+      established_date: null,
+      factory_types: [],
+      principal_products: [],
+      employees_total: null,
+      machines_sewing: null,
+      production_capacity_pcs_day: null,
+      production_capacity_dozen_yearly: null,
+      supplier_moq: null,
+      supplier_lead_time_days: null,
+      source_tags: ["OEKO_TEX"],
+    },
+    t13_source_count: 1,
+    pills: [
+      { source_code: "OEKO_TEX", label: "OEKO_TEX Cert #", value: "13350-100", source_url: HOSSAIN_OEKO },
+      { source_code: "BKMEA", label: "BKMEA #", value: "2451 - B/2023", source_url: "https://www.bkmea.com/", building_name: HOSSAIN_BUILDING },
+      { source_code: "GOTS", label: "GOTS Cert #", value: "GOTS-15431", source_url: HOSSAIN_GOTS, building_name: HOSSAIN_BUILDING },
+    ],
+    certifications: [
+      { kind: "oeko_tex", certificate_no: "13350-100", issuer: "OEKO-TEX", issued_on: null, expires_on: null, scope: "OEKO-TEX STANDARD 100", document_url: HOSSAIN_OEKO },
+      {
+        kind: "gots",
+        certificate_no: "GOTS-15431",
+        issuer: "CERES-CERT AG",
+        issued_on: null,
+        expires_on: "2026-11-15",
+        scope: "Operations: Dyeing, Finishing, Manufacturing, Pre-treatment , Preparatory , Printing, Weaving | Products: Dyed fabrics, Dyed yarns, Home textiles, Printed fabrics, Undyed fabrics",
+        document_url: HOSSAIN_GOTS,
+        building_name: HOSSAIN_BUILDING,
+      },
+    ],
+    rsc_remediation: null,
+    brand_attributions: [],
+    provenance: [
+      { source_code: "OEKO_TEX", display_name: "OEKO-TEX", tier: "tier3_cert", source_ref: "oeko-tex-13350", source_url: "https://www.oeko-tex.com", last_seen_at: "2026-06-27T00:12:00.470443+00:00" },
+    ],
+    addresses: [
+      { kind: "factory", address: "Pathanpara, Pagar, Tongi, Gazipur - 1710, Bangladesh", source_code: "OEKO_TEX", fetched_at: "2026-06-27T00:12:00.470443+00:00" },
+    ],
+  };
+  return { profile, hscodes: [], workers: null, today: TODAY };
+}
+
+// ---------------------------------------------------------------------------
+// The two "largest list" records the rebuild spec §3 names, so the screens are
+// exercised at the scale the database really reaches (§6 asks for both).
+// Trimmed to the fields those lists touch; read from production 19 Sep 2026.
+// ---------------------------------------------------------------------------
+
+/** 54 EPB export codes — the most on any record (`plummy-fashions`, published). */
+const PLUMMY_CODES = [
+  "5208", "5513", "5905", "6001", "6002", "6003", "6004", "6005", "6006", "6101",
+  "6102", "6103", "6104", "6105", "6106", "6107", "6108", "6109", "6110", "6111",
+  "6112", "6113", "6114", "6115", "6116", "6117", "6201", "6202", "6203", "6204",
+  "6205", "6206", "6207", "6208", "6209", "6210", "6211", "6212", "6213", "6214",
+  "6215", "6216", "6217", "6301", "6302", "6303", "6304", "6305", "6306", "6307",
+  "6308", "6309", "6310", "6505",
+];
+
+export const PLUMMY_HS: HsLine[] = PLUMMY_CODES.map((code) => ({ code, description: null, source_url: null }));
+
+export function longestHsListInput(): RecordInput {
+  const profile: ProfilePayload = {
+    supplier: {
+      id: "7f5d2dcd-118a-4d29-ad6b-76d59ab674b9",
+      slug: "plummy-fashions",
+      company_name: "PLUMMY FASHIONS LTD",
+      entity_type: "factory",
+      city: "Narayanganj",
+      district: "Narayanganj",
+      address_raw: "NORTH NORSHINGPUR, KASHIPUR, FATULLAH, NARAYANGANJ., FATULLAH, NARAYANGANJ",
+      is_sanctioned: false,
+      parent_group_name: null,
+      established_date: "2021-12-08",
+      factory_types: ["Knit"],
+      principal_products: [],
+      employees_total: 350,
+      machines_sewing: 794,
+      production_capacity_pcs_day: 8000,
+      production_capacity_dozen_yearly: 1260000,
+      supplier_moq: null,
+      supplier_lead_time_days: null,
+      source_tags: ["BGMEA", "EPB", "RSC", "BKMEA"],
+    },
+    t13_source_count: 4,
+    pills: [],
+    certifications: [],
+    rsc_remediation: null,
+    brand_attributions: [],
+    provenance: [],
+    addresses: [],
+  };
+  return { profile, hscodes: PLUMMY_HS, workers: null, today: TODAY };
+}
+
+/** 39 principal products — the longest list on any record (`adventure-garments`, published). */
+const ADVENTURE_PRODUCTS = [
+  "All kind of Jackets", "All kind of Pans / Trousers", "All kind of Shirts /Tops", "All Kinds of Jackets",
+  "All Kinds of Pants/Trousers", "All Kinds of Shirts / Tops", "All Types of Jackets", "All Types Of Jackets",
+  "All Types of Pant / Trousers", "All Types of Pants / Trousers", "All Types Of Pants/Trouser",
+  "All Types of Pants/Trousers", "All Types Of Pants/Trousers", "All Types of Shirts / Tops",
+  "All types Of Shirts/Tops", "All Types of Shirts/Tops", "All Types Of Shirts/Tops", "AllTypes of Jackets",
+  "AllTypes of Pants/Trousers", "AllTypes of Shirts/Tops", "Children Wears", "Hand Gloves", "Hand Sanitizer",
+  "Jacket", "Jackets", "Ladies Shirts", "Mask", "Pant", "Pants", "Polo shirt", "Polo Shirt", "PPE",
+  "SAll Types of Shirts/Tops", "Shirt", "Shirts", "T-Shirt", "Tops", "Trouser", "Trousers",
+];
+
+export function longestProductListInput(): RecordInput {
+  const profile: ProfilePayload = {
+    supplier: {
+      id: "e96d742a-11b3-4533-9620-febb36eb6d69",
+      slug: "adventure-garments",
+      company_name: "Adventure Garments Ltd.",
+      entity_type: "factory",
+      city: "Gazipur",
+      district: "Gazipur",
+      address_raw: "Holding # 315, Beximco Industrial Park, Sarabo, Kashimpur\nGazipur\nGazipur",
+      is_sanctioned: false,
+      parent_group_name: null,
+      established_date: null,
+      factory_types: [],
+      principal_products: ADVENTURE_PRODUCTS,
+      employees_total: null,
+      machines_sewing: null,
+      production_capacity_pcs_day: null,
+      production_capacity_dozen_yearly: null,
+      supplier_moq: null,
+      supplier_lead_time_days: null,
+      source_tags: ["BGMEA"],
+    },
+    t13_source_count: 1,
+    pills: [],
+    certifications: [],
+    rsc_remediation: null,
+    brand_attributions: [],
+    provenance: [],
+    addresses: [],
+  };
+  return { profile, hscodes: [], workers: null, today: TODAY };
+}
+
+// ---------------------------------------------------------------------------
+// A mother with NO certificate of its own whose building holds one.
+//
+// MG Niche Flair Ltd. (published) carries a BGMEA registration and nothing
+// else; its Unit-2 building holds the OEKO-TEX certificate and pill. The kit
+// must not count the building's certificate as the record's — and must not
+// print the bare "none on 4 registers" over a payload that carries one.
+// It is also an `unknown` entity_type, the third company type spec §5 names.
+// Read from production 19 Sep 2026.
+// ---------------------------------------------------------------------------
+
+export const MG_BUILDING = "MG Niche Flair Limited Unit-2";
+const MG_OEKO = `${OEKO_PROFILE}/31314~1wdHDf~CFdJb5GRJsYGA349sl67B9wplwE/`;
+
+export function buildingOnlyCertificateInput(): RecordInput {
+  const profile: ProfilePayload = {
+    supplier: {
+      id: "f755f286-512a-48d8-b4d8-e95404e70c79",
+      slug: "mg-niche-flair",
+      company_name: "MG Niche Flair Ltd.",
+      entity_type: "unknown",
+      city: null,
+      district: null,
+      address_raw: "House # 240, Bhuyan Para, Godnail, Siddirgonj\nNarayanganj\nNarayangonj",
+      is_sanctioned: false,
+      parent_group_name: null,
+      established_date: "2012-02-06",
+      factory_types: ["Knit"],
+      principal_products: ["Lingeries", "Under Wears"],
+      employees_total: 2350,
+      machines_sewing: 600,
+      production_capacity_pcs_day: null,
+      production_capacity_dozen_yearly: 300000,
+      supplier_moq: null,
+      supplier_lead_time_days: null,
+      source_tags: ["BGMEA"],
+    },
+    t13_source_count: 1,
+    pills: [
+      { source_code: "BGMEA", label: "BGMEA General member #", value: "5429", source_url: "https://www.bgmea.com.bd/member/2383" },
+      { source_code: "OEKO_TEX", label: "OEKO_TEX Cert #", value: "31314-100", source_url: MG_OEKO, building_name: MG_BUILDING },
+    ],
+    certifications: [
+      { kind: "oeko_tex", certificate_no: "31314-100", issuer: "OEKO-TEX", issued_on: null, expires_on: null, scope: "OEKO-TEX STANDARD 100", document_url: MG_OEKO, building_name: MG_BUILDING },
+    ],
+    rsc_remediation: null,
+    brand_attributions: [],
+    provenance: [
+      { source_code: "BGMEA", display_name: "Bangladesh Garment Manufacturers & Exporters Assoc.", tier: "tier2_industry", source_ref: "general:5429", source_url: "https://www.bgmea.com.bd", last_seen_at: "2026-07-24T07:27:20.837018+00:00" },
+    ],
+    addresses: [
+      { kind: "factory", address: "House # 240, Bhuyan Para, Godnail, Siddirgonj\nNarayanganj\nNarayangonj", source_code: "BGMEA", fetched_at: "2026-07-24T07:27:20.837018+00:00" },
+      { kind: "mailing", address: "Lotus Kamal Tower (10th Fl), 57, Joarshahara, Nikunja\nDhaka\nDhaka", source_code: "BGMEA", fetched_at: "2026-07-24T07:27:20.837018+00:00" },
+    ],
+  };
+  return { profile, hscodes: [], workers: null, today: TODAY };
 }

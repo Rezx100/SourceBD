@@ -26,6 +26,7 @@ import type { TierRank } from "@/lib/design/tokens";
 import {
   certChipLabel,
   certModel,
+  certStateLabel,
   certTileSubline,
   displayName,
   entityLabel,
@@ -41,6 +42,7 @@ import {
   type CertModel,
 } from "./facts";
 import { heading4, hsCatalogueRow, hsExporterCount, hsPhotoSrc, hsShortLabel, photoTiles, rarestFirst } from "./hs-photos";
+import { groupWorkers, type SiteWorkerInput } from "@/lib/profile-metrics";
 import type {
   FactRow,
   FactWithMark,
@@ -156,15 +158,16 @@ export function ownPill(x: ProfilePill): boolean {
   return !x.building_name && !x.inherited_from;
 }
 
-/** Brand lists we hold at all (6 configured in `sources`). */
-const BRAND_LISTS_KNOWN = 6;
 /**
- * Brand lists that have actually been read and hold records. BRAND_INDITEX and
- * BRAND_PRIMARK are configured but hold 0 companies (verified 19 Sep 2026), so
- * "checked N brand lists" may only count the ones a read really covered —
- * ds-rebuild-must-stay §3 calls these the "silent so far" sources.
+ * Brand lists that have actually been read and hold records. Six are
+ * configured in `sources`, but BRAND_INDITEX and BRAND_PRIMARK hold 0
+ * companies (SQL, 19 Sep 2026: ASOS 43 · H&M 199 · M&S 67 · NEXT 76 ·
+ * Inditex 0 · Primark 0), so a record absent from all of them is absent from
+ * four lists, not six — ds-rebuild-must-stay §3 calls the other two "silent
+ * so far", and claiming they were checked is a negative without a read.
  */
 const BRAND_LISTS_WITH_RECORDS = 4;
+const BRAND_LISTS_WORDS = `not on ${BRAND_LISTS_WITH_RECORDS} brand lists read`;
 const CERT_REGISTERS = 4;
 
 /** The mother's own RSC row — never a building's. */
@@ -267,24 +270,88 @@ function addressMark(p: ProfilePayload): SourceMarkModel | null {
   return row ? mark(p, row.source_code) : null;
 }
 
+/**
+ * The worker figure, and how many sites it covers.
+ *
+ * `production_workers_display_batch` returns one number for the whole group —
+ * for Aboni that is 2,662 (the mother) + 504 (the New Shed) = 3,166, and for
+ * S M Knitwears it is the Extension building's 907 while the mother itself has
+ * no RSC row at all. Printed bare under a single RSC mark, both read as this
+ * one site's headcount. `lib/profile-metrics.ts` is the rule the production
+ * profile already uses ("3,166 across 2 of 2 sites"); the kit reads the same
+ * RSC rows through it so the two surfaces cannot drift apart.
+ *
+ * Coverage is claimed only when the site sum reconciles with the figure the
+ * RPC returned. If they disagree the number is still shown — it is the RPC's —
+ * but the kit does not invent a coverage sentence for it.
+ */
+export type WorkersFact = {
+  value: number | null;
+  source: "RSC" | "registry" | null;
+  /** "2 of 2 sites" when the figure is a group sum; null when it is one site's. */
+  coverage: string | null;
+  /** Sites the figure leaves out, named. */
+  excluded: string[];
+};
+
+function workerSites(input: RecordInput): SiteWorkerInput[] {
+  const p = input.profile;
+  const s = p.supplier;
+  const mother = motherRsc(p.rsc_remediation);
+  return [
+    {
+      label: displayName(s.company_name),
+      employees_total: s.employees_total,
+      rsc_workers_count: mother?.workers_count ?? null,
+      rsc_fetched_at: mother?.fetched_at ?? null,
+    },
+    ...buildingRsc(p.rsc_remediation).map((b) => ({
+      label: b.building_name ?? "building",
+      employees_total: null,
+      rsc_workers_count: b.workers_count ?? null,
+      rsc_fetched_at: b.fetched_at ?? null,
+    })),
+  ];
+}
+
+export function workersFact(input: RecordInput): WorkersFact {
+  const sites = workerSites(input);
+  const group = groupWorkers(sites);
+  const batch = input.workers;
+  const value = batch?.value ?? group.value ?? input.profile.supplier.employees_total ?? null;
+  const source = batch?.source ?? group.source ?? null;
+  const reconciled = batch != null && group.value === batch.value;
+  const multi = sites.length > 1 && reconciled;
+  return {
+    value,
+    source: value === null ? null : source,
+    coverage: multi ? `${group.includedCount} of ${group.totalCount} sites` : null,
+    excluded: multi ? group.excludedLabels : [],
+  };
+}
+
 function metaFacts(input: RecordInput, options: { registerNumber?: boolean } = {}): FactWithMark[] {
   const s = input.profile.supplier;
   const p = input.profile;
   const facts: FactWithMark[] = [{ text: entityLabel(s.entity_type), mark: null }];
   const place = placeLabel(s.city, s.district);
   const year = establishedYearOf(s.established_date);
-  const workers = input.workers?.value ?? s.employees_total;
-  const workersMark = input.workers?.source === "RSC" ? mark(p, "RSC") : null;
+  const w = workersFact(input);
+  const workersMark = w.source === "RSC" ? mark(p, "RSC") : null;
   // City and district are derived fields (EPB → GOTS → the address text); no register is attributed to them.
   if (place) facts.push({ text: place, mark: null });
   const missing: string[] = [];
   if (year) facts.push({ text: `Est. ${year}`, mark: null });
   else missing.push("year");
-  if (workers !== null && workers !== undefined) facts.push({ text: `${formatCount(workers)} workers`, mark: workersMark });
-  else missing.push("workers");
+  if (w.value !== null) {
+    // A group sum is never printed bare: "3,166 workers" on a mother whose
+    // figure is mother + buildings reads as this site's headcount.
+    const words = `${formatCount(w.value)} workers${w.coverage ? ` across ${w.coverage}` : ""}`;
+    facts.push({ text: words, mark: workersMark });
+  } else missing.push("workers");
   if (!place) missing.unshift("district");
   if (options.registerNumber) {
-    const pill = (p.pills ?? []).find((x) => x.source_code.toUpperCase() === "BGMEA" && x.value && !x.building_name);
+    const pill = (p.pills ?? []).find((x) => x.source_code.toUpperCase() === "BGMEA" && x.value && ownPill(x));
     if (pill?.value) facts.push({ text: `BGMEA ${pill.value}`, mark: mark(p, "BGMEA"), code: true });
   }
   if (missing.length > 0) {
@@ -303,12 +370,12 @@ function certs(input: RecordInput): CertModel[] {
 }
 
 /** Buildings that hold a certificate of their own, named so the record does not appear to hold it. */
-function certBuildings(p: ProfilePayload): string[] {
+export function certBuildings(p: ProfilePayload): string[] {
   return [...new Set((p.certifications ?? []).map((c) => c.building_name).filter((b): b is string => Boolean(b)))];
 }
 
 /** Buildings that hold a register pill of their own (RSC aside — the Safety section names those). */
-function pillBuildings(p: ProfilePayload): string[] {
+export function pillBuildings(p: ProfilePayload): string[] {
   return [...new Set((p.pills ?? []).filter((x) => x.building_name && x.source_code.toUpperCase() !== "RSC").map((x) => x.building_name!))];
 }
 
@@ -329,9 +396,26 @@ function brandLabels(p: ProfilePayload): string[] {
   return out;
 }
 
-/** The brand lists that hold records today; a list we have never read cannot be "checked". */
-function brandListsChecked(): number {
-  return BRAND_LISTS_WITH_RECORDS;
+/**
+ * "Not in BGMEA, BKMEA, BGAPMEA, BTMA or EPB" — and, when a building of this
+ * record does hold one, who. Printing the bare negative while the payload
+ * carries a building's pill is a negative the data does not support.
+ */
+export function registersEmptyWords(p: ProfilePayload): string {
+  const buildings = pillBuildings(p);
+  if (buildings.length === 0) return MEMBERSHIP_WORDS;
+  return `${MEMBERSHIP_WORDS}; registered under ${buildings.join(", ")}`;
+}
+
+/**
+ * "None on 4 registers" — and, when a building holds a certificate, who. The
+ * building's certificate is not counted as this record's (`allSourceCodes`),
+ * so the section must say where it is rather than claim there is none.
+ */
+export function certsEmptyWords(p: ProfilePayload): string {
+  const buildings = certBuildings(p);
+  if (buildings.length === 0) return `none on ${CERT_REGISTERS} registers`;
+  return `none on this record · ${buildings.join(", ")} ${buildings.length === 1 ? "holds one" : "hold one"}`;
 }
 
 /** The register pills (BGMEA, BKMEA, BGAPMEA, BTMA, EPB), best rank first; every registration is kept (a record can hold two EPB numbers). */
@@ -373,7 +457,9 @@ function headings(input: RecordInput): string[] {
 
 function rscChip(rsc: ProfileRsc | null, buildings: ProfileRsc[]): HighlightChip | null {
   if (rsc) {
-    const pct = rsc.progress_pct !== null ? `${Math.round(rsc.progress_pct)} %` : null;
+    // `progress_pct` absent from the row (undefined) is not 0 %: Math.round of
+    // it is NaN, and "NaN %" reached the chip and aria-valuenow.
+    const pct = Number.isFinite(rsc.progress_pct) ? `${Math.round(rsc.progress_pct as number)} %` : null;
     const status = rscStatusWords(rsc.remediation_status);
     const behind = /behind|not implemented/i.test(status ?? "");
     return {
@@ -431,30 +517,33 @@ export function buildCard(input: RecordInput): SupplierCardModel {
   const moreChips = Math.max(0, chips.length - shown.length + Math.max(0, certList.length - 2));
 
   const epb = epbExporter(p);
+  // A tile's sub-line opens the record at that section. The results panel has
+  // no #certificates / #sources of its own, so a bare fragment went nowhere.
+  const recordHref = `/app/suppliers/${s.slug}`;
   const tiles: [TileModel, TileModel, TileModel, TileModel] = [
     certList.length > 0
-      ? { label: "Certificates", value: onFileLabel(certList.length), sub: certTileSubline(certList), href: "#certificates" }
-      : { label: "Certificates", value: null, sub: `none on ${CERT_REGISTERS} registers` },
+      ? { label: "Certificates", value: onFileLabel(certList.length), sub: certTileSubline(certList), href: `${recordHref}#certificates` }
+      : { label: "Certificates", value: null, sub: certsEmptyWords(p) },
     input.hscodesError
       ? { label: "Export lines", value: null, sub: "EPB could not be read" }
       : lines.length > 0
-        ? { label: "Export lines", value: `${lines.length} HS ${lines.length === 1 ? "line" : "lines"}`, sub: "EPB exporter page", href: epb?.href ?? "#products" }
+        ? { label: "Export lines", value: `${lines.length} HS ${lines.length === 1 ? "line" : "lines"}`, sub: "EPB exporter page", href: epb?.href ?? `${recordHref}#products` }
         : onEpb
           ? { label: "Export lines", value: null, sub: "none on the EPB page", href: epb?.href ?? null }
           : { label: "Export lines", value: null, sub: "not on the EPB list" },
     brands.length > 0
-      ? { label: "Listed by", value: brands.join(", "), sub: `${brands.length} brand ${brands.length === 1 ? "list" : "lists"}`, href: "#sources" }
-      : { label: "Listed by", value: null, sub: `not on ${BRAND_LISTS_KNOWN} brand lists` },
+      ? { label: "Listed by", value: brands.join(", "), sub: `${brands.length} brand ${brands.length === 1 ? "list" : "lists"}`, href: `${recordHref}#sources` }
+      : { label: "Listed by", value: null, sub: BRAND_LISTS_WORDS },
     registerCodes(registers).length > 1
-      ? { label: "Registers", value: `${registerCodes(registers).length} registers`, sub: registerCodes(registers).map((c) => sourceMark(c).label).join(" · "), href: "#sources" }
+      ? { label: "Registers", value: `${registerCodes(registers).length} registers`, sub: registerCodes(registers).map((c) => sourceMark(c).label).join(" · "), href: `${recordHref}#sources` }
       : registers.length === 1 && registers[0]
         ? {
             label: "Registers",
             value: `${sourceMark(registers[0].source_code).label} ${registers[0].value ?? ""}`.trim(),
             sub: registers[0].label.replace(/\s*#\s*$/, "").replace(/^BGMEA\s+/i, "").toLowerCase(),
-            href: registers[0].source_url ?? "#sources",
+            href: recordPage(registers[0].source_url) ? registers[0].source_url : `${recordHref}#sources`,
           }
-        : { label: "Registers", value: null, sub: "not in BGMEA or BKMEA" },
+        : { label: "Registers", value: null, sub: registersEmptyWords(p) },
   ];
 
   return {
@@ -487,6 +576,7 @@ export function buildTableRow(input: RecordInput): TableRowModel {
   const lines = headings(input);
   const certList = certs(input);
   const name = displayName(s.company_name);
+  const w = workersFact(input);
   return {
     slug: s.slug,
     name,
@@ -496,12 +586,20 @@ export function buildTableRow(input: RecordInput): TableRowModel {
     sourceCount: marksFromTags(codes).length,
     marks: marksFromTags(codes, hrefs),
     certs: certList,
-    certsEmptyReason: certList.length === 0 ? `none on ${CERT_REGISTERS} registers` : null,
+    certsEmptyReason: certList.length === 0 ? certsEmptyWords(p) : null,
     photos: input.hscodesError ? [] : photoTiles(lines, 3),
     totalLines: lines.length,
-    linesEmptyReason: input.hscodesError ? "EPB could not be read" : lines.length === 0 ? "not on EPB list" : null,
+    // On the EPB register with no lines is not the same fact as absent from it.
+    linesEmptyReason: input.hscodesError
+      ? "EPB could not be read"
+      : lines.length > 0
+        ? null
+        : hasEpbRecord(p)
+          ? "no lines on the EPB page"
+          : "not on EPB list",
     type: entityLabel(s.entity_type),
-    workers: input.workers?.value ?? s.employees_total ?? null,
+    workers: w.value,
+    workersCoverage: w.coverage,
     sanctioned: s.is_sanctioned || Boolean(input.sanctionSample),
     sanctionSample: input.sanctionSample,
   };
@@ -528,8 +626,8 @@ export function buildSheet(input: RecordInput, options: SheetOptions = {}): Supp
   const brands = brandLabels(p);
   const registers = registerPills(p);
   const epb = epbExporter(p);
-  const workers = input.workers?.value ?? s.employees_total;
-  const workersMark = input.workers?.source === "RSC" ? mark(p, "RSC") : null;
+  const w = workersFact(input);
+  const workersMark = w.source === "RSC" ? mark(p, "RSC") : null;
   const registerRows = registers.filter((r) => r.value);
   const gots = certList.find((c) => c.kind.toUpperCase() === "GOTS" && c.state !== "expired");
   const addresses = (p.addresses ?? []).length;
@@ -550,14 +648,18 @@ export function buildSheet(input: RecordInput, options: SheetOptions = {}): Supp
     { label: "Parent group", ...pending(s.parent_group_name, null, "registers and RSC checked") },
     { label: "Factory address", ...pending(s.address_raw, addrMark) },
     { label: "Established", ...pending(establishedYearOf(s.established_date)) },
-    { label: "Workers", ...pending(workers !== null && workers !== undefined ? formatCount(workers) : null, workersMark, "registers and RSC checked") },
+    {
+      label: "Workers",
+      ...pending(w.value !== null ? formatCount(w.value) : null, workersMark, "registers and RSC checked"),
+      note: w.coverage ? [`across ${w.coverage}`, w.excluded.length ? `excluded: ${w.excluded.join(", ")}` : null].filter(Boolean).join(" · ") : null,
+    },
     { label: "Sewing machines", ...pending(formatCount(s.machines_sewing)) },
     { label: "Capacity, as filed", ...pending(capacity) },
     {
       label: "Registers",
       value: registerRows.length ? registerRows.map((r) => `${r.label.replace(/\s*#\s*$/, "").replace(/ member$/i, "")} ${r.value}`).join(" · ") : null,
       code: true,
-      checked: "not in BGMEA, BKMEA, BGAPMEA or EPB",
+      checked: registersEmptyWords(p),
       marks: registerCodes(registerRows).map((c) => sourceMark(c, registerRows.find((r) => r.source_code.toUpperCase() === c)?.source_url ?? null)),
     },
   ];
@@ -590,15 +692,18 @@ export function buildSheet(input: RecordInput, options: SheetOptions = {}): Supp
     pagesUnchanged: null,
     sanctioned: s.is_sanctioned || Boolean(input.sanctionSample),
     sanctionSample: input.sanctionSample,
+    // Only the four sections this sheet renders get a fragment; Sources,
+    // Locations, Facilities and RFQs arrive with REZ-C, and until they do a
+    // link to #sources is a link to nothing.
     tabs: [
-      { label: "Overview", count: null, active: true },
-      { label: "Products", count: input.hscodesError ? null : String(lines.length) },
-      { label: "Certificates", count: String(certList.length) },
-      { label: "Safety", count: rsc ? "RSC" : null },
-      { label: "Sources", count: String(marks.length) },
-      { label: "Locations", count: p.addresses ? String(addresses) : null },
-      { label: "Facilities", count: null },
-      { label: "RFQs", count: null },
+      { label: "Overview", count: null, href: "#overview", active: true },
+      { label: "Products", count: input.hscodesError ? null : String(lines.length), href: "#products" },
+      { label: "Certificates", count: String(certList.length), href: "#certificates" },
+      { label: "Safety", count: rsc ? "RSC" : null, href: "#safety" },
+      { label: "Sources", count: String(marks.length), href: null },
+      { label: "Locations", count: p.addresses ? String(addresses) : null, href: null },
+      { label: "Facilities", count: null, href: null },
+      { label: "RFQs", count: null, href: null },
     ],
     summary: null,
     facts,
@@ -614,7 +719,9 @@ export function buildSheet(input: RecordInput, options: SheetOptions = {}): Supp
       onEpb: hasEpbRecord(p),
       exporterHref: epb?.href ?? null,
       exporterRef: epb?.ref ?? null,
-      chapter: lines[0] ? lines[0].slice(0, 2) : null,
+      // A supplier's lines can span two chapters (S M Knitwears exports 61 and
+      // 62); naming only the rarest line's chapter silently drops the rest.
+      chapters: [...new Set(lines.map((l) => l.slice(0, 2)))].sort(),
       productListCount: (s.principal_products ?? []).length,
       certifiedScope: gots ? { scheme: gots.scheme, scope: scopeWords(gots.scope) } : null,
       buyerLists: brands,
@@ -622,11 +729,12 @@ export function buildSheet(input: RecordInput, options: SheetOptions = {}): Supp
     },
     certs: certList,
     certsCaption: certList.length ? `${onFileLabel(certList.length)} · ${certRegisters.join(", ")}` : null,
+    certBuildings: certBuildings(p),
     rsc: rsc
       ? {
-          ref: (p.pills ?? []).find((x) => x.source_code.toUpperCase() === "RSC" && !x.building_name)?.value ?? null,
+          ref: (p.pills ?? []).find((x) => x.source_code.toUpperCase() === "RSC" && ownPill(x))?.value ?? null,
           readDate: formatDay(rsc.fetched_at) ?? readDateOf(p, "RSC"),
-          progress: rsc.progress_pct !== null ? Math.round(rsc.progress_pct) : null,
+          progress: Number.isFinite(rsc.progress_pct) ? Math.round(rsc.progress_pct as number) : null,
           status: rscStatusWords(rsc.remediation_status),
           training: rscTrainingWords(rsc.training_status),
           links: [
@@ -642,16 +750,35 @@ export function buildSheet(input: RecordInput, options: SheetOptions = {}): Supp
   };
 }
 
-/** "Operations: Dyeing, Knitting, … | Products: …" → "dyeing, knitting, finishing". */
-function scopeWords(scope: string | null): string {
-  if (!scope) return "";
-  const ops = /Operations:\s*([^|]+)/i.exec(scope)?.[1] ?? scope;
-  return ops
+/**
+ * "Operations: Dyeing, Knitting, … | Products: Men's apparel, …" →
+ * "dyeing, knitting, manufacturing +7 · products: men's apparel".
+ *
+ * The `Products:` half is the only part that says what the certificate covers,
+ * so it is never dropped, and a truncated operation list says how many it left
+ * out instead of ending silently at three.
+ */
+const SCOPE_SHOWN = 3;
+
+function scopeList(raw: string): string[] {
+  return raw
     .split(",")
     .map((w) => w.trim().toLowerCase())
+    .filter(Boolean);
+}
+
+function scopeShorten(items: string[]): string {
+  return items.length > SCOPE_SHOWN ? `${items.slice(0, SCOPE_SHOWN).join(", ")} +${items.length - SCOPE_SHOWN}` : items.join(", ");
+}
+
+function scopeWords(scope: string | null): string {
+  if (!scope) return "";
+  const ops = /Operations:\s*([^|]+)/i.exec(scope)?.[1] ?? null;
+  const products = /Products:\s*([^|]+)/i.exec(scope)?.[1] ?? null;
+  if (!ops && !products) return scopeShorten(scopeList(scope));
+  return [ops ? scopeShorten(scopeList(ops)) : null, products ? `products: ${scopeShorten(scopeList(products))}` : null]
     .filter(Boolean)
-    .slice(0, 3)
-    .join(", ");
+    .join(" · ");
 }
 
 // ---- the product sheet ----
@@ -681,11 +808,17 @@ export function buildProductSheet(input: RecordInput, hs: string): ProductSheetM
     sanctioned: s.is_sanctioned || Boolean(input.sanctionSample),
     sanctionSample: input.sanctionSample,
     hs: code,
+    // The eyebrow may only call this an EPB export line when the record's own
+    // EPB page carries it; otherwise it is a heading the buyer arrived at.
+    exported,
     heading: line?.description ?? row?.heading ?? hsShortLabel(code),
     photo: { hs: code, short: hsShortLabel(code), src: hsPhotoSrc(code, 512), thumb: hsPhotoSrc(code, 128) },
     generatedOn: null,
     facts: [
-      { label: "Chapter", value: `${code.slice(0, 2)} · ${chapterName(code.slice(0, 2))}`, marks: [ep] },
+      // The chapter name is the HS nomenclature, not something EPB published
+      // about this record: stamping it with an EPB mark is a wrong receipt,
+      // and it was stamped even for a record on no EPB register at all.
+      { label: "Chapter", value: `${code.slice(0, 2)} · ${chapterName(code.slice(0, 2))}`, marks: [], note: "HS nomenclature" },
       {
         label: "Exporter page",
         value: exported && epb ? `edb.epb.gov.bd · exporter ${epb.ref ?? ""}`.trim() : null,
@@ -700,7 +833,9 @@ export function buildProductSheet(input: RecordInput, hs: string): ProductSheetM
         ? {
             label: "Certified scope",
             value: `${gots.number ?? gots.scheme} · ${scopeWords(gots.scope)}`,
-            badge: { tone: gots.state === "valid" ? "positive" : gots.state === "no-expiry" ? "type" : "caution", label: certChipLabel(gots).replace(`${gots.scheme} `, "").replace(/^./, (m) => m.toUpperCase()) },
+            // `certChipLabel` reads "GOTS · no expiry on file"; stripping the
+            // scheme alone left the badge starting with a stray middle dot.
+            badge: { tone: gots.state === "valid" ? "positive" : gots.state === "no-expiry" ? "type" : "caution", label: certStateLabel(gots) },
             marks: [sourceMark(gots.markCode, gots.documentUrl)],
           }
         : { label: "Certified scope", value: null, checked: `${CERT_REGISTERS} cert registers checked` },
@@ -712,7 +847,7 @@ export function buildProductSheet(input: RecordInput, hs: string): ProductSheetM
         marks: [],
         pendingSource: products.length > 0,
       },
-      { label: "Buyer lists", value: brands.length ? brands.join(" · ") : null, note: brands.length ? "disclosure lists" : null, checked: `${BRAND_LISTS_KNOWN} brand lists checked`, marks: brandMarks },
+      { label: "Buyer lists", value: brands.length ? brands.join(" · ") : null, note: brands.length ? "disclosure lists" : null, checked: BRAND_LISTS_WORDS, marks: brandMarks },
       attested.length
         ? { label: "Price · MOQ · lead time", value: attested.join(" · "), note: "supplier-attested", marks: [], pendingSource: true }
         : { label: "Price · MOQ · lead time", value: null, note: "supplier-attested fields, shown when attested" },
@@ -750,7 +885,8 @@ export type RfqListRow = {
 
 export function buildRfqRow(
   r: RfqListRow,
-  supplier: { name: string; tier: TierRank } | null,
+  /** Resolved target, when REZ-D's join gives one. A sanction on it must reach this row (spec §2). */
+  supplier: { name: string; tier: TierRank; sanctioned?: boolean; sanctionSample?: boolean } | null,
   today: Date,
 ): RfqRowModel {
   // "Reply overdue" needs the reply-by date and the thread (REZ-D's derived_status); `rfq_list`
@@ -773,6 +909,8 @@ export function buildRfqRow(
     supplierInitials: supplier ? initials(supplier.name) : null,
     supplierTier: supplier?.tier ?? null,
     supplierCount: count,
+    sanctioned: Boolean(supplier?.sanctioned) || Boolean(supplier?.sanctionSample),
+    sanctionSample: supplier?.sanctionSample,
     quantity: `${formatCount(r.quantity)} ${r.quantity_unit}`,
     status,
     sent: formatDay(r.created_at),

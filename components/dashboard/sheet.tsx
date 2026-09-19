@@ -50,16 +50,24 @@ export function SheetScroll({ children }: { children: ReactNode }) {
   return <div className="min-h-0 flex-1 overflow-y-auto">{children}</div>;
 }
 
-export function SheetTabs({ tabs }: { tabs: readonly { label: string; count: string | null; active?: boolean }[] }) {
+/**
+ * A tab links only to a section this sheet actually renders. The others keep
+ * the approved fragment's inert `href="#"` and say so to a screen reader,
+ * rather than pointing at an anchor that does not exist.
+ */
+export function SheetTabs({ tabs }: { tabs: readonly { label: string; count: string | null; href: string | null; active?: boolean }[] }) {
   return (
     <nav aria-label="Record sections" className="mt-2 flex gap-5 border-b border-line-subtle px-6">
       {tabs.map((t) => (
         <a
           key={t.label}
-          href={`#${t.label.toLowerCase()}`}
+          href={t.href ?? "#"}
+          aria-disabled={t.href === null ? "true" : undefined}
+          title={t.href === null ? "This section arrives with the record page" : undefined}
           aria-current={t.active ? "true" : undefined}
           className={cn(
             "-mb-px inline-flex h-10 items-center gap-1.5 whitespace-nowrap border-b-2 border-transparent text-base font-medium text-ink-muted",
+            t.href === null && "text-ink-subtle",
             t.active && "border-brand text-ink-strong",
           )}
         >
@@ -160,10 +168,13 @@ export function LockCard({ hidden, plan }: { hidden: string; plan: string | null
         <span className="text-xs">{hidden}</span>
       </div>
       <div className="flex flex-col gap-3 px-4 py-3 text-sm text-ink-muted">
-        <span>Send an RFQ from the record instead — the supplier&apos;s reply lands in Messages.</span>
+        {/* No promise about delivery: the RPC does not say whether this record
+            has been claimed, and an unclaimed supplier is not reached until
+            REZ-D ships behind RFQ_EMAIL_UNCLAIMED (handoff §4.6). */}
+        <span>Send an RFQ from the record instead.</span>
         <span className="flex items-center gap-2">
           <Button>See plans</Button>
-          <a href="#hidden" className="inline-flex items-center gap-0.5 text-sm font-medium text-brand-ink">
+          <a href="#" className="inline-flex items-center gap-0.5 text-sm font-medium text-brand-ink">
             What is hidden <Icon name="chev-r" small />
           </a>
         </span>
@@ -177,10 +188,12 @@ export function Stats({ items }: { items: readonly { key: string; value: string;
   return (
     <div className="grid grid-cols-4 gap-2">
       {items.map((s) => (
-        <div key={s.key} className="flex flex-col gap-0.5 rounded-sm border border-line px-3 py-2.5">
+        <div key={s.key} className="flex min-w-0 flex-col gap-0.5 rounded-sm border border-line px-3 py-2.5">
           <Eyebrow>{s.key}</Eyebrow>
           <span className="whitespace-nowrap text-2xl font-normal text-ink-strong">{s.value}</span>
-          {s.sub ? <Caption className="whitespace-nowrap">{s.sub}</Caption> : null}
+          {/* The sub-line carries a certificate's scope and a chapter list; held
+              to one line it ran out of its cell and over the next stat. */}
+          {s.sub ? <Caption className="[overflow-wrap:anywhere]">{s.sub}</Caption> : null}
         </div>
       ))}
     </div>
@@ -291,7 +304,7 @@ export function ActionBar({ sanctioned, everyMarkLinks }: { sanctioned: boolean;
         <Icon name="send" /> Send RFQ
       </Button>
       <Button lg>
-        <Icon name="bookmark" /> Save to list
+        <Icon name="bookmark" /> Save
       </Button>
       <Button lg>
         <Icon name="compare" /> Compare

@@ -11,6 +11,8 @@ import { Icon } from "./icons";
 import { Caption, Code } from "./type";
 
 export const PHOTO_NOTE = "Illustrative photos, one per HS heading · rarest lines first";
+/** The caption handoff §6 settled on, carried by every single photo. */
+export const PHOTO_CAPTION = "Illustrative photo, keyed to the HS code";
 
 /** The image inside a tile, zoomed the way the artifact crops it. */
 function Photo({ src, className }: { src: string; className?: string }) {
@@ -142,8 +144,12 @@ export function PhotoThumbs({ tiles, totalLines }: { tiles: readonly PhotoTileMo
   return (
     <span className="inline-flex items-center gap-1">
       {tiles.map((t) => (
+        // `title` alone on a plain span is not announced; the label is what a
+        // screen reader reads for this whole column.
         <span
           key={t.hs}
+          role="img"
+          aria-label={`HS ${t.hs} · ${t.short}`}
           className={cn(
             "size-7 overflow-hidden rounded-xs border border-line-subtle bg-surface-sunken",
             !t.thumb && "grid place-items-center font-mono text-[7px] text-ink-subtle",

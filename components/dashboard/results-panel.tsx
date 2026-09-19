@@ -59,20 +59,34 @@ export function PanelHeader({ model }: { model: PanelHeaderModel }) {
   );
 }
 
+/**
+ * The footer describes the page that was actually rendered.
+ *
+ * `perPage` is the size of the request that produced these rows, so the pager
+ * may only appear when the caller really paged: a hand-picked four-row panel
+ * under "25 per page · Page 1 of 2" with Next enabled offered a page 2 that
+ * does not exist. A caller that does not page passes no `perPage`, gets no
+ * pager, and says what the panel holds in `note`.
+ */
 export function PanelFooter({
   shown,
   total,
   perPage,
+  page = 1,
   note,
 }: {
   shown: number;
   /** Null when the count could not be read. */
   total: number | null;
+  /** The page size this panel was filled with. Omit it when the panel does not page. */
   perPage?: number;
+  page?: number;
   note?: string;
 }) {
-  const page = 1;
   const pages = total !== null && perPage ? Math.max(1, Math.ceil(total / perPage)) : null;
+  // A page that came back short of its own page size is the last one, whatever
+  // the total says — the rows on screen are the evidence, the total is not.
+  const paged = pages !== null && perPage !== undefined && shown >= perPage;
   return (
     <div className="flex items-center gap-3 border-t border-line-subtle px-5 py-3">
       <Caption>
@@ -84,7 +98,7 @@ export function PanelFooter({
           {perPage} per page <Icon name="caret" small />
         </Button>
       ) : null}
-      {pages ? (
+      {paged && pages ? (
         <div className="ml-auto flex items-center gap-2">
           <Button icon aria-label="Previous page" disabled={page <= 1} className="disabled:border-line disabled:text-ink-disabled">
             <Icon name="chev-l" />

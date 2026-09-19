@@ -10,7 +10,7 @@ import type { SupplierSheetModel } from "@/lib/dashboard/models";
 import { Button } from "./controls";
 import { Icon } from "./icons";
 import { LogoTile, SourceMarks } from "./marks";
-import { PhotoGrid } from "./photo-tiles";
+import { PHOTO_CAPTION, PhotoGrid } from "./photo-tiles";
 import {
   ActionBar,
   CertGrid,
@@ -28,10 +28,18 @@ import {
 import { MetaLine } from "./supplier-result-card";
 import { Caption, Heading, Label } from "./type";
 
+/** "61 and 62" · "52, 55, 59 and 60" — a list a buyer reads, not an array. */
+function listWords(items: readonly string[]): string {
+  if (items.length <= 1) return items.join("");
+  return `${items.slice(0, -1).join(", ")} and ${items.at(-1)}`;
+}
+
 export function SupplierSheet({ model }: { model: SupplierSheetModel }) {
   const p = model.products;
-  const everyMarkLinks =
-    model.marks.every((m) => Boolean(m.href)) && model.facts.every((f) => f.value === null || (f.marks ?? []).every((m) => Boolean(m.href)));
+  // `[].every()` is true, so a record with no marks at all rendered the
+  // "every source mark links to its register page" claim.
+  const markHrefs = [...model.marks, ...model.facts.flatMap((f) => (f.value === null ? [] : (f.marks ?? [])))];
+  const everyMarkLinks = markHrefs.length > 0 && markHrefs.every((m) => Boolean(m.href));
   return (
     <Sheet label="Supplier record">
       <SheetBar>
@@ -76,14 +84,9 @@ export function SupplierSheet({ model }: { model: SupplierSheetModel }) {
             </div>
             <div className="flex flex-col gap-3">
               <LockCard hidden={model.contact.hidden} plan={model.contact.plan} />
-              {model.readDates ? (
-                <Caption>
-                  Read dates: {model.readDates}.{" "}
-                  <a href="#sources" className="text-brand-ink">
-                    Sources tab
-                  </a>
-                </Caption>
-              ) : null}
+              {/* The Sources section arrives with REZ-C; until it does there is no
+                  fragment to send the reader to, so the caption names no link. */}
+              {model.readDates ? <Caption>Read dates: {model.readDates}.</Caption> : null}
             </div>
           </div>
         </SheetSection>
@@ -119,16 +122,26 @@ export function SupplierSheet({ model }: { model: SupplierSheetModel }) {
         >
           <Stats
             items={[
-              { key: "HS lines", value: p.lines > 0 ? String(p.lines) : "—", sub: p.linesUnknown ? "could not be read" : p.lines > 0 ? `EPB${p.chapter ? `, chapter ${p.chapter}` : ""}` : p.onEpb ? "none on the EPB page" : "not on the EPB list" },
+              {
+                key: "HS lines",
+                value: p.lines > 0 ? String(p.lines) : "—",
+                sub: p.linesUnknown
+                  ? "could not be read"
+                  : p.lines > 0
+                    ? `EPB${p.chapters.length ? `, ${p.chapters.length === 1 ? "chapter" : "chapters"} ${listWords(p.chapters)}` : ""}`
+                    : p.onEpb
+                      ? "none on the EPB page"
+                      : "not on the EPB list",
+              },
               { key: "Product list", value: p.productListCount > 0 ? String(p.productListCount) : "—", sub: p.productListCount > 0 ? "items on file · source pending" : "none on file" },
               { key: "Certified scope", value: p.certifiedScope?.scheme ?? "—", sub: p.certifiedScope?.scope ?? "no scope certificate" },
-              { key: "Buyer lists", value: p.buyerLists.length > 0 ? String(p.buyerLists.length) : "—", sub: p.buyerLists.length > 0 ? p.buyerLists.join(" · ") : "not on 6 brand lists" },
+              { key: "Buyer lists", value: p.buyerLists.length > 0 ? String(p.buyerLists.length) : "—", sub: p.buyerLists.length > 0 ? p.buyerLists.join(" · ") : "not on 4 brand lists read" },
             ]}
           />
           {p.tiles.length > 0 ? (
             <>
               <PhotoGrid tiles={p.tiles} />
-              <Caption>Photos are illustrative, one per HS heading. A supplier-attested upload replaces them (V2).</Caption>
+              <Caption>{PHOTO_CAPTION}. A supplier-attested upload replaces it (V2).</Caption>
             </>
           ) : null}
         </SheetSection>
@@ -140,6 +153,14 @@ export function SupplierSheet({ model }: { model: SupplierSheetModel }) {
               No certificate on any register
             </span>
           )}
+          {/* A building's certificate is not this record's, but saying nothing
+              about it leaves "none on 4 registers" over a payload that holds one. */}
+          {model.certBuildings.length > 0 ? (
+            <Caption>
+              {model.certBuildings.join(", ")} {model.certBuildings.length === 1 ? "holds a certificate" : "hold certificates"} of its own —
+              shown on the building, not counted here.
+            </Caption>
+          ) : null}
         </SheetSection>
         <SheetSection
           id="safety"

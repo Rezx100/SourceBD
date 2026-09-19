@@ -23,7 +23,7 @@ import {
   type SidebarModel,
   type TopbarModel,
 } from "@/components/dashboard";
-import { certChipLabel, formatDay } from "@/lib/dashboard/facts";
+import { certStateLabel, formatDay } from "@/lib/dashboard/facts";
 import { GALLERY_QUERY, topbarCaption, type GalleryData } from "@/lib/dashboard/gallery-data";
 import { heading4, hsShortLabel } from "@/lib/dashboard/hs-photos";
 
@@ -80,7 +80,9 @@ export function DashboardScreens({ data: d }: { data: GalleryData }) {
       {d.cards.map((c) => (
         <SupplierResultCard key={c.slug} card={c} />
       ))}
-      <PanelFooter shown={d.cards.length} total={d.discoverError ? null : d.total} perPage={25} />
+      {/* The gallery renders the four named records, not a page of 25: a pager
+          here would offer a page 2 that does not exist. */}
+      <PanelFooter shown={d.cards.length} total={d.discoverError ? null : d.total} note="the named test records of the rebuild spec" />
     </Panel>
   );
 
@@ -101,7 +103,7 @@ export function DashboardScreens({ data: d }: { data: GalleryData }) {
           <Panel>
             <PanelHeader model={header(d, "table", d.rows.length)} />
             <ResultsTable rows={d.rows} />
-            <PanelFooter shown={d.rows.length} total={d.discoverError ? null : d.total} perPage={25} />
+            <PanelFooter shown={d.rows.length} total={d.discoverError ? null : d.total} note="the named test records plus the top matches" />
           </Panel>
         </AppShell>
       </Frame>
@@ -156,6 +158,11 @@ export function DashboardScreens({ data: d }: { data: GalleryData }) {
   );
 }
 
+/** "Valid to 12 May 2027" → "valid to 12 May 2027": the month keeps its capital. */
+function lowerFirst(s: string): string {
+  return s.charAt(0).toLowerCase() + s.slice(1);
+}
+
 /** The composer's draft, built on the Aboni record's real facts. */
 function composerModel(d: GalleryData): RfqComposerModel {
   const rec = d.records.aboni!;
@@ -164,13 +171,18 @@ function composerModel(d: GalleryData): RfqComposerModel {
   // The HS line comes from a line the record really carries; with none read, the draft names no line.
   const lines = rec.input.hscodes.map((h) => heading4(h.code));
   const hs: string | null = lines.includes("6105") ? "6105" : (lines[0] ?? null);
+  // `certChipLabel` reads "GOTS · no expiry on file"; stripping the scheme off
+  // the front left the sentence reading "… is · no expiry on file".
   const certLine = gots
-    ? `your ${gots.scheme} certificate ${gots.number ?? ""} is ${certChipLabel(gots).replace(`${gots.scheme} `, "")}`.replace(/\s+/g, " ").trim()
+    ? `your ${gots.scheme} certificate ${gots.number ?? ""} is ${lowerFirst(certStateLabel(gots))}`.replace(/\s+/g, " ").trim()
     : "no certificate on file";
   const product = hs ? `Men's knitted piqué polo · HS ${hs}` : "Men's knitted piqué polo";
   return {
     title: "New RFQ",
     context: `to ${name} · first contact${hs ? ` · HS ${hs}` : ""} · sample draft`,
+    // The draft's targets carry the record's own sanction state, so the
+    // composer shows the banner and refuses Send on the screens too.
+    targets: [{ name, sanctioned: d.sheet?.sanctioned ?? false, sanctionSample: d.sheet?.sanctionSample }],
     draftSaved: null,
     steps: [
       { label: "Suppliers", detail: `${name} · first contact`, count: "1" },

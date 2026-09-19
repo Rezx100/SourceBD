@@ -7,7 +7,7 @@ import { discoverArgs, loadGalleryData, SORT_MOST_SOURCES } from "./gallery-data
 type Call = { fn: string; args: Record<string, unknown> };
 
 /** A stub that answers the gallery's RPCs from the fixtures and records every call. */
-function stubClient(options: { discoverError?: boolean; hscodesError?: boolean } = {}) {
+function stubClient(options: { discoverError?: boolean; hscodesError?: boolean; badCount?: boolean; rfqError?: boolean } = {}) {
   const calls: Call[] = [];
   const records: Record<string, ReturnType<typeof aboniInput>> = { "aboni-knitwear": aboniInput(), "ar-fashion": arFashionInput() };
   const rpc = async (fn: string, args: Record<string, unknown>) => {
@@ -29,26 +29,75 @@ function stubClient(options: { discoverError?: boolean; hscodesError?: boolean }
     }
     if (fn === "discover_suppliers") {
       if (options.discoverError) return { data: null, error: { message: "canceling statement due to statement timeout" } };
+      if (options.badCount) return { data: [{ slug: "aboni-knitwear", total_count: "not-a-count" }], error: null };
       if (args.p_q === null) return { data: [{ slug: "x", total_count: 10266 }], error: null };
       return { data: [{ slug: "aboni-knitwear", total_count: 42 }, { slug: "ar-fashion", total_count: 42 }], error: null };
     }
-    if (fn === "rfq_list") return { data: [], error: null };
+    if (fn === "rfq_list") return options.rfqError ? { data: null, error: { message: "permission denied" } } : { data: [], error: null };
     return { data: null, error: { message: `unknown rpc ${fn}` } };
   };
   return { client: { rpc }, calls };
 }
 
 describe("loadGalleryData (the /dev/ds loader, stubbed RPCs)", () => {
-  it("asks discover_suppliers for a sort it knows, with every argument the RPC takes", async () => {
+  // The argument names are the RPC's, so they are pinned as literals. Comparing
+  // `discoverArgs()` against `discoverArgs()` — which is what this test used to
+  // do — cannot fail: the cycle-5 adequacy critic renamed `p_min_sources` and
+  // `p_completeness_min` to nonsense and the suite stayed green.
+  const DISCOVER_ARGS = [
+    "p_brand_codes",
+    "p_category",
+    "p_cert_kinds",
+    "p_city",
+    "p_completeness_min",
+    "p_district",
+    "p_entity_types",
+    "p_factory_types",
+    "p_limit",
+    "p_min_sources",
+    "p_offset",
+    "p_q",
+    "p_registries",
+    "p_rsc_min",
+    "p_sort",
+    "p_workers_min",
+  ];
+
+  it("asks discover_suppliers for a sort it knows, with every argument the RPC takes, by name", async () => {
+    assert.deepEqual(Object.keys(discoverArgs({ limit: 1 })).sort(), DISCOVER_ARGS);
     const { client, calls } = stubClient();
     await loadGalleryData(client, TODAY);
     const discover = calls.filter((c) => c.fn === "discover_suppliers");
     assert.ok(discover.length >= 2);
     for (const c of discover) {
       assert.equal(c.args.p_sort, "receipts");
-      assert.deepEqual(Object.keys(c.args).sort(), Object.keys(discoverArgs({ limit: 1 })).sort());
+      assert.deepEqual(Object.keys(c.args).sort(), DISCOVER_ARGS);
+      assert.equal(c.args.p_offset, 0);
     }
-    assert.equal(SORT_MOST_SOURCES, "receipts");
+    assert.equal(SORT_MOST_SOURCES, "receipts", "the RPC knows receipts | name | completeness; 'sources' silently falls back to score order");
+  });
+
+  // Cycle 5, finding 16: `Number("not-a-count")` is NaN, and NaN reached the
+  // panel header as "null suppliers" with `discoverError` still false.
+  it("a count the RPC returns in a shape that will not parse is unknown, not NaN", async () => {
+    const { client } = stubClient({ badCount: true });
+    const data = await loadGalleryData(client, TODAY);
+    assert.equal(data.total, null);
+    assert.equal(data.published, null);
+    assert.equal(data.discoverError, true);
+    assert.ok(!Number.isNaN(data.total as unknown as number));
+  });
+
+  // Cycle 5, finding 4.
+  it("a failed rfq_list read is unread, never 'no RFQs for this account'", async () => {
+    const { client } = stubClient({ rfqError: true });
+    const data = await loadGalleryData(client, TODAY);
+    assert.equal(data.rfqError, true);
+    assert.equal(data.rfqs.error, true);
+    assert.equal(data.rfqs.footer, "The RFQ list could not be read");
+    const ok = await loadGalleryData(stubClient().client, TODAY);
+    assert.equal(ok.rfqError, false);
+    assert.equal(ok.rfqs.error, false);
   });
 
   it("makes one worker batch call for every record on the page, not one per record", async () => {
@@ -57,7 +106,8 @@ describe("loadGalleryData (the /dev/ds loader, stubbed RPCs)", () => {
     const batches = calls.filter((c) => c.fn === "production_workers_display_batch");
     assert.equal(batches.length, 1);
     assert.equal((batches[0]!.args.p_supplier_ids as string[]).length, 2);
-    assert.equal(data.cards.find((c) => c.slug === "aboni-knitwear")?.meta.find((f) => /workers/.test(f.text))?.text, "3,166 workers");
+    // The batch figure is the group's: 2,662 (the mother) + 504 (the New Shed).
+    assert.equal(data.cards.find((c) => c.slug === "aboni-knitwear")?.meta.find((f) => /workers/.test(f.text))?.text, "3,166 workers across 2 of 2 sites");
   });
 
   it("a record that cannot be read is left out, never invented; the sanctioned sample flag is only on Zaheen", async () => {

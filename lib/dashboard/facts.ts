@@ -180,20 +180,22 @@ export function onFileLabel(n: number): string {
 }
 
 /**
- * The tile's sub-line, one line that fits 172px: the soonest expiry when one
- * is inside 90 days ("1 expiring in 11 days"), otherwise the counts that need
- * a look ("1 expired · 4 no expiry"), otherwise "all valid".
+ * The tile's sub-line: every state that needs a look, soonest expiry first —
+ * "1 expiring in 11 days · 1 expired · 4 no expiry" — and "all valid" when
+ * none does. It used to return early on the expiring branch, so a record with
+ * both an expiring and an expired certificate showed only the expiring one and
+ * the expired certificate vanished from the card and the table.
  */
 export function certTileSubline(certs: readonly CertModel[]): string | null {
   if (certs.length === 0) return null;
+  const parts: string[] = [];
   const expiring = certs.filter((c) => c.state === "expiring");
   if (expiring.length) {
     const soonest = expiring.reduce((a, b) => ((a.daysLeft ?? 0) <= (b.daysLeft ?? 0) ? a : b));
-    return `${expiring.length} expiring in ${soonest.daysLeft} ${soonest.daysLeft === 1 ? "day" : "days"}`;
+    parts.push(`${expiring.length} expiring in ${soonest.daysLeft} ${soonest.daysLeft === 1 ? "day" : "days"}`);
   }
   const expired = certs.filter((c) => c.state === "expired").length;
   const undated = certs.filter((c) => c.state === "no-expiry").length;
-  const parts: string[] = [];
   if (expired) parts.push(`${expired} expired`);
   if (undated) parts.push(`${undated} no expiry`);
   return parts.length ? parts.join(" · ") : "all valid";

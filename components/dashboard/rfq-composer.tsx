@@ -10,6 +10,7 @@ import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { Button, Checkbox, V2Tag } from "./controls";
 import { Icon } from "./icons";
+import { SanctionBanner } from "./sheet";
 import { Caption, Code, Label } from "./type";
 
 export type RailStep = {
@@ -27,10 +28,20 @@ export type ProductLine = { product: string; hs: string | null; quantity: string
 
 export type QuestionRow = { text: string; on: boolean; required: boolean };
 
+/**
+ * A target of this draft. `rfq_create` refuses a sanctioned supplier
+ * (handoff §4.5), and §3.6 says Send stays disabled until every supplier is
+ * published and not sanctioned — so the composer has to carry the flag, not
+ * just the name.
+ */
+export type ComposerTarget = { name: string; sanctioned: boolean; sanctionSample?: boolean };
+
 export type RfqComposerModel = {
   title: string;
   /** "to Aboni Knitwear Ltd · first contact · HS 6105" */
   context: string;
+  /** Every supplier this draft would go to. */
+  targets: ComposerTarget[];
   draftSaved: string | null;
   steps: RailStep[];
   template: "first" | "repeat";
@@ -100,6 +111,11 @@ export function RfqComposer({ model, aiEnabled = false }: { model: RfqComposerMo
   const required = model.questions.filter((q) => q.required).length + (model.moreQuestions?.required ?? 0);
   const total = model.questions.length + (model.moreQuestions?.count ?? 0);
   const steps = aiEnabled ? model.steps : model.steps.filter((s) => !s.v2);
+  const sanctioned = model.targets.filter((t) => t.sanctioned);
+  const sanctionSample = sanctioned.length > 0 && sanctioned.every((t) => t.sanctionSample);
+  // Send is refused for a sanctioned target whatever else is filled in, and the
+  // server refuses it too (`rfq_create`, handoff §4.5).
+  const blocked = sanctioned.length > 0 || model.missing.length > 0;
   return (
     <Dialog label={model.title}>
       <div className="flex h-[52px] items-center gap-3 border-b border-line-subtle px-5">
@@ -112,6 +128,16 @@ export function RfqComposer({ model, aiEnabled = false }: { model: RfqComposerMo
           </Button>
         </span>
       </div>
+      {sanctioned.length > 0 ? (
+        <>
+          <SanctionBanner sample={sanctionSample} />
+          <div className="border-b border-line-subtle px-5 py-2 text-sm text-sanction-ink">
+            {sanctioned.length === 1 ? "This supplier is" : `${sanctioned.length} of these suppliers are`} on a sanctions
+            screen: {sanctioned.map((t) => t.name).join(", ")}. Remove {sanctioned.length === 1 ? "it" : "them"} to send
+            this RFQ.
+          </div>
+        </>
+      ) : null}
       <div className="grid min-h-0 grid-cols-[250px_1fr_330px]">
         <nav aria-label="RFQ steps" className="flex min-w-0 flex-col gap-0.5 border-r border-line-subtle bg-canvas p-3">
           {steps.map((s) => (
@@ -245,15 +271,19 @@ export function RfqComposer({ model, aiEnabled = false }: { model: RfqComposerMo
             ))}
             <Caption>{model.preview.footer}</Caption>
           </div>
-          <Caption>
-            Your email and phone are not shared. The supplier&apos;s contact details stay on their record; replies land in
-            Messages.
-          </Caption>
+          {/* No delivery promise: an unclaimed supplier is not reached until
+              REZ-D ships behind RFQ_EMAIL_UNCLAIMED (handoff §4.6), and the
+              RPC does not say whether this record has been claimed. */}
+          <Caption>Your email and phone are not shared. The supplier&apos;s contact details stay on their record.</Caption>
         </div>
       </div>
       <div className="flex items-center gap-2 border-t border-line-subtle px-5 py-3">
-        <Caption className="inline-flex flex-1 items-center gap-1">
-          {model.missing.length > 0 ? (
+        <Caption className={cn("inline-flex flex-1 items-center gap-1", sanctioned.length > 0 && "text-sanction-ink")}>
+          {sanctioned.length > 0 ? (
+            <>
+              <Icon name="warn" small /> RFQs cannot be sent to a sanctioned supplier
+            </>
+          ) : model.missing.length > 0 ? (
             <>
               <Icon name="warn" small /> {model.missing.length} {model.missing.length === 1 ? "field" : "fields"} missing —{" "}
               {model.missing.join(", ")}
@@ -263,7 +293,7 @@ export function RfqComposer({ model, aiEnabled = false }: { model: RfqComposerMo
           )}
         </Caption>
         <Button>Save draft</Button>
-        <Button variant="primary" disabled={model.missing.length > 0}>
+        <Button variant="primary" disabled={blocked}>
           <Icon name="send" /> Send RFQ
         </Button>
       </div>

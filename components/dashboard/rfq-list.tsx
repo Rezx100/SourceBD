@@ -16,6 +16,12 @@ import { Td, Th } from "./results-table";
 import { Caption, Code, Heading } from "./type";
 
 export const RFQ_EMPTY_COPY = "Your first RFQ lands here. Suppliers answer inside the platform, with the record attached.";
+/**
+ * `rfq_list` failed. "You have no RFQs yet" is a fact about the account, and a
+ * failed read does not establish it — the empty state that sells the feature
+ * must never stand in for an unread list.
+ */
+export const RFQ_ERROR_COPY = "Your RFQs could not be read just now. Nothing has been lost — try again in a moment.";
 
 const COLS = [44, 300, 220, 110, 180, 110, 110] as const;
 
@@ -53,7 +59,11 @@ export function RfqList({ model }: { model: RfqListModel }) {
         ))}
       </div>
       <Panel>
-        {model.rows.length === 0 ? (
+        {model.error ? (
+          <div role="status" className="flex flex-col items-start gap-3 px-6 py-10">
+            <p className="m-0 max-w-prose text-lg text-ink">{RFQ_ERROR_COPY}</p>
+          </div>
+        ) : model.rows.length === 0 ? (
           <div className="flex flex-col items-start gap-3 px-6 py-10">
             <p className="m-0 max-w-prose text-lg text-ink">{RFQ_EMPTY_COPY}</p>
             <Button variant="primary">
@@ -70,23 +80,23 @@ export function RfqList({ model }: { model: RfqListModel }) {
             </colgroup>
             <thead>
               <tr>
-                <Th />
+                <Th srLabel="Select" />
                 <Th>RFQ</Th>
                 <Th>Supplier</Th>
                 <Th className="text-right">Quantity</Th>
                 <Th>Status</Th>
                 <Th>Sent</Th>
                 <Th>Ship by</Th>
-                <Th />
+                <Th srLabel="Actions" />
               </tr>
             </thead>
             <tbody className="[&>tr:last-child>td]:border-b-0">
               {model.rows.map((r) => (
-                <tr key={r.id}>
+                <tr key={r.id} aria-label={r.name} data-sanctioned={r.sanctioned ? "true" : undefined}>
                   <Td>
                     <Checkbox label={`Select ${r.name}`} />
                   </Td>
-                  <Td>
+                  <Td className={cn(r.sanctioned && "shadow-[inset_4px_0_0_rgb(var(--ds-sanction))]")}>
                     <div className="font-medium text-ink-strong [overflow-wrap:anywhere]">
                       {r.name}
                       {r.hs ? (
@@ -95,6 +105,12 @@ export function RfqList({ model }: { model: RfqListModel }) {
                         </span>
                       ) : null}
                     </div>
+                    {/* A sanction may not be hidden by layout, on any surface (spec §2). */}
+                    {r.sanctioned ? (
+                      <div className="inline-flex items-center gap-1.5 text-xs font-medium text-sanction-ink">
+                        <Icon name="warn" small /> Sanctioned{r.sanctionSample ? " · sample" : ""} — RFQs cannot be sent
+                      </div>
+                    ) : null}
                   </Td>
                   <Td>
                     <div className="flex items-center gap-2.5">

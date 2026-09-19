@@ -44,15 +44,17 @@ function Tile({ tile }: { tile: TileModel }) {
         {tile.value ?? "—"}
       </span>
       {tile.sub ? (
-        <span className="flex min-w-0 items-center gap-1 overflow-hidden whitespace-nowrap text-sm text-ink-subtle">
+        // The sub-line wraps rather than ellipsising: it carries facts — which
+        // certificates need a look, which registers were checked — and a fact
+        // cut off mid-word is a fact the buyer does not have. The tile grows;
+        // the grid row equalises.
+        <span className="flex min-w-0 items-start gap-1 text-sm text-ink-subtle">
           {tile.href ? (
-            <a href={tile.href} title={tile.sub} className="inline-flex min-w-0 items-center gap-0.5 text-brand-ink">
-              <span className="overflow-hidden text-ellipsis">{tile.sub}</span> <Icon name="chev-r" small />
+            <a href={tile.href} className="inline-flex min-w-0 items-start gap-0.5 text-brand-ink">
+              <span className="[overflow-wrap:anywhere]">{tile.sub}</span> <Icon name="chev-r" small className="mt-0.5 shrink-0" />
             </a>
           ) : (
-            <span title={tile.sub} className="overflow-hidden text-ellipsis">
-              {tile.sub}
-            </span>
+            <span className="[overflow-wrap:anywhere]">{tile.sub}</span>
           )}
         </span>
       ) : null}

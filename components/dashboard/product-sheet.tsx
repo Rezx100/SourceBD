@@ -9,6 +9,7 @@ import { formatCount } from "@/lib/dashboard/facts";
 import type { ProductSheetModel } from "@/lib/dashboard/models";
 import { Button } from "./controls";
 import { Icon } from "./icons";
+import { PHOTO_CAPTION } from "./photo-tiles";
 import { FactsPanel, SanctionBanner, Sheet, SheetBar, SheetScroll } from "./sheet";
 import { Caption, Code, Eyebrow, Heading } from "./type";
 
@@ -46,14 +47,16 @@ export function ProductSheet({ model }: { model: ProductSheetModel }) {
               )}
             </div>
             <Caption className="mt-2 block">
-              Illustrative photo for HS {model.hs}
+              {PHOTO_CAPTION} {model.hs}
               {model.generatedOn ? `, generated ${model.generatedOn}` : ""}. Not the supplier&apos;s own product; a
               supplier-attested upload replaces it (V2).
             </Caption>
           </div>
           <div className="flex flex-col gap-4">
             <div>
-              <Eyebrow>HS {model.hs} · EPB export line</Eyebrow>
+              {/* "EPB export line" is a claim about this record's EPB page. A
+                  heading the record does not export gets the plain eyebrow. */}
+              <Eyebrow>HS {model.hs}{model.exported ? " · EPB export line" : " · not on this record's EPB page"}</Eyebrow>
               <Heading level="h" as="h1" className="mt-1">
                 {model.heading}
               </Heading>

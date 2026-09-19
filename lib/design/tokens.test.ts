@@ -58,8 +58,19 @@ const GUARDED = [
   "components/ds",
   "components/dashboard",
   "lib/dashboard",
+  // Generated and tooling files the rebuild owns. `lib/hs-catalogue.ts` is
+  // written by `scripts/build-hs-photos.mjs`, and both were outside the guard.
+  "lib/hs-catalogue.ts",
+  "scripts/build-hs-photos.mjs",
+  "scripts/gallery",
 ];
 const HAND_TYPED = /#[0-9a-fA-F]{3,8}\b|\b(?:rgba?|hsla?|oklch|oklab)\(\s*[\d.]/;
+/**
+ * An arbitrary radius in square brackets. §9 fixes the radius scale, and the
+ * cycle-1 defect was exactly this (`rounded-[4px]` where `rounded-xs` was
+ * meant); nothing stopped it coming back.
+ */
+const OFF_TOKEN_RADIUS = /\brounded(?:-[trbl]{1,2})?-\[[^\]]+\]/;
 // Tailwind's own palette no longer exists; using it would silently render nothing.
 const OLD_PALETTE =
   /\b(?:bg|text|border|ring|fill|stroke|from|via|to|divide|outline|decoration|shadow)-(?:white|black|(?:slate|gray|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose)-\d{2,3})\b/;
@@ -77,6 +88,15 @@ for (const rel of GUARDED.flatMap(walk)) {
     lines.forEach((line, i) => {
       assert.ok(!HAND_TYPED.test(line), `${rel}:${i + 1} has a hand-typed colour: ${line.trim()}`);
       assert.ok(!OLD_PALETTE.test(line), `${rel}:${i + 1} uses a removed palette class: ${line.trim()}`);
+      assert.ok(!OFF_TOKEN_RADIUS.test(line), `${rel}:${i + 1} has an off-token radius: ${line.trim()}`);
     });
   });
 }
+
+// §2: "Works without animation when the user's device asks for that." The
+// stylesheet the kit ships must honour prefers-reduced-motion; nothing asserted
+// it, so removing the block would have gone unnoticed.
+test("the kit's stylesheet honours prefers-reduced-motion", () => {
+  const css = readFileSync(path.join(repoRoot, "app/ds.css"), "utf8");
+  assert.match(css, /@media\s*\(prefers-reduced-motion:\s*reduce\)/, "app/ds.css has no reduced-motion block");
+});

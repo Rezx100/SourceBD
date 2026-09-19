@@ -82,7 +82,7 @@ async function fillWorkers(supabase: Rpc, records: GalleryRecord[]): Promise<voi
   const byId = await fetchDisplayWorkersBatch(supabase, records.map((r) => r.input.profile.supplier.id));
   for (const r of records) {
     const w = byId[r.input.profile.supplier.id];
-    r.input.workers = w ? { value: w.value, source: w.source } : null;
+    r.input.workers = w ? { value: w.value, source: w.source, fetched_at: w.fetched_at } : null;
   }
 }
 
@@ -92,6 +92,8 @@ export type GalleryData = {
   plan: string | null;
   /** True when `discover_suppliers` failed — the header count is then unknown, not 0. */
   discoverError: boolean;
+  /** True when `rfq_list` failed — the list is unread, not empty. */
+  rfqError: boolean;
   records: Record<keyof typeof GALLERY_SLUGS, GalleryRecord | null>;
   cards: SupplierCardModel[];
   rows: TableRowModel[];
@@ -102,6 +104,16 @@ export type GalleryData = {
   recordsReadOn: string | null;
   rfqs: RfqListModel;
 };
+
+/**
+ * A count the RPC returned, or null when what came back is not one. `Number()`
+ * of a malformed `total_count` is NaN, and NaN reached the panel header as
+ * "null suppliers" with `discoverError` still false.
+ */
+function countOf(raw: unknown): number | null {
+  const n = typeof raw === "number" ? raw : typeof raw === "string" ? Number(raw) : Number.NaN;
+  return Number.isFinite(n) ? n : null;
+}
 
 export async function loadGalleryData(supabase: Rpc, today = new Date()): Promise<GalleryData> {
   const [aboni, sm, zaheen, ar] = await Promise.all([
@@ -121,8 +133,10 @@ export async function loadGalleryData(supabase: Rpc, today = new Date()): Promis
     const { data, error } = await supabase.rpc("discover_suppliers", discoverArgs({ q: GALLERY_QUERY.q, certKinds: [...GALLERY_QUERY.certKinds], limit: 8 }));
     if (error) discoverError = true;
     else {
-      const rows = (Array.isArray(data) ? data : []) as { slug: string; total_count: number }[];
-      total = rows[0] ? Number(rows[0].total_count) : 0;
+      const rows = (Array.isArray(data) ? data : []) as { slug: string; total_count: unknown }[];
+      // No rows is a real "0 matches"; a row whose count will not parse is unknown.
+      total = rows[0] ? countOf(rows[0].total_count) : 0;
+      if (rows[0] && total === null) discoverError = true;
       const namedSlugs = new Set(named.map((r) => r.slug));
       extraSlugs = rows.map((r) => r.slug).filter((s) => !namedSlugs.has(s)).slice(0, 4);
     }
@@ -147,8 +161,7 @@ export async function loadGalleryData(supabase: Rpc, today = new Date()): Promis
     // An unfiltered page of one: its `total_count` is the published-supplier count.
     const { data, error } = await supabase.rpc("discover_suppliers", discoverArgs({ limit: 1 }));
     const first = !error && Array.isArray(data) ? (data[0] as { total_count?: unknown } | undefined) : undefined;
-    if (first && typeof first.total_count === "number") published = first.total_count;
-    else if (first && typeof first.total_count === "string") published = Number(first.total_count);
+    published = first ? countOf(first.total_count) : null;
   } catch {
     published = null;
   }
@@ -159,12 +172,16 @@ export async function loadGalleryData(supabase: Rpc, today = new Date()): Promis
   recordsReadOn = latest < 0 ? null : formatDay(new Date(latest).toISOString());
 
   // RFQs of the viewer (admin in the gallery), as `rfq_list` returns them.
+  // A failed read is carried as unknown: the empty state states a fact about
+  // the account ("your first RFQ lands here") that an unread list cannot.
   let rfqRows: RfqListRow[] = [];
+  let rfqError = false;
   try {
     const { data, error } = await supabase.rpc("rfq_list", { p_status: null });
-    rfqRows = !error && Array.isArray(data) ? (data as RfqListRow[]) : [];
+    if (error || !Array.isArray(data)) rfqError = true;
+    else rfqRows = data as RfqListRow[];
   } catch {
-    rfqRows = [];
+    rfqError = true;
   }
   const sent = rfqRows.filter((r) => r.status !== "cancelled").length;
   const quotes = rfqRows.reduce((n, r) => n + (r.quote_count ?? 0), 0);
@@ -181,9 +198,11 @@ export async function loadGalleryData(supabase: Rpc, today = new Date()): Promis
       { label: "Closed", count: count((r) => r.status.label === "Closed" || r.status.label === "Cancelled") },
     ],
     rows: rfqModels,
-    footer:
-      rfqModels.length > 0
-        ? `1–${rfqModels.length} of ${rfqModels.length} · a supplier's reply lands in Messages and turns the row Quoted`
+    error: rfqError,
+    footer: rfqError
+      ? "The RFQ list could not be read"
+      : rfqModels.length > 0
+        ? `1–${rfqModels.length} of ${rfqModels.length}`
         : "No RFQs for this account yet",
     toast: null,
   };
@@ -192,6 +211,7 @@ export async function loadGalleryData(supabase: Rpc, today = new Date()): Promis
     today,
     plan: null,
     discoverError,
+    rfqError,
     records,
     cards,
     rows,

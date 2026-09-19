@@ -56,9 +56,14 @@ describe("certificate state (spec §5: valid · expiring ≤ 90 days · expired 
       sortCerts([oeko, old, gots, wrap]).map((c) => c.number),
       ["7865", "GOTS-31587", "GOTS-27605", "32597-100"],
     );
-    assert.equal(certTileSubline([gots, wrap, oeko, old]), "1 expiring in 11 days");
+    // Cycle 5, finding 12: the sub-line returned on the expiring branch, so an
+    // expired certificate vanished from the card whenever another was expiring.
+    // Aboni holds both, and the buyer needs to see both.
+    assert.equal(certTileSubline([gots, wrap, oeko, old]), "1 expiring in 11 days · 1 expired · 1 no expiry");
+    assert.equal(certTileSubline([gots, wrap]), "1 expiring in 11 days");
     assert.equal(certTileSubline([gots, oeko, old]), "1 expired · 1 no expiry");
     assert.equal(certTileSubline([gots]), "all valid");
+    assert.equal(certTileSubline([]), null);
   });
 
   it("never invents a scheme name", () => {

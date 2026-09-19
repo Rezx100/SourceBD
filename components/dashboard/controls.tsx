@@ -86,6 +86,7 @@ export function Checkbox({ on = false, label, className }: { on?: boolean; label
   return (
     <span
       role="checkbox"
+      tabIndex={0}
       aria-checked={on}
       aria-label={label}
       className={cn(
@@ -115,7 +116,9 @@ export function V2Tag({ className }: { className?: string }) {
 
 /** `.meter`: a thin positive bar on the sunken ground. */
 export function Meter({ pct, thick = false, className }: { pct: number; thick?: boolean; className?: string }) {
-  const width = Math.max(0, Math.min(100, pct));
+  // An absent percentage is not 0 %: without this guard `aria-valuenow` and the
+  // bar width both rendered "NaN".
+  const width = Number.isFinite(pct) ? Math.max(0, Math.min(100, pct)) : 0;
   return (
     <span
       role="meter"
