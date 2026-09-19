@@ -5,6 +5,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
 import { RfqList } from "@/components/dashboard/rfq-list";
+import { SupplierSheet } from "@/components/dashboard/supplier-sheet";
 import type { RfqListModel } from "./models";
 import { sourceMark } from "./source-tiers";
 import {
@@ -28,6 +29,10 @@ import {
 import type { RecordInput } from "./build-models";
 import {
   aboniInput,
+  ASWAD_U2_EXT,
+  ASWAD_U2,
+  longestHsListInput,
+  oneRegisterManyNumbersInput,
   SQ_UNIT_3,
   SQ_UNIT_04,
   buildingBrandListsInput,
@@ -62,7 +67,7 @@ describe("buildCard — the 11-source record (Aboni)", () => {
   it("meta: type · place · est. · workers; a mark only where the payload attributes the fact", () => {
     assert.deepEqual(
       card.meta.map((f) => f.text),
-      ["Factory", "Dhaka", "Est. 1985", "3,166 workers across 2 of 2 sites"],
+      ["Factory", "Dhaka", "Est. 1985", "3,166 workers across 2 sites"],
     );
     assert.equal(card.meta[3]!.mark?.code, "RSC", "workers come from the RSC display batch");
     assert.equal(card.meta[1]!.mark, null, "city/district are derived fields — no register mark");
@@ -169,7 +174,7 @@ describe("workersFact — a group figure says how many sites it covers", () => {
     assert.deepEqual(workersFact(aboniInput()), {
       value: 3166,
       source: "RSC",
-      coverage: "2 of 2 sites",
+      coverage: "2 sites",
       excluded: [],
       excludesRecord: false,
       groupUnknown: false,
@@ -180,15 +185,15 @@ describe("workersFact — a group figure says how many sites it covers", () => {
     assert.deepEqual(workersFact(smKnitwearInput()), {
       value: 907,
       source: "RSC",
-      coverage: "1 of 2 sites",
+      coverage: "1 of the 2 sites on file",
       excluded: ["S M Knitwears Limited"],
       // The one site the figure leaves out is the record the buyer is reading.
       excludesRecord: true,
       groupUnknown: false,
     });
-    assert.equal(buildTableRow(smKnitwearInput()).workersCoverage, "1 of 2 sites");
+    assert.equal(buildTableRow(smKnitwearInput()).workersCoverage, "1 of the 2 sites on file, none of them this record");
     const sheet = buildSheet(smKnitwearInput());
-    assert.match(sheet.facts.find((f) => f.label === "Workers")!.note ?? "", /1 of 2 sites/);
+    assert.match(sheet.facts.find((f) => f.label === "Workers")!.note ?? "", /1 of the 2 sites on file/);
     assert.match(sheet.facts.find((f) => f.label === "Workers")!.note ?? "", /excluded: S M Knitwears Limited/);
   });
 
@@ -454,7 +459,7 @@ describe("buildSheet — facts panel and contact card", () => {
         ["Certificates", "4"],
         ["Safety", "RSC"],
         ["Sources", "11"],
-        ["Locations", "7"],
+        ["Locations", "3"],
         ["Facilities", null],
         ["RFQs", null],
       ],
@@ -493,11 +498,12 @@ describe("buildSheet — facts panel and contact card", () => {
       else assert.ok(f.checked, `${f.label} reads "Not on file" without saying what was checked`);
     }
     assert.ok(!sheet.facts.some((f) => f.label === "Map pin"), "no pin row until the geocode is read (Locations, REZ-C)");
-    // Cycle 8: production returns nine address rows for this record and seven
-    // distinct texts — BKMEA filed two of them twice — and "Locations 9" over
-    // seven places counts the table rather than the world.
+    // Cycle 9: production returns nine address rows for this record. Counting
+    // rows gave 9; counting distinct text gave 7; the registers write the same
+    // premises several ways, and `mergeUniqueLocations` — the matcher the
+    // production profile's Locations section already uses — finds 3.
     assert.equal((aboniInput().profile.addresses ?? []).length, 9, "the payload still has the duplicate rows this guard is about");
-    assert.equal(sheet.tabs.find((t) => t.label === "Locations")?.count, "7", "distinct addresses, not rows");
+    assert.equal(sheet.tabs.find((t) => t.label === "Locations")?.count, "3", "premises, not rows and not spellings");
     assert.equal(sheet.tabs.find((t) => t.label === "RFQs")?.count, null, "no RFQ query exists yet — no literal");
   });
 
@@ -892,11 +898,15 @@ describe("the sheet's 'every source mark links' claim counts every mark the shee
    */
   function everyRegisterHasAPage(): RecordInput {
     const input = aboniInput();
-    const homepageOnly = new Set(["RSC", "BGAPMEA", "BKMEA"]);
+    // RSC, BGAPMEA and BKMEA file only their agency homepage; the three brand
+    // lists link to a file of every supplier on the list, which is not a
+    // register page however well it resolves.
+    const notARecordPage = new Set(["RSC", "BGAPMEA", "BKMEA", "BRAND_ASOS", "BRAND_HM", "BRAND_NEXT"]);
     const p = input.profile;
-    p.supplier.source_tags = (p.supplier.source_tags ?? []).filter((t) => !homepageOnly.has(t.toUpperCase()));
-    p.pills = p.pills.filter((x) => !homepageOnly.has(x.source_code.toUpperCase()));
-    p.provenance = (p.provenance ?? []).filter((x) => !homepageOnly.has(x.source_code.toUpperCase()));
+    p.supplier.source_tags = (p.supplier.source_tags ?? []).filter((t) => !notARecordPage.has(t.toUpperCase()));
+    p.pills = p.pills.filter((x) => !notARecordPage.has(x.source_code.toUpperCase()));
+    p.provenance = (p.provenance ?? []).filter((x) => !notARecordPage.has(x.source_code.toUpperCase()));
+    p.brand_attributions = [];
     p.addresses = [];
     p.rsc_remediation = null;
     return input;
@@ -927,6 +937,20 @@ describe("the sheet's 'every source mark links' claim counts every mark the shee
     assert.equal(buildSheet(aboniInput()).everyMarkLinks, false);
   });
 
+  it("a brand mark that links to the whole disclosure list withholds it too", () => {
+    const input = everyRegisterHasAPage();
+    // Put one brand list back: every mark now has an href, and the claim must
+    // still be withheld, because "its register page" is not what that link
+    // opens — the mark's own accessible name says "opens the disclosure list".
+    input.profile.supplier.source_tags = [...(input.profile.supplier.source_tags ?? []), "BRAND_HM"];
+    input.profile.brand_attributions = aboniInput().profile.brand_attributions!.filter((b) => b.source_code === "BRAND_HM");
+    const sheet = buildSheet(input);
+    const hm = sheet.marks.find((m) => m.code === "BRAND_HM")!;
+    assert.ok(hm.href, "the file is real evidence and stays reachable");
+    assert.equal(hm.opens, "list");
+    assert.equal(sheet.everyMarkLinks, false);
+  });
+
   it("a record with no marks at all does not make the claim either", () => {
     const bare = arFashionInput();
     bare.profile.addresses = [];
@@ -948,7 +972,7 @@ describe("a mark is only drawn for a source the record itself holds", () => {
     assert.equal(workers.value, "6,703");
     assert.deepEqual(workers.marks ?? [], [], "an RSC square here is a seventh source the bar does not count");
     // The words are what attribute it, and they name whose figure it is.
-    assert.match(workers.note ?? "", /2 of 3 sites/);
+    assert.match(workers.note ?? "", /2 of the 3 sites on file/);
     assert.match(workers.note ?? "", /excluded/);
     // The card agrees with the sheet.
     assert.equal(buildCard(input).meta.find((f) => /workers/.test(f.text))?.mark, null);
@@ -1025,13 +1049,31 @@ describe("the factory address is the fullest one the payload holds, and is attri
   });
 });
 
-describe("Locations counts places, not rows", () => {
-  it("nine address rows, seven distinct texts", () => {
-    const rows = aboniInput().profile.addresses ?? [];
-    assert.equal(rows.length, 9);
-    assert.equal(new Set(rows.map((a) => a.address)).size, 7, "two registers filed the same address twice each");
-    assert.equal(buildSheet(aboniInput()).tabs.find((t) => t.label === "Locations")?.count, "7");
-  });
+describe("Locations counts premises, not rows and not spellings", () => {
+  // Cycle 8 counted distinct text, which is still a count of the table: the
+  // registers write one place several ways ("Kewa, Bakultala, Sreepur, 1744,
+  // Gazipur" and "…Sreepur, Gazipur - 1744"), and 79 published records
+  // over-count that way. The kit now uses `mergeUniqueLocations`, the matcher
+  // the production profile's own Locations section uses, so the tab and that
+  // section cannot disagree.
+  const CASES: [string, RecordInput, number, number, number][] = [
+    ["Aboni", aboniInput(), 9, 7, 3],
+    ["S M Knitwears", smKnitwearInput(), 15, 9, 5],
+    ["SQ Celsius", buildingBrandListsInput(), 3, 3, 2],
+    ["Aswad", buildingSafetyOnlyInput(), 9, 6, 4],
+    ["Mahir", oneRegisterManyNumbersInput(), 10, 9, 6],
+    ["Plummy", longestHsListInput(), 8, 5, 2],
+  ];
+
+  for (const [name, input, rows, distinctText, premises] of CASES) {
+    it(`${name}: ${rows} rows, ${distinctText} distinct spellings, ${premises} premises`, () => {
+      const addresses = input.profile.addresses ?? [];
+      assert.equal(addresses.length, rows);
+      assert.equal(new Set(addresses.map((a) => a.address)).size, distinctText, "the payload no longer has the shape this guard is about");
+      assert.equal(buildSheet(input).tabs.find((t) => t.label === "Locations")?.count, String(premises));
+      assert.ok(premises < distinctText || name === "SQ Celsius", `${name} would over-count if the dedupe were by text`);
+    });
+  }
 });
 
 describe("the RFQ row survives the shapes rfq_list can return", () => {
@@ -1064,5 +1106,51 @@ describe("the RFQ row survives the shapes rfq_list can return", () => {
     assert.equal(words("accepted"), "Quote accepted");
     assert.equal(words("closed"), "Closed");
     assert.equal(words("cancelled"), "Cancelled", "a cancelled RFQ is not a closed one");
+  });
+});
+
+describe("cycle 9: claims the fixtures did not previously reach", () => {
+  it("a certificate whose document is the register's search form is not linked as the certificate", () => {
+    // All seven SA8000 certificates in production carry
+    // `https://sa-intl.org/sa8000-search/` — the search form `recordPage`
+    // rejects by name. The square was correctly unlinked while the link
+    // beside it promised the document and delivered a search page.
+    const input = aboniInput();
+    input.profile.certifications = [{ ...input.profile.certifications[0]!, kind: "sa8000", certificate_no: "23", document_url: "https://sa-intl.org/sa8000-search/" }];
+    const sheet = buildSheet(input);
+    assert.equal(sheet.certs[0]!.documentUrl, "https://sa-intl.org/sa8000-search/", "the payload still carries it");
+    assert.equal(recordPage(sheet.certs[0]!.documentUrl), false);
+    const html = renderToStaticMarkup(createElement(SupplierSheet, { model: sheet }));
+    assert.doesNotMatch(html, /sa8000-search/, "nothing on the sheet opens the register's search form");
+    assert.doesNotMatch(html, />Certificate\s*</, "no link promises a certificate document there is none of");
+    assert.equal(sheet.everyMarkLinks, false);
+  });
+
+  it("the BGMEA grade chip says 'member' once", () => {
+    // Every BGMEA label production holds already ends in "member #", and
+    // 3,313 published records reach this chip because BGMEA is their only
+    // source.
+    for (const [name, input, words] of [
+      ["A.R. Fashion", arFashionInput(), "BGMEA Associate member"],
+      ["MG Niche Flair", buildingOnlyCertificateInput(), "BGMEA General member"],
+      ["Adventure Garments", longestProductListInput(), "BGMEA General member"],
+    ] as const) {
+      const chip = buildCard(input).chips.find((c) => /^BGMEA/.test(c.label));
+      assert.equal(chip?.label, words, name);
+      assert.doesNotMatch(chip?.label ?? "", /member member/i, name);
+    }
+  });
+
+  it("a mother covered by two buildings names the worst and counts the rest", () => {
+    // 16 published mothers have two or more building RSC rows and none of
+    // their own; naming only the behind-schedule one hid that a second
+    // building is covered too.
+    const input = buildingSafetyOnlyInput();
+    assert.equal((input.profile.rsc_remediation as unknown[]).length, 2);
+    const chip = buildCard(input).chips.find((c) => /^RSC covers/.test(c.label))!;
+    assert.equal(chip.label, `RSC covers ${ASWAD_U2_EXT} +1 · 81 % · behind schedule`);
+    assert.equal(chip.tone, "caution");
+    // And both buildings still get their own block on the sheet.
+    assert.deepEqual(buildSheet(input).rscBuildingBlocks.map((b) => b.name), [ASWAD_U2, ASWAD_U2_EXT]);
   });
 });

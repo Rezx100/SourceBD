@@ -1,32 +1,10 @@
 {
   "__read": {
     "date": "2026-09-20",
-    "note": "Written by the queries in the cycle-8 evidence bundle's sql/README.md, read-only. Keys the kit never reads are dropped; nothing else is edited by hand.",
+    "note": "Written by the queries in the evidence bundle's sql/README.md, read-only. Keys the kit never reads are dropped; nothing else is edited by hand, except that jsonb renders numeric(5,2) as 100.00 where JSON carries 100.0 — the same number. __rfq_list is the largest list any auth.uid() can obtain from rfq_list: the five RFQs of one buyer. __workers is production_workers_display_batch, one call per record.",
     "project": "stnrfxrxfonwexzcvvpv"
   },
   "__rfq_list": [
-    {
-      "created_at": "2026-09-09T01:00:30.289024+00:00",
-      "id": "b40e3903-e81e-457f-a2c0-d9cefbc8c42e",
-      "product_title": "T-shirt",
-      "quantity": 100,
-      "quantity_unit": "pcs",
-      "quote_count": 0,
-      "ship_by": "2026-09-24",
-      "status": "open",
-      "target_supplier_count": 1
-    },
-    {
-      "created_at": "2026-08-11T19:13:46.774004+00:00",
-      "id": "31720507-4ffe-49e6-9270-be93971ff48a",
-      "product_title": "jhewbsd",
-      "quantity": 45,
-      "quantity_unit": "pcs",
-      "quote_count": 0,
-      "ship_by": "2026-12-24",
-      "status": "open",
-      "target_supplier_count": 1
-    },
     {
       "created_at": "2026-07-18T18:33:29.847139+00:00",
       "id": "46c33de8-831a-45b7-a813-beb82e8dcf26",
@@ -83,6 +61,102 @@
       "target_supplier_count": 1
     }
   ],
+  "__rfq_targets": {
+    "46c33de8-831a-45b7-a813-beb82e8dcf26": {
+      "codes": [
+        "OEKO_TEX"
+      ],
+      "name": "Thermax Woven Dyeing Ltd.",
+      "slug": "thermax-woven-dyeing"
+    },
+    "5f7cf830-a066-43df-a7ca-f0890d67c118": {
+      "codes": [
+        "OEKO_TEX"
+      ],
+      "name": "Thermax Woven Dyeing Ltd.",
+      "slug": "thermax-woven-dyeing"
+    },
+    "6108e56e-148a-4b0b-b7a3-5f03292be538": {
+      "codes": [
+        "OEKO_TEX"
+      ],
+      "name": "Thermax Woven Dyeing Ltd.",
+      "slug": "thermax-woven-dyeing"
+    },
+    "7e4fd0f0-ef28-495c-a345-d8a1c48a7bab": {
+      "codes": [
+        "OEKO_TEX"
+      ],
+      "name": "Thermax Woven Dyeing Ltd.",
+      "slug": "thermax-woven-dyeing"
+    },
+    "e012b9ba-f3d8-44b3-856b-7ef9e7585dcf": {
+      "codes": [
+        "OEKO_TEX"
+      ],
+      "name": "Thermax Woven Dyeing Ltd.",
+      "slug": "thermax-woven-dyeing"
+    }
+  },
+  "__workers": {
+    "ab-apparels-ltd-extension": {
+      "fetched_at": null,
+      "source": "registry",
+      "value": 651
+    },
+    "aboni-knitwear": {
+      "fetched_at": "2026-07-30T22:13:40.757784+00:00",
+      "source": "RSC",
+      "value": 3166
+    },
+    "adventure-garments": {
+      "fetched_at": null,
+      "source": "registry",
+      "value": 610
+    },
+    "aman-graphics-and-designs": {
+      "fetched_at": "2026-07-30T22:20:15.864955+00:00",
+      "source": "RSC",
+      "value": 9418
+    },
+    "ar-fashion": null,
+    "aswad-composite-mills": {
+      "fetched_at": "2026-07-30T22:29:47.319621+00:00",
+      "source": "RSC",
+      "value": 6703
+    },
+    "hossain-dyeing-and-printing-mills": {
+      "fetched_at": null,
+      "source": "registry",
+      "value": 1784
+    },
+    "mahir-label-and-accessories": null,
+    "mg-niche-flair": {
+      "fetched_at": null,
+      "source": "registry",
+      "value": 2350
+    },
+    "plummy-fashions": {
+      "fetched_at": "2026-07-24T06:51:47.037077+00:00",
+      "source": "RSC",
+      "value": 800
+    },
+    "sm-knitwear": {
+      "fetched_at": "2026-09-11T05:42:11.689462+00:00",
+      "source": "RSC",
+      "value": 907
+    },
+    "sq-celsius": {
+      "fetched_at": "2026-09-04T05:43:52.272089+00:00",
+      "source": "RSC",
+      "value": 3690
+    },
+    "zaheen-knitwear-limited-shed-3-4-5-10-11-12-13-and-building-security-etp-and-fire-pump": {
+      "fetched_at": "2026-08-07T05:56:42.605291+00:00",
+      "source": "RSC",
+      "value": 1634
+    }
+  },
   "aboni-knitwear": {
     "addresses": [
       {

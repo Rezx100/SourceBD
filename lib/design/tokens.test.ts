@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
-import { borderRadius, boxShadow, contrastPairs, contrastRatio, fontSize, light, resolve, tiers, toRgb } from "./tokens";
+import { borderRadius, boxShadow, contrastPairs, contrastRatio, cssVarName, density, densitySizes, fontSize, light, maxWidth, resolve, tiers, toRgb, transitionDuration } from "./tokens";
 
 // npm test runs from the repo root; the compiled test lives elsewhere.
 const repoRoot = process.cwd();
@@ -225,4 +225,181 @@ test("the radius scale is the one the founder approved on 19 Sep", () => {
     },
     "the v3 scale; §9's 5/6/8 was superseded by the founder's decision of 19 Sep",
   );
+});
+
+// ---------------------------------------------------------------------------
+// Cycle 9. An independent mutation sweep found every non-colour token in this
+// file unguarded: renaming every default CSS variable, doubling the body font
+// size, changing the table-row height, the sidebar width, the content width
+// and the fast transition all left the suite green, because no test renders a
+// token through to a class and nothing pins the values. Each of these is a
+// literal, so a change to the scale is a change to a test.
+// ---------------------------------------------------------------------------
+
+test("the contrast table lists every pair it is meant to, at the threshold its use needs", () => {
+  // Generated from `contrastPairs`, which is exported from the file under
+  // test: deleting a pair deletes its test, and lowering a `min` lowers the
+  // bar. A `length >=` backstop cannot catch either (49 >= 12 always holds).
+  const listed = contrastPairs.map((p) => `${p.fg} on ${p.bg} @${p.min}`).sort();
+  // The whole table, as literals. Deleting a pair deletes its generated
+  // test and lowering a `min` lowers the bar it is checked against; neither
+  // shows up as a failure while the expectation is derived from the table.
+  const expected = [
+    "brand.ink on brand.tint @4.5",
+    "brand.ink on brand.tint-strong @4.5",
+    "brand.ink on canvas @4.5",
+    "brand.ink on locked @4.5",
+    "brand.ink on quiet @4.5",
+    "brand.ink on surface @4.5",
+    "brand.ink on surface.sunken @4.5",
+    "brand.ink-inverse on surface.inverse @4.5",
+    "brand.on on brand @4.5",
+    "brand.on on brand.active @4.5",
+    "brand.on on brand.hover @4.5",
+    "caution.ink on canvas @4.5",
+    "caution.ink on caution.tint @4.5",
+    "caution.ink on surface @4.5",
+    "caution.on on caution @4.5",
+    "danger.ink on danger.tint @4.5",
+    "danger.ink on surface @4.5",
+    "danger.on on danger @4.5",
+    "focus on canvas @3",
+    "focus on surface @3",
+    "ink on canvas @4.5",
+    "ink on locked @4.5",
+    "ink on quiet @4.5",
+    "ink on surface @4.5",
+    "ink on surface.sunken @4.5",
+    "ink.inverse on surface.inverse @4.5",
+    "ink.inverse on surface.inverse-raised @4.5",
+    "ink.inverse-muted on surface.inverse @4.5",
+    "ink.inverse-subtle on surface.inverse @4.5",
+    "ink.muted on canvas @4.5",
+    "ink.muted on locked @4.5",
+    "ink.muted on quiet @4.5",
+    "ink.muted on surface @4.5",
+    "ink.muted on surface.sunken @4.5",
+    "ink.strong on canvas @4.5",
+    "ink.strong on locked @4.5",
+    "ink.strong on locked.stripe @4.5",
+    "ink.strong on quiet @4.5",
+    "ink.strong on surface @4.5",
+    "ink.strong on surface.sunken @4.5",
+    "ink.subtle on canvas @4.5",
+    "ink.subtle on locked @4.5",
+    "ink.subtle on quiet @4.5",
+    "ink.subtle on surface @4.5",
+    "ink.subtle on surface.sunken @4.5",
+    "line.strong on surface @3",
+    "locked.ink on locked @4.5",
+    "locked.ink on locked.stripe @4.5",
+    "positive.ink on positive.tint @4.5",
+    "positive.on on positive @4.5",
+    "quiet.ink on quiet @4.5",
+    "quiet.ink on surface @4.5",
+    "sanction.ink on sanction.tint @7",
+    "sanction.ink on surface @7",
+    "sanction.line on surface @3",
+    "sanction.on on sanction @7",
+    "signal.deep on surface @3",
+    "signal.on on signal @4.5",
+    "smart on canvas @4.5",
+    "smart on smart.tint @4.5",
+    "smart on surface @4.5",
+    "tier.1-on on tier.1 @4.5",
+    "tier.2-on on tier.2 @4.5",
+    "tier.3-on on tier.3 @4.5",
+    "tier.4-on on tier.4 @4.5",
+    "tier.5-line on surface @3",
+    "tier.5-on on tier.5 @4.5",
+  ];
+  assert.deepEqual(listed, expected, "contrastPairs and this list must be the same set; a pair in one and not the other is unchecked or unlisted");
+});
+
+test("the pairs held above AA are still held above AA", () => {
+  // §2 reserves the sanction red; §6 asks for AAA on it. A silent drop from 7
+  // to 4.5 leaves the comment true and the check weaker.
+  for (const key of ["sanction.on on sanction", "sanction.ink on sanction.tint"]) {
+    const pair = contrastPairs.find((p) => `${p.fg} on ${p.bg}` === key);
+    assert.ok(pair, `"${key}" is not checked at all`);
+    assert.equal(pair!.min, 7, `"${key}" is checked at ${pair!.min}:1, not the AAA the spec asks for`);
+  }
+  for (const key of ["line.strong on surface", "tier.5-line on surface"]) {
+    const pair = contrastPairs.find((p) => `${p.fg} on ${p.bg}` === key);
+    assert.ok(pair, `"${key}" is not checked at all`);
+    assert.equal(pair!.min, 3, `"${key}" is a UI boundary and needs 3:1`);
+  }
+});
+
+test("a colour group's default variable keeps its bare name", () => {
+  // `--ds-ink` is what `text-ink` resolves to. Renaming it `--ds-ink-DEFAULT`
+  // breaks every default colour in the product and no test noticed.
+  assert.equal(cssVarName("ink", "DEFAULT"), "--ds-ink");
+  assert.equal(cssVarName("ink", "muted"), "--ds-ink-muted");
+  assert.equal(cssVarName("brand", "DEFAULT"), "--ds-brand");
+  assert.equal(cssVarName("tier", "1-on"), "--ds-tier-1-on");
+});
+
+test("the density stops are the ones the artifact fixed", () => {
+  assert.deepEqual({ ...density }, {
+    tableRow: 36,
+    tableRowRelaxed: 44,
+    control: 32,
+    controlLarge: 40,
+    cardPadding: 16,
+    panelPadding: 20,
+    gutter: 24,
+    sidebar: 232,
+    topbar: 56,
+    factRow: 28,
+  });
+  // The Tailwind utilities are derived from them, so the two cannot drift.
+  for (const [util, px] of [
+    ["row-dense", density.tableRow],
+    ["row-relaxed", density.tableRowRelaxed],
+    ["control", density.control],
+    ["control-lg", density.controlLarge],
+    ["sidebar", density.sidebar],
+    ["topbar", density.topbar],
+    ["fact-row", density.factRow],
+  ] as const) {
+    assert.equal(densitySizes[util], `${px}px`, util);
+  }
+});
+
+test("the type scale, the widths and the durations are the approved ones", () => {
+  assert.equal(fontSize.base?.[0], "0.875rem", "body text is 14px");
+  assert.equal(fontSize.sm?.[0], "0.8125rem");
+  assert.equal(fontSize.xs?.[0], "0.75rem");
+  assert.equal(fontSize.title?.[0], "0.9375rem");
+  assert.equal(fontSize.eyebrow?.[0], "0.6875rem");
+  assert.equal(maxWidth.content, "75rem");
+  assert.equal(maxWidth.prose, "68ch");
+  assert.deepEqual({ ...transitionDuration }, { fast: "120ms", DEFAULT: "200ms", slow: "320ms", reveal: "640ms" });
+});
+
+test("the source-rank labels are the five §2 names", () => {
+  assert.deepEqual(
+    tiers.map((t) => [t.rank, t.label]),
+    [
+      [1, "Government"],
+      [2, "Industry bodies"],
+      [3, "Certification bodies"],
+      [4, "Brand lists"],
+      [5, "Foreign regulators"],
+    ],
+  );
+});
+
+test("no role outside the signal group paints the reserved sanction red", () => {
+  // The live dot's bloom is a shadow, not a colour group, so the
+  // sanction-reuse test above cannot see it.
+  const sanction = new Set(Object.values(light.sanction).map((h) => h.toUpperCase().replace("#", "")));
+  sanction.delete(light.sanction.on.toUpperCase().replace("#", ""));
+  for (const [key, value] of Object.entries(boxShadow)) {
+    for (const m of String(value).matchAll(/rgb\(\s*(\d+)\s+(\d+)\s+(\d+)/g)) {
+      const hex = [m[1], m[2], m[3]].map((n) => Number(n).toString(16).padStart(2, "0").toUpperCase()).join("");
+      assert.ok(!sanction.has(hex), `the "${key}" shadow paints the reserved sanction red`);
+    }
+  }
 });

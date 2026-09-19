@@ -25,6 +25,7 @@ import {
   transitionDuration,
   type TierRank,
 } from "@/lib/design/tokens";
+import { RFQ_TARGETS } from "@/lib/dashboard/fixtures";
 import { loadGalleryData } from "@/lib/dashboard/gallery-data";
 import { DashboardScreens } from "./dashboard-screens";
 
@@ -161,7 +162,11 @@ export default async function DesignSystemGallery() {
   const { longest, typical } = await loadRealNames();
   const sampleName = longest ?? typical;
   const supabase = await createSupabaseServerClient();
-  const dashboard = await loadGalleryData(supabase);
+  // The same third argument the screenshot harness passes. `rfq_list` returns
+  // no supplier identity, so without it every RFQ row reads "1 supplier" —
+  // and the page and the screenshots would show different screens, which is
+  // the one thing the evidence may not do.
+  const dashboard = await loadGalleryData(supabase, new Date(), RFQ_TARGETS);
 
   const results = contrastPairs.map((p) => {
     const ratio = contrastRatio(resolve(light, p.fg), resolve(light, p.bg));

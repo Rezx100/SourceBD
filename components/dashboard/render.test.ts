@@ -7,7 +7,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, it } from "node:test";
 
-import { buildCard, buildProductSheet, buildRfqRow, buildSheet, buildTableRow } from "@/lib/dashboard/build-models";
+import { buildCard, buildProductSheet, buildRfqRow, buildSheet, buildTableRow, type RecordInput } from "@/lib/dashboard/build-models";
 import {
   aboniInput,
   buildingBrandListsInput,
@@ -92,10 +92,10 @@ describe("SupplierResultCard (rendered)", () => {
   // Cycle 5, finding 8: the figure is 2,662 (mother) + 504 (New Shed).
   it("a group worker figure says how many sites it covers, on the card and in the table", () => {
     const card = renderToStaticMarkup(createElement(SupplierResultCard, { card: buildCard(aboniInput()) }));
-    assert.match(card, /3,166 workers across 2 of 2 sites/);
+    assert.match(card, /3,166 workers across 2 sites/);
     const sm = renderToStaticMarkup(createElement(ResultsTable, { rows: [buildTableRow(smKnitwearInput())] }));
     assert.match(sm, /907/);
-    assert.match(sm, /1 of 2 sites/, "the 907 belongs to the Extension building, not to the company");
+    assert.match(sm, /1 of the 2 sites on file/, "the 907 belongs to the Extension building, not to the company");
   });
 
   // Cycle 5, finding 18: the results panel renders no #certificates or #sources.
@@ -339,7 +339,10 @@ describe("SupplierSheet (rendered)", () => {
   it("the almost-empty record says Not on file with what was checked, no certificate on any register", () => {
     const html = renderToStaticMarkup(createElement(SupplierSheet, { model: buildSheet(arFashionInput()) }));
     assert.ok((html.match(/Not on file/g) ?? []).length >= 6);
-    assert.match(html, /registers checked/);
+    // "registers checked" also matches "no registers checked"; the point of
+    // the row is that it names what WAS checked.
+    assert.match(html, /\b\d+ registers checked|>registers checked</);
+    assert.doesNotMatch(html, /no registers checked/);
     assert.match(html, /No certificate on any register/);
     assert.match(html, /No active RSC record on file/);
   });
@@ -1102,7 +1105,14 @@ describe("the failed-read copy is pinned as words, not as itself", () => {
     // kept the suite green — the cycle-5 self-comparison class.
     assert.match(RFQ_ERROR_COPY, /could not be read/i);
     assert.doesNotMatch(RFQ_ERROR_COPY, /\bno RFQs\b|\bnone\b|\byet\b|\bfirst RFQ\b/i, "the failed read must not state a fact about the account");
-    assert.match(RFQ_EMPTY_COPY, /first RFQ/i);
+    // A substring any rewrite can keep is not a guard: the empty state may
+    // promise nothing about delivery, because 3 of 10,922 records are claimed
+    // and an unclaimed supplier is not reached at all until REZ-D's email.
+    assert.equal(
+      RFQ_EMPTY_COPY,
+      "Your first RFQ lands here. Suppliers answer inside the platform, with the record attached.",
+    );
+    assert.doesNotMatch(RFQ_EMPTY_COPY, /\bemail\b|\bhours?\b|\bdays?\b|\bwithin\b|\breply by\b|\bguarantee/i, "the empty state may not promise delivery");
     assert.notEqual(RFQ_ERROR_COPY, RFQ_EMPTY_COPY);
     const html = renderToStaticMarkup(
       createElement(RfqList, {
@@ -1206,5 +1216,49 @@ describe("the certificate card's own mark links, and the sheet shows the registe
     // And a record with none anywhere keeps the plain words.
     const none = renderToStaticMarkup(createElement(SupplierSheet, { model: buildSheet(arFashionInput()) }));
     assert.match(none, /No certificate on any register/);
+  });
+});
+
+describe("the composer says what the draft is, and promises nothing about delivery", () => {
+  it("the preview heading names the message, not its arrival", () => {
+    const html = renderToStaticMarkup(createElement(RfqComposer, { model: COMPOSER_MODEL }));
+    assert.match(html, />The message this RFQ carries</);
+    // "the message the supplier receives" is a delivery claim the kit may not
+    // make: an unclaimed supplier is not reached until REZ-D's email work.
+    assert.doesNotMatch(html, /the supplier receives|will receive|lands in their inbox|delivered/i);
+  });
+});
+
+describe("a card tile with nothing to show says so, and never zero", () => {
+  it("every empty tile is an em dash beside its reason", () => {
+    for (const [name, input] of [
+      ["a failed EPB read", { ...aboniInput(), hscodes: [], hscodesError: true } as RecordInput],
+      ["the almost-empty record", arFashionInput()],
+      ["the 125-character record", longestNameInput()],
+    ] as [string, RecordInput][]) {
+      const card = buildCard(input);
+      const html = renderToStaticMarkup(createElement(SupplierResultCard, { card }));
+      for (const tile of card.tiles) {
+        if (tile.value !== null) continue;
+        // The sub-line says what was checked; the value must not read as a count.
+        assert.ok(tile.sub, `${name}: an empty "${tile.label}" tile says nothing about why`);
+        assert.doesNotMatch(html, new RegExp(`>${tile.label}<[^]{0,200}?>0<`), `${name}: "${tile.label} 0" over "${tile.sub}"`);
+      }
+      assert.match(html, /—/, `${name}: no tile shows the em dash`);
+    }
+  });
+});
+
+describe("the table row carries the same qualifier the card does", () => {
+  it("a figure that excludes this record says so in both places", () => {
+    const row = buildTableRow(smKnitwearInput());
+    const card = buildCard(smKnitwearInput());
+    const cardWords = card.meta.find((f) => /workers/.test(f.text))!.text;
+    assert.match(cardWords, /none of them this record/);
+    // The row printed the bare "1 of 2 sites", dropping the half that says
+    // the 907 is entirely the Extension building's.
+    assert.match(row.workersCoverage ?? "", /none of them this record/, `the row says only "${row.workersCoverage}"`);
+    const html = renderToStaticMarkup(createElement(ResultsTable, { rows: [row] }));
+    assert.match(html, /none of them this record/);
   });
 });

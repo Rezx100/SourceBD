@@ -164,7 +164,7 @@ export function DashboardScreens({ data: d }: { data: GalleryData }) {
       <Frame
         id="rfq-list"
         title="RFQList — status chips, table, empty state"
-        note={`The viewer's own RFQs from rfq_list: ${d.rfqs.rows.length} real rows, newest first. rfq_list is scoped to auth.uid(), so a viewer who owns none reads the empty state instead — "Your first RFQ lands here." — never "0 sent".`}
+        note={`The viewer's own RFQs from rfq_list: ${d.rfqs.rows.length} real rows, newest first. Production holds seven across three buyers and rfq_list is scoped to auth.uid(), so these five — one buyer's own — are the longest list it can return to anybody. A viewer who owns none reads the empty state instead, "Your first RFQ lands here." — never "0 sent".`}
         height={700}
       >
         <Stage height={700}>

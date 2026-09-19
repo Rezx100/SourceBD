@@ -1403,7 +1403,7 @@ export function buildingSafetyOnlyInput(): RecordInput {
         fire_inspection_url: `${ACCORD_FILE}/347873.pdf`,
         structural_inspection_url: `${ACCORD_FILE}/348385.pdf`,
         electrical_inspection_url: `${ACCORD_FILE}/345171.pdf`,
-        boiler_inspection_url: null,
+        boiler_inspection_url: `${ACCORD_FILE}/345172.pdf`,
         cap_url: "https://accord2.fairfactories.org/web/Audits/Audits/DownloadCAPFile?id=25868",
       },
     ],
@@ -1438,25 +1438,24 @@ export function buildingSafetyOnlyInput(): RecordInput {
 }
 
 // ---------------------------------------------------------------------------
-// The RFQs `rfq_list` returns, for the account that owns them.
+// The RFQs `rfq_list` returns, for one account.
 //
 // `rfq_list` is SECURITY DEFINER and scoped to `auth.uid()`: it returns a
-// buyer's own RFQs and the ones targeting a supplier they have claimed, and
-// `'[]'` to anyone else. All seven RFQs on production belong to one buyer, so
-// an admin opening `/dev/ds` reads an empty list — which is why the gallery
-// used to render "0 sent · 0 quotes" and "No RFQs for this account yet" as
-// facts about an account that does not exist. Those are the seven real rows,
-// as that buyer's own call returns them, newest first. Nothing is invented:
-// the duplicated hoodie drafts, the timestamp appended to one title and the
-// one-word title are what the table holds.
-// Read 20 Sep 2026.
+// buyer's own RFQs plus any targeting a supplier that caller has claimed, and
+// `'[]'` to anyone else. Production holds seven RFQs across **three** buyers
+// (5 · 1 · 1), so no caller can ever be shown all seven — the five below, one
+// buyer's own, are the largest list the RPC can produce for anybody. An
+// earlier cycle carried all seven and the screen then said "7 sent" about an
+// account that does not exist; the cycle before that said "0 sent" about the
+// same nobody.
+//
+// Nothing is invented: the duplicated drafts and the timestamp appended to one
+// title are what the table holds. Read 20 Sep 2026.
 // ---------------------------------------------------------------------------
 
 const HOODIES = "Men's heavyweight French terry hoodies, 420gsm";
 
 export const RFQ_ROWS: RfqListRow[] = [
-  { id: "b40e3903-e81e-457f-a2c0-d9cefbc8c42e", product_title: "T-shirt", quantity: 100, quantity_unit: "pcs", ship_by: "2026-09-24", status: "open", target_supplier_count: 1, quote_count: 0, created_at: "2026-09-09T01:00:30.289024+00:00" },
-  { id: "31720507-4ffe-49e6-9270-be93971ff48a", product_title: "jhewbsd", quantity: 45, quantity_unit: "pcs", ship_by: "2026-12-24", status: "open", target_supplier_count: 1, quote_count: 0, created_at: "2026-08-11T19:13:46.774004+00:00" },
   { id: "46c33de8-831a-45b7-a813-beb82e8dcf26", product_title: `${HOODIES} - 2026-07-18T18:33`, quantity: 12000, quantity_unit: "pcs", ship_by: "2026-10-30", status: "open", target_supplier_count: 1, quote_count: 0, created_at: "2026-07-18T18:33:29.847139+00:00" },
   { id: "5f7cf830-a066-43df-a7ca-f0890d67c118", product_title: HOODIES, quantity: 10000, quantity_unit: "pcs", ship_by: "2026-10-15", status: "open", target_supplier_count: 1, quote_count: 0, created_at: "2026-07-18T18:01:15.116177+00:00" },
   { id: "e012b9ba-f3d8-44b3-856b-7ef9e7585dcf", product_title: HOODIES, quantity: 10000, quantity_unit: "pcs", ship_by: "2026-10-15", status: "open", target_supplier_count: 1, quote_count: 0, created_at: "2026-07-18T17:57:54.821199+00:00" },
@@ -1465,19 +1464,20 @@ export const RFQ_ROWS: RfqListRow[] = [
 ];
 
 /**
- * The supplier each RFQ targets, by id, as REZ-D's join will resolve it.
- * `rfq_list` does not return the names; these are the `suppliers` rows the
+ * The supplier each RFQ targets, as REZ-D's join will resolve it. `rfq_list`
+ * returns `target_supplier_count` and nothing that identifies a supplier, so
+ * the names and the source codes below are the `suppliers` rows the
  * `target_supplier_ids` point at, read on 20 Sep 2026.
+ *
+ * The **codes** are carried rather than a rank: an earlier cycle hand-wrote
+ * `tier: 2` for every target, which drew Thermax (OEKO-TEX only, rank 3) one
+ * rank more trusted than its own receipts justify. The rank is computed from
+ * the codes by the same `topTier` every other surface uses, so it cannot be
+ * typed wrong.
  */
-export const RFQ_TARGETS: Record<string, { name: string; tier: 1 | 2 | 3 | 4 | 5 }> = {
-  "b40e3903-e81e-457f-a2c0-d9cefbc8c42e": { name: "QUATTRO FASHION LIMITED", tier: 2 },
-  "31720507-4ffe-49e6-9270-be93971ff48a": { name: "ALIM KNIT (BD) LTD", tier: 2 },
-  "46c33de8-831a-45b7-a813-beb82e8dcf26": { name: "Thermax Woven Dyeing Ltd.", tier: 2 },
-  "5f7cf830-a066-43df-a7ca-f0890d67c118": { name: "Thermax Woven Dyeing Ltd.", tier: 2 },
-  "e012b9ba-f3d8-44b3-856b-7ef9e7585dcf": { name: "Thermax Woven Dyeing Ltd.", tier: 2 },
-  "7e4fd0f0-ef28-495c-a345-d8a1c48a7bab": { name: "Thermax Woven Dyeing Ltd.", tier: 2 },
-  "6108e56e-148a-4b0b-b7a3-5f03292be538": { name: "Thermax Woven Dyeing Ltd.", tier: 2 },
-};
+export const RFQ_TARGETS: Record<string, { name: string; codes: string[] }> = Object.fromEntries(
+  RFQ_ROWS.map((r) => [r.id, { name: "Thermax Woven Dyeing Ltd.", codes: ["OEKO_TEX"] }]),
+);
 
 /**
  * The 125-character record, as an admin list receives it.

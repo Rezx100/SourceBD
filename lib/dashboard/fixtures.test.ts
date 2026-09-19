@@ -22,7 +22,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 
 import type { ProfilePayload, RecordInput } from "./build-models";
-import { sourceMark } from "./source-tiers";
+import { sourceMark, topTier } from "./source-tiers";
 import {
   aboniInput,
   ABONI_NEW_SHED,
@@ -86,6 +86,7 @@ const FIELDS = {
     "boiler_inspection_url", "cap_url",
   ],
   hscodes: ["code", "description", "source_url"],
+  workers: ["value", "source", "fetched_at"],
   rfq: ["id", "product_title", "quantity", "quantity_unit", "ship_by", "status", "target_supplier_count", "quote_count", "created_at"],
 } as const;
 
@@ -168,6 +169,15 @@ describe("every fixture is the payload production returns, field by field", () =
       // The three fixtures that carried `hscodes: []` over 14, 34 and 18 real
       // EPB lines are why this compares the lines and not their number.
       assert.deepEqual(pickAll(input.hscodes, FIELDS.hscodes), pickAll(real.hscodes, FIELDS.hscodes), "hscodes");
+      // `production_workers_display_batch` produces the largest number on the
+      // card, the row and the sheet, and was a whole key this file did not
+      // look at — the same shape as the cycle-7 `hsLines: 0` hole.
+      const batch = (PRODUCTION.__workers as Record<string, Json | null>)[slug];
+      assert.notEqual(batch, undefined, `the read has no workers entry for ${slug}`);
+      assert.equal(input.workers === null, batch === null, "workers: absent from the batch, or present");
+      if (input.workers !== null && batch !== null) {
+        assert.deepEqual(pick(input.workers, FIELDS.workers), pick(batch, FIELDS.workers), "workers");
+      }
     });
   }
 
@@ -185,6 +195,15 @@ describe("every fixture is the payload production returns, field by field", () =
     }
   });
 
+  it("the read covers the workers batch for every record it covers", () => {
+    const workers = PRODUCTION.__workers as Record<string, unknown>;
+    const records = Object.keys(PRODUCTION).filter((k) => !k.startsWith("__"));
+    for (const slug of records) assert.ok(slug in workers, `the read has no workers entry for ${slug}`);
+    // The one unpublished fixture the batch does answer for.
+    assert.ok("ab-apparels-ltd-extension" in workers);
+    assert.equal(Object.keys(workers).length, records.length + 1);
+  });
+
   it("the read says when and where it was taken", () => {
     const read = PRODUCTION.__read as Json;
     assert.equal(read.project, "stnrfxrxfonwexzcvvpv");
@@ -199,17 +218,32 @@ describe("the RFQ rows are the ones rfq_list returns", () => {
     assert.deepEqual([...dates].sort((a, b) => b - a), dates, "rfq_list orders by created_at desc");
   });
 
-  it("every row's target is named, and every named target belongs to a row", () => {
+  it("every row's target is named with the source codes production holds, and the rank is computed from them", () => {
     assert.deepEqual(Object.keys(RFQ_TARGETS).sort(), RFQ_ROWS.map((r) => r.id).sort());
+    const real = PRODUCTION.__rfq_targets as Record<string, { name: string; codes: string[] }>;
     for (const [id, t] of Object.entries(RFQ_TARGETS)) {
-      assert.ok(t.name.trim().length > 0, `${id} has an empty target name`);
-      assert.ok(t.tier >= 1 && t.tier <= 5, `${id} has no rank`);
+      assert.deepEqual({ name: t.name, codes: [...t.codes] }, { name: real[id]!.name, codes: real[id]!.codes }, id);
+    }
+    // An earlier cycle hand-wrote `tier: 2` for every target, which drew a
+    // record whose only receipt is an OEKO-TEX certificate at the rank of an
+    // industry-body member. The rank is derived, so it cannot be typed wrong.
+    for (const t of Object.values(RFQ_TARGETS)) {
+      assert.equal(topTier(t.codes), 3, "Thermax Woven Dyeing holds one OEKO-TEX certificate and nothing else");
     }
     // Every row targets exactly one supplier today, so one name per row is the
     // whole truth; when a row targets more, the count is what the screen says.
     for (const r of RFQ_ROWS) {
       assert.equal(r.target_supplier_count, 1, `${r.id} targets ${r.target_supplier_count}, so naming one is not the whole truth`);
     }
+  });
+
+  it("the list is one account's, because rfq_list can never return more", () => {
+    // Production holds seven RFQs across three buyers (5 · 1 · 1) and
+    // `rfq_list` is scoped to `auth.uid()`, so five is the largest list any
+    // caller can be shown. Carrying all seven made the screen state "7 sent"
+    // about an account that does not exist.
+    assert.equal(RFQ_ROWS.length, 5);
+    assert.equal(new Set(Object.values(RFQ_TARGETS).map((t) => t.name)).size, 1, "one buyer's five RFQs all target one supplier");
   });
 });
 

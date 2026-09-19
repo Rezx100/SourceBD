@@ -55,6 +55,7 @@ import type {
   TableRowModel,
   TileModel,
 } from "./models";
+import { mergeUniqueLocations } from "@/lib/dedup-addresses";
 import { marksFromTags, recordPage, sourceMark, topTier, type SourceMarkModel } from "./source-tiers";
 
 export { recordPage } from "./source-tiers";
@@ -387,7 +388,16 @@ export function workersFact(input: RecordInput): WorkersFact {
   return {
     value,
     source: batch?.source ?? group.source ?? null,
-    coverage: multi ? `${group.includedCount} of ${group.totalCount} sites` : null,
+    // "N of N sites" is a completeness claim, and the payload cannot support
+    // one: `production_workers_display_batch` walks every `facility_of`
+    // child, while `buyer_supplier_profile` returns a child only when it has
+    // an active RSC row. On 12 published records the two agree by coincidence
+    // and the record claimed to cover every site of a family it cannot see —
+    // `friends-knittings` said "11,800 workers across 2 of 2 sites" over four
+    // sites, one of which files 2,000 employees of its own. So the
+    // denominator is stated only when this payload itself excludes a site it
+    // enumerated, which is a fact about the payload rather than the family.
+    coverage: multi ? (group.includedCount === group.totalCount ? `${group.totalCount} sites` : `${group.includedCount} of the ${group.totalCount} sites on file`) : null,
     excluded: multi ? group.excludedLabels : [],
     excludesRecord: multi && record !== undefined && group.excludedLabels.includes(record.label),
     groupUnknown: false,
@@ -611,7 +621,11 @@ function rscChip(rsc: ProfileRsc | null, buildings: ProfileRsc[]): HighlightChip
     const worst = buildings.find((b) => rscStatusNeedsLook(b.remediation_status)) ?? first;
     const needsLook = rscStatusNeedsLook(worst.remediation_status);
     const more = buildings.length > 1 ? ` +${buildings.length - 1}` : "";
-    const named = needsLook && worst !== first ? `${worst.building_name}` : `${first.building_name}${more}`;
+    // Naming the worst building must not silently drop the others: 16
+    // published mothers have two or more building RSC rows and none of their
+    // own, and "RSC covers <the behind-schedule one>" alone hid the fact that
+    // a second building is covered too.
+    const named = needsLook && worst !== first ? `${worst.building_name}${more}` : `${first.building_name}${more}`;
     return {
       tone: needsLook ? "caution" : "neutral",
       icon: "shield",
@@ -657,7 +671,13 @@ export function buildCard(input: RecordInput): SupplierCardModel {
   if (brands.length > 0) chips.push({ tone: "neutral", label: `Listed by ${brands.join(", ")}` });
   if (certList.length === 0) chips.push({ tone: "quiet", label: certBuildings(p).length > 0 ? `No certificate on this record · ${certBuildings(p).join(", ")} holds one` : "No certificate on any register" });
   const bgmea = registers.find((r) => r.source_code.toUpperCase() === "BGMEA");
-  if (marks.length <= 1 && bgmea) chips.unshift({ tone: "neutral", label: `${registerLabel(bgmea.label)} member` });
+  // Every BGMEA label production holds already ends in "member #", so
+  // appending the word gave "BGMEA General member member" on the 3,313
+  // published records whose only source is BGMEA.
+  if (marks.length <= 1 && bgmea) {
+    const label = registerLabel(bgmea.label);
+    chips.unshift({ tone: "neutral", label: /\bmember$/i.test(label) ? label : `${label} member` });
+  }
   if (marks.length <= 1) chips.push({ tone: "quiet", label: `Nothing else on file · ${marks.length} of 25 sources` });
   const shown = chips.slice(0, 5);
   const moreChips = Math.max(0, chips.length - shown.length + Math.max(0, certList.length - 2));
@@ -756,7 +776,10 @@ export function buildTableRow(input: RecordInput): TableRowModel {
           : "not on EPB list",
     type: entityLabel(s.entity_type),
     workers: w.value,
-    workersCoverage: w.coverage,
+    // The words, not the bare coverage: the row printed "1 of the 2 sites on
+    // file" and dropped the half that says the figure is entirely a
+    // building's, which the card has carried since cycle 6.
+    workersCoverage: workersCoverageWords(w)?.replace(/^across /, "") ?? null,
     sanctioned: s.is_sanctioned || Boolean(input.sanctionSample),
     sanctionSample: input.sanctionSample,
   };
@@ -787,10 +810,18 @@ export function buildSheet(input: RecordInput, options: SheetOptions = {}): Supp
   const workersMark = w.source === "RSC" && !w.groupUnknown ? ownMark(p, "RSC") : null;
   const registerRows = registers.filter((r) => r.value);
   const gots = certList.find((c) => c.kind.toUpperCase() === "GOTS" && c.state !== "expired");
-  // Distinct places, not rows. Aboni files nine address rows and seven
-  // distinct texts — two registers filed the same address twice each — and
-  // "Locations 9" over seven places is a count of the table, not of the world.
-  const addresses = new Set((p.addresses ?? []).map((a) => (a.address ?? "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim()).filter(Boolean)).size;
+  // Distinct premises, not rows and not spellings. Aboni files nine address
+  // rows; an exact-text dedupe called them seven, and the registers write the
+  // same place several ways ("Kewa, Bakultala, Sreepur, 1744, Gazipur" and
+  // "…Sreepur, Gazipur - 1744"), which over-counts on 79 published records.
+  // `mergeUniqueLocations` is the matcher the production profile's Locations
+  // section already uses, with its own fixture suite in this repo; counting
+  // with anything else means the tab and that section disagree.
+  const addresses = mergeUniqueLocations(
+    (p.addresses ?? [])
+      .filter((a) => (a.address ?? "").trim())
+      .map((a) => ({ kind: a.kind, address: a.address, source_code: a.source_code ?? "", fetched_at: a.fetched_at ?? "" })),
+  ).length;
   const addr = factoryAddress(p);
   const capacity =
     s.production_capacity_pcs_day
@@ -925,8 +956,15 @@ export function buildSheet(input: RecordInput, options: SheetOptions = {}): Supp
     ...model.facts.flatMap((f) => (f.value === null ? [] : (f.marks ?? []))),
     ...model.certs.map((c) => sourceMark(c.markCode, c.documentUrl)),
   ];
+  // "…to its register page" is false of a brand mark however well it links: a
+  // disclosure list is one file listing every supplier on it, and the mark's
+  // own accessible name says so. 43 published records hold nothing but
+  // linkable registers plus a brand list, and every one of them made the
+  // absolute claim over a link the same page called a disclosure list.
   // `[].every()` is true, so a record with no marks at all made the claim too.
-  return { ...model, everyMarkLinks: rendered.length > 0 && rendered.every((m) => Boolean(m.href)) };
+  const everyMarkLinks =
+    rendered.length > 0 && rendered.every((m) => Boolean(m.href)) && rendered.every((m) => m.opens !== "list");
+  return { ...model, everyMarkLinks };
 }
 
 /** The five RSC reports, in the order the spec lists them; a missing one keeps its slot. */

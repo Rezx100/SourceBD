@@ -113,7 +113,7 @@ describe("loadGalleryData (the /dev/ds loader, stubbed RPCs)", () => {
     assert.equal(batches.length, 1);
     assert.equal((batches[0]!.args.p_supplier_ids as string[]).length, 2);
     // The batch figure is the group's: 2,662 (the mother) + 504 (the New Shed).
-    assert.equal(data.cards.find((c) => c.slug === "aboni-knitwear")?.meta.find((f) => /workers/.test(f.text))?.text, "3,166 workers across 2 of 2 sites");
+    assert.equal(data.cards.find((c) => c.slug === "aboni-knitwear")?.meta.find((f) => /workers/.test(f.text))?.text, "3,166 workers across 2 sites");
   });
 
   it("a record that cannot be read is left out, never invented; the sanctioned sample flag is only on Zaheen", async () => {

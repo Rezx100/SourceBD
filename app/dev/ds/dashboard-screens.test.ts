@@ -18,10 +18,11 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, it } from "node:test";
 
 import { buildCard, buildProductSheet, buildRfqRow, buildSheet, buildTableRow } from "@/lib/dashboard/build-models";
+import { topTier } from "@/lib/dashboard/source-tiers";
 import { aboniInput, arFashionInput, RFQ_ROWS, RFQ_TARGETS, smKnitwearInput, TODAY, zaheenSampleInput } from "@/lib/dashboard/fixtures";
-import { topbarCaption, type GalleryData, type GalleryRecord } from "@/lib/dashboard/gallery-data";
+import { GALLERY_QUERY, SORT_MOST_SOURCES, topbarCaption, type GalleryData, type GalleryRecord } from "@/lib/dashboard/gallery-data";
 import type { RfqListModel } from "@/lib/dashboard/models";
-import { DashboardScreens } from "./dashboard-screens";
+import { DashboardScreens, SCREEN_WIDTH } from "./dashboard-screens";
 
 const EMPTY_RFQS: RfqListModel = {
   sent: 0,
@@ -190,7 +191,10 @@ describe("DashboardScreens — the caller, not the components (handoff §7)", ()
 
 describe("the RFQ screen renders the rows rfq_list returns", () => {
   const withRfqs = (): GalleryData => {
-    const rows = RFQ_ROWS.map((r) => buildRfqRow(r, RFQ_TARGETS[r.id] ?? null, TODAY));
+    const rows = RFQ_ROWS.map((r) => {
+      const t = RFQ_TARGETS[r.id]!;
+      return buildRfqRow(r, { name: t.name, tier: topTier(t.codes) }, TODAY);
+    });
     return galleryData({
       rfqs: {
         sent: rows.length,
@@ -210,22 +214,25 @@ describe("the RFQ screen renders the rows rfq_list returns", () => {
 
   it("the table, not the empty state, and every row is one production holds", () => {
     const html = render(withRfqs());
-    assert.equal(RFQ_ROWS.length, 7);
+    // Five, not seven: production's seven RFQs belong to three buyers and
+    // `rfq_list` is scoped to `auth.uid()`, so no caller can be shown more.
+    assert.equal(RFQ_ROWS.length, 5);
     for (const r of RFQ_ROWS) assert.ok(html.includes(escapeHtml(r.product_title)), `${r.id} is not on the screen`);
-    assert.match(html, /7 sent · 0 quotes/);
+    assert.match(html, /5 sent · 0 quotes/);
     assert.doesNotMatch(html, /0 sent · 0 quotes/);
-    assert.doesNotMatch(html, /Your first RFQ lands here/, "the empty state stood over seven real rows");
+    assert.doesNotMatch(html, /Your first RFQ lands here/, "the empty state stood over five real rows");
     // The supplier each row targets is named, from the `suppliers` rows the
-    // `target_supplier_ids` point at.
-    assert.match(html, /QUATTRO FASHION LIMITED/);
+    // `target_supplier_ids` point at, at the rank its own receipts earn.
     assert.match(html, /Thermax Woven Dyeing Ltd\./);
+    assert.match(html, /bg-tier-3[^"]*"[^>]*>TW</, "one OEKO-TEX certificate ranks 3, not 2");
     assert.doesNotMatch(html, /\bNaN\b/);
   });
 
   it("the gallery's own caption says whose RFQs these are and what an empty list would mean", () => {
     const caption = renderAll(withRfqs());
     assert.match(caption, /rfq_list is scoped to auth\.uid\(\)/);
-    assert.match(caption, /7 real rows/);
+    assert.match(caption, /5 real rows/);
+    assert.match(caption, /three buyers/, "the caption must say why five is the most any caller can see");
   });
 
   it("with no rows the page still sells the feature, and claims no count it did not read", () => {
@@ -261,5 +268,63 @@ describe("the sidebar and the shell state only what was read", () => {
     const html = render(galleryData());
     assert.match(html, /<nav aria-label="Primary"/);
     assert.equal((html.match(/aria-current="page"/g) ?? []).length, 6, "one current item per screen");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Cycle 9: the composition layer. This file pins what the page hands the
+// components, and an independent sweep found five of six mutations here
+// surviving — a filter chip for a filter the RPC never received, a sort label
+// naming a sort that does not exist, and the saved-search count read off the
+// page instead of the query.
+// ---------------------------------------------------------------------------
+
+describe("the screens claim only what the query asked for and the RPC answered", () => {
+  it("one chip per filter the query carries, and no others", () => {
+    const html = render(galleryData());
+    // `discoverArgs` sends the text and `cert_kinds: ['gots']` and nothing
+    // else; a chip for a filter the RPC never received says the result set
+    // was narrowed when it was not.
+    assert.match(html, />Text · knitted shirts</);
+    assert.match(html, />Certificate · GOTS</);
+    // Only the search composer's chips; the RFQ list's "All" chip shares the class.
+    const composer = html.slice(html.indexOf('role="search"'), html.indexOf("</section>"));
+    const chips = [...composer.matchAll(/bg-brand-tint-strong[^"]*"[^>]*>([^<]+)</g)].map((m) => m[1]);
+    assert.deepEqual([...new Set(chips)].sort(), ["Certificate · GOTS", "Text · knitted shirts"]);
+    assert.equal(GALLERY_QUERY.certKinds.length, 1);
+    assert.equal(GALLERY_QUERY.certKinds[0], "gots");
+  });
+
+  it("the sort label names the sort the RPC was given", () => {
+    const html = render(galleryData());
+    assert.match(html, />\s*Most sources\s*</);
+    assert.equal(SORT_MOST_SOURCES, "receipts", "the label and the argument are two names for one thing");
+    assert.doesNotMatch(html, /Best match|Relevance|Newest first/, "a sort the RPC does not offer");
+  });
+
+  it("the saved-search count is the query's, not this page's", () => {
+    const html = render(galleryData());
+    // 42 is `total_count`; 4 is how many of the named records are on screen.
+    assert.match(html, /Knitted shirts · GOTS valid<[^>]*>42</);
+    const unread = render(galleryData({ discoverError: true, total: null, published: null }));
+    assert.doesNotMatch(unread, /Knitted shirts · GOTS valid<[^>]*>\d/, "an unread total is not a count");
+  });
+
+  it("the shell states no figure the loader did not read", () => {
+    const html = render(galleryData({ discoverError: true, total: null, published: null }));
+    assert.doesNotMatch(html, /Suppliers<[^>]*>0</);
+    assert.doesNotMatch(html, /published suppliers/, "the topbar count is unread, so it is absent");
+    assert.doesNotMatch(html, /count could not be read[^<]*0/);
+  });
+
+  it("the screens are rendered at the width the screenshots are captioned with", () => {
+    const html = renderAll(galleryData());
+    const frames = [...html.matchAll(/style="width:(\d+)px[^"]*"\s+data-screen="([^"]+)"/g)];
+    assert.equal(frames.length, 6, "one framed screen per §3 screen");
+    // 1440 as a literal: comparing against `SCREEN_WIDTH` imported from the
+    // file under test cannot fail, and the six approved renders are 1440-wide.
+    assert.equal(SCREEN_WIDTH, 1440);
+    for (const f of frames) assert.equal(f[1], "1440", `the ${f[2]} frame is ${f[1]}px, not the width the screenshots are captioned with`);
+    assert.deepEqual(frames.map((f) => f[2]), ["results-list", "results-table", "supplier-sheet", "product-sheet", "rfq-composer", "rfq-list"]);
   });
 });

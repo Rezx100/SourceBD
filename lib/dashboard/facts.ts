@@ -227,7 +227,13 @@ export function certTileSubline(certs: readonly CertModel[]): string | null {
   const expiring = certs.filter((c) => c.state === "expiring");
   if (expiring.length) {
     const soonest = expiring.reduce((a, b) => ((a.daysLeft ?? 0) <= (b.daysLeft ?? 0) ? a : b));
-    parts.push(`${expiring.length} expiring in ${soonest.daysLeft} ${soonest.daysLeft === 1 ? "day" : "days"}`);
+    // `certChipLabel` says "expires today" at 0 days; this said "expiring in
+    // 0 days" beside it. Four published certificates expire on the read date.
+    parts.push(
+      soonest.daysLeft === 0
+        ? `${expiring.length} expiring today`
+        : `${expiring.length} expiring in ${soonest.daysLeft} ${soonest.daysLeft === 1 ? "day" : "days"}`,
+    );
   }
   const expired = certs.filter((c) => c.state === "expired").length;
   const undated = certs.filter((c) => c.state === "no-expiry").length;

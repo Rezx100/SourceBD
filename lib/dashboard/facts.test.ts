@@ -251,3 +251,20 @@ describe("a certificate expiring today says today (cycle 8)", () => {
     assert.equal(at("2026-09-17"), "WRAP Gold expired 17 Sep 2026");
   });
 });
+
+describe("the certificate tile and the chip agree on a certificate expiring today (cycle 9)", () => {
+  const cert = (expires: string) => certModel({ kind: "wrap", certificate_no: "1", issuer: "WRAP", expires_on: expires, scope: "Gold", document_url: null }, TODAY);
+
+  it("0 days is 'today' in both, and the counts stay right", () => {
+    // Four published certificates expire on the read date. The chip said
+    // "expires today" and the tile said "expiring in 0 days" beside it.
+    assert.equal(certChipLabel(cert("2026-09-18")), "WRAP Gold expires today");
+    assert.equal(certTileSubline([cert("2026-09-18")]), "1 expiring today");
+    assert.equal(certTileSubline([cert("2026-09-18"), cert("2026-09-18")]), "2 expiring today");
+    assert.equal(certTileSubline([cert("2026-09-19")]), "1 expiring in 1 day");
+    assert.equal(certTileSubline([cert("2026-09-25")]), "1 expiring in 7 days");
+    // The soonest is the one named, whichever order they arrive in.
+    assert.equal(certTileSubline([cert("2026-09-25"), cert("2026-09-18")]), "2 expiring today");
+    assert.equal(certTileSubline([cert("2026-09-18"), cert("2026-09-25")]), "2 expiring today");
+  });
+});

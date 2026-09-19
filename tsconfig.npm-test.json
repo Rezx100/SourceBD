@@ -102,6 +102,7 @@
     "app/dev/ds/dashboard-screens.tsx",
     "app/dev/ds/dashboard-screens.test.ts",
     "scripts/gallery/render-gallery-fixtures.ts",
-    "scripts/gallery/harness.test.ts"
+    "scripts/gallery/harness.test.ts",
+    "app/dev/ds/page.tsx"
   ]
 }

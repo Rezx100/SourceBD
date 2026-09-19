@@ -41,6 +41,9 @@ function Tile({ tile }: { tile: TileModel }) {
     <div className="flex min-h-[82px] min-w-0 flex-col gap-px rounded-sm border border-line-subtle px-3 py-2.5">
       <span className="whitespace-nowrap text-sm font-medium text-ink-muted">{tile.label}</span>
       <span className={cn("whitespace-nowrap text-title font-medium text-ink-strong", tile.value === null && "font-normal text-quiet-ink")}>
+        {/* An em dash, never 0: the sub-line below often says the read failed
+            or that no register holds one, and "Export lines 0" over "EPB could
+            not be read" states a fact the read does not support. */}
         {tile.value ?? "—"}
       </span>
       {tile.sub ? (

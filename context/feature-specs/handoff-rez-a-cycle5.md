@@ -320,6 +320,27 @@ the handoff's own wording, not by a judgement call made during the port.
   stubbed RPCs, and the screenshot harness is tested too, so the wiring is
   exercised even though the network is not.
 
+- **States §5 names that no payload reaches.** "No longer covered" is a real
+  RSC state — S M Knitwears is in it, `active = false, 42 %, notimplemented` —
+  but `buyer_supplier_profile` returns active rows only, so the kit cannot
+  render it (REZ-C). The same for a fact that is stale or contradicted, for a
+  source that is "listed, no records yet", and for the exact/approximate map
+  pin. Reply-overdue and Draft need `rfq_drafts` and `derived_status` (REZ-D).
+  None of these is built, and none is faked.
+
+- **The zero-results and selection states of §3.1.** "No supplier matches all
+  N filters", with the remove-a-chip suggestions, needs
+  `discover_suppliers_explain` (§4.1, REZ-B). The selection action bar is
+  absent from the approved render too, so the port inherited the gap.
+
+- **A sanction cannot reach an RFQ row through the loader.** `buildRfqRow`
+  takes `sanctioned`/`sanctionSample` and both the builder and the component
+  are guarded, but `loadGalleryData`'s `targets` parameter carries only a name
+  and the source codes — `rfq_list` returns nothing else, and REZ-D's join is
+  what will. No published supplier is sanctioned today (`select count(*) from
+  suppliers where is_sanctioned` is 0), so nothing is hidden; it is written
+  down because it is the REZ-72 shape.
+
 - **Fields the RPC does not return, so the kit does not render.** Each is out
   of REZ-A's scope because the data arrives with a later issue, and each was
   found by a critic and re-found by the next until it was written down here:
@@ -337,7 +358,15 @@ the handoff's own wording, not by a judgement call made during the port.
   - the sidebar's **Saved** count — needs `buyer_dashboard.saved_count`, so it
     is unknown rather than zero.
 
-- **Where the port differs from the approved render, on purpose.** Aboni's
+- **Where the port differs from the approved render, on purpose.** Beyond
+  Aboni (below), S M Knitwears differs in four places and each is production's
+  value: workers 300 → **907 across 1 of the 2 sites on file, none of them
+  this record** (the 300 is the registry's `employees_total`; the 907 is the
+  Extension building's RSC row, and `groupWorkers` — the rule the production
+  profile already uses — prefers it); the RSC chip **"no longer covered · 42 %"
+  → "RSC covers S M Knitwears Limited. (Extension) · 53 % · behind schedule"**
+  (the record's own row is inactive and the RPC does not return it); registers
+  3 → **4**; photo overflow +19 → **+18**. Aboni's
   headline headcount is 3,166 (the RSC group figure, 2,662 + 504) where the
   render shows 3,314 (`suppliers.employees_total`, a registry figure) under an
   RSC mark; its city is Dhaka, not "Savar, Dhaka"; it holds 4 registers, not 3;

@@ -15,8 +15,8 @@ import { fetchDisplayWorkersBatch } from "@/lib/enrich-discover-workers";
 import { hscodesFromRpc } from "@/lib/epb-hscodes";
 import { buildCard, buildRfqRow, buildSheet, buildTableRow, buildProductSheet, type ProfilePayload, type RecordInput, type RfqListRow } from "./build-models";
 
-import type { TierRank } from "@/lib/design/tokens";
 import { formatCount, formatDay } from "./facts";
+import { topTier } from "./source-tiers";
 import type { RfqListModel, SupplierCardModel, SupplierSheetModel, TableRowModel, ProductSheetModel } from "./models";
 
 /** The sort the RPC knows for "most sources" (`discover_suppliers` p_sort: receipts | name | completeness). */
@@ -119,8 +119,13 @@ function countOf(raw: unknown): number | null {
 export async function loadGalleryData(
   supabase: Rpc,
   today = new Date(),
-  /** The supplier each RFQ targets, keyed by RFQ id, where the caller can resolve it (REZ-D's join). */
-  targets?: Record<string, { name: string; tier: TierRank }>,
+  /**
+   * The supplier each RFQ targets, keyed by RFQ id, where the caller can
+   * resolve it (REZ-D's join). The **source codes** are carried, not a rank:
+   * the rank is computed here with the same `topTier` every other surface
+   * uses, so a caller cannot draw a supplier more trusted than its receipts.
+   */
+  targets?: Record<string, { name: string; codes: readonly string[] }>,
 ): Promise<GalleryData> {
   const [aboni, sm, zaheen, ar] = await Promise.all([
     loadRecord(supabase, GALLERY_SLUGS.aboni, today),
@@ -192,7 +197,10 @@ export async function loadGalleryData(
   // `rfq_list` returns `target_supplier_count`, not the suppliers. REZ-D's join
   // will resolve them; until it does, a row names its target only where the
   // caller supplies it, and otherwise says "N suppliers" and nothing more.
-  const rfqModels = rfqRows.map((r) => buildRfqRow(r, targets?.[r.id] ?? null, today));
+  const rfqModels = rfqRows.map((r) => {
+    const t = targets?.[r.id];
+    return buildRfqRow(r, t ? { name: t.name, tier: topTier(t.codes) } : null, today);
+  });
   // Every figure below is derived from rows that were read. When the read
   // failed there are no rows, so there is no count either — not zero.
   const count = (pred: (r: (typeof rfqModels)[number]) => boolean) => (rfqError ? null : rfqModels.filter(pred).length);

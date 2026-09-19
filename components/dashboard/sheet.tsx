@@ -7,7 +7,7 @@
 import type { ReactNode } from "react";
 import { certStateLabel, rscStatusNeedsLook, type CertModel } from "@/lib/dashboard/facts";
 import type { FactRow } from "@/lib/dashboard/models";
-import { sourceMark } from "@/lib/dashboard/source-tiers";
+import { recordPage, sourceMark } from "@/lib/dashboard/source-tiers";
 import { cn } from "@/lib/utils";
 import { Badge } from "./chips";
 import { Button, Meter } from "./controls";
@@ -233,8 +233,13 @@ export function CertCard({ cert }: { cert: CertModel }) {
       {cert.number ? <Code className="text-ink">{cert.number}</Code> : <Caption>No certificate number on file</Caption>}
       <Caption>
         {[cert.issuer, cert.scope ? `scope: ${cert.scope}` : null].filter(Boolean).join(" · ")}
-        {cert.documentUrl ? (
-          <a href={cert.documentUrl} className="ml-1.5 inline-flex items-center gap-0.5 text-brand-ink">
+        {/* All seven SA8000 certificates in production carry
+            `https://sa-intl.org/sa8000-search/` as their document — the search
+            form `recordPage` rejects by name. The square beside this line was
+            correctly left unlinked while the link promised the certificate and
+            delivered a search page, so this goes through the same rule. */}
+        {recordPage(cert.documentUrl) ? (
+          <a href={cert.documentUrl!} className="ml-1.5 inline-flex items-center gap-0.5 text-brand-ink">
             Certificate <Icon name="external" small />
           </a>
         ) : null}
@@ -326,7 +331,14 @@ export function ActionBar({ sanctioned, everyMarkLinks }: { sanctioned: boolean;
       <Button lg>
         <Icon name="compare" /> Compare
       </Button>
-      <Caption className="ml-auto">{everyMarkLinks ? "Every source mark links to its register page" : "Source marks link to their register page where one is on file"}</Caption>
+      {/* A brand disclosure list is one file listing every supplier on it, so
+          a tier-4 mark never opens a page about this record — its own
+          accessible name says "opens the disclosure list". The absolute
+          sentence contradicted that on ~43 published records, so it is made
+          only when every mark that links opens a record page. */}
+      <Caption className="ml-auto">
+        {everyMarkLinks ? "Every source mark links to its register page" : "Source marks link to their register page where one is on file"}
+      </Caption>
     </div>
   );
 }
