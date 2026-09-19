@@ -38,10 +38,12 @@ and nothing adjacent to them.
 
 ## The cycle-5 findings, grouped by what they cost
 
-Full text of all three critic reports is in
-`/home/claude/gate/audit-cycle-1.md` (append cycle 5 there — it was not
-written before the hand-off) and in the session transcript. The condensed,
-de-duplicated list:
+The evidence bundle is `_rez-a-evidence/rez-a-evidence.tgz` at the repo root
+(untracked on purpose — unpack it somewhere outside the tree). It holds
+`audit-cycle-1.md` with all five cycles, the six screenshots at 1440 with the
+SHA they were rendered from, every raw test / lint / pytest run for the
+baseline and each candidate, the four repair patches, and the scripts that
+regenerate the screenshots. The condensed, de-duplicated list of cycle 5:
 
 ### Blocking — a screen states something the data does not support
 
