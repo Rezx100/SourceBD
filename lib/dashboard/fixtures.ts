@@ -1403,7 +1403,7 @@ export function buildingSafetyOnlyInput(): RecordInput {
         fire_inspection_url: `${ACCORD_FILE}/347873.pdf`,
         structural_inspection_url: `${ACCORD_FILE}/348385.pdf`,
         electrical_inspection_url: `${ACCORD_FILE}/345171.pdf`,
-        boiler_inspection_url: `${ACCORD_FILE}/345172.pdf`,
+        boiler_inspection_url: null,
         cap_url: "https://accord2.fairfactories.org/web/Audits/Audits/DownloadCAPFile?id=25868",
       },
     ],

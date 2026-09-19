@@ -299,7 +299,7 @@ function words(v: string | null | undefined): string[] {
  */
 function factoryAddress(p: ProfilePayload): { text: string | null; mark: SourceMarkModel | null } {
   const raw = p.supplier.address_raw;
-  const rows = (p.addresses ?? []).filter((a) => a.kind === "factory" && a.source_code);
+  const rows = (p.addresses ?? []).filter((a) => a.source_code);
   const exact = rows.find((a) => sameAddress(a.address, raw));
   if (exact) return { text: raw, mark: mark(p, exact.source_code) };
   const own = words(raw);

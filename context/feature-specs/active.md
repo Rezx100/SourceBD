@@ -27,11 +27,9 @@ same PR. Read once per session.
   from `development` 19 Sep — tokens moved to the artifact's v3 set (Geist,
   founder decision 19 Sep), `components/dashboard/*`, `lib/dashboard/*`, HS
   photo catalogue under `public/products/hs`, six screens on `/dev/ds` from
-  production records. No route changes, no migration. Cycle 6 of the closed
-  loop: the fixtures are reconciled against production by
-  `lib/dashboard/fixtures.test.ts`, and every repair carries a guard that was
-  watched failing under its own revert. Awaiting the Acceptance Judge; not
-  merged. Then B → C → D → H → G → E → F → I per §7.
+  production records. No route changes, no migration. Nine audit cycles; the
+  state and the order of work are in `handoff-rez-a-cycle9.md`. Awaiting the
+  Acceptance Judge; not merged. Then B → C → D → H → G → E → F → I per §7.
 
 ## Queued
 - **Entity resolution core** — `spec-resolution-core.md` (4 Aug). Batch
