@@ -157,7 +157,12 @@ export function DashboardScreens({ data: d }: { data: GalleryData }) {
         </Frame>
       ) : null}
 
-      <Frame id="rfq-list" title="RFQList — status chips, table, empty state" note={`The viewer's own RFQs from rfq_list (${d.rfqs.rows.length} for this account). With none, the page sells the feature: "${"Your first RFQ lands here."}"`} height={700}>
+      <Frame
+        id="rfq-list"
+        title="RFQList — status chips, table, empty state"
+        note={`The viewer's own RFQs from rfq_list: ${d.rfqs.rows.length} real rows, newest first. rfq_list is scoped to auth.uid(), so a viewer who owns none reads the empty state instead — "Your first RFQ lands here." — never "0 sent".`}
+        height={700}
+      >
         <Stage height={700}>
           <AppShell {...shellModels(d, "rfqs")} contentClassName="gap-5">
             <RfqList model={d.rfqs} />

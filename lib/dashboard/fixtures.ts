@@ -19,7 +19,7 @@
 // never returned by the RPC — so the boundary test can prove they never reach
 // the HTML. Used only by tests and the /dev/ds screenshot harness, never by a page.
 
-import type { HsLine, ProfilePayload, ProfilePill, RecordInput } from "./build-models";
+import type { HsLine, ProfilePayload, ProfilePill, RecordInput, RfqListRow } from "./build-models";
 
 export const TODAY = new Date("2026-09-18T10:00:00Z");
 
@@ -224,31 +224,83 @@ export function aboniProfile(): ProfilePayload {
   };
 }
 
-const ABONI_LINES: [string, string][] = [
-  ["6102", "Woman's or girls' overcoats and similar articles, knitted or crocheted"],
-  ["6103", "Men's or boys' suits, ensembles, etc, knitted or crocheted"],
-  ["6104", "Women's or girls' suits, ensembles, etc, knitted or crocheted"],
-  ["6105", "Men's or boys' shirts, knitted or crocheted"],
-  ["6106", "Women's or girls' blouses, etc, knitted or crocheted"],
-  ["6107", "Men's or boys' briefs and similar articles, knitted or crocheted"],
-  ["6108", "Women's or girls' panties and similar articles, knitted or crocheted"],
-  ["6109", "T-shirts, singlets and other vests, knitted or crocheted"],
-  ["6110", "Jerseys, pullovers, cardigans and similar articles, knitted or crocheted"],
-  ["6111", "Babies' garments and clothing accessories, knitted or crocheted"],
-  ["6114", "Other garments, knitted or crocheted, nes"],
-  ["6115", "Panty hose, tights, etc, and footwear, knitted or crocheted"],
-];
-
-const ABONI_URLS: Record<string, string> = {
-  "6102": "769", "6103": "813", "6104": "814", "6105": "694", "6106": "695", "6107": "696",
-  "6108": "697", "6109": "698", "6110": "699", "6111": "700", "6114": "778", "6115": "779",
+/**
+ * Every EPB line the fixtures use, keyed by 4-digit heading: the description
+ * EPB publishes for that heading and the id of its exporter page. One table,
+ * because `supplier_epb_hscodes` returns the same description and the same
+ * `hscode-exporters/<id>` URL for a heading on every record that holds it —
+ * 54 distinct headings across the six fixture records, 54 distinct triples.
+ * Read 19 Sep 2026; re-checked 20 Sep.
+ */
+const EPB_LINES: Record<string, [string, string]> = {
+  "5208": ["Woven fabrics of cotton, with >=85% cotton, but <200g/m2", "861"],
+  "5513": ["Woven fabrics, <85% synthetic staple fibres, with cotton, =<170g/m2", "726"],
+  "5905": ["Textile wall coverings", "838"],
+  "6001": ["Pile fabrics (incl. long pile and terry fabrics), knitted or crocheted", "844"],
+  "6002": ["Other knitted or crocheted fabrics", "845"],
+  "6003": ["Knitted or crochetted fabrics of a width not exceeding 30 cm,...heading 6001 or 6002", "1308"],
+  "6004": ["Knitted or crocheted fabrics of a width exceeding 30 cm,..than those of heading 6001", "1309"],
+  "6005": ["Warp knit fabrics(including those made on...),other than those of headings 6001 to 6004", "1310"],
+  "6006": ["Other knitted or crocheted fabrics", "1311"],
+  "6101": ["Men's or boys' overcoats... and similar articles, knitted or crocheted", "846"],
+  "6102": ["Woman's or girls' overcoats and similar articles, knitted or crocheted", "769"],
+  "6103": ["Men's or boys' suits, ensembles, etc, knitted or crocheted", "813"],
+  "6104": ["Women's or girls' suits, ensembles, etc, knitted or crocheted", "814"],
+  "6105": ["Men's or boys' shirts, knitted or crocheted", "694"],
+  "6106": ["Women's or girls' blouses, etc, knitted or crocheted", "695"],
+  "6107": ["Men's or boys' briefs and similar articles, knitted or crocheted", "696"],
+  "6108": ["Women's or girls' panties and similar articles, knitted or crocheted", "697"],
+  "6109": ["T-shirts, singlets and other vests, knitted or crocheted", "698"],
+  "6110": ["Jerseys, pullovers, cardigans and similar articles, knitted or crocheted", "699"],
+  "6111": ["Babies' garments and clothing accessories, knitted or crocheted", "700"],
+  "6112": ["Track-suits, ski-suits and swimwear, knitted or crocheted", "776"],
+  "6113": ["Garments made up of knitted or crocheted fabrics of 59.03, 59.06, 59.07", "777"],
+  "6114": ["Other garments, knitted or crocheted, nes", "778"],
+  "6115": ["Panty hose, tights, etc, and footwear, knitted or crocheted", "779"],
+  "6116": ["Gloves, mittens and mitts, knitted or crocheted", "780"],
+  "6117": ["Other made up clothing or parts of garments, knitted or crocheted", "781"],
+  "6201": ["Men's or boys' overcoats, and similar articles", "782"],
+  "6202": ["Woman's or girls' overcoats, and similar articles", "783"],
+  "6203": ["Men's or boys' suits, ensembles, jackets, blazers, trousers, etc", "784"],
+  "6204": ["Women's or girls' suits, ensembles, jackets, dresses, skirts, etc", "785"],
+  "6205": ["Men's or boys' shirts", "786"],
+  "6206": ["Women's or girls' blouses, shirts and shirt-blouses", "787"],
+  "6207": ["Men's or boys' underpants, briefs, nightshirts, pyjamas, etc", "788"],
+  "6208": ["Women's or girls' slips, petticoats, nightdresses, pyjamas, etc", "789"],
+  "6209": ["Bables' garments and clothing accessories", "790"],
+  "6210": ["Garments, made up of fabrics of 56.02, 56.03, 59.03, 59.06 or 59.07", "791"],
+  "6211": ["Track suits, ski suits and swimwear; other than garments", "792"],
+  "6212": ["Brassieres, girdles, corsets, braces, suspenders, garters, etc", "793"],
+  "6213": ["Handkerchiefs", "794"],
+  "6214": ["Shawls, scarves, mufflers, mantillas, veils and the like", "795"],
+  "6215": ["Ties, bow ties and cravats", "796"],
+  "6216": ["Gloves, mittens and mitts", "797"],
+  "6217": ["Other made up clothing accessories; parts of garments", "798"],
+  "6301": ["Blanketsand travelling rugs", "799"],
+  "6302": ["Bed linen, table linen, toilet linen and kitchen linen", "800"],
+  "6303": ["Curtains (incl. drapes) and interior blinds; curtain or bed valances", "801"],
+  "6304": ["Other furnishing articles, nes (excl. of 94.04)", "802"],
+  "6305": ["Sacks and bags, used for packing goods", "803"],
+  "6306": ["Tarpaulins, etc; tents; sails; camping equipment", "804"],
+  "6307": ["Other made up articles (incl. dress patterns)", "805"],
+  "6308": ["Sets of woven fabric and yarn, for making up into rugs, etc, prs", "639"],
+  "6309": ["Worn clothing and other worn articles", "640"],
+  "6310": ["Used or new rags, scrap twine, cordage, rope and cables of textiles", "641"],
+  "6505": ["Hats and other headgear, kintted or crocheted...; hair-nets, etc", "652"],
 };
 
-export const ABONI_HS: HsLine[] = ABONI_LINES.map(([code, description]) => ({
-  code,
-  description,
-  source_url: `https://edb.epb.gov.bd/hscode-exporters/${ABONI_URLS[code]}`,
-}));
+/** The lines a record holds, in the order `supplier_epb_hscodes` returns them. */
+export function epbLines(codes: readonly string[]): HsLine[] {
+  return codes.map((code) => {
+    const line = EPB_LINES[code];
+    if (!line) throw new Error(`no EPB line recorded for heading ${code}`);
+    return { code, description: line[0], source_url: `https://edb.epb.gov.bd/hscode-exporters/${line[1]}` };
+  });
+}
+
+export const ABONI_HS: HsLine[] = epbLines([
+  "6102", "6103", "6104", "6105", "6106", "6107", "6108", "6109", "6110", "6111", "6114", "6115",
+]);
 
 export function aboniInput(): RecordInput {
   // `production_workers_display_batch` returns the group figure: 2,662 (mother)
@@ -396,38 +448,10 @@ export function sanctionedInput(): RecordInput {
 // OEKO-TEX profile URLs that do not exist.
 // ---------------------------------------------------------------------------
 
-const SM_LINES: [string, string, string][] = [
-  ["6101", "Men's or boys' overcoats... and similar articles, knitted or crocheted", "846"],
-  ["6102", "Woman's or girls' overcoats and similar articles, knitted or crocheted", "769"],
-  ["6103", "Men's or boys' suits, ensembles, etc, knitted or crocheted", "813"],
-  ["6104", "Women's or girls' suits, ensembles, etc, knitted or crocheted", "814"],
-  ["6105", "Men's or boys' shirts, knitted or crocheted", "694"],
-  ["6106", "Women's or girls' blouses, etc, knitted or crocheted", "695"],
-  ["6107", "Men's or boys' briefs and similar articles, knitted or crocheted", "696"],
-  ["6108", "Women's or girls' panties and similar articles, knitted or crocheted", "697"],
-  ["6109", "T-shirts, singlets and other vests, knitted or crocheted", "698"],
-  ["6110", "Jerseys, pullovers, cardigans and similar articles, knitted or crocheted", "699"],
-  ["6111", "Babies' garments and clothing accessories, knitted or crocheted", "700"],
-  ["6112", "Track-suits, ski-suits and swimwear, knitted or crocheted", "776"],
-  ["6114", "Other garments, knitted or crocheted, nes", "778"],
-  ["6115", "Panty hose, tights, etc, and footwear, knitted or crocheted", "779"],
-  ["6117", "Other made up clothing or parts of garments, knitted or crocheted", "781"],
-  ["6201", "Men's or boys' overcoats, and similar articles", "782"],
-  ["6202", "Woman's or girls' overcoats, and similar articles", "783"],
-  ["6203", "Men's or boys' suits, ensembles, jackets, blazers, trousers, etc", "784"],
-  ["6204", "Women's or girls' suits, ensembles, jackets, dresses, skirts, etc", "785"],
-  ["6205", "Men's or boys' shirts", "786"],
-  ["6206", "Women's or girls' blouses, shirts and shirt-blouses", "787"],
-  ["6207", "Men's or boys' underpants, briefs, nightshirts, pyjamas, etc", "788"],
-  ["6208", "Women's or girls' slips, petticoats, nightdresses, pyjamas, etc", "789"],
-  ["6209", "Bables' garments and clothing accessories", "790"],
-];
-
-export const SM_HS: HsLine[] = SM_LINES.map(([code, description, ref]) => ({
-  code,
-  description,
-  source_url: `https://edb.epb.gov.bd/hscode-exporters/${ref}`,
-}));
+export const SM_HS: HsLine[] = epbLines([
+  "6101", "6102", "6103", "6104", "6105", "6106", "6107", "6108", "6109", "6110", "6111", "6112",
+  "6114", "6115", "6117", "6201", "6202", "6203", "6204", "6205", "6206", "6207", "6208", "6209",
+]);
 
 const OEKO_PROFILE = "https://services.oeko-tex.com/newoekotex/portal/for-new-website/customer_profile";
 const SM_OEKO_100 = `${OEKO_PROFILE}/9741~1wdI2V~Gc5OsM1AI-9iRdEvDZMRbc_8T2o/`;
@@ -724,16 +748,35 @@ export function buildingRegistrationsInput(): RecordInput {
 // ---------------------------------------------------------------------------
 
 /** 54 EPB export codes — the most on any record (`plummy-fashions`, published). */
-const PLUMMY_CODES = [
-  "5208", "5513", "5905", "6001", "6002", "6003", "6004", "6005", "6006", "6101",
-  "6102", "6103", "6104", "6105", "6106", "6107", "6108", "6109", "6110", "6111",
-  "6112", "6113", "6114", "6115", "6116", "6117", "6201", "6202", "6203", "6204",
-  "6205", "6206", "6207", "6208", "6209", "6210", "6211", "6212", "6213", "6214",
-  "6215", "6216", "6217", "6301", "6302", "6303", "6304", "6305", "6306", "6307",
-  "6308", "6309", "6310", "6505",
-];
+/**
+ * The longest EPB line list a published record holds: 54 headings, spanning
+ * nine HS chapters. Eleven of them (5208, 5513, 5905, 6002-6006, 6306,
+ * 6308-6310) are outside the photo catalogue, so the strip leads with
+ * photoless tiles — which is the real shape for 165 published records.
+ */
+export const PLUMMY_HS: HsLine[] = epbLines([
+  "5208", "5513", "5905", "6001", "6002", "6003", "6004", "6005", "6006", "6101", "6102", "6103",
+  "6104", "6105", "6106", "6107", "6108", "6109", "6110", "6111", "6112", "6113", "6114", "6115",
+  "6116", "6117", "6201", "6202", "6203", "6204", "6205", "6206", "6207", "6208", "6209", "6210",
+  "6211", "6212", "6213", "6214", "6215", "6216", "6217", "6301", "6302", "6303", "6304", "6305",
+  "6306", "6307", "6308", "6309", "6310", "6505",
+]);
 
-export const PLUMMY_HS: HsLine[] = PLUMMY_CODES.map((code) => ({ code, description: null, source_url: null }));
+/** The three records whose EPB lines cycle 7 found the fixtures had nulled to zero. */
+export const SQ_HS: HsLine[] = epbLines([
+  "6101", "6102", "6103", "6104", "6105", "6106", "6109", "6110", "6111", "6114", "6117", "6204", "6214", "6505",
+]);
+
+export const AMAN_HS: HsLine[] = epbLines([
+  "6101", "6102", "6103", "6104", "6105", "6106", "6107", "6108", "6109", "6110", "6111", "6112",
+  "6113", "6114", "6115", "6116", "6117", "6201", "6202", "6203", "6204", "6205", "6206", "6207",
+  "6208", "6209", "6210", "6211", "6212", "6213", "6214", "6215", "6216", "6217",
+]);
+
+export const ASWAD_HS: HsLine[] = epbLines([
+  "6101", "6102", "6103", "6104", "6105", "6106", "6107", "6108", "6109", "6110", "6111", "6112",
+  "6114", "6201", "6203", "6204", "6205", "6209",
+]);
 
 export function longestHsListInput(): RecordInput {
   const profile: ProfilePayload = {
@@ -1139,7 +1182,7 @@ export function buildingBrandListsInput(): RecordInput {
     ],
   };
   // The batch reconciles: 3,235 (the company) + 425 (Unit 04) + 30 (Unit 3).
-  return { profile, hscodes: [], workers: { value: 3690, source: "RSC", fetched_at: "2026-09-04T05:43:52.272089+00:00" }, today: TODAY };
+  return { profile, hscodes: SQ_HS, workers: { value: 3690, source: "RSC", fetched_at: "2026-09-04T05:43:52.272089+00:00" }, today: TODAY };
 }
 
 // ---------------------------------------------------------------------------
@@ -1239,7 +1282,7 @@ export function duplicateBrandRowsInput(): RecordInput {
   };
   // 4,709 on the company's row and 4,709 again on the Extension's: RSC files
   // the same headcount on both, and the batch adds them to 9,418.
-  return { profile, hscodes: [], workers: { value: 9418, source: "RSC", fetched_at: "2026-07-30T22:20:15.864955+00:00" }, today: TODAY };
+  return { profile, hscodes: AMAN_HS, workers: { value: 9418, source: "RSC", fetched_at: "2026-07-30T22:20:15.864955+00:00" }, today: TODAY };
 }
 
 // ---------------------------------------------------------------------------
@@ -1391,8 +1434,50 @@ export function buildingSafetyOnlyInput(): RecordInput {
       { kind: "mailing", address: "MULAID, MAONA, SREEPUR, GAZIPUR", source_code: "BKMEA", fetched_at: "2026-08-02T06:07:25.532255+00:00" },
     ],
   };
-  return { profile, hscodes: [], workers: { value: 6703, source: "RSC", fetched_at: "2026-07-30T22:29:47.319621+00:00" }, today: TODAY };
+  return { profile, hscodes: ASWAD_HS, workers: { value: 6703, source: "RSC", fetched_at: "2026-07-30T22:29:47.319621+00:00" }, today: TODAY };
 }
+
+// ---------------------------------------------------------------------------
+// The RFQs `rfq_list` returns, for the account that owns them.
+//
+// `rfq_list` is SECURITY DEFINER and scoped to `auth.uid()`: it returns a
+// buyer's own RFQs and the ones targeting a supplier they have claimed, and
+// `'[]'` to anyone else. All seven RFQs on production belong to one buyer, so
+// an admin opening `/dev/ds` reads an empty list — which is why the gallery
+// used to render "0 sent · 0 quotes" and "No RFQs for this account yet" as
+// facts about an account that does not exist. Those are the seven real rows,
+// as that buyer's own call returns them, newest first. Nothing is invented:
+// the duplicated hoodie drafts, the timestamp appended to one title and the
+// one-word title are what the table holds.
+// Read 20 Sep 2026.
+// ---------------------------------------------------------------------------
+
+const HOODIES = "Men's heavyweight French terry hoodies, 420gsm";
+
+export const RFQ_ROWS: RfqListRow[] = [
+  { id: "b40e3903-e81e-457f-a2c0-d9cefbc8c42e", product_title: "T-shirt", quantity: 100, quantity_unit: "pcs", ship_by: "2026-09-24", status: "open", target_supplier_count: 1, quote_count: 0, created_at: "2026-09-09T01:00:30.289024+00:00" },
+  { id: "31720507-4ffe-49e6-9270-be93971ff48a", product_title: "jhewbsd", quantity: 45, quantity_unit: "pcs", ship_by: "2026-12-24", status: "open", target_supplier_count: 1, quote_count: 0, created_at: "2026-08-11T19:13:46.774004+00:00" },
+  { id: "46c33de8-831a-45b7-a813-beb82e8dcf26", product_title: `${HOODIES} - 2026-07-18T18:33`, quantity: 12000, quantity_unit: "pcs", ship_by: "2026-10-30", status: "open", target_supplier_count: 1, quote_count: 0, created_at: "2026-07-18T18:33:29.847139+00:00" },
+  { id: "5f7cf830-a066-43df-a7ca-f0890d67c118", product_title: HOODIES, quantity: 10000, quantity_unit: "pcs", ship_by: "2026-10-15", status: "open", target_supplier_count: 1, quote_count: 0, created_at: "2026-07-18T18:01:15.116177+00:00" },
+  { id: "e012b9ba-f3d8-44b3-856b-7ef9e7585dcf", product_title: HOODIES, quantity: 10000, quantity_unit: "pcs", ship_by: "2026-10-15", status: "open", target_supplier_count: 1, quote_count: 0, created_at: "2026-07-18T17:57:54.821199+00:00" },
+  { id: "7e4fd0f0-ef28-495c-a345-d8a1c48a7bab", product_title: HOODIES, quantity: 10000, quantity_unit: "pcs", ship_by: "2026-10-15", status: "open", target_supplier_count: 1, quote_count: 0, created_at: "2026-07-18T17:53:41.796129+00:00" },
+  { id: "6108e56e-148a-4b0b-b7a3-5f03292be538", product_title: HOODIES, quantity: 10000, quantity_unit: "pcs", ship_by: "2026-10-15", status: "open", target_supplier_count: 1, quote_count: 0, created_at: "2026-07-18T17:51:10.844805+00:00" },
+];
+
+/**
+ * The supplier each RFQ targets, by id, as REZ-D's join will resolve it.
+ * `rfq_list` does not return the names; these are the `suppliers` rows the
+ * `target_supplier_ids` point at, read on 20 Sep 2026.
+ */
+export const RFQ_TARGETS: Record<string, { name: string; tier: 1 | 2 | 3 | 4 | 5 }> = {
+  "b40e3903-e81e-457f-a2c0-d9cefbc8c42e": { name: "QUATTRO FASHION LIMITED", tier: 2 },
+  "31720507-4ffe-49e6-9270-be93971ff48a": { name: "ALIM KNIT (BD) LTD", tier: 2 },
+  "46c33de8-831a-45b7-a813-beb82e8dcf26": { name: "Thermax Woven Dyeing Ltd.", tier: 2 },
+  "5f7cf830-a066-43df-a7ca-f0890d67c118": { name: "Thermax Woven Dyeing Ltd.", tier: 2 },
+  "e012b9ba-f3d8-44b3-856b-7ef9e7585dcf": { name: "Thermax Woven Dyeing Ltd.", tier: 2 },
+  "7e4fd0f0-ef28-495c-a345-d8a1c48a7bab": { name: "Thermax Woven Dyeing Ltd.", tier: 2 },
+  "6108e56e-148a-4b0b-b7a3-5f03292be538": { name: "Thermax Woven Dyeing Ltd.", tier: 2 },
+};
 
 /**
  * The 125-character record, as an admin list receives it.

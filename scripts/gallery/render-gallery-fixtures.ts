@@ -13,7 +13,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 
 import { DashboardScreens } from "@/app/dev/ds/dashboard-screens";
 import { loadGalleryData } from "@/lib/dashboard/gallery-data";
-import { aboniInput, arFashionInput, smKnitwearInput, TODAY, zaheenSampleInput } from "@/lib/dashboard/fixtures";
+import { aboniInput, arFashionInput, RFQ_ROWS, RFQ_TARGETS, smKnitwearInput, TODAY, zaheenSampleInput } from "@/lib/dashboard/fixtures";
 
 // The compiled copy of this file lives under `.render-build/`, so `__dirname`
 // is not the repo root; regen.sh runs from the root and names it explicitly.
@@ -62,7 +62,11 @@ const fixtureRpc = {
       if (args.p_q === null) return { data: [{ slug: Object.keys(records)[0], total_count: PUBLISHED_TOTAL }], error: null };
       return { data: Object.keys(records).map((slug) => ({ slug, total_count: GALLERY_TOTAL })), error: null };
     }
-    if (fn === "rfq_list") return { data: [], error: null };
+    // `rfq_list` is scoped to `auth.uid()`; these are the seven rows it
+    // returns for the buyer who owns them, mirrored in `fixtures.ts`. An
+    // empty literal here made the screen state "0 sent · 0 quotes" and
+    // "No RFQs for this account yet" about an account that does not exist.
+    if (fn === "rfq_list") return { data: RFQ_ROWS, error: null };
     return { data: null, error: { message: `unknown rpc ${fn}` } };
   },
 };
@@ -74,7 +78,7 @@ async function main(): Promise<void> {
   );
   (globalThis as unknown as { __PHOSPHOR__: unknown }).__PHOSPHOR__ = iconSet;
 
-  const data = await loadGalleryData(fixtureRpc as never, TODAY);
+  const data = await loadGalleryData(fixtureRpc as never, TODAY, RFQ_TARGETS);
   console.log(
     JSON.stringify({
       total: data.total,
@@ -84,6 +88,8 @@ async function main(): Promise<void> {
       sheet: data.sheet !== null,
       productSheet: data.productSheet !== null,
       rfqs: data.rfqs.rows.length,
+      sent: data.rfqs.sent,
+      quotes: data.rfqs.quotes,
       discoverError: data.discoverError,
       rfqError: data.rfqError,
     }),

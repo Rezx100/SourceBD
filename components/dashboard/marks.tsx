@@ -27,7 +27,14 @@ export function SourceMark({ mark, sm = false, className }: { mark: SourceMarkMo
   );
   if (mark.href) {
     return (
-      <a href={mark.href} target="_blank" rel="noreferrer" aria-label={`Source: ${mark.name} (opens the register page)`} title={mark.name} className={classes}>
+      <a
+        href={mark.href}
+        target="_blank"
+        rel="noreferrer"
+        aria-label={`Source: ${mark.name} (opens ${mark.opens === "list" ? "the disclosure list" : "the register page"})`}
+        title={mark.name}
+        className={classes}
+      >
         {mark.mark}
       </a>
     );

@@ -36,10 +36,6 @@ function listWords(items: readonly string[]): string {
 
 export function SupplierSheet({ model }: { model: SupplierSheetModel }) {
   const p = model.products;
-  // `[].every()` is true, so a record with no marks at all rendered the
-  // "every source mark links to its register page" claim.
-  const markHrefs = [...model.marks, ...model.facts.flatMap((f) => (f.value === null ? [] : (f.marks ?? [])))];
-  const everyMarkLinks = markHrefs.length > 0 && markHrefs.every((m) => Boolean(m.href));
   return (
     <Sheet label="Supplier record">
       <SheetBar>
@@ -135,7 +131,7 @@ export function SupplierSheet({ model }: { model: SupplierSheetModel }) {
               },
               { key: "Product list", value: p.productListCount > 0 ? String(p.productListCount) : "—", sub: p.productListCount > 0 ? "items on file · source pending" : "none on file" },
               { key: "Certified scope", value: p.certifiedScope?.scheme ?? "—", sub: p.certifiedScope?.scope ?? "no scope certificate" },
-              { key: "Buyer lists", value: p.buyerLists.length > 0 ? String(p.buyerLists.length) : "—", sub: p.buyerLists.length > 0 ? p.buyerLists.join(" · ") : "not on 4 brand lists read" },
+              { key: "Buyer lists", value: p.buyerLists.length > 0 ? String(p.buyerLists.length) : "—", sub: p.buyerLists.length > 0 ? p.buyerLists.join(" · ") : p.buyerListsEmpty },
             ]}
           />
           {p.tiles.length > 0 ? (
@@ -145,12 +141,15 @@ export function SupplierSheet({ model }: { model: SupplierSheetModel }) {
             </>
           ) : null}
         </SheetSection>
-        <SheetSection id="certificates" title="Certificates" caption={model.certsCaption ?? (model.certs.length ? onFileLabel(model.certs.length) : "none on 4 registers")}>
+        <SheetSection id="certificates" title="Certificates" caption={model.certsCaption ?? (model.certs.length ? onFileLabel(model.certs.length) : model.certsEmpty)}>
           {model.certs.length > 0 ? (
             <CertGrid certs={model.certs} />
           ) : (
+            /* The bare "No certificate on any register" stood over a payload
+               carrying a building's certificate; the card already said which
+               building, and the sheet now says it in the same breath. */
             <span className="inline-flex h-[26px] items-center rounded-sm border border-dashed border-quiet-line px-2.5 text-sm text-quiet-ink">
-              No certificate on any register
+              {model.certBuildings.length > 0 ? "No certificate on this record itself" : "No certificate on any register"}
             </span>
           )}
           {/* A building's certificate is not this record's, but saying nothing
@@ -194,7 +193,7 @@ export function SupplierSheet({ model }: { model: SupplierSheetModel }) {
           ))}
         </SheetSection>
       </SheetScroll>
-      <ActionBar sanctioned={model.sanctioned} everyMarkLinks={everyMarkLinks} />
+      <ActionBar sanctioned={model.sanctioned} everyMarkLinks={model.everyMarkLinks} />
     </Sheet>
   );
 }

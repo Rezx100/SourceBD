@@ -264,12 +264,43 @@ function sameAddress(a: string | null | undefined, b: string | null | undefined)
   return norm(a) !== "" && norm(a) === norm(b);
 }
 
+function words(v: string | null | undefined): string[] {
+  return (v ?? "").toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
+}
+
 /**
- * The register that filed the mother's own factory address — only when the
- * RPC's `addresses[]` holds a row of kind `factory` (never an inherited or
- * mailing row) whose text is the address shown. Otherwise the address is an
- * unattributed profile fact.
+ * The factory address to show, and the register that filed it.
+ *
+ * `suppliers.address_raw` is the profile column, and on 1,010 published
+ * records it is a country-and-district stub — "Bangladesh / Gazipur - 1710" —
+ * while the same payload's `addresses[]` carries the street. Showing the stub
+ * and calling it "source pending" printed the worse of two real values and
+ * then declined to attribute it. So: when a `factory` row says everything the
+ * profile column says and more, that row is the address, and it is attributed.
+ * Otherwise the profile column stands, attributed only on an exact match.
+ *
+ * Only `factory` rows are eligible — never a mailing row, never an inherited
+ * one — and nothing is composed: both strings come from the same payload.
  */
+function factoryAddress(p: ProfilePayload): { text: string | null; mark: SourceMarkModel | null } {
+  const raw = p.supplier.address_raw;
+  const rows = (p.addresses ?? []).filter((a) => a.kind === "factory" && a.source_code);
+  const exact = rows.find((a) => sameAddress(a.address, raw));
+  if (exact) return { text: raw, mark: mark(p, exact.source_code) };
+  const own = words(raw);
+  if (own.length > 0) {
+    const fuller = rows
+      .filter((a) => {
+        const has = new Set(words(a.address));
+        return words(a.address).length > own.length && own.every((w) => has.has(w));
+      })
+      .sort((a, b) => words(b.address).length - words(a.address).length)[0];
+    if (fuller) return { text: fuller.address, mark: mark(p, fuller.source_code) };
+  }
+  return { text: raw, mark: null };
+}
+
+/** Kept for the card, which shows the profile column and its mark only. */
 function addressMark(p: ProfilePayload): SourceMarkModel | null {
   const row = (p.addresses ?? []).find((a) => a.kind === "factory" && a.source_code && sameAddress(a.address, p.supplier.address_raw));
   return row ? mark(p, row.source_code) : null;
@@ -447,6 +478,19 @@ export function brandBuildings(p: ProfilePayload): string[] {
 }
 
 /**
+ * "Not on 4 brand lists read" — and, when a building of this record is on one,
+ * who. The third union `buyer_supplier_profile` performs, and the third place
+ * the bare negative would be a negative the payload contradicts: eight
+ * published mothers carry brand rows that are entirely a building's, and
+ * `brandBuildings` was written for them and then wired to nothing.
+ */
+export function brandListsEmptyWords(p: ProfilePayload): string {
+  const buildings = brandBuildings(p);
+  if (buildings.length === 0) return BRAND_LISTS_WORDS;
+  return `not on this record · ${buildings.join(", ")} ${buildings.length === 1 ? "is listed" : "are listed"}`;
+}
+
+/**
  * "Not in BGMEA, BKMEA, BGAPMEA, BTMA or EPB" — and, when a building of this
  * record does hold one, who. Printing the bare negative while the payload
  * carries a building's pill is a negative the data does not support.
@@ -466,6 +510,33 @@ export function certsEmptyWords(p: ProfilePayload): string {
   const buildings = certBuildings(p);
   if (buildings.length === 0) return `none on ${CERT_REGISTERS} registers`;
   return `none on this record · ${buildings.join(", ")} ${buildings.length === 1 ? "holds one" : "hold one"}`;
+}
+
+/**
+ * The words a buyer reads for a register's label. The database stores the
+ * register's own column heading, and two of the eleven carry the marker in
+ * the middle rather than at the end — `BTMA Member #SL` reached the screen
+ * verbatim on 421 published records, and `OEKO_TEX Cert #` printed the
+ * database's underscore. Stripping only a trailing "#" missed both.
+ *
+ * The eleven labels production holds, and what they become:
+ *   BGAPMEA #  → BGAPMEA          BGMEA Associate member # → BGMEA Associate member
+ *   BKMEA #    → BKMEA            BGMEA General member #   → BGMEA General member
+ *   BTMA Member #SL → BTMA Member  EPB Reg # → EPB Reg      RSC ID → RSC ID
+ *
+ * The sheet's Registers row drops a trailing "member" so the number reads as
+ * a number ("BGMEA General 3498"); the card's sub-line keeps it, because
+ * "associate member" is the grade the register awarded.
+ *   GOTS Cert # → GOTS Cert       WRAP Cert # → WRAP Cert
+ *   SA8000 Cert # → SA8000 Cert   OEKO_TEX Cert # → OEKO-TEX Cert
+ */
+export function registerLabel(label: string): string {
+  return label
+    .replace(/OEKO_TEX/gi, "OEKO-TEX")
+    // the marker and whatever the register glues to it ("#", "#SL", "#No.")
+    .replace(/\s*#\S*/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 /** The register pills (BGMEA, BKMEA, BGAPMEA, BTMA, EPB), best rank first; every registration is kept (a record can hold two EPB numbers). */
@@ -578,7 +649,7 @@ export function buildCard(input: RecordInput): SupplierCardModel {
   if (brands.length > 0) chips.push({ tone: "neutral", label: `Listed by ${brands.join(", ")}` });
   if (certList.length === 0) chips.push({ tone: "quiet", label: certBuildings(p).length > 0 ? `No certificate on this record · ${certBuildings(p).join(", ")} holds one` : "No certificate on any register" });
   const bgmea = registers.find((r) => r.source_code.toUpperCase() === "BGMEA");
-  if (marks.length <= 1 && bgmea) chips.unshift({ tone: "neutral", label: bgmea.label.replace(/\s*#\s*$/, "").replace(/^BGMEA General member$/, "BGMEA general member") });
+  if (marks.length <= 1 && bgmea) chips.unshift({ tone: "neutral", label: `${registerLabel(bgmea.label)} member` });
   if (marks.length <= 1) chips.push({ tone: "quiet", label: `Nothing else on file · ${marks.length} of 25 sources` });
   const shown = chips.slice(0, 5);
   const moreChips = Math.max(0, chips.length - shown.length + Math.max(0, certList.length - 2));
@@ -600,7 +671,7 @@ export function buildCard(input: RecordInput): SupplierCardModel {
           : { label: "Export lines", value: null, sub: "not on the EPB list" },
     brands.length > 0
       ? { label: "Listed by", value: brands.join(", "), sub: `${brands.length} brand ${brands.length === 1 ? "list" : "lists"}`, href: `${recordHref}#sources` }
-      : { label: "Listed by", value: null, sub: BRAND_LISTS_WORDS },
+      : { label: "Listed by", value: null, sub: brandListsEmptyWords(p) },
     // Three shapes, and the last one is the empty state. A record with several
     // numbers at ONE body (279 published records — BGMEA 112, BGAPMEA 105,
     // BTMA 62) used to satisfy neither of the first two and fell through to
@@ -618,7 +689,7 @@ export function buildCard(input: RecordInput): SupplierCardModel {
           ? {
               label: "Registers",
               value: `${sourceMark(registers[0].source_code).label} ${registers[0].value ?? ""}`.trim(),
-              sub: registers[0].label.replace(/\s*#\s*$/, "").replace(/^BGMEA\s+/i, "").toLowerCase(),
+              sub: registerLabel(registers[0].label).replace(/^BGMEA\s+/i, "").toLowerCase() || registerLabel(registers[0].label).toLowerCase(),
               href: recordPage(registers[0].source_url) ? registers[0].source_url : `${recordHref}#sources`,
             }
           : { label: "Registers", value: null, sub: registersEmptyWords(p) },
@@ -710,6 +781,7 @@ export function buildSheet(input: RecordInput, options: SheetOptions = {}): Supp
   const gots = certList.find((c) => c.kind.toUpperCase() === "GOTS" && c.state !== "expired");
   const addresses = (p.addresses ?? []).length;
   const addrMark = addressMark(p);
+  const addr = factoryAddress(p);
   const capacity =
     s.production_capacity_pcs_day
       ? `${formatCount(s.production_capacity_pcs_day)} pcs/day`
@@ -724,7 +796,7 @@ export function buildSheet(input: RecordInput, options: SheetOptions = {}): Supp
     { label: "Registered name", ...pending(s.company_name) },
     { label: "Type", ...pending([entityLabel(s.entity_type), s.factory_types?.length ? s.factory_types.join(", ") : null].filter(Boolean).join(" · ")) },
     { label: "Parent group", ...pending(s.parent_group_name, null, "registers and RSC checked") },
-    { label: "Factory address", ...pending(s.address_raw, addrMark) },
+    { label: "Factory address", ...pending(addr.text, addr.mark) },
     { label: "Established", ...pending(establishedYearOf(s.established_date)) },
     {
       label: "Workers",
@@ -735,7 +807,7 @@ export function buildSheet(input: RecordInput, options: SheetOptions = {}): Supp
     { label: "Capacity, as filed", ...pending(capacity) },
     {
       label: "Registers",
-      value: registerRows.length ? registerRows.map((r) => `${r.label.replace(/\s*#\s*$/, "").replace(/ member$/i, "")} ${r.value}`).join(" · ") : null,
+      value: registerRows.length ? registerRows.map((r) => `${registerLabel(r.label).replace(/\s+member$/i, "")} ${r.value}`).join(" · ") : null,
       code: true,
       checked: registersEmptyWords(p),
       marks: registerCodes(registerRows).map((c) => mark(p, c)),
@@ -758,8 +830,9 @@ export function buildSheet(input: RecordInput, options: SheetOptions = {}): Supp
 
   const certRegisters = [...new Set(certList.map((c) => c.scheme.split(" ")[0]))];
 
-  return {
+  const model: SupplierSheetModel = {
     slug: s.slug,
+    everyMarkLinks: false,
     name,
     initials: initials(name),
     topTier: topTier(codes),
@@ -803,10 +876,12 @@ export function buildSheet(input: RecordInput, options: SheetOptions = {}): Supp
       productListCount: (s.principal_products ?? []).length,
       certifiedScope: gots ? { scheme: gots.scheme, scope: scopeWords(gots.scope) } : null,
       buyerLists: brands,
+      buyerListsEmpty: brandListsEmptyWords(p),
       tiles: input.hscodesError ? [] : photoTiles(lines, 6),
     },
     certs: certList,
     certsCaption: certList.length ? `${onFileLabel(certList.length)} · ${certRegisters.join(", ")}` : null,
+    certsEmpty: certsEmptyWords(p),
     certBuildings: certBuildings(p),
     rsc: rsc
       ? {
@@ -831,6 +906,18 @@ export function buildSheet(input: RecordInput, options: SheetOptions = {}): Supp
       links: rscLinks(b),
     })),
   };
+
+  // Every square this sheet draws: the mark row, the attributed fact rows and
+  // the certificate cards. The certificate marks were outside this sum, so a
+  // sheet holding a certificate whose document is not a record page claimed
+  // that every mark links while rendering one that does not.
+  const rendered = [
+    ...model.marks,
+    ...model.facts.flatMap((f) => (f.value === null ? [] : (f.marks ?? []))),
+    ...model.certs.map((c) => sourceMark(c.markCode, c.documentUrl)),
+  ];
+  // `[].every()` is true, so a record with no marks at all made the claim too.
+  return { ...model, everyMarkLinks: rendered.length > 0 && rendered.every((m) => Boolean(m.href)) };
 }
 
 /** The five RSC reports, in the order the spec lists them; a missing one keeps its slot. */
@@ -973,7 +1060,7 @@ export function buildProductSheet(input: RecordInput, hs: string): ProductSheetM
         marks: [],
         pendingSource: products.length > 0,
       },
-      { label: "Buyer lists", value: brands.length ? brands.join(" · ") : null, note: brands.length ? "disclosure lists" : null, checked: BRAND_LISTS_WORDS, marks: brandMarks },
+      { label: "Buyer lists", value: brands.length ? brands.join(" · ") : null, note: brands.length ? "disclosure lists" : null, checked: brandListsEmptyWords(p), marks: brandMarks },
       attested.length
         ? { label: "Price · MOQ · lead time", value: attested.join(" · "), note: "supplier-attested", marks: [], pendingSource: true }
         : { label: "Price · MOQ · lead time", value: null, note: "supplier-attested fields, shown when attested" },

@@ -118,7 +118,17 @@ export function FactsPanel({ rows }: { rows: readonly FactRow[] }) {
       {rows.map((r) => (
         <div key={r.label} className="flex min-h-fact-row items-start gap-3 border-t border-line-subtle py-[3px] first:border-t-0">
           <span className="w-[150px] shrink-0 text-sm font-medium leading-[22px] text-ink-muted">{r.label}</span>
-          <span className={cn("min-w-0 flex-1 text-base leading-[22px] text-ink [overflow-wrap:anywhere]", r.value === null && "text-quiet-ink")}>
+          {/* 4,596 of 10,266 published records file `address_raw` as a
+              newline-delimited block ("…, Hemayetpur\nDhaka\nSavar"); in
+              normal flow the breaks collapse and the street runs into the
+              district. `pre-line` shows the lines the register filed and
+              still collapses runs of spaces. */}
+          <span
+            className={cn(
+              "min-w-0 flex-1 whitespace-pre-line text-base leading-[22px] text-ink [overflow-wrap:anywhere]",
+              r.value === null && "text-quiet-ink",
+            )}
+          >
             {r.value === null ? (
               <>
                 Not on file
@@ -205,7 +215,12 @@ const CERT_BADGE_ICON = { valid: "check-c", expiring: "clock", expired: "warn", 
 
 /** `.cert`: one certificate card. */
 export function CertCard({ cert }: { cert: CertModel }) {
-  const mark = sourceMark(cert.markCode);
+  // The certificate document IS this certificate's register page. Passing it
+  // through `sourceMark` (which filters anything that is not a record page)
+  // makes the square link where every other square on the sheet links; it was
+  // the one mark set rendered unlinked, which made the action bar's "every
+  // source mark links to its register page" false on any sheet with a cert.
+  const mark = sourceMark(cert.markCode, cert.documentUrl);
   return (
     <div className="flex flex-col gap-1 rounded-sm border border-line px-3.5 py-3">
       <div className="flex items-center gap-2">

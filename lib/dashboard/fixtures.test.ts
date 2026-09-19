@@ -1,31 +1,36 @@
 // Reconciles `lib/dashboard/fixtures.ts` against production.
 //
 // The fixtures are the only thing the kit renders, so "nothing fake"
-// (ds-rebuild-must-stay §2) is a claim about this file and nothing else. The
-// table below is what production returned on 19 Sep 2026, read through the
-// Supabase MCP `execute_sql` on project `stnrfxrxfonwexzcvvpv`, read-only. To
-// re-check any row:
+// (ds-rebuild-must-stay §2) is a claim about that file and nothing else.
 //
-//     select jsonb_pretty(buyer_supplier_profile('<slug>'));
-//     select (supplier_epb_hscodes('<slug>'))::text;
-//     select (production_workers_display_batch(array['<uuid>']::uuid[]))::text;
+// `lib/dashboard/fixtures.production.json` is the read, not a restatement of
+// the fixtures: it is written straight out of `buyer_supplier_profile`,
+// `supplier_epb_hscodes` and `rfq_list` on project `stnrfxrxfonwexzcvvpv`
+// (read-only, 20 Sep 2026) by the queries in the evidence bundle's
+// `sql/README.md`, with only the keys the kit never reads dropped. This file
+// compares **every field the kit reads, in every row** against it.
 //
-// A fixture that drifts from those payloads fails here instead of passing
-// quietly and being screenshotted as evidence.
+// The cycle-7 version compared row *counts*, and three fixtures were carrying
+// `hscodes: []` over records whose EPB page holds 14, 34 and 18 lines — with
+// `hsLines: 0` recorded in its own table as production's number. A count is
+// not a reconciliation, and a guard that restates the fixture certifies
+// whatever the fixture says.
 
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
+import { readFileSync } from "node:fs";
+import path from "node:path";
 
 import type { ProfilePayload, RecordInput } from "./build-models";
 import { sourceMark } from "./source-tiers";
 import {
   aboniInput,
+  ABONI_NEW_SHED,
+  AMAN_EXTENSION,
   arFashionInput,
   ASWAD_U2,
   ASWAD_U2_EXT,
   ASWAD_UNIT_1,
-  ABONI_NEW_SHED,
-  AMAN_EXTENSION,
   buildingBrandListsInput,
   buildingOnlyCertificateInput,
   buildingRegistrationsInput,
@@ -39,6 +44,8 @@ import {
   LONG_NAME_125,
   MG_BUILDING,
   oneRegisterManyNumbersInput,
+  RFQ_ROWS,
+  RFQ_TARGETS,
   sanctionedInput,
   smKnitwearInput,
   SM_EXTENSION,
@@ -48,151 +55,68 @@ import {
   ZAHEEN_NAME,
 } from "./fixtures";
 
-/** One row of what `buyer_supplier_profile` (or, for an unpublished record, the tables behind it) returned. */
-type ProductionRow = {
-  id: string;
-  published: boolean;
-  entityType: string;
-  city: string | null;
-  district: string | null;
-  parentGroup: string | null;
-  established: string | null;
-  employees: number | null;
-  sewing: number | null;
-  pcsDay: number | null;
-  dozenYearly: number | null;
-  products: number;
-  /** -1 means `rsc_remediation` came back null, which is not the same as an empty list. */
-  rsc: number;
-  pills: number;
-  certs: number;
-  brands: number;
-  provenance: number;
-  addresses: number;
-  t13: number;
-  hsLines: number;
-  /** `production_workers_display_batch`, or null when the record is not in it. */
-  workers: { value: number; source: string } | null;
-};
+type Json = Record<string, unknown>;
 
-const PRODUCTION: Record<string, ProductionRow> = {
-  "aboni-knitwear": {
-    id: "8ce50581-2d84-4cc2-93de-506394eade5d", published: true, entityType: "factory",
-    city: "Dhaka", district: "Dhaka", parentGroup: "Babylon Group", established: "1985",
-    employees: 3314, sewing: 850, pcsDay: 1000000, dozenYearly: null, products: 27,
-    rsc: 2, pills: 10, certs: 4, brands: 3, provenance: 13, addresses: 9, t13: 8,
-    // The fixture carries the twelve 4-digit headings the 27 EPB lines roll up to.
-    hsLines: 12, workers: { value: 3166, source: "RSC" },
-  },
-  "ar-fashion": {
-    id: "61508d5d-845f-4638-aca2-63057d38236a", published: true, entityType: "buying_house",
-    city: null, district: null, parentGroup: null, established: null,
-    employees: null, sewing: null, pcsDay: null, dozenYearly: null, products: 0,
-    rsc: -1, pills: 1, certs: 0, brands: 0, provenance: 1, addresses: 1, t13: 1,
-    hsLines: 0, workers: null,
-  },
-  "zaheen-knitwear-limited-shed-3-4-5-10-11-12-13-and-building-security-etp-and-fire-pump": {
-    id: "e4669f72-a97a-40e4-9e6e-11df37d2e96e", published: true, entityType: "factory",
-    city: "Narayanganj", district: "Narayanganj", parentGroup: null, established: null,
-    employees: 1634, sewing: null, pcsDay: null, dozenYearly: null, products: 0,
-    rsc: 1, pills: 1, certs: 0, brands: 0, provenance: 1, addresses: 0, t13: 1,
-    hsLines: 0, workers: { value: 1634, source: "RSC" },
-  },
-  "sm-knitwear": {
-    id: "c07aca81-045c-4f7e-8812-2c19e512b5df", published: true, entityType: "factory",
-    city: "Gazipur", district: "Gazipur", parentGroup: "SM Group", established: "2001-01-01",
-    employees: 300, sewing: 97, pcsDay: 11000, dozenYearly: 4000000, products: 37,
-    rsc: 1, pills: 13, certs: 6, brands: 2, provenance: 17, addresses: 15, t13: 8,
-    hsLines: 24, workers: { value: 907, source: "RSC" },
-  },
-  "ab-apparels-ltd-extension": {
-    id: "3d64d325-29a1-4352-8675-5619a277dcaa", published: false, entityType: "factory",
-    city: "Dhaka", district: "Dhaka", parentGroup: null, established: null,
-    employees: 651, sewing: null, pcsDay: null, dozenYearly: null, products: 0,
-    rsc: -1, pills: 1, certs: 0, brands: 0, provenance: 1, addresses: 0, t13: 1,
-    hsLines: 0, workers: { value: 651, source: "registry" },
-  },
-  "hossain-dyeing-and-printing-mills": {
-    id: "4543927f-de94-47b1-a6be-9009302737ef", published: true, entityType: "factory",
-    city: "Gazipur", district: "Gazipur", parentGroup: null, established: null,
-    employees: null, sewing: null, pcsDay: null, dozenYearly: null, products: 0,
-    rsc: -1, pills: 3, certs: 2, brands: 0, provenance: 1, addresses: 1, t13: 1,
-    hsLines: 0, workers: { value: 1784, source: "registry" },
-  },
-  "plummy-fashions": {
-    id: "7f5d2dcd-118a-4d29-ad6b-76d59ab674b9", published: true, entityType: "factory",
-    city: "Narayanganj", district: "Narayanganj", parentGroup: null, established: "2021-12-08",
-    employees: 350, sewing: 794, pcsDay: 8000, dozenYearly: 1260000, products: 4,
-    rsc: 1, pills: 4, certs: 0, brands: 0, provenance: 5, addresses: 8, t13: 4,
-    hsLines: 54, workers: { value: 800, source: "RSC" },
-  },
-  "adventure-garments": {
-    id: "e96d742a-11b3-4533-9620-febb36eb6d69", published: true, entityType: "factory",
-    city: "Gazipur", district: "Gazipur", parentGroup: null, established: "2020-01-04",
-    employees: 610, sewing: 197, pcsDay: null, dozenYearly: 9750000, products: 39,
-    rsc: -1, pills: 1, certs: 0, brands: 0, provenance: 1, addresses: 2, t13: 1,
-    hsLines: 0, workers: { value: 610, source: "registry" },
-  },
-  "mg-niche-flair": {
-    id: "f755f286-512a-48d8-b4d8-e95404e70c79", published: true, entityType: "unknown",
-    city: null, district: null, parentGroup: null, established: "2012-02-06",
-    employees: 2350, sewing: 600, pcsDay: null, dozenYearly: 300000, products: 2,
-    rsc: -1, pills: 2, certs: 1, brands: 0, provenance: 1, addresses: 2, t13: 1,
-    hsLines: 0, workers: { value: 2350, source: "registry" },
-  },
-  "mahir-label-and-accessories": {
-    id: "9967d91c-d854-4e25-8dea-78331d326fb6", published: true, entityType: "factory",
-    city: "Khilkhet", district: "Dhaka", parentGroup: null, established: null,
-    employees: null, sewing: null, pcsDay: null, dozenYearly: null, products: 34,
-    rsc: -1, pills: 5, certs: 0, brands: 0, provenance: 5, addresses: 10, t13: 1,
-    hsLines: 0, workers: null,
-  },
-  "sq-celsius": {
-    id: "f0b7bbab-e559-4423-a17a-045b75c2669c", published: true, entityType: "factory",
-    city: "Gazipur", district: "Dhaka", parentGroup: "SQ Group", established: "2014-03-18",
-    employees: 13986, sewing: 5122, pcsDay: null, dozenYearly: 1164375, products: 17,
-    rsc: 3, pills: 8, certs: 3, brands: 4, provenance: 6, addresses: 3, t13: 6,
-    hsLines: 0, workers: { value: 3690, source: "RSC" },
-  },
-  "aman-graphics-and-designs": {
-    id: "c60c3e6e-ac7d-42e3-9d2b-4eb6d931c976", published: true, entityType: "factory",
-    city: "Dhaka", district: "Dhaka", parentGroup: "Unifill Group", established: "2011",
-    employees: 560, sewing: 290, pcsDay: null, dozenYearly: 180000, products: 3,
-    rsc: 2, pills: 5, certs: 1, brands: 3, provenance: 7, addresses: 3, t13: 4,
-    hsLines: 0, workers: { value: 9418, source: "RSC" },
-  },
-  "aswad-composite-mills": {
-    id: "50c0809d-fd67-45d6-989d-d3ef116c0528", published: true, entityType: "factory",
-    city: "Dhaka", district: "Gazipur", parentGroup: null, established: "2008-03-31",
-    employees: 924, sewing: 8000, pcsDay: 24, dozenYearly: 25000000, products: 16,
-    rsc: 2, pills: 8, certs: 3, brands: 2, provenance: 9, addresses: 9, t13: 6,
-    hsLines: 0, workers: { value: 6703, source: "RSC" },
-  },
-  "indochine-apparel-bangladesh-limited-plot-54-56-previously-baxter-brenton-bd-clothing-manufacturing-co-ltd-extension": {
-    id: "57f470a2-71c3-4a82-b1f6-f700aa93341f", published: false, entityType: "factory",
-    city: "Ashulia", district: "Dhaka", parentGroup: null, established: null,
-    employees: null, sewing: null, pcsDay: null, dozenYearly: null, products: 0,
-    rsc: -1, pills: 0, certs: 0, brands: 1, provenance: 0, addresses: 0, t13: 0,
-    hsLines: 0, workers: null,
-  },
-};
+const PRODUCTION = JSON.parse(
+  readFileSync(path.join(process.cwd(), "lib/dashboard/fixtures.production.json"), "utf8"),
+) as Record<string, Json>;
 
 /**
- * Where a fixture deliberately differs from the payload, with the reason.
+ * Every field of the payload the kit reads. A field missing from this list is
+ * a field the reconciliation does not cover, so the list is the contract — it
+ * mirrors `ProfilePayload`, `ProfilePill`, `ProfileCert`, `ProfileBrand`,
+ * `HsLine` and `RfqListRow` in `build-models.ts`.
+ */
+const FIELDS = {
+  supplier: [
+    "id", "slug", "company_name", "entity_type", "city", "district", "address_raw",
+    "is_sanctioned", "parent_group_name", "established_date", "factory_types",
+    "principal_products", "employees_total", "machines_sewing",
+    "production_capacity_pcs_day", "production_capacity_dozen_yearly",
+    "supplier_moq", "supplier_lead_time_days", "source_tags",
+  ],
+  pills: ["source_code", "label", "value", "source_url", "building_name", "inherited_from", "inherited_from_name"],
+  certifications: ["kind", "certificate_no", "issuer", "issued_on", "expires_on", "scope", "document_url", "building_name"],
+  brand_attributions: ["source_code", "display_name", "source_url", "last_seen_at", "building_name"],
+  provenance: ["tier", "source_code", "display_name", "source_url", "source_ref", "last_seen_at"],
+  addresses: ["kind", "address", "source_code", "fetched_at"],
+  rsc_remediation: [
+    "building_name", "progress_pct", "workers_count", "remediation_status", "training_status",
+    "fetched_at", "fire_inspection_url", "structural_inspection_url", "electrical_inspection_url",
+    "boiler_inspection_url", "cap_url",
+  ],
+  hscodes: ["code", "description", "source_url"],
+  rfq: ["id", "product_title", "quantity", "quantity_unit", "ship_by", "status", "target_supplier_count", "quote_count", "created_at"],
+} as const;
+
+/** `undefined`, a missing key and JSON `null` all mean "the RPC returned nothing here". */
+function pick(row: unknown, fields: readonly string[]): Json {
+  const r = (row ?? {}) as Json;
+  const out: Json = {};
+  for (const f of fields) out[f] = r[f] ?? null;
+  return out;
+}
+
+function pickAll(rows: unknown, fields: readonly string[]): Json[] {
+  return (Array.isArray(rows) ? rows : []).map((r) => pick(r, fields));
+}
+
+/**
+ * Where a fixture cannot be reconciled, and why.
  *
  * §2 allows a state the screens must render to be composed from real rows when
- * production holds no record in that state — and requires it to say so. This
- * map is that saying-so, in a form the suite can hold the fixtures to: a
- * difference listed here is allowed, and a difference that is not listed fails.
+ * production holds no record in that state, and requires it to say so. Both
+ * entries here are records `buyer_supplier_profile` serves nothing for,
+ * because it serves published records only.
  */
-const COMPOSED: Record<string, { field: keyof ProductionRow; to: number; why: string }[]> = {
-  // `v_supplier_registry_ids` unions a published parent factory's rows onto a
-  // satellite. The satellite is unpublished (0 rows carry `inherited_from` on
-  // 19 Sep 2026), so the five non-RSC rows are the parent's own, verbatim,
-  // with the view's own " (parent factory)" label and `inherited_from` set.
-  "ab-apparels-ltd-extension": [
-    { field: "pills", to: 6, why: "the record's own RSC row plus the five the view would lend it from AB APPARELS LTD" },
-  ],
+const COMPOSED: Record<string, string> = {
+  // `v_supplier_registry_ids` lends a published parent factory's rows to a
+  // satellite. The pills are the parent's own rows from
+  // `v_supplier_registry_ids_direct`, verbatim, with the view's own
+  // " (parent factory)" suffix and `inherited_from` set.
+  "ab-apparels-ltd-extension": "unpublished: the parent's five non-RSC rows, lent as the view would lend them",
+  "indochine-apparel-bangladesh-limited-plot-54-56-previously-baxter-brenton-bd-clothing-manufacturing-co-ltd-extension":
+    "unpublished: the fields are the `suppliers` row's own, plus its one BRAND_MS `source_record`",
 };
 
 type Fixture = { name: string; input: RecordInput };
@@ -214,56 +138,82 @@ const FIXTURES: Fixture[] = [
   { name: "longestNameInput", input: longestNameInput() },
 ];
 
-function shapeOf(input: RecordInput): Omit<ProductionRow, "published"> {
-  const p: ProfilePayload = input.profile;
-  const s = p.supplier;
-  const rsc = p.rsc_remediation as unknown[] | null;
-  return {
-    id: s.id,
-    entityType: s.entity_type,
-    city: s.city ?? null,
-    district: s.district ?? null,
-    parentGroup: s.parent_group_name ?? null,
-    established: s.established_date ?? null,
-    employees: s.employees_total ?? null,
-    sewing: s.machines_sewing ?? null,
-    pcsDay: s.production_capacity_pcs_day ?? null,
-    dozenYearly: s.production_capacity_dozen_yearly ?? null,
-    products: (s.principal_products ?? []).length,
-    rsc: rsc === null ? -1 : rsc.length,
-    pills: p.pills.length,
-    certs: p.certifications.length,
-    brands: (p.brand_attributions ?? []).length,
-    provenance: (p.provenance ?? []).length,
-    addresses: (p.addresses ?? []).length,
-    t13: p.t13_source_count,
-    hsLines: input.hscodes.length,
-    workers: input.workers === null ? null : { value: input.workers.value, source: input.workers.source },
-  };
-}
-
-describe("every fixture is the record production holds", () => {
+describe("every fixture is the payload production returns, field by field", () => {
   for (const { name, input } of FIXTURES) {
-    it(`${name} matches the 19 Sep 2026 payload`, () => {
-      const slug = input.profile.supplier.slug;
-      const expected = PRODUCTION[slug];
-      assert.ok(expected, `${name} renders "${slug}", which no recorded production read covers`);
-      const allowed = COMPOSED[slug] ?? [];
-      const want: Omit<ProductionRow, "published"> = { ...expected };
-      delete (want as Partial<ProductionRow>).published;
-      for (const c of allowed) (want as Record<string, unknown>)[c.field] = c.to;
-      assert.deepEqual(shapeOf(input), want, allowed.length ? `allowed compositions: ${allowed.map((c) => c.why).join("; ")}` : undefined);
+    const slug = input.profile.supplier.slug;
+    const composed = COMPOSED[slug];
+
+    if (composed) {
+      it(`${name} is composed, and says so: ${composed}`, () => {
+        assert.equal(PRODUCTION[slug], undefined, `${slug} is in the production read, so reconcile it rather than declaring it composed`);
+      });
+      continue;
+    }
+
+    it(`${name} matches production's payload for ${slug}`, () => {
+      const real = PRODUCTION[slug];
+      assert.ok(real, `${name} renders "${slug}", which the production read does not cover`);
+      const p: ProfilePayload = input.profile;
+      assert.deepEqual(pick(p.supplier, FIELDS.supplier), pick(real.supplier, FIELDS.supplier), "supplier");
+      for (const section of ["pills", "certifications", "brand_attributions", "provenance", "addresses"] as const) {
+        const mine = pickAll((p as unknown as Json)[section], FIELDS[section]);
+        const theirs = pickAll(real[section], FIELDS[section]);
+        assert.equal(mine.length, theirs.length, `${section}: ${mine.length} rows in the fixture, ${theirs.length} in production`);
+        assert.deepEqual(mine, theirs, section);
+      }
+      // A null `rsc_remediation` is not the same fact as an empty list.
+      assert.equal(p.rsc_remediation === null, real.rsc_remediation === null, "rsc_remediation: null vs a list");
+      assert.deepEqual(pickAll(p.rsc_remediation, FIELDS.rsc_remediation), pickAll(real.rsc_remediation, FIELDS.rsc_remediation), "rsc_remediation");
+      assert.equal(p.t13_source_count, real.t13_source_count, "t13_source_count");
+      // The three fixtures that carried `hscodes: []` over 14, 34 and 18 real
+      // EPB lines are why this compares the lines and not their number.
+      assert.deepEqual(pickAll(input.hscodes, FIELDS.hscodes), pickAll(real.hscodes, FIELDS.hscodes), "hscodes");
     });
   }
 
-  it("the two records a buyer cannot reach are the two production has not published", () => {
-    const unreachable = FIXTURES.filter((f) => PRODUCTION[f.input.profile.supplier.slug]?.published === false).map((f) => f.name);
-    assert.deepEqual(unreachable.sort(), ["inheritedPillsInput", "longestNameInput"]);
+  it("the composed fixtures are the two records production has not published", () => {
+    const composed = FIXTURES.filter((f) => COMPOSED[f.input.profile.supplier.slug]).map((f) => f.name);
+    assert.deepEqual(composed.sort(), ["inheritedPillsInput", "longestNameInput"]);
+    assert.equal(Object.keys(COMPOSED).length, 2, "a third composed fixture needs its reason written down here");
+  });
+
+  it("every record in the production read is reconciled by a fixture", () => {
+    const rendered = new Set(FIXTURES.map((f) => f.input.profile.supplier.slug));
+    for (const slug of Object.keys(PRODUCTION)) {
+      if (slug.startsWith("__")) continue;
+      assert.ok(rendered.has(slug), `the read covers ${slug}, which no fixture uses — delete it or use it`);
+    }
+  });
+
+  it("the read says when and where it was taken", () => {
+    const read = PRODUCTION.__read as Json;
+    assert.equal(read.project, "stnrfxrxfonwexzcvvpv");
+    assert.match(String(read.date), /^\d{4}-\d{2}-\d{2}$/);
+  });
+});
+
+describe("the RFQ rows are the ones rfq_list returns", () => {
+  it("all seven, field by field, newest first", () => {
+    assert.deepEqual(pickAll(RFQ_ROWS, FIELDS.rfq), pickAll(PRODUCTION.__rfq_list, FIELDS.rfq));
+    const dates = RFQ_ROWS.map((r) => Date.parse(r.created_at));
+    assert.deepEqual([...dates].sort((a, b) => b - a), dates, "rfq_list orders by created_at desc");
+  });
+
+  it("every row's target is named, and every named target belongs to a row", () => {
+    assert.deepEqual(Object.keys(RFQ_TARGETS).sort(), RFQ_ROWS.map((r) => r.id).sort());
+    for (const [id, t] of Object.entries(RFQ_TARGETS)) {
+      assert.ok(t.name.trim().length > 0, `${id} has an empty target name`);
+      assert.ok(t.tier >= 1 && t.tier <= 5, `${id} has no rank`);
+    }
+    // Every row targets exactly one supplier today, so one name per row is the
+    // whole truth; when a row targets more, the count is what the screen says.
+    for (const r of RFQ_ROWS) {
+      assert.equal(r.target_supplier_count, 1, `${r.id} targets ${r.target_supplier_count}, so naming one is not the whole truth`);
+    }
   });
 });
 
 describe("no fixture invents a fact about a named company", () => {
-  /** Every URL any fixture carries, with where it came from. */
   function urls(input: RecordInput): { where: string; url: string }[] {
     const p = input.profile;
     const out: { where: string; url: string }[] = [];
@@ -285,33 +235,17 @@ describe("no fixture invents a fact about a named company", () => {
 
   /** The hosts production's own rows use. A URL on any other host was typed, not read. */
   const HOSTS = new Set([
-    "www.bgmea.com.bd",
-    "www.bkmea.com",
-    "member.bkmea.com",
-    "bgapmea.org",
-    "www.bgapmea.org",
-    "edb.epb.gov.bd",
-    "epb.gov.bd",
-    "www.rsc-bd.org",
-    "rsc-bd.org",
-    "accord2.fairfactories.org",
-    "www.global-trace-base.org",
-    "global-standard.org",
-    "services.oeko-tex.com",
-    "www.oeko-tex.com",
-    "wrapcompliance.org",
-    "opensupplyhub.org",
-    "hmgroup.com",
-    "www.asosplc.com",
-    "www.nextplc.co.uk",
+    "www.bgmea.com.bd", "www.bkmea.com", "member.bkmea.com", "bgapmea.org", "www.bgapmea.org",
+    "edb.epb.gov.bd", "epb.gov.bd", "www.rsc-bd.org", "rsc-bd.org", "accord2.fairfactories.org",
+    "www.global-trace-base.org", "global-standard.org", "services.oeko-tex.com", "www.oeko-tex.com",
+    "wrapcompliance.org", "opensupplyhub.org", "hmgroup.com", "www.asosplc.com", "www.nextplc.co.uk",
   ]);
 
   for (const { name, input } of FIXTURES) {
     it(`${name} links only to hosts production's rows use`, () => {
       for (const { where, url } of urls(input)) {
         assert.match(url, /^https:\/\//, `${name} ${where} is not an https URL: ${url}`);
-        const host = new URL(url).host;
-        assert.ok(HOSTS.has(host), `${name} ${where} points at ${host}, which no production row uses: ${url}`);
+        assert.ok(HOSTS.has(new URL(url).host), `${name} ${where} points at ${new URL(url).host}, which no production row uses: ${url}`);
       }
     });
   }
@@ -330,12 +264,10 @@ describe("no fixture invents a fact about a named company", () => {
     for (const { name, input } of FIXTURES) {
       assert.equal(input.profile.supplier.is_sanctioned, false, `${name} marks a real company sanctioned`);
     }
-    // `select count(*) from suppliers where is_sanctioned` was 0 on 19 Sep 2026.
+    // `select count(*) from suppliers where is_sanctioned` was 0 on 20 Sep 2026.
     const sample = zaheenSampleInput();
     assert.equal(sample.sanctionSample, true, "the gallery's sanctioned screen must say it is a sample");
     assert.equal(sample.profile.supplier.is_sanctioned, false);
-    // `sanctionedInput` is the other half of the pair: the flag as production
-    // would set it, used to prove the kit reads the column and not the flag.
     const real = sanctionedInput();
     assert.equal(real.profile.supplier.is_sanctioned, true);
     assert.equal(real.sanctionSample, undefined);
@@ -351,18 +283,7 @@ describe("no fixture invents a fact about a named company", () => {
         if (row.building_name) named.add(row.building_name);
       }
     }
-    const exported = new Set([
-      HOSSAIN_BUILDING,
-      MG_BUILDING,
-      SQ_UNIT_04,
-      SQ_UNIT_3,
-      ASWAD_U2,
-      ASWAD_U2_EXT,
-      ASWAD_UNIT_1,
-      AMAN_EXTENSION,
-      ABONI_NEW_SHED,
-      SM_EXTENSION,
-    ]);
+    const exported = new Set([HOSSAIN_BUILDING, MG_BUILDING, SQ_UNIT_04, SQ_UNIT_3, ASWAD_U2, ASWAD_U2_EXT, ASWAD_UNIT_1, AMAN_EXTENSION, ABONI_NEW_SHED, SM_EXTENSION]);
     for (const n of named) assert.ok(exported.has(n), `the building "${n}" is named in a payload but not exported for the tests to reference`);
   });
 
@@ -375,8 +296,7 @@ describe("no fixture invents a fact about a named company", () => {
         ...(input.profile.addresses ?? []).map((a) => a.source_code),
       ];
       for (const code of codes) {
-        const m = sourceMark(code);
-        assert.notEqual(m.mark, "??", `${name} carries the source code "${code}", which the registry does not rank`);
+        assert.notEqual(sourceMark(code).mark, "??", `${name} carries the source code "${code}", which the registry does not rank`);
       }
     }
   });

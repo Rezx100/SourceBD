@@ -127,10 +127,21 @@ export type SupplierSheetModel = {
     productListCount: number;
     certifiedScope: { scheme: string; scope: string } | null;
     buyerLists: string[];
+    /** What to say when `buyerLists` is empty: the bare negative, or the building that is listed. */
+    buyerListsEmpty: string;
     tiles: PhotoTileModel[];
   };
   certs: CertModel[];
   certsCaption: string | null;
+  /** What the caption says when the record holds no certificate of its own: the bare negative, or the building that holds one. */
+  certsEmpty: string;
+  /**
+   * Whether every source mark this sheet renders links to a record page —
+   * the mark row, the attributed fact rows AND the certificate cards. It is
+   * computed here rather than in the component because a surface that forgets
+   * one mark set makes the action bar's strongest sentence false.
+   */
+  everyMarkLinks: boolean;
   /** Buildings holding a certificate of their own; named so the record does not appear to hold it, and so "none" is never printed over one. */
   certBuildings: string[];
   /** The mother's own RSC row; every row the RPC returns is active (the inactive state is REZ-C's). */

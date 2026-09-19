@@ -22,6 +22,11 @@ export type SourceMarkModel = {
   name: string;
   /** The register page the mark links to, when the record carries one. */
   href?: string | null;
+  /**
+   * What `href` opens: the register's page about this record, or a brand's
+   * whole disclosure list. The accessible name must say which.
+   */
+  opens?: "record" | "list";
 };
 
 const REGISTRY: Record<string, { tier: TierRank; mark: string; label: string }> = {
@@ -87,7 +92,7 @@ function fallback(code: string): { tier: TierRank; mark: string; label: string }
  * - a search form: `https://sa-intl.org/sa8000-search/` (7 records) — the
  *   digits in "sa8000" made it look like a record id;
  * - a bulk API listing: the Marks & Spencer source is one
- *   `opensubmithub.org/api/facilities/?…&pageSize=50` URL shared by all 67
+ *   `opensupplyhub.org/api/facilities/?…&pageSize=50` URL shared by all 67
  *   records on that list;
  * - a path with nothing record-shaped in it at all — no digits, no query, not
  *   a document.
@@ -116,6 +121,19 @@ export function recordPage(url: string | null | undefined): boolean {
  * same register could be an unlinked square in the head and a link to its
  * homepage in the facts panel of the same record.
  */
+/**
+ * A tier-4 brand disclosure list is one file listing every supplier on it, so
+ * its URL is never a page about one record — `recordPage`'s URL rules cannot
+ * see that (ASOS's `factory-list-april-2026.pdf`, NEXT's `T1 2025.pdf` and
+ * H&M's `…-May-2026 .xlsx` all carry a year, which reads as a record id), and
+ * 267 published records were getting "opens the register page" on a file of
+ * everybody. The file is real evidence and stays reachable; what changes is
+ * what the link is called.
+ */
+function opensA(code: string): "record" | "list" {
+  return code.toUpperCase().startsWith("BRAND_") ? "list" : "record";
+}
+
 export function sourceMark(code: string, href: string | null = null): SourceMarkModel {
   const key = code.toUpperCase();
   const entry = REGISTRY[key] ?? REGISTRY[code] ?? fallback(code);
@@ -126,6 +144,7 @@ export function sourceMark(code: string, href: string | null = null): SourceMark
     label: entry.label,
     name: sourceFullName(code) ?? entry.label,
     href: recordPage(href) ? href! : null,
+    opens: opensA(code),
   };
 }
 

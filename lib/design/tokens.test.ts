@@ -70,12 +70,13 @@ const HAND_TYPED = /#[0-9a-fA-F]{3,8}\b|\b(?:rgba?|hsla?|oklch|oklab)\(\s*[\d.]/
  *
  * A Bangladeshi address reads "BLOCK NO #H, HOLDING NO #121" and a register
  * label reads "BGMEA General member #", so `HAND_TYPED` fires on values read
- * straight out of production. A colour written into a data file renders as the
+ * straight out of production — in the fixture file and in the JSON read it is
+ * reconciled against. A colour written into a data file renders as the
  * characters of a colour, not as a colour, so the rule has nothing to catch
  * there — but only for as long as the file stays free of markup, which the
  * test below checks rather than trusting.
  */
-const NO_MARKUP = ["lib/dashboard/fixtures.ts"];
+const NO_MARKUP = ["lib/dashboard/fixtures.ts", "lib/dashboard/fixtures.production.json"];
 const MARKUP = /className=|class="|style=\{|<[a-z][a-z0-9]*\s[^>]*>/;
 /**
  * An arbitrary radius in square brackets. §9 fixes the radius scale, and the

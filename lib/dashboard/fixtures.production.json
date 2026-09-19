@@ -1,0 +1,3494 @@
+{
+  "__read": {
+    "date": "2026-09-20",
+    "note": "Written by the queries in the cycle-8 evidence bundle's sql/README.md, read-only. Keys the kit never reads are dropped; nothing else is edited by hand.",
+    "project": "stnrfxrxfonwexzcvvpv"
+  },
+  "__rfq_list": [
+    {
+      "created_at": "2026-09-09T01:00:30.289024+00:00",
+      "id": "b40e3903-e81e-457f-a2c0-d9cefbc8c42e",
+      "product_title": "T-shirt",
+      "quantity": 100,
+      "quantity_unit": "pcs",
+      "quote_count": 0,
+      "ship_by": "2026-09-24",
+      "status": "open",
+      "target_supplier_count": 1
+    },
+    {
+      "created_at": "2026-08-11T19:13:46.774004+00:00",
+      "id": "31720507-4ffe-49e6-9270-be93971ff48a",
+      "product_title": "jhewbsd",
+      "quantity": 45,
+      "quantity_unit": "pcs",
+      "quote_count": 0,
+      "ship_by": "2026-12-24",
+      "status": "open",
+      "target_supplier_count": 1
+    },
+    {
+      "created_at": "2026-07-18T18:33:29.847139+00:00",
+      "id": "46c33de8-831a-45b7-a813-beb82e8dcf26",
+      "product_title": "Men's heavyweight French terry hoodies, 420gsm - 2026-07-18T18:33",
+      "quantity": 12000,
+      "quantity_unit": "pcs",
+      "quote_count": 0,
+      "ship_by": "2026-10-30",
+      "status": "open",
+      "target_supplier_count": 1
+    },
+    {
+      "created_at": "2026-07-18T18:01:15.116177+00:00",
+      "id": "5f7cf830-a066-43df-a7ca-f0890d67c118",
+      "product_title": "Men's heavyweight French terry hoodies, 420gsm",
+      "quantity": 10000,
+      "quantity_unit": "pcs",
+      "quote_count": 0,
+      "ship_by": "2026-10-15",
+      "status": "open",
+      "target_supplier_count": 1
+    },
+    {
+      "created_at": "2026-07-18T17:57:54.821199+00:00",
+      "id": "e012b9ba-f3d8-44b3-856b-7ef9e7585dcf",
+      "product_title": "Men's heavyweight French terry hoodies, 420gsm",
+      "quantity": 10000,
+      "quantity_unit": "pcs",
+      "quote_count": 0,
+      "ship_by": "2026-10-15",
+      "status": "open",
+      "target_supplier_count": 1
+    },
+    {
+      "created_at": "2026-07-18T17:53:41.796129+00:00",
+      "id": "7e4fd0f0-ef28-495c-a345-d8a1c48a7bab",
+      "product_title": "Men's heavyweight French terry hoodies, 420gsm",
+      "quantity": 10000,
+      "quantity_unit": "pcs",
+      "quote_count": 0,
+      "ship_by": "2026-10-15",
+      "status": "open",
+      "target_supplier_count": 1
+    },
+    {
+      "created_at": "2026-07-18T17:51:10.844805+00:00",
+      "id": "6108e56e-148a-4b0b-b7a3-5f03292be538",
+      "product_title": "Men's heavyweight French terry hoodies, 420gsm",
+      "quantity": 10000,
+      "quantity_unit": "pcs",
+      "quote_count": 0,
+      "ship_by": "2026-10-15",
+      "status": "open",
+      "target_supplier_count": 1
+    }
+  ],
+  "aboni-knitwear": {
+    "addresses": [
+      {
+        "address": "Kandi Boilapur, Horindhara, Tetulzhora, Hemayetpur, Savar, Dhaka",
+        "fetched_at": "2026-06-26T23:24:31.412898+00:00",
+        "kind": "factory",
+        "source_code": "BGAPMEA"
+      },
+      {
+        "address": "160-171, Tetulgora, Hemayetpur\nDhaka\nSavar",
+        "fetched_at": "2026-07-24T05:22:07.651889+00:00",
+        "kind": "factory",
+        "source_code": "BGMEA"
+      },
+      {
+        "address": "PLOT-169-171, UNION: TETULZHORA, HAMAYETPUR, SAVAR, DHAKA",
+        "fetched_at": "2026-08-02T03:03:52.197121+00:00",
+        "kind": "factory",
+        "source_code": "BKMEA"
+      },
+      {
+        "address": "PLOT-169-171, UNION: TETULZHORA, HAMAYETPUR, SAVAR, DHAKA",
+        "fetched_at": "2026-08-02T04:24:53.114376+00:00",
+        "kind": "factory",
+        "source_code": "BKMEA"
+      },
+      {
+        "address": "Plot- 169-171, 195-196, 200, Hamayetpur, Tetuljhora Union, Savar, Dhaka - 1340, Bangladesh",
+        "fetched_at": "2026-06-26T22:59:24.032164+00:00",
+        "kind": "factory",
+        "source_code": "OEKO_TEX"
+      },
+      {
+        "address": "2-B/1, Darussalam Road,\nDhaka\nMirpur",
+        "fetched_at": "2026-07-24T05:22:07.651889+00:00",
+        "kind": "mailing",
+        "source_code": "BGMEA"
+      },
+      {
+        "address": "2B/1, DARUSSALAM ROAD, MIRPUR-1, MIRPUR, DHAKA",
+        "fetched_at": "2026-08-02T04:24:53.114376+00:00",
+        "kind": "mailing",
+        "source_code": "BKMEA"
+      },
+      {
+        "address": "2B/1, DARUSSALAM ROAD, MIRPUR-1, MIRPUR, DHAKA",
+        "fetched_at": "2026-08-02T03:03:52.197121+00:00",
+        "kind": "mailing",
+        "source_code": "BKMEA"
+      },
+      {
+        "address": "2-B/1, Darussalam Road, Mirpur, Dhaka-1216",
+        "fetched_at": "2026-06-26T23:24:31.412898+00:00",
+        "kind": "registered",
+        "source_code": "BGAPMEA"
+      }
+    ],
+    "brand_attributions": [
+      {
+        "display_name": "ASOS supplier list",
+        "last_seen_at": "2026-07-30T21:27:35.655595+00:00",
+        "source_code": "BRAND_ASOS",
+        "source_url": "https://www.asosplc.com/media/cmzk3m5n/factory-list-april-2026.pdf"
+      },
+      {
+        "display_name": "H&M Group supplier list",
+        "last_seen_at": "2026-06-26T23:02:29.477664+00:00",
+        "source_code": "BRAND_HM",
+        "source_url": "https://hmgroup.com/wp-content/uploads/spur/HM-Group-Supplier-List-May-2026 .xlsx"
+      },
+      {
+        "display_name": "Next plc supplier list",
+        "last_seen_at": "2026-05-18T22:44:33.591105+00:00",
+        "source_code": "BRAND_NEXT",
+        "source_url": "https://www.nextplc.co.uk/~/media/Files/N/next-plc-v4/Tier 1 -2 - 3 lists/T1 2025.pdf"
+      }
+    ],
+    "certifications": [
+      {
+        "certificate_no": "GOTS-31587",
+        "document_url": "https://www.global-trace-base.org/SCO039488/certificate-document",
+        "expires_on": "2027-05-12",
+        "issued_on": null,
+        "issuer": "TÜV Rheinland (China) Ltd.",
+        "kind": "gots",
+        "scope": "Operations: Dyeing, Embroidery, embellishment, Finishing, Knitting, Manufacturing, Packing, Pre-treatment , Printing, Washing, laundering | Products: Men's apparel"
+      },
+      {
+        "certificate_no": "GOTS-27605",
+        "document_url": "https://www.global-trace-base.org/SCO029726/certificate-document",
+        "expires_on": "2026-04-04",
+        "issued_on": null,
+        "issuer": "GSCS International Ltd.",
+        "kind": "gots",
+        "scope": "Operations: Dyeing, Embroidery, embellishment, Finishing, Knitting, Manufacturing, Packing, Pre-treatment , Printing, Warehousing, distribution of non-final products, Washing, laundering | Products: Babies' apparel, Children's apparel, Children's denim apparel, Dyed fabrics, Greige fabrics, Men's apparel, Men's denim apparel, Unisex apparel, Unisex denim apparel, Women's apparel, Women's denim apparel, Worn accessories"
+      },
+      {
+        "certificate_no": "32597-100",
+        "document_url": "https://services.oeko-tex.com/newoekotex/portal/for-new-website/customer_profile/32597~1wdFVs~O_k6dxb3kavK9_H_E7YoN0nL2CE/",
+        "expires_on": null,
+        "issued_on": null,
+        "issuer": "OEKO-TEX",
+        "kind": "oeko_tex",
+        "scope": "OEKO-TEX STANDARD 100"
+      },
+      {
+        "certificate_no": "7865",
+        "document_url": "https://wrapcompliance.org/certified-facility/7865/",
+        "expires_on": "2026-09-29",
+        "issued_on": null,
+        "issuer": "WRAP",
+        "kind": "wrap",
+        "scope": "Gold | Industries: Apparel | Products: Knitted Garments"
+      }
+    ],
+    "hscodes": [
+      {
+        "code": "6102",
+        "description": "Woman's or girls' overcoats and similar articles, knitted or crocheted",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/769"
+      },
+      {
+        "code": "6103",
+        "description": "Men's or boys' suits, ensembles, etc, knitted or crocheted",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/813"
+      },
+      {
+        "code": "6104",
+        "description": "Women's or girls' suits, ensembles, etc, knitted or crocheted",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/814"
+      },
+      {
+        "code": "6105",
+        "description": "Men's or boys' shirts, knitted or crocheted",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/694"
+      },
+      {
+        "code": "6106",
+        "description": "Women's or girls' blouses, etc, knitted or crocheted",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/695"
+      },
+      {
+        "code": "6107",
+        "description": "Men's or boys' briefs and similar articles, knitted or crocheted",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/696"
+      },
+      {
+        "code": "6108",
+        "description": "Women's or girls' panties and similar articles, knitted or crocheted",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/697"
+      },
+      {
+        "code": "6109",
+        "description": "T-shirts, singlets and other vests, knitted or crocheted",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/698"
+      },
+      {
+        "code": "6110",
+        "description": "Jerseys, pullovers, cardigans and similar articles, knitted or crocheted",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/699"
+      },
+      {
+        "code": "6111",
+        "description": "Babies' garments and clothing accessories, knitted or crocheted",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/700"
+      },
+      {
+        "code": "6114",
+        "description": "Other garments, knitted or crocheted, nes",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/778"
+      },
+      {
+        "code": "6115",
+        "description": "Panty hose, tights, etc, and footwear, knitted or crocheted",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/779"
+      }
+    ],
+    "pills": [
+      {
+        "inherited_from": null,
+        "inherited_from_name": null,
+        "label": "BGAPMEA #",
+        "source_code": "BGAPMEA",
+        "source_url": "https://bgapmea.org/",
+        "value": "597",
+        "verified": true
+      },
+      {
+        "inherited_from": null,
+        "inherited_from_name": null,
+        "label": "BGMEA General member #",
+        "source_code": "BGMEA",
+        "source_url": "https://www.bgmea.com.bd/member/71",
+        "value": "3498",
+        "verified": true
+      },
+      {
+        "inherited_from": null,
+        "inherited_from_name": null,
+        "label": "BKMEA #",
+        "source_code": "BKMEA",
+        "source_url": "https://www.bkmea.com/",
+        "value": "625 - B/2002",
+        "verified": true
+      },
+      {
+        "inherited_from": null,
+        "inherited_from_name": null,
+        "label": "EPB Reg #",
+        "source_code": "EPB",
+        "source_url": "https://edb.epb.gov.bd/exporter/3335/aboni-knitwear-ltd",
+        "value": "BD04293",
+        "verified": true
+      },
+      {
+        "inherited_from": null,
+        "inherited_from_name": null,
+        "label": "GOTS Cert #",
+        "source_code": "GOTS",
+        "source_url": "https://www.global-trace-base.org/SCO029726/certificate-document",
+        "value": "GOTS-27605",
+        "verified": true
+      },
+      {
+        "inherited_from": null,
+        "inherited_from_name": null,
+        "label": "GOTS Cert #",
+        "source_code": "GOTS",
+        "source_url": "https://www.global-trace-base.org/SCO039488/certificate-document",
+        "value": "GOTS-31587",
+        "verified": true
+      },
+      {
+        "inherited_from": null,
+        "inherited_from_name": null,
+        "label": "OEKO_TEX Cert #",
+        "source_code": "OEKO_TEX",
+        "source_url": "https://services.oeko-tex.com/newoekotex/portal/for-new-website/customer_profile/32597~1wdFVs~O_k6dxb3kavK9_H_E7YoN0nL2CE/",
+        "value": "32597-100",
+        "verified": true
+      },
+      {
+        "inherited_from": null,
+        "inherited_from_name": null,
+        "label": "RSC ID",
+        "source_code": "RSC",
+        "source_url": "https://www.rsc-bd.org/",
+        "value": "9342",
+        "verified": true
+      },
+      {
+        "inherited_from": null,
+        "inherited_from_name": null,
+        "label": "WRAP Cert #",
+        "source_code": "WRAP",
+        "source_url": "https://wrapcompliance.org/certified-facility/7865/",
+        "value": "7865",
+        "verified": true
+      },
+      {
+        "building_name": "Aboni Knitwear (New Shed)",
+        "inherited_from": null,
+        "inherited_from_name": null,
+        "label": "RSC ID",
+        "source_code": "RSC",
+        "source_url": "https://www.rsc-bd.org/",
+        "value": "23602",
+        "verified": true
+      }
+    ],
+    "provenance": [
+      {
+        "display_name": "Export Promotion Bureau",
+        "last_seen_at": "2026-08-14T21:58:33.681609+00:00",
+        "source_code": "EPB",
+        "source_ref": "3335",
+        "source_url": "https://epb.gov.bd",
+        "tier": "tier1_gov"
+      },
+      {
+        "display_name": "RMG Sustainability Council",
+        "last_seen_at": "2026-09-18T05:17:33.22837+00:00",
+        "source_code": "RSC",
+        "source_ref": "9342",
+        "source_url": "https://rsc-bd.org",
+        "tier": "tier1_gov"
+      },
+      {
+        "display_name": "Bangladesh Garment Accessories & Packaging MEA",
+        "last_seen_at": "2026-06-26T23:24:31.412898+00:00",
+        "source_code": "BGAPMEA",
+        "source_ref": "90",
+        "source_url": "https://bgapmea.org",
+        "tier": "tier2_industry"
+      },
+      {
+        "display_name": "Bangladesh Garment Manufacturers & Exporters Assoc.",
+        "last_seen_at": "2026-07-24T05:22:07.651889+00:00",
+        "source_code": "BGMEA",
+        "source_ref": "general:3498",
+        "source_url": "https://www.bgmea.com.bd",
+        "tier": "tier2_industry"
+      },
+      {
+        "display_name": "Bangladesh Knitwear Manufacturers & Exporters Assoc.",
+        "last_seen_at": "2026-08-02T04:24:53.114376+00:00",
+        "source_code": "BKMEA",
+        "source_ref": "619:detail",
+        "source_url": "https://member.bkmea.com",
+        "tier": "tier2_industry"
+      },
+      {
+        "display_name": "Bangladesh Knitwear Manufacturers & Exporters Assoc.",
+        "last_seen_at": "2026-08-02T03:03:52.197121+00:00",
+        "source_code": "BKMEA",
+        "source_ref": "625",
+        "source_url": "https://member.bkmea.com",
+        "tier": "tier2_industry"
+      },
+      {
+        "display_name": "Global Organic Textile Standard",
+        "last_seen_at": "2026-06-26T22:57:00.126799+00:00",
+        "source_code": "GOTS",
+        "source_ref": "gots-SCO039488",
+        "source_url": "https://global-standard.org",
+        "tier": "tier3_cert"
+      },
+      {
+        "display_name": "Global Organic Textile Standard",
+        "last_seen_at": "2026-06-26T22:56:55.664165+00:00",
+        "source_code": "GOTS",
+        "source_ref": "gots-SCO029726",
+        "source_url": "https://global-standard.org",
+        "tier": "tier3_cert"
+      },
+      {
+        "display_name": "OEKO-TEX",
+        "last_seen_at": "2026-06-26T22:59:24.032164+00:00",
+        "source_code": "OEKO_TEX",
+        "source_ref": "oeko-tex-32597",
+        "source_url": "https://www.oeko-tex.com",
+        "tier": "tier3_cert"
+      },
+      {
+        "display_name": "Worldwide Responsible Accredited Production",
+        "last_seen_at": "2026-07-24T05:15:34.811285+00:00",
+        "source_code": "WRAP",
+        "source_ref": "wrap-7865",
+        "source_url": "https://wrapcompliance.org",
+        "tier": "tier3_cert"
+      },
+      {
+        "display_name": "ASOS supplier list",
+        "last_seen_at": "2026-07-30T21:27:35.655595+00:00",
+        "source_code": "BRAND_ASOS",
+        "source_ref": "b376ef6e0404ae78",
+        "source_url": "https://www.asosplc.com/media/cmzk3m5n/factory-list-april-2026.pdf",
+        "tier": "tier4_brand"
+      },
+      {
+        "display_name": "H&M Group supplier list",
+        "last_seen_at": "2026-06-26T23:02:29.477664+00:00",
+        "source_code": "BRAND_HM",
+        "source_ref": "aae431e7c9e0b1c9",
+        "source_url": "https://hmgroup.com/wp-content/uploads/spur/HM-Group-Supplier-List-May-2026 .xlsx",
+        "tier": "tier4_brand"
+      },
+      {
+        "display_name": "Next plc supplier list",
+        "last_seen_at": "2026-05-18T22:44:33.591105+00:00",
+        "source_code": "BRAND_NEXT",
+        "source_ref": "0c3207180f592be8",
+        "source_url": "https://www.nextplc.co.uk/~/media/Files/N/next-plc-v4/Tier 1 -2 - 3 lists/T1 2025.pdf",
+        "tier": "tier4_brand"
+      }
+    ],
+    "rsc_remediation": [
+      {
+        "boiler_inspection_url": "https://accord2.fairfactories.org/accord_v2_files/1/Audit_Files/340274.pdf",
+        "cap_url": "https://accord2.fairfactories.org/web/Audits/Audits/DownloadCAPFile?id=9342",
+        "electrical_inspection_url": "https://accord2.fairfactories.org/accord_v2_files/1/Audit_Files/13284.pdf",
+        "fetched_at": "2026-07-30T22:13:36.187121+00:00",
+        "fire_inspection_url": "https://accord2.fairfactories.org/accord_v2_files/1/Audit_Files/12868.pdf",
+        "parent_group_factory_count": 5,
+        "parent_group_name": "Babylon Group",
+        "progress_pct": 100.0,
+        "remediation_status": "initialcompleted",
+        "structural_inspection_url": "https://accord2.fairfactories.org/accord_v2_files/1/Audit_Files/21587.pdf",
+        "training_status": "completed",
+        "workers_count": 2662
+      },
+      {
+        "boiler_inspection_url": "https://accord2.fairfactories.org/accord_v2_files/1/Audit_Files/340217.pdf",
+        "building_name": "Aboni Knitwear (New Shed)",
+        "cap_url": "https://accord2.fairfactories.org/web/Audits/Audits/DownloadCAPFile?id=23602",
+        "electrical_inspection_url": "https://accord2.fairfactories.org/accord_v2_files/1/Audit_Files/212312.pdf",
+        "fetched_at": "2026-07-30T22:13:40.757784+00:00",
+        "fire_inspection_url": "https://accord2.fairfactories.org/accord_v2_files/1/Audit_Files/196749.pdf",
+        "parent_group_factory_count": 5,
+        "parent_group_name": "Babylon Group",
+        "progress_pct": 100.0,
+        "remediation_status": "initialcompleted",
+        "structural_inspection_url": "https://accord2.fairfactories.org/accord_v2_files/1/Audit_Files/197684.pdf",
+        "training_status": "completed",
+        "workers_count": 504
+      }
+    ],
+    "supplier": {
+      "address_raw": "PLOT-169-171, UNION: TETULZHORA, HAMAYETPUR, SAVAR, DHAKA",
+      "city": "Dhaka",
+      "company_name": "ABONI KNITWEAR LTD.",
+      "district": "Dhaka",
+      "employees_total": 3314,
+      "entity_type": "factory",
+      "established_date": "1985",
+      "factory_types": [
+        "Dyeing",
+        "Knit",
+        "Packaging",
+        "Woven"
+      ],
+      "id": "8ce50581-2d84-4cc2-93de-506394eade5d",
+      "is_sanctioned": false,
+      "machines_sewing": 850,
+      "parent_group_name": "Babylon Group",
+      "principal_products": [
+        "All Kind of Knit Item",
+        "Babies' apparel",
+        "Back Board",
+        "Blouses",
+        "Children's apparel",
+        "Children's denim apparel",
+        "Collar Insert",
+        "Corrugated Carton",
+        "Dyed fabrics",
+        "Fashion Wears",
+        "Greige fabrics",
+        "Hang Tag",
+        "Knitted Garments",
+        "Ladies Items",
+        "Men's apparel",
+        "Men's denim apparel",
+        "Neck Board",
+        "photo in lay",
+        "Photocard etc",
+        "Price Tag",
+        "Shirts",
+        "Tissue Paper",
+        "Unisex apparel",
+        "Unisex denim apparel",
+        "Women's apparel",
+        "Women's denim apparel",
+        "Worn accessories"
+      ],
+      "production_capacity_dozen_yearly": null,
+      "production_capacity_pcs_day": 1000000,
+      "slug": "aboni-knitwear",
+      "source_tags": [
+        "BGMEA",
+        "BGAPMEA",
+        "EPB",
+        "BRAND_ASOS",
+        "WRAP",
+        "GOTS",
+        "BRAND_HM",
+        "BRAND_NEXT",
+        "RSC",
+        "BKMEA",
+        "OEKO_TEX"
+      ],
+      "supplier_lead_time_days": null,
+      "supplier_moq": null
+    },
+    "t13_source_count": 8
+  },
+  "adventure-garments": {
+    "addresses": [
+      {
+        "address": "Sarabo, Kashimpur\nGazipur\nGazipur",
+        "fetched_at": "2026-07-24T05:23:45.785433+00:00",
+        "kind": "factory",
+        "source_code": "BGMEA"
+      },
+      {
+        "address": "Beximco Industrial Park, Sarabo, Kashimpur\nGazipur\nGazipur",
+        "fetched_at": "2026-07-24T05:23:45.785433+00:00",
+        "kind": "mailing",
+        "source_code": "BGMEA"
+      }
+    ],
+    "brand_attributions": [],
+    "certifications": [],
+    "hscodes": [],
+    "pills": [
+      {
+        "inherited_from": null,
+        "inherited_from_name": null,
+        "label": "BGMEA General member #",
+        "source_code": "BGMEA",
+        "source_url": "https://www.bgmea.com.bd/member/4395",
+        "value": "6637",
+        "verified": true
+      }
+    ],
+    "provenance": [
+      {
+        "display_name": "Bangladesh Garment Manufacturers & Exporters Assoc.",
+        "last_seen_at": "2026-07-24T05:23:45.785433+00:00",
+        "source_code": "BGMEA",
+        "source_ref": "general:6637",
+        "source_url": "https://www.bgmea.com.bd",
+        "tier": "tier2_industry"
+      }
+    ],
+    "rsc_remediation": null,
+    "supplier": {
+      "address_raw": "Holding # 315, Beximco Industrial Park, Sarabo, Kashimpur\nGazipur\nGazipur",
+      "city": "Gazipur",
+      "company_name": "Adventure Garments Ltd.",
+      "district": "Gazipur",
+      "employees_total": 610,
+      "entity_type": "factory",
+      "established_date": "2020-01-04",
+      "factory_types": [
+        "Knit",
+        "Woven"
+      ],
+      "id": "e96d742a-11b3-4533-9620-febb36eb6d69",
+      "is_sanctioned": false,
+      "machines_sewing": 197,
+      "parent_group_name": null,
+      "principal_products": [
+        "All kind of Jackets",
+        "All kind of Pans / Trousers",
+        "All kind of Shirts /Tops",
+        "All Kinds of Jackets",
+        "All Kinds of Pants/Trousers",
+        "All Kinds of Shirts / Tops",
+        "All Types of Jackets",
+        "All Types Of Jackets",
+        "All Types of Pant / Trousers",
+        "All Types of Pants / Trousers",
+        "All Types Of Pants/Trouser",
+        "All Types of Pants/Trousers",
+        "All Types Of Pants/Trousers",
+        "All Types of Shirts / Tops",
+        "All types Of Shirts/Tops",
+        "All Types of Shirts/Tops",
+        "All Types Of Shirts/Tops",
+        "AllTypes of Jackets",
+        "AllTypes of Pants/Trousers",
+        "AllTypes of Shirts/Tops",
+        "Children Wears",
+        "Hand Gloves",
+        "Hand Sanitizer",
+        "Jacket",
+        "Jackets",
+        "Ladies Shirts",
+        "Mask",
+        "Pant",
+        "Pants",
+        "Polo shirt",
+        "Polo Shirt",
+        "PPE",
+        "SAll Types of Shirts/Tops",
+        "Shirt",
+        "Shirts",
+        "T-Shirt",
+        "Tops",
+        "Trouser",
+        "Trousers"
+      ],
+      "production_capacity_dozen_yearly": 9750000,
+      "production_capacity_pcs_day": null,
+      "slug": "adventure-garments",
+      "source_tags": [
+        "BGMEA"
+      ],
+      "supplier_lead_time_days": null,
+      "supplier_moq": null
+    },
+    "t13_source_count": 1
+  },
+  "aman-graphics-and-designs": {
+    "addresses": [
+      {
+        "address": "Nazim Nagar, Hemayetpur\nDhaka\nDhaka",
+        "fetched_at": "2026-07-24T05:29:06.90265+00:00",
+        "kind": "factory",
+        "source_code": "BGMEA"
+      },
+      {
+        "address": "Nazimnagar, Hemayetpur, Savar, Dhaka - 1340, Bangladesh",
+        "fetched_at": "2026-06-26T23:06:52.677011+00:00",
+        "kind": "factory",
+        "source_code": "OEKO_TEX"
+      },
+      {
+        "address": "House # 1248 (1st Floor), Road # 09, Avenue # 02, Mirpur DOHS, Mirpur\nDhaka\nDhaka",
+        "fetched_at": "2026-07-24T05:29:06.90265+00:00",
+        "kind": "mailing",
+        "source_code": "BGMEA"
+      }
+    ],
+    "brand_attributions": [
+      {
+        "display_name": "Marks & Spencer supplier list",
+        "last_seen_at": "2026-05-18T23:39:39.426435+00:00",
+        "source_code": "BRAND_MS",
+        "source_url": "https://opensupplyhub.org/api/facilities/?contributors=10061&countries=BD&pageSize=50&embed=1&sort_by=name_asc"
+      },
+      {
+        "display_name": "Marks & Spencer supplier list",
+        "last_seen_at": "2026-06-26T23:06:32.492825+00:00",
+        "source_code": "BRAND_MS",
+        "source_url": "https://opensupplyhub.org/api/facilities/?contributors=10061&countries=BD&pageSize=50&embed=1&sort_by=name_asc"
+      },
+      {
+        "display_name": "Next plc supplier list",
+        "last_seen_at": "2026-05-18T22:45:54.99168+00:00",
+        "source_code": "BRAND_NEXT",
+        "source_url": "https://www.nextplc.co.uk/~/media/Files/N/next-plc-v4/Tier 1 -2 - 3 lists/T1 2025.pdf"
+      }
+    ],
+    "certifications": [
+      {
+        "certificate_no": "37789-100",
+        "document_url": "https://services.oeko-tex.com/newoekotex/portal/for-new-website/customer_profile/37789~1wdFZo~98m29J24K5G8YUkR-nDBwkGrc4s/",
+        "expires_on": null,
+        "issued_on": null,
+        "issuer": "OEKO-TEX",
+        "kind": "oeko_tex",
+        "scope": "OEKO-TEX STANDARD 100"
+      }
+    ],
+    "hscodes": [
+      {
+        "code": "6101",
+        "description": "Men's or boys' overcoats... and similar articles, knitted or crocheted",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/846"
+      },
+      {
+        "code": "6102",
+        "description": "Woman's or girls' overcoats and similar articles, knitted or crocheted",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/769"
+      },
+      {
+        "code": "6103",
+        "description": "Men's or boys' suits, ensembles, etc, knitted or crocheted",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/813"
+      },
+      {
+        "code": "6104",
+        "description": "Women's or girls' suits, ensembles, etc, knitted or crocheted",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/814"
+      },
+      {
+        "code": "6105",
+        "description": "Men's or boys' shirts, knitted or crocheted",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/694"
+      },
+      {
+        "code": "6106",
+        "description": "Women's or girls' blouses, etc, knitted or crocheted",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/695"
+      },
+      {
+        "code": "6107",
+        "description": "Men's or boys' briefs and similar articles, knitted or crocheted",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/696"
+      },
+      {
+        "code": "6108",
+        "description": "Women's or girls' panties and similar articles, knitted or crocheted",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/697"
+      },
+      {
+        "code": "6109",
+        "description": "T-shirts, singlets and other vests, knitted or crocheted",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/698"
+      },
+      {
+        "code": "6110",
+        "description": "Jerseys, pullovers, cardigans and similar articles, knitted or crocheted",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/699"
+      },
+      {
+        "code": "6111",
+        "description": "Babies' garments and clothing accessories, knitted or crocheted",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/700"
+      },
+      {
+        "code": "6112",
+        "description": "Track-suits, ski-suits and swimwear, knitted or crocheted",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/776"
+      },
+      {
+        "code": "6113",
+        "description": "Garments made up of knitted or crocheted fabrics of 59.03, 59.06, 59.07",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/777"
+      },
+      {
+        "code": "6114",
+        "description": "Other garments, knitted or crocheted, nes",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/778"
+      },
+      {
+        "code": "6115",
+        "description": "Panty hose, tights, etc, and footwear, knitted or crocheted",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/779"
+      },
+      {
+        "code": "6116",
+        "description": "Gloves, mittens and mitts, knitted or crocheted",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/780"
+      },
+      {
+        "code": "6117",
+        "description": "Other made up clothing or parts of garments, knitted or crocheted",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/781"
+      },
+      {
+        "code": "6201",
+        "description": "Men's or boys' overcoats, and similar articles",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/782"
+      },
+      {
+        "code": "6202",
+        "description": "Woman's or girls' overcoats, and similar articles",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/783"
+      },
+      {
+        "code": "6203",
+        "description": "Men's or boys' suits, ensembles, jackets, blazers, trousers, etc",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/784"
+      },
+      {
+        "code": "6204",
+        "description": "Women's or girls' suits, ensembles, jackets, dresses, skirts, etc",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/785"
+      },
+      {
+        "code": "6205",
+        "description": "Men's or boys' shirts",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/786"
+      },
+      {
+        "code": "6206",
+        "description": "Women's or girls' blouses, shirts and shirt-blouses",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/787"
+      },
+      {
+        "code": "6207",
+        "description": "Men's or boys' underpants, briefs, nightshirts, pyjamas, etc",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/788"
+      },
+      {
+        "code": "6208",
+        "description": "Women's or girls' slips, petticoats, nightdresses, pyjamas, etc",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/789"
+      },
+      {
+        "code": "6209",
+        "description": "Bables' garments and clothing accessories",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/790"
+      },
+      {
+        "code": "6210",
+        "description": "Garments, made up of fabrics of 56.02, 56.03, 59.03, 59.06 or 59.07",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/791"
+      },
+      {
+        "code": "6211",
+        "description": "Track suits, ski suits and swimwear; other than garments",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/792"
+      },
+      {
+        "code": "6212",
+        "description": "Brassieres, girdles, corsets, braces, suspenders, garters, etc",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/793"
+      },
+      {
+        "code": "6213",
+        "description": "Handkerchiefs",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/794"
+      },
+      {
+        "code": "6214",
+        "description": "Shawls, scarves, mufflers, mantillas, veils and the like",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/795"
+      },
+      {
+        "code": "6215",
+        "description": "Ties, bow ties and cravats",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/796"
+      },
+      {
+        "code": "6216",
+        "description": "Gloves, mittens and mitts",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/797"
+      },
+      {
+        "code": "6217",
+        "description": "Other made up clothing accessories; parts of garments",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/798"
+      }
+    ],
+    "pills": [
+      {
+        "inherited_from": null,
+        "inherited_from_name": null,
+        "label": "BGMEA General member #",
+        "source_code": "BGMEA",
+        "source_url": "https://www.bgmea.com.bd/member/194",
+        "value": "5201",
+        "verified": true
+      },
+      {
+        "inherited_from": null,
+        "inherited_from_name": null,
+        "label": "EPB Reg #",
+        "source_code": "EPB",
+        "source_url": "https://edb.epb.gov.bd/exporter/1233/aman-graphics-designs-ltd",
+        "value": "BD01848",
+        "verified": true
+      },
+      {
+        "inherited_from": null,
+        "inherited_from_name": null,
+        "label": "OEKO_TEX Cert #",
+        "source_code": "OEKO_TEX",
+        "source_url": "https://services.oeko-tex.com/newoekotex/portal/for-new-website/customer_profile/37789~1wdFZo~98m29J24K5G8YUkR-nDBwkGrc4s/",
+        "value": "37789-100",
+        "verified": true
+      },
+      {
+        "inherited_from": null,
+        "inherited_from_name": null,
+        "label": "RSC ID",
+        "source_code": "RSC",
+        "source_url": "https://www.rsc-bd.org/",
+        "value": "10089",
+        "verified": true
+      },
+      {
+        "building_name": "Aman Graphics & Designs Ltd. (Extension)",
+        "inherited_from": null,
+        "inherited_from_name": null,
+        "label": "RSC ID",
+        "source_code": "RSC",
+        "source_url": "https://www.rsc-bd.org/",
+        "value": "24595",
+        "verified": true
+      }
+    ],
+    "provenance": [
+      {
+        "display_name": "Export Promotion Bureau",
+        "last_seen_at": "2026-08-14T21:58:27.826834+00:00",
+        "source_code": "EPB",
+        "source_ref": "1233",
+        "source_url": "https://epb.gov.bd",
+        "tier": "tier1_gov"
+      },
+      {
+        "display_name": "RMG Sustainability Council",
+        "last_seen_at": "2026-09-18T05:18:48.933544+00:00",
+        "source_code": "RSC",
+        "source_ref": "10089",
+        "source_url": "https://rsc-bd.org",
+        "tier": "tier1_gov"
+      },
+      {
+        "display_name": "Bangladesh Garment Manufacturers & Exporters Assoc.",
+        "last_seen_at": "2026-07-24T05:29:06.90265+00:00",
+        "source_code": "BGMEA",
+        "source_ref": "general:5201",
+        "source_url": "https://www.bgmea.com.bd",
+        "tier": "tier2_industry"
+      },
+      {
+        "display_name": "OEKO-TEX",
+        "last_seen_at": "2026-06-26T23:06:52.677011+00:00",
+        "source_code": "OEKO_TEX",
+        "source_ref": "oeko-tex-37789",
+        "source_url": "https://www.oeko-tex.com",
+        "tier": "tier3_cert"
+      },
+      {
+        "display_name": "Marks & Spencer supplier list",
+        "last_seen_at": "2026-06-26T23:06:32.492825+00:00",
+        "source_code": "BRAND_MS",
+        "source_ref": "ms-osh-BD2020066CY505A",
+        "source_url": "https://opensupplyhub.org/api/facilities/?contributors=10061&countries=BD&pageSize=50&embed=1&sort_by=name_asc",
+        "tier": "tier4_brand"
+      },
+      {
+        "display_name": "Marks & Spencer supplier list",
+        "last_seen_at": "2026-05-18T23:39:39.426435+00:00",
+        "source_code": "BRAND_MS",
+        "source_ref": "ms-osh-BD2026083JDARPJ",
+        "source_url": "https://opensupplyhub.org/api/facilities/?contributors=10061&countries=BD&pageSize=50&embed=1&sort_by=name_asc",
+        "tier": "tier4_brand"
+      },
+      {
+        "display_name": "Next plc supplier list",
+        "last_seen_at": "2026-05-18T22:45:54.99168+00:00",
+        "source_code": "BRAND_NEXT",
+        "source_ref": "946c798d5e5eadd0",
+        "source_url": "https://www.nextplc.co.uk/~/media/Files/N/next-plc-v4/Tier 1 -2 - 3 lists/T1 2025.pdf",
+        "tier": "tier4_brand"
+      }
+    ],
+    "rsc_remediation": [
+      {
+        "boiler_inspection_url": "https://accord2.fairfactories.org/accord_v2_files/1/Audit_Files/391263.pdf",
+        "cap_url": "https://accord2.fairfactories.org/web/Audits/Audits/DownloadCAPFile?id=10089",
+        "electrical_inspection_url": "https://accord2.fairfactories.org/accord_v2_files/1/Audit_Files/9636.pdf",
+        "fetched_at": "2026-07-30T22:20:11.351347+00:00",
+        "fire_inspection_url": "https://accord2.fairfactories.org/accord_v2_files/1/Audit_Files/2474.pdf",
+        "parent_group_factory_count": 5,
+        "parent_group_name": "Unifill Group",
+        "progress_pct": 100.0,
+        "remediation_status": "initialcompleted",
+        "structural_inspection_url": "https://accord2.fairfactories.org/accord_v2_files/1/Audit_Files/10219.pdf",
+        "training_status": "completed",
+        "workers_count": 4709
+      },
+      {
+        "boiler_inspection_url": "https://accord2.fairfactories.org/accord_v2_files/1/Audit_Files/391265.pdf",
+        "building_name": "Aman Graphics & Designs Ltd. (Extension)",
+        "cap_url": "https://accord2.fairfactories.org/web/Audits/Audits/DownloadCAPFile?id=24595",
+        "electrical_inspection_url": "https://accord2.fairfactories.org/accord_v2_files/1/Audit_Files/304608.pdf",
+        "fetched_at": "2026-07-30T22:20:15.864955+00:00",
+        "fire_inspection_url": "https://accord2.fairfactories.org/accord_v2_files/1/Audit_Files/304602.pdf",
+        "parent_group_factory_count": null,
+        "parent_group_name": null,
+        "progress_pct": 100.0,
+        "remediation_status": "ontrack",
+        "structural_inspection_url": "https://accord2.fairfactories.org/accord_v2_files/1/Audit_Files/305831.pdf",
+        "training_status": "yet to start",
+        "workers_count": 4709
+      }
+    ],
+    "supplier": {
+      "address_raw": "Nazim Nagar, Hemayetpur\nDhaka\nSavar",
+      "city": "Dhaka",
+      "company_name": "Aman Graphics & Designs Ltd.",
+      "district": "Dhaka",
+      "employees_total": 560,
+      "entity_type": "factory",
+      "established_date": "2011",
+      "factory_types": [
+        "Woven"
+      ],
+      "id": "c60c3e6e-ac7d-42e3-9d2b-4eb6d931c976",
+      "is_sanctioned": false,
+      "machines_sewing": 290,
+      "parent_group_name": "Unifill Group",
+      "principal_products": [
+        "Jackets",
+        "Pants",
+        "Shirts"
+      ],
+      "production_capacity_dozen_yearly": 180000,
+      "production_capacity_pcs_day": null,
+      "slug": "aman-graphics-and-designs",
+      "source_tags": [
+        "BGMEA",
+        "EPB",
+        "BRAND_MS",
+        "BRAND_NEXT",
+        "RSC",
+        "OEKO_TEX"
+      ],
+      "supplier_lead_time_days": null,
+      "supplier_moq": null
+    },
+    "t13_source_count": 4
+  },
+  "ar-fashion": {
+    "addresses": [
+      {
+        "address": "Fazlur Rahman Center (5th Floor) 72,, Dilkusha, DT Road, Motijheel, Dhaka",
+        "fetched_at": "2026-07-30T23:21:02.933692+00:00",
+        "kind": "registered",
+        "source_code": "BGMEA"
+      }
+    ],
+    "brand_attributions": [],
+    "certifications": [],
+    "hscodes": [],
+    "pills": [
+      {
+        "inherited_from": null,
+        "inherited_from_name": null,
+        "label": "BGMEA Associate member #",
+        "source_code": "BGMEA",
+        "source_url": null,
+        "value": "330",
+        "verified": true
+      }
+    ],
+    "provenance": [
+      {
+        "display_name": "Bangladesh Garment Manufacturers & Exporters Assoc.",
+        "last_seen_at": "2026-07-30T23:21:02.933692+00:00",
+        "source_code": "BGMEA",
+        "source_ref": "330",
+        "source_url": "https://www.bgmea.com.bd",
+        "tier": "tier2_industry"
+      }
+    ],
+    "rsc_remediation": null,
+    "supplier": {
+      "address_raw": null,
+      "city": null,
+      "company_name": "A.R. Fashion",
+      "district": null,
+      "employees_total": null,
+      "entity_type": "buying_house",
+      "established_date": null,
+      "factory_types": [],
+      "id": "61508d5d-845f-4638-aca2-63057d38236a",
+      "is_sanctioned": false,
+      "machines_sewing": null,
+      "parent_group_name": null,
+      "principal_products": [],
+      "production_capacity_dozen_yearly": null,
+      "production_capacity_pcs_day": null,
+      "slug": "ar-fashion",
+      "source_tags": [],
+      "supplier_lead_time_days": null,
+      "supplier_moq": null
+    },
+    "t13_source_count": 1
+  },
+  "aswad-composite-mills": {
+    "addresses": [
+      {
+        "address": "26, Malibagh Chowdhury Para, Malibagh\nDhaka\nDhaka",
+        "fetched_at": "2026-07-24T05:40:20.74018+00:00",
+        "kind": "factory",
+        "source_code": "BGMEA"
+      },
+      {
+        "address": "HOLDING NO #121, BLOCK NO #H,WORD NO-07, BERAIDER CHALLA, SREEPUR, GAZIPUR",
+        "fetched_at": "2026-08-02T02:28:29.006688+00:00",
+        "kind": "factory",
+        "source_code": "BKMEA"
+      },
+      {
+        "address": "HOLDING NO #121, BLOCK NO #H,WORD NO-07, BERAIDER CHALLA, SREEPUR, GAZIPUR",
+        "fetched_at": "2026-08-02T05:12:00.563013+00:00",
+        "kind": "factory",
+        "source_code": "BKMEA"
+      },
+      {
+        "address": "MULAID, MAONA, SREEPUR, GAZIPUR",
+        "fetched_at": "2026-08-02T06:07:25.532255+00:00",
+        "kind": "factory",
+        "source_code": "BKMEA"
+      },
+      {
+        "address": "Holding - 121, Block - H, Beraiderchala, Ward No - 07, Sreepur Municipality, Sreepur, Gazipur - 1740, Bangladesh",
+        "fetched_at": "2026-06-26T23:17:10.432376+00:00",
+        "kind": "factory",
+        "source_code": "OEKO_TEX"
+      },
+      {
+        "address": "9/Kha, Confidence Center, Shahazadpur, Gulsan\nDhaka\nDhaka",
+        "fetched_at": "2026-07-24T05:40:20.74018+00:00",
+        "kind": "mailing",
+        "source_code": "BGMEA"
+      },
+      {
+        "address": "CONFIDENCE CENTER, 9/KHA, SHAHAZADPUR, GULSHAN, DHAKA-1212, GULSHAN, DHAKA",
+        "fetched_at": "2026-08-02T02:28:29.006688+00:00",
+        "kind": "mailing",
+        "source_code": "BKMEA"
+      },
+      {
+        "address": "CONFIDENCE CENTER, 9/KHA, SHAHAZADPUR, GULSHAN, DHAKA-1212, GULSHAN, DHAKA",
+        "fetched_at": "2026-08-02T05:12:00.563013+00:00",
+        "kind": "mailing",
+        "source_code": "BKMEA"
+      },
+      {
+        "address": "MULAID, MAONA, SREEPUR, GAZIPUR",
+        "fetched_at": "2026-08-02T06:07:25.532255+00:00",
+        "kind": "mailing",
+        "source_code": "BKMEA"
+      }
+    ],
+    "brand_attributions": [
+      {
+        "building_name": "ASWAD COMPOSITE MILLS LTD. ( U-2)",
+        "display_name": "H&M Group supplier list",
+        "last_seen_at": "2026-06-26T23:03:47.960065+00:00",
+        "source_code": "BRAND_HM",
+        "source_url": "https://hmgroup.com/wp-content/uploads/spur/HM-Group-Supplier-List-May-2026 .xlsx"
+      },
+      {
+        "building_name": "Aswad Composite Mills Ltd.(unit-1)",
+        "display_name": "H&M Group supplier list",
+        "last_seen_at": "2026-06-26T23:03:51.222376+00:00",
+        "source_code": "BRAND_HM",
+        "source_url": "https://hmgroup.com/wp-content/uploads/spur/HM-Group-Supplier-List-May-2026 .xlsx"
+      }
+    ],
+    "certifications": [
+      {
+        "certificate_no": "GOTS-11587",
+        "document_url": "https://www.global-trace-base.org/SCO001805/certificate-document",
+        "expires_on": "2026-06-27",
+        "issued_on": null,
+        "issuer": "CERES-CERT AG",
+        "kind": "gots",
+        "scope": "Operations: Dyeing, Embroidery, embellishment, Finishing, Knitting, Manufacturing, Pre-treatment , Printing, Washing, laundering | Products: Babies' apparel, Children's apparel, Dyed fabrics, Greige fabrics, Men's apparel, Printed fabrics, Women's apparel, Worn accessories"
+      },
+      {
+        "certificate_no": "16072-100",
+        "document_url": "https://services.oeko-tex.com/newoekotex/portal/for-new-website/customer_profile/16072~1wdFle~OOoauhnbqnY-X2Jn5nfxryQ-_4Y/",
+        "expires_on": null,
+        "issued_on": null,
+        "issuer": "OEKO-TEX",
+        "kind": "oeko_tex",
+        "scope": "OEKO-TEX STANDARD 100"
+      },
+      {
+        "certificate_no": "132050",
+        "document_url": "https://wrapcompliance.org/certified-facility/132050/",
+        "expires_on": "2026-12-05",
+        "issued_on": null,
+        "issuer": "WRAP",
+        "kind": "wrap",
+        "scope": "Gold | Industries: Apparel | Products: Knitted Garments, T-Shirts"
+      }
+    ],
+    "hscodes": [
+      {
+        "code": "6101",
+        "description": "Men's or boys' overcoats... and similar articles, knitted or crocheted",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/846"
+      },
+      {
+        "code": "6102",
+        "description": "Woman's or girls' overcoats and similar articles, knitted or crocheted",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/769"
+      },
+      {
+        "code": "6103",
+        "description": "Men's or boys' suits, ensembles, etc, knitted or crocheted",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/813"
+      },
+      {
+        "code": "6104",
+        "description": "Women's or girls' suits, ensembles, etc, knitted or crocheted",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/814"
+      },
+      {
+        "code": "6105",
+        "description": "Men's or boys' shirts, knitted or crocheted",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/694"
+      },
+      {
+        "code": "6106",
+        "description": "Women's or girls' blouses, etc, knitted or crocheted",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/695"
+      },
+      {
+        "code": "6107",
+        "description": "Men's or boys' briefs and similar articles, knitted or crocheted",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/696"
+      },
+      {
+        "code": "6108",
+        "description": "Women's or girls' panties and similar articles, knitted or crocheted",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/697"
+      },
+      {
+        "code": "6109",
+        "description": "T-shirts, singlets and other vests, knitted or crocheted",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/698"
+      },
+      {
+        "code": "6110",
+        "description": "Jerseys, pullovers, cardigans and similar articles, knitted or crocheted",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/699"
+      },
+      {
+        "code": "6111",
+        "description": "Babies' garments and clothing accessories, knitted or crocheted",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/700"
+      },
+      {
+        "code": "6112",
+        "description": "Track-suits, ski-suits and swimwear, knitted or crocheted",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/776"
+      },
+      {
+        "code": "6114",
+        "description": "Other garments, knitted or crocheted, nes",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/778"
+      },
+      {
+        "code": "6201",
+        "description": "Men's or boys' overcoats, and similar articles",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/782"
+      },
+      {
+        "code": "6203",
+        "description": "Men's or boys' suits, ensembles, jackets, blazers, trousers, etc",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/784"
+      },
+      {
+        "code": "6204",
+        "description": "Women's or girls' suits, ensembles, jackets, dresses, skirts, etc",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/785"
+      },
+      {
+        "code": "6205",
+        "description": "Men's or boys' shirts",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/786"
+      },
+      {
+        "code": "6209",
+        "description": "Bables' garments and clothing accessories",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/790"
+      }
+    ],
+    "pills": [
+      {
+        "inherited_from": null,
+        "inherited_from_name": null,
+        "label": "BGMEA General member #",
+        "source_code": "BGMEA",
+        "source_url": "https://www.bgmea.com.bd/member/414",
+        "value": "4640",
+        "verified": true
+      },
+      {
+        "inherited_from": null,
+        "inherited_from_name": null,
+        "label": "BKMEA #",
+        "source_code": "BKMEA",
+        "source_url": "https://www.bkmea.com/",
+        "value": "1957 - ASSO/2014",
+        "verified": true
+      },
+      {
+        "inherited_from": null,
+        "inherited_from_name": null,
+        "label": "EPB Reg #",
+        "source_code": "EPB",
+        "source_url": "https://edb.epb.gov.bd/exporter/2068/aswad-composite-mills-ltd",
+        "value": "BD04903",
+        "verified": true
+      },
+      {
+        "inherited_from": null,
+        "inherited_from_name": null,
+        "label": "GOTS Cert #",
+        "source_code": "GOTS",
+        "source_url": "https://www.global-trace-base.org/SCO001805/certificate-document",
+        "value": "GOTS-11587",
+        "verified": true
+      },
+      {
+        "inherited_from": null,
+        "inherited_from_name": null,
+        "label": "OEKO_TEX Cert #",
+        "source_code": "OEKO_TEX",
+        "source_url": "https://services.oeko-tex.com/newoekotex/portal/for-new-website/customer_profile/16072~1wdFle~OOoauhnbqnY-X2Jn5nfxryQ-_4Y/",
+        "value": "16072-100",
+        "verified": true
+      },
+      {
+        "inherited_from": null,
+        "inherited_from_name": null,
+        "label": "WRAP Cert #",
+        "source_code": "WRAP",
+        "source_url": "https://wrapcompliance.org/certified-facility/132050/",
+        "value": "132050",
+        "verified": true
+      },
+      {
+        "building_name": "ASWAD COMPOSITE MILLS LTD. ( U-2)",
+        "inherited_from": null,
+        "inherited_from_name": null,
+        "label": "RSC ID",
+        "source_code": "RSC",
+        "source_url": "https://www.rsc-bd.org/",
+        "value": "11095",
+        "verified": true
+      },
+      {
+        "building_name": "ASWAD COMPOSITE MILLS LTD. ( U-2) (EXTENSION)",
+        "inherited_from": null,
+        "inherited_from_name": null,
+        "label": "RSC ID",
+        "source_code": "RSC",
+        "source_url": "https://www.rsc-bd.org/",
+        "value": "25868",
+        "verified": true
+      }
+    ],
+    "provenance": [
+      {
+        "display_name": "Export Promotion Bureau",
+        "last_seen_at": "2026-08-14T21:58:30.904319+00:00",
+        "source_code": "EPB",
+        "source_ref": "2068",
+        "source_url": "https://epb.gov.bd",
+        "tier": "tier1_gov"
+      },
+      {
+        "display_name": "Bangladesh Garment Manufacturers & Exporters Assoc.",
+        "last_seen_at": "2026-07-24T05:40:20.74018+00:00",
+        "source_code": "BGMEA",
+        "source_ref": "general:4640",
+        "source_url": "https://www.bgmea.com.bd",
+        "tier": "tier2_industry"
+      },
+      {
+        "display_name": "Bangladesh Knitwear Manufacturers & Exporters Assoc.",
+        "last_seen_at": "2026-08-02T06:07:25.532255+00:00",
+        "source_code": "BKMEA",
+        "source_ref": "2326:detail",
+        "source_url": "https://member.bkmea.com",
+        "tier": "tier2_industry"
+      },
+      {
+        "display_name": "Bangladesh Knitwear Manufacturers & Exporters Assoc.",
+        "last_seen_at": "2026-08-02T05:12:00.563013+00:00",
+        "source_code": "BKMEA",
+        "source_ref": "2735:detail",
+        "source_url": "https://member.bkmea.com",
+        "tier": "tier2_industry"
+      },
+      {
+        "display_name": "Bangladesh Knitwear Manufacturers & Exporters Assoc.",
+        "last_seen_at": "2026-08-02T02:35:27.967078+00:00",
+        "source_code": "BKMEA",
+        "source_ref": "1957",
+        "source_url": "https://member.bkmea.com",
+        "tier": "tier2_industry"
+      },
+      {
+        "display_name": "Bangladesh Knitwear Manufacturers & Exporters Assoc.",
+        "last_seen_at": "2026-08-02T02:28:29.006688+00:00",
+        "source_code": "BKMEA",
+        "source_ref": "2526",
+        "source_url": "https://member.bkmea.com",
+        "tier": "tier2_industry"
+      },
+      {
+        "display_name": "Global Organic Textile Standard",
+        "last_seen_at": "2026-06-26T23:02:07.65372+00:00",
+        "source_code": "GOTS",
+        "source_ref": "gots-SCO001805",
+        "source_url": "https://global-standard.org",
+        "tier": "tier3_cert"
+      },
+      {
+        "display_name": "OEKO-TEX",
+        "last_seen_at": "2026-06-26T23:17:10.432376+00:00",
+        "source_code": "OEKO_TEX",
+        "source_ref": "oeko-tex-16072",
+        "source_url": "https://www.oeko-tex.com",
+        "tier": "tier3_cert"
+      },
+      {
+        "display_name": "Worldwide Responsible Accredited Production",
+        "last_seen_at": "2026-07-24T05:40:51.680245+00:00",
+        "source_code": "WRAP",
+        "source_ref": "wrap-132050",
+        "source_url": "https://wrapcompliance.org",
+        "tier": "tier3_cert"
+      }
+    ],
+    "rsc_remediation": [
+      {
+        "boiler_inspection_url": "https://accord2.fairfactories.org/accord_v2_files/1/Audit_Files/344312.pdf",
+        "building_name": "ASWAD COMPOSITE MILLS LTD. ( U-2)",
+        "cap_url": "https://accord2.fairfactories.org/web/Audits/Audits/DownloadCAPFile?id=11095",
+        "electrical_inspection_url": "https://accord2.fairfactories.org/accord_v2_files/AllianceAuditReports/11095/5156.pdf",
+        "fetched_at": "2026-07-30T22:29:42.813949+00:00",
+        "fire_inspection_url": "https://accord2.fairfactories.org/accord_v2_files/AllianceAuditReports/11095/5155.pdf",
+        "parent_group_factory_count": 19,
+        "parent_group_name": "Palmal Group",
+        "progress_pct": 100.0,
+        "remediation_status": "initialcompleted",
+        "structural_inspection_url": "https://accord2.fairfactories.org/accord_v2_files/AllianceAuditReports/11095/4119.pdf",
+        "training_status": "completed",
+        "workers_count": 4640
+      },
+      {
+        "boiler_inspection_url": null,
+        "building_name": "ASWAD COMPOSITE MILLS LTD. ( U-2) (EXTENSION)",
+        "cap_url": "https://accord2.fairfactories.org/web/Audits/Audits/DownloadCAPFile?id=25868",
+        "electrical_inspection_url": "https://accord2.fairfactories.org/accord_v2_files/1/Audit_Files/345171.pdf",
+        "fetched_at": "2026-07-30T22:29:47.319621+00:00",
+        "fire_inspection_url": "https://accord2.fairfactories.org/accord_v2_files/1/Audit_Files/347873.pdf",
+        "parent_group_factory_count": null,
+        "parent_group_name": null,
+        "progress_pct": 81.0,
+        "remediation_status": "behindschedule",
+        "structural_inspection_url": "https://accord2.fairfactories.org/accord_v2_files/1/Audit_Files/348385.pdf",
+        "training_status": "yet to start",
+        "workers_count": 2063
+      }
+    ],
+    "supplier": {
+      "address_raw": "HOLDING NO #121, BLOCK NO #H,WORD NO-07, BERAIDER CHALLA, SREEPUR, GAZIPUR",
+      "city": "Dhaka",
+      "company_name": "ASWAD COMPOSITE MILLS LTD.",
+      "district": "Gazipur",
+      "employees_total": 924,
+      "entity_type": "factory",
+      "established_date": "2008-03-31",
+      "factory_types": [
+        "Dyeing",
+        "Knit",
+        "Woven"
+      ],
+      "id": "50c0809d-fd67-45d6-989d-d3ef116c0528",
+      "is_sanctioned": false,
+      "machines_sewing": 8000,
+      "parent_group_name": null,
+      "principal_products": [
+        "All Kind of Knit Item",
+        "Babies' apparel",
+        "Children's apparel",
+        "Dyed fabrics",
+        "Greige fabrics",
+        "Hoodie",
+        "Knitted Garments",
+        "Men's apparel",
+        "Polo Shirts",
+        "Printed fabrics",
+        "pyjama set",
+        "T-Shirts",
+        "Women Top",
+        "Women's apparel",
+        "Worn accessories",
+        "Yarn"
+      ],
+      "production_capacity_dozen_yearly": 25000000,
+      "production_capacity_pcs_day": 24,
+      "slug": "aswad-composite-mills",
+      "source_tags": [
+        "BGMEA",
+        "EPB",
+        "WRAP",
+        "GOTS",
+        "BKMEA",
+        "OEKO_TEX"
+      ],
+      "supplier_lead_time_days": null,
+      "supplier_moq": null
+    },
+    "t13_source_count": 6
+  },
+  "hossain-dyeing-and-printing-mills": {
+    "addresses": [
+      {
+        "address": "Pathanpara, Pagar, Tongi, Gazipur - 1710, Bangladesh",
+        "fetched_at": "2026-06-27T00:12:00.470443+00:00",
+        "kind": "factory",
+        "source_code": "OEKO_TEX"
+      }
+    ],
+    "brand_attributions": [],
+    "certifications": [
+      {
+        "certificate_no": "13350-100",
+        "document_url": "https://services.oeko-tex.com/newoekotex/portal/for-new-website/customer_profile/13350~1wdGeD~-g80hYqmxAGBrqTTLKQTcbWCm8w/",
+        "expires_on": null,
+        "issued_on": null,
+        "issuer": "OEKO-TEX",
+        "kind": "oeko_tex",
+        "scope": "OEKO-TEX STANDARD 100"
+      },
+      {
+        "building_name": "HOSSAIN DYEING & PRINTING MILLS LTD. (UNIT-2)",
+        "certificate_no": "GOTS-15431",
+        "document_url": "https://www.global-trace-base.org/SCO000060/certificate-document",
+        "expires_on": "2026-11-15",
+        "issued_on": null,
+        "issuer": "CERES-CERT AG",
+        "kind": "gots",
+        "scope": "Operations: Dyeing, Finishing, Manufacturing, Pre-treatment , Preparatory , Printing, Weaving | Products: Dyed fabrics, Dyed yarns, Home textiles, Printed fabrics, Undyed fabrics"
+      }
+    ],
+    "hscodes": [],
+    "pills": [
+      {
+        "inherited_from": null,
+        "inherited_from_name": null,
+        "label": "OEKO_TEX Cert #",
+        "source_code": "OEKO_TEX",
+        "source_url": "https://services.oeko-tex.com/newoekotex/portal/for-new-website/customer_profile/13350~1wdGeD~-g80hYqmxAGBrqTTLKQTcbWCm8w/",
+        "value": "13350-100",
+        "verified": true
+      },
+      {
+        "building_name": "HOSSAIN DYEING & PRINTING MILLS LTD. (UNIT-2)",
+        "inherited_from": null,
+        "inherited_from_name": null,
+        "label": "BKMEA #",
+        "source_code": "BKMEA",
+        "source_url": "https://www.bkmea.com/",
+        "value": "2451 - B/2023",
+        "verified": true
+      },
+      {
+        "building_name": "HOSSAIN DYEING & PRINTING MILLS LTD. (UNIT-2)",
+        "inherited_from": null,
+        "inherited_from_name": null,
+        "label": "GOTS Cert #",
+        "source_code": "GOTS",
+        "source_url": "https://www.global-trace-base.org/SCO000060/certificate-document",
+        "value": "GOTS-15431",
+        "verified": true
+      }
+    ],
+    "provenance": [
+      {
+        "display_name": "OEKO-TEX",
+        "last_seen_at": "2026-06-27T00:12:00.470443+00:00",
+        "source_code": "OEKO_TEX",
+        "source_ref": "oeko-tex-13350",
+        "source_url": "https://www.oeko-tex.com",
+        "tier": "tier3_cert"
+      }
+    ],
+    "rsc_remediation": null,
+    "supplier": {
+      "address_raw": "Bangladesh\nGazipur - 1710",
+      "city": "Gazipur",
+      "company_name": "Hossain Dyeing & Printing Mills Ltd.",
+      "district": "Gazipur",
+      "employees_total": null,
+      "entity_type": "factory",
+      "established_date": null,
+      "factory_types": [],
+      "id": "4543927f-de94-47b1-a6be-9009302737ef",
+      "is_sanctioned": false,
+      "machines_sewing": null,
+      "parent_group_name": null,
+      "principal_products": [],
+      "production_capacity_dozen_yearly": null,
+      "production_capacity_pcs_day": null,
+      "slug": "hossain-dyeing-and-printing-mills",
+      "source_tags": [
+        "OEKO_TEX"
+      ],
+      "supplier_lead_time_days": null,
+      "supplier_moq": null
+    },
+    "t13_source_count": 1
+  },
+  "mahir-label-and-accessories": {
+    "addresses": [
+      {
+        "address": "Barotopa, South Barotopa, Sreepur, Gazipur",
+        "fetched_at": "2026-06-26T23:56:34.908736+00:00",
+        "kind": "factory",
+        "source_code": "BGAPMEA"
+      },
+      {
+        "address": "Ka-32/C/1, Kuratoly, Uttarpara, Khilkhet-1229, Dhaka",
+        "fetched_at": "2026-06-26T23:48:28.343378+00:00",
+        "kind": "factory",
+        "source_code": "BGAPMEA"
+      },
+      {
+        "address": "Kewa Purba Khanda, Kewa Bazar, Sreepur, Gazipur-1740.",
+        "fetched_at": "2026-06-26T23:53:50.158951+00:00",
+        "kind": "factory",
+        "source_code": "BGAPMEA"
+      },
+      {
+        "address": "Kewa Purba Khanda, Kewa Bazar, Sreepur, Gazipur",
+        "fetched_at": "2026-06-26T23:55:14.888114+00:00",
+        "kind": "factory",
+        "source_code": "BGAPMEA"
+      },
+      {
+        "address": "Kapatia Para, Mawna, Sreepur, Gazipur",
+        "fetched_at": "2026-06-27T00:13:29.147461+00:00",
+        "kind": "factory",
+        "source_code": "BGAPMEA"
+      },
+      {
+        "address": "House # 102, (1st & 2nd floor), Lane-Northern, DOHS, Baridhara, Dhaka",
+        "fetched_at": "2026-06-26T23:56:34.908736+00:00",
+        "kind": "registered",
+        "source_code": "BGAPMEA"
+      },
+      {
+        "address": "House # 102, Lane-Northern, DOHS, Baridhara, Dhaka",
+        "fetched_at": "2026-06-26T23:48:28.343378+00:00",
+        "kind": "registered",
+        "source_code": "BGAPMEA"
+      },
+      {
+        "address": "House# 287 (4th Floor), Road # 04, DOHS Baridhara, Dhaka-1206",
+        "fetched_at": "2026-06-26T23:53:50.158951+00:00",
+        "kind": "registered",
+        "source_code": "BGAPMEA"
+      },
+      {
+        "address": "House # 102 (1st & 2nd floor), Lane # Northern, DOHS, Baridhara, Dhaka-1206",
+        "fetched_at": "2026-06-26T23:55:14.888114+00:00",
+        "kind": "registered",
+        "source_code": "BGAPMEA"
+      },
+      {
+        "address": "House # 102 (1st & 2nd floor), Lane # Northern, DOHS, Baridhara, Dhaka-1206",
+        "fetched_at": "2026-06-27T00:13:29.147461+00:00",
+        "kind": "registered",
+        "source_code": "BGAPMEA"
+      }
+    ],
+    "brand_attributions": [],
+    "certifications": [],
+    "hscodes": [],
+    "pills": [
+      {
+        "inherited_from": null,
+        "inherited_from_name": null,
+        "label": "BGAPMEA #",
+        "source_code": "BGAPMEA",
+        "source_url": "https://bgapmea.org/",
+        "value": "1935",
+        "verified": true
+      },
+      {
+        "inherited_from": null,
+        "inherited_from_name": null,
+        "label": "BGAPMEA #",
+        "source_code": "BGAPMEA",
+        "source_url": "https://bgapmea.org/",
+        "value": "1936",
+        "verified": true
+      },
+      {
+        "inherited_from": null,
+        "inherited_from_name": null,
+        "label": "BGAPMEA #",
+        "source_code": "BGAPMEA",
+        "source_url": "https://bgapmea.org/",
+        "value": "1938",
+        "verified": true
+      },
+      {
+        "inherited_from": null,
+        "inherited_from_name": null,
+        "label": "BGAPMEA #",
+        "source_code": "BGAPMEA",
+        "source_url": "https://bgapmea.org/",
+        "value": "1954",
+        "verified": true
+      },
+      {
+        "inherited_from": null,
+        "inherited_from_name": null,
+        "label": "BGAPMEA #",
+        "source_code": "BGAPMEA",
+        "source_url": "https://bgapmea.org/",
+        "value": "999",
+        "verified": true
+      }
+    ],
+    "provenance": [
+      {
+        "display_name": "Bangladesh Garment Accessories & Packaging MEA",
+        "last_seen_at": "2026-06-27T00:13:29.147461+00:00",
+        "source_code": "BGAPMEA",
+        "source_ref": "1574",
+        "source_url": "https://bgapmea.org",
+        "tier": "tier2_industry"
+      },
+      {
+        "display_name": "Bangladesh Garment Accessories & Packaging MEA",
+        "last_seen_at": "2026-06-26T23:56:34.908736+00:00",
+        "source_code": "BGAPMEA",
+        "source_ref": "1586",
+        "source_url": "https://bgapmea.org",
+        "tier": "tier2_industry"
+      },
+      {
+        "display_name": "Bangladesh Garment Accessories & Packaging MEA",
+        "last_seen_at": "2026-06-26T23:55:14.888114+00:00",
+        "source_code": "BGAPMEA",
+        "source_ref": "1596",
+        "source_url": "https://bgapmea.org",
+        "tier": "tier2_industry"
+      },
+      {
+        "display_name": "Bangladesh Garment Accessories & Packaging MEA",
+        "last_seen_at": "2026-06-26T23:53:50.158951+00:00",
+        "source_code": "BGAPMEA",
+        "source_ref": "489",
+        "source_url": "https://bgapmea.org",
+        "tier": "tier2_industry"
+      },
+      {
+        "display_name": "Bangladesh Garment Accessories & Packaging MEA",
+        "last_seen_at": "2026-06-26T23:48:28.343378+00:00",
+        "source_code": "BGAPMEA",
+        "source_ref": "1573",
+        "source_url": "https://bgapmea.org",
+        "tier": "tier2_industry"
+      }
+    ],
+    "rsc_remediation": null,
+    "supplier": {
+      "address_raw": "Ka-32/C/1, Kuratoly, Uttarpara, Khilkhet-1229, Dhaka",
+      "city": "Khilkhet",
+      "company_name": "Mahir Label & Accessories Ltd",
+      "district": "Dhaka",
+      "employees_total": null,
+      "entity_type": "factory",
+      "established_date": null,
+      "factory_types": [
+        "Packaging"
+      ],
+      "id": "9967d91c-d854-4e25-8dea-78331d326fb6",
+      "is_sanctioned": false,
+      "machines_sewing": null,
+      "parent_group_name": null,
+      "principal_products": [
+        "Auto Carton",
+        "back Board",
+        "Back Board",
+        "Barcode Sticker",
+        "Canvas Tape",
+        "Carton",
+        "Crochet Elastic & Jacquard Elastic",
+        "Drawstring",
+        "Elastic",
+        "Gum Tape",
+        "Gum Tape etc",
+        "Hang Tag",
+        "Hanger",
+        "Jacquard & Crochet Elastic",
+        "Jacquard Elastic",
+        "Lamination Foil Print",
+        "Metal Button",
+        "Neck Board",
+        "Offset Prinitng",
+        "Photo Inlay",
+        "Plastic Button",
+        "Poly Bag",
+        "Price Tag",
+        "Printed Label",
+        "Rip Tape",
+        "Scotch Tape",
+        "Sewing Thread",
+        "Shoe Box",
+        "Size Tag",
+        "Tissue Paper",
+        "Twill",
+        "Twill Tape",
+        "Woven Label",
+        "Zipper"
+      ],
+      "production_capacity_dozen_yearly": null,
+      "production_capacity_pcs_day": null,
+      "slug": "mahir-label-and-accessories",
+      "source_tags": [
+        "BGAPMEA"
+      ],
+      "supplier_lead_time_days": null,
+      "supplier_moq": null
+    },
+    "t13_source_count": 1
+  },
+  "mg-niche-flair": {
+    "addresses": [
+      {
+        "address": "House # 240, Bhuyan Para, Godnail, Siddirgonj\nNarayanganj\nNarayangonj",
+        "fetched_at": "2026-07-24T07:27:20.837018+00:00",
+        "kind": "factory",
+        "source_code": "BGMEA"
+      },
+      {
+        "address": "Lotus Kamal Tower (10th Fl), 57, Joarshahara, Nikunja\nDhaka\nDhaka",
+        "fetched_at": "2026-07-24T07:27:20.837018+00:00",
+        "kind": "mailing",
+        "source_code": "BGMEA"
+      }
+    ],
+    "brand_attributions": [],
+    "certifications": [
+      {
+        "building_name": "MG Niche Flair Limited Unit-2",
+        "certificate_no": "31314-100",
+        "document_url": "https://services.oeko-tex.com/newoekotex/portal/for-new-website/customer_profile/31314~1wdHDf~CFdJb5GRJsYGA349sl67B9wplwE/",
+        "expires_on": null,
+        "issued_on": null,
+        "issuer": "OEKO-TEX",
+        "kind": "oeko_tex",
+        "scope": "OEKO-TEX STANDARD 100"
+      }
+    ],
+    "hscodes": [],
+    "pills": [
+      {
+        "inherited_from": null,
+        "inherited_from_name": null,
+        "label": "BGMEA General member #",
+        "source_code": "BGMEA",
+        "source_url": "https://www.bgmea.com.bd/member/2383",
+        "value": "5429",
+        "verified": true
+      },
+      {
+        "building_name": "MG Niche Flair Limited Unit-2",
+        "inherited_from": null,
+        "inherited_from_name": null,
+        "label": "OEKO_TEX Cert #",
+        "source_code": "OEKO_TEX",
+        "source_url": "https://services.oeko-tex.com/newoekotex/portal/for-new-website/customer_profile/31314~1wdHDf~CFdJb5GRJsYGA349sl67B9wplwE/",
+        "value": "31314-100",
+        "verified": true
+      }
+    ],
+    "provenance": [
+      {
+        "display_name": "Bangladesh Garment Manufacturers & Exporters Assoc.",
+        "last_seen_at": "2026-07-24T07:27:20.837018+00:00",
+        "source_code": "BGMEA",
+        "source_ref": "general:5429",
+        "source_url": "https://www.bgmea.com.bd",
+        "tier": "tier2_industry"
+      }
+    ],
+    "rsc_remediation": null,
+    "supplier": {
+      "address_raw": "House # 240, Bhuyan Para, Godnail, Siddirgonj\nNarayanganj\nNarayangonj",
+      "city": null,
+      "company_name": "MG Niche Flair Ltd.",
+      "district": null,
+      "employees_total": 2350,
+      "entity_type": "unknown",
+      "established_date": "2012-02-06",
+      "factory_types": [
+        "Knit"
+      ],
+      "id": "f755f286-512a-48d8-b4d8-e95404e70c79",
+      "is_sanctioned": false,
+      "machines_sewing": 600,
+      "parent_group_name": null,
+      "principal_products": [
+        "Lingeries",
+        "Under Wears"
+      ],
+      "production_capacity_dozen_yearly": 300000,
+      "production_capacity_pcs_day": null,
+      "slug": "mg-niche-flair",
+      "source_tags": [
+        "BGMEA"
+      ],
+      "supplier_lead_time_days": null,
+      "supplier_moq": null
+    },
+    "t13_source_count": 1
+  },
+  "plummy-fashions": {
+    "addresses": [
+      {
+        "address": "North Narshingpur, Kashipur,Fatullah\nNarayangonj\nNarayangonj",
+        "fetched_at": "2026-07-24T07:56:56.676718+00:00",
+        "kind": "factory",
+        "source_code": "BGMEA"
+      },
+      {
+        "address": "NORTH NORSHINGPUR, KASHIPUR, FATULLAH, NARAYANGANJ., FATULLAH, NARAYANGANJ",
+        "fetched_at": "2026-08-02T02:42:46.59435+00:00",
+        "kind": "factory",
+        "source_code": "BKMEA"
+      },
+      {
+        "address": "NORTH NORSHINGPUR, KASHIPUR, FATULLAH, NARAYANGANJ., FATULLAH, NARAYANGANJ",
+        "fetched_at": "2026-08-02T06:47:40.327943+00:00",
+        "kind": "factory",
+        "source_code": "BKMEA"
+      },
+      {
+        "address": "North Narshingpur, Kashipur, Fatullah, Narayanganj",
+        "fetched_at": "2026-07-30T21:57:58.78113+00:00",
+        "kind": "factory",
+        "source_code": "EPB"
+      },
+      {
+        "address": "Unit # 502, Concord Tower, 113 Kazi Nazrul Islam Avenue, Banglamotor\nDhaka\nDhaka",
+        "fetched_at": "2026-07-24T07:56:56.676718+00:00",
+        "kind": "mailing",
+        "source_code": "BGMEA"
+      },
+      {
+        "address": "NORTH NORSHINGPUR, KASHIPUR, FATULLAH, NARAYANGANJ., , NARAYANGANJ",
+        "fetched_at": "2026-08-02T02:42:46.59435+00:00",
+        "kind": "mailing",
+        "source_code": "BKMEA"
+      },
+      {
+        "address": "NORTH NORSHINGPUR, KASHIPUR, FATULLAH, NARAYANGANJ., , NARAYANGANJ",
+        "fetched_at": "2026-08-02T06:47:40.327943+00:00",
+        "kind": "mailing",
+        "source_code": "BKMEA"
+      },
+      {
+        "address": "North Narshingpur, Kashipur, Fatullah, Narayanganj",
+        "fetched_at": "2026-07-30T21:57:58.78113+00:00",
+        "kind": "registered",
+        "source_code": "EPB"
+      }
+    ],
+    "brand_attributions": [],
+    "certifications": [],
+    "hscodes": [
+      {
+        "code": "5208",
+        "description": "Woven fabrics of cotton, with >=85% cotton, but <200g/m2",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/861"
+      },
+      {
+        "code": "5513",
+        "description": "Woven fabrics, <85% synthetic staple fibres, with cotton, =<170g/m2",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/726"
+      },
+      {
+        "code": "5905",
+        "description": "Textile wall coverings",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/838"
+      },
+      {
+        "code": "6001",
+        "description": "Pile fabrics (incl. long pile and terry fabrics), knitted or crocheted",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/844"
+      },
+      {
+        "code": "6002",
+        "description": "Other knitted or crocheted fabrics",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/845"
+      },
+      {
+        "code": "6003",
+        "description": "Knitted or crochetted fabrics of a width not exceeding 30 cm,...heading 6001 or 6002",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/1308"
+      },
+      {
+        "code": "6004",
+        "description": "Knitted or crocheted fabrics of a width exceeding 30 cm,..than those of heading 6001",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/1309"
+      },
+      {
+        "code": "6005",
+        "description": "Warp knit fabrics(including those made on...),other than those of headings 6001 to 6004",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/1310"
+      },
+      {
+        "code": "6006",
+        "description": "Other knitted or crocheted fabrics",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/1311"
+      },
+      {
+        "code": "6101",
+        "description": "Men's or boys' overcoats... and similar articles, knitted or crocheted",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/846"
+      },
+      {
+        "code": "6102",
+        "description": "Woman's or girls' overcoats and similar articles, knitted or crocheted",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/769"
+      },
+      {
+        "code": "6103",
+        "description": "Men's or boys' suits, ensembles, etc, knitted or crocheted",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/813"
+      },
+      {
+        "code": "6104",
+        "description": "Women's or girls' suits, ensembles, etc, knitted or crocheted",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/814"
+      },
+      {
+        "code": "6105",
+        "description": "Men's or boys' shirts, knitted or crocheted",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/694"
+      },
+      {
+        "code": "6106",
+        "description": "Women's or girls' blouses, etc, knitted or crocheted",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/695"
+      },
+      {
+        "code": "6107",
+        "description": "Men's or boys' briefs and similar articles, knitted or crocheted",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/696"
+      },
+      {
+        "code": "6108",
+        "description": "Women's or girls' panties and similar articles, knitted or crocheted",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/697"
+      },
+      {
+        "code": "6109",
+        "description": "T-shirts, singlets and other vests, knitted or crocheted",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/698"
+      },
+      {
+        "code": "6110",
+        "description": "Jerseys, pullovers, cardigans and similar articles, knitted or crocheted",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/699"
+      },
+      {
+        "code": "6111",
+        "description": "Babies' garments and clothing accessories, knitted or crocheted",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/700"
+      },
+      {
+        "code": "6112",
+        "description": "Track-suits, ski-suits and swimwear, knitted or crocheted",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/776"
+      },
+      {
+        "code": "6113",
+        "description": "Garments made up of knitted or crocheted fabrics of 59.03, 59.06, 59.07",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/777"
+      },
+      {
+        "code": "6114",
+        "description": "Other garments, knitted or crocheted, nes",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/778"
+      },
+      {
+        "code": "6115",
+        "description": "Panty hose, tights, etc, and footwear, knitted or crocheted",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/779"
+      },
+      {
+        "code": "6116",
+        "description": "Gloves, mittens and mitts, knitted or crocheted",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/780"
+      },
+      {
+        "code": "6117",
+        "description": "Other made up clothing or parts of garments, knitted or crocheted",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/781"
+      },
+      {
+        "code": "6201",
+        "description": "Men's or boys' overcoats, and similar articles",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/782"
+      },
+      {
+        "code": "6202",
+        "description": "Woman's or girls' overcoats, and similar articles",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/783"
+      },
+      {
+        "code": "6203",
+        "description": "Men's or boys' suits, ensembles, jackets, blazers, trousers, etc",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/784"
+      },
+      {
+        "code": "6204",
+        "description": "Women's or girls' suits, ensembles, jackets, dresses, skirts, etc",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/785"
+      },
+      {
+        "code": "6205",
+        "description": "Men's or boys' shirts",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/786"
+      },
+      {
+        "code": "6206",
+        "description": "Women's or girls' blouses, shirts and shirt-blouses",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/787"
+      },
+      {
+        "code": "6207",
+        "description": "Men's or boys' underpants, briefs, nightshirts, pyjamas, etc",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/788"
+      },
+      {
+        "code": "6208",
+        "description": "Women's or girls' slips, petticoats, nightdresses, pyjamas, etc",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/789"
+      },
+      {
+        "code": "6209",
+        "description": "Bables' garments and clothing accessories",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/790"
+      },
+      {
+        "code": "6210",
+        "description": "Garments, made up of fabrics of 56.02, 56.03, 59.03, 59.06 or 59.07",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/791"
+      },
+      {
+        "code": "6211",
+        "description": "Track suits, ski suits and swimwear; other than garments",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/792"
+      },
+      {
+        "code": "6212",
+        "description": "Brassieres, girdles, corsets, braces, suspenders, garters, etc",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/793"
+      },
+      {
+        "code": "6213",
+        "description": "Handkerchiefs",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/794"
+      },
+      {
+        "code": "6214",
+        "description": "Shawls, scarves, mufflers, mantillas, veils and the like",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/795"
+      },
+      {
+        "code": "6215",
+        "description": "Ties, bow ties and cravats",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/796"
+      },
+      {
+        "code": "6216",
+        "description": "Gloves, mittens and mitts",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/797"
+      },
+      {
+        "code": "6217",
+        "description": "Other made up clothing accessories; parts of garments",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/798"
+      },
+      {
+        "code": "6301",
+        "description": "Blanketsand travelling rugs",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/799"
+      },
+      {
+        "code": "6302",
+        "description": "Bed linen, table linen, toilet linen and kitchen linen",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/800"
+      },
+      {
+        "code": "6303",
+        "description": "Curtains (incl. drapes) and interior blinds; curtain or bed valances",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/801"
+      },
+      {
+        "code": "6304",
+        "description": "Other furnishing articles, nes (excl. of 94.04)",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/802"
+      },
+      {
+        "code": "6305",
+        "description": "Sacks and bags, used for packing goods",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/803"
+      },
+      {
+        "code": "6306",
+        "description": "Tarpaulins, etc; tents; sails; camping equipment",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/804"
+      },
+      {
+        "code": "6307",
+        "description": "Other made up articles (incl. dress patterns)",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/805"
+      },
+      {
+        "code": "6308",
+        "description": "Sets of woven fabric and yarn, for making up into rugs, etc, prs",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/639"
+      },
+      {
+        "code": "6309",
+        "description": "Worn clothing and other worn articles",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/640"
+      },
+      {
+        "code": "6310",
+        "description": "Used or new rags, scrap twine, cordage, rope and cables of textiles",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/641"
+      },
+      {
+        "code": "6505",
+        "description": "Hats and other headgear, kintted or crocheted...; hair-nets, etc",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/652"
+      }
+    ],
+    "pills": [
+      {
+        "inherited_from": null,
+        "inherited_from_name": null,
+        "label": "BGMEA General member #",
+        "source_code": "BGMEA",
+        "source_url": "https://www.bgmea.com.bd/member/4457",
+        "value": "6663",
+        "verified": true
+      },
+      {
+        "inherited_from": null,
+        "inherited_from_name": null,
+        "label": "BKMEA #",
+        "source_code": "BKMEA",
+        "source_url": "https://www.bkmea.com/",
+        "value": "1527 - A/2009",
+        "verified": true
+      },
+      {
+        "inherited_from": null,
+        "inherited_from_name": null,
+        "label": "EPB Reg #",
+        "source_code": "EPB",
+        "source_url": "https://edb.epb.gov.bd/exporter/831/plummy-fashions-ltd",
+        "value": "BD05884",
+        "verified": true
+      },
+      {
+        "inherited_from": null,
+        "inherited_from_name": null,
+        "label": "RSC ID",
+        "source_code": "RSC",
+        "source_url": "https://www.rsc-bd.org/",
+        "value": "12348",
+        "verified": true
+      }
+    ],
+    "provenance": [
+      {
+        "display_name": "Export Promotion Bureau",
+        "last_seen_at": "2026-07-30T21:57:58.78113+00:00",
+        "source_code": "EPB",
+        "source_ref": "831",
+        "source_url": "https://epb.gov.bd",
+        "tier": "tier1_gov"
+      },
+      {
+        "display_name": "RMG Sustainability Council",
+        "last_seen_at": "2026-09-18T05:38:17.752074+00:00",
+        "source_code": "RSC",
+        "source_ref": "12348",
+        "source_url": "https://rsc-bd.org",
+        "tier": "tier1_gov"
+      },
+      {
+        "display_name": "Bangladesh Garment Manufacturers & Exporters Assoc.",
+        "last_seen_at": "2026-07-24T07:56:56.676718+00:00",
+        "source_code": "BGMEA",
+        "source_ref": "general:6663",
+        "source_url": "https://www.bgmea.com.bd",
+        "tier": "tier2_industry"
+      },
+      {
+        "display_name": "Bangladesh Knitwear Manufacturers & Exporters Assoc.",
+        "last_seen_at": "2026-08-02T06:47:40.327943+00:00",
+        "source_code": "BKMEA",
+        "source_ref": "1504:detail",
+        "source_url": "https://member.bkmea.com",
+        "tier": "tier2_industry"
+      },
+      {
+        "display_name": "Bangladesh Knitwear Manufacturers & Exporters Assoc.",
+        "last_seen_at": "2026-08-02T02:42:46.59435+00:00",
+        "source_code": "BKMEA",
+        "source_ref": "1527",
+        "source_url": "https://member.bkmea.com",
+        "tier": "tier2_industry"
+      }
+    ],
+    "rsc_remediation": [
+      {
+        "boiler_inspection_url": "https://accord2.fairfactories.org/accord_v2_files/1/Audit_Files/378175.pdf",
+        "cap_url": "https://accord2.fairfactories.org/web/Audits/Audits/DownloadCAPFile?id=12348",
+        "electrical_inspection_url": "https://accord2.fairfactories.org/accord_v2_files/1/Audit_Files/29884.pdf",
+        "fetched_at": "2026-07-24T06:51:47.037077+00:00",
+        "fire_inspection_url": "https://accord2.fairfactories.org/accord_v2_files/1/Audit_Files/32141.pdf",
+        "parent_group_factory_count": null,
+        "parent_group_name": null,
+        "progress_pct": 100.0,
+        "remediation_status": "initialcompleted",
+        "structural_inspection_url": "https://accord2.fairfactories.org/accord_v2_files/1/Audit_Files/31337.pdf",
+        "training_status": "completed",
+        "workers_count": 800
+      }
+    ],
+    "supplier": {
+      "address_raw": "NORTH NORSHINGPUR, KASHIPUR, FATULLAH, NARAYANGANJ., FATULLAH, NARAYANGANJ",
+      "city": "Narayanganj",
+      "company_name": "PLUMMY FASHIONS LTD",
+      "district": "Narayanganj",
+      "employees_total": 350,
+      "entity_type": "factory",
+      "established_date": "2021-12-08",
+      "factory_types": [
+        "Knit"
+      ],
+      "id": "7f5d2dcd-118a-4d29-ad6b-76d59ab674b9",
+      "is_sanctioned": false,
+      "machines_sewing": 794,
+      "parent_group_name": null,
+      "principal_products": [
+        "(B)",
+        "Knit",
+        "Polo Shirt",
+        "T-Shirt"
+      ],
+      "production_capacity_dozen_yearly": 1260000,
+      "production_capacity_pcs_day": 8000,
+      "slug": "plummy-fashions",
+      "source_tags": [
+        "BGMEA",
+        "EPB",
+        "RSC",
+        "BKMEA"
+      ],
+      "supplier_lead_time_days": null,
+      "supplier_moq": null
+    },
+    "t13_source_count": 4
+  },
+  "sm-knitwear": {
+    "addresses": [
+      {
+        "address": "7 No. Kewa, Shreepur, Gazipur",
+        "fetched_at": "2026-06-27T00:08:50.965602+00:00",
+        "kind": "factory",
+        "source_code": "BGAPMEA"
+      },
+      {
+        "address": "Shirirchala, Bhabanipur\nGazipur\nGazipur",
+        "fetched_at": "2026-07-24T08:31:15.197346+00:00",
+        "kind": "factory",
+        "source_code": "BGMEA"
+      },
+      {
+        "address": "SHIRIRCHALA, BHABANIPUR, GAZIPUR SADAR, SADAR, GAZIPUR",
+        "fetched_at": "2026-08-02T03:03:44.843323+00:00",
+        "kind": "factory",
+        "source_code": "BKMEA"
+      },
+      {
+        "address": "PLOT-A/107, BSCIC HOSIERY I/E, SHASONGAON, FATULLAH, NARAYANGANJ",
+        "fetched_at": "2026-08-02T02:37:15.992235+00:00",
+        "kind": "factory",
+        "source_code": "BKMEA"
+      },
+      {
+        "address": "SHIRIRCHALA, BHABANIPUR, GAZIPUR SADAR, SADAR, GAZIPUR",
+        "fetched_at": "2026-08-02T04:24:23.083491+00:00",
+        "kind": "factory",
+        "source_code": "BKMEA"
+      },
+      {
+        "address": "PLOT-A/107, BSCIC HOSIERY I/E, SHASONGAON, FATULLAH, NARAYANGANJ",
+        "fetched_at": "2026-08-02T06:16:28.212183+00:00",
+        "kind": "factory",
+        "source_code": "BKMEA"
+      },
+      {
+        "address": "PANCHABATI, , NARAYANGANJ",
+        "fetched_at": "2026-08-02T07:30:59.695104+00:00",
+        "kind": "factory",
+        "source_code": "BKMEA"
+      },
+      {
+        "address": "Shirirchala, Bhabanipur, Gazipur - 1740, Bangladesh",
+        "fetched_at": "2026-06-27T02:52:22.993559+00:00",
+        "kind": "factory",
+        "source_code": "OEKO_TEX"
+      },
+      {
+        "address": "House-SE-04, Road-137, Gulshan-1\nDhaka\nDhaka",
+        "fetched_at": "2026-07-24T08:31:15.197346+00:00",
+        "kind": "mailing",
+        "source_code": "BGMEA"
+      },
+      {
+        "address": "HOUSE-SE-4, ROAD-137, GULSHAN, DHAKA",
+        "fetched_at": "2026-08-02T04:24:23.083491+00:00",
+        "kind": "mailing",
+        "source_code": "BKMEA"
+      },
+      {
+        "address": "PLOT-A/107, BSCIC HOSIERY I/E, SHASONGAON, FATULLAH, NARAYANGANJ",
+        "fetched_at": "2026-08-02T06:16:28.212183+00:00",
+        "kind": "mailing",
+        "source_code": "BKMEA"
+      },
+      {
+        "address": "PLOT-A/107, BSCIC HOSIERY I/E, SHASONGAON, FATULLAH, NARAYANGANJ",
+        "fetched_at": "2026-08-02T02:37:15.992235+00:00",
+        "kind": "mailing",
+        "source_code": "BKMEA"
+      },
+      {
+        "address": "HOUSE-SE-4, ROAD-137, GULSHAN, DHAKA",
+        "fetched_at": "2026-08-02T03:03:44.843323+00:00",
+        "kind": "mailing",
+        "source_code": "BKMEA"
+      },
+      {
+        "address": "PANCHABATI, , NARAYANGANJ",
+        "fetched_at": "2026-08-02T07:30:59.695104+00:00",
+        "kind": "mailing",
+        "source_code": "BKMEA"
+      },
+      {
+        "address": "House # SE-04, Road # 137, Gulshan-01, Dhaka-1212",
+        "fetched_at": "2026-06-27T00:08:50.965602+00:00",
+        "kind": "registered",
+        "source_code": "BGAPMEA"
+      }
+    ],
+    "brand_attributions": [
+      {
+        "display_name": "ASOS supplier list",
+        "last_seen_at": "2026-07-30T21:30:12.583394+00:00",
+        "source_code": "BRAND_ASOS",
+        "source_url": "https://www.asosplc.com/media/cmzk3m5n/factory-list-april-2026.pdf"
+      },
+      {
+        "display_name": "Next plc supplier list",
+        "last_seen_at": "2026-05-18T22:47:25.686932+00:00",
+        "source_code": "BRAND_NEXT",
+        "source_url": "https://www.nextplc.co.uk/~/media/Files/N/next-plc-v4/Tier 1 -2 - 3 lists/T1 2025.pdf"
+      }
+    ],
+    "certifications": [
+      {
+        "certificate_no": "GOTS-28946",
+        "document_url": "https://www.global-trace-base.org/SCO031435/certificate-document",
+        "expires_on": "2027-05-24",
+        "issued_on": null,
+        "issuer": "USB Certification Denetim Gözetim ve Belgelendirme Hizmetleri A.Ş.",
+        "kind": "gots",
+        "scope": "Operations: Dyeing, Embroidery, embellishment, Finishing, Knitting, Manufacturing, Packing, Pre-treatment , Printing, Washing, laundering | Products: Babies` apparel, Children`s apparel, Dyed fabrics, Men`s apparel, Unisex apparel, Women`s apparel"
+      },
+      {
+        "certificate_no": "9741-mig",
+        "document_url": "https://services.oeko-tex.com/newoekotex/portal/for-new-website/customer_profile/9741~1wdJ30~0zOmRMa0vLmWt5szv_SPcXWqjS8/",
+        "expires_on": null,
+        "issued_on": null,
+        "issuer": "OEKO-TEX",
+        "kind": "oeko_tex",
+        "scope": "OEKO-TEX MADE IN GREEN"
+      },
+      {
+        "certificate_no": "9741-step",
+        "document_url": "https://services.oeko-tex.com/newoekotex/portal/for-new-website/customer_profile/9741~1wdIu4~GVy9ryLmhCJyFXIcyGxS6EZ-Ti8/",
+        "expires_on": null,
+        "issued_on": null,
+        "issuer": "OEKO-TEX",
+        "kind": "oeko_tex",
+        "scope": "OEKO-TEX STeP"
+      },
+      {
+        "certificate_no": "9741-organic-cotton",
+        "document_url": "https://services.oeko-tex.com/newoekotex/portal/for-new-website/customer_profile/9741~1wdJ9J~Ksz0Rv6pcvUMkowB-S4SQ0iKJ8Q/",
+        "expires_on": null,
+        "issued_on": null,
+        "issuer": "OEKO-TEX",
+        "kind": "oeko_tex",
+        "scope": "OEKO-TEX ORGANIC COTTON"
+      },
+      {
+        "certificate_no": "9741-100",
+        "document_url": "https://services.oeko-tex.com/newoekotex/portal/for-new-website/customer_profile/9741~1wdI2V~Gc5OsM1AI-9iRdEvDZMRbc_8T2o/",
+        "expires_on": null,
+        "issued_on": null,
+        "issuer": "OEKO-TEX",
+        "kind": "oeko_tex",
+        "scope": "OEKO-TEX STANDARD 100"
+      },
+      {
+        "certificate_no": "124992",
+        "document_url": "https://wrapcompliance.org/certified-facility/124992/",
+        "expires_on": "2026-07-21",
+        "issued_on": null,
+        "issuer": "WRAP",
+        "kind": "wrap",
+        "scope": "Gold | Industries: Apparel | Products: Knitted Garments"
+      }
+    ],
+    "hscodes": [
+      {
+        "code": "6101",
+        "description": "Men's or boys' overcoats... and similar articles, knitted or crocheted",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/846"
+      },
+      {
+        "code": "6102",
+        "description": "Woman's or girls' overcoats and similar articles, knitted or crocheted",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/769"
+      },
+      {
+        "code": "6103",
+        "description": "Men's or boys' suits, ensembles, etc, knitted or crocheted",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/813"
+      },
+      {
+        "code": "6104",
+        "description": "Women's or girls' suits, ensembles, etc, knitted or crocheted",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/814"
+      },
+      {
+        "code": "6105",
+        "description": "Men's or boys' shirts, knitted or crocheted",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/694"
+      },
+      {
+        "code": "6106",
+        "description": "Women's or girls' blouses, etc, knitted or crocheted",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/695"
+      },
+      {
+        "code": "6107",
+        "description": "Men's or boys' briefs and similar articles, knitted or crocheted",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/696"
+      },
+      {
+        "code": "6108",
+        "description": "Women's or girls' panties and similar articles, knitted or crocheted",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/697"
+      },
+      {
+        "code": "6109",
+        "description": "T-shirts, singlets and other vests, knitted or crocheted",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/698"
+      },
+      {
+        "code": "6110",
+        "description": "Jerseys, pullovers, cardigans and similar articles, knitted or crocheted",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/699"
+      },
+      {
+        "code": "6111",
+        "description": "Babies' garments and clothing accessories, knitted or crocheted",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/700"
+      },
+      {
+        "code": "6112",
+        "description": "Track-suits, ski-suits and swimwear, knitted or crocheted",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/776"
+      },
+      {
+        "code": "6114",
+        "description": "Other garments, knitted or crocheted, nes",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/778"
+      },
+      {
+        "code": "6115",
+        "description": "Panty hose, tights, etc, and footwear, knitted or crocheted",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/779"
+      },
+      {
+        "code": "6117",
+        "description": "Other made up clothing or parts of garments, knitted or crocheted",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/781"
+      },
+      {
+        "code": "6201",
+        "description": "Men's or boys' overcoats, and similar articles",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/782"
+      },
+      {
+        "code": "6202",
+        "description": "Woman's or girls' overcoats, and similar articles",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/783"
+      },
+      {
+        "code": "6203",
+        "description": "Men's or boys' suits, ensembles, jackets, blazers, trousers, etc",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/784"
+      },
+      {
+        "code": "6204",
+        "description": "Women's or girls' suits, ensembles, jackets, dresses, skirts, etc",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/785"
+      },
+      {
+        "code": "6205",
+        "description": "Men's or boys' shirts",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/786"
+      },
+      {
+        "code": "6206",
+        "description": "Women's or girls' blouses, shirts and shirt-blouses",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/787"
+      },
+      {
+        "code": "6207",
+        "description": "Men's or boys' underpants, briefs, nightshirts, pyjamas, etc",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/788"
+      },
+      {
+        "code": "6208",
+        "description": "Women's or girls' slips, petticoats, nightdresses, pyjamas, etc",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/789"
+      },
+      {
+        "code": "6209",
+        "description": "Bables' garments and clothing accessories",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/790"
+      }
+    ],
+    "pills": [
+      {
+        "inherited_from": null,
+        "inherited_from_name": null,
+        "label": "BGAPMEA #",
+        "source_code": "BGAPMEA",
+        "source_url": "https://bgapmea.org/",
+        "value": "1838",
+        "verified": true
+      },
+      {
+        "inherited_from": null,
+        "inherited_from_name": null,
+        "label": "BGMEA General member #",
+        "source_code": "BGMEA",
+        "source_url": "https://www.bgmea.com.bd/member/3603",
+        "value": "3532",
+        "verified": true
+      },
+      {
+        "inherited_from": null,
+        "inherited_from_name": null,
+        "label": "BKMEA #",
+        "source_code": "BKMEA",
+        "source_url": "https://www.bkmea.com/",
+        "value": "1092 - B/2009",
+        "verified": true
+      },
+      {
+        "inherited_from": null,
+        "inherited_from_name": null,
+        "label": "EPB Reg #",
+        "source_code": "EPB",
+        "source_url": "https://edb.epb.gov.bd/exporter/1000/sm-knitwears-limited",
+        "value": "BD04237",
+        "verified": true
+      },
+      {
+        "inherited_from": null,
+        "inherited_from_name": null,
+        "label": "EPB Reg #",
+        "source_code": "EPB",
+        "source_url": "https://edb.epb.gov.bd/exporter/3660/sm-knit-wear",
+        "value": "BD05278",
+        "verified": true
+      },
+      {
+        "inherited_from": null,
+        "inherited_from_name": null,
+        "label": "GOTS Cert #",
+        "source_code": "GOTS",
+        "source_url": "https://www.global-trace-base.org/SCO031435/certificate-document",
+        "value": "GOTS-28946",
+        "verified": true
+      },
+      {
+        "inherited_from": null,
+        "inherited_from_name": null,
+        "label": "OEKO_TEX Cert #",
+        "source_code": "OEKO_TEX",
+        "source_url": "https://services.oeko-tex.com/newoekotex/portal/for-new-website/customer_profile/9741~1wdI2V~Gc5OsM1AI-9iRdEvDZMRbc_8T2o/",
+        "value": "9741-100",
+        "verified": true
+      },
+      {
+        "inherited_from": null,
+        "inherited_from_name": null,
+        "label": "OEKO_TEX Cert #",
+        "source_code": "OEKO_TEX",
+        "source_url": "https://services.oeko-tex.com/newoekotex/portal/for-new-website/customer_profile/9741~1wdJ30~0zOmRMa0vLmWt5szv_SPcXWqjS8/",
+        "value": "9741-mig",
+        "verified": true
+      },
+      {
+        "inherited_from": null,
+        "inherited_from_name": null,
+        "label": "OEKO_TEX Cert #",
+        "source_code": "OEKO_TEX",
+        "source_url": "https://services.oeko-tex.com/newoekotex/portal/for-new-website/customer_profile/9741~1wdJ9J~Ksz0Rv6pcvUMkowB-S4SQ0iKJ8Q/",
+        "value": "9741-organic-cotton",
+        "verified": true
+      },
+      {
+        "inherited_from": null,
+        "inherited_from_name": null,
+        "label": "OEKO_TEX Cert #",
+        "source_code": "OEKO_TEX",
+        "source_url": "https://services.oeko-tex.com/newoekotex/portal/for-new-website/customer_profile/9741~1wdIu4~GVy9ryLmhCJyFXIcyGxS6EZ-Ti8/",
+        "value": "9741-step",
+        "verified": true
+      },
+      {
+        "inherited_from": null,
+        "inherited_from_name": null,
+        "label": "RSC ID",
+        "source_code": "RSC",
+        "source_url": "https://www.rsc-bd.org/",
+        "value": "10902",
+        "verified": true
+      },
+      {
+        "inherited_from": null,
+        "inherited_from_name": null,
+        "label": "WRAP Cert #",
+        "source_code": "WRAP",
+        "source_url": "https://wrapcompliance.org/certified-facility/124992/",
+        "value": "124992",
+        "verified": true
+      },
+      {
+        "building_name": "S M Knitwears Limited. (Extension)",
+        "inherited_from": null,
+        "inherited_from_name": null,
+        "label": "RSC ID",
+        "source_code": "RSC",
+        "source_url": "https://www.rsc-bd.org/",
+        "value": "24545",
+        "verified": true
+      }
+    ],
+    "provenance": [
+      {
+        "display_name": "Export Promotion Bureau",
+        "last_seen_at": "2026-08-14T21:58:34.196427+00:00",
+        "source_code": "EPB",
+        "source_ref": "3660",
+        "source_url": "https://epb.gov.bd",
+        "tier": "tier1_gov"
+      },
+      {
+        "display_name": "Export Promotion Bureau",
+        "last_seen_at": "2026-08-14T21:58:27.826834+00:00",
+        "source_code": "EPB",
+        "source_ref": "1000",
+        "source_url": "https://epb.gov.bd",
+        "tier": "tier1_gov"
+      },
+      {
+        "display_name": "RMG Sustainability Council",
+        "last_seen_at": "2026-09-18T05:42:11.108084+00:00",
+        "source_code": "RSC",
+        "source_ref": "10902",
+        "source_url": "https://rsc-bd.org",
+        "tier": "tier1_gov"
+      },
+      {
+        "display_name": "RMG Sustainability Council",
+        "last_seen_at": "2026-09-18T05:40:11.988984+00:00",
+        "source_code": "RSC",
+        "source_ref": "11557",
+        "source_url": "https://rsc-bd.org",
+        "tier": "tier1_gov"
+      },
+      {
+        "display_name": "Bangladesh Garment Accessories & Packaging MEA",
+        "last_seen_at": "2026-06-27T00:08:50.965602+00:00",
+        "source_code": "BGAPMEA",
+        "source_ref": "1475",
+        "source_url": "https://bgapmea.org",
+        "tier": "tier2_industry"
+      },
+      {
+        "display_name": "Bangladesh Garment Manufacturers & Exporters Assoc.",
+        "last_seen_at": "2026-07-24T08:31:15.197346+00:00",
+        "source_code": "BGMEA",
+        "source_ref": "general:3532",
+        "source_url": "https://www.bgmea.com.bd",
+        "tier": "tier2_industry"
+      },
+      {
+        "display_name": "Bangladesh Knitwear Manufacturers & Exporters Assoc.",
+        "last_seen_at": "2026-08-02T07:30:59.695104+00:00",
+        "source_code": "BKMEA",
+        "source_ref": "1088:detail",
+        "source_url": "https://member.bkmea.com",
+        "tier": "tier2_industry"
+      },
+      {
+        "display_name": "Bangladesh Knitwear Manufacturers & Exporters Assoc.",
+        "last_seen_at": "2026-08-02T06:16:28.212183+00:00",
+        "source_code": "BKMEA",
+        "source_ref": "2430:detail",
+        "source_url": "https://member.bkmea.com",
+        "tier": "tier2_industry"
+      },
+      {
+        "display_name": "Bangladesh Knitwear Manufacturers & Exporters Assoc.",
+        "last_seen_at": "2026-08-02T04:24:23.083491+00:00",
+        "source_code": "BKMEA",
+        "source_ref": "625:detail",
+        "source_url": "https://member.bkmea.com",
+        "tier": "tier2_industry"
+      },
+      {
+        "display_name": "Bangladesh Knitwear Manufacturers & Exporters Assoc.",
+        "last_seen_at": "2026-08-02T03:03:44.843323+00:00",
+        "source_code": "BKMEA",
+        "source_ref": "631",
+        "source_url": "https://member.bkmea.com",
+        "tier": "tier2_industry"
+      },
+      {
+        "display_name": "Bangladesh Knitwear Manufacturers & Exporters Assoc.",
+        "last_seen_at": "2026-08-02T02:52:03.913142+00:00",
+        "source_code": "BKMEA",
+        "source_ref": "1092",
+        "source_url": "https://member.bkmea.com",
+        "tier": "tier2_industry"
+      },
+      {
+        "display_name": "Bangladesh Knitwear Manufacturers & Exporters Assoc.",
+        "last_seen_at": "2026-08-02T02:37:15.992235+00:00",
+        "source_code": "BKMEA",
+        "source_ref": "1858",
+        "source_url": "https://member.bkmea.com",
+        "tier": "tier2_industry"
+      },
+      {
+        "display_name": "Global Organic Textile Standard",
+        "last_seen_at": "2026-06-26T23:43:58.851503+00:00",
+        "source_code": "GOTS",
+        "source_ref": "gots-SCO031435",
+        "source_url": "https://global-standard.org",
+        "tier": "tier3_cert"
+      },
+      {
+        "display_name": "OEKO-TEX",
+        "last_seen_at": "2026-06-27T02:52:22.993559+00:00",
+        "source_code": "OEKO_TEX",
+        "source_ref": "oeko-tex-9741",
+        "source_url": "https://www.oeko-tex.com",
+        "tier": "tier3_cert"
+      },
+      {
+        "display_name": "Worldwide Responsible Accredited Production",
+        "last_seen_at": "2026-07-24T05:27:53.080573+00:00",
+        "source_code": "WRAP",
+        "source_ref": "wrap-124992",
+        "source_url": "https://wrapcompliance.org",
+        "tier": "tier3_cert"
+      },
+      {
+        "display_name": "ASOS supplier list",
+        "last_seen_at": "2026-07-30T21:30:12.583394+00:00",
+        "source_code": "BRAND_ASOS",
+        "source_ref": "288cf7788eeaacbc",
+        "source_url": "https://www.asosplc.com/media/cmzk3m5n/factory-list-april-2026.pdf",
+        "tier": "tier4_brand"
+      },
+      {
+        "display_name": "Next plc supplier list",
+        "last_seen_at": "2026-05-18T22:47:25.686932+00:00",
+        "source_code": "BRAND_NEXT",
+        "source_ref": "e79d762bb0cd7386",
+        "source_url": "https://www.nextplc.co.uk/~/media/Files/N/next-plc-v4/Tier 1 -2 - 3 lists/T1 2025.pdf",
+        "tier": "tier4_brand"
+      }
+    ],
+    "rsc_remediation": [
+      {
+        "boiler_inspection_url": "https://accord2.fairfactories.org/accord_v2_files/1/Audit_Files/394192.pdf",
+        "building_name": "S M Knitwears Limited. (Extension)",
+        "cap_url": "https://accord2.fairfactories.org/web/Audits/Audits/DownloadCAPFile?id=24545",
+        "electrical_inspection_url": "https://accord2.fairfactories.org/accord_v2_files/1/Audit_Files/320253.pdf",
+        "fetched_at": "2026-09-11T05:42:11.689462+00:00",
+        "fire_inspection_url": "https://accord2.fairfactories.org/accord_v2_files/1/Audit_Files/318263.pdf",
+        "parent_group_factory_count": null,
+        "parent_group_name": null,
+        "progress_pct": 53.0,
+        "remediation_status": "behindschedule",
+        "structural_inspection_url": "https://accord2.fairfactories.org/accord_v2_files/1/Audit_Files/319770.pdf",
+        "training_status": "yet to start",
+        "workers_count": 907
+      }
+    ],
+    "supplier": {
+      "address_raw": "SHIRIRCHALA, BHABANIPUR, GAZIPUR SADAR, SADAR, GAZIPUR",
+      "city": "Gazipur",
+      "company_name": "S M KNITWEARS LIMITED",
+      "district": "Gazipur",
+      "employees_total": 300,
+      "entity_type": "factory",
+      "established_date": "2001-01-01",
+      "factory_types": [
+        "Dyeing",
+        "Knit",
+        "Packaging"
+      ],
+      "id": "c07aca81-045c-4f7e-8812-2c19e512b5df",
+      "is_sanctioned": false,
+      "machines_sewing": 97,
+      "parent_group_name": "SM Group",
+      "principal_products": [
+        "All Kind of Knit Item",
+        "Babies` apparel",
+        "Band Roll",
+        "Care Label",
+        "Children`s apparel",
+        "Croset",
+        "Dyed fabrics",
+        "Gum Tape",
+        "Hand Tape",
+        "Hit Transfer",
+        "Hoddy Jacket",
+        "Jacard Elastic",
+        "Knitted Garments",
+        "Legging",
+        "Men`s apparel",
+        "Night Wear",
+        "Offset Printing",
+        "Paper Carton Board",
+        "Photo Box",
+        "Photo Card",
+        "Photo Print",
+        "POLO SHIRT",
+        "Polo Shirts",
+        "Poly Bag",
+        "Price Tag",
+        "Print Label",
+        "Pyjama",
+        "Sewing Thread",
+        "Shorts",
+        "T-Shirt",
+        "T-Shirts",
+        "Tank Top",
+        "Tape",
+        "Twill Tape",
+        "Unisex apparel",
+        "Women`s apparel",
+        "Woven Label"
+      ],
+      "production_capacity_dozen_yearly": 4000000,
+      "production_capacity_pcs_day": 11000,
+      "slug": "sm-knitwear",
+      "source_tags": [
+        "BGAPMEA",
+        "BGMEA",
+        "EPB",
+        "BRAND_ASOS",
+        "WRAP",
+        "GOTS",
+        "BRAND_NEXT",
+        "BKMEA",
+        "RSC",
+        "OEKO_TEX"
+      ],
+      "supplier_lead_time_days": null,
+      "supplier_moq": null
+    },
+    "t13_source_count": 8
+  },
+  "sq-celsius": {
+    "addresses": [
+      {
+        "address": "Beraiderchala, Keowa, Maona, Sreepur\nGazipur\nGazipur",
+        "fetched_at": "2026-07-24T08:35:01.119823+00:00",
+        "kind": "factory",
+        "source_code": "BGMEA"
+      },
+      {
+        "address": "Beraider Chala, Keowa, Maona, Sreepur, Gazipur - 1740, Bangladesh",
+        "fetched_at": "2026-06-27T01:47:34.47791+00:00",
+        "kind": "factory",
+        "source_code": "OEKO_TEX"
+      },
+      {
+        "address": "Concord I-K Tower (4th Floor), Plot # 2, Block - CEN, (A) North Avenue, Gulshan-2\nDhaka\nDhaka",
+        "fetched_at": "2026-07-24T08:35:01.119823+00:00",
+        "kind": "mailing",
+        "source_code": "BGMEA"
+      }
+    ],
+    "brand_attributions": [
+      {
+        "building_name": "SQ Celsius Limited (Unit 04)",
+        "display_name": "H&M Group supplier list",
+        "last_seen_at": "2026-06-26T23:11:09.295617+00:00",
+        "source_code": "BRAND_HM",
+        "source_url": "https://hmgroup.com/wp-content/uploads/spur/HM-Group-Supplier-List-May-2026 .xlsx"
+      },
+      {
+        "building_name": "SQ Celsius Limited (Unit 04)",
+        "display_name": "Marks & Spencer supplier list",
+        "last_seen_at": "2026-06-26T23:09:21.896908+00:00",
+        "source_code": "BRAND_MS",
+        "source_url": "https://opensupplyhub.org/api/facilities/?contributors=10061&countries=BD&pageSize=50&embed=1&sort_by=name_asc"
+      },
+      {
+        "building_name": "SQ Celsius Limited (Unit 04)",
+        "display_name": "Marks & Spencer supplier list",
+        "last_seen_at": "2026-06-26T23:09:18.649783+00:00",
+        "source_code": "BRAND_MS",
+        "source_url": "https://opensupplyhub.org/api/facilities/?contributors=10061&countries=BD&pageSize=50&embed=1&sort_by=name_asc"
+      },
+      {
+        "building_name": "SQ Celsius Ltd. (Unit 3)",
+        "display_name": "H&M Group supplier list",
+        "last_seen_at": "2026-06-26T23:11:12.558429+00:00",
+        "source_code": "BRAND_HM",
+        "source_url": "https://hmgroup.com/wp-content/uploads/spur/HM-Group-Supplier-List-May-2026 .xlsx"
+      }
+    ],
+    "certifications": [
+      {
+        "certificate_no": "GOTS-29354",
+        "document_url": "https://www.global-trace-base.org/SCO029932/certificate-document",
+        "expires_on": "2027-06-09",
+        "issued_on": null,
+        "issuer": "GSCS International Ltd.",
+        "kind": "gots",
+        "scope": "Operations: Dyeing, Embroidery, embellishment, Finishing, Knitting, Manufacturing, No processing, Packing, Pre-treatment , Preparatory , Printing, Washing, laundering | Products: Babies' apparel, Children's apparel, Dyed fabrics, Dyed yarns, Greige fabrics, Men's apparel, Women's apparel"
+      },
+      {
+        "certificate_no": "62645-100",
+        "document_url": "https://services.oeko-tex.com/newoekotex/portal/for-new-website/customer_profile/62645~1wdI6N~tWlH8jeoJrEFp0RmZFgCGKckEt8/",
+        "expires_on": null,
+        "issued_on": null,
+        "issuer": "OEKO-TEX",
+        "kind": "oeko_tex",
+        "scope": "OEKO-TEX STANDARD 100"
+      },
+      {
+        "certificate_no": "131732",
+        "document_url": "https://wrapcompliance.org/certified-facility/131732/",
+        "expires_on": "2026-09-19",
+        "issued_on": null,
+        "issuer": "WRAP",
+        "kind": "wrap",
+        "scope": "Gold | Industries: Apparel | Products: Sweaters"
+      }
+    ],
+    "hscodes": [
+      {
+        "code": "6101",
+        "description": "Men's or boys' overcoats... and similar articles, knitted or crocheted",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/846"
+      },
+      {
+        "code": "6102",
+        "description": "Woman's or girls' overcoats and similar articles, knitted or crocheted",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/769"
+      },
+      {
+        "code": "6103",
+        "description": "Men's or boys' suits, ensembles, etc, knitted or crocheted",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/813"
+      },
+      {
+        "code": "6104",
+        "description": "Women's or girls' suits, ensembles, etc, knitted or crocheted",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/814"
+      },
+      {
+        "code": "6105",
+        "description": "Men's or boys' shirts, knitted or crocheted",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/694"
+      },
+      {
+        "code": "6106",
+        "description": "Women's or girls' blouses, etc, knitted or crocheted",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/695"
+      },
+      {
+        "code": "6109",
+        "description": "T-shirts, singlets and other vests, knitted or crocheted",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/698"
+      },
+      {
+        "code": "6110",
+        "description": "Jerseys, pullovers, cardigans and similar articles, knitted or crocheted",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/699"
+      },
+      {
+        "code": "6111",
+        "description": "Babies' garments and clothing accessories, knitted or crocheted",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/700"
+      },
+      {
+        "code": "6114",
+        "description": "Other garments, knitted or crocheted, nes",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/778"
+      },
+      {
+        "code": "6117",
+        "description": "Other made up clothing or parts of garments, knitted or crocheted",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/781"
+      },
+      {
+        "code": "6204",
+        "description": "Women's or girls' suits, ensembles, jackets, dresses, skirts, etc",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/785"
+      },
+      {
+        "code": "6214",
+        "description": "Shawls, scarves, mufflers, mantillas, veils and the like",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/795"
+      },
+      {
+        "code": "6505",
+        "description": "Hats and other headgear, kintted or crocheted...; hair-nets, etc",
+        "source_url": "https://edb.epb.gov.bd/hscode-exporters/652"
+      }
+    ],
+    "pills": [
+      {
+        "inherited_from": null,
+        "inherited_from_name": null,
+        "label": "BGMEA General member #",
+        "source_code": "BGMEA",
+        "source_url": "https://www.bgmea.com.bd/member/3665",
+        "value": "3263",
+        "verified": true
+      },
+      {
+        "inherited_from": null,
+        "inherited_from_name": null,
+        "label": "EPB Reg #",
+        "source_code": "EPB",
+        "source_url": "https://edb.epb.gov.bd/exporter/3469/sq-celsius-limited",
+        "value": "BD05085",
+        "verified": true
+      },
+      {
+        "inherited_from": null,
+        "inherited_from_name": null,
+        "label": "GOTS Cert #",
+        "source_code": "GOTS",
+        "source_url": "https://www.global-trace-base.org/SCO029932/certificate-document",
+        "value": "GOTS-29354",
+        "verified": true
+      },
+      {
+        "inherited_from": null,
+        "inherited_from_name": null,
+        "label": "OEKO_TEX Cert #",
+        "source_code": "OEKO_TEX",
+        "source_url": "https://services.oeko-tex.com/newoekotex/portal/for-new-website/customer_profile/62645~1wdI6N~tWlH8jeoJrEFp0RmZFgCGKckEt8/",
+        "value": "62645-100",
+        "verified": true
+      },
+      {
+        "inherited_from": null,
+        "inherited_from_name": null,
+        "label": "RSC ID",
+        "source_code": "RSC",
+        "source_url": "https://www.rsc-bd.org/",
+        "value": "9523",
+        "verified": true
+      },
+      {
+        "inherited_from": null,
+        "inherited_from_name": null,
+        "label": "WRAP Cert #",
+        "source_code": "WRAP",
+        "source_url": "https://wrapcompliance.org/certified-facility/131732/",
+        "value": "131732",
+        "verified": true
+      },
+      {
+        "building_name": "SQ Celsius Limited (Unit 04)",
+        "inherited_from": null,
+        "inherited_from_name": null,
+        "label": "RSC ID",
+        "source_code": "RSC",
+        "source_url": "https://www.rsc-bd.org/",
+        "value": "26660",
+        "verified": true
+      },
+      {
+        "building_name": "SQ Celsius Ltd. (Unit 3)",
+        "inherited_from": null,
+        "inherited_from_name": null,
+        "label": "RSC ID",
+        "source_code": "RSC",
+        "source_url": "https://www.rsc-bd.org/",
+        "value": "24741",
+        "verified": true
+      }
+    ],
+    "provenance": [
+      {
+        "display_name": "Export Promotion Bureau",
+        "last_seen_at": "2026-08-14T21:58:33.681609+00:00",
+        "source_code": "EPB",
+        "source_ref": "3469",
+        "source_url": "https://epb.gov.bd",
+        "tier": "tier1_gov"
+      },
+      {
+        "display_name": "RMG Sustainability Council",
+        "last_seen_at": "2026-09-18T05:43:02.999839+00:00",
+        "source_code": "RSC",
+        "source_ref": "9523",
+        "source_url": "https://rsc-bd.org",
+        "tier": "tier1_gov"
+      },
+      {
+        "display_name": "Bangladesh Garment Manufacturers & Exporters Assoc.",
+        "last_seen_at": "2026-07-24T08:35:01.119823+00:00",
+        "source_code": "BGMEA",
+        "source_ref": "general:3263",
+        "source_url": "https://www.bgmea.com.bd",
+        "tier": "tier2_industry"
+      },
+      {
+        "display_name": "Global Organic Textile Standard",
+        "last_seen_at": "2026-06-26T23:45:26.079138+00:00",
+        "source_code": "GOTS",
+        "source_ref": "gots-SCO029932",
+        "source_url": "https://global-standard.org",
+        "tier": "tier3_cert"
+      },
+      {
+        "display_name": "OEKO-TEX",
+        "last_seen_at": "2026-06-27T01:47:34.47791+00:00",
+        "source_code": "OEKO_TEX",
+        "source_ref": "oeko-tex-62645",
+        "source_url": "https://www.oeko-tex.com",
+        "tier": "tier3_cert"
+      },
+      {
+        "display_name": "Worldwide Responsible Accredited Production",
+        "last_seen_at": "2026-07-24T05:40:01.176085+00:00",
+        "source_code": "WRAP",
+        "source_ref": "wrap-131732",
+        "source_url": "https://wrapcompliance.org",
+        "tier": "tier3_cert"
+      }
+    ],
+    "rsc_remediation": [
+      {
+        "boiler_inspection_url": "https://accord2.fairfactories.org/accord_v2_files/1/Audit_Files/364171.pdf",
+        "cap_url": "https://accord2.fairfactories.org/web/Audits/Audits/DownloadCAPFile?id=9523",
+        "electrical_inspection_url": "https://accord2.fairfactories.org/accord_v2_files/1/Audit_Files/7279.pdf",
+        "fetched_at": "2026-07-24T07:13:43.130038+00:00",
+        "fire_inspection_url": "https://accord2.fairfactories.org/accord_v2_files/1/Audit_Files/3649.pdf",
+        "parent_group_factory_count": 6,
+        "parent_group_name": "SQ Group",
+        "progress_pct": 100.0,
+        "remediation_status": "initialcompleted",
+        "structural_inspection_url": "https://accord2.fairfactories.org/accord_v2_files/1/Audit_Files/3789.pdf",
+        "training_status": "completed",
+        "workers_count": 3235
+      },
+      {
+        "boiler_inspection_url": null,
+        "building_name": "SQ Celsius Limited (Unit 04)",
+        "cap_url": "https://accord2.fairfactories.org/web/Audits/Audits/DownloadCAPFile?id=26660",
+        "electrical_inspection_url": "https://accord2.fairfactories.org/accord_v2_files/1/Audit_Files/398915.pdf",
+        "fetched_at": "2026-09-04T05:43:52.272089+00:00",
+        "fire_inspection_url": "https://accord2.fairfactories.org/accord_v2_files/1/Audit_Files/399745.pdf",
+        "parent_group_factory_count": null,
+        "parent_group_name": null,
+        "progress_pct": 69.0,
+        "remediation_status": "behindschedule",
+        "structural_inspection_url": "https://accord2.fairfactories.org/accord_v2_files/1/Audit_Files/398914.pdf",
+        "training_status": "yet to start",
+        "workers_count": 425
+      },
+      {
+        "boiler_inspection_url": null,
+        "building_name": "SQ Celsius Ltd. (Unit 3)",
+        "cap_url": "https://accord2.fairfactories.org/web/Audits/Audits/DownloadCAPFile?id=24741",
+        "electrical_inspection_url": "https://accord2.fairfactories.org/accord_v2_files/1/Audit_Files/312598.pdf",
+        "fetched_at": "2026-07-24T07:13:53.883512+00:00",
+        "fire_inspection_url": "https://accord2.fairfactories.org/accord_v2_files/1/Audit_Files/312589.pdf",
+        "parent_group_factory_count": null,
+        "parent_group_name": null,
+        "progress_pct": 58.0,
+        "remediation_status": "behindschedule",
+        "structural_inspection_url": "https://accord2.fairfactories.org/accord_v2_files/1/Audit_Files/312597.pdf",
+        "training_status": "yet to start",
+        "workers_count": 30
+      }
+    ],
+    "supplier": {
+      "address_raw": "Beraiderchala, Keowa, Maona, Sreepur\nGazipur\nGazipur",
+      "city": "Gazipur",
+      "company_name": "SQ Celsius Limited",
+      "district": "Dhaka",
+      "employees_total": 13986,
+      "entity_type": "factory",
+      "established_date": "2014-03-18",
+      "factory_types": [
+        "Dyeing",
+        "Knit",
+        "Sweater",
+        "Woven"
+      ],
+      "id": "f0b7bbab-e559-4423-a17a-045b75c2669c",
+      "is_sanctioned": false,
+      "machines_sewing": 5122,
+      "parent_group_name": "SQ Group",
+      "principal_products": [
+        "Babies' apparel",
+        "Bra",
+        "Cardigans",
+        "Children's apparel",
+        "Dyed fabrics",
+        "Dyed yarns",
+        "Greige fabrics",
+        "Ladies Jacket",
+        "Leggings",
+        "Men's apparel",
+        "Packet Shirt",
+        "Penty",
+        "Pullovers",
+        "Sweaters",
+        "T-Shirt",
+        "Underwear",
+        "Women's apparel"
+      ],
+      "production_capacity_dozen_yearly": 1164375,
+      "production_capacity_pcs_day": null,
+      "slug": "sq-celsius",
+      "source_tags": [
+        "BGMEA",
+        "EPB",
+        "WRAP",
+        "GOTS",
+        "RSC",
+        "OEKO_TEX"
+      ],
+      "supplier_lead_time_days": null,
+      "supplier_moq": null
+    },
+    "t13_source_count": 6
+  },
+  "zaheen-knitwear-limited-shed-3-4-5-10-11-12-13-and-building-security-etp-and-fire-pump": {
+    "addresses": [],
+    "brand_attributions": [],
+    "certifications": [],
+    "hscodes": [],
+    "pills": [
+      {
+        "inherited_from": null,
+        "inherited_from_name": null,
+        "label": "RSC ID",
+        "source_code": "RSC",
+        "source_url": "https://www.rsc-bd.org/",
+        "value": "24449",
+        "verified": true
+      }
+    ],
+    "provenance": [
+      {
+        "display_name": "RMG Sustainability Council",
+        "last_seen_at": "2026-09-18T05:47:07.954625+00:00",
+        "source_code": "RSC",
+        "source_ref": "24449",
+        "source_url": "https://rsc-bd.org",
+        "tier": "tier1_gov"
+      }
+    ],
+    "rsc_remediation": [
+      {
+        "boiler_inspection_url": "https://accord2.fairfactories.org/accord_v2_files/1/Audit_Files/397187.pdf",
+        "cap_url": "https://accord2.fairfactories.org/web/Audits/Audits/DownloadCAPFile?id=24449",
+        "electrical_inspection_url": "https://accord2.fairfactories.org/accord_v2_files/1/Audit_Files/283733.pdf",
+        "fetched_at": "2026-08-07T05:56:42.605291+00:00",
+        "fire_inspection_url": "https://accord2.fairfactories.org/accord_v2_files/1/Audit_Files/285883.pdf",
+        "parent_group_factory_count": null,
+        "parent_group_name": null,
+        "progress_pct": 75.0,
+        "remediation_status": "behindschedule",
+        "structural_inspection_url": "https://accord2.fairfactories.org/accord_v2_files/1/Audit_Files/285160.pdf",
+        "training_status": "yet to start",
+        "workers_count": 1634
+      }
+    ],
+    "supplier": {
+      "address_raw": null,
+      "city": "Narayanganj",
+      "company_name": "Zaheen Knitwears Limited (Shed - 3, 4, 5, 10, 11, 12, 13) & (Building - Security, ETP and Fire Pump)",
+      "district": "Narayanganj",
+      "employees_total": 1634,
+      "entity_type": "factory",
+      "established_date": null,
+      "factory_types": [],
+      "id": "e4669f72-a97a-40e4-9e6e-11df37d2e96e",
+      "is_sanctioned": false,
+      "machines_sewing": null,
+      "parent_group_name": null,
+      "principal_products": [],
+      "production_capacity_dozen_yearly": null,
+      "production_capacity_pcs_day": null,
+      "slug": "zaheen-knitwear-limited-shed-3-4-5-10-11-12-13-and-building-security-etp-and-fire-pump",
+      "source_tags": [
+        "RSC"
+      ],
+      "supplier_lead_time_days": null,
+      "supplier_moq": null
+    },
+    "t13_source_count": 1
+  }
+}
