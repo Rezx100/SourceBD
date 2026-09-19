@@ -90,6 +90,13 @@ export function PanelFooter({
   /** The page size this panel was filled with. Omit it when the panel does not page. */
   perPage?: number;
   page?: number;
+  /**
+   * What these rows are, when they are not the query's first page. The header
+   * was changed in cycle 5 to stop claiming "1–4 of 42" over the gallery's
+   * named test records, two of which the query does not match; the footer kept
+   * printing the range under the same rows. A note replaces the range, it does
+   * not decorate it.
+   */
   note?: string;
 }) {
   const pages = total !== null && perPage ? Math.max(1, Math.ceil(total / perPage)) : null;
@@ -99,8 +106,9 @@ export function PanelFooter({
   return (
     <div className="flex items-center gap-3 border-t border-line-subtle px-5 py-3">
       <Caption>
-        {shown > 0 ? `1–${shown}` : "0"} of {total === null ? "—" : formatCount(total)}
-        {note ? ` · ${note}` : ""}
+        {note
+          ? `${note}${total === null ? "" : ` · ${formatCount(total)} in the result set`}`
+          : `${shown > 0 ? `1–${shown}` : "none on this page"} of ${total === null ? "—" : formatCount(total)}`}
       </Caption>
       {perPage ? (
         <Button variant="ghost" className="h-7 px-2">

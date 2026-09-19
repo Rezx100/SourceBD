@@ -10,6 +10,7 @@ import { describe, it } from "node:test";
 import { buildCard, buildProductSheet, buildRfqRow, buildSheet, buildTableRow } from "@/lib/dashboard/build-models";
 import {
   aboniInput,
+  buildingBrandListsInput,
   arFashionInput,
   ASWAD_U2_EXT,
   buildingOnlyCertificateInput,
@@ -35,6 +36,7 @@ import { PanelFooter, PanelHeader } from "./results-panel";
 import { ProductSheet } from "./product-sheet";
 import { ResultsTable } from "./results-table";
 import { RfqComposer, type RfqComposerModel } from "./rfq-composer";
+import { AppShell } from "./app-shell";
 import { RFQ_EMPTY_COPY, RFQ_ERROR_COPY, RfqList } from "./rfq-list";
 import { SearchComposer } from "./search-composer";
 import { SupplierResultCard } from "./supplier-result-card";
@@ -44,7 +46,7 @@ const escape = (s: string) => s.replace(/&/g, "&amp;").replace(/'/g, "&#x27;");
 const rx = (s: string) => new RegExp(escape(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
 
 /** Any class that would cut a name off. Names wrap, never truncate (spec §2, §9); a tile's one-line caption may ellipsise. */
-const TRUNCATION = /\b(?:truncate|line-clamp-\d)\b/;
+const TRUNCATION = /\b(?:truncate|line-clamp-\d)\b|\btext-ellipsis\b|\boverflow-hidden\b[^"]*\bwhitespace-nowrap\b|\bwhitespace-nowrap\b[^"]*\btext-ellipsis\b/;
 /** The name element itself must carry the wrap rule. */
 const NAME_WRAPS = /class="[^"]*\[overflow-wrap:anywhere\][^"]*">Aboni Knitwear Ltd</;
 
@@ -465,8 +467,9 @@ describe("SupplierSheet (rendered)", () => {
 // over a four-row panel, with Next enabled and no page 2.
 describe("PanelFooter (rendered)", () => {
   it("a panel that does not page renders no pager and no page size", () => {
-    const html = renderToStaticMarkup(createElement(PanelFooter, { shown: 4, total: 42, note: "the named test records" }));
-    assert.match(html, /1–4 of 42 · the named test records/);
+    const html = renderToStaticMarkup(createElement(PanelFooter, { shown: 4, total: 42, note: "the named test records of the rebuild spec" }));
+    assert.match(html, /the named test records of the rebuild spec · 42 in the result set/);
+    assert.doesNotMatch(html, /1–4 of 42/, "the range is a claim about the result set these rows are not a page of");
     assert.doesNotMatch(html, /per page/);
     assert.doesNotMatch(html, /Page 1 of/);
     assert.doesNotMatch(html, /aria-label="Next page"/);
@@ -1004,5 +1007,204 @@ describe("the two-state controls say which state they are in", () => {
     assert.match(on, /aria-label="GOTS"/);
     // A checkbox nothing can focus is not a checkbox.
     assert.match(off, /tabindex="0"/);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Cycle 8 guards, at the boundary (§14). Each pins a mutation that survived
+// the cycle-7 adequacy sweep — the model-level assertion existed, the rendered
+// value it becomes did not.
+// ---------------------------------------------------------------------------
+
+describe("an unread count renders as unknown, on every surface that shows one", () => {
+  it("the sheet's tabs show nothing rather than 0 when the count is unknown", () => {
+    const sheet = buildSheet({ ...aboniInput(), hscodes: [], hscodesError: true });
+    assert.equal(sheet.tabs.find((t) => t.label === "Products")?.count, null, "a failed EPB read has no line count");
+    const html = renderToStaticMarkup(createElement(SupplierSheet, { model: sheet }));
+    const tabs = html.slice(html.indexOf("<nav"), html.indexOf("</nav>"));
+    assert.match(tabs, />Products</);
+    assert.doesNotMatch(tabs, />Products<[^>]*>0</, "a tab that reads 'Products 0' over an unread page states a fact");
+    assert.match(html, /could not be read/);
+  });
+
+  it("the RFQ chips and the summary line show nothing rather than 0 when the list was not read", () => {
+    const model: RfqListModel = {
+      sent: null,
+      quotes: null,
+      chips: [{ label: "All", count: null, on: true }, { label: "Awaiting reply", count: null }],
+      rows: [],
+      footer: "The RFQ list could not be read",
+      toast: null,
+      error: true,
+    };
+    const html = renderToStaticMarkup(createElement(RfqList, { model }));
+    assert.match(html, /count not read/);
+    assert.doesNotMatch(html, /\b0 sent\b/);
+    assert.doesNotMatch(html, /\b0 quotes\b/);
+    assert.doesNotMatch(html, />All<[^>]*>0</, "a chip counting an unread list states a fact");
+  });
+
+  it("the sidebar shows no number rather than 0 when a count is unknown", () => {
+    const shell = (counts: { suppliers?: number | null; rfqs?: number | null; saved?: number | null }) =>
+      renderToStaticMarkup(
+        createElement(AppShell, {
+          sidebar: { active: "rfqs", counts, recent: [], plan: { name: "Free · public beta" } },
+          topbar: { caption: "", search: "Search suppliers, HS codes, certificates" },
+          children: null,
+        } as never),
+      );
+    const shown = shell({ suppliers: 10266, rfqs: 7, saved: null });
+    assert.match(shown, /RFQs<[^>]*>7</);
+    assert.match(shown, />Saved</);
+    assert.doesNotMatch(shown, /Saved<[^>]*>0</, "the Saved count is not read, and 0 is a claim");
+    const unread = shell({ suppliers: null, rfqs: null, saved: null });
+    assert.doesNotMatch(unread, /Suppliers<[^>]*>0</);
+    assert.doesNotMatch(unread, /RFQs<[^>]*>0</);
+    // A real zero is still shown: an account with no RFQs reads "RFQs 0".
+    assert.match(shell({ rfqs: 0 }), /RFQs<[^>]*>0</);
+  });
+
+  it("the panel footer says what the rows are rather than a page range it cannot support", () => {
+    const unknown = renderToStaticMarkup(createElement(PanelFooter, { shown: 4, total: null }));
+    assert.doesNotMatch(unknown, /of 0/, "an unread total is not zero");
+    assert.match(unknown, /of —/);
+    const empty = renderToStaticMarkup(createElement(PanelFooter, { shown: 0, total: 42 }));
+    assert.match(empty, /none on this page of 42/);
+    assert.doesNotMatch(empty, /1–0/);
+  });
+});
+
+describe("the RFQ summary line is read off the model, both numbers, the right way round", () => {
+  it("four sent and one quote read as four sent and one quote", () => {
+    const base = { product_title: "T", quantity: 1, quantity_unit: "pcs", ship_by: null, target_supplier_count: 1, created_at: "2026-09-09T10:00:00Z" } as const;
+    const rows = [
+      buildRfqRow({ ...base, id: "a", status: "open", quote_count: 1 }, null, TODAY),
+      buildRfqRow({ ...base, id: "b", status: "open", quote_count: 0 }, null, TODAY),
+    ];
+    const html = renderToStaticMarkup(
+      createElement(RfqList, { model: { sent: 4, quotes: 1, chips: [], rows, footer: "1–2 of 2", toast: null } as RfqListModel }),
+    );
+    // The only assertion on this line used to be `0 sent · 0 quotes` on an
+    // empty model, where the two numbers and their singulars all agree.
+    assert.match(html, /4 sent · 1 quote</);
+    assert.doesNotMatch(html, /1 sent · 4/);
+    const plural = renderToStaticMarkup(
+      createElement(RfqList, { model: { sent: 4, quotes: 2, chips: [], rows, footer: "1–2 of 2", toast: null } as RfqListModel }),
+    );
+    assert.match(plural, /4 sent · 2 quotes</);
+  });
+});
+
+describe("the failed-read copy is pinned as words, not as itself", () => {
+  it("it says the read failed and never that the account has no RFQs", () => {
+    // `assert.match(html, rx(RFQ_ERROR_COPY))` imports the string from the
+    // component under test, so rewriting the copy into "You have no RFQs"
+    // kept the suite green — the cycle-5 self-comparison class.
+    assert.match(RFQ_ERROR_COPY, /could not be read/i);
+    assert.doesNotMatch(RFQ_ERROR_COPY, /\bno RFQs\b|\bnone\b|\byet\b|\bfirst RFQ\b/i, "the failed read must not state a fact about the account");
+    assert.match(RFQ_EMPTY_COPY, /first RFQ/i);
+    assert.notEqual(RFQ_ERROR_COPY, RFQ_EMPTY_COPY);
+    const html = renderToStaticMarkup(
+      createElement(RfqList, {
+        model: { sent: null, quotes: null, chips: [], rows: [], footer: "The RFQ list could not be read", toast: null, error: true } as RfqListModel,
+      }),
+    );
+    assert.match(html, /could not be read/i);
+    assert.doesNotMatch(html, /no RFQs/i);
+  });
+});
+
+describe("the sheet makes no claim about pages changing since the read", () => {
+  it("nothing on any of the four records says pages are unchanged", () => {
+    for (const input of [aboniInput(), smKnitwearInput(), zaheenSampleInput(), arFashionInput()]) {
+      const html = renderToStaticMarkup(createElement(SupplierSheet, { model: buildSheet(input) }));
+      assert.doesNotMatch(html, /pages unchanged since read|a source page changed since read/, `${input.profile.supplier.slug}`);
+    }
+    // The comparison needs `raw_hash` (REZ-C §4.3); the kit has no data for
+    // it, so the model does not carry the field at all rather than carrying a
+    // null that one edit turns into a claim.
+    assert.ok(!("pagesUnchanged" in buildSheet(aboniInput())));
+  });
+});
+
+describe("a mark says what its link opens", () => {
+  it("a register page says register page; a brand's whole disclosure file says disclosure list", () => {
+    const html = renderToStaticMarkup(createElement(SupplierResultCard, { card: buildCard(aboniInput()) }));
+    assert.match(html, /aria-label="Source: Export Promotion Bureau \(opens the register page\)"/);
+    // ASOS, NEXT and H&M each publish one file listing every supplier on the
+    // list; 267 published records were told it was their register page.
+    assert.match(html, /aria-label="Source: ASOS \(opens the disclosure list\)"/);
+    assert.match(html, /aria-label="Source: H&amp;M \(opens the disclosure list\)"/);
+    assert.doesNotMatch(html, /aria-label="Source: (?:ASOS|H&amp;M|NEXT|M&amp;S) \(opens the register page\)"/);
+  });
+});
+
+describe("the whole EPB line list of every fixture reaches the screens", () => {
+  it("the three records cycle 7 showed as having no lines show their lines", () => {
+    for (const [name, input, lines] of [
+      ["SQ Celsius", buildingBrandListsInput(), 14],
+      ["Aman Graphics", duplicateBrandRowsInput(), 34],
+      ["Aswad", buildingSafetyOnlyInput(), 18],
+    ] as const) {
+      assert.equal(input.hscodes.length, lines, name);
+      const card = renderToStaticMarkup(createElement(SupplierResultCard, { card: buildCard(input) }));
+      assert.doesNotMatch(card, /no lines on file|none on the EPB page|not on the EPB list/, `${name}'s card denies its EPB lines`);
+      assert.match(card, new RegExp(`${lines} HS lines`), name);
+      const sheet = renderToStaticMarkup(createElement(SupplierSheet, { model: buildSheet(input) }));
+      assert.doesNotMatch(sheet, /Not on the EPB exporter list|no lines on file/, `${name}'s sheet denies its EPB lines`);
+    }
+  });
+
+  it("every line the fixtures carry has EPB's own description and its exporter page", () => {
+    for (const input of [aboniInput(), smKnitwearInput(), longestHsListInput(), buildingBrandListsInput(), duplicateBrandRowsInput(), buildingSafetyOnlyInput()]) {
+      for (const line of input.hscodes) {
+        assert.ok((line.description ?? "").length > 3, `${input.profile.supplier.slug} ${line.code} has no description`);
+        assert.match(line.source_url ?? "", /^https:\/\/edb\.epb\.gov\.bd\/hscode-exporters\/\d+$/, `${input.profile.supplier.slug} ${line.code}`);
+      }
+    }
+  });
+});
+
+describe("the certificate card's own mark links, and the sheet shows the register's lines", () => {
+  it("a certificate whose document is a record page renders its square as a link", () => {
+    const html = renderToStaticMarkup(createElement(SupplierSheet, { model: buildSheet(aboniInput()) }));
+    const certs = html.slice(html.indexOf('id="certificates"'));
+    // The square was a `<span role="img">` — built with `sourceMark(kind)` and
+    // no URL — on every certificate on every sheet.
+    assert.match(certs, /<a href="https:\/\/wrapcompliance\.org\/certified-facility\/7865\/"[^>]*aria-label="Source: Worldwide Responsible Accredited Production \(opens the register page\)"/);
+    assert.match(certs, /<a href="https:\/\/www\.global-trace-base\.org\/SCO039488\/certificate-document"/);
+    assert.equal((certs.match(/aria-label="Source: [^"]*"/g) ?? []).length, 4, "one square per certificate");
+    assert.equal((certs.match(/<a href="[^"]*"[^>]*aria-label="Source: /g) ?? []).length, 4, "and every one of them links");
+  });
+
+  it("a certificate with no document keeps its square, unlinked", () => {
+    const input = aboniInput();
+    input.profile.certifications = input.profile.certifications.map((c) => ({ ...c, document_url: null }));
+    const html = renderToStaticMarkup(createElement(SupplierSheet, { model: buildSheet(input) }));
+    const certs = html.slice(html.indexOf('id="certificates"'));
+    assert.match(certs, /<span role="img" aria-label="Source: /);
+    assert.doesNotMatch(certs, /<a href="[^"]*"[^>]*aria-label="Source: /);
+  });
+
+  it("the address the register filed keeps its line breaks", () => {
+    // 4,596 of 10,266 published records file `address_raw` as a newline block;
+    // in normal flow the breaks collapse and the street runs into the district.
+    const input = buildingBrandListsInput();
+    const fact = buildSheet(input).facts.find((f) => f.label === "Factory address")!;
+    assert.match(fact.value ?? "", /\n/, "the fixture no longer carries the multi-line shape this guard is about");
+    const html = renderToStaticMarkup(createElement(SupplierSheet, { model: buildSheet(input) }));
+    const at = html.indexOf(escape(fact.value!.split("\n")[0]!));
+    const element = html.slice(html.lastIndexOf("<span", at), at);
+    assert.match(element, /whitespace-pre-line/, `the lines collapse into one: ${element}`);
+  });
+
+  it("a record whose only certificate is a building's says so in the section, not just the caption", () => {
+    const html = renderToStaticMarkup(createElement(SupplierSheet, { model: buildSheet(buildingOnlyCertificateInput()) }));
+    assert.match(html, /No certificate on this record itself/);
+    assert.doesNotMatch(html, /No certificate on any register/, "the bare negative stood over a payload holding one");
+    assert.match(html, rx(`${MG_BUILDING} holds a certificate of its own`));
+    // And a record with none anywhere keeps the plain words.
+    const none = renderToStaticMarkup(createElement(SupplierSheet, { model: buildSheet(arFashionInput()) }));
+    assert.match(none, /No certificate on any register/);
   });
 });

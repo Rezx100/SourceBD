@@ -237,6 +237,20 @@ function mark(p: ProfilePayload, code: string): SourceMarkModel {
   return sourceMark(code, sourceHrefs(p)[code.toUpperCase()] ?? null);
 }
 
+/**
+ * A mark only for a source this record itself holds.
+ *
+ * Aswad Composite Mills files no RSC registration — its two buildings do — so
+ * RSC is not in `allSourceCodes` and the bar reads "6 sources", while the
+ * workers figure (which the RSC rows produce) was stamped with a seventh, RSC
+ * square. A square the count does not include contradicts the count on the
+ * same screen; the coverage words ("across 2 of 3 sites, none of them this
+ * record") are what attribute the figure in that case.
+ */
+function ownMark(p: ProfilePayload, code: string): SourceMarkModel | null {
+  return allSourceCodes(p).includes(code.toUpperCase()) ? mark(p, code) : null;
+}
+
 function isoTime(v: string | null | undefined): number {
   const t = v ? Date.parse(v) : NaN;
   return Number.isNaN(t) ? -1 : t;
@@ -298,12 +312,6 @@ function factoryAddress(p: ProfilePayload): { text: string | null; mark: SourceM
     if (fuller) return { text: fuller.address, mark: mark(p, fuller.source_code) };
   }
   return { text: raw, mark: null };
-}
-
-/** Kept for the card, which shows the profile column and its mark only. */
-function addressMark(p: ProfilePayload): SourceMarkModel | null {
-  const row = (p.addresses ?? []).find((a) => a.kind === "factory" && a.source_code && sameAddress(a.address, p.supplier.address_raw));
-  return row ? mark(p, row.source_code) : null;
 }
 
 /**
@@ -400,7 +408,7 @@ function metaFacts(input: RecordInput, options: { registerNumber?: boolean } = {
   const place = placeLabel(s.city, s.district);
   const year = establishedYearOf(s.established_date);
   const w = workersFact(input);
-  const workersMark = w.source === "RSC" && !w.groupUnknown ? mark(p, "RSC") : null;
+  const workersMark = w.source === "RSC" && !w.groupUnknown ? ownMark(p, "RSC") : null;
   // City and district are derived fields (EPB → GOTS → the address text); no register is attributed to them.
   if (place) facts.push({ text: place, mark: null });
   const missing: string[] = [];
@@ -776,11 +784,13 @@ export function buildSheet(input: RecordInput, options: SheetOptions = {}): Supp
   const registers = registerPills(p);
   const epb = epbExporter(p);
   const w = workersFact(input);
-  const workersMark = w.source === "RSC" && !w.groupUnknown ? mark(p, "RSC") : null;
+  const workersMark = w.source === "RSC" && !w.groupUnknown ? ownMark(p, "RSC") : null;
   const registerRows = registers.filter((r) => r.value);
   const gots = certList.find((c) => c.kind.toUpperCase() === "GOTS" && c.state !== "expired");
-  const addresses = (p.addresses ?? []).length;
-  const addrMark = addressMark(p);
+  // Distinct places, not rows. Aboni files nine address rows and seven
+  // distinct texts — two registers filed the same address twice each — and
+  // "Locations 9" over seven places is a count of the table, not of the world.
+  const addresses = new Set((p.addresses ?? []).map((a) => (a.address ?? "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim()).filter(Boolean)).size;
   const addr = factoryAddress(p);
   const capacity =
     s.production_capacity_pcs_day
@@ -840,7 +850,6 @@ export function buildSheet(input: RecordInput, options: SheetOptions = {}): Supp
     meta: metaFacts(input, { registerNumber: true }),
     readDate: latestReadDate(p),
     sourceCount: marks.length,
-    pagesUnchanged: null,
     sanctioned: s.is_sanctioned || Boolean(input.sanctionSample),
     sanctionSample: input.sanctionSample,
     // Only the four sections this sheet renders get a fragment; Sources,
@@ -973,8 +982,18 @@ function scopeList(raw: string): string[] {
     .filter(Boolean);
 }
 
+/**
+ * Three items and a count of the rest.
+ *
+ * Joined with commas this miscounted itself: GOTS writes one of its operations
+ * as "Embroidery, embellishment", so "dyeing, embroidery, embellishment,
+ * finishing +6" showed three operations and read as four, over a scope of
+ * nine. 545 of the 911 GOTS certificates carry such a phrase. A semicolon
+ * between the items leaves the commas inside them unambiguous.
+ */
 function scopeShorten(items: string[]): string {
-  return items.length > SCOPE_SHOWN ? `${items.slice(0, SCOPE_SHOWN).join(", ")} +${items.length - SCOPE_SHOWN}` : items.join(", ");
+  const sep = items.some((i) => i.includes(",")) ? "; " : ", ";
+  return items.length > SCOPE_SHOWN ? `${items.slice(0, SCOPE_SHOWN).join(sep)} +${items.length - SCOPE_SHOWN}` : items.join(sep);
 }
 
 function scopeWords(scope: string | null): string {
@@ -1113,7 +1132,10 @@ export function buildRfqRow(
         : r.quote_count > 0
           ? { tone: "positive", label: `Quoted · ${r.quote_count}`, icon: "check-c" }
           : { tone: "positive", label: "Sent · awaiting reply", icon: "send" };
-  const count = Math.max(1, r.target_supplier_count);
+  // `rfq_list` emits `coalesce(array_length(target_supplier_ids,1), 0)`, so a
+  // draft with no target counts 0 — and `Math.max(1, undefined)` is NaN, which
+  // rendered "NaN suppliers". An RFQ with no target says so.
+  const count = Number.isFinite(r.target_supplier_count) ? Math.max(0, r.target_supplier_count) : 0;
   return {
     id: r.id,
     name: r.product_title,

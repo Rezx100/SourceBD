@@ -129,7 +129,7 @@ export function RfqList({ model }: { model: RfqListModel }) {
                         </>
                       ) : (
                         <span className="text-ink-muted">
-                          {r.supplierCount} {r.supplierCount === 1 ? "supplier" : "suppliers"}
+                          {r.supplierCount === 0 ? "No supplier on this draft" : `${r.supplierCount} ${r.supplierCount === 1 ? "supplier" : "suppliers"}`}
                         </span>
                       )}
                     </div>

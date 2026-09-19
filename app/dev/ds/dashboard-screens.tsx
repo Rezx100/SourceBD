@@ -35,8 +35,12 @@ function shellModels(d: GalleryData, active: SidebarModel["active"]): { sidebar:
     // Every count here is the RPC's or absent. A read that failed renders no
     // pill at all: a "0" beside RFQs is a claim about the account, and this
     // sidebar is on all six screens.
-    counts: { suppliers: d.published, rfqs: d.rfqError ? null : d.rfqs.rows.length, saved: null },
-    recent: d.total !== null ? [{ label: GALLERY_QUERY.title, count: d.total, href: "#results" }] : [],
+    // The sidebar counts the account's RFQs, not the rows on this page —
+    // `sent` is the figure `rfq_list` supports, and it is null when the read
+    // failed. `saved` needs `buyer_dashboard.saved_count` (REZ-C), so it is
+    // unknown rather than zero.
+    counts: { suppliers: d.published, rfqs: d.rfqError ? null : d.rfqs.sent, saved: null },
+    recent: d.total !== null ? [{ label: GALLERY_QUERY.title, count: d.total, href: "#results-list" }] : [],
     // No billing exists yet: the plan line names the beta, never a plan or renewal date (handoff §3.10).
     plan: { name: d.plan ?? "Free · public beta" },
   };

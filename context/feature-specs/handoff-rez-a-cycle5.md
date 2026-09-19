@@ -296,9 +296,12 @@ the handoff's own wording, not by a judgement call made during the port.
   1440 and nothing should be claimed about it.
 - **Interaction.** Every control is presentational: the toggles, checkboxes,
   tabs, pagination and Send RFQ render their state and do nothing. REZ-D wires
-  them. The dead controls are marked (`aria-disabled`, `disabled`, tabs whose
-  section this sheet does not render carry no `href`), so a buyer is not
-  invited to press something that will not answer.
+  them. Only the controls whose *target does not exist* are marked — the
+  sheet's tabs for sections this sheet does not render, the RFQ composer's
+  step rail, Send RFQ on a sanctioned record. The other ~100 buttons in the
+  gallery are ordinary-looking buttons that do nothing when pressed, because
+  `/dev/ds` is an admin gallery and REZ-A changes no route; do not read the
+  marked ones as a claim that every dead control is marked.
 - **The states §5 names that no published record is in.** "Reply overdue"
   needs reply-by dates and threads (`rfq_drafts`, REZ-D's `derived_status`);
   `rfq_list` carries neither, so no row and no chip claims it. A sanctioned
@@ -308,11 +311,39 @@ the handoff's own wording, not by a judgement call made during the port.
   face of it, and `sanctionedInput()` exists only so a test can prove the kit
   reads the column rather than the flag.
 - **Live data.** The screens render from `lib/dashboard/fixtures.ts`, a mirror
-  of four production payloads, and `lib/dashboard/fixtures.test.ts`
-  reconciles every one of them against the read of 19 Sep 2026. The container
-  cannot reach Supabase; `loadGalleryData` is the real loader and is tested
-  against stubbed RPCs, so the wiring is exercised even though the network is
-  not.
+  of twelve published production payloads plus the two unpublished records the
+  admin surfaces reach. `lib/dashboard/fixtures.test.ts` reconciles every field
+  of every row against `lib/dashboard/fixtures.production.json`, which is the
+  read itself — written straight out of `buyer_supplier_profile`,
+  `supplier_epb_hscodes` and `rfq_list` on 20 Sep 2026. The container cannot
+  reach Supabase; `loadGalleryData` is the real loader and is tested against
+  stubbed RPCs, and the screenshot harness is tested too, so the wiring is
+  exercised even though the network is not.
+
+- **Fields the RPC does not return, so the kit does not render.** Each is out
+  of REZ-A's scope because the data arrives with a later issue, and each was
+  found by a critic and re-found by the next until it was written down here:
+  - the **Map pin** row of §3.3 — `buyer_supplier_profile` returns no geo keys;
+    `address_geocodes` is read by Locations (REZ-C);
+  - the locked contact card's **counts and registers** ("1 email · 6 phone
+    numbers · …, from BGMEA, BKMEA and BGAPMEA") — §3.3 routes them through
+    `contact_counts` in §4.3, i.e. migration 0105 / REZ-C. The card is striped
+    rather than blurred and takes the string, so REZ-C fills it;
+  - **"pages unchanged since read"** — needs `raw_hash` (§4.3). The model does
+    not carry the field at all, rather than a null one edit turns into a claim;
+  - the sheet's **Sources, Locations, Facilities and RFQs** sections — their
+    tabs render inert, with no `href`, and the RFQs tab carries no count
+    because nothing has read one;
+  - the sidebar's **Saved** count — needs `buyer_dashboard.saved_count`, so it
+    is unknown rather than zero.
+
+- **Where the port differs from the approved render, on purpose.** Aboni's
+  headline headcount is 3,166 (the RSC group figure, 2,662 + 504) where the
+  render shows 3,314 (`suppliers.employees_total`, a registry figure) under an
+  RSC mark; its city is Dhaka, not "Savar, Dhaka"; it holds 4 registers, not 3;
+  "other exporters of 6105" is 1,634 because the record itself is excluded; and
+  the photo strip's overflow count is +6, not +7. In each case the render's
+  receipt was wrong and the port's is production's.
 
 ## Promotion gates — none of them have been asked for
 

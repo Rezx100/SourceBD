@@ -46,7 +46,6 @@ export function SupplierSheet({ model }: { model: SupplierSheetModel }) {
         <Caption>
           {model.readDate ? `Read ${model.readDate} · ` : ""}
           {model.sourceCount} {model.sourceCount === 1 ? "source" : "sources"}
-          {model.pagesUnchanged === true ? " · pages unchanged since read" : model.pagesUnchanged === false ? " · a source page changed since read" : ""}
         </Caption>
         <span className="ml-auto flex items-center gap-2">
           <Button variant="ghost">

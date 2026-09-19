@@ -171,6 +171,33 @@ describe("loadGalleryData (the /dev/ds loader, stubbed RPCs)", () => {
     assert.equal(chipTotal, data.rfqs.rows.length, "a row is in no chip, or in two");
   });
 
+  // Cycle 8: the cycle-6 fixture gave "Awaiting reply" and "Quoted" one row
+  // each, so swapping the two predicates left every count unchanged — a
+  // 1-vs-1 collision where the empty list had been a 0-vs-0 one. Each chip
+  // now counts a different number of rows, and no two chips agree.
+  it("each status chip counts its own rows, and no two chips can be swapped without the counts moving", async () => {
+    const base = { product_title: "T-shirt", quantity: 100, quantity_unit: "pcs", ship_by: "2026-09-24", target_supplier_count: 1, created_at: "2026-09-09T10:00:00Z" };
+    const rfqRows: RfqListRow[] = [
+      { ...base, id: "a", status: "open", quote_count: 0 },
+      { ...base, id: "b", status: "open", quote_count: 0 },
+      { ...base, id: "c", status: "open", quote_count: 0 },
+      { ...base, id: "d", status: "open", quote_count: 2 },
+      { ...base, id: "e", status: "accepted", quote_count: 1 },
+      { ...base, id: "f", status: "closed", quote_count: 0 },
+    ];
+    const data = await loadGalleryData(stubClient({ rfqRows }).client, TODAY);
+    const counts = data.rfqs.chips.map((c) => [c.label, c.count] as const);
+    assert.deepEqual(counts, [
+      ["All", 6],
+      ["Awaiting reply", 3],
+      ["Quoted", 2],
+      ["Closed", 1],
+    ]);
+    const numbers = counts.filter(([l]) => l !== "All").map(([, n]) => n);
+    assert.equal(new Set(numbers).size, numbers.length, "two chips count the same number, so their predicates can be swapped unnoticed");
+    assert.equal(numbers.reduce<number>((a, b) => a + (b ?? 0), 0), data.rfqs.rows.length, "a row is in no chip, or in two");
+  });
+
   // Cycle 6: the sidebar reads its numbers off the same model, and a failed
   // read must leave them unknown rather than reporting a quiet, wrong zero.
   it("when the read fails, every sidebar figure is unknown — not zero", async () => {

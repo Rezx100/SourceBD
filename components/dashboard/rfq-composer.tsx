@@ -143,7 +143,13 @@ export function RfqComposer({ model, aiEnabled = false }: { model: RfqComposerMo
           {steps.map((s) => (
             <a
               key={s.label}
-              href={`#${s.label.toLowerCase().replace(/\s+/g, "-")}`}
+              // The approved fragment (design/src/screens/rfq.html) makes every
+              // rail step inert; deriving a fragment from the label pointed
+              // four of them at anchors the page does not have, which is the
+              // dead-anchor defect cycle 5 fixed on the sheet's tabs.
+              href="#"
+              aria-disabled="true"
+              title="Stepping through the draft arrives with the composer (REZ-D)"
               aria-current={s.active ? "step" : undefined}
               className={cn(
                 "flex items-start gap-2 rounded-sm px-2.5 py-2 text-ink",

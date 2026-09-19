@@ -20,7 +20,7 @@ import { aboniInput, arFashionInput, RFQ_ROWS, RFQ_TARGETS, smKnitwearInput, TOD
 const repoRoot = process.env.REPO_ROOT ?? process.cwd();
 const outDir = process.env.GALLERY_OUT ?? path.join(repoRoot, "_gallery-out");
 
-const records: Record<string, ReturnType<typeof aboniInput>> = {
+export const records: Record<string, ReturnType<typeof aboniInput>> = {
   "aboni-knitwear": aboniInput(),
   "sm-knitwear": smKnitwearInput(),
   "zaheen-knitwear-limited-shed-3-4-5-10-11-12-13-and-building-security-etp-and-fire-pump": zaheenSampleInput(),
@@ -38,7 +38,7 @@ const records: Record<string, ReturnType<typeof aboniInput>> = {
 const GALLERY_TOTAL = 42;
 const PUBLISHED_TOTAL = 10266;
 
-const fixtureRpc = {
+export const fixtureRpc = {
   rpc: async (fn: string, args: Record<string, unknown>) => {
     if (fn === "buyer_supplier_profile") {
       const r = records[String(args.p_slug)];

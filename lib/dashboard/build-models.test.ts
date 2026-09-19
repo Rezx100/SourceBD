@@ -1,12 +1,21 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+
+import { RfqList } from "@/components/dashboard/rfq-list";
+import type { RfqListModel } from "./models";
+import { sourceMark } from "./source-tiers";
 import {
+  allSourceCodes,
   buildCard,
   buildProductSheet,
   buildRfqRow,
   buildSheet,
   buildTableRow,
+  brandListsEmptyWords,
+  registerLabel,
   certBuildings,
   hasEpbRecord,
   motherRsc,
@@ -19,6 +28,9 @@ import {
 import type { RecordInput } from "./build-models";
 import {
   aboniInput,
+  SQ_UNIT_3,
+  SQ_UNIT_04,
+  buildingBrandListsInput,
   arFashionInput,
   buildingSafetyOnlyInput,
   duplicateBrandRowsInput,
@@ -442,7 +454,7 @@ describe("buildSheet — facts panel and contact card", () => {
         ["Certificates", "4"],
         ["Safety", "RSC"],
         ["Sources", "11"],
-        ["Locations", "9"],
+        ["Locations", "7"],
         ["Facilities", null],
         ["RFQs", null],
       ],
@@ -481,7 +493,11 @@ describe("buildSheet — facts panel and contact card", () => {
       else assert.ok(f.checked, `${f.label} reads "Not on file" without saying what was checked`);
     }
     assert.ok(!sheet.facts.some((f) => f.label === "Map pin"), "no pin row until the geocode is read (Locations, REZ-C)");
-    assert.equal(sheet.tabs.find((t) => t.label === "Locations")?.count, "9", "from the addresses array production returns");
+    // Cycle 8: production returns nine address rows for this record and seven
+    // distinct texts — BKMEA filed two of them twice — and "Locations 9" over
+    // seven places counts the table rather than the world.
+    assert.equal((aboniInput().profile.addresses ?? []).length, 9, "the payload still has the duplicate rows this guard is about");
+    assert.equal(sheet.tabs.find((t) => t.label === "Locations")?.count, "7", "distinct addresses, not rows");
     assert.equal(sheet.tabs.find((t) => t.label === "RFQs")?.count, null, "no RFQ query exists yet — no literal");
   });
 
@@ -579,15 +595,18 @@ describe("buildSheet — a record with two EPB registrations (S M Knitwears)", (
     assert.equal(sheet.tabs.find((t) => t.label === "Certificates")?.count, "6");
     // Sorted the way a buyer needs them: expiring, then valid, then expired,
     // then undated (§5's four states).
+    // Cycle 8: the four OEKO-TEX certificates all read "OEKO-TEX · no expiry
+    // on file", because only Standard 100 of the six OEKO-TEX schemes was
+    // named. 242 published records hold one that is not Standard 100.
     assert.deepEqual(
-      sheet.certs.map((c) => [c.number, c.state]),
+      sheet.certs.map((c) => [c.number, c.state, c.scheme]),
       [
-        ["GOTS-28946", "valid"],
-        ["124992", "expired"],
-        ["9741-mig", "no-expiry"],
-        ["9741-step", "no-expiry"],
-        ["9741-organic-cotton", "no-expiry"],
-        ["9741-100", "no-expiry"],
+        ["GOTS-28946", "valid", "GOTS"],
+        ["124992", "expired", "WRAP Gold"],
+        ["9741-mig", "no-expiry", "OEKO-TEX Made In Green"],
+        ["9741-organic-cotton", "no-expiry", "OEKO-TEX Organic Cotton"],
+        ["9741-100", "no-expiry", "OEKO-TEX Standard 100"],
+        ["9741-step", "no-expiry", "OEKO-TEX STeP"],
       ],
     );
   });
@@ -620,7 +639,13 @@ describe("buildProductSheet — HS 6105 on the Aboni record", () => {
     // nine real operations on GOTS-31587 are Dyeing; Embroidery, embellishment;
     // Finishing; Knitting; Manufacturing; Packing; Pre-treatment; Printing;
     // Washing, laundering — three shown and six counted.
-    assert.equal(scope.value, "GOTS-31587 · dyeing, embroidery, embellishment, finishing +6 · products: men's apparel");
+    // Cycle 8: commas joined the three shown operations, and one of them IS
+    // "embroidery, embellishment", so the line showed three and read as four
+    // over a scope of nine. A semicolon between items keeps the commas inside
+    // them unambiguous; the products half has no such phrase, so it keeps
+    // commas.
+    assert.equal(scope.value, "GOTS-31587 · dyeing; embroidery, embellishment; finishing +6 · products: men's apparel");
+    assert.equal((scope.value?.split(" · ")[1]?.match(/;/g) ?? []).length, 2, "three operations, two separators");
     // The other certificate on the same record carries the longer phrase
     // ("Warehousing, distribution of non-final products") and its own products
     // half, which a comma split would have shredded into three.
@@ -632,7 +657,7 @@ describe("buildProductSheet — HS 6105 on the Aboni record", () => {
     const twinScope = buildProductSheet(twin, "6105").facts.find((f) => f.label === "Certified scope")!;
     assert.equal(
       twinScope.value,
-      "GOTS-27605 · dyeing, embroidery, embellishment, finishing +7 · products: babies' apparel, children's apparel, children's denim apparel +9",
+      "GOTS-27605 · dyeing; embroidery, embellishment; finishing +7 · products: babies' apparel, children's apparel, children's denim apparel +9",
     );
     // Cycle 5, finding 21: the badge read "· No expiry on file" for an undated
     // certificate, because the scheme alone was stripped off "GOTS · no expiry".
@@ -822,5 +847,222 @@ describe("a record with two numbers at the same register", () => {
       const cardCodes = buildCard(input).marks.map((m) => m.code);
       assert.deepEqual([...new Set(cardCodes)], cardCodes, `${input.profile.supplier.slug}'s mark row repeats a register`);
     }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Cycle 8 guards. The cycle-7 audit ran 263 mutations and 84 survived; these
+// pin the classes those survivors reached, and the eight blocking findings.
+// ---------------------------------------------------------------------------
+
+describe("a building's brand list is named, never counted and never denied", () => {
+  it("SQ Celsius is on no list of its own, and the screens say whose lists those are", () => {
+    const input = buildingBrandListsInput();
+    const p = input.profile;
+    assert.equal((p.brand_attributions ?? []).filter((b) => !b.building_name).length, 0, "the fixture no longer carries the all-buildings shape");
+    assert.equal((p.brand_attributions ?? []).length, 4);
+    // The bare negative is a negative the payload contradicts. Eight published
+    // mothers are in this shape; `brandBuildings` was written for them and
+    // wired to nothing until cycle 8.
+    const words = brandListsEmptyWords(p);
+    assert.equal(words, `not on this record · ${SQ_UNIT_04}, ${SQ_UNIT_3} are listed`);
+    assert.doesNotMatch(words, /not on 4 brand lists read/);
+    const card = buildCard(input);
+    assert.equal(card.tiles.find((t) => t.label === "Listed by")?.sub, words);
+    assert.equal(buildSheet(input).products.buyerListsEmpty, words);
+    assert.equal(buildProductSheet(input, "6105").facts.find((f) => f.label === "Buyer lists")?.checked, words);
+    // And the buildings' rows are still not counted as the record's.
+    assert.equal(card.marks.filter((m) => m.code.startsWith("BRAND_")).length, 0);
+  });
+
+  it("a record on a list of its own keeps the plain negative, and the mark", () => {
+    const input = duplicateBrandRowsInput();
+    assert.equal(brandListsEmptyWords(input.profile), "not on 4 brand lists read");
+    assert.deepEqual(buildSheet(input).products.buyerLists, ["M&S", "NEXT"]);
+  });
+});
+
+describe("the sheet's 'every source mark links' claim counts every mark the sheet draws", () => {
+  /**
+   * Aboni narrowed to the sources whose URL is a record page. RSC, BGAPMEA and
+   * BKMEA file only their agency homepage, so on the whole record the claim is
+   * correctly withheld — which means the `true` branch was unreachable from
+   * any fixture, and the bug lived there. Dropping rows narrows a real
+   * payload; nothing is added.
+   */
+  function everyRegisterHasAPage(): RecordInput {
+    const input = aboniInput();
+    const homepageOnly = new Set(["RSC", "BGAPMEA", "BKMEA"]);
+    const p = input.profile;
+    p.supplier.source_tags = (p.supplier.source_tags ?? []).filter((t) => !homepageOnly.has(t.toUpperCase()));
+    p.pills = p.pills.filter((x) => !homepageOnly.has(x.source_code.toUpperCase()));
+    p.provenance = (p.provenance ?? []).filter((x) => !homepageOnly.has(x.source_code.toUpperCase()));
+    p.addresses = [];
+    p.rsc_remediation = null;
+    return input;
+  }
+
+  it("a certificate whose document is a record page links, and is inside the claim", () => {
+    const input = everyRegisterHasAPage();
+    const sheet = buildSheet(input);
+    const certMarks = sheet.certs.map((c) => sourceMark(c.markCode, c.documentUrl));
+    assert.ok(certMarks.length >= 4, "the record no longer holds the certificates this guard is about");
+    assert.ok(certMarks.every((m) => m.href), "a certificate document that is a record page must link");
+    assert.equal(sheet.everyMarkLinks, true, "every mark this sheet draws links, so the claim stands");
+  });
+
+  it("one unlinked certificate mark is enough to withdraw the claim", () => {
+    const input = everyRegisterHasAPage();
+    // Production holds certificates with no document at all — the RPC returns
+    // `document_url: null` — and the cert marks were outside the sum, so a
+    // sheet like this one claimed every mark links while drawing one that
+    // does not. Roughly a thousand published records reach this branch.
+    input.profile.certifications = input.profile.certifications.map((c, i) => (i === 2 ? { ...c, document_url: null } : c));
+    const sheet = buildSheet(input);
+    assert.ok(sheet.certs.some((c) => c.documentUrl === null));
+    assert.equal(sheet.everyMarkLinks, false);
+  });
+
+  it("the whole Aboni record withholds the claim, because three registers file only a homepage", () => {
+    assert.equal(buildSheet(aboniInput()).everyMarkLinks, false);
+  });
+
+  it("a record with no marks at all does not make the claim either", () => {
+    const bare = arFashionInput();
+    bare.profile.addresses = [];
+    bare.profile.pills = [];
+    bare.profile.provenance = [];
+    bare.profile.supplier.source_tags = [];
+    assert.equal(buildSheet(bare).everyMarkLinks, false);
+  });
+});
+
+describe("a mark is only drawn for a source the record itself holds", () => {
+  it("Aswad's workers figure comes from its buildings' RSC rows, so no seventh square contradicts the count of six", () => {
+    const input = buildingSafetyOnlyInput();
+    assert.ok(!allSourceCodes(input.profile).includes("RSC"), "the record files no RSC registration of its own");
+    const sheet = buildSheet(input);
+    assert.equal(sheet.sourceCount, 6);
+    assert.equal(sheet.marks.length, 6);
+    const workers = sheet.facts.find((f) => f.label === "Workers")!;
+    assert.equal(workers.value, "6,703");
+    assert.deepEqual(workers.marks ?? [], [], "an RSC square here is a seventh source the bar does not count");
+    // The words are what attribute it, and they name whose figure it is.
+    assert.match(workers.note ?? "", /2 of 3 sites/);
+    assert.match(workers.note ?? "", /excluded/);
+    // The card agrees with the sheet.
+    assert.equal(buildCard(input).meta.find((f) => /workers/.test(f.text))?.mark, null);
+  });
+
+  it("Aboni does hold RSC, so its workers figure keeps the square", () => {
+    assert.ok(allSourceCodes(aboniInput().profile).includes("RSC"));
+    assert.equal(buildSheet(aboniInput()).facts.find((f) => f.label === "Workers")?.marks?.[0]?.code, "RSC");
+  });
+});
+
+describe("register labels are words, not the register's column heading", () => {
+  // The eleven labels `v_supplier_registry_ids_direct` holds, with how many
+  // rows carry each (20 Sep 2026). `BTMA Member #SL` reached the screen
+  // verbatim on 421 published records, and `OEKO_TEX Cert #` printed the
+  // database's underscore, because the cleanup stripped only a trailing "#".
+  const LABELS: [string, number, string][] = [
+    ["BGAPMEA #", 1243, "BGAPMEA"],
+    ["BGMEA Associate member #", 1686, "BGMEA Associate member"],
+    ["BGMEA General member #", 4284, "BGMEA General member"],
+    ["BKMEA #", 2578, "BKMEA"],
+    ["BTMA Member #SL", 527, "BTMA Member"],
+    ["EPB Reg #", 2480, "EPB Reg"],
+    ["GOTS Cert #", 911, "GOTS Cert"],
+    ["OEKO_TEX Cert #", 2923, "OEKO-TEX Cert"],
+    ["RSC ID", 2253, "RSC ID"],
+    ["SA8000 Cert #", 7, "SA8000 Cert"],
+    ["WRAP Cert #", 434, "WRAP Cert"],
+  ];
+
+  for (const [stored, rows, words] of LABELS) {
+    it(`"${stored}" (${rows} rows) reads as "${words}"`, () => {
+      assert.equal(registerLabel(stored), words);
+      assert.doesNotMatch(registerLabel(stored), /#|_/, "no register marker or database underscore reaches the screen");
+    });
+  }
+
+  it("the sheet drops the grade word so the number reads as a number; the card keeps it", () => {
+    const sheet = buildSheet(aboniInput());
+    assert.match(sheet.facts.find((f) => f.label === "Registers")!.value ?? "", /BGMEA General 3498/);
+    assert.equal(buildCard(arFashionInput()).tiles.find((t) => t.label === "Registers")?.sub, "associate member");
+  });
+});
+
+describe("the factory address is the fullest one the payload holds, and is attributed", () => {
+  it("a country-and-district stub gives way to the sourced street it contains", () => {
+    // 1,010 published records file `address_raw` as "Bangladesh\nGazipur - 1710"
+    // while `addresses[]` carries the street. Both strings are production's.
+    const input = buildingRegistrationsInput();
+    const stub = input.profile.supplier.address_raw!;
+    assert.match(stub, /^Bangladesh/, "the fixture no longer has the stub this guard is about");
+    const fact = buildSheet(input).facts.find((f) => f.label === "Factory address")!;
+    assert.notEqual(fact.value, stub, "the sheet showed the worse of two real values");
+    assert.ok(fact.value!.length > stub.length);
+    // And it is now attributed rather than "source pending".
+    assert.equal(fact.pendingSource, undefined);
+    assert.ok((fact.marks?.length ?? 0) > 0);
+  });
+
+  it("an exact match keeps the profile column and its mark, and a record with no sourced row claims no source", () => {
+    const aboni = buildSheet(aboniInput()).facts.find((f) => f.label === "Factory address")!;
+    assert.equal(aboni.value, aboniInput().profile.supplier.address_raw);
+    assert.equal(aboni.marks?.[0]?.code, "BKMEA");
+    const zaheen = buildSheet(zaheenSampleInput()).facts.find((f) => f.label === "Factory address")!;
+    assert.equal(zaheen.value, null);
+  });
+
+  it("a mailing row is never promoted to the factory address", () => {
+    const input = buildingRegistrationsInput();
+    input.profile.addresses = (input.profile.addresses ?? []).map((a) => ({ ...a, kind: "mailing" }));
+    const fact = buildSheet(input).facts.find((f) => f.label === "Factory address")!;
+    assert.equal(fact.value, input.profile.supplier.address_raw);
+    assert.deepEqual(fact.marks ?? [], []);
+  });
+});
+
+describe("Locations counts places, not rows", () => {
+  it("nine address rows, seven distinct texts", () => {
+    const rows = aboniInput().profile.addresses ?? [];
+    assert.equal(rows.length, 9);
+    assert.equal(new Set(rows.map((a) => a.address)).size, 7, "two registers filed the same address twice each");
+    assert.equal(buildSheet(aboniInput()).tabs.find((t) => t.label === "Locations")?.count, "7");
+  });
+});
+
+describe("the RFQ row survives the shapes rfq_list can return", () => {
+  const base = { id: "r", product_title: "T", quantity: 1, quantity_unit: "pcs", ship_by: null, created_at: "2026-09-09T10:00:00Z", quote_count: 0 } as const;
+
+  it("a draft with no target says so rather than counting one, or NaN", () => {
+    const row = buildRfqRow({ ...base, status: "open", target_supplier_count: 0 }, null, TODAY);
+    assert.equal(row.supplierCount, 0);
+    const html = renderToStaticMarkup(
+      createElement(RfqList, {
+        model: { sent: 1, quotes: 0, chips: [], rows: [row], footer: "1–1 of 1", toast: null } as RfqListModel,
+      }),
+    );
+    assert.match(html, /No supplier on this draft/);
+    assert.doesNotMatch(html, /NaN/);
+    assert.doesNotMatch(html, /0 suppliers/);
+  });
+
+  it("a missing count is not a count", () => {
+    const row = buildRfqRow({ ...base, status: "open", target_supplier_count: undefined as unknown as number }, null, TODAY);
+    assert.equal(row.supplierCount, 0);
+    assert.ok(Number.isFinite(row.supplierCount));
+  });
+
+  it("each of the four statuses the enum allows reads as its own words", () => {
+    const words = (status: "open" | "accepted" | "closed" | "cancelled", quotes = 0) =>
+      buildRfqRow({ ...base, status, quote_count: quotes, target_supplier_count: 1 }, null, TODAY).status.label;
+    assert.equal(words("open"), "Sent · awaiting reply");
+    assert.equal(words("open", 2), "Quoted · 2");
+    assert.equal(words("accepted"), "Quote accepted");
+    assert.equal(words("closed"), "Closed");
+    assert.equal(words("cancelled"), "Cancelled", "a cancelled RFQ is not a closed one");
   });
 });

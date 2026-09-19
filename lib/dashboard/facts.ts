@@ -96,6 +96,9 @@ export function certChipLabel(c: Pick<CertModel, "scheme" | "state" | "daysLeft"
     case "valid":
       return day ? `${c.scheme} valid to ${day}` : `${c.scheme} valid`;
     case "expiring":
+      // Four published certificates expire today; "expires in 0 days" is not
+      // how anyone says that.
+      if (c.daysLeft === 0) return `${c.scheme} expires today`;
       return `${c.scheme} expires in ${c.daysLeft} ${c.daysLeft === 1 ? "day" : "days"}`;
     case "expired":
       return day ? `${c.scheme} expired ${day}` : `${c.scheme} expired`;
@@ -118,6 +121,12 @@ export function certTableLabel(c: Pick<CertModel, "scheme" | "state" | "daysLeft
   }
 }
 
+/**
+ * Every value of the `cert_kind` enum, so no scheme can reach a buyer as the
+ * database's own token. Production holds four of the fourteen today (GOTS,
+ * OEKO_TEX, WRAP, SA8000); the other ten were rendering as "SEDEX_SMETA",
+ * "ISO9001", "OTHER" and so on the moment a scraper filed one.
+ */
 const SCHEME_LABEL: Record<string, string> = {
   GOTS: "GOTS",
   WRAP: "WRAP",
@@ -127,9 +136,28 @@ const SCHEME_LABEL: Record<string, string> = {
   GRS: "GRS",
   RCS: "RCS",
   OCS: "OCS",
+  BSCI: "BSCI",
+  SEDEX_SMETA: "Sedex SMETA",
+  BCI: "Better Cotton",
+  FAIRTRADE: "Fairtrade",
+  ISO9001: "ISO 9001",
+  ISO14001: "ISO 14001",
+  ISO45001: "ISO 45001",
+  // The enum's own catch-all. "OTHER" on a certificate card says nothing; this
+  // says what the row actually is — a certificate whose scheme was not named.
+  OTHER: "Certificate",
 };
 
 /** `OEKO_TEX` → `OEKO-TEX`; unknown kinds render as stored. */
+/**
+ * The OEKO-TEX schemes production's `certifications.scope` holds, longest
+ * first so "STANDARD 100" is not matched by a shorter prefix.
+ * `select scope, count(*) … where kind = 'oeko_tex' group by 1` on 20 Sep 2026:
+ * STANDARD 100 2,588 · STeP 190 · MADE IN GREEN 71 · ORGANIC COTTON 60 ·
+ * ECO PASSPORT 13 · DETOX TO ZERO 1.
+ */
+const OEKO_SCHEMES = ["standard 100", "made in green", "organic cotton", "eco passport", "detox to zero", "step"] as const;
+
 export function certScheme(kind: string, scope: string | null = null): string {
   const base = SCHEME_LABEL[kind] ?? SCHEME_LABEL[kind.toUpperCase()] ?? kind.toUpperCase();
   // WRAP stores its level in the scope ("Gold | Industries: …"); the artifact reads "WRAP Gold".
@@ -137,7 +165,14 @@ export function certScheme(kind: string, scope: string | null = null): string {
     const level = /^(gold|platinum|silver)\b/i.exec(scope.trim());
     if (level && level[1]) return `WRAP ${level[1][0]!.toUpperCase()}${level[1].slice(1).toLowerCase()}`;
   }
-  if (base === "OEKO-TEX" && scope && /standard\s*100/i.test(scope)) return "OEKO-TEX Standard 100";
+  // OEKO-TEX runs six schemes and production holds five of them. Only
+  // Standard 100 was named, so a STeP facility certificate and a MADE IN GREEN
+  // product certificate both read as a bare "OEKO-TEX" on the card and the
+  // table — 242 published records hold one that is not Standard 100.
+  if (base === "OEKO-TEX" && scope) {
+    const named = OEKO_SCHEMES.find((n) => new RegExp(`^\\s*(?:oeko-?tex\\s*)?${n.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i").test(scope.trim()));
+    if (named) return `OEKO-TEX ${named.replace(/\b([a-z])/g, (c) => c.toUpperCase()).replace(/Step/, "STeP")}`;
+  }
   return base;
 }
 
@@ -309,16 +344,20 @@ export function initials(name: string): string {
   return (first + second).toUpperCase();
 }
 
+/** Every value of the `entity_type` enum; production holds three of the four. */
 const ENTITY_LABEL: Record<string, string> = {
   factory: "Factory",
   buying_house: "Buying house",
+  agent: "Agent",
   unknown: "Unknown type",
 };
 
 /** Plain company-type word. */
 export function entityLabel(type: string | null | undefined): string {
   if (!type) return "Unknown type";
-  return ENTITY_LABEL[type] ?? type.replace(/_/g, " ");
+  // An unmapped type still reads as a type, not as a column value.
+  const words = type.replace(/_/g, " ").trim();
+  return ENTITY_LABEL[type] ?? (words ? words[0]!.toUpperCase() + words.slice(1) : "Unknown type");
 }
 
 /** "Savar, Dhaka" · "Gazipur" · null. City and district collapse when equal. */

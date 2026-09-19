@@ -100,6 +100,8 @@
     "components/dashboard/index.ts",
     "components/dashboard/render.test.ts",
     "app/dev/ds/dashboard-screens.tsx",
-    "app/dev/ds/dashboard-screens.test.ts"
+    "app/dev/ds/dashboard-screens.test.ts",
+    "scripts/gallery/render-gallery-fixtures.ts",
+    "scripts/gallery/harness.test.ts"
   ]
 }

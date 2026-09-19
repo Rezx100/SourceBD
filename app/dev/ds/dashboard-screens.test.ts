@@ -17,8 +17,8 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, it } from "node:test";
 
-import { buildCard, buildProductSheet, buildSheet, buildTableRow } from "@/lib/dashboard/build-models";
-import { aboniInput, arFashionInput, smKnitwearInput, TODAY, zaheenSampleInput } from "@/lib/dashboard/fixtures";
+import { buildCard, buildProductSheet, buildRfqRow, buildSheet, buildTableRow } from "@/lib/dashboard/build-models";
+import { aboniInput, arFashionInput, RFQ_ROWS, RFQ_TARGETS, smKnitwearInput, TODAY, zaheenSampleInput } from "@/lib/dashboard/fixtures";
 import { topbarCaption, type GalleryData, type GalleryRecord } from "@/lib/dashboard/gallery-data";
 import type { RfqListModel } from "@/lib/dashboard/models";
 import { DashboardScreens } from "./dashboard-screens";
@@ -65,6 +65,8 @@ function galleryData(over: Partial<GalleryData> = {}): GalleryData {
  * (Improve wording, Follow-up rules) are absent" — and an assertion that
  * matched it would pass whatever the screen itself rendered.
  */
+const escapeHtml = (v: string) => v.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#x27;");
+
 const render = (d: GalleryData) =>
   renderToStaticMarkup(createElement(DashboardScreens, { data: d })).replace(/<figcaption[\s\S]*?<\/figcaption>/g, "");
 
@@ -108,7 +110,8 @@ describe("DashboardScreens — the caller, not the components (handoff §7)", ()
   // four-row panel, with Next enabled and no page 2.
   it("the footer describes the page it rendered — no page size, no pager it cannot honour", () => {
     const html = render(galleryData());
-    assert.match(html, /1–4 of 42 · the named test records of the rebuild spec/);
+    assert.match(html, /the named test records of the rebuild spec · 42 in the result set/);
+    assert.doesNotMatch(html, /1–4 of 42/, "the header dropped this range in cycle 5; the footer printed it under the same rows until cycle 8");
     assert.doesNotMatch(html, /per page/);
     assert.doesNotMatch(html, /Page 1 of/);
     assert.doesNotMatch(html, /aria-label="Next page"/);
@@ -174,5 +177,89 @@ describe("DashboardScreens — the caller, not the components (handoff §7)", ()
     assert.match(html, /your GOTS certificate GOTS-31587 is valid to 12 May 2027/);
     assert.doesNotMatch(html, /is · /);
     assert.doesNotMatch(html, /replies land in Messages/);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Cycle 8. The RFQ screen was the one screen of the six rendered from an
+// invented payload: the harness answered `rfq_list` with `[]` and the screen
+// then stated "0 sent · 0 quotes", six sidebar "RFQs 0" pills and "No RFQs for
+// this account yet" about an account that does not exist, while production
+// holds seven RFQs. §7 item 1 asks for six screens "rendered from real data".
+// ---------------------------------------------------------------------------
+
+describe("the RFQ screen renders the rows rfq_list returns", () => {
+  const withRfqs = (): GalleryData => {
+    const rows = RFQ_ROWS.map((r) => buildRfqRow(r, RFQ_TARGETS[r.id] ?? null, TODAY));
+    return galleryData({
+      rfqs: {
+        sent: rows.length,
+        quotes: 0,
+        chips: [
+          { label: "All", count: rows.length, on: true },
+          { label: "Awaiting reply", count: rows.length },
+          { label: "Quoted", count: 0 },
+          { label: "Closed", count: 0 },
+        ],
+        rows,
+        footer: `1–${rows.length} of ${rows.length}`,
+        toast: null,
+      },
+    });
+  };
+
+  it("the table, not the empty state, and every row is one production holds", () => {
+    const html = render(withRfqs());
+    assert.equal(RFQ_ROWS.length, 7);
+    for (const r of RFQ_ROWS) assert.ok(html.includes(escapeHtml(r.product_title)), `${r.id} is not on the screen`);
+    assert.match(html, /7 sent · 0 quotes/);
+    assert.doesNotMatch(html, /0 sent · 0 quotes/);
+    assert.doesNotMatch(html, /Your first RFQ lands here/, "the empty state stood over seven real rows");
+    // The supplier each row targets is named, from the `suppliers` rows the
+    // `target_supplier_ids` point at.
+    assert.match(html, /QUATTRO FASHION LIMITED/);
+    assert.match(html, /Thermax Woven Dyeing Ltd\./);
+    assert.doesNotMatch(html, /\bNaN\b/);
+  });
+
+  it("the gallery's own caption says whose RFQs these are and what an empty list would mean", () => {
+    const caption = renderAll(withRfqs());
+    assert.match(caption, /rfq_list is scoped to auth\.uid\(\)/);
+    assert.match(caption, /7 real rows/);
+  });
+
+  it("with no rows the page still sells the feature, and claims no count it did not read", () => {
+    const html = render(galleryData());
+    assert.match(html, /Your first RFQ lands here/);
+    assert.match(html, /0 sent · 0 quotes/, "an account that really has none reads zero; an unread one reads 'count not read'");
+  });
+});
+
+describe("the sidebar and the shell state only what was read", () => {
+  it("the RFQ pill carries the real count on every screen, and none when the read failed", () => {
+    const withSeven = render(galleryData({ rfqs: { ...EMPTY_RFQS, sent: 7, chips: [{ label: "All", count: 7, on: true }], rows: [] } }));
+    // Six frames, each with the shell, each reading the account's own count.
+    assert.equal((withSeven.match(/RFQs<[^>]*>7</g) ?? []).length, 6);
+    assert.doesNotMatch(withSeven, /RFQs<[^>]*>0</);
+    const failed = render(galleryData({ rfqError: true, rfqs: { ...EMPTY_RFQS, error: true, sent: null, quotes: null, chips: [{ label: "All", count: null, on: true }], footer: "The RFQ list could not be read" } }));
+    assert.doesNotMatch(failed, />RFQs<[^>]*>0</, "a failed read is not zero RFQs");
+    assert.match(failed, /count not read/);
+  });
+
+  it("every link in the shell goes somewhere that exists", () => {
+    const html = renderAll(galleryData());
+    const ids = new Set([...html.matchAll(/\bid="([^"]+)"/g)].map((m) => m[1]!));
+    for (const m of html.matchAll(/href="#([^"]*)"/g)) {
+      const target = m[1]!;
+      // `href="#"` is the approved fragment's inert form and always resolves.
+      if (target === "") continue;
+      assert.ok(ids.has(target), `href="#${target}" points at an anchor this page does not have`);
+    }
+  });
+
+  it("the primary nav says which item is current, and names itself", () => {
+    const html = render(galleryData());
+    assert.match(html, /<nav aria-label="Primary"/);
+    assert.equal((html.match(/aria-current="page"/g) ?? []).length, 6, "one current item per screen");
   });
 });

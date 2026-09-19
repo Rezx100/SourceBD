@@ -104,8 +104,6 @@ export type SupplierSheetModel = {
   meta: FactWithMark[];
   readDate: string | null;
   sourceCount: number;
-  /** Whether every source page is unchanged since read; null until the hash comparison exists (REZ-C §4.3). */
-  pagesUnchanged: boolean | null;
   sanctioned: boolean;
   sanctionSample?: boolean;
   /** `href` is null for a tab whose section the sheet does not render yet: the link is inert, never a dead fragment. */

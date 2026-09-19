@@ -169,3 +169,85 @@ describe("plain formatting", () => {
     });
   }
 });
+
+describe("every value the database's enums allow reads as words (cycle 8)", () => {
+  // `select unnest(enum_range(null::cert_kind))` — fourteen values; production
+  // holds four today, and the other ten were reaching a buyer's chip as the
+  // database's own token ("SEDEX_SMETA", "ISO9001", "OTHER").
+  const CERT_KINDS = [
+    "wrap", "bsci", "sedex_smeta", "oeko_tex", "gots", "grs", "rcs", "bci",
+    "fairtrade", "iso9001", "iso14001", "iso45001", "sa8000", "other",
+  ];
+
+  // WRAP, GOTS, BSCI, GRS, RCS, OCS, BCI and SA8000 are acronyms, so their
+  // label IS the upper-cased token — what must not happen is the *fallback*
+  // being reached, which is how "SEDEX_SMETA", "ISO9001" and "OTHER" got out.
+  const NAMED: Record<string, string> = {
+    wrap: "WRAP", bsci: "BSCI", sedex_smeta: "Sedex SMETA", oeko_tex: "OEKO-TEX", gots: "GOTS",
+    grs: "GRS", rcs: "RCS", bci: "Better Cotton", fairtrade: "Fairtrade", iso9001: "ISO 9001",
+    iso14001: "ISO 14001", iso45001: "ISO 45001", sa8000: "SA8000", other: "Certificate",
+  };
+
+  for (const kind of CERT_KINDS) {
+    it(`cert_kind "${kind}" reads as "${NAMED[kind]}"`, () => {
+      const label = certScheme(kind);
+      assert.equal(label, NAMED[kind]);
+      assert.doesNotMatch(label, /_/, `"${kind}" renders as "${label}", which is the column value`);
+    });
+  }
+
+  it("the enum list is the whole enum, so a new kind cannot slip past unnamed", () => {
+    assert.equal(CERT_KINDS.length, 14, "`select unnest(enum_range(null::cert_kind))` returned fourteen on 20 Sep 2026");
+    assert.deepEqual(Object.keys(NAMED).sort(), [...CERT_KINDS].sort());
+  });
+
+  // `select unnest(enum_range(null::entity_type))` — four values; production
+  // holds three.
+  for (const [type, words] of [
+    ["factory", "Factory"],
+    ["buying_house", "Buying house"],
+    ["agent", "Agent"],
+    ["unknown", "Unknown type"],
+  ] as const) {
+    it(`entity_type "${type}" reads as "${words}"`, () => assert.equal(entityLabel(type), words));
+  }
+
+  it("a value neither enum has still reads as a type, not as a column value", () => {
+    assert.equal(entityLabel("trading_house"), "Trading house");
+    assert.equal(entityLabel(null), "Unknown type");
+    assert.equal(entityLabel(""), "Unknown type");
+  });
+
+  // `select scope, count(*) from certifications where kind='oeko_tex' group by 1`
+  const OEKO = [
+    ["OEKO-TEX STANDARD 100", 2588, "OEKO-TEX Standard 100"],
+    ["STeP", 190, "OEKO-TEX STeP"],
+    ["MADE IN GREEN", 71, "OEKO-TEX Made In Green"],
+    ["ORGANIC COTTON", 60, "OEKO-TEX Organic Cotton"],
+    ["ECO PASSPORT", 13, "OEKO-TEX Eco Passport"],
+    ["DETOX TO ZERO", 1, "OEKO-TEX Detox To Zero"],
+  ] as const;
+
+  for (const [scope, rows, words] of OEKO) {
+    it(`OEKO-TEX "${scope}" (${rows} certificates) reads as "${words}"`, () => {
+      assert.equal(certScheme("oeko_tex", scope), words);
+    });
+  }
+
+  it("242 published records hold an OEKO-TEX certificate that is not Standard 100, and none of them reads as a bare OEKO-TEX", () => {
+    for (const [scope] of OEKO) assert.notEqual(certScheme("oeko_tex", scope), "OEKO-TEX");
+    // With no scope at all there is nothing to name, and the scheme stands.
+    assert.equal(certScheme("oeko_tex", null), "OEKO-TEX");
+  });
+});
+
+describe("a certificate expiring today says today (cycle 8)", () => {
+  it("0 days left is 'expires today', 1 is singular, 2 is plural", () => {
+    const at = (expires: string) => certChipLabel(certModel({ kind: "wrap", certificate_no: "1", issuer: "WRAP", expires_on: expires, scope: "Gold", document_url: null }, TODAY));
+    // Four published certificates expire on the day of the read.
+    assert.equal(at("2026-09-18"), "WRAP Gold expires today");
+    assert.equal(at("2026-09-19"), "WRAP Gold expires in 1 day");
+    assert.equal(at("2026-09-20"), "WRAP Gold expires in 2 days");
+    assert.equal(at("2026-09-17"), "WRAP Gold expired 17 Sep 2026");
+  });
+});
