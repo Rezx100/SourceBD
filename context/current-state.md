@@ -36,7 +36,11 @@ migrations, run the 30-day zero P1/P2 Sentry incident window.
   (Geist / Geist Mono self-hosted, warm canvas, radii 6/10/14 — founder
   decision 19 Sep, supersedes §9's Inter and 5/6/8). Kit under
   `components/dashboard`, builders under `lib/dashboard`, six screens on
-  `/dev/ds` from production records. Not landed.
+  `/dev/ds` from production records. Six audit cycles run; cycle 6 rewrote the
+  fixtures to the 19 Sep payloads, added `lib/dashboard/fixtures.test.ts` to
+  reconcile them, and left a guard behind every repair — each verified by
+  reverting the fix and watching it go red. Not landed, not merged, awaiting
+  the Acceptance Judge.
 
 ## Founder rules still in force (one line each; detail in archive)
 - EPB is a government register: show its evidence and HS codes whenever EPB has them, flagged or not. Never mint EPB-only suppliers. (15 Aug)

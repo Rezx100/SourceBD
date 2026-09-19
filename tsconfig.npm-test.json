@@ -94,6 +94,7 @@
     "lib/dashboard/build-models.ts",
     "lib/dashboard/build-models.test.ts",
     "lib/dashboard/fixtures.ts",
+    "lib/dashboard/fixtures.test.ts",
     "lib/dashboard/gallery-data.ts",
     "lib/dashboard/gallery-data.test.ts",
     "components/dashboard/index.ts",

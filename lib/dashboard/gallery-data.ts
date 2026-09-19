@@ -183,15 +183,15 @@ export async function loadGalleryData(supabase: Rpc, today = new Date()): Promis
   } catch {
     rfqError = true;
   }
-  const sent = rfqRows.filter((r) => r.status !== "cancelled").length;
-  const quotes = rfqRows.reduce((n, r) => n + (r.quote_count ?? 0), 0);
   const rfqModels = rfqRows.map((r) => buildRfqRow(r, null, today));
-  const count = (pred: (r: (typeof rfqModels)[number]) => boolean) => rfqModels.filter(pred).length;
+  // Every figure below is derived from rows that were read. When the read
+  // failed there are no rows, so there is no count either — not zero.
+  const count = (pred: (r: (typeof rfqModels)[number]) => boolean) => (rfqError ? null : rfqModels.filter(pred).length);
   const rfqs: RfqListModel = {
-    sent,
-    quotes,
+    sent: rfqError ? null : rfqRows.filter((r) => r.status !== "cancelled").length,
+    quotes: rfqError ? null : rfqRows.reduce((n, r) => n + (r.quote_count ?? 0), 0),
     chips: [
-      { label: "All", count: rfqModels.length, on: true },
+      { label: "All", count: rfqError ? null : rfqModels.length, on: true },
       { label: "Awaiting reply", count: count((r) => r.status.label.startsWith("Sent")) },
       { label: "Quoted", count: count((r) => r.status.label.startsWith("Quoted") || r.status.label === "Quote accepted") },
       // "Reply overdue" and "Draft" need reply-by dates, threads and rfq_drafts (REZ-D); no chip until then.

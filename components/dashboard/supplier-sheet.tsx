@@ -180,6 +180,18 @@ export function SupplierSheet({ model }: { model: SupplierSheetModel }) {
               {model.rscBuildings.length > 0 ? "No active RSC record for this company itself" : "No active RSC record on file"}
             </span>
           )}
+          {/* The building's own row, labelled as the building's. The register
+              published a percentage, a status and up to five reports for it;
+              naming the building and dropping all of them told the buyer less
+              than the register holds. */}
+          {model.rscBuildingBlocks.map((b) => (
+            <div key={b.name} className="flex flex-col gap-2 rounded-sm border border-line px-3.5 py-3">
+              <Caption>
+                {b.name} — the building&apos;s own RSC record{b.readDate ? ` · read ${b.readDate}` : ""}
+              </Caption>
+              <RscBlock progress={b.progress} status={b.status} training={b.training} links={b.links} />
+            </div>
+          ))}
         </SheetSection>
       </SheetScroll>
       <ActionBar sanctioned={model.sanctioned} everyMarkLinks={everyMarkLinks} />

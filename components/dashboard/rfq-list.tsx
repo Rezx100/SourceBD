@@ -31,9 +31,16 @@ export function RfqList({ model }: { model: RfqListModel }) {
       <div className="flex items-center gap-3">
         <Heading level="h" as="h1" className="flex-1">
           RFQs{" "}
-          <span className="ml-1.5 font-mono text-sm font-normal text-ink-subtle">
-            {model.sent} sent · {model.quotes} {model.quotes === 1 ? "quote" : "quotes"}
-          </span>
+          {/* A failed read has no counts. "0 sent · 0 quotes" is a fact about
+              the account that an unread list does not establish — the same
+              defect the empty state carried, one line higher up the page. */}
+          {model.sent !== null && model.quotes !== null ? (
+            <span className="ml-1.5 font-mono text-sm font-normal text-ink-subtle">
+              {model.sent} sent · {model.quotes} {model.quotes === 1 ? "quote" : "quotes"}
+            </span>
+          ) : (
+            <span className="ml-1.5 text-sm font-normal text-ink-subtle">count not read</span>
+          )}
         </Heading>
         <div
           role="search"
@@ -54,7 +61,8 @@ export function RfqList({ model }: { model: RfqListModel }) {
       <div className="flex gap-2">
         {model.chips.map((c) => (
           <Chip key={c.label} tone={c.on ? "on" : "neutral"}>
-            {c.label} <Code className="text-xs">{c.count}</Code>
+            {c.label}
+            {c.count !== null ? <Code className="text-xs">{c.count}</Code> : null}
           </Chip>
         ))}
       </div>

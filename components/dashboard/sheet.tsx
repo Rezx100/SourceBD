@@ -5,7 +5,7 @@
 // certificate card, the RSC block and the sticky frosted action bar.
 
 import type { ReactNode } from "react";
-import { certStateLabel, type CertModel } from "@/lib/dashboard/facts";
+import { certStateLabel, rscStatusNeedsLook, type CertModel } from "@/lib/dashboard/facts";
 import type { FactRow } from "@/lib/dashboard/models";
 import { sourceMark } from "@/lib/dashboard/source-tiers";
 import { cn } from "@/lib/utils";
@@ -251,7 +251,9 @@ export function RscBlock({
   links: readonly { label: string; href: string | null }[];
 }) {
   const words = [status, training].filter(Boolean).join(" · ");
-  const behind = /behind|not implemented/i.test(status ?? "");
+  // "not finalised" is as much a caution as "behind schedule"; matching two of
+  // the five states left the other one in the positive treatment.
+  const behind = rscStatusNeedsLook(status);
   return (
     <div className="grid grid-cols-2 items-start gap-4">
       <div className="flex flex-col gap-1.5">
@@ -314,10 +316,15 @@ export function ActionBar({ sanctioned, everyMarkLinks }: { sanctioned: boolean;
   );
 }
 
-/** The full-width sanction banner under the bar of a sanctioned record — on every tab. */
+/**
+ * The full-width sanction banner under the bar of a sanctioned record — on
+ * every tab. `data-sanction-visible` is what a guard asserts: spec §2 says the
+ * warning "cannot be hidden by layout", and every assertion about it used to
+ * match on its text, which an `sr-only` class leaves in place.
+ */
 export function SanctionBanner({ sample }: { sample?: boolean }) {
   return (
-    <div role="alert" className="flex items-center gap-2 bg-sanction px-6 py-2.5 text-sm font-medium text-sanction-on">
+    <div data-sanction-visible="true" role="alert" className="flex items-center gap-2 bg-sanction px-6 py-2.5 text-sm font-medium text-sanction-on">
       <Icon name="warn" />
       Sanctioned{sample ? " · sample record" : ""} — matched on a sanctions screen. RFQs cannot be sent to this supplier.
     </div>

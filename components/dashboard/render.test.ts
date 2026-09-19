@@ -11,13 +11,18 @@ import { buildCard, buildProductSheet, buildRfqRow, buildSheet, buildTableRow } 
 import {
   aboniInput,
   arFashionInput,
+  ASWAD_U2_EXT,
   buildingOnlyCertificateInput,
   buildingRegistrationsInput,
+  buildingSafetyOnlyInput,
+  duplicateBrandRowsInput,
   HOSSAIN_BUILDING,
   MG_BUILDING,
   inheritedPillsInput,
   longestHsListInput,
+  longestNameInput,
   longestProductListInput,
+  LONG_NAME_125,
   sanctionedInput,
   smKnitwearInput,
   TODAY,
@@ -25,7 +30,7 @@ import {
   zaheenSampleInput,
 } from "@/lib/dashboard/fixtures";
 import type { RfqListModel } from "@/lib/dashboard/models";
-import { Meter } from "./controls";
+import { Checkbox, Meter, Seg } from "./controls";
 import { PanelFooter, PanelHeader } from "./results-panel";
 import { ProductSheet } from "./product-sheet";
 import { ResultsTable } from "./results-table";
@@ -48,6 +53,20 @@ const HAND_TYPED_COLOUR = /#[0-9a-fA-F]{3,8}\b|\b(?:rgba?|hsla?)\(\s*\d/;
 
 /** Anything a buyer could read as a SourceBD opinion rather than a receipt (spec §2). */
 const SCORE = /\d+\s*%\s*match|match(?:ed)?\s*\d+\s*%|\bscore\b|\brating\b|★|\bVerified\b/i;
+
+/**
+ * The part of the Safety section that speaks for the record itself — everything
+ * above the first building's own block. The two are separate claims and the
+ * tests below must be able to say "not the mother's" without also forbidding
+ * the building from showing the figures that are genuinely its own.
+ */
+function motherSafety(html: string): string {
+  const start = html.indexOf('id="safety"');
+  assert.ok(start >= 0, "the sheet has no Safety section");
+  const section = html.slice(start, html.indexOf("</section>", start));
+  const caption = section.indexOf("— the building&#x27;s own RSC record");
+  return caption < 0 ? section : section.slice(0, section.lastIndexOf("<div", caption));
+}
 
 describe("SupplierResultCard (rendered)", () => {
   it("the 11-source record: name, eleven marks with names, four tiles, six photo tiles, no score anywhere", () => {
@@ -326,8 +345,16 @@ describe("SupplierSheet (rendered)", () => {
   it("a mother whose only active RSC row is a building's shows the building, never its figures as the mother's", () => {
     const html = renderToStaticMarkup(createElement(SupplierSheet, { model: buildSheet(smKnitwearInput()) }));
     assert.match(html, /RSC covers S M Knitwears Limited\. \(Extension\) — the buildings, not this record/);
-    assert.doesNotMatch(html, /Remediation 53 %/);
-    assert.doesNotMatch(html, /role="meter"/);
+    const mother = motherSafety(html);
+    assert.match(mother, /No active RSC record for this company itself/);
+    assert.doesNotMatch(mother, /Remediation 53 %/, "the Extension's progress is not the mother's");
+    assert.doesNotMatch(mother, /role="meter"/, "the mother has no percentage of its own to meter");
+    // Cycle 6: withholding them from the mother had also withheld them from the
+    // building, so the one record RSC does cover showed no progress anywhere.
+    assert.match(html, rx("S M Knitwears Limited. (Extension) — the building's own RSC record"));
+    assert.match(html, /Remediation 53 %/);
+    assert.match(html, /role="meter"[^>]*aria-valuenow="53"/);
+    assert.match(html, /Active · behind schedule/);
   });
 
   // Cycle 5, finding 11.
@@ -371,9 +398,13 @@ describe("SupplierSheet (rendered)", () => {
     const rows = input.profile.rsc_remediation as Record<string, unknown>[];
     delete rows[0]!.progress_pct;
     const html = renderToStaticMarkup(createElement(SupplierSheet, { model: buildSheet(input) }));
+    const mother = motherSafety(html);
     assert.doesNotMatch(html, /NaN/);
-    assert.doesNotMatch(html, /role="meter"/);
-    assert.match(html, /Remediation not on file/);
+    assert.doesNotMatch(mother, /role="meter"/);
+    assert.match(mother, /Remediation not on file/);
+    // The shed's row is untouched and keeps its own meter, so the guard above
+    // is about the missing value and not about meters in general.
+    assert.match(html, /role="meter"[^>]*aria-valuenow="100"/);
   });
 
   // Cycle 4 fix, unguarded until cycle 6: the date beside "RSC factory 9342" is
@@ -456,6 +487,26 @@ describe("PanelFooter (rendered)", () => {
     assert.doesNotMatch(html, /aria-label="Next page"[^>]*disabled=""/);
   });
 });
+
+/** A draft with one clean target, in the shape the composer really takes. */
+const COMPOSER_MODEL: RfqComposerModel = {
+  title: "New RFQ",
+  context: "sample",
+  targets: [{ name: "Aboni Knitwear Ltd", sanctioned: false }],
+  draftSaved: null,
+  steps: [
+    { label: "Suppliers", detail: "one" },
+    { label: "Follow-up rules", detail: "Draft a follow-up", v2: true },
+  ],
+  template: "first",
+  subject: ["RFQ"],
+  body: [["Dear"]],
+  products: [],
+  questions: [],
+  moreQuestions: null,
+  preview: { from: "x", subject: "y", paragraphs: [], footer: "z" },
+  missing: [],
+};
 
 describe("AI surfaces are absent when AI is off (handoff §7)", () => {
   const model: RfqComposerModel = {
@@ -759,5 +810,199 @@ describe("a record whose only certificate belongs to a building", () => {
     const sheet = renderToStaticMarkup(createElement(SupplierSheet, { model: buildSheet(only) }));
     assert.match(sheet, rx(`${MG_BUILDING} holds a certificate of its own`));
     assert.doesNotMatch(sheet, /31314-100/, "the building's certificate is not rendered as this record's");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Cycle 6 guards. Each one is here because a critic found the behaviour it
+// pins unguarded, and each was watched failing against the code before the
+// repair (the mutation sweep in the evidence bundle re-checks that).
+// ---------------------------------------------------------------------------
+
+/** The characters a screen-reader-only or hidden element carries. */
+const HIDDEN = /\b(?:sr-only|hidden|invisible|opacity-0)\b|aria-hidden="true"|display:\s*none/;
+
+describe("the sanction warning is visible, not only announced", () => {
+  /** The element carrying the sanction banner, and everything up to its close. */
+  function banner(html: string): string {
+    const i = html.indexOf('data-sanction-visible="true"');
+    assert.ok(i >= 0, "nothing on the screen is marked as the visible sanction warning");
+    return html.slice(html.lastIndexOf("<", i), html.indexOf("</div>", i) + 6);
+  }
+
+  it("the sheet's banner is a visible alert on the sanction colour, in the document order a buyer reads", () => {
+    const html = renderToStaticMarkup(createElement(SupplierSheet, { model: buildSheet(zaheenSampleInput()) }));
+    const b = banner(html);
+    assert.match(b, /role="alert"/);
+    assert.match(b, /bg-sanction\b/, "the banner must carry the reserved sanction background, not a neutral one");
+    assert.doesNotMatch(b, HIDDEN, `the sanction banner is hidden from sight: ${b}`);
+    // Before the tabs, so it is read before anything it qualifies.
+    assert.ok(
+      html.indexOf('data-sanction-visible="true"') < html.indexOf('id="overview"'),
+      "the banner comes after the facts it is meant to qualify",
+    );
+  });
+
+  it("the card carries the same marked, visible warning", () => {
+    const html = renderToStaticMarkup(createElement(SupplierResultCard, { card: buildCard(zaheenSampleInput()) }));
+    const b = banner(html);
+    assert.match(b, /text-sanction-ink\b/);
+    assert.doesNotMatch(b, HIDDEN);
+  });
+
+  it("a record production does not flag carries no sanction element at all", () => {
+    for (const [name, input] of [["aboni", aboniInput()], ["sm", smKnitwearInput()]] as const) {
+      const card = renderToStaticMarkup(createElement(SupplierResultCard, { card: buildCard(input) }));
+      const sheet = renderToStaticMarkup(createElement(SupplierSheet, { model: buildSheet(input) }));
+      assert.doesNotMatch(card, /data-sanction-visible/, `${name}'s card`);
+      assert.doesNotMatch(sheet, /data-sanction-visible/, `${name}'s sheet`);
+      assert.doesNotMatch(sheet, /bg-sanction\b/, `${name}'s sheet paints the reserved sanction colour`);
+    }
+  });
+});
+
+describe("status is never colour alone (spec §6)", () => {
+  /** Every tone class the kit paints a state with, and the words that must sit beside it. */
+  const TONED: [string, RegExp][] = [
+    ["bg-caution-tint", /expired|behind schedule|expires in|not implemented|not finalised/i],
+    ["bg-positive-tint", /valid to|active|on track|initial plan completed|remediated/i],
+  ];
+
+  it("every toned chip on the four records carries words that say the same thing", () => {
+    for (const input of [aboniInput(), smKnitwearInput(), zaheenSampleInput(), arFashionInput()]) {
+      const html = renderToStaticMarkup(createElement(SupplierResultCard, { card: buildCard(input) }));
+      for (const [cls, words] of TONED) {
+        const re = new RegExp(`class="[^"]*${cls}[^"]*"[^>]*>([^<]*(?:<[^>]*>[^<]*)*?)</span>`, "g");
+        for (const m of html.matchAll(re)) {
+          assert.match(m[1] ?? "", words, `a ${cls} chip on ${input.profile.supplier.slug} says only "${m[1]}"`);
+        }
+      }
+    }
+  });
+
+  it("the tone classes are in the rendered markup, so the state is not carried by position alone", () => {
+    const sm = renderToStaticMarkup(createElement(SupplierResultCard, { card: buildCard(smKnitwearInput()) }));
+    assert.match(sm, /bg-caution-tint[^"]*"[^>]*>WRAP Gold expired/);
+    assert.match(sm, /bg-positive-tint[^"]*"[^>]*>GOTS valid to/);
+  });
+});
+
+describe("the 125-character name, on every card type an admin list can reach (spec §6)", () => {
+  const long = longestNameInput();
+
+  it("the card, the row and the sheet all print it whole and let it wrap", () => {
+    const surfaces: [string, string][] = [
+      ["card", renderToStaticMarkup(createElement(SupplierResultCard, { card: buildCard(long) }))],
+      ["row", renderToStaticMarkup(createElement(ResultsTable, { rows: [buildTableRow(long)] }))],
+      ["sheet", renderToStaticMarkup(createElement(SupplierSheet, { model: buildSheet(long) }))],
+    ];
+    for (const [where, html] of surfaces) {
+      const name = escape(LONG_NAME_125);
+      assert.ok(html.includes(name), `${where} does not carry the whole 125-character name`);
+      assert.doesNotMatch(html, /…|\.\.\./, `${where} ellipsises the name`);
+      // The name also appears in the card's `aria-label` and the row's "Select
+      // …" checkbox label; the one this guard is about is the text a buyer
+      // sees, which is the occurrence that opens a text node.
+      const at = html.indexOf(`>${name}`);
+      assert.ok(at >= 0, `${where} carries the name only in an attribute, never as text`);
+      const element = html.slice(html.lastIndexOf("<", at), at);
+      assert.match(element, /\[overflow-wrap:anywhere\]/, `${where} does not let the name wrap: ${element}`);
+      assert.doesNotMatch(element, TRUNCATION, `${where} would cut the name off: ${element}`);
+    }
+  });
+
+  it("the empty record around that name says what was checked, and claims nothing", () => {
+    const html = renderToStaticMarkup(createElement(SupplierSheet, { model: buildSheet(long) }));
+    assert.match(html, /Not on file/);
+    assert.doesNotMatch(html, SCORE);
+  });
+});
+
+describe("the RFQ screens carry no score either (spec §2)", () => {
+  it("the list, its rows and the composer are inside the sweep", () => {
+    const base = { id: "r1", product_title: "T-shirt", quantity: 100, quantity_unit: "pcs", ship_by: "2026-09-24", target_supplier_count: 1, quote_count: 0, created_at: "2026-09-09T10:00:00Z", status: "open" } as const;
+    const rows = [
+      buildRfqRow(base, { name: "Aboni Knitwear Ltd", tier: 2 }, TODAY),
+      buildRfqRow({ ...base, id: "r2", quote_count: 2 }, { name: "S M Knitwears Limited", tier: 2 }, TODAY),
+      buildRfqRow({ ...base, id: "r3", status: "accepted" }, { name: ZAHEEN_NAME, tier: 1, sanctioned: true, sanctionSample: true }, TODAY),
+    ];
+    const model: RfqListModel = { sent: 3, quotes: 2, chips: [{ label: "All", count: 3, on: true }], rows, footer: "1–3 of 3", toast: null };
+    const html = renderToStaticMarkup(createElement(RfqList, { model }));
+    // The sweep is worthless over an empty list, so pin that there is something to sweep.
+    assert.match(html, /Aboni Knitwear Ltd/);
+    assert.match(html, /S M Knitwears Limited/);
+    assert.doesNotMatch(html, SCORE);
+    assert.doesNotMatch(html, HAND_TYPED_COLOUR);
+    assert.doesNotMatch(html, TRUNCATION);
+    // The composer is the other RFQ surface and was outside every sweep.
+    const composer = renderToStaticMarkup(createElement(RfqComposer, { model: COMPOSER_MODEL }));
+    assert.match(composer, /New RFQ/);
+    assert.doesNotMatch(composer, SCORE);
+  });
+});
+
+describe("an RSC row missing a report says so rather than dropping the slot silently", () => {
+  it("Aswad's Extension building has no boiler report, and the block shows the four it has", () => {
+    const html = renderToStaticMarkup(createElement(SupplierSheet, { model: buildSheet(buildingSafetyOnlyInput()) }));
+    const ext = html.slice(html.indexOf(escape(ASWAD_U2_EXT), html.indexOf("the building&#x27;s own RSC record")));
+    const block = ext.slice(0, 2000);
+    for (const label of ["Fire", "Structural", "Electrical", "CAP"]) {
+      assert.match(block, new RegExp(`>${label}\\s*</a>`), `${ASWAD_U2_EXT} is missing its ${label} link`);
+    }
+    assert.doesNotMatch(block.slice(0, block.indexOf("</div>", block.indexOf("CAP"))), /href="[^"]*"[^>]*>Boiler/);
+    // 597 of the 1,620 active RSC rows carry no boiler report, so an empty slot
+    // is the normal case and must not render as a dead link.
+    assert.doesNotMatch(html, /href="(?:null|undefined|)"/);
+  });
+
+  it("the record's own row, which has all five, renders all five", () => {
+    const html = renderToStaticMarkup(createElement(SupplierSheet, { model: buildSheet(aboniInput()) }));
+    const own = html.slice(html.indexOf('id="safety"'), html.indexOf("the building&#x27;s own RSC record"));
+    for (const label of ["Fire", "Structural", "Electrical", "Boiler", "CAP"]) {
+      assert.match(own, new RegExp(`>${label}\\s*</a>`), `the record's own RSC row is missing its ${label} link`);
+    }
+  });
+});
+
+describe("a brand list named twice by production is one mark and one name", () => {
+  it("Aman Graphics is on M&S's list under two facility ids, and the screens say M&S once", () => {
+    const input = duplicateBrandRowsInput();
+    assert.equal((input.profile.brand_attributions ?? []).filter((b) => b.source_code === "BRAND_MS").length, 2);
+    const card = renderToStaticMarkup(createElement(SupplierResultCard, { card: buildCard(input) }));
+    assert.equal((card.match(/aria-label="Source: M&amp;S[^"]*"/g) ?? []).length, 1, "the M&S mark is stamped twice");
+    assert.equal((card.match(/>MS</g) ?? []).length, 1, "the two-letter stamp is drawn twice");
+    assert.match(card, /Listed by M&amp;S, NEXT/);
+    // The sheet's mark row names each register once, in tier order.
+    const sheet = renderToStaticMarkup(createElement(SupplierSheet, { model: buildSheet(input) }));
+    assert.match(sheet, /EPB · RSC · BGMEA · OEKO-TEX · M&amp;S · NEXT/);
+    assert.equal((sheet.match(/aria-label="Source: M&amp;S[^"]*"/g) ?? []).length, 1);
+  });
+});
+
+describe("the two-state controls say which state they are in", () => {
+  it("the toggle marks exactly the pressed option, and the checkbox states are both rendered", () => {
+    // `Seg` is the kit's two-state toggle; the RFQ composer's template picker
+    // is the one place a screen uses it with a live value.
+    const seg = renderToStaticMarkup(
+      createElement(Seg, {
+        options: [
+          { value: "grid", label: "Grid", icon: "cards" },
+          { value: "table", label: "Table", icon: "table" },
+        ] as const,
+        value: "table",
+      }),
+    );
+    const pressed = seg.match(/aria-pressed="(true|false)"/g) ?? [];
+    assert.equal(pressed.length, 2, "an option that reports no pressed state reads as a plain button");
+    assert.equal(pressed.filter((p) => p.includes("true")).length, 1, "exactly one option is the pressed one");
+    assert.match(seg, /aria-label="Table"[^>]*aria-pressed="true"/);
+    assert.match(seg, /aria-label="Grid"[^>]*aria-pressed="false"/);
+    const on = renderToStaticMarkup(createElement(Checkbox, { on: true, label: "GOTS" }));
+    const off = renderToStaticMarkup(createElement(Checkbox, { on: false, label: "GOTS" }));
+    assert.match(on, /role="checkbox"[^>]*aria-checked="true"/);
+    assert.match(off, /role="checkbox"[^>]*aria-checked="false"/);
+    assert.match(on, /aria-label="GOTS"/);
+    // A checkbox nothing can focus is not a checkbox.
+    assert.match(off, /tabindex="0"/);
   });
 });

@@ -64,7 +64,7 @@ function Tile({ tile }: { tile: TileModel }) {
 
 export function SanctionLine({ sample, href, className }: { sample?: boolean; href?: string; className?: string }) {
   return (
-    <div className={cn("flex items-center gap-2 text-sm text-sanction-ink", className)}>
+    <div data-sanction-visible="true" className={cn("flex items-center gap-2 text-sm text-sanction-ink", className)}>
       <Icon name="warn" />
       <span>
         Sanctioned{sample ? " · sample record" : ""}. Matched on a sanctions screen; RFQs cannot be sent.

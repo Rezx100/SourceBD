@@ -17,7 +17,11 @@ import {
   formatDay,
   initials,
   placeLabel,
+  RSC_STATUS_WORDS,
+  rscStatusNeedsLook,
+  rscStatusUnmapped,
   rscStatusWords,
+  rscTrainingWords,
   sortCerts,
 } from "./facts";
 
@@ -92,7 +96,9 @@ describe("plain formatting", () => {
     assert.equal(displayName("SANOWARA FASHIONS (PVT.) LTD."), "Sanowara Fashions (Pvt.) Ltd");
     assert.equal(displayName("SILVER COMPOSITE TEXTILE MILLS LTD. (UNIT-3, TEXTILE)"), "Silver Composite Textile Mills Ltd. (Unit-3, Textile)");
     assert.equal(displayName("AL-FALAH KNIT GARMENTS LTD."), "Al-Falah Knit Garments Ltd");
-    assert.equal(displayName("D.H. EURO HI-TECH CO. (BD) LTD."), "D.H. Euro Hi-Tech CO. (BD) Ltd");
+    // Cycle 6: "CO." is Company, not a region code, and the keep-upper list had
+    // it — the register's own spelling shouted back at the buyer mid-name.
+    assert.equal(displayName("D.H. EURO HI-TECH CO. (BD) LTD."), "D.H. Euro Hi-Tech Co. (BD) Ltd");
     assert.equal(displayName("UNITED KNITWEAR (PVT)LTD."), "United Knitwear (Pvt)Ltd");
     const zaheen = "Zaheen Knitwears Limited (Shed - 3, 4, 5, 10, 11, 12, 13) & (Building - Security, ETP and Fire Pump)";
     assert.equal(displayName(zaheen), zaheen);
@@ -110,10 +116,56 @@ describe("plain formatting", () => {
     assert.equal(entityLabel("unknown"), "Unknown type");
   });
 
-  it("RSC status: five labels from the nine stored spellings", () => {
-    assert.equal(rscStatusWords("initialcompleted"), "initial plan completed");
-    assert.equal(rscStatusWords("Behind Schedule"), "behind schedule");
-    assert.equal(rscStatusWords("On Track"), "on track");
+  // Cycle 6: the spellings are not a guess. `select remediation_status,
+  // count(*) from rsc_remediation where active group by 1` returned exactly
+  // these five on 19 Sep 2026 — one of them differing from another only by
+  // case and a space, which is why the mapping strips both before matching.
+  const STORED_REMEDIATION: [string, number, string][] = [
+    ["behindschedule", 907, "behind schedule"],
+    ["initialcompleted", 638, "initial plan completed"],
+    ["ontrack", 38, "on track"],
+    ["notfinalized", 36, "not finalised"],
+    ["Behind schedule", 1, "behind schedule"],
+  ];
+
+  for (const [stored, rows, words] of STORED_REMEDIATION) {
+    it(`RSC remediation "${stored}" (${rows} active rows) reads as "${words}"`, () => {
+      assert.equal(rscStatusWords(stored), words);
+      assert.equal(rscStatusUnmapped(stored), false);
+    });
+  }
+
+  it("every remediation spelling that needs a buyer's attention is flagged, and the others are not", () => {
+    assert.deepEqual(
+      STORED_REMEDIATION.filter(([stored]) => rscStatusNeedsLook(stored)).map(([, , words]) => words),
+      ["behind schedule", "not finalised", "behind schedule"],
+    );
     assert.equal(rscStatusWords(null), null);
+    assert.equal(rscStatusWords(""), null);
+    // A spelling the mapping has never seen is shown as filed rather than
+    // dropped or guessed, and is reported as unmapped so it can be added.
+    assert.equal(rscStatusWords("partially remediated"), "partially remediated");
+    assert.equal(rscStatusUnmapped("partially remediated"), true);
+    assert.deepEqual([...RSC_STATUS_WORDS].sort(), [
+      "behind schedule",
+      "initial plan completed",
+      "not finalised",
+      "not implemented",
+      "on track",
+    ]);
   });
+
+  // `select training_status, count(*) …` returned exactly these four.
+  const STORED_TRAINING: [string, number, string][] = [
+    ["completed", 923, "training completed"],
+    ["yet to start", 461, "training yet to start"],
+    ["ongoing", 235, "training ongoing"],
+    ["unknown", 1, "training status not on file"],
+  ];
+
+  for (const [stored, rows, words] of STORED_TRAINING) {
+    it(`RSC training "${stored}" (${rows} active rows) reads as "${words}"`, () => {
+      assert.equal(rscTrainingWords(stored), words);
+    });
+  }
 });

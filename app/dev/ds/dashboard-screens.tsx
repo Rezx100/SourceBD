@@ -32,7 +32,10 @@ export const SCREEN_WIDTH = 1440;
 function shellModels(d: GalleryData, active: SidebarModel["active"]): { sidebar: SidebarModel; topbar: TopbarModel } {
   const sidebar: SidebarModel = {
     active,
-    counts: { suppliers: d.published, rfqs: d.rfqs.rows.length, saved: null },
+    // Every count here is the RPC's or absent. A read that failed renders no
+    // pill at all: a "0" beside RFQs is a claim about the account, and this
+    // sidebar is on all six screens.
+    counts: { suppliers: d.published, rfqs: d.rfqError ? null : d.rfqs.rows.length, saved: null },
     recent: d.total !== null ? [{ label: GALLERY_QUERY.title, count: d.total, href: "#results" }] : [],
     // No billing exists yet: the plan line names the beta, never a plan or renewal date (handoff §3.10).
     plan: { name: d.plan ?? "Free · public beta" },
@@ -41,9 +44,15 @@ function shellModels(d: GalleryData, active: SidebarModel["active"]): { sidebar:
   return { sidebar, topbar };
 }
 
+/** What the gallery's panel actually holds, for the header caption. */
+const SELECTION = "the named test records of the rebuild spec";
+
 function header(d: GalleryData, view: "cards" | "table", shown: number) {
   // The count is the RPC's; when the RPC failed it is unknown (null), never 0.
-  return { title: GALLERY_QUERY.title, total: d.discoverError ? null : d.total, shown, sortLabel: "Most sources", view };
+  // `selection` because these rows are hand-picked: Zaheen and A.R. Fashion
+  // hold no GOTS certificate, so they are not among the 42 the query returns,
+  // and "1–4" would be a range claim over a set they are not in.
+  return { title: GALLERY_QUERY.title, total: d.discoverError ? null : d.total, shown, sortLabel: "Most sources", view, selection: SELECTION };
 }
 
 function Frame({ id, title, note, height, children }: { id: string; title: string; note: string; height?: number; children: ReactNode }) {
@@ -64,15 +73,16 @@ function Frame({ id, title, note, height, children }: { id: string; title: strin
 }
 
 function ResultsHeaderNote(d: GalleryData): string {
-  const total = d.total === null ? "the live count could not be read" : `${d.total} suppliers match the text "${GALLERY_QUERY.q}" with a GOTS certificate in production (the HS and certificate-state filters the chips name arrive with REZ-B)`;
-  return `The four named test records of the rebuild spec, shown in the query's frame: ${d.cards.map((c) => c.name).join(" · ")}. ${total}. Zaheen is rendered as a labelled sanctioned SAMPLE — no company is sanctioned in production. Read ${formatDay(d.today.toISOString())}.`;
+  const total = d.total === null ? "the live count could not be read" : `${d.total} suppliers match the text "${GALLERY_QUERY.q}" with a GOTS certificate in production`;
+  return `The named test records of the rebuild spec, shown in the query's frame: ${d.cards.map((c) => c.name).join(" · ")} — hand-picked, not the query's first page (Zaheen and A.R. Fashion hold no GOTS certificate, so the RPC does not return them). ${total}. Zaheen is rendered as a labelled sanctioned SAMPLE — no company is sanctioned in production. Read ${formatDay(d.today.toISOString())}.`;
 }
 
 export function DashboardScreens({ data: d }: { data: GalleryData }) {
-  const composerChips = [
-    { label: "Product · Knitted shirts", code: "6105" },
-    { label: "Certificate · GOTS, valid" },
-  ];
+  // Only the filters this page really passed to `discover_suppliers`: the text
+  // and the GOTS certificate kind. The HS-heading and certificate-state filters
+  // the artifact shows arrive with REZ-B's RPC parameters; a chip for one the
+  // RPC never received says the result set was narrowed when it was not.
+  const composerChips = [{ label: `Text · ${GALLERY_QUERY.q}` }, { label: "Certificate · GOTS" }];
   const results = shellModels(d, "suppliers");
   const cardsPanel = (
     <Panel>
@@ -82,7 +92,7 @@ export function DashboardScreens({ data: d }: { data: GalleryData }) {
       ))}
       {/* The gallery renders the four named records, not a page of 25: a pager
           here would offer a page 2 that does not exist. */}
-      <PanelFooter shown={d.cards.length} total={d.discoverError ? null : d.total} note="the named test records of the rebuild spec" />
+      <PanelFooter shown={d.cards.length} total={d.discoverError ? null : d.total} note={SELECTION} />
     </Panel>
   );
 
@@ -97,13 +107,13 @@ export function DashboardScreens({ data: d }: { data: GalleryData }) {
         </AppShell>
       </Frame>
 
-      <Frame id="results-table" title="ResultsTable — the toggle's other state" note={`Same header and footer, 36px rows. ${d.rows.length} rows: the named records plus the top matches for the query, sorted by most sources.`}>
+      <Frame id="results-table" title="ResultsTable — the toggle's other state" note={`Same header and footer, 36px rows, ${d.rows.length} rows: the same named records as the card view. The screens render from fixtures, so the query's own top matches are not loaded here.`}>
         <AppShell sidebar={results.sidebar} topbar={results.topbar}>
           <SearchComposer chips={composerChips} askEnabled={false} />
           <Panel>
             <PanelHeader model={header(d, "table", d.rows.length)} />
             <ResultsTable rows={d.rows} />
-            <PanelFooter shown={d.rows.length} total={d.discoverError ? null : d.total} note="the named test records plus the top matches" />
+            <PanelFooter shown={d.rows.length} total={d.discoverError ? null : d.total} note={SELECTION} />
           </Panel>
         </AppShell>
       </Frame>

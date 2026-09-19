@@ -260,8 +260,12 @@ export function RfqComposer({ model, aiEnabled = false }: { model: RfqComposerMo
         </div>
         <div className="flex min-w-0 flex-col gap-3 bg-surface-sunken p-5 text-sm">
           <div className="flex items-center gap-2">
-            <Label className="text-ink-strong">As the supplier receives it</Label>
-            <Caption className="ml-auto">via SourceBD Messages</Caption>
+            {/* Not "as the supplier receives it": 3 of 10,922 records are
+                claimed, and an unclaimed supplier is not reached at all until
+                §4.6 ships behind RFQ_EMAIL_UNCLAIMED. What this panel shows is
+                the message that will be stored against the RFQ. */}
+            <Label className="text-ink-strong">The message this RFQ carries</Label>
+            <Caption className="ml-auto">stored on the RFQ</Caption>
           </div>
           <div className="flex flex-col gap-2 rounded-md border border-line bg-surface p-4 text-ink">
             <Caption>{model.preview.from}</Caption>

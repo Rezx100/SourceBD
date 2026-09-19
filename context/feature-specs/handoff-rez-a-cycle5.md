@@ -280,6 +280,40 @@ fixture the container's proxy blocks. Environment, not the change.
    Judge. The loop ends only on the literal token
    `ACCEPTED_FOR_HUMAN_REVIEW`.
 
+## What this kit deliberately does not carry yet
+
+Recorded here so the next reader does not read these as omissions, and so a
+critic does not spend a cycle re-finding them. Each is out of REZ-A's scope by
+the handoff's own wording, not by a judgement call made during the port.
+
+- **320 px and 1280 px layouts.** Two critics flagged the screens as fixed at
+  1440. REZ-A "changes no route" (handoff §7 item 1) and the six approved
+  renders in `design/renders/v3.2/` are all 1440-wide; responsive work is the
+  separate R1–R6 series (`spec-R1-responsive-foundation.md`,
+  `spec-R2-responsive-app-shell.md`), which owns the breakpoints, the app
+  shell and the table-to-card collapse. The kit's components wrap rather than
+  truncate, so they do not fight that work, but nothing here is tested below
+  1440 and nothing should be claimed about it.
+- **Interaction.** Every control is presentational: the toggles, checkboxes,
+  tabs, pagination and Send RFQ render their state and do nothing. REZ-D wires
+  them. The dead controls are marked (`aria-disabled`, `disabled`, tabs whose
+  section this sheet does not render carry no `href`), so a buyer is not
+  invited to press something that will not answer.
+- **The states §5 names that no published record is in.** "Reply overdue"
+  needs reply-by dates and threads (`rfq_drafts`, REZ-D's `derived_status`);
+  `rfq_list` carries neither, so no row and no chip claims it. A sanctioned
+  supplier does not exist in production — `select count(*) from suppliers
+  where is_sanctioned` is 0 — so the sanctioned screen is rendered from the
+  Zaheen record with `sanctionSample` set and labelled "sample record" on the
+  face of it, and `sanctionedInput()` exists only so a test can prove the kit
+  reads the column rather than the flag.
+- **Live data.** The screens render from `lib/dashboard/fixtures.ts`, a mirror
+  of four production payloads, and `lib/dashboard/fixtures.test.ts`
+  reconciles every one of them against the read of 19 Sep 2026. The container
+  cannot reach Supabase; `loadGalleryData` is the real loader and is tested
+  against stubbed RPCs, so the wiring is exercised even though the network is
+  not.
+
 ## Promotion gates — none of them have been asked for
 
 AGENTS.md 9a: landing on `development`, promoting to `main`, and deploying are

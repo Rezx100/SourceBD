@@ -36,6 +36,7 @@ import {
   initials,
   onFileLabel,
   placeLabel,
+  rscStatusNeedsLook,
   rscStatusWords,
   rscTrainingWords,
   sortCerts,
@@ -54,7 +55,9 @@ import type {
   TableRowModel,
   TileModel,
 } from "./models";
-import { marksFromTags, sourceMark, topTier, type SourceMarkModel } from "./source-tiers";
+import { marksFromTags, recordPage, sourceMark, topTier, type SourceMarkModel } from "./source-tiers";
+
+export { recordPage } from "./source-tiers";
 
 // ---- payload shapes (the RPC's jsonb, as `app/(app)/app/suppliers/[slug]/page.tsx` types them) ----
 
@@ -113,7 +116,14 @@ export type ProfileRsc = {
   fetched_at?: string | null;
   building_name?: string | null;
 };
-export type ProfileBrand = { source_code: string; display_name: string; source_url: string | null; last_seen_at: string };
+export type ProfileBrand = {
+  source_code: string;
+  display_name: string;
+  source_url: string | null;
+  last_seen_at: string;
+  /** `buyer_supplier_profile` unions a `facility_of` child's brand rows onto the mother, labelled. */
+  building_name?: string | null;
+};
 export type ProfileProvenance = { source_code: string; display_name: string; tier: string; source_ref: string | null; source_url: string | null; last_seen_at: string | null };
 export type ProfileAddress = { kind: string; address: string; source_code: string; fetched_at?: string | null };
 
@@ -159,6 +169,17 @@ export function ownPill(x: ProfilePill): boolean {
 }
 
 /**
+ * A brand list that names THIS record. `buyer_supplier_profile` unions a
+ * building's brand rows onto the mother the same way it unions pills and
+ * certificates; eight published mothers carry brand rows that are entirely a
+ * building's, and printing them says the company is on a disclosure list it is
+ * not on — and adds tier-4 squares to its source count.
+ */
+export function ownBrand(b: ProfileBrand): boolean {
+  return !b.building_name;
+}
+
+/**
  * Brand lists that have actually been read and hold records. Six are
  * configured in `sources`, but BRAND_INDITEX and BRAND_PRIMARK hold 0
  * companies (SQL, 19 Sep 2026: ASOS 43 · H&M 199 · M&S 67 · NEXT 76 ·
@@ -192,7 +213,7 @@ export function allSourceCodes(p: ProfilePayload): string[] {
   // A building's certificate belongs to the building; counting it here while the
   // Certificates section (which filters buildings out) says "none" contradicts itself.
   for (const c of p.certifications ?? []) if (!c.building_name) codes.add(c.kind.toUpperCase());
-  for (const b of p.brand_attributions ?? []) codes.add(b.source_code.toUpperCase());
+  for (const b of p.brand_attributions ?? []) if (ownBrand(b)) codes.add(b.source_code.toUpperCase());
   for (const r of p.provenance ?? []) codes.add(r.source_code.toUpperCase());
   return [...codes];
 }
@@ -207,25 +228,9 @@ export function sourceHrefs(p: ProfilePayload): Record<string, string | null> {
   // A pill's URL is this record's own page, so it wins over the provenance row's,
   // which is often the agency's front page.
   for (const pill of p.pills ?? []) if (ownPill(pill)) put(pill.source_code, pill.source_url);
-  for (const b of p.brand_attributions ?? []) put(b.source_code, b.source_url);
+  for (const b of p.brand_attributions ?? []) if (ownBrand(b)) put(b.source_code, b.source_url);
   for (const r of p.provenance ?? []) put(r.source_code, r.source_url);
   return out;
-}
-
-/**
- * Whether a URL is a page about THIS record rather than the register's front
- * door. A mark reads "opens the register page", so an agency homepage is not
- * a receipt — the same rule `lib/epb-hscodes.ts` applies to the EPB pill.
- */
-export function recordPage(url: string | null | undefined): boolean {
-  if (!url || !/^https?:\/\//i.test(url)) return false;
-  try {
-    const u = new URL(url);
-    const path = u.pathname.replace(/\/+$/, "");
-    return path !== "" && path !== "/" && (/\d/.test(path) || u.search !== "" || /\.(?:pdf|xlsx|xls|csv)$/i.test(path));
-  } catch {
-    return false;
-  }
 }
 
 function mark(p: ProfilePayload, code: string): SourceMarkModel {
@@ -288,10 +293,22 @@ function addressMark(p: ProfilePayload): SourceMarkModel | null {
 export type WorkersFact = {
   value: number | null;
   source: "RSC" | "registry" | null;
-  /** "2 of 2 sites" when the figure is a group sum; null when it is one site's. */
+  /** "2 of 2 sites" when the figure is a group sum this payload can account for. */
   coverage: string | null;
   /** Sites the figure leaves out, named. */
   excluded: string[];
+  /** The record itself is not one of the sites the figure covers. */
+  excludesRecord: boolean;
+  /**
+   * The figure covers sites this payload does not enumerate, so the kit can
+   * neither break it down nor attribute it to a register.
+   * `production_workers_display_batch` sums the mother and every `facility_of`
+   * child; the profile payload carries a building only when it has an RSC row,
+   * so a family with no RSC rows at all (52 published records on 19 Sep 2026,
+   * four of which file no headcount of their own) returns a group figure the
+   * kit can only describe. Printed bare it reads as this site's headcount.
+   */
+  groupUnknown: boolean;
 };
 
 function workerSites(input: RecordInput): SiteWorkerInput[] {
@@ -319,15 +336,30 @@ export function workersFact(input: RecordInput): WorkersFact {
   const group = groupWorkers(sites);
   const batch = input.workers;
   const value = batch?.value ?? group.value ?? input.profile.supplier.employees_total ?? null;
-  const source = batch?.source ?? group.source ?? null;
-  const reconciled = batch != null && group.value === batch.value;
-  const multi = sites.length > 1 && reconciled;
+  if (value === null) return { value: null, source: null, coverage: null, excluded: [], excludesRecord: false, groupUnknown: false };
+
+  // With no batch figure, what is shown is what this payload holds and `group`
+  // enumerated it. A batch figure the site sum reproduces is accounted for too.
+  if (batch != null && group.value !== batch.value) {
+    return { value, source: null, coverage: null, excluded: [], excludesRecord: false, groupUnknown: true };
+  }
+  const multi = sites.length > 1;
+  const record = group.sites[0];
   return {
     value,
-    source: value === null ? null : source,
+    source: batch?.source ?? group.source ?? null,
     coverage: multi ? `${group.includedCount} of ${group.totalCount} sites` : null,
     excluded: multi ? group.excludedLabels : [],
+    excludesRecord: multi && record !== undefined && group.excludedLabels.includes(record.label),
+    groupUnknown: false,
   };
+}
+
+/** The words the meta line and the table row carry beside the figure. */
+export function workersCoverageWords(w: WorkersFact): string | null {
+  if (w.groupUnknown) return "across this record and its buildings";
+  if (!w.coverage) return null;
+  return w.excludesRecord ? `across ${w.coverage}, none of them this record` : `across ${w.coverage}`;
 }
 
 function metaFacts(input: RecordInput, options: { registerNumber?: boolean } = {}): FactWithMark[] {
@@ -337,7 +369,7 @@ function metaFacts(input: RecordInput, options: { registerNumber?: boolean } = {
   const place = placeLabel(s.city, s.district);
   const year = establishedYearOf(s.established_date);
   const w = workersFact(input);
-  const workersMark = w.source === "RSC" ? mark(p, "RSC") : null;
+  const workersMark = w.source === "RSC" && !w.groupUnknown ? mark(p, "RSC") : null;
   // City and district are derived fields (EPB → GOTS → the address text); no register is attributed to them.
   if (place) facts.push({ text: place, mark: null });
   const missing: string[] = [];
@@ -346,8 +378,8 @@ function metaFacts(input: RecordInput, options: { registerNumber?: boolean } = {
   if (w.value !== null) {
     // A group sum is never printed bare: "3,166 workers" on a mother whose
     // figure is mother + buildings reads as this site's headcount.
-    const words = `${formatCount(w.value)} workers${w.coverage ? ` across ${w.coverage}` : ""}`;
-    facts.push({ text: words, mark: workersMark });
+    const cover = workersCoverageWords(w);
+    facts.push({ text: `${formatCount(w.value)} workers${cover ? ` ${cover}` : ""}`, mark: workersMark });
   } else missing.push("workers");
   if (!place) missing.unshift("district");
   if (options.registerNumber) {
@@ -374,9 +406,20 @@ export function certBuildings(p: ProfilePayload): string[] {
   return [...new Set((p.certifications ?? []).map((c) => c.building_name).filter((b): b is string => Boolean(b)))];
 }
 
-/** Buildings that hold a register pill of their own (RSC aside — the Safety section names those). */
+/**
+ * Buildings holding a **registration** of their own — a membership body or EPB.
+ * A certificate number on a building is not a registration: saying a building
+ * is "registered under" BGMEA/BKMEA/… because it holds an OEKO-TEX certificate
+ * is the same wrong receipt the bare negative was. RSC is the Safety section's.
+ */
 export function pillBuildings(p: ProfilePayload): string[] {
-  return [...new Set((p.pills ?? []).filter((x) => x.building_name && x.source_code.toUpperCase() !== "RSC").map((x) => x.building_name!))];
+  return [
+    ...new Set(
+      (p.pills ?? [])
+        .filter((x) => x.building_name && MEMBERSHIP.concat("EPB").includes(x.source_code.toUpperCase()))
+        .map((x) => x.building_name!),
+    ),
+  ];
 }
 
 /**
@@ -388,12 +431,19 @@ function brandLabels(p: ProfilePayload): string[] {
   const seen = new Set<string>();
   const out: string[] = [];
   for (const b of p.brand_attributions ?? []) {
+    if (!ownBrand(b)) continue;
     const code = b.source_code.toUpperCase();
     if (seen.has(code)) continue;
     seen.add(code);
     out.push(sourceMark(b.source_code).label);
   }
-  return out;
+  // Best rank first, then alphabetical — the order every other mark row uses.
+  return out.sort((a, b) => a.localeCompare(b));
+}
+
+/** Buildings named on a brand list this record is not on. */
+export function brandBuildings(p: ProfilePayload): string[] {
+  return [...new Set((p.brand_attributions ?? []).map((b) => b.building_name).filter((b): b is string => Boolean(b)))];
 }
 
 /**
@@ -455,22 +505,39 @@ function headings(input: RecordInput): string[] {
   return rarestFirst(input.hscodes.map((h) => h.code));
 }
 
+/** "100 % remediated" · "53 %" · null when the row carries no percentage. */
+function rscPercentWords(rsc: ProfileRsc): string | null {
+  // `progress_pct` absent from the row (undefined) is not 0 %: Math.round of
+  // it is NaN, and "NaN %" reached the chip and aria-valuenow.
+  if (!Number.isFinite(rsc.progress_pct)) return null;
+  const pct = Math.round(rsc.progress_pct as number);
+  return pct === 100 ? "100 % remediated" : `${pct} %`;
+}
+
 function rscChip(rsc: ProfileRsc | null, buildings: ProfileRsc[]): HighlightChip | null {
   if (rsc) {
-    // `progress_pct` absent from the row (undefined) is not 0 %: Math.round of
-    // it is NaN, and "NaN %" reached the chip and aria-valuenow.
-    const pct = Number.isFinite(rsc.progress_pct) ? `${Math.round(rsc.progress_pct as number)} %` : null;
-    const status = rscStatusWords(rsc.remediation_status);
-    const behind = /behind|not implemented/i.test(status ?? "");
+    const needsLook = rscStatusNeedsLook(rsc.remediation_status);
     return {
-      tone: behind ? "caution" : "positive",
+      tone: needsLook ? "caution" : "positive",
       icon: "shield",
-      label: ["RSC active", pct === "100 %" ? "100 % remediated" : pct, behind ? status : null].filter(Boolean).join(" · "),
+      label: ["RSC active", rscPercentWords(rsc), needsLook ? rscStatusWords(rsc.remediation_status) : null].filter(Boolean).join(" · "),
     };
   }
   if (buildings.length > 0) {
+    // The building's own figures, said to be the building's. Naming the
+    // building and dropping its percentage and status left a record whose only
+    // RSC row is 53 % and behind schedule looking like one with nothing to
+    // look at — and in the neutral tone rather than caution.
     const first = buildings[0]!;
-    return { tone: "neutral", icon: "shield", label: `RSC covers ${first.building_name}${buildings.length > 1 ? ` +${buildings.length - 1}` : ""}` };
+    const worst = buildings.find((b) => rscStatusNeedsLook(b.remediation_status)) ?? first;
+    const needsLook = rscStatusNeedsLook(worst.remediation_status);
+    const more = buildings.length > 1 ? ` +${buildings.length - 1}` : "";
+    const named = needsLook && worst !== first ? `${worst.building_name}` : `${first.building_name}${more}`;
+    return {
+      tone: needsLook ? "caution" : "neutral",
+      icon: "shield",
+      label: [`RSC covers ${named}`, rscPercentWords(worst), needsLook ? rscStatusWords(worst.remediation_status) : null].filter(Boolean).join(" · "),
+    };
   }
   return null;
 }
@@ -509,7 +576,7 @@ export function buildCard(input: RecordInput): SupplierCardModel {
   else if (onEpb) chips.push({ tone: "quiet", label: "EPB exporter · no lines on file" });
   else chips.push({ tone: "quiet", label: "Not on the EPB exporter list" });
   if (brands.length > 0) chips.push({ tone: "neutral", label: `Listed by ${brands.join(", ")}` });
-  if (certList.length === 0) chips.push({ tone: "quiet", label: "No certificate on any register" });
+  if (certList.length === 0) chips.push({ tone: "quiet", label: certBuildings(p).length > 0 ? `No certificate on this record · ${certBuildings(p).join(", ")} holds one` : "No certificate on any register" });
   const bgmea = registers.find((r) => r.source_code.toUpperCase() === "BGMEA");
   if (marks.length <= 1 && bgmea) chips.unshift({ tone: "neutral", label: bgmea.label.replace(/\s*#\s*$/, "").replace(/^BGMEA General member$/, "BGMEA general member") });
   if (marks.length <= 1) chips.push({ tone: "quiet", label: `Nothing else on file · ${marks.length} of 25 sources` });
@@ -534,16 +601,27 @@ export function buildCard(input: RecordInput): SupplierCardModel {
     brands.length > 0
       ? { label: "Listed by", value: brands.join(", "), sub: `${brands.length} brand ${brands.length === 1 ? "list" : "lists"}`, href: `${recordHref}#sources` }
       : { label: "Listed by", value: null, sub: BRAND_LISTS_WORDS },
+    // Three shapes, and the last one is the empty state. A record with several
+    // numbers at ONE body (279 published records — BGMEA 112, BGAPMEA 105,
+    // BTMA 62) used to satisfy neither of the first two and fell through to
+    // "not in BGMEA, BKMEA, …", denying registrations the sheet listed.
     registerCodes(registers).length > 1
       ? { label: "Registers", value: `${registerCodes(registers).length} registers`, sub: registerCodes(registers).map((c) => sourceMark(c).label).join(" · "), href: `${recordHref}#sources` }
-      : registers.length === 1 && registers[0]
+      : registers.length > 1 && registers[0]
         ? {
             label: "Registers",
-            value: `${sourceMark(registers[0].source_code).label} ${registers[0].value ?? ""}`.trim(),
-            sub: registers[0].label.replace(/\s*#\s*$/, "").replace(/^BGMEA\s+/i, "").toLowerCase(),
-            href: recordPage(registers[0].source_url) ? registers[0].source_url : `${recordHref}#sources`,
+            value: `${registers.length} ${sourceMark(registers[0].source_code).label} numbers`,
+            sub: registers.map((r) => r.value).filter(Boolean).join(" · "),
+            href: `${recordHref}#sources`,
           }
-        : { label: "Registers", value: null, sub: registersEmptyWords(p) },
+        : registers.length === 1 && registers[0]
+          ? {
+              label: "Registers",
+              value: `${sourceMark(registers[0].source_code).label} ${registers[0].value ?? ""}`.trim(),
+              sub: registers[0].label.replace(/\s*#\s*$/, "").replace(/^BGMEA\s+/i, "").toLowerCase(),
+              href: recordPage(registers[0].source_url) ? registers[0].source_url : `${recordHref}#sources`,
+            }
+          : { label: "Registers", value: null, sub: registersEmptyWords(p) },
   ];
 
   return {
@@ -627,7 +705,7 @@ export function buildSheet(input: RecordInput, options: SheetOptions = {}): Supp
   const registers = registerPills(p);
   const epb = epbExporter(p);
   const w = workersFact(input);
-  const workersMark = w.source === "RSC" ? mark(p, "RSC") : null;
+  const workersMark = w.source === "RSC" && !w.groupUnknown ? mark(p, "RSC") : null;
   const registerRows = registers.filter((r) => r.value);
   const gots = certList.find((c) => c.kind.toUpperCase() === "GOTS" && c.state !== "expired");
   const addresses = (p.addresses ?? []).length;
@@ -651,7 +729,7 @@ export function buildSheet(input: RecordInput, options: SheetOptions = {}): Supp
     {
       label: "Workers",
       ...pending(w.value !== null ? formatCount(w.value) : null, workersMark, "registers and RSC checked"),
-      note: w.coverage ? [`across ${w.coverage}`, w.excluded.length ? `excluded: ${w.excluded.join(", ")}` : null].filter(Boolean).join(" · ") : null,
+      note: workersNote(w),
     },
     { label: "Sewing machines", ...pending(formatCount(s.machines_sewing)) },
     { label: "Capacity, as filed", ...pending(capacity) },
@@ -660,7 +738,7 @@ export function buildSheet(input: RecordInput, options: SheetOptions = {}): Supp
       value: registerRows.length ? registerRows.map((r) => `${r.label.replace(/\s*#\s*$/, "").replace(/ member$/i, "")} ${r.value}`).join(" · ") : null,
       code: true,
       checked: registersEmptyWords(p),
-      marks: registerCodes(registerRows).map((c) => sourceMark(c, registerRows.find((r) => r.source_code.toUpperCase() === c)?.source_url ?? null)),
+      marks: registerCodes(registerRows).map((c) => mark(p, c)),
     },
   ];
 
@@ -737,17 +815,40 @@ export function buildSheet(input: RecordInput, options: SheetOptions = {}): Supp
           progress: Number.isFinite(rsc.progress_pct) ? Math.round(rsc.progress_pct as number) : null,
           status: rscStatusWords(rsc.remediation_status),
           training: rscTrainingWords(rsc.training_status),
-          links: [
-            { label: "Fire", href: rsc.fire_inspection_url },
-            { label: "Structural", href: rsc.structural_inspection_url },
-            { label: "Electrical", href: rsc.electrical_inspection_url },
-            { label: "Boiler", href: rsc.boiler_inspection_url },
-            { label: "CAP", href: rsc.cap_url },
-          ],
+          links: rscLinks(rsc),
         }
       : null,
     rscBuildings: buildings.map((b) => b.building_name ?? "building"),
+    // Each building's own row, labelled. The mother's block stays the mother's
+    // (cycle 4); showing nothing at all for a record whose only RSC record is a
+    // building's hid every safety receipt the register published for it.
+    rscBuildingBlocks: buildings.map((b) => ({
+      name: b.building_name ?? "building",
+      readDate: formatDay(b.fetched_at) ?? null,
+      progress: Number.isFinite(b.progress_pct) ? Math.round(b.progress_pct as number) : null,
+      status: rscStatusWords(b.remediation_status),
+      training: rscTrainingWords(b.training_status),
+      links: rscLinks(b),
+    })),
   };
+}
+
+/** The five RSC reports, in the order the spec lists them; a missing one keeps its slot. */
+function rscLinks(rsc: ProfileRsc): { label: string; href: string | null }[] {
+  return [
+    { label: "Fire", href: rsc.fire_inspection_url },
+    { label: "Structural", href: rsc.structural_inspection_url },
+    { label: "Electrical", href: rsc.electrical_inspection_url },
+    { label: "Boiler", href: rsc.boiler_inspection_url },
+    { label: "CAP", href: rsc.cap_url },
+  ];
+}
+
+/** What the sheet says under the worker figure about the sites it covers. */
+function workersNote(w: WorkersFact): string | null {
+  if (w.groupUnknown) return "this record and its buildings together; the site breakdown is not on the record";
+  if (!w.coverage) return null;
+  return [`across ${w.coverage}`, w.excluded.length ? `excluded: ${w.excluded.join(", ")}` : null].filter(Boolean).join(" · ");
 }
 
 /**
@@ -760,10 +861,28 @@ export function buildSheet(input: RecordInput, options: SheetOptions = {}): Supp
  */
 const SCOPE_SHOWN = 3;
 
+/**
+ * GOTS operation names that contain a comma. Splitting the scope on every
+ * comma turned "Embroidery, embellishment" into two operations — inventing
+ * "embellishment" and inflating the "+N" — on 545 of the 911 GOTS
+ * certificates on file (SQL, 19 Sep 2026).
+ */
+const SCOPE_PHRASES = [
+  "Warehousing, distribution of non-final products",
+  "Warehousing, distribution of final products",
+  "Embroidery, embellishment",
+  "Washing, laundering",
+];
+const SCOPE_SEP = "\u0000";
+
 function scopeList(raw: string): string[] {
-  return raw
+  let guarded = raw;
+  for (const phrase of SCOPE_PHRASES) {
+    guarded = guarded.replace(new RegExp(phrase.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "gi"), (m) => m.replace(/,\s*/g, SCOPE_SEP));
+  }
+  return guarded
     .split(",")
-    .map((w) => w.trim().toLowerCase())
+    .map((w) => w.trim().replace(new RegExp(SCOPE_SEP, "g"), ", ").toLowerCase())
     .filter(Boolean);
 }
 
@@ -795,7 +914,12 @@ export function buildProductSheet(input: RecordInput, hs: string): ProductSheetM
   // The certified scope shown is a GOTS scope certificate; WRAP and OEKO-TEX carry no line scope.
   const gots = certList.find((c) => c.kind.toUpperCase() === "GOTS" && c.state !== "expired") ?? null;
   const brands = brandLabels(p);
-  const brandMarks = (p.brand_attributions ?? []).map((b) => sourceMark(b.source_code, b.source_url));
+  // One square per list, best rank first — `brand_attributions` can repeat a
+  // list when a facility's row is unioned in (13 published records do).
+  const brandMarks = marksFromTags(
+    [...new Set((p.brand_attributions ?? []).filter(ownBrand).map((b) => b.source_code.toUpperCase()))],
+    sourceHrefs(p),
+  );
   const epb = epbExporter(p);
   const ep = mark(p, "EPB");
   const products = s.principal_products ?? [];
@@ -823,7 +947,9 @@ export function buildProductSheet(input: RecordInput, hs: string): ProductSheetM
         label: "Exporter page",
         value: exported && epb ? `edb.epb.gov.bd · exporter ${epb.ref ?? ""}`.trim() : null,
         href: exported ? (epb?.href ?? null) : null,
-        note: exported && readDateOf(p, "EPB") ? `read ${readDateOf(p, "EPB")}` : null,
+        // The read date of THIS page, not the register's latest read, and the
+        // count when the record holds more than one (14 published records do).
+        note: exported && epb ? [epb.readDate ? `read ${epb.readDate}` : null, epb.pages > 1 ? `+${epb.pages - 1} more exporter page${epb.pages > 2 ? "s" : ""} on this record` : null].filter(Boolean).join(" · ") || null : null,
         checked: exported ? "EPB checked" : "this line is not on the record's EPB page",
         marks: exported && epb ? [ep] : [],
       },

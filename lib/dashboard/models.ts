@@ -144,6 +144,15 @@ export type SupplierSheetModel = {
   } | null;
   /** Buildings with their own RSC row (labelled, never merged into the mother). */
   rscBuildings: string[];
+  /** Each of those rows in full, so the register's receipts for a building are not dropped. */
+  rscBuildingBlocks: {
+    name: string;
+    readDate: string | null;
+    progress: number | null;
+    status: string | null;
+    training: string | null;
+    links: { label: string; href: string | null }[];
+  }[];
 };
 
 export type ProductSheetModel = {
@@ -180,9 +189,10 @@ export type RfqRowModel = {
 };
 
 export type RfqListModel = {
-  sent: number;
-  quotes: number;
-  chips: { label: string; count: number; on?: boolean }[];
+  /** Null when `rfq_list` failed: an unread list has no count, and 0 is a claim. */
+  sent: number | null;
+  quotes: number | null;
+  chips: { label: string; count: number | null; on?: boolean }[];
   rows: RfqRowModel[];
   footer: string;
   toast: { text: string; href: string | null } | null;

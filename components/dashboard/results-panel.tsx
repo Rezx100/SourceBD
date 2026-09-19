@@ -23,6 +23,13 @@ export type PanelHeaderModel = {
   shown: number;
   sortLabel: string;
   view: "cards" | "table";
+  /**
+   * Set when the rows are NOT the query's first page — the /dev/ds gallery
+   * shows the named test records of the rebuild spec, two of which the query
+   * does not match. "1–4" over those rows is a range claim about the result
+   * set, so the caption says what these rows are instead.
+   */
+  selection?: string;
 };
 
 export function PanelHeader({ model }: { model: PanelHeaderModel }) {
@@ -34,7 +41,9 @@ export function PanelHeader({ model }: { model: PanelHeaderModel }) {
         <Caption>
           {model.total === null
             ? "count could not be read"
-            : `${formatCount(model.total)} ${model.total === 1 ? "supplier" : "suppliers"} · ${model.shown > 0 ? `1–${model.shown}` : "none on this page"}`}
+            : `${formatCount(model.total)} ${model.total === 1 ? "supplier" : "suppliers"} · ${
+                model.selection ?? (model.shown > 0 ? `1–${model.shown}` : "none on this page")
+              }`}
         </Caption>
       </div>
       <div className="flex items-center gap-2">

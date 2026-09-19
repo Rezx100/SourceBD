@@ -75,7 +75,47 @@ function fallback(code: string): { tier: TierRank; mark: string; label: string }
   return { tier: 5, mark: letters.slice(0, 2) || "??", label: code };
 }
 
-/** Rank, stamp and names for one source code. Unknown codes rank 5. */
+/**
+ * Whether a URL is a page about THIS record rather than the register's front
+ * door, its search form or a bulk listing. A mark's accessible name promises
+ * "opens the register page", so anything else may not be linked from one.
+ *
+ * Rejected, with the production shapes that forced each rule:
+ * - no URL, or not http(s) — `javascript:` and protocol-relative included;
+ * - an empty path: `https://bgapmea.org/`, `https://www.bkmea.com/`,
+ *   `https://www.rsc-bd.org/` (4,348 pill rows between them);
+ * - a search form: `https://sa-intl.org/sa8000-search/` (7 records) — the
+ *   digits in "sa8000" made it look like a record id;
+ * - a bulk API listing: the Marks & Spencer source is one
+ *   `opensubmithub.org/api/facilities/?…&pageSize=50` URL shared by all 67
+ *   records on that list;
+ * - a path with nothing record-shaped in it at all — no digits, no query, not
+ *   a document.
+ *
+ * `lib/epb-hscodes.ts` applies the same rule to the EPB pill.
+ */
+export function recordPage(url: string | null | undefined): boolean {
+  if (!url || !/^https?:\/\//i.test(url)) return false;
+  try {
+    const u = new URL(url);
+    const path = u.pathname.replace(/\/+$/, "");
+    if (path === "" || path === "/") return false;
+    if (/(?:^|\/)(?:search|find|lookup|directory)(?:[-_/]|$)|[-_]search(?:[-_/]|$)/i.test(path)) return false;
+    if (/(?:^|\/)api(?:\/|$)/i.test(path)) return false;
+    return /\d/.test(path) || u.search !== "" || /\.(?:pdf|xlsx|xls|csv)$/i.test(path);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Rank, stamp and names for one source code. Unknown codes rank 5.
+ *
+ * Every mark's link goes through `recordPage`, here and nowhere else: three
+ * call sites used to build a mark straight from a raw `source_url`, so the
+ * same register could be an unlinked square in the head and a link to its
+ * homepage in the facts panel of the same record.
+ */
 export function sourceMark(code: string, href: string | null = null): SourceMarkModel {
   const key = code.toUpperCase();
   const entry = REGISTRY[key] ?? REGISTRY[code] ?? fallback(code);
@@ -85,7 +125,7 @@ export function sourceMark(code: string, href: string | null = null): SourceMark
     mark: entry.mark,
     label: entry.label,
     name: sourceFullName(code) ?? entry.label,
-    href: href && /^https?:\/\//i.test(href) ? href : null,
+    href: recordPage(href) ? href! : null,
   };
 }
 

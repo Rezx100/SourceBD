@@ -201,30 +201,72 @@ export function certTileSubline(certs: readonly CertModel[]): string | null {
   return parts.length ? parts.join(" · ") : "all valid";
 }
 
-/** RSC remediation status words for the five real states (nine stored spellings, plus blank). */
+/**
+ * RSC remediation status words for the five real states (spec §3).
+ *
+ * The register stores each state under several spellings, and the ones with
+ * the rows are unspaced. Counted on production 19 Sep 2026 (active rows):
+ * `behindschedule` 907 · `initialcompleted` 638 · `ontrack` 38 ·
+ * `notfinalized` 36 · `notimplemented` 280 (all inactive today) · `` 97 ·
+ * plus the spaced `Behind schedule` 10, `On track` 1, `Initial CAP Completed`
+ * 2, `CAP not finalised/ N/A` 1. Matching only the spaced forms left
+ * `ontrack` and `notfinalized` — 30 published records — rendering the raw
+ * database token to a buyer, and the tone checks below reading them as fine.
+ */
 export function rscStatusWords(status: string | null | undefined): string | null {
   if (!status) return null;
-  const s = status.toLowerCase();
+  // Compare without spaces so "On track", "on track" and "ontrack" are one state.
+  const s = status.toLowerCase().replace(/[^a-z]/g, "");
   if (s.includes("behind")) return "behind schedule";
-  if (s.includes("on track")) return "on track";
-  if (s.includes("not implemented")) return "not implemented";
-  if (s.includes("not final")) return "not finalised";
+  if (s.includes("ontrack")) return "on track";
+  if (s.includes("notimplemented")) return "not implemented";
+  if (s.includes("notfinal")) return "not finalised";
   if (s.includes("initial")) return "initial plan completed";
   return status;
 }
 
-/** Training status words. */
+/**
+ * The five states, exactly as `rscStatusWords` returns them. A status the
+ * register starts storing under a tenth spelling falls through to the raw
+ * token, and `rscStatusUnmapped` is what a guard asserts against.
+ */
+export const RSC_STATUS_WORDS = ["behind schedule", "on track", "not implemented", "not finalised", "initial plan completed"] as const;
+
+/** True when the stored status did not map to one of the five states. */
+export function rscStatusUnmapped(status: string | null | undefined): boolean {
+  const words = rscStatusWords(status);
+  return words !== null && !(RSC_STATUS_WORDS as readonly string[]).includes(words);
+}
+
+/**
+ * A remediation state a buyer should look at. "Not implemented" and "not
+ * finalised" are as much a caution as "behind schedule"; the two tone checks
+ * used to test `/behind|not implemented/i`, so `notfinalized` rendered in the
+ * positive treatment.
+ */
+export function rscStatusNeedsLook(status: string | null | undefined): boolean {
+  const words = rscStatusWords(status);
+  return words === "behind schedule" || words === "not implemented" || words === "not finalised";
+}
+
+/**
+ * Training status words. Production stores `completed` 923 · `yet to start`
+ * 461 · `ongoing` 235 · `unknown` 1 (active rows, 19 Sep 2026).
+ */
 export function rscTrainingWords(status: string | null | undefined): string | null {
   if (!status) return null;
   const s = status.toLowerCase();
   if (s.includes("complete")) return "training completed";
   if (s.includes("yet") || s.includes("not start")) return "training yet to start";
   if (s.includes("ongoing") || s.includes("progress")) return "training ongoing";
+  if (s.includes("unknown")) return "training status not on file";
   return `training ${status.toLowerCase()}`;
 }
 
 /** Tokens that stay in capitals when a name is re-cased. */
-const KEEP_UPPER = new Set(["BD", "UK", "USA", "EU", "LLC", "PLC", "INC", "CO", "JV", "EPZ", "RMG", "ETP", "ERP", "SA", "AG", "BV", "NV"]);
+// "CO" is not an initialism — 35 published all-caps names carry a standalone
+// "CO." token and rendered as "Textile CO. Ltd".
+const KEEP_UPPER = new Set(["BD", "UK", "USA", "EU", "LLC", "PLC", "INC", "JV", "EPZ", "RMG", "ETP", "ERP", "SA", "AG", "BV", "NV"]);
 
 function caseWord(word: string): string {
   const upper = word.toUpperCase();
@@ -261,7 +303,9 @@ export function initials(name: string): string {
     .split(/\s+/)
     .filter((w) => w && !/^(ltd|limited|co|inc|plc|pvt|private|the|and|of)$/i.test(w));
   const first = words[0]?.[0] ?? name[0] ?? "?";
-  const second = words[1]?.[0] ?? "";
+  // 256 published records reduce to one non-stopword token ("ANABHIL & CO.
+  // LTD."); the tile takes the word's second letter rather than showing one.
+  const second = words[1]?.[0] ?? words[0]?.[1] ?? "";
   return (first + second).toUpperCase();
 }
 

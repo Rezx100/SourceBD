@@ -24,6 +24,9 @@ import type { HsLine, ProfilePayload, ProfilePill, RecordInput } from "./build-m
 export const TODAY = new Date("2026-09-18T10:00:00Z");
 
 /** The longest name a buyer can reach: 100 characters (spec §3). Real, published. */
+/** Aboni's second RSC site: a building of the record, never the record itself. */
+export const ABONI_NEW_SHED = "Aboni Knitwear (New Shed)";
+
 export const ZAHEEN_NAME =
   "Zaheen Knitwears Limited (Shed - 3, 4, 5, 10, 11, 12, 13) & (Building - Security, ETP and Fire Pump)";
 
@@ -113,7 +116,7 @@ export function aboniProfile(): ProfilePayload {
       },
       { source_code: "RSC", label: "RSC ID", value: "9342", source_url: "https://www.rsc-bd.org/" },
       { source_code: "WRAP", label: "WRAP Cert #", value: "7865", source_url: "https://wrapcompliance.org/certified-facility/7865/" },
-      { source_code: "RSC", label: "RSC ID", value: "23602", source_url: "https://www.rsc-bd.org/", building_name: "Aboni Knitwear (New Shed)" },
+      { source_code: "RSC", label: "RSC ID", value: "23602", source_url: "https://www.rsc-bd.org/", building_name: ABONI_NEW_SHED },
     ],
     certifications: [
       {
@@ -169,7 +172,7 @@ export function aboniProfile(): ProfilePayload {
         cap_url: "https://accord2.fairfactories.org/web/Audits/Audits/DownloadCAPFile?id=9342",
       },
       {
-        building_name: "Aboni Knitwear (New Shed)",
+        building_name: ABONI_NEW_SHED,
         progress_pct: 100,
         workers_count: 504,
         remediation_status: "initialcompleted",
@@ -433,6 +436,9 @@ const SM_OEKO_ORGANIC = `${OEKO_PROFILE}/9741~1wdJ9J~Ksz0Rv6pcvUMkowB-S4SQ0iKJ8Q
 const SM_OEKO_STEP = `${OEKO_PROFILE}/9741~1wdIu4~GVy9ryLmhCJyFXIcyGxS6EZ-Ti8/`;
 const ACCORD_FILE = "https://accord2.fairfactories.org/accord_v2_files/1/Audit_Files";
 
+/** The building names the payloads carry, exported so a test cannot misspell one into passing. */
+export const SM_EXTENSION = "S M Knitwears Limited. (Extension)";
+
 export function smKnitwearProfile(): ProfilePayload {
   return {
     supplier: {
@@ -478,7 +484,7 @@ export function smKnitwearProfile(): ProfilePayload {
       { source_code: "OEKO_TEX", label: "OEKO_TEX Cert #", value: "9741-step", source_url: SM_OEKO_STEP },
       { source_code: "RSC", label: "RSC ID", value: "10902", source_url: "https://www.rsc-bd.org/" },
       { source_code: "WRAP", label: "WRAP Cert #", value: "124992", source_url: "https://wrapcompliance.org/certified-facility/124992/" },
-      { source_code: "RSC", label: "RSC ID", value: "24545", source_url: "https://www.rsc-bd.org/", building_name: "S M Knitwears Limited. (Extension)" },
+      { source_code: "RSC", label: "RSC ID", value: "24545", source_url: "https://www.rsc-bd.org/", building_name: SM_EXTENSION },
     ],
     certifications: [
       {
@@ -508,7 +514,7 @@ export function smKnitwearProfile(): ProfilePayload {
     // Production returns exactly one row, and it belongs to a building — not to the company.
     rsc_remediation: [
       {
-        building_name: "S M Knitwears Limited. (Extension)",
+        building_name: SM_EXTENSION,
         progress_pct: 53,
         workers_count: 907,
         remediation_status: "behindschedule",
@@ -633,7 +639,7 @@ export function inheritedPillsInput(): RecordInput {
     ],
     addresses: [],
   };
-  return { profile, hscodes: [], workers: null, today: TODAY };
+  return { profile, hscodes: [], workers: { value: 651, source: "registry", fetched_at: null }, today: TODAY };
 }
 
 // ---------------------------------------------------------------------------
@@ -705,7 +711,10 @@ export function buildingRegistrationsInput(): RecordInput {
       { kind: "factory", address: "Pathanpara, Pagar, Tongi, Gazipur - 1710, Bangladesh", source_code: "OEKO_TEX", fetched_at: "2026-06-27T00:12:00.470443+00:00" },
     ],
   };
-  return { profile, hscodes: [], workers: null, today: TODAY };
+  // The mother files no headcount; `production_workers_display_batch` returns
+  // 1,784, which is UNIT-2's registry figure. The payload carries no RSC row,
+  // so the kit cannot enumerate the sites behind that number.
+  return { profile, hscodes: [], workers: { value: 1784, source: "registry", fetched_at: null }, today: TODAY };
 }
 
 // ---------------------------------------------------------------------------
@@ -740,7 +749,7 @@ export function longestHsListInput(): RecordInput {
       parent_group_name: null,
       established_date: "2021-12-08",
       factory_types: ["Knit"],
-      principal_products: [],
+      principal_products: ["(B)", "Knit", "Polo Shirt", "T-Shirt"],
       employees_total: 350,
       machines_sewing: 794,
       production_capacity_pcs_day: 8000,
@@ -750,14 +759,47 @@ export function longestHsListInput(): RecordInput {
       source_tags: ["BGMEA", "EPB", "RSC", "BKMEA"],
     },
     t13_source_count: 4,
-    pills: [],
+    pills: [
+      { source_code: "BGMEA", label: "BGMEA General member #", value: "6663", source_url: "https://www.bgmea.com.bd/member/4457" },
+      { source_code: "BKMEA", label: "BKMEA #", value: "1527 - A/2009", source_url: "https://www.bkmea.com/" },
+      { source_code: "EPB", label: "EPB Reg #", value: "BD05884", source_url: "https://edb.epb.gov.bd/exporter/831/plummy-fashions-ltd" },
+      { source_code: "RSC", label: "RSC ID", value: "12348", source_url: "https://www.rsc-bd.org/" },
+    ],
     certifications: [],
-    rsc_remediation: null,
+    rsc_remediation: [
+      {
+        progress_pct: 100,
+        workers_count: 800,
+        remediation_status: "initialcompleted",
+        training_status: "completed",
+        fetched_at: "2026-07-24T06:51:47.037077+00:00",
+        fire_inspection_url: `${ACCORD_FILE}/32141.pdf`,
+        structural_inspection_url: `${ACCORD_FILE}/31337.pdf`,
+        electrical_inspection_url: `${ACCORD_FILE}/29884.pdf`,
+        boiler_inspection_url: `${ACCORD_FILE}/378175.pdf`,
+        cap_url: "https://accord2.fairfactories.org/web/Audits/Audits/DownloadCAPFile?id=12348",
+      },
+    ],
     brand_attributions: [],
-    provenance: [],
-    addresses: [],
+    provenance: [
+      { source_code: "EPB", display_name: "Export Promotion Bureau", tier: "tier1_gov", source_ref: "831", source_url: "https://epb.gov.bd", last_seen_at: "2026-07-30T21:57:58.78113+00:00" },
+      { source_code: "RSC", display_name: "RMG Sustainability Council", tier: "tier1_gov", source_ref: "12348", source_url: "https://rsc-bd.org", last_seen_at: "2026-09-18T05:38:17.752074+00:00" },
+      { source_code: "BGMEA", display_name: "Bangladesh Garment Manufacturers & Exporters Assoc.", tier: "tier2_industry", source_ref: "general:6663", source_url: "https://www.bgmea.com.bd", last_seen_at: "2026-07-24T07:56:56.676718+00:00" },
+      { source_code: "BKMEA", display_name: "Bangladesh Knitwear Manufacturers & Exporters Assoc.", tier: "tier2_industry", source_ref: "1504:detail", source_url: "https://member.bkmea.com", last_seen_at: "2026-08-02T06:47:40.327943+00:00" },
+      { source_code: "BKMEA", display_name: "Bangladesh Knitwear Manufacturers & Exporters Assoc.", tier: "tier2_industry", source_ref: "1527", source_url: "https://member.bkmea.com", last_seen_at: "2026-08-02T02:42:46.59435+00:00" },
+    ],
+    addresses: [
+      { kind: "factory", address: "North Narshingpur, Kashipur,Fatullah\nNarayangonj\nNarayangonj", source_code: "BGMEA", fetched_at: "2026-07-24T07:56:56.676718+00:00" },
+      { kind: "factory", address: "NORTH NORSHINGPUR, KASHIPUR, FATULLAH, NARAYANGANJ., FATULLAH, NARAYANGANJ", source_code: "BKMEA", fetched_at: "2026-08-02T02:42:46.59435+00:00" },
+      { kind: "factory", address: "NORTH NORSHINGPUR, KASHIPUR, FATULLAH, NARAYANGANJ., FATULLAH, NARAYANGANJ", source_code: "BKMEA", fetched_at: "2026-08-02T06:47:40.327943+00:00" },
+      { kind: "factory", address: "North Narshingpur, Kashipur, Fatullah, Narayanganj", source_code: "EPB", fetched_at: "2026-07-30T21:57:58.78113+00:00" },
+      { kind: "mailing", address: "Unit # 502, Concord Tower, 113 Kazi Nazrul Islam Avenue, Banglamotor\nDhaka\nDhaka", source_code: "BGMEA", fetched_at: "2026-07-24T07:56:56.676718+00:00" },
+      { kind: "mailing", address: "NORTH NORSHINGPUR, KASHIPUR, FATULLAH, NARAYANGANJ., , NARAYANGANJ", source_code: "BKMEA", fetched_at: "2026-08-02T02:42:46.59435+00:00" },
+      { kind: "mailing", address: "NORTH NORSHINGPUR, KASHIPUR, FATULLAH, NARAYANGANJ., , NARAYANGANJ", source_code: "BKMEA", fetched_at: "2026-08-02T06:47:40.327943+00:00" },
+      { kind: "registered", address: "North Narshingpur, Kashipur, Fatullah, Narayanganj", source_code: "EPB", fetched_at: "2026-07-30T21:57:58.78113+00:00" },
+    ],
   };
-  return { profile, hscodes: PLUMMY_HS, workers: null, today: TODAY };
+  return { profile, hscodes: PLUMMY_HS, workers: { value: 800, source: "RSC", fetched_at: "2026-07-24T06:51:47.037077+00:00" }, today: TODAY };
 }
 
 /** 39 principal products — the longest list on any record (`adventure-garments`, published). */
@@ -784,26 +826,31 @@ export function longestProductListInput(): RecordInput {
       address_raw: "Holding # 315, Beximco Industrial Park, Sarabo, Kashimpur\nGazipur\nGazipur",
       is_sanctioned: false,
       parent_group_name: null,
-      established_date: null,
-      factory_types: [],
+      established_date: "2020-01-04",
+      factory_types: ["Knit", "Woven"],
       principal_products: ADVENTURE_PRODUCTS,
-      employees_total: null,
-      machines_sewing: null,
+      employees_total: 610,
+      machines_sewing: 197,
       production_capacity_pcs_day: null,
-      production_capacity_dozen_yearly: null,
+      production_capacity_dozen_yearly: 9750000,
       supplier_moq: null,
       supplier_lead_time_days: null,
       source_tags: ["BGMEA"],
     },
     t13_source_count: 1,
-    pills: [],
+    pills: [{ source_code: "BGMEA", label: "BGMEA General member #", value: "6637", source_url: "https://www.bgmea.com.bd/member/4395" }],
     certifications: [],
     rsc_remediation: null,
     brand_attributions: [],
-    provenance: [],
-    addresses: [],
+    provenance: [
+      { source_code: "BGMEA", display_name: "Bangladesh Garment Manufacturers & Exporters Assoc.", tier: "tier2_industry", source_ref: "general:6637", source_url: "https://www.bgmea.com.bd", last_seen_at: "2026-07-24T05:23:45.785433+00:00" },
+    ],
+    addresses: [
+      { kind: "factory", address: "Sarabo, Kashimpur\nGazipur\nGazipur", source_code: "BGMEA", fetched_at: "2026-07-24T05:23:45.785433+00:00" },
+      { kind: "mailing", address: "Beximco Industrial Park, Sarabo, Kashimpur\nGazipur\nGazipur", source_code: "BGMEA", fetched_at: "2026-07-24T05:23:45.785433+00:00" },
+    ],
   };
-  return { profile, hscodes: [], workers: null, today: TODAY };
+  return { profile, hscodes: [], workers: { value: 610, source: "registry", fetched_at: null }, today: TODAY };
 }
 
 // ---------------------------------------------------------------------------
@@ -860,6 +907,533 @@ export function buildingOnlyCertificateInput(): RecordInput {
       { kind: "factory", address: "House # 240, Bhuyan Para, Godnail, Siddirgonj\nNarayanganj\nNarayangonj", source_code: "BGMEA", fetched_at: "2026-07-24T07:27:20.837018+00:00" },
       { kind: "mailing", address: "Lotus Kamal Tower (10th Fl), 57, Joarshahara, Nikunja\nDhaka\nDhaka", source_code: "BGMEA", fetched_at: "2026-07-24T07:27:20.837018+00:00" },
     ],
+  };
+  return { profile, hscodes: [], workers: { value: 2350, source: "registry", fetched_at: null }, today: TODAY };
+}
+
+// ---------------------------------------------------------------------------
+// Several registrations at ONE register.
+//
+// Mahir Label & Accessories holds five BGAPMEA numbers (999, 1935, 1936, 1938,
+// 1954) and nothing else — one of 279 published records with one register code
+// and more than one number (BGMEA 112 · BGAPMEA 105 · BTMA 62, SQL 19 Sep 2026).
+// Every one of its pill URLs is the agency's front door, so no mark may link.
+// ---------------------------------------------------------------------------
+
+export function oneRegisterManyNumbersInput(): RecordInput {
+  const bgapmea = (value: string) => ({ source_code: "BGAPMEA", label: "BGAPMEA #", value, source_url: "https://bgapmea.org/" });
+  const provenance = (ref: string, at: string) => ({
+    source_code: "BGAPMEA",
+    display_name: "Bangladesh Garment Accessories & Packaging MEA",
+    tier: "tier2_industry",
+    source_ref: ref,
+    source_url: "https://bgapmea.org",
+    last_seen_at: at,
+  });
+  const profile: ProfilePayload = {
+    supplier: {
+      id: "9967d91c-d854-4e25-8dea-78331d326fb6",
+      slug: "mahir-label-and-accessories",
+      company_name: "Mahir Label & Accessories Ltd",
+      entity_type: "factory",
+      city: "Khilkhet",
+      district: "Dhaka",
+      address_raw: "Ka-32/C/1, Kuratoly, Uttarpara, Khilkhet-1229, Dhaka",
+      is_sanctioned: false,
+      parent_group_name: null,
+      established_date: null,
+      factory_types: ["Packaging"],
+      principal_products: [
+        "Auto Carton", "back Board", "Back Board", "Barcode Sticker", "Canvas Tape", "Carton",
+        "Crochet Elastic & Jacquard Elastic", "Drawstring", "Elastic", "Gum Tape", "Gum Tape etc",
+        "Hang Tag", "Hanger", "Jacquard & Crochet Elastic", "Jacquard Elastic", "Lamination Foil Print",
+        "Metal Button", "Neck Board", "Offset Prinitng", "Photo Inlay", "Plastic Button", "Poly Bag",
+        "Price Tag", "Printed Label", "Rip Tape", "Scotch Tape", "Sewing Thread", "Shoe Box",
+        "Size Tag", "Tissue Paper", "Twill", "Twill Tape", "Woven Label", "Zipper",
+      ],
+      employees_total: null,
+      machines_sewing: null,
+      production_capacity_pcs_day: null,
+      production_capacity_dozen_yearly: null,
+      supplier_moq: null,
+      supplier_lead_time_days: null,
+      source_tags: ["BGAPMEA"],
+    },
+    t13_source_count: 1,
+    pills: [bgapmea("1935"), bgapmea("1936"), bgapmea("1938"), bgapmea("1954"), bgapmea("999")],
+    certifications: [],
+    rsc_remediation: null,
+    brand_attributions: [],
+    provenance: [
+      provenance("1574", "2026-06-27T00:13:29.147461+00:00"),
+      provenance("1586", "2026-06-26T23:56:34.908736+00:00"),
+      provenance("1596", "2026-06-26T23:55:14.888114+00:00"),
+      provenance("489", "2026-06-26T23:53:50.158951+00:00"),
+      provenance("1573", "2026-06-26T23:48:28.343378+00:00"),
+    ],
+    addresses: [
+      { kind: "factory", address: "Barotopa, South Barotopa, Sreepur, Gazipur", source_code: "BGAPMEA", fetched_at: "2026-06-26T23:56:34.908736+00:00" },
+      { kind: "factory", address: "Ka-32/C/1, Kuratoly, Uttarpara, Khilkhet-1229, Dhaka", source_code: "BGAPMEA", fetched_at: "2026-06-26T23:48:28.343378+00:00" },
+      { kind: "factory", address: "Kewa Purba Khanda, Kewa Bazar, Sreepur, Gazipur-1740.", source_code: "BGAPMEA", fetched_at: "2026-06-26T23:53:50.158951+00:00" },
+      { kind: "factory", address: "Kewa Purba Khanda, Kewa Bazar, Sreepur, Gazipur", source_code: "BGAPMEA", fetched_at: "2026-06-26T23:55:14.888114+00:00" },
+      { kind: "factory", address: "Kapatia Para, Mawna, Sreepur, Gazipur", source_code: "BGAPMEA", fetched_at: "2026-06-27T00:13:29.147461+00:00" },
+      { kind: "registered", address: "House # 102, (1st & 2nd floor), Lane-Northern, DOHS, Baridhara, Dhaka", source_code: "BGAPMEA", fetched_at: "2026-06-26T23:56:34.908736+00:00" },
+      { kind: "registered", address: "House # 102, Lane-Northern, DOHS, Baridhara, Dhaka", source_code: "BGAPMEA", fetched_at: "2026-06-26T23:48:28.343378+00:00" },
+      { kind: "registered", address: "House# 287 (4th Floor), Road # 04, DOHS Baridhara, Dhaka-1206", source_code: "BGAPMEA", fetched_at: "2026-06-26T23:53:50.158951+00:00" },
+      { kind: "registered", address: "House # 102 (1st & 2nd floor), Lane # Northern, DOHS, Baridhara, Dhaka-1206", source_code: "BGAPMEA", fetched_at: "2026-06-26T23:55:14.888114+00:00" },
+      { kind: "registered", address: "House # 102 (1st & 2nd floor), Lane # Northern, DOHS, Baridhara, Dhaka-1206", source_code: "BGAPMEA", fetched_at: "2026-06-27T00:13:29.147461+00:00" },
+    ],
+  };
+  return { profile, hscodes: [], workers: null, today: TODAY };
+}
+
+// ---------------------------------------------------------------------------
+// A mother whose brand-list memberships all belong to its buildings.
+//
+// SQ Celsius Limited is on no disclosure list of its own; Unit 04 is on H&M's
+// and M&S's, Unit 3 on H&M's, and Unit 04's M&S row appears twice. Eight
+// published mothers carry brand rows that are entirely a building's. Its M&S
+// URL is the shared OpenSupplyHub API listing of up to 50 Bangladesh
+// facilities, which is not a page about this record. It also carries an RSC
+// row of its own and one for each of the two buildings.
+// Read from production 19 Sep 2026.
+// ---------------------------------------------------------------------------
+
+export const SQ_UNIT_04 = "SQ Celsius Limited (Unit 04)";
+export const SQ_UNIT_3 = "SQ Celsius Ltd. (Unit 3)";
+export const MS_LIST_API = "https://opensupplyhub.org/api/facilities/?contributors=10061&countries=BD&pageSize=50&embed=1&sort_by=name_asc";
+const SQ_OEKO = `${OEKO_PROFILE}/62645~1wdI6N~tWlH8jeoJrEFp0RmZFgCGKckEt8/`;
+
+export function buildingBrandListsInput(): RecordInput {
+  const profile: ProfilePayload = {
+    supplier: {
+      id: "f0b7bbab-e559-4423-a17a-045b75c2669c",
+      slug: "sq-celsius",
+      company_name: "SQ Celsius Limited",
+      entity_type: "factory",
+      city: "Gazipur",
+      district: "Dhaka",
+      address_raw: "Beraiderchala, Keowa, Maona, Sreepur\nGazipur\nGazipur",
+      is_sanctioned: false,
+      parent_group_name: "SQ Group",
+      established_date: "2014-03-18",
+      factory_types: ["Dyeing", "Knit", "Sweater", "Woven"],
+      principal_products: [
+        "Babies' apparel",
+        "Bra",
+        "Cardigans",
+        "Children's apparel",
+        "Dyed fabrics",
+        "Dyed yarns",
+        "Greige fabrics",
+        "Ladies Jacket",
+        "Leggings",
+        "Men's apparel",
+        "Packet Shirt",
+        "Penty",
+        "Pullovers",
+        "Sweaters",
+        "T-Shirt",
+        "Underwear",
+        "Women's apparel",
+      ],
+      employees_total: 13986,
+      machines_sewing: 5122,
+      production_capacity_pcs_day: null,
+      production_capacity_dozen_yearly: 1164375,
+      supplier_moq: null,
+      supplier_lead_time_days: null,
+      source_tags: ["BGMEA", "EPB", "WRAP", "GOTS", "RSC", "OEKO_TEX"],
+    },
+    t13_source_count: 6,
+    pills: [
+      { label: "BGMEA General member #", value: "3263", source_url: "https://www.bgmea.com.bd/member/3665", source_code: "BGMEA", inherited_from: null, inherited_from_name: null },
+      { label: "EPB Reg #", value: "BD05085", source_url: "https://edb.epb.gov.bd/exporter/3469/sq-celsius-limited", source_code: "EPB", inherited_from: null, inherited_from_name: null },
+      { label: "GOTS Cert #", value: "GOTS-29354", source_url: "https://www.global-trace-base.org/SCO029932/certificate-document", source_code: "GOTS", inherited_from: null, inherited_from_name: null },
+      { label: "OEKO_TEX Cert #", value: "62645-100", source_url: SQ_OEKO, source_code: "OEKO_TEX", inherited_from: null, inherited_from_name: null },
+      { label: "RSC ID", value: "9523", source_url: "https://www.rsc-bd.org/", source_code: "RSC", inherited_from: null, inherited_from_name: null },
+      { label: "WRAP Cert #", value: "131732", source_url: "https://wrapcompliance.org/certified-facility/131732/", source_code: "WRAP", inherited_from: null, inherited_from_name: null },
+      { label: "RSC ID", value: "26660", source_url: "https://www.rsc-bd.org/", source_code: "RSC", building_name: SQ_UNIT_04, inherited_from: null, inherited_from_name: null },
+      { label: "RSC ID", value: "24741", source_url: "https://www.rsc-bd.org/", source_code: "RSC", building_name: SQ_UNIT_3, inherited_from: null, inherited_from_name: null },
+    ],
+    certifications: [
+      {
+        kind: "gots",
+        certificate_no: "GOTS-29354",
+        issuer: "GSCS International Ltd.",
+        issued_on: null,
+        expires_on: "2027-06-09",
+        scope:
+          "Operations: Dyeing, Embroidery, embellishment, Finishing, Knitting, Manufacturing, No processing, Packing, Pre-treatment , Preparatory , Printing, Washing, laundering | Products: Babies' apparel, Children's apparel, Dyed fabrics, Dyed yarns, Greige fabrics, Men's apparel, Women's apparel",
+        document_url: "https://www.global-trace-base.org/SCO029932/certificate-document",
+      },
+      { kind: "oeko_tex", certificate_no: "62645-100", issuer: "OEKO-TEX", issued_on: null, expires_on: null, scope: "OEKO-TEX STANDARD 100", document_url: SQ_OEKO },
+      {
+        kind: "wrap",
+        certificate_no: "131732",
+        issuer: "WRAP",
+        issued_on: null,
+        expires_on: "2026-09-19",
+        scope: "Gold | Industries: Apparel | Products: Sweaters",
+        document_url: "https://wrapcompliance.org/certified-facility/131732/",
+      },
+    ],
+    rsc_remediation: [
+      {
+        progress_pct: 100,
+        workers_count: 3235,
+        remediation_status: "initialcompleted",
+        training_status: "completed",
+        fetched_at: "2026-07-24T07:13:43.130038+00:00",
+        fire_inspection_url: `${ACCORD_FILE}/3649.pdf`,
+        structural_inspection_url: `${ACCORD_FILE}/3789.pdf`,
+        electrical_inspection_url: `${ACCORD_FILE}/7279.pdf`,
+        boiler_inspection_url: `${ACCORD_FILE}/364171.pdf`,
+        cap_url: "https://accord2.fairfactories.org/web/Audits/Audits/DownloadCAPFile?id=9523",
+      },
+      {
+        building_name: SQ_UNIT_04,
+        progress_pct: 69,
+        workers_count: 425,
+        remediation_status: "behindschedule",
+        training_status: "yet to start",
+        fetched_at: "2026-09-04T05:43:52.272089+00:00",
+        fire_inspection_url: `${ACCORD_FILE}/399745.pdf`,
+        structural_inspection_url: `${ACCORD_FILE}/398914.pdf`,
+        electrical_inspection_url: `${ACCORD_FILE}/398915.pdf`,
+        boiler_inspection_url: null,
+        cap_url: "https://accord2.fairfactories.org/web/Audits/Audits/DownloadCAPFile?id=26660",
+      },
+      {
+        building_name: SQ_UNIT_3,
+        progress_pct: 58,
+        workers_count: 30,
+        remediation_status: "behindschedule",
+        training_status: "yet to start",
+        fetched_at: "2026-07-24T07:13:53.883512+00:00",
+        fire_inspection_url: `${ACCORD_FILE}/312589.pdf`,
+        structural_inspection_url: `${ACCORD_FILE}/312597.pdf`,
+        electrical_inspection_url: `${ACCORD_FILE}/312598.pdf`,
+        boiler_inspection_url: null,
+        cap_url: "https://accord2.fairfactories.org/web/Audits/Audits/DownloadCAPFile?id=24741",
+      },
+    ],
+    brand_attributions: [
+      { source_code: "BRAND_HM", display_name: "H&M Group supplier list", source_url: HM_LIST, last_seen_at: "2026-06-26T23:11:09.295617+00:00", building_name: SQ_UNIT_04 },
+      { source_code: "BRAND_MS", display_name: "Marks & Spencer supplier list", source_url: MS_LIST_API, last_seen_at: "2026-06-26T23:09:21.896908+00:00", building_name: SQ_UNIT_04 },
+      { source_code: "BRAND_MS", display_name: "Marks & Spencer supplier list", source_url: MS_LIST_API, last_seen_at: "2026-06-26T23:09:18.649783+00:00", building_name: SQ_UNIT_04 },
+      { source_code: "BRAND_HM", display_name: "H&M Group supplier list", source_url: HM_LIST, last_seen_at: "2026-06-26T23:11:12.558429+00:00", building_name: SQ_UNIT_3 },
+    ],
+    provenance: [
+      { tier: "tier1_gov", source_code: "EPB", display_name: "Export Promotion Bureau", source_url: "https://epb.gov.bd", source_ref: "3469", last_seen_at: "2026-08-14T21:58:33.681609+00:00" },
+      { tier: "tier1_gov", source_code: "RSC", display_name: "RMG Sustainability Council", source_url: "https://rsc-bd.org", source_ref: "9523", last_seen_at: "2026-09-18T05:43:02.999839+00:00" },
+      { tier: "tier2_industry", source_code: "BGMEA", display_name: "Bangladesh Garment Manufacturers & Exporters Assoc.", source_url: "https://www.bgmea.com.bd", source_ref: "general:3263", last_seen_at: "2026-07-24T08:35:01.119823+00:00" },
+      { tier: "tier3_cert", source_code: "GOTS", display_name: "Global Organic Textile Standard", source_url: "https://global-standard.org", source_ref: "gots-SCO029932", last_seen_at: "2026-06-26T23:45:26.079138+00:00" },
+      { tier: "tier3_cert", source_code: "OEKO_TEX", display_name: "OEKO-TEX", source_url: "https://www.oeko-tex.com", source_ref: "oeko-tex-62645", last_seen_at: "2026-06-27T01:47:34.47791+00:00" },
+      { tier: "tier3_cert", source_code: "WRAP", display_name: "Worldwide Responsible Accredited Production", source_url: "https://wrapcompliance.org", source_ref: "wrap-131732", last_seen_at: "2026-07-24T05:40:01.176085+00:00" },
+    ],
+    addresses: [
+      { kind: "factory", address: "Beraiderchala, Keowa, Maona, Sreepur\nGazipur\nGazipur", source_code: "BGMEA", fetched_at: "2026-07-24T08:35:01.119823+00:00" },
+      { kind: "factory", address: "Beraider Chala, Keowa, Maona, Sreepur, Gazipur - 1740, Bangladesh", source_code: "OEKO_TEX", fetched_at: "2026-06-27T01:47:34.47791+00:00" },
+      { kind: "mailing", address: "Concord I-K Tower (4th Floor), Plot # 2, Block - CEN, (A) North Avenue, Gulshan-2\nDhaka\nDhaka", source_code: "BGMEA", fetched_at: "2026-07-24T08:35:01.119823+00:00" },
+    ],
+  };
+  // The batch reconciles: 3,235 (the company) + 425 (Unit 04) + 30 (Unit 3).
+  return { profile, hscodes: [], workers: { value: 3690, source: "RSC", fetched_at: "2026-09-04T05:43:52.272089+00:00" }, today: TODAY };
+}
+
+// ---------------------------------------------------------------------------
+// A record whose own brand rows repeat a list.
+//
+// Aman Graphics & Designs is on M&S's list twice — two OpenSupplyHub facility
+// ids for one company — and on Next's once. Thirteen published mothers carry a
+// repeated `source_code` this way; this is the only one where the repeat is on
+// the company itself rather than a building, so the mark row must dedupe
+// without the building fallback doing it for free.
+// Read from production 19 Sep 2026.
+// ---------------------------------------------------------------------------
+
+const AMAN_OEKO = `${OEKO_PROFILE}/37789~1wdFZo~98m29J24K5G8YUkR-nDBwkGrc4s/`;
+export const AMAN_EXTENSION = "Aman Graphics & Designs Ltd. (Extension)";
+
+export function duplicateBrandRowsInput(): RecordInput {
+  const profile: ProfilePayload = {
+    supplier: {
+      id: "c60c3e6e-ac7d-42e3-9d2b-4eb6d931c976",
+      slug: "aman-graphics-and-designs",
+      company_name: "Aman Graphics & Designs Ltd.",
+      entity_type: "factory",
+      city: "Dhaka",
+      district: "Dhaka",
+      address_raw: "Nazim Nagar, Hemayetpur\nDhaka\nSavar",
+      is_sanctioned: false,
+      parent_group_name: "Unifill Group",
+      established_date: "2011",
+      factory_types: ["Woven"],
+      principal_products: ["Jackets", "Pants", "Shirts"],
+      employees_total: 560,
+      machines_sewing: 290,
+      production_capacity_pcs_day: null,
+      production_capacity_dozen_yearly: 180000,
+      supplier_moq: null,
+      supplier_lead_time_days: null,
+      source_tags: ["BGMEA", "EPB", "BRAND_MS", "BRAND_NEXT", "RSC", "OEKO_TEX"],
+    },
+    t13_source_count: 4,
+    pills: [
+      { label: "BGMEA General member #", value: "5201", source_url: "https://www.bgmea.com.bd/member/194", source_code: "BGMEA", inherited_from: null, inherited_from_name: null },
+      { label: "EPB Reg #", value: "BD01848", source_url: "https://edb.epb.gov.bd/exporter/1233/aman-graphics-designs-ltd", source_code: "EPB", inherited_from: null, inherited_from_name: null },
+      { label: "OEKO_TEX Cert #", value: "37789-100", source_url: AMAN_OEKO, source_code: "OEKO_TEX", inherited_from: null, inherited_from_name: null },
+      { label: "RSC ID", value: "10089", source_url: "https://www.rsc-bd.org/", source_code: "RSC", inherited_from: null, inherited_from_name: null },
+      { label: "RSC ID", value: "24595", source_url: "https://www.rsc-bd.org/", source_code: "RSC", building_name: AMAN_EXTENSION, inherited_from: null, inherited_from_name: null },
+    ],
+    certifications: [
+      { kind: "oeko_tex", certificate_no: "37789-100", issuer: "OEKO-TEX", issued_on: null, expires_on: null, scope: "OEKO-TEX STANDARD 100", document_url: AMAN_OEKO },
+    ],
+    rsc_remediation: [
+      {
+        progress_pct: 100,
+        workers_count: 4709,
+        remediation_status: "initialcompleted",
+        training_status: "completed",
+        fetched_at: "2026-07-30T22:20:11.351347+00:00",
+        fire_inspection_url: `${ACCORD_FILE}/2474.pdf`,
+        structural_inspection_url: `${ACCORD_FILE}/10219.pdf`,
+        electrical_inspection_url: `${ACCORD_FILE}/9636.pdf`,
+        boiler_inspection_url: `${ACCORD_FILE}/391263.pdf`,
+        cap_url: "https://accord2.fairfactories.org/web/Audits/Audits/DownloadCAPFile?id=10089",
+      },
+      {
+        building_name: AMAN_EXTENSION,
+        progress_pct: 100,
+        workers_count: 4709,
+        remediation_status: "ontrack",
+        training_status: "yet to start",
+        fetched_at: "2026-07-30T22:20:15.864955+00:00",
+        fire_inspection_url: `${ACCORD_FILE}/304602.pdf`,
+        structural_inspection_url: `${ACCORD_FILE}/305831.pdf`,
+        electrical_inspection_url: `${ACCORD_FILE}/304608.pdf`,
+        boiler_inspection_url: `${ACCORD_FILE}/391265.pdf`,
+        cap_url: "https://accord2.fairfactories.org/web/Audits/Audits/DownloadCAPFile?id=24595",
+      },
+    ],
+    brand_attributions: [
+      { source_code: "BRAND_MS", display_name: "Marks & Spencer supplier list", source_url: MS_LIST_API, last_seen_at: "2026-05-18T23:39:39.426435+00:00" },
+      { source_code: "BRAND_MS", display_name: "Marks & Spencer supplier list", source_url: MS_LIST_API, last_seen_at: "2026-06-26T23:06:32.492825+00:00" },
+      { source_code: "BRAND_NEXT", display_name: "Next plc supplier list", source_url: NEXT_LIST, last_seen_at: "2026-05-18T22:45:54.99168+00:00" },
+    ],
+    provenance: [
+      { tier: "tier1_gov", source_code: "EPB", display_name: "Export Promotion Bureau", source_url: "https://epb.gov.bd", source_ref: "1233", last_seen_at: "2026-08-14T21:58:27.826834+00:00" },
+      { tier: "tier1_gov", source_code: "RSC", display_name: "RMG Sustainability Council", source_url: "https://rsc-bd.org", source_ref: "10089", last_seen_at: "2026-09-18T05:18:48.933544+00:00" },
+      { tier: "tier2_industry", source_code: "BGMEA", display_name: "Bangladesh Garment Manufacturers & Exporters Assoc.", source_url: "https://www.bgmea.com.bd", source_ref: "general:5201", last_seen_at: "2026-07-24T05:29:06.90265+00:00" },
+      { tier: "tier3_cert", source_code: "OEKO_TEX", display_name: "OEKO-TEX", source_url: "https://www.oeko-tex.com", source_ref: "oeko-tex-37789", last_seen_at: "2026-06-26T23:06:52.677011+00:00" },
+      { tier: "tier4_brand", source_code: "BRAND_MS", display_name: "Marks & Spencer supplier list", source_url: MS_LIST_API, source_ref: "ms-osh-BD2020066CY505A", last_seen_at: "2026-06-26T23:06:32.492825+00:00" },
+      { tier: "tier4_brand", source_code: "BRAND_MS", display_name: "Marks & Spencer supplier list", source_url: MS_LIST_API, source_ref: "ms-osh-BD2026083JDARPJ", last_seen_at: "2026-05-18T23:39:39.426435+00:00" },
+      { tier: "tier4_brand", source_code: "BRAND_NEXT", display_name: "Next plc supplier list", source_url: NEXT_LIST, source_ref: "946c798d5e5eadd0", last_seen_at: "2026-05-18T22:45:54.99168+00:00" },
+    ],
+    addresses: [
+      { kind: "factory", address: "Nazim Nagar, Hemayetpur\nDhaka\nDhaka", source_code: "BGMEA", fetched_at: "2026-07-24T05:29:06.90265+00:00" },
+      { kind: "factory", address: "Nazimnagar, Hemayetpur, Savar, Dhaka - 1340, Bangladesh", source_code: "OEKO_TEX", fetched_at: "2026-06-26T23:06:52.677011+00:00" },
+      { kind: "mailing", address: "House # 1248 (1st Floor), Road # 09, Avenue # 02, Mirpur DOHS, Mirpur\nDhaka\nDhaka", source_code: "BGMEA", fetched_at: "2026-07-24T05:29:06.90265+00:00" },
+    ],
+  };
+  // 4,709 on the company's row and 4,709 again on the Extension's: RSC files
+  // the same headcount on both, and the batch adds them to 9,418.
+  return { profile, hscodes: [], workers: { value: 9418, source: "RSC", fetched_at: "2026-07-30T22:20:15.864955+00:00" }, today: TODAY };
+}
+
+// ---------------------------------------------------------------------------
+// Two RSC rows, both belonging to buildings, with the mother filing its own
+// registry headcount.
+//
+// Aswad Composite Mills: U-2 at 100 % with 4,640 workers, U-2 (Extension) at
+// 81 % behind schedule with 2,063, and the company itself files 924 and has no
+// RSC row. `production_workers_display_batch` returns 6,703 — the two buildings
+// — so the figure covers 2 of 3 sites and none of them is this record. The
+// U-2 (Extension) row has no boiler report, which spec §3 says is normal
+// (1,120 of the RSC rows on file are missing one).
+// Read from production 19 Sep 2026.
+// ---------------------------------------------------------------------------
+
+export const ASWAD_U2 = "ASWAD COMPOSITE MILLS LTD. ( U-2)";
+export const ASWAD_U2_EXT = "ASWAD COMPOSITE MILLS LTD. ( U-2) (EXTENSION)";
+export const ASWAD_UNIT_1 = "Aswad Composite Mills Ltd.(unit-1)";
+const ASWAD_ALLIANCE = "https://accord2.fairfactories.org/accord_v2_files/AllianceAuditReports/11095";
+const ASWAD_OEKO = `${OEKO_PROFILE}/16072~1wdFle~OOoauhnbqnY-X2Jn5nfxryQ-_4Y/`;
+
+export function buildingSafetyOnlyInput(): RecordInput {
+  const profile: ProfilePayload = {
+    supplier: {
+      id: "50c0809d-fd67-45d6-989d-d3ef116c0528",
+      slug: "aswad-composite-mills",
+      company_name: "ASWAD COMPOSITE MILLS LTD.",
+      entity_type: "factory",
+      city: "Dhaka",
+      district: "Gazipur",
+      address_raw: "HOLDING NO #121, BLOCK NO #H,WORD NO-07, BERAIDER CHALLA, SREEPUR, GAZIPUR",
+      is_sanctioned: false,
+      // The "Palmal Group" on the U-2 RSC row is RSC's own field; the company
+      // record itself files no parent group, and the two must not be confused.
+      parent_group_name: null,
+      established_date: "2008-03-31",
+      factory_types: ["Dyeing", "Knit", "Woven"],
+      principal_products: [
+        "All Kind of Knit Item",
+        "Babies' apparel",
+        "Children's apparel",
+        "Dyed fabrics",
+        "Greige fabrics",
+        "Hoodie",
+        "Knitted Garments",
+        "Men's apparel",
+        "Polo Shirts",
+        "Printed fabrics",
+        "pyjama set",
+        "T-Shirts",
+        "Women Top",
+        "Women's apparel",
+        "Worn accessories",
+        "Yarn",
+      ],
+      employees_total: 924,
+      machines_sewing: 8000,
+      production_capacity_pcs_day: 24,
+      production_capacity_dozen_yearly: 25000000,
+      supplier_moq: null,
+      supplier_lead_time_days: null,
+      source_tags: ["BGMEA", "EPB", "WRAP", "GOTS", "BKMEA", "OEKO_TEX"],
+    },
+    t13_source_count: 6,
+    pills: [
+      { label: "BGMEA General member #", value: "4640", source_url: "https://www.bgmea.com.bd/member/414", source_code: "BGMEA", inherited_from: null, inherited_from_name: null },
+      { label: "BKMEA #", value: "1957 - ASSO/2014", source_url: "https://www.bkmea.com/", source_code: "BKMEA", inherited_from: null, inherited_from_name: null },
+      { label: "EPB Reg #", value: "BD04903", source_url: "https://edb.epb.gov.bd/exporter/2068/aswad-composite-mills-ltd", source_code: "EPB", inherited_from: null, inherited_from_name: null },
+      { label: "GOTS Cert #", value: "GOTS-11587", source_url: "https://www.global-trace-base.org/SCO001805/certificate-document", source_code: "GOTS", inherited_from: null, inherited_from_name: null },
+      { label: "OEKO_TEX Cert #", value: "16072-100", source_url: ASWAD_OEKO, source_code: "OEKO_TEX", inherited_from: null, inherited_from_name: null },
+      { label: "WRAP Cert #", value: "132050", source_url: "https://wrapcompliance.org/certified-facility/132050/", source_code: "WRAP", inherited_from: null, inherited_from_name: null },
+      { label: "RSC ID", value: "11095", source_url: "https://www.rsc-bd.org/", source_code: "RSC", building_name: ASWAD_U2, inherited_from: null, inherited_from_name: null },
+      { label: "RSC ID", value: "25868", source_url: "https://www.rsc-bd.org/", source_code: "RSC", building_name: ASWAD_U2_EXT, inherited_from: null, inherited_from_name: null },
+    ],
+    certifications: [
+      {
+        kind: "gots",
+        certificate_no: "GOTS-11587",
+        issuer: "CERES-CERT AG",
+        issued_on: null,
+        expires_on: "2026-06-27",
+        scope:
+          "Operations: Dyeing, Embroidery, embellishment, Finishing, Knitting, Manufacturing, Pre-treatment , Printing, Washing, laundering | Products: Babies' apparel, Children's apparel, Dyed fabrics, Greige fabrics, Men's apparel, Printed fabrics, Women's apparel, Worn accessories",
+        document_url: "https://www.global-trace-base.org/SCO001805/certificate-document",
+      },
+      { kind: "oeko_tex", certificate_no: "16072-100", issuer: "OEKO-TEX", issued_on: null, expires_on: null, scope: "OEKO-TEX STANDARD 100", document_url: ASWAD_OEKO },
+      {
+        kind: "wrap",
+        certificate_no: "132050",
+        issuer: "WRAP",
+        issued_on: null,
+        expires_on: "2026-12-05",
+        scope: "Gold | Industries: Apparel | Products: Knitted Garments, T-Shirts",
+        document_url: "https://wrapcompliance.org/certified-facility/132050/",
+      },
+    ],
+    rsc_remediation: [
+      {
+        building_name: ASWAD_U2,
+        progress_pct: 100,
+        workers_count: 4640,
+        remediation_status: "initialcompleted",
+        training_status: "completed",
+        fetched_at: "2026-07-30T22:29:42.813949+00:00",
+        fire_inspection_url: `${ASWAD_ALLIANCE}/5155.pdf`,
+        structural_inspection_url: `${ASWAD_ALLIANCE}/4119.pdf`,
+        electrical_inspection_url: `${ASWAD_ALLIANCE}/5156.pdf`,
+        boiler_inspection_url: `${ACCORD_FILE}/344312.pdf`,
+        cap_url: "https://accord2.fairfactories.org/web/Audits/Audits/DownloadCAPFile?id=11095",
+      },
+      {
+        building_name: ASWAD_U2_EXT,
+        progress_pct: 81,
+        workers_count: 2063,
+        remediation_status: "behindschedule",
+        training_status: "yet to start",
+        fetched_at: "2026-07-30T22:29:47.319621+00:00",
+        fire_inspection_url: `${ACCORD_FILE}/347873.pdf`,
+        structural_inspection_url: `${ACCORD_FILE}/348385.pdf`,
+        electrical_inspection_url: `${ACCORD_FILE}/345171.pdf`,
+        boiler_inspection_url: null,
+        cap_url: "https://accord2.fairfactories.org/web/Audits/Audits/DownloadCAPFile?id=25868",
+      },
+    ],
+    brand_attributions: [
+      { source_code: "BRAND_HM", display_name: "H&M Group supplier list", source_url: HM_LIST, last_seen_at: "2026-06-26T23:03:47.960065+00:00", building_name: ASWAD_U2 },
+      { source_code: "BRAND_HM", display_name: "H&M Group supplier list", source_url: HM_LIST, last_seen_at: "2026-06-26T23:03:51.222376+00:00", building_name: ASWAD_UNIT_1 },
+    ],
+    provenance: [
+      { tier: "tier1_gov", source_code: "EPB", display_name: "Export Promotion Bureau", source_url: "https://epb.gov.bd", source_ref: "2068", last_seen_at: "2026-08-14T21:58:30.904319+00:00" },
+      { tier: "tier2_industry", source_code: "BGMEA", display_name: "Bangladesh Garment Manufacturers & Exporters Assoc.", source_url: "https://www.bgmea.com.bd", source_ref: "general:4640", last_seen_at: "2026-07-24T05:40:20.74018+00:00" },
+      { tier: "tier2_industry", source_code: "BKMEA", display_name: "Bangladesh Knitwear Manufacturers & Exporters Assoc.", source_url: "https://member.bkmea.com", source_ref: "2326:detail", last_seen_at: "2026-08-02T06:07:25.532255+00:00" },
+      { tier: "tier2_industry", source_code: "BKMEA", display_name: "Bangladesh Knitwear Manufacturers & Exporters Assoc.", source_url: "https://member.bkmea.com", source_ref: "2735:detail", last_seen_at: "2026-08-02T05:12:00.563013+00:00" },
+      { tier: "tier2_industry", source_code: "BKMEA", display_name: "Bangladesh Knitwear Manufacturers & Exporters Assoc.", source_url: "https://member.bkmea.com", source_ref: "1957", last_seen_at: "2026-08-02T02:35:27.967078+00:00" },
+      { tier: "tier2_industry", source_code: "BKMEA", display_name: "Bangladesh Knitwear Manufacturers & Exporters Assoc.", source_url: "https://member.bkmea.com", source_ref: "2526", last_seen_at: "2026-08-02T02:28:29.006688+00:00" },
+      { tier: "tier3_cert", source_code: "GOTS", display_name: "Global Organic Textile Standard", source_url: "https://global-standard.org", source_ref: "gots-SCO001805", last_seen_at: "2026-06-26T23:02:07.65372+00:00" },
+      { tier: "tier3_cert", source_code: "OEKO_TEX", display_name: "OEKO-TEX", source_url: "https://www.oeko-tex.com", source_ref: "oeko-tex-16072", last_seen_at: "2026-06-26T23:17:10.432376+00:00" },
+      { tier: "tier3_cert", source_code: "WRAP", display_name: "Worldwide Responsible Accredited Production", source_url: "https://wrapcompliance.org", source_ref: "wrap-132050", last_seen_at: "2026-07-24T05:40:51.680245+00:00" },
+    ],
+    addresses: [
+      { kind: "factory", address: "26, Malibagh Chowdhury Para, Malibagh\nDhaka\nDhaka", source_code: "BGMEA", fetched_at: "2026-07-24T05:40:20.74018+00:00" },
+      { kind: "factory", address: "HOLDING NO #121, BLOCK NO #H,WORD NO-07, BERAIDER CHALLA, SREEPUR, GAZIPUR", source_code: "BKMEA", fetched_at: "2026-08-02T02:28:29.006688+00:00" },
+      { kind: "factory", address: "HOLDING NO #121, BLOCK NO #H,WORD NO-07, BERAIDER CHALLA, SREEPUR, GAZIPUR", source_code: "BKMEA", fetched_at: "2026-08-02T05:12:00.563013+00:00" },
+      { kind: "factory", address: "MULAID, MAONA, SREEPUR, GAZIPUR", source_code: "BKMEA", fetched_at: "2026-08-02T06:07:25.532255+00:00" },
+      { kind: "factory", address: "Holding - 121, Block - H, Beraiderchala, Ward No - 07, Sreepur Municipality, Sreepur, Gazipur - 1740, Bangladesh", source_code: "OEKO_TEX", fetched_at: "2026-06-26T23:17:10.432376+00:00" },
+      { kind: "mailing", address: "9/Kha, Confidence Center, Shahazadpur, Gulsan\nDhaka\nDhaka", source_code: "BGMEA", fetched_at: "2026-07-24T05:40:20.74018+00:00" },
+      { kind: "mailing", address: "CONFIDENCE CENTER, 9/KHA, SHAHAZADPUR, GULSHAN, DHAKA-1212, GULSHAN, DHAKA", source_code: "BKMEA", fetched_at: "2026-08-02T02:28:29.006688+00:00" },
+      { kind: "mailing", address: "CONFIDENCE CENTER, 9/KHA, SHAHAZADPUR, GULSHAN, DHAKA-1212, GULSHAN, DHAKA", source_code: "BKMEA", fetched_at: "2026-08-02T05:12:00.563013+00:00" },
+      { kind: "mailing", address: "MULAID, MAONA, SREEPUR, GAZIPUR", source_code: "BKMEA", fetched_at: "2026-08-02T06:07:25.532255+00:00" },
+    ],
+  };
+  return { profile, hscodes: [], workers: { value: 6703, source: "RSC", fetched_at: "2026-07-30T22:29:47.319621+00:00" }, today: TODAY };
+}
+
+/**
+ * The 125-character record, as an admin list receives it.
+ *
+ * `buyer_supplier_profile` serves published records only, so a buyer surface
+ * cannot reach this name — but spec §6 asks for it "on every card type they
+ * can reach", and the kit's card, table row and sheet are what admin lists
+ * will use. The fields below are the row's own, read from `suppliers` and
+ * `source_records` on 19 Sep 2026: one brand row, no register number, no
+ * certificate. Nothing here is filled in to make the card look complete.
+ */
+export function longestNameInput(): RecordInput {
+  const profile: ProfilePayload = {
+    supplier: {
+      id: "57f470a2-71c3-4a82-b1f6-f700aa93341f",
+      slug: "indochine-apparel-bangladesh-limited-plot-54-56-previously-baxter-brenton-bd-clothing-manufacturing-co-ltd-extension",
+      company_name: LONG_NAME_125,
+      entity_type: "factory",
+      city: "Ashulia",
+      district: "Dhaka",
+      address_raw: "Plot-54-56, DEPZ (Old Zone), Ganakbari, Ashulia, Savar, Dhaka",
+      is_sanctioned: false,
+      parent_group_name: null,
+      established_date: null,
+      factory_types: [],
+      principal_products: [],
+      employees_total: null,
+      machines_sewing: null,
+      production_capacity_pcs_day: null,
+      production_capacity_dozen_yearly: null,
+      supplier_moq: null,
+      supplier_lead_time_days: null,
+      source_tags: ["BRAND_MS"],
+    },
+    t13_source_count: 0,
+    pills: [],
+    certifications: [],
+    rsc_remediation: null,
+    brand_attributions: [{ source_code: "BRAND_MS", display_name: "Marks & Spencer supplier list", source_url: MS_LIST_API, last_seen_at: "2026-06-26T23:07:48.785712+00:00" }],
+    provenance: [],
+    addresses: [],
   };
   return { profile, hscodes: [], workers: null, today: TODAY };
 }

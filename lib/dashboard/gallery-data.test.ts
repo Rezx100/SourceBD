@@ -2,12 +2,15 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import { aboniInput, arFashionInput, TODAY } from "./fixtures";
+import type { RfqListRow } from "./build-models";
 import { discoverArgs, loadGalleryData, SORT_MOST_SOURCES } from "./gallery-data";
 
 type Call = { fn: string; args: Record<string, unknown> };
 
 /** A stub that answers the gallery's RPCs from the fixtures and records every call. */
-function stubClient(options: { discoverError?: boolean; hscodesError?: boolean; badCount?: boolean; rfqError?: boolean } = {}) {
+function stubClient(
+  options: { discoverError?: boolean; hscodesError?: boolean; badCount?: boolean; rfqError?: boolean; rfqRows?: RfqListRow[] } = {},
+) {
   const calls: Call[] = [];
   const records: Record<string, ReturnType<typeof aboniInput>> = { "aboni-knitwear": aboniInput(), "ar-fashion": arFashionInput() };
   const rpc = async (fn: string, args: Record<string, unknown>) => {
@@ -33,7 +36,10 @@ function stubClient(options: { discoverError?: boolean; hscodesError?: boolean; 
       if (args.p_q === null) return { data: [{ slug: "x", total_count: 10266 }], error: null };
       return { data: [{ slug: "aboni-knitwear", total_count: 42 }, { slug: "ar-fashion", total_count: 42 }], error: null };
     }
-    if (fn === "rfq_list") return options.rfqError ? { data: null, error: { message: "permission denied" } } : { data: [], error: null };
+    if (fn === "rfq_list") {
+      if (options.rfqError) return { data: null, error: { message: "permission denied" } };
+      return { data: options.rfqRows ?? [], error: null };
+    }
     return { data: null, error: { message: `unknown rpc ${fn}` } };
   };
   return { client: { rpc }, calls };
@@ -129,6 +135,56 @@ describe("loadGalleryData (the /dev/ds loader, stubbed RPCs)", () => {
     assert.equal(data.discoverError, true);
     assert.equal(data.total, null);
     assert.equal(data.published, null);
+  });
+
+  // Cycle 6: every RFQ figure was only ever exercised over an empty list, where
+  // a count of 0, a sum of 0 and a filter that matches nothing all agree. The
+  // aggregation was free to be wrong in any way as long as it returned zero.
+  it("the counts, the sum and the chips are computed over the rows that were read", async () => {
+    const base = { product_title: "T-shirt", quantity: 100, quantity_unit: "pcs", ship_by: "2026-09-24", target_supplier_count: 1, created_at: "2026-09-09T10:00:00Z" };
+    const rfqRows: RfqListRow[] = [
+      { ...base, id: "a", status: "open", quote_count: 0 },
+      { ...base, id: "b", status: "open", quote_count: 2 },
+      { ...base, id: "c", status: "accepted", quote_count: 1 },
+      { ...base, id: "d", status: "closed", quote_count: 0 },
+      { ...base, id: "e", status: "cancelled", quote_count: 0 },
+    ];
+    const data = await loadGalleryData(stubClient({ rfqRows }).client, TODAY);
+    assert.equal(data.rfqError, false);
+    assert.equal(data.rfqs.rows.length, 5);
+    // "Sent" counts every RFQ that was not cancelled, so 4 of the 5.
+    assert.equal(data.rfqs.sent, 4);
+    // Quotes is the sum over the rows, not the number of rows carrying one.
+    assert.equal(data.rfqs.quotes, 3);
+    assert.deepEqual(
+      data.rfqs.chips.map((c) => [c.label, c.count]),
+      [
+        ["All", 5],
+        ["Awaiting reply", 1],
+        ["Quoted", 2],
+        ["Closed", 2],
+      ],
+    );
+    assert.equal(data.rfqs.footer, "1–5 of 5");
+    // Every row a chip counts is a row the list will render.
+    const chipTotal = data.rfqs.chips.filter((c) => c.label !== "All").reduce((n, c) => n + (c.count ?? 0), 0);
+    assert.equal(chipTotal, data.rfqs.rows.length, "a row is in no chip, or in two");
+  });
+
+  // Cycle 6: the sidebar reads its numbers off the same model, and a failed
+  // read must leave them unknown rather than reporting a quiet, wrong zero.
+  it("when the read fails, every sidebar figure is unknown — not zero", async () => {
+    const data = await loadGalleryData(stubClient({ rfqError: true }).client, TODAY);
+    assert.equal(data.rfqs.sent, null);
+    assert.equal(data.rfqs.quotes, null);
+    for (const chip of data.rfqs.chips) assert.equal(chip.count, null, `the "${chip.label}" chip reports a count over a list that was never read`);
+    assert.deepEqual(data.rfqs.rows, []);
+    // And the success path still produces real numbers, so `null` is the
+    // failure signal rather than the only thing this loader ever returns.
+    const ok = await loadGalleryData(stubClient({ rfqRows: [{ id: "a", product_title: "T", quantity: 1, quantity_unit: "pcs", ship_by: null, status: "open", target_supplier_count: 1, quote_count: 4, created_at: "2026-09-09T10:00:00Z" }] }).client, TODAY);
+    assert.equal(ok.rfqs.sent, 1);
+    assert.equal(ok.rfqs.quotes, 4);
+    assert.equal(ok.rfqs.chips.find((c) => c.label === "All")?.count, 1);
   });
 
   it("a failed lines read is carried as unknown, never as 'not on the EPB list'", async () => {

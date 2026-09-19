@@ -13,7 +13,7 @@ export type NavKey = "search" | "suppliers" | "products" | "rfqs" | "saved" | "m
 
 export type SidebarModel = {
   active: NavKey;
-  /** Live counts from `buyer_dashboard`; a missing count renders no pill. */
+  /** Live counts from `buyer_dashboard`; a count that could not be read is null and renders no pill. */
   counts: { suppliers?: number | null; rfqs?: number | null; saved?: number | null };
   recent: { label: string; count: number | null; href: string }[];
   /** Plan line: name, and the RFQ allowance when billing exists. */

@@ -13,11 +13,16 @@ import {
   ownPill,
   pillBuildings,
   recordPage,
+  workersCoverageWords,
   workersFact,
 } from "./build-models";
+import type { RecordInput } from "./build-models";
 import {
   aboniInput,
   arFashionInput,
+  buildingSafetyOnlyInput,
+  duplicateBrandRowsInput,
+  longestProductListInput,
   buildingOnlyCertificateInput,
   buildingRegistrationsInput,
   HOSSAIN_BUILDING,
@@ -149,7 +154,14 @@ describe("buildCard — the 11-source record (Aboni)", () => {
 // row at all.
 describe("workersFact — a group figure says how many sites it covers", () => {
   it("Aboni: the mother and its shed, reconciled against the batch figure", () => {
-    assert.deepEqual(workersFact(aboniInput()), { value: 3166, source: "RSC", coverage: "2 of 2 sites", excluded: [] });
+    assert.deepEqual(workersFact(aboniInput()), {
+      value: 3166,
+      source: "RSC",
+      coverage: "2 of 2 sites",
+      excluded: [],
+      excludesRecord: false,
+      groupUnknown: false,
+    });
   });
 
   it("S M Knitwears: the figure is the Extension's, and the mother is named as excluded", () => {
@@ -158,6 +170,9 @@ describe("workersFact — a group figure says how many sites it covers", () => {
       source: "RSC",
       coverage: "1 of 2 sites",
       excluded: ["S M Knitwears Limited"],
+      // The one site the figure leaves out is the record the buyer is reading.
+      excludesRecord: true,
+      groupUnknown: false,
     });
     assert.equal(buildTableRow(smKnitwearInput()).workersCoverage, "1 of 2 sites");
     const sheet = buildSheet(smKnitwearInput());
@@ -168,13 +183,34 @@ describe("workersFact — a group figure says how many sites it covers", () => {
   it("a single-site record claims no coverage, and a record with no figure claims nothing", () => {
     assert.equal(workersFact(zaheenSampleInput()).coverage, null);
     assert.equal(buildCard(zaheenSampleInput()).meta.find((f) => /workers/.test(f.text))?.text, "1,634 workers");
-    assert.deepEqual(workersFact(arFashionInput()), { value: null, source: null, coverage: null, excluded: [] });
+    assert.deepEqual(workersFact(arFashionInput()), {
+      value: null,
+      source: null,
+      coverage: null,
+      excluded: [],
+      excludesRecord: false,
+      groupUnknown: false,
+    });
   });
 
   it("a batch figure the RSC rows do not reconcile with is shown without a coverage claim", () => {
     const input = aboniInput();
     input.workers = { value: 4000, source: "RSC", fetched_at: null };
-    assert.deepEqual(workersFact(input), { value: 4000, source: "RSC", coverage: null, excluded: [] });
+    // Cycle 6: it was shown bare under an RSC mark, which reads as "RSC says
+    // 4,000 for this site". The rows say 3,166 across two sites; what the
+    // figure covers is unknown, so the mark comes off and the words say so.
+    assert.deepEqual(workersFact(input), {
+      value: 4000,
+      source: null,
+      coverage: null,
+      excluded: [],
+      excludesRecord: false,
+      groupUnknown: true,
+    });
+    assert.equal(workersCoverageWords(workersFact(input)), "across this record and its buildings");
+    const card = buildCard(input);
+    assert.equal(card.meta.find((f) => /workers/.test(f.text))?.text, "4,000 workers across this record and its buildings");
+    assert.equal(card.meta.find((f) => /workers/.test(f.text))?.mark, null);
   });
 });
 
@@ -184,10 +220,18 @@ describe("RSC: the mother's row only, never a building's; every row the RPC retu
     assert.equal(motherRsc(input.profile.rsc_remediation), null);
     const card = buildCard(input);
     assert.ok(!card.chips.some((c) => /RSC active/.test(c.label)), "the building's 53 % must not become the mother's fact");
-    assert.ok(card.chips.some((c) => c.tone === "neutral" && c.label === "RSC covers S M Knitwears Limited. (Extension)"));
+    // Cycle 6: the chip named the building and then said nothing about it, so
+    // the one thing RSC does cover here read as unremediated. It says whose
+    // figure it is and then gives it, and 53 % behind schedule is a caution.
+    const chip = card.chips.find((c) => /^RSC covers/.test(c.label));
+    assert.equal(chip?.label, "RSC covers S M Knitwears Limited. (Extension) · 53 % · behind schedule");
+    assert.equal(chip?.tone, "caution");
     const sheet = buildSheet(input);
     assert.equal(sheet.rsc, null);
     assert.deepEqual(sheet.rscBuildings, ["S M Knitwears Limited. (Extension)"]);
+    assert.deepEqual(sheet.rscBuildingBlocks.map((b) => [b.name, b.progress, b.status]), [
+      ["S M Knitwears Limited. (Extension)", 53, "behind schedule"],
+    ]);
     assert.equal(sheet.tabs.find((t) => t.label === "Safety")?.count, null);
   });
 
@@ -570,7 +614,26 @@ describe("buildProductSheet — HS 6105 on the Aboni record", () => {
   // three with nothing to say it had.
   it("the certified scope keeps the products half and counts the operations it did not list", () => {
     const scope = ps.facts.find((f) => f.label === "Certified scope")!;
-    assert.equal(scope.value, "GOTS-31587 · dyeing, embroidery, embellishment +8 · products: men's apparel");
+    // Cycle 6: GOTS writes a multi-word operation with a comma inside it
+    // ("Embroidery, embellishment"), so splitting on commas invented two
+    // operations out of one and the count was wrong in the same breath. The
+    // nine real operations on GOTS-31587 are Dyeing; Embroidery, embellishment;
+    // Finishing; Knitting; Manufacturing; Packing; Pre-treatment; Printing;
+    // Washing, laundering — three shown and six counted.
+    assert.equal(scope.value, "GOTS-31587 · dyeing, embroidery, embellishment, finishing +6 · products: men's apparel");
+    // The other certificate on the same record carries the longer phrase
+    // ("Warehousing, distribution of non-final products") and its own products
+    // half, which a comma split would have shredded into three.
+    const twin = aboniInput();
+    // The same record's second GOTS certificate, read on a day it was still
+    // valid (it lapsed on 4 Apr 2026); its ten operations include the phrase.
+    twin.profile.certifications = [twin.profile.certifications[1]!];
+    twin.today = new Date("2026-03-01T10:00:00Z");
+    const twinScope = buildProductSheet(twin, "6105").facts.find((f) => f.label === "Certified scope")!;
+    assert.equal(
+      twinScope.value,
+      "GOTS-27605 · dyeing, embroidery, embellishment, finishing +7 · products: babies' apparel, children's apparel, children's denim apparel +9",
+    );
     // Cycle 5, finding 21: the badge read "· No expiry on file" for an undated
     // certificate, because the scheme alone was stripped off "GOTS · no expiry".
     assert.equal(scope.badge?.label, "Valid to 12 May 2027");
@@ -647,5 +710,117 @@ describe("the 125-character name survives the name formatter whole", () => {
     assert.equal(LONG_NAME_125.length, 125);
     assert.equal(displayName(LONG_NAME_125), LONG_NAME_125);
     assert.equal(initials(LONG_NAME_125), "IA");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Cycle 6 guards.
+// ---------------------------------------------------------------------------
+
+describe("recordPage: a link is a page about this record, or there is no link", () => {
+  // Every URL shape production's `source_url` columns actually hold, sorted
+  // into the two answers. A mark's accessible name promises "opens the
+  // register page", so a false positive is the screen lying to a screen reader.
+  const PAGES = [
+    "https://www.bgmea.com.bd/member/71",
+    "https://edb.epb.gov.bd/exporter/3335/aboni-knitwear-ltd",
+    "https://wrapcompliance.org/certified-facility/7865/",
+    "https://www.global-trace-base.org/SCO039488/certificate-document",
+    "https://services.oeko-tex.com/newoekotex/portal/for-new-website/customer_profile/9741~1wdI2V~Gc5OsM1AI-9iRdEvDZMRbc_8T2o/",
+    "https://accord2.fairfactories.org/accord_v2_files/1/Audit_Files/12868.pdf",
+    "https://accord2.fairfactories.org/web/Audits/Audits/DownloadCAPFile?id=9342",
+    "https://hmgroup.com/wp-content/uploads/spur/HM-Group-Supplier-List-May-2026 .xlsx",
+  ];
+  const NOT_PAGES = [
+    // Front doors: the register, not the record.
+    "https://bgapmea.org/",
+    "https://www.rsc-bd.org/",
+    "https://www.bkmea.com/",
+    "https://epb.gov.bd",
+    "https://member.bkmea.com",
+    "https://global-standard.org",
+    "https://www.oeko-tex.com",
+    "https://wrapcompliance.org",
+    "https://www.bgmea.com.bd",
+    // A search form is not a record page even with the record's name in it.
+    "https://example.org/search?q=aboni",
+    "https://www.bgmea.com.bd/member-search",
+    "https://edb.epb.gov.bd/find/2068",
+    "https://x.org/directory/3",
+    "https://x.org/lookup?id=7",
+    // A bulk API listing is a file of everybody, which is what M&S's row is.
+    "https://opensupplyhub.org/api/facilities/?contributors=10061&countries=BD&pageSize=50&embed=1&sort_by=name_asc",
+    // A named section of the register is not a record either. No production
+    // row is this shape today, but the rule decides for every URL the
+    // scrapers add next, and a mark that says "opens the register page" must
+    // not open a list of everybody.
+    "https://www.bgmea.com.bd/members",
+    "https://member.bkmea.com/membership/list",
+    "https://wrapcompliance.org/certified-facilities",
+    "https://services.oeko-tex.com/newoekotex/portal/for-new-website",
+    // Not a URL at all, or not one a browser should follow.
+    "",
+    "bgmea.com.bd/member/71",
+    "javascript:alert(1)",
+    "ftp://files.example.org/1.pdf",
+    "not a url",
+  ];
+
+  for (const url of PAGES) it(`is a record page: ${url.slice(0, 60)}`, () => assert.equal(recordPage(url), true));
+  for (const url of NOT_PAGES) it(`is not a record page: ${JSON.stringify(url).slice(0, 60)}`, () => assert.equal(recordPage(url), false));
+
+  it("null and undefined are not links", () => {
+    assert.equal(recordPage(null), false);
+    assert.equal(recordPage(undefined), false);
+  });
+});
+
+describe("the meta line's negative agrees with itself in number", () => {
+  it("one missing fact is singular, two are joined, three are a list", () => {
+    const only = (input: RecordInput) => buildCard(input).meta.find((f) => /not on file/.test(f.text))?.text;
+    // Adventure Garments files its year and its headcount, and has a district.
+    assert.equal(only(longestProductListInput()), undefined);
+    const noYear = longestProductListInput();
+    noYear.profile.supplier.established_date = null;
+    assert.equal(only(noYear), "Year not on file");
+    const noYearNoWorkers = longestProductListInput();
+    noYearNoWorkers.profile.supplier.established_date = null;
+    noYearNoWorkers.profile.supplier.employees_total = null;
+    noYearNoWorkers.workers = null;
+    assert.equal(only(noYearNoWorkers), "Year and workers not on file");
+    // A.R. Fashion has none of the three.
+    assert.equal(only(arFashionInput()), "District, year and workers not on file");
+    assert.doesNotMatch(only(arFashionInput()) ?? "", /Districts|years|workerss/);
+  });
+});
+
+describe("a record with two numbers at the same register", () => {
+  it("S M Knitwears' two EPB registrations are both shown, under one EPB mark", () => {
+    const p = smKnitwearInput().profile;
+    const epb = p.pills.filter((x) => x.source_code.toUpperCase() === "EPB");
+    assert.equal(epb.length, 2, "the fixture no longer carries the two-EPB shape this guard is about");
+    const sheet = buildSheet(smKnitwearInput());
+    const registers = sheet.facts.find((f) => f.label === "Registers")!;
+    for (const pill of epb) assert.ok(registers.value?.includes(pill.value!), `${pill.value} is not on the Registers row`);
+    // One square per register, however many numbers it filed.
+    const epbMarks = (registers.marks ?? []).filter((m) => m.code === "EPB");
+    assert.equal(epbMarks.length, 1, "EPB is stamped once per number instead of once per register");
+    // And the card's mark row counts registers, not rows.
+    const card = buildCard(smKnitwearInput());
+    assert.equal(card.marks.filter((m) => m.code === "EPB").length, 1);
+  });
+
+  it("the fact-row marks are deduped and in rank order everywhere they appear", () => {
+    for (const input of [aboniInput(), smKnitwearInput(), buildingSafetyOnlyInput(), duplicateBrandRowsInput()]) {
+      const sheet = buildSheet(input);
+      for (const row of sheet.facts) {
+        const codes = (row.marks ?? []).map((m) => m.code);
+        assert.deepEqual([...new Set(codes)], codes, `${input.profile.supplier.slug} "${row.label}" stamps a register twice`);
+        const tiers = (row.marks ?? []).map((m) => m.tier);
+        assert.deepEqual([...tiers].sort((a, b) => a - b), tiers, `${input.profile.supplier.slug} "${row.label}" is out of rank order`);
+      }
+      const cardCodes = buildCard(input).marks.map((m) => m.code);
+      assert.deepEqual([...new Set(cardCodes)], cardCodes, `${input.profile.supplier.slug}'s mark row repeats a register`);
+    }
   });
 });
