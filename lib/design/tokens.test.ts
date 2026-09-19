@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
-import { contrastPairs, contrastRatio, light, resolve, toRgb } from "./tokens";
+import { borderRadius, boxShadow, contrastPairs, contrastRatio, fontSize, light, resolve, toRgb } from "./tokens";
 
 // npm test runs from the repo root; the compiled test lives elsewhere.
 const repoRoot = process.cwd();
@@ -26,6 +26,16 @@ test("every token colour is a 6-digit hex", () => {
   }
 });
 
+// A colour group and a shadow / size / radius key with the same name would
+// compile to the same utility (`shadow-signal` was both the signal colour and
+// the signal glow) and one silently wins.
+test("no colour group shares its name with a shadow, size or radius token", () => {
+  const groups = new Set(Object.keys(light));
+  for (const key of [...Object.keys(boxShadow), ...Object.keys(fontSize), ...Object.keys(borderRadius)]) {
+    assert.ok(!groups.has(key), `"${key}" is both a colour group and another token; the utilities collide`);
+  }
+});
+
 test("the sanction red is used by no other role", () => {
   const reserved = new Set(Object.values(light.sanction).map((h) => h.toUpperCase()));
   reserved.delete(light.sanction.on.toUpperCase()); // plain white is shared
@@ -40,7 +50,15 @@ test("the sanction red is used by no other role", () => {
 // Spec §2 + §6: no hand-typed colour outside the token file. The guarded set
 // is every file the rebuild has written so far; it widens as pages are
 // rebuilt and becomes repo-wide (as a lint rule) before the switch.
-const GUARDED = ["tailwind.config.ts", "app/ds.css", "app/layout.tsx", "app/dev/ds", "components/ds"];
+const GUARDED = [
+  "tailwind.config.ts",
+  "app/ds.css",
+  "app/layout.tsx",
+  "app/dev/ds",
+  "components/ds",
+  "components/dashboard",
+  "lib/dashboard",
+];
 const HAND_TYPED = /#[0-9a-fA-F]{3,8}\b|\b(?:rgba?|hsla?|oklch|oklab)\(\s*[\d.]/;
 // Tailwind's own palette no longer exists; using it would silently render nothing.
 const OLD_PALETTE =

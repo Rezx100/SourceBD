@@ -1,0 +1,213 @@
+import "server-only";
+
+// The /dev/ds gallery's data for the six dashboard screens (REZ-A, handoff
+// §7.1 "rendered from real data"). Everything comes from production through
+// the same RPCs the buyer app calls — `buyer_supplier_profile`,
+// `supplier_epb_hscodes`, `production_workers_display_batch`,
+// `discover_suppliers`, `rfq_list` — for the named test records of the
+// rebuild spec §3: the 11-source record (Aboni), the six-certificate record
+// (S M Knitwears), the 100-character name (Zaheen, rendered as the labelled
+// sanctioned SAMPLE — it is not sanctioned in production) and the almost-empty
+// record (A.R. Fashion). A record that cannot be read is left out, never
+// invented.
+
+import { fetchDisplayWorkersBatch } from "@/lib/enrich-discover-workers";
+import { hscodesFromRpc } from "@/lib/epb-hscodes";
+import { buildCard, buildRfqRow, buildSheet, buildTableRow, buildProductSheet, type ProfilePayload, type RecordInput, type RfqListRow } from "./build-models";
+
+import { formatCount, formatDay } from "./facts";
+import type { RfqListModel, SupplierCardModel, SupplierSheetModel, TableRowModel, ProductSheetModel } from "./models";
+
+/** The sort the RPC knows for "most sources" (`discover_suppliers` p_sort: receipts | name | completeness). */
+export const SORT_MOST_SOURCES = "receipts";
+
+/** The argument list `discover_suppliers` takes, every key present, in one place. */
+export function discoverArgs(over: { q?: string | null; certKinds?: string[] | null; limit: number }): Record<string, unknown> {
+  return {
+    p_q: over.q ?? null,
+    p_entity_types: null,
+    p_min_sources: null,
+    p_cert_kinds: over.certKinds ?? null,
+    p_rsc_min: null,
+    p_city: null,
+    p_district: null,
+    p_category: null,
+    p_sort: SORT_MOST_SOURCES,
+    p_limit: over.limit,
+    p_offset: 0,
+    p_registries: null,
+    p_factory_types: null,
+    p_brand_codes: null,
+    p_completeness_min: null,
+    p_workers_min: null,
+  };
+}
+
+export const GALLERY_SLUGS = {
+  aboni: "aboni-knitwear",
+  sm: "sm-knitwear",
+  zaheen: "zaheen-knitwear-limited-shed-3-4-5-10-11-12-13-and-building-security-etp-and-fire-pump",
+  ar: "ar-fashion",
+} as const;
+
+/** The query the screens show: knitted shirts with a GOTS certificate (the RPC's text + cert filter). */
+export const GALLERY_QUERY = { q: "knitted shirts", certKinds: ["gots"], title: "Knitted shirts · GOTS valid" } as const;
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type Rpc = { rpc: (fn: string, args: Record<string, unknown>) => any };
+
+export type GalleryRecord = { slug: string; input: RecordInput };
+
+/** A record's profile and lines; the worker figure is filled in by one batch call afterwards. */
+async function loadRecord(supabase: Rpc, slug: string, today: Date, sanctionSample = false): Promise<GalleryRecord | null> {
+  try {
+    const [profileResult, hsResult] = await Promise.all([
+      supabase.rpc("buyer_supplier_profile", { p_slug: slug }),
+      supabase.rpc("supplier_epb_hscodes", { p_slug: slug }),
+    ]);
+    const data = profileResult?.data;
+    if (profileResult?.error || !data || typeof data !== "object" || !("supplier" in data)) return null;
+    const profile = data as ProfilePayload;
+    // A failed lines read is carried as "unknown", never rendered as "no lines".
+    const { hscodes, loadError } = hscodesFromRpc({ data: hsResult?.data, error: hsResult?.error });
+    return { slug, input: { profile, hscodes, hscodesError: loadError, workers: null, today, sanctionSample } };
+  } catch {
+    return null;
+  }
+}
+
+/** One `production_workers_display_batch` call for every record on the page. */
+async function fillWorkers(supabase: Rpc, records: GalleryRecord[]): Promise<void> {
+  if (records.length === 0) return;
+  const byId = await fetchDisplayWorkersBatch(supabase, records.map((r) => r.input.profile.supplier.id));
+  for (const r of records) {
+    const w = byId[r.input.profile.supplier.id];
+    r.input.workers = w ? { value: w.value, source: w.source } : null;
+  }
+}
+
+export type GalleryData = {
+  today: Date;
+  /** The viewer's plan name from settings; null until billing exists (the contact card then says only "Contact details"). */
+  plan: string | null;
+  /** True when `discover_suppliers` failed — the header count is then unknown, not 0. */
+  discoverError: boolean;
+  records: Record<keyof typeof GALLERY_SLUGS, GalleryRecord | null>;
+  cards: SupplierCardModel[];
+  rows: TableRowModel[];
+  sheet: SupplierSheetModel | null;
+  productSheet: ProductSheetModel | null;
+  total: number | null;
+  published: number | null;
+  recordsReadOn: string | null;
+  rfqs: RfqListModel;
+};
+
+export async function loadGalleryData(supabase: Rpc, today = new Date()): Promise<GalleryData> {
+  const [aboni, sm, zaheen, ar] = await Promise.all([
+    loadRecord(supabase, GALLERY_SLUGS.aboni, today),
+    loadRecord(supabase, GALLERY_SLUGS.sm, today),
+    loadRecord(supabase, GALLERY_SLUGS.zaheen, today, true),
+    loadRecord(supabase, GALLERY_SLUGS.ar, today),
+  ]);
+  const records = { aboni, sm, zaheen, ar };
+  const named = [aboni, sm, zaheen, ar].filter((r): r is GalleryRecord => r !== null);
+
+  // The live count behind the query, and the top rows for the table beyond the named four.
+  let total: number | null = null;
+  let discoverError = false;
+  let extraSlugs: string[] = [];
+  try {
+    const { data, error } = await supabase.rpc("discover_suppliers", discoverArgs({ q: GALLERY_QUERY.q, certKinds: [...GALLERY_QUERY.certKinds], limit: 8 }));
+    if (error) discoverError = true;
+    else {
+      const rows = (Array.isArray(data) ? data : []) as { slug: string; total_count: number }[];
+      total = rows[0] ? Number(rows[0].total_count) : 0;
+      const namedSlugs = new Set(named.map((r) => r.slug));
+      extraSlugs = rows.map((r) => r.slug).filter((s) => !namedSlugs.has(s)).slice(0, 4);
+    }
+  } catch {
+    discoverError = true;
+  }
+  const extra = (await Promise.all(extraSlugs.map((s) => loadRecord(supabase, s, today)))).filter(
+    (r): r is GalleryRecord => r !== null,
+  );
+  await fillWorkers(supabase, [...named, ...extra]);
+
+  const cards = [aboni, sm, zaheen, ar].filter((r): r is GalleryRecord => r !== null).map((r) => buildCard(r.input));
+  if (cards[0]) cards[0].selected = true;
+  const rowRecords = [aboni, sm, ...extra, zaheen, ar].filter((r): r is GalleryRecord => r !== null);
+  const rows = rowRecords.map((r) => buildTableRow(r.input));
+  if (rows[0]) rows[0].selected = true;
+
+  // Published count and latest read date for the topbar caption.
+  let published: number | null = null;
+  let recordsReadOn: string | null = null;
+  try {
+    // An unfiltered page of one: its `total_count` is the published-supplier count.
+    const { data, error } = await supabase.rpc("discover_suppliers", discoverArgs({ limit: 1 }));
+    const first = !error && Array.isArray(data) ? (data[0] as { total_count?: unknown } | undefined) : undefined;
+    if (first && typeof first.total_count === "number") published = first.total_count;
+    else if (first && typeof first.total_count === "string") published = Number(first.total_count);
+  } catch {
+    published = null;
+  }
+  const latest = named
+    .flatMap((r) => (r.input.profile.provenance ?? []).map((p) => (p.last_seen_at ? Date.parse(p.last_seen_at) : NaN)))
+    .filter((t) => !Number.isNaN(t))
+    .reduce<number>((m, t) => Math.max(m, t), -1);
+  recordsReadOn = latest < 0 ? null : formatDay(new Date(latest).toISOString());
+
+  // RFQs of the viewer (admin in the gallery), as `rfq_list` returns them.
+  let rfqRows: RfqListRow[] = [];
+  try {
+    const { data, error } = await supabase.rpc("rfq_list", { p_status: null });
+    rfqRows = !error && Array.isArray(data) ? (data as RfqListRow[]) : [];
+  } catch {
+    rfqRows = [];
+  }
+  const sent = rfqRows.filter((r) => r.status !== "cancelled").length;
+  const quotes = rfqRows.reduce((n, r) => n + (r.quote_count ?? 0), 0);
+  const rfqModels = rfqRows.map((r) => buildRfqRow(r, null, today));
+  const count = (pred: (r: (typeof rfqModels)[number]) => boolean) => rfqModels.filter(pred).length;
+  const rfqs: RfqListModel = {
+    sent,
+    quotes,
+    chips: [
+      { label: "All", count: rfqModels.length, on: true },
+      { label: "Awaiting reply", count: count((r) => r.status.label.startsWith("Sent")) },
+      { label: "Quoted", count: count((r) => r.status.label.startsWith("Quoted") || r.status.label === "Quote accepted") },
+      // "Reply overdue" and "Draft" need reply-by dates, threads and rfq_drafts (REZ-D); no chip until then.
+      { label: "Closed", count: count((r) => r.status.label === "Closed" || r.status.label === "Cancelled") },
+    ],
+    rows: rfqModels,
+    footer:
+      rfqModels.length > 0
+        ? `1–${rfqModels.length} of ${rfqModels.length} · a supplier's reply lands in Messages and turns the row Quoted`
+        : "No RFQs for this account yet",
+    toast: null,
+  };
+
+  return {
+    today,
+    plan: null,
+    discoverError,
+    records,
+    cards,
+    rows,
+    sheet: aboni ? buildSheet(aboni.input, { plan: null }) : null,
+    productSheet: aboni ? buildProductSheet(aboni.input, "6105") : null,
+    total,
+    published,
+    recordsReadOn,
+    rfqs,
+  };
+}
+
+/** "10,266 published suppliers · records read 18 Sep 2026" from what could be read. */
+export function topbarCaption(d: Pick<GalleryData, "published" | "recordsReadOn">): string {
+  const parts: string[] = [];
+  if (d.published !== null) parts.push(`${formatCount(d.published)} published suppliers`);
+  if (d.recordsReadOn) parts.push(`records read ${d.recordsReadOn}`);
+  return parts.join(" · ") || "Live records";
+}

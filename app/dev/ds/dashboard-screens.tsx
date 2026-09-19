@@ -1,0 +1,228 @@
+// The six buyer dashboard v3.2 screens in the gallery (REZ-A, handoff §7.1),
+// each rendered inside the app shell at 1440 from the real records loaded by
+// `lib/dashboard/gallery-data.ts`. Sheets and the dialog sit over the results
+// on a fixed-height stage, as the artifact renders them.
+
+import type { ReactNode } from "react";
+import {
+  AppShell,
+  MissingFlag,
+  Panel,
+  PanelFooter,
+  PanelHeader,
+  ProductSheet,
+  ResultsTable,
+  RfqComposer,
+  RfqList,
+  Scrim,
+  SearchComposer,
+  Stage,
+  SupplierResultCard,
+  SupplierSheet,
+  type RfqComposerModel,
+  type SidebarModel,
+  type TopbarModel,
+} from "@/components/dashboard";
+import { certChipLabel, formatDay } from "@/lib/dashboard/facts";
+import { GALLERY_QUERY, topbarCaption, type GalleryData } from "@/lib/dashboard/gallery-data";
+import { heading4, hsShortLabel } from "@/lib/dashboard/hs-photos";
+
+export const SCREEN_WIDTH = 1440;
+
+function shellModels(d: GalleryData, active: SidebarModel["active"]): { sidebar: SidebarModel; topbar: TopbarModel } {
+  const sidebar: SidebarModel = {
+    active,
+    counts: { suppliers: d.published, rfqs: d.rfqs.rows.length, saved: null },
+    recent: d.total !== null ? [{ label: GALLERY_QUERY.title, count: d.total, href: "#results" }] : [],
+    // No billing exists yet: the plan line names the beta, never a plan or renewal date (handoff §3.10).
+    plan: { name: d.plan ?? "Free · public beta" },
+  };
+  const topbar: TopbarModel = { caption: topbarCaption(d), initial: null };
+  return { sidebar, topbar };
+}
+
+function header(d: GalleryData, view: "cards" | "table", shown: number) {
+  // The count is the RPC's; when the RPC failed it is unknown (null), never 0.
+  return { title: GALLERY_QUERY.title, total: d.discoverError ? null : d.total, shown, sortLabel: "Most sources", view };
+}
+
+function Frame({ id, title, note, height, children }: { id: string; title: string; note: string; height?: number; children: ReactNode }) {
+  return (
+    <figure id={id} className="m-0 space-y-2">
+      <figcaption className="space-y-0.5">
+        <span className="block text-sm font-medium text-ink-strong">{title}</span>
+        <span className="block max-w-prose text-xs text-ink-subtle">{note}</span>
+      </figcaption>
+      {/* Breaks out of the gallery's 1200px column so a 1440 screen shows whole on a wide display; narrower displays scroll it. */}
+      <div className="relative left-1/2 w-[min(100vw-2rem,1440px)] -translate-x-1/2 overflow-x-auto rounded-md border border-line bg-canvas">
+        <div style={{ width: SCREEN_WIDTH, minHeight: height }} data-screen={id}>
+          {children}
+        </div>
+      </div>
+    </figure>
+  );
+}
+
+function ResultsHeaderNote(d: GalleryData): string {
+  const total = d.total === null ? "the live count could not be read" : `${d.total} suppliers match the text "${GALLERY_QUERY.q}" with a GOTS certificate in production (the HS and certificate-state filters the chips name arrive with REZ-B)`;
+  return `The four named test records of the rebuild spec, shown in the query's frame: ${d.cards.map((c) => c.name).join(" · ")}. ${total}. Zaheen is rendered as a labelled sanctioned SAMPLE — no company is sanctioned in production. Read ${formatDay(d.today.toISOString())}.`;
+}
+
+export function DashboardScreens({ data: d }: { data: GalleryData }) {
+  const composerChips = [
+    { label: "Product · Knitted shirts", code: "6105" },
+    { label: "Certificate · GOTS, valid" },
+  ];
+  const results = shellModels(d, "suppliers");
+  const cardsPanel = (
+    <Panel>
+      <PanelHeader model={header(d, "cards", d.cards.length)} />
+      {d.cards.map((c) => (
+        <SupplierResultCard key={c.slug} card={c} />
+      ))}
+      <PanelFooter shown={d.cards.length} total={d.discoverError ? null : d.total} perPage={25} />
+    </Panel>
+  );
+
+  const composer = d.records.aboni ? composerModel(d) : null;
+
+  return (
+    <div className="space-y-10">
+      <Frame id="results-list" title="ResultsList — result cards" note={ResultsHeaderNote(d)}>
+        <AppShell sidebar={results.sidebar} topbar={results.topbar}>
+          <SearchComposer chips={composerChips} askEnabled={false} />
+          {cardsPanel}
+        </AppShell>
+      </Frame>
+
+      <Frame id="results-table" title="ResultsTable — the toggle's other state" note={`Same header and footer, 36px rows. ${d.rows.length} rows: the named records plus the top matches for the query, sorted by most sources.`}>
+        <AppShell sidebar={results.sidebar} topbar={results.topbar}>
+          <SearchComposer chips={composerChips} askEnabled={false} />
+          <Panel>
+            <PanelHeader model={header(d, "table", d.rows.length)} />
+            <ResultsTable rows={d.rows} />
+            <PanelFooter shown={d.rows.length} total={d.discoverError ? null : d.total} perPage={25} />
+          </Panel>
+        </AppShell>
+      </Frame>
+
+      {d.sheet ? (
+        <Frame id="supplier-sheet" title="SupplierSheet — the record over the results" note={`${d.sheet.name}: ${d.sheet.sourceCount} sources, ${d.sheet.certs.length} certificates, ${d.sheet.products.lines} HS lines, read ${d.sheet.readDate ?? "—"}. Contact details locked (striped, never blurred).`} height={1240}>
+          <Stage height={1240}>
+            <AppShell sidebar={results.sidebar} topbar={results.topbar}>
+              <SearchComposer chips={composerChips} askEnabled={false} />
+              {cardsPanel}
+            </AppShell>
+            <Scrim />
+            <SupplierSheet model={d.sheet} />
+          </Stage>
+        </Frame>
+      ) : null}
+
+      {d.productSheet ? (
+        <Frame id="product-sheet" title="ProductSheet — one HS export line" note={`HS ${d.productSheet.hs} on ${d.productSheet.supplierName}'s EPB exporter page. The photo is the catalogue's illustrative photo for the heading, never the supplier's own.`} height={760}>
+          <Stage height={760}>
+            <AppShell sidebar={results.sidebar} topbar={results.topbar}>
+              <SearchComposer chips={composerChips} askEnabled={false} />
+              {cardsPanel}
+            </AppShell>
+            <Scrim />
+            <ProductSheet model={d.productSheet} />
+          </Stage>
+        </Frame>
+      ) : null}
+
+      {composer ? (
+        <Frame id="rfq-composer" title="RFQComposer — rail, editor with variables, preview" note="A sample draft to the Aboni record: the certificate number, expiry and HS line in the message are the record's real facts; the product, quantity and dates are the buyer's own draft fields, shown here as a sample. AI is off in this build, so the V2 surfaces (Improve wording, Follow-up rules) are absent." height={860}>
+          <Stage height={860}>
+            <AppShell sidebar={results.sidebar} topbar={results.topbar}>
+              <SearchComposer chips={composerChips} askEnabled={false} />
+              {cardsPanel}
+            </AppShell>
+            <Scrim />
+            <RfqComposer model={composer} aiEnabled={false} />
+          </Stage>
+        </Frame>
+      ) : null}
+
+      <Frame id="rfq-list" title="RFQList — status chips, table, empty state" note={`The viewer's own RFQs from rfq_list (${d.rfqs.rows.length} for this account). With none, the page sells the feature: "${"Your first RFQ lands here."}"`} height={700}>
+        <Stage height={700}>
+          <AppShell {...shellModels(d, "rfqs")} contentClassName="gap-5">
+            <RfqList model={d.rfqs} />
+          </AppShell>
+        </Stage>
+      </Frame>
+    </div>
+  );
+}
+
+/** The composer's draft, built on the Aboni record's real facts. */
+function composerModel(d: GalleryData): RfqComposerModel {
+  const rec = d.records.aboni!;
+  const name = d.sheet?.name ?? rec.input.profile.supplier.company_name;
+  const gots = d.sheet?.certs.find((c) => c.kind.toUpperCase() === "GOTS" && c.state !== "expired") ?? null;
+  // The HS line comes from a line the record really carries; with none read, the draft names no line.
+  const lines = rec.input.hscodes.map((h) => heading4(h.code));
+  const hs: string | null = lines.includes("6105") ? "6105" : (lines[0] ?? null);
+  const certLine = gots
+    ? `your ${gots.scheme} certificate ${gots.number ?? ""} is ${certChipLabel(gots).replace(`${gots.scheme} `, "")}`.replace(/\s+/g, " ").trim()
+    : "no certificate on file";
+  const product = hs ? `Men's knitted piqué polo · HS ${hs}` : "Men's knitted piqué polo";
+  return {
+    title: "New RFQ",
+    context: `to ${name} · first contact${hs ? ` · HS ${hs}` : ""} · sample draft`,
+    draftSaved: null,
+    steps: [
+      { label: "Suppliers", detail: `${name} · first contact`, count: "1" },
+      { label: "Product", detail: product, missing: hs ? "Target price missing" : "Target price and HS line missing", count: hs },
+      { label: "Details", detail: "Name, reply-by, incoterm, destination", missing: "Reply-by date and destination missing", count: "2/6", active: true },
+      { label: "Questions", detail: "5 required on first contact", count: "10" },
+      { label: "Follow-up rules", detail: "Draft a follow-up if no reply in 5 days", v2: true },
+    ],
+    template: "first",
+    subject: ["RFQ · ", { label: "Product" }, " · ", { label: "Quantity" }, " · reply by ", { label: "Reply-by date", missing: true }],
+    body: [
+      ["Dear ", { label: "Supplier contact" }, ","],
+      [
+        "We read your record on SourceBD — ",
+        { label: "Certificate line" },
+        ...(hs ? [", HS ", { label: "HS code" }, " on your EPB exporter page"] : []),
+        " — and would like a quotation for the line below, delivered ",
+        { label: "Incoterm", missing: true },
+        " to ",
+        { label: "Destination", missing: true },
+        ".",
+      ],
+      ["Please answer the five questions under the table. Reply inside SourceBD by ", { label: "Reply-by date", missing: true }, "."],
+    ],
+    products: [{ product: hs ? `Men's knitted piqué polo, 220 gsm, 100 % cotton (${hsShortLabel(hs)})` : "Men's knitted piqué polo, 220 gsm, 100 % cotton", hs, quantity: "12,000 pcs", targetPrice: null, shipBy: "15 Dec 2026" }],
+    questions: [
+      { text: "Unit price at 12,000 pcs, FOB Chattogram", on: true, required: true },
+      { text: "Minimum order quantity per colour", on: true, required: true },
+      { text: "Sample lead time and cost", on: true, required: true },
+      { text: gots?.number ? `Is ${gots.number} the scope this line ships under?` : "Which certificate scope does this line ship under?", on: true, required: true },
+    ],
+    moreQuestions: { count: 6, required: 1 },
+    preview: {
+      from: "From your workspace · reply inside SourceBD",
+      subject: (
+        <>
+          RFQ · Men&apos;s knitted piqué polo · 12,000 pcs · reply by <MissingFlag>date missing</MissingFlag>
+        </>
+      ),
+      paragraphs: [
+        <span key="1">Dear {name},</span>,
+        <span key="2">
+          We read your record on SourceBD — {certLine}
+          {hs ? `; HS ${hs} is on your EPB exporter page` : ""} — and would like a quotation for the line below, delivered{" "}
+          <MissingFlag>incoterm</MissingFlag> to <MissingFlag>destination</MissingFlag>.
+        </span>,
+        <span key="3">
+          Please answer the five questions under the table. Reply inside SourceBD by <MissingFlag>date missing</MissingFlag>.
+        </span>,
+      ],
+      footer: "1 product line · 10 questions · no attachments",
+    },
+    missing: [...(hs ? [] : ["HS line"]), "target price", "reply-by date", "incoterm", "destination"],
+  };
+}

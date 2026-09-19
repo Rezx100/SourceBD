@@ -28,9 +28,15 @@ migrations, run the 30-day zero P1/P2 Sentry incident window.
 - **REZ-73 — Facilities section + labelled group figures on mother profiles**,
   on branch `rez-73-facilities-lean`. Lean rewrite: migration `0097_` + thin
   UI; SQL owns the roll-up; under 400 product lines.
-- **Design-system rebuild** — spec `feature-specs/ds-rebuild-must-stay.md`,
-  in progress on branch `design-rebuild` (18 Sep): tokens + `/dev/ds` gallery
-  built, awaiting founder review. Old pages on that branch are unstyled until rebuilt.
+- **Design-system rebuild** — spec `feature-specs/ds-rebuild-must-stay.md`.
+  `design-rebuild` landed on `development` 18 Sep (`09ec96b`): tokens +
+  `/dev/ds` gallery. Old pages are unstyled until rebuilt.
+- **Buyer dashboard v3.2, REZ-A (the code port of the dashboard kit)** —
+  branch `rez-a-dashboard-kit` (19 Sep). Tokens are the artifact's v3 set
+  (Geist / Geist Mono self-hosted, warm canvas, radii 6/10/14 — founder
+  decision 19 Sep, supersedes §9's Inter and 5/6/8). Kit under
+  `components/dashboard`, builders under `lib/dashboard`, six screens on
+  `/dev/ds` from production records. Not landed.
 
 ## Founder rules still in force (one line each; detail in archive)
 - EPB is a government register: show its evidence and HS codes whenever EPB has them, flagged or not. Never mint EPB-only suppliers. (15 Aug)

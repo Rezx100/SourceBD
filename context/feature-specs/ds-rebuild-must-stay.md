@@ -177,6 +177,13 @@ Shared: login, signup, forgot/reset password, suspended, not found, error.
 
 ## 9. Locked direction (18 Sep 2026)
 
+**Amended 19 Sep 2026 (founder decision, REZ-A):** the code follows the Design
+System artifact's v3 tokens, which the approved v3.2 dashboard screens were
+rendered with — Geist and Geist Mono (self-hosted, replacing Inter), the warm
+canvas, radii 3 / 6 / 10 / 14 / 20, and the `smart`, `signal` and glass roles.
+Where this section and `lib/design/tokens.ts` differ, the token file is the
+truth; the rules of §2 and §5 are unchanged.
+
 Reference-led, chosen on Mobbin. We take the pattern from each reference — layout, density, type scale, spacing, how colour is spent — never its logo, colours or illustrations.
 
 ### References, by product name
