@@ -484,6 +484,11 @@ M = [
  '            <span className="opacity-70">\n              <Icon name="x" small label={`Remove ${c.label}`} />\n            </span>'),
  ('c11-read-date-is-the-newest', 'lib/dashboard/gallery-data.ts', '  const oldest = readTimes[0];', '  const oldest = readTimes[readTimes.length - 1];'),
  ('c11-heading-level-skipped', 'components/dashboard/sheet.tsx', '          <Heading level="sm" as="h2" className="flex-1">', '          <Heading level="sm" as="h3" className="flex-1">'),
+ ('c12-composer-rail-literals',
+ 'app/dev/ds/dashboard-screens.tsx',
+ '        missing: detailMissing.length === 0 ? undefined : `${listWords(detailMissing.map((f, i) => (i === 0 ? f : f.toLowerCase())))} missing`,\n'
+ '        count: `${DETAIL_FIELDS.length - detailMissing.length}/${DETAIL_FIELDS.length}`,',
+ '        missing: "Reply-by date and destination missing",\n        count: "2/6",'),
 ]
 
 # An interrupted sweep used to leave the tree mutated, and the next run then
