@@ -504,6 +504,19 @@ M = [
  '            o.value === value && "bg-brand-tint text-brand-ink",'),
  ('c13-modal-background-live', 'components/dashboard/sheet.tsx', '      {behind === undefined ? null : <div inert>{behind}</div>}', '      {behind === undefined ? null : <div>{behind}</div>}'),
  ('c13-landmarks-share-an-id', 'components/dashboard/app-shell.tsx', '  mainId = "ds-main",', '  mainId: _mainId = "ds-main",'),
+ ('c14-sheet-read-date-is-a-maximum',
+ 'lib/dashboard/build-models.ts',
+ '  return formatDayRange(new Date(oldest).toISOString(), new Date(newest).toISOString());',
+ '  void oldest;\n  return formatDay(new Date(newest).toISOString());'),
+ ('c14-caption-travels-to-the-rfq-screen', 'app/dev/ds/dashboard-screens.tsx', '  const drawsRecords = active !== "rfqs";', '  const drawsRecords = true;'),
+ ('c14-step-state-is-a-hairline',
+ 'components/dashboard/rfq-composer.tsx',
+ '                s.active && "bg-surface ring-1 ring-inset ring-line border-l-[3px] border-brand pl-[7px]",',
+ '                s.active && "bg-surface ring-1 ring-inset ring-line",'),
+ ('c14-day-range-collapses-to-one-day',
+ 'lib/dashboard/facts.ts',
+ '  if (a === b) return a;\n  const year = a.slice(a.lastIndexOf(" ") + 1);',
+ '  if (a !== b) return b;\n  const year = a.slice(a.lastIndexOf(" ") + 1);'),
 ]
 
 # An interrupted sweep used to leave the tree mutated, and the next run then
