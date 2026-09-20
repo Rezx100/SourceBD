@@ -36,7 +36,7 @@ function navCount(key: NavKey, counts: SidebarModel["counts"]): ReactNode {
   return n === null || n === undefined ? null : formatCount(n);
 }
 
-export function Sidebar({ model }: { model: SidebarModel }) {
+export function Sidebar({ model, screenLabel }: { model: SidebarModel; screenLabel?: string }) {
   const { plan } = model;
   const pct =
     plan.used !== null && plan.used !== undefined && plan.allowance ? Math.round((plan.used / plan.allowance) * 100) : null;
@@ -51,7 +51,7 @@ export function Sidebar({ model }: { model: SidebarModel }) {
         </span>
         <span className="text-title font-medium tracking-[-0.01em] text-ink-strong">SourceBD</span>
       </div>
-      <nav aria-label="Primary" className="flex flex-col gap-0.5">
+      <nav aria-label={screenLabel ? `Primary, ${screenLabel}` : "Primary"} className="flex flex-col gap-0.5">
         {NAV.map((item) => {
           const on = item.key === model.active;
           const count = navCount(item.key, model.counts);
@@ -119,11 +119,12 @@ export type TopbarModel = {
   initial: string | null;
 };
 
-export function Topbar({ model }: { model: TopbarModel }) {
+export function Topbar({ model, screenLabel }: { model: TopbarModel; screenLabel?: string }) {
   return (
     <div className="glass flex h-topbar shrink-0 items-center gap-4 border-b border-line-subtle px-6">
       <div
         role="search"
+        aria-label={screenLabel ? `Quick search, ${screenLabel}` : "Quick search"}
         className="flex h-control w-[360px] items-center gap-2 rounded-sm border border-line-strong bg-surface px-2.5 text-sm text-ink-subtle"
       >
         <Icon name="search" />
@@ -158,12 +159,21 @@ export function AppShell({
    * skip link to the first screen and the page shipped six duplicate ids.
    */
   mainId = "ds-main",
+  /**
+   * Distinguishes this instance's nav and search landmarks from another
+   * AppShell's when both are live in the same accessible tree at once — the
+   * gallery renders several full, non-inert instances on one page. A screen
+   * behind a modal (wrapped in `inert`) never needs one: `inert` removes it
+   * from the accessibility tree entirely, so nothing there can collide.
+   */
+  screenLabel,
   children,
 }: {
   sidebar: SidebarModel;
   topbar: TopbarModel;
   contentClassName?: string;
   mainId?: string;
+  screenLabel?: string;
   children: ReactNode;
 }) {
   // Every screen opens with the same eight sidebar links. Without a `main`
@@ -180,9 +190,9 @@ export function AppShell({
       >
         Skip to content
       </a>
-      <Sidebar model={sidebar} />
+      <Sidebar model={sidebar} screenLabel={screenLabel} />
       <div className="flex min-w-0 flex-1 flex-col">
-        <Topbar model={topbar} />
+        <Topbar model={topbar} screenLabel={screenLabel} />
         <main id={mainId} className={cn("mx-auto flex w-full max-w-[calc(75rem+3rem)] flex-col gap-4 p-6", contentClassName)}>
           {children}
         </main>

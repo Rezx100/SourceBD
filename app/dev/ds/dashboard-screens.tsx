@@ -125,14 +125,14 @@ export function DashboardScreens({ data: d }: { data: GalleryData }) {
   return (
     <div className="space-y-10">
       <Frame id="results-list" title="ResultsList — result cards" note={ResultsHeaderNote(d)}>
-        <AppShell sidebar={results.sidebar} topbar={results.topbar} mainId="results-list-main">
+        <AppShell sidebar={results.sidebar} topbar={results.topbar} mainId="results-list-main" screenLabel="results list">
           <SearchComposer chips={composerChips} askEnabled={false} />
           {cardsPanel}
         </AppShell>
       </Frame>
 
       <Frame id="results-table" title="ResultsTable — the toggle's other state" note={`Same header and footer, 36px rows, ${d.rows.length} rows: the same named records as the card view. The screens render from fixtures, so the query's own top matches are not loaded here.`}>
-        <AppShell sidebar={results.sidebar} topbar={tableTopbarModel(d)} mainId="results-table-main">
+        <AppShell sidebar={results.sidebar} topbar={tableTopbarModel(d)} mainId="results-table-main" screenLabel="results table">
           <SearchComposer chips={composerChips} askEnabled={false} />
           <Panel>
             <PanelHeader model={header(d, "table", d.rows.length)} />
@@ -200,7 +200,7 @@ export function DashboardScreens({ data: d }: { data: GalleryData }) {
         height={700}
       >
         <Stage height={700}>
-          <AppShell {...shellModels(d, "rfqs")} contentClassName="gap-5" mainId="rfq-list-main">
+          <AppShell {...shellModels(d, "rfqs")} contentClassName="gap-5" mainId="rfq-list-main" screenLabel="RFQ list">
             <RfqList model={d.rfqs} />
           </AppShell>
         </Stage>

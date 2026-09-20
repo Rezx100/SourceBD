@@ -497,6 +497,17 @@ describe("what the whole page may and may not say about itself", () => {
     // within-a-frame case a mutation sweep found that loop alone cannot see.
     const allMains = [...html.matchAll(/<main id="([^"]+)"/g)].map((m) => m[1]!);
     assert.equal(allMains.length, new Set(allMains).size, `two screens share a landmark id on the gallery page: ${allMains.join(", ")}`);
+    // Cycle 17, accessibility critic's finding. `id` uniqueness above does not
+    // cover `aria-label` uniqueness: three screens (results-list,
+    // results-table, rfq-list) each render their own, genuinely live
+    // `<nav aria-label="Primary">` and topbar search region, and a screen
+    // reader's landmark list showed three indistinguishable "Primary" navs
+    // and up to four indistinguishable, unlabeled "search" regions — two of
+    // them on the rfq-list screen alone. Collected from `reachable` content
+    // only, per frame, below: an inert background's own nav/search is not
+    // live and must not count toward this collision.
+    const navNames: string[] = [];
+    const searchNames: string[] = [];
     for (const f of frames) {
       // Every shell in the frame — the screen's own, and the one a sheet
       // covers — carries exactly one `main`, with its own id, reached by a
@@ -508,6 +519,10 @@ describe("what the whole page may and may not say about itself", () => {
       // sheet screens the shell is inert by design and the dialog is the
       // content, so what those screens owe is a labelled dialog instead.
       const reachable = f.replace(/<div\b[^>]*\binert\b[\s\S]*?<\/div>\s*(?=<div aria-hidden)/, "");
+      navNames.push(...[...reachable.matchAll(/<nav aria-label="([^"]+)"/g)].map((m) => m[1]!));
+      searchNames.push(
+        ...[...reachable.matchAll(/role="search"[^>]*aria-label="([^"]+)"/g), ...reachable.matchAll(/aria-label="([^"]+)"[^>]*role="search"/g)].map((m) => m[1]!),
+      );
       // Heading order matters only within one reachable document at a time:
       // a modal frame's inert background carries its own h1, and checking the
       // whole frame would either conflate the two heading trees or (as the
@@ -540,6 +555,14 @@ describe("what the whole page may and may not say about itself", () => {
       }
       checkHeadingOrder(f);
     }
+    // Every live nav and every live search region must have a name, and no
+    // two live regions of the same kind may share one — an unnamed or
+    // duplicated landmark is indistinguishable from its siblings in a screen
+    // reader's own landmark list.
+    assert.ok(navNames.length >= 3, "the page still draws the live navigation landmarks this guard is about");
+    assert.equal(navNames.length, new Set(navNames).size, `two live navigation landmarks share a name: ${navNames.join(", ")}`);
+    assert.ok(searchNames.length >= 4, "the page still draws the live search regions this guard is about");
+    assert.equal(searchNames.length, new Set(searchNames).size, `two live search regions share a name: ${searchNames.join(", ")}`);
   });
 });
 

@@ -540,12 +540,20 @@ M = [
  '      role="presentation"\n      aria-checked={on}'),
  ('c17-table-topbar-shares-the-named-span',
  'app/dev/ds/dashboard-screens.tsx',
- '<AppShell sidebar={results.sidebar} topbar={tableTopbarModel(d)} mainId="results-table-main">',
- '<AppShell sidebar={results.sidebar} topbar={results.topbar} mainId="results-table-main">'),
+ '<AppShell sidebar={results.sidebar} topbar={tableTopbarModel(d)} mainId="results-table-main" screenLabel="results table">',
+ '<AppShell sidebar={results.sidebar} topbar={results.topbar} mainId="results-table-main" screenLabel="results table">'),
  ('c17-table-span-uses-the-named-population',
  'lib/dashboard/gallery-data.ts',
  '  const tableSpan = readSpan([...named, ...extra]);',
  '  const tableSpan = readSpan(named);'),
+ ('c17-table-screenlabel-duplicates-results-list',
+ 'app/dev/ds/dashboard-screens.tsx',
+ 'screenLabel="results table"',
+ 'screenLabel="results list"'),
+ ('c17-topbar-search-region-loses-its-label',
+ 'components/dashboard/app-shell.tsx',
+ '        aria-label={screenLabel ? `Quick search, ${screenLabel}` : "Quick search"}',
+ '        aria-label={undefined}'),
 ]
 
 # An interrupted sweep used to leave the tree mutated, and the next run then

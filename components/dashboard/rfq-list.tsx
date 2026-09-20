@@ -44,6 +44,7 @@ export function RfqList({ model }: { model: RfqListModel }) {
         </Heading>
         <div
           role="search"
+          aria-label="Search RFQs"
           className="flex h-control w-[280px] items-center gap-2 rounded-sm border border-line-strong bg-surface px-2.5 text-sm text-ink-subtle"
         >
           <Icon name="search" /> Search RFQs
