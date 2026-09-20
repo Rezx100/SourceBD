@@ -172,7 +172,11 @@ describe("SupplierResultCard (rendered)", () => {
     assert.match(html, /No export lines on file/);
     assert.match(html, /no EPB record/, "EPB holds no record for this supplier: no read date is invented");
     assert.doesNotMatch(html, /checked \d/);
-    assert.match(html, /Nothing else on file · 1 of 25 sources/);
+    // 25 is every row in `sources`; 11 of them have never produced a record
+    // for anybody, so the chip claimed a read of eleven registers that have
+    // not been read (6,708 published records take this chip).
+    assert.match(html, /Nothing else on file · 1 of 14 sources read/);
+    assert.doesNotMatch(html, /of 25 sources/);
     assert.doesNotMatch(html, /bg-caution|bg-sanction|text-sanction/);
     assert.doesNotMatch(html, /\/products\/hs\//, "no substitute photo");
   });
@@ -243,7 +247,12 @@ describe("ResultsTable (rendered)", () => {
     assert.match(html, /<span class="sr-only">Select<\/span>/);
     assert.match(html, /<span class="sr-only">Actions<\/span>/);
     assert.match(html, /role="img" aria-label="HS 6115 · Socks, hosiery"/);
-    assert.match(html, /role="checkbox" tabindex="0"/, "a checkbox role with no tabindex cannot be reached by keyboard");
+    // This used to assert `tabindex="0"` and call it keyboard support. The
+    // control does nothing in REZ-A, so a tab stop on it announces an
+    // operable checkbox that Space cannot toggle — Space scrolled the page.
+    // Inert controls in this kit say so instead (WCAG 2.1.1, 4.1.2).
+    assert.match(html, /role="checkbox"[^>]*aria-disabled="true"/);
+    assert.doesNotMatch(html, /role="checkbox"[^>]*tabindex/, "an inert control must not be a dead tab stop");
   });
 });
 
@@ -343,7 +352,12 @@ describe("SupplierSheet (rendered)", () => {
     // the row is that it names what WAS checked.
     assert.match(html, /\b\d+ registers checked|>registers checked</);
     assert.doesNotMatch(html, /no registers checked/);
-    assert.match(html, /No certificate on any register/);
+    // Production reads four certificate registers, not "any": `certifications`
+    // holds four `cert_kind` values and `sources` four tier-3 rows, while
+    // `SCHEME_LABEL` names ten more schemes nobody has read. 7,531 published
+    // records take this chip.
+    assert.match(html, /No certificate on 4 registers/);
+    assert.doesNotMatch(html, /on any register/);
     assert.match(html, /No active RSC record on file/);
   });
 
@@ -827,6 +841,20 @@ describe("a record whose only certificate belongs to a building", () => {
 
 /** The characters a screen-reader-only or hidden element carries. */
 const HIDDEN = /\b(?:sr-only|hidden|invisible|opacity-0)\b|aria-hidden="true"|display:\s*none/;
+/**
+ * The banner's own opening tag. `HIDDEN` over the whole element used to be
+ * safe only because the icon stub rendered nothing; a decorative icon inside
+ * a visible banner legitimately carries `aria-hidden="true"`, and the question
+ * this guard asks is whether the *banner* is hidden.
+ */
+const openingTag = (el: string) => el.slice(0, el.indexOf(">") + 1);
+/**
+ * A chip carrying `tone` whose words are `text`. The words may sit after the
+ * chip's own decorative icon, which is markup the suite could not see until
+ * the icon stub stopped rendering `null`.
+ */
+const chipSaying = (tone: string, text: string) =>
+  new RegExp(`${tone}[^"]*"[^>]*>(?:<svg\\b[^>]*>(?:(?!</svg>).)*</svg>)?${text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`);
 
 describe("the sanction warning is visible, not only announced", () => {
   /** The element carrying the sanction banner, and everything up to its close. */
@@ -841,7 +869,8 @@ describe("the sanction warning is visible, not only announced", () => {
     const b = banner(html);
     assert.match(b, /role="alert"/);
     assert.match(b, /bg-sanction\b/, "the banner must carry the reserved sanction background, not a neutral one");
-    assert.doesNotMatch(b, HIDDEN, `the sanction banner is hidden from sight: ${b}`);
+    assert.doesNotMatch(openingTag(b), HIDDEN, `the sanction banner is hidden from sight: ${b}`);
+    assert.doesNotMatch(b.replace(/<svg\b[^>]*>.*?<\/svg>/g, ""), HIDDEN, "the banner's own words are hidden from sight");
     // Before the tabs, so it is read before anything it qualifies.
     assert.ok(
       html.indexOf('data-sanction-visible="true"') < html.indexOf('id="overview"'),
@@ -853,7 +882,8 @@ describe("the sanction warning is visible, not only announced", () => {
     const html = renderToStaticMarkup(createElement(SupplierResultCard, { card: buildCard(zaheenSampleInput()) }));
     const b = banner(html);
     assert.match(b, /text-sanction-ink\b/);
-    assert.doesNotMatch(b, HIDDEN);
+    assert.doesNotMatch(openingTag(b), HIDDEN);
+    assert.doesNotMatch(b.replace(/<svg\b[^>]*>.*?<\/svg>/g, ""), HIDDEN);
   });
 
   it("a record production does not flag carries no sanction element at all", () => {
@@ -888,8 +918,8 @@ describe("status is never colour alone (spec §6)", () => {
 
   it("the tone classes are in the rendered markup, so the state is not carried by position alone", () => {
     const sm = renderToStaticMarkup(createElement(SupplierResultCard, { card: buildCard(smKnitwearInput()) }));
-    assert.match(sm, /bg-caution-tint[^"]*"[^>]*>WRAP Gold expired/);
-    assert.match(sm, /bg-positive-tint[^"]*"[^>]*>GOTS valid to/);
+    assert.match(sm, chipSaying("bg-caution-tint", "WRAP Gold expired"));
+    assert.match(sm, chipSaying("bg-positive-tint", "GOTS valid to"));
   });
 });
 
@@ -951,9 +981,9 @@ describe("an RSC row missing a report says so rather than dropping the slot sile
   it("Aswad's Extension building has no boiler report, and the block shows the four it has", () => {
     const html = renderToStaticMarkup(createElement(SupplierSheet, { model: buildSheet(buildingSafetyOnlyInput()) }));
     const ext = html.slice(html.indexOf(escape(ASWAD_U2_EXT), html.indexOf("the building&#x27;s own RSC record")));
-    const block = ext.slice(0, 2000);
+    const block = ext.slice(0, 4000);
     for (const label of ["Fire", "Structural", "Electrical", "CAP"]) {
-      assert.match(block, new RegExp(`>${label}\\s*</a>`), `${ASWAD_U2_EXT} is missing its ${label} link`);
+      assert.match(block, new RegExp(`(?:>|</svg>)\\s*${label}\\s*(?:<svg\\b[^>]*></svg>)?\\s*</a>`), `${ASWAD_U2_EXT} is missing its ${label} link`);
     }
     assert.doesNotMatch(block.slice(0, block.indexOf("</div>", block.indexOf("CAP"))), /href="[^"]*"[^>]*>Boiler/);
     // 597 of the 1,620 active RSC rows carry no boiler report, so an empty slot
@@ -965,7 +995,7 @@ describe("an RSC row missing a report says so rather than dropping the slot sile
     const html = renderToStaticMarkup(createElement(SupplierSheet, { model: buildSheet(aboniInput()) }));
     const own = html.slice(html.indexOf('id="safety"'), html.indexOf("the building&#x27;s own RSC record"));
     for (const label of ["Fire", "Structural", "Electrical", "Boiler", "CAP"]) {
-      assert.match(own, new RegExp(`>${label}\\s*</a>`), `the record's own RSC row is missing its ${label} link`);
+      assert.match(own, new RegExp(`(?:>|</svg>)\\s*${label}\\s*(?:<svg\\b[^>]*></svg>)?\\s*</a>`), `the record's own RSC row is missing its ${label} link`);
     }
   });
 });
@@ -1008,8 +1038,13 @@ describe("the two-state controls say which state they are in", () => {
     assert.match(on, /role="checkbox"[^>]*aria-checked="true"/);
     assert.match(off, /role="checkbox"[^>]*aria-checked="false"/);
     assert.match(on, /aria-label="GOTS"/);
-    // A checkbox nothing can focus is not a checkbox.
-    assert.match(off, /tabindex="0"/);
+    // A dead tab stop is worse than no tab stop: it announces an operable
+    // checkbox and Space scrolls the page instead of toggling. The kit's
+    // shape for a control that is present but inert is `aria-disabled` plus
+    // a title, which is what the sheet tabs and composer steps already do.
+    assert.doesNotMatch(off, /tabindex/);
+    assert.match(off, /aria-disabled="true"/);
+    assert.match(off, /title="[^"]+"/, "an inert control says why it is inert");
   });
 });
 
@@ -1210,12 +1245,14 @@ describe("the certificate card's own mark links, and the sheet shows the registe
 
   it("a record whose only certificate is a building's says so in the section, not just the caption", () => {
     const html = renderToStaticMarkup(createElement(SupplierSheet, { model: buildSheet(buildingOnlyCertificateInput()) }));
-    assert.match(html, /No certificate on this record itself/);
-    assert.doesNotMatch(html, /No certificate on any register/, "the bare negative stood over a payload holding one");
+    assert.match(html, /No certificate on this record ·/);
+    assert.match(html, rx(`${MG_BUILDING} holds one`), "the section names where the certificate is");
+    assert.doesNotMatch(html, /on any register/, "the bare negative stood over a payload holding one");
     assert.match(html, rx(`${MG_BUILDING} holds a certificate of its own`));
-    // And a record with none anywhere keeps the plain words.
+    // And a record with none anywhere names the registers that were read.
     const none = renderToStaticMarkup(createElement(SupplierSheet, { model: buildSheet(arFashionInput()) }));
-    assert.match(none, /No certificate on any register/);
+    assert.match(none, /No certificate on 4 registers/);
+    assert.doesNotMatch(none, /on any register/);
   });
 });
 

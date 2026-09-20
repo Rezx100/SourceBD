@@ -68,7 +68,16 @@ export function Chips({
     <span className={cn("flex items-center gap-2", nowrap ? "flex-nowrap gap-1" : "flex-wrap", className)}>
       {children}
       {more && more > 0 ? (
-        <a href={moreHref} className={cn("px-1 font-medium text-brand-ink", nowrap ? "text-xs" : "text-sm")}>
+        // A bare `href="#"` is not inert: it is a focusable link that scrolls
+        // the document to the top and destroys reading position, with nothing
+        // telling the user it goes nowhere. The sheet's tabs already say so;
+        // eleven of the page's nineteen placeholders did not.
+        <a
+          href={moreHref}
+          aria-disabled={moreHref === "#" ? "true" : undefined}
+          title={moreHref === "#" ? "The rest arrive with the record page" : undefined}
+          className={cn("px-1 font-medium text-brand-ink", nowrap ? "text-xs" : "text-sm")}
+        >
           +{more}
           {nowrap ? "" : " more"}
         </a>

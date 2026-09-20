@@ -5,7 +5,7 @@
 import type { IconName } from "@/components/dashboard/icons";
 import type { ChipTone } from "@/components/dashboard/chips";
 import type { TierRank } from "@/lib/design/tokens";
-import type { CertModel } from "./facts";
+import type { CertModel, CertState } from "./facts";
 import type { PhotoTileModel } from "./hs-photos";
 import type { SourceMarkModel } from "./source-tiers";
 
@@ -123,7 +123,9 @@ export type SupplierSheetModel = {
     /** Every distinct 4-digit chapter the lines span, ascending. */
     chapters: string[];
     productListCount: number;
-    certifiedScope: { scheme: string; scope: string } | null;
+    certifiedScope: { scheme: string; scope: string; state: CertState } | null;
+    /** What to say where the scope would have gone; never a negative over a payload that holds certificates. */
+    certifiedScopeEmpty: string;
     buyerLists: string[];
     /** What to say when `buyerLists` is empty: the bare negative, or the building that is listed. */
     buyerListsEmpty: string;
@@ -133,6 +135,8 @@ export type SupplierSheetModel = {
   certsCaption: string | null;
   /** What the caption says when the record holds no certificate of its own: the bare negative, or the building that holds one. */
   certsEmpty: string;
+  /** The same absence as a sentence: "No certificate on 4 registers", never "on any register". */
+  certsEmptyChip: string;
   /**
    * Whether every source mark this sheet renders links to a record page —
    * the mark row, the attributed fact rows AND the certificate cards. It is

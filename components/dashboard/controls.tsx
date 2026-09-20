@@ -81,13 +81,24 @@ export function Seg({
   );
 }
 
-/** `.cb`: a 16px checkbox drawn as a box; `on` fills it brand with a check. Presentational in REZ-A. */
+/**
+ * `.cb`: a 16px checkbox drawn as a box; `on` fills it brand with a check.
+ *
+ * Presentational in REZ-A — selection arrives with the results work. It used
+ * to carry `tabIndex={0}`, which put 34 of these in the tab order across the
+ * six screens, announced each as an operable checkbox, and then did nothing:
+ * Space scrolled the page instead of toggling. On the RFQ composer the five
+ * required questions were these. An inert control takes the kit's own shape
+ * for inert controls — `aria-disabled` and a title that says why — rather
+ * than a dead tab stop (WCAG 2.1.1, 4.1.2).
+ */
 export function Checkbox({ on = false, label, className }: { on?: boolean; label?: string; className?: string }) {
   return (
     <span
       role="checkbox"
-      tabIndex={0}
       aria-checked={on}
+      aria-disabled="true"
+      title="Selection arrives with the results work"
       aria-label={label}
       className={cn(
         "inline-grid size-4 shrink-0 place-items-center rounded-xs border border-line-strong bg-surface",

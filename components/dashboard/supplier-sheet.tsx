@@ -129,7 +129,13 @@ export function SupplierSheet({ model }: { model: SupplierSheetModel }) {
                       : "not on the EPB list",
               },
               { key: "Product list", value: p.productListCount > 0 ? String(p.productListCount) : "—", sub: p.productListCount > 0 ? "items on file · source pending" : "none on file" },
-              { key: "Certified scope", value: p.certifiedScope?.scheme ?? "—", sub: p.certifiedScope?.scope ?? "no scope certificate" },
+              {
+                key: "Certified scope",
+                // An expired scope is still the record's scope; discarding it
+                // printed "no scope certificate" over a certificate on file.
+                value: p.certifiedScope ? (p.certifiedScope.state === "expired" ? `${p.certifiedScope.scheme} · expired` : p.certifiedScope.scheme) : "—",
+                sub: p.certifiedScope?.scope ?? p.certifiedScopeEmpty,
+              },
               { key: "Buyer lists", value: p.buyerLists.length > 0 ? String(p.buyerLists.length) : "—", sub: p.buyerLists.length > 0 ? p.buyerLists.join(" · ") : p.buyerListsEmpty },
             ]}
           />
@@ -148,7 +154,7 @@ export function SupplierSheet({ model }: { model: SupplierSheetModel }) {
                carrying a building's certificate; the card already said which
                building, and the sheet now says it in the same breath. */
             <span className="inline-flex h-[26px] items-center rounded-sm border border-dashed border-quiet-line px-2.5 text-sm text-quiet-ink">
-              {model.certBuildings.length > 0 ? "No certificate on this record itself" : "No certificate on any register"}
+              {model.certsEmptyChip}
             </span>
           )}
           {/* A building's certificate is not this record's, but saying nothing

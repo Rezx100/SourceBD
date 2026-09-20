@@ -189,6 +189,16 @@ export function ownBrand(b: ProfileBrand): boolean {
  * so far", and claiming they were checked is a negative without a read.
  */
 const BRAND_LISTS_WITH_RECORDS = 4;
+/**
+ * Registers that have actually been read and hold records. `sources` holds 25
+ * rows, and 11 of them have never produced a `source_records` row for anybody
+ * (SQL, 20 Sep 2026: BEPZA, DIFE, RJSC, BRAND_INDITEX, BRAND_PRIMARK, EU_SANC,
+ * ILAB, OFAC, UFLPA, UK_OFSI, US_WRO — all 0). "1 of 25 sources" therefore
+ * claimed the record had been weighed against 25 registers when 14 had been
+ * read, on 6,708 published records — the same standard that makes the brand
+ * negative say "4 brand lists read" rather than 6.
+ */
+const SOURCES_WITH_RECORDS = 14;
 const BRAND_LISTS_WORDS = `not on ${BRAND_LISTS_WITH_RECORDS} brand lists read`;
 const CERT_REGISTERS = 4;
 
@@ -297,22 +307,40 @@ function words(v: string | null | undefined): string[] {
  * Only `factory` rows are eligible — never a mailing row, never an inherited
  * one — and nothing is composed: both strings come from the same payload.
  */
-function factoryAddress(p: ProfilePayload): { text: string | null; mark: SourceMarkModel | null } {
+function factoryAddress(p: ProfilePayload): { text: string | null; marks: SourceMarkModel[] } {
   const raw = p.supplier.address_raw;
   const rows = (p.addresses ?? []).filter((a) => a.kind === "factory" && a.source_code);
-  const exact = rows.find((a) => sameAddress(a.address, raw));
-  if (exact) return { text: raw, mark: mark(p, exact.source_code) };
+  // Every register that filed the text shown, best rank first. It used to be
+  // `rows.find(...)`, so when two registers had filed the same premises the
+  // receipt beside the address was whichever the RPC happened to list first:
+  // the sentence was identical either way and the square — a link to that
+  // register's page — flipped. One of the two was wrong every time, and
+  // nothing in the data decided which.
+  const marksFiling = (text: string): SourceMarkModel[] =>
+    [...new Set(rows.filter((a) => sameAddress(a.address, text)).map((a) => a.source_code.toUpperCase()))]
+      .map((c) => mark(p, c))
+      .sort((a, b) => a.tier - b.tier || a.code.localeCompare(b.code));
+  if (rows.some((a) => sameAddress(a.address, raw))) return { text: raw, marks: marksFiling(raw ?? "") };
   const own = words(raw);
   if (own.length > 0) {
+    // Two supersets of equal length used to resolve by array order, which
+    // changed the address text as well as the mark. The tie-break is the
+    // source trust hierarchy (AGENTS.md 5), then the text itself, so the
+    // choice is total and cannot depend on how the RPC ordered its rows.
     const fuller = rows
       .filter((a) => {
         const has = new Set(words(a.address));
         return words(a.address).length > own.length && own.every((w) => has.has(w));
       })
-      .sort((a, b) => words(b.address).length - words(a.address).length)[0];
-    if (fuller) return { text: fuller.address, mark: mark(p, fuller.source_code) };
+      .sort(
+        (a, b) =>
+          words(b.address).length - words(a.address).length ||
+          mark(p, a.source_code).tier - mark(p, b.source_code).tier ||
+          a.address.localeCompare(b.address),
+      )[0];
+    if (fuller) return { text: fuller.address, marks: marksFiling(fuller.address) };
   }
-  return { text: raw, mark: null };
+  return { text: raw, marks: [] };
 }
 
 /**
@@ -525,9 +553,66 @@ export function registersEmptyWords(p: ProfilePayload): string {
  * so the section must say where it is rather than claim there is none.
  */
 export function certsEmptyWords(p: ProfilePayload): string {
+  const elsewhere = certsElsewhereWords(p);
+  return elsewhere ? `none on ${elsewhere}` : `none on ${CERT_REGISTERS} registers`;
+}
+
+/**
+ * The same absence, as a card chip and as the sheet's empty state.
+ *
+ * The chip used to be written inline as "No certificate on any register" —
+ * an absolute over ten schemes production has never read (`certifications`
+ * holds four `cert_kind` values; `sources` holds four tier-3 rows), on 7,531
+ * published records. The inline copy had also already drifted from the
+ * helper: it said "holds one" for two buildings. Both now come from here.
+ */
+/**
+ * The certificate whose scope the screens show.
+ *
+ * It was `certList.find(c => c.kind === "GOTS" && c.state !== "expired")`, and
+ * every other shape read as a negative. A record holding a live WRAP Gold —
+ * whose scope string always carries a `Products:` half — printed "Certified
+ * scope — no scope certificate" on the sheet and "Certified scope · Not on
+ * file · 4 cert registers checked" on the product sheet, three sections above
+ * the WRAP certificate itself. That last string claims four registers were
+ * read and came back empty; the read came back with certificates carrying
+ * scope text. 434 published records hold WRAP, 911 hold GOTS, and an expired
+ * GOTS was discarded rather than shown as expired, which ds-rebuild-must-stay
+ * §5 names as a state the design must show.
+ *
+ * Order, and it is total so the choice cannot depend on row order: carries
+ * scope text at all, then unexpired before expired, then GOTS before the
+ * others (its scope is a line scope; WRAP and OEKO-TEX file an operations and
+ * products scope, which is still the record's own words), then the order
+ * `sortCerts` already fixed.
+ */
+export function scopeCert(certList: CertModel[]): CertModel | null {
+  const withScope = certList.filter((c) => (c.scope ?? "").trim().length > 0);
+  if (withScope.length === 0) return null;
+  const rank = (c: CertModel) => (c.state === "expired" ? 1 : 0) * 2 + (c.kind.toUpperCase() === "GOTS" ? 0 : 1);
+  return withScope
+    .map((c, i) => ({ c, i }))
+    .sort((a, b) => rank(a.c) - rank(b.c) || a.i - b.i)[0]!.c;
+}
+
+/**
+ * What to say where a scope would have gone. "4 cert registers checked" over
+ * a payload holding certificates was the lie; over a payload holding none it
+ * is true, and `certsEmptyWords` says it better.
+ */
+export function scopeEmptyWords(p: ProfilePayload, certList: CertModel[]): string {
+  return certList.length === 0 ? certsEmptyWords(p) : "no scope on the certificates on file";
+}
+
+export function certsEmptyChipLabel(p: ProfilePayload): string {
+  const elsewhere = certsElsewhereWords(p);
+  return elsewhere ? `No certificate on ${elsewhere}` : `No certificate on ${CERT_REGISTERS} registers`;
+}
+
+function certsElsewhereWords(p: ProfilePayload): string | null {
   const buildings = certBuildings(p);
-  if (buildings.length === 0) return `none on ${CERT_REGISTERS} registers`;
-  return `none on this record · ${buildings.join(", ")} ${buildings.length === 1 ? "holds one" : "hold one"}`;
+  if (buildings.length === 0) return null;
+  return `this record · ${buildings.join(", ")} ${buildings.length === 1 ? "holds one" : "hold one"}`;
 }
 
 /**
@@ -669,7 +754,7 @@ export function buildCard(input: RecordInput): SupplierCardModel {
   else if (onEpb) chips.push({ tone: "quiet", label: "EPB exporter · no lines on file" });
   else chips.push({ tone: "quiet", label: "Not on the EPB exporter list" });
   if (brands.length > 0) chips.push({ tone: "neutral", label: `Listed by ${brands.join(", ")}` });
-  if (certList.length === 0) chips.push({ tone: "quiet", label: certBuildings(p).length > 0 ? `No certificate on this record · ${certBuildings(p).join(", ")} holds one` : "No certificate on any register" });
+  if (certList.length === 0) chips.push({ tone: "quiet", label: certsEmptyChipLabel(p) });
   const bgmea = registers.find((r) => r.source_code.toUpperCase() === "BGMEA");
   // Every BGMEA label production holds already ends in "member #", so
   // appending the word gave "BGMEA General member member" on the 3,313
@@ -678,7 +763,7 @@ export function buildCard(input: RecordInput): SupplierCardModel {
     const label = registerLabel(bgmea.label);
     chips.unshift({ tone: "neutral", label: /\bmember$/i.test(label) ? label : `${label} member` });
   }
-  if (marks.length <= 1) chips.push({ tone: "quiet", label: `Nothing else on file · ${marks.length} of 25 sources` });
+  if (marks.length <= 1) chips.push({ tone: "quiet", label: `Nothing else on file · ${marks.length} of ${SOURCES_WITH_RECORDS} sources read` });
   const shown = chips.slice(0, 5);
   const moreChips = Math.max(0, chips.length - shown.length + Math.max(0, certList.length - 2));
 
@@ -809,7 +894,7 @@ export function buildSheet(input: RecordInput, options: SheetOptions = {}): Supp
   const w = workersFact(input);
   const workersMark = w.source === "RSC" && !w.groupUnknown ? ownMark(p, "RSC") : null;
   const registerRows = registers.filter((r) => r.value);
-  const gots = certList.find((c) => c.kind.toUpperCase() === "GOTS" && c.state !== "expired");
+  const scoped = scopeCert(certList);
   // Distinct premises, not rows and not spellings. Aboni files nine address
   // rows; an exact-text dedupe called them seven, and the registers write the
   // same place several ways ("Kewa, Bakultala, Sreepur, 1744, Gazipur" and
@@ -831,13 +916,15 @@ export function buildSheet(input: RecordInput, options: SheetOptions = {}): Supp
         : null;
 
   const pending = (value: string | null, m: SourceMarkModel | null = null, checked = "registers checked"): Pick<FactRow, "value" | "marks" | "pendingSource" | "checked"> =>
-    value === null ? { value, marks: [], checked } : m ? { value, marks: [m] } : { value, marks: [], pendingSource: true };
+    pendingMarks(value, m ? [m] : [], checked);
+  const pendingMarks = (value: string | null, ms: SourceMarkModel[], checked = "registers checked"): Pick<FactRow, "value" | "marks" | "pendingSource" | "checked"> =>
+    value === null ? { value, marks: [], checked } : ms.length > 0 ? { value, marks: ms } : { value, marks: [], pendingSource: true };
 
   const facts: FactRow[] = [
     { label: "Registered name", ...pending(s.company_name) },
     { label: "Type", ...pending([entityLabel(s.entity_type), s.factory_types?.length ? s.factory_types.join(", ") : null].filter(Boolean).join(" · ")) },
     { label: "Parent group", ...pending(s.parent_group_name, null, "registers and RSC checked") },
-    { label: "Factory address", ...pending(addr.text, addr.mark) },
+    { label: "Factory address", ...pendingMarks(addr.text, addr.marks) },
     { label: "Established", ...pending(establishedYearOf(s.established_date)) },
     {
       label: "Workers",
@@ -914,7 +1001,8 @@ export function buildSheet(input: RecordInput, options: SheetOptions = {}): Supp
       // 62); naming only the rarest line's chapter silently drops the rest.
       chapters: [...new Set(lines.map((l) => l.slice(0, 2)))].sort(),
       productListCount: (s.principal_products ?? []).length,
-      certifiedScope: gots ? { scheme: gots.scheme, scope: scopeWords(gots.scope) } : null,
+      certifiedScope: scoped ? { scheme: scoped.scheme, scope: scopeWords(scoped.scope), state: scoped.state } : null,
+      certifiedScopeEmpty: scopeEmptyWords(p, certList),
       buyerLists: brands,
       buyerListsEmpty: brandListsEmptyWords(p),
       tiles: input.hscodesError ? [] : photoTiles(lines, 6),
@@ -922,6 +1010,7 @@ export function buildSheet(input: RecordInput, options: SheetOptions = {}): Supp
     certs: certList,
     certsCaption: certList.length ? `${onFileLabel(certList.length)} · ${certRegisters.join(", ")}` : null,
     certsEmpty: certsEmptyWords(p),
+    certsEmptyChip: certsEmptyChipLabel(p),
     certBuildings: certBuildings(p),
     rsc: rsc
       ? {
@@ -1055,8 +1144,7 @@ export function buildProductSheet(input: RecordInput, hs: string): ProductSheetM
   const row = hsCatalogueRow(code);
   const others = headings(input).filter((c) => c !== code).sort();
   const certList = certs(input);
-  // The certified scope shown is a GOTS scope certificate; WRAP and OEKO-TEX carry no line scope.
-  const gots = certList.find((c) => c.kind.toUpperCase() === "GOTS" && c.state !== "expired") ?? null;
+  const scoped = scopeCert(certList);
   const brands = brandLabels(p);
   // One square per list, best rank first — `brand_attributions` can repeat a
   // list when a facility's row is unioned in (13 published records do).
@@ -1099,16 +1187,16 @@ export function buildProductSheet(input: RecordInput, hs: string): ProductSheetM
       },
       { label: "Exporting since", value: null, note: "EPB lists lines, not dates" },
       { label: "Other lines", value: others.length ? others.join(" · ") : null, code: true, checked: "EPB checked", marks: others.length ? [ep] : [] },
-      gots
+      scoped
         ? {
             label: "Certified scope",
-            value: `${gots.number ?? gots.scheme} · ${scopeWords(gots.scope)}`,
+            value: `${scoped.number ?? scoped.scheme} · ${scopeWords(scoped.scope)}`,
             // `certChipLabel` reads "GOTS · no expiry on file"; stripping the
             // scheme alone left the badge starting with a stray middle dot.
-            badge: { tone: gots.state === "valid" ? "positive" : gots.state === "no-expiry" ? "type" : "caution", label: certStateLabel(gots) },
-            marks: [sourceMark(gots.markCode, gots.documentUrl)],
+            badge: { tone: scoped.state === "valid" ? "positive" : scoped.state === "no-expiry" ? "type" : "caution", label: certStateLabel(scoped) },
+            marks: [sourceMark(scoped.markCode, scoped.documentUrl)],
           }
-        : { label: "Certified scope", value: null, checked: `${CERT_REGISTERS} cert registers checked` },
+        : { label: "Certified scope", value: null, checked: scopeEmptyWords(p, certList) },
       {
         label: "Product list",
         value: products.length ? products.slice(0, 4).join(" · ") : null,

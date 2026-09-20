@@ -71,7 +71,7 @@ export const ICONS = {
 
 export type IconName = keyof typeof ICONS;
 
-type IconProps = { size?: number; weight?: "regular" | "bold" | "fill"; className?: string; "aria-hidden"?: boolean; "aria-label"?: string };
+type IconProps = { size?: number; weight?: "regular" | "bold" | "fill"; className?: string; role?: string; "aria-hidden"?: boolean; "aria-label"?: string };
 
 /** A 16px icon (12px with `small`). Decorative unless `label` is given. */
 export function Icon({
@@ -91,6 +91,11 @@ export function Icon({
       size={small ? 12 : 16}
       weight="regular"
       className={className ? `shrink-0 ${className}` : "shrink-0"}
+      // A named `<svg>` with no role is neither a control nor a reliably
+      // named graphic. Ten "Remove <filter>" icons were emitted this way and
+      // read as actions nothing could reach; `marks.tsx` and `photo-tiles.tsx`
+      // already do it correctly.
+      role={label ? "img" : undefined}
       aria-hidden={label ? undefined : true}
       aria-label={label}
     />

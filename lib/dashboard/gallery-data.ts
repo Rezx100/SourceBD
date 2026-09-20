@@ -78,6 +78,14 @@ async function loadRecord(supabase: Rpc, slug: string, today: Date, sanctionSamp
 }
 
 /** One `production_workers_display_batch` call for every record on the page. */
+async function fillWorkersSafely(supabase: Rpc, records: GalleryRecord[]): Promise<void> {
+  try {
+    await fillWorkers(supabase, records);
+  } catch {
+    // Every record keeps the workers figure its own payload carries.
+  }
+}
+
 async function fillWorkers(supabase: Rpc, records: GalleryRecord[]): Promise<void> {
   if (records.length === 0) return;
   const byId = await fetchDisplayWorkersBatch(supabase, records.map((r) => r.input.profile.supplier.id));
@@ -112,7 +120,12 @@ export type GalleryData = {
  * "null suppliers" with `discoverError` still false.
  */
 function countOf(raw: unknown): number | null {
-  const n = typeof raw === "number" ? raw : typeof raw === "string" ? Number(raw) : Number.NaN;
+  if (typeof raw === "number") return Number.isFinite(raw) ? raw : null;
+  // `Number("")` and `Number("  ")` are 0, so a blank `total_count` reached
+  // the panel header as "0 suppliers" with `discoverError` still false — a
+  // read that returned no count, printed as a count of none.
+  if (typeof raw !== "string" || raw.trim() === "") return null;
+  const n = Number(raw);
   return Number.isFinite(n) ? n : null;
 }
 
@@ -157,7 +170,10 @@ export async function loadGalleryData(
   const extra = (await Promise.all(extraSlugs.map((s) => loadRecord(supabase, s, today)))).filter(
     (r): r is GalleryRecord => r !== null,
   );
-  await fillWorkers(supabase, [...named, ...extra]);
+  // The only read that was outside a try: `fetchDisplayWorkersBatch` swallows
+  // an `{error}` result, but a rejected promise took the whole page down
+  // rather than rendering the workers the payload already carries.
+  await fillWorkersSafely(supabase, [...named, ...extra]);
 
   const cards = [aboni, sm, zaheen, ar].filter((r): r is GalleryRecord => r !== null).map((r) => buildCard(r.input));
   if (cards[0]) cards[0].selected = true;
@@ -241,10 +257,20 @@ export async function loadGalleryData(
   };
 }
 
-/** "10,266 published suppliers · records read 18 Sep 2026" from what could be read. */
+/**
+ * "10,266 published suppliers · records on this page read 18 Sep 2026".
+ *
+ * The two halves come from different populations and the caption used to hide
+ * that: `published` is `discover_suppliers`' `total_count` over the whole
+ * corpus, while the date is `max(last_seen_at)` over the four records the page
+ * draws. Of the 10,266, 1,677 (16.3 %) were last read on 18 Sep 2026; the
+ * median is 24 Jul 2026 and 5,780 were last read before 1 Aug (SQL, 20 Sep
+ * 2026). Printed bare beside the corpus count it read as a corpus freshness
+ * claim, so the words now name the population the date is true of.
+ */
 export function topbarCaption(d: Pick<GalleryData, "published" | "recordsReadOn">): string {
   const parts: string[] = [];
   if (d.published !== null) parts.push(`${formatCount(d.published)} published suppliers`);
-  if (d.recordsReadOn) parts.push(`records read ${d.recordsReadOn}`);
+  if (d.recordsReadOn) parts.push(`records on this page read ${d.recordsReadOn}`);
   return parts.join(" · ") || "Live records";
 }

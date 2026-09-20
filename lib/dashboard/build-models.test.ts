@@ -314,7 +314,7 @@ describe("buildCard — the almost-empty record (A.R. Fashion) is quiet, never a
     );
     assert.equal(card.photos.length, 0);
     assert.equal(card.totalLines, 0);
-    assert.ok(card.chips.some((c) => c.tone === "quiet" && c.label === "Nothing else on file · 1 of 25 sources"));
+    assert.ok(card.chips.some((c) => c.tone === "quiet" && c.label === "Nothing else on file · 1 of 14 sources read"));
     assert.ok(card.chips.every((c) => c.tone !== "caution" && c.tone !== "sanction"));
   });
 
@@ -1152,5 +1152,130 @@ describe("cycle 9: claims the fixtures did not previously reach", () => {
     assert.equal(chip.tone, "caution");
     // And both buildings still get their own block on the sheet.
     assert.deepEqual(buildSheet(input).rscBuildingBlocks.map((b) => b.name), [ASWAD_U2, ASWAD_U2_EXT]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Cycle 10.
+
+describe("the certified scope is whatever certificate carries one, and its absence is never a claim", () => {
+  /** The record's certificates, narrowed to the kinds named. */
+  function onlyKinds(input: RecordInput, kinds: string[]): RecordInput {
+    const keep = new Set(kinds.map((k) => k.toLowerCase()));
+    input.profile.certifications = (input.profile.certifications ?? []).filter((c) => keep.has(c.kind.toLowerCase()));
+    return input;
+  }
+
+  it("a record whose only scope is WRAP's shows WRAP's, not 'no scope certificate'", () => {
+    // The scope was read only from GOTS, so 434 published WRAP holders without
+    // a live GOTS read "Certified scope — no scope certificate" on a page
+    // listing a WRAP certificate whose scope names their products.
+    const input = onlyKinds(smKnitwearInput(), ["wrap"]);
+    const sheet = buildSheet(input);
+    assert.ok(sheet.certs.length > 0, "the record no longer holds the certificates this guard is about");
+    assert.ok(sheet.certs.every((c) => c.kind.toUpperCase() !== "GOTS"), "and none of them is a GOTS");
+    assert.ok(sheet.products.certifiedScope, "a certificate carrying scope text must supply the scope");
+    assert.match(sheet.products.certifiedScope!.scheme, /WRAP/);
+    assert.ok(sheet.products.certifiedScope!.scope.length > 0);
+  });
+
+  it("an expired scope is shown as expired, not discarded", () => {
+    const input = smKnitwearInput();
+    input.profile.certifications = (input.profile.certifications ?? []).map((c) =>
+      c.kind.toLowerCase() === "gots" ? { ...c, expires_on: "2020-01-01" } : c,
+    );
+    const scope = buildSheet(onlyKinds(input, ["gots"])).products.certifiedScope;
+    assert.ok(scope, "an expired certificate is still the record's scope");
+    assert.equal(scope!.state, "expired");
+    const html = renderToStaticMarkup(createElement(SupplierSheet, { model: buildSheet(onlyKinds(input, ["gots"])) }));
+    assert.match(html, /GOTS · expired/, "the sheet says the scope is expired rather than saying there is none");
+  });
+
+  it("no scope never claims a register was read and came back empty when the payload holds certificates", () => {
+    const input = smKnitwearInput();
+    input.profile.certifications = (input.profile.certifications ?? []).map((c) => ({ ...c, scope: null }));
+    const sheet = buildSheet(input);
+    assert.ok(sheet.certs.length > 0);
+    assert.equal(sheet.products.certifiedScope, null);
+    assert.equal(sheet.products.certifiedScopeEmpty, "no scope on the certificates on file");
+    const ps = buildProductSheet(input, "6105");
+    const row = ps.facts.find((f) => f.label === "Certified scope")!;
+    assert.equal(row.value, null);
+    assert.equal(row.checked, "no scope on the certificates on file");
+    assert.notEqual(row.checked, "4 cert registers checked");
+  });
+
+  it("a record with no certificate at all keeps the words that name the registers read", () => {
+    const sheet = buildSheet(arFashionInput());
+    assert.equal(sheet.certs.length, 0);
+    assert.equal(sheet.products.certifiedScopeEmpty, "none on 4 registers");
+    const row = buildProductSheet(arFashionInput(), "6105").facts.find((f) => f.label === "Certified scope")!;
+    assert.equal(row.checked, "none on 4 registers");
+  });
+});
+
+describe("the factory address and its receipt do not depend on the order the RPC returned its rows", () => {
+  /** Every array in the payload, reversed — the cheapest total perturbation. */
+  function reversed(input: RecordInput): RecordInput {
+    const p = input.profile;
+    p.pills = [...p.pills].reverse();
+    p.addresses = [...(p.addresses ?? [])].reverse();
+    p.provenance = [...(p.provenance ?? [])].reverse();
+    p.certifications = [...(p.certifications ?? [])].reverse();
+    p.brand_attributions = [...(p.brand_attributions ?? [])].reverse();
+    return input;
+  }
+  const addressFact = (i: RecordInput) => buildSheet(i).facts.find((f) => f.label === "Factory address")!;
+
+  for (const [name, make] of [
+    ["Aboni", aboniInput],
+    ["S M Knitwears", smKnitwearInput],
+    ["Aswad", buildingSafetyOnlyInput],
+    ["the country-and-district stub", buildingRegistrationsInput],
+  ] as const) {
+    it(`${name}: the same address and the same marks either way round`, () => {
+      assert.deepEqual(addressFact(make()), addressFact(reversed(make())));
+    });
+  }
+
+  it("two registers that filed the same premises are both named, rather than one chosen by row order", () => {
+    // `rows.find(...)` credited whichever the RPC listed first. The sentence
+    // was identical either way and the square — a link to that register's
+    // page — flipped, so one of the two was wrong every time.
+    const input = aboniInput();
+    const raw = input.profile.supplier.address_raw!;
+    input.profile.addresses = [
+      { kind: "factory", address: raw, source_code: "BKMEA" },
+      { kind: "factory", address: raw.toLowerCase(), source_code: "BGMEA" },
+    ];
+    const fact = addressFact(input);
+    assert.equal(fact.value, raw);
+    assert.deepEqual(
+      fact.marks?.map((m) => m.code),
+      ["BGMEA", "BKMEA"],
+      "both registers filed it, and the better rank comes first",
+    );
+    const flipped = aboniInput();
+    flipped.profile.addresses = [...input.profile.addresses].reverse();
+    assert.deepEqual(addressFact(flipped), fact);
+  });
+
+  it("two fuller rows of equal length resolve by rank, not by position", () => {
+    const input = buildingRegistrationsInput();
+    const raw = input.profile.supplier.address_raw!;
+    const a = `${raw}, PLOT 9, KEWA`;
+    const b = `${raw}, PLOT 8, KEWA`;
+    input.profile.addresses = [
+      { kind: "factory", address: b, source_code: "BKMEA" },
+      { kind: "factory", address: a, source_code: "EPB" },
+    ];
+    const fact = addressFact(input);
+    // EPB is tier 1 and BKMEA tier 2, so the government row wins whichever way
+    // the rows arrive (AGENTS.md 5: the source trust hierarchy is law).
+    assert.equal(fact.value, a);
+    assert.deepEqual(fact.marks?.map((m) => m.code), ["EPB"]);
+    const flipped = buildingRegistrationsInput();
+    flipped.profile.addresses = [...input.profile.addresses].reverse();
+    assert.deepEqual(addressFact(flipped), fact);
   });
 });

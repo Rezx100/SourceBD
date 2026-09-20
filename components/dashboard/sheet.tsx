@@ -184,7 +184,12 @@ export function LockCard({ hidden, plan }: { hidden: string; plan: string | null
         <span>Send an RFQ from the record instead.</span>
         <span className="flex items-center gap-2">
           <Button>See plans</Button>
-          <a href="#" className="inline-flex items-center gap-0.5 text-sm font-medium text-brand-ink">
+          <a
+            href="#"
+            aria-disabled="true"
+            title="What is hidden arrives with the plans page"
+            className="inline-flex items-center gap-0.5 text-sm font-medium text-brand-ink"
+          >
             What is hidden <Icon name="chev-r" small />
           </a>
         </span>

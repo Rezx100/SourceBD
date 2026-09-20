@@ -130,11 +130,18 @@ describe("DashboardScreens — the caller, not the components (handoff §7)", ()
   });
 
   it("the topbar caption carries only what could be read", () => {
-    assert.equal(topbarCaption({ published: 10266, recordsReadOn: "18 Sep 2026" }), "10,266 published suppliers · records read 18 Sep 2026");
-    assert.equal(topbarCaption({ published: null, recordsReadOn: "18 Sep 2026" }), "records read 18 Sep 2026");
+    // The date is `max(last_seen_at)` over the records this page draws, not
+    // over the corpus the count is of: 1,677 of the 10,266 were last read on
+    // 18 Sep 2026 and the median is 24 Jul (SQL, 20 Sep 2026). Two figures
+    // joined by a middle dot read as one claim, so the words say which
+    // population the date belongs to.
+    assert.equal(topbarCaption({ published: 10266, recordsReadOn: "18 Sep 2026" }), "10,266 published suppliers · records on this page read 18 Sep 2026");
+    assert.equal(topbarCaption({ published: null, recordsReadOn: "18 Sep 2026" }), "records on this page read 18 Sep 2026");
     assert.equal(topbarCaption({ published: 1, recordsReadOn: null }), "1 published suppliers");
     assert.equal(topbarCaption({ published: null, recordsReadOn: null }), "Live records");
-    assert.match(render(galleryData()), /10,266 published suppliers · records read 18 Sep 2026/);
+    const shell = render(galleryData());
+    assert.match(shell, /10,266 published suppliers · records on this page read 18 Sep 2026/);
+    assert.doesNotMatch(shell, /suppliers · records read /, "a record-level date must not be printed as a corpus fact");
   });
 
   // Cycle 5, finding 4: a failed `rfq_list` read rendered as the fact "you have
@@ -188,6 +195,58 @@ describe("DashboardScreens — the caller, not the components (handoff §7)", ()
 // this account yet" about an account that does not exist, while production
 // holds seven RFQs. §7 item 1 asks for six screens "rendered from real data".
 // ---------------------------------------------------------------------------
+
+describe("what the whole page may and may not say about itself", () => {
+  // Cycle 10. Each of these was a single string somewhere in the kit, and in
+  // each case the guard that should have caught it was asserting the defect.
+  // They are asserted over every screen at once, because the defect moves.
+
+  it("no negative claims a register nobody has read", () => {
+    const html = renderAll(galleryData());
+    // Production reads four certificate registers and fourteen registers in
+    // all; `sources` holds 25 rows and `SCHEME_LABEL` names fourteen cert
+    // kinds. An absolute over "any register" or "any list" asserts absence
+    // across the ones that have never been read.
+    for (const rx of [/on any register/i, /on any list/i, /on any of the registers/i, /anywhere on file/i, /no certificate anywhere/i]) {
+      assert.doesNotMatch(html, rx, `an absolute negative over registers that have not been read: ${rx}`);
+    }
+  });
+
+  it("every denominator on the page is a number of registers that hold records", () => {
+    const html = renderAll(galleryData());
+    // 25 is every row in `sources`, 11 of which have never produced a record
+    // for anybody; 6 is every configured brand list, 2 of which hold none.
+    assert.doesNotMatch(html, /\bof 25 sources\b/);
+    assert.doesNotMatch(html, /\bon 6 brand lists\b/);
+    assert.match(html, /of 14 sources read/);
+    assert.match(html, /not on 4 brand lists read/);
+    assert.match(html, /on 4 registers/);
+  });
+
+  it("no control is in the tab order that cannot be operated", () => {
+    const html = renderAll(galleryData());
+    // A `role="checkbox"` with `tabindex="0"` and no handler announces an
+    // operable checkbox and then swallows Space, which scrolls the page. 34
+    // of them shipped across the six screens, five of which were the RFQ
+    // composer's required questions.
+    for (const m of html.matchAll(/<[a-z]+\b[^>]*role="(checkbox|radio|switch|menuitem|tab|option)"[^>]*>/g)) {
+      if (!/aria-disabled="true"/.test(m[0]!)) continue;
+      assert.doesNotMatch(m[0]!, /tabindex/, `an inert control left in the tab order: ${m[0]}`);
+    }
+    assert.match(html, /role="checkbox"[^>]*aria-disabled="true"/, "the page still draws the checkboxes this guard is about");
+  });
+
+  it("every named graphic says it is a graphic", () => {
+    const html = renderAll(galleryData());
+    // An `aria-label` on an element with no role is neither a control nor a
+    // reliably named image. Ten "Remove <filter>" icons were emitted that
+    // way and read as actions that nothing could reach.
+    for (const m of html.matchAll(/<svg\b[^>]*aria-label="[^"]*"[^>]*>/g)) {
+      assert.match(m[0]!, /role="img"/, `a named <svg> with no role: ${m[0]}`);
+    }
+    assert.ok([...html.matchAll(/<svg\b[^>]*aria-label="[^"]*"/g)].length >= 10, "the page still draws the named icons this guard is about");
+  });
+});
 
 describe("the RFQ screen renders the rows rfq_list returns", () => {
   const withRfqs = (): GalleryData => {
@@ -258,9 +317,16 @@ describe("the sidebar and the shell state only what was read", () => {
     const ids = new Set([...html.matchAll(/\bid="([^"]+)"/g)].map((m) => m[1]!));
     for (const m of html.matchAll(/href="#([^"]*)"/g)) {
       const target = m[1]!;
-      // `href="#"` is the approved fragment's inert form and always resolves.
+      // A bare `href="#"` is not "inert and always resolves" — it is a
+      // focusable link that scrolls the document to the top. This loop used
+      // to skip it, which is how eleven of the page's nineteen placeholders
+      // shipped with nothing telling the user they go nowhere.
       if (target === "") continue;
       assert.ok(ids.has(target), `href="#${target}" points at an anchor this page does not have`);
+    }
+    for (const m of html.matchAll(/<a\b[^>]*href="#"[^>]*>/g)) {
+      assert.match(m[0]!, /aria-disabled="true"/, `a placeholder link that does not say so: ${m[0]}`);
+      assert.match(m[0]!, /title="[^"]+"/, `a placeholder link with no explanation: ${m[0]}`);
     }
   });
 
