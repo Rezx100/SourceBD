@@ -635,4 +635,22 @@ describe("the composer's rail and its footer count the same missing fields", () 
     assert.match(html, new RegExp(`${c.missing.length} fields missing`), "the footer counts the model's list");
     for (const m of c.missing) assert.ok(html.includes(m), `the footer does not name "${m}"`);
   });
+
+  // design/dashboard-ux-flow.md §6: "Details 2/6 (RFQ name, reply-by date,
+  // incoterm, destination, currency, attachments)" — six fields. The fix
+  // above unified the rail/footer/preview onto one list, but only carried
+  // four of the spec's six forward: internal self-consistency held while
+  // currency and attachments silently dropped out of both the numerator and
+  // the denominator. A correctness critic caught the gap because it checks
+  // this file against the spec text, not just against itself.
+  it("the Details step names all six fields the spec defines for it, not a subset that happens to agree with itself", () => {
+    const c = composerModel(galleryData());
+    const details = c.steps.find((st) => st.label === "Details")!;
+    const total = Number(details.count!.split("/")[1]);
+    assert.equal(total, 6, "the Details step must count out of the spec's six fields, not a smaller set");
+    const named = (details.detail ?? "").split(",").map((s) => s.trim().toLowerCase());
+    for (const field of ["reply-by date", "incoterm", "destination", "currency", "attachments"]) {
+      assert.ok(named.includes(field), `the Details step does not track "${field}", which design/dashboard-ux-flow.md §6 requires`);
+    }
+  });
 });

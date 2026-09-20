@@ -222,8 +222,13 @@ export function composerModel(d: GalleryData): RfqComposerModel {
   // "2/6" — beside a footer that said "4 fields missing — target price,
   // reply-by date, incoterm, destination". At most one of the three could be
   // right, and nothing tied them together.
-  const missing = [...(hs ? [] : ["HS line"]), "target price", "reply-by date", "incoterm", "destination"];
-  const DETAIL_FIELDS = ["Name", "Reply-by date", "Incoterm", "Destination"];
+  // The spec's Details step tracks six fields (design/dashboard-ux-flow.md
+  // §6: "RFQ name, reply-by date, incoterm, destination, currency,
+  // attachments"). None of the last four have a source on this draft —
+  // the preview footer already says "no attachments" — so all four are
+  // carried as missing rather than invented.
+  const missing = [...(hs ? [] : ["HS line"]), "target price", "reply-by date", "incoterm", "destination", "currency", "attachments"];
+  const DETAIL_FIELDS = ["Name", "Reply-by date", "Incoterm", "Destination", "Currency", "Attachments"];
   const detailMissing = DETAIL_FIELDS.filter((f) => missing.includes(f.toLowerCase()));
   const listWords = (xs: string[]) => (xs.length < 2 ? xs.join("") : `${xs.slice(0, -1).join(", ")} and ${xs[xs.length - 1]}`);
   return {
