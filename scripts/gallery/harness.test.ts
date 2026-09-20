@@ -8,8 +8,10 @@
 
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { readFileSync } from "node:fs";
+import fs, { readFileSync } from "node:fs";
+import os from "node:os";
 import path from "node:path";
+import { spawnSync } from "node:child_process";
 
 import { loadGalleryData } from "@/lib/dashboard/gallery-data";
 import { RFQ_ROWS, RFQ_TARGETS, TODAY } from "@/lib/dashboard/fixtures";
@@ -60,6 +62,27 @@ describe("the screenshot harness answers every RPC from a production payload", (
     assert.equal((filtered as { total_count: number }[])[0]!.total_count, 42);
     const { data: all } = await fixtureRpc.rpc("discover_suppliers", { p_q: null });
     assert.equal((all as { total_count: number }[])[0]!.total_count, 10266);
+  });
+});
+
+describe("importing the harness renders nothing", () => {
+  // `main()` used to run on import. Importing this module for the tests
+  // therefore rendered the whole gallery: the suite needed `ds.css`, a
+  // Tailwind artifact that exists only after regen.sh has run, and on a clean
+  // checkout the import threw — taking all five of this file's tests out of
+  // the count instead of failing one. It also rewrote `gallery.html`, the page
+  // the evidence screenshots are taken from, every time the tests ran.
+  it("a bare require of the compiled renderer exits clean and writes no page", () => {
+    const out = fs.mkdtempSync(path.join(os.tmpdir(), "gallery-import-"));
+    const compiled = path.join(process.cwd(), ".tests-build/scripts/gallery/render-gallery-fixtures.js");
+    assert.ok(fs.existsSync(compiled), "the suite compiles this file, so it is here");
+    const r = spawnSync(
+      process.execPath,
+      ["--require", path.join(process.cwd(), "test-stubs/register-node-test-aliases.cjs"), "-e", `require(${JSON.stringify(compiled)})`],
+      { env: { ...process.env, GALLERY_OUT: out }, encoding: "utf8" },
+    );
+    assert.equal(r.status, 0, `importing the renderer failed:\n${r.stderr}`);
+    assert.deepEqual(fs.readdirSync(out), [], "importing it wrote into GALLERY_OUT");
   });
 });
 

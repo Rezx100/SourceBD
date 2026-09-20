@@ -114,7 +114,18 @@ async function main(): Promise<void> {
   console.log("gallery.html bytes", html.length);
 }
 
-main().catch((e) => {
-  console.error(e);
-  process.exit(1);
-});
+// Importing this file must render nothing. `harness.test.ts` imports
+// `fixtureRpc` and `records` from here, and an unconditional `main()` meant
+// that importing it rendered the whole gallery: the test suite then needed a
+// Tailwind build artifact (`_gallery-out/ds.css`) that only exists after
+// regen.sh has run, and it overwrote `gallery.html` — the page the evidence
+// screenshots are taken from — as a side effect of running the tests. On a
+// clean checkout the import threw and the whole file's five tests vanished
+// from the count rather than failing loudly. regen.sh runs this file
+// directly; that is the only time it renders.
+if (require.main === module) {
+  main().catch((e) => {
+    console.error(e);
+    process.exit(1);
+  });
+}
