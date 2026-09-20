@@ -20,7 +20,7 @@ import { describe, it } from "node:test";
 import { buildCard, buildProductSheet, buildRfqRow, buildSheet, buildTableRow } from "@/lib/dashboard/build-models";
 import { topTier } from "@/lib/dashboard/source-tiers";
 import { contrastRatio, light, resolve } from "@/lib/design/tokens";
-import { aboniInput, arFashionInput, RFQ_ROWS, RFQ_TARGETS, smKnitwearInput, TODAY, zaheenSampleInput } from "@/lib/dashboard/fixtures";
+import { aboniInput, arFashionInput, inheritedPillsInput, RFQ_ROWS, RFQ_TARGETS, smKnitwearInput, TODAY, zaheenSampleInput } from "@/lib/dashboard/fixtures";
 import { GALLERY_QUERY, SORT_MOST_SOURCES, topbarCaption, type GalleryData, type GalleryRecord } from "@/lib/dashboard/gallery-data";
 import type { RfqListModel } from "@/lib/dashboard/models";
 import { composerModel, DashboardScreens, SCREEN_WIDTH } from "./dashboard-screens";
@@ -207,6 +207,46 @@ describe("DashboardScreens — the caller, not the components (handoff §7)", ()
       assert.match(frame!, /4 records on this page, read 30 Jul – 18 Sep 2026/, `${id} draws only the four named records and must state their span, not the table's`);
       assert.doesNotMatch(frame!, /7 records on this page/, `${id} must not carry the table-only count`);
     }
+  });
+
+  // Cycle 18's own critics: the topbar fix above only moved the *topbar's*
+  // caption to the table's own span. The panel header, the panel footer and
+  // the figure's own caption all separately called the table's rows "the
+  // named test records of the rebuild spec" / "the same named records as the
+  // card view" — true only when `extra` is empty (the screenshot harness's
+  // fixture stub), false the moment a live read's discovery rows join the
+  // table (confirmed live in production by two independent critics against
+  // this same candidate). `tableSelection` in dashboard-screens.tsx now
+  // states the wider population whenever `rows` outgrows `cards`; the card
+  // view's own header/footer/caption must still say the narrower, unchanged
+  // thing.
+  it("the table's panel header, footer and figure caption state the wider population once discovery rows join it — not the card view's", () => {
+    const base = galleryData();
+    const withExtra = { ...base, rows: [...base.rows, buildTableRow(inheritedPillsInput())] };
+    const html = renderAll(withExtra);
+    const frames = [...html.matchAll(/<figure[\s\S]*?data-screen="([^"]+)"[\s\S]*?(?=<figure|$)/g)];
+    const only = (id: string) => frames.find((m) => m[1] === id)?.[0];
+
+    const WIDE_SELECTION = escapeHtml("the named test records of the rebuild spec, plus discovery's next 1 live match");
+    const NARROW_SELECTION = escapeHtml("the named test records of the rebuild spec");
+
+    const table = only("results-table")!;
+    // The panel header's own caption: "42 suppliers · <selection>", exactly.
+    assert.ok(table.includes(`42 suppliers · ${WIDE_SELECTION}</span>`), "the table's panel header must state the wider population, exactly, with nothing appended");
+    // The panel footer's own caption: "<selection> · 42 in the result set".
+    assert.ok(table.includes(`${WIDE_SELECTION} · 42 in the result set</span>`), "the table's panel footer must state the wider population, exactly");
+    // Neither may still carry the unqualified narrow string as its whole selection.
+    assert.ok(!table.includes(`42 suppliers · ${NARROW_SELECTION}</span>`), "the table's panel header must not state the narrow, unqualified selection");
+    assert.ok(!table.includes(`${NARROW_SELECTION} · 42 in the result set</span>`), "the table's panel footer must not state the narrow, unqualified selection");
+    // The figure's own caption (outside the render() helper's stripped figcaption).
+    assert.ok(
+      table.includes(`5 rows: the four named records, ${escapeHtml("plus discovery's next 1 live match")} — this is the one screen that draws them.`),
+      "the figure's own caption must state the wider population too",
+    );
+
+    const cards = only("results-list")!;
+    assert.ok(cards.includes(`42 suppliers · ${NARROW_SELECTION}</span>`), "the card view's own panel header is unchanged");
+    assert.ok(!cards.includes("discovery"), "the card view never draws extra rows and must not describe any");
   });
 
   // Cycle 5, finding 4: a failed `rfq_list` read rendered as the fact "you have

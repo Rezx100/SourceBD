@@ -68,15 +68,32 @@ function tableTopbarModel(d: GalleryData): TopbarModel {
   return { caption: topbarCaption({ published: d.published, recordsReadOn: d.tableRecordsReadOn, recordsRead: d.tableRecordsRead }), initial: null };
 }
 
-/** What the gallery's panel actually holds, for the header caption. */
+/** What the gallery's card panel actually holds, for the header caption. */
 const SELECTION = "the named test records of the rebuild spec";
 
-function header(d: GalleryData, view: "cards" | "table", shown: number) {
+/**
+ * What the table panel actually holds. `rows` is `cards` plus up to four
+ * `extra` discovery rows the table draws and the cards never do (see
+ * `tableRecordsRead` in `gallery-data.ts`); on a live read those extra rows
+ * are routinely present (discovery's own top matches, not the named four),
+ * so a caption claiming the table's rows are all "hand-picked" or "the same
+ * … as the card view" is false the moment `extra` is non-empty. Only when
+ * `rows.length === cards.length` — as it always is against the screenshot
+ * harness's fixture stub — do the two views' populations coincide.
+ */
+function tableSelection(d: GalleryData): string {
+  const extraCount = d.rows.length - d.cards.length;
+  if (extraCount <= 0) return SELECTION;
+  return `the named test records of the rebuild spec, plus discovery's next ${extraCount} live match${extraCount === 1 ? "" : "es"}`;
+}
+
+function header(d: GalleryData, view: "cards" | "table", shown: number, selection: string) {
   // The count is the RPC's; when the RPC failed it is unknown (null), never 0.
   // `selection` because these rows are hand-picked: Zaheen and A.R. Fashion
   // hold no GOTS certificate, so they are not among the 42 the query returns,
-  // and "1–4" would be a range claim over a set they are not in.
-  return { title: GALLERY_QUERY.title, total: d.discoverError ? null : d.total, shown, sortLabel: "Most sources", view, selection: SELECTION };
+  // and "1–4" would be a range claim over a set they are not in — except on
+  // the table view once `extra` rows join them; see `tableSelection` above.
+  return { title: GALLERY_QUERY.title, total: d.discoverError ? null : d.total, shown, sortLabel: "Most sources", view, selection };
 }
 
 function Frame({ id, title, note, height, children }: { id: string; title: string; note: string; height?: number; children: ReactNode }) {
@@ -110,7 +127,7 @@ export function DashboardScreens({ data: d }: { data: GalleryData }) {
   const results = shellModels(d, "suppliers");
   const cardsPanel = (
     <Panel>
-      <PanelHeader model={header(d, "cards", d.cards.length)} />
+      <PanelHeader model={header(d, "cards", d.cards.length, SELECTION)} />
       {d.cards.map((c) => (
         <SupplierResultCard key={c.slug} card={c} />
       ))}
@@ -131,13 +148,17 @@ export function DashboardScreens({ data: d }: { data: GalleryData }) {
         </AppShell>
       </Frame>
 
-      <Frame id="results-table" title="ResultsTable — the toggle's other state" note={`Same header and footer, 36px rows, ${d.rows.length} rows: the same named records as the card view. The screens render from fixtures, so the query's own top matches are not loaded here.`}>
+      <Frame
+        id="results-table"
+        title="ResultsTable — the toggle's other state"
+        note={`Same header and footer, 36px rows, ${d.rows.length} rows: the four named records${d.rows.length > d.cards.length ? `, plus discovery's next ${d.rows.length - d.cards.length} live match${d.rows.length - d.cards.length === 1 ? "" : "es"} — this is the one screen that draws them` : ""}.`}
+      >
         <AppShell sidebar={results.sidebar} topbar={tableTopbarModel(d)} mainId="results-table-main" screenLabel="results table">
           <SearchComposer chips={composerChips} askEnabled={false} />
           <Panel>
-            <PanelHeader model={header(d, "table", d.rows.length)} />
+            <PanelHeader model={header(d, "table", d.rows.length, tableSelection(d))} />
             <ResultsTable rows={d.rows} />
-            <PanelFooter shown={d.rows.length} total={d.discoverError ? null : d.total} note={SELECTION} />
+            <PanelFooter shown={d.rows.length} total={d.discoverError ? null : d.total} note={tableSelection(d)} />
           </Panel>
         </AppShell>
       </Frame>

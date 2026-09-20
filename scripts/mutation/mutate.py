@@ -554,6 +554,11 @@ M = [
  'components/dashboard/app-shell.tsx',
  '        aria-label={screenLabel ? `Quick search, ${screenLabel}` : "Quick search"}',
  '        aria-label={undefined}'),
+ ('c18-table-caption-drops-the-extra-rows',
+ 'app/dev/ds/dashboard-screens.tsx',
+ 'function tableSelection(d: GalleryData): string {\n  const extraCount = d.rows.length - d.cards.length;\n  if (extraCount <= 0) return SELECTION;\n  return `the named test records of the rebuild spec, plus discovery\'s next ${extraCount} live match${extraCount === 1 ? "" : "es"}`;\n}',
+ 'function tableSelection(d: GalleryData): string {\n  return SELECTION;\n}'),
+
 ]
 
 # An interrupted sweep used to leave the tree mutated, and the next run then
