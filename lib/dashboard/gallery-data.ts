@@ -111,6 +111,8 @@ export type GalleryData = {
   total: number | null;
   published: number | null;
   recordsReadOn: string | null;
+  /** How many records that range is over — the caption names it, so it cannot be read as the corpus. */
+  recordsRead: number | null;
   rfqs: RfqListModel;
 };
 
@@ -184,6 +186,7 @@ export async function loadGalleryData(
   // Published count and latest read date for the topbar caption.
   let published: number | null = null;
   let recordsReadOn: string | null = null;
+  let recordsRead: number | null = null;
   try {
     // An unfiltered page of one: its `total_count` is the published-supplier count.
     const { data, error } = await supabase.rpc("discover_suppliers", discoverArgs({ limit: 1 }));
@@ -198,6 +201,8 @@ export async function loadGalleryData(
   // Across the page only 4 of 32 source reads happened on 18 Sep; the oldest
   // is 18 May. A range cannot be mistaken for a freshness guarantee, and it
   // now covers every record the page draws, not only the four named ones.
+  const readRecords = [...named, ...extra].filter((r) => (r.input.profile.provenance ?? []).some((p) => p.last_seen_at));
+  recordsRead = readRecords.length || null;
   const readTimes = [...named, ...extra]
     .flatMap((r) => (r.input.profile.provenance ?? []).map((p) => (p.last_seen_at ? Date.parse(p.last_seen_at) : NaN)))
     .filter((t) => !Number.isNaN(t))
@@ -238,7 +243,9 @@ export async function loadGalleryData(
     quotes: rfqError ? null : rfqRows.reduce((n, r) => n + (r.quote_count ?? 0), 0),
     chips: [
       { label: "All", count: rfqError ? null : rfqModels.length, on: true },
-      { label: "Awaiting reply", count: count((r) => r.status.label.startsWith("Sent")) },
+      // Not "Awaiting reply": `rfq_list` carries no reply channel, so the chip
+      // counted a state nothing had read.
+      { label: "Open", count: count((r) => r.status.label.startsWith("Open")) },
       { label: "Quoted", count: count((r) => r.status.label.startsWith("Quoted") || r.status.label === "Quote accepted") },
       // "Reply overdue" and "Draft" need reply-by dates, threads and rfq_drafts (REZ-D); no chip until then.
       { label: "Closed", count: count((r) => r.status.label === "Closed" || r.status.label === "Cancelled") },
@@ -266,6 +273,7 @@ export async function loadGalleryData(
     total,
     published,
     recordsReadOn,
+    recordsRead,
     rfqs,
   };
 }
@@ -281,9 +289,16 @@ export async function loadGalleryData(
  * 2026). Printed bare beside the corpus count it read as a corpus freshness
  * claim, so the words now name the population the date is true of.
  */
-export function topbarCaption(d: Pick<GalleryData, "published" | "recordsReadOn">): string {
+export function topbarCaption(d: Pick<GalleryData, "published" | "recordsReadOn" | "recordsRead">): string {
   const parts: string[] = [];
   if (d.published !== null) parts.push(`${formatCount(d.published)} published suppliers`);
-  if (d.recordsReadOn) parts.push(`supplier records read ${d.recordsReadOn}`);
+  // The cycle-11 repair fixed the statistic — a maximum became a range — and
+  // dropped the scope in the same edit, so "supplier records read 18 May –
+  // 18 Sep 2026" sat beside "10,266 published suppliers" and read as a claim
+  // about the corpus. 1,214 published records (11.8 %) have no read at all on
+  // or after 18 May, and the corpus's oldest read is 13 May. The clause names
+  // the population it is true of, and how many records that is.
+  if (d.recordsReadOn && d.recordsRead !== null)
+    parts.push(`${formatCount(d.recordsRead)} ${d.recordsRead === 1 ? "record" : "records"} on this page, read ${d.recordsReadOn}`);
   return parts.join(" · ") || "Live records";
 }

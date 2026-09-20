@@ -105,14 +105,14 @@ export function DashboardScreens({ data: d }: { data: GalleryData }) {
   return (
     <div className="space-y-10">
       <Frame id="results-list" title="ResultsList — result cards" note={ResultsHeaderNote(d)}>
-        <AppShell sidebar={results.sidebar} topbar={results.topbar}>
+        <AppShell sidebar={results.sidebar} topbar={results.topbar} mainId="results-list-main">
           <SearchComposer chips={composerChips} askEnabled={false} />
           {cardsPanel}
         </AppShell>
       </Frame>
 
       <Frame id="results-table" title="ResultsTable — the toggle's other state" note={`Same header and footer, 36px rows, ${d.rows.length} rows: the same named records as the card view. The screens render from fixtures, so the query's own top matches are not loaded here.`}>
-        <AppShell sidebar={results.sidebar} topbar={results.topbar}>
+        <AppShell sidebar={results.sidebar} topbar={results.topbar} mainId="results-table-main">
           <SearchComposer chips={composerChips} askEnabled={false} />
           <Panel>
             <PanelHeader model={header(d, "table", d.rows.length)} />
@@ -124,11 +124,15 @@ export function DashboardScreens({ data: d }: { data: GalleryData }) {
 
       {d.sheet ? (
         <Frame id="supplier-sheet" title="SupplierSheet — the record over the results" note={`${d.sheet.name}: ${d.sheet.sourceCount} sources, ${d.sheet.certs.length} certificates, ${d.sheet.products.lines} HS lines, read ${d.sheet.readDate ?? "—"}. Contact details locked (striped, never blurred).`} height={1240}>
-          <Stage height={1240}>
-            <AppShell sidebar={results.sidebar} topbar={results.topbar}>
-              <SearchComposer chips={composerChips} askEnabled={false} />
-              {cardsPanel}
-            </AppShell>
+          <Stage
+            height={1240}
+            behind={
+              <AppShell sidebar={results.sidebar} topbar={results.topbar} mainId="supplier-sheet-behind">
+                <SearchComposer chips={composerChips} askEnabled={false} />
+                {cardsPanel}
+              </AppShell>
+            }
+          >
             <Scrim />
             <SupplierSheet model={d.sheet} />
           </Stage>
@@ -137,11 +141,15 @@ export function DashboardScreens({ data: d }: { data: GalleryData }) {
 
       {d.productSheet ? (
         <Frame id="product-sheet" title="ProductSheet — one HS export line" note={`HS ${d.productSheet.hs} on ${d.productSheet.supplierName}'s EPB exporter page. The photo is the catalogue's illustrative photo for the heading, never the supplier's own.`} height={760}>
-          <Stage height={760}>
-            <AppShell sidebar={results.sidebar} topbar={results.topbar}>
-              <SearchComposer chips={composerChips} askEnabled={false} />
-              {cardsPanel}
-            </AppShell>
+          <Stage
+            height={760}
+            behind={
+              <AppShell sidebar={results.sidebar} topbar={results.topbar} mainId="product-sheet-behind">
+                <SearchComposer chips={composerChips} askEnabled={false} />
+                {cardsPanel}
+              </AppShell>
+            }
+          >
             <Scrim />
             <ProductSheet model={d.productSheet} />
           </Stage>
@@ -150,11 +158,15 @@ export function DashboardScreens({ data: d }: { data: GalleryData }) {
 
       {composer ? (
         <Frame id="rfq-composer" title="RFQComposer — rail, editor with variables, preview" note="A sample draft to the Aboni record: the certificate number, expiry and HS line in the message are the record's real facts; the product, quantity and dates are the buyer's own draft fields, shown here as a sample. AI is off in this build, so the V2 surfaces (Improve wording, Follow-up rules) are absent." height={860}>
-          <Stage height={860}>
-            <AppShell sidebar={results.sidebar} topbar={results.topbar}>
-              <SearchComposer chips={composerChips} askEnabled={false} />
-              {cardsPanel}
-            </AppShell>
+          <Stage
+            height={860}
+            behind={
+              <AppShell sidebar={results.sidebar} topbar={results.topbar} mainId="rfq-composer-behind">
+                <SearchComposer chips={composerChips} askEnabled={false} />
+                {cardsPanel}
+              </AppShell>
+            }
+          >
             <Scrim />
             <RfqComposer model={composer} aiEnabled={false} />
           </Stage>
@@ -168,7 +180,7 @@ export function DashboardScreens({ data: d }: { data: GalleryData }) {
         height={700}
       >
         <Stage height={700}>
-          <AppShell {...shellModels(d, "rfqs")} contentClassName="gap-5">
+          <AppShell {...shellModels(d, "rfqs")} contentClassName="gap-5" mainId="rfq-list-main">
             <RfqList model={d.rfqs} />
           </AppShell>
         </Stage>

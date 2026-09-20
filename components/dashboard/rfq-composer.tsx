@@ -180,7 +180,8 @@ export function RfqComposer({ model, aiEnabled = false }: { model: RfqComposerMo
                   aria-pressed={model.template === t}
                   className={cn(
                     "whitespace-nowrap px-3 text-sm font-medium text-ink-muted",
-                    model.template === t && "bg-surface-sunken text-ink-strong",
+                    // 1.17:1 against the unpressed half beside it; the rail is 7.87:1.
+                    model.template === t && "bg-surface-sunken text-ink-strong shadow-[inset_0_-2px_0_rgb(var(--ds-brand))]",
                   )}
                 >
                   {t === "first" ? "First contact" : "Repeat supplier"}

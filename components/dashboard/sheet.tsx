@@ -15,10 +15,21 @@ import { Icon } from "./icons";
 import { SourceMark } from "./marks";
 import { Caption, Code, Eyebrow, Heading, Label } from "./type";
 
-/** `.stage`: a fixed-height frame that clips the shell under a sheet or dialog. */
-export function Stage({ height, children }: { height: number; children: ReactNode }) {
+/**
+ * `.stage`: a fixed-height frame that clips the shell under a sheet or dialog.
+ *
+ * `behind` is the shell the sheet covers, and it is `inert`. The scrim takes
+ * the pointer, so a mouse could not reach it; the keyboard could, and 57
+ * elements outside the dialog were still tab stops on each of the three sheet
+ * screens — the dialog's own Close button came 27th. `aria-modal="true"` also
+ * told a screen reader that background was hidden while Chromium's own
+ * accessibility tree still exposed it, so the page failed in both directions
+ * at once.
+ */
+export function Stage({ height, behind, children }: { height: number; behind?: ReactNode; children: ReactNode }) {
   return (
     <div className="relative overflow-hidden" style={{ height }}>
+      {behind === undefined ? null : <div inert>{behind}</div>}
       {children}
     </div>
   );

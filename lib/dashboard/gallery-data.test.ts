@@ -196,7 +196,7 @@ describe("loadGalleryData (the /dev/ds loader, stubbed RPCs)", () => {
       data.rfqs.chips.map((c) => [c.label, c.count]),
       [
         ["All", 5],
-        ["Awaiting reply", 1],
+        ["Open", 1],
         ["Quoted", 2],
         ["Closed", 2],
       ],
@@ -207,7 +207,7 @@ describe("loadGalleryData (the /dev/ds loader, stubbed RPCs)", () => {
     assert.equal(chipTotal, data.rfqs.rows.length, "a row is in no chip, or in two");
   });
 
-  // Cycle 8: the cycle-6 fixture gave "Awaiting reply" and "Quoted" one row
+  // Cycle 8: the cycle-6 fixture gave "Open" and "Quoted" one row
   // each, so swapping the two predicates left every count unchanged — a
   // 1-vs-1 collision where the empty list had been a 0-vs-0 one. Each chip
   // now counts a different number of rows, and no two chips agree.
@@ -225,7 +225,7 @@ describe("loadGalleryData (the /dev/ds loader, stubbed RPCs)", () => {
     const counts = data.rfqs.chips.map((c) => [c.label, c.count] as const);
     assert.deepEqual(counts, [
       ["All", 6],
-      ["Awaiting reply", 3],
+      ["Open", 3],
       ["Quoted", 2],
       ["Closed", 1],
     ]);

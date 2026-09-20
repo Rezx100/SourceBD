@@ -107,7 +107,7 @@ async function main(): Promise<void> {
     `:root{--font-sans:Geist;--font-mono:"Geist Mono"}`,
   ].join("");
   const withLocalPhotos = body.replace(/src="\/products\//g, `src="file://${path.join(repoRoot, "public/products")}/`);
-  const html = `<!doctype html><html lang="en" class="font-sans"><head><meta charset="utf-8"><style>${fonts}${css}</style></head><body><main class="mx-auto space-y-10 px-4 py-8" style="width:1500px">${withLocalPhotos}</main></body></html>`;
+  const html = `<!doctype html><html lang="en" class="font-sans"><head><meta charset="utf-8"><style>${fonts}${css}</style></head><body><div class="mx-auto space-y-10 px-4 py-8" style="width:1500px">${withLocalPhotos}</div></body></html>`;
 
   mkdirSync(outDir, { recursive: true });
   writeFileSync(path.join(outDir, "gallery.html"), html);

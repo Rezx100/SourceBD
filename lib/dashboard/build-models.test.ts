@@ -702,11 +702,13 @@ describe("buildProductSheet — HS 6105 on the Aboni record", () => {
 
 describe("buildRfqRow — status words derived from the stored row", () => {
   const base = { id: "r1", product_title: "T-shirt", quantity: 100, quantity_unit: "pcs", ship_by: "2026-09-24", target_supplier_count: 1, quote_count: 0, created_at: "2026-09-09T10:00:00Z" } as const;
-  it("open + no quote = awaiting reply (never 'overdue' from ship-by); quotes = quoted", () => {
-    assert.equal(buildRfqRow({ ...base, status: "open" }, null, TODAY).status.label, "Sent · awaiting reply");
+  it("open + no quote reads as the enum and the count, never as a reply state; quotes = quoted", () => {
+    // `rfq_list` carries no thread and no reply, so nothing in the read
+    // supports "awaiting". The label is the enum and the quote count.
+    assert.equal(buildRfqRow({ ...base, status: "open" }, null, TODAY).status.label, "Open · no quote yet");
     assert.equal(
       buildRfqRow({ ...base, status: "open", ship_by: "2026-09-01" }, null, TODAY).status.label,
-      "Sent · awaiting reply",
+      "Open · no quote yet",
       "a passed ship-by date is not a missed reply-by date; overdue needs REZ-D's derived_status",
     );
     assert.equal(buildRfqRow({ ...base, status: "open", quote_count: 2 }, null, TODAY).status.label, "Quoted · 2");
@@ -1101,7 +1103,7 @@ describe("the RFQ row survives the shapes rfq_list can return", () => {
   it("each of the four statuses the enum allows reads as its own words", () => {
     const words = (status: "open" | "accepted" | "closed" | "cancelled", quotes = 0) =>
       buildRfqRow({ ...base, status, quote_count: quotes, target_supplier_count: 1 }, null, TODAY).status.label;
-    assert.equal(words("open"), "Sent · awaiting reply");
+    assert.equal(words("open"), "Open · no quote yet");
     assert.equal(words("open", 2), "Quoted · 2");
     assert.equal(words("accepted"), "Quote accepted");
     assert.equal(words("closed"), "Closed");

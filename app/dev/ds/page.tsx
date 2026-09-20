@@ -175,7 +175,10 @@ export default async function DesignSystemGallery() {
   const failures = results.filter((r) => !r.pass).length;
 
   return (
-    <main className="mx-auto max-w-content space-y-10 px-4 py-8 sm:px-6 lg:py-12">
+    // Each screen renders its own `main` landmark, so the page must not wrap
+    // them in a seventh: `landmark-no-duplicate-main`, and six skip links that
+    // all resolved to the first screen.
+    <div className="mx-auto max-w-content space-y-10 px-4 py-8 sm:px-6 lg:py-12">
       <header className="space-y-2">
         <p className="text-xs font-medium uppercase tracking-wide text-ink-subtle">
           Dev only · Design rebuild · Direction locked 18 Sep 2026
@@ -478,6 +481,6 @@ export default async function DesignSystemGallery() {
           . All motion switches off when the device asks for reduced motion.
         </p>
       </Section>
-    </main>
+    </div>
   );
 }

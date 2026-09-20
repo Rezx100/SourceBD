@@ -71,7 +71,10 @@ export function Seg({
           className={cn(
             "grid w-9 place-items-center text-ink-muted",
             i > 0 && "border-l border-line-strong",
-            o.value === value && "bg-brand-tint text-brand-ink",
+            // Icon-only, so there is no text fallback: the pressed half was a
+            // 1.15:1 tint against the unpressed one beside it. The inset rail
+            // is `brand`, 7.87:1 (WCAG 1.4.11).
+            o.value === value && "bg-brand-tint text-brand-ink shadow-[inset_0_-2px_0_rgb(var(--ds-brand))]",
           )}
         >
           <Icon name={o.icon} />

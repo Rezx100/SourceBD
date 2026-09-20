@@ -62,7 +62,12 @@ export function Sidebar({ model }: { model: SidebarModel }) {
               aria-current={on ? "page" : undefined}
               className={cn(
                 "flex h-8 items-center gap-2.5 rounded-sm px-2 text-sm font-medium text-ink-muted hover:bg-surface-sunken",
-                on && "bg-brand-tint text-brand-ink hover:bg-brand-tint",
+                // The tint alone is 1.07:1 against the canvas beside it, so on
+                // a dim screen the current item was indistinguishable from the
+                // rest (WCAG 1.4.11 asks 3:1 for a state). `brand` is 7.87:1
+                // against both, so the rail carries the state and the tint
+                // only decorates it.
+                on && "bg-brand-tint text-brand-ink hover:bg-brand-tint shadow-[inset_3px_0_0_rgb(var(--ds-brand))]",
               )}
             >
               <Icon name={item.icon} />
@@ -147,11 +152,18 @@ export function AppShell({
   sidebar,
   topbar,
   contentClassName,
+  /**
+   * The content landmark's id, and the skip link's target. Six screens in one
+   * gallery document all carried `ds-main`, so `getElementById` resolved every
+   * skip link to the first screen and the page shipped six duplicate ids.
+   */
+  mainId = "ds-main",
   children,
 }: {
   sidebar: SidebarModel;
   topbar: TopbarModel;
   contentClassName?: string;
+  mainId?: string;
   children: ReactNode;
 }) {
   // Every screen opens with the same eight sidebar links. Without a `main`
@@ -160,7 +172,6 @@ export function AppShell({
   // heading navigation gave nothing (WCAG 2.4.1, level A). The app shell this
   // kit replaces already has both — `app/(app)/layout.tsx` renders `SkipLink`
   // and `<main id="main-content">`.
-  const mainId = "ds-main";
   return (
     <div className="flex min-h-full bg-canvas text-base text-ink">
       <a

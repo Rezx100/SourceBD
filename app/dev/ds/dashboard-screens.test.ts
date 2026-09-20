@@ -19,6 +19,7 @@ import { describe, it } from "node:test";
 
 import { buildCard, buildProductSheet, buildRfqRow, buildSheet, buildTableRow } from "@/lib/dashboard/build-models";
 import { topTier } from "@/lib/dashboard/source-tiers";
+import { contrastRatio, light, resolve } from "@/lib/design/tokens";
 import { aboniInput, arFashionInput, RFQ_ROWS, RFQ_TARGETS, smKnitwearInput, TODAY, zaheenSampleInput } from "@/lib/dashboard/fixtures";
 import { GALLERY_QUERY, SORT_MOST_SOURCES, topbarCaption, type GalleryData, type GalleryRecord } from "@/lib/dashboard/gallery-data";
 import type { RfqListModel } from "@/lib/dashboard/models";
@@ -55,6 +56,7 @@ function galleryData(over: Partial<GalleryData> = {}): GalleryData {
     total: 42,
     published: 10266,
     recordsReadOn: "30 Jul – 18 Sep 2026",
+    recordsRead: 4,
     rfqs: EMPTY_RFQS,
     ...over,
   };
@@ -132,21 +134,31 @@ describe("DashboardScreens — the caller, not the components (handoff §7)", ()
   it("the topbar caption carries only what could be read", () => {
     // The date is `max(last_seen_at)` over the records this page draws, not
     // over the corpus the count is of: 1,677 of the 10,266 were last read on
-    // 18 Sep 2026 and the median is 24 Jul (SQL, 20 Sep 2026). Two figures
-    // joined by a middle dot read as one claim, so the words say which
-    // population the date belongs to.
-    // A maximum is not a property of a population. The caption said "records
-    // on this page read 18 Sep 2026" while A.R. Fashion's only source had
-    // been read 30 Jul — 4 of the page's 32 source reads were on 18 Sep, and
-    // the oldest was 18 May. It is a range now, over every record the page
-    // draws rather than only the four named ones.
-    assert.equal(topbarCaption({ published: 10266, recordsReadOn: "30 Jul – 18 Sep 2026" }), "10,266 published suppliers · supplier records read 30 Jul – 18 Sep 2026");
-    assert.equal(topbarCaption({ published: null, recordsReadOn: "18 Sep 2026" }), "supplier records read 18 Sep 2026");
-    assert.equal(topbarCaption({ published: 1, recordsReadOn: null }), "1 published suppliers");
-    assert.equal(topbarCaption({ published: null, recordsReadOn: null }), "Live records");
+    // The caption has been wrong twice, in two different ways. First the
+    // statistic: a maximum over four records printed as "records read 18 Sep
+    // 2026" while one of them had last been read 30 Jul. Then the subject:
+    // the repair made it a range and dropped the scope, so "supplier records
+    // read 18 May – 18 Sep 2026" sat beside "10,266 published suppliers" and
+    // read as a corpus claim — 1,214 published records have no read at all
+    // inside that window and the corpus's oldest is 13 May (SQL, 20 Sep 2026).
+    // It must carry both: a range, and the population it is a range over.
+    assert.equal(
+      topbarCaption({ published: 10266, recordsReadOn: "30 Jul – 18 Sep 2026", recordsRead: 4 }),
+      "10,266 published suppliers · 4 records on this page, read 30 Jul – 18 Sep 2026",
+    );
+    assert.equal(topbarCaption({ published: null, recordsReadOn: "18 Sep 2026", recordsRead: 1 }), "1 record on this page, read 18 Sep 2026");
+    assert.equal(topbarCaption({ published: 1, recordsReadOn: null, recordsRead: null }), "1 published suppliers");
+    assert.equal(topbarCaption({ published: null, recordsReadOn: null, recordsRead: null }), "Live records");
     const shell = render(galleryData());
-    assert.match(shell, /10,266 published suppliers · supplier records read 30 Jul – 18 Sep 2026/);
-    assert.doesNotMatch(shell, /records read 18 Sep 2026(?!\s*–)/, "the newest read must not stand for every record");
+    assert.match(shell, /10,266 published suppliers · 4 records on this page, read 30 Jul – 18 Sep 2026/);
+    // Neither failure mode may come back: no bare date, and no clause that
+    // follows the corpus count with a date but no population of its own.
+    assert.doesNotMatch(shell, /records read \d+ \w+ \d{4}(?!\s*–)/, "the newest read must not stand for every record");
+    for (const m of shell.matchAll(/published suppliers · ([^<]*)/g)) {
+      const clause = m[1]!;
+      if (!/\d{4}/.test(clause)) continue;
+      assert.match(clause, /on this page/, `a date printed beside the corpus count with no population of its own: "${clause}"`);
+    }
   });
 
   // Cycle 5, finding 4: a failed `rfq_list` read rendered as the fact "you have
@@ -201,6 +213,61 @@ describe("DashboardScreens — the caller, not the components (handoff §7)", ()
 // holds seven RFQs. §7 item 1 asks for six screens "rendered from real data".
 // ---------------------------------------------------------------------------
 
+describe("the state a screen is in is drawn, not only announced", () => {
+  // Deleting the selected/pressed fill entirely used to leave the suite at
+  // 500/500: the only assertion that touched it counted `aria-current`
+  // attributes. The fills themselves are 1.07–1.17:1 against the neighbour
+  // they must be distinguished from, where WCAG 1.4.11 asks 3:1, and no
+  // retint can fix that — `brand.ink` on the tint and the tint on the canvas
+  // pull in opposite directions. So the state must carry a second indicator
+  // that is not a fill, and this asserts the indicator is rendered.
+  const INDICATOR = /shadow-\[inset|ring-|border-brand|outline/;
+
+  it("every current or pressed control carries an indicator that is not a fill", () => {
+    const html = renderAll(galleryData());
+    let seen = 0;
+    for (const m of html.matchAll(/<(?:a|button)\b[^>]*(?:aria-current="page"|aria-pressed="true")[^>]*>/g)) {
+      seen += 1;
+      assert.match(m[0]!, INDICATOR, `a state drawn with a fill and nothing else: ${m[0]}`);
+    }
+    assert.ok(seen >= 6, "the page still draws the current and pressed states this guard is about");
+  });
+
+  it("the indicator is a token the contrast table covers at 3:1 or better", () => {
+    const html = renderAll(galleryData());
+    // `brand` against both surfaces it is drawn on. `contrastPairs` only ever
+    // holds foreground-on-background, so the ratio is asserted here where the
+    // indicator is chosen rather than in the token file.
+    assert.match(html, /shadow-\[inset_3px_0_0_rgb\(var\(--ds-brand\)\)\]/, "the sidebar's current item");
+    assert.match(html, /shadow-\[inset_0_-2px_0_rgb\(var\(--ds-brand\)\)\]/, "the segmented controls");
+    for (const bg of ["canvas", "surface", "brand.tint"]) {
+      const r = contrastRatio(resolve(light, "brand"), resolve(light, bg));
+      assert.ok(r >= 3, `the state indicator is ${r.toFixed(2)}:1 on ${bg}, and a state needs 3:1`);
+    }
+  });
+});
+
+describe("a modal's background is inert, not merely covered", () => {
+  it("nothing outside an aria-modal dialog is focusable", () => {
+    const html = renderAll(galleryData());
+    const frames = html.split("<figure").slice(1);
+    let modals = 0;
+    for (const f of frames) {
+      if (!/aria-modal="true"/.test(f)) continue;
+      modals += 1;
+      // The shell the sheet covers sits inside `<div inert>`; the scrim takes
+      // the pointer but took nothing from the keyboard, and 57 elements
+      // outside the dialog were still tab stops on each sheet screen.
+      const before = f.slice(0, f.search(/<(?:aside|div)\b[^>]*aria-modal="true"/));
+      assert.match(before, /<div inert=""|<div inert>/, "the covered shell is not inert");
+      const shellStart = before.search(/<div inert/);
+      const covered = before.slice(shellStart);
+      assert.doesNotMatch(covered, /tabindex="0"/, "a positive tab stop inside the inert shell");
+    }
+    assert.equal(modals, 3, "the three sheet screens still draw a modal");
+  });
+});
+
 describe("what the whole page may and may not say about itself", () => {
   // Cycle 10. Each of these was a single string somewhere in the kit, and in
   // each case the guard that should have caught it was asserting the defect.
@@ -238,7 +305,10 @@ describe("what the whole page may and may not say about itself", () => {
       if (!/aria-disabled="true"/.test(m[0]!)) continue;
       assert.doesNotMatch(m[0]!, /tabindex/, `an inert control left in the tab order: ${m[0]}`);
     }
-    assert.match(html, /role="checkbox"[^>]*aria-disabled="true"/, "the page still draws the checkboxes this guard is about");
+    // Counted over the data, not the markup. A backstop counted over the tag,
+    // role or attribute a repair would replace makes the correct repair fail
+    // the suite — this branch has shipped that three times.
+    assert.ok(galleryData().cards.length >= 4, "the page still draws the selectable rows this guard is about");
   });
 
   it("a name that reads as an action is on something that can be actioned", () => {
@@ -279,7 +349,12 @@ describe("what the whole page may and may not say about itself", () => {
     for (const m of html.matchAll(/<a\b[^>]*aria-disabled="true"[^>]*>/g)) {
       assert.match(m[0]!, /tabindex="-1"/, `a link announced unavailable but still focusable: ${m[0]}`);
     }
-    assert.ok([...html.matchAll(/<a\b[^>]*aria-disabled="true"/g)].length >= 10, "the page still draws the placeholder links this guard is about");
+    // Same: the canary is the data that produces placeholders, not the <a>
+    // that happens to host one today. Turning a placeholder link into a span
+    // is a repair, and must not fail this test.
+    const d = galleryData();
+    assert.ok((d.sheet?.tabs ?? []).some((t) => t.href === null), "the sheet still has sections that arrive later");
+    assert.ok(d.cards.some((c) => (c.moreChips ?? 0) > 0), "a card still has more chips than it shows");
   });
 
   it("every screen can be entered past the sidebar", () => {
@@ -287,9 +362,21 @@ describe("what the whole page may and may not say about itself", () => {
     const frames = html.split("<figure").slice(1);
     assert.equal(frames.length, 6, "six screens");
     for (const f of frames) {
-      assert.equal((f.match(/<main\b/g) ?? []).length, 1, "exactly one main landmark per screen");
-      assert.match(f, /<a href="#ds-main"[^>]*>Skip to content<\/a>/, "a skip link before the sidebar");
-      assert.ok(f.indexOf("Skip to content") < f.indexOf("<nav"), "the skip link comes before the navigation");
+      // Every shell in the frame — the screen's own, and the one a sheet
+      // covers — carries exactly one `main`, with its own id, reached by a
+      // skip link that comes before that shell's navigation. Six screens all
+      // called their landmark `ds-main`, so `getElementById` resolved every
+      // skip link to the first screen.
+      const mains = [...f.matchAll(/<main id="([^"]+)"/g)].map((m) => m[1]!);
+      assert.ok(mains.length >= 1, "a screen with no content landmark cannot be entered");
+      assert.equal(new Set(mains).size, mains.length, `two landmarks share an id: ${mains.join(", ")}`);
+      for (const id of mains) {
+        const link = f.indexOf(`href="#${id}"`);
+        assert.ok(link > -1, `no skip link targets #${id}`);
+        assert.ok(link < f.indexOf(`<main id="${id}"`), "the skip link comes after the landmark it targets");
+        const nav = f.indexOf("<nav", link);
+        assert.ok(nav === -1 || link < nav, "the skip link comes before the navigation");
+      }
       assert.match(f, /<h1\b/, "a screen with no heading cannot be navigated by heading");
       // And no level is skipped on the way down.
       const levels = [...f.matchAll(/<h([1-6])\b/g)].map((m) => Number(m[1]));

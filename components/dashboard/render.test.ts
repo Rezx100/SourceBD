@@ -696,7 +696,7 @@ describe("RfqList (rendered)", () => {
     assert.doesNotMatch(html, /1 suppliers/);
     assert.match(html, /3 suppliers/);
     assert.match(html, /Quattro Fashion Limited/);
-    assert.match(html, /Sent · awaiting reply/);
+    assert.match(html, /Open · no quote yet/);
     assert.match(html, /Quoted · 1/);
     assert.doesNotMatch(html, /Reply overdue/, "overdue needs reply-by dates and threads (REZ-D)");
     assert.match(html, /9 Sep 2026/);
@@ -1072,7 +1072,7 @@ describe("an unread count renders as unknown, on every surface that shows one", 
     const model: RfqListModel = {
       sent: null,
       quotes: null,
-      chips: [{ label: "All", count: null, on: true }, { label: "Awaiting reply", count: null }],
+      chips: [{ label: "All", count: null, on: true }, { label: "Open", count: null }],
       rows: [],
       footer: "The RFQ list could not be read",
       toast: null,

@@ -1247,8 +1247,13 @@ export function buildRfqRow(
   supplier: { name: string; tier: TierRank; sanctioned?: boolean; sanctionSample?: boolean } | null,
   today: Date,
 ): RfqRowModel {
-  // "Reply overdue" needs the reply-by date and the thread (REZ-D's derived_status); `rfq_list`
-  // carries neither, so an open RFQ without a quote is "awaiting reply" whatever the ship-by date.
+  // `rfq_list` returns the RFQ's own enum, `quote_count`, `target_supplier_count`
+  // and `viewer_role`, and nothing else. It carries no thread and no reply, so
+  // "Sent · awaiting reply" asserted two things the read cannot support — that
+  // it was sent, and that nothing has come back. Production does hold the
+  // thread (`message_threads`, `messages`), and on one of the five RFQs the
+  // kit draws, the supplier has written into it. The label is the enum and the
+  // count now, which is what the production RFQ list itself shows.
   void today;
   const status: RfqRowModel["status"] =
     r.status === "accepted"
@@ -1257,7 +1262,7 @@ export function buildRfqRow(
         ? { tone: "type", label: r.status === "closed" ? "Closed" : "Cancelled" }
         : r.quote_count > 0
           ? { tone: "positive", label: `Quoted · ${r.quote_count}`, icon: "check-c" }
-          : { tone: "positive", label: "Sent · awaiting reply", icon: "send" };
+          : { tone: "type", label: "Open · no quote yet", icon: "send" };
   // `rfq_list` emits `coalesce(array_length(target_supplier_ids,1), 0)`, so a
   // draft with no target counts 0 — and `Math.max(1, undefined)` is NaN, which
   // rendered "NaN suppliers". An RFQ with no target says so.
