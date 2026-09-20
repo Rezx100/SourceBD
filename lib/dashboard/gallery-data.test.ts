@@ -155,6 +155,17 @@ describe("loadGalleryData (the /dev/ds loader, stubbed RPCs)", () => {
   it("the table's own record span covers the extra rows; the named span does not", async () => {
     const named = await loadGalleryData(stubClient().client, TODAY);
     const withExtra = await loadGalleryData(stubClient({ extraSlug: true }).client, TODAY);
+    // Absolute counts, not only counts compared against each other. The
+    // guard-adequacy critic against cycle 18's candidate found that every
+    // assertion here was relative — `readSpan`'s own count could be off by
+    // any amount, in either direction, with every relative comparison below
+    // still holding, because the oracle for "did it move" came from the same
+    // computation being checked. This stub always resolves exactly two named
+    // records (aboni, ar — sm and zaheen are not in `stubClient`'s slug map),
+    // both with dated provenance.
+    assert.equal(named.recordsRead, 2, "readSpan's own count over the two loadable named records");
+    assert.equal(named.tableRecordsRead, 2, "with no extra row, the table span is the named span");
+    assert.equal(withExtra.tableRecordsRead, 3, "readSpan's own count once the one extra record joins the table's population");
     // The extra slug changes nothing about the named-only span: the same two
     // records (aboni, ar) produce the same count and the same range either way.
     assert.equal(withExtra.recordsRead, named.recordsRead, "adding a table-only row must not move the named span's count");
@@ -163,6 +174,21 @@ describe("loadGalleryData (the /dev/ds loader, stubbed RPCs)", () => {
     // provenance joins the population the table screen actually draws.
     assert.notEqual(withExtra.tableRecordsRead, withExtra.recordsRead, "the table span must differ from the named span once extra rows exist");
     assert.equal(withExtra.tableRecordsRead, (withExtra.recordsRead ?? 0) + 1, "exactly one extra record was added");
+  });
+
+  // Same critic, second finding: `tableRecordsReadOn` — the date half of the
+  // same cycle-18 fix — had no assertion anywhere, absolute or relative. A
+  // revert to `tableRecordsReadOn = null`, or one that quietly fell back to
+  // the named span's date, passed the whole suite.
+  it("tableRecordsReadOn is read, formatted as a range, and is never the named span's date by coincidence of being unset", async () => {
+    const named = await loadGalleryData(stubClient().client, TODAY);
+    const withExtra = await loadGalleryData(stubClient({ extraSlug: true }).client, TODAY);
+    for (const on of [named.tableRecordsReadOn, withExtra.tableRecordsReadOn]) {
+      assert.ok(on, "tableRecordsReadOn must be read, not dropped");
+      assert.match(on!, / – /, "a population's read date is a range, not a single day");
+    }
+    assert.equal(named.tableRecordsReadOn, "18 May – 18 Sep 2026", "the exact range this stub's two named records span");
+    assert.equal(withExtra.tableRecordsReadOn, "18 May – 18 Sep 2026", "the extra record's own provenance falls inside the named range in this stub, so the range is unchanged — its count moving (above) is what proves the extra record was actually read");
   });
 
   it("a count the RPC returns as a numeric string is still a count", async () => {

@@ -578,7 +578,14 @@ M = [
  'app/dev/ds/dashboard-screens.tsx',
  '<RfqComposer model={composer} aiEnabled={false} assertModal={false} />',
  '<RfqComposer model={composer} aiEnabled={false} />'),
-
+ ('c18-read-span-count-off-by-one',
+ 'lib/dashboard/gallery-data.ts',
+ '      count: read.length || null,',
+ '      count: read.length + 1 || null,'),
+ ('c18-table-read-date-dropped',
+ 'lib/dashboard/gallery-data.ts',
+ '  const tableRecordsReadOn = tableSpan.on;',
+ '  const tableRecordsReadOn = null;'),
 ]
 
 # An interrupted sweep used to leave the tree mutated, and the next run then
