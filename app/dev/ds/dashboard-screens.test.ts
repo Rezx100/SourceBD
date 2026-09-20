@@ -221,26 +221,37 @@ describe("the state a screen is in is drawn, not only announced", () => {
   // retint can fix that — `brand.ink` on the tint and the tint on the canvas
   // pull in opposite directions. So the state must carry a second indicator
   // that is not a fill, and this asserts the indicator is rendered.
-  const INDICATOR = /shadow-\[inset|ring-|border-brand|outline/;
+  /**
+   * The indicator must name the `brand` token, in whatever form it is drawn —
+   * an inset shadow, a border, a ring. The first version of this accepted any
+   * `ring-*` utility, which let a 1.33:1 hairline pass, and a sibling test
+   * pinned the two `shadow-[inset_…]` strings so that redrawing the same rail
+   * as a border failed the suite.
+   */
+  const INDICATOR = /(?:shadow-\[[^"\]]*--ds-brand|border-brand|ring-brand|outline-brand)/;
+  /** Every attribute that says "this one is the one you are on". */
+  const STATE = /<(?:a|button)\b[^>]*(?:aria-current="(?!false")[^"]*"|aria-pressed="true"|aria-selected="true")[^>]*>/g;
 
-  it("every current or pressed control carries an indicator that is not a fill", () => {
+  it("every current, pressed or selected control carries an indicator that is not a fill", () => {
     const html = renderAll(galleryData());
-    let seen = 0;
-    for (const m of html.matchAll(/<(?:a|button)\b[^>]*(?:aria-current="page"|aria-pressed="true")[^>]*>/g)) {
-      seen += 1;
+    const states = [...html.matchAll(STATE)];
+    // Not a list of attribute values: `aria-current="step"` on the composer's
+    // rail was outside the first version's population, and its state was a
+    // white card at 1.08:1 against the canvas beside it.
+    assert.ok(states.length >= 8, "the page still draws the states this guard is about");
+    assert.ok(
+      states.some((m) => /aria-current="step"/.test(m[0]!)),
+      "the composer's step rail is one of them",
+    );
+    for (const m of states) {
       assert.match(m[0]!, INDICATOR, `a state drawn with a fill and nothing else: ${m[0]}`);
     }
-    assert.ok(seen >= 6, "the page still draws the current and pressed states this guard is about");
   });
 
-  it("the indicator is a token the contrast table covers at 3:1 or better", () => {
-    const html = renderAll(galleryData());
-    // `brand` against both surfaces it is drawn on. `contrastPairs` only ever
-    // holds foreground-on-background, so the ratio is asserted here where the
-    // indicator is chosen rather than in the token file.
-    assert.match(html, /shadow-\[inset_3px_0_0_rgb\(var\(--ds-brand\)\)\]/, "the sidebar's current item");
-    assert.match(html, /shadow-\[inset_0_-2px_0_rgb\(var\(--ds-brand\)\)\]/, "the segmented controls");
-    for (const bg of ["canvas", "surface", "brand.tint"]) {
+  it("the token the indicators name clears 3:1 against every ground it is drawn on", () => {
+    // `contrastPairs` only ever holds foreground-on-background, so the
+    // state-vs-neighbour ratio is asserted here, where the token is chosen.
+    for (const bg of ["canvas", "surface", "surface.sunken", "brand.tint"]) {
       const r = contrastRatio(resolve(light, "brand"), resolve(light, bg));
       assert.ok(r >= 3, `the state indicator is ${r.toFixed(2)}:1 on ${bg}, and a state needs 3:1`);
     }
@@ -259,10 +270,15 @@ describe("a modal's background is inert, not merely covered", () => {
       // the pointer but took nothing from the keyboard, and 57 elements
       // outside the dialog were still tab stops on each sheet screen.
       const before = f.slice(0, f.search(/<(?:aside|div)\b[^>]*aria-modal="true"/));
-      assert.match(before, /<div inert=""|<div inert>/, "the covered shell is not inert");
-      const shellStart = before.search(/<div inert/);
-      const covered = before.slice(shellStart);
-      assert.doesNotMatch(covered, /tabindex="0"/, "a positive tab stop inside the inert shell");
+      // The attribute, not one serialization of it: `<div class="contents"
+      // inert>` is the same repair and the first version of this rejected it.
+      const wrapper = before.search(/<div\b[^>]*\binert\b/);
+      assert.ok(wrapper > -1, "the covered shell is not inert");
+      const covered = before.slice(wrapper);
+      // And the shell really is inside it — an `inert` wrapper that does not
+      // contain the shell buys nothing.
+      assert.match(covered, /<main id="[^"]+-behind"/, "the covered shell sits outside the inert wrapper");
+      assert.match(covered, /<nav aria-label="Primary"/, "the sidebar sits outside the inert wrapper");
     }
     assert.equal(modals, 3, "the three sheet screens still draw a modal");
   });
@@ -367,6 +383,16 @@ describe("what the whole page may and may not say about itself", () => {
       // skip link that comes before that shell's navigation. Six screens all
       // called their landmark `ds-main`, so `getElementById` resolved every
       // skip link to the first screen.
+      // `inert` strips a subtree from the accessibility tree, so a landmark
+      // and a skip link inside one are markup nobody can reach. On the three
+      // sheet screens the shell is inert by design and the dialog is the
+      // content, so what those screens owe is a labelled dialog instead.
+      const reachable = f.replace(/<div\b[^>]*\binert\b[\s\S]*?<\/div>\s*(?=<div aria-hidden)/, "");
+      if (/aria-modal="true"/.test(f)) {
+        assert.match(f, /aria-modal="true"[^>]*aria-label="[^"]+"|aria-label="[^"]+"[^>]*aria-modal="true"/, "a modal screen owes a labelled dialog");
+        assert.doesNotMatch(reachable, /<main\b/, "a landmark left outside the dialog on a modal screen");
+        continue;
+      }
       const mains = [...f.matchAll(/<main id="([^"]+)"/g)].map((m) => m[1]!);
       assert.ok(mains.length >= 1, "a screen with no content landmark cannot be entered");
       assert.equal(new Set(mains).size, mains.length, `two landmarks share an id: ${mains.join(", ")}`);

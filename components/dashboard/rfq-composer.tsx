@@ -154,7 +154,11 @@ export function RfqComposer({ model, aiEnabled = false }: { model: RfqComposerMo
               aria-current={s.active ? "step" : undefined}
               className={cn(
                 "flex items-start gap-2 rounded-sm px-2.5 py-2 text-ink",
-                s.active && "bg-surface ring-1 ring-inset ring-line",
+                // The white card is 1.08:1 against the canvas beside it and
+                // the hairline ring is 1.33:1 — the state was invisible. The
+                // rail is `brand`, the same one the sidebar and the segmented
+                // controls use (WCAG 1.4.11 asks 3:1).
+                s.active && "bg-surface ring-1 ring-inset ring-line border-l-[3px] border-brand pl-[7px]",
                 s.v2 && "text-smart",
               )}
             >

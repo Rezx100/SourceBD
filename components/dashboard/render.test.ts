@@ -260,7 +260,11 @@ describe("SupplierSheet (rendered)", () => {
   it("bar, tabs with counts, facts with marks, the locked contact card, certificates, the RSC meter, the action bar", () => {
     const html = renderToStaticMarkup(createElement(SupplierSheet, { model: buildSheet(aboniInput()) }));
     assert.match(html, /Supplier record/);
-    assert.match(html, /Read 18 Sep 2026 · 11 sources/);
+    // Not "Read 18 Sep 2026 · 11 sources": one of Aboni's eleven registers
+    // was read that day and the oldest was read 123 days earlier, which the
+    // contact card on the same screen lists in full. The header is the span.
+    assert.match(html, /Read 18 May – 18 Sep 2026 · 11 sources/);
+    assert.doesNotMatch(html, /Read \d+ \w+ \d{4} · \d+ sources/, "a single date must not stand for every register");
     assert.match(html, /Products<span[^>]*>12</);
     assert.match(html, /Certificates<span[^>]*>4</);
     assert.match(html, /Registered name/);

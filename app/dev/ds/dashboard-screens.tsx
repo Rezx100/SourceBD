@@ -44,7 +44,16 @@ function shellModels(d: GalleryData, active: SidebarModel["active"]): { sidebar:
     // No billing exists yet: the plan line names the beta, never a plan or renewal date (handoff §3.10).
     plan: { name: d.plan ?? "Free · public beta" },
   };
-  const topbar: TopbarModel = { caption: topbarCaption(d), initial: null };
+  // "4 records on this page, read …" is true of the screens that draw those
+  // four supplier records. The RFQ list draws five RFQs and no supplier
+  // record at all, and `rfq_list` returns no read date of any kind, so the
+  // clause is dropped there rather than carried by a shared shell. Making the
+  // caption specific is what made it false on one screen.
+  const drawsRecords = active !== "rfqs";
+  const topbar: TopbarModel = {
+    caption: topbarCaption(drawsRecords ? d : { published: d.published, recordsReadOn: null, recordsRead: null }),
+    initial: null,
+  };
   return { sidebar, topbar };
 }
 

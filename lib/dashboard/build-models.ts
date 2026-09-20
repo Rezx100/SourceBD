@@ -41,6 +41,7 @@ import {
   rscTrainingWords,
   sortCerts,
   type CertModel,
+  formatDayRange,
 } from "./facts";
 import { heading4, hsCatalogueRow, hsExporterCount, hsPhotoSrc, hsShortLabel, photoTiles, rarestFirst } from "./hs-photos";
 import { groupWorkers, type SiteWorkerInput } from "@/lib/profile-metrics";
@@ -279,9 +280,23 @@ export function readDateOf(p: ProfilePayload, code: string): string | null {
   return latest < 0 ? null : formatDay(new Date(latest).toISOString());
 }
 
-function latestReadDate(p: ProfilePayload): string | null {
-  const latest = (p.provenance ?? []).reduce<number>((m, r) => Math.max(m, isoTime(r.last_seen_at)), -1);
-  return latest < 0 ? null : formatDay(new Date(latest).toISOString());
+/**
+ * When this record's registers were read — as a range, beside a count of them.
+ *
+ * It was `Math.max`, printed as "Read 18 Sep 2026 · 11 sources". One of
+ * Aboni's eleven registers was read that day; NEXT was read 123 days earlier,
+ * and the contact card on the same screen lists all eleven dates, so the
+ * header contradicted the body. 2,159 of the 3,515 published records holding
+ * more than one source span over 30 days, and 122 span over 90 (SQL, 20 Sep
+ * 2026). The topbar learned this in cycle 11; this is the same figure one
+ * level down.
+ */
+function readDateWords(p: ProfilePayload): string | null {
+  const times = (p.provenance ?? []).map((r) => isoTime(r.last_seen_at)).filter((t) => t > 0).sort((a, b) => a - b);
+  const oldest = times[0];
+  const newest = times[times.length - 1];
+  if (oldest === undefined || newest === undefined) return null;
+  return formatDayRange(new Date(oldest).toISOString(), new Date(newest).toISOString());
 }
 
 function sameAddress(a: string | null | undefined, b: string | null | undefined): boolean {
@@ -966,7 +981,7 @@ export function buildSheet(input: RecordInput, options: SheetOptions = {}): Supp
     topTier: topTier(codes),
     marks,
     meta: metaFacts(input, { registerNumber: true }),
-    readDate: latestReadDate(p),
+    readDate: readDateWords(p),
     sourceCount: marks.length,
     sanctioned: s.is_sanctioned || Boolean(input.sanctionSample),
     sanctionSample: input.sanctionSample,

@@ -266,7 +266,8 @@ describe("RSC: the mother's row only, never a building's; every row the RPC retu
   it("the safety read date is the RSC row's own fetch, not the register's latest read", () => {
     assert.equal(buildSheet(aboniInput()).rsc?.readDate, "30 Jul 2026");
     const latest = buildSheet(aboniInput()).readDate;
-    assert.equal(latest, "18 Sep 2026", "the profile's latest read is a different day, so the two cannot be confused");
+    assert.equal(latest, "18 May – 18 Sep 2026", "the sheet header is the span of every register's read, not the newest");
+    assert.notEqual(latest, "18 Sep 2026", "a maximum is not a property of eleven registers");
   });
 
   // Cycle 4 fix, unguarded until cycle 6, plus cycle 5 finding 16: an absent

@@ -15,7 +15,7 @@ import { fetchDisplayWorkersBatch } from "@/lib/enrich-discover-workers";
 import { hscodesFromRpc } from "@/lib/epb-hscodes";
 import { buildCard, buildRfqRow, buildSheet, buildTableRow, buildProductSheet, type ProfilePayload, type RecordInput, type RfqListRow } from "./build-models";
 
-import { formatCount, formatDay } from "./facts";
+import { formatCount, formatDayRange } from "./facts";
 import { topTier } from "./source-tiers";
 import type { RfqListModel, SupplierCardModel, SupplierSheetModel, TableRowModel, ProductSheetModel } from "./models";
 
@@ -212,9 +212,7 @@ export async function loadGalleryData(
   recordsReadOn =
     oldest === undefined || newest === undefined
       ? null
-      : oldest === newest
-        ? formatDay(new Date(oldest).toISOString())
-        : `${formatDay(new Date(oldest).toISOString())} – ${formatDay(new Date(newest).toISOString())}`;
+      : formatDayRange(new Date(oldest).toISOString(), new Date(newest).toISOString());
 
   // RFQs of the viewer (admin in the gallery), as `rfq_list` returns them.
   // A failed read is carried as unknown: the empty state states a fact about

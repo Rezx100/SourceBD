@@ -58,6 +58,21 @@ export function formatDay(iso: string | null | undefined): string | null {
   return `${date.getUTCDate()} ${MONTHS[date.getUTCMonth()]} ${date.getUTCFullYear()}`;
 }
 
+/**
+ * The span a set of reads covers: `18 May – 18 Sep 2026`, or one date when
+ * they all fall on the same day. Shared by the topbar and the sheet header so
+ * the two cannot drift; both used to print a maximum, which said nothing
+ * about the oldest read behind the figure beside it.
+ */
+export function formatDayRange(oldestIso: string | null | undefined, newestIso: string | null | undefined): string | null {
+  const a = formatDay(oldestIso);
+  const b = formatDay(newestIso);
+  if (a === null || b === null) return a ?? b;
+  if (a === b) return a;
+  const year = a.slice(a.lastIndexOf(" ") + 1);
+  return `${year === b.slice(b.lastIndexOf(" ") + 1) ? a.slice(0, a.lastIndexOf(" ")) : a} – ${b}`;
+}
+
 /** `2027-05-12` → `May 2027`. */
 export function formatMonth(iso: string | null | undefined): string | null {
   const d = dayOf(iso);
