@@ -1,5 +1,12 @@
 # REZ-A (the code port of the buyer dashboard v3.2 kit) — hand-off after cycle 11
 
+> **Superseded by `handoff-rez-a-cycle16.md`.** Five more cycles ran after
+> this was written, including a mutation sweep completed for the first time
+> ever, which found four guards in this file's own "guards, and what each is
+> for" table that matched nothing at all. Kept for the cycle-10/11 findings
+> only; its "known, recorded, and not yet done" list has not been
+> reverified since.
+
 Supersedes `handoff-rez-a-cycle9.md` for state and order of work, and that
 file's "what to do next" is done. `handoff-rez-a-cycle5.md` is still the
 reference for the cycle-5 findings and for **"What this kit deliberately does
