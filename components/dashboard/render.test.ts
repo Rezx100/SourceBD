@@ -32,6 +32,7 @@ import {
 } from "@/lib/dashboard/fixtures";
 import type { RfqListModel } from "@/lib/dashboard/models";
 import { Checkbox, Meter, Seg } from "./controls";
+import { Icon } from "./icons";
 import { PanelFooter, PanelHeader } from "./results-panel";
 import { ProductSheet } from "./product-sheet";
 import { ResultsTable } from "./results-table";
@@ -295,6 +296,21 @@ describe("SupplierSheet (rendered)", () => {
     assert.doesNotMatch(html, /disabled=""/);
     assert.doesNotMatch(html, TRUNCATION);
     assert.doesNotMatch(html, HAND_TYPED_COLOUR);
+  });
+
+  // A mutation sweep found `SheetSection`'s title (sheet.tsx) could be bumped
+  // from `as="h2"` to `as="h3"` with every test staying green: nothing in the
+  // suite required the sheet's own section headings to sit one level under
+  // its name, so a screen reader's heading navigation would skip a level on
+  // every tab (Products, Certificates, Safety) without any test noticing.
+  it("the sheet's name is the only h1, and its sections sit one level under it, not two", () => {
+    const html = renderToStaticMarkup(createElement(SupplierSheet, { model: buildSheet(aboniInput()) }));
+    const h1s = html.match(/<h1\b/g) ?? [];
+    assert.equal(h1s.length, 1, "the sheet's own name must be the sheet's only top-level heading");
+    assert.doesNotMatch(html, /<h3\b/, "a section heading skipped from h1 straight to h3");
+    for (const title of ["Products", "Certificates", "Safety"]) {
+      assert.match(html, new RegExp(`<h2\\b[^>]*>${title}</h2>`), `"${title}" must be an h2, one level under the sheet's h1`);
+    }
   });
 
   // Cycle 5, finding 14 / handoff §4.6: an unclaimed supplier is not reached
@@ -824,6 +840,31 @@ describe("Meter (rendered)", () => {
     // `role="meter"` requires an accessible name and the component used to
     // take none, so two bars on the safety section announced as "100, meter".
     assert.match(renderToStaticMarkup(createElement(Meter, { pct: 53, label: "Remediation, Aboni" })), /aria-label="Remediation, Aboni"/);
+  });
+});
+
+// No page in this gallery currently calls `<Icon>` with a `label`, so the
+// page-wide "a named <svg> with no role" sweep (dashboard-screens.test.ts)
+// never exercises this branch — a mutation sweep found both `icons.tsx`'s
+// `role={label ? "img" : undefined}` line and the phosphor test stub itself
+// could be reverted to their pre-fix state without any test going red. This
+// tests the component's own contract directly, so the capability is guarded
+// whether or not a caller happens to use it yet.
+describe("Icon (rendered)", () => {
+  it("is a real, visible svg — the stub used to render nothing at all", () => {
+    const html = renderToStaticMarkup(createElement(Icon, { name: "warn" }));
+    assert.match(html, /<svg\b/, "an icon must render an actual svg, not nothing");
+  });
+
+  it("a labelled icon is announced as an image; an unlabelled one is hidden from screen readers", () => {
+    const labelled = renderToStaticMarkup(createElement(Icon, { name: "warn", label: "Warning" }));
+    assert.match(labelled, /role="img"/, "a labelled icon must carry role=\"img\", or a screen reader announces an unreachable action");
+    assert.match(labelled, /aria-label="Warning"/);
+    assert.doesNotMatch(labelled, /aria-hidden/);
+
+    const decorative = renderToStaticMarkup(createElement(Icon, { name: "warn" }));
+    assert.doesNotMatch(decorative, /role="img"|aria-label=/);
+    assert.match(decorative, /aria-hidden="true"/);
   });
 });
 

@@ -503,7 +503,10 @@ M = [
  '            o.value === value && "bg-brand-tint text-brand-ink shadow-[inset_0_-2px_0_rgb(var(--ds-brand))]",',
  '            o.value === value && "bg-brand-tint text-brand-ink",'),
  ('c13-modal-background-live', 'components/dashboard/sheet.tsx', '      {behind === undefined ? null : <div inert>{behind}</div>}', '      {behind === undefined ? null : <div>{behind}</div>}'),
- ('c13-landmarks-share-an-id', 'components/dashboard/app-shell.tsx', '  mainId = "ds-main",', '  mainId: _mainId = "ds-main",'),
+ ('c13-landmarks-share-an-id',
+ 'app/dev/ds/dashboard-screens.tsx',
+ '        <AppShell sidebar={results.sidebar} topbar={results.topbar} mainId="results-table-main">',
+ '        <AppShell sidebar={results.sidebar} topbar={results.topbar} mainId="results-list-main">'),
  ('c14-sheet-read-date-is-a-maximum',
  'lib/dashboard/build-models.ts',
  '  return formatDayRange(new Date(oldest).toISOString(), new Date(newest).toISOString());',
@@ -527,6 +530,10 @@ M = [
  'lib/dashboard/gallery-data.ts',
  '  if (d.published !== null) parts.push(`${formatCount(d.published)} published ${d.published === 1 ? "supplier" : "suppliers"}`);',
  '  if (d.published !== null) parts.push(`${formatCount(d.published)} published suppliers`);'),
+ ('c16-details-step-drops-two-fields',
+ 'app/dev/ds/dashboard-screens.tsx',
+ '  const DETAIL_FIELDS = ["Name", "Reply-by date", "Incoterm", "Destination", "Currency", "Attachments"];',
+ '  const DETAIL_FIELDS = ["Name", "Reply-by date", "Incoterm", "Destination"];'),
 ]
 
 # An interrupted sweep used to leave the tree mutated, and the next run then

@@ -164,6 +164,21 @@ describe("DashboardScreens — the caller, not the components (handoff §7)", ()
     }
   });
 
+  it("the 'records on this page' clause does not travel to the RFQ list screen, which draws none", () => {
+    // `drawsRecords` (dashboard-screens.tsx) exists only to keep this clause
+    // off the one screen that draws zero supplier records. A mutation sweep
+    // found it could be hardcoded to `true` — putting "N records on this
+    // page, read …" on the RFQ list too — with every test above still green,
+    // because they all check the clause's own wording, never which screens
+    // carry it.
+    const html = renderAll(galleryData());
+    const frames = [...html.matchAll(/<figure[\s\S]*?data-screen="([^"]+)"[\s\S]*?(?=<figure|$)/g)];
+    const rfqList = frames.find((m) => m[1] === "rfq-list")?.[0];
+    assert.ok(rfqList, "the rfq-list screen must be in the gallery");
+    assert.match(rfqList!, /published suppliers?/, "the RFQ screen still names the corpus");
+    assert.doesNotMatch(rfqList!, /records? on this page/, "the RFQ list draws no supplier records, so it must not claim to");
+  });
+
   // Cycle 5, finding 4: a failed `rfq_list` read rendered as the fact "you have
   // no RFQs", in the empty state written to sell the feature.
   it("an unread RFQ list says so; an empty one sells the feature", () => {
@@ -408,6 +423,18 @@ describe("what the whole page may and may not say about itself", () => {
     }
   });
 
+  it("the page actually draws icons, not just markup that names them", () => {
+    // Every check above scans for `<svg ... aria-label>` and similar shapes,
+    // and every one of them passes vacuously if the icon stub renders nothing
+    // at all — which is the exact regression a mutation sweep found: no test
+    // in this suite required a single real `<svg>` to appear anywhere on the
+    // page. `components/dashboard/render.test.ts` now covers `Icon` directly;
+    // this is the same guard at the boundary a buyer's browser actually hits.
+    const html = renderAll(galleryData());
+    const svgs = html.match(/<svg\b/g) ?? [];
+    assert.ok(svgs.length > 100, `expected well over a hundred real icons across six screens, found ${svgs.length}`);
+  });
+
   it("nothing announced as unavailable is left in the tab order", () => {
     const html = renderAll(galleryData());
     // `aria-disabled="true"` on a focusable link is a false state: the link
@@ -427,6 +454,14 @@ describe("what the whole page may and may not say about itself", () => {
     const html = renderAll(galleryData());
     const frames = html.split("<figure").slice(1);
     assert.equal(frames.length, 6, "six screens");
+    // The historical bug (six screens all calling their landmark `ds-main`)
+    // would pass a per-frame uniqueness check, because each frame only ever
+    // renders one `main` of its own — the collision was across frames, on
+    // the one page the gallery puts all six screens on at once. Checked here
+    // globally, once, before the per-frame loop below checks the narrower
+    // within-a-frame case a mutation sweep found that loop alone cannot see.
+    const allMains = [...html.matchAll(/<main id="([^"]+)"/g)].map((m) => m[1]!);
+    assert.equal(allMains.length, new Set(allMains).size, `two screens share a landmark id on the gallery page: ${allMains.join(", ")}`);
     for (const f of frames) {
       // Every shell in the frame — the screen's own, and the one a sheet
       // covers — carries exactly one `main`, with its own id, reached by a
@@ -438,9 +473,24 @@ describe("what the whole page may and may not say about itself", () => {
       // sheet screens the shell is inert by design and the dialog is the
       // content, so what those screens owe is a labelled dialog instead.
       const reachable = f.replace(/<div\b[^>]*\binert\b[\s\S]*?<\/div>\s*(?=<div aria-hidden)/, "");
+      // Heading order matters only within one reachable document at a time:
+      // a modal frame's inert background carries its own h1, and checking the
+      // whole frame would either conflate the two heading trees or (as the
+      // branch below used to) skip the check entirely for every sheet screen.
+      // A mutation sweep found exactly that gap — `SheetSection`'s h2 could be
+      // bumped to h3 with every test staying green, because the one place
+      // that checked heading order never ran on a modal's own content.
+      const checkHeadingOrder = (html: string) => {
+        assert.match(html, /<h1\b/, "a screen with no heading cannot be navigated by heading");
+        const levels = [...html.matchAll(/<h([1-6])\b/g)].map((m) => Number(m[1]));
+        for (let i = 1; i < levels.length; i += 1) {
+          assert.ok(levels[i]! <= levels[i - 1]! + 1, `heading order jumps h${levels[i - 1]} → h${levels[i]}`);
+        }
+      };
       if (/aria-modal="true"/.test(f)) {
         assert.match(f, /aria-modal="true"[^>]*aria-label="[^"]+"|aria-label="[^"]+"[^>]*aria-modal="true"/, "a modal screen owes a labelled dialog");
         assert.doesNotMatch(reachable, /<main\b/, "a landmark left outside the dialog on a modal screen");
+        checkHeadingOrder(reachable);
         continue;
       }
       const mains = [...f.matchAll(/<main id="([^"]+)"/g)].map((m) => m[1]!);
@@ -453,12 +503,7 @@ describe("what the whole page may and may not say about itself", () => {
         const nav = f.indexOf("<nav", link);
         assert.ok(nav === -1 || link < nav, "the skip link comes before the navigation");
       }
-      assert.match(f, /<h1\b/, "a screen with no heading cannot be navigated by heading");
-      // And no level is skipped on the way down.
-      const levels = [...f.matchAll(/<h([1-6])\b/g)].map((m) => Number(m[1]));
-      for (let i = 1; i < levels.length; i += 1) {
-        assert.ok(levels[i]! <= levels[i - 1]! + 1, `heading order jumps h${levels[i - 1]} → h${levels[i]}`);
-      }
+      checkHeadingOrder(f);
     }
   });
 });
