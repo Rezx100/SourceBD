@@ -183,7 +183,7 @@ function lowerFirst(s: string): string {
 }
 
 /** The composer's draft, built on the Aboni record's real facts. */
-function composerModel(d: GalleryData): RfqComposerModel {
+export function composerModel(d: GalleryData): RfqComposerModel {
   const rec = d.records.aboni!;
   const name = d.sheet?.name ?? rec.input.profile.supplier.company_name;
   const gots = d.sheet?.certs.find((c) => c.kind.toUpperCase() === "GOTS" && c.state !== "expired") ?? null;
@@ -196,6 +196,15 @@ function composerModel(d: GalleryData): RfqComposerModel {
     ? `your ${gots.scheme} certificate ${gots.number ?? ""} is ${lowerFirst(certStateLabel(gots))}`.replace(/\s+/g, " ").trim()
     : "no certificate on file";
   const product = hs ? `Men's knitted piqué polo · HS ${hs}` : "Men's knitted piqué polo";
+  // One list, read by the rail, the footer and the preview. The rail used to
+  // carry its own literals — "Reply-by date and destination missing" and
+  // "2/6" — beside a footer that said "4 fields missing — target price,
+  // reply-by date, incoterm, destination". At most one of the three could be
+  // right, and nothing tied them together.
+  const missing = [...(hs ? [] : ["HS line"]), "target price", "reply-by date", "incoterm", "destination"];
+  const DETAIL_FIELDS = ["Name", "Reply-by date", "Incoterm", "Destination"];
+  const detailMissing = DETAIL_FIELDS.filter((f) => missing.includes(f.toLowerCase()));
+  const listWords = (xs: string[]) => (xs.length < 2 ? xs.join("") : `${xs.slice(0, -1).join(", ")} and ${xs[xs.length - 1]}`);
   return {
     title: "New RFQ",
     context: `to ${name} · first contact${hs ? ` · HS ${hs}` : ""} · sample draft`,
@@ -205,8 +214,19 @@ function composerModel(d: GalleryData): RfqComposerModel {
     draftSaved: null,
     steps: [
       { label: "Suppliers", detail: `${name} · first contact`, count: "1" },
-      { label: "Product", detail: product, missing: hs ? "Target price missing" : "Target price and HS line missing", count: hs },
-      { label: "Details", detail: "Name, reply-by, incoterm, destination", missing: "Reply-by date and destination missing", count: "2/6", active: true },
+      {
+        label: "Product",
+        detail: product,
+        missing: `${listWords(missing.filter((m) => m === "target price" || m === "HS line").map((m, i) => (i === 0 ? m[0]!.toUpperCase() + m.slice(1) : m)))} missing`,
+        count: hs,
+      },
+      {
+        label: "Details",
+        detail: DETAIL_FIELDS.join(", "),
+        missing: detailMissing.length === 0 ? undefined : `${listWords(detailMissing.map((f, i) => (i === 0 ? f : f.toLowerCase())))} missing`,
+        count: `${DETAIL_FIELDS.length - detailMissing.length}/${DETAIL_FIELDS.length}`,
+        active: true,
+      },
       { label: "Questions", detail: "5 required on first contact", count: "10" },
       { label: "Follow-up rules", detail: "Draft a follow-up if no reply in 5 days", v2: true },
     ],
@@ -254,6 +274,6 @@ function composerModel(d: GalleryData): RfqComposerModel {
       ],
       footer: "1 product line · 10 questions · no attachments",
     },
-    missing: [...(hs ? [] : ["HS line"]), "target price", "reply-by date", "incoterm", "destination"],
+    missing,
   };
 }

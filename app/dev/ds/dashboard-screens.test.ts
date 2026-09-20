@@ -22,7 +22,7 @@ import { topTier } from "@/lib/dashboard/source-tiers";
 import { aboniInput, arFashionInput, RFQ_ROWS, RFQ_TARGETS, smKnitwearInput, TODAY, zaheenSampleInput } from "@/lib/dashboard/fixtures";
 import { GALLERY_QUERY, SORT_MOST_SOURCES, topbarCaption, type GalleryData, type GalleryRecord } from "@/lib/dashboard/gallery-data";
 import type { RfqListModel } from "@/lib/dashboard/models";
-import { DashboardScreens, SCREEN_WIDTH } from "./dashboard-screens";
+import { composerModel, DashboardScreens, SCREEN_WIDTH } from "./dashboard-screens";
 
 const EMPTY_RFQS: RfqListModel = {
   sent: 0,
@@ -444,5 +444,32 @@ describe("the screens claim only what the query asked for and the RPC answered",
     assert.equal(SCREEN_WIDTH, 1440);
     for (const f of frames) assert.equal(f[1], "1440", `the ${f[2]} frame is ${f[1]}px, not the width the screenshots are captioned with`);
     assert.deepEqual(frames.map((f) => f[2]), ["results-list", "results-table", "supplier-sheet", "product-sheet", "rfq-composer", "rfq-list"]);
+  });
+});
+
+describe("the composer's rail and its footer count the same missing fields", () => {
+  // The rail said "Reply-by date and destination missing" and "2/6" while the
+  // footer on the same screen said "4 fields missing — target price,
+  // reply-by date, incoterm, destination", and the preview flagged three. All
+  // three were hand-written; at most one could be right.
+  it("every field the rail calls missing is in the model's own list, and the fraction agrees", () => {
+    const d = galleryData();
+    const c = composerModel(d);
+    const details = c.steps.find((st) => st.label === "Details")!;
+    const [filled, total] = details.count!.split("/").map(Number) as [number, number];
+    const named = (details.missing ?? "")
+      .replace(/ missing$/, "")
+      .split(/,\s*|\s+and\s+/)
+      .filter(Boolean)
+      .map((w: string) => w.toLowerCase());
+    assert.ok(named.length > 0, "the sample draft still has missing detail fields");
+    assert.equal(total - filled, named.length, "the fraction must count the fields the rail names");
+    for (const n of named) {
+      assert.ok(c.missing.includes(n), `the rail names "${n}" as missing, and the footer's list does not`);
+    }
+    // And the footer states the same total.
+    const html = renderAll(d);
+    assert.match(html, new RegExp(`${c.missing.length} fields missing`), "the footer counts the model's list");
+    for (const m of c.missing) assert.ok(html.includes(m), `the footer does not name "${m}"`);
   });
 });
