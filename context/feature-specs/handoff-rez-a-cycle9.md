@@ -1,5 +1,10 @@
 # REZ-A (the code port of the buyer dashboard v3.2 kit) — hand-off after cycle 9
 
+> **Superseded by `handoff-rez-a-cycle11.md`.** Two of the statements below
+> are now known to be wrong: `8c087c6` was not a green candidate (three
+> commits had swept up live mutations), and the sweep it points at measured a
+> tree that was already red. Kept for the cycle-9 findings only.
+
 Supersedes `handoff-rez-a-cycle5.md` for state and order of work. That file is
 still the reference for the cycle-5 findings and for **"What this kit
 deliberately does not carry yet"**, which has been extended twice since and is

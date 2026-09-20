@@ -39,7 +39,7 @@ migrations, run the 30-day zero P1/P2 Sentry incident window.
   `/dev/ds` from production records. Nine audit cycles run; the fixtures are
   reconciled field-by-field against a checked-in production read, and every
   repair carries a guard verified by reverting the fix and watching it go red.
-  State and next steps: `feature-specs/handoff-rez-a-cycle9.md`. Not landed,
+  State and next steps: `feature-specs/handoff-rez-a-cycle11.md`. Not landed,
   not merged, awaiting the Acceptance Judge.
 
 ## Founder rules still in force (one line each; detail in archive)

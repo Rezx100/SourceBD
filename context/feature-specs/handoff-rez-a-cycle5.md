@@ -1,7 +1,7 @@
 # REZ-A (the code port of the dashboard kit) — hand-off at cycle 5
 
 > **Superseded for state and order of work by
-> `handoff-rez-a-cycle9.md`.** This file remains the reference for the
+> `handoff-rez-a-cycle11.md`.** This file remains the reference for the
 > cycle-5 findings and for "What this kit deliberately does not carry yet",
 > which is still maintained here.
 
