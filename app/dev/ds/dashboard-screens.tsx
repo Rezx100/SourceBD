@@ -57,6 +57,17 @@ function shellModels(d: GalleryData, active: SidebarModel["active"]): { sidebar:
   return { sidebar, topbar };
 }
 
+/**
+ * The results-table screen's own topbar. It is the one screen that draws
+ * `extra` rows beside the four named records (`rowRecords` in
+ * `gallery-data.ts`), so it is the one screen whose caption may state a
+ * record count above 4 — every other caller of `shellModels` above shares one
+ * topbar built from the narrower, named-only span.
+ */
+function tableTopbarModel(d: GalleryData): TopbarModel {
+  return { caption: topbarCaption({ published: d.published, recordsReadOn: d.tableRecordsReadOn, recordsRead: d.tableRecordsRead }), initial: null };
+}
+
 /** What the gallery's panel actually holds, for the header caption. */
 const SELECTION = "the named test records of the rebuild spec";
 
@@ -121,7 +132,7 @@ export function DashboardScreens({ data: d }: { data: GalleryData }) {
       </Frame>
 
       <Frame id="results-table" title="ResultsTable — the toggle's other state" note={`Same header and footer, 36px rows, ${d.rows.length} rows: the same named records as the card view. The screens render from fixtures, so the query's own top matches are not loaded here.`}>
-        <AppShell sidebar={results.sidebar} topbar={results.topbar} mainId="results-table-main">
+        <AppShell sidebar={results.sidebar} topbar={tableTopbarModel(d)} mainId="results-table-main">
           <SearchComposer chips={composerChips} askEnabled={false} />
           <Panel>
             <PanelHeader model={header(d, "table", d.rows.length)} />

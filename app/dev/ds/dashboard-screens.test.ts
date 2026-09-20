@@ -57,6 +57,13 @@ function galleryData(over: Partial<GalleryData> = {}): GalleryData {
     published: 10266,
     recordsReadOn: "30 Jul – 18 Sep 2026",
     recordsRead: 4,
+    // The default fixture has no rows beyond the four named records — the
+    // same case the harness renders from (fixtureRpc never returns a slug
+    // outside the named four) — so the table's own span equals the named
+    // one here. A test that wants to prove the two screens can diverge
+    // overrides both pairs together, the way `loadGalleryData` would.
+    tableRecordsReadOn: "30 Jul – 18 Sep 2026",
+    tableRecordsRead: 4,
     rfqs: EMPTY_RFQS,
     ...over,
   };
@@ -177,6 +184,29 @@ describe("DashboardScreens — the caller, not the components (handoff §7)", ()
     assert.ok(rfqList, "the rfq-list screen must be in the gallery");
     assert.match(rfqList!, /published suppliers?/, "the RFQ screen still names the corpus");
     assert.doesNotMatch(rfqList!, /records? on this page/, "the RFQ list draws no supplier records, so it must not claim to");
+  });
+
+  // Cycle 17, correctness critic's finding. `discover_suppliers`'s top rows
+  // for this query return slugs outside the four named records on a real
+  // read (SQL, 20 Sep 2026) — only the table screen draws them
+  // (`rowRecords` in gallery-data.ts), yet one shared `shellModels(d,
+  // "suppliers")` object used to hand every screen the same topbar. A caption
+  // built over the wider, table-only population would then sit on the
+  // results-list, both sheets and the composer, each of which draws only the
+  // four named records — the "caption states the wrong population" defect
+  // class this project has always treated as blocking, just cross-screen
+  // rather than within one.
+  it("the table's wider record count does not travel to the screens that draw only the four named records", () => {
+    const html = renderAll(galleryData({ tableRecordsRead: 7, tableRecordsReadOn: "18 May – 18 Sep 2026" }));
+    const frames = [...html.matchAll(/<figure[\s\S]*?data-screen="([^"]+)"[\s\S]*?(?=<figure|$)/g)];
+    const only = (id: string) => frames.find((m) => m[1] === id)?.[0];
+    assert.match(only("results-table")!, /7 records on this page, read 18 May – 18 Sep 2026/, "the table screen must carry its own, wider span");
+    for (const id of ["results-list", "supplier-sheet", "product-sheet", "rfq-composer"]) {
+      const frame = only(id);
+      assert.ok(frame, `${id} must render`);
+      assert.match(frame!, /4 records on this page, read 30 Jul – 18 Sep 2026/, `${id} draws only the four named records and must state their span, not the table's`);
+      assert.doesNotMatch(frame!, /7 records on this page/, `${id} must not carry the table-only count`);
+    }
   });
 
   // Cycle 5, finding 4: a failed `rfq_list` read rendered as the fact "you have

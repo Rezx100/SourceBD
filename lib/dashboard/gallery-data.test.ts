@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { aboniInput, arFashionInput, TODAY } from "./fixtures";
+import { aboniInput, arFashionInput, smKnitwearInput, TODAY } from "./fixtures";
 import type { RfqListRow } from "./build-models";
 import { discoverArgs, loadGalleryData, SORT_MOST_SOURCES } from "./gallery-data";
 
@@ -9,10 +9,23 @@ type Call = { fn: string; args: Record<string, unknown> };
 
 /** A stub that answers the gallery's RPCs from the fixtures and records every call. */
 function stubClient(
-  options: { discoverError?: boolean; hscodesError?: boolean; badCount?: boolean; count?: unknown; rfqError?: boolean; rfqRows?: RfqListRow[] } = {},
+  options: {
+    discoverError?: boolean;
+    hscodesError?: boolean;
+    badCount?: boolean;
+    count?: unknown;
+    rfqError?: boolean;
+    rfqRows?: RfqListRow[];
+    /** Adds a third `discover_suppliers` row outside the two named slugs below — a real "extra" table row. */
+    extraSlug?: boolean;
+  } = {},
 ) {
   const calls: Call[] = [];
-  const records: Record<string, ReturnType<typeof aboniInput>> = { "aboni-knitwear": aboniInput(), "ar-fashion": arFashionInput() };
+  const records: Record<string, ReturnType<typeof aboniInput>> = {
+    "aboni-knitwear": aboniInput(),
+    "ar-fashion": arFashionInput(),
+    ...(options.extraSlug ? { "extra-factory": smKnitwearInput() } : {}),
+  };
   const rpc = async (fn: string, args: Record<string, unknown>) => {
     calls.push({ fn, args });
     if (fn === "buyer_supplier_profile") {
@@ -35,7 +48,14 @@ function stubClient(
       if (options.badCount) return { data: [{ slug: "aboni-knitwear", total_count: "not-a-count" }], error: null };
       if ("count" in options) return { data: [{ slug: "aboni-knitwear", total_count: options.count }], error: null };
       if (args.p_q === null) return { data: [{ slug: "x", total_count: 10266 }], error: null };
-      return { data: [{ slug: "aboni-knitwear", total_count: 42 }, { slug: "ar-fashion", total_count: 42 }], error: null };
+      return {
+        data: [
+          { slug: "aboni-knitwear", total_count: 42 },
+          { slug: "ar-fashion", total_count: 42 },
+          ...(options.extraSlug ? [{ slug: "extra-factory", total_count: 42 }] : []),
+        ],
+        error: null,
+      };
     }
     if (fn === "rfq_list") {
       if (options.rfqError) return { data: null, error: { message: "permission denied" } };
@@ -124,6 +144,25 @@ describe("loadGalleryData (the /dev/ds loader, stubbed RPCs)", () => {
     const [oldest, newest] = data.recordsReadOn!.split(" – ");
     assert.notEqual(oldest, newest);
     assert.ok(Date.parse(oldest!.includes("20") ? oldest! : `${oldest} ${newest!.slice(-4)}`) < Date.parse(newest!), "oldest first");
+  });
+
+  // Cycle 17, correctness critic's finding. `discover_suppliers`'s own top 8
+  // rows for the gallery's query return six slugs outside the four named
+  // records (SQL, 20 Sep 2026) — `extra` is not a theoretical population,
+  // it fills on a real read. Only the table screen draws `extra`; every
+  // other screen draws the four named records alone, and must not inherit a
+  // count or a date that is true only of the wider, table-only population.
+  it("the table's own record span covers the extra rows; the named span does not", async () => {
+    const named = await loadGalleryData(stubClient().client, TODAY);
+    const withExtra = await loadGalleryData(stubClient({ extraSlug: true }).client, TODAY);
+    // The extra slug changes nothing about the named-only span: the same two
+    // records (aboni, ar) produce the same count and the same range either way.
+    assert.equal(withExtra.recordsRead, named.recordsRead, "adding a table-only row must not move the named span's count");
+    assert.equal(withExtra.recordsReadOn, named.recordsReadOn, "adding a table-only row must not move the named span's date");
+    // The table's own span, though, must widen: one more record with its own
+    // provenance joins the population the table screen actually draws.
+    assert.notEqual(withExtra.tableRecordsRead, withExtra.recordsRead, "the table span must differ from the named span once extra rows exist");
+    assert.equal(withExtra.tableRecordsRead, (withExtra.recordsRead ?? 0) + 1, "exactly one extra record was added");
   });
 
   it("a count the RPC returns as a numeric string is still a count", async () => {

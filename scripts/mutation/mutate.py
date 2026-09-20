@@ -538,6 +538,14 @@ M = [
  'components/dashboard/controls.tsx',
  '      role="checkbox"\n      aria-checked={on}',
  '      role="presentation"\n      aria-checked={on}'),
+ ('c17-table-topbar-shares-the-named-span',
+ 'app/dev/ds/dashboard-screens.tsx',
+ '<AppShell sidebar={results.sidebar} topbar={tableTopbarModel(d)} mainId="results-table-main">',
+ '<AppShell sidebar={results.sidebar} topbar={results.topbar} mainId="results-table-main">'),
+ ('c17-table-span-uses-the-named-population',
+ 'lib/dashboard/gallery-data.ts',
+ '  const tableSpan = readSpan([...named, ...extra]);',
+ '  const tableSpan = readSpan(named);'),
 ]
 
 # An interrupted sweep used to leave the tree mutated, and the next run then

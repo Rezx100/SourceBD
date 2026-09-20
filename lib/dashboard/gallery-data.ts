@@ -113,6 +113,15 @@ export type GalleryData = {
   recordsReadOn: string | null;
   /** How many records that range is over — the caption names it, so it cannot be read as the corpus. */
   recordsRead: number | null;
+  /**
+   * The same range and count, but over the table's wider population (the four
+   * named records plus the discovery rows that pad the table view). Every
+   * other screen draws only the four named records and must use
+   * `recordsRead`/`recordsReadOn` above — sharing this pair with them states a
+   * count for records they never render.
+   */
+  tableRecordsReadOn: string | null;
+  tableRecordsRead: number | null;
   rfqs: RfqListModel;
 };
 
@@ -185,8 +194,6 @@ export async function loadGalleryData(
 
   // Published count and latest read date for the topbar caption.
   let published: number | null = null;
-  let recordsReadOn: string | null = null;
-  let recordsRead: number | null = null;
   try {
     // An unfiltered page of one: its `total_count` is the published-supplier count.
     const { data, error } = await supabase.rpc("discover_suppliers", discoverArgs({ limit: 1 }));
@@ -199,20 +206,36 @@ export async function loadGalleryData(
   // four named records, printed as "records on this page read 18 Sep 2026" —
   // and A.R. Fashion's only source was last read 30 Jul 2026, 50 days earlier.
   // Across the page only 4 of 32 source reads happened on 18 Sep; the oldest
-  // is 18 May. A range cannot be mistaken for a freshness guarantee, and it
-  // now covers every record the page draws, not only the four named ones.
-  const readRecords = [...named, ...extra].filter((r) => (r.input.profile.provenance ?? []).some((p) => p.last_seen_at));
-  recordsRead = readRecords.length || null;
-  const readTimes = [...named, ...extra]
-    .flatMap((r) => (r.input.profile.provenance ?? []).map((p) => (p.last_seen_at ? Date.parse(p.last_seen_at) : NaN)))
-    .filter((t) => !Number.isNaN(t))
-    .sort((a, b) => a - b);
-  const oldest = readTimes[0];
-  const newest = readTimes[readTimes.length - 1];
-  recordsReadOn =
-    oldest === undefined || newest === undefined
-      ? null
-      : formatDayRange(new Date(oldest).toISOString(), new Date(newest).toISOString());
+  // is 18 May. A range cannot be mistaken for a freshness guarantee.
+  //
+  // The population it covers is not the same on every screen, though: the
+  // table draws `named` plus up to four `extra` rows discovery returned that
+  // are not among the four named records, and no other screen draws `extra`
+  // at all. A range computed over `[...named, ...extra]` and shared by every
+  // screen's topbar states a count the list, the two sheets and the composer
+  // never draw — confirmed live, not just in theory: `discover_suppliers`'s
+  // top 8 rows for this query return six slugs outside the named four (SQL,
+  // 20 Sep 2026), so `extra` fills on a real read. Two spans, one per
+  // population, so each screen's caption is true of what it actually renders.
+  const readSpan = (records: GalleryRecord[]): { count: number | null; on: string | null } => {
+    const read = records.filter((r) => (r.input.profile.provenance ?? []).some((p) => p.last_seen_at));
+    const times = records
+      .flatMap((r) => (r.input.profile.provenance ?? []).map((p) => (p.last_seen_at ? Date.parse(p.last_seen_at) : NaN)))
+      .filter((t) => !Number.isNaN(t))
+      .sort((a, b) => a - b);
+    const oldest = times[0];
+    const newest = times[times.length - 1];
+    return {
+      count: read.length || null,
+      on: oldest === undefined || newest === undefined ? null : formatDayRange(new Date(oldest).toISOString(), new Date(newest).toISOString()),
+    };
+  };
+  const namedSpan = readSpan(named);
+  const tableSpan = readSpan([...named, ...extra]);
+  const recordsRead = namedSpan.count;
+  const recordsReadOn = namedSpan.on;
+  const tableRecordsRead = tableSpan.count;
+  const tableRecordsReadOn = tableSpan.on;
 
   // RFQs of the viewer (admin in the gallery), as `rfq_list` returns them.
   // A failed read is carried as unknown: the empty state states a fact about
@@ -272,6 +295,8 @@ export async function loadGalleryData(
     published,
     recordsReadOn,
     recordsRead,
+    tableRecordsReadOn,
+    tableRecordsRead,
     rfqs,
   };
 }
