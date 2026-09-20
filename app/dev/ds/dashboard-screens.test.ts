@@ -382,14 +382,19 @@ describe("what the whole page may and may not say about itself", () => {
     // operable checkbox and then swallows Space, which scrolls the page. 34
     // of them shipped across the six screens, five of which were the RFQ
     // composer's required questions.
+    const inert: RegExpMatchArray[] = [];
     for (const m of html.matchAll(/<[a-z]+\b[^>]*role="(checkbox|radio|switch|menuitem|tab|option)"[^>]*>/g)) {
       if (!/aria-disabled="true"/.test(m[0]!)) continue;
+      inert.push(m);
       assert.doesNotMatch(m[0]!, /tabindex/, `an inert control left in the tab order: ${m[0]}`);
     }
-    // Counted over the data, not the markup. A backstop counted over the tag,
-    // role or attribute a repair would replace makes the correct repair fail
-    // the suite — this branch has shipped that three times.
-    assert.ok(galleryData().cards.length >= 4, "the page still draws the selectable rows this guard is about");
+    // Counted over the loop's own population, not an unrelated count. The
+    // guard used to backstop with `cards.length >= 4` — a fact about the
+    // record list, not about inert controls — so it stayed green even when
+    // the regex above matched nothing at all. 34 shipped with this defect,
+    // five of which were the composer's required questions; the rest, 29,
+    // are this guard's actual population today.
+    assert.ok(inert.length >= 20, "the page still draws the inert controls this guard is about");
   });
 
   it("a name that reads as an action is on something that can be actioned", () => {

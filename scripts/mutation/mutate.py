@@ -534,6 +534,10 @@ M = [
  'app/dev/ds/dashboard-screens.tsx',
  '  const DETAIL_FIELDS = ["Name", "Reply-by date", "Incoterm", "Destination", "Currency", "Attachments"];',
  '  const DETAIL_FIELDS = ["Name", "Reply-by date", "Incoterm", "Destination"];'),
+ ('c16-checkbox-role-dropped',
+ 'components/dashboard/controls.tsx',
+ '      role="checkbox"\n      aria-checked={on}',
+ '      role="presentation"\n      aria-checked={on}'),
 ]
 
 # An interrupted sweep used to leave the tree mutated, and the next run then
