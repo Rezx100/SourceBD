@@ -116,7 +116,7 @@ describe("SupplierResultCard (rendered)", () => {
   it("the sanctioned sample: the bar, the notice, the badge first, Send RFQ disabled, the full 100-character name", () => {
     const html = renderToStaticMarkup(createElement(SupplierResultCard, { card: buildCard(zaheenSampleInput()) }));
     assert.match(html, /data-sanctioned="true"/);
-    assert.match(html, /before:bg-sanction/);
+    assert.ok(edgeInToken(html, "sanction"), "the card draws no sanction-token edge");
     assert.match(html, /Sanctioned · sample record\. Matched on a sanctions screen; RFQs cannot be sent\./);
     assert.match(html, /bg-sanction text-sanction-on">(?:<[^>]*>)*Sanctioned · sample/);
     assert.match(html, /<button[^>]*disabled=""[^>]*>(?:(?!<\/button>).)*Send RFQ/s);
@@ -131,14 +131,14 @@ describe("SupplierResultCard (rendered)", () => {
     const input = sanctionedInput();
     const card = renderToStaticMarkup(createElement(SupplierResultCard, { card: buildCard(input) }));
     assert.match(card, /data-sanctioned="true"/);
-    assert.match(card, /before:bg-sanction/);
+    assert.ok(edgeInToken(card, "sanction"), "the card draws no sanction-token edge");
     assert.match(card, /Sanctioned\. Matched on a sanctions screen; RFQs cannot be sent\./);
     assert.doesNotMatch(card, /sample record/, "a production sanction is not labelled a sample");
     assert.match(card, /<button[^>]*disabled=""[^>]*>(?:(?!<\/button>).)*Send RFQ/s);
 
     const row = renderToStaticMarkup(createElement(ResultsTable, { rows: [buildTableRow(input)] }));
     assert.match(row, /data-sanctioned="true"/);
-    assert.match(row, /shadow-\[inset_4px_0_0_rgb\(var\(--ds-sanction\)\)\]/);
+    assert.ok(edgeInToken(row, "sanction"), "the table row draws no sanction-token edge");
     assert.match(row, /text-sanction-ink[^>]*>(?:<[^>]*>)*\s*Sanctioned</);
     assert.equal((row.match(/<button[^>]*disabled=""/g) ?? []).length, 1);
 
@@ -165,7 +165,12 @@ describe("SupplierResultCard (rendered)", () => {
   it("the almost-empty record is quiet: dashes with reasons, the dashed no-lines slot, nothing red or amber", () => {
     const html = renderToStaticMarkup(createElement(SupplierResultCard, { card: buildCard(arFashionInput()) }));
     assert.match(html, /1 source</);
-    assert.match(html, /District, year and workers not on file/);
+    // Not "District, …": the record's own payload carries a BGMEA address
+    // row that resolves to Motijheel, which is what the production supplier
+    // profile prints for it.
+    assert.match(html, /Year and workers not on file/);
+    assert.doesNotMatch(html, /District, year and workers not on file/);
+    assert.match(html, /Motijheel/);
     assert.match(html, /none on 4 registers/);
     assert.match(html, /not on the EPB list/);
     assert.match(html, /not on 4 brand lists read/);
@@ -442,8 +447,10 @@ describe("SupplierSheet (rendered)", () => {
   // unguarded until cycle 6.
   it("the sheet body scrolls, so the last section can be reached", () => {
     const html = renderToStaticMarkup(createElement(SupplierSheet, { model: buildSheet(aboniInput()) }));
-    assert.match(html, /class="min-h-0 flex-1 overflow-y-auto"/);
-    const body = /class="min-h-0 flex-1 overflow-y-auto"([\s\S]*)$/.exec(html)?.[1] ?? "";
+    // Found by a stable hook, not by its whole class attribute.
+    assert.match(html, /data-sheet-scroll="true"[^>]*class="[^"]*\boverflow-y-(?:auto|scroll)\b/);
+    const body = /data-sheet-scroll="true"[^>]*>([\s\S]*)$/.exec(html)?.[1] ?? "";
+    assert.ok(body.length > 0, "the scroll region was not found, so what follows would pass vacuously");
     assert.match(body, /id="safety"/, "Safety sits inside the scrolling body");
   });
 
@@ -718,7 +725,7 @@ describe("RfqList (rendered)", () => {
     const model: RfqListModel = { sent: 1, quotes: 0, chips: [{ label: "All", count: 1, on: true }], rows, footer: "1–1 of 1", toast: null };
     const html = renderToStaticMarkup(createElement(RfqList, { model }));
     assert.match(html, /data-sanctioned="true"/);
-    assert.match(html, /shadow-\[inset_4px_0_0_rgb\(var\(--ds-sanction\)\)\]/);
+    assert.ok(edgeInToken(html, "sanction"), "the RFQ row draws no sanction-token edge");
     assert.match(html, /Sanctioned · sample — RFQs cannot be sent/);
     assert.match(html, /text-sanction-ink/);
   });
@@ -856,6 +863,20 @@ const HIDDEN = /\b(?:sr-only|hidden|invisible|opacity-0)\b|aria-hidden="true"|di
  */
 const openingTag = (el: string) => el.slice(0, el.indexOf(">") + 1);
 /**
+ * An edge treatment drawn in a token, whatever utility draws it — an inset
+ * shadow, a border, a ring, an outline, or a `::before` bar. The sanction rail
+ * was pinned as the literal `shadow-[inset_4px_0_0_rgb(var(--ds-sanction))]`
+ * and the card's bar as `before:bg-sanction`, so redrawing either as a real
+ * border — which forced-colors mode keeps and a pseudo-element background it
+ * drops — failed the suite while still drawing a 4px sanction rail.
+ */
+const edgeInToken = (html: string, token: string) =>
+  new RegExp(
+    `shadow-\\[[^"\\]]*--ds-${token}\\)|` +
+      `border(?:-[trblxy])?(?:-(?:\\d+|\\[[^\\]]*\\]))?\\s+border-${token}\\b|` +
+      `\\bring-${token}\\b|\\boutline-${token}\\b|\\bbefore:bg-${token}\\b`,
+  ).test(html);
+/**
  * A chip carrying `tone` whose words are `text`. The words may sit after the
  * chip's own decorative icon, which is markup the suite could not see until
  * the icon stub stopped rendering `null`.
@@ -990,7 +1011,9 @@ describe("an RSC row missing a report says so rather than dropping the slot sile
     const ext = html.slice(html.indexOf(escape(ASWAD_U2_EXT), html.indexOf("the building&#x27;s own RSC record")));
     const block = ext.slice(0, 4000);
     for (const label of ["Fire", "Structural", "Electrical", "CAP"]) {
-      assert.match(block, new RegExp(`(?:>|</svg>)\\s*${label}\\s*(?:<svg\\b[^>]*></svg>)?\\s*</a>`), `${ASWAD_U2_EXT} is missing its ${label} link`);
+      const link = [...block.matchAll(/<a\b[^>]*>(?:(?!<\/a>)[\s\S])*<\/a>/g)].find((m) => m[0].replace(/<[^>]*>/g, "").trim().startsWith(label));
+      assert.ok(link, `${ASWAD_U2_EXT} is missing its ${label} link`);
+      assert.match(link![0], /href="https?:\/\//, `${label} links nowhere`);
     }
     assert.doesNotMatch(block.slice(0, block.indexOf("</div>", block.indexOf("CAP"))), /href="[^"]*"[^>]*>Boiler/);
     // 597 of the 1,620 active RSC rows carry no boiler report, so an empty slot
@@ -1002,7 +1025,9 @@ describe("an RSC row missing a report says so rather than dropping the slot sile
     const html = renderToStaticMarkup(createElement(SupplierSheet, { model: buildSheet(aboniInput()) }));
     const own = html.slice(html.indexOf('id="safety"'), html.indexOf("the building&#x27;s own RSC record"));
     for (const label of ["Fire", "Structural", "Electrical", "Boiler", "CAP"]) {
-      assert.match(own, new RegExp(`(?:>|</svg>)\\s*${label}\\s*(?:<svg\\b[^>]*></svg>)?\\s*</a>`), `the record's own RSC row is missing its ${label} link`);
+      const link = [...own.matchAll(/<a\b[^>]*>(?:(?!<\/a>)[\s\S])*<\/a>/g)].find((m) => m[0].replace(/<[^>]*>/g, "").trim().startsWith(label));
+      assert.ok(link, `the record's own RSC row is missing its ${label} link`);
+      assert.match(link![0], /href="https?:\/\//, `${label} links nowhere`);
     }
   });
 });

@@ -300,7 +300,8 @@ describe("buildCard — the almost-empty record (A.R. Fashion) is quiet, never a
       card.meta.map((f) => [f.text, f.quiet ?? false]),
       [
         ["Buying house", false],
-        ["District, year and workers not on file", true],
+        ["Motijheel", false],
+        ["Year and workers not on file", true],
       ],
     );
     assert.equal(card.epbReadDate, null, "EPB holds no record for this supplier — no read date is claimed");
@@ -822,9 +823,16 @@ describe("the meta line's negative agrees with itself in number", () => {
     noYearNoWorkers.profile.supplier.employees_total = null;
     noYearNoWorkers.workers = null;
     assert.equal(only(noYearNoWorkers), "Year and workers not on file");
-    // A.R. Fashion has none of the three.
-    assert.equal(only(arFashionInput()), "District, year and workers not on file");
+    // A.R. Fashion has no year and no workers — but its district IS on file,
+    // in the BGMEA address row its own payload carries ("… Motijheel, Dhaka").
+    // The negative used to name it anyway, over 685 published records whose
+    // columns are empty and whose payload holds a sourced address.
+    assert.equal(only(arFashionInput()), "Year and workers not on file");
     assert.doesNotMatch(only(arFashionInput()) ?? "", /Districts|years|workerss/);
+    const noAddress = arFashionInput();
+    noAddress.profile.addresses = [];
+    noAddress.profile.supplier.address_raw = null;
+    assert.equal(only(noAddress), "District, year and workers not on file", "with nothing anywhere, the negative stands");
   });
 });
 

@@ -99,7 +99,10 @@ describe("loadGalleryData (the /dev/ds loader, stubbed RPCs)", () => {
   // of finding 16 was left open: a blank `total_count` printed "0 suppliers"
   // in the panel header and "0 published suppliers" in the topbar, over a
   // read that had returned no count at all, with `discoverError` false.
-  for (const count of ["", "   ", "\n", null, undefined, [], {}] as const) {
+  // Numbers too: `f16-count-nan` survived its own revert because every case
+  // here was a non-number, so dropping the `Number.isFinite` check on the
+  // numeric branch let NaN reach the page unguarded.
+  for (const count of ["", "   ", "\n", null, undefined, [], {}, Number.NaN, Number.POSITIVE_INFINITY, -Number.POSITIVE_INFINITY] as const) {
     it(`a total_count of ${JSON.stringify(count)} is unknown, never zero`, async () => {
       const { client } = stubClient({ count });
       const data = await loadGalleryData(client, TODAY);

@@ -35,14 +35,15 @@ import {
   formatDay,
   initials,
   onFileLabel,
-  placeLabel,
   rscStatusNeedsLook,
   rscStatusWords,
   rscTrainingWords,
   sortCerts,
   type CertModel,
   formatDayRange,
+  placeLabel,
 } from "./facts";
+import { formatCardLocation } from "@/lib/format-location";
 import { heading4, hsCatalogueRow, hsExporterCount, hsPhotoSrc, hsShortLabel, photoTiles, rarestFirst } from "./hs-photos";
 import { groupWorkers, type SiteWorkerInput } from "@/lib/profile-metrics";
 import type {
@@ -454,11 +455,46 @@ export function workersCoverageWords(w: WorkersFact): string | null {
   return w.excludesRecord ? `across ${w.coverage}, none of them this record` : `across ${w.coverage}`;
 }
 
+/**
+ * Where the record is, from every part of the payload that carries it.
+ *
+ * It was `placeLabel(city, district)` — two columns and nothing else — so a
+ * record whose columns are null printed "District … not on file" over an
+ * address its own payload holds. A.R. Fashion's BGMEA row reads "Fazlur
+ * Rahman Center (5th Floor) 72,, Dilkusha, DT Road, Motijheel, Dhaka"; the
+ * card said the district was not on file while the production supplier
+ * profile, on the same record, prints "Motijheel, Dhaka". 685 published
+ * records have no city or district column and a sourced address (SQL, 20 Sep
+ * 2026). `formatCardLocation` is the resolver that profile already uses, so
+ * the two surfaces cannot now say opposite things about one record.
+ */
+function placeOf(p: ProfilePayload): string | null {
+  const s = p.supplier;
+  const column = placeLabel(s.city, s.district);
+  if (column) return column;
+  // Only when both columns are empty. The payload still carries the place in
+  // its address rows, and `formatCardLocation` — the resolver the production
+  // profile header uses — reads it: A.R. Fashion's BGMEA row gives
+  // "Motijheel". 685 published records have no city or district column and a
+  // sourced address (SQL, 20 Sep 2026), and every one of them was printing
+  // "District … not on file" over an address its own payload holds.
+  //
+  // The columns come first rather than the address, deliberately. The
+  // profile header prefers the address, which for five of the twelve fixture
+  // records is a head office rather than the works — S M Knitwears' column
+  // says Gazipur and its primary address resolves to Gulshan. Which of the
+  // two a buyer should see is a question for the profile, not something to
+  // import here on the way to fixing a false negative.
+  const rows = (p.addresses ?? []).map((a) => ({ address: a.address, source_code: a.source_code, kind: a.kind, fetched_at: a.fetched_at ?? "" }));
+  const primary = mergeUniqueLocations(rows)[0]?.displayAddress ?? s.address_raw ?? rows[0]?.address ?? null;
+  return formatCardLocation(primary, s.city, s.district);
+}
+
 function metaFacts(input: RecordInput, options: { registerNumber?: boolean } = {}): FactWithMark[] {
   const s = input.profile.supplier;
   const p = input.profile;
   const facts: FactWithMark[] = [{ text: entityLabel(s.entity_type), mark: null }];
-  const place = placeLabel(s.city, s.district);
+  const place = placeOf(p);
   const year = establishedYearOf(s.established_date);
   const w = workersFact(input);
   const workersMark = w.source === "RSC" && !w.groupUnknown ? ownMark(p, "RSC") : null;
@@ -857,7 +893,7 @@ export function buildTableRow(input: RecordInput): TableRowModel {
   return {
     slug: s.slug,
     name,
-    place: placeLabel(s.city, s.district),
+    place: placeOf(p),
     initials: initials(name),
     topTier: topTier(codes),
     sourceCount: marksFromTags(codes).length,

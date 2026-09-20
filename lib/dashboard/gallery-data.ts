@@ -289,7 +289,7 @@ export async function loadGalleryData(
  */
 export function topbarCaption(d: Pick<GalleryData, "published" | "recordsReadOn" | "recordsRead">): string {
   const parts: string[] = [];
-  if (d.published !== null) parts.push(`${formatCount(d.published)} published suppliers`);
+  if (d.published !== null) parts.push(`${formatCount(d.published)} published ${d.published === 1 ? "supplier" : "suppliers"}`);
   // The cycle-11 repair fixed the statistic — a maximum became a range — and
   // dropped the scope in the same edit, so "supplier records read 18 May –
   // 18 Sep 2026" sat beside "10,266 published suppliers" and read as a claim

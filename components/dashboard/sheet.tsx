@@ -58,7 +58,16 @@ export function SheetBar({ children }: { children: ReactNode }) {
 }
 
 export function SheetScroll({ children }: { children: ReactNode }) {
-  return <div className="min-h-0 flex-1 overflow-y-auto">{children}</div>;
+  // `data-sheet-scroll` so a guard can find this element without pinning its
+  // class attribute: the one that did meant the scroll region could never
+  // gain a utility, and `overscroll-contain` — which a scroll region inside a
+  // modal wants, so its scroll does not chain into the shell behind it — was
+  // therefore a repair the suite refused.
+  return (
+    <div data-sheet-scroll="true" className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+      {children}
+    </div>
+  );
 }
 
 /**

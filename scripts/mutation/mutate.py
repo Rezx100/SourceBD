@@ -631,5 +631,7 @@ survived = sum(1 for r in results if r.get("red") is False)
 nocompile = sum(1 for r in results if r.get("red") is None and r.get("applied"))
 skipped = sum(1 for r in results if not r.get("applied"))
 print(f"\n{SWEPT_SHA[:7]}: {caught} caught / {survived} survived / {nocompile} did not compile / {skipped} skipped, of {len(results)}")
-if survived or nocompile or skipped:
+if not results:
+    print("NOTHING RAN. A filter that matches no entry prints a clean headline and proves nothing.")
+elif survived or nocompile or skipped:
     print("A sweep is only evidence when every entry compiles, applies, and goes red.")

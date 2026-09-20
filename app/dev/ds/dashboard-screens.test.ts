@@ -147,7 +147,10 @@ describe("DashboardScreens — the caller, not the components (handoff §7)", ()
       "10,266 published suppliers · 4 records on this page, read 30 Jul – 18 Sep 2026",
     );
     assert.equal(topbarCaption({ published: null, recordsReadOn: "18 Sep 2026", recordsRead: 1 }), "1 record on this page, read 18 Sep 2026");
-    assert.equal(topbarCaption({ published: 1, recordsReadOn: null, recordsRead: null }), "1 published suppliers");
+    // The record clause pluralises; the corpus clause did not, and the
+    // assertion froze the ungrammatical form as the expected value.
+    assert.equal(topbarCaption({ published: 1, recordsReadOn: null, recordsRead: null }), "1 published supplier");
+    assert.equal(topbarCaption({ published: 2, recordsReadOn: null, recordsRead: null }), "2 published suppliers");
     assert.equal(topbarCaption({ published: null, recordsReadOn: null, recordsRead: null }), "Live records");
     const shell = render(galleryData());
     assert.match(shell, /10,266 published suppliers · 4 records on this page, read 30 Jul – 18 Sep 2026/);
@@ -228,7 +231,36 @@ describe("the state a screen is in is drawn, not only announced", () => {
    * pinned the two `shadow-[inset_…]` strings so that redrawing the same rail
    * as a border failed the suite.
    */
-  const INDICATOR = /(?:shadow-\[[^"\]]*--ds-brand|border-brand|ring-brand|outline-brand)/;
+  /**
+   * The token an element's state indicator is drawn in, or null when it has
+   * none. The first version of this was a prefix match on `--ds-brand` and
+   * `border-brand`, so `--ds-brand-tint` and `border-brand-tint` both passed —
+   * and the companion test then measured `brand`, never the token the rail
+   * actually named. Retinting every state to `brand.tint` (1.07:1 on canvas)
+   * left the suite at 503/503.
+   */
+  const indicatorTokens = (tag: string): string[] => {
+    const found: string[] = [];
+    for (const m of tag.matchAll(/shadow-\[[^"\]]*--ds-([a-z0-9-]+)\)/g)) found.push(m[1]!);
+    const classes = /class="([^"]*)"/.exec(tag)?.[1] ?? tag;
+    for (const c of classes.split(/\s+/)) {
+      const m = /^(?:border|ring|outline)(?:-[trblxyse])?-(.+)$/.exec(c);
+      // `border-b-2` is a width and `border-l-[3px]` an arbitrary one; both
+      // have to fall through to the colour utility beside them.
+      if (!m || /^[\d[]/.test(m[1]!) || m[1] === "transparent" || m[1] === "inset") continue;
+      const token = m[1]!.replace(/-/g, ".");
+      try {
+        if (resolve(light, token)) found.push(m[1]!);
+      } catch {
+        continue;
+      }
+    }
+    return found;
+  };
+  const GROUNDS = ["canvas", "surface", "surface.sunken", "brand.tint"];
+  /** A token that clears 3:1 against every ground the kit draws a state on. */
+  const strongEnough = (token: string) =>
+    GROUNDS.every((bg) => contrastRatio(resolve(light, token.replace(/-/g, ".")), resolve(light, bg)) >= 3);
   /** Every attribute that says "this one is the one you are on". */
   const STATE = /<(?:a|button)\b[^>]*(?:aria-current="(?!false")[^"]*"|aria-pressed="true"|aria-selected="true")[^>]*>/g;
 
@@ -244,16 +276,34 @@ describe("the state a screen is in is drawn, not only announced", () => {
       "the composer's step rail is one of them",
     );
     for (const m of states) {
-      assert.match(m[0]!, INDICATOR, `a state drawn with a fill and nothing else: ${m[0]}`);
+      const tokens = indicatorTokens(m[0]!);
+      // One indicator strong enough is enough — an element may carry a
+      // hairline and a rail. What is forbidden is a state drawn only in
+      // colours nobody can see against the neighbour it is compared with.
+      const strong = tokens.filter(strongEnough);
+      assert.ok(
+        strong.length > 0,
+        `a state with no indicator that clears 3:1 (found: ${tokens.length ? tokens.join(", ") : "a fill and nothing else"}): ${m[0]}`,
+      );
     }
   });
 
-  it("the token the indicators name clears 3:1 against every ground it is drawn on", () => {
-    // `contrastPairs` only ever holds foreground-on-background, so the
-    // state-vs-neighbour ratio is asserted here, where the token is chosen.
-    for (const bg of ["canvas", "surface", "surface.sunken", "brand.tint"]) {
-      const r = contrastRatio(resolve(light, "brand"), resolve(light, bg));
-      assert.ok(r >= 3, `the state indicator is ${r.toFixed(2)}:1 on ${bg}, and a state needs 3:1`);
+  it("the extractor reads the token out of every shape the kit draws an indicator in", () => {
+    // Without this the guard above can be satisfied by an extractor that
+    // returns null for a real indicator, or the wrong token for a tinted one.
+    assert.deepEqual(indicatorTokens('class="shadow-[inset_3px_0_0_rgb(var(--ds-brand))]"'), ["brand"]);
+    assert.deepEqual(indicatorTokens('class="shadow-[inset_0_-2px_0_rgb(var(--ds-brand-tint))]"'), ["brand-tint"]);
+    assert.deepEqual(indicatorTokens('class="border-l-[3px] border-brand pl-[7px]"'), ["brand"]);
+    assert.deepEqual(indicatorTokens('class="border-l-4 border-brand-tint"'), ["brand-tint"]);
+    assert.deepEqual(indicatorTokens('class="ring-1 ring-inset ring-line"'), ["line"]);
+    assert.deepEqual(indicatorTokens('class="bg-brand-tint text-brand-ink"'), [], "a fill is not an indicator");
+    assert.deepEqual(indicatorTokens('class="border-b-2 border-transparent"'), []);
+    // The strength test is what the tinted forms fail — this is the hole the
+    // previous version left: the regex accepted `--ds-brand-tint` as a
+    // prefix match on `--ds-brand`, and the ratio was measured on `brand`.
+    assert.ok(strongEnough("brand"));
+    for (const weak of ["brand-tint", "line", "line-subtle"]) {
+      assert.ok(!strongEnough(weak), `${weak} is why this guard exists`);
     }
   });
 });
