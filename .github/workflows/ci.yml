@@ -54,9 +54,13 @@ jobs:
     # that broke it landed on a green CI. Three commits on the dashboard-kit
     # branch did exactly that: each was meant to touch markdown only, each
     # swept up a source file a concurrent mutation run had rewritten, and the
-    # branch sat red for two commits with every CI check passing. Node 20:
-    # on 22 the runner treats node_modules/.cache/sourcebd-tests as a file
-    # and the suite does not start.
+    # branch sat red for two commits with every CI check passing.
+    #
+    # Node 22, not 20. `pnpm test` passes ".tests-build/**/*.test.js" to
+    # `node --test`, and Node 20 has no glob support there: it looks for a
+    # file of that literal name, prints "Could not find", and exits 1 without
+    # running anything. CLAUDE.md's "Node 20 only" is wrong; 21 and 22 both
+    # run the suite.
     runs-on: ubuntu-latest
     timeout-minutes: 25
 
@@ -72,7 +76,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22"
           cache: pnpm
 
       - name: Install dependencies
