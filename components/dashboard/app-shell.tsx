@@ -113,7 +113,7 @@ export function Sidebar({ model }: { model: SidebarModel }) {
 }
 
 export type TopbarModel = {
-  /** "10,266 published suppliers · records read 18 Sep 2026" */
+  /** "10,266 published suppliers · 4 records on this page, read 18 May – 18 Sep 2026" */
   caption: string;
   /** The viewer's initial; null renders an empty avatar. */
   initial: string | null;
