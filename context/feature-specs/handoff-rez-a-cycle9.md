@@ -78,12 +78,18 @@ scripts/gallery/            the screenshot harness, and its own test
    no critic has seen. Run the four gates, regenerate the screenshots, build
    the bundle, then fan out four fresh critics and the Acceptance Judge.
 
-2. **Finish the mutation sweep.** It was running when this hand-off was
-   written (`/home/claude/gate/mutations/sweep9.log`, 144 entries, ~25 min).
-   Three anchors were repointed mid-run and need re-running:
-   `f8-workers-no-coverage`, `f12-cert-subline-early-return`,
-   `f17-every-mark-links-on-zero`. Every cycle-9 entry (`c9-*`, 33 of them) was
-   individually verified RED after its guard landed.
+2. **Finish the mutation sweep.** A clean end-to-end run was in flight when
+   this hand-off was written — `/home/claude/gate/mutations/sweep-final.log`,
+   144 entries, ~60 min at the suite's current size. It is the first run with
+   every anchor current, so it is the one to quote. If it did not finish,
+   restart it; do not quote the earlier logs (`sweep9.log` used a pre-edit
+   anchor list and reports SKIPs that were already repaired).
+
+   Individually verified RED after their guards landed, so the sweep should
+   confirm rather than discover: all 33 `c9-*` entries, and the five anchors
+   repointed this cycle — `f8-workers-no-coverage`,
+   `f12-cert-subline-early-return`, `f17-every-mark-links-on-zero`,
+   `c8-rfq-row-drifts`, `c8-locations-counts-rows`.
 
 3. **Ship the sweep's own output.** The cycle-8 bundle reported "0 skipped"
    while its log said 2, and shipped a one-row `summary.json` — a filtered run

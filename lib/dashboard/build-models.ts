@@ -166,7 +166,7 @@ const MEMBERSHIP_WORDS = "not in BGMEA, BKMEA, BGAPMEA, BTMA or EPB";
  * record (v_supplier_registry_ids sets `inherited_from`).
  */
 export function ownPill(x: ProfilePill): boolean {
-  return !x.building_name;
+  return !x.building_name && !x.inherited_from;
 }
 
 /**
@@ -963,7 +963,7 @@ export function buildSheet(input: RecordInput, options: SheetOptions = {}): Supp
   // absolute claim over a link the same page called a disclosure list.
   // `[].every()` is true, so a record with no marks at all made the claim too.
   const everyMarkLinks =
-    rendered.length > 0 && rendered.every((m) => Boolean(m.href)) && rendered.every((m) => m.opens !== "list");
+    rendered.every((m) => Boolean(m.href)) && rendered.every((m) => m.opens !== "list");
   return { ...model, everyMarkLinks };
 }
 
