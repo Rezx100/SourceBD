@@ -166,7 +166,7 @@ const MEMBERSHIP_WORDS = "not in BGMEA, BKMEA, BGAPMEA, BTMA or EPB";
  * record (v_supplier_registry_ids sets `inherited_from`).
  */
 export function ownPill(x: ProfilePill): boolean {
-  return !x.building_name && !x.inherited_from;
+  return !x.building_name;
 }
 
 /**

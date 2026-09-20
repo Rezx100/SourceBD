@@ -142,6 +142,13 @@ so the page renders from fixtures.
 - **A revert that changes no behaviour scores a false RED.** Four have been
   found and repointed. When you add a mutation, confirm it actually changes
   rendered output.
+- **Never edit `mutate.py` while a sweep is running.** Python has already read
+  the list, so your repointed anchors are not used and the run reports SKIPs
+  you have just fixed. Two sweeps were wasted this way.
+- **An anchor goes stale the moment you repair the line it points at.** After
+  any repair, re-run the families that touch that file before trusting a
+  headline. `grep -c '^ ("' /home/claude/mutate.py` is the entry count; the
+  sweep's own summary line is the only number to quote.
 
 ---
 
