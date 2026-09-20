@@ -299,7 +299,7 @@ function words(v: string | null | undefined): string[] {
  */
 function factoryAddress(p: ProfilePayload): { text: string | null; mark: SourceMarkModel | null } {
   const raw = p.supplier.address_raw;
-  const rows = (p.addresses ?? []).filter((a) => a.source_code);
+  const rows = (p.addresses ?? []).filter((a) => a.kind === "factory" && a.source_code);
   const exact = rows.find((a) => sameAddress(a.address, raw));
   if (exact) return { text: raw, mark: mark(p, exact.source_code) };
   const own = words(raw);
@@ -963,7 +963,7 @@ export function buildSheet(input: RecordInput, options: SheetOptions = {}): Supp
   // absolute claim over a link the same page called a disclosure list.
   // `[].every()` is true, so a record with no marks at all made the claim too.
   const everyMarkLinks =
-    rendered.every((m) => Boolean(m.href)) && rendered.every((m) => m.opens !== "list");
+    rendered.length > 0 && rendered.every((m) => Boolean(m.href)) && rendered.every((m) => m.opens !== "list");
   return { ...model, everyMarkLinks };
 }
 

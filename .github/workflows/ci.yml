@@ -48,6 +48,39 @@ jobs:
           NEXT_PUBLIC_APP_URL: https://sourcebd.net
           NEXT_PUBLIC_SITE_URL: https://sourcebd.net
 
+  unit-tests:
+    # The node --test suite (tsc -p tsconfig.npm-test.json, then every
+    # *.test.js it emits) ran nowhere but the author's machine, so a commit
+    # that broke it landed on a green CI. Three commits on the dashboard-kit
+    # branch did exactly that: each was meant to touch markdown only, each
+    # swept up a source file a concurrent mutation run had rewritten, and the
+    # branch sat red for two commits with every CI check passing. Node 20:
+    # on 22 the runner treats node_modules/.cache/sourcebd-tests as a file
+    # and the suite does not start.
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Unit tests
+        run: pnpm test
+
   http-boundary:
     # REZ-72 durable guard: asserts the supplier profile miss path emits real
     # 404/308 statuses on the wire (not a streamed soft-200). The script
