@@ -27,8 +27,8 @@ same PR. Read once per session.
   from `development` 19 Sep — tokens moved to the artifact's v3 set (Geist,
   founder decision 19 Sep), `components/dashboard/*`, `lib/dashboard/*`, HS
   photo catalogue under `public/products/hs`, six screens on `/dev/ds` from
-  production records. No route changes, no migration. Sixteen audit cycles;
-  the state and the order of work are in `handoff-rez-a-cycle16.md`.
+  production records. No route changes, no migration. Seventeen audit cycles;
+  the state and the order of work are in `handoff-rez-a-cycle17.md`.
   Awaiting the Acceptance Judge; not merged. Then B → C → D → H → G → E → F → I
   per §7.
 

@@ -1,5 +1,10 @@
 # REZ-A (the code port of the buyer dashboard v3.2 kit) — hand-off after cycle 16
 
+> **Superseded by `handoff-rez-a-cycle17.md`.** The four fresh critics this
+> file's "what to do next" called for ran against `0710133`; one
+> (guard-adequacy) found a live gap, now repaired. Kept for the cycle-12
+> through -16 findings only.
+
 Supersedes `handoff-rez-a-cycle11.md` for state and order of work, and that
 file's "what to do next" is done. `handoff-rez-a-cycle5.md` is still the
 reference for the cycle-5 findings and for **"What this kit deliberately does

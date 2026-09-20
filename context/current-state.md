@@ -36,10 +36,10 @@ migrations, run the 30-day zero P1/P2 Sentry incident window.
   (Geist / Geist Mono self-hosted, warm canvas, radii 6/10/14 — founder
   decision 19 Sep, supersedes §9's Inter and 5/6/8). Kit under
   `components/dashboard`, builders under `lib/dashboard`, six screens on
-  `/dev/ds` from production records. Sixteen audit cycles run; the fixtures
+  `/dev/ds` from production records. Seventeen audit cycles run; the fixtures
   are reconciled field-by-field against a checked-in production read, and
   every repair carries a guard verified by reverting the fix and watching it
-  go red. State and next steps: `feature-specs/handoff-rez-a-cycle16.md`.
+  go red. State and next steps: `feature-specs/handoff-rez-a-cycle17.md`.
   Not landed, not merged, awaiting the Acceptance Judge.
 
 ## Founder rules still in force (one line each; detail in archive)
