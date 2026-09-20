@@ -558,6 +558,14 @@ M = [
  'app/dev/ds/dashboard-screens.tsx',
  'function tableSelection(d: GalleryData): string {\n  const extraCount = d.rows.length - d.cards.length;\n  if (extraCount <= 0) return SELECTION;\n  return `the named test records of the rebuild spec, plus discovery\'s next ${extraCount} live match${extraCount === 1 ? "" : "es"}`;\n}',
  'function tableSelection(d: GalleryData): string {\n  return SELECTION;\n}'),
+ ('c18-main-landmark-loses-its-name',
+ 'components/dashboard/app-shell.tsx',
+ '        <main\n          id={mainId}\n          aria-label={screenLabel}',
+ '        <main\n          id={mainId}'),
+ ('c18-skip-link-text-hardcoded',
+ 'components/dashboard/app-shell.tsx',
+ '        {screenLabel ? `Skip to content, ${screenLabel}` : "Skip to content"}',
+ '        {"Skip to content"}'),
 
 ]
 

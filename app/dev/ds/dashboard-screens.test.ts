@@ -548,6 +548,17 @@ describe("what the whole page may and may not say about itself", () => {
     // live and must not count toward this collision.
     const navNames: string[] = [];
     const searchNames: string[] = [];
+    // Cycle 18's own accessibility critic: the `screenLabel` fix above only
+    // reached `nav` and `search` and stopped there. Every live `<main>` was
+    // still unnamed (three indistinguishable "main" landmarks in a screen
+    // reader's landmark list) and every skip link still read the identical
+    // "Skip to content", so the links rotor offered three same-named entries
+    // going to three different places with no way to tell which. Both are
+    // collected the same way as `navNames`/`searchNames` above: from
+    // `reachable` content only, so an inert background's own main/skip-link
+    // is not live and must not count.
+    const mainNames: string[] = [];
+    const skipLinkNames: string[] = [];
     for (const f of frames) {
       // Every shell in the frame — the screen's own, and the one a sheet
       // covers — carries exactly one `main`, with its own id, reached by a
@@ -563,6 +574,8 @@ describe("what the whole page may and may not say about itself", () => {
       searchNames.push(
         ...[...reachable.matchAll(/role="search"[^>]*aria-label="([^"]+)"/g), ...reachable.matchAll(/aria-label="([^"]+)"[^>]*role="search"/g)].map((m) => m[1]!),
       );
+      mainNames.push(...[...reachable.matchAll(/<main id="[^"]+" aria-label="([^"]+)"/g)].map((m) => m[1]!));
+      skipLinkNames.push(...[...reachable.matchAll(/<a href="#[^"]+" class="sr-only[^>]*>([^<]+)<\/a>/g)].map((m) => m[1]!));
       // Heading order matters only within one reachable document at a time:
       // a modal frame's inert background carries its own h1, and checking the
       // whole frame would either conflate the two heading trees or (as the
@@ -603,6 +616,15 @@ describe("what the whole page may and may not say about itself", () => {
     assert.equal(navNames.length, new Set(navNames).size, `two live navigation landmarks share a name: ${navNames.join(", ")}`);
     assert.ok(searchNames.length >= 4, "the page still draws the live search regions this guard is about");
     assert.equal(searchNames.length, new Set(searchNames).size, `two live search regions share a name: ${searchNames.join(", ")}`);
+    // Same rule for the two landmark/link kinds `screenLabel` covers the
+    // furthest from the sidebar: every live `main` must be named, and no two
+    // may share a name; every live skip link's own text must be unique too,
+    // since "Skip to content" three times over in the links rotor gives no
+    // way to tell which one is about to be activated.
+    assert.ok(mainNames.length >= 3, "the page still draws the live main landmarks this guard is about");
+    assert.equal(mainNames.length, new Set(mainNames).size, `two live main landmarks share a name: ${mainNames.join(", ")}`);
+    assert.ok(skipLinkNames.length >= 3, "the page still draws the live skip links this guard is about");
+    assert.equal(skipLinkNames.length, new Set(skipLinkNames).size, `two live skip links share their text: ${skipLinkNames.join(", ")}`);
   });
 });
 

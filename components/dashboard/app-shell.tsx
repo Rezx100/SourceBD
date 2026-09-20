@@ -160,11 +160,17 @@ export function AppShell({
    */
   mainId = "ds-main",
   /**
-   * Distinguishes this instance's nav and search landmarks from another
-   * AppShell's when both are live in the same accessible tree at once — the
-   * gallery renders several full, non-inert instances on one page. A screen
-   * behind a modal (wrapped in `inert`) never needs one: `inert` removes it
-   * from the accessibility tree entirely, so nothing there can collide.
+   * Distinguishes this instance's nav, search and main landmarks — and its
+   * skip link's own name — from another AppShell's when both are live in the
+   * same accessible tree at once. The gallery renders several full, non-inert
+   * instances on one page; the first pass at this only threaded the label
+   * into `nav`/`search` and left three duplicate, unnamed `main` landmarks
+   * and three identical "Skip to content" links behind (the accessibility
+   * critic's cycle-18 finding — the same class of collision `mainId` already
+   * disambiguates by id, `screenLabel` must also disambiguate by name). A
+   * screen behind a modal (wrapped in `inert`) never needs one: `inert`
+   * removes it from the accessibility tree entirely, so nothing there can
+   * collide.
    */
   screenLabel,
   children,
@@ -188,12 +194,16 @@ export function AppShell({
         href={`#${mainId}`}
         className="sr-only focus:not-sr-only focus:absolute focus:left-3 focus:top-3 focus:z-50 focus:rounded-sm focus:border focus:border-line-strong focus:bg-surface focus:px-3 focus:py-2 focus:text-sm focus:font-medium focus:text-ink-strong"
       >
-        Skip to content
+        {screenLabel ? `Skip to content, ${screenLabel}` : "Skip to content"}
       </a>
       <Sidebar model={sidebar} screenLabel={screenLabel} />
       <div className="flex min-w-0 flex-1 flex-col">
         <Topbar model={topbar} screenLabel={screenLabel} />
-        <main id={mainId} className={cn("mx-auto flex w-full max-w-[calc(75rem+3rem)] flex-col gap-4 p-6", contentClassName)}>
+        <main
+          id={mainId}
+          aria-label={screenLabel}
+          className={cn("mx-auto flex w-full max-w-[calc(75rem+3rem)] flex-col gap-4 p-6", contentClassName)}
+        >
           {children}
         </main>
       </div>
