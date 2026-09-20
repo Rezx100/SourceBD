@@ -9,7 +9,7 @@ type Call = { fn: string; args: Record<string, unknown> };
 
 /** A stub that answers the gallery's RPCs from the fixtures and records every call. */
 function stubClient(
-  options: { discoverError?: boolean; hscodesError?: boolean; badCount?: boolean; rfqError?: boolean; rfqRows?: RfqListRow[] } = {},
+  options: { discoverError?: boolean; hscodesError?: boolean; badCount?: boolean; count?: unknown; rfqError?: boolean; rfqRows?: RfqListRow[] } = {},
 ) {
   const calls: Call[] = [];
   const records: Record<string, ReturnType<typeof aboniInput>> = { "aboni-knitwear": aboniInput(), "ar-fashion": arFashionInput() };
@@ -33,6 +33,7 @@ function stubClient(
     if (fn === "discover_suppliers") {
       if (options.discoverError) return { data: null, error: { message: "canceling statement due to statement timeout" } };
       if (options.badCount) return { data: [{ slug: "aboni-knitwear", total_count: "not-a-count" }], error: null };
+      if ("count" in options) return { data: [{ slug: "aboni-knitwear", total_count: options.count }], error: null };
       if (args.p_q === null) return { data: [{ slug: "x", total_count: 10266 }], error: null };
       return { data: [{ slug: "aboni-knitwear", total_count: 42 }, { slug: "ar-fashion", total_count: 42 }], error: null };
     }
@@ -92,6 +93,27 @@ describe("loadGalleryData (the /dev/ds loader, stubbed RPCs)", () => {
     assert.equal(data.published, null);
     assert.equal(data.discoverError, true);
     assert.ok(!Number.isNaN(data.total as unknown as number));
+  });
+
+  // Cycle 10. `Number("")` and `Number("  ")` are 0, so the empty-string half
+  // of finding 16 was left open: a blank `total_count` printed "0 suppliers"
+  // in the panel header and "0 published suppliers" in the topbar, over a
+  // read that had returned no count at all, with `discoverError` false.
+  for (const count of ["", "   ", "\n", null, undefined, [], {}] as const) {
+    it(`a total_count of ${JSON.stringify(count)} is unknown, never zero`, async () => {
+      const { client } = stubClient({ count });
+      const data = await loadGalleryData(client, TODAY);
+      assert.equal(data.total, null, "a count that is not a count must not render as none");
+      assert.equal(data.published, null);
+      assert.equal(data.discoverError, true);
+    });
+  }
+
+  it("a count the RPC returns as a numeric string is still a count", async () => {
+    const { client } = stubClient({ count: "42" });
+    const data = await loadGalleryData(client, TODAY);
+    assert.equal(data.total, 42);
+    assert.equal(data.discoverError, false);
   });
 
   // Cycle 5, finding 4.
