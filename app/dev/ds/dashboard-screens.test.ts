@@ -394,17 +394,24 @@ describe("the state a screen is in is drawn, not only announced", () => {
 });
 
 describe("a modal's background is inert, not merely covered", () => {
-  it("nothing outside an aria-modal dialog is focusable", () => {
+  // Detected by `role="dialog"`, not `aria-modal="true"`: the gallery's three
+  // dialogs pass `assertModal={false}` (cycle 18's accessibility critic — see
+  // the `Sheet`/`Dialog` doc comments), so `aria-modal` is deliberately absent
+  // here. The background being kept out of the tab order does not depend on
+  // whether the dialog covering it also claims `aria-modal` — a dialog that
+  // makes no modality claim still must not leave its background operable
+  // behind a scrim the pointer cannot pass either.
+  it("nothing outside a dialog is focusable", () => {
     const html = renderAll(galleryData());
     const frames = html.split("<figure").slice(1);
     let modals = 0;
     for (const f of frames) {
-      if (!/aria-modal="true"/.test(f)) continue;
+      if (!/role="dialog"/.test(f)) continue;
       modals += 1;
       // The shell the sheet covers sits inside `<div inert>`; the scrim takes
       // the pointer but took nothing from the keyboard, and 57 elements
       // outside the dialog were still tab stops on each sheet screen.
-      const before = f.slice(0, f.search(/<(?:aside|div)\b[^>]*aria-modal="true"/));
+      const before = f.slice(0, f.search(/<(?:aside|div)\b[^>]*role="dialog"/));
       // The attribute, not one serialization of it: `<div class="contents"
       // inert>` is the same repair and the first version of this rejected it.
       const wrapper = before.search(/<div\b[^>]*\binert\b/);
@@ -415,7 +422,22 @@ describe("a modal's background is inert, not merely covered", () => {
       assert.match(covered, /<main id="[^"]+-behind"/, "the covered shell sits outside the inert wrapper");
       assert.match(covered, /<nav aria-label="Primary"/, "the sidebar sits outside the inert wrapper");
     }
-    assert.equal(modals, 3, "the three sheet screens still draw a modal");
+    assert.equal(modals, 3, "the three sheet screens still draw a dialog");
+  });
+
+  // Cycle 18's accessibility critic: three `aria-modal="true"` dialogs were
+  // simultaneously live and non-inert relative to each other on this one
+  // page — each asserting the other two (and the three plain screens) did
+  // not exist, which no assistive-technology behaviour is defined for and
+  // which was false in both directions at once for at least two of the
+  // three. `assertModal={false}` on all three gallery instances removes the
+  // false claim; `role="dialog"` and each one's own `aria-label` are kept.
+  it("no dialog on the combined gallery page claims aria-modal, since none of the three is the page's one true modal", () => {
+    const html = renderAll(galleryData());
+    assert.doesNotMatch(html, /aria-modal="true"/, "an aria-modal claim on this page cannot be true of more than one of three simultaneously live dialogs");
+    // The claim is dropped, not the dialog: still three labelled dialogs.
+    const dialogs = [...html.matchAll(/role="dialog" aria-label="([^"]+)"/g)].map((m) => m[1]!);
+    assert.deepEqual(dialogs.sort(), ["New RFQ", "Product line", "Supplier record"], "all three dialogs still render, still labelled");
   });
 });
 
@@ -590,9 +612,18 @@ describe("what the whole page may and may not say about itself", () => {
           assert.ok(levels[i]! <= levels[i - 1]! + 1, `heading order jumps h${levels[i - 1]} → h${levels[i]}`);
         }
       };
-      if (/aria-modal="true"/.test(f)) {
-        assert.match(f, /aria-modal="true"[^>]*aria-label="[^"]+"|aria-label="[^"]+"[^>]*aria-modal="true"/, "a modal screen owes a labelled dialog");
-        assert.doesNotMatch(reachable, /<main\b/, "a landmark left outside the dialog on a modal screen");
+      // Detected by `role="dialog"`, not `aria-modal="true"`: the gallery's
+      // three dialogs pass `assertModal={false}` (cycle 18's accessibility
+      // critic — none of three simultaneously-live dialogs can truthfully
+      // claim the other two do not exist), so `aria-modal` is deliberately
+      // absent on this page. Keying this branch off `aria-modal` instead
+      // would silently stop running it at all: these three frames would then
+      // fall into the plain-screen branch below and pass by matching the
+      // inert background's own (unreachable) `main` and conflating its
+      // heading tree with the dialog's.
+      if (/role="dialog"/.test(f)) {
+        assert.match(f, /role="dialog"[^>]*aria-label="[^"]+"|aria-label="[^"]+"[^>]*role="dialog"/, "a dialog screen owes a labelled dialog");
+        assert.doesNotMatch(reachable, /<main\b/, "a landmark left outside the dialog on a dialog screen");
         checkHeadingOrder(reachable);
         continue;
       }

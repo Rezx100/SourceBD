@@ -175,7 +175,12 @@ export function DashboardScreens({ data: d }: { data: GalleryData }) {
             }
           >
             <Scrim />
-            <SupplierSheet model={d.sheet} />
+            {/* `assertModal={false}`: this sheet, the product sheet and the
+                composer are all live and non-inert on this one gallery page
+                at once, so none of the three can truthfully claim the other
+                two (and the three plain screens) do not exist — see the
+                `Sheet`/`Dialog` doc comments. */}
+            <SupplierSheet model={d.sheet} assertModal={false} />
           </Stage>
         </Frame>
       ) : null}
@@ -192,7 +197,8 @@ export function DashboardScreens({ data: d }: { data: GalleryData }) {
             }
           >
             <Scrim />
-            <ProductSheet model={d.productSheet} />
+            {/* `assertModal={false}`: see the supplier sheet above. */}
+            <ProductSheet model={d.productSheet} assertModal={false} />
           </Stage>
         </Frame>
       ) : null}
@@ -209,7 +215,8 @@ export function DashboardScreens({ data: d }: { data: GalleryData }) {
             }
           >
             <Scrim />
-            <RfqComposer model={composer} aiEnabled={false} />
+            {/* `assertModal={false}`: see the supplier sheet above. */}
+            <RfqComposer model={composer} aiEnabled={false} assertModal={false} />
           </Stage>
         </Frame>
       ) : null}

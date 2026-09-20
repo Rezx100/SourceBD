@@ -566,6 +566,18 @@ M = [
  'components/dashboard/app-shell.tsx',
  '        {screenLabel ? `Skip to content, ${screenLabel}` : "Skip to content"}',
  '        {"Skip to content"}'),
+ ('c18-supplier-sheet-claims-exclusive-modal',
+ 'app/dev/ds/dashboard-screens.tsx',
+ '<SupplierSheet model={d.sheet} assertModal={false} />',
+ '<SupplierSheet model={d.sheet} />'),
+ ('c18-product-sheet-claims-exclusive-modal',
+ 'app/dev/ds/dashboard-screens.tsx',
+ '<ProductSheet model={d.productSheet} assertModal={false} />',
+ '<ProductSheet model={d.productSheet} />'),
+ ('c18-composer-claims-exclusive-modal',
+ 'app/dev/ds/dashboard-screens.tsx',
+ '<RfqComposer model={composer} aiEnabled={false} assertModal={false} />',
+ '<RfqComposer model={composer} aiEnabled={false} />'),
 
 ]
 

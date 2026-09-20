@@ -34,10 +34,10 @@ function listWords(items: readonly string[]): string {
   return `${items.slice(0, -1).join(", ")} and ${items.at(-1)}`;
 }
 
-export function SupplierSheet({ model }: { model: SupplierSheetModel }) {
+export function SupplierSheet({ model, assertModal }: { model: SupplierSheetModel; assertModal?: boolean }) {
   const p = model.products;
   return (
-    <Sheet label="Supplier record">
+    <Sheet label="Supplier record" assertModal={assertModal}>
       <SheetBar>
         <Button variant="ghost" icon aria-label="Close">
           <Icon name="x" />

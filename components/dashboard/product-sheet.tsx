@@ -13,9 +13,9 @@ import { PHOTO_CAPTION } from "./photo-tiles";
 import { FactsPanel, SanctionBanner, Sheet, SheetBar, SheetScroll } from "./sheet";
 import { Caption, Code, Eyebrow, Heading } from "./type";
 
-export function ProductSheet({ model }: { model: ProductSheetModel }) {
+export function ProductSheet({ model, assertModal }: { model: ProductSheetModel; assertModal?: boolean }) {
   return (
-    <Sheet label="Product line">
+    <Sheet label="Product line" assertModal={assertModal}>
       <SheetBar>
         <Button variant="ghost" aria-label="Back">
           <Icon name="chev-l" /> Back

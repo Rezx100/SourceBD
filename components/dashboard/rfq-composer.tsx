@@ -59,12 +59,20 @@ export type RfqComposerModel = {
   missing: string[];
 };
 
-export function Dialog({ label, children }: { label: string; children: ReactNode }) {
+/**
+ * `aria-modal="true"` asserts everything outside is unavailable — true when
+ * this is the one dialog open (the shipped app), false on the `/dev/ds`
+ * gallery, which renders this beside two other live, non-inert "modal"
+ * sheets and three plain screens. `assertModal` (default true) lets the
+ * gallery pass `false` here the same way `Sheet` does; `role="dialog"` and
+ * `aria-label` are unaffected either way.
+ */
+export function Dialog({ label, assertModal = true, children }: { label: string; assertModal?: boolean; children: ReactNode }) {
   return (
     <div
       role="dialog"
       aria-label={label}
-      aria-modal="true"
+      aria-modal={assertModal ? "true" : undefined}
       className="absolute left-1/2 top-10 flex w-[1180px] -translate-x-1/2 flex-col overflow-hidden rounded-lg border border-line bg-surface shadow-lg"
     >
       {children}
@@ -107,7 +115,7 @@ export function MissingFlag({ children }: { children: ReactNode }) {
 }
 
 /** `aiEnabled` false (AI off or no key): every V2 surface is not rendered — not disabled, absent (handoff §7). */
-export function RfqComposer({ model, aiEnabled = false }: { model: RfqComposerModel; aiEnabled?: boolean }) {
+export function RfqComposer({ model, aiEnabled = false, assertModal }: { model: RfqComposerModel; aiEnabled?: boolean; assertModal?: boolean }) {
   const required = model.questions.filter((q) => q.required).length + (model.moreQuestions?.required ?? 0);
   const total = model.questions.length + (model.moreQuestions?.count ?? 0);
   const steps = aiEnabled ? model.steps : model.steps.filter((s) => !s.v2);
@@ -117,7 +125,7 @@ export function RfqComposer({ model, aiEnabled = false }: { model: RfqComposerMo
   // server refuses it too (`rfq_create`, handoff §4.5).
   const blocked = sanctioned.length > 0 || model.missing.length > 0;
   return (
-    <Dialog label={model.title}>
+    <Dialog label={model.title} assertModal={assertModal}>
       <div className="flex h-[52px] items-center gap-3 border-b border-line-subtle px-5">
         <Title as="h1" className="text-sm">{model.title}</Title>
         <Caption>{model.context}</Caption>

@@ -39,12 +39,25 @@ export function Scrim() {
   return <div aria-hidden className="absolute inset-0 bg-surface-inverse opacity-[0.32]" />;
 }
 
-/** `.sheet`: 880px, `surface`, a `line` left rule, `shadow-lg`. */
-export function Sheet({ label, children }: { label: string; children: ReactNode }) {
+/**
+ * `.sheet`: 880px, `surface`, a `line` left rule, `shadow-lg`.
+ *
+ * `aria-modal="true"` asserts that everything outside this dialog is
+ * unavailable — true of the shipped app, where only one sheet or the composer
+ * is ever open at once, and false on the `/dev/ds` gallery, which renders all
+ * three side by side for review with none of them `inert` relative to each
+ * other. `assertModal` defaults to true (the real, single-dialog behaviour);
+ * the gallery passes `false` on every instance it assembles, because none of
+ * three simultaneously-live dialogs can truthfully claim the other two (and
+ * the three plain screens) do not exist. `role="dialog"` and `aria-label`
+ * stay either way — the sheet is still a dialog, just not an exclusive one
+ * here.
+ */
+export function Sheet({ label, assertModal = true, children }: { label: string; assertModal?: boolean; children: ReactNode }) {
   return (
     <aside
       role="dialog"
-      aria-modal="true"
+      aria-modal={assertModal ? "true" : undefined}
       aria-label={label}
       className="absolute bottom-0 right-0 top-0 flex w-[880px] flex-col border-l border-line bg-surface shadow-lg"
     >
