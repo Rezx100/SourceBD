@@ -81,8 +81,8 @@ M = [
  '          readDate: readDateOf(p, "RSC") ?? formatDay(rsc.fetched_at),'),
  ('c1-sheet-scroll-hidden',
  'components/dashboard/sheet.tsx',
- '  return <div className="min-h-0 flex-1 overflow-y-auto">{children}</div>;',
- '  return <div className="min-h-0 flex-1 overflow-hidden">{children}</div>;'),
+ '    <div data-sheet-scroll="true" className="min-h-0 flex-1 overflow-y-auto overscroll-contain">',
+ '    <div data-sheet-scroll="true" className="min-h-0 flex-1">'),
  ('tier-ramp-flattened', 'components/dashboard/marks.tsx', '  2: "bg-tier-2 text-tier-2-on",', '  2: "bg-tier-1 text-tier-1-on",'),
  ('a11y-checkbox-no-tabindex', 'components/dashboard/controls.tsx', '      aria-checked={on}\n      aria-disabled="true"', '      aria-checked={false}\n      aria-disabled="true"'),
  ('a11y-unnamed-columns', 'components/dashboard/results-table.tsx', '      {children ?? (srLabel ? <span className="sr-only">{srLabel}</span> : null)}', '      {children}'),
@@ -517,6 +517,16 @@ M = [
  'lib/dashboard/facts.ts',
  '  if (a === b) return a;\n  const year = a.slice(a.lastIndexOf(" ") + 1);',
  '  if (a !== b) return b;\n  const year = a.slice(a.lastIndexOf(" ") + 1);'),
+ ('c15-place-ignores-the-address',
+ 'lib/dashboard/build-models.ts',
+ '  const column = placeLabel(s.city, s.district);\n  if (column) return column;',
+ '  const column = placeLabel(s.city, s.district);\n  return column;'),
+ ('c15-state-indicator-retinted', 'components/dashboard/app-shell.tsx', 'shadow-[inset_3px_0_0_rgb(var(--ds-brand))]', 'shadow-[inset_3px_0_0_rgb(var(--ds-brand-tint))]'),
+ ('c15-sanction-edge-dropped', 'components/dashboard/results-table.tsx', 'r.sanctioned && "shadow-[inset_4px_0_0_rgb(var(--ds-sanction))]"', 'r.sanctioned && ""'),
+ ('c15-corpus-count-never-singular',
+ 'lib/dashboard/gallery-data.ts',
+ '  if (d.published !== null) parts.push(`${formatCount(d.published)} published ${d.published === 1 ? "supplier" : "suppliers"}`);',
+ '  if (d.published !== null) parts.push(`${formatCount(d.published)} published suppliers`);'),
 ]
 
 # An interrupted sweep used to leave the tree mutated, and the next run then
