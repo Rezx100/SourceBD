@@ -192,11 +192,24 @@ export async function loadGalleryData(
   } catch {
     published = null;
   }
-  const latest = named
+  // A maximum is not a property of a population. This was `Math.max` over the
+  // four named records, printed as "records on this page read 18 Sep 2026" —
+  // and A.R. Fashion's only source was last read 30 Jul 2026, 50 days earlier.
+  // Across the page only 4 of 32 source reads happened on 18 Sep; the oldest
+  // is 18 May. A range cannot be mistaken for a freshness guarantee, and it
+  // now covers every record the page draws, not only the four named ones.
+  const readTimes = [...named, ...extra]
     .flatMap((r) => (r.input.profile.provenance ?? []).map((p) => (p.last_seen_at ? Date.parse(p.last_seen_at) : NaN)))
     .filter((t) => !Number.isNaN(t))
-    .reduce<number>((m, t) => Math.max(m, t), -1);
-  recordsReadOn = latest < 0 ? null : formatDay(new Date(latest).toISOString());
+    .sort((a, b) => a - b);
+  const oldest = readTimes[0];
+  const newest = readTimes[readTimes.length - 1];
+  recordsReadOn =
+    oldest === undefined || newest === undefined
+      ? null
+      : oldest === newest
+        ? formatDay(new Date(oldest).toISOString())
+        : `${formatDay(new Date(oldest).toISOString())} – ${formatDay(new Date(newest).toISOString())}`;
 
   // RFQs of the viewer (admin in the gallery), as `rfq_list` returns them.
   // A failed read is carried as unknown: the empty state states a fact about
@@ -271,6 +284,6 @@ export async function loadGalleryData(
 export function topbarCaption(d: Pick<GalleryData, "published" | "recordsReadOn">): string {
   const parts: string[] = [];
   if (d.published !== null) parts.push(`${formatCount(d.published)} published suppliers`);
-  if (d.recordsReadOn) parts.push(`records on this page read ${d.recordsReadOn}`);
+  if (d.recordsReadOn) parts.push(`supplier records read ${d.recordsReadOn}`);
   return parts.join(" · ") || "Live records";
 }

@@ -27,8 +27,8 @@ export function Label({ className, children }: { className?: string; children: R
 }
 
 /** `.title`: 15px medium, `ink-strong` — a card name, a tab. Wraps at any length. */
-export function Title({ className, children }: { className?: string; children: ReactNode }) {
-  return <span className={cn("text-title font-medium text-ink-strong [overflow-wrap:anywhere]", className)}>{children}</span>;
+export function Title({ as: As = "span", className, children }: { as?: "span" | "h1" | "h2"; className?: string; children: ReactNode }) {
+  return <As className={cn("text-title font-medium text-ink-strong [overflow-wrap:anywhere]", className)}>{children}</As>;
 }
 
 /** `.h-sm` 18 · `.h` 22 · `.h-lg` 28, all weight 500 in `ink-strong`. */

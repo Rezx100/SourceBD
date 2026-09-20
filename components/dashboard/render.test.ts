@@ -799,7 +799,7 @@ describe("PanelHeader (rendered)", () => {
 describe("Meter (rendered)", () => {
   it("a percentage that is not a number renders 0, never NaN", () => {
     for (const pct of [Number.NaN, Number.POSITIVE_INFINITY, undefined as unknown as number]) {
-      const html = renderToStaticMarkup(createElement(Meter, { pct }));
+      const html = renderToStaticMarkup(createElement(Meter, { pct, label: "Remediation" }));
       assert.doesNotMatch(html, /NaN|Infinity/);
       assert.match(html, /aria-valuenow="0"/);
       assert.match(html, /width:0%/);
@@ -807,9 +807,12 @@ describe("Meter (rendered)", () => {
   });
 
   it("a real percentage is clamped to the bar's range", () => {
-    assert.match(renderToStaticMarkup(createElement(Meter, { pct: 53 })), /aria-valuenow="53"/);
-    assert.match(renderToStaticMarkup(createElement(Meter, { pct: 140 })), /aria-valuenow="100"/);
-    assert.match(renderToStaticMarkup(createElement(Meter, { pct: -5 })), /aria-valuenow="0"/);
+    assert.match(renderToStaticMarkup(createElement(Meter, { pct: 53, label: "Remediation" })), /aria-valuenow="53"/);
+    assert.match(renderToStaticMarkup(createElement(Meter, { pct: 140, label: "Remediation" })), /aria-valuenow="100"/);
+    assert.match(renderToStaticMarkup(createElement(Meter, { pct: -5, label: "Remediation" })), /aria-valuenow="0"/);
+    // `role="meter"` requires an accessible name and the component used to
+    // take none, so two bars on the safety section announced as "100, meter".
+    assert.match(renderToStaticMarkup(createElement(Meter, { pct: 53, label: "Remediation, Aboni" })), /aria-label="Remediation, Aboni"/);
   });
 });
 

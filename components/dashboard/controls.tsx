@@ -125,14 +125,21 @@ export function V2Tag({ className }: { className?: string }) {
   );
 }
 
-/** `.meter`: a thin positive bar on the sunken ground. */
-export function Meter({ pct, thick = false, className }: { pct: number; thick?: boolean; className?: string }) {
+/**
+ * `.meter`: a thin positive bar on the sunken ground.
+ *
+ * `label` is required. `role="meter"` needs an accessible name, and the
+ * component used to take none and spread no rest props, so no caller could
+ * give it one: two bars on the safety section announced as "100, meter".
+ */
+export function Meter({ pct, label, thick = false, className }: { pct: number; label: string; thick?: boolean; className?: string }) {
   // An absent percentage is not 0 %: without this guard `aria-valuenow` and the
   // bar width both rendered "NaN".
   const width = Number.isFinite(pct) ? Math.max(0, Math.min(100, pct)) : 0;
   return (
     <span
       role="meter"
+      aria-label={label}
       aria-valuemin={0}
       aria-valuemax={100}
       aria-valuenow={width}

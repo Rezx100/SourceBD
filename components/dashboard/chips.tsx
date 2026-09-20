@@ -75,6 +75,7 @@ export function Chips({
         <a
           href={moreHref}
           aria-disabled={moreHref === "#" ? "true" : undefined}
+          tabIndex={moreHref === "#" ? -1 : undefined}
           title={moreHref === "#" ? "The rest arrive with the record page" : undefined}
           className={cn("px-1 font-medium text-brand-ink", nowrap ? "text-xs" : "text-sm")}
         >

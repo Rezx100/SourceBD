@@ -37,7 +37,10 @@ export function PanelHeader({ model }: { model: PanelHeaderModel }) {
     <div className="flex items-center gap-3 border-b border-line-subtle px-5 py-3">
       <Checkbox label="Select all on this page" />
       <div className="flex min-w-0 flex-1 items-baseline gap-2">
-        <Title>{model.title}</Title>
+        {/* The screen's heading. Without it, results-list and results-table
+            rendered no heading of any level, so there was nothing to navigate
+            by once the skip link had been taken. */}
+        <Title as="h1">{model.title}</Title>
         <Caption>
           {model.total === null
             ? "count could not be read"

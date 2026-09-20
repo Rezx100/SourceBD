@@ -178,7 +178,7 @@ export function SupplierSheet({ model }: { model: SupplierSheetModel }) {
           }
         >
           {model.rsc ? (
-            <RscBlock progress={model.rsc.progress} status={model.rsc.status} training={model.rsc.training} links={model.rsc.links} />
+            <RscBlock of={model.name} progress={model.rsc.progress} status={model.rsc.status} training={model.rsc.training} links={model.rsc.links} />
           ) : (
             <span className="inline-flex h-[26px] items-center rounded-sm border border-dashed border-quiet-line px-2.5 text-sm text-quiet-ink">
               {model.rscBuildings.length > 0 ? "No active RSC record for this company itself" : "No active RSC record on file"}
@@ -193,7 +193,7 @@ export function SupplierSheet({ model }: { model: SupplierSheetModel }) {
               <Caption>
                 {b.name} — the building&apos;s own RSC record{b.readDate ? ` · read ${b.readDate}` : ""}
               </Caption>
-              <RscBlock progress={b.progress} status={b.status} training={b.training} links={b.links} />
+              <RscBlock of={b.name} progress={b.progress} status={b.status} training={b.training} links={b.links} />
             </div>
           ))}
         </SheetSection>

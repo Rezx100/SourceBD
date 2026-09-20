@@ -96,7 +96,7 @@ export function Sidebar({ model }: { model: SidebarModel }) {
         </div>
         {pct !== null ? (
           <>
-            <Meter pct={pct} />
+            <Meter pct={pct} label={`RFQs used this month, ${plan.name}`} />
             <Caption>
               {plan.used} of {plan.allowance} RFQs this month
             </Caption>
@@ -154,14 +154,27 @@ export function AppShell({
   contentClassName?: string;
   children: ReactNode;
 }) {
+  // Every screen opens with the same eight sidebar links. Without a `main`
+  // landmark and a skip link there is no way past them: no landmark marks the
+  // content, and three of the six screens rendered no heading either, so
+  // heading navigation gave nothing (WCAG 2.4.1, level A). The app shell this
+  // kit replaces already has both — `app/(app)/layout.tsx` renders `SkipLink`
+  // and `<main id="main-content">`.
+  const mainId = "ds-main";
   return (
     <div className="flex min-h-full bg-canvas text-base text-ink">
+      <a
+        href={`#${mainId}`}
+        className="sr-only focus:not-sr-only focus:absolute focus:left-3 focus:top-3 focus:z-50 focus:rounded-sm focus:border focus:border-line-strong focus:bg-surface focus:px-3 focus:py-2 focus:text-sm focus:font-medium focus:text-ink-strong"
+      >
+        Skip to content
+      </a>
       <Sidebar model={sidebar} />
       <div className="flex min-w-0 flex-1 flex-col">
         <Topbar model={topbar} />
-        <div className={cn("mx-auto flex w-full max-w-[calc(75rem+3rem)] flex-col gap-4 p-6", contentClassName)}>
+        <main id={mainId} className={cn("mx-auto flex w-full max-w-[calc(75rem+3rem)] flex-col gap-4 p-6", contentClassName)}>
           {children}
-        </div>
+        </main>
       </div>
     </div>
   );

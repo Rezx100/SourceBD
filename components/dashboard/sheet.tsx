@@ -63,6 +63,7 @@ export function SheetTabs({ tabs }: { tabs: readonly { label: string; count: str
           key={t.label}
           href={t.href ?? "#"}
           aria-disabled={t.href === null ? "true" : undefined}
+          tabIndex={t.href === null ? -1 : undefined}
           title={t.href === null ? "This section arrives with the record page" : undefined}
           aria-current={t.active ? "true" : undefined}
           className={cn(
@@ -99,7 +100,7 @@ export function SheetSection({
     <section id={id} className="flex flex-col gap-4 border-b border-line-subtle px-6 py-5">
       {title ? (
         <div className="flex items-baseline gap-2">
-          <Heading level="sm" as="h3" className="flex-1">
+          <Heading level="sm" as="h2" className="flex-1">
             {title}
           </Heading>
           {caption ? <Caption>{caption}</Caption> : null}
@@ -187,6 +188,7 @@ export function LockCard({ hidden, plan }: { hidden: string; plan: string | null
           <a
             href="#"
             aria-disabled="true"
+            tabIndex={-1}
             title="What is hidden arrives with the plans page"
             className="inline-flex items-center gap-0.5 text-sm font-medium text-brand-ink"
           >
@@ -269,11 +271,14 @@ export function RscBlock({
   status,
   training,
   links,
+  of,
 }: {
   progress: number | null;
   status: string | null;
   training: string | null;
   links: readonly { label: string; href: string | null }[];
+  /** Whose remediation this is — the meter needs a name, and two blocks sit on one section. */
+  of: string;
 }) {
   const words = [status, training].filter(Boolean).join(" · ");
   // "not finalised" is as much a caution as "behind schedule"; matching two of
@@ -297,7 +302,7 @@ export function RscBlock({
           )}
           {words ? <Caption className="ml-auto">{words}</Caption> : null}
         </div>
-        {progress === null ? null : <Meter pct={progress} thick />}
+        {progress === null ? null : <Meter pct={progress} thick label={`Remediation, ${of}`} />}
       </div>
       <div className="flex flex-wrap gap-2">
         {links.map((l) =>

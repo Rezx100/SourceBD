@@ -54,7 +54,7 @@ function galleryData(over: Partial<GalleryData> = {}): GalleryData {
     productSheet: buildProductSheet(records.aboni.input, "6105"),
     total: 42,
     published: 10266,
-    recordsReadOn: "18 Sep 2026",
+    recordsReadOn: "30 Jul – 18 Sep 2026",
     rfqs: EMPTY_RFQS,
     ...over,
   };
@@ -135,13 +135,18 @@ describe("DashboardScreens — the caller, not the components (handoff §7)", ()
     // 18 Sep 2026 and the median is 24 Jul (SQL, 20 Sep 2026). Two figures
     // joined by a middle dot read as one claim, so the words say which
     // population the date belongs to.
-    assert.equal(topbarCaption({ published: 10266, recordsReadOn: "18 Sep 2026" }), "10,266 published suppliers · records on this page read 18 Sep 2026");
-    assert.equal(topbarCaption({ published: null, recordsReadOn: "18 Sep 2026" }), "records on this page read 18 Sep 2026");
+    // A maximum is not a property of a population. The caption said "records
+    // on this page read 18 Sep 2026" while A.R. Fashion's only source had
+    // been read 30 Jul — 4 of the page's 32 source reads were on 18 Sep, and
+    // the oldest was 18 May. It is a range now, over every record the page
+    // draws rather than only the four named ones.
+    assert.equal(topbarCaption({ published: 10266, recordsReadOn: "30 Jul – 18 Sep 2026" }), "10,266 published suppliers · supplier records read 30 Jul – 18 Sep 2026");
+    assert.equal(topbarCaption({ published: null, recordsReadOn: "18 Sep 2026" }), "supplier records read 18 Sep 2026");
     assert.equal(topbarCaption({ published: 1, recordsReadOn: null }), "1 published suppliers");
     assert.equal(topbarCaption({ published: null, recordsReadOn: null }), "Live records");
     const shell = render(galleryData());
-    assert.match(shell, /10,266 published suppliers · records on this page read 18 Sep 2026/);
-    assert.doesNotMatch(shell, /suppliers · records read /, "a record-level date must not be printed as a corpus fact");
+    assert.match(shell, /10,266 published suppliers · supplier records read 30 Jul – 18 Sep 2026/);
+    assert.doesNotMatch(shell, /records read 18 Sep 2026(?!\s*–)/, "the newest read must not stand for every record");
   });
 
   // Cycle 5, finding 4: a failed `rfq_list` read rendered as the fact "you have
@@ -236,15 +241,62 @@ describe("what the whole page may and may not say about itself", () => {
     assert.match(html, /role="checkbox"[^>]*aria-disabled="true"/, "the page still draws the checkboxes this guard is about");
   });
 
-  it("every named graphic says it is a graphic", () => {
+  it("a name that reads as an action is on something that can be actioned", () => {
     const html = renderAll(galleryData());
-    // An `aria-label` on an element with no role is neither a control nor a
-    // reliably named image. Ten "Remove <filter>" icons were emitted that
-    // way and read as actions that nothing could reach.
+    // First shape of this defect: ten "Remove <filter>" names on a bare
+    // `<svg>` — neither a control nor a reliably named graphic. Second shape,
+    // introduced by the first repair: the same names on `role="img"`, so a
+    // screen reader announced an action with nothing behind it.
+    //
+    // The backstop counts the affordances, not the markup that hosts them.
+    // It used to require ten named `<svg>`s, which meant the correct repair —
+    // moving the name onto a real control — took the count to zero and failed
+    // the suite. A `length >= N` counted over the exact shape a repair would
+    // change is a pinned defect.
+    const ACTION = /^(Remove|Close|Open|Select|Save|Send|Add|Export|Back|Share)\b/;
+    let named = 0;
+    for (const m of html.matchAll(/<([a-z]+)\b([^>]*\baria-label="([^"]*)"[^>]*)>/g)) {
+      const [, tag, attrs, label] = m as unknown as [string, string, string, string];
+      if (!ACTION.test(label)) continue;
+      named += 1;
+      const role = /\brole="([^"]*)"/.exec(attrs)?.[1];
+      assert.ok(
+        tag === "button" || tag === "a" || (role !== undefined && role !== "img"),
+        `an action name on something that cannot be actioned: <${tag} ${role ? `role="${role}" ` : ""}aria-label="${label}">`,
+      );
+    }
+    assert.ok(named >= 10, "the page still draws the named affordances this guard is about");
+    // And nothing is left named without a role at all.
     for (const m of html.matchAll(/<svg\b[^>]*aria-label="[^"]*"[^>]*>/g)) {
       assert.match(m[0]!, /role="img"/, `a named <svg> with no role: ${m[0]}`);
     }
-    assert.ok([...html.matchAll(/<svg\b[^>]*aria-label="[^"]*"/g)].length >= 10, "the page still draws the named icons this guard is about");
+  });
+
+  it("nothing announced as unavailable is left in the tab order", () => {
+    const html = renderAll(galleryData());
+    // `aria-disabled="true"` on a focusable link is a false state: the link
+    // still takes focus and still jumps the document to the top.
+    for (const m of html.matchAll(/<a\b[^>]*aria-disabled="true"[^>]*>/g)) {
+      assert.match(m[0]!, /tabindex="-1"/, `a link announced unavailable but still focusable: ${m[0]}`);
+    }
+    assert.ok([...html.matchAll(/<a\b[^>]*aria-disabled="true"/g)].length >= 10, "the page still draws the placeholder links this guard is about");
+  });
+
+  it("every screen can be entered past the sidebar", () => {
+    const html = renderAll(galleryData());
+    const frames = html.split("<figure").slice(1);
+    assert.equal(frames.length, 6, "six screens");
+    for (const f of frames) {
+      assert.equal((f.match(/<main\b/g) ?? []).length, 1, "exactly one main landmark per screen");
+      assert.match(f, /<a href="#ds-main"[^>]*>Skip to content<\/a>/, "a skip link before the sidebar");
+      assert.ok(f.indexOf("Skip to content") < f.indexOf("<nav"), "the skip link comes before the navigation");
+      assert.match(f, /<h1\b/, "a screen with no heading cannot be navigated by heading");
+      // And no level is skipped on the way down.
+      const levels = [...f.matchAll(/<h([1-6])\b/g)].map((m) => Number(m[1]));
+      for (let i = 1; i < levels.length; i += 1) {
+        assert.ok(levels[i]! <= levels[i - 1]! + 1, `heading order jumps h${levels[i - 1]} → h${levels[i]}`);
+      }
+    }
   });
 });
 

@@ -37,9 +37,14 @@ export function SearchComposer({
           <Chip key={c.label} tone="on" className="h-7">
             {c.label}
             {c.code ? <Code className="text-xs">{c.code}</Code> : null}
-            <span className="opacity-70">
-              <Icon name="x" small label={`Remove ${c.label}`} />
-            </span>
+            {/* A `role="img"` named "Remove …" announces an action that has
+                no control behind it. Editing filters arrives with the results
+                work, so this is a real button that is really disabled: out of
+                the tab order, announced as unavailable, and its name on a
+                control rather than on a picture. */}
+            <button type="button" disabled aria-label={`Remove ${c.label}`} className="opacity-70 disabled:cursor-not-allowed">
+              <Icon name="x" small />
+            </button>
           </Chip>
         ))}
         <button type="button" className="inline-flex h-7 items-center gap-1 px-1.5 text-sm font-medium text-ink-muted">

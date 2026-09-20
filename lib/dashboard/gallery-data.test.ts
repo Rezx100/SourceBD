@@ -109,6 +109,20 @@ describe("loadGalleryData (the /dev/ds loader, stubbed RPCs)", () => {
     });
   }
 
+  it("the read date is the range the records span, never the newest one", async () => {
+    // "records on this page read 18 Sep 2026" was `Math.max` over the four
+    // named records. A.R. Fashion's only source was last read 30 Jul 2026 —
+    // 4 of the page's 32 source reads were on 18 Sep and the oldest was 18
+    // May — so the caption asserted a freshness none of those records had.
+    const { client } = stubClient();
+    const data = await loadGalleryData(client, TODAY);
+    assert.ok(data.recordsReadOn, "the page still carries a read date");
+    assert.match(data.recordsReadOn!, / – /, "a population's read date is a range, not its maximum");
+    const [oldest, newest] = data.recordsReadOn!.split(" – ");
+    assert.notEqual(oldest, newest);
+    assert.ok(Date.parse(oldest!.includes("20") ? oldest! : `${oldest} ${newest!.slice(-4)}`) < Date.parse(newest!), "oldest first");
+  });
+
   it("a count the RPC returns as a numeric string is still a count", async () => {
     const { client } = stubClient({ count: "42" });
     const data = await loadGalleryData(client, TODAY);

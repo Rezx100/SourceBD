@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils";
 import { Button, Checkbox, V2Tag } from "./controls";
 import { Icon } from "./icons";
 import { SanctionBanner } from "./sheet";
-import { Caption, Code, Label } from "./type";
+import { Caption, Code, Label, Title } from "./type";
 
 export type RailStep = {
   label: string;
@@ -119,7 +119,7 @@ export function RfqComposer({ model, aiEnabled = false }: { model: RfqComposerMo
   return (
     <Dialog label={model.title}>
       <div className="flex h-[52px] items-center gap-3 border-b border-line-subtle px-5">
-        <Label className="text-ink-strong">{model.title}</Label>
+        <Title as="h1" className="text-sm">{model.title}</Title>
         <Caption>{model.context}</Caption>
         <span className="ml-auto flex items-center gap-2">
           {model.draftSaved ? <Caption>Draft saved {model.draftSaved}</Caption> : null}
@@ -149,6 +149,7 @@ export function RfqComposer({ model, aiEnabled = false }: { model: RfqComposerMo
               // dead-anchor defect cycle 5 fixed on the sheet's tabs.
               href="#"
               aria-disabled="true"
+              tabIndex={-1}
               title="Stepping through the draft arrives with the composer (REZ-D)"
               aria-current={s.active ? "step" : undefined}
               className={cn(
