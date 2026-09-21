@@ -262,6 +262,45 @@ describe("ResultsTable (rendered)", () => {
   });
 });
 
+// Guard-adequacy, cycle 19: cycle 18's `assertModal` repair has two halves —
+// the gallery passes `assertModal={false}` on its three simultaneously-live
+// dialogs, and the prop defaults to `true`, "the real, single-dialog
+// behaviour the shipped app always has" (the doc comments on `Sheet` and
+// `Dialog` say so explicitly). Only the gallery's own negative case was
+// guarded (`dashboard-screens.test.ts`'s "no dialog on the combined gallery
+// page claims aria-modal"); nothing anywhere asserted the *positive*
+// direction at the component boundary, so both `Sheet` and `Dialog` could
+// default to `false` — the shipped app's every real dialog silently losing
+// its modality — and the whole suite would stay green.
+describe("Sheet and Dialog default to aria-modal, at the component boundary (guard-adequacy, cycle 19)", () => {
+  it("SupplierSheet: no assertModal prop means aria-modal=\"true\"; assertModal={false} removes it and keeps role/label", () => {
+    const withDefault = renderToStaticMarkup(createElement(SupplierSheet, { model: buildSheet(aboniInput()) }));
+    assert.match(withDefault, /role="dialog"[^>]*aria-modal="true"|aria-modal="true"[^>]*role="dialog"/);
+    const withFalse = renderToStaticMarkup(createElement(SupplierSheet, { model: buildSheet(aboniInput()), assertModal: false }));
+    assert.doesNotMatch(withFalse, /aria-modal/);
+    assert.match(withFalse, /role="dialog"/);
+    assert.match(withFalse, /aria-label="Supplier record"/);
+  });
+
+  it("ProductSheet: no assertModal prop means aria-modal=\"true\"; assertModal={false} removes it and keeps role/label", () => {
+    const withDefault = renderToStaticMarkup(createElement(ProductSheet, { model: buildProductSheet(aboniInput(), "6105") }));
+    assert.match(withDefault, /role="dialog"[^>]*aria-modal="true"|aria-modal="true"[^>]*role="dialog"/);
+    const withFalse = renderToStaticMarkup(createElement(ProductSheet, { model: buildProductSheet(aboniInput(), "6105"), assertModal: false }));
+    assert.doesNotMatch(withFalse, /aria-modal/);
+    assert.match(withFalse, /role="dialog"/);
+    assert.match(withFalse, /aria-label="Product line"/);
+  });
+
+  it("RfqComposer: no assertModal prop means aria-modal=\"true\"; assertModal={false} removes it and keeps role/label", () => {
+    const withDefault = renderToStaticMarkup(createElement(RfqComposer, { model: COMPOSER_MODEL }));
+    assert.match(withDefault, /role="dialog"[^>]*aria-modal="true"|aria-modal="true"[^>]*role="dialog"/);
+    const withFalse = renderToStaticMarkup(createElement(RfqComposer, { model: COMPOSER_MODEL, assertModal: false }));
+    assert.doesNotMatch(withFalse, /aria-modal/);
+    assert.match(withFalse, /role="dialog"/);
+    assert.match(withFalse, new RegExp(`aria-label="${COMPOSER_MODEL.title}"`));
+  });
+});
+
 describe("SupplierSheet (rendered)", () => {
   it("bar, tabs with counts, facts with marks, the locked contact card, certificates, the RSC meter, the action bar", () => {
     const html = renderToStaticMarkup(createElement(SupplierSheet, { model: buildSheet(aboniInput()) }));

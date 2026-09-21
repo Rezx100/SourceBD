@@ -598,6 +598,14 @@ M = [
  'app/dev/ds/dashboard-screens.tsx',
  'note={`The viewer\'s own RFQs from rfq_list: ${d.rfqs.rows.length} real row${d.rfqs.rows.length === 1 ? "" : "s"}, newest first. Production holds seven across three buyers and rfq_list is scoped to auth.uid(), so five — one buyer\'s own — is the longest list it can return to anybody. A viewer who owns none still sees "0 sent · 0 quotes" and reads the empty state below it, "Your first RFQ lands here."; only a failed read replaces both with "count not read" and an error message.`}',
  'note={`The viewer\'s own RFQs from rfq_list: ${d.rfqs.rows.length} real rows, newest first. Production holds seven across three buyers and rfq_list is scoped to auth.uid(), so these five — one buyer\'s own — are the longest list it can return to anybody. A viewer who owns none reads the empty state instead, "Your first RFQ lands here." — never "0 sent".`}'),
+ ('c19-sheet-default-loses-modality',
+ 'components/dashboard/sheet.tsx',
+ 'export function Sheet({ label, assertModal = true, children }: { label: string; assertModal?: boolean; children: ReactNode }) {',
+ 'export function Sheet({ label, assertModal = false, children }: { label: string; assertModal?: boolean; children: ReactNode }) {'),
+ ('c19-dialog-default-loses-modality',
+ 'components/dashboard/rfq-composer.tsx',
+ 'export function Dialog({ label, assertModal = true, children }: { label: string; assertModal?: boolean; children: ReactNode }) {',
+ 'export function Dialog({ label, assertModal = false, children }: { label: string; assertModal?: boolean; children: ReactNode }) {'),
 ]
 
 # An interrupted sweep used to leave the tree mutated, and the next run then
