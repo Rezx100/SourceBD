@@ -304,6 +304,35 @@ describe("DashboardScreens — the caller, not the components (handoff §7)", ()
     assert.ok(table.includes("Same header and footer, 36px rows, 3 rows:"), "the row count in the caption must match the rows actually rendered");
   });
 
+  // Correctness, cycle 19: the product-sheet caption used to claim the EPB
+  // exporter page unconditionally, contradicting the sheet's own eyebrow
+  // ("not on this record's EPB page") the moment `exported` is false — a
+  // failed `supplier_epb_hscodes` read, or a heading the record genuinely
+  // does not export.
+  it("the product-sheet caption matches the sheet's own claim about whether the line is on the record's EPB page", () => {
+    const only = (html: string, id: string) => [...html.matchAll(/<figure[\s\S]*?data-screen="([^"]+)"[\s\S]*?(?=<figure|$)/g)].find((m) => m[1] === id)?.[0]!;
+
+    const exportedSheet = buildProductSheet(aboniInput(), "6105");
+    assert.equal(exportedSheet.exported, true, "6105 is one of Aboni's fixture HS lines");
+    const exportedFrame = only(renderAll(galleryData({ productSheet: exportedSheet })), "product-sheet");
+    assert.ok(
+      exportedFrame.includes(escapeHtml(`HS ${exportedSheet.hs} on ${exportedSheet.supplierName}'s EPB exporter page`)),
+      "an exported line must claim the EPB page, unconditionally",
+    );
+
+    const notExportedSheet = buildProductSheet(aboniInput(), "6112");
+    assert.equal(notExportedSheet.exported, false, "6112 is not one of Aboni's fixture HS lines");
+    const notExportedFrame = only(renderAll(galleryData({ productSheet: notExportedSheet })), "product-sheet");
+    assert.ok(
+      !notExportedFrame.includes(escapeHtml(`HS ${notExportedSheet.hs} on ${notExportedSheet.supplierName}'s EPB exporter page`)),
+      "the caption must not claim the EPB page for a line the sheet itself says is not on it",
+    );
+    assert.ok(
+      notExportedFrame.includes(escapeHtml(`HS ${notExportedSheet.hs}, not on ${notExportedSheet.supplierName}'s EPB exporter page`)),
+      "the caption must state the sheet's own negative claim instead",
+    );
+  });
+
   // Cycle 5, finding 4: a failed `rfq_list` read rendered as the fact "you have
   // no RFQs", in the empty state written to sell the feature.
   it("an unread RFQ list says so; an empty one sells the feature", () => {

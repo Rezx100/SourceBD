@@ -191,7 +191,18 @@ export function DashboardScreens({ data: d }: { data: GalleryData }) {
       ) : null}
 
       {d.productSheet ? (
-        <Frame id="product-sheet" title="ProductSheet — one HS export line" note={`HS ${d.productSheet.hs} on ${d.productSheet.supplierName}'s EPB exporter page. The photo is the catalogue's illustrative photo for the heading, never the supplier's own.`} height={760}>
+        <Frame
+          id="product-sheet"
+          title="ProductSheet — one HS export line"
+          // `model.exported` (correctness, cycle 19): the sheet itself
+          // downgrades to "not on this record's EPB page" the moment the
+          // line isn't on the record's EPB page — a failed
+          // `supplier_epb_hscodes` read, or the record genuinely not
+          // exporting this heading — and the caption used to claim the EPB
+          // page unconditionally, contradicting the sheet directly beneath it.
+          note={`HS ${d.productSheet.hs}${d.productSheet.exported ? ` on ${d.productSheet.supplierName}'s EPB exporter page` : `, not on ${d.productSheet.supplierName}'s EPB exporter page`}. The photo is the catalogue's illustrative photo for the heading, never the supplier's own.`}
+          height={760}
+        >
           <Stage
             height={760}
             behind={

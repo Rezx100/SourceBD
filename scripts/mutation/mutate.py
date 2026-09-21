@@ -590,6 +590,10 @@ M = [
  'app/dev/ds/dashboard-screens.tsx',
  'note={`Same header and footer, 36px rows, ${d.rows.length} rows: ${tableSelection(d)}.`}',
  'note={`Same header and footer, 36px rows, ${d.rows.length} rows: the four named records.`}'),
+ ('c19-product-sheet-note-ignores-exported',
+ 'app/dev/ds/dashboard-screens.tsx',
+ "note={`HS ${d.productSheet.hs}${d.productSheet.exported ? ` on ${d.productSheet.supplierName}'s EPB exporter page` : `, not on ${d.productSheet.supplierName}'s EPB exporter page`}. The photo is the catalogue's illustrative photo for the heading, never the supplier's own.`}",
+ "note={`HS ${d.productSheet.hs} on ${d.productSheet.supplierName}'s EPB exporter page. The photo is the catalogue's illustrative photo for the heading, never the supplier's own.`}"),
 ]
 
 # An interrupted sweep used to leave the tree mutated, and the next run then
