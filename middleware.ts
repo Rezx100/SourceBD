@@ -234,6 +234,18 @@ export async function middleware(req: NextRequest) {
     if (role !== "buyer" && role !== "admin") return redirectToLogin(req);
   }
 
+  // `/app/match` is retired — Ask replaces Smart Match (spec §1), so the route
+  // redirects into Discover with Ask on. The page component calls `redirect()`
+  // and looks correct, but the `(app)` layout above it is async and has already
+  // begun streaming by the time the page runs, so Next commits HTTP 200 and the
+  // redirect never reaches the wire. That is precisely the failure
+  // `scripts/test-profile-http-boundary.mjs` exists to catch, and it caught it.
+  // Issued here it runs before any rendering, so the status is real. Placed
+  // after the auth gate so an anonymous caller still lands on /login.
+  if (pathname === "/app/match") {
+    return redirectOnSite("/app/discover", "?ask=1", 307);
+  }
+
   return res;
 }
 

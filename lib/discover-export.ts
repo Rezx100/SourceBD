@@ -22,6 +22,10 @@ export type ExportResult = {
 };
 
 const MAX_ROWS = 1000;
+/** The RPC's own hard ceiling per call (0104: `least(coalesce(p_limit,24),100)`). */
+const PAGE_SIZE = 100;
+/** local@domain.tld — an address, not merely the "@" character. */
+const EMAIL_SHAPE = /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/;
 
 export function csvFilename(today: Date): string {
   const y = today.getUTCFullYear();
@@ -50,7 +54,28 @@ export async function runDiscoverExport(input: {
   }
 
   const state: DiscoverState = parseDiscoverState(new URLSearchParams(input.search.replace(/^\?/, "")));
-  const { rows, error } = await fetchDiscoverV32(input.supabase, { ...state, page: 1, per: 100 }, { limit: MAX_ROWS, offset: 0 });
+
+  // The RPC clamps p_limit to 100 (0104: `least(coalesce(p_limit,24),100)`),
+  // so a single call can never return the MAX_ROWS this export promises. Page
+  // until the result set runs out or the cap is reached — a buyer who exports
+  // a 3,000-row search must not silently receive the first 100 and source
+  // against them as if they were the whole set.
+  const rows: DiscoverV32Row[] = [];
+  let error: string | null = null;
+  for (let offset = 0; offset < MAX_ROWS; offset += PAGE_SIZE) {
+    const want = Math.min(PAGE_SIZE, MAX_ROWS - offset);
+    const page = await fetchDiscoverV32(
+      input.supabase,
+      { ...state, page: 1, per: 100 },
+      { limit: want, offset },
+    );
+    if (page.error) {
+      error = page.error;
+      break;
+    }
+    rows.push(...(page.rows as DiscoverV32Row[]));
+    if (page.rows.length < want) break;
+  }
   if (error) {
     const pii = error.includes("contact fields");
     return {
@@ -67,8 +92,11 @@ export async function runDiscoverExport(input: {
     };
   }
 
-  const csv = discoverRowsToCsv(rows as DiscoverV32Row[], input.today);
-  if (csvContainsContactHeader(csv) || /@/.test(csv)) {
+  const csv = discoverRowsToCsv(rows, input.today);
+  // A bare "@" refused the whole export for any legitimate company name
+  // containing one (e.g. "M@S Trading"). The guard is meant to catch a leaked
+  // address, so match an address shape, not the character.
+  if (csvContainsContactHeader(csv) || EMAIL_SHAPE.test(csv)) {
     return {
       status: 500,
       body: JSON.stringify({ error: "export refused" }),

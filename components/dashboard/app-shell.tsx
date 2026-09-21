@@ -123,7 +123,12 @@ export function Topbar({ model }: { model: TopbarModel }) {
             defaultValue={model.searchQuery ?? ""}
             placeholder="Search suppliers, HS codes, certificates"
             aria-label="Search suppliers, HS codes, certificates"
-            className="grow bg-transparent text-ink-strong outline-none placeholder:text-ink-subtle"
+            // No `outline-none`: Tailwind emits it as a transparent 2px outline
+            // in @layer utilities, which lands after the global
+            // `:focus-visible` ring in @layer base at equal specificity and
+            // wins — leaving a keyboard user with no indicator at all on the
+            // primary search field.
+            className="grow bg-transparent text-ink-strong placeholder:text-ink-subtle"
           />
           <Kbd>⌘K</Kbd>
         </form>

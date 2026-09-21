@@ -172,7 +172,11 @@ as $$
     '[]'::jsonb
   )
     from public.certifications c
-   where c.supplier_id = p_supplier_id;
+   where c.supplier_id = p_supplier_id
+     -- 0039 rejects a certificate by soft-deleting it (rejected_at set, with a
+     -- reason). A rejected certificate is not evidence of anything, so it must
+     -- never reach a buyer as a cert chip, a state, or a count.
+     and c.rejected_at is null;
 $$;
 
 revoke all on function public.discover_v32_cert_summary(uuid) from public;
@@ -215,6 +219,10 @@ as $$
   select min(c.expires_on)
     from public.certifications c
    where c.supplier_id = p_supplier_id
+     -- Soft-deleted by an admin rejection (0039): a rejected certificate must
+     -- not drive the "certificate expiry soonest" sort either, or a supplier
+     -- is ordered by the expiry date of evidence we have thrown out.
+     and c.rejected_at is null
      and c.expires_on is not null
      and c.expires_on >= current_date;
 $$;
@@ -342,6 +350,10 @@ as $$
         select 1
           from public.certifications c
          where c.supplier_id = s.id
+           -- Soft-deleted by an admin rejection (0039): must not satisfy a
+           -- certificate filter either, or `?cert=gots:valid` returns
+           -- suppliers whose only GOTS certificate was rejected as forged.
+           and c.rejected_at is null
            and (p_cert_kinds is null or c.kind::text = any (p_cert_kinds))
            and case
              coalesce(

@@ -7,10 +7,12 @@ import {
   FILTER_HIDDEN_OMIT,
   certKinds,
   certState,
+  discoverChips,
   discoverHiddenParams,
   discoverHref,
   discoverRpcArgs,
   parseDiscoverState,
+  queryTitle,
   serializeDiscoverState,
   sortRpc,
 } from "./discover-v32-state";
@@ -69,5 +71,75 @@ describe("discover URL state", () => {
     assert.equal(hidden.q, "knit");
     assert.equal(hidden.city, undefined);
     assert.equal(hidden.hs, undefined);
+  });
+});
+
+describe("the sanctioned exclusion is disclosed, never silent", () => {
+  // Goes red if `p_exclude_sanctioned` is hardcoded back to `true`, if the
+  // chip is removed, or if the title reverts to the unqualified claim. The
+  // defect this guards: sanctioned suppliers were withheld from every search
+  // with no chip, no control and no mention, under a heading reading "All
+  // published suppliers" — so a buyer searching a factory SourceBD had
+  // flagged read "no match" and concluded there was no record of it.
+
+  it("defaults to excluding, and says so in the title", () => {
+    const state = parseDiscoverState(new URLSearchParams(""));
+    assert.equal(state.sanctioned, false);
+    assert.equal(discoverRpcArgs(state).p_exclude_sanctioned, true);
+    assert.equal(queryTitle(state), "All published suppliers except sanctioned");
+    assert.notEqual(
+      queryTitle(state),
+      "All published suppliers",
+      "the unqualified title claims a set we are not returning",
+    );
+  });
+
+  it("shows a removable chip whenever it is withholding records", () => {
+    const state = parseDiscoverState(new URLSearchParams(""));
+    const chip = discoverChips(state).find((c) => c.key === "sanctioned");
+    assert.ok(chip, "no chip disclosed the sanctioned exclusion");
+    assert.equal(chip.without.sanctioned, true, "the chip must be removable");
+  });
+
+  it("lifting it reaches the RPC, round-trips, and drops the chip", () => {
+    const state = parseDiscoverState(new URLSearchParams("sanctioned=1"));
+    assert.equal(state.sanctioned, true);
+    assert.equal(discoverRpcArgs(state).p_exclude_sanctioned, false);
+    assert.deepEqual(parseDiscoverState(serializeDiscoverState(state)), state);
+    assert.equal(discoverChips(state).find((c) => c.key === "sanctioned"), undefined);
+    assert.equal(queryTitle(state), "All published suppliers");
+  });
+});
+
+describe("a certificate chip states what the query actually applies", () => {
+  // The RPC takes one `p_cert_state` for every kind, so two different states
+  // collapse to "any". The chips went on claiming the per-kind state the user
+  // asked for, putting "Certificate · GOTS, valid" above a supplier whose only
+  // GOTS certificate expired. Goes red if the chip label stops reading the
+  // effective state back.
+
+  it("says so when two states collapse to any", () => {
+    const state = parseDiscoverState(new URLSearchParams("cert=gots:valid,wrap:expired"));
+    assert.equal(certState(state), "any", "precondition: the states collapse");
+    const labels = discoverChips(state)
+      .filter((c) => c.key.startsWith("cert-"))
+      .map((c) => c.label);
+    for (const label of labels) {
+      assert.doesNotMatch(
+        label,
+        /,\s*(valid|expired|expiring)$/,
+        `"${label}" promises a state the query does not apply`,
+      );
+    }
+    assert.ok(labels.some((l) => /any state/.test(l)), `expected the collapse to be named: ${JSON.stringify(labels)}`);
+  });
+
+  it("keeps the exact state when there is only one", () => {
+    const state = parseDiscoverState(new URLSearchParams("cert=gots:valid,wrap:valid"));
+    assert.equal(certState(state), "valid");
+    const labels = discoverChips(state)
+      .filter((c) => c.key.startsWith("cert-"))
+      .map((c) => c.label);
+    assert.ok(labels.every((l) => /,\s*valid$/.test(l)), JSON.stringify(labels));
   });
 });

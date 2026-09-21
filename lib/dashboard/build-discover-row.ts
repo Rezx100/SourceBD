@@ -105,8 +105,16 @@ export function buildDiscoverCard(
   if (row.rsc_progress_pct != null) {
     chips.push({ tone: "neutral", icon: "shield", label: "RSC inspected" });
   }
+  // "Not on the list" is a claim about the register; an empty `lines` is not.
+  // Lines come back empty whenever the EPB record carries no `epb_hscodes`
+  // array, the codes fail the 4–6 digit shape, or the host/exporter pair is on
+  // the `epb_record_is_foreign_to_host` denylist — none of which mean the
+  // supplier is absent from EPB. The register itself is what `registries`
+  // reports, so only say "not on the list" when EPB is genuinely not there.
+  const onEpbRegister = registers.includes("EPB");
   if (opts.hsError) chips.push({ tone: "quiet", label: "EPB lines could not be read" });
   else if (lines.length > 0) chips.push({ tone: "neutral", label: `EPB exporter · ${lines.length} ${lines.length === 1 ? "line" : "lines"}` });
+  else if (onEpbRegister) chips.push({ tone: "quiet", label: "EPB exporter · no lines recorded" });
   else chips.push({ tone: "quiet", label: "Not on the EPB exporter list" });
   if (brands.length > 0) chips.push({ tone: "neutral", label: `Listed by ${brands.join(", ")}` });
   if (certList.length === 0) chips.push({ tone: "quiet", label: "No certificate on file" });
@@ -140,7 +148,11 @@ export function buildDiscoverCard(
             sub: "EPB exporter page",
             href: `${recordHref}#products`,
           }
-        : { label: "Export lines", value: null, sub: "not on the EPB list" },
+        : {
+            label: "Export lines",
+            value: null,
+            sub: onEpbRegister ? "no lines recorded" : "not on the EPB list",
+          },
     brands.length > 0
       ? {
           label: "Listed by",
@@ -267,8 +279,14 @@ const CSV_COLUMNS = [
 ] as const;
 
 function csvEscape(value: string): string {
-  if (/[",\n\r]/.test(value)) return `"${value.replace(/"/g, '""')}"`;
-  return value;
+  // Spreadsheet formula injection: Excel and Sheets evaluate a cell whose text
+  // begins with = + - @ (or a leading tab/CR before one). Supplier-supplied
+  // names, addresses and certificate scopes reach this export, so a supplier
+  // could ship a formula that runs on the buyer's machine when they open the
+  // file. Prefix a single quote, which those applications strip on display.
+  const guarded = /^[=+\-@\t\r]/.test(value) ? `'${value}` : value;
+  if (/[",\n\r]/.test(guarded)) return `"${guarded.replace(/"/g, '""')}"`;
+  return guarded;
 }
 
 export function discoverRowsToCsv(rows: readonly DiscoverV32Row[], today: Date): string {

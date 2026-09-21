@@ -47,20 +47,24 @@ export function SearchComposer({
             defaultValue={queryInput}
             placeholder="Search suppliers, HS codes, certificates"
             aria-label="Search suppliers, HS codes, certificates"
-            className="min-w-[12rem] flex-1 bg-transparent text-sm text-ink-strong outline-none placeholder:text-ink-subtle"
+            // See app-shell.tsx: `outline-none` beats the global focus ring.
+            className="min-w-[12rem] flex-1 bg-transparent text-sm text-ink-strong placeholder:text-ink-subtle"
           />
         ) : null}
         {chips.map((c) => (
           <Chip key={c.label} tone="on" className="h-7">
             {c.label}
             {c.code ? <Code className="text-xs">{c.code}</Code> : null}
+            {/* `opacity` applies to the focus outline too, so dimming the
+                focusable element itself pushed the ring to 2.45:1 against the
+                chip — under WCAG 1.4.11's 3:1. Dim the icon, not the control. */}
             {c.removeHref ? (
-              <a href={c.removeHref} aria-label={`Remove ${c.label}`} className="opacity-70">
-                <Icon name="x" small />
+              <a href={c.removeHref} aria-label={`Remove ${c.label}`}>
+                <Icon name="x" small className="opacity-70" />
               </a>
             ) : (
-              <button type="button" disabled aria-label={`Remove ${c.label}`} className="opacity-70 disabled:cursor-not-allowed">
-                <Icon name="x" small />
+              <button type="button" disabled aria-label={`Remove ${c.label}`} className="disabled:cursor-not-allowed">
+                <Icon name="x" small className="opacity-70" />
               </button>
             )}
           </Chip>

@@ -65,7 +65,9 @@ export default async function ProductsPage({
             defaultValue={q}
             placeholder="Search headings"
             aria-label="Search headings"
-            className="w-full bg-transparent text-sm outline-none"
+            // See components/dashboard/app-shell.tsx: `outline-none` beats the
+            // global focus ring and leaves no keyboard indicator.
+            className="w-full bg-transparent text-sm"
           />
         </form>
       </div>

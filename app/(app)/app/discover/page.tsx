@@ -212,7 +212,10 @@ export default async function BuyerDiscoverPage({
   }
 
   let explain: { dropped: string; remaining: number }[] = [];
-  if (!error && total === 0 && filterCount(state) > 0) {
+  // Not on a past-the-end page: `total` reads 0 there for want of rows to
+  // carry the count, and spending nine more RPC round-trips explaining a
+  // result set that is not actually empty is wasted work on a wrong premise.
+  if (!error && total === 0 && state.page === 1 && filterCount(state) > 0) {
     explain = await fetchDiscoverExplain(supabase, state);
   }
 
@@ -271,6 +274,24 @@ export default async function BuyerDiscoverPage({
             </Caption>
           </div>
         </Panel>
+      ) : rows.length === 0 && state.page > 1 ? (
+        // The RPC carries total_count on each row, so a page past the end
+        // returns no rows and therefore no count — indistinguishable from a
+        // genuinely empty result. Saying "no supplier matches" here is a lie
+        // about the search; the search is fine, the page number is not.
+        <Panel>
+          <div className="px-5 py-10">
+            <Title as="h1">{title}</Title>
+            <Caption className="mt-2">
+              Page {state.page} is past the end of this result set.
+            </Caption>
+            <p className="mt-4 text-sm">
+              <Link className="underline" href={discoverHref(state, { page: 1 })}>
+                Back to the first page
+              </Link>
+            </p>
+          </div>
+        </Panel>
       ) : total === 0 ? (
         <Panel>
           <div className="px-5 py-10">
@@ -310,7 +331,7 @@ export default async function BuyerDiscoverPage({
               sortLabel: sortLabel(state.sort),
               view: state.view,
               exportHref: `/api/v1/discover/export?${serializeDiscoverState(state).toString()}`,
-              saveHref: `/app/searches/new?${serializeDiscoverState(state).toString()}`,
+              saveHref: `/app/searches/new?${serializeDiscoverState({ ...state, page: 1 }).toString()}`,
               viewHref: (view) => discoverHref(state, { view, page: 1 }),
               sortOptions: SORTS.map((s) => ({
                 value: s.value,

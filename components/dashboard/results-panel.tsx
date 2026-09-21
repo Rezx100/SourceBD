@@ -145,7 +145,11 @@ export function PanelFooter({
             <summary className="inline-flex h-7 list-none items-center gap-1 rounded-sm px-2 text-sm text-ink-muted hover:bg-surface-sunken">
               {perPage} per page <Icon name="caret" small />
             </summary>
-            <div className="absolute z-20 mt-1 rounded-sm border border-line bg-surface py-1 shadow-sm">
+            {/* Opens upward: this menu lives in the panel footer, and Panel is
+                `overflow-hidden`, so a downward menu is clipped to the few
+                pixels of footer below the summary while its links stay in the
+                tab order — a keyboard user tabs into items they cannot see. */}
+            <div className="absolute bottom-full z-20 mb-1 rounded-sm border border-line bg-surface py-1 shadow-sm">
               {perHrefs.map((p) => (
                 <a key={p.n} href={p.href} className="block px-3 py-1.5 text-sm text-ink hover:bg-surface-sunken">
                   {p.n} per page

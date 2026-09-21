@@ -43,10 +43,23 @@ export function SaveSearchForm({ search, defaultName }: { search: string; defaul
           onChange={(e) => setName(e.target.value)}
           maxLength={120}
           required
+          aria-invalid={error ? true : undefined}
+          aria-describedby={error ? "save-search-error" : undefined}
           className="h-control rounded-sm border border-line-strong bg-surface px-3 text-ink-strong"
         />
       </label>
-      {error ? <p className="text-sm text-ink-strong">{error}</p> : null}
+      {/* A failed save left this paragraph appearing with nothing announced:
+          a screen-reader user was told nothing and walked away believing the
+          search had saved. The live region is always in the DOM so the
+          insertion is announced, and the field points at it. */}
+      <p
+        id="save-search-error"
+        role="status"
+        aria-live="polite"
+        className={error ? "text-sm text-ink-strong" : "sr-only"}
+      >
+        {error ?? ""}
+      </p>
       <Button type="submit" variant="primary" disabled={pending || !name.trim()}>
         Save search
       </Button>

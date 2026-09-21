@@ -63,6 +63,15 @@ export type DiscoverState = {
   per: PerPage;
   view: "cards" | "table";
   ask: boolean;
+  /**
+   * Include sanctioned suppliers in the results. Spec §4.1 makes the exclusion
+   * default-on, so this is false by default — but the exclusion is a filter the
+   * buyer can see and lift, never a silent one. "A sanction cannot be hidden by
+   * layout" (spec §0) cuts both ways: we must not hide the sanction on a record
+   * we show, and we must not hide from the buyer that we are withholding
+   * records at all.
+   */
+  sanctioned: boolean;
 };
 
 export const EMPTY_STATE: DiscoverState = {
@@ -85,6 +94,7 @@ export const EMPTY_STATE: DiscoverState = {
   per: 25,
   view: "cards",
   ask: false,
+  sanctioned: false,
 };
 
 function one(sp: URLSearchParams, key: string): string {
@@ -186,6 +196,7 @@ export function parseDiscoverState(
     per,
     view: viewRaw === "table" ? "table" : "cards",
     ask: one(sp, "ask") === "1",
+    sanctioned: one(sp, "sanctioned") === "1",
   };
 }
 
@@ -224,6 +235,7 @@ export function serializeDiscoverState(state: DiscoverState): URLSearchParams {
   if (state.per !== 25) sp.set("per", String(state.per));
   if (state.view === "table") sp.set("view", "table");
   if (state.ask) sp.set("ask", "1");
+  if (state.sanctioned) sp.set("sanctioned", "1");
   return sp;
 }
 
@@ -342,11 +354,24 @@ export function discoverChips(state: DiscoverState): DiscoverChip[] {
       without: { ...state, hs: state.hs.filter((h) => h !== hs), page: 1 },
     });
   }
+  // The RPC takes ONE `p_cert_state` across every kind (spec §4.1), so when the
+  // user has asked for two different states `certState` collapses them to
+  // "any". The chip must then say what is actually being applied — otherwise
+  // "Certificate · GOTS, valid" sits above a supplier whose only GOTS
+  // certificate expired two years ago.
+  const effectiveCertState = certState(state);
   for (const c of state.cert) {
     const name = CERT_LABEL[c.kind] ?? c.kind;
+    const applied = effectiveCertState ?? c.state;
+    const collapsed = applied !== c.state;
     chips.push({
       key: `cert-${c.kind}-${c.state}`,
-      label: c.state === "any" ? `Certificate · ${name}` : `Certificate · ${name}, ${c.state}`,
+      label:
+        applied === "any"
+          ? collapsed
+            ? `Certificate · ${name} (any state)`
+            : `Certificate · ${name}`
+          : `Certificate · ${name}, ${applied}`,
       without: { ...state, cert: state.cert.filter((x) => x !== c), page: 1 },
     });
   }
@@ -423,12 +448,29 @@ export function discoverChips(state: DiscoverState): DiscoverChip[] {
       without: { ...state, workersMin: null, workersMax: null, page: 1 },
     });
   }
+  if (!state.sanctioned) {
+    // Default-on per spec §4.1 — but it is still a filter that withholds
+    // records, so the buyer sees it and can lift it. Without this chip a
+    // search for a sanctioned factory returns "no match", which reads as
+    // "SourceBD has no record" when in truth SourceBD flagged it.
+    chips.push({
+      key: "sanctioned",
+      label: "Sanctioned hidden",
+      without: { ...state, sanctioned: true, page: 1 },
+    });
+  }
   return chips;
 }
 
 export function queryTitle(state: DiscoverState): string {
   const chips = discoverChips(state);
   if (chips.length === 0) return "All published suppliers";
+  // The sanctioned exclusion is a chip like any other, but on its own it
+  // describes the whole set rather than narrowing it to something worth
+  // naming, so it reads as a sentence instead of a filter label.
+  if (chips.length === 1 && chips[0]?.key === "sanctioned") {
+    return "All published suppliers except sanctioned";
+  }
   return chips.map((c) => c.label).join(" · ");
 }
 
@@ -493,6 +535,6 @@ export function discoverRpcArgs(
     p_workers_max: state.workersMax,
     p_districts: state.district.length ? [...state.district] : null,
     p_cities: state.city.length ? [...state.city] : null,
-    p_exclude_sanctioned: true,
+    p_exclude_sanctioned: !state.sanctioned,
   };
 }

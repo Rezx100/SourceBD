@@ -1686,6 +1686,53 @@ const CASES = [
     // the query vary.
     expect: { status: 307, locationPath: "/login" },
   },
+
+  // ---- REZ-B: the rewritten Discover surface and its new routes ----------
+  // Every REZ-B test shipped in the change itself asserted a pure helper's
+  // return value. Not one observed a status code, which is the exact failure
+  // this file was written for (see the header: REZ-72 shipped 361 green unit
+  // tests over a route that never emitted its redirect). `/app/discover` was
+  // rewritten wholesale and could 500 on every request with a fully green
+  // `pnpm test`.
+  {
+    name: "rez-b: /app/discover renders -> 200",
+    path: "/app/discover",
+    auth: true,
+    expect: { status: 200, bodyIncludesAll: ["All published suppliers except sanctioned"] },
+  },
+  {
+    name: "rez-b: /app/discover anonymous -> 307 to /login",
+    path: "/app/discover",
+    expect: { status: 307, locationPath: "/login" },
+  },
+  {
+    name: "rez-b: /app/products renders -> 200",
+    path: "/app/products",
+    auth: true,
+    expect: { status: 200 },
+  },
+  {
+    name: "rez-b: /app/searches renders -> 200",
+    path: "/app/searches",
+    auth: true,
+    expect: { status: 200 },
+  },
+  {
+    name: "rez-b: /app/match redirects to Discover with Ask on",
+    path: "/app/match",
+    auth: true,
+    expect: { status: 307, locationPath: "/app/discover" },
+  },
+  {
+    name: "rez-b: export API refuses an anonymous caller",
+    path: "/api/v1/discover/export",
+    expect: { statusIn: [307, 401] },
+  },
+  {
+    name: "rez-b: saved-searches API refuses an anonymous caller",
+    path: "/api/v1/saved-searches",
+    expect: { statusIn: [307, 401] },
+  },
 ];
 
 async function main() {
@@ -1811,7 +1858,17 @@ async function main() {
       const caseProblems = [...hit1RpcProblems];
       hits.forEach((got, i) => {
         const label = i === 0 ? "hit 1" : "hit 2 (replay)";
-        if (got.status !== c.expect.status) {
+        if (Array.isArray(c.expect.statusIn)) {
+          // For a case where more than one status is a correct refusal — an
+          // API route may be turned away by the middleware gate (307) or by
+          // the handler's own role check (401), and both are the guarantee
+          // we care about: an anonymous caller does not get data.
+          if (!c.expect.statusIn.includes(got.status)) {
+            caseProblems.push(
+              `${label}: status ${got.status} not in ${JSON.stringify(c.expect.statusIn)}`,
+            );
+          }
+        } else if (got.status !== c.expect.status) {
           caseProblems.push(`${label}: status ${got.status} != ${c.expect.status}`);
         }
         if (c.expect.locationMustBeAbsolute) {
