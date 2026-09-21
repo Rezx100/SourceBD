@@ -73,6 +73,33 @@ comment on table public.saved_searches is
 -- HS helpers — same EPB source_records pattern as 0103 / the reconciliation query
 -- ---------------------------------------------------------------------------
 
+-- The workers figure a buyer sees on a card is NOT suppliers.employees_total:
+-- `lib/enrich-discover-workers.ts` overwrites it with
+-- production_workers_display_batch, which rolls the mother record up with every
+-- `facility_of` building and prefers each site's RSC count over its registry
+-- one. Filtering and sorting on the raw column therefore contradicted the
+-- screen: a "≥ 5,000 workers" chip sat above a row reading "1,200 workers", and
+-- the Workers sort produced a visibly unordered column.
+--
+-- This wraps the existing function rather than restating its logic. AGENTS.md
+-- rule 14 is explicit that two independently-written definitions of one measure
+-- will disagree and then nobody knows which number is real — so there stays
+-- exactly one definition of "workers", and this is a thin read of it. The cost
+-- is a per-row call, paid only when a workers filter or sort is in play.
+create or replace function public.discover_v32_workers(p_supplier_id uuid)
+returns int
+language sql
+stable
+set search_path = public
+as $$
+  select nullif(
+    (public.production_workers_display_batch(array[p_supplier_id]) -> p_supplier_id::text ->> 'value'),
+    ''
+  )::int;
+$$;
+
+revoke all on function public.discover_v32_workers(uuid) from public;
+
 create or replace function public.discover_v32_est_year(p_established text)
 returns int
 language sql
@@ -203,9 +230,22 @@ language sql
 stable
 set search_path = public
 as $$
+  -- `_direct`, not `v_supplier_registry_ids`: the latter unions a PARENT
+  -- factory's memberships onto RSC sibling satellites (0021), suffixing the
+  -- label " (parent factory)" and setting `inherited_from` precisely so that
+  -- consumers do not print them as the record's own. `lib/header-registration.ts`
+  -- honours that; a Registers tile reading "BGMEA" for a satellite that holds
+  -- no BGMEA membership does not, and `?reg=BGMEA` would return it.
+  --
+  -- Restricted to the six registry codes as well. That view also unions
+  -- `public.certifications` with no `rejected_at` filter, so GOTS/WRAP rows an
+  -- admin rejected as forged came back through here as "registers" — re-opening,
+  -- on the same card, the hole this migration closes for cert_summary, the cert
+  -- filter and the cert-expiry sort.
   select coalesce(array_agg(distinct vp.source_code order by vp.source_code), '{}'::text[])
-    from public.v_supplier_registry_ids vp
-   where vp.supplier_id = p_supplier_id;
+    from public.v_supplier_registry_ids_direct vp
+   where vp.supplier_id = p_supplier_id
+     and vp.source_code in ('BGMEA', 'BKMEA', 'BGAPMEA', 'BTMA', 'EPB', 'RSC');
 $$;
 
 revoke all on function public.discover_v32_registries(uuid) from public;
@@ -377,9 +417,14 @@ as $$
       p_skip = 'registry'
       or p_registries is null
       or exists (
+        -- Same basis as `discover_v32_registries`: the supplier's own
+        -- registrations only, and only real registers. Filtering on the
+        -- inherited view returned satellites that hold no such membership,
+        -- and on cert rows that an admin had rejected.
         select 1
-          from public.v_supplier_registry_ids vp
+          from public.v_supplier_registry_ids_direct vp
          where vp.supplier_id = s.id
+           and vp.source_code in ('BGMEA', 'BKMEA', 'BGAPMEA', 'BTMA', 'EPB', 'RSC')
            and vp.source_code = any (p_registries)
       )
     )
@@ -408,8 +453,9 @@ as $$
     and (
       p_skip = 'workers'
       or (
-        (p_workers_min is null or s.employees_total >= p_workers_min)
-        and (p_workers_max is null or s.employees_total <= p_workers_max)
+        -- The displayed roll-up, not the raw column: see discover_v32_workers.
+        (p_workers_min is null or public.discover_v32_workers(s.id) >= p_workers_min)
+        and (p_workers_max is null or public.discover_v32_workers(s.id) <= p_workers_max)
       )
     )
     and (
@@ -579,7 +625,7 @@ begin
            case when p_sort = 'completeness' then c.completeness_pct end desc nulls last,
            case when p_sort = 'name' then c.company_name end asc,
            case when p_sort = 'receipts' then c.t13_source_count end desc nulls last,
-           case when p_sort = 'workers' then c.employees_total end desc nulls last,
+           case when p_sort = 'workers' then public.discover_v32_workers(c.id) end desc nulls last,
            case when p_sort = 'established' then public.discover_v32_est_year(c.established_date) end asc nulls last,
            case when p_sort = 'cert_expiry' then public.discover_v32_next_cert_expiry(c.id) end asc nulls last,
            case when p_sort = 'hs_lines' then cardinality(public.discover_v32_hs_codes(c.id)) end desc nulls last,

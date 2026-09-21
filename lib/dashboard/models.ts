@@ -52,6 +52,8 @@ export type SupplierCardModel = {
   linesUnknown?: boolean;
   /** Read date of the EPB register when EPB holds a record for this supplier; null otherwise. */
   epbReadDate: string | null;
+  /** The supplier is on the EPB register; empty lines mean unrecorded, not absent. */
+  onEpbRegister: boolean;
   /** V2 only: the facts that met the filters. Null → the band is not rendered. */
   why: string[] | null;
   selected?: boolean;

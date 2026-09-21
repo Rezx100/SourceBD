@@ -875,6 +875,10 @@ export function buildCard(input: RecordInput): SupplierCardModel {
     totalLines: lines.length,
     linesUnknown: Boolean(input.hscodesError),
     epbReadDate: epbRead,
+    // This builder has the register's own read date, which is the stronger
+    // signal; `onEpbRegister` only decides the wording when that date is
+    // absent, and an absent date here does mean no EPB record.
+    onEpbRegister: Boolean(epbRead),
     why: null,
   };
 }

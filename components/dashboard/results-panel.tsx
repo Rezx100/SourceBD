@@ -11,7 +11,23 @@ import { Icon } from "./icons";
 import { Caption, Title } from "./type";
 
 export function Panel({ className, children }: { className?: string; children: ReactNode }) {
-  return <section className={cn("overflow-hidden rounded-md border border-line bg-surface", className)}>{children}</section>;
+  // NOT `overflow-hidden`. That clipped every popover the header and footer
+  // open: on a short result set the sort menu was painted outside the panel —
+  // invisible, yet still in the tab order and still activating on Enter, which
+  // is a 2.4.7 failure a keyboard user walks straight into. The clipping only
+  // ever existed to keep the first and last children inside the rounded
+  // corners, so do exactly that instead and let menus escape.
+  return (
+    <section
+      className={cn(
+        "rounded-md border border-line bg-surface",
+        "[&>*:first-child]:rounded-t-md [&>*:last-child]:rounded-b-md",
+        className,
+      )}
+    >
+      {children}
+    </section>
+  );
 }
 
 export type PanelHeaderModel = {
@@ -21,6 +37,13 @@ export type PanelHeaderModel = {
   total: number | null;
   /** Rows on this page. */
   shown: number;
+  /**
+   * 1-based index of the first row on screen. The caption used to print
+   * `1–${shown}` unconditionally, so page 3 of a 300-row set read
+   * "300 suppliers · 1–25" while rows 51–75 were on screen — a range claim
+   * that was wrong on every page after the first.
+   */
+  firstRow?: number;
   sortLabel: string;
   view: "cards" | "table";
   /**
@@ -36,6 +59,13 @@ export type PanelHeaderModel = {
   sortOptions?: readonly { value: string; label: string; href: string }[];
 };
 
+/** "51–75", or the quiet words when the page carries no rows. */
+function rangeLabel(firstRow: number, shown: number): string {
+  if (shown <= 0) return "none on this page";
+  const from = Math.max(1, firstRow);
+  return `${formatCount(from)}–${formatCount(from + shown - 1)}`;
+}
+
 export function PanelHeader({ model }: { model: PanelHeaderModel }) {
   return (
     <div className="flex items-center gap-3 border-b border-line-subtle px-5 py-3">
@@ -49,7 +79,7 @@ export function PanelHeader({ model }: { model: PanelHeaderModel }) {
           {model.total === null
             ? "count could not be read"
             : `${formatCount(model.total)} ${model.total === 1 ? "supplier" : "suppliers"} · ${
-                model.selection ?? (model.shown > 0 ? `1–${model.shown}` : "none on this page")
+                model.selection ?? rangeLabel(model.firstRow ?? 1, model.shown)
               }`}
         </Caption>
       </div>
@@ -59,7 +89,12 @@ export function PanelHeader({ model }: { model: PanelHeaderModel }) {
             <summary className="inline-flex h-control list-none items-center gap-1.5 rounded-sm border border-line-strong bg-surface px-3 text-sm font-medium text-ink hover:bg-surface-sunken">
               <Icon name="sort" /> {model.sortLabel} <Icon name="caret" small />
             </summary>
-            <div className="absolute right-0 z-20 mt-1 min-w-[14rem] rounded-sm border border-line bg-surface py-1 shadow-sm">
+            {/* Same clipping as the footer's per-page menu: Panel is
+                `overflow-hidden` and this opens downward from the header, so on
+                a short result set the six options are painted outside the panel
+                — invisible, but still tabbable and still activating on Enter.
+                Anchored to the summary's bottom edge and allowed to escape. */}
+            <div className="absolute right-0 top-full z-20 mt-1 min-w-[14rem] rounded-sm border border-line bg-surface py-1 shadow-sm">
               {model.sortOptions.map((o) => (
                 <a key={o.value} href={o.href} className="block px-3 py-1.5 text-sm text-ink hover:bg-surface-sunken">
                   {o.label}
@@ -130,14 +165,17 @@ export function PanelFooter({
 }) {
   const pages = total !== null && perPage ? Math.max(1, Math.ceil(total / perPage)) : null;
   // A page that came back short of its own page size is the last one, whatever
-  // the total says — the rows on screen are the evidence, the total is not.
-  const paged = pages !== null && perPage !== undefined && shown >= perPage;
+  // the total says — the rows on screen are the evidence, the total is not. But
+  // "last page" must still render the pager: gating the whole block on
+  // `shown >= perPage` removed Previous from the final page, stranding a buyer
+  // on page 3 of 3 with no way back.
+  const paged = pages !== null && perPage !== undefined && (shown >= perPage || page > 1);
   return (
     <div className="flex items-center gap-3 border-t border-line-subtle px-5 py-3">
       <Caption>
         {note
           ? `${note}${total === null ? "" : ` · ${formatCount(total)} in the result set`}`
-          : `${shown > 0 ? `1–${shown}` : "none on this page"} of ${total === null ? "—" : formatCount(total)}`}
+          : `${rangeLabel(perPage ? (page - 1) * perPage + 1 : 1, shown)} of ${total === null ? "—" : formatCount(total)}`}
       </Caption>
       {perPage ? (
         perHrefs && perHrefs.length > 0 ? (

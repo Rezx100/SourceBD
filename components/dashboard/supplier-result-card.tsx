@@ -141,7 +141,7 @@ export function SupplierResultCard({ card }: { card: SupplierCardModel }) {
               <Tile key={t.label} tile={t} />
             ))}
           </div>
-          <PhotoStrip tiles={card.photos} totalLines={card.totalLines} registerChecked="EPB" readDate={card.epbReadDate} unknown={card.linesUnknown} />
+          <PhotoStrip tiles={card.photos} totalLines={card.totalLines} registerChecked="EPB" readDate={card.epbReadDate} unknown={card.linesUnknown} onRegister={card.onEpbRegister} />
         </div>
         {card.why && card.why.length > 0 ? (
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 text-sm text-smart">

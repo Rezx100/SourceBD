@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, it } from "node:test";
 
@@ -100,6 +100,93 @@ describe("0104 discover_suppliers PII guard", () => {
         `certifications reader #${i + 1} does not exclude admin-rejected rows`,
       );
     }
+  });
+
+  it("the Registers tile reports the supplier's own registrations, not a parent's", () => {
+    // `v_supplier_registry_ids` unions a PARENT factory's memberships onto RSC
+    // sibling satellites (0021), marking them `inherited_from` so consumers do
+    // not print them as the record's own. Reading it here made a satellite that
+    // holds no BGMEA membership show "BGMEA" and match `?reg=BGMEA`. It also
+    // unions `certifications` with no rejected filter, re-admitting certificates
+    // an admin rejected as forged. The `_direct` view plus a register-code
+    // restriction closes both.
+    const readers = SQL.split(/from public\.v_supplier_registry_ids/).slice(1);
+    assert.ok(readers.length >= 2, `expected the registries function and the filter, found ${readers.length}`);
+    for (const [i, body] of readers.entries()) {
+      assert.ok(
+        body.startsWith("_direct"),
+        `registry reader #${i + 1} reads the inherited view, so a parent's registrations print as the record's own`,
+      );
+      const clause = body.split(/;\s*$/m)[0] ?? body;
+      assert.match(
+        clause,
+        /source_code in \('BGMEA', 'BKMEA', 'BGAPMEA', 'BTMA', 'EPB', 'RSC'\)/,
+        `registry reader #${i + 1} is not restricted to registers, so certificate rows leak in as "registers"`,
+      );
+    }
+  });
+
+  it("the workers filter and sort read the same figure the card displays", () => {
+    // The card's workers number is overwritten by the
+    // production_workers_display_batch roll-up (mother + facilities, RSC
+    // preferred). Filtering on the raw `employees_total` column put a
+    // "≥ 5,000 workers" chip above a row reading "1,200 workers".
+    assert.match(
+      SQL,
+      /create or replace function public\.discover_v32_workers/,
+      "no single definition of the displayed workers figure",
+    );
+    assert.match(
+      SQL,
+      /public\.production_workers_display_batch\(array\[p_supplier_id\]\)/,
+      "discover_v32_workers must reuse the existing roll-up, not restate it (AGENTS.md rule 14)",
+    );
+    for (const re of [
+      /p_workers_min is null or public\.discover_v32_workers\(s\.id\) >= p_workers_min/,
+      /p_workers_max is null or public\.discover_v32_workers\(s\.id\) <= p_workers_max/,
+      /p_sort = 'workers' then public\.discover_v32_workers\(c\.id\)/,
+    ]) {
+      assert.match(SQL, re, `a workers path still reads the raw column: ${re}`);
+    }
+    assert.doesNotMatch(
+      SQL,
+      /p_workers_(min|max) is null or s\.employees_total/,
+      "the raw-column workers filter is still present",
+    );
+  });
+
+  it("the sanctioned exclusion is actually applied in the query, not just passed", () => {
+    // The TS side asserts the argument; this asserts the predicate exists.
+    assert.match(
+      SQL,
+      /p_exclude_sanctioned/,
+      "the parameter is gone from the SQL",
+    );
+    assert.match(
+      SQL,
+      /p_exclude_sanctioned\s+is\s+(not\s+)?true|not\s+p_exclude_sanctioned|p_exclude_sanctioned\s*=\s*(true|false)|coalesce\(p_exclude_sanctioned/,
+      "p_exclude_sanctioned is accepted but never tested against anything",
+    );
+  });
+
+  it("opening a saved search is a route handler, so its redirect has a status", () => {
+    // As a page under the async (app) layout it hit the same streaming soft-200
+    // as /app/match: redirect() ran after Next had already committed 200, so a
+    // buyer opening any saved search got a blank shell. A route handler renders
+    // no layout and returns a real Response.
+    const dir = path.join(process.cwd(), "app/(app)/app/searches/[id]");
+    assert.ok(
+      existsSync(path.join(dir, "route.ts")),
+      "saved-search opening must be a route handler, not a page",
+    );
+    assert.ok(
+      !existsSync(path.join(dir, "page.tsx")),
+      "a page at this path would take precedence and reintroduce the soft-200",
+    );
+    const src = readFileSync(path.join(dir, "route.ts"), "utf8");
+    assert.match(src, /NextResponse\.redirect\(/);
+    assert.match(src, /307/);
+    assert.match(src, /\.eq\("owner_id", user\.id\)/, "must filter on the owner, not lean on RLS alone");
   });
 
   it("HS helpers reuse the 0103 EPB source_records pattern, not a table", () => {

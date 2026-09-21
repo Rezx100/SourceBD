@@ -328,6 +328,7 @@ export default async function BuyerDiscoverPage({
               title,
               total,
               shown: rows.length,
+              firstRow: (state.page - 1) * state.per + 1,
               sortLabel: sortLabel(state.sort),
               view: state.view,
               exportHref: `/api/v1/discover/export?${serializeDiscoverState(state).toString()}`,

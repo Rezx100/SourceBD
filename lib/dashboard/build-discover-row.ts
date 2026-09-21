@@ -203,6 +203,7 @@ export function buildDiscoverCard(
     totalLines: lines.length,
     linesUnknown: opts.hsError,
     epbReadDate: null,
+    onEpbRegister,
     why: null,
     selected: false,
     saved: Boolean(opts.saved),
@@ -264,7 +265,7 @@ export function discoverCsvValue(row: DiscoverV32Row, today: Date): Record<strin
   };
 }
 
-const CSV_COLUMNS = [
+export const CSV_COLUMNS = [
   "company",
   "slug",
   "type",

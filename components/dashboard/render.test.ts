@@ -33,7 +33,7 @@ import {
 import type { RfqListModel } from "@/lib/dashboard/models";
 import { Checkbox, Meter, Seg } from "./controls";
 import { Icon } from "./icons";
-import { PanelFooter, PanelHeader } from "./results-panel";
+import { Panel, PanelFooter, PanelHeader } from "./results-panel";
 import { ProductSheet } from "./product-sheet";
 import { ResultsTable } from "./results-table";
 import { RfqComposer, type RfqComposerModel } from "./rfq-composer";
@@ -571,6 +571,41 @@ describe("PanelFooter (rendered)", () => {
     assert.match(html, /Page 1 of 2/);
     assert.match(html, /aria-label="Next page"/);
     assert.doesNotMatch(html, /aria-label="Next page"[^>]*disabled=""/);
+  });
+
+  it("the row range follows the page instead of always claiming the first", () => {
+    // `1–${shown}` was printed unconditionally, so page 3 of a 300-row set read
+    // "1–25 of 300" with rows 51–75 on screen. Wrong on every page but the first.
+    const html = renderToStaticMarkup(
+      createElement(PanelFooter, { shown: 25, total: 300, perPage: 25, page: 3 }),
+    );
+    assert.match(html, /51–75 of 300/, "the footer still claims the first page's range");
+    assert.doesNotMatch(html, /1–25 of 300/);
+  });
+
+  it("a short last page keeps its pager so Previous is reachable", () => {
+    // Gating the whole pager on `shown >= perPage` stranded a buyer on the last
+    // page: ten rows of a 30-row set rendered no Previous and no page count.
+    const html = renderToStaticMarkup(
+      createElement(PanelFooter, { shown: 5, total: 30, perPage: 25, page: 2, prevHref: "/app/discover" }),
+    );
+    assert.match(html, /Page 2 of 2/, "the last page lost its pager entirely");
+    assert.match(html, /aria-label="Previous page"/);
+  });
+});
+
+describe("the results panel does not clip its own menus", () => {
+  // Panel was `overflow-hidden`, which painted the header's sort menu outside
+  // the panel on a short result set — invisible, still tabbable, still
+  // activating on Enter. The clipping only existed to keep the first and last
+  // children inside the rounded corners.
+  it("Panel clips corners without clipping overflow", () => {
+    const html = renderToStaticMarkup(
+      createElement(Panel, { children: createElement("div", null, "rows") }),
+    );
+    assert.doesNotMatch(html, /overflow-hidden/, "a popover in this panel would be clipped away");
+    assert.match(html, /rounded-t-md/);
+    assert.match(html, /rounded-b-md/);
   });
 });
 

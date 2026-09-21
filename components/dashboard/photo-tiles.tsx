@@ -62,6 +62,7 @@ export function PhotoStrip({
   registerChecked,
   readDate,
   unknown = false,
+  onRegister,
 }: {
   tiles: readonly PhotoTileModel[];
   totalLines: number;
@@ -71,12 +72,19 @@ export function PhotoStrip({
   readDate?: string | null;
   /** The lines could not be read: say so, never "no lines". */
   unknown?: boolean;
+  /** The supplier IS on that register; empty lines mean unrecorded, not absent. */
+  onRegister?: boolean;
 }) {
   if (tiles.length === 0) {
     return (
       <div className="relative min-w-0 flex-1">
         <div className="flex gap-2 overflow-hidden">
-          <NoLinesSlot registerChecked={registerChecked ?? "EPB"} readDate={readDate ?? null} unknown={unknown} />
+          <NoLinesSlot
+            registerChecked={registerChecked ?? "EPB"}
+            readDate={readDate ?? null}
+            unknown={unknown}
+            onRegister={onRegister}
+          />
         </div>
       </div>
     );
@@ -112,7 +120,24 @@ export function PhotoStrip({
  * the register holds a record without lines, "no EPB record" when it holds
  * none, "could not be read" when the RPC failed.
  */
-export function NoLinesSlot({ registerChecked, readDate, unknown = false }: { registerChecked: string; readDate: string | null; unknown?: boolean }) {
+export function NoLinesSlot({
+  registerChecked,
+  readDate,
+  unknown = false,
+  onRegister,
+}: {
+  registerChecked: string;
+  readDate: string | null;
+  unknown?: boolean;
+  /**
+   * Whether the supplier is on the register named by `registerChecked`. When
+   * it is, an empty line list means we have not recorded its lines — not that
+   * there is no record of the company. Saying "no EPB record" for a supplier
+   * the same card shows an EPB mark for is a claim about the register that
+   * the register does not support.
+   */
+  onRegister?: boolean;
+}) {
   return (
     <div className="w-[132px] shrink-0">
       <div className="flex size-[132px] flex-col items-center justify-center gap-1 rounded-sm border border-dashed border-quiet-line bg-surface p-3 text-center text-quiet-ink">
@@ -122,7 +147,13 @@ export function NoLinesSlot({ registerChecked, readDate, unknown = false }: { re
       <div className="px-0.5 pt-[5px]">
         <Code className="block text-xs text-ink-muted">{registerChecked}</Code>
         <span className="block whitespace-nowrap text-xs text-ink-subtle">
-          {unknown ? "try again later" : readDate ? `read ${readDate}` : `no ${registerChecked} record`}
+          {unknown
+            ? "try again later"
+            : readDate
+              ? `read ${readDate}`
+              : onRegister
+                ? "no lines recorded"
+                : `no ${registerChecked} record`}
         </span>
       </div>
     </div>

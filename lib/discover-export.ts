@@ -5,7 +5,7 @@
  * not land in the body.
  */
 
-import { discoverRowsToCsv, CSV_CONTACT_HEADERS } from "@/lib/dashboard/build-discover-row";
+import { discoverRowsToCsv, CSV_CONTACT_HEADERS, CSV_COLUMNS } from "@/lib/dashboard/build-discover-row";
 import { fetchDiscoverV32, type DiscoverV32Row } from "@/lib/discover-v32-rpc";
 import { parseDiscoverState, type DiscoverState } from "@/lib/discover-v32-state";
 import { discoverRowHasPii } from "@/lib/discover-v32-rpc";
@@ -24,8 +24,13 @@ export type ExportResult = {
 const MAX_ROWS = 1000;
 /** The RPC's own hard ceiling per call (0104: `least(coalesce(p_limit,24),100)`). */
 const PAGE_SIZE = 100;
-/** local@domain.tld — an address, not merely the "@" character. */
-const EMAIL_SHAPE = /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/;
+/** One CSV row carrying a human note in the first column, padded to the width. */
+function csvNoteRow(note: string): string {
+  const escaped = `"${note.replace(/"/g, '""')}"`;
+  const pad = Math.max(0, CSV_COLUMNS.length - 1);
+  return escaped + ",".repeat(pad);
+}
+
 
 export function csvFilename(today: Date): string {
   const y = today.getUTCFullYear();
@@ -92,11 +97,33 @@ export async function runDiscoverExport(input: {
     };
   }
 
-  const csv = discoverRowsToCsv(rows, input.today);
-  // A bare "@" refused the whole export for any legitimate company name
-  // containing one (e.g. "M@S Trading"). The guard is meant to catch a leaked
-  // address, so match an address shape, not the character.
-  if (csvContainsContactHeader(csv) || EMAIL_SHAPE.test(csv)) {
+  // What the search actually matched, per the RPC's own count on each row.
+  const matched = rows.reduce<number | null>((acc, r) => {
+    const n = typeof r.total_count === "number" ? r.total_count : null;
+    return n != null && (acc == null || n > acc) ? n : acc;
+  }, null);
+  const truncated = matched != null && matched > rows.length;
+
+  let csv = discoverRowsToCsv(rows, input.today);
+  if (truncated) {
+    // The defect this closes is the SILENCE, not the row count. A buyer who
+    // exports a 3,481-supplier search and receives 1,000 rows with nothing to
+    // say so sources against them as the whole set. The cap is deliberate;
+    // hiding it is not. Say it in the file the buyer actually opens, in the
+    // first column so it is visible without scrolling, and in a header for
+    // anything reading this programmatically.
+    const note =
+      `This export contains the first ${rows.length} of ${matched} matching suppliers, ` +
+      `ordered as the search was. Narrow the search to export the rest.`;
+    csv += `${csvNoteRow(note)}\r\n`;
+  }
+  // Header-shape guard only. The previous body-wide "@" scan refused the whole
+  // export for any legitimate value containing one — a supplier could deny
+  // every buyer this export by putting an address in its own company name —
+  // and it protected nothing the column allowlist does not already: the columns
+  // are a fixed list with no contact field in it, so a leak can only arrive as
+  // a NEW column, which is exactly what this catches.
+  if (csvContainsContactHeader(csv)) {
     return {
       status: 500,
       body: JSON.stringify({ error: "export refused" }),
@@ -112,6 +139,9 @@ export async function runDiscoverExport(input: {
       "Content-Type": "text/csv; charset=utf-8",
       "Content-Disposition": `attachment; filename="${filename}"`,
       "Cache-Control": "private, no-store",
+      "X-SourceBD-Rows": String(rows.length),
+      ...(matched != null ? { "X-SourceBD-Matched": String(matched) } : {}),
+      ...(truncated ? { "X-SourceBD-Truncated": "1" } : {}),
     },
   };
 }

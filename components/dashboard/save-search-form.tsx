@@ -17,11 +17,20 @@ export function SaveSearchForm({ search, defaultName }: { search: string; defaul
         e.preventDefault();
         setPending(true);
         setError(null);
-        const res = await fetch("/api/v1/saved-searches", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name, search }),
-        });
+        // Without the catch, a rejected fetch skipped setPending(false) and
+        // left Save search disabled for good, announcing nothing.
+        let res: Response;
+        try {
+          res = await fetch("/api/v1/saved-searches", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name, search }),
+          });
+        } catch {
+          setPending(false);
+          setError("Could not save this search — no connection. Try again.");
+          return;
+        }
         setPending(false);
         if (res.status === 401) {
           setError("Sign in to save a search.");

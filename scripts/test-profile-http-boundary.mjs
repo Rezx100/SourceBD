@@ -900,6 +900,8 @@ async function probeOnce(path, { auth = false } = {}) {
     location: res.headers.get("location"),
     cacheControl: res.headers.get("cache-control"),
     setCookie: res.headers.get("set-cookie"),
+    // Lower-cased names, for `expect.headerMatches`.
+    headers: Object.fromEntries([...res.headers].map(([k, v]) => [k.toLowerCase(), v])),
     body: text,
     bytes: text.length,
   };
@@ -1709,19 +1711,35 @@ const CASES = [
     name: "rez-b: /app/products renders -> 200",
     path: "/app/products",
     auth: true,
-    expect: { status: 200 },
+    // A bare 200 passes for an error shell too, so pin something only the
+    // built page renders.
+    expect: { status: 200, bodyIncludesAll: ["Products"] },
   },
   {
     name: "rez-b: /app/searches renders -> 200",
     path: "/app/searches",
     auth: true,
-    expect: { status: 200 },
+    expect: { status: 200, bodyIncludesAll: ["Saved searches"] },
   },
   {
     name: "rez-b: /app/match redirects to Discover with Ask on",
     path: "/app/match",
     auth: true,
-    expect: { status: 307, locationPath: "/app/discover" },
+    expect: { status: 307, locationPath: "/app/discover", locationSearch: "?ask=1" },
+  },
+  {
+    name: "rez-b: export API serves CSV to a signed-in buyer",
+    path: "/api/v1/discover/export?q=knit",
+    auth: true,
+    // The anonymous refusal is covered below; this is the other half — that the
+    // route actually produces a CSV attachment rather than merely not 500ing.
+    expect: {
+      status: 200,
+      headerMatches: {
+        "content-type": /text\/csv/,
+        "content-disposition": /attachment; filename=/,
+      },
+    },
   },
   {
     name: "rez-b: export API refuses an anonymous caller",
@@ -1871,6 +1889,14 @@ async function main() {
         } else if (got.status !== c.expect.status) {
           caseProblems.push(`${label}: status ${got.status} != ${c.expect.status}`);
         }
+        if (c.expect.headerMatches) {
+          for (const [name, re] of Object.entries(c.expect.headerMatches)) {
+            const v = got.headers?.[name] ?? got.headers?.[name.toLowerCase()] ?? "";
+            if (!re.test(String(v))) {
+              caseProblems.push(`${label}: header ${name} "${v}" does not match ${re}`);
+            }
+          }
+        }
         if (c.expect.locationMustBeAbsolute) {
           const first = firstLocation(got.location);
           if (!first || !/^https?:\/\//i.test(first)) {
@@ -1930,6 +1956,14 @@ async function main() {
           ) {
             caseProblems.push(
               `${label}: location ${got.location ?? "<none>"} is not on-site path ${c.expect.locationPath}`,
+            );
+          }
+          // The path alone does not pin a redirect whose meaning lives in its
+          // query: /app/match must land on Discover with Ask ON, and a refactor
+          // that dropped the search string passed the path check untouched.
+          if (parsed && c.expect.locationSearch !== undefined && parsed.search !== c.expect.locationSearch) {
+            caseProblems.push(
+              `${label}: location query "${parsed.search}" != "${c.expect.locationSearch}"`,
             );
           }
         }

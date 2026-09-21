@@ -136,6 +136,26 @@ describe("discover result HTML has no contact PII", () => {
     assert.match(dataLine, /'=HYPERLINK/, "expected the value to survive, quoted");
   });
 
+  it("the photo tile agrees with the chip about the EPB register", () => {
+    // The chip was fixed to say "no lines recorded" for a supplier on the EPB
+    // register, while the photo tile two rows below went on printing
+    // "no EPB record" for the same supplier — the card contradicted itself.
+    const member = buildDiscoverCard(
+      { ...ROW, registries: ["BGMEA", "EPB"] },
+      { today: TODAY, hsLines: [], hsError: false },
+    );
+    const html = renderToStaticMarkup(createElement(SupplierResultCard, { card: member }));
+    assert.doesNotMatch(html, /no EPB record/, "the tile still denies a register the chip confirms");
+    assert.match(html, /no lines recorded/);
+
+    const nonMember = buildDiscoverCard(
+      { ...ROW, registries: ["BGMEA"] },
+      { today: TODAY, hsLines: [], hsError: false },
+    );
+    const nonMemberHtml = renderToStaticMarkup(createElement(SupplierResultCard, { card: nonMember }));
+    assert.match(nonMemberHtml, /no EPB record/, "a genuine non-member must still be described as one");
+  });
+
   it("a saved record does not mark the select checkbox", () => {
     const card = buildDiscoverCard(ROW, { today: TODAY, hsLines: [], hsError: false, saved: true });
     const html = renderToStaticMarkup(createElement(SupplierResultCard, { card }));
