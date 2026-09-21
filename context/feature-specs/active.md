@@ -22,15 +22,16 @@ same PR. Read once per session.
   and stay off-limits to the builder; see the spec's section 1.
 
 - **Buyer dashboard v3.2 + V2 AI** — `handoff-dashboard-v3.2-implementation.md`
-  + `handoff-dashboard-v3.2-session-state.md` (founder answers). IN PROGRESS:
-  REZ-A (the code port of the dashboard kit) on branch `rez-a-dashboard-kit`
-  from `development` 19 Sep — tokens moved to the artifact's v3 set (Geist,
-  founder decision 19 Sep), `components/dashboard/*`, `lib/dashboard/*`, HS
-  photo catalogue under `public/products/hs`, six screens on `/dev/ds` from
-  production records. No route changes, no migration. Seventeen audit cycles;
-  the state and the order of work are in `handoff-rez-a-cycle17.md`.
-  Awaiting the Acceptance Judge; not merged. Then B → C → D → H → G → E → F → I
-  per §7.
+  + `handoff-dashboard-v3.2-session-state.md` (founder answers).
+  REZ-A (the code port of the dashboard kit): DONE.
+  `ACCEPTED_FOR_HUMAN_REVIEW` cycle 21, merged to `development` PR #161
+  (21 Sep). `handoff-rez-a-cycle21.md`.
+  IN PROGRESS: REZ-B (results page) on branch `rez-b-results-page` from
+  `development` (21 Sep). Migration `0104` (extends `discover_suppliers`,
+  adds `supplier_epb_hscodes_batch`, `hs_catalogue`); replaces
+  `/app/discover`, adds `/app/products` and `/app/searches`, `/app/match`
+  redirect. `/app/saved`/`/app/compare` deferred (not in §7's REZ-B line).
+  Not started building yet. Then C → D → H → G → E → F → I per §7.
 
 ## Queued
 - **Entity resolution core** — `spec-resolution-core.md` (4 Aug). Batch
