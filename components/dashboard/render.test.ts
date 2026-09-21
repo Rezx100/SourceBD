@@ -1390,13 +1390,21 @@ describe("the certificate card's own mark links, and the sheet shows the registe
     assert.equal((certs.match(/<a href="[^"]*"[^>]*aria-label="Source: /g) ?? []).length, 4, "and every one of them links");
   });
 
-  it("a certificate with no document keeps its square, unlinked", () => {
+  it("a certificate with no document keeps its square, unlinked, and its name still carries the tier", () => {
     const input = aboniInput();
     input.profile.certifications = input.profile.certifications.map((c) => ({ ...c, document_url: null }));
     const html = renderToStaticMarkup(createElement(SupplierSheet, { model: buildSheet(input) }));
     const certs = html.slice(html.indexOf('id="certificates"'));
-    assert.match(certs, /<span role="img" aria-label="Source: /);
     assert.doesNotMatch(certs, /<a href="[^"]*"[^>]*aria-label="Source: /);
+    const unlinked = [...certs.matchAll(/<span role="img" aria-label="Source: ([^"]*)"/g)];
+    assert.equal(unlinked.length, 4, "one unlinked square per certificate");
+    // An unlinked mark has no "(opens ...)" tail to carry the tier in — the
+    // name alone reads the same under a colour-blind eye as any other rank,
+    // which is the exact WCAG 1.4.1/1.3.1 gap BLOCKING F1 part A closed for
+    // the linked case; a mutation that dropped just the ", <tier name>" here
+    // (`a11y-source-mark-drops-tier-name-unlinked`) passed every other test
+    // in the suite; only this assertion catches it.
+    for (const m of unlinked) assert.match(m[1]!, /, Certification bodies$/, m[0]);
   });
 
   it("the address the register filed keeps its line breaks", () => {
