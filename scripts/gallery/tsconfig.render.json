@@ -1,0 +1,21 @@
+{
+  "extends": "../../tsconfig.npm-test.json",
+  "compilerOptions": {
+    "outDir": "../../.render-build",
+    "noEmitOnError": true
+  },
+  "files": [
+    "../../lib/design/tokens.ts",
+    "../../lib/hs-catalogue.ts",
+    "../../lib/dashboard/source-tiers.ts",
+    "../../lib/dashboard/hs-photos.ts",
+    "../../lib/dashboard/facts.ts",
+    "../../lib/dashboard/models.ts",
+    "../../lib/dashboard/build-models.ts",
+    "../../lib/dashboard/fixtures.ts",
+    "../../lib/dashboard/gallery-data.ts",
+    "../../components/dashboard/index.ts",
+    "../../app/dev/ds/dashboard-screens.tsx",
+    "./render-gallery-fixtures.ts"
+  ]
+}

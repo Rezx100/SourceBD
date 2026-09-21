@@ -4,6 +4,7 @@ import {
   borderRadius,
   boxShadow,
   cssVarName,
+  densitySizes,
   fontFamily,
   fontSize,
   fontWeight,
@@ -70,6 +71,11 @@ const config: Config = {
     zIndex,
     extend: {
       maxWidth,
+      // Density stops (`h-control`, `w-sidebar`, `min-h-fact-row`, `h-row-dense`, …).
+      height: densitySizes,
+      minHeight: densitySizes,
+      width: densitySizes,
+      minWidth: densitySizes,
       ringColor: { DEFAULT: "rgb(var(--ds-focus) / <alpha-value>)" },
       borderColor: { DEFAULT: "rgb(var(--ds-line) / <alpha-value>)" },
     },

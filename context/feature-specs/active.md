@@ -21,14 +21,18 @@ same PR. Read once per session.
   yet. Old design files are archived under `context/archive/old-design/`
   and stay off-limits to the builder; see the spec's section 1.
 
-## Queued
 - **Buyer dashboard v3.2 + V2 AI** — `handoff-dashboard-v3.2-implementation.md`
-  (18 Sep). Six approved screens onto the real app, saved searches, multi-
-  supplier RFQs with questions and drafts, compare, CSV export, HS photo
-  catalogue, OpenAI layer (key founder-set in `.env`, server-side only).
-  Starts after the design-system rebuild's kit lands; six founder
-  questions in its §8 first (Q5–Q6, added 18 Sep, cover the on-demand
-  shipments layer in §4.8 — ImportYeti API, paid, never scraped).
+  + `handoff-dashboard-v3.2-session-state.md` (founder answers). IN PROGRESS:
+  REZ-A (the code port of the dashboard kit) on branch `rez-a-dashboard-kit`
+  from `development` 19 Sep — tokens moved to the artifact's v3 set (Geist,
+  founder decision 19 Sep), `components/dashboard/*`, `lib/dashboard/*`, HS
+  photo catalogue under `public/products/hs`, six screens on `/dev/ds` from
+  production records. No route changes, no migration. Seventeen audit cycles;
+  the state and the order of work are in `handoff-rez-a-cycle17.md`.
+  Awaiting the Acceptance Judge; not merged. Then B → C → D → H → G → E → F → I
+  per §7.
+
+## Queued
 - **Entity resolution core** — `spec-resolution-core.md` (4 Aug). Batch
   resolution stage over immutable `staging_records`; LLM adjudicator for the
   review band only; Firecrawl `/v2/extract` not approved. Prerequisite:

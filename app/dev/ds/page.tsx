@@ -25,10 +25,14 @@ import {
   transitionDuration,
   type TierRank,
 } from "@/lib/design/tokens";
+import { RFQ_TARGETS } from "@/lib/dashboard/fixtures";
+import { loadGalleryData } from "@/lib/dashboard/gallery-data";
+import { DashboardScreens } from "./dashboard-screens";
 
 export const dynamic = "force-dynamic";
 
-// Design-system gallery — tokens plus the locked direction (spec §9). No components yet.
+// Design-system gallery — tokens, the locked direction (spec §9) and, from
+// REZ-A, the six buyer dashboard v3.2 screens rendered from real records.
 // Dev only and admin only, both checked on the server; otherwise 404.
 //
 // Spec §2 "nothing fake": the company names below are read live from the
@@ -43,9 +47,11 @@ const TIER_CLASS: Record<TierRank, string> = {
 };
 
 const SIZE_CLASS: Record<string, string> = {
+  eyebrow: "text-eyebrow font-mono uppercase",
   xs: "text-xs",
   sm: "text-sm",
   base: "text-base",
+  title: "text-title",
   lg: "text-lg",
   xl: "text-xl",
   "2xl": "text-2xl",
@@ -58,6 +64,7 @@ const SIZE_CLASS: Record<string, string> = {
 
 const RADIUS_CLASS: Record<string, string> = {
   none: "rounded-none",
+  xs: "rounded-xs",
   sm: "rounded-sm",
   DEFAULT: "rounded",
   md: "rounded-md",
@@ -72,6 +79,8 @@ const SHADOW_CLASS: Record<string, string> = {
   sm: "shadow-sm",
   md: "shadow-md",
   lg: "shadow-lg",
+  bloom: "shadow-bloom",
+  glass: "shadow-glass",
 };
 
 function varColor(group: string, key: string): string {
@@ -152,6 +161,12 @@ export default async function DesignSystemGallery() {
 
   const { longest, typical } = await loadRealNames();
   const sampleName = longest ?? typical;
+  const supabase = await createSupabaseServerClient();
+  // The same third argument the screenshot harness passes. `rfq_list` returns
+  // no supplier identity, so without it every RFQ row reads "1 supplier" —
+  // and the page and the screenshots would show different screens, which is
+  // the one thing the evidence may not do.
+  const dashboard = await loadGalleryData(supabase, new Date(), RFQ_TARGETS);
 
   const results = contrastPairs.map((p) => {
     const ratio = contrastRatio(resolve(light, p.fg), resolve(light, p.bg));
@@ -160,16 +175,20 @@ export default async function DesignSystemGallery() {
   const failures = results.filter((r) => !r.pass).length;
 
   return (
-    <main className="mx-auto max-w-content space-y-10 px-4 py-8 sm:px-6 lg:py-12">
+    // Each screen renders its own `main` landmark, so the page must not wrap
+    // them in a seventh: `landmark-no-duplicate-main`, and six skip links that
+    // all resolved to the first screen.
+    <div className="mx-auto max-w-content space-y-10 px-4 py-8 sm:px-6 lg:py-12">
       <header className="space-y-2">
         <p className="text-xs font-medium uppercase tracking-wide text-ink-subtle">
           Dev only · Design rebuild · Direction locked 18 Sep 2026
         </p>
         <h1 className="text-4xl font-bold text-ink-strong">Tokens</h1>
         <p className="max-w-prose text-lg text-ink-muted">
-          Every colour, size and shadow the new design is allowed to use. One family (Inter),
-          light only for now, colours named by job so a dark set can be added later. Brand green
-          is fixed; the rest of the shell is near-monochrome so colour is left for status.
+          Every colour, size and shadow the new design is allowed to use. Geist and Geist Mono
+          (the artifact&apos;s v3 tokens), light only for now, colours named by job so a dark set
+          can be added later. Brand green is fixed; the rest of the shell is near-monochrome so
+          colour is left for status.
         </p>
       </header>
 
@@ -181,7 +200,7 @@ export default async function DesignSystemGallery() {
         <dl className="grid grid-cols-1 gap-x-8 gap-y-3 text-sm sm:grid-cols-2">
           <div>
             <dt className="font-semibold text-ink-strong">Type</dt>
-            <dd className="text-ink-muted">Inter only. App body 14, table cells 13, captions 12. Headings semibold, tight tracking from 20 up.</dd>
+            <dd className="text-ink-muted">Geist for everything, Geist Mono for the stamps (eyebrows, marks, register and HS codes). App body 14, table cells 13, captions 12, card titles 15. App headings weight 500, tight tracking from 20 up.</dd>
           </div>
           <div>
             <dt className="font-semibold text-ink-strong">Colour roles</dt>
@@ -193,7 +212,7 @@ export default async function DesignSystemGallery() {
           </div>
           <div>
             <dt className="font-semibold text-ink-strong">Radius</dt>
-            <dd className="text-ink-muted">5px on controls, badges and cards; 6px on panels and tables; 8px only on dialogs. Never 12 in the app.</dd>
+            <dd className="text-ink-muted">3px on skeleton bars and 16px marks; 6px on controls, badges, chips and marks; 10px on cards, inputs and panels; 14px on dialogs and the sheet. 20px is marketing only.</dd>
           </div>
           <div>
             <dt className="font-semibold text-ink-strong">Density</dt>
@@ -216,8 +235,8 @@ export default async function DesignSystemGallery() {
                 style={{ height: density.tableRow }}
                 className="flex items-center gap-3 border-b border-line-subtle px-4 text-sm last:border-b-0"
               >
-                <span className="h-3 w-40 rounded-sm bg-skeleton" />
-                <span className="ml-auto h-3 w-16 rounded-sm bg-skeleton" />
+                <span className="h-3 w-40 rounded-xs bg-skeleton" />
+                <span className="ml-auto h-3 w-16 rounded-xs bg-skeleton" />
               </div>
             ))}
           </div>
@@ -241,6 +260,14 @@ export default async function DesignSystemGallery() {
             </a>
           </div>
         </div>
+      </Section>
+
+      <Section
+        id="dashboard"
+        title="Buyer dashboard v3.2"
+        note="The six approved screens (handoff-dashboard-v3.2-implementation.md), built from the kit under components/dashboard and rendered at 1440 from production records through the same RPCs the buyer app calls. Nothing here is a route yet: REZ-B onwards wire them to /app."
+      >
+        <DashboardScreens data={dashboard} />
       </Section>
 
       <Section
@@ -301,7 +328,7 @@ export default async function DesignSystemGallery() {
             <XCircle aria-hidden className="size-4 shrink-0" weight="fill" /> Error
           </li>
           <li className="rounded border border-line bg-surface px-3 py-2" aria-label="Loading">
-            <span className="block h-5 w-2/3 animate-pulse rounded-sm bg-skeleton" />
+            <span className="block h-5 w-2/3 animate-pulse rounded-xs bg-skeleton" />
           </li>
         </ul>
       </Section>
@@ -454,6 +481,6 @@ export default async function DesignSystemGallery() {
           . All motion switches off when the device asks for reduced motion.
         </p>
       </Section>
-    </main>
+    </div>
   );
 }

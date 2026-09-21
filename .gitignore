@@ -97,3 +97,7 @@ API Access _ OneProvider_files/
 # Screen recordings and session exports at the repo root (never source)
 /*.webm
 /Claude outputs/
+
+# Gallery evidence harness output (scripts/gallery/regen.sh)
+/_gallery-out/
+/.render-build/

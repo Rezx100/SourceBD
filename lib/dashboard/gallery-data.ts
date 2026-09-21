@@ -1,0 +1,337 @@
+import "server-only";
+
+// The /dev/ds gallery's data for the six dashboard screens (REZ-A, handoff
+// §7.1 "rendered from real data"). Everything comes from production through
+// the same RPCs the buyer app calls — `buyer_supplier_profile`,
+// `supplier_epb_hscodes`, `production_workers_display_batch`,
+// `discover_suppliers`, `rfq_list` — for the named test records of the
+// rebuild spec §3: the 11-source record (Aboni), the six-certificate record
+// (S M Knitwears), the 100-character name (Zaheen, rendered as the labelled
+// sanctioned SAMPLE — it is not sanctioned in production) and the almost-empty
+// record (A.R. Fashion). A record that cannot be read is left out, never
+// invented.
+
+import { fetchDisplayWorkersBatch } from "@/lib/enrich-discover-workers";
+import { hscodesFromRpc } from "@/lib/epb-hscodes";
+import { buildCard, buildRfqRow, buildSheet, buildTableRow, buildProductSheet, type ProfilePayload, type RecordInput, type RfqListRow } from "./build-models";
+
+import { formatCount, formatDayRange } from "./facts";
+import { topTier } from "./source-tiers";
+import type { RfqListModel, SupplierCardModel, SupplierSheetModel, TableRowModel, ProductSheetModel } from "./models";
+
+/** The sort the RPC knows for "most sources" (`discover_suppliers` p_sort: receipts | name | completeness). */
+export const SORT_MOST_SOURCES = "receipts";
+
+/** The argument list `discover_suppliers` takes, every key present, in one place. */
+export function discoverArgs(over: { q?: string | null; certKinds?: string[] | null; limit: number }): Record<string, unknown> {
+  return {
+    p_q: over.q ?? null,
+    p_entity_types: null,
+    p_min_sources: null,
+    p_cert_kinds: over.certKinds ?? null,
+    p_rsc_min: null,
+    p_city: null,
+    p_district: null,
+    p_category: null,
+    p_sort: SORT_MOST_SOURCES,
+    p_limit: over.limit,
+    p_offset: 0,
+    p_registries: null,
+    p_factory_types: null,
+    p_brand_codes: null,
+    p_completeness_min: null,
+    p_workers_min: null,
+  };
+}
+
+export const GALLERY_SLUGS = {
+  aboni: "aboni-knitwear",
+  sm: "sm-knitwear",
+  zaheen: "zaheen-knitwear-limited-shed-3-4-5-10-11-12-13-and-building-security-etp-and-fire-pump",
+  ar: "ar-fashion",
+} as const;
+
+/**
+ * The query the screens show: knitted shirts with a GOTS certificate (the
+ * RPC's text + cert filter). The title used to say "GOTS valid" — a
+ * certificate-*state* claim `discover_suppliers` has no parameter for (it
+ * arrives with REZ-B's `p_cert_state`) and one false of 15 of the 42
+ * suppliers the query returns by the kit's own `certState()` (truthfulness,
+ * cycle 19: `tex-town`, a live row on this exact screen, carries an
+ * "expiring" GOTS, not a valid one). The composer's own chip was already
+ * corrected to name the kind, not a state ("Certificate · GOTS"); the title
+ * now matches it.
+ */
+export const GALLERY_QUERY = { q: "knitted shirts", certKinds: ["gots"], title: "Knitted shirts · GOTS" } as const;
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type Rpc = { rpc: (fn: string, args: Record<string, unknown>) => any };
+
+export type GalleryRecord = { slug: string; input: RecordInput };
+
+/** A record's profile and lines; the worker figure is filled in by one batch call afterwards. */
+async function loadRecord(supabase: Rpc, slug: string, today: Date, sanctionSample = false): Promise<GalleryRecord | null> {
+  try {
+    const [profileResult, hsResult] = await Promise.all([
+      supabase.rpc("buyer_supplier_profile", { p_slug: slug }),
+      supabase.rpc("supplier_epb_hscodes", { p_slug: slug }),
+    ]);
+    const data = profileResult?.data;
+    if (profileResult?.error || !data || typeof data !== "object" || !("supplier" in data)) return null;
+    const profile = data as ProfilePayload;
+    // A failed lines read is carried as "unknown", never rendered as "no lines".
+    const { hscodes, loadError } = hscodesFromRpc({ data: hsResult?.data, error: hsResult?.error });
+    return { slug, input: { profile, hscodes, hscodesError: loadError, workers: null, today, sanctionSample } };
+  } catch {
+    return null;
+  }
+}
+
+/** One `production_workers_display_batch` call for every record on the page. */
+async function fillWorkersSafely(supabase: Rpc, records: GalleryRecord[]): Promise<void> {
+  try {
+    await fillWorkers(supabase, records);
+  } catch {
+    // Every record keeps the workers figure its own payload carries.
+  }
+}
+
+async function fillWorkers(supabase: Rpc, records: GalleryRecord[]): Promise<void> {
+  if (records.length === 0) return;
+  const byId = await fetchDisplayWorkersBatch(supabase, records.map((r) => r.input.profile.supplier.id));
+  for (const r of records) {
+    const w = byId[r.input.profile.supplier.id];
+    r.input.workers = w ? { value: w.value, source: w.source, fetched_at: w.fetched_at } : null;
+  }
+}
+
+export type GalleryData = {
+  today: Date;
+  /** The viewer's plan name from settings; null until billing exists (the contact card then says only "Contact details"). */
+  plan: string | null;
+  /** True when `discover_suppliers` failed — the header count is then unknown, not 0. */
+  discoverError: boolean;
+  /** True when `rfq_list` failed — the list is unread, not empty. */
+  rfqError: boolean;
+  records: Record<keyof typeof GALLERY_SLUGS, GalleryRecord | null>;
+  cards: SupplierCardModel[];
+  rows: TableRowModel[];
+  sheet: SupplierSheetModel | null;
+  productSheet: ProductSheetModel | null;
+  total: number | null;
+  published: number | null;
+  recordsReadOn: string | null;
+  /** How many records that range is over — the caption names it, so it cannot be read as the corpus. */
+  recordsRead: number | null;
+  /**
+   * The same range and count, but over the table's wider population (the four
+   * named records plus the discovery rows that pad the table view). Every
+   * other screen draws only the four named records and must use
+   * `recordsRead`/`recordsReadOn` above — sharing this pair with them states a
+   * count for records they never render.
+   */
+  tableRecordsReadOn: string | null;
+  tableRecordsRead: number | null;
+  rfqs: RfqListModel;
+};
+
+/**
+ * A count the RPC returned, or null when what came back is not one. `Number()`
+ * of a malformed `total_count` is NaN, and NaN reached the panel header as
+ * "null suppliers" with `discoverError` still false.
+ */
+function countOf(raw: unknown): number | null {
+  if (typeof raw === "number") return Number.isFinite(raw) ? raw : null;
+  // `Number("")` and `Number("  ")` are 0, so a blank `total_count` reached
+  // the panel header as "0 suppliers" with `discoverError` still false — a
+  // read that returned no count, printed as a count of none.
+  if (typeof raw !== "string" || raw.trim() === "") return null;
+  const n = Number(raw);
+  return Number.isFinite(n) ? n : null;
+}
+
+export async function loadGalleryData(
+  supabase: Rpc,
+  today = new Date(),
+  /**
+   * The supplier each RFQ targets, keyed by RFQ id, where the caller can
+   * resolve it (REZ-D's join). The **source codes** are carried, not a rank:
+   * the rank is computed here with the same `topTier` every other surface
+   * uses, so a caller cannot draw a supplier more trusted than its receipts.
+   */
+  targets?: Record<string, { name: string; codes: readonly string[] }>,
+): Promise<GalleryData> {
+  const [aboni, sm, zaheen, ar] = await Promise.all([
+    loadRecord(supabase, GALLERY_SLUGS.aboni, today),
+    loadRecord(supabase, GALLERY_SLUGS.sm, today),
+    loadRecord(supabase, GALLERY_SLUGS.zaheen, today, true),
+    loadRecord(supabase, GALLERY_SLUGS.ar, today),
+  ]);
+  const records = { aboni, sm, zaheen, ar };
+  const named = [aboni, sm, zaheen, ar].filter((r): r is GalleryRecord => r !== null);
+
+  // The live count behind the query, and the top rows for the table beyond the named four.
+  let total: number | null = null;
+  let discoverError = false;
+  let extraSlugs: string[] = [];
+  try {
+    const { data, error } = await supabase.rpc("discover_suppliers", discoverArgs({ q: GALLERY_QUERY.q, certKinds: [...GALLERY_QUERY.certKinds], limit: 8 }));
+    if (error) discoverError = true;
+    else {
+      const rows = (Array.isArray(data) ? data : []) as { slug: string; total_count: unknown }[];
+      // No rows is a real "0 matches"; a row whose count will not parse is unknown.
+      total = rows[0] ? countOf(rows[0].total_count) : 0;
+      if (rows[0] && total === null) discoverError = true;
+      const namedSlugs = new Set(named.map((r) => r.slug));
+      extraSlugs = rows.map((r) => r.slug).filter((s) => !namedSlugs.has(s)).slice(0, 4);
+    }
+  } catch {
+    discoverError = true;
+  }
+  const extra = (await Promise.all(extraSlugs.map((s) => loadRecord(supabase, s, today)))).filter(
+    (r): r is GalleryRecord => r !== null,
+  );
+  // The only read that was outside a try: `fetchDisplayWorkersBatch` swallows
+  // an `{error}` result, but a rejected promise took the whole page down
+  // rather than rendering the workers the payload already carries.
+  await fillWorkersSafely(supabase, [...named, ...extra]);
+
+  const cards = [aboni, sm, zaheen, ar].filter((r): r is GalleryRecord => r !== null).map((r) => buildCard(r.input));
+  if (cards[0]) cards[0].selected = true;
+  const rowRecords = [aboni, sm, ...extra, zaheen, ar].filter((r): r is GalleryRecord => r !== null);
+  const rows = rowRecords.map((r) => buildTableRow(r.input));
+  if (rows[0]) rows[0].selected = true;
+
+  // Published count and latest read date for the topbar caption.
+  let published: number | null = null;
+  try {
+    // An unfiltered page of one: its `total_count` is the published-supplier count.
+    const { data, error } = await supabase.rpc("discover_suppliers", discoverArgs({ limit: 1 }));
+    const first = !error && Array.isArray(data) ? (data[0] as { total_count?: unknown } | undefined) : undefined;
+    published = first ? countOf(first.total_count) : null;
+  } catch {
+    published = null;
+  }
+  // A maximum is not a property of a population. This was `Math.max` over the
+  // four named records, printed as "records on this page read 18 Sep 2026" —
+  // and A.R. Fashion's only source was last read 30 Jul 2026, 50 days earlier.
+  // Across the page only 4 of 32 source reads happened on 18 Sep; the oldest
+  // is 18 May. A range cannot be mistaken for a freshness guarantee.
+  //
+  // The population it covers is not the same on every screen, though: the
+  // table draws `named` plus up to four `extra` rows discovery returned that
+  // are not among the four named records, and no other screen draws `extra`
+  // at all. A range computed over `[...named, ...extra]` and shared by every
+  // screen's topbar states a count the list, the two sheets and the composer
+  // never draw — confirmed live, not just in theory: `discover_suppliers`'s
+  // top 8 rows for this query return six slugs outside the named four (SQL,
+  // 20 Sep 2026), so `extra` fills on a real read. Two spans, one per
+  // population, so each screen's caption is true of what it actually renders.
+  const readSpan = (records: GalleryRecord[]): { count: number | null; on: string | null } => {
+    const read = records.filter((r) => (r.input.profile.provenance ?? []).some((p) => p.last_seen_at));
+    const times = records
+      .flatMap((r) => (r.input.profile.provenance ?? []).map((p) => (p.last_seen_at ? Date.parse(p.last_seen_at) : NaN)))
+      .filter((t) => !Number.isNaN(t))
+      .sort((a, b) => a - b);
+    const oldest = times[0];
+    const newest = times[times.length - 1];
+    return {
+      count: read.length || null,
+      on: oldest === undefined || newest === undefined ? null : formatDayRange(new Date(oldest).toISOString(), new Date(newest).toISOString()),
+    };
+  };
+  const namedSpan = readSpan(named);
+  const tableSpan = readSpan([...named, ...extra]);
+  const recordsRead = namedSpan.count;
+  const recordsReadOn = namedSpan.on;
+  const tableRecordsRead = tableSpan.count;
+  const tableRecordsReadOn = tableSpan.on;
+
+  // RFQs of the viewer (admin in the gallery), as `rfq_list` returns them.
+  // A failed read is carried as unknown: the empty state states a fact about
+  // the account ("your first RFQ lands here") that an unread list cannot.
+  let rfqRows: RfqListRow[] = [];
+  let rfqError = false;
+  try {
+    const { data, error } = await supabase.rpc("rfq_list", { p_status: null });
+    if (error || !Array.isArray(data)) rfqError = true;
+    else rfqRows = data as RfqListRow[];
+  } catch {
+    rfqError = true;
+  }
+  // `rfq_list` returns `target_supplier_count`, not the suppliers. REZ-D's join
+  // will resolve them; until it does, a row names its target only where the
+  // caller supplies it, and otherwise says "N suppliers" and nothing more.
+  const rfqModels = rfqRows.map((r) => {
+    const t = targets?.[r.id];
+    return buildRfqRow(r, t ? { name: t.name, tier: topTier(t.codes) } : null, today);
+  });
+  // Every figure below is derived from rows that were read. When the read
+  // failed there are no rows, so there is no count either — not zero.
+  const count = (pred: (r: (typeof rfqModels)[number]) => boolean) => (rfqError ? null : rfqModels.filter(pred).length);
+  const rfqs: RfqListModel = {
+    sent: rfqError ? null : rfqRows.filter((r) => r.status !== "cancelled").length,
+    quotes: rfqError ? null : rfqRows.reduce((n, r) => n + (r.quote_count ?? 0), 0),
+    chips: [
+      { label: "All", count: rfqError ? null : rfqModels.length, on: true },
+      // Not "Awaiting reply": `rfq_list` carries no reply channel, so the chip
+      // counted a state nothing had read.
+      { label: "Open", count: count((r) => r.status.label.startsWith("Open")) },
+      { label: "Quoted", count: count((r) => r.status.label.startsWith("Quoted") || r.status.label === "Quote accepted") },
+      // "Reply overdue" and "Draft" need reply-by dates, threads and rfq_drafts (REZ-D); no chip until then.
+      { label: "Closed", count: count((r) => r.status.label === "Closed" || r.status.label === "Cancelled") },
+    ],
+    rows: rfqModels,
+    error: rfqError,
+    footer: rfqError
+      ? "The RFQ list could not be read"
+      : rfqModels.length > 0
+        ? `1–${rfqModels.length} of ${rfqModels.length}`
+        : "No RFQs for this account yet",
+    toast: null,
+  };
+
+  return {
+    today,
+    plan: null,
+    discoverError,
+    rfqError,
+    records,
+    cards,
+    rows,
+    sheet: aboni ? buildSheet(aboni.input, { plan: null }) : null,
+    productSheet: aboni ? buildProductSheet(aboni.input, "6105") : null,
+    total,
+    published,
+    recordsReadOn,
+    recordsRead,
+    tableRecordsReadOn,
+    tableRecordsRead,
+    rfqs,
+  };
+}
+
+/**
+ * "10,266 published suppliers · records on this page read 18 Sep 2026".
+ *
+ * The two halves come from different populations and the caption used to hide
+ * that: `published` is `discover_suppliers`' `total_count` over the whole
+ * corpus, while the date is `max(last_seen_at)` over the four records the page
+ * draws. Of the 10,266, 1,677 (16.3 %) were last read on 18 Sep 2026; the
+ * median is 24 Jul 2026 and 5,780 were last read before 1 Aug (SQL, 20 Sep
+ * 2026). Printed bare beside the corpus count it read as a corpus freshness
+ * claim, so the words now name the population the date is true of.
+ */
+export function topbarCaption(d: Pick<GalleryData, "published" | "recordsReadOn" | "recordsRead">): string {
+  const parts: string[] = [];
+  if (d.published !== null) parts.push(`${formatCount(d.published)} published ${d.published === 1 ? "supplier" : "suppliers"}`);
+  // The cycle-11 repair fixed the statistic — a maximum became a range — and
+  // dropped the scope in the same edit, so "supplier records read 18 May –
+  // 18 Sep 2026" sat beside "10,266 published suppliers" and read as a claim
+  // about the corpus. 1,214 published records (11.8 %) have no read at all on
+  // or after 18 May, and the corpus's oldest read is 13 May. The clause names
+  // the population it is true of, and how many records that is.
+  if (d.recordsReadOn && d.recordsRead !== null)
+    parts.push(`${formatCount(d.recordsRead)} ${d.recordsRead === 1 ? "record" : "records"} on this page, read ${d.recordsReadOn}`);
+  return parts.join(" · ") || "Live records";
+}

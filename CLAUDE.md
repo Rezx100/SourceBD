@@ -16,8 +16,11 @@ Then the lean boot set named in AGENTS.md rule 3 (`context/agent-brief.md`,
 Baselines at `e15966c` (17 Sep 2026):
 
 - `pnpm exec tsc --noEmit` — exit 0, no output
-- `pnpm test` — 602 passed / 0 failed / 86 suites, ~7 min. **Node 20 only.** On Node 22 the
-  runner treats `node_modules/.cache/sourcebd-tests` as a file and the suite does not start.
+- `pnpm test` — 602 passed / 0 failed / 86 suites, ~7 min. **Node 21 or 22, not 20.** The
+  script passes `".tests-build/**/*.test.js"` to `node --test`, and Node 20 has no glob
+  support there: it looks for a file of that literal name, prints `Could not find`, and exits
+  1 with nothing run. (Corrected 20 Sep 2026; the note here said "Node 20 only", and CI was
+  written against it.)
 - `ruff check etl ops --no-cache` — 49 findings on ruff ≤ 0.12 (442 on 0.16, whose default rule
   set differs). `pyproject.toml` pins only `ruff>=0.6`, so the version you install decides the
   number — state the version alongside the count, always.
@@ -29,9 +32,9 @@ Baselines at `e15966c` (17 Sep 2026):
 
 Any difference from these numbers, in either direction, is a finding to explain. Use `/verify`.
 
-CI (`.github/workflows/ci.yml`) runs only `tsc`, `next lint`, `next build` and the HTTP-boundary
-guard. `pytest` and `ruff` run nowhere but this machine. A green CI run is evidence, not
-completion (closed-loop §1).
+CI (`.github/workflows/ci.yml`) runs `tsc`, `next lint`, `next build`, `pnpm test` and the
+HTTP-boundary guard. `pytest` and `ruff` run nowhere but this machine. A green CI run is
+evidence, not completion (closed-loop §1).
 
 ## What this machine will refuse (see `.claude/hooks/guard.py`)
 
@@ -47,7 +50,7 @@ When you reach one of these, print the exact command for the founder to run, and
 
 - `pnpm`, not `npm`. Tests are `tsc` + `node --test` (`pnpm test`), not vitest. mypy is neither
   configured nor run — `context/architecture.md` claims both, and is wrong.
-- CI runs the JS gates only; `pytest` and `ruff` are local. Node 20 is required for `pnpm test`.
+- CI runs the JS gates and `pnpm test`; `pytest` and `ruff` are local. `pnpm test` needs Node 21+.
 - `pip install -e .` fails at the repo root (flat layout); install the dependency list out of
   `pyproject.toml` instead.
 - `context/architecture.md` repo layout (`etl/parsers|dedup|enrich|load`) is aspirational; reality
