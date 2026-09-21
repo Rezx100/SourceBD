@@ -18,13 +18,31 @@ function stubClient(
     rfqRows?: RfqListRow[];
     /** Adds a third `discover_suppliers` row outside the two named slugs below — a real "extra" table row. */
     extraSlug?: boolean;
+    /**
+     * Same slug and row as `extraSlug`, but the extra record's own
+     * provenance is a single row dated well outside the two named records'
+     * range (2025, against their 18 May – 18 Sep 2026), instead of
+     * `smKnitwearInput`'s own dates, which happen to fall inside it. Without
+     * this, nothing in the suite can tell `tableSpan.on` (the table's own,
+     * wider span) apart from `namedSpan.on` (the named-only span) by
+     * observation — guard-adequacy, cycle 19.
+     */
+    extraSlugOutOfRange?: boolean;
   } = {},
 ) {
   const calls: Call[] = [];
+  const outOfRangeExtra = {
+    ...smKnitwearInput(),
+    profile: {
+      ...smKnitwearInput().profile,
+      provenance: [{ source_code: "RSC", display_name: "RMG Sustainability Council", tier: "tier1_gov", source_ref: "1", source_url: null, last_seen_at: "2025-01-01T00:00:00.000000+00:00" }],
+    },
+  };
   const records: Record<string, ReturnType<typeof aboniInput>> = {
     "aboni-knitwear": aboniInput(),
     "ar-fashion": arFashionInput(),
     ...(options.extraSlug ? { "extra-factory": smKnitwearInput() } : {}),
+    ...(options.extraSlugOutOfRange ? { "extra-factory": outOfRangeExtra } : {}),
   };
   const rpc = async (fn: string, args: Record<string, unknown>) => {
     calls.push({ fn, args });
@@ -52,7 +70,7 @@ function stubClient(
         data: [
           { slug: "aboni-knitwear", total_count: 42 },
           { slug: "ar-fashion", total_count: 42 },
-          ...(options.extraSlug ? [{ slug: "extra-factory", total_count: 42 }] : []),
+          ...(options.extraSlug || options.extraSlugOutOfRange ? [{ slug: "extra-factory", total_count: 42 }] : []),
         ],
         error: null,
       };
@@ -189,6 +207,24 @@ describe("loadGalleryData (the /dev/ds loader, stubbed RPCs)", () => {
     }
     assert.equal(named.tableRecordsReadOn, "18 May – 18 Sep 2026", "the exact range this stub's two named records span");
     assert.equal(withExtra.tableRecordsReadOn, "18 May – 18 Sep 2026", "the extra record's own provenance falls inside the named range in this stub, so the range is unchanged — its count moving (above) is what proves the extra record was actually read");
+  });
+
+  // Guard-adequacy, cycle 19: the test above can only prove
+  // `tableRecordsReadOn` was read at all — its one extra record's provenance
+  // happens to fall inside the named range, so `tableSpan.on` and
+  // `namedSpan.on` are observationally identical there. A revert of
+  // `tableRecordsReadOn` to `namedSpan.on` (instead of `tableSpan.on`) passed
+  // every assertion in the suite, including that one. `extraSlugOutOfRange`
+  // gives the extra record a provenance date well outside the named span, so
+  // only a genuine read of the wider population can produce the widened
+  // range asserted here.
+  it("tableRecordsReadOn is the table's own wider span, not the named span's date reused", async () => {
+    const named = await loadGalleryData(stubClient().client, TODAY);
+    const withExtra = await loadGalleryData(stubClient({ extraSlugOutOfRange: true }).client, TODAY);
+    assert.notEqual(withExtra.tableRecordsReadOn, named.recordsReadOn, "the table's span must not be the named span's date reused");
+    assert.equal(withExtra.tableRecordsReadOn, "1 Jan 2025 – 18 Sep 2026", "the table's own span widens to cover the out-of-range extra record");
+    // The named span itself must be untouched by a table-only row, whatever its date.
+    assert.equal(withExtra.recordsReadOn, named.recordsReadOn, "adding an out-of-range table-only row must not move the named span's date");
   });
 
   it("a count the RPC returns as a numeric string is still a count", async () => {

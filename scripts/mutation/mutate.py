@@ -606,6 +606,10 @@ M = [
  'components/dashboard/rfq-composer.tsx',
  'export function Dialog({ label, assertModal = true, children }: { label: string; assertModal?: boolean; children: ReactNode }) {',
  'export function Dialog({ label, assertModal = false, children }: { label: string; assertModal?: boolean; children: ReactNode }) {'),
+ ('c19-table-read-date-falls-back-to-named-span',
+ 'lib/dashboard/gallery-data.ts',
+ '  const tableRecordsReadOn = tableSpan.on;',
+ '  const tableRecordsReadOn = namedSpan.on;'),
 ]
 
 # An interrupted sweep used to leave the tree mutated, and the next run then
