@@ -23,7 +23,7 @@ export async function loadBuyerShell(supabase: { rpc: (fn: string, args?: Record
   let rfqs: number | null = null;
   let published: number | null = null;
   let initial: string | null = null;
-  let planName = "Free";
+  const planName = "Free";
 
   try {
     const [{ data: dash }, pub] = await Promise.all([

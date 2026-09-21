@@ -621,7 +621,7 @@ describe("the results panel does not clip its own menus", () => {
   // children inside the rounded corners.
   it("Panel clips corners without clipping overflow", () => {
     const html = renderToStaticMarkup(
-      createElement(Panel, { children: createElement("div", null, "rows") }),
+      createElement(Panel, null, createElement("div", null, "rows")),
     );
     assert.doesNotMatch(html, /overflow-hidden/, "a popover in this panel would be clipped away");
     assert.match(html, /rounded-t-md/);
