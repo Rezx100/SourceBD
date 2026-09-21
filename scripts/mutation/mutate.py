@@ -594,6 +594,10 @@ M = [
  'app/dev/ds/dashboard-screens.tsx',
  "note={`HS ${d.productSheet.hs}${d.productSheet.exported ? ` on ${d.productSheet.supplierName}'s EPB exporter page` : `, not on ${d.productSheet.supplierName}'s EPB exporter page`}. The photo is the catalogue's illustrative photo for the heading, never the supplier's own.`}",
  "note={`HS ${d.productSheet.hs} on ${d.productSheet.supplierName}'s EPB exporter page. The photo is the catalogue's illustrative photo for the heading, never the supplier's own.`}"),
+ ('c19-rfq-list-note-denies-the-zero-row-render',
+ 'app/dev/ds/dashboard-screens.tsx',
+ 'note={`The viewer\'s own RFQs from rfq_list: ${d.rfqs.rows.length} real row${d.rfqs.rows.length === 1 ? "" : "s"}, newest first. Production holds seven across three buyers and rfq_list is scoped to auth.uid(), so five — one buyer\'s own — is the longest list it can return to anybody. A viewer who owns none still sees "0 sent · 0 quotes" and reads the empty state below it, "Your first RFQ lands here."; only a failed read replaces both with "count not read" and an error message.`}',
+ 'note={`The viewer\'s own RFQs from rfq_list: ${d.rfqs.rows.length} real rows, newest first. Production holds seven across three buyers and rfq_list is scoped to auth.uid(), so these five — one buyer\'s own — are the longest list it can return to anybody. A viewer who owns none reads the empty state instead, "Your first RFQ lands here." — never "0 sent".`}'),
 ]
 
 # An interrupted sweep used to leave the tree mutated, and the next run then

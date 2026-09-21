@@ -240,7 +240,16 @@ export function DashboardScreens({ data: d }: { data: GalleryData }) {
       <Frame
         id="rfq-list"
         title="RFQList — status chips, table, empty state"
-        note={`The viewer's own RFQs from rfq_list: ${d.rfqs.rows.length} real rows, newest first. Production holds seven across three buyers and rfq_list is scoped to auth.uid(), so these five — one buyer's own — are the longest list it can return to anybody. A viewer who owns none reads the empty state instead, "Your first RFQ lands here." — never "0 sent".`}
+        // Correctness + truthfulness, cycle 19: "these five" pointed at a
+        // count that is only true when the read happens to return five rows,
+        // and "never '0 sent'" is contradicted by the screen's own render —
+        // a successful read of zero rows shows "0 sent · 0 quotes" together
+        // with the empty state, not instead of it; only a *failed* read
+        // replaces both with "count not read" and an error message. Verified
+        // live: production's one admin account owns zero RFQs and claims no
+        // supplier, so this is today's real render for the only account that
+        // can open this page.
+        note={`The viewer's own RFQs from rfq_list: ${d.rfqs.rows.length} real row${d.rfqs.rows.length === 1 ? "" : "s"}, newest first. Production holds seven across three buyers and rfq_list is scoped to auth.uid(), so five — one buyer's own — is the longest list it can return to anybody. A viewer who owns none still sees "0 sent · 0 quotes" and reads the empty state below it, "Your first RFQ lands here."; only a failed read replaces both with "count not read" and an error message.`}
         height={700}
       >
         <Stage height={700}>

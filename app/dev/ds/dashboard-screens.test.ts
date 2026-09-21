@@ -789,6 +789,26 @@ describe("the RFQ screen renders the rows rfq_list returns", () => {
     assert.match(caption, /three buyers/, "the caption must say why five is the most any caller can see");
   });
 
+  // Correctness + truthfulness, cycle 19: the caption used to say "these
+  // five" (false whenever the render is not five rows) and "never '0 sent'"
+  // (false today, for the only account that can open this page — a
+  // successful read of zero rows still shows "0 sent · 0 quotes", the exact
+  // render the two tests above and below this one already assert).
+  it("the gallery's own caption never points at a fixed row count it may not have rendered, and does not deny the zero-row render the screen actually makes", () => {
+    const only = (html: string, id: string) => [...html.matchAll(/<figure[\s\S]*?data-screen="([^"]+)"[\s\S]*?(?=<figure|$)/g)].find((m) => m[1] === id)?.[0]!;
+
+    const zeroFrame = only(renderAll(galleryData()), "rfq-list");
+    assert.match(zeroFrame, /0 real row/, "the caption's own count must match the rows actually rendered");
+    assert.doesNotMatch(zeroFrame, /these five/i, "the caption must not point at a fixed count that may not be the one rendered");
+    assert.doesNotMatch(zeroFrame, /never/i, "a viewer who owns none still sees \"0 sent\" — the caption must not deny that render");
+    assert.match(zeroFrame, /still sees/i, "the caption must say the zero-row render still carries the count");
+    assert.match(zeroFrame, /0 sent . 0 quotes/, "the caption must name the exact render a zero-row read produces");
+
+    const fiveFrame = only(renderAll(withRfqs()), "rfq-list");
+    assert.match(fiveFrame, /5 real row/);
+    assert.doesNotMatch(fiveFrame, /these five/i, "the general \"longest list\" fact must not be phrased as pointing at this render");
+  });
+
   it("with no rows the page still sells the feature, and claims no count it did not read", () => {
     const html = render(galleryData());
     assert.match(html, /Your first RFQ lands here/);
