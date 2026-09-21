@@ -52,12 +52,24 @@ export function SearchComposer({
         </button>
       </div>
       {askEnabled ? (
-        <span role="group" aria-label="Search mode" className="inline-flex h-control overflow-hidden rounded-sm border border-line">
+        // Same live-control outline as `Seg` and the composer's Template
+        // group: `border-line` is 1.44:1 against the surface behind it,
+        // short of WCAG 1.4.11's 3:1, and this wrapper's own
+        // `overflow-hidden` (for its rounded corners) clips the global
+        // `:focus-visible` ring painted outside the border box, so a
+        // keyboard user tabbing to Filters/Ask saw no border and no focus
+        // indicator at all. Both fixed here the same way the round's other
+        // two segmented toggles were (accessibility, cycle 20, BLOCKING —
+        // same defect class as F3/F4, missed on this switch because it is
+        // gated behind `askEnabled` and not yet reachable on any shipped
+        // screen).
+        <span role="group" aria-label="Search mode" className="inline-flex h-control overflow-hidden rounded-sm border border-line-strong">
           <button
             type="button"
             aria-pressed={mode === "filters"}
             className={cn(
               "inline-flex items-center gap-1.5 px-2.5 text-sm font-medium text-ink-muted",
+              "focus-visible:outline-offset-[-2px]",
               mode === "filters" && "bg-surface-sunken text-ink-strong",
             )}
           >
@@ -68,6 +80,7 @@ export function SearchComposer({
             aria-pressed={mode === "ask"}
             className={cn(
               "inline-flex items-center gap-1.5 px-2.5 text-sm font-medium text-smart",
+              "focus-visible:outline-offset-[-2px]",
               mode === "ask" && "bg-surface-sunken",
             )}
           >

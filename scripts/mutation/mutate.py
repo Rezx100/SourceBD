@@ -657,6 +657,14 @@ M = [
  'components/dashboard/rfq-composer.tsx',
  '<span role="group" aria-label="Template" className="inline-flex h-control shrink-0 overflow-hidden rounded-sm border border-line-strong">',
  '<span role="group" aria-label="Template" className="inline-flex h-control shrink-0 overflow-hidden rounded-sm border border-line">'),
+ ('a11y-search-mode-loses-strong-outline',
+ 'components/dashboard/search-composer.tsx',
+ '<span role="group" aria-label="Search mode" className="inline-flex h-control overflow-hidden rounded-sm border border-line-strong">',
+ '<span role="group" aria-label="Search mode" className="inline-flex h-control overflow-hidden rounded-sm border border-line">'),
+ ('a11y-search-mode-filters-button-loses-inset-focus-ring',
+ 'components/dashboard/search-composer.tsx',
+ '      "inline-flex items-center gap-1.5 px-2.5 text-sm font-medium text-ink-muted",\n              "focus-visible:outline-offset-[-2px]",\n              mode === "filters" && "bg-surface-sunken text-ink-strong",',
+ '      "inline-flex items-center gap-1.5 px-2.5 text-sm font-medium text-ink-muted",\n              mode === "filters" && "bg-surface-sunken text-ink-strong",'),
 ]
 
 # An interrupted sweep used to leave the tree mutated, and the next run then

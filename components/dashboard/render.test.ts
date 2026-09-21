@@ -1190,6 +1190,16 @@ describe("the two-state controls say which state they are in", () => {
     const labelAt = composer.indexOf('aria-label="Template"');
     const group = composer.slice(labelAt, composer.indexOf(">", labelAt) + 1);
     assert.match(group, /border-line-strong/, `Template group missing the control outline: ${group}`);
+
+    // The Filters/Ask switch's own group wrapper — same defect class, missed
+    // this round because it is gated behind `askEnabled` and unreachable on
+    // any of the six shipped screens (accessibility, cycle 20, BLOCKING,
+    // found by a fresh critic rather than the mutation sweep).
+    const search = renderToStaticMarkup(createElement(SearchComposer, { chips: [], askEnabled: true }));
+    const searchLabelAt = search.indexOf('aria-label="Search mode"');
+    assert.ok(searchLabelAt >= 0, "SearchComposer did not render the Search mode group");
+    const searchGroup = search.slice(searchLabelAt, search.indexOf(">", searchLabelAt) + 1);
+    assert.match(searchGroup, /border-line-strong/, `Search mode group missing the control outline: ${searchGroup}`);
   });
 
   it("every button inside a role=group segmented control insets its own focus ring, so overflow-hidden cannot clip it", () => {
@@ -1213,6 +1223,18 @@ describe("the two-state controls say which state they are in", () => {
     const templateButtons = [...group.matchAll(/<button\b[^>]*>/g)].map((m) => m[0]);
     assert.equal(templateButtons.length, 2, "First contact, Repeat supplier");
     for (const b of templateButtons) assert.match(b, /focus-visible:outline-offset-\[-2px\]/, `no inset focus ring: ${b}`);
+
+    // The Filters/Ask switch — same clipping condition, same fix, missed
+    // this round because it only renders when `askEnabled` (accessibility,
+    // cycle 20, BLOCKING, found by a fresh critic rather than the mutation
+    // sweep).
+    const search = renderToStaticMarkup(createElement(SearchComposer, { chips: [], askEnabled: true }));
+    const searchLabelAt = search.indexOf('aria-label="Search mode"');
+    const searchGroup = search.slice(searchLabelAt, search.indexOf("</span>", searchLabelAt));
+    assert.match(searchGroup, /overflow-hidden/, "the clipping condition this guards against is still present");
+    const searchButtons = [...searchGroup.matchAll(/<button\b[^>]*>/g)].map((m) => m[0]);
+    assert.equal(searchButtons.length, 2, "Filters, Ask");
+    for (const b of searchButtons) assert.match(b, /focus-visible:outline-offset-\[-2px\]/, `no inset focus ring: ${b}`);
   });
 });
 
