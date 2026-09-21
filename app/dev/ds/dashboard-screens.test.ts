@@ -299,7 +299,7 @@ describe("DashboardScreens — the caller, not the components (handoff §7)", ()
     };
     const html = renderAll(partial);
     const frames = [...html.matchAll(/<figure[\s\S]*?data-screen="([^"]+)"[\s\S]*?(?=<figure|$)/g)];
-    const table = frames.find((m) => m[1] === "results-table")?.[0]!;
+    const table = frames.find((m) => m[1] === "results-table")![0];
     assert.doesNotMatch(table, /\bfour\b/i, "the caption must not name a fixed count once a named record failed to load");
     assert.ok(table.includes("Same header and footer, 36px rows, 3 rows:"), "the row count in the caption must match the rows actually rendered");
   });
@@ -310,7 +310,7 @@ describe("DashboardScreens — the caller, not the components (handoff §7)", ()
   // failed `supplier_epb_hscodes` read, or a heading the record genuinely
   // does not export.
   it("the product-sheet caption matches the sheet's own claim about whether the line is on the record's EPB page", () => {
-    const only = (html: string, id: string) => [...html.matchAll(/<figure[\s\S]*?data-screen="([^"]+)"[\s\S]*?(?=<figure|$)/g)].find((m) => m[1] === id)?.[0]!;
+    const only = (html: string, id: string) => [...html.matchAll(/<figure[\s\S]*?data-screen="([^"]+)"[\s\S]*?(?=<figure|$)/g)].find((m) => m[1] === id)![0];
 
     const exportedSheet = buildProductSheet(aboniInput(), "6105");
     assert.equal(exportedSheet.exported, true, "6105 is one of Aboni's fixture HS lines");
@@ -804,7 +804,7 @@ describe("the RFQ screen renders the rows rfq_list returns", () => {
   // successful read of zero rows still shows "0 sent · 0 quotes", the exact
   // render the two tests above and below this one already assert).
   it("the gallery's own caption never points at a fixed row count it may not have rendered, and does not deny the zero-row render the screen actually makes", () => {
-    const only = (html: string, id: string) => [...html.matchAll(/<figure[\s\S]*?data-screen="([^"]+)"[\s\S]*?(?=<figure|$)/g)].find((m) => m[1] === id)?.[0]!;
+    const only = (html: string, id: string) => [...html.matchAll(/<figure[\s\S]*?data-screen="([^"]+)"[\s\S]*?(?=<figure|$)/g)].find((m) => m[1] === id)![0];
 
     const zeroFrame = only(renderAll(galleryData()), "rfq-list");
     assert.match(zeroFrame, /0 real row/, "the caption's own count must match the rows actually rendered");
