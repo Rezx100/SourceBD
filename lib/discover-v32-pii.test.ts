@@ -155,14 +155,40 @@ describe("0104 discover_suppliers PII guard", () => {
     );
   });
 
+  it("the SQL has no dangling or doubled comma", () => {
+    // This is the guard that should have caught the tiebreaker landing as
+    // `order by … company_name asc, <comment> , id asc`. Postgres rejects that
+    // at CREATE FUNCTION time ("syntax error at or near \",\""), so the whole
+    // migration aborts — after its own DO block has already dropped every
+    // existing discover_suppliers signature. A regex looking for the presence
+    // of `.id asc` passed it happily. Comments are stripped first, because the
+    // comma and the clause it belonged to were separated by five lines of one.
+    const stripped = SQL.replace(/--[^\n]*/g, "");
+    const doubled = stripped.match(/,\s*,/);
+    assert.equal(doubled, null, `doubled comma in the SQL: ${JSON.stringify(doubled?.[0])}`);
+    const dangling = stripped.match(/,\s*(from|where|order\s+by|group\s+by|limit|offset|having|\)|;)\b/i);
+    assert.equal(
+      dangling,
+      null,
+      `a clause ends on a comma: ${JSON.stringify(dangling?.[0])}`,
+    );
+  });
+
   it("every paged sort has a unique final key", () => {
     // The CSV export issues ten separate RPC calls at increasing offsets. With
     // no unique tiebreaker Postgres may order tied rows differently per call,
     // so a supplier can appear twice in a sourcing file while another vanishes.
-    const orderBys = SQL.match(/order by[\s\S]*?limit v_lim offset v_off/g) ?? [];
+    //
+    // Scoped to the paged blocks only. The previous version matched from the
+    // file's FIRST `order by` — an unrelated array_agg 500 lines earlier — so
+    // moving the tiebreaker into that aggregate and deleting it from the paged
+    // query left the test green.
+    const stripped = SQL.replace(/--[^\n]*/g, "");
+    const orderBys = stripped.match(/order by[^;]*?limit v_lim offset v_off/g) ?? [];
     assert.equal(orderBys.length, 2, `expected two paged ORDER BYs, found ${orderBys.length}`);
     for (const [i, ob] of orderBys.entries()) {
-      assert.match(ob, /\.id asc/, `ORDER BY #${i + 1} has no unique final key`);
+      assert.ok(ob.length < 1200, `ORDER BY #${i + 1} match spans ${ob.length} chars — too wide to mean anything`);
+      assert.match(ob, /\b[a-z]\.id asc\s*$/m, `ORDER BY #${i + 1} does not END on a unique key`);
     }
   });
 

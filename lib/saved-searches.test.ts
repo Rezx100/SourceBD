@@ -47,7 +47,12 @@ function clientOver(over: {
           if (deleting) over.deleteFilters?.push([col, val]);
           return api;
         },
-        order: async () => ({ data: matched(), error: null }),
+        // `.limit()` was added to the production query after this stub was
+        // written, and `order` resolving instead of returning the chain turned
+        // the owner-isolation tests — the whole point of this stub — into a
+        // TypeError. The chain must stay a chain; only `then` resolves.
+        order: () => api,
+        limit: () => api,
         then: (resolve: (v: { data: unknown; error: null }) => void) =>
           resolve({ data: matched(), error: null }),
       };

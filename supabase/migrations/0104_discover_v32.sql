@@ -616,7 +616,7 @@ begin
            -- different order per call, and the CSV export issues ten separate
            -- calls at increasing offsets — so a supplier can appear twice in a
            -- sourcing file while another silently vanishes.
-           , c.id asc
+           c.id asc
          limit v_lim offset v_off
       )
       select p.id, p.slug, p.company_name, p.entity_type, p.city, p.district,
@@ -697,11 +697,11 @@ begin
          f.sbi_total desc nulls last,
          f.t13_source_count desc nulls last,
          f.company_name asc,
-           -- A unique final key. Without one Postgres may return tied rows in a
-           -- different order per call, and the CSV export issues ten separate
-           -- calls at increasing offsets — so a supplier can appear twice in a
-           -- sourcing file while another silently vanishes.
-         , f.id asc
+         -- A unique final key. Without one Postgres may return tied rows in a
+         -- different order per call, and the CSV export issues ten separate
+         -- calls at increasing offsets — so a supplier can appear twice in a
+         -- sourcing file while another silently vanishes.
+         f.id asc
        limit v_lim offset v_off
     )
     select p.id, p.slug, p.company_name, p.entity_type, p.city, p.district,
