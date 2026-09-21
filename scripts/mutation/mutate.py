@@ -550,10 +550,13 @@ M = [
  'app/dev/ds/dashboard-screens.tsx',
  'screenLabel="results table"',
  'screenLabel="results list"'),
- ('c17-topbar-search-region-loses-its-label',
- 'components/dashboard/app-shell.tsx',
- '        aria-label={screenLabel ? `Quick search, ${screenLabel}` : "Quick search"}',
- '        aria-label={undefined}'),
+ # c17-topbar-search-region-loses-its-label retired (accessibility, cycle 19,
+ # BLOCKING F2): the topbar's search-look box no longer carries `role="search"`
+ # or a distinguishing aria-label at all — it stopped being a landmark, so an
+ # unnamed/duplicate-landmark mutation on it no longer describes a real
+ # regression class. The class this entry guarded is superseded by
+ # a11y-topbar-search-box-regains-search-role below (the box must not silently
+ # regain the role without an operable control).
  ('c18-table-caption-drops-the-extra-rows',
  'app/dev/ds/dashboard-screens.tsx',
  'function tableSelection(d: GalleryData): string {\n  const extraCount = d.rows.length - d.cards.length;\n  if (extraCount <= 0) return SELECTION;\n  return `the named test records of the rebuild spec, plus discovery\'s next ${extraCount} live match${extraCount === 1 ? "" : "es"}`;\n}',
@@ -626,6 +629,14 @@ M = [
  'components/dashboard/marks.tsx',
  '<span role="img" aria-label={`Source: ${mark.name}, ${TIER_NAME[mark.tier]}`} title={mark.name} className={classes}>',
  '<span role="img" aria-label={`Source: ${mark.name}`} title={mark.name} className={classes}>'),
+ ('a11y-topbar-search-box-regains-search-role',
+ 'components/dashboard/app-shell.tsx',
+ '      <div\n        className="flex h-control w-[360px] items-center gap-2 rounded-sm border border-line-strong bg-surface px-2.5 text-sm text-ink-subtle"\n      >',
+ '      <div\n        role="search"\n        className="flex h-control w-[360px] items-center gap-2 rounded-sm border border-line-strong bg-surface px-2.5 text-sm text-ink-subtle"\n      >'),
+ ('a11y-rfq-list-search-box-regains-search-role',
+ 'components/dashboard/rfq-list.tsx',
+ '        <div className="flex h-control w-[280px] items-center gap-2 rounded-sm border border-line-strong bg-surface px-2.5 text-sm text-ink-subtle">',
+ '        <div role="search" className="flex h-control w-[280px] items-center gap-2 rounded-sm border border-line-strong bg-surface px-2.5 text-sm text-ink-subtle">'),
 ]
 
 # An interrupted sweep used to leave the tree mutated, and the next run then

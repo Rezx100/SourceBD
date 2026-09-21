@@ -646,14 +646,20 @@ describe("what the whole page may and may not say about itself", () => {
     // Cycle 17, accessibility critic's finding. `id` uniqueness above does not
     // cover `aria-label` uniqueness: three screens (results-list,
     // results-table, rfq-list) each render their own, genuinely live
-    // `<nav aria-label="Primary">` and topbar search region, and a screen
-    // reader's landmark list showed three indistinguishable "Primary" navs
-    // and up to four indistinguishable, unlabeled "search" regions — two of
-    // them on the rfq-list screen alone. Collected from `reachable` content
-    // only, per frame, below: an inert background's own nav/search is not
-    // live and must not count toward this collision.
+    // `<nav aria-label="Primary">`, and a screen reader's landmark list
+    // showed three indistinguishable "Primary" navs. Collected from
+    // `reachable` content only, per frame, below: an inert background's own
+    // nav is not live and must not count toward this collision.
+    //
+    // The topbar and RFQ-list boxes this comment used to also collect as
+    // "search regions" carried `role="search"` with nothing operable inside
+    // them — an ARIA violation in its own right (a search landmark with no
+    // control), not just an unnamed-landmark risk. Cycle 19's accessibility
+    // critic's BLOCKING F2: fixed by dropping the role rather than naming
+    // it, since a landmark around static text is still wrong once named.
+    // The guard for that class of regression lives in the loop below
+    // (`role="search"` must always wrap something operable).
     const navNames: string[] = [];
-    const searchNames: string[] = [];
     // Cycle 18's own accessibility critic: the `screenLabel` fix above only
     // reached `nav` and `search` and stopped there. Every live `<main>` was
     // still unnamed (three indistinguishable "main" landmarks in a screen
@@ -677,9 +683,15 @@ describe("what the whole page may and may not say about itself", () => {
       // content, so what those screens owe is a labelled dialog instead.
       const reachable = f.replace(/<div\b[^>]*\binert\b[\s\S]*?<\/div>\s*(?=<div aria-hidden)/, "");
       navNames.push(...[...reachable.matchAll(/<nav aria-label="([^"]+)"/g)].map((m) => m[1]!));
-      searchNames.push(
-        ...[...reachable.matchAll(/role="search"[^>]*aria-label="([^"]+)"/g), ...reachable.matchAll(/aria-label="([^"]+)"[^>]*role="search"/g)].map((m) => m[1]!),
-      );
+      // Accessibility, cycle 19, BLOCKING F2: a `role="search"` landmark with
+      // no operable descendant fails ARIA's own definition of the role. The
+      // topbar and RFQ-list look-alike search boxes no longer carry the role
+      // at all (they have no input to search with yet), so this asserts the
+      // invariant going forward rather than naming boxes that should not be
+      // landmarks in the first place.
+      for (const m of reachable.matchAll(/<[a-z]+\b[^>]*\brole="search"[^>]*>[\s\S]*?<\/(?:div|section|form)>/g)) {
+        assert.match(m[0]!, /<(?:input|button|select|textarea|a\s[^>]*href=)/, `role="search" with no operable control: ${m[0]!.slice(0, 120)}`);
+      }
       mainNames.push(...[...reachable.matchAll(/<main id="[^"]+" aria-label="([^"]+)"/g)].map((m) => m[1]!));
       skipLinkNames.push(...[...reachable.matchAll(/<a href="#[^"]+" class="sr-only[^>]*>([^<]+)<\/a>/g)].map((m) => m[1]!));
       // Heading order matters only within one reachable document at a time:
@@ -723,14 +735,11 @@ describe("what the whole page may and may not say about itself", () => {
       }
       checkHeadingOrder(f);
     }
-    // Every live nav and every live search region must have a name, and no
-    // two live regions of the same kind may share one — an unnamed or
-    // duplicated landmark is indistinguishable from its siblings in a screen
-    // reader's own landmark list.
+    // Every live nav must have a name, and no two live navs may share one —
+    // an unnamed or duplicated landmark is indistinguishable from its
+    // siblings in a screen reader's own landmark list.
     assert.ok(navNames.length >= 3, "the page still draws the live navigation landmarks this guard is about");
     assert.equal(navNames.length, new Set(navNames).size, `two live navigation landmarks share a name: ${navNames.join(", ")}`);
-    assert.ok(searchNames.length >= 4, "the page still draws the live search regions this guard is about");
-    assert.equal(searchNames.length, new Set(searchNames).size, `two live search regions share a name: ${searchNames.join(", ")}`);
     // Same rule for the two landmark/link kinds `screenLabel` covers the
     // furthest from the sidebar: every live `main` must be named, and no two
     // may share a name; every live skip link's own text must be unique too,
@@ -868,8 +877,12 @@ describe("the screens claim only what the query asked for and the RPC answered",
     // was narrowed when it was not.
     assert.match(html, />Text · knitted shirts</);
     assert.match(html, />Certificate · GOTS</);
-    // Only the search composer's chips; the RFQ list's "All" chip shares the class.
-    const composer = html.slice(html.indexOf('role="search"'), html.indexOf("</section>"));
+    // Only the search composer's chips; the RFQ list's "All" chip shares the
+    // class. Anchored on the results-list screen's own container (not
+    // `role="search"`: the topbar's look-alike search box carries no such
+    // role — accessibility, cycle 19, BLOCKING F2 — since it has nothing
+    // operable inside it).
+    const composer = html.slice(html.indexOf('data-screen="results-list"'), html.indexOf("</section>"));
     const chips = [...composer.matchAll(/bg-brand-tint-strong[^"]*"[^>]*>([^<]+)</g)].map((m) => m[1]);
     assert.deepEqual([...new Set(chips)].sort(), ["Certificate · GOTS", "Text · knitted shirts"]);
     assert.equal(GALLERY_QUERY.certKinds.length, 1);

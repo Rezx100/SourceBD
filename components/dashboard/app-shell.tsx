@@ -119,12 +119,15 @@ export type TopbarModel = {
   initial: string | null;
 };
 
-export function Topbar({ model, screenLabel }: { model: TopbarModel; screenLabel?: string }) {
+export function Topbar({ model }: { model: TopbarModel }) {
   return (
     <div className="glass flex h-topbar shrink-0 items-center gap-4 border-b border-line-subtle px-6">
+      {/* Not a real search yet — no input, no submit, nothing operable
+          inside it. `role="search"` on a landmark with no interactive
+          descendant fails ARIA's own definition of the role (accessibility,
+          cycle 19, BLOCKING F2); it arrives wired to a real control with the
+          results work, and gets the landmark role back then. */}
       <div
-        role="search"
-        aria-label={screenLabel ? `Quick search, ${screenLabel}` : "Quick search"}
         className="flex h-control w-[360px] items-center gap-2 rounded-sm border border-line-strong bg-surface px-2.5 text-sm text-ink-subtle"
       >
         <Icon name="search" />
@@ -198,7 +201,7 @@ export function AppShell({
       </a>
       <Sidebar model={sidebar} screenLabel={screenLabel} />
       <div className="flex min-w-0 flex-1 flex-col">
-        <Topbar model={topbar} screenLabel={screenLabel} />
+        <Topbar model={topbar} />
         <main
           id={mainId}
           aria-label={screenLabel}

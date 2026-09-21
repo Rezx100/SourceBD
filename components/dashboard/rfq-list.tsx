@@ -42,11 +42,12 @@ export function RfqList({ model }: { model: RfqListModel }) {
             <span className="ml-1.5 text-sm font-normal text-ink-subtle">count not read</span>
           )}
         </Heading>
-        <div
-          role="search"
-          aria-label="Search RFQs"
-          className="flex h-control w-[280px] items-center gap-2 rounded-sm border border-line-strong bg-surface px-2.5 text-sm text-ink-subtle"
-        >
+        {/* Not a real search yet — no input, no submit, nothing operable
+            inside it. `role="search"` on a landmark with no interactive
+            descendant fails ARIA's own definition of the role
+            (accessibility, cycle 19, BLOCKING F2); it gets the landmark
+            role back once it is wired to a real control. */}
+        <div className="flex h-control w-[280px] items-center gap-2 rounded-sm border border-line-strong bg-surface px-2.5 text-sm text-ink-subtle">
           <Icon name="search" /> Search RFQs
         </div>
         <Button>
