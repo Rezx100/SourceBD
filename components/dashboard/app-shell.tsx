@@ -7,7 +7,8 @@ import { formatCount } from "@/lib/dashboard/facts";
 import { cn } from "@/lib/utils";
 import { Button, Count, Kbd, LiveDot, Meter } from "./controls";
 import { Icon, type IconName } from "./icons";
-import { Caption, Eyebrow, Label } from "./type";
+import { Caption, Label } from "./type";
+import { RecentSearchesSlot } from "./recent-searches";
 
 export type NavKey = "search" | "suppliers" | "products" | "rfqs" | "saved" | "messages" | "compliance";
 
@@ -77,23 +78,7 @@ export function Sidebar({ model, screenLabel }: { model: SidebarModel; screenLab
           );
         })}
       </nav>
-      {model.recent.length > 0 ? (
-        <div className="flex flex-col gap-2">
-          <Eyebrow className="px-2">Recent searches</Eyebrow>
-          <div className="flex flex-col">
-            {model.recent.map((r) => (
-              <a
-                key={r.href + r.label}
-                href={r.href}
-                className="block overflow-hidden text-ellipsis whitespace-nowrap rounded-sm px-2 py-[5px] text-sm text-ink hover:bg-surface-sunken"
-              >
-                {r.label}
-                {r.count !== null ? <Count className="ml-1.5">{formatCount(r.count)}</Count> : null}
-              </a>
-            ))}
-          </div>
-        </div>
-      ) : null}
+      <RecentSearchesSlot items={model.recent} />
       <div className="mt-auto flex flex-col gap-1.5 border-t border-line-subtle px-2 pt-4">
         <div className="flex items-center gap-2">
           <Label className="text-ink-strong">{plan.name}</Label>
@@ -117,23 +102,38 @@ export type TopbarModel = {
   caption: string;
   /** The viewer's initial; null renders an empty avatar. */
   initial: string | null;
+  searchAction?: string;
+  searchQuery?: string;
 };
 
 export function Topbar({ model }: { model: TopbarModel }) {
   return (
     <div className="glass flex h-topbar shrink-0 items-center gap-4 border-b border-line-subtle px-6">
-      {/* Not a real search yet — no input, no submit, nothing operable
-          inside it. `role="search"` on a landmark with no interactive
-          descendant fails ARIA's own definition of the role (accessibility,
-          cycle 19, BLOCKING F2); it arrives wired to a real control with the
-          results work, and gets the landmark role back then. */}
-      <div
-        className="flex h-control w-[360px] items-center gap-2 rounded-sm border border-line-strong bg-surface px-2.5 text-sm text-ink-subtle"
-      >
-        <Icon name="search" />
-        <span className="grow">Search suppliers, HS codes, certificates</span>
-        <Kbd>⌘K</Kbd>
-      </div>
+      {model.searchAction ? (
+        <form
+          role="search"
+          action={model.searchAction}
+          method="get"
+          className="flex h-control w-[360px] items-center gap-2 rounded-sm border border-line-strong bg-surface px-2.5 text-sm text-ink-subtle"
+        >
+          <Icon name="search" />
+          <input
+            type="search"
+            name="q"
+            defaultValue={model.searchQuery ?? ""}
+            placeholder="Search suppliers, HS codes, certificates"
+            aria-label="Search suppliers, HS codes, certificates"
+            className="grow bg-transparent text-ink-strong outline-none placeholder:text-ink-subtle"
+          />
+          <Kbd>⌘K</Kbd>
+        </form>
+      ) : (
+        <div className="flex h-control w-[360px] items-center gap-2 rounded-sm border border-line-strong bg-surface px-2.5 text-sm text-ink-subtle">
+          <Icon name="search" />
+          <span className="grow">Search suppliers, HS codes, certificates</span>
+          <Kbd>⌘K</Kbd>
+        </div>
+      )}
       <Caption className="ml-auto inline-flex items-center gap-2">
         <LiveDot />
         {model.caption}

@@ -8,7 +8,11 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 export function createSupabaseMiddlewareClient(req: NextRequest) {
-  let res = NextResponse.next({ request: req });
+  const requestHeaders = new Headers(req.headers);
+  requestHeaders.set("x-sourcebd-pathname", req.nextUrl.pathname);
+  let res = NextResponse.next({
+    request: { headers: requestHeaders },
+  });
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   if (!url || !anonKey) {
@@ -25,7 +29,9 @@ export function createSupabaseMiddlewareClient(req: NextRequest) {
         for (const { name, value } of cookiesToSet) {
           req.cookies.set(name, value);
         }
-        res = NextResponse.next({ request: req });
+        res = NextResponse.next({
+          request: { headers: requestHeaders },
+        });
         for (const { name, value, options } of cookiesToSet) {
           res.cookies.set(name, value, options);
         }

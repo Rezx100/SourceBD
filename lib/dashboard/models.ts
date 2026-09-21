@@ -55,6 +55,11 @@ export type SupplierCardModel = {
   /** V2 only: the facts that met the filters. Null → the band is not rendered. */
   why: string[] | null;
   selected?: boolean;
+  /** Buyer Discover: this record is on the caller's saved list. Gallery leaves unset. */
+  saved?: boolean;
+  /** Buyer Discover sets these so Save / Send RFQ are real controls. The gallery leaves them unset. */
+  supplierId?: string;
+  rfqHref?: string | null;
 };
 
 export type TableRowModel = {
@@ -78,6 +83,9 @@ export type TableRowModel = {
   sanctioned: boolean;
   sanctionSample?: boolean;
   selected?: boolean;
+  saved?: boolean;
+  supplierId?: string;
+  rfqHref?: string | null;
 };
 
 export type FactRow = {

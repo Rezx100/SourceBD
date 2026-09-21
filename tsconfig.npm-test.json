@@ -103,6 +103,18 @@
     "app/dev/ds/dashboard-screens.test.ts",
     "scripts/gallery/render-gallery-fixtures.ts",
     "scripts/gallery/harness.test.ts",
-    "app/dev/ds/page.tsx"
+    "app/dev/ds/page.tsx",
+    "lib/discover-v32-state.ts",
+    "lib/discover-v32-state.test.ts",
+    "lib/discover-v32-rpc.ts",
+    "lib/discover-v32-pii.test.ts",
+    "lib/discover-export.ts",
+    "lib/discover-export.test.ts",
+    "lib/saved-searches.ts",
+    "lib/saved-searches.test.ts",
+    "lib/dashboard/build-discover-row.ts",
+    "lib/dashboard/build-discover-row.test.ts",
+    "components/dashboard/record-recent-search.tsx",
+    "components/dashboard/record-recent-search.test.ts"
   ]
 }

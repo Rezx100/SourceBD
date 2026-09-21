@@ -7,6 +7,7 @@
 // (`buyer_dashboard` migration 0026, `admin_dashboard` migration 0037,
 // `settings_get`) so the client component stays pure render.
 
+import { headers } from "next/headers";
 import { Sidebar, type SidebarBadges } from "@/components/shell/sidebar";
 import { SidebarRail } from "@/components/shell/sidebar-rail";
 import { BottomTabBar } from "@/components/shell/bottom-tab-bar";
@@ -139,6 +140,12 @@ export default async function AppShellLayout({
     }
   } catch {
     // Fail-soft: render the shell with whatever we managed to collect.
+  }
+
+  const pathname = (await headers()).get("x-sourcebd-pathname") ?? "";
+  const kitShell = /^\/app\/(discover|products|searches)(\/|$)/.test(pathname);
+  if (kitShell) {
+    return <PostHogProvider userId={userId}>{children}</PostHogProvider>;
   }
 
   return (

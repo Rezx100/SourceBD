@@ -27,11 +27,8 @@ same PR. Read once per session.
   `ACCEPTED_FOR_HUMAN_REVIEW` cycle 21, merged to `development` PR #161
   (21 Sep). `handoff-rez-a-cycle21.md`.
   IN PROGRESS: REZ-B (results page) on branch `rez-b-results-page` from
-  `development` (21 Sep). Migration `0104` (extends `discover_suppliers`,
-  adds `supplier_epb_hscodes_batch`, `hs_catalogue`); replaces
-  `/app/discover`, adds `/app/products` and `/app/searches`, `/app/match`
-  redirect. `/app/saved`/`/app/compare` deferred (not in §7's REZ-B line).
-  Not started building yet. Then C → D → H → G → E → F → I per §7.
+  `development` (synced 22 Sep). Migration `0104` drafted, not applied.
+  Then C → D → H → G → E → F → I per §7.
 
 ## Queued
 - **Entity resolution core** — `spec-resolution-core.md` (4 Aug). Batch

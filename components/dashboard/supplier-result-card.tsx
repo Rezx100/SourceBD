@@ -13,6 +13,7 @@ import { Button, Checkbox, V2Tag } from "./controls";
 import { Icon } from "./icons";
 import { LogoTile, SourceMark, SourceMarks } from "./marks";
 import { PhotoStrip } from "./photo-tiles";
+import { SaveRecordButton } from "./save-record-button";
 import { Code, Title } from "./type";
 
 /** `.meta`: facts separated by middle dots, each followed by its 16px mark. */
@@ -109,11 +110,15 @@ export function SupplierResultCard({ card }: { card: SupplierCardModel }) {
             {card.sanctioned ? <SanctionLine sample={card.sanctionSample} href={recordHref} /> : null}
           </div>
           <div className="flex shrink-0 items-center gap-2 pt-2">
-            <Button>
-              <Icon name="bookmark" /> Save
-            </Button>
-            <Button>Open record</Button>
-            <Button variant="primary" disabled={card.sanctioned}>
+            {card.supplierId ? (
+              <SaveRecordButton supplierId={card.supplierId} saved={Boolean(card.saved)} />
+            ) : (
+              <Button>
+                <Icon name="bookmark" /> Save
+              </Button>
+            )}
+            <Button href={`/app/suppliers/${card.slug}`}>Open record</Button>
+            <Button variant="primary" href={card.sanctioned ? undefined : (card.rfqHref ?? undefined)} disabled={card.sanctioned}>
               <Icon name="send" /> Send RFQ
             </Button>
           </div>

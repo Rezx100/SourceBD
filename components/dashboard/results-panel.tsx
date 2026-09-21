@@ -30,6 +30,10 @@ export type PanelHeaderModel = {
    * set, so the caption says what these rows are instead.
    */
   selection?: string;
+  exportHref?: string;
+  saveHref?: string;
+  viewHref?: (view: "cards" | "table") => string;
+  sortOptions?: readonly { value: string; label: string; href: string }[];
 };
 
 export function PanelHeader({ model }: { model: PanelHeaderModel }) {
@@ -50,17 +54,33 @@ export function PanelHeader({ model }: { model: PanelHeaderModel }) {
         </Caption>
       </div>
       <div className="flex items-center gap-2">
-        <Button>
-          <Icon name="sort" /> {model.sortLabel} <Icon name="caret" small />
-        </Button>
-        <Button>
+        {model.sortOptions && model.sortOptions.length > 0 ? (
+          <details className="relative">
+            <summary className="inline-flex h-control list-none items-center gap-1.5 rounded-sm border border-line-strong bg-surface px-3 text-sm font-medium text-ink hover:bg-surface-sunken">
+              <Icon name="sort" /> {model.sortLabel} <Icon name="caret" small />
+            </summary>
+            <div className="absolute right-0 z-20 mt-1 min-w-[14rem] rounded-sm border border-line bg-surface py-1 shadow-sm">
+              {model.sortOptions.map((o) => (
+                <a key={o.value} href={o.href} className="block px-3 py-1.5 text-sm text-ink hover:bg-surface-sunken">
+                  {o.label}
+                </a>
+              ))}
+            </div>
+          </details>
+        ) : (
+          <Button>
+            <Icon name="sort" /> {model.sortLabel} <Icon name="caret" small />
+          </Button>
+        )}
+        <Button href={model.saveHref}>
           <Icon name="bookmark" /> Save search
         </Button>
-        <Button>
+        <Button href={model.exportHref}>
           <Icon name="download" /> Export CSV
         </Button>
         <Seg
           value={model.view}
+          hrefFor={model.viewHref ? (v) => model.viewHref!(v === "table" ? "table" : "cards") : undefined}
           options={[
             { value: "cards", label: "Cards", icon: "cards" },
             { value: "table", label: "Table", icon: "table" },
@@ -86,6 +106,9 @@ export function PanelFooter({
   perPage,
   page = 1,
   note,
+  prevHref,
+  nextHref,
+  perHrefs,
 }: {
   shown: number;
   /** Null when the count could not be read. */
@@ -101,6 +124,9 @@ export function PanelFooter({
    * not decorate it.
    */
   note?: string;
+  prevHref?: string | null;
+  nextHref?: string | null;
+  perHrefs?: readonly { n: number; href: string }[];
 }) {
   const pages = total !== null && perPage ? Math.max(1, Math.ceil(total / perPage)) : null;
   // A page that came back short of its own page size is the last one, whatever
@@ -114,19 +140,34 @@ export function PanelFooter({
           : `${shown > 0 ? `1–${shown}` : "none on this page"} of ${total === null ? "—" : formatCount(total)}`}
       </Caption>
       {perPage ? (
-        <Button variant="ghost" className="h-7 px-2">
-          {perPage} per page <Icon name="caret" small />
-        </Button>
+        perHrefs && perHrefs.length > 0 ? (
+          <details className="relative">
+            <summary className="inline-flex h-7 list-none items-center gap-1 rounded-sm px-2 text-sm text-ink-muted hover:bg-surface-sunken">
+              {perPage} per page <Icon name="caret" small />
+            </summary>
+            <div className="absolute z-20 mt-1 rounded-sm border border-line bg-surface py-1 shadow-sm">
+              {perHrefs.map((p) => (
+                <a key={p.n} href={p.href} className="block px-3 py-1.5 text-sm text-ink hover:bg-surface-sunken">
+                  {p.n} per page
+                </a>
+              ))}
+            </div>
+          </details>
+        ) : (
+          <Button variant="ghost" className="h-7 px-2">
+            {perPage} per page <Icon name="caret" small />
+          </Button>
+        )
       ) : null}
       {paged && pages ? (
         <div className="ml-auto flex items-center gap-2">
-          <Button icon aria-label="Previous page" disabled={page <= 1} className="disabled:border-line disabled:text-ink-disabled">
+          <Button icon aria-label="Previous page" href={page > 1 ? (prevHref ?? undefined) : undefined} disabled={page <= 1} className="disabled:border-line disabled:text-ink-disabled">
             <Icon name="chev-l" />
           </Button>
           <Caption>
             Page {page} of {pages}
           </Caption>
-          <Button icon aria-label="Next page" disabled={page >= pages} className="disabled:border-line disabled:text-ink-disabled">
+          <Button icon aria-label="Next page" href={page < pages ? (nextHref ?? undefined) : undefined} disabled={page >= pages} className="disabled:border-line disabled:text-ink-disabled">
             <Icon name="chev-r" />
           </Button>
         </div>

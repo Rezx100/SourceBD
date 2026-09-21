@@ -1,303 +1,344 @@
-// Spec B1 — buyer Discover (authenticated, /app/discover).
-//
-// Distinct from the public anonymous `(marketing)/discover` route — that
-// one calls the same RPC but renders without SaveButton and adds the
-// demo-mode banner (Spec M5). The filter rail / sort / pagination
-// markup is shared via `components/discover/filter-rail`.
-//
-// SBI hard contract: the RPC orders by `sbi_scores.total DESC NULLS LAST`
-// inside its body under `security definer`, but the RETURNS TABLE never
-// includes the SBI value. The trust glyph centre is the count of distinct
-// Tier 1–3 verified sources (`t13_source_count`).
+// Spec REZ-B — buyer Discover. Replaces the card grid with the dashboard kit
+// (ResultsList / ResultsTable). URL is the state. /app/match redirects here
+// with ?ask=1.
 
 import Link from "next/link";
-
-import { SaveButton } from "@/components/save-button";
+import { AppShell } from "@/components/dashboard/app-shell";
+import { Panel, PanelFooter, PanelHeader } from "@/components/dashboard/results-panel";
+import { ResultsTable } from "@/components/dashboard/results-table";
+import { SearchComposer } from "@/components/dashboard/search-composer";
+import { SupplierResultCard } from "@/components/dashboard/supplier-result-card";
+import { Caption, Title } from "@/components/dashboard/type";
+import { RecordRecentSearch } from "@/components/dashboard/record-recent-search";
+import { loadBuyerShell } from "@/lib/dashboard/load-buyer-shell";
+import { buildDiscoverCard, buildDiscoverTableRow } from "@/lib/dashboard/build-discover-row";
 import {
-  BRAND_SOURCES,
-  CERT_KINDS,
-  ENTITY_TYPES,
-  FilterRail,
-  PAGE_SIZE,
-  Pagination,
-  REGISTRY_SOURCES,
-  SortControl,
-  asInt,
-  asString,
-  asStringArray,
-  clampSort,
-} from "@/components/discover/filter-rail";
-import { DiscoverResultCard, type DiscoverRow } from "@/components/discover/result-card";
-import { DiscoverSearchHero } from "@/components/discover/search-hero";
-import { MobileFilterSheet } from "@/components/discover/mobile-filter-sheet";
-import { EmptyState } from "@/components/ui/page-kit";
-import { fetchDiscoverFacets } from "@/lib/discover-facets";
-import { resolveDiscoverSmartQuery } from "@/lib/discover-smart-query";
-import { enrichDiscoverWorkers } from "@/lib/enrich-discover-workers";
+  fetchDiscoverExplain,
+  fetchDiscoverV32,
+  fetchHsBatch,
+} from "@/lib/discover-v32-rpc";
+import {
+  COMPOSER_HIDDEN_OMIT,
+  DISCOVER_PATH,
+  FILTER_HIDDEN_OMIT,
+  PER_PAGE,
+  SORTS,
+  discoverChips,
+  discoverHiddenParams,
+  discoverHref,
+  filterCount,
+  parseDiscoverState,
+  queryTitle,
+  serializeDiscoverState,
+  sortLabel,
+  type DiscoverState,
+} from "@/lib/discover-v32-state";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+
+function HiddenState({ state, omit }: { state: DiscoverState; omit: readonly string[] }) {
+  return (
+    <>
+      {discoverHiddenParams(state, omit).map(([k, v]) => (
+        <input key={k} type="hidden" name={k} value={v} />
+      ))}
+    </>
+  );
+}
 
 export const dynamic = "force-dynamic";
 
-const BASE_PATH = "/app/discover";
+export const metadata = {
+  title: "Search suppliers · SourceBD",
+};
 
-type SearchParams = Record<string, string | string[] | undefined>;
+function askEnabled(): boolean {
+  return process.env.AI_ENABLED === "true" && Boolean(process.env.OPENAI_API_KEY);
+}
+
+function DiscoverFilters({ state }: { state: DiscoverState }) {
+  return (
+    <details id="filters" className="rounded-md border border-line bg-surface px-4 py-3">
+      <summary className="cursor-pointer text-sm font-medium text-ink-strong">Add filter</summary>
+      <form action={DISCOVER_PATH} method="get" className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <HiddenState state={state} omit={FILTER_HIDDEN_OMIT} />
+        <label className="flex flex-col gap-1 text-sm">
+          <span className="text-ink-muted">HS heading</span>
+          <input
+            name="hs"
+            defaultValue={state.hs.join(",")}
+            placeholder="6105,6110"
+            className="h-control rounded-sm border border-line-strong bg-surface px-2"
+          />
+        </label>
+        <label className="flex flex-col gap-1 text-sm">
+          <span className="text-ink-muted">Certificate</span>
+          <input
+            name="cert"
+            defaultValue={state.cert.map((c) => (c.state === "any" ? c.kind : `${c.kind}:${c.state}`)).join(",")}
+            placeholder="gots:valid"
+            className="h-control rounded-sm border border-line-strong bg-surface px-2"
+          />
+        </label>
+        <label className="flex flex-col gap-1 text-sm">
+          <span className="text-ink-muted">Registry</span>
+          <input
+            name="reg"
+            defaultValue={state.reg.join(",")}
+            placeholder="BGMEA"
+            className="h-control rounded-sm border border-line-strong bg-surface px-2"
+          />
+        </label>
+        <label className="flex flex-col gap-1 text-sm">
+          <span className="text-ink-muted">Brand list</span>
+          <input
+            name="brand"
+            defaultValue={state.brand.map((b) => b.replace(/^BRAND_/i, "").toLowerCase()).join(",")}
+            placeholder="hm,asos"
+            className="h-control rounded-sm border border-line-strong bg-surface px-2"
+          />
+        </label>
+        <label className="flex flex-col gap-1 text-sm">
+          <span className="text-ink-muted">District</span>
+          <input
+            name="district"
+            defaultValue={state.district.join(",")}
+            className="h-control rounded-sm border border-line-strong bg-surface px-2"
+          />
+        </label>
+        <label className="flex flex-col gap-1 text-sm">
+          <span className="text-ink-muted">City</span>
+          <input
+            name="city"
+            defaultValue={state.city.join(",")}
+            className="h-control rounded-sm border border-line-strong bg-surface px-2"
+          />
+        </label>
+        <label className="flex flex-col gap-1 text-sm">
+          <span className="text-ink-muted">Type</span>
+          <input
+            name="type"
+            defaultValue={state.type.join(",")}
+            placeholder="factory"
+            className="h-control rounded-sm border border-line-strong bg-surface px-2"
+          />
+        </label>
+        <label className="flex flex-col gap-1 text-sm">
+          <span className="text-ink-muted">Min sources</span>
+          <input
+            name="min_sources"
+            defaultValue={state.minSources ?? ""}
+            className="h-control rounded-sm border border-line-strong bg-surface px-2"
+          />
+        </label>
+        <label className="flex flex-col gap-1 text-sm">
+          <span className="text-ink-muted">RSC</span>
+          <input
+            name="rsc"
+            defaultValue={state.rsc ?? ""}
+            placeholder="active"
+            className="h-control rounded-sm border border-line-strong bg-surface px-2"
+          />
+        </label>
+        <label className="flex flex-col gap-1 text-sm">
+          <span className="text-ink-muted">Workers min–max</span>
+          <span className="flex gap-2">
+            <input
+              name="workers_min"
+              defaultValue={state.workersMin ?? ""}
+              className="h-control w-full rounded-sm border border-line-strong bg-surface px-2"
+            />
+            <input
+              name="workers_max"
+              defaultValue={state.workersMax ?? ""}
+              className="h-control w-full rounded-sm border border-line-strong bg-surface px-2"
+            />
+          </span>
+        </label>
+        <label className="flex flex-col gap-1 text-sm">
+          <span className="text-ink-muted">Established from–to</span>
+          <span className="flex gap-2">
+            <input
+              name="est_from"
+              defaultValue={state.estFrom ?? ""}
+              className="h-control w-full rounded-sm border border-line-strong bg-surface px-2"
+            />
+            <input
+              name="est_to"
+              defaultValue={state.estTo ?? ""}
+              className="h-control w-full rounded-sm border border-line-strong bg-surface px-2"
+            />
+          </span>
+        </label>
+        <div className="flex items-end">
+          <button type="submit" className="h-control rounded-sm border border-brand bg-brand px-3 text-sm font-medium text-brand-on">
+            Apply filters
+          </button>
+        </div>
+      </form>
+    </details>
+  );
+}
 
 export default async function BuyerDiscoverPage({
   searchParams,
 }: {
-  searchParams: Promise<SearchParams>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const sp = await searchParams;
-  const q = asString(sp.q).trim();
-  const entityTypes = asStringArray(sp.entity).filter((v) =>
-    ENTITY_TYPES.some((o) => o.value === v),
-  );
-  const certKinds = asStringArray(sp.cert).filter((v) =>
-    CERT_KINDS.some((o) => o.value === v),
-  );
-  const registries = asStringArray(sp.registry).filter((v) =>
-    REGISTRY_SOURCES.some((o) => o.value === v),
-  );
-  const brandCodes = asStringArray(sp.brand).filter((v) =>
-    BRAND_SOURCES.some((o) => o.value === v),
-  );
-  const factoryTypes = asStringArray(sp.ftype);
-  const minSourcesRaw = asString(sp.min_sources);
-  const minSources =
-    minSourcesRaw && /^[1-5]$/.test(minSourcesRaw)
-      ? Number.parseInt(minSourcesRaw, 10)
-      : null;
-  const city = asString(sp.city).trim();
-  const district = asString(sp.district).trim();
-  const category = asString(sp.category).trim();
-  const smartQuery = resolveDiscoverSmartQuery(q, category);
-  const hasSearchQuery = q.length > 0;
-  const sort = clampSort(asString(sp.sort));
-  const pageNum = Math.max(1, asInt(sp.page) ?? 1);
-  const offset = (pageNum - 1) * PAGE_SIZE;
-
+  const state = parseDiscoverState(sp);
   const supabase = await createSupabaseServerClient();
-  const facets = await fetchDiscoverFacets();
-  let rows: DiscoverRow[] = [];
-  let error: unknown = null;
-  let totalCount = 0;
-  let totalPages = 1;
+  const shell = await loadBuyerShell(supabase, "search");
+  const today = new Date();
+  const askOn = askEnabled();
+
+  const { rows, total, error } = await fetchDiscoverV32(supabase, state);
+  const slugs = rows.map((r) => r.slug);
+  const hs = await fetchHsBatch(supabase, slugs);
+
   const savedSet = new Set<string>();
-
-  if (hasSearchQuery) {
-    const { data, error: rpcError } = await supabase.rpc("discover_suppliers", {
-      p_q: smartQuery.rpcQ || null,
-      p_entity_types: entityTypes.length ? entityTypes : null,
-      p_min_sources: minSources,
-      p_cert_kinds: certKinds.length ? certKinds : null,
-      p_rsc_min: null,
-      p_city: city || null,
-      p_district: district || null,
-      p_category: category || smartQuery.inferredCategory || null,
-      p_sort: sort,
-      p_limit: PAGE_SIZE,
-      p_offset: offset,
-      p_registries: registries.length ? registries : null,
-      p_factory_types: factoryTypes.length ? factoryTypes : null,
-      p_brand_codes: brandCodes.length ? brandCodes : null,
-      p_completeness_min: null,
-      p_workers_min: null,
-    });
-    error = rpcError;
-    rows = await enrichDiscoverWorkers(
-      supabase,
-      (data ?? []) as DiscoverRow[],
-    );
-    totalCount = rows[0]?.total_count ?? 0;
-    totalPages = Math.max(1, Math.ceil(Number(totalCount) / PAGE_SIZE));
-
-    if (rows.length > 0) {
-      const { data: savedRows } = await supabase
-        .from("saved_suppliers")
-        .select("supplier_id")
-        .in(
-          "supplier_id",
-          rows.map((r) => r.id),
-        );
-      if (savedRows) {
-        for (const r of savedRows as { supplier_id: string }[]) {
-          savedSet.add(r.supplier_id);
-        }
+  if (rows.length > 0) {
+    const { data: savedRows } = await supabase
+      .from("saved_suppliers")
+      .select("supplier_id")
+      .in(
+        "supplier_id",
+        rows.map((r) => r.id),
+      );
+    for (const r of savedRows ?? []) {
+      if (r && typeof r === "object" && typeof (r as { supplier_id?: unknown }).supplier_id === "string") {
+        savedSet.add((r as { supplier_id: string }).supplier_id);
       }
     }
   }
-  const baseQuery = {
-    q,
-    entity: entityTypes,
-    cert: certKinds,
-    registry: registries,
-    brand: brandCodes,
-    ftype: factoryTypes,
-    min_sources:
-      minSourcesRaw && /^[1-5]$/.test(minSourcesRaw) ? minSourcesRaw : "",
-    city,
-    district,
-    category,
-    sort: sort === "default" ? "" : sort,
-  };
 
-  const anyFilterActive =
-    Boolean(q) ||
-    entityTypes.length > 0 ||
-    certKinds.length > 0 ||
-    registries.length > 0 ||
-    brandCodes.length > 0 ||
-    factoryTypes.length > 0 ||
-    minSources !== null ||
-    Boolean(city) ||
-    Boolean(district) ||
-    Boolean(category);
+  let explain: { dropped: string; remaining: number }[] = [];
+  if (!error && total === 0 && filterCount(state) > 0) {
+    explain = await fetchDiscoverExplain(supabase, state);
+  }
 
-  // R9r4 — surfaced to the mobile filter trigger so the buyer can see
-  // at a glance how many filters they have stacked without opening the
-  // sheet. Counts every non-empty filter param including `q`.
-  const activeFilterCount =
-    (q ? 1 : 0) +
-    entityTypes.length +
-    certKinds.length +
-    registries.length +
-    brandCodes.length +
-    factoryTypes.length +
-    (minSources !== null ? 1 : 0) +
-    (city ? 1 : 0) +
-    (district ? 1 : 0) +
-    (category ? 1 : 0);
+  const chips = discoverChips(state);
+  const title = queryTitle(state);
+  const href = discoverHref(state);
+  const pages = total !== null ? Math.max(1, Math.ceil(total / state.per)) : null;
+
+  const cards = rows.map((row) =>
+    buildDiscoverCard(row, {
+      today,
+      hsLines: hs.lines,
+      hsError: hs.error,
+      saved: savedSet.has(row.id),
+    }),
+  );
+  const tableRows = rows.map((row) =>
+    buildDiscoverTableRow(row, {
+      today,
+      hsLines: hs.lines,
+      hsError: hs.error,
+      saved: savedSet.has(row.id),
+    }),
+  );
+
   return (
-    <div className="mx-auto flex min-h-[calc(100dvh-9rem)] max-w-6xl flex-col gap-6">
-      <DiscoverSearchHero
-        basePath={BASE_PATH}
-        profileBase="/app/suppliers"
-        q={q}
-        sort={sort}
-        centered={!hasSearchQuery}
-        subcopy="Search by certification, product, or district - every result is source-backed."
-      />
-
-      {hasSearchQuery ? (
-        <>
-          <div className="space-y-4">
-            <div className="md:hidden">
-              <MobileFilterSheet
-                activeFilterCount={activeFilterCount}
-                resultCount={Number(totalCount)}
-              >
-                <FilterRail
-                  basePath={BASE_PATH}
-                  q={q}
-                  entityTypes={entityTypes}
-                  certKinds={certKinds}
-                  registries={registries}
-                  brandCodes={brandCodes}
-                  factoryTypes={factoryTypes}
-                  minSources={minSourcesRaw}
-                  city={city}
-                  district={district}
-                  category={category}
-                  sort={sort}
-                  facets={facets}
-                  hideSearchRow
-                  instanceId="mobile"
-                />
-              </MobileFilterSheet>
-            </div>
-
-            <div className="hidden md:block">
-              <FilterRail
-                basePath={BASE_PATH}
-                q={q}
-                entityTypes={entityTypes}
-                certKinds={certKinds}
-                registries={registries}
-                brandCodes={brandCodes}
-                factoryTypes={factoryTypes}
-                minSources={minSourcesRaw}
-                city={city}
-                district={district}
-                category={category}
-                sort={sort}
-                facets={facets}
-                hideSearchRow
-                instanceId="desktop"
-              />
-            </div>
+    <AppShell
+      sidebar={shell.sidebar}
+      topbar={{ ...shell.topbar, searchQuery: state.q }}
+      mainId="main-content"
+      screenLabel="Search"
+    >
+      <RecordRecentSearch label={title} href={href} count={total} />
+      <form action={DISCOVER_PATH} method="get">
+        <HiddenState state={state} omit={COMPOSER_HIDDEN_OMIT} />
+        <SearchComposer
+          chips={chips.map((c) => ({
+            label: c.label,
+            code: c.code,
+            removeHref: discoverHref(c.without),
+          }))}
+          mode={state.ask && askOn ? "ask" : "filters"}
+          askEnabled={askOn}
+          queryInput={state.q}
+          askHref={askOn ? discoverHref(state, { ask: true, page: 1 }) : undefined}
+          filtersHref={askOn ? discoverHref(state, { ask: false, page: 1 }) : undefined}
+        />
+      </form>
+      <DiscoverFilters state={state} />
+      {error ? (
+        <Panel>
+          <div className="px-5 py-10">
+            <Title as="h1">{title}</Title>
+            <Caption className="mt-2">
+              Search is under heavy load. The count could not be read. Try again in a moment.
+            </Caption>
           </div>
-
-          <section id="discover-results" className="space-y-4">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <p className="text-sm text-ink-secondary">
-                {error ? (
-                  <span className="text-sem-red">Could not load suppliers.</span>
-                ) : (
-                  <>
-                    <span className="font-semibold text-ink-primary">
-                      {Number(totalCount).toLocaleString()}
-                    </span>{" "}
-                    result{Number(totalCount) === 1 ? "" : "s"}
-                  </>
-                )}
-              </p>
-              <SortControl
-                basePath={BASE_PATH}
-                current={sort}
-                baseQuery={baseQuery}
-              />
-            </div>
-
-            {!error && rows.length === 0 ? (
-              <EmptyState
-                title={anyFilterActive ? "No matches" : "No published suppliers yet"}
-                description={
-                  anyFilterActive
-                    ? "No suppliers match these filters. Try removing the most restrictive one."
-                    : "Published suppliers will appear here as the index fills."
-                }
-                action={
-                  anyFilterActive ? (
-                    <Link
-                      href={BASE_PATH}
-                      className="inline-flex items-center rounded-pill bg-brand-forest px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-brand-forest-mid"
-                    >
-                      Clear all filters
-                    </Link>
-                  ) : null
-                }
-              />
-            ) : (
-              <ul className="grid grid-cols-1 gap-4">
-                {rows.map((row) => (
-                  <li key={row.id}>
-                    <DiscoverResultCard
-                      row={row}
-                      hrefBase="/app/suppliers"
-                      actionSlot={
-                        <SaveButton
-                          supplierId={row.id}
-                          initialSaved={savedSet.has(row.id)}
-                          shape="icon"
-                        />
-                      }
-                    />
-                  </li>
-                ))}
+        </Panel>
+      ) : total === 0 ? (
+        <Panel>
+          <div className="px-5 py-10">
+            <Title as="h1">{title}</Title>
+            <Caption className="mt-2">
+              {filterCount(state) === 0
+                ? "No published suppliers to show."
+                : `No supplier matches all ${filterCount(state)} filters.`}
+            </Caption>
+            {explain.length > 0 ? (
+              <ul className="mt-4 flex flex-col gap-1 text-sm">
+                {explain
+                  .slice()
+                  .sort((a, b) => a.remaining - b.remaining)
+                  .map((e) => {
+                    const chip = chips.find((c) => c.key === e.dropped || c.key.startsWith(`${e.dropped}-`));
+                    const hrefDrop = chip ? discoverHref(chip.without) : discoverHref(state);
+                    return (
+                      <li key={e.dropped}>
+                        <Link href={hrefDrop} className="text-brand-ink">
+                          Drop {e.dropped} · {e.remaining} remain
+                        </Link>
+                      </li>
+                    );
+                  })}
               </ul>
-            )}
-
-            {totalPages > 1 ? (
-              <Pagination
-                basePath={BASE_PATH}
-                page={pageNum}
-                totalPages={totalPages}
-                baseQuery={baseQuery}
-              />
             ) : null}
-          </section>
-        </>
-      ) : null}
-    </div>
+          </div>
+        </Panel>
+      ) : (
+        <Panel>
+          <PanelHeader
+            model={{
+              title,
+              total,
+              shown: rows.length,
+              sortLabel: sortLabel(state.sort),
+              view: state.view,
+              exportHref: `/api/v1/discover/export?${serializeDiscoverState(state).toString()}`,
+              saveHref: `/app/searches/new?${serializeDiscoverState(state).toString()}`,
+              viewHref: (view) => discoverHref(state, { view, page: 1 }),
+              sortOptions: SORTS.map((s) => ({
+                value: s.value,
+                label: s.label,
+                href: discoverHref(state, { sort: s.value, page: 1 }),
+              })),
+            }}
+          />
+          {state.view === "table" ? (
+            <ResultsTable rows={tableRows} />
+          ) : (
+            <div>
+              {cards.map((card) => (
+                <SupplierResultCard key={card.slug} card={card} />
+              ))}
+            </div>
+          )}
+          <PanelFooter
+            shown={rows.length}
+            total={total}
+            perPage={state.per}
+            page={state.page}
+            prevHref={state.page > 1 ? discoverHref(state, { page: state.page - 1 }) : null}
+            nextHref={pages && state.page < pages ? discoverHref(state, { page: state.page + 1 }) : null}
+            perHrefs={PER_PAGE.map((n) => ({ n, href: discoverHref(state, { per: n, page: 1 }) }))}
+          />
+        </Panel>
+      )}
+    </AppShell>
   );
 }

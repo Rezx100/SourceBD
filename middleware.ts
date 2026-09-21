@@ -68,7 +68,9 @@ export async function middleware(req: NextRequest) {
     process.env.NODE_ENV !== "production" &&
     process.env.DEV_ADMIN_BYPASS === "1"
   ) {
-    return NextResponse.next({ request: req });
+    const requestHeaders = new Headers(req.headers);
+    requestHeaders.set("x-sourcebd-pathname", pathname);
+    return NextResponse.next({ request: { headers: requestHeaders } });
   }
 
   const { supabase, res } = createSupabaseMiddlewareClient(req);

@@ -12,6 +12,7 @@ import { Button, Checkbox } from "./controls";
 import { Icon } from "./icons";
 import { LogoTile, SourceMarks } from "./marks";
 import { PhotoThumbs } from "./photo-tiles";
+import { SaveRecordButton } from "./save-record-button";
 
 const COLS = [44, 310, 128, 215, 135, 88, 74] as const;
 
@@ -125,10 +126,17 @@ export function ResultsTable({ rows }: { rows: readonly TableRowModel[] }) {
             </Td>
             <Td>
               <span className="flex w-full justify-end gap-1.5">
-                <Button icon aria-label="Save" className="h-7 w-7">
-                  <Icon name="bookmark" />
+                {r.supplierId ? (
+                  <SaveRecordButton supplierId={r.supplierId} saved={Boolean(r.saved)} icon />
+                ) : (
+                  <Button icon aria-label="Save" className="h-7 w-7">
+                    <Icon name="bookmark" />
+                  </Button>
+                )}
+                <Button href={`/app/suppliers/${r.slug}`} className="h-7 px-2.5 text-xs">
+                  Open
                 </Button>
-                <Button variant="primary" disabled={r.sanctioned} className="h-7 px-2.5 text-xs">
+                <Button variant="primary" href={r.sanctioned ? undefined : (r.rfqHref ?? undefined)} disabled={r.sanctioned} className="h-7 px-2.5 text-xs">
                   <Icon name="send" /> Send RFQ
                 </Button>
               </span>

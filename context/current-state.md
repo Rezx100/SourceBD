@@ -37,14 +37,10 @@ migrations, run the 30-day zero P1/P2 Sentry incident window.
   `/dev/ds`; no live route wired yet. Full history:
   `context/feature-specs/handoff-rez-a-cycle21.md`.
 - **Buyer dashboard v3.2, REZ-B (results page)** — branch
-  `rez-b-results-page` from `development` (21 Sep). IN PROGRESS. Scope
-  per `handoff-dashboard-v3.2-implementation.md` §7: migration `0104`
-  (extends `discover_suppliers`, adds `supplier_epb_hscodes_batch` and
-  `hs_catalogue`); replaces `/app/discover` (cards + table) with the
-  REZ-A kit; new `/app/products` and `/app/searches`; `/app/match`
-  redirects to `/app/discover?ask=1`. `/app/saved` and `/app/compare`
-  are NOT in this PR (not named in §7's REZ-B line) — deferred, not
-  invented. Not yet implemented; no migration drafted yet.
+  `rez-b-results-page` from `development` (synced 22 Sep, `7ea98b4`).
+  IN PROGRESS. Migration `0104` drafted (not applied). `/app/discover`
+  uses the kit; `/app/products`, `/app/searches`, `/app/match` redirect
+  added. `/app/saved` and `/app/compare` stay deferred.
 
 ## Founder rules still in force (one line each; detail in archive)
 - EPB is a government register: show its evidence and HS codes whenever EPB has them, flagged or not. Never mint EPB-only suppliers. (15 Aug)
