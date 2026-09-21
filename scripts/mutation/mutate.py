@@ -637,6 +637,14 @@ M = [
  'components/dashboard/rfq-list.tsx',
  '        <div className="flex h-control w-[280px] items-center gap-2 rounded-sm border border-line-strong bg-surface px-2.5 text-sm text-ink-subtle">',
  '        <div role="search" className="flex h-control w-[280px] items-center gap-2 rounded-sm border border-line-strong bg-surface px-2.5 text-sm text-ink-subtle">'),
+ ('a11y-seg-button-loses-inset-focus-ring',
+ 'components/dashboard/controls.tsx',
+ '            "focus-visible:outline-offset-[-2px]",\n            i > 0 && "border-l border-line-strong",',
+ '            i > 0 && "border-l border-line-strong",'),
+ ('a11y-template-switch-button-loses-inset-focus-ring',
+ 'components/dashboard/rfq-composer.tsx',
+ '                    "focus-visible:outline-offset-[-2px]",\n                    // 1.17:1 against the unpressed half beside it; the rail is 7.87:1.',
+ '                    // 1.17:1 against the unpressed half beside it; the rail is 7.87:1.'),
 ]
 
 # An interrupted sweep used to leave the tree mutated, and the next run then

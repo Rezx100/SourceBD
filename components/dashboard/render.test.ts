@@ -1158,6 +1158,36 @@ describe("the two-state controls say which state they are in", () => {
     assert.match(off, /aria-disabled="true"/);
     assert.match(off, /title="[^"]+"/, "an inert control says why it is inert");
   });
+
+  // Accessibility, cycle 19, BLOCKING F3. `Seg`'s and the Template switch's
+  // wrapping `<span role="group">` carries `overflow-hidden` for its own
+  // rounded corners; the global `:focus-visible` ring is painted 2px OUTSIDE
+  // the border box (app/ds.css), so `overflow-hidden` clipped it entirely —
+  // a keyboard user tabbing to either control saw no focus indicator at all
+  // (WCAG 2.4.7). `focus-visible:outline-offset-[-2px]` insets the ring
+  // inside the button's own box, which `overflow-hidden` never clips.
+  it("every button inside a role=group segmented control insets its own focus ring, so overflow-hidden cannot clip it", () => {
+    const seg = renderToStaticMarkup(
+      createElement(Seg, {
+        options: [
+          { value: "grid", label: "Grid", icon: "cards" },
+          { value: "table", label: "Table", icon: "table" },
+        ] as const,
+        value: "table",
+      }),
+    );
+    assert.match(seg, /role="group"[^>]*overflow-hidden/, "the clipping condition this guards against is still present");
+    const segButtons = [...seg.matchAll(/<button\b[^>]*>/g)].map((m) => m[0]);
+    assert.equal(segButtons.length, 2);
+    for (const b of segButtons) assert.match(b, /focus-visible:outline-offset-\[-2px\]/, `no inset focus ring: ${b}`);
+
+    const template = renderToStaticMarkup(createElement(RfqComposer, { model: COMPOSER_MODEL }));
+    const group = template.slice(template.indexOf('aria-label="Template"'), template.indexOf("</span>", template.indexOf('aria-label="Template"')));
+    assert.match(group, /overflow-hidden/, "the clipping condition this guards against is still present");
+    const templateButtons = [...group.matchAll(/<button\b[^>]*>/g)].map((m) => m[0]);
+    assert.equal(templateButtons.length, 2, "First contact, Repeat supplier");
+    for (const b of templateButtons) assert.match(b, /focus-visible:outline-offset-\[-2px\]/, `no inset focus ring: ${b}`);
+  });
 });
 
 // ---------------------------------------------------------------------------

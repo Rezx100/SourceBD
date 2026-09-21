@@ -192,6 +192,15 @@ export function RfqComposer({ model, aiEnabled = false, assertModal }: { model: 
                   aria-pressed={model.template === t}
                   className={cn(
                     "whitespace-nowrap px-3 text-sm font-medium text-ink-muted",
+                    // The group's `overflow-hidden` (for its own rounded
+                    // corners) clipped the global `:focus-visible` ring,
+                    // painted 2px outside the border box: a keyboard user
+                    // tabbing here saw no focus indicator at all (WCAG
+                    // 2.4.7). Inset instead of outset keeps the ring inside
+                    // the button's own box, which `overflow-hidden` never
+                    // clips (accessibility, cycle 19, BLOCKING F3 — the same
+                    // defect as `Seg`, controls.tsx).
+                    "focus-visible:outline-offset-[-2px]",
                     // 1.17:1 against the unpressed half beside it; the rail is 7.87:1.
                     model.template === t && "bg-surface-sunken text-ink-strong shadow-[inset_0_-2px_0_rgb(var(--ds-brand))]",
                   )}

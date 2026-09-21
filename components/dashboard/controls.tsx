@@ -70,6 +70,13 @@ export function Seg({
           aria-pressed={o.value === value}
           className={cn(
             "grid w-9 place-items-center text-ink-muted",
+            // The group's `overflow-hidden` (for its own rounded corners)
+            // clipped the global `:focus-visible` ring, painted 2px outside
+            // the border box: a keyboard user tabbing here saw no focus
+            // indicator at all (WCAG 2.4.7). Inset instead of outset keeps
+            // the ring inside the button's own box, which `overflow-hidden`
+            // never clips (accessibility, cycle 19, BLOCKING F3).
+            "focus-visible:outline-offset-[-2px]",
             i > 0 && "border-l border-line-strong",
             // Icon-only, so there is no text fallback: the pressed half was a
             // 1.15:1 tint against the unpressed one beside it. The inset rail
