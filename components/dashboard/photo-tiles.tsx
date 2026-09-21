@@ -93,7 +93,9 @@ export function PhotoStrip({
         <button
           type="button"
           aria-label={`All ${totalLines} lines`}
-          className="absolute -right-1 top-[50px] inline-flex h-8 items-center gap-0.5 rounded-full border border-line bg-surface pl-2.5 pr-2 text-sm font-medium text-ink shadow-sm"
+          // A real button, so its outline is a control outline (accessibility,
+          // cycle 19, BLOCKING F4 — same reasoning as sheet.tsx's report links).
+          className="absolute -right-1 top-[50px] inline-flex h-8 items-center gap-0.5 rounded-full border border-line-strong bg-surface pl-2.5 pr-2 text-sm font-medium text-ink shadow-sm"
         >
           +{more} <Icon name="chev-r" />
         </button>

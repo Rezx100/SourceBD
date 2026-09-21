@@ -343,7 +343,12 @@ export function RscBlock({
             <a
               key={l.label}
               href={l.href}
-              className="inline-flex h-7 items-center gap-1.5 rounded-sm border border-line px-2.5 text-sm font-medium text-ink"
+              // A live link, so its outline is a control outline: `border-line`
+              // is 1.44:1 against the surface behind it, short of WCAG
+              // 1.4.11's 3:1; `border-line-strong` (3.93:1) is what
+              // lib/design/tokens.ts reserves for exactly this (accessibility,
+              // cycle 19, BLOCKING F4).
+              className="inline-flex h-7 items-center gap-1.5 rounded-sm border border-line-strong px-2.5 text-sm font-medium text-ink"
             >
               {l.label} <Icon name="external" small />
             </a>

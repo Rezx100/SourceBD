@@ -184,7 +184,11 @@ export function RfqComposer({ model, aiEnabled = false, assertModal }: { model: 
         </nav>
         <div className="flex min-w-0 flex-col gap-4 border-r border-line-subtle p-5">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <span role="group" aria-label="Template" className="inline-flex h-control shrink-0 overflow-hidden rounded-sm border border-line">
+            {/* The group's own outer border is a control outline too (its
+                buttons' own divider already uses `border-line-strong`);
+                `border-line` here was 1.44:1, short of WCAG 1.4.11's 3:1
+                (accessibility, cycle 19, BLOCKING F4). */}
+            <span role="group" aria-label="Template" className="inline-flex h-control shrink-0 overflow-hidden rounded-sm border border-line-strong">
               {(["first", "repeat"] as const).map((t) => (
                 <button
                   key={t}

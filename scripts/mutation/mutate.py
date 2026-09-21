@@ -645,6 +645,18 @@ M = [
  'components/dashboard/rfq-composer.tsx',
  '                    "focus-visible:outline-offset-[-2px]",\n                    // 1.17:1 against the unpressed half beside it; the rail is 7.87:1.',
  '                    // 1.17:1 against the unpressed half beside it; the rail is 7.87:1.'),
+ ('a11y-rsc-report-link-loses-strong-outline',
+ 'components/dashboard/sheet.tsx',
+ 'className="inline-flex h-7 items-center gap-1.5 rounded-sm border border-line-strong px-2.5 text-sm font-medium text-ink"',
+ 'className="inline-flex h-7 items-center gap-1.5 rounded-sm border border-line px-2.5 text-sm font-medium text-ink"'),
+ ('a11y-photo-strip-more-pill-loses-strong-outline',
+ 'components/dashboard/photo-tiles.tsx',
+ 'className="absolute -right-1 top-[50px] inline-flex h-8 items-center gap-0.5 rounded-full border border-line-strong bg-surface pl-2.5 pr-2 text-sm font-medium text-ink shadow-sm"',
+ 'className="absolute -right-1 top-[50px] inline-flex h-8 items-center gap-0.5 rounded-full border border-line bg-surface pl-2.5 pr-2 text-sm font-medium text-ink shadow-sm"'),
+ ('a11y-template-group-wrapper-loses-strong-outline',
+ 'components/dashboard/rfq-composer.tsx',
+ '<span role="group" aria-label="Template" className="inline-flex h-control shrink-0 overflow-hidden rounded-sm border border-line-strong">',
+ '<span role="group" aria-label="Template" className="inline-flex h-control shrink-0 overflow-hidden rounded-sm border border-line">'),
 ]
 
 # An interrupted sweep used to leave the tree mutated, and the next run then

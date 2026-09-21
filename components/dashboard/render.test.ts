@@ -1166,6 +1166,32 @@ describe("the two-state controls say which state they are in", () => {
   // a keyboard user tabbing to either control saw no focus indicator at all
   // (WCAG 2.4.7). `focus-visible:outline-offset-[-2px]` insets the ring
   // inside the button's own box, which `overflow-hidden` never clips.
+  // Accessibility, cycle 19, BLOCKING F4. lib/design/tokens.ts reserves
+  // `border-line-strong` (3.93:1) for a control's own outline; `border-line`
+  // (1.44:1) falls short of WCAG 1.4.11's 3:1 for a UI component boundary.
+  it("every live control's own outline uses border-line-strong, not the plain border-line", () => {
+    // RscBlock's report links: aboniInput's two RSC rows (the record itself
+    // and its new shed) each carry all five report URLs.
+    const sheet = renderToStaticMarkup(createElement(SupplierSheet, { model: buildSheet(aboniInput()) }));
+    const reportLinks = [...sheet.matchAll(/<a href="https:\/\/accord2\.fairfactories\.org[^>]*>/g)].map((m) => m[0]);
+    assert.equal(reportLinks.length, 10, "five reports on each of two RSC rows");
+    for (const l of reportLinks) assert.match(l, /border-line-strong/, `report link missing the control outline: ${l}`);
+
+    // The "+N lines" pill on a card with more HS lines than thumbs (the same
+    // card the "twelve lines, three thumbs, nine more" ResultsTable test uses).
+    const card = renderToStaticMarkup(createElement(SupplierResultCard, { card: buildCard(aboniInput()) }));
+    const pill = /<button[^>]*aria-label="All \d+ lines"[^>]*>/.exec(card);
+    assert.ok(pill, "the +N lines pill did not render");
+    assert.match(pill![0]!, /border-line-strong/, `+N pill missing the control outline: ${pill![0]}`);
+
+    // The Template switch's own group wrapper — its buttons' own divider
+    // already used border-line-strong; the group's outer border did not.
+    const composer = renderToStaticMarkup(createElement(RfqComposer, { model: COMPOSER_MODEL }));
+    const labelAt = composer.indexOf('aria-label="Template"');
+    const group = composer.slice(labelAt, composer.indexOf(">", labelAt) + 1);
+    assert.match(group, /border-line-strong/, `Template group missing the control outline: ${group}`);
+  });
+
   it("every button inside a role=group segmented control insets its own focus ring, so overflow-hidden cannot clip it", () => {
     const seg = renderToStaticMarkup(
       createElement(Seg, {
