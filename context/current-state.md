@@ -32,15 +32,19 @@ migrations, run the 30-day zero P1/P2 Sentry incident window.
   `design-rebuild` landed on `development` 18 Sep (`09ec96b`): tokens +
   `/dev/ds` gallery. Old pages are unstyled until rebuilt.
 - **Buyer dashboard v3.2, REZ-A (the code port of the dashboard kit)** —
-  branch `rez-a-dashboard-kit` (19 Sep). Tokens are the artifact's v3 set
-  (Geist / Geist Mono self-hosted, warm canvas, radii 6/10/14 — founder
-  decision 19 Sep, supersedes §9's Inter and 5/6/8). Kit under
-  `components/dashboard`, builders under `lib/dashboard`, six screens on
-  `/dev/ds` from production records. Seventeen audit cycles run; the fixtures
-  are reconciled field-by-field against a checked-in production read, and
-  every repair carries a guard verified by reverting the fix and watching it
-  go red. State and next steps: `feature-specs/handoff-rez-a-cycle17.md`.
-  Not landed, not merged, awaiting the Acceptance Judge.
+  DONE. `ACCEPTED_FOR_HUMAN_REVIEW` at cycle 21 (candidate `1ccb4bc`),
+  merged to `development` via PR #161 (21 Sep). Dev/admin-only gallery at
+  `/dev/ds`; no live route wired yet. Full history:
+  `context/feature-specs/handoff-rez-a-cycle21.md`.
+- **Buyer dashboard v3.2, REZ-B (results page)** — branch
+  `rez-b-results-page` from `development` (21 Sep). IN PROGRESS. Scope
+  per `handoff-dashboard-v3.2-implementation.md` §7: migration `0104`
+  (extends `discover_suppliers`, adds `supplier_epb_hscodes_batch` and
+  `hs_catalogue`); replaces `/app/discover` (cards + table) with the
+  REZ-A kit; new `/app/products` and `/app/searches`; `/app/match`
+  redirects to `/app/discover?ask=1`. `/app/saved` and `/app/compare`
+  are NOT in this PR (not named in §7's REZ-B line) — deferred, not
+  invented. Not yet implemented; no migration drafted yet.
 
 ## Founder rules still in force (one line each; detail in archive)
 - EPB is a government register: show its evidence and HS codes whenever EPB has them, flagged or not. Never mint EPB-only suppliers. (15 Aug)
