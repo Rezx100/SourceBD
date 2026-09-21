@@ -51,8 +51,18 @@ export const GALLERY_SLUGS = {
   ar: "ar-fashion",
 } as const;
 
-/** The query the screens show: knitted shirts with a GOTS certificate (the RPC's text + cert filter). */
-export const GALLERY_QUERY = { q: "knitted shirts", certKinds: ["gots"], title: "Knitted shirts · GOTS valid" } as const;
+/**
+ * The query the screens show: knitted shirts with a GOTS certificate (the
+ * RPC's text + cert filter). The title used to say "GOTS valid" — a
+ * certificate-*state* claim `discover_suppliers` has no parameter for (it
+ * arrives with REZ-B's `p_cert_state`) and one false of 15 of the 42
+ * suppliers the query returns by the kit's own `certState()` (truthfulness,
+ * cycle 19: `tex-town`, a live row on this exact screen, carries an
+ * "expiring" GOTS, not a valid one). The composer's own chip was already
+ * corrected to name the kind, not a state ("Certificate · GOTS"); the title
+ * now matches it.
+ */
+export const GALLERY_QUERY = { q: "knitted shirts", certKinds: ["gots"], title: "Knitted shirts · GOTS" } as const;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Rpc = { rpc: (fn: string, args: Record<string, unknown>) => any };

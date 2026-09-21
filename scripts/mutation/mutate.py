@@ -610,6 +610,10 @@ M = [
  'lib/dashboard/gallery-data.ts',
  '  const tableRecordsReadOn = tableSpan.on;',
  '  const tableRecordsReadOn = namedSpan.on;'),
+ ('c19-gallery-query-title-claims-gots-valid',
+ 'lib/dashboard/gallery-data.ts',
+ 'export const GALLERY_QUERY = { q: "knitted shirts", certKinds: ["gots"], title: "Knitted shirts \u00b7 GOTS" } as const;',
+ 'export const GALLERY_QUERY = { q: "knitted shirts", certKinds: ["gots"], title: "Knitted shirts \u00b7 GOTS valid" } as const;'),
 ]
 
 # An interrupted sweep used to leave the tree mutated, and the next run then

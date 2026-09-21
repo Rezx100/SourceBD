@@ -886,9 +886,9 @@ describe("the screens claim only what the query asked for and the RPC answered",
   it("the saved-search count is the query's, not this page's", () => {
     const html = render(galleryData());
     // 42 is `total_count`; 4 is how many of the named records are on screen.
-    assert.match(html, /Knitted shirts · GOTS valid<[^>]*>42</);
+    assert.match(html, /Knitted shirts · GOTS<[^>]*>42</);
     const unread = render(galleryData({ discoverError: true, total: null, published: null }));
-    assert.doesNotMatch(unread, /Knitted shirts · GOTS valid<[^>]*>\d/, "an unread total is not a count");
+    assert.doesNotMatch(unread, /Knitted shirts · GOTS<[^>]*>\d/, "an unread total is not a count");
   });
 
   it("the shell states no figure the loader did not read", () => {
