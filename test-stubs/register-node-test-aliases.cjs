@@ -4,7 +4,9 @@ const Module = require("module");
 const path = require("path");
 
 const repoRoot = path.join(__dirname, "..");
-const outDir = path.join(repoRoot, "node_modules", ".cache", "sourcebd-tests");
+// Outside node_modules on purpose: Node >= 22 test runner refuses to load
+// test files from under node_modules ("Could not find ...").
+const outDir = path.join(repoRoot, process.env.TEST_BUILD_DIR || ".tests-build");
 const orig = Module._resolveFilename;
 Module._resolveFilename = function resolveWithTestAliases(
   request,
@@ -21,7 +23,7 @@ Module._resolveFilename = function resolveWithTestAliases(
   if (request === "next/cache") {
     return path.join(__dirname, "next-cache.cjs");
   }
-  if (request === "@phosphor-icons/react") {
+  if (request === "@phosphor-icons/react" || request === "@phosphor-icons/react/dist/ssr") {
     return path.join(__dirname, "phosphor-icons-react.cjs");
   }
   if (typeof request === "string" && request.endsWith(".css")) {

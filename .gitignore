@@ -90,3 +90,14 @@ _preflight.*
 # Unrelated browser-saved help page
 API Access _ OneProvider.htm
 API Access _ OneProvider_files/
+
+# compiled node:test output (npm test)
+.tests-build/
+
+# Screen recordings and session exports at the repo root (never source)
+/*.webm
+/Claude outputs/
+
+# Gallery evidence harness output (scripts/gallery/regen.sh)
+/_gallery-out/
+/.render-build/

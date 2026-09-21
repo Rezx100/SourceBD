@@ -10,7 +10,7 @@
     "typecheck": "tsc --noEmit",
     "test:http": "node scripts/test-profile-http-boundary.mjs",
     "test:http:build": "node scripts/test-profile-http-boundary.mjs --build",
-    "test": "tsc -p tsconfig.npm-test.json && node --require ./test-stubs/register-node-test-aliases.cjs --experimental-websocket --test --test-reporter spec node_modules/.cache/sourcebd-tests"
+    "test": "tsc -p tsconfig.npm-test.json && node --require ./test-stubs/register-node-test-aliases.cjs --experimental-websocket --test --test-reporter spec \".tests-build/**/*.test.js\""
   },
   "dependencies": {
     "@phosphor-icons/react": "^2.1.7",

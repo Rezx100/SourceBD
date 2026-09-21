@@ -1,0 +1,32 @@
+<div class="shell">
+  {{inc:sidebar}}
+  <div class="main">
+    {{inc:topbar}}
+    <div class="content">
+      {{inc:composer}}
+      <section class="panel">
+        <div class="phead">
+          <span class="cb"></span>
+          <div class="q"><span class="title">Knitted shirts · GOTS valid</span><span class="cap">320 suppliers · 1–25</span></div>
+          <div class="tools">
+            <button class="btn">{{ico:sort}} Most sources {{icos:caret}}</button>
+            <button class="btn">{{ico:bookmark}} Save search</button>
+            <button class="btn">{{ico:download}} Export CSV</button>
+            <span class="seg"><button aria-label="Cards">{{ico:cards}}</button><button class="on" aria-label="Table">{{ico:table}}</button></span>
+          </div>
+        </div>
+        <table class="rt"><colgroup><col style="width:44px"><col style="width:310px"><col style="width:128px"><col style="width:215px"><col style="width:135px"><col style="width:88px"><col style="width:74px"><col></colgroup>
+          <thead><tr><th></th><th>Supplier</th><th>Sources</th><th>Certificates</th><th>Export lines</th><th>Type</th><th class="num">Workers</th><th></th></tr></thead>
+          <tbody>
+{{inc:tablerows}}
+          </tbody>
+        </table>
+        <div class="pfoot">
+          <span class="cap">1–25 of 320</span>
+          <button class="btn ghost" style="height:28px;padding:0 8px">25 per page {{icos:caret}}</button>
+          <div class="pager"><button class="btn icon" disabled style="color:var(--ink-disabled);border-color:var(--line)">{{ico:chev-l}}</button><span class="cap">Page 1 of 13</span><button class="btn icon">{{ico:chev-r}}</button></div>
+        </div>
+      </section>
+    </div>
+  </div>
+</div>

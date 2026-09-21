@@ -5,22 +5,20 @@ alwaysApply: true
 
 # SourceBD Lean Context Boot
 
-For every SourceBD session, avoid loading the whole `/context` tree by default.
-
-Start with:
+Read these once per session, in this order, and never again in the session:
 
 1. `AGENTS.md`
 2. `context/agent-brief.md`
-3. `context/current-state.md`
-4. `context/feature-specs/active.md`
+3. `context/current-state.md` (cap 16 KB)
+4. `context/feature-specs/active.md` (cap 6 KB)
 
-Then read only the source documents needed for the task:
+Then only the task-relevant source of truth named in `AGENTS.md` rule 3.
 
-- Frontend/design: relevant sections of `context/frontend-design-spec.md` and the active FE spec.
-- ETL/data: `context/architecture.md`, `context/code-standards.md`, and the active ETL spec.
-- Security/auth/RLS: `context/architecture.md`, `context/ai-workflow-rules.md`, and the relevant spec.
-- Logo/source-mark work: `context/logos.lock.md`.
+`context/archive/*` and inactive `context/feature-specs/*` are never read
+whole: grep for the heading, read that section. Same for any file over
+~10 KB you did not write this session.
 
-Do not read `context/archive/*` or inactive `context/feature-specs/*` unless a named historical decision, regression, migration, smoke test, or production incident requires it.
+Do not re-read a boot file after editing it. Do not edit `AGENTS.md` or
+`agent-brief.md` mid-session.
 
-For small edits, prefer reading the affected code and narrow context sections over full documents.
+For small edits, read the affected code and narrow context sections only.

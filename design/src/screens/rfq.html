@@ -1,0 +1,80 @@
+<div class="stage" style="height:860px">
+<div class="shell">
+  {{inc:sidebar}}
+  <div class="main">
+    {{inc:topbar}}
+    <div class="content">
+      {{inc:composer}}
+      <section class="panel">
+        <div class="phead">
+          <span class="cb"></span>
+          <div class="q"><span class="title">Knitted shirts · GOTS valid</span><span class="cap">320 suppliers · 1–25</span></div>
+          <div class="tools">
+            <button class="btn">{{ico:sort}} Most sources {{icos:caret}}</button>
+            <button class="btn">{{ico:bookmark}} Save search</button>
+            <button class="btn">{{ico:download}} Export CSV</button>
+            <span class="seg"><button class="on" aria-label="Cards">{{ico:cards}}</button><button aria-label="Table">{{ico:table}}</button></span>
+          </div>
+        </div>
+        {{inc:card-aboni}}
+        {{inc:card-sm}}
+      </section>
+    </div>
+  </div>
+</div>
+<div class="scrim"></div>
+<div class="dialog" role="dialog" aria-label="New RFQ">
+  <div class="bar">
+    <span class="label strong">New RFQ</span>
+    <span class="cap">to Aboni Knitwear Ltd · first contact · HS 6105</span>
+    <span style="margin-left:auto" class="row"><span class="cap">Draft saved 14:02</span><button class="btn ghost icon" aria-label="Close">{{ico:x}}</button></span>
+  </div>
+  <div class="cols">
+    <nav class="crail">
+      <a href="#"><span class="t"><span class="label">Suppliers</span><span class="cap">Aboni Knitwear Ltd · first contact</span></span><span class="cnt">1</span></a>
+      <a href="#"><span class="t"><span class="label">Product</span><span class="cap">Men's knitted piqué polo · HS 6105</span><span class="cap w">Target price missing</span></span><span class="cnt">6105</span></a>
+      <a href="#" class="on"><span class="t"><span class="label">Details</span><span class="cap">Name, reply-by, incoterm, destination</span><span class="cap w">Reply-by date and destination missing</span></span><span class="cnt">2/6</span></a>
+      <a href="#"><span class="t"><span class="label">Questions</span><span class="cap">5 required on first contact</span></span><span class="cnt">10</span></a>
+      <a href="#" style="color:var(--smart)"><span class="t"><span class="label" style="color:var(--smart)">Follow-up rules <span class="tag v2">V2</span></span><span class="cap">Auto follow-up, auto reply</span></span></a>
+    </nav>
+    <div class="editor">
+      <div class="row" style="justify-content:space-between">
+        <span class="tmpl"><button class="on">First contact</button><button>Repeat supplier</button></span>
+        <span class="row"><button class="btn ghost">{{ico:paperclip}} Attach</button><button class="btn ghost">{{ico:plus}} Insert variable</button><button class="btn ghost" style="color:var(--smart)">{{ico:sparkle}} Improve wording <span class="tag v2">V2</span></button></span>
+      </div>
+      <div class="field"><span class="k">Subject</span><div class="input">RFQ · <span class="var">Product</span> · <span class="var">Quantity</span> · reply by <span class="var miss">Reply-by date</span></div></div>
+      <div class="field"><span class="k">Message</span><div class="input area">Dear <span class="var">Supplier contact</span>,<br><br>We read your record on SourceBD — GOTS <span class="var">Certificate no.</span> valid to <span class="var">Certificate expiry</span>, HS <span class="var">HS code</span> on your EPB exporter page — and would like a quotation for the line below, delivered <span class="var miss">Incoterm</span> to <span class="var miss">Destination</span>.<br><br>Please answer the five questions under the table. Reply inside SourceBD by <span class="var miss">Reply-by date</span>.</div></div>
+      <table class="ptable">
+        <thead><tr><th>Product</th><th>HS</th><th>Quantity</th><th>Target price</th><th>Ship by</th></tr></thead>
+        <tbody><tr><td>Men's knitted piqué polo, 220 gsm, 100 % cotton</td><td class="code">6105</td><td>12,000 pcs</td><td class="q">Missing</td><td>15 Dec 2026</td></tr></tbody>
+      </table>
+      <div class="field"><span class="k">Questions · 10, 5 required</span>
+        <div class="qlist">
+          <div class="r"><span class="cb on">{{ico:check}}</span>Unit price at 12,000 pcs, FOB Chattogram<span class="req">REQUIRED</span></div>
+          <div class="r"><span class="cb on">{{ico:check}}</span>Minimum order quantity per colour<span class="req">REQUIRED</span></div>
+          <div class="r"><span class="cb on">{{ico:check}}</span>Sample lead time and cost<span class="req">REQUIRED</span></div>
+          <div class="r"><span class="cb on">{{ico:check}}</span>Is GOTS-31587 the scope this line ships under?<span class="req">REQUIRED</span></div>
+          <div class="r"><span class="cap">+6 more · 2 required</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="preview">
+      <div class="row"><span class="label strong">As the supplier receives it</span><span class="cap" style="margin-left:auto">via SourceBD Messages</span></div>
+      <div class="msg">
+        <span class="from">From Rezx's workspace · RFQ #8 · reply inside SourceBD</span>
+        <span class="label strong">RFQ · Men's knitted piqué polo · 12,000 pcs · reply by <span class="flag">{{icos:warn}} date missing</span></span>
+        <span>Dear Aboni Knitwear Ltd,</span>
+        <span>We read your record on SourceBD — GOTS GOTS-31587 valid to 12 May 2027, HS 6105 on your EPB exporter page — and would like a quotation for the line below, delivered <span class="flag">{{icos:warn}} incoterm</span> to <span class="flag">{{icos:warn}} destination</span>.</span>
+        <span>Please answer the five questions under the table. Reply inside SourceBD by <span class="flag">{{icos:warn}} date missing</span>.</span>
+        <span class="cap">1 product line · 10 questions · no attachments</span>
+      </div>
+      <div class="cap">Your email and phone are not shared. The supplier's contact details stay on their record; replies land in Messages.</div>
+    </div>
+  </div>
+  <div class="foot">
+    <span class="cap">{{icos:warn}} 4 fields missing — target price, reply-by date, incoterm, destination</span>
+    <button class="btn">Save draft</button>
+    <button class="btn pri" disabled>{{ico:send}} Send RFQ</button>
+  </div>
+</div>
+</div>
