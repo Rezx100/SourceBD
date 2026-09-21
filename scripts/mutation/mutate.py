@@ -618,6 +618,14 @@ M = [
  'lib/hs-catalogue.ts',
  '  { hs: "6105", short: "Men\'s knitted shirts", heading: "Men\'s or boys\' shirts, knitted or crocheted", exporters: 1634, hasPhoto: true },',
  '  { hs: "6105", short: "Men\'s knitted shirts", heading: "Men\'s or boys\' shirts, knitted or crocheted", exporters: 1635, hasPhoto: true },'),
+ ('a11y-source-mark-drops-tier-name-linked',
+ 'components/dashboard/marks.tsx',
+ 'aria-label={`Source: ${mark.name}, ${TIER_NAME[mark.tier]} (opens ${mark.opens === "list" ? "the disclosure list" : "the register page"})`}',
+ 'aria-label={`Source: ${mark.name} (opens ${mark.opens === "list" ? "the disclosure list" : "the register page"})`}'),
+ ('a11y-source-mark-drops-tier-name-unlinked',
+ 'components/dashboard/marks.tsx',
+ '<span role="img" aria-label={`Source: ${mark.name}, ${TIER_NAME[mark.tier]}`} title={mark.name} className={classes}>',
+ '<span role="img" aria-label={`Source: ${mark.name}`} title={mark.name} className={classes}>'),
 ]
 
 # An interrupted sweep used to leave the tree mutated, and the next run then

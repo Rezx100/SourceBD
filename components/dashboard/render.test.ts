@@ -76,7 +76,7 @@ describe("SupplierResultCard (rendered)", () => {
     const html = renderToStaticMarkup(createElement(SupplierResultCard, { card: buildCard(aboniInput()) }));
     assert.match(html, NAME_WRAPS);
     assert.equal((html.match(/aria-label="Source: /g) ?? []).length, 11 + 1, "11 in the mark row, 1 beside the one attributed meta fact (workers, from RSC)");
-    assert.match(html, /<a href="https:\/\/www\.bgmea\.com\.bd\/member\/71"[^>]*aria-label="Source: Bangladesh Garment Manufacturers &amp; Exporters Association \(opens the register page\)"/);
+    assert.match(html, /<a href="https:\/\/www\.bgmea\.com\.bd\/member\/71"[^>]*aria-label="Source: Bangladesh Garment Manufacturers &amp; Exporters Association, Industry bodies \(opens the register page\)"/);
     assert.match(html, /11 sources/);
     assert.match(html, /Bangladesh Garment Manufacturers &amp; Exporters Association/);
     assert.match(html, /4 on file/);
@@ -1287,12 +1287,12 @@ describe("the sheet makes no claim about pages changing since the read", () => {
 describe("a mark says what its link opens", () => {
   it("a register page says register page; a brand's whole disclosure file says disclosure list", () => {
     const html = renderToStaticMarkup(createElement(SupplierResultCard, { card: buildCard(aboniInput()) }));
-    assert.match(html, /aria-label="Source: Export Promotion Bureau \(opens the register page\)"/);
+    assert.match(html, /aria-label="Source: Export Promotion Bureau, Government \(opens the register page\)"/);
     // ASOS, NEXT and H&M each publish one file listing every supplier on the
     // list; 267 published records were told it was their register page.
-    assert.match(html, /aria-label="Source: ASOS \(opens the disclosure list\)"/);
-    assert.match(html, /aria-label="Source: H&amp;M \(opens the disclosure list\)"/);
-    assert.doesNotMatch(html, /aria-label="Source: (?:ASOS|H&amp;M|NEXT|M&amp;S) \(opens the register page\)"/);
+    assert.match(html, /aria-label="Source: ASOS, Brand lists \(opens the disclosure list\)"/);
+    assert.match(html, /aria-label="Source: H&amp;M, Brand lists \(opens the disclosure list\)"/);
+    assert.doesNotMatch(html, /aria-label="Source: (?:ASOS|H&amp;M|NEXT|M&amp;S), Brand lists \(opens the register page\)"/);
   });
 });
 
@@ -1328,7 +1328,7 @@ describe("the certificate card's own mark links, and the sheet shows the registe
     const certs = html.slice(html.indexOf('id="certificates"'));
     // The square was a `<span role="img">` — built with `sourceMark(kind)` and
     // no URL — on every certificate on every sheet.
-    assert.match(certs, /<a href="https:\/\/wrapcompliance\.org\/certified-facility\/7865\/"[^>]*aria-label="Source: Worldwide Responsible Accredited Production \(opens the register page\)"/);
+    assert.match(certs, /<a href="https:\/\/wrapcompliance\.org\/certified-facility\/7865\/"[^>]*aria-label="Source: Worldwide Responsible Accredited Production, Certification bodies \(opens the register page\)"/);
     assert.match(certs, /<a href="https:\/\/www\.global-trace-base\.org\/SCO039488\/certificate-document"/);
     assert.equal((certs.match(/aria-label="Source: [^"]*"/g) ?? []).length, 4, "one square per certificate");
     assert.equal((certs.match(/<a href="[^"]*"[^>]*aria-label="Source: /g) ?? []).length, 4, "and every one of them links");

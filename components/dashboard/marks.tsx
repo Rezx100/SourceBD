@@ -5,7 +5,7 @@
 // a two-letter mono stamp inside. Beside a single fact it is 16px. Neutral on
 // purpose: rank reads without a legend and colour stays free for status.
 
-import type { TierRank } from "@/lib/design/tokens";
+import { tiers, type TierRank } from "@/lib/design/tokens";
 import { sourceCountLabel, type SourceMarkModel } from "@/lib/dashboard/source-tiers";
 import { cn } from "@/lib/utils";
 
@@ -16,6 +16,15 @@ export const TIER_FILL: Record<TierRank, string> = {
   4: "bg-tier-4 text-tier-4-on",
   5: "bg-tier-5 text-tier-5-on ring-1 ring-inset ring-tier-5-line",
 };
+
+// Rank is carried by fill lightness alone, which fails WCAG 1.4.1/1.3.1 for
+// anyone who cannot tell the fills apart: the accessible name below is the
+// text equivalent (accessibility, cycle 19, BLOCKING F1 part A). `tiers` is
+// the same rank→name list the dev tools legend renders (app/dev/ds/page.tsx).
+const TIER_NAME: Record<TierRank, string> = Object.fromEntries(tiers.map((t) => [t.rank, t.label])) as Record<
+  TierRank,
+  string
+>;
 
 /** One rank square. `sm` is the 16px form used beside a fact. Links to the register page when the record carries one. */
 export function SourceMark({ mark, sm = false, className }: { mark: SourceMarkModel; sm?: boolean; className?: string }) {
@@ -31,7 +40,7 @@ export function SourceMark({ mark, sm = false, className }: { mark: SourceMarkMo
         href={mark.href}
         target="_blank"
         rel="noreferrer"
-        aria-label={`Source: ${mark.name} (opens ${mark.opens === "list" ? "the disclosure list" : "the register page"})`}
+        aria-label={`Source: ${mark.name}, ${TIER_NAME[mark.tier]} (opens ${mark.opens === "list" ? "the disclosure list" : "the register page"})`}
         title={mark.name}
         className={classes}
       >
@@ -40,7 +49,7 @@ export function SourceMark({ mark, sm = false, className }: { mark: SourceMarkMo
     );
   }
   return (
-    <span role="img" aria-label={`Source: ${mark.name}`} title={mark.name} className={classes}>
+    <span role="img" aria-label={`Source: ${mark.name}, ${TIER_NAME[mark.tier]}`} title={mark.name} className={classes}>
       {mark.mark}
     </span>
   );
