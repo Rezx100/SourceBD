@@ -614,6 +614,10 @@ M = [
  'lib/dashboard/gallery-data.ts',
  'export const GALLERY_QUERY = { q: "knitted shirts", certKinds: ["gots"], title: "Knitted shirts \u00b7 GOTS" } as const;',
  'export const GALLERY_QUERY = { q: "knitted shirts", certKinds: ["gots"], title: "Knitted shirts \u00b7 GOTS valid" } as const;'),
+ ('c19-hs-catalogue-6105-exporter-count-regresses',
+ 'lib/hs-catalogue.ts',
+ '  { hs: "6105", short: "Men\'s knitted shirts", heading: "Men\'s or boys\' shirts, knitted or crocheted", exporters: 1634, hasPhoto: true },',
+ '  { hs: "6105", short: "Men\'s knitted shirts", heading: "Men\'s or boys\' shirts, knitted or crocheted", exporters: 1635, hasPhoto: true },'),
 ]
 
 # An interrupted sweep used to leave the tree mutated, and the next run then

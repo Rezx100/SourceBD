@@ -633,7 +633,7 @@ describe("buildProductSheet — HS 6105 on the Aboni record", () => {
     assert.equal(byLabel["Price · MOQ · lead time"]!.value, null);
     assert.equal(byLabel["Product list"]!.pendingSource, true, "the product list is not stamped with a guessed register");
     assert.deepEqual(byLabel["Product list"]!.marks, []);
-    assert.equal(ps.otherExporters, 1634);
+    assert.equal(ps.otherExporters, 1633);
   });
 
   // Cycle 5, finding 10: `Certified scope` dropped the `Products:` half — the

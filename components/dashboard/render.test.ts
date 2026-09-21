@@ -669,7 +669,7 @@ describe("ProductSheet (rendered)", () => {
     assert.match(html, /EPB lists lines, not dates/);
     assert.match(html, /supplier-attested fields, shown when attested/);
     assert.match(html, /Other exporters of 6105/);
-    assert.match(html, /1,634/);
+    assert.match(html, /1,633/);
     assert.doesNotMatch(html, /Sanctioned/, "a clean record carries no sanction banner");
     assert.doesNotMatch(html, /disabled=""/, "Send RFQ is enabled on a clean record");
   });
