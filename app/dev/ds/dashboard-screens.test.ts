@@ -46,6 +46,27 @@ const EMPTY_RFQS: RfqListModel = {
   toast: null,
 };
 
+/**
+ * A `role="search"` landmark with no operable descendant fails ARIA's own
+ * definition of the role (accessibility, cycle 19, BLOCKING F2). The match is
+ * scoped to the element carrying the role via a backreference to its own
+ * captured tag name, not a hardcoded tag list — cycle 20's guard-adequacy
+ * critic demonstrated that the old `<\/(?:div|section|form)>` alternation let
+ * a `<span role="search">` with nothing operable inside it slip through
+ * undetected: the lazy match ran past the span's own close hunting for one
+ * of those three tags and picked up an unrelated button several siblings
+ * later, so every test in the suite stayed green. See the dedicated test
+ * below, which pins this function's behaviour directly against synthetic
+ * markup, independent of whatever tag the app's own boxes currently use.
+ */
+function searchLandmarksWithoutAnOperableControl(html: string): string[] {
+  const offenders: string[] = [];
+  for (const m of html.matchAll(/<([a-z]+)\b[^>]*\brole="search"[^>]*>[\s\S]*?<\/\1>/g)) {
+    if (!/<(?:input|button|select|textarea|a\s[^>]*href=)/.test(m[0]!)) offenders.push(m[0]!);
+  }
+  return offenders;
+}
+
 function galleryData(over: Partial<GalleryData> = {}): GalleryData {
   const rec = (input: ReturnType<typeof aboniInput>, slug: string): GalleryRecord => ({ slug, input });
   const records = {
@@ -688,9 +709,10 @@ describe("what the whole page may and may not say about itself", () => {
       // topbar and RFQ-list look-alike search boxes no longer carry the role
       // at all (they have no input to search with yet), so this asserts the
       // invariant going forward rather than naming boxes that should not be
-      // landmarks in the first place.
-      for (const m of reachable.matchAll(/<[a-z]+\b[^>]*\brole="search"[^>]*>[\s\S]*?<\/(?:div|section|form)>/g)) {
-        assert.match(m[0]!, /<(?:input|button|select|textarea|a\s[^>]*href=)/, `role="search" with no operable control: ${m[0]!.slice(0, 120)}`);
+      // landmarks in the first place. See `searchLandmarksWithoutAnOperableControl`
+      // above (cycle 20's guard-adequacy fix) and its dedicated test below.
+      for (const offender of searchLandmarksWithoutAnOperableControl(reachable)) {
+        assert.fail(`role="search" with no operable control: ${offender.slice(0, 120)}`);
       }
       mainNames.push(...[...reachable.matchAll(/<main id="[^"]+" aria-label="([^"]+)"/g)].map((m) => m[1]!));
       skipLinkNames.push(...[...reachable.matchAll(/<a href="#[^"]+" class="sr-only[^>]*>([^<]+)<\/a>/g)].map((m) => m[1]!));
@@ -749,6 +771,38 @@ describe("what the whole page may and may not say about itself", () => {
     assert.equal(mainNames.length, new Set(mainNames).size, `two live main landmarks share a name: ${mainNames.join(", ")}`);
     assert.ok(skipLinkNames.length >= 3, "the page still draws the live skip links this guard is about");
     assert.equal(skipLinkNames.length, new Set(skipLinkNames).size, `two live skip links share their text: ${skipLinkNames.join(", ")}`);
+  });
+
+  it('a role="search" landmark with no operable control is caught whatever tag carries the role', () => {
+    // Cycle 20 guard-adequacy critic: the check above used to hardcode its
+    // closing-tag alternation to div/section/form. Reintroducing
+    // `role="search"` on a `<span>` — exactly the kind of markup change the
+    // surrounding code expects once the results work wires up a real control
+    // — slipped through undetected in every test in the suite, because the
+    // lazy match ran past the span's own close hunting for one of those
+    // three tags and picked up an unrelated button several siblings later.
+    // This pins the fix directly against synthetic markup, independent of
+    // whatever tag the app's own boxes happen to use today.
+    assert.deepEqual(
+      searchLandmarksWithoutAnOperableControl('<span role="search"><em>Search suppliers</em></span><button>Help</button>'),
+      ['<span role="search"><em>Search suppliers</em></span>'],
+      'a role="search" span with nothing operable inside it must be caught, not skipped past to a later button',
+    );
+    assert.deepEqual(
+      searchLandmarksWithoutAnOperableControl('<span role="search"><input placeholder="Search" /></span>'),
+      [],
+      'a role="search" span WITH an operable control must not be flagged',
+    );
+    assert.deepEqual(
+      searchLandmarksWithoutAnOperableControl('<div role="search"><a href="/search">Go</a></div>'),
+      [],
+      "the original div case with an operable control still passes",
+    );
+    assert.deepEqual(
+      searchLandmarksWithoutAnOperableControl('<div role="search">static text only</div>'),
+      ['<div role="search">static text only</div>'],
+      "the original div violation is still caught",
+    );
   });
 });
 
