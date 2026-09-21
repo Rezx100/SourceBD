@@ -151,7 +151,12 @@ export function DashboardScreens({ data: d }: { data: GalleryData }) {
       <Frame
         id="results-table"
         title="ResultsTable — the toggle's other state"
-        note={`Same header and footer, 36px rows, ${d.rows.length} rows: the four named records${d.rows.length > d.cards.length ? `, plus discovery's next ${d.rows.length - d.cards.length} live match${d.rows.length - d.cards.length === 1 ? "" : "es"} — this is the one screen that draws them` : ""}.`}
+        // `tableSelection(d)` (below), not a second copy of its arithmetic:
+        // a hard-coded "four" here used to survive any read where fewer than
+        // four named records loaded, and disagreed with the panel header the
+        // moment discovery rows joined the table (correctness + guard-adequacy,
+        // cycle 19).
+        note={`Same header and footer, 36px rows, ${d.rows.length} rows: ${tableSelection(d)}.`}
       >
         <AppShell sidebar={results.sidebar} topbar={tableTopbarModel(d)} mainId="results-table-main" screenLabel="results table">
           <SearchComposer chips={composerChips} askEnabled={false} />

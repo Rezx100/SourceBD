@@ -586,6 +586,10 @@ M = [
  'lib/dashboard/gallery-data.ts',
  '  const tableRecordsReadOn = tableSpan.on;',
  '  const tableRecordsReadOn = null;'),
+ ('c19-results-table-note-drops-tableselection',
+ 'app/dev/ds/dashboard-screens.tsx',
+ 'note={`Same header and footer, 36px rows, ${d.rows.length} rows: ${tableSelection(d)}.`}',
+ 'note={`Same header and footer, 36px rows, ${d.rows.length} rows: the four named records.`}'),
 ]
 
 # An interrupted sweep used to leave the tree mutated, and the next run then
