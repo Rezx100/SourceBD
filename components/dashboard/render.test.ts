@@ -573,6 +573,26 @@ describe("PanelFooter (rendered)", () => {
     assert.doesNotMatch(html, /aria-label="Next page"[^>]*disabled=""/);
   });
 
+  it("the HEADER's row range follows the page too", () => {
+    // The footer was fixed and tested; the header was fixed and not, so
+    // hardcoding its range back to 1 left the whole suite green while
+    // "300 suppliers · 1–25" sat above rows 51–75.
+    const html = renderToStaticMarkup(
+      createElement(PanelHeader, {
+        model: {
+          title: "Knit",
+          total: 300,
+          shown: 25,
+          firstRow: 51,
+          sortLabel: "Name",
+          view: "cards" as const,
+        },
+      }),
+    );
+    assert.match(html, /51–75/, "the header still claims the first page's range");
+    assert.doesNotMatch(html, /· 1–25/);
+  });
+
   it("the row range follows the page instead of always claiming the first", () => {
     // `1–${shown}` was printed unconditionally, so page 3 of a 300-row set read
     // "1–25 of 300" with rows 51–75 on screen. Wrong on every page but the first.

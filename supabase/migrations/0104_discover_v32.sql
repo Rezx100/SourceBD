@@ -73,33 +73,6 @@ comment on table public.saved_searches is
 -- HS helpers — same EPB source_records pattern as 0103 / the reconciliation query
 -- ---------------------------------------------------------------------------
 
--- The workers figure a buyer sees on a card is NOT suppliers.employees_total:
--- `lib/enrich-discover-workers.ts` overwrites it with
--- production_workers_display_batch, which rolls the mother record up with every
--- `facility_of` building and prefers each site's RSC count over its registry
--- one. Filtering and sorting on the raw column therefore contradicted the
--- screen: a "≥ 5,000 workers" chip sat above a row reading "1,200 workers", and
--- the Workers sort produced a visibly unordered column.
---
--- This wraps the existing function rather than restating its logic. AGENTS.md
--- rule 14 is explicit that two independently-written definitions of one measure
--- will disagree and then nobody knows which number is real — so there stays
--- exactly one definition of "workers", and this is a thin read of it. The cost
--- is a per-row call, paid only when a workers filter or sort is in play.
-create or replace function public.discover_v32_workers(p_supplier_id uuid)
-returns int
-language sql
-stable
-set search_path = public
-as $$
-  select nullif(
-    (public.production_workers_display_batch(array[p_supplier_id]) -> p_supplier_id::text ->> 'value'),
-    ''
-  )::int;
-$$;
-
-revoke all on function public.discover_v32_workers(uuid) from public;
-
 create or replace function public.discover_v32_est_year(p_established text)
 returns int
 language sql
@@ -453,9 +426,16 @@ as $$
     and (
       p_skip = 'workers'
       or (
-        -- The displayed roll-up, not the raw column: see discover_v32_workers.
-        (p_workers_min is null or public.discover_v32_workers(s.id) >= p_workers_min)
-        and (p_workers_max is null or public.discover_v32_workers(s.id) <= p_workers_max)
+        -- The REGISTER's figure for this record, which is what the chip and
+        -- the sort are named for. Calling the group roll-up
+        -- (production_workers_display_batch) per row was tried and reverted:
+        -- discover_suppliers is granted to `anon` and PostgREST serves it
+        -- outside Next's middleware and rate limiter, so an unauthenticated
+        -- caller could force one 5-CTE roll-up per published supplier per
+        -- request. The display/filter mismatch it was meant to fix is closed by
+        -- naming both figures honestly instead — see build-discover-row.ts.
+        (p_workers_min is null or s.employees_total >= p_workers_min)
+        and (p_workers_max is null or s.employees_total <= p_workers_max)
       )
     )
     and (
@@ -625,13 +605,18 @@ begin
            case when p_sort = 'completeness' then c.completeness_pct end desc nulls last,
            case when p_sort = 'name' then c.company_name end asc,
            case when p_sort = 'receipts' then c.t13_source_count end desc nulls last,
-           case when p_sort = 'workers' then public.discover_v32_workers(c.id) end desc nulls last,
+           case when p_sort = 'workers' then c.employees_total end desc nulls last,
            case when p_sort = 'established' then public.discover_v32_est_year(c.established_date) end asc nulls last,
            case when p_sort = 'cert_expiry' then public.discover_v32_next_cert_expiry(c.id) end asc nulls last,
            case when p_sort = 'hs_lines' then cardinality(public.discover_v32_hs_codes(c.id)) end desc nulls last,
            c.sbi_total desc nulls last,
            c.t13_source_count desc nulls last,
-           c.company_name asc
+           c.company_name asc,
+           -- A unique final key. Without one Postgres may return tied rows in a
+           -- different order per call, and the CSV export issues ten separate
+           -- calls at increasing offsets — so a supplier can appear twice in a
+           -- sourcing file while another silently vanishes.
+           , c.id asc
          limit v_lim offset v_off
       )
       select p.id, p.slug, p.company_name, p.entity_type, p.city, p.district,
@@ -711,7 +696,12 @@ begin
          case when coalesce(p_sort, 'default') = 'default' then f.search_rank end desc nulls last,
          f.sbi_total desc nulls last,
          f.t13_source_count desc nulls last,
-         f.company_name asc
+         f.company_name asc,
+           -- A unique final key. Without one Postgres may return tied rows in a
+           -- different order per call, and the CSV export issues ten separate
+           -- calls at increasing offsets — so a supplier can appear twice in a
+           -- sourcing file while another silently vanishes.
+         , f.id asc
        limit v_lim offset v_off
     )
     select p.id, p.slug, p.company_name, p.entity_type, p.city, p.district,

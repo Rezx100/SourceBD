@@ -226,6 +226,33 @@ describe("discover CSV export boundary", () => {
     assert.equal(res.status, 200, "supplier-controlled text must not be able to break the export");
   });
 
+  it("carries the buyer's filters into the query", async () => {
+    // Every other stub here ignores everything but offset and limit, so
+    // replacing the parsed state with an empty one — turning the export into
+    // the unfiltered top 1,000 suppliers rather than the search on screen —
+    // left all of them green.
+    const seen: Record<string, unknown>[] = [];
+    const res = await runDiscoverExport({
+      role: "buyer",
+      supabase: {
+        rpc: async (_fn: string, args?: Record<string, unknown>) => {
+          seen.push(args ?? {});
+          return { data: [ROW], error: null };
+        },
+      },
+      search: "?q=knit&hs=6105,6110&cert=gots:valid&reg=BGMEA&sort=name",
+      today: TODAY,
+    });
+    assert.equal(res.status, 200);
+    const args = seen[0] ?? {};
+    assert.equal(args.p_q, "knit", "the keywords never reached the query");
+    assert.deepEqual(args.p_hs_codes, ["6105", "6110"], "the HS filter never reached the query");
+    assert.deepEqual(args.p_cert_kinds, ["gots"], "the certificate filter never reached the query");
+    assert.equal(args.p_cert_state, "valid");
+    assert.deepEqual(args.p_registries, ["BGMEA"], "the register filter never reached the query");
+    assert.equal(args.p_sort, "name", "the sort never reached the query");
+  });
+
   it("503 when the search cannot be read", async () => {
     const res = await runDiscoverExport({
       role: "buyer",

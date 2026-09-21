@@ -8,9 +8,13 @@ export const PER_PAGE = [25, 50, 100] as const;
 export type PerPage = (typeof PER_PAGE)[number];
 
 export const SORTS = [
-  { value: "sources", rpc: "receipts", label: "Most sources" },
+  // Orders on t13_source_count (registers and certifiers), not the wider
+  // source-mark count the card prints beside the mark row.
+  { value: "sources", rpc: "receipts", label: "Most registers & certifiers" },
   { value: "name", rpc: "name", label: "Name" },
-  { value: "workers", rpc: "workers", label: "Workers" },
+  // Orders on the register's own figure for the record, not the group
+  // roll-up a card may display — the two are named apart so neither lies.
+  { value: "workers", rpc: "workers", label: "Workers on the register" },
   { value: "established", rpc: "established", label: "Established" },
   { value: "cert_expiry", rpc: "cert_expiry", label: "Certificate expiry soonest" },
   { value: "hs_lines", rpc: "hs_lines", label: "HS lines" },
@@ -156,7 +160,12 @@ export function parseDiscoverState(
   const cert = csv(sp, "cert")
     .map(parseCert)
     .filter((x): x is CertFilter => x !== null);
-  const reg = csv(sp, "reg").filter((x): x is RegistryCode => REG_SET.has(x));
+  // Upper-cased first: the filter form is a free-text box, and typing
+  // "bgmea" used to yield no chip, no error and an unfiltered result set the
+  // buyer read as filtered. Same for `type` and `rsc` below.
+  const reg = [
+    ...new Set(csv(sp, "reg").map((x) => x.toUpperCase())),
+  ].filter((x): x is RegistryCode => REG_SET.has(x));
   const brand = [
     ...new Set(
       csv(sp, "brand").map((b) => {
@@ -167,12 +176,14 @@ export function parseDiscoverState(
       }),
     ),
   ].filter((b) => b.startsWith("BRAND_"));
-  const type = csv(sp, "type").filter((x): x is EntityType => TYPE_SET.has(x));
+  const type = [
+    ...new Set(csv(sp, "type").map((x) => x.toLowerCase().replace(/[\s-]+/g, "_"))),
+  ].filter((x): x is EntityType => TYPE_SET.has(x));
   const sortRaw = one(sp, "sort");
   const sort = (SORT_SET.has(sortRaw) ? sortRaw : "sources") as DiscoverSort;
   const perRaw = intOrNull(one(sp, "per"), 1, 100);
   const per = (perRaw && PER_SET.has(perRaw) ? perRaw : 25) as PerPage;
-  const rscRaw = one(sp, "rsc");
+  const rscRaw = one(sp, "rsc").toLowerCase();
   const rsc = rscRaw === "active" || rscRaw === "lapsed" ? rscRaw : null;
   const viewRaw = one(sp, "view");
 
@@ -413,7 +424,11 @@ export function discoverChips(state: DiscoverState): DiscoverChip[] {
   if (state.minSources != null) {
     chips.push({
       key: "min_sources",
-      label: `≥ ${state.minSources} sources`,
+      // `p_min_sources` filters on t13_source_count — registers and
+      // certifiers (tiers 1–3), NOT the brand lists a card's "11 sources"
+      // includes. Labelled "sources" it promised a count the query does not
+      // use: a record showing "0 sources" matched "≥ 1 sources".
+      label: `≥ ${state.minSources} registers or certifiers`,
       without: { ...state, minSources: null, page: 1 },
     });
   }
@@ -441,10 +456,10 @@ export function discoverChips(state: DiscoverState): DiscoverChip[] {
       key: "workers",
       label:
         state.workersMin != null && state.workersMax != null
-          ? `${state.workersMin}–${state.workersMax} workers`
+          ? `${state.workersMin}–${state.workersMax} workers on the register`
           : state.workersMin != null
-            ? `≥ ${state.workersMin} workers`
-            : `≤ ${state.workersMax} workers`,
+            ? `≥ ${state.workersMin} workers on the register`
+            : `≤ ${state.workersMax} workers on the register`,
       without: { ...state, workersMin: null, workersMax: null, page: 1 },
     });
   }
@@ -460,6 +475,85 @@ export function discoverChips(state: DiscoverState): DiscoverChip[] {
     });
   }
   return chips;
+}
+
+/**
+ * The state with one whole filter family removed, matching what
+ * `discover_suppliers_explain` actually drops when it reports "N remain".
+ *
+ * The zero-results suggestions used to look the family up among the chips by
+ * key prefix, which failed twice over: the explain dimension is `registry`
+ * while the chips are keyed `reg-<CODE>`, so "Drop registry" linked to the
+ * unchanged search; and for a multi-value filter it removed only the first
+ * chip while the RPC had counted with the whole family dropped, so the
+ * promised remainder was wrong and the page usually stayed empty.
+ */
+export function withoutFilterFamily(state: DiscoverState, dropped: string): DiscoverState | null {
+  const base = { ...state, page: 1 };
+  switch (dropped) {
+    case "q":
+      return { ...base, q: "" };
+    case "hs":
+      return { ...base, hs: [] };
+    case "cert":
+      return { ...base, cert: [] };
+    case "registry":
+      return { ...base, reg: [] };
+    case "brand":
+      return { ...base, brand: [] };
+    case "district":
+      return { ...base, district: [] };
+    case "city":
+      return { ...base, city: [] };
+    case "type":
+      return { ...base, type: [] };
+    case "rsc":
+      return { ...base, rsc: null };
+    case "est":
+      return { ...base, estFrom: null, estTo: null };
+    case "workers":
+      return { ...base, workersMin: null, workersMax: null };
+    case "sources":
+      return { ...base, minSources: null };
+    case "sanction":
+      return { ...base, sanctioned: true };
+    default:
+      return null;
+  }
+}
+
+/** The buyer-facing name of a filter family, for "Drop <this>". */
+export function filterFamilyLabel(dropped: string): string {
+  switch (dropped) {
+    case "q":
+      return "the keywords";
+    case "hs":
+      return "the HS headings";
+    case "cert":
+      return "the certificate filter";
+    case "registry":
+      return "the register filter";
+    case "brand":
+      return "the brand list filter";
+    case "district":
+      return "the district filter";
+    case "city":
+      return "the city filter";
+    case "type":
+      return "the type filter";
+    case "rsc":
+      return "the RSC filter";
+    case "est":
+      return "the established range";
+    case "workers":
+      return "the workers range";
+    case "sources":
+      return "the sources minimum";
+    case "sanction":
+      return "the sanctioned exclusion";
+    default:
+      return dropped;
+  }
 }
 
 export function queryTitle(state: DiscoverState): string {

@@ -27,10 +27,12 @@ import {
   discoverHiddenParams,
   discoverHref,
   filterCount,
+  filterFamilyLabel,
   parseDiscoverState,
   queryTitle,
   serializeDiscoverState,
   sortLabel,
+  withoutFilterFamily,
   type DiscoverState,
 } from "@/lib/discover-v32-state";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -139,36 +141,60 @@ function DiscoverFilters({ state }: { state: DiscoverState }) {
             className="h-control rounded-sm border border-line-strong bg-surface px-2"
           />
         </label>
-        <label className="flex flex-col gap-1 text-sm">
-          <span className="text-ink-muted">Workers min–max</span>
+        {/* A <label> labels only its FIRST labelable descendant, so wrapping
+            two inputs left the second one — the maximum, and the "to" year —
+            with no accessible name at all, and gave the first a name naming
+            both. Each input gets its own label. */}
+        <fieldset className="flex flex-col gap-1 text-sm">
+          <legend className="text-ink-muted">Workers</legend>
           <span className="flex gap-2">
-            <input
-              name="workers_min"
-              defaultValue={state.workersMin ?? ""}
-              className="h-control w-full rounded-sm border border-line-strong bg-surface px-2"
-            />
-            <input
-              name="workers_max"
-              defaultValue={state.workersMax ?? ""}
-              className="h-control w-full rounded-sm border border-line-strong bg-surface px-2"
-            />
+            <label className="flex-1">
+              <span className="sr-only">Workers, minimum</span>
+              <input
+                name="workers_min"
+                inputMode="numeric"
+                placeholder="min"
+                defaultValue={state.workersMin ?? ""}
+                className="h-control w-full rounded-sm border border-line-strong bg-surface px-2"
+              />
+            </label>
+            <label className="flex-1">
+              <span className="sr-only">Workers, maximum</span>
+              <input
+                name="workers_max"
+                inputMode="numeric"
+                placeholder="max"
+                defaultValue={state.workersMax ?? ""}
+                className="h-control w-full rounded-sm border border-line-strong bg-surface px-2"
+              />
+            </label>
           </span>
-        </label>
-        <label className="flex flex-col gap-1 text-sm">
-          <span className="text-ink-muted">Established from–to</span>
+        </fieldset>
+        <fieldset className="flex flex-col gap-1 text-sm">
+          <legend className="text-ink-muted">Established</legend>
           <span className="flex gap-2">
-            <input
-              name="est_from"
-              defaultValue={state.estFrom ?? ""}
-              className="h-control w-full rounded-sm border border-line-strong bg-surface px-2"
-            />
-            <input
-              name="est_to"
-              defaultValue={state.estTo ?? ""}
-              className="h-control w-full rounded-sm border border-line-strong bg-surface px-2"
-            />
+            <label className="flex-1">
+              <span className="sr-only">Established, from year</span>
+              <input
+                name="est_from"
+                inputMode="numeric"
+                placeholder="from"
+                defaultValue={state.estFrom ?? ""}
+                className="h-control w-full rounded-sm border border-line-strong bg-surface px-2"
+              />
+            </label>
+            <label className="flex-1">
+              <span className="sr-only">Established, to year</span>
+              <input
+                name="est_to"
+                inputMode="numeric"
+                placeholder="to"
+                defaultValue={state.estTo ?? ""}
+                className="h-control w-full rounded-sm border border-line-strong bg-surface px-2"
+              />
+            </label>
           </span>
-        </label>
+        </fieldset>
         <div className="flex items-end">
           <button type="submit" className="h-control rounded-sm border border-brand bg-brand px-3 text-sm font-medium text-brand-on">
             Apply filters
@@ -307,12 +333,15 @@ export default async function BuyerDiscoverPage({
                   .slice()
                   .sort((a, b) => a.remaining - b.remaining)
                   .map((e) => {
-                    const chip = chips.find((c) => c.key === e.dropped || c.key.startsWith(`${e.dropped}-`));
-                    const hrefDrop = chip ? discoverHref(chip.without) : discoverHref(state);
+                    // The whole family, exactly as the RPC dropped it to
+                    // arrive at `remaining` — otherwise the link promises a
+                    // count it does not deliver, or goes nowhere at all.
+                    const without = withoutFilterFamily(state, e.dropped);
+                    if (!without) return null;
                     return (
                       <li key={e.dropped}>
-                        <Link href={hrefDrop} className="text-brand-ink">
-                          Drop {e.dropped} · {e.remaining} remain
+                        <Link href={discoverHref(without)} className="text-brand-ink">
+                          Drop {filterFamilyLabel(e.dropped)} · {e.remaining} remain
                         </Link>
                       </li>
                     );

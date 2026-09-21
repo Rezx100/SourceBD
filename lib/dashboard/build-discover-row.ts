@@ -55,6 +55,11 @@ export function certsFromSummary(raw: unknown, today: Date): CertModel[] {
   return sortCerts(out);
 }
 
+/** "8 registers & certifiers" — the population `p_min_sources` filters on. */
+function registerCountLabel(n: number): string {
+  return `${n} ${n === 1 ? "register or certifier" : "registers & certifiers"}`;
+}
+
 function brandNames(codes: readonly string[]): string[] {
   const out: string[] = [];
   const seen = new Set<string>();
@@ -93,6 +98,12 @@ export function buildDiscoverCard(
   const year = establishedYearOf(row.established_date);
   const place = placeLabel(row.city, row.district);
   const workers = row.employees_total;
+  // "A group sum is never printed bare" (build-models.ts). On this page the
+  // figure is whatever enrichDiscoverWorkers left: the register's own number,
+  // or a roll-up of this record plus its buildings. The batch does not return
+  // the site breakdown, so the wording is the general one build-models uses
+  // when the composition is unknown.
+  const workersCoverage = row.workers_is_group ? "across this record and its buildings" : null;
 
   const chips: HighlightChip[] = [];
   for (const c of certList.slice(0, 2)) {
@@ -183,9 +194,14 @@ export function buildDiscoverCard(
     ...(place ? [{ text: place, mark: null }] : []),
     ...(year ? [{ text: `Est. ${year}`, mark: null }] : []),
     ...(workers != null
-      ? [{ text: `${formatCount(workers)} workers`, mark: null }]
+      ? [{ text: `${formatCount(workers)} workers${workersCoverage ? ` ${workersCoverage}` : ""}`, mark: null }]
       : [{ text: "Workers not on file", mark: null, quiet: true as const }]),
-    { text: sourceCountLabel(marks.length), mark: null },
+    // The mark row beside this already shows every source, brand lists
+    // included. This number must be the one the "≥ N registers or certifiers"
+    // filter and the "Most registers & certifiers" sort actually use
+    // (t13_source_count, tiers 1–3), or a card reads "0 sources" while
+    // matching "≥ 1". Named for what it counts.
+    { text: registerCountLabel(row.t13_source_count ?? 0), mark: null },
   ];
 
   return {
@@ -236,10 +252,20 @@ export function buildDiscoverTableRow(
     certsEmptyReason: certList.length === 0 ? "none on file" : null,
     photos: opts.hsError ? [] : photoTiles(lines, 3),
     totalLines: lines.length,
-    linesEmptyReason: opts.hsError ? "EPB could not be read" : lines.length > 0 ? null : "not on EPB list",
+    // Same rule as the card and the photo tile: an empty line list is not a
+    // claim about the register. The table said "not on EPB list" regardless,
+    // so one record contradicted itself between ?view=cards and ?view=table.
+    linesEmptyReason: opts.hsError
+      ? "EPB could not be read"
+      : lines.length > 0
+        ? null
+        : card.onEpbRegister
+          ? "no lines recorded"
+          : "not on EPB list",
     type: entityLabel(row.entity_type),
     workers: row.employees_total,
-    workersCoverage: null,
+    // Same rule as the card: a group roll-up is never printed bare.
+    workersCoverage: row.workers_is_group ? "across this record and its buildings" : null,
     sanctioned: card.sanctioned,
     selected: false,
     saved: Boolean(opts.saved),

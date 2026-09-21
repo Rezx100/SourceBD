@@ -32,6 +32,8 @@ export type DiscoverV32Row = {
   hs_codes: string[] | null;
   brand_codes: string[] | null;
   registries: string[] | null;
+  /** Set by enrichDiscoverWorkers when employees_total is a group roll-up. */
+  workers_is_group?: boolean;
   top_tier: number | null;
 };
 

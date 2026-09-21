@@ -33,6 +33,16 @@ const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 const COUNT_FRESH_MS = 10 * 60 * 1000;
+/** Most saved searches a list call will return. */
+const LIST_LIMIT = 200;
+/**
+ * Most stale counts one list call will refresh. Each refresh is a full
+ * `discover_suppliers` scan, and the list ran one per stale row, sequentially,
+ * with no ceiling on either: a buyer with a few thousand saved searches turned
+ * a single GET into thousands of scans, every ten minutes. The rest keep the
+ * count they have, which the response already marks as of its own timestamp.
+ */
+const MAX_REFRESH_PER_CALL = 10;
 
 function asState(raw: unknown): DiscoverState {
   if (raw && typeof raw === "object" && !Array.isArray(raw)) {
@@ -68,7 +78,8 @@ export async function runSavedSearchesGet(input: {
     .from("saved_searches")
     .select("id, name, query_state, created_at, last_count, last_counted_at")
     .eq("owner_id", ownerId)
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: false })
+    .limit(LIST_LIMIT);
   if (listed.error) {
     return { status: 500, body: { error: "list failed", detail: listed.error.message } };
   }
@@ -76,12 +87,14 @@ export async function runSavedSearchesGet(input: {
   const now = input.now ?? new Date();
   const rows = (listed.data ?? []) as Record<string, unknown>[];
   const out: SavedSearchJson[] = [];
+  let refreshed = 0;
   for (const row of rows) {
     const state = asState(row.query_state);
     let count = typeof row.last_count === "number" ? row.last_count : null;
     const countedAt = typeof row.last_counted_at === "string" ? Date.parse(row.last_counted_at) : NaN;
     const stale = !Number.isFinite(countedAt) || now.getTime() - countedAt > COUNT_FRESH_MS;
-    if (stale) {
+    if (stale && refreshed < MAX_REFRESH_PER_CALL) {
+      refreshed += 1;
       const live = await fetchDiscoverV32(input.supabase, { ...state, page: 1, per: 25 }, { limit: 1, offset: 0 });
       if (live.total !== null) {
         count = live.total;

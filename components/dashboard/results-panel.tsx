@@ -94,7 +94,7 @@ export function PanelHeader({ model }: { model: PanelHeaderModel }) {
                 a short result set the six options are painted outside the panel
                 — invisible, but still tabbable and still activating on Enter.
                 Anchored to the summary's bottom edge and allowed to escape. */}
-            <div className="absolute right-0 top-full z-20 mt-1 min-w-[14rem] rounded-sm border border-line bg-surface py-1 shadow-sm">
+            <div className="absolute right-0 top-full z-20 mt-1 min-w-[14rem] rounded-sm border border-line-strong bg-surface py-1 shadow-sm">
               {model.sortOptions.map((o) => (
                 <a key={o.value} href={o.href} className="block px-3 py-1.5 text-sm text-ink hover:bg-surface-sunken">
                   {o.label}
@@ -187,7 +187,7 @@ export function PanelFooter({
                 `overflow-hidden`, so a downward menu is clipped to the few
                 pixels of footer below the summary while its links stay in the
                 tab order — a keyboard user tabs into items they cannot see. */}
-            <div className="absolute bottom-full z-20 mb-1 rounded-sm border border-line bg-surface py-1 shadow-sm">
+            <div className="absolute bottom-full z-20 mb-1 rounded-sm border border-line-strong bg-surface py-1 shadow-sm">
               {perHrefs.map((p) => (
                 <a key={p.n} href={p.href} className="block px-3 py-1.5 text-sm text-ink hover:bg-surface-sunken">
                   {p.n} per page

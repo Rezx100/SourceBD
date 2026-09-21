@@ -68,7 +68,10 @@ export function applyDiscoverWorkersSelection<T extends WithIdAndEmployees>(
   return rows.map((r) => {
     const d = displayById[r.id];
     if (!d) return r;
-    return { ...r, employees_total: d.value };
+    // Mark it. The figure below is a roll-up of this record and its buildings,
+    // and a group sum must never be printed bare as one site's headcount —
+    // the results card cannot tell the difference without being told.
+    return { ...r, employees_total: d.value, workers_is_group: true };
   });
 }
 

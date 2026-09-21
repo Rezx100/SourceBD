@@ -13,7 +13,7 @@ import { NextResponse } from "next/server";
 
 import { getServerRole } from "@/lib/auth";
 import { savedSearchRedirectHref } from "@/lib/saved-searches";
-import { urlOnSite } from "@/lib/site-origin";
+import { urlOnSiteFromHref } from "@/lib/site-origin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
@@ -21,8 +21,15 @@ export const dynamic = "force-dynamic";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
-function seeOther(path: string): NextResponse {
-  const res = NextResponse.redirect(urlOnSite(path), 307);
+/**
+ * `urlOnSite` assigns its first argument to `URL.pathname`, which percent-
+ * encodes a "?" — so passing a whole href through it turned
+ * `/app/discover?q=knit` into `/app/discover%3Fq=knit` and 404'd every saved
+ * search that had any filter on it. The saved-search href is a full href, so
+ * split it before handing the parts over.
+ */
+function seeOther(href: string): NextResponse {
+  const res = NextResponse.redirect(urlOnSiteFromHref(href), 307);
   res.headers.set("Cache-Control", "private, no-store, max-age=0");
   return res;
 }

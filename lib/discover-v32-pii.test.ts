@@ -3,6 +3,9 @@ import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, it } from "node:test";
 
+import { savedSearchRedirectHref } from "./saved-searches";
+import { urlOnSiteFromHref } from "./site-origin";
+
 const SQL = readFileSync(
   path.join(process.cwd(), "supabase/migrations/0104_discover_v32.sql"),
   "utf8",
@@ -126,47 +129,98 @@ describe("0104 discover_suppliers PII guard", () => {
     }
   });
 
-  it("the workers filter and sort read the same figure the card displays", () => {
-    // The card's workers number is overwritten by the
-    // production_workers_display_batch roll-up (mother + facilities, RSC
-    // preferred). Filtering on the raw `employees_total` column put a
-    // "≥ 5,000 workers" chip above a row reading "1,200 workers".
-    assert.match(
-      SQL,
-      /create or replace function public\.discover_v32_workers/,
-      "no single definition of the displayed workers figure",
-    );
-    assert.match(
-      SQL,
-      /public\.production_workers_display_batch\(array\[p_supplier_id\]\)/,
-      "discover_v32_workers must reuse the existing roll-up, not restate it (AGENTS.md rule 14)",
-    );
-    for (const re of [
-      /p_workers_min is null or public\.discover_v32_workers\(s\.id\) >= p_workers_min/,
-      /p_workers_max is null or public\.discover_v32_workers\(s\.id\) <= p_workers_max/,
-      /p_sort = 'workers' then public\.discover_v32_workers\(c\.id\)/,
-    ]) {
-      assert.match(SQL, re, `a workers path still reads the raw column: ${re}`);
-    }
+  it("the workers filter and sort stay on the register's own figure", () => {
+    // Filtering and sorting on the group roll-up was tried and reverted: it
+    // meant one `production_workers_display_batch` call per row, and
+    // `discover_suppliers` is granted to `anon` and served by PostgREST
+    // outside the app's rate limiter — an unauthenticated caller could force a
+    // full-table roll-up per request. The display/filter difference is carried
+    // by the labels instead ("workers on the register" vs a card figure that
+    // names its own coverage), so the query must stay cheap.
     assert.doesNotMatch(
       SQL,
-      /p_workers_(min|max) is null or s\.employees_total/,
-      "the raw-column workers filter is still present",
+      /discover_v32_workers/,
+      "the per-row roll-up helper is back; it is an anon-reachable full-table scan",
+    );
+    for (const rx of [
+      /p_workers_min is null or s\.employees_total >= p_workers_min/,
+      /p_workers_max is null or s\.employees_total <= p_workers_max/,
+    ]) {
+      assert.match(SQL, rx, `the workers filter changed basis: ${rx}`);
+    }
+    assert.equal(
+      (SQL.match(/case when p_sort = 'workers' then [a-z]+\.employees_total end/g) ?? []).length,
+      2,
+      "both the browse and the keyword branch must sort on the same column",
     );
   });
 
-  it("the sanctioned exclusion is actually applied in the query, not just passed", () => {
-    // The TS side asserts the argument; this asserts the predicate exists.
+  it("every paged sort has a unique final key", () => {
+    // The CSV export issues ten separate RPC calls at increasing offsets. With
+    // no unique tiebreaker Postgres may order tied rows differently per call,
+    // so a supplier can appear twice in a sourcing file while another vanishes.
+    const orderBys = SQL.match(/order by[\s\S]*?limit v_lim offset v_off/g) ?? [];
+    assert.equal(orderBys.length, 2, `expected two paged ORDER BYs, found ${orderBys.length}`);
+    for (const [i, ob] of orderBys.entries()) {
+      assert.match(ob, /\.id asc/, `ORDER BY #${i + 1} has no unique final key`);
+    }
+  });
+
+  it("the sanctioned predicate lets a sanctioned row through only when asked", () => {
+    // The previous version of this test matched an alternation so loose that
+    // `coalesce(p_exclude_sanctioned` alone satisfied it — inverting the
+    // comparison to `= true` returned every sanctioned supplier to every buyer
+    // under a heading reading "except sanctioned", with the whole suite green.
+    // Pin the predicate's actual shape: the exclusion is bypassed only when the
+    // parameter is explicitly false, and `is_sanctioned = false` is what a row
+    // must satisfy otherwise.
+    const block = SQL.match(
+      /p_skip = 'sanction'([\s\S]{0,200}?)\n\s*\)/,
+    );
+    assert.ok(block && block[1], "the sanction predicate block was not found");
+    const clause = block[1]!;
     assert.match(
-      SQL,
-      /p_exclude_sanctioned/,
-      "the parameter is gone from the SQL",
+      clause,
+      /coalesce\(p_exclude_sanctioned,\s*true\)\s*=\s*false/,
+      "the exclusion must be bypassed only when the caller explicitly passes false",
     );
     assert.match(
-      SQL,
-      /p_exclude_sanctioned\s+is\s+(not\s+)?true|not\s+p_exclude_sanctioned|p_exclude_sanctioned\s*=\s*(true|false)|coalesce\(p_exclude_sanctioned/,
-      "p_exclude_sanctioned is accepted but never tested against anything",
+      clause,
+      /s\.is_sanctioned\s*=\s*false/,
+      "otherwise a row must be unsanctioned to pass",
     );
+    assert.doesNotMatch(
+      clause,
+      /coalesce\(p_exclude_sanctioned,\s*true\)\s*=\s*true/,
+      "inverted: this returns sanctioned suppliers whenever the exclusion is ON",
+    );
+  });
+
+  it("the saved-search redirect keeps its query string", () => {
+    // `urlOnSite` assigns its first argument to URL.pathname, which
+    // percent-encodes "?" — passing a whole href through it turned
+    // /app/discover?q=knit into /app/discover%3Fq=knit and 404'd every saved
+    // search that carried a filter. A text guard cannot see that, so this
+    // exercises the real thing.
+    const href = savedSearchRedirectHref({ search: "q=knit&hs=6105" });
+    assert.match(href, /^\/app\/discover\?/, `unexpected href: ${href}`);
+
+    // Exercise the primitive the route actually calls, not a re-derivation of
+    // it here — the first version of this test split the href itself and so
+    // passed while the route was still handing the whole thing to `urlOnSite`.
+    const built = urlOnSiteFromHref(href);
+    assert.equal(built.pathname, "/app/discover");
+    assert.equal(built.search, "?q=knit&hs=6105");
+    assert.doesNotMatch(built.toString(), /%3F/i, "the query was encoded into the path");
+
+    // And pin that the route uses it, since the encoding bug lived in the
+    // route's own helper rather than in either function.
+    const routeSrc = readFileSync(
+      path.join(process.cwd(), "app/(app)/app/searches/[id]/route.ts"),
+      "utf8",
+    );
+    assert.match(routeSrc, /urlOnSiteFromHref\(/, "the route builds its redirect the unsafe way");
+    assert.doesNotMatch(routeSrc, /urlOnSite\(href\)/, "passing a whole href to urlOnSite encodes the query");
   });
 
   it("opening a saved search is a route handler, so its redirect has a status", () => {

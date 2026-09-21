@@ -1711,9 +1711,10 @@ const CASES = [
     name: "rez-b: /app/products renders -> 200",
     path: "/app/products",
     auth: true,
-    // A bare 200 passes for an error shell too, so pin something only the
-    // built page renders.
-    expect: { status: 200, bodyIncludesAll: ["Products"] },
+    // "Products" alone was the SIDEBAR nav label, rendered on every /app/*
+    // page — it passed even if the catalogue failed to load, or if this route
+    // had served Discover. Pin copy only this page renders.
+    expect: { status: 200, bodyIncludesAll: ["Exporters", "HS"] },
   },
   {
     name: "rez-b: /app/searches renders -> 200",
