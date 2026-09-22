@@ -140,8 +140,7 @@ test("the placeholder colour is a token, and readable on every ground", () => {
   // base`, and is one element-selector more specific than a bare
   // `::placeholder`, so it wins however late ours comes — the first attempt
   // at this fix compiled to a stylesheet that still served preflight's grey.
-  const rule = /input::placeholder,\s*
-?\s*textarea::placeholder\s*\{([^}]*)\}/.exec(css);
+  const rule = /input::placeholder\s*,\s*textarea::placeholder\s*\{([^}]*)\}/.exec(css);
   assert.ok(
     rule,
     "app/ds.css has no `input::placeholder, textarea::placeholder` rule, so Tailwind preflight's own grey out-specifies whatever is there",
