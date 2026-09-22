@@ -118,11 +118,27 @@ function csv(sp: URLSearchParams, key: string): string[] {
     .filter(Boolean);
 }
 
+/**
+ * A number the buyer typed, held to its range by CLAMPING, not by discarding.
+ *
+ * Dropping an out-of-range value returned the unfiltered corpus under a URL
+ * that says it is filtered: "Min sources" is a free-text box with no bound
+ * shown anywhere, so typing 8 gave `?min_sources=8` → null → no chip, no
+ * message, every published supplier, and the field redisplayed empty. Same
+ * for `workers_min=0`, `est_from=1899`, and the other two ranges. That is the
+ * defect already fixed one field over for `cert`, where an unparseable value
+ * "used to yield no chip, no error and an unfiltered result set the buyer
+ * read as filtered".
+ *
+ * Clamping keeps the filter on and the chip visible, so the buyer sees what
+ * was applied. Text that is not a number at all still yields null — there is
+ * nothing to clamp toward.
+ */
 function intOrNull(raw: string, min: number, max: number): number | null {
   if (!raw) return null;
   const n = Number.parseInt(raw, 10);
-  if (!Number.isFinite(n) || n < min || n > max) return null;
-  return n;
+  if (!Number.isFinite(n)) return null;
+  return Math.min(max, Math.max(min, n));
 }
 
 const CERT_KIND_SET = new Set<string>(CERT_KINDS);

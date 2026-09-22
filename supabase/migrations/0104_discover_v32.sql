@@ -581,8 +581,29 @@ declare
   -- on p_min_sources above); it applies here and was not carried across.
   -- An anonymous caller gets the default ordering instead. Nothing a signed-
   -- out visitor can do today is lost — these two sorts are new in 0104.
+  -- `coalesce(auth.role(), 'anon')`, and an allowlist rather than a denylist.
+  --
+  -- `auth.role() = 'anon'` was wrong twice over. Supabase's auth.role() reads
+  -- a request GUC and returns NULL when the request carries no JWT claims —
+  -- and `NULL = 'anon'` is NULL, not true, so the CASE fell through to
+  -- `else p_sort` and the expensive sort ran for exactly the caller the
+  -- downgrade exists to stop. Naming the two sorts to downgrade was the
+  -- second mistake: it is a denylist, so it says nothing about a sort added
+  -- later, and inverting it leaves both expensive sorts reachable while
+  -- quietly downgrading the cheap ones.
+  --
+  -- Stated the safe way round: honour these two only for a caller we can see
+  -- is signed in. Anonymous, or no JWT at all, gets the default ordering.
+  -- 'cert_expiry' and 'hs_lines' order on a per-row subquery — a join across
+  -- suppliers x source_records x sources with a jsonb lateral, or a scan of
+  -- certifications — and the ORDER BY sits above `filtered`, so it runs for
+  -- EVERY row that passed the filter before LIMIT applies. p_limit does not
+  -- bound it: one unfiltered call with p_limit = 1 costs a full-corpus pass,
+  -- and PostgREST serves this function outside the app's rate limiter.
+  v_caller_role text := coalesce(auth.role(), 'anon');
   v_sort text := case
-    when auth.role() = 'anon' and coalesce(p_sort, '') in ('cert_expiry', 'hs_lines')
+    when coalesce(p_sort, '') in ('cert_expiry', 'hs_lines')
+     and v_caller_role not in ('authenticated', 'service_role')
       then 'receipts'
     else p_sort
   end;

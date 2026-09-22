@@ -10,7 +10,16 @@ import { Icon, type IconName } from "./icons";
 import { Caption, Label } from "./type";
 import { RecentSearchesSlot } from "./recent-searches";
 
-export type NavKey = "search" | "suppliers" | "products" | "rfqs" | "saved" | "messages" | "compliance";
+export type NavKey =
+  | "search"
+  | "suppliers"
+  | "products"
+  | "saved"
+  | "messages"
+  | "rfqs"
+  | "orders"
+  | "compliance"
+  | "settings";
 
 export type SidebarModel = {
   active: NavKey;
@@ -21,14 +30,27 @@ export type SidebarModel = {
   plan: { name: string; note?: string | null; used?: number | null; allowance?: number | null };
 };
 
+// Order and membership follow `BUYER_SECTIONS` in components/shell/sidebar.tsx,
+// which is what every other /app page renders.
+//
+// This list used to be Search, Suppliers, Products, RFQs, Saved, Messages,
+// Compliance — so the shared items appeared in a different relative order
+// here than everywhere else (WCAG 3.2.3), and Orders, Settings and the
+// account menu had no link at all on the three kit routes. Since the kit
+// shell replaces the app shell wholesale on those routes, and the topbar
+// hamburger goes with it, a buyer who landed on /app/discover — the default
+// destination — could only reach Settings by typing the URL. That is the
+// same defect this round fixed for Products and Compliance hub, inverted.
 const NAV: readonly { key: NavKey; label: string; icon: IconName; href: string }[] = [
   { key: "search", label: "Search", icon: "search", href: "/app/discover" },
   { key: "suppliers", label: "Suppliers", icon: "building", href: "/app/discover" },
   { key: "products", label: "Products", icon: "tag", href: "/app/products" },
-  { key: "rfqs", label: "RFQs", icon: "send", href: "/app/rfqs" },
   { key: "saved", label: "Saved", icon: "bookmark", href: "/app/saved" },
   { key: "messages", label: "Messages", icon: "chat", href: "/app/messages" },
+  { key: "rfqs", label: "RFQs", icon: "send", href: "/app/rfqs" },
+  { key: "orders", label: "Orders", icon: "box", href: "/app/orders" },
   { key: "compliance", label: "Compliance hub", icon: "shield", href: "/app/compliance" },
+  { key: "settings", label: "Settings", icon: "gear", href: "/app/settings" },
 ];
 
 function navCount(key: NavKey, counts: SidebarModel["counts"]): ReactNode {
@@ -166,12 +188,19 @@ export function Topbar({ model }: { model: TopbarModel }) {
       <Button variant="ghost" icon aria-label="Help">
         ?
       </Button>
-      <span
-        aria-hidden
-        className={cn("grid size-7 place-items-center rounded-full text-xs font-medium", model.initial ? "bg-tier-2 text-tier-2-on" : "border border-line-strong bg-surface")}
+      {/* A real link, not decoration. The kit shell replaces the app topbar,
+          which is where the account menu and sign-out live, so on these three
+          routes this was the only account affordance and it was aria-hidden. */}
+      <a
+        href="/app/settings"
+        aria-label="Account and settings"
+        className={cn(
+          "grid size-7 place-items-center rounded-full text-xs font-medium",
+          model.initial ? "bg-tier-2 text-tier-2-on" : "border border-line-strong bg-surface",
+        )}
       >
-        {model.initial ?? ""}
-      </span>
+        <span aria-hidden>{model.initial ?? ""}</span>
+      </a>
     </div>
   );
 }

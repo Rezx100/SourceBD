@@ -93,13 +93,18 @@ export async function runSavedSearchesGet(input: {
     .select("id, name, query_state, created_at, last_count, last_counted_at")
     .eq("owner_id", ownerId)
     .order("created_at", { ascending: false })
-    .limit(LIST_LIMIT);
+    .limit(LIST_LIMIT + 1);
   if (listed.error) {
     return { status: 500, body: { error: "list failed", detail: listed.error.message } };
   }
 
   const now = input.now ?? new Date();
-  const rows = (listed.data ?? []) as Record<string, unknown>[];
+  // One more than the cap is fetched so "there are more" is observed rather
+  // than inferred: `rows.length >= LIST_LIMIT` called it capped at exactly
+  // LIST_LIMIT, where nothing is hidden, and told the buyer otherwise.
+  const fetched = (listed.data ?? []) as Record<string, unknown>[];
+  const capped = fetched.length > LIST_LIMIT;
+  const rows = capped ? fetched.slice(0, LIST_LIMIT) : fetched;
 
   const countedAtMs = (row: Record<string, unknown>): number =>
     typeof row.last_counted_at === "string" ? Date.parse(row.last_counted_at) : NaN;
@@ -150,7 +155,7 @@ export async function runSavedSearchesGet(input: {
   // `LIST_LIMIT` is a cap with no pagination behind it, so a buyer with more
   // than that many saved searches simply could not reach the rest — and the
   // page printed `${searches.length} saved` as though that were all of them.
-  return { status: 200, body: { searches: out, capped: rows.length >= LIST_LIMIT } };
+  return { status: 200, body: { searches: out, capped } };
 }
 
 export async function runSavedSearchesPost(input: {

@@ -13,6 +13,7 @@ import {
   discoverHiddenParams,
   discoverHref,
   discoverRpcArgs,
+  filterCount,
   filterFamilyLabel,
   parseDiscoverState,
   queryTitle,
@@ -183,4 +184,58 @@ describe("the explain dimensions the migration emits", () => {
       assert.notEqual(label, dropped, `filterFamilyLabel("${dropped}") falls through to the raw key`);
     });
   }
+});
+
+describe("a number outside its range is clamped, never silently dropped", () => {
+  // Dropping it returned the unfiltered corpus under a URL that says it is
+  // filtered: "Min sources" is a free-text box with no bound shown, so typing
+  // 8 gave ?min_sources=8 -> null -> no chip, no message, every published
+  // supplier, and the field redisplayed empty. Same shape as the `cert`
+  // defect already fixed, which this module's own comment describes.
+  it("keeps the filter on for an out-of-range value", () => {
+    const high = parseDiscoverState(new URLSearchParams("min_sources=8"));
+    assert.equal(high.minSources, 5, "min_sources=8 fell out of the state entirely");
+    const low = parseDiscoverState(new URLSearchParams("min_sources=0"));
+    assert.equal(low.minSources, 1);
+    assert.equal(parseDiscoverState(new URLSearchParams("workers_min=0")).workersMin, 1);
+    assert.equal(parseDiscoverState(new URLSearchParams("est_from=1899")).estFrom, 1900);
+    assert.equal(parseDiscoverState(new URLSearchParams("est_to=3000")).estTo, 2100);
+  });
+
+  it("still renders a chip for every clamped filter, so the buyer sees what ran", () => {
+    for (const raw of ["min_sources=8", "workers_min=0", "est_from=1899", "est_to=3000"]) {
+      const state = parseDiscoverState(new URLSearchParams(raw));
+      assert.ok(
+        filterCount(state) > 0,
+        `${raw} produced an unfiltered state, which the page would present as filtered`,
+      );
+      assert.ok(discoverChips(state).length > 0, `${raw} produced no chip`);
+    }
+  });
+
+  it("text that is not a number at all is still dropped, and counts as no filter", () => {
+    const state = parseDiscoverState(new URLSearchParams("min_sources=lots"));
+    assert.equal(state.minSources, null);
+    assert.equal(filterCount(state), 0);
+  });
+});
+
+describe("chip keys are unique even when two families share a value", () => {
+  it("a city and a district of the same name do not collide", () => {
+    // Dhaka, Gazipur, Narayanganj and Chittagong are each both. Keyed on the
+    // label, these were two chips with the same React key, and reconciliation
+    // can hand one chip the other's remove link.
+    const chips = discoverChips(parseDiscoverState(new URLSearchParams("city=Dhaka&district=Dhaka")));
+    const labels = chips.map((c) => c.label);
+    const keys = chips.map((c) => c.key);
+    assert.ok(labels.length >= 2, JSON.stringify(labels));
+    assert.equal(new Set(keys).size, keys.length, `duplicate chip keys: ${JSON.stringify(keys)}`);
+  });
+
+  it("every chip on a fully loaded search has its own key", () => {
+    const raw =
+      "q=knit&hs=6105,6110&cert=gots:valid&reg=BGMEA&brand=hm&district=Dhaka&city=Dhaka&type=factory&min_sources=3&rsc=active&est_from=2000&est_to=2020&workers_min=100&workers_max=5000";
+    const keys = discoverChips(parseDiscoverState(new URLSearchParams(raw))).map((c) => c.key);
+    assert.equal(new Set(keys).size, keys.length, `duplicate chip keys: ${JSON.stringify(keys)}`);
+  });
 });

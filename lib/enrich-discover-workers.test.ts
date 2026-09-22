@@ -82,3 +82,62 @@ describe("enrichDiscoverWorkers", () => {
     assert.equal(rows[0]?.employees_total, 144);
   });
 });
+
+describe("what the headline worker figure covers is derived, not assumed", () => {
+  // The batch returns {value, source, fetched_at} and says nothing about
+  // composition — but the row still carries the record's OWN registry figure
+  // when this runs, so the two together answer it. Two earlier passes missed
+  // that: one marked every row a group (so "across this record and its
+  // buildings" printed under every standalone factory), the other dropped
+  // composition and labelled a roll-up "on the register", naming a register
+  // that holds no such number.
+  const at = (value: number, source: "RSC" | "registry" = "registry") => ({
+    value,
+    source,
+    fetched_at: null,
+  });
+
+  it("equal figures mean the record's own number", () => {
+    const [row] = applyDiscoverWorkersSelection([{ id: "a", employees_total: 900 }], { a: at(900) });
+    assert.equal(row?.workers_basis, "own");
+    assert.equal(row?.employees_total, 900);
+  });
+
+  it("a larger figure means the record plus buildings", () => {
+    const [row] = applyDiscoverWorkersSelection([{ id: "a", employees_total: 2662 }], { a: at(3166) });
+    assert.equal(row?.workers_basis, "group");
+    assert.equal(row?.employees_total, 3166);
+  });
+
+  it("no figure of its own means the number belongs to other sites", () => {
+    // The RSC-preferred sum covers RSC sites only, so a root that files no
+    // RSC figure is dropped from its own headline number. Printed bare, that
+    // tells a buyer a factory employs people it does not.
+    const [row] = applyDiscoverWorkersSelection([{ id: "a", employees_total: null }], { a: at(907, "RSC") });
+    assert.equal(row?.workers_basis, "excludes-record");
+    assert.equal(row?.workers_source, "RSC");
+  });
+
+  it("a row the batch does not answer for carries no basis at all", () => {
+    const [row] = applyDiscoverWorkersSelection([{ id: "a", employees_total: 500 }], {});
+    assert.equal(row?.workers_basis, undefined);
+    assert.equal(row?.workers_source, undefined);
+    assert.equal(row?.employees_total, 500);
+  });
+
+  it("the three states are genuinely distinguished, not a constant", () => {
+    // Pinning the defect directly: hard-coding any one basis fails here.
+    const rows = applyDiscoverWorkersSelection(
+      [
+        { id: "own", employees_total: 900 },
+        { id: "group", employees_total: 2662 },
+        { id: "none", employees_total: null },
+      ],
+      { own: at(900), group: at(3166), none: at(907, "RSC") },
+    );
+    assert.deepEqual(
+      rows.map((r) => r.workers_basis),
+      ["own", "group", "excludes-record"],
+    );
+  });
+});

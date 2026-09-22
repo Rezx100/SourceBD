@@ -58,9 +58,14 @@ language sql stable as $$
   select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid;
 $$;
 
+-- NULL when the request carries no role claim, exactly as Supabase's own
+-- does. An earlier version coalesced to 'anon' here, which is a nicer value
+-- and a worse stub: 0104 tested `auth.role() = 'anon'`, that is NULL-unsafe
+-- in production and true under the stub, so the one place the predicate was
+-- exercised was the one place it could not fail.
 create or replace function auth.role() returns text
 language sql stable as $$
-  select coalesce(nullif(current_setting('request.jwt.claim.role', true), ''), 'anon');
+  select nullif(current_setting('request.jwt.claim.role', true), '');
 $$;
 
 create or replace function auth.jwt() returns jsonb

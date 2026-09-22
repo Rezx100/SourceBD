@@ -1,7 +1,7 @@
 // Caller for the v3.2 discover_suppliers return shape (REZ-B). Extra columns
 // degrade to empty when 0104 is not yet applied — the page still renders.
 
-import { enrichDiscoverWorkers } from "@/lib/enrich-discover-workers";
+import { enrichDiscoverWorkers, type WorkersBasis } from "@/lib/enrich-discover-workers";
 import { resolveDiscoverSmartQuery } from "@/lib/discover-smart-query";
 import {
   type DiscoverRpcArgs,
@@ -39,6 +39,8 @@ export type DiscoverV32Row = {
    * found and `employees_total` is the supplier row's own value.
    */
   workers_source?: "RSC" | "registry";
+  /** What that figure covers — see `WorkersBasis`. Absent when no display figure was found. */
+  workers_basis?: WorkersBasis;
   top_tier: number | null;
 };
 

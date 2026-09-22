@@ -171,35 +171,78 @@ describe("discover result HTML has no contact PII", () => {
     assert.doesNotMatch(html, /shadow-\[inset_3px_0_0_rgb\(var\(--ds-brand\)\)\]/);
   });
 
-  it("the worker figure names the register it came from, and claims nothing else", () => {
-    // The wording this replaces said "across this record and its buildings"
-    // on every row, because `workers_is_group` was set for every supplier the
-    // display RPC answered for, children or none — and under RSC preference
-    // the sum can exclude the record it names. The batch returns
-    // `{value, source, fetched_at}` and nothing about composition, so the
-    // source is the only thing about this number the page actually knows.
-    // Spec §3.1: "we show the exact worker count with its source".
-    const rsc = discoverCsvValue({ ...ROW, employees_total: 4100, workers_source: "RSC" }, TODAY);
-    const reg = discoverCsvValue({ ...ROW, employees_total: 900, workers_source: "registry" }, TODAY);
-    const plain = discoverCsvValue({ ...ROW, employees_total: 900 }, TODAY);
-    assert.equal(rsc.workers, "4100");
-    assert.equal(rsc.workers_source, "RSC inspection");
-    assert.equal(reg.workers_source, "on the register");
-    // No display figure at all: the number is the supplier row's own, and the
-    // cell must not borrow a register that was never consulted.
-    assert.equal(plain.workers_source, "supplier record");
-    assert.notEqual(rsc.workers_source, reg.workers_source);
-    assert.ok(CSV_COLUMNS.includes("workers_source"), "the column exists but the CSV never emits it");
-
-    // And it reaches the file, in the same row as the number it describes.
-    const csv = discoverRowsToCsv([{ ...ROW, employees_total: 4100, workers_source: "RSC" }], TODAY);
-    const [header, row] = csv.trim().split(/\r?\n/);
-    const at = (header ?? "").split(",").indexOf("workers_source");
-    assert.ok(at > 0, "workers_source is not in the CSV header");
-    assert.equal((row ?? "").split(",")[at], "RSC inspection");
-
-    // A row with no worker figure must not claim a source for one.
+  it("the worker figure says what it covers, and says it from the data", () => {
+    // Three distinct states, derived in applyDiscoverWorkersSelection by
+    // comparing the record's own registry figure with the display roll-up.
+    // Two earlier passes got this wrong in opposite directions: one claimed
+    // "across this record and its buildings" for every supplier, the other
+    // dropped composition and called a roll-up "on the register" — naming a
+    // register that holds no such number.
+    const own = discoverCsvValue(
+      { ...ROW, employees_total: 900, workers_source: "registry", workers_basis: "own" },
+      TODAY,
+    );
+    const group = discoverCsvValue(
+      { ...ROW, employees_total: 3166, workers_source: "registry", workers_basis: "group" },
+      TODAY,
+    );
+    const notMe = discoverCsvValue(
+      { ...ROW, employees_total: 907, workers_source: "RSC", workers_basis: "excludes-record" },
+      TODAY,
+    );
+    assert.equal(own.workers_source, "on the register");
+    assert.equal(group.workers_source, "across this record and its buildings");
+    assert.equal(notMe.workers_source, "across its buildings, not this record");
+    // A roll-up must never be described with the phrase the workers FILTER
+    // uses for the record's own figure — identical words, two quantities.
+    assert.notEqual(group.workers_source, own.workers_source);
+    assert.notEqual(notMe.workers_source, own.workers_source);
+    assert.ok(CSV_COLUMNS.includes("workers_source"));
+    // No display figure at all: the number is the supplier row's own.
+    assert.equal(
+      discoverCsvValue({ ...ROW, employees_total: 900 }, TODAY).workers_source,
+      "on the supplier record",
+    );
     assert.equal(discoverCsvValue({ ...ROW, employees_total: null }, TODAY).workers_source, "");
+  });
+
+  it("the meta line's workers suffix is one of the four sanctioned phrases, never free text", () => {
+    // The guard this replaces was a regex for the words "buildings", "sites",
+    // "group sum" — a wording filter, not a guard. "all premises combined",
+    // "incl. sister units" and "factory-wide" all sailed through it while
+    // claiming exactly what the data cannot support. An allowlist cannot be
+    // talked around: any new phrasing has to be added here deliberately.
+    const ALLOWED = new Set([
+      "on the register",
+      "RSC inspection",
+      "across this record and its buildings",
+      "across its buildings, not this record",
+    ]);
+    const cases = [
+      { ...ROW, employees_total: 900, workers_source: "registry" as const, workers_basis: "own" as const },
+      { ...ROW, employees_total: 900, workers_source: "RSC" as const, workers_basis: "own" as const },
+      { ...ROW, employees_total: 3166, workers_source: "registry" as const, workers_basis: "group" as const },
+      { ...ROW, employees_total: 907, workers_source: "RSC" as const, workers_basis: "excludes-record" as const },
+      { ...ROW, employees_total: 900 },
+      { ...ROW, employees_total: null },
+    ];
+    for (const r of cases) {
+      const card = buildDiscoverCard(r, { today: TODAY, hsLines: [], hsError: false });
+      const line = card.meta.map((m) => m.text).find((t) => /workers/i.test(t)) ?? "";
+      if (r.employees_total == null) {
+        assert.equal(line, "Workers not on file");
+        continue;
+      }
+      const suffix = line.includes(" · ") ? line.split(" · ").slice(1).join(" · ") : null;
+      assert.ok(
+        suffix === null || ALLOWED.has(suffix),
+        `the workers meta line carries an unsanctioned phrase: ${JSON.stringify(suffix)}`,
+      );
+      // And the table sub-line must agree with the card, or ?view=cards and
+      // ?view=table describe the same record differently.
+      const table = buildDiscoverTableRow(r, { today: TODAY, hsLines: [], hsError: false });
+      assert.equal(table.workersCoverage ?? null, suffix);
+    }
   });
 
   it("the CSV names the HS column for what it holds — headings, not lines", () => {

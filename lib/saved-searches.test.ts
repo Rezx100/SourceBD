@@ -328,12 +328,20 @@ describe("the saved-search list does not overstate itself", () => {
     };
   }
 
-  it("says when it has returned only the most recent", async () => {
+  it("says when it has returned only the most recent, and not before", async () => {
     // The query caps at 200 with no pagination behind it, so a buyer with 240
     // saved searches read "200 saved" and the other 40 were unreachable with
-    // nothing saying so.
-    const capped = await runSavedSearchesGet({ role: "buyer", supabase: client(rows(200)), now: NOW });
-    assert.equal((capped.body as { capped: boolean }).capped, true);
+    // nothing saying so. The first fix then over-corrected: `>= LIST_LIMIT`
+    // claimed more existed at exactly 200, where nothing is hidden. The list
+    // fetches one past the cap so it observes the overflow instead.
+    const over = await runSavedSearchesGet({ role: "buyer", supabase: client(rows(201)), now: NOW });
+    assert.equal((over.body as { capped: boolean }).capped, true);
+    assert.equal((over.body as { searches: unknown[] }).searches.length, 200, "the extra probe row must not be served");
+
+    const exactly = await runSavedSearchesGet({ role: "buyer", supabase: client(rows(200)), now: NOW });
+    assert.equal((exactly.body as { capped: boolean }).capped, false, "nothing is hidden at exactly the cap");
+    assert.equal((exactly.body as { searches: unknown[] }).searches.length, 200);
+
     const under = await runSavedSearchesGet({ role: "buyer", supabase: client(rows(3)), now: NOW });
     assert.equal((under.body as { capped: boolean }).capped, false);
   });

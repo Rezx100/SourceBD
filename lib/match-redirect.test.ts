@@ -31,16 +31,25 @@ describe("/app/match redirect", () => {
     // Neither file may rebuild the search string for itself again.
     const repoRoot = process.cwd();
     for (const rel of ["middleware.ts", "app/(app)/app/match/route.ts"]) {
-      const src = readFileSync(path.join(repoRoot, rel), "utf8");
+      // Comments stripped: `src.includes("matchRedirectSearch")` was
+      // satisfied by the name appearing in a comment while the handler built
+      // the search string itself, and the hard-coded check missed any
+      // spelling that was not exactly quote-?ask=1-quote.
+      const src = readFileSync(path.join(repoRoot, rel), "utf8")
+        .replace(new RegExp(String.raw`/\*[\s\S]*?\*/`, "g"), "")
+        .replace(new RegExp(String.raw`(^|[^:])//.*$`, "gm"), "$1");
       assert.ok(
         src.includes("matchRedirectSearch"),
         `${rel} answers ${MATCH_PATH} without the shared helper`,
       );
-      const hardCoded = src.match(/["'`]\?ask=1["'`]/g) ?? [];
+      // Any way of naming the destination query itself, not just one
+      // spelling: a literal "?ask=1", a bare "ask=1", or `set("ask", …)`
+      // outside the helper. The helper is the only place that may say it.
+      const spellsItOut = src.match(/["'`][?&]?ask=1["'`]|["'`]ask["'`]\s*,/g) ?? [];
       assert.equal(
-        hardCoded.length,
+        spellsItOut.length,
         0,
-        `${rel} hard-codes ${hardCoded[0]}, which is how the query got dropped`,
+        `${rel} builds the Ask query itself (${spellsItOut[0]}); that is how the caller's query got dropped`,
       );
     }
   });

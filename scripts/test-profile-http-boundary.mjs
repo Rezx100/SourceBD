@@ -1700,7 +1700,26 @@ const CASES = [
     name: "rez-b: /app/discover renders -> 200",
     path: "/app/discover",
     auth: true,
-    expect: { status: 200, bodyIncludesAll: ["All published suppliers except sanctioned"] },
+    // "All published suppliers except sanctioned" is `queryTitle(state)`, and
+    // the page renders that heading inside its ERROR branch too, above
+    // "Search is under heavy load." So a discover_suppliers that 404s with
+    // PGRST202 — production's state until 0104 is applied — served 200 with
+    // this needle present and the case green, over a Discover page whose
+    // search was entirely dead. The other two routes got `bodyExcludes` on
+    // their error captions and this one, the route the change exists to
+    // ship, did not.
+    expect: {
+      status: 200,
+      bodyIncludesAll: ["All published suppliers except sanctioned"],
+      bodyExcludes: [
+        "Search is under heavy load",
+        "The count could not be read",
+        "is past the end of this result set",
+      ],
+      // And something only the results panel renders, so an empty page with
+      // the right heading is not enough.
+      bodyIncludesAny: ["Export CSV", "No published suppliers to show"],
+    },
   },
   {
     name: "rez-b: /app/discover anonymous -> 307 to /login",

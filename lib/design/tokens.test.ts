@@ -140,27 +140,49 @@ test("the placeholder colour is a token, and readable on every ground", () => {
   // base`, and is one element-selector more specific than a bare
   // `::placeholder`, so it wins however late ours comes — the first attempt
   // at this fix compiled to a stylesheet that still served preflight's grey.
-  // EVERY match, not the first. `exec` read only the first block, so appending
-  // a second rule of equal specificity later in the file — which is what wins
-  // the cascade — put `ink.disabled` at 2.60:1 back on every input with this
-  // test green. That is round 4's defect verbatim, reachable again through the
-  // guard written for it.
-  const rules = [
-    ...css.matchAll(new RegExp(String.raw`(?:^|[},;\s])((?:[a-z-]*::placeholder)(?:\s*,\s*[a-z-]*::placeholder)*)\s*\{([^}]*)\}`, "gm")),
-  ];
-  assert.ok(
-    rules.some((r) => /input::placeholder/.test(r[1] ?? "") && /textarea::placeholder/.test(r[1] ?? "")),
-    "app/ds.css has no `input::placeholder, textarea::placeholder` rule, so Tailwind preflight's own grey out-specifies whatever is there",
+  // Exactly ONE placeholder colour rule, and it is the token one.
+  //
+  // Two earlier versions of this guard were beaten. `exec` read only the
+  // first block, so appending an equal-specificity rule later won the
+  // cascade with the test green. Taking the LAST rule that sets a colour
+  // fixed that and lost twice more: `input[type="text"]::placeholder` is
+  // more specific and the selector regex could not even see it, and an
+  // `!important` rule placed EARLIER wins the cascade while the test still
+  // reads the last one.
+  //
+  // Counting them removes the whole class. There is no cascade to reason
+  // about when there is only one rule, so a second one — wherever it sits,
+  // however it is spelled, important or not — fails here and has to be
+  // argued for rather than slipped in.
+  // Comments stripped first. The prose above the rule in app/ds.css explains
+  // the cascade and therefore contains the literal selector, and `[^{}]*`
+  // swept it into the captured selector — so weakening the real selector to a
+  // bare `::placeholder` still "matched", because the comment did.
+  const cssCode = css.replace(new RegExp(String.raw`/\*[\s\S]*?\*/`, "g"), "");
+  const placeholderRules = [
+    ...cssCode.matchAll(/([^{}]*::placeholder[^{}]*)\{([^}]*)\}/g),
+  ].filter((r) => /(^|[;\s])color\s*:/.test(r[2] ?? ""));
+  assert.equal(
+    placeholderRules.length,
+    1,
+    `app/ds.css sets a placeholder colour in ${placeholderRules.length} rules; exactly one may, or the cascade decides: ${placeholderRules
+      .map((r) => (r[1] ?? "").trim())
+      .join(" | ")}`,
   );
-  // The LAST one that sets a colour is the one that ships.
-  const winning = rules.filter((r) => /(^|[;\s])color\s*:/.test(r[2] ?? "")).pop();
-  assert.ok(winning, "no ::placeholder rule in app/ds.css sets a colour");
+  const winning = placeholderRules[0]!;
+  assert.match(
+    winning[1] ?? "",
+    /input::placeholder\s*,\s*textarea::placeholder/,
+    `the rule must match Tailwind preflight's own selector or preflight out-specifies it: ${(winning[1] ?? "").trim()}`,
+  );
+  assert.doesNotMatch(
+    winning[2] ?? "",
+    /!important/,
+    "the placeholder colour should win on order and specificity, not on !important",
+  );
   const rule: [unknown, string] = [null, winning[2] ?? ""];
   const varName = /color:\s*rgb\(\s*var\(\s*(--ds-[a-z0-9-]+)\s*\)/i.exec(rule[1]);
-  assert.ok(
-    varName,
-    `the winning ::placeholder rule (\`${winning[1]?.trim()}\`) does not set a --ds- token: ${rule[1].trim()}`,
-  );
+  assert.ok(varName, `the placeholder rule does not set a --ds- token: ${rule[1].trim()}`);
   const token = Object.entries(light).flatMap(([group, keys]) =>
     Object.keys(keys as Record<string, string>).map((key) => ({
       ref: key === "DEFAULT" ? group : `${group}.${key}`,

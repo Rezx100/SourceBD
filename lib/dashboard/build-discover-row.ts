@@ -3,6 +3,7 @@
 // from the RPC return + the HS batch + saved membership.
 
 import type { DiscoverV32Row, HsBatchLine } from "@/lib/discover-v32-rpc";
+import type { WorkersBasis } from "@/lib/enrich-discover-workers";
 import type { HighlightChip, SupplierCardModel, TableRowModel, TileModel } from "@/lib/dashboard/models";
 import {
   certChipLabel,
@@ -55,14 +56,28 @@ export function certsFromSummary(raw: unknown, today: Date): CertModel[] {
 }
 
 /**
- * The register a headline worker figure came from, for the meta line, the
- * table sub-line and the CSV. Null when `production_workers_display_batch`
- * had nothing and the number is the supplier row's own.
+ * What the headline worker figure is, in words a buyer can act on: where it
+ * came from, and — when it is not this record's own number — what it covers.
+ *
+ * Naming only the source was wrong. `production_workers_display_batch` sums
+ * the record with its buildings, and under RSC preference over the RSC sites
+ * only, so "3,166 workers · on the register" named a register holding no such
+ * figure and "907 · RSC inspection" named an inspection of a different site.
+ * Worse, "on the register" is the phrase the workers FILTER already uses
+ * (`≤ 1,000 workers on the register`, applied to `suppliers.employees_total`)
+ * — identical words, two quantities, one of them false.
+ *
+ * `lib/dashboard/build-models.ts` has always said this properly on the same
+ * data; these are its words.
  */
-function workersSourceLabel(source: "RSC" | "registry" | undefined): string | null {
-  if (source === "RSC") return "RSC inspection";
-  if (source === "registry") return "on the register";
-  return null;
+export function workersBasisLabel(
+  source: "RSC" | "registry" | undefined,
+  basis: WorkersBasis | undefined,
+): string | null {
+  const from = source === "RSC" ? "RSC inspection" : source === "registry" ? "on the register" : null;
+  if (basis === "group") return "across this record and its buildings";
+  if (basis === "excludes-record") return "across its buildings, not this record";
+  return from;
 }
 
 /** "8 registers & certifiers" — the population `p_min_sources` filters on. */
@@ -113,7 +128,7 @@ export function buildDiscoverCard(
   // `production_workers_display_batch` returns; the composition is not, and
   // claiming it produced a sentence that was false for every standalone
   // factory and, under RSC preference, for the record it named.
-  const workersSource = workersSourceLabel(row.workers_source);
+  const workersBasis = workersBasisLabel(row.workers_source, row.workers_basis);
 
   const chips: HighlightChip[] = [];
   for (const c of certList.slice(0, 2)) {
@@ -204,7 +219,7 @@ export function buildDiscoverCard(
     ...(place ? [{ text: place, mark: null }] : []),
     ...(year ? [{ text: `Est. ${year}`, mark: null }] : []),
     ...(workers != null
-      ? [{ text: `${formatCount(workers)} workers${workersSource ? ` · ${workersSource}` : ""}`, mark: null }]
+      ? [{ text: `${formatCount(workers)} workers${workersBasis ? ` · ${workersBasis}` : ""}`, mark: null }]
       : [{ text: "Workers not on file", mark: null, quiet: true as const }]),
     // The mark row beside this already shows every source, brand lists
     // included. This number must be the one the "≥ N registers or certifiers"
@@ -275,7 +290,7 @@ export function buildDiscoverTableRow(
     type: entityLabel(row.entity_type),
     workers: row.employees_total,
     // Same rule as the card: the figure carries the register it came from.
-    workersCoverage: workersSourceLabel(row.workers_source),
+    workersCoverage: workersBasisLabel(row.workers_source, row.workers_basis),
     sanctioned: card.sanctioned,
     selected: false,
     saved: Boolean(opts.saved),
@@ -313,7 +328,9 @@ export function discoverCsvValue(row: DiscoverV32Row, today: Date): Record<strin
     // actually knows. A column of its own so `workers` stays a plain number a
     // spreadsheet still sums.
     workers_source:
-      row.employees_total == null ? "" : (workersSourceLabel(row.workers_source) ?? "supplier record"),
+      row.employees_total == null
+        ? ""
+        : (workersBasisLabel(row.workers_source, row.workers_basis) ?? "on the supplier record"),
     established: row.established_date ?? "",
     sanctioned: row.is_sanctioned ? "yes" : "no",
   };

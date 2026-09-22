@@ -6,10 +6,30 @@ import { describe, it } from "node:test";
 import { savedSearchRedirectHref } from "./saved-searches";
 import { urlOnSiteFromHref } from "./site-origin";
 
-const SQL = readFileSync(
+const SQL_WITH_COMMENTS = readFileSync(
   path.join(process.cwd(), "supabase/migrations/0104_discover_v32.sql"),
   "utf8",
 );
+
+/**
+ * The migration with its `--` comments stripped.
+ *
+ * Every assertion in this file greps SQL text, and the comments in 0104
+ * quote the very predicates being asserted — they exist to explain what went
+ * wrong last time. So `coalesce(auth.role(), 'anon')` matched the prose
+ * describing the fix while the code below it had been reverted to the
+ * NULL-unsafe form, and the guard stayed green. Match code only.
+ */
+const SQL = SQL_WITH_COMMENTS.split("\n")
+  .map((line) => {
+    const i = line.indexOf("--");
+    if (i === -1) return line;
+    // Not inside a string literal.
+    const before = line.slice(0, i);
+    const quotes = (before.match(/'/g) ?? []).length;
+    return quotes % 2 === 0 ? before : line;
+  })
+  .join("\n");
 
 /**
  * Every column `discover_suppliers` is allowed to return. This is an
@@ -279,11 +299,25 @@ describe("0104 discover_suppliers PII guard", () => {
     // The behaviour itself is asserted by running it, in
     // supabase/ci/assert-0104.sql: as anon the hs_lines ordering must equal
     // the default ordering, and as an authenticated caller it must not.
+    // Three literals in order was not enough: flipping `in (...)` to
+    // `not in (...)` leaves both expensive sorts fully reachable by anon and
+    // downgrades the cheap ones instead, and the old regex stayed green.
+    // Pin the predicate's shape — NULL-safe, and an allowlist of roles that
+    // may have these sorts, not a denylist of sorts to take away.
     assert.match(
       SQL,
-      /auth\.role\(\) = 'anon'[\s\S]{0,200}?'cert_expiry'[\s\S]{0,40}?'hs_lines'/,
-      "nothing downgrades the two expensive sorts for an anonymous caller",
+      /coalesce\(auth\.role\(\),\s*'anon'\)/,
+      "auth.role() is used without a NULL fallback; `NULL = 'anon'` is NULL and the downgrade never fires",
     );
+    assert.match(
+      SQL,
+      /coalesce\(p_sort, ''\) in \('cert_expiry', 'hs_lines'\)[\s\S]*?and v_caller_role not in \('authenticated', 'service_role'\)/,
+      "the sort downgrade is not the allowlist shape; check it has not been inverted",
+    );
+    // The behaviour itself is asserted by running it, in
+    // supabase/ci/assert-0104.sql, over a fixture with varying sort keys —
+    // both that anon and a JWT-less caller get the default ordering, and
+    // that a signed-in caller still gets the real one.
     // And no ORDER BY may read p_sort directly again, or the downgrade is
     // bypassed by whichever branch forgot.
     assert.doesNotMatch(

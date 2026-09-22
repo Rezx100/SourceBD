@@ -14,6 +14,18 @@ export type DisplayWorkersEntry = {
 
 export type DisplayWorkersById = Record<string, DisplayWorkersEntry>;
 
+/**
+ * What the headline worker figure covers, relative to the record it is shown
+ * under. Derived, not reported: see `applyDiscoverWorkersSelection`.
+ *
+ * - `own` — this record's own figure, and nothing else's.
+ * - `group` — this record plus at least one building.
+ * - `excludes-record` — buildings only; this record files no figure and is
+ *   not in the sum. Printing this one bare tells a buyer a factory employs
+ *   people it does not.
+ */
+export type WorkersBasis = "own" | "group" | "excludes-record";
+
 type WithIdAndEmployees = {
   id: string;
   employees_total: number | null;
@@ -61,36 +73,51 @@ export async function fetchDisplayWorkersBatch(
 }
 
 /** Pure: prefer batch display value; else keep registry row as-is. */
+/** What this function adds to each row it answers for. */
+export type WorkersSelection = {
+  workers_source?: "RSC" | "registry";
+  workers_basis?: WorkersBasis;
+};
+
 export function applyDiscoverWorkersSelection<T extends WithIdAndEmployees>(
   rows: T[],
   displayById: DisplayWorkersById,
-): T[] {
+): Array<T & WorkersSelection> {
   return rows.map((r) => {
     const d = displayById[r.id];
     if (!d) return r;
-    // Carry the SOURCE, not a group flag.
+    // Composition IS knowable here, and two earlier passes said it was not.
     //
-    // `workers_is_group: true` was set for every supplier this RPC answers
-    // for, because the batch returns `{value, source, fetched_at}` and nothing
-    // about composition — so a standalone factory with no `facility_of`
-    // children got "across this record and its buildings" printed under it,
-    // which is most published records. And when an RSC figure is preferred the
-    // sum is taken over RSC sites only, so it can exclude the record itself:
-    // the wording was not merely vague, it was wrong in both directions.
+    // `r.employees_total` at this point is still the supplier row's own
+    // registry figure, straight off `discover_suppliers`. `d.value` is
+    // `production_workers_display_batch`: the root summed with every
+    // `facility_of` child, and — when any site in the family has an RSC row —
+    // summed over the RSC sites ONLY, which can drop the root. So comparing
+    // the two answers the question the display batch does not:
     //
-    // The spec asks for something this data can actually support — §3.1:
-    // "no people band (we show the exact worker count with its source)", and
-    // §3.3's meta line puts workers there "with its register mark". The source
-    // is what labels the number. Composition belongs on the profile, which has
-    // the site breakdown; the card links to it.
-    return { ...r, employees_total: d.value, workers_source: d.source };
+    //   d.value === own          the figure is this record's own
+    //   own === null             the figure contains no number for this
+    //                            record at all, so it is somebody else's
+    //   otherwise                the figure covers this record and more
+    //
+    // The first pass here set `workers_is_group: true` unconditionally, so
+    // "across this record and its buildings" printed under every standalone
+    // factory. The second dropped composition entirely and labelled the
+    // roll-up "on the register", which named a register that holds no such
+    // number — and, in the RSC case, a number belonging to a different site.
+    // `lib/dashboard/build-models.ts` has always done this honestly on the
+    // same data; this is that vocabulary, derived from what is in hand.
+    const own = r.employees_total;
+    const basis: WorkersBasis =
+      own == null ? "excludes-record" : d.value === own ? "own" : "group";
+    return { ...r, employees_total: d.value, workers_source: d.source, workers_basis: basis };
   });
 }
 
 export async function enrichDiscoverWorkers<T extends WithIdAndEmployees>(
   supabase: RpcClient,
   rows: T[],
-): Promise<T[]> {
+): Promise<Array<T & WorkersSelection>> {
   if (rows.length === 0) return rows;
   const displayById = await fetchDisplayWorkersBatch(
     supabase,
