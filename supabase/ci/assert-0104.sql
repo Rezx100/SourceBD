@@ -89,6 +89,79 @@ begin
 end
 $$;
 
+-- The two expensive sorts must be unavailable to an anonymous caller.
+-- They order on a per-row subquery evaluated across the whole filtered set
+-- before LIMIT, and this function is granted to anon and served by PostgREST
+-- outside the app's rate limiter. Asserted by behaviour: as anon, asking for
+-- 'hs_lines' must give the same order as the default, and as an authenticated
+-- caller it must still be honoured.
+do $$
+declare
+  anon_hs   uuid[];
+  anon_def  uuid[];
+  auth_hs   uuid[];
+begin
+  perform set_config('request.jwt.claim.role', 'anon', true);
+  select array_agg(d.id order by ord) into anon_hs
+    from (select id, row_number() over () as ord
+            from public.discover_suppliers(p_sort => 'hs_lines', p_limit => 100)) d;
+  select array_agg(d.id order by ord) into anon_def
+    from (select id, row_number() over () as ord
+            from public.discover_suppliers(p_limit => 100)) d;
+  if anon_hs is distinct from anon_def then
+    raise exception 'anon p_sort => hs_lines was honoured; it must fall back to the default ordering';
+  end if;
+
+  perform set_config('request.jwt.claim.role', 'authenticated', true);
+  select array_agg(d.id order by ord) into auth_hs
+    from (select id, row_number() over () as ord
+            from public.discover_suppliers(p_sort => 'hs_lines', p_limit => 100)) d;
+  if auth_hs is null then
+    raise exception 'a signed-in caller lost the hs_lines sort entirely';
+  end if;
+  perform set_config('request.jwt.claim.role', '', true);
+end
+$$;
+
+-- Owner isolation on saved_searches, exercised rather than pattern-matched.
+-- Checking pg_policies.qual for the text 'auth.uid()' passes a policy reading
+-- `auth.uid() is not null`, which shows every buyer every saved search. Run it
+-- as each user instead, through the same auth.uid() the policy calls.
+do $$
+declare
+  n int;
+begin
+  if not exists (
+    select 1 from pg_tables
+     where schemaname = 'public' and tablename = 'saved_searches' and rowsecurity
+  ) then
+    raise exception 'row level security is not enabled on saved_searches';
+  end if;
+
+  insert into auth.users (id, email, raw_user_meta_data) values
+    ('00000000-0000-4000-8000-00000000d002', 'ci-b@example.invalid', '{"role":"buyer"}'::jsonb)
+  on conflict do nothing;
+
+  insert into public.saved_searches (owner_id, name, query_state) values
+    ('00000000-0000-4000-8000-00000000d001', 'A knit search', '{"search":"q=knit"}'::jsonb);
+
+  set local role authenticated;
+  perform set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-00000000d002', true);
+  select count(*) into n from public.saved_searches;
+  if n <> 0 then
+    raise exception 'user B can see % of user A''s saved searches', n;
+  end if;
+
+  perform set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-00000000d001', true);
+  select count(*) into n from public.saved_searches;
+  if n <> 1 then
+    raise exception 'the owner sees % of their own saved searches, expected 1', n;
+  end if;
+  reset role;
+  perform set_config('request.jwt.claim.sub', '', true);
+end
+$$;
+
 -- Every dimension the explain function names has to come back, or the
 -- zero-result page offers the buyer nothing. `lib/discover-v32-state.test.ts`
 -- holds the TypeScript side to this same list.
@@ -99,19 +172,6 @@ begin
   select count(*) into n from public.discover_suppliers_explain(p_q => 'nothing matches this') e;
   if n < 1 then
     raise exception 'discover_suppliers_explain returned no dimensions at all';
-  end if;
-end
-$$;
-
--- saved_searches: the table 0104 creates, and the ownership its RLS depends on.
-do $$
-begin
-  if not exists (
-    select 1 from pg_policies
-     where schemaname = 'public' and tablename = 'saved_searches'
-       and cmd = 'SELECT' and qual like '%auth.uid()%'
-  ) then
-    raise exception 'saved_searches has no owner-scoped select policy';
   end if;
 end
 $$;

@@ -33,7 +33,12 @@ export type DiscoverV32Row = {
   brand_codes: string[] | null;
   registries: string[] | null;
   /** Set by enrichDiscoverWorkers when employees_total is a group roll-up. */
-  workers_is_group?: boolean;
+  /**
+   * Which register the headline worker figure came from, per
+   * `production_workers_display_batch`. Absent when no display figure was
+   * found and `employees_total` is the supplier row's own value.
+   */
+  workers_source?: "RSC" | "registry";
   top_tier: number | null;
 };
 

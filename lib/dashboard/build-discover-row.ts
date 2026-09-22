@@ -54,6 +54,17 @@ export function certsFromSummary(raw: unknown, today: Date): CertModel[] {
   return sortCerts(out);
 }
 
+/**
+ * The register a headline worker figure came from, for the meta line, the
+ * table sub-line and the CSV. Null when `production_workers_display_batch`
+ * had nothing and the number is the supplier row's own.
+ */
+function workersSourceLabel(source: "RSC" | "registry" | undefined): string | null {
+  if (source === "RSC") return "RSC inspection";
+  if (source === "registry") return "on the register";
+  return null;
+}
+
 /** "8 registers & certifiers" — the population `p_min_sources` filters on. */
 function registerCountLabel(n: number): string {
   return `${n} ${n === 1 ? "register or certifier" : "registers & certifiers"}`;
@@ -97,12 +108,12 @@ export function buildDiscoverCard(
   const year = establishedYearOf(row.established_date);
   const place = placeLabel(row.city, row.district);
   const workers = row.employees_total;
-  // "A group sum is never printed bare" (build-models.ts). On this page the
-  // figure is whatever enrichDiscoverWorkers left: the register's own number,
-  // or a roll-up of this record plus its buildings. The batch does not return
-  // the site breakdown, so the wording is the general one build-models uses
-  // when the composition is unknown.
-  const workersCoverage = row.workers_is_group ? "across this record and its buildings" : null;
+  // Spec §3.1: "we show the exact worker count with its source", and §3.3 puts
+  // workers on the meta line "with its register mark". The source is a fact
+  // `production_workers_display_batch` returns; the composition is not, and
+  // claiming it produced a sentence that was false for every standalone
+  // factory and, under RSC preference, for the record it named.
+  const workersSource = workersSourceLabel(row.workers_source);
 
   const chips: HighlightChip[] = [];
   for (const c of certList.slice(0, 2)) {
@@ -193,7 +204,7 @@ export function buildDiscoverCard(
     ...(place ? [{ text: place, mark: null }] : []),
     ...(year ? [{ text: `Est. ${year}`, mark: null }] : []),
     ...(workers != null
-      ? [{ text: `${formatCount(workers)} workers${workersCoverage ? ` ${workersCoverage}` : ""}`, mark: null }]
+      ? [{ text: `${formatCount(workers)} workers${workersSource ? ` · ${workersSource}` : ""}`, mark: null }]
       : [{ text: "Workers not on file", mark: null, quiet: true as const }]),
     // The mark row beside this already shows every source, brand lists
     // included. This number must be the one the "≥ N registers or certifiers"
@@ -263,8 +274,8 @@ export function buildDiscoverTableRow(
           : "not on EPB list",
     type: entityLabel(row.entity_type),
     workers: row.employees_total,
-    // Same rule as the card: a group roll-up is never printed bare.
-    workersCoverage: row.workers_is_group ? "across this record and its buildings" : null,
+    // Same rule as the card: the figure carries the register it came from.
+    workersCoverage: workersSourceLabel(row.workers_source),
     sanctioned: card.sanctioned,
     selected: false,
     saved: Boolean(opts.saved),
@@ -292,12 +303,12 @@ export function discoverCsvValue(row: DiscoverV32Row, today: Date): Record<strin
     // read 4,100 in the cell with nothing to explain it. Same wording as the
     // card, in a column of its own so `workers` stays a plain number that a
     // spreadsheet still sums.
-    workers_basis:
-      row.employees_total == null
-        ? ""
-        : row.workers_is_group
-          ? "this record and its buildings"
-          : "this record on the register",
+    // Which register the number came from — the same fact the card and the
+    // table print, and the only thing about this figure the results page
+    // actually knows. A column of its own so `workers` stays a plain number a
+    // spreadsheet still sums.
+    workers_source:
+      row.employees_total == null ? "" : (workersSourceLabel(row.workers_source) ?? "supplier record"),
     established: row.established_date ?? "",
     sanctioned: row.is_sanctioned ? "yes" : "no",
   };
@@ -313,7 +324,7 @@ export const CSV_COLUMNS = [
   "certificates",
   "hs_codes",
   "workers",
-  "workers_basis",
+  "workers_source",
   "established",
   "sanctioned",
 ] as const;

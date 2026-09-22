@@ -68,10 +68,22 @@ export function applyDiscoverWorkersSelection<T extends WithIdAndEmployees>(
   return rows.map((r) => {
     const d = displayById[r.id];
     if (!d) return r;
-    // Mark it. The figure below is a roll-up of this record and its buildings,
-    // and a group sum must never be printed bare as one site's headcount —
-    // the results card cannot tell the difference without being told.
-    return { ...r, employees_total: d.value, workers_is_group: true };
+    // Carry the SOURCE, not a group flag.
+    //
+    // `workers_is_group: true` was set for every supplier this RPC answers
+    // for, because the batch returns `{value, source, fetched_at}` and nothing
+    // about composition — so a standalone factory with no `facility_of`
+    // children got "across this record and its buildings" printed under it,
+    // which is most published records. And when an RSC figure is preferred the
+    // sum is taken over RSC sites only, so it can exclude the record itself:
+    // the wording was not merely vague, it was wrong in both directions.
+    //
+    // The spec asks for something this data can actually support — §3.1:
+    // "no people band (we show the exact worker count with its source)", and
+    // §3.3's meta line puts workers there "with its register mark". The source
+    // is what labels the number. Composition belongs on the profile, which has
+    // the site breakdown; the card links to it.
+    return { ...r, employees_total: d.value, workers_source: d.source };
   });
 }
 

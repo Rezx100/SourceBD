@@ -568,6 +568,24 @@ declare
   v_lim int := greatest(1, least(coalesce(p_limit, 24), 100));
   v_off int := greatest(0, coalesce(p_offset, 0));
   v_q   text := nullif(btrim(coalesce(p_q, '')), '');
+  -- 'cert_expiry' and 'hs_lines' order on a per-row subquery — a join across
+  -- suppliers x source_records x sources with a jsonb lateral, or a scan of
+  -- certifications — and the ORDER BY sits above `filtered`, so it is
+  -- evaluated for EVERY row that passed the filter before LIMIT applies.
+  -- p_limit does not bound it: one unfiltered call with p_limit = 1 costs a
+  -- full-corpus pass.
+  --
+  -- This function is granted to `anon` and PostgREST serves it directly, so
+  -- those calls never meet the app's middleware or its rate limiter. That is
+  -- the same reasoning the workers roll-up was reverted for (see the comment
+  -- on p_min_sources above); it applies here and was not carried across.
+  -- An anonymous caller gets the default ordering instead. Nothing a signed-
+  -- out visitor can do today is lost — these two sorts are new in 0104.
+  v_sort text := case
+    when auth.role() = 'anon' and coalesce(p_sort, '') in ('cert_expiry', 'hs_lines')
+      then 'receipts'
+    else p_sort
+  end;
 begin
   if v_q is null then
     return query
@@ -602,13 +620,13 @@ begin
         select c.*
           from counted c
          order by
-           case when p_sort = 'completeness' then c.completeness_pct end desc nulls last,
-           case when p_sort = 'name' then c.company_name end asc,
-           case when p_sort = 'receipts' then c.t13_source_count end desc nulls last,
-           case when p_sort = 'workers' then c.employees_total end desc nulls last,
-           case when p_sort = 'established' then public.discover_v32_est_year(c.established_date) end asc nulls last,
-           case when p_sort = 'cert_expiry' then public.discover_v32_next_cert_expiry(c.id) end asc nulls last,
-           case when p_sort = 'hs_lines' then cardinality(public.discover_v32_hs_codes(c.id)) end desc nulls last,
+           case when v_sort = 'completeness' then c.completeness_pct end desc nulls last,
+           case when v_sort = 'name' then c.company_name end asc,
+           case when v_sort = 'receipts' then c.t13_source_count end desc nulls last,
+           case when v_sort = 'workers' then c.employees_total end desc nulls last,
+           case when v_sort = 'established' then public.discover_v32_est_year(c.established_date) end asc nulls last,
+           case when v_sort = 'cert_expiry' then public.discover_v32_next_cert_expiry(c.id) end asc nulls last,
+           case when v_sort = 'hs_lines' then cardinality(public.discover_v32_hs_codes(c.id)) end desc nulls last,
            c.sbi_total desc nulls last,
            c.t13_source_count desc nulls last,
            c.company_name asc,
@@ -686,14 +704,14 @@ begin
         from filtered f
        where f.search_rank > 0
        order by
-         case when p_sort = 'completeness' then f.completeness_pct end desc nulls last,
-         case when p_sort = 'name' then f.company_name end asc,
-         case when p_sort = 'receipts' then f.t13_source_count end desc nulls last,
-         case when p_sort = 'workers' then f.employees_total end desc nulls last,
-         case when p_sort = 'established' then public.discover_v32_est_year(f.established_date) end asc nulls last,
-         case when p_sort = 'cert_expiry' then public.discover_v32_next_cert_expiry(f.id) end asc nulls last,
-         case when p_sort = 'hs_lines' then cardinality(public.discover_v32_hs_codes(f.id)) end desc nulls last,
-         case when coalesce(p_sort, 'default') = 'default' then f.search_rank end desc nulls last,
+         case when v_sort = 'completeness' then f.completeness_pct end desc nulls last,
+         case when v_sort = 'name' then f.company_name end asc,
+         case when v_sort = 'receipts' then f.t13_source_count end desc nulls last,
+         case when v_sort = 'workers' then f.employees_total end desc nulls last,
+         case when v_sort = 'established' then public.discover_v32_est_year(f.established_date) end asc nulls last,
+         case when v_sort = 'cert_expiry' then public.discover_v32_next_cert_expiry(f.id) end asc nulls last,
+         case when v_sort = 'hs_lines' then cardinality(public.discover_v32_hs_codes(f.id)) end desc nulls last,
+         case when coalesce(v_sort, 'default') = 'default' then f.search_rank end desc nulls last,
          f.sbi_total desc nulls last,
          f.t13_source_count desc nulls last,
          f.company_name asc,

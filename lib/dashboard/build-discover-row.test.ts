@@ -171,29 +171,61 @@ describe("discover result HTML has no contact PII", () => {
     assert.doesNotMatch(html, /shadow-\[inset_3px_0_0_rgb\(var\(--ds-brand\)\)\]/);
   });
 
-  it("the CSV names which workers figure each row carries", () => {
-    // The card and the table both qualify a group roll-up ("across this
-    // record and its buildings"); the CSV column was a bare number. A buyer
-    // filtering "at most 1,000 workers on the register" exported a cell
-    // reading 4,100 with nothing to explain it. Goes red if `workers_basis`
-    // is dropped from the column list, or stops tracking `workers_is_group`.
-    const own = discoverCsvValue({ ...ROW, employees_total: 900, workers_is_group: false }, TODAY);
-    const group = discoverCsvValue({ ...ROW, employees_total: 4100, workers_is_group: true }, TODAY);
-    assert.equal(own.workers, "900");
-    assert.equal(own.workers_basis, "this record on the register");
-    assert.equal(group.workers, "4100");
-    assert.equal(group.workers_basis, "this record and its buildings");
-    assert.notEqual(own.workers_basis, group.workers_basis);
-    assert.ok(CSV_COLUMNS.includes("workers_basis"), "the column exists but the CSV never emits it");
+  it("the worker figure names the register it came from, and claims nothing else", () => {
+    // The wording this replaces said "across this record and its buildings"
+    // on every row, because `workers_is_group` was set for every supplier the
+    // display RPC answered for, children or none — and under RSC preference
+    // the sum can exclude the record it names. The batch returns
+    // `{value, source, fetched_at}` and nothing about composition, so the
+    // source is the only thing about this number the page actually knows.
+    // Spec §3.1: "we show the exact worker count with its source".
+    const rsc = discoverCsvValue({ ...ROW, employees_total: 4100, workers_source: "RSC" }, TODAY);
+    const reg = discoverCsvValue({ ...ROW, employees_total: 900, workers_source: "registry" }, TODAY);
+    const plain = discoverCsvValue({ ...ROW, employees_total: 900 }, TODAY);
+    assert.equal(rsc.workers, "4100");
+    assert.equal(rsc.workers_source, "RSC inspection");
+    assert.equal(reg.workers_source, "on the register");
+    // No display figure at all: the number is the supplier row's own, and the
+    // cell must not borrow a register that was never consulted.
+    assert.equal(plain.workers_source, "supplier record");
+    assert.notEqual(rsc.workers_source, reg.workers_source);
+    assert.ok(CSV_COLUMNS.includes("workers_source"), "the column exists but the CSV never emits it");
 
     // And it reaches the file, in the same row as the number it describes.
-    const csv = discoverRowsToCsv([{ ...ROW, employees_total: 4100, workers_is_group: true }], TODAY);
+    const csv = discoverRowsToCsv([{ ...ROW, employees_total: 4100, workers_source: "RSC" }], TODAY);
     const [header, row] = csv.trim().split(/\r?\n/);
-    const at = (header ?? "").split(",").indexOf("workers_basis");
-    assert.ok(at > 0, "workers_basis is not in the CSV header");
-    assert.equal((row ?? "").split(",")[at], "this record and its buildings");
+    const at = (header ?? "").split(",").indexOf("workers_source");
+    assert.ok(at > 0, "workers_source is not in the CSV header");
+    assert.equal((row ?? "").split(",")[at], "RSC inspection");
 
-    // A row with no worker figure must not claim a basis for one.
-    assert.equal(discoverCsvValue({ ...ROW, employees_total: null }, TODAY).workers_basis, "");
+    // A row with no worker figure must not claim a source for one.
+    assert.equal(discoverCsvValue({ ...ROW, employees_total: null }, TODAY).workers_source, "");
+  });
+
+  it("no surface claims the figure spans buildings, because nothing here knows that", () => {
+    // The durable guard for the defect itself. `production_workers_display_batch`
+    // returns no site composition, so any wording about buildings or sites is
+    // unfalsifiable from this page's data. If someone reintroduces it on the
+    // card, the table or the CSV, this goes red.
+    const rows = [
+      { ...ROW, employees_total: 4100, workers_source: "RSC" as const },
+      { ...ROW, employees_total: 900, workers_source: "registry" as const },
+      { ...ROW, employees_total: 900 },
+    ];
+    const claim = /buildings|across .* sites?|group (sum|roll-?up)/i;
+    for (const r of rows) {
+      const card = buildDiscoverCard(r, { today: TODAY, hsLines: [], hsError: false });
+      const table = buildDiscoverTableRow(r, { today: TODAY, hsLines: [], hsError: false });
+      const meta = card.meta.map((m) => m.text).join(" | ");
+      assert.doesNotMatch(meta, claim, `card meta claims composition: ${meta}`);
+      assert.doesNotMatch(String(table.workersCoverage ?? ""), claim, "table sub-line claims composition");
+      assert.doesNotMatch(
+        Object.values(discoverCsvValue(r, TODAY)).join(" | "),
+        claim,
+        "a CSV cell claims composition",
+      );
+      const html = renderToStaticMarkup(createElement(SupplierResultCard, { card }));
+      assert.doesNotMatch(html, claim, "the rendered card claims composition");
+    }
   });
 });
