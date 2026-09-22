@@ -7,18 +7,19 @@
 
 import { NextResponse } from "next/server";
 
+import { MATCH_TARGET, matchRedirectSearch } from "@/lib/match-redirect";
 import { urlOnSiteFromHref } from "@/lib/site-origin";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export function GET(req: Request): NextResponse {
-  // Whatever the caller arrived with is a search, not decoration: a link into
-  // /app/match?q=knit+polo meant to open Discover on that query landed on an
-  // empty Ask box, because the redirect was a bare string and dropped it.
-  const incoming = new URL(req.url).searchParams;
-  incoming.set("ask", "1");
-  const res = NextResponse.redirect(urlOnSiteFromHref(`/app/discover?${incoming.toString()}`), 307);
+  // `middleware.ts` answers this path for every real request and this handler
+  // never runs there. It is reached only where the middleware is skipped —
+  // the local dev-admin bypass — so it must produce the same redirect, which
+  // is why both call `matchRedirectSearch`.
+  const search = matchRedirectSearch(new URL(req.url).searchParams);
+  const res = NextResponse.redirect(urlOnSiteFromHref(`${MATCH_TARGET}${search}`), 307);
   res.headers.set("Cache-Control", "private, no-store, max-age=0");
   return res;
 }

@@ -104,6 +104,8 @@
     "scripts/gallery/render-gallery-fixtures.ts",
     "scripts/gallery/harness.test.ts",
     "app/dev/ds/page.tsx",
+    "lib/match-redirect.ts",
+    "lib/match-redirect.test.ts",
     "lib/discover-v32-state.ts",
     "lib/discover-v32-state.test.ts",
     "lib/discover-v32-rpc.ts",

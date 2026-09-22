@@ -162,9 +162,17 @@ describe("the explain dimensions the migration emits", () => {
   assert.ok(explain.length > 0, "0104 defines no discover_suppliers_explain");
   const dimensions = [...explain.matchAll(/select\s+'([a-z_]+)'::text\s*,\s*[a-z]+\.total_count/gi)].map((m) => m[1]!);
 
-  it("is a list this test actually found", () => {
-    // A regex that matches nothing would make every case below vacuous.
-    assert.ok(dimensions.length >= 10, `found only ${dimensions.length}: ${JSON.stringify(dimensions)}`);
+  it("is the exact set the zero-result page depends on", () => {
+    // `>= 10` was slack, not a backstop: there are 12, so two whole "Drop this
+    // filter" suggestions could be deleted from the SQL — the only help a
+    // buyer gets on an empty city search — with this green. Pin the set. A
+    // dimension added to the migration fails here until it is handled below,
+    // and one removed fails here until somebody says removing it was meant.
+    assert.deepEqual(
+      [...new Set(dimensions)].sort(),
+      ["brand", "cert", "city", "district", "est", "hs", "min_sources", "q", "registry", "rsc", "type", "workers"].sort(),
+      `discover_suppliers_explain emits a different set of dimensions: ${JSON.stringify(dimensions)}`,
+    );
   });
 
   for (const dropped of [...new Set(dimensions)]) {

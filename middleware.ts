@@ -31,6 +31,7 @@ import {
   isPublicSupplierSlug,
 } from "@/lib/public-supplier-profile";
 import { urlOnSite } from "@/lib/site-origin";
+import { MATCH_PATH, MATCH_TARGET, matchRedirectSearch } from "@/lib/match-redirect";
 
 export const runtime = "nodejs";
 
@@ -242,8 +243,13 @@ export async function middleware(req: NextRequest) {
   // `scripts/test-profile-http-boundary.mjs` exists to catch, and it caught it.
   // Issued here it runs before any rendering, so the status is real. Placed
   // after the auth gate so an anonymous caller still lands on /login.
-  if (pathname === "/app/match") {
-    return redirectOnSite("/app/discover", "?ask=1", 307);
+  if (pathname === MATCH_PATH) {
+    // Through the shared helper, so this and the route handler cannot
+    // disagree. Built here as a fixed string, this branch dropped whatever
+    // the caller arrived with — a link meant to open Discover on a query
+    // landed on an empty Ask box — while the route handler that did carry the
+    // query sat unreachable behind this very check.
+    return redirectOnSite(MATCH_TARGET, matchRedirectSearch(req.nextUrl.searchParams), 307);
   }
 
   return res;

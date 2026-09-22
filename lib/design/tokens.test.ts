@@ -140,13 +140,27 @@ test("the placeholder colour is a token, and readable on every ground", () => {
   // base`, and is one element-selector more specific than a bare
   // `::placeholder`, so it wins however late ours comes — the first attempt
   // at this fix compiled to a stylesheet that still served preflight's grey.
-  const rule = /input::placeholder\s*,\s*textarea::placeholder\s*\{([^}]*)\}/.exec(css);
+  // EVERY match, not the first. `exec` read only the first block, so appending
+  // a second rule of equal specificity later in the file — which is what wins
+  // the cascade — put `ink.disabled` at 2.60:1 back on every input with this
+  // test green. That is round 4's defect verbatim, reachable again through the
+  // guard written for it.
+  const rules = [
+    ...css.matchAll(new RegExp(String.raw`(?:^|[},;\s])((?:[a-z-]*::placeholder)(?:\s*,\s*[a-z-]*::placeholder)*)\s*\{([^}]*)\}`, "gm")),
+  ];
   assert.ok(
-    rule,
+    rules.some((r) => /input::placeholder/.test(r[1] ?? "") && /textarea::placeholder/.test(r[1] ?? "")),
     "app/ds.css has no `input::placeholder, textarea::placeholder` rule, so Tailwind preflight's own grey out-specifies whatever is there",
   );
-  const varName = /color:\s*rgb\(\s*var\(\s*(--ds-[a-z0-9-]+)\s*\)/i.exec(rule[1] ?? "");
-  assert.ok(varName, `the ::placeholder colour is not a --ds- token: ${rule[1]?.trim()}`);
+  // The LAST one that sets a colour is the one that ships.
+  const winning = rules.filter((r) => /(^|[;\s])color\s*:/.test(r[2] ?? "")).pop();
+  assert.ok(winning, "no ::placeholder rule in app/ds.css sets a colour");
+  const rule: [unknown, string] = [null, winning[2] ?? ""];
+  const varName = /color:\s*rgb\(\s*var\(\s*(--ds-[a-z0-9-]+)\s*\)/i.exec(rule[1]);
+  assert.ok(
+    varName,
+    `the winning ::placeholder rule (\`${winning[1]?.trim()}\`) does not set a --ds- token: ${rule[1].trim()}`,
+  );
   const token = Object.entries(light).flatMap(([group, keys]) =>
     Object.keys(keys as Record<string, string>).map((key) => ({
       ref: key === "DEFAULT" ? group : `${group}.${key}`,
