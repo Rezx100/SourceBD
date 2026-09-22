@@ -35,8 +35,17 @@
      the minimum from the maximum. Setting it here fixes every input at once
      rather than asking each new one to remember. `ink-subtle` is the same
      token those two fields already used, and passes on canvas and surface.
-     `lib/design/tokens.test.ts` holds it to that. */
-  ::placeholder {
+     `lib/design/tokens.test.ts` holds it to that.
+
+     The selector has to match preflight's, element and all. A bare
+     `::placeholder` sits in the same `@layer base` and comes later in the
+     file, but preflight's `input::placeholder, textarea::placeholder` is one
+     element-selector more specific and wins anyway — so the first version of
+     this fix changed nothing on the only two elements that have a
+     placeholder, and the compiled stylesheet still carried preflight's grey
+     ahead of it. */
+  input::placeholder,
+  textarea::placeholder {
     color: rgb(var(--ds-ink-subtle));
     opacity: 1; /* Firefox dims placeholders by default, which undoes the ratio. */
   }

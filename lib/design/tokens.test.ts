@@ -135,8 +135,17 @@ test("every file exempted from the hand-typed-colour rule is on the guarded list
 // turns this red.
 test("the placeholder colour is a token, and readable on every ground", () => {
   const css = readFileSync(path.join(repoRoot, "app/ds.css"), "utf8");
-  const rule = /::placeholder\s*\{([^}]*)\}/.exec(css);
-  assert.ok(rule, "app/ds.css sets no ::placeholder colour, so Tailwind preflight's own grey applies");
+  // The selector matters as much as the colour. Preflight's
+  // `input::placeholder, textarea::placeholder` lives in the same `@layer
+  // base`, and is one element-selector more specific than a bare
+  // `::placeholder`, so it wins however late ours comes — the first attempt
+  // at this fix compiled to a stylesheet that still served preflight's grey.
+  const rule = /input::placeholder,\s*
+?\s*textarea::placeholder\s*\{([^}]*)\}/.exec(css);
+  assert.ok(
+    rule,
+    "app/ds.css has no `input::placeholder, textarea::placeholder` rule, so Tailwind preflight's own grey out-specifies whatever is there",
+  );
   const varName = /color:\s*rgb\(\s*var\(\s*(--ds-[a-z0-9-]+)\s*\)/i.exec(rule[1] ?? "");
   assert.ok(varName, `the ::placeholder colour is not a --ds- token: ${rule[1]?.trim()}`);
   const token = Object.entries(light).flatMap(([group, keys]) =>
