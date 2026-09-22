@@ -4,6 +4,8 @@ import path from "node:path";
 import { describe, it } from "node:test";
 
 import { csvContainsContactHeader, csvFilename, runDiscoverExport } from "./discover-export";
+import { CSV_CONTACT_HEADERS } from "@/lib/dashboard/build-discover-row";
+import { PII_KEYS } from "@/lib/discover-v32-rpc";
 import { discoverRowsToCsv } from "./dashboard/build-discover-row";
 import type { DiscoverV32Row } from "./discover-v32-rpc";
 import { discoverRowHasPii } from "./discover-v32-rpc";
@@ -224,6 +226,29 @@ describe("discover CSV export boundary", () => {
     const csv = "slug,company_name,email\na,b,c\r\n";
     assert.equal(csvContainsContactHeader(csv), true);
     assert.equal(csvContainsContactHeader("slug,company_name,city\na,b,c\r\n"), false);
+  });
+
+  it("covers every contact column the brief names, not just the two it was typed with", () => {
+    // `CSV_CONTACT_HEADERS` was hand-listed as email/phone/contact/
+    // email_primary/phones, so a header literally named `contact_name` or
+    // `contact_role` — two of the four PII columns `discoverRowHasPii` knows
+    // about — walked past a check whose comment claimed it was the backstop
+    // for all four. It is derived from `PII_KEYS` now, so the two lists
+    // cannot drift apart again.
+    for (const key of PII_KEYS) {
+      assert.equal(
+        csvContainsContactHeader("slug,company_name," + key + "\na,b,c\r\n"),
+        true,
+        "the CSV backstop does not recognise " + key + ", which discoverRowHasPii treats as PII",
+      );
+      assert.ok(
+        (CSV_CONTACT_HEADERS as readonly string[]).includes(key),
+        key + " is missing from CSV_CONTACT_HEADERS",
+      );
+    }
+    // Still not a substring match: a column that merely contains one of the
+    // words is not a contact column.
+    assert.equal(csvContainsContactHeader("slug,contact_count,phones_checked\na,b,c\r\n"), false);
   });
 
   it("does not refuse a legitimate value that merely looks like an address", async () => {

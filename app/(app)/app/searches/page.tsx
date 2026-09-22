@@ -19,7 +19,7 @@ export const metadata = {
 export default async function SearchesPage() {
   const supabase = await createSupabaseServerClient();
   const role = await getServerRole();
-  const shell = await loadBuyerShell(supabase, "search");
+  const shell = await loadBuyerShell(supabase, "/app/searches");
   const now = new Date();
   const listed = await runSavedSearchesGet({ role, supabase, now });
   const payload =

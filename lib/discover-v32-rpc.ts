@@ -95,7 +95,13 @@ export function parseTotalCount(rows: readonly DiscoverV32Row[]): number | null 
   return n;
 }
 
-const PII_KEYS = ["email_primary", "phones", "contact_name", "contact_role"] as const;
+/**
+ * The four contact columns `context/agent-brief.md` names. Exported because
+ * the CSV backstop has to be the same list: `CSV_CONTACT_HEADERS` was hand-
+ * typed and carried only two of the four, so a header named `contact_name`
+ * would have passed a check whose comment claimed it covered every PII column.
+ */
+export const PII_KEYS = ["email_primary", "phones", "contact_name", "contact_role"] as const;
 
 /** True when a raw RPC row carries a contact column the function must not return. */
 export function discoverRowHasPii(raw: unknown): boolean {

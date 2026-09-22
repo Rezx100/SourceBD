@@ -36,7 +36,7 @@ export default async function ProductsPage({
   const qRaw = sp.q;
   const q = (Array.isArray(qRaw) ? qRaw[0] : qRaw)?.trim().toLowerCase() ?? "";
   const supabase = await createSupabaseServerClient();
-  const shell = await loadBuyerShell(supabase, "products");
+  const shell = await loadBuyerShell(supabase, "/app/products");
   const live = await fetchHsCatalogue(supabase);
 
   const rows = live.error

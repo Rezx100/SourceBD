@@ -1,6 +1,6 @@
 import "server-only";
 
-import type { NavKey, SidebarModel, TopbarModel } from "@/components/dashboard/app-shell";
+import { activeNavKey, type SidebarModel, type TopbarModel } from "@/components/dashboard/app-shell";
 import { formatCount, formatDayRange, initials } from "@/lib/dashboard/facts";
 import { EMPTY_STATE, discoverRpcArgs } from "@/lib/discover-v32-state";
 import { parseTotalCount, type DiscoverV32Row } from "@/lib/discover-v32-rpc";
@@ -18,7 +18,9 @@ function asRow(raw: unknown): DiscoverV32Row | null {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function loadBuyerShell(supabase: { rpc: (fn: string, args?: Record<string, unknown>) => any; from: (t: string) => any; auth: { getUser: () => Promise<{ data: { user: { email?: string; user_metadata?: Record<string, unknown> } | null } }> } }, active: NavKey): Promise<BuyerShellModels> {
+export async function loadBuyerShell(supabase: { rpc: (fn: string, args?: Record<string, unknown>) => any; from: (t: string) => any; auth: { getUser: () => Promise<{ data: { user: { email?: string; user_metadata?: Record<string, unknown> } | null } }> } }, pathname: string): Promise<BuyerShellModels> {
+  // Not a NavKey from the caller: see `activeNavKey`.
+  const active = activeNavKey(pathname);
   let saved: number | null = null;
   let rfqs: number | null = null;
   let published: number | null = null;
@@ -50,8 +52,14 @@ export async function loadBuyerShell(supabase: { rpc: (fn: string, args?: Record
     const { data } = await supabase.auth.getUser();
     const email = data.user?.email ?? "";
     const meta = data.user?.user_metadata ?? {};
-    const name = typeof meta.full_name === "string" ? meta.full_name : email;
-    initial = name ? initials(name) : (email[0]?.toUpperCase() ?? null);
+    // `initials` is built for company names: it strips punctuation and takes
+    // a letter from each of the first two words. Handed an email address it
+    // reads the domain — zahir@example.invalid came out "ZI", two letters of
+    // which one is the TLD. The `email[0]` fallback beside it was already the
+    // right answer and was unreachable, because `name` fell back to the email
+    // and was therefore never empty.
+    const fullName = typeof meta.full_name === "string" ? meta.full_name.trim() : "";
+    initial = fullName ? initials(fullName) : (email.trim()[0]?.toUpperCase() ?? null);
   } catch {
     // fail-soft
   }

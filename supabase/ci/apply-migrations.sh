@@ -17,6 +17,29 @@
 # last", so say that.
 set -euo pipefail
 
+# This script replays EVERY migration and `create or replace`s auth.uid, auth.role
+# and auth.jwt (00-supabase-bootstrap.sql). It takes its target from ambient PG*
+# env, and .claude/hooks/guard.py blocks `psql -c` but not `psql -f` — so a stray
+# PGHOST is the whole distance between a throwaway CI container and production.
+# Refuse anything that is not plainly a local host. Exit 9: psql itself uses
+# 0-3 (2 is a failed connection), a missing PGDATABASE exits 1 and a missing
+# psql exits 127, so 9 lets a test tell the refusal from the script merely
+# failing for some other reason.
+host="${PGHOST:-localhost}"
+case "$host" in
+  localhost|127.0.0.1|::1|/*|postgres|db) ;;
+  *)
+    echo "apply-migrations.sh: refusing to run against PGHOST=$host." >&2
+    echo "It replays all migrations and redefines auth.uid/role/jwt; local hosts only." >&2
+    exit 9
+    ;;
+esac
+if [ -n "${PGURL:-}${DATABASE_URL:-}${SUPABASE_DB_URL:-}" ]; then
+  echo "apply-migrations.sh: refusing to run with a connection URL in the environment." >&2
+  echo "Unset DATABASE_URL/SUPABASE_DB_URL/PGURL; this script targets PGHOST/PGDATABASE only." >&2
+  exit 9
+fi
+
 : "${PGDATABASE:?set PGDATABASE}"
 root="$(cd "$(dirname "$0")/../.." && pwd)"
 mig="$root/supabase/migrations"

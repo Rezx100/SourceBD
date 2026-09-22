@@ -213,7 +213,7 @@ export default async function BuyerDiscoverPage({
   const sp = await searchParams;
   const state = parseDiscoverState(sp);
   const supabase = await createSupabaseServerClient();
-  const shell = await loadBuyerShell(supabase, "search");
+  const shell = await loadBuyerShell(supabase, "/app/discover");
   const today = new Date();
   const askOn = askEnabled();
 

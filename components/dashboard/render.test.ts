@@ -38,6 +38,7 @@ import { ProductSheet } from "./product-sheet";
 import { ResultsTable } from "./results-table";
 import { RfqComposer, type RfqComposerModel } from "./rfq-composer";
 import { AppShell } from "./app-shell";
+import { isSearchShortcut } from "./search-shortcut";
 import { RFQ_EMPTY_COPY, RFQ_ERROR_COPY, RfqList } from "./rfq-list";
 import { SearchComposer } from "./search-composer";
 import { SupplierResultCard } from "./supplier-result-card";
@@ -1550,5 +1551,110 @@ describe("the table row carries the same qualifier the card does", () => {
     assert.match(row.workersCoverage ?? "", /none of them this record/, `the row says only "${row.workersCoverage}"`);
     const html = renderToStaticMarkup(createElement(ResultsTable, { rows: [row] }));
     assert.match(html, /none of them this record/);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Cycle 7 guards, at the boundary (§14). The shell's own markup: what the
+// browser is handed, not what a model says.
+// ---------------------------------------------------------------------------
+
+const shellHtml = (over: Partial<Parameters<typeof AppShell>[0]> = {}) =>
+  renderToStaticMarkup(
+    createElement(AppShell, {
+      sidebar: { active: "search", counts: {}, recent: [], plan: { name: "Free" } },
+      topbar: { caption: "10,266 published suppliers", initial: "R", searchAction: "/app/discover" },
+      children: null,
+      ...over,
+    } as Parameters<typeof AppShell>[0]),
+  );
+
+/** The one `<nav aria-label="Primary…">` element's own open tag. */
+function primaryNavTag(html: string): string {
+  const m = html.match(/<nav\b[^>]*aria-label="Primary[^"]*"[^>]*>/);
+  assert.ok(m, "no primary nav in the shell markup");
+  return m[0];
+}
+
+describe("the phone nav strip does not clip its own focus ring", () => {
+  it("the scroll container pads both axes and gives the padding back", () => {
+    const tag = primaryNavTag(shellHtml());
+    // `overflow-x-auto` computes `overflow-y: auto` as well, and an outline is
+    // not scrollable overflow — so the global `outline-offset-2` ring is cut
+    // top and bottom on a 32px strip unless the container carries the room.
+    assert.match(tag, /\boverflow-x-auto\b/, "the strip is no longer a scroll container; this guard needs rewriting");
+    const classes = new Set((tag.match(/class="([^"]*)"/)?.[1] ?? "").split(/\s+/));
+    for (const cls of ["-my-1", "py-1", "-mx-1", "px-1"]) {
+      assert.ok(classes.has(cls), `the nav strip has no \`${cls}\`, so the focus ring is clipped: ${tag}`);
+    }
+    // And the rail above `md` must not inherit the phone strip's padding.
+    for (const cls of ["md:my-0", "md:py-0"]) {
+      assert.ok(classes.has(cls), `the rail keeps the strip's own padding above md: ${tag}`);
+    }
+  });
+});
+
+describe("the topbar search field can shrink to a phone", () => {
+  it("the input and its wrapper both drop the intrinsic width floor", () => {
+    const html = shellHtml();
+    const form = html.match(/<form\b[^>]*role="search"[^>]*>/)?.[0] ?? "";
+    assert.match(form, /\bmin-w-0\b/, `the search form has no min-w-0, so the document scrolls at 320px: ${form}`);
+    const input = html.match(/<input\b[^>]*name="q"[^>]*>/)?.[0] ?? "";
+    assert.ok(input, "no search input in the topbar");
+    // A flex item defaults to `min-width: auto`; an input's intrinsic floor is
+    // its `size` attribute, ~20 characters. Without `min-w-0` the input and
+    // the ⌘K badge beside it sat on top of the Help button at 320px.
+    assert.match(input, /\bmin-w-0\b/, `the search input has no min-w-0: ${input}`);
+    assert.match(input, /\bgrow\b/, "the search input no longer grows; this guard needs rewriting");
+    // The signed-out variant renders a span in the same slot, same floor.
+    const idle = shellHtml({ topbar: { caption: "", initial: null } });
+    const span = idle.match(/<span class="[^"]*grow[^"]*">Search suppliers/)?.[0] ?? "";
+    assert.match(span, /\bmin-w-0\b/, `the placeholder line has no min-w-0: ${span}`);
+  });
+});
+
+describe("aria-current marks the page the buyer is actually on, or nothing", () => {
+  it("a null active key leaves no link claiming to be the current page", () => {
+    // `/app/searches` and `/app/searches/new` passed "search", whose href is
+    // `/app/discover`. A screen reader announced the buyer as being on a page
+    // they were not on, and following the link was the only way to find out.
+    const none = shellHtml({ sidebar: { active: null, counts: {}, recent: [], plan: { name: "Free" } } });
+    assert.doesNotMatch(none, /aria-current/, "a link claims to be the current page on a route no nav item points at");
+    // The ordinary case still marks exactly one, and marks the right one.
+    const on = shellHtml({ sidebar: { active: "products", counts: {}, recent: [], plan: { name: "Free" } } });
+    const marked = [...on.matchAll(/<a\b[^>]*aria-current="page"[^>]*>/g)].map((m) => m[0]);
+    assert.equal(marked.length, 1, `expected one current link, got ${marked.length}`);
+    assert.match(marked[0]!, /href="\/app\/products"/);
+  });
+});
+
+describe("the topbar only advertises a shortcut that exists", () => {
+  it("⌘K and Ctrl+K are the shortcut, and nothing else is", () => {
+    // The badge sat beside the search field from the day the kit landed and no
+    // handler ever listened for it. `node --test` has no DOM, so the handler's
+    // decision is a value and this is the thing worth pinning: the modifier
+    // combinations, not the focus call.
+    assert.equal(isSearchShortcut({ key: "k", metaKey: true }), true);
+    assert.equal(isSearchShortcut({ key: "K", ctrlKey: true }), true, "caps lock still means ⌘K");
+    assert.equal(isSearchShortcut({ key: "k" }), false, "a bare k is someone typing");
+    assert.equal(isSearchShortcut({ key: "j", metaKey: true }), false);
+    assert.equal(isSearchShortcut({ key: "k", metaKey: true, shiftKey: true }), false);
+    assert.equal(isSearchShortcut({ key: "k", metaKey: true, altKey: true }), false);
+    // Both modifiers at once is a chord the OS claims; leave it alone.
+    assert.equal(isSearchShortcut({ key: "k", metaKey: true, ctrlKey: true }), false);
+  });
+
+  it("the badge appears only where there is a field for it to reach", () => {
+    const live = shellHtml();
+    assert.match(live, /⌘K/, "the topbar with a real search form drops its own shortcut hint");
+    // The shortcut finds the field by this exact shape. If the form or the
+    // input is renamed, the handler silently reaches nothing.
+    assert.match(live, /<form[^>]*role="search"/);
+    assert.match(live, /<input[^>]*name="q"/);
+    // No form, nothing to focus, so no promise: the signed-out and gallery
+    // variant renders a plain line.
+    const idle = shellHtml({ topbar: { caption: "", initial: null } });
+    const bar = idle.slice(idle.indexOf("Search suppliers"), idle.indexOf("Search suppliers") + 400);
+    assert.doesNotMatch(bar, /⌘K/, "a topbar with no search form still advertises a shortcut");
   });
 });

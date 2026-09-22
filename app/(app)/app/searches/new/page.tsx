@@ -24,7 +24,7 @@ export default async function SaveSearchPage({
   const state = { ...parseDiscoverState(sp), page: 1 };
   const search = serializeDiscoverState(state).toString();
   const supabase = await createSupabaseServerClient();
-  const shell = await loadBuyerShell(supabase, "search");
+  const shell = await loadBuyerShell(supabase, "/app/searches/new");
   return (
     <AppShell sidebar={shell.sidebar} topbar={shell.topbar} mainId="main-content" screenLabel="Save search">
       <Title as="h1">Save this search</Title>

@@ -9,6 +9,7 @@ import { Button, Count, Kbd, LiveDot, Meter } from "./controls";
 import { Icon, type IconName } from "./icons";
 import { Caption, Label } from "./type";
 import { RecentSearchesSlot } from "./recent-searches";
+import { SearchShortcut } from "./search-shortcut";
 
 export type NavKey =
   | "search"
@@ -22,7 +23,16 @@ export type NavKey =
   | "settings";
 
 export type SidebarModel = {
-  active: NavKey;
+  /**
+   * The nav item the current URL actually is. `null` when no nav item points
+   * here: `/app/searches` (saved searches) and `/app/searches/new` both used
+   * to pass `"search"`, which put `aria-current="page"` on a link to
+   * `/app/discover` — a screen reader announced the buyer as being on a page
+   * they were not on, and the only way to tell was to follow the link (WCAG
+   * 4.1.2). Highlighting nothing is honest; highlighting the wrong thing is
+   * not.
+   */
+  active: NavKey | null;
   /** Live counts from `buyer_dashboard`; a count that could not be read is null and renders no pill. */
   counts: { suppliers?: number | null; rfqs?: number | null; saved?: number | null };
   recent: { label: string; count: number | null; href: string }[];
@@ -41,7 +51,7 @@ export type SidebarModel = {
 // hamburger goes with it, a buyer who landed on /app/discover — the default
 // destination — could only reach Settings by typing the URL. That is the
 // same defect this round fixed for Products and Compliance hub, inverted.
-const NAV: readonly { key: NavKey; label: string; icon: IconName; href: string }[] = [
+export const NAV: readonly { key: NavKey; label: string; icon: IconName; href: string }[] = [
   { key: "search", label: "Search", icon: "search", href: "/app/discover" },
   { key: "suppliers", label: "Suppliers", icon: "building", href: "/app/discover" },
   { key: "products", label: "Products", icon: "tag", href: "/app/products" },
@@ -52,6 +62,24 @@ const NAV: readonly { key: NavKey; label: string; icon: IconName; href: string }
   { key: "compliance", label: "Compliance hub", icon: "shield", href: "/app/compliance" },
   { key: "settings", label: "Settings", icon: "gear", href: "/app/settings" },
 ];
+
+/**
+ * The nav item whose href IS this path, or null when no nav item points here.
+ *
+ * Callers used to name the key themselves, and `/app/searches` (saved
+ * searches) and `/app/searches/new` both named `"search"` — whose href is
+ * `/app/discover`. That put `aria-current="page"` on a link to a page the
+ * buyer was not on (WCAG 4.1.2), and the only way to notice was to follow it.
+ * Resolving the key from the path instead makes naming the wrong one
+ * impossible rather than merely fixing the two that did.
+ *
+ * `/app/discover` matches `search` before `suppliers`; both link there and the
+ * first is the one the rail has always highlighted.
+ */
+export function activeNavKey(pathname: string): NavKey | null {
+  const path = pathname.replace(/\?.*$/, "").replace(/(.)\/+$/, "$1");
+  return NAV.find((item) => item.href === path)?.key ?? null;
+}
 
 function navCount(key: NavKey, counts: SidebarModel["counts"]): ReactNode {
   if (key === "search") return "⌘K";
@@ -89,7 +117,14 @@ export function Sidebar({ model, screenLabel }: { model: SidebarModel; screenLab
       </div>
       <nav
         aria-label={screenLabel ? `Primary, ${screenLabel}` : "Primary"}
-        className="-mx-1 flex snap-x gap-1 overflow-x-auto px-1 md:mx-0 md:flex-col md:gap-0.5 md:overflow-visible md:px-0"
+        // `overflow-x-auto` computes `overflow-y: auto` too, and an outline is
+        // not scrollable overflow — so on a 32px-tall strip the global
+        // `outline-offset-2` focus ring was cut off top and bottom and a
+        // keyboard user tabbing the phone nav saw two clipped side edges
+        // (WCAG 2.4.11). `-mx-1 px-1` already bought that room horizontally;
+        // `-my-1 py-1` is the same trade vertically, and costs no layout
+        // because the negative margin gives the padding back.
+        className="-mx-1 -my-1 flex snap-x gap-1 overflow-x-auto px-1 py-1 md:mx-0 md:my-0 md:flex-col md:gap-0.5 md:overflow-visible md:px-0 md:py-0"
       >
         {NAV.map((item) => {
           const on = item.key === model.active;
@@ -170,15 +205,21 @@ export function Topbar({ model }: { model: TopbarModel }) {
             // `:focus-visible` ring in @layer base at equal specificity and
             // wins — leaving a keyboard user with no indicator at all on the
             // primary search field.
-            className="grow bg-transparent text-ink-strong placeholder:text-ink-subtle"
+            // `min-w-0`: a flex item defaults to `min-width: auto`, and an
+            // input's intrinsic floor is its `size` attribute (~20 characters),
+            // so at 320px it refused to shrink and pushed itself and the ⌘K
+            // badge out over the Help button. The form has `min-w-0` so the
+            // document never scrolled — the overlap was purely visual, which
+            // is why it survived the reflow pass.
+            className="min-w-0 grow bg-transparent text-ink-strong placeholder:text-ink-subtle"
           />
           <Kbd>⌘K</Kbd>
+          <SearchShortcut />
         </form>
       ) : (
         <div className="flex h-control w-full min-w-0 max-w-[360px] items-center gap-2 rounded-sm border border-line-strong bg-surface px-2.5 text-sm text-ink-subtle">
           <Icon name="search" />
-          <span className="grow">Search suppliers, HS codes, certificates</span>
-          <Kbd>⌘K</Kbd>
+          <span className="min-w-0 grow truncate">Search suppliers, HS codes, certificates</span>
         </div>
       )}
       <Caption className="ml-auto hidden items-center gap-2 lg:inline-flex">

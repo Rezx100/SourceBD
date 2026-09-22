@@ -2,7 +2,7 @@
 // The results page cannot afford buyer_supplier_profile per row; it builds
 // from the RPC return + the HS batch + saved membership.
 
-import type { DiscoverV32Row, HsBatchLine } from "@/lib/discover-v32-rpc";
+import { PII_KEYS, type DiscoverV32Row, type HsBatchLine } from "@/lib/discover-v32-rpc";
 import type { WorkersBasis } from "@/lib/enrich-discover-workers";
 import type { HighlightChip, SupplierCardModel, TableRowModel, TileModel } from "@/lib/dashboard/models";
 import {
@@ -371,4 +371,9 @@ export function discoverRowsToCsv(rows: readonly DiscoverV32Row[], today: Date):
   return [header, ...lines].join("\r\n") + "\r\n";
 }
 
-export const CSV_CONTACT_HEADERS = ["email", "phone", "contact", "email_primary", "phones"] as const;
+/**
+ * Header names the export must never carry. The four real column names come
+ * from `PII_KEYS`, so the two lists cannot drift apart again; the bare words
+ * are the looser aliases a rename might reach for.
+ */
+export const CSV_CONTACT_HEADERS = [...PII_KEYS, "email", "phone", "contact"] as const;

@@ -271,14 +271,45 @@ $$;
 
 -- Every dimension the explain function names has to come back, or the
 -- zero-result page offers the buyer nothing. `lib/discover-v32-state.test.ts`
--- holds the TypeScript side to this same list.
+-- holds the TypeScript side to this same list — but it reads the literals out
+-- of the migration's source text, so it cannot see a dimension whose `if`
+-- guard stopped firing, nor one whose inner call stopped returning a row.
+--
+-- The old check here was `count(*) >= 1` against a call that set only `p_q`:
+-- eleven of the twelve could have been deleted outright and it stayed green.
+--
+-- One call per dimension, each setting only that dimension's filter. That
+-- matters: `discover_suppliers_explain` re-runs the search with the named
+-- filter dropped and the rest kept, so a single call carrying all twelve
+-- narrows every re-run to nothing and emits nothing at all. Setting one at a
+-- time leaves the re-run unfiltered, which the fixture's seven published rows
+-- satisfy, and proves each `if` fires on its own.
 do $$
 declare
-  n int;
+  got  text[];
+  want text[] := array[
+    'brand', 'cert', 'city', 'district', 'est', 'hs',
+    'min_sources', 'q', 'registry', 'rsc', 'type', 'workers'
+  ];
 begin
-  select count(*) into n from public.discover_suppliers_explain(p_q => 'nothing matches this') e;
-  if n < 1 then
-    raise exception 'discover_suppliers_explain returned no dimensions at all';
+  select array_agg(distinct d order by d) into got from (
+    select e.dropped as d from public.discover_suppliers_explain(p_q => 'nothing matches this') e
+    union all select e.dropped from public.discover_suppliers_explain(p_hs_codes => array['9999']) e
+    union all select e.dropped from public.discover_suppliers_explain(p_cert_kinds => array['oeko_tex']) e
+    union all select e.dropped from public.discover_suppliers_explain(p_rsc_min => 50) e
+    union all select e.dropped from public.discover_suppliers_explain(p_est_from => 1990) e
+    union all select e.dropped from public.discover_suppliers_explain(p_workers_min => 100000) e
+    union all select e.dropped from public.discover_suppliers_explain(p_district => 'Nowhere') e
+    union all select e.dropped from public.discover_suppliers_explain(p_city => 'Nowhere') e
+    union all select e.dropped from public.discover_suppliers_explain(p_entity_types => array['factory']) e
+    union all select e.dropped from public.discover_suppliers_explain(p_min_sources => 99) e
+    union all select e.dropped from public.discover_suppliers_explain(p_brand_codes => array['nope']) e
+    union all select e.dropped from public.discover_suppliers_explain(p_registries => array['nope']) e
+  ) t;
+
+  if got is distinct from (select array_agg(w order by w) from unnest(want) w) then
+    raise exception 'discover_suppliers_explain emits %, expected %',
+      coalesce(got::text, 'nothing'), want;
   end if;
 end
 $$;
