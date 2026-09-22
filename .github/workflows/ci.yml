@@ -151,3 +151,23 @@ jobs:
 
       - name: Replay every migration, then assert 0104 behaves
         run: bash supabase/ci/apply-migrations.sh
+
+      # The refusal, executed. The script guards production by requiring the
+      # target's `public` schema to be empty, and that check lives in a SQL
+      # string the unit suite can only read — a reviewer pointed the same query
+      # at a non-existent schema and every assertion stayed green while the
+      # guard stopped guarding anything. Here there is a real Postgres, and
+      # after the step above it holds ~109 migrations' worth of relations, so a
+      # second run MUST refuse. Exit 9 is the refusal and nothing else returns
+      # it; 0 would mean the guard let a populated database be replayed over.
+      - name: The replay refuses a database that is not empty
+        run: |
+          set +e
+          bash supabase/ci/apply-migrations.sh
+          status=$?
+          set -e
+          if [ "$status" -ne 9 ]; then
+            echo "::error::a second replay over a populated database exited $status, expected the refusal 9"
+            exit 1
+          fi
+          echo "second replay refused as it should, exit 9"

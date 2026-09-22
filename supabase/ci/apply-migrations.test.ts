@@ -147,18 +147,35 @@ describe("the migration replay actually replays, and says so when it does not", 
     //    find — which grepping the script's source could not tell, because the
     //    literals live in a string that stays defined when the block goes.
     assert.equal(stdin.length, 1, "the server-side guard was not piped to psql");
-    assert.match(stdin[0]!, /inet_server_addr\(\)/, "the replay no longer asks the server where it is");
     // `pg_class`, not `select count(*) from public.suppliers`: a row count runs
     // with the connecting role's privileges, so RLS filters it and a
     // non-superuser role on production sees its own zero — the guard would have
     // read that as "throwaway". Catalog relations are not RLS-filtered.
     assert.match(stdin[0]!, /pg_catalog\.pg_class/, "the replay no longer checks the target is empty");
+    // Pin the predicate, not just the table it reads. Pointing the same query
+    // at a schema that does not exist left every other assertion here green
+    // while the guard stopped guarding anything — a reviewer's mutation found
+    // that, and this suite has no Postgres to catch it by running it. The
+    // executed proof is in `.github/workflows/ci.yml`, which runs the script a
+    // second time after a successful replay and requires exit 9.
+    assert.match(stdin[0]!, /nspname = 'public'/, "the emptiness check no longer looks at the public schema");
+    assert.match(stdin[0]!, /relkind in \('r', 'p', 'v', 'm'\)/, "the emptiness check no longer counts tables and views");
     assert.doesNotMatch(
       stdin[0]!,
       /count\(\*\) from public\.suppliers/,
       "the emptiness check counts rows again, which RLS can hide",
     );
-    assert.match(stdin[0]!, /pg_catalog\.inet_server_addr\(\)/, "the address call is unqualified again");
+    // And NOT an address test. One lived here and failed both ways: it could
+    // not stop a production database reached over a socket or a loopback
+    // tunnel (null, or 127.0.0.1), and it refused the CI job it exists to
+    // protect, because GitHub runs Postgres on a Docker bridge and the server
+    // answers from 172.18.0.2 while the runner reaches it on localhost. The
+    // first CI run that ever reached the block died on exactly that.
+    assert.doesNotMatch(
+      stdin[0]!,
+      /inet_server_addr/,
+      "the guard tests the connection's address again; it cannot stop a tunnel and it refuses CI",
+    );
     assert.match(stdin[0]!, /REPLAY-REFUSED:/, "the guard raises nothing a caller can recognise");
     assert.match(stdin[0]!, /search_path/, "the guard block does not pin its search_path");
 

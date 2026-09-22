@@ -40,11 +40,14 @@ set -euo pipefail
 #      and clearing them silently would undo something somebody meant. NOT
 #      refused, deliberately: PGPORT, which CI sets and a developer may need,
 #      and PGOPTIONS. Both can still change what you are talking to, which is
-#      why check 3 below does not trust the connection's own account of itself.
+#      why check 3 below asks what the database CONTAINS rather than anything
+#      about the connection.
 #   2. Allow only a host we can see is local, and pass it to psql explicitly
 #      rather than letting it be read back out of the environment.
-#   3. Ask the server. Names lie and DNS moves; a database that already holds
-#      suppliers is not a throwaway, whatever it is called.
+#   3. Ask the server what SHAPE it is in. Names lie and DNS moves, and how the
+#      connection was made says nothing either; a database that already holds
+#      `public` relations is not a throwaway, whatever it is called and however
+#      you reached it.
 #
 # Exit 9 throughout: psql itself uses 0-3 (2 is a failed connection), a missing
 # PGDATABASE exits 1 and a missing psql exits 127, so 9 lets a test tell the
@@ -145,47 +148,58 @@ if ! command -v psql >/dev/null 2>&1; then
   exit 127
 fi
 
-# The check that does not trust a name. `inet_server_addr()` is null over a
-# The address half of this is weaker than it looks and the comment used to
-# oversell it. `inet_server_addr()` is null over a unix socket and reports the
-# SERVER's own view otherwise, so a production database reached through a
-# loopback tunnel (`PGHOST=localhost PGPORT=15432` over `ssh -L`) or through a
-# socket answers "127.0.0.1" or null and passes. PGPORT is a target component
-# the refusal list above deliberately does not take — CI sets it, and a
-# developer with Postgres on 5433 is not doing anything wrong — so the address
-# test cannot be the thing standing between this and production.
+# The check that does not trust a name.
 #
-# What does stand there is the SHAPE of the target. This script replays from
-# zero: a throwaway database has no `public` tables at all when it starts, and
-# production has a hundred. That is catalog data, not table data, so unlike the
-# `select count(*) from public.suppliers` this replaces it cannot be softened
-# by RLS — which is the trap the row count fell into, because a non-superuser
-# role connecting to production sees its own filtered zero and the guard would
-# have read that as "throwaway".
+# There used to be an address test here as well — refuse unless
+# `inet_server_addr()` is loopback or null. It is gone, and the reason is worth
+# keeping because it argues against putting it back. It failed in both
+# directions:
 #
-# `pg_catalog.` qualified, and the initialiser moved into the body: a DECLARE
-# initialiser is evaluated BEFORE the first statement, so `set local
-# search_path` on the line below could not protect it, and PGOPTIONS can set a
-# search_path. The old comment claimed the pin closed that class and it did not.
+#   - It could not stop the attack it was written for. `inet_server_addr()` is
+#     null over a unix socket and reports the SERVER's own view otherwise, so a
+#     production database reached through a loopback tunnel
+#     (`PGHOST=localhost PGPORT=15432` over `ssh -L`) or through a socket
+#     answers "127.0.0.1" or null and sails past. PGPORT is a target component
+#     the refusal list above deliberately does not take, because CI sets it and
+#     a developer with Postgres on 5433 is doing nothing wrong.
+#   - It refused the one job it exists to protect. GitHub Actions runs the
+#     Postgres service on a Docker bridge, so the server answers from
+#     172.18.0.2 while the runner reaches it on localhost. The first CI run
+#     that ever reached this block failed with
+#     "REPLAY-REFUSED: the server answered from 172.18.0.2".
+#
+#     Widening it to accept RFC1918 would have fixed that and made it weaker
+#     still — 10/8 and 172.16/12 are exactly where a self-hosted production
+#     database lives. A check that cannot stop the attack and does stop the
+#     job is not worth carrying.
+#
+# What is left is the SHAPE of the target, which is the check that was always
+# doing the work. This script replays from zero: a throwaway database has no
+# `public` relations at all when it starts, and production has a hundred. That
+# is catalog data, so unlike the `select count(*) from public.suppliers` it
+# replaced, it cannot be softened by RLS — the trap the row count fell into,
+# because a non-superuser role on production sees its own filtered zero and the
+# guard would have read that as "throwaway". It is also indifferent to how the
+# connection was made, which is the property the address test only pretended to
+# have.
+#
+# `set local search_path = pg_catalog` first and every reference qualified:
+# PGOPTIONS can set a search_path and is not one of the variables refused
+# above.
 guard_sql="do \$guard\$
 declare
-  addr  inet;
-  rels  bigint;
+  rels bigint;
 begin
   set local search_path = pg_catalog;
-  addr := pg_catalog.inet_server_addr();
 
   select pg_catalog.count(*) into rels
     from pg_catalog.pg_class c
     join pg_catalog.pg_namespace n on n.oid = c.relnamespace
    where n.nspname = 'public' and c.relkind in ('r', 'p', 'v', 'm');
+
   if rels > 0 then
     raise exception
       'REPLAY-REFUSED: public already holds % relations, so this is not an empty throwaway database', rels;
-  end if;
-
-  if addr is not null and not (addr <<= inet '127.0.0.0/8' or addr = inet '::1') then
-    raise exception 'REPLAY-REFUSED: the server answered from %, which is not a loopback address', addr;
   end if;
 end
 \$guard\$;"
