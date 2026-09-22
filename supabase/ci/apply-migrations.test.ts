@@ -62,6 +62,21 @@ if (HAS_BASH) {
   const stub = [
     "#!/usr/bin/env bash",
     'printf "ARGS %s\\n" "$*" >> "$STUB_LOG"',
+    // Real psql reads $PSQLRC (or ~/.psqlrc) unless -X is passed, AFTER the
+    // command line's `-v ON_ERROR_STOP=1` and BEFORE the -f payload. A startup
+    // file saying `\\set ON_ERROR_STOP 0` therefore turns every error into an
+    // exit 0 — the refusal prints and is ignored, and so is every failing
+    // migration. The stub models exactly that much of psql, because without it
+    // no test in this file could see a missing -X.
+    'errstop=1',
+    'case "$*" in *" -v ON_ERROR_STOP=1"*|*" -v ON_ERROR_STOP=1 "*) errstop=1 ;; esac',
+    'case "$*" in *-X*) ;; *)',
+    '  if [ -n "${PSQLRC:-}" ] && [ -f "$PSQLRC" ]; then',
+    '    grep -q "ON_ERROR_STOP 0" "$PSQLRC" && errstop=0',
+    '  fi',
+    '  ;;',
+    'esac',
+    'printf "ERRSTOP %s\\n" "$errstop" >> "$STUB_LOG"',
     // `-f -` means the SQL arrives on stdin; anything else names a file.
     'if [ "${*: -1}" = "-" ]; then',
     '  printf "STDIN %s\\n" "$(cat | tr "\\n" " ")" >> "$STUB_LOG"',
@@ -69,10 +84,14 @@ if (HAS_BASH) {
     'case "${STUB_MODE:-ok}" in',
     "  fail)",
     '    echo "psql: error: connection to server at \\"localhost\\" failed: Connection refused" >&2',
+    '    [ "$errstop" = "0" ] && exit 0',
     "    exit 2",
     "    ;;",
     "  refuse)",
-    '    echo "psql:<stdin>:1: ERROR:  REPLAY-REFUSED: public.suppliers already holds 10922 rows" >&2',
+    '    echo "psql:<stdin>:1: ERROR:  REPLAY-REFUSED: public already holds 118 relations" >&2',
+    // The whole point of ON_ERROR_STOP: without it psql prints the error and
+    // exits 0, and the caller never learns the server refused.
+    '    [ "$errstop" = "0" ] && exit 0',
     "    exit 1",
     "    ;;",
     "esac",
@@ -89,7 +108,12 @@ after(() => {
 
 function run(env: Record<string, string>, opts: { withStub?: boolean } = {}): { code: number; stderr: string; calls: string } {
   if (opts.withStub !== false && existsSync(LOG)) rmSync(LOG);
-  const base: Record<string, string> = { PATH: process.env.PATH ?? "", PGDATABASE: "sourcebd_ci" };
+  const base: Record<string, string> = {
+    PATH: process.env.PATH ?? "",
+    PGDATABASE: "sourcebd_ci",
+    // bash needs one on Windows; nothing here reads it otherwise.
+    HOME: process.env.HOME ?? process.env.USERPROFILE ?? "",
+  };
   if (opts.withStub !== false) {
     base.PATH = `${DIR}${path.delimiter}${process.env.PATH ?? ""}`;
     base.STUB_LOG = LOG;
@@ -124,7 +148,17 @@ describe("the migration replay actually replays, and says so when it does not", 
     //    literals live in a string that stays defined when the block goes.
     assert.equal(stdin.length, 1, "the server-side guard was not piped to psql");
     assert.match(stdin[0]!, /inet_server_addr\(\)/, "the replay no longer asks the server where it is");
-    assert.match(stdin[0]!, /public\.suppliers/, "the replay no longer checks the target is empty");
+    // `pg_class`, not `select count(*) from public.suppliers`: a row count runs
+    // with the connecting role's privileges, so RLS filters it and a
+    // non-superuser role on production sees its own zero — the guard would have
+    // read that as "throwaway". Catalog relations are not RLS-filtered.
+    assert.match(stdin[0]!, /pg_catalog\.pg_class/, "the replay no longer checks the target is empty");
+    assert.doesNotMatch(
+      stdin[0]!,
+      /count\(\*\) from public\.suppliers/,
+      "the emptiness check counts rows again, which RLS can hide",
+    );
+    assert.match(stdin[0]!, /pg_catalog\.inet_server_addr\(\)/, "the address call is unqualified again");
     assert.match(stdin[0]!, /REPLAY-REFUSED:/, "the guard raises nothing a caller can recognise");
     assert.match(stdin[0]!, /search_path/, "the guard block does not pin its search_path");
 
@@ -149,6 +183,42 @@ describe("the migration replay actually replays, and says so when it does not", 
     assert.ok(numbered.length > 0, "no NNNN_ migration was applied at all");
     const newest = [...numbered].sort().at(-1)!;
     assert.equal(base(applied.at(-1)!), newest, `the newest numbered migration (${newest}) was not applied last`);
+  });
+
+  it("a startup file cannot switch off the error handling this script depends on", () => {
+    // psql reads ~/.psqlrc or $PSQLRC after the command line and before the
+    // payload, so `\\set ON_ERROR_STOP 0` there overrides `-v ON_ERROR_STOP=1`
+    // for the whole session: the REPLAY-REFUSED raise prints and psql still
+    // exits 0, the refusal is skipped, and every migration error after it is
+    // ignored — exit 0 having applied nothing, which is the defect the round
+    // before this one fixed by another route. `-X` is what stops it.
+    const rc = path.join(DIR, "psqlrc");
+    writeFileSync(rc, "\\set ON_ERROR_STOP 0\n");
+
+    const refused = run({ PGHOST: "localhost", STUB_MODE: "refuse", PSQLRC: rc });
+    assert.equal(refused.code, REFUSED, `a startup file turned the server's refusal into exit ${refused.code}`);
+    assert.doesNotMatch(refused.calls, /00-supabase-bootstrap\.sql/, "the bootstrap ran after a refusal");
+
+    const broken = run({ PGHOST: "localhost", STUB_MODE: "fail", PSQLRC: rc });
+    assert.notEqual(broken.code, 0, "a startup file turned a failed connection into a successful run");
+
+    // And every invocation must carry -X, not just the first.
+    const clean = run({ PGHOST: "localhost", PSQLRC: rc });
+    assert.equal(clean.code, 0, `a clean run with a startup file present failed: ${clean.stderr}`);
+    const argLines = clean.calls.split(/\r?\n/).filter((l) => l.startsWith("ARGS "));
+    for (const a of argLines) assert.match(a, /(^|\s)-X(\s|$)/, `a psql call would read a startup file: ${a}`);
+    for (const e of clean.calls.split(/\r?\n/).filter((l) => l.startsWith("ERRSTOP "))) {
+      assert.equal(e, "ERRSTOP 1", "a psql call ran without ON_ERROR_STOP in force");
+    }
+  });
+
+  it("refuses a PGUSER that could forge the refusal token", () => {
+    // psql echoes the user and database in its connection errors, so a PGUSER
+    // carrying the token made an ordinary failure read as a refusal. It fails
+    // closed, but a guard that can be made to lie either way is not one to
+    // leave alone.
+    const { code } = run({ PGHOST: "localhost", PGUSER: "REPLAY-REFUSED: x", STUB_MODE: "fail" });
+    assert.equal(code, REFUSED);
   });
 
   it("a psql that cannot connect fails the run, and applies nothing", () => {
@@ -239,7 +309,7 @@ describe("the migration replay actually replays, and says so when it does not", 
       const { code, stderr, calls } = run({ PGHOST: host, STUB_MODE: "fail" });
       assert.equal(code, 2, `PGHOST=${host} is a local target and must not be refused: ${code} ${stderr}`);
       assert.doesNotMatch(stderr, /refusing/, `PGHOST=${host} printed a refusal: ${stderr}`);
-      assert.match(calls, /ARGS -h /, `PGHOST=${host} never reached psql`);
+      assert.match(calls, /ARGS .*-h /, `PGHOST=${host} never reached psql`);
     }
   });
 

@@ -37,7 +37,10 @@ set -euo pipefail
 # So: three checks, cheapest first, and the last one does not trust a name.
 #
 #   1. Refuse the redirect variables outright. A local replay never needs them,
-#      and clearing them silently would undo something somebody meant.
+#      and clearing them silently would undo something somebody meant. NOT
+#      refused, deliberately: PGPORT, which CI sets and a developer may need,
+#      and PGOPTIONS. Both can still change what you are talking to, which is
+#      why check 3 below does not trust the connection's own account of itself.
 #   2. Allow only a host we can see is local, and pass it to psql explicitly
 #      rather than letting it be read back out of the environment.
 #   3. Ask the server. Names lie and DNS moves; a database that already holds
@@ -54,6 +57,17 @@ for redirect in PGHOSTADDR PGSERVICE PGSERVICEFILE PGTARGETSESSIONATTRS; do
     exit 9
   fi
 done
+
+# psql prints connection errors with the user and database it tried, so a
+# PGUSER containing the refusal token would make an ordinary connection failure
+# read as a refusal. It fails closed — 2 becomes 9 — but a guard that can be
+# made to lie in either direction is not one to leave alone.
+case "${PGUSER:-}${PGDATABASE:-}" in
+  *REPLAY-REFUSED*)
+    echo "apply-migrations.sh: refusing a PGUSER/PGDATABASE that contains the refusal token." >&2
+    exit 9
+    ;;
+esac
 
 host="${PGHOST:-localhost}"
 case "$host" in
@@ -132,27 +146,46 @@ if ! command -v psql >/dev/null 2>&1; then
 fi
 
 # The check that does not trust a name. `inet_server_addr()` is null over a
-# unix socket and the peer address otherwise. A populated `suppliers` table
-# means this is somebody's real database whatever PGHOST called it; a
-# throwaway container answers null-or-loopback and has no such table yet.
-# `set local search_path = pg_catalog` first: the block is an anonymous DO with
-# no pinned path, and PGOPTIONS='-c search_path=…' is not one of the variables
-# refused above, so a shadowing operator or function could have made the
-# loopback test return true. Pinning it costs nothing and closes the class.
+# The address half of this is weaker than it looks and the comment used to
+# oversell it. `inet_server_addr()` is null over a unix socket and reports the
+# SERVER's own view otherwise, so a production database reached through a
+# loopback tunnel (`PGHOST=localhost PGPORT=15432` over `ssh -L`) or through a
+# socket answers "127.0.0.1" or null and passes. PGPORT is a target component
+# the refusal list above deliberately does not take — CI sets it, and a
+# developer with Postgres on 5433 is not doing anything wrong — so the address
+# test cannot be the thing standing between this and production.
+#
+# What does stand there is the SHAPE of the target. This script replays from
+# zero: a throwaway database has no `public` tables at all when it starts, and
+# production has a hundred. That is catalog data, not table data, so unlike the
+# `select count(*) from public.suppliers` this replaces it cannot be softened
+# by RLS — which is the trap the row count fell into, because a non-superuser
+# role connecting to production sees its own filtered zero and the guard would
+# have read that as "throwaway".
+#
+# `pg_catalog.` qualified, and the initialiser moved into the body: a DECLARE
+# initialiser is evaluated BEFORE the first statement, so `set local
+# search_path` on the line below could not protect it, and PGOPTIONS can set a
+# search_path. The old comment claimed the pin closed that class and it did not.
 guard_sql="do \$guard\$
 declare
-  addr inet := inet_server_addr();
-  n bigint := 0;
+  addr  inet;
+  rels  bigint;
 begin
-  set local search_path = pg_catalog, public;
+  set local search_path = pg_catalog;
+  addr := pg_catalog.inet_server_addr();
+
+  select pg_catalog.count(*) into rels
+    from pg_catalog.pg_class c
+    join pg_catalog.pg_namespace n on n.oid = c.relnamespace
+   where n.nspname = 'public' and c.relkind in ('r', 'p', 'v', 'm');
+  if rels > 0 then
+    raise exception
+      'REPLAY-REFUSED: public already holds % relations, so this is not an empty throwaway database', rels;
+  end if;
+
   if addr is not null and not (addr <<= inet '127.0.0.0/8' or addr = inet '::1') then
     raise exception 'REPLAY-REFUSED: the server answered from %, which is not a loopback address', addr;
-  end if;
-  if to_regclass('public.suppliers') is not null then
-    execute 'select count(*) from public.suppliers' into n;
-    if n > 0 then
-      raise exception 'REPLAY-REFUSED: public.suppliers already holds % rows, so this is not a throwaway database', n;
-    end if;
   end if;
 end
 \$guard\$;"
@@ -166,7 +199,7 @@ end
 # reviewers found it independently; the test that was supposed to hold this
 # script up asserted only `code !== 9`, which exit 0 satisfies.
 set +e
-guard_err="$(printf '%s\n' "$guard_sql" | psql -h "$host" -v ON_ERROR_STOP=1 -q -f - 2>&1 >/dev/null)"
+guard_err="$(printf '%s\n' "$guard_sql" | psql -X -h "$host" -v ON_ERROR_STOP=1 -q -f - 2>&1 >/dev/null)"
 guard_status=$?
 set -e
 if [ "$guard_status" -ne 0 ]; then
@@ -182,14 +215,14 @@ if [ "$guard_status" -ne 0 ]; then
   exit "$guard_status"
 fi
 
-psql -h "$host" -v ON_ERROR_STOP=1 -q -f "$root/supabase/ci/00-supabase-bootstrap.sql"
+psql -X -h "$host" -v ON_ERROR_STOP=1 -q -f "$root/supabase/ci/00-supabase-bootstrap.sql"
 
 applied=0
 for f in $(ls "$mig" | grep '\.sql$' | sort | grep -v "^${last}$") "$last"; do
   echo "--- $f"
-  psql -h "$host" -v ON_ERROR_STOP=1 -q -f "$mig/$f"
+  psql -X -h "$host" -v ON_ERROR_STOP=1 -q -f "$mig/$f"
   applied=$((applied + 1))
 done
 echo "applied $applied migrations"
 
-psql -h "$host" -v ON_ERROR_STOP=1 -q -f "$root/supabase/ci/assert-0104.sql"
+psql -X -h "$host" -v ON_ERROR_STOP=1 -q -f "$root/supabase/ci/assert-0104.sql"
