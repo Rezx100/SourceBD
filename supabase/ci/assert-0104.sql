@@ -9,8 +9,10 @@
 
 begin;
 
-insert into auth.users (id, email) values
-  ('00000000-0000-4000-8000-00000000d001', 'ci@example.invalid')
+-- 0022's on_auth_user_created trigger reads raw_user_meta_data->>'role' off
+-- this row, so give it one rather than relying on the default.
+insert into auth.users (id, email, raw_user_meta_data) values
+  ('00000000-0000-4000-8000-00000000d001', 'ci@example.invalid', '{"role":"buyer"}'::jsonb)
 on conflict do nothing;
 
 insert into public.suppliers (slug, company_name, company_name_norm, city, district, is_published, is_sanctioned)

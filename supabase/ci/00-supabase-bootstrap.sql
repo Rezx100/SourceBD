@@ -38,9 +38,16 @@ grant usage on schema public to anon, authenticated, service_role;
 create schema if not exists auth;
 grant usage on schema auth to anon, authenticated, service_role;
 
+-- `raw_user_meta_data` is not decoration: 0022 puts an AFTER INSERT trigger on
+-- this table that reads `new.raw_user_meta_data ->> 'role'` to seed a profile.
+-- Without the column every insert here fails with "record new has no field",
+-- which is what the first CI run of this job found.
 create table if not exists auth.users (
-  id    uuid primary key default gen_random_uuid(),
-  email text
+  id                  uuid  primary key default gen_random_uuid(),
+  email               text,
+  raw_user_meta_data  jsonb not null default '{}'::jsonb,
+  raw_app_meta_data   jsonb not null default '{}'::jsonb,
+  created_at          timestamptz not null default now()
 );
 
 -- The real ones read the request JWT out of a GUC. Same contract: null when
