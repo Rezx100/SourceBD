@@ -68,6 +68,10 @@ export const BUYER_SECTIONS: Section[] = [
       { label: "Search suppliers", href: "/app/discover", Icon: MagnifyingGlass, badgeKey: "discover" },
       { label: "Find matches", href: "/app/match", Icon: Sparkle },
       { label: "Saved suppliers", href: "/app/saved", Icon: BookmarkSimple, badgeKey: "saved" },
+      // `/app/searches` was reachable from nowhere: a buyer who saved a search
+      // could not get back to it without typing the URL. Same position as in
+      // the dashboard kit's own rail so the two agree on order (WCAG 3.2.3).
+      { label: "Saved searches", href: "/app/searches", Icon: FileMagnifyingGlass },
     ],
   },
   {

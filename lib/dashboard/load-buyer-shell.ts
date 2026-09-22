@@ -32,11 +32,24 @@ export async function loadBuyerShell(supabase: { rpc: (fn: string, args?: Record
       supabase.rpc("buyer_dashboard"),
       supabase.rpc("discover_suppliers", discoverRpcArgs(EMPTY_STATE, { limit: 1, offset: 0 })),
     ]);
-    if (dash && typeof dash === "object" && typeof (dash as { saved_count?: unknown }).saved_count === "number") {
-      saved = (dash as { saved_count: number }).saved_count;
+    if (dash && typeof dash === "object") {
+      // `saved_count` is a bigint on the SQL side, which PostgREST may send as
+      // a string. Accepting only `number` left a real count reading as
+      // "not read" — the same number-or-string trap the export filename fell
+      // into. `parseTotalCount` is the house rule for it.
+      const savedRaw = (dash as { saved_count?: unknown }).saved_count;
+      const n = typeof savedRaw === "number" ? savedRaw : typeof savedRaw === "string" ? Number(savedRaw) : NaN;
+      if (Number.isFinite(n)) saved = n;
     }
-    const pubRows = Array.isArray(pub?.data) && !pub?.error ? pub.data.map(asRow).filter(Boolean) as DiscoverV32Row[] : [];
-    published = pub?.error || !Array.isArray(pub?.data) ? null : parseTotalCount(pubRows);
+    const pubRaw = Array.isArray(pub?.data) && !pub?.error ? (pub.data as unknown[]) : null;
+    const pubRows = pubRaw ? (pubRaw.map(asRow).filter(Boolean) as DiscoverV32Row[]) : [];
+    // `parseTotalCount([])` is 0, which is the right answer for a search that
+    // genuinely matched nothing and the wrong one for rows that arrived and
+    // failed the shape check — that read "0 published suppliers" over a
+    // successful RPC. Rows came back and none survived parsing means the read
+    // did not succeed, so the count is unknown.
+    published =
+      pub?.error || pubRaw === null ? null : pubRaw.length > 0 && pubRows.length === 0 ? null : parseTotalCount(pubRows);
   } catch {
     // fail-soft
   }

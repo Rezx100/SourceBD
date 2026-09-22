@@ -16,6 +16,7 @@ export type NavKey =
   | "suppliers"
   | "products"
   | "saved"
+  | "searches"
   | "messages"
   | "rfqs"
   | "orders"
@@ -56,6 +57,14 @@ export const NAV: readonly { key: NavKey; label: string; icon: IconName; href: s
   { key: "suppliers", label: "Suppliers", icon: "building", href: "/app/discover" },
   { key: "products", label: "Products", icon: "tag", href: "/app/products" },
   { key: "saved", label: "Saved", icon: "bookmark", href: "/app/saved" },
+  // A buyer who saved a search had no way back to it: `/app/searches` was
+  // linked from nowhere in the product — not this rail, not
+  // `components/shell/sidebar.tsx` — and the only reference to it was the
+  // redirect that puts you there once, straight after saving. The same
+  // defect the comment above describes for Products and Compliance hub, one
+  // step further along. Added to `BUYER_SECTIONS` in the same position so the
+  // two rails still agree on order (WCAG 3.2.3).
+  { key: "searches", label: "Saved searches", icon: "funnel", href: "/app/searches" },
   { key: "messages", label: "Messages", icon: "chat", href: "/app/messages" },
   { key: "rfqs", label: "RFQs", icon: "send", href: "/app/rfqs" },
   { key: "orders", label: "Orders", icon: "box", href: "/app/orders" },
@@ -77,12 +86,23 @@ export const NAV: readonly { key: NavKey; label: string; icon: IconName; href: s
  * first is the one the rail has always highlighted.
  */
 export function activeNavKey(pathname: string): NavKey | null {
-  const path = pathname.replace(/\?.*$/, "").replace(/(.)\/+$/, "$1");
-  return NAV.find((item) => item.href === path)?.key ?? null;
+  const path = pathname.replace(/[?#].*$/, "").replace(/(.)\/+$/, "$1");
+  const exact = NAV.find((item) => item.href === path);
+  if (exact) return exact.key;
+  // A nested route belongs to its section: /app/rfqs/<id> and
+  // /app/settings/rfq are both §3 screens this shell will render, and an
+  // exact match alone left every one of them highlighting nothing. Longest
+  // href wins so /app/searches/new cannot be claimed by /app/search-anything.
+  const under = NAV.filter((item) => path.startsWith(item.href + "/")).sort((a, b) => b.href.length - a.href.length);
+  return under[0]?.key ?? null;
 }
 
 function navCount(key: NavKey, counts: SidebarModel["counts"]): ReactNode {
-  if (key === "search") return "⌘K";
+  // The Search row used to return the literal "⌘K" here, which put a keyboard
+  // hint inside the link's accessible name ("Search ⌘K") and advertised the
+  // shortcut on every shell — including the ones with no search form for it to
+  // focus, where nothing listens for it. The topbar carries the hint, beside
+  // the field it acts on, and only when that field is there.
   const n = key === "suppliers" ? counts.suppliers : key === "rfqs" ? counts.rfqs : key === "saved" ? counts.saved : null;
   return n === null || n === undefined ? null : formatCount(n);
 }
@@ -105,7 +125,10 @@ export function Sidebar({ model, screenLabel }: { model: SidebarModel; screenLab
   // destination stays reachable at every width, with no drawer, no state and
   // no second navigation to keep in step.
   return (
-    <aside className="flex w-full shrink-0 flex-col gap-5 border-b border-line-subtle px-3 py-3 md:w-sidebar md:border-b-0 md:border-r md:py-4">
+    <aside
+      aria-label={screenLabel ? `Sidebar, ${screenLabel}` : "Sidebar"}
+      className="flex w-full shrink-0 flex-col gap-5 border-b border-line-subtle px-3 py-3 md:w-sidebar md:border-b-0 md:border-r md:py-4"
+    >
       <div className="hidden items-center gap-2.5 px-2 py-0.5 md:flex">
         <span
           aria-hidden
@@ -183,12 +206,17 @@ export type TopbarModel = {
   searchQuery?: string;
 };
 
-export function Topbar({ model }: { model: TopbarModel }) {
+export function Topbar({ model, screenLabel }: { model: TopbarModel; screenLabel?: string }) {
   return (
     <div className="glass flex h-topbar shrink-0 items-center gap-3 border-b border-line-subtle px-4 sm:gap-4 sm:px-6">
       {model.searchAction ? (
         <form
           role="search"
+          // The `search` landmark had no name. `screenLabel` was documented as
+          // having been threaded into "nav/search" and had only ever reached
+          // nav and main, so the six shells in the /dev/ds gallery rendered six
+          // identical unnamed search landmarks (WCAG 1.3.1).
+          aria-label={screenLabel ? `Search, ${screenLabel}` : "Search"}
           action={model.searchAction}
           method="get"
           className="flex h-control w-full min-w-0 max-w-[360px] items-center gap-2 rounded-sm border border-line-strong bg-surface px-2.5 text-sm text-ink-subtle"
@@ -296,10 +324,14 @@ export function AppShell({
       </a>
       <Sidebar model={sidebar} screenLabel={screenLabel} />
       <div className="flex min-w-0 flex-1 flex-col">
-        <Topbar model={topbar} />
+        <Topbar model={topbar} screenLabel={screenLabel} />
         <main
           id={mainId}
           aria-label={screenLabel}
+          // Without it the skip link relies on the browser choosing to move
+          // focus to a non-focusable fragment target, which older Safari does
+          // not. `app/(app)/layout.tsx` sets it on the shell this replaces.
+          tabIndex={-1}
           className={cn(
             "mx-auto flex w-full max-w-[calc(75rem+3rem)] flex-col gap-4 p-4 sm:p-6",
             contentClassName,

@@ -201,6 +201,43 @@ describe("discover CSV export boundary", () => {
     assert.doesNotMatch(res.body, /matching suppliers/i, "the notice leaked back into the CSV body");
   });
 
+  it("says so just the same when the count arrives as a string", async () => {
+    // `total_count` is a bigint, and PostgREST may send a bigint as a string —
+    // `DiscoverV32Row.total_count` is `number | string` for exactly that
+    // reason. The filename used to read the column off the rows itself and
+    // accept only `typeof === "number"`, so a string total silently dropped
+    // the notice, both headers and the "-first-1000-of-3481" from the name.
+    // That is the same silence the test above exists to stop, arriving by a
+    // different door.
+    const res = await runDiscoverExport({
+      role: "buyer",
+      supabase: {
+        rpc: async (_fn: string, args?: Record<string, unknown>) => {
+          const limit = Math.min(RPC_LIMIT_CEILING, Number(args?.p_limit ?? RPC_LIMIT_CEILING));
+          return {
+            data: Array.from({ length: limit }, (_, i) => ({
+              ...ROW,
+              slug: `s-${args?.p_offset}-${i}`,
+              company_name: `S ${args?.p_offset}-${i}`,
+              total_count: "3481",
+            })),
+            error: null,
+          };
+        },
+      },
+      search: "",
+      today: TODAY,
+    });
+    assert.equal(res.status, 200);
+    assert.match(
+      res.headers["Content-Disposition"] ?? "",
+      /-first-1000-of-3481\.csv"/,
+      `a string total_count lost the truncation notice: ${res.headers["Content-Disposition"]}`,
+    );
+    assert.equal(res.headers["X-SourceBD-Truncated"], "1");
+    assert.equal(res.headers["X-SourceBD-Matched"], "3481");
+  });
+
   it("stays silent when the export is the whole result set", async () => {
     const res = await runDiscoverExport({
       role: "buyer",
@@ -226,6 +263,25 @@ describe("discover CSV export boundary", () => {
     const csv = "slug,company_name,email\na,b,c\r\n";
     assert.equal(csvContainsContactHeader(csv), true);
     assert.equal(csvContainsContactHeader("slug,company_name,city\na,b,c\r\n"), false);
+  });
+
+  it("no column the export actually emits is a contact column", () => {
+    // This is the reachable half of the backstop, and the half that was
+    // missing. `runDiscoverExport`'s `csvContainsContactHeader(csv)` branch
+    // checks a header the same function just generated from `CSV_COLUMNS`, so
+    // it cannot fire — replacing it with `if (false)` leaves every test green,
+    // which a reviewer demonstrated. The invariant that CAN fail is the column
+    // list itself: the day somebody adds a contact column to `CSV_COLUMNS`,
+    // this goes red before the bytes are ever built.
+    const header = discoverRowsToCsv([], new Date("2026-09-22T00:00:00Z")).split(/\r?\n/, 1)[0] ?? "";
+    assert.ok(header.length > 0, "the export has no header row");
+    assert.equal(csvContainsContactHeader(`${header}\r\n`), false, `CSV_COLUMNS carries a contact column: ${header}`);
+    for (const key of PII_KEYS) {
+      assert.ok(
+        !header.split(",").includes(key),
+        `${key} is a CSV column; the export carries contact data`,
+      );
+    }
   });
 
   it("covers every contact column the brief names, not just the two it was typed with", () => {

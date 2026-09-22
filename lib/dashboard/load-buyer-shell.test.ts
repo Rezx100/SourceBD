@@ -1,9 +1,17 @@
-// `load-buyer-shell.ts` was in no tsconfig at all — not the app's test project
-// and not `tsconfig.npm-test.json` — so nothing typechecked it and nothing ran
-// it, while every one of the three kit routes calls it to build the sidebar
-// counts and the topbar caption a buyer reads. Its whole job is to fail soft
-// without inventing a number, which is exactly the class of defect this round
-// has been finding: a count that could not be read printed as `0`.
+// `load-buyer-shell.ts` was in `tsconfig.npm-test.json`'s file list nowhere, so
+// nothing RAN it, while every one of the kit routes calls it to build the
+// sidebar counts and the topbar caption a buyer reads.
+//
+// An earlier version of this comment, and the commit message with it, said
+// nothing typechecked it either. That was wrong and a reviewer proved it: the
+// root `tsconfig.json` globs `**/*.ts` and excludes only node_modules/.next/
+// etl/ops/supabase/prototypes, so `pnpm exec tsc --noEmit` covered this file in
+// CI before and after. Only the running was missing — which was enough to hide
+// the avatar defect below, but it is not the same claim.
+//
+// Its whole job is to fail soft without inventing a number, which is exactly
+// the class of defect this round has been finding: a count that could not be
+// read printed as `0`.
 
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
@@ -61,6 +69,34 @@ describe("the buyer shell reads its counts, or says it could not", () => {
     assert.equal(topbar.searchAction, "/app/discover");
   });
 
+  it("rows that arrive and do not parse are an unread count, not a zero", async () => {
+    // `parseTotalCount([])` is 0, which is right for a search that genuinely
+    // matched nothing and wrong for rows that came back and failed the shape
+    // check — the caption then read "0 published suppliers" over a successful
+    // RPC, which is the exact class of claim this file exists to stop.
+    const { sidebar, topbar } = await loadBuyerShell(
+      stub({ discover: { data: [{ not: "a row" }, { also: "not" }], error: null } }),
+      "/app/discover",
+    );
+    assert.equal(sidebar.counts.suppliers, null);
+    assert.equal(topbar.caption, "published count could not be read");
+  });
+
+  it("a bigint count sent as a string is still a count", async () => {
+    // PostgREST may send a bigint as a string; `DiscoverV32Row.total_count` is
+    // `number | string` for that reason. `saved_count` was accepted only as a
+    // number, so a real count read as "not read".
+    const { sidebar } = await loadBuyerShell(
+      stub({ dashboard: { saved_count: "12" }, discover: { data: [{ slug: "a", total_count: "10266" }], error: null } }),
+      "/app/discover",
+    );
+    assert.equal(sidebar.counts.saved, 12);
+    assert.equal(sidebar.counts.suppliers, 10266);
+    // Junk is still unknown, not NaN and not 0.
+    const junk = await loadBuyerShell(stub({ dashboard: { saved_count: "many" } }), "/app/discover");
+    assert.equal(junk.sidebar.counts.saved, null);
+  });
+
   it("a real zero stays a zero", async () => {
     const { sidebar } = await loadBuyerShell(
       stub({ dashboard: { saved_count: 0 }, discover: { data: [], error: null }, rfqCount: 0 }),
@@ -95,18 +131,39 @@ describe("the buyer shell reads its counts, or says it could not", () => {
     // named "search", whose href is /app/discover — so the rail told a screen
     // reader the buyer was on a page they were not on. The key is resolved
     // from the path now, and no nav item points at either of these.
-    for (const path of ["/app/searches", "/app/searches/new", "/app/nothing-here"]) {
+    for (const path of ["/app/nothing-here", "/app/match"]) {
       const { sidebar } = await loadBuyerShell(stub({}), path);
       assert.equal(sidebar.active, null, `${path} marks a nav link as the current page`);
     }
+    // `/app/searches` used to be one of these, because no nav item pointed at
+    // it. It has one now — it was reachable from nowhere in the product, so a
+    // buyer who saved a search could not get back to it.
+    assert.equal((await loadBuyerShell(stub({}), "/app/searches")).sidebar.active, "searches");
     // And the routes that do have a nav item still resolve to it.
     for (const [path, key] of [["/app/discover", "search"], ["/app/products", "products"], ["/app/saved", "saved"]] as const) {
       const { sidebar } = await loadBuyerShell(stub({}), path);
       assert.equal(sidebar.active, key, `${path} does not light its own nav item`);
     }
-    // A query string or a trailing slash is the same page.
-    assert.equal((await loadBuyerShell(stub({}), "/app/products?q=knit")).sidebar.active, "products");
-    assert.equal((await loadBuyerShell(stub({}), "/app/products/")).sidebar.active, "products");
+    // A query string, a fragment or a trailing slash is the same page. The
+    // fragment case was missed: `\?.*$` only eats a `#` when a query precedes
+    // it, so `/app/products#top` highlighted nothing.
+    for (const path of ["/app/products?q=knit", "/app/products/", "/app/products#top", "/app/products?q=a#b", "/app/products//"]) {
+      assert.equal((await loadBuyerShell(stub({}), path)).sidebar.active, "products", path);
+    }
+    // A nested route belongs to its section. Every §3 screen still to come —
+    // /app/rfqs/<id>, /app/settings/rfq, /app/compliance/expiry — highlighted
+    // nothing under an exact match alone.
+    for (const [path, key] of [
+      ["/app/rfqs/abc-123", "rfqs"],
+      ["/app/settings/rfq", "settings"],
+      ["/app/compliance/expiry", "compliance"],
+      ["/app/searches/new", "searches"],
+    ] as const) {
+      assert.equal((await loadBuyerShell(stub({}), path)).sidebar.active, key, path);
+    }
+    // But a sibling that merely shares a prefix is not "under" it.
+    assert.equal((await loadBuyerShell(stub({}), "/app/savedsomething")).sidebar.active, null);
+    assert.equal((await loadBuyerShell(stub({}), "/app/nothing-here/deep")).sidebar.active, null);
   });
 
   it("the initial falls back to the email when there is no name", async () => {

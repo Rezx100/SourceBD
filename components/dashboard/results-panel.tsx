@@ -91,7 +91,14 @@ export function PanelHeader({ model }: { model: PanelHeaderModel }) {
               }`}
         </Caption>
       </div>
-      <div className="flex items-center gap-2">
+      {/* This group wraps too. The wrapper above has `flex-wrap` and the
+          comment above it claims that fixed the reflow; measured at 320px it
+          did not, because THIS row is a single non-wrapping line of four
+          `whitespace-nowrap` h-controls — 425px inside a 286px header. The
+          document scrolled to 458px, and Export CSV and the card/table
+          toggle sat 66 and 137px outside the viewport, focusable but off
+          screen. `flex-wrap` here is what the outer one could not do for it. */}
+      <div className="flex min-w-0 flex-wrap items-center justify-end gap-2">
         {model.sortOptions && model.sortOptions.length > 0 ? (
           <details className="relative">
             <summary className="inline-flex h-control list-none items-center gap-1.5 rounded-sm border border-line-strong bg-surface px-3 text-sm font-medium text-ink hover:bg-surface-sunken">
@@ -102,7 +109,13 @@ export function PanelHeader({ model }: { model: PanelHeaderModel }) {
                 a short result set the six options are painted outside the panel
                 — invisible, but still tabbable and still activating on Enter.
                 Anchored to the summary's bottom edge and allowed to escape. */}
-            <div className="absolute right-0 top-full z-20 mt-1 min-w-[14rem] rounded-sm border border-line-strong bg-surface py-1 shadow-sm">
+            {/* Anchored LEFT below `sm`. `right-0` alone put a 224px menu's
+                left edge at -55px on a 320px screen once the controls wrapped
+                and the summary moved to the start of its row: the first six
+                characters of every sort option were off the viewport, and an
+                absolutely positioned overflow to the left creates no scroll
+                to reach them (WCAG 1.4.10). */}
+            <div className="absolute left-0 top-full z-20 mt-1 min-w-[14rem] max-w-[calc(100vw-2rem)] rounded-sm border border-line-strong bg-surface py-1 shadow-sm sm:left-auto sm:right-0">
               {model.sortOptions.map((o) => (
                 <a key={o.value} href={o.href} className="block px-3 py-1.5 text-sm text-ink hover:bg-surface-sunken">
                   {o.label}

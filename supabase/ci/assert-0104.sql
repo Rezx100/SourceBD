@@ -284,6 +284,14 @@ $$;
 -- narrows every re-run to nothing and emits nothing at all. Setting one at a
 -- time leaves the re-run unfiltered, which the fixture's seven published rows
 -- satisfy, and proves each `if` fires on its own.
+-- Two assertions, because the labels alone are not the deliverable. Each
+-- branch re-runs `discover_suppliers` with its own filter nulled and reports
+-- `total_count` as `remaining`; twelve near-identical eight-line blocks is
+-- precisely where a copy-paste nulls the wrong parameter, and the label still
+-- emits while the buyer is told "Drop HS code · N remain" with N computed from
+-- dropping something else. The fixture has seven published rows and none of
+-- them match any of the filters below, so every branch that drops its own
+-- filter must report all seven.
 do $$
 declare
   got  text[];
@@ -311,6 +319,36 @@ begin
     raise exception 'discover_suppliers_explain emits %, expected %',
       coalesce(got::text, 'nothing'), want;
   end if;
+end
+$$;
+
+do $$
+declare
+  published bigint;
+  r record;
+begin
+  select count(*) into published from public.discover_suppliers(p_limit => 100);
+
+  for r in
+    select 'q'           as dim, e.remaining from public.discover_suppliers_explain(p_q => 'nothing matches this') e
+    union all select 'hs',          e.remaining from public.discover_suppliers_explain(p_hs_codes => array['9999']) e
+    union all select 'cert',        e.remaining from public.discover_suppliers_explain(p_cert_kinds => array['oeko_tex']) e
+    union all select 'rsc',         e.remaining from public.discover_suppliers_explain(p_rsc_min => 50) e
+    union all select 'est',         e.remaining from public.discover_suppliers_explain(p_est_from => 1990) e
+    union all select 'workers',     e.remaining from public.discover_suppliers_explain(p_workers_min => 100000) e
+    union all select 'district',    e.remaining from public.discover_suppliers_explain(p_district => 'Nowhere') e
+    union all select 'city',        e.remaining from public.discover_suppliers_explain(p_city => 'Nowhere') e
+    union all select 'type',        e.remaining from public.discover_suppliers_explain(p_entity_types => array['factory']) e
+    union all select 'min_sources', e.remaining from public.discover_suppliers_explain(p_min_sources => 99) e
+    union all select 'brand',       e.remaining from public.discover_suppliers_explain(p_brand_codes => array['nope']) e
+    union all select 'registry',    e.remaining from public.discover_suppliers_explain(p_registries => array['nope']) e
+  loop
+    if r.remaining is distinct from published then
+      raise exception
+        'discover_suppliers_explain says % leaves % suppliers; dropping the only filter set must leave all %',
+        r.dim, coalesce(r.remaining::text, 'null'), published;
+    end if;
+  end loop;
 end
 $$;
 

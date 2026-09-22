@@ -15,7 +15,17 @@ export function readRecentSearches(): RecentSearch[] {
     const parsed = JSON.parse(raw) as unknown;
     if (!Array.isArray(parsed)) return [];
     return parsed
-      .filter((r): r is RecentSearch => !!r && typeof r === "object" && typeof (r as RecentSearch).href === "string")
+      .filter((r): r is RecentSearch => {
+        if (!r || typeof r !== "object") return false;
+        const href = (r as RecentSearch).href;
+        // Whatever is in this key is rendered straight into an `<a href>`. It
+        // is same-origin storage, so writing it needs an XSS, an extension or
+        // the machine — but `javascript:…` stored here then becomes a
+        // one-click script execution in the buyer's own session, which turns a
+        // foothold somebody already had into a durable one. A recent search is
+        // always a path on this site, so require that and nothing else.
+        return typeof href === "string" && href.startsWith("/") && !href.startsWith("//");
+      })
       .slice(0, MAX);
   } catch {
     return [];

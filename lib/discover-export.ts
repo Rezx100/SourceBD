@@ -66,6 +66,8 @@ export async function runDiscoverExport(input: {
   // a 3,000-row search must not silently receive the first 100 and source
   // against them as if they were the whole set.
   const rows: DiscoverV32Row[] = [];
+  /** Each page's own `total_count`, already parsed from number-or-string. */
+  const totals: number[] = [];
   let error: string | null = null;
   for (let offset = 0; offset < MAX_ROWS; offset += PAGE_SIZE) {
     const want = Math.min(PAGE_SIZE, MAX_ROWS - offset);
@@ -79,6 +81,7 @@ export async function runDiscoverExport(input: {
       break;
     }
     rows.push(...(page.rows as DiscoverV32Row[]));
+    if (page.total != null) totals.push(page.total);
     if (page.rows.length < want) break;
   }
   if (error) {
@@ -97,11 +100,15 @@ export async function runDiscoverExport(input: {
     };
   }
 
-  // What the search actually matched, per the RPC's own count on each row.
-  const matched = rows.reduce<number | null>((acc, r) => {
-    const n = typeof r.total_count === "number" ? r.total_count : null;
-    return n != null && (acc == null || n > acc) ? n : acc;
-  }, null);
+  // What the search actually matched. This used to read `total_count` off the
+  // rows itself and accept only `typeof === "number"`, while the column is a
+  // bigint that PostgREST may send as a string — `DiscoverV32Row.total_count`
+  // is `number | string` for that reason and `parseTotalCount` handles both.
+  // A string total made `matched` null, which made `truncated` false, which
+  // dropped the "-first-1000-of-3481" out of the filename and both headers:
+  // exactly the silence the paragraph below says this closes. `fetchDiscoverV32`
+  // already parses it correctly per page and that value was being thrown away.
+  const matched = totals.reduce<number | null>((acc, n) => (acc == null || n > acc ? n : acc), null);
   const truncated = matched != null && matched > rows.length;
 
   // The defect this closes is the SILENCE, not the row count. A buyer who
@@ -117,8 +124,15 @@ export async function runDiscoverExport(input: {
   // export for any legitimate value containing one — a supplier could deny
   // every buyer this export by putting an address in its own company name —
   // and it protected nothing the column allowlist does not already: the columns
-  // are a fixed list with no contact field in it, so a leak can only arrive as
-  // a NEW column, which is exactly what this catches.
+  // are a fixed list with no contact field in it.
+  //
+  // Be honest about what this is: an exact match against a closed list of
+  // header names, checked against a header this same function just generated
+  // from `CSV_COLUMNS`. It cannot fire today, and it would not catch a future
+  // column called `owner_email` or `contact_person` either. The reachable
+  // half of the guard is the invariant over `CSV_COLUMNS` itself, asserted in
+  // `discover-export.test.ts`; this stays as a last-ditch check on the bytes
+  // actually leaving, and claims nothing more.
   if (csvContainsContactHeader(csv)) {
     return {
       status: 500,

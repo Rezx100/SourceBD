@@ -38,7 +38,15 @@ import { ProductSheet } from "./product-sheet";
 import { ResultsTable } from "./results-table";
 import { RfqComposer, type RfqComposerModel } from "./rfq-composer";
 import { AppShell } from "./app-shell";
-import { isSearchShortcut } from "./search-shortcut";
+import { Topbar } from "./app-shell";
+import {
+  SEARCH_FIELD_SELECTOR,
+  focusSearchField,
+  installSearchShortcut,
+  isSearchShortcut,
+  searchShortcutHandler,
+  targetIsEditable,
+} from "./search-shortcut";
 import { RFQ_EMPTY_COPY, RFQ_ERROR_COPY, RfqList } from "./rfq-list";
 import { SearchComposer } from "./search-composer";
 import { SupplierResultCard } from "./supplier-result-card";
@@ -912,6 +920,46 @@ describe("PanelHeader (rendered)", () => {
   it("an empty page says so rather than claiming a range", () => {
     assert.match(renderToStaticMarkup(createElement(PanelHeader, { model: { ...model, shown: 0 } })), /none on this page/);
   });
+
+  it("every row of controls can wrap, so the header does not push the page sideways", () => {
+    // Measured at 320px, this header forced `document.body.scrollWidth` to
+    // 458 against a 320 viewport: Export CSV sat 66px and the card/table
+    // toggle 137px outside it, focusable but off screen (WCAG 1.4.10). The
+    // OUTER wrapper already had `flex-wrap` and a comment claiming that fixed
+    // it; the overflow was the inner group — one non-wrapping row of four
+    // `whitespace-nowrap` h-controls, 425px inside a 286px header.
+    //
+    // `node --test` has no layout engine, so what is pinned here is the
+    // property that makes wrapping possible at all: no flex row in this header
+    // may hold `whitespace-nowrap` children without being able to wrap. The
+    // real measurement is the browser pass; this is what stops it regressing
+    // unnoticed between passes.
+    const html = renderToStaticMarkup(
+      createElement(PanelHeader, {
+        model: {
+          ...model,
+          sortOptions: [{ label: "Most sources", value: "receipts", href: "?sort=receipts" }],
+          exportHref: "/api/v1/discover/export",
+          saveHref: "/app/searches/new",
+        },
+      }),
+    );
+    const rows = [...html.matchAll(/<div class="([^"]*\bflex\b[^"]*)"/g)].map((m) => m[1]!);
+    assert.ok(rows.length >= 2, `expected the header to have nested flex rows, found ${rows.length}`);
+    const nowrapControls = (html.match(/whitespace-nowrap/g) ?? []).length;
+    if (nowrapControls > 0) {
+      const wrapping = rows.filter((c) => c.split(/\s+/).includes("flex-wrap"));
+      assert.ok(
+        wrapping.length >= 2,
+        `the header has ${rows.length} flex rows and only ${wrapping.length} that wrap; the controls row is what overflowed at 320px`,
+      );
+    }
+    // The group holding the buttons is the one that was 425px wide.
+    const controlRow = rows.find((c) => c.includes("justify-end"));
+    assert.ok(controlRow, "the control group lost its own class list; this guard needs rewriting");
+    assert.ok(controlRow!.split(/\s+/).includes("flex-wrap"), `the control group cannot wrap: ${controlRow}`);
+    assert.ok(controlRow!.split(/\s+/).includes("min-w-0"), `the control group cannot shrink: ${controlRow}`);
+  });
 });
 
 // Cycle 5, finding 16: an RSC row that omits `progress_pct` rather than nulling
@@ -1628,12 +1676,8 @@ describe("aria-current marks the page the buyer is actually on, or nothing", () 
   });
 });
 
-describe("the topbar only advertises a shortcut that exists", () => {
+describe("the ⌘K the topbar advertises is a shortcut that exists", () => {
   it("⌘K and Ctrl+K are the shortcut, and nothing else is", () => {
-    // The badge sat beside the search field from the day the kit landed and no
-    // handler ever listened for it. `node --test` has no DOM, so the handler's
-    // decision is a value and this is the thing worth pinning: the modifier
-    // combinations, not the focus call.
     assert.equal(isSearchShortcut({ key: "k", metaKey: true }), true);
     assert.equal(isSearchShortcut({ key: "K", ctrlKey: true }), true, "caps lock still means ⌘K");
     assert.equal(isSearchShortcut({ key: "k" }), false, "a bare k is someone typing");
@@ -1644,17 +1688,164 @@ describe("the topbar only advertises a shortcut that exists", () => {
     assert.equal(isSearchShortcut({ key: "k", metaKey: true, ctrlKey: true }), false);
   });
 
-  it("the badge appears only where there is a field for it to reach", () => {
+  it("it does not take the key off somebody who is typing", () => {
+    // These routes carry nine filter inputs and a save-search name box, and on
+    // macOS Ctrl+K in a text field is the native delete-to-end-of-line. A
+    // window-level listener that swallowed it took a keystroke from a buyer
+    // who was using it, with no way to turn the theft off.
+    for (const tagName of ["INPUT", "TEXTAREA", "SELECT", "input", "textarea"]) {
+      assert.equal(targetIsEditable({ tagName }), true, tagName);
+      assert.equal(isSearchShortcut({ key: "k", metaKey: true, target: { tagName } }), false, `${tagName} lost its ⌘K`);
+    }
+    assert.equal(targetIsEditable({ isContentEditable: true }), true);
+    assert.equal(isSearchShortcut({ key: "k", ctrlKey: true, target: { isContentEditable: true } }), false);
+    // Anywhere else it is ours.
+    assert.equal(isSearchShortcut({ key: "k", metaKey: true, target: { tagName: "BODY" } }), true);
+    assert.equal(targetIsEditable(null), false);
+    assert.equal(targetIsEditable("INPUT"), false, "a string is not an element");
+  });
+
+  it("pressing it focuses the field and selects what is in it", () => {
+    // The previous version of this guard tested only the modifier predicate.
+    // Deleting `<SearchShortcut />` from the topbar, or the addEventListener
+    // inside it, restored the original defect with every test green — the
+    // predicate's only caller could vanish and nothing noticed. The handler is
+    // a value now, so the behaviour itself can be driven.
+    const calls: string[] = [];
+    const field = {
+      focus: () => calls.push("focus"),
+      select: () => calls.push("select"),
+    };
+    const doc = {
+      querySelector: (sel: string) => {
+        calls.push(`query:${sel}`);
+        return sel === SEARCH_FIELD_SELECTOR ? field : null;
+      },
+    };
+    const handler = searchShortcutHandler(doc);
+
+    let prevented = 0;
+    assert.equal(handler({ key: "k", metaKey: true, preventDefault: () => prevented++ }), true);
+    assert.deepEqual(calls, [`query:${SEARCH_FIELD_SELECTOR}`, "focus", "select"]);
+    assert.equal(prevented, 1, "the browser's own ⌘K ran as well");
+
+    // A key that is not the shortcut never touches the document.
+    calls.length = 0;
+    assert.equal(handler({ key: "k", preventDefault: () => prevented++ }), false);
+    assert.deepEqual(calls, []);
+    assert.equal(prevented, 1);
+
+    // A page with no search field: nothing to focus, so nothing is swallowed.
+    const empty = searchShortcutHandler({ querySelector: () => null });
+    assert.equal(empty({ key: "k", metaKey: true, preventDefault: () => prevented++ }), false);
+    assert.equal(prevented, 1, "preventDefault fired with no field to focus");
+    assert.equal(focusSearchField({ querySelector: () => null }), false);
+    assert.equal(focusSearchField({ querySelector: () => ({}) }), false, "an element with no focus() is not a field");
+  });
+
+  it("mounting it subscribes to keydown, and unmounting unsubscribes", () => {
+    // `useEffect` does not run here, so with the wiring inside it, replacing
+    // `window.addEventListener` with `void onKeyDown` kept the whole suite
+    // green — the mount was proved, the handler was proved, and the one line
+    // joining them was not.
+    const bound: [string, unknown][] = [];
+    const win = {
+      addEventListener: (type: string, fn: (e: never) => void) => bound.push([type, fn]),
+      removeEventListener: (type: string, fn: (e: never) => void) => {
+        const i = bound.findIndex(([t, f]) => t === type && f === fn);
+        if (i >= 0) bound.splice(i, 1);
+      },
+    };
+    const field = { focus: () => {}, select: () => {} };
+    const cleanup = installSearchShortcut(win, { querySelector: () => field });
+    assert.equal(bound.length, 1, "mounting the shortcut subscribed to nothing");
+    assert.equal(bound[0]![0], "keydown");
+    // And what it subscribed is the real handler, not any function.
+    const listener = bound[0]![1] as (e: unknown) => unknown;
+    assert.equal(listener({ key: "k", metaKey: true, preventDefault: () => {} }), true);
+    assert.equal(listener({ key: "k" }), false);
+    cleanup();
+    assert.equal(bound.length, 0, "unmounting left the listener attached");
+  });
+
+  it("the topbar that shows the badge is the one that mounts the listener", () => {
+    // Structural, because `SearchShortcut` renders null and cannot be seen in
+    // the markup. Walking the element tree is what makes deleting the mount go
+    // red.
+    const tree = Topbar({ model: { caption: "", initial: "R", searchAction: "/app/discover" } });
+    const mounted: unknown[] = [];
+    const walk = (node: unknown): void => {
+      if (Array.isArray(node)) return void node.forEach(walk);
+      if (!node || typeof node !== "object") return;
+      const el = node as { type?: unknown; props?: { children?: unknown } };
+      if (typeof el.type === "function") mounted.push(el.type);
+      if (el.props && "children" in el.props) walk(el.props.children);
+    };
+    walk(tree);
+    assert.ok(
+      mounted.some((t) => (t as { name?: string }).name === "SearchShortcut"),
+      "the topbar renders the ⌘K badge without mounting anything that listens for it",
+    );
+
+    // And the selector the handler uses has to match what this topbar renders.
     const live = shellHtml();
-    assert.match(live, /⌘K/, "the topbar with a real search form drops its own shortcut hint");
-    // The shortcut finds the field by this exact shape. If the form or the
-    // input is renamed, the handler silently reaches nothing.
+    assert.match(live, /⌘K/, "the topbar with a real search form dropped its own shortcut hint");
     assert.match(live, /<form[^>]*role="search"/);
     assert.match(live, /<input[^>]*name="q"/);
-    // No form, nothing to focus, so no promise: the signed-out and gallery
-    // variant renders a plain line.
+
+    // Nothing mounts on a topbar with no form, so nothing may advertise one —
+    // anywhere in the document. The previous version of this assertion looked
+    // at a 400-character window around the topbar placeholder and could not
+    // see the sidebar's own Search row, which printed ⌘K unconditionally.
     const idle = shellHtml({ topbar: { caption: "", initial: null } });
-    const bar = idle.slice(idle.indexOf("Search suppliers"), idle.indexOf("Search suppliers") + 400);
-    assert.doesNotMatch(bar, /⌘K/, "a topbar with no search form still advertises a shortcut");
+    assert.doesNotMatch(idle, /⌘K/, "a shell with no search form still advertises the shortcut somewhere");
+    const idleTree = Topbar({ model: { caption: "", initial: null } });
+    const idleMounted: unknown[] = [];
+    const walk2 = (node: unknown): void => {
+      if (Array.isArray(node)) return void node.forEach(walk2);
+      if (!node || typeof node !== "object") return;
+      const el = node as { type?: unknown; props?: { children?: unknown } };
+      if (typeof el.type === "function") idleMounted.push(el.type);
+      if (el.props && "children" in el.props) walk2(el.props.children);
+    };
+    walk2(idleTree);
+    assert.ok(!idleMounted.some((t) => (t as { name?: string }).name === "SearchShortcut"));
+  });
+});
+
+describe("the shell's landmarks and the routes they cover", () => {
+  it("every landmark the shell renders carries a name when the screen has one", () => {
+    // Six shells share one document in /dev/ds. `screenLabel` was documented as
+    // reaching nav and search and had only ever reached nav and main, leaving
+    // six identical unnamed search landmarks and six unnamed asides.
+    const html = shellHtml({ screenLabel: "Discover" });
+    assert.match(html, /<nav[^>]*aria-label="Primary, Discover"/);
+    assert.match(html, /<main[^>]*aria-label="Discover"/);
+    assert.match(html, /<form[^>]*role="search"[^>]*aria-label="Search, Discover"|<form[^>]*aria-label="Search, Discover"[^>]*role="search"/);
+    assert.match(html, /<aside[^>]*aria-label="Sidebar, Discover"/);
+    // With no screen label they are still named, just not disambiguated.
+    const bare = shellHtml();
+    assert.match(bare, /<aside[^>]*aria-label="Sidebar"/);
+    assert.match(bare, /aria-label="Search"/);
+  });
+
+  it("the content landmark can take focus, so the skip link lands", () => {
+    // Without tabIndex the skip link relies on the browser moving focus to a
+    // non-focusable fragment target, which older Safari does not do. The shell
+    // this kit replaces sets it.
+    assert.match(shellHtml(), /<main[^>]*tabindex="-1"/i);
+  });
+
+  it("the saved-search list is reachable from the rail", () => {
+    // It was linked from nowhere in the product: not this rail, not
+    // components/shell/sidebar.tsx. A buyer who saved a search could not get
+    // back to it without typing the URL.
+    const html = shellHtml();
+    assert.match(html, /href="\/app\/searches"/, "nothing in the shell links to the saved-search list");
+    // And landing on it marks that row, not a link to somewhere else.
+    const on = shellHtml({ sidebar: { active: "searches", counts: {}, recent: [], plan: { name: "Free" } } });
+    const marked = [...on.matchAll(/<a[^>]*aria-current="page"[^>]*>/g)].map((m) => m[0]);
+    assert.equal(marked.length, 1);
+    assert.match(marked[0]!, /href="\/app\/searches"/);
   });
 });
