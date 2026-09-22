@@ -26,8 +26,9 @@ same PR. Read once per session.
   REZ-A (the code port of the dashboard kit): DONE.
   `ACCEPTED_FOR_HUMAN_REVIEW` cycle 21, merged to `development` PR #161
   (21 Sep). `handoff-rez-a-cycle21.md`.
-  IN PROGRESS: REZ-B (results page) on branch `rez-b-results-page` from
-  `development` (synced 22 Sep). Migration `0104` drafted, not applied.
+  IN PROGRESS: REZ-B (results page) on branch `rez-b-results-page`, tip
+  `b04144a`. Migration `0104` drafted, not applied. Cycle 10 half-finished:
+  `handoff-rez-b-cycle10.md`.
   Then C → D → H → G → E → F → I per §7.
 
 ## Queued

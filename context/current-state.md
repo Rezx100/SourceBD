@@ -37,7 +37,10 @@ migrations, run the 30-day zero P1/P2 Sentry incident window.
   `/dev/ds`; no live route wired yet. Full history:
   `context/feature-specs/handoff-rez-a-cycle21.md`.
 - **Buyer dashboard v3.2, REZ-B (results page)** — branch
-  `rez-b-results-page` from `development` (synced 22 Sep, `7ea98b4`).
+  `rez-b-results-page` (tip `b04144a`, pushed, CI green; PR #164 draft).
+  Nine and a half review cycles run; cycle 10 is half-finished — only its
+  security reviewer reported. State and next actions:
+  `feature-specs/handoff-rez-b-cycle10.md`.
   IN PROGRESS. Migration `0104` drafted (not applied). `/app/discover`
   uses the kit; `/app/products`, `/app/searches`, `/app/match` redirect
   added. `/app/saved` and `/app/compare` stay deferred.
