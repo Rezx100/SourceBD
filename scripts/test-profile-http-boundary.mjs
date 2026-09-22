@@ -1713,8 +1713,16 @@ const CASES = [
     auth: true,
     // "Products" alone was the SIDEBAR nav label, rendered on every /app/*
     // page — it passed even if the catalogue failed to load, or if this route
-    // had served Discover. Pin copy only this page renders.
-    expect: { status: 200, bodyIncludesAll: ["Exporters", "HS"] },
+    // had served Discover. "Exporters" was no better: it is a <th> inside the
+    // table, so it is absent whenever the catalogue returns no rows, which is
+    // what the stub does — and the case failed in CI for a page that was
+    // rendering correctly. Pin the search control, which only this page has,
+    // and rule out the two error states explicitly.
+    expect: {
+      status: 200,
+      bodyIncludesAll: ["Search headings"],
+      bodyExcludes: ["Exporter counts could not be read", "The catalogue could not be read"],
+    },
   },
   {
     name: "rez-b: /app/searches renders -> 200",
@@ -1730,7 +1738,10 @@ const CASES = [
       status: 200,
       bodyIncludesAll: ["Saved searches"],
       bodyExcludes: ["Saved searches could not be read"],
-      bodyIncludesAny: ["saved", "Save a search from the results panel"],
+      // Not the bare word "saved": app-shell.tsx renders a sidebar item
+      // linking to /app/saved on every /app/* page, so that needle matches
+      // unconditionally — the same sidebar trap the case above describes.
+      bodyIncludesAny: ["Save a search from the results panel", " saved</"],
     },
   },
   {

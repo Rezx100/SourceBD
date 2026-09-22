@@ -99,7 +99,9 @@ export function SupplierResultCard({ card }: { card: SupplierCardModel }) {
     >
       <Checkbox on={card.selected} label={`Select ${card.name}`} className="mt-4" />
       <div className="flex min-w-0 flex-1 flex-col gap-4">
-        <div className="flex items-start gap-3">
+        {/* Wraps, so the action cluster drops below the identity block rather
+            than pushing the card past the viewport. */}
+        <div className="flex flex-wrap items-start gap-3">
           <LogoTile initials={card.initials} tier={card.topTier} />
           <div className="flex min-w-0 flex-1 flex-col gap-1">
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
@@ -109,7 +111,12 @@ export function SupplierResultCard({ card }: { card: SupplierCardModel }) {
             <MetaLine facts={card.meta} />
             {card.sanctioned ? <SanctionLine sample={card.sanctionSample} href={recordHref} /> : null}
           </div>
-          <div className="flex shrink-0 items-center gap-2 pt-2">
+          {/* Not `shrink-0`: three nowrap buttons come to ~326px, and with
+              the card's padding and logo tile that set the card's minimum at
+              ~430px — so Cards, which is the default view, scrolled the page
+              sideways on a 375px phone as well as at the 320px floor. Wraps
+              under the identity block below `sm`. */}
+          <div className="flex flex-wrap items-center gap-2 pt-2 sm:shrink-0 sm:flex-nowrap">
             {card.supplierId ? (
               <SaveRecordButton supplierId={card.supplierId} saved={Boolean(card.saved)} />
             ) : (

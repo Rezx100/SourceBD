@@ -67,8 +67,16 @@ function rangeLabel(firstRow: number, shown: number): string {
 }
 
 export function PanelHeader({ model }: { model: PanelHeaderModel }) {
+  // `flex-wrap`, and gutters that shrink. Every child here is an `h-control`
+  // button with `whitespace-nowrap`, so the row's min-content width is about
+  // 525px — sort, Save search, Export CSV, the card/table seg and the
+  // select-all box. In a 288px content column at 320px that forced the whole
+  // DOCUMENT to scroll sideways, and the table's own scroll region (added
+  // this round) does not help because the header sits outside it. WCAG 1.4.10
+  // allows two-dimensional scrolling for a data table, not for the controls
+  // above it.
   return (
-    <div className="flex items-center gap-3 border-b border-line-subtle px-5 py-3">
+    <div className="flex flex-wrap items-center gap-2 border-b border-line-subtle px-4 py-3 sm:gap-3 sm:px-5">
       <Checkbox label="Select all on this page" />
       <div className="flex min-w-0 flex-1 items-baseline gap-2">
         {/* The screen's heading. Without it, results-list and results-table
@@ -171,7 +179,7 @@ export function PanelFooter({
   // on page 3 of 3 with no way back.
   const paged = pages !== null && perPage !== undefined && (shown >= perPage || page > 1);
   return (
-    <div className="flex items-center gap-3 border-t border-line-subtle px-5 py-3">
+    <div className="flex flex-wrap items-center gap-2 border-t border-line-subtle px-4 py-3 sm:gap-3 sm:px-5">
       <Caption>
         {note
           ? `${note}${total === null ? "" : ` · ${formatCount(total)} in the result set`}`

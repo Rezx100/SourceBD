@@ -47,7 +47,10 @@ export function ResultsTable({ rows }: { rows: readonly TableRowModel[] }) {
       className="overflow-x-auto"
       tabIndex={0}
       role="region"
-      aria-label="Results, scrolls sideways"
+      // Named for what it is, not for what it is doing. "…scrolls sideways"
+      // is false at any width where the table fits, which is most desktops,
+      // and it repeated the panel's own h1 back at the reader.
+      aria-label="Results table"
     >
     <table className="w-full min-w-[62rem] table-fixed border-collapse text-sm">
       <colgroup>

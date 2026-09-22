@@ -42,13 +42,21 @@ export function Sidebar({ model, screenLabel }: { model: SidebarModel; screenLab
   const pct =
     plan.used !== null && plan.used !== undefined && plan.allowance ? Math.round((plan.used / plan.allowance) * 100) : null;
   // Below `md` there is no room for a 232px rail beside the content — at
-  // 320px it left the content column about 88px wide. The shell this kit
-  // replaces hid its sidebar on phones and gave them `BottomTabBar` instead;
-  // `app/(app)/layout.tsx` renders that same bar under the kit routes, so
-  // hiding this one costs no navigation.
+  // 320px it left about 88px to read in. It does not follow that the nav can
+  // be hidden: an earlier pass did that and handed phones `BottomTabBar`
+  // instead, which carries the app's top five destinations and NOT Products
+  // or Compliance hub, both of which this kit's own rail lists. The kit
+  // routes render no hamburger either, so those two became unreachable below
+  // 768px while staying one click away above it — functionality lost at the
+  // narrower width (WCAG 1.4.10).
+  //
+  // So it reflows instead of hiding: a horizontal, scrollable strip of the
+  // same links under the topbar on phones, the full rail from `md`. Every
+  // destination stays reachable at every width, with no drawer, no state and
+  // no second navigation to keep in step.
   return (
-    <aside className="hidden w-sidebar shrink-0 flex-col gap-5 border-r border-line-subtle px-3 py-4 md:flex">
-      <div className="flex items-center gap-2.5 px-2 py-0.5">
+    <aside className="flex w-full shrink-0 flex-col gap-5 border-b border-line-subtle px-3 py-3 md:w-sidebar md:border-b-0 md:border-r md:py-4">
+      <div className="hidden items-center gap-2.5 px-2 py-0.5 md:flex">
         <span
           aria-hidden
           className="grid size-7 place-items-center rounded-sm bg-brand font-mono text-xs font-medium tracking-[0.02em] text-brand-on"
@@ -57,7 +65,10 @@ export function Sidebar({ model, screenLabel }: { model: SidebarModel; screenLab
         </span>
         <span className="text-title font-medium tracking-[-0.01em] text-ink-strong">SourceBD</span>
       </div>
-      <nav aria-label={screenLabel ? `Primary, ${screenLabel}` : "Primary"} className="flex flex-col gap-0.5">
+      <nav
+        aria-label={screenLabel ? `Primary, ${screenLabel}` : "Primary"}
+        className="-mx-1 flex snap-x gap-1 overflow-x-auto px-1 md:mx-0 md:flex-col md:gap-0.5 md:overflow-visible md:px-0"
+      >
         {NAV.map((item) => {
           const on = item.key === model.active;
           const count = navCount(item.key, model.counts);
@@ -67,7 +78,7 @@ export function Sidebar({ model, screenLabel }: { model: SidebarModel; screenLab
               href={item.href}
               aria-current={on ? "page" : undefined}
               className={cn(
-                "flex h-8 items-center gap-2.5 rounded-sm px-2 text-sm font-medium text-ink-muted hover:bg-surface-sunken",
+                "flex h-8 shrink-0 snap-start items-center gap-2.5 whitespace-nowrap rounded-sm px-2 text-sm font-medium text-ink-muted hover:bg-surface-sunken md:shrink",
                 // The tint alone is 1.07:1 against the canvas beside it, so on
                 // a dim screen the current item was indistinguishable from the
                 // rest (WCAG 1.4.11 asks 3:1 for a state). `brand` is 7.87:1
@@ -83,8 +94,12 @@ export function Sidebar({ model, screenLabel }: { model: SidebarModel; screenLab
           );
         })}
       </nav>
-      <RecentSearchesSlot items={model.recent} />
-      <div className="mt-auto flex flex-col gap-1.5 border-t border-line-subtle px-2 pt-4">
+      {/* Rail furniture, not navigation: hidden on phones where the strip
+          above carries every destination. */}
+      <div className="hidden md:contents">
+        <RecentSearchesSlot items={model.recent} />
+      </div>
+      <div className="mt-auto hidden flex-col gap-1.5 border-t border-line-subtle px-2 pt-4 md:flex">
         <div className="flex items-center gap-2">
           <Label className="text-ink-strong">{plan.name}</Label>
           {plan.note ? <Caption className="ml-auto">{plan.note}</Caption> : null}
@@ -202,7 +217,7 @@ export function AppShell({
   // kit replaces already has both — `app/(app)/layout.tsx` renders `SkipLink`
   // and `<main id="main-content">`.
   return (
-    <div className="flex min-h-full bg-canvas text-base text-ink">
+    <div className="flex min-h-full flex-col bg-canvas text-base text-ink md:flex-row">
       <a
         href={`#${mainId}`}
         className="sr-only focus:not-sr-only focus:absolute focus:left-3 focus:top-3 focus:z-50 focus:rounded-sm focus:border focus:border-line-strong focus:bg-surface focus:px-3 focus:py-2 focus:text-sm focus:font-medium focus:text-ink-strong"
@@ -217,8 +232,6 @@ export function AppShell({
           aria-label={screenLabel}
           className={cn(
             "mx-auto flex w-full max-w-[calc(75rem+3rem)] flex-col gap-4 p-4 sm:p-6",
-            // Clear of `BottomTabBar`, which is fixed and phone-only.
-            "pb-[calc(56px+env(safe-area-inset-bottom,0px)+1rem)] md:pb-6",
             contentClassName,
           )}
         >

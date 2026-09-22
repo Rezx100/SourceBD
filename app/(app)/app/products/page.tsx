@@ -49,7 +49,7 @@ export default async function ProductsPage({
 
   return (
     <AppShell sidebar={shell.sidebar} topbar={shell.topbar} mainId="main-content" screenLabel="Products">
-      <div className="flex items-end justify-between gap-4">
+      <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-end sm:justify-between sm:gap-4">
         <div>
           <Title as="h1">Products</Title>
           <Caption>
@@ -58,7 +58,10 @@ export default async function ProductsPage({
               : `${formatCount(rows.length)} HS ${rows.length === 1 ? "heading" : "headings"}`}
           </Caption>
         </div>
-        <form action="/app/products" method="get" role="search" className="flex h-control w-[20rem] items-center rounded-sm border border-line-strong bg-surface px-2.5">
+        {/* Was a hard `w-[20rem]` with no `min-w-0`: 320px of search box in a
+            288px content column, so the page scrolled sideways before the
+            table even had a say. */}
+        <form action="/app/products" method="get" role="search" className="flex h-control w-full min-w-0 items-center rounded-sm border border-line-strong bg-surface px-2.5 sm:w-[20rem]">
           <input
             type="search"
             name="q"
@@ -76,7 +79,13 @@ export default async function ProductsPage({
       ) : rows.length === 0 ? (
         <p className="text-sm text-ink-muted">No heading matches that search.</p>
       ) : (
-        <table className="w-full table-fixed border-collapse text-sm">
+        // `w-16` + `w-28` + `w-28` is 288px of fixed columns, so at 320px the
+        // Heading column — the HS code and the link into Discover, the whole
+        // point of the page — was allocated nothing and overlapped Chapter.
+        // Unlike ResultsTable this one had no scroll container, so there was
+        // nothing to scroll and the content was simply crushed.
+        <div className="overflow-x-auto" tabIndex={0} role="region" aria-label="HS headings table">
+        <table className="w-full min-w-[34rem] table-fixed border-collapse text-sm">
           <thead>
             <tr>
               <th className="w-16 border-b border-line-subtle py-2 text-left font-mono text-eyebrow uppercase text-ink-subtle">Photo</th>
@@ -117,6 +126,7 @@ export default async function ProductsPage({
             })}
           </tbody>
         </table>
+        </div>
       )}
     </AppShell>
   );
