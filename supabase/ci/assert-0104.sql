@@ -59,6 +59,16 @@ on conflict do nothing;
 -- Each gets a different number of EPB HS headings (1..6) and a different
 -- next certificate expiry, so `hs_lines` and `cert_expiry` each produce an
 -- order distinct from the default and from one another.
+--
+-- The three orders have to be genuinely different, which took a second try:
+-- with `expires_on = current_date + i * 30` the cert_expiry ascending order
+-- was 1..6, identical to the default (every fixture row has the same source
+-- count, so the default falls through to company_name ascending), and the
+-- assertion below correctly reported the sort as missing. The expiry offsets
+-- are a permutation now, so:
+--   default      1 2 3 4 5 6   (company_name)
+--   hs_lines     6 5 4 3 2 1   (heading count, descending)
+--   cert_expiry  2 4 6 1 3 5   (soonest expiry first)
 insert into public.source_records (supplier_id, source_id, source_tier, source_ref, fields, status)
 select s.id,
        src.id,
@@ -76,7 +86,7 @@ select s.id,
 on conflict do nothing;
 
 insert into public.certifications (supplier_id, kind, expires_on)
-select s.id, 'gots', (current_date + (i * 30))
+select s.id, 'gots', (current_date + (array[50, 10, 60, 20, 70, 30])[i])
   from generate_series(1, 6) i
   join public.suppliers s on s.slug = 'ci-sort-' || i
 on conflict do nothing;
