@@ -278,7 +278,13 @@ export default async function BuyerDiscoverPage({
       <form action={DISCOVER_PATH} method="get">
         <HiddenState state={state} omit={COMPOSER_HIDDEN_OMIT} />
         <SearchComposer
+          // `key` and not `label`: Dhaka, Gazipur, Narayanganj and Chittagong
+          // are each both a city and a district, so ?city=Dhaka&district=Dhaka
+          // produced two chips with identical text — and the composer keyed on
+          // the label, which is a duplicate React key and a remove link that
+          // can end up attached to the wrong chip after a navigation.
           chips={chips.map((c) => ({
+            key: c.key,
             label: c.label,
             code: c.code,
             removeHref: discoverHref(c.without),

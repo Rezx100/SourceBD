@@ -147,7 +147,10 @@ export async function runSavedSearchesGet(input: {
       href: hrefOf(state),
     });
   }
-  return { status: 200, body: { searches: out } };
+  // `LIST_LIMIT` is a cap with no pagination behind it, so a buyer with more
+  // than that many saved searches simply could not reach the rest — and the
+  // page printed `${searches.length} saved` as though that were all of them.
+  return { status: 200, body: { searches: out, capped: rows.length >= LIST_LIMIT } };
 }
 
 export async function runSavedSearchesPost(input: {

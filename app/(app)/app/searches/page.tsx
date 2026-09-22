@@ -22,10 +22,11 @@ export default async function SearchesPage() {
   const shell = await loadBuyerShell(supabase, "search");
   const now = new Date();
   const listed = await runSavedSearchesGet({ role, supabase, now });
-  const searches =
+  const payload =
     listed.status === 200 && listed.body && typeof listed.body === "object"
-      ? ((listed.body as { searches?: SavedSearchJson[] }).searches ?? [])
-      : [];
+      ? (listed.body as { searches?: SavedSearchJson[]; capped?: boolean })
+      : {};
+  const searches = payload.searches ?? [];
 
   return (
     <AppShell sidebar={shell.sidebar} topbar={shell.topbar} mainId="main-content" screenLabel="Saved searches">
@@ -35,7 +36,9 @@ export default async function SearchesPage() {
           ? "Saved searches could not be read"
           : searches.length === 0
             ? "None saved yet. Save a search from the results panel."
-            : `${formatCount(searches.length)} saved`}
+            : payload.capped
+              ? `The ${formatCount(searches.length)} most recent of your saved searches`
+              : `${formatCount(searches.length)} saved`}
       </Caption>
       {searches.length > 0 ? (
         <ul className="mt-4 divide-y divide-line-subtle rounded-md border border-line bg-surface">

@@ -202,6 +202,37 @@ describe("discover result HTML has no contact PII", () => {
     assert.equal(discoverCsvValue({ ...ROW, employees_total: null }, TODAY).workers_source, "");
   });
 
+  it("the CSV names the HS column for what it holds — headings, not lines", () => {
+    // `row.hs_codes` is discover_v32_hs_codes: left(code, 4) DISTINCT, i.e.
+    // 4-digit headings. The card and the table count full 6-digit lines from
+    // supplier_epb_hscodes_batch, so a supplier reading "12 HS lines" on
+    // screen exported three values in a column called `hs_codes`. Two
+    // quantities, one name, one click apart.
+    const row = { ...ROW, hs_codes: ["6109", "6110"] };
+    const cell = discoverCsvValue(row, TODAY);
+    assert.equal(cell.hs_headings, "6109; 6110");
+    assert.ok(CSV_COLUMNS.includes("hs_headings"), "the CSV does not emit the headings column");
+    assert.ok(
+      !CSV_COLUMNS.includes("hs_codes" as never),
+      "`hs_codes` is back, and it counts headings while the screen counts lines",
+    );
+
+    // The screen genuinely does count something else, which is the whole
+    // point: same row, six-digit lines from the batch, a different number.
+    const card = buildDiscoverCard(row, {
+      today: TODAY,
+      hsError: false,
+      hsLines: [
+        { slug: row.slug, hs: "610910", heading: "6109" },
+        { slug: row.slug, hs: "610990", heading: "6109" },
+        { slug: row.slug, hs: "611020", heading: "6110" },
+      ],
+    });
+    assert.equal(card.totalLines, 3, "the card should be counting full lines here");
+    assert.equal(cell.hs_headings.split("; ").length, 2);
+    assert.notEqual(card.totalLines, cell.hs_headings.split("; ").length);
+  });
+
   it("no surface claims the figure spans buildings, because nothing here knows that", () => {
     // The durable guard for the defect itself. `production_workers_display_batch`
     // returns no site composition, so any wording about buildings or sites is

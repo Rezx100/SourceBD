@@ -9,7 +9,19 @@ import { V2Tag } from "./controls";
 import { Icon } from "./icons";
 import { Code } from "./type";
 
-export type FilterChipModel = { label: string; code?: string | null; removeHref?: string };
+export type FilterChipModel = {
+  /**
+   * Stable identity for this chip, distinct from its text. Dhaka, Gazipur,
+   * Narayanganj and Chittagong are each both a city and a district, so
+   * `?city=Dhaka&district=Dhaka` renders two chips reading "Dhaka" — keyed on
+   * the label that is a duplicate React key, and reconciliation can hand one
+   * chip the other's remove link.
+   */
+  key?: string;
+  label: string;
+  code?: string | null;
+  removeHref?: string;
+};
 
 export function SearchComposer({
   chips,
@@ -52,7 +64,7 @@ export function SearchComposer({
           />
         ) : null}
         {chips.map((c) => (
-          <Chip key={c.label} tone="on" className="h-7">
+          <Chip key={c.key ?? c.label} tone="on" className="h-7">
             {c.label}
             {c.code ? <Code className="text-xs">{c.code}</Code> : null}
             {/* `opacity` applies to the focus outline too, so dimming the

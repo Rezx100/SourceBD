@@ -294,3 +294,61 @@ describe("saved-search counts say how old they are", () => {
     assert.equal(savedCountLabel(12, null, NOW), "12 suppliers, when last counted");
   });
 });
+
+describe("the saved-search list does not overstate itself", () => {
+  const NOW = new Date("2026-09-22T12:00:00.000Z");
+  function rows(n: number) {
+    return Array.from({ length: n }, (_, i) => ({
+      id: `id-${i}`,
+      owner_id: OWNER,
+      name: `S${i}`,
+      query_state: { search: `q=s${i}` },
+      created_at: "2026-09-21T00:00:00Z",
+      last_count: 5,
+      last_counted_at: NOW.toISOString(),
+    }));
+  }
+  function client(rs: Record<string, unknown>[]) {
+    return {
+      rpc: async () => ({ data: [{ total_count: 1 }], error: null }),
+      from() {
+        const api = {
+          select: () => api,
+          insert: async () => ({ data: null, error: null }),
+          update: () => api,
+          delete: () => api,
+          eq: () => api,
+          order: () => api,
+          limit: () => api,
+          then: (r: (v: { data: unknown; error: null }) => void) => r({ data: rs, error: null }),
+        };
+        return api;
+      },
+      auth: { getUser: async () => ({ data: { user: { id: OWNER } } }) },
+    };
+  }
+
+  it("says when it has returned only the most recent", async () => {
+    // The query caps at 200 with no pagination behind it, so a buyer with 240
+    // saved searches read "200 saved" and the other 40 were unreachable with
+    // nothing saying so.
+    const capped = await runSavedSearchesGet({ role: "buyer", supabase: client(rows(200)), now: NOW });
+    assert.equal((capped.body as { capped: boolean }).capped, true);
+    const under = await runSavedSearchesGet({ role: "buyer", supabase: client(rows(3)), now: NOW });
+    assert.equal((under.body as { capped: boolean }).capped, false);
+  });
+});
+
+describe("savedCountLabel across the whole age range", () => {
+  const NOW = new Date("2026-09-22T12:00:00.000Z");
+  const at = (ms: number) => new Date(NOW.getTime() - ms).toISOString();
+  it("has a distinct reading for minutes, hours and days", () => {
+    // The hours branch had no case at all: deleting it left everything from
+    // 1 h to 48 h falling through to "0 d ago" with the suite green.
+    assert.equal(savedCountLabel(5, at(90 * 60_000), NOW), "5 suppliers, as of 2 h ago");
+    assert.equal(savedCountLabel(5, at(40 * 60 * 60_000), NOW), "5 suppliers, as of 40 h ago");
+    // …and the boundaries either side of it read as their own unit.
+    assert.match(savedCountLabel(5, at(59 * 60_000), NOW), /59 min ago$/);
+    assert.match(savedCountLabel(5, at(72 * 60 * 60_000), NOW), /3 d ago$/);
+  });
+});

@@ -294,7 +294,12 @@ export function discoverCsvValue(row: DiscoverV32Row, today: Date): Record<strin
     district: row.district ?? "",
     sources: (row.source_tags ?? []).join("; "),
     certificates: certs.map((c) => certChipLabel(c)).join("; "),
-    hs_codes: (row.hs_codes ?? []).join("; "),
+    // `row.hs_codes` is `discover_v32_hs_codes` — `left(code, 4)` DISTINCT,
+    // i.e. 4-digit EPB headings. The card and the table count full 6-digit
+    // lines from `supplier_epb_hscodes_batch`, so a supplier reading
+    // "12 HS lines" on screen exported three values here. Named for what it
+    // is, as the "Most HS headings" sort already is.
+    hs_headings: (row.hs_codes ?? []).join("; "),
     workers: row.employees_total == null ? "" : String(row.employees_total),
     // The card and the table both say which figure this is, because the number
     // is sometimes a roll-up of this record plus its buildings and sometimes
@@ -322,7 +327,7 @@ export const CSV_COLUMNS = [
   "district",
   "sources",
   "certificates",
-  "hs_codes",
+  "hs_headings",
   "workers",
   "workers_source",
   "established",

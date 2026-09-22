@@ -149,7 +149,7 @@ describe("0104 discover_suppliers PII guard", () => {
       assert.match(SQL, rx, `the workers filter changed basis: ${rx}`);
     }
     assert.equal(
-      (SQL.match(/case when p_sort = 'workers' then [a-z]+\.employees_total end/g) ?? []).length,
+      (SQL.match(/case when v_sort = 'workers' then [a-z]+\.employees_total end/g) ?? []).length,
       2,
       "both the browse and the keyword branch must sort on the same column",
     );
@@ -269,6 +269,30 @@ describe("0104 discover_suppliers PII guard", () => {
     assert.match(src, /\.eq\("owner_id", user\.id\)/, "must filter on the owner, not lean on RLS alone");
   });
 
+  it("the two per-row sorts are not reachable by an anonymous caller", () => {
+    // Same reasoning as the workers roll-up above, which the comment there
+    // spells out and this migration then did not apply to its own new sorts.
+    // 'cert_expiry' and 'hs_lines' order on a per-row subquery evaluated over
+    // everything that passed the filter, BEFORE limit — so one anon request
+    // with p_limit = 1 costs a full-corpus pass, outside the rate limiter.
+    //
+    // The behaviour itself is asserted by running it, in
+    // supabase/ci/assert-0104.sql: as anon the hs_lines ordering must equal
+    // the default ordering, and as an authenticated caller it must not.
+    assert.match(
+      SQL,
+      /auth\.role\(\) = 'anon'[\s\S]{0,200}?'cert_expiry'[\s\S]{0,40}?'hs_lines'/,
+      "nothing downgrades the two expensive sorts for an anonymous caller",
+    );
+    // And no ORDER BY may read p_sort directly again, or the downgrade is
+    // bypassed by whichever branch forgot.
+    assert.doesNotMatch(
+      SQL,
+      /case when p_sort =/,
+      "an ORDER BY still reads p_sort, so it skips the anon downgrade in v_sort",
+    );
+  });
+
   it("HS helpers reuse the 0103 EPB source_records pattern, not a table", () => {
     assert.match(SQL, /supplier_epb_hscodes_batch/);
     assert.match(SQL, /hs_catalogue\(\)/);
@@ -287,7 +311,13 @@ describe("0104 discover_suppliers PII guard", () => {
     // in scripts/test-profile-http-boundary.mjs ("rez-b: /app/match redirects");
     // what this pins is that the redirect lives where it can still set a status.
     const mw = readFileSync(path.join(process.cwd(), "middleware.ts"), "utf8");
-    assert.match(mw, /pathname === "\/app\/match"/);
-    assert.match(mw, /redirectOnSite\("\/app\/discover",\s*"\?ask=1",\s*307\)/);
+    assert.match(mw, /pathname === MATCH_PATH/, "middleware no longer answers /app/match");
+    // It must NOT spell the destination out here. Pinning the literal
+    // `redirectOnSite("/app/discover", "?ask=1", 307)` was pinning the bug:
+    // that fixed string dropped the caller's query, and the route handler
+    // that carried it could never run because this branch answers first.
+    // Both call sites go through `matchRedirectSearch` now, and
+    // lib/match-redirect.test.ts fails if either rebuilds it.
+    assert.match(mw, /redirectOnSite\(MATCH_TARGET, matchRedirectSearch\(/);
   });
 });
