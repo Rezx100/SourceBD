@@ -15,12 +15,27 @@ insert into auth.users (id, email, raw_user_meta_data) values
   ('00000000-0000-4000-8000-00000000d001', 'ci@example.invalid', '{"role":"buyer"}'::jsonb)
 on conflict do nothing;
 
+-- Seeded unpublished first. 0092's publish guard rejects any supplier with no
+-- active Tier1-3 source_record — it fired on the second CI run of this job and
+-- was right to, so the fixture now gives each record real evidence rather than
+-- working around the invariant.
 insert into public.suppliers (slug, company_name, company_name_norm, city, district, is_published, is_sanctioned)
 values
-  ('ci-clean',      'CI Clean Ltd',      'ci clean ltd',      'Dhaka',   'Dhaka',   true,  false),
-  ('ci-sanctioned', 'CI Sanctioned Ltd', 'ci sanctioned ltd', 'Dhaka',   'Dhaka',   true,  true),
+  ('ci-clean',      'CI Clean Ltd',      'ci clean ltd',      'Dhaka',   'Dhaka',   false, false),
+  ('ci-sanctioned', 'CI Sanctioned Ltd', 'ci sanctioned ltd', 'Dhaka',   'Dhaka',   false, true),
   ('ci-draft',      'CI Draft Ltd',      'ci draft ltd',      'Gazipur', 'Gazipur', false, false)
 on conflict (slug) do nothing;
+
+insert into public.source_records (supplier_id, source_id, source_tier, source_ref, status)
+select s.id, src.id, src.tier, 'ci-' || s.slug, 'active'
+  from public.suppliers s
+  cross join (select id, tier from public.sources where code = 'BGMEA') src
+ where s.slug in ('ci-clean', 'ci-sanctioned', 'ci-draft')
+on conflict do nothing;
+
+update public.suppliers
+   set is_published = true
+ where slug in ('ci-clean', 'ci-sanctioned');
 
 do $$
 declare

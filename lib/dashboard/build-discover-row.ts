@@ -292,12 +292,7 @@ export function discoverCsvValue(row: DiscoverV32Row, today: Date): Record<strin
     // read 4,100 in the cell with nothing to explain it. Same wording as the
     // card, in a column of its own so `workers` stays a plain number that a
     // spreadsheet still sums.
-    workers_basis:
-      row.employees_total == null
-        ? ""
-        : row.workers_is_group
-          ? "this record and its buildings"
-          : "this record on the register",
+    workers_basis: row.employees_total == null ? "" : "this record on the register",
     established: row.established_date ?? "",
     sanctioned: row.is_sanctioned ? "yes" : "no",
   };
