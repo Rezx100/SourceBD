@@ -232,5 +232,6 @@ export function savedCountLabel(
   if (minutes < 1) return `${n}, just now`;
   if (minutes < 60) return `${n}, as of ${minutes} min ago`;
   const hours = Math.round(minutes / 60);
+  if (hours < 48) return `${n}, as of ${hours} h ago`;
   return `${n}, as of ${Math.round(hours / 24)} d ago`;
 }
