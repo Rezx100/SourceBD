@@ -1720,13 +1720,55 @@ const CASES = [
     name: "rez-b: /app/searches renders -> 200",
     path: "/app/searches",
     auth: true,
-    expect: { status: 200, bodyIncludesAll: ["Saved searches"] },
+    // "Saved searches" is the h1 AND the page title, so it renders just as
+    // happily when `runSavedSearchesGet` returns 500 and the page falls back
+    // to its error caption. This case passed over a route whose list read was
+    // failing outright. Pin the list state instead: on success the caption is
+    // either "N saved" or the empty-state invitation, and the error string is
+    // absent either way.
+    expect: {
+      status: 200,
+      bodyIncludesAll: ["Saved searches"],
+      bodyExcludes: ["Saved searches could not be read"],
+      bodyIncludesAny: ["saved", "Save a search from the results panel"],
+    },
+  },
+  {
+    // The one route created specifically to satisfy "assert at the boundary"
+    // (AGENTS.md rule 16) had no boundary case at all. A bad id must land the
+    // buyer back on the list, not 404 and not 200, and it must do it as a
+    // real redirect rather than a page that has already committed a 200 — the
+    // REZ-72 defect this whole file exists for.
+    name: "rez-b: /app/searches/<unknown id> redirects back to the list",
+    path: "/app/searches/00000000-0000-4000-8000-000000000000",
+    auth: true,
+    expect: { status: 307, locationPath: "/app/searches" },
+  },
+  {
+    name: "rez-b: /app/searches/<not a uuid> redirects back to the list",
+    path: "/app/searches/not-a-uuid",
+    auth: true,
+    expect: { status: 307, locationPath: "/app/searches" },
+  },
+  {
+    name: "rez-b: /app/searches/<id> refuses an anonymous caller",
+    path: "/app/searches/00000000-0000-4000-8000-000000000000",
+    expect: { status: 307, locationPath: "/login" },
   },
   {
     name: "rez-b: /app/match redirects to Discover with Ask on",
     path: "/app/match",
     auth: true,
     expect: { status: 307, locationPath: "/app/discover", locationSearch: "?ask=1" },
+  },
+  {
+    // The redirect was a bare string, so a link into Smart Match carrying a
+    // query opened Discover on an empty Ask box and the buyer's words were
+    // gone. The path check alone could not see that.
+    name: "rez-b: /app/match carries the query it was given",
+    path: "/app/match?q=knit+polo",
+    auth: true,
+    expect: { status: 307, locationPath: "/app/discover", locationSearch: "?q=knit+polo&ask=1" },
   },
   {
     name: "rez-b: export API serves CSV to a signed-in buyer",
@@ -1983,6 +2025,16 @@ async function main() {
                 `${label}: body missing "${needle}" (${got.bytes} bytes)`,
               );
             }
+          }
+        }
+        // At least one of these — for a page whose healthy states differ (a
+        // list with rows vs. the same list empty) but whose failure state
+        // renders neither.
+        if (Array.isArray(c.expect.bodyIncludesAny)) {
+          if (!c.expect.bodyIncludesAny.some((needle) => got.body.includes(needle))) {
+            caseProblems.push(
+              `${label}: body has none of ${JSON.stringify(c.expect.bodyIncludesAny)} (${got.bytes} bytes)`,
+            );
           }
         }
         if (c.expect.alsoRecordedPair || c.expect.alsoRecordedPairs) {

@@ -1,4 +1,6 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import { describe, it } from "node:test";
 
 import {
@@ -11,10 +13,12 @@ import {
   discoverHiddenParams,
   discoverHref,
   discoverRpcArgs,
+  filterFamilyLabel,
   parseDiscoverState,
   queryTitle,
   serializeDiscoverState,
   sortRpc,
+  withoutFilterFamily,
 } from "./discover-v32-state";
 
 describe("discover URL state", () => {
@@ -142,4 +146,33 @@ describe("a certificate chip states what the query actually applies", () => {
       .map((c) => c.label);
     assert.ok(labels.every((l) => /,\s*valid$/.test(l)), JSON.stringify(labels));
   });
+});
+
+// The "Drop <this filter> · N remain" suggestions are the only thing a buyer
+// gets on a zero-result search, and each one is keyed by a string literal that
+// `discover_suppliers_explain` chooses in SQL and this module has to recognise
+// in TypeScript. Nothing connected the two: the SQL emitted 'min_sources' and
+// the switch handled "sources", so that suggestion silently rendered nothing.
+// Read the literals out of the migration and hold every one of them to a real
+// branch. Renaming one on either side, or adding a dimension to the SQL and
+// forgetting the TypeScript, turns this red.
+describe("the explain dimensions the migration emits", () => {
+  const sql = readFileSync(path.join(process.cwd(), "supabase/migrations/0104_discover_v32.sql"), "utf8");
+  const explain = sql.slice(sql.indexOf("create or replace function public.discover_suppliers_explain"));
+  assert.ok(explain.length > 0, "0104 defines no discover_suppliers_explain");
+  const dimensions = [...explain.matchAll(/select\s+'([a-z_]+)'::text\s*,\s*[a-z]+\.total_count/gi)].map((m) => m[1]!);
+
+  it("is a list this test actually found", () => {
+    // A regex that matches nothing would make every case below vacuous.
+    assert.ok(dimensions.length >= 10, `found only ${dimensions.length}: ${JSON.stringify(dimensions)}`);
+  });
+
+  for (const dropped of [...new Set(dimensions)]) {
+    it(`'${dropped}' drops a real filter family and has a buyer-facing name`, () => {
+      const without = withoutFilterFamily(EMPTY_STATE, dropped);
+      assert.ok(without, `withoutFilterFamily("${dropped}") is null, so its suggestion never renders`);
+      const label = filterFamilyLabel(dropped);
+      assert.notEqual(label, dropped, `filterFamilyLabel("${dropped}") falls through to the raw key`);
+    });
+  }
 });

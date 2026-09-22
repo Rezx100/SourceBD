@@ -145,7 +145,17 @@ export default async function AppShellLayout({
   const pathname = (await headers()).get("x-sourcebd-pathname") ?? "";
   const kitShell = /^\/app\/(discover|products|searches)(\/|$)/.test(pathname);
   if (kitShell) {
-    return <PostHogProvider userId={userId}>{children}</PostHogProvider>;
+    // The kit draws its own sidebar and topbar, and hides the sidebar below
+    // `md` because a 232px rail beside the content leaves a phone about 88px
+    // to read in. `BottomTabBar` is the phone navigation the rest of the app
+    // already uses (`md:hidden`, fixed to the bottom), so the kit routes get
+    // it here rather than growing a second one of their own.
+    return (
+      <PostHogProvider userId={userId}>
+        {children}
+        <BottomTabBar role={role} />
+      </PostHogProvider>
+    );
   }
 
   return (

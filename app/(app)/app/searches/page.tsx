@@ -6,7 +6,7 @@ import { AppShell } from "@/components/dashboard/app-shell";
 import { Caption, Title } from "@/components/dashboard/type";
 import { loadBuyerShell } from "@/lib/dashboard/load-buyer-shell";
 import { formatCount } from "@/lib/dashboard/facts";
-import { runSavedSearchesGet, type SavedSearchJson } from "@/lib/saved-searches";
+import { runSavedSearchesGet, savedCountLabel, type SavedSearchJson } from "@/lib/saved-searches";
 import { getServerRole } from "@/lib/auth";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -20,7 +20,8 @@ export default async function SearchesPage() {
   const supabase = await createSupabaseServerClient();
   const role = await getServerRole();
   const shell = await loadBuyerShell(supabase, "search");
-  const listed = await runSavedSearchesGet({ role, supabase });
+  const now = new Date();
+  const listed = await runSavedSearchesGet({ role, supabase, now });
   const searches =
     listed.status === 200 && listed.body && typeof listed.body === "object"
       ? ((listed.body as { searches?: SavedSearchJson[] }).searches ?? [])
@@ -43,9 +44,10 @@ export default async function SearchesPage() {
               <Link href={s.href} className="min-w-0 font-medium text-brand-ink">
                 {s.name}
               </Link>
-              <Caption>
-                {s.last_count === null ? "count could not be read" : `${formatCount(s.last_count)} suppliers`}
-              </Caption>
+              {/* Bare, the count read as live. Only ten stale counts refresh
+                  per call, so most of these are remembered numbers and the
+                  page has to say when each was taken. */}
+              <Caption>{savedCountLabel(s.last_count, s.last_counted_at, now)}</Caption>
             </li>
           ))}
         </ul>

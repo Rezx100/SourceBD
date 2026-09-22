@@ -5,7 +5,13 @@ import { describe, it } from "node:test";
 
 import { SupplierResultCard } from "@/components/dashboard/supplier-result-card";
 import { ResultsTable } from "@/components/dashboard/results-table";
-import { buildDiscoverCard, buildDiscoverTableRow, discoverRowsToCsv } from "./build-discover-row";
+import {
+  CSV_COLUMNS,
+  buildDiscoverCard,
+  buildDiscoverTableRow,
+  discoverCsvValue,
+  discoverRowsToCsv,
+} from "./build-discover-row";
 import type { DiscoverV32Row } from "@/lib/discover-v32-rpc";
 
 const TODAY = new Date("2026-09-21T00:00:00Z");
@@ -163,5 +169,31 @@ describe("discover result HTML has no contact PII", () => {
     assert.equal(card.saved, true);
     assert.match(html, /aria-label="Saved"/);
     assert.doesNotMatch(html, /shadow-\[inset_3px_0_0_rgb\(var\(--ds-brand\)\)\]/);
+  });
+
+  it("the CSV names which workers figure each row carries", () => {
+    // The card and the table both qualify a group roll-up ("across this
+    // record and its buildings"); the CSV column was a bare number. A buyer
+    // filtering "at most 1,000 workers on the register" exported a cell
+    // reading 4,100 with nothing to explain it. Goes red if `workers_basis`
+    // is dropped from the column list, or stops tracking `workers_is_group`.
+    const own = discoverCsvValue({ ...ROW, employees_total: 900, workers_is_group: false }, TODAY);
+    const group = discoverCsvValue({ ...ROW, employees_total: 4100, workers_is_group: true }, TODAY);
+    assert.equal(own.workers, "900");
+    assert.equal(own.workers_basis, "this record on the register");
+    assert.equal(group.workers, "4100");
+    assert.equal(group.workers_basis, "this record and its buildings");
+    assert.notEqual(own.workers_basis, group.workers_basis);
+    assert.ok(CSV_COLUMNS.includes("workers_basis"), "the column exists but the CSV never emits it");
+
+    // And it reaches the file, in the same row as the number it describes.
+    const csv = discoverRowsToCsv([{ ...ROW, employees_total: 4100, workers_is_group: true }], TODAY);
+    const [header, row] = csv.trim().split(/\r?\n/);
+    const at = (header ?? "").split(",").indexOf("workers_basis");
+    assert.ok(at > 0, "workers_basis is not in the CSV header");
+    assert.equal((row ?? "").split(",")[at], "this record and its buildings");
+
+    // A row with no worker figure must not claim a basis for one.
+    assert.equal(discoverCsvValue({ ...ROW, employees_total: null }, TODAY).workers_basis, "");
   });
 });

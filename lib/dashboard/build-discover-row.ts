@@ -19,8 +19,7 @@ import {
   type CertModel,
 } from "@/lib/dashboard/facts";
 import { photoTiles } from "@/lib/dashboard/hs-photos";
-import { marksFromTags, sourceCountLabel, sourceMark, topTier } from "@/lib/dashboard/source-tiers";
-import { hsBuyerLabel } from "@/lib/epb-hscode-labels";
+import { marksFromTags, sourceMark, topTier } from "@/lib/dashboard/source-tiers";
 
 const BRAND_LABEL: Record<string, string> = {
   BRAND_HM: "H&M",
@@ -286,6 +285,19 @@ export function discoverCsvValue(row: DiscoverV32Row, today: Date): Record<strin
     certificates: certs.map((c) => certChipLabel(c)).join("; "),
     hs_codes: (row.hs_codes ?? []).join("; "),
     workers: row.employees_total == null ? "" : String(row.employees_total),
+    // The card and the table both say which figure this is, because the number
+    // is sometimes a roll-up of this record plus its buildings and sometimes
+    // the register's own figure for this record alone. The CSV column was
+    // bare, so a buyer exporting under "at most 1,000 workers on the register"
+    // read 4,100 in the cell with nothing to explain it. Same wording as the
+    // card, in a column of its own so `workers` stays a plain number that a
+    // spreadsheet still sums.
+    workers_basis:
+      row.employees_total == null
+        ? ""
+        : row.workers_is_group
+          ? "this record and its buildings"
+          : "this record on the register",
     established: row.established_date ?? "",
     sanctioned: row.is_sanctioned ? "yes" : "no",
   };
@@ -301,6 +313,7 @@ export const CSV_COLUMNS = [
   "certificates",
   "hs_codes",
   "workers",
+  "workers_basis",
   "established",
   "sanctioned",
 ] as const;

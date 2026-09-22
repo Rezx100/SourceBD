@@ -158,10 +158,14 @@ describe("discover CSV export boundary", () => {
     assert.doesNotMatch(res.body, /@/);
   });
 
-  it("says so in the file when the result set is larger than the export", async () => {
+  it("says so in the filename when the result set is larger than the export", async () => {
     // The defect was never the cap — it was giving a buyer 1,000 rows of a
     // 3,481-row search with nothing saying so. Goes red if the notice is
     // dropped, or if `truncated` stops being derived from the real count.
+    //
+    // The notice is in the filename and the headers, NOT in the body: as a
+    // CSV data row it was a phantom 1,001st supplier to anything importing
+    // the file, so the body must still be exactly the rows.
     const res = await runDiscoverExport({
       role: "buyer",
       supabase: {
@@ -182,9 +186,17 @@ describe("discover CSV export boundary", () => {
       today: TODAY,
     });
     assert.equal(res.status, 200);
-    assert.match(res.body, /first 1000 of 3481 matching suppliers/i, "no truncation notice in the file");
+    assert.match(
+      res.headers["Content-Disposition"] ?? "",
+      /filename="sourcebd-suppliers-\d{4}-\d{2}-\d{2}-first-1000-of-3481\.csv"/,
+      `no truncation notice in the filename: ${res.headers["Content-Disposition"]}`,
+    );
     assert.equal(res.headers["X-SourceBD-Truncated"], "1");
     assert.equal(res.headers["X-SourceBD-Matched"], "3481");
+    // One header line plus exactly the rows — no note row among them.
+    const lines = res.body.trim().split(/\r?\n/);
+    assert.equal(lines.length, 1001, "the body carries something that is not a supplier");
+    assert.doesNotMatch(res.body, /matching suppliers/i, "the notice leaked back into the CSV body");
   });
 
   it("stays silent when the export is the whole result set", async () => {
@@ -196,6 +208,11 @@ describe("discover CSV export boundary", () => {
     });
     assert.equal(res.status, 200);
     assert.doesNotMatch(res.body, /matching suppliers/i, "a complete export must not claim truncation");
+    assert.doesNotMatch(
+      res.headers["Content-Disposition"] ?? "",
+      /first-\d+-of-\d+/,
+      "a complete export must not claim truncation in its filename either",
+    );
     assert.equal(res.headers["X-SourceBD-Truncated"], undefined);
   });
 

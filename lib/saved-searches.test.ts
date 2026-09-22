@@ -1,7 +1,12 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { runSavedSearchesDelete, runSavedSearchesGet, runSavedSearchesPost } from "./saved-searches";
+import {
+  runSavedSearchesDelete,
+  runSavedSearchesGet,
+  runSavedSearchesPost,
+  savedCountLabel,
+} from "./saved-searches";
 
 /**
  * A stub that actually applies the filters it is given.
@@ -181,5 +186,111 @@ describe("saved-searches API boundary", () => {
       id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
     });
     assert.equal(res.status, 200);
+  });
+});
+
+/**
+ * Only `MAX_REFRESH_PER_CALL` stale counts refresh per call. That ceiling is
+ * deliberate — without it one GET became a full `discover_suppliers` scan per
+ * saved search — but it turns most of what the list returns into a remembered
+ * number, and nothing in the response or the page said which. Two properties
+ * follow, and neither existed: the response has to carry when each count was
+ * taken, and the budget has to reach every row eventually rather than being
+ * spent on the same newest ten forever.
+ */
+describe("saved-search counts say how old they are", () => {
+  const MINUTE = 60_000;
+  const NOW = new Date("2026-09-22T12:00:00.000Z");
+
+  /** Records which row ids the refresh actually wrote back to. */
+  function agingClient(rows: Record<string, unknown>[], refreshedIds: string[]) {
+    return {
+      rpc: async () => ({ data: [{ total_count: 99 }], error: null }),
+      from() {
+        let updating = false;
+        const api = {
+          select: () => api,
+          insert: async () => ({ data: null, error: null }),
+          update: () => {
+            updating = true;
+            return api;
+          },
+          delete: () => api,
+          eq: (col: string, val: unknown) => {
+            if (updating && col === "id") refreshedIds.push(String(val));
+            return api;
+          },
+          order: () => api,
+          limit: () => api,
+          then: (resolve: (v: { data: unknown; error: null }) => void) =>
+            resolve({ data: rows, error: null }),
+        };
+        return api;
+      },
+      auth: { getUser: async () => ({ data: { user: { id: OWNER } } }) },
+    };
+  }
+
+  /** `n` rows, each staler than the last: row i was counted i hours ago. */
+  function staleRows(n: number): Record<string, unknown>[] {
+    return Array.from({ length: n }, (_, i) => ({
+      id: `id-${i}`,
+      owner_id: OWNER,
+      name: `S${i}`,
+      query_state: { search: `q=s${i}` },
+      created_at: "2026-09-21T00:00:00Z",
+      last_count: 5,
+      last_counted_at: new Date(NOW.getTime() - (i + 1) * 60 * MINUTE).toISOString(),
+    }));
+  }
+
+  it("spends the refresh budget on the stalest rows, not the first ten listed", async () => {
+    // The list arrives newest-first, so the freshest counts are at the top.
+    // Refreshing in list order meant ids 0–9 were refreshed on every call and
+    // id-19 — three hours stale and getting worse — never was.
+    const refreshed: string[] = [];
+    const res = await runSavedSearchesGet({
+      role: "buyer",
+      supabase: agingClient(staleRows(20), refreshed),
+      now: NOW,
+    });
+    assert.equal(res.status, 200);
+    assert.equal(refreshed.length, 10, `refreshed ${refreshed.length}, expected the 10-per-call ceiling`);
+    assert.deepEqual(
+      refreshed.slice().sort(),
+      ["id-10", "id-11", "id-12", "id-13", "id-14", "id-15", "id-16", "id-17", "id-18", "id-19"].sort(),
+      "the budget went to the newest rows, so the oldest counts never refresh",
+    );
+  });
+
+  it("marks every count with when it was taken", async () => {
+    const res = await runSavedSearchesGet({
+      role: "buyer",
+      supabase: agingClient(staleRows(20), []),
+      now: NOW,
+    });
+    const searches = (res.body as { searches: { id: string; last_counted_at: string | null }[] }).searches;
+    assert.equal(searches.length, 20);
+    for (const s of searches) {
+      assert.ok(s.last_counted_at, `${s.id} carries no last_counted_at, so the page cannot say how old it is`);
+    }
+    // The refreshed ones are stamped now; the rest keep their own older stamp.
+    const refreshedStamp = searches.filter((s) => s.last_counted_at === NOW.toISOString());
+    assert.equal(refreshedStamp.length, 10);
+  });
+
+  it("never prints a remembered count as if it were live", () => {
+    assert.equal(savedCountLabel(null, null, NOW), "not counted yet");
+    assert.equal(savedCountLabel(3481, NOW.toISOString(), NOW), "3,481 suppliers, just now");
+    assert.equal(
+      savedCountLabel(3481, new Date(NOW.getTime() - 5 * MINUTE).toISOString(), NOW),
+      "3,481 suppliers, as of 5 min ago",
+    );
+    assert.equal(
+      savedCountLabel(3481, new Date(NOW.getTime() - 3 * 24 * 60 * MINUTE).toISOString(), NOW),
+      "3,481 suppliers, as of 3 d ago",
+    );
+    // A count with no timestamp is still not a live one.
+    assert.equal(savedCountLabel(12, null, NOW), "12 suppliers, when last counted");
   });
 });

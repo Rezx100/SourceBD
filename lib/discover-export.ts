@@ -5,7 +5,7 @@
  * not land in the body.
  */
 
-import { discoverRowsToCsv, CSV_CONTACT_HEADERS, CSV_COLUMNS } from "@/lib/dashboard/build-discover-row";
+import { discoverRowsToCsv, CSV_CONTACT_HEADERS } from "@/lib/dashboard/build-discover-row";
 import { fetchDiscoverV32, type DiscoverV32Row } from "@/lib/discover-v32-rpc";
 import { parseDiscoverState, type DiscoverState } from "@/lib/discover-v32-state";
 import { discoverRowHasPii } from "@/lib/discover-v32-rpc";
@@ -24,19 +24,19 @@ export type ExportResult = {
 const MAX_ROWS = 1000;
 /** The RPC's own hard ceiling per call (0104: `least(coalesce(p_limit,24),100)`). */
 const PAGE_SIZE = 100;
-/** One CSV row carrying a human note in the first column, padded to the width. */
-function csvNoteRow(note: string): string {
-  const escaped = `"${note.replace(/"/g, '""')}"`;
-  const pad = Math.max(0, CSV_COLUMNS.length - 1);
-  return escaped + ",".repeat(pad);
-}
 
-
-export function csvFilename(today: Date): string {
+/**
+ * The truncation has to be visible without reading a response header, and it
+ * must not be a row. The filename is the first thing the buyer sees, it
+ * survives being forwarded, and no importer mistakes it for data.
+ */
+export function csvFilename(today: Date, rows?: number, matched?: number | null): string {
   const y = today.getUTCFullYear();
   const m = String(today.getUTCMonth() + 1).padStart(2, "0");
   const d = String(today.getUTCDate()).padStart(2, "0");
-  return `sourcebd-suppliers-${y}-${m}-${d}.csv`;
+  const truncated = rows != null && matched != null && matched > rows;
+  const span = truncated ? `-first-${rows}-of-${matched}` : "";
+  return `sourcebd-suppliers-${y}-${m}-${d}${span}.csv`;
 }
 
 export function csvContainsContactHeader(csv: string): boolean {
@@ -104,19 +104,15 @@ export async function runDiscoverExport(input: {
   }, null);
   const truncated = matched != null && matched > rows.length;
 
-  let csv = discoverRowsToCsv(rows, input.today);
-  if (truncated) {
-    // The defect this closes is the SILENCE, not the row count. A buyer who
-    // exports a 3,481-supplier search and receives 1,000 rows with nothing to
-    // say so sources against them as the whole set. The cap is deliberate;
-    // hiding it is not. Say it in the file the buyer actually opens, in the
-    // first column so it is visible without scrolling, and in a header for
-    // anything reading this programmatically.
-    const note =
-      `This export contains the first ${rows.length} of ${matched} matching suppliers, ` +
-      `ordered as the search was. Narrow the search to export the rest.`;
-    csv += `${csvNoteRow(note)}\r\n`;
-  }
+  // The defect this closes is the SILENCE, not the row count. A buyer who
+  // exports a 3,481-supplier search and receives 1,000 rows with nothing to
+  // say so sources against them as the whole set. The cap is deliberate;
+  // hiding it is not. It is said in the filename — which the buyer reads
+  // before opening anything — and in the response headers, for anything
+  // reading this programmatically. Never as a row: appended as a CSV data
+  // row it became a twelfth "supplier", so a spreadsheet pivot or a CRM
+  // import read a phantom record whose company name was a sentence.
+  const csv = discoverRowsToCsv(rows, input.today);
   // Header-shape guard only. The previous body-wide "@" scan refused the whole
   // export for any legitimate value containing one — a supplier could deny
   // every buyer this export by putting an address in its own company name —
@@ -131,7 +127,7 @@ export async function runDiscoverExport(input: {
     };
   }
 
-  const filename = csvFilename(input.today);
+  const filename = csvFilename(input.today, rows.length, matched);
   return {
     status: 200,
     body: csv,

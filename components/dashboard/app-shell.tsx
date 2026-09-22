@@ -41,8 +41,13 @@ export function Sidebar({ model, screenLabel }: { model: SidebarModel; screenLab
   const { plan } = model;
   const pct =
     plan.used !== null && plan.used !== undefined && plan.allowance ? Math.round((plan.used / plan.allowance) * 100) : null;
+  // Below `md` there is no room for a 232px rail beside the content — at
+  // 320px it left the content column about 88px wide. The shell this kit
+  // replaces hid its sidebar on phones and gave them `BottomTabBar` instead;
+  // `app/(app)/layout.tsx` renders that same bar under the kit routes, so
+  // hiding this one costs no navigation.
   return (
-    <aside className="flex w-sidebar shrink-0 flex-col gap-5 border-r border-line-subtle px-3 py-4">
+    <aside className="hidden w-sidebar shrink-0 flex-col gap-5 border-r border-line-subtle px-3 py-4 md:flex">
       <div className="flex items-center gap-2.5 px-2 py-0.5">
         <span
           aria-hidden
@@ -108,13 +113,13 @@ export type TopbarModel = {
 
 export function Topbar({ model }: { model: TopbarModel }) {
   return (
-    <div className="glass flex h-topbar shrink-0 items-center gap-4 border-b border-line-subtle px-6">
+    <div className="glass flex h-topbar shrink-0 items-center gap-3 border-b border-line-subtle px-4 sm:gap-4 sm:px-6">
       {model.searchAction ? (
         <form
           role="search"
           action={model.searchAction}
           method="get"
-          className="flex h-control w-[360px] items-center gap-2 rounded-sm border border-line-strong bg-surface px-2.5 text-sm text-ink-subtle"
+          className="flex h-control w-full min-w-0 max-w-[360px] items-center gap-2 rounded-sm border border-line-strong bg-surface px-2.5 text-sm text-ink-subtle"
         >
           <Icon name="search" />
           <input
@@ -133,13 +138,13 @@ export function Topbar({ model }: { model: TopbarModel }) {
           <Kbd>⌘K</Kbd>
         </form>
       ) : (
-        <div className="flex h-control w-[360px] items-center gap-2 rounded-sm border border-line-strong bg-surface px-2.5 text-sm text-ink-subtle">
+        <div className="flex h-control w-full min-w-0 max-w-[360px] items-center gap-2 rounded-sm border border-line-strong bg-surface px-2.5 text-sm text-ink-subtle">
           <Icon name="search" />
           <span className="grow">Search suppliers, HS codes, certificates</span>
           <Kbd>⌘K</Kbd>
         </div>
       )}
-      <Caption className="ml-auto inline-flex items-center gap-2">
+      <Caption className="ml-auto hidden items-center gap-2 lg:inline-flex">
         <LiveDot />
         {model.caption}
       </Caption>
@@ -210,7 +215,12 @@ export function AppShell({
         <main
           id={mainId}
           aria-label={screenLabel}
-          className={cn("mx-auto flex w-full max-w-[calc(75rem+3rem)] flex-col gap-4 p-6", contentClassName)}
+          className={cn(
+            "mx-auto flex w-full max-w-[calc(75rem+3rem)] flex-col gap-4 p-4 sm:p-6",
+            // Clear of `BottomTabBar`, which is fixed and phone-only.
+            "pb-[calc(56px+env(safe-area-inset-bottom,0px)+1rem)] md:pb-6",
+            contentClassName,
+          )}
         >
           {children}
         </main>

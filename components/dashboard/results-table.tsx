@@ -37,7 +37,19 @@ export function Td({ className, children }: { className?: string; children?: Rea
 
 export function ResultsTable({ rows }: { rows: readonly TableRowModel[] }) {
   return (
-    <table className="w-full table-fixed border-collapse text-sm">
+    // `table-fixed` over a colgroup summing 994px cannot shrink: below that
+    // width the columns overlapped their own content rather than reflowing.
+    // A scroll container keeps every column at its designed width and lets a
+    // phone reach the rest. `tabIndex` and the region role are what WCAG
+    // 2.1.1 asks for once a pane scrolls: a keyboard user needs to be able to
+    // focus it to scroll it, and a screen-reader user needs it announced.
+    <div
+      className="overflow-x-auto"
+      tabIndex={0}
+      role="region"
+      aria-label="Results, scrolls sideways"
+    >
+    <table className="w-full min-w-[62rem] table-fixed border-collapse text-sm">
       <colgroup>
         {COLS.map((w, i) => (
           <col key={i} style={{ width: w }} />
@@ -145,5 +157,6 @@ export function ResultsTable({ rows }: { rows: readonly TableRowModel[] }) {
         ))}
       </tbody>
     </table>
+    </div>
   );
 }

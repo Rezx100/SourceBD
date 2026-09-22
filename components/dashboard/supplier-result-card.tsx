@@ -135,8 +135,10 @@ export function SupplierResultCard({ card }: { card: SupplierCardModel }) {
             </Chip>
           ))}
         </Chips>
-        <div className="flex items-start gap-4">
-          <div className="grid w-[352px] shrink-0 grid-cols-2 gap-2">
+        {/* 352px of tiles beside the photo strip does not fit a phone; below
+            `lg` they stack and the tiles take the full width. */}
+        <div className="flex flex-col items-stretch gap-4 lg:flex-row lg:items-start">
+          <div className="grid w-full grid-cols-2 gap-2 lg:w-[352px] lg:shrink-0">
             {card.tiles.map((t) => (
               <Tile key={t.label} tile={t} />
             ))}

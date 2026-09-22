@@ -17,7 +17,11 @@ export const SORTS = [
   { value: "workers", rpc: "workers", label: "Workers on the register" },
   { value: "established", rpc: "established", label: "Established" },
   { value: "cert_expiry", rpc: "cert_expiry", label: "Certificate expiry soonest" },
-  { value: "hs_lines", rpc: "hs_lines", label: "HS lines" },
+  // Orders on `discover_v32_hs_codes`, which is `left(code, 4)` DISTINCT —
+  // 4-digit EPB headings, not the full 6-digit lines the card counts on its
+  // "Export lines" tile. A supplier with twelve lines under three headings
+  // sorts as three, so "HS lines" named a number the sort does not use.
+  { value: "hs_lines", rpc: "hs_lines", label: "Most HS headings" },
 ] as const;
 
 export type DiscoverSort = (typeof SORTS)[number]["value"];
@@ -513,7 +517,10 @@ export function withoutFilterFamily(state: DiscoverState, dropped: string): Disc
       return { ...base, estFrom: null, estTo: null };
     case "workers":
       return { ...base, workersMin: null, workersMax: null };
-    case "sources":
+    // `discover_suppliers_explain` emits 'min_sources' for this family (0104,
+    // `select 'min_sources'::text`). Handling "sources" here meant the one
+    // suggestion the RPC returns for it resolved to null and never rendered.
+    case "min_sources":
       return { ...base, minSources: null };
     case "sanction":
       return { ...base, sanctioned: true };
@@ -547,8 +554,8 @@ export function filterFamilyLabel(dropped: string): string {
       return "the established range";
     case "workers":
       return "the workers range";
-    case "sources":
-      return "the sources minimum";
+    case "min_sources":
+      return "the registers & certifiers minimum";
     case "sanction":
       return "the sanctioned exclusion";
     default:

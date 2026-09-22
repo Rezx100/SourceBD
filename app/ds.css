@@ -24,6 +24,22 @@
   :focus-visible {
     @apply outline outline-2 outline-offset-2 outline-focus;
   }
+
+  /* Placeholder colour, once, for every field in the app.
+     `tailwind.config.ts` REPLACES `theme.colors` rather than extending it, so
+     `colors.gray` does not exist and Tailwind's own preflight placeholder rule
+     resolves to a hard-coded grey of its own — 2.54:1 on `surface`, well under
+     the 4.5:1 the design system holds text to. Only the two fields that happened
+     to set `placeholder:text-ink-subtle` themselves were readable; on the
+     Workers and Established ranges the placeholder is the ONLY thing telling
+     the minimum from the maximum. Setting it here fixes every input at once
+     rather than asking each new one to remember. `ink-subtle` is the same
+     token those two fields already used, and passes on canvas and surface.
+     `lib/design/tokens.test.ts` holds it to that. */
+  ::placeholder {
+    color: rgb(var(--ds-ink-subtle));
+    opacity: 1; /* Firefox dims placeholders by default, which undoes the ratio. */
+  }
 }
 
 @layer utilities {

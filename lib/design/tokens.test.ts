@@ -124,6 +124,42 @@ test("every file exempted from the hand-typed-colour rule is on the guarded list
 // §2: "Works without animation when the user's device asks for that." The
 // stylesheet the kit ships must honour prefers-reduced-motion; nothing asserted
 // it, so removing the block would have gone unnoticed.
+// Tailwind's preflight sets `::placeholder` to `theme(colors.gray.400)`, and
+// `tailwind.config.ts` REPLACES `theme.colors` rather than extending it, so
+// `colors.gray` does not exist and the emitted value is a hard-coded grey
+// at 2.54:1 on `surface`. Every field in the app inherited that except the two
+// that happened to set `placeholder:text-ink-subtle` themselves. `app/ds.css`
+// now sets it once in @layer base; this holds that rule to the same threshold
+// as any other text, by resolving the token it names rather than by matching
+// the text of the rule. Deleting the rule, or pointing it at `ink.disabled`,
+// turns this red.
+test("the placeholder colour is a token, and readable on every ground", () => {
+  const css = readFileSync(path.join(repoRoot, "app/ds.css"), "utf8");
+  const rule = /::placeholder\s*\{([^}]*)\}/.exec(css);
+  assert.ok(rule, "app/ds.css sets no ::placeholder colour, so Tailwind preflight's own grey applies");
+  const varName = /color:\s*rgb\(\s*var\(\s*(--ds-[a-z0-9-]+)\s*\)/i.exec(rule[1] ?? "");
+  assert.ok(varName, `the ::placeholder colour is not a --ds- token: ${rule[1]?.trim()}`);
+  const token = Object.entries(light).flatMap(([group, keys]) =>
+    Object.keys(keys as Record<string, string>).map((key) => ({
+      ref: key === "DEFAULT" ? group : `${group}.${key}`,
+      cssVar: cssVarName(group, key),
+    })),
+  ).find((t) => t.cssVar === varName[1]);
+  assert.ok(token, `${varName[1]} is not a token in lib/design/tokens.ts`);
+  for (const bg of ["surface", "canvas", "surface.sunken"]) {
+    const ratio = contrastRatio(resolve(light, token.ref), resolve(light, bg));
+    assert.ok(
+      ratio >= 4.5,
+      `placeholder ${token.ref} on ${bg} is ${ratio.toFixed(2)}:1, needs 4.5:1`,
+    );
+  }
+  assert.match(
+    rule[1] ?? "",
+    /opacity:\s*1/,
+    "Firefox dims placeholders by default; the rule must reset opacity or the ratio above is not what ships",
+  );
+});
+
 test("the kit's stylesheet honours prefers-reduced-motion", () => {
   const css = readFileSync(path.join(repoRoot, "app/ds.css"), "utf8");
   assert.match(css, /@media\s*\(prefers-reduced-motion:\s*reduce\)/, "app/ds.css has no reduced-motion block");

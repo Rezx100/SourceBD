@@ -112,3 +112,42 @@ jobs:
 
       - name: Profile HTTP-boundary guard
         run: node scripts/test-profile-http-boundary.mjs --build
+
+  migrations:
+    # The 1,052 lines of `0104_discover_v32.sql` were never executed by
+    # anything. Four rounds of review read the file; round 4 found a doubled
+    # comma that Postgres rejects at CREATE FUNCTION time, so the migration
+    # would not have applied at all — and it had passed a guard written to
+    # check that exact ORDER BY, because the guard matched source text rather
+    # than running it. This job replays every migration against a throwaway
+    # Postgres 16 and then asserts the behaviour that matters, by calling the
+    # functions. See supabase/ci/.
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: ci
+          POSTGRES_DB: sourcebd_ci
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+
+    env:
+      PGHOST: localhost
+      PGPORT: "5432"
+      PGUSER: postgres
+      PGPASSWORD: ci
+      PGDATABASE: sourcebd_ci
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Replay every migration, then assert 0104 behaves
+        run: bash supabase/ci/apply-migrations.sh
