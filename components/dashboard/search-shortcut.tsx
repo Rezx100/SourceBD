@@ -40,16 +40,41 @@ export function isSearchShortcut(e: ShortcutEvent): boolean {
   if (Boolean(e.metaKey) === Boolean(e.ctrlKey)) return false;
   if (e.key !== "k" && e.key !== "K") return false;
   // On macOS Ctrl+K inside a text field is the native delete-to-end-of-line,
-  // and these routes carry nine filter inputs and a save-search name box. A
-  // window-level listener that swallowed it took a keystroke from a buyer who
-  // was using it, with no way to turn the theft off.
+  // and /app/discover carries thirteen filter inputs plus the save-search name
+  // box. A window-level listener that swallowed it took a keystroke from a
+  // buyer who was using it, with no way to turn the theft off.
+  //
+  // Except in the field this shortcut exists to reach: pressing ⌘K again to
+  // re-select what you typed is the whole idiom, and treating the search input
+  // as "somebody is typing" made the badge beside it advertise a key that did
+  // nothing precisely where it should do the most.
+  if (targetIsSearchField(e.target)) return true;
   return !targetIsEditable(e.target);
 }
 
 /** The search field this shortcut acts on, or null when the page has none. */
 type FieldDocument = { querySelector: (selector: string) => unknown };
 
-export const SEARCH_FIELD_SELECTOR = 'form[role="search"] input[name="q"]';
+/**
+ * The topbar's own field.
+ *
+ * It used to be `form[role="search"] input[name="q"]`, with a comment saying
+ * only the topbar renders such a form. That was not true:
+ * `app/(app)/app/products/page.tsx` renders its own `role="search"` form over
+ * an `input name="q"`, on a route this same rail links to, so on `/app/products`
+ * the selector matched two elements and only DOM order decided which one ⌘K
+ * focused. `data-search="topbar"` says which one is meant instead of inferring
+ * it, and the gallery's six shells cannot collide on it either.
+ */
+export const SEARCH_FIELD_SELECTOR = 'input[data-search="topbar"]';
+
+/** True when a keystroke's target IS the field this shortcut focuses. */
+export function targetIsSearchField(target: unknown): boolean {
+  if (!target || typeof target !== "object") return false;
+  const el = target as { dataset?: { search?: unknown }; getAttribute?: (n: string) => unknown };
+  if (el.dataset && el.dataset.search === "topbar") return true;
+  return typeof el.getAttribute === "function" && el.getAttribute("data-search") === "topbar";
+}
 
 /**
  * Finds the field and focuses it. Returns whether it did, so a caller — and a

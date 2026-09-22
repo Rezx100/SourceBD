@@ -34,8 +34,9 @@ export function csvFilename(today: Date, rows?: number, matched?: number | null)
   const y = today.getUTCFullYear();
   const m = String(today.getUTCMonth() + 1).padStart(2, "0");
   const d = String(today.getUTCDate()).padStart(2, "0");
-  const truncated = rows != null && matched != null && matched > rows;
-  const span = truncated ? `-first-${rows}-of-${matched}` : "";
+  const atCeiling = rows != null && rows >= MAX_ROWS;
+  const truncated = atCeiling || (rows != null && matched != null && matched > rows);
+  const span = !truncated ? "" : matched != null ? `-first-${rows}-of-${matched}` : `-first-${rows}`;
   return `sourcebd-suppliers-${y}-${m}-${d}${span}.csv`;
 }
 
@@ -109,7 +110,14 @@ export async function runDiscoverExport(input: {
   // exactly the silence the paragraph below says this closes. `fetchDiscoverV32`
   // already parses it correctly per page and that value was being thrown away.
   const matched = totals.reduce<number | null>((acc, n) => (acc == null || n > acc ? n : acc), null);
-  const truncated = matched != null && matched > rows.length;
+  // Hitting the ceiling IS truncation, whether or not the RPC told us the
+  // total. If `total_count` is absent or unparseable on every page, `matched`
+  // is null and `matched > rows.length` is false — so a buyer received exactly
+  // MAX_ROWS rows of a larger search with nothing saying so. That is the
+  // original silence, arriving through the one input the count-based test
+  // cannot see. The filename then says "first-1000" without an "of", because
+  // the total is genuinely unknown and inventing one would be worse.
+  const truncated = rows.length >= MAX_ROWS || (matched != null && matched > rows.length);
 
   // The defect this closes is the SILENCE, not the row count. A buyer who
   // exports a 3,481-supplier search and receives 1,000 rows with nothing to

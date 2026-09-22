@@ -24,6 +24,9 @@ export function RecentSearchesSlot({ items }: { items: readonly RecentSearch[] }
           <a
             key={r.href + r.label}
             href={r.href}
+            // The label is ellipsised to one line, so the full query is only
+            // available on hover without this.
+            title={r.label}
             className="block overflow-hidden text-ellipsis whitespace-nowrap rounded-sm px-2 py-[5px] text-sm text-ink hover:bg-surface-sunken"
           >
             {r.label}

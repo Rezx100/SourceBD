@@ -25,6 +25,12 @@ export type NavKey =
 
 export type SidebarModel = {
   /**
+   * False when the buyer is on a page UNDER the active item rather than on it.
+   * The rail then marks the row as current-section (`aria-current="true"`)
+   * instead of current-page.
+   */
+  activeExact?: boolean;
+  /**
    * The nav item the current URL actually is. `null` when no nav item points
    * here: `/app/searches` (saved searches) and `/app/searches/new` both used
    * to pass `"search"`, which put `aria-current="page"` on a link to
@@ -86,15 +92,38 @@ export const NAV: readonly { key: NavKey; label: string; icon: IconName; href: s
  * first is the one the rail has always highlighted.
  */
 export function activeNavKey(pathname: string): NavKey | null {
+  return navMatch(pathname).key;
+}
+
+/**
+ * Which nav item this path belongs to, and whether it IS that item's page or
+ * merely sits under it.
+ *
+ * The distinction is not cosmetic. The first version of the nested matching
+ * returned `"searches"` for `/app/searches/new` and the rail then put
+ * `aria-current="page"` on the link to `/app/searches` — announcing the buyer
+ * as being on a page they were not on, which is the exact defect the nested
+ * matching was added alongside a fix for. A section ancestor is
+ * `aria-current="true"`.
+ */
+export function navMatch(pathname: string): { key: NavKey | null; exact: boolean } {
   const path = pathname.replace(/[?#].*$/, "").replace(/(.)\/+$/, "$1");
-  const exact = NAV.find((item) => item.href === path);
-  if (exact) return exact.key;
+  const hit = NAV.find((item) => item.href === path);
+  if (hit) return { key: hit.key, exact: true };
   // A nested route belongs to its section: /app/rfqs/<id> and
   // /app/settings/rfq are both §3 screens this shell will render, and an
   // exact match alone left every one of them highlighting nothing. Longest
   // href wins so /app/searches/new cannot be claimed by /app/search-anything.
   const under = NAV.filter((item) => path.startsWith(item.href + "/")).sort((a, b) => b.href.length - a.href.length);
-  return under[0]?.key ?? null;
+  if (under[0]) return { key: under[0].key, exact: false };
+  // `/app/suppliers/<slug>` and `/app/suppliers/<slug>/lines/<hs>` are spec
+  // §3.3 and §3.4 — the screens a buyer actually sits on — and no nav item has
+  // that href, because the Suppliers row points at the search. They belong to
+  // Suppliers all the same.
+  if (path === "/app/suppliers" || path.startsWith("/app/suppliers/")) {
+    return { key: "suppliers", exact: false };
+  }
+  return { key: null, exact: false };
 }
 
 function navCount(key: NavKey, counts: SidebarModel["counts"]): ReactNode {
@@ -156,7 +185,7 @@ export function Sidebar({ model, screenLabel }: { model: SidebarModel; screenLab
             <a
               key={item.key}
               href={item.href}
-              aria-current={on ? "page" : undefined}
+              aria-current={on ? (model.activeExact === false ? "true" : "page") : undefined}
               className={cn(
                 "flex h-8 shrink-0 snap-start items-center gap-2.5 whitespace-nowrap rounded-sm px-2 text-sm font-medium text-ink-muted hover:bg-surface-sunken md:shrink",
                 // The tint alone is 1.07:1 against the canvas beside it, so on
@@ -216,7 +245,9 @@ export function Topbar({ model, screenLabel }: { model: TopbarModel; screenLabel
           // having been threaded into "nav/search" and had only ever reached
           // nav and main, so the six shells in the /dev/ds gallery rendered six
           // identical unnamed search landmarks (WCAG 1.3.1).
-          aria-label={screenLabel ? `Search, ${screenLabel}` : "Search"}
+          // Not `Search, ${screenLabel}` unconditionally: on /app/discover the
+          // screen label IS "Search", and the landmark read "Search, Search".
+          aria-label={screenLabel && screenLabel !== "Search" ? `Search, ${screenLabel}` : "Search"}
           action={model.searchAction}
           method="get"
           className="flex h-control w-full min-w-0 max-w-[360px] items-center gap-2 rounded-sm border border-line-strong bg-surface px-2.5 text-sm text-ink-subtle"
@@ -225,6 +256,10 @@ export function Topbar({ model, screenLabel }: { model: TopbarModel; screenLabel
           <input
             type="search"
             name="q"
+            // What `SEARCH_FIELD_SELECTOR` looks for. Naming the field beats
+            // inferring it from `form[role="search"]`, which /app/products also
+            // renders.
+            data-search="topbar"
             defaultValue={model.searchQuery ?? ""}
             placeholder="Search suppliers, HS codes, certificates"
             aria-label="Search suppliers, HS codes, certificates"

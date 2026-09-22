@@ -61,7 +61,10 @@ export default async function ProductsPage({
         {/* Was a hard `w-[20rem]` with no `min-w-0`: 320px of search box in a
             288px content column, so the page scrolled sideways before the
             table even had a say. */}
-        <form action="/app/products" method="get" role="search" className="flex h-control w-full min-w-0 items-center rounded-sm border border-line-strong bg-surface px-2.5 sm:w-[20rem]">
+        {/* Named, because the kit topbar renders a `search` landmark on this
+            same page and two unnamed ones are indistinguishable to a screen
+            reader (WCAG 1.3.1). */}
+        <form aria-label="Search product lines" action="/app/products" method="get" role="search" className="flex h-control w-full min-w-0 items-center rounded-sm border border-line-strong bg-surface px-2.5 sm:w-[20rem]">
           <input
             type="search"
             name="q"

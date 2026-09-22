@@ -34,6 +34,16 @@ describe("recent searches", () => {
       { label: "Also bad", href: "JavaScript:alert(1)", count: 1 },
       { label: "Offsite", href: "https://evil.example/steal", count: 1 },
       { label: "Protocol relative", href: "//evil.example/steal", count: 1 },
+      // The five that beat `startsWith("/") && !startsWith("//")`. A browser
+      // folds `\` into `/` at the start of a path and strips tab, LF and CR
+      // from a URL entirely, so every one of these resolves off-site. Three
+      // reviewers found them; a string prefix cannot see any of them, which is
+      // why the filter parses now.
+      { label: "Backslash", href: "/\\evil.example/steal", count: 1 },
+      { label: "Backslash bare", href: "/\\evil.example", count: 1 },
+      { label: "Tab", href: "/\t/evil.example", count: 1 },
+      { label: "Newline", href: "/\n//evil.example", count: 1 },
+      { label: "Carriage return", href: "/\r/evil.example", count: 1 },
       { label: "Data", href: "data:text/html,<script>alert(1)</script>", count: 1 },
       { label: "Not a string", href: 42, count: 1 },
     ];

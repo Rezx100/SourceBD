@@ -84,7 +84,10 @@ export function Seg({
             key={o.value}
             href={hrefFor(o.value)}
             aria-label={o.label}
-            aria-current={o.value === value ? "page" : undefined}
+            // "true", not "page": this is a view switch, and both views are the
+            // same page. `aria-current="page"` on the Cards button announced a
+            // navigation that does not happen.
+            aria-current={o.value === value ? "true" : undefined}
             className={itemClass(o, i)}
           >
             <Icon name={o.icon} />

@@ -5,6 +5,7 @@ import { describe, it } from "node:test";
 
 import { savedSearchRedirectHref } from "./saved-searches";
 import { urlOnSiteFromHref } from "./site-origin";
+import { parseCount, parseTotalCount } from "./discover-v32-rpc";
 
 const SQL_WITH_COMMENTS = readFileSync(
   path.join(process.cwd(), "supabase/migrations/0104_discover_v32.sql"),
@@ -353,5 +354,37 @@ describe("0104 discover_suppliers PII guard", () => {
     // Both call sites go through `matchRedirectSearch` now, and
     // lib/match-redirect.test.ts fails if either rebuilds it.
     assert.match(mw, /redirectOnSite\(MATCH_TARGET, matchRedirectSearch\(/);
+  });
+});
+
+// A bigint count arrives as a number or as a string, and `Number()` is the
+// wrong parser for the string case in a way that invents a figure rather than
+// dropping one: `Number("")` is 0. A blank `saved_count` therefore printed
+// "0 saved" over a read that told us nothing, which is the one class of defect
+// every count on this surface is written to avoid.
+describe("a count is digits, or it is not a count", () => {
+  it("accepts what a bigint really looks like", () => {
+    assert.equal(parseCount(0), 0);
+    assert.equal(parseCount(10266), 10266);
+    assert.equal(parseCount("10266"), 10266);
+    assert.equal(parseCount(" 12 "), 12, "PostgREST pads nothing, but whitespace is not a different number");
+  });
+
+  it("refuses everything that is not, rather than turning it into a number", () => {
+    for (const raw of ["", "   ", "many", "1e3", "0x10", "-1", "1.5", "12px", null, undefined, {}, [], true, NaN, Infinity, -4]) {
+      assert.equal(parseCount(raw), null, `parseCount(${JSON.stringify(raw)}) invented a number`);
+    }
+    // The three that `Number()` would have turned into 0, 1000 and 16.
+    assert.equal(Number(""), 0, "if this ever stops being true, this guard's reason has changed");
+    assert.equal(parseCount(""), null);
+    assert.equal(parseCount("1e3"), null);
+    assert.equal(parseCount("0x10"), null);
+  });
+
+  it("parseTotalCount reads a row's total through the same rule", () => {
+    assert.equal(parseTotalCount([{ total_count: "3481" } as never]), 3481);
+    assert.equal(parseTotalCount([{ total_count: "" } as never]), null, "a blank total is not zero suppliers");
+    assert.equal(parseTotalCount([]), 0, "no rows genuinely matched nothing");
+    assert.equal(parseTotalCount([{ total_count: null } as never]), null);
   });
 });

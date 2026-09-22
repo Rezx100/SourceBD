@@ -483,3 +483,42 @@ test("no role outside the signal group paints the reserved sanction red", () => 
     }
   }
 });
+
+// The focus ring's geometry is a number in a stylesheet that no test read, and
+// every guard that depends on it hard-codes the answer. A reviewer changed
+// `outline-offset-2` to `outline-offset-4` in `app/ds.css` and the whole suite
+// — including the nav-strip guard whose `-my-1 py-1` (4px) exists to fit
+// exactly this ring — stayed green.
+//
+// So pin the relationship rather than the number: whatever the global rule
+// asks for, offset + width must fit in the room the phone nav strip gives it.
+
+const css = readFileSync(path.join(repoRoot, "app/ds.css"), "utf8")
+    // Strip comments first. A `/* … outline-offset-2 … */` note above the rule
+    // would otherwise hold this green after the rule itself changed — the trap
+    // that has silently held two guards in this change already.
+  .replace(/\/\*[\s\S]*?\*\//g, "");
+
+const rule = css.slice(css.indexOf(":focus-visible"), css.indexOf("}", css.indexOf(":focus-visible")));
+
+test("the global :focus-visible rule still asks for a visible outline", () => {
+    assert.ok(rule.length > 0, "app/ds.css no longer defines a :focus-visible rule");
+    assert.match(rule, /outline-offset-\d/, `no outline-offset in the global rule: ${rule}`);
+    assert.match(rule, /outline-2\b/, `the ring is no longer 2px: ${rule}`);
+  });
+
+test("the focus ring's offset plus width is within the 4px the nav strip reserves", () => {
+    // `components/dashboard/app-shell.tsx` gives the scrolling nav strip
+    // `-my-1 py-1` and `-mx-1 px-1` — 4px on each side, measured in a browser
+    // as exactly enough for a 2px ring at 2px offset. If the stylesheet asks
+    // for more, that measurement is stale and the ring is clipped again.
+    const offset = Number((rule.match(/outline-offset-(\d+)/) ?? [])[1]);
+    const width = Number((rule.match(/outline-(\d+)\b(?!-)/) ?? [])[1]);
+    assert.ok(Number.isFinite(offset) && Number.isFinite(width), `could not read the ring geometry from: ${rule}`);
+    // Tailwind's scale: `outline-offset-2` is 2px, `outline-2` is 2px.
+    assert.ok(
+      offset + width <= 4,
+      `the focus ring needs ${offset + width}px but the nav strip reserves 4px (app-shell.tsx, \`-my-1 py-1\`); ` +
+        "either narrow the ring or widen the strip's padding and re-measure in a browser",
+    );
+});

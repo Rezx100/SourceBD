@@ -4,23 +4,35 @@
 // environment is the whole distance between the throwaway CI container and
 // production.
 //
-// The first version of both the guard and this file checked PGHOST alone.
-// Three independent reviewers broke it within an hour, all the same way: libpq
-// reads PGHOSTADDR, PGSERVICE and PGSERVICEFILE too, and PGHOST accepts a
-// comma-separated list. Every one of those bypasses has a case here.
+// This file has been wrong twice, in the two ways a guard on a shell script
+// goes wrong.
 //
-// The refusal exits 9 on purpose: psql uses 0-3, a missing PGDATABASE exits 1
-// and a missing psql exits 127, so the code distinguishes "it refused" from
-// "it failed for some other reason". That mattered twice over — the refusal
-// originally recognised itself by the script's filename in stderr, which bash
-// also prints for "psql: command not found", so a machine with no psql
-// reported a refusal for every host including the local ones.
+// First it only ever ASKED the script to refuse. It asserted exit codes and
+// stderr on hosts it expected to be rejected, and for the hosts it expected to
+// be accepted it asserted `code !== 9` — which exit 0 satisfies. The script had
+// `guard_status=$?` inside `if ! psql …; then`, where `$?` is the status of the
+// negation and therefore always 0, so every connection failure ended the run
+// with exit 0, nothing applied and nothing asserted, and the CI job whose whole
+// purpose is to execute 0104 reported a green check. Four reviewers found it
+// independently and this file blessed it.
+//
+// Second, the only check that does not trust a host NAME — the SQL block asking
+// the server where it is and whether `suppliers` is already populated — was
+// guarded by grepping the script's source for `inet_server_addr()`. That
+// literal lives inside a string variable, so deleting the block that RUNS it
+// left the grep green. The repo's recurring trap (a comment containing the
+// literal being matched) in a new costume: a dead string instead of a comment.
+//
+// So the script is now driven end to end against a `psql` stub that records
+// every invocation and its stdin. What is asserted is what the script DID, not
+// what its source says.
 
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { chmodSync, mkdtempSync, readFileSync, rmSync, writeFileSync, existsSync } from "node:fs";
+import { tmpdir } from "node:os";
 import path from "node:path";
-import { describe, it } from "node:test";
+import { after, describe, it } from "node:test";
 
 const SCRIPT = path.join(process.cwd(), "supabase/ci/apply-migrations.sh");
 
@@ -30,7 +42,8 @@ const REFUSED = 9;
 /**
  * CI is ubuntu; a developer on Windows may not have bash on PATH. Skipping is
  * honest — the guard still runs everywhere the script itself can run, which is
- * everywhere it could do harm.
+ * everywhere it could do harm — but it does mean a skip line is the only signal
+ * on such a machine, so the skip reason says so.
  */
 const HAS_BASH = (() => {
   try {
@@ -41,45 +54,139 @@ const HAS_BASH = (() => {
   }
 })();
 
-/**
- * A deliberately empty environment for the child, plus only what the case under
- * test sets.
- *
- * `{ ...process.env }` is what the first version did, and it made `pnpm test`
- * go red on the founder's own machine: `CLAUDE.md`'s verification gate asks him
- * to export `SUPABASE_DB_URL`, the script refused on it, and the "does not
- * refuse a local target" case failed for an environment reason. CI exports no
- * such variable, so it failed only where it would be read as a false alarm. The
- * script no longer looks at those URLs at all — libpq does not read them — but
- * the child environment stays hermetic so no ambient PG* variable can decide a
- * case either way.
- */
-function run(env: Record<string, string>): { code: number; stderr: string } {
+const DIR = HAS_BASH ? mkdtempSync(path.join(tmpdir(), "sourcebd-psql-stub-")) : "";
+const LOG = path.join(DIR, "calls.log");
+
+if (HAS_BASH) {
+  // A psql that records what it was asked to do. STUB_MODE picks the outcome.
+  const stub = [
+    "#!/usr/bin/env bash",
+    'printf "ARGS %s\\n" "$*" >> "$STUB_LOG"',
+    // `-f -` means the SQL arrives on stdin; anything else names a file.
+    'if [ "${*: -1}" = "-" ]; then',
+    '  printf "STDIN %s\\n" "$(cat | tr "\\n" " ")" >> "$STUB_LOG"',
+    "fi",
+    'case "${STUB_MODE:-ok}" in',
+    "  fail)",
+    '    echo "psql: error: connection to server at \\"localhost\\" failed: Connection refused" >&2',
+    "    exit 2",
+    "    ;;",
+    "  refuse)",
+    '    echo "psql:<stdin>:1: ERROR:  REPLAY-REFUSED: public.suppliers already holds 10922 rows" >&2',
+    "    exit 1",
+    "    ;;",
+    "esac",
+    "exit 0",
+    "",
+  ].join("\n");
+  writeFileSync(path.join(DIR, "psql"), stub, { mode: 0o755 });
+  chmodSync(path.join(DIR, "psql"), 0o755);
+}
+
+after(() => {
+  if (DIR) rmSync(DIR, { recursive: true, force: true });
+});
+
+function run(env: Record<string, string>, opts: { withStub?: boolean } = {}): { code: number; stderr: string; calls: string } {
+  if (opts.withStub !== false && existsSync(LOG)) rmSync(LOG);
+  const base: Record<string, string> = { PATH: process.env.PATH ?? "", PGDATABASE: "sourcebd_ci" };
+  if (opts.withStub !== false) {
+    base.PATH = `${DIR}${path.delimiter}${process.env.PATH ?? ""}`;
+    base.STUB_LOG = LOG;
+  }
+  let code = 0;
+  let stderr = "";
   try {
     execFileSync("bash", [SCRIPT], {
-      env: { PATH: process.env.PATH ?? "", PGDATABASE: "sourcebd_ci", ...env },
+      env: { ...base, ...env },
       stdio: ["ignore", "pipe", "pipe"],
       encoding: "utf8",
     });
-    return { code: 0, stderr: "" };
   } catch (e) {
     const err = e as { status?: number | null; stderr?: string };
-    return { code: err.status ?? -1, stderr: err.stderr ?? "" };
+    code = err.status ?? -1;
+    stderr = err.stderr ?? "";
   }
+  const calls = existsSync(LOG) ? readFileSync(LOG, "utf8") : "";
+  return { code, stderr, calls };
 }
 
-describe("the migration replay refuses a target it cannot see is local", { skip: HAS_BASH ? false : "bash is not on PATH" }, () => {
+describe("the migration replay actually replays, and says so when it does not", { skip: HAS_BASH ? false : "bash is not on PATH" }, () => {
+  it("a clean run asks the server where it is, then bootstraps, then applies every migration, then asserts", () => {
+    const { code, stderr, calls } = run({ PGHOST: "localhost" });
+    assert.equal(code, 0, `a clean run failed (${code}): ${stderr}`);
+
+    const lines = calls.split(/\r?\n/).filter(Boolean);
+    const stdin = lines.filter((l) => l.startsWith("STDIN "));
+    // 1. The check that does not trust a name ran, as SQL, before anything
+    //    else. Deleting the block that pipes it leaves this with nothing to
+    //    find — which grepping the script's source could not tell, because the
+    //    literals live in a string that stays defined when the block goes.
+    assert.equal(stdin.length, 1, "the server-side guard was not piped to psql");
+    assert.match(stdin[0]!, /inet_server_addr\(\)/, "the replay no longer asks the server where it is");
+    assert.match(stdin[0]!, /public\.suppliers/, "the replay no longer checks the target is empty");
+    assert.match(stdin[0]!, /REPLAY-REFUSED:/, "the guard raises nothing a caller can recognise");
+    assert.match(stdin[0]!, /search_path/, "the guard block does not pin its search_path");
+
+    const args = lines.filter((l) => l.startsWith("ARGS "));
+    // 2. Every call goes to the host the name checks vetted, explicitly.
+    for (const a of args) {
+      assert.match(a, /-h localhost\b/, `a psql call did not name the vetted host: ${a}`);
+    }
+    // 3. Order: guard, bootstrap, migrations, assertions.
+    assert.match(args[0] ?? "", /-f -$/, "the guard was not the first thing psql was asked to run");
+    assert.match(args[1] ?? "", /00-supabase-bootstrap\.sql/, "the bootstrap did not run second");
+    assert.match(args[args.length - 1] ?? "", /assert-0104\.sql/, "the behaviour assertions did not run last");
+
+    // 4. Every migration on disk was applied, and the newest numbered one last.
+    const applied = args.filter((a) => a.includes("supabase/migrations/") || a.includes("supabase\\migrations\\"));
+    assert.ok(applied.length >= 100, `only ${applied.length} migrations were applied`);
+    // Basename first. Matching `(\d{4})_` anywhere in the path picked "5452"
+    // out of `20260810065452_rsc_workers_batch_discover.sql` — the very
+    // date-named file whose ordering this rule exists to get right.
+    const base = (a: string) => a.trim().split(/[\/]/).pop() ?? "";
+    const numbered = applied.map(base).filter((f) => /^\d{4}_.*\.sql$/.test(f));
+    assert.ok(numbered.length > 0, "no NNNN_ migration was applied at all");
+    const newest = [...numbered].sort().at(-1)!;
+    assert.equal(base(applied.at(-1)!), newest, `the newest numbered migration (${newest}) was not applied last`);
+  });
+
+  it("a psql that cannot connect fails the run, and applies nothing", () => {
+    // This is the one that was green. `guard_status=$?` inside `if ! …` is the
+    // status of the negation, so psql's 2 became 0 and the job passed having
+    // replayed nothing.
+    const { code, stderr, calls } = run({ PGHOST: "localhost", STUB_MODE: "fail" });
+    assert.notEqual(code, 0, "a failed connection reported success");
+    assert.notEqual(code, REFUSED, "a failed connection is not a refusal");
+    assert.equal(code, 2, `expected psql's own exit code, got ${code}: ${stderr}`);
+    assert.doesNotMatch(calls, /00-supabase-bootstrap\.sql/, "the bootstrap ran after the guard failed");
+    assert.doesNotMatch(calls, /supabase.migrations/, "migrations were applied after the guard failed");
+  });
+
+  it("a server that refuses the replay exits 9 and applies nothing", () => {
+    const { code, calls } = run({ PGHOST: "localhost", STUB_MODE: "refuse" });
+    assert.equal(code, REFUSED, `a REPLAY-REFUSED raise did not exit ${REFUSED}, it exited ${code}`);
+    assert.doesNotMatch(calls, /00-supabase-bootstrap\.sql/, "the bootstrap ran against a database the server refused");
+  });
+
   for (const host of [
     "db.abcdefghijklmnop.supabase.co",
     "109.104.153.228",
     "localhost.evil.example",
     "127.0.0.1.nip.io",
     "127.evil.example",
+    // Container-name globs are names too. `supabase_db_*` had the identical
+    // hole the `127.*` arm was hardened for in the same commit.
+    "supabase_db_x.evil.example",
+    "supabase_db_db.abcdefghijklmnop.supabase.co",
+    "postgres.evil.example",
+    "db.evil.example",
   ]) {
     it(`refuses PGHOST=${host}`, () => {
-      const { code, stderr } = run({ PGHOST: host });
+      const { code, stderr, calls } = run({ PGHOST: host });
       assert.equal(code, REFUSED, `expected the refusal exit ${REFUSED}, got ${code}: ${stderr}`);
       assert.match(stderr, /refusing/);
+      assert.equal(calls, "", "psql was invoked against a host the script says it refused");
     });
   }
 
@@ -96,22 +203,24 @@ describe("the migration replay refuses a target it cannot see is local", { skip:
 
   for (const redirect of ["PGHOSTADDR", "PGSERVICE", "PGSERVICEFILE", "PGTARGETSESSIONATTRS"]) {
     it(`refuses a local PGHOST while ${redirect} can redirect it`, () => {
-      // The bypass: libpq dials PGHOSTADDR and uses PGHOST only for auth and
-      // SNI, so `PGHOST=localhost PGHOSTADDR=<prod ip>` walked past a check
-      // that read PGHOST. PGSERVICE and PGSERVICEFILE supply a host of their
-      // own the same way.
-      const { code, stderr } = run({ PGHOST: "localhost", [redirect]: "109.104.153.228" });
+      // libpq dials PGHOSTADDR and uses PGHOST only for auth and SNI, so
+      // `PGHOST=localhost PGHOSTADDR=<prod ip>` walked past a check that read
+      // PGHOST. PGSERVICE and PGSERVICEFILE supply a host of their own.
+      const { code, stderr, calls } = run({ PGHOST: "localhost", [redirect]: "109.104.153.228" });
       assert.equal(code, REFUSED, `${redirect} did not stop the replay (exit ${code}): ${stderr}`);
       assert.match(stderr, new RegExp(`refusing to run with ${redirect} set`));
+      assert.equal(calls, "", "psql was invoked despite the redirect refusal");
     });
   }
 
+  it("refuses a PGDATABASE that is a connection string rather than a name", () => {
+    for (const db of ["postgres://u:p@db.evil.example/postgres", "host=db.evil.example dbname=postgres", "/tmp/somewhere"]) {
+      const { code } = run({ PGHOST: "localhost", PGDATABASE: db });
+      assert.equal(code, REFUSED, `PGDATABASE=${db} was accepted as a database name`);
+    }
+  });
+
   it("does not refuse the local targets CI and a developer actually use", () => {
-    // These have to get PAST the name checks. With no psql the script exits
-    // 127 before it connects; with psql and an unreachable port it exits on
-    // the connection. Either way the refusal must not be what stops it, and
-    // nothing on stderr may say "refusing" — asserting only `code !== 9` was
-    // too weak to tell those apart.
     for (const host of [
       "localhost",
       "127.0.0.1",
@@ -124,9 +233,13 @@ describe("the migration replay refuses a target it cannot see is local", { skip:
       "supabase_db_sourcebd",
       "/var/run/postgresql",
     ]) {
-      const { code, stderr } = run({ PGHOST: host, PGPORT: "1" });
-      assert.notEqual(code, REFUSED, `PGHOST=${host} is a local target and must not be refused`);
+      // `STUB_MODE=fail` so this stops at the first psql call instead of
+      // replaying 110 migrations per host — the question here is only whether
+      // the name checks let it through, and exit 2 is psql's, not a refusal.
+      const { code, stderr, calls } = run({ PGHOST: host, STUB_MODE: "fail" });
+      assert.equal(code, 2, `PGHOST=${host} is a local target and must not be refused: ${code} ${stderr}`);
       assert.doesNotMatch(stderr, /refusing/, `PGHOST=${host} printed a refusal: ${stderr}`);
+      assert.match(calls, /ARGS -h /, `PGHOST=${host} never reached psql`);
     }
   });
 
@@ -138,28 +251,12 @@ describe("the migration replay refuses a target it cannot see is local", { skip:
     for (const key of ["DATABASE_URL", "SUPABASE_DB_URL", "PGURL"]) {
       const { code, stderr } = run({
         PGHOST: "localhost",
-        PGPORT: "1",
+        STUB_MODE: "fail",
         [key]: "postgres://u:p@db.abcdefghijklmnop.supabase.co/postgres",
       });
-      assert.notEqual(code, REFUSED, `${key} decided the outcome, so the guard is reading the wrong variable`);
+      assert.equal(code, 2, `${key} decided the outcome, so the guard is reading the wrong variable`);
       assert.doesNotMatch(stderr, /refusing/, `${key} produced a refusal: ${stderr}`);
     }
   });
 
-  it("the server-side refusal is recognised by a token nothing else prints", () => {
-    // The last line of defence runs inside Postgres and cannot be exercised
-    // without one, so pin the two things about it that are visible from here.
-    // Comments are stripped first: an explanatory comment containing the
-    // literal being matched has silently held two guards in this change green
-    // already.
-    const code = readFileSync(SCRIPT, "utf8").replace(/^\s*#.*$/gm, "");
-    assert.match(code, /REPLAY-REFUSED:/, "the server-side guard no longer raises a distinctive token");
-    assert.doesNotMatch(
-      code,
-      /apply-migrations\.sh:"?\*?\)\s*exit 9/,
-      "the refusal is matched on the script's own name again, which bash also prints when psql is missing",
-    );
-    assert.match(code, /inet_server_addr\(\)/, "the replay no longer asks the server where it is");
-    assert.match(code, /public\.suppliers/, "the replay no longer checks that the target is empty");
-  });
 });

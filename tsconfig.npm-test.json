@@ -120,6 +120,8 @@
     "components/dashboard/record-recent-search.test.ts",
     "lib/dashboard/load-buyer-shell.ts",
     "lib/dashboard/load-buyer-shell.test.ts",
-    "supabase/ci/apply-migrations.test.ts"
+    "supabase/ci/apply-migrations.test.ts",
+    "components/shell/sidebar.tsx",
+    "components/shell/nav-sections.test.ts"
   ]
 }

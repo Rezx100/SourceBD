@@ -3,7 +3,7 @@ import "server-only";
 import { activeNavKey, type SidebarModel, type TopbarModel } from "@/components/dashboard/app-shell";
 import { formatCount, formatDayRange, initials } from "@/lib/dashboard/facts";
 import { EMPTY_STATE, discoverRpcArgs } from "@/lib/discover-v32-state";
-import { parseTotalCount, type DiscoverV32Row } from "@/lib/discover-v32-rpc";
+import { parseCount, parseTotalCount, type DiscoverV32Row } from "@/lib/discover-v32-rpc";
 
 export type BuyerShellModels = {
   sidebar: SidebarModel;
@@ -35,11 +35,11 @@ export async function loadBuyerShell(supabase: { rpc: (fn: string, args?: Record
     if (dash && typeof dash === "object") {
       // `saved_count` is a bigint on the SQL side, which PostgREST may send as
       // a string. Accepting only `number` left a real count reading as
-      // "not read" — the same number-or-string trap the export filename fell
-      // into. `parseTotalCount` is the house rule for it.
-      const savedRaw = (dash as { saved_count?: unknown }).saved_count;
-      const n = typeof savedRaw === "number" ? savedRaw : typeof savedRaw === "string" ? Number(savedRaw) : NaN;
-      if (Number.isFinite(n)) saved = n;
+      // "not read"; hand-rolling `Number()` instead then accepted `""` as 0,
+      // which is the invented number the whole file exists to avoid. The
+      // shared parser is the house rule and this now actually calls it.
+      const n = parseCount((dash as { saved_count?: unknown }).saved_count);
+      if (n !== null) saved = n;
     }
     const pubRaw = Array.isArray(pub?.data) && !pub?.error ? (pub.data as unknown[]) : null;
     const pubRows = pubRaw ? (pubRaw.map(asRow).filter(Boolean) as DiscoverV32Row[]) : [];

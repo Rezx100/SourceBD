@@ -87,12 +87,27 @@ function asRow(raw: unknown): DiscoverV32Row | null {
   };
 }
 
+/**
+ * A bigint count that PostgREST may send as a number or as a string.
+ *
+ * `Number()` is the wrong parser for this and the reason is not theoretical:
+ * `Number("")` is 0, `Number("  ")` is 0, `Number("1e3")` is 1000 and
+ * `Number("0x10")` is 16. A blank string arriving where a count was expected
+ * therefore printed "0 suppliers" — an invented number, which is the single
+ * class of defect this whole surface exists to prevent. A count is digits.
+ */
+export function parseCount(raw: unknown): number | null {
+  if (typeof raw === "number") return Number.isSafeInteger(raw) && raw >= 0 ? raw : null;
+  if (typeof raw !== "string") return null;
+  if (!/^\d+$/.test(raw.trim())) return null;
+  const n = Number(raw.trim());
+  return Number.isSafeInteger(n) ? n : null;
+}
+
 export function parseTotalCount(rows: readonly DiscoverV32Row[]): number | null {
   const raw = rows[0]?.total_count;
   if (raw === null || raw === undefined) return rows.length > 0 ? null : 0;
-  const n = typeof raw === "number" ? raw : Number(raw);
-  if (!Number.isFinite(n)) return null;
-  return n;
+  return parseCount(raw);
 }
 
 /**

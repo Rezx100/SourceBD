@@ -289,9 +289,12 @@ $$;
 -- `total_count` as `remaining`; twelve near-identical eight-line blocks is
 -- precisely where a copy-paste nulls the wrong parameter, and the label still
 -- emits while the buyer is told "Drop HS code · N remain" with N computed from
--- dropping something else. The fixture has seven published rows and none of
--- them match any of the filters below, so every branch that drops its own
--- filter must report all seven.
+-- dropping something else.
+--
+-- The fixture inserts eight published suppliers, one of which is sanctioned,
+-- so `discover_suppliers` returns seven under the default
+-- `p_exclude_sanctioned`. None of the seven matches any filter used below, so
+-- every branch that drops its own filter must report all of them.
 do $$
 declare
   got  text[];
@@ -325,9 +328,14 @@ $$;
 do $$
 declare
   published bigint;
+  seen      int := 0;
   r record;
 begin
-  select count(*) into published from public.discover_suppliers(p_limit => 100);
+  -- `total_count`, not `count(*)`: the row count is capped by `p_limit`, so
+  -- comparing it against `remaining` (which is the uncapped `total_count`)
+  -- would start failing spuriously the day the fixture grows past 100 rows.
+  select coalesce(max(d.total_count), 0) into published
+    from public.discover_suppliers(p_limit => 100) d;
 
   for r in
     select 'q'           as dim, e.remaining from public.discover_suppliers_explain(p_q => 'nothing matches this') e
@@ -343,12 +351,21 @@ begin
     union all select 'brand',       e.remaining from public.discover_suppliers_explain(p_brand_codes => array['nope']) e
     union all select 'registry',    e.remaining from public.discover_suppliers_explain(p_registries => array['nope']) e
   loop
+    seen := seen + 1;
     if r.remaining is distinct from published then
       raise exception
         'discover_suppliers_explain says % leaves % suppliers; dropping the only filter set must leave all %',
         r.dim, coalesce(r.remaining::text, 'null'), published;
     end if;
   end loop;
+
+  -- Without this the loop is vacuous on any branch that stops emitting: a
+  -- copy-paste that breaks an `if` CONDITION makes its dimension return no
+  -- row, `for` simply skips it, and every remaining branch still matches. The
+  -- count is the assertion that a missing dimension is a failure.
+  if seen <> 12 then
+    raise exception 'discover_suppliers_explain answered % of the 12 single-filter calls', seen;
+  end if;
 end
 $$;
 

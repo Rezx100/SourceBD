@@ -238,6 +238,42 @@ describe("discover CSV export boundary", () => {
     assert.equal(res.headers["X-SourceBD-Matched"], "3481");
   });
 
+  it("says so even when the RPC never told us the total", async () => {
+    // The last door the silence could come through. If `total_count` is absent
+    // or unparseable on every page, `matched` is null and `matched > rows`
+    // is false — so a buyer received exactly MAX_ROWS rows of a larger search
+    // with nothing in the filename and no headers. Hitting the ceiling IS
+    // truncation. The name says "first-1000" with no "of", because the total
+    // is genuinely unknown and inventing one would be worse than omitting it.
+    const res = await runDiscoverExport({
+      role: "buyer",
+      supabase: {
+        rpc: async (_fn: string, args?: Record<string, unknown>) => {
+          const limit = Math.min(RPC_LIMIT_CEILING, Number(args?.p_limit ?? RPC_LIMIT_CEILING));
+          return {
+            data: Array.from({ length: limit }, (_, i) => {
+              const row = { ...ROW, slug: `s-${args?.p_offset}-${i}`, company_name: `S ${args?.p_offset}-${i}` } as Record<string, unknown>;
+              delete row.total_count;
+              return row;
+            }),
+            error: null,
+          };
+        },
+      },
+      search: "",
+      today: TODAY,
+    });
+    assert.equal(res.status, 200);
+    assert.match(
+      res.headers["Content-Disposition"] ?? "",
+      /-first-1000\.csv"/,
+      `hitting the ceiling was not disclosed: ${res.headers["Content-Disposition"]}`,
+    );
+    assert.equal(res.headers["X-SourceBD-Truncated"], "1");
+    assert.equal(res.headers["X-SourceBD-Matched"], undefined, "a total we do not have must not be invented");
+    assert.equal(res.body.trim().split(/\r?\n/).length, 1001);
+  });
+
   it("stays silent when the export is the whole result set", async () => {
     const res = await runDiscoverExport({
       role: "buyer",

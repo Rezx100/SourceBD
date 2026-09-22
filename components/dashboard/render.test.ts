@@ -46,7 +46,11 @@ import {
   isSearchShortcut,
   searchShortcutHandler,
   targetIsEditable,
+  targetIsSearchField,
 } from "./search-shortcut";
+import { navMatch } from "./app-shell";
+import { Chip } from "./chips";
+import { PhotoStrip } from "./photo-tiles";
 import { RFQ_EMPTY_COPY, RFQ_ERROR_COPY, RfqList } from "./rfq-list";
 import { SearchComposer } from "./search-composer";
 import { SupplierResultCard } from "./supplier-result-card";
@@ -876,7 +880,7 @@ describe("the largest lists the database holds (spec §3, §6)", () => {
     assert.equal(card.photos.length, 6);
     const html = renderToStaticMarkup(createElement(SupplierResultCard, { card }));
     assert.match(html, /54 HS lines/);
-    assert.match(html, /\+48\s*</, "six tiles shown, forty-eight counted");
+    assert.match(html, /\+48 lines</, "six tiles shown, forty-eight counted");
     assert.doesNotMatch(html, TRUNCATION);
 
     const sheet = buildSheet(input);
@@ -1281,12 +1285,19 @@ describe("the two-state controls say which state they are in", () => {
     assert.equal(reportLinks.length, 10, "five reports on each of two RSC rows");
     for (const l of reportLinks) assert.match(l, /border-line-strong/, `report link missing the control outline: ${l}`);
 
-    // The "+N lines" pill on a card with more HS lines than thumbs (the same
-    // card the "twelve lines, three thumbs, nine more" ResultsTable test uses).
+    // The "+N more" pill on a card with more HS lines than thumbs is no longer
+    // a control: it was a `<button>` named "All N lines" with no handler, no
+    // href and no form, rendered on every such card, and the screen it would
+    // have opened is spec §3.4, which is not built. It states the count and
+    // the strip beside it scrolls to every tile. Nothing to outline, so the
+    // control-outline rule below no longer applies to it — but if it ever
+    // becomes a control again, this has to come back with it.
     const card = renderToStaticMarkup(createElement(SupplierResultCard, { card: buildCard(aboniInput()) }));
-    const pill = /<button[^>]*aria-label="All \d+ lines"[^>]*>/.exec(card);
+    assert.doesNotMatch(card, /<button[^>]*aria-label="All \d+ lines"/, "the +N pill is a control again and needs an outline test");
+    const pill = /<[a-z]+[^>]*>\+\d+ lines</.exec(card);
     assert.ok(pill, "the +N lines pill did not render");
-    assert.match(pill![0]!, /border-line-strong/, `+N pill missing the control outline: ${pill![0]}`);
+    // No outline assertion: it is not a control any more, so a control outline
+    // would be the wrong thing to require of it.
 
     // The Template switch's own group wrapper — its buttons' own divider
     // already used border-line-strong; the group's outer border did not.
@@ -1847,5 +1858,162 @@ describe("the shell's landmarks and the routes they cover", () => {
     const marked = [...on.matchAll(/<a[^>]*aria-current="page"[^>]*>/g)].map((m) => m[0]);
     assert.equal(marked.length, 1);
     assert.match(marked[0]!, /href="\/app\/searches"/);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Cycle 9 guards. Five reviewers ran against cycle 8's repairs; these pin what
+// those repairs got wrong.
+// ---------------------------------------------------------------------------
+
+describe("the rail says current-page only for the page the buyer is on", () => {
+  it("a route under a nav item is current-section, not current-page", () => {
+    // `/app/searches/new` resolved to the `searches` key and the rail then put
+    // `aria-current="page"` on the link to `/app/searches` — announcing the
+    // buyer as being on a page they were not on, which is the exact defect the
+    // nested matching was added next to a fix for. The route every buyer lands
+    // on after pressing Save search.
+    assert.deepEqual(navMatch("/app/searches"), { key: "searches", exact: true });
+    assert.deepEqual(navMatch("/app/searches/new"), { key: "searches", exact: false });
+    assert.deepEqual(navMatch("/app/rfqs/abc-123"), { key: "rfqs", exact: false });
+
+    const under = shellHtml({
+      sidebar: { active: "searches", activeExact: false, counts: {}, recent: [], plan: { name: "Free" } },
+    });
+    const marked = [...under.matchAll(/<a\b[^>]*aria-current="([^"]*)"[^>]*>/g)];
+    assert.equal(marked.length, 1);
+    assert.equal(marked[0]![1], "true", "a section ancestor is announced as the current page");
+
+    const on = shellHtml({
+      sidebar: { active: "searches", activeExact: true, counts: {}, recent: [], plan: { name: "Free" } },
+    });
+    assert.match(on, /aria-current="page"/);
+  });
+
+  it("the supplier record belongs to Suppliers", () => {
+    // Spec §3.3 and §3.4 are the screens a buyer actually sits on, and no nav
+    // item has that href — the Suppliers row points at the search — so the rail
+    // highlighted nothing there.
+    assert.deepEqual(navMatch("/app/suppliers/aboni-knitwear-ltd"), { key: "suppliers", exact: false });
+    assert.deepEqual(navMatch("/app/suppliers/aboni-knitwear-ltd/lines/6109"), { key: "suppliers", exact: false });
+    assert.deepEqual(navMatch("/app/nowhere/deep"), { key: null, exact: false });
+  });
+});
+
+describe("a chip carries a building's name, so it wraps", () => {
+  it("nothing in a chip forbids wrapping", () => {
+    // One chip — "RSC covers S M Knitwears Limited. (Extension) · 53 % ·
+    // behind schedule" — is 428px on one line, and inside a 218px column at
+    // 320px it alone forced the whole document to 493px. Hiding that single
+    // element dropped it to 320. The panel-header repair before it was real
+    // and was not the cause.
+    const html = renderToStaticMarkup(
+      createElement(Chip, null, "RSC covers S M Knitwears Limited. (Extension) · 53 % · behind schedule"),
+    );
+    const cls = (html.match(/class="([^"]*)"/) ?? [])[1] ?? "";
+    assert.doesNotMatch(cls, /\bwhitespace-nowrap\b/, `a chip cannot wrap: ${cls}`);
+    assert.match(cls, /\[overflow-wrap:anywhere\]/, `a single long token still overflows the column: ${cls}`);
+    // The one-line case must not get taller: `min-h` replaces the fixed `h`.
+    assert.ok(
+      !cls.split(/\s+/).some((c) => /^h-\[/.test(c)),
+      `a chip still has a fixed height, so a wrapped line is clipped: ${cls}`,
+    );
+    assert.match(cls, /\bmin-h-\[/, cls);
+  });
+});
+
+describe("every product tile is reachable", () => {
+  const tiles = Array.from({ length: 6 }, (_, i) => ({
+    hs: `610${i + 1}`,
+    heading: `Heading ${i + 1}`,
+    src: null,
+    alt: `Heading ${i + 1}`,
+  }));
+
+  it("the strip scrolls and is named, instead of hiding five of six", () => {
+    // Measured: clientWidth 218 against scrollWidth 832 at 320px — one tile of
+    // six visible, the rest with no scroll, no focus and no way to reach them.
+    // Content present at 1280 and gone at 320 is what 1.4.10 forbids.
+    const html = renderToStaticMarkup(
+      createElement(PhotoStrip, { tiles: tiles as never, totalLines: 12 } as never),
+    );
+    const strip = html.match(/<div[^>]*role="region"[^>]*>/)?.[0] ?? "";
+    assert.ok(strip, `the tile strip is not a scroll region: ${html.slice(0, 300)}`);
+    assert.match(strip, /\boverflow-x-auto\b/, `the strip still hides what it cannot fit: ${strip}`);
+    assert.match(strip, /tabindex="0"/i, "the strip cannot be scrolled from the keyboard");
+    assert.match(strip, /aria-label="[^"]+"/, "the scroll region has no name");
+  });
+
+  it("nothing on the card promises an action that does not exist", () => {
+    // `+N` was a `<button type="button">` named "All 12 lines" with no handler,
+    // no href and no form, on every card whose supplier has more lines than
+    // tiles. The screen it would open is spec §3.4, which is not built.
+    const html = renderToStaticMarkup(
+      createElement(PhotoStrip, { tiles: tiles as never, totalLines: 12 } as never),
+    );
+    assert.doesNotMatch(html, /<button/, `a control with a name and no behaviour: ${html}`);
+    assert.match(html, /\+6 lines</, "the count of unshown lines is no longer stated at all");
+  });
+});
+
+describe("the shortcut reaches the topbar's own field, on every route", () => {
+  it("the field is named rather than inferred", () => {
+    // `form[role="search"] input[name="q"]` matched TWO elements on
+    // /app/products, which renders its own search form over an `input name="q"`
+    // — a route this same rail links to. Only DOM order decided which one ⌘K
+    // focused, and the docstring's justification ("only the topbar renders such
+    // a form") was simply false.
+    assert.equal(SEARCH_FIELD_SELECTOR, 'input[data-search="topbar"]');
+    const live = shellHtml();
+    const matches = [...live.matchAll(/data-search="topbar"/g)];
+    assert.equal(matches.length, 1, "the topbar's field is not uniquely marked");
+    assert.match(live, /<input[^>]*data-search="topbar"[^>]*>/);
+  });
+
+  it("pressing it again inside the search field re-selects, rather than doing nothing", () => {
+    // Treating the search input as "somebody is typing" made the badge beside
+    // it advertise a key that did nothing in exactly the place it should do the
+    // most.
+    assert.equal(targetIsSearchField({ dataset: { search: "topbar" } }), true);
+    assert.equal(targetIsSearchField({ getAttribute: (n: string) => (n === "data-search" ? "topbar" : null) }), true);
+    assert.equal(targetIsSearchField({ tagName: "INPUT" }), false);
+    assert.equal(
+      isSearchShortcut({ key: "k", metaKey: true, target: { tagName: "INPUT", dataset: { search: "topbar" } } }),
+      true,
+      "⌘K is inert in the field it exists to reach",
+    );
+    // Any other field still keeps its own keystroke.
+    assert.equal(isSearchShortcut({ key: "k", ctrlKey: true, target: { tagName: "INPUT" } }), false);
+  });
+});
+
+describe("the sort menu opens inside the viewport", () => {
+  it("it is anchored left below sm and right above it", () => {
+    // Making the control row wrap moved the summary to the start of its row,
+    // and `right-0` then put a 224px menu's left edge at -55px on a 320px
+    // screen — the first six characters of every option off the viewport, with
+    // no scroll to reach them, because an absolute overflow to the left creates
+    // none. Measured after the fix: 34–258 inside 320.
+    const html = renderToStaticMarkup(
+      createElement(PanelHeader, {
+        model: {
+          title: "Knitted shirts",
+          total: 42,
+          shown: 4,
+          sortLabel: "Most sources",
+          view: "cards" as const,
+          sortOptions: [{ label: "Most sources", value: "receipts", href: "?sort=receipts" }],
+        },
+      }),
+    );
+    const menu = html.match(/<div class="([^"]*absolute[^"]*)"/)?.[1] ?? "";
+    assert.ok(menu, "the sort menu is no longer absolutely positioned; this guard needs rewriting");
+    const cls = new Set(menu.split(/\s+/));
+    assert.ok(cls.has("left-0"), `the menu is not anchored left on a phone: ${menu}`);
+    assert.ok(cls.has("sm:right-0") && cls.has("sm:left-auto"), `the menu no longer right-aligns above sm: ${menu}`);
+    assert.ok(
+      [...cls].some((c) => c.startsWith("max-w-[")),
+      `the menu has no width ceiling, so a 224px min-width can still exceed a 320px screen: ${menu}`,
+    );
   });
 });

@@ -79,7 +79,21 @@ case "$host" in
     ;;
   # The names a local Postgres answers to: compose services, the Supabase
   # CLI's own container, Docker Desktop's host alias.
-  postgres|db|host.docker.internal|supabase_db_*) ;;
+  #
+  # `supabase_db_*` is a glob, and the arm above was hardened this same round
+  # because `127.*` also matched `127.0.0.1.nip.io` — a name somebody else
+  # controls. Three reviewers pointed out this one had the identical hole:
+  # `supabase_db_x.evil.example` matched it. A container name has no dots, so
+  # require that.
+  host.docker.internal) ;;
+  postgres|db|supabase_db_*)
+    case "$host" in
+      *.*)
+        echo "apply-migrations.sh: refusing PGHOST=$host — a container name has no dots, so this is a domain." >&2
+        exit 9
+        ;;
+    esac
+    ;;
   *)
     echo "apply-migrations.sh: refusing to run against PGHOST=$host." >&2
     echo "It replays all migrations and redefines auth.uid/role/jwt; local hosts only." >&2
@@ -88,9 +102,21 @@ case "$host" in
 esac
 
 : "${PGDATABASE:?set PGDATABASE}"
+# libpq expands a conninfo string given as a dbname in some call paths. psql
+# does not take that path, so this is not a demonstrated hole — it is one line
+# that removes the question permanently rather than leaving it to be re-argued.
+case "$PGDATABASE" in
+  *=*|*:*|*/*)
+    echo "apply-migrations.sh: refusing PGDATABASE=$PGDATABASE — it looks like a connection string, not a database name." >&2
+    exit 9
+    ;;
+esac
 root="$(cd "$(dirname "$0")/../.." && pwd)"
 mig="$root/supabase/migrations"
-last="$(ls "$mig" | grep -E '^[0-9]{4}_.*\.sql$' | sort | tail -1)"
+# `|| true` because `set -euo pipefail` kills the shell at the assignment when
+# grep matches nothing, so the diagnosis below could never print: an empty or
+# renamed migrations directory exited 1 in silence.
+last="$(ls "$mig" | grep -E '^[0-9]{4}_.*\.sql$' | sort | tail -1 || true)"
 if [ -z "$last" ]; then
   echo "apply-migrations.sh: no NNNN_*.sql migration found in $mig" >&2
   exit 1
@@ -109,11 +135,16 @@ fi
 # unix socket and the peer address otherwise. A populated `suppliers` table
 # means this is somebody's real database whatever PGHOST called it; a
 # throwaway container answers null-or-loopback and has no such table yet.
+# `set local search_path = pg_catalog` first: the block is an anonymous DO with
+# no pinned path, and PGOPTIONS='-c search_path=…' is not one of the variables
+# refused above, so a shadowing operator or function could have made the
+# loopback test return true. Pinning it costs nothing and closes the class.
 guard_sql="do \$guard\$
 declare
   addr inet := inet_server_addr();
   n bigint := 0;
 begin
+  set local search_path = pg_catalog, public;
   if addr is not null and not (addr <<= inet '127.0.0.0/8' or addr = inet '::1') then
     raise exception 'REPLAY-REFUSED: the server answered from %, which is not a loopback address', addr;
   end if;
@@ -126,8 +157,19 @@ begin
 end
 \$guard\$;"
 
-if ! guard_err="$(printf '%s\n' "$guard_sql" | psql -h "$host" -v ON_ERROR_STOP=1 -q -f - 2>&1 >/dev/null)"; then
-  guard_status=$?
+# `set +e` around the capture, NOT `if ! …`. Inside `if ! cmd; then`, `$?` is
+# the status of the NEGATION and is therefore always 0 — so this block read
+# psql's exit code as 0 and passed it to `exit`. Any connection failure, auth
+# failure or wrong database ended the script with exit 0, zero migrations
+# applied, the bootstrap never run and assert-0104.sql never run, and the CI
+# job whose entire purpose is to execute 0104 reported a green check. Four
+# reviewers found it independently; the test that was supposed to hold this
+# script up asserted only `code !== 9`, which exit 0 satisfies.
+set +e
+guard_err="$(printf '%s\n' "$guard_sql" | psql -h "$host" -v ON_ERROR_STOP=1 -q -f - 2>&1 >/dev/null)"
+guard_status=$?
+set -e
+if [ "$guard_status" -ne 0 ]; then
   printf '%s\n' "$guard_err" >&2
   case "$guard_err" in
     # Matched on a token nothing else emits. Matching on the script's own name
