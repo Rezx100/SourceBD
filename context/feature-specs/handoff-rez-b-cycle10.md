@@ -1,8 +1,9 @@
 # REZ-B hand-off — buyer Discover v3.2, mid-cycle 10
 
 For the next Claude Code session on `github.com/Rezx100/SourceBD`. Written
-22 Sep 2026. Everything here is on `rez-b-results-page`, tip `b04144a`,
-**pushed**, CI green. Nothing is landed, promoted or deployed.
+22 Sep 2026, extended 23 Sep (§10, §11). Everything here is on
+`rez-b-results-page`, pushed; the tip is `git log -1` — §1–§9 describe the
+branch at `b04144a` and are history. Nothing is landed, promoted or deployed.
 
 Read this before touching anything. The short version: the work is in good
 shape, **cycle 10 is half-finished**, and one review axis out of five has
@@ -15,11 +16,13 @@ four reviewers to find more; REZ-A took 21 cycles to earn its token.
 
 ```bash
 git fetch origin && git checkout rez-b-results-page
-git log --oneline 529434d..HEAD          # 33 commits
-git diff --stat 529434d..HEAD            # 71 files, ~9,100 insertions
+git log --oneline 7ea98b4..HEAD
+git diff --stat 7ea98b4..HEAD
 ```
 
-`529434d` is the merge base. The PR is
+`7ea98b4` is the merge base (`git merge-base origin/development HEAD`).
+`529434d` is the branch's FIRST commit, not its base — a diff from it
+leaves that commit out. The PR is
 [#164](https://github.com/Rezx100/SourceBD/pull/164), open as a **draft**,
 opened only so CI runs. It is not a merge request.
 
@@ -310,9 +313,8 @@ file. Restored: green.
   pre-existing).
 - `pnpm test`: **1,319 pass, 0 fail, 198 suites** (Node 25). It was
   1,302 / 196 at `b04144a`.
-- **Not checked in a browser.** Reason below. CI has not run it either.
-- **The work is uncommitted** on `rez-b-results-page` at the end of this
-  session, tip still `a4f0ae5`. Commit it first (rule 11).
+- **Not checked in a browser.** Reason below.
+- Committed 23 Sep as `083130e`; CI run `35820165951` green on it.
 
 **The blocker.** The local dev server reads `.env`, which points at the
 **live** Supabase project (`stnrfxrxfonwexzcvvpv`). There,
@@ -358,3 +360,55 @@ Open `http://localhost:3000/login?next=%2Fapp%2Fdiscover` directly instead.
 4. Repeat until a round has zero blocking; then the Acceptance Judge.
 5. Only then ask for gate 1. `0104` is applied by the founder, after a
    dry-run, and before or with the deploy (gate 3), never after it.
+
+## 11. Review rounds from 23 Sep (cycle 11 onward)
+
+Each round: freeze a commit, five reviewers in their own worktrees
+(truthfulness, correctness, accessibility, guard-adequacy, security), shared
+brief and axes kept in the session scratchpad, not in the repo.
+
+### Cycle 11 — candidate `083130e`: REJECT (all five)
+
+Gate at `083130e`: tsc exit 0; next lint exit 0; `pnpm test` 1,319 / 0 / 198
+suites. CI `35820165951` green.
+
+Found and repaired (each with a guard proven red by reintroducing the defect;
+32 mutations, all red):
+
+- The false "page still renders" header in `lib/discover-v32-rpc.ts` —
+  rewritten as a hard dependency on 0104. The page now says "heavy load"
+  only on a statement timeout (57014); a missing function (PGRST202, the
+  pre-0104 state) or the contact-field refusal says "unavailable". Guarded
+  in unit tests and two new http-boundary cases (mocked PGRST202 / 57014).
+- `?ids=` export: the 100-id cap was never tested (malformed fixture ids);
+  ids now lower-cased; repeated `ids=` → 400; a selection matching nothing →
+  409 with a reason, not an empty file; signed-in non-buyer → 403. Tests pin
+  that it re-runs the buyer's own page / per-page / sort. Cap pinned to
+  `PER_PAGE`. Dead post-parse contact checks removed (the raw-row check in
+  `fetchDiscoverV32` is the live one). http-boundary cases for `?ids=`.
+- Bulk Save sent one POST per id against the 30/min write bucket — now one
+  request (`supplier_ids`, `lib/saved-suppliers.ts`, one upsert).
+- Export ran up to 10 expensive-sort passes under the 120/min read bucket —
+  new `api_export` bucket (6/min). **This changes 0104:** it redefines
+  `rl_check` (body identical to 20260725 except the one array entry; live
+  body checked against `pg_proc.prosrc` 23 Sep) because rl_check refuses an
+  unlisted bucket and the app's limiter fails OPEN. `lib/rate-limit/limits.test.ts`
+  holds the app's classes to the effective allow-list. `/app/discover` page
+  loads now count against `api_read`. Count-only calls (explain, saved-search
+  refresh) send the cheap sort.
+- `saved_searches` bounds in 0104: name 1–120 chars, state ≤ 8 KB, 500 rows
+  per owner (trigger). Executed in `assert-0104.sql`.
+- Accessibility: bar reserves its height via `scroll-padding-bottom` (2.4.11);
+  Clear moves focus to select-all before unmounting; Space toggles on keyup
+  only, Enter does not; select-all is tri-state ("mixed"); bar is a labelled
+  group, not a toolbar; visible reason for disabled Send RFQ / Compare; bulk
+  Save uses `aria-disabled`, never native `disabled`.
+- Selection keyed on the full URL state (Next keeps client state across a
+  search-param change); per-row Save hears bulk saves via an event, since
+  the `saved` prop may not change.
+- Test-list guard skipped `etl`/`ops` at any depth — now root only.
+- Boot docs no longer carry a tip SHA; merge base corrected to `7ea98b4`.
+
+Not fixed, recorded: SEC-7 — the replay guard's "empty `public` schema"
+test would pass on an empty database of a real cluster reached through a
+tunnel (e.g. `PGDATABASE=template1`); theoretical, needs deliberate setup.

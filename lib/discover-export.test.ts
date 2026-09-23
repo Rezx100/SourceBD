@@ -413,6 +413,61 @@ describe("the bulk bar's selected-rows export (?ids=)", () => {
     company_name: "Beximco Textiles Ltd",
   };
 
+  it("403, not 401, for a signed-in supplier — with or without ids", async () => {
+    for (const search of ["q=knit", `ids=${ROW.id}`]) {
+      const res = await runDiscoverExport({
+        role: "supplier",
+        supabase: { rpc: async () => ({ data: [ROW], error: null }) },
+        search,
+        today: TODAY,
+      });
+      assert.equal(res.status, 403, search);
+      assert.doesNotMatch(res.body, /Aboni/);
+    }
+  });
+
+  it("re-runs the buyer's own page — its page, per-page and sort — not page one", async () => {
+    // A buyer on page 3 of 25-per-page selects rows there. Re-running page 1
+    // would drop every one of them and hand back an empty selection.
+    const calls: Record<string, unknown>[] = [];
+    const res = await runDiscoverExport({
+      role: "buyer",
+      supabase: {
+        rpc: async (fn: string, args?: Record<string, unknown>) => {
+          if (fn === "discover_suppliers") calls.push(args ?? {});
+          return { data: [ROW], error: null };
+        },
+      },
+      search: `q=knit&sort=name&page=3&per=25&ids=${ROW.id}`,
+      today: TODAY,
+    });
+    assert.equal(res.status, 200);
+    assert.equal(calls.length, 1);
+    assert.equal(calls[0].p_offset, 50);
+    assert.equal(calls[0].p_limit, 25);
+    assert.equal(calls[0].p_sort, "name");
+  });
+
+  it("the selected file carries the same response contract as the full export", async () => {
+    const ok = await runDiscoverExport({
+      role: "buyer",
+      supabase: { rpc: async () => ({ data: [ROW], error: null }) },
+      search: `ids=${ROW.id}`,
+      today: TODAY,
+    });
+    assert.equal(ok.status, 200);
+    assert.match(ok.headers["Content-Type"] ?? "", /^text\/csv/);
+    assert.equal(ok.headers["Cache-Control"], "private, no-store");
+    const down = await runDiscoverExport({
+      role: "buyer",
+      supabase: { rpc: async () => ({ data: null, error: { code: "57014", message: "timeout" } }) },
+      search: `ids=${ROW.id}`,
+      today: TODAY,
+    });
+    assert.equal(down.status, 503);
+    assert.match(down.body, /export unavailable/);
+  });
+
   it("401 when the caller is not a buyer or admin, even with ids present", async () => {
     const res = await runDiscoverExport({
       role: null,
@@ -429,13 +484,45 @@ describe("the bulk bar's selected-rows export (?ids=)", () => {
     assert.equal(notUuid.status, 400);
     const empty = await runDiscoverExport({ role: "buyer", supabase: stub, search: "ids=", today: TODAY });
     assert.equal(empty.status, 400);
-    const tooMany = await runDiscoverExport({
+    // Well-formed ids, and ROW's among them, so the ONLY thing that can make
+    // 101 fail where 100 passes is the cap — a malformed fixture once made
+    // this case pass on the format check with the cap deleted.
+    const validIds = (n: number) => [ROW.id, ...Array.from({ length: n - 1 }, (_, i) => `aaaaaaaa-1111-4111-8111-${String(i).padStart(12, "0")}`)];
+    for (const id of validIds(101)) assert.match(id, /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+    const hundred = await runDiscoverExport({ role: "buyer", supabase: stub, search: `ids=${validIds(100).join(",")}`, today: TODAY });
+    assert.equal(hundred.status, 200, "100 ids is one full page and must be allowed");
+    const tooMany = await runDiscoverExport({ role: "buyer", supabase: stub, search: `ids=${validIds(101).join(",")}`, today: TODAY });
+    assert.equal(tooMany.status, 400);
+  });
+
+  it("an id is matched whatever its case, and a repeated ids= is refused rather than half-read", async () => {
+    // Hex LETTERS in the id: ROW.id is all digits, which upper-case to
+    // themselves, so a case test built on it could not fail.
+    const lettered = { ...ROW, id: "abcdef11-1111-4111-8111-11111111abcd" };
+    const stub = { rpc: async () => ({ data: [lettered], error: null }) };
+    assert.notEqual(lettered.id.toUpperCase(), lettered.id);
+    const upper = await runDiscoverExport({ role: "buyer", supabase: stub, search: `ids=${lettered.id.toUpperCase()}`, today: TODAY });
+    assert.equal(upper.status, 200);
+    assert.equal(upper.headers["X-SourceBD-Rows"], "1");
+    const twice = await runDiscoverExport({
       role: "buyer",
       supabase: stub,
-      search: `ids=${Array.from({ length: 101 }, (_, i) => `1111111-1111-4111-8111-${String(i).padStart(12, "0")}`).join(",")}`,
+      search: `ids=22222222-2222-4222-8222-222222222222&ids=${ROW.id}`,
       today: TODAY,
     });
-    assert.equal(tooMany.status, 400);
+    assert.equal(twice.status, 400);
+  });
+
+  it("a selection that matches nothing on the re-run page is a 409 with a reason, not an empty file", async () => {
+    const res = await runDiscoverExport({
+      role: "buyer",
+      supabase: { rpc: async () => ({ data: [ROW], error: null }) },
+      search: "ids=22222222-2222-4222-8222-222222222222",
+      today: TODAY,
+    });
+    assert.equal(res.status, 409);
+    assert.match(res.headers["Content-Type"] ?? "", /application\/json/);
+    assert.match(JSON.parse(res.body).error, /reload/);
   });
 
   it("exports only the selected ids out of the page, not the whole result set", async () => {

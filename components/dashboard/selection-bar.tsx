@@ -6,18 +6,19 @@
 //
 // Send RFQ and Compare are disabled here on purpose: their destinations are
 // REZ-D (the multi-supplier RFQ composer) and REZ-C (`/app/compare`), which
-// this branch is not building — REZ-B is the results page only (§7). An
-// inert button that says why, in the kit's own shape for that
-// (`Button`'s `disabled` + `title`), is the honest state until those land —
-// not a link to a page that does not exist.
+// this branch is not building — REZ-B is the results page only (§7). A
+// native disabled button cannot take focus and a `title` shows only on mouse
+// hover, so the reason is also VISIBLE text beside them, tied to each by
+// `aria-describedby`.
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
-import { SEND_RFQ_MAX } from "@/lib/dashboard/selection";
+import { useEffect, useId, useRef, useState } from "react";
+import { announceBulkSaved, bulkExportHref, bulkSaveMessage, SEND_RFQ_MAX } from "@/lib/dashboard/selection";
 import { Button } from "./controls";
 import { Icon } from "./icons";
-import { useSelection } from "./selection";
+import { SELECT_ALL_ID, useSelection } from "./selection";
 
+const NOT_BUILT = `Send RFQ and Compare for several suppliers at once are not built yet. Open a supplier's record to send one an RFQ.`;
 const SEND_RFQ_SOON = `Sending an RFQ to more than one supplier at once is not built yet — open a supplier's record to send one, or select ${SEND_RFQ_MAX} or fewer once it ships.`;
 const COMPARE_SOON = "Comparing selected suppliers side by side is not built yet.";
 
@@ -26,8 +27,38 @@ export function SelectionBar({ exportHref }: { exportHref: string }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState("");
+  const barRef = useRef<HTMLDivElement>(null);
+  const noteId = useId();
+  const visible = sel.interactive && sel.selected.size > 0;
 
-  if (!sel.interactive || sel.selected.size === 0) return null;
+  // A message about the last save describes THAT selection; once the
+  // selection changes (or empties and the bar hides) it is stale.
+  useEffect(() => {
+    setStatus("");
+  }, [sel.selected]);
+
+  // WCAG 2.4.11: a sticky bar at the bottom of the window covers whatever the
+  // browser scrolls a newly focused row to, because the browser scrolls to
+  // the viewport's edge and ignores the bar. Reserve the bar's height —
+  // measured, since it wraps onto several lines on a phone — while it shows.
+  useEffect(() => {
+    const bar = barRef.current;
+    if (!visible || !bar) return;
+    const root = document.documentElement;
+    const before = root.style.scrollPaddingBottom;
+    const fit = () => {
+      root.style.scrollPaddingBottom = `${bar.offsetHeight + 8}px`;
+    };
+    fit();
+    const ro = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(fit);
+    ro?.observe(bar);
+    return () => {
+      ro?.disconnect();
+      root.style.scrollPaddingBottom = before;
+    };
+  }, [visible]);
+
+  if (!visible) return null;
   const ids = [...sel.selected];
   const count = ids.length;
 
@@ -36,63 +67,77 @@ export function SelectionBar({ exportHref }: { exportHref: string }) {
     setBusy(true);
     setStatus("");
     try {
-      const results = await Promise.allSettled(
-        ids.map((id) =>
-          fetch("/api/v1/saved", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ supplier_id: id }),
-          }),
-        ),
-      );
-      const failed = results.filter((r) => r.status === "rejected" || !r.value.ok).length;
-      setStatus(
-        failed === 0
-          ? `Saved ${count} ${count === 1 ? "supplier" : "suppliers"}`
-          : `Saved ${count - failed} of ${count} — try again for the rest`,
-      );
-      router.refresh();
+      // ONE request for the whole selection: one write against the buyer's
+      // rate-limit bucket, not one per supplier.
+      const res = await fetch("/api/v1/saved", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ supplier_ids: ids }),
+      });
+      setStatus(bulkSaveMessage(res.status, count));
+      if (res.ok) {
+        announceBulkSaved(window, ids);
+        router.refresh();
+      }
+    } catch {
+      setStatus(bulkSaveMessage("network", count));
     } finally {
       setBusy(false);
     }
   }
 
-  const sep = exportHref.includes("?") ? "&" : "?";
-  const bulkExportHref = `${exportHref}${sep}ids=${ids.map(encodeURIComponent).join(",")}`;
+  function clear() {
+    // Clear empties the selection, which unmounts this bar and the focused
+    // Clear button with it; without this, focus falls to <body> and the next
+    // Tab starts again from the top of the document.
+    document.getElementById(SELECT_ALL_ID)?.focus();
+    sel.clear();
+  }
 
   return (
     <div
-      role="toolbar"
+      ref={barRef}
+      role="group"
       aria-label="Bulk actions"
       className="sticky bottom-0 z-20 flex flex-wrap items-center gap-3 border-t border-line-strong bg-surface px-4 py-3 shadow-[0_-4px_12px_rgba(0,0,0,0.08)] sm:px-5"
     >
-      <span className="text-sm font-medium text-ink-strong">{count} selected</span>
+      <span aria-live="polite" className="text-sm font-medium text-ink-strong">
+        {count} selected
+      </span>
       <div className="flex flex-wrap items-center gap-2">
-        <Button variant="primary" disabled title={SEND_RFQ_SOON}>
+        <Button variant="primary" disabled title={SEND_RFQ_SOON} aria-describedby={noteId}>
           <Icon name="send" /> Send RFQ
         </Button>
         <Button
           type="button"
           aria-busy={busy || undefined}
-          disabled={busy}
+          aria-disabled={busy || undefined}
           onClick={bulkSave}
-          className="disabled:cursor-not-allowed disabled:border-line disabled:text-ink-disabled"
+          className="aria-disabled:cursor-not-allowed aria-disabled:border-line aria-disabled:text-ink-disabled"
         >
           <Icon name="bookmark" /> Save
         </Button>
-        <Button disabled title={COMPARE_SOON} className="disabled:cursor-not-allowed disabled:border-line disabled:text-ink-disabled">
+        <Button
+          disabled
+          title={COMPARE_SOON}
+          aria-describedby={noteId}
+          className="disabled:cursor-not-allowed disabled:border-line disabled:text-ink-disabled"
+        >
           <Icon name="compare" /> Compare
         </Button>
-        <Button href={bulkExportHref}>
+        <Button href={bulkExportHref(exportHref, ids)}>
           <Icon name="download" /> Export
         </Button>
       </div>
       <span role="status" aria-live="polite" className="text-xs text-ink-subtle">
         {status}
       </span>
-      <Button type="button" variant="ghost" className="ml-auto" onClick={sel.clear}>
+      <Button type="button" variant="ghost" className="ml-auto" onClick={clear}>
         Clear
       </Button>
+      <p id={noteId} className="basis-full text-xs text-ink-subtle">
+        {NOT_BUILT}
+      </p>
     </div>
   );
 }

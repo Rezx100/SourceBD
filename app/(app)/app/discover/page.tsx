@@ -16,6 +16,7 @@ import { loadBuyerShell } from "@/lib/dashboard/load-buyer-shell";
 import { buildDiscoverCard, buildDiscoverTableRow } from "@/lib/dashboard/build-discover-row";
 import {
   fetchDiscoverExplain,
+  discoverFailureCopy,
   fetchDiscoverV32,
   fetchHsBatch,
 } from "@/lib/discover-v32-rpc";
@@ -219,7 +220,7 @@ export default async function BuyerDiscoverPage({
   const today = new Date();
   const askOn = askEnabled();
 
-  const { rows, total, error } = await fetchDiscoverV32(supabase, state);
+  const { rows, total, error, failure } = await fetchDiscoverV32(supabase, state);
   const slugs = rows.map((r) => r.slug);
   const hs = await fetchHsBatch(supabase, slugs);
 
@@ -303,9 +304,7 @@ export default async function BuyerDiscoverPage({
         <Panel>
           <div className="px-5 py-10">
             <Title as="h1">{title}</Title>
-            <Caption className="mt-2">
-              Search is under heavy load. The count could not be read. Try again in a moment.
-            </Caption>
+            <Caption className="mt-2">{discoverFailureCopy(failure ?? "unavailable")}</Caption>
           </div>
         </Panel>
       ) : rows.length === 0 && state.page > 1 ? (
@@ -359,7 +358,9 @@ export default async function BuyerDiscoverPage({
           </div>
         </Panel>
       ) : (
-        <SelectionProvider pageIds={rows.map((r) => r.id)}>
+        // Keyed on the whole URL state: a new filter, sort, page or view is a
+        // new page of results, and its selection starts empty (selection.tsx).
+        <SelectionProvider key={serializeDiscoverState(state).toString()} pageIds={rows.map((r) => r.id)}>
           <Panel>
             <PanelHeader
               model={{

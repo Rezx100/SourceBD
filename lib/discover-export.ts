@@ -7,8 +7,7 @@
 
 import { discoverRowsToCsv, CSV_CONTACT_HEADERS } from "@/lib/dashboard/build-discover-row";
 import { fetchDiscoverV32, type DiscoverV32Row } from "@/lib/discover-v32-rpc";
-import { parseDiscoverState, type DiscoverState } from "@/lib/discover-v32-state";
-import { discoverRowHasPii } from "@/lib/discover-v32-rpc";
+import { PER_PAGE, parseDiscoverState, type DiscoverState } from "@/lib/discover-v32-state";
 
 export type ExportRpcClient = {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -55,9 +54,9 @@ function selectedCsvFilename(today: Date, count: number): string {
 }
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-/** The RPC's own per-page ceiling (0104): a selection drawn from one page of
- * results can never legitimately hold more ids than that page could. */
-const MAX_SELECTED = 100;
+/** A selection is drawn from one page of results, so it can never
+ * legitimately hold more ids than the largest page the buyer can choose. */
+const MAX_SELECTED = Math.max(...PER_PAGE);
 
 function badRequest(error: string): ExportResult {
   return { status: 400, body: JSON.stringify({ error }), headers: { "Content-Type": "application/json; charset=utf-8" } };
@@ -69,9 +68,12 @@ function exportRefused(status: number, error: string): ExportResult {
 /**
  * `ids` scopes the export to the bulk bar's selection instead of the whole
  * filtered result set. It re-runs the *exact same* filter state the buyer's
- * page was built from — never a raw id lookup — and only keeps rows the RPC
- * (and its RLS) actually returned for it, so a selection can never pull a row
- * the buyer's own filters and permissions would not have shown them.
+ * page was built from (its filters, sort, page and per-page) — never a raw id
+ * lookup — and only keeps rows that re-run returned, so a selection can never
+ * pull a row the buyer's own page would not have shown them. What keeps
+ * unpublished suppliers out is the RPC's own `is_published` predicate
+ * (0104, `discover_v32_passes`); RLS does not apply to a SECURITY DEFINER
+ * function.
  */
 async function runSelectedExport(
   supabase: ExportRpcClient,
@@ -79,9 +81,11 @@ async function runSelectedExport(
   idsParam: string,
   today: Date,
 ): Promise<ExportResult> {
+  // Lower-cased because UUID_RE accepts either case and the RPC returns
+  // lower case: an upper-case id would validate and then match nothing.
   const ids = idsParam
     .split(",")
-    .map((s) => s.trim())
+    .map((s) => s.trim().toLowerCase())
     .filter(Boolean);
   if (ids.length === 0 || ids.length > MAX_SELECTED || ids.some((id) => !UUID_RE.test(id))) {
     return badRequest("invalid ids");
@@ -91,10 +95,16 @@ async function runSelectedExport(
   if (page.error) {
     return exportRefused(page.error.includes("contact fields") ? 500 : 503, page.error.includes("contact fields") ? "export refused" : "export unavailable");
   }
-  const rows = page.rows.filter((r) => idSet.has(r.id));
-  if (rows.some((r) => discoverRowHasPii(r))) {
-    return exportRefused(500, "export refused");
+  const rows = page.rows.filter((r) => idSet.has(r.id.toLowerCase()));
+  if (rows.length === 0) {
+    // Not an empty 200 file: the buyer asked for N rows and would otherwise
+    // download a header and nothing else with no word as to why.
+    return exportRefused(409, "none of the selected suppliers are in these results any more — reload the page and select again");
   }
+  // No row-level contact check here: `asRow` builds every row from named
+  // fields and drops anything else, so a parsed row cannot carry one. The live
+  // guard is on the RAW rows, inside `fetchDiscoverV32`, surfaced above as
+  // the "contact fields" error.
   const csv = discoverRowsToCsv(rows, today);
   if (csvContainsContactHeader(csv)) {
     return exportRefused(500, "export refused");
@@ -118,16 +128,20 @@ export async function runDiscoverExport(input: {
   today: Date;
 }): Promise<ExportResult> {
   if (input.role !== "buyer" && input.role !== "admin") {
+    // 401 only for no session; a signed-in supplier is known and refused (403).
+    const signedIn = input.role != null;
     return {
-      status: 401,
-      body: JSON.stringify({ error: "unauthorised" }),
+      status: signedIn ? 403 : 401,
+      body: JSON.stringify({ error: signedIn ? "forbidden" : "unauthorised" }),
       headers: { "Content-Type": "application/json; charset=utf-8" },
     };
   }
 
   const params = new URLSearchParams(input.search.replace(/^\?/, ""));
   const state: DiscoverState = parseDiscoverState(params);
-  const idsParam = params.get("ids");
+  const idsAll = params.getAll("ids");
+  if (idsAll.length > 1) return badRequest("invalid ids");
+  const idsParam = idsAll[0] ?? null;
   // `!== null`, not truthiness: `?ids=` (present but empty) must still reach
   // the selected-export path so it is refused as an empty selection, rather
   // than silently falling through to a full, unscoped export.
@@ -167,13 +181,8 @@ export async function runDiscoverExport(input: {
       headers: { "Content-Type": "application/json; charset=utf-8" },
     };
   }
-  if (rows.some((r) => discoverRowHasPii(r))) {
-    return {
-      status: 500,
-      body: JSON.stringify({ error: "export refused" }),
-      headers: { "Content-Type": "application/json; charset=utf-8" },
-    };
-  }
+  // No row-level contact check: see `runSelectedExport` — parsed rows cannot
+  // carry one, and the raw-row guard in `fetchDiscoverV32` already ran.
 
   // What the search actually matched. This used to read `total_count` off the
   // rows itself and accept only `typeof === "number"`, while the column is a

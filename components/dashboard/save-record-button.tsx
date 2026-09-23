@@ -3,6 +3,7 @@
 import { useEffect, useId, useState } from "react";
 import { Button } from "@/components/dashboard/controls";
 import { Icon } from "@/components/dashboard/icons";
+import { onBulkSaved } from "@/lib/dashboard/selection";
 
 /**
  * Save / unsave a supplier from a results row.
@@ -35,14 +36,17 @@ export function SaveRecordButton({
   const statusId = useId();
   const label = on ? "Saved" : "Save";
 
-  // `useState(saved)` only reads its initial value once. The bulk-save
-  // button in the selection bar saves N suppliers and calls
-  // `router.refresh()`, which re-renders this component with a new `saved`
-  // prop but does not remount it — without this, a card just bulk-saved from
-  // the bar keeps showing "Save" until a full page reload.
+  // `useState(saved)` reads its initial value once. The bar's bulk Save
+  // refreshes the page, which re-renders this with a new `saved` prop but does
+  // not remount it — so follow the prop when it changes…
   useEffect(() => {
     setOn(saved);
   }, [saved]);
+  // …and hear the bulk save directly, because the prop does not always
+  // change: a row that loaded saved, was unsaved here, then bulk-saved comes
+  // back from the refresh with the same `saved={true}`, the effect above
+  // never runs, and this kept reading "Save" over a saved supplier.
+  useEffect(() => onBulkSaved(window, supplierId, () => setOn(true)), [supplierId]);
 
   return (
     <>

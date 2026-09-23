@@ -3,7 +3,17 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, it } from "node:test";
 
-import { allOnPageSelected, SEND_RFQ_MAX, selectionCaption, toggleAllOnPage, toggleId } from "./selection";
+import {
+  allOnPageSelected,
+  announceBulkSaved,
+  bulkExportHref,
+  bulkSaveMessage,
+  onBulkSaved,
+  SEND_RFQ_MAX,
+  selectAllState,
+  toggleAllOnPage,
+  toggleId,
+} from "./selection";
 
 describe("discover bulk-selection math", () => {
   it("toggles one id in and back out without touching the rest", () => {
@@ -15,16 +25,27 @@ describe("discover bulk-selection math", () => {
     assert.deepEqual([...removed].sort(), ["a", "c"]);
   });
 
-  it("select-all on the page adds every page id and keeps any already selected off-page", () => {
-    const start = new Set(["from-a-previous-page"]);
-    const next = toggleAllOnPage(start, ["p1", "p2", "p3"]);
-    assert.deepEqual([...next].sort(), ["from-a-previous-page", "p1", "p2", "p3"]);
+  it("select-all on a page with nothing selected selects every row", () => {
+    const next = toggleAllOnPage(new Set(), ["p1", "p2", "p3"]);
+    assert.deepEqual([...next].sort(), ["p1", "p2", "p3"]);
   });
 
-  it("select-all again, once every page id is already on, clears just the page ids", () => {
-    const start = new Set(["from-a-previous-page", "p1", "p2", "p3"]);
-    const next = toggleAllOnPage(start, ["p1", "p2", "p3"]);
-    assert.deepEqual([...next], ["from-a-previous-page"]);
+  it("select-all on a PARTLY selected page selects the rest — it does not clear the page", () => {
+    // The box reads "mixed" here, and clicking a mixed box completes it.
+    const next = toggleAllOnPage(new Set(["p2"]), ["p1", "p2", "p3"]);
+    assert.deepEqual([...next].sort(), ["p1", "p2", "p3"]);
+  });
+
+  it("select-all again, once every row is on, clears the page", () => {
+    const next = toggleAllOnPage(new Set(["p1", "p2", "p3"]), ["p1", "p2", "p3"]);
+    assert.deepEqual([...next], []);
+  });
+
+  it("the select-all box is checked, mixed or clear — never 'clear' over a partly selected page", () => {
+    assert.equal(selectAllState(new Set(), ["p1", "p2"]), false);
+    assert.equal(selectAllState(new Set(["p1"]), ["p1", "p2"]), "mixed");
+    assert.equal(selectAllState(new Set(["p1", "p2"]), ["p1", "p2"]), true);
+    assert.equal(selectAllState(new Set(), []), false);
   });
 
   it("select-all is off when only some of the page is selected — a half-checked page is not \"all\"", () => {
@@ -35,10 +56,35 @@ describe("discover bulk-selection math", () => {
     assert.equal(allOnPageSelected(new Set(), []), false);
   });
 
-  it("captions pluralise on the count, not a hardcoded word", () => {
-    assert.equal(selectionCaption(1), "1 supplier selected");
-    assert.equal(selectionCaption(0), "0 suppliers selected");
-    assert.equal(selectionCaption(7), "7 suppliers selected");
+  it("the bulk Export link keeps the page's own query and adds the selection", () => {
+    const page = "/api/v1/discover/export?q=knit&sort=name&page=3&per=25";
+    const href = bulkExportHref(page, ["a", "b"]);
+    assert.equal(href, `${page}&ids=a,b`);
+    const u = new URL(href, "https://x.invalid");
+    assert.equal(u.searchParams.get("page"), "3");
+    assert.equal(u.searchParams.get("ids"), "a,b", "without ids the route exports the whole result set");
+    assert.equal(bulkExportHref("/api/v1/discover/export", ["a"]), "/api/v1/discover/export?ids=a");
+  });
+
+  it("the bulk-save message names what happened and never asks for a retry that cannot work", () => {
+    assert.equal(bulkSaveMessage(200, 1), "Saved 1 supplier");
+    assert.equal(bulkSaveMessage(200, 7), "Saved 7 suppliers");
+    assert.match(bulkSaveMessage(401, 3), /Sign in/);
+    assert.doesNotMatch(bulkSaveMessage(401, 3), /try again/i);
+    assert.match(bulkSaveMessage(429, 3), /minute/);
+    assert.match(bulkSaveMessage(500, 3), /Try again/);
+  });
+
+  it("a bulk save reaches exactly the row buttons it saved, whatever the id's case", () => {
+    const bus = new EventTarget();
+    const hits: string[] = [];
+    const offA = onBulkSaved(bus, "aaaa", () => hits.push("a"));
+    onBulkSaved(bus, "bbbb", () => hits.push("b"));
+    announceBulkSaved(bus, ["AAAA", "cccc"]);
+    assert.deepEqual(hits, ["a"]);
+    offA();
+    announceBulkSaved(bus, ["aaaa"]);
+    assert.deepEqual(hits, ["a"], "an unsubscribed button no longer hears");
   });
 
   it("SEND_RFQ_MAX stays pinned to the API's own MAX_TARGETS", () => {

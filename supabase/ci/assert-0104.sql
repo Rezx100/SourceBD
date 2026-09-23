@@ -369,4 +369,56 @@ begin
 end
 $$;
 
+-- The export's rate-limit bucket must be one rl_check accepts: it refuses an
+-- unlisted bucket and the app's limiter fails OPEN on that error, so a
+-- missing entry would silently mean "no limit".
+do $$
+declare
+  env jsonb;
+begin
+  env := public.rl_check('api_export', 'ci-export', 6);
+  if (env->>'ok')::boolean is distinct from true then
+    raise exception 'rl_check did not admit the first api_export call: %', env;
+  end if;
+  begin
+    perform public.rl_check('api_bogus', 'ci-export', 6);
+    raise exception 'rl_check accepted an unlisted bucket';
+  exception when invalid_parameter_value then
+    null;
+  end;
+end
+$$;
+
+-- saved_searches bounds, run rather than read.
+do $$
+declare
+  i int;
+begin
+  begin
+    insert into public.saved_searches (owner_id, name) values
+      ('00000000-0000-4000-8000-00000000d001', repeat('x', 121));
+    raise exception 'a 121-character saved-search name was accepted';
+  exception when check_violation then
+    null;
+  end;
+  begin
+    insert into public.saved_searches (owner_id, name, query_state) values
+      ('00000000-0000-4000-8000-00000000d001', 'huge', jsonb_build_object('search', repeat('q', 9000)));
+    raise exception 'a 9 KB saved-search state was accepted';
+  exception when check_violation then
+    null;
+  end;
+  delete from public.saved_searches where owner_id = '00000000-0000-4000-8000-00000000d001';
+  for i in 1..500 loop
+    insert into public.saved_searches (owner_id, name) values ('00000000-0000-4000-8000-00000000d001', 'cap ' || i);
+  end loop;
+  begin
+    insert into public.saved_searches (owner_id, name) values ('00000000-0000-4000-8000-00000000d001', 'cap 501');
+    raise exception 'the 501st saved search for one owner was accepted';
+  exception when program_limit_exceeded then
+    null;
+  end;
+end
+$$;
+
 rollback;

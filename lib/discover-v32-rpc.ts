@@ -1,5 +1,11 @@
-// Caller for the v3.2 discover_suppliers return shape (REZ-B). Extra columns
-// degrade to empty when 0104 is not yet applied — the page still renders.
+// Caller for the v3.2 discover_suppliers return shape (REZ-B).
+//
+// HARD DEPENDENCY ON MIGRATION 0104. `discoverRpcArgs` always sends the
+// parameters 0104 adds (p_hs_codes, p_cert_state, p_est_from, …), and
+// PostgREST refuses a call naming a parameter the function lacks — so
+// against a pre-0104 database every search fails, and the page says search
+// is unavailable (not "heavy load": retrying cannot help). 0104 must be
+// applied before, or with, the deploy that ships this file; never after.
 
 import { enrichDiscoverWorkers, type WorkersBasis } from "@/lib/enrich-discover-workers";
 import { resolveDiscoverSmartQuery } from "@/lib/discover-smart-query";
@@ -125,11 +131,27 @@ export function discoverRowHasPii(raw: unknown): boolean {
   return PII_KEYS.some((k) => k in r && r[k] != null && r[k] !== "");
 }
 
+/** "busy" only for a statement timeout (SQLSTATE 57014), the one failure a
+ * retry can cure. Everything else — a missing function (PGRST202, the
+ * pre-0104 case), a permission error, the contact-field refusal — is
+ * "unavailable", and the buyer is not told to try again. */
+export type DiscoverFailure = "busy" | "unavailable";
+
+export function discoverFailureKind(error: { code?: string | null } | null | undefined): DiscoverFailure {
+  return error?.code === "57014" ? "busy" : "unavailable";
+}
+
+export function discoverFailureCopy(kind: DiscoverFailure): string {
+  return kind === "busy"
+    ? "Search is under heavy load. The count could not be read. Try again in a moment."
+    : "Search is unavailable right now. This is a fault on our side, not a problem with your search.";
+}
+
 export async function fetchDiscoverV32(
   supabase: RpcClient,
   state: DiscoverState,
   over: { limit?: number; offset?: number } = {},
-): Promise<{ rows: DiscoverV32Row[]; total: number | null; error: string | null }> {
+): Promise<{ rows: DiscoverV32Row[]; total: number | null; error: string | null; failure: DiscoverFailure | null }> {
   const smart = resolveDiscoverSmartQuery(state.q, "");
   const args: DiscoverRpcArgs = discoverRpcArgs(state, {
     ...over,
@@ -137,24 +159,29 @@ export async function fetchDiscoverV32(
   });
   const { data, error } = await supabase.rpc("discover_suppliers", args);
   if (error) {
-    return { rows: [], total: null, error: error.message ?? "discover_suppliers failed" };
+    return { rows: [], total: null, error: error.message ?? "discover_suppliers failed", failure: discoverFailureKind(error) };
   }
   const rawRows = Array.isArray(data) ? data : [];
   if (rawRows.some(discoverRowHasPii)) {
-    return { rows: [], total: null, error: "discover_suppliers returned contact fields" };
+    return { rows: [], total: null, error: "discover_suppliers returned contact fields", failure: "unavailable" };
   }
   const parsed = rawRows.map(asRow).filter((r): r is DiscoverV32Row => r !== null);
   const rows = await enrichDiscoverWorkers(supabase, parsed);
   const total = parseTotalCount(rows);
-  return { rows, total, error: null };
+  return { rows, total, error: null, failure: null };
 }
+
+/** The cheap default ordering, for calls that want a count and not an order. */
+export const COUNT_ONLY_SORT: DiscoverState["sort"] = "sources";
 
 export async function fetchDiscoverExplain(
   supabase: RpcClient,
   state: DiscoverState,
 ): Promise<DiscoverExplainRow[]> {
   const smart = resolveDiscoverSmartQuery(state.q, "");
-  const args = discoverRpcArgs(state, { limit: 1, offset: 0, rpcQ: smart.rpcQ || null });
+  // Count-only: the buyer's sort changes no count, and hs_lines/cert_expiry
+  // cost a full-corpus pass per call — up to twelve nested calls here.
+  const args = discoverRpcArgs({ ...state, sort: COUNT_ONLY_SORT }, { limit: 1, offset: 0, rpcQ: smart.rpcQ || null });
   const { data, error } = await supabase.rpc("discover_suppliers_explain", args);
   if (error || !Array.isArray(data)) return [];
   const out: DiscoverExplainRow[] = [];

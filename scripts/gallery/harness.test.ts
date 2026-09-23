@@ -132,11 +132,16 @@ describe("the page and the harness render the same screens", () => {
     // load-buyer-shell's tests once, and hid the Discover selection tests on
     // their first run.
     const listed = new Set((JSON.parse(read("tsconfig.npm-test.json")) as { files: string[] }).files);
-    const skip = new Set(["node_modules", ".next", ".tests-build", ".claude", ".git", "etl", "ops", "prototypes"]);
+    // Two sets, because a name is only safe to skip where it means what we
+    // think: `node_modules`/`.git` are never ours at any depth, but `etl`,
+    // `ops` and the rest are skipped only at the repo root — the Python tree
+    // and the ops scripts — never `app/api/v1/admin/etl/`, a real route tree.
+    const skipAnywhere = new Set(["node_modules", ".next", ".git"]);
+    const skipAtRoot = new Set([".tests-build", ".claude", "etl", "ops", "prototypes"]);
     const found: string[] = [];
     const walk = (dir: string) => {
       for (const e of fs.readdirSync(path.join(process.cwd(), dir), { withFileTypes: true })) {
-        if (skip.has(e.name)) continue;
+        if (skipAnywhere.has(e.name) || (dir === "" && skipAtRoot.has(e.name))) continue;
         const rel = dir ? `${dir}/${e.name}` : e.name;
         if (e.isDirectory()) walk(rel);
         else if (/\.test\.tsx?$/.test(e.name)) found.push(rel);

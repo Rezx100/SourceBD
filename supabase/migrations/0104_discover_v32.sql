@@ -23,8 +23,12 @@ set search_path = public;
 create table if not exists public.saved_searches (
   id              uuid        primary key default gen_random_uuid(),
   owner_id        uuid        not null references auth.users(id) on delete cascade,
-  name            text        not null,
-  query_state     jsonb       not null default '{}'::jsonb,
+  -- Bounded here, not only in the route: `authenticated` may insert through
+  -- PostgREST directly, past lib/saved-searches.ts's 120-character check.
+  name            text        not null
+                  constraint saved_searches_name_len check (char_length(name) between 1 and 120),
+  query_state     jsonb       not null default '{}'::jsonb
+                  constraint saved_searches_state_size check (octet_length(query_state::text) <= 8192),
   created_at      timestamptz not null default now(),
   last_count      int         null,
   last_counted_at timestamptz null
@@ -65,6 +69,31 @@ create policy pol_saved_searches_delete_self
   using (owner_id = auth.uid());
 
 grant select, insert, update, delete on public.saved_searches to authenticated;
+
+-- A per-owner row cap, for the same reason: RLS scopes rows to their owner
+-- but does not bound how many an owner may create. 500 is well above the
+-- list's 200-row page (LIST_LIMIT) and far below anything abusive.
+create or replace function public.saved_searches_owner_cap()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $cap$
+begin
+  perform pg_advisory_xact_lock(hashtextextended(new.owner_id::text, 104));
+  if (select count(*) from public.saved_searches where owner_id = new.owner_id) >= 500 then
+    raise exception 'saved search limit reached' using errcode = '54000';
+  end if;
+  return new;
+end;
+$cap$;
+
+revoke all on function public.saved_searches_owner_cap() from public;
+
+drop trigger if exists trg_saved_searches_owner_cap on public.saved_searches;
+create trigger trg_saved_searches_owner_cap
+  before insert on public.saved_searches
+  for each row execute function public.saved_searches_owner_cap();
 
 comment on table public.saved_searches is
   'Named Discover URL state per buyer. RLS owner-only. Created in 0104 so REZ-B /app/searches can persist; 0106 must use IF NOT EXISTS.';
@@ -1087,5 +1116,113 @@ grant execute on function public.hs_catalogue() to authenticated;
 
 comment on function public.hs_catalogue() is
   '4-digit EPB headings with distinct published exporter counts. Same aggregate as ops/hs_catalogue_exporter_reconciliation.py.';
+
+-- ---------------------------------------------------------------------------
+-- rl_check — one new bucket, `api_export` (REZ-B)
+-- ---------------------------------------------------------------------------
+-- The CSV export pages `discover_suppliers` up to ten times per request, and
+-- 0104's `hs_lines` / `cert_expiry` sorts cost a full-corpus pass per call.
+-- Under `api_read` (120/min) one account could drive 1,200 of those a
+-- minute, so the export gets its own, tighter bucket (lib/rate-limit/limits.ts).
+-- rl_check refuses an unlisted bucket and the app's limiter FAILS OPEN on any
+-- error, so a class the app uses but this list lacks is no limit at all —
+-- `lib/rate-limit/limits.test.ts` holds the two lists together.
+--
+-- Body identical to 20260725_rez_security_hardening_2.sql (live, verified
+-- 23 Sep 2026 against pg_proc.prosrc: the same code, comments stripped) but
+-- for the one array entry.
+create or replace function public.rl_check(
+  p_bucket text,
+  p_ident text,
+  p_limit_per_min int
+) returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_bucket text := lower(btrim(p_bucket));
+  v_ident text := btrim(p_ident);
+  v_window_start timestamptz := date_trunc('minute', now());
+  v_count int;
+  v_remaining int;
+  v_retry_after int;
+begin
+  -- Body-level guard: rl_check is an internal SECURITY DEFINER helper and
+  -- must never be callable by anonymous (unauthenticated) PostgREST clients.
+  if coalesce(auth.role(), '') = 'anon' then
+    raise exception 'permission denied for function rl_check' using errcode = '42501';
+  end if;
+
+  if v_bucket is null or length(v_bucket) = 0 or length(v_bucket) > 64 then
+    raise exception 'bucket required' using errcode = '22023';
+  end if;
+  if v_ident is null or length(v_ident) = 0 or length(v_ident) > 256 then
+    raise exception 'ident required' using errcode = '22023';
+  end if;
+  if p_limit_per_min is null or p_limit_per_min <= 0 then
+    raise exception 'limit_per_min must be > 0' using errcode = '22023';
+  end if;
+
+  if v_bucket not like 'email:%'
+     and v_bucket <> all (
+       array[
+         'auth',
+         'api_read',
+         'api_write',
+         'api_export',
+         'public_marketing'
+       ]::text[]
+     ) then
+    raise exception 'bucket not allowed' using errcode = '22023';
+  end if;
+
+  if v_bucket like 'email:%' then
+    if v_bucket <> all (
+      array[
+        'email:welcome',
+        'email:rfq_received',
+        'email:cert_expiry',
+        'email:sanction_alert',
+        'email:password_reset'
+      ]::text[]
+    ) then
+      raise exception 'bucket not allowed' using errcode = '22023';
+    end if;
+  end if;
+
+  -- Opportunistic TTL purge — keep the table bounded without a cron.
+  delete from public.rate_limit_buckets
+   where window_start < now() - interval '5 minutes';
+
+  insert into public.rate_limit_buckets (bucket, ident, window_start, count)
+  values (v_bucket, v_ident, v_window_start, 1)
+  on conflict (bucket, ident, window_start)
+  do update set count = public.rate_limit_buckets.count + 1
+  returning count into v_count;
+
+  v_remaining := greatest(0, p_limit_per_min - v_count);
+  if v_count > p_limit_per_min then
+    v_retry_after := greatest(
+      1,
+      ceil(extract(epoch from (v_window_start + interval '1 minute' - now())))::int
+    );
+  else
+    v_retry_after := 0;
+  end if;
+
+  return jsonb_build_object(
+    'ok', v_count <= p_limit_per_min,
+    'count', v_count,
+    'limit', p_limit_per_min,
+    'remaining', v_remaining,
+    'window_start', v_window_start,
+    'retry_after_seconds', v_retry_after
+  );
+end;
+$$;
+
+revoke all on function public.rl_check(text, text, int) from public;
+grant execute on function public.rl_check(text, text, int) to authenticated;
 
 notify pgrst, 'reload schema';

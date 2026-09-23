@@ -5,7 +5,7 @@
  */
 
 import { formatCount } from "@/lib/dashboard/facts";
-import { fetchDiscoverV32 } from "@/lib/discover-v32-rpc";
+import { COUNT_ONLY_SORT, fetchDiscoverV32 } from "@/lib/discover-v32-rpc";
 import { parseDiscoverState, serializeDiscoverState, type DiscoverState } from "@/lib/discover-v32-state";
 
 export type SavedSearchClient = {
@@ -132,7 +132,7 @@ export async function runSavedSearchesGet(input: {
     let count = typeof row.last_count === "number" ? row.last_count : null;
     let countedAt = typeof row.last_counted_at === "string" ? row.last_counted_at : null;
     if (toRefresh.has(row)) {
-      const live = await fetchDiscoverV32(input.supabase, { ...state, page: 1, per: 25 }, { limit: 1, offset: 0 });
+      const live = await fetchDiscoverV32(input.supabase, { ...state, sort: COUNT_ONLY_SORT, page: 1, per: 25 }, { limit: 1, offset: 0 });
       if (live.total !== null) {
         count = live.total;
         countedAt = now.toISOString();

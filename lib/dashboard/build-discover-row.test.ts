@@ -5,6 +5,7 @@ import { describe, it } from "node:test";
 
 import { SupplierResultCard } from "@/components/dashboard/supplier-result-card";
 import { ResultsTable } from "@/components/dashboard/results-table";
+import { SelectionProvider } from "@/components/dashboard/selection";
 import {
   CSV_COLUMNS,
   buildDiscoverCard,
@@ -301,5 +302,36 @@ describe("discover result HTML has no contact PII", () => {
       const html = renderToStaticMarkup(createElement(SupplierResultCard, { card }));
       assert.doesNotMatch(html, claim, "the rendered card claims composition");
     }
+  });
+});
+
+describe("the Discover results page's selection checkboxes are real (spec §3.1)", () => {
+  // The deliverable is an operable checkbox on every result — built from the
+  // real builders, rendered inside the provider the page uses. A card or row
+  // that lost its supplier id, or stopped opting in, fell back to the inert
+  // aria-disabled placeholder with every other test green.
+  it("every card and table row checkbox is tabbable and not aria-disabled, and names its supplier", () => {
+    const card = buildDiscoverCard(ROW, { today: TODAY, hsLines: [], hsError: false });
+    const row = buildDiscoverTableRow(ROW, { today: TODAY, hsLines: [], hsError: false });
+    assert.equal(card.supplierId, ROW.id);
+    assert.equal(row.supplierId, ROW.id);
+    for (const html of [
+      renderToStaticMarkup(createElement(SelectionProvider, { pageIds: [ROW.id] }, createElement(SupplierResultCard, { card }))),
+      renderToStaticMarkup(createElement(SelectionProvider, { pageIds: [ROW.id] }, createElement(ResultsTable, { rows: [row] }))),
+    ]) {
+      const boxes = [...html.matchAll(/<span[^>]*role="checkbox"[^>]*>/g)].map((m) => m[0]);
+      const rowBoxes = boxes.filter((b) => /aria-label="Select A\.R\. Fashion/.test(b));
+      assert.equal(rowBoxes.length, 1, `expected one checkbox for the row, got: ${boxes.join(" | ")}`);
+      assert.match(rowBoxes[0], /tabindex="0"/);
+      assert.doesNotMatch(rowBoxes[0], /aria-disabled/);
+    }
+  });
+
+  it("outside a provider (the /dev/ds gallery) the same card keeps the inert placeholder", () => {
+    const card = buildDiscoverCard(ROW, { today: TODAY, hsLines: [], hsError: false });
+    const html = renderToStaticMarkup(createElement(SupplierResultCard, { card }));
+    const box = html.match(/<span[^>]*role="checkbox"[^>]*>/)![0];
+    assert.match(box, /aria-disabled="true"/);
+    assert.doesNotMatch(box, /tabindex/);
   });
 });

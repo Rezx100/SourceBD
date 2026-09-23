@@ -109,7 +109,8 @@ export function Seg({
 }
 
 /**
- * `.cb`: a 16px checkbox drawn as a box; `on` fills it brand with a check.
+ * `.cb`: a 16px checkbox drawn as a box; `on` fills it brand with a check,
+ * `"mixed"` with a dash (the select-all box over a partly selected page).
  *
  * Presentational everywhere but the results work (REZ-B), which passes
  * `onToggle` to make it real. It used to carry `tabIndex={0}` unconditionally,
@@ -118,24 +119,30 @@ export function Seg({
  * instead of toggling. On the RFQ composer the five required questions are
  * still these. A control with no `onToggle` keeps the kit's shape for inert
  * controls — `aria-disabled` and a title that says why — rather than a dead
- * tab stop (WCAG 2.1.1, 4.1.2). One with `onToggle` is a real checkbox: no
- * `aria-disabled`, in the tab order, and Space/Enter toggle it exactly like a
- * native input would.
+ * tab stop (WCAG 2.1.1, 4.1.2).
+ *
+ * With `onToggle` it is a real checkbox, keyed the way a native one is: Space
+ * toggles once, on key UP (keydown only stops the page scrolling), so holding
+ * Space does not flip it on every auto-repeat; Enter does nothing, because a
+ * native checkbox ignores Enter and the ARIA checkbox pattern names Space only.
  */
 export function Checkbox({
   on = false,
   label,
   className,
   onToggle,
+  id,
 }: {
-  on?: boolean;
+  on?: boolean | "mixed";
   label?: string;
   className?: string;
   onToggle?: () => void;
+  id?: string;
 }) {
   const interactive = Boolean(onToggle);
   return (
     <span
+      id={id}
       role="checkbox"
       aria-checked={on}
       aria-disabled={interactive ? undefined : "true"}
@@ -146,7 +153,14 @@ export function Checkbox({
       onKeyDown={
         interactive
           ? (e) => {
-              if (e.key === " " || e.key === "Enter") {
+              if (e.key === " ") e.preventDefault();
+            }
+          : undefined
+      }
+      onKeyUp={
+        interactive
+          ? (e) => {
+              if (e.key === " ") {
                 e.preventDefault();
                 onToggle!();
               }
@@ -160,7 +174,11 @@ export function Checkbox({
         className,
       )}
     >
-      {on ? <Icon name="check" small className="[&>*]:stroke-[2.25]" /> : null}
+      {on === "mixed" ? (
+        <span aria-hidden className="block h-0.5 w-2 rounded-full bg-current" />
+      ) : on ? (
+        <Icon name="check" small className="[&>*]:stroke-[2.25]" />
+      ) : null}
     </span>
   );
 }

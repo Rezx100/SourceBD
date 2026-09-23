@@ -5,7 +5,14 @@ import { describe, it } from "node:test";
 
 import { savedSearchRedirectHref } from "./saved-searches";
 import { urlOnSiteFromHref } from "./site-origin";
-import { parseCount, parseTotalCount } from "./discover-v32-rpc";
+import {
+  discoverFailureCopy,
+  fetchDiscoverExplain,
+  fetchDiscoverV32,
+  parseCount,
+  parseTotalCount,
+} from "./discover-v32-rpc";
+import { parseDiscoverState } from "./discover-v32-state";
 
 const SQL_WITH_COMMENTS = readFileSync(
   path.join(process.cwd(), "supabase/migrations/0104_discover_v32.sql"),
@@ -386,5 +393,52 @@ describe("a count is digits, or it is not a count", () => {
     assert.equal(parseTotalCount([{ total_count: "" } as never]), null, "a blank total is not zero suppliers");
     assert.equal(parseTotalCount([]), 0, "no rows genuinely matched nothing");
     assert.equal(parseTotalCount([{ total_count: null } as never]), null);
+  });
+});
+
+describe("what a failed search tells the buyer", () => {
+  const state = parseDiscoverState(new URLSearchParams("q=knit"));
+  const failing = (error: Record<string, unknown>) => ({ rpc: async () => ({ data: null, error }) });
+
+  it("a missing function (pre-0104) is unavailable, and never tells the buyer to retry", async () => {
+    const r = await fetchDiscoverV32(
+      failing({ code: "PGRST202", message: "Could not find the function public.discover_suppliers(...)" }),
+      state,
+    );
+    assert.equal(r.failure, "unavailable");
+    const copy = discoverFailureCopy(r.failure!);
+    assert.doesNotMatch(copy, /heavy load|try again/i);
+  });
+
+  it("only a statement timeout is 'heavy load'", async () => {
+    const r = await fetchDiscoverV32(failing({ code: "57014", message: "canceling statement due to statement timeout" }), state);
+    assert.equal(r.failure, "busy");
+    assert.match(discoverFailureCopy(r.failure!), /heavy load/);
+  });
+
+  it("the contact-field refusal is unavailable, not load", async () => {
+    const r = await fetchDiscoverV32({ rpc: async () => ({ data: [{ id: "x", email_primary: "a@b.c" }], error: null }) }, state);
+    assert.equal(r.failure, "unavailable");
+  });
+
+  it("a success carries no failure", async () => {
+    const r = await fetchDiscoverV32({ rpc: async () => ({ data: [], error: null }) }, state);
+    assert.equal(r.failure, null);
+  });
+});
+
+describe("the zero-result explain call is count-only", () => {
+  it("sends the cheap default sort, whatever the buyer sorted by", async () => {
+    let sort: unknown;
+    await fetchDiscoverExplain(
+      {
+        rpc: async (_fn: string, args?: Record<string, unknown>) => {
+          sort = args?.p_sort;
+          return { data: [], error: null };
+        },
+      },
+      parseDiscoverState(new URLSearchParams("q=knit&sort=hs_lines")),
+    );
+    assert.equal(sort, "receipts");
   });
 });

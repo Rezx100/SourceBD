@@ -118,6 +118,8 @@
     "lib/dashboard/build-discover-row.test.ts",
     "lib/dashboard/selection.ts",
     "lib/dashboard/selection.test.ts",
+    "lib/rate-limit/limits.test.ts",
+    "lib/saved-suppliers.test.ts",
     "components/dashboard/record-recent-search.tsx",
     "components/dashboard/record-recent-search.test.ts",
     "lib/dashboard/load-buyer-shell.ts",

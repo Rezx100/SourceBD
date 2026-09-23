@@ -244,6 +244,25 @@ describe("saved-search counts say how old they are", () => {
     }));
   }
 
+  it("a count refresh never pays for the saved search's expensive sort", async () => {
+    // hs_lines / cert_expiry cost a full-corpus pass per call (0104), and a
+    // count does not depend on order — so up to ten refreshes per GET must
+    // not each run one.
+    const sorts: unknown[] = [];
+    const client = agingClient(
+      staleRows(3).map((r) => ({ ...r, query_state: { search: "q=knit&sort=hs_lines" } })),
+      [],
+    );
+    client.rpc = async (_fn?: string, args?: Record<string, unknown>) => {
+      sorts.push(args?.p_sort);
+      return { data: [{ total_count: 99 }], error: null };
+    };
+    const res = await runSavedSearchesGet({ role: "buyer", supabase: client, now: NOW });
+    assert.equal(res.status, 200);
+    assert.ok(sorts.length > 0, "no refresh ran, so the assertion below is vacuous");
+    for (const s of sorts.filter((x) => x !== undefined)) assert.equal(s, "receipts");
+  });
+
   it("spends the refresh budget on the stalest rows, not the first ten listed", async () => {
     // The list arrives newest-first, so the freshest counts are at the top.
     // Refreshing in list order meant ids 0–9 were refreshed on every call and

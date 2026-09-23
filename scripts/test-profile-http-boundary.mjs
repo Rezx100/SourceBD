@@ -95,6 +95,8 @@ let motherCompanyName = "Mother Company Ltd";
 let staleSuccessPhase = "success";
 let staleSuccessHoldMs = 0;
 
+const DISCOVER_PGRST202_Q = "zzpgrstprobe";
+const DISCOVER_TIMEOUT_Q = "zztimeoutprobe";
 const STATEMENT_TIMEOUT = {
   code: "57014",
   details: null,
@@ -579,6 +581,26 @@ function mockHandler(req, res) {
       return json(slug === FACILITY ? MOTHER : null);
     }
     if (url.pathname === "/rest/v1/rpc/discover_suppliers") {
+      let q = null;
+      try {
+        q = JSON.parse(body || "{}").p_q ?? null;
+      } catch {
+        q = null;
+      }
+      // Production's state until 0104 is applied: PostgREST cannot find a
+      // function taking the parameters the page sends.
+      if (q === DISCOVER_PGRST202_Q) {
+        return json(
+          {
+            code: "PGRST202",
+            details: null,
+            hint: null,
+            message: "Could not find the function public.discover_suppliers(p_cert_state, p_hs_codes, ...) in the schema cache",
+          },
+          404,
+        );
+      }
+      if (q === DISCOVER_TIMEOUT_Q) return json(STATEMENT_TIMEOUT, 400);
       return json([
         {
           id: "00000000-0000-4000-8000-000000000099",
@@ -1722,6 +1744,28 @@ const CASES = [
     },
   },
   {
+    // A missing function is not load: telling every buyer to "try again in a
+    // moment" when the deploy shipped ahead of 0104 is a false promise.
+    name: "rez-b: /app/discover over a pre-0104 database says unavailable, not heavy load",
+    path: `/app/discover?q=${DISCOVER_PGRST202_Q}`,
+    auth: true,
+    expect: {
+      status: 200,
+      bodyIncludesAll: ["Search is unavailable right now"],
+      bodyExcludes: ["Search is under heavy load", "Try again in a moment"],
+    },
+  },
+  {
+    name: "rez-b: /app/discover on a statement timeout says heavy load",
+    path: `/app/discover?q=${DISCOVER_TIMEOUT_Q}`,
+    auth: true,
+    expect: {
+      status: 200,
+      bodyIncludesAll: ["Search is under heavy load"],
+      bodyExcludes: ["Search is unavailable right now"],
+    },
+  },
+  {
     name: "rez-b: /app/discover anonymous -> 307 to /login",
     path: "/app/discover",
     expect: { status: 307, locationPath: "/login" },
@@ -1813,6 +1857,31 @@ const CASES = [
         "content-disposition": /attachment; filename=/,
       },
     },
+  },
+  {
+    // The bulk bar's Export: only the selected row, named as a selection, with
+    // the same no-store contract as the full export. The mock returns two
+    // rows (…099 and …098); the file must hold exactly the one asked for.
+    name: "rez-b: export API with ?ids= serves only the selected rows",
+    path: "/api/v1/discover/export?q=knit&ids=00000000-0000-4000-8000-000000000098",
+    auth: true,
+    expect: {
+      status: 200,
+      bodyIncludesAll: ["Mother Company Ltd"],
+      bodyExcludes: ["Overview Timeout Ltd"],
+      headerMatches: {
+        "content-type": /text\/csv/,
+        "content-disposition": /-selected-1\.csv"/,
+        "cache-control": /no-store/,
+        "x-sourcebd-rows": /^1$/,
+      },
+    },
+  },
+  {
+    name: "rez-b: export API with a malformed ?ids= is a 400, not a full export",
+    path: "/api/v1/discover/export?q=knit&ids=not-a-uuid",
+    auth: true,
+    expect: { status: 400, bodyExcludes: ["Mother Company Ltd"] },
   },
   {
     name: "rez-b: export API refuses an anonymous caller",

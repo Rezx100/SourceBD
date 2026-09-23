@@ -53,6 +53,11 @@ import { Chip } from "./chips";
 import { PhotoStrip } from "./photo-tiles";
 import { RFQ_EMPTY_COPY, RFQ_ERROR_COPY, RfqList } from "./rfq-list";
 import { SearchComposer } from "./search-composer";
+import { SelectionBar } from "./selection-bar";
+import { SELECT_ALL_ID, SelectionContext, SelectionProvider, type SelectionContextValue } from "./selection";
+import { readFileSync } from "node:fs";
+import path from "node:path";
+import { AppRouterContext } from "next/dist/shared/lib/app-router-context.shared-runtime";
 import { SupplierResultCard } from "./supplier-result-card";
 import { SupplierSheet } from "./supplier-sheet";
 
@@ -1277,6 +1282,133 @@ describe("the two-state controls say which state they are in", () => {
     assert.match(real, /tabindex="0"/);
     assert.doesNotMatch(real, /aria-disabled/);
     assert.doesNotMatch(real, /title="Selection arrives with the results work"/);
+  });
+
+  it("a real checkbox toggles on Space once, on key up — not on Enter, not on keydown auto-repeat", () => {
+    // A native checkbox ignores Enter and toggles on Space's keyup; toggling
+    // on keydown flipped the box on every auto-repeat of a held Space.
+    let n = 0;
+    const el = Checkbox({ label: "Select Aboni", onToggle: () => (n += 1) }) as { props: Record<string, (e: unknown) => void> };
+    const ev = (key: string) => ({ key, repeat: false, preventDefault() {} });
+    el.props.onKeyDown(ev(" "));
+    el.props.onKeyDown({ ...ev(" "), repeat: true });
+    assert.equal(n, 0, "keydown must only stop the page scrolling");
+    el.props.onKeyUp(ev(" "));
+    assert.equal(n, 1);
+    el.props.onKeyDown(ev("Enter"));
+    el.props.onKeyUp(ev("Enter"));
+    assert.equal(n, 1, "Enter does not toggle a checkbox");
+    el.props.onClick({});
+    assert.equal(n, 2);
+  });
+
+  it("a partly selected select-all box reads mixed, not unchecked", () => {
+    const html = renderToStaticMarkup(createElement(Checkbox, { on: "mixed", label: "Select all on this page", onToggle: () => {} }));
+    assert.match(html, /aria-checked="mixed"/);
+  });
+
+  /** A source file with its comments removed, so prose cannot satisfy a code check. */
+  const sourceCode = (rel: string) =>
+    readFileSync(path.join(process.cwd(), rel), "utf8")
+      .replace(/\/\*[\s\S]*?\*\//g, "")
+      .replace(/(^|[^:"'`])\/\/.*$/gm, "$1");
+
+  describe("the bulk bar", () => {
+    const A = "11111111-1111-4111-8111-111111111111";
+    const B = "22222222-2222-4222-8222-222222222222";
+    const bar = (selected: string[]) => {
+      const value: SelectionContextValue = {
+        interactive: true,
+        selected: new Set(selected),
+        isSelected: (id) => selected.includes(id),
+        toggle: () => {},
+        toggleAllOnPage: () => {},
+        allState: false,
+        clear: () => {},
+      };
+      const router = { back() {}, forward() {}, refresh() {}, push() {}, replace() {}, prefetch() {} };
+      return renderToStaticMarkup(
+        createElement(
+          AppRouterContext.Provider,
+          { value: router as never },
+          createElement(
+            SelectionContext.Provider,
+            { value },
+            createElement(SelectionBar, { exportHref: "/api/v1/discover/export?q=knit&page=3" }),
+          ),
+        ),
+      );
+    };
+
+    it("renders nothing with an empty selection", () => {
+      assert.equal(bar([]), "");
+    });
+
+    it("counts the selection and exports exactly it, on the page's own query", () => {
+      const html = bar([A, B]);
+      assert.match(html, /2 selected/);
+      assert.ok(html.includes(`href="/api/v1/discover/export?q=knit&amp;page=3&amp;ids=${A},${B}"`), html);
+    });
+
+    it("is a labelled group, not a toolbar it does not implement the arrow keys for", () => {
+      const html = bar([A]);
+      assert.match(html, /role="group"[^>]*aria-label="Bulk actions"/);
+      assert.doesNotMatch(html, /role="toolbar"/);
+    });
+
+    it("says in visible text why Send RFQ and Compare are disabled, and ties it to both", () => {
+      const html = bar([A]);
+      const note = html.match(/<p id="([^"]+)"[^>]*>([^<]+)<\/p>/);
+      assert.ok(note, "no visible note");
+      assert.match(note[2], /not built yet/);
+      const described = [...html.matchAll(new RegExp(`<button[^>]*aria-describedby="${note[1]}"[^>]*>`, "g"))];
+      assert.equal(described.length, 2, "Send RFQ and Compare both point at the note");
+      for (const b of described) assert.match(b[0], /disabled=""/);
+    });
+
+    it("Clear sends focus to the select-all box, which carries the id it looks for", () => {
+      // Clear unmounts the bar and the focused button with it; focus fell to
+      // <body>. The render half: the box under a provider has the id.
+      const header = renderToStaticMarkup(
+        createElement(
+          SelectionProvider,
+          { pageIds: [A] },
+          createElement(PanelHeader, { model: { title: "Knit", total: 1, shown: 1, firstRow: 1, sortLabel: "Name", view: "cards" as const } }),
+        ),
+      );
+      assert.match(header, new RegExp(`id="${SELECT_ALL_ID}"[^>]*role="checkbox"[^>]*tabindex="0"`));
+      // The behaviour half, which a static render cannot run: code only, with
+      // comments stripped so the explanation cannot satisfy it.
+      const code = sourceCode("components/dashboard/selection-bar.tsx");
+      const clear = code.slice(code.indexOf("function clear()"), code.indexOf("function clear()") + 200);
+      assert.match(clear, /getElementById\(SELECT_ALL_ID\)\?\.focus\(\);\s*sel\.clear\(\)/, "focus must move BEFORE the bar unmounts");
+    });
+
+    it("reserves the bar's height at the bottom of the scroll area while it shows, and gives it back (WCAG 2.4.11)", () => {
+      const code = sourceCode("components/dashboard/selection-bar.tsx");
+      assert.match(code, /root\.style\.scrollPaddingBottom = `\$\{bar\.offsetHeight \+ 8\}px`/);
+      assert.match(code, /new ResizeObserver\(fit\)/, "the bar wraps on a phone; a one-off measurement goes stale");
+      assert.match(code, /return \(\) => \{\s*ro\?\.disconnect\(\);\s*root\.style\.scrollPaddingBottom = before;/);
+    });
+
+    it("the page keys the selection on its whole URL state, so a new page of results starts empty", () => {
+      // Next keeps client state across a search-param navigation; unkeyed, a
+      // selection would outlive its page and the page-scoped Export would
+      // silently drop the ids it could no longer see.
+      const code = sourceCode("app/(app)/app/discover/page.tsx");
+      assert.match(code, /<SelectionProvider key=\{serializeDiscoverState\(state\)\.toString\(\)\}/);
+    });
+
+    it("the bulk Save is never natively disabled, so it cannot drop focus to the page while saving", () => {
+      const save = bar([A]).match(/<button[^>]*>(?:(?!<\/button>).)*Save<\/button>/);
+      assert.ok(save);
+      assert.doesNotMatch(save[0], /disabled=""/);
+      // A static render has busy=false, so `disabled={busy}` would render
+      // nothing here and pass; check the code for any native disabled on it.
+      const code = sourceCode("components/dashboard/selection-bar.tsx");
+      const saveJsx = code.slice(code.lastIndexOf("<Button", code.indexOf("onClick={bulkSave}")), code.indexOf("onClick={bulkSave}"));
+      assert.doesNotMatch(saveJsx, /\sdisabled[=\s]/, "the bulk Save must use aria-disabled, never native disabled");
+    });
   });
 
   // Accessibility, cycle 19, BLOCKING F3. `Seg`'s and the Template switch's
