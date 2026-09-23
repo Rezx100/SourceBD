@@ -23,8 +23,8 @@ export function ExportLink({
   label: string;
   requested?: number;
   /** Changes when the thing being exported changes (the bar passes the
-   * buyer's selection edits): the old message is cleared and a result still
-   * in flight is dropped. Not a `key` — remounting moved focus off the link
+   * buyer's selection edits): the old message is cleared, and a result still
+   * in flight is neither saved nor reported. Not a `key` — remounting moved focus off the link
    * and let a second export start under the first. */
   resetOn?: number;
 }) {
@@ -45,7 +45,11 @@ export function ExportLink({
     try {
       const message = await runExport(href, requested, {
         fetch: (url) => fetch(url),
-        save: (blob, filename) => saveBlob(document, URL, (fn) => setTimeout(fn, 1000), blob, filename),
+        // A file for a selection the buyer has since changed is not saved:
+        // it would arrive as the new selection's export, and silently.
+        save: (blob, filename) => {
+          if (round.current === asked) saveBlob(document, URL, (fn) => setTimeout(fn, 1000), blob, filename);
+        },
       });
       if (round.current === asked) setStatus(message);
     } finally {

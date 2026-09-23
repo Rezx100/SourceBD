@@ -20,7 +20,6 @@ import {
   clearKeepingFocus,
   reserveBarSpace,
   runBulkSave,
-  SEND_RFQ_MAX,
 } from "@/lib/dashboard/selection";
 import { Button } from "./controls";
 import { ExportLink } from "./export-link";
@@ -28,8 +27,9 @@ import { Icon } from "./icons";
 import { SELECT_ALL_ID, useSelection } from "./selection";
 
 const NOT_BUILT = `Send RFQ and Compare for several suppliers at once are not built yet. Open a supplier's record to send one an RFQ.`;
-const SEND_RFQ_SOON = `Sending an RFQ to more than one supplier at once is not built yet — open a supplier's record to send one, or select ${SEND_RFQ_MAX} or fewer once it ships.`;
-const COMPARE_SOON = "Comparing selected suppliers side by side is not built yet.";
+// No `title` on the two disabled buttons: with aria-describedby present a
+// screen reader never hears it, so mouse users were told something else (a
+// 50-supplier cap nothing enforces). Both now get the one visible note.
 
 export function SelectionBar({ exportHref }: { exportHref: string }) {
   const sel = useSelection();
@@ -109,7 +109,7 @@ export function SelectionBar({ exportHref }: { exportHref: string }) {
       >
         <span className="text-sm font-medium text-ink-strong">{count} selected</span>
         <div className="flex flex-wrap items-center gap-2">
-          <Button variant="primary" disabled title={SEND_RFQ_SOON} aria-describedby={noteId} className="hidden sm:inline-flex">
+          <Button variant="primary" disabled aria-describedby={noteId} className="hidden sm:inline-flex">
             <Icon name="send" /> Send RFQ
           </Button>
           <Button
@@ -123,7 +123,6 @@ export function SelectionBar({ exportHref }: { exportHref: string }) {
           </Button>
           <Button
             disabled
-            title={COMPARE_SOON}
             aria-describedby={noteId}
             className="hidden disabled:cursor-not-allowed disabled:border-line disabled:text-ink-disabled sm:inline-flex"
           >

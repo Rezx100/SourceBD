@@ -10,21 +10,25 @@ export type DisplayWorkersEntry = {
   value: number;
   source: "RSC" | "registry";
   fetched_at: string | null;
+  /** How many sites the figure sums, and whether this record is one (0104). */
+  sites?: number;
+  includes_root?: boolean;
 };
 
 export type DisplayWorkersById = Record<string, DisplayWorkersEntry>;
 
 /**
- * What the headline worker figure covers, relative to the record it is shown
- * under. Derived, not reported: see `applyDiscoverWorkersSelection`.
+ * What the display figure covers, relative to the record it is shown under,
+ * as `production_workers_display_batch` reports it (`sites`, `includes_root`,
+ * added by 0104). Never inferred from the numbers: an RSC headcount that
+ * differs from the register figure is one site's other source, not a group.
  *
- * - `own` — this record's own figure, and nothing else's.
+ * - `own` — this record alone (from whichever source the batch preferred).
  * - `group` — this record plus at least one building.
- * - `excludes-record` — buildings only; this record files no figure and is
- *   not in the sum. Printing this one bare tells a buyer a factory employs
- *   people it does not.
+ * - `excludes-record` — buildings only; this record is not in the sum.
+ * - `unknown` — the batch did not say (a database without 0104's version).
  */
-export type WorkersBasis = "own" | "group" | "excludes-record";
+export type WorkersBasis = "own" | "group" | "excludes-record" | "unknown";
 
 type WithIdAndEmployees = {
   id: string;
@@ -50,6 +54,9 @@ export function parseDisplayBatch(raw: unknown): DisplayWorkersById {
       value,
       source,
       fetched_at: typeof fa === "string" ? fa : null,
+      ...(typeof row.sites === "number" && typeof row.includes_root === "boolean"
+        ? { sites: row.sites, includes_root: row.includes_root }
+        : {}),
     };
   }
   return out;
@@ -88,30 +95,27 @@ export function applyDiscoverWorkersSelection<T extends WithIdAndEmployees>(
   return rows.map((r) => {
     const d = displayById[r.id];
     if (!d) return r;
-    // Composition IS knowable here, and two earlier passes said it was not.
+    // Composition comes from the batch, which knows which sites it summed.
+    // Comparing the figure with the record's own number was the third wrong
+    // answer: the batch prefers RSC, so a standalone factory whose RSC
+    // headcount differs from its register figure read as "this record and
+    // its buildings" (639 live factories, 24 Sep 2026). Without the batch's
+    // word the basis is "unknown", and nothing may claim buildings.
     //
-    // `r.employees_total` at this point is still the supplier row's own
-    // registry figure, straight off `discover_suppliers`. `d.value` is
-    // `production_workers_display_batch`: the root summed with every
-    // `facility_of` child, and — when any site in the family has an RSC row —
-    // summed over the RSC sites ONLY, which can drop the root. So comparing
-    // the two answers the question the display batch does not:
-    //
-    //   d.value === own          the figure is this record's own
-    //   own === null             the figure contains no number for this
-    //                            record at all, so it is somebody else's
-    //   otherwise                the figure covers this record and more
-    //
-    // The first pass here set `workers_is_group: true` unconditionally, so
-    // "across this record and its buildings" printed under every standalone
-    // factory. The second dropped composition entirely and labelled the
-    // roll-up "on the register", which named a register that holds no such
-    // number — and, in the RSC case, a number belonging to a different site.
-    // `lib/dashboard/build-models.ts` has always done this honestly on the
-    // same data; this is that vocabulary, derived from what is in hand.
+    // `r.employees_total` is still the supplier row's own figure here — the
+    // one `discover_suppliers` sorts and filters `workers` on — so it is kept
+    // as `workers_own` before being overwritten with the display figure.
     const own = r.employees_total;
     const basis: WorkersBasis =
-      own == null ? "excludes-record" : d.value === own ? "own" : "group";
+      d.sites === undefined || d.includes_root === undefined
+        ? d.value === own
+          ? "own"
+          : "unknown"
+        : !d.includes_root
+          ? "excludes-record"
+          : d.sites > 1
+            ? "group"
+            : "own";
     return { ...r, employees_total: d.value, workers_source: d.source, workers_basis: basis, workers_own: own };
   });
 }

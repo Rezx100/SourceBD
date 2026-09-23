@@ -121,7 +121,9 @@ export function SupplierResultCard({ card }: { card: SupplierCardModel }) {
           <LogoTile initials={card.initials} tier={card.topTier} />
           <div className="flex min-w-0 flex-1 flex-col gap-1">
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-              <Title>{card.name}</Title>
+              {/* A heading, so heading navigation moves between results and each
+                  card's Open / Send RFQ / Save sit under their supplier's name. */}
+              <Title as="h2">{card.name}</Title>
               <SourceMarks marks={card.marks} />
             </div>
             <MetaLine facts={card.meta} />

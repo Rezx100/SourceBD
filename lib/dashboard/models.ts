@@ -80,10 +80,10 @@ export type TableRowModel = {
   linesEmptyReason: string | null;
   type: string;
   workers: number | null;
-  /** "1 of 2 sites" when the figure is a group sum; null when it is this site's. */
+  /** What the figure is: a source, or "1 of 2 sites" when it is a group sum. */
   workersCoverage: string | null;
-  /** A second line under the figure: the group roll-up, when it differs from it. */
-  workersGroup?: string | null;
+  /** Discover only: the profile's figure, when it differs from the headline. */
+  workersSecond?: string | null;
   sanctioned: boolean;
   sanctionSample?: boolean;
   selected?: boolean;

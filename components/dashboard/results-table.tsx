@@ -37,8 +37,20 @@ export function Th({ className, srLabel, children }: { className?: string; srLab
   );
 }
 
-export function Td({ className, children }: { className?: string; children?: React.ReactNode }) {
-  return <td className={cn("h-row-dense border-b border-line-subtle px-2.5 py-1 align-middle first:pl-5 last:pr-5", className)}>{children}</td>;
+/**
+ * `rowHeader` renders the cell as the row's header: the supplier name is what
+ * gives each row's identical "Open", "Send RFQ" and "Save" controls their
+ * context for a screen reader (WCAG 2.4.4, which reads a cell's headers).
+ */
+export function Td({ className, children, rowHeader }: { className?: string; children?: React.ReactNode; rowHeader?: boolean }) {
+  const cls = cn("h-row-dense border-b border-line-subtle px-2.5 py-1 align-middle first:pl-5 last:pr-5", className);
+  return rowHeader ? (
+    <th scope="row" className={cn(cls, "text-left font-normal")}>
+      {children}
+    </th>
+  ) : (
+    <td className={cls}>{children}</td>
+  );
 }
 
 export function ResultsTable({ rows }: { rows: readonly TableRowModel[] }) {
@@ -99,7 +111,7 @@ export function ResultsTable({ rows }: { rows: readonly TableRowModel[] }) {
                   onToggle={selectable ? () => sel.toggle(r.supplierId!) : undefined}
                 />
               </Td>
-              <Td>
+              <Td rowHeader>
                 <div className="flex items-center gap-2.5">
                   <LogoTile initials={r.initials} tier={r.topTier} size="sm" />
                   <div className="min-w-0">
@@ -151,12 +163,12 @@ export function ResultsTable({ rows }: { rows: readonly TableRowModel[] }) {
                 ) : (
                   <>
                     {formatCount(r.workers)}
-                    {/* A group sum printed bare reads as this site's headcount. */}
+                    {/* A figure printed bare hides what it counts. */}
                     {r.workersCoverage ? <span className="block text-xs font-normal text-ink-subtle">{r.workersCoverage}</span> : null}
                   </>
                 )}
-                {/* The roll-up, under the figure the Workers sort orders on. */}
-                {r.workersGroup ? <span className="block text-xs font-normal text-ink-subtle">{r.workersGroup}</span> : null}
+                {/* The profile's figure, under the one the Workers sort orders on. */}
+                {r.workersSecond ? <span className="block text-xs font-normal text-ink-subtle">{r.workersSecond}</span> : null}
               </Td>
               <Td>
                 <span className="flex w-full justify-end gap-1.5">

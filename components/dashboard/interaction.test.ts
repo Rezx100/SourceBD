@@ -86,6 +86,20 @@ describe("the bulk bar's handlers, invoked", () => {
     assert.deepEqual(busy, [true, false], "busy must be released");
   });
 
+  it("a full page of 100 selected goes in that one request, every id", async () => {
+    // Three ids could not tell "the whole selection" from "the first 30".
+    const many = Array.from({ length: 100 }, (_, i) => `00000000-0000-4000-8000-${String(i).padStart(12, "0")}`);
+    const sent: string[][] = [];
+    stub("window", new EventTarget());
+    stub("fetch", async (_url: string, init: { body: string }) => {
+      sent.push((JSON.parse(init.body) as { supplier_ids: string[] }).supplier_ids);
+      return json(200, { ok: true, count: many.length, skipped: 0, ids: many });
+    });
+    const run = bar(selection(many), { refresh: () => {} });
+    await (buttonNamed(run.out, "Save").props.onClick as () => Promise<void>)();
+    assert.deepEqual(sent, [many]);
+  });
+
   it("a Save that returns after the buyer changed the selection reports nothing about the old one", async () => {
     stub("window", new EventTarget());
     let run: ReturnType<typeof bar> | null = null;
@@ -188,6 +202,8 @@ describe("ExportLink's handler, invoked", () => {
     await (buttonNamed(run.out, "Export").props.onClick as (e: unknown) => Promise<void>)(click().e);
     const statuses = run.sets.filter((s) => s.hook === 0).map((s) => s.value);
     assert.deepEqual(statuses, ["Preparing the export…"], `stale result shown: ${JSON.stringify(statuses)}`);
+    // Nor saved: it would land as the NEW selection's file, with no word said.
+    assert.equal(d.anchors.length, 0, "the old selection's file was downloaded after the selection changed");
   });
 });
 

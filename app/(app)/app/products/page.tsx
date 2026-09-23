@@ -55,7 +55,7 @@ export default async function ProductsPage({
           <Caption>
             {live.error
               ? "Exporter counts could not be read"
-              : `${formatCount(rows.length)} HS ${rows.length === 1 ? "heading" : "headings"}`}
+              : `${formatCount(rows.length)} HS ${rows.length === 1 ? "heading" : "headings"} · exporter counts leave out sanctioned suppliers, as the search does`}
           </Caption>
         </div>
         {/* Was a hard `w-[20rem]` with no `min-w-0`: 320px of search box in a

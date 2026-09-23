@@ -17,9 +17,8 @@ as a hypothesis anyway, and re-check anything you rely on (closed-loop §2).
 - Five review rounds ran on 23 Sep (cycles 10 to 14). Every finding was fixed,
   and each fix has a guard proven by putting its defect back and watching it
   go red.
-- **Cycle 15 was started on `6f598cb` and never finished.** The session ended
-  and its five reviewers stopped. Nothing from it is known. Start a fresh
-  cycle 15.
+- **Cycle 15 ran on 24 Sep** on `6600786`, after the founder's decisions in
+  §2 were built. Its findings and what became of them are in §10.
 - Production runs `9b518c5` (`main`, REZ-A only). `development` is 2 docs
   commits ahead of `main`.
 - **What stands between REZ-B and the VPS:**
@@ -31,7 +30,11 @@ as a hypothesis anyway, and re-check anything you rely on (closed-loop §2).
 - "The whole dashboard" is REZ-B **plus seven more issues** (§6). Each has its
   own migration, review loop and three gates.
 
-## 1. State on 24 Sep (verified)
+## 1. State on 24 Sep (verified at `28b4e6a`)
+
+A snapshot taken before cycle 15; the tip, the gate and CI have moved since.
+Read the tip from `git log -1` and the gate from the newest
+`.claude/rez-b-review-kit/evidence/gate-*` files, never from this table.
 
 | Thing | Value |
 | --- | --- |
@@ -46,14 +49,15 @@ as a hypothesis anyway, and re-check anything you rely on (closed-loop §2).
 | Migration `0104` | **Not applied** to the live database (no `saved_searches` table, old `discover_suppliers` signature). Hard dependency of this branch |
 
 The four-command gate in `CLAUDE.md` still names 602 tests / 86 suites at
-`e15966c`. That baseline is stale for this branch; 1,422 / 210 is current.
+`e15966c`. That baseline is stale for this branch; take the current numbers
+from the newest gate files (1,422 / 210 at `6f598cb`).
 `pytest` and `ruff` are unaffected, because REZ-B touches no Python. Run them
 anyway before gate 1 and paste the raw numbers, since `CLAUDE.md` asks for
 all four.
 
 ## 2. Founder decisions
 
-**Decided (24 Sep): "A signed-out visitor should see everything but the
+**Decided (23 Sep): "A signed-out visitor should see everything but the
 contact info of the company."**
 - The `anon` grant on `discover_suppliers` and 0104's wide return stay. There
   is no lean anon signature and no paging cap.
@@ -62,19 +66,17 @@ contact info of the company."**
 - Recorded in `current-state.md` founder rules.
 - Any contact field reaching a signed-out caller is a BLOCKER.
 
-**Still open. Ask in ONE message, with a recommendation each:**
-1. `/app/products` counts sanctioned suppliers, while the search it links to
-   hides them. *Rec: exclude them from the count.*
-2. The Workers sort orders on the supplier's own count, while the column shows
-   the group roll-up. *Rec: show the sorted number, with the group total as a
-   second line.*
-3. The Help button has no destination. *Rec: hide it until `/app/help`
-   exists.*
-4. How to see the page in a browser before 0104 is live.
-   - *Rec: a paid Supabase branch with 0104 applied, deleted afterwards.* The
-     project has no branches today.
-   - Alternative: no live browser check until the founder applies 0104. The
-     component-level browser repro in §4.3 already covers the bar.
+**Decided 24 Sep, all four as recommended.** Do not ask again.
+1. `/app/products` counts leave out sanctioned suppliers, so each equals the
+   search it links to. Built in `6600786` (0104's `hs_catalogue`).
+2. The worker figure is the supplier's own, which the Workers sort uses; the
+   profile's figure is a second line when it differs. Built in `6600786`,
+   corrected in cycle 15 (§10).
+3. No Help button until `/app/help` exists. Built in `6600786`.
+4. A paid Supabase branch for a live check: approved, created and deleted on
+   24 Sep. It came up empty (MIGRATIONS_FAILED: the live migration history
+   does not replay), so there is no live browser check until the founder
+   applies 0104. Creating it switched on branching for the project.
 
 Questions for the later issues (spec §8 Q1–Q5) are in §6.
 
@@ -328,7 +330,7 @@ older non-blocking list.
 - Never merge or trigger deploys: the hooks refuse them, so print the command
   for the founder.
 - Replies to the founder: five lines or fewer, in plain words, and no
-  questions except a gate or the §2 decisions.
+  questions except a gate.
 
 ## 9. Session prompt (paste into the new session)
 
@@ -341,10 +343,10 @@ context/feature-specs/active.md, then context/feature-specs/handoff-rez-b-cycle1
 in full. Treat every claim in it as a hypothesis and check it against git, CI
 and the code.
 
-1. Put the open decisions in handoff §2 to me in ONE message with your
-   recommendation each. Keep working on everything that does not depend on them.
+1. The decisions in handoff §2 are all taken; do not ask them again. Read §10
+   for where cycle 15 left off.
 2. Run the closed loop exactly as handoff §3 and AGENTS.md rule 16 describe,
-   starting with a fresh cycle 15 on the current tip, using the review kit in
+   starting with the next cycle on the current tip, using the review kit in
    .claude/rez-b-review-kit/. Five independent reviewers in their own worktrees,
    newest work first; fix everything; every fix gets a guard proven red; push
    and let CI run; repeat until a round has zero blockers and majors, then a
@@ -364,3 +366,36 @@ Hard limits: never touch the VPS at 37.49.227.151, no ssh or rsync, never write
 .env files, never apply a migration or an --apply yourself. Keep every update to
 me to five lines or fewer, in plain words.
 ```
+
+## 10. Cycle 15 (24 Sep)
+
+- Reviewed `6600786`. Security ACCEPTED. Truthfulness, correctness,
+  accessibility and guard adequacy REJECTED.
+- The blocker: the worker figure's words ("across this record and its
+  buildings") were inferred by comparing numbers. `production_workers_display_batch`
+  prefers RSC, so 639 live standalone factories whose RSC headcount differs
+  from their register figure were called groups. Repaired at the root: 0104
+  now re-creates that function to report `sites` and `includes_root`, the page
+  uses only those, and `lib/production-workers-reconcile.test.ts` holds the
+  body otherwise identical to the live one.
+- Also repaired: the table's supplier name is the row header (WCAG 2.4.4);
+  card names are headings; the disabled bulk buttons have one explanation; an
+  export for a changed selection is not saved; the Help guard checks every
+  topbar control; the CI vacuity check can fail; stale comments.
+- Written down, not changed:
+  - The product sheet's "Other exporters of <code>" (the HS manifest) and
+    `ops/hs_catalogue_exporter_reconciliation.py` still count sanctioned
+    suppliers, so one heading can show two exporter counts on two surfaces.
+    Regenerate the manifest from the Products population when REZ-C touches
+    the sheet.
+  - Spec §3.2's sticky table header is not built: inside the horizontal
+    scroll container it would stick to the container, not the page.
+  - `lib/saved-searches.ts` retries a failed count refresh on every GET (up
+    to 10 scans a call), and its 500s return Postgres's message as `detail`.
+  - Signed-in suppliers get 401 from `/api/v1/saved` but 403 from the export.
+- Local `pytest` loads the live `.env` at import (two test files), so its
+  database tests try production. Blank `SUPABASE_DB_URL`, `DATABASE_URL`,
+  `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` when running it. With those
+  blank: 992 passed, 25 skipped, 32 failed, and all 32 fail because Windows
+  runs the WSL `bash` stub. That matches the 1,024 / 25 baseline. Filed as its
+  own task. `ruff` 0.15.13: 49.

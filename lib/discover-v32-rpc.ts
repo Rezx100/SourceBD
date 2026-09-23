@@ -38,11 +38,11 @@ export type DiscoverV32Row = {
   hs_codes: string[] | null;
   brand_codes: string[] | null;
   registries: string[] | null;
-  /** Set by enrichDiscoverWorkers when employees_total is a group roll-up. */
   /**
-   * Which register the headline worker figure came from, per
-   * `production_workers_display_batch`. Absent when no display figure was
-   * found and `employees_total` is the supplier row's own value.
+   * Set by enrichDiscoverWorkers when `production_workers_display_batch` has
+   * a figure: `employees_total` is then that display figure, and this is the
+   * source it came from. Absent when there is none and `employees_total` is
+   * the supplier row's own value.
    */
   workers_source?: "RSC" | "registry";
   /** What that figure covers — see `WorkersBasis`. Absent when no display figure was found. */

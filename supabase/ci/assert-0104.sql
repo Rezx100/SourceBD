@@ -566,12 +566,64 @@ begin
         c.exporter_count, c.hs, n;
     end if;
   end loop;
-  if not exists (select 1 from public.hs_catalogue() h where h.hs = '6101') then
-    raise exception 'hs_catalogue has no 6101 row; the sanctioned-exporter reconciliation above checked nothing';
+  -- The loop above proves nothing unless a sanctioned exporter of 6101 is
+  -- really there to be left out: with sanctioned suppliers included, the
+  -- search for 6101 must find more than the catalogue counts.
+  select coalesce(max(d.total_count), 0) into n
+    from public.discover_suppliers(p_hs_codes => array['6101'], p_exclude_sanctioned => false, p_limit => 1) d;
+  if n <= coalesce((select h.exporter_count from public.hs_catalogue() h where h.hs = '6101'), 0) then
+    raise exception 'no sanctioned exporter of 6101 in the fixture (% with sanctioned); the reconciliation above checked nothing', n;
   end if;
   reset role;
   perform set_config('request.jwt.claim.role', '', true);
   perform set_config('request.jwt.claim.sub', '', true);
+end
+$$;
+
+-- production_workers_display_batch says which sites it summed (0104). The
+-- Discover page's words about buildings rest on nothing else: comparing the
+-- figure with the record's own called a standalone factory whose RSC
+-- headcount differs from its register "this record and its buildings".
+insert into public.suppliers (slug, company_name, company_name_norm, city, district, is_published, is_sanctioned, employees_total)
+values
+  ('ci-w-alone',  'CI W Alone',  'ci w alone',  'Dhaka', 'Dhaka', false, false, 550),
+  ('ci-w-parent', 'CI W Parent', 'ci w parent', 'Dhaka', 'Dhaka', false, false, 1200),
+  ('ci-w-group',  'CI W Group',  'ci w group',  'Dhaka', 'Dhaka', false, false, 2000)
+on conflict (slug) do nothing;
+insert into public.suppliers (slug, company_name, company_name_norm, city, district, is_published, is_sanctioned, employees_total, facility_of)
+select v.slug, v.slug, v.slug, 'Dhaka', 'Dhaka', false, false, v.n, p.id
+  from (values ('ci-w-parent-unit', 'ci-w-parent', 300), ('ci-w-group-unit', 'ci-w-group', 1000)) v(slug, parent, n)
+  join public.suppliers p on p.slug = v.parent
+on conflict (slug) do nothing;
+insert into public.rsc_remediation (supplier_id, workers_count, active)
+select s.id, v.n, true
+  from (values ('ci-w-alone', 500), ('ci-w-parent-unit', 907)) v(slug, n)
+  join public.suppliers s on s.slug = v.slug
+on conflict do nothing;
+
+do $$
+declare
+  b jsonb;
+  k text;
+  want jsonb := jsonb_build_object(
+    'ci-w-alone',  jsonb_build_object('value', 500,  'source', 'RSC',      'sites', 1, 'includes_root', true),
+    'ci-w-parent', jsonb_build_object('value', 907,  'source', 'RSC',      'sites', 1, 'includes_root', false),
+    'ci-w-group',  jsonb_build_object('value', 3000, 'source', 'registry', 'sites', 2, 'includes_root', true)
+  );
+  got jsonb;
+begin
+  select public.production_workers_display_batch(array_agg(id)) into b
+    from public.suppliers where slug in ('ci-w-alone', 'ci-w-parent', 'ci-w-group');
+  for k in select jsonb_object_keys(want) loop
+    select b -> s.id::text into got from public.suppliers s where s.slug = k;
+    if got is null
+       or got->'value' <> want->k->'value'
+       or got->'source' <> want->k->'source'
+       or got->'sites' is distinct from want->k->'sites'
+       or got->'includes_root' is distinct from want->k->'includes_root' then
+      raise exception 'production_workers_display_batch for %: got %, want %', k, got, want->k;
+    end if;
+  end loop;
 end
 $$;
 

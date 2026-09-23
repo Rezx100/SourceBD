@@ -1409,6 +1409,10 @@ describe("the two-state controls say which state they are in", () => {
       const described = [...html.matchAll(new RegExp(`<button[^>]*aria-describedby="${note[1]}"[^>]*>`, "g"))];
       assert.equal(described.length, 2, "Send RFQ and Compare both point at the note");
       for (const b of described) assert.match(b[0], /disabled=""/);
+      // One explanation for everyone: with aria-describedby present a screen
+      // reader never hears a `title`, so a title told mouse users something
+      // else (a 50-supplier cap nothing enforced).
+      for (const b of described) assert.doesNotMatch(b[0], /\btitle=/, `a second, different explanation: ${b[0]}`);
     });
 
     it("Clear sends focus to the select-all box, which carries the id it looks for", () => {
@@ -2022,16 +2026,63 @@ describe("the topbar search field can shrink to a phone", () => {
 });
 
 describe("the topbar offers no control without a destination", () => {
-  it("no Help control until a help page exists (founder decision, 24 Sep)", () => {
-    // The Help button rendered with no href and no handler: a keyboard or
-    // screen-reader user reached a control that did nothing. It returns with
-    // /app/help, and this guard lets it back only then.
-    const helpPage = existsSync(path.join(process.cwd(), "app", "(app)", "app", "help"));
-    for (const html of [shellHtml(), shellHtml({ topbar: { caption: "", initial: null } })]) {
-      const help = html.match(/<(?:button|a)\b[^>]*aria-label="Help"[^>]*>/)?.[0] ?? null;
-      if (!helpPage) assert.equal(help, null, `a Help control renders with nowhere to go: ${help}`);
-      else assert.match(help ?? "", /href="\/app\/help"/, "the Help control does not go to /app/help");
+  // The Help button rendered with no href and no handler: a keyboard or
+  // screen-reader user reached a control that did nothing (founder decision,
+  // 24 Sep: none until /app/help exists). The topbar is a server component,
+  // so no click handler can hide in it — a control does something only as a
+  // link with a real href, or as the search form's submit.
+  const topbars = [
+    { caption: "10,266 published suppliers", initial: "R", searchAction: "/app/discover" },
+    { caption: "", initial: null },
+  ].map((model) => renderToStaticMarkup(createElement(Topbar, { model } as Parameters<typeof Topbar>[0])));
+
+  it("every link goes somewhere and every button submits the search", () => {
+    for (const html of topbars) {
+      for (const a of html.match(/<a\b[^>]*>/g) ?? []) {
+        assert.match(a, /\bhref="\/[^"]+"/, `a topbar link with no destination: ${a}`);
+      }
+      for (const b of html.match(/<button\b[^>]*>/g) ?? []) {
+        assert.match(b, /\btype="submit"/, `a topbar button with no destination: ${b}`);
+      }
     }
+  });
+
+  it("no Help control, by any name, until the help page exists", () => {
+    const helpPage = existsSync(path.join(process.cwd(), "app", "(app)", "app", "help", "page.tsx"));
+    for (const html of topbars) {
+      const named = /(?:aria-label|title)="[^"]*\b(?:Help|help)\b[^"]*"|>\s*(?:Help|\?)\s*</.test(html);
+      if (!helpPage) assert.ok(!named, `a Help control renders with nowhere to go: ${html}`);
+      else if (named) assert.match(html, /href="\/app\/help"/, "the Help control does not go to /app/help");
+    }
+  });
+});
+
+describe("each result's actions are tied to its supplier (WCAG 2.4.4)", () => {
+  // Every row and card repeats "Open", "Send RFQ" and "Save". A link's
+  // context is its cell's headers, so the supplier name must be the row
+  // header; on a card it must be a heading the actions sit under.
+  const text = (h: string) =>
+    h.replace(/<[^>]+>/g, "").replace(/&amp;/g, "&").replace(/&#x27;/g, "'").replace(/&quot;/g, '"').trim();
+
+  it("the table's supplier name is the row header of every row, in the row with its actions", () => {
+    const rows = [buildTableRow(aboniInput()), buildTableRow(arFashionInput())];
+    const html = renderToStaticMarkup(createElement(ResultsTable, { rows }));
+    const trs = [...html.matchAll(/<tr\b[^>]*>([\s\S]*?)<\/tr>/g)].map((m) => m[1]!).filter((tr) => /<td\b/.test(tr));
+    assert.equal(trs.length, rows.length);
+    trs.forEach((tr, i) => {
+      const th = tr.match(/<th\b[^>]*scope="row"[^>]*>([\s\S]*?)<\/th>/);
+      assert.ok(th, `row ${i} has no row header, so its actions have no supplier context`);
+      assert.ok(text(th[1]!).includes(rows[i]!.name), `row ${i}'s header is not its supplier: ${text(th[1]!)}`);
+      assert.match(tr, />Open</, `row ${i}'s Open is not in the row its header names`);
+    });
+  });
+
+  it("a card's supplier name is a heading", () => {
+    const card = buildCard(aboniInput());
+    const html = renderToStaticMarkup(createElement(SupplierResultCard, { card }));
+    const heading = html.match(/<h([2-6])\b[^>]*>([\s\S]*?)<\/h\1>/);
+    assert.ok(heading, "the card has no heading");
+    assert.equal(text(heading[2]!), card.name);
   });
 });
 
