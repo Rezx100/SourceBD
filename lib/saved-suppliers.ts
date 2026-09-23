@@ -57,7 +57,11 @@ export async function runSavedSupplierPost(input: {
   const listed = new Set(((live ?? []) as { id: string }[]).map((r) => String(r.id).toLowerCase()));
   const keep = ids.filter((id) => listed.has(id));
   const skipped = ids.length - keep.length;
-  if (keep.length === 0) return { status: 200, body: { ok: true, saved: true, count: 0, skipped } };
+  // Nothing left to save is NOT a success: a single-row Save answered 200
+  // here and its button said "Saved" over a supplier that was never stored.
+  if (keep.length === 0) {
+    return { status: 404, body: { error: "This supplier is no longer listed.", count: 0, skipped } };
+  }
 
   const { error } = await input.supabase
     .from("saved_suppliers")
@@ -65,6 +69,13 @@ export async function runSavedSupplierPost(input: {
       keep.map((supplier_id) => ({ owner_id: ownerId, supplier_id })),
       { onConflict: "owner_id,supplier_id", ignoreDuplicates: true },
     );
-  if (error) return { status: 500, body: { error: "save failed" } };
+  if (error) {
+    // Removed between the listed-check and the write: the check excludes it
+    // next time, so this one IS worth retrying, and the buyer is told so.
+    if ((error as { code?: string }).code === "23503") {
+      return { status: 409, body: { error: "A supplier was removed while saving. Save again." } };
+    }
+    return { status: 500, body: { error: "save failed" } };
+  }
   return { status: 200, body: { ok: true, saved: true, count: keep.length, skipped, ids: keep } };
 }

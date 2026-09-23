@@ -525,6 +525,18 @@ describe("the bulk bar's selected-rows export (?ids=)", () => {
     assert.equal(twice.status, 400);
   });
 
+  it("a repeated id is one supplier, not two — the file is not called short", async () => {
+    const res = await runDiscoverExport({
+      role: "buyer",
+      supabase: { rpc: async () => ({ data: [ROW], error: null }) },
+      search: `ids=${ROW.id},${ROW.id}`,
+      today: TODAY,
+    });
+    assert.equal(res.status, 200);
+    assert.equal(res.headers["X-SourceBD-Requested"], "1");
+    assert.match(res.headers["Content-Disposition"] ?? "", /-selected-1\.csv"/);
+  });
+
   it("a selection that matches nothing on the re-run page is a 409 with a reason, not an empty file", async () => {
     const res = await runDiscoverExport({
       role: "buyer",

@@ -4,10 +4,25 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/dashboard/controls";
 
+/** What the form says for a refused save, and whether it is the NAME's fault
+ * (only then is the name field marked invalid — WCAG 3.3.1). */
+export function saveSearchError(status: number, error: string | undefined): { message: string; onName: boolean } {
+  if (status === 401) return { message: "Sign in to save a search.", onName: false };
+  if (status === 409) return { message: "You have reached the limit of 200 saved searches. Delete one to save this.", onName: false };
+  if (status === 400 && error === "invalid name") return { message: "Give the search a name of 120 characters or fewer.", onName: true };
+  if (status === 400 && error === "search too long to save") {
+    return { message: "This search is too long to save. Remove some filters or shorten the words.", onName: false };
+  }
+  return { message: "Could not save this search.", onName: false };
+}
+
 export function SaveSearchForm({ search, defaultName }: { search: string; defaultName: string }) {
   const router = useRouter();
   const [name, setName] = useState(defaultName.slice(0, 120));
   const [error, setError] = useState<string | null>(null);
+  // Only an error ABOUT the name marks the name field invalid (WCAG 3.3.1):
+  // "limit reached" or "too long" cannot be fixed by editing the name.
+  const [nameError, setNameError] = useState(false);
   const [pending, setPending] = useState(false);
 
   return (
@@ -17,6 +32,7 @@ export function SaveSearchForm({ search, defaultName }: { search: string; defaul
         e.preventDefault();
         setPending(true);
         setError(null);
+        setNameError(false);
         // Without the catch, a rejected fetch skipped setPending(false) and
         // left Save search disabled for good, announcing nothing.
         let res: Response;
@@ -32,20 +48,11 @@ export function SaveSearchForm({ search, defaultName }: { search: string; defaul
           return;
         }
         setPending(false);
-        if (res.status === 401) {
-          setError("Sign in to save a search.");
-          return;
-        }
-        if (res.status === 409) {
-          setError("You have reached the limit of 200 saved searches. Delete one to save this.");
-          return;
-        }
-        if (res.status === 400) {
-          setError("This search is too long to save. Remove some filters or shorten the words.");
-          return;
-        }
         if (!res.ok) {
-          setError("Could not save this search.");
+          const body = (await res.json().catch(() => ({}))) as { error?: string };
+          const refused = saveSearchError(res.status, body.error);
+          setNameError(refused.onName);
+          setError(refused.message);
           return;
         }
         router.push("/app/searches");
@@ -60,8 +67,8 @@ export function SaveSearchForm({ search, defaultName }: { search: string; defaul
           onChange={(e) => setName(e.target.value)}
           maxLength={120}
           required
-          aria-invalid={error ? true : undefined}
-          aria-describedby={error ? "save-search-error" : undefined}
+          aria-invalid={nameError || undefined}
+          aria-describedby={nameError ? "save-search-error" : undefined}
           className="h-control rounded-sm border border-line-strong bg-surface px-3 text-ink-strong"
         />
       </label>

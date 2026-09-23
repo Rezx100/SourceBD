@@ -16,11 +16,20 @@ function stripSql(sql: string): string {
     .join("\n");
 }
 
-/** rl_check's body in one migration file, comments stripped, whitespace folded. */
-function rlCheckBody(file: string): string {
-  const m = stripSql(readFileSync(path.join(MIG, file), "utf8")).match(/create or replace function public\.rl_check\([\s\S]*?\$\$([\s\S]*?)\$\$;/i);
-  assert.ok(m, `${file} defines no rl_check`);
-  return (m[1] ?? "").replace(/\s+/g, " ").trim();
+/** Any spelling of a definition of public.rl_check — quoted identifiers,
+ * spaces before the parenthesis, `supabase db diff` casing. */
+const RL_CHECK_DEF = /create\s+or\s+replace\s+function\s+"?public"?\s*\.\s*"?rl_check"?\s*\(/i;
+
+/** rl_check's whole definition in one file — header (security definer,
+ * search_path) AND body — comments stripped, whitespace folded. */
+function rlCheckDef(file: string): { header: string; body: string } {
+  const sql = stripSql(readFileSync(path.join(MIG, file), "utf8"));
+  const at = sql.search(RL_CHECK_DEF);
+  assert.ok(at >= 0, `${file} defines no rl_check`);
+  const m = sql.slice(at).match(/^([\s\S]*?)\bas\s+\$\$([\s\S]*?)\$\$;/i);
+  assert.ok(m, `${file}: rl_check has no $$ body`);
+  const fold = (x: string | undefined) => (x ?? "").replace(/\s+/g, " ").trim().toLowerCase();
+  return { header: fold(m[1]), body: fold(m[2]) };
 }
 
 /** The rl_check definition production ends up with: replay order is filename,
@@ -32,8 +41,7 @@ function effectiveRlCheck(): { file: string; sql: string } {
   let found: { file: string; sql: string } | null = null;
   for (const f of ordered) {
     const sql = stripSql(readFileSync(path.join(MIG, f), "utf8"));
-    const m = sql.match(/create or replace function public\.rl_check\([\s\S]*?\$\$([\s\S]*?)\$\$;/i);
-    if (m) found = { file: f, sql: m[1] ?? "" };
+    if (RL_CHECK_DEF.test(sql)) found = { file: f, sql: rlCheckDef(f).body };
   }
   assert.ok(found, "no migration defines public.rl_check");
   return found;
@@ -64,7 +72,7 @@ describe("rate-limit classes", () => {
     ]);
     const definers = readdirSync(MIG)
       .filter((f) => f.endsWith(".sql"))
-      .filter((f) => /create or replace function public\.rl_check\(/i.test(readFileSync(path.join(MIG, f), "utf8")));
+      .filter((f) => RL_CHECK_DEF.test(readFileSync(path.join(MIG, f), "utf8")));
     assert.deepEqual(definers.filter((f) => !known.has(f)), []);
   });
 
@@ -73,10 +81,15 @@ describe("rate-limit classes", () => {
     // dropped anon guard or a changed window would all pass the allow-list
     // check above; this pins the rest of the body to the version production
     // runs (checked against pg_proc.prosrc, 23 Sep 2026).
-    const live = rlCheckBody("20260725_rez_security_hardening_2.sql");
-    const ours = rlCheckBody("0104_discover_v32.sql");
-    assert.notEqual(ours, live, "0104 no longer adds api_export");
-    assert.equal(ours.replace("'api_write', 'api_export',", "'api_write',"), live);
+    const live = rlCheckDef("20260725_rez_security_hardening_2.sql");
+    const ours = rlCheckDef("0104_discover_v32.sql");
+    // The header too: SECURITY INVOKER would hit rate_limit_buckets' RLS (no
+    // policies), error, and the limiter fails open — every limit gone.
+    assert.equal(ours.header, live.header);
+    assert.match(ours.header, /security definer/);
+    assert.match(ours.header, /set search_path = public/);
+    assert.notEqual(ours.body, live.body, "0104 no longer adds api_export");
+    assert.equal(ours.body.replace("'api_write', 'api_export',", "'api_write',"), live.body);
   });
 
   it("the export limit CI exercises is the one the app enforces", () => {

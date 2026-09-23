@@ -31,7 +31,7 @@ import {
   zaheenSampleInput,
 } from "@/lib/dashboard/fixtures";
 import type { RfqListModel } from "@/lib/dashboard/models";
-import { Checkbox, Meter, Seg } from "./controls";
+import { Button, Checkbox, Meter, Seg } from "./controls";
 import { Icon } from "./icons";
 import { Panel, PanelFooter, PanelHeader } from "./results-panel";
 import { ProductSheet } from "./product-sheet";
@@ -54,6 +54,7 @@ import { PhotoStrip } from "./photo-tiles";
 import { RFQ_EMPTY_COPY, RFQ_ERROR_COPY, RfqList } from "./rfq-list";
 import { SearchComposer } from "./search-composer";
 import { SelectionBar } from "./selection-bar";
+import { saveSearchError } from "./save-search-form";
 import { SELECT_ALL_ID, SelectionContext, SelectionProvider, type SelectionContextValue } from "./selection";
 import { readFileSync } from "node:fs";
 import path from "node:path";
@@ -1315,6 +1316,17 @@ describe("the two-state controls say which state they are in", () => {
       .replace(/\/\*[\s\S]*?\*\//g, "")
       .replace(/(^|[^:"'`])\/\/.*$/gm, "$1");
 
+  /** The body of `export function <name>(` in a source file (comments
+   * stripped), so a dead helper elsewhere in the file cannot satisfy a check. */
+  const functionBody = (rel: string, name: string) => {
+    const code = sourceCode(rel);
+    const at = code.indexOf(`export function ${name}(`);
+    assert.ok(at >= 0, `${name} not found in ${rel}`);
+    const next = code.indexOf("\nexport ", at + 10);
+    return code.slice(at, next < 0 ? undefined : next);
+  };
+  const count = (hay: string, needle: string) => hay.split(needle).length - 1;
+
   describe("the bulk bar", () => {
     const A = "11111111-1111-4111-8111-111111111111";
     const B = "22222222-2222-4222-8222-222222222222";
@@ -1348,6 +1360,14 @@ describe("the two-state controls say which state they are in", () => {
       const html = bar([]);
       assert.doesNotMatch(html, /Bulk actions"/);
       assert.match(html, /^<span role="status" aria-live="polite" class="sr-only"><\/span>$/);
+    });
+
+    it("the announcer is the SAME node before and after the bar appears — first child of an unkeyed fragment", () => {
+      // Wrapped in any element (or keyed), it would remount on the first tick
+      // and the first count would go unannounced, which is the defect it fixes.
+      const code = sourceCode("components/dashboard/selection-bar.tsx");
+      assert.match(code, /if \(!visible\) return announcer;/);
+      assert.match(code, /return \(\s*<>\s*\{announcer\}\s*<div\s+ref=\{barRef\}/);
     });
 
     it("announces the count and where the actions are from that pre-existing region", () => {
@@ -1402,7 +1422,7 @@ describe("the two-state controls say which state they are in", () => {
       const code = sourceCode("components/dashboard/selection-bar.tsx");
       assert.match(
         code,
-        /useEffect\(\(\) => \{\s*const bar = barRef\.current;\s*if \(!visible \|\| !bar\) return;[^}]*return reserveBarSpace\(document\.documentElement, bar, document\.activeElement as HTMLElement \| null, observe\);\s*\}, \[visible\]\);/,
+        /useEffect\(\(\) => \{\s*const bar = barRef\.current;\s*if \(!visible \|\| !bar\) return;[^}]*return reserveBarSpace\(document\.documentElement, bar, document\.activeElement as HTMLElement \| null, observe, sticky\);\s*\}, \[visible\]\);/,
       );
     });
 
@@ -1413,16 +1433,53 @@ describe("the two-state controls say which state they are in", () => {
     });
 
     it("both Export buttons download in place — a refusal is a sentence on the page, not a JSON document instead of it", () => {
+      // The download and its messages are runExport/saveBlob, tested in
+      // selection.test.ts; here, the click wires them in and stops navigation.
       const link = sourceCode("components/dashboard/export-link.tsx");
-      assert.match(link, /e\.preventDefault\(\);[\s\S]*await fetch\(href\)/);
-      assert.match(link, /if \(!res\.ok\) \{\s*setStatus\(exportMessage\(res\.status/);
-      assert.match(sourceCode("components/dashboard/selection-bar.tsx"), /<ExportLink href=\{bulkExportHref\(exportHref, ids\)\}/);
+      assert.match(
+        link,
+        /if \(!interceptPlainClick\(e\) \|\| busy\) return;[\s\S]*?setStatus\(\s*await runExport\(href, requested, \{\s*fetch: \(url\) => fetch\(url\),\s*save: \(blob, filename\) => saveBlob\(document, URL, \(fn\) => setTimeout\(fn, 1000\), blob, filename\),\s*\}\),\s*\);/,
+      );
+      assert.match(link, /<Button href=\{href\} onClick=\{run\}/);
+      assert.match(sourceCode("components/dashboard/selection-bar.tsx"), /<ExportLink key=\{ids\.join\(","\)\} href=\{bulkExportHref\(exportHref, ids\)\}/);
       assert.match(sourceCode("components/dashboard/results-panel.tsx"), /<ExportLink href=\{model\.exportHref\}/);
       // And the link still carries its href, for a middle-click or no script.
       const html = renderToStaticMarkup(
         createElement(PanelHeader, { model: { title: "K", total: 1, shown: 1, firstRow: 1, sortLabel: "Name", view: "cards" as const, exportHref: "/api/v1/discover/export?q=k" } }),
       );
       assert.match(html, /<a href="\/api\/v1\/discover\/export\?q=k"/);
+    });
+
+    it("inside SelectionBar itself: one Save wired straight to bulkSave, one Clear, the whole selection sent, one status write", () => {
+      const body = functionBody("components/dashboard/selection-bar.tsx", "SelectionBar");
+      assert.equal(count(body, "onClick={bulkSave}"), 1, "Save must call bulkSave unconditionally");
+      assert.equal(count(body, "onClick={() => clearKeepingFocus(document.getElementById(SELECT_ALL_ID), sel.clear)}"), 1);
+      assert.equal(count(body, "onClick="), 2, "an extra or conditional handler slipped in");
+      assert.equal(count(body, "setStatus(message)"), 1, "a second status write defeats the generation guard");
+      assert.match(body, /const observe = typeof ResizeObserver === "undefined" \? null : \(fit: \(\) => void\) => new ResizeObserver\(fit\);/);
+      assert.match(body, /await runBulkSave\(ids, \{/);
+      assert.doesNotMatch(body, /\bids\s*\.\s*(splice|pop|shift|length\s*=)|\bids\s*=(?!=)(?!\s*\[\.\.\.sel\.selected\];)/, "the selection sent must be the whole selection");
+      assert.match(body, /<ExportLink key=\{ids\.join\(","\)\} href=\{bulkExportHref\(exportHref, ids\)\} label="Export" requested=\{count\} \/>/);
+      assert.match(functionBody("components/dashboard/export-link.tsx", "ExportLink"), /\} finally \{\s*setBusy\(false\);\s*\}/);
+    });
+
+    it("the header's Export CSV is the in-place export — its status region renders beside it", () => {
+      const html = renderToStaticMarkup(
+        createElement(PanelHeader, { model: { title: "K", total: 1, shown: 1, firstRow: 1, sortLabel: "Name", view: "cards" as const, exportHref: "/api/v1/discover/export?q=k" } }),
+      );
+      // A plain <Button href> renders the anchor alone; ExportLink follows it
+      // with its own live region.
+      assert.match(html, /<a href="\/api\/v1\/discover\/export\?q=k"[^>]*>(?:(?!<\/a>).)*Export CSV<\/a><span id="[^"]+" role="status" aria-live="polite"/);
+    });
+
+    it("the saved-search form names the real cause, and only a name error blames the name field", () => {
+      assert.deepEqual(saveSearchError(400, "invalid name").onName, true);
+      assert.equal(saveSearchError(400, "search too long to save").onName, false);
+      assert.match(saveSearchError(400, "search too long to save").message, /too long/);
+      assert.equal(saveSearchError(400, "invalid query_state").message, "Could not save this search.");
+      assert.match(saveSearchError(409, "saved search limit reached").message, /limit of 200/);
+      assert.match(saveSearchError(401, undefined).message, /Sign in/);
+      assert.equal(saveSearchError(500, "save failed").onName, false);
     });
 
     it("the bar's Save runs runBulkSave with every selected id, and announces + refreshes only through onSaved", () => {
@@ -1453,6 +1510,56 @@ describe("the two-state controls say which state they are in", () => {
       );
       assert.match(html, new RegExp(`id="${SELECT_ALL_ID}"[^>]*aria-checked="mixed"`));
       assert.match(sourceCode("components/dashboard/selection.tsx"), /useMemo\(\(\) => selectionValue\(selected, pageIds, setSelected\), \[selected, pageIds\]\)/);
+    });
+
+    it("the bar is sticky only on a window tall enough to spare it, and hides the two dead actions on a phone (WCAG 1.4.10)", () => {
+      const html = bar([A]);
+      const cls = html.match(/<div role="group" aria-label="Bulk actions" class="([^"]+)"/)?.[1] ?? "";
+      assert.ok(cls, "bar not found");
+      const classes = cls.split(/\s+/);
+      assert.ok(classes.includes("[@media(min-height:32rem)]:sticky"), cls);
+      assert.ok(!classes.includes("sticky"), "an unconditional sticky covered 91% of a 320x256 view");
+      const tag = (label: string) => html.match(new RegExp(`<button[^>]*>(?:(?!</button>).)*${label}</button>`))?.[0] ?? "";
+      for (const label of ["Send RFQ", "Compare"]) {
+        const b = tag(label);
+        assert.ok(b, label);
+        assert.match(b, /class="[^"]*\bhidden\b[^"]*\bsm:inline-flex\b/, `${label} still shows on a phone`);
+      }
+      assert.match(html, /<p id="[^"]+" class="[^"]*\bhidden\b[^"]*\bsm:block\b/);
+      // And the effect only reserves space while the bar is actually sticky.
+      assert.match(sourceCode("components/dashboard/selection-bar.tsx"), /const sticky = \(\) => getComputedStyle\(bar\)\.position === "sticky";\s*return reserveBarSpace\([^;]*, observe, sticky\);/);
+    });
+
+    it("the provider prunes its selection to the page whenever a refresh changes the rows", () => {
+      assert.match(
+        sourceCode("components/dashboard/selection.tsx"),
+        /const pageKey = pageIds\.join\(","\);\s*useEffect\(\(\) => \{\s*setSelected\(\(s\) => pruneToPage\(s, pageKey \? pageKey\.split\(","\) : \[\]\)\);\s*\}, \[pageKey\]\);/,
+      );
+    });
+
+    it("the bar's Export is remounted per selection, so its message never describes an older one", () => {
+      assert.match(sourceCode("components/dashboard/selection-bar.tsx"), /<ExportLink key=\{ids\.join\(","\)\} href=\{bulkExportHref\(exportHref, ids\)\}/);
+      assert.match(sourceCode("components/dashboard/export-link.tsx"), /setBusy\(true\);\s*setStatus\("Preparing the export…"\);/);
+    });
+
+    it("the link form of Button passes its click handler and ARIA through — Export depends on it", () => {
+      let clicked = 0;
+      const el = Button({ href: "/x", onClick: () => (clicked += 1), "aria-describedby": "d", "aria-busy": true, children: "Export" }) as {
+        type: string;
+        props: { href: string; onClick?: (e: unknown) => void; "aria-describedby"?: string; "aria-busy"?: boolean };
+      };
+      assert.equal(el.type, "a");
+      assert.equal(el.props.href, "/x");
+      el.props.onClick?.({});
+      assert.equal(clicked, 1);
+      assert.equal(el.props["aria-describedby"], "d");
+      assert.equal(el.props["aria-busy"], true);
+    });
+
+    it("only a name error marks the saved-search name field invalid", () => {
+      const code = sourceCode("components/dashboard/save-search-form.tsx");
+      assert.match(code, /aria-invalid=\{nameError \|\| undefined\}/);
+      assert.doesNotMatch(code, /aria-invalid=\{error/);
     });
 
     it("the page keys the selection on its whole URL state, so a new page of results starts empty", () => {

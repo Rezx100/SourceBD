@@ -1,8 +1,9 @@
 "use client";
 
 // The sticky bulk-action bar (REZ-B, handoff §7.5 / spec §3.1 "Selection"):
-// "N selected · Send RFQ · Save · Compare · Export". Renders nothing with an
-// empty selection.
+// "N selected · Send RFQ · Save · Compare · Export". With an empty selection
+// it renders no bar, only its (empty) screen-reader announcer, which must
+// already exist when the first box is ticked.
 //
 // Send RFQ and Compare are disabled here on purpose: their destinations are
 // REZ-D (the multi-supplier RFQ composer) and REZ-C (`/app/compare`), which
@@ -54,7 +55,8 @@ export function SelectionBar({ exportHref }: { exportHref: string }) {
     const bar = barRef.current;
     if (!visible || !bar) return;
     const observe = typeof ResizeObserver === "undefined" ? null : (fit: () => void) => new ResizeObserver(fit);
-    return reserveBarSpace(document.documentElement, bar, document.activeElement as HTMLElement | null, observe);
+    const sticky = () => getComputedStyle(bar).position === "sticky";
+    return reserveBarSpace(document.documentElement, bar, document.activeElement as HTMLElement | null, observe, sticky);
   }, [visible]);
 
   // Announced from a region that exists BEFORE the first selection: a live
@@ -93,11 +95,15 @@ export function SelectionBar({ exportHref }: { exportHref: string }) {
         ref={barRef}
         role="group"
         aria-label="Bulk actions"
-        className="sticky bottom-0 z-20 flex flex-wrap items-center gap-3 border-t border-line-strong bg-surface px-4 py-3 shadow-[0_-4px_12px_rgba(0,0,0,0.08)] sm:px-5"
+        // Sticky only on a window at least 32rem tall: at 400% zoom (320x256
+        // CSS px) a sticky bar covered 91% of the view, leaving an 8px strip
+        // of results (WCAG 1.4.10). Shorter windows get it in flow, after the
+        // results, where the announcer says it is.
+        className="bottom-0 z-20 flex flex-wrap items-center gap-3 border-t border-line-strong bg-surface px-4 py-3 shadow-[0_-4px_12px_rgba(0,0,0,0.08)] sm:px-5 [@media(min-height:32rem)]:sticky"
       >
         <span className="text-sm font-medium text-ink-strong">{count} selected</span>
         <div className="flex flex-wrap items-center gap-2">
-          <Button variant="primary" disabled title={SEND_RFQ_SOON} aria-describedby={noteId}>
+          <Button variant="primary" disabled title={SEND_RFQ_SOON} aria-describedby={noteId} className="hidden sm:inline-flex">
             <Icon name="send" /> Send RFQ
           </Button>
           <Button
@@ -113,11 +119,11 @@ export function SelectionBar({ exportHref }: { exportHref: string }) {
             disabled
             title={COMPARE_SOON}
             aria-describedby={noteId}
-            className="disabled:cursor-not-allowed disabled:border-line disabled:text-ink-disabled"
+            className="hidden disabled:cursor-not-allowed disabled:border-line disabled:text-ink-disabled sm:inline-flex"
           >
             <Icon name="compare" /> Compare
           </Button>
-          <ExportLink href={bulkExportHref(exportHref, ids)} label="Export" requested={count} />
+          <ExportLink key={ids.join(",")} href={bulkExportHref(exportHref, ids)} label="Export" requested={count} />
         </div>
         <span role="status" aria-live="polite" className="text-xs text-ink-subtle">
           {status}
@@ -125,7 +131,7 @@ export function SelectionBar({ exportHref }: { exportHref: string }) {
         <Button type="button" variant="ghost" className="ml-auto" onClick={() => clearKeepingFocus(document.getElementById(SELECT_ALL_ID), sel.clear)}>
           Clear
         </Button>
-        <p id={noteId} className="basis-full text-xs text-ink-subtle">
+        <p id={noteId} className="hidden basis-full text-xs text-ink-subtle sm:block">
           {NOT_BUILT}
         </p>
       </div>

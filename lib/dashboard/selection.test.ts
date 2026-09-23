@@ -10,7 +10,11 @@ import {
   bulkSaveMessage,
   clearKeepingFocus,
   exportMessage,
+  interceptPlainClick,
+  pruneToPage,
   reserveBarSpace,
+  runExport,
+  saveBlob,
   runBulkSave,
   selectionValue,
   onBulkSaved,
@@ -84,16 +88,23 @@ describe("discover bulk-selection math", () => {
     assert.equal(bulkSaveMessage(200, 3, 0), "Saved 3 suppliers");
     assert.match(bulkSaveMessage(200, 3, 2), /^Saved 3 suppliers\. 2 are no longer listed/);
     assert.match(bulkSaveMessage(200, 0, 1), /1 is no longer listed and was not saved/);
+    assert.match(bulkSaveMessage(404, 2), /nothing was saved/);
+    assert.match(bulkSaveMessage(409, 2), /Save again/);
   });
 
   it("every export refusal becomes a sentence, and a short file is called short", () => {
     assert.match(exportMessage(429, {}), /Wait a minute/);
     assert.match(exportMessage(409, {}), /Reload the page/);
     assert.match(exportMessage(403, {}), /buyer account/);
+    assert.match(exportMessage(401, {}), /buyer account/);
     assert.match(exportMessage(503, {}), /Try again/);
     assert.equal(exportMessage(200, { rows: 3, requested: 3 }), "Export downloaded.");
     assert.match(exportMessage(200, { rows: 2, requested: 5 }), /^Exported 2 of 5\. 3 are no longer/);
     assert.equal(exportMessage(200, { rows: NaN, requested: 5 }), "Export downloaded.");
+    // The full export at its cap: the sentence says it stopped, like the filename.
+    assert.match(exportMessage(200, { rows: 1000, matched: 3481, truncated: true }), /first 1000 of 3481/);
+    assert.match(exportMessage(200, { rows: 1000, truncated: true }), /first 1000 suppliers/);
+    assert.equal(exportMessage(200, { rows: 1000, matched: 1000, truncated: false }), "Export downloaded.");
     for (const st of [400, 401, 403, 409, 429, 500, 503, "network"] as const) {
       assert.doesNotMatch(exportMessage(st, {}), /[{}"]/, "never raw JSON");
     }
@@ -128,6 +139,13 @@ describe("discover bulk-selection math", () => {
     assert.equal(state.size, 0);
   });
 
+  it("a refresh that drops a selected row off the page drops it from the selection too", () => {
+    const same = new Set(["a", "b"]);
+    assert.equal(pruneToPage(same, ["a", "b", "c"]), same, "unchanged selection is the same object, so setState bails out");
+    assert.deepEqual([...pruneToPage(new Set(["a", "b", "x"]), ["a", "b", "c"])].sort(), ["a", "b"]);
+    assert.equal(pruneToPage(new Set(["x"]), []).size, 0);
+  });
+
   it("Clear moves focus BEFORE it empties the selection that unmounts the bar", () => {
     const order: string[] = [];
     clearKeepingFocus({ focus: () => order.push("focus") }, () => order.push("clear"));
@@ -156,6 +174,16 @@ describe("discover bulk-selection math", () => {
     undo();
     assert.equal(root.style.scrollPaddingBottom, "4px");
     assert.equal(disconnected, true);
+  });
+
+  it("a bar that is NOT sticky (a short window, where it sits in flow) reserves nothing and scrolls nothing", () => {
+    const root = { style: { scrollPaddingBottom: "4px" } };
+    const scrolled: unknown[] = [];
+    const undo = reserveBarSpace(root, { offsetHeight: 233 }, { scrollIntoView: (o) => scrolled.push(o) }, null, () => false);
+    assert.equal(root.style.scrollPaddingBottom, "4px");
+    assert.deepEqual(scrolled, []);
+    undo();
+    assert.equal(root.style.scrollPaddingBottom, "4px");
   });
 
   describe("the bar's bulk save", () => {
@@ -187,6 +215,15 @@ describe("discover bulk-selection math", () => {
       }
     });
 
+    it("an error page that is not JSON (a proxy's HTML 502) is still reported as the failure it is", async () => {
+      const msg = await runBulkSave(["a"], {
+        fetch: async () => ({ ok: false, status: 502, json: async () => JSON.parse("<html>bad gateway</html>") }),
+        onSaved: () => assert.fail("onSaved on a 502"),
+      });
+      assert.match(msg, /Could not save them\. Try again\./);
+      assert.doesNotMatch(msg, /no connection/);
+    });
+
     it("a dropped connection is a message, not an unhandled rejection", async () => {
       const msg = await runBulkSave(["a"], {
         fetch: async () => {
@@ -195,6 +232,85 @@ describe("discover bulk-selection math", () => {
         onSaved: () => assert.fail("onSaved on a network error"),
       });
       assert.match(msg, /no connection/);
+    });
+  });
+
+  describe("Export, downloaded in place", () => {
+    it("takes over only a plain left click; a modifier or middle click opens the link as usual", () => {
+      const click = (over: Partial<{ metaKey: boolean; ctrlKey: boolean; shiftKey: boolean; button: number }> = {}) => {
+        let prevented = 0;
+        const ours = interceptPlainClick({ metaKey: false, ctrlKey: false, shiftKey: false, button: 0, ...over, preventDefault: () => (prevented += 1) });
+        return { ours, prevented };
+      };
+      assert.deepEqual(click(), { ours: true, prevented: 1 });
+      for (const over of [{ metaKey: true }, { ctrlKey: true }, { shiftKey: true }, { button: 1 }]) {
+        assert.deepEqual(click(over), { ours: false, prevented: 0 }, JSON.stringify(over));
+      }
+    });
+
+    const response = (status: number, headers: Record<string, string> = {}) => ({
+      ok: status < 300,
+      status,
+      headers: { get: (n: string) => headers[n] ?? null },
+      blob: async () => "csv-bytes",
+    });
+
+    it("saves the body once, under the server's own filename, and says when the file is short", async () => {
+      const saved: [unknown, string][] = [];
+      const msg = await runExport("/api/v1/discover/export?ids=a,b,c", 3, {
+        fetch: async () =>
+          response(200, {
+            "Content-Disposition": 'attachment; filename="sourcebd-suppliers-2026-09-23-selected-2-of-3.csv"',
+            "X-SourceBD-Rows": "2",
+          }),
+        save: (blob, name) => saved.push([blob, name]),
+      });
+      assert.deepEqual(saved, [["csv-bytes", "sourcebd-suppliers-2026-09-23-selected-2-of-3.csv"]]);
+      assert.match(msg, /^Exported 2 of 3\./);
+    });
+
+    it("the full export at its cap says so", async () => {
+      const msg = await runExport("/x", undefined, {
+        fetch: async () =>
+          response(200, { "Content-Disposition": 'attachment; filename="f.csv"', "X-SourceBD-Rows": "1000", "X-SourceBD-Matched": "3481", "X-SourceBD-Truncated": "1" }),
+        save: () => {},
+      });
+      assert.match(msg, /first 1000 of 3481/);
+    });
+
+    it("a refusal saves nothing and becomes a sentence; so does a dropped connection", async () => {
+      for (const status of [400, 409, 429, 503]) {
+        let saves = 0;
+        const msg = await runExport("/x", 2, { fetch: async () => response(status), save: () => (saves += 1) });
+        assert.equal(saves, 0, `saved a file on ${status}`);
+        assert.doesNotMatch(msg, /[{}]/);
+      }
+      const offline = await runExport("/x", 2, {
+        fetch: async () => {
+          throw new TypeError("Failed to fetch");
+        },
+        save: () => assert.fail("saved offline"),
+      });
+      assert.match(offline, /no connection/);
+    });
+
+    it("saveBlob clicks one anchor carrying the filename, then revokes the URL later, not at once", () => {
+      const events: string[] = [];
+      const anchor = { href: "", download: "", click: () => events.push("click"), remove: () => events.push("remove") };
+      const later: { fn?: () => void } = {};
+      saveBlob(
+        { createElement: () => anchor, body: { appendChild: () => events.push("append") } },
+        { createObjectURL: () => "blob:1", revokeObjectURL: (u) => events.push(`revoke ${u}`) },
+        (fn) => (later.fn = fn),
+        "bytes",
+        "sourcebd.csv",
+      );
+      assert.equal(anchor.href, "blob:1");
+      assert.equal(anchor.download, "sourcebd.csv", "without download= the blob URL navigates the tab");
+      assert.deepEqual(events, ["append", "click", "remove"]);
+      assert.ok(later.fn, "the revoke was not deferred");
+      later.fn();
+      assert.deepEqual(events, ["append", "click", "remove", "revoke blob:1"]);
     });
   });
 

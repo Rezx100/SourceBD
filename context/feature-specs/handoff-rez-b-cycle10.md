@@ -375,8 +375,9 @@ suites. CI `35820165951` green.
 Found and repaired. 31 in-process mutations went red (corrected 23 Sep by
 cycle 12's truthfulness reviewer: this line first said 32). NOT proven red in
 cycle 11, only green in CI: the new `assert-0104.sql` blocks, the new
-http-boundary cases, and the root-only test-list skip — cycle 12 proved the
-last two (below); the SQL asserts remain proven only by passing.
+http-boundary cases, and the root-only test-list skip. Cycle 12 proved the
+skip and three of the four http cases red; the fourth (57014 → "heavy load")
+was proven in cycle 13. The SQL asserts remain proven only by passing.
 
 - The false "page still renders" header in `lib/discover-v32-rpc.ts` —
   rewritten as a hard dependency on 0104. The page now says "heavy load"
@@ -458,3 +459,41 @@ outside the app's limiter — the same exposure as §7.1, one role up.
 Filed separately (pre-existing, not REZ-B): the signed-out rate limiter
 never limits in production — `rl_check` refuses anon (42501) and the app
 fails open.
+
+### Cycle 13 — candidate `cdf7972`: security ACCEPT; the other four REJECT
+
+Gate at `cdf7972`: tsc exit 0; lint exit 0; `pnpm test` 1,383 / 0 / 206.
+CI `35833301775` green. Four reviewers were cut off by a network outage and
+resumed with their transcripts intact.
+
+Repaired; 38 in-process mutations red plus one re-run with valid JSX
+(`mutations-r13` in the scratchpad):
+
+- A single Save of a supplier no longer listed answered 200 and the button
+  said "Saved" — now 404 with a reason; a removal racing the write is 409
+  "save again". A refresh that drops a selected row prunes it from the
+  selection (`pruneToPage`).
+- Export: the download and its messages are `runExport` / `saveBlob` /
+  `interceptPlainClick`, tested with a stubbed network and document; the
+  object URL is revoked later, not at once; the header export says when it
+  stopped at the row cap; the bar's Export is remounted per selection so
+  its message never describes an older one.
+- a11y, WCAG 1.4.10: the bar is sticky only on a window ≥ 32rem tall, and
+  the two unbuilt actions and their note are hidden below `sm`. Measured in
+  a browser repro built from the compiled components: 320×256 → in flow
+  (`static`), no scroll padding; 375×812 → sticky, 101px (12%); 1280×800 →
+  sticky, 85px (11%). Before: 233px sticky, 91% of 320×256.
+- The rl_check pin now covers its header (SECURITY DEFINER, search_path)
+  as well as its body, and matches quoted / spaced definitions.
+- `assert-0104.sql` now runs the chains under the roles that use them (anon
+  and signed-in `discover_suppliers`, explain, hs_catalogue, rl_check as a
+  signed-in caller), the saved-search cap and the cross-owner refusal as
+  `authenticated`, and proves the replay emulates default privileges. The
+  bootstrap also emulates Supabase's table and sequence defaults.
+- Bar wiring checks are scoped to the `SelectionBar` body and count
+  handlers, so a dead helper elsewhere cannot satisfy them.
+
+Recorded, not fixed (pre-existing, not REZ-B): `rl_check` is EXECUTE-able by
+any signed-in user with a caller-chosen ident, so one account can exhaust
+another's bucket (e.g. lock a buyer out of export for a minute). Its comment
+in 0104 now says so rather than claiming server-only use.

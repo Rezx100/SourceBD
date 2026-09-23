@@ -76,6 +76,8 @@ export function SaveRecordButton({
               setStatus(next ? "Saved" : "Removed from saved");
             } else if (res.status === 401) {
               setStatus("Sign in to save a record.");
+            } else if (res.status === 404) {
+              setStatus("This supplier is no longer listed, so it was not saved.");
             } else {
               setStatus("Could not save that. Try again.");
             }

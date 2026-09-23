@@ -10,8 +10,8 @@
 // search-param change otherwise). The bar's Export re-runs only this page,
 // so a selection that outlived its page would export short without a word.
 
-import { createContext, useContext, useMemo, useState, type ReactNode } from "react";
-import { selectionValue, type SelectionContextValue } from "@/lib/dashboard/selection";
+import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { pruneToPage, selectionValue, type SelectionContextValue } from "@/lib/dashboard/selection";
 import { Checkbox } from "./controls";
 
 export type { SelectionContextValue };
@@ -32,6 +32,11 @@ const INERT: SelectionContextValue = {
 export function SelectionProvider({ pageIds, children }: { pageIds: readonly string[]; children?: ReactNode }) {
   const [selected, setSelected] = useState<ReadonlySet<string>>(() => new Set());
   const value = useMemo(() => selectionValue(selected, pageIds, setSelected), [selected, pageIds]);
+  // A refresh keeps this provider (same URL key) but can change its rows.
+  const pageKey = pageIds.join(",");
+  useEffect(() => {
+    setSelected((s) => pruneToPage(s, pageKey ? pageKey.split(",") : []));
+  }, [pageKey]);
   return <SelectionContext.Provider value={value}>{children}</SelectionContext.Provider>;
 }
 

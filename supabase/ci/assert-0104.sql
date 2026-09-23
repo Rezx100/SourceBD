@@ -431,12 +431,31 @@ begin
   for i in 1..200 loop
     insert into public.saved_searches (owner_id, name) values ('00000000-0000-4000-8000-00000000d001', 'cap ' || i);
   end loop;
+  -- As the owner, through RLS: the cap trigger is SECURITY INVOKER, so its
+  -- count is the owner's own RLS-visible rows. Run as the superuser this
+  -- would prove nothing about that count.
+  set local role authenticated;
+  perform set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-00000000d001', true);
   begin
     insert into public.saved_searches (owner_id, name) values ('00000000-0000-4000-8000-00000000d001', 'cap 201');
     raise exception 'the 201st saved search for one owner was accepted';
   exception when program_limit_exceeded then
     null;
   end;
+  -- Someone else inserting under the full owner's id is refused by RLS, not
+  -- told "limit reached": a definer count answered that about another
+  -- account's rows.
+  perform set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-00000000d002', true);
+  begin
+    insert into public.saved_searches (owner_id, name) values ('00000000-0000-4000-8000-00000000d001', 'not mine');
+    raise exception 'a buyer inserted a saved search under another owner';
+  exception
+    when insufficient_privilege then null;
+    when program_limit_exceeded then
+      raise exception 'the cap answered about another owner''s rows (54000), leaking their count';
+  end;
+  reset role;
+  perform set_config('request.jwt.claim.sub', '', true);
 end
 $$;
 
@@ -472,6 +491,17 @@ begin
       raise exception 'authenticated can execute the internal helper %', r.proname;
     end if;
   end loop;
+  if not exists (
+    select 1 from pg_proc p
+     where p.pronamespace = 'public'::regnamespace and p.proname = 'discover_suppliers_explain'
+       and has_function_privilege('authenticated', p.oid, 'execute')
+  ) or not exists (
+    select 1 from pg_proc p
+     where p.pronamespace = 'public'::regnamespace and p.proname = 'discover_suppliers'
+       and has_function_privilege('authenticated', p.oid, 'execute')
+  ) then
+    raise exception 'a signed-in buyer cannot execute discover_suppliers or its explain';
+  end if;
   if not has_function_privilege('authenticated', 'public.hs_catalogue()', 'execute')
      or not has_function_privilege('authenticated', 'public.supplier_epb_hscodes_batch(text[])', 'execute')
      or not has_function_privilege('authenticated', 'public.rl_check(text,text,int)', 'execute') then
@@ -484,6 +514,69 @@ begin
   ) then
     raise exception 'discover_suppliers is no longer executable by anon — the public Discover page needs it';
   end if;
+end
+$$;
+
+-- And the chains actually RUN under the roles that use them — privilege
+-- checks alone say nothing about a definer function reaching helpers the
+-- caller itself may not execute.
+do $$
+declare
+  n bigint;
+begin
+  set local role anon;
+  perform set_config('request.jwt.claim.role', 'anon', true);
+  select count(*) into n from public.discover_suppliers();
+  if n = 0 then
+    raise exception 'discover_suppliers returned nothing to anon — the public Discover page would be empty';
+  end if;
+  reset role;
+  set local role authenticated;
+  perform set_config('request.jwt.claim.role', 'authenticated', true);
+  perform set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-00000000d001', true);
+  select count(*) into n from public.discover_suppliers(p_sort => 'hs_lines');
+  if n = 0 then
+    raise exception 'discover_suppliers returned nothing to a signed-in buyer';
+  end if;
+  select count(*) into n from public.discover_suppliers_explain(p_q => 'zz-no-match-zz');
+  perform public.hs_catalogue();
+  reset role;
+  perform set_config('request.jwt.claim.role', '', true);
+  perform set_config('request.jwt.claim.sub', '', true);
+end
+$$;
+
+-- The replay is only as strict as production if Supabase's default
+-- privileges are emulated: a function created now must be anon-executable
+-- until a migration says otherwise. Without this, deleting that bootstrap
+-- line would leave every grant check above passing for the wrong reason.
+do $$
+begin
+  create function public.__ci_default_acl_probe() returns int language sql as 'select 1';
+  if not has_function_privilege('anon', 'public.__ci_default_acl_probe()', 'execute') then
+    raise exception 'the replay does not emulate Supabase default privileges; the grant checks prove nothing';
+  end if;
+  drop function public.__ci_default_acl_probe();
+end
+$$;
+
+-- rl_check run as a SIGNED-IN caller, the way middleware calls it. As
+-- SECURITY INVOKER it would hit rate_limit_buckets' RLS (no policies) and
+-- error — and the app's limiter fails open on any error.
+do $$
+declare
+  env jsonb;
+begin
+  set local role authenticated;
+  perform set_config('request.jwt.claim.role', 'authenticated', true);
+  perform set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-00000000d001', true);
+  env := public.rl_check('api_export', 'ci-signed-in', 6);
+  if (env->>'ok')::boolean is distinct from true then
+    raise exception 'rl_check did not admit a signed-in first call: %', env;
+  end if;
+  reset role;
+  perform set_config('request.jwt.claim.role', '', true);
+  perform set_config('request.jwt.claim.sub', '', true);
 end
 $$;
 

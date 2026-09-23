@@ -1239,7 +1239,8 @@ grant execute on function public.rl_check(text, text, int) to authenticated;
 
 comment on function public.rl_check(text, text, int) is
   'Internal rate-limit helper (H2). Bucket allowlist + anon body guard added '
-  'in REZ-26; api_export bucket added in 0104. Called only by server-side '
-  'code. anon EXECUTE revoked.';
+  'in REZ-26; api_export bucket added in 0104. Called by the app middleware; '
+  'EXECUTE is granted to authenticated, so any signed-in user can also call '
+  'it directly. anon EXECUTE revoked.';
 
 notify pgrst, 'reload schema';

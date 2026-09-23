@@ -51,6 +51,8 @@ export function bulkSaveMessage(status: number | "network", count: number, skipp
     return skipped > 0 ? `${saved}. ${skipped} ${skipped === 1 ? "is" : "are"} no longer listed and ${skipped === 1 ? "was" : "were"} not saved.` : saved;
   }
   if (status === 401) return "Sign in to save suppliers.";
+  if (status === 404) return "None of the selected suppliers are listed any more, so nothing was saved. Reload the page.";
+  if (status === 409) return "A supplier was removed while saving. Save again.";
   if (status === 429) return "Too many saves in the last minute. Wait a minute and save again.";
   if (status === "network") return "Could not save them — no connection. Try again.";
   return "Could not save them. Try again.";
@@ -60,17 +62,25 @@ export function bulkSaveMessage(status: number | "network", count: number, skipp
  * route's refusals are JSON; this turns each into a sentence for the buyer. */
 export function exportMessage(
   status: number | "network",
-  info: { rows?: number; requested?: number },
+  info: { rows?: number; requested?: number; matched?: number; truncated?: boolean },
 ): string {
   if (status === 200) {
-    const { rows, requested } = info;
+    const { rows, requested, matched, truncated } = info;
     if (requested != null && rows != null && Number.isFinite(rows) && rows < requested) {
-      return `Exported ${rows} of ${requested}. ${requested - rows} ${requested - rows === 1 ? "is" : "are"} no longer in these results.`;
+      const gone = requested - rows;
+      return `Exported ${rows} of ${requested}. ${gone} ${gone === 1 ? "is" : "are"} no longer on this page of results.`;
+    }
+    // The full export stops at its row cap. The filename says so, and so must
+    // the sentence a screen-reader user hears.
+    if (truncated && rows != null && Number.isFinite(rows)) {
+      return matched != null && Number.isFinite(matched)
+        ? `Exported the first ${rows} of ${matched} suppliers. The export stops at ${rows}; narrow the search to get the rest.`
+        : `Exported the first ${rows} suppliers. The export stops there; narrow the search to get the rest.`;
     }
     return "Export downloaded.";
   }
   if (status === 429) return "Too many exports in the last minute. Wait a minute and export again.";
-  if (status === 409) return "None of the selected suppliers are in these results any more. Reload the page and select again.";
+  if (status === 409) return "None of the selected suppliers are on this page of results any more. Reload the page and select again.";
   if (status === 401 || status === 403) return "Sign in with a buyer account to export.";
   if (status === "network") return "Could not export — no connection. Try again.";
   return "Could not export these results. Try again in a moment.";
@@ -97,6 +107,19 @@ export function onBulkSaved(target: EventTarget, id: string, saved: () => void):
   };
   target.addEventListener(BULK_SAVED_EVENT, handler);
   return () => target.removeEventListener(BULK_SAVED_EVENT, handler);
+}
+
+/** The selection kept to this page's rows. Returns the SAME set when nothing
+ * changes, so a state setter bails out instead of re-rendering. A refresh
+ * (the bulk Save's) can drop a selected supplier off the page; left selected,
+ * it made select-all read "4 selected" on a 3-row page and the page-scoped
+ * Export refuse. */
+export function pruneToPage(selected: ReadonlySet<string>, pageIds: readonly string[]): ReadonlySet<string> {
+  const onPage = new Set(pageIds);
+  for (const id of selected) {
+    if (!onPage.has(id)) return new Set([...selected].filter((x) => onPage.has(x)));
+  }
+  return selected;
 }
 
 /** What the provider hands every card, row and the bar. */
@@ -152,13 +175,16 @@ export function reserveBarSpace(
   bar: { offsetHeight: number },
   active: { scrollIntoView?: (o: { block: "nearest" }) => void } | null,
   makeObserver: ((fit: () => void) => Observer) | null,
+  /** Whether the bar is sticky NOW. On a short window it is in flow, covers
+   * nothing, and reserving its height would only push content away. */
+  isSticky: () => boolean = () => true,
 ): () => void {
   const before = root.style.scrollPaddingBottom;
   const fit = () => {
-    root.style.scrollPaddingBottom = `${bar.offsetHeight + 8}px`;
+    root.style.scrollPaddingBottom = isSticky() ? `${bar.offsetHeight + 8}px` : before;
   };
   fit();
-  active?.scrollIntoView?.({ block: "nearest" });
+  if (isSticky()) active?.scrollIntoView?.({ block: "nearest" });
   const ro = makeObserver ? makeObserver(fit) : null;
   ro?.observe(bar);
   return () => {
@@ -193,4 +219,82 @@ export async function runBulkSave(
   } catch {
     return bulkSaveMessage("network", ids.length);
   }
+}
+
+type ExportResponse = {
+  ok: boolean;
+  status: number;
+  headers: { get(name: string): string | null };
+  blob(): Promise<unknown>;
+};
+
+/**
+ * An Export click, out of React: fetch the CSV, hand it to `save` under the
+ * SERVER's filename (which carries "-selected-N-of-M" / "-first-1000-of-X"),
+ * and resolve to the sentence the page shows. A refusal saves nothing — the
+ * page stays, and the sentence says why.
+ */
+export async function runExport(
+  href: string,
+  requested: number | undefined,
+  deps: { fetch: (url: string) => Promise<ExportResponse>; save: (blob: unknown, filename: string) => void },
+): Promise<string> {
+  try {
+    const res = await deps.fetch(href);
+    if (!res.ok) return exportMessage(res.status, {});
+    const filename = /filename="([^"]+)"/.exec(res.headers.get("Content-Disposition") ?? "")?.[1] ?? "sourcebd-suppliers.csv";
+    deps.save(await res.blob(), filename);
+    const num = (name: string) => {
+      const v = res.headers.get(name);
+      return v == null ? undefined : Number(v);
+    };
+    return exportMessage(200, {
+      rows: num("X-SourceBD-Rows"),
+      requested,
+      matched: num("X-SourceBD-Matched"),
+      truncated: res.headers.get("X-SourceBD-Truncated") === "1",
+    });
+  } catch {
+    return exportMessage("network", {});
+  }
+}
+
+type SaveDoc = {
+  createElement(tag: "a"): { href: string; download: string; click(): void; remove(): void };
+  body: { appendChild(el: unknown): unknown };
+};
+
+/** Save a blob as a download without leaving the page. The object URL is
+ * revoked LATER, not straight after click(): some browsers start reading it
+ * only after the click handler returns. */
+export function saveBlob(
+  doc: SaveDoc,
+  urls: { createObjectURL(blob: unknown): string; revokeObjectURL(url: string): void },
+  later: (fn: () => void) => void,
+  blob: unknown,
+  filename: string,
+): void {
+  const url = urls.createObjectURL(blob);
+  const a = doc.createElement("a");
+  a.href = url;
+  a.download = filename;
+  doc.body.appendChild(a);
+  a.click();
+  a.remove();
+  later(() => urls.revokeObjectURL(url));
+}
+
+/** A plain left click on an Export link is taken over (downloaded in place);
+ * a modifier or middle click is left to the browser, which opens the href.
+ * Returns true, having stopped the navigation, when the click is ours. */
+export function interceptPlainClick(e: {
+  metaKey: boolean;
+  ctrlKey: boolean;
+  shiftKey: boolean;
+  button: number;
+  preventDefault(): void;
+}): boolean {
+  if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return false;
+  e.preventDefault();
+  return true;
 }

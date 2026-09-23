@@ -9,7 +9,7 @@
 // browser without script still gets the file.
 
 import { useId, useState, type MouseEvent } from "react";
-import { exportMessage } from "@/lib/dashboard/selection";
+import { interceptPlainClick, runExport, saveBlob } from "@/lib/dashboard/selection";
 import { Icon } from "./icons";
 import { Button } from "./controls";
 
@@ -19,29 +19,16 @@ export function ExportLink({ href, label, requested }: { href: string; label: st
   const statusId = useId();
 
   async function run(e: MouseEvent<HTMLElement>) {
-    if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
-    e.preventDefault();
-    if (busy) return;
+    if (!interceptPlainClick(e) || busy) return;
     setBusy(true);
-    setStatus("");
+    setStatus("Preparing the export…");
     try {
-      const res = await fetch(href);
-      if (!res.ok) {
-        setStatus(exportMessage(res.status, {}));
-        return;
-      }
-      const name = /filename="([^"]+)"/.exec(res.headers.get("Content-Disposition") ?? "")?.[1] ?? "sourcebd-suppliers.csv";
-      const url = URL.createObjectURL(await res.blob());
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = name;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
-      setStatus(exportMessage(200, { rows: Number(res.headers.get("X-SourceBD-Rows") ?? NaN), requested }));
-    } catch {
-      setStatus(exportMessage("network", {}));
+      setStatus(
+        await runExport(href, requested, {
+          fetch: (url) => fetch(url),
+          save: (blob, filename) => saveBlob(document, URL, (fn) => setTimeout(fn, 1000), blob, filename),
+        }),
+      );
     } finally {
       setBusy(false);
     }

@@ -16,15 +16,16 @@ function client(
   listed: string[] | null = null,
   already: string[] = [],
   userId: string | null = OWNER,
+  readError: unknown = null,
 ) {
   return {
     from(table: string) {
       if (table === "suppliers") {
         return {
           select: () => ({
-            in: async (_col: string, ids: string[]) => ({
-              data: ids.filter((id) => listed === null || listed.includes(id)).map((id) => ({ id })),
-              error: null,
+            in: async (col: string, ids: string[]) => ({
+              data: readError ? null : col === "id" ? ids.filter((id) => listed === null || listed.includes(id)).map((id) => ({ id })) : [],
+              error: readError,
             }),
           }),
         };
@@ -87,6 +88,17 @@ describe("POST /api/v1/saved", () => {
     assert.equal(upserts.length, 1);
   });
 
+  it("a failed listed-check is a 500 that writes nothing — never '0 saved, all no longer listed'", async () => {
+    const upserts: unknown[][] = [];
+    const res = await runSavedSupplierPost({
+      role: "buyer",
+      supabase: client(upserts, null, null, [], OWNER, { message: "canceling statement due to statement timeout" }),
+      raw: { supplier_ids: [A, B] },
+    });
+    assert.equal(res.status, 500);
+    assert.equal(upserts.length, 0);
+  });
+
   it("an admin may save like a buyer", async () => {
     const upserts: unknown[][] = [];
     const res = await runSavedSupplierPost({ role: "admin", supabase: client(upserts), raw: { supplier_ids: [A] } });
@@ -99,6 +111,28 @@ describe("POST /api/v1/saved", () => {
     const res = await runSavedSupplierPost({ role: "buyer", supabase: client(upserts, null, null, [], null), raw: { supplier_ids: [A] } });
     assert.equal(res.status, 401);
     assert.equal(upserts.length, 0);
+  });
+
+  it("saving ONLY suppliers no longer listed is a 404, not a 200 that a Save button reads as saved", async () => {
+    // One gone supplier from a row button answered 200 {count: 0} and the
+    // button said "Saved" over nothing.
+    for (const raw of [{ supplier_id: B }, { supplier_ids: [B] }]) {
+      const upserts: unknown[][] = [];
+      const res = await runSavedSupplierPost({ role: "buyer", supabase: client(upserts, null, [A]), raw });
+      assert.equal(res.status, 404, JSON.stringify(raw));
+      assert.equal(upserts.length, 0);
+      assert.match(String(res.body.error), /no longer listed/);
+    }
+  });
+
+  it("a supplier removed between the check and the write is a 409 that says save again, not a bare 500", async () => {
+    const res = await runSavedSupplierPost({
+      role: "buyer",
+      supabase: client([], { code: "23503", message: "violates foreign key constraint" }),
+      raw: { supplier_ids: [A] },
+    });
+    assert.equal(res.status, 409);
+    assert.match(String(res.body.error), /Save again/);
   });
 
   it("still saves a single supplier_id, as the per-row button sends it", async () => {
