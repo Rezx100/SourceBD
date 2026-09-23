@@ -622,13 +622,15 @@ function mockHandler(req, res) {
       ]);
     }
     if (url.pathname === "/rest/v1/rpc/production_workers_display_batch") {
-      // The two Discover rows: Mother (own 1,200) with two buildings summed to
-      // 9,000; Overview Timeout (own 100) a single site whose RSC headcount,
-      // 500, differs from its register figure. The page must headline the
-      // own figures and word the second line only from sites/includes_root.
+      // The two Discover rows, consistent with this file's profile fixture:
+      // Mother (own 1,200) is "500 across 1 of 2 sites", RSC only, so the RSC
+      // sum leaves Mother itself out; Overview Timeout (own 100) is a single
+      // site whose RSC headcount, 450, differs from its own figure. The page
+      // must headline the own figures and word the second line only from
+      // sites/includes_root.
       return json({
-        "00000000-0000-4000-8000-000000000098": { value: 9000, source: "registry", fetched_at: null, sites: 3, includes_root: true },
-        "00000000-0000-4000-8000-000000000099": { value: 500, source: "RSC", fetched_at: null, sites: 1, includes_root: true },
+        "00000000-0000-4000-8000-000000000098": { value: 500, source: "RSC", fetched_at: null, sites: 1, includes_root: false },
+        "00000000-0000-4000-8000-000000000099": { value: 450, source: "RSC", fetched_at: null, sites: 1, includes_root: true },
       });
     }
     if (url.pathname === "/rest/v1/rpc/rl_check") {
@@ -1810,12 +1812,14 @@ const CASES = [
     auth: true,
     expect: {
       status: 200,
+      // `>1,200<span` / `>100<span`: each figure at the head of its own cell.
       bodyIncludesAll: [
-        "1,200",
-        "9,000 workers · across this record and its buildings",
-        "500 workers · RSC inspection",
+        ">1,200<span",
+        "500 workers · across its buildings, not this record",
+        ">100<span",
+        "450 workers · RSC inspection",
       ],
-      bodyExcludes: ["500 workers · across this record and its buildings", "Search is under heavy load"],
+      bodyExcludes: ["450 workers · across this record and its buildings", "Search is under heavy load"],
     },
   },
   {
@@ -1826,8 +1830,8 @@ const CASES = [
       status: 200,
       bodyIncludesAll: [
         "workers,workers_source,profile_workers,profile_workers_source",
-        "1200,on the register,9000,across this record and its buildings",
-        "100,on the register,500,RSC inspection",
+        "1200,on the supplier record,500,\"across its buildings, not this record\"",
+        "100,on the supplier record,450,RSC inspection",
       ],
     },
   },
@@ -1849,7 +1853,8 @@ const CASES = [
     // and rule out the two error states explicitly.
     expect: {
       status: 200,
-      bodyIncludesAll: ["Search headings"],
+      // And it says its counts leave out sanctioned suppliers (founder, 24 Sep).
+      bodyIncludesAll: ["Search headings", "exporter counts leave out sanctioned suppliers"],
       bodyExcludes: ["Exporter counts could not be read", "The catalogue could not be read"],
     },
   },

@@ -114,9 +114,13 @@ describe("what the display figure covers comes from the batch, never from the nu
   it("a sum that leaves this record out says so, even when it has a figure of its own", () => {
     // RSC preference drops a root with no RSC row, register figure or not.
     for (const own of [null, 1200]) {
-      const [row] = applyDiscoverWorkersSelection([{ id: "a", employees_total: own }], { a: at(907, "RSC", 1, false) });
-      assert.equal(row?.workers_basis, "excludes-record");
-      assert.equal(row?.workers_own, own);
+      // One building, and two: "sites > 1" must never outrank a sum that
+      // leaves this record out, or it reads "this record and its buildings".
+      for (const sites of [1, 2]) {
+        const [row] = applyDiscoverWorkersSelection([{ id: "a", employees_total: own }], { a: at(907, "RSC", sites, false) });
+        assert.equal(row?.workers_basis, "excludes-record", `sites ${sites}, root left out, called ${row?.workers_basis}`);
+        assert.equal(row?.workers_own, own);
+      }
     }
   });
 

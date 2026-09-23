@@ -56,7 +56,7 @@ import { SearchComposer } from "./search-composer";
 import { SelectionBar } from "./selection-bar";
 import { saveSearchError } from "./save-search-form";
 import { SELECT_ALL_ID, SelectionContext, SelectionProvider, type SelectionContextValue } from "./selection";
-import { existsSync, readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { AppRouterContext } from "next/dist/shared/lib/app-router-context.shared-runtime";
 import { SupplierResultCard } from "./supplier-result-card";
@@ -1308,6 +1308,11 @@ describe("the two-state controls say which state they are in", () => {
   it("a partly selected select-all box reads mixed, not unchecked", () => {
     const html = renderToStaticMarkup(createElement(Checkbox, { on: "mixed", label: "Select all on this page", onToggle: () => {} }));
     assert.match(html, /aria-checked="mixed"/);
+    // And it LOOKS mixed in Windows High Contrast: forced colors repaint every
+    // background as Canvas, so a background-drawn dash vanished (white on
+    // white) and the box looked unticked while the tree said "mixed".
+    const dash = html.match(/<span aria-hidden="true" class="([^"]*)"><\/span>/)?.[1] ?? "";
+    assert.match(dash, /forced-colors:bg-\[CanvasText\]/, `the mixed dash has no forced-colors paint: "${dash}"`);
   });
 
   /** A source file with its comments removed, so prose cannot satisfy a code check. */
@@ -1411,7 +1416,7 @@ describe("the two-state controls say which state they are in", () => {
       for (const b of described) assert.match(b[0], /disabled=""/);
       // One explanation for everyone: with aria-describedby present a screen
       // reader never hears a `title`, so a title told mouse users something
-      // else (a 50-supplier cap nothing enforced).
+      // else (a 50-supplier cap on a bulk send that is not built yet).
       for (const b of described) assert.doesNotMatch(b[0], /\btitle=/, `a second, different explanation: ${b[0]}`);
     });
 
@@ -1447,10 +1452,10 @@ describe("the two-state controls say which state they are in", () => {
 
     it("a late save response never reports on a selection the buyer has since changed", () => {
       const code = sourceCode("components/dashboard/selection-bar.tsx");
-      assert.match(code, /const asked = generation\.current;[\s\S]*?if \(generation\.current !== asked\) return;\s*setStatus\(message\);/);
+      assert.match(code, /const asked = generation\.current;[\s\S]*?if \(generation\.current !== asked\) return;[\s\S]*?setBusy\(false\);\s*setStatus\(message\);/);
       // Keyed on the buyer's edits, never on the Set: a refresh that prunes
       // the Set after a partial save must not erase the message about it.
-      assert.match(code, /useEffect\(\(\) => \{\s*generation\.current \+= 1;\s*setStatus\(""\);\s*\}, \[sel\.edits\]\);/);
+      assert.match(code, /useEffect\(\(\) => \{\s*generation\.current \+= 1;\s*setStatus\(""\);[\s\S]*?setBusy\(false\);\s*\}, \[sel\.edits\]\);/);
       assert.doesNotMatch(code, /\}, \[sel\.selected\]\);/);
       assert.match(
         sourceCode("components/dashboard/selection.tsx"),
@@ -1482,7 +1487,10 @@ describe("the two-state controls say which state they are in", () => {
       assert.match(body, /await runBulkSave\(ids, \{/);
       assert.doesNotMatch(body, /\bids\s*\.\s*(splice|pop|shift|length\s*=)|\bids\s*=(?!=)(?!\s*\[\.\.\.sel\.selected\];)/, "the selection sent must be the whole selection");
       assert.match(body, /<ExportLink href=\{bulkExportHref\(exportHref, ids\)\} label="Export" requested=\{count\} resetOn=\{sel\.edits\} \/>/);
-      assert.match(functionBody("components/dashboard/export-link.tsx", "ExportLink"), /\} finally \{\s*setBusy\(false\);\s*\}/);
+      // Busy is freed by the run that set it, unless a selection change has
+      // already handed the button to the next export (interaction.test.ts
+      // runs both paths through the real handler and effect).
+      assert.match(functionBody("components/dashboard/export-link.tsx", "ExportLink"), /\} finally \{[\s\S]*?if \(round\.current === asked\) setBusy\(false\);\s*\}/);
     });
 
     it("the header's Export CSV is the in-place export — its status region renders beside it", () => {
@@ -2025,34 +2033,66 @@ describe("the topbar search field can shrink to a phone", () => {
   });
 });
 
-describe("the topbar offers no control without a destination", () => {
+describe("the shell offers no control without a destination", () => {
   // The Help button rendered with no href and no handler: a keyboard or
   // screen-reader user reached a control that did nothing (founder decision,
-  // 24 Sep: none until /app/help exists). The topbar is a server component,
-  // so no click handler can hide in it — a control does something only as a
-  // link with a real href, or as the search form's submit.
-  const topbars = [
+  // 24 Sep: none until /app/help exists). The shell is a server component,
+  // so no click handler can hide in it: a control does something only as a
+  // link to a page that exists, or as the submit of the form it sits in.
+  const shells = [
     { caption: "10,266 published suppliers", initial: "R", searchAction: "/app/discover" },
     { caption: "", initial: null },
-  ].map((model) => renderToStaticMarkup(createElement(Topbar, { model } as Parameters<typeof Topbar>[0])));
+  ].flatMap((model) => [
+    renderToStaticMarkup(createElement(Topbar, { model } as Parameters<typeof Topbar>[0])),
+    shellHtml({ topbar: model } as Partial<Parameters<typeof AppShell>[0]>),
+  ]);
 
-  it("every link goes somewhere and every button submits the search", () => {
-    for (const html of topbars) {
-      for (const a of html.match(/<a\b[^>]*>/g) ?? []) {
-        assert.match(a, /\bhref="\/[^"]+"/, `a topbar link with no destination: ${a}`);
+  // Every app route that has a page, as a pattern: `(group)` segments drop
+  // out of the URL, `[param]` matches any one segment.
+  const routes: RegExp[] = [];
+  const walk = (dir: string, segs: string[]) => {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      if (entry.isDirectory()) {
+        const seg = /^\(.*\)$/.test(entry.name) ? null : /^\[.*\]$/.test(entry.name) ? "[^/]+" : entry.name;
+        walk(path.join(dir, entry.name), seg ? [...segs, seg] : segs);
+      } else if (/^(page|route)\.tsx?$/.test(entry.name)) {
+        routes.push(new RegExp(`^/${segs.join("/")}$`));
       }
-      for (const b of html.match(/<button\b[^>]*>/g) ?? []) {
-        assert.match(b, /\btype="submit"/, `a topbar button with no destination: ${b}`);
+    }
+  };
+  walk(path.join(process.cwd(), "app"), []);
+  const pageExists = (href: string) => routes.some((r) => r.test(href.split(/[?#]/)[0]!.replace(/\/$/, "") || "/"));
+
+  it("every link reaches a page that exists, or an id on this page", () => {
+    for (const html of shells) {
+      for (const a of html.match(/<a\b[^>]*>/g) ?? []) {
+        const href = a.match(/\bhref="([^"]*)"/)?.[1];
+        assert.ok(href, `a link with no destination: ${a}`);
+        if (href.startsWith("#")) assert.match(html, new RegExp(`\\bid="${href.slice(1)}"`), `a link to a missing id: ${a}`);
+        else assert.ok(pageExists(href), `a link to a page that does not exist: ${a}`);
       }
     }
   });
 
-  it("no Help control, by any name, until the help page exists", () => {
-    const helpPage = existsSync(path.join(process.cwd(), "app", "(app)", "app", "help", "page.tsx"));
-    for (const html of topbars) {
-      const named = /(?:aria-label|title)="[^"]*\b(?:Help|help)\b[^"]*"|>\s*(?:Help|\?)\s*</.test(html);
+  it("every button submits the form it sits in, and nothing else poses as a control", () => {
+    for (const html of shells) {
+      for (const m of html.matchAll(/<button\b[^>]*>/g)) {
+        assert.match(m[0], /\btype="submit"/, `a button with no destination: ${m[0]}`);
+        const before = html.slice(0, m.index);
+        assert.ok(before.lastIndexOf("<form") > before.lastIndexOf("</form>"), `a submit button outside any form: ${m[0]}`);
+      }
+      for (const t of html.match(/<(?!a\b|button\b|input\b|select\b|textarea\b|main\b)[a-z]+\b[^>]*(?:role="button"|tabindex="(?!-1")[^"]*")[^>]*>/g) ?? []) {
+        assert.fail(`a focusable non-control with no destination: ${t}`);
+      }
+      assert.doesNotMatch(html, /<summary\b/, "a <summary> toggle in the shell");
+    }
+  });
+
+  it("no Help control, by any name or link, until the help page exists", () => {
+    const helpPage = pageExists("/app/help");
+    for (const html of shells) {
+      const named = /(?:aria-label|title)="[^"]*\bhelp\b[^"]*"|>\s*(?:help|\?)\s*<|href="\/app\/help\b/i.test(html);
       if (!helpPage) assert.ok(!named, `a Help control renders with nowhere to go: ${html}`);
-      else if (named) assert.match(html, /href="\/app\/help"/, "the Help control does not go to /app/help");
     }
   });
 });

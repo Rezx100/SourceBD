@@ -35,6 +35,10 @@ export function ExportLink({
   useEffect(() => {
     round.current += 1;
     setStatus("");
+    // Free the button for the new selection: a click while the old export
+    // was still in flight returned silently, so the buyer clicked and got
+    // nothing. The old export carries on, but is neither saved nor reported.
+    setBusy(false);
   }, [resetOn]);
 
   async function run(e: MouseEvent<HTMLElement>) {
@@ -53,7 +57,8 @@ export function ExportLink({
       });
       if (round.current === asked) setStatus(message);
     } finally {
-      setBusy(false);
+      // After a reset the button already belongs to the next export.
+      if (round.current === asked) setBusy(false);
     }
   }
 

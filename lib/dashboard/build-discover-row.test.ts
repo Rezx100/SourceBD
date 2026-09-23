@@ -196,23 +196,37 @@ describe("discover result HTML has no contact PII", () => {
       TODAY,
     );
     const ours = (c: Record<string, string>) => [c.workers, c.workers_source, c.profile_workers, c.profile_workers_source];
-    assert.deepEqual(ours(own), ["900", "on the register", "", ""]);
-    assert.deepEqual(ours(group), ["900", "on the register", "3166", "across this record and its buildings"]);
+    assert.deepEqual(ours(own), ["900", "on the supplier record", "", ""]);
+    assert.deepEqual(ours(group), ["900", "on the supplier record", "3166", "across this record and its buildings"]);
     assert.deepEqual(ours(notMe), ["", "", "907", "across its buildings, not this record"]);
     // One site, two sources: named by its source, never as buildings.
-    assert.deepEqual(ours(rscSite), ["550", "on the register", "500", "RSC inspection"]);
+    assert.deepEqual(ours(rscSite), ["550", "on the supplier record", "500", "RSC inspection"]);
+    // The headline is the register's figure, and says so, whatever the batch
+    // did: an RSC headcount that happens to equal it, or no batch entry.
+    const rscEqual = discoverCsvValue(
+      { ...ROW, employees_total: 550, workers_own: 550, workers_source: "RSC", workers_basis: "own" },
+      TODAY,
+    );
+    assert.deepEqual(ours(rscEqual), ["550", "on the supplier record", "", ""]);
+    for (const r of [
+      { ...ROW, employees_total: 550, workers_own: 550, workers_source: "RSC" as const, workers_basis: "own" as const },
+      { ...ROW, employees_total: 800 },
+    ]) {
+      const card = buildDiscoverCard(r, { today: TODAY, hsLines: [], hsError: false }).meta.map((m) => m.text);
+      assert.ok(card.includes(`${r.employees_total === 550 ? "550" : "800"} workers · on the supplier record`), `card and CSV disagree: ${card.join(" | ")}`);
+    }
     // A batch that did not say which sites it summed: no claim about them.
     const unknown = discoverCsvValue(
       { ...ROW, employees_total: 3166, workers_own: 900, workers_source: "registry", workers_basis: "unknown" },
       TODAY,
     );
-    assert.deepEqual(ours(unknown), ["900", "on the register", "3166", "as on its profile"]);
+    assert.deepEqual(ours(unknown), ["900", "on the supplier record", "3166", "as on its profile"]);
     for (const c of ["workers_source", "profile_workers", "profile_workers_source"] as const) {
       assert.ok(CSV_COLUMNS.includes(c), `the CSV does not emit ${c}`);
     }
     // No display figure at all: the number is the supplier row's own, in the
     // same words the filter and the other rows use for it.
-    assert.equal(discoverCsvValue({ ...ROW, employees_total: 900 }, TODAY).workers_source, "on the register");
+    assert.equal(discoverCsvValue({ ...ROW, employees_total: 900 }, TODAY).workers_source, "on the supplier record");
     assert.equal(discoverCsvValue({ ...ROW, employees_total: null }, TODAY).workers_source, "");
   });
 
@@ -220,7 +234,7 @@ describe("discover result HTML has no contact PII", () => {
     // An allowlist cannot be talked around: a new phrasing has to be added
     // here deliberately. Both lines are checked, not only the first.
     const ALLOWED = new Set([
-      "on the register",
+      "on the supplier record",
       "RSC inspection",
       "across this record and its buildings",
       "across its buildings, not this record",
@@ -279,10 +293,10 @@ describe("discover result HTML has no contact PII", () => {
       m[1]!.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim(),
     );
     assert.deepEqual(cells, [
-      "5,000 on the register",
-      "550 on the register 500 workers · RSC inspection",
-      "400 on the register 907 workers · across its buildings, not this record",
-      "300 on the register 9,000 workers · across this record and its buildings",
+      "5,000 on the supplier record",
+      "550 on the supplier record 500 workers · RSC inspection",
+      "400 on the supplier record 907 workers · across its buildings, not this record",
+      "300 on the supplier record 9,000 workers · across this record and its buildings",
       "— 907 workers · across its buildings, not this record",
     ]);
     // The headlines read in the order the sort put the rows in.
@@ -298,7 +312,7 @@ describe("discover result HTML has no contact PII", () => {
     assert.doesNotMatch(said, /buildings/, `a standalone factory described as a group: ${said}`);
     // The card says the same two things, in the same order.
     const meta = buildDiscoverCard(rows[3]!, opts).meta.map((m) => m.text);
-    const i = meta.indexOf("300 workers · on the register");
+    const i = meta.indexOf("300 workers · on the supplier record");
     assert.ok(i >= 0, `the card does not headline the sorted figure: ${meta.join(" | ")}`);
     assert.equal(meta[i + 1], "9,000 workers · across this record and its buildings");
     const cardHtml = renderToStaticMarkup(createElement(SupplierResultCard, { card: buildDiscoverCard(rows[4]!, opts) }));

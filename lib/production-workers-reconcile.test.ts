@@ -60,6 +60,9 @@ describe("0104's redefinition changes nothing but the two keys it adds", () => {
   it("keeps the grant the public Discover page needs", () => {
     const sql = readFileSync(join(process.cwd(), "supabase/migrations/0104_discover_v32.sql"), "utf8");
     assert.match(sql, /grant execute on function public\.production_workers_display_batch\(uuid\[\]\) to anon, authenticated;/);
+    // Nor taken back later in the file; CI asserts the live privilege too.
+    const after = sql.slice(sql.indexOf("grant execute on function public.production_workers_display_batch"));
+    assert.doesNotMatch(after, /revoke[^;]*production_workers_display_batch[^;]*;/i, "the grant is revoked again later in 0104");
   });
 });
 

@@ -12,9 +12,10 @@ export const SORTS = [
   // source-mark count the card prints beside the mark row.
   { value: "sources", rpc: "receipts", label: "Most registers & certifiers" },
   { value: "name", rpc: "name", label: "Name" },
-  // Orders on the register's own figure for the record, not the group
+  // Orders on the supplier record's own figure (suppliers.employees_total:
+  // the registers, else an RSC headcount filled in), not the group
   // roll-up a card may display — the two are named apart so neither lies.
-  { value: "workers", rpc: "workers", label: "Workers on the register" },
+  { value: "workers", rpc: "workers", label: "Workers on the supplier record" },
   { value: "established", rpc: "established", label: "Established" },
   { value: "cert_expiry", rpc: "cert_expiry", label: "Certificate expiry soonest" },
   // Orders on `discover_v32_hs_codes`, which is `left(code, 4)` DISTINCT —
@@ -476,10 +477,10 @@ export function discoverChips(state: DiscoverState): DiscoverChip[] {
       key: "workers",
       label:
         state.workersMin != null && state.workersMax != null
-          ? `${state.workersMin}–${state.workersMax} workers on the register`
+          ? `${state.workersMin}–${state.workersMax} workers on the supplier record`
           : state.workersMin != null
-            ? `≥ ${state.workersMin} workers on the register`
-            : `≤ ${state.workersMax} workers on the register`,
+            ? `≥ ${state.workersMin} workers on the supplier record`
+            : `≤ ${state.workersMax} workers on the supplier record`,
       without: { ...state, workersMin: null, workersMax: null, page: 1 },
     });
   }

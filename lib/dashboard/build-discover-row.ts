@@ -56,25 +56,16 @@ export function certsFromSummary(raw: unknown, today: Date): CertModel[] {
 }
 
 /**
- * What the headline worker figure is, in words a buyer can act on: where it
- * came from, and — when it is not this record's own number — what it covers.
- *
- * Naming only the source was wrong. `production_workers_display_batch` sums
- * the record with its buildings, and under RSC preference over the RSC sites
- * only, so "3,166 workers · on the register" named a register holding no such
- * figure and "907 · RSC inspection" named an inspection of a different site.
- * Worse, "on the register" is the phrase the workers FILTER already uses
- * (`≤ 1,000 workers on the register`, applied to `suppliers.employees_total`)
- * — identical words, two quantities, one of them false.
- *
- * `lib/dashboard/build-models.ts` has always said this properly on the same
- * data; these are its words.
+ * Words for a worker figure: the source it came from, or — when the batch
+ * reports it summed buildings — what it covers. Composition comes only from
+ * `production_workers_display_batch`'s own `sites` / `includes_root`; see
+ * `discoverWorkers`.
  */
 export function workersBasisLabel(
   source: "RSC" | "registry" | undefined,
   basis: WorkersBasis | undefined,
 ): string | null {
-  const from = source === "RSC" ? "RSC inspection" : source === "registry" ? "on the register" : null;
+  const from = source === "RSC" ? "RSC inspection" : source === "registry" ? "on the supplier record" : null;
   if (basis === "group") return "across this record and its buildings";
   if (basis === "excludes-record") return "across its buildings, not this record";
   return from;
@@ -96,16 +87,22 @@ export function discoverWorkers(row: DiscoverV32Row): {
   second: number | null;
   secondLabel: string | null;
 } {
+  // The headline is always suppliers.employees_total: the registers' figure,
+  // or an RSC headcount filled in where they had none
+  // (ops/backfill_rsc_employees.py). So it is always "on the supplier record"
+  // — the sort's and the filter's words too — even when an RSC headcount
+  // happens to equal it, and when the batch failed. One name for one figure.
+  const register = (n: number | null) => (n == null ? null : "on the supplier record");
   const basis = row.workers_basis;
-  if (!basis) return { own: row.employees_total, ownLabel: null, second: null, secondLabel: null };
+  if (!basis) return { own: row.employees_total, ownLabel: register(row.employees_total), second: null, secondLabel: null };
   const own = row.workers_own ?? null;
   const shown = row.employees_total;
   if (basis === "own" && shown === own) {
-    return { own, ownLabel: workersBasisLabel(row.workers_source, "own"), second: null, secondLabel: null };
+    return { own, ownLabel: register(own), second: null, secondLabel: null };
   }
   return {
     own,
-    ownLabel: own == null ? null : "on the register",
+    ownLabel: register(own),
     second: shown,
     // "own" here is this record's RSC headcount beside its register figure:
     // the same site, another source — named by its source, not as a group.
@@ -360,7 +357,7 @@ export function discoverCsvValue(row: DiscoverV32Row, today: Date): Record<strin
     // supplier's profile headlines, when it differs. Each has a words column
     // beside it so the number columns stay plain numbers a spreadsheet sums.
     workers: w.own == null ? "" : String(w.own),
-    workers_source: w.own == null ? "" : (w.ownLabel ?? "on the register"),
+    workers_source: w.own == null ? "" : (w.ownLabel ?? "on the supplier record"),
     profile_workers: w.second == null ? "" : String(w.second),
     profile_workers_source: w.second == null ? "" : (w.secondLabel ?? ""),
     established: row.established_date ?? "",

@@ -30,7 +30,7 @@ as a hypothesis anyway, and re-check anything you rely on (closed-loop §2).
 - "The whole dashboard" is REZ-B **plus seven more issues** (§6). Each has its
   own migration, review loop and three gates.
 
-## 1. State on 24 Sep (verified at `28b4e6a`)
+## 1. State on 24 Sep (verified at `28b4e6a`: tip `6f598cb` plus this hand-off)
 
 A snapshot taken before cycle 15; the tip, the gate and CI have moved since.
 Read the tip from `git log -1` and the gate from the newest
@@ -131,8 +131,8 @@ round", not a count.
 - **Run the ROOT `pnpm exec tsc --noEmit` before every push.** The test
   project's tsconfig is laxer: `d9c9d22` passed locally and failed CI on
   strict index access.
-- **CI runs only on pull requests** to `development` or `main`. Pushing to
-  this branch runs CI through PR #164.
+- **CI runs on pull requests** to `development` or `main` (and on pushes to
+  those two). Pushing this branch runs CI only through PR #164.
 - **You cannot prove CI-only guards red by pushing broken code.** The
   permission system blocks pushing deliberately weakened security code, and
   rightly so.
@@ -373,8 +373,9 @@ me to five lines or fewer, in plain words.
   accessibility and guard adequacy REJECTED.
 - The blocker: the worker figure's words ("across this record and its
   buildings") were inferred by comparing numbers. `production_workers_display_batch`
-  prefers RSC, so 639 live standalone factories whose RSC headcount differs
-  from their register figure were called groups. Repaired at the root: 0104
+  prefers RSC, so standalone factories whose RSC headcount differs from their
+  register figure were called groups (two reviewers each counted 639 live, by
+  read-only query on 24 Sep; no saved script, so treat it as unverified). Repaired at the root: 0104
   now re-creates that function to report `sites` and `includes_root`, the page
   uses only those, and `lib/production-workers-reconcile.test.ts` holds the
   body otherwise identical to the live one.
@@ -399,3 +400,37 @@ me to five lines or fewer, in plain words.
   blank: 992 passed, 25 skipped, 32 failed, and all 32 fail because Windows
   runs the WSL `bash` stub. That matches the 1,024 / 25 baseline. Filed as its
   own task. `ruff` 0.15.13: 49.
+
+## 11. Cycle 16 (24 Sep)
+
+- Reviewed `fd826d5`. Truthfulness, accessibility and security ACCEPTED;
+  correctness and guard adequacy REJECTED.
+- Repaired, each guard proven red (`mutate-c16.cjs`, 23 mutations; the
+  cycle-15 sets re-run green-to-red):
+  - After a selection change, Export and bulk Save were left busy, so the
+    next click did nothing. The reset now frees them, and a stale run no
+    longer touches busy. `hook-harness.ts` records effects and their
+    dependency lists, so tests run the real reset.
+  - The shell guard now requires every link in the topbar and sidebar to
+    reach a page that exists and every button to submit its own form. It
+    allows no other focusable control and no "help" by any name.
+  - The worker basis is tested for a two-building sum that leaves the
+    record out, in unit tests and in the CI replay. CI also runs the Workers
+    sort and checks the batch's anon and authenticated grants.
+  - The headline worker figure is always "on the supplier record": that is
+    `suppliers.employees_total`, which comes from the registers or an RSC
+    fill (`ops/backfill_rsc_employees.py`). The sort, filter chips, card,
+    table and CSV all use those words.
+  - The contact-field check is pinned to a literal four-key list and tested
+    with array values. The mixed checkbox now shows in forced colors. The
+    Products caption is asserted at the HTTP boundary.
+- Written down, not changed:
+  - `production_workers_display_batch` is anon-callable for any uuid, with no
+    published filter and no array cap. That was already true on main; 0104
+    adds `sites` and `includes_root` to what it returns. Filtering on
+    published would drop every building, because buildings are always
+    unpublished. Cap the array when the RPC surface gets its rate limits.
+  - A 400 from the export (a hand-edited `ids`) reads "try again".
+  - The source-mark links are 20px with a 3px gap (WCAG 2.5.8), from REZ-A.
+  - A signed-in supplier gets 403 from the export and 401 from
+    `/api/v1/saved`. Suspension relies on the middleware alone.

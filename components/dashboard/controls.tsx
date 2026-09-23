@@ -182,7 +182,9 @@ export function Checkbox({
       )}
     >
       {on === "mixed" ? (
-        <span aria-hidden className="block h-0.5 w-2 rounded-full bg-current" />
+        // forced-colors: a background is repainted as Canvas in High Contrast,
+        // which drew the dash white on white — "mixed" looked unticked.
+        <span aria-hidden className="block h-0.5 w-2 rounded-full bg-current forced-colors:bg-[CanvasText]" />
       ) : on ? (
         <Icon name="check" small className="[&>*]:stroke-[2.25]" />
       ) : null}

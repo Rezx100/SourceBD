@@ -163,7 +163,7 @@ describe("0104 discover_suppliers PII guard", () => {
     // `discover_suppliers` is granted to `anon` and served by PostgREST
     // outside the app's rate limiter — an unauthenticated caller could force a
     // full-table roll-up per request. The display/filter difference is carried
-    // by the labels instead ("workers on the register" vs a card figure that
+    // by the labels instead ("workers on the supplier record" vs a card figure that
     // names its own coverage), so the query must stay cheap.
     assert.doesNotMatch(
       SQL,

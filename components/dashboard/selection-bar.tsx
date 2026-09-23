@@ -29,7 +29,8 @@ import { SELECT_ALL_ID, useSelection } from "./selection";
 const NOT_BUILT = `Send RFQ and Compare for several suppliers at once are not built yet. Open a supplier's record to send one an RFQ.`;
 // No `title` on the two disabled buttons: with aria-describedby present a
 // screen reader never hears it, so mouse users were told something else (a
-// 50-supplier cap nothing enforces). Both now get the one visible note.
+// 50-supplier cap on a bulk send that is not built yet). Both now get the one
+// visible note.
 
 export function SelectionBar({ exportHref }: { exportHref: string }) {
   const sel = useSelection();
@@ -50,6 +51,8 @@ export function SelectionBar({ exportHref }: { exportHref: string }) {
   useEffect(() => {
     generation.current += 1;
     setStatus("");
+    // And free Save for the new selection, or its next click did nothing.
+    setBusy(false);
   }, [sel.edits]);
 
   // WCAG 2.4.11 — see reserveBarSpace.
@@ -89,8 +92,9 @@ export function SelectionBar({ exportHref }: { exportHref: string }) {
         router.refresh();
       },
     });
-    setBusy(false);
+    // After a selection change Save already belongs to the next request.
     if (generation.current !== asked) return;
+    setBusy(false);
     setStatus(message);
   }
 

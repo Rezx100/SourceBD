@@ -4,7 +4,7 @@
 // handlers. Source-text checks of that wiring could be satisfied by a comment
 // or a dead string (cycles 13–14); invoking the handler cannot.
 //
-// Effects are recorded, not run. State setters record what they were called
+// Effects are recorded, not run: a test may call one itself. State setters record what they were called
 // with. No DOM: a test stubs the globals (fetch, document, window) the handler
 // touches.
 
@@ -21,6 +21,10 @@ export type HookRun = {
   sets: { hook: number; value: unknown }[];
   /** Every useRef object, in call order, so a test can move a ref mid-flight. */
   refs: { current: unknown }[];
+  /** Every useEffect body, in call order, for a test to run when it chooses. */
+  effects: (() => unknown)[];
+  /** Each of those effects' dependency lists, in the same order. */
+  deps: (readonly unknown[] | undefined)[];
 };
 
 export function callWithHooks<P>(
@@ -30,6 +34,8 @@ export function callWithHooks<P>(
 ): HookRun {
   const sets: HookRun["sets"] = [];
   const refs: HookRun["refs"] = [];
+  const effects: HookRun["effects"] = [];
+  const deps: HookRun["deps"] = [];
   let stateIndex = 0;
   const dispatcher: Dispatcher = {
     useState: (init: unknown) => {
@@ -42,7 +48,10 @@ export function callWithHooks<P>(
       refs.push(ref);
       return ref;
     },
-    useEffect: () => {},
+    useEffect: (f: () => unknown, d?: readonly unknown[]) => {
+      effects.push(f);
+      deps.push(d);
+    },
     useLayoutEffect: () => {},
     useInsertionEffect: () => {},
     useId: () => ":h0:",
@@ -55,7 +64,7 @@ export function callWithHooks<P>(
   const prev = internals.H;
   internals.H = dispatcher;
   try {
-    return { out: component(props), sets, refs };
+    return { out: component(props), sets, refs, effects, deps };
   } finally {
     internals.H = prev;
   }

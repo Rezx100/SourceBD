@@ -168,6 +168,21 @@ describe("discover CSV export boundary", () => {
     assert.equal(dataLines.length, 1000, `expected the 1000-row cap, got ${dataLines.length}`);
   });
 
+  it("the contact-field check knows all four columns, in any shape, by a list of its own", () => {
+    // The other checks loop over PII_KEYS itself, so a shorter list passed
+    // them by construction. The founder's four, written out here.
+    const FOUR = ["contact_name", "contact_role", "email_primary", "phones"];
+    assert.deepEqual([...PII_KEYS].sort(), FOUR);
+    for (const [key, value] of [
+      ["email_primary", "a@b.example"],
+      ["phones", ["+8801700000000"]],
+      ["contact_name", "Rahim"],
+      ["contact_role", "Manager"],
+    ] as const) {
+      assert.equal(discoverRowHasPii({ ...ROW, [key]: value }), true, `a row carrying ${key} passed`);
+    }
+  });
+
   it("refuses a payload that carries an email column", async () => {
     const leaked = { ...ROW, email_primary: "buyer@example.com" };
     assert.equal(discoverRowHasPii(leaked), true);

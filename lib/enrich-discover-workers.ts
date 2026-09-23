@@ -99,7 +99,7 @@ export function applyDiscoverWorkersSelection<T extends WithIdAndEmployees>(
     // Comparing the figure with the record's own number was the third wrong
     // answer: the batch prefers RSC, so a standalone factory whose RSC
     // headcount differs from its register figure read as "this record and
-    // its buildings" (639 live factories, 24 Sep 2026). Without the batch's
+    // its buildings" (hundreds of live factories, 24 Sep 2026). Without the batch's
     // word the basis is "unknown", and nothing may claim buildings.
     //
     // `r.employees_total` is still the supplier row's own figure here — the

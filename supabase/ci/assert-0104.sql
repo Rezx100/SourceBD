@@ -516,8 +516,11 @@ begin
   end if;
   if not has_function_privilege('authenticated', 'public.hs_catalogue()', 'execute')
      or not has_function_privilege('authenticated', 'public.supplier_epb_hscodes_batch(text[])', 'execute')
-     or not has_function_privilege('authenticated', 'public.rl_check(text,text,int)', 'execute') then
-    raise exception 'a function the app calls signed-in is not executable by authenticated';
+     or not has_function_privilege('authenticated', 'public.rl_check(text,text,int)', 'execute')
+     -- 0104 re-creates it; signed-out and signed-in Discover both call it.
+     or not has_function_privilege('anon', 'public.production_workers_display_batch(uuid[])', 'execute')
+     or not has_function_privilege('authenticated', 'public.production_workers_display_batch(uuid[])', 'execute') then
+    raise exception 'a function the app calls is not executable by the role that calls it';
   end if;
   if not exists (
     select 1 from pg_proc p
@@ -569,6 +572,9 @@ begin
   -- The loop above proves nothing unless a sanctioned exporter of 6101 is
   -- really there to be left out: with sanctioned suppliers included, the
   -- search for 6101 must find more than the catalogue counts.
+  if not exists (select 1 from public.hs_catalogue() h where h.hs = '6101') then
+    raise exception 'hs_catalogue has no 6101 row; the reconciliation above never looked at the sanctioned exporter';
+  end if;
   select coalesce(max(d.total_count), 0) into n
     from public.discover_suppliers(p_hs_codes => array['6101'], p_exclude_sanctioned => false, p_limit => 1) d;
   if n <= coalesce((select h.exporter_count from public.hs_catalogue() h where h.hs = '6101'), 0) then
@@ -588,16 +594,18 @@ insert into public.suppliers (slug, company_name, company_name_norm, city, distr
 values
   ('ci-w-alone',  'CI W Alone',  'ci w alone',  'Dhaka', 'Dhaka', false, false, 550),
   ('ci-w-parent', 'CI W Parent', 'ci w parent', 'Dhaka', 'Dhaka', false, false, 1200),
-  ('ci-w-group',  'CI W Group',  'ci w group',  'Dhaka', 'Dhaka', false, false, 2000)
+  ('ci-w-group',  'CI W Group',  'ci w group',  'Dhaka', 'Dhaka', false, false, 2000),
+  ('ci-w-two',    'CI W Two',    'ci w two',    'Dhaka', 'Dhaka', false, false, 1500)
 on conflict (slug) do nothing;
 insert into public.suppliers (slug, company_name, company_name_norm, city, district, is_published, is_sanctioned, employees_total, facility_of)
 select v.slug, v.slug, v.slug, 'Dhaka', 'Dhaka', false, false, v.n, p.id
-  from (values ('ci-w-parent-unit', 'ci-w-parent', 300), ('ci-w-group-unit', 'ci-w-group', 1000)) v(slug, parent, n)
+  from (values ('ci-w-parent-unit', 'ci-w-parent', 300), ('ci-w-group-unit', 'ci-w-group', 1000),
+               ('ci-w-two-a', 'ci-w-two', 400), ('ci-w-two-b', 'ci-w-two', 500)) v(slug, parent, n)
   join public.suppliers p on p.slug = v.parent
 on conflict (slug) do nothing;
 insert into public.rsc_remediation (supplier_id, workers_count, active)
 select s.id, v.n, true
-  from (values ('ci-w-alone', 500), ('ci-w-parent-unit', 907)) v(slug, n)
+  from (values ('ci-w-alone', 500), ('ci-w-parent-unit', 907), ('ci-w-two-a', 410), ('ci-w-two-b', 520)) v(slug, n)
   join public.suppliers s on s.slug = v.slug
 on conflict do nothing;
 
@@ -608,12 +616,15 @@ declare
   want jsonb := jsonb_build_object(
     'ci-w-alone',  jsonb_build_object('value', 500,  'source', 'RSC',      'sites', 1, 'includes_root', true),
     'ci-w-parent', jsonb_build_object('value', 907,  'source', 'RSC',      'sites', 1, 'includes_root', false),
-    'ci-w-group',  jsonb_build_object('value', 3000, 'source', 'registry', 'sites', 2, 'includes_root', true)
+    'ci-w-group',  jsonb_build_object('value', 3000, 'source', 'registry', 'sites', 2, 'includes_root', true),
+    -- Two RSC buildings, and a parent with no RSC row of its own: summed
+    -- over two sites, none of them this record.
+    'ci-w-two',    jsonb_build_object('value', 930,  'source', 'RSC',      'sites', 2, 'includes_root', false)
   );
   got jsonb;
 begin
   select public.production_workers_display_batch(array_agg(id)) into b
-    from public.suppliers where slug in ('ci-w-alone', 'ci-w-parent', 'ci-w-group');
+    from public.suppliers where slug in ('ci-w-alone', 'ci-w-parent', 'ci-w-group', 'ci-w-two');
   for k in select jsonb_object_keys(want) loop
     select b -> s.id::text into got from public.suppliers s where s.slug = k;
     if got is null
@@ -624,6 +635,29 @@ begin
       raise exception 'production_workers_display_batch for %: got %, want %', k, got, want->k;
     end if;
   end loop;
+end
+$$;
+
+-- The Workers sort orders on suppliers.employees_total, the figure the
+-- Discover page headlines as the supplier's own. Run, not read: a source-text
+-- check of the ORDER BY is satisfied by a comment.
+update public.suppliers s
+   set employees_total = (array[300, 100, 600, 200, 500, 400])[substring(s.slug from 'ci-sort-([0-9])')::int]
+ where s.slug like 'ci-sort-%';
+
+do $$
+declare
+  got  text[];
+  want text[];
+begin
+  select array_agg(d.slug order by d.ordinality) into got
+    from public.discover_suppliers(p_sort => 'workers', p_limit => 100) with ordinality as d
+   where d.slug like 'ci-sort-%';
+  select array_agg(s.slug order by s.employees_total desc nulls last) into want
+    from public.suppliers s where s.slug like 'ci-sort-%';
+  if got is distinct from want then
+    raise exception 'the workers sort is not suppliers.employees_total descending: got %, want %', got, want;
+  end if;
 end
 $$;
 
