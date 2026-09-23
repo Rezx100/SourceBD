@@ -155,6 +155,8 @@ export function ResultsTable({ rows }: { rows: readonly TableRowModel[] }) {
                     {r.workersCoverage ? <span className="block text-xs font-normal text-ink-subtle">{r.workersCoverage}</span> : null}
                   </>
                 )}
+                {/* The roll-up, under the figure the Workers sort orders on. */}
+                {r.workersGroup ? <span className="block text-xs font-normal text-ink-subtle">{r.workersGroup}</span> : null}
               </Td>
               <Td>
                 <span className="flex w-full justify-end gap-1.5">

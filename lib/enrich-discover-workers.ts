@@ -77,6 +77,8 @@ export async function fetchDisplayWorkersBatch(
 export type WorkersSelection = {
   workers_source?: "RSC" | "registry";
   workers_basis?: WorkersBasis;
+  /** The supplier row's own figure, before `employees_total` was overwritten. */
+  workers_own?: number | null;
 };
 
 export function applyDiscoverWorkersSelection<T extends WithIdAndEmployees>(
@@ -110,7 +112,7 @@ export function applyDiscoverWorkersSelection<T extends WithIdAndEmployees>(
     const own = r.employees_total;
     const basis: WorkersBasis =
       own == null ? "excludes-record" : d.value === own ? "own" : "group";
-    return { ...r, employees_total: d.value, workers_source: d.source, workers_basis: basis };
+    return { ...r, employees_total: d.value, workers_source: d.source, workers_basis: basis, workers_own: own };
   });
 }
 

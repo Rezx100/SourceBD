@@ -5,7 +5,7 @@
 import type { ReactNode } from "react";
 import { formatCount } from "@/lib/dashboard/facts";
 import { cn } from "@/lib/utils";
-import { Button, Count, Kbd, LiveDot, Meter } from "./controls";
+import { Count, Kbd, LiveDot, Meter } from "./controls";
 import { Icon, type IconName } from "./icons";
 import { Caption, Label } from "./type";
 import { RecentSearchesSlot } from "./recent-searches";
@@ -271,7 +271,7 @@ export function Topbar({ model, screenLabel }: { model: TopbarModel; screenLabel
             // `min-w-0`: a flex item defaults to `min-width: auto`, and an
             // input's intrinsic floor is its `size` attribute (~20 characters),
             // so at 320px it refused to shrink and pushed itself and the ⌘K
-            // badge out over the Help button. The form has `min-w-0` so the
+            // badge out over the buttons beside it. The form has `min-w-0` so the
             // document never scrolled — the overlap was purely visual, which
             // is why it survived the reflow pass.
             className="min-w-0 grow bg-transparent text-ink-strong placeholder:text-ink-subtle"
@@ -289,9 +289,8 @@ export function Topbar({ model, screenLabel }: { model: TopbarModel; screenLabel
         <LiveDot />
         {model.caption}
       </Caption>
-      <Button variant="ghost" icon aria-label="Help">
-        ?
-      </Button>
+      {/* No Help button until /app/help exists: it had no destination
+          (founder decision, 24 Sep). render.test.ts holds this. */}
       {/* A real link, not decoration. The kit shell replaces the app topbar,
           which is where the account menu and sign-out live, so on these three
           routes this was the only account affordance and it was aria-hidden. */}

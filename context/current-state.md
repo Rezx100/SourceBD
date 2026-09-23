@@ -56,6 +56,9 @@ migrations, run the 30-day zero P1/P2 Sentry incident window.
 - LLM adjudicator approved for the resolution review band only; Firecrawl `/v2/extract` not approved; resolution runs as a batch stage. (4 Aug)
 - Dry-runs and snapshots never need approval; `--apply` always does. (AGENTS rule 15)
 - Signed-out visitors see every supplier field except the company's contact details; contact info is sign-in gated. (23 Sep, REZ-B)
+- Products counts leave out sanctioned suppliers, so each equals the Discover search it links to. (24 Sep, REZ-B)
+- Discover's worker figure is the one the Workers sort uses (the supplier's own); a group total shows as a second line. (24 Sep, REZ-B)
+- No Help button until a help page exists. (24 Sep, REZ-B)
 
 ## Production migration ledger (authoritative)
 Migration file headers are NOT live status. Check here or query the database.

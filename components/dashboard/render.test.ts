@@ -56,7 +56,7 @@ import { SearchComposer } from "./search-composer";
 import { SelectionBar } from "./selection-bar";
 import { saveSearchError } from "./save-search-form";
 import { SELECT_ALL_ID, SelectionContext, SelectionProvider, type SelectionContextValue } from "./selection";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { AppRouterContext } from "next/dist/shared/lib/app-router-context.shared-runtime";
 import { SupplierResultCard } from "./supplier-result-card";
@@ -2011,13 +2011,27 @@ describe("the topbar search field can shrink to a phone", () => {
     assert.ok(input, "no search input in the topbar");
     // A flex item defaults to `min-width: auto`; an input's intrinsic floor is
     // its `size` attribute, ~20 characters. Without `min-w-0` the input and
-    // the ⌘K badge beside it sat on top of the Help button at 320px.
+    // the ⌘K badge beside it sat on top of the buttons beside it at 320px.
     assert.match(input, /\bmin-w-0\b/, `the search input has no min-w-0: ${input}`);
     assert.match(input, /\bgrow\b/, "the search input no longer grows; this guard needs rewriting");
     // The signed-out variant renders a span in the same slot, same floor.
     const idle = shellHtml({ topbar: { caption: "", initial: null } });
     const span = idle.match(/<span class="[^"]*grow[^"]*">Search suppliers/)?.[0] ?? "";
     assert.match(span, /\bmin-w-0\b/, `the placeholder line has no min-w-0: ${span}`);
+  });
+});
+
+describe("the topbar offers no control without a destination", () => {
+  it("no Help control until a help page exists (founder decision, 24 Sep)", () => {
+    // The Help button rendered with no href and no handler: a keyboard or
+    // screen-reader user reached a control that did nothing. It returns with
+    // /app/help, and this guard lets it back only then.
+    const helpPage = existsSync(path.join(process.cwd(), "app", "(app)", "app", "help"));
+    for (const html of [shellHtml(), shellHtml({ topbar: { caption: "", initial: null } })]) {
+      const help = html.match(/<(?:button|a)\b[^>]*aria-label="Help"[^>]*>/)?.[0] ?? null;
+      if (!helpPage) assert.equal(help, null, `a Help control renders with nowhere to go: ${help}`);
+      else assert.match(help ?? "", /href="\/app\/help"/, "the Help control does not go to /app/help");
+    }
   });
 });
 

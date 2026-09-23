@@ -184,21 +184,32 @@ describe("discover result HTML has no contact PII", () => {
       TODAY,
     );
     const group = discoverCsvValue(
-      { ...ROW, employees_total: 3166, workers_source: "registry", workers_basis: "group" },
+      { ...ROW, employees_total: 3166, workers_own: 900, workers_source: "registry", workers_basis: "group" },
       TODAY,
     );
     const notMe = discoverCsvValue(
-      { ...ROW, employees_total: 907, workers_source: "RSC", workers_basis: "excludes-record" },
+      { ...ROW, employees_total: 907, workers_own: null, workers_source: "RSC", workers_basis: "excludes-record" },
       TODAY,
     );
     assert.equal(own.workers_source, "on the register");
-    assert.equal(group.workers_source, "across this record and its buildings");
-    assert.equal(notMe.workers_source, "across its buildings, not this record");
+    // The record's own figure keeps the register's words; the roll-up moves
+    // to columns of its own with the words that say what it covers.
+    assert.deepEqual(
+      [group.workers, group.workers_source, group.workers_group, group.workers_group_source],
+      ["900", "on the register", "3166", "across this record and its buildings"],
+    );
+    assert.deepEqual(
+      [notMe.workers, notMe.workers_source, notMe.workers_group, notMe.workers_group_source],
+      ["", "", "907", "across its buildings, not this record"],
+    );
+    assert.deepEqual([own.workers_group, own.workers_group_source], ["", ""]);
     // A roll-up must never be described with the phrase the workers FILTER
     // uses for the record's own figure — identical words, two quantities.
-    assert.notEqual(group.workers_source, own.workers_source);
-    assert.notEqual(notMe.workers_source, own.workers_source);
-    assert.ok(CSV_COLUMNS.includes("workers_source"));
+    assert.notEqual(group.workers_group_source, own.workers_source);
+    assert.notEqual(notMe.workers_group_source, own.workers_source);
+    for (const c of ["workers_source", "workers_group", "workers_group_source"] as const) {
+      assert.ok(CSV_COLUMNS.includes(c), `the CSV does not emit ${c}`);
+    }
     // No display figure at all: the number is the supplier row's own.
     assert.equal(
       discoverCsvValue({ ...ROW, employees_total: 900 }, TODAY).workers_source,
@@ -222,8 +233,8 @@ describe("discover result HTML has no contact PII", () => {
     const cases = [
       { ...ROW, employees_total: 900, workers_source: "registry" as const, workers_basis: "own" as const },
       { ...ROW, employees_total: 900, workers_source: "RSC" as const, workers_basis: "own" as const },
-      { ...ROW, employees_total: 3166, workers_source: "registry" as const, workers_basis: "group" as const },
-      { ...ROW, employees_total: 907, workers_source: "RSC" as const, workers_basis: "excludes-record" as const },
+      { ...ROW, employees_total: 3166, workers_own: 900, workers_source: "registry" as const, workers_basis: "group" as const },
+      { ...ROW, employees_total: 907, workers_own: 400, workers_source: "RSC" as const, workers_basis: "excludes-record" as const },
       { ...ROW, employees_total: 900 },
       { ...ROW, employees_total: null },
     ];
@@ -244,6 +255,42 @@ describe("discover result HTML has no contact PII", () => {
       const table = buildDiscoverTableRow(r, { today: TODAY, hsLines: [], hsError: false });
       assert.equal(table.workersCoverage ?? null, suffix);
     }
+  });
+
+  it("the headline worker figure is the one the Workers sort orders on; the roll-up is a second line", () => {
+    // discover_suppliers sorts `workers` on the supplier row's own
+    // employees_total. The page used to headline the display roll-up instead,
+    // so a list sorted by workers read 3,166 above 5,000 above 1,200. Founder
+    // decision (24 Sep): show the sorted number, the group total beneath it.
+    const rows: DiscoverV32Row[] = [
+      { ...ROW, id: "a", slug: "a", company_name: "A", employees_total: 5000, workers_source: "registry", workers_basis: "own" },
+      { ...ROW, id: "b", slug: "b", company_name: "B", employees_total: 9000, workers_own: 1200, workers_source: "registry", workers_basis: "group" },
+      { ...ROW, id: "c", slug: "c", company_name: "C", employees_total: 907, workers_own: null, workers_source: "RSC", workers_basis: "excludes-record" },
+    ];
+    const opts = { today: TODAY, hsLines: [], hsError: false };
+    const tableRows = rows.map((r) => buildDiscoverTableRow(r, opts));
+    const html = renderToStaticMarkup(createElement(ResultsTable, { rows: tableRows }));
+    const cells = [...html.matchAll(/<td[^>]*text-right tabular-nums[^>]*>([\s\S]*?)<\/td>/g)].map((m) =>
+      m[1]!.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim(),
+    );
+    assert.deepEqual(cells, [
+      "5,000 on the register",
+      "1,200 on the register 9,000 workers across this record and its buildings",
+      "— 907 workers across its buildings, not this record",
+    ]);
+    // Headlines in the order the sort put them: descending, nulls last.
+    const heads = tableRows.map((t) => t.workers);
+    assert.deepEqual(heads, [5000, 1200, null]);
+    // The card says the same two things, in the same order.
+    const meta = buildDiscoverCard(rows[1]!, opts).meta.map((m) => m.text);
+    const i = meta.indexOf("1,200 workers · on the register");
+    assert.ok(i >= 0, `the card does not headline the sorted figure: ${meta.join(" | ")}`);
+    assert.equal(meta[i + 1], "9,000 workers across this record and its buildings");
+    const cardHtml = renderToStaticMarkup(createElement(SupplierResultCard, { card: buildDiscoverCard(rows[2]!, opts) }));
+    assert.match(cardHtml, /Workers not on file/);
+    assert.match(cardHtml, /907 workers across its buildings, not this record/);
+    // And the export: `workers` is the sorted figure.
+    assert.deepEqual(rows.map((r) => discoverCsvValue(r, TODAY).workers), ["5000", "1200", ""]);
   });
 
   it("the CSV names the HS column for what it holds — headings, not lines", () => {

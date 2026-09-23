@@ -10,7 +10,7 @@
 -- source_records.fields->'epb_hscodes' with the epb_record_is_foreign_to_host
 -- denylist. Both new functions reuse that pattern. hs_catalogue is the same
 -- aggregate as ops/hs_catalogue_exporter_reconciliation.py (heading4 =
--- left(btrim(code),4), count distinct supplier_id).
+-- left(btrim(code),4), count distinct supplier_id), less sanctioned suppliers.
 --
 -- Do not --apply to production from this PR (AGENTS.md rule 15).
 
@@ -1106,6 +1106,11 @@ as $$
         end
       ) as hs(elem)
      where s.is_published = true
+       -- Sanctioned suppliers are left out so each count equals the total of
+       -- the /app/discover?hs= search the Products row links to, which hides
+       -- them by default (founder decision, 24 Sep 2026). This is where the
+       -- aggregate departs from the reconciliation script.
+       and s.is_sanctioned = false
        and sr.source_ref ~ '^[0-9]+$'
        and not public.epb_record_is_foreign_to_host(s.slug, sr.source_ref)
        and btrim(coalesce(hs.elem->>'code', '')) ~ '^[0-9]{4,6}$'
@@ -1123,7 +1128,7 @@ revoke all on function public.hs_catalogue() from public, anon, authenticated;
 grant execute on function public.hs_catalogue() to authenticated;
 
 comment on function public.hs_catalogue() is
-  '4-digit EPB headings with distinct published exporter counts. Same aggregate as ops/hs_catalogue_exporter_reconciliation.py.';
+  '4-digit EPB headings with distinct published, unsanctioned exporter counts: the reconciliation script''s aggregate less sanctioned suppliers, so each equals its Discover search total.';
 
 -- ---------------------------------------------------------------------------
 -- rl_check — one new bucket, `api_export` (REZ-B)

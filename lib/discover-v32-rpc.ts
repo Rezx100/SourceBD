@@ -47,6 +47,8 @@ export type DiscoverV32Row = {
   workers_source?: "RSC" | "registry";
   /** What that figure covers — see `WorkersBasis`. Absent when no display figure was found. */
   workers_basis?: WorkersBasis;
+  /** The supplier row's own figure — what the Workers sort and filter use. */
+  workers_own?: number | null;
   top_tier: number | null;
 };
 

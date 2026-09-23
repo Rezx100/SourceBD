@@ -82,6 +82,8 @@ export type TableRowModel = {
   workers: number | null;
   /** "1 of 2 sites" when the figure is a group sum; null when it is this site's. */
   workersCoverage: string | null;
+  /** A second line under the figure: the group roll-up, when it differs from it. */
+  workersGroup?: string | null;
   sanctioned: boolean;
   sanctionSample?: boolean;
   selected?: boolean;

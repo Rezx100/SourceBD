@@ -80,6 +80,39 @@ export function workersBasisLabel(
   return from;
 }
 
+/**
+ * The headline worker figure is the one the Workers sort and filter use —
+ * the supplier row's own `employees_total` — and the roll-up, when it covers
+ * more than this record, is a second line under it. Headlining the roll-up
+ * made a list sorted by workers read out of order (founder decision, 24 Sep).
+ */
+export function discoverWorkers(row: DiscoverV32Row): {
+  own: number | null;
+  ownLabel: string | null;
+  group: number | null;
+  groupLabel: string | null;
+} {
+  if (row.workers_basis === "group" || row.workers_basis === "excludes-record") {
+    const own = row.workers_own ?? null;
+    return {
+      own,
+      ownLabel: own == null ? null : "on the register",
+      group: row.employees_total,
+      groupLabel: workersBasisLabel(row.workers_source, row.workers_basis),
+    };
+  }
+  return {
+    own: row.employees_total,
+    ownLabel: workersBasisLabel(row.workers_source, row.workers_basis),
+    group: null,
+    groupLabel: null,
+  };
+}
+
+function groupLine(w: ReturnType<typeof discoverWorkers>): string | null {
+  return w.group == null ? null : `${formatCount(w.group)} workers ${w.groupLabel ?? ""}`.trim();
+}
+
 /** "8 registers & certifiers" — the population `p_min_sources` filters on. */
 function registerCountLabel(n: number): string {
   return `${n} ${n === 1 ? "register or certifier" : "registers & certifiers"}`;
@@ -122,13 +155,10 @@ export function buildDiscoverCard(
   const recordHref = `/app/suppliers/${row.slug}`;
   const year = establishedYearOf(row.established_date);
   const place = placeLabel(row.city, row.district);
-  const workers = row.employees_total;
   // Spec §3.1: "we show the exact worker count with its source", and §3.3 puts
-  // workers on the meta line "with its register mark". The source is a fact
-  // `production_workers_display_batch` returns; the composition is not, and
-  // claiming it produced a sentence that was false for every standalone
-  // factory and, under RSC preference, for the record it named.
-  const workersBasis = workersBasisLabel(row.workers_source, row.workers_basis);
+  // workers on the meta line "with its register mark".
+  const w = discoverWorkers(row);
+  const workersGroup = groupLine(w);
 
   const chips: HighlightChip[] = [];
   for (const c of certList.slice(0, 2)) {
@@ -218,9 +248,10 @@ export function buildDiscoverCard(
     { text: entityLabel(row.entity_type), mark: null },
     ...(place ? [{ text: place, mark: null }] : []),
     ...(year ? [{ text: `Est. ${year}`, mark: null }] : []),
-    ...(workers != null
-      ? [{ text: `${formatCount(workers)} workers${workersBasis ? ` · ${workersBasis}` : ""}`, mark: null }]
+    ...(w.own != null
+      ? [{ text: `${formatCount(w.own)} workers${w.ownLabel ? ` · ${w.ownLabel}` : ""}`, mark: null }]
       : [{ text: "Workers not on file", mark: null, quiet: true as const }]),
+    ...(workersGroup ? [{ text: workersGroup, mark: null }] : []),
     // The mark row beside this already shows every source, brand lists
     // included. This number must be the one the "≥ N registers or certifiers"
     // filter and the "Most registers & certifiers" sort actually use
@@ -263,6 +294,7 @@ export function buildDiscoverTableRow(
   },
 ): TableRowModel {
   const card = buildDiscoverCard(row, opts);
+  const w = discoverWorkers(row);
   const certList = certsFromSummary(row.cert_summary, opts.today);
   const lines = hsForSlug(row.slug, opts.hsLines, row.hs_codes ?? []);
   return {
@@ -288,9 +320,10 @@ export function buildDiscoverTableRow(
           ? "no lines recorded"
           : "not on EPB list",
     type: entityLabel(row.entity_type),
-    workers: row.employees_total,
-    // Same rule as the card: the figure carries the register it came from.
-    workersCoverage: workersBasisLabel(row.workers_source, row.workers_basis),
+    // Same figures and words as the card.
+    workers: w.own,
+    workersCoverage: w.ownLabel,
+    workersGroup: groupLine(w),
     sanctioned: card.sanctioned,
     selected: false,
     saved: Boolean(opts.saved),
@@ -301,6 +334,7 @@ export function buildDiscoverTableRow(
 
 export function discoverCsvValue(row: DiscoverV32Row, today: Date): Record<string, string> {
   const certs = certsFromSummary(row.cert_summary, today);
+  const w = discoverWorkers(row);
   return {
     company: displayName(row.company_name),
     slug: row.slug,
@@ -315,22 +349,14 @@ export function discoverCsvValue(row: DiscoverV32Row, today: Date): Record<strin
     // "12 HS lines" on screen exported three values here. Named for what it
     // is, as the "Most HS headings" sort already is.
     hs_headings: (row.hs_codes ?? []).join("; "),
-    workers: row.employees_total == null ? "" : String(row.employees_total),
-    // The card and the table both say which figure this is, because the number
-    // is sometimes a roll-up of this record plus its buildings and sometimes
-    // the register's own figure for this record alone. The CSV column was
-    // bare, so a buyer exporting under "at most 1,000 workers on the register"
-    // read 4,100 in the cell with nothing to explain it. Same wording as the
-    // card, in a column of its own so `workers` stays a plain number that a
-    // spreadsheet still sums.
-    // Which register the number came from — the same fact the card and the
-    // table print, and the only thing about this figure the results page
-    // actually knows. A column of its own so `workers` stays a plain number a
-    // spreadsheet still sums.
-    workers_source:
-      row.employees_total == null
-        ? ""
-        : (workersBasisLabel(row.workers_source, row.workers_basis) ?? "on the supplier record"),
+    // The same two figures as the card and the table: `workers` is the one the
+    // Workers sort and filter use, and the roll-up, when it covers more than
+    // this record, has columns of its own. Each figure has a words column
+    // beside it so the number columns stay plain numbers a spreadsheet sums.
+    workers: w.own == null ? "" : String(w.own),
+    workers_source: w.own == null ? "" : (w.ownLabel ?? "on the supplier record"),
+    workers_group: w.group == null ? "" : String(w.group),
+    workers_group_source: w.group == null ? "" : (w.groupLabel ?? ""),
     established: row.established_date ?? "",
     sanctioned: row.is_sanctioned ? "yes" : "no",
   };
@@ -347,6 +373,8 @@ export const CSV_COLUMNS = [
   "hs_headings",
   "workers",
   "workers_source",
+  "workers_group",
+  "workers_group_source",
   "established",
   "sanctioned",
 ] as const;
