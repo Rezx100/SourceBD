@@ -7,6 +7,8 @@ import { AppShell } from "@/components/dashboard/app-shell";
 import { Panel, PanelFooter, PanelHeader } from "@/components/dashboard/results-panel";
 import { ResultsTable } from "@/components/dashboard/results-table";
 import { SearchComposer } from "@/components/dashboard/search-composer";
+import { SelectionBar } from "@/components/dashboard/selection-bar";
+import { SelectionProvider } from "@/components/dashboard/selection";
 import { SupplierResultCard } from "@/components/dashboard/supplier-result-card";
 import { Caption, Title } from "@/components/dashboard/type";
 import { RecordRecentSearch } from "@/components/dashboard/record-recent-search";
@@ -357,44 +359,47 @@ export default async function BuyerDiscoverPage({
           </div>
         </Panel>
       ) : (
-        <Panel>
-          <PanelHeader
-            model={{
-              title,
-              total,
-              shown: rows.length,
-              firstRow: (state.page - 1) * state.per + 1,
-              sortLabel: sortLabel(state.sort),
-              view: state.view,
-              exportHref: `/api/v1/discover/export?${serializeDiscoverState(state).toString()}`,
-              saveHref: `/app/searches/new?${serializeDiscoverState({ ...state, page: 1 }).toString()}`,
-              viewHref: (view) => discoverHref(state, { view, page: 1 }),
-              sortOptions: SORTS.map((s) => ({
-                value: s.value,
-                label: s.label,
-                href: discoverHref(state, { sort: s.value, page: 1 }),
-              })),
-            }}
-          />
-          {state.view === "table" ? (
-            <ResultsTable rows={tableRows} />
-          ) : (
-            <div>
-              {cards.map((card) => (
-                <SupplierResultCard key={card.slug} card={card} />
-              ))}
-            </div>
-          )}
-          <PanelFooter
-            shown={rows.length}
-            total={total}
-            perPage={state.per}
-            page={state.page}
-            prevHref={state.page > 1 ? discoverHref(state, { page: state.page - 1 }) : null}
-            nextHref={pages && state.page < pages ? discoverHref(state, { page: state.page + 1 }) : null}
-            perHrefs={PER_PAGE.map((n) => ({ n, href: discoverHref(state, { per: n, page: 1 }) }))}
-          />
-        </Panel>
+        <SelectionProvider pageIds={rows.map((r) => r.id)}>
+          <Panel>
+            <PanelHeader
+              model={{
+                title,
+                total,
+                shown: rows.length,
+                firstRow: (state.page - 1) * state.per + 1,
+                sortLabel: sortLabel(state.sort),
+                view: state.view,
+                exportHref: `/api/v1/discover/export?${serializeDiscoverState(state).toString()}`,
+                saveHref: `/app/searches/new?${serializeDiscoverState({ ...state, page: 1 }).toString()}`,
+                viewHref: (view) => discoverHref(state, { view, page: 1 }),
+                sortOptions: SORTS.map((s) => ({
+                  value: s.value,
+                  label: s.label,
+                  href: discoverHref(state, { sort: s.value, page: 1 }),
+                })),
+              }}
+            />
+            {state.view === "table" ? (
+              <ResultsTable rows={tableRows} />
+            ) : (
+              <div>
+                {cards.map((card) => (
+                  <SupplierResultCard key={card.slug} card={card} />
+                ))}
+              </div>
+            )}
+            <PanelFooter
+              shown={rows.length}
+              total={total}
+              perPage={state.per}
+              page={state.page}
+              prevHref={state.page > 1 ? discoverHref(state, { page: state.page - 1 }) : null}
+              nextHref={pages && state.page < pages ? discoverHref(state, { page: state.page + 1 }) : null}
+              perHrefs={PER_PAGE.map((n) => ({ n, href: discoverHref(state, { per: n, page: 1 }) }))}
+            />
+            <SelectionBar exportHref={`/api/v1/discover/export?${serializeDiscoverState(state).toString()}`} />
+          </Panel>
+        </SelectionProvider>
       )}
     </AppShell>
   );

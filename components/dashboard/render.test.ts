@@ -1267,6 +1267,18 @@ describe("the two-state controls say which state they are in", () => {
     assert.match(off, /title="[^"]+"/, "an inert control says why it is inert");
   });
 
+  it("a checkbox given onToggle is real: no aria-disabled, no inert title, in the tab order", () => {
+    // REZ-B, handoff §7.5: the results-page checkbox goes from the inert
+    // placeholder above to an operable one wherever selection is wired up.
+    // The two must not collapse into one shape — a real checkbox that still
+    // carried `aria-disabled` would tell assistive tech it cannot be used.
+    const real = renderToStaticMarkup(createElement(Checkbox, { on: false, label: "Select Aboni", onToggle: () => {} }));
+    assert.match(real, /role="checkbox"[^>]*aria-checked="false"/);
+    assert.match(real, /tabindex="0"/);
+    assert.doesNotMatch(real, /aria-disabled/);
+    assert.doesNotMatch(real, /title="Selection arrives with the results work"/);
+  });
+
   // Accessibility, cycle 19, BLOCKING F3. `Seg`'s and the Template switch's
   // wrapping `<span role="group">` carries `overflow-hidden` for its own
   // rounded corners; the global `:focus-visible` ring is painted 2px OUTSIDE

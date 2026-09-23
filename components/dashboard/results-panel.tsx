@@ -6,8 +6,9 @@
 import type { ReactNode } from "react";
 import { formatCount } from "@/lib/dashboard/facts";
 import { cn } from "@/lib/utils";
-import { Button, Checkbox, Seg } from "./controls";
+import { Button, Seg } from "./controls";
 import { Icon } from "./icons";
+import { SelectAllCheckbox } from "./selection";
 import { Caption, Title } from "./type";
 
 export function Panel({ className, children }: { className?: string; children: ReactNode }) {
@@ -77,7 +78,7 @@ export function PanelHeader({ model }: { model: PanelHeaderModel }) {
   // above it.
   return (
     <div className="flex flex-wrap items-center gap-2 border-b border-line-subtle px-4 py-3 sm:gap-3 sm:px-5">
-      <Checkbox label="Select all on this page" />
+      <SelectAllCheckbox />
       <div className="flex min-w-0 flex-1 items-baseline gap-2">
         {/* The screen's heading. Without it, results-list and results-table
             rendered no heading of any level, so there was nothing to navigate

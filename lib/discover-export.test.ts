@@ -404,3 +404,90 @@ describe("discover CSV export boundary", () => {
     assert.equal(csvFilename(TODAY), "sourcebd-suppliers-2026-09-21.csv");
   });
 });
+
+describe("the bulk bar's selected-rows export (?ids=)", () => {
+  const OTHER = {
+    ...ROW,
+    id: "22222222-2222-4222-8222-222222222222",
+    slug: "beximco-textiles",
+    company_name: "Beximco Textiles Ltd",
+  };
+
+  it("401 when the caller is not a buyer or admin, even with ids present", async () => {
+    const res = await runDiscoverExport({
+      role: null,
+      supabase: { rpc: async () => ({ data: [ROW, OTHER], error: null }) },
+      search: `ids=${ROW.id}`,
+      today: TODAY,
+    });
+    assert.equal(res.status, 401);
+  });
+
+  it("400 on a malformed id, an empty list, or more ids than one page could ever hold", async () => {
+    const stub = { rpc: async () => ({ data: [ROW], error: null }) };
+    const notUuid = await runDiscoverExport({ role: "buyer", supabase: stub, search: "ids=not-a-uuid", today: TODAY });
+    assert.equal(notUuid.status, 400);
+    const empty = await runDiscoverExport({ role: "buyer", supabase: stub, search: "ids=", today: TODAY });
+    assert.equal(empty.status, 400);
+    const tooMany = await runDiscoverExport({
+      role: "buyer",
+      supabase: stub,
+      search: `ids=${Array.from({ length: 101 }, (_, i) => `1111111-1111-4111-8111-${String(i).padStart(12, "0")}`).join(",")}`,
+      today: TODAY,
+    });
+    assert.equal(tooMany.status, 400);
+  });
+
+  it("exports only the selected ids out of the page, not the whole result set", async () => {
+    // `fetchDiscoverV32` itself makes two calls per page (`discover_suppliers`
+    // then the worker-enrichment batch RPC) — count only the paging RPC, the
+    // same one the "pages past the ceiling" test above watches, to assert the
+    // real invariant: a selection is bounded by one page.
+    let discoverCalls = 0;
+    const res = await runDiscoverExport({
+      role: "buyer",
+      supabase: {
+        rpc: async (fn: string) => {
+          if (fn === "discover_suppliers") discoverCalls += 1;
+          return { data: [ROW, OTHER], error: null };
+        },
+      },
+      search: `q=knit&ids=${OTHER.id}`,
+      today: TODAY,
+    });
+    assert.equal(res.status, 200);
+    assert.equal(discoverCalls, 1, "a selection is bounded by one page — it must not page through the 1000-row loop");
+    assert.match(res.body, /Beximco Textiles Ltd/);
+    assert.doesNotMatch(res.body, /Aboni Knitwear Ltd/, "an id not in the selection must not appear in its export");
+    assert.match(res.headers["Content-Disposition"] ?? "", /-selected-1\.csv"/);
+    assert.equal(res.headers["X-SourceBD-Rows"], "1");
+  });
+
+  it("an id the reproduced page no longer holds is dropped, not invented — the count says so honestly", async () => {
+    // The RPC is re-run with the same filter state to get these rows; it is
+    // never a raw id lookup. A selected id that fell off the page between
+    // render and export (a stale selection) must not turn into a fabricated
+    // row or a crash — just a smaller, honestly-counted export.
+    const res = await runDiscoverExport({
+      role: "buyer",
+      supabase: { rpc: async () => ({ data: [ROW], error: null }) },
+      search: `ids=${ROW.id},${OTHER.id}`,
+      today: TODAY,
+    });
+    assert.equal(res.status, 200);
+    assert.equal(res.headers["X-SourceBD-Rows"], "1");
+    assert.match(res.headers["Content-Disposition"] ?? "", /-selected-1\.csv"/);
+  });
+
+  it("still refuses a selection whose row carries contact fields", async () => {
+    const leaked = { ...ROW, email_primary: "buyer@example.com" };
+    const res = await runDiscoverExport({
+      role: "buyer",
+      supabase: { rpc: async () => ({ data: [leaked], error: null }) },
+      search: `ids=${ROW.id}`,
+      today: TODAY,
+    });
+    assert.equal(res.status, 500);
+    assert.doesNotMatch(res.body, /@/);
+  });
+});

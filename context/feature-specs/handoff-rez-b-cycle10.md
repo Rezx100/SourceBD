@@ -196,7 +196,8 @@ preview server and prune worktrees before a full gate run.
    showing the sorted figure. Worth putting to him with §7.1.
 4. **The Help button** has an accessible name and no behaviour, because
    `/app/help` does not exist. That is a product decision, not a code fix.
-5. **Spec §3.1's selection is unbuilt.** The spec asks for a select-all
+5. **DECIDED 23 Sep: built on this branch — see §10.** Original text kept
+   below for the record. **Spec §3.1's selection is unbuilt.** The spec asks for a select-all
    checkbox, a checkbox per card, and a sticky "N selected · Send RFQ · Save
    · Compare · Export" bar. The checkboxes render as `aria-disabled`
    placeholders that cannot be ticked, on every row of a shipped page, and
@@ -255,10 +256,105 @@ approval is void. It has moved again since the last hand-off.
 
 ## 9. First actions for the next session
 
-1. Resume or re-run the four cycle-10 reviewers that never reported
-   (correctness, accessibility, guard-adequacy, truthfulness), against
-   `b04144a` or a newer frozen candidate.
-2. Put §7.5 (the unbuilt selection) to the founder before another review
-   round, because it changes what "done" means for this branch.
-3. Do not ask for gate 1 until a round returns zero blocking and an
-   Acceptance Judge has returned the token.
+Superseded 23 Sep — see §10.4.
+
+## 10. Session of 23 Sep 2026: selection built, and a deploy-order blocker found
+
+### 10.1 What was built (the founder chose "build §7.5 here")
+
+Spec §3.1 "Selection" on `/app/discover`, cards and table:
+
+- The select-all checkbox and one checkbox per card or row are now real:
+  `Checkbox` takes an optional `onToggle`. Without it the old inert shape is
+  unchanged (`aria-disabled` + title), which the gallery and the RFQ
+  composer still use. With it: tabbable, Space/Enter toggle, no
+  `aria-disabled`.
+- Selection state: `components/dashboard/selection.tsx` (client context,
+  one provider per page load, so selection is "this page" only). Pure math
+  is in `lib/dashboard/selection.ts`. Outside a provider (the `/dev/ds`
+  gallery) the context is inert, so the gallery is unchanged.
+  `SupplierResultCard` and `ResultsTable` are now client components, as spec
+  §3 allows for "components that hold selection state".
+- The sticky bar: `components/dashboard/selection-bar.tsx`, reading
+  "N selected · Send RFQ · Save · Compare · Export · Clear".
+  - **Save** posts each selected id to the existing `/api/v1/saved`, then
+    refreshes the page. `SaveRecordButton` now syncs to its `saved` prop, or
+    a card saved from the bar kept reading "Save".
+  - **Export** is the existing CSV route plus `?ids=`. `lib/discover-export.ts`
+    re-runs the SAME filter state (never a raw id lookup), keeps only the
+    selected rows, and names the file `…-selected-N.csv`. Bad, empty or more
+    than 100 ids → 400. `?ids=` present but empty must be refused, not fall
+    through to a full export; the first draft did fall through, and a test
+    caught it.
+  - **Send RFQ** and **Compare** are disabled with a title saying why. Their
+    destinations are REZ-D (the multi-supplier composer) and REZ-C
+    (`/app/compare`), which do not exist on this branch. The old
+    `/app/rfqs/new` takes one supplier only.
+  - **Clear** is the one addition beyond the spec's wording.
+- `SEND_RFQ_MAX` (50) is read out of `app/api/v1/rfqs/route.ts`'s
+  `MAX_TARGETS` by a test, so the two numbers cannot drift.
+
+### 10.2 A guard added for a defect class that has now happened twice
+
+`tsconfig.npm-test.json` lists files explicitly. A `*.test.ts` left off it
+is typechecked but **never run**: that hid `load-buyer-shell`'s tests once,
+and hid this session's selection tests on their first run. New test in
+`scripts/gallery/harness.test.ts`: every `*.test.ts` in the repo (outside
+`node_modules`, `.claude`, `etl`, `ops`, …) must be in the list. Proved by
+removing `lib/dashboard/selection.test.ts` from the list: red, naming the
+file. Restored: green.
+
+### 10.3 Verification, and what is NOT verified
+
+- `pnpm exec tsc --noEmit`: exit 0. `next lint`: 0 errors (warnings
+  pre-existing).
+- `pnpm test`: **1,319 pass, 0 fail, 198 suites** (Node 25). It was
+  1,302 / 196 at `b04144a`.
+- **Not checked in a browser.** Reason below. CI has not run it either.
+- **The work is uncommitted** on `rez-b-results-page` at the end of this
+  session, tip still `a4f0ae5`. Commit it first (rule 11).
+
+**The blocker.** The local dev server reads `.env`, which points at the
+**live** Supabase project (`stnrfxrxfonwexzcvvpv`). There,
+`discover_suppliers` still has the pre-`0104` signature. A read-only call
+with the page's own arguments returns *"Could not find the function
+public.discover_suppliers(… p_hs_codes, p_cert_state, p_rsc_state,
+p_est_from, p_est_to, p_workers_max, p_districts, p_cities,
+p_exclude_sanctioned …)"*. So `/app/discover` on this branch can only render
+"Search is under heavy load" against live data. No cards means no
+checkboxes, so nothing in this branch's results page can be seen in a
+browser until `0104` exists in whatever database the server points at.
+
+Two consequences:
+
+1. **Deploy-order hazard (the one `current-state.md` warns about).** If this
+   branch's code ships before `0104` is applied, every buyer's search breaks
+   and says "heavy load". This is a gate-3 blocker. `0104` must be applied
+   first, or with the deploy.
+2. **A false comment.** The header of `lib/discover-v32-rpc.ts` says
+   "Extra columns degrade to empty when 0104 is not yet applied — the page
+   still renders". Extra *columns* might, but the new *parameters* make
+   PostgREST refuse the call outright. Fix the comment, and either make the
+   caller fall back or state the dependency. A truthfulness reviewer should
+   catch this; it is here so they do not have to.
+
+Also found while trying: `middleware.ts` builds its login redirect from
+`NEXT_PUBLIC_SITE_URL`, which is `https://sourcebd.net` locally. So opening
+`localhost:3000/app/discover` signed out sends you to the **live** login.
+Open `http://localhost:3000/login?next=%2Fapp%2Fdiscover` directly instead.
+
+### 10.4 First actions for the next session
+
+1. Commit this session's work (rule 11), push the feature branch, and let
+   CI run.
+2. Put the founder's open questions to him **in one message**: §7.1 (the
+   anon grant on `discover_suppliers`, which `0104` widens), §7.2, §7.3,
+   §7.4, and how he wants the results page checked in a browser before
+   `0104` is applied (a Supabase branch with `0104`, or no browser check
+   until after).
+3. Run cycle 11: five independent reviewers (§6) against the new frozen
+   commit, newest work first: the selection bar, the `?ids=` export, and
+   §10.3's false comment.
+4. Repeat until a round has zero blocking; then the Acceptance Judge.
+5. Only then ask for gate 1. `0104` is applied by the founder, after a
+   dry-run, and before or with the deploy (gate 3), never after it.

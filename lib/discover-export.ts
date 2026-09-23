@@ -45,6 +45,72 @@ export function csvContainsContactHeader(csv: string): boolean {
   return CSV_CONTACT_HEADERS.some((h) => header.split(",").includes(h));
 }
 
+/** The bulk bar's own filename, for the "N of these rows" export — never a
+ * truncation span, because a selection can never exceed one page. */
+function selectedCsvFilename(today: Date, count: number): string {
+  const y = today.getUTCFullYear();
+  const m = String(today.getUTCMonth() + 1).padStart(2, "0");
+  const d = String(today.getUTCDate()).padStart(2, "0");
+  return `sourcebd-suppliers-${y}-${m}-${d}-selected-${count}.csv`;
+}
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+/** The RPC's own per-page ceiling (0104): a selection drawn from one page of
+ * results can never legitimately hold more ids than that page could. */
+const MAX_SELECTED = 100;
+
+function badRequest(error: string): ExportResult {
+  return { status: 400, body: JSON.stringify({ error }), headers: { "Content-Type": "application/json; charset=utf-8" } };
+}
+function exportRefused(status: number, error: string): ExportResult {
+  return { status, body: JSON.stringify({ error }), headers: { "Content-Type": "application/json; charset=utf-8" } };
+}
+
+/**
+ * `ids` scopes the export to the bulk bar's selection instead of the whole
+ * filtered result set. It re-runs the *exact same* filter state the buyer's
+ * page was built from — never a raw id lookup — and only keeps rows the RPC
+ * (and its RLS) actually returned for it, so a selection can never pull a row
+ * the buyer's own filters and permissions would not have shown them.
+ */
+async function runSelectedExport(
+  supabase: ExportRpcClient,
+  state: DiscoverState,
+  idsParam: string,
+  today: Date,
+): Promise<ExportResult> {
+  const ids = idsParam
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  if (ids.length === 0 || ids.length > MAX_SELECTED || ids.some((id) => !UUID_RE.test(id))) {
+    return badRequest("invalid ids");
+  }
+  const idSet = new Set(ids);
+  const page = await fetchDiscoverV32(supabase, state);
+  if (page.error) {
+    return exportRefused(page.error.includes("contact fields") ? 500 : 503, page.error.includes("contact fields") ? "export refused" : "export unavailable");
+  }
+  const rows = page.rows.filter((r) => idSet.has(r.id));
+  if (rows.some((r) => discoverRowHasPii(r))) {
+    return exportRefused(500, "export refused");
+  }
+  const csv = discoverRowsToCsv(rows, today);
+  if (csvContainsContactHeader(csv)) {
+    return exportRefused(500, "export refused");
+  }
+  return {
+    status: 200,
+    body: csv,
+    headers: {
+      "Content-Type": "text/csv; charset=utf-8",
+      "Content-Disposition": `attachment; filename="${selectedCsvFilename(today, rows.length)}"`,
+      "Cache-Control": "private, no-store",
+      "X-SourceBD-Rows": String(rows.length),
+    },
+  };
+}
+
 export async function runDiscoverExport(input: {
   role: string | null;
   supabase: ExportRpcClient;
@@ -59,7 +125,15 @@ export async function runDiscoverExport(input: {
     };
   }
 
-  const state: DiscoverState = parseDiscoverState(new URLSearchParams(input.search.replace(/^\?/, "")));
+  const params = new URLSearchParams(input.search.replace(/^\?/, ""));
+  const state: DiscoverState = parseDiscoverState(params);
+  const idsParam = params.get("ids");
+  // `!== null`, not truthiness: `?ids=` (present but empty) must still reach
+  // the selected-export path so it is refused as an empty selection, rather
+  // than silently falling through to a full, unscoped export.
+  if (idsParam !== null) {
+    return runSelectedExport(input.supabase, state, idsParam, input.today);
+  }
 
   // The RPC clamps p_limit to 100 (0104: `least(coalesce(p_limit,24),100)`),
   // so a single call can never return the MAX_ROWS this export promises. Page

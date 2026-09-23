@@ -5,6 +5,13 @@
 // and the V2 why-matched line. Selected: filled checkbox + 3px brand inset
 // rule. Sanctioned: 4px sanction bar, a notice under the meta, the badge first
 // in the chip row, Send RFQ disabled — nothing in the layout can hide it.
+//
+// Client (REZ-B): the checkbox reads and writes the shared selection context
+// (`./selection`), which only exists inside a `SelectionProvider`. Outside
+// one — the `/dev/ds` gallery — it falls back to the static `card.selected`
+// prop and the checkbox stays inert, exactly as REZ-A shipped it.
+
+"use client";
 
 import type { SupplierCardModel, FactWithMark, TileModel } from "@/lib/dashboard/models";
 import { cn } from "@/lib/utils";
@@ -14,6 +21,7 @@ import { Icon } from "./icons";
 import { LogoTile, SourceMark, SourceMarks } from "./marks";
 import { PhotoStrip } from "./photo-tiles";
 import { SaveRecordButton } from "./save-record-button";
+import { useSelection } from "./selection";
 import { Code, Title } from "./type";
 
 /** `.meta`: facts separated by middle dots, each followed by its 16px mark. */
@@ -87,17 +95,25 @@ export function SanctionLine({ sample, href, className }: { sample?: boolean; hr
 
 export function SupplierResultCard({ card }: { card: SupplierCardModel }) {
   const recordHref = `/app/suppliers/${card.slug}`;
+  const sel = useSelection();
+  const selectable = sel.interactive && Boolean(card.supplierId);
+  const selected = selectable ? sel.isSelected(card.supplierId!) : Boolean(card.selected);
   return (
     <article
       aria-label={card.name}
       data-sanctioned={card.sanctioned ? "true" : undefined}
       className={cn(
         "relative flex gap-3 border-b border-line-subtle p-5 last-of-type:border-b-0",
-        card.selected && "shadow-[inset_3px_0_0_rgb(var(--ds-brand))]",
+        selected && "shadow-[inset_3px_0_0_rgb(var(--ds-brand))]",
         card.sanctioned && "before:absolute before:bottom-0 before:left-0 before:top-0 before:w-1 before:bg-sanction before:content-['']",
       )}
     >
-      <Checkbox on={card.selected} label={`Select ${card.name}`} className="mt-4" />
+      <Checkbox
+        on={selected}
+        label={`Select ${card.name}`}
+        onToggle={selectable ? () => sel.toggle(card.supplierId!) : undefined}
+        className="mt-4"
+      />
       <div className="flex min-w-0 flex-1 flex-col gap-4">
         {/* Wraps, so the action cluster drops below the identity block rather
             than pushing the card past the viewport. */}

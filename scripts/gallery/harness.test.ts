@@ -124,4 +124,27 @@ describe("the page and the harness render the same screens", () => {
       assert.ok(files.files.includes(rel), `${rel} is not in tsconfig.npm-test.json, so the suite never compiles it`);
     }
   });
+
+  it("every *.test.ts in the repo is in the suite's file list, so none of them silently never runs", () => {
+    // `pnpm test` compiles only the files named in tsconfig.npm-test.json, then
+    // globs the output. A test file left off that list is typechecked by the
+    // root tsconfig and never executed — it passes by not existing. That hid
+    // load-buyer-shell's tests once, and hid the Discover selection tests on
+    // their first run.
+    const listed = new Set((JSON.parse(read("tsconfig.npm-test.json")) as { files: string[] }).files);
+    const skip = new Set(["node_modules", ".next", ".tests-build", ".claude", ".git", "etl", "ops", "prototypes"]);
+    const found: string[] = [];
+    const walk = (dir: string) => {
+      for (const e of fs.readdirSync(path.join(process.cwd(), dir), { withFileTypes: true })) {
+        if (skip.has(e.name)) continue;
+        const rel = dir ? `${dir}/${e.name}` : e.name;
+        if (e.isDirectory()) walk(rel);
+        else if (/\.test\.tsx?$/.test(e.name)) found.push(rel);
+      }
+    };
+    walk("");
+    assert.ok(found.length > 40, `found only ${found.length} test files — the walk is not looking where the tests are`);
+    const missing = found.filter((f) => !listed.has(f));
+    assert.deepEqual(missing, [], `not in tsconfig.npm-test.json, so pnpm test never runs them: ${missing.join(", ")}`);
+  });
 });

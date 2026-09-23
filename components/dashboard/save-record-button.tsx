@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { Button } from "@/components/dashboard/controls";
 import { Icon } from "@/components/dashboard/icons";
 
@@ -34,6 +34,15 @@ export function SaveRecordButton({
   const [status, setStatus] = useState<string>("");
   const statusId = useId();
   const label = on ? "Saved" : "Save";
+
+  // `useState(saved)` only reads its initial value once. The bulk-save
+  // button in the selection bar saves N suppliers and calls
+  // `router.refresh()`, which re-renders this component with a new `saved`
+  // prop but does not remount it — without this, a card just bulk-saved from
+  // the bar keeps showing "Save" until a full page reload.
+  useEffect(() => {
+    setOn(saved);
+  }, [saved]);
 
   return (
     <>
