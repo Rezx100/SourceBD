@@ -54,6 +54,7 @@ migrations, run the 30-day zero P1/P2 Sentry incident window.
 - Numeric profile fields cannot be corrected downwards today (`greatest()` merge) — known defect, queued. (31 Jul)
 - LLM adjudicator approved for the resolution review band only; Firecrawl `/v2/extract` not approved; resolution runs as a batch stage. (4 Aug)
 - Dry-runs and snapshots never need approval; `--apply` always does. (AGENTS rule 15)
+- Signed-out visitors see every supplier field except the company's contact details; contact info is sign-in gated. (23 Sep, REZ-B)
 
 ## Production migration ledger (authoritative)
 Migration file headers are NOT live status. Check here or query the database.

@@ -592,4 +592,36 @@ begin
 end
 $$;
 
+-- Founder rule (23 Sep 2026): a signed-out visitor sees every supplier field
+-- EXCEPT the company's contact details. discover_suppliers is served to anon
+-- by PostgREST directly, so the rule is enforced by what the function RETURNS
+-- — checked on its declared result and on a real row fetched as anon.
+do $$
+declare
+  r record;
+  keys text[];
+begin
+  for r in
+    select p.oid from pg_proc p
+     where p.pronamespace = 'public'::regnamespace and p.proname = 'discover_suppliers'
+  loop
+    if pg_get_function_result(r.oid) ~* '(email|phone|contact_name|contact_role|whatsapp)' then
+      raise exception 'discover_suppliers declares a contact column for anon: %', pg_get_function_result(r.oid);
+    end if;
+  end loop;
+  set local role anon;
+  perform set_config('request.jwt.claim.role', 'anon', true);
+  select array_agg(k) into keys
+    from (select jsonb_object_keys(to_jsonb(d)) as k from public.discover_suppliers() d limit 1) x;
+  reset role;
+  perform set_config('request.jwt.claim.role', '', true);
+  if keys is null then
+    raise exception 'anon got no discover_suppliers row to inspect';
+  end if;
+  if exists (select 1 from unnest(keys) k where k ~* '(email|phone|contact_name|contact_role|whatsapp)') then
+    raise exception 'a signed-out caller received a contact field: %', keys;
+  end if;
+end
+$$;
+
 rollback;

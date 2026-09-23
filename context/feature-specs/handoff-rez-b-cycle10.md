@@ -178,7 +178,12 @@ preview server and prune worktrees before a full gate run.
 
 ### Founder's call, not yours
 
-1. **The anon key's reach.** `discover_suppliers` is granted to `anon` and
+1. **DECIDED 23 Sep by the founder: "a signed-out visitor should see
+   everything but the contact info of the company."** So the anon grant and
+   0104's full return stay; no lean anon signature, no paging cap. Contact
+   fields stay out of the return type, enforced in `assert-0104.sql` on the
+   declared result and on a row fetched as anon. Original text kept below.
+   **The anon key's reach.** `discover_suppliers` is granted to `anon` and
    served by PostgREST directly. 0104 widens its return from 17 columns to
    23, adding certificate numbers and issuers, HS headings, registries,
    brand lists, `top_tier` and `is_sanctioned`. 100 rows a request,
