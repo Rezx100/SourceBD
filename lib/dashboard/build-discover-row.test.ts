@@ -322,8 +322,8 @@ describe("the Discover results page's selection checkboxes are real (spec §3.1)
       const boxes = [...html.matchAll(/<span[^>]*role="checkbox"[^>]*>/g)].map((m) => m[0]);
       const rowBoxes = boxes.filter((b) => /aria-label="Select A\.R\. Fashion/.test(b));
       assert.equal(rowBoxes.length, 1, `expected one checkbox for the row, got: ${boxes.join(" | ")}`);
-      assert.match(rowBoxes[0], /tabindex="0"/);
-      assert.doesNotMatch(rowBoxes[0], /aria-disabled/);
+      assert.match(rowBoxes[0] ?? "", /tabindex="0"/);
+      assert.doesNotMatch(rowBoxes[0] ?? "", /aria-disabled/);
     }
   });
 

@@ -31,7 +31,7 @@ describe("POST /api/v1/saved", () => {
     const res = await runSavedSupplierPost({ role: "buyer", supabase: client(upserts), raw: { supplier_ids: ids(100) } });
     assert.equal(res.status, 200);
     assert.equal(upserts.length, 1, "one database write per request, not one per supplier");
-    assert.equal(upserts[0].length, 100);
+    assert.equal(upserts[0]?.length, 100);
     assert.equal(res.body.count, 100);
     for (const row of upserts[0] as { owner_id: string }[]) assert.equal(row.owner_id, OWNER);
   });
@@ -46,7 +46,7 @@ describe("POST /api/v1/saved", () => {
   it("never takes the owner from the body", async () => {
     const upserts: unknown[][] = [];
     await runSavedSupplierPost({ role: "buyer", supabase: client(upserts), raw: { supplier_ids: [A], owner_id: B } });
-    assert.equal((upserts[0][0] as { owner_id: string }).owner_id, OWNER);
+    assert.equal((upserts[0]?.[0] as { owner_id: string } | undefined)?.owner_id, OWNER);
   });
 
   it("refuses more than one page's worth, an empty list, and any malformed id — writing nothing", async () => {

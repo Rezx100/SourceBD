@@ -20,7 +20,7 @@ function effectiveRlCheck(): { file: string; sql: string } {
       .map((l) => (l.includes("--") ? l.slice(0, l.indexOf("--")) : l))
       .join("\n");
     const m = sql.match(/create or replace function public\.rl_check\([\s\S]*?\$\$([\s\S]*?)\$\$;/i);
-    if (m) found = { file: f, sql: m[1] };
+    if (m) found = { file: f, sql: m[1] ?? "" };
   }
   assert.ok(found, "no migration defines public.rl_check");
   return found;
@@ -31,7 +31,7 @@ describe("rate-limit classes", () => {
     const { file, sql } = effectiveRlCheck();
     const allow = sql.match(/v_bucket\s*<>\s*all\s*\(\s*array\[([\s\S]*?)\]/i);
     assert.ok(allow, `${file}: rl_check has no bucket allow-list`);
-    const listed = new Set([...allow[1].matchAll(/'([a-z_:]+)'/g)].map((m) => m[1]));
+    const listed = new Set([...(allow[1] ?? "").matchAll(/'([a-z_:]+)'/g)].map((m) => m[1]));
     for (const klass of Object.keys(RATE_LIMITS) as RateLimitClass[]) {
       assert.ok(listed.has(klass), `bucket "${klass}" is not in rl_check's allow-list (${file}), so it is never limited`);
     }

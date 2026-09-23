@@ -1288,7 +1288,7 @@ describe("the two-state controls say which state they are in", () => {
     // A native checkbox ignores Enter and toggles on Space's keyup; toggling
     // on keydown flipped the box on every auto-repeat of a held Space.
     let n = 0;
-    const el = Checkbox({ label: "Select Aboni", onToggle: () => (n += 1) }) as { props: Record<string, (e: unknown) => void> };
+    const el = Checkbox({ label: "Select Aboni", onToggle: () => (n += 1) }) as { props: Record<"onKeyDown" | "onKeyUp" | "onClick", (e: unknown) => void> };
     const ev = (key: string) => ({ key, repeat: false, preventDefault() {} });
     el.props.onKeyDown(ev(" "));
     el.props.onKeyDown({ ...ev(" "), repeat: true });
@@ -1360,7 +1360,7 @@ describe("the two-state controls say which state they are in", () => {
       const html = bar([A]);
       const note = html.match(/<p id="([^"]+)"[^>]*>([^<]+)<\/p>/);
       assert.ok(note, "no visible note");
-      assert.match(note[2], /not built yet/);
+      assert.match(note[2] ?? "", /not built yet/);
       const described = [...html.matchAll(new RegExp(`<button[^>]*aria-describedby="${note[1]}"[^>]*>`, "g"))];
       assert.equal(described.length, 2, "Send RFQ and Compare both point at the note");
       for (const b of described) assert.match(b[0], /disabled=""/);

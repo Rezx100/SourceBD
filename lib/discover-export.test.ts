@@ -443,9 +443,9 @@ describe("the bulk bar's selected-rows export (?ids=)", () => {
     });
     assert.equal(res.status, 200);
     assert.equal(calls.length, 1);
-    assert.equal(calls[0].p_offset, 50);
-    assert.equal(calls[0].p_limit, 25);
-    assert.equal(calls[0].p_sort, "name");
+    assert.equal(calls[0]?.p_offset, 50);
+    assert.equal(calls[0]?.p_limit, 25);
+    assert.equal(calls[0]?.p_sort, "name");
   });
 
   it("the selected file carries the same response contract as the full export", async () => {
