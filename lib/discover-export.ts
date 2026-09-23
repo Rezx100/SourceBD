@@ -44,13 +44,15 @@ export function csvContainsContactHeader(csv: string): boolean {
   return CSV_CONTACT_HEADERS.some((h) => header.split(",").includes(h));
 }
 
-/** The bulk bar's own filename, for the "N of these rows" export — never a
- * truncation span, because a selection can never exceed one page. */
-function selectedCsvFilename(today: Date, count: number): string {
+/** The bulk bar's own filename. `-selected-N`, or `-selected-N-of-M` when
+ * some of the M selected suppliers are no longer on the re-run page — a
+ * short file must say it is short, in the name the buyer reads first. */
+function selectedCsvFilename(today: Date, count: number, requested: number): string {
   const y = today.getUTCFullYear();
   const m = String(today.getUTCMonth() + 1).padStart(2, "0");
   const d = String(today.getUTCDate()).padStart(2, "0");
-  return `sourcebd-suppliers-${y}-${m}-${d}-selected-${count}.csv`;
+  const span = count < requested ? `${count}-of-${requested}` : `${count}`;
+  return `sourcebd-suppliers-${y}-${m}-${d}-selected-${span}.csv`;
 }
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -114,9 +116,10 @@ async function runSelectedExport(
     body: csv,
     headers: {
       "Content-Type": "text/csv; charset=utf-8",
-      "Content-Disposition": `attachment; filename="${selectedCsvFilename(today, rows.length)}"`,
+      "Content-Disposition": `attachment; filename="${selectedCsvFilename(today, rows.length, idSet.size)}"`,
       "Cache-Control": "private, no-store",
       "X-SourceBD-Rows": String(rows.length),
+      "X-SourceBD-Requested": String(idSet.size),
     },
   };
 }

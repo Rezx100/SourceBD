@@ -1289,8 +1289,10 @@ describe("the two-state controls say which state they are in", () => {
     // on keydown flipped the box on every auto-repeat of a held Space.
     let n = 0;
     const el = Checkbox({ label: "Select Aboni", onToggle: () => (n += 1) }) as { props: Record<"onKeyDown" | "onKeyUp" | "onClick", (e: unknown) => void> };
-    const ev = (key: string) => ({ key, repeat: false, preventDefault() {} });
+    let prevented = 0;
+    const ev = (key: string) => ({ key, repeat: false, preventDefault: () => (prevented += 1) });
     el.props.onKeyDown(ev(" "));
+    assert.equal(prevented, 1, "Space keydown must stop the page scrolling");
     el.props.onKeyDown({ ...ev(" "), repeat: true });
     assert.equal(n, 0, "keydown must only stop the page scrolling");
     el.props.onKeyUp(ev(" "));
@@ -1340,8 +1342,16 @@ describe("the two-state controls say which state they are in", () => {
       );
     };
 
-    it("renders nothing with an empty selection", () => {
-      assert.equal(bar([]), "");
+    it("with an empty selection renders no bar — only the empty announcer, already mounted", () => {
+      // The announcer must exist BEFORE the first tick: a live region that
+      // mounts already holding "1 selected" is usually not read at all.
+      const html = bar([]);
+      assert.doesNotMatch(html, /Bulk actions"/);
+      assert.match(html, /^<span role="status" aria-live="polite" class="sr-only"><\/span>$/);
+    });
+
+    it("announces the count and where the actions are from that pre-existing region", () => {
+      assert.match(bar([A]), /<span role="status" aria-live="polite" class="sr-only">1 selected\. Bulk actions are after the results\.<\/span>/);
     });
 
     it("counts the selection and exports exactly it, on the page's own query", () => {
@@ -1377,18 +1387,72 @@ describe("the two-state controls say which state they are in", () => {
         ),
       );
       assert.match(header, new RegExp(`id="${SELECT_ALL_ID}"[^>]*role="checkbox"[^>]*tabindex="0"`));
-      // The behaviour half, which a static render cannot run: code only, with
-      // comments stripped so the explanation cannot satisfy it.
+      // The behaviour (focus first, then clear) is clearKeepingFocus, tested in
+      // lib/dashboard/selection.test.ts. Here: the Clear button's own tag, in
+      // full, wires it — the old `onClick={sel.clear}` passed a body-only check.
       const code = sourceCode("components/dashboard/selection-bar.tsx");
-      const clear = code.slice(code.indexOf("function clear()"), code.indexOf("function clear()") + 200);
-      assert.match(clear, /getElementById\(SELECT_ALL_ID\)\?\.focus\(\);\s*sel\.clear\(\)/, "focus must move BEFORE the bar unmounts");
+      const at = code.search(/>\s*Clear\s*<\/Button>/);
+      const tag = code.slice(code.lastIndexOf("<Button", at), at);
+      assert.match(tag, /onClick=\{\(\) => clearKeepingFocus\(document\.getElementById\(SELECT_ALL_ID\), sel\.clear\)\}/, tag);
     });
 
-    it("reserves the bar's height at the bottom of the scroll area while it shows, and gives it back (WCAG 2.4.11)", () => {
+    it("wires reserveBarSpace to run while the bar shows, and hand the space back when it goes (WCAG 2.4.11)", () => {
+      // reserveBarSpace itself is tested behaviourally in selection.test.ts;
+      // this pins the effect that runs it: on `visible`, off otherwise.
       const code = sourceCode("components/dashboard/selection-bar.tsx");
-      assert.match(code, /root\.style\.scrollPaddingBottom = `\$\{bar\.offsetHeight \+ 8\}px`/);
-      assert.match(code, /new ResizeObserver\(fit\)/, "the bar wraps on a phone; a one-off measurement goes stale");
-      assert.match(code, /return \(\) => \{\s*ro\?\.disconnect\(\);\s*root\.style\.scrollPaddingBottom = before;/);
+      assert.match(
+        code,
+        /useEffect\(\(\) => \{\s*const bar = barRef\.current;\s*if \(!visible \|\| !bar\) return;[^}]*return reserveBarSpace\(document\.documentElement, bar, document\.activeElement as HTMLElement \| null, observe\);\s*\}, \[visible\]\);/,
+      );
+    });
+
+    it("a late save response never reports on a selection the buyer has since changed", () => {
+      const code = sourceCode("components/dashboard/selection-bar.tsx");
+      assert.match(code, /const asked = generation\.current;[\s\S]*?if \(generation\.current !== asked\) return;\s*setStatus\(message\);/);
+      assert.match(code, /useEffect\(\(\) => \{\s*generation\.current \+= 1;\s*setStatus\(""\);\s*\}, \[sel\.selected\]\);/);
+    });
+
+    it("both Export buttons download in place — a refusal is a sentence on the page, not a JSON document instead of it", () => {
+      const link = sourceCode("components/dashboard/export-link.tsx");
+      assert.match(link, /e\.preventDefault\(\);[\s\S]*await fetch\(href\)/);
+      assert.match(link, /if \(!res\.ok\) \{\s*setStatus\(exportMessage\(res\.status/);
+      assert.match(sourceCode("components/dashboard/selection-bar.tsx"), /<ExportLink href=\{bulkExportHref\(exportHref, ids\)\}/);
+      assert.match(sourceCode("components/dashboard/results-panel.tsx"), /<ExportLink href=\{model\.exportHref\}/);
+      // And the link still carries its href, for a middle-click or no script.
+      const html = renderToStaticMarkup(
+        createElement(PanelHeader, { model: { title: "K", total: 1, shown: 1, firstRow: 1, sortLabel: "Name", view: "cards" as const, exportHref: "/api/v1/discover/export?q=k" } }),
+      );
+      assert.match(html, /<a href="\/api\/v1\/discover\/export\?q=k"/);
+    });
+
+    it("the bar's Save runs runBulkSave with every selected id, and announces + refreshes only through onSaved", () => {
+      const code = sourceCode("components/dashboard/selection-bar.tsx");
+      assert.match(code, /await runBulkSave\(ids, \{\s*fetch: \(url, init\) => fetch\(url, init\),\s*onSaved: \(saved\) => \{\s*announceBulkSaved\(window, saved\);\s*router\.refresh\(\);\s*\},\s*\}\);/);
+      assert.match(code, /const ids = \[\.\.\.sel\.selected\];/);
+      const at = code.indexOf("onClick={bulkSave}");
+      assert.ok(at > 0, "Save is not wired to bulkSave");
+    });
+
+    it("a row's Save button listens for bulk saves of its own id", () => {
+      const code = sourceCode("components/dashboard/save-record-button.tsx");
+      assert.match(code, /useEffect\(\(\) => onBulkSaved\(window, supplierId, \(\) => setOn\(true\)\), \[supplierId\]\);/);
+    });
+
+    it("the select-all box under a provider reads the provider's tri-state", () => {
+      const value: SelectionContextValue = {
+        interactive: true,
+        selected: new Set([A]),
+        isSelected: () => true,
+        toggle: () => {},
+        toggleAllOnPage: () => {},
+        allState: "mixed",
+        clear: () => {},
+      };
+      const html = renderToStaticMarkup(
+        createElement(SelectionContext.Provider, { value }, createElement(PanelHeader, { model: { title: "K", total: 2, shown: 2, firstRow: 1, sortLabel: "Name", view: "cards" as const } })),
+      );
+      assert.match(html, new RegExp(`id="${SELECT_ALL_ID}"[^>]*aria-checked="mixed"`));
+      assert.match(sourceCode("components/dashboard/selection.tsx"), /useMemo\(\(\) => selectionValue\(selected, pageIds, setSelected\), \[selected, pageIds\]\)/);
     });
 
     it("the page keys the selection on its whole URL state, so a new page of results starts empty", () => {
@@ -1406,7 +1470,11 @@ describe("the two-state controls say which state they are in", () => {
       // A static render has busy=false, so `disabled={busy}` would render
       // nothing here and pass; check the code for any native disabled on it.
       const code = sourceCode("components/dashboard/selection-bar.tsx");
-      const saveJsx = code.slice(code.lastIndexOf("<Button", code.indexOf("onClick={bulkSave}")), code.indexOf("onClick={bulkSave}"));
+      // The WHOLE opening tag, both sides of onClick: a guard that stopped at
+      // onClick passed with `disabled={busy}` written on the line after it.
+      const at = code.indexOf("onClick={bulkSave}");
+      const saveJsx = code.slice(code.lastIndexOf("<Button", at), code.indexOf(">", at));
+      assert.match(saveJsx, /aria-disabled=\{busy/, "slice did not capture the Save button's tag");
       assert.doesNotMatch(saveJsx, /\sdisabled[=\s]/, "the bulk Save must use aria-disabled, never native disabled");
     });
   });

@@ -7,6 +7,7 @@ import type { ReactNode } from "react";
 import { formatCount } from "@/lib/dashboard/facts";
 import { cn } from "@/lib/utils";
 import { Button, Seg } from "./controls";
+import { ExportLink } from "./export-link";
 import { Icon } from "./icons";
 import { SelectAllCheckbox } from "./selection";
 import { Caption, Title } from "./type";
@@ -132,9 +133,13 @@ export function PanelHeader({ model }: { model: PanelHeaderModel }) {
         <Button href={model.saveHref}>
           <Icon name="bookmark" /> Save search
         </Button>
-        <Button href={model.exportHref}>
-          <Icon name="download" /> Export CSV
-        </Button>
+        {model.exportHref ? (
+          <ExportLink href={model.exportHref} label="Export CSV" />
+        ) : (
+          <Button>
+            <Icon name="download" /> Export CSV
+          </Button>
+        )}
         <Seg
           value={model.view}
           hrefFor={model.viewHref ? (v) => model.viewHref!(v === "table" ? "table" : "cards") : undefined}

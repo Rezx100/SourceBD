@@ -11,21 +11,10 @@
 // so a selection that outlived its page would export short without a word.
 
 import { createContext, useContext, useMemo, useState, type ReactNode } from "react";
-import { selectAllState, toggleAllOnPage, toggleId } from "@/lib/dashboard/selection";
+import { selectionValue, type SelectionContextValue } from "@/lib/dashboard/selection";
 import { Checkbox } from "./controls";
 
-export type SelectionContextValue = {
-  /** False outside a `SelectionProvider` — the `/dev/ds` gallery renders
-   * these same cards with no provider, and must keep the old inert checkbox
-   * rather than a tabbable one that silently does nothing. */
-  interactive: boolean;
-  selected: ReadonlySet<string>;
-  isSelected: (id: string) => boolean;
-  toggle: (id: string) => void;
-  toggleAllOnPage: () => void;
-  allState: boolean | "mixed";
-  clear: () => void;
-};
+export type { SelectionContextValue };
 
 /** Exported for the render tests, which mount the bar over a given selection. */
 export const SelectionContext = createContext<SelectionContextValue | null>(null);
@@ -42,18 +31,7 @@ const INERT: SelectionContextValue = {
 
 export function SelectionProvider({ pageIds, children }: { pageIds: readonly string[]; children?: ReactNode }) {
   const [selected, setSelected] = useState<ReadonlySet<string>>(() => new Set());
-  const value = useMemo<SelectionContextValue>(
-    () => ({
-      interactive: true,
-      selected,
-      isSelected: (id) => selected.has(id),
-      toggle: (id) => setSelected((s) => toggleId(s, id)),
-      toggleAllOnPage: () => setSelected((s) => toggleAllOnPage(s, pageIds)),
-      allState: selectAllState(selected, pageIds),
-      clear: () => setSelected(new Set()),
-    }),
-    [selected, pageIds],
-  );
+  const value = useMemo(() => selectionValue(selected, pageIds, setSelected), [selected, pageIds]);
   return <SelectionContext.Provider value={value}>{children}</SelectionContext.Provider>;
 }
 

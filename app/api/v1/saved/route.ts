@@ -33,13 +33,17 @@ async function requireBuyer() {
 }
 
 export async function POST(req: Request) {
-  let raw: unknown;
-  try {
-    raw = await req.json();
-  } catch {
-    raw = undefined;
-  }
+  // Role first: a caller who is not a buyer is refused before their body is
+  // read (runSavedSupplierPost returns 401 without looking at `raw`).
   const role = await getServerRole();
+  let raw: unknown;
+  if (role === "buyer" || role === "admin") {
+    try {
+      raw = await req.json();
+    } catch {
+      raw = undefined;
+    }
+  }
   const result = await runSavedSupplierPost({
     role,
     supabase: await createSupabaseServerClient(),

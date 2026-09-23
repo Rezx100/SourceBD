@@ -413,6 +413,18 @@ describe("the bulk bar's selected-rows export (?ids=)", () => {
     company_name: "Beximco Textiles Ltd",
   };
 
+  it("an admin may export like a buyer, full and selected", async () => {
+    for (const search of ["q=knit", `ids=${ROW.id}`]) {
+      const res = await runDiscoverExport({
+        role: "admin",
+        supabase: { rpc: async () => ({ data: [ROW], error: null }) },
+        search,
+        today: TODAY,
+      });
+      assert.equal(res.status, 200, search);
+    }
+  });
+
   it("403, not 401, for a signed-in supplier — with or without ids", async () => {
     for (const search of ["q=knit", `ids=${ROW.id}`]) {
       const res = await runDiscoverExport({
@@ -563,7 +575,9 @@ describe("the bulk bar's selected-rows export (?ids=)", () => {
     });
     assert.equal(res.status, 200);
     assert.equal(res.headers["X-SourceBD-Rows"], "1");
-    assert.match(res.headers["Content-Disposition"] ?? "", /-selected-1\.csv"/);
+    // Short, and the name the buyer reads first says so.
+    assert.match(res.headers["Content-Disposition"] ?? "", /-selected-1-of-2\.csv"/);
+    assert.equal(res.headers["X-SourceBD-Requested"], "2");
   });
 
   it("still refuses a selection whose row carries contact fields", async () => {

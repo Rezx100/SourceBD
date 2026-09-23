@@ -8,6 +8,11 @@ import {
   announceBulkSaved,
   bulkExportHref,
   bulkSaveMessage,
+  clearKeepingFocus,
+  exportMessage,
+  reserveBarSpace,
+  runBulkSave,
+  selectionValue,
   onBulkSaved,
   SEND_RFQ_MAX,
   selectAllState,
@@ -75,6 +80,25 @@ describe("discover bulk-selection math", () => {
     assert.match(bulkSaveMessage(500, 3), /Try again/);
   });
 
+  it("a bulk save says how many selected suppliers were no longer listed", () => {
+    assert.equal(bulkSaveMessage(200, 3, 0), "Saved 3 suppliers");
+    assert.match(bulkSaveMessage(200, 3, 2), /^Saved 3 suppliers\. 2 are no longer listed/);
+    assert.match(bulkSaveMessage(200, 0, 1), /1 is no longer listed and was not saved/);
+  });
+
+  it("every export refusal becomes a sentence, and a short file is called short", () => {
+    assert.match(exportMessage(429, {}), /Wait a minute/);
+    assert.match(exportMessage(409, {}), /Reload the page/);
+    assert.match(exportMessage(403, {}), /buyer account/);
+    assert.match(exportMessage(503, {}), /Try again/);
+    assert.equal(exportMessage(200, { rows: 3, requested: 3 }), "Export downloaded.");
+    assert.match(exportMessage(200, { rows: 2, requested: 5 }), /^Exported 2 of 5\. 3 are no longer/);
+    assert.equal(exportMessage(200, { rows: NaN, requested: 5 }), "Export downloaded.");
+    for (const st of [400, 401, 403, 409, 429, 500, 503, "network"] as const) {
+      assert.doesNotMatch(exportMessage(st, {}), /[{}"]/, "never raw JSON");
+    }
+  });
+
   it("a bulk save reaches exactly the row buttons it saved, whatever the id's case", () => {
     const bus = new EventTarget();
     const hits: string[] = [];
@@ -85,6 +109,93 @@ describe("discover bulk-selection math", () => {
     offA();
     announceBulkSaved(bus, ["aaaa"]);
     assert.deepEqual(hits, ["a"], "an unsubscribed button no longer hears");
+  });
+
+  it("the provider's value reports mixed, toggles through its setter, and clears", () => {
+    let state: ReadonlySet<string> = new Set(["p1"]);
+    const set = (f: (s: ReadonlySet<string>) => ReadonlySet<string>) => {
+      state = f(state);
+    };
+    const v = selectionValue(state, ["p1", "p2"], set);
+    assert.equal(v.interactive, true);
+    assert.equal(v.allState, "mixed");
+    assert.equal(v.isSelected("p1"), true);
+    v.toggleAllOnPage();
+    assert.deepEqual([...state].sort(), ["p1", "p2"]);
+    v.toggle("p1");
+    assert.deepEqual([...state], ["p2"]);
+    v.clear();
+    assert.equal(state.size, 0);
+  });
+
+  it("Clear moves focus BEFORE it empties the selection that unmounts the bar", () => {
+    const order: string[] = [];
+    clearKeepingFocus({ focus: () => order.push("focus") }, () => order.push("clear"));
+    assert.deepEqual(order, ["focus", "clear"]);
+    clearKeepingFocus(null, () => order.push("clear"));
+    assert.deepEqual(order, ["focus", "clear", "clear"], "a missing target still clears");
+  });
+
+  it("the bar reserves its height, re-scrolls the focused box, follows re-wraps, and gives the space back (WCAG 2.4.11)", () => {
+    const root = { style: { scrollPaddingBottom: "4px" } };
+    const bar = { offsetHeight: 56 };
+    const scrolled: unknown[] = [];
+    let fit: (() => void) | null = null;
+    let observed: unknown = null;
+    let disconnected = false;
+    const undo = reserveBarSpace(root, bar, { scrollIntoView: (o) => scrolled.push(o) }, (f) => {
+      fit = f;
+      return { observe: (t) => (observed = t), disconnect: () => (disconnected = true) };
+    });
+    assert.equal(root.style.scrollPaddingBottom, "64px");
+    assert.deepEqual(scrolled, [{ block: "nearest" }], "the box ticked to show the bar may now be under it");
+    assert.equal(observed, bar);
+    bar.offsetHeight = 120;
+    fit!();
+    assert.equal(root.style.scrollPaddingBottom, "128px", "a wrapped bar is taller");
+    undo();
+    assert.equal(root.style.scrollPaddingBottom, "4px");
+    assert.equal(disconnected, true);
+  });
+
+  describe("the bar's bulk save", () => {
+    const ok = (body: unknown, status = 200) => async () => ({ ok: status < 300, status, json: async () => body });
+
+    it("sends every selected id in one request and announces only what the server saved", async () => {
+      const sent: { url: string; body: string }[] = [];
+      const saved: string[][] = [];
+      const msg = await runBulkSave(["a", "b", "c"], {
+        fetch: async (url, init) => {
+          sent.push({ url, body: init.body });
+          return ok({ count: 2, skipped: 1, ids: ["a", "b"] })();
+        },
+        onSaved: (ids) => saved.push(ids),
+      });
+      assert.equal(sent.length, 1);
+      assert.equal(sent[0]?.url, "/api/v1/saved");
+      assert.deepEqual(JSON.parse(sent[0]?.body ?? "{}"), { supplier_ids: ["a", "b", "c"] });
+      assert.deepEqual(saved, [["a", "b"]]);
+      assert.match(msg, /^Saved 2 suppliers\. 1 is no longer listed/);
+    });
+
+    it("on a refusal it neither announces nor refreshes, and says why", async () => {
+      for (const [status, re] of [[401, /Sign in/], [429, /minute/], [500, /Try again/]] as const) {
+        let called = false;
+        const msg = await runBulkSave(["a"], { fetch: ok({ error: "x" }, status), onSaved: () => (called = true) });
+        assert.equal(called, false, `onSaved ran on ${status}`);
+        assert.match(msg, re);
+      }
+    });
+
+    it("a dropped connection is a message, not an unhandled rejection", async () => {
+      const msg = await runBulkSave(["a"], {
+        fetch: async () => {
+          throw new TypeError("Failed to fetch");
+        },
+        onSaved: () => assert.fail("onSaved on a network error"),
+      });
+      assert.match(msg, /no connection/);
+    });
   });
 
   it("SEND_RFQ_MAX stays pinned to the API's own MAX_TARGETS", () => {

@@ -95,6 +95,9 @@ let motherCompanyName = "Mother Company Ltd";
 let staleSuccessPhase = "success";
 let staleSuccessHoldMs = 0;
 
+const BULK_SAVE_GONE = "00000000-0000-4000-8000-0000000000ee";
+/** Each POST the mock received on saved_suppliers, as its array of rows. */
+const savedSupplierWrites = [];
 const DISCOVER_PGRST202_Q = "zzpgrstprobe";
 const DISCOVER_TIMEOUT_Q = "zztimeoutprobe";
 const STATEMENT_TIMEOUT = {
@@ -633,6 +636,23 @@ function mockHandler(req, res) {
     }
     if (url.pathname.startsWith("/auth/v1/")) {
       return json({ error: "not implemented in stub" }, 400);
+    }
+    // Bulk Save (POST /api/v1/saved): the listed-supplier read echoes the ids
+    // it is asked for except BULK_SAVE_GONE, and the one upsert is recorded so
+    // a case can count database writes per request.
+    if (url.pathname === "/rest/v1/suppliers" && /^in\.\(/.test(url.searchParams.get("id") ?? "")) {
+      const ids = (url.searchParams.get("id") ?? "").slice(4, -1).split(",").filter((x) => x && x !== BULK_SAVE_GONE);
+      return json(ids.map((id) => ({ id })));
+    }
+    if (url.pathname === "/rest/v1/saved_suppliers" && req.method === "POST") {
+      let rows = [];
+      try {
+        rows = JSON.parse(body || "[]");
+      } catch {
+        rows = [];
+      }
+      savedSupplierWrites.push(Array.isArray(rows) ? rows : [rows]);
+      return json([], 201);
     }
     if (url.pathname === "/rest/v1/profiles") {
       const row = { role: "buyer", is_suspended: false };
@@ -2300,6 +2320,43 @@ async function main() {
       console.log(`FAIL  ${name}  — ${problems.join("; ")}`);
       return 0;
     };
+
+    {
+      // REZ-B bulk Save through the real route and middleware: one database
+      // write per request, a supplier gone since render skipped rather than
+      // failing the rest, and every refusal a status rather than a write.
+      const problems = [];
+      const post = (body, auth) =>
+        fetch(`${APP_URL}/api/v1/saved`, {
+          method: "POST",
+          redirect: "manual",
+          headers: {
+            "content-type": "application/json",
+            ...(auth ? { cookie: buildAuthCookieHeader() } : {}),
+          },
+          body,
+          signal: AbortSignal.timeout(120_000),
+        });
+      const A = "00000000-0000-4000-8000-000000000098";
+      const B = "00000000-0000-4000-8000-000000000099";
+      savedSupplierWrites.length = 0;
+      const ok = await post(JSON.stringify({ supplier_ids: [A, B, BULK_SAVE_GONE] }), true);
+      const okBody = await ok.json().catch(() => ({}));
+      if (ok.status !== 200) problems.push(`bulk save status ${ok.status} != 200`);
+      if (okBody.count !== 2 || okBody.skipped !== 1) problems.push(`bulk save body ${JSON.stringify(okBody)}`);
+      if (savedSupplierWrites.length !== 1) problems.push(`${savedSupplierWrites.length} saved_suppliers writes for one request`);
+      else if (savedSupplierWrites[0].length !== 2) problems.push(`the one write carried ${savedSupplierWrites[0].length} rows, expected 2`);
+      savedSupplierWrites.length = 0;
+      const many = Array.from({ length: 101 }, (_, i) => `aaaaaaaa-1111-4111-8111-${String(i).padStart(12, "0")}`);
+      const tooMany = await post(JSON.stringify({ supplier_ids: many }), true);
+      if (tooMany.status !== 400) problems.push(`101 ids status ${tooMany.status} != 400`);
+      const bad = await post("{not json", true);
+      if (bad.status !== 400) problems.push(`malformed JSON status ${bad.status} != 400`);
+      const anon = await post(JSON.stringify({ supplier_ids: [A] }), false);
+      if (![401, 307].includes(anon.status)) problems.push(`anonymous status ${anon.status}`);
+      if (savedSupplierWrites.length !== 0) problems.push(`${savedSupplierWrites.length} writes from refused requests`);
+      extraPassed += extra("rez-b: POST /api/v1/saved bulk — one write, gone supplier skipped, refusals write nothing", problems);
+    }
 
     {
       const problems = [];

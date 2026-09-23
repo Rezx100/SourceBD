@@ -1,7 +1,11 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
+import { readFileSync } from "node:fs";
+import path from "node:path";
+
 import {
+  LIST_LIMIT,
   runSavedSearchesDelete,
   runSavedSearchesGet,
   runSavedSearchesPost,
@@ -23,6 +27,8 @@ function clientOver(over: {
   userId?: string | null;
   rows?: Record<string, unknown>[];
   insertError?: string | null;
+  /** SQLSTATE on the insert error, as PostgREST reports it. */
+  insertCode?: string;
   inserted?: unknown[];
   /** Filters seen on the delete chain, in call order. */
   deleteFilters?: [string, unknown][];
@@ -40,7 +46,7 @@ function clientOver(over: {
         select: () => api,
         insert: async (row: unknown) => {
           inserted?.push(row);
-          return { data: { id: "n" }, error: over.insertError ? { message: over.insertError } : null };
+          return { data: { id: "n" }, error: over.insertError ? { message: over.insertError, code: over.insertCode } : null };
         },
         update: () => api,
         delete: () => {
@@ -122,6 +128,46 @@ describe("saved-searches API boundary", () => {
     assert.equal(row.name, "Knitted shirts");
     assert.match(row.query_state.search, /q=knit/);
     assert.match(row.query_state.search, /hs=6105/);
+  });
+
+  it("the database's refusals come back as reasons, never a 500 carrying Postgres's text", async () => {
+    const at = (insertCode: string) =>
+      runSavedSearchesPost({
+        role: "buyer",
+        supabase: clientOver({ insertError: 'new row violates "saved_searches_x"', insertCode }),
+        raw: { name: "Knit", search: "q=knit" },
+      });
+    const cap = await at("54000");
+    assert.equal(cap.status, 409);
+    assert.equal((cap.body as { error?: string }).error, "saved search limit reached");
+    const size = await at("23514");
+    assert.equal(size.status, 400);
+    const other = await at("XX000");
+    assert.equal(other.status, 500);
+    for (const r of [cap, size, other]) assert.doesNotMatch(JSON.stringify(r.body), /violates|saved_searches_x/);
+  });
+
+  it("a search too long for 0104's 8 KB state bound is refused before the insert", async () => {
+    const inserted: unknown[] = [];
+    const res = await runSavedSearchesPost({
+      role: "buyer",
+      supabase: clientOver({ inserted }),
+      raw: { name: "Long", search: `q=${"k".repeat(5000)}` },
+    });
+    assert.equal(res.status, 400);
+    assert.equal(inserted.length, 0);
+  });
+
+  it("0104's per-owner row cap is the list's own limit, so no saved search is out of reach", () => {
+    const sql = readFileSync(path.join(process.cwd(), "supabase/migrations/0104_discover_v32.sql"), "utf8")
+      .split("\n")
+      .map((l) => (l.includes("--") ? l.slice(0, l.indexOf("--")) : l))
+      .join("\n");
+    const fn = sql.slice(sql.indexOf("function public.saved_searches_owner_cap()"));
+    const m = fn.match(/\)\s*>=\s*(\d+)\s+then/);
+    assert.ok(m, "no cap found in saved_searches_owner_cap");
+    assert.equal(Number(m[1]), LIST_LIMIT);
+    assert.match(fn.slice(0, 400), /security invoker/i, "a definer count leaks another owner's row count");
   });
 
   it("GET 200 returns the stored href", async () => {

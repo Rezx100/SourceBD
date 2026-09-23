@@ -375,10 +375,22 @@ $$;
 do $$
 declare
   env jsonb;
+  i int;
 begin
   env := public.rl_check('api_export', 'ci-export', 6);
   if (env->>'ok')::boolean is distinct from true then
     raise exception 'rl_check did not admit the first api_export call: %', env;
+  end if;
+  -- And it LIMITS: the seventh call in the minute at a limit of six is refused.
+  for i in 2..6 loop
+    env := public.rl_check('api_export', 'ci-export', 6);
+  end loop;
+  if (env->>'ok')::boolean is distinct from true then
+    raise exception 'rl_check refused call 6 of 6: %', env;
+  end if;
+  env := public.rl_check('api_export', 'ci-export', 6);
+  if (env->>'ok')::boolean is distinct from false then
+    raise exception 'rl_check admitted call 7 at a limit of 6: %', env;
   end if;
   begin
     perform public.rl_check('api_bogus', 'ci-export', 6);
@@ -402,6 +414,13 @@ begin
     null;
   end;
   begin
+    insert into public.saved_searches (owner_id, name) values
+      ('00000000-0000-4000-8000-00000000d001', '');
+    raise exception 'an empty saved-search name was accepted';
+  exception when check_violation then
+    null;
+  end;
+  begin
     insert into public.saved_searches (owner_id, name, query_state) values
       ('00000000-0000-4000-8000-00000000d001', 'huge', jsonb_build_object('search', repeat('q', 9000)));
     raise exception 'a 9 KB saved-search state was accepted';
@@ -409,15 +428,62 @@ begin
     null;
   end;
   delete from public.saved_searches where owner_id = '00000000-0000-4000-8000-00000000d001';
-  for i in 1..500 loop
+  for i in 1..200 loop
     insert into public.saved_searches (owner_id, name) values ('00000000-0000-4000-8000-00000000d001', 'cap ' || i);
   end loop;
   begin
-    insert into public.saved_searches (owner_id, name) values ('00000000-0000-4000-8000-00000000d001', 'cap 501');
-    raise exception 'the 501st saved search for one owner was accepted';
+    insert into public.saved_searches (owner_id, name) values ('00000000-0000-4000-8000-00000000d001', 'cap 201');
+    raise exception 'the 201st saved search for one owner was accepted';
   exception when program_limit_exceeded then
     null;
   end;
+end
+$$;
+
+-- Who may call what, under Supabase's default privileges (emulated in
+-- 00-supabase-bootstrap.sql). `revoke ... from public` alone leaves the
+-- default anon/authenticated grants in place.
+do $$
+declare
+  r record;
+  bad text := '';
+begin
+  for r in
+    select p.oid, p.proname
+      from pg_proc p
+     where p.pronamespace = 'public'::regnamespace
+       and (p.proname like 'discover\_v32\_%' or p.proname in (
+            'discover_suppliers_explain', 'supplier_epb_hscodes_batch', 'hs_catalogue',
+            'rl_check', 'saved_searches_owner_cap'))
+  loop
+    if has_function_privilege('anon', r.oid, 'execute') then
+      bad := bad || ' ' || r.proname;
+    end if;
+  end loop;
+  if bad <> '' then
+    raise exception 'anon can execute functions 0104 means to keep from it:%', bad;
+  end if;
+  for r in
+    select p.oid, p.proname from pg_proc p
+     where p.pronamespace = 'public'::regnamespace
+       and p.proname like 'discover\_v32\_%'
+  loop
+    if has_function_privilege('authenticated', r.oid, 'execute') then
+      raise exception 'authenticated can execute the internal helper %', r.proname;
+    end if;
+  end loop;
+  if not has_function_privilege('authenticated', 'public.hs_catalogue()', 'execute')
+     or not has_function_privilege('authenticated', 'public.supplier_epb_hscodes_batch(text[])', 'execute')
+     or not has_function_privilege('authenticated', 'public.rl_check(text,text,int)', 'execute') then
+    raise exception 'a function the app calls signed-in is not executable by authenticated';
+  end if;
+  if not exists (
+    select 1 from pg_proc p
+     where p.pronamespace = 'public'::regnamespace and p.proname = 'discover_suppliers'
+       and has_function_privilege('anon', p.oid, 'execute')
+  ) then
+    raise exception 'discover_suppliers is no longer executable by anon — the public Discover page needs it';
+  end if;
 end
 $$;
 

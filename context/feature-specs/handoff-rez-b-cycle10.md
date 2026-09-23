@@ -372,8 +372,11 @@ brief and axes kept in the session scratchpad, not in the repo.
 Gate at `083130e`: tsc exit 0; next lint exit 0; `pnpm test` 1,319 / 0 / 198
 suites. CI `35820165951` green.
 
-Found and repaired (each with a guard proven red by reintroducing the defect;
-32 mutations, all red):
+Found and repaired. 31 in-process mutations went red (corrected 23 Sep by
+cycle 12's truthfulness reviewer: this line first said 32). NOT proven red in
+cycle 11, only green in CI: the new `assert-0104.sql` blocks, the new
+http-boundary cases, and the root-only test-list skip — cycle 12 proved the
+last two (below); the SQL asserts remain proven only by passing.
 
 - The false "page still renders" header in `lib/discover-v32-rpc.ts` —
   rewritten as a hard dependency on 0104. The page now says "heavy load"
@@ -389,7 +392,8 @@ Found and repaired (each with a guard proven red by reintroducing the defect;
 - Bulk Save sent one POST per id against the 30/min write bucket — now one
   request (`supplier_ids`, `lib/saved-suppliers.ts`, one upsert).
 - Export ran up to 10 expensive-sort passes under the 120/min read bucket —
-  new `api_export` bucket (6/min). **This changes 0104:** it redefines
+  new `api_export` bucket (6/min). It bounds the app's ROUTE only; a
+  signed-in PostgREST caller reaches the RPC directly (see cycle 12). **This changes 0104:** it redefines
   `rl_check` (body identical to 20260725 except the one array entry; live
   body checked against `pg_proc.prosrc` 23 Sep) because rl_check refuses an
   unlisted bucket and the app's limiter fails OPEN. `lib/rate-limit/limits.test.ts`
@@ -412,3 +416,45 @@ Found and repaired (each with a guard proven red by reintroducing the defect;
 Not fixed, recorded: SEC-7 — the replay guard's "empty `public` schema"
 test would pass on an empty database of a real cluster reached through a
 tunnel (e.g. `PGDATABASE=template1`); theoretical, needs deliberate setup.
+
+### Cycle 12 — candidate `9adebe2`: REJECT (all five)
+
+Gate at `9adebe2`: tsc exit 0; lint exit 0; `pnpm test` 1,355 / 0 / 204.
+CI `35824445777` green. (`d9c9d22` before it failed CI's root `tsc`:
+tests compiled under the suite's tsconfig but not the root's strict index
+access — fixed in `9adebe2`. Lesson: run the ROOT `tsc` before pushing.)
+
+Repaired; 39 in-process mutations red (`mutations-r12` in the session
+scratchpad) plus a local `test-profile-http-boundary.mjs --build` run with
+three defects put back, which failed exactly the four cases guarding them:
+
+- a11y: the box ticked to make the bar appear could sit under it — the bar
+  now re-scrolls the focused element; the count is announced from a live
+  region mounted before the first tick.
+- Bulk Save: one supplier deleted/unpublished since render sank the whole
+  upsert (FK), every retry — ids are now pre-filtered to listed suppliers
+  (RLS: published only) and the skipped count is reported.
+- Export refusals (429/409/…) replaced the page with raw JSON — both Export
+  buttons now download in place (`components/dashboard/export-link.tsx`)
+  and say what went wrong; a partly stale selection is named
+  `-selected-N-of-M.csv`.
+- 0104 security: `revoke … from public` left Supabase's default
+  anon/authenticated EXECUTE on every new function — now revoked from
+  `public, anon, authenticated` and re-granted; CI bootstrap emulates the
+  default privileges and `assert-0104.sql` checks anon cannot execute them.
+  `discover_suppliers_explain` no longer forwards `p_sort` (was 12
+  expensive passes per call). Cap trigger is SECURITY INVOKER; cap is 200 =
+  `LIST_LIMIT`; saved-search refusals are 400/409 with a reason.
+- Guards: the bar's logic is now plain functions in
+  `lib/dashboard/selection.ts` with behavioural tests (`runBulkSave`,
+  `reserveBarSpace`, `clearKeepingFocus`, `selectionValue`); the remaining
+  wiring is checked on whole JSX tags; rl_check's 0104 body is pinned to
+  20260725's; new http-boundary check for `POST /api/v1/saved`.
+
+For the founder, not fixable by a bucket: any signed-in account can call
+`discover_suppliers` (and its expensive sorts) through PostgREST directly,
+outside the app's limiter — the same exposure as §7.1, one role up.
+
+Filed separately (pre-existing, not REZ-B): the signed-out rate limiter
+never limits in production — `rl_check` refuses anon (42501) and the app
+fails open.

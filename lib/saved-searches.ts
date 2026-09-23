@@ -43,7 +43,11 @@ const UUID_RE =
 
 const COUNT_FRESH_MS = 10 * 60 * 1000;
 /** Most saved searches a list call will return. */
-const LIST_LIMIT = 200;
+/** Also the per-owner row cap 0104 enforces (`saved_searches_owner_cap`),
+ * so no saved search can exist that the list cannot show or delete. */
+export const LIST_LIMIT = 200;
+/** Under 0104's 8 KB `query_state` check with room for the JSON wrapper. */
+const MAX_SAVED_SEARCH_CHARS = 4000;
 /**
  * Most stale counts one list call will refresh. Each refresh is a full
  * `discover_suppliers` scan, and the list ran one per stale row, sequentially,
@@ -186,13 +190,22 @@ export async function runSavedSearchesPost(input: {
   }
   if (!state) return { status: 400, body: { error: "invalid query_state" } };
 
+  const search = serializeDiscoverState(state).toString();
+  // 0104 bounds these at the database (state ≤ 8 KB, LIST_LIMIT rows per
+  // owner); say so as a reason, not a bare 500 carrying Postgres's text.
+  if (search.length > MAX_SAVED_SEARCH_CHARS) {
+    return { status: 400, body: { error: "search too long to save" } };
+  }
   const inserted = await input.supabase.from("saved_searches").insert({
     owner_id: ownerId,
     name,
-    query_state: { search: serializeDiscoverState(state).toString() },
+    query_state: { search },
   });
   if (inserted.error) {
-    return { status: 500, body: { error: "save failed", detail: inserted.error.message } };
+    const code = (inserted.error as { code?: string }).code;
+    if (code === "54000") return { status: 409, body: { error: "saved search limit reached" } };
+    if (code === "23514") return { status: 400, body: { error: "search too long to save" } };
+    return { status: 500, body: { error: "save failed" } };
   }
   return { status: 200, body: { ok: true } };
 }

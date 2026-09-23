@@ -47,12 +47,24 @@ export async function runSavedSupplierPost(input: {
   const ownerId = user?.user?.id;
   if (!ownerId) return { status: 401, body: { error: "unauthorised" } };
 
+  // One upsert is all-or-nothing: `on conflict` absorbs duplicates but not a
+  // foreign-key violation, so a single supplier deleted (or unpublished)
+  // since the page rendered would sink the whole selection — every retry
+  // failing the same way. Keep only ids that are still listed first; the
+  // buyer's own RLS read of `suppliers` is published-only.
+  const { data: live, error: readError } = await input.supabase.from("suppliers").select("id").in("id", ids);
+  if (readError) return { status: 500, body: { error: "save failed" } };
+  const listed = new Set(((live ?? []) as { id: string }[]).map((r) => String(r.id).toLowerCase()));
+  const keep = ids.filter((id) => listed.has(id));
+  const skipped = ids.length - keep.length;
+  if (keep.length === 0) return { status: 200, body: { ok: true, saved: true, count: 0, skipped } };
+
   const { error } = await input.supabase
     .from("saved_suppliers")
     .upsert(
-      ids.map((supplier_id) => ({ owner_id: ownerId, supplier_id })),
+      keep.map((supplier_id) => ({ owner_id: ownerId, supplier_id })),
       { onConflict: "owner_id,supplier_id", ignoreDuplicates: true },
     );
   if (error) return { status: 500, body: { error: "save failed" } };
-  return { status: 200, body: { ok: true, saved: true, count: ids.length } };
+  return { status: 200, body: { ok: true, saved: true, count: keep.length, skipped, ids: keep } };
 }

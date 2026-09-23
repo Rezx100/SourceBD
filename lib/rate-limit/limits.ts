@@ -7,8 +7,10 @@
 export const LIMIT_AUTH = 10;
 export const LIMIT_API_WRITE = 30;
 export const LIMIT_API_READ = 120;
-/** The CSV export: up to ten `discover_suppliers` pages per request, each a
- * full-corpus pass under the hs_lines / cert_expiry sorts (0104). */
+/** The CSV export route: up to ten `discover_suppliers` pages per request,
+ * each a full-corpus pass under the hs_lines / cert_expiry sorts (0104).
+ * Bounds this route only — a signed-in PostgREST caller reaches the RPC
+ * directly, outside the app (hand-off §7.1). */
 export const LIMIT_API_EXPORT = 6;
 export const LIMIT_PUBLIC_MARKETING = 240;
 

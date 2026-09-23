@@ -17,6 +17,29 @@ import { loadGalleryData } from "@/lib/dashboard/gallery-data";
 import { RFQ_ROWS, RFQ_TARGETS, TODAY } from "@/lib/dashboard/fixtures";
 import { fixtureRpc, records } from "./render-gallery-fixtures";
 
+/**
+ * Every `*.test.ts(x)` under `root`, as root-relative paths. Two skip sets,
+ * because a name is only safe to skip where it means what we think:
+ * `node_modules`/`.git` are never ours at any depth, but `etl`, `ops` and the
+ * rest are skipped only at the repo root — the Python tree and the ops
+ * scripts — never `app/api/v1/admin/etl/`, a real route tree.
+ */
+function findTestFiles(root: string): string[] {
+  const skipAnywhere = new Set(["node_modules", ".next", ".git"]);
+  const skipAtRoot = new Set([".tests-build", ".claude", "etl", "ops", "prototypes"]);
+  const found: string[] = [];
+  const walk = (dir: string) => {
+    for (const e of fs.readdirSync(path.join(root, dir), { withFileTypes: true })) {
+      if (skipAnywhere.has(e.name) || (dir === "" && skipAtRoot.has(e.name))) continue;
+      const rel = dir ? `${dir}/${e.name}` : e.name;
+      if (e.isDirectory()) walk(rel);
+      else if (/\.test\.tsx?$/.test(e.name)) found.push(rel);
+    }
+  };
+  walk("");
+  return found;
+}
+
 describe("the screenshot harness answers every RPC from a production payload", () => {
   it("rfq_list returns the rows production holds, not an empty literal", async () => {
     const { data } = await fixtureRpc.rpc("rfq_list", {});
@@ -125,6 +148,19 @@ describe("the page and the harness render the same screens", () => {
     }
   });
 
+  it("the test-file walk skips etl/ops only at the repo root, never a nested route tree of that name", () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "walk-"));
+    try {
+      for (const rel of ["etl/a.test.ts", "ops/b.test.ts", "app/api/v1/admin/etl/c.test.ts", "lib/ops/d.test.ts", "node_modules/x/e.test.ts", "lib/f.test.tsx"]) {
+        fs.mkdirSync(path.join(root, path.dirname(rel)), { recursive: true });
+        fs.writeFileSync(path.join(root, rel), "export {};");
+      }
+      assert.deepEqual(findTestFiles(root).sort(), ["app/api/v1/admin/etl/c.test.ts", "lib/f.test.tsx", "lib/ops/d.test.ts"]);
+    } finally {
+      fs.rmSync(root, { recursive: true, force: true });
+    }
+  });
+
   it("every *.test.ts in the repo is in the suite's file list, so none of them silently never runs", () => {
     // `pnpm test` compiles only the files named in tsconfig.npm-test.json, then
     // globs the output. A test file left off that list is typechecked by the
@@ -132,22 +168,7 @@ describe("the page and the harness render the same screens", () => {
     // load-buyer-shell's tests once, and hid the Discover selection tests on
     // their first run.
     const listed = new Set((JSON.parse(read("tsconfig.npm-test.json")) as { files: string[] }).files);
-    // Two sets, because a name is only safe to skip where it means what we
-    // think: `node_modules`/`.git` are never ours at any depth, but `etl`,
-    // `ops` and the rest are skipped only at the repo root — the Python tree
-    // and the ops scripts — never `app/api/v1/admin/etl/`, a real route tree.
-    const skipAnywhere = new Set(["node_modules", ".next", ".git"]);
-    const skipAtRoot = new Set([".tests-build", ".claude", "etl", "ops", "prototypes"]);
-    const found: string[] = [];
-    const walk = (dir: string) => {
-      for (const e of fs.readdirSync(path.join(process.cwd(), dir), { withFileTypes: true })) {
-        if (skipAnywhere.has(e.name) || (dir === "" && skipAtRoot.has(e.name))) continue;
-        const rel = dir ? `${dir}/${e.name}` : e.name;
-        if (e.isDirectory()) walk(rel);
-        else if (/\.test\.tsx?$/.test(e.name)) found.push(rel);
-      }
-    };
-    walk("");
+    const found = findTestFiles(process.cwd());
     assert.ok(found.length > 40, `found only ${found.length} test files — the walk is not looking where the tests are`);
     const missing = found.filter((f) => !listed.has(f));
     assert.deepEqual(missing, [], `not in tsconfig.npm-test.json, so pnpm test never runs them: ${missing.join(", ")}`);

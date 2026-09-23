@@ -442,3 +442,19 @@ describe("the zero-result explain call is count-only", () => {
     assert.equal(sort, "receipts");
   });
 });
+
+describe("discover_suppliers_explain never forwards the caller's sort", () => {
+  // It returns counts, which no ordering changes; forwarding hs_lines /
+  // cert_expiry made one signed-in PostgREST call up to twelve full-corpus
+  // passes. Checked on the function BODY, comments stripped (SQL above).
+  it("its body passes a fixed 'receipts' to every inner discover_suppliers call", () => {
+    const start = SQL.indexOf("create or replace function public.discover_suppliers_explain(");
+    assert.ok(start >= 0, "explain not found in 0104");
+    const bodyStart = SQL.indexOf("as $fn$", start);
+    const bodyEnd = SQL.indexOf("$fn$;", bodyStart + 7);
+    const body = SQL.slice(bodyStart, bodyEnd);
+    assert.ok(body.length > 500, "explain body not found");
+    assert.doesNotMatch(body, /p_sort/, "explain's body still reads p_sort");
+    assert.equal((body.match(/'receipts', 1, 0,/g) ?? []).length, 12);
+  });
+});

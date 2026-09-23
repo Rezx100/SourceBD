@@ -13,8 +13,16 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
-import { announceBulkSaved, bulkExportHref, bulkSaveMessage, SEND_RFQ_MAX } from "@/lib/dashboard/selection";
+import {
+  announceBulkSaved,
+  bulkExportHref,
+  clearKeepingFocus,
+  reserveBarSpace,
+  runBulkSave,
+  SEND_RFQ_MAX,
+} from "@/lib/dashboard/selection";
 import { Button } from "./controls";
+import { ExportLink } from "./export-link";
 import { Icon } from "./icons";
 import { SELECT_ALL_ID, useSelection } from "./selection";
 
@@ -30,114 +38,97 @@ export function SelectionBar({ exportHref }: { exportHref: string }) {
   const barRef = useRef<HTMLDivElement>(null);
   const noteId = useId();
   const visible = sel.interactive && sel.selected.size > 0;
+  // Bumped on every selection change, so a save response that lands after
+  // the buyer ticked another box does not report "Saved 3" under "4 selected".
+  const generation = useRef(0);
 
   // A message about the last save describes THAT selection; once the
   // selection changes (or empties and the bar hides) it is stale.
   useEffect(() => {
+    generation.current += 1;
     setStatus("");
   }, [sel.selected]);
 
-  // WCAG 2.4.11: a sticky bar at the bottom of the window covers whatever the
-  // browser scrolls a newly focused row to, because the browser scrolls to
-  // the viewport's edge and ignores the bar. Reserve the bar's height —
-  // measured, since it wraps onto several lines on a phone — while it shows.
+  // WCAG 2.4.11 — see reserveBarSpace.
   useEffect(() => {
     const bar = barRef.current;
     if (!visible || !bar) return;
-    const root = document.documentElement;
-    const before = root.style.scrollPaddingBottom;
-    const fit = () => {
-      root.style.scrollPaddingBottom = `${bar.offsetHeight + 8}px`;
-    };
-    fit();
-    const ro = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(fit);
-    ro?.observe(bar);
-    return () => {
-      ro?.disconnect();
-      root.style.scrollPaddingBottom = before;
-    };
+    const observe = typeof ResizeObserver === "undefined" ? null : (fit: () => void) => new ResizeObserver(fit);
+    return reserveBarSpace(document.documentElement, bar, document.activeElement as HTMLElement | null, observe);
   }, [visible]);
 
-  if (!visible) return null;
+  // Announced from a region that exists BEFORE the first selection: a live
+  // region mounted already holding "1 selected" is usually not read at all,
+  // so the first tick told a screen-reader user nothing about the bar.
+  const count = sel.selected.size;
+  const announcer = sel.interactive ? (
+    <span role="status" aria-live="polite" className="sr-only">
+      {count > 0 ? `${count} selected. Bulk actions are after the results.` : ""}
+    </span>
+  ) : null;
+  if (!visible) return announcer;
   const ids = [...sel.selected];
-  const count = ids.length;
 
   async function bulkSave() {
     if (busy) return;
     setBusy(true);
     setStatus("");
-    try {
-      // ONE request for the whole selection: one write against the buyer's
-      // rate-limit bucket, not one per supplier.
-      const res = await fetch("/api/v1/saved", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ supplier_ids: ids }),
-      });
-      setStatus(bulkSaveMessage(res.status, count));
-      if (res.ok) {
-        announceBulkSaved(window, ids);
+    const asked = generation.current;
+    const message = await runBulkSave(ids, {
+      fetch: (url, init) => fetch(url, init),
+      onSaved: (saved) => {
+        announceBulkSaved(window, saved);
         router.refresh();
-      }
-    } catch {
-      setStatus(bulkSaveMessage("network", count));
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  function clear() {
-    // Clear empties the selection, which unmounts this bar and the focused
-    // Clear button with it; without this, focus falls to <body> and the next
-    // Tab starts again from the top of the document.
-    document.getElementById(SELECT_ALL_ID)?.focus();
-    sel.clear();
+      },
+    });
+    setBusy(false);
+    if (generation.current !== asked) return;
+    setStatus(message);
   }
 
   return (
-    <div
-      ref={barRef}
-      role="group"
-      aria-label="Bulk actions"
-      className="sticky bottom-0 z-20 flex flex-wrap items-center gap-3 border-t border-line-strong bg-surface px-4 py-3 shadow-[0_-4px_12px_rgba(0,0,0,0.08)] sm:px-5"
-    >
-      <span aria-live="polite" className="text-sm font-medium text-ink-strong">
-        {count} selected
-      </span>
-      <div className="flex flex-wrap items-center gap-2">
-        <Button variant="primary" disabled title={SEND_RFQ_SOON} aria-describedby={noteId}>
-          <Icon name="send" /> Send RFQ
+    <>
+      {announcer}
+      <div
+        ref={barRef}
+        role="group"
+        aria-label="Bulk actions"
+        className="sticky bottom-0 z-20 flex flex-wrap items-center gap-3 border-t border-line-strong bg-surface px-4 py-3 shadow-[0_-4px_12px_rgba(0,0,0,0.08)] sm:px-5"
+      >
+        <span className="text-sm font-medium text-ink-strong">{count} selected</span>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button variant="primary" disabled title={SEND_RFQ_SOON} aria-describedby={noteId}>
+            <Icon name="send" /> Send RFQ
+          </Button>
+          <Button
+            type="button"
+            aria-busy={busy || undefined}
+            aria-disabled={busy || undefined}
+            onClick={bulkSave}
+            className="aria-disabled:cursor-not-allowed aria-disabled:border-line aria-disabled:text-ink-disabled"
+          >
+            <Icon name="bookmark" /> Save
+          </Button>
+          <Button
+            disabled
+            title={COMPARE_SOON}
+            aria-describedby={noteId}
+            className="disabled:cursor-not-allowed disabled:border-line disabled:text-ink-disabled"
+          >
+            <Icon name="compare" /> Compare
+          </Button>
+          <ExportLink href={bulkExportHref(exportHref, ids)} label="Export" requested={count} />
+        </div>
+        <span role="status" aria-live="polite" className="text-xs text-ink-subtle">
+          {status}
+        </span>
+        <Button type="button" variant="ghost" className="ml-auto" onClick={() => clearKeepingFocus(document.getElementById(SELECT_ALL_ID), sel.clear)}>
+          Clear
         </Button>
-        <Button
-          type="button"
-          aria-busy={busy || undefined}
-          aria-disabled={busy || undefined}
-          onClick={bulkSave}
-          className="aria-disabled:cursor-not-allowed aria-disabled:border-line aria-disabled:text-ink-disabled"
-        >
-          <Icon name="bookmark" /> Save
-        </Button>
-        <Button
-          disabled
-          title={COMPARE_SOON}
-          aria-describedby={noteId}
-          className="disabled:cursor-not-allowed disabled:border-line disabled:text-ink-disabled"
-        >
-          <Icon name="compare" /> Compare
-        </Button>
-        <Button href={bulkExportHref(exportHref, ids)}>
-          <Icon name="download" /> Export
-        </Button>
+        <p id={noteId} className="basis-full text-xs text-ink-subtle">
+          {NOT_BUILT}
+        </p>
       </div>
-      <span role="status" aria-live="polite" className="text-xs text-ink-subtle">
-        {status}
-      </span>
-      <Button type="button" variant="ghost" className="ml-auto" onClick={clear}>
-        Clear
-      </Button>
-      <p id={noteId} className="basis-full text-xs text-ink-subtle">
-        {NOT_BUILT}
-      </p>
-    </div>
+    </>
   );
 }

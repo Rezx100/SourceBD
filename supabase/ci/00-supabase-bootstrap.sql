@@ -34,6 +34,12 @@ $$;
 
 grant usage on schema public to anon, authenticated, service_role;
 
+-- Supabase's own default privileges (live pg_default_acl, read 23 Sep 2026:
+-- functions in public are created `{anon=X, authenticated=X, service_role=X}`).
+-- Without this the replay is kinder than production: a migration that only
+-- `revoke ... from public` looks locked down here and is anon-callable there.
+alter default privileges in schema public grant execute on functions to anon, authenticated, service_role;
+
 -- --- auth -------------------------------------------------------------------
 create schema if not exists auth;
 grant usage on schema auth to anon, authenticated, service_role;

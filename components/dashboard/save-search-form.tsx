@@ -36,6 +36,14 @@ export function SaveSearchForm({ search, defaultName }: { search: string; defaul
           setError("Sign in to save a search.");
           return;
         }
+        if (res.status === 409) {
+          setError("You have reached the limit of 200 saved searches. Delete one to save this.");
+          return;
+        }
+        if (res.status === 400) {
+          setError("This search is too long to save. Remove some filters or shorten the words.");
+          return;
+        }
         if (!res.ok) {
           setError("Could not save this search.");
           return;

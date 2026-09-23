@@ -41,14 +41,39 @@ export function bulkExportHref(exportHref: string, ids: readonly string[]): stri
   return `${exportHref}${sep}ids=${ids.map(encodeURIComponent).join(",")}`;
 }
 
-/** What the bar says after one bulk save request came back with `status`. */
-export function bulkSaveMessage(status: number | "network", count: number): string {
+/** What the bar says after one bulk save request came back with `status`.
+ * `skipped` counts selected suppliers no longer listed (removed or unpublished
+ * since the page rendered), which the server leaves out rather than failing. */
+export function bulkSaveMessage(status: number | "network", count: number, skipped = 0): string {
   const noun = count === 1 ? "supplier" : "suppliers";
-  if (status === 200) return `Saved ${count} ${noun}`;
+  if (status === 200) {
+    const saved = `Saved ${count} ${noun}`;
+    return skipped > 0 ? `${saved}. ${skipped} ${skipped === 1 ? "is" : "are"} no longer listed and ${skipped === 1 ? "was" : "were"} not saved.` : saved;
+  }
   if (status === 401) return "Sign in to save suppliers.";
   if (status === 429) return "Too many saves in the last minute. Wait a minute and save again.";
   if (status === "network") return "Could not save them — no connection. Try again.";
   return "Could not save them. Try again.";
+}
+
+/** What an Export button says after the download request came back. The
+ * route's refusals are JSON; this turns each into a sentence for the buyer. */
+export function exportMessage(
+  status: number | "network",
+  info: { rows?: number; requested?: number },
+): string {
+  if (status === 200) {
+    const { rows, requested } = info;
+    if (requested != null && rows != null && Number.isFinite(rows) && rows < requested) {
+      return `Exported ${rows} of ${requested}. ${requested - rows} ${requested - rows === 1 ? "is" : "are"} no longer in these results.`;
+    }
+    return "Export downloaded.";
+  }
+  if (status === 429) return "Too many exports in the last minute. Wait a minute and export again.";
+  if (status === 409) return "None of the selected suppliers are in these results any more. Reload the page and select again.";
+  if (status === 401 || status === 403) return "Sign in with a buyer account to export.";
+  if (status === "network") return "Could not export — no connection. Try again.";
+  return "Could not export these results. Try again in a moment.";
 }
 
 /**
@@ -72,4 +97,100 @@ export function onBulkSaved(target: EventTarget, id: string, saved: () => void):
   };
   target.addEventListener(BULK_SAVED_EVENT, handler);
   return () => target.removeEventListener(BULK_SAVED_EVENT, handler);
+}
+
+/** What the provider hands every card, row and the bar. */
+export type SelectionContextValue = {
+  /** False outside a `SelectionProvider` — the `/dev/ds` gallery renders
+   * these same cards with no provider, and must keep the old inert checkbox
+   * rather than a tabbable one that silently does nothing. */
+  interactive: boolean;
+  selected: ReadonlySet<string>;
+  isSelected: (id: string) => boolean;
+  toggle: (id: string) => void;
+  toggleAllOnPage: () => void;
+  allState: boolean | "mixed";
+  clear: () => void;
+};
+
+type SetSelected = (next: (s: ReadonlySet<string>) => ReadonlySet<string>) => void;
+
+/** The provider's value, out of React so it can be tested: `set` is the
+ * provider's state setter. */
+export function selectionValue(selected: ReadonlySet<string>, pageIds: readonly string[], set: SetSelected): SelectionContextValue {
+  return {
+    interactive: true,
+    selected,
+    isSelected: (id) => selected.has(id),
+    toggle: (id) => set((s) => toggleId(s, id)),
+    toggleAllOnPage: () => set((s) => toggleAllOnPage(s, pageIds)),
+    allState: selectAllState(selected, pageIds),
+    clear: () => set(() => new Set()),
+  };
+}
+
+/** Clear from inside the bar: move focus to `target` FIRST. Clearing unmounts
+ * the bar and the focused Clear button with it, and focus left on a removed
+ * node falls to <body> — the next Tab restarts from the top of the page. */
+export function clearKeepingFocus(target: { focus(): void } | null, clear: () => void): void {
+  target?.focus();
+  clear();
+}
+
+type Observer = { observe(target: unknown): void; disconnect(): void };
+
+/**
+ * WCAG 2.4.11 for a sticky bar at the bottom of the window. The browser
+ * scrolls a newly focused element to the viewport's edge and ignores the bar,
+ * so reserve the bar's height as `scroll-padding-bottom` (re-measured, since
+ * it wraps on a phone), and re-scroll the element that has focus NOW — the
+ * box ticked to make the bar appear, which the padding (future scrolls only)
+ * does not move. Returns the cleanup that gives the padding back.
+ */
+export function reserveBarSpace(
+  root: { style: { scrollPaddingBottom: string } },
+  bar: { offsetHeight: number },
+  active: { scrollIntoView?: (o: { block: "nearest" }) => void } | null,
+  makeObserver: ((fit: () => void) => Observer) | null,
+): () => void {
+  const before = root.style.scrollPaddingBottom;
+  const fit = () => {
+    root.style.scrollPaddingBottom = `${bar.offsetHeight + 8}px`;
+  };
+  fit();
+  active?.scrollIntoView?.({ block: "nearest" });
+  const ro = makeObserver ? makeObserver(fit) : null;
+  ro?.observe(bar);
+  return () => {
+    ro?.disconnect();
+    root.style.scrollPaddingBottom = before;
+  };
+}
+
+/**
+ * The bar's Save: ONE request for the whole selection, one write against the
+ * buyer's rate-limit bucket. `onSaved` runs only on success, with the ids the
+ * server actually saved (it skips suppliers no longer listed). Resolves to
+ * the sentence the bar shows.
+ */
+export async function runBulkSave(
+  ids: readonly string[],
+  deps: {
+    fetch: (url: string, init: { method: string; headers: Record<string, string>; body: string }) => Promise<{ ok: boolean; status: number; json(): Promise<unknown> }>;
+    onSaved: (savedIds: string[]) => void;
+  },
+): Promise<string> {
+  try {
+    const res = await deps.fetch("/api/v1/saved", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ supplier_ids: [...ids] }),
+    });
+    const body = ((await res.json().catch(() => ({}))) ?? {}) as { count?: number; skipped?: number; ids?: unknown };
+    if (!res.ok) return bulkSaveMessage(res.status, ids.length);
+    deps.onSaved(Array.isArray(body.ids) ? body.ids.filter((x): x is string => typeof x === "string") : []);
+    return bulkSaveMessage(200, body.count ?? ids.length, body.skipped ?? 0);
+  } catch {
+    return bulkSaveMessage("network", ids.length);
+  }
 }

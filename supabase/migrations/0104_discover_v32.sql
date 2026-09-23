@@ -71,24 +71,28 @@ create policy pol_saved_searches_delete_self
 grant select, insert, update, delete on public.saved_searches to authenticated;
 
 -- A per-owner row cap, for the same reason: RLS scopes rows to their owner
--- but does not bound how many an owner may create. 500 is well above the
--- list's 200-row page (LIST_LIMIT) and far below anything abusive.
+-- but does not bound how many an owner may create. 200 is the list's own
+-- page (lib/saved-searches.ts LIST_LIMIT, held equal by a test), so no saved
+-- search can exist that the buyer cannot see or delete. SECURITY INVOKER:
+-- under RLS the owner's own rows are all the count needs, and a definer
+-- count answered "limit reached" about SOMEONE ELSE's rows to a caller who
+-- tried to insert under their id.
 create or replace function public.saved_searches_owner_cap()
 returns trigger
 language plpgsql
-security definer
+security invoker
 set search_path = public
 as $cap$
 begin
   perform pg_advisory_xact_lock(hashtextextended(new.owner_id::text, 104));
-  if (select count(*) from public.saved_searches where owner_id = new.owner_id) >= 500 then
+  if (select count(*) from public.saved_searches where owner_id = new.owner_id) >= 200 then
     raise exception 'saved search limit reached' using errcode = '54000';
   end if;
   return new;
 end;
 $cap$;
 
-revoke all on function public.saved_searches_owner_cap() from public;
+revoke all on function public.saved_searches_owner_cap() from public, anon, authenticated;
 
 drop trigger if exists trg_saved_searches_owner_cap on public.saved_searches;
 create trigger trg_saved_searches_owner_cap
@@ -111,7 +115,7 @@ as $$
   select nullif(substring(btrim(coalesce(p_established, '')), '^[0-9]{4}'), '')::int;
 $$;
 
-revoke all on function public.discover_v32_est_year(text) from public;
+revoke all on function public.discover_v32_est_year(text) from public, anon, authenticated;
 
 create or replace function public.discover_v32_top_tier(p_tags text[])
 returns smallint
@@ -136,7 +140,7 @@ as $$
   );
 $$;
 
-revoke all on function public.discover_v32_top_tier(text[]) from public;
+revoke all on function public.discover_v32_top_tier(text[]) from public, anon, authenticated;
 
 create or replace function public.discover_v32_hs_codes(p_supplier_id uuid)
 returns text[]
@@ -169,7 +173,7 @@ as $$
     ) d;
 $$;
 
-revoke all on function public.discover_v32_hs_codes(uuid) from public;
+revoke all on function public.discover_v32_hs_codes(uuid) from public, anon, authenticated;
 
 create or replace function public.discover_v32_cert_summary(p_supplier_id uuid)
 returns jsonb
@@ -208,7 +212,7 @@ as $$
      and c.rejected_at is null;
 $$;
 
-revoke all on function public.discover_v32_cert_summary(uuid) from public;
+revoke all on function public.discover_v32_cert_summary(uuid) from public, anon, authenticated;
 
 create or replace function public.discover_v32_brand_codes(p_supplier_id uuid)
 returns text[]
@@ -224,7 +228,7 @@ as $$
      and so.code like 'BRAND_%';
 $$;
 
-revoke all on function public.discover_v32_brand_codes(uuid) from public;
+revoke all on function public.discover_v32_brand_codes(uuid) from public, anon, authenticated;
 
 create or replace function public.discover_v32_registries(p_supplier_id uuid)
 returns text[]
@@ -250,7 +254,7 @@ as $$
      and vp.source_code in ('BGMEA', 'BKMEA', 'BGAPMEA', 'BTMA', 'EPB', 'RSC');
 $$;
 
-revoke all on function public.discover_v32_registries(uuid) from public;
+revoke all on function public.discover_v32_registries(uuid) from public, anon, authenticated;
 
 create or replace function public.discover_v32_next_cert_expiry(p_supplier_id uuid)
 returns date
@@ -269,7 +273,7 @@ as $$
      and c.expires_on >= current_date;
 $$;
 
-revoke all on function public.discover_v32_next_cert_expiry(uuid) from public;
+revoke all on function public.discover_v32_next_cert_expiry(uuid) from public, anon, authenticated;
 
 -- Shared filter predicate. p_skip names the one filter explain() drops.
 create or replace function public.discover_v32_passes(
@@ -515,7 +519,7 @@ revoke all on function public.discover_v32_passes(
   public.suppliers, numeric, text, text[], int, text[], int, text, text, text,
   text[], text[], text[], int, int, text[], text, text, int, int, int,
   text[], text[], boolean
-) from public;
+) from public, anon, authenticated;
 
 -- ---------------------------------------------------------------------------
 -- discover_suppliers — drop 0076 signature, recreate with §4.1 extras
@@ -793,7 +797,7 @@ revoke all on function public.discover_suppliers(
   text, text[], int, text[], int, text, text, text, text, int, int,
   text[], text[], text[], int, int,
   text[], text, text, int, int, int, text[], text[], boolean
-) from public;
+) from public, anon, authenticated;
 
 grant execute on function public.discover_suppliers(
   text, text[], int, text[], int, text, text, text, text, int, int,
@@ -812,6 +816,10 @@ comment on function public.discover_suppliers(
 -- discover_suppliers_explain — count with each active filter dropped
 -- ---------------------------------------------------------------------------
 
+-- Every inner call below passes 'receipts', never the caller's p_sort: this
+-- returns counts, which no ordering changes, and forwarding hs_lines /
+-- cert_expiry made one call up to twelve full-corpus passes for any signed-in
+-- PostgREST caller. p_sort stays in the signature so existing callers resolve.
 create or replace function public.discover_suppliers_explain(
   p_q                    text    default null,
   p_entity_types         text[]  default null,
@@ -856,7 +864,7 @@ begin
       select 'q'::text, x.total_count
         from public.discover_suppliers(
           null, p_entity_types, p_min_sources, p_cert_kinds, p_rsc_min,
-          p_city, p_district, p_category, p_sort, 1, 0,
+          p_city, p_district, p_category, 'receipts', 1, 0,
           p_registries, p_factory_types, p_brand_codes, p_completeness_min,
           p_workers_min, p_hs_codes, p_cert_state, p_rsc_state, p_est_from,
           p_est_to, p_workers_max, p_districts, p_cities, p_exclude_sanctioned
@@ -868,7 +876,7 @@ begin
       select 'hs'::text, x.total_count
         from public.discover_suppliers(
           p_q, p_entity_types, p_min_sources, p_cert_kinds, p_rsc_min,
-          p_city, p_district, p_category, p_sort, 1, 0,
+          p_city, p_district, p_category, 'receipts', 1, 0,
           p_registries, p_factory_types, p_brand_codes, p_completeness_min,
           p_workers_min, null, p_cert_state, p_rsc_state, p_est_from,
           p_est_to, p_workers_max, p_districts, p_cities, p_exclude_sanctioned
@@ -880,7 +888,7 @@ begin
       select 'cert'::text, x.total_count
         from public.discover_suppliers(
           p_q, p_entity_types, p_min_sources, null, p_rsc_min,
-          p_city, p_district, p_category, p_sort, 1, 0,
+          p_city, p_district, p_category, 'receipts', 1, 0,
           p_registries, p_factory_types, p_brand_codes, p_completeness_min,
           p_workers_min, p_hs_codes, null, p_rsc_state, p_est_from,
           p_est_to, p_workers_max, p_districts, p_cities, p_exclude_sanctioned
@@ -892,7 +900,7 @@ begin
       select 'rsc'::text, x.total_count
         from public.discover_suppliers(
           p_q, p_entity_types, p_min_sources, p_cert_kinds, null,
-          p_city, p_district, p_category, p_sort, 1, 0,
+          p_city, p_district, p_category, 'receipts', 1, 0,
           p_registries, p_factory_types, p_brand_codes, p_completeness_min,
           p_workers_min, p_hs_codes, p_cert_state, null, p_est_from,
           p_est_to, p_workers_max, p_districts, p_cities, p_exclude_sanctioned
@@ -904,7 +912,7 @@ begin
       select 'est'::text, x.total_count
         from public.discover_suppliers(
           p_q, p_entity_types, p_min_sources, p_cert_kinds, p_rsc_min,
-          p_city, p_district, p_category, p_sort, 1, 0,
+          p_city, p_district, p_category, 'receipts', 1, 0,
           p_registries, p_factory_types, p_brand_codes, p_completeness_min,
           p_workers_min, p_hs_codes, p_cert_state, p_rsc_state, null,
           null, p_workers_max, p_districts, p_cities, p_exclude_sanctioned
@@ -916,7 +924,7 @@ begin
       select 'workers'::text, x.total_count
         from public.discover_suppliers(
           p_q, p_entity_types, p_min_sources, p_cert_kinds, p_rsc_min,
-          p_city, p_district, p_category, p_sort, 1, 0,
+          p_city, p_district, p_category, 'receipts', 1, 0,
           p_registries, p_factory_types, p_brand_codes, p_completeness_min,
           null, p_hs_codes, p_cert_state, p_rsc_state, p_est_from,
           p_est_to, null, p_districts, p_cities, p_exclude_sanctioned
@@ -928,7 +936,7 @@ begin
       select 'district'::text, x.total_count
         from public.discover_suppliers(
           p_q, p_entity_types, p_min_sources, p_cert_kinds, p_rsc_min,
-          p_city, null, p_category, p_sort, 1, 0,
+          p_city, null, p_category, 'receipts', 1, 0,
           p_registries, p_factory_types, p_brand_codes, p_completeness_min,
           p_workers_min, p_hs_codes, p_cert_state, p_rsc_state, p_est_from,
           p_est_to, p_workers_max, null, p_cities, p_exclude_sanctioned
@@ -940,7 +948,7 @@ begin
       select 'city'::text, x.total_count
         from public.discover_suppliers(
           p_q, p_entity_types, p_min_sources, p_cert_kinds, p_rsc_min,
-          null, p_district, p_category, p_sort, 1, 0,
+          null, p_district, p_category, 'receipts', 1, 0,
           p_registries, p_factory_types, p_brand_codes, p_completeness_min,
           p_workers_min, p_hs_codes, p_cert_state, p_rsc_state, p_est_from,
           p_est_to, p_workers_max, p_districts, null, p_exclude_sanctioned
@@ -952,7 +960,7 @@ begin
       select 'type'::text, x.total_count
         from public.discover_suppliers(
           p_q, null, p_min_sources, p_cert_kinds, p_rsc_min,
-          p_city, p_district, p_category, p_sort, 1, 0,
+          p_city, p_district, p_category, 'receipts', 1, 0,
           p_registries, p_factory_types, p_brand_codes, p_completeness_min,
           p_workers_min, p_hs_codes, p_cert_state, p_rsc_state, p_est_from,
           p_est_to, p_workers_max, p_districts, p_cities, p_exclude_sanctioned
@@ -964,7 +972,7 @@ begin
       select 'min_sources'::text, x.total_count
         from public.discover_suppliers(
           p_q, p_entity_types, null, p_cert_kinds, p_rsc_min,
-          p_city, p_district, p_category, p_sort, 1, 0,
+          p_city, p_district, p_category, 'receipts', 1, 0,
           p_registries, p_factory_types, p_brand_codes, p_completeness_min,
           p_workers_min, p_hs_codes, p_cert_state, p_rsc_state, p_est_from,
           p_est_to, p_workers_max, p_districts, p_cities, p_exclude_sanctioned
@@ -976,7 +984,7 @@ begin
       select 'brand'::text, x.total_count
         from public.discover_suppliers(
           p_q, p_entity_types, p_min_sources, p_cert_kinds, p_rsc_min,
-          p_city, p_district, p_category, p_sort, 1, 0,
+          p_city, p_district, p_category, 'receipts', 1, 0,
           p_registries, p_factory_types, null, p_completeness_min,
           p_workers_min, p_hs_codes, p_cert_state, p_rsc_state, p_est_from,
           p_est_to, p_workers_max, p_districts, p_cities, p_exclude_sanctioned
@@ -988,7 +996,7 @@ begin
       select 'registry'::text, x.total_count
         from public.discover_suppliers(
           p_q, p_entity_types, p_min_sources, p_cert_kinds, p_rsc_min,
-          p_city, p_district, p_category, p_sort, 1, 0,
+          p_city, p_district, p_category, 'receipts', 1, 0,
           null, p_factory_types, p_brand_codes, p_completeness_min,
           p_workers_min, p_hs_codes, p_cert_state, p_rsc_state, p_est_from,
           p_est_to, p_workers_max, p_districts, p_cities, p_exclude_sanctioned
@@ -1002,7 +1010,7 @@ revoke all on function public.discover_suppliers_explain(
   text, text[], int, text[], int, text, text, text, text, int, int,
   text[], text[], text[], int, int,
   text[], text, text, int, int, int, text[], text[], boolean
-) from public;
+) from public, anon, authenticated;
 
 grant execute on function public.discover_suppliers_explain(
   text, text[], int, text[], int, text, text, text, text, int, int,
@@ -1058,7 +1066,7 @@ as $$
    order by s.slug, btrim(hs.elem->>'code'), sr.fetched_at desc nulls last, sr.id, hs.ord;
 $$;
 
-revoke all on function public.supplier_epb_hscodes_batch(text[]) from public;
+revoke all on function public.supplier_epb_hscodes_batch(text[]) from public, anon, authenticated;
 grant execute on function public.supplier_epb_hscodes_batch(text[]) to authenticated;
 
 comment on function public.supplier_epb_hscodes_batch(text[]) is
@@ -1111,7 +1119,7 @@ as $$
    order by heading4;
 $$;
 
-revoke all on function public.hs_catalogue() from public;
+revoke all on function public.hs_catalogue() from public, anon, authenticated;
 grant execute on function public.hs_catalogue() to authenticated;
 
 comment on function public.hs_catalogue() is
@@ -1122,8 +1130,12 @@ comment on function public.hs_catalogue() is
 -- ---------------------------------------------------------------------------
 -- The CSV export pages `discover_suppliers` up to ten times per request, and
 -- 0104's `hs_lines` / `cert_expiry` sorts cost a full-corpus pass per call.
--- Under `api_read` (120/min) one account could drive 1,200 of those a
--- minute, so the export gets its own, tighter bucket (lib/rate-limit/limits.ts).
+-- Under `api_read` (120/min) the export route alone let one account drive
+-- 1,200 of those a minute, so it gets its own, tighter bucket
+-- (lib/rate-limit/limits.ts). This bounds the APP's route only: a signed-in
+-- caller can still call `discover_suppliers` through PostgREST directly,
+-- outside any app limiter — the same exposure as the anon grant, and the
+-- founder's decision (hand-off §7.1), not something a bucket can close.
 -- rl_check refuses an unlisted bucket and the app's limiter FAILS OPEN on any
 -- error, so a class the app uses but this list lacks is no limit at all —
 -- `lib/rate-limit/limits.test.ts` holds the two lists together.
@@ -1222,7 +1234,12 @@ begin
 end;
 $$;
 
-revoke all on function public.rl_check(text, text, int) from public;
+revoke all on function public.rl_check(text, text, int) from public, anon, authenticated;
 grant execute on function public.rl_check(text, text, int) to authenticated;
+
+comment on function public.rl_check(text, text, int) is
+  'Internal rate-limit helper (H2). Bucket allowlist + anon body guard added '
+  'in REZ-26; api_export bucket added in 0104. Called only by server-side '
+  'code. anon EXECUTE revoked.';
 
 notify pgrst, 'reload schema';

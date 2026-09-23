@@ -2,7 +2,7 @@
 // checkbox, the V2 tag, meters and the live dot. Tailwind classes only; every
 // colour is a token role (`lib/design/tokens.ts`).
 
-import type { ButtonHTMLAttributes, ReactNode } from "react";
+import type { ButtonHTMLAttributes, MouseEventHandler, ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { Icon, type IconName } from "./icons";
 
@@ -42,7 +42,14 @@ export function Button({
   );
   if (href && !rest.disabled) {
     return (
-      <a href={href} className={classes} aria-label={rest["aria-label"]}>
+      <a
+        href={href}
+        className={classes}
+        aria-label={rest["aria-label"]}
+        aria-busy={rest["aria-busy"]}
+        aria-describedby={rest["aria-describedby"]}
+        onClick={rest.onClick as unknown as MouseEventHandler<HTMLAnchorElement> | undefined}
+      >
         {children}
       </a>
     );
