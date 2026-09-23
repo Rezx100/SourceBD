@@ -13,6 +13,7 @@ import {
   interceptPlainClick,
   pruneToPage,
   reserveBarSpace,
+  rowSaveMessage,
   runExport,
   saveBlob,
   runBulkSave,
@@ -103,6 +104,7 @@ describe("discover bulk-selection math", () => {
     assert.equal(exportMessage(200, { rows: NaN, requested: 5 }), "Export downloaded.");
     // The full export at its cap: the sentence says it stopped, like the filename.
     assert.match(exportMessage(200, { rows: 1000, matched: 3481, truncated: true }), /first 1000 of 3481/);
+    assert.doesNotMatch(exportMessage(200, { rows: 245, matched: 300, truncated: true }), /stops at 245/, "the cap is not the row count");
     assert.match(exportMessage(200, { rows: 1000, truncated: true }), /first 1000 suppliers/);
     assert.equal(exportMessage(200, { rows: 1000, matched: 1000, truncated: false }), "Export downloaded.");
     for (const st of [400, 401, 403, 409, 429, 500, 503, "network"] as const) {
@@ -137,6 +139,24 @@ describe("discover bulk-selection math", () => {
     assert.deepEqual([...state], ["p2"]);
     v.clear();
     assert.equal(state.size, 0);
+  });
+
+  it("only the buyer's own changes count as edits — a refresh's pruning does not", () => {
+    // The bar clears its message on edits. A partial save's refresh prunes
+    // the gone supplier; if that counted, "1 is no longer listed" vanished
+    // the moment it arrived.
+    let state: ReadonlySet<string> = new Set(["a", "b", "x"]);
+    let edits = 0;
+    const set = (f: (s: ReadonlySet<string>) => ReadonlySet<string>) => {
+      state = f(state);
+    };
+    const v = () => selectionValue(state, ["a", "b", "c"], set, edits, () => (edits += 1));
+    state = pruneToPage(state, ["a", "b", "c"]);
+    assert.equal(edits, 0, "a prune is not an edit");
+    v().toggle("c");
+    v().toggleAllOnPage();
+    v().clear();
+    assert.equal(edits, 3, "tick, select-all and clear each count once");
   });
 
   it("a refresh that drops a selected row off the page drops it from the selection too", () => {
@@ -174,6 +194,26 @@ describe("discover bulk-selection math", () => {
     undo();
     assert.equal(root.style.scrollPaddingBottom, "4px");
     assert.equal(disconnected, true);
+  });
+
+  it("a height-only window resize re-reads 'sticky': shrink below 32rem and the reserved space is handed back", () => {
+    const root = { style: { scrollPaddingBottom: "" } };
+    let sticky = true;
+    let onResize: (() => void) | null = null;
+    let unsubscribed = false;
+    const undo = reserveBarSpace(root, { offsetHeight: 100 }, null, null, () => sticky, (fit) => {
+      onResize = fit;
+      return () => (unsubscribed = true);
+    });
+    assert.equal(root.style.scrollPaddingBottom, "108px");
+    sticky = false;
+    onResize!();
+    assert.equal(root.style.scrollPaddingBottom, "", "an in-flow bar must not keep reserving space");
+    sticky = true;
+    onResize!();
+    assert.equal(root.style.scrollPaddingBottom, "108px");
+    undo();
+    assert.equal(unsubscribed, true);
   });
 
   it("a bar that is NOT sticky (a short window, where it sits in flow) reserves nothing and scrolls nothing", () => {
@@ -235,6 +275,15 @@ describe("discover bulk-selection math", () => {
     });
   });
 
+  it("a row's Save names each outcome, including a supplier no longer listed", () => {
+    assert.equal(rowSaveMessage(200, true), "Saved");
+    assert.equal(rowSaveMessage(200, false), "Removed from saved");
+    assert.match(rowSaveMessage(404, true), /no longer listed/);
+    assert.match(rowSaveMessage(401, true), /Sign in/);
+    assert.match(rowSaveMessage("network", true), /no connection/);
+    assert.match(rowSaveMessage(500, true), /Try again/);
+  });
+
   describe("Export, downloaded in place", () => {
     it("takes over only a plain left click; a modifier or middle click opens the link as usual", () => {
       const click = (over: Partial<{ metaKey: boolean; ctrlKey: boolean; shiftKey: boolean; button: number }> = {}) => {
@@ -267,6 +316,20 @@ describe("discover bulk-selection math", () => {
       });
       assert.deepEqual(saved, [["csv-bytes", "sourcebd-suppliers-2026-09-23-selected-2-of-3.csv"]]);
       assert.match(msg, /^Exported 2 of 3\./);
+    });
+
+    it("an ordinary full export (no truncation header) is just 'downloaded'", async () => {
+      const msg = await runExport("/x", undefined, {
+        fetch: async () => response(200, { "Content-Disposition": 'attachment; filename="f.csv"', "X-SourceBD-Rows": "12", "X-SourceBD-Matched": "12" }),
+        save: () => {},
+      });
+      assert.equal(msg, "Export downloaded.");
+    });
+
+    it("with no filename header the file still gets a sensible name", async () => {
+      const names: string[] = [];
+      await runExport("/x", undefined, { fetch: async () => response(200, {}), save: (_b, n) => names.push(n) });
+      assert.deepEqual(names, ["sourcebd-suppliers.csv"]);
     });
 
     it("the full export at its cap says so", async () => {

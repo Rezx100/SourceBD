@@ -48,10 +48,11 @@ export async function runSavedSupplierPost(input: {
   if (!ownerId) return { status: 401, body: { error: "unauthorised" } };
 
   // One upsert is all-or-nothing: `on conflict` absorbs duplicates but not a
-  // foreign-key violation, so a single supplier deleted (or unpublished)
-  // since the page rendered would sink the whole selection — every retry
-  // failing the same way. Keep only ids that are still listed first; the
-  // buyer's own RLS read of `suppliers` is published-only.
+  // foreign-key violation, so a single supplier DELETED since the page
+  // rendered would sink the whole selection — every retry failing the same
+  // way. Keep only ids that are still listed first: the buyer's own RLS read
+  // of `suppliers` is published-only, so this also drops unpublished ones
+  // (which the FK alone would not).
   const { data: live, error: readError } = await input.supabase.from("suppliers").select("id").in("id", ids);
   if (readError) return { status: 500, body: { error: "save failed" } };
   const listed = new Set(((live ?? []) as { id: string }[]).map((r) => String(r.id).toLowerCase()));

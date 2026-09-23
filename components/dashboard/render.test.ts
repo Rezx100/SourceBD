@@ -1317,13 +1317,27 @@ describe("the two-state controls say which state they are in", () => {
       .replace(/(^|[^:"'`])\/\/.*$/gm, "$1");
 
   /** The body of `export function <name>(` in a source file (comments
-   * stripped), so a dead helper elsewhere in the file cannot satisfy a check. */
+   * stripped), bounded by the function's OWN closing brace — so a dead
+   * helper anywhere else in the file, before or after it, cannot satisfy a
+   * check. (Slicing to the next `export` ran to end-of-file for the last
+   * export, and a trailing unused helper passed.) */
   const functionBody = (rel: string, name: string) => {
     const code = sourceCode(rel);
     const at = code.indexOf(`export function ${name}(`);
     assert.ok(at >= 0, `${name} not found in ${rel}`);
-    const next = code.indexOf("\nexport ", at + 10);
-    return code.slice(at, next < 0 ? undefined : next);
+    // Skip the parameter list (it has its own braces), then match the body.
+    let i = code.indexOf("(", at);
+    for (let depth = 0; i < code.length; i++) {
+      if (code[i] === "(") depth++;
+      else if (code[i] === ")" && --depth === 0) break;
+    }
+    const open = code.indexOf("{", code.indexOf(")", i));
+    let depth = 0;
+    for (let j = open; j < code.length; j++) {
+      if (code[j] === "{") depth++;
+      else if (code[j] === "}" && --depth === 0) return code.slice(at, j + 1);
+    }
+    assert.fail(`${name}: unbalanced braces`);
   };
   const count = (hay: string, needle: string) => hay.split(needle).length - 1;
 
@@ -1339,6 +1353,7 @@ describe("the two-state controls say which state they are in", () => {
         toggleAllOnPage: () => {},
         allState: false,
         clear: () => {},
+        edits: 0,
       };
       const router = { back() {}, forward() {}, refresh() {}, push() {}, replace() {}, prefetch() {} };
       return renderToStaticMarkup(
@@ -1422,26 +1437,29 @@ describe("the two-state controls say which state they are in", () => {
       const code = sourceCode("components/dashboard/selection-bar.tsx");
       assert.match(
         code,
-        /useEffect\(\(\) => \{\s*const bar = barRef\.current;\s*if \(!visible \|\| !bar\) return;[^}]*return reserveBarSpace\(document\.documentElement, bar, document\.activeElement as HTMLElement \| null, observe, sticky\);\s*\}, \[visible\]\);/,
+        /useEffect\(\(\) => \{\s*const bar = barRef\.current;\s*if \(!visible \|\| !bar\) return;[\s\S]*?window\.addEventListener\("resize", fit\);\s*return \(\) => window\.removeEventListener\("resize", fit\);[\s\S]*?return reserveBarSpace\(document\.documentElement, bar, document\.activeElement as HTMLElement \| null, observe, sticky, onViewportResize\);\s*\}, \[visible\]\);/,
       );
     });
 
     it("a late save response never reports on a selection the buyer has since changed", () => {
       const code = sourceCode("components/dashboard/selection-bar.tsx");
       assert.match(code, /const asked = generation\.current;[\s\S]*?if \(generation\.current !== asked\) return;\s*setStatus\(message\);/);
-      assert.match(code, /useEffect\(\(\) => \{\s*generation\.current \+= 1;\s*setStatus\(""\);\s*\}, \[sel\.selected\]\);/);
+      // Keyed on the buyer's edits, never on the Set: a refresh that prunes
+      // the Set after a partial save must not erase the message about it.
+      assert.match(code, /useEffect\(\(\) => \{\s*generation\.current \+= 1;\s*setStatus\(""\);\s*\}, \[sel\.edits\]\);/);
+      assert.doesNotMatch(code, /\}, \[sel\.selected\]\);/);
+      assert.match(
+        sourceCode("components/dashboard/selection.tsx"),
+        /selectionValue\(selected, pageIds, setSelected, edits, \(\) => setEdits\(\(n\) => n \+ 1\)\)/,
+      );
     });
 
     it("both Export buttons download in place — a refusal is a sentence on the page, not a JSON document instead of it", () => {
-      // The download and its messages are runExport/saveBlob, tested in
-      // selection.test.ts; here, the click wires them in and stops navigation.
+      // The handler itself is invoked in interaction.test.ts; here only that
+      // the link keeps its href for a middle-click or no script.
       const link = sourceCode("components/dashboard/export-link.tsx");
-      assert.match(
-        link,
-        /if \(!interceptPlainClick\(e\) \|\| busy\) return;[\s\S]*?setStatus\(\s*await runExport\(href, requested, \{\s*fetch: \(url\) => fetch\(url\),\s*save: \(blob, filename\) => saveBlob\(document, URL, \(fn\) => setTimeout\(fn, 1000\), blob, filename\),\s*\}\),\s*\);/,
-      );
       assert.match(link, /<Button href=\{href\} onClick=\{run\}/);
-      assert.match(sourceCode("components/dashboard/selection-bar.tsx"), /<ExportLink key=\{ids\.join\(","\)\} href=\{bulkExportHref\(exportHref, ids\)\}/);
+      assert.match(sourceCode("components/dashboard/selection-bar.tsx"), /<ExportLink href=\{bulkExportHref\(exportHref, ids\)\} label="Export" requested=\{count\} resetOn=\{sel\.edits\} \/>/);
       assert.match(sourceCode("components/dashboard/results-panel.tsx"), /<ExportLink href=\{model\.exportHref\}/);
       // And the link still carries its href, for a middle-click or no script.
       const html = renderToStaticMarkup(
@@ -1459,7 +1477,7 @@ describe("the two-state controls say which state they are in", () => {
       assert.match(body, /const observe = typeof ResizeObserver === "undefined" \? null : \(fit: \(\) => void\) => new ResizeObserver\(fit\);/);
       assert.match(body, /await runBulkSave\(ids, \{/);
       assert.doesNotMatch(body, /\bids\s*\.\s*(splice|pop|shift|length\s*=)|\bids\s*=(?!=)(?!\s*\[\.\.\.sel\.selected\];)/, "the selection sent must be the whole selection");
-      assert.match(body, /<ExportLink key=\{ids\.join\(","\)\} href=\{bulkExportHref\(exportHref, ids\)\} label="Export" requested=\{count\} \/>/);
+      assert.match(body, /<ExportLink href=\{bulkExportHref\(exportHref, ids\)\} label="Export" requested=\{count\} resetOn=\{sel\.edits\} \/>/);
       assert.match(functionBody("components/dashboard/export-link.tsx", "ExportLink"), /\} finally \{\s*setBusy\(false\);\s*\}/);
     });
 
@@ -1470,6 +1488,14 @@ describe("the two-state controls say which state they are in", () => {
       // A plain <Button href> renders the anchor alone; ExportLink follows it
       // with its own live region.
       assert.match(html, /<a href="\/api\/v1\/discover\/export\?q=k"[^>]*>(?:(?!<\/a>).)*Export CSV<\/a><span id="[^"]+" role="status" aria-live="polite"/);
+    });
+
+    it("the table's scroll pane is a containing block, so its sr-only status spans cannot widen the page (WCAG 1.4.10)", () => {
+      const html = renderToStaticMarkup(createElement(ResultsTable, { rows: [buildTableRow(smKnitwearInput())] }));
+      const pane = html.match(/<div class="([^"]*)" tabindex="0" role="region" aria-label="Results table"/);
+      assert.ok(pane, "scroll pane not found");
+      const cls = pane[1]!.split(/\s+/);
+      assert.ok(cls.includes("relative") && cls.includes("overflow-x-auto"), pane[1]);
     });
 
     it("the saved-search form names the real cause, and only a name error blames the name field", () => {
@@ -1504,12 +1530,16 @@ describe("the two-state controls say which state they are in", () => {
         toggleAllOnPage: () => {},
         allState: "mixed",
         clear: () => {},
+        edits: 0,
       };
       const html = renderToStaticMarkup(
         createElement(SelectionContext.Provider, { value }, createElement(PanelHeader, { model: { title: "K", total: 2, shown: 2, firstRow: 1, sortLabel: "Name", view: "cards" as const } })),
       );
       assert.match(html, new RegExp(`id="${SELECT_ALL_ID}"[^>]*aria-checked="mixed"`));
-      assert.match(sourceCode("components/dashboard/selection.tsx"), /useMemo\(\(\) => selectionValue\(selected, pageIds, setSelected\), \[selected, pageIds\]\)/);
+      assert.match(
+        sourceCode("components/dashboard/selection.tsx"),
+        /useMemo\(\s*\(\) => selectionValue\(selected, pageIds, setSelected, edits, \(\) => setEdits\(\(n\) => n \+ 1\)\),\s*\[selected, pageIds, edits\],\s*\)/,
+      );
     });
 
     it("the bar is sticky only on a window tall enough to spare it, and hides the two dead actions on a phone (WCAG 1.4.10)", () => {
@@ -1527,7 +1557,7 @@ describe("the two-state controls say which state they are in", () => {
       }
       assert.match(html, /<p id="[^"]+" class="[^"]*\bhidden\b[^"]*\bsm:block\b/);
       // And the effect only reserves space while the bar is actually sticky.
-      assert.match(sourceCode("components/dashboard/selection-bar.tsx"), /const sticky = \(\) => getComputedStyle\(bar\)\.position === "sticky";\s*return reserveBarSpace\([^;]*, observe, sticky\);/);
+      assert.match(sourceCode("components/dashboard/selection-bar.tsx"), /const sticky = \(\) => getComputedStyle\(bar\)\.position === "sticky";[\s\S]*?return reserveBarSpace\([^;]*, observe, sticky, onViewportResize\);/);
     });
 
     it("the provider prunes its selection to the page whenever a refresh changes the rows", () => {
@@ -1538,7 +1568,7 @@ describe("the two-state controls say which state they are in", () => {
     });
 
     it("the bar's Export is remounted per selection, so its message never describes an older one", () => {
-      assert.match(sourceCode("components/dashboard/selection-bar.tsx"), /<ExportLink key=\{ids\.join\(","\)\} href=\{bulkExportHref\(exportHref, ids\)\}/);
+      assert.match(sourceCode("components/dashboard/selection-bar.tsx"), /<ExportLink href=\{bulkExportHref\(exportHref, ids\)\} label="Export" requested=\{count\} resetOn=\{sel\.edits\} \/>/);
       assert.match(sourceCode("components/dashboard/export-link.tsx"), /setBusy\(true\);\s*setStatus\("Preparing the export…"\);/);
     });
 

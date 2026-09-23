@@ -22,9 +22,15 @@ function client(
     from(table: string) {
       if (table === "suppliers") {
         return {
-          select: () => ({
+          // Returns only the selected column, like PostgREST: selecting the
+          // wrong one leaves `id` undefined and every save a false 404.
+          select: (cols: string) => ({
             in: async (col: string, ids: string[]) => ({
-              data: readError ? null : col === "id" ? ids.filter((id) => listed === null || listed.includes(id)).map((id) => ({ id })) : [],
+              data: readError
+                ? null
+                : col === "id"
+                  ? ids.filter((id) => listed === null || listed.includes(id)).map((id) => (cols === "id" ? { id } : {}))
+                  : [],
               error: readError,
             }),
           }),

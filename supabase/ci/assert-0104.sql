@@ -539,7 +539,10 @@ begin
     raise exception 'discover_suppliers returned nothing to a signed-in buyer';
   end if;
   select count(*) into n from public.discover_suppliers_explain(p_q => 'zz-no-match-zz');
-  perform public.hs_catalogue();
+  select count(*) into n from public.hs_catalogue();
+  if n = 0 then
+    raise exception 'hs_catalogue returned nothing to a signed-in buyer over EPB-seeded suppliers';
+  end if;
   reset role;
   perform set_config('request.jwt.claim.role', '', true);
   perform set_config('request.jwt.claim.sub', '', true);
@@ -553,10 +556,19 @@ $$;
 do $$
 begin
   create function public.__ci_default_acl_probe() returns int language sql as 'select 1';
+  -- Postgres grants EXECUTE to PUBLIC on every new function, and anon is in
+  -- PUBLIC — so without this revoke the check passes with or without the
+  -- bootstrap's default privileges, and proves nothing.
+  revoke execute on function public.__ci_default_acl_probe() from public;
   if not has_function_privilege('anon', 'public.__ci_default_acl_probe()', 'execute') then
     raise exception 'the replay does not emulate Supabase default privileges; the grant checks prove nothing';
   end if;
   drop function public.__ci_default_acl_probe();
+  create table public.__ci_default_acl_probe (id int);
+  if not has_table_privilege('anon', 'public.__ci_default_acl_probe', 'select') then
+    raise exception 'the replay does not emulate Supabase default TABLE privileges';
+  end if;
+  drop table public.__ci_default_acl_probe;
 end
 $$;
 

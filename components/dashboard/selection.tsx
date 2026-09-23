@@ -27,11 +27,16 @@ const INERT: SelectionContextValue = {
   toggleAllOnPage: () => {},
   allState: false,
   clear: () => {},
+  edits: 0,
 };
 
 export function SelectionProvider({ pageIds, children }: { pageIds: readonly string[]; children?: ReactNode }) {
   const [selected, setSelected] = useState<ReadonlySet<string>>(() => new Set());
-  const value = useMemo(() => selectionValue(selected, pageIds, setSelected), [selected, pageIds]);
+  const [edits, setEdits] = useState(0);
+  const value = useMemo(
+    () => selectionValue(selected, pageIds, setSelected, edits, () => setEdits((n) => n + 1)),
+    [selected, pageIds, edits],
+  );
   // A refresh keeps this provider (same URL key) but can change its rows.
   const pageKey = pageIds.join(",");
   useEffect(() => {

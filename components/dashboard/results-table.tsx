@@ -51,7 +51,10 @@ export function ResultsTable({ rows }: { rows: readonly TableRowModel[] }) {
     // 2.1.1 asks for once a pane scrolls: a keyboard user needs to be able to
     // focus it to scroll it, and a screen-reader user needs it announced.
     <div
-      className="overflow-x-auto"
+      // `relative`: `.sr-only` is position:absolute, and without a containing
+      // block here the per-row status spans escaped the scroll clip and
+      // widened the whole page to the table's 62rem (WCAG 1.4.10).
+      className="relative overflow-x-auto"
       tabIndex={0}
       role="region"
       // Named for what it is, not for what it is doing. "…scrolls sideways"

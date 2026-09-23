@@ -3,7 +3,7 @@
 import { useEffect, useId, useState } from "react";
 import { Button } from "@/components/dashboard/controls";
 import { Icon } from "@/components/dashboard/icons";
-import { onBulkSaved } from "@/lib/dashboard/selection";
+import { onBulkSaved, rowSaveMessage } from "@/lib/dashboard/selection";
 
 /**
  * Save / unsave a supplier from a results row.
@@ -54,7 +54,6 @@ export function SaveRecordButton({
         type="button"
         icon={icon}
         aria-busy={pending || undefined}
-        aria-pressed={on}
         aria-label={label}
         aria-describedby={status ? statusId : undefined}
         className={icon ? "h-7 w-7" : undefined}
@@ -70,19 +69,10 @@ export function SaveRecordButton({
                   headers: { "Content-Type": "application/json" },
                   body: JSON.stringify({ supplier_id: supplierId }),
                 });
-            if (res.ok) {
-              const next = !on;
-              setOn(next);
-              setStatus(next ? "Saved" : "Removed from saved");
-            } else if (res.status === 401) {
-              setStatus("Sign in to save a record.");
-            } else if (res.status === 404) {
-              setStatus("This supplier is no longer listed, so it was not saved.");
-            } else {
-              setStatus("Could not save that. Try again.");
-            }
+            if (res.ok) setOn(!on);
+            setStatus(rowSaveMessage(res.ok ? 200 : res.status, !on));
           } catch {
-            setStatus("Could not save that — no connection. Try again.");
+            setStatus(rowSaveMessage("network", !on));
           } finally {
             setPending(false);
           }

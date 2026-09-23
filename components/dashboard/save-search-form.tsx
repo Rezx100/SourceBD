@@ -3,14 +3,15 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/dashboard/controls";
+import { SAVED_SEARCH_ERROR } from "@/lib/saved-search-errors";
 
 /** What the form says for a refused save, and whether it is the NAME's fault
  * (only then is the name field marked invalid — WCAG 3.3.1). */
 export function saveSearchError(status: number, error: string | undefined): { message: string; onName: boolean } {
   if (status === 401) return { message: "Sign in to save a search.", onName: false };
   if (status === 409) return { message: "You have reached the limit of 200 saved searches. Delete one to save this.", onName: false };
-  if (status === 400 && error === "invalid name") return { message: "Give the search a name of 120 characters or fewer.", onName: true };
-  if (status === 400 && error === "search too long to save") {
+  if (status === 400 && error === SAVED_SEARCH_ERROR.invalidName) return { message: "Give the search a name (up to 120 characters).", onName: true };
+  if (status === 400 && error === SAVED_SEARCH_ERROR.tooLong) {
     return { message: "This search is too long to save. Remove some filters or shorten the words.", onName: false };
   }
   return { message: "Could not save this search.", onName: false };

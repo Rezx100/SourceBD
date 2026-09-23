@@ -122,6 +122,27 @@ describe("discover CSV export boundary", () => {
     assert.ok(seenOffsets.length > 1, `expected several pages, saw offsets ${JSON.stringify(seenOffsets)}`);
   });
 
+  it("a search of exactly the ceiling is complete — not 'the first 1000 of 1000'", async () => {
+    const res = await runDiscoverExport({
+      role: "buyer",
+      supabase: {
+        rpc: async (fn: string, args?: Record<string, unknown>) => {
+          if (fn !== "discover_suppliers") return { data: [], error: null };
+          const offset = Number(args?.p_offset ?? 0);
+          const limit = Number(args?.p_limit ?? 100);
+          const n = Math.max(0, Math.min(limit, 1000 - offset));
+          return { data: Array.from({ length: n }, (_, i) => ({ ...ROW, id: `r${offset + i}`, slug: `s${offset + i}`, total_count: 1000 })), error: null };
+        },
+      },
+      search: "q=knit",
+      today: TODAY,
+    });
+    assert.equal(res.status, 200);
+    assert.equal(res.headers["X-SourceBD-Rows"], "1000");
+    assert.equal(res.headers["X-SourceBD-Truncated"], undefined);
+    assert.doesNotMatch(res.headers["Content-Disposition"] ?? "", /first-/);
+  });
+
   it("stops at the documented ceiling rather than pulling the whole database", async () => {
     // The other side of the same loop: paging must terminate.
     const res = await runDiscoverExport({

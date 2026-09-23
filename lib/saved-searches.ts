@@ -5,6 +5,7 @@
  */
 
 import { formatCount } from "@/lib/dashboard/facts";
+import { SAVED_SEARCH_ERROR } from "@/lib/saved-search-errors";
 import { COUNT_ONLY_SORT, fetchDiscoverV32 } from "@/lib/discover-v32-rpc";
 import { parseDiscoverState, serializeDiscoverState, type DiscoverState } from "@/lib/discover-v32-state";
 
@@ -180,7 +181,7 @@ export async function runSavedSearchesPost(input: {
   const rec = input.raw as Record<string, unknown>;
   const name = typeof rec.name === "string" ? rec.name.trim() : "";
   if (!name || name.length > 120) {
-    return { status: 400, body: { error: "invalid name" } };
+    return { status: 400, body: { error: SAVED_SEARCH_ERROR.invalidName } };
   }
   let state: DiscoverState | null = null;
   if (typeof rec.search === "string") {
@@ -194,7 +195,7 @@ export async function runSavedSearchesPost(input: {
   // 0104 bounds these at the database (state ≤ 8 KB, LIST_LIMIT rows per
   // owner); say so as a reason, not a bare 500 carrying Postgres's text.
   if (search.length > MAX_SAVED_SEARCH_CHARS) {
-    return { status: 400, body: { error: "search too long to save" } };
+    return { status: 400, body: { error: SAVED_SEARCH_ERROR.tooLong } };
   }
   const inserted = await input.supabase.from("saved_searches").insert({
     owner_id: ownerId,
@@ -203,8 +204,8 @@ export async function runSavedSearchesPost(input: {
   });
   if (inserted.error) {
     const code = (inserted.error as { code?: string }).code;
-    if (code === "54000") return { status: 409, body: { error: "saved search limit reached" } };
-    if (code === "23514") return { status: 400, body: { error: "search too long to save" } };
+    if (code === "54000") return { status: 409, body: { error: SAVED_SEARCH_ERROR.limitReached } };
+    if (code === "23514") return { status: 400, body: { error: SAVED_SEARCH_ERROR.tooLong } };
     return { status: 500, body: { error: "save failed" } };
   }
   return { status: 200, body: { ok: true } };

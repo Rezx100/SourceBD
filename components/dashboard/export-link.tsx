@@ -8,27 +8,46 @@
 // live region beside the button. The `href` stays, so a middle-click or a
 // browser without script still gets the file.
 
-import { useId, useState, type MouseEvent } from "react";
+import { useEffect, useId, useRef, useState, type MouseEvent } from "react";
 import { interceptPlainClick, runExport, saveBlob } from "@/lib/dashboard/selection";
 import { Icon } from "./icons";
 import { Button } from "./controls";
 
-export function ExportLink({ href, label, requested }: { href: string; label: string; requested?: number }) {
+export function ExportLink({
+  href,
+  label,
+  requested,
+  resetOn,
+}: {
+  href: string;
+  label: string;
+  requested?: number;
+  /** Changes when the thing being exported changes (the bar passes the
+   * buyer's selection edits): the old message is cleared and a result still
+   * in flight is dropped. Not a `key` — remounting moved focus off the link
+   * and let a second export start under the first. */
+  resetOn?: number;
+}) {
   const [status, setStatus] = useState("");
   const [busy, setBusy] = useState(false);
   const statusId = useId();
+  const round = useRef(0);
+  useEffect(() => {
+    round.current += 1;
+    setStatus("");
+  }, [resetOn]);
 
   async function run(e: MouseEvent<HTMLElement>) {
     if (!interceptPlainClick(e) || busy) return;
     setBusy(true);
     setStatus("Preparing the export…");
+    const asked = round.current;
     try {
-      setStatus(
-        await runExport(href, requested, {
-          fetch: (url) => fetch(url),
-          save: (blob, filename) => saveBlob(document, URL, (fn) => setTimeout(fn, 1000), blob, filename),
-        }),
-      );
+      const message = await runExport(href, requested, {
+        fetch: (url) => fetch(url),
+        save: (blob, filename) => saveBlob(document, URL, (fn) => setTimeout(fn, 1000), blob, filename),
+      });
+      if (round.current === asked) setStatus(message);
     } finally {
       setBusy(false);
     }

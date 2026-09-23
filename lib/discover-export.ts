@@ -33,8 +33,7 @@ export function csvFilename(today: Date, rows?: number, matched?: number | null)
   const y = today.getUTCFullYear();
   const m = String(today.getUTCMonth() + 1).padStart(2, "0");
   const d = String(today.getUTCDate()).padStart(2, "0");
-  const atCeiling = rows != null && rows >= MAX_ROWS;
-  const truncated = atCeiling || (rows != null && matched != null && matched > rows);
+  const truncated = rows != null && (matched != null ? matched > rows : rows >= MAX_ROWS);
   const span = !truncated ? "" : matched != null ? `-first-${rows}-of-${matched}` : `-first-${rows}`;
   return `sourcebd-suppliers-${y}-${m}-${d}${span}.csv`;
 }
@@ -203,7 +202,10 @@ export async function runDiscoverExport(input: {
   // original silence, arriving through the one input the count-based test
   // cannot see. The filename then says "first-1000" without an "of", because
   // the total is genuinely unknown and inventing one would be worse.
-  const truncated = rows.length >= MAX_ROWS || (matched != null && matched > rows.length);
+  // With a total, truncation is "matched more than we sent" — a search of
+  // exactly MAX_ROWS is complete, not "the first 1000 of 1000". Without one,
+  // reaching the ceiling is the only evidence, and it counts.
+  const truncated = matched != null ? matched > rows.length : rows.length >= MAX_ROWS;
 
   // The defect this closes is the SILENCE, not the row count. A buyer who
   // exports a 3,481-supplier search and receives 1,000 rows with nothing to

@@ -39,9 +39,9 @@ grant usage on schema public to anon, authenticated, service_role;
 -- Without this the replay is kinder than production: a migration that only
 -- `revoke ... from public` looks locked down here and is anon-callable there.
 alter default privileges in schema public grant execute on functions to anon, authenticated, service_role;
--- Tables and sequences too (live: anon/authenticated `arwdDxtm`, `rwU`): a
--- table shipped without RLS is anon-readable in production, and a replay
--- without these grants would not show it.
+-- Tables and sequences too (live: anon/authenticated `arwdDxtm`, `rwU`), so
+-- a table's grants here are what production would give it. assert-0104.sql
+-- proves these defaults are in effect; it does not sweep every table for RLS.
 alter default privileges in schema public grant all on tables to anon, authenticated, service_role;
 alter default privileges in schema public grant all on sequences to anon, authenticated, service_role;
 

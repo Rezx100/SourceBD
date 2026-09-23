@@ -96,6 +96,8 @@ let staleSuccessPhase = "success";
 let staleSuccessHoldMs = 0;
 
 const BULK_SAVE_GONE = "00000000-0000-4000-8000-0000000000ee";
+/** Listed at the check, gone by the write: the upsert hits the FK (23503). */
+const BULK_SAVE_RACE = "00000000-0000-4000-8000-0000000000ef";
 /** Each POST the mock received on saved_suppliers, as its array of rows. */
 const savedSupplierWrites = [];
 const DISCOVER_PGRST202_Q = "zzpgrstprobe";
@@ -651,7 +653,11 @@ function mockHandler(req, res) {
       } catch {
         rows = [];
       }
-      savedSupplierWrites.push(Array.isArray(rows) ? rows : [rows]);
+      const list = Array.isArray(rows) ? rows : [rows];
+      if (list.some((r) => r && r.supplier_id === BULK_SAVE_RACE)) {
+        return json({ code: "23503", details: null, hint: null, message: 'insert or update on table "saved_suppliers" violates foreign key constraint' }, 409);
+      }
+      savedSupplierWrites.push(list);
       return json([], 201);
     }
     if (url.pathname === "/rest/v1/profiles") {
@@ -2355,7 +2361,18 @@ async function main() {
       const anon = await post(JSON.stringify({ supplier_ids: [A] }), false);
       if (![401, 307].includes(anon.status)) problems.push(`anonymous status ${anon.status}`);
       if (savedSupplierWrites.length !== 0) problems.push(`${savedSupplierWrites.length} writes from refused requests`);
-      extraPassed += extra("rez-b: POST /api/v1/saved bulk — one write, gone supplier skipped, refusals write nothing", problems);
+      // Nothing left to save is a 404 with a reason, not a 200 a Save button
+      // reads as "Saved"; a removal racing the write is a 409 "save again".
+      const allGone = await post(JSON.stringify({ supplier_ids: [BULK_SAVE_GONE] }), true);
+      const allGoneBody = await allGone.json().catch(() => ({}));
+      if (allGone.status !== 404) problems.push(`all-gone status ${allGone.status} != 404`);
+      if (!/no longer listed/.test(String(allGoneBody.error))) problems.push(`all-gone body ${JSON.stringify(allGoneBody)}`);
+      const race = await post(JSON.stringify({ supplier_ids: [A, BULK_SAVE_RACE] }), true);
+      const raceBody = await race.json().catch(() => ({}));
+      if (race.status !== 409) problems.push(`FK race status ${race.status} != 409`);
+      if (!/Save again/.test(String(raceBody.error))) problems.push(`FK race body ${JSON.stringify(raceBody)}`);
+      if (savedSupplierWrites.length !== 0) problems.push(`${savedSupplierWrites.length} writes recorded for a 404/409`);
+      extraPassed += extra("rez-b: POST /api/v1/saved bulk — one write, gone supplier skipped, 404 when none left, 409 on a race, refusals write nothing", problems);
     }
 
     {

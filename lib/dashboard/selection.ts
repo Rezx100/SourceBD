@@ -74,8 +74,8 @@ export function exportMessage(
     // the sentence a screen-reader user hears.
     if (truncated && rows != null && Number.isFinite(rows)) {
       return matched != null && Number.isFinite(matched)
-        ? `Exported the first ${rows} of ${matched} suppliers. The export stops at ${rows}; narrow the search to get the rest.`
-        : `Exported the first ${rows} suppliers. The export stops there; narrow the search to get the rest.`;
+        ? `Exported the first ${rows} of ${matched} suppliers. Narrow the search to get the rest.`
+        : `Exported the first ${rows} suppliers; there may be more. Narrow the search to get the rest.`;
     }
     return "Export downloaded.";
   }
@@ -134,21 +134,42 @@ export type SelectionContextValue = {
   toggleAllOnPage: () => void;
   allState: boolean | "mixed";
   clear: () => void;
+  /** Counts the BUYER's own changes (tick, select-all, clear) and nothing
+   * else. The bar resets its message on this, not on the selection's
+   * identity: a refresh after a partial save prunes the selection, and
+   * resetting on that erased "1 is no longer listed" before anyone read it. */
+  edits: number;
 };
 
 type SetSelected = (next: (s: ReadonlySet<string>) => ReadonlySet<string>) => void;
 
 /** The provider's value, out of React so it can be tested: `set` is the
  * provider's state setter. */
-export function selectionValue(selected: ReadonlySet<string>, pageIds: readonly string[], set: SetSelected): SelectionContextValue {
+export function selectionValue(
+  selected: ReadonlySet<string>,
+  pageIds: readonly string[],
+  set: SetSelected,
+  edits = 0,
+  bump: () => void = () => {},
+): SelectionContextValue {
   return {
     interactive: true,
     selected,
     isSelected: (id) => selected.has(id),
-    toggle: (id) => set((s) => toggleId(s, id)),
-    toggleAllOnPage: () => set((s) => toggleAllOnPage(s, pageIds)),
+    toggle: (id) => {
+      bump();
+      set((s) => toggleId(s, id));
+    },
+    toggleAllOnPage: () => {
+      bump();
+      set((s) => toggleAllOnPage(s, pageIds));
+    },
     allState: selectAllState(selected, pageIds),
-    clear: () => set(() => new Set()),
+    clear: () => {
+      bump();
+      set(() => new Set());
+    },
+    edits,
   };
 }
 
@@ -175,9 +196,12 @@ export function reserveBarSpace(
   bar: { offsetHeight: number },
   active: { scrollIntoView?: (o: { block: "nearest" }) => void } | null,
   makeObserver: ((fit: () => void) => Observer) | null,
-  /** Whether the bar is sticky NOW. On a short window it is in flow, covers
-   * nothing, and reserving its height would only push content away. */
+  /** Whether the bar is sticky. On a short window it is in flow, covers
+   * nothing, and reserving its height would only push content away. Read
+   * on mount, when the bar resizes, and on every `onViewportResize` — the
+   * bar's own size does not change when only the window's height does. */
   isSticky: () => boolean = () => true,
+  onViewportResize: ((fit: () => void) => () => void) | null = null,
 ): () => void {
   const before = root.style.scrollPaddingBottom;
   const fit = () => {
@@ -187,7 +211,9 @@ export function reserveBarSpace(
   if (isSticky()) active?.scrollIntoView?.({ block: "nearest" });
   const ro = makeObserver ? makeObserver(fit) : null;
   ro?.observe(bar);
+  const offViewport = onViewportResize ? onViewportResize(fit) : null;
   return () => {
+    offViewport?.();
     ro?.disconnect();
     root.style.scrollPaddingBottom = before;
   };
@@ -297,4 +323,14 @@ export function interceptPlainClick(e: {
   if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return false;
   e.preventDefault();
   return true;
+}
+
+/** What a result row's Save button says after its request. `savedNow` is the
+ * state the click asked for (true = save, false = unsave). */
+export function rowSaveMessage(status: number | "network", savedNow: boolean): string {
+  if (status === 200) return savedNow ? "Saved" : "Removed from saved";
+  if (status === 401) return "Sign in to save a record.";
+  if (status === 404) return "This supplier is no longer listed, so it was not saved.";
+  if (status === "network") return "Could not save that — no connection. Try again.";
+  return "Could not save that. Try again.";
 }

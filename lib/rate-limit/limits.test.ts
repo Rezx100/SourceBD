@@ -16,9 +16,11 @@ function stripSql(sql: string): string {
     .join("\n");
 }
 
-/** Any spelling of a definition of public.rl_check — quoted identifiers,
- * spaces before the parenthesis, `supabase db diff` casing. */
-const RL_CHECK_DEF = /create\s+or\s+replace\s+function\s+"?public"?\s*\.\s*"?rl_check"?\s*\(/i;
+/** A definition of rl_check however it is spelled: with or without
+ * `or replace`, schema-qualified or not (search_path decides), quoted
+ * identifiers, spaces before the parenthesis, any casing. */
+const RL_CHECK_DEF = /create\s+(?:or\s+replace\s+)?function\s+(?:"?public"?\s*\.\s*)?"?rl_check"?\s*\(/i;
+const RL_CHECK_DEF_ALL = new RegExp(RL_CHECK_DEF.source, "gi");
 
 /** rl_check's whole definition in one file — header (security definer,
  * search_path) AND body — comments stripped, whitespace folded. */
@@ -74,6 +76,21 @@ describe("rate-limit classes", () => {
       .filter((f) => f.endsWith(".sql"))
       .filter((f) => RL_CHECK_DEF.test(readFileSync(path.join(MIG, f), "utf8")));
     assert.deepEqual(definers.filter((f) => !known.has(f)), []);
+    // Nor may any other migration ALTER or DROP it. The CI replay applies
+    // the newest NNNN_ file (0104) LAST, so a later date-named
+    // `alter function rl_check(...) security invoker` would be overwritten in
+    // CI and live in production — where the limiter would then fail open.
+    const ddl = /\b(?:alter|drop)\s+function\s+(?:if\s+exists\s+)?(?:"?public"?\s*\.\s*)?"?rl_check"?\b/i;
+    const touchers = readdirSync(MIG)
+      .filter((f) => f.endsWith(".sql"))
+      .filter((f) => ddl.test(stripSql(readFileSync(path.join(MIG, f), "utf8"))));
+    assert.deepEqual(touchers.filter((f) => !known.has(f)), [], "a migration outside the known list alters or drops rl_check");
+    // And each known file defines it once: rlCheckDef reads only the first,
+    // so a second definition later in 0104 would win unseen.
+    for (const f of known) {
+      const n = (stripSql(readFileSync(path.join(MIG, f), "utf8")).match(RL_CHECK_DEF_ALL) ?? []).length;
+      assert.equal(n, 1, `${f} defines rl_check ${n} times`);
+    }
   });
 
   it("0104's rl_check is the live 20260725 body plus the one api_export entry — nothing else moved", () => {

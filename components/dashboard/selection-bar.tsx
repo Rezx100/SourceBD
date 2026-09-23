@@ -43,12 +43,14 @@ export function SelectionBar({ exportHref }: { exportHref: string }) {
   // the buyer ticked another box does not report "Saved 3" under "4 selected".
   const generation = useRef(0);
 
-  // A message about the last save describes THAT selection; once the
-  // selection changes (or empties and the bar hides) it is stale.
+  // A message about the last save describes THAT selection; once the BUYER
+  // changes it (or clears it and the bar hides) it is stale. Keyed on their
+  // edits, not the Set: the refresh after a partial save prunes the Set, and
+  // must not erase "1 is no longer listed" as it arrives.
   useEffect(() => {
     generation.current += 1;
     setStatus("");
-  }, [sel.selected]);
+  }, [sel.edits]);
 
   // WCAG 2.4.11 — see reserveBarSpace.
   useEffect(() => {
@@ -56,7 +58,11 @@ export function SelectionBar({ exportHref }: { exportHref: string }) {
     if (!visible || !bar) return;
     const observe = typeof ResizeObserver === "undefined" ? null : (fit: () => void) => new ResizeObserver(fit);
     const sticky = () => getComputedStyle(bar).position === "sticky";
-    return reserveBarSpace(document.documentElement, bar, document.activeElement as HTMLElement | null, observe, sticky);
+    const onViewportResize = (fit: () => void) => {
+      window.addEventListener("resize", fit);
+      return () => window.removeEventListener("resize", fit);
+    };
+    return reserveBarSpace(document.documentElement, bar, document.activeElement as HTMLElement | null, observe, sticky, onViewportResize);
   }, [visible]);
 
   // Announced from a region that exists BEFORE the first selection: a live
@@ -96,8 +102,8 @@ export function SelectionBar({ exportHref }: { exportHref: string }) {
         role="group"
         aria-label="Bulk actions"
         // Sticky only on a window at least 32rem tall: at 400% zoom (320x256
-        // CSS px) a sticky bar covered 91% of the view, leaving an 8px strip
-        // of results (WCAG 1.4.10). Shorter windows get it in flow, after the
+        // CSS px) a sticky bar covered 91% of the view, leaving a strip of
+        // about 20px for the results (WCAG 1.4.10). Shorter windows get it in flow, after the
         // results, where the announcer says it is.
         className="bottom-0 z-20 flex flex-wrap items-center gap-3 border-t border-line-strong bg-surface px-4 py-3 shadow-[0_-4px_12px_rgba(0,0,0,0.08)] sm:px-5 [@media(min-height:32rem)]:sticky"
       >
@@ -123,7 +129,7 @@ export function SelectionBar({ exportHref }: { exportHref: string }) {
           >
             <Icon name="compare" /> Compare
           </Button>
-          <ExportLink key={ids.join(",")} href={bulkExportHref(exportHref, ids)} label="Export" requested={count} />
+          <ExportLink href={bulkExportHref(exportHref, ids)} label="Export" requested={count} resetOn={sel.edits} />
         </div>
         <span role="status" aria-live="polite" className="text-xs text-ink-subtle">
           {status}

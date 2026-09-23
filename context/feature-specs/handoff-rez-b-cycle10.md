@@ -377,7 +377,8 @@ cycle 12's truthfulness reviewer: this line first said 32). NOT proven red in
 cycle 11, only green in CI: the new `assert-0104.sql` blocks, the new
 http-boundary cases, and the root-only test-list skip. Cycle 12 proved the
 skip and three of the four http cases red; the fourth (57014 → "heavy load")
-was proven in cycle 13. The SQL asserts remain proven only by passing.
+was proven red on 23 Sep after commit `91e21bb`, which already claimed it
+(`http-mutated-57014.txt`). The SQL asserts remain proven only by passing.
 
 - The false "page still renders" header in `lib/discover-v32-rpc.ts` —
   rewritten as a hard dependency on 0104. The page now says "heavy load"
@@ -466,8 +467,10 @@ Gate at `cdf7972`: tsc exit 0; lint exit 0; `pnpm test` 1,383 / 0 / 206.
 CI `35833301775` green. Four reviewers were cut off by a network outage and
 resumed with their transcripts intact.
 
-Repaired; 38 in-process mutations red plus one re-run with valid JSX
-(`mutations-r13` in the scratchpad):
+Repaired; 38 distinct mutations, all red — one of them ("announcer
+wrapped") first failed only to compile and was re-run with valid JSX
+(`mutations-r13` in the scratchpad; the 91e21bb commit message's "39"
+double-counted it):
 
 - A single Save of a supplier no longer listed answered 200 and the button
   said "Saved" — now 404 with a reason; a removal racing the write is 409
@@ -488,12 +491,53 @@ Repaired; 38 in-process mutations red plus one re-run with valid JSX
 - `assert-0104.sql` now runs the chains under the roles that use them (anon
   and signed-in `discover_suppliers`, explain, hs_catalogue, rl_check as a
   signed-in caller), the saved-search cap and the cross-owner refusal as
-  `authenticated`, and proves the replay emulates default privileges. The
-  bootstrap also emulates Supabase's table and sequence defaults.
+  `authenticated`, and proves the replay emulates default FUNCTION
+  privileges (the table probe was added in cycle 14). The bootstrap also
+  emulates Supabase's table and sequence defaults.
 - Bar wiring checks are scoped to the `SelectionBar` body and count
-  handlers, so a dead helper elsewhere cannot satisfy them.
+  handlers. (Cycle 14 found the scope ran to end-of-file for the last
+  export, so a trailing dead helper still passed — fixed in cycle 14.)
 
 Recorded, not fixed (pre-existing, not REZ-B): `rl_check` is EXECUTE-able by
 any signed-in user with a caller-chosen ident, so one account can exhaust
 another's bucket (e.g. lock a buyer out of export for a minute). Its comment
 in 0104 now says so rather than claiming server-only use.
+
+### Cycle 14 — candidate `91e21bb`: security ACCEPT; the other four REJECT
+
+Gate at `91e21bb`: tsc exit 0; lint exit 0; `pnpm test` 1,404 / 0 / 207.
+CI `35849251439` green.
+
+The recurring defect of cycles 12–14 was guards that read source TEXT for
+client wiring (a comment or dead string could satisfy them). Cycle 14 ends
+that for the bar: `components/dashboard/hook-harness.ts` calls a client
+component with a recording hook dispatcher and returns its element tree, and
+`components/dashboard/interaction.test.ts` invokes the REAL Save, Clear,
+Export, row-Save and saved-search handlers against stubbed globals. 28
+attacks red (`mutations-r14`), including every surviving attack from the
+cycle-14 guard and truthfulness reviewers.
+
+Repaired:
+- A partial bulk save's "1 is no longer listed" was erased by the refresh
+  that pruned the selection — the bar now resets only on the buyer's own
+  edits (`edits` in the selection context), not on the Set's identity.
+- Table view widened the page to 62rem at phone widths: per-row `sr-only`
+  status spans escaped the scroll pane — the pane is now `relative`.
+- The bar's Export is no longer remounted per selection (focus fell off
+  it, a second export could start); it resets and drops a stale result on
+  `resetOn={sel.edits}`.
+- Exactly 1,000 matches is complete, not "first 1000 of 1000".
+- rl_check guard: any `create [or replace] function [public.]rl_check`,
+  any ALTER/DROP of it outside the known files, and one definition per file.
+- The CI default-privilege probe revokes PUBLIC first (PUBLIC's default
+  EXECUTE made it pass regardless); a table probe was added.
+- The sticky test re-reads on window resize; saved-search error strings
+  have one source (`lib/saved-search-errors.ts`); the row Save no longer
+  pairs `aria-pressed` with a changing label.
+
+NOT proven red locally (CI-only, no local Postgres): the revised SQL
+probes in `assert-0104.sql`. Proven only by passing CI.
+
+Escalated to the founder (pre-existing, production): ten public
+`_snapshot_*` / `_tmp_*` tables with RLS off are readable AND writable
+with the anon key, including unpublished supplier names.
