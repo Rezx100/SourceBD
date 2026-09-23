@@ -33,6 +33,18 @@ select s.id, src.id, src.tier, 'ci-' || s.slug, 'active'
  where s.slug in ('ci-clean', 'ci-sanctioned', 'ci-draft')
 on conflict do nothing;
 
+-- The sanctioned supplier exports HS 6101, a heading the ci-sort rows below
+-- also carry, so a catalogue count that includes it disagrees with the
+-- Discover search for 6101 (asserted at the end of this file).
+insert into public.source_records (supplier_id, source_id, source_tier, source_ref, fields, status)
+select s.id, src.id, src.tier, '2001',
+       jsonb_build_object('epb_hscodes', jsonb_build_array(jsonb_build_object('code', '6101'))),
+       'active'
+  from public.suppliers s
+  cross join (select id, tier from public.sources where code = 'EPB') src
+ where s.slug = 'ci-sanctioned'
+on conflict do nothing;
+
 update public.suppliers
    set is_published = true
  where slug in ('ci-clean', 'ci-sanctioned');
@@ -523,6 +535,7 @@ $$;
 do $$
 declare
   n bigint;
+  c record;
 begin
   set local role anon;
   perform set_config('request.jwt.claim.role', 'anon', true);
@@ -542,6 +555,19 @@ begin
   select count(*) into n from public.hs_catalogue();
   if n = 0 then
     raise exception 'hs_catalogue returned nothing to a signed-in buyer over EPB-seeded suppliers';
+  end if;
+  -- Each Products row links to /app/discover?hs=<heading>; its count must be
+  -- that search's total, or the buyer clicks "7 exporters" and finds 6.
+  for c in select h.hs, h.exporter_count from public.hs_catalogue() h loop
+    select coalesce(max(d.total_count), 0) into n
+      from public.discover_suppliers(p_hs_codes => array[c.hs], p_limit => 1) d;
+    if n <> c.exporter_count then
+      raise exception 'hs_catalogue counts % exporters of %, but the Discover search it links to finds %',
+        c.exporter_count, c.hs, n;
+    end if;
+  end loop;
+  if not exists (select 1 from public.hs_catalogue() h where h.hs = '6101') then
+    raise exception 'hs_catalogue has no 6101 row; the sanctioned-exporter reconciliation above checked nothing';
   end if;
   reset role;
   perform set_config('request.jwt.claim.role', '', true);
