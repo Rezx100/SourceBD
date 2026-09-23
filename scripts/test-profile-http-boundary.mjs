@@ -621,6 +621,16 @@ function mockHandler(req, res) {
         },
       ]);
     }
+    if (url.pathname === "/rest/v1/rpc/production_workers_display_batch") {
+      // The two Discover rows: Mother (own 1,200) with two buildings summed to
+      // 9,000; Overview Timeout (own 100) a single site whose RSC headcount,
+      // 500, differs from its register figure. The page must headline the
+      // own figures and word the second line only from sites/includes_root.
+      return json({
+        "00000000-0000-4000-8000-000000000098": { value: 9000, source: "registry", fetched_at: null, sites: 3, includes_root: true },
+        "00000000-0000-4000-8000-000000000099": { value: 500, source: "RSC", fetched_at: null, sites: 1, includes_root: true },
+      });
+    }
     if (url.pathname === "/rest/v1/rpc/rl_check") {
       return json({ ok: true, retry_after_seconds: 0 });
     }
@@ -1789,6 +1799,36 @@ const CASES = [
       status: 200,
       bodyIncludesAll: ["Search is under heavy load"],
       bodyExcludes: ["Search is unavailable right now"],
+    },
+  },
+  {
+    // Founder decision (24 Sep) at the boundary: the headline is the figure
+    // the Workers sort orders on; the second line says what the profile's
+    // figure covers, from the sites the batch summed, never a guess.
+    name: "rez-b: /app/discover table headlines the sorted worker figure, words the second from its sites",
+    path: "/app/discover?view=table",
+    auth: true,
+    expect: {
+      status: 200,
+      bodyIncludesAll: [
+        "1,200",
+        "9,000 workers · across this record and its buildings",
+        "500 workers · RSC inspection",
+      ],
+      bodyExcludes: ["500 workers · across this record and its buildings", "Search is under heavy load"],
+    },
+  },
+  {
+    name: "rez-b: export CSV carries the sorted figure and the profile figure in their own columns",
+    path: "/api/v1/discover/export?q=knit",
+    auth: true,
+    expect: {
+      status: 200,
+      bodyIncludesAll: [
+        "workers,workers_source,profile_workers,profile_workers_source",
+        "1200,on the register,9000,across this record and its buildings",
+        "100,on the register,500,RSC inspection",
+      ],
     },
   },
   {
