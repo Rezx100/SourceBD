@@ -110,13 +110,23 @@ function one(sp: URLSearchParams, key: string): string {
   return (sp.get(key) ?? "").trim();
 }
 
+/** A list parameter is capped here, below 0104's own refusal (50 values,
+ * 80 characters): every supplier row is tested against every value, so an
+ * unbounded list is a per-request cost the URL chooses. */
+export const LIST_MAX = 30;
+export const LIST_VALUE_MAX = 80;
+
 function csv(sp: URLSearchParams, key: string): string[] {
   const raw = one(sp, key);
   if (!raw) return [];
-  return raw
-    .split(",")
-    .map((s) => s.trim())
-    .filter(Boolean);
+  return [
+    ...new Set(
+      raw
+        .split(",")
+        .map((s) => s.trim())
+        .filter((s) => s.length > 0 && s.length <= LIST_VALUE_MAX),
+    ),
+  ].slice(0, LIST_MAX);
 }
 
 /**

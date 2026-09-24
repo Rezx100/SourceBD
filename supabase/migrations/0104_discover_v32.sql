@@ -522,6 +522,55 @@ revoke all on function public.discover_v32_passes(
 ) from public, anon, authenticated;
 
 -- ---------------------------------------------------------------------------
+-- discover_v32_assert_bounded — refuse oversized filter lists (REZ-B)
+-- ---------------------------------------------------------------------------
+-- Every supplier row is tested against every element of these lists (cities
+-- and districts by ilike), and discover_suppliers is granted to anon and
+-- served by PostgREST outside the app's rate limiter: an unbounded list is a
+-- per-call cost the caller chooses. The app caps each list at 30 values of at
+-- most 80 characters (lib/discover-v32-state.ts), so these limits never bite
+-- a buyer.
+create or replace function public.discover_v32_assert_bounded(
+  p_entity_types text[],
+  p_cert_kinds text[],
+  p_registries text[],
+  p_factory_types text[],
+  p_brand_codes text[],
+  p_hs_codes text[],
+  p_districts text[],
+  p_cities text[]
+)
+returns void
+language plpgsql
+immutable
+set search_path = public
+as $$
+begin
+  if greatest(
+       coalesce(cardinality(p_entity_types), 0),
+       coalesce(cardinality(p_cert_kinds), 0),
+       coalesce(cardinality(p_registries), 0),
+       coalesce(cardinality(p_factory_types), 0),
+       coalesce(cardinality(p_brand_codes), 0),
+       coalesce(cardinality(p_hs_codes), 0),
+       coalesce(cardinality(p_districts), 0),
+       coalesce(cardinality(p_cities), 0)
+     ) > 50
+     or exists (
+       select 1
+         from unnest(coalesce(p_districts, '{}'::text[]) || coalesce(p_cities, '{}'::text[])) as x
+        where length(x) > 80
+     ) then
+    raise exception 'too many or too long filter values' using errcode = '22023';
+  end if;
+end;
+$$;
+
+revoke all on function public.discover_v32_assert_bounded(
+  text[], text[], text[], text[], text[], text[], text[], text[]
+) from public, anon, authenticated;
+
+-- ---------------------------------------------------------------------------
 -- discover_suppliers — drop 0076 signature, recreate with §4.1 extras
 -- ---------------------------------------------------------------------------
 
@@ -641,6 +690,10 @@ declare
     else p_sort
   end;
 begin
+  perform public.discover_v32_assert_bounded(
+    p_entity_types, p_cert_kinds, p_registries, p_factory_types,
+    p_brand_codes, p_hs_codes, p_districts, p_cities
+  );
   if v_q is null then
     return query
       with filtered as materialized (
@@ -859,6 +912,10 @@ as $fn$
 declare
   v_q text := nullif(btrim(coalesce(p_q, '')), '');
 begin
+  perform public.discover_v32_assert_bounded(
+    p_entity_types, p_cert_kinds, p_registries, p_factory_types,
+    p_brand_codes, p_hs_codes, p_districts, p_cities
+  );
   if v_q is not null then
     return query
       select 'q'::text, x.total_count

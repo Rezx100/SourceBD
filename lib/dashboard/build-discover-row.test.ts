@@ -334,12 +334,31 @@ describe("discover result HTML has no contact PII", () => {
     const sql = readFileSync(path.join(process.cwd(), "supabase/migrations/0104_discover_v32.sql"), "utf8")
       .replace(/\/\*[\s\S]*?\*\//g, "")
       .replace(/--[^\n]*/g, "");
-    const keys = [...sql.matchAll(/case when v_sort = 'workers' then (\w+)\.(\w+) end desc nulls last/g)];
-    assert.equal(keys.length, 2, "expected the workers sort in both discover_suppliers branches");
-    // Exactly one workers key per branch: a second one ahead of it (any
-    // column, any NULLS order) would decide the order instead.
-    assert.equal((sql.match(/v_sort = 'workers'/g) ?? []).length, 2, "a second workers sort key was added");
-    for (const k of keys) assert.equal(k[2], "employees_total", `the workers sort moved to ${k[1]}.${k[2]}`);
+    // Parsed, not counted. Each branch's ORDER BY opens with one key per sort,
+    // each `case when v_sort = '<sort>' then … end`, before the shared
+    // tie-breakers. Any other leading key (another spelling of workers, a
+    // different column, an unconditional key) would decide the Workers order
+    // instead, and must fail here whatever it looks like.
+    const start = sql.indexOf("create or replace function public.discover_suppliers(");
+    const body = sql.slice(start, sql.indexOf("$fn$;", start));
+    const blocks = [...body.matchAll(/order by\s*\n([\s\S]*?)\n\s*[a-z]\.id(?: asc)?\s*\n/g)].map((m) => m[1]!);
+    assert.equal(blocks.length, 2, `expected the browse and keyword ORDER BYs, found ${blocks.length}`);
+    const KEY = /^case when (?:v_sort|coalesce\(v_sort, 'default'\)) = '([a-z_]+)' then (.+) end (?:asc|desc)(?: nulls (?:first|last))?$/;
+    for (const block of blocks) {
+      const entries = block.split(/,\s*\n/).map((e) => e.trim()).filter(Boolean);
+      const leading = entries.slice(0, entries.findIndex((e) => !e.startsWith("case ")));
+      const names = leading.map((e) => {
+        const m = e.match(KEY);
+        assert.ok(m, `an ORDER BY key ahead of the tie-breakers that is not one-per-sort: ${e}`);
+        return m![1]!;
+      });
+      assert.equal(new Set(names).size, names.length, `a sort has two keys: ${names.join(", ")}`);
+      const workers = leading.find((e) => e.match(KEY)?.[1] === "workers");
+      assert.match(workers ?? "", /then [a-z]\.employees_total end desc nulls last$/, `the workers key is not the supplier's own figure: ${workers}`);
+      // And nothing after the per-sort keys mentions workers at all.
+      assert.doesNotMatch(entries.slice(leading.length).join(" "), /workers/, "a tie-breaker mentions workers");
+    }
+    assert.equal((body.match(/'workers'/g) ?? []).length, 2, "'workers' appears in discover_suppliers outside its two sort keys");
   });
 
   it("the CSV names the HS column for what it holds — headings, not lines", () => {

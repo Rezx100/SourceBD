@@ -7,6 +7,8 @@ import {
   COMPOSER_HIDDEN_OMIT,
   EMPTY_STATE,
   FILTER_HIDDEN_OMIT,
+  LIST_MAX,
+  LIST_VALUE_MAX,
   certKinds,
   certState,
   discoverChips,
@@ -237,5 +239,38 @@ describe("chip keys are unique even when two families share a value", () => {
       "q=knit&hs=6105,6110&cert=gots:valid&reg=BGMEA&brand=hm&district=Dhaka&city=Dhaka&type=factory&min_sources=3&rsc=active&est_from=2000&est_to=2020&workers_min=100&workers_max=5000";
     const keys = discoverChips(parseDiscoverState(new URLSearchParams(raw))).map((c) => c.key);
     assert.equal(new Set(keys).size, keys.length, `duplicate chip keys: ${JSON.stringify(keys)}`);
+  });
+});
+
+describe("list parameters are bounded before they reach the database", () => {
+  // Every supplier row is tested against every value (districts and cities
+  // by ilike), so a URL with thousands of values chose the cost of every
+  // search, count and export call made for it.
+  it("caps each list's length and each value's length, and drops duplicates", () => {
+    const junk = Array.from({ length: 4000 }, (_, i) => `d${i}`).join(",");
+    const long = "x".repeat(LIST_VALUE_MAX + 1);
+    const state = parseDiscoverState(new URLSearchParams({ district: junk, city: `${long},Dhaka,Dhaka`, hs: junk }));
+    assert.equal(state.district.length, LIST_MAX);
+    assert.deepEqual(state.city, ["Dhaka"], "an over-long value or a duplicate got through");
+    const args = discoverRpcArgs(state) as Record<string, unknown>;
+    for (const [k, v] of Object.entries(args)) {
+      if (Array.isArray(v)) assert.ok(v.length <= LIST_MAX, `${k} sends ${v.length} values`);
+    }
+  });
+
+  it("stays under 0104's own refusal, so a buyer never meets it", () => {
+    const sql = readFileSync(path.join(process.cwd(), "supabase/migrations/0104_discover_v32.sql"), "utf8");
+    const cap = Number(sql.match(/\)\s*>\s*(\d+)\s*\n\s*or exists/)?.[1]);
+    const len = Number(sql.match(/where length\(x\) > (\d+)/)?.[1]);
+    assert.ok(cap > 0 && LIST_MAX <= cap, `the app sends up to ${LIST_MAX}, the database refuses over ${cap}`);
+    assert.ok(len > 0 && LIST_VALUE_MAX <= len, `the app allows ${LIST_VALUE_MAX} characters, the database ${len}`);
+    // And both functions anon or a buyer can call check it first (CI runs
+    // the refusal for real, as anon, in assert-0104.sql).
+    const code = sql.replace(/--[^\n]*/g, "");
+    for (const fn of ["discover_suppliers", "discover_suppliers_explain"]) {
+      const start = code.indexOf(`create or replace function public.${fn}(`);
+      const body = code.slice(start, code.indexOf("$fn$;", start));
+      assert.match(body, /begin\s*perform public\.discover_v32_assert_bounded\(/, `${fn} does not check its lists first`);
+    }
   });
 });

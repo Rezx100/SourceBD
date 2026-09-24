@@ -1455,12 +1455,12 @@ describe("the two-state controls say which state they are in", () => {
       );
     });
 
-    it("a late save response never reports on a selection the buyer has since changed", () => {
+    it("a late save result is scoped to the earlier selection; the reset is keyed on the buyer's edits", () => {
       const code = sourceCode("components/dashboard/selection-bar.tsx");
-      assert.match(code, /const asked = generation\.current;[\s\S]*?if \(generation\.current !== asked\) \{[\s\S]*?return;\s*\}\s*setBusy\(false\);\s*setStatus\(message\);/);
+      assert.match(code, /const asked = generation\.current;[\s\S]*?setStatus\(generation\.current === asked \? message : `\$\{EARLIER\}\$\{message\}`\);/);
       // Keyed on the buyer's edits, never on the Set: a refresh that prunes
       // the Set after a partial save must not erase the message about it.
-      assert.match(code, /useEffect\(\(\) => \{\s*generation\.current \+= 1;\s*setStatus\(""\);[\s\S]*?setBusy\(false\);\s*\}, \[sel\.edits\]\);/);
+      assert.match(code, /useEffect\(\(\) => \{\s*generation\.current \+= 1;\s*if \(!saving\.current\) setStatus\(""\);\s*\}, \[sel\.edits\]\);/);
       assert.doesNotMatch(code, /\}, \[sel\.selected\]\);/);
       assert.match(
         sourceCode("components/dashboard/selection.tsx"),
@@ -1473,7 +1473,7 @@ describe("the two-state controls say which state they are in", () => {
       // the link keeps its href for a middle-click or no script.
       const link = sourceCode("components/dashboard/export-link.tsx");
       assert.match(link, /<Button href=\{href\} onClick=\{run\}/);
-      assert.match(sourceCode("components/dashboard/selection-bar.tsx"), /<ExportLink href=\{bulkExportHref\(exportHref, ids\)\} label="Export" requested=\{count\} resetOn=\{sel\.edits\} \/>/);
+      assert.match(sourceCode("components/dashboard/selection-bar.tsx"), /<ExportLink href=\{bulkExportHref\(exportHref, ids\)\} label="Export" requested=\{count\} resetOn=\{sel\.edits\} onStatus=\{setExportStatus\} \/>/);
       assert.match(sourceCode("components/dashboard/results-panel.tsx"), /<ExportLink href=\{model\.exportHref\}/);
       // And the link still carries its href, for a middle-click or no script.
       const html = renderToStaticMarkup(
@@ -1487,15 +1487,14 @@ describe("the two-state controls say which state they are in", () => {
       assert.equal(count(body, "onClick={bulkSave}"), 1, "Save must call bulkSave unconditionally");
       assert.equal(count(body, "onClick={() => clearKeepingFocus(document.getElementById(SELECT_ALL_ID), sel.clear)}"), 1);
       assert.equal(count(body, "onClick="), 2, "an extra or conditional handler slipped in");
-      assert.equal(count(body, "setStatus(message)"), 1, "a second status write defeats the generation guard");
+      assert.equal(count(body, "setStatus(generation.current === asked ? message"), 1, "a second outcome write defeats the scoping");
       assert.match(body, /const observe = typeof ResizeObserver === "undefined" \? null : \(fit: \(\) => void\) => new ResizeObserver\(fit\);/);
       assert.match(body, /await runBulkSave\(ids, \{/);
       assert.doesNotMatch(body, /\bids\s*\.\s*(splice|pop|shift|length\s*=)|\bids\s*=(?!=)(?!\s*\[\.\.\.sel\.selected\];)/, "the selection sent must be the whole selection");
-      assert.match(body, /<ExportLink href=\{bulkExportHref\(exportHref, ids\)\} label="Export" requested=\{count\} resetOn=\{sel\.edits\} \/>/);
-      // Busy is freed by the run that set it, unless a selection change has
-      // already handed the button to the next export (interaction.test.ts
-      // runs both paths through the real handler and effect).
-      assert.match(functionBody("components/dashboard/export-link.tsx", "ExportLink"), /\} finally \{[\s\S]*?if \(round\.current === asked\) \{\s*setBusy\(false\);/);
+      assert.match(body, /<ExportLink href=\{bulkExportHref\(exportHref, ids\)\} label="Export" requested=\{count\} resetOn=\{sel\.edits\} onStatus=\{setExportStatus\} \/>/);
+      // One export at a time: the run that set busy always frees it
+      // (interaction.test.ts runs the real handler and effects).
+      assert.match(functionBody("components/dashboard/export-link.tsx", "ExportLink"), /\} finally \{\s*running\.current = false;\s*setBusy\(false\);\s*\}/);
     });
 
     it("the header's Export CSV is the in-place export — its status region renders beside it", () => {
@@ -1527,7 +1526,7 @@ describe("the two-state controls say which state they are in", () => {
 
     it("the bar's Save runs runBulkSave with every selected id, and announces + refreshes only through onSaved", () => {
       const code = sourceCode("components/dashboard/selection-bar.tsx");
-      assert.match(code, /await runBulkSave\(ids, \{\s*fetch: \(url, init\) => fetch\(url, init\),\s*onSaved: \(saved\) => \{\s*savedAny = true;\s*announceBulkSaved\(window, saved\);\s*router\.refresh\(\);\s*\},\s*\}\);/);
+      assert.match(code, /await runBulkSave\(ids, \{\s*fetch: \(url, init\) => fetch\(url, init\),\s*onSaved: \(saved\) => \{\s*announceBulkSaved\(window, saved\);\s*router\.refresh\(\);\s*\},\s*\}\);/);
       assert.match(code, /const ids = \[\.\.\.sel\.selected\];/);
       const at = code.indexOf("onClick={bulkSave}");
       assert.ok(at > 0, "Save is not wired to bulkSave");
@@ -1584,9 +1583,9 @@ describe("the two-state controls say which state they are in", () => {
       );
     });
 
-    it("the bar's Export is remounted per selection, so its message never describes an older one", () => {
-      assert.match(sourceCode("components/dashboard/selection-bar.tsx"), /<ExportLink href=\{bulkExportHref\(exportHref, ids\)\} label="Export" requested=\{count\} resetOn=\{sel\.edits\} \/>/);
-      assert.match(sourceCode("components/dashboard/export-link.tsx"), /setBusy\(true\);\s*setStatus\("Preparing the export…"\);/);
+    it("the bar's Export is told about the buyer's edits and reports its status to the bar", () => {
+      assert.match(sourceCode("components/dashboard/selection-bar.tsx"), /<ExportLink href=\{bulkExportHref\(exportHref, ids\)\} label="Export" requested=\{count\} resetOn=\{sel\.edits\} onStatus=\{setExportStatus\} \/>/);
+      assert.match(sourceCode("components/dashboard/export-link.tsx"), /setBusy\(true\);\s*say\("Preparing the export…"\);/);
     });
 
     it("the link form of Button passes its click handler and ARIA through — Export depends on it", () => {

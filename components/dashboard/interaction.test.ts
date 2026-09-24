@@ -7,11 +7,11 @@ import { afterEach, describe, it } from "node:test";
 import { AppRouterContext } from "next/dist/shared/lib/app-router-context.shared-runtime";
 
 import { Button } from "./controls";
-import { ExportLink } from "./export-link";
+import { EARLIER, ExportLink, STILL_EXPORTING } from "./export-link";
 import { callWithHooks, findAll, textOf } from "./hook-harness";
 import { SaveRecordButton } from "./save-record-button";
 import { SaveSearchForm } from "./save-search-form";
-import { SelectionBar } from "./selection-bar";
+import { SelectionBar, STILL_SAVING } from "./selection-bar";
 import { SELECT_ALL_ID, SelectionContext, type SelectionContextValue } from "./selection";
 
 const A = "11111111-1111-4111-8111-111111111111";
@@ -68,6 +68,8 @@ const buttonNamed = (tree: unknown, label: string) => {
 };
 
 describe("the bulk bar's handlers, invoked", () => {
+  // Hook order in SelectionBar: state 0 busy, 1 status, 2 exportStatus;
+  // refs 0 barRef, 1 generation, 2 saving; effect 0 the edits reset.
   it("Save sends the WHOLE selection in one request, announces and refreshes once, and reports", async () => {
     const bodies: unknown[] = [];
     let refreshes = 0;
@@ -87,18 +89,6 @@ describe("the bulk bar's handlers, invoked", () => {
     assert.deepEqual(busy, [true, false], "busy must be released");
   });
 
-  it("a Save click while busy sends no request", async () => {
-    let fetched = 0;
-    stub("window", new EventTarget());
-    stub("fetch", async () => {
-      fetched += 1;
-      return json(200, { ok: true, count: 1, skipped: 0, ids: [A] });
-    });
-    const run = bar(selection([A]), { refresh: () => {} }, [true, ""]);
-    await (buttonNamed(run.out, "Save").props.onClick as () => Promise<void>)();
-    assert.equal(fetched, 0);
-  });
-
   it("a full page of 100 selected goes in that one request, every id", async () => {
     // Three ids could not tell "the whole selection" from "the first 30".
     const many = Array.from({ length: 100 }, (_, i) => `00000000-0000-4000-8000-${String(i).padStart(12, "0")}`);
@@ -113,86 +103,76 @@ describe("the bulk bar's handlers, invoked", () => {
     assert.deepEqual(sent, [many]);
   });
 
-  it("a Save that returns after the buyer changed the selection reports nothing about the old one", async () => {
+  it("one save at a time: a second click while one runs sends nothing and says why", async () => {
+    // Two saves in flight let a slow earlier one's result, or its failure,
+    // be lost behind the newer one. Now there is never a second.
     stub("window", new EventTarget());
-    let run: ReturnType<typeof bar> | null = null;
+    let release: (v: unknown) => void = () => {};
+    let calls = 0;
     stub("fetch", async () => {
-      run!.effects[0]!(); // the buyer ticked another box: the real edits effect
-      return json(200, { ok: true, count: 1, skipped: 0, ids: [A] });
+      calls += 1;
+      // Only the first hangs; a second, if one went out, answers at once, so
+      // the test fails rather than waits.
+      if (calls > 1) return json(200, { ok: true, count: 1, skipped: 0, ids: [A] });
+      return new Promise((r) => (release = r));
     });
-    run = bar(selection([A]), { refresh: () => {} });
-    await (buttonNamed(run.out, "Save").props.onClick as () => Promise<void>)();
-    const statuses = run.sets.filter((s) => s.hook === 1).map((s) => s.value);
-    // Never a bare "Saved 1" that reads as the new selection...
-    assert.ok(!statuses.some((v) => typeof v === "string" && v.startsWith("Saved")), `stale report: ${JSON.stringify(statuses)}`);
-    // ...but said, scoped to the earlier one (WCAG 4.1.3: an outcome with no status is a silence).
-    assert.equal(statuses[statuses.length - 1], "Your earlier save went through: Saved 1 supplier.");
-  });
-
-  it("a selection change frees Save, and a stale save does not take it back", async () => {
-    // Save stuck busy after the buyer ticked another box: its next click
-    // returned silently. The edits effect must free it...
-    const mid = bar(selection([A, B]), { refresh: () => {} }, [true, ""]);
-    mid.effects[0]!();
-    assert.ok(mid.sets.some((x) => x.hook === 0 && x.value === false), "a selection change left Save busy");
-    // ...and the old save, landing afterwards, must not touch busy again.
-    // The reset here is the bar's real edits effect, run mid-request.
-    stub("window", new EventTarget());
-    let run: ReturnType<typeof bar> | null = null;
-    stub("fetch", async () => {
-      run!.effects[0]!();
-      return json(200, { ok: true, count: 1, skipped: 0, ids: [A] });
-    });
-    run = bar(selection([A]), { refresh: () => {} });
-    await (buttonNamed(run.out, "Save").props.onClick as () => Promise<void>)();
-    // Set by the click, freed by the reset, and not touched by the stale save.
-    assert.deepEqual(run.sets.filter((x) => x.hook === 0).map((x) => x.value), [true, false]);
-  });
-
-  it("a save that FAILS after the selection changed still says so; the reset is keyed on the buyer's edits", async () => {
-    // A superseded success is stale ("Saved 3" under "4 selected"); a
-    // superseded failure is not — those suppliers are still unsaved.
-    stub("window", new EventTarget());
-    let run: ReturnType<typeof bar> | null = null;
-    stub("fetch", async () => {
-      run!.effects[0]!(); // the buyer ticked another box: the real edits effect
-      return json(429, { error: "rate_limited" });
-    });
-    run = bar(selection([A, B], { edits: 7 }), { refresh: () => {} });
-    assert.deepEqual(run.deps[0], [7], "the bar's reset is not keyed on the buyer's edits");
-    await (buttonNamed(run.out, "Save").props.onClick as () => Promise<void>)();
-    const statuses = run.sets.filter((x) => x.hook === 1).map((x) => x.value);
-    assert.ok(
-      statuses.some((v) => typeof v === "string" && v.startsWith("The earlier save did not go through") && /Too many saves/.test(v)),
-      `a failed save was dropped without a word: ${JSON.stringify(statuses)}`,
-    );
-  });
-
-  it("after Clear hides the bar, a late save's outcome is still announced", () => {
-    // The bar's status line goes with the bar; the announcer is always there.
-    const hidden = bar(selection([]), { refresh: () => {} }, [false, "The earlier save did not go through. Too many saves."]);
-    assert.match(textOf(hidden.out as never), /The earlier save did not go through/, "the outcome went nowhere after Clear");
-  });
-
-  it("a slow earlier save landing after a newer one does not overwrite the newer result", async () => {
-    stub("window", new EventTarget());
-    let releaseFirst: (v: unknown) => void = () => {};
-    let call = 0;
-    let run: ReturnType<typeof bar> | null = null;
-    stub("fetch", async () => {
-      call += 1;
-      if (call === 1) return new Promise((r) => (releaseFirst = r));
-      return json(429, { error: "rate_limited" });
-    });
-    run = bar(selection([A]), { refresh: () => {} });
+    const run = bar(selection([A]), { refresh: () => {} });
     const save = buttonNamed(run.out, "Save").props.onClick as () => Promise<void>;
-    const first = save(); // slow
-    run.effects[0]!(); // the buyer ticks another box, which frees Save
-    await save(); // the newer save is refused
-    releaseFirst(json(200, { ok: true, count: 1, skipped: 0, ids: [A] }));
+    const first = save();
+    await save(); // double click, or a click after a selection change
+    assert.equal(calls, 1, "a second save went out while the first was running");
+    assert.equal(run.sets.filter((x) => x.hook === 1).map((x) => x.value).pop(), STILL_SAVING);
+    release(json(200, { ok: true, count: 1, skipped: 0, ids: [A] }));
     await first;
-    const statuses = run.sets.filter((x) => x.hook === 1).map((x) => x.value);
-    assert.match(String(statuses[statuses.length - 1]), /Too many saves/, `the newer refusal was overwritten: ${JSON.stringify(statuses)}`);
+  });
+
+  it("a selection change mid-save does not interrupt it; its result, or its failure, is said for the earlier selection", async () => {
+    for (const [status, body, said] of [
+      [200, { ok: true, count: 1, skipped: 0, ids: [A] }, "For your earlier selection: Saved 1 supplier"],
+      [429, { error: "rate_limited" }, "For your earlier selection: Too many saves in the last minute. Wait a minute and save again."],
+    ] as const) {
+      stub("window", new EventTarget());
+      let run: ReturnType<typeof bar> | null = null;
+      stub("fetch", async () => {
+        run!.effects[0]!(); // the buyer ticks another box: the real edits effect
+        return json(status, body);
+      });
+      run = bar(selection([A], { edits: 7 }), { refresh: () => {} });
+      assert.deepEqual(run.deps[0], [7], "the bar's reset is not keyed on the buyer's edits");
+      await (buttonNamed(run.out, "Save").props.onClick as () => Promise<void>)();
+      const statuses = run.sets.filter((x) => x.hook === 1).map((x) => x.value);
+      // The reset did not wipe the running save's status, and the outcome
+      // is never a bare "Saved 1" that reads as the new selection.
+      assert.deepEqual(statuses, ["", said], `${status}: ${JSON.stringify(statuses)}`);
+      assert.deepEqual(run.sets.filter((x) => x.hook === 0).map((x) => x.value), [true, false]);
+    }
+  });
+
+  it("an idle message goes on the next selection change", () => {
+    const run = bar(selection([A]), { refresh: () => {} }, [false, "Saved 1 supplier", ""]);
+    run.effects[0]!();
+    assert.deepEqual(run.sets.filter((x) => x.hook === 1).map((x) => x.value), [""]);
+  });
+
+  it("after Clear the bar stays while a save runs or its outcome shows, and shows it", () => {
+    // Clear used to hide the bar, and with it the only place a late outcome
+    // could be read. Nothing selected, but something to say: the bar stays.
+    const running = bar(selection([]), { refresh: () => {} }, [true, "", ""]);
+    assert.ok(findAll(running.out as never, (el) => el.props.role === "group").length === 1, "the bar went while a save was running");
+    for (const [state, text] of [
+      [[false, "For your earlier selection: Too many saves.", ""], "For your earlier selection: Too many saves."],
+      [[false, "", "For your earlier selection: Exported 2 suppliers."], "For your earlier selection: Exported 2 suppliers."],
+    ] as const) {
+      const shown = bar(selection([]), { refresh: () => {} }, [...state]);
+      const regions = findAll(shown.out as never, (el) => el.type === "span" && el.props.role === "status" && !String(el.props.className ?? "").includes("sr-only"));
+      assert.ok(regions.some((r) => textOf(r.props.children as never).includes(text)), `not on screen after Clear: ${text}`);
+      // No action is offered on nothing, but the Export inside stays mounted.
+      const actions = findAll(shown.out as never, (el) => el.props.hidden === true);
+      assert.equal(actions.length, 1, "the actions are not hidden with nothing selected");
+      assert.equal(findAll(actions[0] as never, (el) => el.type === ExportLink).length, 1, "the Export was unmounted with nothing selected");
+    }
+    const idle = bar(selection([]), { refresh: () => {} }, [false, "", ""]);
+    assert.equal(findAll(idle.out as never, (el) => el.props.role === "group").length, 0, "an idle, empty bar stayed");
   });
 
   it("Clear moves focus to the select-all box, THEN clears", () => {
@@ -205,6 +185,8 @@ describe("the bulk bar's handlers, invoked", () => {
 });
 
 describe("ExportLink's handler, invoked", () => {
+  // Hook order in ExportLink: state 0 status, 1 busy; refs 0 current,
+  // 1 running, 2 mounted; effect 0 the resetOn reset, 1 mount/unmount.
   const click = (over: Record<string, unknown> = {}) => {
     let prevented = 0;
     return { e: { metaKey: false, ctrlKey: false, shiftKey: false, button: 0, preventDefault: () => (prevented += 1), ...over }, prevented: () => prevented };
@@ -272,61 +254,57 @@ describe("ExportLink's handler, invoked", () => {
     assert.equal(fetched, 0);
   });
 
-  it("a result that lands after the selection changed is dropped, not shown", async () => {
+  it("a selection change mid-export does not cancel it: the file arrives and is said to be for the earlier selection", async () => {
+    // Cancelling left a buyer who had heard "Preparing the export…" waiting
+    // for a file that never came. The REAL reset effect runs mid-request.
     const d = doc();
     stub("document", d.value);
+    const told: string[] = [];
     let run: ReturnType<typeof callWithHooks> | null = null;
     stub("fetch", async () => {
-      run!.refs[0]!.current = Number(run!.refs[0]!.current) + 1; // resetOn moved
-      return json(200, null, { "Content-Disposition": 'attachment; filename="f.csv"', "X-SourceBD-Rows": "1" });
+      // The real reset, twice, as ticking two boxes would: it must erase
+      // nothing while the export runs. (The harness replays this render's
+      // props, so the new selection is then set as React's next render would.)
+      run!.effects[0]!();
+      run!.effects[0]!();
+      run!.refs[0]!.current = 9;
+      return json(200, null, { "Content-Disposition": 'attachment; filename="sourcebd-selected-1.csv"', "X-SourceBD-Rows": "1" });
     });
-    run = callWithHooks(ExportLink, { href: "/x", label: "Export", requested: 1, resetOn: 0 });
+    run = callWithHooks(ExportLink, { href: "/x", label: "Export", requested: 1, resetOn: 7, onStatus: (s: string) => told.push(s) });
+    assert.deepEqual(run.deps[0], [7], "the reset is not keyed on resetOn");
     await (buttonNamed(run.out, "Export").props.onClick as (e: unknown) => Promise<void>)(click().e);
+    assert.equal(d.anchors.length, 1, "the export was abandoned by a selection change");
     const statuses = run.sets.filter((s) => s.hook === 0).map((s) => s.value);
-    assert.deepEqual(statuses, ["Preparing the export…"], `stale result shown: ${JSON.stringify(statuses)}`);
-    // Nor saved: it would land as the NEW selection's file, with no word said.
-    assert.equal(d.anchors.length, 0, "the old selection's file was downloaded after the selection changed");
-    // Nor may it free busy: the button already belongs to the next export.
-    assert.deepEqual(run.sets.filter((s) => s.hook === 1).map((s) => s.value), [true]);
+    assert.deepEqual(statuses, ["Preparing the export…", `${EARLIER}Export downloaded.`], JSON.stringify(statuses));
+    assert.deepEqual(told, statuses, "the parent was not told what the link says");
   });
 
-  it("a selection change frees Export, so the next click is not swallowed", async () => {
-    // Busy from the old export survived the reset, and a click on the new
-    // selection returned silently: no request, no file, no message.
-    const mid = callWithHooks(ExportLink, { href: "/x", label: "Export", resetOn: 1 }, { state: ["", true] });
-    mid.effects[0]!();
-    assert.ok(mid.sets.some((s) => s.hook === 1 && s.value === false), "a selection change left Export busy");
+  it("an idle message goes on the next selection change", () => {
+    const run = callWithHooks(ExportLink, { href: "/x", label: "Export", resetOn: 2 }, { state: ["Exported 1 supplier.", false] });
+    run.effects[0]!();
+    assert.deepEqual(run.sets.filter((s) => s.hook === 0).map((s) => s.value), [""]);
   });
 
-  it("the REAL reset, run mid-export: keyed on resetOn, says the export was cancelled, and the old file is neither saved nor reported", async () => {
-    // The test above moved the round by hand; this one runs the effect React
-    // would run when the bar passes a new `resetOn`, while the fetch is out.
-    const d = doc();
-    stub("document", d.value);
-    let run: ReturnType<typeof callWithHooks> | null = null;
+  it("one export at a time: a second click while one runs sends nothing and says why", async () => {
+    let calls = 0;
+    let release: (v: unknown) => void = () => {};
+    stub("document", doc().value);
     stub("fetch", async () => {
-      run!.effects[0]!(); // the buyer ticked another box
-      return json(200, null, { "Content-Disposition": 'attachment; filename="old.csv"', "X-SourceBD-Rows": "1" });
+      calls += 1;
+      if (calls > 1) return json(429, { error: "rate_limited" });
+      return new Promise((r) => (release = r));
     });
-    run = callWithHooks(ExportLink, { href: "/x", label: "Export", requested: 1, resetOn: 7 });
-    assert.deepEqual(run.deps[0], [7], "the reset is not keyed on resetOn, so a selection change never runs it");
-    await (buttonNamed(run.out, "Export").props.onClick as (e: unknown) => Promise<void>)(click().e);
-    assert.equal(d.anchors.length, 0, "the old selection's file was saved after the reset");
-    const statuses = run.sets.filter((s) => s.hook === 0).map((s) => s.value);
-    // Not silence (the buyer heard "Preparing…" and would wait for a file),
-    // and not the old export's own result either: that it was cancelled.
-    assert.deepEqual(
-      statuses,
-      ["Preparing the export…", "The earlier export was cancelled because the selection changed. Export again for this selection."],
-      `the cancel went unsaid, or the old export was reported: ${JSON.stringify(statuses)}`,
-    );
-    // busy: set by the click, freed by the reset, and not touched again.
-    assert.deepEqual(run.sets.filter((s) => s.hook === 1).map((s) => s.value), [true, false]);
+    const run = callWithHooks(ExportLink, { href: "/x", label: "Export" });
+    const go = buttonNamed(run.out, "Export").props.onClick as (e: unknown) => Promise<void>;
+    const first = go(click().e);
+    await go(click().e);
+    assert.equal(calls, 1, "a second export went out while the first was running");
+    assert.equal(run.sets.filter((s) => s.hook === 0).map((s) => s.value).pop(), STILL_EXPORTING);
+    release(json(429, { error: "rate_limited" }));
+    await first;
   });
 
-  it("an Export that goes away mid-download (Clear, a new page) abandons its file", async () => {
-    // The reset only ran on a changed selection. Clear unmounts the bar and
-    // its Export; nothing moved the round, and the old file landed anyway.
+  it("an Export that unmounts mid-download (a new page) does not save onto the new page", async () => {
     const d = doc();
     stub("document", d.value);
     let unmount: (() => void) | null = null;
@@ -335,30 +313,21 @@ describe("ExportLink's handler, invoked", () => {
       return json(200, null, { "Content-Disposition": 'attachment; filename="old.csv"', "X-SourceBD-Rows": "1" });
     });
     const run = callWithHooks(ExportLink, { href: "/x", label: "Export", requested: 1, resetOn: 0 });
-    const cleanup = run.effects[0]!(); // React runs the effect after the first commit…
-    assert.equal(typeof cleanup, "function", "the reset effect returns no cleanup, so an unmount abandons nothing");
+    const cleanup = run.effects[1]!(); // React runs the mount effect…
+    assert.equal(typeof cleanup, "function", "nothing marks the link unmounted");
     unmount = cleanup as () => void; // …and its cleanup on unmount.
     await (buttonNamed(run.out, "Export").props.onClick as (e: unknown) => Promise<void>)(click().e);
     assert.equal(d.anchors.length, 0, "the file was saved after its Export unmounted");
   });
 
-  it("a click while an export is running starts no second one", async () => {
-    let fetched = 0;
-    stub("fetch", async () => {
-      fetched += 1;
-      return json(200, null);
-    });
-    const run = callWithHooks(ExportLink, { href: "/x", label: "Export" }, { state: ["Preparing the export…", true] });
-    await (buttonNamed(run.out, "Export").props.onClick as (e: unknown) => Promise<void>)(click().e);
-    assert.equal(fetched, 0);
-  });
-
-  it("the bar hands its Export the selection's count and edits, exactly once", () => {
+  it("the bar hands its Export the selection's count, edits and a status listener, exactly once", () => {
     const run = bar(selection([A, B], { edits: 7 }), { refresh: () => {} });
     const links = findAll(run.out as never, (el) => el.type === ExportLink);
     assert.equal(links.length, 1, `expected one Export in the bar, found ${links.length}`);
     assert.equal(links[0]!.props.requested, 2);
     assert.equal(links[0]!.props.resetOn, 7, "the bar's Export is not reset by the buyer's selection edits");
+    (links[0]!.props.onStatus as (s: string) => void)("Preparing the export…");
+    assert.deepEqual(run.sets.filter((s) => s.hook === 2).map((s) => s.value), ["Preparing the export…"], "the bar does not keep the Export's status");
   });
 });
 

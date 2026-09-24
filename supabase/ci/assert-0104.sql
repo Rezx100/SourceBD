@@ -692,6 +692,39 @@ begin
 end
 $$;
 
+-- Oversized filter lists are refused by the function itself: anon reaches it
+-- through PostgREST, past the app's cap and its rate limiter.
+do $$
+begin
+  set local role anon;
+  perform set_config('request.jwt.claim.role', 'anon', true);
+  begin
+    perform count(*) from public.discover_suppliers(p_districts => array(select 'x' || g from generate_series(1, 51) g));
+    raise exception 'discover_suppliers accepted 51 districts from anon';
+  exception when sqlstate '22023' then null;
+  end;
+  begin
+    perform count(*) from public.discover_suppliers(p_cities => array[repeat('x', 81)]);
+    raise exception 'discover_suppliers accepted an 81-character city from anon';
+  exception when sqlstate '22023' then null;
+  end;
+  -- At the limit it answers.
+  perform count(*) from public.discover_suppliers(p_districts => array(select 'x' || g from generate_series(1, 50) g));
+  reset role;
+  set local role authenticated;
+  perform set_config('request.jwt.claim.role', 'authenticated', true);
+  perform set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-00000000d001', true);
+  begin
+    perform count(*) from public.discover_suppliers_explain(p_hs_codes => array(select lpad(g::text, 4, '0') from generate_series(1, 51) g));
+    raise exception 'discover_suppliers_explain accepted 51 HS codes';
+  exception when sqlstate '22023' then null;
+  end;
+  reset role;
+  perform set_config('request.jwt.claim.role', '', true);
+  perform set_config('request.jwt.claim.sub', '', true);
+end
+$$;
+
 -- The replay is only as strict as production if Supabase's default
 -- privileges are emulated: a function created now must be anon-executable
 -- until a migration says otherwise. Without this, deleting that bootstrap

@@ -499,3 +499,35 @@ me to five lines or fewer, in plain words.
   when the count drops to 0; `production_workers_display_batch` has no
   published filter (an older gap, noted in §11); the new city/district filter
   lists are uncapped (the already-escalated PostgREST cost class).
+
+## 14. Cycle 19 (24 Sep)
+
+- Reviewed `027dd03`. All five REJECTED. Four of them were on the same
+  ground as cycles 16–18: outcomes of a bulk Save or Export that land after
+  the selection changes. Each repair (freeing busy, cancelling, "newest save
+  owns the status", an sr-only announcer) had opened a new silence.
+- Redesigned, instead of patched again: one save and one export at a time,
+  and each always finishes and says how it ended.
+  - A click while one is running sends nothing and says so.
+  - A selection change does not interrupt it. Its outcome is prefixed "For
+    your earlier selection:".
+  - The bar stays on screen, with nothing selected if need be, while a save
+    or an export is running or its message is showing. Its actions are hidden
+    then, but the Export inside stays mounted and delivers its file.
+  - A file is not saved after a navigation has replaced the page.
+- Security (major, new): 0104's list filters were unbounded, and anon reaches
+  them past the app. 0104 adds `discover_v32_assert_bounded` (at most 50
+  values per list, 80 characters per city or district), called first by
+  `discover_suppliers` and `discover_suppliers_explain`. The app caps each
+  list at 30 values of 80 characters. CI refuses 51 districts as anon (proven
+  only green); a unit test holds the app's cap under the database's.
+- Workers sort guard (blocker): the ORDER BY of both branches is now parsed.
+  Every leading key must be exactly one `case when v_sort = '<sort>'` per
+  sort, the workers key must be `employees_total`, and no other key may
+  mention workers.
+- Proofs: `mutate-c19.cjs`, 19 mutations, all red. The older sets' entries
+  that targeted removed code are printed as RETIRED, each naming its
+  replacement proof. The proof scripts now report a hang as HANG, not RED.
+- Written down, not changed: `production_workers_display_batch` has no
+  published filter (§11); a signed-in supplier gets 401 from
+  `/api/v1/saved`.
