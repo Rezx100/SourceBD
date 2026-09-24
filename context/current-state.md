@@ -39,7 +39,9 @@ migrations, run the 30-day zero P1/P2 Sentry incident window.
 - **Buyer dashboard v3.2, REZ-B (results page)** — branch
   `rez-b-results-page` (pushed; PR #164 draft; merge base `7ea98b4`; tip
   is `git log -1`, never a SHA written here). Spec §3.1 selection built
-  (23 Sep). START HERE: `feature-specs/handoff-rez-b-cycle15.md` (24 Sep:
+  (23 Sep). Cycle 21 repaired at `4f6eff2` (24 Sep, gate green, no judge
+  yet). TO SHIP, START HERE: `feature-specs/handoff-rez-b-deploy.md`.
+  Loop history: `feature-specs/handoff-rez-b-cycle15.md` (24 Sep:
   state, decisions (all taken), loop, gates, 0104 dry-run, what follows REZ-B).
   History of cycles 10–14: §10–§11 of `handoff-rez-b-cycle10.md`.
   IN PROGRESS. Migration `0104` drafted (not applied; hard dependency of

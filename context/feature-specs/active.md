@@ -28,7 +28,9 @@ same PR. Read once per session.
   (21 Sep). `handoff-rez-a-cycle21.md`.
   IN PROGRESS: REZ-B (results page) on branch `rez-b-results-page`
   (tip: `git log -1`). Migration `0104` drafted, not applied, and a hard
-  dependency of the branch. Start at `handoff-rez-b-cycle15.md` (24 Sep).
+  dependency of the branch. Cycle 21 repaired at `4f6eff2`, gate green, no
+  judge yet. To ship: `handoff-rez-b-deploy.md` (24 Sep). Loop history:
+  `handoff-rez-b-cycle15.md`.
   Then C → D → H → G → E → F → I per §7.
 
 ## Queued
