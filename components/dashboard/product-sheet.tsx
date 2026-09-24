@@ -13,30 +13,46 @@ import { PHOTO_CAPTION } from "./photo-tiles";
 import { FactsPanel, SanctionBanner, Sheet, SheetBar, SheetScroll } from "./sheet";
 import { Caption, Code, Eyebrow, Heading } from "./type";
 
-export function ProductSheet({ model, assertModal }: { model: ProductSheetModel; assertModal?: boolean }) {
+export function ProductSheet({
+  model,
+  assertModal,
+  dialog,
+}: {
+  model: ProductSheetModel;
+  assertModal?: boolean;
+  /** False on the full line page, which is not a dialog. */
+  dialog?: boolean;
+}) {
   return (
-    <Sheet label="Product line" assertModal={assertModal}>
+    <Sheet label="Product line" assertModal={assertModal} dialog={dialog}>
       <SheetBar>
-        <Button variant="ghost" aria-label="Back">
-          <Icon name="chev-l" /> Back
-        </Button>
-        <span className="inline-flex items-center gap-1.5 text-sm text-ink-muted">
-          {model.supplierName} <span className="text-ink-subtle">/</span> <Code className="text-ink-strong">HS {model.hs}</Code>
+        {model.backHref ? (
+          <Button variant="ghost" aria-label="Back to the record" href={model.backHref}>
+            <Icon name="chev-l" /> Back
+          </Button>
+        ) : (
+          <Button variant="ghost" aria-label="Back" disabled>
+            <Icon name="chev-l" /> Back
+          </Button>
+        )}
+        <span className="inline-flex min-w-0 items-center gap-1.5 text-sm text-ink-muted">
+          <span className="truncate">{model.supplierName}</span>
+          <span className="text-ink-subtle">/</span>
+          <Code className="shrink-0 text-ink-strong">HS {model.hs}</Code>
         </span>
         <span className="ml-auto flex items-center gap-2">
-          <Button variant="ghost">
-            <Icon name="share" /> Share
-          </Button>
-          <Button variant="ghost" icon aria-label="Close">
-            <Icon name="x" />
-          </Button>
+          {model.closeHref ? (
+            <Button variant="ghost" icon aria-label="Close" href={model.closeHref}>
+              <Icon name="x" />
+            </Button>
+          ) : null}
         </span>
       </SheetBar>
       {model.sanctioned ? <SanctionBanner sample={model.sanctionSample} /> : null}
       <SheetScroll>
-        <div className="grid grid-cols-[320px_1fr] items-start gap-6 p-6">
+        <div className="grid items-start gap-6 p-6 md:grid-cols-[320px_1fr]">
           <div>
-            <div className="size-[320px] overflow-hidden rounded-sm border border-line-subtle bg-surface-sunken">
+            <div className="aspect-square w-full max-w-[320px] overflow-hidden rounded-sm border border-line-subtle bg-surface-sunken">
               {model.photo.src ? (
                 <img src={model.photo.src} alt="" className="size-full origin-[50%_46%] scale-[1.32] object-cover" />
               ) : (
@@ -63,10 +79,15 @@ export function ProductSheet({ model, assertModal }: { model: ProductSheetModel;
             </div>
             <FactsPanel rows={model.facts} />
             <div className="flex items-center gap-2">
-              <Button variant="primary" lg disabled={model.sanctioned}>
+              <Button
+                variant="primary"
+                lg
+                disabled={model.sanctioned}
+                href={model.sanctioned ? undefined : (model.rfqHref ?? undefined)}
+              >
                 <Icon name="send" /> Send RFQ for this line
               </Button>
-              <Button lg>
+              <Button lg href={`/app/discover?hs=${model.hs}`}>
                 Other exporters of {model.hs}
                 {model.otherExporters !== null ? (
                   <span className="font-mono text-ink-subtle">{formatCount(model.otherExporters)}</span>

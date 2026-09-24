@@ -99,6 +99,7 @@
     "lib/dashboard/gallery-data.test.ts",
     "components/dashboard/index.ts",
     "components/dashboard/render.test.ts",
+    "components/dashboard/record-sheet.test.ts",
     "app/dev/ds/dashboard-screens.tsx",
     "app/dev/ds/dashboard-screens.test.ts",
     "scripts/gallery/render-gallery-fixtures.ts",

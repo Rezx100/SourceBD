@@ -116,7 +116,10 @@ export function ResultsTable({ rows }: { rows: readonly TableRowModel[] }) {
                   <LogoTile initials={r.initials} tier={r.topTier} size="sm" />
                   <div className="min-w-0">
                     <div className="font-medium text-ink-strong [overflow-wrap:anywhere]">
-                      {r.name}
+                      {/* The name opens the record, as it does on a card (§3.3). */}
+                      <a href={r.recordHref ?? `/app/suppliers/${r.slug}`} className="text-ink-strong hover:text-brand-ink">
+                        {r.name}
+                      </a>
                       {r.place ? (
                         <span className="font-normal text-ink-muted before:mx-1.5 before:text-ink-subtle before:content-['·']">{r.place}</span>
                       ) : null}
@@ -179,7 +182,7 @@ export function ResultsTable({ rows }: { rows: readonly TableRowModel[] }) {
                       <Icon name="bookmark" />
                     </Button>
                   )}
-                  <Button href={`/app/suppliers/${r.slug}`} className="h-7 px-2.5 text-xs">
+                  <Button href={r.recordHref ?? `/app/suppliers/${r.slug}`} className="h-7 px-2.5 text-xs">
                     Open
                   </Button>
                   <Button variant="primary" href={r.sanctioned ? undefined : (r.rfqHref ?? undefined)} disabled={r.sanctioned} className="h-7 px-2.5 text-xs">

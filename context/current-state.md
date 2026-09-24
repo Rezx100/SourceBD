@@ -36,20 +36,22 @@ migrations, run the 30-day zero P1/P2 Sentry incident window.
   merged to `development` via PR #161 (21 Sep). Dev/admin-only gallery at
   `/dev/ds`; no live route wired yet. Full history:
   `context/feature-specs/handoff-rez-a-cycle21.md`.
-- **Buyer dashboard v3.2, REZ-B (results page)** — DEPLOYED, MIGRATION
-  MISSING. Judge `ACCEPTED_FOR_HUMAN_REVIEW` at `4f6eff2`; landed on
-  `development` via PR #164 (`cfbbf4a`), promoted to `main` via PR #165
-  (`1780c2c`), deployed 24 Sep (run `36035938232`, `/api/health` confirms
-  the commit). **Migration `0104` is NOT applied, so every signed-in search
-  on the live site fails; the public `/discover` page is unaffected.**
-  START HERE: `feature-specs/handoff-rez-b-live-migration.md` (the apply,
-  the smoke run, the follow-up list). Loop history:
-  `feature-specs/handoff-rez-b-cycle15.md` (24 Sep: state, decisions (all
-  taken), loop, gates, what follows REZ-B) and `handoff-rez-b-deploy.md`
-  (its §1–§2.3 are done). Cycles 10–14: §10–§11 of
-  `handoff-rez-b-cycle10.md`. `/app/discover` uses the kit;
-  `/app/products`, `/app/searches`, `/app/match` redirect added.
-  `/app/saved` and `/app/compare` stay deferred.
+- **Buyer dashboard v3.2, REZ-B (results page)** — DONE. Judge
+  `ACCEPTED_FOR_HUMAN_REVIEW` at `4f6eff2`; `development` PR #164 (`cfbbf4a`),
+  `main` PR #165 (`1780c2c`), deployed 24 Sep, migration `0104` applied 25 Sep.
+  Loop history: `feature-specs/handoff-rez-b-cycle15.md`,
+  `handoff-rez-b-deploy.md`, `handoff-rez-b-live-migration.md` (its §5 is the
+  follow-up list; its first item, the stale "Selection arrives with the results
+  work" line, is fixed in REZ-C's PR).
+- **Buyer dashboard v3.2, REZ-C (the company profile)** — IN PROGRESS on
+  branch `rez-c-supplier-record`. `/app/suppliers/[slug]` is now the dashboard
+  kit's `SupplierSheet`; the same component opens over the results as
+  `?record=<slug>`; `/app/suppliers/[slug]/lines/[hs]` is the line sheet; the
+  sheet gained Sources, Locations, Facilities and RFQs, so every tab leads
+  somewhere. `/app/products` shipped with REZ-B and needed no change.
+  Migration `0105` adds ONE function, `supplier_contact_counts` — NOT APPLIED.
+  Evidence and the founder's command: `ops/plans/rez-c-0105-dry-run.md`.
+  START HERE: `feature-specs/handoff-rez-c-start.md`.
 
 ## Founder rules still in force (one line each; detail in archive)
 - EPB is a government register: show its evidence and HS codes whenever EPB has them, flagged or not. Never mint EPB-only suppliers. (15 Aug)
@@ -77,6 +79,7 @@ Migration file headers are NOT live status. Check here or query the database.
 | `0102_admin_queue_release` | 14 Aug 2026 | 1,282 tickets released; 48 `needs_human` open |
 | `0103_epb_detail_url_and_hscodes` | 15 Aug 2026 | EPB Open = exporter page |
 | `0104_discover_v32` | 25 Sep 2026 | REZ-B. Applied after its code was already live (`main` `1780c2c`, deployed 24 Sep) — signed-in search was down in between. Dry-run clean first (one transaction, rolled back). Verified after: 9 `discover_v32%` functions, `saved_searches` with 4 RLS policies, `discover_suppliers` at 25 args. sha256 (CRLF) `4f95641b7c8a1956d61d9b866373c963ec7150690afa2a46ff8b96cbbc3e8b47`. |
+| `0105_supplier_record_v32` | **not applied** | REZ-C. One function, `supplier_contact_counts(text)` — counts of a published record's contact details, never a value; `anon` explicitly revoked. Deliberately does NOT rewrite `buyer_supplier_profile`: production's copy is ahead of this repo (it emits `'fetched_at', rr.fetched_at` on rsc rows, which no migration here adds), so a `create or replace` from the repo would delete that key. Dry run 25 Sep clean, `buyer_supplier_profile` md5 unchanged. sha256 (CRLF) `e848c54da236791282240ff7655dedcd9008c6b856910f6718eb9e52b0211bd6`. Evidence: `ops/plans/rez-c-0105-dry-run.md`. |
 
 Deploy-order hazard, twice hit: code that queries a new table with no
 missing-table guard crashes every ETL run if shipped before its migration.

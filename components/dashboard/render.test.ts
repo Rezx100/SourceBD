@@ -31,7 +31,7 @@ import {
   zaheenSampleInput,
 } from "@/lib/dashboard/fixtures";
 import type { RfqListModel } from "@/lib/dashboard/models";
-import { Button, Checkbox, Meter, Seg } from "./controls";
+import { Button, Checkbox, INERT_CHECKBOX_TITLE, Meter, Seg } from "./controls";
 import { Icon } from "./icons";
 import { Panel, PanelFooter, PanelHeader } from "./results-panel";
 import { ProductSheet } from "./product-sheet";
@@ -1282,7 +1282,7 @@ describe("the two-state controls say which state they are in", () => {
     assert.match(real, /role="checkbox"[^>]*aria-checked="false"/);
     assert.match(real, /tabindex="0"/);
     assert.doesNotMatch(real, /aria-disabled/);
-    assert.doesNotMatch(real, /title="Selection arrives with the results work"/);
+    assert.doesNotMatch(real, new RegExp(`title="${INERT_CHECKBOX_TITLE}"`));
   });
 
   it("a real checkbox toggles on Space once, on key up — not on Enter, not on keydown auto-repeat", () => {

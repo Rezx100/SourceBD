@@ -173,13 +173,23 @@ export function NoLinesSlot({
   );
 }
 
-/** `.pgrid`: the sheet's six-up grid. */
-export function PhotoGrid({ tiles }: { tiles: readonly PhotoTileModel[] }) {
+/**
+ * `.pgrid`: the sheet's six-up grid. `lineHref` turns each tile into the link
+ * to that export line's sheet (REZ-C §3.3, "each tile opens ProductSheet");
+ * without it the tiles stay plain, as they are on the gallery.
+ */
+export function PhotoGrid({ tiles, lineHref }: { tiles: readonly PhotoTileModel[]; lineHref?: (hs: string) => string }) {
   return (
-    <div className="grid grid-cols-6 gap-2">
-      {tiles.map((t) => (
-        <PhotoTile key={t.hs} tile={t} fluid />
-      ))}
+    <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
+      {tiles.map((t) =>
+        lineHref ? (
+          <a key={t.hs} href={lineHref(t.hs)} aria-label={`HS ${t.hs} · ${t.short}`} className="rounded-sm">
+            <PhotoTile tile={t} fluid />
+          </a>
+        ) : (
+          <PhotoTile key={t.hs} tile={t} fluid />
+        ),
+      )}
     </div>
   );
 }

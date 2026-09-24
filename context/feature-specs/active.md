@@ -26,13 +26,19 @@ same PR. Read once per session.
   REZ-A (the code port of the dashboard kit): DONE.
   `ACCEPTED_FOR_HUMAN_REVIEW` cycle 21, merged to `development` PR #161
   (21 Sep). `handoff-rez-a-cycle21.md`.
-  REZ-B (results page): `ACCEPTED_FOR_HUMAN_REVIEW` at `4f6eff2`, merged to
-  `development` PR #164 (`cfbbf4a`), to `main` PR #165 (`1780c2c`), deployed
-  24 Sep. IN PROGRESS only because migration `0104` is NOT applied — signed-in
-  search is broken live until it is. START HERE:
-  `handoff-rez-b-live-migration.md` (25 Sep). Loop history:
-  `handoff-rez-b-cycle15.md`, `handoff-rez-b-deploy.md`.
-  Then C → D → H → G → E → F → I per §7.
+  REZ-B (results page): DONE — `ACCEPTED_FOR_HUMAN_REVIEW` at `4f6eff2`,
+  `development` PR #164 (`cfbbf4a`), `main` PR #165 (`1780c2c`), deployed
+  24 Sep, migration `0104` applied 25 Sep. Loop history:
+  `handoff-rez-b-cycle15.md`, `handoff-rez-b-deploy.md`,
+  `handoff-rez-b-live-migration.md`.
+  REZ-C (the company profile): IN PROGRESS on `rez-c-supplier-record`. The
+  record sheet serves both the overlay (`?record=<slug>`) and the full page;
+  the line sheet is `/app/suppliers/[slug]/lines/[hs]`; Sources, Locations,
+  Facilities and RFQs added. Migration `0105` (one function,
+  `supplier_contact_counts`) is NOT applied — dry run and the founder's
+  command in `ops/plans/rez-c-0105-dry-run.md`. START HERE:
+  `handoff-rez-c-start.md`.
+  Then D → H → G → E → F → I per §7.
 
 ## Queued
 - **Entity resolution core** — `spec-resolution-core.md` (4 Aug). Batch

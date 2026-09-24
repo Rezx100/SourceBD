@@ -370,7 +370,9 @@ export function arFashionInput(): RecordInput {
 // sanctioned SAMPLE.
 // ---------------------------------------------------------------------------
 
-export function zaheenSampleInput(): RecordInput & { leaked: { email_primary: string; phones: string[] } } {
+export function zaheenSampleInput(): RecordInput & {
+  leaked: { email_primary: string; phones: string[]; contact_name: string; contact_role: string; website: string };
+} {
   const profile = {
     supplier: {
       id: "e4669f72-a97a-40e4-9e6e-11df37d2e96e",
@@ -392,9 +394,16 @@ export function zaheenSampleInput(): RecordInput & { leaked: { email_primary: st
       supplier_moq: null,
       supplier_lead_time_days: null,
       source_tags: ["RSC"],
-      // Never returned by the RPC to a buyer; present here only to be proven absent from the HTML.
+      // Never returned by the RPC to a buyer; present here only to be proven
+      // absent from the HTML. REZ-C added `contact_name`, `contact_role` and
+      // `website`: the record sheet now prints how MANY of each the record
+      // holds, and a count sitting beside a value is exactly the mistake the
+      // locked card exists to prevent.
       email_primary: "leak-test@example.invalid",
       phones: ["+880 1700 000000"],
+      contact_name: "Leak Test Chowdhury",
+      contact_role: "Leak Test Director",
+      website: "leak-test-website.invalid",
     },
     t13_source_count: 1,
     pills: [{ source_code: "RSC", label: "RSC ID", value: "24449", source_url: "https://www.rsc-bd.org/" }],
@@ -425,7 +434,13 @@ export function zaheenSampleInput(): RecordInput & { leaked: { email_primary: st
     workers: { value: 1634, source: "RSC", fetched_at: "2026-08-07T05:56:42.605291+00:00" },
     today: TODAY,
     sanctionSample: true,
-    leaked: { email_primary: "leak-test@example.invalid", phones: ["+880 1700 000000"] },
+    leaked: {
+      email_primary: "leak-test@example.invalid",
+      phones: ["+880 1700 000000"],
+      contact_name: "Leak Test Chowdhury",
+      contact_role: "Leak Test Director",
+      website: "leak-test-website.invalid",
+    },
   };
 }
 

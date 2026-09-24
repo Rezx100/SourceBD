@@ -145,6 +145,8 @@ export function buildDiscoverCard(
     hsLines: readonly HsBatchLine[];
     hsError: boolean;
     saved?: boolean;
+    /** Discover passes the search's own URL with `?record=<slug>`, so the record opens over the results. */
+    recordHref?: (slug: string) => string;
   },
 ): SupplierCardModel {
   const name = displayName(row.company_name);
@@ -271,6 +273,7 @@ export function buildDiscoverCard(
 
   return {
     slug: row.slug,
+    recordHref: opts.recordHref?.(row.slug) ?? null,
     name,
     initials: initials(name),
     topTier: (row.top_tier as SupplierCardModel["topTier"]) ?? topTier(tags),
@@ -300,6 +303,7 @@ export function buildDiscoverTableRow(
     hsLines: readonly HsBatchLine[];
     hsError: boolean;
     saved?: boolean;
+    recordHref?: (slug: string) => string;
   },
 ): TableRowModel {
   const card = buildDiscoverCard(row, opts);
@@ -308,6 +312,7 @@ export function buildDiscoverTableRow(
   const lines = hsForSlug(row.slug, opts.hsLines, row.hs_codes ?? []);
   return {
     slug: row.slug,
+    recordHref: card.recordHref,
     name: card.name,
     place: placeLabel(row.city, row.district),
     initials: card.initials,

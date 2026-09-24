@@ -170,7 +170,7 @@ M = [
  '  return <As className={cn("text-title font-medium text-ink-strong [overflow-wrap:anywhere]", className)}>{children}</As>;',
  '  return <As className={cn("text-title font-medium text-ink-strong truncate", className)}>{children}</As>;'),
  ('c6-brand-rows-not-deduped', 'lib/dashboard/source-tiers.ts', '    if (seen.has(k)) continue;\n    seen.add(k);', '    seen.add(k);'),
- ('c6-checkbox-not-focusable', 'components/dashboard/controls.tsx', '      title="Selection arrives with the results work"', ''),
+ ('c6-checkbox-not-focusable', 'components/dashboard/controls.tsx', '      title={interactive ? undefined : INERT_CHECKBOX_TITLE}', ''),
  ('c6-seg-drops-pressed-state', 'components/dashboard/controls.tsx', '          aria-pressed={o.value === value}', '          aria-pressed={undefined}'),
  ('c6-tier-ramp-not-a-ramp', 'lib/design/tokens.ts', '    "3": "#545C54",', '    "3": "#0F130F",'),
  ('c6-tier-ramp-coloured', 'lib/design/tokens.ts', '    "4": "#DDE0D5",', '    "4": "#D5E0FF",'),

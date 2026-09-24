@@ -185,3 +185,22 @@ export function topTier(tags: readonly string[]): TierRank {
 export function sourceCountLabel(n: number): string {
   return `${n} ${n === 1 ? "source" : "sources"}`;
 }
+
+/**
+ * The trust tier in the words a buyer reads. AGENTS rule 5 names the hierarchy
+ * by rank; the Sources section has to print it, and `tier1_gov` is not English.
+ */
+export function tierWords(rank: TierRank): string {
+  switch (rank) {
+    case 1:
+      return "Government register";
+    case 2:
+      return "Industry body";
+    case 3:
+      return "Certification body";
+    case 4:
+      return "Brand disclosure list";
+    default:
+      return "Foreign regulator";
+  }
+}

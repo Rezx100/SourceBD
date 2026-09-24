@@ -94,7 +94,10 @@ export function SanctionLine({ sample, href, className }: { sample?: boolean; hr
 }
 
 export function SupplierResultCard({ card }: { card: SupplierCardModel }) {
-  const recordHref = `/app/suppliers/${card.slug}`;
+  // Discover passes the search's own URL with `?record=`, so the record
+  // opens over the results and Close returns to them. Anywhere else, the
+  // record's full page.
+  const recordHref = card.recordHref ?? `/app/suppliers/${card.slug}`;
   const sel = useSelection();
   const selectable = sel.interactive && Boolean(card.supplierId);
   const selected = selectable ? sel.isSelected(card.supplierId!) : Boolean(card.selected);
@@ -122,8 +125,14 @@ export function SupplierResultCard({ card }: { card: SupplierCardModel }) {
           <div className="flex min-w-0 flex-1 flex-col gap-1">
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
               {/* A heading, so heading navigation moves between results and each
-                  card's Open / Send RFQ / Save sit under their supplier's name. */}
-              <Title as="h2">{card.name}</Title>
+                  card's Open / Send RFQ / Save sit under their supplier's name.
+                  The name itself opens the record (§3.3, "from Open record /
+                  the name"); the button beside it goes to the same place. */}
+              <Title as="h2">
+                <a href={recordHref} className="text-ink-strong hover:text-brand-ink">
+                  {card.name}
+                </a>
+              </Title>
               <SourceMarks marks={card.marks} />
             </div>
             <MetaLine facts={card.meta} />
@@ -142,7 +151,7 @@ export function SupplierResultCard({ card }: { card: SupplierCardModel }) {
                 <Icon name="bookmark" /> Save
               </Button>
             )}
-            <Button href={`/app/suppliers/${card.slug}`}>Open record</Button>
+            <Button href={recordHref}>Open record</Button>
             <Button variant="primary" href={card.sanctioned ? undefined : (card.rfqHref ?? undefined)} disabled={card.sanctioned}>
               <Icon name="send" /> Send RFQ
             </Button>

@@ -47,18 +47,22 @@ import { formatCardLocation } from "@/lib/format-location";
 import { heading4, hsCatalogueRow, hsExporterCount, hsPhotoSrc, hsShortLabel, photoTiles, rarestFirst } from "./hs-photos";
 import { groupWorkers, type SiteWorkerInput } from "@/lib/profile-metrics";
 import type {
+  ContactCounts,
   FactRow,
   FactWithMark,
   HighlightChip,
+  LocationRow,
   ProductSheetModel,
+  RecordRfqRow,
   RfqRowModel,
+  SourceRow,
   SupplierCardModel,
   SupplierSheetModel,
   TableRowModel,
   TileModel,
 } from "./models";
 import { mergeUniqueLocations } from "@/lib/dedup-addresses";
-import { marksFromTags, recordPage, sourceMark, topTier, type SourceMarkModel } from "./source-tiers";
+import { marksFromTags, recordPage, sourceMark, tierFromSlug, tierWords, topTier, type SourceMarkModel } from "./source-tiers";
 
 export { recordPage } from "./source-tiers";
 
@@ -930,7 +934,125 @@ export function buildTableRow(input: RecordInput): TableRowModel {
 export type SheetOptions = {
   /** The viewer's plan name, from settings; without one the contact card says only "Contact details". */
   plan?: string | null;
+  /**
+   * `supplier_contact_counts` (0105): how much contact detail the record
+   * holds. `undefined` — the gallery, which does not call it — and `null` — a
+   * failed read — are the same absence to the card, which then claims nothing
+   * about kinds. Never a count of zero on a failed read.
+   */
+  contactCounts?: ContactCounts | null;
+  /** The calling buyer's own RFQs naming this supplier. `null` rows → the read failed. */
+  rfqs?: { count: number | null; rows: RecordRfqRow[]; error?: boolean };
+  /** Where Send RFQ goes for this record. */
+  rfqHref?: string | null;
+  /** The supplier id, so Save is a real control. The gallery has no session and leaves it unset. */
+  supplierId?: string | null;
+  saved?: boolean;
+  /** The full record page. Defaults to `/app/suppliers/<slug>`. */
+  fullHref?: string;
+  /** Where an overlay's Close returns to. Absent on the full page, which has nothing to close. */
+  closeHref?: string | null;
 };
+
+/**
+ * The Sources section: one row per register that filed something on this
+ * record, best rank first. The rows come from `provenance`, which is the
+ * record's `source_records`, so a register with no record here has no row —
+ * the section never invents one to look fuller.
+ */
+/**
+ * The Sources caption. `SOURCES_WITH_RECORDS` is the denominator the card and
+ * the chips already use — 14 registers that have ever produced a record, not
+ * the 25 rows in `sources`, eleven of which have never produced one for
+ * anybody. Saying "3 of 25" claims a record was weighed against registers that
+ * have never been read.
+ */
+function registersReadWords(p: ProfilePayload): string {
+  const n = new Set((p.provenance ?? []).map((r) => r.source_code.toUpperCase())).size;
+  return `${n} of ${SOURCES_WITH_RECORDS} registers read hold a record for this company`;
+}
+
+function sourceRows(p: ProfilePayload): SourceRow[] {
+  const hrefs = sourceHrefs(p);
+  const byCode = new Map<string, { row: SourceRow; at: number }>();
+  for (const r of p.provenance ?? []) {
+    const code = r.source_code.toUpperCase();
+    const at = isoTime(r.last_seen_at);
+    const held = byCode.get(code);
+    if (held) {
+      // The latest read of the register, and the first reference it filed.
+      if (at > held.at) {
+        held.at = at;
+        held.row.readDate = formatDay(new Date(at).toISOString());
+      }
+      held.row.ref = held.row.ref ?? (r.source_ref || null);
+      continue;
+    }
+    const m = sourceMark(code, hrefs[code] ?? null);
+    byCode.set(code, {
+      at,
+      row: {
+        mark: m,
+        name: m.name,
+        tier: tierWords(tierFromSlug(r.tier ?? "")),
+        ref: r.source_ref || null,
+        readDate: at < 0 ? null : formatDay(new Date(at).toISOString()),
+      },
+    });
+  }
+  return [...byCode.values()]
+    .map((e) => e.row)
+    .sort((a, b) => a.mark.tier - b.mark.tier || a.mark.label.localeCompare(b.mark.label));
+}
+
+/**
+ * The Locations section: one row per premises, not per address row and not per
+ * spelling. The registers write the same place several ways, so this goes
+ * through `mergeUniqueLocations` — the same matcher the production profile's
+ * Locations section uses — and the other spellings stay visible as
+ * "Also recorded as", never silently dropped.
+ */
+function locationRows(p: ProfilePayload): LocationRow[] {
+  const hrefs = sourceHrefs(p);
+  return mergeUniqueLocations(
+    (p.addresses ?? [])
+      .filter((a) => (a.address ?? "").trim())
+      .map((a) => ({ kind: a.kind, address: a.address, source_code: a.source_code ?? "", fetched_at: a.fetched_at ?? "" })),
+  ).map((loc) => ({
+    kind: addressKindWords(loc.types),
+    address: loc.displayAddress,
+    marks: marksFromTags(loc.authorities.map((c) => c.toUpperCase()), hrefs),
+    alsoRecordedAs: loc.variants.map((v) => v.address),
+  }));
+}
+
+/** "Factory", "Factory · Registered office" — the kinds the registers filed, deduplicated. */
+function addressKindWords(types: readonly string[]): string {
+  const words = [...new Set(types.map((k) => (k ?? "").trim()).filter(Boolean))].map(
+    (k) => k.charAt(0).toUpperCase() + k.slice(1).replace(/_/g, " "),
+  );
+  return words.length > 0 ? words.join(" · ") : "Address";
+}
+
+/**
+ * What the locked card says the record holds. Counts and kinds only — no
+ * value, and nothing at all when the count could not be read, because
+ * "no phone number on file" is a claim and a failed read does not support it.
+ */
+export function contactHeldWords(counts: ContactCounts | null | undefined): string | null {
+  if (!counts) return null;
+  const parts = [
+    counts.emails > 0 ? `${counts.emails} email${counts.emails === 1 ? "" : "s"}` : null,
+    counts.phones > 0 ? `${counts.phones} phone number${counts.phones === 1 ? "" : "s"}` : null,
+    counts.website ? "a website" : null,
+    counts.representatives > 0
+      ? `${counts.representatives} named representative${counts.representatives === 1 ? "" : "s"}`
+      : null,
+  ].filter((x): x is string => x !== null);
+  if (parts.length === 0) return "No contact detail on this record yet.";
+  const list = parts.length === 1 ? parts[0] : `${parts.slice(0, -1).join(" · ")} · ${parts.at(-1)}`;
+  return `On file: ${list}.`;
+}
 
 export function buildSheet(input: RecordInput, options: SheetOptions = {}): SupplierSheetModel {
   const p = input.profile;
@@ -1013,6 +1135,8 @@ export function buildSheet(input: RecordInput, options: SheetOptions = {}): Supp
 
   const certRegisters = [...new Set(certList.map((c) => c.scheme.split(" ")[0]))];
 
+  const rfqs = options.rfqs ?? { count: null, rows: [] as RecordRfqRow[], error: false };
+
   const model: SupplierSheetModel = {
     slug: s.slug,
     everyMarkLinks: false,
@@ -1025,25 +1149,28 @@ export function buildSheet(input: RecordInput, options: SheetOptions = {}): Supp
     sourceCount: marks.length,
     sanctioned: s.is_sanctioned || Boolean(input.sanctionSample),
     sanctionSample: input.sanctionSample,
-    // Only the four sections this sheet renders get a fragment; Sources,
-    // Locations, Facilities and RFQs arrive with REZ-C, and until they do a
-    // link to #sources is a link to nothing.
+    // Every tab now has a section behind it (REZ-C). Facilities keeps a
+    // fragment too: the section renders REZ-73's quiet empty state, which is
+    // an answer, not a dead link.
     tabs: [
       { label: "Overview", count: null, href: "#overview", active: true },
       { label: "Products", count: input.hscodesError ? null : String(lines.length), href: "#products" },
       { label: "Certificates", count: String(certList.length), href: "#certificates" },
       { label: "Safety", count: rsc ? "RSC" : null, href: "#safety" },
-      { label: "Sources", count: String(marks.length), href: null },
-      { label: "Locations", count: p.addresses ? String(addresses) : null, href: null },
-      { label: "Facilities", count: null, href: null },
-      { label: "RFQs", count: null, href: null },
+      { label: "Sources", count: String(marks.length), href: "#sources" },
+      { label: "Locations", count: p.addresses ? String(addresses) : null, href: "#locations" },
+      { label: "Facilities", count: null, href: "#facilities" },
+      { label: "RFQs", count: rfqs.count === null ? null : String(rfqs.count), href: "#rfqs" },
     ],
     summary: null,
     facts,
     contact: {
-      // The RPC returns neither the values nor their counts; the claim is plan-level only.
       hidden: "Contact details are shown on paid plans.",
       plan: options.plan ?? null,
+      // Counts, never values: `supplier_contact_counts` (0105) selects no
+      // contact column it does not count, so there is nothing to un-hide.
+      counts: options.contactCounts ?? null,
+      held: contactHeldWords(options.contactCounts),
     },
     readDates: readDates || null,
     products: {
@@ -1089,6 +1216,28 @@ export function buildSheet(input: RecordInput, options: SheetOptions = {}): Supp
       training: rscTrainingWords(b.training_status),
       links: rscLinks(b),
     })),
+    sources: sourceRows(p),
+    sourcesCaption: registersReadWords(p),
+    locations: locationRows(p),
+    // `p.addresses` absent is a failed read; an empty array is a record with
+    // no address filed. They are not the same sentence.
+    locationsEmpty: p.addresses
+      ? "No address on any register that filed this record."
+      : "The addresses could not be read.",
+    facilitiesEmpty: "Extension buildings are not on this record yet.",
+    rfqs: {
+      count: rfqs.count,
+      rows: rfqs.rows,
+      empty: rfqs.error
+        ? "Your RFQs could not be read."
+        : "You have not sent this supplier an RFQ yet.",
+      error: rfqs.error,
+    },
+    rfqHref: options.rfqHref ?? null,
+    supplierId: options.supplierId ?? null,
+    saved: Boolean(options.saved),
+    fullHref: options.fullHref ?? `/app/suppliers/${s.slug}`,
+    closeHref: options.closeHref ?? null,
   };
 
   // Every square this sheet draws: the mark row, the attributed fact rows and
@@ -1190,7 +1339,14 @@ function scopeWords(scope: string | null): string {
 
 // ---- the product sheet ----
 
-export function buildProductSheet(input: RecordInput, hs: string): ProductSheetModel {
+export type ProductSheetOptions = {
+  /** Back to the record. Defaults to its full page; an overlay passes the URL that keeps the search behind it. */
+  backHref?: string | null;
+  closeHref?: string | null;
+  rfqHref?: string | null;
+};
+
+export function buildProductSheet(input: RecordInput, hs: string, options: ProductSheetOptions = {}): ProductSheetModel {
   const p = input.profile;
   const s = p.supplier;
   const code = heading4(hs);
@@ -1266,6 +1422,9 @@ export function buildProductSheet(input: RecordInput, hs: string): ProductSheetM
         : { label: "Price · MOQ · lead time", value: null, note: "supplier-attested fields, shown when attested" },
     ],
     otherExporters: row && exported ? Math.max(0, hsExporterCount(code) - 1) : null,
+    backHref: options.backHref === undefined ? `/app/suppliers/${s.slug}` : options.backHref,
+    closeHref: options.closeHref ?? null,
+    rfqHref: options.rfqHref ?? null,
   };
 }
 

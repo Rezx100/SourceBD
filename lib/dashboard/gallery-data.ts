@@ -11,9 +11,8 @@ import "server-only";
 // record (A.R. Fashion). A record that cannot be read is left out, never
 // invented.
 
-import { fetchDisplayWorkersBatch } from "@/lib/enrich-discover-workers";
-import { hscodesFromRpc } from "@/lib/epb-hscodes";
-import { buildCard, buildRfqRow, buildSheet, buildTableRow, buildProductSheet, type ProfilePayload, type RecordInput, type RfqListRow } from "./build-models";
+import { buildCard, buildRfqRow, buildSheet, buildTableRow, buildProductSheet, type RfqListRow } from "./build-models";
+import { fillRecordWorkersSafely, loadRecordInput, type LoadedRecord, type RecordRpc } from "./load-record";
 
 import { formatCount, formatDayRange } from "./facts";
 import { topTier } from "./source-tiers";
@@ -74,45 +73,9 @@ export const GALLERY_SLUGS = {
 export const GALLERY_QUERY = { q: "knitted shirts", certKinds: ["gots"], title: "Knitted shirts · GOTS" } as const;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-type Rpc = { rpc: (fn: string, args: Record<string, unknown>) => any };
+type Rpc = RecordRpc;
 
-export type GalleryRecord = { slug: string; input: RecordInput };
-
-/** A record's profile and lines; the worker figure is filled in by one batch call afterwards. */
-async function loadRecord(supabase: Rpc, slug: string, today: Date, sanctionSample = false): Promise<GalleryRecord | null> {
-  try {
-    const [profileResult, hsResult] = await Promise.all([
-      supabase.rpc("buyer_supplier_profile", { p_slug: slug }),
-      supabase.rpc("supplier_epb_hscodes", { p_slug: slug }),
-    ]);
-    const data = profileResult?.data;
-    if (profileResult?.error || !data || typeof data !== "object" || !("supplier" in data)) return null;
-    const profile = data as ProfilePayload;
-    // A failed lines read is carried as "unknown", never rendered as "no lines".
-    const { hscodes, loadError } = hscodesFromRpc({ data: hsResult?.data, error: hsResult?.error });
-    return { slug, input: { profile, hscodes, hscodesError: loadError, workers: null, today, sanctionSample } };
-  } catch {
-    return null;
-  }
-}
-
-/** One `production_workers_display_batch` call for every record on the page. */
-async function fillWorkersSafely(supabase: Rpc, records: GalleryRecord[]): Promise<void> {
-  try {
-    await fillWorkers(supabase, records);
-  } catch {
-    // Every record keeps the workers figure its own payload carries.
-  }
-}
-
-async function fillWorkers(supabase: Rpc, records: GalleryRecord[]): Promise<void> {
-  if (records.length === 0) return;
-  const byId = await fetchDisplayWorkersBatch(supabase, records.map((r) => r.input.profile.supplier.id));
-  for (const r of records) {
-    const w = byId[r.input.profile.supplier.id];
-    r.input.workers = w ? { value: w.value, source: w.source, fetched_at: w.fetched_at } : null;
-  }
-}
+export type GalleryRecord = LoadedRecord;
 
 export type GalleryData = {
   today: Date;
@@ -171,10 +134,10 @@ export async function loadGalleryData(
   targets?: Record<string, { name: string; codes: readonly string[] }>,
 ): Promise<GalleryData> {
   const [aboni, sm, zaheen, ar] = await Promise.all([
-    loadRecord(supabase, GALLERY_SLUGS.aboni, today),
-    loadRecord(supabase, GALLERY_SLUGS.sm, today),
-    loadRecord(supabase, GALLERY_SLUGS.zaheen, today, true),
-    loadRecord(supabase, GALLERY_SLUGS.ar, today),
+    loadRecordInput(supabase, GALLERY_SLUGS.aboni, today),
+    loadRecordInput(supabase, GALLERY_SLUGS.sm, today),
+    loadRecordInput(supabase, GALLERY_SLUGS.zaheen, today, true),
+    loadRecordInput(supabase, GALLERY_SLUGS.ar, today),
   ]);
   const records = { aboni, sm, zaheen, ar };
   const named = [aboni, sm, zaheen, ar].filter((r): r is GalleryRecord => r !== null);
@@ -197,13 +160,13 @@ export async function loadGalleryData(
   } catch {
     discoverError = true;
   }
-  const extra = (await Promise.all(extraSlugs.map((s) => loadRecord(supabase, s, today)))).filter(
+  const extra = (await Promise.all(extraSlugs.map((s) => loadRecordInput(supabase, s, today)))).filter(
     (r): r is GalleryRecord => r !== null,
   );
   // The only read that was outside a try: `fetchDisplayWorkersBatch` swallows
   // an `{error}` result, but a rejected promise took the whole page down
   // rather than rendering the workers the payload already carries.
-  await fillWorkersSafely(supabase, [...named, ...extra]);
+  await fillRecordWorkersSafely(supabase, [...named, ...extra]);
 
   const cards = [aboni, sm, zaheen, ar].filter((r): r is GalleryRecord => r !== null).map((r) => buildCard(r.input));
   if (cards[0]) cards[0].selected = true;

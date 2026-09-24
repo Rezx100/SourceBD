@@ -14,16 +14,26 @@ function src(rel: string): string {
 }
 
 describe("REZ-114 surface wiring (observable call sites)", () => {
-  it("buyer + public profiles resolve selected workers into the header", () => {
-    for (const p of [
-      "app/(app)/app/suppliers/[slug]/page.tsx",
-      "app/(public)/suppliers/[slug]/page.tsx",
-    ]) {
-      const t = src(p);
-      assert.match(t, /resolveProfileWorkers/);
-      assert.match(t, /workers=\{workersHeadline\}/);
-      assert.match(t, /hasCapacityData\(s,\s*workersHeadline\)/);
-    }
+  it("the public profile resolves selected workers into the header", () => {
+    const t = src("app/(public)/suppliers/[slug]/page.tsx");
+    assert.match(t, /resolveProfileWorkers/);
+    assert.match(t, /workers=\{workersHeadline\}/);
+    assert.match(t, /hasCapacityData\(s,\s*workersHeadline\)/);
+  });
+
+  it("the buyer record page still reaches production_workers_display_batch", () => {
+    // REZ-C replaced that page with the dashboard kit's `SupplierSheet`, so it
+    // no longer calls `resolveProfileWorkers` by name. The honesty rule is the
+    // same and the wire is one step longer: the page calls `loadRecordSheet`,
+    // which fills the figure from `production_workers_display_batch` before
+    // `buildSheet` turns it into the Workers row and its coverage words.
+    // `components/dashboard/record-sheet.test.ts` asserts the FIGURE in the
+    // rendered HTML — this only catches the wire being cut.
+    assert.match(src("app/(app)/app/suppliers/[slug]/page.tsx"), /loadRecordSheet/);
+    const loader = src("lib/dashboard/load-record.ts");
+    assert.match(loader, /fetchDisplayWorkersBatch/);
+    assert.match(loader, /fillRecordWorkersSafely/);
+    assert.match(src("lib/enrich-discover-workers.ts"), /production_workers_display_batch/);
   });
 
   it("discover / saved / public discover enrich list card workers", () => {

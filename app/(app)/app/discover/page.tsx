@@ -1,6 +1,19 @@
 // Spec REZ-B — buyer Discover. Replaces the card grid with the dashboard kit
 // (ResultsList / ResultsTable). URL is the state. /app/match redirects here
 // with ?ask=1.
+//
+// REZ-C (§3.3): `?record=<slug>` opens that company's record as a sheet over
+// these results, WITHOUT losing the search — the whole search state is still
+// in the URL, so Close is a plain link back to it and nothing is re-run in the
+// browser. The sheet is the same `SupplierSheet` the full page at
+// `/app/suppliers/[slug]` renders, so a deep link and an overlay never show
+// two different records.
+//
+// The spec's parenthetical names a parallel/intercepting route
+// (`@sheet/(.)suppliers/[slug]`) for this. It cannot carry `?record=`: Next
+// matches parallel slots on the URL PATH, and a query parameter never changes
+// which slot route matches. The mechanism the same sentence spells out — the
+// results page reads `record` — is what is built here.
 
 import Link from "next/link";
 import { AppShell } from "@/components/dashboard/app-shell";
@@ -9,10 +22,14 @@ import { ResultsTable } from "@/components/dashboard/results-table";
 import { SearchComposer } from "@/components/dashboard/search-composer";
 import { SelectionBar } from "@/components/dashboard/selection-bar";
 import { SelectionProvider } from "@/components/dashboard/selection";
+import { SaveRecordButton } from "@/components/dashboard/save-record-button";
+import { SheetFrame } from "@/components/dashboard/sheet";
 import { SupplierResultCard } from "@/components/dashboard/supplier-result-card";
+import { SupplierSheet } from "@/components/dashboard/supplier-sheet";
 import { Caption, Title } from "@/components/dashboard/type";
 import { RecordRecentSearch } from "@/components/dashboard/record-recent-search";
 import { loadBuyerShell } from "@/lib/dashboard/load-buyer-shell";
+import { loadRecordSheet } from "@/lib/dashboard/load-record";
 import { buildDiscoverCard, buildDiscoverTableRow } from "@/lib/dashboard/build-discover-row";
 import {
   fetchDiscoverExplain,
@@ -215,12 +232,30 @@ export default async function BuyerDiscoverPage({
 }) {
   const sp = await searchParams;
   const state = parseDiscoverState(sp);
+  const recordRaw = sp.record;
+  const recordSlug = (Array.isArray(recordRaw) ? recordRaw[0] : recordRaw)?.trim() || null;
   const supabase = await createSupabaseServerClient();
   const shell = await loadBuyerShell(supabase, "/app/discover");
   const today = new Date();
   const askOn = askEnabled();
+  // Closing the record is a link back to this same search, with `record`
+  // dropped: `discoverHref` serializes the state and `record` is not part of
+  // it, so the search survives opening and closing a record untouched.
+  const closeHref = discoverHref(state);
+  const recordHref = (slug: string) => `${closeHref}${closeHref.includes("?") ? "&" : "?"}record=${encodeURIComponent(slug)}`;
+  // Started here, awaited below: the record and the results are independent
+  // reads, and awaiting this one first would have made opening a record cost
+  // the search's latency plus the record's rather than the larger of the two.
+  // An unknown slug renders no sheet rather than a not-found page — the search
+  // behind it is still a valid answer to what the buyer asked.
+  const recordPromise = recordSlug
+    ? loadRecordSheet(supabase, recordSlug, today, { closeHref, fullHref: `/app/suppliers/${recordSlug}` })
+    : Promise.resolve(null);
 
-  const { rows, total, error, failure } = await fetchDiscoverV32(supabase, state);
+  const [{ rows, total, error, failure }, record] = await Promise.all([
+    fetchDiscoverV32(supabase, state),
+    recordPromise,
+  ]);
   const slugs = rows.map((r) => r.slug);
   const hs = await fetchHsBatch(supabase, slugs);
 
@@ -259,6 +294,7 @@ export default async function BuyerDiscoverPage({
       hsLines: hs.lines,
       hsError: hs.error,
       saved: savedSet.has(row.id),
+      recordHref,
     }),
   );
   const tableRows = rows.map((row) =>
@@ -267,6 +303,7 @@ export default async function BuyerDiscoverPage({
       hsLines: hs.lines,
       hsError: hs.error,
       saved: savedSet.has(row.id),
+      recordHref,
     }),
   );
 
@@ -402,6 +439,14 @@ export default async function BuyerDiscoverPage({
           </Panel>
         </SelectionProvider>
       )}
+      {record ? (
+        <SheetFrame overlay closeHref={closeHref}>
+          <SupplierSheet
+            model={record}
+            save={record.supplierId ? <SaveRecordButton supplierId={record.supplierId} saved={record.saved} /> : undefined}
+          />
+        </SheetFrame>
+      ) : null}
     </AppShell>
   );
 }

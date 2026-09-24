@@ -133,6 +133,9 @@ export function Seg({
  * Space does not flip it on every auto-repeat; Enter does nothing, because a
  * native checkbox ignores Enter and the ARIA checkbox pattern names Space only.
  */
+/** What an inert checkbox says it is. Exported so a guard can pin the words rather than a copy of them. */
+export const INERT_CHECKBOX_TITLE = "Selecting rows is not available on this list";
+
 export function Checkbox({
   on = false,
   label,
@@ -153,7 +156,11 @@ export function Checkbox({
       role="checkbox"
       aria-checked={on}
       aria-disabled={interactive ? undefined : "true"}
-      title={interactive ? undefined : "Selection arrives with the results work"}
+      // The results work shipped (REZ-B), so "Selection arrives with the
+      // results work" became untrue wherever an inert box was still drawn —
+      // the RFQ list. The words now say what is true of THIS list: it does not
+      // support selection.
+      title={interactive ? undefined : INERT_CHECKBOX_TITLE}
       aria-label={label}
       tabIndex={interactive ? 0 : undefined}
       onClick={interactive ? onToggle : undefined}
