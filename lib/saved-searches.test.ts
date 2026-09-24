@@ -148,11 +148,15 @@ describe("saved-searches API boundary", () => {
   });
 
   it("a search too long for 0104's 8 KB state bound is refused before the insert", async () => {
+    // The keyword is capped at parse now (Q_MAX), so the longest search a URL
+    // can still carry is full district and city lists: 30 values of 80
+    // characters each (LIST_MAX, LIST_VALUE_MAX).
+    const list = (p: string) => Array.from({ length: 30 }, (_, i) => `${p}${i}`.padEnd(80, "x")).join(",");
     const inserted: unknown[] = [];
     const res = await runSavedSearchesPost({
       role: "buyer",
       supabase: clientOver({ inserted }),
-      raw: { name: "Long", search: `q=${"k".repeat(5000)}` },
+      raw: { name: "Long", search: `district=${list("d")}&city=${list("c")}` },
     });
     assert.equal(res.status, 400);
     assert.equal(inserted.length, 0);
