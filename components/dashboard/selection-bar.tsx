@@ -85,15 +85,23 @@ export function SelectionBar({ exportHref }: { exportHref: string }) {
     setBusy(true);
     setStatus("");
     const asked = generation.current;
+    let savedAny = false;
     const message = await runBulkSave(ids, {
       fetch: (url, init) => fetch(url, init),
       onSaved: (saved) => {
+        savedAny = true;
         announceBulkSaved(window, saved);
         router.refresh();
       },
     });
-    // After a selection change Save already belongs to the next request.
-    if (generation.current !== asked) return;
+    // After a selection change Save already belongs to the next request, and
+    // a bare "Saved 3" under "4 selected" would read as the list now shown.
+    // The outcome is still said — a save that went through unannounced, or
+    // failed unannounced, is a silence — but scoped to the earlier selection.
+    if (generation.current !== asked) {
+      setStatus(savedAny ? `Your earlier save went through: ${message.replace(/\.$/, "")}.` : `The earlier save did not go through. ${message}`);
+      return;
+    }
     setBusy(false);
     setStatus(message);
   }

@@ -24,8 +24,8 @@ export function ExportLink({
   requested?: number;
   /** Changes when the thing being exported changes (the bar passes the
    * buyer's selection edits): the old message is cleared, and a result still
-   * in flight is neither saved nor reported. Not a `key` — remounting moved focus off the link
-   * and let a second export start under the first. */
+   * in flight is neither saved nor reported (nor after an unmount). Not a
+   * `key`: remounting moved focus off the link. */
   resetOn?: number;
 }) {
   const [status, setStatus] = useState("");
@@ -39,6 +39,12 @@ export function ExportLink({
     // was still in flight returned silently, so the buyer clicked and got
     // nothing. The old export carries on, but is neither saved nor reported.
     setBusy(false);
+    // And when the button goes away (Clear hides the bar; a new page remounts
+    // it), an export still in flight is abandoned too, or its file lands on
+    // whatever the buyer is looking at by then.
+    return () => {
+      round.current += 1;
+    };
   }, [resetOn]);
 
   async function run(e: MouseEvent<HTMLElement>) {

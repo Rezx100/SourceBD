@@ -645,18 +645,47 @@ update public.suppliers s
    set employees_total = (array[300, 100, 600, 200, 500, 400])[substring(s.slug from 'ci-sort-([0-9])')::int]
  where s.slug like 'ci-sort-%';
 
+-- And a building with a large RSC headcount under ci-sort-2 (own 100), so the
+-- profile's figure orders ci-sort-2 first: a sort on that figure instead of
+-- the supplier's own could not pass the check below.
+insert into public.suppliers (slug, company_name, company_name_norm, city, district, is_published, is_sanctioned, facility_of)
+select 'ci-w-sortunit', 'CI W Sortunit', 'ci w sortunit', 'Dhaka', 'Dhaka', false, false, p.id
+  from public.suppliers p where p.slug = 'ci-sort-2'
+on conflict (slug) do nothing;
+insert into public.rsc_remediation (supplier_id, workers_count, active)
+select s.id, 5000, true from public.suppliers s where s.slug = 'ci-w-sortunit'
+on conflict do nothing;
+
 do $$
 declare
   got  text[];
+  gotq text[];
   want text[];
+  disp text[];
 begin
+  select array_agg(s.slug order by (public.production_workers_display_batch(array[s.id]) -> (s.id::text) ->> 'value')::int desc nulls last) into disp
+    from public.suppliers s where s.slug like 'ci-sort-%';
   select array_agg(d.slug order by d.ordinality) into got
     from public.discover_suppliers(p_sort => 'workers', p_limit => 100) with ordinality as d
    where d.slug like 'ci-sort-%';
   select array_agg(s.slug order by s.employees_total desc nulls last) into want
     from public.suppliers s where s.slug like 'ci-sort-%';
+  if disp is not distinct from want then
+    raise exception 'the fixture cannot tell the own figure from the profile figure: both order %', want;
+  end if;
   if got is distinct from want then
     raise exception 'the workers sort is not suppliers.employees_total descending: got %, want %', got, want;
+  end if;
+  -- And the keyword branch, which has its own ORDER BY: every ci-sort name
+  -- matches "ci sort", and the sort key precedes relevance.
+  select array_agg(d.slug order by d.ordinality) into gotq
+    from public.discover_suppliers(p_q => 'ci sort', p_sort => 'workers', p_limit => 100) with ordinality as d
+   where d.slug like 'ci-sort-%';
+  if coalesce(cardinality(gotq), 0) <> 6 then
+    raise exception 'the keyword search found % of the six ci-sort rows; its workers check would be vacuous', coalesce(cardinality(gotq), 0);
+  end if;
+  if gotq is distinct from want then
+    raise exception 'the keyword branch''s workers sort is not suppliers.employees_total descending: got %, want %', gotq, want;
   end if;
 end
 $$;

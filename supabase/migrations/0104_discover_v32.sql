@@ -1137,7 +1137,7 @@ comment on function public.hs_catalogue() is
 -- The Discover page printed "across this record and its buildings" under any
 -- figure that differed from the record's own, but this function prefers RSC:
 -- a factory with no buildings whose RSC headcount differs from its register
--- figure got that line too (hundreds of live factories, 24 Sep 2026). Only this
+-- figure got that line too (seen in live data, 24 Sep 2026). Only this
 -- function knows which sites it summed, so it now says so: `sites` (how many)
 -- and `includes_root` (whether this record is one of them). Body otherwise
 -- identical to 20260810071000_production_workers_display_batch.sql, which

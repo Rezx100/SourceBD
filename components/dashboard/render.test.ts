@@ -1313,6 +1313,7 @@ describe("the two-state controls say which state they are in", () => {
     // white) and the box looked unticked while the tree said "mixed".
     const dash = html.match(/<span aria-hidden="true" class="([^"]*)"><\/span>/)?.[1] ?? "";
     assert.match(dash, /forced-colors:bg-\[CanvasText\]/, `the mixed dash has no forced-colors paint: "${dash}"`);
+    assert.doesNotMatch(dash, /forced-colors:(?:hidden|invisible|opacity-0|bg-transparent|bg-\[Canvas\])(?![\w-])/, `the mixed dash is hidden in forced colors: "${dash}"`);
   });
 
   /** A source file with its comments removed, so prose cannot satisfy a code check. */
@@ -1452,7 +1453,7 @@ describe("the two-state controls say which state they are in", () => {
 
     it("a late save response never reports on a selection the buyer has since changed", () => {
       const code = sourceCode("components/dashboard/selection-bar.tsx");
-      assert.match(code, /const asked = generation\.current;[\s\S]*?if \(generation\.current !== asked\) return;[\s\S]*?setBusy\(false\);\s*setStatus\(message\);/);
+      assert.match(code, /const asked = generation\.current;[\s\S]*?if \(generation\.current !== asked\) \{[\s\S]*?return;\s*\}\s*setBusy\(false\);\s*setStatus\(message\);/);
       // Keyed on the buyer's edits, never on the Set: a refresh that prunes
       // the Set after a partial save must not erase the message about it.
       assert.match(code, /useEffect\(\(\) => \{\s*generation\.current \+= 1;\s*setStatus\(""\);[\s\S]*?setBusy\(false\);\s*\}, \[sel\.edits\]\);/);
@@ -1522,7 +1523,7 @@ describe("the two-state controls say which state they are in", () => {
 
     it("the bar's Save runs runBulkSave with every selected id, and announces + refreshes only through onSaved", () => {
       const code = sourceCode("components/dashboard/selection-bar.tsx");
-      assert.match(code, /await runBulkSave\(ids, \{\s*fetch: \(url, init\) => fetch\(url, init\),\s*onSaved: \(saved\) => \{\s*announceBulkSaved\(window, saved\);\s*router\.refresh\(\);\s*\},\s*\}\);/);
+      assert.match(code, /await runBulkSave\(ids, \{\s*fetch: \(url, init\) => fetch\(url, init\),\s*onSaved: \(saved\) => \{\s*savedAny = true;\s*announceBulkSaved\(window, saved\);\s*router\.refresh\(\);\s*\},\s*\}\);/);
       assert.match(code, /const ids = \[\.\.\.sel\.selected\];/);
       const at = code.indexOf("onClick={bulkSave}");
       assert.ok(at > 0, "Save is not wired to bulkSave");
@@ -2036,16 +2037,27 @@ describe("the topbar search field can shrink to a phone", () => {
 describe("the shell offers no control without a destination", () => {
   // The Help button rendered with no href and no handler: a keyboard or
   // screen-reader user reached a control that did nothing (founder decision,
-  // 24 Sep: none until /app/help exists). The shell is a server component,
-  // so no click handler can hide in it: a control does something only as a
-  // link to a page that exists, or as the submit of the form it sits in.
+  // 24 Sep: none until /app/help exists). Static markup carries no click
+  // handlers (two of the shell's children are client components), so a
+  // control counts only as a link to a page that exists or as the submit of
+  // the form it sits in; anything else focusable is a control going nowhere.
+  const sidebar = {
+    active: "search",
+    counts: {},
+    recent: [{ label: "Knit polo, GOTS", count: 12, href: "/app/discover?q=knit+polo" }],
+    plan: { name: "Free" },
+  };
   const shells = [
     { caption: "10,266 published suppliers", initial: "R", searchAction: "/app/discover" },
     { caption: "", initial: null },
   ].flatMap((model) => [
     renderToStaticMarkup(createElement(Topbar, { model } as Parameters<typeof Topbar>[0])),
-    shellHtml({ topbar: model } as Partial<Parameters<typeof AppShell>[0]>),
+    shellHtml({ topbar: model, sidebar } as Partial<Parameters<typeof AppShell>[0]>),
   ]);
+  const insideForm = (html: string, at: number) => {
+    const before = html.slice(0, at);
+    return before.lastIndexOf("<form") > before.lastIndexOf("</form>");
+  };
 
   // Every app route that has a page, as a pattern: `(group)` segments drop
   // out of the URL, `[param]` matches any one segment.
@@ -2055,7 +2067,7 @@ describe("the shell offers no control without a destination", () => {
       if (entry.isDirectory()) {
         const seg = /^\(.*\)$/.test(entry.name) ? null : /^\[.*\]$/.test(entry.name) ? "[^/]+" : entry.name;
         walk(path.join(dir, entry.name), seg ? [...segs, seg] : segs);
-      } else if (/^(page|route)\.tsx?$/.test(entry.name)) {
+      } else if (/^page\.tsx?$/.test(entry.name)) {
         routes.push(new RegExp(`^/${segs.join("/")}$`));
       }
     }
@@ -2071,15 +2083,25 @@ describe("the shell offers no control without a destination", () => {
         if (href.startsWith("#")) assert.match(html, new RegExp(`\\bid="${href.slice(1)}"`), `a link to a missing id: ${a}`);
         else assert.ok(pageExists(href), `a link to a page that does not exist: ${a}`);
       }
+      // A form is a destination too: its submit goes where `action` says.
+      for (const f of html.match(/<form\b[^>]*>/g) ?? []) {
+        const action = f.match(/\baction="([^"]*)"/)?.[1];
+        assert.ok(action && pageExists(action), `a form posting to a page that does not exist: ${f}`);
+      }
     }
   });
 
-  it("every button submits the form it sits in, and nothing else poses as a control", () => {
+  it("every button and form field sits in a form it submits, and nothing else poses as a control", () => {
     for (const html of shells) {
       for (const m of html.matchAll(/<button\b[^>]*>/g)) {
         assert.match(m[0], /\btype="submit"/, `a button with no destination: ${m[0]}`);
-        const before = html.slice(0, m.index);
-        assert.ok(before.lastIndexOf("<form") > before.lastIndexOf("</form>"), `a submit button outside any form: ${m[0]}`);
+        assert.ok(insideForm(html, m.index!), `a submit button outside any form: ${m[0]}`);
+      }
+      // <input type=button|reset|image> does nothing without script; any other
+      // field (the search box, a submit) is only a control inside its form.
+      for (const m of html.matchAll(/<(input|select|textarea)\b[^>]*>/g)) {
+        assert.doesNotMatch(m[0], /\btype="(?:button|reset|image)"/i, `a field posing as a button: ${m[0]}`);
+        assert.ok(insideForm(html, m.index!), `a form field outside any form: ${m[0]}`);
       }
       for (const t of html.match(/<(?!a\b|button\b|input\b|select\b|textarea\b|main\b)[a-z]+\b[^>]*(?:role="button"|tabindex="(?!-1")[^"]*")[^>]*>/g) ?? []) {
         assert.fail(`a focusable non-control with no destination: ${t}`);
@@ -2088,10 +2110,11 @@ describe("the shell offers no control without a destination", () => {
     }
   });
 
-  it("no Help control, by any name or link, until the help page exists", () => {
+  it("no Help control, by any name, value, text or link, until the help page exists", () => {
     const helpPage = pageExists("/app/help");
     for (const html of shells) {
-      const named = /(?:aria-label|title)="[^"]*\bhelp\b[^"]*"|>\s*(?:help|\?)\s*<|href="\/app\/help\b/i.test(html);
+      const named =
+        /(?:aria-label|title|value|placeholder)="[^"]*\bhelp\b[^"]*"|>[^<]*\bhelp\b[^<]*<|>\s*\?\s*<|href="\/app\/help\b/i.test(html);
       if (!helpPage) assert.ok(!named, `a Help control renders with nowhere to go: ${html}`);
     }
   });

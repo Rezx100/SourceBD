@@ -26,9 +26,12 @@ const SQL_WITH_COMMENTS = readFileSync(
  * quote the very predicates being asserted — they exist to explain what went
  * wrong last time. So `coalesce(auth.role(), 'anon')` matched the prose
  * describing the fix while the code below it had been reverted to the
- * NULL-unsafe form, and the guard stayed green. Match code only.
+ * NULL-unsafe form, and the guard stayed green. Match code only: block
+ * comments go too, or a reverted line kept inside one satisfied every
+ * positive match here (cycle 17).
  */
-const SQL = SQL_WITH_COMMENTS.split("\n")
+const SQL = SQL_WITH_COMMENTS.replace(/\/\*[\s\S]*?\*\//g, "")
+  .split("\n")
   .map((line) => {
     const i = line.indexOf("--");
     if (i === -1) return line;

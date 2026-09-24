@@ -87,6 +87,18 @@ describe("the bulk bar's handlers, invoked", () => {
     assert.deepEqual(busy, [true, false], "busy must be released");
   });
 
+  it("a Save click while one is running sends no second request", async () => {
+    let fetched = 0;
+    stub("window", new EventTarget());
+    stub("fetch", async () => {
+      fetched += 1;
+      return json(200, { ok: true, count: 1, skipped: 0, ids: [A] });
+    });
+    const run = bar(selection([A]), { refresh: () => {} }, [true, ""]);
+    await (buttonNamed(run.out, "Save").props.onClick as () => Promise<void>)();
+    assert.equal(fetched, 0);
+  });
+
   it("a full page of 100 selected goes in that one request, every id", async () => {
     // Three ids could not tell "the whole selection" from "the first 30".
     const many = Array.from({ length: 100 }, (_, i) => `00000000-0000-4000-8000-${String(i).padStart(12, "0")}`);
@@ -105,13 +117,16 @@ describe("the bulk bar's handlers, invoked", () => {
     stub("window", new EventTarget());
     let run: ReturnType<typeof bar> | null = null;
     stub("fetch", async () => {
-      run!.refs[1]!.current = Number(run!.refs[1]!.current) + 1; // the buyer ticked another box
+      run!.effects[0]!(); // the buyer ticked another box: the real edits effect
       return json(200, { ok: true, count: 1, skipped: 0, ids: [A] });
     });
     run = bar(selection([A]), { refresh: () => {} });
     await (buttonNamed(run.out, "Save").props.onClick as () => Promise<void>)();
     const statuses = run.sets.filter((s) => s.hook === 1).map((s) => s.value);
+    // Never a bare "Saved 1" that reads as the new selection...
     assert.ok(!statuses.some((v) => typeof v === "string" && v.startsWith("Saved")), `stale report: ${JSON.stringify(statuses)}`);
+    // ...but said, scoped to the earlier one (WCAG 4.1.3: an outcome with no status is a silence).
+    assert.equal(statuses[statuses.length - 1], "Your earlier save went through: Saved 1 supplier.");
   });
 
   it("a selection change frees Save, and a stale save does not take it back", async () => {
@@ -121,15 +136,36 @@ describe("the bulk bar's handlers, invoked", () => {
     mid.effects[0]!();
     assert.ok(mid.sets.some((x) => x.hook === 0 && x.value === false), "a selection change left Save busy");
     // ...and the old save, landing afterwards, must not touch busy again.
+    // The reset here is the bar's real edits effect, run mid-request.
     stub("window", new EventTarget());
     let run: ReturnType<typeof bar> | null = null;
     stub("fetch", async () => {
-      run!.refs[1]!.current = Number(run!.refs[1]!.current) + 1;
+      run!.effects[0]!();
       return json(200, { ok: true, count: 1, skipped: 0, ids: [A] });
     });
     run = bar(selection([A]), { refresh: () => {} });
     await (buttonNamed(run.out, "Save").props.onClick as () => Promise<void>)();
-    assert.deepEqual(run.sets.filter((x) => x.hook === 0).map((x) => x.value), [true]);
+    // Set by the click, freed by the reset, and not touched by the stale save.
+    assert.deepEqual(run.sets.filter((x) => x.hook === 0).map((x) => x.value), [true, false]);
+  });
+
+  it("a save that FAILS after the selection changed still says so; the reset is keyed on the buyer's edits", async () => {
+    // A superseded success is stale ("Saved 3" under "4 selected"); a
+    // superseded failure is not — those suppliers are still unsaved.
+    stub("window", new EventTarget());
+    let run: ReturnType<typeof bar> | null = null;
+    stub("fetch", async () => {
+      run!.effects[0]!(); // the buyer ticked another box: the real edits effect
+      return json(429, { error: "rate_limited" });
+    });
+    run = bar(selection([A, B], { edits: 7 }), { refresh: () => {} });
+    assert.deepEqual(run.deps[0], [7], "the bar's reset is not keyed on the buyer's edits");
+    await (buttonNamed(run.out, "Save").props.onClick as () => Promise<void>)();
+    const statuses = run.sets.filter((x) => x.hook === 1).map((x) => x.value);
+    assert.ok(
+      statuses.some((v) => typeof v === "string" && v.startsWith("The earlier save did not go through") && /Too many saves/.test(v)),
+      `a failed save was dropped without a word: ${JSON.stringify(statuses)}`,
+    );
   });
 
   it("Clear moves focus to the select-all box, THEN clears", () => {
@@ -253,6 +289,24 @@ describe("ExportLink's handler, invoked", () => {
     assert.deepEqual(statuses, ["Preparing the export…", ""], `the old export was reported, or its message kept: ${JSON.stringify(statuses)}`);
     // busy: set by the click, freed by the reset, and not touched again.
     assert.deepEqual(run.sets.filter((s) => s.hook === 1).map((s) => s.value), [true, false]);
+  });
+
+  it("an Export that goes away mid-download (Clear, a new page) abandons its file", async () => {
+    // The reset only ran on a changed selection. Clear unmounts the bar and
+    // its Export; nothing moved the round, and the old file landed anyway.
+    const d = doc();
+    stub("document", d.value);
+    let unmount: (() => void) | null = null;
+    stub("fetch", async () => {
+      unmount!();
+      return json(200, null, { "Content-Disposition": 'attachment; filename="old.csv"', "X-SourceBD-Rows": "1" });
+    });
+    const run = callWithHooks(ExportLink, { href: "/x", label: "Export", requested: 1, resetOn: 0 });
+    const cleanup = run.effects[0]!(); // React runs the effect after the first commit…
+    assert.equal(typeof cleanup, "function", "the reset effect returns no cleanup, so an unmount abandons nothing");
+    unmount = cleanup as () => void; // …and its cleanup on unmount.
+    await (buttonNamed(run.out, "Export").props.onClick as (e: unknown) => Promise<void>)(click().e);
+    assert.equal(d.anchors.length, 0, "the file was saved after its Export unmounted");
   });
 
   it("a click while an export is running starts no second one", async () => {

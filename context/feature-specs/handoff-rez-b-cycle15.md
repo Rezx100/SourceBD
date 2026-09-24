@@ -412,11 +412,13 @@ me to five lines or fewer, in plain words.
     longer touches busy. `hook-harness.ts` records effects and their
     dependency lists, so tests run the real reset.
   - The shell guard now requires every link in the topbar and sidebar to
-    reach a page that exists and every button to submit its own form. It
-    allows no other focusable control and no "help" by any name.
+    reach a page that exists and every button to submit its own form. (Cycle
+    17 found it still missed `<input>` controls, `value=` labels, longer
+    "help" text, form actions and API routes counted as pages; see §12.)
   - The worker basis is tested for a two-building sum that leaves the
     record out, in unit tests and in the CI replay. CI also runs the Workers
-    sort and checks the batch's anon and authenticated grants.
+    sort and checks the batch's anon and authenticated grants. These CI SQL
+    checks are proven only green (§3.1: no local Postgres).
   - The headline worker figure is always "on the supplier record": that is
     `suppliers.employees_total`, which comes from the registers or an RSC
     fill (`ops/backfill_rsc_employees.py`). The sort, filter chips, card,
@@ -434,3 +436,34 @@ me to five lines or fewer, in plain words.
   - The source-mark links are 20px with a 3px gap (WCAG 2.5.8), from REZ-A.
   - A signed-in supplier gets 403 from the export and 401 from
     `/api/v1/saved`. Suspension relies on the middleware alone.
+
+## 12. Cycle 17 (24 Sep)
+
+- Reviewed `f9b2930`. Accessibility ACCEPTED; truthfulness, correctness,
+  guard adequacy and security REJECTED.
+- Founder decision (24 Sep), on the security finding that one published
+  supplier's address holds a phone number that signed-out visitors can
+  read (true since 0072, not from this branch): clean that record and add a
+  recurring check, as its own task with a dry run for approval. Filed as a
+  task chip. It does not block REZ-B.
+- Repaired, each guard proven red (`mutate-c17.cjs`; earlier sets re-run):
+  - An Export that unmounts mid-download (Clear, a new page) no longer saves
+    its file: the reset effect's cleanup abandons it.
+  - A bulk Save that lands after a selection change is reported, worded for
+    the earlier selection ("Your earlier save went through: …" or "The
+    earlier save did not go through. …"), not dropped.
+  - The shell guard now covers `<input>`, `<select>` and `<textarea>`,
+    "help" in any text, value, label or placeholder, form actions, and only
+    real pages (not API routes). The sidebar is rendered with a recent search.
+  - The SQL text guards strip block comments. CI runs the keyword branch's
+    Workers sort, and the fixture has a building whose RSC figure reorders
+    the profile figure, so a sort on it would fail (CI-only, proven green).
+  - The bar's reset is asserted keyed on the buyer's edits; double-click
+    Save sends once; the forced-colors dash cannot be hidden.
+  - "Workers not on file" is no longer printed directly above a worker figure.
+  - PR #164's description was rewritten to current state.
+- Written down, not changed: the export's `api_export` bucket is not
+  asserted at the HTTP boundary (unit-only); abandoned exports still count
+  toward that bucket; a supplier's 403 from the export is unit-only; the
+  forced-colors rule is checked as a class, not in built CSS; "across its
+  buildings" is plural when one building is summed.

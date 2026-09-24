@@ -253,7 +253,13 @@ export function buildDiscoverCard(
     ...(year ? [{ text: `Est. ${year}`, mark: null }] : []),
     ...(w.own != null
       ? [{ text: `${formatCount(w.own)} workers${w.ownLabel ? ` · ${w.ownLabel}` : ""}`, mark: null }]
-      : [{ text: "Workers not on file", mark: null, quiet: true as const }]),
+      : [{
+          // "Workers not on file" directly above "907 workers · …" read as a
+          // contradiction; with a second figure the gap is only the record's own.
+          text: workersSecond ? "No worker figure on the supplier record" : "Workers not on file",
+          mark: null,
+          quiet: true as const,
+        }]),
     ...(workersSecond ? [{ text: workersSecond, mark: null }] : []),
     // The mark row beside this already shows every source, brand lists
     // included. This number must be the one the "≥ N registers or certifiers"

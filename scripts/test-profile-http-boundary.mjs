@@ -1807,14 +1807,14 @@ const CASES = [
     // Founder decision (24 Sep) at the boundary: the headline is the figure
     // the Workers sort orders on; the second line says what the profile's
     // figure covers, from the sites the batch summed, never a guess.
-    name: "rez-b: /app/discover table headlines the sorted worker figure, words the second from its sites",
-    path: "/app/discover?view=table",
+    name: "rez-b: /app/discover table, sorted by workers, headlines each supplier's own figure and words the second from its sites",
+    path: "/app/discover?view=table&sort=workers",
     auth: true,
     expect: {
       status: 200,
       // `>1,200<span` / `>100<span`: each figure at the head of its own cell.
       bodyIncludesAll: [
-        ">1,200<span",
+        ">1,200<span class=\"block text-xs font-normal text-ink-subtle\">on the supplier record</span>",
         "500 workers · across its buildings, not this record",
         ">100<span",
         "450 workers · RSC inspection",

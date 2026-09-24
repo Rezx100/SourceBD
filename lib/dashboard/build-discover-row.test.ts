@@ -316,7 +316,11 @@ describe("discover result HTML has no contact PII", () => {
     assert.ok(i >= 0, `the card does not headline the sorted figure: ${meta.join(" | ")}`);
     assert.equal(meta[i + 1], "9,000 workers · across this record and its buildings");
     const cardHtml = renderToStaticMarkup(createElement(SupplierResultCard, { card: buildDiscoverCard(rows[4]!, opts) }));
-    assert.match(cardHtml, /Workers not on file/);
+    assert.match(cardHtml, /No worker figure on the supplier record/);
+    assert.doesNotMatch(cardHtml, /Workers not on file/, "not on file, directly above a worker figure");
+    // With no figure anywhere, the plain words stay.
+    const none = renderToStaticMarkup(createElement(SupplierResultCard, { card: buildDiscoverCard({ ...ROW, employees_total: null }, opts) }));
+    assert.match(none, /Workers not on file/);
     assert.match(cardHtml, /907 workers · across its buildings, not this record/);
     // And the export: `workers` is the sorted figure.
     assert.deepEqual(rows.map((r) => discoverCsvValue(r, TODAY).workers), ["5000", "550", "400", "300", ""]);
@@ -325,7 +329,11 @@ describe("discover result HTML has no contact PII", () => {
   it("the Workers sort orders on the supplier's own figure — the one the page headlines", () => {
     // The headline is `workers_own`, the pre-overwrite employees_total. That
     // is only the sorted figure while 0104 sorts on suppliers.employees_total.
-    const sql = readFileSync(path.join(process.cwd(), "supabase/migrations/0104_discover_v32.sql"), "utf8");
+    // Code only: a reverted line kept in a comment must not satisfy it. CI
+    // runs both branches' sort for real (assert-0104.sql).
+    const sql = readFileSync(path.join(process.cwd(), "supabase/migrations/0104_discover_v32.sql"), "utf8")
+      .replace(/\/\*[\s\S]*?\*\//g, "")
+      .replace(/--[^\n]*/g, "");
     const keys = [...sql.matchAll(/case when v_sort = 'workers' then (\w+)\.(\w+) end desc nulls last/g)];
     assert.equal(keys.length, 2, "expected the workers sort in both discover_suppliers branches");
     for (const k of keys) assert.equal(k[2], "employees_total", `the workers sort moved to ${k[1]}.${k[2]}`);
