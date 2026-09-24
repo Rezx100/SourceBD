@@ -266,6 +266,11 @@ describe("list parameters are bounded before they reach the database", () => {
     const len = Number(sql.match(/where length\(x\) > (\d+)/)?.[1]);
     assert.ok(cap > 0 && LIST_MAX <= cap, `the app sends up to ${LIST_MAX}, the database refuses over ${cap}`);
     assert.ok(len > 0 && LIST_VALUE_MAX <= len, `the app allows ${LIST_VALUE_MAX} characters, the database ${len}`);
+    // The count cap covers every list the functions take, and the length cap
+    // both place lists (CI refuses each one for real, as anon and signed in).
+    const counted = [...(sql.match(/if greatest\(([\s\S]*?)\)\s*>\s*\d+\s*\n\s*or exists/)?.[1] ?? "").matchAll(/cardinality\((p_[a-z_]+)\)/g)].map((m) => m[1]);
+    assert.deepEqual(counted.sort(), ["p_brand_codes", "p_cert_kinds", "p_cities", "p_districts", "p_entity_types", "p_factory_types", "p_hs_codes", "p_registries"]);
+    assert.match(sql, /from unnest\(coalesce\(p_districts, '\{\}'::text\[\]\) \|\| coalesce\(p_cities, '\{\}'::text\[\]\)\) as x\s*\n\s*where length\(x\) > \d+/);
     // And both functions anon or a buyer can call check it first (CI runs
     // the refusal for real, as anon, in assert-0104.sql).
     const code = sql.replace(/--[^\n]*/g, "");

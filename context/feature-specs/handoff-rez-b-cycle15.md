@@ -559,7 +559,10 @@ me to five lines or fewer, in plain words.
   - Correctness (major): the table's Sources column counted marks, brand
     lists included, while the default sort orders on registers and
     certifiers. It now shows that figure, under "Registers & certifiers".
-- Proofs: `mutate-c21.cjs`, 12 mutations, all red. CI-only parts (the anon
+- Guard-adequacy, arriving last, added: a second Export after the first
+  answered is now tested; the count cap is checked to cover all eight lists;
+  CI's sort rows also differ in district and city.
+- Proofs: `mutate-c21.cjs`, 15 mutations, all red. CI-only parts (the anon
   refusals, the sort fixture) are proven only green.
 - Written down, not changed (for the founder at gate 1):
   - `production_workers_display_batch` takes any number of ids and reports

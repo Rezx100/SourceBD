@@ -363,6 +363,23 @@ describe("ExportLink's handler, invoked", () => {
     assert.deepEqual(run.sets.filter((s) => s.hook === 0).map((s) => s.value), [""]);
   });
 
+  it("once an export has answered, the next Export goes out", async () => {
+    // The one-at-a-time lock must be let go, or every later click said
+    // "Still preparing…" and fetched nothing.
+    let calls = 0;
+    stub("document", doc().value);
+    stub("fetch", async () => {
+      calls += 1;
+      return json(200, null, { "Content-Disposition": 'attachment; filename="sourcebd-selected-1.csv"', "X-SourceBD-Rows": "1" });
+    });
+    const run = callWithHooks(ExportLink, { href: "/x", label: "Export" });
+    const go = buttonNamed(run.out, "Export").props.onClick as (e: unknown) => Promise<void>;
+    await go(click().e);
+    await go(click().e);
+    assert.equal(calls, 2, "the second Export, after the first answered, fetched nothing");
+    assert.notEqual(run.sets.filter((s) => s.hook === 0).map((s) => s.value).pop(), STILL_EXPORTING);
+  });
+
   it("one export at a time: a second click while one runs sends nothing and says why", async () => {
     let calls = 0;
     let release: (v: unknown) => void = () => {};

@@ -648,7 +648,10 @@ update public.suppliers s
        -- The two shared tie-breakers too, each in an order of their own: a key
        -- on either, slipped ahead of the workers key, must change the result
        -- (they tied before, so such a key passed).
-       t13_source_count = (array[4, 6, 1, 5, 2, 3])[substring(s.slug from 'ci-sort-([0-9])')::int]
+       t13_source_count = (array[4, 6, 1, 5, 2, 3])[substring(s.slug from 'ci-sort-([0-9])')::int],
+       -- And the place columns, which all read Dhaka, so a key on either tied.
+       district = (array['Ci D1', 'Ci D2', 'Ci D3', 'Ci D4', 'Ci D5', 'Ci D6'])[substring(s.slug from 'ci-sort-([0-9])')::int],
+       city = (array['Ci C6', 'Ci C5', 'Ci C4', 'Ci C3', 'Ci C2', 'Ci C1'])[substring(s.slug from 'ci-sort-([0-9])')::int]
  where s.slug like 'ci-sort-%';
 insert into public.sbi_scores (supplier_id, total)
 select s.id, (array[60, 40, 10, 50, 20, 30])[substring(s.slug from 'ci-sort-([0-9])')::int]
@@ -686,7 +689,9 @@ begin
   -- Each other column a key could be written on orders the rows differently.
   if (select array_agg(s.slug order by s.t13_source_count desc, s.slug) from public.suppliers s where s.slug like 'ci-sort-%') is not distinct from want
      or (select array_agg(s.slug order by b.total desc, s.slug) from public.suppliers s join public.sbi_scores b on b.supplier_id = s.id where s.slug like 'ci-sort-%') is not distinct from want
-     or (select array_agg(s.slug order by s.completeness_pct desc, s.slug) from public.suppliers s where s.slug like 'ci-sort-%') is not distinct from want then
+     or (select array_agg(s.slug order by s.completeness_pct desc, s.slug) from public.suppliers s where s.slug like 'ci-sort-%') is not distinct from want
+     or (select array_agg(s.slug order by s.district, s.slug) from public.suppliers s where s.slug like 'ci-sort-%') is not distinct from want
+     or (select array_agg(s.slug order by s.city, s.slug) from public.suppliers s where s.slug like 'ci-sort-%') is not distinct from want then
     raise exception 'a fixture column orders the ci-sort rows as employees_total does; a key on it would pass unseen';
   end if;
   if (select count(distinct s.t13_source_count) from public.suppliers s where s.slug like 'ci-sort-%') <> 6 then
