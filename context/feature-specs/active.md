@@ -26,11 +26,12 @@ same PR. Read once per session.
   REZ-A (the code port of the dashboard kit): DONE.
   `ACCEPTED_FOR_HUMAN_REVIEW` cycle 21, merged to `development` PR #161
   (21 Sep). `handoff-rez-a-cycle21.md`.
-  IN PROGRESS: REZ-B (results page) on branch `rez-b-results-page`
-  (tip: `git log -1`). Migration `0104` drafted, not applied, and a hard
-  dependency of the branch. Cycle 21 repaired at `4f6eff2`, gate green, no
-  judge yet. To ship: `handoff-rez-b-deploy.md` (24 Sep). Loop history:
-  `handoff-rez-b-cycle15.md`.
+  REZ-B (results page): `ACCEPTED_FOR_HUMAN_REVIEW` at `4f6eff2`, merged to
+  `development` PR #164 (`cfbbf4a`), to `main` PR #165 (`1780c2c`), deployed
+  24 Sep. IN PROGRESS only because migration `0104` is NOT applied — signed-in
+  search is broken live until it is. START HERE:
+  `handoff-rez-b-live-migration.md` (25 Sep). Loop history:
+  `handoff-rez-b-cycle15.md`, `handoff-rez-b-deploy.md`.
   Then C → D → H → G → E → F → I per §7.
 
 ## Queued
