@@ -84,6 +84,9 @@ const OVERVIEW_TIMEOUT = "overview-statement-timeout";
 const STALE_SUCCESS = "inflight-success-then-timeout";
 const SELF = "self-parented-ltd";
 const GUARD_TOKEN = "http-guard-access-token";
+/** A second session whose profile row is role "supplier" (see the profiles
+ * mock), so a route's own role check can be exercised at the wire. */
+const SUPPLIER_TOKEN = "http-guard-supplier-access-token";
 let timeoutRecovered = false;
 let overlapRecovered = false;
 let timeoutOverlapHoldMs = 0;
@@ -351,6 +354,12 @@ const TEST_USER = {
   aud: "authenticated",
   role: "authenticated",
   email: "http-guard@example.test",
+};
+const SUPPLIER_USER = {
+  id: "00000000-0000-4000-8000-0000000000ab",
+  aud: "authenticated",
+  role: "authenticated",
+  email: "http-guard-supplier@example.test",
 };
 
 function mockHandler(req, res) {
@@ -643,6 +652,7 @@ function mockHandler(req, res) {
       // Require the exact guard token so the authenticated cases actually
       // prove the app reads and forwards the session token.
       const auth = req.headers.authorization ?? "";
+      if (auth === `Bearer ${SUPPLIER_TOKEN}`) return json(SUPPLIER_USER);
       if (auth !== `Bearer ${GUARD_TOKEN}`) {
         return json({ message: "invalid JWT", code: "invalid_token" }, 401);
       }
@@ -673,7 +683,10 @@ function mockHandler(req, res) {
       return json([], 201);
     }
     if (url.pathname === "/rest/v1/profiles") {
-      const row = { role: "buyer", is_suspended: false };
+      // The app asks for its own user's row (`id=eq.<uid>`); the supplier
+      // session's row is role "supplier", every other session is a buyer.
+      const asSupplier = url.searchParams.get("id") === `eq.${SUPPLIER_USER.id}`;
+      const row = { role: asSupplier ? "supplier" : "buyer", is_suspended: false };
       const wantsObject = (req.headers.accept || "").includes("vnd.pgrst.object");
       return json(wantsObject ? row : [row]);
     }
@@ -698,14 +711,15 @@ function mockHandler(req, res) {
   });
 }
 
-function buildAuthCookieHeader() {
+function buildAuthCookieHeader(who = "buyer") {
+  const supplier = who === "supplier";
   const session = {
-    access_token: GUARD_TOKEN,
+    access_token: supplier ? SUPPLIER_TOKEN : GUARD_TOKEN,
     token_type: "bearer",
     expires_in: 3600,
     expires_at: Math.floor(Date.now() / 1000) + 3600,
-    refresh_token: "http-guard-refresh-token",
-    user: TEST_USER,
+    refresh_token: supplier ? "http-guard-supplier-refresh-token" : "http-guard-refresh-token",
+    user: supplier ? SUPPLIER_USER : TEST_USER,
   };
   // @supabase/ssr cookieEncoding "base64url" writes values as
   // `base64-<base64url(JSON)>`; getChunks only decodes when the prefix is
@@ -946,7 +960,7 @@ function startServerAndWait(args, env, readyToken) {
 
 async function probeOnce(path, { auth = false } = {}) {
   const headers = { "user-agent": "sourcebd-http-guard/1.0" };
-  if (auth) headers.cookie = buildAuthCookieHeader();
+  if (auth) headers.cookie = buildAuthCookieHeader(auth === "supplier" ? "supplier" : "buyer");
   const res = await fetch(`${APP_URL}${path}`, {
     redirect: "manual",
     headers,
@@ -1962,6 +1976,23 @@ const CASES = [
     expect: { statusIn: [307, 401] },
   },
   {
+    // The handler's own role check, at the wire: the middleware passes any
+    // signed-in session through to /api/v1/*, so a supplier reaches the
+    // handler and must be turned away there — known, so 403 not 401 — with
+    // no rows in the body. Only the unit test asserted this before, one
+    // layer below the wire.
+    name: "rez-b: export API refuses a signed-in supplier with 403 and no rows",
+    path: "/api/v1/discover/export?q=knit",
+    auth: "supplier",
+    expect: { status: 403, bodyExcludes: ["Mother Company Ltd", "Overview Timeout Ltd"] },
+  },
+  {
+    name: "rez-b: export API with ?ids= refuses a signed-in supplier too",
+    path: "/api/v1/discover/export?q=knit&ids=00000000-0000-4000-8000-000000000098",
+    auth: "supplier",
+    expect: { status: 403, bodyExcludes: ["Mother Company Ltd"] },
+  },
+  {
     name: "rez-b: saved-searches API refuses an anonymous caller",
     path: "/api/v1/saved-searches",
     expect: { statusIn: [307, 401] },
@@ -2017,7 +2048,8 @@ async function main() {
     }
 
     for (const c of CASES) {
-      const opts = { auth: c.auth === true, devMode: mode === "dev" };
+      // `auth: true` is the buyer session; `auth: "supplier"` the supplier one.
+      const opts = { auth: c.auth === "supplier" ? "supplier" : c.auth === true, devMode: mode === "dev" };
       const rpcBeforeHit1 = {};
       if (
         typeof c.expect.hit1MustRpcMax === "number" ||

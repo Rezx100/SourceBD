@@ -648,7 +648,9 @@ update public.suppliers s
        -- The two shared tie-breakers too, each in an order of their own: a key
        -- on either, slipped ahead of the workers key, must change the result
        -- (they tied before, so such a key passed).
-       t13_source_count = (array[4, 6, 1, 5, 2, 3])[substring(s.slug from 'ci-sort-([0-9])')::int],
+       -- Not the rank of employees_total in either direction: [4,6,1,5,2,3]
+       -- was, so a source-count key ASCENDING reproduced the workers order.
+       t13_source_count = (array[6, 1, 4, 5, 2, 3])[substring(s.slug from 'ci-sort-([0-9])')::int],
        -- And the place columns, which all read Dhaka, so a key on either tied.
        district = (array['Ci D1', 'Ci D2', 'Ci D3', 'Ci D4', 'Ci D5', 'Ci D6'])[substring(s.slug from 'ci-sort-([0-9])')::int],
        city = (array['Ci C6', 'Ci C5', 'Ci C4', 'Ci C3', 'Ci C2', 'Ci C1'])[substring(s.slug from 'ci-sort-([0-9])')::int]
@@ -671,10 +673,13 @@ on conflict do nothing;
 
 do $$
 declare
-  got  text[];
-  gotq text[];
-  want text[];
-  disp text[];
+  got   text[];
+  gotq  text[];
+  want  text[];
+  disp  text[];
+  other text[];
+  col   text;
+  dir   text;
 begin
   select array_agg(s.slug order by (public.production_workers_display_batch(array[s.id]) -> (s.id::text) ->> 'value')::int desc nulls last) into disp
     from public.suppliers s where s.slug like 'ci-sort-%';
@@ -686,14 +691,20 @@ begin
   if disp is not distinct from want then
     raise exception 'the fixture cannot tell the own figure from the profile figure: both order %', want;
   end if;
-  -- Each other column a key could be written on orders the rows differently.
-  if (select array_agg(s.slug order by s.t13_source_count desc, s.slug) from public.suppliers s where s.slug like 'ci-sort-%') is not distinct from want
-     or (select array_agg(s.slug order by b.total desc, s.slug) from public.suppliers s join public.sbi_scores b on b.supplier_id = s.id where s.slug like 'ci-sort-%') is not distinct from want
-     or (select array_agg(s.slug order by s.completeness_pct desc, s.slug) from public.suppliers s where s.slug like 'ci-sort-%') is not distinct from want
-     or (select array_agg(s.slug order by s.district, s.slug) from public.suppliers s where s.slug like 'ci-sort-%') is not distinct from want
-     or (select array_agg(s.slug order by s.city, s.slug) from public.suppliers s where s.slug like 'ci-sort-%') is not distinct from want then
-    raise exception 'a fixture column orders the ci-sort rows as employees_total does; a key on it would pass unseen';
-  end if;
+  -- Each other column a key could be written on orders the rows differently,
+  -- in BOTH directions: a key is as easily written asc as desc, and the
+  -- source counts once matched employees_total's rank exactly, so an
+  -- ascending source-count key passed while only desc was compared.
+  foreach col in array array['s.t13_source_count', 's.completeness_pct', 's.district', 's.city',
+                             '(select b.total from public.sbi_scores b where b.supplier_id = s.id)'] loop
+    foreach dir in array array['asc', 'desc'] loop
+      execute format('select array_agg(s.slug order by %s %s, s.slug) from public.suppliers s where s.slug like %L', col, dir, 'ci-sort-%')
+         into other;
+      if other is not distinct from want then
+        raise exception 'a fixture column (% %) orders the ci-sort rows as employees_total does; a key on it would pass unseen', col, dir;
+      end if;
+    end loop;
+  end loop;
   if (select count(distinct s.t13_source_count) from public.suppliers s where s.slug like 'ci-sort-%') <> 6 then
     raise exception 'the ci-sort source counts tie; a source-count key ahead of workers would pass unseen';
   end if;
@@ -827,6 +838,7 @@ do $$
 declare
   r record;
   keys text[];
+  declared int;
 begin
   for r in
     select p.oid from pg_proc p
@@ -838,12 +850,24 @@ begin
   end loop;
   set local role anon;
   perform set_config('request.jwt.claim.role', 'anon', true);
+  -- One ROW first, then its keys: with LIMIT on the set-returning
+  -- jsonb_object_keys itself, keys held a single key (the shortest, "id")
+  -- and the contact check below ran over the word "id" alone.
   select array_agg(k) into keys
-    from (select jsonb_object_keys(to_jsonb(d)) as k from public.discover_suppliers() d limit 1) x;
+    from (select d from public.discover_suppliers() d limit 1) r
+   cross join lateral jsonb_object_keys(to_jsonb(r.d)) as k;
   reset role;
   perform set_config('request.jwt.claim.role', '', true);
   if keys is null then
     raise exception 'anon got no discover_suppliers row to inspect';
+  end if;
+  -- The whole declared row, or the check is looking at less than anon gets.
+  select count(*) into declared
+    from pg_proc p, unnest(p.proargmodes) as m(mode)
+   where p.pronamespace = 'public'::regnamespace and p.proname = 'discover_suppliers'
+     and m.mode = 't';
+  if declared < 20 or cardinality(keys) <> declared or 'company_name' <> all(keys) then
+    raise exception 'the anon row check saw % of % declared columns: %', cardinality(keys), declared, keys;
   end if;
   if exists (select 1 from unnest(keys) k where k ~* '(email|phone|contact_name|contact_role|whatsapp)') then
     raise exception 'a signed-out caller received a contact field: %', keys;

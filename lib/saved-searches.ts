@@ -47,8 +47,14 @@ const COUNT_FRESH_MS = 10 * 60 * 1000;
 /** Also the per-owner row cap 0104 enforces (`saved_searches_owner_cap`),
  * so no saved search can exist that the list cannot show or delete. */
 export const LIST_LIMIT = 200;
-/** Under 0104's 8 KB `query_state` check with room for the JSON wrapper. */
-const MAX_SAVED_SEARCH_CHARS = 4000;
+/**
+ * Under 0104's 8 KB `query_state` check (the `{"search":…}` wrapper adds a
+ * dozen bytes; the serialised search is URL-encoded ASCII, so a character is
+ * a byte), and ABOVE the longest search a URL can carry — full district and
+ * city lists come to about 5 KB. At 4,000 this refused a search the page had
+ * just run. lib/saved-searches.test.ts pins both sides.
+ */
+export const MAX_SAVED_SEARCH_CHARS = 6000;
 /**
  * Most stale counts one list call will refresh. Each refresh is a full
  * `discover_suppliers` scan, and the list ran one per stale row, sequentially,

@@ -36,6 +36,10 @@ const NOT_BUILT = `Send RFQ and Compare for several suppliers at once are not bu
 export const STILL_SAVING = "Still saving. Its result will show here.";
 export const SAVING = "Saving…";
 
+/** Two outcomes read one after the other ("Saved 1 supplier For your earlier
+ * selection…") ran into one sentence for a screen reader: each ends as one. */
+const sentence = (s: string) => (/[.!?…]$/.test(s) ? s : `${s}.`);
+
 export function SelectionBar({ exportHref }: { exportHref: string }) {
   const sel = useSelection();
   const router = useRouter();
@@ -162,7 +166,7 @@ export function SelectionBar({ exportHref }: { exportHref: string }) {
           <ExportLink href={bulkExportHref(exportHref, ids)} label="Export" requested={count} resetOn={sel.edits} onStatus={setExportStatus} />
         </div>
         <span role="status" aria-live="polite" className="text-xs text-ink-subtle">
-          {count > 0 ? status : [status, exportStatus].filter(Boolean).join(" ")}
+          {count > 0 ? status : [status, exportStatus].filter(Boolean).map(sentence).join(" ")}
         </span>
         {count > 0 ? (
           <>

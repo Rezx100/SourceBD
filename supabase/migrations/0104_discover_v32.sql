@@ -531,7 +531,8 @@ revoke all on function public.discover_v32_passes(
 -- an unbounded value is a per-call cost the caller chooses. The app keeps
 -- under these limits before it calls (lib/discover-v32-state.ts: 30 values of
 -- at most 80 characters, a keyword of at most 120; the public /discover page
--- and the suggest route cap theirs the same way), dropping what is over.
+-- caps its values the same way, dropping what is over; the suggest route
+-- refuses a keyword over 200 with a 400).
 create or replace function public.discover_v32_assert_bounded(
   p_entity_types text[],
   p_cert_kinds text[],

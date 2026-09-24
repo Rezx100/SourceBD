@@ -24,7 +24,7 @@ import {
   sortRpc,
   withoutFilterFamily,
 } from "./discover-v32-state";
-import { resolveDiscoverSmartQuery } from "./discover-smart-query";
+import { QUERY_REWRITE_WORST_GROWTH, resolveDiscoverSmartQuery } from "./discover-smart-query";
 
 describe("discover URL state", () => {
   it("round-trips the spec's example query string", () => {
@@ -299,5 +299,12 @@ describe("list parameters are bounded before they reach the database", () => {
     // The rewrite lengthens words (kid → kids); the worst case still fits.
     const rewritten = resolveDiscoverSmartQuery("kid ".repeat(Q_MAX).slice(0, Q_MAX), "").rpcQ;
     assert.ok(rewritten.length <= qMax, `a ${Q_MAX}-character keyword becomes ${rewritten.length} after the rewrite; the database refuses over ${qMax}`);
+    // Over the WHOLE rewrite table, not the one entry sampled above: a new
+    // mapping that lengthens more than kid → kids would turn a keyword the
+    // app accepts into a search the database refuses, and the sample above
+    // would stay green.
+    const worst = Math.ceil(Q_MAX * QUERY_REWRITE_WORST_GROWTH);
+    assert.ok(QUERY_REWRITE_WORST_GROWTH >= 1.25, "the rewrite table lost kid → kids, or the growth is no longer computed over it");
+    assert.ok(worst <= qMax, `the worst rewrite grows a ${Q_MAX}-character keyword to ${worst}; the database refuses over ${qMax}`);
   });
 });

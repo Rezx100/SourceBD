@@ -562,7 +562,7 @@ me to five lines or fewer, in plain words.
 - Guard-adequacy, arriving last, added: a second Export after the first
   answered is now tested; the count cap is checked to cover all eight lists;
   CI's sort rows also differ in district and city.
-- Proofs: `mutate-c21.cjs`, 15 mutations, all red. CI-only parts (the anon
+- Proofs: `mutate-c21.cjs`, 16 mutations, all red (the 16th, the saved-search size limit, arrived with `e999f79`). CI-only parts (the anon
   refusals, the sort fixture) are proven only green.
 - Written down, not changed (for the founder at gate 1):
   - `production_workers_display_batch` takes any number of ids and reports
@@ -574,3 +574,61 @@ me to five lines or fewer, in plain words.
   - A new search, sort or page remounts the bar, so a save still running is
     not reported; a refresh that lands the error panel replaces "Saved N".
   - The topbar's supplier count leaves out sanctioned suppliers unlabelled.
+
+## 16. Cycle 21 (24 Sep)
+
+- Reviewed `e999f79`. Gates at that SHA: tsc 0, lint 0, tests 1452/0
+  (exit 0), HTTP boundary 92/92, mutate-c15…c21 all red, CI green on all
+  four jobs. Accessibility ACCEPTED; truthfulness, correctness, security
+  and guard-adequacy each REJECTED with one major, no blockers. Findings
+  were sorted with jev-decide: both majors it rated (0.89+) matched the
+  reviewers; below 0.7 the call was made by hand.
+- Repaired in the next commit, each with a guard:
+  - Security (major): the CI check that a signed-out caller's row carries
+    no contact field collected ONE key, "id", because LIMIT sat on the
+    key-listing function. It now takes one row, lists every key, and fails
+    unless the count equals the declared columns.
+  - Truthfulness (major), guard-adequacy G3: the CI sort fixture's source
+    counts were the rank of the worker figures, so a source-count key
+    ascending reproduced the Workers order and only desc was compared. New
+    values; every fixture column is compared in both directions.
+  - Correctness (major): nothing invoked the tick on a card or a table row;
+    blanking both handlers left the suite green. interaction.test.ts now
+    invokes the box's click and Space on both, under a recording selection.
+  - Guard-adequacy (major): the keyword-rewrite guard sampled kid → kids;
+    it now holds Q_MAX × the worst growth over the whole rewrite table
+    (`QUERY_REWRITE_WORST_GROWTH`, exported from discover-smart-query.ts).
+  - The class-list split on the letter "s" (three reviewers) → whitespace;
+    the proof expects the loop's own message, which only a real split gives.
+  - Two empty-bar outcomes ran into one sentence for a screen reader
+    (accessibility A11Y-2): each now ends as a sentence, with a test.
+  - The saved-search cap (4,000) refused the longest search a URL can carry
+    (about 4,989 characters). Raised to 6,000, under the 8 KB bound; the test
+    pins both sides (truthfulness m2, correctness m2).
+  - Export API: a signed-in supplier is refused with 403 and no rows at the
+    HTTP boundary (security's missing test); the mock gained a supplier
+    session, keyed by the profile row the app asks for.
+  - §15's mutation count (16), and 0104's comment on the suggest route
+    (it refuses over 200 with a 400; it drops nothing).
+- Proofs: `mutate-c22.cjs`, 7 mutations, all red; `mutate-c21.cjs` re-run
+  after the cap export, 16 red. The supplier 403 case is proven red by a
+  second `--build` run with the mock's supplier profile answering "buyer"
+  (`evidence/http-mutated-*.txt`). CI-only parts (the key-set check, the
+  both-direction sort check) are proven only green.
+- Written down, not changed (for the founder at gate 1), on top of §15:
+  - `sbi_total` is a tie-breaker in the anon-callable search ordering,
+    inherited verbatim from 0076 (security m1).
+  - The comment on `discover_v32_assert_bounded` reads as if every value is
+    bounded; equality-compared lists are not, and need not be (security m2).
+  - The announcer says nothing when the selection empties (A11Y-3); a Space
+    keyup toggles a box the keydown did not land on (A11Y-4); two published
+    suppliers with one name would share a box label — none today (A11Y-5);
+    the RFQ list's inert box still says "Selection arrives with the results
+    work" (A11Y-6); the table's "Registers & certifiers" figure sits beside
+    marks that include brand lists (A11Y-7), and the header departs from the
+    spec's "Sources" (truthfulness m5).
+  - Q_MAX slices before lower-casing, so 120 dotted capital I's become 240
+    characters and a refused search (correctness m3, contrived); the export
+    counts ids before dedup (m4, unreachable from the bar).
+  - No test runs the 2.4.11 effect for the message-only bar (guard G4); no
+    test pins the public /discover page's caps (guard T1).

@@ -6,6 +6,7 @@ import path from "node:path";
 
 import {
   LIST_LIMIT,
+  MAX_SAVED_SEARCH_CHARS,
   runSavedSearchesDelete,
   runSavedSearchesGet,
   runSavedSearchesPost,
@@ -147,19 +148,30 @@ describe("saved-searches API boundary", () => {
     for (const r of [cap, size, other]) assert.doesNotMatch(JSON.stringify(r.body), /violates|saved_searches_x/);
   });
 
-  it("a search too long for 0104's 8 KB state bound is refused before the insert", async () => {
-    // The keyword is capped at parse now (Q_MAX), so the longest search a URL
-    // can still carry is full district and city lists: 30 values of 80
-    // characters each (LIST_MAX, LIST_VALUE_MAX).
+  it("the longest search a URL can carry saves, and the app's cap stays under 0104's 8 KB state bound", async () => {
+    // The keyword is capped at parse (Q_MAX), so the longest search the page
+    // will run is full district and city lists: 30 values of 80 characters
+    // each (LIST_MAX, LIST_VALUE_MAX). It must save — a 4,000-character cap
+    // once refused a search the buyer had just run — and the cap plus the
+    // JSON wrapper must stay under the database's bound, or an over-cap
+    // search is a bare 500 carrying Postgres's text instead of a reason.
     const list = (p: string) => Array.from({ length: 30 }, (_, i) => `${p}${i}`.padEnd(80, "x")).join(",");
-    const inserted: unknown[] = [];
+    const inserted: { query_state?: { search?: string } }[] = [];
     const res = await runSavedSearchesPost({
       role: "buyer",
       supabase: clientOver({ inserted }),
       raw: { name: "Long", search: `district=${list("d")}&city=${list("c")}` },
     });
-    assert.equal(res.status, 400);
-    assert.equal(inserted.length, 0);
+    assert.equal(res.status, 200, `the longest search a URL can carry was refused — over the app's cap (${MAX_SAVED_SEARCH_CHARS})? ${JSON.stringify(res.body)}`);
+    assert.equal(inserted.length, 1);
+    const stored = inserted[0]?.query_state?.search ?? "";
+    assert.ok(stored.length > 4000, `the longest search serialises to ${stored.length} characters; the fixture no longer exercises the cap`);
+    assert.ok(stored.length <= MAX_SAVED_SEARCH_CHARS, `the longest search a URL can carry (${stored.length}) is over the app's cap (${MAX_SAVED_SEARCH_CHARS}), so it cannot be saved`);
+    const sql = readFileSync(path.join(process.cwd(), "supabase/migrations/0104_discover_v32.sql"), "utf8");
+    const bound = Number(sql.match(/octet_length\(query_state::text\) <= (\d+)/)?.[1]);
+    assert.ok(bound > 0, "0104 no longer bounds query_state");
+    const atCap = Buffer.byteLength(JSON.stringify({ search: "x".repeat(MAX_SAVED_SEARCH_CHARS) }));
+    assert.ok(atCap <= bound, `a search at the app's cap is ${atCap} bytes stored, over 0104's 8 KB state bound (${bound})`);
   });
 
   it("0104's per-owner row cap is the list's own limit, so no saved search is out of reach", () => {

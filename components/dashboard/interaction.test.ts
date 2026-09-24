@@ -6,9 +6,13 @@ import assert from "node:assert/strict";
 import { afterEach, describe, it } from "node:test";
 import { AppRouterContext } from "next/dist/shared/lib/app-router-context.shared-runtime";
 
-import { Button } from "./controls";
+import { buildCard, buildTableRow } from "@/lib/dashboard/build-models";
+import { aboniInput } from "@/lib/dashboard/fixtures";
+import { Button, Checkbox } from "./controls";
 import { EARLIER, ExportLink, STILL_EXPORTING } from "./export-link";
 import { callWithHooks, findAll, textOf } from "./hook-harness";
+import { ResultsTable } from "./results-table";
+import { SupplierResultCard } from "./supplier-result-card";
 import { SaveRecordButton } from "./save-record-button";
 import { SaveSearchForm } from "./save-search-form";
 import { SAVING, SelectionBar, STILL_SAVING } from "./selection-bar";
@@ -191,7 +195,11 @@ describe("the bulk bar's handlers, invoked", () => {
       // CSS, and left Save and Export on screen and working.
       const actions = findAll(shown.out as never, (el) => el.props.hidden === true);
       assert.equal(actions.length, 1, "the actions are not hidden with nothing selected");
-      const cls = String(actions[0]!.props.className ?? "").split(/s+/);
+      // Split on whitespace, not the letter "s": `/s+/` once left this loop
+      // running over garbage, and the guard held only because the class list
+      // happened to be the bare word "hidden". mutate-c22 expects the loop's
+      // own message, which only a real split can produce.
+      const cls = String(actions[0]!.props.className ?? "").split(/\s+/).filter(Boolean);
       assert.ok(cls.includes("hidden"), `the hidden actions carry no display:none class: ${cls.join(" ")}`);
       for (const t of cls) {
         assert.doesNotMatch(t, /^(?:flex|inline-flex|grid|inline-grid|block|inline-block|inline|table|contents|flow-root|list-item)$/, `a display class on the hidden actions: ${t}`);
@@ -459,5 +467,64 @@ describe("a row's Save and the saved-search form, invoked", () => {
     const long = await submit(400, "search too long to save");
     assert.equal(long.nameError, false);
     assert.match(long.message, /too long/);
+  });
+});
+
+describe("a tick on a card or a row reaches the shared selection, invoked", () => {
+  // Every selection guard rests on this one link, and nothing invoked it:
+  // blanking both onToggle bodies left the whole suite green (cycle 21).
+  const withToggle = (calls: string[]) =>
+    new Map<unknown, unknown>([[SelectionContext, selection([], { toggle: (id: string) => calls.push(id) })]]);
+  const boxOf = (tree: unknown) => {
+    const boxes = findAll(tree as never, (el) => el.type === Checkbox);
+    assert.equal(boxes.length, 1, `expected one selection box, found ${boxes.length}`);
+    return boxes[0]!;
+  };
+  const press = (box: { props: Record<string, unknown> }) => {
+    // Checkbox itself, rendered with the caller's props: the click and the
+    // Space keyup it wires both have to reach the caller's onToggle.
+    const spans = findAll(callWithHooks(Checkbox, box.props as never).out as never, (el) => el.props.role === "checkbox");
+    assert.equal(spans.length, 1, "Checkbox did not render one role=checkbox element");
+    const span = spans[0]!;
+    (span.props.onClick as () => void)();
+    (span.props.onKeyDown as (e: unknown) => void)({ key: " ", preventDefault() {} });
+    (span.props.onKeyUp as (e: unknown) => void)({ key: " ", preventDefault() {} });
+  };
+
+  it("the card's box toggles the card's supplier, by click and by Space", () => {
+    const calls: string[] = [];
+    const card = { ...buildCard(aboniInput()), supplierId: A };
+    const run = callWithHooks(SupplierResultCard, { card }, { contexts: withToggle(calls) });
+    press(boxOf(run.out));
+    assert.deepEqual(calls, [A, A], "the card's box did not reach sel.toggle with the card's supplier");
+  });
+
+  it("the table row's box toggles the row's supplier, by click and by Space", () => {
+    const calls: string[] = [];
+    const row = { ...buildTableRow(aboniInput()), supplierId: B };
+    const run = callWithHooks(ResultsTable, { rows: [row] }, { contexts: withToggle(calls) });
+    press(boxOf(run.out));
+    assert.deepEqual(calls, [B, B], "the row's box did not reach sel.toggle with the row's supplier");
+  });
+
+  it("without a provider, or without a supplier id, the box offers no toggle", () => {
+    const calls: string[] = [];
+    const card = { ...buildCard(aboniInput()), supplierId: undefined };
+    const noId = boxOf(callWithHooks(SupplierResultCard, { card }, { contexts: withToggle(calls) }).out);
+    assert.equal(noId.props.onToggle, undefined, "a card with no supplier id offered a toggle");
+    const noProvider = boxOf(callWithHooks(SupplierResultCard, { card: { ...card, supplierId: A } }).out);
+    assert.equal(noProvider.props.onToggle, undefined, "a card outside the provider offered a toggle");
+    assert.deepEqual(calls, []);
+  });
+});
+
+describe("the empty bar's messages, read together", () => {
+  it("two outcomes with nothing selected read as two sentences", () => {
+    // "Saved 1 supplier For your earlier selection: Export downloaded." was
+    // one run-on sentence to a screen reader.
+    const shown = bar(selection([]), { refresh: () => {} }, [false, "Saved 1 supplier", "For your earlier selection: Export downloaded."]);
+    const regions = findAll(shown.out as never, (el) => el.type === "span" && el.props.role === "status" && !String(el.props.className ?? "").includes("sr-only"));
+    assert.equal(regions.length, 1);
+    assert.equal(textOf(regions[0]!.props.children as never), "Saved 1 supplier. For your earlier selection: Export downloaded.");
   });
 });
