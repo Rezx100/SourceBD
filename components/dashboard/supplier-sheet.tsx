@@ -20,6 +20,7 @@ import { LogoTile, SourceMarks } from "./marks";
 import { PHOTO_CAPTION, PhotoGrid } from "./photo-tiles";
 import {
   ActionBar,
+  AffiliationNote,
   CertGrid,
   FactsPanel,
   LocationsList,
@@ -28,6 +29,7 @@ import {
   RecordRfqList,
   RscBlock,
   SanctionBanner,
+  SanctionEvidence,
   Sheet,
   SheetBar,
   SheetScroll,
@@ -65,7 +67,7 @@ export function SupplierSheet({
         {/* Close returns to the results the overlay sits over. The full page
             has nothing to close, so it offers no dead control. */}
         {model.closeHref ? (
-          <Button variant="ghost" icon aria-label="Close" href={model.closeHref}>
+          <Button variant="ghost" icon aria-label="Close" href={model.closeHref} clientNav scroll={false}>
             <Icon name="x" />
           </Button>
         ) : null}
@@ -81,13 +83,13 @@ export function SupplierSheet({
               The words drop below `sm`: "Open full page" beside a Close button
               overran a 320px sheet by 29px, and the icon plus the accessible
               name says the same thing in the space there is. */}
-          <Button variant="ghost" href={model.fullHref} aria-label={model.closeHref ? "Open the full record page" : "Share this record"}>
+          <Button variant="ghost" href={model.fullHref} clientNav aria-label={model.closeHref ? "Open the full record page" : "Share this record"}>
             <Icon name="share" />
             <span className="hidden sm:inline">{model.closeHref ? "Open full page" : "Share"}</span>
           </Button>
         </span>
       </SheetBar>
-      {model.sanctioned ? <SanctionBanner sample={model.sanctionSample} /> : null}
+      {model.sanctioned ? <SanctionBanner sample={model.sanctionSample} evidenceHref="#sanctions" /> : null}
       <SheetScroll>
         <div className="flex flex-col gap-3 px-6 pt-5">
           <div className="flex items-start gap-4">
@@ -141,8 +143,12 @@ export function SupplierSheet({
             </>
           }
           action={
-            p.lines > 0 ? (
-              <a href="#products" className="inline-flex items-center gap-0.5 text-brand-ink">
+            /* Was `href="#products"` — a link from the Products section to the
+               Products section. The grid shows six tiles; a record with twelve
+               headings had six lines reachable from nowhere. This lists every
+               heading the record exports. */
+            p.lines > 0 && p.allLinesHref ? (
+              <a href={p.allLinesHref} className="inline-flex items-center gap-0.5 text-brand-ink">
                 All {p.lines} lines <Icon name="chev-r" small />
               </a>
             ) : null
@@ -174,7 +180,7 @@ export function SupplierSheet({
           />
           {p.tiles.length > 0 ? (
             <>
-              <PhotoGrid tiles={p.tiles} lineHref={(hs) => `/app/suppliers/${model.slug}/lines/${hs}`} />
+              <PhotoGrid tiles={p.tiles} lineHref={(hs) => model.lineHref(hs)} />
               <Caption>{PHOTO_CAPTION}. A supplier-attested upload replaces it (V2).</Caption>
             </>
           ) : null}
@@ -230,6 +236,22 @@ export function SupplierSheet({
             </div>
           ))}
         </SheetSection>
+        {/* The banner asserts the match; this is where a buyer reads it. The
+            page this sheet replaced carried these rows on its Compliance tab,
+            and the banner's own copy pointed at them. */}
+        {model.sanctioned ? (
+          <SheetSection
+            id="sanctions"
+            title="Sanctions matches"
+            caption={model.sanctions.length > 0 ? `${model.sanctions.length} on file` : null}
+          >
+            {model.sanctions.length > 0 ? (
+              <SanctionEvidence rows={model.sanctions} />
+            ) : (
+              <QuietEmpty>{model.sanctionsEmpty}</QuietEmpty>
+            )}
+          </SheetSection>
+        ) : null}
         <SheetSection id="sources" title="Sources" caption={model.sourcesCaption}>
           {model.sources.length > 0 ? (
             <SourcesList rows={model.sources} />
@@ -265,6 +287,7 @@ export function SupplierSheet({
         >
           {model.rfqs.rows.length > 0 ? <RecordRfqList rows={model.rfqs.rows} /> : <QuietEmpty>{model.rfqs.empty}</QuietEmpty>}
         </SheetSection>
+        <AffiliationNote />
       </SheetScroll>
       <ActionBar sanctioned={model.sanctioned} everyMarkLinks={model.everyMarkLinks} rfqHref={model.rfqHref} save={save} />
     </Sheet>

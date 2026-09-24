@@ -107,6 +107,15 @@ describe("SupplierSheet — a sanctioned record (REZ-C §3.3, spec §2)", () => 
       assert.ok(at > -1, `the ${id} section is missing, so the banner does not cover its tab`);
       assert.ok(banner < at, `the banner comes after the ${id} section`);
     }
+    // Document order is not enough. The sections live inside a scroll region,
+    // and "every tab" means the banner is still on screen when the buyer has
+    // scrolled to RFQs. That is true only while the banner is OUTSIDE that
+    // region — move it one line down, inside it and above #overview, and the
+    // order assertions above all still pass while the banner scrolls away on
+    // seven tabs out of eight.
+    const scroll = html.indexOf('data-sheet-scroll="true"');
+    assert.ok(scroll > -1, "the sheet no longer has a scroll region; this guard needs rewriting");
+    assert.ok(banner < scroll, "the sanction banner is inside the scroll region and scrolls out of view");
   });
 
   it("Send RFQ is disabled and carries no href — on the sheet and on the line sheet", () => {
@@ -163,7 +172,16 @@ describe("SupplierSheet — the four sections REZ-C adds", () => {
   it("Sources names each register, its tier in words, and the date it was read", () => {
     const model = buildSheet(aboniInput());
     const html = renderToStaticMarkup(createElement(SupplierSheet, { model }));
-    assert.ok(model.sources.length > 1, "the 11-source record built fewer than two source rows");
+    // Exact, not "> 1": Aboni files 13 provenance rows across 11 registers, so
+    // a broken dedup renders 13 and `> 1` stays green.
+    assert.equal(model.sources.length, 11, "one row per register, not per provenance row");
+    assert.equal(new Set(model.sources.map((s) => s.mark.code)).size, 11, "a register is listed twice");
+    // The register's own read date, and its reference from that same read.
+    const bkmea = model.sources.find((s) => s.mark.code === "BKMEA");
+    assert.ok(bkmea, "BKMEA is missing from the Sources list");
+    assert.equal(bkmea.readDate, "2 Aug 2026", "the row shows an older read than the register's latest");
+    assert.ok(bkmea.ref, "the row shows no reference for a register that filed one");
+    assert.ok(html.includes(`read ${bkmea.readDate}`), "the read date is not in the HTML");
     // The tier is the founder's words, never the database slug.
     assert.doesNotMatch(html, /tier1_gov|tier2_industry|tier3_cert|tier4_brand/);
     assert.match(html, /Government register|Industry body|Certification body/);
@@ -173,10 +191,24 @@ describe("SupplierSheet — the four sections REZ-C adds", () => {
     assert.match(html, /of 14 registers read/);
     assert.doesNotMatch(html, /of 25 registers/);
     // The tab's count and the section's rows are one number.
-    assert.equal(
-      model.tabs.find((t) => t.label === "Sources")?.count,
-      String(model.marks.length),
-    );
+    //
+    // This compared the tab to `model.marks.length` — which IS what the tab is
+    // built from, so it compared a value to itself and could never fail. It
+    // never touched `model.sources`, the thing the tab is a count OF, and the
+    // two came from genuinely different code paths: the tab from
+    // `allSourceCodes` (tags ∪ pills ∪ certs ∪ brands ∪ provenance), the
+    // section from `provenance` alone. On 69 of 10,266 published records they
+    // disagreed (SQL, 25 Sep 2026 — a `source_tags` entry with no
+    // `source_records` row, BGMEA in every case).
+    assert.equal(model.tabs.find((t) => t.label === "Sources")?.count, String(model.sources.length));
+    assert.equal(model.sourceCount, model.sources.length, "the head and the section disagree");
+    // And the rows really are in the HTML, so the count is not of a list the
+    // sheet never drew.
+    const sourcesSection = html.slice(html.indexOf('id="sources"'));
+    const escaped = (s: string) => s.replace(/&/g, "&amp;").replace(/'/g, "&#x27;");
+    for (const s of model.sources) {
+      assert.ok(sourcesSection.includes(escaped(s.name)), `${s.name} is counted but not rendered`);
+    }
   });
 
   it("Locations shows premises, not address rows, and keeps the other spellings", () => {

@@ -11,6 +11,7 @@ import "server-only";
 // migration's header for why the counts do not live on `buyer_supplier_profile`.
 
 import { fetchDisplayWorkersBatch } from "@/lib/enrich-discover-workers";
+import { isProfileRpcTimeout } from "@/lib/public-supplier-profile";
 import { hscodesFromRpc } from "@/lib/epb-hscodes";
 import { buildProductSheet, buildSheet, type ProfilePayload, type RecordInput } from "./build-models";
 import { formatCount, formatDay } from "./facts";
@@ -22,6 +23,18 @@ import type { ContactCounts, ProductSheetModel, RecordRfqRow, SupplierSheetModel
 export type RecordRpc = { rpc: (fn: string, args: Record<string, unknown>) => any };
 
 export type LoadedRecord = { slug: string; input: RecordInput };
+
+/**
+ * The profile RPC hit its statement timeout. Distinct from "no such record":
+ * the record may well exist, and answering 404 for a slow read tells the buyer
+ * something false about the company.
+ */
+export class ProfileReadTimeout extends Error {
+  constructor(readonly slug: string) {
+    super(`buyer_supplier_profile timed out for ${slug}`);
+    this.name = "ProfileReadTimeout";
+  }
+}
 
 /**
  * A record's profile and export lines. The worker figure is filled in
@@ -43,12 +56,20 @@ export async function loadRecordInput(
       supabase.rpc("supplier_epb_hscodes", { p_slug: slug }),
     ]);
     const data = profileResult?.data;
+    // A statement timeout is not a missing record. The page this loader serves
+    // used to render "Service temporarily slow · Retry" for it; returning null
+    // here made the route fall through to its not-found path and answer 404 for
+    // a record that exists and is published. The caller distinguishes them.
+    if (isProfileRpcTimeout(profileResult?.error) || isProfileRpcTimeout(data)) {
+      throw new ProfileReadTimeout(slug);
+    }
     if (profileResult?.error || !data || typeof data !== "object" || !("supplier" in data)) return null;
     const profile = data as ProfilePayload;
     // A failed lines read is carried as "unknown", never rendered as "no lines".
     const { hscodes, loadError } = hscodesFromRpc({ data: hsResult?.data, error: hsResult?.error });
     return { slug, input: { profile, hscodes, hscodesError: loadError, workers: null, today, sanctionSample } };
-  } catch {
+  } catch (err) {
+    if (err instanceof ProfileReadTimeout) throw err;
     return null;
   }
 }
@@ -98,28 +119,44 @@ export async function fetchContactCounts(supabase: RecordRpc, slug: string): Pro
   }
 }
 
+/** How many rows the RFQs section lists before it says "+N more". */
+export const RECORD_RFQ_PAGE = 20;
+
 /**
  * The calling buyer's own RFQs that name this supplier, for the record's RFQs
  * section.
  *
- * No migration and no security-definer wrapper: `rfqs` already carries the
- * owner-scoped policy `pol_rfqs_select_buyer (buyer_id = auth.uid())`, so this
- * read returns the caller's rows and nobody else's. A failed read returns
- * `count: null` and `error: true` — an unread list has no count, and 0 is a
- * claim about the buyer's own history.
+ * **`buyer_id` is filtered here, in the query.** RLS alone is not enough:
+ * `public.rfqs` carries TWO permissive SELECT policies, which OR together —
+ * `pol_rfqs_select_buyer (buyer_id = auth.uid())` and
+ * `pol_rfqs_select_supplier`, which lets a caller who has CLAIMED the supplier
+ * read every RFQ sent to it, whoever sent it. Without this filter, a claimed
+ * supplier's account would see other buyers' RFQ titles, quantities and dates
+ * under a caption reading "N from your account". Today that account is bounced
+ * off `/app` by role middleware — which is exactly the arrangement AGENTS rule
+ * 7 forbids relying on, because hiding UI is never a security control.
+ *
+ * `total` is a real count, independent of the page: a buyer with 25 RFQs to one
+ * supplier must not be told "20". A failed read returns `count: null` and
+ * `error: true` — an unread list has no count, and 0 is a claim about the
+ * buyer's own history.
  */
 export async function fetchRecordRfqs(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- as RecordRpc: the generated client type is not in scope here.
   supabase: any,
   supplierId: string,
+  buyerId: string | null,
 ): Promise<{ count: number | null; rows: RecordRfqRow[]; error?: boolean }> {
+  // No caller id is not "no RFQs": it is an unread list.
+  if (!buyerId) return { count: null, rows: [], error: true };
   try {
-    const { data, error } = await supabase
+    const { data, error, count } = await supabase
       .from("rfqs")
-      .select("id, product_title, quantity, quantity_unit, ship_by, status, created_at")
+      .select("id, product_title, quantity, quantity_unit, ship_by, status, created_at", { count: "exact" })
+      .eq("buyer_id", buyerId)
       .contains("target_supplier_ids", [supplierId])
       .order("created_at", { ascending: false })
-      .limit(20);
+      .limit(RECORD_RFQ_PAGE);
     if (error || !Array.isArray(data)) return { count: null, rows: [], error: true };
     const rows: RecordRfqRow[] = data.map((r: Record<string, unknown>) => ({
       id: String(r.id),
@@ -133,7 +170,9 @@ export async function fetchRecordRfqs(
       shipBy: formatDay(typeof r.ship_by === "string" ? r.ship_by : null),
       href: `/app/rfqs/${String(r.id)}`,
     }));
-    return { count: rows.length, rows };
+    // `count` is the exact total from PostgREST; `rows` is at most one page of
+    // it. Returning `rows.length` printed a page size as a total.
+    return { count: typeof count === "number" ? count : rows.length, rows };
   } catch {
     return { count: null, rows: [], error: true };
   }
@@ -154,6 +193,20 @@ function rfqStatusWords(status: string | null): RecordRfqRow["status"] {
       return { tone: "type", label: "Cancelled" };
     default:
       return { tone: "type", label: "Open" };
+  }
+}
+
+/** The signed-in caller's user id, or null when there is no session or the read fails. */
+export async function callerId(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- as RecordRpc, see above.
+  supabase: any,
+): Promise<string | null> {
+  try {
+    const { data } = await supabase.auth.getUser();
+    const id = data?.user?.id;
+    return typeof id === "string" && id ? id : null;
+  } catch {
+    return null;
   }
 }
 
@@ -178,6 +231,16 @@ export type SheetView = {
   fullHref?: string;
   /** The viewer's plan name, when one exists. */
   plan?: string | null;
+  /**
+   * Where one export line opens from THIS sheet. The overlay passes a URL on
+   * the same search, so drilling into a line does not throw the search away;
+   * the full page leaves it unset and gets the line's own page.
+   */
+  lineHref?: (hs: string) => string;
+  /** Show every heading rather than the six rarest. */
+  allLines?: boolean;
+  /** Where "All N lines ›" goes when only six are shown. */
+  allLinesHref?: string | null;
 };
 
 /**
@@ -199,10 +262,13 @@ export async function loadRecordSheet(
   if (!record) return null;
   await fillRecordWorkersSafely(supabase, [record]);
   const supplierId = record.input.profile.supplier.id;
+  // The caller's own id, so the RFQs section can filter on it rather than
+  // trusting RLS alone (see `fetchRecordRfqs`).
+  const buyerId = await callerId(supabase);
   const [contactCounts, saved, rfqs] = await Promise.all([
     fetchContactCounts(supabase, slug),
     fetchRecordSaved(supabase, supplierId),
-    fetchRecordRfqs(supabase, supplierId),
+    fetchRecordRfqs(supabase, supplierId, buyerId),
   ]);
   return buildSheet(record.input, {
     plan: view.plan ?? null,
@@ -216,6 +282,9 @@ export async function loadRecordSheet(
     rfqHref: `/app/rfqs/new?supplier=${supplierId}`,
     fullHref: view.fullHref ?? `/app/suppliers/${slug}`,
     closeHref: view.closeHref ?? null,
+    lineHref: view.lineHref,
+    allLines: view.allLines,
+    allLinesHref: view.allLinesHref ?? (view.allLines ? null : `/app/suppliers/${slug}?lines=all`),
   });
 }
 

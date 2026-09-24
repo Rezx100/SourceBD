@@ -3,17 +3,28 @@
 // with ?ask=1.
 //
 // REZ-C (§3.3): `?record=<slug>` opens that company's record as a sheet over
-// these results, WITHOUT losing the search — the whole search state is still
-// in the URL, so Close is a plain link back to it and nothing is re-run in the
-// browser. The sheet is the same `SupplierSheet` the full page at
+// these results, without losing the search. Two things make that true, and
+// both are load-bearing:
+//
+//  * the whole search state stays in the URL, and `record` is not part of
+//    `DiscoverState`, so `closeHref` is the same search the buyer was on; and
+//  * every open and close is a `next/link` client navigation with
+//    `scroll={false}` (§3.3's `{ scroll: false }`). Plain anchors made each one
+//    a full document load, which re-ran the search and — because
+//    `SelectionProvider` holds the bulk selection in React state keyed on the
+//    search, which `record` does not change — silently emptied a selection the
+//    buyer had built up.
+//
+// The sheet is the same `SupplierSheet` the full page at
 // `/app/suppliers/[slug]` renders, so a deep link and an overlay never show
 // two different records.
 //
 // The spec's parenthetical names a parallel/intercepting route
-// (`@sheet/(.)suppliers/[slug]`) for this. It cannot carry `?record=`: Next
-// matches parallel slots on the URL PATH, and a query parameter never changes
-// which slot route matches. The mechanism the same sentence spells out — the
-// results page reads `record` — is what is built here.
+// (`@sheet/(.)suppliers/[slug]`). That is a mechanism for a PATH push; it
+// cannot carry `?record=`, because Next matches parallel slots on the path and
+// a query parameter never changes which slot matches. The mechanism the same
+// sentence spells out — the results page reads `record` — is what is built
+// here, with the client navigation that made the spec's version worth having.
 
 import Link from "next/link";
 import { AppShell } from "@/components/dashboard/app-shell";
@@ -23,13 +34,14 @@ import { SearchComposer } from "@/components/dashboard/search-composer";
 import { SelectionBar } from "@/components/dashboard/selection-bar";
 import { SelectionProvider } from "@/components/dashboard/selection";
 import { SaveRecordButton } from "@/components/dashboard/save-record-button";
-import { SheetFrame } from "@/components/dashboard/sheet";
+import { Behind, SheetFrame } from "@/components/dashboard/sheet";
 import { SupplierResultCard } from "@/components/dashboard/supplier-result-card";
 import { SupplierSheet } from "@/components/dashboard/supplier-sheet";
 import { Caption, Title } from "@/components/dashboard/type";
 import { RecordRecentSearch } from "@/components/dashboard/record-recent-search";
 import { loadBuyerShell } from "@/lib/dashboard/load-buyer-shell";
-import { loadRecordSheet } from "@/lib/dashboard/load-record";
+import { loadRecordLine, loadRecordSheet } from "@/lib/dashboard/load-record";
+import { ProductSheet } from "@/components/dashboard/product-sheet";
 import { buildDiscoverCard, buildDiscoverTableRow } from "@/lib/dashboard/build-discover-row";
 import {
   fetchDiscoverExplain,
@@ -232,8 +244,15 @@ export default async function BuyerDiscoverPage({
 }) {
   const sp = await searchParams;
   const state = parseDiscoverState(sp);
-  const recordRaw = sp.record;
-  const recordSlug = (Array.isArray(recordRaw) ? recordRaw[0] : recordRaw)?.trim() || null;
+  const one = (v: string | string[] | undefined): string | null =>
+    (Array.isArray(v) ? v[0] : v)?.trim() || null;
+  const recordSlug = one(sp.record);
+  // A line drilled into from the overlay stays on this URL, so Back returns to
+  // the record and Close still returns to the search. Without it, opening a
+  // product line from a record opened over the results threw the search away —
+  // the exact loss §3.3 exists to prevent, one level down.
+  const lineCode = /^\d{4}$/.test(one(sp.line) ?? "") ? one(sp.line)! : null;
+  const allLines = one(sp.lines) === "all";
   const supabase = await createSupabaseServerClient();
   const shell = await loadBuyerShell(supabase, "/app/discover");
   const today = new Date();
@@ -242,19 +261,39 @@ export default async function BuyerDiscoverPage({
   // dropped: `discoverHref` serializes the state and `record` is not part of
   // it, so the search survives opening and closing a record untouched.
   const closeHref = discoverHref(state);
-  const recordHref = (slug: string) => `${closeHref}${closeHref.includes("?") ? "&" : "?"}record=${encodeURIComponent(slug)}`;
+  const withParams = (extra: string) => `${closeHref}${closeHref.includes("?") ? "&" : "?"}${extra}`;
+  const recordHref = (slug: string) => withParams(`record=${encodeURIComponent(slug)}`);
   // Started here, awaited below: the record and the results are independent
   // reads, and awaiting this one first would have made opening a record cost
   // the search's latency plus the record's rather than the larger of the two.
   // An unknown slug renders no sheet rather than a not-found page — the search
   // behind it is still a valid answer to what the buyer asked.
+  // A timed-out record read must not take the results down with it: the search
+  // is still a valid answer, and the sheet simply does not open.
+  const overlaySafe = <T,>(p: Promise<T | null>): Promise<T | null> => p.catch(() => null);
   const recordPromise = recordSlug
-    ? loadRecordSheet(supabase, recordSlug, today, { closeHref, fullHref: `/app/suppliers/${recordSlug}` })
+    ? overlaySafe(loadRecordSheet(supabase, recordSlug, today, {
+        closeHref,
+        fullHref: `/app/suppliers/${recordSlug}`,
+        allLines,
+        allLinesHref: allLines ? null : withParams(`record=${encodeURIComponent(recordSlug)}&lines=all`),
+        lineHref: (hs) => withParams(`record=${encodeURIComponent(recordSlug)}&line=${hs}`),
+      }))
     : Promise.resolve(null);
+  const linePromise =
+    recordSlug && lineCode
+      ? overlaySafe(
+          loadRecordLine(supabase, recordSlug, lineCode, today, {
+            backHref: recordHref(recordSlug),
+            closeHref,
+          }),
+        )
+      : Promise.resolve(null);
 
-  const [{ rows, total, error, failure }, record] = await Promise.all([
+  const [{ rows, total, error, failure }, record, line] = await Promise.all([
     fetchDiscoverV32(supabase, state),
     recordPromise,
+    linePromise,
   ]);
   const slugs = rows.map((r) => r.slug);
   const hs = await fetchHsBatch(supabase, slugs);
@@ -314,6 +353,10 @@ export default async function BuyerDiscoverPage({
       mainId="main-content"
       screenLabel="Search"
     >
+      {/* While a record is open the results are `inert`: the sheet claims
+          `aria-modal`, and that claim has to be true of the keyboard and the
+          accessibility tree, not only of the pointer. */}
+      <Behind inactive={record !== null}>
       <RecordRecentSearch label={title} href={href} count={total} />
       <form action={DISCOVER_PATH} method="get">
         <HiddenState state={state} omit={COMPOSER_HIDDEN_OMIT} />
@@ -439,12 +482,19 @@ export default async function BuyerDiscoverPage({
           </Panel>
         </SelectionProvider>
       )}
+      </Behind>
       {record ? (
         <SheetFrame overlay closeHref={closeHref}>
-          <SupplierSheet
-            model={record}
-            save={record.supplierId ? <SaveRecordButton supplierId={record.supplierId} saved={record.saved} /> : undefined}
-          />
+          {/* The line sheet sits where the record sheet would: one dialog at a
+              time, with Back to the record and Close to the search. */}
+          {line ? (
+            <ProductSheet model={line} />
+          ) : (
+            <SupplierSheet
+              model={record}
+              save={record.supplierId ? <SaveRecordButton supplierId={record.supplierId} saved={record.saved} /> : undefined}
+            />
+          )}
         </SheetFrame>
       ) : null}
     </AppShell>

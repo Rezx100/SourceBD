@@ -8,24 +8,33 @@ in the HTML — but hiding UI is never a security control, so the claim that
 matters is about the function a caller can reach directly through PostgREST.
 
 That claim cannot be made from Node. This runs the LIVE `rfq_create` against
-the real database inside one transaction and always rolls back:
+the real database, as `authenticated` rather than as the database owner, inside
+one transaction that always rolls back.
 
-  1. pick a real buyer and two real published suppliers,
-  2. flip one of them to `is_sanctioned = true` — inside the transaction,
-  3. call `rfq_create` with it in the target list and assert it raises,
-  4. call `rfq_create` with only the clean one and assert it does NOT raise,
-     so step 3 is not passing for some unrelated reason,
-  5. roll back, so not one row survives.
+The experiment is controlled: ONE supplier, called twice, with `is_sanctioned`
+the only thing that changes between the calls. An earlier version used a
+different supplier for the refusal than for the acceptance, so any per-supplier
+reason to refuse would have been indistinguishable from the sanction.
 
-Nothing is committed, and the session never calls `--apply` (AGENTS 15).
+What this is, stated plainly: `rfq_create` already refused a sanctioned target
+before REZ-C — migration 0105 changes that function not at all. So this is a
+CHARACTERISATION test of behaviour the PR relies on, not a guard on behaviour
+the PR adds. It is here because the hand-off requires the claim to be asserted
+where an outside caller observes it.
 
-CI has no Postgres; without SUPABASE_DB_URL these skip, like the other
-DB-backed tests in this directory.
+CI has no Postgres (`CLAUDE.md`: pytest and ruff run on the founder's machine
+only), so without `SUPABASE_DB_URL` these skip — and that skip is the whole
+assertion disappearing. The other two ways it could vanish quietly, a missing
+buyer profile and a missing published supplier, are `pytest.fail` rather than
+`pytest.skip` for exactly that reason.
+
+Nothing is committed, and this session never calls `--apply` (AGENTS 15).
 """
 
 from __future__ import annotations
 
 import os
+from contextlib import contextmanager
 from pathlib import Path
 
 import pytest
@@ -56,18 +65,20 @@ def rfq_conn():
         conn.close()
 
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 def fixture_ids(rfq_conn):
-    """A buyer and two published suppliers, one of them made sanctioned here.
+    """One buyer and one published, unsanctioned supplier.
 
-    Each test runs inside its own savepoint so a raising call does not poison
-    the ones after it, and the module fixture rolls the whole thing back.
+    Module-scoped on purpose. A function-scoped version re-queried
+    `where is_sanctioned = false` on a connection where an earlier test's
+    UPDATE was still live, so each test silently used a different row — and
+    running one test alone exercised a different row than the full file did.
     """
     with rfq_conn.cursor() as cur:
         cur.execute("select id from public.profiles where role::text = 'buyer' order by id limit 1")
         buyer = cur.fetchone()
         if buyer is None:
-            pytest.skip("no buyer profile in this database")
+            pytest.fail("no buyer profile in this database: this boundary test cannot run and must not pass silently")
         cur.execute(
             """
             select id
@@ -75,25 +86,33 @@ def fixture_ids(rfq_conn):
              where is_published = true
                and is_sanctioned = false
              order by id
-             limit 2
+             limit 1
             """
         )
-        suppliers = cur.fetchall()
-        if len(suppliers) < 2:
-            pytest.skip("fewer than two published suppliers in this database")
+        supplier = cur.fetchone()
+        if supplier is None:
+            pytest.fail("no published unsanctioned supplier: this boundary test cannot run and must not pass silently")
 
-        clean_id = str(suppliers[0]["id"])
-        target_id = str(suppliers[1]["id"])
-        # Inside the transaction only. Production has no sanctioned published
-        # supplier today (SQL, 25 Sep 2026), so the state under test has to be
-        # created rather than found.
-        cur.execute("update public.suppliers set is_sanctioned = true where id = %s::uuid", (target_id,))
-        cur.execute("select set_config('request.jwt.claims', %s, true)", ('{"sub": "%s"}' % str(buyer["id"]),))
-        cur.execute("select auth.uid() as uid")
-        row = cur.fetchone()
-        assert row is not None and str(row["uid"]) == str(buyer["id"]), "auth.uid() did not take the claim"
+    return {"buyer_id": str(buyer["id"]), "supplier_id": str(supplier["id"])}
 
-    return {"buyer_id": str(buyer["id"]), "clean_id": clean_id, "sanctioned_id": target_id}
+
+@contextmanager
+def as_buyer(conn, buyer_id: str):
+    """A rolled-back savepoint in which the session is `authenticated`, not the owner.
+
+    The DSN connects as the database owner, for whom RLS is not enforced and
+    every EXECUTE is granted. The claim this file makes is about the caller a
+    buyer's browser actually is, so the role is set here — which additionally
+    proves `authenticated` holds EXECUTE on `rfq_create` at all.
+    """
+    with conn.transaction(force_rollback=True):
+        with conn.cursor() as cur:
+            cur.execute("select set_config('request.jwt.claims', %s, true)", ('{"sub": "%s"}' % buyer_id,))
+            cur.execute("set local role authenticated")
+            cur.execute("select auth.uid() as uid")
+            row = cur.fetchone()
+            assert row is not None and str(row["uid"]) == buyer_id, "auth.uid() did not take the claim"
+        yield
 
 
 def _payload(target_ids: list[str]) -> str:
@@ -102,7 +121,7 @@ def _payload(target_ids: list[str]) -> str:
     return json.dumps(
         {
             "target_supplier_ids": target_ids,
-            "product_title": "REZ-C boundary test — rolled back",
+            "product_title": "REZ-C boundary test - rolled back",
             "quantity": 100,
             "quantity_unit": "pcs",
         }
@@ -117,27 +136,58 @@ def _call(conn, target_ids: list[str]):
     return row["id"]
 
 
-def test_rfq_create_refuses_a_sanctioned_target(rfq_conn, fixture_ids):
+def test_rfq_create_accepts_the_supplier_until_it_is_sanctioned(rfq_conn, fixture_ids):
+    """The controlled pair: one supplier, one variable, both halves in one test."""
     import psycopg
 
-    with pytest.raises(psycopg.errors.RaiseException) as err:
-        with rfq_conn.transaction(force_rollback=True):
-            _call(rfq_conn, [fixture_ids["sanctioned_id"]])
-    assert "target suppliers" in str(err.value).lower() or "sanction" in str(err.value).lower(), str(err.value)
+    sid = fixture_ids["supplier_id"]
+
+    # Before. Without this half, a function that refused everything would pass
+    # the refusal below while proving nothing about the sanction.
+    with as_buyer(rfq_conn, fixture_ids["buyer_id"]):
+        assert _call(rfq_conn, [sid]) is not None
+
+    # After: the same row, sanctioned inside the transaction.
+    with rfq_conn.transaction(force_rollback=True):
+        with rfq_conn.cursor() as cur:
+            cur.execute("update public.suppliers set is_sanctioned = true where id = %s::uuid", (sid,))
+        with as_buyer(rfq_conn, fixture_ids["buyer_id"]):
+            with pytest.raises(psycopg.errors.RaiseException) as err:
+                with rfq_conn.transaction(force_rollback=True):
+                    _call(rfq_conn, [sid])
+    msg = str(err.value).lower()
+    assert "target suppliers" in msg or "sanction" in msg, str(err.value)
 
 
 def test_rfq_create_refuses_a_batch_that_contains_one_sanctioned_target(rfq_conn, fixture_ids):
-    # The whole call is refused, not the sanctioned target quietly dropped —
-    # a silently shortened target list sends an RFQ the buyer did not review.
+    """The whole call is refused, not the sanctioned target quietly dropped.
+
+    A silently shortened target list sends an RFQ the buyer did not review.
+    """
     import psycopg
 
+    sid = fixture_ids["supplier_id"]
     with rfq_conn.transaction(force_rollback=True):
-        # The raising call gets a savepoint of its own: a statement that raises
-        # aborts everything back to the enclosing savepoint, so the count below
-        # has to sit outside it or it cannot run at all.
-        with pytest.raises(psycopg.errors.RaiseException):
-            with rfq_conn.transaction(force_rollback=True):
-                _call(rfq_conn, [fixture_ids["clean_id"], fixture_ids["sanctioned_id"]])
+        with rfq_conn.cursor() as cur:
+            cur.execute(
+                """
+                select id from public.suppliers
+                 where is_published = true and is_sanctioned = false and id <> %s::uuid
+                 order by id limit 1
+                """,
+                (sid,),
+            )
+            other = cur.fetchone()
+            assert other is not None, "only one published supplier in this database"
+            cur.execute("update public.suppliers set is_sanctioned = true where id = %s::uuid", (sid,))
+
+        with as_buyer(rfq_conn, fixture_ids["buyer_id"]):
+            # The raising call gets a savepoint of its own: a statement that
+            # raises aborts everything back to the enclosing savepoint, so the
+            # count below has to sit outside it or it cannot run at all.
+            with pytest.raises(psycopg.errors.RaiseException):
+                with rfq_conn.transaction(force_rollback=True):
+                    _call(rfq_conn, [str(other["id"]), sid])
 
         with rfq_conn.cursor() as cur:
             cur.execute(
@@ -146,11 +196,3 @@ def test_rfq_create_refuses_a_batch_that_contains_one_sanctioned_target(rfq_conn
             )
             row = cur.fetchone()
         assert row is not None and row["n"] == 0, "a refused call still wrote an rfqs row"
-
-
-def test_rfq_create_accepts_a_clean_target(rfq_conn, fixture_ids):
-    # Without this, the two tests above would pass on a function that refuses
-    # everything — which proves nothing about the sanction.
-    with rfq_conn.transaction(force_rollback=True):
-        rfq_id = _call(rfq_conn, [fixture_ids["clean_id"]])
-        assert rfq_id is not None

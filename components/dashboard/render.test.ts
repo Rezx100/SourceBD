@@ -63,12 +63,53 @@ import { SupplierResultCard } from "./supplier-result-card";
 import { SupplierSheet } from "./supplier-sheet";
 
 const escape = (s: string) => s.replace(/&/g, "&amp;").replace(/'/g, "&#x27;");
+
+/**
+ * Every disabled control in the markup, with its opening tag.
+ *
+ * The blanket `doesNotMatch(html, /disabled=""/)` meant "Send RFQ is enabled on
+ * a clean record", and it worked while the sheet drew no disabled control at
+ * all. REZ-C draws two deliberately: Compare, whose page is deferred, and the
+ * Save fallback a caller with no session gets. Both are more honest disabled
+ * than live-and-inert. So the rule becomes the one that was always meant:
+ * nothing a buyer needs is disabled, and anything that IS disabled says why.
+ */
+function disabledControls(html: string): string[] {
+  return [...html.matchAll(/<button[^>]*\sdisabled=""[^>]*>/g)].map((m) => m[0]);
+}
+
+/** Send RFQ must be operable: on a clean record it is the point of the screen. */
+function assertSendRfqEnabled(html: string): void {
+  for (const tag of disabledControls(html)) {
+    assert.doesNotMatch(tag, /aria-label="Send RFQ/, `Send RFQ is disabled on a clean record: ${tag}`);
+  }
+  const sendRfq = /<(a|button)[^>]*>(?:(?!<\/\1>)[\s\S])*?Send RFQ/.exec(html);
+  assert.ok(sendRfq, "the screen draws no Send RFQ control at all");
+  assert.doesNotMatch(sendRfq[0], /\sdisabled=""/, `Send RFQ is disabled on a clean record: ${sendRfq[0]}`);
+}
+
+/** A disabled control has to say why, or it is just a dead thing on the page. */
+function assertDisabledExplained(html: string): void {
+  for (const tag of disabledControls(html)) {
+    assert.match(tag, /\stitle="/, `a disabled control gives no reason: ${tag}`);
+  }
+}
+
 const rx = (s: string) => new RegExp(escape(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
 
 /** Any class that would cut a name off. Names wrap, never truncate (spec §2, §9); a tile's one-line caption may ellipsise. */
 const TRUNCATION = /\b(?:truncate|line-clamp-\d)\b|\btext-ellipsis\b|\boverflow-hidden\b[^"]*\bwhitespace-nowrap\b|\bwhitespace-nowrap\b[^"]*\btext-ellipsis\b/;
-/** The name element itself must carry the wrap rule. */
-const NAME_WRAPS = /class="[^"]*\[overflow-wrap:anywhere\][^"]*">Aboni Knitwear Ltd</;
+/**
+ * The element that directly holds the name must carry the wrap rule.
+ *
+ * This was `class="…[overflow-wrap:anywhere]…">Aboni Knitwear Ltd<`, which
+ * assumed `class` is the LAST attribute on that element. REZ-C made the name a
+ * `next/link`, and Next builds its own props object, so it emits
+ * `class` before `href` whatever order the JSX uses — the guard failed over
+ * markup that wraps perfectly well. The rule it encodes is unchanged: whatever
+ * tag holds the text, its opening tag carries the class.
+ */
+const NAME_WRAPS = /<[a-z]+[^>]*\[overflow-wrap:anywhere\][^>]*>Aboni Knitwear Ltd</;
 
 /** Colour hand-typed into markup instead of a token class. */
 const HAND_TYPED_COLOUR = /#[0-9a-fA-F]{3,8}\b|\b(?:rgba?|hsla?)\(\s*\d/;
@@ -106,7 +147,7 @@ describe("SupplierResultCard (rendered)", () => {
     assert.doesNotMatch(html, SCORE);
     assert.doesNotMatch(html, TRUNCATION);
     assert.doesNotMatch(html, HAND_TYPED_COLOUR);
-    assert.doesNotMatch(html, /disabled=""/, "Send RFQ is enabled on a clean record");
+    assertSendRfqEnabled(html);
   });
 
   // Cycle 5, finding 8: the figure is 2,662 (mother) + 504 (New Shed).
@@ -340,7 +381,13 @@ describe("SupplierSheet (rendered)", () => {
     assert.doesNotMatch(html, /Team plan/);
     assert.match(html, /Contact details are shown on paid plans\./);
     const locked = /data-locked="true"[\s\S]*?<\/div><\/div>/.exec(html)?.[0] ?? "";
-    assert.doesNotMatch(locked, /EPB|BGMEA|BKMEA|BGAPMEA|website|named representatives|phone/, "the locked card claims no kinds and no registers until contact_counts exists");
+    // This sheet is built with no `contactCounts`, which is what a failed read
+    // gives, so the card still claims no kinds. Counts are asserted where they
+    // are supplied: `components/dashboard/record-sheet.test.ts`. Registers are
+    // never claimed on any path — no per-register attribution exists for
+    // contact fields (0105's header).
+    assert.doesNotMatch(locked, /EPB|BGMEA|BKMEA|BGAPMEA/, "the locked card names a register no payload attributes");
+    assert.doesNotMatch(locked, /On file:/, "a sheet built without counts claims kinds it was not given");
     assert.match(html, /source pending/, "unattributed profile facts say so instead of carrying a guessed mark");
     assert.doesNotMatch(html, /items · BGMEA/);
     assert.match(html, /GOTS-31587/);
@@ -351,7 +398,8 @@ describe("SupplierSheet (rendered)", () => {
     assert.match(html, /Source marks link to their register page where one is on file/);
     assert.doesNotMatch(html, /Every fact links to its source page/);
     assert.doesNotMatch(html, /blur/, "locked is striped, never blurred");
-    assert.doesNotMatch(html, /disabled=""/);
+    assertSendRfqEnabled(html);
+    assertDisabledExplained(html);
     assert.doesNotMatch(html, TRUNCATION);
     assert.doesNotMatch(html, HAND_TYPED_COLOUR);
   });
@@ -388,16 +436,25 @@ describe("SupplierSheet (rendered)", () => {
     assert.match(html, /<\/svg>\s*Save<\/button>|>\s*Save<\/button>/);
   });
 
-  // Cycle 5, finding 18.
-  it("a tab whose section the sheet does not render is inert, never a link to a missing anchor", () => {
-    const html = renderToStaticMarkup(createElement(SupplierSheet, { model: buildSheet(aboniInput()) }));
-    for (const dead of ['href="#sources"', 'href="#locations"', 'href="#facilities"', 'href="#rfqs"', 'href="#hidden"']) {
-      assert.ok(!html.includes(dead), `the sheet links to ${dead}, an anchor it does not render`);
+  // Cycle 5, finding 18 — restated for REZ-C, which built the four sections
+  // that used to be missing. The rule is unchanged and is now general: whatever
+  // fragment a tab points at, the sheet renders it. Listing the four by name
+  // was a statement about which sections existed in September; this is the
+  // invariant that survives the next section being added.
+  it("every tab points at an anchor this sheet actually renders", () => {
+    const model = buildSheet(aboniInput());
+    const html = renderToStaticMarkup(createElement(SupplierSheet, { model }));
+    const linked = [...html.matchAll(/href="#([a-z-]+)"/g)].map((m) => m[1]!);
+    assert.ok(linked.length > 0, "the sheet draws no fragment links at all");
+    for (const id of new Set(linked)) {
+      assert.ok(html.includes(`id="${id}"`), `the sheet links to #${id}, an anchor it does not render`);
     }
-    for (const id of ["overview", "products", "certificates", "safety"]) {
-      assert.ok(html.includes(`href="#${id}"`) && html.includes(`id="${id}"`), `#${id} is linked and rendered`);
+    // And every tab is a real link: an inert tab was the old placeholder.
+    for (const tab of model.tabs) {
+      assert.ok(tab.href, `the ${tab.label} tab points nowhere`);
     }
-    assert.match(html, /aria-disabled="true"[^>]*>Sources/);
+    assert.doesNotMatch(html, /aria-disabled="true"[^>]*>(?:Sources|Locations|Facilities|RFQs)/);
+    assert.ok(!html.includes('href="#hidden"'));
   });
 
   // Cycle 5, finding 17: `[].every()` is true, so a record with no marks at all
@@ -742,10 +799,16 @@ describe("ProductSheet (rendered)", () => {
     assert.match(html, /\/products\/hs\/hs-6105\.webp/);
     assert.match(html, /EPB lists lines, not dates/);
     assert.match(html, /supplier-attested fields, shown when attested/);
-    assert.match(html, /Other exporters of 6105/);
-    assert.match(html, /1,633/);
+    assert.match(html, /Exporters of 6105/);
+    assert.doesNotMatch(html, /Other exporters/, "the label promises to exclude this record while the count includes it");
+    // The figure the linked search returns, not that minus one. `/app/discover
+    // ?hs=6105` includes this record, and a products count that disagrees with
+    // the search it opens is the defect the founder's 24 Sep rule names. It was
+    // 1,633 (1,634 − 1) while the control was inert and linked nowhere.
+    assert.match(html, /1,634/);
+    assert.doesNotMatch(html, /1,633/);
     assert.doesNotMatch(html, /Sanctioned/, "a clean record carries no sanction banner");
-    assert.doesNotMatch(html, /disabled=""/, "Send RFQ is enabled on a clean record");
+    assertSendRfqEnabled(html);
   });
 
   // Cycle 5, finding 9: the eyebrow called every heading an EPB export line,
@@ -755,7 +818,7 @@ describe("ProductSheet (rendered)", () => {
     assert.match(html, /HS 6205 · not on this record&#x27;s EPB page/);
     assert.doesNotMatch(html, /EPB export line/);
     assert.match(html, /this line is not on the record&#x27;s EPB page/);
-    assert.doesNotMatch(html, /Other exporters of 6205<\/button>[\s\S]{0,40}font-mono/);
+    assert.doesNotMatch(html, /Exporters of 6205<\/button>[\s\S]{0,40}font-mono/);
   });
 
   // Cycle 5, finding 9: the chapter name is the HS nomenclature, and it was
@@ -1234,10 +1297,17 @@ describe("a brand list named twice by production is one mark and one name", () =
     assert.equal((card.match(/aria-label="Source: M&amp;S[^"]*"/g) ?? []).length, 1, "the M&S mark is stamped twice");
     assert.equal((card.match(/>MS</g) ?? []).length, 1, "the two-letter stamp is drawn twice");
     assert.match(card, /Listed by M&amp;S, NEXT/);
-    // The sheet's mark row names each register once, in tier order.
+    // The sheet's mark row names each register once, in tier order. The count
+    // is taken over the HEAD, not the whole sheet: REZ-C's Sources section
+    // draws a square per register too, and legitimately so — it is the list
+    // that explains them. The defect this guards is one register stamped twice
+    // in the same row, which is what a duplicate brand row produced.
     const sheet = renderToStaticMarkup(createElement(SupplierSheet, { model: buildSheet(input) }));
     assert.match(sheet, /EPB · RSC · BGMEA · OEKO-TEX · M&amp;S · NEXT/);
-    assert.equal((sheet.match(/aria-label="Source: M&amp;S[^"]*"/g) ?? []).length, 1);
+    const head = sheet.slice(0, sheet.indexOf('aria-label="Record sections"'));
+    assert.equal((head.match(/aria-label="Source: M&amp;S[^"]*"/g) ?? []).length, 1, "the M&S mark is stamped twice in the mark row");
+    // And exactly once in the Sources list, which is one row per register.
+    assert.equal((section(sheet, "sources").match(/aria-label="Source: M&amp;S[^"]*"/g) ?? []).length, 1);
   });
 });
 
@@ -1931,10 +2001,26 @@ describe("the whole EPB line list of every fixture reaches the screens", () => {
   });
 });
 
+
+/**
+ * One section of the sheet, bounded by the next section's id.
+ *
+ * `html.slice(indexOf('id="certificates"'))` used to reach the end of the
+ * document, which was harmless while Certificates was the last section with
+ * marks in it. REZ-C added Sources and Locations below it, each drawing source
+ * squares of its own, so an unbounded slice counts them too.
+ */
+function section(html: string, id: string): string {
+  const start = html.indexOf(`id="${id}"`);
+  assert.ok(start >= 0, `the sheet renders no #${id} section`);
+  const next = html.slice(start + 1).search(/ id="[a-z-]+"/);
+  return next < 0 ? html.slice(start) : html.slice(start, start + 1 + next);
+}
+
 describe("the certificate card's own mark links, and the sheet shows the register's lines", () => {
   it("a certificate whose document is a record page renders its square as a link", () => {
     const html = renderToStaticMarkup(createElement(SupplierSheet, { model: buildSheet(aboniInput()) }));
-    const certs = html.slice(html.indexOf('id="certificates"'));
+    const certs = section(html, "certificates");
     // The square was a `<span role="img">` — built with `sourceMark(kind)` and
     // no URL — on every certificate on every sheet.
     assert.match(certs, /<a href="https:\/\/wrapcompliance\.org\/certified-facility\/7865\/"[^>]*aria-label="Source: Worldwide Responsible Accredited Production, Certification bodies \(opens the register page\)"/);
@@ -1947,7 +2033,7 @@ describe("the certificate card's own mark links, and the sheet shows the registe
     const input = aboniInput();
     input.profile.certifications = input.profile.certifications.map((c) => ({ ...c, document_url: null }));
     const html = renderToStaticMarkup(createElement(SupplierSheet, { model: buildSheet(input) }));
-    const certs = html.slice(html.indexOf('id="certificates"'));
+    const certs = section(html, "certificates");
     assert.doesNotMatch(certs, /<a href="[^"]*"[^>]*aria-label="Source: /);
     const unlinked = [...certs.matchAll(/<span role="img" aria-label="Source: ([^"]*)"/g)];
     assert.equal(unlinked.length, 4, "one unlinked square per certificate");

@@ -17,10 +17,11 @@ production on 25 Sep 2026:
 
 | Asked for | Why not |
 | -- | -- |
+| `contact_counts.registers` | Which register filed each contact detail. That attribution does not exist: no row of `source_records.fields` carries a contact key (0 of 22,190 active rows, all 14 registers), and `v_supplier_addresses.phone` / `.email` are empty on every row. Printing register names beside the counts would be an invented receipt. |
 | `contact_counts` **on `buyer_supplier_profile`** | Production's copy of that 16 KB function is **ahead of this repo**: it emits `'fetched_at', rr.fetched_at` on every `rsc_remediation` row, which no migration in `supabase/migrations/` adds (0099 is the last to redefine it). A `create or replace` built from the repo would silently delete that key, and `lib/dashboard/build-models.ts` reads it for the Safety section's read date. A separate function adds the counts with zero blast radius. The dry run proves the md5 of `pg_get_functiondef(buyer_supplier_profile)` is identical before and after. |
 | `read_at` | Already there. `buyer_supplier_profile` returns `provenance[].last_seen_at`, which *is* `source_records.fetched_at`, and `buildSheet` already reduces it to the record's read date. |
 | `pages_changed_since_read` | Not buildable. It needs the hash a page had at `fetched_at` compared with a **later** hash. `source_records` holds one `raw_hash` per row, updated in place alongside `fetched_at`, and this database has no history table (only `source_records` and `firecrawl_webhook_events` match). The comparison has no second operand, so the value could only ever be null — which §4.3 itself says means the caption reads "read &lt;date&gt;" only, exactly what the sheet renders today. |
-| `rfq_count` | No migration needed. `rfqs` already carries `pol_rfqs_select_buyer (buyer_id = auth.uid())`, so the calling buyer counts its own RFQs through PostgREST. A security-definer wrapper would only widen what is already correct. |
+| `rfq_count` | No migration needed — **with a caveat the first draft of this table got wrong.** `public.rfqs` carries TWO permissive SELECT policies: `pol_rfqs_select_buyer (buyer_id = auth.uid())` **and** `pol_rfqs_select_supplier`, which lets a caller who has claimed the supplier read every RFQ sent to it. RLS alone is therefore not the scoping. `lib/dashboard/load-record.ts` filters on `buyer_id` in the query and `app/(app)/app/record-routes.test.ts` asserts it does; a mutation test confirmed both the route guard and the loader guard fail when the filter is removed. |
 
 §4.5 ("`rfq_create` gains `and s.is_sanctioned = false`") is **already true in
 production**: the live `rfq_create` validates every target with
@@ -42,10 +43,15 @@ below is after that fix.
 
 ```
 file          : supabase/migrations/0105_supplier_record_v32.sql
-bytes         : 4795
+bytes         : 5771
 line endings  : CRLF
-sha256        : e848c54da236791282240ff7655dedcd9008c6b856910f6718eb9e52b0211bd6
+sha256        : 0edbaf6a0f81a33320cdf4b21757104ef56c1395f591a944b4fa50c8afe769b0
 ```
+
+The raw output below was taken at sha256 `e848c54d…`; the bytes that changed
+since are comment lines in the header (the `registers` omission and the RLS
+caveat above). The SQL is identical — re-run the script before applying and
+compare, as §18 requires.
 
 ## Raw output
 
@@ -143,6 +149,23 @@ psql "$SUPABASE_DB_URL" -X -v ON_ERROR_STOP=1 -1 -f E:/SourceBD/supabase/migrati
 `psql` is not installed on this machine; the dry-run script is the psycopg
 equivalent and applies the same file. The migration goes **before or with**
 the deploy, never after (the deploy-order hazard in `current-state.md`).
+
+## The guard this leaves behind
+
+`etl/tests/test_supplier_contact_counts_sql.py` skips until 0105 is applied,
+so `ops/verify_0105_guards.py` runs its five assertions inside the same
+rolled-back transaction, to prove they pass rather than shipping a guard nobody
+has seen green. The 25 Sep run:
+
+```
+grants                     : ['authenticated', 'postgres', 'service_role'] -> anon absent OK
+definer/stable/search_path : {'definer': True, 'volatility': 's', 'config': 'search_path=public'} OK
+shape / no values          : 1046-am-fashion {'emails': 1, 'phones': 1, 'website': False, 'representatives': 1} OK
+counts match the columns   : 0 mismatches over all 10,266 published records OK
+null for unknown/unpublished OK
+
+5/5 guard assertions pass against the applied migration. ROLLED BACK.
+```
 
 Afterwards, confirm with the read-only Supabase MCP: one
 `supplier_contact_counts` function, `anon` absent from its grants, and

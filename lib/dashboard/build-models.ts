@@ -48,6 +48,7 @@ import { heading4, hsCatalogueRow, hsExporterCount, hsPhotoSrc, hsShortLabel, ph
 import { groupWorkers, type SiteWorkerInput } from "@/lib/profile-metrics";
 import type {
   ContactCounts,
+  SanctionRow,
   FactRow,
   FactWithMark,
   HighlightChip,
@@ -62,7 +63,7 @@ import type {
   TileModel,
 } from "./models";
 import { mergeUniqueLocations } from "@/lib/dedup-addresses";
-import { marksFromTags, recordPage, sourceMark, tierFromSlug, tierWords, topTier, type SourceMarkModel } from "./source-tiers";
+import { isKnownSource, marksFromTags, recordPage, sourceMark, tierWords, topTier, trustRankFromSlug, type SourceMarkModel } from "./source-tiers";
 
 export { recordPage } from "./source-tiers";
 
@@ -133,6 +134,15 @@ export type ProfileBrand = {
 };
 export type ProfileProvenance = { source_code: string; display_name: string; tier: string; source_ref: string | null; source_url: string | null; last_seen_at: string | null };
 export type ProfileAddress = { kind: string; address: string; source_code: string; fetched_at?: string | null };
+/** One watchlist hit. The banner asserts a match; these rows are the receipt for it. */
+export type ProfileSanction = {
+  list: string;
+  matched_name: string;
+  list_entry_ref: string | null;
+  screened_at: string;
+  source_url: string | null;
+  listed_date: string | null;
+};
 
 export type ProfilePayload = {
   supplier: ProfileSupplier;
@@ -143,6 +153,7 @@ export type ProfilePayload = {
   brand_attributions: ProfileBrand[];
   provenance: ProfileProvenance[];
   addresses?: ProfileAddress[];
+  sanctions?: ProfileSanction[];
 };
 
 export type HsLine = { code: string; description: string | null; source_url: string | null };
@@ -952,6 +963,12 @@ export type SheetOptions = {
   fullHref?: string;
   /** Where an overlay's Close returns to. Absent on the full page, which has nothing to close. */
   closeHref?: string | null;
+  /** Where one export line opens; defaults to the line's own page. */
+  lineHref?: (hs: string) => string;
+  /** Show every heading in the grid rather than the six rarest. */
+  allLines?: boolean;
+  /** Where "All N lines ›" goes when the grid is showing only six. */
+  allLinesHref?: string | null;
 };
 
 /**
@@ -974,35 +991,49 @@ function registersReadWords(p: ProfilePayload): string {
 
 function sourceRows(p: ProfilePayload): SourceRow[] {
   const hrefs = sourceHrefs(p);
-  const byCode = new Map<string, { row: SourceRow; at: number }>();
+  // The LATEST read and the first reference each register filed, keyed by code.
+  const read = new Map<string, { at: number; ref: string | null; tier: string }>();
   for (const r of p.provenance ?? []) {
     const code = r.source_code.toUpperCase();
     const at = isoTime(r.last_seen_at);
-    const held = byCode.get(code);
-    if (held) {
-      // The latest read of the register, and the first reference it filed.
-      if (at > held.at) {
-        held.at = at;
-        held.row.readDate = formatDay(new Date(at).toISOString());
-      }
-      held.row.ref = held.row.ref ?? (r.source_ref || null);
+    const held = read.get(code);
+    if (!held) {
+      read.set(code, { at, ref: r.source_ref || null, tier: r.tier ?? "" });
       continue;
     }
-    const m = sourceMark(code, hrefs[code] ?? null);
-    byCode.set(code, {
-      at,
-      row: {
-        mark: m,
-        name: m.name,
-        tier: tierWords(tierFromSlug(r.tier ?? "")),
-        ref: r.source_ref || null,
-        readDate: at < 0 ? null : formatDay(new Date(at).toISOString()),
-      },
-    });
+    // The reference must belong to the read whose date this row will show;
+    // taking the date from one row and the reference from another put one
+    // read's number beside another read's date.
+    if (at > held.at) {
+      held.at = at;
+      held.ref = r.source_ref || null;
+      held.tier = r.tier ?? "";
+    } else if (held.ref === null) {
+      held.ref = r.source_ref || null;
+    }
   }
-  return [...byCode.values()]
-    .map((e) => e.row)
-    .sort((a, b) => a.mark.tier - b.mark.tier || a.mark.label.localeCompare(b.mark.label));
+  // One row per mark the sheet draws, not per provenance row. `allSourceCodes`
+  // is what the head's "N sources" and the Sources tab count, and a section
+  // listing fewer rows than its own tab claims is two answers to one question:
+  // 69 of 10,266 published records carry a `source_tags` entry with no
+  // `source_records` row (SQL, 25 Sep 2026 — BGMEA in every case). Those get a
+  // row that says the register has no read, rather than no row at all.
+  return marksFromTags(allSourceCodes(p), hrefs).map((m) => {
+    const held = read.get(m.code.toUpperCase());
+    return {
+      mark: m,
+      name: m.name,
+      // The provenance row's own tier slug where there is one (it is the only
+      // place tier 6 can come from), else the register's rank from the trust
+      // table, else null — which prints "not in the trust table" rather than
+      // the rank `fallback()` assigns an unknown code for colouring purposes.
+      tier: tierWords(
+        (held?.tier ? trustRankFromSlug(held.tier) : null) ?? (isKnownSource(m.code) ? m.tier : null),
+      ),
+      ref: held?.ref ?? null,
+      readDate: held && held.at >= 0 ? formatDay(new Date(held.at).toISOString()) : null,
+    };
+  });
 }
 
 /**
@@ -1157,6 +1188,8 @@ export function buildSheet(input: RecordInput, options: SheetOptions = {}): Supp
       { label: "Products", count: input.hscodesError ? null : String(lines.length), href: "#products" },
       { label: "Certificates", count: String(certList.length), href: "#certificates" },
       { label: "Safety", count: rsc ? "RSC" : null, href: "#safety" },
+      // One number: the head, this tab and the Sources section all count the
+      // marks the sheet draws (`sourceRows` renders one row per mark).
       { label: "Sources", count: String(marks.length), href: "#sources" },
       { label: "Locations", count: p.addresses ? String(addresses) : null, href: "#locations" },
       { label: "Facilities", count: null, href: "#facilities" },
@@ -1187,7 +1220,10 @@ export function buildSheet(input: RecordInput, options: SheetOptions = {}): Supp
       certifiedScopeEmpty: scopeEmptyWords(p, certList),
       buyerLists: brands,
       buyerListsEmpty: brandListsEmptyWords(p),
-      tiles: input.hscodesError ? [] : photoTiles(lines, 6),
+      // Six tiles unless the caller asked for all of them, and a destination
+      // for the rest when it did not.
+      tiles: input.hscodesError ? [] : photoTiles(lines, options.allLines ? lines.length : 6),
+      allLinesHref: options.allLines || lines.length <= 6 ? null : (options.allLinesHref ?? null),
     },
     certs: certList,
     certsCaption: certList.length ? `${onFileLabel(certList.length)} · ${certRegisters.join(", ")}` : null,
@@ -1238,6 +1274,14 @@ export function buildSheet(input: RecordInput, options: SheetOptions = {}): Supp
     saved: Boolean(options.saved),
     fullHref: options.fullHref ?? `/app/suppliers/${s.slug}`,
     closeHref: options.closeHref ?? null,
+    lineHref: options.lineHref ?? ((hs: string) => `/app/suppliers/${s.slug}/lines/${hs}`),
+    sanctions: sanctionRows(p),
+    // A flagged record whose payload carries no row is not "no match" — it is a
+    // match whose receipt did not come back.
+    sanctionsEmpty:
+      p.sanctions === undefined
+        ? "The matched entries could not be read."
+        : "The screen recorded a match but filed no entry for it.",
   };
 
   // Every square this sheet draws: the mark row, the attributed fact rows and
@@ -1248,6 +1292,12 @@ export function buildSheet(input: RecordInput, options: SheetOptions = {}): Supp
     ...model.marks,
     ...model.facts.flatMap((f) => (f.value === null ? [] : (f.marks ?? []))),
     ...model.certs.map((c) => sourceMark(c.markCode, c.documentUrl)),
+    // REZ-C draws two more mark surfaces. Leaving them out meant the action
+    // bar's "every source mark links to its register page" was computed over a
+    // subset of the squares actually on screen — the same defect the
+    // certificate marks caused before they were added here.
+    ...model.sources.map((s) => s.mark),
+    ...model.locations.flatMap((l) => l.marks),
   ];
   // "…to its register page" is false of a brand mark however well it links: a
   // disclosure list is one file listing every supplier on it, and the mark's
@@ -1258,6 +1308,28 @@ export function buildSheet(input: RecordInput, options: SheetOptions = {}): Supp
   const everyMarkLinks =
     rendered.length > 0 && rendered.every((m) => Boolean(m.href)) && rendered.every((m) => m.opens !== "list");
   return { ...model, everyMarkLinks };
+}
+
+/**
+ * The watchlist rows behind the banner, best-evidenced first.
+ *
+ * The banner says "matched on a sanctions screen"; these say which list, which
+ * name it matched, and where to read the entry. The page this sheet replaced
+ * put them on its Compliance tab and its banner pointed at them, so a signed-in
+ * buyer must not now see less than an anonymous visitor does.
+ */
+function sanctionRows(p: ProfilePayload): SanctionRow[] {
+  return (p.sanctions ?? [])
+    .filter((x) => (x.list ?? "").trim() || (x.matched_name ?? "").trim())
+    .map((x) => ({
+      list: x.list?.trim() || "Unnamed list",
+      matchedName: x.matched_name?.trim() || "name not filed",
+      ref: x.list_entry_ref?.trim() || null,
+      screenedOn: formatDay(x.screened_at),
+      listedOn: formatDay(x.listed_date),
+      href: recordPage(x.source_url) ? x.source_url : null,
+    }))
+    .sort((a, b) => a.list.localeCompare(b.list) || a.matchedName.localeCompare(b.matchedName));
 }
 
 /** The five RSC reports, in the order the spec lists them; a missing one keeps its slot. */
@@ -1421,7 +1493,13 @@ export function buildProductSheet(input: RecordInput, hs: string, options: Produ
         ? { label: "Price · MOQ · lead time", value: attested.join(" · "), note: "supplier-attested", marks: [], pendingSource: true }
         : { label: "Price · MOQ · lead time", value: null, note: "supplier-attested fields, shown when attested" },
     ],
-    otherExporters: row && exported ? Math.max(0, hsExporterCount(code) - 1) : null,
+    // The count the linked search returns, not that minus one, and the label
+    // says "Exporters" rather than "Other exporters" to match. Verified live on
+    // 25 Sep: `discover_suppliers(p_hs_codes := {6105})` → total_count 1,634,
+    // catalogue 1,634. While the control was inert the difference did not show;
+    // it is a link now, and the founder's rule of 24 Sep is that a products
+    // count equals the search it opens.
+    exporters: row && exported ? hsExporterCount(code) : null,
     backHref: options.backHref === undefined ? `/app/suppliers/${s.slug}` : options.backHref,
     closeHref: options.closeHref ?? null,
     rfqHref: options.rfqHref ?? null,

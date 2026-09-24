@@ -27,7 +27,7 @@ export function ProductSheet({
     <Sheet label="Product line" assertModal={assertModal} dialog={dialog}>
       <SheetBar>
         {model.backHref ? (
-          <Button variant="ghost" aria-label="Back to the record" href={model.backHref}>
+          <Button variant="ghost" aria-label="Back to the record" href={model.backHref} clientNav scroll={false}>
             <Icon name="chev-l" /> Back
           </Button>
         ) : (
@@ -35,14 +35,17 @@ export function ProductSheet({
             <Icon name="chev-l" /> Back
           </Button>
         )}
-        <span className="inline-flex min-w-0 items-center gap-1.5 text-sm text-ink-muted">
-          <span className="truncate">{model.supplierName}</span>
+        {/* The name wraps; it is never truncated. A 125-character company name
+            is the company's name, and an ellipsis is the kit saying it could
+            not be bothered (render.test.ts's no-truncation guard). */}
+        <span className="inline-flex min-w-0 flex-wrap items-center gap-x-1.5 text-sm text-ink-muted">
+          <span className="[overflow-wrap:anywhere]">{model.supplierName}</span>
           <span className="text-ink-subtle">/</span>
           <Code className="shrink-0 text-ink-strong">HS {model.hs}</Code>
         </span>
         <span className="ml-auto flex items-center gap-2">
           {model.closeHref ? (
-            <Button variant="ghost" icon aria-label="Close" href={model.closeHref}>
+            <Button variant="ghost" icon aria-label="Close" href={model.closeHref} clientNav scroll={false}>
               <Icon name="x" />
             </Button>
           ) : null}
@@ -87,10 +90,12 @@ export function ProductSheet({
               >
                 <Icon name="send" /> Send RFQ for this line
               </Button>
+              {/* "Exporters", not "Other exporters": the count is what the
+                  search behind it returns, and that includes this record. */}
               <Button lg href={`/app/discover?hs=${model.hs}`}>
-                Other exporters of {model.hs}
-                {model.otherExporters !== null ? (
-                  <span className="font-mono text-ink-subtle">{formatCount(model.otherExporters)}</span>
+                Exporters of {model.hs}
+                {model.exporters !== null ? (
+                  <span className="font-mono text-ink-subtle">{formatCount(model.exporters)}</span>
                 ) : null}
               </Button>
             </div>

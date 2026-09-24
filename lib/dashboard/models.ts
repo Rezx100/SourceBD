@@ -148,6 +148,21 @@ export type LocationRow = {
   alsoRecordedAs: string[];
 };
 
+/**
+ * One watchlist hit behind the sanction banner. The page this sheet replaced
+ * showed the list, the matched name, the entry reference, the screening date
+ * and a link to the entry; the banner alone asserts a match and evidences
+ * nothing, which on this record of all records is the wrong way round.
+ */
+export type SanctionRow = {
+  list: string;
+  matchedName: string;
+  ref: string | null;
+  screenedOn: string | null;
+  listedOn: string | null;
+  href: string | null;
+};
+
 /** One of the calling buyer's RFQs that names this supplier. */
 export type RecordRfqRow = {
   id: string;
@@ -199,6 +214,12 @@ export type SupplierSheetModel = {
     /** What to say when `buyerLists` is empty: the bare negative, or the building that is listed. */
     buyerListsEmpty: string;
     tiles: PhotoTileModel[];
+    /**
+     * Where "All N lines ›" goes. The grid shows six tiles, so on a record with
+     * more headings than that the rest were reachable from nowhere. Null when
+     * every line is already on screen.
+     */
+    allLinesHref: string | null;
   };
   certs: CertModel[];
   certsCaption: string | null;
@@ -263,6 +284,17 @@ export type SupplierSheetModel = {
   fullHref: string;
   /** Where the overlay's Close returns to. Null on the full page, which has nothing to close. */
   closeHref: string | null;
+  /**
+   * Where one export line opens. A function, because the answer depends on
+   * where this sheet is: over the results it is a nested sheet on the same
+   * search URL, so the search survives the drill-down; on the full record page
+   * it is the line's own page.
+   */
+  lineHref: (hs: string) => string;
+  /** The watchlist rows behind the banner. Empty on a record that is not sanctioned. */
+  sanctions: SanctionRow[];
+  /** What the Safety/compliance area says when the record is flagged but the payload carries no row. */
+  sanctionsEmpty: string;
 };
 
 export type ProductSheetModel = {
@@ -276,7 +308,16 @@ export type ProductSheetModel = {
   photo: PhotoTileModel;
   generatedOn: string | null;
   facts: FactRow[];
-  otherExporters: number | null;
+  /**
+   * How many suppliers the linked search returns for this heading — INCLUDING
+   * this one. It was that minus one, under a label reading "Other exporters",
+   * which was honest about the word and dishonest about the link: the control
+   * became a real link in REZ-C, and `/app/discover?hs=6105` returns 1,634
+   * while the button said 1,633. The founder's rule of 24 Sep is that a
+   * products count equals the search it links to, so the number stayed whole
+   * and the label dropped "Other".
+   */
+  exporters: number | null;
   /** Back to the record this line belongs to. Null on the gallery, which has no route behind it. */
   backHref: string | null;
   /** Where Close returns to; null when nothing sits behind the sheet. */

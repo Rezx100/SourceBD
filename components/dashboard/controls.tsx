@@ -2,6 +2,7 @@
 // checkbox, the V2 tag, meters and the live dot. Tailwind classes only; every
 // colour is a token role (`lib/design/tokens.ts`).
 
+import Link from "next/link";
 import type { ButtonHTMLAttributes, MouseEventHandler, ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { Icon, type IconName } from "./icons";
@@ -21,6 +22,9 @@ export function Button({
   children,
   type = "button",
   href,
+  clientNav = false,
+  scroll,
+  prefetch = false,
   ...rest
 }: ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: ButtonVariant;
@@ -28,6 +32,24 @@ export function Button({
   lg?: boolean;
   /** When set, renders as a link with the same styles. */
   href?: string;
+  /**
+   * Route this link through `next/link` instead of a plain anchor.
+   *
+   * Opt-in, because most of the kit's links should stay document navigations:
+   * the CSV export is an API route that must download rather than transition,
+   * and a register page is off-site entirely. It is the record links that need
+   * it — a full load there re-runs the search and drops the bulk selection,
+   * which is exactly what §3.3 says must not happen.
+   */
+  clientNav?: boolean;
+  /** `next/link` only. `false` keeps the reader where they were — the record opens over the results (§3.3's `{ scroll: false }`). */
+  scroll?: boolean;
+  /**
+   * `next/link` only. It prefetches by default; a results page draws up to 100
+   * of these and each record sheet costs six RPC round trips, so prefetching
+   * them all would fire hundreds of profile reads nobody asked for.
+   */
+  prefetch?: boolean;
 }) {
   const classes = cn(
     "inline-flex items-center gap-1.5 whitespace-nowrap rounded-sm border text-sm font-medium transition-colors duration-fast",
@@ -41,15 +63,26 @@ export function Button({
     className,
   );
   if (href && !rest.disabled) {
-    return (
-      <a
-        href={href}
-        className={classes}
-        aria-label={rest["aria-label"]}
-        aria-busy={rest["aria-busy"]}
-        aria-describedby={rest["aria-describedby"]}
-        onClick={rest.onClick as unknown as MouseEventHandler<HTMLAnchorElement> | undefined}
-      >
+    // `href` first: React emits attributes in prop order, and the kit's
+    // long-name guard matches on the element that directly holds the text
+    // (`class="…[overflow-wrap:anywhere]…">Name<`). Putting className first
+    // silently moved `href` between them.
+    const linkProps = {
+      className: classes,
+      "aria-label": rest["aria-label"],
+      "aria-busy": rest["aria-busy"],
+      "aria-describedby": rest["aria-describedby"],
+      onClick: rest.onClick as unknown as MouseEventHandler<HTMLAnchorElement> | undefined,
+    };
+    // `next/link` only where the caller asked for it: a client navigation keeps
+    // the page's React state, which is what the record links need and what a
+    // CSV download must not have.
+    return clientNav ? (
+      <Link href={href} prefetch={prefetch} scroll={scroll} {...linkProps}>
+        {children}
+      </Link>
+    ) : (
+      <a href={href} {...linkProps}>
         {children}
       </a>
     );

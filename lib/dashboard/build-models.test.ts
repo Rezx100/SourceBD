@@ -468,16 +468,19 @@ describe("buildSheet — facts panel and contact card", () => {
     );
   });
 
-  // Cycle 5, finding 18: #sources, #locations, #facilities and #rfqs are not
-  // rendered by this sheet, so linking to them sent the reader nowhere.
-  it("a tab links only to a section this sheet renders", () => {
+  // Cycle 5, finding 18, restated for REZ-C: the four sections that were
+  // missing now exist, so every tab links. The rule the original encoded — a
+  // tab never points at an anchor that is not rendered — is asserted against
+  // the HTML in `components/dashboard/render.test.ts`; this pins the model.
+  it("every tab links, and the eight are the ones §3.3 names", () => {
     assert.deepEqual(
-      sheet.tabs.filter((t) => t.href !== null).map((t) => t.href),
-      ["#overview", "#products", "#certificates", "#safety"],
+      sheet.tabs.map((t) => t.label),
+      ["Overview", "Products", "Certificates", "Safety", "Sources", "Locations", "Facilities", "RFQs"],
     );
     assert.deepEqual(
       sheet.tabs.filter((t) => t.href === null).map((t) => t.label),
-      ["Sources", "Locations", "Facilities", "RFQs"],
+      [],
+      "a tab that points nowhere is the placeholder REZ-C removed",
     );
   });
 
@@ -622,7 +625,7 @@ describe("buildSheet — a record with two EPB registrations (S M Knitwears)", (
 
 describe("buildProductSheet — HS 6105 on the Aboni record", () => {
   const ps = buildProductSheet(aboniInput(), "6105");
-  it("heading, photo, other lines, certified scope, and the live exporter count minus this supplier", () => {
+  it("heading, photo, other lines, certified scope, and the exporter count the linked search returns", () => {
     assert.equal(ps.hs, "6105");
     assert.equal(ps.exported, true);
     assert.equal(ps.heading, "Men's or boys' shirts, knitted or crocheted");
@@ -633,7 +636,10 @@ describe("buildProductSheet — HS 6105 on the Aboni record", () => {
     assert.equal(byLabel["Price · MOQ · lead time"]!.value, null);
     assert.equal(byLabel["Product list"]!.pendingSource, true, "the product list is not stamped with a guessed register");
     assert.deepEqual(byLabel["Product list"]!.marks, []);
-    assert.equal(ps.otherExporters, 1633);
+    // 1,634, not 1,633: the button links to `/app/discover?hs=6105`, which
+    // returns 1,634 (verified live, 25 Sep). A count that disagrees with the
+    // search it opens is what the founder's 24 Sep rule forbids.
+    assert.equal(ps.exporters, 1634);
   });
 
   // Cycle 5, finding 10: `Certified scope` dropped the `Products:` half — the
@@ -698,7 +704,7 @@ describe("buildProductSheet — HS 6105 on the Aboni record", () => {
     assert.equal(page.href, null);
     assert.deepEqual(page.marks, []);
     assert.equal(page.checked, "this line is not on the record's EPB page");
-    assert.equal(off.otherExporters, null, "an exporter count would imply this record is one of them");
+    assert.equal(off.exporters, null, "an exporter count would imply this record is one of them");
   });
 });
 

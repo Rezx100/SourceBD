@@ -5,7 +5,7 @@
 -- contact columns from `authenticated`, so the count has to be taken inside a
 -- security-definer function. That is the whole of this migration.
 --
--- Three things §4.3 asks for are NOT here, each for a reason checked against
+-- Five things §4.3 asks for are NOT here, each for a reason checked against
 -- production on 25 Sep 2026:
 --
 --   * `contact_counts` is NOT added to `buyer_supplier_profile`. The live
@@ -28,10 +28,24 @@
 --     so the column could only ever be null — which §4.3 itself says means the
 --     caption reads "read <date>" only, exactly what the sheet renders today.
 --
---   * `rfq_count` is not added: `rfqs` already has the owner-scoped SELECT
---     policy `pol_rfqs_select_buyer (buyer_id = auth.uid())`, so the calling
---     buyer can count its own RFQs to a supplier through PostgREST. A
---     security-definer wrapper would only widen what is already correct.
+--   * `rfq_count` is not added: the calling buyer can count its own RFQs to a
+--     supplier through PostgREST. NOTE the caveat, because the first version of
+--     this note got it wrong: `public.rfqs` carries TWO permissive SELECT
+--     policies — `pol_rfqs_select_buyer (buyer_id = auth.uid())` and
+--     `pol_rfqs_select_supplier`, which lets a caller who has CLAIMED the
+--     supplier read every RFQ sent to it. RLS alone is therefore not the
+--     scoping; `lib/dashboard/load-record.ts` filters on `buyer_id` in the
+--     query, and `app/(app)/app/record-routes.test.ts` asserts that it does.
+--
+--   * `contact_counts.registers` is not returned. §4.3's example shape ends
+--     `"registers":["BGMEA","BKMEA","BGAPMEA"]` — which register filed each
+--     contact detail. That attribution does not exist anywhere in this
+--     database: no row of `source_records.fields` carries a contact key (0 of
+--     22,190 active rows, across all 14 registers that have ever filed one),
+--     and `v_supplier_addresses.phone` / `.email` are empty on every one of its
+--     rows. Printing register names beside the counts would be an invented
+--     receipt, which is the one thing this product may not do, so the card
+--     says the counts alone.
 --
 -- §4.5 ("rfq_create gains and s.is_sanctioned = false") is already true in
 -- production: the live rfq_create validates targets with

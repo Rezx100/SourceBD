@@ -14,6 +14,7 @@
 "use client";
 
 import type { SupplierCardModel, FactWithMark, TileModel } from "@/lib/dashboard/models";
+import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { Chip, Chips } from "./chips";
 import { Button, Checkbox, V2Tag } from "./controls";
@@ -129,9 +130,22 @@ export function SupplierResultCard({ card }: { card: SupplierCardModel }) {
                   The name itself opens the record (§3.3, "from Open record /
                   the name"); the button beside it goes to the same place. */}
               <Title as="h2">
-                <a href={recordHref} className="text-ink-strong hover:text-brand-ink">
+                {/* `next/link` and `scroll={false}`: the record opens over these
+                    results without re-running the search or moving the page
+                    (§3.3). `[overflow-wrap:anywhere]` rides on the element that
+                    directly holds the text — a 125-character name must break
+                    inside the link, not overflow the card. */}
+                <Link
+                  prefetch={false}
+                  scroll={false}
+                  href={recordHref}
+                  // Last, so React emits it last: the kit's long-name guard
+                  // matches the element that directly holds the text, as
+                  // `class="…[overflow-wrap:anywhere]…">Name<`.
+                  className="text-ink-strong [overflow-wrap:anywhere] hover:text-brand-ink"
+                >
                   {card.name}
-                </a>
+                </Link>
               </Title>
               <SourceMarks marks={card.marks} />
             </div>
@@ -151,7 +165,7 @@ export function SupplierResultCard({ card }: { card: SupplierCardModel }) {
                 <Icon name="bookmark" /> Save
               </Button>
             )}
-            <Button href={recordHref}>Open record</Button>
+            <Button href={recordHref} clientNav scroll={false}>Open record</Button>
             <Button variant="primary" href={card.sanctioned ? undefined : (card.rfqHref ?? undefined)} disabled={card.sanctioned}>
               <Icon name="send" /> Send RFQ
             </Button>

@@ -4,9 +4,10 @@
 // at the row's end), the striped locked contact card, stat blocks, the
 // certificate card, the RSC block and the sticky frosted action bar.
 
+import Link from "next/link";
 import type { ReactNode } from "react";
 import { certStateLabel, rscStatusNeedsLook, type CertModel } from "@/lib/dashboard/facts";
-import type { FactRow, LocationRow, RecordRfqRow, SourceRow } from "@/lib/dashboard/models";
+import type { FactRow, LocationRow, RecordRfqRow, SanctionRow, SourceRow } from "@/lib/dashboard/models";
 import { recordPage, sourceMark } from "@/lib/dashboard/source-tiers";
 import { cn } from "@/lib/utils";
 import { Badge } from "./chips";
@@ -90,11 +91,16 @@ export function Sheet({
  * Where a record sheet lives in the shipped app.
  *
  * `overlay`: fixed over the shell, with the scrim as the click target that
- * returns to the results — a link, so closing works with JavaScript off and
- * the results behind it are never re-fetched.
+ * returns to the results.
  *
  * Otherwise: an 880px column inside the page's own shell, for the full record
  * page and its deep links.
+ *
+ * The scrim is `aria-hidden` and not a tab stop. It was a labelled link, which
+ * put an empty viewport-sized anchor first in the overlay's reading order and
+ * announced "Close the record" twice — once for it and once for the bar's own
+ * Close button. A pointer can still dismiss by clicking it; a keyboard uses the
+ * bar's Close, which is a real control with a real name.
  */
 export function SheetFrame({ overlay, closeHref, children }: { overlay: boolean; closeHref?: string | null; children: ReactNode }) {
   if (!overlay) {
@@ -103,13 +109,40 @@ export function SheetFrame({ overlay, closeHref, children }: { overlay: boolean;
   return (
     <div className="fixed inset-0 z-50">
       {closeHref ? (
-        <a href={closeHref} aria-label="Close the record and return to the results" className="absolute inset-0 bg-surface-inverse opacity-[0.32]" />
+        <Link
+          href={closeHref}
+          prefetch={false}
+          scroll={false}
+          aria-hidden
+          tabIndex={-1}
+          className="absolute inset-0 bg-surface-inverse opacity-[0.32]"
+        />
       ) : (
         <Scrim />
       )}
       {children}
     </div>
   );
+}
+
+/**
+ * The shell a record overlay covers.
+ *
+ * `aria-modal="true"` asserts that everything outside the dialog is
+ * unavailable. On `/dev/ds` the gallery sets `assertModal={false}` because it
+ * draws three sheets side by side; on the shipped results page the claim is
+ * true only if the results really are unavailable — and they were not. The
+ * composer, ten filter inputs and every result row preceded the dialog in the
+ * tab order while it claimed they did not exist, which is the failure
+ * `Stage`'s own comment records from cycle 19, on the one surface `Stage` is
+ * not used.
+ *
+ * `inert` removes the subtree from focus, from the pointer and from the
+ * accessibility tree in one attribute, and React renders it on any element.
+ */
+export function Behind({ inactive, children }: { inactive: boolean; children: ReactNode }) {
+  if (!inactive) return <>{children}</>;
+  return <div inert>{children}</div>;
 }
 
 export function SheetBar({ children }: { children: ReactNode }) {
@@ -465,7 +498,10 @@ export function SourcesList({ rows }: { rows: readonly SourceRow[] }) {
               {r.ref ? <Code>{r.ref}</Code> : null}
             </Caption>
           </span>
-          <Caption className="shrink-0 whitespace-nowrap pt-0.5">{r.readDate ? `read ${r.readDate}` : "read date not on file"}</Caption>
+          {/* A register the record names but that has filed no `source_records`
+              row has no read to report. "read date not on file" claimed there
+              was a read whose date we lost; "no record read" is the fact. */}
+          <Caption className="shrink-0 pt-0.5 sm:whitespace-nowrap">{r.readDate ? `read ${r.readDate}` : "no record read"}</Caption>
         </li>
       ))}
     </ul>
@@ -521,6 +557,53 @@ export function RecordRfqList({ rows }: { rows: readonly RecordRfqRow[] }) {
   );
 }
 
+/**
+ * The watchlist entries behind the sanction banner: which list, which name it
+ * matched, the entry reference, when it was screened, and a link to the entry.
+ * The banner makes the claim; this is the receipt for it.
+ */
+export function SanctionEvidence({ rows }: { rows: readonly SanctionRow[] }) {
+  return (
+    <ul className="flex flex-col">
+      {rows.map((r, i) => (
+        <li key={`${r.list}-${r.ref ?? i}`} className="flex flex-col gap-0.5 border-t border-line-subtle py-2.5 first:border-t-0">
+          <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+            <Label className="text-ink-strong">{r.list}</Label>
+            {r.ref ? <Code className="text-ink">{r.ref}</Code> : null}
+            {r.href ? (
+              <a href={r.href} className="ml-auto inline-flex items-center gap-0.5 text-sm font-medium text-brand-ink">
+                Entry <Icon name="external" small />
+              </a>
+            ) : null}
+          </div>
+          <span className="text-base leading-[22px] text-ink [overflow-wrap:anywhere]">Matched “{r.matchedName}”</span>
+          <Caption>
+            {[r.listedOn ? `listed ${r.listedOn}` : null, r.screenedOn ? `screened ${r.screenedOn}` : "screening date not on file"]
+              .filter(Boolean)
+              .join(" · ")}
+          </Caption>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/**
+ * The affiliation notice. Every surface that draws authority marks carries it:
+ * the public profile and the marketing footer do, and the buyer record page did
+ * until the kit replaced it. A page showing BGMEA, BKMEA, H&M and NEXT marks
+ * has to say what they are and are not.
+ */
+export function AffiliationNote() {
+  return (
+    <p className="mx-auto max-w-prose px-6 py-5 text-center text-xs leading-5 text-ink-subtle">
+      Authority logos identify the data sources we aggregate from. SourceBD is not affiliated with or endorsed by BGMEA,
+      BKMEA, BTMA, EPB, OEKO-TEX, WRAP, GOTS, RSC, or any of the brands named on this page. Every fact traces to the
+      issuing authority shown in Sources.
+    </p>
+  );
+}
+
 /** A section's quiet empty state: a dashed chip saying what is absent, never a bare "none". */
 export function QuietEmpty({ children }: { children: ReactNode }) {
   return (
@@ -564,7 +647,7 @@ export function ActionBar({
         <Icon name="send" /> Send RFQ
       </Button>
       {save ?? (
-        <Button lg disabled>
+        <Button lg disabled title="Saving a record needs a signed-in account">
           <Icon name="bookmark" /> Save
         </Button>
       )}
@@ -589,11 +672,19 @@ export function ActionBar({
  * warning "cannot be hidden by layout", and every assertion about it used to
  * match on its text, which an `sr-only` class leaves in place.
  */
-export function SanctionBanner({ sample }: { sample?: boolean }) {
+export function SanctionBanner({ sample, evidenceHref }: { sample?: boolean; evidenceHref?: string | null }) {
   return (
-    <div data-sanction-visible="true" role="alert" className="flex items-center gap-2 bg-sanction px-6 py-2.5 text-sm font-medium text-sanction-on">
+    <div data-sanction-visible="true" role="alert" className="flex flex-wrap items-center gap-x-2 gap-y-1 bg-sanction px-6 py-2.5 text-sm font-medium text-sanction-on">
       <Icon name="warn" />
       Sanctioned{sample ? " · sample record" : ""} — matched on a sanctions screen. RFQs cannot be sent to this supplier.
+      {/* The claim has to lead somewhere. Without this the banner asserted a
+          match and evidenced nothing, while the page it replaced named the
+          list, the matched name and the entry. */}
+      {evidenceHref ? (
+        <a href={evidenceHref} className="ml-auto underline">
+          See the matches
+        </a>
+      ) : null}
     </div>
   );
 }

@@ -6,30 +6,46 @@
 // heading, never the supplier's own product, and the caption says so. A
 // heading with no photo keeps its place and shows its code.
 
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 
 import { AppShell } from "@/components/dashboard/app-shell";
 import { ProductSheet } from "@/components/dashboard/product-sheet";
 import { SheetFrame } from "@/components/dashboard/sheet";
 import { loadBuyerShell } from "@/lib/dashboard/load-buyer-shell";
 import { heading4 } from "@/lib/dashboard/hs-photos";
-import { loadRecordLine } from "@/lib/dashboard/load-record";
+import { ProfileReadTimeout, loadRecordLine } from "@/lib/dashboard/load-record";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
 export default async function ProductLinePage({ params }: { params: Promise<{ slug: string; hs: string }> }) {
   const { slug, hs } = await params;
-  const code = heading4(decodeURIComponent(hs));
-  // Only a 4-digit EPB heading is a line. Anything else is a URL somebody
-  // typed, and rendering a sheet for it would invent a product line.
-  if (!/^\d{4}$/.test(code)) notFound();
+  // No `decodeURIComponent` here. Next already decodes dynamic segments, so a
+  // second pass threw `URIError` on a segment containing a bare `%`
+  // (`/lines/%`) — an unhandled throw inside a server component, which is a 500
+  // and never reaches the `notFound()` below.
+  //
+  // The whole segment must be the heading: `heading4` is `slice(0, 4)`, so
+  // testing the sliced value let `/lines/61059` through as HS 6105. Only a
+  // 4-digit EPB heading is a line; anything else is a URL somebody typed, and
+  // rendering a sheet for it would invent a product line.
+  if (!/^\d{4}$/.test(hs)) notFound();
+  const code = heading4(hs);
 
   const supabase = await createSupabaseServerClient();
-  const [shell, model] = await Promise.all([
-    loadBuyerShell(supabase, `/app/suppliers/${slug}`),
-    loadRecordLine(supabase, slug, code, new Date()),
-  ]);
+  let shell: Awaited<ReturnType<typeof loadBuyerShell>>;
+  let model: Awaited<ReturnType<typeof loadRecordLine>>;
+  try {
+    [shell, model] = await Promise.all([
+      loadBuyerShell(supabase, `/app/suppliers/${slug}`),
+      loadRecordLine(supabase, slug, code, new Date()),
+    ]);
+  } catch (err) {
+    // A slow read sends the reader to the record, which has its own retry
+    // state — never a 404, which would say the line does not exist.
+    if (err instanceof ProfileReadTimeout) redirect(`/app/suppliers/${slug}`);
+    throw err;
+  }
   if (!model) notFound();
 
   return (
