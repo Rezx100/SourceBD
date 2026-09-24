@@ -41,3 +41,21 @@ export function urlOnSite(
   dest.search = search;
   return dest;
 }
+
+/**
+ * Build an on-site URL from a whole href — path AND query together.
+ *
+ * `urlOnSite` takes them separately and assigns the first to `URL.pathname`,
+ * which percent-encodes a "?". Passing a full href to it therefore produces
+ * `/app/discover%3Fq=knit`, which 404s. Every caller holding an href built
+ * elsewhere (a saved search, a stored redirect target) wants this instead.
+ */
+export function urlOnSiteFromHref(
+  href: string,
+  env?: { NEXT_PUBLIC_SITE_URL?: string; NEXT_PUBLIC_APP_URL?: string },
+): URL {
+  const q = href.indexOf("?");
+  const pathname = q === -1 ? href : href.slice(0, q);
+  const search = q === -1 ? "" : href.slice(q);
+  return urlOnSite(pathname, search, env);
+}

@@ -1,4 +1,5 @@
-// POST /api/v1/saved   — { supplier_id } → insert into saved_suppliers
+// POST /api/v1/saved   — { supplier_id } or { supplier_ids: [...] } → one
+//                        upsert into saved_suppliers (lib/saved-suppliers.ts)
 // DELETE /api/v1/saved?supplier_id=<uuid> → delete the caller's saved row
 //
 // Spec B5 (saved suppliers). The `(app)/app/*` middleware does NOT cover
@@ -11,6 +12,7 @@
 import { NextResponse } from "next/server";
 
 import { getServerRole } from "@/lib/auth";
+import { runSavedSupplierPost } from "@/lib/saved-suppliers";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
@@ -31,40 +33,23 @@ async function requireBuyer() {
 }
 
 export async function POST(req: Request) {
-  const gate = await requireBuyer();
-  if (gate.error) return gate.error;
-
-  let body: unknown;
-  try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: "invalid JSON" }, { status: 400 });
+  // Role first: a caller who is not a buyer is refused before their body is
+  // read (runSavedSupplierPost returns 401 without looking at `raw`).
+  const role = await getServerRole();
+  let raw: unknown;
+  if (role === "buyer" || role === "admin") {
+    try {
+      raw = await req.json();
+    } catch {
+      raw = undefined;
+    }
   }
-  if (!body || typeof body !== "object" || Array.isArray(body)) {
-    return NextResponse.json({ error: "body must be an object" }, { status: 400 });
-  }
-  const raw = (body as Record<string, unknown>).supplier_id;
-  if (typeof raw !== "string" || !UUID_RE.test(raw)) {
-    return NextResponse.json({ error: "invalid supplier_id" }, { status: 400 });
-  }
-
-  const supabase = await createSupabaseServerClient();
-  const { data: user } = await supabase.auth.getUser();
-  const ownerId = user.user?.id;
-  if (!ownerId) {
-    return NextResponse.json({ error: "unauthorised" }, { status: 401 });
-  }
-
-  const { error } = await supabase
-    .from("saved_suppliers")
-    .upsert(
-      { owner_id: ownerId, supplier_id: raw },
-      { onConflict: "owner_id,supplier_id", ignoreDuplicates: true },
-    );
-  if (error) {
-    return NextResponse.json({ error: "save failed", detail: error.message }, { status: 500 });
-  }
-  return NextResponse.json({ ok: true, saved: true });
+  const result = await runSavedSupplierPost({
+    role,
+    supabase: await createSupabaseServerClient(),
+    raw,
+  });
+  return NextResponse.json(result.body, { status: result.status });
 }
 
 export async function DELETE(req: Request) {

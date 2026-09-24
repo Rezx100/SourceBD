@@ -112,3 +112,62 @@ jobs:
 
       - name: Profile HTTP-boundary guard
         run: node scripts/test-profile-http-boundary.mjs --build
+
+  migrations:
+    # The 1,052 lines of `0104_discover_v32.sql` were never executed by
+    # anything. Four rounds of review read the file; round 4 found a doubled
+    # comma that Postgres rejects at CREATE FUNCTION time, so the migration
+    # would not have applied at all — and it had passed a guard written to
+    # check that exact ORDER BY, because the guard matched source text rather
+    # than running it. This job replays every migration against a throwaway
+    # Postgres 16 and then asserts the behaviour that matters, by calling the
+    # functions. See supabase/ci/.
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: ci
+          POSTGRES_DB: sourcebd_ci
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+
+    env:
+      PGHOST: localhost
+      PGPORT: "5432"
+      PGUSER: postgres
+      PGPASSWORD: ci
+      PGDATABASE: sourcebd_ci
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Replay every migration, then assert 0104 behaves
+        run: bash supabase/ci/apply-migrations.sh
+
+      # The refusal, executed. The script guards production by requiring the
+      # target's `public` schema to be empty, and that check lives in a SQL
+      # string the unit suite can only read — a reviewer pointed the same query
+      # at a non-existent schema and every assertion stayed green while the
+      # guard stopped guarding anything. Here there is a real Postgres, and
+      # after the step above it holds ~109 migrations' worth of relations, so a
+      # second run MUST refuse. Exit 9 is the refusal and nothing else returns
+      # it; 0 would mean the guard let a populated database be replayed over.
+      - name: The replay refuses a database that is not empty
+        run: |
+          set +e
+          bash supabase/ci/apply-migrations.sh
+          status=$?
+          set -e
+          if [ "$status" -ne 9 ]; then
+            echo "::error::a second replay over a populated database exited $status, expected the refusal 9"
+            exit 1
+          fi
+          echo "second replay refused as it should, exit 9"

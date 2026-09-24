@@ -1,0 +1,1447 @@
+-- 0104 — Discover v3.2 (REZ-B).
+--
+-- Extends discover_suppliers (§4.1), adds supplier_epb_hscodes_batch and
+-- hs_catalogue (§4.2), and creates saved_searches so /app/searches can persist
+-- a named query (§7 REZ-B; §4.4 listed this table under 0106, which ships
+-- later). Additive. CREATE OR REPLACE cannot add arguments, so the 0076
+-- discover_suppliers signature is dropped and recreated.
+--
+-- HS codes are not a table: 0103 created supplier_epb_hscodes(p_slug) reading
+-- source_records.fields->'epb_hscodes' with the epb_record_is_foreign_to_host
+-- denylist. Both new functions reuse that pattern. hs_catalogue is the same
+-- aggregate as ops/hs_catalogue_exporter_reconciliation.py (heading4 =
+-- left(btrim(code),4), count distinct supplier_id), less sanctioned suppliers.
+--
+-- Do not --apply to production from this PR (AGENTS.md rule 15).
+
+set search_path = public;
+
+-- ---------------------------------------------------------------------------
+-- saved_searches — owner-scoped named URL state (REZ-B /app/searches)
+-- ---------------------------------------------------------------------------
+
+create table if not exists public.saved_searches (
+  id              uuid        primary key default gen_random_uuid(),
+  owner_id        uuid        not null references auth.users(id) on delete cascade,
+  -- Bounded here, not only in the route: `authenticated` may insert through
+  -- PostgREST directly, past lib/saved-searches.ts's 120-character check.
+  name            text        not null
+                  constraint saved_searches_name_len check (char_length(name) between 1 and 120),
+  query_state     jsonb       not null default '{}'::jsonb
+                  constraint saved_searches_state_size check (octet_length(query_state::text) <= 8192),
+  created_at      timestamptz not null default now(),
+  last_count      int         null,
+  last_counted_at timestamptz null
+);
+
+create index if not exists idx_saved_searches_owner_created
+  on public.saved_searches (owner_id, created_at desc);
+
+alter table public.saved_searches enable row level security;
+
+drop policy if exists pol_saved_searches_select_self on public.saved_searches;
+create policy pol_saved_searches_select_self
+  on public.saved_searches
+  for select
+  to authenticated
+  using (owner_id = auth.uid());
+
+drop policy if exists pol_saved_searches_insert_self on public.saved_searches;
+create policy pol_saved_searches_insert_self
+  on public.saved_searches
+  for insert
+  to authenticated
+  with check (owner_id = auth.uid());
+
+drop policy if exists pol_saved_searches_update_self on public.saved_searches;
+create policy pol_saved_searches_update_self
+  on public.saved_searches
+  for update
+  to authenticated
+  using (owner_id = auth.uid())
+  with check (owner_id = auth.uid());
+
+drop policy if exists pol_saved_searches_delete_self on public.saved_searches;
+create policy pol_saved_searches_delete_self
+  on public.saved_searches
+  for delete
+  to authenticated
+  using (owner_id = auth.uid());
+
+grant select, insert, update, delete on public.saved_searches to authenticated;
+
+-- A per-owner row cap, for the same reason: RLS scopes rows to their owner
+-- but does not bound how many an owner may create. 200 is the list's own
+-- page (lib/saved-searches.ts LIST_LIMIT, held equal by a test), so no saved
+-- search can exist that the buyer cannot see or delete. SECURITY INVOKER:
+-- under RLS the owner's own rows are all the count needs, and a definer
+-- count answered "limit reached" about SOMEONE ELSE's rows to a caller who
+-- tried to insert under their id.
+create or replace function public.saved_searches_owner_cap()
+returns trigger
+language plpgsql
+security invoker
+set search_path = public
+as $cap$
+begin
+  perform pg_advisory_xact_lock(hashtextextended(new.owner_id::text, 104));
+  if (select count(*) from public.saved_searches where owner_id = new.owner_id) >= 200 then
+    raise exception 'saved search limit reached' using errcode = '54000';
+  end if;
+  return new;
+end;
+$cap$;
+
+revoke all on function public.saved_searches_owner_cap() from public, anon, authenticated;
+
+drop trigger if exists trg_saved_searches_owner_cap on public.saved_searches;
+create trigger trg_saved_searches_owner_cap
+  before insert on public.saved_searches
+  for each row execute function public.saved_searches_owner_cap();
+
+comment on table public.saved_searches is
+  'Named Discover URL state per buyer. RLS owner-only. Created in 0104 so REZ-B /app/searches can persist; 0106 must use IF NOT EXISTS.';
+
+-- ---------------------------------------------------------------------------
+-- HS helpers — same EPB source_records pattern as 0103 / the reconciliation query
+-- ---------------------------------------------------------------------------
+
+create or replace function public.discover_v32_est_year(p_established text)
+returns int
+language sql
+immutable
+parallel safe
+as $$
+  select nullif(substring(btrim(coalesce(p_established, '')), '^[0-9]{4}'), '')::int;
+$$;
+
+revoke all on function public.discover_v32_est_year(text) from public, anon, authenticated;
+
+create or replace function public.discover_v32_top_tier(p_tags text[])
+returns smallint
+language sql
+immutable
+parallel safe
+as $$
+  select coalesce(
+    (
+      select min(
+        case
+          when upper(t) in ('EPB', 'RSC', 'DIFE', 'RJSC', 'BEPZA', 'BIN') then 1
+          when upper(t) in ('BGMEA', 'BKMEA', 'BGAPMEA', 'BTMA') then 2
+          when upper(t) in ('GOTS', 'OEKO_TEX', 'OEKO-TEX', 'WRAP', 'SA8000', 'GRS', 'RCS', 'OCS') then 3
+          when upper(t) like 'BRAND_%' then 4
+          else 5
+        end
+      )::smallint
+        from unnest(coalesce(p_tags, '{}'::text[])) as t
+    ),
+    5::smallint
+  );
+$$;
+
+revoke all on function public.discover_v32_top_tier(text[]) from public, anon, authenticated;
+
+create or replace function public.discover_v32_hs_codes(p_supplier_id uuid)
+returns text[]
+language sql
+stable
+set search_path = public
+as $$
+  select coalesce(array_agg(distinct heading4 order by heading4), '{}'::text[])
+    from (
+      select left(btrim(hs.elem->>'code'), 4) as heading4
+        from public.suppliers s
+        join public.source_records sr
+          on sr.supplier_id = s.id
+         and sr.status = 'active'
+        join public.sources src
+          on src.id = sr.source_id
+         and src.code = 'EPB'
+        cross join lateral jsonb_array_elements(
+          case
+            when jsonb_typeof(sr.fields->'epb_hscodes') = 'array'
+            then sr.fields->'epb_hscodes'
+            else '[]'::jsonb
+          end
+        ) as hs(elem)
+       where s.id = p_supplier_id
+         and s.is_published = true
+         and sr.source_ref ~ '^[0-9]+$'
+         and not public.epb_record_is_foreign_to_host(s.slug, sr.source_ref)
+         and btrim(coalesce(hs.elem->>'code', '')) ~ '^[0-9]{4,6}$'
+    ) d;
+$$;
+
+revoke all on function public.discover_v32_hs_codes(uuid) from public, anon, authenticated;
+
+create or replace function public.discover_v32_cert_summary(p_supplier_id uuid)
+returns jsonb
+language sql
+stable
+set search_path = public
+as $$
+  select coalesce(
+    jsonb_agg(
+      jsonb_build_object(
+        'kind', c.kind,
+        'certificate_no', c.certificate_no,
+        'issuer', c.issuer,
+        'scope', c.scope,
+        'expires_on', c.expires_on,
+        'days_left', case
+          when c.expires_on is null then null
+          else (c.expires_on - current_date)
+        end,
+        'state', case
+          when c.expires_on is null then 'no-expiry'
+          when c.expires_on < current_date then 'expired'
+          when c.expires_on < current_date + 90 then 'expiring'
+          else 'valid'
+        end
+      )
+      order by c.expires_on nulls last, c.kind
+    ),
+    '[]'::jsonb
+  )
+    from public.certifications c
+   where c.supplier_id = p_supplier_id
+     -- 0039 rejects a certificate by soft-deleting it (rejected_at set, with a
+     -- reason). A rejected certificate is not evidence of anything, so it must
+     -- never reach a buyer as a cert chip, a state, or a count.
+     and c.rejected_at is null;
+$$;
+
+revoke all on function public.discover_v32_cert_summary(uuid) from public, anon, authenticated;
+
+create or replace function public.discover_v32_brand_codes(p_supplier_id uuid)
+returns text[]
+language sql
+stable
+set search_path = public
+as $$
+  select coalesce(array_agg(distinct so.code order by so.code), '{}'::text[])
+    from public.source_records sr
+    join public.sources so on so.id = sr.source_id
+   where sr.supplier_id = p_supplier_id
+     and sr.status = 'active'
+     and so.code like 'BRAND_%';
+$$;
+
+revoke all on function public.discover_v32_brand_codes(uuid) from public, anon, authenticated;
+
+create or replace function public.discover_v32_registries(p_supplier_id uuid)
+returns text[]
+language sql
+stable
+set search_path = public
+as $$
+  -- `_direct`, not `v_supplier_registry_ids`: the latter unions a PARENT
+  -- factory's memberships onto RSC sibling satellites (0021), suffixing the
+  -- label " (parent factory)" and setting `inherited_from` precisely so that
+  -- consumers do not print them as the record's own. `lib/header-registration.ts`
+  -- honours that; a Registers tile reading "BGMEA" for a satellite that holds
+  -- no BGMEA membership does not, and `?reg=BGMEA` would return it.
+  --
+  -- Restricted to the six registry codes as well. That view also unions
+  -- `public.certifications` with no `rejected_at` filter, so GOTS/WRAP rows an
+  -- admin rejected as forged came back through here as "registers" — re-opening,
+  -- on the same card, the hole this migration closes for cert_summary, the cert
+  -- filter and the cert-expiry sort.
+  select coalesce(array_agg(distinct vp.source_code order by vp.source_code), '{}'::text[])
+    from public.v_supplier_registry_ids_direct vp
+   where vp.supplier_id = p_supplier_id
+     and vp.source_code in ('BGMEA', 'BKMEA', 'BGAPMEA', 'BTMA', 'EPB', 'RSC');
+$$;
+
+revoke all on function public.discover_v32_registries(uuid) from public, anon, authenticated;
+
+create or replace function public.discover_v32_next_cert_expiry(p_supplier_id uuid)
+returns date
+language sql
+stable
+set search_path = public
+as $$
+  select min(c.expires_on)
+    from public.certifications c
+   where c.supplier_id = p_supplier_id
+     -- Soft-deleted by an admin rejection (0039): a rejected certificate must
+     -- not drive the "certificate expiry soonest" sort either, or a supplier
+     -- is ordered by the expiry date of evidence we have thrown out.
+     and c.rejected_at is null
+     and c.expires_on is not null
+     and c.expires_on >= current_date;
+$$;
+
+revoke all on function public.discover_v32_next_cert_expiry(uuid) from public, anon, authenticated;
+
+-- Shared filter predicate. p_skip names the one filter explain() drops.
+create or replace function public.discover_v32_passes(
+  s public.suppliers,
+  p_rsc_pct numeric,
+  p_skip text,
+  p_entity_types text[],
+  p_min_sources int,
+  p_cert_kinds text[],
+  p_rsc_min int,
+  p_city text,
+  p_district text,
+  p_category text,
+  p_registries text[],
+  p_factory_types text[],
+  p_brand_codes text[],
+  p_completeness_min int,
+  p_workers_min int,
+  p_hs_codes text[],
+  p_cert_state text,
+  p_rsc_state text,
+  p_est_from int,
+  p_est_to int,
+  p_workers_max int,
+  p_districts text[],
+  p_cities text[],
+  p_exclude_sanctioned boolean
+)
+returns boolean
+language sql
+stable
+set search_path = public
+as $$
+  select
+    s.is_published = true
+    and (
+      p_skip = 'sanction'
+      or coalesce(p_exclude_sanctioned, true) = false
+      or s.is_sanctioned = false
+    )
+    and (
+      p_skip = 'type'
+      or p_entity_types is null
+      or s.entity_type::text = any (p_entity_types)
+    )
+    and (
+      p_skip = 'city'
+      or (
+        (p_city is null or s.city ilike '%' || p_city || '%')
+        and (
+          p_cities is null
+          or exists (
+            select 1 from unnest(p_cities) c
+             where s.city ilike '%' || c || '%'
+          )
+        )
+      )
+    )
+    and (
+      p_skip = 'district'
+      or (
+        (p_district is null or s.district ilike '%' || p_district || '%')
+        and (
+          p_districts is null
+          or exists (
+            select 1 from unnest(p_districts) d
+             where s.district ilike '%' || d || '%'
+          )
+        )
+      )
+    )
+    and (
+      p_skip = 'rsc'
+      or (
+        (p_rsc_min is null or p_rsc_pct >= p_rsc_min)
+        and (
+          p_rsc_state is null
+          or (
+            p_rsc_state = 'active'
+            and exists (
+              select 1
+                from public.rsc_remediation r
+               where r.supplier_id = s.id
+                 and r.active = true
+            )
+          )
+          or (
+            p_rsc_state = 'lapsed'
+            and exists (
+              select 1
+                from public.rsc_remediation r
+               where r.supplier_id = s.id
+            )
+            and not exists (
+              select 1
+                from public.rsc_remediation r
+               where r.supplier_id = s.id
+                 and r.active = true
+            )
+          )
+        )
+      )
+    )
+    and (
+      p_skip = 'category'
+      or p_category is null
+      or p_category = ''
+      or exists (
+        select 1 from unnest(s.principal_products) pp
+         where pp ilike '%' || p_category || '%'
+      )
+    )
+    and (
+      p_skip = 'cert'
+      or (
+        p_cert_kinds is null
+        and (p_cert_state is null or p_cert_state = 'any')
+      )
+      or exists (
+        select 1
+          from public.certifications c
+         where c.supplier_id = s.id
+           -- Soft-deleted by an admin rejection (0039): must not satisfy a
+           -- certificate filter either, or `?cert=gots:valid` returns
+           -- suppliers whose only GOTS certificate was rejected as forged.
+           and c.rejected_at is null
+           and (p_cert_kinds is null or c.kind::text = any (p_cert_kinds))
+           and case
+             coalesce(
+               p_cert_state,
+               case when p_cert_kinds is not null then 'unexpired' else 'any' end
+             )
+             when 'any' then true
+             when 'unexpired' then (c.expires_on is null or c.expires_on >= current_date)
+             when 'expired' then (c.expires_on is not null and c.expires_on < current_date)
+             when 'expiring' then (
+               c.expires_on is not null
+               and c.expires_on >= current_date
+               and c.expires_on < current_date + 90
+             )
+             when 'valid' then (c.expires_on is null or c.expires_on >= current_date + 90)
+             else true
+           end
+      )
+    )
+    and (
+      p_skip = 'registry'
+      or p_registries is null
+      or exists (
+        -- Same basis as `discover_v32_registries`: the supplier's own
+        -- registrations only, and only real registers. Filtering on the
+        -- inherited view returned satellites that hold no such membership,
+        -- and on cert rows that an admin had rejected.
+        select 1
+          from public.v_supplier_registry_ids_direct vp
+         where vp.supplier_id = s.id
+           and vp.source_code in ('BGMEA', 'BKMEA', 'BGAPMEA', 'BTMA', 'EPB', 'RSC')
+           and vp.source_code = any (p_registries)
+      )
+    )
+    and (
+      p_skip = 'factory'
+      or p_factory_types is null
+      or s.factory_types && p_factory_types
+    )
+    and (
+      p_skip = 'brand'
+      or p_brand_codes is null
+      or exists (
+        select 1
+          from public.source_records sr3
+          join public.sources so3 on so3.id = sr3.source_id
+         where sr3.supplier_id = s.id
+           and sr3.status = 'active'
+           and so3.code = any (p_brand_codes)
+      )
+    )
+    and (
+      p_skip = 'completeness'
+      or p_completeness_min is null
+      or s.completeness_pct >= p_completeness_min
+    )
+    and (
+      p_skip = 'workers'
+      or (
+        -- The REGISTER's figure for this record, which is what the chip and
+        -- the sort are named for. Calling the group roll-up
+        -- (production_workers_display_batch) per row was tried and reverted:
+        -- discover_suppliers is granted to `anon` and PostgREST serves it
+        -- outside Next's middleware and rate limiter, so an unauthenticated
+        -- caller could force one 5-CTE roll-up per published supplier per
+        -- request. The display/filter mismatch it was meant to fix is closed by
+        -- naming both figures honestly instead — see build-discover-row.ts.
+        (p_workers_min is null or s.employees_total >= p_workers_min)
+        and (p_workers_max is null or s.employees_total <= p_workers_max)
+      )
+    )
+    and (
+      p_skip = 'min_sources'
+      or p_min_sources is null
+      or s.t13_source_count >= p_min_sources
+    )
+    and (
+      p_skip = 'est'
+      or (
+        (
+          p_est_from is null
+          or public.discover_v32_est_year(s.established_date) >= p_est_from
+        )
+        and (
+          p_est_to is null
+          or public.discover_v32_est_year(s.established_date) <= p_est_to
+        )
+      )
+    )
+    and (
+      p_skip = 'hs'
+      or p_hs_codes is null
+      or exists (
+        select 1
+          from public.source_records sr_hs
+          join public.sources src_hs
+            on src_hs.id = sr_hs.source_id
+           and src_hs.code = 'EPB'
+          cross join lateral jsonb_array_elements(
+            case
+              when jsonb_typeof(sr_hs.fields->'epb_hscodes') = 'array'
+              then sr_hs.fields->'epb_hscodes'
+              else '[]'::jsonb
+            end
+          ) as hs(elem)
+         where sr_hs.supplier_id = s.id
+           and sr_hs.status = 'active'
+           and sr_hs.source_ref ~ '^[0-9]+$'
+           and not public.epb_record_is_foreign_to_host(s.slug, sr_hs.source_ref)
+           and btrim(coalesce(hs.elem->>'code', '')) ~ '^[0-9]{4,6}$'
+           and left(btrim(hs.elem->>'code'), 4) = any (p_hs_codes)
+      )
+    );
+$$;
+
+revoke all on function public.discover_v32_passes(
+  public.suppliers, numeric, text, text[], int, text[], int, text, text, text,
+  text[], text[], text[], int, int, text[], text, text, int, int, int,
+  text[], text[], boolean
+) from public, anon, authenticated;
+
+-- ---------------------------------------------------------------------------
+-- discover_v32_assert_bounded — refuse oversized filter lists (REZ-B)
+-- ---------------------------------------------------------------------------
+-- Every supplier row is tested against every element of these lists (cities
+-- and districts by ilike), and against the single city, district, category
+-- and keyword values by ilike too; discover_suppliers is granted to anon and
+-- served by PostgREST outside the app's rate limiter, so an unbounded list or
+-- an unbounded value is a per-call cost the caller chooses. The app keeps
+-- under these limits before it calls (lib/discover-v32-state.ts: 30 values of
+-- at most 80 characters, a keyword of at most 120; the public /discover page
+-- caps its values the same way, dropping what is over; the suggest route
+-- refuses a keyword over 200 with a 400).
+create or replace function public.discover_v32_assert_bounded(
+  p_entity_types text[],
+  p_cert_kinds text[],
+  p_registries text[],
+  p_factory_types text[],
+  p_brand_codes text[],
+  p_hs_codes text[],
+  p_districts text[],
+  p_cities text[],
+  p_q text,
+  p_city text,
+  p_district text,
+  p_category text
+)
+returns void
+language plpgsql
+immutable
+set search_path = public
+as $$
+begin
+  if greatest(
+       coalesce(cardinality(p_entity_types), 0),
+       coalesce(cardinality(p_cert_kinds), 0),
+       coalesce(cardinality(p_registries), 0),
+       coalesce(cardinality(p_factory_types), 0),
+       coalesce(cardinality(p_brand_codes), 0),
+       coalesce(cardinality(p_hs_codes), 0),
+       coalesce(cardinality(p_districts), 0),
+       coalesce(cardinality(p_cities), 0)
+     ) > 50
+     or exists (
+       select 1
+         from unnest(coalesce(p_districts, '{}'::text[]) || coalesce(p_cities, '{}'::text[])) as x
+        where length(x) > 80
+     )
+     or length(p_q) > 200
+     or greatest(length(p_city), length(p_district), length(p_category)) > 80 then
+    raise exception 'too many or too long filter values' using errcode = '22023';
+  end if;
+end;
+$$;
+
+revoke all on function public.discover_v32_assert_bounded(
+  text[], text[], text[], text[], text[], text[], text[], text[], text, text, text, text
+) from public, anon, authenticated;
+
+-- ---------------------------------------------------------------------------
+-- discover_suppliers — drop 0076 signature, recreate with §4.1 extras
+-- ---------------------------------------------------------------------------
+
+do $$
+declare
+  r record;
+begin
+  for r in
+    select p.oid::regprocedure as sig
+      from pg_proc p
+     where p.proname = 'discover_suppliers'
+       and p.pronamespace = 'public'::regnamespace
+  loop
+    execute 'drop function if exists ' || r.sig;
+  end loop;
+end
+$$;
+
+create or replace function public.discover_suppliers(
+  p_q                    text    default null,
+  p_entity_types         text[]  default null,
+  p_min_sources          int     default null,
+  p_cert_kinds           text[]  default null,
+  p_rsc_min              int     default null,
+  p_city                 text    default null,
+  p_district             text    default null,
+  p_category             text    default null,
+  p_sort                 text    default 'receipts',
+  p_limit                int     default 24,
+  p_offset               int     default 0,
+  p_registries           text[]  default null,
+  p_factory_types        text[]  default null,
+  p_brand_codes          text[]  default null,
+  p_completeness_min     int     default null,
+  p_workers_min          int     default null,
+  p_hs_codes             text[]  default null,
+  p_cert_state           text    default null,
+  p_rsc_state            text    default null,
+  p_est_from             int     default null,
+  p_est_to               int     default null,
+  p_workers_max          int     default null,
+  p_districts            text[]  default null,
+  p_cities               text[]  default null,
+  p_exclude_sanctioned   boolean default true
+)
+returns table (
+  id                  uuid,
+  slug                text,
+  company_name        text,
+  entity_type         text,
+  city                text,
+  district            text,
+  source_tags         text[],
+  t13_source_count    int,
+  completeness_pct    smallint,
+  employees_total     int,
+  established_date    text,
+  principal_products  text[],
+  factory_types       text[],
+  rsc_progress_pct    numeric,
+  parent_group_name   text,
+  primary_address     text,
+  total_count         bigint,
+  is_sanctioned       boolean,
+  cert_summary        jsonb,
+  hs_codes            text[],
+  brand_codes         text[],
+  registries          text[],
+  top_tier            smallint
+)
+language plpgsql
+stable
+security definer
+set search_path = public
+as $fn$
+declare
+  v_lim int := greatest(1, least(coalesce(p_limit, 24), 100));
+  v_off int := greatest(0, coalesce(p_offset, 0));
+  v_q   text := nullif(btrim(coalesce(p_q, '')), '');
+  -- 'cert_expiry' and 'hs_lines' order on a per-row subquery — a join across
+  -- suppliers x source_records x sources with a jsonb lateral, or a scan of
+  -- certifications — and the ORDER BY sits above `filtered`, so it is
+  -- evaluated for EVERY row that passed the filter before LIMIT applies.
+  -- p_limit does not bound it: one unfiltered call with p_limit = 1 costs a
+  -- full-corpus pass.
+  --
+  -- This function is granted to `anon` and PostgREST serves it directly, so
+  -- those calls never meet the app's middleware or its rate limiter. That is
+  -- the same reasoning the workers roll-up was reverted for (see the comment
+  -- on p_min_sources above); it applies here and was not carried across.
+  -- An anonymous caller gets the default ordering instead. Nothing a signed-
+  -- out visitor can do today is lost — these two sorts are new in 0104.
+  -- `coalesce(auth.role(), 'anon')`, and an allowlist rather than a denylist.
+  --
+  -- `auth.role() = 'anon'` was wrong twice over. Supabase's auth.role() reads
+  -- a request GUC and returns NULL when the request carries no JWT claims —
+  -- and `NULL = 'anon'` is NULL, not true, so the CASE fell through to
+  -- `else p_sort` and the expensive sort ran for exactly the caller the
+  -- downgrade exists to stop. Naming the two sorts to downgrade was the
+  -- second mistake: it is a denylist, so it says nothing about a sort added
+  -- later, and inverting it leaves both expensive sorts reachable while
+  -- quietly downgrading the cheap ones.
+  --
+  -- Stated the safe way round: honour these two only for a caller we can see
+  -- is signed in. Anonymous, or no JWT at all, gets the default ordering.
+  -- 'cert_expiry' and 'hs_lines' order on a per-row subquery — a join across
+  -- suppliers x source_records x sources with a jsonb lateral, or a scan of
+  -- certifications — and the ORDER BY sits above `filtered`, so it runs for
+  -- EVERY row that passed the filter before LIMIT applies. p_limit does not
+  -- bound it: one unfiltered call with p_limit = 1 costs a full-corpus pass,
+  -- and PostgREST serves this function outside the app's rate limiter.
+  v_caller_role text := coalesce(auth.role(), 'anon');
+  v_sort text := case
+    when coalesce(p_sort, '') in ('cert_expiry', 'hs_lines')
+     and v_caller_role not in ('authenticated', 'service_role')
+      then 'receipts'
+    else p_sort
+  end;
+begin
+  perform public.discover_v32_assert_bounded(
+    p_entity_types, p_cert_kinds, p_registries, p_factory_types,
+    p_brand_codes, p_hs_codes, p_districts, p_cities,
+    p_q, p_city, p_district, p_category
+  );
+  if v_q is null then
+    return query
+      with filtered as materialized (
+        select s.id, s.slug, s.company_name, s.entity_type::text as entity_type,
+               s.city, s.district, s.source_tags,
+               s.t13_source_count::int as t13_source_count,
+               s.completeness_pct, s.employees_total, s.established_date,
+               s.principal_products, s.factory_types,
+               rr.progress_pct as rsc_progress_pct, s.parent_group_name,
+               s.address_raw as primary_address,
+               sb.total as sbi_total,
+               s.is_sanctioned
+          from public.suppliers s
+          left join public.rsc_remediation rr
+            on rr.supplier_id = s.id and rr.active = true
+          left join public.sbi_scores sb on sb.supplier_id = s.id
+         where public.discover_v32_passes(
+           s, rr.progress_pct, null,
+           p_entity_types, p_min_sources, p_cert_kinds, p_rsc_min,
+           p_city, p_district, p_category, p_registries, p_factory_types,
+           p_brand_codes, p_completeness_min, p_workers_min, p_hs_codes,
+           p_cert_state, p_rsc_state, p_est_from, p_est_to, p_workers_max,
+           p_districts, p_cities, p_exclude_sanctioned
+         )
+      ),
+      counted as (
+        select f.*, count(*) over () as total_count
+          from filtered f
+      ),
+      page as (
+        select c.*
+          from counted c
+         order by
+           case when v_sort = 'completeness' then c.completeness_pct end desc nulls last,
+           case when v_sort = 'name' then c.company_name end asc,
+           case when v_sort = 'receipts' then c.t13_source_count end desc nulls last,
+           case when v_sort = 'workers' then c.employees_total end desc nulls last,
+           case when v_sort = 'established' then public.discover_v32_est_year(c.established_date) end asc nulls last,
+           case when v_sort = 'cert_expiry' then public.discover_v32_next_cert_expiry(c.id) end asc nulls last,
+           case when v_sort = 'hs_lines' then cardinality(public.discover_v32_hs_codes(c.id)) end desc nulls last,
+           c.sbi_total desc nulls last,
+           c.t13_source_count desc nulls last,
+           c.company_name asc,
+           -- A unique final key. Without one Postgres may return tied rows in a
+           -- different order per call, and the CSV export issues ten separate
+           -- calls at increasing offsets — so a supplier can appear twice in a
+           -- sourcing file while another silently vanishes.
+           c.id asc
+         limit v_lim offset v_off
+      )
+      select p.id, p.slug, p.company_name, p.entity_type, p.city, p.district,
+             p.source_tags, p.t13_source_count, p.completeness_pct,
+             p.employees_total, p.established_date, p.principal_products,
+             p.factory_types, p.rsc_progress_pct, p.parent_group_name,
+             p.primary_address,
+             p.total_count,
+             p.is_sanctioned,
+             public.discover_v32_cert_summary(p.id),
+             public.discover_v32_hs_codes(p.id),
+             public.discover_v32_brand_codes(p.id),
+             public.discover_v32_registries(p.id),
+             public.discover_v32_top_tier(p.source_tags)
+        from page p;
+    return;
+  end if;
+
+  return query
+    with query_flags as materialized (
+      select v_q as q,
+             '%' || v_q || '%' as q_like,
+             websearch_to_tsquery('simple', v_q) as tsq
+    ),
+    filtered as materialized (
+      select s.id, s.slug, s.company_name, s.entity_type::text as entity_type,
+             s.city, s.district, s.source_tags,
+             s.t13_source_count::int as t13_source_count,
+             s.completeness_pct, s.employees_total, s.established_date,
+             s.principal_products, s.factory_types,
+             rr.progress_pct as rsc_progress_pct, s.parent_group_name,
+             s.address_raw as primary_address,
+             sb.total as sbi_total,
+             s.is_sanctioned,
+             (
+               (coalesce(ts_rank_cd(s.discover_search_tsv, qf.tsq), 0) * 1000)::int +
+               case when s.company_name_norm ilike qf.q_like then 240 else 0 end
+             ) as search_rank
+        from public.suppliers s
+        cross join query_flags qf
+        left join public.rsc_remediation rr
+          on rr.supplier_id = s.id and rr.active = true
+        left join public.sbi_scores sb on sb.supplier_id = s.id
+       where public.discover_v32_passes(
+           s, rr.progress_pct, null,
+           p_entity_types, p_min_sources, p_cert_kinds, p_rsc_min,
+           p_city, p_district, p_category, p_registries, p_factory_types,
+           p_brand_codes, p_completeness_min, p_workers_min, p_hs_codes,
+           p_cert_state, p_rsc_state, p_est_from, p_est_to, p_workers_max,
+           p_districts, p_cities, p_exclude_sanctioned
+         )
+         and (
+           (qf.tsq is not null and s.discover_search_tsv @@ qf.tsq)
+           or s.company_name_norm ilike qf.q_like
+           or coalesce(s.parent_group_name, '') ilike qf.q_like
+           or coalesce(s.city, '') ilike qf.q_like
+           or coalesce(s.district, '') ilike qf.q_like
+         )
+    ),
+    stats as materialized (
+      select count(*)::bigint as total_count
+        from filtered
+       where search_rank > 0
+    ),
+    page as (
+      select f.*
+        from filtered f
+       where f.search_rank > 0
+       order by
+         case when v_sort = 'completeness' then f.completeness_pct end desc nulls last,
+         case when v_sort = 'name' then f.company_name end asc,
+         case when v_sort = 'receipts' then f.t13_source_count end desc nulls last,
+         case when v_sort = 'workers' then f.employees_total end desc nulls last,
+         case when v_sort = 'established' then public.discover_v32_est_year(f.established_date) end asc nulls last,
+         case when v_sort = 'cert_expiry' then public.discover_v32_next_cert_expiry(f.id) end asc nulls last,
+         case when v_sort = 'hs_lines' then cardinality(public.discover_v32_hs_codes(f.id)) end desc nulls last,
+         case when coalesce(v_sort, 'default') = 'default' then f.search_rank end desc nulls last,
+         f.sbi_total desc nulls last,
+         f.t13_source_count desc nulls last,
+         f.company_name asc,
+         -- A unique final key. Without one Postgres may return tied rows in a
+         -- different order per call, and the CSV export issues ten separate
+         -- calls at increasing offsets — so a supplier can appear twice in a
+         -- sourcing file while another silently vanishes.
+         f.id asc
+       limit v_lim offset v_off
+    )
+    select p.id, p.slug, p.company_name, p.entity_type, p.city, p.district,
+           p.source_tags, p.t13_source_count, p.completeness_pct,
+           p.employees_total, p.established_date, p.principal_products,
+           p.factory_types, p.rsc_progress_pct, p.parent_group_name,
+           p.primary_address,
+           s.total_count,
+           p.is_sanctioned,
+           public.discover_v32_cert_summary(p.id),
+           public.discover_v32_hs_codes(p.id),
+           public.discover_v32_brand_codes(p.id),
+           public.discover_v32_registries(p.id),
+           public.discover_v32_top_tier(p.source_tags)
+      from page p
+      cross join stats s;
+end;
+$fn$;
+
+revoke all on function public.discover_suppliers(
+  text, text[], int, text[], int, text, text, text, text, int, int,
+  text[], text[], text[], int, int,
+  text[], text, text, int, int, int, text[], text[], boolean
+) from public, anon, authenticated;
+
+grant execute on function public.discover_suppliers(
+  text, text[], int, text[], int, text, text, text, text, int, int,
+  text[], text[], text[], int, int,
+  text[], text, text, int, int, int, text[], text[], boolean
+) to anon, authenticated;
+
+comment on function public.discover_suppliers(
+  text, text[], int, text[], int, text, text, text, text, int, int,
+  text[], text[], text[], int, int,
+  text[], text, text, int, int, int, text[], text[], boolean
+) is
+  'Published-supplier search. Contact PII is not in the return type. Browse fast path when p_q is null (0071/0076).';
+
+-- ---------------------------------------------------------------------------
+-- discover_suppliers_explain — count with each active filter dropped
+-- ---------------------------------------------------------------------------
+
+-- Every inner call below passes 'receipts', never the caller's p_sort: this
+-- returns counts, which no ordering changes, and forwarding hs_lines /
+-- cert_expiry made one call up to twelve full-corpus passes for any signed-in
+-- PostgREST caller. p_sort stays in the signature so existing callers resolve.
+create or replace function public.discover_suppliers_explain(
+  p_q                    text    default null,
+  p_entity_types         text[]  default null,
+  p_min_sources          int     default null,
+  p_cert_kinds           text[]  default null,
+  p_rsc_min              int     default null,
+  p_city                 text    default null,
+  p_district             text    default null,
+  p_category             text    default null,
+  p_sort                 text    default 'receipts',
+  p_limit                int     default 1,
+  p_offset               int     default 0,
+  p_registries           text[]  default null,
+  p_factory_types        text[]  default null,
+  p_brand_codes          text[]  default null,
+  p_completeness_min     int     default null,
+  p_workers_min          int     default null,
+  p_hs_codes             text[]  default null,
+  p_cert_state           text    default null,
+  p_rsc_state            text    default null,
+  p_est_from             int     default null,
+  p_est_to               int     default null,
+  p_workers_max          int     default null,
+  p_districts            text[]  default null,
+  p_cities               text[]  default null,
+  p_exclude_sanctioned   boolean default true
+)
+returns table (
+  dropped   text,
+  remaining bigint
+)
+language plpgsql
+stable
+security definer
+set search_path = public
+as $fn$
+declare
+  v_q text := nullif(btrim(coalesce(p_q, '')), '');
+begin
+  perform public.discover_v32_assert_bounded(
+    p_entity_types, p_cert_kinds, p_registries, p_factory_types,
+    p_brand_codes, p_hs_codes, p_districts, p_cities,
+    p_q, p_city, p_district, p_category
+  );
+  if v_q is not null then
+    return query
+      select 'q'::text, x.total_count
+        from public.discover_suppliers(
+          null, p_entity_types, p_min_sources, p_cert_kinds, p_rsc_min,
+          p_city, p_district, p_category, 'receipts', 1, 0,
+          p_registries, p_factory_types, p_brand_codes, p_completeness_min,
+          p_workers_min, p_hs_codes, p_cert_state, p_rsc_state, p_est_from,
+          p_est_to, p_workers_max, p_districts, p_cities, p_exclude_sanctioned
+        ) x
+       limit 1;
+  end if;
+  if p_hs_codes is not null then
+    return query
+      select 'hs'::text, x.total_count
+        from public.discover_suppliers(
+          p_q, p_entity_types, p_min_sources, p_cert_kinds, p_rsc_min,
+          p_city, p_district, p_category, 'receipts', 1, 0,
+          p_registries, p_factory_types, p_brand_codes, p_completeness_min,
+          p_workers_min, null, p_cert_state, p_rsc_state, p_est_from,
+          p_est_to, p_workers_max, p_districts, p_cities, p_exclude_sanctioned
+        ) x
+       limit 1;
+  end if;
+  if p_cert_kinds is not null or (p_cert_state is not null and p_cert_state <> 'any') then
+    return query
+      select 'cert'::text, x.total_count
+        from public.discover_suppliers(
+          p_q, p_entity_types, p_min_sources, null, p_rsc_min,
+          p_city, p_district, p_category, 'receipts', 1, 0,
+          p_registries, p_factory_types, p_brand_codes, p_completeness_min,
+          p_workers_min, p_hs_codes, null, p_rsc_state, p_est_from,
+          p_est_to, p_workers_max, p_districts, p_cities, p_exclude_sanctioned
+        ) x
+       limit 1;
+  end if;
+  if p_rsc_min is not null or p_rsc_state is not null then
+    return query
+      select 'rsc'::text, x.total_count
+        from public.discover_suppliers(
+          p_q, p_entity_types, p_min_sources, p_cert_kinds, null,
+          p_city, p_district, p_category, 'receipts', 1, 0,
+          p_registries, p_factory_types, p_brand_codes, p_completeness_min,
+          p_workers_min, p_hs_codes, p_cert_state, null, p_est_from,
+          p_est_to, p_workers_max, p_districts, p_cities, p_exclude_sanctioned
+        ) x
+       limit 1;
+  end if;
+  if p_est_from is not null or p_est_to is not null then
+    return query
+      select 'est'::text, x.total_count
+        from public.discover_suppliers(
+          p_q, p_entity_types, p_min_sources, p_cert_kinds, p_rsc_min,
+          p_city, p_district, p_category, 'receipts', 1, 0,
+          p_registries, p_factory_types, p_brand_codes, p_completeness_min,
+          p_workers_min, p_hs_codes, p_cert_state, p_rsc_state, null,
+          null, p_workers_max, p_districts, p_cities, p_exclude_sanctioned
+        ) x
+       limit 1;
+  end if;
+  if p_workers_min is not null or p_workers_max is not null then
+    return query
+      select 'workers'::text, x.total_count
+        from public.discover_suppliers(
+          p_q, p_entity_types, p_min_sources, p_cert_kinds, p_rsc_min,
+          p_city, p_district, p_category, 'receipts', 1, 0,
+          p_registries, p_factory_types, p_brand_codes, p_completeness_min,
+          null, p_hs_codes, p_cert_state, p_rsc_state, p_est_from,
+          p_est_to, null, p_districts, p_cities, p_exclude_sanctioned
+        ) x
+       limit 1;
+  end if;
+  if p_district is not null or p_districts is not null then
+    return query
+      select 'district'::text, x.total_count
+        from public.discover_suppliers(
+          p_q, p_entity_types, p_min_sources, p_cert_kinds, p_rsc_min,
+          p_city, null, p_category, 'receipts', 1, 0,
+          p_registries, p_factory_types, p_brand_codes, p_completeness_min,
+          p_workers_min, p_hs_codes, p_cert_state, p_rsc_state, p_est_from,
+          p_est_to, p_workers_max, null, p_cities, p_exclude_sanctioned
+        ) x
+       limit 1;
+  end if;
+  if p_city is not null or p_cities is not null then
+    return query
+      select 'city'::text, x.total_count
+        from public.discover_suppliers(
+          p_q, p_entity_types, p_min_sources, p_cert_kinds, p_rsc_min,
+          null, p_district, p_category, 'receipts', 1, 0,
+          p_registries, p_factory_types, p_brand_codes, p_completeness_min,
+          p_workers_min, p_hs_codes, p_cert_state, p_rsc_state, p_est_from,
+          p_est_to, p_workers_max, p_districts, null, p_exclude_sanctioned
+        ) x
+       limit 1;
+  end if;
+  if p_entity_types is not null then
+    return query
+      select 'type'::text, x.total_count
+        from public.discover_suppliers(
+          p_q, null, p_min_sources, p_cert_kinds, p_rsc_min,
+          p_city, p_district, p_category, 'receipts', 1, 0,
+          p_registries, p_factory_types, p_brand_codes, p_completeness_min,
+          p_workers_min, p_hs_codes, p_cert_state, p_rsc_state, p_est_from,
+          p_est_to, p_workers_max, p_districts, p_cities, p_exclude_sanctioned
+        ) x
+       limit 1;
+  end if;
+  if p_min_sources is not null then
+    return query
+      select 'min_sources'::text, x.total_count
+        from public.discover_suppliers(
+          p_q, p_entity_types, null, p_cert_kinds, p_rsc_min,
+          p_city, p_district, p_category, 'receipts', 1, 0,
+          p_registries, p_factory_types, p_brand_codes, p_completeness_min,
+          p_workers_min, p_hs_codes, p_cert_state, p_rsc_state, p_est_from,
+          p_est_to, p_workers_max, p_districts, p_cities, p_exclude_sanctioned
+        ) x
+       limit 1;
+  end if;
+  if p_brand_codes is not null then
+    return query
+      select 'brand'::text, x.total_count
+        from public.discover_suppliers(
+          p_q, p_entity_types, p_min_sources, p_cert_kinds, p_rsc_min,
+          p_city, p_district, p_category, 'receipts', 1, 0,
+          p_registries, p_factory_types, null, p_completeness_min,
+          p_workers_min, p_hs_codes, p_cert_state, p_rsc_state, p_est_from,
+          p_est_to, p_workers_max, p_districts, p_cities, p_exclude_sanctioned
+        ) x
+       limit 1;
+  end if;
+  if p_registries is not null then
+    return query
+      select 'registry'::text, x.total_count
+        from public.discover_suppliers(
+          p_q, p_entity_types, p_min_sources, p_cert_kinds, p_rsc_min,
+          p_city, p_district, p_category, 'receipts', 1, 0,
+          null, p_factory_types, p_brand_codes, p_completeness_min,
+          p_workers_min, p_hs_codes, p_cert_state, p_rsc_state, p_est_from,
+          p_est_to, p_workers_max, p_districts, p_cities, p_exclude_sanctioned
+        ) x
+       limit 1;
+  end if;
+end;
+$fn$;
+
+revoke all on function public.discover_suppliers_explain(
+  text, text[], int, text[], int, text, text, text, text, int, int,
+  text[], text[], text[], int, int,
+  text[], text, text, int, int, int, text[], text[], boolean
+) from public, anon, authenticated;
+
+grant execute on function public.discover_suppliers_explain(
+  text, text[], int, text[], int, text, text, text, text, int, int,
+  text[], text[], text[], int, int,
+  text[], text, text, int, int, int, text[], text[], boolean
+) to authenticated;
+
+comment on function public.discover_suppliers_explain(
+  text, text[], int, text[], int, text, text, text, text, int, int,
+  text[], text[], text[], int, int,
+  text[], text, text, int, int, int, text[], text[], boolean
+) is
+  'Zero-result helper: count remaining after dropping each active filter in turn. Call only when discover_suppliers total_count is 0.';
+
+-- ---------------------------------------------------------------------------
+-- supplier_epb_hscodes_batch — 0103 query, many slugs, cap 100
+-- ---------------------------------------------------------------------------
+
+create or replace function public.supplier_epb_hscodes_batch(p_slugs text[])
+returns table (
+  slug    text,
+  hs      text,
+  heading text
+)
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select distinct on (s.slug, btrim(hs.elem->>'code'))
+         s.slug,
+         btrim(hs.elem->>'code') as hs,
+         nullif(btrim(hs.elem->>'description'), '') as heading
+    from public.suppliers s
+    join public.source_records sr
+      on sr.supplier_id = s.id
+     and sr.status = 'active'
+    join public.sources src
+      on src.id = sr.source_id
+     and src.code = 'EPB'
+    cross join lateral jsonb_array_elements(
+      case
+        when jsonb_typeof(sr.fields->'epb_hscodes') = 'array'
+        then sr.fields->'epb_hscodes'
+        else '[]'::jsonb
+      end
+    ) with ordinality as hs(elem, ord)
+   where s.slug = any (p_slugs[1:100])
+     and s.is_published = true
+     and sr.source_ref ~ '^[0-9]+$'
+     and not public.epb_record_is_foreign_to_host(s.slug, sr.source_ref)
+     and btrim(coalesce(hs.elem->>'code', '')) ~ '^[0-9]{4,6}$'
+   order by s.slug, btrim(hs.elem->>'code'), sr.fetched_at desc nulls last, sr.id, hs.ord;
+$$;
+
+revoke all on function public.supplier_epb_hscodes_batch(text[]) from public, anon, authenticated;
+grant execute on function public.supplier_epb_hscodes_batch(text[]) to authenticated;
+
+comment on function public.supplier_epb_hscodes_batch(text[]) is
+  'Batch form of supplier_epb_hscodes. At most 100 slugs. Same EPB source_records + denylist as 0103. No PII.';
+
+-- ---------------------------------------------------------------------------
+-- hs_catalogue — reconciliation QUERY without the heading allow-list, less
+-- sanctioned suppliers
+-- ---------------------------------------------------------------------------
+
+create or replace function public.hs_catalogue()
+returns table (
+  hs              text,
+  heading         text,
+  exporter_count  int
+)
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  with epb_lines as (
+    select s.id as supplier_id,
+           left(btrim(hs.elem->>'code'), 4) as heading4,
+           nullif(btrim(hs.elem->>'description'), '') as description
+      from public.suppliers s
+      join public.source_records sr
+        on sr.supplier_id = s.id
+       and sr.status = 'active'
+      join public.sources src
+        on src.id = sr.source_id
+       and src.code = 'EPB'
+      cross join lateral jsonb_array_elements(
+        case
+          when jsonb_typeof(sr.fields->'epb_hscodes') = 'array'
+          then sr.fields->'epb_hscodes'
+          else '[]'::jsonb
+        end
+      ) as hs(elem)
+     where s.is_published = true
+       -- Sanctioned suppliers are left out so each count equals the total of
+       -- the /app/discover?hs= search the Products row links to, which hides
+       -- them by default (founder decision, 24 Sep 2026). This is where the
+       -- aggregate departs from the reconciliation script.
+       and s.is_sanctioned = false
+       and sr.source_ref ~ '^[0-9]+$'
+       and not public.epb_record_is_foreign_to_host(s.slug, sr.source_ref)
+       and btrim(coalesce(hs.elem->>'code', '')) ~ '^[0-9]{4,6}$'
+  )
+  select heading4 as hs,
+         min(description) as heading,
+         count(distinct supplier_id)::int as exporter_count
+    from epb_lines
+   where heading4 ~ '^[0-9]{4}$'
+   group by heading4
+   order by heading4;
+$$;
+
+revoke all on function public.hs_catalogue() from public, anon, authenticated;
+grant execute on function public.hs_catalogue() to authenticated;
+
+comment on function public.hs_catalogue() is
+  '4-digit EPB headings with distinct published, unsanctioned exporter counts: the reconciliation script''s aggregate less sanctioned suppliers, so each equals its Discover search total.';
+
+-- ---------------------------------------------------------------------------
+-- production_workers_display_batch — says which sites its figure sums (REZ-B)
+-- ---------------------------------------------------------------------------
+-- The Discover page printed "across this record and its buildings" under any
+-- figure that differed from the record's own, but this function prefers RSC:
+-- a factory with no buildings whose RSC headcount differs from its register
+-- figure got that line too (seen in live data, 24 Sep 2026). Only this
+-- function knows which sites it summed, so it now says so: `sites` (how many)
+-- and `includes_root` (whether this record is one of them). Body otherwise
+-- identical to 20260810071000_production_workers_display_batch.sql, which
+-- lib/production-workers-reconcile.test.ts holds it to. Added keys only, so
+-- the code on main, which reads value/source/fetched_at, is unaffected.
+create or replace function public.production_workers_display_batch(p_supplier_ids uuid[])
+returns jsonb
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  with roots as (
+    select distinct u as root_id
+    from unnest(coalesce(p_supplier_ids, array[]::uuid[])) as u
+    where u is not null
+  ),
+  sites as (
+    select
+      r.root_id,
+      s.id as site_id,
+      s.employees_total,
+      (
+        select rr.workers_count
+        from public.rsc_remediation rr
+        where rr.supplier_id = s.id
+          and rr.active is true
+          and rr.workers_count is not null
+        order by rr.fetched_at desc nulls last
+        limit 1
+      ) as rsc_w,
+      (
+        select rr.fetched_at
+        from public.rsc_remediation rr
+        where rr.supplier_id = s.id
+          and rr.active is true
+          and rr.workers_count is not null
+        order by rr.fetched_at desc nulls last
+        limit 1
+      ) as rsc_fa
+    from roots r
+    join public.suppliers s on s.id = r.root_id
+    union all
+    select
+      r.root_id,
+      f.id as site_id,
+      f.employees_total,
+      (
+        select rr.workers_count
+        from public.rsc_remediation rr
+        where rr.supplier_id = f.id
+          and rr.active is true
+          and rr.workers_count is not null
+        order by rr.fetched_at desc nulls last
+        limit 1
+      ) as rsc_w,
+      (
+        select rr.fetched_at
+        from public.rsc_remediation rr
+        where rr.supplier_id = f.id
+          and rr.active is true
+          and rr.workers_count is not null
+        order by rr.fetched_at desc nulls last
+        limit 1
+      ) as rsc_fa
+    from roots r
+    join public.suppliers f on f.facility_of = r.root_id
+  ),
+  selected as (
+    select
+      root_id,
+      site_id,
+      case
+        when rsc_w is not null then rsc_w
+        else employees_total
+      end as value,
+      case
+        when rsc_w is not null then 'RSC'
+        when employees_total is not null then 'registry'
+        else null
+      end as source,
+      case when rsc_w is not null then rsc_fa else null end as fetched_at
+    from sites
+  ),
+  flags as (
+    select root_id, bool_or(source = 'RSC') as prefer_rsc
+    from selected
+    group by root_id
+  ),
+  agg as (
+    select
+      s.root_id,
+      case when f.prefer_rsc then 'RSC' else 'registry' end as source,
+      sum(s.value)::int as value,
+      max(s.fetched_at) as fetched_at,
+      count(*)::int as sites,
+      bool_or(s.site_id = s.root_id) as includes_root
+    from selected s
+    join flags f using (root_id)
+    where s.source = case when f.prefer_rsc then 'RSC' else 'registry' end
+    group by s.root_id, f.prefer_rsc
+  )
+  select coalesce(
+    jsonb_object_agg(
+      root_id::text,
+      jsonb_build_object(
+        'value', value,
+        'source', source,
+        'fetched_at', fetched_at,
+        'sites', sites,
+        'includes_root', includes_root
+      )
+    ),
+    '{}'::jsonb
+  )
+  from agg;
+$$;
+revoke all on function public.production_workers_display_batch(uuid[]) from public;
+grant execute on function public.production_workers_display_batch(uuid[]) to anon, authenticated;
+
+-- ---------------------------------------------------------------------------
+-- rl_check — one new bucket, `api_export` (REZ-B)
+-- ---------------------------------------------------------------------------
+-- The CSV export pages `discover_suppliers` up to ten times per request, and
+-- 0104's `hs_lines` / `cert_expiry` sorts cost a full-corpus pass per call.
+-- Under `api_read` (120/min) the export route alone let one account drive
+-- 1,200 of those a minute, so it gets its own, tighter bucket
+-- (lib/rate-limit/limits.ts). This bounds the APP's route only: a signed-in
+-- caller can still call `discover_suppliers` through PostgREST directly,
+-- outside any app limiter — the same exposure as the anon grant, and the
+-- founder's decision (hand-off §7.1), not something a bucket can close.
+-- rl_check refuses an unlisted bucket and the app's limiter FAILS OPEN on any
+-- error, so a class the app uses but this list lacks is no limit at all —
+-- `lib/rate-limit/limits.test.ts` holds the two lists together.
+--
+-- Body identical to 20260725_rez_security_hardening_2.sql (live, verified
+-- 23 Sep 2026 against pg_proc.prosrc: the same code, comments stripped) but
+-- for the one array entry.
+create or replace function public.rl_check(
+  p_bucket text,
+  p_ident text,
+  p_limit_per_min int
+) returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_bucket text := lower(btrim(p_bucket));
+  v_ident text := btrim(p_ident);
+  v_window_start timestamptz := date_trunc('minute', now());
+  v_count int;
+  v_remaining int;
+  v_retry_after int;
+begin
+  -- Body-level guard: rl_check is an internal SECURITY DEFINER helper and
+  -- must never be callable by anonymous (unauthenticated) PostgREST clients.
+  if coalesce(auth.role(), '') = 'anon' then
+    raise exception 'permission denied for function rl_check' using errcode = '42501';
+  end if;
+
+  if v_bucket is null or length(v_bucket) = 0 or length(v_bucket) > 64 then
+    raise exception 'bucket required' using errcode = '22023';
+  end if;
+  if v_ident is null or length(v_ident) = 0 or length(v_ident) > 256 then
+    raise exception 'ident required' using errcode = '22023';
+  end if;
+  if p_limit_per_min is null or p_limit_per_min <= 0 then
+    raise exception 'limit_per_min must be > 0' using errcode = '22023';
+  end if;
+
+  if v_bucket not like 'email:%'
+     and v_bucket <> all (
+       array[
+         'auth',
+         'api_read',
+         'api_write',
+         'api_export',
+         'public_marketing'
+       ]::text[]
+     ) then
+    raise exception 'bucket not allowed' using errcode = '22023';
+  end if;
+
+  if v_bucket like 'email:%' then
+    if v_bucket <> all (
+      array[
+        'email:welcome',
+        'email:rfq_received',
+        'email:cert_expiry',
+        'email:sanction_alert',
+        'email:password_reset'
+      ]::text[]
+    ) then
+      raise exception 'bucket not allowed' using errcode = '22023';
+    end if;
+  end if;
+
+  -- Opportunistic TTL purge — keep the table bounded without a cron.
+  delete from public.rate_limit_buckets
+   where window_start < now() - interval '5 minutes';
+
+  insert into public.rate_limit_buckets (bucket, ident, window_start, count)
+  values (v_bucket, v_ident, v_window_start, 1)
+  on conflict (bucket, ident, window_start)
+  do update set count = public.rate_limit_buckets.count + 1
+  returning count into v_count;
+
+  v_remaining := greatest(0, p_limit_per_min - v_count);
+  if v_count > p_limit_per_min then
+    v_retry_after := greatest(
+      1,
+      ceil(extract(epoch from (v_window_start + interval '1 minute' - now())))::int
+    );
+  else
+    v_retry_after := 0;
+  end if;
+
+  return jsonb_build_object(
+    'ok', v_count <= p_limit_per_min,
+    'count', v_count,
+    'limit', p_limit_per_min,
+    'remaining', v_remaining,
+    'window_start', v_window_start,
+    'retry_after_seconds', v_retry_after
+  );
+end;
+$$;
+
+revoke all on function public.rl_check(text, text, int) from public, anon, authenticated;
+grant execute on function public.rl_check(text, text, int) to authenticated;
+
+comment on function public.rl_check(text, text, int) is
+  'Internal rate-limit helper (H2). Bucket allowlist + anon body guard added '
+  'in REZ-26; api_export bucket added in 0104. Called by the app middleware; '
+  'EXECUTE is granted to authenticated, so any signed-in user can also call '
+  'it directly. anon EXECUTE revoked.';
+
+notify pgrst, 'reload schema';

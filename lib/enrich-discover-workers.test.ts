@@ -82,3 +82,68 @@ describe("enrichDiscoverWorkers", () => {
     assert.equal(rows[0]?.employees_total, 144);
   });
 });
+
+describe("what the display figure covers comes from the batch, never from the numbers", () => {
+  // Three earlier passes got this wrong. The last inferred composition by
+  // comparing the display figure with the record's own: but the batch prefers
+  // RSC, so a standalone factory whose RSC headcount differs from its register
+  // figure read as "this record and its buildings" (639 live factories).
+  // 0104's batch says which sites it summed; that is the only source now.
+  const at = (
+    value: number,
+    source: "RSC" | "registry",
+    sites?: number,
+    includes_root?: boolean,
+  ) => ({ value, source, fetched_at: null, ...(sites === undefined ? {} : { sites, includes_root }) });
+
+  it("a standalone factory whose RSC figure differs from its register is still its own figure", () => {
+    for (const rsc of [500, 600]) {
+      const [row] = applyDiscoverWorkersSelection([{ id: "a", employees_total: 550 }], { a: at(rsc, "RSC", 1, true) });
+      assert.equal(row?.workers_basis, "own", `RSC ${rsc} vs register 550 on one site called ${row?.workers_basis}`);
+      assert.equal(row?.workers_own, 550);
+    }
+  });
+
+  it("this record and at least one building is a group", () => {
+    const [row] = applyDiscoverWorkersSelection([{ id: "a", employees_total: 2662 }], { a: at(3166, "registry", 2, true) });
+    assert.equal(row?.workers_basis, "group");
+    assert.equal(row?.employees_total, 3166);
+    assert.equal(row?.workers_own, 2662);
+  });
+
+  it("a sum that leaves this record out says so, even when it has a figure of its own", () => {
+    // RSC preference drops a root with no RSC row, register figure or not.
+    for (const own of [null, 1200]) {
+      // One building, and two: "sites > 1" must never outrank a sum that
+      // leaves this record out, or it reads "this record and its buildings".
+      for (const sites of [1, 2]) {
+        const [row] = applyDiscoverWorkersSelection([{ id: "a", employees_total: own }], { a: at(907, "RSC", sites, false) });
+        assert.equal(row?.workers_basis, "excludes-record", `sites ${sites}, root left out, called ${row?.workers_basis}`);
+        assert.equal(row?.workers_own, own);
+      }
+    }
+  });
+
+  it("without the batch's word, a differing figure is unknown, never a group", () => {
+    const [same] = applyDiscoverWorkersSelection([{ id: "a", employees_total: 900 }], { a: at(900, "registry") });
+    const [diff] = applyDiscoverWorkersSelection([{ id: "a", employees_total: 2662 }], { a: at(3166, "registry") });
+    assert.equal(same?.workers_basis, "own");
+    assert.equal(diff?.workers_basis, "unknown");
+  });
+
+  it("parseDisplayBatch carries the composition through, and only when both keys are sound", () => {
+    const m = parseDisplayBatch({
+      a: { value: 1, source: "RSC", fetched_at: null, sites: 2, includes_root: true },
+      b: { value: 1, source: "RSC", fetched_at: null, sites: "2", includes_root: true },
+    });
+    assert.deepEqual([m.a?.sites, m.a?.includes_root], [2, true]);
+    assert.deepEqual([m.b?.sites, m.b?.includes_root], [undefined, undefined]);
+  });
+
+  it("a row the batch does not answer for carries no basis at all", () => {
+    const [row] = applyDiscoverWorkersSelection([{ id: "a", employees_total: 500 }], {});
+    assert.equal(row?.workers_basis, undefined);
+    assert.equal(row?.workers_source, undefined);
+    assert.equal(row?.employees_total, 500);
+  });
+});

@@ -31,6 +31,7 @@ import {
   isPublicSupplierSlug,
 } from "@/lib/public-supplier-profile";
 import { urlOnSite } from "@/lib/site-origin";
+import { MATCH_PATH, MATCH_TARGET, matchRedirectSearch } from "@/lib/match-redirect";
 
 export const runtime = "nodejs";
 
@@ -68,7 +69,9 @@ export async function middleware(req: NextRequest) {
     process.env.NODE_ENV !== "production" &&
     process.env.DEV_ADMIN_BYPASS === "1"
   ) {
-    return NextResponse.next({ request: req });
+    const requestHeaders = new Headers(req.headers);
+    requestHeaders.set("x-sourcebd-pathname", pathname);
+    return NextResponse.next({ request: { headers: requestHeaders } });
   }
 
   const { supabase, res } = createSupabaseMiddlewareClient(req);
@@ -230,6 +233,23 @@ export async function middleware(req: NextRequest) {
       return NextResponse.redirect(urlOnSite("/supplier"));
     }
     if (role !== "buyer" && role !== "admin") return redirectToLogin(req);
+  }
+
+  // `/app/match` is retired — Ask replaces Smart Match (spec §1), so the route
+  // redirects into Discover with Ask on. The page component calls `redirect()`
+  // and looks correct, but the `(app)` layout above it is async and has already
+  // begun streaming by the time the page runs, so Next commits HTTP 200 and the
+  // redirect never reaches the wire. That is precisely the failure
+  // `scripts/test-profile-http-boundary.mjs` exists to catch, and it caught it.
+  // Issued here it runs before any rendering, so the status is real. Placed
+  // after the auth gate so an anonymous caller still lands on /login.
+  if (pathname === MATCH_PATH) {
+    // Through the shared helper, so this and the route handler cannot
+    // disagree. Built here as a fixed string, this branch dropped whatever
+    // the caller arrived with — a link meant to open Discover on a query
+    // landed on an empty Ask box — while the route handler that did carry the
+    // query sat unreachable behind this very check.
+    return redirectOnSite(MATCH_TARGET, matchRedirectSearch(req.nextUrl.searchParams), 307);
   }
 
   return res;

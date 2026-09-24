@@ -52,9 +52,16 @@ export type SupplierCardModel = {
   linesUnknown?: boolean;
   /** Read date of the EPB register when EPB holds a record for this supplier; null otherwise. */
   epbReadDate: string | null;
+  /** The supplier is on the EPB register; empty lines mean unrecorded, not absent. */
+  onEpbRegister: boolean;
   /** V2 only: the facts that met the filters. Null → the band is not rendered. */
   why: string[] | null;
   selected?: boolean;
+  /** Buyer Discover: this record is on the caller's saved list. Gallery leaves unset. */
+  saved?: boolean;
+  /** Buyer Discover sets these so Save / Send RFQ are real controls. The gallery leaves them unset. */
+  supplierId?: string;
+  rfqHref?: string | null;
 };
 
 export type TableRowModel = {
@@ -73,11 +80,16 @@ export type TableRowModel = {
   linesEmptyReason: string | null;
   type: string;
   workers: number | null;
-  /** "1 of 2 sites" when the figure is a group sum; null when it is this site's. */
+  /** What the figure is: a source, or "1 of 2 sites" when it is a group sum. */
   workersCoverage: string | null;
+  /** Discover only: the profile's figure, when it differs from the headline. */
+  workersSecond?: string | null;
   sanctioned: boolean;
   sanctionSample?: boolean;
   selected?: boolean;
+  saved?: boolean;
+  supplierId?: string;
+  rfqHref?: string | null;
 };
 
 export type FactRow = {

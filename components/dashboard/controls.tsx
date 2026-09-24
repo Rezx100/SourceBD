@@ -2,7 +2,7 @@
 // checkbox, the V2 tag, meters and the live dot. Tailwind classes only; every
 // colour is a token role (`lib/design/tokens.ts`).
 
-import type { ButtonHTMLAttributes, ReactNode } from "react";
+import type { ButtonHTMLAttributes, MouseEventHandler, ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { Icon, type IconName } from "./icons";
 
@@ -20,28 +20,42 @@ export function Button({
   className,
   children,
   type = "button",
+  href,
   ...rest
 }: ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: ButtonVariant;
   icon?: boolean;
   lg?: boolean;
+  /** When set, renders as a link with the same styles. */
+  href?: string;
 }) {
+  const classes = cn(
+    "inline-flex items-center gap-1.5 whitespace-nowrap rounded-sm border text-sm font-medium transition-colors duration-fast",
+    lg ? "h-control-lg px-4" : "h-control px-3",
+    icon && (lg ? "w-control-lg px-0" : "w-control px-0"),
+    icon && "justify-center",
+    variant === "default" && "border-line-strong bg-surface text-ink hover:bg-surface-sunken",
+    variant === "primary" &&
+      "border-brand bg-brand text-brand-on hover:border-brand-hover hover:bg-brand-hover active:bg-brand-active disabled:cursor-not-allowed disabled:border-line disabled:bg-surface-sunken disabled:text-ink-disabled",
+    variant === "ghost" && "border-transparent bg-transparent text-ink-muted hover:bg-surface-sunken",
+    className,
+  );
+  if (href && !rest.disabled) {
+    return (
+      <a
+        href={href}
+        className={classes}
+        aria-label={rest["aria-label"]}
+        aria-busy={rest["aria-busy"]}
+        aria-describedby={rest["aria-describedby"]}
+        onClick={rest.onClick as unknown as MouseEventHandler<HTMLAnchorElement> | undefined}
+      >
+        {children}
+      </a>
+    );
+  }
   return (
-    <button
-      type={type}
-      className={cn(
-        "inline-flex items-center gap-1.5 whitespace-nowrap rounded-sm border text-sm font-medium transition-colors duration-fast",
-        lg ? "h-control-lg px-4" : "h-control px-3",
-        icon && (lg ? "w-control-lg px-0" : "w-control px-0"),
-        icon && "justify-center",
-        variant === "default" && "border-line-strong bg-surface text-ink hover:bg-surface-sunken",
-        variant === "primary" &&
-          "border-brand bg-brand text-brand-on hover:border-brand-hover hover:bg-brand-hover active:bg-brand-active disabled:cursor-not-allowed disabled:border-line disabled:bg-surface-sunken disabled:text-ink-disabled",
-        variant === "ghost" && "border-transparent bg-transparent text-ink-muted hover:bg-surface-sunken",
-        className,
-      )}
-      {...rest}
-    >
+    <button type={type} className={classes} {...rest}>
       {children}
     </button>
   );
@@ -52,71 +66,128 @@ export function Seg({
   options,
   value,
   className,
+  hrefFor,
 }: {
   options: readonly { value: string; label: string; icon: IconName }[];
   value: string;
   className?: string;
+  hrefFor?: (value: string) => string;
 }) {
+  const itemClass = (o: { value: string }, i: number) =>
+    cn(
+      "grid w-9 place-items-center text-ink-muted",
+      "focus-visible:outline-offset-[-2px]",
+      i > 0 && "border-l border-line-strong",
+      o.value === value && "bg-brand-tint text-brand-ink shadow-[inset_0_-2px_0_rgb(var(--ds-brand))]",
+    );
   return (
     <span
       role="group"
       className={cn("inline-flex h-control overflow-hidden rounded-sm border border-line-strong", className)}
     >
-      {options.map((o, i) => (
-        <button
-          key={o.value}
-          type="button"
-          aria-label={o.label}
-          aria-pressed={o.value === value}
-          className={cn(
-            "grid w-9 place-items-center text-ink-muted",
-            // The group's `overflow-hidden` (for its own rounded corners)
-            // clipped the global `:focus-visible` ring, painted 2px outside
-            // the border box: a keyboard user tabbing here saw no focus
-            // indicator at all (WCAG 2.4.7). Inset instead of outset keeps
-            // the ring inside the button's own box, which `overflow-hidden`
-            // never clips (accessibility, cycle 19, BLOCKING F3).
-            "focus-visible:outline-offset-[-2px]",
-            i > 0 && "border-l border-line-strong",
-            // Icon-only, so there is no text fallback: the pressed half was a
-            // 1.15:1 tint against the unpressed one beside it. The inset rail
-            // is `brand`, 7.87:1 (WCAG 1.4.11).
-            o.value === value && "bg-brand-tint text-brand-ink shadow-[inset_0_-2px_0_rgb(var(--ds-brand))]",
-          )}
-        >
-          <Icon name={o.icon} />
-        </button>
-      ))}
+      {options.map((o, i) =>
+        hrefFor ? (
+          <a
+            key={o.value}
+            href={hrefFor(o.value)}
+            aria-label={o.label}
+            // "true", not "page": this is a view switch, and both views are the
+            // same page. `aria-current="page"` on the Cards button announced a
+            // navigation that does not happen.
+            aria-current={o.value === value ? "true" : undefined}
+            className={itemClass(o, i)}
+          >
+            <Icon name={o.icon} />
+          </a>
+        ) : (
+          <button
+            key={o.value}
+            type="button"
+            aria-label={o.label}
+            aria-pressed={o.value === value}
+            className={itemClass(o, i)}
+          >
+            <Icon name={o.icon} />
+          </button>
+        ),
+      )}
     </span>
   );
 }
 
 /**
- * `.cb`: a 16px checkbox drawn as a box; `on` fills it brand with a check.
+ * `.cb`: a 16px checkbox drawn as a box; `on` fills it brand with a check,
+ * `"mixed"` with a dash (the select-all box over a partly selected page).
  *
- * Presentational in REZ-A — selection arrives with the results work. It used
- * to carry `tabIndex={0}`, which put 34 of these in the tab order across the
- * six screens, announced each as an operable checkbox, and then did nothing:
- * Space scrolled the page instead of toggling. On the RFQ composer the five
- * required questions were these. An inert control takes the kit's own shape
- * for inert controls — `aria-disabled` and a title that says why — rather
- * than a dead tab stop (WCAG 2.1.1, 4.1.2).
+ * Presentational everywhere but the results work (REZ-B), which passes
+ * `onToggle` to make it real. It used to carry `tabIndex={0}` unconditionally,
+ * which put 34 of these in the tab order across the six screens, announced
+ * each as an operable checkbox, and then did nothing: Space scrolled the page
+ * instead of toggling. On the RFQ composer the five required questions are
+ * still these. A control with no `onToggle` keeps the kit's shape for inert
+ * controls — `aria-disabled` and a title that says why — rather than a dead
+ * tab stop (WCAG 2.1.1, 4.1.2).
+ *
+ * With `onToggle` it is a real checkbox, keyed the way a native one is: Space
+ * toggles once, on key UP (keydown only stops the page scrolling), so holding
+ * Space does not flip it on every auto-repeat; Enter does nothing, because a
+ * native checkbox ignores Enter and the ARIA checkbox pattern names Space only.
  */
-export function Checkbox({ on = false, label, className }: { on?: boolean; label?: string; className?: string }) {
+export function Checkbox({
+  on = false,
+  label,
+  className,
+  onToggle,
+  id,
+}: {
+  on?: boolean | "mixed";
+  label?: string;
+  className?: string;
+  onToggle?: () => void;
+  id?: string;
+}) {
+  const interactive = Boolean(onToggle);
   return (
     <span
+      id={id}
       role="checkbox"
       aria-checked={on}
-      aria-disabled="true"
-      title="Selection arrives with the results work"
+      aria-disabled={interactive ? undefined : "true"}
+      title={interactive ? undefined : "Selection arrives with the results work"}
       aria-label={label}
+      tabIndex={interactive ? 0 : undefined}
+      onClick={interactive ? onToggle : undefined}
+      onKeyDown={
+        interactive
+          ? (e) => {
+              if (e.key === " ") e.preventDefault();
+            }
+          : undefined
+      }
+      onKeyUp={
+        interactive
+          ? (e) => {
+              if (e.key === " ") {
+                e.preventDefault();
+                onToggle!();
+              }
+            }
+          : undefined
+      }
       className={cn(
         "inline-grid size-4 shrink-0 place-items-center rounded-xs border border-line-strong bg-surface",
+        interactive && "cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[rgb(var(--ds-brand))]",
         on && "border-brand bg-brand text-brand-on",
         className,
       )}
     >
-      {on ? <Icon name="check" small className="[&>*]:stroke-[2.25]" /> : null}
+      {on === "mixed" ? (
+        // forced-colors: a background is repainted as Canvas in High Contrast,
+        // which drew the dash white on white — "mixed" looked unticked.
+        <span aria-hidden className="block h-0.5 w-2 rounded-full bg-current forced-colors:bg-[CanvasText]" />
+      ) : on ? (
+        <Icon name="check" small className="[&>*]:stroke-[2.25]" />
+      ) : null}
     </span>
   );
 }

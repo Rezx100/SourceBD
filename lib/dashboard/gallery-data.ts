@@ -41,6 +41,15 @@ export function discoverArgs(over: { q?: string | null; certKinds?: string[] | n
     p_brand_codes: null,
     p_completeness_min: null,
     p_workers_min: null,
+    p_hs_codes: null,
+    p_cert_state: null,
+    p_rsc_state: null,
+    p_est_from: null,
+    p_est_to: null,
+    p_workers_max: null,
+    p_districts: null,
+    p_cities: null,
+    p_exclude_sanctioned: true,
   };
 }
 

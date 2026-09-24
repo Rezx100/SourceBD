@@ -9,18 +9,37 @@ import { V2Tag } from "./controls";
 import { Icon } from "./icons";
 import { Code } from "./type";
 
-export type FilterChipModel = { label: string; code?: string | null };
+export type FilterChipModel = {
+  /**
+   * Stable identity for this chip, distinct from its text. Dhaka, Gazipur,
+   * Narayanganj and Chittagong are each both a city and a district, so
+   * `?city=Dhaka&district=Dhaka` renders two chips reading "Dhaka" — keyed on
+   * the label that is a duplicate React key, and reconciliation can hand one
+   * chip the other's remove link.
+   */
+  key?: string;
+  label: string;
+  code?: string | null;
+  removeHref?: string;
+};
 
 export function SearchComposer({
   chips,
   mode = "filters",
   askEnabled = false,
   className,
+  queryInput,
+  askHref,
+  filtersHref,
 }: {
   chips: readonly FilterChipModel[];
   mode?: "filters" | "ask";
   askEnabled?: boolean;
   className?: string;
+  /** When set, the composer is a GET search field (REZ-B). */
+  queryInput?: string;
+  askHref?: string;
+  filtersHref?: string;
 }) {
   return (
     <div
@@ -33,23 +52,44 @@ export function SearchComposer({
         <Icon name="funnel" />
       </span>
       <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+        {queryInput !== undefined ? (
+          <input
+            type="search"
+            name="q"
+            defaultValue={queryInput}
+            placeholder="Search suppliers, HS codes, certificates"
+            aria-label="Search suppliers, HS codes, certificates"
+            // See app-shell.tsx: `outline-none` beats the global focus ring.
+            className="min-w-[12rem] flex-1 bg-transparent text-sm text-ink-strong placeholder:text-ink-subtle"
+          />
+        ) : null}
         {chips.map((c) => (
-          <Chip key={c.label} tone="on" className="h-7">
+          <Chip key={c.key ?? c.label} tone="on" className="h-7">
             {c.label}
             {c.code ? <Code className="text-xs">{c.code}</Code> : null}
-            {/* A `role="img"` named "Remove …" announces an action that has
-                no control behind it. Editing filters arrives with the results
-                work, so this is a real button that is really disabled: out of
-                the tab order, announced as unavailable, and its name on a
-                control rather than on a picture. */}
-            <button type="button" disabled aria-label={`Remove ${c.label}`} className="opacity-70 disabled:cursor-not-allowed">
-              <Icon name="x" small />
-            </button>
+            {/* `opacity` applies to the focus outline too, so dimming the
+                focusable element itself pushed the ring to 2.45:1 against the
+                chip — under WCAG 1.4.11's 3:1. Dim the icon, not the control. */}
+            {c.removeHref ? (
+              <a href={c.removeHref} aria-label={`Remove ${c.label}`}>
+                <Icon name="x" small className="opacity-70" />
+              </a>
+            ) : (
+              <button type="button" disabled aria-label={`Remove ${c.label}`} className="disabled:cursor-not-allowed">
+                <Icon name="x" small className="opacity-70" />
+              </button>
+            )}
           </Chip>
         ))}
-        <button type="button" className="inline-flex h-7 items-center gap-1 px-1.5 text-sm font-medium text-ink-muted">
-          <Icon name="plus" small /> Add filter
-        </button>
+        {queryInput !== undefined ? (
+          <a href="#filters" className="inline-flex h-7 items-center gap-1 px-1.5 text-sm font-medium text-ink-muted">
+            <Icon name="plus" small /> Add filter
+          </a>
+        ) : (
+          <button type="button" className="inline-flex h-7 items-center gap-1 px-1.5 text-sm font-medium text-ink-muted">
+            <Icon name="plus" small /> Add filter
+          </button>
+        )}
       </div>
       {askEnabled ? (
         // Same live-control outline as `Seg` and the composer's Template
@@ -64,32 +104,60 @@ export function SearchComposer({
         // gated behind `askEnabled` and not yet reachable on any shipped
         // screen).
         <span role="group" aria-label="Search mode" className="inline-flex h-control overflow-hidden rounded-sm border border-line-strong">
-          <button
-            type="button"
-            aria-pressed={mode === "filters"}
-            className={cn(
-              "inline-flex items-center gap-1.5 px-2.5 text-sm font-medium text-ink-muted",
-              "focus-visible:outline-offset-[-2px]",
-              mode === "filters" && "bg-surface-sunken text-ink-strong",
-            )}
-          >
-            <Icon name="funnel" /> Filters
-          </button>
-          <button
-            type="button"
-            aria-pressed={mode === "ask"}
-            className={cn(
-              "inline-flex items-center gap-1.5 px-2.5 text-sm font-medium text-smart",
-              "focus-visible:outline-offset-[-2px]",
-              mode === "ask" && "bg-surface-sunken",
-            )}
-          >
-            <Icon name="sparkle" /> Ask <V2Tag />
-          </button>
+          {filtersHref ? (
+            <a
+              href={filtersHref}
+              aria-current={mode === "filters" ? "page" : undefined}
+              className={cn(
+                "inline-flex items-center gap-1.5 px-2.5 text-sm font-medium text-ink-muted",
+                "focus-visible:outline-offset-[-2px]",
+                mode === "filters" && "bg-surface-sunken text-ink-strong",
+              )}
+            >
+              <Icon name="funnel" /> Filters
+            </a>
+          ) : (
+            <button
+              type="button"
+              aria-pressed={mode === "filters"}
+              className={cn(
+                "inline-flex items-center gap-1.5 px-2.5 text-sm font-medium text-ink-muted",
+                "focus-visible:outline-offset-[-2px]",
+                mode === "filters" && "bg-surface-sunken text-ink-strong",
+              )}
+            >
+              <Icon name="funnel" /> Filters
+            </button>
+          )}
+          {askHref ? (
+            <a
+              href={askHref}
+              aria-current={mode === "ask" ? "page" : undefined}
+              className={cn(
+                "inline-flex items-center gap-1.5 px-2.5 text-sm font-medium text-smart",
+                "focus-visible:outline-offset-[-2px]",
+                mode === "ask" && "bg-surface-sunken",
+              )}
+            >
+              <Icon name="sparkle" /> Ask <V2Tag />
+            </a>
+          ) : (
+            <button
+              type="button"
+              aria-pressed={mode === "ask"}
+              className={cn(
+                "inline-flex items-center gap-1.5 px-2.5 text-sm font-medium text-smart",
+                "focus-visible:outline-offset-[-2px]",
+                mode === "ask" && "bg-surface-sunken",
+              )}
+            >
+              <Icon name="sparkle" /> Ask <V2Tag />
+            </button>
+          )}
         </span>
       ) : null}
       <button
-        type="button"
+        type={queryInput !== undefined ? "submit" : "button"}
         aria-label="Search"
         className="grid size-8 shrink-0 place-items-center rounded-full bg-brand text-brand-on hover:bg-brand-hover"
       >

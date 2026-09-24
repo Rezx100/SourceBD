@@ -38,8 +38,17 @@ export function Chip({
   return (
     <span
       className={cn(
-        "inline-flex items-center whitespace-nowrap rounded-sm border border-transparent font-medium",
-        compact ? "h-[22px] gap-1 px-[7px] text-xs" : "h-[26px] gap-1.5 px-2.5 text-sm",
+        // Not `whitespace-nowrap`, and not a fixed height. One RSC chip —
+        // "RSC covers S M Knitwears Limited. (Extension) · 53 % · behind
+        // schedule" — is 428px on a single line, and inside a 218px column at
+        // 320px it alone forced the whole DOCUMENT to 493px: hiding that one
+        // element dropped it to 320. A chip carries a building's name, so its
+        // width is the data's, not the design's, and any name of ordinary
+        // length reproduces it. `min-h` keeps the one-line case identical to
+        // the old fixed height; `[overflow-wrap:anywhere]` handles a single
+        // token longer than the column, which a registration number can be.
+        "inline-flex items-center rounded-sm border border-transparent font-medium [overflow-wrap:anywhere]",
+        compact ? "min-h-[22px] gap-1 px-[7px] py-px text-xs" : "min-h-[26px] gap-1.5 px-2.5 py-px text-sm",
         CHIP_TONE[tone],
         className,
       )}

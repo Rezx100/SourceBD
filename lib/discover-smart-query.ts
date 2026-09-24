@@ -9,6 +9,17 @@ const QUERY_NORMALISATIONS: Record<string, string> = {
   mens: "men",
 };
 
+/**
+ * The most the rewrite can lengthen a keyword. Each token is a key plus its
+ * separator, so a keyword made of the worst key repeated grows by
+ * (value + 1) / (key + 1). Over the WHOLE table: lib/discover-v32-state.test.ts
+ * holds Q_MAX × this under 0104's refusal, so a new mapping that lengthens
+ * more than today's cannot make an accepted keyword a refused search.
+ */
+export const QUERY_REWRITE_WORST_GROWTH = Math.max(
+  ...Object.entries(QUERY_NORMALISATIONS).map(([key, value]) => (value.length + 1) / (key.length + 1)),
+);
+
 export type DiscoverSmartQuery = {
   rpcQ: string;
   inferredCategory: string;

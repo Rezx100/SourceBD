@@ -7,12 +7,18 @@
 export const LIMIT_AUTH = 10;
 export const LIMIT_API_WRITE = 30;
 export const LIMIT_API_READ = 120;
+/** The CSV export route: up to ten `discover_suppliers` pages per request,
+ * each a full-corpus pass under the hs_lines / cert_expiry sorts (0104).
+ * Bounds this route only — a signed-in PostgREST caller reaches the RPC
+ * directly, outside the app (hand-off §7.1). */
+export const LIMIT_API_EXPORT = 6;
 export const LIMIT_PUBLIC_MARKETING = 240;
 
 export type RateLimitClass =
   | "auth"
   | "api_write"
   | "api_read"
+  | "api_export"
   | "public_marketing";
 
 export type RateLimitSpec = {
@@ -24,6 +30,7 @@ export const RATE_LIMITS: Record<RateLimitClass, RateLimitSpec> = {
   auth: { perMin: LIMIT_AUTH, identifier: "ip" },
   api_write: { perMin: LIMIT_API_WRITE, identifier: "user" },
   api_read: { perMin: LIMIT_API_READ, identifier: "user" },
+  api_export: { perMin: LIMIT_API_EXPORT, identifier: "user" },
   public_marketing: { perMin: LIMIT_PUBLIC_MARKETING, identifier: "ip" },
 };
 
@@ -49,6 +56,7 @@ export function classifyRoute(
   pathname: string,
   method: string,
 ): RateLimitClass | null {
+  if (pathname === "/api/v1/discover/export") return "api_export";
   if (pathname.startsWith("/api/v1")) {
     return WRITE_METHODS.has(method) ? "api_write" : "api_read";
   }
@@ -66,6 +74,9 @@ export function classifyRoute(
     return "auth";
   }
   if (pathname === "/") return "public_marketing";
+  // The buyer Discover page runs the same RPC, and a page load with an
+  // expensive sort costs what one export page does. It had no bucket at all.
+  if (pathname === "/app/discover") return "api_read";
   for (const prefix of MARKETING_PREFIXES) {
     if (pathname === prefix || pathname.startsWith(prefix + "/")) {
       return "public_marketing";
