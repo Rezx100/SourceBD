@@ -115,6 +115,9 @@ function one(sp: URLSearchParams, key: string): string {
  * unbounded list is a per-request cost the URL chooses. */
 export const LIST_MAX = 30;
 export const LIST_VALUE_MAX = 80;
+/** The keyword, capped below 0104's 200-character refusal with room for
+ * discover-smart-query's normalising, which can lengthen it (kid → kids). */
+export const Q_MAX = 120;
 
 function csv(sp: URLSearchParams, key: string): string[] {
   const raw = one(sp, key);
@@ -219,7 +222,7 @@ export function parseDiscoverState(
   const viewRaw = one(sp, "view");
 
   return {
-    q: one(sp, "q"),
+    q: one(sp, "q").slice(0, Q_MAX).trim(),
     hs,
     cert,
     reg,

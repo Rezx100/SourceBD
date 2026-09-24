@@ -33,7 +33,8 @@ const NOT_BUILT = `Send RFQ and Compare for several suppliers at once are not bu
 // 50-supplier cap on a bulk send that is not built yet). Both now get the one
 // visible note.
 
-export const STILL_SAVING = "Still saving the earlier selection. Its result will show here.";
+export const STILL_SAVING = "Still saving. Its result will show here.";
+export const SAVING = "Saving…";
 
 export function SelectionBar({ exportHref }: { exportHref: string }) {
   const sel = useSelection();
@@ -41,7 +42,7 @@ export function SelectionBar({ exportHref }: { exportHref: string }) {
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState("");
   // The bar's Export reports its status here too, so the bar can stay on
-  // screen until that message has been seen.
+  // screen while that message is current: until the buyer's next edit.
   const [exportStatus, setExportStatus] = useState("");
   const barRef = useRef<HTMLDivElement>(null);
   const noteId = useId();
@@ -50,10 +51,12 @@ export function SelectionBar({ exportHref }: { exportHref: string }) {
   const generation = useRef(0);
   const saving = useRef(false);
   const count = sel.selected.size;
-  // One save and one export at a time, and each always says how it ended —
-  // so the bar stays while either is running or its message is showing, even
-  // with nothing selected (after Clear, or unticking the last box). Hiding it
-  // earlier took the only place that outcome could be said.
+  // One save and one export at a time, and each says how it ended — so the
+  // bar stays while either is running or its message is showing, even with
+  // nothing selected (after Clear, or unticking the last box). Hiding it
+  // earlier took the only place that outcome could be said. Not across a
+  // new search, sort or page: that remounts the selection and this bar, and
+  // a save still running then is not reported (the Export likewise, below).
   const visible = sel.interactive && (count > 0 || busy || status !== "" || exportStatus !== "");
 
   // A message about a FINISHED save describes that selection; once the buyer
@@ -66,7 +69,11 @@ export function SelectionBar({ exportHref }: { exportHref: string }) {
     if (!saving.current) setStatus("");
   }, [sel.edits]);
 
-  // WCAG 2.4.11 — see reserveBarSpace.
+  // WCAG 2.4.11 — see reserveBarSpace. Re-run when the actions appear, not
+  // only when the bar does: with nothing selected but a message showing the
+  // bar is already there, and the tick that brings the actions back grows
+  // it over the box just ticked.
+  const hasActions = count > 0;
   useEffect(() => {
     const bar = barRef.current;
     if (!visible || !bar) return;
@@ -77,7 +84,7 @@ export function SelectionBar({ exportHref }: { exportHref: string }) {
       return () => window.removeEventListener("resize", fit);
     };
     return reserveBarSpace(document.documentElement, bar, document.activeElement as HTMLElement | null, observe, sticky, onViewportResize);
-  }, [visible]);
+  }, [visible, hasActions]);
 
   // Announced from a region that exists BEFORE the first selection: a live
   // region mounted already holding "1 selected" is usually not read at all,
@@ -97,7 +104,7 @@ export function SelectionBar({ exportHref }: { exportHref: string }) {
     }
     saving.current = true;
     setBusy(true);
-    setStatus("");
+    setStatus(SAVING);
     const asked = generation.current;
     const message = await runBulkSave(ids, {
       fetch: (url, init) => fetch(url, init),
@@ -128,8 +135,11 @@ export function SelectionBar({ exportHref }: { exportHref: string }) {
         <span className="text-sm font-medium text-ink-strong">{count > 0 ? `${count} selected` : "Nothing selected"}</span>
         {/* With nothing selected the actions go (hidden, so the Export still
             running inside stays mounted and delivers its file), and the
-            status line below carries the Export's message as well. */}
-        <div className="flex flex-wrap items-center gap-2" hidden={count === 0 || undefined}>
+            status line below carries the Export's message as well. The
+            display class goes too: `flex` outranks the `hidden`
+            attribute's display:none, which left Save and Export working on
+            nothing. */}
+        <div className={hasActions ? "flex flex-wrap items-center gap-2" : "hidden"} hidden={!hasActions || undefined}>
           <Button variant="primary" disabled aria-describedby={noteId} className="hidden sm:inline-flex">
             <Icon name="send" /> Send RFQ
           </Button>

@@ -35,6 +35,7 @@ import { MobileFilterSheet } from "@/components/discover/mobile-filter-sheet";
 import { fetchDiscoverFacets } from "@/lib/discover-facets";
 import { fetchPublicDiscoverSuppliers } from "@/lib/discover-suppliers";
 import { resolveDiscoverSmartQuery } from "@/lib/discover-smart-query";
+import { LIST_MAX, LIST_VALUE_MAX, Q_MAX } from "@/lib/discover-v32-state";
 
 export const revalidate = 300;
 
@@ -48,28 +49,32 @@ export default async function PublicDiscoverPage({
   searchParams: Promise<SearchParams>;
 }) {
   const sp = await searchParams;
-  const q = asString(sp.q).trim();
-  const entityTypes = asStringArray(sp.entity).filter((v) =>
+  // Kept under 0104's refusal (discover_v32_assert_bounded), as the buyer
+  // page does: the search would otherwise fail rather than run.
+  const q = asString(sp.q).trim().slice(0, Q_MAX).trim();
+  // Deduped and capped too: 0104 refuses a list over 50 values or 80 characters.
+  const bounded = (values: string[]) => [...new Set(values)].filter((v) => v.length <= LIST_VALUE_MAX).slice(0, LIST_MAX);
+  const entityTypes = bounded(asStringArray(sp.entity).filter((v) =>
     ENTITY_TYPES.some((o) => o.value === v),
-  );
-  const certKinds = asStringArray(sp.cert).filter((v) =>
+  ));
+  const certKinds = bounded(asStringArray(sp.cert).filter((v) =>
     CERT_KINDS.some((o) => o.value === v),
-  );
-  const registries = asStringArray(sp.registry).filter((v) =>
+  ));
+  const registries = bounded(asStringArray(sp.registry).filter((v) =>
     REGISTRY_SOURCES.some((o) => o.value === v),
-  );
-  const brandCodes = asStringArray(sp.brand).filter((v) =>
+  ));
+  const brandCodes = bounded(asStringArray(sp.brand).filter((v) =>
     BRAND_SOURCES.some((o) => o.value === v),
-  );
-  const factoryTypes = asStringArray(sp.ftype);
+  ));
+  const factoryTypes = bounded(asStringArray(sp.ftype));
   const minSourcesRaw = asString(sp.min_sources);
   const minSources =
     minSourcesRaw && /^[1-5]$/.test(minSourcesRaw)
       ? Number.parseInt(minSourcesRaw, 10)
       : null;
-  const city = asString(sp.city).trim();
-  const district = asString(sp.district).trim();
-  const category = asString(sp.category).trim();
+  const city = asString(sp.city).trim().slice(0, LIST_VALUE_MAX);
+  const district = asString(sp.district).trim().slice(0, LIST_VALUE_MAX);
+  const category = asString(sp.category).trim().slice(0, LIST_VALUE_MAX);
   const smartQuery = resolveDiscoverSmartQuery(q, category);
   const hasSearchQuery = q.length > 0;
   const sort = clampSort(asString(sp.sort));

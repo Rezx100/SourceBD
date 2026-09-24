@@ -30,7 +30,9 @@ export type HookRun = {
 export function callWithHooks<P>(
   component: (props: P) => ReactNode,
   props: P,
-  opts: { contexts?: Map<unknown, unknown>; state?: unknown[] } = {},
+  /** `refs`: a previous run's refs, so a second call is a RE-RENDER of the
+   * same instance (React keeps refs across renders) with new props. */
+  opts: { contexts?: Map<unknown, unknown>; state?: unknown[]; refs?: { current: unknown }[] } = {},
 ): HookRun {
   const sets: HookRun["sets"] = [];
   const refs: HookRun["refs"] = [];
@@ -44,7 +46,7 @@ export function callWithHooks<P>(
       return [value, (next: unknown) => sets.push({ hook, value: next })];
     },
     useRef: (current: unknown) => {
-      const ref = { current };
+      const ref = opts.refs?.[refs.length] ?? { current };
       refs.push(ref);
       return ref;
     },

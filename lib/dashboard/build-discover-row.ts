@@ -312,7 +312,10 @@ export function buildDiscoverTableRow(
     place: placeLabel(row.city, row.district),
     initials: card.initials,
     topTier: card.topTier,
-    sourceCount: card.marks.length,
+    // The figure the default sort ("Most registers & certifiers") and the
+    // minimum-sources filter use, as the card's count line does — not the
+    // number of marks, which counts brand lists too and read out of order.
+    sourceCount: row.t13_source_count ?? 0,
     marks: card.marks,
     certs: certList,
     certsEmptyReason: certList.length === 0 ? "none on file" : null,

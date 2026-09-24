@@ -46,6 +46,23 @@ const ROW: DiscoverV32Row = {
   top_tier: 2,
 };
 
+describe("the table's register count is the figure the default sort orders on", () => {
+  it("a supplier with more marks but fewer registers reads lower, in sort order, under a header that says what it counts", () => {
+    // The default sort ("Most registers & certifiers") and the minimum-sources
+    // filter use t13_source_count. The column used to show the number of
+    // marks, brand lists included, so a table in sort order read 3, then 5.
+    const a = { ...ROW, id: "a", slug: "a", source_tags: ["EPB", "BGMEA", "GOTS"], t13_source_count: 3 };
+    const b = { ...ROW, id: "b", slug: "b", source_tags: ["BGMEA", "HM", "ASOS", "NEXT", "ZARA"], t13_source_count: 1 };
+    const opts = { today: TODAY, hsLines: [], hsError: false };
+    const rows = [a, b].map((r) => buildDiscoverTableRow(r, opts));
+    assert.ok(rows[1]!.marks.length > rows[0]!.marks.length, "the fixture must have more marks on the lower-ranked row");
+    const html = renderToStaticMarkup(createElement(ResultsTable, { rows }));
+    const shown = [...html.matchAll(/<span class="min-w-4 text-right font-mono text-sm font-medium text-ink-strong">(\d+)<\/span>/g)].map((m) => Number(m[1]));
+    assert.deepEqual(shown, [3, 1]);
+    assert.match(html, /<th[^>]*>Registers &amp; certifiers<\/th>/);
+  });
+});
+
 describe("discover result HTML has no contact PII", () => {
   it("the quiet record's card and table omit email and phone", () => {
     const card = buildDiscoverCard(ROW, { today: TODAY, hsLines: [], hsError: false });
@@ -344,8 +361,25 @@ describe("discover result HTML has no contact PII", () => {
     const blocks = [...body.matchAll(/order by\s*\n([\s\S]*?)\n\s*[a-z]\.id(?: asc)?\s*\n/g)].map((m) => m[1]!);
     assert.equal(blocks.length, 2, `expected the browse and keyword ORDER BYs, found ${blocks.length}`);
     const KEY = /^case when (?:v_sort|coalesce\(v_sort, 'default'\)) = '([a-z_]+)' then (.+) end (?:asc|desc)(?: nulls (?:first|last))?$/;
+    // Split on EVERY comma outside parentheses, not only at line ends: two
+    // keys written on one line must still be two keys.
+    const topLevel = (text: string) => {
+      const out: string[] = [];
+      let depth = 0;
+      let cur = "";
+      for (const ch of text) {
+        if (ch === "(") depth += 1;
+        if (ch === ")") depth -= 1;
+        if (ch === "," && depth === 0) {
+          out.push(cur);
+          cur = "";
+        } else cur += ch;
+      }
+      out.push(cur);
+      return out.map((e) => e.replace(/\s+/g, " ").trim()).filter(Boolean);
+    };
     for (const block of blocks) {
-      const entries = block.split(/,\s*\n/).map((e) => e.trim()).filter(Boolean);
+      const entries = topLevel(block);
       const leading = entries.slice(0, entries.findIndex((e) => !e.startsWith("case ")));
       const names = leading.map((e) => {
         const m = e.match(KEY);

@@ -85,7 +85,7 @@ export function ResultsTable({ rows }: { rows: readonly TableRowModel[] }) {
         <tr>
           <Th srLabel="Select" />
           <Th>Supplier</Th>
-          <Th>Sources</Th>
+          <Th>Registers &amp; certifiers</Th>
           <Th>Certificates</Th>
           <Th>Export lines</Th>
           <Th>Type</Th>

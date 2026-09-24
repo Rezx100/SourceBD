@@ -9,6 +9,7 @@ import {
   FILTER_HIDDEN_OMIT,
   LIST_MAX,
   LIST_VALUE_MAX,
+  Q_MAX,
   certKinds,
   certState,
   discoverChips,
@@ -23,6 +24,7 @@ import {
   sortRpc,
   withoutFilterFamily,
 } from "./discover-v32-state";
+import { resolveDiscoverSmartQuery } from "./discover-smart-query";
 
 describe("discover URL state", () => {
   it("round-trips the spec's example query string", () => {
@@ -271,6 +273,26 @@ describe("list parameters are bounded before they reach the database", () => {
       const start = code.indexOf(`create or replace function public.${fn}(`);
       const body = code.slice(start, code.indexOf("$fn$;", start));
       assert.match(body, /begin\s*perform public\.discover_v32_assert_bounded\(/, `${fn} does not check its lists first`);
+      // Every free-text value it takes, not only the lists.
+      const call = body.slice(body.indexOf("perform public.discover_v32_assert_bounded("));
+      assert.match(
+        call,
+        /^perform public\.discover_v32_assert_bounded\(\s*p_entity_types, p_cert_kinds, p_registries, p_factory_types,\s*p_brand_codes, p_hs_codes, p_districts, p_cities,\s*p_q, p_city, p_district, p_category\s*\);/,
+        `${fn} does not pass every filter to the bound`,
+      );
     }
+  });
+
+  it("the keyword is capped below 0104's refusal, with room for the smart-query rewrite", () => {
+    const sql = readFileSync(path.join(process.cwd(), "supabase/migrations/0104_discover_v32.sql"), "utf8");
+    const qMax = Number(sql.match(/or length\(p_q\) > (\d+)/)?.[1]);
+    const scalarMax = Number(sql.match(/greatest\(length\(p_city\), length\(p_district\), length\(p_category\)\) > (\d+)/)?.[1]);
+    assert.ok(qMax > 0 && scalarMax > 0, "0104 no longer bounds the keyword or the single-value filters");
+    assert.ok(LIST_VALUE_MAX <= scalarMax, `the public page sends ${LIST_VALUE_MAX}-character values, the database refuses over ${scalarMax}`);
+    const state = parseDiscoverState(new URLSearchParams({ q: "kid ".repeat(200) }));
+    assert.ok(state.q.length > 0 && state.q.length <= Q_MAX, `q kept ${state.q.length} characters`);
+    // The rewrite lengthens words (kid → kids); the worst case still fits.
+    const rewritten = resolveDiscoverSmartQuery("kid ".repeat(Q_MAX).slice(0, Q_MAX), "").rpcQ;
+    assert.ok(rewritten.length <= qMax, `a ${Q_MAX}-character keyword becomes ${rewritten.length} after the rewrite; the database refuses over ${qMax}`);
   });
 });

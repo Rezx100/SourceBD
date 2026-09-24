@@ -531,3 +531,43 @@ me to five lines or fewer, in plain words.
 - Written down, not changed: `production_workers_display_batch` has no
   published filter (§11); a signed-in supplier gets 401 from
   `/api/v1/saved`.
+
+## 15. Cycle 20 (24 Sep)
+
+- `ba317b1` closed the four cycle-19 guard gaps: every selection box's
+  classes pinned in each state, the real Save → Clear → answer sequence, the
+  selected-rows export compared on every filter, and `form=` on select and
+  textarea. Proofs: `mutate-c20.cjs`, 12 red.
+- Reviewed `ba317b1`. All five REJECTED. Repaired in the next commit:
+  - Accessibility (blocker): with nothing selected, the "hidden" actions
+    still showed and worked, because Tailwind's `flex` outranks the `hidden`
+    attribute. The row now drops its display class when hidden. Also: the tick
+    that brings the actions back re-scrolls the ticked box clear of the grown
+    bar (2.4.11), and a running save says "Saving…".
+  - Truthfulness (blockers): the Workers ORDER BY guard split keys only at
+    line ends, so a second key on one line passed. It now splits at every
+    top-level comma, and CI's sort fixture gives source counts and scores
+    their own orders. The Export's "earlier selection" test set a ref by
+    hand; the harness now re-renders with kept refs. A second Save after the
+    first answered was untested.
+  - Security and truthfulness (major): the single city, district, category
+    and keyword values were unbounded for anon. `discover_v32_assert_bounded`
+    now refuses a keyword over 200 characters and the others over 80. The
+    app keeps its keyword to 120 (room for the smart-query rewrite), and the
+    public /discover page caps its values and lists too. CI tries every bound
+    on both functions, over and at the limit.
+  - Correctness (major): the table's Sources column counted marks, brand
+    lists included, while the default sort orders on registers and
+    certifiers. It now shows that figure, under "Registers & certifiers".
+- Proofs: `mutate-c21.cjs`, 12 mutations, all red. CI-only parts (the anon
+  refusals, the sort fixture) are proven only green.
+- Written down, not changed (for the founder at gate 1):
+  - `production_workers_display_batch` takes any number of ids and reports
+    `sites`/`includes_root` for unpublished suppliers too (older gap; a cap
+    could blank worker figures on pages that pass many ids).
+  - Values over the app's caps are dropped without a notice.
+  - With nothing selected, an outcome message stays until the next edit;
+    there is no dismiss.
+  - A new search, sort or page remounts the bar, so a save still running is
+    not reported; a refresh that lands the error panel replaces "Saved N".
+  - The topbar's supplier count leaves out sanctioned suppliers unlabelled.

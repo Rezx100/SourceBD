@@ -1451,7 +1451,7 @@ describe("the two-state controls say which state they are in", () => {
       const code = sourceCode("components/dashboard/selection-bar.tsx");
       assert.match(
         code,
-        /useEffect\(\(\) => \{\s*const bar = barRef\.current;\s*if \(!visible \|\| !bar\) return;[\s\S]*?window\.addEventListener\("resize", fit\);\s*return \(\) => window\.removeEventListener\("resize", fit\);[\s\S]*?return reserveBarSpace\(document\.documentElement, bar, document\.activeElement as HTMLElement \| null, observe, sticky, onViewportResize\);\s*\}, \[visible\]\);/,
+        /useEffect\(\(\) => \{\s*const bar = barRef\.current;\s*if \(!visible \|\| !bar\) return;[\s\S]*?window\.addEventListener\("resize", fit\);\s*return \(\) => window\.removeEventListener\("resize", fit\);[\s\S]*?return reserveBarSpace\(document\.documentElement, bar, document\.activeElement as HTMLElement \| null, observe, sticky, onViewportResize\);\s*\}, \[visible, hasActions\]\);/,
       );
     });
 

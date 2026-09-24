@@ -11,7 +11,7 @@ import { EARLIER, ExportLink, STILL_EXPORTING } from "./export-link";
 import { callWithHooks, findAll, textOf } from "./hook-harness";
 import { SaveRecordButton } from "./save-record-button";
 import { SaveSearchForm } from "./save-search-form";
-import { SelectionBar, STILL_SAVING } from "./selection-bar";
+import { SAVING, SelectionBar, STILL_SAVING } from "./selection-bar";
 import { SELECT_ALL_ID, SelectionContext, type SelectionContextValue } from "./selection";
 
 const A = "11111111-1111-4111-8111-111111111111";
@@ -126,6 +126,25 @@ describe("the bulk bar's handlers, invoked", () => {
     await first;
   });
 
+  it("once a save has answered, the next Save goes out; and the next edit clears its message", async () => {
+    // The one-at-a-time lock must be let go: kept, every later Save said
+    // "Still saving…" and sent nothing, and the message never cleared.
+    stub("window", new EventTarget());
+    let calls = 0;
+    stub("fetch", async () => {
+      calls += 1;
+      return json(200, { ok: true, count: 1, skipped: 0, ids: [A] });
+    });
+    const run = bar(selection([A]), { refresh: () => {} });
+    const save = buttonNamed(run.out, "Save").props.onClick as () => Promise<void>;
+    await save();
+    await save();
+    assert.equal(calls, 2, "the second Save, after the first answered, sent nothing");
+    assert.deepEqual(run.sets.filter((x) => x.hook === 1).map((x) => x.value).slice(-1), ["Saved 1 supplier"]);
+    run.effects[0]!(); // the buyer's next edit
+    assert.deepEqual(run.sets.filter((x) => x.hook === 1).map((x) => x.value).slice(-1), [""], "a finished save's message outlived the next edit");
+  });
+
   it("a selection change mid-save does not interrupt it; its result, or its failure, is said for the earlier selection", async () => {
     for (const [status, body, said] of [
       [200, { ok: true, count: 1, skipped: 0, ids: [A] }, "For your earlier selection: Saved 1 supplier"],
@@ -143,7 +162,7 @@ describe("the bulk bar's handlers, invoked", () => {
       const statuses = run.sets.filter((x) => x.hook === 1).map((x) => x.value);
       // The reset did not wipe the running save's status, and the outcome
       // is never a bare "Saved 1" that reads as the new selection.
-      assert.deepEqual(statuses, ["", said], `${status}: ${JSON.stringify(statuses)}`);
+      assert.deepEqual(statuses, [SAVING, said], `${status}: ${JSON.stringify(statuses)}`);
       assert.deepEqual(run.sets.filter((x) => x.hook === 0).map((x) => x.value), [true, false]);
     }
   });
@@ -167,8 +186,16 @@ describe("the bulk bar's handlers, invoked", () => {
       const regions = findAll(shown.out as never, (el) => el.type === "span" && el.props.role === "status" && !String(el.props.className ?? "").includes("sr-only"));
       assert.ok(regions.some((r) => textOf(r.props.children as never).includes(text)), `not on screen after Clear: ${text}`);
       // No action is offered on nothing, but the Export inside stays mounted.
+      // Hidden for real: a display class on the same element (flex, grid,
+      // block…) outranks the hidden attribute's display:none in the built
+      // CSS, and left Save and Export on screen and working.
       const actions = findAll(shown.out as never, (el) => el.props.hidden === true);
       assert.equal(actions.length, 1, "the actions are not hidden with nothing selected");
+      const cls = String(actions[0]!.props.className ?? "").split(/s+/);
+      assert.ok(cls.includes("hidden"), `the hidden actions carry no display:none class: ${cls.join(" ")}`);
+      for (const t of cls) {
+        assert.doesNotMatch(t, /^(?:flex|inline-flex|grid|inline-grid|block|inline-block|inline|table|contents|flow-root|list-item)$/, `a display class on the hidden actions: ${t}`);
+      }
       assert.equal(findAll(actions[0] as never, (el) => el.type === ExportLink).length, 1, "the Export was unmounted with nothing selected");
     }
     const idle = bar(selection([]), { refresh: () => {} }, [false, "", ""]);
@@ -199,6 +226,25 @@ describe("the bulk bar's handlers, invoked", () => {
       const regions = findAll(after.out as never, (el) => el.type === "span" && el.props.role === "status" && !String(el.props.className ?? "").includes("sr-only"));
       assert.ok(regions.some((r) => textOf(r.props.children as never).includes(said)), `${status}: not on screen after Clear: ${said}`);
     }
+  });
+
+  it("while a message keeps the empty bar up, the tick that brings the actions back re-scrolls the ticked box clear (WCAG 2.4.11)", () => {
+    // The bar is already visible, so an effect keyed on visibility alone did
+    // not re-run: the bar grew over the box that had focus.
+    const empty = bar(selection([]), { refresh: () => {} }, [false, "Saved 1 supplier", ""]);
+    const ticked = bar(selection([A]), { refresh: () => {} }, [false, "Saved 1 supplier", ""]);
+    // Effect 1 is the 2.4.11 effect; React re-runs it only when a dep moves.
+    assert.notDeepEqual(empty.deps[1], ticked.deps[1], "the space-keeping effect does not re-run when the actions appear");
+    const scrolled: unknown[] = [];
+    const root = { style: { scrollPaddingBottom: "" } };
+    stub("document", { documentElement: root, activeElement: { scrollIntoView: (o: unknown) => scrolled.push(o) } });
+    stub("window", { addEventListener() {}, removeEventListener() {} });
+    stub("getComputedStyle", () => ({ position: "sticky" }));
+    ticked.refs[0]!.current = { offsetHeight: 85 }; // React attaches the bar's ref before effects run
+    const undo = ticked.effects[1]!() as (() => void) | undefined;
+    assert.deepEqual(scrolled, [{ block: "nearest" }], "the ticked box was not scrolled clear of the grown bar");
+    assert.equal(root.style.scrollPaddingBottom, "93px");
+    undo?.();
   });
 
   it("Clear moves focus to the select-all box, THEN clears", () => {
@@ -282,24 +328,30 @@ describe("ExportLink's handler, invoked", () => {
 
   it("a selection change mid-export does not cancel it: the file arrives and is said to be for the earlier selection", async () => {
     // Cancelling left a buyer who had heard "Preparing the export…" waiting
-    // for a file that never came. The REAL reset effect runs mid-request.
+    // for a file that never came. Mid-request the buyer ticks two boxes: the
+    // link is RE-RENDERED with each new resetOn (same refs, as React keeps
+    // them) and each render's real reset effect runs. Nothing is set by hand.
     const d = doc();
     stub("document", d.value);
     const told: string[] = [];
+    const props = (resetOn: number) => ({ href: "/x", label: "Export", requested: 1, resetOn, onStatus: (s: string) => told.push(s) });
     let run: ReturnType<typeof callWithHooks> | null = null;
+    const later: ReturnType<typeof callWithHooks>[] = [];
     stub("fetch", async () => {
-      // The real reset, twice, as ticking two boxes would: it must erase
-      // nothing while the export runs. (The harness replays this render's
-      // props, so the new selection is then set as React's next render would.)
-      run!.effects[0]!();
-      run!.effects[0]!();
-      run!.refs[0]!.current = 9;
+      for (const resetOn of [8, 9]) {
+        const next = callWithHooks(ExportLink, props(resetOn), { refs: run!.refs, state: ["Preparing the export…", true] });
+        assert.deepEqual(next.deps[0], [resetOn], "the reset is not keyed on resetOn");
+        next.effects[0]!();
+        later.push(next);
+      }
       return json(200, null, { "Content-Disposition": 'attachment; filename="sourcebd-selected-1.csv"', "X-SourceBD-Rows": "1" });
     });
-    run = callWithHooks(ExportLink, { href: "/x", label: "Export", requested: 1, resetOn: 7, onStatus: (s: string) => told.push(s) });
+    run = callWithHooks(ExportLink, props(7));
     assert.deepEqual(run.deps[0], [7], "the reset is not keyed on resetOn");
     await (buttonNamed(run.out, "Export").props.onClick as (e: unknown) => Promise<void>)(click().e);
     assert.equal(d.anchors.length, 1, "the export was abandoned by a selection change");
+    // The re-renders' resets erased nothing while the export ran.
+    assert.deepEqual(later.flatMap((r) => r.sets.filter((s) => s.hook === 0)), [], "a selection change wiped the running export's status");
     const statuses = run.sets.filter((s) => s.hook === 0).map((s) => s.value);
     assert.deepEqual(statuses, ["Preparing the export…", `${EARLIER}Export downloaded.`], JSON.stringify(statuses));
     assert.deepEqual(told, statuses, "the parent was not told what the link says");

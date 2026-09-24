@@ -21,7 +21,7 @@ import { Icon } from "./icons";
 import { Button } from "./controls";
 
 export const EARLIER = "For your earlier selection: ";
-export const STILL_EXPORTING = "Still preparing the earlier export. It downloads when it is ready.";
+export const STILL_EXPORTING = "Still preparing the export. Its result will show here.";
 
 export function ExportLink({
   href,

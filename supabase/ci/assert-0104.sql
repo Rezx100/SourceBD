@@ -644,8 +644,16 @@ $$;
 update public.suppliers s
    set employees_total = (array[300, 100, 600, 200, 500, 400])[substring(s.slug from 'ci-sort-([0-9])')::int],
        -- An order of its own, so a key added ahead of the workers key would show.
-       completeness_pct = (array[90, 10, 20, 80, 30, 70])[substring(s.slug from 'ci-sort-([0-9])')::int]
+       completeness_pct = (array[90, 10, 20, 80, 30, 70])[substring(s.slug from 'ci-sort-([0-9])')::int],
+       -- The two shared tie-breakers too, each in an order of their own: a key
+       -- on either, slipped ahead of the workers key, must change the result
+       -- (they tied before, so such a key passed).
+       t13_source_count = (array[4, 6, 1, 5, 2, 3])[substring(s.slug from 'ci-sort-([0-9])')::int]
  where s.slug like 'ci-sort-%';
+insert into public.sbi_scores (supplier_id, total)
+select s.id, (array[60, 40, 10, 50, 20, 30])[substring(s.slug from 'ci-sort-([0-9])')::int]
+  from public.suppliers s where s.slug like 'ci-sort-%'
+on conflict (supplier_id) do update set total = excluded.total;
 
 -- And a building with a large RSC headcount under ci-sort-2 (own 100), so the
 -- profile's figure orders ci-sort-2 first: a sort on that figure instead of
@@ -675,6 +683,15 @@ begin
   if disp is not distinct from want then
     raise exception 'the fixture cannot tell the own figure from the profile figure: both order %', want;
   end if;
+  -- Each other column a key could be written on orders the rows differently.
+  if (select array_agg(s.slug order by s.t13_source_count desc, s.slug) from public.suppliers s where s.slug like 'ci-sort-%') is not distinct from want
+     or (select array_agg(s.slug order by b.total desc, s.slug) from public.suppliers s join public.sbi_scores b on b.supplier_id = s.id where s.slug like 'ci-sort-%') is not distinct from want
+     or (select array_agg(s.slug order by s.completeness_pct desc, s.slug) from public.suppliers s where s.slug like 'ci-sort-%') is not distinct from want then
+    raise exception 'a fixture column orders the ci-sort rows as employees_total does; a key on it would pass unseen';
+  end if;
+  if (select count(distinct s.t13_source_count) from public.suppliers s where s.slug like 'ci-sort-%') <> 6 then
+    raise exception 'the ci-sort source counts tie; a source-count key ahead of workers would pass unseen';
+  end if;
   if got is distinct from want then
     raise exception 'the workers sort is not suppliers.employees_total descending: got %, want %', got, want;
   end if;
@@ -692,34 +709,63 @@ begin
 end
 $$;
 
--- Oversized filter lists are refused by the function itself: anon reaches it
--- through PostgREST, past the app's cap and its rate limiter.
+-- Oversized filter lists and values are refused by the function itself:
+-- anon reaches discover_suppliers through PostgREST, past the app's caps and
+-- its rate limiter, and any signed-in account reaches the explain. Every
+-- bound, on both functions: one over the limit is refused (22023), and the
+-- limit itself answers — so dropping any one from discover_v32_assert_bounded,
+-- or tightening one below what the app sends, fails here.
 do $$
+declare
+  fn  text;
+  c   record;
+  n   int;
 begin
-  set local role anon;
-  perform set_config('request.jwt.claim.role', 'anon', true);
-  begin
-    perform count(*) from public.discover_suppliers(p_districts => array(select 'x' || g from generate_series(1, 51) g));
-    raise exception 'discover_suppliers accepted 51 districts from anon';
-  exception when sqlstate '22023' then null;
-  end;
-  begin
-    perform count(*) from public.discover_suppliers(p_cities => array[repeat('x', 81)]);
-    raise exception 'discover_suppliers accepted an 81-character city from anon';
-  exception when sqlstate '22023' then null;
-  end;
-  -- At the limit it answers.
-  perform count(*) from public.discover_suppliers(p_districts => array(select 'x' || g from generate_series(1, 50) g));
-  reset role;
-  set local role authenticated;
-  perform set_config('request.jwt.claim.role', 'authenticated', true);
-  perform set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-00000000d001', true);
-  begin
-    perform count(*) from public.discover_suppliers_explain(p_hs_codes => array(select lpad(g::text, 4, '0') from generate_series(1, 51) g));
-    raise exception 'discover_suppliers_explain accepted 51 HS codes';
-  exception when sqlstate '22023' then null;
-  end;
-  reset role;
+  for fn in select unnest(array['discover_suppliers', 'discover_suppliers_explain']) loop
+    if fn = 'discover_suppliers' then
+      set local role anon;
+      perform set_config('request.jwt.claim.role', 'anon', true);
+    else
+      set local role authenticated;
+      perform set_config('request.jwt.claim.role', 'authenticated', true);
+      perform set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-00000000d001', true);
+    end if;
+    n := 0;
+    for c in
+      select * from (values
+        ('p_entity_types', 'array(select ''x'' || g from generate_series(1, 51) g)', 'array(select ''x'' || g from generate_series(1, 50) g)'),
+        ('p_cert_kinds',   'array(select ''x'' || g from generate_series(1, 51) g)', 'array(select ''x'' || g from generate_series(1, 50) g)'),
+        ('p_registries',   'array(select ''x'' || g from generate_series(1, 51) g)', 'array(select ''x'' || g from generate_series(1, 50) g)'),
+        ('p_factory_types','array(select ''x'' || g from generate_series(1, 51) g)', 'array(select ''x'' || g from generate_series(1, 50) g)'),
+        ('p_brand_codes',  'array(select ''x'' || g from generate_series(1, 51) g)', 'array(select ''x'' || g from generate_series(1, 50) g)'),
+        ('p_hs_codes',     'array(select lpad(g::text, 4, ''0'') from generate_series(1, 51) g)', 'array(select lpad(g::text, 4, ''0'') from generate_series(1, 50) g)'),
+        ('p_districts',    'array(select ''x'' || g from generate_series(1, 51) g)', 'array(select ''x'' || g from generate_series(1, 50) g)'),
+        ('p_cities',       'array(select ''x'' || g from generate_series(1, 51) g)', 'array(select ''x'' || g from generate_series(1, 50) g)'),
+        ('p_districts',    'array[repeat(''x'', 81)]', 'array[repeat(''x'', 80)]'),
+        ('p_cities',       'array[repeat(''x'', 81)]', 'array[repeat(''x'', 80)]'),
+        ('p_q',            'repeat(''x'', 201)',       'repeat(''x'', 200)'),
+        ('p_city',         'repeat(''x'', 81)',        'repeat(''x'', 80)'),
+        ('p_district',     'repeat(''x'', 81)',        'repeat(''x'', 80)'),
+        ('p_category',     'repeat(''x'', 81)',        'repeat(''x'', 80)')
+      ) as t(param, over_limit, at_limit)
+    loop
+      n := n + 1;
+      begin
+        execute format('select count(*) from public.%I(%I => %s)', fn, c.param, c.over_limit);
+        raise exception '% accepted % = % from %', fn, c.param, c.over_limit, current_user;
+      exception when sqlstate '22023' then null;
+      end;
+      begin
+        execute format('select count(*) from public.%I(%I => %s)', fn, c.param, c.at_limit);
+      exception when sqlstate '22023' then
+        raise exception '% refused % at its limit (%), which the app may send', fn, c.param, c.at_limit;
+      end;
+    end loop;
+    if n <> 14 then
+      raise exception 'the bound checks ran % cases, expected 14', n;
+    end if;
+    reset role;
+  end loop;
   perform set_config('request.jwt.claim.role', '', true);
   perform set_config('request.jwt.claim.sub', '', true);
 end

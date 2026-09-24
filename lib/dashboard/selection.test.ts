@@ -174,7 +174,7 @@ describe("discover bulk-selection math", () => {
     assert.deepEqual(order, ["focus", "clear", "clear"], "a missing target still clears");
   });
 
-  it("the bar reserves its height, re-scrolls the focused box, follows re-wraps, and gives the space back (WCAG 2.4.11)", () => {
+  it("the bar reserves its height, scrolls the focused box clear when it mounts, re-fits the padding on re-wraps, and gives the space back (WCAG 2.4.11)", () => {
     const root = { style: { scrollPaddingBottom: "4px" } };
     const bar = { offsetHeight: 56 };
     const scrolled: unknown[] = [];

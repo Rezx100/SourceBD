@@ -525,11 +525,13 @@ revoke all on function public.discover_v32_passes(
 -- discover_v32_assert_bounded — refuse oversized filter lists (REZ-B)
 -- ---------------------------------------------------------------------------
 -- Every supplier row is tested against every element of these lists (cities
--- and districts by ilike), and discover_suppliers is granted to anon and
--- served by PostgREST outside the app's rate limiter: an unbounded list is a
--- per-call cost the caller chooses. The app caps each list at 30 values of at
--- most 80 characters (lib/discover-v32-state.ts), so these limits never bite
--- a buyer.
+-- and districts by ilike), and against the single city, district, category
+-- and keyword values by ilike too; discover_suppliers is granted to anon and
+-- served by PostgREST outside the app's rate limiter, so an unbounded list or
+-- an unbounded value is a per-call cost the caller chooses. The app keeps
+-- under these limits before it calls (lib/discover-v32-state.ts: 30 values of
+-- at most 80 characters, a keyword of at most 120; the public /discover page
+-- and the suggest route cap theirs the same way), dropping what is over.
 create or replace function public.discover_v32_assert_bounded(
   p_entity_types text[],
   p_cert_kinds text[],
@@ -538,7 +540,11 @@ create or replace function public.discover_v32_assert_bounded(
   p_brand_codes text[],
   p_hs_codes text[],
   p_districts text[],
-  p_cities text[]
+  p_cities text[],
+  p_q text,
+  p_city text,
+  p_district text,
+  p_category text
 )
 returns void
 language plpgsql
@@ -560,14 +566,16 @@ begin
        select 1
          from unnest(coalesce(p_districts, '{}'::text[]) || coalesce(p_cities, '{}'::text[])) as x
         where length(x) > 80
-     ) then
+     )
+     or length(p_q) > 200
+     or greatest(length(p_city), length(p_district), length(p_category)) > 80 then
     raise exception 'too many or too long filter values' using errcode = '22023';
   end if;
 end;
 $$;
 
 revoke all on function public.discover_v32_assert_bounded(
-  text[], text[], text[], text[], text[], text[], text[], text[]
+  text[], text[], text[], text[], text[], text[], text[], text[], text, text, text, text
 ) from public, anon, authenticated;
 
 -- ---------------------------------------------------------------------------
@@ -692,7 +700,8 @@ declare
 begin
   perform public.discover_v32_assert_bounded(
     p_entity_types, p_cert_kinds, p_registries, p_factory_types,
-    p_brand_codes, p_hs_codes, p_districts, p_cities
+    p_brand_codes, p_hs_codes, p_districts, p_cities,
+    p_q, p_city, p_district, p_category
   );
   if v_q is null then
     return query
@@ -914,7 +923,8 @@ declare
 begin
   perform public.discover_v32_assert_bounded(
     p_entity_types, p_cert_kinds, p_registries, p_factory_types,
-    p_brand_codes, p_hs_codes, p_districts, p_cities
+    p_brand_codes, p_hs_codes, p_districts, p_cities,
+    p_q, p_city, p_district, p_category
   );
   if v_q is not null then
     return query
