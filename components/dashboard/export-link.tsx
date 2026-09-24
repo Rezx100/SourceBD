@@ -13,6 +13,8 @@ import { interceptPlainClick, runExport, saveBlob } from "@/lib/dashboard/select
 import { Icon } from "./icons";
 import { Button } from "./controls";
 
+const CANCELLED = "The earlier export was cancelled because the selection changed. Export again for this selection.";
+
 export function ExportLink({
   href,
   label,
@@ -32,9 +34,16 @@ export function ExportLink({
   const [busy, setBusy] = useState(false);
   const statusId = useId();
   const round = useRef(0);
+  // True while an export is out, so a reset can say it cancelled one.
+  const inflight = useRef(false);
   useEffect(() => {
     round.current += 1;
-    setStatus("");
+    // A cancelled export is said, not silently erased: the buyer heard
+    // "Preparing the export…" and would otherwise wait for a file that never
+    // comes. (On unmount there is nowhere left to say it: Clear or a new page
+    // means the buyer has left that selection.)
+    setStatus(inflight.current ? CANCELLED : "");
+    inflight.current = false;
     // Free the button for the new selection: a click while the old export
     // was still in flight returned silently, so the buyer clicked and got
     // nothing. The old export carries on, but is neither saved nor reported.
@@ -52,6 +61,7 @@ export function ExportLink({
     setBusy(true);
     setStatus("Preparing the export…");
     const asked = round.current;
+    inflight.current = true;
     try {
       const message = await runExport(href, requested, {
         fetch: (url) => fetch(url),
@@ -64,7 +74,10 @@ export function ExportLink({
       if (round.current === asked) setStatus(message);
     } finally {
       // After a reset the button already belongs to the next export.
-      if (round.current === asked) setBusy(false);
+      if (round.current === asked) {
+        setBusy(false);
+        inflight.current = false;
+      }
     }
   }
 

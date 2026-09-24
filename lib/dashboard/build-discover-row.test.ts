@@ -336,6 +336,9 @@ describe("discover result HTML has no contact PII", () => {
       .replace(/--[^\n]*/g, "");
     const keys = [...sql.matchAll(/case when v_sort = 'workers' then (\w+)\.(\w+) end desc nulls last/g)];
     assert.equal(keys.length, 2, "expected the workers sort in both discover_suppliers branches");
+    // Exactly one workers key per branch: a second one ahead of it (any
+    // column, any NULLS order) would decide the order instead.
+    assert.equal((sql.match(/v_sort = 'workers'/g) ?? []).length, 2, "a second workers sort key was added");
     for (const k of keys) assert.equal(k[2], "employees_total", `the workers sort moved to ${k[1]}.${k[2]}`);
   });
 

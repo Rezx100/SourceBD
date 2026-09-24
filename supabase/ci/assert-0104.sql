@@ -642,7 +642,9 @@ $$;
 -- Discover page headlines as the supplier's own. Run, not read: a source-text
 -- check of the ORDER BY is satisfied by a comment.
 update public.suppliers s
-   set employees_total = (array[300, 100, 600, 200, 500, 400])[substring(s.slug from 'ci-sort-([0-9])')::int]
+   set employees_total = (array[300, 100, 600, 200, 500, 400])[substring(s.slug from 'ci-sort-([0-9])')::int],
+       -- An order of its own, so a key added ahead of the workers key would show.
+       completeness_pct = (array[90, 10, 20, 80, 30, 70])[substring(s.slug from 'ci-sort-([0-9])')::int]
  where s.slug like 'ci-sort-%';
 
 -- And a building with a large RSC headcount under ci-sort-2 (own 100), so the

@@ -421,6 +421,35 @@ describe("discover CSV export boundary", () => {
     assert.equal(args.p_cert_state, "valid");
     assert.deepEqual(args.p_registries, ["BGMEA"], "the register filter never reached the query");
     assert.equal(args.p_sort, "name", "the sort never reached the query");
+    assert.equal(args.p_exclude_sanctioned, true, "sanctioned suppliers were not excluded by default");
+  });
+
+  it("a selected-rows export re-runs the buyer's own filters, never a bare id lookup", async () => {
+    // The `?ids=` path keeps only ids the buyer's own search returns. With the
+    // parsed state replaced (an empty search, or sanctioned let in), it could
+    // hand back rows the page never showed, and every other ids test stayed
+    // green because none looked past offset, limit and sort.
+    const seen: Record<string, unknown>[] = [];
+    const res = await runDiscoverExport({
+      role: "buyer",
+      supabase: {
+        rpc: async (fn: string, args?: Record<string, unknown>) => {
+          if (fn === "discover_suppliers") seen.push(args ?? {});
+          return { data: [ROW], error: null };
+        },
+      },
+      search: `?q=knit&hs=6105,6110&cert=gots:valid&reg=BGMEA&sort=name&ids=${ROW.id}`,
+      today: TODAY,
+    });
+    assert.equal(res.status, 200);
+    assert.equal(seen.length, 1);
+    const args = seen[0] ?? {};
+    assert.equal(args.p_q, "knit");
+    assert.deepEqual(args.p_hs_codes, ["6105", "6110"]);
+    assert.deepEqual(args.p_cert_kinds, ["gots"]);
+    assert.equal(args.p_cert_state, "valid");
+    assert.deepEqual(args.p_registries, ["BGMEA"]);
+    assert.equal(args.p_exclude_sanctioned, true, "a selected export let sanctioned suppliers in");
   });
 
   it("503 when the search cannot be read", async () => {

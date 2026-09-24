@@ -2,8 +2,8 @@
 
 // The sticky bulk-action bar (REZ-B, handoff §7.5 / spec §3.1 "Selection"):
 // "N selected · Send RFQ · Save · Compare · Export". With an empty selection
-// it renders no bar, only its (empty) screen-reader announcer, which must
-// already exist when the first box is ticked.
+// it renders no bar, only its screen-reader announcer, which must already
+// exist when the first box is ticked.
 //
 // Send RFQ and Compare are disabled here on purpose: their destinations are
 // REZ-D (the multi-supplier RFQ composer) and REZ-C (`/app/compare`), which
@@ -43,6 +43,9 @@ export function SelectionBar({ exportHref }: { exportHref: string }) {
   // Bumped on every selection change, so a save response that lands after
   // the buyer ticked another box does not report "Saved 3" under "4 selected".
   const generation = useRef(0);
+  // Bumped per Save click: only the newest save may write the status, or a
+  // slow earlier one landing last overwrote a newer save's refusal.
+  const saves = useRef(0);
 
   // A message about the last save describes THAT selection; once the BUYER
   // changes it (or clears it and the bar hides) it is stale. Keyed on their
@@ -71,10 +74,13 @@ export function SelectionBar({ exportHref }: { exportHref: string }) {
   // Announced from a region that exists BEFORE the first selection: a live
   // region mounted already holding "1 selected" is usually not read at all,
   // so the first tick told a screen-reader user nothing about the bar.
+  // With nothing selected it carries the bar's status instead: after Clear the
+  // bar and its status line are gone, and a save still in flight must still
+  // be able to say how it ended.
   const count = sel.selected.size;
   const announcer = sel.interactive ? (
     <span role="status" aria-live="polite" className="sr-only">
-      {count > 0 ? `${count} selected. Bulk actions are after the results.` : ""}
+      {count > 0 ? `${count} selected. Bulk actions are after the results.` : status}
     </span>
   ) : null;
   if (!visible) return announcer;
@@ -85,6 +91,7 @@ export function SelectionBar({ exportHref }: { exportHref: string }) {
     setBusy(true);
     setStatus("");
     const asked = generation.current;
+    const mine = ++saves.current;
     let savedAny = false;
     const message = await runBulkSave(ids, {
       fetch: (url, init) => fetch(url, init),
@@ -96,10 +103,11 @@ export function SelectionBar({ exportHref }: { exportHref: string }) {
     });
     // After a selection change Save already belongs to the next request, and
     // a bare "Saved 3" under "4 selected" would read as the list now shown.
-    // The outcome is still said — a save that went through unannounced, or
-    // failed unannounced, is a silence — but scoped to the earlier selection.
+    // The outcome is still said, scoped to the earlier selection (in the bar,
+    // or through the announcer once Clear has hidden it) — unless a newer
+    // save has started, whose result owns the status.
     if (generation.current !== asked) {
-      setStatus(savedAny ? `Your earlier save went through: ${message.replace(/\.$/, "")}.` : `The earlier save did not go through. ${message}`);
+      if (saves.current === mine) setStatus(savedAny ? `Your earlier save went through: ${message.replace(/\.$/, "")}.` : `The earlier save did not go through. ${message}`);
       return;
     }
     setBusy(false);

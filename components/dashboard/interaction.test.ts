@@ -87,7 +87,7 @@ describe("the bulk bar's handlers, invoked", () => {
     assert.deepEqual(busy, [true, false], "busy must be released");
   });
 
-  it("a Save click while one is running sends no second request", async () => {
+  it("a Save click while busy sends no request", async () => {
     let fetched = 0;
     stub("window", new EventTarget());
     stub("fetch", async () => {
@@ -166,6 +166,33 @@ describe("the bulk bar's handlers, invoked", () => {
       statuses.some((v) => typeof v === "string" && v.startsWith("The earlier save did not go through") && /Too many saves/.test(v)),
       `a failed save was dropped without a word: ${JSON.stringify(statuses)}`,
     );
+  });
+
+  it("after Clear hides the bar, a late save's outcome is still announced", () => {
+    // The bar's status line goes with the bar; the announcer is always there.
+    const hidden = bar(selection([]), { refresh: () => {} }, [false, "The earlier save did not go through. Too many saves."]);
+    assert.match(textOf(hidden.out as never), /The earlier save did not go through/, "the outcome went nowhere after Clear");
+  });
+
+  it("a slow earlier save landing after a newer one does not overwrite the newer result", async () => {
+    stub("window", new EventTarget());
+    let releaseFirst: (v: unknown) => void = () => {};
+    let call = 0;
+    let run: ReturnType<typeof bar> | null = null;
+    stub("fetch", async () => {
+      call += 1;
+      if (call === 1) return new Promise((r) => (releaseFirst = r));
+      return json(429, { error: "rate_limited" });
+    });
+    run = bar(selection([A]), { refresh: () => {} });
+    const save = buttonNamed(run.out, "Save").props.onClick as () => Promise<void>;
+    const first = save(); // slow
+    run.effects[0]!(); // the buyer ticks another box, which frees Save
+    await save(); // the newer save is refused
+    releaseFirst(json(200, { ok: true, count: 1, skipped: 0, ids: [A] }));
+    await first;
+    const statuses = run.sets.filter((x) => x.hook === 1).map((x) => x.value);
+    assert.match(String(statuses[statuses.length - 1]), /Too many saves/, `the newer refusal was overwritten: ${JSON.stringify(statuses)}`);
   });
 
   it("Clear moves focus to the select-all box, THEN clears", () => {
@@ -271,7 +298,7 @@ describe("ExportLink's handler, invoked", () => {
     assert.ok(mid.sets.some((s) => s.hook === 1 && s.value === false), "a selection change left Export busy");
   });
 
-  it("the REAL reset, run mid-export: keyed on resetOn, clears the message, and the old file is neither saved nor reported", async () => {
+  it("the REAL reset, run mid-export: keyed on resetOn, says the export was cancelled, and the old file is neither saved nor reported", async () => {
     // The test above moved the round by hand; this one runs the effect React
     // would run when the bar passes a new `resetOn`, while the fetch is out.
     const d = doc();
@@ -286,7 +313,13 @@ describe("ExportLink's handler, invoked", () => {
     await (buttonNamed(run.out, "Export").props.onClick as (e: unknown) => Promise<void>)(click().e);
     assert.equal(d.anchors.length, 0, "the old selection's file was saved after the reset");
     const statuses = run.sets.filter((s) => s.hook === 0).map((s) => s.value);
-    assert.deepEqual(statuses, ["Preparing the export…", ""], `the old export was reported, or its message kept: ${JSON.stringify(statuses)}`);
+    // Not silence (the buyer heard "Preparing…" and would wait for a file),
+    // and not the old export's own result either: that it was cancelled.
+    assert.deepEqual(
+      statuses,
+      ["Preparing the export…", "The earlier export was cancelled because the selection changed. Export again for this selection."],
+      `the cancel went unsaid, or the old export was reported: ${JSON.stringify(statuses)}`,
+    );
     // busy: set by the click, freed by the reset, and not touched again.
     assert.deepEqual(run.sets.filter((s) => s.hook === 1).map((s) => s.value), [true, false]);
   });

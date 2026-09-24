@@ -1807,7 +1807,9 @@ const CASES = [
     // Founder decision (24 Sep) at the boundary: the headline is the figure
     // the Workers sort orders on; the second line says what the profile's
     // figure covers, from the sites the batch summed, never a guess.
-    name: "rez-b: /app/discover table, sorted by workers, headlines each supplier's own figure and words the second from its sites",
+    // The stub ignores the sort; the ORDER is asserted against a real
+    // database by assert-0104.sql. This case asserts what each cell says.
+    name: "rez-b: /app/discover table (sort=workers in the URL) headlines each supplier's own figure and words the second from its sites",
     path: "/app/discover?view=table&sort=workers",
     auth: true,
     expect: {

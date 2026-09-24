@@ -1311,9 +1311,13 @@ describe("the two-state controls say which state they are in", () => {
     // And it LOOKS mixed in Windows High Contrast: forced colors repaint every
     // background as Canvas, so a background-drawn dash vanished (white on
     // white) and the box looked unticked while the tree said "mixed".
+    // Pinned exactly, not screened against a list of hiding classes: a list
+    // is always one class short (sr-only, w-0, invisible, [visibility:…]).
+    // Changing the dash means changing this line on purpose. That Tailwind
+    // emits the forced-colors rule was checked in built CSS by the cycle-17
+    // reviewer; it is not re-checked here.
     const dash = html.match(/<span aria-hidden="true" class="([^"]*)"><\/span>/)?.[1] ?? "";
-    assert.match(dash, /forced-colors:bg-\[CanvasText\]/, `the mixed dash has no forced-colors paint: "${dash}"`);
-    assert.doesNotMatch(dash, /forced-colors:(?:hidden|invisible|opacity-0|bg-transparent|bg-\[Canvas\])(?![\w-])/, `the mixed dash is hidden in forced colors: "${dash}"`);
+    assert.equal(dash, "block h-0.5 w-2 rounded-full bg-current forced-colors:bg-[CanvasText]", "the mixed dash's classes changed");
   });
 
   /** A source file with its comments removed, so prose cannot satisfy a code check. */
@@ -1491,7 +1495,7 @@ describe("the two-state controls say which state they are in", () => {
       // Busy is freed by the run that set it, unless a selection change has
       // already handed the button to the next export (interaction.test.ts
       // runs both paths through the real handler and effect).
-      assert.match(functionBody("components/dashboard/export-link.tsx", "ExportLink"), /\} finally \{[\s\S]*?if \(round\.current === asked\) setBusy\(false\);\s*\}/);
+      assert.match(functionBody("components/dashboard/export-link.tsx", "ExportLink"), /\} finally \{[\s\S]*?if \(round\.current === asked\) \{\s*setBusy\(false\);/);
     });
 
     it("the header's Export CSV is the in-place export — its status region renders beside it", () => {
@@ -2097,6 +2101,12 @@ describe("the shell offers no control without a destination", () => {
         assert.match(m[0], /\btype="submit"/, `a button with no destination: ${m[0]}`);
         assert.ok(insideForm(html, m.index!), `a submit button outside any form: ${m[0]}`);
       }
+      // A submit can post elsewhere (formaction) or to another form (form=).
+      for (const m of html.matchAll(/<(?:button|input)\b[^>]*>/g)) {
+        const to = m[0].match(/\bformAction="([^"]*)"|\bformaction="([^"]*)"/i);
+        if (to) assert.ok(pageExists(to[1] ?? to[2] ?? ""), `a submit posting to a page that does not exist: ${m[0]}`);
+        assert.doesNotMatch(m[0], /\bform="/, `a control submitting a form it does not sit in: ${m[0]}`);
+      }
       // <input type=button|reset|image> does nothing without script; any other
       // field (the search box, a submit) is only a control inside its form.
       for (const m of html.matchAll(/<(input|select|textarea)\b[^>]*>/g)) {
@@ -2114,7 +2124,7 @@ describe("the shell offers no control without a destination", () => {
     const helpPage = pageExists("/app/help");
     for (const html of shells) {
       const named =
-        /(?:aria-label|title|value|placeholder)="[^"]*\bhelp\b[^"]*"|>[^<]*\bhelp\b[^<]*<|>\s*\?\s*<|href="\/app\/help\b/i.test(html);
+        /(?:aria-[a-z]+|title|value|placeholder|alt)="[^"]*\bhelp\b[^"]*"|>[^<]*\bhelp\b[^<]*<|>\s*\?\s*<|href="\/app\/help\b/i.test(html);
       if (!helpPage) assert.ok(!named, `a Help control renders with nowhere to go: ${html}`);
     }
   });

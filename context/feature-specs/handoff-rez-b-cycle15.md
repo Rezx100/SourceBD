@@ -451,7 +451,8 @@ me to five lines or fewer, in plain words.
     its file: the reset effect's cleanup abandons it.
   - A bulk Save that lands after a selection change is reported, worded for
     the earlier selection ("Your earlier save went through: …" or "The
-    earlier save did not go through. …"), not dropped.
+    earlier save did not go through. …"). Cycle 18 found it still lost after
+    Clear, and able to overwrite a newer save's result; see §13.
   - The shell guard now covers `<input>`, `<select>` and `<textarea>`,
     "help" in any text, value, label or placeholder, form actions, and only
     real pages (not API routes). The sidebar is rendered with a recent search.
@@ -459,7 +460,8 @@ me to five lines or fewer, in plain words.
     Workers sort, and the fixture has a building whose RSC figure reorders
     the profile figure, so a sort on it would fail (CI-only, proven green).
   - The bar's reset is asserted keyed on the buyer's edits; double-click
-    Save sends once; the forced-colors dash cannot be hidden.
+    Save sends once; the forced-colors dash is checked against a list of
+    hiding classes (cycle 18: a list is always one short; see §13).
   - "Workers not on file" is no longer printed directly above a worker figure.
   - PR #164's description was rewritten to current state.
 - Written down, not changed: the export's `api_export` bucket is not
@@ -467,3 +469,33 @@ me to five lines or fewer, in plain words.
   toward that bucket; a supplier's 403 from the export is unit-only; the
   forced-colors rule is checked as a class, not in built CSS; "across its
   buildings" is plural when one building is summed.
+
+## 13. Cycle 18 (24 Sep)
+
+- Reviewed `87100ec`. Security ACCEPTED. Truthfulness, correctness,
+  accessibility and guard adequacy REJECTED, mostly on the same two points.
+- Repaired, each guard proven red (`mutate-c18.cjs`; earlier sets re-run):
+  - A bulk Save that lands after Clear is announced: with nothing selected,
+    the always-mounted announcer carries the bar's status. Only the newest
+    save may write the status, so a slow earlier one cannot overwrite a newer
+    refusal.
+  - A selection change that cancels an Export in flight now says so ("The
+    earlier export was cancelled…"). On unmount (Clear, a new page) there is
+    nowhere left to say it; that silence is accepted, because the buyer has
+    left that selection.
+  - The mixed checkbox dash's classes are pinned exactly, not screened
+    against a list of hiding classes.
+  - The shell guard reads `formaction` and `form=`, and "help" in `alt` and
+    any `aria-*` attribute.
+  - Exactly one Workers sort key per branch (a text guard); the CI fixture
+    now gives completeness its own order (CI-only, proven green).
+  - The selected-rows export is tested to carry the buyer's filters,
+    sanctioned exclusion included.
+  - The boundary case no longer claims to check the sort order; the stub
+    ignores it and CI asserts it.
+- Written down, not changed: a client-side navigation during a bulk Save
+  remounts the bar and drops its outcome; a selected, sanctioned table row
+  shows the sanction rail, not the selected rail; the announcer says nothing
+  when the count drops to 0; `production_workers_display_batch` has no
+  published filter (an older gap, noted in §11); the new city/district filter
+  lists are uncapped (the already-escalated PostgREST cost class).
