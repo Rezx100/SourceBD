@@ -84,6 +84,9 @@ const OVERVIEW_TIMEOUT = "overview-statement-timeout";
 const STALE_SUCCESS = "inflight-success-then-timeout";
 const SELF = "self-parented-ltd";
 const GUARD_TOKEN = "http-guard-access-token";
+/** A second session whose profile row is role "supplier" (see the profiles
+ * mock), so a route's own role check can be exercised at the wire. */
+const SUPPLIER_TOKEN = "http-guard-supplier-access-token";
 let timeoutRecovered = false;
 let overlapRecovered = false;
 let timeoutOverlapHoldMs = 0;
@@ -95,6 +98,13 @@ let motherCompanyName = "Mother Company Ltd";
 let staleSuccessPhase = "success";
 let staleSuccessHoldMs = 0;
 
+const BULK_SAVE_GONE = "00000000-0000-4000-8000-0000000000ee";
+/** Listed at the check, gone by the write: the upsert hits the FK (23503). */
+const BULK_SAVE_RACE = "00000000-0000-4000-8000-0000000000ef";
+/** Each POST the mock received on saved_suppliers, as its array of rows. */
+const savedSupplierWrites = [];
+const DISCOVER_PGRST202_Q = "zzpgrstprobe";
+const DISCOVER_TIMEOUT_Q = "zztimeoutprobe";
 const STATEMENT_TIMEOUT = {
   code: "57014",
   details: null,
@@ -345,6 +355,12 @@ const TEST_USER = {
   role: "authenticated",
   email: "http-guard@example.test",
 };
+const SUPPLIER_USER = {
+  id: "00000000-0000-4000-8000-0000000000ab",
+  aud: "authenticated",
+  role: "authenticated",
+  email: "http-guard-supplier@example.test",
+};
 
 function mockHandler(req, res) {
   const url = new URL(req.url, MOCK_URL);
@@ -579,6 +595,26 @@ function mockHandler(req, res) {
       return json(slug === FACILITY ? MOTHER : null);
     }
     if (url.pathname === "/rest/v1/rpc/discover_suppliers") {
+      let q = null;
+      try {
+        q = JSON.parse(body || "{}").p_q ?? null;
+      } catch {
+        q = null;
+      }
+      // Production's state until 0104 is applied: PostgREST cannot find a
+      // function taking the parameters the page sends.
+      if (q === DISCOVER_PGRST202_Q) {
+        return json(
+          {
+            code: "PGRST202",
+            details: null,
+            hint: null,
+            message: "Could not find the function public.discover_suppliers(p_cert_state, p_hs_codes, ...) in the schema cache",
+          },
+          404,
+        );
+      }
+      if (q === DISCOVER_TIMEOUT_Q) return json(STATEMENT_TIMEOUT, 400);
       return json([
         {
           id: "00000000-0000-4000-8000-000000000099",
@@ -594,6 +630,18 @@ function mockHandler(req, res) {
         },
       ]);
     }
+    if (url.pathname === "/rest/v1/rpc/production_workers_display_batch") {
+      // The two Discover rows, consistent with this file's profile fixture:
+      // Mother (own 1,200) is "500 across 1 of 2 sites", RSC only, so the RSC
+      // sum leaves Mother itself out; Overview Timeout (own 100) is a single
+      // site whose RSC headcount, 450, differs from its own figure. The page
+      // must headline the own figures and word the second line only from
+      // sites/includes_root.
+      return json({
+        "00000000-0000-4000-8000-000000000098": { value: 500, source: "RSC", fetched_at: null, sites: 1, includes_root: false },
+        "00000000-0000-4000-8000-000000000099": { value: 450, source: "RSC", fetched_at: null, sites: 1, includes_root: true },
+      });
+    }
     if (url.pathname === "/rest/v1/rpc/rl_check") {
       return json({ ok: true, retry_after_seconds: 0 });
     }
@@ -604,6 +652,7 @@ function mockHandler(req, res) {
       // Require the exact guard token so the authenticated cases actually
       // prove the app reads and forwards the session token.
       const auth = req.headers.authorization ?? "";
+      if (auth === `Bearer ${SUPPLIER_TOKEN}`) return json(SUPPLIER_USER);
       if (auth !== `Bearer ${GUARD_TOKEN}`) {
         return json({ message: "invalid JWT", code: "invalid_token" }, 401);
       }
@@ -612,8 +661,32 @@ function mockHandler(req, res) {
     if (url.pathname.startsWith("/auth/v1/")) {
       return json({ error: "not implemented in stub" }, 400);
     }
+    // Bulk Save (POST /api/v1/saved): the listed-supplier read echoes the ids
+    // it is asked for except BULK_SAVE_GONE, and the one upsert is recorded so
+    // a case can count database writes per request.
+    if (url.pathname === "/rest/v1/suppliers" && /^in\.\(/.test(url.searchParams.get("id") ?? "")) {
+      const ids = (url.searchParams.get("id") ?? "").slice(4, -1).split(",").filter((x) => x && x !== BULK_SAVE_GONE);
+      return json(ids.map((id) => ({ id })));
+    }
+    if (url.pathname === "/rest/v1/saved_suppliers" && req.method === "POST") {
+      let rows = [];
+      try {
+        rows = JSON.parse(body || "[]");
+      } catch {
+        rows = [];
+      }
+      const list = Array.isArray(rows) ? rows : [rows];
+      if (list.some((r) => r && r.supplier_id === BULK_SAVE_RACE)) {
+        return json({ code: "23503", details: null, hint: null, message: 'insert or update on table "saved_suppliers" violates foreign key constraint' }, 409);
+      }
+      savedSupplierWrites.push(list);
+      return json([], 201);
+    }
     if (url.pathname === "/rest/v1/profiles") {
-      const row = { role: "buyer", is_suspended: false };
+      // The app asks for its own user's row (`id=eq.<uid>`); the supplier
+      // session's row is role "supplier", every other session is a buyer.
+      const asSupplier = url.searchParams.get("id") === `eq.${SUPPLIER_USER.id}`;
+      const row = { role: asSupplier ? "supplier" : "buyer", is_suspended: false };
       const wantsObject = (req.headers.accept || "").includes("vnd.pgrst.object");
       return json(wantsObject ? row : [row]);
     }
@@ -638,14 +711,15 @@ function mockHandler(req, res) {
   });
 }
 
-function buildAuthCookieHeader() {
+function buildAuthCookieHeader(who = "buyer") {
+  const supplier = who === "supplier";
   const session = {
-    access_token: GUARD_TOKEN,
+    access_token: supplier ? SUPPLIER_TOKEN : GUARD_TOKEN,
     token_type: "bearer",
     expires_in: 3600,
     expires_at: Math.floor(Date.now() / 1000) + 3600,
-    refresh_token: "http-guard-refresh-token",
-    user: TEST_USER,
+    refresh_token: supplier ? "http-guard-supplier-refresh-token" : "http-guard-refresh-token",
+    user: supplier ? SUPPLIER_USER : TEST_USER,
   };
   // @supabase/ssr cookieEncoding "base64url" writes values as
   // `base64-<base64url(JSON)>`; getChunks only decodes when the prefix is
@@ -886,7 +960,7 @@ function startServerAndWait(args, env, readyToken) {
 
 async function probeOnce(path, { auth = false } = {}) {
   const headers = { "user-agent": "sourcebd-http-guard/1.0" };
-  if (auth) headers.cookie = buildAuthCookieHeader();
+  if (auth) headers.cookie = buildAuthCookieHeader(auth === "supplier" ? "supplier" : "buyer");
   const res = await fetch(`${APP_URL}${path}`, {
     redirect: "manual",
     headers,
@@ -900,6 +974,8 @@ async function probeOnce(path, { auth = false } = {}) {
     location: res.headers.get("location"),
     cacheControl: res.headers.get("cache-control"),
     setCookie: res.headers.get("set-cookie"),
+    // Lower-cased names, for `expect.headerMatches`.
+    headers: Object.fromEntries([...res.headers].map(([k, v]) => [k.toLowerCase(), v])),
     body: text,
     bytes: text.length,
   };
@@ -1686,6 +1762,241 @@ const CASES = [
     // the query vary.
     expect: { status: 307, locationPath: "/login" },
   },
+
+  // ---- REZ-B: the rewritten Discover surface and its new routes ----------
+  // Every REZ-B test shipped in the change itself asserted a pure helper's
+  // return value. Not one observed a status code, which is the exact failure
+  // this file was written for (see the header: REZ-72 shipped 361 green unit
+  // tests over a route that never emitted its redirect). `/app/discover` was
+  // rewritten wholesale and could 500 on every request with a fully green
+  // `pnpm test`.
+  {
+    name: "rez-b: /app/discover renders -> 200",
+    path: "/app/discover",
+    auth: true,
+    // "All published suppliers except sanctioned" is `queryTitle(state)`, and
+    // the page renders that heading inside its ERROR branch too, above
+    // "Search is under heavy load." So a discover_suppliers that 404s with
+    // PGRST202 — production's state until 0104 is applied — served 200 with
+    // this needle present and the case green, over a Discover page whose
+    // search was entirely dead. The other two routes got `bodyExcludes` on
+    // their error captions and this one, the route the change exists to
+    // ship, did not.
+    expect: {
+      status: 200,
+      bodyIncludesAll: ["All published suppliers except sanctioned"],
+      bodyExcludes: [
+        "Search is under heavy load",
+        "The count could not be read",
+        "is past the end of this result set",
+      ],
+      // And something only the results panel renders, so an empty page with
+      // the right heading is not enough.
+      bodyIncludesAny: ["Export CSV", "No published suppliers to show"],
+    },
+  },
+  {
+    // A missing function is not load: telling every buyer to "try again in a
+    // moment" when the deploy shipped ahead of 0104 is a false promise.
+    name: "rez-b: /app/discover over a pre-0104 database says unavailable, not heavy load",
+    path: `/app/discover?q=${DISCOVER_PGRST202_Q}`,
+    auth: true,
+    expect: {
+      status: 200,
+      bodyIncludesAll: ["Search is unavailable right now"],
+      bodyExcludes: ["Search is under heavy load", "Try again in a moment"],
+    },
+  },
+  {
+    name: "rez-b: /app/discover on a statement timeout says heavy load",
+    path: `/app/discover?q=${DISCOVER_TIMEOUT_Q}`,
+    auth: true,
+    expect: {
+      status: 200,
+      bodyIncludesAll: ["Search is under heavy load"],
+      bodyExcludes: ["Search is unavailable right now"],
+    },
+  },
+  {
+    // Founder decision (24 Sep) at the boundary: the headline is the figure
+    // the Workers sort orders on; the second line says what the profile's
+    // figure covers, from the sites the batch summed, never a guess.
+    // The stub ignores the sort; the ORDER is asserted against a real
+    // database by assert-0104.sql. This case asserts what each cell says.
+    name: "rez-b: /app/discover table (sort=workers in the URL) headlines each supplier's own figure and words the second from its sites",
+    path: "/app/discover?view=table&sort=workers",
+    auth: true,
+    expect: {
+      status: 200,
+      // `>1,200<span` / `>100<span`: each figure at the head of its own cell.
+      bodyIncludesAll: [
+        ">1,200<span class=\"block text-xs font-normal text-ink-subtle\">on the supplier record</span>",
+        "500 workers · across its buildings, not this record",
+        ">100<span",
+        "450 workers · RSC inspection",
+      ],
+      bodyExcludes: ["450 workers · across this record and its buildings", "Search is under heavy load"],
+    },
+  },
+  {
+    name: "rez-b: export CSV carries the sorted figure and the profile figure in their own columns",
+    path: "/api/v1/discover/export?q=knit",
+    auth: true,
+    expect: {
+      status: 200,
+      bodyIncludesAll: [
+        "workers,workers_source,profile_workers,profile_workers_source",
+        "1200,on the supplier record,500,\"across its buildings, not this record\"",
+        "100,on the supplier record,450,RSC inspection",
+      ],
+    },
+  },
+  {
+    name: "rez-b: /app/discover anonymous -> 307 to /login",
+    path: "/app/discover",
+    expect: { status: 307, locationPath: "/login" },
+  },
+  {
+    name: "rez-b: /app/products renders -> 200",
+    path: "/app/products",
+    auth: true,
+    // "Products" alone was the SIDEBAR nav label, rendered on every /app/*
+    // page — it passed even if the catalogue failed to load, or if this route
+    // had served Discover. "Exporters" was no better: it is a <th> inside the
+    // table, so it is absent whenever the catalogue returns no rows, which is
+    // what the stub does — and the case failed in CI for a page that was
+    // rendering correctly. Pin the search control, which only this page has,
+    // and rule out the two error states explicitly.
+    expect: {
+      status: 200,
+      // And it says its counts leave out sanctioned suppliers (founder, 24 Sep).
+      bodyIncludesAll: ["Search headings", "exporter counts leave out sanctioned suppliers"],
+      bodyExcludes: ["Exporter counts could not be read", "The catalogue could not be read"],
+    },
+  },
+  {
+    name: "rez-b: /app/searches renders -> 200",
+    path: "/app/searches",
+    auth: true,
+    // "Saved searches" is the h1 AND the page title, so it renders just as
+    // happily when `runSavedSearchesGet` returns 500 and the page falls back
+    // to its error caption. This case passed over a route whose list read was
+    // failing outright. Pin the list state instead: on success the caption is
+    // either "N saved" or the empty-state invitation, and the error string is
+    // absent either way.
+    expect: {
+      status: 200,
+      bodyIncludesAll: ["Saved searches"],
+      bodyExcludes: ["Saved searches could not be read"],
+      // Not the bare word "saved": app-shell.tsx renders a sidebar item
+      // linking to /app/saved on every /app/* page, so that needle matches
+      // unconditionally — the same sidebar trap the case above describes.
+      bodyIncludesAny: ["Save a search from the results panel", " saved</"],
+    },
+  },
+  {
+    // The one route created specifically to satisfy "assert at the boundary"
+    // (AGENTS.md rule 16) had no boundary case at all. A bad id must land the
+    // buyer back on the list, not 404 and not 200, and it must do it as a
+    // real redirect rather than a page that has already committed a 200 — the
+    // REZ-72 defect this whole file exists for.
+    name: "rez-b: /app/searches/<unknown id> redirects back to the list",
+    path: "/app/searches/00000000-0000-4000-8000-000000000000",
+    auth: true,
+    expect: { status: 307, locationPath: "/app/searches" },
+  },
+  {
+    name: "rez-b: /app/searches/<not a uuid> redirects back to the list",
+    path: "/app/searches/not-a-uuid",
+    auth: true,
+    expect: { status: 307, locationPath: "/app/searches" },
+  },
+  {
+    name: "rez-b: /app/searches/<id> refuses an anonymous caller",
+    path: "/app/searches/00000000-0000-4000-8000-000000000000",
+    expect: { status: 307, locationPath: "/login" },
+  },
+  {
+    name: "rez-b: /app/match redirects to Discover with Ask on",
+    path: "/app/match",
+    auth: true,
+    expect: { status: 307, locationPath: "/app/discover", locationSearch: "?ask=1" },
+  },
+  {
+    // The redirect was a bare string, so a link into Smart Match carrying a
+    // query opened Discover on an empty Ask box and the buyer's words were
+    // gone. The path check alone could not see that.
+    name: "rez-b: /app/match carries the query it was given",
+    path: "/app/match?q=knit+polo",
+    auth: true,
+    expect: { status: 307, locationPath: "/app/discover", locationSearch: "?q=knit+polo&ask=1" },
+  },
+  {
+    name: "rez-b: export API serves CSV to a signed-in buyer",
+    path: "/api/v1/discover/export?q=knit",
+    auth: true,
+    // The anonymous refusal is covered below; this is the other half — that the
+    // route actually produces a CSV attachment rather than merely not 500ing.
+    expect: {
+      status: 200,
+      headerMatches: {
+        "content-type": /text\/csv/,
+        "content-disposition": /attachment; filename=/,
+      },
+    },
+  },
+  {
+    // The bulk bar's Export: only the selected row, named as a selection, with
+    // the same no-store contract as the full export. The mock returns two
+    // rows (…099 and …098); the file must hold exactly the one asked for.
+    name: "rez-b: export API with ?ids= serves only the selected rows",
+    path: "/api/v1/discover/export?q=knit&ids=00000000-0000-4000-8000-000000000098",
+    auth: true,
+    expect: {
+      status: 200,
+      bodyIncludesAll: ["Mother Company Ltd"],
+      bodyExcludes: ["Overview Timeout Ltd"],
+      headerMatches: {
+        "content-type": /text\/csv/,
+        "content-disposition": /-selected-1\.csv"/,
+        "cache-control": /no-store/,
+        "x-sourcebd-rows": /^1$/,
+      },
+    },
+  },
+  {
+    name: "rez-b: export API with a malformed ?ids= is a 400, not a full export",
+    path: "/api/v1/discover/export?q=knit&ids=not-a-uuid",
+    auth: true,
+    expect: { status: 400, bodyExcludes: ["Mother Company Ltd"] },
+  },
+  {
+    name: "rez-b: export API refuses an anonymous caller",
+    path: "/api/v1/discover/export",
+    expect: { statusIn: [307, 401] },
+  },
+  {
+    // The handler's own role check, at the wire: the middleware passes any
+    // signed-in session through to /api/v1/*, so a supplier reaches the
+    // handler and must be turned away there — known, so 403 not 401 — with
+    // no rows in the body. Only the unit test asserted this before, one
+    // layer below the wire.
+    name: "rez-b: export API refuses a signed-in supplier with 403 and no rows",
+    path: "/api/v1/discover/export?q=knit",
+    auth: "supplier",
+    expect: { status: 403, bodyExcludes: ["Mother Company Ltd", "Overview Timeout Ltd"] },
+  },
+  {
+    name: "rez-b: export API with ?ids= refuses a signed-in supplier too",
+    path: "/api/v1/discover/export?q=knit&ids=00000000-0000-4000-8000-000000000098",
+    auth: "supplier",
+    expect: { status: 403, bodyExcludes: ["Mother Company Ltd"] },
+  },
+  {
+    name: "rez-b: saved-searches API refuses an anonymous caller",
+    path: "/api/v1/saved-searches",
+    expect: { statusIn: [307, 401] },
+  },
 ];
 
 async function main() {
@@ -1737,7 +2048,8 @@ async function main() {
     }
 
     for (const c of CASES) {
-      const opts = { auth: c.auth === true, devMode: mode === "dev" };
+      // `auth: true` is the buyer session; `auth: "supplier"` the supplier one.
+      const opts = { auth: c.auth === "supplier" ? "supplier" : c.auth === true, devMode: mode === "dev" };
       const rpcBeforeHit1 = {};
       if (
         typeof c.expect.hit1MustRpcMax === "number" ||
@@ -1811,8 +2123,26 @@ async function main() {
       const caseProblems = [...hit1RpcProblems];
       hits.forEach((got, i) => {
         const label = i === 0 ? "hit 1" : "hit 2 (replay)";
-        if (got.status !== c.expect.status) {
+        if (Array.isArray(c.expect.statusIn)) {
+          // For a case where more than one status is a correct refusal — an
+          // API route may be turned away by the middleware gate (307) or by
+          // the handler's own role check (401), and both are the guarantee
+          // we care about: an anonymous caller does not get data.
+          if (!c.expect.statusIn.includes(got.status)) {
+            caseProblems.push(
+              `${label}: status ${got.status} not in ${JSON.stringify(c.expect.statusIn)}`,
+            );
+          }
+        } else if (got.status !== c.expect.status) {
           caseProblems.push(`${label}: status ${got.status} != ${c.expect.status}`);
+        }
+        if (c.expect.headerMatches) {
+          for (const [name, re] of Object.entries(c.expect.headerMatches)) {
+            const v = got.headers?.[name] ?? got.headers?.[name.toLowerCase()] ?? "";
+            if (!re.test(String(v))) {
+              caseProblems.push(`${label}: header ${name} "${v}" does not match ${re}`);
+            }
+          }
         }
         if (c.expect.locationMustBeAbsolute) {
           const first = firstLocation(got.location);
@@ -1875,6 +2205,14 @@ async function main() {
               `${label}: location ${got.location ?? "<none>"} is not on-site path ${c.expect.locationPath}`,
             );
           }
+          // The path alone does not pin a redirect whose meaning lives in its
+          // query: /app/match must land on Discover with Ask ON, and a refactor
+          // that dropped the search string passed the path check untouched.
+          if (parsed && c.expect.locationSearch !== undefined && parsed.search !== c.expect.locationSearch) {
+            caseProblems.push(
+              `${label}: location query "${parsed.search}" != "${c.expect.locationSearch}"`,
+            );
+          }
         }
         if (c.expect.mustNotSetCookie && got.setCookie) {
           caseProblems.push(`${label}: Set-Cookie ${got.setCookie}`);
@@ -1891,6 +2229,16 @@ async function main() {
                 `${label}: body missing "${needle}" (${got.bytes} bytes)`,
               );
             }
+          }
+        }
+        // At least one of these — for a page whose healthy states differ (a
+        // list with rows vs. the same list empty) but whose failure state
+        // renders neither.
+        if (Array.isArray(c.expect.bodyIncludesAny)) {
+          if (!c.expect.bodyIncludesAny.some((needle) => got.body.includes(needle))) {
+            caseProblems.push(
+              `${label}: body has none of ${JSON.stringify(c.expect.bodyIncludesAny)} (${got.bytes} bytes)`,
+            );
           }
         }
         if (c.expect.alsoRecordedPair || c.expect.alsoRecordedPairs) {
@@ -2057,6 +2405,54 @@ async function main() {
       console.log(`FAIL  ${name}  — ${problems.join("; ")}`);
       return 0;
     };
+
+    {
+      // REZ-B bulk Save through the real route and middleware: one database
+      // write per request, a supplier gone since render skipped rather than
+      // failing the rest, and every refusal a status rather than a write.
+      const problems = [];
+      const post = (body, auth) =>
+        fetch(`${APP_URL}/api/v1/saved`, {
+          method: "POST",
+          redirect: "manual",
+          headers: {
+            "content-type": "application/json",
+            ...(auth ? { cookie: buildAuthCookieHeader() } : {}),
+          },
+          body,
+          signal: AbortSignal.timeout(120_000),
+        });
+      const A = "00000000-0000-4000-8000-000000000098";
+      const B = "00000000-0000-4000-8000-000000000099";
+      savedSupplierWrites.length = 0;
+      const ok = await post(JSON.stringify({ supplier_ids: [A, B, BULK_SAVE_GONE] }), true);
+      const okBody = await ok.json().catch(() => ({}));
+      if (ok.status !== 200) problems.push(`bulk save status ${ok.status} != 200`);
+      if (okBody.count !== 2 || okBody.skipped !== 1) problems.push(`bulk save body ${JSON.stringify(okBody)}`);
+      if (savedSupplierWrites.length !== 1) problems.push(`${savedSupplierWrites.length} saved_suppliers writes for one request`);
+      else if (savedSupplierWrites[0].length !== 2) problems.push(`the one write carried ${savedSupplierWrites[0].length} rows, expected 2`);
+      savedSupplierWrites.length = 0;
+      const many = Array.from({ length: 101 }, (_, i) => `aaaaaaaa-1111-4111-8111-${String(i).padStart(12, "0")}`);
+      const tooMany = await post(JSON.stringify({ supplier_ids: many }), true);
+      if (tooMany.status !== 400) problems.push(`101 ids status ${tooMany.status} != 400`);
+      const bad = await post("{not json", true);
+      if (bad.status !== 400) problems.push(`malformed JSON status ${bad.status} != 400`);
+      const anon = await post(JSON.stringify({ supplier_ids: [A] }), false);
+      if (![401, 307].includes(anon.status)) problems.push(`anonymous status ${anon.status}`);
+      if (savedSupplierWrites.length !== 0) problems.push(`${savedSupplierWrites.length} writes from refused requests`);
+      // Nothing left to save is a 404 with a reason, not a 200 a Save button
+      // reads as "Saved"; a removal racing the write is a 409 "save again".
+      const allGone = await post(JSON.stringify({ supplier_ids: [BULK_SAVE_GONE] }), true);
+      const allGoneBody = await allGone.json().catch(() => ({}));
+      if (allGone.status !== 404) problems.push(`all-gone status ${allGone.status} != 404`);
+      if (!/no longer listed/.test(String(allGoneBody.error))) problems.push(`all-gone body ${JSON.stringify(allGoneBody)}`);
+      const race = await post(JSON.stringify({ supplier_ids: [A, BULK_SAVE_RACE] }), true);
+      const raceBody = await race.json().catch(() => ({}));
+      if (race.status !== 409) problems.push(`FK race status ${race.status} != 409`);
+      if (!/Save again/.test(String(raceBody.error))) problems.push(`FK race body ${JSON.stringify(raceBody)}`);
+      if (savedSupplierWrites.length !== 0) problems.push(`${savedSupplierWrites.length} writes recorded for a 404/409`);
+      extraPassed += extra("rez-b: POST /api/v1/saved bulk — one write, gone supplier skipped, 404 when none left, 409 on a race, refusals write nothing", problems);
+    }
 
     {
       const problems = [];

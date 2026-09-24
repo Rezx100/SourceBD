@@ -7,6 +7,7 @@
 // (`buyer_dashboard` migration 0026, `admin_dashboard` migration 0037,
 // `settings_get`) so the client component stays pure render.
 
+import { headers } from "next/headers";
 import { Sidebar, type SidebarBadges } from "@/components/shell/sidebar";
 import { SidebarRail } from "@/components/shell/sidebar-rail";
 import { BottomTabBar } from "@/components/shell/bottom-tab-bar";
@@ -139,6 +140,17 @@ export default async function AppShellLayout({
     }
   } catch {
     // Fail-soft: render the shell with whatever we managed to collect.
+  }
+
+  const pathname = (await headers()).get("x-sourcebd-pathname") ?? "";
+  const kitShell = /^\/app\/(discover|products|searches)(\/|$)/.test(pathname);
+  if (kitShell) {
+    // The kit draws its own shell, and its rail reflows into a horizontal nav
+    // strip below `md` rather than hiding — so it needs no `BottomTabBar`. An
+    // earlier pass added one here, which looked like a fix and was not: the
+    // bar carries the app's top five destinations and the kit's rail lists
+    // Products and Compliance hub, so those two were simply gone below 768px.
+    return <PostHogProvider userId={userId}>{children}</PostHogProvider>;
   }
 
   return (

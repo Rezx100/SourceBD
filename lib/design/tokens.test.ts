@@ -124,6 +124,86 @@ test("every file exempted from the hand-typed-colour rule is on the guarded list
 // §2: "Works without animation when the user's device asks for that." The
 // stylesheet the kit ships must honour prefers-reduced-motion; nothing asserted
 // it, so removing the block would have gone unnoticed.
+// Tailwind's preflight sets `::placeholder` to `theme(colors.gray.400)`, and
+// `tailwind.config.ts` REPLACES `theme.colors` rather than extending it, so
+// `colors.gray` does not exist and the emitted value is a hard-coded grey
+// at 2.54:1 on `surface`. Every field in the app inherited that except the two
+// that happened to set `placeholder:text-ink-subtle` themselves. `app/ds.css`
+// now sets it once in @layer base; this holds that rule to the same threshold
+// as any other text, by resolving the token it names rather than by matching
+// the text of the rule. Deleting the rule, or pointing it at `ink.disabled`,
+// turns this red.
+test("the placeholder colour is a token, and readable on every ground", () => {
+  const css = readFileSync(path.join(repoRoot, "app/ds.css"), "utf8");
+  // The selector matters as much as the colour. Preflight's
+  // `input::placeholder, textarea::placeholder` lives in the same `@layer
+  // base`, and is one element-selector more specific than a bare
+  // `::placeholder`, so it wins however late ours comes — the first attempt
+  // at this fix compiled to a stylesheet that still served preflight's grey.
+  // Exactly ONE placeholder colour rule, and it is the token one.
+  //
+  // Two earlier versions of this guard were beaten. `exec` read only the
+  // first block, so appending an equal-specificity rule later won the
+  // cascade with the test green. Taking the LAST rule that sets a colour
+  // fixed that and lost twice more: `input[type="text"]::placeholder` is
+  // more specific and the selector regex could not even see it, and an
+  // `!important` rule placed EARLIER wins the cascade while the test still
+  // reads the last one.
+  //
+  // Counting them removes the whole class. There is no cascade to reason
+  // about when there is only one rule, so a second one — wherever it sits,
+  // however it is spelled, important or not — fails here and has to be
+  // argued for rather than slipped in.
+  // Comments stripped first. The prose above the rule in app/ds.css explains
+  // the cascade and therefore contains the literal selector, and `[^{}]*`
+  // swept it into the captured selector — so weakening the real selector to a
+  // bare `::placeholder` still "matched", because the comment did.
+  const cssCode = css.replace(new RegExp(String.raw`/\*[\s\S]*?\*/`, "g"), "");
+  const placeholderRules = [
+    ...cssCode.matchAll(/([^{}]*::placeholder[^{}]*)\{([^}]*)\}/g),
+  ].filter((r) => /(^|[;\s])color\s*:/.test(r[2] ?? ""));
+  assert.equal(
+    placeholderRules.length,
+    1,
+    `app/ds.css sets a placeholder colour in ${placeholderRules.length} rules; exactly one may, or the cascade decides: ${placeholderRules
+      .map((r) => (r[1] ?? "").trim())
+      .join(" | ")}`,
+  );
+  const winning = placeholderRules[0]!;
+  assert.match(
+    winning[1] ?? "",
+    /input::placeholder\s*,\s*textarea::placeholder/,
+    `the rule must match Tailwind preflight's own selector or preflight out-specifies it: ${(winning[1] ?? "").trim()}`,
+  );
+  assert.doesNotMatch(
+    winning[2] ?? "",
+    /!important/,
+    "the placeholder colour should win on order and specificity, not on !important",
+  );
+  const rule: [unknown, string] = [null, winning[2] ?? ""];
+  const varName = /color:\s*rgb\(\s*var\(\s*(--ds-[a-z0-9-]+)\s*\)/i.exec(rule[1]);
+  assert.ok(varName, `the placeholder rule does not set a --ds- token: ${rule[1].trim()}`);
+  const token = Object.entries(light).flatMap(([group, keys]) =>
+    Object.keys(keys as Record<string, string>).map((key) => ({
+      ref: key === "DEFAULT" ? group : `${group}.${key}`,
+      cssVar: cssVarName(group, key),
+    })),
+  ).find((t) => t.cssVar === varName[1]);
+  assert.ok(token, `${varName[1]} is not a token in lib/design/tokens.ts`);
+  for (const bg of ["surface", "canvas", "surface.sunken"]) {
+    const ratio = contrastRatio(resolve(light, token.ref), resolve(light, bg));
+    assert.ok(
+      ratio >= 4.5,
+      `placeholder ${token.ref} on ${bg} is ${ratio.toFixed(2)}:1, needs 4.5:1`,
+    );
+  }
+  assert.match(
+    rule[1] ?? "",
+    /opacity:\s*1/,
+    "Firefox dims placeholders by default; the rule must reset opacity or the ratio above is not what ships",
+  );
+});
+
 test("the kit's stylesheet honours prefers-reduced-motion", () => {
   const css = readFileSync(path.join(repoRoot, "app/ds.css"), "utf8");
   assert.match(css, /@media\s*\(prefers-reduced-motion:\s*reduce\)/, "app/ds.css has no reduced-motion block");
@@ -402,4 +482,43 @@ test("no role outside the signal group paints the reserved sanction red", () => 
       assert.ok(!sanction.has(hex), `the "${key}" shadow paints the reserved sanction red`);
     }
   }
+});
+
+// The focus ring's geometry is a number in a stylesheet that no test read, and
+// every guard that depends on it hard-codes the answer. A reviewer changed
+// `outline-offset-2` to `outline-offset-4` in `app/ds.css` and the whole suite
+// — including the nav-strip guard whose `-my-1 py-1` (4px) exists to fit
+// exactly this ring — stayed green.
+//
+// So pin the relationship rather than the number: whatever the global rule
+// asks for, offset + width must fit in the room the phone nav strip gives it.
+
+const css = readFileSync(path.join(repoRoot, "app/ds.css"), "utf8")
+    // Strip comments first. A `/* … outline-offset-2 … */` note above the rule
+    // would otherwise hold this green after the rule itself changed — the trap
+    // that has silently held two guards in this change already.
+  .replace(/\/\*[\s\S]*?\*\//g, "");
+
+const rule = css.slice(css.indexOf(":focus-visible"), css.indexOf("}", css.indexOf(":focus-visible")));
+
+test("the global :focus-visible rule still asks for a visible outline", () => {
+    assert.ok(rule.length > 0, "app/ds.css no longer defines a :focus-visible rule");
+    assert.match(rule, /outline-offset-\d/, `no outline-offset in the global rule: ${rule}`);
+    assert.match(rule, /outline-2\b/, `the ring is no longer 2px: ${rule}`);
+  });
+
+test("the focus ring's offset plus width is within the 4px the nav strip reserves", () => {
+    // `components/dashboard/app-shell.tsx` gives the scrolling nav strip
+    // `-my-1 py-1` and `-mx-1 px-1` — 4px on each side, measured in a browser
+    // as exactly enough for a 2px ring at 2px offset. If the stylesheet asks
+    // for more, that measurement is stale and the ring is clipped again.
+    const offset = Number((rule.match(/outline-offset-(\d+)/) ?? [])[1]);
+    const width = Number((rule.match(/outline-(\d+)\b(?!-)/) ?? [])[1]);
+    assert.ok(Number.isFinite(offset) && Number.isFinite(width), `could not read the ring geometry from: ${rule}`);
+    // Tailwind's scale: `outline-offset-2` is 2px, `outline-2` is 2px.
+    assert.ok(
+      offset + width <= 4,
+      `the focus ring needs ${offset + width}px but the nav strip reserves 4px (app-shell.tsx, \`-my-1 py-1\`); ` +
+        "either narrow the ring or widen the strip's padding and re-measure in a browser",
+    );
 });

@@ -37,14 +37,17 @@ migrations, run the 30-day zero P1/P2 Sentry incident window.
   `/dev/ds`; no live route wired yet. Full history:
   `context/feature-specs/handoff-rez-a-cycle21.md`.
 - **Buyer dashboard v3.2, REZ-B (results page)** — branch
-  `rez-b-results-page` from `development` (21 Sep). IN PROGRESS. Scope
-  per `handoff-dashboard-v3.2-implementation.md` §7: migration `0104`
-  (extends `discover_suppliers`, adds `supplier_epb_hscodes_batch` and
-  `hs_catalogue`); replaces `/app/discover` (cards + table) with the
-  REZ-A kit; new `/app/products` and `/app/searches`; `/app/match`
-  redirects to `/app/discover?ask=1`. `/app/saved` and `/app/compare`
-  are NOT in this PR (not named in §7's REZ-B line) — deferred, not
-  invented. Not yet implemented; no migration drafted yet.
+  `rez-b-results-page` (pushed; PR #164 draft; merge base `7ea98b4`; tip
+  is `git log -1`, never a SHA written here). Spec §3.1 selection built
+  (23 Sep). Cycle 21 repaired at `4f6eff2` (24 Sep, gate green, no judge
+  yet). TO SHIP, START HERE: `feature-specs/handoff-rez-b-deploy.md`.
+  Loop history: `feature-specs/handoff-rez-b-cycle15.md` (24 Sep:
+  state, decisions (all taken), loop, gates, 0104 dry-run, what follows REZ-B).
+  History of cycles 10–14: §10–§11 of `handoff-rez-b-cycle10.md`.
+  IN PROGRESS. Migration `0104` drafted (not applied; hard dependency of
+  this branch — apply before or with its deploy). `/app/discover`
+  uses the kit; `/app/products`, `/app/searches`, `/app/match` redirect
+  added. `/app/saved` and `/app/compare` stay deferred.
 
 ## Founder rules still in force (one line each; detail in archive)
 - EPB is a government register: show its evidence and HS codes whenever EPB has them, flagged or not. Never mint EPB-only suppliers. (15 Aug)
@@ -54,6 +57,10 @@ migrations, run the 30-day zero P1/P2 Sentry incident window.
 - Numeric profile fields cannot be corrected downwards today (`greatest()` merge) — known defect, queued. (31 Jul)
 - LLM adjudicator approved for the resolution review band only; Firecrawl `/v2/extract` not approved; resolution runs as a batch stage. (4 Aug)
 - Dry-runs and snapshots never need approval; `--apply` always does. (AGENTS rule 15)
+- Signed-out visitors see every supplier field except the company's contact details; contact info is sign-in gated. (23 Sep, REZ-B)
+- Products counts leave out sanctioned suppliers, so each equals the Discover search it links to. (24 Sep, REZ-B)
+- Discover's worker figure is the one the Workers sort uses (the supplier's own); the profile's figure, when different, is a second line whose words come only from the sites it sums. (24 Sep, REZ-B)
+- No Help button until a help page exists. (24 Sep, REZ-B)
 
 ## Production migration ledger (authoritative)
 Migration file headers are NOT live status. Check here or query the database.

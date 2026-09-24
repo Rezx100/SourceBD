@@ -62,6 +62,7 @@ export function PhotoStrip({
   registerChecked,
   readDate,
   unknown = false,
+  onRegister,
 }: {
   tiles: readonly PhotoTileModel[];
   totalLines: number;
@@ -71,12 +72,19 @@ export function PhotoStrip({
   readDate?: string | null;
   /** The lines could not be read: say so, never "no lines". */
   unknown?: boolean;
+  /** The supplier IS on that register; empty lines mean unrecorded, not absent. */
+  onRegister?: boolean;
 }) {
   if (tiles.length === 0) {
     return (
       <div className="relative min-w-0 flex-1">
         <div className="flex gap-2 overflow-hidden">
-          <NoLinesSlot registerChecked={registerChecked ?? "EPB"} readDate={readDate ?? null} unknown={unknown} />
+          <NoLinesSlot
+            registerChecked={registerChecked ?? "EPB"}
+            readDate={readDate ?? null}
+            unknown={unknown}
+            onRegister={onRegister}
+          />
         </div>
       </div>
     );
@@ -84,21 +92,34 @@ export function PhotoStrip({
   const more = Math.max(0, totalLines - tiles.length);
   return (
     <div className="relative min-w-0 flex-1">
-      <div className="flex gap-2 overflow-hidden">
+      {/* `overflow-hidden` with no scroll hid five of six tiles at 320px
+          (clientWidth 218 against scrollWidth 832) and four of six at 375,
+          with nothing able to reach them: the tiles are not focusable, the
+          container did not scroll, and the only affordance was a button with
+          no handler. Content visible at 1280 was simply gone at 320, which is
+          the thing WCAG 1.4.10 forbids. A scroll region with a name and a tab
+          stop is what the results table already uses for the same problem. */}
+      <div
+        role="region"
+        aria-label={`Product lines, ${totalLines} on the EPB register`}
+        tabIndex={0}
+        className="flex snap-x gap-2 overflow-x-auto pb-1"
+      >
         {tiles.map((t) => (
           <PhotoTile key={t.hs} tile={t} />
         ))}
       </div>
+      {/* This used to be a `<button type="button">` named "All N lines" with no
+          handler, no href and no form — a control with a name, a promise and
+          no behaviour, rendered on every result card whose supplier has more
+          HS lines than tiles (4.1.2). The screen it would open is spec §3.4,
+          which is not built. So it states the count instead of offering to do
+          something about it, and the strip beside it now scrolls to every
+          tile, which is what the button was standing in for. */}
       {more > 0 ? (
-        <button
-          type="button"
-          aria-label={`All ${totalLines} lines`}
-          // A real button, so its outline is a control outline (accessibility,
-          // cycle 19, BLOCKING F4 — same reasoning as sheet.tsx's report links).
-          className="absolute -right-1 top-[50px] inline-flex h-8 items-center gap-0.5 rounded-full border border-line-strong bg-surface pl-2.5 pr-2 text-sm font-medium text-ink shadow-sm"
-        >
-          +{more} <Icon name="chev-r" />
-        </button>
+        <Caption className="absolute -right-1 top-[50px] inline-flex h-8 items-center rounded-full border border-line-strong bg-surface px-2.5 shadow-sm">
+          +{more} lines
+        </Caption>
       ) : null}
       <div className="flex justify-end pt-1">
         <Caption>{PHOTO_NOTE}</Caption>
@@ -112,7 +133,24 @@ export function PhotoStrip({
  * the register holds a record without lines, "no EPB record" when it holds
  * none, "could not be read" when the RPC failed.
  */
-export function NoLinesSlot({ registerChecked, readDate, unknown = false }: { registerChecked: string; readDate: string | null; unknown?: boolean }) {
+export function NoLinesSlot({
+  registerChecked,
+  readDate,
+  unknown = false,
+  onRegister,
+}: {
+  registerChecked: string;
+  readDate: string | null;
+  unknown?: boolean;
+  /**
+   * Whether the supplier is on the register named by `registerChecked`. When
+   * it is, an empty line list means we have not recorded its lines — not that
+   * there is no record of the company. Saying "no EPB record" for a supplier
+   * the same card shows an EPB mark for is a claim about the register that
+   * the register does not support.
+   */
+  onRegister?: boolean;
+}) {
   return (
     <div className="w-[132px] shrink-0">
       <div className="flex size-[132px] flex-col items-center justify-center gap-1 rounded-sm border border-dashed border-quiet-line bg-surface p-3 text-center text-quiet-ink">
@@ -122,7 +160,13 @@ export function NoLinesSlot({ registerChecked, readDate, unknown = false }: { re
       <div className="px-0.5 pt-[5px]">
         <Code className="block text-xs text-ink-muted">{registerChecked}</Code>
         <span className="block whitespace-nowrap text-xs text-ink-subtle">
-          {unknown ? "try again later" : readDate ? `read ${readDate}` : `no ${registerChecked} record`}
+          {unknown
+            ? "try again later"
+            : readDate
+              ? `read ${readDate}`
+              : onRegister
+                ? "no lines recorded"
+                : `no ${registerChecked} record`}
         </span>
       </div>
     </div>

@@ -31,15 +31,34 @@ import {
   zaheenSampleInput,
 } from "@/lib/dashboard/fixtures";
 import type { RfqListModel } from "@/lib/dashboard/models";
-import { Checkbox, Meter, Seg } from "./controls";
+import { Button, Checkbox, Meter, Seg } from "./controls";
 import { Icon } from "./icons";
-import { PanelFooter, PanelHeader } from "./results-panel";
+import { Panel, PanelFooter, PanelHeader } from "./results-panel";
 import { ProductSheet } from "./product-sheet";
 import { ResultsTable } from "./results-table";
 import { RfqComposer, type RfqComposerModel } from "./rfq-composer";
 import { AppShell } from "./app-shell";
+import { Topbar } from "./app-shell";
+import {
+  SEARCH_FIELD_SELECTOR,
+  focusSearchField,
+  installSearchShortcut,
+  isSearchShortcut,
+  searchShortcutHandler,
+  targetIsEditable,
+  targetIsSearchField,
+} from "./search-shortcut";
+import { navMatch } from "./app-shell";
+import { Chip } from "./chips";
+import { PhotoStrip } from "./photo-tiles";
 import { RFQ_EMPTY_COPY, RFQ_ERROR_COPY, RfqList } from "./rfq-list";
 import { SearchComposer } from "./search-composer";
+import { SelectionBar } from "./selection-bar";
+import { saveSearchError } from "./save-search-form";
+import { SELECT_ALL_ID, SelectionContext, SelectionProvider, type SelectionContextValue } from "./selection";
+import { readdirSync, readFileSync } from "node:fs";
+import path from "node:path";
+import { AppRouterContext } from "next/dist/shared/lib/app-router-context.shared-runtime";
 import { SupplierResultCard } from "./supplier-result-card";
 import { SupplierSheet } from "./supplier-sheet";
 
@@ -572,6 +591,61 @@ describe("PanelFooter (rendered)", () => {
     assert.match(html, /aria-label="Next page"/);
     assert.doesNotMatch(html, /aria-label="Next page"[^>]*disabled=""/);
   });
+
+  it("the HEADER's row range follows the page too", () => {
+    // The footer was fixed and tested; the header was fixed and not, so
+    // hardcoding its range back to 1 left the whole suite green while
+    // "300 suppliers · 1–25" sat above rows 51–75.
+    const html = renderToStaticMarkup(
+      createElement(PanelHeader, {
+        model: {
+          title: "Knit",
+          total: 300,
+          shown: 25,
+          firstRow: 51,
+          sortLabel: "Name",
+          view: "cards" as const,
+        },
+      }),
+    );
+    assert.match(html, /51–75/, "the header still claims the first page's range");
+    assert.doesNotMatch(html, /· 1–25/);
+  });
+
+  it("the row range follows the page instead of always claiming the first", () => {
+    // `1–${shown}` was printed unconditionally, so page 3 of a 300-row set read
+    // "1–25 of 300" with rows 51–75 on screen. Wrong on every page but the first.
+    const html = renderToStaticMarkup(
+      createElement(PanelFooter, { shown: 25, total: 300, perPage: 25, page: 3 }),
+    );
+    assert.match(html, /51–75 of 300/, "the footer still claims the first page's range");
+    assert.doesNotMatch(html, /1–25 of 300/);
+  });
+
+  it("a short last page keeps its pager so Previous is reachable", () => {
+    // Gating the whole pager on `shown >= perPage` stranded a buyer on the last
+    // page: ten rows of a 30-row set rendered no Previous and no page count.
+    const html = renderToStaticMarkup(
+      createElement(PanelFooter, { shown: 5, total: 30, perPage: 25, page: 2, prevHref: "/app/discover" }),
+    );
+    assert.match(html, /Page 2 of 2/, "the last page lost its pager entirely");
+    assert.match(html, /aria-label="Previous page"/);
+  });
+});
+
+describe("the results panel does not clip its own menus", () => {
+  // Panel was `overflow-hidden`, which painted the header's sort menu outside
+  // the panel on a short result set — invisible, still tabbable, still
+  // activating on Enter. The clipping only existed to keep the first and last
+  // children inside the rounded corners.
+  it("Panel clips corners without clipping overflow", () => {
+    const html = renderToStaticMarkup(
+      createElement(Panel, null, createElement("div", null, "rows")),
+    );
+    assert.doesNotMatch(html, /overflow-hidden/, "a popover in this panel would be clipped away");
+    assert.match(html, /rounded-t-md/);
+    assert.match(html, /rounded-b-md/);
+  });
 });
 
 /** A draft with one clean target, in the shape the composer really takes. */
@@ -812,7 +886,7 @@ describe("the largest lists the database holds (spec §3, §6)", () => {
     assert.equal(card.photos.length, 6);
     const html = renderToStaticMarkup(createElement(SupplierResultCard, { card }));
     assert.match(html, /54 HS lines/);
-    assert.match(html, /\+48\s*</, "six tiles shown, forty-eight counted");
+    assert.match(html, /\+48 lines</, "six tiles shown, forty-eight counted");
     assert.doesNotMatch(html, TRUNCATION);
 
     const sheet = buildSheet(input);
@@ -855,6 +929,46 @@ describe("PanelHeader (rendered)", () => {
 
   it("an empty page says so rather than claiming a range", () => {
     assert.match(renderToStaticMarkup(createElement(PanelHeader, { model: { ...model, shown: 0 } })), /none on this page/);
+  });
+
+  it("every row of controls can wrap, so the header does not push the page sideways", () => {
+    // Measured at 320px, this header forced `document.body.scrollWidth` to
+    // 458 against a 320 viewport: Export CSV sat 66px and the card/table
+    // toggle 137px outside it, focusable but off screen (WCAG 1.4.10). The
+    // OUTER wrapper already had `flex-wrap` and a comment claiming that fixed
+    // it; the overflow was the inner group — one non-wrapping row of four
+    // `whitespace-nowrap` h-controls, 425px inside a 286px header.
+    //
+    // `node --test` has no layout engine, so what is pinned here is the
+    // property that makes wrapping possible at all: no flex row in this header
+    // may hold `whitespace-nowrap` children without being able to wrap. The
+    // real measurement is the browser pass; this is what stops it regressing
+    // unnoticed between passes.
+    const html = renderToStaticMarkup(
+      createElement(PanelHeader, {
+        model: {
+          ...model,
+          sortOptions: [{ label: "Most sources", value: "receipts", href: "?sort=receipts" }],
+          exportHref: "/api/v1/discover/export",
+          saveHref: "/app/searches/new",
+        },
+      }),
+    );
+    const rows = [...html.matchAll(/<div class="([^"]*\bflex\b[^"]*)"/g)].map((m) => m[1]!);
+    assert.ok(rows.length >= 2, `expected the header to have nested flex rows, found ${rows.length}`);
+    const nowrapControls = (html.match(/whitespace-nowrap/g) ?? []).length;
+    if (nowrapControls > 0) {
+      const wrapping = rows.filter((c) => c.split(/\s+/).includes("flex-wrap"));
+      assert.ok(
+        wrapping.length >= 2,
+        `the header has ${rows.length} flex rows and only ${wrapping.length} that wrap; the controls row is what overflowed at 320px`,
+      );
+    }
+    // The group holding the buttons is the one that was 425px wide.
+    const controlRow = rows.find((c) => c.includes("justify-end"));
+    assert.ok(controlRow, "the control group lost its own class list; this guard needs rewriting");
+    assert.ok(controlRow!.split(/\s+/).includes("flex-wrap"), `the control group cannot wrap: ${controlRow}`);
+    assert.ok(controlRow!.split(/\s+/).includes("min-w-0"), `the control group cannot shrink: ${controlRow}`);
   });
 });
 
@@ -1159,6 +1273,416 @@ describe("the two-state controls say which state they are in", () => {
     assert.match(off, /title="[^"]+"/, "an inert control says why it is inert");
   });
 
+  it("a checkbox given onToggle is real: no aria-disabled, no inert title, in the tab order", () => {
+    // REZ-B, handoff §7.5: the results-page checkbox goes from the inert
+    // placeholder above to an operable one wherever selection is wired up.
+    // The two must not collapse into one shape — a real checkbox that still
+    // carried `aria-disabled` would tell assistive tech it cannot be used.
+    const real = renderToStaticMarkup(createElement(Checkbox, { on: false, label: "Select Aboni", onToggle: () => {} }));
+    assert.match(real, /role="checkbox"[^>]*aria-checked="false"/);
+    assert.match(real, /tabindex="0"/);
+    assert.doesNotMatch(real, /aria-disabled/);
+    assert.doesNotMatch(real, /title="Selection arrives with the results work"/);
+  });
+
+  it("a real checkbox toggles on Space once, on key up — not on Enter, not on keydown auto-repeat", () => {
+    // A native checkbox ignores Enter and toggles on Space's keyup; toggling
+    // on keydown flipped the box on every auto-repeat of a held Space.
+    let n = 0;
+    const el = Checkbox({ label: "Select Aboni", onToggle: () => (n += 1) }) as { props: Record<"onKeyDown" | "onKeyUp" | "onClick", (e: unknown) => void> };
+    let prevented = 0;
+    const ev = (key: string) => ({ key, repeat: false, preventDefault: () => (prevented += 1) });
+    el.props.onKeyDown(ev(" "));
+    assert.equal(prevented, 1, "Space keydown must stop the page scrolling");
+    el.props.onKeyDown({ ...ev(" "), repeat: true });
+    assert.equal(n, 0, "keydown must only stop the page scrolling");
+    el.props.onKeyUp(ev(" "));
+    assert.equal(n, 1);
+    el.props.onKeyDown(ev("Enter"));
+    el.props.onKeyUp(ev("Enter"));
+    assert.equal(n, 1, "Enter does not toggle a checkbox");
+    el.props.onClick({});
+    assert.equal(n, 2);
+  });
+
+  it("a partly selected select-all box reads mixed, not unchecked", () => {
+    const html = renderToStaticMarkup(createElement(Checkbox, { on: "mixed", label: "Select all on this page", onToggle: () => {} }));
+    assert.match(html, /aria-checked="mixed"/);
+    // And it LOOKS mixed in Windows High Contrast: forced colors repaint every
+    // background as Canvas, so a background-drawn dash vanished (white on
+    // white) and the box looked unticked while the tree said "mixed".
+    // Pinned exactly, not screened against a list of hiding classes: a list
+    // is always one class short (sr-only, w-0, invisible, [visibility:…]).
+    // Changing the dash means changing this line on purpose. That Tailwind
+    // emits the forced-colors rule was checked in built CSS by the cycle-17
+    // reviewer; it is not re-checked here.
+    const dash = html.match(/<span aria-hidden="true" class="([^"]*)"><\/span>/)?.[1] ?? "";
+    assert.equal(dash, "block h-0.5 w-2 rounded-full bg-current forced-colors:bg-[CanvasText]", "the mixed dash's classes changed");
+  });
+
+  /** A source file with its comments removed, so prose cannot satisfy a code check. */
+  const sourceCode = (rel: string) =>
+    readFileSync(path.join(process.cwd(), rel), "utf8")
+      .replace(/\/\*[\s\S]*?\*\//g, "")
+      .replace(/(^|[^:"'`])\/\/.*$/gm, "$1");
+
+  /** The body of `export function <name>(` in a source file (comments
+   * stripped), bounded by the function's OWN closing brace — so a dead
+   * helper anywhere else in the file, before or after it, cannot satisfy a
+   * check. (Slicing to the next `export` ran to end-of-file for the last
+   * export, and a trailing unused helper passed.) */
+  const functionBody = (rel: string, name: string) => {
+    const code = sourceCode(rel);
+    const at = code.indexOf(`export function ${name}(`);
+    assert.ok(at >= 0, `${name} not found in ${rel}`);
+    // Skip the parameter list (it has its own braces), then match the body.
+    let i = code.indexOf("(", at);
+    for (let depth = 0; i < code.length; i++) {
+      if (code[i] === "(") depth++;
+      else if (code[i] === ")" && --depth === 0) break;
+    }
+    const open = code.indexOf("{", code.indexOf(")", i));
+    let depth = 0;
+    for (let j = open; j < code.length; j++) {
+      if (code[j] === "{") depth++;
+      else if (code[j] === "}" && --depth === 0) return code.slice(at, j + 1);
+    }
+    assert.fail(`${name}: unbalanced braces`);
+  };
+  const count = (hay: string, needle: string) => hay.split(needle).length - 1;
+
+  describe("the bulk bar", () => {
+    const A = "11111111-1111-4111-8111-111111111111";
+    const B = "22222222-2222-4222-8222-222222222222";
+    const bar = (selected: string[]) => {
+      const value: SelectionContextValue = {
+        interactive: true,
+        selected: new Set(selected),
+        isSelected: (id) => selected.includes(id),
+        toggle: () => {},
+        toggleAllOnPage: () => {},
+        allState: false,
+        clear: () => {},
+        edits: 0,
+      };
+      const router = { back() {}, forward() {}, refresh() {}, push() {}, replace() {}, prefetch() {} };
+      return renderToStaticMarkup(
+        createElement(
+          AppRouterContext.Provider,
+          { value: router as never },
+          createElement(
+            SelectionContext.Provider,
+            { value },
+            createElement(SelectionBar, { exportHref: "/api/v1/discover/export?q=knit&page=3" }),
+          ),
+        ),
+      );
+    };
+
+    it("with an empty selection renders no bar — only the empty announcer, already mounted", () => {
+      // The announcer must exist BEFORE the first tick: a live region that
+      // mounts already holding "1 selected" is usually not read at all.
+      const html = bar([]);
+      assert.doesNotMatch(html, /Bulk actions"/);
+      assert.match(html, /^<span role="status" aria-live="polite" class="sr-only"><\/span>$/);
+    });
+
+    it("the announcer is the SAME node before and after the bar appears — first child of an unkeyed fragment", () => {
+      // Wrapped in any element (or keyed), it would remount on the first tick
+      // and the first count would go unannounced, which is the defect it fixes.
+      const code = sourceCode("components/dashboard/selection-bar.tsx");
+      assert.match(code, /if \(!visible\) return announcer;/);
+      assert.match(code, /return \(\s*<>\s*\{announcer\}\s*<div\s+ref=\{barRef\}/);
+    });
+
+    it("announces the count and where the actions are from that pre-existing region", () => {
+      assert.match(bar([A]), /<span role="status" aria-live="polite" class="sr-only">1 selected\. Bulk actions are after the results\.<\/span>/);
+    });
+
+    it("counts the selection and exports exactly it, on the page's own query", () => {
+      const html = bar([A, B]);
+      assert.match(html, /2 selected/);
+      assert.ok(html.includes(`href="/api/v1/discover/export?q=knit&amp;page=3&amp;ids=${A},${B}"`), html);
+    });
+
+    it("is a labelled group, not a toolbar it does not implement the arrow keys for", () => {
+      const html = bar([A]);
+      assert.match(html, /role="group"[^>]*aria-label="Bulk actions"/);
+      assert.doesNotMatch(html, /role="toolbar"/);
+    });
+
+    it("says in visible text why Send RFQ and Compare are disabled, and ties it to both", () => {
+      const html = bar([A]);
+      const note = html.match(/<p id="([^"]+)"[^>]*>([^<]+)<\/p>/);
+      assert.ok(note, "no visible note");
+      assert.match(note[2] ?? "", /not built yet/);
+      const described = [...html.matchAll(new RegExp(`<button[^>]*aria-describedby="${note[1]}"[^>]*>`, "g"))];
+      assert.equal(described.length, 2, "Send RFQ and Compare both point at the note");
+      for (const b of described) assert.match(b[0], /disabled=""/);
+      // One explanation for everyone: with aria-describedby present a screen
+      // reader never hears a `title`, so a title told mouse users something
+      // else (a 50-supplier cap on a bulk send that is not built yet).
+      for (const b of described) assert.doesNotMatch(b[0], /\btitle=/, `a second, different explanation: ${b[0]}`);
+    });
+
+    it("Clear sends focus to the select-all box, which carries the id it looks for", () => {
+      // Clear unmounts the bar and the focused button with it; focus fell to
+      // <body>. The render half: the box under a provider has the id.
+      const header = renderToStaticMarkup(
+        createElement(
+          SelectionProvider,
+          { pageIds: [A] },
+          createElement(PanelHeader, { model: { title: "Knit", total: 1, shown: 1, firstRow: 1, sortLabel: "Name", view: "cards" as const } }),
+        ),
+      );
+      assert.match(header, new RegExp(`id="${SELECT_ALL_ID}"[^>]*role="checkbox"[^>]*tabindex="0"`));
+      // The behaviour (focus first, then clear) is clearKeepingFocus, tested in
+      // lib/dashboard/selection.test.ts. Here: the Clear button's own tag, in
+      // full, wires it — the old `onClick={sel.clear}` passed a body-only check.
+      const code = sourceCode("components/dashboard/selection-bar.tsx");
+      const at = code.search(/>\s*Clear\s*<\/Button>/);
+      const tag = code.slice(code.lastIndexOf("<Button", at), at);
+      assert.match(tag, /onClick=\{\(\) => clearKeepingFocus\(document\.getElementById\(SELECT_ALL_ID\), sel\.clear\)\}/, tag);
+    });
+
+    it("wires reserveBarSpace to run while the bar shows, and hand the space back when it goes (WCAG 2.4.11)", () => {
+      // reserveBarSpace itself is tested behaviourally in selection.test.ts;
+      // this pins the effect that runs it: on `visible`, off otherwise.
+      const code = sourceCode("components/dashboard/selection-bar.tsx");
+      assert.match(
+        code,
+        /useEffect\(\(\) => \{\s*const bar = barRef\.current;\s*if \(!visible \|\| !bar\) return;[\s\S]*?window\.addEventListener\("resize", fit\);\s*return \(\) => window\.removeEventListener\("resize", fit\);[\s\S]*?return reserveBarSpace\(document\.documentElement, bar, document\.activeElement as HTMLElement \| null, observe, sticky, onViewportResize\);\s*\}, \[visible, hasActions\]\);/,
+      );
+    });
+
+    it("a late save result is scoped to the earlier selection; the reset is keyed on the buyer's edits", () => {
+      const code = sourceCode("components/dashboard/selection-bar.tsx");
+      assert.match(code, /const asked = generation\.current;[\s\S]*?setStatus\(generation\.current === asked \? message : `\$\{EARLIER\}\$\{message\}`\);/);
+      // Keyed on the buyer's edits, never on the Set: a refresh that prunes
+      // the Set after a partial save must not erase the message about it.
+      assert.match(code, /useEffect\(\(\) => \{\s*generation\.current \+= 1;\s*if \(!saving\.current\) setStatus\(""\);\s*\}, \[sel\.edits\]\);/);
+      assert.doesNotMatch(code, /\}, \[sel\.selected\]\);/);
+      assert.match(
+        sourceCode("components/dashboard/selection.tsx"),
+        /selectionValue\(selected, pageIds, setSelected, edits, \(\) => setEdits\(\(n\) => n \+ 1\)\)/,
+      );
+    });
+
+    it("both Export buttons download in place — a refusal is a sentence on the page, not a JSON document instead of it", () => {
+      // The handler itself is invoked in interaction.test.ts; here only that
+      // the link keeps its href for a middle-click or no script.
+      const link = sourceCode("components/dashboard/export-link.tsx");
+      assert.match(link, /<Button href=\{href\} onClick=\{run\}/);
+      assert.match(sourceCode("components/dashboard/selection-bar.tsx"), /<ExportLink href=\{bulkExportHref\(exportHref, ids\)\} label="Export" requested=\{count\} resetOn=\{sel\.edits\} onStatus=\{setExportStatus\} \/>/);
+      assert.match(sourceCode("components/dashboard/results-panel.tsx"), /<ExportLink href=\{model\.exportHref\}/);
+      // And the link still carries its href, for a middle-click or no script.
+      const html = renderToStaticMarkup(
+        createElement(PanelHeader, { model: { title: "K", total: 1, shown: 1, firstRow: 1, sortLabel: "Name", view: "cards" as const, exportHref: "/api/v1/discover/export?q=k" } }),
+      );
+      assert.match(html, /<a href="\/api\/v1\/discover\/export\?q=k"/);
+    });
+
+    it("inside SelectionBar itself: one Save wired straight to bulkSave, one Clear, the whole selection sent, one status write", () => {
+      const body = functionBody("components/dashboard/selection-bar.tsx", "SelectionBar");
+      assert.equal(count(body, "onClick={bulkSave}"), 1, "Save must call bulkSave unconditionally");
+      assert.equal(count(body, "onClick={() => clearKeepingFocus(document.getElementById(SELECT_ALL_ID), sel.clear)}"), 1);
+      assert.equal(count(body, "onClick="), 2, "an extra or conditional handler slipped in");
+      assert.equal(count(body, "setStatus(generation.current === asked ? message"), 1, "a second outcome write defeats the scoping");
+      assert.match(body, /const observe = typeof ResizeObserver === "undefined" \? null : \(fit: \(\) => void\) => new ResizeObserver\(fit\);/);
+      assert.match(body, /await runBulkSave\(ids, \{/);
+      assert.doesNotMatch(body, /\bids\s*\.\s*(splice|pop|shift|length\s*=)|\bids\s*=(?!=)(?!\s*\[\.\.\.sel\.selected\];)/, "the selection sent must be the whole selection");
+      assert.match(body, /<ExportLink href=\{bulkExportHref\(exportHref, ids\)\} label="Export" requested=\{count\} resetOn=\{sel\.edits\} onStatus=\{setExportStatus\} \/>/);
+      // One export at a time: the run that set busy always frees it
+      // (interaction.test.ts runs the real handler and effects).
+      assert.match(functionBody("components/dashboard/export-link.tsx", "ExportLink"), /\} finally \{\s*running\.current = false;\s*setBusy\(false\);\s*\}/);
+    });
+
+    it("the header's Export CSV is the in-place export — its status region renders beside it", () => {
+      const html = renderToStaticMarkup(
+        createElement(PanelHeader, { model: { title: "K", total: 1, shown: 1, firstRow: 1, sortLabel: "Name", view: "cards" as const, exportHref: "/api/v1/discover/export?q=k" } }),
+      );
+      // A plain <Button href> renders the anchor alone; ExportLink follows it
+      // with its own live region.
+      assert.match(html, /<a href="\/api\/v1\/discover\/export\?q=k"[^>]*>(?:(?!<\/a>).)*Export CSV<\/a><span id="[^"]+" role="status" aria-live="polite"/);
+    });
+
+    it("the table's scroll pane is a containing block, so its sr-only status spans cannot widen the page (WCAG 1.4.10)", () => {
+      const html = renderToStaticMarkup(createElement(ResultsTable, { rows: [buildTableRow(smKnitwearInput())] }));
+      const pane = html.match(/<div class="([^"]*)" tabindex="0" role="region" aria-label="Results table"/);
+      assert.ok(pane, "scroll pane not found");
+      const cls = pane[1]!.split(/\s+/);
+      assert.ok(cls.includes("relative") && cls.includes("overflow-x-auto"), pane[1]);
+    });
+
+    it("the saved-search form names the real cause, and only a name error blames the name field", () => {
+      assert.deepEqual(saveSearchError(400, "invalid name").onName, true);
+      assert.equal(saveSearchError(400, "search too long to save").onName, false);
+      assert.match(saveSearchError(400, "search too long to save").message, /too long/);
+      assert.equal(saveSearchError(400, "invalid query_state").message, "Could not save this search.");
+      assert.match(saveSearchError(409, "saved search limit reached").message, /limit of 200/);
+      assert.match(saveSearchError(401, undefined).message, /Sign in/);
+      assert.equal(saveSearchError(500, "save failed").onName, false);
+    });
+
+    it("the bar's Save runs runBulkSave with every selected id, and announces + refreshes only through onSaved", () => {
+      const code = sourceCode("components/dashboard/selection-bar.tsx");
+      assert.match(code, /await runBulkSave\(ids, \{\s*fetch: \(url, init\) => fetch\(url, init\),\s*onSaved: \(saved\) => \{\s*announceBulkSaved\(window, saved\);\s*router\.refresh\(\);\s*\},\s*\}\);/);
+      assert.match(code, /const ids = \[\.\.\.sel\.selected\];/);
+      const at = code.indexOf("onClick={bulkSave}");
+      assert.ok(at > 0, "Save is not wired to bulkSave");
+    });
+
+    it("a row's Save button listens for bulk saves of its own id", () => {
+      const code = sourceCode("components/dashboard/save-record-button.tsx");
+      assert.match(code, /useEffect\(\(\) => onBulkSaved\(window, supplierId, \(\) => setOn\(true\)\), \[supplierId\]\);/);
+    });
+
+    it("the select-all box under a provider reads the provider's tri-state", () => {
+      const value: SelectionContextValue = {
+        interactive: true,
+        selected: new Set([A]),
+        isSelected: () => true,
+        toggle: () => {},
+        toggleAllOnPage: () => {},
+        allState: "mixed",
+        clear: () => {},
+        edits: 0,
+      };
+      const html = renderToStaticMarkup(
+        createElement(SelectionContext.Provider, { value }, createElement(PanelHeader, { model: { title: "K", total: 2, shown: 2, firstRow: 1, sortLabel: "Name", view: "cards" as const } })),
+      );
+      assert.match(html, new RegExp(`id="${SELECT_ALL_ID}"[^>]*aria-checked="mixed"`));
+      assert.match(
+        sourceCode("components/dashboard/selection.tsx"),
+        /useMemo\(\s*\(\) => selectionValue\(selected, pageIds, setSelected, edits, \(\) => setEdits\(\(n\) => n \+ 1\)\),\s*\[selected, pageIds, edits\],\s*\)/,
+      );
+    });
+
+    it("every selection box keeps its look in High Contrast: the classes each caller renders, pinned", () => {
+      // Forced colors keep a border and repaint a background as Canvas. A
+      // class that hides the box or drops its border there (forced-colors:*,
+      // hidden, invisible, border-0…) can come from Checkbox itself or from a
+      // caller's className, so the rendered class of every box a buyer can
+      // tick is pinned exactly, in each state. Changing one means changing
+      // this list on purpose.
+      const BOX = "inline-grid size-4 shrink-0 place-items-center rounded-xs border";
+      const LIVE = "cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[rgb(var(--ds-brand))]";
+      const OFF = `${BOX} border-line-strong bg-surface ${LIVE}`;
+      const ON = `${BOX} ${LIVE} border-brand bg-brand text-brand-on`;
+      const under = (allState: boolean | "mixed", selected: boolean, el: ReturnType<typeof createElement>) => {
+        const value: SelectionContextValue = {
+          interactive: true,
+          selected: new Set(selected ? [A] : []),
+          isSelected: () => selected,
+          toggle: () => {},
+          toggleAllOnPage: () => {},
+          allState,
+          clear: () => {},
+          edits: 0,
+        };
+        return renderToStaticMarkup(createElement(SelectionContext.Provider, { value }, el));
+      };
+      const boxes = (html: string) => [...html.matchAll(/<span[^>]*role="checkbox"[^>]*>/g)].map((m) => m[0].match(/class="([^"]*)"/)?.[1] ?? "");
+      const header = createElement(PanelHeader, { model: { title: "K", total: 2, shown: 2, firstRow: 1, sortLabel: "Name", view: "cards" as const } });
+      const row = { ...buildTableRow(aboniInput()), supplierId: A };
+      const card = { ...buildCard(aboniInput()), supplierId: A };
+      const cases: [string, string, string][] = [
+        ["select-all, none", under(false, false, header), OFF],
+        ["select-all, some", under("mixed", false, header), ON],
+        ["select-all, all", under(true, false, header), ON],
+        ["table row, off", under(false, false, createElement(ResultsTable, { rows: [row] })), OFF],
+        ["table row, on", under(false, true, createElement(ResultsTable, { rows: [row] })), ON],
+        ["card, off", under(false, false, createElement(SupplierResultCard, { card })), `${OFF} mt-4`],
+        ["card, on", under(false, true, createElement(SupplierResultCard, { card })), `${ON} mt-4`],
+      ];
+      for (const [name, html, want] of cases) {
+        const got = boxes(html);
+        assert.equal(got.length, 1, `${name}: expected one selection box`);
+        assert.equal(got[0], want, `${name}: the box's classes changed`);
+      }
+      // And nothing inside a box, or on it, is conditioned on forced colors
+      // except the mixed dash, which is pinned on its own above.
+      for (const [name, html] of cases) {
+        for (const c of html.matchAll(/class="([^"]*forced-colors:[^"]*)"/g)) {
+          assert.equal(c[1], "block h-0.5 w-2 rounded-full bg-current forced-colors:bg-[CanvasText]", `${name}: a forced-colors class outside the dash`);
+        }
+      }
+    });
+
+    it("the bar is sticky only on a window tall enough to spare it, and hides the two dead actions on a phone (WCAG 1.4.10)", () => {
+      const html = bar([A]);
+      const cls = html.match(/<div role="group" aria-label="Bulk actions" class="([^"]+)"/)?.[1] ?? "";
+      assert.ok(cls, "bar not found");
+      const classes = cls.split(/\s+/);
+      assert.ok(classes.includes("[@media(min-height:32rem)]:sticky"), cls);
+      assert.ok(!classes.includes("sticky"), "an unconditional sticky covered 91% of a 320x256 view");
+      const tag = (label: string) => html.match(new RegExp(`<button[^>]*>(?:(?!</button>).)*${label}</button>`))?.[0] ?? "";
+      for (const label of ["Send RFQ", "Compare"]) {
+        const b = tag(label);
+        assert.ok(b, label);
+        assert.match(b, /class="[^"]*\bhidden\b[^"]*\bsm:inline-flex\b/, `${label} still shows on a phone`);
+      }
+      assert.match(html, /<p id="[^"]+" class="[^"]*\bhidden\b[^"]*\bsm:block\b/);
+      // And the effect only reserves space while the bar is actually sticky.
+      assert.match(sourceCode("components/dashboard/selection-bar.tsx"), /const sticky = \(\) => getComputedStyle\(bar\)\.position === "sticky";[\s\S]*?return reserveBarSpace\([^;]*, observe, sticky, onViewportResize\);/);
+    });
+
+    it("the provider prunes its selection to the page whenever a refresh changes the rows", () => {
+      assert.match(
+        sourceCode("components/dashboard/selection.tsx"),
+        /const pageKey = pageIds\.join\(","\);\s*useEffect\(\(\) => \{\s*setSelected\(\(s\) => pruneToPage\(s, pageKey \? pageKey\.split\(","\) : \[\]\)\);\s*\}, \[pageKey\]\);/,
+      );
+    });
+
+    it("the bar's Export is told about the buyer's edits and reports its status to the bar", () => {
+      assert.match(sourceCode("components/dashboard/selection-bar.tsx"), /<ExportLink href=\{bulkExportHref\(exportHref, ids\)\} label="Export" requested=\{count\} resetOn=\{sel\.edits\} onStatus=\{setExportStatus\} \/>/);
+      assert.match(sourceCode("components/dashboard/export-link.tsx"), /setBusy\(true\);\s*say\("Preparing the export…"\);/);
+    });
+
+    it("the link form of Button passes its click handler and ARIA through — Export depends on it", () => {
+      let clicked = 0;
+      const el = Button({ href: "/x", onClick: () => (clicked += 1), "aria-describedby": "d", "aria-busy": true, children: "Export" }) as {
+        type: string;
+        props: { href: string; onClick?: (e: unknown) => void; "aria-describedby"?: string; "aria-busy"?: boolean };
+      };
+      assert.equal(el.type, "a");
+      assert.equal(el.props.href, "/x");
+      el.props.onClick?.({});
+      assert.equal(clicked, 1);
+      assert.equal(el.props["aria-describedby"], "d");
+      assert.equal(el.props["aria-busy"], true);
+    });
+
+    it("only a name error marks the saved-search name field invalid", () => {
+      const code = sourceCode("components/dashboard/save-search-form.tsx");
+      assert.match(code, /aria-invalid=\{nameError \|\| undefined\}/);
+      assert.doesNotMatch(code, /aria-invalid=\{error/);
+    });
+
+    it("the page keys the selection on its whole URL state, so a new page of results starts empty", () => {
+      // Next keeps client state across a search-param navigation; unkeyed, a
+      // selection would outlive its page and the page-scoped Export would
+      // silently drop the ids it could no longer see.
+      const code = sourceCode("app/(app)/app/discover/page.tsx");
+      assert.match(code, /<SelectionProvider key=\{serializeDiscoverState\(state\)\.toString\(\)\}/);
+    });
+
+    it("the bulk Save is never natively disabled, so it cannot drop focus to the page while saving", () => {
+      const save = bar([A]).match(/<button[^>]*>(?:(?!<\/button>).)*Save<\/button>/);
+      assert.ok(save);
+      assert.doesNotMatch(save[0], /disabled=""/);
+      // A static render has busy=false, so `disabled={busy}` would render
+      // nothing here and pass; check the code for any native disabled on it.
+      const code = sourceCode("components/dashboard/selection-bar.tsx");
+      // The WHOLE opening tag, both sides of onClick: a guard that stopped at
+      // onClick passed with `disabled={busy}` written on the line after it.
+      const at = code.indexOf("onClick={bulkSave}");
+      const saveJsx = code.slice(code.lastIndexOf("<Button", at), code.indexOf(">", at));
+      assert.match(saveJsx, /aria-disabled=\{busy/, "slice did not capture the Save button's tag");
+      assert.doesNotMatch(saveJsx, /\sdisabled[=\s]/, "the bulk Save must use aria-disabled, never native disabled");
+    });
+  });
+
   // Accessibility, cycle 19, BLOCKING F3. `Seg`'s and the Template switch's
   // wrapping `<span role="group">` carries `overflow-hidden` for its own
   // rounded corners; the global `:focus-visible` ring is painted 2px OUTSIDE
@@ -1177,12 +1701,19 @@ describe("the two-state controls say which state they are in", () => {
     assert.equal(reportLinks.length, 10, "five reports on each of two RSC rows");
     for (const l of reportLinks) assert.match(l, /border-line-strong/, `report link missing the control outline: ${l}`);
 
-    // The "+N lines" pill on a card with more HS lines than thumbs (the same
-    // card the "twelve lines, three thumbs, nine more" ResultsTable test uses).
+    // The "+N more" pill on a card with more HS lines than thumbs is no longer
+    // a control: it was a `<button>` named "All N lines" with no handler, no
+    // href and no form, rendered on every such card, and the screen it would
+    // have opened is spec §3.4, which is not built. It states the count and
+    // the strip beside it scrolls to every tile. Nothing to outline, so the
+    // control-outline rule below no longer applies to it — but if it ever
+    // becomes a control again, this has to come back with it.
     const card = renderToStaticMarkup(createElement(SupplierResultCard, { card: buildCard(aboniInput()) }));
-    const pill = /<button[^>]*aria-label="All \d+ lines"[^>]*>/.exec(card);
+    assert.doesNotMatch(card, /<button[^>]*aria-label="All \d+ lines"/, "the +N pill is a control again and needs an outline test");
+    const pill = /<[a-z]+[^>]*>\+\d+ lines</.exec(card);
     assert.ok(pill, "the +N lines pill did not render");
-    assert.match(pill![0]!, /border-line-strong/, `+N pill missing the control outline: ${pill![0]}`);
+    // No outline assertion: it is not a control any more, so a control outline
+    // would be the wrong thing to require of it.
 
     // The Template switch's own group wrapper — its buttons' own divider
     // already used border-line-strong; the group's outer border did not.
@@ -1495,5 +2026,532 @@ describe("the table row carries the same qualifier the card does", () => {
     assert.match(row.workersCoverage ?? "", /none of them this record/, `the row says only "${row.workersCoverage}"`);
     const html = renderToStaticMarkup(createElement(ResultsTable, { rows: [row] }));
     assert.match(html, /none of them this record/);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Cycle 7 guards, at the boundary (§14). The shell's own markup: what the
+// browser is handed, not what a model says.
+// ---------------------------------------------------------------------------
+
+const shellHtml = (over: Partial<Parameters<typeof AppShell>[0]> = {}) =>
+  renderToStaticMarkup(
+    createElement(AppShell, {
+      sidebar: { active: "search", counts: {}, recent: [], plan: { name: "Free" } },
+      topbar: { caption: "10,266 published suppliers", initial: "R", searchAction: "/app/discover" },
+      children: null,
+      ...over,
+    } as Parameters<typeof AppShell>[0]),
+  );
+
+/** The one `<nav aria-label="Primary…">` element's own open tag. */
+function primaryNavTag(html: string): string {
+  const m = html.match(/<nav\b[^>]*aria-label="Primary[^"]*"[^>]*>/);
+  assert.ok(m, "no primary nav in the shell markup");
+  return m[0];
+}
+
+describe("the phone nav strip does not clip its own focus ring", () => {
+  it("the scroll container pads both axes and gives the padding back", () => {
+    const tag = primaryNavTag(shellHtml());
+    // `overflow-x-auto` computes `overflow-y: auto` as well, and an outline is
+    // not scrollable overflow — so the global `outline-offset-2` ring is cut
+    // top and bottom on a 32px strip unless the container carries the room.
+    assert.match(tag, /\boverflow-x-auto\b/, "the strip is no longer a scroll container; this guard needs rewriting");
+    const classes = new Set((tag.match(/class="([^"]*)"/)?.[1] ?? "").split(/\s+/));
+    for (const cls of ["-my-1", "py-1", "-mx-1", "px-1"]) {
+      assert.ok(classes.has(cls), `the nav strip has no \`${cls}\`, so the focus ring is clipped: ${tag}`);
+    }
+    // And the rail above `md` must not inherit the phone strip's padding.
+    for (const cls of ["md:my-0", "md:py-0"]) {
+      assert.ok(classes.has(cls), `the rail keeps the strip's own padding above md: ${tag}`);
+    }
+  });
+});
+
+describe("the topbar search field can shrink to a phone", () => {
+  it("the input and its wrapper both drop the intrinsic width floor", () => {
+    const html = shellHtml();
+    const form = html.match(/<form\b[^>]*role="search"[^>]*>/)?.[0] ?? "";
+    assert.match(form, /\bmin-w-0\b/, `the search form has no min-w-0, so the document scrolls at 320px: ${form}`);
+    const input = html.match(/<input\b[^>]*name="q"[^>]*>/)?.[0] ?? "";
+    assert.ok(input, "no search input in the topbar");
+    // A flex item defaults to `min-width: auto`; an input's intrinsic floor is
+    // its `size` attribute, ~20 characters. Without `min-w-0` the input and
+    // the ⌘K badge beside it sat on top of the buttons beside it at 320px.
+    assert.match(input, /\bmin-w-0\b/, `the search input has no min-w-0: ${input}`);
+    assert.match(input, /\bgrow\b/, "the search input no longer grows; this guard needs rewriting");
+    // The signed-out variant renders a span in the same slot, same floor.
+    const idle = shellHtml({ topbar: { caption: "", initial: null } });
+    const span = idle.match(/<span class="[^"]*grow[^"]*">Search suppliers/)?.[0] ?? "";
+    assert.match(span, /\bmin-w-0\b/, `the placeholder line has no min-w-0: ${span}`);
+  });
+});
+
+describe("the shell offers no control without a destination", () => {
+  // The Help button rendered with no href and no handler: a keyboard or
+  // screen-reader user reached a control that did nothing (founder decision,
+  // 24 Sep: none until /app/help exists). Static markup carries no click
+  // handlers (two of the shell's children are client components), so a
+  // control counts only as a link to a page that exists or as the submit of
+  // the form it sits in; anything else focusable is a control going nowhere.
+  const sidebar = {
+    active: "search",
+    counts: {},
+    recent: [{ label: "Knit polo, GOTS", count: 12, href: "/app/discover?q=knit+polo" }],
+    plan: { name: "Free" },
+  };
+  const shells = [
+    { caption: "10,266 published suppliers", initial: "R", searchAction: "/app/discover" },
+    { caption: "", initial: null },
+  ].flatMap((model) => [
+    renderToStaticMarkup(createElement(Topbar, { model } as Parameters<typeof Topbar>[0])),
+    shellHtml({ topbar: model, sidebar } as Partial<Parameters<typeof AppShell>[0]>),
+  ]);
+  const insideForm = (html: string, at: number) => {
+    const before = html.slice(0, at);
+    return before.lastIndexOf("<form") > before.lastIndexOf("</form>");
+  };
+
+  // Every app route that has a page, as a pattern: `(group)` segments drop
+  // out of the URL, `[param]` matches any one segment.
+  const routes: RegExp[] = [];
+  const walk = (dir: string, segs: string[]) => {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      if (entry.isDirectory()) {
+        const seg = /^\(.*\)$/.test(entry.name) ? null : /^\[.*\]$/.test(entry.name) ? "[^/]+" : entry.name;
+        walk(path.join(dir, entry.name), seg ? [...segs, seg] : segs);
+      } else if (/^page\.tsx?$/.test(entry.name)) {
+        routes.push(new RegExp(`^/${segs.join("/")}$`));
+      }
+    }
+  };
+  walk(path.join(process.cwd(), "app"), []);
+  const pageExists = (href: string) => routes.some((r) => r.test(href.split(/[?#]/)[0]!.replace(/\/$/, "") || "/"));
+
+  it("every link reaches a page that exists, or an id on this page", () => {
+    for (const html of shells) {
+      for (const a of html.match(/<a\b[^>]*>/g) ?? []) {
+        const href = a.match(/\bhref="([^"]*)"/)?.[1];
+        assert.ok(href, `a link with no destination: ${a}`);
+        if (href.startsWith("#")) assert.match(html, new RegExp(`\\bid="${href.slice(1)}"`), `a link to a missing id: ${a}`);
+        else assert.ok(pageExists(href), `a link to a page that does not exist: ${a}`);
+      }
+      // A form is a destination too: its submit goes where `action` says.
+      for (const f of html.match(/<form\b[^>]*>/g) ?? []) {
+        const action = f.match(/\baction="([^"]*)"/)?.[1];
+        assert.ok(action && pageExists(action), `a form posting to a page that does not exist: ${f}`);
+      }
+    }
+  });
+
+  it("every button and form field sits in a form it submits, and nothing else poses as a control", () => {
+    for (const html of shells) {
+      for (const m of html.matchAll(/<button\b[^>]*>/g)) {
+        assert.match(m[0], /\btype="submit"/, `a button with no destination: ${m[0]}`);
+        assert.ok(insideForm(html, m.index!), `a submit button outside any form: ${m[0]}`);
+      }
+      // A submit can post elsewhere (formaction); any control can join another
+      // form by id (form=), select and textarea included.
+      for (const m of html.matchAll(/<(?:button|input|select|textarea)\b[^>]*>/g)) {
+        const to = m[0].match(/\bformAction="([^"]*)"|\bformaction="([^"]*)"/i);
+        if (to) assert.ok(pageExists(to[1] ?? to[2] ?? ""), `a submit posting to a page that does not exist: ${m[0]}`);
+        assert.doesNotMatch(m[0], /\bform="/, `a control submitting a form it does not sit in: ${m[0]}`);
+      }
+      // <input type=button|reset|image> does nothing without script; any other
+      // field (the search box, a submit) is only a control inside its form.
+      for (const m of html.matchAll(/<(input|select|textarea)\b[^>]*>/g)) {
+        assert.doesNotMatch(m[0], /\btype="(?:button|reset|image)"/i, `a field posing as a button: ${m[0]}`);
+        assert.ok(insideForm(html, m.index!), `a form field outside any form: ${m[0]}`);
+      }
+      for (const t of html.match(/<(?!a\b|button\b|input\b|select\b|textarea\b|main\b)[a-z]+\b[^>]*(?:role="button"|tabindex="(?!-1")[^"]*")[^>]*>/g) ?? []) {
+        assert.fail(`a focusable non-control with no destination: ${t}`);
+      }
+      assert.doesNotMatch(html, /<summary\b/, "a <summary> toggle in the shell");
+    }
+  });
+
+  it("no Help control, by any name, value, text or link, until the help page exists", () => {
+    const helpPage = pageExists("/app/help");
+    for (const html of shells) {
+      const named =
+        /(?:aria-[a-z]+|title|value|placeholder|alt)="[^"]*\bhelp\b[^"]*"|>[^<]*\bhelp\b[^<]*<|>\s*\?\s*<|href="\/app\/help\b/i.test(html);
+      if (!helpPage) assert.ok(!named, `a Help control renders with nowhere to go: ${html}`);
+    }
+  });
+});
+
+describe("each result's actions are tied to its supplier (WCAG 2.4.4)", () => {
+  // Every row and card repeats "Open", "Send RFQ" and "Save". A link's
+  // context is its cell's headers, so the supplier name must be the row
+  // header; on a card it must be a heading the actions sit under.
+  const text = (h: string) =>
+    h.replace(/<[^>]+>/g, "").replace(/&amp;/g, "&").replace(/&#x27;/g, "'").replace(/&quot;/g, '"').trim();
+
+  it("the table's supplier name is the row header of every row, in the row with its actions", () => {
+    const rows = [buildTableRow(aboniInput()), buildTableRow(arFashionInput())];
+    const html = renderToStaticMarkup(createElement(ResultsTable, { rows }));
+    const trs = [...html.matchAll(/<tr\b[^>]*>([\s\S]*?)<\/tr>/g)].map((m) => m[1]!).filter((tr) => /<td\b/.test(tr));
+    assert.equal(trs.length, rows.length);
+    trs.forEach((tr, i) => {
+      const th = tr.match(/<th\b[^>]*scope="row"[^>]*>([\s\S]*?)<\/th>/);
+      assert.ok(th, `row ${i} has no row header, so its actions have no supplier context`);
+      assert.ok(text(th[1]!).includes(rows[i]!.name), `row ${i}'s header is not its supplier: ${text(th[1]!)}`);
+      assert.match(tr, />Open</, `row ${i}'s Open is not in the row its header names`);
+    });
+  });
+
+  it("a card's supplier name is a heading", () => {
+    const card = buildCard(aboniInput());
+    const html = renderToStaticMarkup(createElement(SupplierResultCard, { card }));
+    const heading = html.match(/<h([2-6])\b[^>]*>([\s\S]*?)<\/h\1>/);
+    assert.ok(heading, "the card has no heading");
+    assert.equal(text(heading[2]!), card.name);
+  });
+});
+
+describe("aria-current marks the page the buyer is actually on, or nothing", () => {
+  it("a null active key leaves no link claiming to be the current page", () => {
+    // `/app/searches` and `/app/searches/new` passed "search", whose href is
+    // `/app/discover`. A screen reader announced the buyer as being on a page
+    // they were not on, and following the link was the only way to find out.
+    const none = shellHtml({ sidebar: { active: null, counts: {}, recent: [], plan: { name: "Free" } } });
+    assert.doesNotMatch(none, /aria-current/, "a link claims to be the current page on a route no nav item points at");
+    // The ordinary case still marks exactly one, and marks the right one.
+    const on = shellHtml({ sidebar: { active: "products", counts: {}, recent: [], plan: { name: "Free" } } });
+    const marked = [...on.matchAll(/<a\b[^>]*aria-current="page"[^>]*>/g)].map((m) => m[0]);
+    assert.equal(marked.length, 1, `expected one current link, got ${marked.length}`);
+    assert.match(marked[0]!, /href="\/app\/products"/);
+  });
+});
+
+describe("the ⌘K the topbar advertises is a shortcut that exists", () => {
+  it("⌘K and Ctrl+K are the shortcut, and nothing else is", () => {
+    assert.equal(isSearchShortcut({ key: "k", metaKey: true }), true);
+    assert.equal(isSearchShortcut({ key: "K", ctrlKey: true }), true, "caps lock still means ⌘K");
+    assert.equal(isSearchShortcut({ key: "k" }), false, "a bare k is someone typing");
+    assert.equal(isSearchShortcut({ key: "j", metaKey: true }), false);
+    assert.equal(isSearchShortcut({ key: "k", metaKey: true, shiftKey: true }), false);
+    assert.equal(isSearchShortcut({ key: "k", metaKey: true, altKey: true }), false);
+    // Both modifiers at once is a chord the OS claims; leave it alone.
+    assert.equal(isSearchShortcut({ key: "k", metaKey: true, ctrlKey: true }), false);
+  });
+
+  it("it does not take the key off somebody who is typing", () => {
+    // These routes carry nine filter inputs and a save-search name box, and on
+    // macOS Ctrl+K in a text field is the native delete-to-end-of-line. A
+    // window-level listener that swallowed it took a keystroke from a buyer
+    // who was using it, with no way to turn the theft off.
+    for (const tagName of ["INPUT", "TEXTAREA", "SELECT", "input", "textarea"]) {
+      assert.equal(targetIsEditable({ tagName }), true, tagName);
+      assert.equal(isSearchShortcut({ key: "k", metaKey: true, target: { tagName } }), false, `${tagName} lost its ⌘K`);
+    }
+    assert.equal(targetIsEditable({ isContentEditable: true }), true);
+    assert.equal(isSearchShortcut({ key: "k", ctrlKey: true, target: { isContentEditable: true } }), false);
+    // Anywhere else it is ours.
+    assert.equal(isSearchShortcut({ key: "k", metaKey: true, target: { tagName: "BODY" } }), true);
+    assert.equal(targetIsEditable(null), false);
+    assert.equal(targetIsEditable("INPUT"), false, "a string is not an element");
+  });
+
+  it("pressing it focuses the field and selects what is in it", () => {
+    // The previous version of this guard tested only the modifier predicate.
+    // Deleting `<SearchShortcut />` from the topbar, or the addEventListener
+    // inside it, restored the original defect with every test green — the
+    // predicate's only caller could vanish and nothing noticed. The handler is
+    // a value now, so the behaviour itself can be driven.
+    const calls: string[] = [];
+    const field = {
+      focus: () => calls.push("focus"),
+      select: () => calls.push("select"),
+    };
+    const doc = {
+      querySelector: (sel: string) => {
+        calls.push(`query:${sel}`);
+        return sel === SEARCH_FIELD_SELECTOR ? field : null;
+      },
+    };
+    const handler = searchShortcutHandler(doc);
+
+    let prevented = 0;
+    assert.equal(handler({ key: "k", metaKey: true, preventDefault: () => prevented++ }), true);
+    assert.deepEqual(calls, [`query:${SEARCH_FIELD_SELECTOR}`, "focus", "select"]);
+    assert.equal(prevented, 1, "the browser's own ⌘K ran as well");
+
+    // A key that is not the shortcut never touches the document.
+    calls.length = 0;
+    assert.equal(handler({ key: "k", preventDefault: () => prevented++ }), false);
+    assert.deepEqual(calls, []);
+    assert.equal(prevented, 1);
+
+    // A page with no search field: nothing to focus, so nothing is swallowed.
+    const empty = searchShortcutHandler({ querySelector: () => null });
+    assert.equal(empty({ key: "k", metaKey: true, preventDefault: () => prevented++ }), false);
+    assert.equal(prevented, 1, "preventDefault fired with no field to focus");
+    assert.equal(focusSearchField({ querySelector: () => null }), false);
+    assert.equal(focusSearchField({ querySelector: () => ({}) }), false, "an element with no focus() is not a field");
+  });
+
+  it("mounting it subscribes to keydown, and unmounting unsubscribes", () => {
+    // `useEffect` does not run here, so with the wiring inside it, replacing
+    // `window.addEventListener` with `void onKeyDown` kept the whole suite
+    // green — the mount was proved, the handler was proved, and the one line
+    // joining them was not.
+    const bound: [string, unknown][] = [];
+    const win = {
+      addEventListener: (type: string, fn: (e: never) => void) => bound.push([type, fn]),
+      removeEventListener: (type: string, fn: (e: never) => void) => {
+        const i = bound.findIndex(([t, f]) => t === type && f === fn);
+        if (i >= 0) bound.splice(i, 1);
+      },
+    };
+    const field = { focus: () => {}, select: () => {} };
+    const cleanup = installSearchShortcut(win, { querySelector: () => field });
+    assert.equal(bound.length, 1, "mounting the shortcut subscribed to nothing");
+    assert.equal(bound[0]![0], "keydown");
+    // And what it subscribed is the real handler, not any function.
+    const listener = bound[0]![1] as (e: unknown) => unknown;
+    assert.equal(listener({ key: "k", metaKey: true, preventDefault: () => {} }), true);
+    assert.equal(listener({ key: "k" }), false);
+    cleanup();
+    assert.equal(bound.length, 0, "unmounting left the listener attached");
+  });
+
+  it("the topbar that shows the badge is the one that mounts the listener", () => {
+    // Structural, because `SearchShortcut` renders null and cannot be seen in
+    // the markup. Walking the element tree is what makes deleting the mount go
+    // red.
+    const tree = Topbar({ model: { caption: "", initial: "R", searchAction: "/app/discover" } });
+    const mounted: unknown[] = [];
+    const walk = (node: unknown): void => {
+      if (Array.isArray(node)) return void node.forEach(walk);
+      if (!node || typeof node !== "object") return;
+      const el = node as { type?: unknown; props?: { children?: unknown } };
+      if (typeof el.type === "function") mounted.push(el.type);
+      if (el.props && "children" in el.props) walk(el.props.children);
+    };
+    walk(tree);
+    assert.ok(
+      mounted.some((t) => (t as { name?: string }).name === "SearchShortcut"),
+      "the topbar renders the ⌘K badge without mounting anything that listens for it",
+    );
+
+    // And the selector the handler uses has to match what this topbar renders.
+    const live = shellHtml();
+    assert.match(live, /⌘K/, "the topbar with a real search form dropped its own shortcut hint");
+    assert.match(live, /<form[^>]*role="search"/);
+    assert.match(live, /<input[^>]*name="q"/);
+
+    // Nothing mounts on a topbar with no form, so nothing may advertise one —
+    // anywhere in the document. The previous version of this assertion looked
+    // at a 400-character window around the topbar placeholder and could not
+    // see the sidebar's own Search row, which printed ⌘K unconditionally.
+    const idle = shellHtml({ topbar: { caption: "", initial: null } });
+    assert.doesNotMatch(idle, /⌘K/, "a shell with no search form still advertises the shortcut somewhere");
+    const idleTree = Topbar({ model: { caption: "", initial: null } });
+    const idleMounted: unknown[] = [];
+    const walk2 = (node: unknown): void => {
+      if (Array.isArray(node)) return void node.forEach(walk2);
+      if (!node || typeof node !== "object") return;
+      const el = node as { type?: unknown; props?: { children?: unknown } };
+      if (typeof el.type === "function") idleMounted.push(el.type);
+      if (el.props && "children" in el.props) walk2(el.props.children);
+    };
+    walk2(idleTree);
+    assert.ok(!idleMounted.some((t) => (t as { name?: string }).name === "SearchShortcut"));
+  });
+});
+
+describe("the shell's landmarks and the routes they cover", () => {
+  it("every landmark the shell renders carries a name when the screen has one", () => {
+    // Six shells share one document in /dev/ds. `screenLabel` was documented as
+    // reaching nav and search and had only ever reached nav and main, leaving
+    // six identical unnamed search landmarks and six unnamed asides.
+    const html = shellHtml({ screenLabel: "Discover" });
+    assert.match(html, /<nav[^>]*aria-label="Primary, Discover"/);
+    assert.match(html, /<main[^>]*aria-label="Discover"/);
+    assert.match(html, /<form[^>]*role="search"[^>]*aria-label="Search, Discover"|<form[^>]*aria-label="Search, Discover"[^>]*role="search"/);
+    assert.match(html, /<aside[^>]*aria-label="Sidebar, Discover"/);
+    // With no screen label they are still named, just not disambiguated.
+    const bare = shellHtml();
+    assert.match(bare, /<aside[^>]*aria-label="Sidebar"/);
+    assert.match(bare, /aria-label="Search"/);
+  });
+
+  it("the content landmark can take focus, so the skip link lands", () => {
+    // Without tabIndex the skip link relies on the browser moving focus to a
+    // non-focusable fragment target, which older Safari does not do. The shell
+    // this kit replaces sets it.
+    assert.match(shellHtml(), /<main[^>]*tabindex="-1"/i);
+  });
+
+  it("the saved-search list is reachable from the rail", () => {
+    // It was linked from nowhere in the product: not this rail, not
+    // components/shell/sidebar.tsx. A buyer who saved a search could not get
+    // back to it without typing the URL.
+    const html = shellHtml();
+    assert.match(html, /href="\/app\/searches"/, "nothing in the shell links to the saved-search list");
+    // And landing on it marks that row, not a link to somewhere else.
+    const on = shellHtml({ sidebar: { active: "searches", counts: {}, recent: [], plan: { name: "Free" } } });
+    const marked = [...on.matchAll(/<a[^>]*aria-current="page"[^>]*>/g)].map((m) => m[0]);
+    assert.equal(marked.length, 1);
+    assert.match(marked[0]!, /href="\/app\/searches"/);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Cycle 9 guards. Five reviewers ran against cycle 8's repairs; these pin what
+// those repairs got wrong.
+// ---------------------------------------------------------------------------
+
+describe("the rail says current-page only for the page the buyer is on", () => {
+  it("a route under a nav item is current-section, not current-page", () => {
+    // `/app/searches/new` resolved to the `searches` key and the rail then put
+    // `aria-current="page"` on the link to `/app/searches` — announcing the
+    // buyer as being on a page they were not on, which is the exact defect the
+    // nested matching was added next to a fix for. The route every buyer lands
+    // on after pressing Save search.
+    assert.deepEqual(navMatch("/app/searches"), { key: "searches", exact: true });
+    assert.deepEqual(navMatch("/app/searches/new"), { key: "searches", exact: false });
+    assert.deepEqual(navMatch("/app/rfqs/abc-123"), { key: "rfqs", exact: false });
+
+    const under = shellHtml({
+      sidebar: { active: "searches", activeExact: false, counts: {}, recent: [], plan: { name: "Free" } },
+    });
+    const marked = [...under.matchAll(/<a\b[^>]*aria-current="([^"]*)"[^>]*>/g)];
+    assert.equal(marked.length, 1);
+    assert.equal(marked[0]![1], "true", "a section ancestor is announced as the current page");
+
+    const on = shellHtml({
+      sidebar: { active: "searches", activeExact: true, counts: {}, recent: [], plan: { name: "Free" } },
+    });
+    assert.match(on, /aria-current="page"/);
+  });
+
+  it("the supplier record belongs to Suppliers", () => {
+    // Spec §3.3 and §3.4 are the screens a buyer actually sits on, and no nav
+    // item has that href — the Suppliers row points at the search — so the rail
+    // highlighted nothing there.
+    assert.deepEqual(navMatch("/app/suppliers/aboni-knitwear-ltd"), { key: "suppliers", exact: false });
+    assert.deepEqual(navMatch("/app/suppliers/aboni-knitwear-ltd/lines/6109"), { key: "suppliers", exact: false });
+    assert.deepEqual(navMatch("/app/nowhere/deep"), { key: null, exact: false });
+  });
+});
+
+describe("a chip carries a building's name, so it wraps", () => {
+  it("nothing in a chip forbids wrapping", () => {
+    // One chip — "RSC covers S M Knitwears Limited. (Extension) · 53 % ·
+    // behind schedule" — is 428px on one line, and inside a 218px column at
+    // 320px it alone forced the whole document to 493px. Hiding that single
+    // element dropped it to 320. The panel-header repair before it was real
+    // and was not the cause.
+    const html = renderToStaticMarkup(
+      createElement(Chip, null, "RSC covers S M Knitwears Limited. (Extension) · 53 % · behind schedule"),
+    );
+    const cls = (html.match(/class="([^"]*)"/) ?? [])[1] ?? "";
+    assert.doesNotMatch(cls, /\bwhitespace-nowrap\b/, `a chip cannot wrap: ${cls}`);
+    assert.match(cls, /\[overflow-wrap:anywhere\]/, `a single long token still overflows the column: ${cls}`);
+    // The one-line case must not get taller: `min-h` replaces the fixed `h`.
+    assert.ok(
+      !cls.split(/\s+/).some((c) => /^h-\[/.test(c)),
+      `a chip still has a fixed height, so a wrapped line is clipped: ${cls}`,
+    );
+    assert.match(cls, /\bmin-h-\[/, cls);
+  });
+});
+
+describe("every product tile is reachable", () => {
+  const tiles = Array.from({ length: 6 }, (_, i) => ({
+    hs: `610${i + 1}`,
+    heading: `Heading ${i + 1}`,
+    src: null,
+    alt: `Heading ${i + 1}`,
+  }));
+
+  it("the strip scrolls and is named, instead of hiding five of six", () => {
+    // Measured: clientWidth 218 against scrollWidth 832 at 320px — one tile of
+    // six visible, the rest with no scroll, no focus and no way to reach them.
+    // Content present at 1280 and gone at 320 is what 1.4.10 forbids.
+    const html = renderToStaticMarkup(
+      createElement(PhotoStrip, { tiles: tiles as never, totalLines: 12 } as never),
+    );
+    const strip = html.match(/<div[^>]*role="region"[^>]*>/)?.[0] ?? "";
+    assert.ok(strip, `the tile strip is not a scroll region: ${html.slice(0, 300)}`);
+    assert.match(strip, /\boverflow-x-auto\b/, `the strip still hides what it cannot fit: ${strip}`);
+    assert.match(strip, /tabindex="0"/i, "the strip cannot be scrolled from the keyboard");
+    assert.match(strip, /aria-label="[^"]+"/, "the scroll region has no name");
+  });
+
+  it("nothing on the card promises an action that does not exist", () => {
+    // `+N` was a `<button type="button">` named "All 12 lines" with no handler,
+    // no href and no form, on every card whose supplier has more lines than
+    // tiles. The screen it would open is spec §3.4, which is not built.
+    const html = renderToStaticMarkup(
+      createElement(PhotoStrip, { tiles: tiles as never, totalLines: 12 } as never),
+    );
+    assert.doesNotMatch(html, /<button/, `a control with a name and no behaviour: ${html}`);
+    assert.match(html, /\+6 lines</, "the count of unshown lines is no longer stated at all");
+  });
+});
+
+describe("the shortcut reaches the topbar's own field, on every route", () => {
+  it("the field is named rather than inferred", () => {
+    // `form[role="search"] input[name="q"]` matched TWO elements on
+    // /app/products, which renders its own search form over an `input name="q"`
+    // — a route this same rail links to. Only DOM order decided which one ⌘K
+    // focused, and the docstring's justification ("only the topbar renders such
+    // a form") was simply false.
+    assert.equal(SEARCH_FIELD_SELECTOR, 'input[data-search="topbar"]');
+    const live = shellHtml();
+    const matches = [...live.matchAll(/data-search="topbar"/g)];
+    assert.equal(matches.length, 1, "the topbar's field is not uniquely marked");
+    assert.match(live, /<input[^>]*data-search="topbar"[^>]*>/);
+  });
+
+  it("pressing it again inside the search field re-selects, rather than doing nothing", () => {
+    // Treating the search input as "somebody is typing" made the badge beside
+    // it advertise a key that did nothing in exactly the place it should do the
+    // most.
+    assert.equal(targetIsSearchField({ dataset: { search: "topbar" } }), true);
+    assert.equal(targetIsSearchField({ getAttribute: (n: string) => (n === "data-search" ? "topbar" : null) }), true);
+    assert.equal(targetIsSearchField({ tagName: "INPUT" }), false);
+    assert.equal(
+      isSearchShortcut({ key: "k", metaKey: true, target: { tagName: "INPUT", dataset: { search: "topbar" } } }),
+      true,
+      "⌘K is inert in the field it exists to reach",
+    );
+    // Any other field still keeps its own keystroke.
+    assert.equal(isSearchShortcut({ key: "k", ctrlKey: true, target: { tagName: "INPUT" } }), false);
+  });
+});
+
+describe("the sort menu opens inside the viewport", () => {
+  it("it is anchored left below sm and right above it", () => {
+    // Making the control row wrap moved the summary to the start of its row,
+    // and `right-0` then put a 224px menu's left edge at -55px on a 320px
+    // screen — the first six characters of every option off the viewport, with
+    // no scroll to reach them, because an absolute overflow to the left creates
+    // none. Measured after the fix: 34–258 inside 320.
+    const html = renderToStaticMarkup(
+      createElement(PanelHeader, {
+        model: {
+          title: "Knitted shirts",
+          total: 42,
+          shown: 4,
+          sortLabel: "Most sources",
+          view: "cards" as const,
+          sortOptions: [{ label: "Most sources", value: "receipts", href: "?sort=receipts" }],
+        },
+      }),
+    );
+    const menu = html.match(/<div class="([^"]*absolute[^"]*)"/)?.[1] ?? "";
+    assert.ok(menu, "the sort menu is no longer absolutely positioned; this guard needs rewriting");
+    const cls = new Set(menu.split(/\s+/));
+    assert.ok(cls.has("left-0"), `the menu is not anchored left on a phone: ${menu}`);
+    assert.ok(cls.has("sm:right-0") && cls.has("sm:left-auto"), `the menu no longer right-aligns above sm: ${menu}`);
+    assert.ok(
+      [...cls].some((c) => c.startsWith("max-w-[")),
+      `the menu has no width ceiling, so a 224px min-width can still exceed a 320px screen: ${menu}`,
+    );
   });
 });

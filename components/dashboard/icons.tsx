@@ -8,6 +8,7 @@ import {
   ArrowsDownUp,
   ArrowsLeftRight,
   BookmarkSimple,
+  Package,
   Buildings,
   CaretDown,
   CaretLeft,
@@ -17,6 +18,7 @@ import {
   CheckCircle,
   Clock,
   DotsThree,
+  GearSix,
   DownloadSimple,
   Funnel,
   Image as ImageIcon,
@@ -58,6 +60,10 @@ export const ICONS = {
   clock: Clock,
   "check-c": CheckCircle,
   shield: ShieldCheck,
+  // Orders and Settings, so the kit rail can carry the same destinations the
+  // app sidebar does. Same Phosphor set and weight as the rest.
+  box: Package,
+  gear: GearSix,
   building: Buildings,
   tag: Tag,
   chat: ChatCircle,

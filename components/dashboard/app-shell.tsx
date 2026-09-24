@@ -5,14 +5,41 @@
 import type { ReactNode } from "react";
 import { formatCount } from "@/lib/dashboard/facts";
 import { cn } from "@/lib/utils";
-import { Button, Count, Kbd, LiveDot, Meter } from "./controls";
+import { Count, Kbd, LiveDot, Meter } from "./controls";
 import { Icon, type IconName } from "./icons";
-import { Caption, Eyebrow, Label } from "./type";
+import { Caption, Label } from "./type";
+import { RecentSearchesSlot } from "./recent-searches";
+import { SearchShortcut } from "./search-shortcut";
 
-export type NavKey = "search" | "suppliers" | "products" | "rfqs" | "saved" | "messages" | "compliance";
+export type NavKey =
+  | "search"
+  | "suppliers"
+  | "products"
+  | "saved"
+  | "searches"
+  | "messages"
+  | "rfqs"
+  | "orders"
+  | "compliance"
+  | "settings";
 
 export type SidebarModel = {
-  active: NavKey;
+  /**
+   * False when the buyer is on a page UNDER the active item rather than on it.
+   * The rail then marks the row as current-section (`aria-current="true"`)
+   * instead of current-page.
+   */
+  activeExact?: boolean;
+  /**
+   * The nav item the current URL actually is. `null` when no nav item points
+   * here: `/app/searches` (saved searches) and `/app/searches/new` both used
+   * to pass `"search"`, which put `aria-current="page"` on a link to
+   * `/app/discover` — a screen reader announced the buyer as being on a page
+   * they were not on, and the only way to tell was to follow the link (WCAG
+   * 4.1.2). Highlighting nothing is honest; highlighting the wrong thing is
+   * not.
+   */
+  active: NavKey | null;
   /** Live counts from `buyer_dashboard`; a count that could not be read is null and renders no pill. */
   counts: { suppliers?: number | null; rfqs?: number | null; saved?: number | null };
   recent: { label: string; count: number | null; href: string }[];
@@ -20,18 +47,91 @@ export type SidebarModel = {
   plan: { name: string; note?: string | null; used?: number | null; allowance?: number | null };
 };
 
-const NAV: readonly { key: NavKey; label: string; icon: IconName; href: string }[] = [
+// Order and membership follow `BUYER_SECTIONS` in components/shell/sidebar.tsx,
+// which is what every other /app page renders.
+//
+// This list used to be Search, Suppliers, Products, RFQs, Saved, Messages,
+// Compliance — so the shared items appeared in a different relative order
+// here than everywhere else (WCAG 3.2.3), and Orders, Settings and the
+// account menu had no link at all on the three kit routes. Since the kit
+// shell replaces the app shell wholesale on those routes, and the topbar
+// hamburger goes with it, a buyer who landed on /app/discover — the default
+// destination — could only reach Settings by typing the URL. That is the
+// same defect this round fixed for Products and Compliance hub, inverted.
+export const NAV: readonly { key: NavKey; label: string; icon: IconName; href: string }[] = [
   { key: "search", label: "Search", icon: "search", href: "/app/discover" },
   { key: "suppliers", label: "Suppliers", icon: "building", href: "/app/discover" },
   { key: "products", label: "Products", icon: "tag", href: "/app/products" },
-  { key: "rfqs", label: "RFQs", icon: "send", href: "/app/rfqs" },
   { key: "saved", label: "Saved", icon: "bookmark", href: "/app/saved" },
+  // A buyer who saved a search had no way back to it: `/app/searches` was
+  // linked from nowhere in the product — not this rail, not
+  // `components/shell/sidebar.tsx` — and the only reference to it was the
+  // redirect that puts you there once, straight after saving. The same
+  // defect the comment above describes for Products and Compliance hub, one
+  // step further along. Added to `BUYER_SECTIONS` in the same position so the
+  // two rails still agree on order (WCAG 3.2.3).
+  { key: "searches", label: "Saved searches", icon: "funnel", href: "/app/searches" },
   { key: "messages", label: "Messages", icon: "chat", href: "/app/messages" },
+  { key: "rfqs", label: "RFQs", icon: "send", href: "/app/rfqs" },
+  { key: "orders", label: "Orders", icon: "box", href: "/app/orders" },
   { key: "compliance", label: "Compliance hub", icon: "shield", href: "/app/compliance" },
+  { key: "settings", label: "Settings", icon: "gear", href: "/app/settings" },
 ];
 
+/**
+ * The nav item whose href IS this path, or null when no nav item points here.
+ *
+ * Callers used to name the key themselves, and `/app/searches` (saved
+ * searches) and `/app/searches/new` both named `"search"` — whose href is
+ * `/app/discover`. That put `aria-current="page"` on a link to a page the
+ * buyer was not on (WCAG 4.1.2), and the only way to notice was to follow it.
+ * Resolving the key from the path instead makes naming the wrong one
+ * impossible rather than merely fixing the two that did.
+ *
+ * `/app/discover` matches `search` before `suppliers`; both link there and the
+ * first is the one the rail has always highlighted.
+ */
+export function activeNavKey(pathname: string): NavKey | null {
+  return navMatch(pathname).key;
+}
+
+/**
+ * Which nav item this path belongs to, and whether it IS that item's page or
+ * merely sits under it.
+ *
+ * The distinction is not cosmetic. The first version of the nested matching
+ * returned `"searches"` for `/app/searches/new` and the rail then put
+ * `aria-current="page"` on the link to `/app/searches` — announcing the buyer
+ * as being on a page they were not on, which is the exact defect the nested
+ * matching was added alongside a fix for. A section ancestor is
+ * `aria-current="true"`.
+ */
+export function navMatch(pathname: string): { key: NavKey | null; exact: boolean } {
+  const path = pathname.replace(/[?#].*$/, "").replace(/(.)\/+$/, "$1");
+  const hit = NAV.find((item) => item.href === path);
+  if (hit) return { key: hit.key, exact: true };
+  // A nested route belongs to its section: /app/rfqs/<id> and
+  // /app/settings/rfq are both §3 screens this shell will render, and an
+  // exact match alone left every one of them highlighting nothing. Longest
+  // href wins so /app/searches/new cannot be claimed by /app/search-anything.
+  const under = NAV.filter((item) => path.startsWith(item.href + "/")).sort((a, b) => b.href.length - a.href.length);
+  if (under[0]) return { key: under[0].key, exact: false };
+  // `/app/suppliers/<slug>` and `/app/suppliers/<slug>/lines/<hs>` are spec
+  // §3.3 and §3.4 — the screens a buyer actually sits on — and no nav item has
+  // that href, because the Suppliers row points at the search. They belong to
+  // Suppliers all the same.
+  if (path === "/app/suppliers" || path.startsWith("/app/suppliers/")) {
+    return { key: "suppliers", exact: false };
+  }
+  return { key: null, exact: false };
+}
+
 function navCount(key: NavKey, counts: SidebarModel["counts"]): ReactNode {
-  if (key === "search") return "⌘K";
+  // The Search row used to return the literal "⌘K" here, which put a keyboard
+  // hint inside the link's accessible name ("Search ⌘K") and advertised the
+  // shortcut on every shell — including the ones with no search form for it to
+  // focus, where nothing listens for it. The topbar carries the hint, beside
+  // the field it acts on, and only when that field is there.
   const n = key === "suppliers" ? counts.suppliers : key === "rfqs" ? counts.rfqs : key === "saved" ? counts.saved : null;
   return n === null || n === undefined ? null : formatCount(n);
 }
@@ -40,9 +140,25 @@ export function Sidebar({ model, screenLabel }: { model: SidebarModel; screenLab
   const { plan } = model;
   const pct =
     plan.used !== null && plan.used !== undefined && plan.allowance ? Math.round((plan.used / plan.allowance) * 100) : null;
+  // Below `md` there is no room for a 232px rail beside the content — at
+  // 320px it left about 88px to read in. It does not follow that the nav can
+  // be hidden: an earlier pass did that and handed phones `BottomTabBar`
+  // instead, which carries the app's top five destinations and NOT Products
+  // or Compliance hub, both of which this kit's own rail lists. The kit
+  // routes render no hamburger either, so those two became unreachable below
+  // 768px while staying one click away above it — functionality lost at the
+  // narrower width (WCAG 1.4.10).
+  //
+  // So it reflows instead of hiding: a horizontal, scrollable strip of the
+  // same links under the topbar on phones, the full rail from `md`. Every
+  // destination stays reachable at every width, with no drawer, no state and
+  // no second navigation to keep in step.
   return (
-    <aside className="flex w-sidebar shrink-0 flex-col gap-5 border-r border-line-subtle px-3 py-4">
-      <div className="flex items-center gap-2.5 px-2 py-0.5">
+    <aside
+      aria-label={screenLabel ? `Sidebar, ${screenLabel}` : "Sidebar"}
+      className="flex w-full shrink-0 flex-col gap-5 border-b border-line-subtle px-3 py-3 md:w-sidebar md:border-b-0 md:border-r md:py-4"
+    >
+      <div className="hidden items-center gap-2.5 px-2 py-0.5 md:flex">
         <span
           aria-hidden
           className="grid size-7 place-items-center rounded-sm bg-brand font-mono text-xs font-medium tracking-[0.02em] text-brand-on"
@@ -51,7 +167,17 @@ export function Sidebar({ model, screenLabel }: { model: SidebarModel; screenLab
         </span>
         <span className="text-title font-medium tracking-[-0.01em] text-ink-strong">SourceBD</span>
       </div>
-      <nav aria-label={screenLabel ? `Primary, ${screenLabel}` : "Primary"} className="flex flex-col gap-0.5">
+      <nav
+        aria-label={screenLabel ? `Primary, ${screenLabel}` : "Primary"}
+        // `overflow-x-auto` computes `overflow-y: auto` too, and an outline is
+        // not scrollable overflow — so on a 32px-tall strip the global
+        // `outline-offset-2` focus ring was cut off top and bottom and a
+        // keyboard user tabbing the phone nav saw two clipped side edges
+        // (WCAG 2.4.11). `-mx-1 px-1` already bought that room horizontally;
+        // `-my-1 py-1` is the same trade vertically, and costs no layout
+        // because the negative margin gives the padding back.
+        className="-mx-1 -my-1 flex snap-x gap-1 overflow-x-auto px-1 py-1 md:mx-0 md:my-0 md:flex-col md:gap-0.5 md:overflow-visible md:px-0 md:py-0"
+      >
         {NAV.map((item) => {
           const on = item.key === model.active;
           const count = navCount(item.key, model.counts);
@@ -59,9 +185,9 @@ export function Sidebar({ model, screenLabel }: { model: SidebarModel; screenLab
             <a
               key={item.key}
               href={item.href}
-              aria-current={on ? "page" : undefined}
+              aria-current={on ? (model.activeExact === false ? "true" : "page") : undefined}
               className={cn(
-                "flex h-8 items-center gap-2.5 rounded-sm px-2 text-sm font-medium text-ink-muted hover:bg-surface-sunken",
+                "flex h-8 shrink-0 snap-start items-center gap-2.5 whitespace-nowrap rounded-sm px-2 text-sm font-medium text-ink-muted hover:bg-surface-sunken md:shrink",
                 // The tint alone is 1.07:1 against the canvas beside it, so on
                 // a dim screen the current item was indistinguishable from the
                 // rest (WCAG 1.4.11 asks 3:1 for a state). `brand` is 7.87:1
@@ -77,24 +203,12 @@ export function Sidebar({ model, screenLabel }: { model: SidebarModel; screenLab
           );
         })}
       </nav>
-      {model.recent.length > 0 ? (
-        <div className="flex flex-col gap-2">
-          <Eyebrow className="px-2">Recent searches</Eyebrow>
-          <div className="flex flex-col">
-            {model.recent.map((r) => (
-              <a
-                key={r.href + r.label}
-                href={r.href}
-                className="block overflow-hidden text-ellipsis whitespace-nowrap rounded-sm px-2 py-[5px] text-sm text-ink hover:bg-surface-sunken"
-              >
-                {r.label}
-                {r.count !== null ? <Count className="ml-1.5">{formatCount(r.count)}</Count> : null}
-              </a>
-            ))}
-          </div>
-        </div>
-      ) : null}
-      <div className="mt-auto flex flex-col gap-1.5 border-t border-line-subtle px-2 pt-4">
+      {/* Rail furniture, not navigation: hidden on phones where the strip
+          above carries every destination. */}
+      <div className="hidden md:contents">
+        <RecentSearchesSlot items={model.recent} />
+      </div>
+      <div className="mt-auto hidden flex-col gap-1.5 border-t border-line-subtle px-2 pt-4 md:flex">
         <div className="flex items-center gap-2">
           <Label className="text-ink-strong">{plan.name}</Label>
           {plan.note ? <Caption className="ml-auto">{plan.note}</Caption> : null}
@@ -117,36 +231,79 @@ export type TopbarModel = {
   caption: string;
   /** The viewer's initial; null renders an empty avatar. */
   initial: string | null;
+  searchAction?: string;
+  searchQuery?: string;
 };
 
-export function Topbar({ model }: { model: TopbarModel }) {
+export function Topbar({ model, screenLabel }: { model: TopbarModel; screenLabel?: string }) {
   return (
-    <div className="glass flex h-topbar shrink-0 items-center gap-4 border-b border-line-subtle px-6">
-      {/* Not a real search yet — no input, no submit, nothing operable
-          inside it. `role="search"` on a landmark with no interactive
-          descendant fails ARIA's own definition of the role (accessibility,
-          cycle 19, BLOCKING F2); it arrives wired to a real control with the
-          results work, and gets the landmark role back then. */}
-      <div
-        className="flex h-control w-[360px] items-center gap-2 rounded-sm border border-line-strong bg-surface px-2.5 text-sm text-ink-subtle"
-      >
-        <Icon name="search" />
-        <span className="grow">Search suppliers, HS codes, certificates</span>
-        <Kbd>⌘K</Kbd>
-      </div>
-      <Caption className="ml-auto inline-flex items-center gap-2">
+    <div className="glass flex h-topbar shrink-0 items-center gap-3 border-b border-line-subtle px-4 sm:gap-4 sm:px-6">
+      {model.searchAction ? (
+        <form
+          role="search"
+          // The `search` landmark had no name. `screenLabel` was documented as
+          // having been threaded into "nav/search" and had only ever reached
+          // nav and main, so the six shells in the /dev/ds gallery rendered six
+          // identical unnamed search landmarks (WCAG 1.3.1).
+          // Not `Search, ${screenLabel}` unconditionally: on /app/discover the
+          // screen label IS "Search", and the landmark read "Search, Search".
+          aria-label={screenLabel && screenLabel !== "Search" ? `Search, ${screenLabel}` : "Search"}
+          action={model.searchAction}
+          method="get"
+          className="flex h-control w-full min-w-0 max-w-[360px] items-center gap-2 rounded-sm border border-line-strong bg-surface px-2.5 text-sm text-ink-subtle"
+        >
+          <Icon name="search" />
+          <input
+            type="search"
+            name="q"
+            // What `SEARCH_FIELD_SELECTOR` looks for. Naming the field beats
+            // inferring it from `form[role="search"]`, which /app/products also
+            // renders.
+            data-search="topbar"
+            defaultValue={model.searchQuery ?? ""}
+            placeholder="Search suppliers, HS codes, certificates"
+            aria-label="Search suppliers, HS codes, certificates"
+            // No `outline-none`: Tailwind emits it as a transparent 2px outline
+            // in @layer utilities, which lands after the global
+            // `:focus-visible` ring in @layer base at equal specificity and
+            // wins — leaving a keyboard user with no indicator at all on the
+            // primary search field.
+            // `min-w-0`: a flex item defaults to `min-width: auto`, and an
+            // input's intrinsic floor is its `size` attribute (~20 characters),
+            // so at 320px it refused to shrink and pushed itself and the ⌘K
+            // badge out over the buttons beside it. The form has `min-w-0` so the
+            // document never scrolled — the overlap was purely visual, which
+            // is why it survived the reflow pass.
+            className="min-w-0 grow bg-transparent text-ink-strong placeholder:text-ink-subtle"
+          />
+          <Kbd>⌘K</Kbd>
+          <SearchShortcut />
+        </form>
+      ) : (
+        <div className="flex h-control w-full min-w-0 max-w-[360px] items-center gap-2 rounded-sm border border-line-strong bg-surface px-2.5 text-sm text-ink-subtle">
+          <Icon name="search" />
+          <span className="min-w-0 grow truncate">Search suppliers, HS codes, certificates</span>
+        </div>
+      )}
+      <Caption className="ml-auto hidden items-center gap-2 lg:inline-flex">
         <LiveDot />
         {model.caption}
       </Caption>
-      <Button variant="ghost" icon aria-label="Help">
-        ?
-      </Button>
-      <span
-        aria-hidden
-        className={cn("grid size-7 place-items-center rounded-full text-xs font-medium", model.initial ? "bg-tier-2 text-tier-2-on" : "border border-line-strong bg-surface")}
+      {/* No Help button until /app/help exists: it had no destination
+          (founder decision, 24 Sep). render.test.ts holds this. */}
+      {/* A real link, not decoration. The kit shell replaces the app topbar,
+          which is where the account menu and sign-out live, so on these three
+          routes this was the only account affordance and it was aria-hidden. */}
+      <a
+        href="/app/settings"
+        aria-label="Account and settings"
+        className={cn(
+          "grid size-7 place-items-center rounded-full text-xs font-medium",
+          model.initial ? "bg-tier-2 text-tier-2-on" : "border border-line-strong bg-surface",
+        )}
       >
-        {model.initial ?? ""}
-      </span>
+        <span aria-hidden>{model.initial ?? ""}</span>
+      </a>
     </div>
   );
 }
@@ -192,7 +349,7 @@ export function AppShell({
   // kit replaces already has both — `app/(app)/layout.tsx` renders `SkipLink`
   // and `<main id="main-content">`.
   return (
-    <div className="flex min-h-full bg-canvas text-base text-ink">
+    <div className="flex min-h-full flex-col bg-canvas text-base text-ink md:flex-row">
       <a
         href={`#${mainId}`}
         className="sr-only focus:not-sr-only focus:absolute focus:left-3 focus:top-3 focus:z-50 focus:rounded-sm focus:border focus:border-line-strong focus:bg-surface focus:px-3 focus:py-2 focus:text-sm focus:font-medium focus:text-ink-strong"
@@ -201,11 +358,18 @@ export function AppShell({
       </a>
       <Sidebar model={sidebar} screenLabel={screenLabel} />
       <div className="flex min-w-0 flex-1 flex-col">
-        <Topbar model={topbar} />
+        <Topbar model={topbar} screenLabel={screenLabel} />
         <main
           id={mainId}
           aria-label={screenLabel}
-          className={cn("mx-auto flex w-full max-w-[calc(75rem+3rem)] flex-col gap-4 p-6", contentClassName)}
+          // Without it the skip link relies on the browser choosing to move
+          // focus to a non-focusable fragment target, which older Safari does
+          // not. `app/(app)/layout.tsx` sets it on the shell this replaces.
+          tabIndex={-1}
+          className={cn(
+            "mx-auto flex w-full max-w-[calc(75rem+3rem)] flex-col gap-4 p-4 sm:p-6",
+            contentClassName,
+          )}
         >
           {children}
         </main>

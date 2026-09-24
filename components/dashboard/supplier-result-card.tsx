@@ -5,6 +5,13 @@
 // and the V2 why-matched line. Selected: filled checkbox + 3px brand inset
 // rule. Sanctioned: 4px sanction bar, a notice under the meta, the badge first
 // in the chip row, Send RFQ disabled — nothing in the layout can hide it.
+//
+// Client (REZ-B): the checkbox reads and writes the shared selection context
+// (`./selection`), which only exists inside a `SelectionProvider`. Outside
+// one — the `/dev/ds` gallery — it falls back to the static `card.selected`
+// prop and the checkbox stays inert, exactly as REZ-A shipped it.
+
+"use client";
 
 import type { SupplierCardModel, FactWithMark, TileModel } from "@/lib/dashboard/models";
 import { cn } from "@/lib/utils";
@@ -13,6 +20,8 @@ import { Button, Checkbox, V2Tag } from "./controls";
 import { Icon } from "./icons";
 import { LogoTile, SourceMark, SourceMarks } from "./marks";
 import { PhotoStrip } from "./photo-tiles";
+import { SaveRecordButton } from "./save-record-button";
+import { useSelection } from "./selection";
 import { Code, Title } from "./type";
 
 /** `.meta`: facts separated by middle dots, each followed by its 16px mark. */
@@ -86,34 +95,55 @@ export function SanctionLine({ sample, href, className }: { sample?: boolean; hr
 
 export function SupplierResultCard({ card }: { card: SupplierCardModel }) {
   const recordHref = `/app/suppliers/${card.slug}`;
+  const sel = useSelection();
+  const selectable = sel.interactive && Boolean(card.supplierId);
+  const selected = selectable ? sel.isSelected(card.supplierId!) : Boolean(card.selected);
   return (
     <article
       aria-label={card.name}
       data-sanctioned={card.sanctioned ? "true" : undefined}
       className={cn(
         "relative flex gap-3 border-b border-line-subtle p-5 last-of-type:border-b-0",
-        card.selected && "shadow-[inset_3px_0_0_rgb(var(--ds-brand))]",
+        selected && "shadow-[inset_3px_0_0_rgb(var(--ds-brand))]",
         card.sanctioned && "before:absolute before:bottom-0 before:left-0 before:top-0 before:w-1 before:bg-sanction before:content-['']",
       )}
     >
-      <Checkbox on={card.selected} label={`Select ${card.name}`} className="mt-4" />
+      <Checkbox
+        on={selected}
+        label={`Select ${card.name}`}
+        onToggle={selectable ? () => sel.toggle(card.supplierId!) : undefined}
+        className="mt-4"
+      />
       <div className="flex min-w-0 flex-1 flex-col gap-4">
-        <div className="flex items-start gap-3">
+        {/* Wraps, so the action cluster drops below the identity block rather
+            than pushing the card past the viewport. */}
+        <div className="flex flex-wrap items-start gap-3">
           <LogoTile initials={card.initials} tier={card.topTier} />
           <div className="flex min-w-0 flex-1 flex-col gap-1">
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-              <Title>{card.name}</Title>
+              {/* A heading, so heading navigation moves between results and each
+                  card's Open / Send RFQ / Save sit under their supplier's name. */}
+              <Title as="h2">{card.name}</Title>
               <SourceMarks marks={card.marks} />
             </div>
             <MetaLine facts={card.meta} />
             {card.sanctioned ? <SanctionLine sample={card.sanctionSample} href={recordHref} /> : null}
           </div>
-          <div className="flex shrink-0 items-center gap-2 pt-2">
-            <Button>
-              <Icon name="bookmark" /> Save
-            </Button>
-            <Button>Open record</Button>
-            <Button variant="primary" disabled={card.sanctioned}>
+          {/* Not `shrink-0`: three nowrap buttons come to ~326px, and with
+              the card's padding and logo tile that set the card's minimum at
+              ~430px — so Cards, which is the default view, scrolled the page
+              sideways on a 375px phone as well as at the 320px floor. Wraps
+              under the identity block below `sm`. */}
+          <div className="flex flex-wrap items-center gap-2 pt-2 sm:shrink-0 sm:flex-nowrap">
+            {card.supplierId ? (
+              <SaveRecordButton supplierId={card.supplierId} saved={Boolean(card.saved)} />
+            ) : (
+              <Button>
+                <Icon name="bookmark" /> Save
+              </Button>
+            )}
+            <Button href={`/app/suppliers/${card.slug}`}>Open record</Button>
+            <Button variant="primary" href={card.sanctioned ? undefined : (card.rfqHref ?? undefined)} disabled={card.sanctioned}>
               <Icon name="send" /> Send RFQ
             </Button>
           </div>
@@ -130,13 +160,15 @@ export function SupplierResultCard({ card }: { card: SupplierCardModel }) {
             </Chip>
           ))}
         </Chips>
-        <div className="flex items-start gap-4">
-          <div className="grid w-[352px] shrink-0 grid-cols-2 gap-2">
+        {/* 352px of tiles beside the photo strip does not fit a phone; below
+            `lg` they stack and the tiles take the full width. */}
+        <div className="flex flex-col items-stretch gap-4 lg:flex-row lg:items-start">
+          <div className="grid w-full grid-cols-2 gap-2 lg:w-[352px] lg:shrink-0">
             {card.tiles.map((t) => (
               <Tile key={t.label} tile={t} />
             ))}
           </div>
-          <PhotoStrip tiles={card.photos} totalLines={card.totalLines} registerChecked="EPB" readDate={card.epbReadDate} unknown={card.linesUnknown} />
+          <PhotoStrip tiles={card.photos} totalLines={card.totalLines} registerChecked="EPB" readDate={card.epbReadDate} unknown={card.linesUnknown} onRegister={card.onEpbRegister} />
         </div>
         {card.why && card.why.length > 0 ? (
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 text-sm text-smart">
