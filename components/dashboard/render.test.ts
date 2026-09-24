@@ -1558,6 +1558,57 @@ describe("the two-state controls say which state they are in", () => {
       );
     });
 
+    it("every selection box keeps its look in High Contrast: the classes each caller renders, pinned", () => {
+      // Forced colors keep a border and repaint a background as Canvas. A
+      // class that hides the box or drops its border there (forced-colors:*,
+      // hidden, invisible, border-0…) can come from Checkbox itself or from a
+      // caller's className, so the rendered class of every box a buyer can
+      // tick is pinned exactly, in each state. Changing one means changing
+      // this list on purpose.
+      const BOX = "inline-grid size-4 shrink-0 place-items-center rounded-xs border";
+      const LIVE = "cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[rgb(var(--ds-brand))]";
+      const OFF = `${BOX} border-line-strong bg-surface ${LIVE}`;
+      const ON = `${BOX} ${LIVE} border-brand bg-brand text-brand-on`;
+      const under = (allState: boolean | "mixed", selected: boolean, el: ReturnType<typeof createElement>) => {
+        const value: SelectionContextValue = {
+          interactive: true,
+          selected: new Set(selected ? [A] : []),
+          isSelected: () => selected,
+          toggle: () => {},
+          toggleAllOnPage: () => {},
+          allState,
+          clear: () => {},
+          edits: 0,
+        };
+        return renderToStaticMarkup(createElement(SelectionContext.Provider, { value }, el));
+      };
+      const boxes = (html: string) => [...html.matchAll(/<span[^>]*role="checkbox"[^>]*>/g)].map((m) => m[0].match(/class="([^"]*)"/)?.[1] ?? "");
+      const header = createElement(PanelHeader, { model: { title: "K", total: 2, shown: 2, firstRow: 1, sortLabel: "Name", view: "cards" as const } });
+      const row = { ...buildTableRow(aboniInput()), supplierId: A };
+      const card = { ...buildCard(aboniInput()), supplierId: A };
+      const cases: [string, string, string][] = [
+        ["select-all, none", under(false, false, header), OFF],
+        ["select-all, some", under("mixed", false, header), ON],
+        ["select-all, all", under(true, false, header), ON],
+        ["table row, off", under(false, false, createElement(ResultsTable, { rows: [row] })), OFF],
+        ["table row, on", under(false, true, createElement(ResultsTable, { rows: [row] })), ON],
+        ["card, off", under(false, false, createElement(SupplierResultCard, { card })), `${OFF} mt-4`],
+        ["card, on", under(false, true, createElement(SupplierResultCard, { card })), `${ON} mt-4`],
+      ];
+      for (const [name, html, want] of cases) {
+        const got = boxes(html);
+        assert.equal(got.length, 1, `${name}: expected one selection box`);
+        assert.equal(got[0], want, `${name}: the box's classes changed`);
+      }
+      // And nothing inside a box, or on it, is conditioned on forced colors
+      // except the mixed dash, which is pinned on its own above.
+      for (const [name, html] of cases) {
+        for (const c of html.matchAll(/class="([^"]*forced-colors:[^"]*)"/g)) {
+          assert.equal(c[1], "block h-0.5 w-2 rounded-full bg-current forced-colors:bg-[CanvasText]", `${name}: a forced-colors class outside the dash`);
+        }
+      }
+    });
+
     it("the bar is sticky only on a window tall enough to spare it, and hides the two dead actions on a phone (WCAG 1.4.10)", () => {
       const html = bar([A]);
       const cls = html.match(/<div role="group" aria-label="Bulk actions" class="([^"]+)"/)?.[1] ?? "";
@@ -2100,8 +2151,9 @@ describe("the shell offers no control without a destination", () => {
         assert.match(m[0], /\btype="submit"/, `a button with no destination: ${m[0]}`);
         assert.ok(insideForm(html, m.index!), `a submit button outside any form: ${m[0]}`);
       }
-      // A submit can post elsewhere (formaction) or to another form (form=).
-      for (const m of html.matchAll(/<(?:button|input)\b[^>]*>/g)) {
+      // A submit can post elsewhere (formaction); any control can join another
+      // form by id (form=), select and textarea included.
+      for (const m of html.matchAll(/<(?:button|input|select|textarea)\b[^>]*>/g)) {
         const to = m[0].match(/\bformAction="([^"]*)"|\bformaction="([^"]*)"/i);
         if (to) assert.ok(pageExists(to[1] ?? to[2] ?? ""), `a submit posting to a page that does not exist: ${m[0]}`);
         assert.doesNotMatch(m[0], /\bform="/, `a control submitting a form it does not sit in: ${m[0]}`);

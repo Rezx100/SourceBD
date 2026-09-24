@@ -175,6 +175,32 @@ describe("the bulk bar's handlers, invoked", () => {
     assert.equal(findAll(idle.out as never, (el) => el.props.role === "group").length, 0, "an idle, empty bar stayed");
   });
 
+  it("the real sequence: Save, then Clear mid-save, then the answer lands — and the emptied bar shows it", async () => {
+    // Not an injected message: the status the bar renders after Clear is the
+    // one the real handler wrote, after the real edits effect ran mid-save.
+    for (const [status, body, said] of [
+      [200, { ok: true, count: 1, skipped: 0, ids: [A] }, "For your earlier selection: Saved 1 supplier"],
+      [429, { error: "rate_limited" }, "For your earlier selection: Too many saves in the last minute. Wait a minute and save again."],
+    ] as const) {
+      stub("window", new EventTarget());
+      let run: ReturnType<typeof bar> | null = null;
+      stub("fetch", async () => {
+        run!.effects[0]!(); // Clear bumps edits: the real reset runs
+        return json(status, body);
+      });
+      run = bar(selection([A], { edits: 3 }), { refresh: () => {} });
+      await (buttonNamed(run.out, "Save").props.onClick as () => Promise<void>)();
+      const last = (hook: number, initial: unknown) => {
+        const s = run!.sets.filter((x) => x.hook === hook);
+        return s.length ? s[s.length - 1]!.value : initial;
+      };
+      const after = bar(selection([], { edits: 4 }), { refresh: () => {} }, [last(0, false), last(1, ""), last(2, "")]);
+      assert.equal(findAll(after.out as never, (el) => el.props.role === "group").length, 1, `${status}: the bar went after Clear`);
+      const regions = findAll(after.out as never, (el) => el.type === "span" && el.props.role === "status" && !String(el.props.className ?? "").includes("sr-only"));
+      assert.ok(regions.some((r) => textOf(r.props.children as never).includes(said)), `${status}: not on screen after Clear: ${said}`);
+    }
+  });
+
   it("Clear moves focus to the select-all box, THEN clears", () => {
     const order: string[] = [];
     stub("document", { getElementById: (id: string) => ({ focus: () => order.push(`focus:${id}`) }) });

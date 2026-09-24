@@ -9,6 +9,7 @@ import { PII_KEYS } from "@/lib/discover-v32-rpc";
 import { discoverRowsToCsv } from "./dashboard/build-discover-row";
 import type { DiscoverV32Row } from "./discover-v32-rpc";
 import { discoverRowHasPii } from "./discover-v32-rpc";
+import { discoverRpcArgs, parseDiscoverState } from "./discover-v32-state";
 
 const TODAY = new Date("2026-09-21T00:00:00Z");
 
@@ -424,6 +425,10 @@ describe("discover CSV export boundary", () => {
     assert.equal(args.p_exclude_sanctioned, true, "sanctioned suppliers were not excluded by default");
   });
 
+  const EVERY_FILTER =
+    "q=knit&hs=6105,6110&cert=gots:valid&reg=BGMEA&brand=hm&district=Gazipur&city=Tongi&type=factory" +
+    "&min_sources=2&rsc=active&est_from=1990&est_to=2010&workers_min=100&workers_max=5000&sort=name";
+
   it("a selected-rows export re-runs the buyer's own filters, never a bare id lookup", async () => {
     // The `?ids=` path keeps only ids the buyer's own search returns. With the
     // parsed state replaced (an empty search, or sanctioned let in), it could
@@ -438,17 +443,22 @@ describe("discover CSV export boundary", () => {
           return { data: [ROW], error: null };
         },
       },
-      search: `?q=knit&hs=6105,6110&cert=gots:valid&reg=BGMEA&sort=name&ids=${ROW.id}`,
+      search: `?${EVERY_FILTER}&ids=${ROW.id}`,
       today: TODAY,
     });
     assert.equal(res.status, 200);
     assert.equal(seen.length, 1);
     const args = seen[0] ?? {};
-    assert.equal(args.p_q, "knit");
-    assert.deepEqual(args.p_hs_codes, ["6105", "6110"]);
-    assert.deepEqual(args.p_cert_kinds, ["gots"]);
-    assert.equal(args.p_cert_state, "valid");
-    assert.deepEqual(args.p_registries, ["BGMEA"]);
+    // Every filter the page ran, not a sample of them: the query the results
+    // page builds from the same URL, minus only the paging and the order.
+    const page: Record<string, unknown> = { ...discoverRpcArgs(parseDiscoverState(new URLSearchParams(EVERY_FILTER))) };
+    const keys = Object.keys(page).filter((k) => !["p_offset", "p_limit", "p_sort"].includes(k)).sort();
+    for (const k of keys) assert.deepEqual(args[k], page[k], `the selected export changed ${k}`);
+    assert.deepEqual(Object.keys(args).filter((k) => !["p_offset", "p_limit", "p_sort"].includes(k)).sort(), keys, "the selected export sent a different set of filters");
+    // And the URL really sets them, or equal defaults would prove nothing.
+    for (const k of ["p_q", "p_entity_types", "p_min_sources", "p_cert_kinds", "p_registries", "p_brand_codes", "p_workers_min", "p_hs_codes", "p_cert_state", "p_rsc_state", "p_est_from", "p_est_to", "p_workers_max", "p_districts", "p_cities"]) {
+      assert.notEqual(page[k], null, `the fixture URL does not set ${k}`);
+    }
     assert.equal(args.p_exclude_sanctioned, true, "a selected export let sanctioned suppliers in");
   });
 
