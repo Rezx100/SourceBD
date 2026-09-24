@@ -161,6 +161,12 @@ export type SanctionRow = {
   screenedOn: string | null;
   listedOn: string | null;
   href: string | null;
+  /**
+   * What `href` opens: the entry itself (the URL is anchored at it), or the
+   * whole watchlist. The same discipline the brand marks follow — a link never
+   * promises more than it delivers.
+   */
+  opens: "entry" | "list";
 };
 
 /** One of the calling buyer's RFQs that names this supplier. */

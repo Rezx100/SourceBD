@@ -454,6 +454,47 @@ export function sanctionedInput(): RecordInput {
   };
 }
 
+/**
+ * A flagged record WITH the watchlist rows behind the flag.
+ *
+ * Production has 13,366 `sanctions_list_entries` and, today, zero ACTIVE
+ * `sanctions_screening` rows — so no real record carries this payload and the
+ * populated path had no fixture at all. The shape is the live
+ * `buyer_supplier_profile`'s own `sanc` CTE (`list`, `matched_name`,
+ * `list_entry_ref`, `screened_at`, `source_url`, `listed_date`), and the list
+ * values are real enum members from `sanctions_list_entries`.
+ *
+ * Two rows on purpose: one with an entry URL and one without, because the
+ * section links only where a link exists.
+ */
+export function sanctionedWithEvidenceInput(): RecordInput {
+  const base = sanctionedInput();
+  return {
+    ...base,
+    profile: {
+      ...base.profile,
+      sanctions: [
+        {
+          list: "uflpa",
+          matched_name: "ZAHEEN KNITWEARS LIMITED",
+          list_entry_ref: "UFLPA-2024-0117",
+          screened_at: "2026-09-18T05:47:07.954625+00:00",
+          listed_date: "2024-06-11",
+          source_url: "https://www.dhs.gov/uflpa-entity-list#UFLPA-2024-0117",
+        },
+        {
+          list: "ofac_sdn",
+          matched_name: "Zaheen Knitwears Ltd",
+          list_entry_ref: null,
+          screened_at: "2026-09-18T05:47:07.954625+00:00",
+          listed_date: null,
+          source_url: null,
+        },
+      ],
+    } as unknown as ProfilePayload,
+  };
+}
+
 // ---------------------------------------------------------------------------
 // S M Knitwears — two EPB registrations, six certificates (four of them
 // OEKO-TEX), 24 HS lines across chapters 61 and 62, and an RSC row that

@@ -16,7 +16,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, it } from "node:test";
 
 import { buildProductSheet, buildSheet } from "@/lib/dashboard/build-models";
-import { aboniInput, sanctionedInput, zaheenSampleInput } from "@/lib/dashboard/fixtures";
+import { aboniInput, sanctionedInput, sanctionedWithEvidenceInput, zaheenSampleInput } from "@/lib/dashboard/fixtures";
 import { ProductSheet } from "./product-sheet";
 import { SupplierSheet } from "./supplier-sheet";
 
@@ -149,6 +149,55 @@ describe("SupplierSheet — a sanctioned record (REZ-C §3.3, spec §2)", () => 
     );
     assert.ok(html.includes('href="/app/rfqs/new?supplier=abc"'), "Send RFQ is not a link on a record that can receive one");
     assert.doesNotMatch(html, /data-sanction-visible/);
+  });
+});
+
+describe("SupplierSheet — the sanction banner's evidence", () => {
+  it("names the list, the matched name, the reference and the dates, and links the entry", () => {
+    // The page this sheet replaced put these on its Compliance tab, and the
+    // banner's own copy pointed at them. Without them a signed-in buyer saw
+    // strictly LESS than an anonymous visitor on the public profile: an
+    // accusation with no receipt, on the one record where the receipt matters
+    // most.
+    const model = buildSheet(sanctionedWithEvidenceInput());
+    const html = renderToStaticMarkup(createElement(SupplierSheet, { model }));
+    assert.equal(model.sanctions.length, 2);
+    assert.match(html, /id="sanctions"/);
+    assert.match(html, /See the matches/);
+    assert.match(html, /uflpa/);
+    assert.match(html, /UFLPA-2024-0117/);
+    assert.match(html, /Matched “ZAHEEN KNITWEARS LIMITED”/);
+    assert.match(html, /listed 11 Jun 2024/);
+    assert.match(html, /screened 18 Sep 2026/);
+    assert.ok(html.includes("https://www.dhs.gov/uflpa-entity-list#UFLPA-2024-0117"), "the entry is not linked");
+    // The second row has no URL and no reference: it keeps its place and says
+    // what it has, rather than being dropped or given a dead link.
+    assert.match(html, /ofac_sdn/);
+    assert.equal((html.match(/Matched “/g) ?? []).length, 2);
+  });
+
+  it("a flagged record with no rows says which absence it is", () => {
+    // Two different absences, and the difference matters on this record: the
+    // screen filed nothing, versus the read failed.
+    const filedNothing = buildSheet({
+      ...sanctionedInput(),
+      profile: { ...sanctionedInput().profile, sanctions: [] } as never,
+    });
+    const notRead = buildSheet(sanctionedInput());
+    assert.match(
+      renderToStaticMarkup(createElement(SupplierSheet, { model: filedNothing })),
+      /The screen recorded a match but filed no entry for it\./,
+    );
+    assert.match(
+      renderToStaticMarkup(createElement(SupplierSheet, { model: notRead })),
+      /The matched entries could not be read\./,
+    );
+  });
+
+  it("a clean record draws no sanctions section at all", () => {
+    const html = renderToStaticMarkup(createElement(SupplierSheet, { model: buildSheet(aboniInput()) }));
+    assert.doesNotMatch(html, /id="sanctions"/);
+    assert.doesNotMatch(html, /See the matches/);
   });
 });
 

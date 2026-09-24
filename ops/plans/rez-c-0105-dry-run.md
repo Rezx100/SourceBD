@@ -48,18 +48,16 @@ line endings  : CRLF
 sha256        : 0edbaf6a0f81a33320cdf4b21757104ef56c1395f591a944b4fa50c8afe769b0
 ```
 
-The raw output below was taken at sha256 `e848c54d…`; the bytes that changed
-since are comment lines in the header (the `registers` omission and the RLS
-caveat above). The SQL is identical — re-run the script before applying and
-compare, as §18 requires.
+Re-run at this sha256 on 25 Sep after the audit-cycle-1 repairs. Re-run it
+again before applying and compare, as closed-loop §18 requires.
 
 ## Raw output
 
 ```
 file          : supabase/migrations/0105_supplier_record_v32.sql
-bytes         : 4795
+bytes         : 5771
 line endings  : CRLF
-sha256        : e848c54da236791282240ff7655dedcd9008c6b856910f6718eb9e52b0211bd6
+sha256        : 0edbaf6a0f81a33320cdf4b21757104ef56c1395f591a944b4fa50c8afe769b0
 
 === BEFORE ===
 supplier_contact_counts exists:

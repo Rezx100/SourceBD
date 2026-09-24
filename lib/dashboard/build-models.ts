@@ -1310,6 +1310,16 @@ export function buildSheet(input: RecordInput, options: SheetOptions = {}): Supp
   return { ...model, everyMarkLinks };
 }
 
+/** A usable http(s) link, or null. The label says whether it is the entry or the list. */
+function sanctionHref(url: string | null | undefined): string | null {
+  if (!url || !/^https?:\/\//i.test(url)) return null;
+  try {
+    return new URL(url).pathname.replace(/\/+$/, "") === "" && !url.includes("#") ? null : url;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * The watchlist rows behind the banner, best-evidenced first.
  *
@@ -1327,7 +1337,12 @@ function sanctionRows(p: ProfilePayload): SanctionRow[] {
       ref: x.list_entry_ref?.trim() || null,
       screenedOn: formatDay(x.screened_at),
       listedOn: formatDay(x.listed_date),
-      href: recordPage(x.source_url) ? x.source_url : null,
+      // NOT `recordPage`: that heuristic is about a register's page for one
+      // company, and it rejects `…/uflpa-entity-list#UFLPA-2024-0117` because
+      // the path carries no digit. A watchlist entry is legitimately an anchor
+      // into a list, so the link is kept and LABELLED by what it opens.
+      href: sanctionHref(x.source_url),
+      opens: ((x.source_url ?? "").includes("#") ? "entry" : "list") as SanctionRow["opens"],
     }))
     .sort((a, b) => a.list.localeCompare(b.list) || a.matchedName.localeCompare(b.matchedName));
 }

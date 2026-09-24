@@ -572,7 +572,7 @@ export function SanctionEvidence({ rows }: { rows: readonly SanctionRow[] }) {
             {r.ref ? <Code className="text-ink">{r.ref}</Code> : null}
             {r.href ? (
               <a href={r.href} className="ml-auto inline-flex items-center gap-0.5 text-sm font-medium text-brand-ink">
-                Entry <Icon name="external" small />
+                {r.opens === "entry" ? "Entry" : "The list"} <Icon name="external" small />
               </a>
             ) : null}
           </div>
