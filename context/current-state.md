@@ -36,18 +36,20 @@ migrations, run the 30-day zero P1/P2 Sentry incident window.
   merged to `development` via PR #161 (21 Sep). Dev/admin-only gallery at
   `/dev/ds`; no live route wired yet. Full history:
   `context/feature-specs/handoff-rez-a-cycle21.md`.
-- **Buyer dashboard v3.2, REZ-B (results page)** — branch
-  `rez-b-results-page` (pushed; PR #164 draft; merge base `7ea98b4`; tip
-  is `git log -1`, never a SHA written here). Spec §3.1 selection built
-  (23 Sep). Cycle 21 repaired at `4f6eff2` (24 Sep, gate green, no judge
-  yet). TO SHIP, START HERE: `feature-specs/handoff-rez-b-deploy.md`.
-  Loop history: `feature-specs/handoff-rez-b-cycle15.md` (24 Sep:
-  state, decisions (all taken), loop, gates, 0104 dry-run, what follows REZ-B).
-  History of cycles 10–14: §10–§11 of `handoff-rez-b-cycle10.md`.
-  IN PROGRESS. Migration `0104` drafted (not applied; hard dependency of
-  this branch — apply before or with its deploy). `/app/discover`
-  uses the kit; `/app/products`, `/app/searches`, `/app/match` redirect
-  added. `/app/saved` and `/app/compare` stay deferred.
+- **Buyer dashboard v3.2, REZ-B (results page)** — DEPLOYED, MIGRATION
+  MISSING. Judge `ACCEPTED_FOR_HUMAN_REVIEW` at `4f6eff2`; landed on
+  `development` via PR #164 (`cfbbf4a`), promoted to `main` via PR #165
+  (`1780c2c`), deployed 24 Sep (run `36035938232`, `/api/health` confirms
+  the commit). **Migration `0104` is NOT applied, so every signed-in search
+  on the live site fails; the public `/discover` page is unaffected.**
+  START HERE: `feature-specs/handoff-rez-b-live-migration.md` (the apply,
+  the smoke run, the follow-up list). Loop history:
+  `feature-specs/handoff-rez-b-cycle15.md` (24 Sep: state, decisions (all
+  taken), loop, gates, what follows REZ-B) and `handoff-rez-b-deploy.md`
+  (its §1–§2.3 are done). Cycles 10–14: §10–§11 of
+  `handoff-rez-b-cycle10.md`. `/app/discover` uses the kit;
+  `/app/products`, `/app/searches`, `/app/match` redirect added.
+  `/app/saved` and `/app/compare` stay deferred.
 
 ## Founder rules still in force (one line each; detail in archive)
 - EPB is a government register: show its evidence and HS codes whenever EPB has them, flagged or not. Never mint EPB-only suppliers. (15 Aug)
@@ -74,6 +76,7 @@ Migration file headers are NOT live status. Check here or query the database.
 | `0097`–`0101` | see archive per issue | REZ-73 / REZ-114 / REZ-115 |
 | `0102_admin_queue_release` | 14 Aug 2026 | 1,282 tickets released; 48 `needs_human` open |
 | `0103_epb_detail_url_and_hscodes` | 15 Aug 2026 | EPB Open = exporter page |
+| `0104_discover_v32` | **NOT APPLIED** | REZ-B. Its code IS live (`main` `1780c2c`, deployed 24 Sep), so signed-in search is broken until this is applied. Verified 25 Sep: no `discover_v32%` functions, no `saved_searches` table, `discover_suppliers` still at 16 args. sha256 (CRLF) `4f95641b7c8a1956d61d9b866373c963ec7150690afa2a46ff8b96cbbc3e8b47`. |
 
 Deploy-order hazard, twice hit: code that queries a new table with no
 missing-table guard crashes every ETL run if shipped before its migration.
