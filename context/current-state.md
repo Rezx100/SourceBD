@@ -76,7 +76,7 @@ Migration file headers are NOT live status. Check here or query the database.
 | `0097`–`0101` | see archive per issue | REZ-73 / REZ-114 / REZ-115 |
 | `0102_admin_queue_release` | 14 Aug 2026 | 1,282 tickets released; 48 `needs_human` open |
 | `0103_epb_detail_url_and_hscodes` | 15 Aug 2026 | EPB Open = exporter page |
-| `0104_discover_v32` | **NOT APPLIED** | REZ-B. Its code IS live (`main` `1780c2c`, deployed 24 Sep), so signed-in search is broken until this is applied. Verified 25 Sep: no `discover_v32%` functions, no `saved_searches` table, `discover_suppliers` still at 16 args. sha256 (CRLF) `4f95641b7c8a1956d61d9b866373c963ec7150690afa2a46ff8b96cbbc3e8b47`. |
+| `0104_discover_v32` | 25 Sep 2026 | REZ-B. Applied after its code was already live (`main` `1780c2c`, deployed 24 Sep) — signed-in search was down in between. Dry-run clean first (one transaction, rolled back). Verified after: 9 `discover_v32%` functions, `saved_searches` with 4 RLS policies, `discover_suppliers` at 25 args. sha256 (CRLF) `4f95641b7c8a1956d61d9b866373c963ec7150690afa2a46ff8b96cbbc3e8b47`. |
 
 Deploy-order hazard, twice hit: code that queries a new table with no
 missing-table guard crashes every ETL run if shipped before its migration.
