@@ -854,8 +854,8 @@ begin
   -- jsonb_object_keys itself, keys held a single key (the shortest, "id")
   -- and the contact check below ran over the word "id" alone.
   select array_agg(k) into keys
-    from (select d from public.discover_suppliers() d limit 1) r
-   cross join lateral jsonb_object_keys(to_jsonb(r.d)) as k;
+    from (select d as rec from public.discover_suppliers() d limit 1) one_row
+   cross join lateral jsonb_object_keys(to_jsonb(one_row.rec)) as k;
   reset role;
   perform set_config('request.jwt.claim.role', '', true);
   if keys is null then
