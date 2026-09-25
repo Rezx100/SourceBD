@@ -56,7 +56,9 @@ migrations, run the 30-day zero P1/P2 Sentry incident window.
   **The closed loop is OPEN** — two audit cycles run, both rejected and
   repaired; no Acceptance Judge has run and the token has not been issued.
   START HERE: `feature-specs/handoff-rez-c-cycle2.md`.
-  **Named, deliberate deferrals** (see the PR): the Barikoi map on Locations
+  **Ratified by the founder 25 Sep:** "Exporters of 6105 · N" (the count
+  equals the search it opens); 0105's five omitted §4.3 items; and these
+  deferrals: the Barikoi map on Locations
   (§3.3's "map stays") and §3.3's "Map pin" fact row, both of which need the
   old design system's `LocationsSection` that the rebuild spec puts off-limits;
   `/app/compare`, which §7 assigns to REZ-C and which stays deferred with

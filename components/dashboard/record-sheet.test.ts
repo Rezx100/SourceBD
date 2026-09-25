@@ -11,6 +11,8 @@
 // transaction.
 
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, it } from "node:test";
@@ -18,6 +20,7 @@ import { describe, it } from "node:test";
 import { buildProductSheet, buildSheet } from "@/lib/dashboard/build-models";
 import { aboniInput, sanctionedInput, sanctionedWithEvidenceInput, zaheenSampleInput } from "@/lib/dashboard/fixtures";
 import { ProductSheet } from "./product-sheet";
+import { FEEDBACK_ENDPOINT } from "./report-problem";
 import { SupplierSheet } from "./supplier-sheet";
 
 /** Every section the sheet renders, in the order a buyer scrolls them. */
@@ -399,6 +402,23 @@ describe("SupplierSheet — overlay and full page are one component (REZ-C §3.3
       const firstLine = row.value.split("\n")[0]!;
       assert.ok(overlay.includes(firstLine) === full.includes(firstLine), `"${row.label}" differs between the overlay and the full page`);
     }
+  });
+
+  it("both bars carry §3.3's more menu, and it reaches the feedback endpoint the admin queue reads", () => {
+    const model = buildSheet(aboniInput());
+    const overlay = renderToStaticMarkup(createElement(SupplierSheet, { model: { ...model, closeHref: "/app/discover" } }));
+    const full = renderToStaticMarkup(createElement(SupplierSheet, { model, dialog: false }));
+    for (const [where, html] of [["overlay", overlay], ["full page", full]] as const) {
+      // Inside the bar — before the first section — not somewhere further down.
+      const bar = html.slice(0, html.indexOf('id="overview"'));
+      assert.match(bar, /data-report-problem="true"/, `the ${where} bar has no more menu`);
+      assert.match(bar, /<summary[^>]*aria-label="More"/, `the ${where} more menu has no accessible name`);
+      assert.match(bar, /Report a problem[\s\S]*<textarea/, `the ${where} more menu has no report form`);
+    }
+    // The control is only worth having if something receives what it sends.
+    assert.equal(FEEDBACK_ENDPOINT, "/api/v1/feedback");
+    const route = readFileSync(path.join(process.cwd(), "app", "api", "v1", "feedback", "route.ts"), "utf8");
+    assert.match(route, /export async function POST/);
   });
 
   it("each product tile opens that line's sheet", () => {

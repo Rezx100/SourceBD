@@ -20,6 +20,7 @@ import { CopyLinkButton } from "./copy-link-button";
 import { Icon } from "./icons";
 import { LogoTile, SourceMarks } from "./marks";
 import { PHOTO_CAPTION, PhotoGrid } from "./photo-tiles";
+import { ReportProblem } from "./report-problem";
 import {
   ActionBar,
   AffiliationNote,
@@ -95,6 +96,7 @@ export function SupplierSheet({
           ) : (
             <CopyLinkButton />
           )}
+          <ReportProblem />
         </span>
       </SheetBar>
       {model.sanctioned ? <SanctionBanner sample={model.sanctionSample} evidenceHref="#sanctions" /> : null}

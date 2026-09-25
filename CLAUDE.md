@@ -13,12 +13,12 @@ Then the lean boot set named in AGENTS.md rule 3 (`context/agent-brief.md`,
 
 ## Verification gate — run all four, paste raw output, compare to baselines
 
-Baselines **re-measured 25 Sep 2026** (REZ-C). The `e15966c` (17 Sep) figures they
-replace were out of date; each correction says what was actually wrong.
+Baselines **re-measured 25 Sep 2026** at REZ-C's audited candidate, on the commit that
+writes them. The `e15966c` (17 Sep) figures they replace were out of date.
 
 - `pnpm exec tsc --noEmit` — exit 0, no output. (Unchanged.)
-- `pnpm test` — **1,479 tests / 223 suites**, ~25 min. The old "602 passed / 86 suites"
-  predates REZ-A and REZ-B, which together added ~880 tests. **Node 21+, not 20.** The
+- `pnpm test` — **1,549 tests / 235 suites: 1,548 pass, 1 fail**, ~12–25 min. The old
+  "602 passed / 86 suites" predates REZ-A, REZ-B and REZ-C. **Node 21+, not 20.** The
   script passes `".tests-build/**/*.test.js"` to `node --test`, and Node 20 has no glob
   support there: it looks for a file of that literal name, prints `Could not find`, and
   exits 1 with nothing run. Measured on Node 25.4.0. It sits several minutes on one
@@ -33,20 +33,21 @@ replace were out of date; each correction says what was actually wrong.
   version you install decides the number — state the version alongside the count, always.
 - `python -m pytest -q etl/tests` — the answer depends on whether the database is
   reachable, and `.env` sets `SUPABASE_DB_URL`, which `load_dotenv` picks up whatever the
-  shell says. **With the DB reachable: ~1,005 passed / ~47 failed / 0 skipped.** The old
+  shell says. **With the DB reachable: 1,009 passed / 42 failed / 6 skipped.** The old
   "1024 passed, 25 skipped" describes a machine with no database URL, which this is not.
-  Every one of those failures is environmental and pre-existing — verified by running the
-  same five files at the merge base in a clean worktree, where 48 fail:
+  Every one of those failures is environmental and pre-existing — the same five files at
+  the merge base `1366220`, in a clean worktree, fail the same 42:
   - `test_github_https_fetch_auth.py` (31) — shells out to `bash`, which on this machine
     now resolves to WSL with no distribution installed. The old note blamed a missing git
     identity; setting `GIT_AUTHOR_NAME/EMAIL` + `GIT_COMMITTER_NAME/EMAIL` does not fix it.
-  - `test_queue_release_plan_sql.py` (10), `test_queue_decide_rpc_live.py` (4) — pin
+  - `test_queue_release_plan_sql.py` (5), `test_queue_decide_rpc_live.py` (4) — pin
     production queue rows from August that migration `0102` released on 14 Aug.
   - `test_epb_detail_url_sql.py` (1), `test_deploy_production_smoke.py` (1) — DB and
     live-site reads.
   `FIRECRAWL_API_KEY` set to any value is still needed (6 `test_credit_budget` tests).
-  DB-backed tests skip cleanly without the URL, and REZ-C's two new SQL test files say so
-  in their own skip messages rather than vanishing silently.
+  The 6 skips are `test_supplier_contact_counts_sql.py`, which cannot run until migration
+  `0105` is applied and says so in its skip messages; they become passes after it is.
+  DB-backed tests skip cleanly without the URL.
 
 Any difference from these numbers, in either direction, is a finding to explain. Use `/verify`.
 
