@@ -86,6 +86,35 @@ const LEAKING: [string, string][] = [
   ["Karim Uddin (MD), Plot 5, Dhaka", "Plot 5, Dhaka"],
   ["Contact person Md Karim, Plot 5, Dhaka", "Plot 5, Dhaka"],
   ["Jacket, call 9125191", "Jacket"],
+  // A role joined to its name by a bare hyphen (cycle 7: reopened by the Chairman-Bari fix).
+  ["Plot 5, Dhaka, Proprietor-Md Karim", "Plot 5, Dhaka"],
+  ["Plot 5, Dhaka, Managing Director-Abdul Karim", "Plot 5, Dhaka"],
+  ["Plot 5, Dhaka, Owner-Abdul Karim", "Plot 5, Dhaka"],
+  ["Plot 5, Dhaka, CEO- Abdul Karim", "Plot 5, Dhaka"],
+  ["Plot 5, Dhaka, Chairman-Abdul Karim", "Plot 5, Dhaka"],
+  ["Plot 5, Dhaka, Director-Rokeya Begum", "Plot 5, Dhaka"],
+  ["Contact: Karim Uddin, Plot 5", "Plot 5"],
+  ["Plot 5, Contact Name: Rokeya Begum", "Plot 5"],
+  // A name with its role beside it, each role on its own (cycle 7: dropping
+  // owner|ceo|chairman, or the spaced-dash label, left every case green).
+  ["Abdul Karim - Owner, Plot 5, Dhaka", "Plot 5, Dhaka"],
+  ["Abdul Karim - CEO, Plot 5, Dhaka", "Plot 5, Dhaka"],
+  ["Abdul Karim (Chairman), Plot 5, Dhaka", "Plot 5, Dhaka"],
+  ["Plot 5, Dhaka, Abdul Karim (Director)", "Plot 5, Dhaka"],
+  ["Plot 5, Dhaka, Abdul Karim - GM", "Plot 5, Dhaka"],
+  ["Plot 5, Dhaka, Owner - Abdul Karim", "Plot 5, Dhaka"],
+  ["Plot 5, Dhaka, CEO – Abdul Karim", "Plot 5, Dhaka"],
+  // Places named by an address word stay beside a role (each word added in cycle 6).
+  ["Adamjee EPZ, Narayanganj, Managing Director", "Adamjee EPZ, Narayanganj"],
+  ["Kaliakoir Union, Gazipur, Proprietor", "Kaliakoir Union, Gazipur"],
+  ["Kashimpur Village, Gazipur, Your contact: Md. Karim", "Kashimpur Village, Gazipur"],
+  ["Uttara Sector, Dhaka, Proprietor", "Uttara Sector, Dhaka"],
+  ["Savar Upazila, Dhaka, Proprietor", "Savar Upazila, Dhaka"],
+  ["Tongi Thana, Gazipur, Proprietor", "Tongi Thana, Gazipur"],
+  ["BSCIC Estate, Tongi, Proprietor", "BSCIC Estate, Tongi"],
+  ["Mill Area, Tongi, Proprietor", "Mill Area, Tongi"],
+  ["Staff Colony, Tongi, Proprietor", "Staff Colony, Tongi"],
+  ["Rupganj Industrial, Narayanganj, Proprietor", "Rupganj Industrial, Narayanganj"],
   // …and the places beside a role stay (cycle 6 found each of these cut).
   ["Kashimpur, Gazipur, Your contact: Md. Karim", "Kashimpur, Gazipur"],
   ["Dhaka Export Processing Zone, Savar, Managing Director", "Dhaka Export Processing Zone, Savar"],
@@ -156,6 +185,8 @@ const CLEAN = [
   "Contact Address: House - 1/C (3rd Floor) Road - 10, Baridhara Diplomatic Zone, Dhaka - 1212. Head Office: 26, Shyamolibag, Mirpur Road, Dhaka-1207.",
   "Md. Ali Mansion, Dhaka",
   "Chairman-Bari, Tongi, Gazipur",
+  "Chairman Market, Tongi",
+  "Nur Mansion (MD), Dhaka",
   "Road @ 8, Gulshan, Dhaka",
 ];
 

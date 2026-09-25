@@ -53,11 +53,12 @@ migrations, run the 30-day zero P1/P2 Sentry incident window.
   so every tab leads somewhere.
   Migration `0105` adds ONE function, `supplier_contact_counts` — NOT APPLIED.
   Evidence and the founder's command: `ops/plans/rez-c-0105-dry-run.md`.
-  **The closed loop is OPEN** — six audit cycles run; cycle 6's invariant
-  auditor accepted, the other three rejected and were repaired (the shell no
-  longer remounts the page, Escape in the report menu, building certificates,
-  the one-sided women/men split, RPC arguments); cycle 7 next, no Acceptance
-  Judge yet. Founder, 25 Sep: Facilities lists the buildings; product
+  **The closed loop is OPEN** — seven audit cycles run, each repaired.
+  Cycle 7 found the women/men split inventing a sex from a family total
+  (jk-fabrics: 1,560 building workers shown as women) — now shown only against
+  the record's own filed total — plus hyphenated role labels and building
+  certificates outside the "every mark links" claim; cycle 8 next, no
+  Acceptance Judge yet. Founder, 25 Sep: Facilities lists the buildings; product
   entries differing only in case or spacing merge. Hand-off: `feature-specs/handoff-rez-c-cycle4.md`.
   **Ratified by the founder 25 Sep:** "Exporters of 6105 · N" (the count
   equals the search it opens); 0105's five omitted §4.3 items; and these

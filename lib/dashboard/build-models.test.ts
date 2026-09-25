@@ -394,7 +394,7 @@ describe("a building's registrations are named, never counted and never denied",
   });
 
   it("the sheet names the building that holds a certificate of its own", () => {
-    assert.deepEqual(sheet.certBuildings, [HOSSAIN_BUILDING]);
+    assert.deepEqual(sheet.buildingCerts.map((b) => b.building), [HOSSAIN_BUILDING]);
   });
 
   // The same class with nothing of the record's own to soften it: MG Niche
@@ -404,7 +404,7 @@ describe("a building's registrations are named, never counted and never denied",
     const card = buildCard(only);
     const sheet2 = buildSheet(only);
     assert.equal(sheet2.certs.length, 0, "a building's certificate is not the record's");
-    assert.deepEqual(sheet2.certBuildings, [MG_BUILDING]);
+    assert.deepEqual(sheet2.buildingCerts.map((b) => b.building), [MG_BUILDING]);
     assert.equal(card.tiles[0]!.sub, `none on this record · ${MG_BUILDING} holds one`);
     assert.equal(buildTableRow(only).certsEmptyReason, `none on this record · ${MG_BUILDING} holds one`);
     assert.notEqual(card.tiles[0]!.sub, "none on 4 registers", "the bare negative stands over a payload that carries a certificate");
@@ -948,6 +948,32 @@ describe("the sheet's 'every source mark links' claim counts every mark the shee
     const sheet = buildSheet(input);
     assert.ok(sheet.certs.some((c) => c.documentUrl === null));
     assert.equal(sheet.everyMarkLinks, false);
+  });
+
+  it("a building's own certificate with no document withdraws the claim — its card draws a square too", () => {
+    const input = everyRegisterHasAPage();
+    // epic-garments-manufacturing, live 25 Sep: its Unit-7 holds a GOTS
+    // certificate with no document; the sheet draws it under "Held by …".
+    const own = input.profile.certifications[0]!;
+    input.profile.certifications = [
+      ...input.profile.certifications,
+      { ...own, building_name: "Aboni Knitwear Ltd (Unit-7)", document_url: null },
+    ];
+    const sheet = buildSheet(input);
+    assert.ok(sheet.certs.every((c) => c.documentUrl !== null), "guard: the record's own certificates all link");
+    assert.equal(sheet.buildingCerts.length, 1, "guard: the building's certificate is drawn");
+    assert.equal(sheet.everyMarkLinks, false);
+  });
+
+  it("a building's certificates are ordered as the record's own are", () => {
+    const input = aboniInput();
+    const own = input.profile.certifications.filter((c) => !c.building_name);
+    assert.ok(own.length >= 3, "guard: enough certificates to have an order");
+    // The record's own set, filed again under a building in reverse.
+    input.profile.certifications = [...own, ...[...own].reverse().map((c) => ({ ...c, building_name: "Aboni Knitwear Ltd (Unit-2)" }))];
+    const sheet = buildSheet(input);
+    const key = (c: { scheme: string; number: string | null }) => `${c.scheme}:${c.number}`;
+    assert.deepEqual(sheet.buildingCerts[0]!.certs.map(key), sheet.certs.map(key));
   });
 
   it("the whole Aboni record withholds the claim, because three registers file only a homepage", () => {

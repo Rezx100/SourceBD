@@ -31,8 +31,9 @@ const KNOWN_NOT_CONTACT = new Map([
 // So every such text's output is reviewed by hand and pinned here, exactly; a
 // new one — or a changed output — fails until someone reads it and adds it.
 // Every role the stripper removes, anywhere, and a standalone "Chairman" /
-// "Director" / "Owner" / "CEO" / "MD" part (not "Chairman Bari", a place).
-const NAMES_A_PERSON = /\b(?:proprietor|managing director|your contact|contact person|attn|c\/o)\b|(?:^|,)\s*(?:chairman|director|ceo|owner|md)\s*(?:,|$)/im;
+// "Director" / "Owner" / "CEO" / "MD" part (not "Chairman Bari", a place), a
+// role labelling a name ("Owner-Abdul Karim", "CEO: …"), and "Contact:".
+const NAMES_A_PERSON = /\b(?:proprietor|managing director|your contact|contact person|attn|c\/o)\b|(?:^|,)\s*(?:chairman|director|ceo|owner|md)\s*(?:,|$)|\b(?:chairman|director|ceo|owner|gm|general manager)\b\s*[:\-–](?!\s*(?:bari|market|road|para|bazar)\b)|\bcontact(?:\s+name)?\s*:/im;
 const REVIEWED = new Map([
   ["saaf-sweater", ["ABDUR RAZZAK MASTER'S HOUSE, NEAR ASHULIA BUS STAND, ASHULIA, SAVAR, DHAKA"]],
   ["bdg-textilien-bd", ["263, Bara Moghbazar, (3rd Floor), Moghbazar, Dhaka"]],

@@ -15,7 +15,7 @@ import { AppShell, activeNavKey } from "./app-shell";
 export function KitLoading({ path, screenLabel, children }: { path: string; screenLabel: string; children: ReactNode }) {
   return (
     <AppShell
-      sidebar={{ active: activeNavKey(path), activeExact: false, counts: {}, recent: [], plan: { name: "Free" } }}
+      sidebar={{ active: activeNavKey(path), activeExact: false, counts: {}, recent: [], plan: { name: "" } }}
       topbar={{ caption: "", initial: null }}
       mainId="main-content"
       screenLabel={screenLabel}

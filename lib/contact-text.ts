@@ -69,11 +69,16 @@ const MOBILE = new RegExp(String.raw`(?<![\d+])(?:\+?[ \t]?88${SEP})?\(?0${SEP}1
 const INTERNATIONAL = /\+\d[\d \t\-()]{6,}\d/g;
 const LABELLED_NUMBER = new RegExp(String.raw`(?:${LABEL}|\b[TMF]\b(?=[ \t]*:))${LABEL_TAIL}\+?\(?\d[\d \t\-()/.,]*\d`, "gi");
 const BARE_NUMBER = new RegExp(String.raw`(?<!${ADDRESS_LABEL})(?<=^|[\s,;:(/])\+?[\d\-()]*\d[\d\-()]*(?=$|[\s,;.)/])`, "gi");
-// A label names a person when a colon or a SPACED dash follows it: "CEO: X",
-// "Owner - X". A bare hyphen is a compound place ("Chairman-Bari").
-const NAME_LABEL = /(?:\b(?:your contact|contact person)\b[ \t]*:?|\b(?:attn|attention|ceo|general manager|gm|director|chairman|owner|proprietor|managing director)\b(?:[ \t]*:|[ \t]+[-–][ \t])|\bc\/o\b)[^,\n]*/gi;
+const ADDRESS_WORD = /\b(?:road|rd|street|avenue|lane|bari|market|plaza|tower|bhaban|bhabon|house|mansion|building|para|nagar|bazar|sarak|sarani|mor|villa|complex|centre|center|park|industrial|university|college|school|mosque|hospital|zone|epz|section|sector|area|estate|colony|union|village|upazila|thana)\b/i;
+// A label names a person when a colon or a dash follows it: "CEO: X",
+// "Owner - X", "Proprietor-Md Karim" — unless a place word follows the dash,
+// a compound place ("Chairman-Bari", "Chairman-Market").
+const NAME_LABEL = new RegExp(
+  String.raw`(?:\b(?:your contact|contact person)\b[ \t]*:?|\bcontact(?:[ \t]+name)?[ \t]*:|\b(?:attn|attention|ceo|general manager|gm|director|chairman|owner|proprietor|managing director)\b(?:[ \t]*:|[ \t]*[-–](?![ \t]*${ADDRESS_WORD.source})))[^,\n]*|\bc\/o\b[^,\n]*`,
+  "gi",
+);
 // "Karim Uddin - Proprietor", "Karim Uddin (MD)": a name with its role beside it.
-const NAME_WITH_ROLE = /[^,\n]*?(?:[ \t]+[-–][ \t]*|[ \t]*\()(?:proprietor|managing director|md|owner|ceo|chairman)\)?(?=[ \t]*(?:,|$))/gim;
+const NAME_WITH_ROLE = /[^,\n]*?(?:[ \t]+[-–][ \t]*|[ \t]*\()(?:proprietor|managing director|md|owner|ceo|chairman|director|general manager|gm)\)?(?=[ \t]*(?:,|$))/gim;
 const ROLE = /\b(?:managing director|proprietor)\b/gi;
 const NAMES_A_ROLE = /\b(?:managing director|proprietor|your contact|contact person)\b/i;
 // "Sorder M. Nur-Uz-Zaman": capitalised words around an initial.
@@ -82,7 +87,6 @@ const DANGLING_LABEL = new RegExp(String.raw`${LABEL}(?:[ \t]*(?:no|number|#)\.?
 
 const HONORIFIC_NAME = /^\s*(?:md|mohd|mohammad|mr|mrs|ms|engr)\.?\s+[a-z][a-z .'\-]*$/i;
 const STANDALONE_ROLE = /^\s*(?:managing director|proprietor|chairman|director|ceo|owner|md)\s*$/i;
-const ADDRESS_WORD = /\b(?:road|rd|street|avenue|lane|bari|market|plaza|tower|bhaban|bhabon|house|mansion|building|para|nagar|bazar|sarak|sarani|mor|villa|complex|centre|center|park|industrial|university|college|school|mosque|hospital|zone|epz|section|sector|area|estate|colony|union|village|upazila|thana)\b/i;
 
 function digitsOf(s: string): number {
   return s.replace(/\D/g, "").length;
@@ -148,7 +152,8 @@ export function withoutContactDetails(text: string | null | undefined, options: 
     .replace(INTERNATIONAL, " ");
   if (options.bareNumbers !== false) cut = cut.replace(BARE_NUMBER, bareNumber);
   cut = cut
-    .replace(NAME_WITH_ROLE, " ")
+    // "Nur Mansion (MD)" is a place beside a stray role, not a name.
+    .replace(NAME_WITH_ROLE, (m) => (ADDRESS_WORD.test(m) ? m : " "))
     .replace(NAME_LABEL, " ")
     .replace(DANGLING_LABEL, " ")
     .split("\n")

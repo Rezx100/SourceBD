@@ -312,8 +312,9 @@ export default async function BuyerDiscoverPage({
   const record = recordRead.value;
   const line = lineRead.value;
   // A line that is not one (unknown heading), could not be checked (EPB
-  // unread) or timed out: back to the record on this search, as the full line
-  // page does, rather than the record with a dead `line=` left in the URL.
+  // unread) or timed out: back to the record on this search, rather than the
+  // record with a dead `line=` left in the URL. (The full line page has no
+  // record under it to fall back to: an unknown heading 404s there.)
   if (record && lineCode && !line) redirect(withParams(recordParams));
   // A slug that is a BUILDING of another record is not a missing record: the
   // full page 308s to the mother (601 such slugs in production). The overlay

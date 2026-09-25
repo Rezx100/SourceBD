@@ -247,8 +247,6 @@ export type SupplierSheetModel = {
    * one mark set makes the action bar's strongest sentence false.
    */
   everyMarkLinks: boolean;
-  /** Buildings holding a certificate of their own; named so the record does not appear to hold it, and so "none" is never printed over one. */
-  certBuildings: string[];
   /** The mother's own RSC row; every row the RPC returns is active (the inactive state is REZ-C's). */
   rsc: {
     ref: string | null;

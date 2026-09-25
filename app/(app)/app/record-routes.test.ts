@@ -20,8 +20,10 @@ import { createElement, type ReactElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { after, describe, it } from "node:test";
 import path from "node:path";
+import { readdirSync, statSync } from "node:fs";
 
 import { aboniInput, sanctionedInput, TODAY, zaheenSampleInput } from "@/lib/dashboard/fixtures";
+import { drawsKitShell } from "@/lib/dashboard/kit-shell";
 
 // ---------------------------------------------------------------------------
 // A fake `@/lib/supabase/server`, installed into the module cache before the
@@ -33,7 +35,8 @@ const resolved = (mod: string) => require.resolve(path.join(OUT, mod));
 
 type Rpc = { data: unknown; error: unknown };
 type Answers = {
-  profile?: Rpc;
+  /** A function answers each call in turn (the overlay reads the profile twice). */
+  profile?: Rpc | (() => Rpc);
   hscodes?: Rpc;
   workers?: Rpc;
   contactCounts?: Rpc;
@@ -67,7 +70,7 @@ let answers: Answers = {};
 
 function fakeClient() {
   const rpc = (fn: string): Rpc => {
-    if (fn === "buyer_supplier_profile") return answers.profile ?? { data: null, error: null };
+    if (fn === "buyer_supplier_profile") return (typeof answers.profile === "function" ? answers.profile() : answers.profile) ?? { data: null, error: null };
     if (fn === "supplier_epb_hscodes") return answers.hscodes ?? { data: [], error: null };
     if (fn === "supplier_contact_counts") return answers.contactCounts ?? { data: null, error: null };
     if (fn === "production_workers_display_batch") return answers.workers ?? { data: [], error: null };
@@ -190,6 +193,10 @@ const HS: Rpc = { data: ABONI.hscodes.map((h) => ({ code: h.code, description: h
 // eslint-disable-next-line @typescript-eslint/no-require-imports -- the stub must be installed before the route module loads.
 const route = (p: string) => require(resolved(p));
 
+/** Every file under `dir`. */
+const walk = (dir: string): string[] =>
+  readdirSync(dir).flatMap((name) => (statSync(path.join(dir, name)).isDirectory() ? walk(path.join(dir, name)) : [path.join(dir, name)]));
+
 describe("/app/suppliers/[slug] — the full record page", () => {
   it("renders the record, and is not a dialog", async () => {
     given({ profile: PROFILE, hscodes: HS, contactCounts: { data: { emails: 1, phones: 6, website: true, representatives: 1 }, error: null } });
@@ -230,6 +237,11 @@ describe("/app/suppliers/[slug] — the full record page", () => {
     const out = html(await outcome(() => Page({ params: Promise.resolve({ slug: "aboni-knitwear" }), searchParams: Promise.resolve({}) })));
     assert.match(out, /could not be read in time/);
     assert.match(out, /Try again/);
+    assert.match(out, /href="\/app\/suppliers\/aboni-knitwear"[^>]*>Try again/, "Try again goes somewhere else");
+    // "Try again" on the expanded grid retries the expanded grid.
+    given({ profile: { data: null, error: { code: "57014", message: "canceling statement due to statement timeout" } } });
+    const all = html(await outcome(() => Page({ params: Promise.resolve({ slug: "aboni-knitwear" }), searchParams: Promise.resolve({ lines: "all" }) })));
+    assert.match(all, /href="\/app\/suppliers\/aboni-knitwear\?lines=all"[^>]*>Try again/, "Try again drops ?lines=all");
     // Inside the page's frame. The layout draws none on this route (the kit
     // does), so a state returned bare had no navigation at all (cycle 5).
     assert.match(out, /<main[^>]*id="main-content"/, "the slow-read state has no <main> and no frame");
@@ -838,6 +850,17 @@ describe("cycle 4: the boundaries cycle 4 found open", () => {
       assert.match(to, /lines=all/, `&line=${hs} lost the expanded grid: ${to}`);
       assert.doesNotMatch(to, /[?&]line=/, `&line=${hs} kept the dead line: ${to}`);
     }
+    // …and a line whose read timed out, while the record's own read answered.
+    let reads = 0;
+    given({
+      profile: () => (reads++ === 0 ? PROFILE : { data: null, error: { code: "57014", message: "canceling statement due to statement timeout" } }),
+      hscodes: HS,
+      discover: { data: [ROW], error: null },
+    });
+    const slow = await overlay({ q: "knit", record: "aboni-knitwear", line: "6105" });
+    assert.equal(reads, 2, "guard: the record and the line each read the profile once");
+    assert.ok("threw" in slow && /NEXT_REDIRECT/.test(slow.threw), "a timed-out line left the dead line= in the URL");
+    assert.doesNotMatch(slow.threw, /[?&]line=/);
   });
 
   it("the overlay names what it shows, so focus follows a change of content", async () => {
@@ -903,6 +926,36 @@ describe("cycle 4: the boundaries cycle 4 found open", () => {
     // A half larger than the total is not a split.
     given({ profile: { data: { ...ABONI.profile, supplier: { ...supplier, employees_male: null, employees_female: 1500 }, rsc_remediation: null }, error: null }, hscodes: HS });
     assert.doesNotMatch(html(await fullPage("aboni-knitwear")), /women ·/);
+    // …nor one equal to it: "0 women" is not filed, it is a subtraction that
+    // found nothing (71 live records file one half equal to the total).
+    given({ profile: { data: { ...ABONI.profile, supplier: { ...supplier, employees_female: null, employees_male: 1000 }, rsc_remediation: null }, error: null }, hscodes: HS });
+    assert.doesNotMatch(html(await fullPage("aboni-knitwear")), /women ·/);
+    // Men filed, women not — the live shape (70 of those 71 file only men).
+    given({ profile: { data: { ...ABONI.profile, supplier: { ...supplier, employees_female: null, employees_male: 380 }, rsc_remediation: null }, error: null }, hscodes: HS });
+    assert.match(html(await fullPage("aboni-knitwear")), /620 women · 380 men \(women by subtraction\)/);
+
+    // The figure shown sums its buildings (production_workers_display_batch):
+    // the record's own halves do not split it. jk-fabrics, live 25 Sep: 44
+    // filed, all men, 1,604 shown — "1,560 women" was the building's headcount.
+    const family = (value: number) => ({ data: { [supplier.id]: { value, source: "registry", sites: 2 } }, error: null });
+    given({
+      profile: { data: { ...ABONI.profile, supplier: { ...supplier, employees_total: 44, employees_male: 44, employees_female: null }, rsc_remediation: null }, error: null },
+      hscodes: HS,
+      workers: family(1604),
+    });
+    const jk = html(await fullPage("aboni-knitwear"));
+    assert.match(jk, /1,604/, "guard: the family figure is the one shown");
+    assert.doesNotMatch(jk, /women ·/, "a building's workforce shown as one sex");
+    // Both halves adding up to the record's own total, under a family figure
+    // within 10% of it (epic-garments: 1,370 + 1,000 of 2,370, 2,626 shown).
+    given({
+      profile: { data: { ...ABONI.profile, supplier: { ...supplier, employees_total: 2370, employees_female: 1370, employees_male: 1000 }, rsc_remediation: null }, error: null },
+      hscodes: HS,
+      workers: family(2626),
+    });
+    const epic = html(await fullPage("aboni-knitwear"));
+    assert.match(epic, /2,626/, "guard: the family figure is the one shown");
+    assert.doesNotMatch(epic, /women ·/, "the record's own split shown under its family's total");
   });
 });
 
@@ -1036,11 +1089,43 @@ describe("cycle 6: what the routes send, and the branches cycle 6 found untested
       assert.match(old, /href="#main-content"/, "the old shell lost its skip link");
       assert.equal((old.match(/<div[^>]*role="main"[^>]*>/g) ?? []).filter((m) => m.includes('id="main-content"')).length, 1, "the old shell has no main landmark");
       assert.match(old, /PAGE-BODY/);
+      // Every piece the old shell draws: the top bar, the collapsed rail, the
+      // phone's tab bar, and a main landmark the skip link can focus.
+      assert.match(old, /<header\b/, "the old shell lost its top bar");
+      assert.match(old, /aria-label="Collapsed primary navigation"/, "the old shell lost its sidebar rail");
+      assert.match(old, /aria-label="Primary navigation"/, "the old shell lost its bottom tab bar");
+      assert.match(old, /<div[^>]*role="main"[^>]*tabindex="-1"|<div[^>]*tabindex="-1"[^>]*role="main"/i, "the skip link's target cannot take focus");
       const kit = await render("/app/suppliers/aboni-knitwear");
       assert.doesNotMatch(kit, /href="#main-content"|role="main"/, "the old shell is drawn around a kit page");
+      assert.doesNotMatch(kit, /<header\b|aria-label="(?:Collapsed primary|Primary) navigation"/, "a piece of the old shell is drawn around a kit page");
+      // The kit page's wrappers draw no box of their own: the same three divs
+      // (so nothing remounts), each `display: contents`.
+      assert.equal((kit.match(/<div class="contents">/g) ?? []).length, 3, "a kit page is wrapped in a box that lays it out");
       assert.match(kit, /PAGE-BODY/);
     } finally {
       currentPath = "/app/discover";
+    }
+  });
+
+  it("a kit route's loading state draws the kit's frame — the layout draws none there", async () => {
+    // Rendered, not read: cycle 7 replaced KitLoading's body with its children
+    // and every source-reading check still passed.
+    const kitLoading = walk(path.join(process.cwd(), "app", "(app)", "app"))
+      .filter((f) => path.basename(f) === "loading.tsx")
+      .map((f) => path.relative(process.cwd(), f).split(path.sep).join("/"))
+      .filter((f) => drawsKitShell("/" + f.replace(/^app\/\(app\)\//, "").replace(/\/loading\.tsx$/, "")));
+    assert.deepEqual(kitLoading.sort(), [
+      "app/(app)/app/discover/loading.tsx",
+      "app/(app)/app/products/loading.tsx",
+      "app/(app)/app/searches/loading.tsx",
+    ], "a kit route's loading state is not covered here — add it");
+    for (const file of kitLoading) {
+      const out = renderToStaticMarkup(createElement(route(file.replace(/\.tsx$/, ".js")).default));
+      assert.match(out, /href="#main-content"/, `${file}: no skip link`);
+      assert.match(out, /<main[^>]*id="main-content"/, `${file}: no main landmark for the skip link`);
+      assert.match(out, /<aside\b/, `${file}: no sidebar`);
+      assert.match(out, /aria-label="Account and settings"/, `${file}: no top bar`);
+      assert.doesNotMatch(out, />Free</, `${file}: a plan the loading state does not know`);
     }
   });
 });

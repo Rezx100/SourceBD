@@ -1320,7 +1320,6 @@ export function buildSheet(filed: RecordInput, options: SheetOptions = {}): Supp
     certsCaption: certList.length ? `${onFileLabel(certList.length)} · ${certRegisters.join(", ")}` : null,
     certsEmpty: certsEmptyWords(p),
     certsEmptyChip: certsEmptyChipLabel(p),
-    certBuildings: certBuildings(p),
     buildingCerts: buildingCerts(input),
     rsc: rsc
       ? {
@@ -1384,6 +1383,8 @@ export function buildSheet(filed: RecordInput, options: SheetOptions = {}): Supp
     ...model.marks,
     ...model.facts.flatMap((f) => (f.value === null ? [] : (f.marks ?? []))),
     ...model.certs.map((c) => sourceMark(c.markCode, c.documentUrl)),
+    // A building's own certificates draw the same cards, one square each.
+    ...model.buildingCerts.flatMap((b) => b.certs.map((c) => sourceMark(c.markCode, c.documentUrl))),
     // REZ-C draws two more mark surfaces. Leaving them out meant the action
     // bar's "every source mark links to its register page" was computed over a
     // subset of the squares actually on screen — the same defect the
@@ -1470,7 +1471,11 @@ function workforceSplit(w: WorkersFact, s: ProfileSupplier): string | null {
   const f = s.employees_female ?? 0;
   const m = s.employees_male ?? 0;
   const t = w.value;
-  if (w.source === "RSC" || t === null || t <= 0 || (f <= 0 && m <= 0)) return null;
+  // The halves are this record's own filing, so they split only the total the
+  // same filing carries. A larger figure shown — its buildings summed in
+  // (jk-fabrics: 44 filed, all men, 1,604 shown), or several sites — is not
+  // the whole they split, and the difference would be invented as a sex.
+  if (w.source === "RSC" || t === null || t <= 0 || t !== s.employees_total || (f <= 0 && m <= 0)) return null;
   if (f > 0 && m > 0) {
     const ratio = (f + m) / t;
     if (ratio < 0.9 || ratio > 1.1) return null;
@@ -1489,7 +1494,7 @@ function workersNote(w: WorkersFact, buildingFigures = false): string | null {
     // The Facilities list gives each building's own figure when the panel
     // carries them; "not on the record" beside that list is false.
     return buildingFigures
-      ? "this record and its buildings together; each building's own figure is under Facilities"
+      ? "this record and its buildings together; each building's own figure, where filed, is under Facilities"
       : "this record and its buildings together; the site breakdown is not on the record";
   }
   if (!w.coverage) return null;

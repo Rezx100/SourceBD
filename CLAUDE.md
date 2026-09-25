@@ -17,7 +17,7 @@ Baselines **re-measured 25 Sep 2026** at REZ-C's audited candidate, on the commi
 writes them. The `e15966c` (17 Sep) figures they replace were out of date.
 
 - `pnpm exec tsc --noEmit` — exit 0, no output. (Unchanged.)
-- `pnpm test` — **1,718 tests / 247 suites: 1,717 pass, 1 fail** (REZ-C cycle-6 repairs), ~12–25 min. The old
+- `pnpm test` — **1,746 tests / 247 suites: 1,745 pass, 1 fail** (REZ-C cycle-7 repairs), ~12–25 min. The old
   "602 passed / 86 suites" predates REZ-A, REZ-B and REZ-C. **Node 21+, not 20.** The
   script passes `".tests-build/**/*.test.js"` to `node --test`, and Node 20 has no glob
   support there: it looks for a file of that literal name, prints `Could not find`, and
