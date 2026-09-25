@@ -63,7 +63,12 @@ export default async function SupplierRecordPage({
   try {
     [shell, model] = await Promise.all([
       loadBuyerShell(supabase, `/app/suppliers/${slug}`),
-      loadRecordSheet(supabase, slug, new Date(), { allLines }),
+      loadRecordSheet(supabase, slug, new Date(), {
+        allLines,
+        // A line opened from the expanded grid comes back to it: without this,
+        // Back from line 9 of "All N lines" landed on six tiles without it.
+        lineHref: allLines ? (hs) => `/app/suppliers/${slug}/lines/${hs}?lines=all` : undefined,
+      }),
     ]);
   } catch (err) {
     // A slow read is not a missing record. The page this replaced said so and

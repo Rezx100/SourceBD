@@ -389,18 +389,17 @@ describe("SupplierSheet — overlay and full page are one component (REZ-C §3.3
     // results survive with no JavaScript and no re-run.
     assert.ok(overlay.includes('href="/app/discover?q=knit"'), "Close does not return to the search");
     assert.match(overlay, /aria-label="Close"/);
-    // §3.3: Share copies the full-page URL — the record's own page, never the
-    // search URL the overlay sits on.
-    assert.match(overlay, /aria-label="Copy a link to this record"[^>]*data-share-href="\/app\/suppliers\/aboni-knitwear-ltd"/);
+    // §3.3: Share copies the full-page URL — what it copies is asserted by
+    // invoking its handler, in record-controls.test.ts.
+    assert.match(overlay, /aria-label="Copy a link to this record"/);
     assert.match(overlay, /role="dialog"/);
 
     const full = renderToStaticMarkup(createElement(SupplierSheet, { model: buildSheet(aboniInput()), dialog: false }));
     // A Close on a page with nothing behind it is a control that lies.
     assert.doesNotMatch(full, /aria-label="Close"/);
     assert.doesNotMatch(full, /role="dialog"/, "the full record page is not a dialog");
-    // On the full page Share copies the page itself: a control, not a link to
-    // where the reader already is.
-    assert.match(full, /aria-label="Copy a link to this record"[^>]*data-share-href="this page"/);
+    // On the full page Share is a control, not a link to where the reader already is.
+    assert.match(full, /aria-label="Copy a link to this record"/);
     assert.doesNotMatch(full, /Share this record/);
   });
 

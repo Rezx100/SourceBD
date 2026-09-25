@@ -310,8 +310,15 @@ export async function loadRecordLine(
   // A line is a heading the catalogue knows or one this record's EPB page
   // carries. Any other four digits — `/lines/0000` — drew "Chapter 00", a live
   // Send RFQ prefilled with it and an Exporters link, for no heading at all.
+  // When the EPB page could not be read, "not on it" is unknown rather than
+  // true: a heading in a real HS chapter (01–97) renders, and the sheet says
+  // the lines could not be read, instead of a 404 for a line the record has.
   const code = heading4(hs);
-  if (!hsCatalogueRow(code) && !record.input.hscodes.some((h) => heading4(h.code) === code)) return null;
+  const known =
+    hsCatalogueRow(code) ||
+    record.input.hscodes.some((h) => heading4(h.code) === code) ||
+    (record.input.hscodesError && /^(?:0[1-9]|[1-8]\d|9[0-7])/.test(code));
+  if (!known) return null;
   await fillRecordWorkersSafely(supabase, [record]);
   const supplierId = record.input.profile.supplier.id;
   return buildProductSheet(record.input, hs, {

@@ -40,6 +40,38 @@ const LEAKING: [string, string][] = [
   // Shapes the gated columns hold, as they would read inside an address.
   ["Plot 5, Road 2, Dhaka +880 1700 000000", "Plot 5, Road 2, Dhaka"],
   ["Plot 5, Road 2, Dhaka, Web: leak-test-website.invalid, Email: a@b.invalid", "Plot 5, Road 2, Dhaka"],
+  // Cycle 4: published rows the first version let through (live SQL, 25 Sep).
+  ["PLOT NO: 55-56, MONGLA EPZ, 9351, MONGLA, BAGERHAT, Bangladesh, Your contact:  Md. Sohel Ahmed", "PLOT NO: 55-56, MONGLA EPZ, 9351, MONGLA, BAGERHAT, Bangladesh"],
+  ["Mohd. Abid Hossain Belal, Proprietor", ""],
+  ["A.S.M. Shafiquzzaman, Proprietor", ""],
+  ["Md. Moniruzzaman Monir, # 132, Gulshan, Managing Director", "# 132, Gulshan"],
+  ["Managing Director, # 08, Rd # 01,", "# 08, Rd # 01"],
+  [
+    "263, Bara Moghbazar, (3rd Floor) Sorder M. Nur-Uz-Zaman, Moghbazar, Dhaka Managing Director",
+    "263, Bara Moghbazar, (3rd Floor) Sorder M. Nur-Uz-Zaman, Moghbazar, Dhaka",
+  ],
+  ["Plot-53, Block-B, Banani C/A, Dhaka - 1213, Bangladesh, janata-sadat-jute.com/", "Plot-53, Block-B, Banani C/A, Dhaka - 1213, Bangladesh"],
+  // A principal product: `shanghai-deck-lace-bd` files its gated website as one.
+  ["shdeck.com", ""],
+  // Cycle 4: how Bangladeshi numbers are really grouped, each of which the first version kept whole or in part.
+  ["Plot 5, Dhaka, 01711528388/01811528388", "Plot 5, Dhaka"],
+  ["Dhaka, 01711-528388/01819-123456", "Dhaka"],
+  ["Plot 5, Dhaka, 0171 152 8388", "Plot 5, Dhaka"],
+  ["Plot 5, Dhaka, 01711.528388", "Plot 5, Dhaka"],
+  ["Plot 5, Dhaka.01711528388", "Plot 5, Dhaka"],
+  ["Plot 5, Dhaka, Contact: 01711-52-83-88", "Plot 5, Dhaka"],
+  ["Road 12, Uttara, Dhaka-1230, 01711 52 83 88", "Road 12, Uttara, Dhaka-1230"],
+  ["Plot 5, Dhaka 01711 528388", "Plot 5, Dhaka"],
+  ["Plot 5, Dhaka, T: 01711 528388", "Plot 5, Dhaka"],
+  ["Plot 5, Dhaka, Hotline 09612 345678", "Plot 5, Dhaka"],
+  ["Plot 5, Dhaka, Tel/Fax: 88-02-9898989", "Plot 5, Dhaka"],
+  ["Plot 5, Dhaka, Mob-01711528388", "Plot 5, Dhaka"],
+  ["Plot 5, Dhaka, Cell#01711528388", "Plot 5, Dhaka"],
+  ["Plot 5, Dhaka, Tel No: 912 5191", "Plot 5, Dhaka"],
+  ["Plot 5, Dhaka, info [at] abc.com", "Plot 5, Dhaka"],
+  ["Plot 5, Dhaka, Contact: info@abc.com", "Plot 5, Dhaka"],
+  ["Plot 5, Dhaka, abc.com.bd", "Plot 5, Dhaka"],
+  ["Plot 5, Dhaka, silvergroupbd.com", "Plot 5, Dhaka"],
 ];
 
 const CLEAN = [
@@ -53,6 +85,22 @@ const CLEAN = [
   "Sattara Center (9th Floor), 30/A, Naya Paltan (Hotel Victory), Dhaka-1000",
   "414,kouchakuri,telirchala,mouchak,kaliakoir,, 1751, Gazipur, Bangladesh",
   "SHAITALIA, TELEHATI, , GAZIPUR",
+  // Cycle 4: real address text the first version cut, changing what a register filed.
+  "Makka Tower, Plot # 110072, Holding # 61/A, Master Para, Uttarkhan\nDhaka\nDhaka",
+  "Bangladesh\n314102 Jiashan",
+  "Room 101,No.113 South Button Road,Xitang town,, 314102, Jiashan, Bangladesh",
+  "Hangzhou Bay Shangyu Economic and Technological Development Zone, Shangyu, 312300, Shaoxing, Bangladesh",
+  "Web Tower (5th Floor), Gulshan-1, Dhaka",
+  "Road 3, Sector 10, Ph. 12, Uttara, Dhaka",
+  "Email Road, Dhaka",
+  "Holding 1234567, Konabari, Gazipur",
+  "Web Belt",
+  // Names that are places, and a company whose name is a domain.
+  "Dr. Panjab Ali, Dr. Assaduzzaman Industrial Park, Kathora, National University, Gazipur - 1704, Bangladesh",
+  "Chunkutia Chowdhury Para, Chairman Bari Road, Keranigonj, Dhaka-1310",
+  "CHAIRMAN MARKET, DHAKIN KHAN BAZAR, UTTARA, DHAKA",
+  "House # 441 (Ground Floor), Road # 30, New Apparel.com Limited (Reg:, DOHS Mustafa Arcade, Flat # A4,, 1/A, House #18, Mohakhali, Dhaka",
+  "Contact Address: House - 1/C (3rd Floor) Road - 10, Baridhara Diplomatic Zone, Dhaka - 1212. Head Office: 26, Shyamolibag, Mirpur Road, Dhaka-1207.",
 ];
 
 describe("withoutContactDetails — contact details filed inside an address", () => {
@@ -69,8 +117,16 @@ describe("withoutContactDetails — contact details filed inside an address", ()
   it("no digit run of six or more, no @ and no www survives any real leaking row", () => {
     for (const [filed] of LEAKING) {
       const out = withoutContactDetails(filed);
-      assert.doesNotMatch(out, /\d{6,}|@|www\.|\b(?:tel|fax|email|web|pho)\b\s*:/i, out);
+      assert.doesNotMatch(out, /\d{6,}|@|www\.|\.(?:com|net|org)\b|\b(?:tel|fax|email|web|pho|hotline|contact|proprietor|managing director)\b/i, out);
     }
+  });
+
+  it("each rule stands on its own: an unlabelled e-mail, a bare mobile, a bare domain", () => {
+    // Every fixture e-mail above is labelled, so removing the e-mail rule
+    // passed them all (cycle 4). These have nothing else that would catch them.
+    assert.equal(withoutContactDetails("Plot 5, Dhaka, sales.team@abc-garments.com"), "Plot 5, Dhaka");
+    assert.equal(withoutContactDetails("Plot 5, Dhaka, 01911223344"), "Plot 5, Dhaka");
+    assert.equal(withoutContactDetails("Plot 5, Dhaka, abc-garments.net"), "Plot 5, Dhaka");
   });
 
   it("null stays null", () => {

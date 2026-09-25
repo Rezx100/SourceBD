@@ -175,22 +175,32 @@ export type RecordInput = {
 // ---- shared pieces ----
 
 /**
- * The record with every filed address stripped of the contact details some
- * registers write into it (`lib/contact-text.ts`). Every builder that renders a
- * record starts here, so no surface prints an address the way it was filed:
- * 25 published addresses carry a phone, an e-mail or a website, five of them
- * the exact number the gated `phones` column holds.
+ * The record with the contact details some registers write into free text
+ * removed (`lib/contact-text.ts`): every filed address, and every principal
+ * product entry — one record files its website as its only product. Every
+ * builder that renders a record starts here, so no surface prints either the
+ * way it was filed. Entries are otherwise kept as filed, case variants and
+ * all: §3.3's acceptance names this list's length (39 for Adventure Garments,
+ * five of them case variants), and merging them is a founder's call.
  */
-function withCleanAddresses(input: RecordInput): RecordInput {
+function withoutFiledContact(input: RecordInput): RecordInput {
   const p = input.profile;
   return {
     ...input,
     profile: {
       ...p,
-      supplier: { ...p.supplier, address_raw: withoutContactDetails(p.supplier.address_raw) },
+      supplier: {
+        ...p.supplier,
+        address_raw: withoutContactDetails(p.supplier.address_raw),
+        principal_products: productEntries(p.supplier.principal_products),
+      },
       addresses: p.addresses?.map((a) => ({ ...a, address: withoutContactDetails(a.address) })),
     },
   };
+}
+
+function productEntries(filed: readonly (string | null)[] | null | undefined): string[] {
+  return (filed ?? []).map((raw) => withoutContactDetails((raw ?? "").trim())).filter(Boolean);
 }
 
 const MEMBERSHIP = ["BGMEA", "BKMEA", "BGAPMEA", "BTMA"];
@@ -809,7 +819,7 @@ function rscChip(rsc: ProfileRsc | null, buildings: ProfileRsc[]): HighlightChip
 // ---- the card ----
 
 export function buildCard(filed: RecordInput): SupplierCardModel {
-  const input = withCleanAddresses(filed);
+  const input = withoutFiledContact(filed);
   const p = input.profile;
   const s = p.supplier;
   const codes = allSourceCodes(p);
@@ -922,7 +932,7 @@ export function buildCard(filed: RecordInput): SupplierCardModel {
 // ---- the table row ----
 
 export function buildTableRow(filed: RecordInput): TableRowModel {
-  const input = withCleanAddresses(filed);
+  const input = withoutFiledContact(filed);
   const p = input.profile;
   const s = p.supplier;
   const codes = allSourceCodes(p);
@@ -1108,9 +1118,9 @@ export function contactHeldWords(counts: ContactCounts | null | undefined): stri
 }
 
 export function buildSheet(filed: RecordInput, options: SheetOptions = {}): SupplierSheetModel {
-  const input = withCleanAddresses(filed);
+  const input = withoutFiledContact(filed);
   const p = input.profile;
-  const productList = (p.supplier.principal_products ?? []).map((x) => (x ?? "").trim()).filter(Boolean);
+  const productList = p.supplier.principal_products ?? [];
   const s = p.supplier;
   const codes = allSourceCodes(p);
   const hrefs = sourceHrefs(p);
@@ -1476,7 +1486,7 @@ export type ProductSheetOptions = {
 };
 
 export function buildProductSheet(filed: RecordInput, hs: string, options: ProductSheetOptions = {}): ProductSheetModel {
-  const input = withCleanAddresses(filed);
+  const input = withoutFiledContact(filed);
   const p = input.profile;
   const s = p.supplier;
   const code = heading4(hs);

@@ -104,7 +104,18 @@ export function Sheet({
  * Close button. A pointer can still dismiss by clicking it; a keyboard uses the
  * bar's Close, which is a real control with a real name.
  */
-export function SheetFrame({ overlay, closeHref, children }: { overlay: boolean; closeHref?: string | null; children: ReactNode }) {
+export function SheetFrame({
+  overlay,
+  closeHref,
+  openKey = "",
+  children,
+}: {
+  overlay: boolean;
+  closeHref?: string | null;
+  /** What the overlay is showing (record, line or notice); focus moves to the dialog whenever it changes. */
+  openKey?: string;
+  children: ReactNode;
+}) {
   if (!overlay) {
     return <div className="relative mx-auto min-h-[calc(100vh-11rem)] w-full max-w-[880px]">{children}</div>;
   }
@@ -122,7 +133,7 @@ export function SheetFrame({ overlay, closeHref, children }: { overlay: boolean;
       ) : (
         <Scrim />
       )}
-      {closeHref ? <DialogFocus closeHref={closeHref} /> : null}
+      {closeHref ? <DialogFocus closeHref={closeHref} openKey={openKey} /> : null}
       {children}
     </div>
   );
@@ -294,7 +305,18 @@ export function FactsPanel({ rows }: { rows: readonly FactRow[] }) {
  * nothing here for a browser to reveal. `held` is null when the count could
  * not be read, and the card then claims nothing about kinds at all.
  */
-export function LockCard({ hidden, plan, held }: { hidden: string; plan: string | null; held?: string | null }) {
+export function LockCard({
+  hidden,
+  plan,
+  held,
+  sanctioned = false,
+}: {
+  hidden: string;
+  plan: string | null;
+  held?: string | null;
+  /** A sanctioned record takes no RFQ, so the card must not offer one. */
+  sanctioned?: boolean;
+}) {
   return (
     <div data-locked="true" className="overflow-hidden rounded-md border border-locked-line">
       <div className="locked-pattern flex flex-col gap-1.5 p-4 text-locked-ink">
@@ -314,7 +336,7 @@ export function LockCard({ hidden, plan, held }: { hidden: string; plan: string 
             REZ-D ships behind RFQ_EMAIL_UNCLAIMED (handoff §4.6). */}
         {/* No "See plans": no plan unlocks contact details on the record
             (founder, 25 Sep), and a button that went nowhere said one did. */}
-        <span>Send an RFQ from the record instead.</span>
+        <span>{sanctioned ? "RFQs cannot be sent to this supplier." : "Send an RFQ from the record instead."}</span>
       </div>
     </div>
   );

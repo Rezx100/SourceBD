@@ -10,7 +10,10 @@ test makes, and rolls back.
 Nothing is committed and nothing here is `--apply` (AGENTS 15). Output of the
 25 Sep 2026 run is in `ops/plans/rez-c-0105-dry-run.md`.
 """
+import os
 import pathlib
+import re
+import subprocess
 
 import psycopg
 from psycopg.rows import dict_row
@@ -18,12 +21,26 @@ from psycopg.rows import dict_row
 # The checkout this file is in, so a worktree verifies its own migration.
 REPO = pathlib.Path(__file__).resolve().parents[1]
 MIG = REPO / "supabase" / "migrations" / "0105_supplier_record_v32.sql"
-env = (REPO / ".env").read_text(encoding="utf-8", errors="replace")
-dsn = next(
-    line.split("=", 1)[1].strip().strip('"').strip("'")
-    for line in env.splitlines()
-    if line.startswith("SUPABASE_DB_URL=")
-)
+
+
+def _dsn() -> str:
+    """`SUPABASE_DB_URL` from the environment, else this checkout's `.env`,
+    else the main checkout's — `.env` is git-ignored, so a worktree has none."""
+    if os.environ.get("SUPABASE_DB_URL"):
+        return os.environ["SUPABASE_DB_URL"]
+    common = subprocess.run(
+        ["git", "rev-parse", "--path-format=absolute", "--git-common-dir"],
+        cwd=REPO, capture_output=True, text=True, check=True,
+    ).stdout.strip()
+    for env in (REPO / ".env", pathlib.Path(common).parent / ".env"):
+        if env.exists():
+            for line in env.read_text(encoding="utf-8", errors="replace").splitlines():
+                if line.startswith("SUPABASE_DB_URL="):
+                    return line.split("=", 1)[1].strip().strip('"').strip("'")
+    raise SystemExit("SUPABASE_DB_URL is not set and no .env holds it")
+
+
+dsn = _dsn()
 
 FN = "supplier_contact_counts"
 CONTACT_COLUMNS = ("email_primary", "contact_name", "contact_role")
@@ -73,27 +90,38 @@ try:
         print("shape / no values       :", rows[0]["slug"], rows[0]["counts"], "OK")
         ok += 1
 
+        # Recounted here, in Python, from the raw columns — not by restating
+        # the function's SQL, which would agree with any bug it has.
         cur.execute(
-            """
-            select count(*)::int as n
-              from public.suppliers s
-             where s.is_published
-               and ( (public.supplier_contact_counts(s.slug)->>'emails')::int
-                     <> case when nullif(btrim(s.email_primary),'') is null then 0 else 1 end
-                  or (public.supplier_contact_counts(s.slug)->>'phones')::int
-                     <> coalesce((select count(*) from unnest(coalesce(s.phones,'{}'::text[])) ph
-                                   where nullif(btrim(ph),'') is not null),0)::int
-                  or (public.supplier_contact_counts(s.slug)->>'website')::boolean
-                     <> (nullif(btrim(s.website),'') is not null)
-                  or (public.supplier_contact_counts(s.slug)->>'representatives')::int
-                     <> case when nullif(btrim(s.contact_name),'') is null then 0 else 1 end )
-            """
+            "select s.slug, s.email_primary, s.phones, s.website, s.contact_name, "
+            "public.supplier_contact_counts(s.slug) as counts from public.suppliers s where s.is_published"
         )
-        mismatches = cur.fetchone()["n"]
-        assert mismatches == 0, mismatches
-        cur.execute("select count(*) as n from public.suppliers where is_published")
-        published = cur.fetchone()["n"]
-        print(f"counts match the columns: 0 mismatches over all {published:,} published records OK")
+        rows = cur.fetchall()
+        mismatches = []
+        for row in rows:
+            digits = {re.sub(r"\D", "", ph) for ph in row["phones"] or []}
+            website = row["website"] or ""
+            expect = {
+                "emails": len(re.findall(r"[^@\s,;]+\s*@\s*[^@\s,;]+", row["email_primary"] or "")),
+                "phones": len({d for d in digits if len(d) >= 6}),
+                "website": bool(re.search(r"[a-z0-9-]+\.[a-z]{2,}", website, re.I)) and "@" not in website,
+                "representatives": 1 if (row["contact_name"] or "").strip() else 0,
+            }
+            if row["counts"] != expect:
+                mismatches.append((row["slug"], row["counts"], expect))
+        assert not mismatches, mismatches[:10]
+        # The shapes that made the first version wrong, on real rows.
+        scheme_only = [r for r in rows if (r["website"] or "").strip() in ("https://", "http://")]
+        assert scheme_only and all(r["counts"]["website"] is False for r in scheme_only), len(scheme_only)
+        no_at = [r for r in rows if (r["email_primary"] or "").strip() and "@" not in r["email_primary"]]
+        assert all(r["counts"]["emails"] == 0 for r in no_at), [r["slug"] for r in no_at]
+        several = [r for r in rows if (r["email_primary"] or "").count("@") >= 2]
+        assert several and all(r["counts"]["emails"] >= 2 for r in several), len(several)
+        print(
+            f"counts match a Python recount: 0 mismatches over all {len(rows):,} published records "
+            f"({len(scheme_only)} scheme-only websites count as none, {len(no_at)} '@'-less emails as 0, "
+            f"{len(several)} multi-address fields as 2+) OK"
+        )
         ok += 1
 
         cur.execute("select public.supplier_contact_counts('no-such-slug-at-all-rez-c') as counts")

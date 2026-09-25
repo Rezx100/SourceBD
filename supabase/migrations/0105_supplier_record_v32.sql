@@ -70,15 +70,23 @@ stable
 security definer
 set search_path = public
 as $function$
+  -- A field counts only when it holds the thing it is named for. On 25 Sep 2026
+  -- 111 published rows held a website of exactly 'https://' and a few more
+  -- 'http://Nil', a product list or an e-mail address; counting those put "a
+  -- website" on a card whose record holds none. `email_primary` often holds
+  -- two or three addresses in one string, and seven hold none (no '@').
   select jsonb_build_object(
-    'emails',          case when nullif(btrim(s.email_primary), '') is null then 0 else 1 end,
-    -- `phones` is text[]; a row of empty strings is not a phone number.
+    'emails',          (select count(*)
+                          from regexp_matches(coalesce(s.email_primary, ''),
+                                              '[^@[:space:],;]+[[:space:]]*@[[:space:]]*[^@[:space:],;]+', 'g'))::int,
+    -- `phones` is text[]: a phone is six or more digits, and one number filed
+    -- twice (however it is punctuated) is one phone.
     'phones',          coalesce((
-                         select count(*)
+                         select count(distinct regexp_replace(ph, '[^0-9]', '', 'g'))
                            from unnest(coalesce(s.phones, '{}'::text[])) as ph
-                          where nullif(btrim(ph), '') is not null
+                          where length(regexp_replace(ph, '[^0-9]', '', 'g')) >= 6
                        ), 0)::int,
-    'website',         nullif(btrim(s.website), '') is not null,
+    'website',         coalesce(s.website ~* '[a-z0-9-]+[.][a-z]{2,}' and position('@' in s.website) = 0, false),
     'representatives', case when nullif(btrim(s.contact_name), '') is null then 0 else 1 end
   )
   from public.suppliers s

@@ -384,7 +384,7 @@ export default async function BuyerDiscoverPage({
       overlay={
         recordSlug && !record ? (
           // The slug resolved to nothing. Say which nothing it was.
-          <SheetFrame overlay closeHref={closeHref}>
+          <SheetFrame overlay closeHref={closeHref} openKey={`notice:${recordSlug}`}>
             {recordRead.slow ? (
               <SheetNotice
                 title="This record could not be read in time"
@@ -408,7 +408,7 @@ export default async function BuyerDiscoverPage({
             )}
           </SheetFrame>
         ) : record ? (
-          <SheetFrame overlay closeHref={closeHref}>
+          <SheetFrame overlay closeHref={closeHref} openKey={`${recordSlug}:${line ? lineCode : ""}`}>
             {/* The line sheet sits where the record sheet would: one dialog at
                 a time, with Back to the record and Close to the search. */}
             {line ? (

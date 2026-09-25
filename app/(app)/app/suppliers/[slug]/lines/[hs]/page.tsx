@@ -18,8 +18,18 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
-export default async function ProductLinePage({ params }: { params: Promise<{ slug: string; hs: string }> }) {
+export default async function ProductLinePage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ slug: string; hs: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const { slug, hs } = await params;
+  // Opened from the record's expanded grid (`?lines=all`), Back returns to it.
+  const linesRaw = (await searchParams).lines;
+  const allLines = (Array.isArray(linesRaw) ? linesRaw[0] : linesRaw) === "all";
+  const recordHref = allLines ? `/app/suppliers/${slug}?lines=all` : `/app/suppliers/${slug}`;
   // No `decodeURIComponent` here. Next already decodes dynamic segments, so a
   // second pass threw `URIError` on a segment containing a bare `%`
   // (`/lines/%`) — an unhandled throw inside a server component, which is a 500
@@ -38,7 +48,7 @@ export default async function ProductLinePage({ params }: { params: Promise<{ sl
   try {
     [shell, model] = await Promise.all([
       loadBuyerShell(supabase, `/app/suppliers/${slug}`),
-      loadRecordLine(supabase, slug, code, new Date()),
+      loadRecordLine(supabase, slug, code, new Date(), { backHref: recordHref }),
     ]);
   } catch (err) {
     // A slow read sends the reader to the record, which has its own retry

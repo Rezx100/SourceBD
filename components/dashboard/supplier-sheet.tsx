@@ -82,8 +82,8 @@ export function SupplierSheet({
         <span className="ml-auto flex items-center gap-2">
           {/* Share copies the record's own page on both: in the overlay that is
               `fullHref`, not the search URL underneath. */}
-          <CopyLinkButton href={model.closeHref ? model.fullHref : undefined} />
-          <ReportProblem />
+          <CopyLinkButton href={model.fullHref} />
+          <ReportProblem page={model.fullHref} />
         </span>
       </SheetBar>
       {model.sanctioned ? <SanctionBanner sample={model.sanctionSample} evidenceHref="#sanctions" /> : null}
@@ -110,7 +110,7 @@ export function SupplierSheet({
               <FactsPanel rows={model.facts} />
             </div>
             <div className="flex flex-col gap-3">
-              <LockCard hidden={model.contact.hidden} plan={model.contact.plan} held={model.contact.held} />
+              <LockCard hidden={model.contact.hidden} plan={model.contact.plan} held={model.contact.held} sanctioned={model.sanctioned} />
               {/* The dates per register are the Sources section's own rows;
                   this line is the summary beside the locked card. */}
               {model.readDates ? <Caption>Read dates: {model.readDates}.</Caption> : null}

@@ -20,8 +20,9 @@
 // - every `<Button href={…}>` in a file that draws record or line links either
 //   says `clientNav` or is listed the same way.
 //
-// A new anchor, a second copy of an allowed one, or a Button that loses
-// `clientNav` fails this until someone writes down why.
+// A new anchor, a second copy of an allowed one, an anchor whose href hides in
+// a spread, or a Button that loses `clientNav` — or says `clientNav={false}` —
+// fails this until someone writes down why.
 
 import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
@@ -115,7 +116,9 @@ function elements(src: string, tag: string): string[] {
 /** The `href=` expression exactly as written: `{…}` with its braces balanced, or `"…"`. */
 function hrefOf(element: string): string | null {
   const at = element.search(/\shref=/);
-  if (at < 0) return null;
+  // An element that spreads props (`<a {...{ href }}>`) may carry an href this
+  // cannot see, so it is reported as `{...}` and must be listed like any other.
+  if (at < 0) return /\{\s*\.\.\./.test(element) ? "{...}" : null;
   const start = at + 6;
   if (element[start] === '"') return element.slice(start, element.indexOf('"', start + 1) + 1);
   let depth = 0;
@@ -124,6 +127,15 @@ function hrefOf(element: string): string | null {
     else if (element[i] === "}" && --depth === 0) return element.slice(start, i + 1);
   }
   return null;
+}
+
+/**
+ * A Button navigates on the client only when it says `clientNav` outright or
+ * `clientNav={true}`. `clientNav={false}` — or any expression — renders the
+ * plain anchor, and cycle 4 showed the guard counting it as client-side.
+ */
+function clientNavigates(element: string): boolean {
+  return /\sclientNav(?:=\{true\})?(?=[\s/>])/.test(element);
 }
 
 function tally(hrefs: (string | null)[]): Map<string, number> {
@@ -160,7 +172,7 @@ describe("the dashboard kit's in-app links are client navigations", () => {
   it("in the record and line files, every Button with an href client-navigates or is listed", () => {
     const offenders = RECORD_FILES.flatMap((file) => {
       const src = readFileSync(path.join(KIT, file), "utf8");
-      const plain = elements(src, "Button").filter((el) => !/\bclientNav\b/.test(el));
+      const plain = elements(src, "Button").filter((el) => !clientNavigates(el));
       return unlisted(file, tally(plain.map(hrefOf)), DOCUMENT_BUTTONS);
     });
     assert.deepEqual(offenders, [], `add clientNav, or list the Button in DOCUMENT_BUTTONS with the reason:\n  ${offenders.join("\n  ")}`);
@@ -176,7 +188,7 @@ describe("the dashboard kit's in-app links are client navigations", () => {
     ] as const) {
       for (const [file, hrefs] of Object.entries(allowed)) {
         const src = readFileSync(path.join(KIT, file), "utf8");
-        const els = elements(src, tag).filter((el) => !plainOnly || !/\bclientNav\b/.test(el));
+        const els = elements(src, tag).filter((el) => !plainOnly || !clientNavigates(el));
         const found = tally(els.map(hrefOf));
         for (const [href, [count]] of Object.entries(hrefs)) {
           if ((found.get(href) ?? 0) !== count) stale.push(`${file}: href=${href} expected ${count}, found ${found.get(href) ?? 0}`);
@@ -194,8 +206,21 @@ describe("the dashboard kit's in-app links are client navigations", () => {
       "supplier-sheet.tsx: href={p.allLinesHref}",
     ]);
     const close = `<Button variant="ghost" icon aria-label="Close" href={model.closeHref} scroll={false}>\n  <Icon name="x" />\n</Button>`;
-    const plain = elements(close, "Button").filter((el) => !/\bclientNav\b/.test(el));
+    const plain = elements(close, "Button").filter((el) => !clientNavigates(el));
     assert.deepEqual(unlisted("supplier-sheet.tsx", tally(plain.map(hrefOf)), DOCUMENT_BUTTONS), ["supplier-sheet.tsx: href={model.closeHref}"]);
+    // Saying clientNav is not enough: it has to be on. Both of these render the plain anchor.
+    for (const off of ["clientNav={false}", "clientNav={overlay}"]) {
+      const el = `<Button variant="ghost" icon aria-label="Close" href={model.closeHref} ${off} scroll={false}>x</Button>`;
+      const found = elements(el, "Button").filter((e) => !clientNavigates(e));
+      assert.deepEqual(unlisted("supplier-sheet.tsx", tally(found.map(hrefOf)), DOCUMENT_BUTTONS), ["supplier-sheet.tsx: href={model.closeHref}"], off);
+    }
+    for (const on of ["clientNav", "clientNav={true}"]) {
+      const el = `<Button href={model.closeHref} ${on} scroll={false}>x</Button>`;
+      assert.equal(clientNavigates(elements(el, "Button")[0]!), true, on);
+    }
+    // An href hidden in a spread is still an anchor to account for.
+    const spread = `<a {...{ href: p.allLinesHref }} className="x">All</a>`;
+    assert.deepEqual(unlisted("supplier-sheet.tsx", tally(elements(spread, "a").map(hrefOf)), RAW_ANCHORS), ["supplier-sheet.tsx: href={...}"]);
   });
 
   it("a link into a sheet section keeps Next's scroll, or it never reaches the section", () => {

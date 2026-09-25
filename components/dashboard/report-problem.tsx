@@ -2,8 +2,10 @@
 
 // The record bar's "more" menu (REZ-C §3.3: "more (Report a problem → existing
 // feedback endpoint)"). It posts to `POST /api/v1/feedback` — the Phase 7
-// endpoint the admin queue at /admin/feedback reads — with the record's URL as
-// the page, so the report arrives already naming the company.
+// endpoint the admin queue at /admin/feedback reads — with the record's own
+// page as the page, so the report arrives naming the company. Not the address
+// bar: in the overlay that is the search, with `record=` last, and a long
+// filter set pushed it past the endpoint's 500-character cut.
 //
 // A native <details>: it opens and closes without script, needs no focus trap
 // and cannot outlive the sheet it sits in.
@@ -19,7 +21,7 @@ export function feedbackBody(page: string, message: string): { page_path: string
   return { page_path: page.slice(0, 500), message: message.trim() };
 }
 
-export function ReportProblem() {
+export function ReportProblem({ page }: { page: string }) {
   const [message, setMessage] = useState("");
   const [state, setState] = useState<"idle" | "sending" | "sent" | "failed">("idle");
   const [error, setError] = useState<string | null>(null);
@@ -37,7 +39,7 @@ export function ReportProblem() {
       const res = await fetch(FEEDBACK_ENDPOINT, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify(feedbackBody(`${window.location.pathname}${window.location.search}`, message)),
+        body: JSON.stringify(feedbackBody(page, message)),
       });
       if (res.status === 401) {
         // Trying again cannot help an expired session; say what will.

@@ -22,6 +22,7 @@ the state it found.
 from __future__ import annotations
 
 import os
+import re
 from pathlib import Path
 
 import pytest
@@ -153,32 +154,40 @@ def test_returns_counts_and_never_a_value(conn, applied):
             assert col not in blob, f"the {col} column name is in the counts for {r['slug']}"
 
 
+def _expected(row) -> dict:
+    """The counts, recomputed in Python from the raw columns — not by restating
+    the function's SQL, which would agree with any bug it has."""
+    website = row["website"] or ""
+    digits = {re.sub(r"\D", "", ph) for ph in row["phones"] or []}
+    return {
+        "emails": len(re.findall(r"[^@\s,;]+\s*@\s*[^@\s,;]+", row["email_primary"] or "")),
+        "phones": len({d for d in digits if len(d) >= 6}),
+        "website": bool(re.search(r"[a-z0-9-]+\.[a-z]{2,}", website, re.I)) and "@" not in website,
+        "representatives": 1 if (row["contact_name"] or "").strip() else 0,
+    }
+
+
 def test_the_counts_match_the_columns_they_count(conn, applied):
-    # A count that is not the count is worse than no count.
+    # A count that is not the count is worse than no count. Cycle 4 found the
+    # first version saying "a website" for 111 records whose website is exactly
+    # 'https://', and "1 email" for fields holding none or three.
     with conn.cursor() as cur:
         cur.execute(
             """
-            select s.slug,
-                   public.supplier_contact_counts(s.slug) as counts,
-                   case when nullif(btrim(s.email_primary), '') is null then 0 else 1 end as want_emails,
-                   coalesce((select count(*) from unnest(coalesce(s.phones, '{}'::text[])) ph
-                              where nullif(btrim(ph), '') is not null), 0)::int as want_phones,
-                   (nullif(btrim(s.website), '') is not null) as want_website,
-                   case when nullif(btrim(s.contact_name), '') is null then 0 else 1 end as want_reps
+            select s.slug, s.email_primary, s.phones, s.website, s.contact_name,
+                   public.supplier_contact_counts(s.slug) as counts
               from public.suppliers s
              where s.is_published
-             order by s.slug
-             limit 200
             """
         )
         rows = cur.fetchall()
     assert len(rows) > 0
-    for r in rows:
-        c = r["counts"]
-        assert c["emails"] == r["want_emails"], r["slug"]
-        assert c["phones"] == r["want_phones"], r["slug"]
-        assert c["website"] == r["want_website"], r["slug"]
-        assert c["representatives"] == r["want_reps"], r["slug"]
+    wrong = [(r["slug"], r["counts"], _expected(r)) for r in rows if r["counts"] != _expected(r)]
+    assert not wrong, wrong[:10]
+    scheme_only = [r for r in rows if (r["website"] or "").strip() in ("https://", "http://")]
+    assert all(r["counts"]["website"] is False for r in scheme_only)
+    several = [r for r in rows if (r["email_primary"] or "").count("@") >= 2]
+    assert all(r["counts"]["emails"] >= 2 for r in several)
 
 
 def test_null_for_an_unpublished_or_unknown_slug(conn, applied):

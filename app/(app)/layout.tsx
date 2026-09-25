@@ -17,6 +17,7 @@ import { PostHogProvider } from "@/lib/posthog/provider";
 import { ScrollToTop } from "@/components/shell/scroll-to-top";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getServerRole } from "@/lib/auth";
+import { drawsKitShell } from "@/lib/dashboard/kit-shell";
 
 type SettingsDoc = {
   email: string | null;
@@ -143,8 +144,7 @@ export default async function AppShellLayout({
   }
 
   const pathname = (await headers()).get("x-sourcebd-pathname") ?? "";
-  const kitShell = /^\/app\/(discover|products|searches)(\/|$)/.test(pathname);
-  if (kitShell) {
+  if (drawsKitShell(pathname)) {
     // The kit draws its own shell, and its rail reflows into a horizontal nav
     // strip below `md` rather than hiding — so it needs no `BottomTabBar`. An
     // earlier pass added one here, which looked like a fix and was not: the

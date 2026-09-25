@@ -31,7 +31,11 @@ describe("DialogFocus — focus returns to the result that opened the record", (
   it("every overlay frame with somewhere to close to carries it", () => {
     // `DialogFocus` renders nothing, so no HTML test can see it is mounted.
     const sheet = readFileSync(path.join(process.cwd(), "components", "dashboard", "sheet.tsx"), "utf8");
-    assert.match(sheet, /\{closeHref \? <DialogFocus closeHref=\{closeHref\} \/> : null\}/);
+    assert.match(sheet, /\{closeHref \? <DialogFocus closeHref=\{closeHref\} openKey=\{openKey\} \/> : null\}/);
+    // And every overlay frame names what it shows, or focus stays put when it changes.
+    const discover = readFileSync(path.join(process.cwd(), "app", "(app)", "app", "discover", "page.tsx"), "utf8");
+    const frames = discover.match(/<SheetFrame overlay[^>]*>/g) ?? [];
+    assert.ok(frames.length >= 2 && frames.every((f) => /openKey=\{/.test(f)), frames.join(" | "));
     assert.match(sheet, /role="dialog"[^>]*tabIndex=\{-1\}/, "the dialog cannot take focus");
   });
 });

@@ -43,21 +43,22 @@ below is after that fix.
 
 ```
 file          : supabase/migrations/0105_supplier_record_v32.sql
-bytes         : 5771
+bytes         : 6476
 line endings  : CRLF
-sha256        : 0edbaf6a0f81a33320cdf4b21757104ef56c1395f591a944b4fa50c8afe769b0
+sha256        : d9b2b97a60b206ba9c670e20c3dbaf9d879df903eea869f50884295887ac9154
 ```
 
-Re-run at this sha256 on 25 Sep after the audit-cycle-1 repairs. Re-run it
-again before applying and compare, as closed-loop §18 requires.
+Re-run at this sha256 on 25 Sep after the audit-cycle-4 repairs, which changed
+what the function counts (below). Re-run it again before applying and compare,
+as closed-loop §18 requires.
 
 ## Raw output
 
 ```
 file          : supabase/migrations/0105_supplier_record_v32.sql
-bytes         : 5771
+bytes         : 6476
 line endings  : CRLF
-sha256        : 0edbaf6a0f81a33320cdf4b21757104ef56c1395f591a944b4fa50c8afe769b0
+sha256        : d9b2b97a60b206ba9c670e20c3dbaf9d879df903eea869f50884295887ac9154
 
 === BEFORE ===
 supplier_contact_counts exists:
@@ -104,7 +105,7 @@ an unknown slug must return null:
 
 === TOTALS ACROSS THE PUBLISHED SET ===
 what the locked cards will say, in aggregate:
-    {'published': 10266, 'with_email': 8741, 'with_phone': 8593, 'with_website': 1808, 'with_rep': 8365}
+    {'published': 10266, 'with_email': 8734, 'with_phone': 8593, 'with_website': 1688, 'with_rep': 8365}
 
 === ROLLED BACK -- nothing was committed ===
 ```
@@ -118,10 +119,15 @@ what the locked cards will say, in aggregate:
 - The counts are right on real rows, and both "not published" and "no such
   slug" return null rather than a row of zeros — a caller cannot tell them
   apart from a missing record, which is correct: neither is a record.
-- Aggregate over the 10,266 published records: 8,741 hold an email, 8,593 hold
-  at least one phone number, 1,808 a website, 8,365 a named representative.
-  These match a direct count over `suppliers` taken the same day, so the
-  function is not filtering anything out by accident.
+- Aggregate over the 10,266 published records: 8,734 hold an email, 8,593 hold
+  at least one phone number, 1,688 a website, 8,365 a named representative.
+  Audit cycle 4 found the first version counting any non-blank string: 1,808
+  "websites", of which 111 are exactly `https://` and a few more are
+  `http://Nil`, a product list or an e-mail address; 7 "emails" with no `@`;
+  and every multi-address `email_primary` as one. The function now counts an
+  e-mail per address in the field, a phone per distinct number of six or more
+  digits, and a website only when it holds a domain. `ops/verify_0105_guards.py`
+  recounts every published record in Python and finds 0 mismatches.
 - Nothing about which **register** filed a contact detail is returned. §4.3's
   example includes `"registers": ["BGMEA", …]`, and that attribution does not
   exist in this database: no row of `source_records.fields` carries a contact
@@ -156,10 +162,12 @@ rolled-back transaction, to prove they pass rather than shipping a guard nobody
 has seen green. The 25 Sep run:
 
 ```
-grants                     : ['authenticated', 'postgres', 'service_role'] -> anon absent OK
+0105 applied in-transaction
+
+grants                  : ['authenticated', 'postgres', 'service_role'] -> anon absent OK
 definer/stable/search_path : {'definer': True, 'volatility': 's', 'config': 'search_path=public'} OK
-shape / no values          : 1046-am-fashion {'emails': 1, 'phones': 1, 'website': False, 'representatives': 1} OK
-counts match the columns   : 0 mismatches over all 10,266 published records OK
+shape / no values       : 1046-am-fashion {'emails': 1, 'phones': 1, 'website': False, 'representatives': 1} OK
+counts match a Python recount: 0 mismatches over all 10,266 published records (111 scheme-only websites count as none, 7 '@'-less emails as 0, 28 multi-address fields as 2+) OK
 null for unknown/unpublished OK
 
 5/5 guard assertions pass against the applied migration. ROLLED BACK.
