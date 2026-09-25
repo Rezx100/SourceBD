@@ -166,6 +166,19 @@ const LEAKING: [string, string][] = [
   ["House 5 Rd.Karim (Owner), Dhaka", "House 5, Dhaka"],
   ["Plot 5, Abdul Karim - Managing Director, Dhaka", "Plot 5, Dhaka"],
   ["Plot 5, Abdul Karim (Managing Director), Dhaka", "Plot 5, Dhaka"],
+  // A role then a full stop then more text (cycle 11: cycle 10's full-stop rule
+  // kept these whole). A closed bracket or a role that is no honorific ends the
+  // part; the full stop goes with the name.
+  ["Plot 5, Abdul Karim (MD). Mirpur, Dhaka", "Plot 5, Mirpur, Dhaka"],
+  ["Abdul Karim (MD). Plot 5, Dhaka", "Plot 5, Dhaka"],
+  ["Rahim Uddin (Owner). Mirpur, Dhaka", "Mirpur, Dhaka"],
+  ["Plot 5, Abdul Karim (Chairman & MD). Road 3, Dhaka", "Plot 5, Road 3, Dhaka"],
+  ["Karim Uddin - Proprietor. House 5, Dhaka", "House 5, Dhaka"],
+  ["Abdul Karim - Chairman. Plot 5, Dhaka", "Plot 5, Dhaka"],
+  ["Plot 5 Dhaka\nAbdul Karim (MD). Mirpur", "Plot 5 Dhaka\nMirpur"],
+  ["Plot 5, Abdul Karim - Owner., Dhaka", "Plot 5, Dhaka"],
+  ["Plot 5, Abdul Karim (Owner)., Dhaka", "Plot 5, Dhaka"],
+  ["Plot 5, Abdul Karim - MD., Dhaka", "Plot 5, Dhaka"],
   // "M.D" as a leading label, like "MD" (cycle 10).
   ["Plot 5, M.D: Abdul Karim", "Plot 5"],
   ["Plot 5, M.D - Abdul Karim, Mirpur", "Plot 5, Mirpur"],
@@ -385,6 +398,10 @@ describe("the population guard sends every text naming a person to review", () =
       "Plot 5, Dhaka, Owner - Road Karim",
       "Plot 5, M.D: Abdul Karim",
       "Plot 5, M.D - Abdul Karim, Mirpur",
+      // The one shape the stripper leaves to review: "- MD." could open a place
+      // ("- Md. Bari Road"), so a name before it is the guard's to catch (cycle 11).
+      "Plot 5, Abdul Karim - M.D. Mirpur, Dhaka",
+      "Plot 5, Abdul Karim - MD. Mirpur, Dhaka",
     ];
     const out = run(named.map((address_raw, i) => ({ slug: `probe-${i}`, address_raw })));
     assert.equal(out.status, 1, out.stdout + out.stderr);
@@ -452,8 +469,20 @@ describe("the population guard sends every text naming a person to review", () =
   it("sends a correct honorific-name removal to review, not to the over-strip check", () => {
     // Cycle 10: "Mr Karim" removed was reported as an over-strip, which
     // REVIEWED cannot silence — every rule that removes a person must read as one.
-    const out = run(["Plot 5, Mr Karim, Dhaka", "Plot 5, Engr. Abdul Karim, Dhaka", "Plot 5, Mrs Rahima Begum, Tongi"].map((address_raw, i) => ({ slug: `hon-${i}`, address_raw })));
-    for (let i = 0; i < 3; i++) assert.match(out.stdout, new RegExp(`FAIL hon-${i} \\(address\\): a text naming a person whose output nobody has reviewed\\n`));
+    // "…, Mirpur" / "…, Motijheel": the next part shares letters with the name
+    // (cycle 11: a character-by-character cut misaligned into an over-strip).
+    const honorifics = [
+      "Plot 5, Mr Karim, Dhaka",
+      "Plot 5, Engr. Abdul Karim, Dhaka",
+      "Plot 5, Mrs Rahima Begum, Tongi",
+      "Plot 5, Mohd Karim, Dhaka",
+      "Plot 5, Mohammad Ali, Dhaka",
+      "Plot 5, Ms Rahima, Dhaka",
+      "Plot 5, Mr Karim, Mirpur",
+      "Plot 5, Mr Karim, Motijheel",
+    ];
+    const out = run(honorifics.map((address_raw, i) => ({ slug: `hon-${i}`, address_raw })));
+    for (let i = 0; i < honorifics.length; i++) assert.match(out.stdout, new RegExp(`FAIL hon-${i} \\(address\\): a text naming a person whose output nobody has reviewed\\n`));
     assert.doesNotMatch(out.stdout, /an over-strip:/);
   });
 
@@ -473,6 +502,8 @@ describe("the population guard sends every text naming a person to review", () =
       });
       assert.equal(out.status, 1, out.stdout + out.stderr);
       assert.match(out.stdout, /FAIL cut \(address\): an over-strip: removed "110072"/);
+      // Its OK or FAIL is about the stand-in, and the output says so.
+      assert.match(out.stdout, /STAND-IN STRIPPER: .*strip\.mjs \(not lib\/contact-text\.ts\)/);
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }

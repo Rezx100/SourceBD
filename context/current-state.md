@@ -67,7 +67,11 @@ migrations, run the 30-day zero P1/P2 Sentry incident window.
   (requirements critic accepted): "(Md. Ali Tower)" read as a role cut places
   — a full stop ends a role's part only at its end; honorific cuts go to
   review; every guard check now has a fixture (it can run a stand-in
-  stripper). Cycle 11 next, no Acceptance Judge yet. Founder, 25 Sep: Facilities lists the buildings; product
+  stripper). Cycle 11 (requirements critic accepted): cycle 10's full-stop
+  rule let "Abdul Karim (MD). Plot 5" through — a closed bracket or a
+  non-honorific role ends the part again, only "- MD." is left to review; a
+  failed search re-run under an open record no longer drops the buyer's bulk
+  selection. Cycle 12 next, no Acceptance Judge yet. Founder, 25 Sep: Facilities lists the buildings; product
   entries differing only in case or spacing merge. Hand-off: `feature-specs/handoff-rez-c-cycle4.md`.
   **Ratified by the founder 25 Sep:** "Exporters of 6105 · N" (the count
   equals the search it opens); 0105's five omitted §4.3 items; and these

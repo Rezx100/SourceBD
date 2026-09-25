@@ -327,6 +327,31 @@ describe("/app/discover?record= — the overlay over the results", () => {
     return outcome(() => Page({ searchParams: Promise.resolve(sp) }));
   };
 
+  it("the selection's provider survives a failed search re-run under an open record", async () => {
+    // `?record=` is a search param, so opening a record re-runs the search.
+    // When that failed, the error panel replaced the results AND the provider,
+    // so the buyer's bulk selection was gone even after Close (cycle 11). The
+    // same provider, same key, now wraps every outcome; unread rows are null.
+    const Page = route("app/(app)/app/discover/page.js").default;
+    const tree = async (discoverAnswer: Rpc) => {
+      given({ profile: PROFILE, hscodes: HS, discover: discoverAnswer });
+      return (await Page({ searchParams: Promise.resolve({ q: "knit", record: "aboni-knitwear" }) })) as ReactElement;
+    };
+    const providers = (n: unknown): { key: unknown; pageIds: unknown }[] => {
+      if (!n || typeof n !== "object") return [];
+      if (Array.isArray(n)) return n.flatMap(providers);
+      const el = n as { type?: { name?: string }; key?: unknown; props?: Record<string, unknown> };
+      const own = el.type?.name === "SelectionProvider" ? [{ key: el.key, pageIds: el.props?.pageIds }] : [];
+      return [...own, ...Object.values(el.props ?? {}).flatMap(providers)];
+    };
+    const ok = providers(await tree({ data: [ROW], error: null }));
+    const failed = providers(await tree({ data: null, error: { code: "57014", message: "canceling statement due to statement timeout" } }));
+    assert.equal(ok.length, 1, "guard: one provider around the results");
+    assert.equal(failed.length, 1, "a failed search re-run unmounted the selection's provider");
+    assert.equal(failed[0]!.key, ok[0]!.key, "a different key remounts the provider and empties the selection");
+    assert.equal(failed[0]!.pageIds, null, "an unread page is passed as no rows, which prunes the selection");
+  });
+
   it("no ?record= renders no sheet at all", async () => {
     const out = html(await discover({ q: "knit" }));
     assert.doesNotMatch(out, /aria-label="Supplier record"/);

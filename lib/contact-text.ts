@@ -83,12 +83,21 @@ const NAME_LABEL = new RegExp(
 // "Karim Uddin - Proprietor", "Karim Uddin (MD)": a name with its role beside it.
 // "…- Owner" (no space before the dash), "… (MD)." (a full stop after),
 // "(M.D.)", "(Chairman & MD)", and a part ended by ";" too.
-const ROLE_WORD = String.raw`(?:proprietor|managing director|m\.?d\.?|owner|ceo|chairman|director|general manager|gm)`;
+const PLAIN_ROLE = String.raw`(?:proprietor|managing director|owner|ceo|chairman|director|general manager|gm)`;
+const ROLE_WORD = String.raw`(?:${PLAIN_ROLE}|m\.?d\.?)`;
+const ROLES = String.raw`${ROLE_WORD}(?:[ \t]*&[ \t]*${ROLE_WORD})*`;
+const DASH = String.raw`[ \t]*[-–—][ \t]*`;
+const STOP = String.raw`(?:[ \t]*\.(?=[ \t]*[^\s,;.])|(?=[ \t]*(?:[,;.]|$)))`;
+// Where a full stop after the role ends the name's part:
+//  - after a CLOSED bracket, always: "Abdul Karim (MD). Plot 5" (cycle 11);
+//  - after a role that is no honorific, always: "Karim Uddin - Proprietor. House 5";
+//  - otherwise only when nothing follows on the line — "Md." opens place names:
+//    "(Md. Ali Tower)", "- Md. Ali Mansion" (cycle 10). "Abdul Karim - MD.
+//    Mirpur" is the one shape left to the population guard's review.
 const NAME_WITH_ROLE = new RegExp(
-  // A full stop after the role ends the part only when nothing follows on the
-  // line: "(Md. Ali Tower)" and "- Md. Ali Mansion" are places whose name
-  // opens with the honorific (cycle 10).
-  String.raw`[^,;\n]*?(?:[ \t]*[-–—][ \t]*|[ \t]*\()${ROLE_WORD}(?:[ \t]*&[ \t]*${ROLE_WORD})*\)?(?=[ \t]*(?:[,;]|\.[ \t]*(?:[,;]|$)|$))`,
+  // The first two take the full stop with them when text follows it, so the
+  // rest of the line reads on: "Abdul Karim (MD). Plot 5" → "Plot 5".
+  String.raw`[^,;\n]*?(?:[ \t]*\(${ROLES}\)${STOP}|${DASH}${PLAIN_ROLE}(?:[ \t]*&[ \t]*${ROLE_WORD})*${STOP}|(?:${DASH}|[ \t]*\()${ROLES}\)?(?=[ \t]*(?:[,;]|\.[ \t]*$|$)))`,
   "gim",
 );
 const ROLE = /\b(?:managing director|proprietor)\b/gi;

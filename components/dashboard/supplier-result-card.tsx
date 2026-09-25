@@ -137,8 +137,10 @@ export function SupplierResultCard({ card }: { card: SupplierCardModel }) {
                   the name"); the button beside it goes to the same place. */}
               <Title as="h2">
                 {/* `next/link` and `scroll={false}`: the record opens over these
-                    results without re-running the search or moving the page
-                    (§3.3). `[overflow-wrap:anywhere]` rides on the element that
+                    results without a document load or moving the page (§3.3).
+                    The server does re-run the search (`record` is a search
+                    param); the selection survives even a failed re-run
+                    (discover/page.tsx). `[overflow-wrap:anywhere]` rides on the element that
                     directly holds the text — a 125-character name must break
                     inside the link, not overflow the card. */}
                 <Link

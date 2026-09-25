@@ -21,6 +21,7 @@ import { CopyLinkButton } from "./copy-link-button";
 import { DialogFocus } from "./dialog-focus";
 import { callWithHooks, findAll, textOf } from "./hook-harness";
 import { FEEDBACK_ENDPOINT, ReportProblem } from "./report-problem";
+import { SelectionProvider } from "./selection";
 import { SupplierSheet } from "./supplier-sheet";
 
 const g = globalThis as unknown as Record<string, unknown>;
@@ -317,5 +318,25 @@ describe("DialogFocus — focus follows the dialog's content", () => {
     cleanup();
     await tick();
     assert.deepEqual(w.focused, ["aboni-knitwear-unit-2"], "focus returns to a result the buyer never clicked");
+  });
+});
+
+describe("SelectionProvider — a page that could not be read keeps the selection", () => {
+  // Opening a record over the results re-runs the search; when that re-run
+  // failed, the page passed no rows and the provider pruned the selection to
+  // them — the buyer's bulk selection, gone (cycle 11). `null` is "unread".
+  const run = (pageIds: readonly string[] | null) => {
+    const r = callWithHooks(SelectionProvider, { pageIds, children: null }, { state: [new Set(["a", "b"]), 0] });
+    for (const effect of r.effects) effect();
+    return r.sets.filter((s) => s.hook === 0).map((s) => (typeof s.value === "function" ? (s.value as (x: Set<string>) => Set<string>)(new Set(["a", "b"])) : s.value));
+  };
+
+  it("prunes nothing when the page was not read", () => {
+    assert.deepEqual(run(null), [], "an unread page pruned the selection");
+  });
+
+  it("still prunes to the rows a read page holds", () => {
+    const [next] = run(["b", "c"]);
+    assert.deepEqual([...(next as Set<string>)], ["b"], "guard: a read page prunes to its rows");
   });
 });

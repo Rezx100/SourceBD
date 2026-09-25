@@ -36,8 +36,8 @@ same PR. Read once per session.
   the line sheet is `/app/suppliers/[slug]/lines/[hs]`; Sources, Locations,
   Facilities and RFQs added. Migration `0105` (one function,
   `supplier_contact_counts`) is NOT applied — dry run and the founder's
-  command in `ops/plans/rez-c-0105-dry-run.md`. Ten audit cycles run, each
-  repaired; cycle 11 next, no Acceptance Judge yet. Hand-off:
+  command in `ops/plans/rez-c-0105-dry-run.md`. Eleven audit cycles run, each
+  repaired; cycle 12 next, no Acceptance Judge yet. Hand-off:
   `handoff-rez-c-cycle4.md`, then `handoff-rez-c-start.md`.
   Then D → H → G → E → F → I per §7.
 

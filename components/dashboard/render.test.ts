@@ -1555,7 +1555,7 @@ describe("the two-state controls say which state they are in", () => {
       assert.doesNotMatch(code, /\}, \[sel\.selected\]\);/);
       assert.match(
         sourceCode("components/dashboard/selection.tsx"),
-        /selectionValue\(selected, pageIds, setSelected, edits, \(\) => setEdits\(\(n\) => n \+ 1\)\)/,
+        /selectionValue\(selected, ids, setSelected, edits, \(\) => setEdits\(\(n\) => n \+ 1\)\)/,
       );
     });
 
@@ -1645,7 +1645,7 @@ describe("the two-state controls say which state they are in", () => {
       assert.match(html, new RegExp(`id="${SELECT_ALL_ID}"[^>]*aria-checked="mixed"`));
       assert.match(
         sourceCode("components/dashboard/selection.tsx"),
-        /useMemo\(\s*\(\) => selectionValue\(selected, pageIds, setSelected, edits, \(\) => setEdits\(\(n\) => n \+ 1\)\),\s*\[selected, pageIds, edits\],\s*\)/,
+        /useMemo\(\s*\(\) => selectionValue\(selected, ids, setSelected, edits, \(\) => setEdits\(\(n\) => n \+ 1\)\),\s*\[selected, ids, edits\],\s*\)/,
       );
     });
 
@@ -1721,7 +1721,7 @@ describe("the two-state controls say which state they are in", () => {
     it("the provider prunes its selection to the page whenever a refresh changes the rows", () => {
       assert.match(
         sourceCode("components/dashboard/selection.tsx"),
-        /const pageKey = pageIds\.join\(","\);\s*useEffect\(\(\) => \{\s*setSelected\(\(s\) => pruneToPage\(s, pageKey \? pageKey\.split\(","\) : \[\]\)\);\s*\}, \[pageKey\]\);/,
+        /const pageKey = pageIds === null \? null : pageIds\.join\(","\);\s*useEffect\(\(\) => \{\s*if \(pageKey === null\) return;\s*setSelected\(\(s\) => pruneToPage\(s, pageKey \? pageKey\.split\(","\) : \[\]\)\);\s*\}, \[pageKey\]\);/,
       );
     });
 

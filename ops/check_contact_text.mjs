@@ -41,7 +41,7 @@ const KNOWN_NOT_CONTACT = new Map([
 // a name ("… - Owner", "…- Owner", "… — Owner"), a role in brackets anywhere
 // ("(MD)", "[CEO]", "(Chairman & MD)"; not "(Chairman Bari)", a place), and
 // "Contact:". The dash classes carry the em dash the stripper splits on.
-const NAMES_A_PERSON = /\b(?:proprietor|managing director|your contact|contact person|attn|c\/o)\b|(?:^|,)\s*(?:chairman|director|ceo|owner|md)\s*(?:,|$)|\b(?:chairman|director|ceo|owner|gm|general manager|md|m\.d)\b\.?(?:\s*:|\s+[-–—]|[-–—](?!\s*(?:bari|market|road|para|bazar)\b))|\s*[-–—]\s*(?:chairman|director|ceo|owner|gm|general manager|md)\b\s*(?:[,.;]|$)|[([](?![^)\]]*\b(?:bari|market|road|para|bazar|plaza)\b)[^)\]]*\b(?:chairman|director|ceo|owner|gm|general manager|md|m\.d|executive|manager)\b[^)\]]*[)\]]|\bcontact(?:\s+name)?\s*:/im;
+const NAMES_A_PERSON = /\b(?:proprietor|managing director|your contact|contact person|attn|c\/o)\b|(?:^|,)\s*(?:chairman|director|ceo|owner|md)\s*(?:,|$)|\b(?:chairman|director|ceo|owner|gm|general manager|md|m\.d)\b\.?(?:\s*:|\s+[-–—]|[-–—](?!\s*(?:bari|market|road|para|bazar)\b))|\s*[-–—]\s*(?:chairman|director|ceo|owner|gm|general manager|md|m\.d)\b\.?\s*(?:[,.;]|$|\S)|[([](?![^)\]]*\b(?:bari|market|road|para|bazar|plaza)\b)[^)\]]*\b(?:chairman|director|ceo|owner|gm|general manager|md|m\.d|executive|manager)\b[^)\]]*[)\]]|\bcontact(?:\s+name)?\s*:/im;
 /**
  * A role word or an honorific in what the stripper removed: the cut was a
  * person's. Every rule in the stripper that removes a person must be here, or
@@ -87,15 +87,21 @@ const digitsOf = (s) => s.replace(/\D/g, "");
 const domainOf = (w) =>
   w.toLowerCase().trim().replace(/^https?:\/\//, "").replace(/^www\./, "").replace(/\/.*$/, "");
 
-/** What `text` lost on its way to `out`: the characters left once `out` is matched through it in order. */
+/**
+ * What `text` lost on its way to `out`: its words (split at spaces, commas and
+ * semicolons) less the ones `out` still has, each counted. Matching characters
+ * in order misaligned — "Plot 5, Mr Karim, Mirpur" came out as "r Karm, Mi",
+ * which read as an over-strip instead of a person (cycle 11).
+ */
 function removedFrom(text, out) {
-  let j = 0;
-  let cut = "";
-  for (const c of text) {
-    if (j < out.length && c === out[j]) j++;
-    else cut += c;
+  const left = new Map();
+  for (const w of out.split(/[\s,;]+/).filter(Boolean)) left.set(w, (left.get(w) ?? 0) + 1);
+  const cut = [];
+  for (const w of text.split(/[\s,;]+/).filter(Boolean)) {
+    if (left.get(w)) left.set(w, left.get(w) - 1);
+    else cut.push(w);
   }
-  return cut;
+  return cut.join(" ");
 }
 
 const failures = [];
@@ -148,6 +154,8 @@ for (const r of rows) {
   }
 }
 
+// A stand-in stripper's OK is not lib/contact-text.ts's: say which one ran.
+if (process.env.CONTACT_TEXT_STRIPPER) console.log(`STAND-IN STRIPPER: ${process.env.CONTACT_TEXT_STRIPPER} (not lib/contact-text.ts)`);
 console.log(`published records: ${rows.length.toLocaleString("en")}; texts checked: ${texts.toLocaleString("en")}; changed by the stripper: ${changed}`);
 for (const f of failures) console.log(`FAIL ${f.slug} (${f.kind}): ${f.found.join(", ")}\n  filed: ${JSON.stringify(f.text)}\n  shown: ${JSON.stringify(f.shown)}`);
 console.log(failures.length ? `${failures.length} texts fail: contact detail left in, an unreviewed named person, or an over-strip.` : "0 texts carry contact detail after the stripper, and nothing else was cut. OK");

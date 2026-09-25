@@ -453,6 +453,12 @@ export default async function BuyerDiscoverPage({
         />
       </form>
       <DiscoverFilters state={state} />
+      {/* One provider around every outcome, keyed on the search: opening or
+          closing a record re-runs the search (`?record=` is a search param),
+          and a re-run that FAILS used to swap the results for the error panel
+          and unmount the provider, losing the buyer's selection. It now stays
+          mounted, and an unread page (null) prunes nothing (cycle 11). */}
+      <SelectionProvider key={serializeDiscoverState(state).toString()} pageIds={error ? null : rows.map((r) => r.id)}>
       {error ? (
         <Panel>
           <div className="px-5 py-10">
@@ -511,9 +517,10 @@ export default async function BuyerDiscoverPage({
           </div>
         </Panel>
       ) : (
-        // Keyed on the whole URL state: a new filter, sort, page or view is a
-        // new page of results, and its selection starts empty (selection.tsx).
-        <SelectionProvider key={serializeDiscoverState(state).toString()} pageIds={rows.map((r) => r.id)}>
+        // The provider above is keyed on the whole URL state: a new filter,
+        // sort, page or view is a new page of results, and its selection
+        // starts empty (selection.tsx).
+        <>
           <Panel>
             <PanelHeader
               model={{
@@ -553,8 +560,9 @@ export default async function BuyerDiscoverPage({
             />
             <SelectionBar exportHref={`/api/v1/discover/export?${serializeDiscoverState(state).toString()}`} />
           </Panel>
-        </SelectionProvider>
+        </>
       )}
+      </SelectionProvider>
     </AppShell>
   );
 }
