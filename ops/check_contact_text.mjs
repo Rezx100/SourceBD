@@ -16,7 +16,12 @@
 
 import { readFileSync } from "node:fs";
 
-const { withoutContactDetails } = await import(new URL("../lib/contact-text.ts", import.meta.url).href);
+// CONTACT_TEXT_STRIPPER swaps in another module, so a test can hand the guard a
+// stripper that over-strips and prove the over-strip check fires (cycle 10:
+// with the real one correct, nothing reached it).
+const { withoutContactDetails } = await import(
+  process.env.CONTACT_TEXT_STRIPPER ?? new URL("../lib/contact-text.ts", import.meta.url).href
+);
 
 // Contact-shaped text a register filed that is not a contact detail, checked by
 // hand on 25 Sep 2026. Keyed by slug and the exact text.
@@ -36,9 +41,14 @@ const KNOWN_NOT_CONTACT = new Map([
 // a name ("… - Owner", "…- Owner", "… — Owner"), a role in brackets anywhere
 // ("(MD)", "[CEO]", "(Chairman & MD)"; not "(Chairman Bari)", a place), and
 // "Contact:". The dash classes carry the em dash the stripper splits on.
-const NAMES_A_PERSON = /\b(?:proprietor|managing director|your contact|contact person|attn|c\/o)\b|(?:^|,)\s*(?:chairman|director|ceo|owner|md)\s*(?:,|$)|\b(?:chairman|director|ceo|owner|gm|general manager|md)\b(?:\s*:|\s+[-–—]|[-–—](?!\s*(?:bari|market|road|para|bazar)\b))|\s*[-–—]\s*(?:chairman|director|ceo|owner|gm|general manager|md)\b\s*(?:[,.;]|$)|[([](?![^)\]]*\b(?:bari|market|road|para|bazar|plaza)\b)[^)\]]*\b(?:chairman|director|ceo|owner|gm|general manager|md|m\.d|executive|manager)\b[^)\]]*[)\]]|\bcontact(?:\s+name)?\s*:/im;
-/** A role word in what the stripper removed: the cut was a person's. */
-const ROLE_IN_CUT = /\b(?:proprietor|managing director|chairman|director|ceo|owner|gm|general manager|md|m\.d|attn|attention|contact|c\/o|manager|executive)\b/i;
+const NAMES_A_PERSON = /\b(?:proprietor|managing director|your contact|contact person|attn|c\/o)\b|(?:^|,)\s*(?:chairman|director|ceo|owner|md)\s*(?:,|$)|\b(?:chairman|director|ceo|owner|gm|general manager|md|m\.d)\b\.?(?:\s*:|\s+[-–—]|[-–—](?!\s*(?:bari|market|road|para|bazar)\b))|\s*[-–—]\s*(?:chairman|director|ceo|owner|gm|general manager|md)\b\s*(?:[,.;]|$)|[([](?![^)\]]*\b(?:bari|market|road|para|bazar|plaza)\b)[^)\]]*\b(?:chairman|director|ceo|owner|gm|general manager|md|m\.d|executive|manager)\b[^)\]]*[)\]]|\bcontact(?:\s+name)?\s*:/im;
+/**
+ * A role word or an honorific in what the stripper removed: the cut was a
+ * person's. Every rule in the stripper that removes a person must be here, or
+ * a correct removal reads as an over-strip that REVIEWED cannot pin (cycle 10:
+ * "Plot 5, Mr Karim, Dhaka").
+ */
+const ROLE_IN_CUT = /\b(?:proprietor|managing director|chairman|director|ceo|owner|gm|general manager|md|m\.d|attn|attention|contact|c\/o|manager|executive|mr|mrs|ms|engr|mohd|mohammad|your contact|contact person)\b/i;
 const REVIEWED = new Map([
   ["saaf-sweater", ["ABDUR RAZZAK MASTER'S HOUSE, NEAR ASHULIA BUS STAND, ASHULIA, SAVAR, DHAKA"]],
   ["bdg-textilien-bd", ["263, Bara Moghbazar, (3rd Floor), Moghbazar, Dhaka"]],

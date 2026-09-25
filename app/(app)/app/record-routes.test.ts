@@ -1066,8 +1066,16 @@ describe("cycle 6: what the routes send, and the branches cycle 6 found untested
       assert.doesNotMatch(out, /No address on any register/, `Locations denies the address shown (${addresses.length} rows)`);
       const section = /id="locations"[\s\S]*?<\/section>/.exec(out)?.[0] ?? "";
       assert.match(section, /2-B\/1, Darus Salam Road/, "the Locations section does not list the address");
+      assert.match(section, /Factory/, "the fallback row lost its kind");
       assert.doesNotMatch(section, /Abid Hossain/, "a name reached the Locations section");
     }
+    // A FAILED address read says so; it does not list the record's own text as if read.
+    const unread: Partial<typeof ABONI.profile> = { ...ABONI.profile };
+    delete unread.addresses;
+    given({ profile: { data: { ...unread, supplier: { ...ABONI.profile.supplier, address_raw: raw } }, error: null }, hscodes: HS });
+    const failed = /id="locations"[\s\S]*?<\/section>/.exec(html(await fullPage("aboni-knitwear")))?.[0] ?? "";
+    assert.match(failed, /The addresses could not be read\./);
+    assert.doesNotMatch(failed, /Darus Salam Road/, "an unread address list shown as a location");
     // …and with no address at all, it still says so.
     given({ profile: { data: { ...ABONI.profile, addresses: [], supplier: { ...ABONI.profile.supplier, address_raw: null } }, error: null }, hscodes: HS });
     assert.match(html(await fullPage("aboni-knitwear")), /No address on any register/);

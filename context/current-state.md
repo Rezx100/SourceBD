@@ -63,8 +63,11 @@ migrations, run the 30-day zero P1/P2 Sentry incident window.
   accepted): a number after a name kept it ("Abdul Karim 2nd Floor (Owner)") —
   only the numbers opening the stretch stay now; Locations lists the filed
   address instead of saying "no address" under it (77 live records); the guard
-  reviews every text the stripper cut a role word from. Cycle 10 next, no
-  Acceptance Judge yet. Founder, 25 Sep: Facilities lists the buildings; product
+  reviews every text the stripper cut a role word from. Cycle 10
+  (requirements critic accepted): "(Md. Ali Tower)" read as a role cut places
+  — a full stop ends a role's part only at its end; honorific cuts go to
+  review; every guard check now has a fixture (it can run a stand-in
+  stripper). Cycle 11 next, no Acceptance Judge yet. Founder, 25 Sep: Facilities lists the buildings; product
   entries differing only in case or spacing merge. Hand-off: `feature-specs/handoff-rez-c-cycle4.md`.
   **Ratified by the founder 25 Sep:** "Exporters of 6105 · N" (the count
   equals the search it opens); 0105's five omitted §4.3 items; and these

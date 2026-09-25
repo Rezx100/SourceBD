@@ -8,6 +8,7 @@ import { describe, it } from "node:test";
 import { spawnSync } from "node:child_process";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
+import { pathToFileURL } from "node:url";
 import path from "node:path";
 
 import { withoutContactDetails } from "./contact-text";
@@ -159,6 +160,17 @@ const LEAKING: [string, string][] = [
   // A digit inside the name does not make it a place.
   ["Plot 5, Karim 1971 (Owner), Dhaka", "Plot 5, Dhaka"],
   ["House 5 Road 3 Abdul Karim 2nd (MD), Dhaka", "House 5 Road 3, Dhaka"],
+  // A place label glued to a name is not a place ("H.Karim", "Rd.Karim"), and
+  // "Managing Director" beside a name (cycle 10: both left the suite green when broken).
+  ["Plot 5 H.Karim (MD), Dhaka", "Plot 5, Dhaka"],
+  ["House 5 Rd.Karim (Owner), Dhaka", "House 5, Dhaka"],
+  ["Plot 5, Abdul Karim - Managing Director, Dhaka", "Plot 5, Dhaka"],
+  ["Plot 5, Abdul Karim (Managing Director), Dhaka", "Plot 5, Dhaka"],
+  // "M.D" as a leading label, like "MD" (cycle 10).
+  ["Plot 5, M.D: Abdul Karim", "Plot 5"],
+  ["Plot 5, M.D - Abdul Karim, Mirpur", "Plot 5, Mirpur"],
+  ["Plot 5, M.D—Abdul Karim", "Plot 5"],
+  ["Plot 5, M.D.: Abdul Karim", "Plot 5"],
   ["Plot 5, Adamjee EPZ, Mr. Park Jong-ho (MD)", "Plot 5, Adamjee EPZ"],
   ["Plot 5, Dhaka, MD- Abdul Karim", "Plot 5, Dhaka"],
   ["Plot 5, Dhaka, MD: Abdul Karim", "Plot 5, Dhaka"],
@@ -257,6 +269,16 @@ const CLEAN = [
   "Chairman-Bari Road 5, Tongi",
   "Chairman-Bari Road No 5, Tongi",
   "Tongi, Chairman-Bari 2nd Lane",
+  // A place named with an honorific or a role word after "(" or a dash: the
+  // role must end its word, and a full stop ends the part only at its end (cycle 10).
+  "House 12 (Md. Ali Tower), Mirpur, Dhaka",
+  "Holding 7, Kazipara (Md. Hossain Market), Mirpur, Dhaka",
+  "Plot 5 - Md. Ali Mansion, Dhaka",
+  "Plot 5, Road-Md. Ali Sarak, Dhaka",
+  "Plot 12, Block-C (M.D. Tower), Uttara, Dhaka",
+  "Holding 22, East Rampura (Owner. Tower), Dhaka",
+  "BSCIC-MD. Road, Tongi",
+  "Road 7, Sector 3 - Md. Bari Road, Uttara",
   "Road @ 8, Gulshan, Dhaka",
 ];
 
@@ -361,15 +383,100 @@ describe("the population guard sends every text naming a person to review", () =
       "Chairman-Road Karim, Dhaka",
       "Plot 5, Dhaka, Director - Bari Ahmed",
       "Plot 5, Dhaka, Owner - Road Karim",
+      "Plot 5, M.D: Abdul Karim",
+      "Plot 5, M.D - Abdul Karim, Mirpur",
     ];
     const out = run(named.map((address_raw, i) => ({ slug: `probe-${i}`, address_raw })));
     assert.equal(out.status, 1, out.stdout + out.stderr);
     named.forEach((t, i) => assert.match(out.stdout, new RegExp(`FAIL probe-${i} \\(address\\): a text naming a person whose output nobody has reviewed`), `not sent to review: ${t}`));
   });
 
-  // Not covered here: the over-strip check (a cut that is neither contact
-  // detail nor a person's). It needs a stripper that over-strips, and the guard
-  // runs the real one; with it correct, no input reaches that branch.
+  it("fails every contact value left in a text, in each kind of text it reads", () => {
+    // Cycle 10: turning off any one of these checks left every suite green,
+    // though population-guard.txt's "0 texts carry contact detail" rests on them.
+    // The rows hold values the stripper does not see as contact detail (a
+    // "912-5191" landline, a name inside a place), so only the check catches them.
+    const rows = [
+      { slug: "phone", phones: ["02-9125191"], address_raw: "Plot 5, Dhaka 912-5191" },
+      { slug: "email", email_primary: "rahim@karim", address_raw: "Plot 5, rahim@karim Dhaka" },
+      { slug: "site", website: "https://karimtex", address_raw: "Plot 5, karimtex Tower, Dhaka" },
+      { slug: "name", contact_name: "Rahim Karim", address_raw: "Plot 5, Rahim Karim Tower, Dhaka" },
+      { slug: "building", phones: ["02-9125191"], building_addresses: ["Unit 2, Dhaka 912-5191"] },
+      { slug: "product", phones: ["02-9125191"], principal_products: ["T-shirt 912-5191"] },
+    ];
+    const out = run(rows);
+    assert.equal(out.status, 1, out.stdout + out.stderr);
+    const failed = (slug: string, kind: string, why: string) =>
+      assert.match(out.stdout, new RegExp(`FAIL ${slug} \\(${kind}\\): [^\\n]*${why}`), `${slug}: not failed for ${why}`);
+    failed("phone", "address", "a gated phone number");
+    failed("name", "address", "the gated contact name");
+    failed("building", "building", "a gated phone number");
+    failed("product", "product", "a gated phone number");
+    // The gated e-mail and website: shapes the stripper removes — so the
+    // check is proven through a stripper that removes nothing (below).
+  });
+
+  it("fails gated values and contact shapes a stripper left in", () => {
+    const dir = mkdtempSync(path.join(tmpdir(), "ct-none-"));
+    const fake = path.join(dir, "strip.mjs");
+    writeFileSync(fake, "export const withoutContactDetails = (t) => t;\n");
+    const rows = path.join(dir, "rows.json");
+    writeFileSync(rows, JSON.stringify([
+      { slug: "email", email_primary: "info@karimtex.com", address_raw: "Plot 5, Dhaka info@karimtex.com" },
+      { slug: "site", website: "https://www.karimtex.com/", address_raw: "Plot 5, Dhaka karimtex.com" },
+      { slug: "mobile", address_raw: "Plot 5, Dhaka 01711-528388" },
+      { slug: "url", address_raw: "Plot 5, Dhaka www.example.org" },
+      { slug: "role", address_raw: "Plot 5, Dhaka, Proprietor: Md Karim" },
+    ]));
+    try {
+      const out = spawnSync(process.execPath, [path.join(process.cwd(), "ops", "check_contact_text.mjs"), rows], {
+        encoding: "utf8",
+        env: { ...process.env, CONTACT_TEXT_STRIPPER: pathToFileURL(fake).href },
+      });
+      assert.equal(out.status, 1, out.stdout + out.stderr);
+      for (const [slug, why] of [["email", "the gated e-mail"], ["email", "an e-mail address"], ["site", "the gated website"], ["mobile", "a mobile number"], ["url", "a URL"], ["role", "a named contact"]]) {
+        assert.match(out.stdout, new RegExp(`FAIL ${slug} \\(address\\): [^\\n]*${why}`), `${slug}: not failed for ${why}`);
+      }
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("a reviewed record fails when its output changes from the one reviewed", () => {
+    // Pinning the exact output is how cycle 5's "Saddam Hossain … Proprietor"
+    // was caught: bunano-classic's reviewed output is "" (it filed "Chairman, Chairman").
+    const out = run([{ slug: "bunano-classic", address_raw: "Chairman, Karim Uddin, Dhaka" }]);
+    assert.match(out.stdout, /FAIL bunano-classic \(address\): a text naming a person whose output nobody has reviewed/);
+  });
+
+  it("sends a correct honorific-name removal to review, not to the over-strip check", () => {
+    // Cycle 10: "Mr Karim" removed was reported as an over-strip, which
+    // REVIEWED cannot silence — every rule that removes a person must read as one.
+    const out = run(["Plot 5, Mr Karim, Dhaka", "Plot 5, Engr. Abdul Karim, Dhaka", "Plot 5, Mrs Rahima Begum, Tongi"].map((address_raw, i) => ({ slug: `hon-${i}`, address_raw })));
+    for (let i = 0; i < 3; i++) assert.match(out.stdout, new RegExp(`FAIL hon-${i} \\(address\\): a text naming a person whose output nobody has reviewed\\n`));
+    assert.doesNotMatch(out.stdout, /an over-strip:/);
+  });
+
+  it("the over-strip check fires on a stripper that cuts a place", () => {
+    // The cycle-4 defect ("Plot # 110072" cut to "Plot #"), handed to the guard
+    // as a stand-in stripper: the real one no longer does it, so nothing else
+    // reaches this branch.
+    const dir = mkdtempSync(path.join(tmpdir(), "ct-strip-"));
+    const fake = path.join(dir, "strip.mjs");
+    writeFileSync(fake, "export const withoutContactDetails = (t) => t.replace(/\\d{6,}/g, '');\n");
+    const rows = path.join(dir, "rows.json");
+    writeFileSync(rows, JSON.stringify([{ slug: "cut", address_raw: "Plot # 110072, Dhaka" }]));
+    try {
+      const out = spawnSync(process.execPath, [path.join(process.cwd(), "ops", "check_contact_text.mjs"), rows], {
+        encoding: "utf8",
+        env: { ...process.env, CONTACT_TEXT_STRIPPER: pathToFileURL(fake).href },
+      });
+      assert.equal(out.status, 1, out.stdout + out.stderr);
+      assert.match(out.stdout, /FAIL cut \(address\): an over-strip: removed "110072"/);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
 
   it("passes a place that only looks like a role", () => {
     const out = run(["Chairman-Bari, Tongi, Gazipur", "Chairman Market, Tongi", "Plot 5, Road 3, Dhaka", "Plot 5 (Chairman Bari), Tongi"].map((address_raw, i) => ({ slug: `place-${i}`, address_raw })));

@@ -77,7 +77,7 @@ const ADDRESS_WORD = /\b(?:road|rd|street|avenue|lane|bari|market|plaza|tower|bh
 // ("Proprietor - Bari Ahmed", "Chairman-Road Karim"), so it is not enough that
 // one follows the dash.
 const NAME_LABEL = new RegExp(
-  String.raw`(?:\b(?:your contact|contact person)\b[ \t]*:?|\bcontact(?:[ \t]+name)?[ \t]*:|\b(?:attn|attention|ceo|general manager|gm|director|chairman|owner|proprietor|managing director|md)\b(?:[ \t]*:|[ \t]+[-–—]|[-–—](?!${ADDRESS_WORD.source}(?:[ \t]*(?:${ADDRESS_WORD.source}|no\.?|#|\d\w*))*[ \t]*(?:[,\n]|$))))[^,\n]*|\bc\/o\b[^,\n]*`,
+  String.raw`(?:\b(?:your contact|contact person)\b[ \t]*:?|\bcontact(?:[ \t]+name)?[ \t]*:|\b(?:attn|attention|ceo|general manager|gm|director|chairman|owner|proprietor|managing director|md|m\.d)\b\.?(?:[ \t]*:|[ \t]+[-–—]|[-–—](?!${ADDRESS_WORD.source}(?:[ \t]*(?:${ADDRESS_WORD.source}|no\.?|#|\d\w*))*[ \t]*(?:[,\n]|$))))[^,\n]*|\bc\/o\b[^,\n]*`,
   "gi",
 );
 // "Karim Uddin - Proprietor", "Karim Uddin (MD)": a name with its role beside it.
@@ -85,7 +85,10 @@ const NAME_LABEL = new RegExp(
 // "(M.D.)", "(Chairman & MD)", and a part ended by ";" too.
 const ROLE_WORD = String.raw`(?:proprietor|managing director|m\.?d\.?|owner|ceo|chairman|director|general manager|gm)`;
 const NAME_WITH_ROLE = new RegExp(
-  String.raw`[^,;\n]*?(?:[ \t]*[-–—][ \t]*|[ \t]*\()${ROLE_WORD}(?:[ \t]*&[ \t]*${ROLE_WORD})*\)?(?=[ \t]*(?:[,.;]|$))`,
+  // A full stop after the role ends the part only when nothing follows on the
+  // line: "(Md. Ali Tower)" and "- Md. Ali Mansion" are places whose name
+  // opens with the honorific (cycle 10).
+  String.raw`[^,;\n]*?(?:[ \t]*[-–—][ \t]*|[ \t]*\()${ROLE_WORD}(?:[ \t]*&[ \t]*${ROLE_WORD})*\)?(?=[ \t]*(?:[,;]|\.[ \t]*(?:[,;]|$)|$))`,
   "gim",
 );
 const ROLE = /\b(?:managing director|proprietor)\b/gi;
