@@ -33,8 +33,12 @@ const KNOWN_NOT_CONTACT = new Map([
 // Every role the stripper removes, anywhere, and a standalone "Chairman" /
 // "Director" / "Owner" / "CEO" / "MD" part (not "Chairman Bari", a place), a
 // role labelling a name ("Owner-Abdul Karim", "CEO: …", "MD: …"), a role after
-// a name ("… - Owner", "… (MD)"), and "Contact:".
-const NAMES_A_PERSON = /\b(?:proprietor|managing director|your contact|contact person|attn|c\/o)\b|(?:^|,)\s*(?:chairman|director|ceo|owner|md)\s*(?:,|$)|\b(?:chairman|director|ceo|owner|gm|general manager|md)\b\s*[:\-–](?!\s*(?:bari|market|road|para|bazar)\b)|(?:\s[-–]\s*|\()(?:chairman|director|ceo|owner|gm|general manager|md)\b\)?\s*(?:,|$)|\bcontact(?:\s+name)?\s*:/im;
+// a name ("… - Owner", "…- Owner", "… — Owner"), a role in brackets anywhere
+// ("(MD)", "[CEO]", "(Chairman & MD)"; not "(Chairman Bari)", a place), and
+// "Contact:". The dash classes carry the em dash the stripper splits on.
+const NAMES_A_PERSON = /\b(?:proprietor|managing director|your contact|contact person|attn|c\/o)\b|(?:^|,)\s*(?:chairman|director|ceo|owner|md)\s*(?:,|$)|\b(?:chairman|director|ceo|owner|gm|general manager|md)\b(?:\s*:|\s+[-–—]|[-–—](?!\s*(?:bari|market|road|para|bazar)\b))|\s*[-–—]\s*(?:chairman|director|ceo|owner|gm|general manager|md)\b\s*(?:[,.;]|$)|[([](?![^)\]]*\b(?:bari|market|road|para|bazar|plaza)\b)[^)\]]*\b(?:chairman|director|ceo|owner|gm|general manager|md|m\.d|executive|manager)\b[^)\]]*[)\]]|\bcontact(?:\s+name)?\s*:/im;
+/** A role word in what the stripper removed: the cut was a person's. */
+const ROLE_IN_CUT = /\b(?:proprietor|managing director|chairman|director|ceo|owner|gm|general manager|md|m\.d|attn|attention|contact|c\/o|manager|executive)\b/i;
 const REVIEWED = new Map([
   ["saaf-sweater", ["ABDUR RAZZAK MASTER'S HOUSE, NEAR ASHULIA BUS STAND, ASHULIA, SAVAR, DHAKA"]],
   ["bdg-textilien-bd", ["263, Bara Moghbazar, (3rd Floor), Moghbazar, Dhaka"]],
@@ -115,12 +119,18 @@ for (const r of rows) {
     // A Bangladeshi mobile starts 01 (or 8801); "18926-18930", a plot range, does not.
     if (/(?:^|[^\d])(?:88)?01[3-9]\d{8}(?!\d)/.test(out.replace(/(\d)[\s.\-]+(?=\d)/g, "$1"))) found.push("a mobile number");
     if (/\byour contact\b|\bproprietor\b|\bmanaging director\b/i.test(out)) found.push("a named contact");
-    if (NAMES_A_PERSON.test(text) && !(REVIEWED.get(r.slug) ?? []).includes(out)) found.push("a text naming a person whose output nobody has reviewed");
+    // A person: a text the detector above names, OR any text the stripper cut
+    // a role word out of, whatever its shape. The detector alone mirrored the
+    // stripper's rules and fell behind them (cycle 9: em dashes, "Owner - Road
+    // Karim"); what the stripper actually removed cannot fall behind.
+    const cut = out === text ? "" : removedFrom(text, out);
+    const person = NAMES_A_PERSON.test(text) || ROLE_IN_CUT.test(cut);
+    if (person && !(REVIEWED.get(r.slug) ?? []).includes(out)) found.push("a text naming a person whose output nobody has reviewed");
     // The other direction (cycle 4 found "Plot # 110072" cut to "Plot #"): what
-    // the stripper took out must look like contact detail.
-    if (out !== text && !NAMES_A_PERSON.test(text)) {
-      const cut = removedFrom(text, out);
-      if (!/\d{7}|(?<!\d)0\d{5}|@|\bat\b|\.[a-z]{2,}|\b(?:tel|fax|mob|phone|pho|cell|hotline|contact|web|email|e-mail|skype|whatsapp|pabx|chairman|director|ceo|owner)\b/i.test(cut.replace(/(\d)[\s.\-()/]+(?=\d)/g, "$1"))) {
+    // the stripper took out must look like contact detail. A role word is not
+    // contact detail here — that cut is a person's, and is reviewed above.
+    if (out !== text && !person) {
+      if (!/\d{7}|(?<!\d)0\d{5}|@|\bat\b|\.[a-z]{2,}|\b(?:tel|fax|mob|phone|pho|cell|hotline|contact|web|email|e-mail|skype|whatsapp|pabx)\b/i.test(cut.replace(/(\d)[\s.\-()/]+(?=\d)/g, "$1"))) {
         found.push(`an over-strip: removed ${JSON.stringify(cut.trim().slice(0, 80))}`);
       }
     }

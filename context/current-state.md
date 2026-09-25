@@ -59,8 +59,12 @@ migrations, run the 30-day zero P1/P2 Sentry incident window.
   critic accepted): cycle 7's place-word exemption let names through ("Abdul
   Bari (MD)") — a name beside a role is now cut back to the last house or plot
   number, so "Nur Mansion (MD)" loses its place (privacy over completeness);
-  the population guard has a fixture test. Cycle 9 next, no Acceptance Judge
-  yet. Founder, 25 Sep: Facilities lists the buildings; product
+  the population guard has a fixture test. Cycle 9 (adversarial critic
+  accepted): a number after a name kept it ("Abdul Karim 2nd Floor (Owner)") —
+  only the numbers opening the stretch stay now; Locations lists the filed
+  address instead of saying "no address" under it (77 live records); the guard
+  reviews every text the stripper cut a role word from. Cycle 10 next, no
+  Acceptance Judge yet. Founder, 25 Sep: Facilities lists the buildings; product
   entries differing only in case or spacing merge. Hand-off: `feature-specs/handoff-rez-c-cycle4.md`.
   **Ratified by the founder 25 Sep:** "Exporters of 6105 · N" (the count
   equals the search it opens); 0105's five omitted §4.3 items; and these

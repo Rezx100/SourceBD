@@ -1124,7 +1124,7 @@ function sourceRows(p: ProfilePayload): SourceRow[] {
  */
 function locationRows(p: ProfilePayload): LocationRow[] {
   const hrefs = sourceHrefs(p);
-  return mergeUniqueLocations(
+  const filed = mergeUniqueLocations(
     (p.addresses ?? [])
       .filter((a) => (a.address ?? "").trim())
       .map((a) => ({ kind: a.kind, address: a.address, source_code: a.source_code ?? "", fetched_at: a.fetched_at ?? "" })),
@@ -1134,6 +1134,14 @@ function locationRows(p: ProfilePayload): LocationRow[] {
     marks: marksFromTags(loc.authorities.map((c) => c.toUpperCase()), hrefs),
     alsoRecordedAs: loc.variants.map((v) => v.address),
   }));
+  // No register's address row survives, but the record holds the address the
+  // Overview shows as "Factory address" (77 published records, 25 Sep; three
+  // more whose only row was a name the stripper removed). Saying "no address"
+  // under that row contradicted it (cycle 9). No register mark: none filed it
+  // as a row.
+  const raw = (p.supplier.address_raw ?? "").trim();
+  if (filed.length === 0 && p.addresses && raw) return [{ kind: "Factory", address: raw, marks: [], alsoRecordedAs: [] }];
+  return filed;
 }
 
 /** "Factory", "Factory · Registered office" — the kinds the registers filed, deduplicated. */

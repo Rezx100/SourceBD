@@ -130,6 +130,35 @@ const LEAKING: [string, string][] = [
   ["Plot 5, Dhaka, Owner - Road Karim", "Plot 5, Dhaka"],
   ["Plot 5, Dhaka, Abdul Karim - General Manager", "Plot 5, Dhaka"],
   ["Attention: Abdul Karim, Plot 5", "Plot 5"],
+  // Cycle 9: a number AFTER the name kept it when the cut ran to the last
+  // number; only the numbers that open the stretch stay now.
+  ["Plot 5, Abdul Karim Flat-3 (Proprietor), Dhaka", "Plot 5, Dhaka"],
+  ["Plot 5, Dhaka, Abdul Karim 2nd Floor (Owner)", "Plot 5, Dhaka"],
+  ["Plot 5 Abdul Karim 2nd Floor (MD), Dhaka", "Plot 5, Dhaka"],
+  ["Plot 5 Abdul Karim 2nd Floor — Owner, Dhaka", "Plot 5, Dhaka"],
+  ["Road 3 Abdul Karim Unit-2 - Owner", "Road 3"],
+  ["Md Karim House 5 Road 3 (MD), Dhaka", "Dhaka"],
+  ["Abdul Karim Plot 5 (Owner), Dhaka", "Dhaka"],
+  // …a name opening the text when a role sits beside a place later on…
+  ["Karim Uddin, House 5 (MD), Dhaka", "House 5, Dhaka"],
+  // …a role followed by a full stop or semicolon, or a dash with no space before it.
+  ["Plot 5, Dhaka, Abdul Karim (MD).", "Plot 5, Dhaka"],
+  ["Plot 5, Abdul Karim (Chairman); Dhaka", "Plot 5, Dhaka"],
+  ["Plot 5, Abdul Karim- Owner, Dhaka", "Plot 5, Dhaka"],
+  ["Plot 5, Abdul Karim–Owner, Dhaka", "Plot 5, Dhaka"],
+  ["Plot 5, Dhaka, Abdul Karim (M.D)", "Plot 5, Dhaka"],
+  ["Plot 5, Dhaka, Abdul Karim (M.D.)", "Plot 5, Dhaka"],
+  ["Plot 5, Dhaka, Abdul Karim (Chairman & MD)", "Plot 5, Dhaka"],
+  ["Plot 5, Dhaka, Abdul Karim 2 (MD)", "Plot 5, Dhaka"],
+  ["Plot 5, Dhaka, Abdul Karim - Chairman.", "Plot 5, Dhaka"],
+  ["Plot 5; Abdul Karim (MD); Dhaka", "Plot 5; Dhaka"],
+  // Each dash on its own, both sides of the role (cycle 9: dropping — or – survived).
+  ["Plot 5, Dhaka, Abdul Karim — Owner", "Plot 5, Dhaka"],
+  ["Plot 5, Dhaka, Abdul Karim – Owner", "Plot 5, Dhaka"],
+  ["Plot 5, Dhaka, Owner—Abdul Karim", "Plot 5, Dhaka"],
+  // A digit inside the name does not make it a place.
+  ["Plot 5, Karim 1971 (Owner), Dhaka", "Plot 5, Dhaka"],
+  ["House 5 Road 3 Abdul Karim 2nd (MD), Dhaka", "House 5 Road 3, Dhaka"],
   ["Plot 5, Adamjee EPZ, Mr. Park Jong-ho (MD)", "Plot 5, Adamjee EPZ"],
   ["Plot 5, Dhaka, MD- Abdul Karim", "Plot 5, Dhaka"],
   ["Plot 5, Dhaka, MD: Abdul Karim", "Plot 5, Dhaka"],
@@ -224,6 +253,10 @@ const CLEAN = [
   "Chairman-Bari, Tongi, Gazipur",
   "Chairman Market, Tongi",
   "Chairman-Bari Road, Tongi",
+  // A compound place with a number or ordinal after it (cycle 9 found these cut whole).
+  "Chairman-Bari Road 5, Tongi",
+  "Chairman-Bari Road No 5, Tongi",
+  "Tongi, Chairman-Bari 2nd Lane",
   "Road @ 8, Gulshan, Dhaka",
 ];
 
@@ -303,14 +336,43 @@ describe("the population guard sends every text naming a person to review", () =
       "Plot 5, Contact: Karim Uddin",
       "Plot 5, Your contact: Md Karim",
       "House 5, c/o Abdul Karim, Dhaka",
+      // Cycle 9: the em dash the stripper splits on, and a role in brackets
+      // anywhere — the stripper leaves some of these, so review must see them.
+      "Plot 5, Dhaka, Chairman — Abdul Karim",
+      "Plot 5 Abdul Karim 2nd Floor — Owner, Dhaka",
+      "Abdul Karim (MD) Plot 5, Dhaka",
+      "Abdul Karim [MD], Plot 5",
+      "Abdul Karim (Chairman & MD), Plot 5",
+      "Abdul Karim (Director Marketing), Plot 5",
+      "Abdul Karim (Executive Director), Plot 5",
+      "Plot 5, Abdul Karim- Owner, Dhaka",
+      "Plot 5, Dhaka, Abdul Karim (MD).",
+      "Plot 5, Dhaka, Abdul Karim (M.D)",
+      // Every shape the stripper cuts a name from (cycle 9: the detector alone
+      // fell behind the stripper; what was CUT now decides too).
+      "Plot 5, Dhaka, Abdul Karim — Owner",
+      "Plot 5, Dhaka, Abdul Karim – Owner",
+      "Plot 5, Dhaka, Owner—Abdul Karim",
+      "Plot 5, Dhaka, Abdul Karim (Chairman)",
+      "Plot 5, Dhaka, Abdul Karim - Director",
+      "Plot 5, Dhaka, Abdul Karim - CEO",
+      "Plot 5, Dhaka, Abdul Karim - GM",
+      "Attention: Abdul Karim, Plot 5",
+      "Chairman-Road Karim, Dhaka",
+      "Plot 5, Dhaka, Director - Bari Ahmed",
+      "Plot 5, Dhaka, Owner - Road Karim",
     ];
     const out = run(named.map((address_raw, i) => ({ slug: `probe-${i}`, address_raw })));
     assert.equal(out.status, 1, out.stdout + out.stderr);
     named.forEach((t, i) => assert.match(out.stdout, new RegExp(`FAIL probe-${i} \\(address\\): a text naming a person whose output nobody has reviewed`), `not sent to review: ${t}`));
   });
 
+  // Not covered here: the over-strip check (a cut that is neither contact
+  // detail nor a person's). It needs a stripper that over-strips, and the guard
+  // runs the real one; with it correct, no input reaches that branch.
+
   it("passes a place that only looks like a role", () => {
-    const out = run(["Chairman-Bari, Tongi, Gazipur", "Chairman Market, Tongi", "Plot 5, Road 3, Dhaka"].map((address_raw, i) => ({ slug: `place-${i}`, address_raw })));
+    const out = run(["Chairman-Bari, Tongi, Gazipur", "Chairman Market, Tongi", "Plot 5, Road 3, Dhaka", "Plot 5 (Chairman Bari), Tongi"].map((address_raw, i) => ({ slug: `place-${i}`, address_raw })));
     assert.equal(out.status, 0, out.stdout + out.stderr);
   });
 });

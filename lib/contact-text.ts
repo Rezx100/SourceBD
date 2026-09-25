@@ -77,11 +77,17 @@ const ADDRESS_WORD = /\b(?:road|rd|street|avenue|lane|bari|market|plaza|tower|bh
 // ("Proprietor - Bari Ahmed", "Chairman-Road Karim"), so it is not enough that
 // one follows the dash.
 const NAME_LABEL = new RegExp(
-  String.raw`(?:\b(?:your contact|contact person)\b[ \t]*:?|\bcontact(?:[ \t]+name)?[ \t]*:|\b(?:attn|attention|ceo|general manager|gm|director|chairman|owner|proprietor|managing director|md)\b(?:[ \t]*:|[ \t]+[-–—]|[-–—](?!(?:${ADDRESS_WORD.source}[ \t]*)+(?:[,\n]|$))))[^,\n]*|\bc\/o\b[^,\n]*`,
+  String.raw`(?:\b(?:your contact|contact person)\b[ \t]*:?|\bcontact(?:[ \t]+name)?[ \t]*:|\b(?:attn|attention|ceo|general manager|gm|director|chairman|owner|proprietor|managing director|md)\b(?:[ \t]*:|[ \t]+[-–—]|[-–—](?!${ADDRESS_WORD.source}(?:[ \t]*(?:${ADDRESS_WORD.source}|no\.?|#|\d\w*))*[ \t]*(?:[,\n]|$))))[^,\n]*|\bc\/o\b[^,\n]*`,
   "gi",
 );
 // "Karim Uddin - Proprietor", "Karim Uddin (MD)": a name with its role beside it.
-const NAME_WITH_ROLE = /[^,\n]*?(?:[ \t]+[-–—][ \t]*|[ \t]*\()(?:proprietor|managing director|md|owner|ceo|chairman|director|general manager|gm)\)?(?=[ \t]*(?:,|$))/gim;
+// "…- Owner" (no space before the dash), "… (MD)." (a full stop after),
+// "(M.D.)", "(Chairman & MD)", and a part ended by ";" too.
+const ROLE_WORD = String.raw`(?:proprietor|managing director|m\.?d\.?|owner|ceo|chairman|director|general manager|gm)`;
+const NAME_WITH_ROLE = new RegExp(
+  String.raw`[^,;\n]*?(?:[ \t]*[-–—][ \t]*|[ \t]*\()${ROLE_WORD}(?:[ \t]*&[ \t]*${ROLE_WORD})*\)?(?=[ \t]*(?:[,.;]|$))`,
+  "gim",
+);
 const ROLE = /\b(?:managing director|proprietor)\b/gi;
 const NAMES_A_ROLE = /\b(?:managing director|proprietor|your contact|contact person)\b/i;
 // "Sorder M. Nur-Uz-Zaman": capitalised words around an initial.
@@ -104,18 +110,23 @@ function labelledNumber(match: string): string {
 /**
  * A name with its role beside it ("Karim Uddin (MD)"). The match runs back to
  * the last comma, so it can open with a place: "House 5 Road 3 Md Karim (MD)".
- * The place up to its last number stays; everything after it goes. Address
- * words do not mark a place here — they are names too ("Abdul Bari", "Rokeya
- * Nagar"), and cycle 8 found "Abdul Bari (MD)" kept whole by that test. So
- * "Nur Mansion (MD)" loses its place: privacy over completeness.
+ * Only the run of house/plot/road numbers that OPENS the stretch stays;
+ * everything from the first other word on goes. Address words do not mark a
+ * place here — they are names too ("Abdul Bari", "Rokeya Nagar"; cycle 8) —
+ * nor does a number further on: "Abdul Karim 2nd Floor (Owner)" kept the name
+ * when the cut ran to the last number (cycle 9). So "Nur Mansion (MD)" loses
+ * its place: privacy over completeness.
  */
+const PLACE_TOKEN = /^(?:[#(]*\d[\w\/#.,:-]*|(?:plot|holding|house|h|road|rd|block|sector|sec|flat|apt|floor|fl|level|unit|lane|ward|no)\b[.#:-]*\w*)$/i;
 function placeBeforeRole(match: string): string {
-  const role = /(?:[ \t]+[-–—][ \t]*|[ \t]*\()[^-–—(]*$/.exec(match)!;
+  const role = /(?:[ \t]*[-–—][ \t]*|[ \t]*\()[^-–—(]*$/.exec(match)!;
   const words = match.slice(0, role.index).trim().split(/\s+/);
-  let last = words.length - 1;
-  while (last >= 0 && !/\d/.test(words[last]!)) last--;
+  let run = 0;
+  while (run < words.length && PLACE_TOKEN.test(words[run]!)) run++;
+  // End the kept run on a number: "House 5 Road" keeps "House 5".
+  while (run > 0 && !/\d/.test(words[run - 1]!)) run--;
   const lead = /^\s*/.exec(match)![0];
-  return last < 0 ? " " : lead + words.slice(0, last + 1).join(" ");
+  return run === 0 ? " " : lead + words.slice(0, run).join(" ");
 }
 
 function bareNumber(match: string): string {
@@ -160,7 +171,9 @@ export function withoutContactDetails(text: string, options?: ContactTextOptions
 export function withoutContactDetails(text: string | null | undefined, options?: ContactTextOptions): string | null;
 export function withoutContactDetails(text: string | null | undefined, options: ContactTextOptions = {}): string | null {
   if (text == null) return null;
-  const named = NAMES_A_ROLE.test(text);
+  // A role beside a name anywhere ("…, House 5 (MD)") names a role too, so
+  // the opening name part goes: "Karim Uddin, House 5 (MD), Dhaka" (cycle 9).
+  const named = NAMES_A_ROLE.test(text) || new RegExp(NAME_WITH_ROLE.source, "im").test(text);
   let cut = text
     .replace(EMAIL, " ")
     .replace(SPELLED_EMAIL, " ")
@@ -192,6 +205,10 @@ export function withoutContactDetails(text: string | null | undefined, options: 
         .replace(/[ \t]+/g, " ")
         .replace(/\s*,(?:\s*,)+/g, ",")
         .replace(/ +,/g, ",")
+        // What a removed name leaves between separators: "…, (MD)." → "…, ."
+        .replace(/,\s*[.;](?=\s*(?:[,;]|$))/g, "")
+        .replace(/,\s*;/g, ",")
+        .replace(/;\s*(?=;)/g, "")
         .replace(/\/(?=\s*(?:,|$))/g, "")
         .replace(/^[\s,;:/]+|[\s,;/]+$/g, ""),
     )

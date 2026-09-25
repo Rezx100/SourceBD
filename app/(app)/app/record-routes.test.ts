@@ -981,6 +981,12 @@ describe("cycle 4: the boundaries cycle 4 found open", () => {
     // Both halves filed, against the record's own total, but 30% short of it.
     given({ profile: { data: { ...ABONI.profile, supplier: { ...supplier, employees_female: 400, employees_male: 300 }, rsc_remediation: null }, error: null }, hscodes: HS });
     assert.doesNotMatch(html(await fullPage("aboni-knitwear")), /women ·/, "halves 30% short of the total shown as its split");
+    // …15% short (inside 75–90%)…
+    given({ profile: { data: { ...ABONI.profile, supplier: { ...supplier, employees_female: 500, employees_male: 350 }, rsc_remediation: null }, error: null }, hscodes: HS });
+    assert.doesNotMatch(html(await fullPage("aboni-knitwear")), /women ·/, "halves 15% short of the total shown as its split");
+    // …and OVER it: scandex-textile-industries files 82 workers, 1,833 women and 82 men.
+    given({ profile: { data: { ...ABONI.profile, supplier: { ...supplier, employees_total: 82, employees_female: 1833, employees_male: 82 }, rsc_remediation: null }, error: null }, hscodes: HS });
+    assert.doesNotMatch(html(await fullPage("aboni-knitwear")), /women ·/, "halves 22 times the total shown as its split");
   });
 });
 
@@ -1046,6 +1052,25 @@ describe("cycle 6: what the routes send, and the branches cycle 6 found untested
     given({ profile: slow, hscodes: HS });
     const all = await linePage("6105", { lines: "all" });
     assert.ok("threw" in all && /\/app\/suppliers\/aboni-knitwear\?lines=all/.test(all.threw), "the expanded grid is lost on a slow read");
+  });
+
+  it("Locations never says 'no address' under a Factory address the Overview shows", async () => {
+    // 77 published records hold an address and no register address row; three
+    // more hold only a row the stripper empties (a name and a role). The
+    // section said "No address on any register…" beside the address (cycle 9).
+    const raw = "2-B/1, Darus Salam Road, Mirpur, Dhaka";
+    for (const addresses of [[], [{ kind: "factory", address: "Mohd. Abid Hossain Belal, Proprietor", source_code: "BGMEA" }]]) {
+      given({ profile: { data: { ...ABONI.profile, addresses, supplier: { ...ABONI.profile.supplier, address_raw: raw } }, error: null }, hscodes: HS });
+      const out = html(await fullPage("aboni-knitwear"));
+      assert.match(out, /2-B\/1, Darus Salam Road, Mirpur, Dhaka/, "guard: the Overview shows the address");
+      assert.doesNotMatch(out, /No address on any register/, `Locations denies the address shown (${addresses.length} rows)`);
+      const section = /id="locations"[\s\S]*?<\/section>/.exec(out)?.[0] ?? "";
+      assert.match(section, /2-B\/1, Darus Salam Road/, "the Locations section does not list the address");
+      assert.doesNotMatch(section, /Abid Hossain/, "a name reached the Locations section");
+    }
+    // …and with no address at all, it still says so.
+    given({ profile: { data: { ...ABONI.profile, addresses: [], supplier: { ...ABONI.profile.supplier, address_raw: null } }, error: null }, hscodes: HS });
+    assert.match(html(await fullPage("aboni-knitwear")), /No address on any register/);
   });
 
   it("the women/men split is withheld when it cannot be true", async () => {
@@ -1151,6 +1176,10 @@ describe("cycle 6: what the routes send, and the branches cycle 6 found untested
       assert.match(out, /<aside\b/, `${file}: no sidebar`);
       assert.match(out, /aria-label="Account and settings"/, `${file}: no top bar`);
       assert.doesNotMatch(out, /data-plan=/, `${file}: a plan the loading state does not know`);
+      // The footer itself, not only its marker: the aside ends with the nav's
+      // rail furniture, with no bordered block after it.
+      const aside = /<aside\b[\s\S]*?<\/aside>/.exec(out)?.[0] ?? "";
+      assert.doesNotMatch(aside, /border-t/, `${file}: a plan footer drawn with nothing in it`);
     }
   });
 });
