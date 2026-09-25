@@ -71,7 +71,12 @@ migrations, run the 30-day zero P1/P2 Sentry incident window.
   rule let "Abdul Karim (MD). Plot 5" through — a closed bracket or a
   non-honorific role ends the part again, only "- MD." is left to review; a
   failed search re-run under an open record no longer drops the buyer's bulk
-  selection. Cycle 12 next, no Acceptance Judge yet. Founder, 25 Sep: Facilities lists the buildings; product
+  selection. Cycle 12 (requirements critic accepted): cycle 11 had copied a
+  surviving mutant into the stripper as "redundant", reopening "- MD & CEO.,
+  Dhaka" — restored and pinned (rule: a surviving mutant gets a test, never
+  the source); the guard's cut splits dot-joined words; "160-GM." is grams;
+  the provider key is tested across open/close. Cycle 13 next, no
+  Acceptance Judge yet. Founder, 25 Sep: Facilities lists the buildings; product
   entries differing only in case or spacing merge. Hand-off: `feature-specs/handoff-rez-c-cycle4.md`.
   **Ratified by the founder 25 Sep:** "Exporters of 6105 · N" (the count
   equals the search it opens); 0105's five omitted §4.3 items; and these

@@ -333,9 +333,9 @@ describe("/app/discover?record= — the overlay over the results", () => {
     // so the buyer's bulk selection was gone even after Close (cycle 11). The
     // same provider, same key, now wraps every outcome; unread rows are null.
     const Page = route("app/(app)/app/discover/page.js").default;
-    const tree = async (discoverAnswer: Rpc) => {
+    const tree = async (discoverAnswer: Rpc, sp: Record<string, string> = { q: "knit", record: "aboni-knitwear" }) => {
       given({ profile: PROFILE, hscodes: HS, discover: discoverAnswer });
-      return (await Page({ searchParams: Promise.resolve({ q: "knit", record: "aboni-knitwear" }) })) as ReactElement;
+      return (await Page({ searchParams: Promise.resolve(sp) })) as ReactElement;
     };
     const providers = (n: unknown): { key: unknown; pageIds: unknown }[] => {
       if (!n || typeof n !== "object") return [];
@@ -350,6 +350,18 @@ describe("/app/discover?record= — the overlay over the results", () => {
     assert.equal(failed.length, 1, "a failed search re-run unmounted the selection's provider");
     assert.equal(failed[0]!.key, ok[0]!.key, "a different key remounts the provider and empties the selection");
     assert.equal(failed[0]!.pageIds, null, "an unread page is passed as no rows, which prunes the selection");
+    // Opening a record, a line or the whole grid keeps the SAME provider as the
+    // search alone: a key that carried `record` would remount it on every card
+    // click and empty the selection (cycle 12: both renders above had a record).
+    const closed = providers(await tree({ data: [ROW], error: null }, { q: "knit" }));
+    for (const sp of <Record<string, string>[]>[
+      { q: "knit", record: "aboni-knitwear" },
+      { q: "knit", record: "aboni-knitwear", lines: "all" },
+      { q: "knit", record: "aboni-knitwear", line: "6105" },
+    ]) {
+      const open = providers(await tree({ data: [ROW], error: null }, sp));
+      assert.equal(open[0]?.key, closed[0]!.key, `opening ${JSON.stringify(sp)} remounts the selection's provider`);
+    }
   });
 
   it("no ?record= renders no sheet at all", async () => {
@@ -552,6 +564,17 @@ describe("the sanctioned record, through the route", () => {
     assert.match(out, /See the matches/);
     assert.match(out, /id="sanctions"/);
     assert.ok(!out.includes('href="/app/rfqs/new'), "a sanctioned record's Send RFQ is a live link");
+  });
+
+  it("its line page serves the banner too, and Send RFQ for the line is not a link", async () => {
+    // Only the component test covered the line sheet (cycles 8–12 carried it).
+    const s = sanctionedInput();
+    given({ profile: { data: s.profile, error: null }, hscodes: HS });
+    const Page = route("app/(app)/app/suppliers/[slug]/lines/[hs]/page.js").default;
+    const out = html(await outcome(() => Page({ params: Promise.resolve({ slug: "zaheen", hs: "6105" }), searchParams: Promise.resolve({}) })));
+    assert.match(out, /aria-label="Product line"/, "guard: the line page rendered");
+    assert.match(out, /data-sanction-visible="true"/, "the line page of a sanctioned record has no banner");
+    assert.ok(!out.includes('href="/app/rfqs/new'), "a sanctioned record's line has a live Send RFQ");
   });
 });
 

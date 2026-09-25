@@ -83,21 +83,24 @@ const NAME_LABEL = new RegExp(
 // "Karim Uddin - Proprietor", "Karim Uddin (MD)": a name with its role beside it.
 // "…- Owner" (no space before the dash), "… (MD)." (a full stop after),
 // "(M.D.)", "(Chairman & MD)", and a part ended by ";" too.
-const PLAIN_ROLE = String.raw`(?:proprietor|managing director|owner|ceo|chairman|director|general manager|gm)`;
+// "GM" after a number is grams, not a general manager: "Knit fabric 160-GM.
+// Cotton jersey" emptied a product entry (cycle 12).
+const PLAIN_ROLE = String.raw`(?:proprietor|managing director|owner|ceo|chairman|director|general manager|(?<!\d[ \t]*[-–—(]?[ \t]*)gm)`;
 const ROLE_WORD = String.raw`(?:${PLAIN_ROLE}|m\.?d\.?)`;
 const ROLES = String.raw`${ROLE_WORD}(?:[ \t]*&[ \t]*${ROLE_WORD})*`;
 const DASH = String.raw`[ \t]*[-–—][ \t]*`;
-const STOP = String.raw`(?:[ \t]*\.(?=[ \t]*[^\s,;.])|(?=[ \t]*(?:[,;.]|$)))`;
+const STOP = String.raw`(?:[ \t]*\.+(?=[ \t]*[^\s,;.])|(?=[ \t]*(?:[,;.]|$)))`;
 // Where a full stop after the role ends the name's part:
 //  - after a CLOSED bracket, always: "Abdul Karim (MD). Plot 5" (cycle 11);
 //  - after a role that is no honorific, always: "Karim Uddin - Proprietor. House 5";
-//  - otherwise only when nothing follows on the line — "Md." opens place names:
-//    "(Md. Ali Tower)", "- Md. Ali Mansion" (cycle 10). "Abdul Karim - MD.
-//    Mirpur" is the one shape left to the population guard's review.
+//  - otherwise only when a comma, a semicolon or the line's end follows it —
+//    "Md." opens place names: "(Md. Ali Tower)", "- Md. Ali Mansion" (cycle
+//    10). So "Abdul Karim - MD. Mirpur" (MD, a full stop, then more text) is
+//    left to the population guard's review; "- MD & CEO., Dhaka" is cut.
 const NAME_WITH_ROLE = new RegExp(
   // The first two take the full stop with them when text follows it, so the
   // rest of the line reads on: "Abdul Karim (MD). Plot 5" → "Plot 5".
-  String.raw`[^,;\n]*?(?:[ \t]*\(${ROLES}\)${STOP}|${DASH}${PLAIN_ROLE}(?:[ \t]*&[ \t]*${ROLE_WORD})*${STOP}|(?:${DASH}|[ \t]*\()${ROLES}\)?(?=[ \t]*(?:[,;]|\.[ \t]*$|$)))`,
+  String.raw`[^,;\n]*?(?:[ \t]*\(${ROLES}\)${STOP}|${DASH}(?:${PLAIN_ROLE}|m\.?d\.?[ \t]*&[ \t]*${ROLE_WORD})(?:[ \t]*&[ \t]*${ROLE_WORD})*${STOP}|(?:${DASH}|[ \t]*\()${ROLES}\)?(?=[ \t]*(?:[,;]|\.[ \t]*(?:[,;]|$)|$)))`,
   "gim",
 );
 const ROLE = /\b(?:managing director|proprietor)\b/gi;
@@ -138,7 +141,9 @@ function placeBeforeRole(match: string): string {
   // End the kept run on a number: "House 5 Road" keeps "House 5".
   while (run > 0 && !/\d/.test(words[run - 1]!)) run--;
   const lead = /^\s*/.exec(match)![0];
-  return run === 0 ? " " : lead + words.slice(0, run).join(" ");
+  // A trailing space: a cut that took a full stop must not join the kept
+  // place to the next word ("Plot 5 (MD).Road 3" → "Plot 5 Road 3").
+  return run === 0 ? " " : lead + words.slice(0, run).join(" ") + " ";
 }
 
 function bareNumber(match: string): string {

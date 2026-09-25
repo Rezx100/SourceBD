@@ -179,6 +179,24 @@ const LEAKING: [string, string][] = [
   ["Plot 5, Abdul Karim - Owner., Dhaka", "Plot 5, Dhaka"],
   ["Plot 5, Abdul Karim (Owner)., Dhaka", "Plot 5, Dhaka"],
   ["Plot 5, Abdul Karim - MD., Dhaka", "Plot 5, Dhaka"],
+  // MD first in a role after a dash, a full stop, then a comma (cycle 12: a
+  // branch called redundant in cycle 11 was the only rule removing these).
+  ["Plot 5, Abdul Karim - MD & CEO., Dhaka", "Plot 5, Dhaka"],
+  ["Plot 5, Abdul Karim - MD & Chairman., Mirpur, Dhaka", "Plot 5, Mirpur, Dhaka"],
+  ["Plot 5, Abdul Karim - M.D & Owner., Dhaka", "Plot 5, Dhaka"],
+  ["Plot 5, Abdul Karim - MD ., Dhaka", "Plot 5, Dhaka"],
+  ["Plot 5, Abdul Karim - M.D.., Dhaka", "Plot 5, Dhaka"],
+  ["Plot 5, Abdul Karim (Owner., Dhaka", "Plot 5, Dhaka"],
+  ["Plot 5, Abdul Karim (Chairman., Mirpur", "Plot 5, Mirpur"],
+  ["Plot 5 (MD).Road 3, Dhaka", "Plot 5 Road 3, Dhaka"],
+  // "MD & <role>" cannot be the honorific "Md.", so a full stop then more text ends it too.
+  ["Plot 5, Abdul Karim - MD & CEO. Mirpur, Dhaka", "Plot 5, Mirpur, Dhaka"],
+  ["Plot 5, Abdul Karim - MD & Owner. Mirpur", "Plot 5, Mirpur"],
+  ["Plot 5, Abdul Karim - Chairman & MD. Mirpur, Dhaka", "Plot 5, Mirpur, Dhaka"],
+  // The full stop joined to the next word, spaced from the role, or doubled.
+  ["Plot 5, Abdul Karim (MD).Mirpur, Dhaka", "Plot 5, Mirpur, Dhaka"],
+  ["Plot 5, Abdul Karim (MD) . Mirpur, Dhaka", "Plot 5, Mirpur, Dhaka"],
+  ["Plot 5, Abdul Karim (MD).. Mirpur", "Plot 5, Mirpur"],
   // "M.D" as a leading label, like "MD" (cycle 10).
   ["Plot 5, M.D: Abdul Karim", "Plot 5"],
   ["Plot 5, M.D - Abdul Karim, Mirpur", "Plot 5, Mirpur"],
@@ -337,6 +355,9 @@ describe("withoutContactDetails — contact details filed inside an address", ()
     // Everything else still applies to a product entry.
     assert.equal(withoutContactDetails("shdeck.com", { bareNumbers: false }), "");
     assert.equal(withoutContactDetails("Polo shirts, call 01711528388", { bareNumbers: false }), "Polo shirts");
+    // "GM" after a number is grams (cycle 12: the whole entry was emptied).
+    assert.equal(withoutContactDetails("Knit fabric 160-GM. Cotton jersey", { bareNumbers: false }), "Knit fabric 160-GM. Cotton jersey");
+    assert.equal(withoutContactDetails("T-Shirt 180 GM, Cotton", { bareNumbers: false }), "T-Shirt 180 GM, Cotton");
   });
 
   it("null stays null", () => {
@@ -402,6 +423,17 @@ describe("the population guard sends every text naming a person to review", () =
       // ("- Md. Bari Road"), so a name before it is the guard's to catch (cycle 11).
       "Plot 5, Abdul Karim - M.D. Mirpur, Dhaka",
       "Plot 5, Abdul Karim - MD. Mirpur, Dhaka",
+      // An unclosed bracket (cycle 12: the bracket branch needed ")" to see
+      // it). The stripper leaves this one whole, so only the detector sees it.
+      "Plot 5, Abdul Karim (Owner Mirpur, Dhaka",
+      // Shapes the stripper leaves whole on purpose or by gap, each reviewed.
+      "Plot 5, Abdul Karim [MD]. Mirpur",
+      "Plot 5, Abdul Karim (Owner) Mirpur, Dhaka",
+      // A dash, a role with no full stop, then more text: the stripper keeps
+      // these whole, so review is their only guard (cycle 12).
+      "Plot 5, Abdul Karim - MD Mirpur, Dhaka",
+      "Plot 5, Abdul Karim - Owner Mirpur, Dhaka",
+      "Plot 5, Abdul Karim - Chairman Mirpur, Dhaka",
     ];
     const out = run(named.map((address_raw, i) => ({ slug: `probe-${i}`, address_raw })));
     assert.equal(out.status, 1, out.stdout + out.stderr);
@@ -492,9 +524,14 @@ describe("the population guard sends every text naming a person to review", () =
     // reaches this branch.
     const dir = mkdtempSync(path.join(tmpdir(), "ct-strip-"));
     const fake = path.join(dir, "strip.mjs");
-    writeFileSync(fake, "export const withoutContactDetails = (t) => t.replace(/\\d{6,}/g, '');\n");
+    writeFileSync(fake, "export const withoutContactDetails = (t) => t.replace(/\\d{6,}/g, '').replace('Tongi.', '');\n");
     const rows = path.join(dir, "rows.json");
-    writeFileSync(rows, JSON.stringify([{ slug: "cut", address_raw: "Plot # 110072, Dhaka" }]));
+    writeFileSync(rows, JSON.stringify([
+      { slug: "cut", address_raw: "Plot # 110072, Dhaka" },
+      // A cut INSIDE a dot-joined word (cycle 12: the whole word "Tongi.Gazipur"
+      // went into the cut, and its ".Gazipur" read as a domain).
+      { slug: "joined", address_raw: "Plot 5, Tongi.Gazipur" },
+    ]));
     try {
       const out = spawnSync(process.execPath, [path.join(process.cwd(), "ops", "check_contact_text.mjs"), rows], {
         encoding: "utf8",
@@ -502,8 +539,9 @@ describe("the population guard sends every text naming a person to review", () =
       });
       assert.equal(out.status, 1, out.stdout + out.stderr);
       assert.match(out.stdout, /FAIL cut \(address\): an over-strip: removed "110072"/);
+      assert.match(out.stdout, /FAIL joined \(address\): an over-strip: removed "Tongi"/);
       // Its OK or FAIL is about the stand-in, and the output says so.
-      assert.match(out.stdout, /STAND-IN STRIPPER: .*strip\.mjs \(not lib\/contact-text\.ts\)/);
+      assert.ok(out.stdout.includes(`STAND-IN STRIPPER: ${pathToFileURL(fake).href} (not lib/contact-text.ts)`), out.stdout);
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }

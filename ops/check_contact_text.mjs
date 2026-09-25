@@ -41,7 +41,7 @@ const KNOWN_NOT_CONTACT = new Map([
 // a name ("… - Owner", "…- Owner", "… — Owner"), a role in brackets anywhere
 // ("(MD)", "[CEO]", "(Chairman & MD)"; not "(Chairman Bari)", a place), and
 // "Contact:". The dash classes carry the em dash the stripper splits on.
-const NAMES_A_PERSON = /\b(?:proprietor|managing director|your contact|contact person|attn|c\/o)\b|(?:^|,)\s*(?:chairman|director|ceo|owner|md)\s*(?:,|$)|\b(?:chairman|director|ceo|owner|gm|general manager|md|m\.d)\b\.?(?:\s*:|\s+[-–—]|[-–—](?!\s*(?:bari|market|road|para|bazar)\b))|\s*[-–—]\s*(?:chairman|director|ceo|owner|gm|general manager|md|m\.d)\b\.?\s*(?:[,.;]|$|\S)|[([](?![^)\]]*\b(?:bari|market|road|para|bazar|plaza)\b)[^)\]]*\b(?:chairman|director|ceo|owner|gm|general manager|md|m\.d|executive|manager)\b[^)\]]*[)\]]|\bcontact(?:\s+name)?\s*:/im;
+const NAMES_A_PERSON = /\b(?:proprietor|managing director|your contact|contact person|attn|c\/o)\b|(?:^|,)\s*(?:chairman|director|ceo|owner|md)\s*(?:,|$)|\b(?:chairman|director|ceo|owner|gm|general manager|md|m\.d)\b\.?(?:\s*:|\s+[-–—]|[-–—](?!\s*(?:bari|market|road|para|bazar)\b))|\s*[-–—]\s*(?:chairman|director|ceo|owner|gm|general manager|md|m\.d)\b\.?\s*(?:[,.;]|$|\S)|[([](?![^)\]]*\b(?:bari|market|road|para|bazar|plaza)\b)[^)\]]*\b(?:chairman|director|ceo|owner|gm|general manager|md|m\.d|executive|manager)\b[^)\]]*(?:[)\]]|[.,;]|$)|\bcontact(?:\s+name)?\s*:/im;
 /**
  * A role word or an honorific in what the stripper removed: the cut was a
  * person's. Every rule in the stripper that removes a person must be here, or
@@ -94,11 +94,18 @@ const domainOf = (w) =>
  * which read as an over-strip instead of a person (cycle 11).
  */
 function removedFrom(text, out) {
+  const outWords = out.split(/[\s,;]+/).filter(Boolean);
   const left = new Map();
-  for (const w of out.split(/[\s,;]+/).filter(Boolean)) left.set(w, (left.get(w) ?? 0) + 1);
+  for (const w of outWords) left.set(w, (left.get(w) ?? 0) + 1);
+  // The pieces of a word joined by "." "/" "-": a cut INSIDE "Tongi.Gazipur"
+  // (the output keeps "Gazipur") is "Tongi", not the whole word — whose
+  // ".Gazipur" read as a domain and hid the over-strip (cycle 12).
+  const pieces = (w) => w.split(/[./-]+/).filter(Boolean);
+  const outPieces = new Set(outWords.flatMap(pieces));
   const cut = [];
   for (const w of text.split(/[\s,;]+/).filter(Boolean)) {
     if (left.get(w)) left.set(w, left.get(w) - 1);
+    else if (pieces(w).some((p) => outPieces.has(p))) cut.push(...pieces(w).filter((p) => !outPieces.has(p)));
     else cut.push(w);
   }
   return cut.join(" ");
