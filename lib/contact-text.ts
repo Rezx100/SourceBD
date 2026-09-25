@@ -50,7 +50,7 @@
 // ("912-5191") reads exactly like a plot range, and no published text holds
 // one today; a labelled one is covered.
 
-const ONE_LABEL = String.raw`\b(?:tel|tele|telephone|phone|pho|ph|mobile|mob|cell|fax|hotline|contact|pabx|whatsapp|viber|imo|e-?mail|web|website)\b`;
+const ONE_LABEL = String.raw`\b(?:tel|tele|telephone|phone|pho|ph|mobile|mob|cell|fax|hotline|contact|pabx|call|whatsapp|viber|imo|e-?mail|web|website)\b`;
 // "Tel/Fax:" is one label.
 const LABEL = String.raw`${ONE_LABEL}(?:[ \t]*\/[ \t]*${ONE_LABEL})*`;
 const LABEL_TAIL = String.raw`(?:[ \t]*(?:no|number|#)\.?)?[ \t]*[:.#\-]?[ \t]*`;
@@ -69,7 +69,11 @@ const MOBILE = new RegExp(String.raw`(?<![\d+])(?:\+?[ \t]?88${SEP})?\(?0${SEP}1
 const INTERNATIONAL = /\+\d[\d \t\-()]{6,}\d/g;
 const LABELLED_NUMBER = new RegExp(String.raw`(?:${LABEL}|\b[TMF]\b(?=[ \t]*:))${LABEL_TAIL}\+?\(?\d[\d \t\-()/.,]*\d`, "gi");
 const BARE_NUMBER = new RegExp(String.raw`(?<!${ADDRESS_LABEL})(?<=^|[\s,;:(/])\+?[\d\-()]*\d[\d\-()]*(?=$|[\s,;.)/])`, "gi");
-const NAME_LABEL = /(?:\byour contact\b[ \t]*:?|\b(?:contact person|attn|attention|ceo|general manager|gm|director|chairman|owner|proprietor|managing director)\b[ \t]*[:\-]|\bc\/o\b)[^,\n]*/gi;
+// A label names a person when a colon or a SPACED dash follows it: "CEO: X",
+// "Owner - X". A bare hyphen is a compound place ("Chairman-Bari").
+const NAME_LABEL = /(?:\b(?:your contact|contact person)\b[ \t]*:?|\b(?:attn|attention|ceo|general manager|gm|director|chairman|owner|proprietor|managing director)\b(?:[ \t]*:|[ \t]+[-–][ \t])|\bc\/o\b)[^,\n]*/gi;
+// "Karim Uddin - Proprietor", "Karim Uddin (MD)": a name with its role beside it.
+const NAME_WITH_ROLE = /[^,\n]*?(?:[ \t]+[-–][ \t]*|[ \t]*\()(?:proprietor|managing director|md|owner|ceo|chairman)\)?(?=[ \t]*(?:,|$))/gim;
 const ROLE = /\b(?:managing director|proprietor)\b/gi;
 const NAMES_A_ROLE = /\b(?:managing director|proprietor|your contact|contact person)\b/i;
 // "Sorder M. Nur-Uz-Zaman": capitalised words around an initial.
@@ -78,7 +82,7 @@ const DANGLING_LABEL = new RegExp(String.raw`${LABEL}(?:[ \t]*(?:no|number|#)\.?
 
 const HONORIFIC_NAME = /^\s*(?:md|mohd|mohammad|mr|mrs|ms|engr)\.?\s+[a-z][a-z .'\-]*$/i;
 const STANDALONE_ROLE = /^\s*(?:managing director|proprietor|chairman|director|ceo|owner|md)\s*$/i;
-const ADDRESS_WORD = /\b(?:road|rd|street|avenue|lane|bari|market|plaza|tower|bhaban|bhabon|house|mansion|building|para|nagar|bazar|sarak|sarani|mor|villa|complex|centre|center|park|industrial|university|college|school|mosque|hospital)\b/i;
+const ADDRESS_WORD = /\b(?:road|rd|street|avenue|lane|bari|market|plaza|tower|bhaban|bhabon|house|mansion|building|para|nagar|bazar|sarak|sarani|mor|villa|complex|centre|center|park|industrial|university|college|school|mosque|hospital|zone|epz|section|sector|area|estate|colony|union|village|upazila|thana)\b/i;
 
 function digitsOf(s: string): number {
   return s.replace(/\D/g, "").length;
@@ -105,10 +109,18 @@ function bareNumber(match: string): string {
 function withoutNamedParts(line: string, named: boolean): string {
   const parts = line.split(",");
   const role = parts.map((p) => STANDALONE_ROLE.test(p));
+  const bare = (p: string) => p.trim() !== "" && !/\d/.test(p) && !ADDRESS_WORD.test(p);
   const keep = parts.map((p, i) => {
     if (role[i]) return false;
     if (HONORIFIC_NAME.test(p) && !ADDRESS_WORD.test(p)) return false;
-    if (i === 0 && (named || role[1]) && p.trim() && !/\d/.test(p) && !ADDRESS_WORD.test(p)) return false;
+    // The opening part of a text that names a role is its holder — when it
+    // reads as a name, two words or more: "Kashimpur, Gazipur, Your contact: …"
+    // keeps the place.
+    if (i === 0 && (named || role[1]) && bare(p) && p.trim().split(/\s+/).length >= 2) return false;
+    // "…, Abdul Karim, Chairman, …": the part just before a role is its holder
+    // when it reads as a name — two words or more, so "Gulshan, Managing
+    // Director" keeps the place.
+    if (role[i + 1] && bare(p) && p.trim().split(/\s+/).length >= 2) return false;
     return true;
   });
   return keep.every(Boolean) ? line : parts.filter((_, i) => keep[i]).join(",");
@@ -136,13 +148,15 @@ export function withoutContactDetails(text: string | null | undefined, options: 
     .replace(INTERNATIONAL, " ");
   if (options.bareNumbers !== false) cut = cut.replace(BARE_NUMBER, bareNumber);
   cut = cut
+    .replace(NAME_WITH_ROLE, " ")
     .replace(NAME_LABEL, " ")
     .replace(DANGLING_LABEL, " ")
     .split("\n")
     .map((line) => withoutNamedParts(line, named))
     .join("\n")
     .replace(ROLE, " ");
-  if (named) cut = cut.replace(INITIALLED_NAME, " ");
+  // …but "Mirpur D. Section" is a place: an address word keeps it.
+  if (named) cut = cut.replace(INITIALLED_NAME, (m) => (ADDRESS_WORD.test(m) ? m : " "));
   // A clean address comes back byte for byte: the premises matcher and the
   // register attribution both compare these strings.
   if (cut === text) return text;

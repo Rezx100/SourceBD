@@ -50,6 +50,10 @@ type Answers = {
 /** Every `.from(...)` call the routes make, so a test can assert the filters. */
 type FromCall = { table: string; filters: { op: string; args: unknown[] }[] };
 let fromCalls: FromCall[] = [];
+/** Every `.rpc(fn, args)` call, so a test can assert what the routes SEND, not only what they do with the answer. */
+let rpcCalls: { fn: string; args: Record<string, unknown> | undefined }[] = [];
+/** What `usePathname()` answers — the path the client-side shell switch reads. */
+let currentPath = "/app/discover";
 
 /**
  * ONE stub, installed once, reading a mutable `answers`.
@@ -74,7 +78,7 @@ function fakeClient() {
     return { data: null, error: null };
   };
   return {
-    rpc: async (fn: string) => rpc(fn),
+    rpc: async (fn: string, args?: Record<string, unknown>) => (rpcCalls.push({ fn, args }), rpc(fn)),
     auth: { getUser: async () => ({ data: { user: answers.userId === null ? null : { id: answers.userId ?? "buyer-1" } } }) },
     from(table: string) {
       const call: FromCall = { table, filters: [] };
@@ -101,6 +105,7 @@ function fakeClient() {
 /** Set the payloads for one test. */
 function given(a: Answers): void {
   fromCalls = [];
+  rpcCalls = [];
   answers = a;
 }
 
@@ -124,7 +129,7 @@ function given(a: Answers): void {
       ...realNav,
       useRouter: () => ({ push() {}, replace() {}, refresh() {}, back() {}, forward() {}, prefetch() {} }),
       useSearchParams: () => new URLSearchParams(),
-      usePathname: () => "/app/discover",
+      usePathname: () => currentPath,
       useParams: () => ({}),
     },
   } as unknown as NodeJS.Module;
@@ -819,12 +824,20 @@ describe("cycle 4: the boundaries cycle 4 found open", () => {
     assert.ok(out.includes("ABONI KNITWEAR") || out.includes("Aboni Knitwear"), "the search behind the sheet is gone");
   });
 
-  it("an overlay line that cannot be checked (EPB unread, not in the catalogue) shows the record over the search", async () => {
-    given({ profile: PROFILE, hscodes: { data: null, error: { message: "boom" } }, discover: { data: [ROW], error: null } });
-    const out = html(await overlay({ q: "knit", record: "aboni-knitwear", line: "3923" }));
-    assert.match(out, /aria-label="Supplier record"/, "the record is not shown");
-    assert.doesNotMatch(out, /HS 3923/, "a line was invented");
-    assert.match(out, /EPB export lines could not be read/);
+  it("an overlay line that cannot be checked, or is not one, goes back to the record on the same search", async () => {
+    // As the full line page does. It used to show the record with the dead
+    // `line=` still in the URL and nothing to say why (cycle 6).
+    for (const [hs, hscodes] of [["3923", { data: null, error: { message: "boom" } }], ["0000", HS]] as const) {
+      given({ profile: PROFILE, hscodes, discover: { data: [ROW], error: null } });
+      const r = await overlay({ q: "knit", record: "aboni-knitwear", line: hs, lines: "all" });
+      assert.ok("threw" in r, `&line=${hs} rendered`);
+      assert.match(r.threw, /NEXT_REDIRECT/);
+      const to = /;([^;]*\/app\/discover[^;]*);/.exec(r.threw)?.[1] ?? r.threw;
+      assert.match(to, /record=aboni-knitwear/, `&line=${hs} lost the record: ${to}`);
+      assert.match(to, /q=knit/, `&line=${hs} lost the search: ${to}`);
+      assert.match(to, /lines=all/, `&line=${hs} lost the expanded grid: ${to}`);
+      assert.doesNotMatch(to, /[?&]line=/, `&line=${hs} kept the dead line: ${to}`);
+    }
   });
 
   it("the overlay names what it shows, so focus follows a change of content", async () => {
@@ -883,6 +896,151 @@ describe("cycle 4: the boundaries cycle 4 found open", () => {
     assert.match(out, /25,000 pcs\/day · 600,000 dozen\/year/, "one of the two filed capacity figures is dropped");
     assert.match(out, /Dhaka EPZ/);
     assert.match(out, /620 women · 380 men/);
+
+    // One half filed: the other is the total less it, and the row says so (the capacity tab's rule).
+    given({ profile: { data: { ...ABONI.profile, supplier: { ...supplier, employees_male: null }, rsc_remediation: null }, error: null }, hscodes: HS });
+    assert.match(html(await fullPage("aboni-knitwear")), /620 women · 380 men \(men by subtraction\)/);
+    // A half larger than the total is not a split.
+    given({ profile: { data: { ...ABONI.profile, supplier: { ...supplier, employees_male: null, employees_female: 1500 }, rsc_remediation: null }, error: null }, hscodes: HS });
+    assert.doesNotMatch(html(await fullPage("aboni-knitwear")), /women ·/);
   });
 });
 
+
+describe("cycle 6: what the routes send, and the branches cycle 6 found untested", () => {
+  const ROW = {
+    id: "8ce50581-2d84-4cc2-93aa-000000000001",
+    slug: "aboni-knitwear",
+    company_name: "ABONI KNITWEAR LTD.",
+    entity_type: "factory",
+    city: "Dhaka",
+    district: "Dhaka",
+    source_tags: ["BGMEA", "EPB"],
+    t13_source_count: 2,
+    completeness_pct: 50,
+    employees_total: 3166,
+    established_date: "1985-01-01",
+    principal_products: [],
+    factory_types: [],
+    rsc_progress_pct: null,
+    parent_group_name: null,
+    primary_address: null,
+    total_count: 1,
+    is_sanctioned: false,
+    cert_summary: null,
+    hs_codes: ["6105"],
+    brand_codes: [],
+    registries: [],
+  };
+  const fullPage = (slug: string, sp: Record<string, string> = {}) => {
+    const Page = route("app/(app)/app/suppliers/[slug]/page.js").default;
+    return outcome(() => Page({ params: Promise.resolve({ slug }), searchParams: Promise.resolve(sp) }));
+  };
+  const linePage = (hs: string, sp: Record<string, string> = {}) => {
+    const Page = route("app/(app)/app/suppliers/[slug]/lines/[hs]/page.js").default;
+    return outcome(() => Page({ params: Promise.resolve({ slug: "aboni-knitwear", hs }), searchParams: Promise.resolve(sp) }));
+  };
+  const overlay = (sp: Record<string, string>) => {
+    const Page = route("app/(app)/app/discover/page.js").default;
+    return outcome(() => Page({ searchParams: Promise.resolve(sp) }));
+  };
+
+  it("every record RPC is called with the record's slug, under the parameter name the SQL declares", async () => {
+    // Every fake client threw the arguments away, so `{ slug }` in place of
+    // `{ p_slug: slug }` passed everything — and against PostgREST it is an
+    // error on every read, rendered as "could not be read" on every record.
+    given({ profile: PROFILE, hscodes: HS });
+    html(await fullPage("aboni-knitwear"));
+    const bySlug = ["buyer_supplier_profile", "supplier_epb_hscodes", "supplier_contact_counts", "buyer_supplier_facility_panel"];
+    for (const fn of bySlug) {
+      const calls = rpcCalls.filter((c) => c.fn === fn);
+      assert.ok(calls.length > 0, `${fn} was never called`);
+      for (const c of calls) assert.deepEqual(c.args, { p_slug: "aboni-knitwear" }, `${fn} was sent ${JSON.stringify(c.args)}`);
+    }
+  });
+
+  it("a slow line read goes to the record, not a 404 — keeping ?lines=all", async () => {
+    const slow = { data: null, error: { code: "57014", message: "canceling statement due to statement timeout" } };
+    given({ profile: slow, hscodes: HS });
+    const plain = await linePage("6105");
+    assert.ok("threw" in plain && /NEXT_REDIRECT/.test(plain.threw), `a slow read on a line answered ${"threw" in plain ? plain.threw : "a page"}`);
+    assert.match(plain.threw, /\/app\/suppliers\/aboni-knitwear(?:;|$)/);
+    given({ profile: slow, hscodes: HS });
+    const all = await linePage("6105", { lines: "all" });
+    assert.ok("threw" in all && /\/app\/suppliers\/aboni-knitwear\?lines=all/.test(all.threw), "the expanded grid is lost on a slow read");
+  });
+
+  it("the women/men split is withheld when it cannot be true", async () => {
+    const base = { ...ABONI.profile.supplier, employees_total: 1000, employees_female: 620, employees_male: 380 };
+    const page = async (supplier: object, extra: object = {}) => {
+      given({ profile: { data: { ...ABONI.profile, supplier, rsc_remediation: null, ...extra }, error: null }, hscodes: HS });
+      return html(await fullPage("aboni-knitwear"));
+    };
+    assert.match(await page(base), /620 women · 380 men/, "guard: the split shows when it adds up");
+    // Halves that do not add up to the figure shown (outside 10%).
+    assert.doesNotMatch(await page({ ...base, employees_total: 3000 }), /women ·/, "a split shown against a total it contradicts");
+    // No halves at all.
+    assert.doesNotMatch(await page({ ...base, employees_female: 0, employees_male: 0 }), /women ·/);
+    // An RSC figure: the registers' split is not a split of RSC's number.
+    const filed = ABONI.profile.rsc_remediation;
+    const rsc = [{ ...((Array.isArray(filed) ? filed[0] : filed) ?? {}), workers_count: 1000, building_name: undefined }];
+    assert.doesNotMatch(await page(base, { rsc_remediation: rsc }), /620 women · 380 men/, "the registers' split is shown against an RSC total");
+  });
+
+  it("a building's notice and that same slug's record are different contents, so focus moves between them", async () => {
+    given({ profile: { data: null, error: null }, facilityParent: { data: "aboni-knitwear", error: null }, discover: { data: [ROW], error: null } });
+    const notice = /data-open-key="([^"]*)"/.exec(html(await overlay({ q: "knit", record: "aboni-knitwear" })))?.[1];
+    given({ profile: PROFILE, hscodes: HS, discover: { data: [ROW], error: null } });
+    const record = /data-open-key="([^"]*)"/.exec(html(await overlay({ q: "knit", record: "aboni-knitwear" })))?.[1];
+    assert.ok(notice && record, `guard: ${notice} / ${record}`);
+    assert.notEqual(notice, record, "a notice and the record it becomes share a key");
+  });
+
+  it("a building with several addresses shows its first filed one", async () => {
+    const metric = { own: null, known_sum: null, facility_count: 1, building_count: 2, unknown_count: 1 };
+    const panel = {
+      facility_count: 1,
+      facilities: [
+        {
+          name: "ABONI KNITWEAR LTD. (UNIT-2)",
+          employees_total: 450,
+          addresses: [
+            { kind: "factory", address: "Plot 12, Hemayetpur, Savar", source_code: "BGMEA" },
+            { kind: "mailing", address: "House 9, Gulshan-2, Dhaka", source_code: "BKMEA" },
+          ],
+          pills: [],
+          rsc: null,
+        },
+      ],
+      group: { employees_total: metric, machines_sewing: metric, production_capacity_pcs_day: metric, production_capacity_dozen_yearly: metric },
+    };
+    given({ profile: PROFILE, hscodes: HS, facilityPanel: { data: panel, error: null } });
+    const out = html(await fullPage("aboni-knitwear"));
+    const list = /data-facilities="true"[^>]*>([\s\S]*?)<\/ul>/.exec(out)?.[1] ?? "";
+    assert.match(list, /Hemayetpur, Savar/);
+    assert.doesNotMatch(list, /Gulshan-2/, "a later address is shown in place of the first");
+  });
+
+  it("the app layout draws the old shell around an old page, and nothing around a kit page", async () => {
+    // The layout's own boundary: its skip link and main landmark, rendered —
+    // not its source text read. The shell switch reads the path on the
+    // client, so the path here is what `usePathname` answers.
+    const Layout = route("app/(app)/layout.js").default;
+    const render = async (path: string) => {
+      currentPath = path;
+      given({ userId: "buyer-1" });
+      return html(await outcome(() => Layout({ children: createElement("p", null, "PAGE-BODY") })));
+    };
+    try {
+      const old = await render("/app/rfqs");
+      assert.match(old, /href="#main-content"/, "the old shell lost its skip link");
+      assert.equal((old.match(/<div[^>]*role="main"[^>]*>/g) ?? []).filter((m) => m.includes('id="main-content"')).length, 1, "the old shell has no main landmark");
+      assert.match(old, /PAGE-BODY/);
+      const kit = await render("/app/suppliers/aboni-knitwear");
+      assert.doesNotMatch(kit, /href="#main-content"|role="main"/, "the old shell is drawn around a kit page");
+      assert.match(kit, /PAGE-BODY/);
+    } finally {
+      currentPath = "/app/discover";
+    }
+  });
+});

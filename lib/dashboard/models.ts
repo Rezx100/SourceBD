@@ -141,10 +141,10 @@ export type SourceRow = {
   readDate: string | null;
 };
 
-/** One premises on the Locations section, after the address matcher has merged spellings. */
 /** One extension building: its name, its first filed address (contact details stripped) and its worker figure. */
 export type FacilityRowModel = { name: string; address: string | null; workers: string | null };
 
+/** One premises on the Locations section, after the address matcher has merged spellings. */
 export type LocationRow = {
   kind: string;
   address: string;
@@ -283,6 +283,8 @@ export type SupplierSheetModel = {
    * and `empty` then says so: "no buildings" is a claim an unread panel cannot make.
    */
   facilities: { count: number | null; rows: FacilityRowModel[]; empty: string };
+  /** Each building's own certificates, by building — shown, not counted as the record's. */
+  buildingCerts: { building: string; certs: CertModel[] }[];
   /**
    * REZ-C: the calling buyer's own RFQs naming this supplier. `count` is null
    * when the read failed — an unread list has no count, and 0 is a claim.

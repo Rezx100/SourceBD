@@ -526,10 +526,13 @@ describe("SupplierSheet (rendered)", () => {
 
   // Cycle 5, finding 3: the building's GOTS certificate is not this record's,
   // and saying nothing about it leaves the section looking short of one.
-  it("a building's certificate is named on the sheet, not counted as the record's", () => {
+  // REZ-C cycle 6: it is SHOWN, under the building's name — the building's own
+  // URL redirects here, so nowhere else does — and not as the record's.
+  it("a building's certificate is shown under the building, not counted as the record's", () => {
     const html = renderToStaticMarkup(createElement(SupplierSheet, { model: buildSheet(buildingRegistrationsInput()) }));
-    assert.match(html, rx(`${HOSSAIN_BUILDING} holds a certificate of its own`));
-    assert.doesNotMatch(html, /GOTS-15431/, "the building's certificate is not rendered as this record's");
+    const at = html.indexOf(`Held by ${HOSSAIN_BUILDING.replace(/&/g, "&amp;")}`);
+    assert.ok(at > -1, "the building's certificates are not shown under its name");
+    assert.ok(html.indexOf("GOTS-15431") > at, "the building's certificate is rendered as this record's, or not at all");
     assert.match(html, rx(`registered under ${HOSSAIN_BUILDING}`));
   });
 
@@ -962,30 +965,31 @@ describe("the largest lists the database holds (spec §3, §6)", () => {
     assert.doesNotMatch(sheetHtml, TRUNCATION);
   });
 
-  it("39 principal products: 34 once case variants merge, every one listed, the count exact", () => {
-    // Adventure Garments files 39 entries; five repeat another in different
-    // case ("All Types Of Jackets" / "All Types of Jackets"). The founder's
-    // ruling of 25 Sep is that those are one product.
+  it("39 principal products: 29 once case and spacing variants merge, every one listed, the count exact", () => {
+    // Adventure Garments files 39 entries; ten repeat another in different
+    // case or spacing ("All Types Of Jackets" / "All Types of Jackets" /
+    // "AllTypes of Jackets"). The founder's rulings of 25 Sep: one product.
     const input = longestProductListInput();
     assert.equal(input.profile.supplier.principal_products.length, 39, "guard: the fixture is still the 39-entry list");
     const sheet = buildSheet(input);
-    assert.equal(sheet.products.productListCount, 34);
+    assert.equal(sheet.products.productListCount, 29);
     const html = renderToStaticMarkup(createElement(SupplierSheet, { model: sheet }));
-    assert.match(html, /Product list<\/span><span[^>]*>34<\/span><span[^>]*>items on file · source pending/);
+    assert.match(html, /Product list<\/span><span[^>]*>29<\/span><span[^>]*>items on file · source pending/);
     const ps = renderToStaticMarkup(createElement(ProductSheet, { model: buildProductSheet(input, "6105") }));
-    assert.match(ps, /\+30 items/, "four are listed, thirty counted — never a silent truncation");
+    assert.match(ps, /\+25 items/, "four are listed, twenty-five counted — never a silent truncation");
     assert.doesNotMatch(ps, TRUNCATION);
     // The record itself lists every one: 3,975 published records have a
     // product list and no EPB lines, so no line sheet at all, and a count
     // over nothing to read was all they showed.
     const listed = /data-product-list="true">([\s\S]*?)<\/ul>/.exec(html)?.[1] ?? "";
     const items = [...listed.matchAll(/<li[^>]*>([^<]*)<\/li>/g)].map((m) => m[1]);
-    assert.equal(items.length, 34, "the record does not list the products it counts");
-    assert.equal(new Set(items.map((i) => i!.toLowerCase())).size, 34, "a case variant is listed twice");
+    assert.equal(items.length, 29, "the record does not list the products it counts");
+    assert.equal(new Set(items.map((i) => i!.toLowerCase().replace(/\s+/g, ""))).size, 29, "a case or spacing variant is listed twice");
     const shown = html.toLowerCase();
+    const squashed = shown.replace(/\s+/g, "");
     for (const name of input.profile.supplier.principal_products ?? []) {
-      const esc = name.replace(/&/g, "&amp;").replace(/'/g, "&#x27;").replace(/"/g, "&quot;").toLowerCase();
-      assert.ok(shown.includes(esc), `"${name}" is filed but not listed in any case`);
+      const esc = name.replace(/&/g, "&amp;").replace(/'/g, "&#x27;").replace(/"/g, "&quot;").toLowerCase().replace(/\s+/g, "");
+      assert.ok(squashed.includes(esc), `"${name}" is filed but not listed in any case or spacing`);
     }
   });
 });
@@ -1115,8 +1119,9 @@ describe("a record whose only certificate belongs to a building", () => {
     assert.doesNotMatch(row, /— none on 4 registers/);
 
     const sheet = renderToStaticMarkup(createElement(SupplierSheet, { model: buildSheet(only) }));
-    assert.match(sheet, rx(`${MG_BUILDING} holds a certificate of its own`));
-    assert.doesNotMatch(sheet, /31314-100/, "the building's certificate is not rendered as this record's");
+    const at = sheet.indexOf(`Held by ${MG_BUILDING}`);
+    assert.ok(at > -1, "the building's certificate is not shown under its name");
+    assert.ok(sheet.indexOf("31314-100") > at, "the building's certificate is rendered as this record's, or not at all");
   });
 });
 
@@ -2079,7 +2084,7 @@ describe("the certificate card's own mark links, and the sheet shows the registe
     assert.match(html, /No certificate on this record ·/);
     assert.match(html, rx(`${MG_BUILDING} holds one`), "the section names where the certificate is");
     assert.doesNotMatch(html, /on any register/, "the bare negative stood over a payload holding one");
-    assert.match(html, rx(`${MG_BUILDING} holds a certificate of its own`));
+    assert.ok(html.includes(`Held by ${MG_BUILDING}`), "the building's certificate is not shown");
     // And a record with none anywhere names the registers that were read.
     const none = renderToStaticMarkup(createElement(SupplierSheet, { model: buildSheet(arFashionInput()) }));
     assert.match(none, /No certificate on 4 registers/);

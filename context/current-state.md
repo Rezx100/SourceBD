@@ -53,11 +53,12 @@ migrations, run the 30-day zero P1/P2 Sentry incident window.
   so every tab leads somewhere.
   Migration `0105` adds ONE function, `supplier_contact_counts` — NOT APPLIED.
   Evidence and the founder's command: `ops/plans/rez-c-0105-dry-run.md`.
-  **The closed loop is OPEN** — five audit cycles run, all rejected and
-  repaired; cycle 5's repairs (the shell chosen on the client, the buildings
-  list, both capacity figures, named contacts, 0105's counts) await cycle 6;
-  no Acceptance Judge yet. Founder, 25 Sep: Facilities lists the buildings;
-  case-variant products merge. Hand-off: `feature-specs/handoff-rez-c-cycle4.md`.
+  **The closed loop is OPEN** — six audit cycles run; cycle 6's invariant
+  auditor accepted, the other three rejected and were repaired (the shell no
+  longer remounts the page, Escape in the report menu, building certificates,
+  the one-sided women/men split, RPC arguments); cycle 7 next, no Acceptance
+  Judge yet. Founder, 25 Sep: Facilities lists the buildings; product
+  entries differing only in case or spacing merge. Hand-off: `feature-specs/handoff-rez-c-cycle4.md`.
   **Ratified by the founder 25 Sep:** "Exporters of 6105 · N" (the count
   equals the search it opens); 0105's five omitted §4.3 items; and these
   deferrals: the Barikoi map on Locations

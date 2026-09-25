@@ -135,21 +135,51 @@ describe("ReportProblem — the form sends what the feedback route reads", () =>
     assert.ok(run.sets.some((s) => s.value === "idle"), "the thanks outlives a new report");
 
     const [details] = findAll(run.out, (el) => el.type === "details");
-    let stopped = false;
     let focused = false;
     const target = { open: true, querySelector: () => ({ focus: () => void (focused = true) }) };
-    (details!.props.onKeyDown as (e: unknown) => void)({ key: "Escape", currentTarget: target, stopPropagation: () => void (stopped = true) });
-    assert.equal(stopped, true, "Escape reaches the sheet and closes the record too");
+    // One event, as the browser delivers it: React's listener on the document
+    // runs the menu's handler, then the sheet's own document listener
+    // (`DialogFocus`) sees the SAME event. stopPropagation cannot stop a second
+    // listener on the same node, so a stub for it proved nothing (cycle 6).
+    const event = {
+      key: "Escape",
+      currentTarget: target,
+      defaultPrevented: false,
+      preventDefault() {
+        this.defaultPrevented = true;
+      },
+      stopPropagation() {},
+    };
+    (details!.props.onKeyDown as (e: unknown) => void)(event);
     assert.equal(target.open, false);
     assert.equal(focused, true, "focus is not returned to the menu button");
+    assert.equal(sheetEscape(event), false, "Escape in the open menu also closed the record — and the typed report with it");
 
-    // With the menu closed, Escape is the sheet's: it must pass through.
-    let passed = true;
-    const closed = { open: false, querySelector: () => null };
-    (details!.props.onKeyDown as (e: unknown) => void)({ key: "Escape", currentTarget: closed, stopPropagation: () => void (passed = false) });
-    assert.equal(passed, true, "a closed menu swallows the Escape that should close the sheet");
+    // With the menu closed, Escape is the sheet's.
+    const plain = { ...event, currentTarget: { open: false, querySelector: () => null }, defaultPrevented: false };
+    (details!.props.onKeyDown as (e: unknown) => void)(plain);
+    assert.equal(sheetEscape(plain), true, "a closed menu swallows the Escape that should close the sheet");
   });
 });
+
+/** Run the sheet's real Escape listener (`DialogFocus`) on an event; true when it closed the sheet. */
+function sheetEscape(event: unknown): boolean {
+  let listener: ((e: unknown) => void) | null = null;
+  stub("window", { location: { search: "?q=knit&record=aboni-knitwear" } });
+  stub("document", {
+    querySelector: () => ({ focus() {} }),
+    addEventListener: (_: string, f: (e: unknown) => void) => void (listener = f),
+    removeEventListener() {},
+    querySelectorAll: () => [],
+  });
+  let pushed = false;
+  const run = callWithHooks(DialogFocus, { closeHref: "/app/discover?q=knit", openKey: "x" }, {
+    contexts: new Map([[AppRouterContext, { push: () => void (pushed = true) }]]),
+  });
+  run.effects[1]!();
+  (listener as unknown as (e: unknown) => void)(event);
+  return pushed;
+}
 
 describe("ShellSwitch — one shell per page, on every navigation", () => {
   // The layout used to pick the shell from a request header, which a client
@@ -160,17 +190,43 @@ describe("ShellSwitch — one shell per page, on every navigation", () => {
   const shell = (pathname: string) =>
     callWithHooks(ShellSwitch, { top: "TOP", side: "SIDE", bottom: "BOTTOM", children: "PAGE" }, { contexts: new Map([[PathnameContext, pathname]]) }).out;
 
+  // The element types from the root down to the page, in order. React keeps a
+  // subtree mounted only while every one of these stays the same.
+  const pathTo = (out: unknown): string[] => {
+    const chain: string[] = [];
+    let node = out as { type?: unknown; props?: { children?: unknown } } | undefined;
+    while (node && typeof node === "object" && "type" in node) {
+      chain.push(String(node.type));
+      const kids = ([] as unknown[]).concat(node.props?.children ?? []);
+      node = kids.find((k) => k === "PAGE" || (k !== null && typeof k === "object" && textOf(k as never).includes("PAGE"))) as typeof node;
+    }
+    return chain;
+  };
+  const landmarks = (out: unknown) => findAll(out as never, (el) => el.type === "main" || el.props.role === "main");
+
   it("draws nothing around a kit page, and the old shell around every other", () => {
     for (const path of ["/app/suppliers/aboni-knitwear", "/app/suppliers/aboni-knitwear/lines/6105", "/app/discover"]) {
       const out = shell(path);
       assert.equal(textOf(out), "PAGE", `${path}: the old shell is drawn around a kit page`);
-      assert.equal(findAll(out, (el) => el.type === "main").length, 0);
+      assert.equal(landmarks(out).length, 0, `${path}: a main landmark around the kit's own`);
     }
     for (const path of ["/app", "/app/rfqs", "/app/compliance/expiry"]) {
       const out = shell(path);
-      assert.equal(findAll(out, (el) => el.type === "main" && el.props.id === "main-content").length, 1, `${path}: no <main>`);
+      const main = landmarks(out);
+      assert.equal(main.length, 1, `${path}: no main landmark`);
+      assert.equal(main[0]!.props.id, "main-content", `${path}: the skip link has no target`);
       assert.equal(textOf(out), "TOPSIDEPAGEBOTTOM");
     }
+  });
+
+  it("crossing between the two keeps the page mounted: the same elements lead to it", () => {
+    // A fragment on one side and a <main> on the other changed the parent's
+    // type, so React remounted the whole page on every crossing — and the
+    // onboarding tour re-opened at its first step after being dismissed.
+    const old = pathTo(shell("/app"));
+    const kit = pathTo(shell("/app/suppliers/aboni-knitwear"));
+    assert.ok(old.length >= 3, `guard: ${old.join(" > ")}`);
+    assert.deepEqual(kit, old, `old ${old.join(" > ")} vs kit ${kit.join(" > ")}`);
   });
 
   it("the layout routes its shell through it, and no longer reads the request", () => {
@@ -178,6 +234,11 @@ describe("ShellSwitch — one shell per page, on every navigation", () => {
     assert.match(layout, /<ShellSwitch\b/);
     assert.doesNotMatch(layout, /x-sourcebd-pathname|headers\(\)/, "the layout picks the shell from the request again");
     assert.doesNotMatch(layout, /<main\b/, "the layout draws a <main> of its own");
+    // Kit loading states draw the kit's frame: the layout draws none there.
+    for (const route of ["discover", "products", "searches"]) {
+      const loading = readFileSync(path.join(process.cwd(), "app", "(app)", "app", route, "loading.tsx"), "utf8");
+      assert.match(loading, /<KitLoading\b/, `/app/${route}'s loading state has no frame`);
+    }
   });
 });
 

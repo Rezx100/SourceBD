@@ -27,6 +27,7 @@
 // here, with the client navigation that made the spec's version worth having.
 
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { AppShell } from "@/components/dashboard/app-shell";
 import { Panel, PanelFooter, PanelHeader } from "@/components/dashboard/results-panel";
 import { ResultsTable } from "@/components/dashboard/results-table";
@@ -310,6 +311,10 @@ export default async function BuyerDiscoverPage({
   ]);
   const record = recordRead.value;
   const line = lineRead.value;
+  // A line that is not one (unknown heading), could not be checked (EPB
+  // unread) or timed out: back to the record on this search, as the full line
+  // page does, rather than the record with a dead `line=` left in the URL.
+  if (record && lineCode && !line) redirect(withParams(recordParams));
   // A slug that is a BUILDING of another record is not a missing record: the
   // full page 308s to the mother (601 such slugs in production). The overlay
   // rendered nothing at all, so the same input gave two different answers

@@ -110,6 +110,7 @@
     "app/(app)/app/suppliers/[slug]/page.tsx",
     "app/(app)/app/suppliers/[slug]/lines/[hs]/page.tsx",
     "app/(app)/app/discover/page.tsx",
+    "app/(app)/layout.tsx",
     "lib/dashboard/load-record.ts",
     "lib/dashboard/load-record.test.ts",
     "app/dev/ds/dashboard-screens.tsx",

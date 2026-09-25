@@ -62,7 +62,12 @@ export function ReportProblem({ page }: { page: string }) {
       data-report-problem="true"
       onKeyDown={(e) => {
         if (e.key !== "Escape" || !e.currentTarget.open) return;
-        // Escape closes the menu, not the sheet around it.
+        // Escape closes the menu, not the sheet around it. `stopPropagation`
+        // alone did not do that: React listens on the document, and so does
+        // the sheet's own Escape handler (`DialogFocus`) — another listener on
+        // the same node, which propagation does not reach past. That handler
+        // skips an event already handled, so this marks it handled.
+        e.preventDefault();
         e.stopPropagation();
         e.currentTarget.open = false;
         e.currentTarget.querySelector("summary")?.focus();

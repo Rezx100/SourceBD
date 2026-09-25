@@ -327,6 +327,20 @@ describe("SupplierSheet — the four sections REZ-C adds", () => {
       assert.doesNotMatch(html, /not on this record|No extension buildings|could not be read/);
     });
 
+    it("the Workers row points at the Facilities list rather than saying the breakdown is missing", () => {
+      // A total covering the record and its buildings, with no site rows to
+      // split it: the row used to say "the site breakdown is not on the
+      // record" directly above a Facilities list giving each building's figure.
+      const input = { ...aboniInput(), workers: { value: 2000, source: "registry", fetched_at: null } } as ReturnType<typeof aboniInput>;
+      input.profile = { ...input.profile, rsc_remediation: null, supplier: { ...input.profile.supplier, employees_total: 1200 } };
+      const workersNote = (m: ReturnType<typeof buildSheet>) => m.facts.find((f) => f.label === "Workers")?.note ?? "";
+      const listed = buildSheet(input, { facilities: { panel: panel([building("Aboni Unit-2", "Savar", 800)]) } });
+      assert.match(workersNote(listed), /under Facilities/, workersNote(listed));
+      assert.doesNotMatch(workersNote(listed), /not on the record/);
+      // No figures to point at: the old sentence is still the true one.
+      assert.match(workersNote(buildSheet(input, { facilities: { panel: panel([building("Aboni Unit-2", "Savar", null)]) } })), /not on the record/);
+    });
+
     it("a record with none says so; an unread panel says it could not be read, never that there are none", () => {
       const none = renderToStaticMarkup(createElement(SupplierSheet, { model: buildSheet(aboniInput(), { facilities: { panel: panel([]) } }) }));
       assert.match(none, /No extension buildings on this record\./);

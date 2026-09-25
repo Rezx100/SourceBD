@@ -30,7 +30,9 @@ const KNOWN_NOT_CONTACT = new Map([
 // the role word was gone, and a check for role words could no longer see it).
 // So every such text's output is reviewed by hand and pinned here, exactly; a
 // new one — or a changed output — fails until someone reads it and adds it.
-const NAMES_A_PERSON = /\b(?:proprietor|managing director|your contact|contact person|attn|c\/o)\b/i;
+// Every role the stripper removes, anywhere, and a standalone "Chairman" /
+// "Director" / "Owner" / "CEO" / "MD" part (not "Chairman Bari", a place).
+const NAMES_A_PERSON = /\b(?:proprietor|managing director|your contact|contact person|attn|c\/o)\b|(?:^|,)\s*(?:chairman|director|ceo|owner|md)\s*(?:,|$)/im;
 const REVIEWED = new Map([
   ["saaf-sweater", ["ABDUR RAZZAK MASTER'S HOUSE, NEAR ASHULIA BUS STAND, ASHULIA, SAVAR, DHAKA"]],
   ["bdg-textilien-bd", ["263, Bara Moghbazar, (3rd Floor), Moghbazar, Dhaka"]],
@@ -60,6 +62,8 @@ const REVIEWED = new Map([
     ["7-9, Kawran Bazar, BTMC Bahaban (7th, A I Fashion Tex (Reg:, Floor), Iris United, House # 46-47, Kawran Bazar, Dhaka, Nasirabad Proprieties"],
   ],
   ["bd-tex", ["60, Gausul Azam Avenue, Sector # 13, Uttara, Dhaka, Beetex Sourcing (Reg:"]],
+  // The whole filed address is "Chairman, Chairman": nothing left to show.
+  ["bunano-classic", [""]],
 ]);
 
 const rows = JSON.parse(readFileSync(process.argv[2], "utf8"));
@@ -84,6 +88,8 @@ let changed = 0;
 for (const r of rows) {
   const filed = [
     ...[r.address_raw, ...(r.addresses ?? [])].filter(Boolean).map((t) => ["address", t]),
+    // The Facilities section prints each building's first filed address.
+    ...(r.building_addresses ?? []).filter(Boolean).map((t) => ["building", t]),
     ...(r.principal_products ?? []).filter(Boolean).map((t) => ["product", t]),
   ];
   const phones = (r.phones ?? []).map(digitsOf).filter((d) => d.length >= 7);

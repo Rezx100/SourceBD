@@ -32,11 +32,23 @@ with addr as (
     from public.v_supplier_addresses va
    where va.address is not null
    group by va.supplier_id
+),
+-- The record's buildings (unpublished children, `facility_of`): the Facilities
+-- section prints their addresses under the published record, and
+-- `v_supplier_addresses` covers published records only.
+bld as (
+  select f.facility_of as supplier_id, array_agg(vd.address) as addresses
+    from public.suppliers f
+    join public.v_supplier_addresses_direct vd on vd.supplier_id = f.id
+   where f.facility_of is not null and vd.address is not null
+   group by f.facility_of
 )
 select s.slug, s.address_raw, s.principal_products, s.email_primary, s.phones, s.website, s.contact_name,
-       coalesce(addr.addresses, '{}') as addresses
+       coalesce(addr.addresses, '{}') as addresses,
+       coalesce(bld.addresses, '{}') as building_addresses
   from public.suppliers s
   left join addr on addr.supplier_id = s.id
+  left join bld on bld.supplier_id = s.id
  where s.is_published
 """
 

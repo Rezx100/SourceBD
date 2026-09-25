@@ -78,6 +78,19 @@ const LEAKING: [string, string][] = [
     "263, Bara Moghbazar, (3rd Floor), Moghbazar, Dhaka",
   ],
   ["Karim Uddin (Proprietor), Plot 5, Dhaka", "Plot 5, Dhaka"],
+  // Cycle 6: a name just before a role anywhere in the text, not only at the start.
+  ["House 5, Road 3, Abdul Karim, Chairman, Dhaka", "House 5, Road 3, Dhaka"],
+  ["House 5, Dhaka, Abdul Karim, Owner", "House 5, Dhaka"],
+  ["House 5, Road 3, Karim Uddin, Proprietor, Dhaka", "House 5, Road 3, Dhaka"],
+  ["Karim Uddin - Proprietor, Plot 5, Dhaka", "Plot 5, Dhaka"],
+  ["Karim Uddin (MD), Plot 5, Dhaka", "Plot 5, Dhaka"],
+  ["Contact person Md Karim, Plot 5, Dhaka", "Plot 5, Dhaka"],
+  ["Jacket, call 9125191", "Jacket"],
+  // …and the places beside a role stay (cycle 6 found each of these cut).
+  ["Kashimpur, Gazipur, Your contact: Md. Karim", "Kashimpur, Gazipur"],
+  ["Dhaka Export Processing Zone, Savar, Managing Director", "Dhaka Export Processing Zone, Savar"],
+  ["Ashulia, Savar\nProprietor: Md. Karim", "Ashulia, Savar"],
+  ["Mirpur D. Section, Dhaka, Proprietor", "Mirpur D. Section, Dhaka"],
   ["Plot 5, Dhaka, Contact Person: Md. Karim Uddin", "Plot 5, Dhaka"],
   ["Plot 5, Dhaka, Attn: Mr. Rahman", "Plot 5, Dhaka"],
   ["Plot 5, Dhaka, C/O Mr. Karim", "Plot 5, Dhaka"],
@@ -93,6 +106,25 @@ const LEAKING: [string, string][] = [
   ["Plot 5, Dhaka, e-mail: x at y dot com", "Plot 5, Dhaka"],
   ["Plot 5, Dhaka, Skype: abc.garments", "Plot 5, Dhaka"],
   ["Plot 5, Dhaka, abcfashion.shop", "Plot 5, Dhaka"],
+  // Cycle 6: a case for every rule the comment names that had none.
+  ["Plot 5, Dhaka, Director: Abdul Karim", "Plot 5, Dhaka"],
+  ["Plot 5, Dhaka, GM: Abdul Karim", "Plot 5, Dhaka"],
+  ["Plot 5, Dhaka, General Manager: Abdul Karim", "Plot 5, Dhaka"],
+  ["Plot 5, Dhaka, Owner: Abdul Karim", "Plot 5, Dhaka"],
+  ["Plot 5, Dhaka, Chairman: Abdul Karim", "Plot 5, Dhaka"],
+  ["Plot 5, Dhaka, IMO: 912 5191", "Plot 5, Dhaka"],
+  ["Plot 5, Dhaka, Viber 912 5191", "Plot 5, Dhaka"],
+  ["Plot 5, Dhaka, abcfashion.store", "Plot 5, Dhaka"],
+  ["Plot 5, Dhaka, abcfashion.online", "Plot 5, Dhaka"],
+  ["Plot 5, Dhaka, abcfashion.xyz", "Plot 5, Dhaka"],
+  // Six digits after a label is a phone; six from a leading 0 is a phone.
+  ["Plot 5, Dhaka, Tel: 91-2519", "Plot 5, Dhaka"],
+  ["Plot 5, Dhaka, 012519", "Plot 5, Dhaka"],
+  // An honorific and a name, with no role anywhere in the text.
+  ["Plot 5, Md. Karim Uddin, Dhaka", "Plot 5, Dhaka"],
+  ["Mr. Rahman, Plot 5, Dhaka", "Plot 5, Dhaka"],
+  // Brackets emptied by a cut go with it.
+  ["Plot 5, Dhaka (Tel: 01711528388)", "Plot 5, Dhaka"],
 ];
 
 const CLEAN = [
@@ -123,6 +155,7 @@ const CLEAN = [
   "House # 441 (Ground Floor), Road # 30, New Apparel.com Limited (Reg:, DOHS Mustafa Arcade, Flat # A4,, 1/A, House #18, Mohakhali, Dhaka",
   "Contact Address: House - 1/C (3rd Floor) Road - 10, Baridhara Diplomatic Zone, Dhaka - 1212. Head Office: 26, Shyamolibag, Mirpur Road, Dhaka-1207.",
   "Md. Ali Mansion, Dhaka",
+  "Chairman-Bari, Tongi, Gazipur",
   "Road @ 8, Gulshan, Dhaka",
 ];
 
@@ -167,7 +200,7 @@ describe("withoutContactDetails — contact details filed inside an address", ()
     assert.equal(withoutContactDetails("Knit T-shirt 61091000"), "Knit T-shirt", "guard: in an address the same number is a phone");
     // Everything else still applies to a product entry.
     assert.equal(withoutContactDetails("shdeck.com", { bareNumbers: false }), "");
-    assert.equal(withoutContactDetails("Polo shirts, call 01711528388", { bareNumbers: false }), "Polo shirts, call");
+    assert.equal(withoutContactDetails("Polo shirts, call 01711528388", { bareNumbers: false }), "Polo shirts");
   });
 
   it("null stays null", () => {

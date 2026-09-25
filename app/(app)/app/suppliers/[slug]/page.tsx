@@ -78,7 +78,7 @@ export default async function SupplierRecordPage({
       const shell = await shellRead;
       return (
         <AppShell sidebar={shell.sidebar} topbar={shell.topbar} mainId="main-content" screenLabel="Supplier record">
-          <RecordTooSlow slug={slug} />
+          <RecordTooSlow href={allLines ? `/app/suppliers/${slug}?lines=all` : `/app/suppliers/${slug}`} />
         </AppShell>
       );
     }
@@ -113,7 +113,7 @@ export default async function SupplierRecordPage({
  * says what happened and offers the one action that helps, rather than a 404
  * that says the company is not on SourceBD.
  */
-function RecordTooSlow({ slug }: { slug: string }) {
+function RecordTooSlow({ href }: { href: string }) {
   return (
     <div className="mx-auto flex max-w-prose flex-col gap-3 px-4 py-12">
       <Title as="h1">This record could not be read in time</Title>
@@ -121,7 +121,7 @@ function RecordTooSlow({ slug }: { slug: string }) {
         The database is under load. The company is still on SourceBD — this read simply took too long.
       </Caption>
       <p className="text-sm">
-        <Link href={`/app/suppliers/${slug}`} className="text-brand-ink underline">
+        <Link href={href} className="text-brand-ink underline">
           Try again
         </Link>
       </p>

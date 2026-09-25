@@ -209,14 +209,15 @@ export function SupplierSheet({
               {model.certsEmptyChip}
             </span>
           )}
-          {/* A building's certificate is not this record's, but saying nothing
-              about it leaves "none on 4 registers" over a payload that holds one. */}
-          {model.certBuildings.length > 0 ? (
-            <Caption>
-              {model.certBuildings.join(", ")} {model.certBuildings.length === 1 ? "holds a certificate" : "hold certificates"} of its own —
-              shown on the building, not counted here.
-            </Caption>
-          ) : null}
+          {/* A building's certificate is not this record's, and is not counted
+              as its; it is shown here under the building's name, because the
+              building's own URL redirects to this record. */}
+          {model.buildingCerts.map((b) => (
+            <div key={b.building} className="mt-4 flex flex-col gap-2" data-building-certs={b.building}>
+              <Caption>Held by {b.building} · the building&apos;s own, not counted above</Caption>
+              <CertGrid certs={b.certs} />
+            </div>
+          ))}
         </SheetSection>
         <SheetSection
           id="safety"

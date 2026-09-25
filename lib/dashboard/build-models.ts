@@ -184,8 +184,9 @@ export type RecordInput = {
  * product entry — one record files its website as its only product. Every
  * builder that renders a record starts here, so no surface prints either the
  * way it was filed. Entries that differ only in case or spacing ("Polo
- * Shirt", "POLO SHIRT") are one product (founder, 25 Sep): Adventure
- * Garments' 39 filed entries are 34 products.
+ * Shirt" / "POLO SHIRT", "AllTypes of Jackets" / "All Types of Jackets",
+ * "T - Shirt" / "T-Shirt") are one product, shown as first filed (founder,
+ * 25 Sep): Adventure Garments' 39 filed entries are 29 products.
  */
 function withoutFiledContact(input: RecordInput): RecordInput {
   const p = input.profile;
@@ -208,7 +209,7 @@ function productEntries(filed: readonly (string | null)[] | null | undefined): s
   return (filed ?? [])
     .map((raw) => withoutContactDetails((raw ?? "").trim(), { bareNumbers: false }))
     .filter((entry) => {
-      const key = entry.toLowerCase().replace(/\s+/g, " ");
+      const key = entry.toLowerCase().replace(/\s+/g, "");
       if (!entry || seen.has(key)) return false;
       seen.add(key);
       return true;
@@ -600,6 +601,22 @@ function cap(s: string): string {
 
 function certs(input: RecordInput): CertModel[] {
   return sortCerts((input.profile.certifications ?? []).filter((c) => !c.building_name).map((c) => certModel(c, input.today)));
+}
+
+/**
+ * Each building's own certificates, grouped under its name. They are not the
+ * record's and are not counted as its; the page this replaced listed them by
+ * building, and a building's own URL redirects to this record, so nowhere
+ * else shows them.
+ */
+function buildingCerts(input: RecordInput): { building: string; certs: CertModel[] }[] {
+  const by = new Map<string, CertModel[]>();
+  for (const c of input.profile.certifications ?? []) {
+    if (!c.building_name) continue;
+    by.set(c.building_name, [...(by.get(c.building_name) ?? []), certModel(c, input.today)]);
+  }
+  // The name as filed: the card's and the table's "<building> holds one" say it the same way.
+  return [...by].map(([building, list]) => ({ building, certs: sortCerts(list) }));
 }
 
 /** Buildings that hold a certificate of their own, named so the record does not appear to hold it. */
@@ -1205,7 +1222,7 @@ export function buildSheet(filed: RecordInput, options: SheetOptions = {}): Supp
     {
       label: "Workers",
       ...pending(w.value !== null ? formatCount(w.value) : null, workersMark, "registers and RSC checked"),
-      note: workersNote(w),
+      note: workersNote(w, Boolean(options.facilities?.panel?.facilities.some((f) => f.employees_total))),
     },
     // The split the capacity tab showed, under its rule: never against an RSC
     // total, and withheld when the two halves do not add up to the figure shown
@@ -1304,6 +1321,7 @@ export function buildSheet(filed: RecordInput, options: SheetOptions = {}): Supp
     certsEmpty: certsEmptyWords(p),
     certsEmptyChip: certsEmptyChipLabel(p),
     certBuildings: certBuildings(p),
+    buildingCerts: buildingCerts(input),
     rsc: rsc
       ? {
           ref: (p.pills ?? []).find((x) => x.source_code.toUpperCase() === "RSC" && ownPill(x))?.value ?? null,
@@ -1451,14 +1469,29 @@ function rscLinks(rsc: ProfileRsc): { label: string; href: string | null }[] {
 function workforceSplit(w: WorkersFact, s: ProfileSupplier): string | null {
   const f = s.employees_female ?? 0;
   const m = s.employees_male ?? 0;
-  if (w.source === "RSC" || w.value === null || f <= 0 || m <= 0) return null;
-  const ratio = (f + m) / w.value;
-  if (ratio < 0.9 || ratio > 1.1) return null;
-  return `${formatCount(f)} women · ${formatCount(m)} men`;
+  const t = w.value;
+  if (w.source === "RSC" || t === null || t <= 0 || (f <= 0 && m <= 0)) return null;
+  if (f > 0 && m > 0) {
+    const ratio = (f + m) / t;
+    if (ratio < 0.9 || ratio > 1.1) return null;
+    return `${formatCount(f)} women · ${formatCount(m)} men`;
+  }
+  // One half filed: the other is the total less it, as the capacity tab did —
+  // and said so, because no register filed it.
+  const filed = f > 0 ? f : m;
+  if (filed >= t) return null;
+  const [women, men] = f > 0 ? [f, t - f] : [t - m, m];
+  return `${formatCount(women)} women · ${formatCount(men)} men (${f > 0 ? "men" : "women"} by subtraction)`;
 }
 
-function workersNote(w: WorkersFact): string | null {
-  if (w.groupUnknown) return "this record and its buildings together; the site breakdown is not on the record";
+function workersNote(w: WorkersFact, buildingFigures = false): string | null {
+  if (w.groupUnknown) {
+    // The Facilities list gives each building's own figure when the panel
+    // carries them; "not on the record" beside that list is false.
+    return buildingFigures
+      ? "this record and its buildings together; each building's own figure is under Facilities"
+      : "this record and its buildings together; the site breakdown is not on the record";
+  }
   if (!w.coverage) return null;
   return [`across ${w.coverage}`, w.excluded.length ? `excluded: ${w.excluded.join(", ")}` : null].filter(Boolean).join(" · ");
 }

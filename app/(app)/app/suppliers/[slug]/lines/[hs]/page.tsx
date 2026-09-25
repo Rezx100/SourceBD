@@ -53,7 +53,7 @@ export default async function ProductLinePage({
   } catch (err) {
     // A slow read sends the reader to the record, which has its own retry
     // state — never a 404, which would say the line does not exist.
-    if (err instanceof ProfileReadTimeout) redirect(`/app/suppliers/${slug}`);
+    if (err instanceof ProfileReadTimeout) redirect(recordHref);
     // The lines could not be read and the heading is not in the catalogue:
     // the record says the lines could not be read; a sheet here would invent one.
     if (err instanceof LinesUnreadable) redirect(recordHref);
