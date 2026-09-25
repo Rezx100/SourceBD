@@ -15,7 +15,8 @@ import pathlib
 import psycopg
 from psycopg.rows import dict_row
 
-REPO = pathlib.Path("E:/SourceBD")
+# The checkout this file is in, so a worktree verifies its own migration.
+REPO = pathlib.Path(__file__).resolve().parents[1]
 MIG = REPO / "supabase" / "migrations" / "0105_supplier_record_v32.sql"
 env = (REPO / ".env").read_text(encoding="utf-8", errors="replace")
 dsn = next(
@@ -90,7 +91,9 @@ try:
         )
         mismatches = cur.fetchone()["n"]
         assert mismatches == 0, mismatches
-        print("counts match the columns: 0 mismatches over all 10,266 published records OK")
+        cur.execute("select count(*) as n from public.suppliers where is_published")
+        published = cur.fetchone()["n"]
+        print(f"counts match the columns: 0 mismatches over all {published:,} published records OK")
         ok += 1
 
         cur.execute("select public.supplier_contact_counts('no-such-slug-at-all-rez-c') as counts")

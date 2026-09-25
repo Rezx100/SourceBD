@@ -542,7 +542,7 @@ describe("buildSheet — facts panel and contact card", () => {
   });
 
   it("the contact card claims only that details are hidden — no kinds, no registers, no value — and no plan unless settings give one", () => {
-    assert.equal(sheet.contact.hidden, "Contact details are shown on paid plans.");
+    assert.equal(sheet.contact.hidden, "Contact details are not shown on the record.");
     assert.equal(sheet.contact.plan, null);
     assert.equal(buildSheet(aboniInput(), { plan: "Free · public beta" }).contact.plan, "Free · public beta");
     assert.doesNotMatch(JSON.stringify(sheet), /@|\+880/);

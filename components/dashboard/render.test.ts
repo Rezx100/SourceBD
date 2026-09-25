@@ -379,7 +379,7 @@ describe("SupplierSheet (rendered)", () => {
     assert.match(html, /locked-pattern/);
     assert.match(html, /Contact details<\/span>/, "no plan name unless settings give one");
     assert.doesNotMatch(html, /Team plan/);
-    assert.match(html, /Contact details are shown on paid plans\./);
+    assert.match(html, /Contact details are not shown on the record\./);
     const locked = /data-locked="true"[\s\S]*?<\/div><\/div>/.exec(html)?.[0] ?? "";
     // This sheet is built with no `contactCounts`, which is what a failed read
     // gives, so the card still claims no kinds. Counts are asserted where they
@@ -805,7 +805,7 @@ describe("ProductSheet (rendered)", () => {
     // ?hs=6105` includes this record, and a products count that disagrees with
     // the search it opens is the defect the founder's 24 Sep rule names. It was
     // 1,633 (1,634 − 1) while the control was inert and linked nowhere.
-    assert.match(html, /1,634/);
+    assert.match(html, /Exporters of 6105(?:<!-- -->)?<span[^>]*>· 1,634<\/span>/, "the button's count, in the founder's wording");
     assert.doesNotMatch(html, /1,633/);
     assert.doesNotMatch(html, /Sanctioned/, "a clean record carries no sanction banner");
     assertSendRfqEnabled(html);
@@ -971,6 +971,15 @@ describe("the largest lists the database holds (spec §3, §6)", () => {
     const ps = renderToStaticMarkup(createElement(ProductSheet, { model: buildProductSheet(input, "6105") }));
     assert.match(ps, /\+35 items/, "four are listed, thirty-five counted — never a silent truncation");
     assert.doesNotMatch(ps, TRUNCATION);
+    // The record itself lists every one: 3,975 published records have a
+    // product list and no EPB lines, so no line sheet at all, and a count of
+    // 39 over nothing to read was all they showed.
+    const listed = /data-product-list="true">([\s\S]*?)<\/ul>/.exec(html)?.[1] ?? "";
+    const items = [...listed.matchAll(/<li[^>]*>([^<]*)<\/li>/g)].map((m) => m[1]);
+    assert.equal(items.length, 39, "the record does not list the products it counts");
+    for (const name of input.profile.supplier.principal_products ?? []) {
+      assert.ok(html.includes(name.replace(/&/g, "&amp;").replace(/'/g, "&#x27;").replace(/"/g, "&quot;")), `"${name}" is counted but not listed`);
+    }
   });
 });
 

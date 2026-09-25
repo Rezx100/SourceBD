@@ -65,8 +65,11 @@ function Tile({ tile }: { tile: TileModel }) {
           {tile.href ? (
             // A link into this record's sheet tabs (§3.1). In the results it
             // carries the search, so it must be a client navigation like every
-            // other record link, or the sub-line loses what the card kept.
-            <Link prefetch={false} scroll={false} href={tile.href} className="inline-flex min-w-0 items-start gap-0.5 text-brand-ink">
+            // other record link, or the sub-line loses what the card kept. It
+            // keeps Next's default scroll: the href ends in #section, and
+            // `scroll={false}` also switches off the jump to that section, so
+            // "12 lines ›" opened the sheet at Overview.
+            <Link prefetch={false} href={tile.href} className="inline-flex min-w-0 items-start gap-0.5 text-brand-ink">
               <span className="[overflow-wrap:anywhere]">{tile.sub}</span> <Icon name="chev-r" small className="mt-0.5 shrink-0" />
             </Link>
           ) : (

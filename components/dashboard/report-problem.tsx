@@ -14,6 +14,11 @@ import { Icon } from "./icons";
 
 export const FEEDBACK_ENDPOINT = "/api/v1/feedback";
 
+/** The body `app/api/v1/feedback/route.ts` validates: the page (≤ 500 chars) and the note. */
+export function feedbackBody(page: string, message: string): { page_path: string; message: string } {
+  return { page_path: page.slice(0, 500), message: message.trim() };
+}
+
 export function ReportProblem() {
   const [message, setMessage] = useState("");
   const [state, setState] = useState<"idle" | "sending" | "sent" | "failed">("idle");
@@ -29,12 +34,17 @@ export function ReportProblem() {
     setState("sending");
     setError(null);
     try {
-      const page = `${window.location.pathname}${window.location.search}`.slice(0, 500);
       const res = await fetch(FEEDBACK_ENDPOINT, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ page_path: page, message: message.trim() }),
+        body: JSON.stringify(feedbackBody(`${window.location.pathname}${window.location.search}`, message)),
       });
+      if (res.status === 401) {
+        // Trying again cannot help an expired session; say what will.
+        setState("failed");
+        setError("Your session has ended. Sign in again to send the report.");
+        return;
+      }
       if (!res.ok) throw new Error(`status ${res.status}`);
       setState("sent");
       setMessage("");
@@ -45,7 +55,17 @@ export function ReportProblem() {
   }
 
   return (
-    <details className="relative" data-report-problem="true">
+    <details
+      className="relative"
+      data-report-problem="true"
+      onKeyDown={(e) => {
+        if (e.key !== "Escape" || !e.currentTarget.open) return;
+        // Escape closes the menu, not the sheet around it.
+        e.stopPropagation();
+        e.currentTarget.open = false;
+        e.currentTarget.querySelector("summary")?.focus();
+      }}
+    >
       <summary
         aria-label="More"
         className="flex h-control w-control cursor-pointer list-none items-center justify-center rounded-sm text-ink-muted hover:bg-surface-sunken [&::-webkit-details-marker]:hidden"
@@ -60,7 +80,11 @@ export function ReportProblem() {
           Report a problem
           <textarea
             value={message}
-            onChange={(e) => setMessage(e.target.value)}
+            onChange={(e) => {
+              setMessage(e.target.value);
+              // A new report is not the one just thanked for.
+              if (state === "sent") setState("idle");
+            }}
             rows={4}
             maxLength={4000}
             className="rounded-sm border border-line bg-surface p-2 text-sm font-normal text-ink"

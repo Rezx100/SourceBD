@@ -113,6 +113,8 @@ export type FactRow = {
   href?: string | null;
   note?: string | null;
   badge?: { tone: "positive" | "caution" | "type"; label: string } | null;
+  /** What a missing value reads as. Defaults to "Not on file", which claims the registers were read; "Not attested" and "Could not be read" do not. */
+  empty?: string;
 };
 
 /**
@@ -213,6 +215,8 @@ export type SupplierSheetModel = {
     /** Every distinct 4-digit chapter the lines span, ascending. */
     chapters: string[];
     productListCount: number;
+    /** The product list itself, as filed, so the count above is a count of something the buyer can read (§3.3: principal products + also-produces). */
+    productList: string[];
     certifiedScope: { scheme: string; scope: string; state: CertState } | null;
     /** What to say where the scope would have gone; never a negative over a payload that holds certificates. */
     certifiedScopeEmpty: string;
@@ -286,7 +290,7 @@ export type SupplierSheetModel = {
   supplierId: string | null;
   /** This record is on the caller's saved list. */
   saved: boolean;
-  /** The full record page — what Share copies and where an overlay's "Open full page" goes. */
+  /** The full record page — what Share copies. */
   fullHref: string;
   /** Where the overlay's Close returns to. Null on the full page, which has nothing to close. */
   closeHref: string | null;
@@ -310,6 +314,8 @@ export type ProductSheetModel = {
   hs: string;
   /** The record's own EPB page carries this line. False → the sheet never calls it an EPB export line. */
   exported: boolean;
+  /** `supplier_epb_hscodes` failed: whether the record exports this line is unknown, and the sheet says so rather than "not on the EPB page". */
+  linesUnknown: boolean;
   heading: string;
   photo: PhotoTileModel;
   generatedOn: string | null;

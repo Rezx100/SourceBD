@@ -20,7 +20,7 @@ import { describe, it } from "node:test";
 import { buildProductSheet, buildSheet } from "@/lib/dashboard/build-models";
 import { aboniInput, sanctionedInput, sanctionedWithEvidenceInput, zaheenSampleInput } from "@/lib/dashboard/fixtures";
 import { ProductSheet } from "./product-sheet";
-import { FEEDBACK_ENDPOINT } from "./report-problem";
+import { FEEDBACK_ENDPOINT, feedbackBody } from "./report-problem";
 import { SupplierSheet } from "./supplier-sheet";
 
 /** Every section the sheet renders, in the order a buyer scrolls them. */
@@ -69,7 +69,9 @@ describe("SupplierSheet — the locked contact card (REZ-C §4.3)", () => {
     assert.doesNotMatch(html, /data-contact-counts/);
     // The card is still there, still locked, and still says why.
     assert.match(html, /data-locked="true"/);
-    assert.match(html, /Contact details are shown on paid plans\./);
+    assert.match(html, /Contact details are not shown on the record\./);
+    // No plan unlocks them, so nothing may offer one.
+    assert.doesNotMatch(html, /paid plans|See plans|What is hidden/);
   });
 
   it("a record holding nothing says so, rather than listing kinds it does not have", () => {
@@ -173,6 +175,16 @@ describe("SupplierSheet — the sanction banner's evidence", () => {
     assert.match(html, /listed 11 Jun 2024/);
     assert.match(html, /screened 18 Sep 2026/);
     assert.ok(html.includes("https://www.dhs.gov/uflpa-entity-list#UFLPA-2024-0117"), "the entry is not linked");
+    // An anchored URL opens the entry, and its link says so — "The list" over
+    // a link to one entry names the wrong thing.
+    assert.equal(model.sanctions.find((r) => r.href?.includes("#UFLPA-2024-0117"))?.opens, "entry");
+    assert.match(html, /href="https:\/\/www\.dhs\.gov\/uflpa-entity-list#UFLPA-2024-0117"[^>]*>Entry/);
+    // Without the fragment it is the list, and says that.
+    const listOnly = sanctionedWithEvidenceInput();
+    const listed = (listOnly.profile as { sanctions?: { source_url: string | null }[] }).sanctions!;
+    listed[0]!.source_url = "https://www.dhs.gov/uflpa-entity-list";
+    const listHtml = renderToStaticMarkup(createElement(SupplierSheet, { model: buildSheet(listOnly) }));
+    assert.match(listHtml, /href="https:\/\/www\.dhs\.gov\/uflpa-entity-list"[^>]*>The list/);
     // The second row has no URL and no reference: it keeps its place and says
     // what it has, rather than being dropped or given a dead link.
     assert.match(html, /ofac_sdn/);
@@ -377,15 +389,19 @@ describe("SupplierSheet — overlay and full page are one component (REZ-C §3.3
     // results survive with no JavaScript and no re-run.
     assert.ok(overlay.includes('href="/app/discover?q=knit"'), "Close does not return to the search");
     assert.match(overlay, /aria-label="Close"/);
-    assert.ok(overlay.includes('href="/app/suppliers/aboni-knitwear-ltd"'), "the overlay offers no way to the full page");
-    assert.match(overlay, /Open full page/);
+    // §3.3: Share copies the full-page URL — the record's own page, never the
+    // search URL the overlay sits on.
+    assert.match(overlay, /aria-label="Copy a link to this record"[^>]*data-share-href="\/app\/suppliers\/aboni-knitwear-ltd"/);
     assert.match(overlay, /role="dialog"/);
 
     const full = renderToStaticMarkup(createElement(SupplierSheet, { model: buildSheet(aboniInput()), dialog: false }));
     // A Close on a page with nothing behind it is a control that lies.
     assert.doesNotMatch(full, /aria-label="Close"/);
     assert.doesNotMatch(full, /role="dialog"/, "the full record page is not a dialog");
-    assert.match(full, /Share/);
+    // On the full page Share copies the page itself: a control, not a link to
+    // where the reader already is.
+    assert.match(full, /aria-label="Copy a link to this record"[^>]*data-share-href="this page"/);
+    assert.doesNotMatch(full, /Share this record/);
   });
 
   it("both render the same record: the sections and the facts do not differ", () => {
@@ -419,6 +435,15 @@ describe("SupplierSheet — overlay and full page are one component (REZ-C §3.3
     assert.equal(FEEDBACK_ENDPOINT, "/api/v1/feedback");
     const route = readFileSync(path.join(process.cwd(), "app", "api", "v1", "feedback", "route.ts"), "utf8");
     assert.match(route, /export async function POST/);
+    // …and only if it sends what the route reads: a renamed key is a 400 on
+    // every report.
+    const body = feedbackBody(`/app/discover?q=knit&record=aboni&x=${"y".repeat(600)}`, "  The address is wrong.  ");
+    for (const key of Object.keys(body)) {
+      assert.match(route, new RegExp(String.raw`\(json as \{ ${key}\?: unknown \}\)\.${key}`), `the route does not read "${key}"`);
+    }
+    assert.deepEqual(Object.keys(body).sort(), ["message", "page_path"]);
+    assert.equal(body.page_path.length, 500, "the route refuses a page_path over 500 characters");
+    assert.equal(body.message, "The address is wrong.");
   });
 
   it("each product tile opens that line's sheet", () => {

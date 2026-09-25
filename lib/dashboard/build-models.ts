@@ -62,6 +62,7 @@ import type {
   TableRowModel,
   TileModel,
 } from "./models";
+import { withoutContactDetails } from "@/lib/contact-text";
 import { mergeUniqueLocations } from "@/lib/dedup-addresses";
 import { isKnownSource, marksFromTags, recordPage, sourceMark, tierWords, topTier, trustRankFromSlug, type SourceMarkModel } from "./source-tiers";
 
@@ -172,6 +173,25 @@ export type RecordInput = {
 };
 
 // ---- shared pieces ----
+
+/**
+ * The record with every filed address stripped of the contact details some
+ * registers write into it (`lib/contact-text.ts`). Every builder that renders a
+ * record starts here, so no surface prints an address the way it was filed:
+ * 25 published addresses carry a phone, an e-mail or a website, five of them
+ * the exact number the gated `phones` column holds.
+ */
+function withCleanAddresses(input: RecordInput): RecordInput {
+  const p = input.profile;
+  return {
+    ...input,
+    profile: {
+      ...p,
+      supplier: { ...p.supplier, address_raw: withoutContactDetails(p.supplier.address_raw) },
+      addresses: p.addresses?.map((a) => ({ ...a, address: withoutContactDetails(a.address) })),
+    },
+  };
+}
 
 const MEMBERSHIP = ["BGMEA", "BKMEA", "BGAPMEA", "BTMA"];
 const MEMBERSHIP_WORDS = "not in BGMEA, BKMEA, BGAPMEA, BTMA or EPB";
@@ -788,7 +808,8 @@ function rscChip(rsc: ProfileRsc | null, buildings: ProfileRsc[]): HighlightChip
 
 // ---- the card ----
 
-export function buildCard(input: RecordInput): SupplierCardModel {
+export function buildCard(filed: RecordInput): SupplierCardModel {
+  const input = withCleanAddresses(filed);
   const p = input.profile;
   const s = p.supplier;
   const codes = allSourceCodes(p);
@@ -900,7 +921,8 @@ export function buildCard(input: RecordInput): SupplierCardModel {
 
 // ---- the table row ----
 
-export function buildTableRow(input: RecordInput): TableRowModel {
+export function buildTableRow(filed: RecordInput): TableRowModel {
+  const input = withCleanAddresses(filed);
   const p = input.profile;
   const s = p.supplier;
   const codes = allSourceCodes(p);
@@ -1085,8 +1107,10 @@ export function contactHeldWords(counts: ContactCounts | null | undefined): stri
   return `On file: ${list}.`;
 }
 
-export function buildSheet(input: RecordInput, options: SheetOptions = {}): SupplierSheetModel {
+export function buildSheet(filed: RecordInput, options: SheetOptions = {}): SupplierSheetModel {
+  const input = withCleanAddresses(filed);
   const p = input.profile;
+  const productList = (p.supplier.principal_products ?? []).map((x) => (x ?? "").trim()).filter(Boolean);
   const s = p.supplier;
   const codes = allSourceCodes(p);
   const hrefs = sourceHrefs(p);
@@ -1198,7 +1222,9 @@ export function buildSheet(input: RecordInput, options: SheetOptions = {}): Supp
     summary: null,
     facts,
     contact: {
-      hidden: "Contact details are shown on paid plans.",
+      // No plan unlocks them (founder, 25 Sep: counts only, to every role), so
+      // the card may not promise one.
+      hidden: "Contact details are not shown on the record.",
       plan: options.plan ?? null,
       // Counts, never values: `supplier_contact_counts` (0105) selects no
       // contact column it does not count, so there is nothing to un-hide.
@@ -1215,7 +1241,8 @@ export function buildSheet(input: RecordInput, options: SheetOptions = {}): Supp
       // A supplier's lines can span two chapters (S M Knitwears exports 61 and
       // 62); naming only the rarest line's chapter silently drops the rest.
       chapters: [...new Set(lines.map((l) => l.slice(0, 2)))].sort(),
-      productListCount: (s.principal_products ?? []).length,
+      productListCount: productList.length,
+      productList,
       certifiedScope: scoped ? { scheme: scoped.scheme, scope: scopeWords(scoped.scope), state: scoped.state } : null,
       certifiedScopeEmpty: scopeEmptyWords(p, certList),
       buyerLists: brands,
@@ -1448,12 +1475,17 @@ export type ProductSheetOptions = {
   rfqHref?: string | null;
 };
 
-export function buildProductSheet(input: RecordInput, hs: string, options: ProductSheetOptions = {}): ProductSheetModel {
+export function buildProductSheet(filed: RecordInput, hs: string, options: ProductSheetOptions = {}): ProductSheetModel {
+  const input = withCleanAddresses(filed);
   const p = input.profile;
   const s = p.supplier;
   const code = heading4(hs);
   const line = input.hscodes.find((h) => heading4(h.code) === code) ?? null;
   const exported = line !== null;
+  // A failed read of the lines is not an empty list: nothing below may say
+  // "not on this record's EPB page" or "EPB checked" when EPB was never read.
+  const unknown = Boolean(input.hscodesError);
+  const UNREAD = { empty: "Could not be read", checked: "EPB lines could not be read", marks: [] };
   const row = hsCatalogueRow(code);
   const others = headings(input).filter((c) => c !== code).sort();
   const certList = certs(input);
@@ -1480,6 +1512,7 @@ export function buildProductSheet(input: RecordInput, hs: string, options: Produ
     // The eyebrow may only call this an EPB export line when the record's own
     // EPB page carries it; otherwise it is a heading the buyer arrived at.
     exported,
+    linesUnknown: unknown,
     heading: line?.description ?? row?.heading ?? hsShortLabel(code),
     photo: { hs: code, short: hsShortLabel(code), src: hsPhotoSrc(code, 512), thumb: hsPhotoSrc(code, 128) },
     generatedOn: null,
@@ -1488,7 +1521,7 @@ export function buildProductSheet(input: RecordInput, hs: string, options: Produ
       // about this record: stamping it with an EPB mark is a wrong receipt,
       // and it was stamped even for a record on no EPB register at all.
       { label: "Chapter", value: `${code.slice(0, 2)} · ${chapterName(code.slice(0, 2))}`, marks: [], note: "HS nomenclature" },
-      {
+      unknown ? { label: "Exporter page", value: null, ...UNREAD } : {
         label: "Exporter page",
         value: exported && epb ? `edb.epb.gov.bd · exporter ${epb.ref ?? ""}`.trim() : null,
         href: exported ? (epb?.href ?? null) : null,
@@ -1499,7 +1532,9 @@ export function buildProductSheet(input: RecordInput, hs: string, options: Produ
         marks: exported && epb ? [ep] : [],
       },
       { label: "Exporting since", value: null, note: "EPB lists lines, not dates" },
-      { label: "Other lines", value: others.length ? others.join(" · ") : null, code: true, checked: "EPB checked", marks: others.length ? [ep] : [] },
+      unknown
+        ? { label: "Other lines", value: null, ...UNREAD }
+        : { label: "Other lines", value: others.length ? others.join(" · ") : null, code: true, checked: "EPB checked", marks: others.length ? [ep] : [] },
       scoped
         ? {
             label: "Certified scope",
@@ -1521,7 +1556,7 @@ export function buildProductSheet(input: RecordInput, hs: string, options: Produ
       { label: "Buyer lists", value: brands.length ? brands.join(" · ") : null, note: brands.length ? "disclosure lists" : null, checked: brandListsEmptyWords(p), marks: brandMarks },
       attested.length
         ? { label: "Price · MOQ · lead time", value: attested.join(" · "), note: "supplier-attested", marks: [], pendingSource: true }
-        : { label: "Price · MOQ · lead time", value: null, note: "supplier-attested fields, shown when attested" },
+        : { label: "Price · MOQ · lead time", value: null, empty: "Not attested", note: "supplier-attested fields, shown when attested" },
     ],
     // The count the linked search returns, not that minus one, and the label
     // says "Exporters" rather than "Other exporters" to match. Verified live on

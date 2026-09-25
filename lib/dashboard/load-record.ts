@@ -15,7 +15,7 @@ import { isProfileRpcTimeout } from "@/lib/public-supplier-profile";
 import { hscodesFromRpc } from "@/lib/epb-hscodes";
 import { buildProductSheet, buildSheet, type ProfilePayload, type RecordInput } from "./build-models";
 import { formatCount, formatDay } from "./facts";
-import { heading4 } from "./hs-photos";
+import { heading4, hsCatalogueRow } from "./hs-photos";
 import type { ContactCounts, ProductSheetModel, RecordRfqRow, SupplierSheetModel } from "./models";
 
 /** The narrow slice of the Supabase client these loaders use. */
@@ -235,7 +235,7 @@ export async function fetchRecordSaved(
 export type SheetView = {
   /** Where an overlay's Close returns to; absent on the full page. */
   closeHref?: string | null;
-  /** The record's own page — what Share offers and where an overlay's "Open full page" goes. */
+  /** The record's own page — what Share copies. */
   fullHref?: string;
   /** The viewer's plan name, when one exists. */
   plan?: string | null;
@@ -307,6 +307,11 @@ export async function loadRecordLine(
 ): Promise<ProductSheetModel | null> {
   const record = await loadRecordInput(supabase, slug, today);
   if (!record) return null;
+  // A line is a heading the catalogue knows or one this record's EPB page
+  // carries. Any other four digits — `/lines/0000` — drew "Chapter 00", a live
+  // Send RFQ prefilled with it and an Exporters link, for no heading at all.
+  const code = heading4(hs);
+  if (!hsCatalogueRow(code) && !record.input.hscodes.some((h) => heading4(h.code) === code)) return null;
   await fillRecordWorkersSafely(supabase, [record]);
   const supplierId = record.input.profile.supplier.id;
   return buildProductSheet(record.input, hs, {

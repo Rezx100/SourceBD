@@ -2,7 +2,7 @@
 // with Back and a breadcrumb. Left the 320px illustrative photo with its
 // caption; right the eyebrow, the official heading, a FactsPanel, and the two
 // actions. Price · MOQ · lead time are supplier-attested (V2) and read
-// "Not on file" until attested.
+// "Not attested" until attested.
 
 /* eslint-disable @next/next/no-img-element -- static catalogue file under /public */
 import { formatCount } from "@/lib/dashboard/facts";
@@ -75,13 +75,18 @@ export function ProductSheet({
             <div>
               {/* "EPB export line" is a claim about this record's EPB page. A
                   heading the record does not export gets the plain eyebrow. */}
-              <Eyebrow>HS {model.hs}{model.exported ? " · EPB export line" : " · not on this record's EPB page"}</Eyebrow>
+              <Eyebrow>
+                HS {model.hs}
+                {model.exported ? " · EPB export line" : model.linesUnknown ? " · EPB lines could not be read" : " · not on this record's EPB page"}
+              </Eyebrow>
               <Heading level="h" as="h1" className="mt-1">
                 {model.heading}
               </Heading>
             </div>
             <FactsPanel rows={model.facts} />
-            <div className="flex items-center gap-2">
+            {/* Wraps: the two large buttons are 352px side by side, wider than
+                the column at 320px, and the whole sheet scrolled sideways. */}
+            <div className="flex flex-wrap items-center gap-2">
               <Button
                 variant="primary"
                 lg

@@ -77,7 +77,8 @@ export function SourceMarks({
       {marks.map((m) => (
         <SourceMark key={m.code} mark={m} sm={sm} />
       ))}
-      {text ? <span className="ml-[5px] whitespace-nowrap text-xs text-ink-subtle">{text}</span> : null}
+      {/* Wraps: eleven register names spelled out ran 598px wide on a 320px sheet. */}
+      {text ? <span className="ml-[5px] text-xs text-ink-subtle [overflow-wrap:anywhere]">{text}</span> : null}
     </span>
   );
 }

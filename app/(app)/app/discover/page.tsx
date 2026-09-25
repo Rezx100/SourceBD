@@ -264,6 +264,9 @@ export default async function BuyerDiscoverPage({
   const closeHref = discoverHref(state);
   const withParams = (extra: string) => `${closeHref}${closeHref.includes("?") ? "&" : "?"}${extra}`;
   const recordHref = (slug: string) => withParams(`record=${encodeURIComponent(slug)}`);
+  // The open record's own params. `lines=all` rides along into a line and back
+  // out of it, or Back from line 9 returned to a six-tile grid without line 9.
+  const recordParams = recordSlug ? `record=${encodeURIComponent(recordSlug)}${allLines ? "&lines=all" : ""}` : "";
   // Started here, awaited below: the record and the results are independent
   // reads, and awaiting this one first would have made opening a record cost
   // the search's latency plus the record's rather than the larger of the two.
@@ -287,14 +290,14 @@ export default async function BuyerDiscoverPage({
         fullHref: `/app/suppliers/${recordSlug}`,
         allLines,
         allLinesHref: allLines ? null : withParams(`record=${encodeURIComponent(recordSlug)}&lines=all`),
-        lineHref: (hs) => withParams(`record=${encodeURIComponent(recordSlug)}&line=${hs}`),
+        lineHref: (hs) => withParams(`${recordParams}&line=${hs}`),
       }))
     : Promise.resolve({ value: null, slow: false });
   const linePromise =
     recordSlug && lineCode
       ? overlaySafe(
           loadRecordLine(supabase, recordSlug, lineCode, today, {
-            backHref: recordHref(recordSlug),
+            backHref: withParams(recordParams),
             closeHref,
           }),
         )
@@ -375,8 +378,9 @@ export default async function BuyerDiscoverPage({
       // The sheet claims `aria-modal`, so the whole shell behind it — sidebar,
       // topbar and all — is inert while a record is open. Inerting only the
       // results left thirteen focusable stops outside the dialog that the
-      // dialog said did not exist.
-      inert={record !== null}
+      // dialog said did not exist. The notices (slow, a building, no record)
+      // are the same modal sheet, so they inert it too.
+      inert={recordSlug !== null}
       overlay={
         recordSlug && !record ? (
           // The slug resolved to nothing. Say which nothing it was.
@@ -398,7 +402,7 @@ export default async function BuyerDiscoverPage({
             ) : (
               <SheetNotice
                 title="No record for that link"
-                body="The company may have been unpublished, or the link may be wrong. Your search is still here behind this."
+                body="It may have been unpublished, the link may be wrong, or it could not be read just now. Your search is still here behind this."
                 closeHref={closeHref}
               />
             )}

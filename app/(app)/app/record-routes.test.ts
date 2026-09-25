@@ -21,7 +21,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { after, describe, it } from "node:test";
 import path from "node:path";
 
-import { aboniInput, sanctionedInput, TODAY } from "@/lib/dashboard/fixtures";
+import { aboniInput, sanctionedInput, TODAY, zaheenSampleInput } from "@/lib/dashboard/fixtures";
 
 // ---------------------------------------------------------------------------
 // A fake `@/lib/supabase/server`, installed into the module cache before the
@@ -41,6 +41,9 @@ type Answers = {
   saved?: { data: unknown };
   userId?: string | null;
   discover?: Rpc;
+  facilityParent?: Rpc;
+  /** What `.from(table)` answers, for tables other than `rfqs`. */
+  tables?: Record<string, unknown[]>;
 };
 
 /** Every `.from(...)` call the routes make, so a test can assert the filters. */
@@ -65,6 +68,7 @@ function fakeClient() {
     if (fn === "production_workers_display_batch") return answers.workers ?? { data: [], error: null };
     if (fn === "discover_suppliers") return answers.discover ?? { data: [], error: null };
     if (fn === "supplier_epb_hscodes_batch") return { data: [], error: null };
+    if (fn === "facility_parent_slug") return answers.facilityParent ?? { data: null, error: null };
     return { data: null, error: null };
   };
   return {
@@ -76,7 +80,7 @@ function fakeClient() {
       const result = () =>
         table === "rfqs"
           ? Promise.resolve(answers.rfqs ?? { data: [], error: null, count: 0 })
-          : Promise.resolve({ data: [], error: null, count: 0 });
+          : Promise.resolve({ data: answers.tables?.[table] ?? [], error: null, count: answers.tables?.[table]?.length ?? 0 });
       const chain = {
         select: (_cols?: string, _opts?: unknown) => chain,
         eq: (...args: unknown[]) => (call.filters.push({ op: "eq", args }), chain),
@@ -489,5 +493,163 @@ describe("the sanctioned record, through the route", () => {
     assert.match(out, /See the matches/);
     assert.match(out, /id="sanctions"/);
     assert.ok(!out.includes('href="/app/rfqs/new'), "a sanctioned record's Send RFQ is a live link");
+  });
+});
+
+describe("cycle 3: the boundaries the first route tests did not reach", () => {
+  const ROW = {
+    id: "8ce50581-2d84-4cc2-93aa-000000000001",
+    slug: "aboni-knitwear",
+    company_name: "ABONI KNITWEAR LTD.",
+    entity_type: "factory",
+    city: "Dhaka",
+    district: "Dhaka",
+    source_tags: ["BGMEA", "EPB"],
+    t13_source_count: 2,
+    completeness_pct: 50,
+    employees_total: 3166,
+    established_date: "1985-01-01",
+    principal_products: [],
+    factory_types: [],
+    rsc_progress_pct: null,
+    parent_group_name: null,
+    primary_address: null,
+    total_count: 1,
+    is_sanctioned: false,
+    cert_summary: null,
+    hs_codes: ["6105"],
+    brand_codes: [],
+    registries: [],
+  };
+  const fullPage = (slug: string, sp: Record<string, string> = {}) => {
+    const Page = route("app/(app)/app/suppliers/[slug]/page.js").default;
+    return outcome(() => Page({ params: Promise.resolve({ slug }), searchParams: Promise.resolve(sp) }));
+  };
+  const overlay = (sp: Record<string, string>) => {
+    const Page = route("app/(app)/app/discover/page.js").default;
+    return outcome(() => Page({ searchParams: Promise.resolve(sp) }));
+  };
+
+  it("a contact value filed inside an address, or sitting in the suppliers table, never reaches the full page", async () => {
+    // The registers write phone numbers and e-mails into address text (25
+    // published records; five print the exact gated number). The earlier test
+    // used a record whose addresses are clean, so it passed with the leak live.
+    const z = zaheenSampleInput();
+    const phone = z.leaked.phones[0]!;
+    const profile = {
+      ...z.profile,
+      supplier: { ...z.profile.supplier, address_raw: `Plot 5, Road 2, Dhaka Tel: ${phone}` },
+      addresses: [
+        { kind: "factory", address: `Plot 5, Road 2, Dhaka Tel: ${phone}`, source_code: "BGMEA", fetched_at: "2026-09-01T00:00:00Z" },
+        {
+          kind: "office",
+          address: `House 9, Gulshan, Dhaka, Email: ${z.leaked.email_primary}, Web: ${z.leaked.website}`,
+          source_code: "BKMEA",
+          fetched_at: "2026-09-01T00:00:00Z",
+        },
+      ],
+    };
+    given({
+      profile: { data: profile, error: null },
+      hscodes: { data: [], error: null },
+      contactCounts: { data: { emails: 1, phones: 1, website: true, representatives: 1 }, error: null },
+      // Anything that read the gated columns directly would find them here.
+      tables: {
+        suppliers: [
+          {
+            email_primary: z.leaked.email_primary,
+            phones: z.leaked.phones,
+            contact_name: z.leaked.contact_name,
+            contact_role: z.leaked.contact_role,
+            website: z.leaked.website,
+          },
+        ],
+      },
+    });
+    const out = html(await fullPage("zaheen"));
+    assert.match(out, /Plot 5, Road 2, Dhaka/, "guard: the address itself should still render");
+    for (const value of [phone, "1700 000000", z.leaked.email_primary, z.leaked.website, z.leaked.contact_name, z.leaked.contact_role]) {
+      assert.ok(!out.includes(value), `a contact value reached the full record page: ${value}`);
+    }
+  });
+
+  it("a building's slug 308s to its company's record on the full page", async () => {
+    given({ profile: { data: null, error: null }, facilityParent: { data: "aboni-knitwear", error: null } });
+    const r = await fullPage("aboni-knitwear-unit-2");
+    assert.ok("threw" in r, "a building's slug rendered instead of redirecting");
+    assert.match(r.threw, /NEXT_REDIRECT/);
+    assert.match(r.threw, /;308;?/, `not a permanent redirect: ${r.threw}`);
+    assert.match(r.threw, /\/app\/suppliers\/aboni-knitwear(?:;|$)/, `redirects somewhere else: ${r.threw}`);
+  });
+
+  it("a building's slug in the overlay offers its company's record, on the same search, over an inert shell", async () => {
+    given({ profile: { data: null, error: null }, facilityParent: { data: "aboni-knitwear", error: null }, discover: { data: [ROW], error: null } });
+    const out = html(await overlay({ q: "knit", record: "aboni-knitwear-unit-2" }));
+    assert.match(out, /That is a building, not a company record/);
+    const hrefs = [...out.matchAll(/href="([^"]+)"/g)].map((m) => m[1]!.replace(/&amp;/g, "&"));
+    const open = hrefs.find((h) => /[?&]record=aboni-knitwear(?:&|$)/.test(h));
+    assert.ok(open, "the notice does not link to the company's record");
+    assert.match(open, /q=knit/, `the company's record leaves the search: ${open}`);
+    assert.match(out, /<div[^>]*\sinert=""/, "a notice claims aria-modal while the shell behind it stays live");
+  });
+
+  it("an unknown slug's notice inerts the shell too, and claims no cause it cannot know", async () => {
+    given({ profile: { data: null, error: null }, discover: { data: [ROW], error: null } });
+    const out = html(await overlay({ q: "knit", record: "no-such-slug" }));
+    assert.match(out, /aria-modal="true"/);
+    assert.match(out, /<div[^>]*\sinert=""/);
+    assert.match(out, /could not be read just now/, "a failed read is presented as certainly unpublished");
+  });
+
+  it("a result's tile sub-lines open the record over the same search, at their section", async () => {
+    given({ profile: PROFILE, hscodes: HS, discover: { data: [ROW], error: null } });
+    const out = html(await overlay({ q: "knit" }));
+    const tiles = [...out.matchAll(/href="([^"]*#(?:products|sources|certificates))"/g)].map((m) => m[1]!.replace(/&amp;/g, "&"));
+    assert.ok(tiles.length > 0, "guard: the card drew no tile sub-line links");
+    for (const href of tiles) {
+      assert.match(href, /record=aboni-knitwear/, `a tile sub-line leaves the overlay: ${href}`);
+      assert.match(href, /q=knit/, `a tile sub-line throws the search away: ${href}`);
+    }
+  });
+
+  it("a sanctioned record opened over the results carries the banner above every section", async () => {
+    const s = sanctionedInput();
+    given({ profile: { data: s.profile, error: null }, hscodes: { data: [], error: null }, discover: { data: [ROW], error: null } });
+    const out = html(await overlay({ q: "knit", record: "zaheen" }));
+    const banner = out.indexOf('data-sanction-visible="true"');
+    assert.ok(banner > -1, "the overlay serves a sanctioned record with no banner");
+    for (const id of ["overview", "products", "certificates", "safety", "sources", "locations", "facilities", "rfqs"]) {
+      const at = out.indexOf(`id="${id}"`);
+      assert.ok(at > banner, `the ${id} section is missing or above the banner`);
+    }
+    // The results behind it carry their own (unsanctioned) Send RFQ; only the sheet is this record's.
+    const sheet = out.slice(out.indexOf('aria-label="Supplier record"'));
+    assert.ok(!sheet.includes('href="/app/rfqs/new'), "a sanctioned record's Send RFQ is a live link in the overlay");
+  });
+
+  it("?lines=all survives into a line and back out of it", async () => {
+    given({ profile: PROFILE, hscodes: HS, discover: { data: [ROW], error: null } });
+    const out = html(await overlay({ q: "knit", record: "aboni-knitwear", line: "6105", lines: "all" }));
+    const back = /aria-label="Back to the record"[^>]*href="([^"]+)"|href="([^"]+)"[^>]*aria-label="Back to the record"/.exec(out);
+    assert.ok(back, "the line sheet draws no Back");
+    assert.match(back[1] ?? back[2]!, /lines=all/, "Back from a line returns to six tiles, not the list the buyer came from");
+  });
+
+  for (const hs of ["0000", "9999"]) {
+    it(`/lines/${hs} is not a heading, so it is not a line`, async () => {
+      given({ profile: PROFILE, hscodes: HS });
+      const Page = route("app/(app)/app/suppliers/[slug]/lines/[hs]/page.js").default;
+      const r = await outcome(() => Page({ params: Promise.resolve({ slug: "aboni-knitwear", hs }) }));
+      assert.ok("threw" in r && /NOT_FOUND|404/.test(r.threw), `/lines/${hs} rendered a product sheet`);
+    });
+  }
+
+  it("a line whose EPB read failed says so; it never says the line is off the EPB page", async () => {
+    given({ profile: PROFILE, hscodes: { data: null, error: { message: "boom" } } });
+    const Page = route("app/(app)/app/suppliers/[slug]/lines/[hs]/page.js").default;
+    const out = html(await outcome(() => Page({ params: Promise.resolve({ slug: "aboni-knitwear", hs: "6105" }) })));
+    assert.match(out, /EPB lines could not be read/);
+    assert.doesNotMatch(out, /not on this record(?:&#x27;|')s EPB page/);
+    assert.doesNotMatch(out, /EPB checked/);
   });
 });

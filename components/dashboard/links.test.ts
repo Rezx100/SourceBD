@@ -6,16 +6,22 @@
 // search, and `record` is not part of that state). The repair converted the
 // two links the finding named — and left four siblings as plain anchors: the
 // card's tile sub-lines, the sanction line's "Open the record", the sheet's
-// product tiles, and "All N lines". Cycle 2 found all four.
+// product tiles, and "All N lines". Cycle 2 found all four. Cycle 3 found that
+// this guard's first version allowed raw anchors per FILE, so turning "All N
+// lines" back into `<a href>` inside an already-listed file passed it.
 //
 // A rendered-HTML test cannot catch this: `next/link` emits `<a>` in a server
 // component exactly as a raw anchor does. So this reads the source, which is
-// the only place the difference is visible.
+// the only place the difference is visible — and it reads it per ELEMENT:
 //
-// The rule: no raw `<a href=` in `components/dashboard/*` unless the file is
-// listed below with the reason its anchor points off-site. Adding a raw anchor
-// to the kit fails this until someone writes down why it is not an in-app
-// navigation.
+// - every raw `<a href={…}>` in the kit is listed below by its exact href
+//   expression and how many times it occurs, with the reason it is not an
+//   in-app navigation on the buyer's search;
+// - every `<Button href={…}>` in a file that draws record or line links either
+//   says `clientNav` or is listed the same way.
+//
+// A new anchor, a second copy of an allowed one, or a Button that loses
+// `clientNav` fails this until someone writes down why.
 
 import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
@@ -24,77 +30,182 @@ import { describe, it } from "node:test";
 
 const KIT = path.join(process.cwd(), "components", "dashboard");
 
-/**
- * Raw anchors that are correct, each with the reason.
- *
- * Every one of these goes somewhere Next's router cannot take you: an external
- * register, a file download, or a fragment on the page you are already on.
- */
-const ALLOWED: Record<string, string> = {
-  "sheet.tsx":
-    "register pages, certificate documents, the five RSC report PDFs and a watchlist entry — all off-site — plus #fragment links inside the open sheet",
-  "marks.tsx": "a source mark links to the register's own page, off-site",
-  "supplier-sheet.tsx": "the EPB exporter page on edb.epb.gov.bd, off-site",
-  "controls.tsx": "Button's own plain-anchor branch, which is the default and the one the CSV export needs",
-  "results-panel.tsx": "sort, view and export controls; the export is an API download and the others re-run the search",
-  "search-composer.tsx": "filter chips and the Ask/Filters switch, which re-run the search",
-  "app-shell.tsx": "the skip link is a same-page fragment; the sidebar and account links are the shell's own and predate REZ-C",
-  "rfq-composer.tsx": "attachment downloads",
-  "rfq-list.tsx": "the toast's link, which predates REZ-C",
-  "recent-searches.tsx": "a recent search re-runs the search",
-  "chips.tsx": "the '+N' chip is a same-page control",
+type Allowed = Record<string, Record<string, [count: number, reason: string]>>;
+
+/** Raw anchors that are correct: file → exact href expression → [occurrences, reason]. */
+const RAW_ANCHORS: Allowed = {
+  "app-shell.tsx": {
+    "{item.href}": [1, "the sidebar's own navigation between pages; it predates REZ-C"],
+    '"/app/settings"': [1, "the account link, another page"],
+    "{`#${mainId}`}": [1, "the skip link, a same-page fragment"],
+  },
+  "chips.tsx": { "{moreHref}": [1, "the '+N' chip, a same-page control"] },
+  "controls.tsx": {
+    "{href}": [1, "Button's own plain-anchor branch; callers in record files are checked below"],
+    "{hrefFor(o.value)}": [1, "a segmented control that re-runs the search"],
+  },
+  "marks.tsx": { "{mark.href}": [1, "a source mark links to the register's own page, off-site"] },
+  "recent-searches.tsx": { "{r.href}": [1, "a recent search re-runs the search"] },
+  "results-panel.tsx": {
+    "{o.href}": [1, "sort and view options, which re-run the search"],
+    "{p.href}": [1, "a page number, which re-runs the search"],
+  },
+  "rfq-composer.tsx": { '"#"': [1, "an attachment placeholder with no destination"] },
+  "rfq-list.tsx": { "{href}": [1, "the toast's link, which predates REZ-C"] },
+  "search-composer.tsx": {
+    "{c.removeHref}": [1, "removing a filter chip re-runs the search"],
+    '"#filters"': [1, "a same-page fragment"],
+    "{filtersHref}": [1, "the Ask/Filters switch re-runs the search"],
+    "{askHref}": [1, "the Ask/Filters switch re-runs the search"],
+  },
+  "sheet.tsx": {
+    '{t.href ?? "#"}': [1, "a tab is a #fragment inside the open sheet"],
+    "{r.href}": [
+      3,
+      "a fact's link and a source row go to register pages off-site; an RFQ row opens /app/rfqs/<id>, another page, which has no search to keep",
+    ],
+    "{cert.documentUrl!}": [1, "the certificate document, off-site"],
+    "{l.href}": [1, "an RSC report PDF, off-site"],
+    "{evidenceHref}": [1, "the sanction banner's #sanctions fragment inside the open sheet"],
+  },
+  "supplier-sheet.tsx": { "{p.exporterHref}": [1, "the EPB exporter page on edb.epb.gov.bd, off-site"] },
+};
+
+/** Files that draw record or line links on the buyer's search: every Button href there must client-navigate unless listed. */
+const RECORD_FILES = ["supplier-result-card.tsx", "results-table.tsx", "photo-tiles.tsx", "supplier-sheet.tsx", "product-sheet.tsx", "sheet.tsx"];
+
+const DOCUMENT_BUTTONS: Allowed = {
+  "supplier-result-card.tsx": {
+    "{card.sanctioned ? undefined : (card.rfqHref ?? undefined)}": [1, "Send RFQ opens the composer, another page"],
+  },
+  "results-table.tsx": { "{r.sanctioned ? undefined : (r.rfqHref ?? undefined)}": [1, "Send RFQ opens the composer, another page"] },
+  "product-sheet.tsx": {
+    "{model.sanctioned ? undefined : (model.rfqHref ?? undefined)}": [1, "Send RFQ for this line opens the composer, another page"],
+    "{`/app/discover?hs=${model.hs}`}": [1, "Exporters of HS is a new search, which replaces the one behind the sheet"],
+  },
+  "sheet.tsx": { "{sanctioned ? undefined : (rfqHref ?? undefined)}": [1, "the action bar's Send RFQ opens the composer, another page"] },
 };
 
 function kitFiles(): string[] {
   return readdirSync(KIT).filter((f) => (f.endsWith(".tsx") || f.endsWith(".ts")) && !f.includes(".test."));
 }
 
-describe("the dashboard kit's in-app links are client navigations", () => {
-  it("no file grows a raw <a href> without a written reason", () => {
-    const offenders: string[] = [];
-    for (const file of kitFiles()) {
-      const src = readFileSync(path.join(KIT, file), "utf8");
-      // `<a ` followed by anything up to `href`, on one JSX element.
-      const raw = [...src.matchAll(/<a\b[^>]*href=/g)];
-      if (raw.length === 0) continue;
-      if (!(file in ALLOWED)) offenders.push(`${file} (${raw.length} raw anchor${raw.length === 1 ? "" : "s"})`);
+/** Each `<tag …>` opening element, whole, however many lines and braces it spans. */
+function elements(src: string, tag: string): string[] {
+  const out: string[] = [];
+  const open = new RegExp(`<${tag}(?=[\\s>])`, "g");
+  for (let m = open.exec(src); m; m = open.exec(src)) {
+    let depth = 0;
+    let quote: string | null = null;
+    let i = m.index + tag.length + 1;
+    for (; i < src.length; i++) {
+      const c = src[i];
+      if (quote) {
+        if (c === quote) quote = null;
+      } else if (depth === 0 && c === '"') quote = c;
+      else if (c === "{") depth++;
+      else if (c === "}") depth--;
+      else if (c === ">" && depth === 0) break;
     }
+    out.push(src.slice(m.index, i + 1));
+  }
+  return out;
+}
+
+/** The `href=` expression exactly as written: `{…}` with its braces balanced, or `"…"`. */
+function hrefOf(element: string): string | null {
+  const at = element.search(/\shref=/);
+  if (at < 0) return null;
+  const start = at + 6;
+  if (element[start] === '"') return element.slice(start, element.indexOf('"', start + 1) + 1);
+  let depth = 0;
+  for (let i = start; i < element.length; i++) {
+    if (element[i] === "{") depth++;
+    else if (element[i] === "}" && --depth === 0) return element.slice(start, i + 1);
+  }
+  return null;
+}
+
+function tally(hrefs: (string | null)[]): Map<string, number> {
+  const n = new Map<string, number>();
+  for (const h of hrefs) if (h) n.set(h, (n.get(h) ?? 0) + 1);
+  return n;
+}
+
+function unlisted(file: string, found: Map<string, number>, allowed: Allowed): string[] {
+  const out: string[] = [];
+  for (const [href, count] of found) {
+    const entry = allowed[file]?.[href];
+    if (!entry) out.push(`${file}: href=${href}`);
+    else if (count > entry[0]) out.push(`${file}: href=${href} appears ${count} times, ${entry[0]} allowed`);
+  }
+  return out;
+}
+
+describe("the dashboard kit's in-app links are client navigations", () => {
+  it("every raw <a href> is listed, by its href, with the reason it is not an in-app navigation", () => {
+    const offenders = kitFiles().flatMap((file) => {
+      const src = readFileSync(path.join(KIT, file), "utf8");
+      return unlisted(file, tally(elements(src, "a").map(hrefOf)), RAW_ANCHORS);
+    });
     assert.deepEqual(
       offenders,
       [],
-      `these kit files render a raw <a href> and are not in the allow-list. If the link goes off-site, ` +
-        `add it to ALLOWED with the reason. If it is an in-app route, use next/link with ` +
-        `prefetch={false} scroll={false} — a plain anchor reloads the page and empties the bulk selection:\n  ` +
+      `these raw anchors are not in RAW_ANCHORS. If the link goes off-site, add it with the reason. If it is an ` +
+        `in-app route, use next/link with prefetch={false} — a plain anchor reloads the page and empties the bulk selection:\n  ` +
         offenders.join("\n  "),
     );
   });
 
-  it("the allow-list has no stale entries", () => {
-    // An entry that no longer has an anchor behind it is a licence nobody is
-    // using, and the next raw anchor in that file would inherit it silently.
-    const stale: string[] = [];
-    for (const file of Object.keys(ALLOWED)) {
+  it("in the record and line files, every Button with an href client-navigates or is listed", () => {
+    const offenders = RECORD_FILES.flatMap((file) => {
       const src = readFileSync(path.join(KIT, file), "utf8");
-      if (!/<a\b[^>]*href=/.test(src)) stale.push(file);
-    }
-    assert.deepEqual(stale, [], `remove these from ALLOWED — they no longer render a raw anchor:\n  ${stale.join("\n  ")}`);
+      const plain = elements(src, "Button").filter((el) => !/\bclientNav\b/.test(el));
+      return unlisted(file, tally(plain.map(hrefOf)), DOCUMENT_BUTTONS);
+    });
+    assert.deepEqual(offenders, [], `add clientNav, or list the Button in DOCUMENT_BUTTONS with the reason:\n  ${offenders.join("\n  ")}`);
   });
 
-  it("the files that carry record and line links client-navigate", () => {
-    // Named explicitly, because this is where the defect kept coming back.
-    // Each renders a link whose href is a route on the buyer's own search, so
-    // each must use `next/link` directly or go through `Button clientNav`.
-    for (const [file, what] of [
-      ["supplier-result-card.tsx", "the name, Open record, the tile sub-lines and the sanction line"],
-      ["results-table.tsx", "the name and Open"],
-      ["photo-tiles.tsx", "each product tile, which opens the HS line"],
-      ["supplier-sheet.tsx", "the bar's Close and Open full page, and All N lines"],
-      ["product-sheet.tsx", "Back to the record and Close"],
+  it("neither list has a stale entry", () => {
+    // An entry with nothing behind it is a licence nobody is using, and the
+    // next anchor written that way would inherit it silently.
+    const stale: string[] = [];
+    for (const [allowed, tag, plainOnly] of [
+      [RAW_ANCHORS, "a", false],
+      [DOCUMENT_BUTTONS, "Button", true],
     ] as const) {
-      const src = readFileSync(path.join(KIT, file), "utf8");
-      const clientNavigates = /from "next\/link"/.test(src) || src.includes("clientNav");
-      assert.ok(clientNavigates, `${file} carries ${what} and neither imports next/link nor uses Button's clientNav`);
+      for (const [file, hrefs] of Object.entries(allowed)) {
+        const src = readFileSync(path.join(KIT, file), "utf8");
+        const els = elements(src, tag).filter((el) => !plainOnly || !/\bclientNav\b/.test(el));
+        const found = tally(els.map(hrefOf));
+        for (const [href, [count]] of Object.entries(hrefs)) {
+          if ((found.get(href) ?? 0) !== count) stale.push(`${file}: href=${href} expected ${count}, found ${found.get(href) ?? 0}`);
+        }
+      }
     }
+    assert.deepEqual(stale, [], `update these entries:\n  ${stale.join("\n  ")}`);
+  });
+
+  it("the parser sees what it must: a raw anchor or a lost clientNav in a record file is caught", () => {
+    // The guard is only as good as `elements` and `hrefOf`. Two of the real
+    // regressions, as source, must both be flagged.
+    const allLines = `<a href={p.allLinesHref} className="x">All {p.lines} lines</a>`;
+    assert.deepEqual(unlisted("supplier-sheet.tsx", tally(elements(allLines, "a").map(hrefOf)), RAW_ANCHORS), [
+      "supplier-sheet.tsx: href={p.allLinesHref}",
+    ]);
+    const close = `<Button variant="ghost" icon aria-label="Close" href={model.closeHref} scroll={false}>\n  <Icon name="x" />\n</Button>`;
+    const plain = elements(close, "Button").filter((el) => !/\bclientNav\b/.test(el));
+    assert.deepEqual(unlisted("supplier-sheet.tsx", tally(plain.map(hrefOf)), DOCUMENT_BUTTONS), ["supplier-sheet.tsx: href={model.closeHref}"]);
+  });
+
+  it("a link into a sheet section keeps Next's scroll, or it never reaches the section", () => {
+    // The tile sub-lines end in #certificates / #products / #sources, and in
+    // Next's router `scroll={false}` also drops the hash jump
+    // (router-reducer/handle-mutable: `hashFragment: shouldScroll ? … : null`).
+    const card = readFileSync(path.join(KIT, "supplier-result-card.tsx"), "utf8");
+    const tileLinks = elements(card, "Link").filter((el) => hrefOf(el) === "{tile.href}");
+    assert.equal(tileLinks.length, 1, "the tile sub-line link moved; this guard needs rewriting");
+    assert.doesNotMatch(tileLinks[0]!, /scroll=\{false\}/, "the tile sub-line link opens the sheet without reaching its #section");
   });
 
   it("every next/link in the kit opts out of prefetch", () => {

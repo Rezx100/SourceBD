@@ -80,22 +80,9 @@ export function SupplierSheet({
           {model.sourceCount} {model.sourceCount === 1 ? "source" : "sources"}
         </Caption>
         <span className="ml-auto flex items-center gap-2">
-          {/* In the overlay this offers the record's own page — the link that
-              survives being pasted anywhere. On the full page there is nowhere
-              to go: it WAS a link to the page you are already on, labelled
-              "Share this record", which is a control with a name, a promise
-              and no effect. There it copies the URL instead.
-              The words drop below `sm`: "Open full page" beside a Close button
-              overran a 320px sheet by 29px, and the icon plus the accessible
-              name says the same thing in the space there is. */}
-          {model.closeHref ? (
-            <Button variant="ghost" href={model.fullHref} clientNav aria-label="Open the full record page">
-              <Icon name="share" />
-              <span className="hidden sm:inline">Open full page</span>
-            </Button>
-          ) : (
-            <CopyLinkButton />
-          )}
+          {/* Share copies the record's own page on both: in the overlay that is
+              `fullHref`, not the search URL underneath. */}
+          <CopyLinkButton href={model.closeHref ? model.fullHref : undefined} />
           <ReportProblem />
         </span>
       </SheetBar>
@@ -188,6 +175,21 @@ export function SupplierSheet({
               { key: "Buyer lists", value: p.buyerLists.length > 0 ? String(p.buyerLists.length) : "—", sub: p.buyerLists.length > 0 ? p.buyerLists.join(" · ") : p.buyerListsEmpty },
             ]}
           />
+          {/* The list the "Product list" stat counts. With no EPB lines there
+              are no tiles and no line sheets, so this is the only place a
+              buyer can read what the company says it makes. */}
+          {p.productList.length > 0 ? (
+            <div className="flex flex-col gap-1.5">
+              <Caption>Product list · as filed · source pending</Caption>
+              <ul className="m-0 flex list-none flex-wrap gap-1.5 p-0" data-product-list="true">
+                {p.productList.map((item, i) => (
+                  <li key={`${i}-${item}`} className="rounded-sm border border-line px-2 py-0.5 text-sm text-ink">
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
           {p.tiles.length > 0 ? (
             <>
               <PhotoGrid tiles={p.tiles} lineHref={(hs) => model.lineHref(hs)} />

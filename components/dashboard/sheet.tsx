@@ -11,6 +11,7 @@ import type { FactRow, LocationRow, RecordRfqRow, SanctionRow, SourceRow } from 
 import { recordPage, sourceMark } from "@/lib/dashboard/source-tiers";
 import { cn } from "@/lib/utils";
 import { Badge } from "./chips";
+import { DialogFocus } from "./dialog-focus";
 import { Button, Meter } from "./controls";
 import { Icon } from "./icons";
 import { SourceMark } from "./marks";
@@ -81,7 +82,8 @@ export function Sheet({
     );
   }
   return (
-    <aside role="dialog" aria-modal={assertModal ? "true" : undefined} aria-label={label} className={className}>
+    // `tabIndex={-1}`: focusable by script, not a tab stop — `DialogFocus` moves focus here on open.
+    <aside role="dialog" aria-modal={assertModal ? "true" : undefined} aria-label={label} tabIndex={-1} className={cn(className, "outline-none")}>
       {children}
     </aside>
   );
@@ -120,6 +122,7 @@ export function SheetFrame({ overlay, closeHref, children }: { overlay: boolean;
       ) : (
         <Scrim />
       )}
+      {closeHref ? <DialogFocus closeHref={closeHref} /> : null}
       {children}
     </div>
   );
@@ -127,8 +130,11 @@ export function SheetFrame({ overlay, closeHref, children }: { overlay: boolean;
 
 export function SheetBar({ children }: { children: ReactNode }) {
   // `min-w-0` on the row, so a long child (the breadcrumb on the line sheet)
-  // shrinks instead of pushing Share and Close off a 320px screen.
-  return <div className="flex h-[52px] min-w-0 shrink-0 items-center gap-3 border-b border-line-subtle px-5">{children}</div>;
+  // shrinks instead of pushing Share and Close off a 320px screen. A minimum
+  // height, not a fixed one: a 125-character name in that breadcrumb wraps to
+  // several lines at 320px, and a fixed 52px bar cut its first lines off above
+  // the screen.
+  return <div className="flex min-h-[52px] min-w-0 shrink-0 items-center gap-3 border-b border-line-subtle px-5 py-2">{children}</div>;
 }
 
 export function SheetScroll({ children }: { children: ReactNode }) {
@@ -240,7 +246,7 @@ export function FactsPanel({ rows }: { rows: readonly FactRow[] }) {
           >
             {r.value === null ? (
               <>
-                Not on file
+                {r.empty ?? "Not on file"}
                 {r.note ? ` · ${r.note}` : ""}
               </>
             ) : r.href ? (
@@ -306,19 +312,9 @@ export function LockCard({ hidden, plan, held }: { hidden: string; plan: string 
         {/* No promise about delivery: the RPC does not say whether this record
             has been claimed, and an unclaimed supplier is not reached until
             REZ-D ships behind RFQ_EMAIL_UNCLAIMED (handoff §4.6). */}
+        {/* No "See plans": no plan unlocks contact details on the record
+            (founder, 25 Sep), and a button that went nowhere said one did. */}
         <span>Send an RFQ from the record instead.</span>
-        <span className="flex items-center gap-2">
-          <Button>See plans</Button>
-          <a
-            href="#"
-            aria-disabled="true"
-            tabIndex={-1}
-            title="What is hidden arrives with the plans page"
-            className="inline-flex items-center gap-0.5 text-sm font-medium text-brand-ink"
-          >
-            What is hidden <Icon name="chev-r" small />
-          </a>
-        </span>
       </div>
     </div>
   );

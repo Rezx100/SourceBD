@@ -10,7 +10,9 @@
 // COUNTS from `supplier_contact_counts` (0105) and no value. There is nothing
 // in the payload to un-blur, and `components/dashboard/render.test.ts` asserts
 // that none of `email_primary` / `phones` / `contact_name` / `contact_role`
-// reaches the HTML.
+// reaches the HTML. Registers also write phone numbers and e-mails into
+// address text; every record builder strips them first (`lib/contact-text.ts`),
+// and `app/(app)/app/record-routes.test.ts` asserts it through this route.
 //
 // SBI hard contract (ai-workflow-rules): `buyer_supplier_profile` does not
 // join `sbi_scores` and nothing here renders a score.

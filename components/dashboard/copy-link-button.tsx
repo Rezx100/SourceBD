@@ -1,25 +1,22 @@
 "use client";
 
-// Share, on the full record page (REZ-C §3.3: "Share (copies the full-page
-// URL)").
+// Share (REZ-C §3.3: "Share (copies the full-page URL)").
 //
-// In the overlay, Share is "Open full page" — a real link to somewhere else.
-// On the full page there is nowhere to go, and it was rendered as a link to
-// the page the reader was already on, labelled "Share this record": a control
-// with a name, a promise and no effect. This copies the URL.
-//
-// It reads `location.href` at click time rather than taking a prop, so what is
-// copied is exactly what the reader is looking at.
+// In the overlay it copies the record's own page, `href`, made absolute at
+// click time — not the results URL the overlay sits on, which would share a
+// search. On the full page `href` is omitted and it copies `location.href`,
+// which is that page.
 
 import { useState } from "react";
 import { Button } from "./controls";
 import { Icon } from "./icons";
 
-export function CopyLinkButton() {
+export function CopyLinkButton({ href }: { href?: string }) {
   const [state, setState] = useState<"idle" | "copied" | "failed">("idle");
 
   async function copy() {
-    const url = typeof window === "undefined" ? "" : window.location.href;
+    if (typeof window === "undefined") return;
+    const url = href ? new URL(href, window.location.origin).href : window.location.href;
     if (!url) return;
     try {
       // `navigator.clipboard` needs a secure context and permission, and is
@@ -35,7 +32,7 @@ export function CopyLinkButton() {
 
   return (
     <span className="inline-flex items-center gap-2">
-      <Button variant="ghost" onClick={copy} aria-label="Copy a link to this record">
+      <Button variant="ghost" onClick={copy} aria-label="Copy a link to this record" data-share-href={href ?? "this page"}>
         <Icon name="share" />
         <span className="hidden sm:inline">Share</span>
       </Button>
