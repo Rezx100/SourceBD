@@ -7,7 +7,6 @@
 // (`buyer_dashboard` migration 0026, `admin_dashboard` migration 0037,
 // `settings_get`) so the client component stays pure render.
 
-import { headers } from "next/headers";
 import { Sidebar, type SidebarBadges } from "@/components/shell/sidebar";
 import { SidebarRail } from "@/components/shell/sidebar-rail";
 import { BottomTabBar } from "@/components/shell/bottom-tab-bar";
@@ -17,7 +16,7 @@ import { PostHogProvider } from "@/lib/posthog/provider";
 import { ScrollToTop } from "@/components/shell/scroll-to-top";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getServerRole } from "@/lib/auth";
-import { drawsKitShell } from "@/lib/dashboard/kit-shell";
+import { ShellSwitch } from "@/components/shell/shell-switch";
 
 type SettingsDoc = {
   email: string | null;
@@ -143,56 +142,45 @@ export default async function AppShellLayout({
     // Fail-soft: render the shell with whatever we managed to collect.
   }
 
-  const pathname = (await headers()).get("x-sourcebd-pathname") ?? "";
-  if (drawsKitShell(pathname)) {
-    // The kit draws its own shell, and its rail reflows into a horizontal nav
-    // strip below `md` rather than hiding — so it needs no `BottomTabBar`. An
-    // earlier pass added one here, which looked like a fix and was not: the
-    // bar carries the app's top five destinations and the kit's rail lists
-    // Products and Compliance hub, so those two were simply gone below 768px.
-    return <PostHogProvider userId={userId}>{children}</PostHogProvider>;
-  }
-
+  // Which shell a page gets is decided in `ShellSwitch`, on the client: the
+  // kit's pages draw their own, and a layout is not re-rendered on a client
+  // navigation, so a choice made here from the request stayed wrong after
+  // following a link from an old-shell page into a kit page.
   return (
     <PostHogProvider userId={userId}>
-      <div className="flex min-h-dvh flex-col bg-bg-l0">
-        <ScrollToTop />
-        <SkipLink />
-        <Topbar
-          role={role}
-          moatTotal={moatTotal}
-          avatarUrl={avatarUrl}
-          displayName={displayName}
-          email={email}
-        />
-        <div className="flex flex-1 flex-col md:flex-row md:items-start">
-          {/* R2 — tablet portrait (md..<lg) renders the icon-only rail,
-              desktop (≥lg) renders the full sidebar. Both have their own
-              visibility class so they never both render at the same width. */}
-          <SidebarRail role={role} />
-          <Sidebar
-            role={role}
-            email={email}
-            displayName={displayName}
-            avatarUrl={avatarUrl}
-            planTier={planTier}
-            moatTotal={moatTotal}
-            moatRefreshedAt={moatRefreshedAt}
-            badges={badges}
-          />
-          <main
-            id="main-content"
-            tabIndex={-1}
-            className="flex-1 px-4 pb-[calc(56px+env(safe-area-inset-bottom,0px)+1rem)] pt-6 md:min-h-[calc(100dvh-3.5rem)] md:px-10 md:pb-12 md:pt-10 lg:px-12 focus:outline-none"
-          >
-            {children}
-          </main>
-        </div>
-        {/* R2 — phone only (md:hidden). Bottom-tab covers the top 5
-            destinations per role; the full sidebar is available via the
-            topbar hamburger. */}
-        <BottomTabBar role={role} />
-      </div>
+      <ShellSwitch
+        top={
+          <>
+            <ScrollToTop />
+            <SkipLink />
+            <Topbar role={role} moatTotal={moatTotal} avatarUrl={avatarUrl} displayName={displayName} email={email} />
+          </>
+        }
+        side={
+          <>
+            {/* R2 — tablet portrait (md..<lg) renders the icon-only rail,
+                desktop (≥lg) renders the full sidebar. Both have their own
+                visibility class so they never both render at the same width. */}
+            <SidebarRail role={role} />
+            <Sidebar
+              role={role}
+              email={email}
+              displayName={displayName}
+              avatarUrl={avatarUrl}
+              planTier={planTier}
+              moatTotal={moatTotal}
+              moatRefreshedAt={moatRefreshedAt}
+              badges={badges}
+            />
+          </>
+        }
+        // R2 — phone only (md:hidden). Bottom-tab covers the top 5
+        // destinations per role; the full sidebar is available via the
+        // topbar hamburger.
+        bottom={<BottomTabBar role={role} />}
+      >
+        {children}
+      </ShellSwitch>
     </PostHogProvider>
   );
 }

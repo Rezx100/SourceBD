@@ -142,6 +142,9 @@ export type SourceRow = {
 };
 
 /** One premises on the Locations section, after the address matcher has merged spellings. */
+/** One extension building: its name, its first filed address (contact details stripped) and its worker figure. */
+export type FacilityRowModel = { name: string; address: string | null; workers: string | null };
+
 export type LocationRow = {
   kind: string;
   address: string;
@@ -274,11 +277,12 @@ export type SupplierSheetModel = {
   /** What the Locations section says when the payload carries no address. */
   locationsEmpty: string;
   /**
-   * REZ-C: the Facilities roll-up is REZ-73's, on `rez-73-facilities-lean` and
-   * not landed (hand-off §2.2). Until it does this is the quiet empty state's
-   * words — never "no buildings", which is a claim the record does not make.
+   * REZ-C: the record's extension buildings, from REZ-73's
+   * `buyer_supplier_facility_panel` — the list the page this replaced and the
+   * public profile both show. `count` is null when the panel was not read,
+   * and `empty` then says so: "no buildings" is a claim an unread panel cannot make.
    */
-  facilitiesEmpty: string;
+  facilities: { count: number | null; rows: FacilityRowModel[]; empty: string };
   /**
    * REZ-C: the calling buyer's own RFQs naming this supplier. `count` is null
    * when the read failed — an unread list has no count, and 0 is a claim.

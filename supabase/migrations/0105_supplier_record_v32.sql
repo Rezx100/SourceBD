@@ -75,10 +75,13 @@ as $function$
   -- 'http://Nil', a product list or an e-mail address; counting those put "a
   -- website" on a card whose record holds none. `email_primary` often holds
   -- two or three addresses in one string, and seven hold none (no '@').
+  -- Known undercount: 64 `phones` entries run two or three numbers together
+  -- with no separator at all (18–27 digits); they count as one, because no
+  -- rule can tell where one number ends and the next begins.
   select jsonb_build_object(
     'emails',          (select count(*)
                           from regexp_matches(coalesce(s.email_primary, ''),
-                                              '[^@[:space:],;]+[[:space:]]*@[[:space:]]*[^@[:space:],;]+', 'g'))::int,
+                                              '[^@[:space:],;/]+[[:space:]]*@[[:space:]]*[^@[:space:],;/.]+[.][^@[:space:],;/]+', 'g'))::int,
     -- `phones` is text[]: a phone is six or more digits, and one number filed
     -- twice (however it is punctuated) is one phone.
     'phones',          coalesce((
@@ -86,8 +89,13 @@ as $function$
                            from unnest(coalesce(s.phones, '{}'::text[])) as ph
                           where length(regexp_replace(ph, '[^0-9]', '', 'g')) >= 6
                        ), 0)::int,
-    'website',         coalesce(s.website ~* '[a-z0-9-]+[.][a-z]{2,}' and position('@' in s.website) = 0, false),
-    'representatives', case when nullif(btrim(s.contact_name), '') is null then 0 else 1 end
+    -- A site, once any e-mail address in the same field is set aside: one
+    -- record files "http://site.com, name@site.com" and holds a website.
+    'website',         coalesce(regexp_replace(s.website, '[^[:space:],;/]+@[^[:space:],;]+', '', 'g') ~* '[a-z0-9-]+[.][a-z]{2,}', false),
+    -- A name, not a bare title, a year or initials: 192 published rows hold
+    -- only "Mr." / "MR." / "Md.", and nine more "1965", "M", "A.B.", "P.V.V."
+    -- and the like (25 Sep 2026).
+    'representatives', case when s.contact_name ~ '[[:alpha:]]{3}' then 1 else 0 end
   )
   from public.suppliers s
   where s.slug = p_slug

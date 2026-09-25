@@ -63,6 +63,7 @@ import type {
   TileModel,
 } from "./models";
 import { withoutContactDetails } from "@/lib/contact-text";
+import type { FacilityPanel } from "@/lib/format-facility-group";
 import { mergeUniqueLocations } from "@/lib/dedup-addresses";
 import { isKnownSource, marksFromTags, recordPage, sourceMark, tierWords, topTier, trustRankFromSlug, type SourceMarkModel } from "./source-tiers";
 
@@ -87,6 +88,9 @@ export type ProfileSupplier = {
   machines_sewing: number | null;
   production_capacity_pcs_day: number | null;
   production_capacity_dozen_yearly?: number | null;
+  bepza_zone?: string | null;
+  employees_male?: number | null;
+  employees_female?: number | null;
   supplier_moq?: number | null;
   supplier_lead_time_days?: number | null;
   source_tags: string[];
@@ -179,9 +183,9 @@ export type RecordInput = {
  * removed (`lib/contact-text.ts`): every filed address, and every principal
  * product entry — one record files its website as its only product. Every
  * builder that renders a record starts here, so no surface prints either the
- * way it was filed. Entries are otherwise kept as filed, case variants and
- * all: §3.3's acceptance names this list's length (39 for Adventure Garments,
- * five of them case variants), and merging them is a founder's call.
+ * way it was filed. Entries that differ only in case or spacing ("Polo
+ * Shirt", "POLO SHIRT") are one product (founder, 25 Sep): Adventure
+ * Garments' 39 filed entries are 34 products.
  */
 function withoutFiledContact(input: RecordInput): RecordInput {
   const p = input.profile;
@@ -200,7 +204,31 @@ function withoutFiledContact(input: RecordInput): RecordInput {
 }
 
 function productEntries(filed: readonly (string | null)[] | null | undefined): string[] {
-  return (filed ?? []).map((raw) => withoutContactDetails((raw ?? "").trim())).filter(Boolean);
+  const seen = new Set<string>();
+  return (filed ?? [])
+    .map((raw) => withoutContactDetails((raw ?? "").trim(), { bareNumbers: false }))
+    .filter((entry) => {
+      const key = entry.toLowerCase().replace(/\s+/g, " ");
+      if (!entry || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+}
+
+/**
+ * The Facilities section: one row per extension building. A building's
+ * address is register-filed free text like any other, so it is stripped of
+ * contact details the same way.
+ */
+function facilityRows(read: SheetOptions["facilities"]): SupplierSheetModel["facilities"] {
+  const panel = read?.panel ?? null;
+  if (!panel) return { count: null, rows: [], empty: "The buildings could not be read." };
+  const rows = panel.facilities.map((f) => ({
+    name: displayName(f.name),
+    address: withoutContactDetails(f.addresses[0]?.address ?? null) || null,
+    workers: f.employees_total ? `${formatCount(f.employees_total)} workers` : null,
+  }));
+  return { count: rows.length, rows, empty: "No extension buildings on this record." };
 }
 
 const MEMBERSHIP = ["BGMEA", "BKMEA", "BGAPMEA", "BTMA"];
@@ -984,6 +1012,8 @@ export type SheetOptions = {
    * about kinds. Never a count of zero on a failed read.
    */
   contactCounts?: ContactCounts | null;
+  /** The record's buildings (`buyer_supplier_facility_panel`); `panel` null means not read. */
+  facilities?: { panel: FacilityPanel | null };
   /** The calling buyer's own RFQs naming this supplier. `null` rows → the read failed. */
   rfqs?: { count: number | null; rows: RecordRfqRow[]; error?: boolean };
   /** Where Send RFQ goes for this record. */
@@ -1150,12 +1180,16 @@ export function buildSheet(filed: RecordInput, options: SheetOptions = {}): Supp
   const locations = locationRows(p);
   const addresses = locations.length;
   const addr = factoryAddress(p);
+  // Every figure the register filed: 376 published records file both, and
+  // showing only the daily one dropped the other (the capacity tab this folds
+  // in showed both).
   const capacity =
-    s.production_capacity_pcs_day
-      ? `${formatCount(s.production_capacity_pcs_day)} pcs/day`
-      : s.production_capacity_dozen_yearly
-        ? `${formatCount(s.production_capacity_dozen_yearly)} dozen/year`
-        : null;
+    [
+      s.production_capacity_pcs_day ? `${formatCount(s.production_capacity_pcs_day)} pcs/day` : null,
+      s.production_capacity_dozen_yearly ? `${formatCount(s.production_capacity_dozen_yearly)} dozen/year` : null,
+    ]
+      .filter(Boolean)
+      .join(" · ") || null;
 
   const pending = (value: string | null, m: SourceMarkModel | null = null, checked = "registers checked"): Pick<FactRow, "value" | "marks" | "pendingSource" | "checked"> =>
     pendingMarks(value, m ? [m] : [], checked);
@@ -1173,8 +1207,13 @@ export function buildSheet(filed: RecordInput, options: SheetOptions = {}): Supp
       ...pending(w.value !== null ? formatCount(w.value) : null, workersMark, "registers and RSC checked"),
       note: workersNote(w),
     },
+    // The split the capacity tab showed, under its rule: never against an RSC
+    // total, and withheld when the two halves do not add up to the figure shown
+    // (within 10%) — the registers file the total and the split independently.
+    ...(workforceSplit(w, s) ? [{ label: "Women · men", ...pending(workforceSplit(w, s)) }] : []),
     { label: "Sewing machines", ...pending(formatCount(s.machines_sewing)) },
     { label: "Capacity, as filed", ...pending(capacity) },
+    ...(s.bepza_zone ? [{ label: "EPZ zone", ...pending(s.bepza_zone) }] : []),
     {
       label: "Registers",
       value: registerRows.length ? registerRows.map((r) => `${registerLabel(r.label).replace(/\s+member$/i, "")} ${r.value}`).join(" · ") : null,
@@ -1214,9 +1253,7 @@ export function buildSheet(filed: RecordInput, options: SheetOptions = {}): Supp
     sourceCount: marks.length,
     sanctioned: s.is_sanctioned || Boolean(input.sanctionSample),
     sanctionSample: input.sanctionSample,
-    // Every tab now has a section behind it (REZ-C). Facilities keeps a
-    // fragment too: the section renders REZ-73's quiet empty state, which is
-    // an answer, not a dead link.
+    // Every tab now has a section behind it (REZ-C).
     tabs: [
       { label: "Overview", count: null, href: "#overview", active: true },
       { label: "Products", count: input.hscodesError ? null : String(lines.length), href: "#products" },
@@ -1226,7 +1263,7 @@ export function buildSheet(filed: RecordInput, options: SheetOptions = {}): Supp
       // marks the sheet draws (`sourceRows` renders one row per mark).
       { label: "Sources", count: String(marks.length), href: "#sources" },
       { label: "Locations", count: p.addresses ? String(addresses) : null, href: "#locations" },
-      { label: "Facilities", count: null, href: "#facilities" },
+      { label: "Facilities", count: options.facilities?.panel ? String(options.facilities.panel.facilities.length) : null, href: "#facilities" },
       { label: "RFQs", count: rfqs.count === null ? null : String(rfqs.count), href: "#rfqs" },
     ],
     summary: null,
@@ -1297,7 +1334,7 @@ export function buildSheet(filed: RecordInput, options: SheetOptions = {}): Supp
     locationsEmpty: p.addresses
       ? "No address on any register that filed this record."
       : "The addresses could not be read.",
-    facilitiesEmpty: "Extension buildings are not on this record yet.",
+    facilities: facilityRows(options.facilities),
     rfqs: {
       count: rfqs.count,
       rows: rfqs.rows,
@@ -1411,6 +1448,15 @@ function rscLinks(rsc: ProfileRsc): { label: string; href: string | null }[] {
 }
 
 /** What the sheet says under the worker figure about the sites it covers. */
+function workforceSplit(w: WorkersFact, s: ProfileSupplier): string | null {
+  const f = s.employees_female ?? 0;
+  const m = s.employees_male ?? 0;
+  if (w.source === "RSC" || w.value === null || f <= 0 || m <= 0) return null;
+  const ratio = (f + m) / w.value;
+  if (ratio < 0.9 || ratio > 1.1) return null;
+  return `${formatCount(f)} women · ${formatCount(m)} men`;
+}
+
 function workersNote(w: WorkersFact): string | null {
   if (w.groupUnknown) return "this record and its buildings together; the site breakdown is not on the record";
   if (!w.coverage) return null;

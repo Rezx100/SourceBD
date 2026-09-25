@@ -42,6 +42,7 @@ type Answers = {
   userId?: string | null;
   discover?: Rpc;
   facilityParent?: Rpc;
+  facilityPanel?: Rpc;
   /** What `.from(table)` answers, for tables other than `rfqs`. */
   tables?: Record<string, unknown[]>;
 };
@@ -69,6 +70,7 @@ function fakeClient() {
     if (fn === "discover_suppliers") return answers.discover ?? { data: [], error: null };
     if (fn === "supplier_epb_hscodes_batch") return { data: [], error: null };
     if (fn === "facility_parent_slug") return answers.facilityParent ?? { data: null, error: null };
+    if (fn === "buyer_supplier_facility_panel") return answers.facilityPanel ?? { data: null, error: null };
     return { data: null, error: null };
   };
   return {
@@ -223,6 +225,11 @@ describe("/app/suppliers/[slug] — the full record page", () => {
     const out = html(await outcome(() => Page({ params: Promise.resolve({ slug: "aboni-knitwear" }), searchParams: Promise.resolve({}) })));
     assert.match(out, /could not be read in time/);
     assert.match(out, /Try again/);
+    // Inside the page's frame. The layout draws none on this route (the kit
+    // does), so a state returned bare had no navigation at all (cycle 5).
+    assert.match(out, /<main[^>]*id="main-content"/, "the slow-read state has no <main> and no frame");
+    assert.match(out, /href="#main-content"/, "the slow-read state has no skip link");
+    assert.equal((out.match(/<main\b/g) ?? []).length, 1);
   });
 
   it("?lines=all expands the grid past six tiles", async () => {
@@ -661,7 +668,11 @@ describe("cycle 3: the boundaries the first route tests did not reach", () => {
     // Both wordings the sheet has for "not on EPB": the eyebrow's and the Exporter page row's.
     assert.doesNotMatch(out, /not on (?:this|the) record(?:&#x27;|')s EPB page/);
     assert.doesNotMatch(out, /EPB checked/);
-    assert.match(out, /Exporter page[\s\S]*?Could not be read/, "the Exporter page row does not say it could not be read");
+    // Scoped to the row: the next row ("Exporting since") ends it. Unscoped,
+    // the "Other lines" row's own "Could not be read" satisfied this (cycle 5).
+    const row = /Exporter page([\s\S]*?)Exporting since/.exec(out);
+    assert.ok(row, "guard: the Exporter page row is drawn");
+    assert.match(row[1]!, /Could not be read/, "the Exporter page row does not say it could not be read");
   });
 });
 
@@ -710,7 +721,7 @@ describe("cycle 4: the boundaries cycle 4 found open", () => {
     // addresses only, and passed with this leak live.
     const profile = {
       ...ABONI.profile,
-      supplier: { ...ABONI.profile.supplier, principal_products: ["shdeck.com", "Polo Shirt", "POLO SHIRT", "01711-528388"] },
+      supplier: { ...ABONI.profile.supplier, principal_products: ["shdeck.com", "Polo Shirt", "POLO SHIRT", "01711-528388", "Knit T-shirt 61091000"] },
     };
     given({ profile: { data: profile, error: null }, hscodes: HS, discover: { data: [ROW], error: null } });
     const pages = {
@@ -723,11 +734,14 @@ describe("cycle 4: the boundaries cycle 4 found open", () => {
         assert.ok(!out.includes(value), `a contact value filed as a product reached the ${where} page: ${value}`);
       }
     }
-    // What is left is the real products, as filed; the count says the same.
+    // What is left is the real products, once each: "POLO SHIRT" is "Polo
+    // Shirt" (founder, 25 Sep), and an HS code in a product name is not a
+    // phone number. The count says the same.
     const list = /data-product-list="true"[^>]*>([\s\S]*?)<\/ul>/.exec(pages.full);
     assert.ok(list, "guard: the full page draws the product list");
     assert.equal((list[1]!.match(/<li/g) ?? []).length, 2, `the product list: ${list[1]}`);
-    assert.match(pages.full, /Product list<\/span><span[^>]*>2<\/span>/, "the Products stat counts a contact value as a product");
+    assert.match(list[1]!, /Knit T-shirt 61091000/, "an HS code in a product name was cut as a phone number");
+    assert.match(pages.full, /Product list<\/span><span[^>]*>2<\/span>/, "the Products stat counts a contact value or a case variant as a product");
   });
 
   it("?lines=all rides INTO a line from the overlay, not only back out", async () => {
@@ -750,16 +764,23 @@ describe("cycle 4: the boundaries cycle 4 found open", () => {
     assert.ok(hrefsIn(html(await linePage("6105"))).includes("/app/suppliers/aboni-knitwear"), "Back from a line opened from six tiles");
   });
 
-  it("a line outside the catalogue renders when the EPB read failed; four digits outside any HS chapter still do not", async () => {
-    given({ profile: PROFILE, hscodes: { data: null, error: { message: "boom" } } });
-    const out = html(await linePage("3923"));
-    assert.match(out, /HS 3923/);
-    assert.match(out, /EPB lines could not be read/);
-    for (const bad of ["0000", "9999"]) {
+  it("a line outside the catalogue, after a failed EPB read, goes to the record — no 404, no invented line", async () => {
+    // Whether 3923, 7700 or 0199 is one of the record's lines is unknown while
+    // its EPB page is unread. A 404 says it is not; a sheet (with a live Send
+    // RFQ) says it is. The record says what is true: the lines could not be read.
+    for (const hs of ["3923", "7700", "0199", "0000"]) {
       given({ profile: PROFILE, hscodes: { data: null, error: { message: "boom" } } });
-      const r = await linePage(bad);
-      assert.ok("threw" in r && /NOT_FOUND|404/.test(r.threw), `/lines/${bad} rendered while the EPB read had failed`);
+      const r = await linePage(hs);
+      assert.ok("threw" in r, `/lines/${hs} rendered a sheet while the EPB read had failed`);
+      assert.match(r.threw, /NEXT_REDIRECT/, `/lines/${hs}: ${r.threw}`);
+      assert.match(r.threw, /\/app\/suppliers\/aboni-knitwear(?:;|$)/, `/lines/${hs} goes somewhere else: ${r.threw}`);
     }
+    given({ profile: PROFILE, hscodes: { data: null, error: { message: "boom" } } });
+    const all = await linePage("3923", { lines: "all" });
+    assert.ok("threw" in all && /\/app\/suppliers\/aboni-knitwear\?lines=all/.test(all.threw), "the expanded grid is lost on the way back");
+    // A catalogue heading still renders, and says the lines could not be read.
+    given({ profile: PROFILE, hscodes: { data: null, error: { message: "boom" } } });
+    assert.match(html(await linePage("6105")), /EPB lines could not be read/);
     // With the read working, a heading neither in the catalogue nor on the record's page is not a line.
     given({ profile: PROFILE, hscodes: HS });
     const r = await linePage("3923");
@@ -786,12 +807,82 @@ describe("cycle 4: the boundaries cycle 4 found open", () => {
   });
 
   it("an overlay record read that fails for another reason keeps the search and blames no load", async () => {
-    given({ profile: { data: null, error: { code: "XX000", message: "boom" } }, discover: { data: [ROW], error: null } });
+    // A payload the builder cannot read makes `loadRecordSheet` THROW — an
+    // error that is not a timeout, reaching the overlay's own catch. (An RPC
+    // error does not: the loader turns it into "no record" before that, which
+    // is why cycle 4's version of this test never reached the branch it named.)
+    given({ profile: { data: { supplier: null }, error: null }, hscodes: HS, discover: { data: [ROW], error: null } });
     const out = html(await overlay({ q: "knit", record: "aboni-knitwear" }));
     assert.match(out, /aria-modal="true"/, "the failure is silent");
     assert.match(out, /could not be read just now/);
     assert.doesNotMatch(out, /under load/, "a non-timeout failure is reported as the database being busy");
     assert.ok(out.includes("ABONI KNITWEAR") || out.includes("Aboni Knitwear"), "the search behind the sheet is gone");
+  });
+
+  it("an overlay line that cannot be checked (EPB unread, not in the catalogue) shows the record over the search", async () => {
+    given({ profile: PROFILE, hscodes: { data: null, error: { message: "boom" } }, discover: { data: [ROW], error: null } });
+    const out = html(await overlay({ q: "knit", record: "aboni-knitwear", line: "3923" }));
+    assert.match(out, /aria-label="Supplier record"/, "the record is not shown");
+    assert.doesNotMatch(out, /HS 3923/, "a line was invented");
+    assert.match(out, /EPB export lines could not be read/);
+  });
+
+  it("the overlay names what it shows, so focus follows a change of content", async () => {
+    // `DialogFocus` re-runs on this key; it renders nothing, so the key is
+    // asserted where the frame writes it. Record, one of its lines, and the
+    // expanded grid are three different contents in the same frame.
+    const keyOf = async (sp: Record<string, string>) => {
+      given({ profile: PROFILE, hscodes: HS, discover: { data: [ROW], error: null } });
+      return /data-open-key="([^"]*)"/.exec(html(await overlay(sp)))?.[1];
+    };
+    const keys = [
+      await keyOf({ q: "knit", record: "aboni-knitwear" }),
+      await keyOf({ q: "knit", record: "aboni-knitwear", line: "6105" }),
+      await keyOf({ q: "knit", record: "aboni-knitwear", lines: "all" }),
+    ];
+    assert.ok(keys.every(Boolean), `a frame carries no key: ${keys.join(" | ")}`);
+    assert.equal(new Set(keys).size, 3, `two contents share a key: ${keys.join(" | ")}`);
+    given({ profile: { data: null, error: null }, facilityParent: { data: "aboni-knitwear", error: null }, discover: { data: [ROW], error: null } });
+    const notice = /data-open-key="([^"]*)"/.exec(html(await overlay({ q: "knit", record: "aboni-knitwear-unit-2" })))?.[1];
+    assert.ok(notice && !keys.includes(notice), `the building notice shares a key with a record: ${notice}`);
+  });
+
+  it("the full page lists the record's buildings from the facility panel", async () => {
+    const metric = { own: 16934, known_sum: 23189, facility_count: 2, building_count: 3, unknown_count: 0 };
+    const panel = {
+      facility_count: 2,
+      facilities: [
+        { name: "LIBERTY KNITWEAR LTD. (UNIT-2)", employees_total: 3120, addresses: [{ kind: "factory", address: "Plot 4, Konabari, Gazipur", source_code: "BGMEA" }], pills: [], rsc: null },
+        { name: "Liberty Fashion Wears", employees_total: null, addresses: [], pills: [], rsc: null },
+      ],
+      group: { employees_total: metric, machines_sewing: metric, production_capacity_pcs_day: metric, production_capacity_dozen_yearly: metric },
+    };
+    given({ profile: PROFILE, hscodes: HS, facilityPanel: { data: panel, error: null } });
+    const out = html(await fullPage("aboni-knitwear"));
+    assert.match(out, /2 extension buildings/);
+    assert.match(out, /Konabari, Gazipur/);
+    assert.match(out, /3,120 workers/);
+    assert.match(out, /Liberty Fashion Wears/);
+    assert.doesNotMatch(out, /not on this record|No extension buildings/);
+    given({ profile: PROFILE, hscodes: HS, facilityPanel: { data: null, error: { message: "boom" } } });
+    assert.match(html(await fullPage("aboni-knitwear")), /The buildings could not be read\./);
+  });
+
+  it("the Overview shows every capacity figure a register filed, the EPZ zone and the split", async () => {
+    const supplier = {
+      ...ABONI.profile.supplier,
+      production_capacity_pcs_day: 25000,
+      production_capacity_dozen_yearly: 600000,
+      bepza_zone: "Dhaka EPZ",
+      employees_total: 1000,
+      employees_female: 620,
+      employees_male: 380,
+    };
+    given({ profile: { data: { ...ABONI.profile, supplier, rsc_remediation: null }, error: null }, hscodes: HS });
+    const out = html(await fullPage("aboni-knitwear"));
+    assert.match(out, /25,000 pcs\/day · 600,000 dozen\/year/, "one of the two filed capacity figures is dropped");
+    assert.match(out, /Dhaka EPZ/);
+    assert.match(out, /620 women · 380 men/);
   });
 });
 

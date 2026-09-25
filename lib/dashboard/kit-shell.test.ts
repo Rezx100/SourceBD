@@ -5,6 +5,13 @@
 // /lines/<hs> page drawing both, because the layout's list was not widened when
 // they moved to `AppShell`. This walks the real page files, so a new kit page
 // that is not added to `drawsKitShell` fails here.
+//
+// What this does NOT prove, and where that is proved: that every branch of a
+// kit page draws `AppShell` (a file can mention it once and return bare
+// elsewhere — the record's slow-read state did, cycle 5) is asserted per
+// branch in `app/(app)/app/record-routes.test.ts`; that the layout uses this
+// on every navigation, not only the first load, is `ShellSwitch`'s test in
+// `components/dashboard/record-controls.test.ts`.
 
 import assert from "node:assert/strict";
 import { readdirSync, readFileSync, statSync } from "node:fs";

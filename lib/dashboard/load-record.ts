@@ -16,6 +16,7 @@ import { hscodesFromRpc } from "@/lib/epb-hscodes";
 import { buildProductSheet, buildSheet, type ProfilePayload, type RecordInput } from "./build-models";
 import { formatCount, formatDay } from "./facts";
 import { heading4, hsCatalogueRow } from "./hs-photos";
+import { sanitizeFacilityPanel, type FacilityPanel } from "@/lib/format-facility-group";
 import type { ContactCounts, ProductSheetModel, RecordRfqRow, SupplierSheetModel } from "./models";
 
 /** The narrow slice of the Supabase client these loaders use. */
@@ -33,6 +34,14 @@ export class ProfileReadTimeout extends Error {
   constructor(readonly slug: string) {
     super(`buyer_supplier_profile timed out for ${slug}`);
     this.name = "ProfileReadTimeout";
+  }
+}
+
+/** The record's export lines could not be read, so whether a heading is one of its lines is unknown. */
+export class LinesUnreadable extends Error {
+  constructor(readonly slug: string) {
+    super(`supplier_epb_hscodes could not be read for ${slug}`);
+    this.name = "LinesUnreadable";
   }
 }
 
@@ -114,6 +123,26 @@ export async function fetchContactCounts(supabase: RecordRpc, slug: string): Pro
     const representatives = count("representatives");
     if (emails === null || phones === null || representatives === null) return null;
     return { emails, phones, representatives, website: row.website === true };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * The record's extension buildings — REZ-73's `buyer_supplier_facility_panel`,
+ * which the page this replaced and the public profile both read. Null when the
+ * read failed or came back malformed: the section then says the buildings
+ * could not be read, never that there are none.
+ */
+export async function fetchFacilityPanel(supabase: RecordRpc, slug: string): Promise<FacilityPanel | null> {
+  try {
+    const { data, error } = await supabase.rpc("buyer_supplier_facility_panel", { p_slug: slug });
+    // Every published record answers with a panel (live, 25 Sep: `ar-fashion`
+    // returns `facilities: []`); null is an unknown slug or a failed read.
+    if (error || !data || typeof data !== "object") return null;
+    const panel = data as Partial<FacilityPanel>;
+    if (!Array.isArray(panel.facilities) || !panel.group) return null;
+    return sanitizeFacilityPanel(panel as FacilityPanel);
   } catch {
     return null;
   }
@@ -273,14 +302,16 @@ export async function loadRecordSheet(
   // The caller's own id, so the RFQs section can filter on it rather than
   // trusting RLS alone (see `fetchRecordRfqs`).
   const buyerId = await callerId(supabase);
-  const [contactCounts, saved, rfqs] = await Promise.all([
+  const [contactCounts, saved, rfqs, facilities] = await Promise.all([
     fetchContactCounts(supabase, slug),
     fetchRecordSaved(supabase, supplierId),
     fetchRecordRfqs(supabase, supplierId, buyerId),
+    fetchFacilityPanel(supabase, slug),
   ]);
   return buildSheet(record.input, {
     plan: view.plan ?? null,
     contactCounts,
+    facilities: { panel: facilities },
     saved,
     supplierId,
     rfqs,
@@ -311,14 +342,14 @@ export async function loadRecordLine(
   // carries. Any other four digits — `/lines/0000` — drew "Chapter 00", a live
   // Send RFQ prefilled with it and an Exporters link, for no heading at all.
   // When the EPB page could not be read, "not on it" is unknown rather than
-  // true: a heading in a real HS chapter (01–97) renders, and the sheet says
-  // the lines could not be read, instead of a 404 for a line the record has.
+  // true — and so is "it exists": the caller sends the buyer to the record,
+  // which says the lines could not be read, rather than a 404 for a line the
+  // record may have or a sheet (with a live Send RFQ) for one it may not.
   const code = heading4(hs);
-  const known =
-    hsCatalogueRow(code) ||
-    record.input.hscodes.some((h) => heading4(h.code) === code) ||
-    (record.input.hscodesError && /^(?:0[1-9]|[1-8]\d|9[0-7])/.test(code));
-  if (!known) return null;
+  if (!hsCatalogueRow(code) && !record.input.hscodes.some((h) => heading4(h.code) === code)) {
+    if (record.input.hscodesError) throw new LinesUnreadable(slug);
+    return null;
+  }
   await fillRecordWorkersSafely(supabase, [record]);
   const supplierId = record.input.profile.supplier.id;
   return buildProductSheet(record.input, hs, {

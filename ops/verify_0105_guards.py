@@ -12,7 +12,6 @@ Nothing is committed and nothing here is `--apply` (AGENTS 15). Output of the
 """
 import os
 import pathlib
-import re
 import subprocess
 
 import psycopg
@@ -38,6 +37,52 @@ def _dsn() -> str:
                 if line.startswith("SUPABASE_DB_URL="):
                     return line.split("=", 1)[1].strip().strip('"').strip("'")
     raise SystemExit("SUPABASE_DB_URL is not set and no .env holds it")
+
+
+
+def _expected(row) -> dict:
+    """The counts, recomputed from the raw columns by splitting and scanning —
+    deliberately not the migration's regular expressions, which a transliterated
+    recount would agree with however wrong they were (audit cycle 5)."""
+    def tokens(text: str) -> list[str]:
+        for sep in ",;/\n\t":
+            text = text.replace(sep, " ")
+        return [t for t in text.split(" ") if t]
+
+    def has_letters(s: str, n: int) -> bool:
+        run = 0
+        for ch in s:
+            run = run + 1 if ch.isalpha() else 0
+            if run >= n:
+                return True
+        return False
+
+    # "a @ b.com" is one address: close the spaces around '@' before splitting.
+    mail = row["email_primary"] or ""
+    while " @" in mail or "@ " in mail:
+        mail = mail.replace(" @", "@").replace("@ ", "@")
+    emails = sum(1 for t in tokens(mail) if t.count("@") == 1 and t.index("@") > 0 and "." in t.split("@")[1].strip(".")[1:])
+
+    phones = {"".join(ch for ch in ph if ch.isdigit()) for ph in row["phones"] or []}
+    phones = {d for d in phones if len(d) >= 6}
+
+    def is_site(t: str) -> bool:
+        if "@" in t:
+            return False
+        host = t.split("://", 1)[-1]
+        for i, ch in enumerate(host):
+            if ch == "." and i > 0 and has_letters(host[i + 1 : i + 3], 2):
+                return True
+        return False
+
+    website = any(is_site(t) for t in tokens((row["website"] or "").lower()))
+
+    return {
+        "emails": emails,
+        "phones": len(phones),
+        "website": website,
+        "representatives": 1 if has_letters(row["contact_name"] or "", 3) else 0,
+    }
 
 
 dsn = _dsn()
@@ -90,25 +135,14 @@ try:
         print("shape / no values       :", rows[0]["slug"], rows[0]["counts"], "OK")
         ok += 1
 
-        # Recounted here, in Python, from the raw columns — not by restating
-        # the function's SQL, which would agree with any bug it has.
+        # Recounted here, in Python, by splitting and scanning the raw columns
+        # (`_expected`) — not by restating the function's SQL.
         cur.execute(
             "select s.slug, s.email_primary, s.phones, s.website, s.contact_name, "
             "public.supplier_contact_counts(s.slug) as counts from public.suppliers s where s.is_published"
         )
         rows = cur.fetchall()
-        mismatches = []
-        for row in rows:
-            digits = {re.sub(r"\D", "", ph) for ph in row["phones"] or []}
-            website = row["website"] or ""
-            expect = {
-                "emails": len(re.findall(r"[^@\s,;]+\s*@\s*[^@\s,;]+", row["email_primary"] or "")),
-                "phones": len({d for d in digits if len(d) >= 6}),
-                "website": bool(re.search(r"[a-z0-9-]+\.[a-z]{2,}", website, re.I)) and "@" not in website,
-                "representatives": 1 if (row["contact_name"] or "").strip() else 0,
-            }
-            if row["counts"] != expect:
-                mismatches.append((row["slug"], row["counts"], expect))
+        mismatches = [(r["slug"], r["counts"], _expected(r)) for r in rows if r["counts"] != _expected(r)]
         assert not mismatches, mismatches[:10]
         # The shapes that made the first version wrong, on real rows.
         scheme_only = [r for r in rows if (r["website"] or "").strip() in ("https://", "http://")]

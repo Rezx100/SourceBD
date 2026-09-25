@@ -296,12 +296,46 @@ describe("SupplierSheet — the four sections REZ-C adds", () => {
     }
   });
 
-  it("Facilities says what is absent, never that the company has no buildings", () => {
-    const html = renderToStaticMarkup(createElement(SupplierSheet, { model: buildSheet(aboniInput()) }));
-    // REZ-73's roll-up is not landed. "No extension buildings" would be a
-    // claim about the company; "not on this record yet" is a claim about us.
-    assert.match(html, /Extension buildings are not on this record yet\./);
-    assert.doesNotMatch(html, /No extension buildings|has no buildings/);
+  describe("Facilities: the record's buildings (REZ-73's panel, founder 25 Sep)", () => {
+    const building = (name: string, address: string, employees_total: number | null) => ({
+      name,
+      employees_total,
+      addresses: [{ kind: "factory", address, source_code: "BGMEA" }],
+      pills: [],
+      rsc: null,
+    });
+    const metric = { own: null, known_sum: null, facility_count: 0, building_count: 1, unknown_count: 1 };
+    const panel = (facilities: ReturnType<typeof building>[]) => ({
+      facility_count: facilities.length,
+      facilities,
+      group: { employees_total: metric, machines_sewing: metric, production_capacity_pcs_day: metric, production_capacity_dozen_yearly: metric },
+    });
+
+    it("lists each building by name, with its address and workers, and counts them on the tab", () => {
+      const model = buildSheet(aboniInput(), {
+        facilities: { panel: panel([building("ABONI KNITWEAR LTD. (UNIT-2)", "Plot 12, Hemayetpur, Savar Tel: 01711528388", 450), building("Aboni Textile", "Tetuljhora, Savar", null)]) },
+      });
+      const html = renderToStaticMarkup(createElement(SupplierSheet, { model }));
+      assert.equal(model.tabs.find((t) => t.label === "Facilities")?.count, "2");
+      assert.match(html, /2 extension buildings/);
+      assert.match(html, /data-facilities="true"/);
+      assert.match(html, /Hemayetpur, Savar/);
+      assert.match(html, /450 workers/);
+      assert.match(html, /Aboni Textile/);
+      // A building's address is register-filed text like any other.
+      assert.ok(!html.includes("01711528388"), "a phone number filed in a building's address reached the sheet");
+      assert.doesNotMatch(html, /not on this record|No extension buildings|could not be read/);
+    });
+
+    it("a record with none says so; an unread panel says it could not be read, never that there are none", () => {
+      const none = renderToStaticMarkup(createElement(SupplierSheet, { model: buildSheet(aboniInput(), { facilities: { panel: panel([]) } }) }));
+      assert.match(none, /No extension buildings on this record\./);
+      const unread = buildSheet(aboniInput(), { facilities: { panel: null } });
+      assert.equal(unread.tabs.find((t) => t.label === "Facilities")?.count, null);
+      const html = renderToStaticMarkup(createElement(SupplierSheet, { model: unread }));
+      assert.match(html, /The buildings could not be read\./);
+      assert.doesNotMatch(html, /No extension buildings/);
+    });
   });
 
   it("RFQs: an unread list has no count and does not say the buyer has none", () => {

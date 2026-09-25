@@ -962,23 +962,30 @@ describe("the largest lists the database holds (spec §3, §6)", () => {
     assert.doesNotMatch(sheetHtml, TRUNCATION);
   });
 
-  it("39 principal products: the count is exact and the sheet names how many it did not list", () => {
+  it("39 principal products: 34 once case variants merge, every one listed, the count exact", () => {
+    // Adventure Garments files 39 entries; five repeat another in different
+    // case ("All Types Of Jackets" / "All Types of Jackets"). The founder's
+    // ruling of 25 Sep is that those are one product.
     const input = longestProductListInput();
+    assert.equal(input.profile.supplier.principal_products.length, 39, "guard: the fixture is still the 39-entry list");
     const sheet = buildSheet(input);
-    assert.equal(sheet.products.productListCount, 39);
+    assert.equal(sheet.products.productListCount, 34);
     const html = renderToStaticMarkup(createElement(SupplierSheet, { model: sheet }));
-    assert.match(html, /Product list<\/span><span[^>]*>39<\/span><span[^>]*>items on file · source pending/);
+    assert.match(html, /Product list<\/span><span[^>]*>34<\/span><span[^>]*>items on file · source pending/);
     const ps = renderToStaticMarkup(createElement(ProductSheet, { model: buildProductSheet(input, "6105") }));
-    assert.match(ps, /\+35 items/, "four are listed, thirty-five counted — never a silent truncation");
+    assert.match(ps, /\+30 items/, "four are listed, thirty counted — never a silent truncation");
     assert.doesNotMatch(ps, TRUNCATION);
     // The record itself lists every one: 3,975 published records have a
-    // product list and no EPB lines, so no line sheet at all, and a count of
-    // 39 over nothing to read was all they showed.
+    // product list and no EPB lines, so no line sheet at all, and a count
+    // over nothing to read was all they showed.
     const listed = /data-product-list="true">([\s\S]*?)<\/ul>/.exec(html)?.[1] ?? "";
     const items = [...listed.matchAll(/<li[^>]*>([^<]*)<\/li>/g)].map((m) => m[1]);
-    assert.equal(items.length, 39, "the record does not list the products it counts");
+    assert.equal(items.length, 34, "the record does not list the products it counts");
+    assert.equal(new Set(items.map((i) => i!.toLowerCase())).size, 34, "a case variant is listed twice");
+    const shown = html.toLowerCase();
     for (const name of input.profile.supplier.principal_products ?? []) {
-      assert.ok(html.includes(name.replace(/&/g, "&amp;").replace(/'/g, "&#x27;").replace(/"/g, "&quot;")), `"${name}" is counted but not listed`);
+      const esc = name.replace(/&/g, "&amp;").replace(/'/g, "&#x27;").replace(/"/g, "&quot;").toLowerCase();
+      assert.ok(shown.includes(esc), `"${name}" is filed but not listed in any case`);
     }
   });
 });

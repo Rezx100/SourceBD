@@ -43,22 +43,22 @@ below is after that fix.
 
 ```
 file          : supabase/migrations/0105_supplier_record_v32.sql
-bytes         : 6476
+bytes         : 7082
 line endings  : CRLF
-sha256        : d9b2b97a60b206ba9c670e20c3dbaf9d879df903eea869f50884295887ac9154
+sha256        : 4b2dfb8c0d3b9399876e082596b50c64586178153d793ea689cb449796dbde09
 ```
 
-Re-run at this sha256 on 25 Sep after the audit-cycle-4 repairs, which changed
-what the function counts (below). Re-run it again before applying and compare,
+Re-run at this sha256 on 25 Sep after the audit-cycle-5 repairs, which changed
+what the function counts again (below). Re-run it before applying and compare,
 as closed-loop §18 requires.
 
 ## Raw output
 
 ```
 file          : supabase/migrations/0105_supplier_record_v32.sql
-bytes         : 6476
+bytes         : 7082
 line endings  : CRLF
-sha256        : d9b2b97a60b206ba9c670e20c3dbaf9d879df903eea869f50884295887ac9154
+sha256        : 4b2dfb8c0d3b9399876e082596b50c64586178153d793ea689cb449796dbde09
 
 === BEFORE ===
 supplier_contact_counts exists:
@@ -105,7 +105,7 @@ an unknown slug must return null:
 
 === TOTALS ACROSS THE PUBLISHED SET ===
 what the locked cards will say, in aggregate:
-    {'published': 10266, 'with_email': 8734, 'with_phone': 8593, 'with_website': 1688, 'with_rep': 8365}
+    {'published': 10266, 'with_email': 8732, 'with_phone': 8593, 'with_website': 1689, 'with_rep': 8164}
 
 === ROLLED BACK -- nothing was committed ===
 ```
@@ -119,15 +119,21 @@ what the locked cards will say, in aggregate:
 - The counts are right on real rows, and both "not published" and "no such
   slug" return null rather than a row of zeros — a caller cannot tell them
   apart from a missing record, which is correct: neither is a record.
-- Aggregate over the 10,266 published records: 8,734 hold an email, 8,593 hold
-  at least one phone number, 1,688 a website, 8,365 a named representative.
-  Audit cycle 4 found the first version counting any non-blank string: 1,808
-  "websites", of which 111 are exactly `https://` and a few more are
-  `http://Nil`, a product list or an e-mail address; 7 "emails" with no `@`;
-  and every multi-address `email_primary` as one. The function now counts an
-  e-mail per address in the field, a phone per distinct number of six or more
-  digits, and a website only when it holds a domain. `ops/verify_0105_guards.py`
-  recounts every published record in Python and finds 0 mismatches.
+- Aggregate over the 10,266 published records: 8,732 hold an email, 8,593 hold
+  at least one phone number, 1,689 a website, 8,164 a named representative.
+  Audits 4 and 5 found the first versions counting any non-blank string:
+  1,808 "websites", of which 111 are exactly `https://` and a few more
+  `http://Nil`, a product list or an e-mail address (one record files a site
+  AND an e-mail there, and does hold a website); 7 "emails" with no `@`, and
+  "a@x.com/b@x.com" as one; 8,365 "representatives", of which 192 are only
+  "Mr." / "MR." / "Md." and nine are a year or initials. The function now
+  counts an e-mail per address in the field, a phone per distinct number of six
+  or more digits, a website only when it holds a domain once any e-mail is set
+  aside, and a representative only when the name has three letters in a row.
+  Known undercount: 64 `phones` entries run two or three numbers together with
+  no separator (18–27 digits) and count as one. `ops/verify_0105_guards.py`
+  recounts every published record by splitting and scanning in Python — not
+  with the function's patterns — and finds 0 mismatches.
 - Nothing about which **register** filed a contact detail is returned. §4.3's
   example includes `"registers": ["BGMEA", …]`, and that attribution does not
   exist in this database: no row of `source_records.fields` carries a contact

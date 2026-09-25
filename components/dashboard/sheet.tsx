@@ -7,7 +7,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { certStateLabel, rscStatusNeedsLook, type CertModel } from "@/lib/dashboard/facts";
-import type { FactRow, LocationRow, RecordRfqRow, SanctionRow, SourceRow } from "@/lib/dashboard/models";
+import type { FacilityRowModel, FactRow, LocationRow, RecordRfqRow, SanctionRow, SourceRow } from "@/lib/dashboard/models";
 import { recordPage, sourceMark } from "@/lib/dashboard/source-tiers";
 import { cn } from "@/lib/utils";
 import { Badge } from "./chips";
@@ -120,7 +120,7 @@ export function SheetFrame({
     return <div className="relative mx-auto min-h-[calc(100vh-11rem)] w-full max-w-[880px]">{children}</div>;
   }
   return (
-    <div className="fixed inset-0 z-50">
+    <div className="fixed inset-0 z-50" data-open-key={openKey}>
       {closeHref ? (
         <Link
           href={closeHref}
@@ -529,6 +529,21 @@ export function LocationsList({ rows }: { rows: readonly LocationRow[] }) {
               <SourceMark key={m.code} mark={m} sm />
             ))}
           </span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/** The Facilities section: one row per extension building. */
+export function FacilitiesList({ rows }: { rows: readonly FacilityRowModel[] }) {
+  return (
+    <ul className="flex flex-col" data-facilities="true">
+      {rows.map((r, i) => (
+        <li key={`${r.name}-${i}`} className="flex flex-col gap-0.5 border-t border-line-subtle py-2.5 first:border-t-0">
+          <span className="text-base font-medium leading-[22px] text-ink-strong [overflow-wrap:anywhere]">{r.name}</span>
+          {r.address ? <span className="whitespace-pre-line text-sm text-ink [overflow-wrap:anywhere]">{r.address}</span> : null}
+          {r.workers ? <Caption>{r.workers}</Caption> : null}
         </li>
       ))}
     </ul>

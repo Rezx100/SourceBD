@@ -58,25 +58,33 @@ export default async function SupplierRecordPage({
   const linesRaw = sp.lines;
   const allLines = (Array.isArray(linesRaw) ? linesRaw[0] : linesRaw) === "all";
   const supabase = await createSupabaseServerClient();
-  let shell: Awaited<ReturnType<typeof loadBuyerShell>>;
+  // Started together, awaited apart: the shell must be there for the timeout
+  // state too. This page draws its own frame (the layout draws none on kit
+  // routes), so a state returned without `AppShell` had no navigation at all.
+  const shellRead = loadBuyerShell(supabase, `/app/suppliers/${slug}`);
   let model: Awaited<ReturnType<typeof loadRecordSheet>>;
   try {
-    [shell, model] = await Promise.all([
-      loadBuyerShell(supabase, `/app/suppliers/${slug}`),
-      loadRecordSheet(supabase, slug, new Date(), {
-        allLines,
-        // A line opened from the expanded grid comes back to it: without this,
-        // Back from line 9 of "All N lines" landed on six tiles without it.
-        lineHref: allLines ? (hs) => `/app/suppliers/${slug}/lines/${hs}?lines=all` : undefined,
-      }),
-    ]);
+    model = await loadRecordSheet(supabase, slug, new Date(), {
+      allLines,
+      // A line opened from the expanded grid comes back to it: without this,
+      // Back from line 9 of "All N lines" landed on six tiles without it.
+      lineHref: allLines ? (hs) => `/app/suppliers/${slug}/lines/${hs}?lines=all` : undefined,
+    });
   } catch (err) {
     // A slow read is not a missing record. The page this replaced said so and
     // offered a retry; falling through to `notFound()` would answer 404 for a
     // published company because the database was busy.
-    if (err instanceof ProfileReadTimeout) return <RecordTooSlow slug={slug} />;
+    if (err instanceof ProfileReadTimeout) {
+      const shell = await shellRead;
+      return (
+        <AppShell sidebar={shell.sidebar} topbar={shell.topbar} mainId="main-content" screenLabel="Supplier record">
+          <RecordTooSlow slug={slug} />
+        </AppShell>
+      );
+    }
     throw err;
   }
+  const shell = await shellRead;
 
   if (!model) {
     // A building's slug is not a record of its own: it redirects to the mother

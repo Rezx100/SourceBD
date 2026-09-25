@@ -7,7 +7,12 @@
 
 import assert from "node:assert/strict";
 import { afterEach, describe, it } from "node:test";
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import { AppRouterContext } from "next/dist/shared/lib/app-router-context.shared-runtime";
+import { PathnameContext } from "next/dist/shared/lib/hooks-client-context.shared-runtime";
+
+import { ShellSwitch } from "@/components/shell/shell-switch";
 
 import { buildSheet } from "@/lib/dashboard/build-models";
 import { aboniInput } from "@/lib/dashboard/fixtures";
@@ -99,15 +104,19 @@ describe("ReportProblem — the form sends what the feedback route reads", () =>
     assert.equal(calls[0]!.url, FEEDBACK_ENDPOINT);
     assert.equal(calls[0]!.init.method, "POST");
     assert.deepEqual(JSON.parse(calls[0]!.init.body), { page_path: PAGE, message: "The address is wrong." });
-    assert.ok(run.sets.some((s) => s.value === "sent"), "a 201 is not reported as sent");
+    const last = (hook: number) => run.sets.filter((s) => s.hook === hook).at(-1)?.value;
+    assert.equal(last(1), "sent", "a 201 is not reported as sent");
+    assert.equal(last(0), "", "the sent report is left in the box");
   });
 
   it("an ended session is told to sign in, not to try again", async () => {
     stub("fetch", async () => ({ ok: false, status: 401 }));
     const { run, submit } = form(["The address is wrong.", "idle", null]);
     await submit();
-    assert.ok(run.sets.some((s) => s.value === "failed"));
-    assert.ok(run.sets.some((s) => typeof s.value === "string" && /Sign in again/.test(s.value)), JSON.stringify(run.sets));
+    // The LAST word the reader is left with, not any word on the way.
+    const last = (hook: number) => run.sets.filter((s) => s.hook === hook).at(-1)?.value;
+    assert.equal(last(1), "failed");
+    assert.match(String(last(2)), /Sign in again/, JSON.stringify(run.sets));
   });
 
   it("a note under ten characters is refused before any request", async () => {
@@ -133,20 +142,60 @@ describe("ReportProblem — the form sends what the feedback route reads", () =>
     assert.equal(stopped, true, "Escape reaches the sheet and closes the record too");
     assert.equal(target.open, false);
     assert.equal(focused, true, "focus is not returned to the menu button");
+
+    // With the menu closed, Escape is the sheet's: it must pass through.
+    let passed = true;
+    const closed = { open: false, querySelector: () => null };
+    (details!.props.onKeyDown as (e: unknown) => void)({ key: "Escape", currentTarget: closed, stopPropagation: () => void (passed = false) });
+    assert.equal(passed, true, "a closed menu swallows the Escape that should close the sheet");
+  });
+});
+
+describe("ShellSwitch — one shell per page, on every navigation", () => {
+  // The layout used to pick the shell from a request header, which a client
+  // navigation never re-sends: from an old-shell page into a record by
+  // next/link, the old shell stayed and the kit's drew inside it (cycle 5).
+  // This is a client component that reads the CURRENT path, so a navigation
+  // is a re-render with a new path — which is what this drives.
+  const shell = (pathname: string) =>
+    callWithHooks(ShellSwitch, { top: "TOP", side: "SIDE", bottom: "BOTTOM", children: "PAGE" }, { contexts: new Map([[PathnameContext, pathname]]) }).out;
+
+  it("draws nothing around a kit page, and the old shell around every other", () => {
+    for (const path of ["/app/suppliers/aboni-knitwear", "/app/suppliers/aboni-knitwear/lines/6105", "/app/discover"]) {
+      const out = shell(path);
+      assert.equal(textOf(out), "PAGE", `${path}: the old shell is drawn around a kit page`);
+      assert.equal(findAll(out, (el) => el.type === "main").length, 0);
+    }
+    for (const path of ["/app", "/app/rfqs", "/app/compliance/expiry"]) {
+      const out = shell(path);
+      assert.equal(findAll(out, (el) => el.type === "main" && el.props.id === "main-content").length, 1, `${path}: no <main>`);
+      assert.equal(textOf(out), "TOPSIDEPAGEBOTTOM");
+    }
+  });
+
+  it("the layout routes its shell through it, and no longer reads the request", () => {
+    const layout = readFileSync(path.join(process.cwd(), "app", "(app)", "layout.tsx"), "utf8");
+    assert.match(layout, /<ShellSwitch\b/);
+    assert.doesNotMatch(layout, /x-sourcebd-pathname|headers\(\)/, "the layout picks the shell from the request again");
+    assert.doesNotMatch(layout, /<main\b/, "the layout draws a <main> of its own");
   });
 });
 
 describe("DialogFocus — focus follows the dialog's content", () => {
   function world(search: string) {
-    const state = { search, focusedDialog: 0, listener: null as null | ((e: unknown) => void), focusedOpener: 0 };
+    const state = { search, focusedDialog: 0, listener: null as null | ((e: unknown) => void), focusedOpener: 0, focused: [] as string[] };
     stub("window", { location: { get search() { return state.search; } } });
     stub("document", {
       querySelector: (sel: string) => (sel === '[role="dialog"]' ? { focus: () => void state.focusedDialog++ } : null),
       addEventListener: (_: string, f: (e: unknown) => void) => void (state.listener = f),
       removeEventListener: () => void (state.listener = null),
-      querySelectorAll: () => [
-        { getAttribute: () => "/app/discover?q=knit&record=aboni-knitwear", closest: () => null, focus: () => void state.focusedOpener++ },
-      ],
+      // The results: the company and one of its buildings, each opening its own record.
+      querySelectorAll: () =>
+        ["aboni-knitwear", "aboni-knitwear-unit-2"].map((slug) => ({
+          getAttribute: () => `/app/discover?q=knit&record=${slug}`,
+          closest: () => null,
+          focus: () => void (state.focusedOpener++, state.focused.push(slug)),
+        })),
     });
     return state;
   }
@@ -184,8 +233,28 @@ describe("DialogFocus — focus follows the dialog's content", () => {
     assert.deepEqual(pushes, [["/app/discover?q=knit", { scroll: false }]]);
     w.listener!({ key: "Escape", defaultPrevented: true, preventDefault() {} });
     assert.equal(pushes.length, 1, "an Escape already handled (the more menu's) closes the sheet as well");
+    // By the time the sheet unmounts the URL no longer names the record; the
+    // opener must already be known.
+    w.search = "?q=knit";
     cleanup();
     await tick();
     assert.equal(w.focusedOpener, 1, "focus does not return to the result that opened the record");
+    assert.deepEqual(w.focused, ["aboni-knitwear"]);
+  });
+
+  it("a building's notice that leads to its company returns focus to the building's result, which opened it", async () => {
+    const w = world("?q=knit&record=aboni-knitwear-unit-2");
+    const notice = mount("notice:aboni-knitwear-unit-2");
+    notice.effects[0]!();
+    // "Open the company's record": same frame, new content, new URL.
+    w.search = "?q=knit&record=aboni-knitwear";
+    const record = mount("aboni-knitwear:", notice.refs);
+    record.effects[0]!();
+    assert.equal(w.focusedDialog, 2, "focus does not follow the notice into the record");
+    const cleanup = record.effects[1]!() as () => void;
+    w.search = "?q=knit";
+    cleanup();
+    await tick();
+    assert.deepEqual(w.focused, ["aboni-knitwear-unit-2"], "focus returns to a result the buyer never clicked");
   });
 });

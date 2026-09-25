@@ -26,6 +26,7 @@ import {
   AffiliationNote,
   CertGrid,
   FactsPanel,
+  FacilitiesList,
   LocationsList,
   LockCard,
   QuietEmpty,
@@ -286,11 +287,19 @@ export function SupplierSheet({
             <QuietEmpty>{model.locationsEmpty}</QuietEmpty>
           )}
         </SheetSection>
-        {/* REZ-73's roll-up is not landed (hand-off §2.2). The section keeps
-            its place and says what is missing; it never says the company has
-            no extension buildings, which is a claim this payload cannot make. */}
-        <SheetSection id="facilities" title="Facilities">
-          <QuietEmpty>{model.facilitiesEmpty}</QuietEmpty>
+        {/* REZ-73's buildings (`buyer_supplier_facility_panel`), as the page
+            this replaced and the public profile list them. An unread panel
+            says so; it never says the company has no buildings. */}
+        <SheetSection
+          id="facilities"
+          title="Facilities"
+          caption={model.facilities.count ? `${model.facilities.count} extension building${model.facilities.count === 1 ? "" : "s"}` : null}
+        >
+          {model.facilities.rows.length > 0 ? (
+            <FacilitiesList rows={model.facilities.rows} />
+          ) : (
+            <QuietEmpty>{model.facilities.empty}</QuietEmpty>
+          )}
         </SheetSection>
         <SheetSection
           id="rfqs"

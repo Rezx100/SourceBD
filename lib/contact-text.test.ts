@@ -46,10 +46,6 @@ const LEAKING: [string, string][] = [
   ["A.S.M. Shafiquzzaman, Proprietor", ""],
   ["Md. Moniruzzaman Monir, # 132, Gulshan, Managing Director", "# 132, Gulshan"],
   ["Managing Director, # 08, Rd # 01,", "# 08, Rd # 01"],
-  [
-    "263, Bara Moghbazar, (3rd Floor) Sorder M. Nur-Uz-Zaman, Moghbazar, Dhaka Managing Director",
-    "263, Bara Moghbazar, (3rd Floor) Sorder M. Nur-Uz-Zaman, Moghbazar, Dhaka",
-  ],
   ["Plot-53, Block-B, Banani C/A, Dhaka - 1213, Bangladesh, janata-sadat-jute.com/", "Plot-53, Block-B, Banani C/A, Dhaka - 1213, Bangladesh"],
   // A principal product: `shanghai-deck-lace-bd` files its gated website as one.
   ["shdeck.com", ""],
@@ -58,7 +54,7 @@ const LEAKING: [string, string][] = [
   ["Dhaka, 01711-528388/01819-123456", "Dhaka"],
   ["Plot 5, Dhaka, 0171 152 8388", "Plot 5, Dhaka"],
   ["Plot 5, Dhaka, 01711.528388", "Plot 5, Dhaka"],
-  ["Plot 5, Dhaka.01711528388", "Plot 5, Dhaka"],
+  ["Plot 5, Dhaka.01711528388", "Plot 5, Dhaka."],
   ["Plot 5, Dhaka, Contact: 01711-52-83-88", "Plot 5, Dhaka"],
   ["Road 12, Uttara, Dhaka-1230, 01711 52 83 88", "Road 12, Uttara, Dhaka-1230"],
   ["Plot 5, Dhaka 01711 528388", "Plot 5, Dhaka"],
@@ -72,6 +68,31 @@ const LEAKING: [string, string][] = [
   ["Plot 5, Dhaka, Contact: info@abc.com", "Plot 5, Dhaka"],
   ["Plot 5, Dhaka, abc.com.bd", "Plot 5, Dhaka"],
   ["Plot 5, Dhaka, silvergroupbd.com", "Plot 5, Dhaka"],
+  // Cycle 5: a role not next to the name it labels (live rows), and the shapes the audits probed.
+  [
+    "Saddam Hossain, 60, Gausul Azam Avenue, Sector # 13, Proprietor, Uttara, Dhaka, Beetex Sourcing (Reg:",
+    "60, Gausul Azam Avenue, Sector # 13, Uttara, Dhaka, Beetex Sourcing (Reg:",
+  ],
+  [
+    "263, Bara Moghbazar, (3rd Floor) Sorder M. Nur-Uz-Zaman, Moghbazar, Dhaka Managing Director",
+    "263, Bara Moghbazar, (3rd Floor), Moghbazar, Dhaka",
+  ],
+  ["Karim Uddin (Proprietor), Plot 5, Dhaka", "Plot 5, Dhaka"],
+  ["Plot 5, Dhaka, Contact Person: Md. Karim Uddin", "Plot 5, Dhaka"],
+  ["Plot 5, Dhaka, Attn: Mr. Rahman", "Plot 5, Dhaka"],
+  ["Plot 5, Dhaka, C/O Mr. Karim", "Plot 5, Dhaka"],
+  ["Plot 5, Dhaka, CEO: Abdul Karim", "Plot 5, Dhaka"],
+  ["Plot 5, Dhaka, (01711) 528388", "Plot 5, Dhaka"],
+  ["Plot 5, Dhaka, 01711 - 528388", "Plot 5, Dhaka"],
+  ["Plot 5, Dhaka, 01711—528388", "Plot 5, Dhaka"],
+  ["Plot 5, Dhaka, Tel: (02) 912 5191", "Plot 5, Dhaka"],
+  ["Plot 5, Dhaka, PABX 989 8989", "Plot 5, Dhaka"],
+  ["Plot 5, Dhaka, WhatsApp 01711528388", "Plot 5, Dhaka"],
+  ["Plot 5, Dhaka, info @ abc.com", "Plot 5, Dhaka"],
+  ["Plot 5, Dhaka, abc(at)gmail(dot)com", "Plot 5, Dhaka"],
+  ["Plot 5, Dhaka, e-mail: x at y dot com", "Plot 5, Dhaka"],
+  ["Plot 5, Dhaka, Skype: abc.garments", "Plot 5, Dhaka"],
+  ["Plot 5, Dhaka, abcfashion.shop", "Plot 5, Dhaka"],
 ];
 
 const CLEAN = [
@@ -101,6 +122,8 @@ const CLEAN = [
   "CHAIRMAN MARKET, DHAKIN KHAN BAZAR, UTTARA, DHAKA",
   "House # 441 (Ground Floor), Road # 30, New Apparel.com Limited (Reg:, DOHS Mustafa Arcade, Flat # A4,, 1/A, House #18, Mohakhali, Dhaka",
   "Contact Address: House - 1/C (3rd Floor) Road - 10, Baridhara Diplomatic Zone, Dhaka - 1212. Head Office: 26, Shyamolibag, Mirpur Road, Dhaka-1207.",
+  "Md. Ali Mansion, Dhaka",
+  "Road @ 8, Gulshan, Dhaka",
 ];
 
 describe("withoutContactDetails — contact details filed inside an address", () => {
@@ -121,12 +144,30 @@ describe("withoutContactDetails — contact details filed inside an address", ()
     }
   });
 
-  it("each rule stands on its own: an unlabelled e-mail, a bare mobile, a bare domain", () => {
-    // Every fixture e-mail above is labelled, so removing the e-mail rule
-    // passed them all (cycle 4). These have nothing else that would catch them.
-    assert.equal(withoutContactDetails("Plot 5, Dhaka, sales.team@abc-garments.com"), "Plot 5, Dhaka");
-    assert.equal(withoutContactDetails("Plot 5, Dhaka, 01911223344"), "Plot 5, Dhaka");
-    assert.equal(withoutContactDetails("Plot 5, Dhaka, abc-garments.net"), "Plot 5, Dhaka");
+  it("each rule stands on its own: nothing else in the text would catch these", () => {
+    // Every fixture e-mail above was labelled, so removing the e-mail rule
+    // passed them all (cycle 4); removing the international and URL rules
+    // passed everything too (cycle 5). One case per rule, with no label and
+    // no other shape another rule could take.
+    const alone: [rule: string, filed: string][] = [
+      ["e-mail", "Plot 5, Dhaka, sales.team@abc-garments.com"],
+      // Spaced: unbroken, the bare-number rule would take it too.
+      ["mobile", "Plot 5, Dhaka, 0191 122 3344"],
+      ["domain", "Plot 5, Dhaka, abc-garments.net"],
+      ["international", "Plot 5, Dhaka, +44 20 7946 0958"],
+      ["URL", "Plot 5, Dhaka, www.abcfashion.garden"],
+      ["bare number from 0, nine digits in groups", "Plot 5, Dhaka, 02-9898-989"],
+      ["standalone role", "Chairman, Plot 5, Dhaka"],
+    ];
+    for (const [rule, filed] of alone) assert.equal(withoutContactDetails(filed), "Plot 5, Dhaka", rule);
+  });
+
+  it("a product entry keeps its long numbers: an HS code is not a phone", () => {
+    assert.equal(withoutContactDetails("Knit T-shirt 61091000", { bareNumbers: false }), "Knit T-shirt 61091000");
+    assert.equal(withoutContactDetails("Knit T-shirt 61091000"), "Knit T-shirt", "guard: in an address the same number is a phone");
+    // Everything else still applies to a product entry.
+    assert.equal(withoutContactDetails("shdeck.com", { bareNumbers: false }), "");
+    assert.equal(withoutContactDetails("Polo shirts, call 01711528388", { bareNumbers: false }), "Polo shirts, call");
   });
 
   it("null stays null", () => {

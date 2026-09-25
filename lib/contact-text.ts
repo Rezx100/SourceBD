@@ -11,61 +11,74 @@
 // both. So the buyer record, card, table row and line sheet pass every filed
 // address and product entry through here (`build-models.ts`,
 // `withoutFiledContact`). The anonymous public profile does not yet — that is
-// its own issue.
+// its own issue. `ops/verify_contact_text.py` runs this over every published
+// text and checks the gated values against what comes out.
 //
-// What counts as contact detail, from the real rows:
-// - an e-mail address, including "info [at] abc.com";
-// - a URL (`www.…`, `http…`), whatever follows a "Web:" or "Email:" label, or
-//   a bare domain ("chikleetrims.com/") — but not a company name that is one
-//   ("New Apparel.com Limited");
+// What counts as contact detail, from the real rows and the audits' probes:
+// - an e-mail address, including "info @ abc.com", "info [at] abc.com" and
+//   "abc(at)gmail(dot)com";
+// - a URL (`www.…`, `http…`), whatever follows a "Web:", "Email:" or "Skype:"
+//   label, or a bare domain ("chikleetrims.com/") — but not a company name
+//   that is one ("New Apparel.com Limited");
 // - a Bangladeshi mobile number however it is grouped — "01711528388",
-//   "0171 152 8388", "01711-52-83-88", "01711.528388", "+880 1711 528388" —
-//   including slash-separated pairs;
-// - an international number, `+880 2 9898989`;
+//   "0171 152 8388", "01711-52-83-88", "01711 - 528388", "(01711) 528388",
+//   "+880 1711 528388" — including slash-separated pairs;
+// - an international number, `+44 20 7946 0958`;
 // - a number after a contact label — Tel, Phone, Pho, Ph, Mobile, Mob, Cell,
-//   Fax, Hotline, Contact, and "T:"/"M:"/"F:" — with "No"/"#" and ":"/"-"/"#"
-//   separators ("Tel No: 912 5191", "Mob-01711528388", "Cell#01711…"),
-//   including lists ("TEL: 741872, 741889, 741890"); the number must carry six
-//   or more digits, so "Ph. 12" (a phase) is not a phone;
+//   Fax, Hotline, Contact, PABX, WhatsApp, Viber, IMO, and "T:"/"M:"/"F:" —
+//   with "No"/"#" and ":"/"-"/"#" separators ("Tel No: 912 5191",
+//   "Mob-01711528388", "Tel/Fax: (02) 9898989"), including lists; the number
+//   must carry six or more digits, so "Ph. 12" (a phase) is not a phone;
 // - a bare number with an unbroken run of seven or more digits ("9125191",
 //   "8715141-2"), or one that starts with 0 and runs six or more
 //   ("018-238019", "011029958"). Plots, holdings and postcodes run six or
 //   fewer and do not start with 0 ("Plot # 110072", "314102", "Dhaka-1000"),
 //   and a number straight after an address label (Plot, Holding, House…) is
-//   never a phone;
-// - a named contact: "Your contact: <name>", a role (Proprietor, Managing
-//   Director) and, where the address opens "Name, Role", the name; a
-//   comma-separated part that is an honorific and a name ("Md. Moniruzzaman
-//   Monir") and holds no address word ("Dr. Assaduzzaman Industrial Park" is a
-//   place, so "Dr." is not taken as one);
+//   never a phone. A product entry skips this rule: "Knit T-shirt 61091000"
+//   carries an HS code, not a phone;
+// - a named contact: "Your contact: <name>", "Contact person: …", "Attn: …",
+//   "C/O …", "CEO: …"; a role (Proprietor, Managing Director) and the name
+//   filed with it — the part that opens the address, a comma part that is an
+//   honorific and a name ("Md. Moniruzzaman Monir"), and in a text that names
+//   a role, a name written with an initial ("Sorder M. Nur-Uz-Zaman");
 // - the label left behind once its value is gone ("Web:", "Email:").
 // Words that merely begin like a label — Telihati, Telecom, Web Tower, Email
-// Road, Chairman Bari — are not contact details: labels are whole words, and a
-// label only goes when its value did.
+// Road, Chairman Bari, Md. Ali Mansion is not one — are not contact details:
+// labels are whole words, and a label only goes when its value did.
+//
+// Not covered, by decision: an unlabelled Dhaka landline split 3-4
+// ("912-5191") reads exactly like a plot range, and no published text holds
+// one today; a labelled one is covered.
 
-const ONE_LABEL = String.raw`\b(?:tel|tele|telephone|phone|pho|ph|mobile|mob|cell|fax|hotline|contact|e-?mail|web|website)\b`;
+const ONE_LABEL = String.raw`\b(?:tel|tele|telephone|phone|pho|ph|mobile|mob|cell|fax|hotline|contact|pabx|whatsapp|viber|imo|e-?mail|web|website)\b`;
 // "Tel/Fax:" is one label.
 const LABEL = String.raw`${ONE_LABEL}(?:[ \t]*\/[ \t]*${ONE_LABEL})*`;
 const LABEL_TAIL = String.raw`(?:[ \t]*(?:no|number|#)\.?)?[ \t]*[:.#\-]?[ \t]*`;
 const ADDRESS_LABEL = String.raw`\b(?:plot|holding|house|h|road|rd|block|sector|sec|flat|apt|reg|khatian|dag|mouza|ward|no)\b\.?[ \t]*[#:\-]?[ \t]*`;
+// Between the digits of one mobile number: a space, dot, dash (any), or parenthesis — up to three of them.
+const SEP = String.raw`[ \t.\-–—()]{0,3}`;
 
-const EMAIL = /[\w.+-]+(?:@|\s*[[(]\s*at\s*[\])]\s*)[\w-]+(?:\.[\w-]+)+/gi;
+const EMAIL = /[\w.+-]+\s*(?:@|[[(]\s*at\s*[\])])\s*[\w-]+(?:(?:\.|\s*[[(]\s*dot\s*[\])]\s*)[\w-]+)+/gi;
+const SPELLED_EMAIL = /\b[\w.+-]+\s+at\s+[\w-]+\s+dot\s+[a-z]{2,}\b/gi;
 const URL = /\b(?:https?:\/\/|www\.)[^\s,;]+/gi;
-// Whatever follows "Web:"/"Email:" when it holds a dot, whatever its domain ends
-// in; "Web Tower" and "Email Road" have no colon and stay.
-const LABELLED_TEXT = /\b(?:e-?mail|web|website)\b[ \t]*:[ \t]*[^\s,;]*\.[^\s,;]+/gi;
-const DOMAIN = /\b[a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?:\.[a-z0-9-]+)*\.(?:com|net|org|info|biz|co|bd|cn|hk|in|uk|de|io|asia)(?:\.[a-z]{2})?\b(?!\s+(?:limited|ltd)\b)\/?[^\s,;]*/gi;
-const MOBILE = /(?<![\d+])(?:\+?[ \t]?88[ \t\-]?)?0[ \t.\-]?1[ \t.\-]?[3-9](?:[ \t.\-]?\d){8}(?!\d)/g;
+// Whatever follows "Web:"/"Email:"/"Skype:" when it holds a dot, whatever its
+// domain ends in; "Web Tower" and "Email Road" have no colon and stay.
+const LABELLED_TEXT = /\b(?:e-?mail|web|website|skype)\b[ \t]*:[ \t]*[^\s,;]*\.[^\s,;]+/gi;
+const DOMAIN = /\b[a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?:\.[a-z0-9-]+)*\.(?:com|net|org|info|biz|co|bd|cn|hk|in|uk|de|io|asia|shop|store|online|xyz)(?:\.[a-z]{2})?\b(?!\s+(?:limited|ltd)\b)\/?[^\s,;]*/gi;
+const MOBILE = new RegExp(String.raw`(?<![\d+])(?:\+?[ \t]?88${SEP})?\(?0${SEP}1${SEP}[3-9](?:${SEP}\d){8}(?!\d)\)?`, "g");
 const INTERNATIONAL = /\+\d[\d \t\-()]{6,}\d/g;
-const LABELLED_NUMBER = new RegExp(String.raw`(?:${LABEL}|\b[TMF]\b(?=[ \t]*:))${LABEL_TAIL}\+?\d[\d \t\-()/.,]*\d`, "gi");
+const LABELLED_NUMBER = new RegExp(String.raw`(?:${LABEL}|\b[TMF]\b(?=[ \t]*:))${LABEL_TAIL}\+?\(?\d[\d \t\-()/.,]*\d`, "gi");
 const BARE_NUMBER = new RegExp(String.raw`(?<!${ADDRESS_LABEL})(?<=^|[\s,;:(/])\+?[\d\-()]*\d[\d\-()]*(?=$|[\s,;.)/])`, "gi");
-const YOUR_CONTACT = /\byour contact\b[ \t]*:?[^,\n]*/gi;
+const NAME_LABEL = /(?:\byour contact\b[ \t]*:?|\b(?:contact person|attn|attention|ceo|general manager|gm|director|chairman|owner|proprietor|managing director)\b[ \t]*[:\-]|\bc\/o\b)[^,\n]*/gi;
 const ROLE = /\b(?:managing director|proprietor)\b/gi;
+const NAMES_A_ROLE = /\b(?:managing director|proprietor|your contact|contact person)\b/i;
+// "Sorder M. Nur-Uz-Zaman": capitalised words around an initial.
+const INITIALLED_NAME = /\b[A-Z][a-z]+(?: [A-Z]\.)+ [A-Z][\w-]+/g;
 const DANGLING_LABEL = new RegExp(String.raw`${LABEL}(?:[ \t]*(?:no|number|#)\.?)?[ \t]*[:.#\-][ \t]*(?=$|[,;\n])`, "gim");
 
 const HONORIFIC_NAME = /^\s*(?:md|mohd|mohammad|mr|mrs|ms|engr)\.?\s+[a-z][a-z .'\-]*$/i;
 const STANDALONE_ROLE = /^\s*(?:managing director|proprietor|chairman|director|ceo|owner|md)\s*$/i;
-const ADDRESS_WORD = /\b(?:road|rd|street|avenue|lane|bari|market|plaza|tower|bhaban|bhabon|house|para|nagar|bazar|sarak|sarani|mor|villa|complex|centre|center|park|industrial|university|college|school|mosque|hospital)\b/i;
+const ADDRESS_WORD = /\b(?:road|rd|street|avenue|lane|bari|market|plaza|tower|bhaban|bhabon|house|mansion|building|para|nagar|bazar|sarak|sarani|mor|villa|complex|centre|center|park|industrial|university|college|school|mosque|hospital)\b/i;
 
 function digitsOf(s: string): number {
   return s.replace(/\D/g, "").length;
@@ -84,40 +97,52 @@ function bareNumber(match: string): string {
   return match;
 }
 
-/** Drop the comma-separated parts of one line that name a person. */
-function withoutNamedParts(line: string): string {
+/**
+ * Drop the comma-separated parts of one line that name a person. `named`: the
+ * text named a role somewhere, so the part that opens it — digit-free, no
+ * address word — is the role holder's name even when the role is not next to it.
+ */
+function withoutNamedParts(line: string, named: boolean): string {
   const parts = line.split(",");
   const role = parts.map((p) => STANDALONE_ROLE.test(p));
   const keep = parts.map((p, i) => {
     if (role[i]) return false;
     if (HONORIFIC_NAME.test(p) && !ADDRESS_WORD.test(p)) return false;
-    // "Name, Proprietor" opening the address: the first part names the role holder.
-    if (i === 0 && role[1] && !/\d/.test(p) && !ADDRESS_WORD.test(p)) return false;
+    if (i === 0 && (named || role[1]) && p.trim() && !/\d/.test(p) && !ADDRESS_WORD.test(p)) return false;
     return true;
   });
   return keep.every(Boolean) ? line : parts.filter((_, i) => keep[i]).join(",");
 }
 
+export type ContactTextOptions = {
+  /** False for a product entry, where a long bare number is an HS code, not a phone. Default true. */
+  bareNumbers?: boolean;
+};
+
 /** `text` with every contact detail removed; unchanged when it carries none. */
-export function withoutContactDetails(text: string): string;
-export function withoutContactDetails(text: string | null | undefined): string | null;
-export function withoutContactDetails(text: string | null | undefined): string | null {
+export function withoutContactDetails(text: string, options?: ContactTextOptions): string;
+export function withoutContactDetails(text: string | null | undefined, options?: ContactTextOptions): string | null;
+export function withoutContactDetails(text: string | null | undefined, options: ContactTextOptions = {}): string | null {
   if (text == null) return null;
-  const cut = text
+  const named = NAMES_A_ROLE.test(text);
+  let cut = text
     .replace(EMAIL, " ")
+    .replace(SPELLED_EMAIL, " ")
     .replace(URL, " ")
     .replace(LABELLED_TEXT, " ")
     .replace(DOMAIN, " ")
     .replace(LABELLED_NUMBER, labelledNumber)
     .replace(MOBILE, " ")
-    .replace(INTERNATIONAL, " ")
-    .replace(BARE_NUMBER, bareNumber)
-    .replace(YOUR_CONTACT, " ")
+    .replace(INTERNATIONAL, " ");
+  if (options.bareNumbers !== false) cut = cut.replace(BARE_NUMBER, bareNumber);
+  cut = cut
+    .replace(NAME_LABEL, " ")
     .replace(DANGLING_LABEL, " ")
     .split("\n")
-    .map(withoutNamedParts)
+    .map((line) => withoutNamedParts(line, named))
     .join("\n")
     .replace(ROLE, " ");
+  if (named) cut = cut.replace(INITIALLED_NAME, " ");
   // A clean address comes back byte for byte: the premises matcher and the
   // register attribution both compare these strings.
   if (cut === text) return text;
@@ -125,11 +150,12 @@ export function withoutContactDetails(text: string | null | undefined): string |
     .split("\n")
     .map((line) =>
       line
+        .replace(/\(\s*\)/g, " ")
         .replace(/[ \t]+/g, " ")
         .replace(/\s*,(?:\s*,)+/g, ",")
         .replace(/ +,/g, ",")
         .replace(/\/(?=\s*(?:,|$))/g, "")
-        .replace(/^[\s,;:/]+|[\s,;/.]+$/g, ""),
+        .replace(/^[\s,;:/]+|[\s,;/]+$/g, ""),
     )
     .filter((line) => line !== "")
     .join("\n");

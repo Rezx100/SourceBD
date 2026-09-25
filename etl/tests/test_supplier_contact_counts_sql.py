@@ -22,7 +22,6 @@ the state it found.
 from __future__ import annotations
 
 import os
-import re
 from pathlib import Path
 
 import pytest
@@ -155,15 +154,47 @@ def test_returns_counts_and_never_a_value(conn, applied):
 
 
 def _expected(row) -> dict:
-    """The counts, recomputed in Python from the raw columns — not by restating
-    the function's SQL, which would agree with any bug it has."""
-    website = row["website"] or ""
-    digits = {re.sub(r"\D", "", ph) for ph in row["phones"] or []}
+    """The counts, recomputed from the raw columns by splitting and scanning —
+    deliberately not the migration's regular expressions, which a transliterated
+    recount would agree with however wrong they were (audit cycle 5)."""
+    def tokens(text: str) -> list[str]:
+        for sep in ",;/\n\t":
+            text = text.replace(sep, " ")
+        return [t for t in text.split(" ") if t]
+
+    def has_letters(s: str, n: int) -> bool:
+        run = 0
+        for ch in s:
+            run = run + 1 if ch.isalpha() else 0
+            if run >= n:
+                return True
+        return False
+
+    # "a @ b.com" is one address: close the spaces around '@' before splitting.
+    mail = row["email_primary"] or ""
+    while " @" in mail or "@ " in mail:
+        mail = mail.replace(" @", "@").replace("@ ", "@")
+    emails = sum(1 for t in tokens(mail) if t.count("@") == 1 and t.index("@") > 0 and "." in t.split("@")[1].strip(".")[1:])
+
+    phones = {"".join(ch for ch in ph if ch.isdigit()) for ph in row["phones"] or []}
+    phones = {d for d in phones if len(d) >= 6}
+
+    def is_site(t: str) -> bool:
+        if "@" in t:
+            return False
+        host = t.split("://", 1)[-1]
+        for i, ch in enumerate(host):
+            if ch == "." and i > 0 and has_letters(host[i + 1 : i + 3], 2):
+                return True
+        return False
+
+    website = any(is_site(t) for t in tokens((row["website"] or "").lower()))
+
     return {
-        "emails": len(re.findall(r"[^@\s,;]+\s*@\s*[^@\s,;]+", row["email_primary"] or "")),
-        "phones": len({d for d in digits if len(d) >= 6}),
-        "website": bool(re.search(r"[a-z0-9-]+\.[a-z]{2,}", website, re.I)) and "@" not in website,
-        "representatives": 1 if (row["contact_name"] or "").strip() else 0,
+        "emails": emails,
+        "phones": len(phones),
+        "website": website,
+        "representatives": 1 if has_letters(row["contact_name"] or "", 3) else 0,
     }
 
 

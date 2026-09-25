@@ -13,7 +13,7 @@ import { ProductSheet } from "@/components/dashboard/product-sheet";
 import { SheetFrame } from "@/components/dashboard/sheet";
 import { loadBuyerShell } from "@/lib/dashboard/load-buyer-shell";
 import { heading4 } from "@/lib/dashboard/hs-photos";
-import { ProfileReadTimeout, loadRecordLine } from "@/lib/dashboard/load-record";
+import { LinesUnreadable, ProfileReadTimeout, loadRecordLine } from "@/lib/dashboard/load-record";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -54,6 +54,9 @@ export default async function ProductLinePage({
     // A slow read sends the reader to the record, which has its own retry
     // state — never a 404, which would say the line does not exist.
     if (err instanceof ProfileReadTimeout) redirect(`/app/suppliers/${slug}`);
+    // The lines could not be read and the heading is not in the catalogue:
+    // the record says the lines could not be read; a sheet here would invent one.
+    if (err instanceof LinesUnreadable) redirect(recordHref);
     throw err;
   }
   if (!model) notFound();

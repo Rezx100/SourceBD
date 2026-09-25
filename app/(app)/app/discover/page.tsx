@@ -408,7 +408,7 @@ export default async function BuyerDiscoverPage({
             )}
           </SheetFrame>
         ) : record ? (
-          <SheetFrame overlay closeHref={closeHref} openKey={`${recordSlug}:${line ? lineCode : ""}`}>
+          <SheetFrame overlay closeHref={closeHref} openKey={`${recordSlug}:${line ? lineCode : allLines ? "all" : ""}`}>
             {/* The line sheet sits where the record sheet would: one dialog at
                 a time, with Back to the record and Close to the search. */}
             {line ? (
