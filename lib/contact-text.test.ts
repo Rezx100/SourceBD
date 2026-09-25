@@ -5,6 +5,10 @@
 
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
+import { spawnSync } from "node:child_process";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import path from "node:path";
 
 import { withoutContactDetails } from "./contact-text";
 
@@ -104,6 +108,39 @@ const LEAKING: [string, string][] = [
   ["Plot 5, Dhaka, Abdul Karim - GM", "Plot 5, Dhaka"],
   ["Plot 5, Dhaka, Owner - Abdul Karim", "Plot 5, Dhaka"],
   ["Plot 5, Dhaka, CEO – Abdul Karim", "Plot 5, Dhaka"],
+  // …and when a numbered place opens the name's stretch, the place up to its
+  // last number stays and the name goes. An address word does not mark a place
+  // here: it is a name too (cycle 8 — "Abdul Bari (MD)" was kept whole, "Bari"
+  // being on the address list). Privacy over completeness: "Nur Mansion (MD)"
+  // and "Rahman Villa" lose their place.
+  ["House 5 Road 3 Md Karim (MD), Dhaka", "House 5 Road 3, Dhaka"],
+  ["House 12 Road 3 Karim Uddin (Proprietor), Dhaka", "House 12 Road 3, Dhaka"],
+  ["Holding 7 Station Road Abdul Karim - CEO, Tongi", "Holding 7, Tongi"],
+  ["Plot 5, Rahman Villa Abdul Karim - Owner, Dhaka", "Plot 5, Dhaka"],
+  ["Abdul Bari (MD), Plot 5, Dhaka", "Plot 5, Dhaka"],
+  ["Plot 5, Dhaka, Abdul Bari - Proprietor", "Plot 5, Dhaka"],
+  ["Plot 5, Dhaka, Md. Abdul Bari (Chairman)", "Plot 5, Dhaka"],
+  ["Plot 5, Dhaka, Karim Park (Owner)", "Plot 5, Dhaka"],
+  ["Rokeya Nagar - CEO, Plot 5", "Plot 5"],
+  ["Nur Mansion (MD), Dhaka", "Dhaka"],
+  ["House 12, Road 5 Abdul Karim (MD), Dhaka", "House 12, Road 5, Dhaka"],
+  ["Sector 7 Uttara Abdul Karim (Chairman), Dhaka", "Sector 7, Dhaka"],
+  ["Road 7 Abdul Karim - Proprietor", "Road 7"],
+  ["Plot 5, Dhaka, Abdul Karim Tower - Owner", "Plot 5, Dhaka"],
+  ["Plot 5, Dhaka, Owner - Road Karim", "Plot 5, Dhaka"],
+  ["Plot 5, Dhaka, Abdul Karim - General Manager", "Plot 5, Dhaka"],
+  ["Attention: Abdul Karim, Plot 5", "Plot 5"],
+  ["Plot 5, Adamjee EPZ, Mr. Park Jong-ho (MD)", "Plot 5, Adamjee EPZ"],
+  ["Plot 5, Dhaka, MD- Abdul Karim", "Plot 5, Dhaka"],
+  ["Plot 5, Dhaka, MD: Abdul Karim", "Plot 5, Dhaka"],
+  // A place word after a role's dash is a name unless place words run to the end of the part.
+  ["Plot 5, Dhaka, Proprietor - Bari Ahmed", "Plot 5, Dhaka"],
+  ["Chairman-Road Karim, Dhaka", "Dhaka"],
+  // A SPACED dash is always a label, even before a lone place word: Park is a surname.
+  ["Plot 5, Adamjee EPZ, Chairman - Park", "Plot 5, Adamjee EPZ"],
+  ["Plot 5, Adamjee EPZ, Chairman -Park", "Plot 5, Adamjee EPZ"],
+  ["Owner- House of Abdul Karim, Dhaka", "Dhaka"],
+  ["Chairman — Abdul Karim, Dhaka", "Dhaka"],
   // Places named by an address word stay beside a role (each word added in cycle 6).
   ["Adamjee EPZ, Narayanganj, Managing Director", "Adamjee EPZ, Narayanganj"],
   ["Kaliakoir Union, Gazipur, Proprietor", "Kaliakoir Union, Gazipur"],
@@ -186,7 +223,7 @@ const CLEAN = [
   "Md. Ali Mansion, Dhaka",
   "Chairman-Bari, Tongi, Gazipur",
   "Chairman Market, Tongi",
-  "Nur Mansion (MD), Dhaka",
+  "Chairman-Bari Road, Tongi",
   "Road @ 8, Gulshan, Dhaka",
 ];
 
@@ -236,5 +273,44 @@ describe("withoutContactDetails — contact details filed inside an address", ()
 
   it("null stays null", () => {
     assert.equal(withoutContactDetails(null), null);
+  });
+});
+
+// The population guard (`ops/check_contact_text.mjs`) routes every text that
+// names a person to hand review. Its detector had no test: widening or
+// narrowing it passed every suite (cycle 8). Run it over a fixture.
+describe("the population guard sends every text naming a person to review", () => {
+  const run = (rows: object[]) => {
+    const dir = mkdtempSync(path.join(tmpdir(), "ct-guard-"));
+    const file = path.join(dir, "rows.json");
+    writeFileSync(file, JSON.stringify(rows));
+    try {
+      return spawnSync(process.execPath, [path.join(process.cwd(), "ops", "check_contact_text.mjs"), file], { encoding: "utf8" });
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  };
+
+  it("flags each shape the stripper removes a name from", () => {
+    const named = [
+      "Plot 5, Dhaka, Proprietor: Md Karim",
+      "Plot 5, Dhaka, Owner-Abdul Karim",
+      "Plot 5, Dhaka, CEO: Abdul Karim",
+      "Plot 5, Dhaka, MD: Abdul Karim",
+      "Plot 5, Dhaka, Abdul Karim (MD)",
+      "Plot 5, Dhaka, Abdul Karim - Owner",
+      "Plot 5, Dhaka, Abdul Karim, Chairman",
+      "Plot 5, Contact: Karim Uddin",
+      "Plot 5, Your contact: Md Karim",
+      "House 5, c/o Abdul Karim, Dhaka",
+    ];
+    const out = run(named.map((address_raw, i) => ({ slug: `probe-${i}`, address_raw })));
+    assert.equal(out.status, 1, out.stdout + out.stderr);
+    named.forEach((t, i) => assert.match(out.stdout, new RegExp(`FAIL probe-${i} \\(address\\): a text naming a person whose output nobody has reviewed`), `not sent to review: ${t}`));
+  });
+
+  it("passes a place that only looks like a role", () => {
+    const out = run(["Chairman-Bari, Tongi, Gazipur", "Chairman Market, Tongi", "Plot 5, Road 3, Dhaka"].map((address_raw, i) => ({ slug: `place-${i}`, address_raw })));
+    assert.equal(out.status, 0, out.stdout + out.stderr);
   });
 });

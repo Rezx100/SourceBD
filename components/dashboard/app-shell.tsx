@@ -208,20 +208,23 @@ export function Sidebar({ model, screenLabel }: { model: SidebarModel; screenLab
       <div className="hidden md:contents">
         <RecentSearchesSlot items={model.recent} />
       </div>
-      <div className="mt-auto hidden flex-col gap-1.5 border-t border-line-subtle px-2 pt-4 md:flex">
-        <div className="flex items-center gap-2">
-          <Label className="text-ink-strong">{plan.name}</Label>
-          {plan.note ? <Caption className="ml-auto">{plan.note}</Caption> : null}
+      {/* No plan named (a loading state does not know it): no footer at all. */}
+      {plan.name ? (
+        <div data-plan="true" className="mt-auto hidden flex-col gap-1.5 border-t border-line-subtle px-2 pt-4 md:flex">
+          <div className="flex items-center gap-2">
+            <Label className="text-ink-strong">{plan.name}</Label>
+            {plan.note ? <Caption className="ml-auto">{plan.note}</Caption> : null}
+          </div>
+          {pct !== null ? (
+            <>
+              <Meter pct={pct} label={`RFQs used this month, ${plan.name}`} />
+              <Caption>
+                {plan.used} of {plan.allowance} RFQs this month
+              </Caption>
+            </>
+          ) : null}
         </div>
-        {pct !== null ? (
-          <>
-            <Meter pct={pct} label={`RFQs used this month, ${plan.name}`} />
-            <Caption>
-              {plan.used} of {plan.allowance} RFQs this month
-            </Caption>
-          </>
-        ) : null}
-      </div>
+      ) : null}
     </aside>
   );
 }

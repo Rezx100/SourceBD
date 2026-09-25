@@ -71,14 +71,17 @@ const LABELLED_NUMBER = new RegExp(String.raw`(?:${LABEL}|\b[TMF]\b(?=[ \t]*:))$
 const BARE_NUMBER = new RegExp(String.raw`(?<!${ADDRESS_LABEL})(?<=^|[\s,;:(/])\+?[\d\-()]*\d[\d\-()]*(?=$|[\s,;.)/])`, "gi");
 const ADDRESS_WORD = /\b(?:road|rd|street|avenue|lane|bari|market|plaza|tower|bhaban|bhabon|house|mansion|building|para|nagar|bazar|sarak|sarani|mor|villa|complex|centre|center|park|industrial|university|college|school|mosque|hospital|zone|epz|section|sector|area|estate|colony|union|village|upazila|thana)\b/i;
 // A label names a person when a colon or a dash follows it: "CEO: X",
-// "Owner - X", "Proprietor-Md Karim" — unless a place word follows the dash,
-// a compound place ("Chairman-Bari", "Chairman-Market").
+// "Owner - X", "Proprietor-Md Karim". The one exception is a compound place:
+// a bare hyphen followed by place words only, to the end of the part
+// ("Chairman-Bari, …", "Chairman-Bari Road"). A place word is also a name
+// ("Proprietor - Bari Ahmed", "Chairman-Road Karim"), so it is not enough that
+// one follows the dash.
 const NAME_LABEL = new RegExp(
-  String.raw`(?:\b(?:your contact|contact person)\b[ \t]*:?|\bcontact(?:[ \t]+name)?[ \t]*:|\b(?:attn|attention|ceo|general manager|gm|director|chairman|owner|proprietor|managing director)\b(?:[ \t]*:|[ \t]*[-–](?![ \t]*${ADDRESS_WORD.source})))[^,\n]*|\bc\/o\b[^,\n]*`,
+  String.raw`(?:\b(?:your contact|contact person)\b[ \t]*:?|\bcontact(?:[ \t]+name)?[ \t]*:|\b(?:attn|attention|ceo|general manager|gm|director|chairman|owner|proprietor|managing director|md)\b(?:[ \t]*:|[ \t]+[-–—]|[-–—](?!(?:${ADDRESS_WORD.source}[ \t]*)+(?:[,\n]|$))))[^,\n]*|\bc\/o\b[^,\n]*`,
   "gi",
 );
 // "Karim Uddin - Proprietor", "Karim Uddin (MD)": a name with its role beside it.
-const NAME_WITH_ROLE = /[^,\n]*?(?:[ \t]+[-–][ \t]*|[ \t]*\()(?:proprietor|managing director|md|owner|ceo|chairman|director|general manager|gm)\)?(?=[ \t]*(?:,|$))/gim;
+const NAME_WITH_ROLE = /[^,\n]*?(?:[ \t]+[-–—][ \t]*|[ \t]*\()(?:proprietor|managing director|md|owner|ceo|chairman|director|general manager|gm)\)?(?=[ \t]*(?:,|$))/gim;
 const ROLE = /\b(?:managing director|proprietor)\b/gi;
 const NAMES_A_ROLE = /\b(?:managing director|proprietor|your contact|contact person)\b/i;
 // "Sorder M. Nur-Uz-Zaman": capitalised words around an initial.
@@ -98,6 +101,23 @@ function labelledNumber(match: string): string {
 }
 
 /** A bare number is a phone when it runs seven unbroken digits, or six from a leading 0. */
+/**
+ * A name with its role beside it ("Karim Uddin (MD)"). The match runs back to
+ * the last comma, so it can open with a place: "House 5 Road 3 Md Karim (MD)".
+ * The place up to its last number stays; everything after it goes. Address
+ * words do not mark a place here — they are names too ("Abdul Bari", "Rokeya
+ * Nagar"), and cycle 8 found "Abdul Bari (MD)" kept whole by that test. So
+ * "Nur Mansion (MD)" loses its place: privacy over completeness.
+ */
+function placeBeforeRole(match: string): string {
+  const role = /(?:[ \t]+[-–—][ \t]*|[ \t]*\()[^-–—(]*$/.exec(match)!;
+  const words = match.slice(0, role.index).trim().split(/\s+/);
+  let last = words.length - 1;
+  while (last >= 0 && !/\d/.test(words[last]!)) last--;
+  const lead = /^\s*/.exec(match)![0];
+  return last < 0 ? " " : lead + words.slice(0, last + 1).join(" ");
+}
+
 function bareNumber(match: string): string {
   const longest = Math.max(0, ...(match.match(/\d+/g) ?? []).map((r) => r.length));
   const digits = match.replace(/^[+(]+/, "");
@@ -152,8 +172,7 @@ export function withoutContactDetails(text: string | null | undefined, options: 
     .replace(INTERNATIONAL, " ");
   if (options.bareNumbers !== false) cut = cut.replace(BARE_NUMBER, bareNumber);
   cut = cut
-    // "Nur Mansion (MD)" is a place beside a stray role, not a name.
-    .replace(NAME_WITH_ROLE, (m) => (ADDRESS_WORD.test(m) ? m : " "))
+    .replace(NAME_WITH_ROLE, placeBeforeRole)
     .replace(NAME_LABEL, " ")
     .replace(DANGLING_LABEL, " ")
     .split("\n")

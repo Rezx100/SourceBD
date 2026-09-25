@@ -204,6 +204,8 @@ describe("/app/suppliers/[slug] — the full record page", () => {
     const out = html(await outcome(() => Page({ params: Promise.resolve({ slug: "aboni-knitwear" }), searchParams: Promise.resolve({}) })));
 
     assert.match(out, /aria-label="Supplier record"/);
+    // The buyer's plan, once the shell knows it (the loading state draws none).
+    assert.match(out, /data-plan="true"[\s\S]*Free · public beta/);
     // `dialog={false}`: a whole page is not a dialog, and there is nothing
     // behind it to close. Only the route passes this, so only a route test
     // can catch it being dropped.
@@ -415,6 +417,14 @@ describe("/app/discover?record= — the overlay over the results", () => {
     assert.match(out, /could not be read in time/);
     assert.match(out, /Try again/);
     assert.doesNotMatch(out, /No record for that link/, "a timeout is not a missing record");
+    // Try again retries the same view: the expanded grid and the open line
+    // (the full page's Try again kept ?lines=all a cycle before this did).
+    const again = (h: string) => /href="([^"]*)"[^>]*>Try again/.exec(h)?.[1]?.replace(/&amp;/g, "&") ?? "";
+    assert.match(again(out), /record=aboni-knitwear/);
+    const all = html(await outcome(() => Page({ searchParams: Promise.resolve({ q: "knit", record: "aboni-knitwear", lines: "all", line: "6105" }) })));
+    assert.match(again(all), /lines=all/, "Try again drops the expanded grid");
+    assert.match(again(all), /line=6105/, "Try again drops the open line");
+    assert.match(again(all), /q=knit/, "Try again drops the search");
   });
 
   it("a line drilled into from the overlay keeps the search behind it", async () => {
@@ -930,7 +940,9 @@ describe("cycle 4: the boundaries cycle 4 found open", () => {
     // found nothing (71 live records file one half equal to the total).
     given({ profile: { data: { ...ABONI.profile, supplier: { ...supplier, employees_female: null, employees_male: 1000 }, rsc_remediation: null }, error: null }, hscodes: HS });
     assert.doesNotMatch(html(await fullPage("aboni-knitwear")), /women ·/);
-    // Men filed, women not — the live shape (70 of those 71 file only men).
+    // Men filed, women not, below the total. 70 of those 71 file only men, but
+    // every one files it EQUAL to the total, so live no record reaches this
+    // branch today (25 Sep); it is pinned for the day one does.
     given({ profile: { data: { ...ABONI.profile, supplier: { ...supplier, employees_female: null, employees_male: 380 }, rsc_remediation: null }, error: null }, hscodes: HS });
     assert.match(html(await fullPage("aboni-knitwear")), /620 women · 380 men \(women by subtraction\)/);
 
@@ -956,6 +968,19 @@ describe("cycle 4: the boundaries cycle 4 found open", () => {
     const epic = html(await fullPage("aboni-knitwear"));
     assert.match(epic, /2,626/, "guard: the family figure is the one shown");
     assert.doesNotMatch(epic, /women ·/, "the record's own split shown under its family's total");
+    // …nor a SMALLER figure shown (ab-apparels: 2,850 filed, 577 shown), even
+    // with halves that add up to it within 10%.
+    given({
+      profile: { data: { ...ABONI.profile, supplier: { ...supplier, employees_total: 2850, employees_female: 330, employees_male: 250 }, rsc_remediation: null }, error: null },
+      hscodes: HS,
+      workers: family(577),
+    });
+    const small = html(await fullPage("aboni-knitwear"));
+    assert.match(small, /577/, "guard: the smaller figure is the one shown");
+    assert.doesNotMatch(small, /women ·/, "the record's own split shown against a smaller figure");
+    // Both halves filed, against the record's own total, but 30% short of it.
+    given({ profile: { data: { ...ABONI.profile, supplier: { ...supplier, employees_female: 400, employees_male: 300 }, rsc_remediation: null }, error: null }, hscodes: HS });
+    assert.doesNotMatch(html(await fullPage("aboni-knitwear")), /women ·/, "halves 30% short of the total shown as its split");
   });
 });
 
@@ -1125,7 +1150,7 @@ describe("cycle 6: what the routes send, and the branches cycle 6 found untested
       assert.match(out, /<main[^>]*id="main-content"/, `${file}: no main landmark for the skip link`);
       assert.match(out, /<aside\b/, `${file}: no sidebar`);
       assert.match(out, /aria-label="Account and settings"/, `${file}: no top bar`);
-      assert.doesNotMatch(out, />Free</, `${file}: a plan the loading state does not know`);
+      assert.doesNotMatch(out, /data-plan=/, `${file}: a plan the loading state does not know`);
     }
   });
 });

@@ -395,7 +395,8 @@ export default async function BuyerDiscoverPage({
               <SheetNotice
                 title="This record could not be read in time"
                 body="The database is under load. The company is still on SourceBD — this read simply took too long."
-                action={{ label: "Try again", href: recordHref(recordSlug) }}
+                // The same view again: the expanded grid and the open line with it.
+                action={{ label: "Try again", href: withParams(`${recordParams}${lineCode ? `&line=${lineCode}` : ""}`) }}
                 closeHref={closeHref}
               />
             ) : motherSlug ? (

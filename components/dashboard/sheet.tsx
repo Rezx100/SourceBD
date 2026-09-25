@@ -182,7 +182,7 @@ export function SheetTabs({ tabs }: { tabs: readonly { label: string; count: str
           href={t.href ?? "#"}
           aria-disabled={t.href === null ? "true" : undefined}
           tabIndex={t.href === null ? -1 : undefined}
-          title={t.href === null ? "This section arrives with the record page" : undefined}
+          title={t.href === null ? "Not available on this record" : undefined}
           aria-current={t.active ? "true" : undefined}
           className={cn(
             "-mb-px inline-flex h-10 items-center gap-1.5 whitespace-nowrap border-b-2 border-transparent text-base font-medium text-ink-muted",
@@ -407,7 +407,7 @@ export function CertGrid({ certs }: { certs: readonly CertModel[] }) {
   );
 }
 
-/** `.rsc`: the remediation meter with status words and the five report links. The RPC carries only active rows; "no longer covered" arrives with REZ-C. */
+/** `.rsc`: the remediation meter with status words and the five report links. The RPC carries only active rows, so the "no longer covered" state is never drawn. */
 export function RscBlock({
   progress,
   status,

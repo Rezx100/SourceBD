@@ -955,13 +955,16 @@ describe("the sheet's 'every source mark links' claim counts every mark the shee
     // epic-garments-manufacturing, live 25 Sep: its Unit-7 holds a GOTS
     // certificate with no document; the sheet draws it under "Held by …".
     const own = input.profile.certifications[0]!;
+    // Two buildings; only the SECOND holds the undocumented one.
     input.profile.certifications = [
       ...input.profile.certifications,
+      { ...own, building_name: "Aboni Knitwear Ltd (Unit-2)" },
       { ...own, building_name: "Aboni Knitwear Ltd (Unit-7)", document_url: null },
     ];
     const sheet = buildSheet(input);
     assert.ok(sheet.certs.every((c) => c.documentUrl !== null), "guard: the record's own certificates all link");
-    assert.equal(sheet.buildingCerts.length, 1, "guard: the building's certificate is drawn");
+    assert.equal(sheet.buildingCerts.length, 2, "guard: both buildings' certificates are drawn");
+    assert.ok(sheet.buildingCerts[0]!.certs.every((c) => c.documentUrl !== null), "guard: the first building's all link");
     assert.equal(sheet.everyMarkLinks, false);
   });
 
