@@ -53,9 +53,9 @@ migrations, run the 30-day zero P1/P2 Sentry incident window.
   so every tab leads somewhere.
   Migration `0105` adds ONE function, `supplier_contact_counts` — NOT APPLIED.
   Evidence and the founder's command: `ops/plans/rez-c-0105-dry-run.md`.
-  **The closed loop is OPEN** — two audit cycles run, both rejected and
-  repaired; no Acceptance Judge has run and the token has not been issued.
-  START HERE: `feature-specs/handoff-rez-c-cycle2.md`.
+  **The closed loop is OPEN** — three audit cycles run, all rejected and
+  repaired (last code `3f65c59`); cycle 4 not run; no Acceptance Judge yet.
+  START HERE: `feature-specs/handoff-rez-c-cycle4.md`.
   **Ratified by the founder 25 Sep:** "Exporters of 6105 · N" (the count
   equals the search it opens); 0105's five omitted §4.3 items; and these
   deferrals: the Barikoi map on Locations
