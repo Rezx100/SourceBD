@@ -322,21 +322,71 @@ describe("/app/discover?record= — the overlay over the results", () => {
     assert.ok(!href.includes("record="), `Close keeps the record open: ${href}`);
   });
 
-  it("the results behind an open record are inert", async () => {
-    // `aria-modal="true"` asserts the rest of the page is unavailable. It has
-    // to be true of the keyboard and the accessibility tree, not just of the
-    // pointer — the failure `Stage`'s own comment records from cycle 19.
+  it("the WHOLE shell behind an open record is inert, and the dialog is not", async () => {
+    // `aria-modal="true"` asserts the rest of the page is unavailable, and that
+    // has to be true of the keyboard and the accessibility tree, not only the
+    // pointer. Two ways this went wrong, both caught by critics:
+    //
+    //  * inerting only the RESULTS left the skip link, ten sidebar links, the
+    //    topbar search field and the account link outside the boundary and
+    //    ahead of the dialog in the tab order — ⌘K reached the search field
+    //    from behind the scrim;
+    //  * the sheet must NOT be inside the boundary, or the dialog declares
+    //    everything else unavailable and is unavailable itself.
     const out = html(await discover({ q: "knit", record: "aboni-knitwear" }));
     assert.match(out, /aria-modal="true"/);
-    assert.match(out, /<div inert(?:=""|\s|>)/, "the results are focusable behind a dialog that says they are not");
+
+    const inertAt = out.search(/<div[^>]*\sinert=""/);
+    assert.ok(inertAt > -1, "nothing behind the dialog is inert");
+    // The shell's own chrome is inside it.
+    for (const [what, needle] of [
+      ["the skip link", "Skip to content"],
+      // The label carries the screen name too ("Primary, Search"), so this is
+      // a prefix.
+      ["the primary nav", 'aria-label="Primary'],
+      ["the content landmark", 'id="main-content"'],
+    ] as const) {
+      const at = out.indexOf(needle);
+      assert.ok(at > inertAt, `${what} is outside the inert boundary, in front of a dialog that says it does not exist`);
+    }
+    // And the dialog itself is after the inert subtree closes, not within it.
+    assert.ok(out.indexOf('role="dialog"') > inertAt, "guard: the dialog should come last");
+    assert.ok(
+      out.indexOf('aria-label="Supplier record"') > out.lastIndexOf("</main>"),
+      "the sheet is inside the shell, so `inert` makes the dialog itself unavailable",
+    );
   });
 
-  it("an unknown record leaves the results standing", async () => {
+  it("no record open means nothing is inert", async () => {
+    // Without this the assertion above passes on a page that is always inert.
+    const out = html(await discover({ q: "knit" }));
+    assert.doesNotMatch(out, /<div[^>]*\sinert=""/);
+  });
+
+  it("an unknown record says so rather than showing nothing", async () => {
+    // Rendering nothing left `?record=<slug>` in the URL with no sheet and no
+    // message, so a buyer who clicked a result and got silence could not tell
+    // a slow read from a wrong link.
     given({ profile: { data: null, error: null }, hscodes: HS, discover: { data: [ROW], error: null } });
     const Page = route("app/(app)/app/discover/page.js").default;
     const out = html(await outcome(() => Page({ searchParams: Promise.resolve({ q: "knit", record: "no-such-slug" }) })));
-    assert.doesNotMatch(out, /aria-label="Supplier record"/);
-    assert.doesNotMatch(out, /inert/, "nothing is open, so nothing behind it is inert");
+    assert.match(out, /No record for that link/);
+    assert.match(out, /Your search is still here behind this/);
+    // The results are still rendered behind it.
+    assert.match(out, /Aboni Knitwear Ltd/);
+  });
+
+  it("a slow read in the overlay offers a retry, not silence", async () => {
+    given({
+      profile: { data: null, error: { code: "57014", message: "canceling statement due to statement timeout" } },
+      hscodes: HS,
+      discover: { data: [ROW], error: null },
+    });
+    const Page = route("app/(app)/app/discover/page.js").default;
+    const out = html(await outcome(() => Page({ searchParams: Promise.resolve({ q: "knit", record: "aboni-knitwear" }) })));
+    assert.match(out, /could not be read in time/);
+    assert.match(out, /Try again/);
+    assert.doesNotMatch(out, /No record for that link/, "a timeout is not a missing record");
   });
 
   it("a line drilled into from the overlay keeps the search behind it", async () => {

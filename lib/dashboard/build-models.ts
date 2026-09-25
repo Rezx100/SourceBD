@@ -1110,11 +1110,11 @@ export function buildSheet(input: RecordInput, options: SheetOptions = {}): Supp
   // `mergeUniqueLocations` is the matcher the production profile's Locations
   // section already uses, with its own fixture suite in this repo; counting
   // with anything else means the tab and that section disagree.
-  const addresses = mergeUniqueLocations(
-    (p.addresses ?? [])
-      .filter((a) => (a.address ?? "").trim())
-      .map((a) => ({ kind: a.kind, address: a.address, source_code: a.source_code ?? "", fetched_at: a.fetched_at ?? "" })),
-  ).length;
+  // ONE pass of the matcher per sheet. The tab count and the section's rows
+  // were two separate calls over the same input — the same work twice, and
+  // this matcher is the CPU-bound suite the session notes warn about.
+  const locations = locationRows(p);
+  const addresses = locations.length;
   const addr = factoryAddress(p);
   const capacity =
     s.production_capacity_pcs_day
@@ -1254,7 +1254,7 @@ export function buildSheet(input: RecordInput, options: SheetOptions = {}): Supp
     })),
     sources: sourceRows(p),
     sourcesCaption: registersReadWords(p),
-    locations: locationRows(p),
+    locations,
     // `p.addresses` absent is a failed read; an empty array is a record with
     // no address filed. They are not the same sentence.
     locationsEmpty: p.addresses
@@ -1310,14 +1310,28 @@ export function buildSheet(input: RecordInput, options: SheetOptions = {}): Supp
   return { ...model, everyMarkLinks };
 }
 
-/** A usable http(s) link, or null. The label says whether it is the entry or the list. */
-function sanctionHref(url: string | null | undefined): string | null {
-  if (!url || !/^https?:\/\//i.test(url)) return null;
+/**
+ * A usable http(s) link for a watchlist entry, and what it opens.
+ *
+ * NOT `recordPage`: that heuristic is about a register's page for one company
+ * and rejects `…/uflpa-entity-list#UFLPA-2024-0117` because the path carries
+ * no digit. A watchlist entry is legitimately an anchor into a list, so the
+ * link is kept and labelled by what it actually opens — the same discipline a
+ * brand mark follows when it says "opens the disclosure list".
+ */
+function sanctionLink(url: string | null | undefined): { href: string | null; opens: SanctionRow["opens"] } {
+  if (!url || !/^https?:\/\//i.test(url)) return { href: null, opens: "list" };
+  let parsed: URL;
   try {
-    return new URL(url).pathname.replace(/\/+$/, "") === "" && !url.includes("#") ? null : url;
+    parsed = new URL(url);
   } catch {
-    return null;
+    return { href: null, opens: "list" };
   }
+  const anchored = parsed.hash.length > 1;
+  // A bare origin with no fragment is the register's front door, not an entry
+  // and not a list of anything in particular.
+  if (parsed.pathname.replace(/\/+$/, "") === "" && !anchored) return { href: null, opens: "list" };
+  return { href: url, opens: anchored ? "entry" : "list" };
 }
 
 /**
@@ -1341,8 +1355,9 @@ function sanctionRows(p: ProfilePayload): SanctionRow[] {
       // company, and it rejects `…/uflpa-entity-list#UFLPA-2024-0117` because
       // the path carries no digit. A watchlist entry is legitimately an anchor
       // into a list, so the link is kept and LABELLED by what it opens.
-      href: sanctionHref(x.source_url),
-      opens: ((x.source_url ?? "").includes("#") ? "entry" : "list") as SanctionRow["opens"],
+      // `opens` follows the href that SURVIVED, not the raw URL: a rejected
+      // URL could otherwise still label a link that is not rendered.
+      ...sanctionLink(x.source_url),
     }))
     .sort((a, b) => a.list.localeCompare(b.list) || a.matchedName.localeCompare(b.matchedName));
 }

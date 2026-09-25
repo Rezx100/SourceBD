@@ -157,7 +157,12 @@ export function buildDiscoverCard(
   const registers = row.registries ?? [];
   const sanctioned = Boolean(row.is_sanctioned);
   const lines = hsForSlug(row.slug, opts.hsLines, row.hs_codes ?? []);
-  const recordHref = `/app/suppliers/${row.slug}`;
+  // The tile sub-lines ("2 on file", "12 lines", "11 sources") are links INTO
+  // this record's sheet tabs (§3.1). They hardcoded the full-page URL while
+  // this same function took a `recordHref` option for the card's own links —
+  // so clicking a sub-line on a result threw the search away, which is the one
+  // thing §3.3 exists to prevent.
+  const recordHref = opts.recordHref?.(row.slug) ?? `/app/suppliers/${row.slug}`;
   const year = establishedYearOf(row.established_date);
   const place = placeLabel(row.city, row.district);
   // Spec §3.1: "we show the exact worker count with its source", and §3.3 puts

@@ -6,6 +6,7 @@
 
 /* eslint-disable @next/next/no-img-element -- static catalogue files under /public, sized by the tile */
 import type { PhotoTileModel } from "@/lib/dashboard/hs-photos";
+import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { Icon } from "./icons";
 import { Caption, Code } from "./type";
@@ -183,9 +184,12 @@ export function PhotoGrid({ tiles, lineHref }: { tiles: readonly PhotoTileModel[
     <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
       {tiles.map((t) =>
         lineHref ? (
-          <a key={t.hs} href={lineHref(t.hs)} aria-label={`HS ${t.hs} · ${t.short}`} className="rounded-sm">
+          // `next/link`: in the overlay this href is `?…&record=X&line=NNNN`
+          // on the search's own URL, and a plain anchor would reload the whole
+          // page — re-running the search and emptying the bulk selection.
+          <Link key={t.hs} prefetch={false} scroll={false} href={lineHref(t.hs)} aria-label={`HS ${t.hs} · ${t.short}`} className="rounded-sm">
             <PhotoTile tile={t} fluid />
-          </a>
+          </Link>
         ) : (
           <PhotoTile key={t.hs} tile={t} fluid />
         ),

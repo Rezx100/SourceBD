@@ -63,9 +63,12 @@ function Tile({ tile }: { tile: TileModel }) {
         // the grid row equalises.
         <span className="flex min-w-0 items-start gap-1 text-sm text-ink-subtle">
           {tile.href ? (
-            <a href={tile.href} className="inline-flex min-w-0 items-start gap-0.5 text-brand-ink">
+            // A link into this record's sheet tabs (§3.1). In the results it
+            // carries the search, so it must be a client navigation like every
+            // other record link, or the sub-line loses what the card kept.
+            <Link prefetch={false} scroll={false} href={tile.href} className="inline-flex min-w-0 items-start gap-0.5 text-brand-ink">
               <span className="[overflow-wrap:anywhere]">{tile.sub}</span> <Icon name="chev-r" small className="mt-0.5 shrink-0" />
-            </a>
+            </Link>
           ) : (
             <span className="[overflow-wrap:anywhere]">{tile.sub}</span>
           )}
@@ -84,9 +87,9 @@ export function SanctionLine({ sample, href, className }: { sample?: boolean; hr
         {href ? (
           <>
             {" "}
-            <a href={href} className="text-sanction-ink underline">
+            <Link prefetch={false} scroll={false} href={href} className="text-sanction-ink underline">
               Open the record
-            </a>
+            </Link>
           </>
         ) : null}
       </span>

@@ -119,7 +119,15 @@ export async function fetchContactCounts(supabase: RecordRpc, slug: string): Pro
   }
 }
 
-/** How many rows the RFQs section lists before it says "+N more". */
+/**
+ * How many RFQ rows the record's RFQs section lists.
+ *
+ * The caption above them is the EXACT total (`count`), which can be larger.
+ * The docstring used to promise a "+N more" control; there is none, so a buyer
+ * with more than this many RFQs to one supplier reads the right total and sees
+ * the most recent twenty. The rest are on `/app/rfqs`. Latent today:
+ * production holds 7 RFQs in total.
+ */
 export const RECORD_RFQ_PAGE = 20;
 
 /**

@@ -125,26 +125,6 @@ export function SheetFrame({ overlay, closeHref, children }: { overlay: boolean;
   );
 }
 
-/**
- * The shell a record overlay covers.
- *
- * `aria-modal="true"` asserts that everything outside the dialog is
- * unavailable. On `/dev/ds` the gallery sets `assertModal={false}` because it
- * draws three sheets side by side; on the shipped results page the claim is
- * true only if the results really are unavailable — and they were not. The
- * composer, ten filter inputs and every result row preceded the dialog in the
- * tab order while it claimed they did not exist, which is the failure
- * `Stage`'s own comment records from cycle 19, on the one surface `Stage` is
- * not used.
- *
- * `inert` removes the subtree from focus, from the pointer and from the
- * accessibility tree in one attribute, and React renders it on any element.
- */
-export function Behind({ inactive, children }: { inactive: boolean; children: ReactNode }) {
-  if (!inactive) return <>{children}</>;
-  return <div inert>{children}</div>;
-}
-
 export function SheetBar({ children }: { children: ReactNode }) {
   // `min-w-0` on the row, so a long child (the breadcrumb on the line sheet)
   // shrinks instead of pushing Share and Close off a 320px screen.
@@ -585,6 +565,51 @@ export function SanctionEvidence({ rows }: { rows: readonly SanctionRow[] }) {
         </li>
       ))}
     </ul>
+  );
+}
+
+/**
+ * What the overlay shows when the record could not be opened.
+ *
+ * Silence is not an answer: the URL still says `?record=<slug>`, so a buyer
+ * who clicked a result and got nothing cannot tell a slow read from a wrong
+ * link. The full page already distinguishes these; the overlay now does too.
+ */
+export function SheetNotice({
+  title,
+  body,
+  action,
+  closeHref,
+}: {
+  title: string;
+  body: string;
+  action?: { label: string; href: string } | null;
+  closeHref?: string | null;
+}) {
+  return (
+    <Sheet label="Supplier record">
+      <SheetBar>
+        {closeHref ? (
+          <Button variant="ghost" icon aria-label="Close" href={closeHref} clientNav scroll={false}>
+            <Icon name="x" />
+          </Button>
+        ) : null}
+        <Label className="text-ink-strong">Supplier record</Label>
+      </SheetBar>
+      <SheetScroll>
+        <div className="flex flex-col items-start gap-3 px-6 py-8">
+          <Heading level="sm" as="h2">
+            {title}
+          </Heading>
+          <p className="m-0 max-w-prose text-base text-ink-muted">{body}</p>
+          {action ? (
+            <Button href={action.href} clientNav scroll={false}>
+              {action.label}
+            </Button>
+          ) : null}
+        </div>
+      </SheetScroll>
+    </Sheet>
   );
 }
 

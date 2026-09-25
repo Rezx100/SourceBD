@@ -95,7 +95,7 @@ export function ProductSheet({
               <Button lg href={`/app/discover?hs=${model.hs}`}>
                 Exporters of {model.hs}
                 {model.exporters !== null ? (
-                  <span className="font-mono text-ink-subtle">{formatCount(model.exporters)}</span>
+                  <span className="font-mono text-ink-subtle">· {formatCount(model.exporters)}</span>
                 ) : null}
               </Button>
             </div>

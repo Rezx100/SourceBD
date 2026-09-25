@@ -34,13 +34,14 @@ import { SearchComposer } from "@/components/dashboard/search-composer";
 import { SelectionBar } from "@/components/dashboard/selection-bar";
 import { SelectionProvider } from "@/components/dashboard/selection";
 import { SaveRecordButton } from "@/components/dashboard/save-record-button";
-import { Behind, SheetFrame } from "@/components/dashboard/sheet";
+import { SheetFrame, SheetNotice } from "@/components/dashboard/sheet";
 import { SupplierResultCard } from "@/components/dashboard/supplier-result-card";
 import { SupplierSheet } from "@/components/dashboard/supplier-sheet";
 import { Caption, Title } from "@/components/dashboard/type";
 import { RecordRecentSearch } from "@/components/dashboard/record-recent-search";
 import { loadBuyerShell } from "@/lib/dashboard/load-buyer-shell";
-import { loadRecordLine, loadRecordSheet } from "@/lib/dashboard/load-record";
+import { ProfileReadTimeout, loadRecordLine, loadRecordSheet } from "@/lib/dashboard/load-record";
+import { fetchFacilityParentSlug } from "@/lib/facility-parent-redirect";
 import { ProductSheet } from "@/components/dashboard/product-sheet";
 import { buildDiscoverCard, buildDiscoverTableRow } from "@/lib/dashboard/build-discover-row";
 import {
@@ -269,8 +270,17 @@ export default async function BuyerDiscoverPage({
   // An unknown slug renders no sheet rather than a not-found page — the search
   // behind it is still a valid answer to what the buyer asked.
   // A timed-out record read must not take the results down with it: the search
-  // is still a valid answer, and the sheet simply does not open.
-  const overlaySafe = <T,>(p: Promise<T | null>): Promise<T | null> => p.catch(() => null);
+  // is still a valid answer. But it must not be silent either — the full page
+  // says "could not be read in time" and offers a retry, and the overlay used
+  // to leave `?record=` in the URL with nothing on screen. The reason comes
+  // back so the frame can say it.
+  const overlaySafe = async <T,>(p: Promise<T | null>): Promise<{ value: T | null; slow: boolean }> => {
+    try {
+      return { value: await p, slow: false };
+    } catch (err) {
+      return { value: null, slow: err instanceof ProfileReadTimeout };
+    }
+  };
   const recordPromise = recordSlug
     ? overlaySafe(loadRecordSheet(supabase, recordSlug, today, {
         closeHref,
@@ -279,7 +289,7 @@ export default async function BuyerDiscoverPage({
         allLinesHref: allLines ? null : withParams(`record=${encodeURIComponent(recordSlug)}&lines=all`),
         lineHref: (hs) => withParams(`record=${encodeURIComponent(recordSlug)}&line=${hs}`),
       }))
-    : Promise.resolve(null);
+    : Promise.resolve({ value: null, slow: false });
   const linePromise =
     recordSlug && lineCode
       ? overlaySafe(
@@ -288,13 +298,23 @@ export default async function BuyerDiscoverPage({
             closeHref,
           }),
         )
-      : Promise.resolve(null);
+      : Promise.resolve({ value: null, slow: false });
 
-  const [{ rows, total, error, failure }, record, line] = await Promise.all([
+  const [{ rows, total, error, failure }, recordRead, lineRead] = await Promise.all([
     fetchDiscoverV32(supabase, state),
     recordPromise,
     linePromise,
   ]);
+  const record = recordRead.value;
+  const line = lineRead.value;
+  // A slug that is a BUILDING of another record is not a missing record: the
+  // full page 308s to the mother (601 such slugs in production). The overlay
+  // rendered nothing at all, so the same input gave two different answers
+  // depending on how the buyer arrived. It now offers the mother.
+  const motherSlug =
+    recordSlug && !record && !recordRead.slow
+      ? await fetchFacilityParentSlug(supabase, recordSlug).catch(() => null)
+      : null;
   const slugs = rows.map((r) => r.slug);
   const hs = await fetchHsBatch(supabase, slugs);
 
@@ -352,11 +372,53 @@ export default async function BuyerDiscoverPage({
       topbar={{ ...shell.topbar, searchQuery: state.q }}
       mainId="main-content"
       screenLabel="Search"
+      // The sheet claims `aria-modal`, so the whole shell behind it — sidebar,
+      // topbar and all — is inert while a record is open. Inerting only the
+      // results left thirteen focusable stops outside the dialog that the
+      // dialog said did not exist.
+      inert={record !== null}
+      overlay={
+        recordSlug && !record ? (
+          // The slug resolved to nothing. Say which nothing it was.
+          <SheetFrame overlay closeHref={closeHref}>
+            {recordRead.slow ? (
+              <SheetNotice
+                title="This record could not be read in time"
+                body="The database is under load. The company is still on SourceBD — this read simply took too long."
+                action={{ label: "Try again", href: recordHref(recordSlug) }}
+                closeHref={closeHref}
+              />
+            ) : motherSlug ? (
+              <SheetNotice
+                title="That is a building, not a company record"
+                body="SourceBD files this address under the company that operates it. Its record has the certificates, the registers and the export lines."
+                action={{ label: "Open the company's record", href: recordHref(motherSlug) }}
+                closeHref={closeHref}
+              />
+            ) : (
+              <SheetNotice
+                title="No record for that link"
+                body="The company may have been unpublished, or the link may be wrong. Your search is still here behind this."
+                closeHref={closeHref}
+              />
+            )}
+          </SheetFrame>
+        ) : record ? (
+          <SheetFrame overlay closeHref={closeHref}>
+            {/* The line sheet sits where the record sheet would: one dialog at
+                a time, with Back to the record and Close to the search. */}
+            {line ? (
+              <ProductSheet model={line} />
+            ) : (
+              <SupplierSheet
+                model={record}
+                save={record.supplierId ? <SaveRecordButton supplierId={record.supplierId} saved={record.saved} /> : undefined}
+              />
+            )}
+          </SheetFrame>
+        ) : null
+      }
     >
-      {/* While a record is open the results are `inert`: the sheet claims
-          `aria-modal`, and that claim has to be true of the keyboard and the
-          accessibility tree, not only of the pointer. */}
-      <Behind inactive={record !== null}>
       <RecordRecentSearch label={title} href={href} count={total} />
       <form action={DISCOVER_PATH} method="get">
         <HiddenState state={state} omit={COMPOSER_HIDDEN_OMIT} />
@@ -482,21 +544,6 @@ export default async function BuyerDiscoverPage({
           </Panel>
         </SelectionProvider>
       )}
-      </Behind>
-      {record ? (
-        <SheetFrame overlay closeHref={closeHref}>
-          {/* The line sheet sits where the record sheet would: one dialog at a
-              time, with Back to the record and Close to the search. */}
-          {line ? (
-            <ProductSheet model={line} />
-          ) : (
-            <SupplierSheet
-              model={record}
-              save={record.supplierId ? <SaveRecordButton supplierId={record.supplierId} saved={record.saved} /> : undefined}
-            />
-          )}
-        </SheetFrame>
-      ) : null}
     </AppShell>
   );
 }

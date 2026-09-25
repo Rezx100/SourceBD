@@ -11,10 +11,12 @@
 // serves the overlay over the results (`?record=<slug>`) and the full page at
 // `/app/suppliers/[slug]`; `closeHref` is what tells them apart.
 
+import Link from "next/link";
 import type { ReactNode } from "react";
 import { onFileLabel } from "@/lib/dashboard/facts";
 import type { SupplierSheetModel } from "@/lib/dashboard/models";
 import { Button } from "./controls";
+import { CopyLinkButton } from "./copy-link-button";
 import { Icon } from "./icons";
 import { LogoTile, SourceMarks } from "./marks";
 import { PHOTO_CAPTION, PhotoGrid } from "./photo-tiles";
@@ -77,16 +79,22 @@ export function SupplierSheet({
           {model.sourceCount} {model.sourceCount === 1 ? "source" : "sources"}
         </Caption>
         <span className="ml-auto flex items-center gap-2">
-          {/* The overlay's URL carries the search behind it, so what Share
-              offers is the record's own page — the link that survives being
-              pasted anywhere. On the full page that is this page.
+          {/* In the overlay this offers the record's own page — the link that
+              survives being pasted anywhere. On the full page there is nowhere
+              to go: it WAS a link to the page you are already on, labelled
+              "Share this record", which is a control with a name, a promise
+              and no effect. There it copies the URL instead.
               The words drop below `sm`: "Open full page" beside a Close button
               overran a 320px sheet by 29px, and the icon plus the accessible
               name says the same thing in the space there is. */}
-          <Button variant="ghost" href={model.fullHref} clientNav aria-label={model.closeHref ? "Open the full record page" : "Share this record"}>
-            <Icon name="share" />
-            <span className="hidden sm:inline">{model.closeHref ? "Open full page" : "Share"}</span>
-          </Button>
+          {model.closeHref ? (
+            <Button variant="ghost" href={model.fullHref} clientNav aria-label="Open the full record page">
+              <Icon name="share" />
+              <span className="hidden sm:inline">Open full page</span>
+            </Button>
+          ) : (
+            <CopyLinkButton />
+          )}
         </span>
       </SheetBar>
       {model.sanctioned ? <SanctionBanner sample={model.sanctionSample} evidenceHref="#sanctions" /> : null}
@@ -148,9 +156,9 @@ export function SupplierSheet({
                headings had six lines reachable from nowhere. This lists every
                heading the record exports. */
             p.lines > 0 && p.allLinesHref ? (
-              <a href={p.allLinesHref} className="inline-flex items-center gap-0.5 text-brand-ink">
+              <Link prefetch={false} scroll={false} href={p.allLinesHref} className="inline-flex items-center gap-0.5 text-brand-ink">
                 All {p.lines} lines <Icon name="chev-r" small />
-              </a>
+              </Link>
             ) : null
           }
         >

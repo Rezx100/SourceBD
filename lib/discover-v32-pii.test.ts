@@ -457,7 +457,13 @@ describe("discover_suppliers_explain never forwards the caller's sort", () => {
     const bodyEnd = SQL.indexOf("$fn$;", bodyStart + 7);
     const body = SQL.slice(bodyStart, bodyEnd);
     assert.ok(body.length > 500, "explain body not found");
-    assert.doesNotMatch(body, /p_sort/, "explain's body still reads p_sort");
+    // This was a word-boundary regex written through a shell heredoc, which
+    // turned each escape into a literal BACKSPACE character (0x08). It
+    // therefore searched for a string no SQL contains, so the assertion could
+    // never fail. Found by a tree-wide scan for control characters while
+    // fixing the same corruption in a REZ-C guard. The body does not mention
+    // p_sort at all, so the plain substring is the stronger form.
+    assert.doesNotMatch(body, /p_sort/, "explain's body still reads p_sort");
     assert.equal((body.match(/'receipts', 1, 0,/g) ?? []).length, 12);
   });
 });

@@ -100,6 +100,7 @@
     "components/dashboard/index.ts",
     "components/dashboard/render.test.ts",
     "components/dashboard/record-sheet.test.ts",
+    "components/dashboard/links.test.ts",
     "app/(app)/app/record-routes.test.ts",
     "app/(app)/app/suppliers/[slug]/page.tsx",
     "app/(app)/app/suppliers/[slug]/lines/[hs]/page.tsx",

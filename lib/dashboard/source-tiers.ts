@@ -64,6 +64,11 @@ const REGISTRY: Record<string, { tier: TierRank; mark: string; label: string }> 
   US_WRO: { tier: 5, mark: "WO", label: "US WRO" },
   UK_OFSI: { tier: 5, mark: "UK", label: "UK OFSI" },
   EU_SANC: { tier: 5, mark: "EU", label: "EU sanctions" },
+  // `public.sources` registers this one as `ILAB`, not `ILAB_TVPRA` (SQL,
+  // 25 Sep 2026). With only the long form here, `isKnownSource("ILAB")` was
+  // false and the Sources section would have printed "not in the trust table"
+  // over a tier-5 foreign regulator. Both spellings, one entry.
+  ILAB: { tier: 5, mark: "IL", label: "ILAB" },
   ILAB_TVPRA: { tier: 5, mark: "IL", label: "ILAB" },
 };
 
