@@ -53,6 +53,9 @@ migrations, run the 30-day zero P1/P2 Sentry incident window.
   so every tab leads somewhere.
   Migration `0105` adds ONE function, `supplier_contact_counts` — NOT APPLIED.
   Evidence and the founder's command: `ops/plans/rez-c-0105-dry-run.md`.
+  **The closed loop is OPEN** — two audit cycles run, both rejected and
+  repaired; no Acceptance Judge has run and the token has not been issued.
+  START HERE: `feature-specs/handoff-rez-c-cycle2.md`.
   **Named, deliberate deferrals** (see the PR): the Barikoi map on Locations
   (§3.3's "map stays") and §3.3's "Map pin" fact row, both of which need the
   old design system's `LocationsSection` that the rebuild spec puts off-limits;
