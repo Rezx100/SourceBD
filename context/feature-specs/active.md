@@ -37,8 +37,8 @@ same PR. Read once per session.
   Facilities and RFQs added. Migration `0105` (one function,
   `supplier_contact_counts`) is NOT applied — dry run and the founder's
   command in `ops/plans/rez-c-0105-dry-run.md`. Thirteen audit cycles run, each
-  repaired; cycle 14 next, no Acceptance Judge yet. Hand-off:
-  `handoff-rez-c-cycle4.md`, then `handoff-rez-c-start.md`.
+  repaired. Founder 27 Sep: ship cycle 13's candidate, file the rest.
+  Hand-off: `handoff-rez-c-deploy.md`, then `handoff-rez-c-start.md`.
   Then D → H → G → E → F → I per §7.
 
 ## Queued

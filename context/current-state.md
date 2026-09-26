@@ -53,7 +53,7 @@ migrations, run the 30-day zero P1/P2 Sentry incident window.
   so every tab leads somewhere.
   Migration `0105` adds ONE function, `supplier_contact_counts` — NOT APPLIED.
   Evidence and the founder's command: `ops/plans/rez-c-0105-dry-run.md`.
-  **The closed loop is OPEN** — eight audit cycles run, each repaired.
+  **The closed loop is OPEN** — thirteen audit cycles run, each repaired.
   Cycle 7: the women/men split invented a sex from a family total (jk-fabrics)
   — now shown only against the record's own filed total. Cycle 8 (requirements
   critic accepted): cycle 7's place-word exemption let names through ("Abdul
@@ -78,9 +78,9 @@ migrations, run the 30-day zero P1/P2 Sentry incident window.
   the provider key is tested across open/close. Cycle 13 (requirements critic
   accepted): 0105 counted one number with and without +880 as two phones (4
   live records) — fixed, dry run owed; the guard judges each run of cut words
-  on its own; "GM"-as-grams only in products. Cycle 14 next, no Acceptance
-  Judge yet. Founder, 25 Sep: Facilities lists the buildings; product
-  entries differing only in case or spacing merge. Hand-off: `feature-specs/handoff-rez-c-cycle4.md`.
+  on its own; "GM"-as-grams only in products. Loop stopped here by the founder;
+  Acceptance Judge next. Founder, 25 Sep: Facilities lists the buildings; product
+  entries differing only in case or spacing merge. **27 Sep, founder: ship cycle 13's candidate and file the rest later** — START HERE: `feature-specs/handoff-rez-c-deploy.md`.
   **Ratified by the founder 25 Sep:** "Exporters of 6105 · N" (the count
   equals the search it opens); 0105's five omitted §4.3 items; and these
   deferrals: the Barikoi map on Locations
@@ -90,7 +90,7 @@ migrations, run the 30-day zero P1/P2 Sentry incident window.
   `/app/saved`; the admin-only contact unlock the replaced page had; and
   §3.5's 10-minute `discover-facets` cache on `hs_catalogue()`, which
   `/app/products` (shipped by REZ-B) still does not have — every view pays a
-  316 ms function scan. START HERE: `feature-specs/handoff-rez-c-start.md`.
+  316 ms function scan. Scope: `feature-specs/handoff-rez-c-start.md`.
 
 ## Founder rules still in force (one line each; detail in archive)
 - EPB is a government register: show its evidence and HS codes whenever EPB has them, flagged or not. Never mint EPB-only suppliers. (15 Aug)
