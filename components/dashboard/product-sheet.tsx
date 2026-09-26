@@ -2,7 +2,7 @@
 // with Back and a breadcrumb. Left the 320px illustrative photo with its
 // caption; right the eyebrow, the official heading, a FactsPanel, and the two
 // actions. Price · MOQ · lead time are supplier-attested (V2) and read
-// "Not on file" until attested.
+// "Not attested" until attested.
 
 /* eslint-disable @next/next/no-img-element -- static catalogue file under /public */
 import { formatCount } from "@/lib/dashboard/facts";
@@ -13,30 +13,49 @@ import { PHOTO_CAPTION } from "./photo-tiles";
 import { FactsPanel, SanctionBanner, Sheet, SheetBar, SheetScroll } from "./sheet";
 import { Caption, Code, Eyebrow, Heading } from "./type";
 
-export function ProductSheet({ model, assertModal }: { model: ProductSheetModel; assertModal?: boolean }) {
+export function ProductSheet({
+  model,
+  assertModal,
+  dialog,
+}: {
+  model: ProductSheetModel;
+  assertModal?: boolean;
+  /** False on the full line page, which is not a dialog. */
+  dialog?: boolean;
+}) {
   return (
-    <Sheet label="Product line" assertModal={assertModal}>
+    <Sheet label="Product line" assertModal={assertModal} dialog={dialog}>
       <SheetBar>
-        <Button variant="ghost" aria-label="Back">
-          <Icon name="chev-l" /> Back
-        </Button>
-        <span className="inline-flex items-center gap-1.5 text-sm text-ink-muted">
-          {model.supplierName} <span className="text-ink-subtle">/</span> <Code className="text-ink-strong">HS {model.hs}</Code>
+        {model.backHref ? (
+          <Button variant="ghost" aria-label="Back to the record" href={model.backHref} clientNav scroll={false}>
+            <Icon name="chev-l" /> Back
+          </Button>
+        ) : (
+          <Button variant="ghost" aria-label="Back" disabled>
+            <Icon name="chev-l" /> Back
+          </Button>
+        )}
+        {/* The name wraps; it is never truncated. A 125-character company name
+            is the company's name, and an ellipsis is the kit saying it could
+            not be bothered (render.test.ts's no-truncation guard). */}
+        <span className="inline-flex min-w-0 flex-wrap items-center gap-x-1.5 text-sm text-ink-muted">
+          <span className="[overflow-wrap:anywhere]">{model.supplierName}</span>
+          <span className="text-ink-subtle">/</span>
+          <Code className="shrink-0 text-ink-strong">HS {model.hs}</Code>
         </span>
         <span className="ml-auto flex items-center gap-2">
-          <Button variant="ghost">
-            <Icon name="share" /> Share
-          </Button>
-          <Button variant="ghost" icon aria-label="Close">
-            <Icon name="x" />
-          </Button>
+          {model.closeHref ? (
+            <Button variant="ghost" icon aria-label="Close" href={model.closeHref} clientNav scroll={false}>
+              <Icon name="x" />
+            </Button>
+          ) : null}
         </span>
       </SheetBar>
       {model.sanctioned ? <SanctionBanner sample={model.sanctionSample} /> : null}
       <SheetScroll>
-        <div className="grid grid-cols-[320px_1fr] items-start gap-6 p-6">
+        <div className="grid items-start gap-6 p-6 md:grid-cols-[320px_1fr]">
           <div>
-            <div className="size-[320px] overflow-hidden rounded-sm border border-line-subtle bg-surface-sunken">
+            <div className="aspect-square w-full max-w-[320px] overflow-hidden rounded-sm border border-line-subtle bg-surface-sunken">
               {model.photo.src ? (
                 <img src={model.photo.src} alt="" className="size-full origin-[50%_46%] scale-[1.32] object-cover" />
               ) : (
@@ -56,20 +75,32 @@ export function ProductSheet({ model, assertModal }: { model: ProductSheetModel;
             <div>
               {/* "EPB export line" is a claim about this record's EPB page. A
                   heading the record does not export gets the plain eyebrow. */}
-              <Eyebrow>HS {model.hs}{model.exported ? " · EPB export line" : " · not on this record's EPB page"}</Eyebrow>
+              <Eyebrow>
+                HS {model.hs}
+                {model.exported ? " · EPB export line" : model.linesUnknown ? " · EPB lines could not be read" : " · not on this record's EPB page"}
+              </Eyebrow>
               <Heading level="h" as="h1" className="mt-1">
                 {model.heading}
               </Heading>
             </div>
             <FactsPanel rows={model.facts} />
-            <div className="flex items-center gap-2">
-              <Button variant="primary" lg disabled={model.sanctioned}>
+            {/* Wraps: the two large buttons are 352px side by side, wider than
+                the column at 320px, and the whole sheet scrolled sideways. */}
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                variant="primary"
+                lg
+                disabled={model.sanctioned}
+                href={model.sanctioned ? undefined : (model.rfqHref ?? undefined)}
+              >
                 <Icon name="send" /> Send RFQ for this line
               </Button>
-              <Button lg>
-                Other exporters of {model.hs}
-                {model.otherExporters !== null ? (
-                  <span className="font-mono text-ink-subtle">{formatCount(model.otherExporters)}</span>
+              {/* "Exporters", not "Other exporters": the count is what the
+                  search behind it returns, and that includes this record. */}
+              <Button lg href={`/app/discover?hs=${model.hs}`}>
+                Exporters of {model.hs}
+                {model.exporters !== null ? (
+                  <span className="font-mono text-ink-subtle">· {formatCount(model.exporters)}</span>
                 ) : null}
               </Button>
             </div>

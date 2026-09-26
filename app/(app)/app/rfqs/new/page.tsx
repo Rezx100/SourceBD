@@ -9,6 +9,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
 import { RfqCreateForm } from "@/components/rfq-create-form";
+import { hsBuyerLabel } from "@/lib/epb-hscode-labels";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { PageHeader } from "@/components/ui/page-kit";
 
@@ -20,10 +21,14 @@ const UUID_RE =
 export default async function NewRfqPage({
   searchParams,
 }: {
-  searchParams: Promise<{ supplier?: string }>;
+  searchParams: Promise<{ supplier?: string; hs?: string }>;
 }) {
   const sp = await searchParams;
   const supplierId = sp.supplier;
+  // `&hs=` comes from the product line's "Send RFQ for this line" (§3.4). It
+  // was emitted and silently dropped here, so the composer opened empty while
+  // the model's own comment said the line was prefilled.
+  const hs = typeof sp.hs === "string" && /^\d{4}$/.test(sp.hs) ? sp.hs : null;
   if (!supplierId || !UUID_RE.test(supplierId)) {
     redirect("/app/discover");
   }
@@ -50,6 +55,7 @@ export default async function NewRfqPage({
       <RfqCreateForm
         supplierId={data.id as string}
         supplierName={data.company_name as string}
+        initialTitle={hs ? `HS ${hs} · ${hsBuyerLabel(hs, null)}` : undefined}
       />
     </div>
   );

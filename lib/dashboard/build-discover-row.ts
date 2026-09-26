@@ -145,6 +145,8 @@ export function buildDiscoverCard(
     hsLines: readonly HsBatchLine[];
     hsError: boolean;
     saved?: boolean;
+    /** Discover passes the search's own URL with `?record=<slug>`, so the record opens over the results. */
+    recordHref?: (slug: string) => string;
   },
 ): SupplierCardModel {
   const name = displayName(row.company_name);
@@ -155,7 +157,12 @@ export function buildDiscoverCard(
   const registers = row.registries ?? [];
   const sanctioned = Boolean(row.is_sanctioned);
   const lines = hsForSlug(row.slug, opts.hsLines, row.hs_codes ?? []);
-  const recordHref = `/app/suppliers/${row.slug}`;
+  // The tile sub-lines ("2 on file", "12 lines", "11 sources") are links INTO
+  // this record's sheet tabs (§3.1). They hardcoded the full-page URL while
+  // this same function took a `recordHref` option for the card's own links —
+  // so clicking a sub-line on a result threw the search away, which is the one
+  // thing §3.3 exists to prevent.
+  const recordHref = opts.recordHref?.(row.slug) ?? `/app/suppliers/${row.slug}`;
   const year = establishedYearOf(row.established_date);
   const place = placeLabel(row.city, row.district);
   // Spec §3.1: "we show the exact worker count with its source", and §3.3 puts
@@ -271,6 +278,7 @@ export function buildDiscoverCard(
 
   return {
     slug: row.slug,
+    recordHref: opts.recordHref?.(row.slug) ?? null,
     name,
     initials: initials(name),
     topTier: (row.top_tier as SupplierCardModel["topTier"]) ?? topTier(tags),
@@ -300,6 +308,7 @@ export function buildDiscoverTableRow(
     hsLines: readonly HsBatchLine[];
     hsError: boolean;
     saved?: boolean;
+    recordHref?: (slug: string) => string;
   },
 ): TableRowModel {
   const card = buildDiscoverCard(row, opts);
@@ -308,6 +317,7 @@ export function buildDiscoverTableRow(
   const lines = hsForSlug(row.slug, opts.hsLines, row.hs_codes ?? []);
   return {
     slug: row.slug,
+    recordHref: card.recordHref,
     name: card.name,
     place: placeLabel(row.city, row.district),
     initials: card.initials,

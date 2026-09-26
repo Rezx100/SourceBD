@@ -1,0 +1,597 @@
+// `withoutContactDetails` against the published addresses that carry contact
+// details, verbatim from production (SQL over v_supplier_addresses and
+// suppliers.address_raw, 25 Sep 2026), and against the ones that only look as
+// if they might.
+
+import assert from "node:assert/strict";
+import { describe, it } from "node:test";
+import { spawnSync } from "node:child_process";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { pathToFileURL } from "node:url";
+import path from "node:path";
+
+import { withoutContactDetails } from "./contact-text";
+
+const LEAKING: [string, string][] = [
+  [
+    "House # 373, Road # 28, New DOHS, (Reg: 1391) Mohakhali, Dhaka, 6, Mohammadi Tel: 8815178, 0171591599",
+    "House # 373, Road # 28, New DOHS, (Reg: 1391) Mohakhali, Dhaka, 6, Mohammadi",
+  ],
+  ["Block -KA (Gr Fl), House # 49, Road # 13, Sector # 11, Uttara, Dhaka, 011029958", "Block -KA (Gr Fl), House # 49, Road # 13, Sector # 11, Uttara, Dhaka"],
+  [
+    "Banani, Dhaka, Tengra (Near ASA Office) Plot # 543, P.O., Sarulia Tel: 8861860, 9886079,, Demra, Dhaka Email: info@afldac.com",
+    "Banani, Dhaka, Tengra (Near ASA Office) Plot # 543, P.O., Sarulia, Demra, Dhaka",
+  ],
+  ["CI House # 153 (5th Floor), Road # 01,, Baridhara DOHS, Dhaka, 9125191 Tel: 01732476815", "CI House # 153 (5th Floor), Road # 01, Baridhara DOHS, Dhaka"],
+  ["39, MM Ali Road, Lalkhan Bazar, 01711528388, Khulshi, Chittagong", "39, MM Ali Road, Lalkhan Bazar, Khulshi, Chittagong"],
+  ["House # 297 (Apt # 2/A), Road # 4, Baridhara DOHS, Dhaka, 01730-014933", "House # 297 (Apt # 2/A), Road # 4, Baridhara DOHS, Dhaka"],
+  [
+    "BANGLADESH SPINNERS & KNITTERS (PVT) LTD. PLOT NO. 6 TO 11, SECTOR - 4/A, CHITTAGONG EXPORT PROCESSING ZONE, CHITTAGONG TEL: 741872, 741889, 741890 FAX: 00 88 031 741870",
+    "BANGLADESH SPINNERS & KNITTERS (PVT) LTD. PLOT NO. 6 TO 11, SECTOR - 4/A, CHITTAGONG EXPORT PROCESSING ZONE, CHITTAGONG",
+  ],
+  [
+    "House # 262 (1st Floor), Road # 19, New, # I DOHS, Mohakhali, Dhaka, 9884817 Tel: 01718167375, 8715141-2",
+    "House # 262 (1st Floor), Road # 19, New, # I DOHS, Mohakhali, Dhaka",
+  ],
+  ["House # 192, Road # 2, Baridhara DOHS, Dhaka, 018-238019", "House # 192, Road # 2, Baridhara DOHS, Dhaka"],
+  ["Kewa, Sreepur, Gazipur - 1740, Bangladesh, www.divinetextile.com", "Kewa, Sreepur, Gazipur - 1740, Bangladesh"],
+  ["House # 09 Road#8, Sec #1\nUttara,\nWeb:www.silvergroupbd.com\nDhaka\nDhaka", "House # 09 Road#8, Sec #1\nUttara\nDhaka\nDhaka"],
+  ["34, Azimpur Road, Lalbagh, Dhaka -1205 Pho:9660638, 258614989", "34, Azimpur Road, Lalbagh, Dhaka -1205"],
+  [
+    "F.R. Tower (10th Floor), 32, Kamal Ataturk 205, Baizid Bostami Road,, Avenue Bayezid Bostami, Chittagong, Banani, Dhaka Tel: 88-02-41380606, 01615576763",
+    "F.R. Tower (10th Floor), 32, Kamal Ataturk 205, Baizid Bostami Road, Avenue Bayezid Bostami, Chittagong, Banani, Dhaka",
+  ],
+  // Shapes the gated columns hold, as they would read inside an address.
+  ["Plot 5, Road 2, Dhaka +880 1700 000000", "Plot 5, Road 2, Dhaka"],
+  ["Plot 5, Road 2, Dhaka, Web: leak-test-website.invalid, Email: a@b.invalid", "Plot 5, Road 2, Dhaka"],
+  // Cycle 4: published rows the first version let through (live SQL, 25 Sep).
+  ["PLOT NO: 55-56, MONGLA EPZ, 9351, MONGLA, BAGERHAT, Bangladesh, Your contact:  Md. Sohel Ahmed", "PLOT NO: 55-56, MONGLA EPZ, 9351, MONGLA, BAGERHAT, Bangladesh"],
+  ["Mohd. Abid Hossain Belal, Proprietor", ""],
+  ["A.S.M. Shafiquzzaman, Proprietor", ""],
+  ["Md. Moniruzzaman Monir, # 132, Gulshan, Managing Director", "# 132, Gulshan"],
+  ["Managing Director, # 08, Rd # 01,", "# 08, Rd # 01"],
+  ["Plot-53, Block-B, Banani C/A, Dhaka - 1213, Bangladesh, janata-sadat-jute.com/", "Plot-53, Block-B, Banani C/A, Dhaka - 1213, Bangladesh"],
+  // A principal product: `shanghai-deck-lace-bd` files its gated website as one.
+  ["shdeck.com", ""],
+  // Cycle 4: how Bangladeshi numbers are really grouped, each of which the first version kept whole or in part.
+  ["Plot 5, Dhaka, 01711528388/01811528388", "Plot 5, Dhaka"],
+  ["Dhaka, 01711-528388/01819-123456", "Dhaka"],
+  ["Plot 5, Dhaka, 0171 152 8388", "Plot 5, Dhaka"],
+  ["Plot 5, Dhaka, 01711.528388", "Plot 5, Dhaka"],
+  ["Plot 5, Dhaka.01711528388", "Plot 5, Dhaka."],
+  ["Plot 5, Dhaka, Contact: 01711-52-83-88", "Plot 5, Dhaka"],
+  ["Road 12, Uttara, Dhaka-1230, 01711 52 83 88", "Road 12, Uttara, Dhaka-1230"],
+  ["Plot 5, Dhaka 01711 528388", "Plot 5, Dhaka"],
+  ["Plot 5, Dhaka, T: 01711 528388", "Plot 5, Dhaka"],
+  ["Plot 5, Dhaka, Hotline 09612 345678", "Plot 5, Dhaka"],
+  ["Plot 5, Dhaka, Tel/Fax: 88-02-9898989", "Plot 5, Dhaka"],
+  ["Plot 5, Dhaka, Mob-01711528388", "Plot 5, Dhaka"],
+  ["Plot 5, Dhaka, Cell#01711528388", "Plot 5, Dhaka"],
+  ["Plot 5, Dhaka, Tel No: 912 5191", "Plot 5, Dhaka"],
+  ["Plot 5, Dhaka, info [at] abc.com", "Plot 5, Dhaka"],
+  ["Plot 5, Dhaka, Contact: info@abc.com", "Plot 5, Dhaka"],
+  ["Plot 5, Dhaka, abc.com.bd", "Plot 5, Dhaka"],
+  ["Plot 5, Dhaka, silvergroupbd.com", "Plot 5, Dhaka"],
+  // Cycle 5: a role not next to the name it labels (live rows), and the shapes the audits probed.
+  [
+    "Saddam Hossain, 60, Gausul Azam Avenue, Sector # 13, Proprietor, Uttara, Dhaka, Beetex Sourcing (Reg:",
+    "60, Gausul Azam Avenue, Sector # 13, Uttara, Dhaka, Beetex Sourcing (Reg:",
+  ],
+  [
+    "263, Bara Moghbazar, (3rd Floor) Sorder M. Nur-Uz-Zaman, Moghbazar, Dhaka Managing Director",
+    "263, Bara Moghbazar, (3rd Floor), Moghbazar, Dhaka",
+  ],
+  ["Karim Uddin (Proprietor), Plot 5, Dhaka", "Plot 5, Dhaka"],
+  // Cycle 6: a name just before a role anywhere in the text, not only at the start.
+  ["House 5, Road 3, Abdul Karim, Chairman, Dhaka", "House 5, Road 3, Dhaka"],
+  ["House 5, Dhaka, Abdul Karim, Owner", "House 5, Dhaka"],
+  ["House 5, Road 3, Karim Uddin, Proprietor, Dhaka", "House 5, Road 3, Dhaka"],
+  ["Karim Uddin - Proprietor, Plot 5, Dhaka", "Plot 5, Dhaka"],
+  ["Karim Uddin (MD), Plot 5, Dhaka", "Plot 5, Dhaka"],
+  ["Contact person Md Karim, Plot 5, Dhaka", "Plot 5, Dhaka"],
+  ["Jacket, call 9125191", "Jacket"],
+  // A role joined to its name by a bare hyphen (cycle 7: reopened by the Chairman-Bari fix).
+  ["Plot 5, Dhaka, Proprietor-Md Karim", "Plot 5, Dhaka"],
+  ["Plot 5, Dhaka, Managing Director-Abdul Karim", "Plot 5, Dhaka"],
+  ["Plot 5, Dhaka, Owner-Abdul Karim", "Plot 5, Dhaka"],
+  ["Plot 5, Dhaka, CEO- Abdul Karim", "Plot 5, Dhaka"],
+  ["Plot 5, Dhaka, Chairman-Abdul Karim", "Plot 5, Dhaka"],
+  ["Plot 5, Dhaka, Director-Rokeya Begum", "Plot 5, Dhaka"],
+  ["Contact: Karim Uddin, Plot 5", "Plot 5"],
+  ["Plot 5, Contact Name: Rokeya Begum", "Plot 5"],
+  // A name with its role beside it, each role on its own (cycle 7: dropping
+  // owner|ceo|chairman, or the spaced-dash label, left every case green).
+  ["Abdul Karim - Owner, Plot 5, Dhaka", "Plot 5, Dhaka"],
+  ["Abdul Karim - CEO, Plot 5, Dhaka", "Plot 5, Dhaka"],
+  ["Abdul Karim (Chairman), Plot 5, Dhaka", "Plot 5, Dhaka"],
+  ["Plot 5, Dhaka, Abdul Karim (Director)", "Plot 5, Dhaka"],
+  ["Plot 5, Dhaka, Abdul Karim - GM", "Plot 5, Dhaka"],
+  ["Plot 5, Dhaka, Owner - Abdul Karim", "Plot 5, Dhaka"],
+  ["Plot 5, Dhaka, CEO – Abdul Karim", "Plot 5, Dhaka"],
+  // …and when a numbered place opens the name's stretch, the place up to its
+  // last number stays and the name goes. An address word does not mark a place
+  // here: it is a name too (cycle 8 — "Abdul Bari (MD)" was kept whole, "Bari"
+  // being on the address list). Privacy over completeness: "Nur Mansion (MD)"
+  // and "Rahman Villa" lose their place.
+  ["House 5 Road 3 Md Karim (MD), Dhaka", "House 5 Road 3, Dhaka"],
+  ["House 12 Road 3 Karim Uddin (Proprietor), Dhaka", "House 12 Road 3, Dhaka"],
+  ["Holding 7 Station Road Abdul Karim - CEO, Tongi", "Holding 7, Tongi"],
+  ["Plot 5, Rahman Villa Abdul Karim - Owner, Dhaka", "Plot 5, Dhaka"],
+  ["Abdul Bari (MD), Plot 5, Dhaka", "Plot 5, Dhaka"],
+  ["Plot 5, Dhaka, Abdul Bari - Proprietor", "Plot 5, Dhaka"],
+  ["Plot 5, Dhaka, Md. Abdul Bari (Chairman)", "Plot 5, Dhaka"],
+  ["Plot 5, Dhaka, Karim Park (Owner)", "Plot 5, Dhaka"],
+  ["Rokeya Nagar - CEO, Plot 5", "Plot 5"],
+  ["Nur Mansion (MD), Dhaka", "Dhaka"],
+  ["House 12, Road 5 Abdul Karim (MD), Dhaka", "House 12, Road 5, Dhaka"],
+  ["Sector 7 Uttara Abdul Karim (Chairman), Dhaka", "Sector 7, Dhaka"],
+  ["Road 7 Abdul Karim - Proprietor", "Road 7"],
+  ["Plot 5, Dhaka, Abdul Karim Tower - Owner", "Plot 5, Dhaka"],
+  ["Plot 5, Dhaka, Owner - Road Karim", "Plot 5, Dhaka"],
+  ["Plot 5, Dhaka, Abdul Karim - General Manager", "Plot 5, Dhaka"],
+  ["Attention: Abdul Karim, Plot 5", "Plot 5"],
+  // Cycle 9: a number AFTER the name kept it when the cut ran to the last
+  // number; only the numbers that open the stretch stay now.
+  ["Plot 5, Abdul Karim Flat-3 (Proprietor), Dhaka", "Plot 5, Dhaka"],
+  ["Plot 5, Dhaka, Abdul Karim 2nd Floor (Owner)", "Plot 5, Dhaka"],
+  ["Plot 5 Abdul Karim 2nd Floor (MD), Dhaka", "Plot 5, Dhaka"],
+  ["Plot 5 Abdul Karim 2nd Floor — Owner, Dhaka", "Plot 5, Dhaka"],
+  ["Road 3 Abdul Karim Unit-2 - Owner", "Road 3"],
+  ["Md Karim House 5 Road 3 (MD), Dhaka", "Dhaka"],
+  ["Abdul Karim Plot 5 (Owner), Dhaka", "Dhaka"],
+  // …a name opening the text when a role sits beside a place later on…
+  ["Karim Uddin, House 5 (MD), Dhaka", "House 5, Dhaka"],
+  // …a role followed by a full stop or semicolon, or a dash with no space before it.
+  ["Plot 5, Dhaka, Abdul Karim (MD).", "Plot 5, Dhaka"],
+  ["Plot 5, Abdul Karim (Chairman); Dhaka", "Plot 5, Dhaka"],
+  ["Plot 5, Abdul Karim- Owner, Dhaka", "Plot 5, Dhaka"],
+  ["Plot 5, Abdul Karim–Owner, Dhaka", "Plot 5, Dhaka"],
+  ["Plot 5, Dhaka, Abdul Karim (M.D)", "Plot 5, Dhaka"],
+  ["Plot 5, Dhaka, Abdul Karim (M.D.)", "Plot 5, Dhaka"],
+  ["Plot 5, Dhaka, Abdul Karim (Chairman & MD)", "Plot 5, Dhaka"],
+  ["Plot 5, Dhaka, Abdul Karim 2 (MD)", "Plot 5, Dhaka"],
+  ["Plot 5, Dhaka, Abdul Karim - Chairman.", "Plot 5, Dhaka"],
+  ["Plot 5; Abdul Karim (MD); Dhaka", "Plot 5; Dhaka"],
+  // Each dash on its own, both sides of the role (cycle 9: dropping — or – survived).
+  ["Plot 5, Dhaka, Abdul Karim — Owner", "Plot 5, Dhaka"],
+  ["Plot 5, Dhaka, Abdul Karim – Owner", "Plot 5, Dhaka"],
+  ["Plot 5, Dhaka, Owner—Abdul Karim", "Plot 5, Dhaka"],
+  // A digit inside the name does not make it a place.
+  ["Plot 5, Karim 1971 (Owner), Dhaka", "Plot 5, Dhaka"],
+  ["House 5 Road 3 Abdul Karim 2nd (MD), Dhaka", "House 5 Road 3, Dhaka"],
+  // A place label glued to a name is not a place ("H.Karim", "Rd.Karim"), and
+  // "Managing Director" beside a name (cycle 10: both left the suite green when broken).
+  ["Plot 5 H.Karim (MD), Dhaka", "Plot 5, Dhaka"],
+  ["House 5 Rd.Karim (Owner), Dhaka", "House 5, Dhaka"],
+  ["Plot 5, Abdul Karim - Managing Director, Dhaka", "Plot 5, Dhaka"],
+  ["Plot 5, Abdul Karim (Managing Director), Dhaka", "Plot 5, Dhaka"],
+  // A role then a full stop then more text (cycle 11: cycle 10's full-stop rule
+  // kept these whole). A closed bracket or a role that is no honorific ends the
+  // part; the full stop goes with the name.
+  ["Plot 5, Abdul Karim (MD). Mirpur, Dhaka", "Plot 5, Mirpur, Dhaka"],
+  ["Abdul Karim (MD). Plot 5, Dhaka", "Plot 5, Dhaka"],
+  ["Rahim Uddin (Owner). Mirpur, Dhaka", "Mirpur, Dhaka"],
+  ["Plot 5, Abdul Karim (Chairman & MD). Road 3, Dhaka", "Plot 5, Road 3, Dhaka"],
+  ["Karim Uddin - Proprietor. House 5, Dhaka", "House 5, Dhaka"],
+  ["Abdul Karim - Chairman. Plot 5, Dhaka", "Plot 5, Dhaka"],
+  ["Plot 5 Dhaka\nAbdul Karim (MD). Mirpur", "Plot 5 Dhaka\nMirpur"],
+  ["Plot 5, Abdul Karim - Owner., Dhaka", "Plot 5, Dhaka"],
+  ["Plot 5, Abdul Karim (Owner)., Dhaka", "Plot 5, Dhaka"],
+  ["Plot 5, Abdul Karim - MD., Dhaka", "Plot 5, Dhaka"],
+  // MD first in a role after a dash, a full stop, then a comma (cycle 12: a
+  // branch called redundant in cycle 11 was the only rule removing these).
+  ["Plot 5, Abdul Karim - MD & CEO., Dhaka", "Plot 5, Dhaka"],
+  ["Plot 5, Abdul Karim - MD & Chairman., Mirpur, Dhaka", "Plot 5, Mirpur, Dhaka"],
+  ["Plot 5, Abdul Karim - M.D & Owner., Dhaka", "Plot 5, Dhaka"],
+  ["Plot 5, Abdul Karim - MD ., Dhaka", "Plot 5, Dhaka"],
+  ["Plot 5, Abdul Karim - M.D.., Dhaka", "Plot 5, Dhaka"],
+  ["Plot 5, Abdul Karim (Owner., Dhaka", "Plot 5, Dhaka"],
+  ["Plot 5, Abdul Karim (Chairman., Mirpur", "Plot 5, Mirpur"],
+  ["Plot 5 (MD).Road 3, Dhaka", "Plot 5 Road 3, Dhaka"],
+  // "MD & <role>" cannot be the honorific "Md.", so a full stop then more text ends it too.
+  ["Plot 5, Abdul Karim - MD & CEO. Mirpur, Dhaka", "Plot 5, Mirpur, Dhaka"],
+  ["Plot 5, Abdul Karim - MD & Owner. Mirpur", "Plot 5, Mirpur"],
+  ["Plot 5, Abdul Karim - Chairman & MD. Mirpur, Dhaka", "Plot 5, Mirpur, Dhaka"],
+  // In an ADDRESS, "GM" after a number is still a general manager (cycle 13:
+  // the grams exemption applied here too and kept these names whole).
+  ["Plot 5, Abdul Karim 2 - GM, Dhaka", "Plot 5, Dhaka"],
+  ["Plot 5, Karim 5 (GM), Dhaka", "Plot 5, Dhaka"],
+  ["Plot 5, Abdul Karim 12 - GM. Mirpur", "Plot 5, Mirpur"],
+  ["Plot 5, Abdul Karim, GM, Dhaka", "Plot 5, Dhaka"],
+  // Cycle 13's test critic: shapes the suite let a mutant through on.
+  ["Plot 5, Dhaka, Abdul Karim - M.D & CEO. Mirpur, Dhaka", "Plot 5, Dhaka, Mirpur, Dhaka"],
+  ["Plot 5, Abdul Karim - MD.; Dhaka", "Plot 5, Dhaka"],
+  // What a removed name leaves behind is tidied.
+  ["Karim Uddin; House 5 (MD); Dhaka", "Karim Uddin; House 5; Dhaka"],
+  ["Plot 5, Abdul Karim (MD). . Mirpur", "Plot 5, Mirpur"],
+  ["Plot 5, Abdul Karim (MD)...", "Plot 5"],
+  ["Plot 5, Karim (CEO)..., Dhaka", "Plot 5, Dhaka"],
+  ["Plot 5; Abdul Karim - MD & CEO.; Dhaka", "Plot 5; Dhaka"],
+  // The full stop joined to the next word, spaced from the role, or doubled.
+  ["Plot 5, Abdul Karim (MD).Mirpur, Dhaka", "Plot 5, Mirpur, Dhaka"],
+  ["Plot 5, Abdul Karim (MD) . Mirpur, Dhaka", "Plot 5, Mirpur, Dhaka"],
+  ["Plot 5, Abdul Karim (MD).. Mirpur", "Plot 5, Mirpur"],
+  // "M.D" as a leading label, like "MD" (cycle 10).
+  ["Plot 5, M.D: Abdul Karim", "Plot 5"],
+  ["Plot 5, M.D - Abdul Karim, Mirpur", "Plot 5, Mirpur"],
+  ["Plot 5, M.D—Abdul Karim", "Plot 5"],
+  ["Plot 5, M.D.: Abdul Karim", "Plot 5"],
+  ["Plot 5, Adamjee EPZ, Mr. Park Jong-ho (MD)", "Plot 5, Adamjee EPZ"],
+  ["Plot 5, Dhaka, MD- Abdul Karim", "Plot 5, Dhaka"],
+  ["Plot 5, Dhaka, MD: Abdul Karim", "Plot 5, Dhaka"],
+  // A place word after a role's dash is a name unless place words run to the end of the part.
+  ["Plot 5, Dhaka, Proprietor - Bari Ahmed", "Plot 5, Dhaka"],
+  ["Chairman-Road Karim, Dhaka", "Dhaka"],
+  // A SPACED dash is always a label, even before a lone place word: Park is a surname.
+  ["Plot 5, Adamjee EPZ, Chairman - Park", "Plot 5, Adamjee EPZ"],
+  ["Plot 5, Adamjee EPZ, Chairman -Park", "Plot 5, Adamjee EPZ"],
+  ["Owner- House of Abdul Karim, Dhaka", "Dhaka"],
+  ["Chairman — Abdul Karim, Dhaka", "Dhaka"],
+  // Places named by an address word stay beside a role (each word added in cycle 6).
+  ["Adamjee EPZ, Narayanganj, Managing Director", "Adamjee EPZ, Narayanganj"],
+  ["Kaliakoir Union, Gazipur, Proprietor", "Kaliakoir Union, Gazipur"],
+  ["Kashimpur Village, Gazipur, Your contact: Md. Karim", "Kashimpur Village, Gazipur"],
+  ["Uttara Sector, Dhaka, Proprietor", "Uttara Sector, Dhaka"],
+  ["Savar Upazila, Dhaka, Proprietor", "Savar Upazila, Dhaka"],
+  ["Tongi Thana, Gazipur, Proprietor", "Tongi Thana, Gazipur"],
+  ["BSCIC Estate, Tongi, Proprietor", "BSCIC Estate, Tongi"],
+  ["Mill Area, Tongi, Proprietor", "Mill Area, Tongi"],
+  ["Staff Colony, Tongi, Proprietor", "Staff Colony, Tongi"],
+  ["Rupganj Industrial, Narayanganj, Proprietor", "Rupganj Industrial, Narayanganj"],
+  // …and the places beside a role stay (cycle 6 found each of these cut).
+  ["Kashimpur, Gazipur, Your contact: Md. Karim", "Kashimpur, Gazipur"],
+  ["Dhaka Export Processing Zone, Savar, Managing Director", "Dhaka Export Processing Zone, Savar"],
+  ["Ashulia, Savar\nProprietor: Md. Karim", "Ashulia, Savar"],
+  ["Mirpur D. Section, Dhaka, Proprietor", "Mirpur D. Section, Dhaka"],
+  ["Plot 5, Dhaka, Contact Person: Md. Karim Uddin", "Plot 5, Dhaka"],
+  ["Plot 5, Dhaka, Attn: Mr. Rahman", "Plot 5, Dhaka"],
+  ["Plot 5, Dhaka, C/O Mr. Karim", "Plot 5, Dhaka"],
+  ["Plot 5, Dhaka, CEO: Abdul Karim", "Plot 5, Dhaka"],
+  ["Plot 5, Dhaka, (01711) 528388", "Plot 5, Dhaka"],
+  ["Plot 5, Dhaka, 01711 - 528388", "Plot 5, Dhaka"],
+  ["Plot 5, Dhaka, 01711—528388", "Plot 5, Dhaka"],
+  ["Plot 5, Dhaka, Tel: (02) 912 5191", "Plot 5, Dhaka"],
+  ["Plot 5, Dhaka, PABX 989 8989", "Plot 5, Dhaka"],
+  ["Plot 5, Dhaka, WhatsApp 01711528388", "Plot 5, Dhaka"],
+  ["Plot 5, Dhaka, info @ abc.com", "Plot 5, Dhaka"],
+  ["Plot 5, Dhaka, abc(at)gmail(dot)com", "Plot 5, Dhaka"],
+  ["Plot 5, Dhaka, e-mail: x at y dot com", "Plot 5, Dhaka"],
+  ["Plot 5, Dhaka, Skype: abc.garments", "Plot 5, Dhaka"],
+  ["Plot 5, Dhaka, abcfashion.shop", "Plot 5, Dhaka"],
+  // Cycle 6: a case for every rule the comment names that had none.
+  ["Plot 5, Dhaka, Director: Abdul Karim", "Plot 5, Dhaka"],
+  ["Plot 5, Dhaka, GM: Abdul Karim", "Plot 5, Dhaka"],
+  ["Plot 5, Dhaka, General Manager: Abdul Karim", "Plot 5, Dhaka"],
+  ["Plot 5, Dhaka, Owner: Abdul Karim", "Plot 5, Dhaka"],
+  ["Plot 5, Dhaka, Chairman: Abdul Karim", "Plot 5, Dhaka"],
+  ["Plot 5, Dhaka, IMO: 912 5191", "Plot 5, Dhaka"],
+  ["Plot 5, Dhaka, Viber 912 5191", "Plot 5, Dhaka"],
+  ["Plot 5, Dhaka, abcfashion.store", "Plot 5, Dhaka"],
+  ["Plot 5, Dhaka, abcfashion.online", "Plot 5, Dhaka"],
+  ["Plot 5, Dhaka, abcfashion.xyz", "Plot 5, Dhaka"],
+  // Six digits after a label is a phone; six from a leading 0 is a phone.
+  ["Plot 5, Dhaka, Tel: 91-2519", "Plot 5, Dhaka"],
+  ["Plot 5, Dhaka, 012519", "Plot 5, Dhaka"],
+  // An honorific and a name, with no role anywhere in the text.
+  ["Plot 5, Md. Karim Uddin, Dhaka", "Plot 5, Dhaka"],
+  ["Mr. Rahman, Plot 5, Dhaka", "Plot 5, Dhaka"],
+  // Brackets emptied by a cut go with it.
+  ["Plot 5, Dhaka (Tel: 01711528388)", "Plot 5, Dhaka"],
+];
+
+const CLEAN = [
+  "Abder, Telehati, Join Bazar, Sreepur, Gazipur.",
+  "Telecom Bhaban (Level-4), 53/1 Box Nagar, Zoo Road, Mirpur-1\nDhaka\nDhaka",
+  "18926-18930 & 18895, Khilla Para, Bhatiary Link Road, Hathhazari, Chattogram",
+  "B-164-165-166-185-186-187, BSCIC I/E, SHASONGAON, FATULLAH, NARAYANGANJ, FATULLAH, NARAYANGANJ",
+  "Plot No. 12893-12895, Beside Bahaddarhat Bus Terminal, Chandgaon, Chandgaon, PS-Chattogram-4367",
+  "House # 483 (4th floor, Lift-5), Road @ 8 (East Side), DOHS, Baridhara, Dhaka",
+  "Flat @ 4C, 1/10, Block # C, Lalmatia, Dhaka",
+  "Sattara Center (9th Floor), 30/A, Naya Paltan (Hotel Victory), Dhaka-1000",
+  "414,kouchakuri,telirchala,mouchak,kaliakoir,, 1751, Gazipur, Bangladesh",
+  "SHAITALIA, TELEHATI, , GAZIPUR",
+  // Cycle 4: real address text the first version cut, changing what a register filed.
+  "Makka Tower, Plot # 110072, Holding # 61/A, Master Para, Uttarkhan\nDhaka\nDhaka",
+  "Bangladesh\n314102 Jiashan",
+  "Room 101,No.113 South Button Road,Xitang town,, 314102, Jiashan, Bangladesh",
+  "Hangzhou Bay Shangyu Economic and Technological Development Zone, Shangyu, 312300, Shaoxing, Bangladesh",
+  "Web Tower (5th Floor), Gulshan-1, Dhaka",
+  "Road 3, Sector 10, Ph. 12, Uttara, Dhaka",
+  "Email Road, Dhaka",
+  "Holding 1234567, Konabari, Gazipur",
+  "Web Belt",
+  // Names that are places, and a company whose name is a domain.
+  "Dr. Panjab Ali, Dr. Assaduzzaman Industrial Park, Kathora, National University, Gazipur - 1704, Bangladesh",
+  "Chunkutia Chowdhury Para, Chairman Bari Road, Keranigonj, Dhaka-1310",
+  "CHAIRMAN MARKET, DHAKIN KHAN BAZAR, UTTARA, DHAKA",
+  "House # 441 (Ground Floor), Road # 30, New Apparel.com Limited (Reg:, DOHS Mustafa Arcade, Flat # A4,, 1/A, House #18, Mohakhali, Dhaka",
+  "Contact Address: House - 1/C (3rd Floor) Road - 10, Baridhara Diplomatic Zone, Dhaka - 1212. Head Office: 26, Shyamolibag, Mirpur Road, Dhaka-1207.",
+  "Md. Ali Mansion, Dhaka",
+  "Chairman-Bari, Tongi, Gazipur",
+  "Chairman Market, Tongi",
+  "Chairman-Bari Road, Tongi",
+  // A compound place with a number or ordinal after it (cycle 9 found these cut whole).
+  "Chairman-Bari Road 5, Tongi",
+  "Chairman-Bari Road No 5, Tongi",
+  "Tongi, Chairman-Bari 2nd Lane",
+  "Plot 5, Tongi - Chairman Bari Road, Gazipur",
+  // A full stop the register filed after a comma is the register's (live:
+  // chiklee-trims-and-accessories, "…ltd, . is a very prominent name").
+  "Chiklee Trims & Accessories ltd, . is a very prominent name",
+  // A place named with an honorific or a role word after "(" or a dash: the
+  // role must end its word, and a full stop ends the part only at its end (cycle 10).
+  "House 12 (Md. Ali Tower), Mirpur, Dhaka",
+  "Holding 7, Kazipara (Md. Hossain Market), Mirpur, Dhaka",
+  "Plot 5 - Md. Ali Mansion, Dhaka",
+  "Plot 5, Road-Md. Ali Sarak, Dhaka",
+  "Plot 12, Block-C (M.D. Tower), Uttara, Dhaka",
+  "Holding 22, East Rampura (Owner. Tower), Dhaka",
+  "BSCIC-MD. Road, Tongi",
+  "Road 7, Sector 3 - Md. Bari Road, Uttara",
+  "Road @ 8, Gulshan, Dhaka",
+];
+
+describe("withoutContactDetails — contact details filed inside an address", () => {
+  for (const [filed, shown] of LEAKING) {
+    it(`strips them from "${filed.slice(0, 48)}…"`, () => {
+      assert.equal(withoutContactDetails(filed), shown);
+    });
+  }
+
+  it("leaves a clean address byte for byte, however much it looks like one that is not", () => {
+    for (const text of CLEAN) assert.equal(withoutContactDetails(text), text);
+  });
+
+  it("no digit run of six or more, no @ and no www survives any real leaking row", () => {
+    for (const [filed] of LEAKING) {
+      const out = withoutContactDetails(filed);
+      assert.doesNotMatch(out, /\d{6,}|@|www\.|\.(?:com|net|org)\b|\b(?:tel|fax|email|web|pho|hotline|contact|proprietor|managing director)\b/i, out);
+    }
+  });
+
+  it("each rule stands on its own: nothing else in the text would catch these", () => {
+    // Every fixture e-mail above was labelled, so removing the e-mail rule
+    // passed them all (cycle 4); removing the international and URL rules
+    // passed everything too (cycle 5). One case per rule, with no label and
+    // no other shape another rule could take.
+    const alone: [rule: string, filed: string][] = [
+      ["e-mail", "Plot 5, Dhaka, sales.team@abc-garments.com"],
+      // Spaced: unbroken, the bare-number rule would take it too.
+      ["mobile", "Plot 5, Dhaka, 0191 122 3344"],
+      ["domain", "Plot 5, Dhaka, abc-garments.net"],
+      ["international", "Plot 5, Dhaka, +44 20 7946 0958"],
+      ["URL", "Plot 5, Dhaka, www.abcfashion.garden"],
+      ["bare number from 0, nine digits in groups", "Plot 5, Dhaka, 02-9898-989"],
+      ["standalone role", "Chairman, Plot 5, Dhaka"],
+    ];
+    for (const [rule, filed] of alone) assert.equal(withoutContactDetails(filed), "Plot 5, Dhaka", rule);
+  });
+
+  it("a product entry keeps its long numbers: an HS code is not a phone", () => {
+    assert.equal(withoutContactDetails("Knit T-shirt 61091000", { bareNumbers: false }), "Knit T-shirt 61091000");
+    assert.equal(withoutContactDetails("Knit T-shirt 61091000"), "Knit T-shirt", "guard: in an address the same number is a phone");
+    // Everything else still applies to a product entry.
+    assert.equal(withoutContactDetails("shdeck.com", { bareNumbers: false }), "");
+    assert.equal(withoutContactDetails("Polo shirts, call 01711528388", { bareNumbers: false }), "Polo shirts");
+    // "GM" after a number is grams (cycle 12: the whole entry was emptied).
+    assert.equal(withoutContactDetails("Knit fabric 160-GM. Cotton jersey", { bareNumbers: false }), "Knit fabric 160-GM. Cotton jersey");
+    assert.equal(withoutContactDetails("T-Shirt 180 GM, Cotton", { bareNumbers: false }), "T-Shirt 180 GM, Cotton");
+    // …in the label rule too (cycle 13: "160 GM - Cotton" read as "GM - <name>").
+    assert.equal(withoutContactDetails("Knit fabric 160 GM - Cotton jersey", { bareNumbers: false }), "Knit fabric 160 GM - Cotton jersey");
+    assert.equal(withoutContactDetails("Fabric 160 GM: Cotton", { bareNumbers: false }), "Fabric 160 GM: Cotton");
+    assert.equal(withoutContactDetails("Knit 160 gm-Cotton", { bareNumbers: false }), "Knit 160 gm-Cotton");
+    for (const grams of ["T-Shirt 180 GM - Cotton jersey", "Knit 160- GM. Cotton", "Knit 160 -GM. Cotton", "Knit 160–GM. Cotton", "Knit 160 (GM). Cotton"]) {
+      assert.equal(withoutContactDetails(grams, { bareNumbers: false }), grams);
+    }
+  });
+
+  it("null stays null", () => {
+    assert.equal(withoutContactDetails(null), null);
+  });
+});
+
+// The population guard (`ops/check_contact_text.mjs`) routes every text that
+// names a person to hand review. Its detector had no test: widening or
+// narrowing it passed every suite (cycle 8). Run it over a fixture.
+describe("the population guard sends every text naming a person to review", () => {
+  const run = (rows: object[]) => {
+    const dir = mkdtempSync(path.join(tmpdir(), "ct-guard-"));
+    const file = path.join(dir, "rows.json");
+    writeFileSync(file, JSON.stringify(rows));
+    try {
+      return spawnSync(process.execPath, [path.join(process.cwd(), "ops", "check_contact_text.mjs"), file], { encoding: "utf8" });
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  };
+
+  it("flags each shape the stripper removes a name from", () => {
+    const named = [
+      "Plot 5, Dhaka, Proprietor: Md Karim",
+      "Plot 5, Dhaka, Owner-Abdul Karim",
+      "Plot 5, Dhaka, CEO: Abdul Karim",
+      "Plot 5, Dhaka, MD: Abdul Karim",
+      "Plot 5, Dhaka, Abdul Karim (MD)",
+      "Plot 5, Dhaka, Abdul Karim - Owner",
+      "Plot 5, Dhaka, Abdul Karim, Chairman",
+      "Plot 5, Contact: Karim Uddin",
+      "Plot 5, Your contact: Md Karim",
+      "House 5, c/o Abdul Karim, Dhaka",
+      // Cycle 9: the em dash the stripper splits on, and a role in brackets
+      // anywhere — the stripper leaves some of these, so review must see them.
+      "Plot 5, Dhaka, Chairman — Abdul Karim",
+      "Plot 5 Abdul Karim 2nd Floor — Owner, Dhaka",
+      "Abdul Karim (MD) Plot 5, Dhaka",
+      "Abdul Karim [MD], Plot 5",
+      "Abdul Karim (Chairman & MD), Plot 5",
+      "Abdul Karim (Director Marketing), Plot 5",
+      "Abdul Karim (Executive Director), Plot 5",
+      "Plot 5, Abdul Karim- Owner, Dhaka",
+      "Plot 5, Dhaka, Abdul Karim (MD).",
+      "Plot 5, Dhaka, Abdul Karim (M.D)",
+      // Every shape the stripper cuts a name from (cycle 9: the detector alone
+      // fell behind the stripper; what was CUT now decides too).
+      "Plot 5, Dhaka, Abdul Karim — Owner",
+      "Plot 5, Dhaka, Abdul Karim – Owner",
+      "Plot 5, Dhaka, Owner—Abdul Karim",
+      "Plot 5, Dhaka, Abdul Karim (Chairman)",
+      "Plot 5, Dhaka, Abdul Karim - Director",
+      "Plot 5, Dhaka, Abdul Karim - CEO",
+      "Plot 5, Dhaka, Abdul Karim - GM",
+      "Attention: Abdul Karim, Plot 5",
+      "Chairman-Road Karim, Dhaka",
+      "Plot 5, Dhaka, Director - Bari Ahmed",
+      "Plot 5, Dhaka, Owner - Road Karim",
+      "Plot 5, M.D: Abdul Karim",
+      "Plot 5, M.D - Abdul Karim, Mirpur",
+      // The one shape the stripper leaves to review: "- MD." could open a place
+      // ("- Md. Bari Road"), so a name before it is the guard's to catch (cycle 11).
+      "Plot 5, Abdul Karim - M.D. Mirpur, Dhaka",
+      "Plot 5, Abdul Karim - MD. Mirpur, Dhaka",
+      // An unclosed bracket (cycle 12: the bracket branch needed ")" to see
+      // it). The stripper leaves this one whole, so only the detector sees it.
+      "Plot 5, Abdul Karim (Owner Mirpur, Dhaka",
+      // …with a place word later in the text (cycle 13: the "(Chairman Bari)"
+      // exception looked to the line's end, so a later "Road" switched it off).
+      "Plot 5, Abdul Karim (Owner Mirpur, Road 3, Dhaka",
+      "Plot 5, Abdul Karim (MD Mirpur Road, Dhaka",
+      "Plot 5, Abdul Karim (Chairman Mirpur, Kawran Bazar, Dhaka",
+      "Plot 5, Abdul Karim (Owner",
+      // Shapes the stripper leaves whole on purpose or by gap, each reviewed.
+      "Plot 5, Abdul Karim [MD]. Mirpur",
+      "Plot 5, Abdul Karim (Owner) Mirpur, Dhaka",
+      // A dash, a role with no full stop, then more text: the stripper keeps
+      // these whole, so review is their only guard (cycle 12).
+      "Plot 5, Abdul Karim - MD Mirpur, Dhaka",
+      "Plot 5, Abdul Karim - Owner Mirpur, Dhaka",
+      "Plot 5, Abdul Karim - Chairman Mirpur, Dhaka",
+    ];
+    const out = run(named.map((address_raw, i) => ({ slug: `probe-${i}`, address_raw })));
+    assert.equal(out.status, 1, out.stdout + out.stderr);
+    named.forEach((t, i) => assert.match(out.stdout, new RegExp(`FAIL probe-${i} \\(address\\): a text naming a person whose output nobody has reviewed`), `not sent to review: ${t}`));
+  });
+
+  it("fails every contact value left in a text, in each kind of text it reads", () => {
+    // Cycle 10: turning off any one of these checks left every suite green,
+    // though population-guard.txt's "0 texts carry contact detail" rests on them.
+    // The rows hold values the stripper does not see as contact detail (a
+    // "912-5191" landline, a name inside a place), so only the check catches them.
+    const rows = [
+      { slug: "phone", phones: ["02-9125191"], address_raw: "Plot 5, Dhaka 912-5191" },
+      { slug: "email", email_primary: "rahim@karim", address_raw: "Plot 5, rahim@karim Dhaka" },
+      { slug: "site", website: "https://karimtex", address_raw: "Plot 5, karimtex Tower, Dhaka" },
+      { slug: "name", contact_name: "Rahim Karim", address_raw: "Plot 5, Rahim Karim Tower, Dhaka" },
+      { slug: "building", phones: ["02-9125191"], building_addresses: ["Unit 2, Dhaka 912-5191"] },
+      { slug: "product", phones: ["02-9125191"], principal_products: ["T-shirt 912-5191"] },
+    ];
+    const out = run(rows);
+    assert.equal(out.status, 1, out.stdout + out.stderr);
+    const failed = (slug: string, kind: string, why: string) =>
+      assert.match(out.stdout, new RegExp(`FAIL ${slug} \\(${kind}\\): [^\\n]*${why}`), `${slug}: not failed for ${why}`);
+    failed("phone", "address", "a gated phone number");
+    failed("name", "address", "the gated contact name");
+    failed("building", "building", "a gated phone number");
+    failed("product", "product", "a gated phone number");
+    // The gated e-mail and website: shapes the stripper removes — so the
+    // check is proven through a stripper that removes nothing (below).
+  });
+
+  it("fails gated values and contact shapes a stripper left in", () => {
+    const dir = mkdtempSync(path.join(tmpdir(), "ct-none-"));
+    const fake = path.join(dir, "strip.mjs");
+    writeFileSync(fake, "export const withoutContactDetails = (t) => t;\n");
+    const rows = path.join(dir, "rows.json");
+    writeFileSync(rows, JSON.stringify([
+      { slug: "email", email_primary: "info@karimtex.com", address_raw: "Plot 5, Dhaka info@karimtex.com" },
+      { slug: "site", website: "https://www.karimtex.com/", address_raw: "Plot 5, Dhaka karimtex.com" },
+      { slug: "mobile", address_raw: "Plot 5, Dhaka 01711-528388" },
+      { slug: "url", address_raw: "Plot 5, Dhaka www.example.org" },
+      { slug: "role", address_raw: "Plot 5, Dhaka, Proprietor: Md Karim" },
+    ]));
+    try {
+      const out = spawnSync(process.execPath, [path.join(process.cwd(), "ops", "check_contact_text.mjs"), rows], {
+        encoding: "utf8",
+        env: { ...process.env, CONTACT_TEXT_STRIPPER: pathToFileURL(fake).href },
+      });
+      assert.equal(out.status, 1, out.stdout + out.stderr);
+      for (const [slug, why] of [["email", "the gated e-mail"], ["email", "an e-mail address"], ["site", "the gated website"], ["mobile", "a mobile number"], ["url", "a URL"], ["role", "a named contact"]]) {
+        assert.match(out.stdout, new RegExp(`FAIL ${slug} \\(address\\): [^\\n]*${why}`), `${slug}: not failed for ${why}`);
+      }
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("a reviewed record fails when its output changes from the one reviewed", () => {
+    // Pinning the exact output is how cycle 5's "Saddam Hossain … Proprietor"
+    // was caught: bunano-classic's reviewed output is "" (it filed "Chairman, Chairman").
+    const out = run([{ slug: "bunano-classic", address_raw: "Chairman, Karim Uddin, Dhaka" }]);
+    assert.match(out.stdout, /FAIL bunano-classic \(address\): a text naming a person whose output nobody has reviewed/);
+  });
+
+  it("sends a correct honorific-name removal to review, not to the over-strip check", () => {
+    // Cycle 10: "Mr Karim" removed was reported as an over-strip, which
+    // REVIEWED cannot silence — every rule that removes a person must read as one.
+    // "…, Mirpur" / "…, Motijheel": the next part shares letters with the name
+    // (cycle 11: a character-by-character cut misaligned into an over-strip).
+    const honorifics = [
+      "Plot 5, Mr Karim, Dhaka",
+      "Plot 5, Engr. Abdul Karim, Dhaka",
+      "Plot 5, Mrs Rahima Begum, Tongi",
+      "Plot 5, Mohd Karim, Dhaka",
+      "Plot 5, Mohammad Ali, Dhaka",
+      "Plot 5, Ms Rahima, Dhaka",
+      "Plot 5, Mr Karim, Mirpur",
+      "Plot 5, Mr Karim, Motijheel",
+    ];
+    const out = run(honorifics.map((address_raw, i) => ({ slug: `hon-${i}`, address_raw })));
+    for (let i = 0; i < honorifics.length; i++) assert.match(out.stdout, new RegExp(`FAIL hon-${i} \\(address\\): a text naming a person whose output nobody has reviewed\\n`));
+    assert.doesNotMatch(out.stdout, /an over-strip:/);
+  });
+
+  it("the over-strip check fires on a stripper that cuts a place", () => {
+    // The cycle-4 defect ("Plot # 110072" cut to "Plot #"), handed to the guard
+    // as a stand-in stripper: the real one no longer does it, so nothing else
+    // reaches this branch.
+    const dir = mkdtempSync(path.join(tmpdir(), "ct-strip-"));
+    const fake = path.join(dir, "strip.mjs");
+    writeFileSync(fake, "export const withoutContactDetails = (t) => t.replace(/\\d{6,}/g, '').replace('Tongi.', '').replace('Savar/', '').replace(/(Road|Sector)-\\d+/g, '$1-');\n");
+    const rows = path.join(dir, "rows.json");
+    writeFileSync(rows, JSON.stringify([
+      { slug: "cut", address_raw: "Plot # 110072, Dhaka" },
+      // A cut INSIDE a dot-joined word (cycle 12: the whole word "Tongi.Gazipur"
+      // went into the cut, and its ".Gazipur" read as a domain).
+      { slug: "joined", address_raw: "Plot 5, Tongi.Gazipur" },
+      // Cycle 13: judged as ONE cut, two lost numbers joined into a
+      // phone-length run, and a real phone removed elsewhere excused a place.
+      { slug: "two", address_raw: "Plot # 110072, Road # 123456, Dhaka" },
+      { slug: "hyph", address_raw: "Road-12, Sector-34567, Dhaka" },
+      { slug: "phone", address_raw: "Plot # 110072, Dhaka, Tel: 9125191" },
+      { slug: "slash", address_raw: "Plot 5, Savar/Dhaka" },
+    ]));
+    try {
+      const out = spawnSync(process.execPath, [path.join(process.cwd(), "ops", "check_contact_text.mjs"), rows], {
+        encoding: "utf8",
+        env: { ...process.env, CONTACT_TEXT_STRIPPER: pathToFileURL(fake).href },
+      });
+      assert.equal(out.status, 1, out.stdout + out.stderr);
+      assert.match(out.stdout, /FAIL cut \(address\): an over-strip: removed "110072"/);
+      assert.match(out.stdout, /FAIL joined \(address\): an over-strip: removed "Tongi"/);
+      assert.match(out.stdout, /FAIL two \(address\): [^\n]*an over-strip: removed "123456"/);
+      assert.match(out.stdout, /FAIL hyph \(address\): [^\n]*an over-strip: removed "12"/);
+      assert.match(out.stdout, /FAIL phone \(address\): [^\n]*an over-strip: removed "110072"/);
+      assert.match(out.stdout, /FAIL slash \(address\): [^\n]*an over-strip: removed "Savar"/);
+      assert.doesNotMatch(out.stdout, /removed "9125191"/, "guard: the phone's own cut is contact detail");
+      // Its OK or FAIL is about the stand-in, and the output says so.
+      assert.ok(out.stdout.includes(`STAND-IN STRIPPER: ${pathToFileURL(fake).href} (not lib/contact-text.ts)`), out.stdout);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("passes a place that only looks like a role", () => {
+    const out = run(["Chairman-Bari, Tongi, Gazipur", "Chairman Market, Tongi", "Plot 5, Road 3, Dhaka", "Plot 5 (Chairman Bari), Tongi", "Plot 5 (Chairman Plaza, 3rd Floor), Tongi"].map((address_raw, i) => ({ slug: `place-${i}`, address_raw })));
+    assert.equal(out.status, 0, out.stdout + out.stderr);
+  });
+});

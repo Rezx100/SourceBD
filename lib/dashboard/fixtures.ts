@@ -370,7 +370,9 @@ export function arFashionInput(): RecordInput {
 // sanctioned SAMPLE.
 // ---------------------------------------------------------------------------
 
-export function zaheenSampleInput(): RecordInput & { leaked: { email_primary: string; phones: string[] } } {
+export function zaheenSampleInput(): RecordInput & {
+  leaked: { email_primary: string; phones: string[]; contact_name: string; contact_role: string; website: string };
+} {
   const profile = {
     supplier: {
       id: "e4669f72-a97a-40e4-9e6e-11df37d2e96e",
@@ -392,9 +394,16 @@ export function zaheenSampleInput(): RecordInput & { leaked: { email_primary: st
       supplier_moq: null,
       supplier_lead_time_days: null,
       source_tags: ["RSC"],
-      // Never returned by the RPC to a buyer; present here only to be proven absent from the HTML.
+      // Never returned by the RPC to a buyer; present here only to be proven
+      // absent from the HTML. REZ-C added `contact_name`, `contact_role` and
+      // `website`: the record sheet now prints how MANY of each the record
+      // holds, and a count sitting beside a value is exactly the mistake the
+      // locked card exists to prevent.
       email_primary: "leak-test@example.invalid",
       phones: ["+880 1700 000000"],
+      contact_name: "Leak Test Chowdhury",
+      contact_role: "Leak Test Director",
+      website: "leak-test-website.invalid",
     },
     t13_source_count: 1,
     pills: [{ source_code: "RSC", label: "RSC ID", value: "24449", source_url: "https://www.rsc-bd.org/" }],
@@ -425,7 +434,13 @@ export function zaheenSampleInput(): RecordInput & { leaked: { email_primary: st
     workers: { value: 1634, source: "RSC", fetched_at: "2026-08-07T05:56:42.605291+00:00" },
     today: TODAY,
     sanctionSample: true,
-    leaked: { email_primary: "leak-test@example.invalid", phones: ["+880 1700 000000"] },
+    leaked: {
+      email_primary: "leak-test@example.invalid",
+      phones: ["+880 1700 000000"],
+      contact_name: "Leak Test Chowdhury",
+      contact_role: "Leak Test Director",
+      website: "leak-test-website.invalid",
+    },
   };
 }
 
@@ -436,6 +451,47 @@ export function sanctionedInput(): RecordInput {
     ...base,
     profile: { ...base.profile, supplier: { ...base.profile.supplier, is_sanctioned: true } },
     sanctionSample: undefined,
+  };
+}
+
+/**
+ * A flagged record WITH the watchlist rows behind the flag.
+ *
+ * Production has 13,366 `sanctions_list_entries` and, today, zero ACTIVE
+ * `sanctions_screening` rows — so no real record carries this payload and the
+ * populated path had no fixture at all. The shape is the live
+ * `buyer_supplier_profile`'s own `sanc` CTE (`list`, `matched_name`,
+ * `list_entry_ref`, `screened_at`, `source_url`, `listed_date`), and the list
+ * values are real enum members from `sanctions_list_entries`.
+ *
+ * Two rows on purpose: one with an entry URL and one without, because the
+ * section links only where a link exists.
+ */
+export function sanctionedWithEvidenceInput(): RecordInput {
+  const base = sanctionedInput();
+  return {
+    ...base,
+    profile: {
+      ...base.profile,
+      sanctions: [
+        {
+          list: "uflpa",
+          matched_name: "ZAHEEN KNITWEARS LIMITED",
+          list_entry_ref: "UFLPA-2024-0117",
+          screened_at: "2026-09-18T05:47:07.954625+00:00",
+          listed_date: "2024-06-11",
+          source_url: "https://www.dhs.gov/uflpa-entity-list#UFLPA-2024-0117",
+        },
+        {
+          list: "ofac_sdn",
+          matched_name: "Zaheen Knitwears Ltd",
+          list_entry_ref: null,
+          screened_at: "2026-09-18T05:47:07.954625+00:00",
+          listed_date: null,
+          source_url: null,
+        },
+      ],
+    } as unknown as ProfilePayload,
   };
 }
 

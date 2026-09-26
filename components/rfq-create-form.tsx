@@ -13,11 +13,17 @@ import { StickyActionBar } from "@/components/ui/sticky-action-bar";
 export interface RfqCreateFormProps {
   supplierId: string;
   supplierName: string;
+  /**
+   * The product line the buyer arrived from (§3.4: "prefills the composer's
+   * product block with the HS code"). The line sheet's Send RFQ carries it;
+   * every other entry point leaves it unset and the field starts empty.
+   */
+  initialTitle?: string;
 }
 
-export function RfqCreateForm({ supplierId, supplierName }: RfqCreateFormProps) {
+export function RfqCreateForm({ supplierId, supplierName, initialTitle }: RfqCreateFormProps) {
   const router = useRouter();
-  const [title, setTitle] = useState("");
+  const [title, setTitle] = useState(initialTitle ?? "");
   const [description, setDescription] = useState("");
   const [quantity, setQuantity] = useState("");
   const [unit, setUnit] = useState("pcs");

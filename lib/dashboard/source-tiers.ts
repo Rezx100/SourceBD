@@ -64,6 +64,11 @@ const REGISTRY: Record<string, { tier: TierRank; mark: string; label: string }> 
   US_WRO: { tier: 5, mark: "WO", label: "US WRO" },
   UK_OFSI: { tier: 5, mark: "UK", label: "UK OFSI" },
   EU_SANC: { tier: 5, mark: "EU", label: "EU sanctions" },
+  // `public.sources` registers this one as `ILAB`, not `ILAB_TVPRA` (SQL,
+  // 25 Sep 2026). With only the long form here, `isKnownSource("ILAB")` was
+  // false and the Sources section would have printed "not in the trust table"
+  // over a tier-5 foreign regulator. Both spellings, one entry.
+  ILAB: { tier: 5, mark: "IL", label: "ILAB" },
   ILAB_TVPRA: { tier: 5, mark: "IL", label: "ILAB" },
 };
 
@@ -184,4 +189,53 @@ export function topTier(tags: readonly string[]): TierRank {
 /** "11 sources" / "1 source". */
 export function sourceCountLabel(n: number): string {
   return `${n} ${n === 1 ? "source" : "sources"}`;
+}
+
+/**
+ * AGENTS rule 5's hierarchy has SIX ranks; `TierRank` has five, because it is
+ * the colour ramp and tier 6 has never been drawn. The Sources section prints
+ * the tier in words, which is a claim about trust rather than a colour, so the
+ * words need the sixth.
+ */
+export type TrustRank = TierRank | 6;
+
+/** The rank a provenance row's `tier` slug names, tier 6 included. */
+export function trustRankFromSlug(slug: string): TrustRank | null {
+  const m = /tier([1-6])/.exec(slug.toLowerCase());
+  if (!m || !m[1]) return null;
+  return Number(m[1]) as TrustRank;
+}
+
+/** Whether the trust table knows this source code at all. */
+export function isKnownSource(code: string): boolean {
+  return Boolean(REGISTRY[code.toUpperCase()]);
+}
+
+/**
+ * The trust tier in the words a buyer reads. AGENTS rule 5 names the hierarchy
+ * by rank; `tier1_gov` is not English.
+ *
+ * `null` is an unmapped code. `fallback()` ranks those 5 so an unknown source
+ * can never look more trusted than a mapped one — but 5 is "foreign regulator",
+ * a real and specific claim, and printing it over a source we do not recognise
+ * says something we cannot support. Rule 5's own words for the bottom of the
+ * hierarchy are cross-check only.
+ */
+export function tierWords(rank: TrustRank | null): string {
+  switch (rank) {
+    case 1:
+      return "Government register";
+    case 2:
+      return "Industry body";
+    case 3:
+      return "Certification body";
+    case 4:
+      return "Brand disclosure list";
+    case 5:
+      return "Foreign regulator";
+    case 6:
+      return "Cross-check only";
+    default:
+      return "Source not in the trust table · cross-check only";
+  }
 }

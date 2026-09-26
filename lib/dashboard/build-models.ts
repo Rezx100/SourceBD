@@ -47,18 +47,25 @@ import { formatCardLocation } from "@/lib/format-location";
 import { heading4, hsCatalogueRow, hsExporterCount, hsPhotoSrc, hsShortLabel, photoTiles, rarestFirst } from "./hs-photos";
 import { groupWorkers, type SiteWorkerInput } from "@/lib/profile-metrics";
 import type {
+  ContactCounts,
+  SanctionRow,
   FactRow,
   FactWithMark,
   HighlightChip,
+  LocationRow,
   ProductSheetModel,
+  RecordRfqRow,
   RfqRowModel,
+  SourceRow,
   SupplierCardModel,
   SupplierSheetModel,
   TableRowModel,
   TileModel,
 } from "./models";
+import { withoutContactDetails } from "@/lib/contact-text";
+import type { FacilityPanel } from "@/lib/format-facility-group";
 import { mergeUniqueLocations } from "@/lib/dedup-addresses";
-import { marksFromTags, recordPage, sourceMark, topTier, type SourceMarkModel } from "./source-tiers";
+import { isKnownSource, marksFromTags, recordPage, sourceMark, tierWords, topTier, trustRankFromSlug, type SourceMarkModel } from "./source-tiers";
 
 export { recordPage } from "./source-tiers";
 
@@ -81,6 +88,9 @@ export type ProfileSupplier = {
   machines_sewing: number | null;
   production_capacity_pcs_day: number | null;
   production_capacity_dozen_yearly?: number | null;
+  bepza_zone?: string | null;
+  employees_male?: number | null;
+  employees_female?: number | null;
   supplier_moq?: number | null;
   supplier_lead_time_days?: number | null;
   source_tags: string[];
@@ -129,6 +139,15 @@ export type ProfileBrand = {
 };
 export type ProfileProvenance = { source_code: string; display_name: string; tier: string; source_ref: string | null; source_url: string | null; last_seen_at: string | null };
 export type ProfileAddress = { kind: string; address: string; source_code: string; fetched_at?: string | null };
+/** One watchlist hit. The banner asserts a match; these rows are the receipt for it. */
+export type ProfileSanction = {
+  list: string;
+  matched_name: string;
+  list_entry_ref: string | null;
+  screened_at: string;
+  source_url: string | null;
+  listed_date: string | null;
+};
 
 export type ProfilePayload = {
   supplier: ProfileSupplier;
@@ -139,6 +158,7 @@ export type ProfilePayload = {
   brand_attributions: ProfileBrand[];
   provenance: ProfileProvenance[];
   addresses?: ProfileAddress[];
+  sanctions?: ProfileSanction[];
 };
 
 export type HsLine = { code: string; description: string | null; source_url: string | null };
@@ -157,6 +177,60 @@ export type RecordInput = {
 };
 
 // ---- shared pieces ----
+
+/**
+ * The record with the contact details some registers write into free text
+ * removed (`lib/contact-text.ts`): every filed address, and every principal
+ * product entry — one record files its website as its only product. Every
+ * builder that renders a record starts here, so no surface prints either the
+ * way it was filed. Entries that differ only in case or spacing ("Polo
+ * Shirt" / "POLO SHIRT", "AllTypes of Jackets" / "All Types of Jackets",
+ * "T - Shirt" / "T-Shirt") are one product, shown as first filed (founder,
+ * 25 Sep): Adventure Garments' 39 filed entries are 29 products.
+ */
+function withoutFiledContact(input: RecordInput): RecordInput {
+  const p = input.profile;
+  return {
+    ...input,
+    profile: {
+      ...p,
+      supplier: {
+        ...p.supplier,
+        address_raw: withoutContactDetails(p.supplier.address_raw),
+        principal_products: productEntries(p.supplier.principal_products),
+      },
+      addresses: p.addresses?.map((a) => ({ ...a, address: withoutContactDetails(a.address) })),
+    },
+  };
+}
+
+function productEntries(filed: readonly (string | null)[] | null | undefined): string[] {
+  const seen = new Set<string>();
+  return (filed ?? [])
+    .map((raw) => withoutContactDetails((raw ?? "").trim(), { bareNumbers: false }))
+    .filter((entry) => {
+      const key = entry.toLowerCase().replace(/\s+/g, "");
+      if (!entry || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+}
+
+/**
+ * The Facilities section: one row per extension building. A building's
+ * address is register-filed free text like any other, so it is stripped of
+ * contact details the same way.
+ */
+function facilityRows(read: SheetOptions["facilities"]): SupplierSheetModel["facilities"] {
+  const panel = read?.panel ?? null;
+  if (!panel) return { count: null, rows: [], empty: "The buildings could not be read." };
+  const rows = panel.facilities.map((f) => ({
+    name: displayName(f.name),
+    address: withoutContactDetails(f.addresses[0]?.address ?? null) || null,
+    workers: f.employees_total ? `${formatCount(f.employees_total)} workers` : null,
+  }));
+  return { count: rows.length, rows, empty: "No extension buildings on this record." };
+}
 
 const MEMBERSHIP = ["BGMEA", "BKMEA", "BGAPMEA", "BTMA"];
 const MEMBERSHIP_WORDS = "not in BGMEA, BKMEA, BGAPMEA, BTMA or EPB";
@@ -529,6 +603,22 @@ function certs(input: RecordInput): CertModel[] {
   return sortCerts((input.profile.certifications ?? []).filter((c) => !c.building_name).map((c) => certModel(c, input.today)));
 }
 
+/**
+ * Each building's own certificates, grouped under its name. They are not the
+ * record's and are not counted as its; the page this replaced listed them by
+ * building, and a building's own URL redirects to this record, so nowhere
+ * else shows them.
+ */
+function buildingCerts(input: RecordInput): { building: string; certs: CertModel[] }[] {
+  const by = new Map<string, CertModel[]>();
+  for (const c of input.profile.certifications ?? []) {
+    if (!c.building_name) continue;
+    by.set(c.building_name, [...(by.get(c.building_name) ?? []), certModel(c, input.today)]);
+  }
+  // The name as filed: the card's and the table's "<building> holds one" say it the same way.
+  return [...by].map(([building, list]) => ({ building, certs: sortCerts(list) }));
+}
+
 /** Buildings that hold a certificate of their own, named so the record does not appear to hold it. */
 export function certBuildings(p: ProfilePayload): string[] {
   return [...new Set((p.certifications ?? []).map((c) => c.building_name).filter((b): b is string => Boolean(b)))];
@@ -773,7 +863,8 @@ function rscChip(rsc: ProfileRsc | null, buildings: ProfileRsc[]): HighlightChip
 
 // ---- the card ----
 
-export function buildCard(input: RecordInput): SupplierCardModel {
+export function buildCard(filed: RecordInput): SupplierCardModel {
+  const input = withoutFiledContact(filed);
   const p = input.profile;
   const s = p.supplier;
   const codes = allSourceCodes(p);
@@ -885,7 +976,8 @@ export function buildCard(input: RecordInput): SupplierCardModel {
 
 // ---- the table row ----
 
-export function buildTableRow(input: RecordInput): TableRowModel {
+export function buildTableRow(filed: RecordInput): TableRowModel {
+  const input = withoutFiledContact(filed);
   const p = input.profile;
   const s = p.supplier;
   const codes = allSourceCodes(p);
@@ -930,10 +1022,160 @@ export function buildTableRow(input: RecordInput): TableRowModel {
 export type SheetOptions = {
   /** The viewer's plan name, from settings; without one the contact card says only "Contact details". */
   plan?: string | null;
+  /**
+   * `supplier_contact_counts` (0105): how much contact detail the record
+   * holds. `undefined` — the gallery, which does not call it — and `null` — a
+   * failed read — are the same absence to the card, which then claims nothing
+   * about kinds. Never a count of zero on a failed read.
+   */
+  contactCounts?: ContactCounts | null;
+  /** The record's buildings (`buyer_supplier_facility_panel`); `panel` null means not read. */
+  facilities?: { panel: FacilityPanel | null };
+  /** The calling buyer's own RFQs naming this supplier. `null` rows → the read failed. */
+  rfqs?: { count: number | null; rows: RecordRfqRow[]; error?: boolean };
+  /** Where Send RFQ goes for this record. */
+  rfqHref?: string | null;
+  /** The supplier id, so Save is a real control. The gallery has no session and leaves it unset. */
+  supplierId?: string | null;
+  saved?: boolean;
+  /** The full record page. Defaults to `/app/suppliers/<slug>`. */
+  fullHref?: string;
+  /** Where an overlay's Close returns to. Absent on the full page, which has nothing to close. */
+  closeHref?: string | null;
+  /** Where one export line opens; defaults to the line's own page. */
+  lineHref?: (hs: string) => string;
+  /** Show every heading in the grid rather than the six rarest. */
+  allLines?: boolean;
+  /** Where "All N lines ›" goes when the grid is showing only six. */
+  allLinesHref?: string | null;
 };
 
-export function buildSheet(input: RecordInput, options: SheetOptions = {}): SupplierSheetModel {
+/**
+ * The Sources section: one row per register that filed something on this
+ * record, best rank first. The rows come from `provenance`, which is the
+ * record's `source_records`, so a register with no record here has no row —
+ * the section never invents one to look fuller.
+ */
+/**
+ * The Sources caption. `SOURCES_WITH_RECORDS` is the denominator the card and
+ * the chips already use — 14 registers that have ever produced a record, not
+ * the 25 rows in `sources`, eleven of which have never produced one for
+ * anybody. Saying "3 of 25" claims a record was weighed against registers that
+ * have never been read.
+ */
+function registersReadWords(p: ProfilePayload): string {
+  const n = new Set((p.provenance ?? []).map((r) => r.source_code.toUpperCase())).size;
+  return `${n} of ${SOURCES_WITH_RECORDS} registers read hold a record for this company`;
+}
+
+function sourceRows(p: ProfilePayload): SourceRow[] {
+  const hrefs = sourceHrefs(p);
+  // The LATEST read and the first reference each register filed, keyed by code.
+  const read = new Map<string, { at: number; ref: string | null; tier: string }>();
+  for (const r of p.provenance ?? []) {
+    const code = r.source_code.toUpperCase();
+    const at = isoTime(r.last_seen_at);
+    const held = read.get(code);
+    if (!held) {
+      read.set(code, { at, ref: r.source_ref || null, tier: r.tier ?? "" });
+      continue;
+    }
+    // The reference must belong to the read whose date this row will show;
+    // taking the date from one row and the reference from another put one
+    // read's number beside another read's date.
+    if (at > held.at) {
+      held.at = at;
+      held.ref = r.source_ref || null;
+      held.tier = r.tier ?? "";
+    } else if (held.ref === null) {
+      held.ref = r.source_ref || null;
+    }
+  }
+  // One row per mark the sheet draws, not per provenance row. `allSourceCodes`
+  // is what the head's "N sources" and the Sources tab count, and a section
+  // listing fewer rows than its own tab claims is two answers to one question:
+  // 69 of 10,266 published records carry a `source_tags` entry with no
+  // `source_records` row (SQL, 25 Sep 2026 — BGMEA in every case). Those get a
+  // row that says the register has no read, rather than no row at all.
+  return marksFromTags(allSourceCodes(p), hrefs).map((m) => {
+    const held = read.get(m.code.toUpperCase());
+    return {
+      mark: m,
+      name: m.name,
+      // The provenance row's own tier slug where there is one (it is the only
+      // place tier 6 can come from), else the register's rank from the trust
+      // table, else null — which prints "not in the trust table" rather than
+      // the rank `fallback()` assigns an unknown code for colouring purposes.
+      tier: tierWords(
+        (held?.tier ? trustRankFromSlug(held.tier) : null) ?? (isKnownSource(m.code) ? m.tier : null),
+      ),
+      ref: held?.ref ?? null,
+      readDate: held && held.at >= 0 ? formatDay(new Date(held.at).toISOString()) : null,
+    };
+  });
+}
+
+/**
+ * The Locations section: one row per premises, not per address row and not per
+ * spelling. The registers write the same place several ways, so this goes
+ * through `mergeUniqueLocations` — the same matcher the production profile's
+ * Locations section uses — and the other spellings stay visible as
+ * "Also recorded as", never silently dropped.
+ */
+function locationRows(p: ProfilePayload): LocationRow[] {
+  const hrefs = sourceHrefs(p);
+  const filed = mergeUniqueLocations(
+    (p.addresses ?? [])
+      .filter((a) => (a.address ?? "").trim())
+      .map((a) => ({ kind: a.kind, address: a.address, source_code: a.source_code ?? "", fetched_at: a.fetched_at ?? "" })),
+  ).map((loc) => ({
+    kind: addressKindWords(loc.types),
+    address: loc.displayAddress,
+    marks: marksFromTags(loc.authorities.map((c) => c.toUpperCase()), hrefs),
+    alsoRecordedAs: loc.variants.map((v) => v.address),
+  }));
+  // No register's address row survives, but the record holds the address the
+  // Overview shows as "Factory address" (77 published records, 25 Sep; three
+  // more whose only row was a name the stripper removed). Saying "no address"
+  // under that row contradicted it (cycle 9). No register mark: none filed it
+  // as a row.
+  const raw = (p.supplier.address_raw ?? "").trim();
+  if (filed.length === 0 && p.addresses && raw) return [{ kind: "Factory", address: raw, marks: [], alsoRecordedAs: [] }];
+  return filed;
+}
+
+/** "Factory", "Factory · Registered office" — the kinds the registers filed, deduplicated. */
+function addressKindWords(types: readonly string[]): string {
+  const words = [...new Set(types.map((k) => (k ?? "").trim()).filter(Boolean))].map(
+    (k) => k.charAt(0).toUpperCase() + k.slice(1).replace(/_/g, " "),
+  );
+  return words.length > 0 ? words.join(" · ") : "Address";
+}
+
+/**
+ * What the locked card says the record holds. Counts and kinds only — no
+ * value, and nothing at all when the count could not be read, because
+ * "no phone number on file" is a claim and a failed read does not support it.
+ */
+export function contactHeldWords(counts: ContactCounts | null | undefined): string | null {
+  if (!counts) return null;
+  const parts = [
+    counts.emails > 0 ? `${counts.emails} email${counts.emails === 1 ? "" : "s"}` : null,
+    counts.phones > 0 ? `${counts.phones} phone number${counts.phones === 1 ? "" : "s"}` : null,
+    counts.website ? "a website" : null,
+    counts.representatives > 0
+      ? `${counts.representatives} named representative${counts.representatives === 1 ? "" : "s"}`
+      : null,
+  ].filter((x): x is string => x !== null);
+  if (parts.length === 0) return "No contact detail on this record yet.";
+  const list = parts.length === 1 ? parts[0] : `${parts.slice(0, -1).join(" · ")} · ${parts.at(-1)}`;
+  return `On file: ${list}.`;
+}
+
+export function buildSheet(filed: RecordInput, options: SheetOptions = {}): SupplierSheetModel {
+  const input = withoutFiledContact(filed);
   const p = input.profile;
+  const productList = p.supplier.principal_products ?? [];
   const s = p.supplier;
   const codes = allSourceCodes(p);
   const hrefs = sourceHrefs(p);
@@ -957,18 +1199,22 @@ export function buildSheet(input: RecordInput, options: SheetOptions = {}): Supp
   // `mergeUniqueLocations` is the matcher the production profile's Locations
   // section already uses, with its own fixture suite in this repo; counting
   // with anything else means the tab and that section disagree.
-  const addresses = mergeUniqueLocations(
-    (p.addresses ?? [])
-      .filter((a) => (a.address ?? "").trim())
-      .map((a) => ({ kind: a.kind, address: a.address, source_code: a.source_code ?? "", fetched_at: a.fetched_at ?? "" })),
-  ).length;
+  // ONE pass of the matcher per sheet. The tab count and the section's rows
+  // were two separate calls over the same input — the same work twice, and
+  // this matcher is the CPU-bound suite the session notes warn about.
+  const locations = locationRows(p);
+  const addresses = locations.length;
   const addr = factoryAddress(p);
+  // Every figure the register filed: 376 published records file both, and
+  // showing only the daily one dropped the other (the capacity tab this folds
+  // in showed both).
   const capacity =
-    s.production_capacity_pcs_day
-      ? `${formatCount(s.production_capacity_pcs_day)} pcs/day`
-      : s.production_capacity_dozen_yearly
-        ? `${formatCount(s.production_capacity_dozen_yearly)} dozen/year`
-        : null;
+    [
+      s.production_capacity_pcs_day ? `${formatCount(s.production_capacity_pcs_day)} pcs/day` : null,
+      s.production_capacity_dozen_yearly ? `${formatCount(s.production_capacity_dozen_yearly)} dozen/year` : null,
+    ]
+      .filter(Boolean)
+      .join(" · ") || null;
 
   const pending = (value: string | null, m: SourceMarkModel | null = null, checked = "registers checked"): Pick<FactRow, "value" | "marks" | "pendingSource" | "checked"> =>
     pendingMarks(value, m ? [m] : [], checked);
@@ -984,10 +1230,15 @@ export function buildSheet(input: RecordInput, options: SheetOptions = {}): Supp
     {
       label: "Workers",
       ...pending(w.value !== null ? formatCount(w.value) : null, workersMark, "registers and RSC checked"),
-      note: workersNote(w),
+      note: workersNote(w, Boolean(options.facilities?.panel?.facilities.some((f) => f.employees_total))),
     },
+    // The split the capacity tab showed, under its rule: never against an RSC
+    // total, and withheld when the two halves do not add up to the figure shown
+    // (within 10%) — the registers file the total and the split independently.
+    ...(workforceSplit(w, s) ? [{ label: "Women · men", ...pending(workforceSplit(w, s)) }] : []),
     { label: "Sewing machines", ...pending(formatCount(s.machines_sewing)) },
     { label: "Capacity, as filed", ...pending(capacity) },
+    ...(s.bepza_zone ? [{ label: "EPZ zone", ...pending(s.bepza_zone) }] : []),
     {
       label: "Registers",
       value: registerRows.length ? registerRows.map((r) => `${registerLabel(r.label).replace(/\s+member$/i, "")} ${r.value}`).join(" · ") : null,
@@ -1013,6 +1264,8 @@ export function buildSheet(input: RecordInput, options: SheetOptions = {}): Supp
 
   const certRegisters = [...new Set(certList.map((c) => c.scheme.split(" ")[0]))];
 
+  const rfqs = options.rfqs ?? { count: null, rows: [] as RecordRfqRow[], error: false };
+
   const model: SupplierSheetModel = {
     slug: s.slug,
     everyMarkLinks: false,
@@ -1025,25 +1278,30 @@ export function buildSheet(input: RecordInput, options: SheetOptions = {}): Supp
     sourceCount: marks.length,
     sanctioned: s.is_sanctioned || Boolean(input.sanctionSample),
     sanctionSample: input.sanctionSample,
-    // Only the four sections this sheet renders get a fragment; Sources,
-    // Locations, Facilities and RFQs arrive with REZ-C, and until they do a
-    // link to #sources is a link to nothing.
+    // Every tab now has a section behind it (REZ-C).
     tabs: [
       { label: "Overview", count: null, href: "#overview", active: true },
       { label: "Products", count: input.hscodesError ? null : String(lines.length), href: "#products" },
       { label: "Certificates", count: String(certList.length), href: "#certificates" },
       { label: "Safety", count: rsc ? "RSC" : null, href: "#safety" },
-      { label: "Sources", count: String(marks.length), href: null },
-      { label: "Locations", count: p.addresses ? String(addresses) : null, href: null },
-      { label: "Facilities", count: null, href: null },
-      { label: "RFQs", count: null, href: null },
+      // One number: the head, this tab and the Sources section all count the
+      // marks the sheet draws (`sourceRows` renders one row per mark).
+      { label: "Sources", count: String(marks.length), href: "#sources" },
+      { label: "Locations", count: p.addresses ? String(addresses) : null, href: "#locations" },
+      { label: "Facilities", count: options.facilities?.panel ? String(options.facilities.panel.facilities.length) : null, href: "#facilities" },
+      { label: "RFQs", count: rfqs.count === null ? null : String(rfqs.count), href: "#rfqs" },
     ],
     summary: null,
     facts,
     contact: {
-      // The RPC returns neither the values nor their counts; the claim is plan-level only.
-      hidden: "Contact details are shown on paid plans.",
+      // No plan unlocks them (founder, 25 Sep: counts only, to every role), so
+      // the card may not promise one.
+      hidden: "Contact details are not shown on the record.",
       plan: options.plan ?? null,
+      // Counts, never values: `supplier_contact_counts` (0105) selects no
+      // contact column it does not count, so there is nothing to un-hide.
+      counts: options.contactCounts ?? null,
+      held: contactHeldWords(options.contactCounts),
     },
     readDates: readDates || null,
     products: {
@@ -1055,18 +1313,22 @@ export function buildSheet(input: RecordInput, options: SheetOptions = {}): Supp
       // A supplier's lines can span two chapters (S M Knitwears exports 61 and
       // 62); naming only the rarest line's chapter silently drops the rest.
       chapters: [...new Set(lines.map((l) => l.slice(0, 2)))].sort(),
-      productListCount: (s.principal_products ?? []).length,
+      productListCount: productList.length,
+      productList,
       certifiedScope: scoped ? { scheme: scoped.scheme, scope: scopeWords(scoped.scope), state: scoped.state } : null,
       certifiedScopeEmpty: scopeEmptyWords(p, certList),
       buyerLists: brands,
       buyerListsEmpty: brandListsEmptyWords(p),
-      tiles: input.hscodesError ? [] : photoTiles(lines, 6),
+      // Six tiles unless the caller asked for all of them, and a destination
+      // for the rest when it did not.
+      tiles: input.hscodesError ? [] : photoTiles(lines, options.allLines ? lines.length : 6),
+      allLinesHref: options.allLines || lines.length <= 6 ? null : (options.allLinesHref ?? null),
     },
     certs: certList,
     certsCaption: certList.length ? `${onFileLabel(certList.length)} · ${certRegisters.join(", ")}` : null,
     certsEmpty: certsEmptyWords(p),
     certsEmptyChip: certsEmptyChipLabel(p),
-    certBuildings: certBuildings(p),
+    buildingCerts: buildingCerts(input),
     rsc: rsc
       ? {
           ref: (p.pills ?? []).find((x) => x.source_code.toUpperCase() === "RSC" && ownPill(x))?.value ?? null,
@@ -1089,6 +1351,36 @@ export function buildSheet(input: RecordInput, options: SheetOptions = {}): Supp
       training: rscTrainingWords(b.training_status),
       links: rscLinks(b),
     })),
+    sources: sourceRows(p),
+    sourcesCaption: registersReadWords(p),
+    locations,
+    // `p.addresses` absent is a failed read; an empty array is a record with
+    // no address filed. They are not the same sentence.
+    locationsEmpty: p.addresses
+      ? "No address on any register that filed this record."
+      : "The addresses could not be read.",
+    facilities: facilityRows(options.facilities),
+    rfqs: {
+      count: rfqs.count,
+      rows: rfqs.rows,
+      empty: rfqs.error
+        ? "Your RFQs could not be read."
+        : "You have not sent this supplier an RFQ yet.",
+      error: rfqs.error,
+    },
+    rfqHref: options.rfqHref ?? null,
+    supplierId: options.supplierId ?? null,
+    saved: Boolean(options.saved),
+    fullHref: options.fullHref ?? `/app/suppliers/${s.slug}`,
+    closeHref: options.closeHref ?? null,
+    lineHref: options.lineHref ?? ((hs: string) => `/app/suppliers/${s.slug}/lines/${hs}`),
+    sanctions: sanctionRows(p),
+    // A flagged record whose payload carries no row is not "no match" — it is a
+    // match whose receipt did not come back.
+    sanctionsEmpty:
+      p.sanctions === undefined
+        ? "The matched entries could not be read."
+        : "The screen recorded a match but filed no entry for it.",
   };
 
   // Every square this sheet draws: the mark row, the attributed fact rows and
@@ -1099,6 +1391,14 @@ export function buildSheet(input: RecordInput, options: SheetOptions = {}): Supp
     ...model.marks,
     ...model.facts.flatMap((f) => (f.value === null ? [] : (f.marks ?? []))),
     ...model.certs.map((c) => sourceMark(c.markCode, c.documentUrl)),
+    // A building's own certificates draw the same cards, one square each.
+    ...model.buildingCerts.flatMap((b) => b.certs.map((c) => sourceMark(c.markCode, c.documentUrl))),
+    // REZ-C draws two more mark surfaces. Leaving them out meant the action
+    // bar's "every source mark links to its register page" was computed over a
+    // subset of the squares actually on screen — the same defect the
+    // certificate marks caused before they were added here.
+    ...model.sources.map((s) => s.mark),
+    ...model.locations.flatMap((l) => l.marks),
   ];
   // "…to its register page" is false of a brand mark however well it links: a
   // disclosure list is one file listing every supplier on it, and the mark's
@@ -1109,6 +1409,58 @@ export function buildSheet(input: RecordInput, options: SheetOptions = {}): Supp
   const everyMarkLinks =
     rendered.length > 0 && rendered.every((m) => Boolean(m.href)) && rendered.every((m) => m.opens !== "list");
   return { ...model, everyMarkLinks };
+}
+
+/**
+ * A usable http(s) link for a watchlist entry, and what it opens.
+ *
+ * NOT `recordPage`: that heuristic is about a register's page for one company
+ * and rejects `…/uflpa-entity-list#UFLPA-2024-0117` because the path carries
+ * no digit. A watchlist entry is legitimately an anchor into a list, so the
+ * link is kept and labelled by what it actually opens — the same discipline a
+ * brand mark follows when it says "opens the disclosure list".
+ */
+function sanctionLink(url: string | null | undefined): { href: string | null; opens: SanctionRow["opens"] } {
+  if (!url || !/^https?:\/\//i.test(url)) return { href: null, opens: "list" };
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return { href: null, opens: "list" };
+  }
+  const anchored = parsed.hash.length > 1;
+  // A bare origin with no fragment is the register's front door, not an entry
+  // and not a list of anything in particular.
+  if (parsed.pathname.replace(/\/+$/, "") === "" && !anchored) return { href: null, opens: "list" };
+  return { href: url, opens: anchored ? "entry" : "list" };
+}
+
+/**
+ * The watchlist rows behind the banner, best-evidenced first.
+ *
+ * The banner says "matched on a sanctions screen"; these say which list, which
+ * name it matched, and where to read the entry. The page this sheet replaced
+ * put them on its Compliance tab and its banner pointed at them, so a signed-in
+ * buyer must not now see less than an anonymous visitor does.
+ */
+function sanctionRows(p: ProfilePayload): SanctionRow[] {
+  return (p.sanctions ?? [])
+    .filter((x) => (x.list ?? "").trim() || (x.matched_name ?? "").trim())
+    .map((x) => ({
+      list: x.list?.trim() || "Unnamed list",
+      matchedName: x.matched_name?.trim() || "name not filed",
+      ref: x.list_entry_ref?.trim() || null,
+      screenedOn: formatDay(x.screened_at),
+      listedOn: formatDay(x.listed_date),
+      // NOT `recordPage`: that heuristic is about a register's page for one
+      // company, and it rejects `…/uflpa-entity-list#UFLPA-2024-0117` because
+      // the path carries no digit. A watchlist entry is legitimately an anchor
+      // into a list, so the link is kept and LABELLED by what it opens.
+      // `opens` follows the href that SURVIVED, not the raw URL: a rejected
+      // URL could otherwise still label a link that is not rendered.
+      ...sanctionLink(x.source_url),
+    }))
+    .sort((a, b) => a.list.localeCompare(b.list) || a.matchedName.localeCompare(b.matchedName));
 }
 
 /** The five RSC reports, in the order the spec lists them; a missing one keeps its slot. */
@@ -1123,8 +1475,36 @@ function rscLinks(rsc: ProfileRsc): { label: string; href: string | null }[] {
 }
 
 /** What the sheet says under the worker figure about the sites it covers. */
-function workersNote(w: WorkersFact): string | null {
-  if (w.groupUnknown) return "this record and its buildings together; the site breakdown is not on the record";
+function workforceSplit(w: WorkersFact, s: ProfileSupplier): string | null {
+  const f = s.employees_female ?? 0;
+  const m = s.employees_male ?? 0;
+  const t = w.value;
+  // The halves are this record's own filing, so they split only the total the
+  // same filing carries. A larger figure shown — its buildings summed in
+  // (jk-fabrics: 44 filed, all men, 1,604 shown), or several sites — is not
+  // the whole they split, and the difference would be invented as a sex.
+  if (w.source === "RSC" || t === null || t <= 0 || t !== s.employees_total || (f <= 0 && m <= 0)) return null;
+  if (f > 0 && m > 0) {
+    const ratio = (f + m) / t;
+    if (ratio < 0.9 || ratio > 1.1) return null;
+    return `${formatCount(f)} women · ${formatCount(m)} men`;
+  }
+  // One half filed: the other is the total less it, as the capacity tab did —
+  // and said so, because no register filed it.
+  const filed = f > 0 ? f : m;
+  if (filed >= t) return null;
+  const [women, men] = f > 0 ? [f, t - f] : [t - m, m];
+  return `${formatCount(women)} women · ${formatCount(men)} men (${f > 0 ? "men" : "women"} by subtraction)`;
+}
+
+function workersNote(w: WorkersFact, buildingFigures = false): string | null {
+  if (w.groupUnknown) {
+    // The Facilities list gives each building's own figure when the panel
+    // carries them; "not on the record" beside that list is false.
+    return buildingFigures
+      ? "this record and its buildings together; each building's own figure, where filed, is under Facilities"
+      : "this record and its buildings together; the site breakdown is not on the record";
+  }
   if (!w.coverage) return null;
   return [`across ${w.coverage}`, w.excluded.length ? `excluded: ${w.excluded.join(", ")}` : null].filter(Boolean).join(" · ");
 }
@@ -1190,12 +1570,24 @@ function scopeWords(scope: string | null): string {
 
 // ---- the product sheet ----
 
-export function buildProductSheet(input: RecordInput, hs: string): ProductSheetModel {
+export type ProductSheetOptions = {
+  /** Back to the record. Defaults to its full page; an overlay passes the URL that keeps the search behind it. */
+  backHref?: string | null;
+  closeHref?: string | null;
+  rfqHref?: string | null;
+};
+
+export function buildProductSheet(filed: RecordInput, hs: string, options: ProductSheetOptions = {}): ProductSheetModel {
+  const input = withoutFiledContact(filed);
   const p = input.profile;
   const s = p.supplier;
   const code = heading4(hs);
   const line = input.hscodes.find((h) => heading4(h.code) === code) ?? null;
   const exported = line !== null;
+  // A failed read of the lines is not an empty list: nothing below may say
+  // "not on this record's EPB page" or "EPB checked" when EPB was never read.
+  const unknown = Boolean(input.hscodesError);
+  const UNREAD = { empty: "Could not be read", checked: "EPB lines could not be read", marks: [] };
   const row = hsCatalogueRow(code);
   const others = headings(input).filter((c) => c !== code).sort();
   const certList = certs(input);
@@ -1222,6 +1614,7 @@ export function buildProductSheet(input: RecordInput, hs: string): ProductSheetM
     // The eyebrow may only call this an EPB export line when the record's own
     // EPB page carries it; otherwise it is a heading the buyer arrived at.
     exported,
+    linesUnknown: unknown,
     heading: line?.description ?? row?.heading ?? hsShortLabel(code),
     photo: { hs: code, short: hsShortLabel(code), src: hsPhotoSrc(code, 512), thumb: hsPhotoSrc(code, 128) },
     generatedOn: null,
@@ -1230,7 +1623,7 @@ export function buildProductSheet(input: RecordInput, hs: string): ProductSheetM
       // about this record: stamping it with an EPB mark is a wrong receipt,
       // and it was stamped even for a record on no EPB register at all.
       { label: "Chapter", value: `${code.slice(0, 2)} · ${chapterName(code.slice(0, 2))}`, marks: [], note: "HS nomenclature" },
-      {
+      unknown ? { label: "Exporter page", value: null, ...UNREAD } : {
         label: "Exporter page",
         value: exported && epb ? `edb.epb.gov.bd · exporter ${epb.ref ?? ""}`.trim() : null,
         href: exported ? (epb?.href ?? null) : null,
@@ -1241,7 +1634,9 @@ export function buildProductSheet(input: RecordInput, hs: string): ProductSheetM
         marks: exported && epb ? [ep] : [],
       },
       { label: "Exporting since", value: null, note: "EPB lists lines, not dates" },
-      { label: "Other lines", value: others.length ? others.join(" · ") : null, code: true, checked: "EPB checked", marks: others.length ? [ep] : [] },
+      unknown
+        ? { label: "Other lines", value: null, ...UNREAD }
+        : { label: "Other lines", value: others.length ? others.join(" · ") : null, code: true, checked: "EPB checked", marks: others.length ? [ep] : [] },
       scoped
         ? {
             label: "Certified scope",
@@ -1263,9 +1658,18 @@ export function buildProductSheet(input: RecordInput, hs: string): ProductSheetM
       { label: "Buyer lists", value: brands.length ? brands.join(" · ") : null, note: brands.length ? "disclosure lists" : null, checked: brandListsEmptyWords(p), marks: brandMarks },
       attested.length
         ? { label: "Price · MOQ · lead time", value: attested.join(" · "), note: "supplier-attested", marks: [], pendingSource: true }
-        : { label: "Price · MOQ · lead time", value: null, note: "supplier-attested fields, shown when attested" },
+        : { label: "Price · MOQ · lead time", value: null, empty: "Not attested", note: "supplier-attested fields, shown when attested" },
     ],
-    otherExporters: row && exported ? Math.max(0, hsExporterCount(code) - 1) : null,
+    // The count the linked search returns, not that minus one, and the label
+    // says "Exporters" rather than "Other exporters" to match. Verified live on
+    // 25 Sep: `discover_suppliers(p_hs_codes := {6105})` → total_count 1,634,
+    // catalogue 1,634. While the control was inert the difference did not show;
+    // it is a link now, and the founder's rule of 24 Sep is that a products
+    // count equals the search it opens.
+    exporters: row && exported ? hsExporterCount(code) : null,
+    backHref: options.backHref === undefined ? `/app/suppliers/${s.slug}` : options.backHref,
+    closeHref: options.closeHref ?? null,
+    rfqHref: options.rfqHref ?? null,
   };
 }
 

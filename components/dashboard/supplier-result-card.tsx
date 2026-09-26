@@ -14,6 +14,7 @@
 "use client";
 
 import type { SupplierCardModel, FactWithMark, TileModel } from "@/lib/dashboard/models";
+import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { Chip, Chips } from "./chips";
 import { Button, Checkbox, V2Tag } from "./controls";
@@ -62,9 +63,15 @@ function Tile({ tile }: { tile: TileModel }) {
         // the grid row equalises.
         <span className="flex min-w-0 items-start gap-1 text-sm text-ink-subtle">
           {tile.href ? (
-            <a href={tile.href} className="inline-flex min-w-0 items-start gap-0.5 text-brand-ink">
+            // A link into this record's sheet tabs (§3.1). In the results it
+            // carries the search, so it must be a client navigation like every
+            // other record link, or the sub-line loses what the card kept. It
+            // keeps Next's default scroll: the href ends in #section, and
+            // `scroll={false}` also switches off the jump to that section, so
+            // "12 lines ›" opened the sheet at Overview.
+            <Link prefetch={false} href={tile.href} className="inline-flex min-w-0 items-start gap-0.5 text-brand-ink">
               <span className="[overflow-wrap:anywhere]">{tile.sub}</span> <Icon name="chev-r" small className="mt-0.5 shrink-0" />
-            </a>
+            </Link>
           ) : (
             <span className="[overflow-wrap:anywhere]">{tile.sub}</span>
           )}
@@ -83,9 +90,9 @@ export function SanctionLine({ sample, href, className }: { sample?: boolean; hr
         {href ? (
           <>
             {" "}
-            <a href={href} className="text-sanction-ink underline">
+            <Link prefetch={false} scroll={false} href={href} className="text-sanction-ink underline">
               Open the record
-            </a>
+            </Link>
           </>
         ) : null}
       </span>
@@ -94,7 +101,10 @@ export function SanctionLine({ sample, href, className }: { sample?: boolean; hr
 }
 
 export function SupplierResultCard({ card }: { card: SupplierCardModel }) {
-  const recordHref = `/app/suppliers/${card.slug}`;
+  // Discover passes the search's own URL with `?record=`, so the record
+  // opens over the results and Close returns to them. Anywhere else, the
+  // record's full page.
+  const recordHref = card.recordHref ?? `/app/suppliers/${card.slug}`;
   const sel = useSelection();
   const selectable = sel.interactive && Boolean(card.supplierId);
   const selected = selectable ? sel.isSelected(card.supplierId!) : Boolean(card.selected);
@@ -122,8 +132,29 @@ export function SupplierResultCard({ card }: { card: SupplierCardModel }) {
           <div className="flex min-w-0 flex-1 flex-col gap-1">
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
               {/* A heading, so heading navigation moves between results and each
-                  card's Open / Send RFQ / Save sit under their supplier's name. */}
-              <Title as="h2">{card.name}</Title>
+                  card's Open / Send RFQ / Save sit under their supplier's name.
+                  The name itself opens the record (§3.3, "from Open record /
+                  the name"); the button beside it goes to the same place. */}
+              <Title as="h2">
+                {/* `next/link` and `scroll={false}`: the record opens over these
+                    results without a document load or moving the page (§3.3).
+                    The server does re-run the search (`record` is a search
+                    param); the selection survives even a failed re-run
+                    (discover/page.tsx). `[overflow-wrap:anywhere]` rides on the element that
+                    directly holds the text — a 125-character name must break
+                    inside the link, not overflow the card. */}
+                <Link
+                  prefetch={false}
+                  scroll={false}
+                  href={recordHref}
+                  // Last, so React emits it last: the kit's long-name guard
+                  // matches the element that directly holds the text, as
+                  // `class="…[overflow-wrap:anywhere]…">Name<`.
+                  className="text-ink-strong [overflow-wrap:anywhere] hover:text-brand-ink"
+                >
+                  {card.name}
+                </Link>
+              </Title>
               <SourceMarks marks={card.marks} />
             </div>
             <MetaLine facts={card.meta} />
@@ -142,7 +173,7 @@ export function SupplierResultCard({ card }: { card: SupplierCardModel }) {
                 <Icon name="bookmark" /> Save
               </Button>
             )}
-            <Button href={`/app/suppliers/${card.slug}`}>Open record</Button>
+            <Button href={recordHref} clientNav scroll={false}>Open record</Button>
             <Button variant="primary" href={card.sanctioned ? undefined : (card.rfqHref ?? undefined)} disabled={card.sanctioned}>
               <Icon name="send" /> Send RFQ
             </Button>

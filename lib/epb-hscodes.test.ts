@@ -2,6 +2,12 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, it } from "node:test";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+
+import { SupplierSheet } from "@/components/dashboard/supplier-sheet";
+import { buildSheet } from "@/lib/dashboard/build-models";
+import { aboniInput } from "@/lib/dashboard/fixtures";
 
 import { asEpbHscodes, epbExporterOpenUrl, epbRegistryVerifyHref, hscodesFromRpc } from "./epb-hscodes";
 
@@ -116,19 +122,39 @@ describe("EPB HS wiring (observable call sites)", () => {
     assert.match(pub, /hscodes=\{epbHs\.hscodes\}/);
     assert.match(pub, /facilitiesLoadError=\{facilityLoadError\}/);
 
+    // REZ-C moved the buyer route onto the dashboard kit, so the RPC call and
+    // the error handling now live one step away, in the loader the route uses.
+    // The rule is unchanged: a failed HS read must be carried as "unknown",
+    // never rendered as "no lines".
     const app = readFileSync(
       join(process.cwd(), "app/(app)/app/suppliers/[slug]/page.tsx"),
       "utf8",
     );
-    assert.match(app, /supplier_epb_hscodes/);
-    assert.match(app, /hscodesFromRpc/);
-    assert.match(app, /hscodesLoadError/);
-    assert.doesNotMatch(app, /hsResult\.error \? \[\]/);
-    assert.match(app, /forceMount/);
-    assert.match(app, /hscodes=\{epbHs\.hscodes\}/);
-    assert.match(app, /facilitiesLoadError=\{panelPack\.facilityLoadError\}/);
-    assert.match(app, /facilityPanelFromRpc/);
-    assert.match(app, /isProfileRpcTimeout/);
+    assert.match(app, /loadRecordSheet/);
+    const loader = readFileSync(join(process.cwd(), "lib/dashboard/load-record.ts"), "utf8");
+    assert.match(loader, /supplier_epb_hscodes/);
+    assert.match(loader, /hscodesFromRpc/);
+    assert.match(loader, /hscodesError: loadError/);
+    assert.doesNotMatch(loader, /hsResult\.error \? \[\]/);
+    // `forceMount` was how the old page kept the Compliance tab's registry
+    // links in the INITIAL HTML (the REZ-115 / REZ-72 lesson: a tab panel that
+    // mounts on click ships none of its links to a caller who never clicks).
+    // The kit sheet has no tab panels — every section is in the one document —
+    // so the requirement is met more strongly, and this asserts the outcome
+    // rather than the mechanism.
+    assert.match(app, /ProfileReadTimeout/, "a slow read must not answer 404");
+  });
+
+  it("the record sheet ships every section's HS lines and register links in the first response", () => {
+    // The outcome `forceMount` existed to protect, asserted on the HTML.
+    const html = renderToStaticMarkup(
+      createElement(SupplierSheet, { model: buildSheet(aboniInput()) }),
+    );
+    for (const id of ["overview", "products", "certificates", "safety", "sources", "locations", "facilities", "rfqs"]) {
+      assert.ok(html.includes(`id="${id}"`), `#${id} is not in the initial HTML`);
+    }
+    assert.match(html, /edb\.epb\.gov\.bd\/exporter\//, "the EPB exporter link is not in the initial HTML");
+    assert.match(html, /bgmea\.com\.bd\/member\//, "the BGMEA register link is not in the initial HTML");
   });
 
   it("Overview shows HS codes; Compliance does not; empty list is omitted", () => {

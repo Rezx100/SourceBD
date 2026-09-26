@@ -13,28 +13,53 @@ Then the lean boot set named in AGENTS.md rule 3 (`context/agent-brief.md`,
 
 ## Verification gate — run all four, paste raw output, compare to baselines
 
-Baselines at `e15966c` (17 Sep 2026):
+Baselines **re-measured 25 Sep 2026** at REZ-C's audited candidate, on the commit that
+writes them. The `e15966c` (17 Sep) figures they replace were out of date.
 
-- `pnpm exec tsc --noEmit` — exit 0, no output
-- `pnpm test` — 602 passed / 0 failed / 86 suites, ~7 min. **Node 21 or 22, not 20.** The
+- `pnpm exec tsc --noEmit` — exit 0, no output. (Unchanged.)
+- `pnpm test` — **1,851 tests / 250 suites: 1,850 pass, 1 fail** (REZ-C cycle-13 candidate `9f45655`, measured 27 Sep), ~12–25 min. The old
+  "602 passed / 86 suites" predates REZ-A, REZ-B and REZ-C. **Node 21+, not 20.** The
   script passes `".tests-build/**/*.test.js"` to `node --test`, and Node 20 has no glob
-  support there: it looks for a file of that literal name, prints `Could not find`, and exits
-  1 with nothing run. (Corrected 20 Sep 2026; the note here said "Node 20 only", and CI was
-  written against it.)
-- `ruff check etl ops --no-cache` — 49 findings on ruff ≤ 0.12 (442 on 0.16, whose default rule
-  set differs). `pyproject.toml` pins only `ruff>=0.6`, so the version you install decides the
-  number — state the version alongside the count, always.
-- `python -m pytest -q etl/tests` — 1024 passed, 25 skipped. Needs `FIRECRAWL_API_KEY` set to any
-  value (6 `test_credit_budget` tests) and a git identity in `GIT_AUTHOR_NAME/EMAIL` +
-  `GIT_COMMITTER_NAME/EMAIL` (10 `test_github_https_fetch_auth` tests seed a temp repo). Without
-  them 16 fail for environment reasons, not flakiness. The 25 skips are DB-backed tests gated on
-  `SUPABASE_DB_URL`.
+  support there: it looks for a file of that literal name, prints `Could not find`, and
+  exits 1 with nothing run. Measured on Node 25.4.0. It sits several minutes on one
+  CPU-bound suite near the end; that is not a hang.
+  **One known failure, pre-existing and not REZ-C's:** `lib/rate-limit/limits.test.ts` —
+  "bucket `api_export` is not in rl_check's allow-list". REZ-B added the `api_export`
+  class in `lib/rate-limit/limits.ts` without adding it to `rl_check`'s allow-list in a
+  migration, so **`/api/v1/discover/export` is never rate limited**. Identical at
+  `1366220`. Worth its own issue.
+- `ruff check etl ops --no-cache` — **49 findings on ruff 0.15.13** (and on ≤ 0.12; 442 on
+  0.16, whose default rule set differs). `pyproject.toml` pins only `ruff>=0.6`, so the
+  version you install decides the number — state the version alongside the count, always.
+- `python -m pytest -q etl/tests` — the answer depends on whether the database is
+  reachable, and `.env` sets `SUPABASE_DB_URL`, which `load_dotenv` picks up whatever the
+  shell says. **With the DB reachable: 1,009 passed / 42 failed / 6 skipped.** The old
+  "1024 passed, 25 skipped" describes a machine with no database URL, which this is not.
+  Every one of those failures is environmental and pre-existing — the same five files at
+  the merge base `1366220`, in a clean worktree, fail the same 42:
+  - `test_github_https_fetch_auth.py` (31) — shells out to `bash`, which on this machine
+    now resolves to WSL with no distribution installed. The old note blamed a missing git
+    identity; setting `GIT_AUTHOR_NAME/EMAIL` + `GIT_COMMITTER_NAME/EMAIL` does not fix it.
+  - `test_queue_release_plan_sql.py` (5), `test_queue_decide_rpc_live.py` (4) — pin
+    production queue rows from August that migration `0102` released on 14 Aug.
+  - `test_epb_detail_url_sql.py` (1), `test_deploy_production_smoke.py` (1) — DB and
+    live-site reads.
+  `FIRECRAWL_API_KEY` set to any value is still needed (6 `test_credit_budget` tests).
+  The 6 skips are `test_supplier_contact_counts_sql.py`, which cannot run until migration
+  `0105` is applied and says so in its skip messages; they become passes after it is.
+  DB-backed tests skip cleanly without the URL.
 
 Any difference from these numbers, in either direction, is a finding to explain. Use `/verify`.
 
 CI (`.github/workflows/ci.yml`) runs `tsc`, `next lint`, `next build`, `pnpm test` and the
 HTTP-boundary guard. `pytest` and `ruff` run nowhere but this machine. A green CI run is
 evidence, not completion (closed-loop §1).
+
+**Founder rule, 27 Sep 2026: do not run locally what CI runs.** After a fix, run at most the
+one test file that covers it, then push the branch and let GitHub run `tsc`, lint, build,
+`pnpm test`, the HTTP-boundary guard and the migration replay. Read the result with
+`gh run watch` and `gh run view --log-failed`. Only `pytest` and `ruff` still run here,
+because nothing else runs them. The approval gates in AGENTS 9a are unchanged.
 
 ## What this machine will refuse (see `.claude/hooks/guard.py`)
 

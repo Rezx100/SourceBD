@@ -6,6 +6,7 @@
 
 /* eslint-disable @next/next/no-img-element -- static catalogue files under /public, sized by the tile */
 import type { PhotoTileModel } from "@/lib/dashboard/hs-photos";
+import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { Icon } from "./icons";
 import { Caption, Code } from "./type";
@@ -173,13 +174,26 @@ export function NoLinesSlot({
   );
 }
 
-/** `.pgrid`: the sheet's six-up grid. */
-export function PhotoGrid({ tiles }: { tiles: readonly PhotoTileModel[] }) {
+/**
+ * `.pgrid`: the sheet's six-up grid. `lineHref` turns each tile into the link
+ * to that export line's sheet (REZ-C §3.3, "each tile opens ProductSheet");
+ * without it the tiles stay plain, as they are on the gallery.
+ */
+export function PhotoGrid({ tiles, lineHref }: { tiles: readonly PhotoTileModel[]; lineHref?: (hs: string) => string }) {
   return (
-    <div className="grid grid-cols-6 gap-2">
-      {tiles.map((t) => (
-        <PhotoTile key={t.hs} tile={t} fluid />
-      ))}
+    <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
+      {tiles.map((t) =>
+        lineHref ? (
+          // `next/link`: in the overlay this href is `?…&record=X&line=NNNN`
+          // on the search's own URL, and a plain anchor would reload the whole
+          // page — re-running the search and emptying the bulk selection.
+          <Link key={t.hs} prefetch={false} scroll={false} href={lineHref(t.hs)} aria-label={`HS ${t.hs} · ${t.short}`} className="rounded-sm">
+            <PhotoTile tile={t} fluid />
+          </Link>
+        ) : (
+          <PhotoTile key={t.hs} tile={t} fluid />
+        ),
+      )}
     </div>
   );
 }

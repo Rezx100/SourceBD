@@ -208,20 +208,23 @@ export function Sidebar({ model, screenLabel }: { model: SidebarModel; screenLab
       <div className="hidden md:contents">
         <RecentSearchesSlot items={model.recent} />
       </div>
-      <div className="mt-auto hidden flex-col gap-1.5 border-t border-line-subtle px-2 pt-4 md:flex">
-        <div className="flex items-center gap-2">
-          <Label className="text-ink-strong">{plan.name}</Label>
-          {plan.note ? <Caption className="ml-auto">{plan.note}</Caption> : null}
+      {/* No plan named (a loading state does not know it): no footer at all. */}
+      {plan.name ? (
+        <div data-plan="true" className="mt-auto hidden flex-col gap-1.5 border-t border-line-subtle px-2 pt-4 md:flex">
+          <div className="flex items-center gap-2">
+            <Label className="text-ink-strong">{plan.name}</Label>
+            {plan.note ? <Caption className="ml-auto">{plan.note}</Caption> : null}
+          </div>
+          {pct !== null ? (
+            <>
+              <Meter pct={pct} label={`RFQs used this month, ${plan.name}`} />
+              <Caption>
+                {plan.used} of {plan.allowance} RFQs this month
+              </Caption>
+            </>
+          ) : null}
         </div>
-        {pct !== null ? (
-          <>
-            <Meter pct={pct} label={`RFQs used this month, ${plan.name}`} />
-            <Caption>
-              {plan.used} of {plan.allowance} RFQs this month
-            </Caption>
-          </>
-        ) : null}
-      </div>
+      ) : null}
     </aside>
   );
 }
@@ -333,6 +336,23 @@ export function AppShell({
    * collide.
    */
   screenLabel,
+  /**
+   * A dialog is open over this shell, so the whole of it — skip link, sidebar,
+   * topbar, content — is `inert`: out of the tab order, the pointer and the
+   * accessibility tree. `Sheet`'s `aria-modal="true"` asserts exactly that,
+   * and the assertion has to be true of the shell's own chrome and not only of
+   * the content, or ⌘K still reaches the topbar search field from behind the
+   * scrim.
+   */
+  inert: inertShell = false,
+  /**
+   * A dialog drawn OVER this shell, outside the `inert` boundary.
+   *
+   * It cannot be a child: `inert` applies to the whole subtree, so a sheet
+   * rendered inside `children` would be inert too — the dialog would announce
+   * everything else unavailable and then be unavailable itself.
+   */
+  overlay,
   children,
 }: {
   sidebar: SidebarModel;
@@ -340,6 +360,8 @@ export function AppShell({
   contentClassName?: string;
   mainId?: string;
   screenLabel?: string;
+  inert?: boolean;
+  overlay?: ReactNode;
   children: ReactNode;
 }) {
   // Every screen opens with the same eight sidebar links. Without a `main`
@@ -349,7 +371,20 @@ export function AppShell({
   // kit replaces already has both — `app/(app)/layout.tsx` renders `SkipLink`
   // and `<main id="main-content">`.
   return (
-    <div className="flex min-h-full flex-col bg-canvas text-base text-ink md:flex-row">
+    // `inert` covers the WHOLE shell when a dialog is open, not only `children`.
+    // Wrapping the content alone left the skip link, ten sidebar links, the
+    // topbar search field and the account link outside it and ahead of the
+    // dialog in the tab order — roughly thirteen stops the dialog's
+    // `aria-modal="true"` asserted did not exist, with their focus rings drawn
+    // under a `z-50` scrim. ⌘K reached the search field from behind it. The
+    // gallery guard already asserts the arrangement this now has
+    // (`app/dev/ds/dashboard-screens.test.ts`: `<main>` and the primary nav
+    // both INSIDE the inert wrapper); the shipped route did not have it.
+    <>
+    <div
+      className="flex min-h-full flex-col bg-canvas text-base text-ink md:flex-row"
+      {...(inertShell ? { inert: true } : {})}
+    >
       <a
         href={`#${mainId}`}
         className="sr-only focus:not-sr-only focus:absolute focus:left-3 focus:top-3 focus:z-50 focus:rounded-sm focus:border focus:border-line-strong focus:bg-surface focus:px-3 focus:py-2 focus:text-sm focus:font-medium focus:text-ink-strong"
@@ -374,6 +409,8 @@ export function AppShell({
           {children}
         </main>
       </div>
-    </div>
+      </div>
+      {overlay}
+    </>
   );
 }

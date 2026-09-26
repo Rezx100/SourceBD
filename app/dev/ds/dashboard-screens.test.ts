@@ -648,7 +648,14 @@ describe("what the whole page may and may not say about itself", () => {
     // that happens to host one today. Turning a placeholder link into a span
     // is a repair, and must not fail this test.
     const d = galleryData();
-    assert.ok((d.sheet?.tabs ?? []).some((t) => t.href === null), "the sheet still has sections that arrive later");
+    // The sheet's own "arrives later" tabs are gone — REZ-C built all eight
+    // sections — so the sheet is no longer a source of placeholder links. The
+    // canary that remains is the card's "+N" chip, which still is one.
+    assert.deepEqual(
+      (d.sheet?.tabs ?? []).filter((t) => t.href === null).map((t) => t.label),
+      [],
+      "a sheet tab points nowhere again; this test needs it back in its placeholder list",
+    );
     assert.ok(d.cards.some((c) => (c.moreChips ?? 0) > 0), "a card still has more chips than it shows");
   });
 
