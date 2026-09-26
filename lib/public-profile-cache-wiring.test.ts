@@ -179,9 +179,15 @@ describe("public profile cache wiring", () => {
     assert.doesNotMatch(page, /getCachedFacilityParentSlug/);
     assert.match(page, /urlOnSite\(miss\.path\)/);
 
+    // REZ-C rebuilt this route on the dashboard kit. It no longer reads the
+    // facility panel (the Facilities section is REZ-73's roll-up and is not
+    // landed), but the rule this line was written for — a statement timeout is
+    // not a missing record — still binds, and the route still has to say so
+    // rather than answering 404.
     const app = executable("app/(app)/app/suppliers/[slug]/page.tsx");
-    assert.match(app, /facilityPanelFromRpc/);
-    assert.match(app, /err\.name === "ProfileStatementTimeout"/);
+    assert.match(app, /ProfileReadTimeout/);
+    assert.match(app, /RecordTooSlow/);
+    assert.doesNotMatch(app, /notFound\(\);\s*\}\s*$/, "the route must not end at notFound for every failed read");
   });
 
   it("admin already purges the supplier tag this cache uses", () => {

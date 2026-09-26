@@ -62,6 +62,12 @@ export type SupplierCardModel = {
   /** Buyer Discover sets these so Save / Send RFQ are real controls. The gallery leaves them unset. */
   supplierId?: string;
   rfqHref?: string | null;
+  /**
+   * Where "Open record" and the name go. Discover passes `?record=<slug>` on
+   * the search's own URL, so opening a record keeps the search behind it and
+   * closing returns to it without a re-run. Unset → the record's full page.
+   */
+  recordHref?: string | null;
 };
 
 export type TableRowModel = {
@@ -90,6 +96,8 @@ export type TableRowModel = {
   saved?: boolean;
   supplierId?: string;
   rfqHref?: string | null;
+  /** As `SupplierCardModel.recordHref`. */
+  recordHref?: string | null;
 };
 
 export type FactRow = {
@@ -105,6 +113,76 @@ export type FactRow = {
   href?: string | null;
   note?: string | null;
   badge?: { tone: "positive" | "caution" | "type"; label: string } | null;
+  /** What a missing value reads as. Defaults to "Not on file", which claims the registers were read; "Not attested" and "Could not be read" do not. */
+  empty?: string;
+};
+
+/**
+ * How much contact detail the record holds (0105, REZ-C §4.3). Counts only:
+ * `supplier_contact_counts` selects no contact value and returns none, so
+ * there is nothing for the browser to un-hide.
+ */
+export type ContactCounts = {
+  emails: number;
+  phones: number;
+  representatives: number;
+  website: boolean;
+};
+
+/** One row of the Sources section: a register that filed something on this record. */
+export type SourceRow = {
+  mark: SourceMarkModel;
+  /** The register spelled out, as the mark row spells it. */
+  name: string;
+  /** "Government register", "Industry body", … — the tier in the founder's words, never `tier1_gov`. */
+  tier: string;
+  /** The record's reference on that register (member number, certificate number). */
+  ref: string | null;
+  readDate: string | null;
+};
+
+/** One extension building: its name, its first filed address (contact details stripped) and its worker figure. */
+export type FacilityRowModel = { name: string; address: string | null; workers: string | null };
+
+/** One premises on the Locations section, after the address matcher has merged spellings. */
+export type LocationRow = {
+  kind: string;
+  address: string;
+  marks: SourceMarkModel[];
+  /** The other spellings the registers filed for the same premises. */
+  alsoRecordedAs: string[];
+};
+
+/**
+ * One watchlist hit behind the sanction banner. The page this sheet replaced
+ * showed the list, the matched name, the entry reference, the screening date
+ * and a link to the entry; the banner alone asserts a match and evidences
+ * nothing, which on this record of all records is the wrong way round.
+ */
+export type SanctionRow = {
+  list: string;
+  matchedName: string;
+  ref: string | null;
+  screenedOn: string | null;
+  listedOn: string | null;
+  href: string | null;
+  /**
+   * What `href` opens: the entry itself (the URL is anchored at it), or the
+   * whole watchlist. The same discipline the brand marks follow — a link never
+   * promises more than it delivers.
+   */
+  opens: "entry" | "list";
+};
+
+/** One of the calling buyer's RFQs that names this supplier. */
+export type RecordRfqRow = {
+  id: string;
+  title: string;
+  quantity: string | null;
+  status: { tone: "positive" | "caution" | "type"; label: string };
+  sent: string | null;
+  shipBy: string | null;
+  href: string;
 };
 
 export type SupplierSheetModel = {
@@ -122,8 +200,13 @@ export type SupplierSheetModel = {
   tabs: { label: string; count: string | null; href: string | null; active?: boolean }[];
   summary: string | null;
   facts: FactRow[];
-  /** What the locked card may claim today: only that details on the record are hidden. Kinds and registers arrive with `contact_counts` (REZ-C §4.3). */
-  contact: { hidden: string; plan: string | null };
+  /**
+   * The locked card. `counts` is what `supplier_contact_counts` returned, or
+   * null when that read failed — never zeros, because "no phone number on
+   * file" is a claim about the record and a failed count does not support it.
+   * No contact VALUE ever reaches this model.
+   */
+  contact: { hidden: string; plan: string | null; counts: ContactCounts | null; held: string | null };
   readDates: string | null;
   products: {
     lines: number;
@@ -135,6 +218,8 @@ export type SupplierSheetModel = {
     /** Every distinct 4-digit chapter the lines span, ascending. */
     chapters: string[];
     productListCount: number;
+    /** The product list itself, as filed, so the count above is a count of something the buyer can read (§3.3: principal products + also-produces). */
+    productList: string[];
     certifiedScope: { scheme: string; scope: string; state: CertState } | null;
     /** What to say where the scope would have gone; never a negative over a payload that holds certificates. */
     certifiedScopeEmpty: string;
@@ -142,6 +227,12 @@ export type SupplierSheetModel = {
     /** What to say when `buyerLists` is empty: the bare negative, or the building that is listed. */
     buyerListsEmpty: string;
     tiles: PhotoTileModel[];
+    /**
+     * Where "All N lines ›" goes. The grid shows six tiles, so on a record with
+     * more headings than that the rest were reachable from nowhere. Null when
+     * every line is already on screen.
+     */
+    allLinesHref: string | null;
   };
   certs: CertModel[];
   certsCaption: string | null;
@@ -156,8 +247,6 @@ export type SupplierSheetModel = {
    * one mark set makes the action bar's strongest sentence false.
    */
   everyMarkLinks: boolean;
-  /** Buildings holding a certificate of their own; named so the record does not appear to hold it, and so "none" is never printed over one. */
-  certBuildings: string[];
   /** The mother's own RSC row; every row the RPC returns is active (the inactive state is REZ-C's). */
   rsc: {
     ref: string | null;
@@ -178,6 +267,48 @@ export type SupplierSheetModel = {
     training: string | null;
     links: { label: string; href: string | null }[];
   }[];
+  /** REZ-C: every register that filed something on this record, best rank first. */
+  sources: SourceRow[];
+  sourcesCaption: string;
+  /** REZ-C: one row per premises, spellings merged by the matcher the profile's Locations section uses. */
+  locations: LocationRow[];
+  /** What the Locations section says when the payload carries no address. */
+  locationsEmpty: string;
+  /**
+   * REZ-C: the record's extension buildings, from REZ-73's
+   * `buyer_supplier_facility_panel` — the list the page this replaced and the
+   * public profile both show. `count` is null when the panel was not read,
+   * and `empty` then says so: "no buildings" is a claim an unread panel cannot make.
+   */
+  facilities: { count: number | null; rows: FacilityRowModel[]; empty: string };
+  /** Each building's own certificates, by building — shown, not counted as the record's. */
+  buildingCerts: { building: string; certs: CertModel[] }[];
+  /**
+   * REZ-C: the calling buyer's own RFQs naming this supplier. `count` is null
+   * when the read failed — an unread list has no count, and 0 is a claim.
+   */
+  rfqs: { count: number | null; rows: RecordRfqRow[]; empty: string; error?: boolean };
+  /** Where Send RFQ goes; null on a sanctioned record, where the control is disabled. */
+  rfqHref: string | null;
+  /** Where the sheet's Save control posts. Null on the gallery, which has no session. */
+  supplierId: string | null;
+  /** This record is on the caller's saved list. */
+  saved: boolean;
+  /** The full record page — what Share copies. */
+  fullHref: string;
+  /** Where the overlay's Close returns to. Null on the full page, which has nothing to close. */
+  closeHref: string | null;
+  /**
+   * Where one export line opens. A function, because the answer depends on
+   * where this sheet is: over the results it is a nested sheet on the same
+   * search URL, so the search survives the drill-down; on the full record page
+   * it is the line's own page.
+   */
+  lineHref: (hs: string) => string;
+  /** The watchlist rows behind the banner. Empty on a record that is not sanctioned. */
+  sanctions: SanctionRow[];
+  /** What the Safety/compliance area says when the record is flagged but the payload carries no row. */
+  sanctionsEmpty: string;
 };
 
 export type ProductSheetModel = {
@@ -187,11 +318,28 @@ export type ProductSheetModel = {
   hs: string;
   /** The record's own EPB page carries this line. False → the sheet never calls it an EPB export line. */
   exported: boolean;
+  /** `supplier_epb_hscodes` failed: whether the record exports this line is unknown, and the sheet says so rather than "not on the EPB page". */
+  linesUnknown: boolean;
   heading: string;
   photo: PhotoTileModel;
   generatedOn: string | null;
   facts: FactRow[];
-  otherExporters: number | null;
+  /**
+   * How many suppliers the linked search returns for this heading — INCLUDING
+   * this one. It was that minus one, under a label reading "Other exporters",
+   * which was honest about the word and dishonest about the link: the control
+   * became a real link in REZ-C, and `/app/discover?hs=6105` returns 1,634
+   * while the button said 1,633. The founder's rule of 24 Sep is that a
+   * products count equals the search it links to, so the number stayed whole
+   * and the label dropped "Other".
+   */
+  exporters: number | null;
+  /** Back to the record this line belongs to. Null on the gallery, which has no route behind it. */
+  backHref: string | null;
+  /** Where Close returns to; null when nothing sits behind the sheet. */
+  closeHref: string | null;
+  /** Send RFQ for this line — the composer with the HS code prefilled. */
+  rfqHref: string | null;
 };
 
 export type RfqRowModel = {

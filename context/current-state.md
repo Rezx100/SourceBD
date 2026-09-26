@@ -36,20 +36,61 @@ migrations, run the 30-day zero P1/P2 Sentry incident window.
   merged to `development` via PR #161 (21 Sep). Dev/admin-only gallery at
   `/dev/ds`; no live route wired yet. Full history:
   `context/feature-specs/handoff-rez-a-cycle21.md`.
-- **Buyer dashboard v3.2, REZ-B (results page)** — DEPLOYED, MIGRATION
-  MISSING. Judge `ACCEPTED_FOR_HUMAN_REVIEW` at `4f6eff2`; landed on
-  `development` via PR #164 (`cfbbf4a`), promoted to `main` via PR #165
-  (`1780c2c`), deployed 24 Sep (run `36035938232`, `/api/health` confirms
-  the commit). **Migration `0104` is NOT applied, so every signed-in search
-  on the live site fails; the public `/discover` page is unaffected.**
-  START HERE: `feature-specs/handoff-rez-b-live-migration.md` (the apply,
-  the smoke run, the follow-up list). Loop history:
-  `feature-specs/handoff-rez-b-cycle15.md` (24 Sep: state, decisions (all
-  taken), loop, gates, what follows REZ-B) and `handoff-rez-b-deploy.md`
-  (its §1–§2.3 are done). Cycles 10–14: §10–§11 of
-  `handoff-rez-b-cycle10.md`. `/app/discover` uses the kit;
-  `/app/products`, `/app/searches`, `/app/match` redirect added.
-  `/app/saved` and `/app/compare` stay deferred.
+- **Buyer dashboard v3.2, REZ-B (results page)** — DONE. Judge
+  `ACCEPTED_FOR_HUMAN_REVIEW` at `4f6eff2`; `development` PR #164 (`cfbbf4a`),
+  `main` PR #165 (`1780c2c`), deployed 24 Sep, migration `0104` applied 25 Sep.
+  Loop history: `feature-specs/handoff-rez-b-cycle15.md`,
+  `handoff-rez-b-deploy.md`, `handoff-rez-b-live-migration.md` (its §5 is the
+  follow-up list; its first item, the stale "Selection arrives with the results
+  work" line, is fixed in REZ-C's PR).
+- **Buyer dashboard v3.2, REZ-C (the company profile)** — IN PROGRESS on
+  branch `rez-c-supplier-record`. `/app/suppliers/[slug]` is now the dashboard
+  kit's `SupplierSheet`; the same component opens over the results as
+  `?record=<slug>` (a `next/link` client navigation, so the search and the bulk
+  selection survive); `/app/suppliers/[slug]/lines/[hs]` is the line sheet, and
+  a line opened from the overlay stays on the search as `&line=NNNN`. The sheet
+  gained Sources, Locations, Facilities, RFQs and a Sanctions-matches section,
+  so every tab leads somewhere.
+  Migration `0105` adds ONE function, `supplier_contact_counts` — NOT APPLIED.
+  Evidence and the founder's command: `ops/plans/rez-c-0105-dry-run.md`.
+  **The closed loop is OPEN** — thirteen audit cycles run, each repaired.
+  Cycle 7: the women/men split invented a sex from a family total (jk-fabrics)
+  — now shown only against the record's own filed total. Cycle 8 (requirements
+  critic accepted): cycle 7's place-word exemption let names through ("Abdul
+  Bari (MD)") — a name beside a role is now cut back to the last house or plot
+  number, so "Nur Mansion (MD)" loses its place (privacy over completeness);
+  the population guard has a fixture test. Cycle 9 (adversarial critic
+  accepted): a number after a name kept it ("Abdul Karim 2nd Floor (Owner)") —
+  only the numbers opening the stretch stay now; Locations lists the filed
+  address instead of saying "no address" under it (77 live records); the guard
+  reviews every text the stripper cut a role word from. Cycle 10
+  (requirements critic accepted): "(Md. Ali Tower)" read as a role cut places
+  — a full stop ends a role's part only at its end; honorific cuts go to
+  review; every guard check now has a fixture (it can run a stand-in
+  stripper). Cycle 11 (requirements critic accepted): cycle 10's full-stop
+  rule let "Abdul Karim (MD). Plot 5" through — a closed bracket or a
+  non-honorific role ends the part again, only "- MD." is left to review; a
+  failed search re-run under an open record no longer drops the buyer's bulk
+  selection. Cycle 12 (requirements critic accepted): cycle 11 had copied a
+  surviving mutant into the stripper as "redundant", reopening "- MD & CEO.,
+  Dhaka" — restored and pinned (rule: a surviving mutant gets a test, never
+  the source); the guard's cut splits dot-joined words; "160-GM." is grams;
+  the provider key is tested across open/close. Cycle 13 (requirements critic
+  accepted): 0105 counted one number with and without +880 as two phones (4
+  live records) — fixed, dry run owed; the guard judges each run of cut words
+  on its own; "GM"-as-grams only in products. Loop stopped here by the founder;
+  Acceptance Judge next. Founder, 25 Sep: Facilities lists the buildings; product
+  entries differing only in case or spacing merge. **27 Sep, founder: ship cycle 13's candidate and file the rest later** — START HERE: `feature-specs/handoff-rez-c-deploy.md`.
+  **Ratified by the founder 25 Sep:** "Exporters of 6105 · N" (the count
+  equals the search it opens); 0105's five omitted §4.3 items; and these
+  deferrals: the Barikoi map on Locations
+  (§3.3's "map stays") and §3.3's "Map pin" fact row, both of which need the
+  old design system's `LocationsSection` that the rebuild spec puts off-limits;
+  `/app/compare`, which §7 assigns to REZ-C and which stays deferred with
+  `/app/saved`; the admin-only contact unlock the replaced page had; and
+  §3.5's 10-minute `discover-facets` cache on `hs_catalogue()`, which
+  `/app/products` (shipped by REZ-B) still does not have — every view pays a
+  316 ms function scan. Scope: `feature-specs/handoff-rez-c-start.md`.
 
 ## Founder rules still in force (one line each; detail in archive)
 - EPB is a government register: show its evidence and HS codes whenever EPB has them, flagged or not. Never mint EPB-only suppliers. (15 Aug)
@@ -77,6 +118,7 @@ Migration file headers are NOT live status. Check here or query the database.
 | `0102_admin_queue_release` | 14 Aug 2026 | 1,282 tickets released; 48 `needs_human` open |
 | `0103_epb_detail_url_and_hscodes` | 15 Aug 2026 | EPB Open = exporter page |
 | `0104_discover_v32` | 25 Sep 2026 | REZ-B. Applied after its code was already live (`main` `1780c2c`, deployed 24 Sep) — signed-in search was down in between. Dry-run clean first (one transaction, rolled back). Verified after: 9 `discover_v32%` functions, `saved_searches` with 4 RLS policies, `discover_suppliers` at 25 args. sha256 (CRLF) `4f95641b7c8a1956d61d9b866373c963ec7150690afa2a46ff8b96cbbc3e8b47`. |
+| `0105_supplier_record_v32` | **not applied** | REZ-C. One function, `supplier_contact_counts(text)` — counts of a published record's contact details, never a value; `anon` explicitly revoked. Deliberately does NOT rewrite `buyer_supplier_profile`: production's copy is ahead of this repo (it emits `'fetched_at', rr.fetched_at` on rsc rows, which no migration here adds), so a `create or replace` from the repo would delete that key. sha256 (CRLF) `b6fd758a08f63f8b7abc9a65479c819cf47d30e1a4bb151988de44e43207b465` (26 Sep: one number with and without +880 counts once). **Dry run NOT re-run at this sha** (pooler down) — re-run before applying; the last clean run was at `4b2dfb8c…` on 25 Sep. Population guard for the contact stripper: `ops/verify_contact_text.py`. Evidence: `ops/plans/rez-c-0105-dry-run.md`. |
 
 Deploy-order hazard, twice hit: code that queries a new table with no
 missing-table guard crashes every ETL run if shipped before its migration.

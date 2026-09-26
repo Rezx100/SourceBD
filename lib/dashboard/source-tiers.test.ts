@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { marksFromTags, sourceMark, tierFromSlug, topTier } from "./source-tiers";
+import { isKnownSource, marksFromTags, sourceMark, tierFromSlug, topTier } from "./source-tiers";
 
 describe("source rank (spec §2: government > industry bodies > cert bodies > brand lists > foreign regulators)", () => {
   it("ranks every register and brand list the database carries", () => {
@@ -13,6 +13,11 @@ describe("source rank (spec §2: government > industry bodies > cert bodies > br
     assert.equal(sourceMark("OEKO_TEX").tier, 3);
     assert.equal(sourceMark("BRAND_HM").tier, 4);
     assert.equal(sourceMark("UFLPA").tier, 5);
+    // `public.sources` spells it ILAB; without the alias the Sources section
+    // printed "not in the trust table" over a tier-5 regulator.
+    assert.ok(isKnownSource("ILAB"));
+    assert.equal(sourceMark("ILAB").tier, 5);
+    assert.equal(sourceMark("ILAB").label, "ILAB");
   });
 
   it("stamps and labels are the artifact's", () => {

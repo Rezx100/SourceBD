@@ -394,7 +394,7 @@ describe("a building's registrations are named, never counted and never denied",
   });
 
   it("the sheet names the building that holds a certificate of its own", () => {
-    assert.deepEqual(sheet.certBuildings, [HOSSAIN_BUILDING]);
+    assert.deepEqual(sheet.buildingCerts.map((b) => b.building), [HOSSAIN_BUILDING]);
   });
 
   // The same class with nothing of the record's own to soften it: MG Niche
@@ -404,7 +404,7 @@ describe("a building's registrations are named, never counted and never denied",
     const card = buildCard(only);
     const sheet2 = buildSheet(only);
     assert.equal(sheet2.certs.length, 0, "a building's certificate is not the record's");
-    assert.deepEqual(sheet2.certBuildings, [MG_BUILDING]);
+    assert.deepEqual(sheet2.buildingCerts.map((b) => b.building), [MG_BUILDING]);
     assert.equal(card.tiles[0]!.sub, `none on this record · ${MG_BUILDING} holds one`);
     assert.equal(buildTableRow(only).certsEmptyReason, `none on this record · ${MG_BUILDING} holds one`);
     assert.notEqual(card.tiles[0]!.sub, "none on 4 registers", "the bare negative stands over a payload that carries a certificate");
@@ -468,16 +468,19 @@ describe("buildSheet — facts panel and contact card", () => {
     );
   });
 
-  // Cycle 5, finding 18: #sources, #locations, #facilities and #rfqs are not
-  // rendered by this sheet, so linking to them sent the reader nowhere.
-  it("a tab links only to a section this sheet renders", () => {
+  // Cycle 5, finding 18, restated for REZ-C: the four sections that were
+  // missing now exist, so every tab links. The rule the original encoded — a
+  // tab never points at an anchor that is not rendered — is asserted against
+  // the HTML in `components/dashboard/render.test.ts`; this pins the model.
+  it("every tab links, and the eight are the ones §3.3 names", () => {
     assert.deepEqual(
-      sheet.tabs.filter((t) => t.href !== null).map((t) => t.href),
-      ["#overview", "#products", "#certificates", "#safety"],
+      sheet.tabs.map((t) => t.label),
+      ["Overview", "Products", "Certificates", "Safety", "Sources", "Locations", "Facilities", "RFQs"],
     );
     assert.deepEqual(
       sheet.tabs.filter((t) => t.href === null).map((t) => t.label),
-      ["Sources", "Locations", "Facilities", "RFQs"],
+      [],
+      "a tab that points nowhere is the placeholder REZ-C removed",
     );
   });
 
@@ -539,7 +542,7 @@ describe("buildSheet — facts panel and contact card", () => {
   });
 
   it("the contact card claims only that details are hidden — no kinds, no registers, no value — and no plan unless settings give one", () => {
-    assert.equal(sheet.contact.hidden, "Contact details are shown on paid plans.");
+    assert.equal(sheet.contact.hidden, "Contact details are not shown on the record.");
     assert.equal(sheet.contact.plan, null);
     assert.equal(buildSheet(aboniInput(), { plan: "Free · public beta" }).contact.plan, "Free · public beta");
     assert.doesNotMatch(JSON.stringify(sheet), /@|\+880/);
@@ -622,7 +625,7 @@ describe("buildSheet — a record with two EPB registrations (S M Knitwears)", (
 
 describe("buildProductSheet — HS 6105 on the Aboni record", () => {
   const ps = buildProductSheet(aboniInput(), "6105");
-  it("heading, photo, other lines, certified scope, and the live exporter count minus this supplier", () => {
+  it("heading, photo, other lines, certified scope, and the exporter count the linked search returns", () => {
     assert.equal(ps.hs, "6105");
     assert.equal(ps.exported, true);
     assert.equal(ps.heading, "Men's or boys' shirts, knitted or crocheted");
@@ -633,7 +636,10 @@ describe("buildProductSheet — HS 6105 on the Aboni record", () => {
     assert.equal(byLabel["Price · MOQ · lead time"]!.value, null);
     assert.equal(byLabel["Product list"]!.pendingSource, true, "the product list is not stamped with a guessed register");
     assert.deepEqual(byLabel["Product list"]!.marks, []);
-    assert.equal(ps.otherExporters, 1633);
+    // 1,634, not 1,633: the button links to `/app/discover?hs=6105`, which
+    // returns 1,634 (verified live, 25 Sep). A count that disagrees with the
+    // search it opens is what the founder's 24 Sep rule forbids.
+    assert.equal(ps.exporters, 1634);
   });
 
   // Cycle 5, finding 10: `Certified scope` dropped the `Products:` half — the
@@ -698,7 +704,7 @@ describe("buildProductSheet — HS 6105 on the Aboni record", () => {
     assert.equal(page.href, null);
     assert.deepEqual(page.marks, []);
     assert.equal(page.checked, "this line is not on the record's EPB page");
-    assert.equal(off.otherExporters, null, "an exporter count would imply this record is one of them");
+    assert.equal(off.exporters, null, "an exporter count would imply this record is one of them");
   });
 });
 
@@ -942,6 +948,35 @@ describe("the sheet's 'every source mark links' claim counts every mark the shee
     const sheet = buildSheet(input);
     assert.ok(sheet.certs.some((c) => c.documentUrl === null));
     assert.equal(sheet.everyMarkLinks, false);
+  });
+
+  it("a building's own certificate with no document withdraws the claim — its card draws a square too", () => {
+    const input = everyRegisterHasAPage();
+    // epic-garments-manufacturing, live 25 Sep: its Unit-7 holds a GOTS
+    // certificate with no document; the sheet draws it under "Held by …".
+    const own = input.profile.certifications[0]!;
+    // Two buildings; only the SECOND holds the undocumented one.
+    input.profile.certifications = [
+      ...input.profile.certifications,
+      { ...own, building_name: "Aboni Knitwear Ltd (Unit-2)" },
+      { ...own, building_name: "Aboni Knitwear Ltd (Unit-7)", document_url: null },
+    ];
+    const sheet = buildSheet(input);
+    assert.ok(sheet.certs.every((c) => c.documentUrl !== null), "guard: the record's own certificates all link");
+    assert.equal(sheet.buildingCerts.length, 2, "guard: both buildings' certificates are drawn");
+    assert.ok(sheet.buildingCerts[0]!.certs.every((c) => c.documentUrl !== null), "guard: the first building's all link");
+    assert.equal(sheet.everyMarkLinks, false);
+  });
+
+  it("a building's certificates are ordered as the record's own are", () => {
+    const input = aboniInput();
+    const own = input.profile.certifications.filter((c) => !c.building_name);
+    assert.ok(own.length >= 3, "guard: enough certificates to have an order");
+    // The record's own set, filed again under a building in reverse.
+    input.profile.certifications = [...own, ...[...own].reverse().map((c) => ({ ...c, building_name: "Aboni Knitwear Ltd (Unit-2)" }))];
+    const sheet = buildSheet(input);
+    const key = (c: { scheme: string; number: string | null }) => `${c.scheme}:${c.number}`;
+    assert.deepEqual(sheet.buildingCerts[0]!.certs.map(key), sheet.certs.map(key));
   });
 
   it("the whole Aboni record withholds the claim, because three registers file only a homepage", () => {

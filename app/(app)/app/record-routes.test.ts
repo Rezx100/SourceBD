@@ -1,0 +1,1248 @@
+// The three record routes, at the boundary (closed-loop §14, AGENTS 16).
+//
+// `components/dashboard/record-sheet.test.ts` proves the sheet component does
+// not print a contact value, renders every section and disables Send RFQ on a
+// sanctioned record. Nothing proved the ROUTES pass it the right thing — and
+// that is the gap REZ-72 shipped through: 361 green tests, every one asserting
+// a pure helper, over a route that never emitted the redirect they were about.
+// `app/dev/ds/dashboard-screens.test.ts` exists for the same reason one layer
+// up, and its header says so.
+//
+// So this imports the route modules themselves, runs them with a fake Supabase
+// client over the production fixtures, and asserts the HTML a browser receives.
+//
+// What it does NOT cover: the real database. The client here is a stub, so
+// these tests say what the routes do with a given payload, not that the RPCs
+// return one. That is `ops/plans/rez-c-0105-dry-run.md`'s job.
+
+import assert from "node:assert/strict";
+import { createElement, type ReactElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { after, describe, it } from "node:test";
+import path from "node:path";
+import { readdirSync, statSync } from "node:fs";
+
+import { aboniInput, sanctionedInput, TODAY, zaheenSampleInput } from "@/lib/dashboard/fixtures";
+import { drawsKitShell } from "@/lib/dashboard/kit-shell";
+
+// ---------------------------------------------------------------------------
+// A fake `@/lib/supabase/server`, installed into the module cache before the
+// routes are imported. The routes reach the database only through it.
+// ---------------------------------------------------------------------------
+
+const OUT = path.join(process.cwd(), process.env.TEST_BUILD_DIR || ".tests-build");
+const resolved = (mod: string) => require.resolve(path.join(OUT, mod));
+
+type Rpc = { data: unknown; error: unknown };
+type Answers = {
+  /** A function answers each call in turn (the overlay reads the profile twice). */
+  profile?: Rpc | (() => Rpc);
+  hscodes?: Rpc;
+  workers?: Rpc;
+  contactCounts?: Rpc;
+  rfqs?: { data: unknown; error: unknown; count: number | null };
+  saved?: { data: unknown };
+  userId?: string | null;
+  discover?: Rpc;
+  facilityParent?: Rpc;
+  facilityPanel?: Rpc;
+  /** What `.from(table)` answers, for tables other than `rfqs`. */
+  tables?: Record<string, unknown[]>;
+};
+
+/** Every `.from(...)` call the routes make, so a test can assert the filters. */
+type FromCall = { table: string; filters: { op: string; args: unknown[] }[] };
+let fromCalls: FromCall[] = [];
+/** Every `.rpc(fn, args)` call, so a test can assert what the routes SEND, not only what they do with the answer. */
+let rpcCalls: { fn: string; args: Record<string, unknown> | undefined }[] = [];
+/** What `usePathname()` answers — the path the client-side shell switch reads. */
+let currentPath = "/app/discover";
+
+/**
+ * ONE stub, installed once, reading a mutable `answers`.
+ *
+ * Re-installing per test does not work: a route module captures
+ * `createSupabaseServerClient` when it is first required, so every later
+ * `require.cache` swap is invisible to it — and the whole file then silently
+ * ran against the first test's payload.
+ */
+let answers: Answers = {};
+
+function fakeClient() {
+  const rpc = (fn: string): Rpc => {
+    if (fn === "buyer_supplier_profile") return (typeof answers.profile === "function" ? answers.profile() : answers.profile) ?? { data: null, error: null };
+    if (fn === "supplier_epb_hscodes") return answers.hscodes ?? { data: [], error: null };
+    if (fn === "supplier_contact_counts") return answers.contactCounts ?? { data: null, error: null };
+    if (fn === "production_workers_display_batch") return answers.workers ?? { data: [], error: null };
+    if (fn === "discover_suppliers") return answers.discover ?? { data: [], error: null };
+    if (fn === "supplier_epb_hscodes_batch") return { data: [], error: null };
+    if (fn === "facility_parent_slug") return answers.facilityParent ?? { data: null, error: null };
+    if (fn === "buyer_supplier_facility_panel") return answers.facilityPanel ?? { data: null, error: null };
+    return { data: null, error: null };
+  };
+  return {
+    rpc: async (fn: string, args?: Record<string, unknown>) => (rpcCalls.push({ fn, args }), rpc(fn)),
+    auth: { getUser: async () => ({ data: { user: answers.userId === null ? null : { id: answers.userId ?? "buyer-1" } } }) },
+    from(table: string) {
+      const call: FromCall = { table, filters: [] };
+      fromCalls.push(call);
+      const result = () =>
+        table === "rfqs"
+          ? Promise.resolve(answers.rfqs ?? { data: [], error: null, count: 0 })
+          : Promise.resolve({ data: answers.tables?.[table] ?? [], error: null, count: answers.tables?.[table]?.length ?? 0 });
+      const chain = {
+        select: (_cols?: string, _opts?: unknown) => chain,
+        eq: (...args: unknown[]) => (call.filters.push({ op: "eq", args }), chain),
+        in: (...args: unknown[]) => (call.filters.push({ op: "in", args }), chain),
+        contains: (...args: unknown[]) => (call.filters.push({ op: "contains", args }), chain),
+        order: () => chain,
+        limit: () => result(),
+        maybeSingle: () => Promise.resolve(answers.saved ?? { data: null }),
+        then: (res: (v: unknown) => unknown) => result().then(res),
+      };
+      return chain;
+    },
+  };
+}
+
+/** Set the payloads for one test. */
+function given(a: Answers): void {
+  fromCalls = [];
+  rpcCalls = [];
+  answers = a;
+}
+
+{
+  // `next/navigation`'s CLIENT hooks need a mounted App Router, which
+  // `renderToStaticMarkup` does not provide — `SelectionBar` calls `useRouter`.
+  // The SERVER halves must keep their real behaviour: `notFound()` and
+  // `redirect()` throw, and three of these tests are about exactly which one a
+  // route reaches. So the real module is kept and only the hooks are replaced.
+  // eslint-disable-next-line @typescript-eslint/no-require-imports -- the stub must exist before any route loads.
+  const navId = require.resolve("next/navigation");
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const realNav = require("next/navigation");
+  require.cache[navId] = {
+    id: navId,
+    filename: navId,
+    loaded: true,
+    children: [],
+    paths: [],
+    exports: {
+      ...realNav,
+      useRouter: () => ({ push() {}, replace() {}, refresh() {}, back() {}, forward() {}, prefetch() {} }),
+      useSearchParams: () => new URLSearchParams(),
+      usePathname: () => currentPath,
+      useParams: () => ({}),
+    },
+  } as unknown as NodeJS.Module;
+}
+
+{
+  const client = fakeClient();
+  for (const [mod, exports] of [
+    ["lib/supabase/server.js", { createSupabaseServerClient: async () => client }],
+    [
+      "lib/dashboard/load-buyer-shell.js",
+      {
+        // The real shell reads `buyer_dashboard` and `settings_get`; these
+        // routes are not what that is about, so it is stubbed with a valid
+        // `SidebarModel`/`TopbarModel` and nothing more.
+        loadBuyerShell: async () => ({
+          sidebar: {
+            active: "suppliers" as const,
+            activeExact: false,
+            counts: { suppliers: null, rfqs: null, saved: null },
+            recent: [],
+            plan: { name: "Free · public beta", note: null, used: null, allowance: null },
+          },
+          topbar: { caption: "", searchQuery: "" },
+        }),
+      },
+    ],
+  ] as const) {
+    const id = resolved(mod);
+    require.cache[id] = { id, filename: id, loaded: true, exports, children: [], paths: [] } as unknown as NodeJS.Module;
+  }
+}
+
+after(() => {
+  for (const mod of ["lib/supabase/server.js", "lib/dashboard/load-buyer-shell.js"]) delete require.cache[resolved(mod)];
+});
+
+/** `notFound()` and `redirect()` throw; this names which one a route reached. */
+async function outcome(run: () => Promise<ReactElement>): Promise<{ html: string } | { threw: string }> {
+  try {
+    return { html: renderToStaticMarkup(await run()) };
+  } catch (err) {
+    const digest = (err as { digest?: string })?.digest;
+    if (typeof digest === "string") return { threw: digest };
+    throw err;
+  }
+}
+
+const html = (r: { html: string } | { threw: string }): string => {
+  assert.ok("html" in r, `the route did not render; it threw ${"threw" in r ? r.threw : "?"}`);
+  return r.html;
+};
+
+const ABONI = aboniInput();
+const PROFILE: Rpc = { data: ABONI.profile, error: null };
+const HS: Rpc = { data: ABONI.hscodes.map((h) => ({ code: h.code, description: h.description, source_url: h.source_url })), error: null };
+
+// eslint-disable-next-line @typescript-eslint/no-require-imports -- the stub must be installed before the route module loads.
+const route = (p: string) => require(resolved(p));
+
+/** Every file under `dir`. */
+const walk = (dir: string): string[] =>
+  readdirSync(dir).flatMap((name) => (statSync(path.join(dir, name)).isDirectory() ? walk(path.join(dir, name)) : [path.join(dir, name)]));
+
+describe("/app/suppliers/[slug] — the full record page", () => {
+  it("renders the record, and is not a dialog", async () => {
+    given({ profile: PROFILE, hscodes: HS, contactCounts: { data: { emails: 1, phones: 6, website: true, representatives: 1 }, error: null } });
+    const Page = route("app/(app)/app/suppliers/[slug]/page.js").default;
+    const out = html(await outcome(() => Page({ params: Promise.resolve({ slug: "aboni-knitwear" }), searchParams: Promise.resolve({}) })));
+
+    assert.match(out, /aria-label="Supplier record"/);
+    // The buyer's plan, once the shell knows it (the loading state draws none).
+    assert.match(out, /data-plan="true"[\s\S]*Free · public beta/);
+    // `dialog={false}`: a whole page is not a dialog, and there is nothing
+    // behind it to close. Only the route passes this, so only a route test
+    // can catch it being dropped.
+    assert.doesNotMatch(out, /role="dialog"/, "the full record page announces itself as a dialog");
+    assert.doesNotMatch(out, /aria-label="Close"/, "the full page draws a Close with nothing to close");
+    assert.match(out, /Aboni Knitwear Ltd/);
+  });
+
+  it("the counts reach the locked card and no contact value reaches the HTML", async () => {
+    // The component-level guard proves the sheet would not print a value it was
+    // given. This proves the ROUTE does not hand it one — the leak the deleted
+    // admin unlock would have reintroduced.
+    given({
+      profile: PROFILE,
+      hscodes: HS,
+      contactCounts: { data: { emails: 1, phones: 6, website: true, representatives: 2 }, error: null },
+    });
+    const Page = route("app/(app)/app/suppliers/[slug]/page.js").default;
+    const out = html(await outcome(() => Page({ params: Promise.resolve({ slug: "aboni-knitwear" }), searchParams: Promise.resolve({}) })));
+    assert.match(out, /On file: 1 email · 6 phone numbers · a website · 2 named representatives\./);
+    for (const key of ["email_primary", "contact_name", "contact_role", "phones"]) {
+      assert.ok(!out.includes(key), `the route put the ${key} column in the HTML`);
+    }
+  });
+
+  it("a slow read says so; it does not answer not-found", async () => {
+    // A statement timeout is not a missing record. Returning 404 for a busy
+    // database tells the buyer the company is not on SourceBD.
+    given({ profile: { data: null, error: { code: "57014", message: "canceling statement due to statement timeout" } } });
+    const Page = route("app/(app)/app/suppliers/[slug]/page.js").default;
+    const out = html(await outcome(() => Page({ params: Promise.resolve({ slug: "aboni-knitwear" }), searchParams: Promise.resolve({}) })));
+    assert.match(out, /could not be read in time/);
+    assert.match(out, /Try again/);
+    assert.match(out, /href="\/app\/suppliers\/aboni-knitwear"[^>]*>Try again/, "Try again goes somewhere else");
+    // "Try again" on the expanded grid retries the expanded grid.
+    given({ profile: { data: null, error: { code: "57014", message: "canceling statement due to statement timeout" } } });
+    const all = html(await outcome(() => Page({ params: Promise.resolve({ slug: "aboni-knitwear" }), searchParams: Promise.resolve({ lines: "all" }) })));
+    assert.match(all, /href="\/app\/suppliers\/aboni-knitwear\?lines=all"[^>]*>Try again/, "Try again drops ?lines=all");
+    // Inside the page's frame. The layout draws none on this route (the kit
+    // does), so a state returned bare had no navigation at all (cycle 5).
+    assert.match(out, /<main[^>]*id="main-content"/, "the slow-read state has no <main> and no frame");
+    assert.match(out, /href="#main-content"/, "the slow-read state has no skip link");
+    assert.equal((out.match(/<main\b/g) ?? []).length, 1);
+  });
+
+  it("?lines=all expands the grid past six tiles", async () => {
+    given({ profile: PROFILE, hscodes: HS });
+    const Page = route("app/(app)/app/suppliers/[slug]/page.js").default;
+    const six = html(await outcome(() => Page({ params: Promise.resolve({ slug: "aboni-knitwear" }), searchParams: Promise.resolve({}) })));
+    const all = html(await outcome(() => Page({ params: Promise.resolve({ slug: "aboni-knitwear" }), searchParams: Promise.resolve({ lines: "all" }) })));
+    const tiles = (s: string) => (s.match(/\/app\/suppliers\/aboni-knitwear\/lines\/\d{4}/g) ?? []).length;
+    assert.equal(tiles(six), 6, "the grid shows six tiles by default");
+    assert.ok(tiles(all) > 6, `?lines=all still shows only ${tiles(all)} of the record's lines`);
+    // And the six-tile view offers the way to the rest.
+    assert.match(six, /All \d+ lines/);
+    assert.ok(six.includes("?lines=all"), "the six-tile view has no route to the other lines");
+  });
+});
+
+describe("/app/suppliers/[slug]/lines/[hs] — the line page", () => {
+  const run = (hs: string) => {
+    given({ profile: PROFILE, hscodes: HS });
+    const Page = route("app/(app)/app/suppliers/[slug]/lines/[hs]/page.js").default;
+    return outcome(() => Page({ params: Promise.resolve({ slug: "aboni-knitwear", hs }), searchParams: Promise.resolve({}) }));
+  };
+
+  it("renders a 4-digit heading", async () => {
+    const out = html(await run("6105"));
+    assert.match(out, /aria-label="Product line"/);
+    assert.match(out, /HS 6105/);
+    assert.doesNotMatch(out, /role="dialog"/, "the full line page is not a dialog");
+  });
+
+  for (const bad of ["abcd", "61", "61059", "%", "6105a", ""]) {
+    it(`refuses ${JSON.stringify(bad)} rather than inventing a line`, async () => {
+      const r = await run(bad);
+      assert.ok("threw" in r, `/lines/${bad} rendered a product sheet`);
+      // NEXT_HTTP_ERROR_FALLBACK;404 in Next 15; NOT_FOUND in older digests.
+      assert.match(r.threw, /NOT_FOUND|404/, `/lines/${bad} failed with ${r.threw} instead of not-found`);
+    });
+  }
+});
+
+describe("/app/discover?record= — the overlay over the results", () => {
+  /** One real-shaped result row, so the page renders cards to click. */
+  const ROW = {
+    id: "8ce50581-2d84-4cc2-93aa-000000000001",
+    slug: "aboni-knitwear",
+    company_name: "ABONI KNITWEAR LTD.",
+    entity_type: "factory",
+    city: "Dhaka",
+    district: "Dhaka",
+    source_tags: ["BGMEA"],
+    t13_source_count: 1,
+    completeness_pct: 50,
+    employees_total: 3166,
+    established_date: "1985-01-01",
+    principal_products: [],
+    factory_types: [],
+    rsc_progress_pct: null,
+    parent_group_name: null,
+    primary_address: null,
+    total_count: 1,
+    is_sanctioned: false,
+    cert_summary: null,
+    hs_codes: ["6105"],
+    brand_codes: [],
+    registries: [],
+  };
+
+  const discover = (sp: Record<string, string>) => {
+    given({
+      profile: PROFILE,
+      hscodes: HS,
+      discover: { data: [ROW], error: null },
+      contactCounts: { data: { emails: 1, phones: 6, website: true, representatives: 1 }, error: null },
+    });
+    const Page = route("app/(app)/app/discover/page.js").default;
+    return outcome(() => Page({ searchParams: Promise.resolve(sp) }));
+  };
+
+  it("the selection's provider survives a failed search re-run under an open record", async () => {
+    // `?record=` is a search param, so opening a record re-runs the search.
+    // When that failed, the error panel replaced the results AND the provider,
+    // so the buyer's bulk selection was gone even after Close (cycle 11). The
+    // same provider, same key, now wraps every outcome; unread rows are null.
+    const Page = route("app/(app)/app/discover/page.js").default;
+    const tree = async (discoverAnswer: Rpc, sp: Record<string, string> = { q: "knit", record: "aboni-knitwear" }) => {
+      given({ profile: PROFILE, hscodes: HS, discover: discoverAnswer });
+      return (await Page({ searchParams: Promise.resolve(sp) })) as ReactElement;
+    };
+    const providers = (n: unknown): { key: unknown; pageIds: unknown }[] => {
+      if (!n || typeof n !== "object") return [];
+      if (Array.isArray(n)) return n.flatMap(providers);
+      const el = n as { type?: { name?: string }; key?: unknown; props?: Record<string, unknown> };
+      const own = el.type?.name === "SelectionProvider" ? [{ key: el.key, pageIds: el.props?.pageIds }] : [];
+      return [...own, ...Object.values(el.props ?? {}).flatMap(providers)];
+    };
+    const ok = providers(await tree({ data: [ROW], error: null }));
+    const failed = providers(await tree({ data: null, error: { code: "57014", message: "canceling statement due to statement timeout" } }));
+    assert.equal(ok.length, 1, "guard: one provider around the results");
+    assert.equal(failed.length, 1, "a failed search re-run unmounted the selection's provider");
+    assert.equal(failed[0]!.key, ok[0]!.key, "a different key remounts the provider and empties the selection");
+    assert.equal(failed[0]!.pageIds, null, "an unread page is passed as no rows, which prunes the selection");
+    // Opening a record, a line or the whole grid keeps the SAME provider as the
+    // search alone: a key that carried `record` would remount it on every card
+    // click and empty the selection (cycle 12: both renders above had a record).
+    const closed = providers(await tree({ data: [ROW], error: null }, { q: "knit" }));
+    for (const sp of <Record<string, string>[]>[
+      { q: "knit", record: "aboni-knitwear" },
+      { q: "knit", record: "aboni-knitwear", lines: "all" },
+      { q: "knit", record: "aboni-knitwear", line: "6105" },
+    ]) {
+      const open = providers(await tree({ data: [ROW], error: null }, sp));
+      assert.equal(open[0]?.key, closed[0]!.key, `opening ${JSON.stringify(sp)} remounts the selection's provider`);
+    }
+    // …and a new search, sort or page IS a new provider: its selection starts
+    // empty (selection.tsx). A missing or constant key kept one across them.
+    assert.ok(closed[0]!.key, "the selection's provider has no key");
+    for (const sp of <Record<string, string>[]>[{ q: "denim" }, { q: "knit", sort: "name" }, { q: "knit", page: "2" }]) {
+      const other = providers(await tree({ data: [ROW], error: null }, sp));
+      assert.notEqual(other[0]?.key, closed[0]!.key, `${JSON.stringify(sp)} kept the previous search's selection`);
+    }
+  });
+
+  it("no ?record= renders no sheet at all", async () => {
+    const out = html(await discover({ q: "knit" }));
+    assert.doesNotMatch(out, /aria-label="Supplier record"/);
+    assert.doesNotMatch(out, /role="dialog"/);
+  });
+
+  it("?record= opens the sheet and Close returns to the same search", async () => {
+    const out = html(await discover({ q: "knit", page: "2", sort: "workers" }));
+    assert.doesNotMatch(out, /aria-label="Supplier record"/, "guard: this call carries no record");
+
+    const withRecord = html(await discover({ q: "knit", page: "2", sort: "workers", record: "aboni-knitwear" }));
+    assert.match(withRecord, /aria-label="Supplier record"/);
+    assert.match(withRecord, /role="dialog"/);
+    // The whole of the founder's sentence: the search is still there to go back
+    // to. A Close that dropped `q` or `page` would lose it just as surely as a
+    // full reload does.
+    const close = /aria-label="Close"[^>]*href="([^"]+)"|href="([^"]+)"[^>]*aria-label="Close"/.exec(withRecord);
+    assert.ok(close, "the overlay draws no Close");
+    const href = close[1] ?? close[2]!;
+    assert.match(href, /q=knit/);
+    assert.match(href, /page=2/);
+    assert.match(href, /sort=workers/);
+    assert.ok(!href.includes("record="), `Close keeps the record open: ${href}`);
+  });
+
+  it("the WHOLE shell behind an open record is inert, and the dialog is not", async () => {
+    // `aria-modal="true"` asserts the rest of the page is unavailable, and that
+    // has to be true of the keyboard and the accessibility tree, not only the
+    // pointer. Two ways this went wrong, both caught by critics:
+    //
+    //  * inerting only the RESULTS left the skip link, ten sidebar links, the
+    //    topbar search field and the account link outside the boundary and
+    //    ahead of the dialog in the tab order — ⌘K reached the search field
+    //    from behind the scrim;
+    //  * the sheet must NOT be inside the boundary, or the dialog declares
+    //    everything else unavailable and is unavailable itself.
+    const out = html(await discover({ q: "knit", record: "aboni-knitwear" }));
+    assert.match(out, /aria-modal="true"/);
+
+    const inertAt = out.search(/<div[^>]*\sinert=""/);
+    assert.ok(inertAt > -1, "nothing behind the dialog is inert");
+    // The shell's own chrome is inside it.
+    for (const [what, needle] of [
+      ["the skip link", "Skip to content"],
+      // The label carries the screen name too ("Primary, Search"), so this is
+      // a prefix.
+      ["the primary nav", 'aria-label="Primary'],
+      ["the content landmark", 'id="main-content"'],
+    ] as const) {
+      const at = out.indexOf(needle);
+      assert.ok(at > inertAt, `${what} is outside the inert boundary, in front of a dialog that says it does not exist`);
+    }
+    // And the dialog itself is after the inert subtree closes, not within it.
+    assert.ok(out.indexOf('role="dialog"') > inertAt, "guard: the dialog should come last");
+    assert.ok(
+      out.indexOf('aria-label="Supplier record"') > out.lastIndexOf("</main>"),
+      "the sheet is inside the shell, so `inert` makes the dialog itself unavailable",
+    );
+  });
+
+  it("no record open means nothing is inert", async () => {
+    // Without this the assertion above passes on a page that is always inert.
+    const out = html(await discover({ q: "knit" }));
+    assert.doesNotMatch(out, /<div[^>]*\sinert=""/);
+  });
+
+  it("an unknown record says so rather than showing nothing", async () => {
+    // Rendering nothing left `?record=<slug>` in the URL with no sheet and no
+    // message, so a buyer who clicked a result and got silence could not tell
+    // a slow read from a wrong link.
+    given({ profile: { data: null, error: null }, hscodes: HS, discover: { data: [ROW], error: null } });
+    const Page = route("app/(app)/app/discover/page.js").default;
+    const out = html(await outcome(() => Page({ searchParams: Promise.resolve({ q: "knit", record: "no-such-slug" }) })));
+    assert.match(out, /No record for that link/);
+    assert.match(out, /Your search is still here behind this/);
+    // The results are still rendered behind it.
+    assert.match(out, /Aboni Knitwear Ltd/);
+  });
+
+  it("a slow read in the overlay offers a retry, not silence", async () => {
+    given({
+      profile: { data: null, error: { code: "57014", message: "canceling statement due to statement timeout" } },
+      hscodes: HS,
+      discover: { data: [ROW], error: null },
+    });
+    const Page = route("app/(app)/app/discover/page.js").default;
+    const out = html(await outcome(() => Page({ searchParams: Promise.resolve({ q: "knit", record: "aboni-knitwear" }) })));
+    assert.match(out, /could not be read in time/);
+    assert.match(out, /Try again/);
+    assert.doesNotMatch(out, /No record for that link/, "a timeout is not a missing record");
+    // Try again retries the same view: the expanded grid and the open line
+    // (the full page's Try again kept ?lines=all a cycle before this did).
+    const again = (h: string) => /href="([^"]*)"[^>]*>Try again/.exec(h)?.[1]?.replace(/&amp;/g, "&") ?? "";
+    assert.match(again(out), /record=aboni-knitwear/);
+    const all = html(await outcome(() => Page({ searchParams: Promise.resolve({ q: "knit", record: "aboni-knitwear", lines: "all", line: "6105" }) })));
+    assert.match(again(all), /lines=all/, "Try again drops the expanded grid");
+    assert.match(again(all), /line=6105/, "Try again drops the open line");
+    assert.match(again(all), /q=knit/, "Try again drops the search");
+  });
+
+  it("a line drilled into from the overlay keeps the search behind it", async () => {
+    const out = html(await discover({ q: "knit", record: "aboni-knitwear", line: "6105" }));
+    assert.match(out, /aria-label="Product line"/);
+    assert.doesNotMatch(out, /aria-label="Supplier record"/, "two dialogs at once");
+    // Back goes to the record ON THIS SEARCH, not to its full page.
+    const back = /aria-label="Back to the record"[^>]*href="([^"]+)"|href="([^"]+)"[^>]*aria-label="Back to the record"/.exec(out);
+    assert.ok(back, "the line sheet draws no Back");
+    const href = back[1] ?? back[2]!;
+    assert.match(href, /q=knit/, `Back throws the search away: ${href}`);
+    assert.match(href, /record=aboni-knitwear/);
+  });
+
+  it("the record's tiles open the line on this search, not on its own page", async () => {
+    const out = html(await discover({ q: "knit", record: "aboni-knitwear" }));
+    assert.ok(!out.includes("/app/suppliers/aboni-knitwear/lines/"), "a tile leaves the search");
+    assert.match(out, /line=\d{4}/);
+  });
+
+  it("cards and rows open the record over these results", async () => {
+    // `recordHref` is threaded from the page into the row builders; nothing
+    // else passes it, so dropping it here is invisible to every other test
+    // while it silently restores the full-page navigation.
+    const out = html(await discover({ q: "knit" }));
+    assert.ok(out.includes("record="), "no result opens the record as an overlay");
+  });
+});
+
+describe("the RFQs section is the caller's own", () => {
+  it("the query filters on buyer_id, not on RLS alone", async () => {
+    // `public.rfqs` carries a SECOND permissive SELECT policy for a caller who
+    // has claimed the supplier, so RLS alone would show other buyers' RFQs
+    // under "N from your account". Hiding that behind role middleware is not a
+    // control (AGENTS 7).
+    given({
+      profile: PROFILE,
+      hscodes: HS,
+      userId: "buyer-42",
+      rfqs: { data: [], error: null, count: 0 },
+    });
+    const Page = route("app/(app)/app/suppliers/[slug]/page.js").default;
+    html(await outcome(() => Page({ params: Promise.resolve({ slug: "aboni-knitwear" }), searchParams: Promise.resolve({}) })));
+
+    const rfqRead = fromCalls.find((c) => c.table === "rfqs");
+    assert.ok(rfqRead, "the record page never reads rfqs");
+    const eqs = rfqRead.filters.filter((f) => f.op === "eq");
+    assert.ok(
+      eqs.some((f) => f.args[0] === "buyer_id" && f.args[1] === "buyer-42"),
+      `the RFQs read is not scoped to the caller: ${JSON.stringify(rfqRead.filters)}`,
+    );
+    assert.ok(
+      rfqRead.filters.some((f) => f.op === "contains" && f.args[0] === "target_supplier_ids"),
+      "the RFQs read is not scoped to this supplier",
+    );
+  });
+
+  it("the caption is the real total, not the page size", async () => {
+    given({
+      profile: PROFILE,
+      hscodes: HS,
+      userId: "buyer-42",
+      rfqs: {
+        data: Array.from({ length: 20 }, (_, i) => ({
+          id: `r${i}`,
+          product_title: `RFQ ${i}`,
+          quantity: 10,
+          quantity_unit: "pcs",
+          ship_by: null,
+          status: "open",
+          created_at: TODAY.toISOString(),
+        })),
+        error: null,
+        count: 37,
+      },
+    });
+    const Page = route("app/(app)/app/suppliers/[slug]/page.js").default;
+    const out = html(await outcome(() => Page({ params: Promise.resolve({ slug: "aboni-knitwear" }), searchParams: Promise.resolve({}) })));
+    assert.match(out, /37 from your account/, "a page size is being printed as a total");
+    assert.doesNotMatch(out, /20 from your account/);
+  });
+
+  it("a failed read claims no count at all", async () => {
+    given({ profile: PROFILE, hscodes: HS, userId: "buyer-42", rfqs: { data: null, error: { message: "boom" }, count: null } });
+    const Page = route("app/(app)/app/suppliers/[slug]/page.js").default;
+    const out = html(await outcome(() => Page({ params: Promise.resolve({ slug: "aboni-knitwear" }), searchParams: Promise.resolve({}) })));
+    assert.match(out, /Your RFQs could not be read\./);
+    assert.doesNotMatch(out, /from your account/);
+    assert.doesNotMatch(out, /have not sent this supplier an RFQ/);
+  });
+});
+
+describe("the sanctioned record, through the route", () => {
+  it("the banner is served, points at its evidence, and Send RFQ is not a link", async () => {
+    const s = sanctionedInput();
+    given({ profile: { data: s.profile, error: null }, hscodes: { data: [], error: null } });
+    const Page = route("app/(app)/app/suppliers/[slug]/page.js").default;
+    const out = html(await outcome(() => Page({ params: Promise.resolve({ slug: "zaheen" }), searchParams: Promise.resolve({}) })));
+    assert.match(out, /data-sanction-visible="true"/);
+    assert.match(out, /See the matches/);
+    assert.match(out, /id="sanctions"/);
+    assert.ok(!out.includes('href="/app/rfqs/new'), "a sanctioned record's Send RFQ is a live link");
+  });
+
+  it("its line page serves the banner too, and Send RFQ for the line is not a link", async () => {
+    // Only the component test covered the line sheet (cycles 8–12 carried it).
+    const s = sanctionedInput();
+    given({ profile: { data: s.profile, error: null }, hscodes: HS });
+    const Page = route("app/(app)/app/suppliers/[slug]/lines/[hs]/page.js").default;
+    const out = html(await outcome(() => Page({ params: Promise.resolve({ slug: "zaheen", hs: "6105" }), searchParams: Promise.resolve({}) })));
+    assert.match(out, /aria-label="Product line"/, "guard: the line page rendered");
+    assert.match(out, /data-sanction-visible="true"/, "the line page of a sanctioned record has no banner");
+    assert.ok(!out.includes('href="/app/rfqs/new'), "a sanctioned record's line has a live Send RFQ");
+  });
+});
+
+describe("cycle 3: the boundaries the first route tests did not reach", () => {
+  const ROW = {
+    id: "8ce50581-2d84-4cc2-93aa-000000000001",
+    slug: "aboni-knitwear",
+    company_name: "ABONI KNITWEAR LTD.",
+    entity_type: "factory",
+    city: "Dhaka",
+    district: "Dhaka",
+    source_tags: ["BGMEA", "EPB"],
+    t13_source_count: 2,
+    completeness_pct: 50,
+    employees_total: 3166,
+    established_date: "1985-01-01",
+    principal_products: [],
+    factory_types: [],
+    rsc_progress_pct: null,
+    parent_group_name: null,
+    primary_address: null,
+    total_count: 1,
+    is_sanctioned: false,
+    cert_summary: null,
+    hs_codes: ["6105"],
+    brand_codes: [],
+    registries: [],
+  };
+  const fullPage = (slug: string, sp: Record<string, string> = {}) => {
+    const Page = route("app/(app)/app/suppliers/[slug]/page.js").default;
+    return outcome(() => Page({ params: Promise.resolve({ slug }), searchParams: Promise.resolve(sp) }));
+  };
+  const overlay = (sp: Record<string, string>) => {
+    const Page = route("app/(app)/app/discover/page.js").default;
+    return outcome(() => Page({ searchParams: Promise.resolve(sp) }));
+  };
+
+  it("a contact value filed inside an address, or sitting in the suppliers table, never reaches the full page", async () => {
+    // The registers write phone numbers and e-mails into address text (25
+    // published records; five print the exact gated number). The earlier test
+    // used a record whose addresses are clean, so it passed with the leak live.
+    const z = zaheenSampleInput();
+    const phone = z.leaked.phones[0]!;
+    const profile = {
+      ...z.profile,
+      supplier: { ...z.profile.supplier, address_raw: `Plot 5, Road 2, Dhaka Tel: ${phone}` },
+      addresses: [
+        { kind: "factory", address: `Plot 5, Road 2, Dhaka Tel: ${phone}`, source_code: "BGMEA", fetched_at: "2026-09-01T00:00:00Z" },
+        {
+          kind: "office",
+          address: `House 9, Gulshan, Dhaka, Email: ${z.leaked.email_primary}, Web: ${z.leaked.website}`,
+          source_code: "BKMEA",
+          fetched_at: "2026-09-01T00:00:00Z",
+        },
+      ],
+    };
+    given({
+      profile: { data: profile, error: null },
+      hscodes: { data: [], error: null },
+      contactCounts: { data: { emails: 1, phones: 1, website: true, representatives: 1 }, error: null },
+      // Anything that read the gated columns directly would find them here.
+      tables: {
+        suppliers: [
+          {
+            email_primary: z.leaked.email_primary,
+            phones: z.leaked.phones,
+            contact_name: z.leaked.contact_name,
+            contact_role: z.leaked.contact_role,
+            website: z.leaked.website,
+          },
+        ],
+      },
+    });
+    const out = html(await fullPage("zaheen"));
+    assert.match(out, /Plot 5, Road 2, Dhaka/, "guard: the address itself should still render");
+    for (const value of [phone, "1700 000000", z.leaked.email_primary, z.leaked.website, z.leaked.contact_name, z.leaked.contact_role]) {
+      assert.ok(!out.includes(value), `a contact value reached the full record page: ${value}`);
+    }
+  });
+
+  it("a building's slug 308s to its company's record on the full page", async () => {
+    given({ profile: { data: null, error: null }, facilityParent: { data: "aboni-knitwear", error: null } });
+    const r = await fullPage("aboni-knitwear-unit-2");
+    assert.ok("threw" in r, "a building's slug rendered instead of redirecting");
+    assert.match(r.threw, /NEXT_REDIRECT/);
+    assert.match(r.threw, /;308;?/, `not a permanent redirect: ${r.threw}`);
+    assert.match(r.threw, /\/app\/suppliers\/aboni-knitwear(?:;|$)/, `redirects somewhere else: ${r.threw}`);
+  });
+
+  it("a building's slug in the overlay offers its company's record, on the same search, over an inert shell", async () => {
+    // The result behind the notice is a DIFFERENT company: with the mother's
+    // own row in the results, its card's link satisfied this test even with
+    // the notice's link deleted (cycle 4). And the search is scoped to the dialog.
+    given({
+      profile: { data: null, error: null },
+      facilityParent: { data: "aboni-knitwear", error: null },
+      discover: { data: [{ ...ROW, slug: "other-factory", company_name: "OTHER FACTORY LTD." }], error: null },
+    });
+    const out = html(await overlay({ q: "knit", record: "aboni-knitwear-unit-2" }));
+    assert.match(out, /That is a building, not a company record/);
+    const at = out.indexOf('role="dialog"');
+    assert.doesNotMatch(out.slice(0, at), /record=aboni-knitwear(?:&|")/, "guard: the results must not link the mother themselves");
+    const hrefs = [...out.slice(at).matchAll(/href="([^"]+)"/g)].map((m) => m[1]!.replace(/&amp;/g, "&"));
+    const open = hrefs.find((h) => /[?&]record=aboni-knitwear(?:&|$)/.test(h));
+    assert.ok(open, "the notice does not link to the company's record");
+    assert.match(open, /q=knit/, `the company's record leaves the search: ${open}`);
+    assert.match(out, /<div[^>]*\sinert=""/, "a notice claims aria-modal while the shell behind it stays live");
+  });
+
+  it("an unknown slug's notice inerts the shell too, and claims no cause it cannot know", async () => {
+    given({ profile: { data: null, error: null }, discover: { data: [ROW], error: null } });
+    const out = html(await overlay({ q: "knit", record: "no-such-slug" }));
+    assert.match(out, /aria-modal="true"/);
+    assert.match(out, /<div[^>]*\sinert=""/);
+    assert.match(out, /could not be read just now/, "a failed read is presented as certainly unpublished");
+  });
+
+  it("a result's tile sub-lines open the record over the same search, at their section", async () => {
+    given({ profile: PROFILE, hscodes: HS, discover: { data: [ROW], error: null } });
+    const out = html(await overlay({ q: "knit" }));
+    const tiles = [...out.matchAll(/href="([^"]*#(?:products|sources|certificates))"/g)].map((m) => m[1]!.replace(/&amp;/g, "&"));
+    assert.ok(tiles.length > 0, "guard: the card drew no tile sub-line links");
+    for (const href of tiles) {
+      assert.match(href, /record=aboni-knitwear/, `a tile sub-line leaves the overlay: ${href}`);
+      assert.match(href, /q=knit/, `a tile sub-line throws the search away: ${href}`);
+    }
+  });
+
+  it("a sanctioned record opened over the results carries the banner above every section", async () => {
+    const s = sanctionedInput();
+    given({ profile: { data: s.profile, error: null }, hscodes: { data: [], error: null }, discover: { data: [ROW], error: null } });
+    const out = html(await overlay({ q: "knit", record: "zaheen" }));
+    const banner = out.indexOf('data-sanction-visible="true"');
+    assert.ok(banner > -1, "the overlay serves a sanctioned record with no banner");
+    for (const id of ["overview", "products", "certificates", "safety", "sources", "locations", "facilities", "rfqs"]) {
+      const at = out.indexOf(`id="${id}"`);
+      assert.ok(at > banner, `the ${id} section is missing or above the banner`);
+    }
+    // The results behind it carry their own (unsanctioned) Send RFQ; only the sheet is this record's.
+    const sheet = out.slice(out.indexOf('aria-label="Supplier record"'));
+    assert.ok(!sheet.includes('href="/app/rfqs/new'), "a sanctioned record's Send RFQ is a live link in the overlay");
+  });
+
+  it("?lines=all survives into a line and back out of it", async () => {
+    given({ profile: PROFILE, hscodes: HS, discover: { data: [ROW], error: null } });
+    const out = html(await overlay({ q: "knit", record: "aboni-knitwear", line: "6105", lines: "all" }));
+    const back = /aria-label="Back to the record"[^>]*href="([^"]+)"|href="([^"]+)"[^>]*aria-label="Back to the record"/.exec(out);
+    assert.ok(back, "the line sheet draws no Back");
+    assert.match(back[1] ?? back[2]!, /lines=all/, "Back from a line returns to six tiles, not the list the buyer came from");
+  });
+
+  for (const hs of ["0000", "9999"]) {
+    it(`/lines/${hs} is not a heading, so it is not a line`, async () => {
+      given({ profile: PROFILE, hscodes: HS });
+      const Page = route("app/(app)/app/suppliers/[slug]/lines/[hs]/page.js").default;
+      const r = await outcome(() => Page({ params: Promise.resolve({ slug: "aboni-knitwear", hs }), searchParams: Promise.resolve({}) }));
+      assert.ok("threw" in r && /NOT_FOUND|404/.test(r.threw), `/lines/${hs} rendered a product sheet`);
+    });
+  }
+
+  it("a line whose EPB read failed says so; it never says the line is off the EPB page", async () => {
+    given({ profile: PROFILE, hscodes: { data: null, error: { message: "boom" } } });
+    const Page = route("app/(app)/app/suppliers/[slug]/lines/[hs]/page.js").default;
+    const out = html(await outcome(() => Page({ params: Promise.resolve({ slug: "aboni-knitwear", hs: "6105" }), searchParams: Promise.resolve({}) })));
+    assert.match(out, /EPB lines could not be read/);
+    // Both wordings the sheet has for "not on EPB": the eyebrow's and the Exporter page row's.
+    assert.doesNotMatch(out, /not on (?:this|the) record(?:&#x27;|')s EPB page/);
+    assert.doesNotMatch(out, /EPB checked/);
+    // Scoped to the row: the next row ("Exporting since") ends it. Unscoped,
+    // the "Other lines" row's own "Could not be read" satisfied this (cycle 5).
+    const row = /Exporter page([\s\S]*?)Exporting since/.exec(out);
+    assert.ok(row, "guard: the Exporter page row is drawn");
+    assert.match(row[1]!, /Could not be read/, "the Exporter page row does not say it could not be read");
+  });
+});
+
+describe("cycle 4: the boundaries cycle 4 found open", () => {
+  const ROW = {
+    id: "8ce50581-2d84-4cc2-93aa-000000000001",
+    slug: "aboni-knitwear",
+    company_name: "ABONI KNITWEAR LTD.",
+    entity_type: "factory",
+    city: "Dhaka",
+    district: "Dhaka",
+    source_tags: ["BGMEA", "EPB"],
+    t13_source_count: 2,
+    completeness_pct: 50,
+    employees_total: 3166,
+    established_date: "1985-01-01",
+    principal_products: [],
+    factory_types: [],
+    rsc_progress_pct: null,
+    parent_group_name: null,
+    primary_address: null,
+    total_count: 1,
+    is_sanctioned: false,
+    cert_summary: null,
+    hs_codes: ["6105"],
+    brand_codes: [],
+    registries: [],
+  };
+  const fullPage = (slug: string, sp: Record<string, string> = {}) => {
+    const Page = route("app/(app)/app/suppliers/[slug]/page.js").default;
+    return outcome(() => Page({ params: Promise.resolve({ slug }), searchParams: Promise.resolve(sp) }));
+  };
+  const linePage = (hs: string, sp: Record<string, string> = {}) => {
+    const Page = route("app/(app)/app/suppliers/[slug]/lines/[hs]/page.js").default;
+    return outcome(() => Page({ params: Promise.resolve({ slug: "aboni-knitwear", hs }), searchParams: Promise.resolve(sp) }));
+  };
+  const overlay = (sp: Record<string, string>) => {
+    const Page = route("app/(app)/app/discover/page.js").default;
+    return outcome(() => Page({ searchParams: Promise.resolve(sp) }));
+  };
+  const hrefsIn = (s: string) => [...s.matchAll(/href="([^"]+)"/g)].map((m) => m[1]!.replace(/&amp;/g, "&"));
+
+  it("a contact value filed as a principal product never reaches the full page, the overlay or the line page", async () => {
+    // Live on 25 Sep: `shanghai-deck-lace-bd` files its gated website as its
+    // only principal product. Earlier tests planted contact values in
+    // addresses only, and passed with this leak live.
+    const profile = {
+      ...ABONI.profile,
+      supplier: { ...ABONI.profile.supplier, principal_products: ["shdeck.com", "Polo Shirt", "POLO SHIRT", "01711-528388", "Knit T-shirt 61091000"] },
+    };
+    given({ profile: { data: profile, error: null }, hscodes: HS, discover: { data: [ROW], error: null } });
+    const pages = {
+      full: html(await fullPage("aboni-knitwear")),
+      overlay: html(await overlay({ q: "knit", record: "aboni-knitwear" })),
+      line: html(await linePage("6105")),
+    };
+    for (const [where, out] of Object.entries(pages)) {
+      for (const value of ["shdeck.com", "01711-528388", "528388"]) {
+        assert.ok(!out.includes(value), `a contact value filed as a product reached the ${where} page: ${value}`);
+      }
+    }
+    // What is left is the real products, once each: "POLO SHIRT" is "Polo
+    // Shirt" (founder, 25 Sep), and an HS code in a product name is not a
+    // phone number. The count says the same.
+    const list = /data-product-list="true"[^>]*>([\s\S]*?)<\/ul>/.exec(pages.full);
+    assert.ok(list, "guard: the full page draws the product list");
+    assert.equal((list[1]!.match(/<li/g) ?? []).length, 2, `the product list: ${list[1]}`);
+    assert.match(list[1]!, /Knit T-shirt 61091000/, "an HS code in a product name was cut as a phone number");
+    assert.match(pages.full, /Product list<\/span><span[^>]*>2<\/span>/, "the Products stat counts a contact value or a case variant as a product");
+  });
+
+  it("?lines=all rides INTO a line from the overlay, not only back out", async () => {
+    given({ profile: PROFILE, hscodes: HS, discover: { data: [ROW], error: null } });
+    const out = html(await overlay({ q: "knit", record: "aboni-knitwear", lines: "all" }));
+    const lineLinks = hrefsIn(out.slice(out.indexOf('role="dialog"'))).filter((h) => /[?&]line=\d{4}/.test(h));
+    assert.ok(lineLinks.length > 6, `guard: the expanded grid drew ${lineLinks.length} line links`);
+    for (const h of lineLinks) assert.match(h, /lines=all/, `a line opened from "All lines" forgets it: ${h}`);
+  });
+
+  it("?lines=all rides into a line and back on the full page too", async () => {
+    given({ profile: PROFILE, hscodes: HS });
+    const out = html(await fullPage("aboni-knitwear", { lines: "all" }));
+    const tiles = hrefsIn(out).filter((h) => /\/lines\/\d{4}/.test(h));
+    assert.ok(tiles.length > 6, `guard: ${tiles.length} tiles`);
+    for (const h of tiles) assert.match(h, /\?lines=all$/, `a tile of the expanded grid forgets it: ${h}`);
+    given({ profile: PROFILE, hscodes: HS });
+    assert.ok(hrefsIn(html(await linePage("6105", { lines: "all" }))).includes("/app/suppliers/aboni-knitwear?lines=all"), "Back from a line returns to six tiles");
+    given({ profile: PROFILE, hscodes: HS });
+    assert.ok(hrefsIn(html(await linePage("6105"))).includes("/app/suppliers/aboni-knitwear"), "Back from a line opened from six tiles");
+  });
+
+  it("a line outside the catalogue, after a failed EPB read, goes to the record — no 404, no invented line", async () => {
+    // Whether 3923, 7700 or 0199 is one of the record's lines is unknown while
+    // its EPB page is unread. A 404 says it is not; a sheet (with a live Send
+    // RFQ) says it is. The record says what is true: the lines could not be read.
+    for (const hs of ["3923", "7700", "0199", "0000"]) {
+      given({ profile: PROFILE, hscodes: { data: null, error: { message: "boom" } } });
+      const r = await linePage(hs);
+      assert.ok("threw" in r, `/lines/${hs} rendered a sheet while the EPB read had failed`);
+      assert.match(r.threw, /NEXT_REDIRECT/, `/lines/${hs}: ${r.threw}`);
+      assert.match(r.threw, /\/app\/suppliers\/aboni-knitwear(?:;|$)/, `/lines/${hs} goes somewhere else: ${r.threw}`);
+    }
+    given({ profile: PROFILE, hscodes: { data: null, error: { message: "boom" } } });
+    const all = await linePage("3923", { lines: "all" });
+    assert.ok("threw" in all && /\/app\/suppliers\/aboni-knitwear\?lines=all/.test(all.threw), "the expanded grid is lost on the way back");
+    // A catalogue heading still renders, and says the lines could not be read.
+    given({ profile: PROFILE, hscodes: { data: null, error: { message: "boom" } } });
+    assert.match(html(await linePage("6105")), /EPB lines could not be read/);
+    // With the read working, a heading neither in the catalogue nor on the record's page is not a line.
+    given({ profile: PROFILE, hscodes: HS });
+    const r = await linePage("3923");
+    assert.ok("threw" in r && /NOT_FOUND|404/.test(r.threw), "/lines/3923 rendered for a record that does not export it");
+  });
+
+  it("a sanctioned record's contact card does not offer an RFQ", async () => {
+    const s = sanctionedInput();
+    given({ profile: { data: s.profile, error: null }, hscodes: { data: [], error: null } });
+    const out = html(await fullPage("zaheen"));
+    const at = out.indexOf('data-locked="true"');
+    assert.ok(at > -1, "guard: the contact card is drawn");
+    const card = out.slice(at, at + 2000);
+    assert.doesNotMatch(card, /Send an RFQ/, "the contact card offers an RFQ the record cannot take");
+    assert.match(card, /RFQs cannot be sent to this supplier/);
+    given({ profile: PROFILE, hscodes: HS });
+    assert.match(html(await fullPage("aboni-knitwear")), /Send an RFQ from the record instead/);
+  });
+
+  it("the line sheet's price row says Not attested", async () => {
+    given({ profile: PROFILE, hscodes: HS });
+    const out = html(await linePage("6105"));
+    assert.match(out, /Price · MOQ · lead time[\s\S]*?Not attested/);
+  });
+
+  it("an overlay record read that fails for another reason keeps the search and blames no load", async () => {
+    // A payload the builder cannot read makes `loadRecordSheet` THROW — an
+    // error that is not a timeout, reaching the overlay's own catch. (An RPC
+    // error does not: the loader turns it into "no record" before that, which
+    // is why cycle 4's version of this test never reached the branch it named.)
+    given({ profile: { data: { supplier: null }, error: null }, hscodes: HS, discover: { data: [ROW], error: null } });
+    const out = html(await overlay({ q: "knit", record: "aboni-knitwear" }));
+    assert.match(out, /aria-modal="true"/, "the failure is silent");
+    assert.match(out, /could not be read just now/);
+    assert.doesNotMatch(out, /under load/, "a non-timeout failure is reported as the database being busy");
+    assert.ok(out.includes("ABONI KNITWEAR") || out.includes("Aboni Knitwear"), "the search behind the sheet is gone");
+  });
+
+  it("an overlay line that cannot be checked, or is not one, goes back to the record on the same search", async () => {
+    // As the full line page does. It used to show the record with the dead
+    // `line=` still in the URL and nothing to say why (cycle 6).
+    for (const [hs, hscodes] of [["3923", { data: null, error: { message: "boom" } }], ["0000", HS]] as const) {
+      given({ profile: PROFILE, hscodes, discover: { data: [ROW], error: null } });
+      const r = await overlay({ q: "knit", record: "aboni-knitwear", line: hs, lines: "all" });
+      assert.ok("threw" in r, `&line=${hs} rendered`);
+      assert.match(r.threw, /NEXT_REDIRECT/);
+      const to = /;([^;]*\/app\/discover[^;]*);/.exec(r.threw)?.[1] ?? r.threw;
+      assert.match(to, /record=aboni-knitwear/, `&line=${hs} lost the record: ${to}`);
+      assert.match(to, /q=knit/, `&line=${hs} lost the search: ${to}`);
+      assert.match(to, /lines=all/, `&line=${hs} lost the expanded grid: ${to}`);
+      assert.doesNotMatch(to, /[?&]line=/, `&line=${hs} kept the dead line: ${to}`);
+    }
+    // …and a line whose read timed out, while the record's own read answered.
+    let reads = 0;
+    given({
+      profile: () => (reads++ === 0 ? PROFILE : { data: null, error: { code: "57014", message: "canceling statement due to statement timeout" } }),
+      hscodes: HS,
+      discover: { data: [ROW], error: null },
+    });
+    const slow = await overlay({ q: "knit", record: "aboni-knitwear", line: "6105" });
+    assert.equal(reads, 2, "guard: the record and the line each read the profile once");
+    assert.ok("threw" in slow && /NEXT_REDIRECT/.test(slow.threw), "a timed-out line left the dead line= in the URL");
+    assert.doesNotMatch(slow.threw, /[?&]line=/);
+  });
+
+  it("the overlay names what it shows, so focus follows a change of content", async () => {
+    // `DialogFocus` re-runs on this key; it renders nothing, so the key is
+    // asserted where the frame writes it. Record, one of its lines, and the
+    // expanded grid are three different contents in the same frame.
+    const keyOf = async (sp: Record<string, string>) => {
+      given({ profile: PROFILE, hscodes: HS, discover: { data: [ROW], error: null } });
+      return /data-open-key="([^"]*)"/.exec(html(await overlay(sp)))?.[1];
+    };
+    const keys = [
+      await keyOf({ q: "knit", record: "aboni-knitwear" }),
+      await keyOf({ q: "knit", record: "aboni-knitwear", line: "6105" }),
+      await keyOf({ q: "knit", record: "aboni-knitwear", lines: "all" }),
+    ];
+    assert.ok(keys.every(Boolean), `a frame carries no key: ${keys.join(" | ")}`);
+    assert.equal(new Set(keys).size, 3, `two contents share a key: ${keys.join(" | ")}`);
+    given({ profile: { data: null, error: null }, facilityParent: { data: "aboni-knitwear", error: null }, discover: { data: [ROW], error: null } });
+    const notice = /data-open-key="([^"]*)"/.exec(html(await overlay({ q: "knit", record: "aboni-knitwear-unit-2" })))?.[1];
+    assert.ok(notice && !keys.includes(notice), `the building notice shares a key with a record: ${notice}`);
+  });
+
+  it("the full page lists the record's buildings from the facility panel", async () => {
+    const metric = { own: 16934, known_sum: 23189, facility_count: 2, building_count: 3, unknown_count: 0 };
+    const panel = {
+      facility_count: 2,
+      facilities: [
+        { name: "LIBERTY KNITWEAR LTD. (UNIT-2)", employees_total: 3120, addresses: [{ kind: "factory", address: "Plot 4, Konabari, Gazipur", source_code: "BGMEA" }], pills: [], rsc: null },
+        { name: "Liberty Fashion Wears", employees_total: null, addresses: [], pills: [], rsc: null },
+      ],
+      group: { employees_total: metric, machines_sewing: metric, production_capacity_pcs_day: metric, production_capacity_dozen_yearly: metric },
+    };
+    given({ profile: PROFILE, hscodes: HS, facilityPanel: { data: panel, error: null } });
+    const out = html(await fullPage("aboni-knitwear"));
+    assert.match(out, /2 extension buildings/);
+    assert.match(out, /Konabari, Gazipur/);
+    assert.match(out, /3,120 workers/);
+    assert.match(out, /Liberty Fashion Wears/);
+    assert.doesNotMatch(out, /not on this record|No extension buildings/);
+    given({ profile: PROFILE, hscodes: HS, facilityPanel: { data: null, error: { message: "boom" } } });
+    assert.match(html(await fullPage("aboni-knitwear")), /The buildings could not be read\./);
+  });
+
+  it("the Overview shows every capacity figure a register filed, the EPZ zone and the split", async () => {
+    const supplier = {
+      ...ABONI.profile.supplier,
+      production_capacity_pcs_day: 25000,
+      production_capacity_dozen_yearly: 600000,
+      bepza_zone: "Dhaka EPZ",
+      employees_total: 1000,
+      employees_female: 620,
+      employees_male: 380,
+    };
+    given({ profile: { data: { ...ABONI.profile, supplier, rsc_remediation: null }, error: null }, hscodes: HS });
+    const out = html(await fullPage("aboni-knitwear"));
+    assert.match(out, /25,000 pcs\/day · 600,000 dozen\/year/, "one of the two filed capacity figures is dropped");
+    assert.match(out, /Dhaka EPZ/);
+    assert.match(out, /620 women · 380 men/);
+
+    // One half filed: the other is the total less it, and the row says so (the capacity tab's rule).
+    given({ profile: { data: { ...ABONI.profile, supplier: { ...supplier, employees_male: null }, rsc_remediation: null }, error: null }, hscodes: HS });
+    assert.match(html(await fullPage("aboni-knitwear")), /620 women · 380 men \(men by subtraction\)/);
+    // A half larger than the total is not a split.
+    given({ profile: { data: { ...ABONI.profile, supplier: { ...supplier, employees_male: null, employees_female: 1500 }, rsc_remediation: null }, error: null }, hscodes: HS });
+    assert.doesNotMatch(html(await fullPage("aboni-knitwear")), /women ·/);
+    // …nor one equal to it: "0 women" is not filed, it is a subtraction that
+    // found nothing (71 live records file one half equal to the total).
+    given({ profile: { data: { ...ABONI.profile, supplier: { ...supplier, employees_female: null, employees_male: 1000 }, rsc_remediation: null }, error: null }, hscodes: HS });
+    assert.doesNotMatch(html(await fullPage("aboni-knitwear")), /women ·/);
+    // Men filed, women not, below the total. 70 of those 71 file only men, but
+    // every one files it EQUAL to the total, so live no record reaches this
+    // branch today (25 Sep); it is pinned for the day one does.
+    given({ profile: { data: { ...ABONI.profile, supplier: { ...supplier, employees_female: null, employees_male: 380 }, rsc_remediation: null }, error: null }, hscodes: HS });
+    assert.match(html(await fullPage("aboni-knitwear")), /620 women · 380 men \(women by subtraction\)/);
+
+    // The figure shown sums its buildings (production_workers_display_batch):
+    // the record's own halves do not split it. jk-fabrics, live 25 Sep: 44
+    // filed, all men, 1,604 shown — "1,560 women" was the building's headcount.
+    const family = (value: number) => ({ data: { [supplier.id]: { value, source: "registry", sites: 2 } }, error: null });
+    given({
+      profile: { data: { ...ABONI.profile, supplier: { ...supplier, employees_total: 44, employees_male: 44, employees_female: null }, rsc_remediation: null }, error: null },
+      hscodes: HS,
+      workers: family(1604),
+    });
+    const jk = html(await fullPage("aboni-knitwear"));
+    assert.match(jk, /1,604/, "guard: the family figure is the one shown");
+    assert.doesNotMatch(jk, /women ·/, "a building's workforce shown as one sex");
+    // Both halves adding up to the record's own total, under a family figure
+    // within 10% of it (epic-garments: 1,370 + 1,000 of 2,370, 2,626 shown).
+    given({
+      profile: { data: { ...ABONI.profile, supplier: { ...supplier, employees_total: 2370, employees_female: 1370, employees_male: 1000 }, rsc_remediation: null }, error: null },
+      hscodes: HS,
+      workers: family(2626),
+    });
+    const epic = html(await fullPage("aboni-knitwear"));
+    assert.match(epic, /2,626/, "guard: the family figure is the one shown");
+    assert.doesNotMatch(epic, /women ·/, "the record's own split shown under its family's total");
+    // …nor a SMALLER figure shown (ab-apparels: 2,850 filed, 577 shown), even
+    // with halves that add up to it within 10%.
+    given({
+      profile: { data: { ...ABONI.profile, supplier: { ...supplier, employees_total: 2850, employees_female: 330, employees_male: 250 }, rsc_remediation: null }, error: null },
+      hscodes: HS,
+      workers: family(577),
+    });
+    const small = html(await fullPage("aboni-knitwear"));
+    assert.match(small, /577/, "guard: the smaller figure is the one shown");
+    assert.doesNotMatch(small, /women ·/, "the record's own split shown against a smaller figure");
+    // Both halves filed, against the record's own total, but 30% short of it.
+    given({ profile: { data: { ...ABONI.profile, supplier: { ...supplier, employees_female: 400, employees_male: 300 }, rsc_remediation: null }, error: null }, hscodes: HS });
+    assert.doesNotMatch(html(await fullPage("aboni-knitwear")), /women ·/, "halves 30% short of the total shown as its split");
+    // …15% short (inside 75–90%)…
+    given({ profile: { data: { ...ABONI.profile, supplier: { ...supplier, employees_female: 500, employees_male: 350 }, rsc_remediation: null }, error: null }, hscodes: HS });
+    assert.doesNotMatch(html(await fullPage("aboni-knitwear")), /women ·/, "halves 15% short of the total shown as its split");
+    // …and OVER it: scandex-textile-industries files 82 workers, 1,833 women and 82 men.
+    given({ profile: { data: { ...ABONI.profile, supplier: { ...supplier, employees_total: 82, employees_female: 1833, employees_male: 82 }, rsc_remediation: null }, error: null }, hscodes: HS });
+    assert.doesNotMatch(html(await fullPage("aboni-knitwear")), /women ·/, "halves 22 times the total shown as its split");
+  });
+});
+
+
+describe("cycle 6: what the routes send, and the branches cycle 6 found untested", () => {
+  const ROW = {
+    id: "8ce50581-2d84-4cc2-93aa-000000000001",
+    slug: "aboni-knitwear",
+    company_name: "ABONI KNITWEAR LTD.",
+    entity_type: "factory",
+    city: "Dhaka",
+    district: "Dhaka",
+    source_tags: ["BGMEA", "EPB"],
+    t13_source_count: 2,
+    completeness_pct: 50,
+    employees_total: 3166,
+    established_date: "1985-01-01",
+    principal_products: [],
+    factory_types: [],
+    rsc_progress_pct: null,
+    parent_group_name: null,
+    primary_address: null,
+    total_count: 1,
+    is_sanctioned: false,
+    cert_summary: null,
+    hs_codes: ["6105"],
+    brand_codes: [],
+    registries: [],
+  };
+  const fullPage = (slug: string, sp: Record<string, string> = {}) => {
+    const Page = route("app/(app)/app/suppliers/[slug]/page.js").default;
+    return outcome(() => Page({ params: Promise.resolve({ slug }), searchParams: Promise.resolve(sp) }));
+  };
+  const linePage = (hs: string, sp: Record<string, string> = {}) => {
+    const Page = route("app/(app)/app/suppliers/[slug]/lines/[hs]/page.js").default;
+    return outcome(() => Page({ params: Promise.resolve({ slug: "aboni-knitwear", hs }), searchParams: Promise.resolve(sp) }));
+  };
+  const overlay = (sp: Record<string, string>) => {
+    const Page = route("app/(app)/app/discover/page.js").default;
+    return outcome(() => Page({ searchParams: Promise.resolve(sp) }));
+  };
+
+  it("every record RPC is called with the record's slug, under the parameter name the SQL declares", async () => {
+    // Every fake client threw the arguments away, so `{ slug }` in place of
+    // `{ p_slug: slug }` passed everything — and against PostgREST it is an
+    // error on every read, rendered as "could not be read" on every record.
+    given({ profile: PROFILE, hscodes: HS });
+    html(await fullPage("aboni-knitwear"));
+    const bySlug = ["buyer_supplier_profile", "supplier_epb_hscodes", "supplier_contact_counts", "buyer_supplier_facility_panel"];
+    for (const fn of bySlug) {
+      const calls = rpcCalls.filter((c) => c.fn === fn);
+      assert.ok(calls.length > 0, `${fn} was never called`);
+      for (const c of calls) assert.deepEqual(c.args, { p_slug: "aboni-knitwear" }, `${fn} was sent ${JSON.stringify(c.args)}`);
+    }
+  });
+
+  it("a slow line read goes to the record, not a 404 — keeping ?lines=all", async () => {
+    const slow = { data: null, error: { code: "57014", message: "canceling statement due to statement timeout" } };
+    given({ profile: slow, hscodes: HS });
+    const plain = await linePage("6105");
+    assert.ok("threw" in plain && /NEXT_REDIRECT/.test(plain.threw), `a slow read on a line answered ${"threw" in plain ? plain.threw : "a page"}`);
+    assert.match(plain.threw, /\/app\/suppliers\/aboni-knitwear(?:;|$)/);
+    given({ profile: slow, hscodes: HS });
+    const all = await linePage("6105", { lines: "all" });
+    assert.ok("threw" in all && /\/app\/suppliers\/aboni-knitwear\?lines=all/.test(all.threw), "the expanded grid is lost on a slow read");
+  });
+
+  it("Locations never says 'no address' under a Factory address the Overview shows", async () => {
+    // 77 published records hold an address and no register address row; three
+    // more hold only a row the stripper empties (a name and a role). The
+    // section said "No address on any register…" beside the address (cycle 9).
+    const raw = "2-B/1, Darus Salam Road, Mirpur, Dhaka";
+    for (const addresses of [[], [{ kind: "factory", address: "Mohd. Abid Hossain Belal, Proprietor", source_code: "BGMEA" }]]) {
+      given({ profile: { data: { ...ABONI.profile, addresses, supplier: { ...ABONI.profile.supplier, address_raw: raw } }, error: null }, hscodes: HS });
+      const out = html(await fullPage("aboni-knitwear"));
+      assert.match(out, /2-B\/1, Darus Salam Road, Mirpur, Dhaka/, "guard: the Overview shows the address");
+      assert.doesNotMatch(out, /No address on any register/, `Locations denies the address shown (${addresses.length} rows)`);
+      const section = /id="locations"[\s\S]*?<\/section>/.exec(out)?.[0] ?? "";
+      assert.match(section, /2-B\/1, Darus Salam Road/, "the Locations section does not list the address");
+      assert.match(section, /Factory/, "the fallback row lost its kind");
+      assert.doesNotMatch(section, /Abid Hossain/, "a name reached the Locations section");
+    }
+    // A FAILED address read says so; it does not list the record's own text as if read.
+    const unread: Partial<typeof ABONI.profile> = { ...ABONI.profile };
+    delete unread.addresses;
+    given({ profile: { data: { ...unread, supplier: { ...ABONI.profile.supplier, address_raw: raw } }, error: null }, hscodes: HS });
+    const failed = /id="locations"[\s\S]*?<\/section>/.exec(html(await fullPage("aboni-knitwear")))?.[0] ?? "";
+    assert.match(failed, /The addresses could not be read\./);
+    assert.doesNotMatch(failed, /Darus Salam Road/, "an unread address list shown as a location");
+    // …and with no address at all, it still says so.
+    given({ profile: { data: { ...ABONI.profile, addresses: [], supplier: { ...ABONI.profile.supplier, address_raw: null } }, error: null }, hscodes: HS });
+    assert.match(html(await fullPage("aboni-knitwear")), /No address on any register/);
+  });
+
+  it("the women/men split is withheld when it cannot be true", async () => {
+    const base = { ...ABONI.profile.supplier, employees_total: 1000, employees_female: 620, employees_male: 380 };
+    const page = async (supplier: object, extra: object = {}) => {
+      given({ profile: { data: { ...ABONI.profile, supplier, rsc_remediation: null, ...extra }, error: null }, hscodes: HS });
+      return html(await fullPage("aboni-knitwear"));
+    };
+    assert.match(await page(base), /620 women · 380 men/, "guard: the split shows when it adds up");
+    // Halves that do not add up to the figure shown (outside 10%).
+    assert.doesNotMatch(await page({ ...base, employees_total: 3000 }), /women ·/, "a split shown against a total it contradicts");
+    // No halves at all.
+    assert.doesNotMatch(await page({ ...base, employees_female: 0, employees_male: 0 }), /women ·/);
+    // An RSC figure: the registers' split is not a split of RSC's number.
+    const filed = ABONI.profile.rsc_remediation;
+    const rsc = [{ ...((Array.isArray(filed) ? filed[0] : filed) ?? {}), workers_count: 1000, building_name: undefined }];
+    assert.doesNotMatch(await page(base, { rsc_remediation: rsc }), /620 women · 380 men/, "the registers' split is shown against an RSC total");
+  });
+
+  it("a building's notice and that same slug's record are different contents, so focus moves between them", async () => {
+    given({ profile: { data: null, error: null }, facilityParent: { data: "aboni-knitwear", error: null }, discover: { data: [ROW], error: null } });
+    const notice = /data-open-key="([^"]*)"/.exec(html(await overlay({ q: "knit", record: "aboni-knitwear" })))?.[1];
+    given({ profile: PROFILE, hscodes: HS, discover: { data: [ROW], error: null } });
+    const record = /data-open-key="([^"]*)"/.exec(html(await overlay({ q: "knit", record: "aboni-knitwear" })))?.[1];
+    assert.ok(notice && record, `guard: ${notice} / ${record}`);
+    assert.notEqual(notice, record, "a notice and the record it becomes share a key");
+  });
+
+  it("a building with several addresses shows its first filed one", async () => {
+    const metric = { own: null, known_sum: null, facility_count: 1, building_count: 2, unknown_count: 1 };
+    const panel = {
+      facility_count: 1,
+      facilities: [
+        {
+          name: "ABONI KNITWEAR LTD. (UNIT-2)",
+          employees_total: 450,
+          addresses: [
+            { kind: "factory", address: "Plot 12, Hemayetpur, Savar", source_code: "BGMEA" },
+            { kind: "mailing", address: "House 9, Gulshan-2, Dhaka", source_code: "BKMEA" },
+          ],
+          pills: [],
+          rsc: null,
+        },
+      ],
+      group: { employees_total: metric, machines_sewing: metric, production_capacity_pcs_day: metric, production_capacity_dozen_yearly: metric },
+    };
+    given({ profile: PROFILE, hscodes: HS, facilityPanel: { data: panel, error: null } });
+    const out = html(await fullPage("aboni-knitwear"));
+    const list = /data-facilities="true"[^>]*>([\s\S]*?)<\/ul>/.exec(out)?.[1] ?? "";
+    assert.match(list, /Hemayetpur, Savar/);
+    assert.doesNotMatch(list, /Gulshan-2/, "a later address is shown in place of the first");
+  });
+
+  it("the app layout draws the old shell around an old page, and nothing around a kit page", async () => {
+    // The layout's own boundary: its skip link and main landmark, rendered —
+    // not its source text read. The shell switch reads the path on the
+    // client, so the path here is what `usePathname` answers.
+    const Layout = route("app/(app)/layout.js").default;
+    const render = async (path: string) => {
+      currentPath = path;
+      given({ userId: "buyer-1" });
+      return html(await outcome(() => Layout({ children: createElement("p", null, "PAGE-BODY") })));
+    };
+    try {
+      const old = await render("/app/rfqs");
+      assert.match(old, /href="#main-content"/, "the old shell lost its skip link");
+      assert.equal((old.match(/<div[^>]*role="main"[^>]*>/g) ?? []).filter((m) => m.includes('id="main-content"')).length, 1, "the old shell has no main landmark");
+      assert.match(old, /PAGE-BODY/);
+      // Every piece the old shell draws: the top bar, the collapsed rail, the
+      // phone's tab bar, and a main landmark the skip link can focus.
+      assert.match(old, /<header\b/, "the old shell lost its top bar");
+      assert.match(old, /aria-label="Collapsed primary navigation"/, "the old shell lost its sidebar rail");
+      assert.match(old, /aria-label="Primary navigation"/, "the old shell lost its bottom tab bar");
+      assert.match(old, /<div[^>]*role="main"[^>]*tabindex="-1"|<div[^>]*tabindex="-1"[^>]*role="main"/i, "the skip link's target cannot take focus");
+      const kit = await render("/app/suppliers/aboni-knitwear");
+      assert.doesNotMatch(kit, /href="#main-content"|role="main"/, "the old shell is drawn around a kit page");
+      assert.doesNotMatch(kit, /<header\b|aria-label="(?:Collapsed primary|Primary) navigation"/, "a piece of the old shell is drawn around a kit page");
+      // The kit page's wrappers draw no box of their own: the same three divs
+      // (so nothing remounts), each `display: contents`.
+      assert.equal((kit.match(/<div class="contents">/g) ?? []).length, 3, "a kit page is wrapped in a box that lays it out");
+      assert.match(kit, /PAGE-BODY/);
+    } finally {
+      currentPath = "/app/discover";
+    }
+  });
+
+  it("a kit route's loading state draws the kit's frame — the layout draws none there", async () => {
+    // Rendered, not read: cycle 7 replaced KitLoading's body with its children
+    // and every source-reading check still passed.
+    const kitLoading = walk(path.join(process.cwd(), "app", "(app)", "app"))
+      .filter((f) => path.basename(f) === "loading.tsx")
+      .map((f) => path.relative(process.cwd(), f).split(path.sep).join("/"))
+      .filter((f) => drawsKitShell("/" + f.replace(/^app\/\(app\)\//, "").replace(/\/loading\.tsx$/, "")));
+    assert.deepEqual(kitLoading.sort(), [
+      "app/(app)/app/discover/loading.tsx",
+      "app/(app)/app/products/loading.tsx",
+      "app/(app)/app/searches/loading.tsx",
+    ], "a kit route's loading state is not covered here — add it");
+    for (const file of kitLoading) {
+      const out = renderToStaticMarkup(createElement(route(file.replace(/\.tsx$/, ".js")).default));
+      assert.match(out, /href="#main-content"/, `${file}: no skip link`);
+      assert.match(out, /<main[^>]*id="main-content"/, `${file}: no main landmark for the skip link`);
+      assert.match(out, /<aside\b/, `${file}: no sidebar`);
+      assert.match(out, /aria-label="Account and settings"/, `${file}: no top bar`);
+      assert.doesNotMatch(out, /data-plan=/, `${file}: a plan the loading state does not know`);
+      // The footer itself, not only its marker: the aside ends with the nav's
+      // rail furniture, with no bordered block after it.
+      const aside = /<aside\b[\s\S]*?<\/aside>/.exec(out)?.[0] ?? "";
+      assert.doesNotMatch(aside, /border-t/, `${file}: a plan footer drawn with nothing in it`);
+    }
+  });
+});

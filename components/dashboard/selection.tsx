@@ -19,6 +19,8 @@ export type { SelectionContextValue };
 /** Exported for the render tests, which mount the bar over a given selection. */
 export const SelectionContext = createContext<SelectionContextValue | null>(null);
 
+const NO_ROWS: readonly string[] = [];
+
 const INERT: SelectionContextValue = {
   interactive: false,
   selected: new Set(),
@@ -30,16 +32,23 @@ const INERT: SelectionContextValue = {
   edits: 0,
 };
 
-export function SelectionProvider({ pageIds, children }: { pageIds: readonly string[]; children?: ReactNode }) {
+/**
+ * `pageIds: null` — this render could not read the page (the search failed on
+ * a re-run, as it can when a record opens over it): keep the selection as it
+ * was, rather than prune it to the nothing that was read (cycle 11).
+ */
+export function SelectionProvider({ pageIds, children }: { pageIds: readonly string[] | null; children?: ReactNode }) {
   const [selected, setSelected] = useState<ReadonlySet<string>>(() => new Set());
   const [edits, setEdits] = useState(0);
+  const ids = pageIds ?? NO_ROWS;
   const value = useMemo(
-    () => selectionValue(selected, pageIds, setSelected, edits, () => setEdits((n) => n + 1)),
-    [selected, pageIds, edits],
+    () => selectionValue(selected, ids, setSelected, edits, () => setEdits((n) => n + 1)),
+    [selected, ids, edits],
   );
   // A refresh keeps this provider (same URL key) but can change its rows.
-  const pageKey = pageIds.join(",");
+  const pageKey = pageIds === null ? null : pageIds.join(",");
   useEffect(() => {
+    if (pageKey === null) return;
     setSelected((s) => pruneToPage(s, pageKey ? pageKey.split(",") : []));
   }, [pageKey]);
   return <SelectionContext.Provider value={value}>{children}</SelectionContext.Provider>;

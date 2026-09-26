@@ -308,3 +308,14 @@ describe("list parameters are bounded before they reach the database", () => {
     assert.ok(worst <= qMax, `the worst rewrite grows a ${Q_MAX}-character keyword to ${worst}; the database refuses over ${qMax}`);
   });
 });
+
+describe("the search state never carries the open record", () => {
+  // The results' selection provider is keyed on this serialisation; a key that
+  // carried `record`, `line` or `lines` would remount it on every card click
+  // and empty the buyer's bulk selection (REZ-C cycle 12).
+  it("drops record, line and lines", () => {
+    const open = serializeDiscoverState(parseDiscoverState({ q: "knit", record: "aboni-knitwear", line: "6105", lines: "all" })).toString();
+    assert.equal(open, serializeDiscoverState(parseDiscoverState({ q: "knit" })).toString());
+    assert.doesNotMatch(open, /record|line/);
+  });
+});
