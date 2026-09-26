@@ -35,11 +35,12 @@ function rlCheckDef(file: string): { header: string; body: string } {
 }
 
 /** The rl_check definition production ends up with: replay order is filename,
- * except the newest `NNNN_` migration goes last (supabase/ci/apply-migrations.sh). */
+ * except every `NNNN_` migration from 0104 on goes last, in number order
+ * (supabase/ci/apply-migrations.sh). */
 function effectiveRlCheck(): { file: string; sql: string } {
   const files = readdirSync(MIG).filter((f) => f.endsWith(".sql")).sort();
-  const last = files.filter((f) => /^\d{4}_/.test(f)).pop()!;
-  const ordered = [...files.filter((f) => f !== last), last];
+  const tail = files.filter((f) => /^\d{4}_/.test(f) && f.slice(0, 4) >= "0104");
+  const ordered = [...files.filter((f) => !tail.includes(f)), ...tail];
   let found: { file: string; sql: string } | null = null;
   for (const f of ordered) {
     const sql = stripSql(readFileSync(path.join(MIG, f), "utf8"));

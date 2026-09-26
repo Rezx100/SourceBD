@@ -1136,6 +1136,9 @@ function assertAbsoluteOnSite(loc, { pathname, search }, problems, label) {
 
 const NOT_FOUND_MARKER = "Page not found";
 const SLOW_MARKER = "Service temporarily slow";
+// REZ-C: /app/suppliers/[slug] is now the record sheet. Its slow state says
+// this and links "Try again" to the same record (app/(app)/app/suppliers/[slug]/page.tsx).
+const APP_SLOW_MARKER = "This record could not be read in time";
 
 const CASES = [
   {
@@ -1581,8 +1584,8 @@ const CASES = [
     auth: true,
     expect: {
       status: 200,
-      bodyIncludes: SLOW_MARKER,
-      bodyIncludesAll: ["Retry", `/app/suppliers/${PARENT_TIMEOUT}`],
+      bodyIncludes: APP_SLOW_MARKER,
+      bodyIncludesAll: ["Try again", `/app/suppliers/${PARENT_TIMEOUT}`],
       cacheControlOnAllHits: true,
       cacheControlMustMatch: /no-store|\bprivate\b/,
       cacheControlMustNotMatch: /s-maxage=[1-9]/,
@@ -1594,8 +1597,8 @@ const CASES = [
     auth: true,
     expect: {
       status: 200,
-      bodyIncludes: SLOW_MARKER,
-      bodyIncludesAll: ["Retry", `/app/suppliers/${PARENT_TIMEOUT_IN_DATA}`],
+      bodyIncludes: APP_SLOW_MARKER,
+      bodyIncludesAll: ["Try again", `/app/suppliers/${PARENT_TIMEOUT_IN_DATA}`],
       cacheControlOnAllHits: true,
       cacheControlMustMatch: /no-store|\bprivate\b/,
       cacheControlMustNotMatch: /s-maxage=[1-9]/,
@@ -1609,8 +1612,7 @@ const CASES = [
       status: 200,
       bodyIncludes: "Facility Timeout Ltd",
       bodyIncludesAll: [
-        "data-facilities-error",
-        "Facilities could not load just now.",
+        "The buildings could not be read.",
       ],
       bodyExcludes: ["Mother Company Ltd Extension", "0 extension building"],
     },
@@ -1623,8 +1625,7 @@ const CASES = [
       status: 200,
       bodyIncludes: "HS Timeout Ltd",
       bodyIncludesAll: [
-        'data-epb-hscodes-error=""',
-        "EPB export products could not load just now.",
+        "EPB export lines could not be read",
       ],
       bodyExcludes: ['data-epb-hscode="6103"', "0 HS code", "0 HS codes"],
     },
@@ -1637,8 +1638,7 @@ const CASES = [
       status: 200,
       bodyIncludes: "HS Timeout In Data Ltd",
       bodyIncludesAll: [
-        'data-epb-hscodes-error=""',
-        "EPB export products could not load just now.",
+        "EPB export lines could not be read",
       ],
       bodyExcludes: ['data-epb-hscode="6103"', "0 HS code", "0 HS codes"],
     },
@@ -1649,8 +1649,8 @@ const CASES = [
     auth: true,
     expect: {
       status: 200,
-      bodyIncludes: SLOW_MARKER,
-      bodyIncludesAll: ["Retry", `/app/suppliers/${TIMEOUT_IN_DATA}`],
+      bodyIncludes: APP_SLOW_MARKER,
+      bodyIncludesAll: ["Try again", `/app/suppliers/${TIMEOUT_IN_DATA}`],
       cacheControlOnAllHits: true,
       cacheControlMustMatch: /no-store|\bprivate\b/,
       cacheControlMustNotMatch: /s-maxage=[1-9]/,
@@ -1662,8 +1662,8 @@ const CASES = [
     auth: true,
     expect: {
       status: 200,
-      bodyIncludes: SLOW_MARKER,
-      bodyIncludesAll: ["Retry", `/app/suppliers/${TIMEOUT}`],
+      bodyIncludes: APP_SLOW_MARKER,
+      bodyIncludesAll: ["Try again", `/app/suppliers/${TIMEOUT}`],
       cacheControlOnAllHits: true,
       cacheControlMustMatch: /no-store|\bprivate\b/,
       cacheControlMustNotMatch: /s-maxage=[1-9]/,
@@ -1686,15 +1686,9 @@ const CASES = [
       cacheControlMustNotMatch: /s-maxage=[1-9]/,
     },
   },
-  {
-    name: "app: mother Facilities section + RSC-preferred group workers (REZ-114)",
-    path: `/app/suppliers/${MOTHER}`,
-    auth: true,
-    expect: {
-      status: 200,
-      bodyIncludes: "500 across 1 of 2 sites",
-    },
-  },
+  // REZ-C, founder decision 8 (25 Sep): the record LISTS the buildings (name,
+  // first filed address, worker figure). The old page's group totals, registry
+  // pills and RSC progress are not on it, so their four checks went with it.
   {
     name: "app: mother Facilities lists extension building name",
     path: `/app/suppliers/${MOTHER}`,
@@ -1714,45 +1708,12 @@ const CASES = [
     },
   },
   {
-    name: "app: mother Facilities shows facility registry pill (REZ-109)",
-    path: `/app/suppliers/${MOTHER}`,
-    auth: true,
-    expect: {
-      status: 200,
-      bodyIncludes: "RSC ID 99999",
-    },
-  },
-  {
-    name: "app: mother Facilities shows facility RSC progress (REZ-109)",
-    path: `/app/suppliers/${MOTHER}`,
-    auth: true,
-    expect: {
-      status: 200,
-      bodyIncludes: "80% remediated",
-    },
-  },
-  {
     name: "app: mother Facilities omits facility secrets (REZ-109)",
     path: `/app/suppliers/${MOTHER}`,
     auth: true,
     expect: {
       status: 200,
       bodyExcludes: ["secret-facility-slug", "+8801", "leak@example.com"],
-    },
-  },
-  {
-    name: "app: mother Facilities labelled group totals on the wire",
-    path: `/app/suppliers/${MOTHER}`,
-    auth: true,
-    expect: {
-      status: 200,
-      bodyIncludesAll: [
-        "Production workers — group total",
-        "Sewing machines — group total",
-        "Daily output — group total",
-        "Annual output — group total",
-        "unknown across 2 buildings, 2 unknown",
-      ],
     },
   },
   {

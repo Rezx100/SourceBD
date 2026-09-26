@@ -55,6 +55,12 @@ CI (`.github/workflows/ci.yml`) runs `tsc`, `next lint`, `next build`, `pnpm tes
 HTTP-boundary guard. `pytest` and `ruff` run nowhere but this machine. A green CI run is
 evidence, not completion (closed-loop §1).
 
+**Founder rule, 27 Sep 2026: do not run locally what CI runs.** After a fix, run at most the
+one test file that covers it, then push the branch and let GitHub run `tsc`, lint, build,
+`pnpm test`, the HTTP-boundary guard and the migration replay. Read the result with
+`gh run watch` and `gh run view --log-failed`. Only `pytest` and `ruff` still run here,
+because nothing else runs them. The approval gates in AGENTS 9a are unchanged.
+
 ## What this machine will refuse (see `.claude/hooks/guard.py`)
 
 `git push` to `main`, to tags, or force · bare `git push` while on `main` · `gh pr merge` ·

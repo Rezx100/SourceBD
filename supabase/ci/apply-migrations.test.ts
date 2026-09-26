@@ -200,6 +200,12 @@ describe("the migration replay actually replays, and says so when it does not", 
     assert.ok(numbered.length > 0, "no NNNN_ migration was applied at all");
     const newest = [...numbered].sort().at(-1)!;
     assert.equal(base(applied.at(-1)!), newest, `the newest numbered migration (${newest}) was not applied last`);
+    // REZ-C: 0105 landing pushed 0104 in front of a date-named file that
+    // redefines rl_check. Every date-named migration precedes 0104.
+    const names = applied.map(base);
+    const at0104 = names.findIndex((f) => f.startsWith("0104_"));
+    const lastDated = names.map((f, i) => (/^\d{8}/.test(f) ? i : -1)).reduce((a, b) => Math.max(a, b), -1);
+    assert.ok(at0104 > lastDated, `0104 was applied before a date-named migration (${names[lastDated]})`);
   });
 
   it("a startup file cannot switch off the error handling this script depends on", () => {
