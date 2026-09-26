@@ -177,7 +177,16 @@ def _expected(row) -> dict:
     emails = sum(1 for t in tokens(mail) if t.count("@") == 1 and t.index("@") > 0 and "." in t.split("@")[1].strip(".")[1:])
 
     phones = {"".join(ch for ch in ph if ch.isdigit()) for ph in row["phones"] or []}
-    phones = {d for d in phones if len(d) >= 6}
+    # One number with and without the country code is one phone: write each
+    # in its local form — "880…" loses "88", a bare ten-digit mobile gains 0.
+    def local(d: str) -> str:
+        if d.startswith("880"):
+            return d[2:]
+        if len(d) == 10 and d[0] == "1" and d[1] in "3456789":
+            return "0" + d
+        return d
+
+    phones = {local(d) for d in phones if len(d) >= 6}
 
     def is_site(t: str) -> bool:
         if "@" in t:
@@ -236,3 +245,19 @@ def test_null_for_an_unpublished_or_unknown_slug(conn, applied):
         row = cur.fetchone()
         if row is not None:
             assert row["counts"] is None, "an unpublished record answers the contact-counts function"
+
+
+def test_one_number_with_and_without_the_country_code_is_one_phone(conn, applied):
+    # Four published records file one number both as "+880 1…" and "01…"/"1…"
+    # (26 Sep 2026); counting digit strings made the card say "2 phone numbers"
+    # for one. Pinned to those live rows, recounted independently of the SQL.
+    slugs = ("euro-denim-and-fashion", "muna-saaj-design", "samsons-knitwear-industries")
+    with conn.cursor() as cur:
+        cur.execute(
+            f"select s.slug, (public.{FN}(s.slug) ->> 'phones')::int as phones from public.suppliers s where s.slug = any(%s)",
+            (list(slugs),),
+        )
+        got = {r["slug"]: r["phones"] for r in cur.fetchall()}
+    for slug in slugs:
+        if slug in got:
+            assert got[slug] == 1, f"{slug}: one number filed with and without +880 counted as {got[slug]}"

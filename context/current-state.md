@@ -75,8 +75,11 @@ migrations, run the 30-day zero P1/P2 Sentry incident window.
   surviving mutant into the stripper as "redundant", reopening "- MD & CEO.,
   Dhaka" — restored and pinned (rule: a surviving mutant gets a test, never
   the source); the guard's cut splits dot-joined words; "160-GM." is grams;
-  the provider key is tested across open/close. Cycle 13 next, no
-  Acceptance Judge yet. Founder, 25 Sep: Facilities lists the buildings; product
+  the provider key is tested across open/close. Cycle 13 (requirements critic
+  accepted): 0105 counted one number with and without +880 as two phones (4
+  live records) — fixed, dry run owed; the guard judges each run of cut words
+  on its own; "GM"-as-grams only in products. Cycle 14 next, no Acceptance
+  Judge yet. Founder, 25 Sep: Facilities lists the buildings; product
   entries differing only in case or spacing merge. Hand-off: `feature-specs/handoff-rez-c-cycle4.md`.
   **Ratified by the founder 25 Sep:** "Exporters of 6105 · N" (the count
   equals the search it opens); 0105's five omitted §4.3 items; and these
@@ -115,7 +118,7 @@ Migration file headers are NOT live status. Check here or query the database.
 | `0102_admin_queue_release` | 14 Aug 2026 | 1,282 tickets released; 48 `needs_human` open |
 | `0103_epb_detail_url_and_hscodes` | 15 Aug 2026 | EPB Open = exporter page |
 | `0104_discover_v32` | 25 Sep 2026 | REZ-B. Applied after its code was already live (`main` `1780c2c`, deployed 24 Sep) — signed-in search was down in between. Dry-run clean first (one transaction, rolled back). Verified after: 9 `discover_v32%` functions, `saved_searches` with 4 RLS policies, `discover_suppliers` at 25 args. sha256 (CRLF) `4f95641b7c8a1956d61d9b866373c963ec7150690afa2a46ff8b96cbbc3e8b47`. |
-| `0105_supplier_record_v32` | **not applied** | REZ-C. One function, `supplier_contact_counts(text)` — counts of a published record's contact details, never a value; `anon` explicitly revoked. Deliberately does NOT rewrite `buyer_supplier_profile`: production's copy is ahead of this repo (it emits `'fetched_at', rr.fetched_at` on rsc rows, which no migration here adds), so a `create or replace` from the repo would delete that key. Dry run 25 Sep clean, `buyer_supplier_profile` md5 unchanged. sha256 (CRLF) `4b2dfb8c0d3b9399876e082596b50c64586178153d793ea689cb449796dbde09` (re-run 25 Sep after cycle 5 changed what it counts). Population guard for the contact stripper: `ops/verify_contact_text.py`. Evidence: `ops/plans/rez-c-0105-dry-run.md`. |
+| `0105_supplier_record_v32` | **not applied** | REZ-C. One function, `supplier_contact_counts(text)` — counts of a published record's contact details, never a value; `anon` explicitly revoked. Deliberately does NOT rewrite `buyer_supplier_profile`: production's copy is ahead of this repo (it emits `'fetched_at', rr.fetched_at` on rsc rows, which no migration here adds), so a `create or replace` from the repo would delete that key. sha256 (CRLF) `b6fd758a08f63f8b7abc9a65479c819cf47d30e1a4bb151988de44e43207b465` (26 Sep: one number with and without +880 counts once). **Dry run NOT re-run at this sha** (pooler down) — re-run before applying; the last clean run was at `4b2dfb8c…` on 25 Sep. Population guard for the contact stripper: `ops/verify_contact_text.py`. Evidence: `ops/plans/rez-c-0105-dry-run.md`. |
 
 Deploy-order hazard, twice hit: code that queries a new table with no
 missing-table guard crashes every ETL run if shipped before its migration.

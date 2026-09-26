@@ -76,20 +76,22 @@ const ADDRESS_WORD = /\b(?:road|rd|street|avenue|lane|bari|market|plaza|tower|bh
 // ("Chairman-Bari, …", "Chairman-Bari Road"). A place word is also a name
 // ("Proprietor - Bari Ahmed", "Chairman-Road Karim"), so it is not enough that
 // one follows the dash.
-const NAME_LABEL = new RegExp(
-  String.raw`(?:\b(?:your contact|contact person)\b[ \t]*:?|\bcontact(?:[ \t]+name)?[ \t]*:|\b(?:attn|attention|ceo|general manager|gm|director|chairman|owner|proprietor|managing director|md|m\.d)\b\.?(?:[ \t]*:|[ \t]+[-–—]|[-–—](?!${ADDRESS_WORD.source}(?:[ \t]*(?:${ADDRESS_WORD.source}|no\.?|#|\d\w*))*[ \t]*(?:[,\n]|$))))[^,\n]*|\bc\/o\b[^,\n]*`,
-  "gi",
-);
+const nameLabel = (gm: string) =>
+  new RegExp(
+    String.raw`(?:\b(?:your contact|contact person)\b[ \t]*:?|\bcontact(?:[ \t]+name)?[ \t]*:|\b(?:attn|attention|ceo|general manager|${gm}|director|chairman|owner|proprietor|managing director|md|m\.d)\b\.?(?:[ \t]*:|[ \t]+[-–—]|[-–—](?!${ADDRESS_WORD.source}(?:[ \t]*(?:${ADDRESS_WORD.source}|no\.?|#|\d\w*))*[ \t]*(?:[,\n]|$))))[^,\n]*|\bc\/o\b[^,\n]*`,
+    "gi",
+  );
 // "Karim Uddin - Proprietor", "Karim Uddin (MD)": a name with its role beside it.
 // "…- Owner" (no space before the dash), "… (MD)." (a full stop after),
 // "(M.D.)", "(Chairman & MD)", and a part ended by ";" too.
-// "GM" after a number is grams, not a general manager: "Knit fabric 160-GM.
-// Cotton jersey" emptied a product entry (cycle 12).
-const PLAIN_ROLE = String.raw`(?:proprietor|managing director|owner|ceo|chairman|director|general manager|(?<!\d[ \t]*[-–—(]?[ \t]*)gm)`;
-const ROLE_WORD = String.raw`(?:${PLAIN_ROLE}|m\.?d\.?)`;
-const ROLES = String.raw`${ROLE_WORD}(?:[ \t]*&[ \t]*${ROLE_WORD})*`;
+// In a PRODUCT entry, "GM" after a number is grams, not a general manager —
+// in this rule and in NAME_LABEL ("160 GM - Cotton", cycle 13):
+// "Knit fabric 160-GM. Cotton jersey" was emptied (cycle 12). Only there — in
+// an address, "Abdul Karim 2 - GM" is a person (cycle 13).
+const GM_ANY = "gm";
+const GM_NOT_GRAMS = String.raw`(?<!\d[ \t]*[-–—(]?[ \t]*)gm`;
 const DASH = String.raw`[ \t]*[-–—][ \t]*`;
-const STOP = String.raw`(?:[ \t]*\.+(?=[ \t]*[^\s,;.])|(?=[ \t]*(?:[,;.]|$)))`;
+const STOP = String.raw`(?:(?:[ \t]*\.)+(?=[ \t]*[^\s,;.])|(?=[ \t]*(?:[,;.]|$)))`;
 // Where a full stop after the role ends the name's part:
 //  - after a CLOSED bracket, always: "Abdul Karim (MD). Plot 5" (cycle 11);
 //  - after a role that is no honorific, always: "Karim Uddin - Proprietor. House 5";
@@ -97,12 +99,21 @@ const STOP = String.raw`(?:[ \t]*\.+(?=[ \t]*[^\s,;.])|(?=[ \t]*(?:[,;.]|$)))`;
 //    "Md." opens place names: "(Md. Ali Tower)", "- Md. Ali Mansion" (cycle
 //    10). So "Abdul Karim - MD. Mirpur" (MD, a full stop, then more text) is
 //    left to the population guard's review; "- MD & CEO., Dhaka" is cut.
-const NAME_WITH_ROLE = new RegExp(
-  // The first two take the full stop with them when text follows it, so the
-  // rest of the line reads on: "Abdul Karim (MD). Plot 5" → "Plot 5".
-  String.raw`[^,;\n]*?(?:[ \t]*\(${ROLES}\)${STOP}|${DASH}(?:${PLAIN_ROLE}|m\.?d\.?[ \t]*&[ \t]*${ROLE_WORD})(?:[ \t]*&[ \t]*${ROLE_WORD})*${STOP}|(?:${DASH}|[ \t]*\()${ROLES}\)?(?=[ \t]*(?:[,;]|\.[ \t]*(?:[,;]|$)|$)))`,
-  "gim",
-);
+function nameWithRole(gm: string): RegExp {
+  const PLAIN_ROLE = String.raw`(?:proprietor|managing director|owner|ceo|chairman|director|general manager|${gm})`;
+  const ROLE_WORD = String.raw`(?:${PLAIN_ROLE}|m\.?d\.?)`;
+  const ROLES = String.raw`${ROLE_WORD}(?:[ \t]*&[ \t]*${ROLE_WORD})*`;
+  return new RegExp(
+    // The first two take the full stop with them when text follows it, so the
+    // rest of the line reads on: "Abdul Karim (MD). Plot 5" → "Plot 5".
+    String.raw`[^,;\n]*?(?:[ \t]*\(${ROLES}\)${STOP}|${DASH}(?:${PLAIN_ROLE}|m\.?d\.?[ \t]*&[ \t]*${ROLE_WORD})(?:[ \t]*&[ \t]*${ROLE_WORD})*${STOP}|(?:${DASH}|[ \t]*\()${ROLES}\)?(?=[ \t]*(?:[,;]|\.[ \t]*(?:[,;]|$)|$)))`,
+    "gim",
+  );
+}
+const NAME_WITH_ROLE = nameWithRole(GM_ANY);
+const NAME_LABEL = nameLabel(GM_ANY);
+const NAME_LABEL_IN_PRODUCT = nameLabel(GM_NOT_GRAMS);
+const NAME_WITH_ROLE_IN_PRODUCT = nameWithRole(GM_NOT_GRAMS);
 const ROLE = /\b(?:managing director|proprietor)\b/gi;
 const NAMES_A_ROLE = /\b(?:managing director|proprietor|your contact|contact person)\b/i;
 // "Sorder M. Nur-Uz-Zaman": capitalised words around an initial.
@@ -110,7 +121,7 @@ const INITIALLED_NAME = /\b[A-Z][a-z]+(?: [A-Z]\.)+ [A-Z][\w-]+/g;
 const DANGLING_LABEL = new RegExp(String.raw`${LABEL}(?:[ \t]*(?:no|number|#)\.?)?[ \t]*[:.#\-][ \t]*(?=$|[,;\n])`, "gim");
 
 const HONORIFIC_NAME = /^\s*(?:md|mohd|mohammad|mr|mrs|ms|engr)\.?\s+[a-z][a-z .'\-]*$/i;
-const STANDALONE_ROLE = /^\s*(?:managing director|proprietor|chairman|director|ceo|owner|md)\s*$/i;
+const STANDALONE_ROLE = /^\s*(?:managing director|proprietor|chairman|director|ceo|owner|md|gm|general manager)\s*$/i;
 
 function digitsOf(s: string): number {
   return s.replace(/\D/g, "").length;
@@ -190,7 +201,8 @@ export function withoutContactDetails(text: string | null | undefined, options: 
   if (text == null) return null;
   // A role beside a name anywhere ("…, House 5 (MD)") names a role too, so
   // the opening name part goes: "Karim Uddin, House 5 (MD), Dhaka" (cycle 9).
-  const named = NAMES_A_ROLE.test(text) || new RegExp(NAME_WITH_ROLE.source, "im").test(text);
+  const nameWithRoleRule = options.bareNumbers === false ? NAME_WITH_ROLE_IN_PRODUCT : NAME_WITH_ROLE;
+  const named = NAMES_A_ROLE.test(text) || new RegExp(nameWithRoleRule.source, "im").test(text);
   let cut = text
     .replace(EMAIL, " ")
     .replace(SPELLED_EMAIL, " ")
@@ -202,8 +214,8 @@ export function withoutContactDetails(text: string | null | undefined, options: 
     .replace(INTERNATIONAL, " ");
   if (options.bareNumbers !== false) cut = cut.replace(BARE_NUMBER, bareNumber);
   cut = cut
-    .replace(NAME_WITH_ROLE, placeBeforeRole)
-    .replace(NAME_LABEL, " ")
+    .replace(nameWithRoleRule, placeBeforeRole)
+    .replace(options.bareNumbers === false ? NAME_LABEL_IN_PRODUCT : NAME_LABEL, " ")
     .replace(DANGLING_LABEL, " ")
     .split("\n")
     .map((line) => withoutNamedParts(line, named))
@@ -222,10 +234,14 @@ export function withoutContactDetails(text: string | null | undefined, options: 
         .replace(/[ \t]+/g, " ")
         .replace(/\s*,(?:\s*,)+/g, ",")
         .replace(/ +,/g, ",")
-        // What a removed name leaves between separators: "…, (MD)." → "…, ."
-        .replace(/,\s*[.;](?=\s*(?:[,;]|$))/g, "")
+        // What a removed name leaves between separators: "…, (MD)." → "…, .",
+        // "…, (MD)..." → "…, ...", "House 5 ; Dhaka". A full stop the register
+        // filed after a comma ("ltd, . is a very prominent name") stays.
+        .replace(/,\s*[.;](?:\s*[.;])*(?=\s*(?:[,;]|$))/g, "")
         .replace(/,\s*;/g, ",")
+        .replace(/;\s*\.+\s*(?=;)/g, "")
         .replace(/;\s*(?=;)/g, "")
+        .replace(/ +;/g, ";")
         .replace(/\/(?=\s*(?:,|$))/g, "")
         .replace(/^[\s,;:/]+|[\s,;/]+$/g, ""),
     )

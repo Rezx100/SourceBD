@@ -64,7 +64,16 @@ def _expected(row) -> dict:
     emails = sum(1 for t in tokens(mail) if t.count("@") == 1 and t.index("@") > 0 and "." in t.split("@")[1].strip(".")[1:])
 
     phones = {"".join(ch for ch in ph if ch.isdigit()) for ph in row["phones"] or []}
-    phones = {d for d in phones if len(d) >= 6}
+    # One number with and without the country code is one phone: write each
+    # in its local form — "880…" loses "88", a bare ten-digit mobile gains 0.
+    def local(d: str) -> str:
+        if d.startswith("880"):
+            return d[2:]
+        if len(d) == 10 and d[0] == "1" and d[1] in "3456789":
+            return "0" + d
+        return d
+
+    phones = {local(d) for d in phones if len(d) >= 6}
 
     def is_site(t: str) -> bool:
         if "@" in t:

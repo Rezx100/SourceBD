@@ -83,11 +83,20 @@ as $function$
                           from regexp_matches(coalesce(s.email_primary, ''),
                                               '[^@[:space:],;/]+[[:space:]]*@[[:space:]]*[^@[:space:],;/.]+[.][^@[:space:],;/]+', 'g'))::int,
     -- `phones` is text[]: a phone is six or more digits, and one number filed
-    -- twice (however it is punctuated) is one phone.
+    -- twice is one phone — however it is punctuated, and with or without the
+    -- country code: "+880 1754392350", "01754392350" and "1754392350" are one
+    -- (4 published records filed one number both ways, 26 Sep 2026). Each is
+    -- written in its local form before counting: "880…" → "0…", and a bare
+    -- ten-digit mobile "1[3-9]…" gains its trunk 0.
     'phones',          coalesce((
-                         select count(distinct regexp_replace(ph, '[^0-9]', '', 'g'))
-                           from unnest(coalesce(s.phones, '{}'::text[])) as ph
-                          where length(regexp_replace(ph, '[^0-9]', '', 'g')) >= 6
+                         select count(distinct case
+                                  when d ~ '^880' then substr(d, 3)
+                                  when d ~ '^1[3-9][0-9]{8}$' then '0' || d
+                                  else d
+                                end)
+                           from (select regexp_replace(ph, '[^0-9]', '', 'g') as d
+                                   from unnest(coalesce(s.phones, '{}'::text[])) as ph) as n
+                          where length(d) >= 6
                        ), 0)::int,
     -- A site, once any e-mail address in the same field is set aside: one
     -- record files "http://site.com, name@site.com" and holds a website.

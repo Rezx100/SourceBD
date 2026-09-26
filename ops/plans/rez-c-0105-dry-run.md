@@ -39,6 +39,32 @@ is that contact details are sign-in gated, and how many a record holds is part
 of that same locked card — so 0105 now revokes `anon` explicitly. The run
 below is after that fix.
 
+## 26 Sep: the file changed after this dry run — RE-RUN BEFORE APPLYING
+
+Audit cycle 13 found `phones` counting one number twice when it is filed both
+with and without the country code ("+880 1754392350" and "01754392350").
+0105 now writes each number in its local form before counting. The raw output
+below is from the PREVIOUS file (sha256 `4b2dfb8c…`); the current file is
+sha256 `b6fd758a08f63f8b7abc9a65479c819cf47d30e1a4bb151988de44e43207b465`.
+The dry run could not be re-run: the connection pooler times out from this
+machine. The new counting expression was checked read-only (SELECT through
+the Supabase MCP, 26 Sep) over every published record: exactly four records
+change, each by one duplicate —
+
+| record | phones before | phones after |
+| -- | -- | -- |
+| euro-denim-and-fashion | 2 | 1 |
+| muna-saaj-design | 2 | 1 |
+| rare-apparel | 3 | 2 |
+| samsons-knitwear-industries | 2 | 1 |
+
+Total phones across published records: 16,291 → 16,287. Fifteen more records
+hold two numbers sharing their last ten digits ("09611949494" and
+"029611949494"); those are not provably the same number and are left as filed.
+
+**Before applying: run `python ops/dry_run_0105_supplier_record.py` at the
+current sha256 and replace the raw output below with its output.**
+
 ## The file
 
 ```

@@ -193,6 +193,21 @@ const LEAKING: [string, string][] = [
   ["Plot 5, Abdul Karim - MD & CEO. Mirpur, Dhaka", "Plot 5, Mirpur, Dhaka"],
   ["Plot 5, Abdul Karim - MD & Owner. Mirpur", "Plot 5, Mirpur"],
   ["Plot 5, Abdul Karim - Chairman & MD. Mirpur, Dhaka", "Plot 5, Mirpur, Dhaka"],
+  // In an ADDRESS, "GM" after a number is still a general manager (cycle 13:
+  // the grams exemption applied here too and kept these names whole).
+  ["Plot 5, Abdul Karim 2 - GM, Dhaka", "Plot 5, Dhaka"],
+  ["Plot 5, Karim 5 (GM), Dhaka", "Plot 5, Dhaka"],
+  ["Plot 5, Abdul Karim 12 - GM. Mirpur", "Plot 5, Mirpur"],
+  ["Plot 5, Abdul Karim, GM, Dhaka", "Plot 5, Dhaka"],
+  // Cycle 13's test critic: shapes the suite let a mutant through on.
+  ["Plot 5, Dhaka, Abdul Karim - M.D & CEO. Mirpur, Dhaka", "Plot 5, Dhaka, Mirpur, Dhaka"],
+  ["Plot 5, Abdul Karim - MD.; Dhaka", "Plot 5, Dhaka"],
+  // What a removed name leaves behind is tidied.
+  ["Karim Uddin; House 5 (MD); Dhaka", "Karim Uddin; House 5; Dhaka"],
+  ["Plot 5, Abdul Karim (MD). . Mirpur", "Plot 5, Mirpur"],
+  ["Plot 5, Abdul Karim (MD)...", "Plot 5"],
+  ["Plot 5, Karim (CEO)..., Dhaka", "Plot 5, Dhaka"],
+  ["Plot 5; Abdul Karim - MD & CEO.; Dhaka", "Plot 5; Dhaka"],
   // The full stop joined to the next word, spaced from the role, or doubled.
   ["Plot 5, Abdul Karim (MD).Mirpur, Dhaka", "Plot 5, Mirpur, Dhaka"],
   ["Plot 5, Abdul Karim (MD) . Mirpur, Dhaka", "Plot 5, Mirpur, Dhaka"],
@@ -300,6 +315,10 @@ const CLEAN = [
   "Chairman-Bari Road 5, Tongi",
   "Chairman-Bari Road No 5, Tongi",
   "Tongi, Chairman-Bari 2nd Lane",
+  "Plot 5, Tongi - Chairman Bari Road, Gazipur",
+  // A full stop the register filed after a comma is the register's (live:
+  // chiklee-trims-and-accessories, "…ltd, . is a very prominent name").
+  "Chiklee Trims & Accessories ltd, . is a very prominent name",
   // A place named with an honorific or a role word after "(" or a dash: the
   // role must end its word, and a full stop ends the part only at its end (cycle 10).
   "House 12 (Md. Ali Tower), Mirpur, Dhaka",
@@ -358,6 +377,13 @@ describe("withoutContactDetails — contact details filed inside an address", ()
     // "GM" after a number is grams (cycle 12: the whole entry was emptied).
     assert.equal(withoutContactDetails("Knit fabric 160-GM. Cotton jersey", { bareNumbers: false }), "Knit fabric 160-GM. Cotton jersey");
     assert.equal(withoutContactDetails("T-Shirt 180 GM, Cotton", { bareNumbers: false }), "T-Shirt 180 GM, Cotton");
+    // …in the label rule too (cycle 13: "160 GM - Cotton" read as "GM - <name>").
+    assert.equal(withoutContactDetails("Knit fabric 160 GM - Cotton jersey", { bareNumbers: false }), "Knit fabric 160 GM - Cotton jersey");
+    assert.equal(withoutContactDetails("Fabric 160 GM: Cotton", { bareNumbers: false }), "Fabric 160 GM: Cotton");
+    assert.equal(withoutContactDetails("Knit 160 gm-Cotton", { bareNumbers: false }), "Knit 160 gm-Cotton");
+    for (const grams of ["T-Shirt 180 GM - Cotton jersey", "Knit 160- GM. Cotton", "Knit 160 -GM. Cotton", "Knit 160–GM. Cotton", "Knit 160 (GM). Cotton"]) {
+      assert.equal(withoutContactDetails(grams, { bareNumbers: false }), grams);
+    }
   });
 
   it("null stays null", () => {
@@ -426,6 +452,12 @@ describe("the population guard sends every text naming a person to review", () =
       // An unclosed bracket (cycle 12: the bracket branch needed ")" to see
       // it). The stripper leaves this one whole, so only the detector sees it.
       "Plot 5, Abdul Karim (Owner Mirpur, Dhaka",
+      // …with a place word later in the text (cycle 13: the "(Chairman Bari)"
+      // exception looked to the line's end, so a later "Road" switched it off).
+      "Plot 5, Abdul Karim (Owner Mirpur, Road 3, Dhaka",
+      "Plot 5, Abdul Karim (MD Mirpur Road, Dhaka",
+      "Plot 5, Abdul Karim (Chairman Mirpur, Kawran Bazar, Dhaka",
+      "Plot 5, Abdul Karim (Owner",
       // Shapes the stripper leaves whole on purpose or by gap, each reviewed.
       "Plot 5, Abdul Karim [MD]. Mirpur",
       "Plot 5, Abdul Karim (Owner) Mirpur, Dhaka",
@@ -524,13 +556,19 @@ describe("the population guard sends every text naming a person to review", () =
     // reaches this branch.
     const dir = mkdtempSync(path.join(tmpdir(), "ct-strip-"));
     const fake = path.join(dir, "strip.mjs");
-    writeFileSync(fake, "export const withoutContactDetails = (t) => t.replace(/\\d{6,}/g, '').replace('Tongi.', '');\n");
+    writeFileSync(fake, "export const withoutContactDetails = (t) => t.replace(/\\d{6,}/g, '').replace('Tongi.', '').replace('Savar/', '').replace(/(Road|Sector)-\\d+/g, '$1-');\n");
     const rows = path.join(dir, "rows.json");
     writeFileSync(rows, JSON.stringify([
       { slug: "cut", address_raw: "Plot # 110072, Dhaka" },
       // A cut INSIDE a dot-joined word (cycle 12: the whole word "Tongi.Gazipur"
       // went into the cut, and its ".Gazipur" read as a domain).
       { slug: "joined", address_raw: "Plot 5, Tongi.Gazipur" },
+      // Cycle 13: judged as ONE cut, two lost numbers joined into a
+      // phone-length run, and a real phone removed elsewhere excused a place.
+      { slug: "two", address_raw: "Plot # 110072, Road # 123456, Dhaka" },
+      { slug: "hyph", address_raw: "Road-12, Sector-34567, Dhaka" },
+      { slug: "phone", address_raw: "Plot # 110072, Dhaka, Tel: 9125191" },
+      { slug: "slash", address_raw: "Plot 5, Savar/Dhaka" },
     ]));
     try {
       const out = spawnSync(process.execPath, [path.join(process.cwd(), "ops", "check_contact_text.mjs"), rows], {
@@ -540,6 +578,11 @@ describe("the population guard sends every text naming a person to review", () =
       assert.equal(out.status, 1, out.stdout + out.stderr);
       assert.match(out.stdout, /FAIL cut \(address\): an over-strip: removed "110072"/);
       assert.match(out.stdout, /FAIL joined \(address\): an over-strip: removed "Tongi"/);
+      assert.match(out.stdout, /FAIL two \(address\): [^\n]*an over-strip: removed "123456"/);
+      assert.match(out.stdout, /FAIL hyph \(address\): [^\n]*an over-strip: removed "12"/);
+      assert.match(out.stdout, /FAIL phone \(address\): [^\n]*an over-strip: removed "110072"/);
+      assert.match(out.stdout, /FAIL slash \(address\): [^\n]*an over-strip: removed "Savar"/);
+      assert.doesNotMatch(out.stdout, /removed "9125191"/, "guard: the phone's own cut is contact detail");
       // Its OK or FAIL is about the stand-in, and the output says so.
       assert.ok(out.stdout.includes(`STAND-IN STRIPPER: ${pathToFileURL(fake).href} (not lib/contact-text.ts)`), out.stdout);
     } finally {
@@ -548,7 +591,7 @@ describe("the population guard sends every text naming a person to review", () =
   });
 
   it("passes a place that only looks like a role", () => {
-    const out = run(["Chairman-Bari, Tongi, Gazipur", "Chairman Market, Tongi", "Plot 5, Road 3, Dhaka", "Plot 5 (Chairman Bari), Tongi"].map((address_raw, i) => ({ slug: `place-${i}`, address_raw })));
+    const out = run(["Chairman-Bari, Tongi, Gazipur", "Chairman Market, Tongi", "Plot 5, Road 3, Dhaka", "Plot 5 (Chairman Bari), Tongi", "Plot 5 (Chairman Plaza, 3rd Floor), Tongi"].map((address_raw, i) => ({ slug: `place-${i}`, address_raw })));
     assert.equal(out.status, 0, out.stdout + out.stderr);
   });
 });

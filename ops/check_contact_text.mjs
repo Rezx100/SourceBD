@@ -41,7 +41,7 @@ const KNOWN_NOT_CONTACT = new Map([
 // a name ("… - Owner", "…- Owner", "… — Owner"), a role in brackets anywhere
 // ("(MD)", "[CEO]", "(Chairman & MD)"; not "(Chairman Bari)", a place), and
 // "Contact:". The dash classes carry the em dash the stripper splits on.
-const NAMES_A_PERSON = /\b(?:proprietor|managing director|your contact|contact person|attn|c\/o)\b|(?:^|,)\s*(?:chairman|director|ceo|owner|md)\s*(?:,|$)|\b(?:chairman|director|ceo|owner|gm|general manager|md|m\.d)\b\.?(?:\s*:|\s+[-–—]|[-–—](?!\s*(?:bari|market|road|para|bazar)\b))|\s*[-–—]\s*(?:chairman|director|ceo|owner|gm|general manager|md|m\.d)\b\.?\s*(?:[,.;]|$|\S)|[([](?![^)\]]*\b(?:bari|market|road|para|bazar|plaza)\b)[^)\]]*\b(?:chairman|director|ceo|owner|gm|general manager|md|m\.d|executive|manager)\b[^)\]]*(?:[)\]]|[.,;]|$)|\bcontact(?:\s+name)?\s*:/im;
+const NAMES_A_PERSON = /\b(?:proprietor|managing director|your contact|contact person|attn|c\/o)\b|(?:^|,)\s*(?:chairman|director|ceo|owner|md|gm|general manager)\s*(?:,|$)|\b(?:chairman|director|ceo|owner|gm|general manager|md|m\.d)\b\.?(?:\s*:|\s+[-–—]|[-–—](?!\s*(?:bari|market|road|para|bazar)\b))|\s*[-–—]\s*(?:chairman|director|ceo|owner|gm|general manager|md|m\.d)\b\.?\s*(?:[,.;]|$|\S)|[([][^)\]\n]*?\b(?:chairman|director|ceo|owner|gm|general manager|md|m\.d|executive|manager)\b(?!\s*(?:bari|market|road|para|bazar|plaza)\b)|\bcontact(?:\s+name)?\s*:/im;
 /**
  * A role word or an honorific in what the stripper removed: the cut was a
  * person's. Every rule in the stripper that removes a person must be here, or
@@ -102,13 +102,26 @@ function removedFrom(text, out) {
   // ".Gazipur" read as a domain and hid the over-strip (cycle 12).
   const pieces = (w) => w.split(/[./-]+/).filter(Boolean);
   const outPieces = new Set(outWords.flatMap(pieces));
-  const cut = [];
+  // Runs of ADJACENT removed words, each its own run: "Plot # 110072, Road #
+  // 123456" lost two numbers, and judged together they joined into a
+  // phone-length "110072123456" that excused both (cycle 13).
+  const runs = [];
+  let run = [];
+  const close = () => {
+    if (run.length) runs.push(run.join(" "));
+    run = [];
+  };
   for (const w of text.split(/[\s,;]+/).filter(Boolean)) {
-    if (left.get(w)) left.set(w, left.get(w) - 1);
-    else if (pieces(w).some((p) => outPieces.has(p))) cut.push(...pieces(w).filter((p) => !outPieces.has(p)));
-    else cut.push(w);
+    if (left.get(w)) {
+      left.set(w, left.get(w) - 1);
+      close();
+    } else if (pieces(w).some((p) => outPieces.has(p))) {
+      close();
+      for (const p of pieces(w).filter((q) => !outPieces.has(q))) runs.push(p);
+    } else run.push(w);
   }
-  return cut.join(" ");
+  close();
+  return runs;
 }
 
 const failures = [];
@@ -146,15 +159,20 @@ for (const r of rows) {
     // a role word out of, whatever its shape. The detector alone mirrored the
     // stripper's rules and fell behind them (cycle 9: em dashes, "Owner - Road
     // Karim"); what the stripper actually removed cannot fall behind.
-    const cut = out === text ? "" : removedFrom(text, out);
+    const cutRuns = out === text ? [] : removedFrom(text, out);
+    const cut = cutRuns.join(" ");
     const person = NAMES_A_PERSON.test(text) || ROLE_IN_CUT.test(cut);
     if (person && !(REVIEWED.get(r.slug) ?? []).includes(out)) found.push("a text naming a person whose output nobody has reviewed");
     // The other direction (cycle 4 found "Plot # 110072" cut to "Plot #"): what
     // the stripper took out must look like contact detail. A role word is not
     // contact detail here — that cut is a person's, and is reviewed above.
+    // Each run on its own: a phone removed in one place does not excuse a
+    // place removed in another ("Plot # 110072, Dhaka, Tel: 9125191").
     if (out !== text && !person) {
-      if (!/\d{7}|(?<!\d)0\d{5}|@|\bat\b|\.[a-z]{2,}|\b(?:tel|fax|mob|phone|pho|cell|hotline|contact|web|email|e-mail|skype|whatsapp|pabx)\b/i.test(cut.replace(/(\d)[\s.\-()/]+(?=\d)/g, "$1"))) {
-        found.push(`an over-strip: removed ${JSON.stringify(cut.trim().slice(0, 80))}`);
+      for (const r of cutRuns) {
+        if (!/\d{7}|(?<!\d)0\d{5}|@|\bat\b|\.[a-z]{2,}|\b(?:tel|fax|mob|phone|pho|cell|hotline|contact|web|email|e-mail|skype|whatsapp|pabx)\b/i.test(r.replace(/(\d)[\s.\-()/]+(?=\d)/g, "$1"))) {
+          found.push(`an over-strip: removed ${JSON.stringify(r.trim().slice(0, 80))}`);
+        }
       }
     }
     if (found.length) failures.push({ slug: r.slug, kind, text: text.slice(0, 200), shown: out.slice(0, 200), found });

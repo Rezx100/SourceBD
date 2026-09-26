@@ -362,6 +362,13 @@ describe("/app/discover?record= — the overlay over the results", () => {
       const open = providers(await tree({ data: [ROW], error: null }, sp));
       assert.equal(open[0]?.key, closed[0]!.key, `opening ${JSON.stringify(sp)} remounts the selection's provider`);
     }
+    // …and a new search, sort or page IS a new provider: its selection starts
+    // empty (selection.tsx). A missing or constant key kept one across them.
+    assert.ok(closed[0]!.key, "the selection's provider has no key");
+    for (const sp of <Record<string, string>[]>[{ q: "denim" }, { q: "knit", sort: "name" }, { q: "knit", page: "2" }]) {
+      const other = providers(await tree({ data: [ROW], error: null }, sp));
+      assert.notEqual(other[0]?.key, closed[0]!.key, `${JSON.stringify(sp)} kept the previous search's selection`);
+    }
   });
 
   it("no ?record= renders no sheet at all", async () => {
