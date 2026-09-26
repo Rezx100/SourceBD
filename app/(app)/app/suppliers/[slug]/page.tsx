@@ -89,7 +89,20 @@ export default async function SupplierRecordPage({
   if (!model) {
     // A building's slug is not a record of its own: it redirects to the mother
     // it belongs to, exactly as the page this replaces did.
-    const parentSlug = await fetchFacilityParentSlug(supabase, slug).catch(() => null);
+    // A slow parent lookup is not a miss either: answering 404 here told the
+    // buyer a building did not exist because the database was busy.
+    let parentSlug: string | null = null;
+    try {
+      parentSlug = await fetchFacilityParentSlug(supabase, slug);
+    } catch (err) {
+      if (err instanceof Error && err.name === "ProfileStatementTimeout") {
+        return (
+          <AppShell sidebar={shell.sidebar} topbar={shell.topbar} mainId="main-content" screenLabel="Supplier record">
+            <RecordTooSlow href={`/app/suppliers/${slug}`} />
+          </AppShell>
+        );
+      }
+    }
     const miss = resolveUnpublishedProfileMiss({ profileFound: false, parentSlug, routeGroup: "app" });
     if (miss.action === "redirect") permanentRedirect(urlOnSite(miss.path).toString());
     notFound();

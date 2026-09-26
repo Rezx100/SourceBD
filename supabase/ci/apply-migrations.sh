@@ -133,12 +133,20 @@ mig="$root/supabase/migrations"
 # `|| true` because `set -euo pipefail` kills the shell at the assignment when
 # grep matches nothing, so the diagnosis below could never print: an empty or
 # renamed migrations directory exited 1 in silence.
-last="$(ls "$mig" | grep -E '^[0-9]{4}_.*\.sql$' | sort | tail -1 || true)"
-if [ -z "$last" ]; then
-  echo "apply-migrations.sh: no NNNN_*.sql migration found in $mig" >&2
+#
+# REZ-C: forcing only the single newest file last broke the day 0105 landed:
+# 0104 then sorted before `20260725_rez_security_hardening_2.sql`, whose older
+# rl_check overwrote 0104's (the one carrying `api_export`). Every numbered
+# migration from 0104 on was written after every date-named one, so all of
+# them go last, in number order. 0104 is a floor, not "the last file": 0106
+# and later join the tail on their own.
+tail_from=0104
+tail_set="$(ls "$mig" | grep -E '^[0-9]{4}_.*\.sql$' | sort | awk -v f="$tail_from" 'substr($0,1,4) >= f' || true)"
+if [ -z "$tail_set" ]; then
+  echo "apply-migrations.sh: no NNNN_*.sql migration from $tail_from on found in $mig" >&2
   exit 1
 fi
-echo "newest numbered migration, applied last: $last"
+echo "numbered migrations from $tail_from on, applied last:" $tail_set
 
 # Everything above refuses on names alone and must run even where psql is not
 # installed — a developer reading the refusal is the point. From here on psql
@@ -232,7 +240,7 @@ fi
 psql -X -h "$host" -v ON_ERROR_STOP=1 -q -f "$root/supabase/ci/00-supabase-bootstrap.sql"
 
 applied=0
-for f in $(ls "$mig" | grep '\.sql$' | sort | grep -v "^${last}$") "$last"; do
+for f in $(ls "$mig" | grep '\.sql$' | sort | grep -vxF "$tail_set") $tail_set; do
   echo "--- $f"
   psql -X -h "$host" -v ON_ERROR_STOP=1 -q -f "$mig/$f"
   applied=$((applied + 1))
