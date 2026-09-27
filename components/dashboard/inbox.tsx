@@ -1,6 +1,7 @@
 // The buyer's inbox in the dashboard kit: the thread list beside the open
-// conversation. Server components; the conversation body and composer are the
-// thread page's client island (`thread-realtime.tsx`).
+// conversation, and the supplier's record beside that when the buyer opens
+// it. Server components; the conversation body and composer are the thread
+// page's client island (`thread-realtime.tsx`).
 //
 // `thread_list` carries metadata only — no message bodies, no read state — so
 // a row shows the subject and the message count, never a preview or an unread
@@ -8,6 +9,7 @@
 
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { formatCount, formatRelative } from "@/lib/dashboard/facts";
 import { cn } from "@/lib/utils";
 import { Badge } from "./chips";
 import { Button } from "./controls";
@@ -40,39 +42,36 @@ export function entityLabel(et: string): string {
   return "Supplier";
 }
 
-export function fmtRelative(iso: string): string {
-  const t = new Date(iso).getTime();
-  if (!Number.isFinite(t)) return "";
-  const delta = Date.now() - t;
-  const day = 86_400_000;
-  if (delta < 60_000) return "just now";
-  if (delta < 3_600_000) return `${Math.floor(delta / 60_000)}m ago`;
-  if (delta < day) return `${Math.floor(delta / 3_600_000)}h ago`;
-  if (delta < 30 * day) return `${Math.floor(delta / day)}d ago`;
-  return new Date(iso).toLocaleDateString();
+/** A conversation's own URL; with `recordSlug`, the same conversation with that supplier's record open beside it. */
+export function threadHref(id: string, recordSlug?: string | null): string {
+  return recordSlug ? `/app/messages/${id}?record=${encodeURIComponent(recordSlug)}` : `/app/messages/${id}`;
 }
 
 /**
  * The two-pane inbox. With no `currentId` it is the list page: the right pane
  * says "Pick a conversation" on desktop and is absent on a phone. With one, the
  * list hides on a phone (the conversation carries a Back link) and `children`
- * is the conversation.
+ * is the conversation. With `recordOpen` the list hides at every width, so the
+ * conversation and the record beside it share the region; below `lg` the
+ * record takes the region and the conversation waits behind its Close.
  */
 export function Inbox({
   threads,
   error,
   currentId,
+  recordOpen = false,
   children,
 }: {
   threads: readonly InboxThread[];
   error: boolean;
   currentId?: string;
+  recordOpen?: boolean;
   children?: ReactNode;
 }) {
   if (error && !currentId) return <ErrorNote>{INBOX_ERROR_COPY}</ErrorNote>;
   if (threads.length === 0 && !currentId) {
     return (
-      <div className="rounded-md border border-line-subtle bg-surface">
+      <div className="rounded-md bg-surface">
         <EmptyState
           art="messages"
           title={INBOX_EMPTY_TITLE}
@@ -91,10 +90,18 @@ export function Inbox({
     // From `lg` the inbox fills what the page gives it — the content region
     // less the header — and the list and the conversation scroll on their
     // own, so the shell never scrolls. A phone stacks them and scrolls as one.
-    <div className="flex flex-col rounded-md border border-line-subtle bg-surface lg:grid lg:min-h-0 lg:flex-1 lg:grid-cols-[300px_minmax(0,1fr)]">
+    <div
+      className={cn(
+        "min-w-0 flex-col rounded-md bg-surface lg:min-h-0 lg:flex-1",
+        recordOpen ? "hidden lg:flex" : "flex lg:grid lg:grid-cols-[300px_minmax(0,1fr)]",
+      )}
+    >
       <nav
         aria-label="Conversations"
-        className={cn("min-h-0 border-line-subtle lg:overflow-y-auto lg:border-r", currentId && "hidden lg:block")}
+        className={cn(
+          "min-h-0 border-line-subtle lg:overflow-y-auto lg:border-r",
+          recordOpen ? "hidden" : currentId ? "hidden lg:block" : undefined,
+        )}
       >
         <ul className="m-0 list-none p-0">
           {threads.map((t) => (
@@ -103,7 +110,7 @@ export function Inbox({
         </ul>
       </nav>
       {currentId ? (
-        <div className="flex min-h-0 min-w-0 flex-col">{children}</div>
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col">{children}</div>
       ) : (
         <div className="hidden min-h-0 flex-col items-center justify-center gap-2 px-6 text-center lg:flex">
           <span aria-hidden className="grid size-9 place-items-center rounded-md bg-surface-sunken text-ink-muted">
@@ -122,7 +129,7 @@ function ThreadRow({ thread: t, current }: { thread: InboxThread; current: boole
   return (
     <li className="border-b border-line-subtle">
       <Link
-        href={`/app/messages/${t.id}`}
+        href={threadHref(t.id)}
         prefetch={false}
         aria-current={current ? "page" : undefined}
         className={cn(
@@ -132,18 +139,25 @@ function ThreadRow({ thread: t, current }: { thread: InboxThread; current: boole
       >
         <span className="flex items-baseline gap-2">
           <span className="min-w-0 flex-1 text-sm font-medium text-ink-strong [overflow-wrap:anywhere]">{t.supplier_name}</span>
-          <Caption className="shrink-0 tabular-nums">{fmtRelative(t.last_message_at ?? t.created_at)}</Caption>
+          {/* One formatter for the whole column: relative inside 30 days, the
+              day itself after that — never `3d ago` above `8/20/2026`. */}
+          <Caption className="shrink-0 tabular-nums">{formatRelative(t.last_message_at ?? t.created_at)}</Caption>
         </span>
         <span className="truncate text-sm text-ink-muted">
-          {t.subject ?? "General inquiry"} · {count.toLocaleString()} {count === 1 ? "message" : "messages"}
+          {t.subject ?? "General inquiry"} · {formatCount(count)} {count === 1 ? "message" : "messages"}
         </span>
       </Link>
     </li>
   );
 }
 
-/** The open conversation's header: who, what about, and the way to the record and the RFQ. */
-export function ConversationHeader({ thread }: { thread: InboxThread }) {
+/**
+ * The open conversation's header: who, what about, and the way to the record
+ * and the RFQ. "Supplier record" opens the record in the pane beside the
+ * conversation (`?record=` on this thread's URL), and "View RFQ" opens the RFQ
+ * in the pane beside the RFQ list — neither leaves the shell.
+ */
+export function ConversationHeader({ thread, recordOpen = false }: { thread: InboxThread; recordOpen?: boolean }) {
   return (
     <div className="flex flex-col gap-2 border-b border-line-subtle px-4 py-3 sm:px-5">
       <Link
@@ -162,11 +176,16 @@ export function ConversationHeader({ thread }: { thread: InboxThread }) {
           </span>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button href={`/app/suppliers/${thread.supplier_slug}`} clientNav>
+          <Button
+            href={threadHref(thread.id, thread.supplier_slug)}
+            clientNav
+            scroll={false}
+            aria-current={recordOpen ? "true" : undefined}
+          >
             Supplier record
           </Button>
           {thread.rfq_id ? (
-            <Button href={`/app/rfqs/${thread.rfq_id}`} clientNav>
+            <Button href={`/app/rfqs?open=${encodeURIComponent(thread.rfq_id)}`} clientNav>
               View RFQ
             </Button>
           ) : null}

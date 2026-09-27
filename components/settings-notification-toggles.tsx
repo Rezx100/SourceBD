@@ -7,8 +7,8 @@
 // {action:'update_notifications', <key>:bool} to /api/v1/settings.
 // Optimistic update; rolls back on error.
 
-import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { AppRouterContext } from "next/dist/shared/lib/app-router-context.shared-runtime";
+import { useContext, useState, useTransition } from "react";
 
 import { Switch } from "@/components/dashboard/fields";
 import { PageSection } from "@/components/dashboard/page";
@@ -52,7 +52,8 @@ export function SettingsNotificationToggles({
   const [, startTransition] = useTransition();
   // Visited pages are kept for 30s (`staleTimes`); refresh so a return
   // visit does not show the old state.
-  const router = useRouter();
+  // Not `useRouter()`, which throws outside a mounted app router (the route tests draw this with none).
+  const router = useContext(AppRouterContext);
 
   function toggle(key: keyof Notifications) {
     const prev = state[key];
@@ -74,7 +75,7 @@ export function SettingsNotificationToggles({
         if (res.ok) {
           const label = NOTIFICATION_ROWS.find((r) => r.key === key)?.label ?? "Preference";
           setFlash(`${label} turned ${next ? "on" : "off"}`);
-          router.refresh();
+          router?.refresh();
         } else {
           setState((s) => ({ ...s, [key]: prev }));
           const body = (await res.json().catch(() => null)) as

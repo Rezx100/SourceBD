@@ -4,9 +4,8 @@ import { describe, it } from "node:test";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
-import { RfqList } from "@/components/dashboard/rfq-list";
+import { RfqListBody } from "@/components/dashboard/rfq-pages";
 import { SupplierSheet } from "@/components/dashboard/supplier-sheet";
-import type { RfqListModel } from "./models";
 import { sourceMark } from "./source-tiers";
 import {
   allSourceCodes,
@@ -722,6 +721,9 @@ describe("buildRfqRow — status words derived from the stored row", () => {
     assert.equal(buildRfqRow({ ...base, status: "open", quote_count: 2 }, null, TODAY).status.label, "Quoted · 2");
     assert.equal(buildRfqRow({ ...base, status: "accepted" }, null, TODAY).status.label, "Quote accepted");
     assert.equal(buildRfqRow({ ...base, status: "closed" }, null, TODAY).status.tone, "type");
+    // Positive is for an accepted quote only: quotes arriving are a fact, not an outcome.
+    assert.equal(buildRfqRow({ ...base, status: "open", quote_count: 2 }, null, TODAY).status.tone, "type");
+    assert.equal(buildRfqRow({ ...base, status: "accepted" }, null, TODAY).status.tone, "positive");
     const row = buildRfqRow({ ...base, status: "open" }, { name: "Quattro Fashion Limited", tier: 2 }, TODAY);
     assert.equal(row.quantity, "100 pcs");
     assert.equal(row.sent, "9 Sep 2026");
@@ -1125,17 +1127,22 @@ describe("Locations counts premises, not rows and not spellings", () => {
 describe("the RFQ row survives the shapes rfq_list can return", () => {
   const base = { id: "r", product_title: "T", quantity: 1, quantity_unit: "pcs", ship_by: null, created_at: "2026-09-09T10:00:00Z", quote_count: 0 } as const;
 
-  it("a draft with no target says so rather than counting one, or NaN", () => {
+  it("an RFQ with no target counts none, never one, never NaN", () => {
     const row = buildRfqRow({ ...base, status: "open", target_supplier_count: 0 }, null, TODAY);
     assert.equal(row.supplierCount, 0);
+    // The RFQ list page (`RfqListBody`, the list since the dialog-era
+    // `RfqList` was retired on 27 Sep 2026) prints the count in its own
+    // Suppliers column: a number, so "0" is the count and not a sentence.
     const html = renderToStaticMarkup(
-      createElement(RfqList, {
-        model: { sent: 1, quotes: 0, chips: [], rows: [row], footer: "1–1 of 1", toast: null } as RfqListModel,
+      createElement(RfqListBody, {
+        rows: [{ ...base, status: "open", target_supplier_count: 0, updated_at: "2026-09-10T10:00:00Z", viewer_role: "buyer" }],
+        tab: "all",
+        today: TODAY,
       }),
     );
-    assert.match(html, /No supplier on this draft/);
-    assert.doesNotMatch(html, /NaN/);
-    assert.doesNotMatch(html, /0 suppliers/);
+    assert.doesNotMatch(html, /NaN|undefined/);
+    const cells = [...html.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/g)].map((m) => m[1]!.replace(/<[^>]+>/g, "").trim());
+    assert.equal(cells[1], "0", `the Suppliers cell: ${cells.join(" | ")}`);
   });
 
   it("a missing count is not a count", () => {

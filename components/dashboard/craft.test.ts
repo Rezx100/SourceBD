@@ -16,7 +16,10 @@ import { light, resolve } from "@/lib/design/tokens";
 import { Topbar } from "./app-shell";
 import { revealCurrentNavItem } from "./nav-current";
 import { fieldValue } from "./search-typeahead";
-import { EMPTY_ART, EmptyState } from "./page";
+import { EMPTY_ART, Cell, EmptyState, PageSection, rowClass } from "./page";
+import { Button, Menu, MenuItem, buttonClass } from "./controls";
+import { formatMoney, formatQuantity, formatRelative, formatTime } from "@/lib/dashboard/facts";
+import * as kit from "./index";
 import { Sheet } from "./sheet";
 import { stepIndex, suggestionHint, suggestionHref, type Suggestion } from "./search-typeahead";
 
@@ -191,5 +194,159 @@ describe("the browser's own surfaces carry the palette", () => {
     assert.match(rule![1]!, /animation-duration: 0\.01ms !important/);
     assert.match(rule![1]!, /transition-duration: 0\.01ms !important/);
     assert.match(rule![1]!, /scroll-behavior: auto !important/, "smooth scrolling must switch off with motion");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// The enterprise pass (27 Sep 2026): the quiet button tiers, the menu, the
+// tonal panels, the one set of formatters, and the kit index the gallery
+// imports through.
+// ---------------------------------------------------------------------------
+
+describe("the button tiers", () => {
+  const VARIANTS = ["primary", "default", "ghost", "danger"] as const;
+  const cls = (html: string) => (/class="([^"]*)"/.exec(html)?.[1] ?? "").split(/\s+/);
+
+  it("every tier draws its disabled state, for the native attribute and for aria-disabled", () => {
+    for (const variant of VARIANTS) {
+      const html = renderToStaticMarkup(createElement(Button, { variant, disabled: true }, "Send"));
+      const c = cls(html);
+      assert.ok(c.includes("disabled:text-ink-disabled"), `${variant}: a disabled button looks live`);
+      assert.ok(c.includes("aria-disabled:text-ink-disabled"), `${variant}: an aria-disabled control looks live`);
+      assert.ok(c.includes("disabled:cursor-not-allowed"), `${variant}: a disabled button keeps the pointer`);
+      assert.ok(c.includes("disabled:active:scale-100"), `${variant}: a disabled button still presses in`);
+      // A disabled tier must not keep its hover: the hover would say "live".
+      assert.ok(c.some((x) => x.startsWith("disabled:hover:")), `${variant}: hover still lights a disabled button`);
+      assert.match(html, /<button[^>]*\sdisabled=""/);
+    }
+  });
+
+  it("three sizes, 28 / 32 / 36, and `lg` is the 36 stop", () => {
+    const h = (props: Record<string, unknown>) => cls(renderToStaticMarkup(createElement(Button, props, "Go")));
+    assert.ok(h({ size: "sm" }).includes("h-7"));
+    assert.ok(h({}).includes("h-control"), "md is the default");
+    assert.ok(h({ size: "lg" }).includes("h-9"));
+    assert.ok(h({ lg: true }).includes("h-9"), "the lg alias is the lg size");
+    assert.ok(h({ size: "sm", icon: true }).includes("w-7"), "a square icon button at sm");
+  });
+
+  it("loading swaps in a spinner, disables the control and says it is busy", () => {
+    const html = renderToStaticMarkup(createElement(Button, { variant: "primary", loading: true }, "Send RFQ"));
+    assert.match(html, /<button[^>]*\sdisabled=""/);
+    assert.match(html, /aria-busy="true"/);
+    assert.match(html, /animate-spin motion-reduce:animate-none/);
+    assert.match(html, /Send RFQ/, "the label stays, so the bar does not jump");
+    // A loading link is not a link: it renders the disabled button.
+    assert.doesNotMatch(renderToStaticMarkup(createElement(Button, { href: "/app/rfqs", loading: true }, "Open")), /<a\b/);
+  });
+
+  it("a link drawn as a button shares the button's class list exactly", () => {
+    for (const variant of VARIANTS) {
+      const link = renderToStaticMarkup(createElement(Button, { variant, size: "sm", href: "/app/rfqs" }, "Open"));
+      assert.equal(/class="([^"]*)"/.exec(link)?.[1], buttonClass({ variant, size: "sm" }), variant);
+    }
+  });
+});
+
+describe("the menu", () => {
+  it("is a native disclosure whose items mark the active one, and opens upward when asked", () => {
+    const html = renderToStaticMarkup(
+      createElement(Menu, {
+        label: "Rows per page",
+        summary: "25 per page",
+        up: true,
+        align: "left",
+        children: [
+          createElement(MenuItem, { key: "25", href: "?per=25", active: true, children: "25 per page" }),
+          createElement(MenuItem, { key: "50", href: "?per=50", children: "50 per page" }),
+        ],
+      }),
+    );
+    assert.match(html, /^<details\b/);
+    assert.match(html, /<summary aria-label="Rows per page"/);
+    assert.match(html, /<div role="menu" class="[^"]*\bbottom-full\b/);
+    const items = [...html.matchAll(/<a role="menuitem" href="([^"]+)"([^>]*)>/g)].map((m) => [m[1], /aria-current="true"/.test(m[2]!)]);
+    assert.deepEqual(items, [
+      ["?per=25", true],
+      ["?per=50", false],
+    ]);
+    // The check shows on the active item only; the others keep its space.
+    assert.equal((html.match(/class="[^"]*\binvisible\b/g) ?? []).length, 1);
+    assert.doesNotMatch(html, /overflow-hidden/, "a menu inside overflow-hidden is clipped");
+  });
+});
+
+describe("the page's panels are drawn by tone", () => {
+  it("a section's panel has no hairline; outlined adds the soft edge; bare draws no panel", () => {
+    const panel = (props: Record<string, unknown>) =>
+      /<section[^>]*>[\s\S]*?(<div class="[^"]*rounded-md[^"]*">)/.exec(
+        renderToStaticMarkup(createElement(PageSection, { title: "Sources", ...props } as Parameters<typeof PageSection>[0], "x")),
+      )?.[1] ?? "";
+    assert.match(panel({}), /bg-surface/);
+    assert.doesNotMatch(panel({}), /border-line|\bborder\b/, "a section panel carries a hairline again");
+    assert.match(panel({ outlined: true }), /shadow-edge/);
+    assert.doesNotMatch(panel({ outlined: true }), /border-line/);
+    assert.equal(panel({ bare: true }), "", "bare draws its children on the canvas");
+  });
+
+  it("a numeric column is right-aligned and tabular; a row's class list tells current, selected and sanctioned apart", () => {
+    const cell = renderToStaticMarkup(
+      createElement("table", null, createElement("tbody", null, createElement("tr", null, createElement(Cell, { align: "right" }, "3,166")))),
+    );
+    assert.match(cell, /class="[^"]*text-right[^"]*tabular-nums/);
+    assert.match(rowClass({ current: true }), /\bbg-brand-tint\b/);
+    assert.match(rowClass({ selected: true }), /shadow-\[inset_2px_0_0_rgb\(var\(--ds-brand\)\)\]/);
+    assert.match(rowClass({ sanctioned: true }), /shadow-\[inset_3px_0_0_rgb\(var\(--ds-sanction\)\)\]/);
+    assert.doesNotMatch(rowClass(), /brand|sanction/);
+  });
+});
+
+describe("one way to write a time, an amount and a quantity", () => {
+  it("formatMoney: two decimals, up to four under a cent, the ISO code after the figure", () => {
+    assert.equal(formatMoney(6.4, "USD"), "6.40 USD");
+    assert.equal(formatMoney(26550, "USD"), "26,550.00 USD");
+    assert.equal(formatMoney(0.0045, "EUR"), "0.0045 EUR");
+    assert.equal(formatMoney(0, "GBP"), "0.00 GBP");
+    assert.equal(formatMoney(null, "USD"), null);
+    assert.equal(formatMoney(Number.NaN, "USD"), null);
+  });
+
+  it("formatQuantity: never rounded, the unit after it", () => {
+    assert.equal(formatQuantity(12000, "pcs"), "12,000 pcs");
+    assert.equal(formatQuantity(1250.5, "kg"), "1,250.5 kg");
+    assert.equal(formatQuantity(undefined, "pcs"), null);
+  });
+
+  it("formatTime: the day and the UTC clock, so the server and the browser agree", () => {
+    assert.equal(formatTime("2026-09-12T14:30:00Z"), "12 Sep 2026, 14:30");
+    assert.equal(formatTime("2026-09-12T04:05:00+06:00"), "11 Sep 2026, 22:05");
+    assert.equal(formatTime("not a date"), null);
+    assert.equal(formatTime(null), null);
+  });
+
+  it("formatRelative: minutes, hours, days, then the day itself", () => {
+    const now = new Date("2026-09-27T12:00:00Z");
+    assert.equal(formatRelative("2026-09-27T11:59:30Z", now), "just now");
+    assert.equal(formatRelative("2026-09-27T11:56:00Z", now), "4m ago");
+    assert.equal(formatRelative("2026-09-26T13:00:00Z", now), "23h ago");
+    assert.equal(formatRelative("2026-09-24T12:00:00Z", now), "3d ago");
+    assert.equal(formatRelative("2026-08-01T12:00:00Z", now), "1 Aug 2026");
+    assert.equal(formatRelative("nope", now), null);
+  });
+});
+
+describe("the kit index", () => {
+  it("exports every value the gallery imports from it", () => {
+    const src = readFileSync(path.join(repoRoot, "app", "dev", "ds", "dashboard-screens.tsx"), "utf8");
+    const block = /import\s*\{([^}]*)\}\s*from\s*"@\/components\/dashboard";/.exec(src)?.[1];
+    assert.ok(block, "the gallery no longer imports from the kit index; this guard needs rewriting");
+    const values = block!
+      .split(",")
+      .map((s) => s.trim())
+      .filter((s) => s && !s.startsWith("type "));
+    assert.ok(values.length >= 10, `guard: the gallery's value imports (${values.join(", ")})`);
+    for (const name of values) assert.ok(name in kit, `components/dashboard/index.ts does not export ${name}`);
+    // And nothing the index names is missing from the module it re-exports.
+    for (const [name, value] of Object.entries(kit)) assert.notEqual(value, undefined, `the index re-exports ${name} from a module that has none`);
   });
 });

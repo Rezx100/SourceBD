@@ -100,7 +100,7 @@ export function ResultsTable({
               <span className="sr-only">Select</span>
             </HeadCell>
             {head("name", "Supplier", "left", "px-3")}
-            {head("sources", "Sources")}
+            {head("sources", "Registers & certifiers")}
             {compact ? null : head("cert_expiry", "Certificates")}
             {compact ? null : head("hs_lines", "Export lines")}
             {compact ? null : <HeadCell>Type</HeadCell>}
@@ -135,7 +135,10 @@ export function ResultsTable({
                   <div className="flex min-w-0 items-center gap-2.5">
                     <LogoTile initials={r.initials} tier={r.topTier} size="sm" />
                     <div className="min-w-0 flex-1">
-                      <div className="truncate">
+                      {/* Wraps, never an ellipsis (the Wrapping Name Rule): a
+                          company's name is the company's name, and a 125-character
+                          one grows its row rather than losing its end. */}
+                      <div className="[overflow-wrap:anywhere]">
                         {/* The name opens the record beside these results (§3.3), as a
                             client navigation that keeps the results and the selection. */}
                         <Link
@@ -143,7 +146,7 @@ export function ResultsTable({
                           scroll={false}
                           href={recordHref}
                           data-open="record"
-                          className="font-medium text-ink-strong hover:text-brand-ink"
+                          className="font-medium text-ink-strong [overflow-wrap:anywhere] hover:text-brand-ink"
                         >
                           {r.name}
                         </Link>
@@ -205,7 +208,7 @@ export function ResultsTable({
                   </td>
                 )}
                 {compact ? null : (
-                  <td className={cn(h, "truncate border-b border-line-subtle px-4 align-middle")}>
+                  <td className={cn(h, "border-b border-line-subtle px-4 py-1 align-middle")}>
                     {r.totalLines > 0 ? (
                       <>
                         <span className="font-mono text-xs font-medium text-ink-strong">{r.totalLines}</span>
@@ -219,7 +222,14 @@ export function ResultsTable({
                 {compact ? null : <td className={cn(h, "whitespace-nowrap border-b border-line-subtle px-4 align-middle text-ink-muted")}>{r.type}</td>}
                 <td className={cn(h, "border-b border-line-subtle px-4 text-right align-middle tabular-nums")}>
                   {r.workers === null ? (
-                    <span className="text-quiet-ink">—</span>
+                    // No figure of its own, but the profile's may exist: it travels
+                    // as the card and the CSV carry it.
+                    <span className="text-quiet-ink" title={r.workersSecond ?? undefined}>
+                      —
+                      {density === "comfortable" && r.workersSecond ? (
+                        <span className="block text-xs font-normal text-ink-subtle [overflow-wrap:anywhere]">{r.workersSecond}</span>
+                      ) : null}
+                    </span>
                   ) : (
                     // A figure printed bare hides what it counts: the coverage and
                     // the profile's second figure travel in the title, and beside it
@@ -227,7 +237,7 @@ export function ResultsTable({
                     <span title={[r.workersCoverage, r.workersSecond].filter(Boolean).join(" · ") || undefined}>
                       {formatCount(r.workers)}
                       {density === "comfortable" && r.workersCoverage ? (
-                        <span className="block truncate text-xs font-normal text-ink-subtle">{r.workersCoverage}</span>
+                        <span className="block text-xs font-normal text-ink-subtle [overflow-wrap:anywhere]">{r.workersCoverage}</span>
                       ) : null}
                     </span>
                   )}

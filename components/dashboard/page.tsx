@@ -312,8 +312,13 @@ export function rowClass({
 } = {}): string {
   return cn(
     "group transition-colors duration-fast hover:bg-surface-sunken focus-within:bg-surface-sunken",
-    current && "bg-brand-tint hover:bg-brand-tint",
-    selected && "[&>*:first-child]:shadow-[inset_2px_0_0_rgb(var(--ds-brand))]",
+    // The open row: a tint and a brand line above and below, so it is not
+    // marked by a 1.07:1 fill alone and never reads as the selection's rule.
+    current && "bg-brand-tint hover:bg-brand-tint [&>*]:shadow-[inset_0_1px_0_rgb(var(--ds-brand)),inset_0_-1px_0_rgb(var(--ds-brand))]",
+    selected &&
+      (current
+        ? "[&>*:first-child]:shadow-[inset_2px_0_0_rgb(var(--ds-brand)),inset_0_1px_0_rgb(var(--ds-brand)),inset_0_-1px_0_rgb(var(--ds-brand))]"
+        : "[&>*:first-child]:shadow-[inset_2px_0_0_rgb(var(--ds-brand))]"),
     sanctioned && "[&>*:first-child]:shadow-[inset_3px_0_0_rgb(var(--ds-sanction))]",
     className,
   );

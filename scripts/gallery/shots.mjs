@@ -1,4 +1,5 @@
-// Screenshots the six screens out of the rendered gallery page.
+// Screenshots the seven screens out of the rendered gallery page (the order
+// `SCREENS` in app/dev/ds/dashboard-screens.tsx draws them; its test pins this list).
 // Run by scripts/gallery/regen.sh; GALLERY_OUT names the directory.
 import { mkdirSync } from "node:fs";
 import path from "node:path";
@@ -8,7 +9,7 @@ import { chromium } from "playwright";
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
 const outDir = process.env.GALLERY_OUT ?? path.join(repoRoot, "_gallery-out");
 const shotDir = path.join(outDir, "shots");
-const SCREENS = ["results-list", "results-table", "supplier-sheet", "product-sheet", "rfq-composer", "rfq-list"];
+const SCREENS = ["results-table", "results-list", "supplier-sheet", "product-sheet", "rfq-composer", "filter-pane", "rfq-list"];
 /** The width the approved v3.2 renders were drawn at (ds-rebuild-must-stay §9). */
 const SCREEN_WIDTH = 1440;
 

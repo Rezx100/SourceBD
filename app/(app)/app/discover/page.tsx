@@ -341,6 +341,7 @@ export default async function BuyerDiscoverPage({
           ) : (
             <Panel>
               <PanelHeader
+                as={!composerOpen && !filtersOpen && !saveOpen && recordSlug !== null ? "h2" : "h1"}
                 model={{
                   title,
                   total,
@@ -414,7 +415,7 @@ export default async function BuyerDiscoverPage({
                 <Icon name="x" />
               </Button>
               <Label className="text-ink-strong">Save this search</Label>
-              <Caption className="min-w-0 truncate">{title}</Caption>
+              <Caption className="min-w-0 [overflow-wrap:anywhere]">{title}</Caption>
             </SheetBar>
             <SheetScroll>
               <div className="flex flex-col gap-4 p-6">

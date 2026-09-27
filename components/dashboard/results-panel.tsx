@@ -51,7 +51,8 @@ function rangeLabel(firstRow: number, shown: number): string {
   return `${formatCount(from)}–${formatCount(from + shown - 1)}`;
 }
 
-export function PanelHeader({ model }: { model: PanelHeaderModel }) {
+/** `as="h2"` when a record or line sits beside the results: its name is the page's h1 then. */
+export function PanelHeader({ model, as = "h1" }: { model: PanelHeaderModel; as?: "h1" | "h2" }) {
   // `flex-wrap`, and gutters that shrink: in a 288px content column at 320px
   // a non-wrapping row of controls forced the whole DOCUMENT to scroll
   // sideways (WCAG 1.4.10 allows two-dimensional scrolling for a data table,
@@ -63,7 +64,7 @@ export function PanelHeader({ model }: { model: PanelHeaderModel }) {
         {/* The screen's heading: without it the results rendered no heading of
             any level, so there was nothing to navigate by once the skip link
             had been taken. */}
-        <Title as="h1">{model.title}</Title>
+        <Title as={as}>{model.title}</Title>
         <Caption>
           {model.total === null
             ? "count could not be read"
@@ -87,9 +88,9 @@ export function PanelHeader({ model }: { model: PanelHeaderModel }) {
           </Button>
         )}
         {model.densityOptions && model.densityOptions.length > 0 ? (
-          <Menu label="Row density" size="sm" summary={<><Icon name="rows" /> Density</>}>
+          <Menu key={model.densityOptions.find((o) => o.active)?.value} label="Row density" size="sm" summary={<><Icon name="rows" /> Density</>}>
             {model.densityOptions.map((o) => (
-              <MenuItem key={o.value} href={o.href} active={o.active}>
+              <MenuItem key={o.value} href={o.href} active={o.active} clientNav>
                 {o.label}
               </MenuItem>
             ))}

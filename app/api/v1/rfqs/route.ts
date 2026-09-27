@@ -4,8 +4,13 @@
 // Endpoints:
 //   GET  /api/v1/rfqs?status=open                → { rfqs: [...] }
 //   GET  /api/v1/rfqs?id=<uuid>                  → { rfq:  {...} }
+//   GET  /api/v1/rfqs?drafts=1                   → { drafts: [...] }   (0106)
 //   POST /api/v1/rfqs
-//     { action: "create", ... }                  → { rfq_id }     (buyer/admin)
+//     { action: "create", ...,
+//       message?, questions?, product_id?, draft_id? }
+//                                                → { rfq_id }     (buyer/admin)
+//     { action: "save_draft", draft_id?, payload } → { draft_id } (buyer/admin, 0106)
+//     { action: "delete_draft", draft_id }       → { ok: true }   (buyer/admin, 0106)
 //     { action: "submit_quote", rfq_id, ... }    → { quote_id }   (supplier/admin)
 //     { action: "accept_quote", quote_id }       → { ok: true }   (buyer/admin)
 //
@@ -20,6 +25,7 @@ import { NextResponse } from "next/server";
 import { getServerRole } from "@/lib/auth";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { notifyRfqTargets } from "@/lib/email/triggers/rfq-received";
+import { stripContactKeys } from "@/lib/strip-contact-keys";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -31,6 +37,10 @@ const MAX_TITLE = 200;
 const MAX_DESC = 4000;
 const MAX_NOTES = 4000;
 const MAX_TARGETS = 50;
+const MAX_MESSAGE = 8000;
+const MAX_QUESTIONS = 20;
+const MAX_QUESTION = 200;
+const MAX_DRAFT_BYTES = 32 * 1024;
 
 async function requireAnyAuth() {
   const role = await getServerRole();
@@ -57,6 +67,16 @@ export async function GET(req: Request) {
   const supabase = await createSupabaseServerClient();
 
   const url = new URL(req.url);
+  if (url.searchParams.get("drafts") === "1") {
+    const { data, error } = await supabase.rpc("rfq_draft_list");
+    if (error) {
+      return NextResponse.json(
+        { error: "rfq_draft_list failed", detail: error.message },
+        { status: errStatus(error.message) },
+      );
+    }
+    return NextResponse.json({ drafts: stripContactKeys(data ?? []) });
+  }
   const id = url.searchParams.get("id");
   if (id) {
     if (!UUID_RE.test(id)) {
@@ -196,6 +216,45 @@ export async function POST(req: Request) {
       }
       shipBy = obj.ship_by.trim();
     }
+    // 0106: the message, the questions asked, the buyer's own product.
+    let message: string | null = null;
+    if (obj.message != null) {
+      if (typeof obj.message !== "string") {
+        return NextResponse.json({ error: "The message must be text." }, { status: 400 });
+      }
+      if (obj.message.trim().length > MAX_MESSAGE) {
+        return NextResponse.json(
+          { error: `The message must be ${MAX_MESSAGE} characters or fewer.` },
+          { status: 400 },
+        );
+      }
+      message = obj.message.trim() || null;
+    }
+    let questions: string[] | null = null;
+    if (obj.questions != null) {
+      if (!Array.isArray(obj.questions) || obj.questions.some((q) => typeof q !== "string")) {
+        return NextResponse.json({ error: "The questions must be a list of text." }, { status: 400 });
+      }
+      questions = (obj.questions as string[]).map((q) => q.trim()).filter(Boolean);
+      if (questions.length > MAX_QUESTIONS) {
+        return NextResponse.json(
+          { error: `An RFQ can ask up to ${MAX_QUESTIONS} questions.` },
+          { status: 400 },
+        );
+      }
+      if (questions.some((q) => q.length > MAX_QUESTION)) {
+        return NextResponse.json(
+          { error: `Each question must be ${MAX_QUESTION} characters or fewer.` },
+          { status: 400 },
+        );
+      }
+    }
+    if (obj.product_id != null && (typeof obj.product_id !== "string" || !UUID_RE.test(obj.product_id))) {
+      return NextResponse.json({ error: "That product id is not valid." }, { status: 400 });
+    }
+    if (obj.draft_id != null && (typeof obj.draft_id !== "string" || !UUID_RE.test(obj.draft_id))) {
+      return NextResponse.json({ error: "That draft id is not valid." }, { status: 400 });
+    }
 
     const payload: Record<string, unknown> = {
       product_title: title,
@@ -208,6 +267,9 @@ export async function POST(req: Request) {
     if (currency != null) payload.currency = currency;
     if (shipToCountry != null) payload.ship_to_country = shipToCountry;
     if (shipBy != null) payload.ship_by = shipBy;
+    if (message != null) payload.message = message;
+    if (questions && questions.length > 0) payload.questions = questions;
+    if (obj.product_id != null) payload.product_id = obj.product_id;
 
     const { data, error } = await supabase.rpc("rfq_create", { p_input: payload });
     if (error) {
@@ -226,7 +288,67 @@ export async function POST(req: Request) {
       shipBy,
       targetSupplierIds: obj.target_supplier_ids as string[],
     });
+    // The draft this RFQ was composed from is spent. Best-effort: the RFQ
+    // exists either way, and a draft left behind is only a stale draft.
+    if (typeof obj.draft_id === "string") {
+      await supabase.rpc("rfq_draft_delete", { p_id: obj.draft_id });
+    }
     return NextResponse.json({ rfq_id: data });
+  }
+
+  if (action === "save_draft") {
+    if (gate.role !== "buyer" && gate.role !== "admin") {
+      return NextResponse.json({ error: "buyer only" }, { status: 403 });
+    }
+    const draftId = obj.draft_id ?? null;
+    if (draftId !== null && (typeof draftId !== "string" || !UUID_RE.test(draftId))) {
+      return NextResponse.json({ error: "That draft id is not valid." }, { status: 400 });
+    }
+    const draft = obj.payload;
+    if (!draft || typeof draft !== "object" || Array.isArray(draft)) {
+      return NextResponse.json({ error: "Send the draft to save." }, { status: 400 });
+    }
+    if (Buffer.byteLength(JSON.stringify(draft)) > MAX_DRAFT_BYTES) {
+      return NextResponse.json({ error: "This draft is too large to save. Keep it under 32 KB." }, { status: 400 });
+    }
+    const d = draft as Record<string, unknown>;
+    if (d.target_supplier_ids != null) {
+      const ids = d.target_supplier_ids;
+      if (!Array.isArray(ids) || ids.length > MAX_TARGETS || ids.some((sid) => typeof sid !== "string" || !UUID_RE.test(sid))) {
+        return NextResponse.json(
+          { error: `A draft can hold up to ${MAX_TARGETS} suppliers, each by its id.` },
+          { status: 400 },
+        );
+      }
+    }
+    if (d.product_id != null && (typeof d.product_id !== "string" || !UUID_RE.test(d.product_id))) {
+      return NextResponse.json({ error: "That product id is not valid." }, { status: 400 });
+    }
+    const { data, error } = await supabase.rpc("rfq_draft_save", { p_id: draftId, p_payload: d });
+    if (error) {
+      return NextResponse.json(
+        { error: "rfq_draft_save failed", detail: error.message },
+        { status: errStatus(error.message) },
+      );
+    }
+    return NextResponse.json({ draft_id: data });
+  }
+
+  if (action === "delete_draft") {
+    if (gate.role !== "buyer" && gate.role !== "admin") {
+      return NextResponse.json({ error: "buyer only" }, { status: 403 });
+    }
+    if (typeof obj.draft_id !== "string" || !UUID_RE.test(obj.draft_id)) {
+      return NextResponse.json({ error: "That draft id is not valid." }, { status: 400 });
+    }
+    const { error } = await supabase.rpc("rfq_draft_delete", { p_id: obj.draft_id });
+    if (error) {
+      return NextResponse.json(
+        { error: "rfq_draft_delete failed", detail: error.message },
+        { status: errStatus(error.message) },
+      );
+    }
+    return NextResponse.json({ ok: true });
   }
 
   if (action === "submit_quote") {

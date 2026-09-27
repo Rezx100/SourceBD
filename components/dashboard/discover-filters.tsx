@@ -51,7 +51,10 @@ function Check({ name, value, label, on }: { name: string; value: string; label:
 
 export function DiscoverFilters({ state, closeHref }: { state: DiscoverState; closeHref: string }) {
   const n = filterCount(state);
-  const firstCert = state.cert[0] ?? null;
+  // The selects edit the last certificate: the URL's others ride ahead of it as
+  // hidden fields, which is where the parser puts them back, so Apply keeps the order.
+  const moreCerts = state.cert.slice(0, -1);
+  const firstCert = state.cert.at(-1) ?? null;
   const brandOn = new Set(state.brand.map((b) => b.replace(/^BRAND_/i, "").toLowerCase()));
   return (
     <Sheet label="Filters">
@@ -71,6 +74,9 @@ export function DiscoverFilters({ state, closeHref }: { state: DiscoverState; cl
         <form id="filters" action={DISCOVER_PATH} method="get" className="flex flex-col gap-8 p-6">
           {discoverHiddenParams(state, FILTER_HIDDEN_OMIT).map(([k, v]) => (
             <input key={k} type="hidden" name={k} value={v} />
+          ))}
+          {moreCerts.map((c) => (
+            <input key={`${c.kind}:${c.state}`} type="hidden" name="cert" value={c.state === "any" ? c.kind : `${c.kind}:${c.state}`} />
           ))}
           <Group title="What it exports">
             <label className="flex flex-col gap-1 text-sm">
@@ -109,6 +115,11 @@ export function DiscoverFilters({ state, closeHref }: { state: DiscoverState; cl
                 </select>
               </label>
             </div>
+            {moreCerts.length > 0 ? (
+              <Caption>
+                Also kept: {moreCerts.map((c) => (c.state === "any" ? certScheme(c.kind) : `${certScheme(c.kind)} (${c.state})`)).join(", ")}. Remove it with its chip.
+              </Caption>
+            ) : null}
             <label className="flex flex-col gap-1 text-sm">
               <span className="text-ink-muted">RSC safety record</span>
               <select name="rsc" defaultValue={state.rsc ?? ""} className={control}>
@@ -161,14 +172,10 @@ export function DiscoverFilters({ state, closeHref }: { state: DiscoverState; cl
             </div>
           </Group>
           <Group title="What kind of company">
-            <label className="flex flex-col gap-1 text-sm">
-              <span className="text-ink-muted">Type</span>
-              <select name="type" defaultValue={state.type[0] ?? ""} className={control}>
-                <option value="">Any</option>
-                <option value="factory">Factory</option>
-                <option value="buying_house">Buying house</option>
-              </select>
-            </label>
+            <div className="grid grid-cols-2 gap-x-2">
+              <Check name="type" value="factory" label="Factory" on={state.type.includes("factory")} />
+              <Check name="type" value="buying_house" label="Buying house" on={state.type.includes("buying_house")} />
+            </div>
             <div className="grid grid-cols-2 gap-3">
               <label className="flex flex-col gap-1 text-sm">
                 <span className="text-ink-muted">Workers, at least</span>

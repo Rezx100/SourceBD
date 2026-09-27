@@ -19,11 +19,11 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef } from "react";
 
 /** The record link in the results for `slug`: the element focus returns to. */
-export function openerFor(slug: string, links: Iterable<HTMLAnchorElement>): HTMLAnchorElement | null {
+export function openerFor(slug: string, links: Iterable<HTMLAnchorElement>, key: "record" | "open" = "record"): HTMLAnchorElement | null {
   for (const a of links) {
     if (a.closest("[data-record-pane]")) continue;
     const params = new URL(a.getAttribute("href") ?? "", "http://x").searchParams;
-    if (params.get("record") === slug && !params.has("line")) return a;
+    if (params.get(key) === slug && !params.has("line")) return a;
   }
   return null;
 }
@@ -36,9 +36,15 @@ export function openerFor(slug: string, links: Iterable<HTMLAnchorElement>): HTM
 export function DialogFocus({ closeHref, openKey }: { closeHref: string; openKey: string }) {
   const router = useRouter();
   // The record that OPENED the sheet: the result focus returns to on close.
-  const opener = useRef<string | null>(null);
+  // `record` on the search, the saved list and a thread; `open` on the orders and RFQ lists.
+  const opener = useRef<{ key: "record" | "open"; id: string } | null>(null);
   useEffect(() => {
-    opener.current ??= new URLSearchParams(window.location.search).get("record");
+    if (!opener.current) {
+      const q = new URLSearchParams(window.location.search);
+      const record = q.get("record");
+      const open = q.get("open");
+      opener.current = record ? { key: "record", id: record } : open ? { key: "open", id: open } : null;
+    }
     document.querySelector<HTMLElement>("[data-record-pane]")?.focus();
   }, [openKey]);
   useEffect(() => {
@@ -51,8 +57,8 @@ export function DialogFocus({ closeHref, openKey }: { closeHref: string; openKey
     return () => {
       document.removeEventListener("keydown", onKey);
       // After the commit that removes the pane, so the results are back on screen.
-      const slug = opener.current;
-      if (slug) setTimeout(() => openerFor(slug, document.querySelectorAll("a[href]"))?.focus({ preventScroll: true }), 0);
+      const o = opener.current;
+      if (o) setTimeout(() => openerFor(o.id, document.querySelectorAll("a[href]"), o.key)?.focus({ preventScroll: true }), 0);
     };
   }, [closeHref, router]);
   return null;

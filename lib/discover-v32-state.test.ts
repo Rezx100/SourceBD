@@ -318,4 +318,83 @@ describe("the search state never carries the open record", () => {
     assert.equal(open, serializeDiscoverState(parseDiscoverState({ q: "knit" })).toString());
     assert.doesNotMatch(open, /record|line/);
   });
+
+  // The panes of 27 Sep 2026 ride on the same URL: the composer, the filter
+  // and save-search panes, the sent toast and the row density. None is part
+  // of the search, so none may remount the selection or survive a Close.
+  it("drops every pane parameter: rfq, hs_line, filters, save, sent, saved and the density", () => {
+    const panes = {
+      q: "knit",
+      rfq: "8ce50581-2d84-4cc2-93aa-000000000001",
+      hs_line: "6105",
+      filters: "1",
+      save: "1",
+      sent: "8ce50581-2d84-4cc2-93aa-000000000002",
+      saved: "1",
+      d: "compact",
+    };
+    const open = serializeDiscoverState(parseDiscoverState(panes)).toString();
+    assert.equal(open, "q=knit");
+    assert.equal(discoverHref(parseDiscoverState(panes)), "/app/discover?q=knit");
+  });
+});
+
+describe("the ledger is the default view (27 Sep 2026)", () => {
+  it("no view parameter is the table, and the table writes none", () => {
+    assert.equal(EMPTY_STATE.view, "table");
+    assert.equal(parseDiscoverState(new URLSearchParams("q=knit")).view, "table");
+    assert.equal(serializeDiscoverState(parseDiscoverState(new URLSearchParams("q=knit&view=table"))).toString(), "q=knit");
+  });
+
+  it("view=cards round-trips, and anything else is the table", () => {
+    const cards = parseDiscoverState(new URLSearchParams("q=knit&view=cards"));
+    assert.equal(cards.view, "cards");
+    assert.equal(serializeDiscoverState(cards).toString(), "q=knit&view=cards");
+    assert.deepEqual(parseDiscoverState(serializeDiscoverState(cards)), cards);
+    assert.equal(parseDiscoverState(new URLSearchParams("view=grid")).view, "table");
+    assert.equal(discoverHref(cards, { view: "table" }), "/app/discover?q=knit");
+  });
+});
+
+describe("the filter pane's fields are the URL's own filters", () => {
+  it("cert_kind and cert_state fold into one cert filter, and serialise as it", () => {
+    const s = parseDiscoverState(new URLSearchParams("cert_kind=gots&cert_state=valid"));
+    assert.deepEqual(s.cert, [{ kind: "gots", state: "valid" }]);
+    assert.equal(serializeDiscoverState(s).toString(), "cert=gots%3Avalid");
+    assert.equal(filterCount(s), 1);
+  });
+
+  it("a state of Any, or none, is the kind alone; an unknown kind is dropped with its state", () => {
+    assert.deepEqual(parseDiscoverState(new URLSearchParams("cert_kind=wrap&cert_state=any")).cert, [{ kind: "wrap", state: "any" }]);
+    assert.deepEqual(parseDiscoverState(new URLSearchParams("cert_kind=wrap")).cert, [{ kind: "wrap", state: "any" }]);
+    assert.deepEqual(parseDiscoverState(new URLSearchParams("cert_kind=&cert_state=valid")).cert, []);
+    assert.deepEqual(parseDiscoverState(new URLSearchParams("cert_kind=nope&cert_state=valid")).cert, []);
+  });
+
+  it("the pane's pick joins a cert already on the URL rather than replacing it", () => {
+    const s = parseDiscoverState(new URLSearchParams("cert=wrap&cert_kind=gots&cert_state=expiring"));
+    assert.deepEqual(s.cert, [
+      { kind: "wrap", state: "any" },
+      { kind: "gots", state: "expiring" },
+    ]);
+  });
+
+  it("a repeated key is a list: reg=BGMEA&reg=BKMEA is both registers", () => {
+    const s = parseDiscoverState(new URLSearchParams("reg=BGMEA&reg=BKMEA"));
+    assert.deepEqual(s.reg, ["BGMEA", "BKMEA"]);
+    assert.equal(filterCount(s), 1, "one family, however many values");
+    // And the repeated form and the comma form are one search.
+    assert.deepEqual(parseDiscoverState(serializeDiscoverState(s)), s);
+    assert.deepEqual(parseDiscoverState(new URLSearchParams("reg=BGMEA,BKMEA")).reg, s.reg);
+    // Brands arrive the same way from the pane's checkboxes.
+    assert.deepEqual(parseDiscoverState(new URLSearchParams("brand=hm&brand=asos")).brand.length, 2);
+    // A repeat of the same value is one value.
+    assert.deepEqual(parseDiscoverState(new URLSearchParams("reg=BGMEA&reg=BGMEA")).reg, ["BGMEA"]);
+  });
+
+  it("a repeated key is still bounded before it reaches the database", () => {
+    const many = new URLSearchParams();
+    for (let i = 0; i < LIST_MAX + 10; i += 1) many.append("district", `District ${i}`);
+    assert.equal(parseDiscoverState(many).district.length, LIST_MAX);
+  });
 });

@@ -135,6 +135,8 @@ export function Button({
       title: rest.title,
       tabIndex: rest.tabIndex,
       onClick: rest.onClick as unknown as MouseEventHandler<HTMLAnchorElement> | undefined,
+      // `data-*` hooks (the ledger's `r` and ↵ keys find `a[data-action]`).
+      ...Object.fromEntries(Object.entries(rest).filter(([k]) => k.startsWith("data-"))),
     };
     // `next/link` only where the caller asked for it: a client navigation keeps
     // the page's React state, which is what the record links need and what a
@@ -361,9 +363,10 @@ export function Count({ children, className }: { children: ReactNode; className?
 
 /**
  * A menu of links or actions behind a small control (sort, density, per
- * page). Native `<details>`: it needs no script to open, and closes on
- * Escape and on any link inside it through `MenuClose`. The panel escapes its
- * container, so it must never sit inside `overflow-hidden`.
+ * page). Native `<details>`: it needs no script to open. A document load
+ * closes it; a menu of `clientNav` items must be keyed by its current value so
+ * the navigation remounts it closed. The panel escapes its container, so it
+ * must never sit inside `overflow-hidden`.
  */
 export function Menu({
   summary,
@@ -397,7 +400,9 @@ export function Menu({
         role="menu"
         className={cn(
           "absolute z-20 min-w-[12rem] max-w-[calc(100vw-2rem)] rounded-md border border-line bg-surface py-1 shadow-md",
-          align === "right" ? "right-0" : "left-0",
+          // Right-anchored only from sm: on a phone the wrapped summary starts its
+          // row, and a right-anchored menu would open off the left edge (1.4.10).
+          align === "right" ? "left-0 sm:left-auto sm:right-0" : "left-0",
           up ? "bottom-full mb-1" : "top-full mt-1",
         )}
       >
@@ -411,11 +416,14 @@ export function Menu({
 export function MenuItem({
   href,
   active = false,
+  clientNav = false,
   onClick,
   children,
 }: {
   href?: string;
   active?: boolean;
+  /** Navigate without a document load (keeps the page's selection); key the Menu by its value. */
+  clientNav?: boolean;
   onClick?: () => void;
   children: ReactNode;
 }) {
@@ -424,7 +432,12 @@ export function MenuItem({
     active && "text-ink-strong",
   );
   const mark = <Icon name="check" small className={active ? "text-brand-ink" : "invisible"} />;
-  return href ? (
+  return href && clientNav ? (
+    <Link role="menuitem" href={href} prefetch={false} scroll={false} aria-current={active ? "true" : undefined} className={cls}>
+      {mark}
+      {children}
+    </Link>
+  ) : href ? (
     <a role="menuitem" href={href} aria-current={active ? "true" : undefined} className={cls}>
       {mark}
       {children}

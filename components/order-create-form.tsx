@@ -101,7 +101,8 @@ export function OrderCreateForm({ seed }: { seed: OrderSeed }) {
         setError(j?.detail ?? j?.error ?? `error ${res.status}`);
         return;
       }
-      router.push(`/app/orders/${j.order_id}`);
+      // The new order, open beside the orders it joins.
+      router.push(`/app/orders?open=${encodeURIComponent(j.order_id)}`);
       router.refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : "network error");

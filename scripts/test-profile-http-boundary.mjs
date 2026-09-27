@@ -1818,8 +1818,11 @@ const CASES = [
     expect: { status: 307, locationPath: "/login" },
   },
   {
-    name: "rez-b: /app/products renders -> 200",
-    path: "/app/products",
+    // The HS catalogue moved from /app/products to /app/headings on 27 Sep
+    // 2026 (the enterprise pass): /app/products is now the buyer's own product
+    // base. Same page, same words, new address.
+    name: "rez-b: /app/headings renders -> 200",
+    path: "/app/headings",
     auth: true,
     // "Products" alone was the SIDEBAR nav label, rendered on every /app/*
     // page — it passed even if the catalogue failed to load, or if this route

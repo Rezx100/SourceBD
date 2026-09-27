@@ -24,6 +24,14 @@ import { FEEDBACK_ENDPOINT, feedbackBody } from "./report-problem";
 import { SupplierSheet } from "./supplier-sheet";
 import { RecordPane } from "./sheet";
 
+/** The locked card's count rows, as [label, value] pairs, in the order drawn. */
+function contactRows(html: string): [string, string][] {
+  const at = html.indexOf('data-contact-counts="true"');
+  if (at < 0) return [];
+  const dl = html.slice(at, html.indexOf("</dl>", at));
+  return [...dl.matchAll(/<dt[^>]*>([^<]*)<\/dt><dd[^>]*>([^<]*)<\/dd>/g)].map((m) => [m[1]!, m[2]!]);
+}
+
 /** Every section the sheet renders, in the order a buyer scrolls them. */
 const SECTIONS = ["overview", "products", "certificates", "safety", "sources", "locations", "facilities", "rfqs"] as const;
 
@@ -38,8 +46,14 @@ describe("SupplierSheet — the locked contact card (REZ-C §4.3)", () => {
     const input = zaheenSampleInput();
     const html = renderToStaticMarkup(createElement(SupplierSheet, { model: buildSheet(input, { contactCounts: COUNTS }) }));
 
-    // What the buyer is told.
-    assert.match(html, /On file: 1 email · 6 phone numbers · a website · 2 named representatives\./);
+    // What the buyer is told: one row per kind, the count and nothing else
+    // (enterprise pass, 27 Sep 2026 — the counts became rows).
+    assert.deepEqual(contactRows(html), [
+      ["Email", "1 on file"],
+      ["Phone", "6 on file"],
+      ["Website", "on file"],
+      ["Contact person", "2 on file"],
+    ]);
     assert.match(html, /data-contact-counts="true"/);
     assert.match(html, /data-locked="true"/);
 
@@ -67,6 +81,20 @@ describe("SupplierSheet — the locked contact card (REZ-C §4.3)", () => {
     const html = renderToStaticMarkup(createElement(SupplierSheet, { model: buildSheet(zaheenSampleInput(), { contactCounts: null }) }));
     assert.doesNotMatch(html, /On file:/);
     assert.doesNotMatch(html, /No contact detail/);
+    // The locked card's own element, whole: its <div>s counted to their close.
+    const start = html.lastIndexOf("<div", html.indexOf('data-locked="true"'));
+    let depth = 0;
+    let end = start;
+    for (const m of html.slice(start).matchAll(/<div\b|<\/div>/g)) {
+      depth += m[0] === "</div>" ? -1 : 1;
+      if (depth === 0) {
+        end = start + m.index! + m[0].length;
+        break;
+      }
+    }
+    const card = html.slice(start, end);
+    assert.match(card, /Contact details/, "guard: the locked card rendered");
+    assert.doesNotMatch(card, /none on file|\d+ on file/, "a failed count printed a row as if it had been read");
     assert.doesNotMatch(html, /data-contact-counts/);
     // The card is still there, still locked, and still says why.
     assert.match(html, /data-locked="true"/);
@@ -75,23 +103,33 @@ describe("SupplierSheet — the locked contact card (REZ-C §4.3)", () => {
     assert.doesNotMatch(html, /paid plans|See plans|What is hidden/);
   });
 
-  it("a record holding nothing says so, rather than listing kinds it does not have", () => {
+  it("a record holding nothing says so on every row, never as a zero", () => {
     const html = renderToStaticMarkup(
       createElement(SupplierSheet, {
         model: buildSheet(zaheenSampleInput(), { contactCounts: { emails: 0, phones: 0, representatives: 0, website: false } }),
       }),
     );
-    assert.match(html, /No contact detail on this record yet\./);
-    assert.doesNotMatch(html, /0 emails|0 phone numbers|0 named representatives/);
+    assert.deepEqual(contactRows(html), [
+      ["Email", "none on file"],
+      ["Phone", "none on file"],
+      ["Website", "none on file"],
+      ["Contact person", "none on file"],
+    ]);
+    assert.doesNotMatch(html, /\b0 on file\b/);
   });
 
-  it("one of each is singular", () => {
+  it("the rows name each kind once, so a count of one needs no plural", () => {
     const html = renderToStaticMarkup(
       createElement(SupplierSheet, {
         model: buildSheet(zaheenSampleInput(), { contactCounts: { emails: 1, phones: 1, representatives: 1, website: false } }),
       }),
     );
-    assert.match(html, /On file: 1 email · 1 phone number · 1 named representative\./);
+    assert.deepEqual(contactRows(html), [
+      ["Email", "1 on file"],
+      ["Phone", "1 on file"],
+      ["Website", "none on file"],
+      ["Contact person", "1 on file"],
+    ]);
     assert.doesNotMatch(html, /1 emails|1 phone numbers|1 named representatives/);
   });
 });

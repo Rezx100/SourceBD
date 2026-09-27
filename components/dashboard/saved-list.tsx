@@ -1,16 +1,22 @@
-// The Saved list (/app/saved), in the dashboard kit: title and count, a sort,
-// one table, a "1–24 of 57" footer. Server component; the page reads
-// `buyer_saved_list` and enriches the worker figures, then passes rows in.
+// The Saved pages in the dashboard kit. Server components; the pages read the
+// rows and pass them in.
+//
+// `SavedList` (/app/saved): title and count, a sort that applies on choice,
+// one table whose names open the record in the pane beside the list
+// (`?open=<slug>`), a "1–24 of 57" footer. `SavedSearchesTable`
+// (/app/searches): each saved search with how many suppliers it found and
+// when that was counted, and a Delete that asks first.
 //
 // SBI and contact PII never reach this file: the RPC's RETURNS excludes both.
 
 import Link from "next/link";
-import { displayName, entityLabel, formatCount, formatDay, initials, placeLabel } from "@/lib/dashboard/facts";
+import { displayName, entityLabel, formatCount, formatDay, formatRelative, initials, placeLabel } from "@/lib/dashboard/facts";
 import { marksFromTags, topTier } from "@/lib/dashboard/source-tiers";
+import type { SavedSearchJson } from "@/lib/saved-searches";
 import { Button } from "./controls";
-import { SelectInput } from "./fields";
 import { LogoTile, SourceMarks } from "./marks";
-import { Cell, DataTable, EmptyState, ErrorNote, HeadCell, PageHeader } from "./page";
+import { Cell, DataTable, EmptyState, ErrorNote, HeadCell, PageHeader, rowClass } from "./page";
+import { DeleteSavedSearch, SavedSort } from "./saved-controls";
 import { SaveRecordButton } from "./save-record-button";
 import { Caption } from "./type";
 
@@ -34,13 +40,29 @@ export type SavedListRow = {
   saved_at: string;
 };
 
-/** `?sort=…&page=…`, dropping the defaults so page 1 of "recent" is plain `/app/saved`. */
-export function savedHref(sort: SavedSort, page: number): string {
+/** How many source marks a row draws before "+N", as the results table does. */
+const MARKS_SHOWN = 5;
+
+/** `?sort=…&page=…&open=…`, dropping the defaults so page 1 of "recent" with nothing open is plain `/app/saved`. */
+export function savedHref(sort: SavedSort, page: number, open?: string | null): string {
   const u = new URLSearchParams();
   if (sort !== "recent") u.set("sort", sort);
   if (page !== 1) u.set("page", String(page));
+  if (open) u.set("open", open);
   const s = u.toString();
   return s ? `/app/saved?${s}` : "/app/saved";
+}
+
+/** The Sources cell: the marks on one line, five at most, and "+N" for the rest. */
+export function SourcesCell({ tags }: { tags: readonly string[] }) {
+  if (tags.length === 0) return <span className="text-quiet-ink">None on file</span>;
+  const marks = marksFromTags(tags);
+  return (
+    <span className="inline-flex flex-nowrap items-center gap-1.5">
+      <SourceMarks marks={marks.slice(0, MARKS_SHOWN)} caption="none" sm className="flex-nowrap gap-0.5" />
+      {marks.length > MARKS_SHOWN ? <span className="text-xs text-ink-subtle">+{marks.length - MARKS_SHOWN}</span> : null}
+    </span>
+  );
 }
 
 export function SavedList({
@@ -50,6 +72,7 @@ export function SavedList({
   pageSize,
   sort,
   failed,
+  openSlug = null,
 }: {
   rows: readonly SavedListRow[];
   total: number;
@@ -57,41 +80,29 @@ export function SavedList({
   pageSize: number;
   sort: SavedSort;
   failed: boolean;
+  /** The record open in the pane beside the list; its row is marked. */
+  openSlug?: string | null;
 }) {
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const first = (page - 1) * pageSize + 1;
   const last = first + rows.length - 1;
 
   return (
-    <div className="mx-auto flex max-w-6xl flex-col gap-6">
+    <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
       <PageHeader
         title="Saved"
         caption={
           failed
             ? "Only you can see this list."
-            : `${total.toLocaleString("en-GB")} saved ${total === 1 ? "supplier" : "suppliers"} · only you can see this list`
+            : `${formatCount(total)} saved ${total === 1 ? "supplier" : "suppliers"} · only you can see this list`
         }
-        actions={
-          <form method="get" className="flex items-center gap-2">
-            <label htmlFor="saved-sort" className="text-sm font-medium text-ink-muted">
-              Sort
-            </label>
-            <SelectInput id="saved-sort" name="sort" defaultValue={sort} className="w-auto">
-              {SAVED_SORTS.map((o) => (
-                <option key={o.value} value={o.value}>
-                  {o.label}
-                </option>
-              ))}
-            </SelectInput>
-            <Button type="submit">Apply</Button>
-          </form>
-        }
+        actions={<SavedSort sort={sort} options={SAVED_SORTS} />}
       />
 
       {failed ? (
         <ErrorNote>Could not load your saved suppliers. Nothing was removed; reload the page to try again.</ErrorNote>
       ) : rows.length === 0 ? (
-        <div className="rounded-md border border-line-subtle bg-surface">
+        <div className="rounded-md bg-surface">
           {page > 1 ? (
             <EmptyState
               icon="bookmark"
@@ -119,13 +130,13 @@ export function SavedList({
           )}
         </div>
       ) : (
-        <div className="rounded-md border border-line-subtle bg-surface">
-          <DataTable label="Saved suppliers" minWidth="44rem">
+        <div className="rounded-md bg-surface">
+          <DataTable label="Saved suppliers" minWidth="40rem">
             <thead>
               <tr>
                 <HeadCell>Supplier</HeadCell>
                 <HeadCell>Sources</HeadCell>
-                <HeadCell className="text-right">Workers</HeadCell>
+                <HeadCell align="right">Workers</HeadCell>
                 <HeadCell>Saved on</HeadCell>
                 <HeadCell>
                   <span className="sr-only">Actions</span>
@@ -137,14 +148,21 @@ export function SavedList({
                 const tags = r.source_tags ?? [];
                 const name = displayName(r.company_name);
                 const place = placeLabel(r.city, r.district);
-                const href = `/app/suppliers/${r.slug}`;
+                const open = r.slug === openSlug;
                 return (
-                  <tr key={r.id}>
+                  <tr key={r.id} className={rowClass({ current: open })}>
                     <th scope="row" className="h-11 border-b border-line-subtle px-4 py-2 text-left align-middle font-normal">
                       <div className="flex items-center gap-2.5">
                         <LogoTile initials={initials(name)} tier={topTier(tags)} size="sm" />
                         <div className="min-w-0">
-                          <Link prefetch={false} href={href} className="font-medium text-ink-strong [overflow-wrap:anywhere] hover:text-brand-ink">
+                          {/* The name opens the record beside the list; the list, its sort and its page stay put. */}
+                          <Link
+                            prefetch={false}
+                            scroll={false}
+                            href={savedHref(sort, page, r.slug)}
+                            aria-current={open ? "true" : undefined}
+                            className="font-medium text-ink-strong [overflow-wrap:anywhere] hover:text-brand-ink"
+                          >
                             {name}
                           </Link>
                           <Caption className="block">{[entityLabel(r.entity_type), place].filter(Boolean).join(" · ")}</Caption>
@@ -152,19 +170,12 @@ export function SavedList({
                       </div>
                     </th>
                     <Cell>
-                      {tags.length > 0 ? <SourceMarks marks={marksFromTags(tags)} sm /> : <span className="text-quiet-ink">None on file</span>}
+                      <SourcesCell tags={tags} />
                     </Cell>
-                    <Cell className="text-right tabular-nums">
-                      {formatCount(r.employees_total) ?? <span className="text-quiet-ink">—</span>}
-                    </Cell>
+                    <Cell align="right">{formatCount(r.employees_total) ?? <span className="text-quiet-ink">—</span>}</Cell>
                     <Cell className="whitespace-nowrap tabular-nums text-ink-muted">{formatDay(r.saved_at) ?? "—"}</Cell>
-                    <Cell>
-                      <span className="flex justify-end gap-1.5">
-                        <SaveRecordButton supplierId={r.id} saved icon />
-                        <Button href={href} clientNav className="h-7 px-2.5 text-xs" aria-label={`Open ${name}`}>
-                          Open
-                        </Button>
-                      </span>
+                    <Cell className="text-right">
+                      <SaveRecordButton supplierId={r.id} saved icon />
                     </Cell>
                   </tr>
                 );
@@ -173,7 +184,7 @@ export function SavedList({
           </DataTable>
           <nav aria-label="Pagination" className="flex flex-wrap items-center justify-between gap-3 px-4 py-2.5">
             <Caption className="tabular-nums">
-              {first}–{last} of {total.toLocaleString("en-GB")}
+              {first}–{last} of {formatCount(total)}
             </Caption>
             {totalPages > 1 ? (
               <span className="flex gap-2">
@@ -188,6 +199,76 @@ export function SavedList({
           </nav>
         </div>
       )}
+    </div>
+  );
+}
+
+/** "counted 2h ago", from `formatRelative` — or that the search has not been counted. */
+export function countedCaption(countedAt: string | null, now: Date): string {
+  const when = formatRelative(countedAt, now);
+  return when ? `counted ${when}` : "not counted yet";
+}
+
+/**
+ * The saved searches as a kit table: Name (opens the search), Suppliers (the
+ * remembered count and when it was taken — most are not live), Saved on, and
+ * Delete. Empty is the illustrated state that says where saving happens.
+ */
+export function SavedSearchesTable({ searches, now }: { searches: readonly SavedSearchJson[]; now: Date }) {
+  if (searches.length === 0) {
+    return (
+      <div className="rounded-md bg-surface">
+        <EmptyState
+          art="saved"
+          title="No saved searches yet"
+          action={
+            <Button variant="primary" href="/app/discover" clientNav>
+              Search suppliers
+            </Button>
+          }
+        >
+          Save a search from the results panel and it appears here, with how many suppliers it finds.
+        </EmptyState>
+      </div>
+    );
+  }
+  return (
+    <div className="rounded-md bg-surface">
+      <DataTable label="Saved searches" minWidth="36rem">
+        <thead>
+          <tr>
+            <HeadCell>Name</HeadCell>
+            <HeadCell align="right">Suppliers</HeadCell>
+            <HeadCell>Saved on</HeadCell>
+            <HeadCell>
+              <span className="sr-only">Actions</span>
+            </HeadCell>
+          </tr>
+        </thead>
+        <tbody className="[&>tr:last-child>*]:border-b-0">
+          {searches.map((s) => (
+            <tr key={s.id} className={rowClass()}>
+              <th scope="row" className="h-11 border-b border-line-subtle px-4 py-2 text-left align-middle font-normal">
+                <Link prefetch={false} href={s.href} className="font-medium text-ink-strong [overflow-wrap:anywhere] hover:text-brand-ink">
+                  {s.name || "Untitled search"}
+                </Link>
+              </th>
+              <Cell align="right" className="whitespace-nowrap">
+                {s.last_count === null ? (
+                  <span className="text-quiet-ink">—</span>
+                ) : (
+                  <span className="font-medium text-ink-strong">{formatCount(s.last_count)}</span>
+                )}
+                <Caption className="block">{countedCaption(s.last_count === null ? null : s.last_counted_at, now)}</Caption>
+              </Cell>
+              <Cell className="whitespace-nowrap tabular-nums text-ink-muted">{formatDay(s.created_at) ?? "—"}</Cell>
+              <Cell className="text-right">
+                <DeleteSavedSearch id={s.id} name={s.name || "Untitled search"} />
+              </Cell>
+            </tr>
+          ))}
+        </tbody>
+      </DataTable>
     </div>
   );
 }

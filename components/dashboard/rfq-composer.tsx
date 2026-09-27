@@ -22,13 +22,14 @@ import Link from "next/link";
 import { useContext, useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import type { SourceMarkModel } from "@/lib/dashboard/source-tiers";
 import type { TierRank } from "@/lib/design/tokens";
-import { formatQuantity, formatDay } from "@/lib/dashboard/facts";
+import { formatQuantity, formatDay, formatTime } from "@/lib/dashboard/facts";
 import { cn } from "@/lib/utils";
 import { Button, Checkbox, Kbd } from "./controls";
 import { Field, SelectInput, TextArea, TextInput } from "./fields";
 import { Icon } from "./icons";
 import { LogoTile, SourceMarks } from "./marks";
 import { SanctionBanner, Sheet, SheetBar, SheetScroll } from "./sheet";
+import { SupplierPicker, targetFromRow, type SupplierRow } from "./supplier-picker";
 import { Caption, Label } from "./type";
 
 /** A supplier this RFQ goes to. Facts only; never a contact value. */
@@ -57,6 +58,9 @@ export type ComposerPrefill = {
   shipBy?: string | null;
   hs?: string | null;
   productId?: string | null;
+  /** A saved draft's own message and questions; without them the workspace template and questions fill in. */
+  message?: string | null;
+  questions?: string[] | null;
 };
 
 /** The buyer's workspace, for the template's variables and the default questions. Null facts are named as missing, never invented. */
@@ -107,6 +111,11 @@ export function fillTemplate(
   return { text, missing };
 }
 
+/** `a`, `a or b`, `a, b or c`. */
+function listOr(items: string[]): string {
+  return items.length < 2 ? (items[0] ?? "") : `${items.slice(0, -1).join(", ")} or ${items.at(-1)}`;
+}
+
 /** What is still required before Send: the words the footer says. */
 export function missingFields(v: { title: string; quantity: string; unit: string; targets: number }): string[] {
   const out: string[] = [];
@@ -150,15 +159,51 @@ export function RfqComposer({
   const [currency, setCurrency] = useState(prefill.currency ?? "USD");
   const [shipTo, setShipTo] = useState(prefill.shipTo ?? "");
   const [shipBy, setShipBy] = useState(prefill.shipBy ?? "");
-  const baseQuestions = workspace?.questions?.length ? workspace.questions : [...DEFAULT_QUESTIONS];
+  const baseQuestions = prefill.questions?.length ? prefill.questions : workspace?.questions?.length ? workspace.questions : [...DEFAULT_QUESTIONS];
   const [questions, setQuestions] = useState<{ text: string; on: boolean }[]>(baseQuestions.map((text) => ({ text, on: true })));
   const [newQuestion, setNewQuestion] = useState("");
-  const [messageEdited, setMessageEdited] = useState<string | null>(null);
+  const [messageEdited, setMessageEdited] = useState<string | null>(prefill.message?.trim() ? prefill.message : null);
   const [busy, setBusy] = useState<"send" | "draft" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [draftId, setDraftId] = useState<string | null>(initialDraftId);
   const [draftSavedAt, setDraftSavedAt] = useState<string | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
+  const [picking, setPicking] = useState(false);
+  const [pickNote, setPickNote] = useState<string | null>(null);
+
+  /**
+   * The picker's choices, resolved on the server: a typeahead result has no id
+   * and no source tags, and only the server knows today's sanction flag and
+   * whether the supplier is still published. Anything it does not return is
+   * left out, and the buyer is told how many.
+   */
+  async function confirmPicked(picked: ComposerTarget[]) {
+    setPicking(false);
+    const ids = picked.map((t) => t.id).filter(Boolean);
+    const slugs = picked.filter((t) => !t.id).map((t) => t.slug);
+    const qs = new URLSearchParams();
+    if (ids.length) qs.set("ids", ids.join(","));
+    if (slugs.length) qs.set("slugs", slugs.join(","));
+    try {
+      const res = await fetch(`/api/v1/suppliers?${qs.toString()}`, { headers: { accept: "application/json" } });
+      const json = (await res.json().catch(() => null)) as { rows?: SupplierRow[]; error?: string } | null;
+      if (!res.ok || !Array.isArray(json?.rows)) {
+        setPickNote(json?.error ?? "The suppliers could not be checked just now. Nothing was added; try again.");
+        return;
+      }
+      const byId = new Map(json.rows.map((r) => [r.id, r]));
+      const bySlug = new Map(json.rows.map((r) => [r.slug, r]));
+      const resolved = picked
+        .map((t) => (t.id ? byId.get(t.id) : bySlug.get(t.slug)))
+        .filter((r): r is SupplierRow => Boolean(r))
+        .map(targetFromRow);
+      const dropped = picked.length - resolved.length;
+      setTargets(resolved.slice(0, 50));
+      setPickNote(dropped > 0 ? `${dropped} ${dropped === 1 ? "supplier is" : "suppliers are"} no longer listed and ${dropped === 1 ? "was" : "were"} left out.` : null);
+    } catch {
+      setPickNote("The suppliers could not be checked — no connection. Nothing was added; try again.");
+    }
+  }
 
   const sanctioned = targets.filter((t) => t.sanctioned);
   const productLine = [title.trim() || "[product]", Number(quantity) >= 1 ? formatQuantity(Number(quantity), unit) : null, targetPrice ? `target ${targetPrice} ${currency}` : null, shipBy ? `ship by ${formatDay(shipBy) ?? shipBy}` : null]
@@ -231,8 +276,10 @@ export function RfqComposer({
     }
     // Stay where the buyer was: the search (or the record) comes back with a
     // toast saying the RFQ went, and a link to it.
+    // In the pane: back to the search (or record) it sat beside, which says
+    // "RFQ sent" with a link. As a page: the new RFQ, open beside the list.
     const sep = closeHref.includes("?") ? "&" : "?";
-    const next = `${closeHref}${sep}sent=${encodeURIComponent(rfqId)}`;
+    const next = mode === "page" ? `/app/rfqs?open=${encodeURIComponent(rfqId)}` : `${closeHref}${sep}sent=${encodeURIComponent(rfqId)}`;
     if (router) {
       router.replace(next, { scroll: false });
       router.refresh();
@@ -252,8 +299,7 @@ export function RfqComposer({
       return;
     }
     setDraftId(newId);
-    const now = new Date();
-    setDraftSavedAt(`${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`);
+    setDraftSavedAt(`${formatTime(new Date().toISOString())} UTC`);
   }
 
   function onKey(e: KeyboardEvent<HTMLFormElement>) {
@@ -275,6 +321,14 @@ export function RfqComposer({
     .filter(Boolean)
     .join(" · ");
 
+  if (picking) {
+    return (
+      <Sheet label="Select suppliers" mode={mode}>
+        <SupplierPicker selected={targets} onClose={() => setPicking(false)} onConfirm={(picked) => void confirmPicked(picked)} />
+      </Sheet>
+    );
+  }
+
   return (
     <Sheet label="New RFQ" mode={mode}>
       <SheetBar>
@@ -284,7 +338,7 @@ export function RfqComposer({
           </Button>
         ) : null}
         <Label className="text-ink-strong">New RFQ</Label>
-        <Caption className="min-w-0 truncate">{context}</Caption>
+        <Caption className="min-w-0 [overflow-wrap:anywhere]">{context}</Caption>
         <span className="ml-auto flex items-center gap-2">
           {draftSavedAt ? <Caption>Draft saved {draftSavedAt}</Caption> : null}
           <Button variant="ghost" icon size="sm" aria-label="Close" href={closeHref} clientNav scroll={false}>
@@ -302,21 +356,23 @@ export function RfqComposer({
         </>
       ) : null}
       <SheetScroll measure={mode === "page"}>
-        <form ref={formRef} onSubmit={(e) => { e.preventDefault(); void send(); }} onKeyDown={onKey} className="grid gap-6 p-6 xl:grid-cols-[minmax(0,1fr)_300px]">
+        <form id={`${id}-form`} ref={formRef} onSubmit={(e) => { e.preventDefault(); void send(); }} onKeyDown={onKey} className="grid gap-6 p-6 xl:grid-cols-[minmax(0,1fr)_300px]">
           <div className="flex min-w-0 flex-col gap-6">
             {/* Who it goes to */}
             <section className="flex flex-col gap-2">
               <div className="flex items-baseline gap-2">
                 <Label className="text-ink-strong">To</Label>
                 <Caption>{targets.length} {targets.length === 1 ? "supplier" : "suppliers"} · up to 50</Caption>
-                {addHref ? (
-                  <Link href={addHref} prefetch={false} scroll={false} className="ml-auto text-sm font-medium text-brand-ink hover:underline">
-                    {mode === "pane" ? "Tick more in the results" : "Add suppliers"}
-                  </Link>
-                ) : null}
+                <Button size="sm" className="ml-auto" onClick={() => setPicking(true)}>
+                  <Icon name="plus" /> Add suppliers
+                </Button>
               </div>
+              {pickNote ? <Caption className="text-caution-ink">{pickNote}</Caption> : null}
               {targets.length === 0 ? (
-                <p className="m-0 rounded-md border border-dashed border-quiet-line px-4 py-3 text-sm text-quiet-ink">No supplier yet. Tick suppliers in the results, or open a record and send from there.</p>
+                <p className="m-0 rounded-md border border-dashed border-quiet-line px-4 py-3 text-sm text-quiet-ink">
+                  No supplier yet. Add them from your saved suppliers, a search or a recent RFQ
+                  {addHref && mode === "pane" ? ", or tick them in the results beside this" : ""}.
+                </p>
               ) : (
                 <ul className="m-0 flex list-none flex-col divide-y divide-line-subtle rounded-md bg-surface-sunken p-0">
                   {targets.map((t) => (
@@ -403,7 +459,7 @@ export function RfqComposer({
               <TextArea id={`${id}-msg`} aria-label="Message" value={message} onChange={(e) => setMessageEdited(e.target.value)} rows={8} maxLength={8000} />
               {filled.missing.length > 0 && messageEdited === null ? (
                 <Caption className="text-caution-ink">
-                  Your workspace has no {filled.missing.join(", ")} yet, so the template shows them in brackets.{" "}
+                  Your workspace has no {listOr(filled.missing.map((m) => m.replace(/^your /, "")))} yet, so the template shows them in brackets.{" "}
                   <Link href="/app/settings/workspace" prefetch={false} className="underline">
                     Fill them in Settings
                   </Link>
@@ -460,7 +516,7 @@ export function RfqComposer({
           </div>
 
           {/* The preview: what the RFQ will carry, beside the form where there is room */}
-          <aside className="flex flex-col gap-3 xl:sticky xl:top-0 xl:self-start" aria-label="Preview">
+          <section className="flex flex-col gap-3 xl:sticky xl:top-0 xl:self-start" aria-label="Preview">
             <div className="flex items-center gap-2">
               <Label className="text-ink-strong">What this RFQ carries</Label>
               <Caption className="ml-auto">stored on the RFQ</Caption>
@@ -485,7 +541,7 @@ export function RfqComposer({
               </Caption>
             </div>
             <Caption>Your email and phone are not shared. The supplier answers inside SourceBD, with the record attached.</Caption>
-          </aside>
+          </section>
         </form>
       </SheetScroll>
       <div className="glass flex shrink-0 flex-wrap items-center gap-2 border-t border-line-subtle px-6 py-3">
@@ -509,7 +565,7 @@ export function RfqComposer({
         <Button type="button" onClick={() => void saveDraft()} loading={busy === "draft"} disabled={busy !== null}>
           Save draft
         </Button>
-        <Button type="submit" variant="primary" disabled={blocked} loading={busy === "send"} aria-describedby={`${id}-send-hint`}>
+        <Button type="submit" form={`${id}-form`} variant="primary" disabled={blocked} loading={busy === "send"} aria-describedby={`${id}-send-hint`}>
           <Icon name="send" /> Send RFQ <Kbd>⌘↵</Kbd>
         </Button>
         <span id={`${id}-send-hint`} className="sr-only">

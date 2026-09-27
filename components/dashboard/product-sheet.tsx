@@ -96,6 +96,8 @@ export function ProductSheet({
                 lg
                 disabled={model.sanctioned}
                 href={model.sanctioned ? undefined : (model.rfqHref ?? undefined)}
+                clientNav
+                scroll={false}
               >
                 <Icon name="send" /> Send RFQ for this line
               </Button>

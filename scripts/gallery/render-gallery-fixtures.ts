@@ -1,4 +1,4 @@
-// Renders the six buyer dashboard v3.2 screens to one HTML page, through the
+// Renders the seven buyer screens to one HTML page, through the
 // same loader, builders and components `/dev/ds` uses, with the RPCs answered
 // from `lib/dashboard/fixtures.ts`. Run by `scripts/gallery/regen.sh`.
 //
@@ -8,6 +8,7 @@
 
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
+import { pathToFileURL } from "node:url";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
@@ -73,8 +74,9 @@ export const fixtureRpc = {
 
 async function main(): Promise<void> {
   // The real icon set is ESM only; `phosphor-real.cjs` reads it from here.
+  // A file URL, not a path: `import("E:\\…")` reads the drive letter as a URL scheme on Windows.
   const iconSet = await new Function("p", "return import(p)")(
-    path.join(repoRoot, "node_modules/@phosphor-icons/react/dist/ssr/index.es.js"),
+    pathToFileURL(path.join(repoRoot, "node_modules/@phosphor-icons/react/dist/ssr/index.es.js")).href,
   );
   (globalThis as unknown as { __PHOSPHOR__: unknown }).__PHOSPHOR__ = iconSet;
 

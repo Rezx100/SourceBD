@@ -698,21 +698,24 @@ export function SheetNotice({
   body,
   action,
   closeHref,
+  label = "Supplier record",
 }: {
   title: string;
   body: string;
   action?: { label: string; href: string } | null;
   closeHref?: string | null;
+  /** What the pane was opening: "Supplier record", "Order", "RFQ". */
+  label?: string;
 }) {
   return (
-    <Sheet label="Supplier record">
+    <Sheet label={label}>
       <SheetBar>
         {closeHref ? (
           <Button variant="ghost" icon aria-label="Close" href={closeHref} clientNav scroll={false}>
             <Icon name="x" />
           </Button>
         ) : null}
-        <Label className="text-ink-strong">Supplier record</Label>
+        <Label className="text-ink-strong">{label}</Label>
       </SheetBar>
       <SheetScroll>
         <div className="flex flex-col items-start gap-3 px-6 py-8">

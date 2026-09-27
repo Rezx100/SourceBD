@@ -238,8 +238,10 @@ describe("ShellSwitch — one shell per page, on every navigation", () => {
     assert.doesNotMatch(layout, /x-sourcebd-pathname|headers\(\)/, "the layout picks the shell from the request again");
     assert.doesNotMatch(layout, /<main\b/, "the layout draws a <main> of its own");
     // Kit loading states draw the kit's frame: the layout draws none there.
-    for (const route of ["discover", "products", "searches"]) {
-      const loading = readFileSync(path.join(process.cwd(), "app", "(app)", "app", route, "loading.tsx"), "utf8");
+    // The list pages keep theirs inside a `(list)` route group (27 Sep 2026),
+    // so the detail pages beside them answer real status codes.
+    for (const route of ["discover", "products/(list)", "searches"]) {
+      const loading = readFileSync(path.join(process.cwd(), "app", "(app)", "app", ...route.split("/"), "loading.tsx"), "utf8");
       assert.match(loading, /<KitLoading\b/, `/app/${route}'s loading state has no frame`);
     }
   });
@@ -281,7 +283,9 @@ describe("DialogFocus — focus follows the dialog's content", () => {
     assert.notDeepEqual(line.deps[0], first.deps[0]);
     line.effects[0]!();
     assert.equal(w.focusedDialog, 2);
-    assert.equal(first.refs[0]!.current, "aboni-knitwear", "the opener is forgotten when the content changes");
+    // The opener is the record link, by the parameter it was opened with (a
+    // list page opens its detail with `open=`, the search with `record=`).
+    assert.deepEqual(first.refs[0]!.current, { key: "record", id: "aboni-knitwear" }, "the opener is forgotten when the content changes");
   });
 
   it("Escape goes back to the search, and closing returns focus to the result that opened it", async () => {
