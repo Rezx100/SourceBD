@@ -4,6 +4,8 @@
 // name ever leaves in a response, even when the RPC answer carries one.
 
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import { beforeEach, describe, it } from "node:test";
 
 import { called, CONTACT_KEY_RE, fake, resetFake } from "../route-test-fake";
@@ -222,5 +224,22 @@ describe("DELETE /api/v1/products", () => {
     assert.equal(fake.rpcCalls.length, 0);
     fake.answers.buyer_product_delete = { data: null, error: { message: "product not found" } };
     assert.equal((await del(`?id=${ID}`)).status, 404);
+  });
+});
+
+describe("0106: the product and draft tables are written only through their functions", () => {
+  // A direct PostgREST insert skips every check buyer_product_upsert and
+  // rfq_draft_save make (URL schemes, the variant shape, ownership of the
+  // product a draft names). Code only: a grant kept in a comment must not pass.
+  it("authenticated is granted no INSERT, UPDATE or DELETE on buyer_products or rfq_drafts", () => {
+    const sql = readFileSync(path.join(process.cwd(), "supabase/migrations/0106_buyer_products_rfq_message_workspace.sql"), "utf8")
+      .replace(/--[^\n]*/g, "")
+      .toLowerCase();
+    const grants = [...sql.matchAll(/grant\s+([^;]*?)\s+on\s+(?:table\s+)?public\.(buyer_products|rfq_drafts)\s+to\s+([^;]+);/g)];
+    assert.ok(grants.length >= 2, "guard: the two table grants moved");
+    for (const [stmt, verbs, , who] of grants) {
+      if (!/authenticated/.test(who!)) continue;
+      assert.doesNotMatch(verbs!, /insert|update|delete|all/, `a direct write is granted: ${stmt}`);
+    }
   });
 });

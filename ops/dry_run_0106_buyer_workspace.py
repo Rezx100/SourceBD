@@ -206,6 +206,13 @@ try:
         "where table_schema = 'public' and grantee = 'anon' and table_name in ('buyer_products', 'rfq_drafts')",
     )
     assert not rows, "anon holds a privilege on a 0106 table"
+    rows = show(
+        "write privileges held by authenticated on the new tables (must be none: writes go through the functions)",
+        "select table_name, privilege_type from information_schema.role_table_grants "
+        "where table_schema = 'public' and grantee = 'authenticated' and table_name in ('buyer_products', 'rfq_drafts') "
+        "and privilege_type in ('INSERT', 'UPDATE', 'DELETE', 'TRUNCATE')",
+    )
+    assert not rows, "authenticated can write a 0106 table directly, around the functions' checks"
     show("bucket", "select id, public, file_size_limit, allowed_mime_types from storage.buckets where id = 'product-media'")
     show(
         "storage policies for product-media (four, owner-folder; no public select)",

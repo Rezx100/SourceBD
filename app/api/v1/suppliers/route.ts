@@ -14,6 +14,7 @@
 import { NextResponse } from "next/server";
 
 import { getServerRole } from "@/lib/auth";
+import { TARGET_COLUMNS } from "@/lib/dashboard/composer-target";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
@@ -24,10 +25,8 @@ const SLUG_RE = /^[a-z0-9][a-z0-9-]{0,199}$/;
 /** `rfq_create`'s own cap: one RFQ goes to at most 50 suppliers. */
 const MAX = 50;
 
-/** The only columns this route reads. Each is on 0083's grant list; none is a contact detail. */
-export const TARGET_COLUMNS = "id, slug, company_name, entity_type, city, district, source_tags, is_published, is_sanctioned";
-
-export type TargetRow = {
+// A route file may export only its handlers and config: the columns live in lib.
+type TargetRow = {
   id: string;
   slug: string;
   company_name: string;

@@ -22,6 +22,7 @@ import { DiscoverFilters } from "@/components/dashboard/discover-filters";
 import { Panel, PanelFooter, PanelHeader } from "@/components/dashboard/results-panel";
 import { ResultsTable, type ResultsDensity, type ResultsSortKey } from "@/components/dashboard/results-table";
 import { RfqComposer, type ComposerTarget, type ComposerWorkspace } from "@/components/dashboard/rfq-composer";
+import { TARGET_COLUMNS, targetFromRow, workspaceFrom, type SupplierRow } from "@/lib/dashboard/composer-target";
 import { SaveSearchForm } from "@/components/dashboard/save-search-form";
 import { SearchComposer } from "@/components/dashboard/search-composer";
 import { SelectionBar } from "@/components/dashboard/selection-bar";
@@ -39,8 +40,6 @@ import { ProfileReadTimeout, loadRecordLine, loadRecordSheet } from "@/lib/dashb
 import { fetchFacilityParentSlug } from "@/lib/facility-parent-redirect";
 import { ProductSheet } from "@/components/dashboard/product-sheet";
 import { buildDiscoverCard, buildDiscoverTableRow } from "@/lib/dashboard/build-discover-row";
-import { displayName, entityLabel, initials, placeLabel } from "@/lib/dashboard/facts";
-import { marksFromTags, topTier } from "@/lib/dashboard/source-tiers";
 import { hsBuyerLabel } from "@/lib/epb-hscode-labels";
 import { fetchDiscoverExplain, discoverFailureCopy, fetchDiscoverV32, fetchHsBatch } from "@/lib/discover-v32-rpc";
 import {
@@ -88,50 +87,6 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-
 const COLUMN_SORT: Record<ResultsSortKey, string> = { name: "name", sources: "sources", cert_expiry: "cert_expiry", hs_lines: "hs_lines", workers: "workers" };
 const SORT_DIR: Record<string, "asc" | "desc"> = { name: "asc", cert_expiry: "asc", established: "asc" };
 
-type SupplierRow = {
-  id: string;
-  slug: string;
-  company_name: string;
-  entity_type: string | null;
-  city: string | null;
-  district: string | null;
-  source_tags: string[] | null;
-  is_published: boolean;
-  is_sanctioned: boolean;
-};
-
-/** The composer's targets from the suppliers table: facts only, never a contact field. */
-function composerTarget(r: SupplierRow): ComposerTarget {
-  const name = displayName(r.company_name);
-  const tags = r.source_tags ?? [];
-  return {
-    id: r.id,
-    slug: r.slug,
-    name,
-    initials: initials(name),
-    tier: topTier(tags),
-    marks: marksFromTags(tags),
-    place: placeLabel(r.city, r.district),
-    type: entityLabel(r.entity_type),
-    sanctioned: Boolean(r.is_sanctioned),
-  };
-}
-
-function workspaceFrom(raw: unknown): ComposerWorkspace | null {
-  if (!raw || typeof raw !== "object") return null;
-  const s = raw as Record<string, unknown>;
-  const w = (s.workspace && typeof s.workspace === "object" ? s.workspace : {}) as Record<string, unknown>;
-  const inq = (s.inquiry && typeof s.inquiry === "object" ? s.inquiry : {}) as Record<string, unknown>;
-  const str = (v: unknown) => (typeof v === "string" && v.trim() ? v.trim() : null);
-  return {
-    companyName: str(w.company_name),
-    userName: str(s.display_name),
-    website: str(w.website),
-    questions: Array.isArray(inq.questions) ? inq.questions.filter((q): q is string => typeof q === "string" && q.trim().length > 0) : [],
-    emailTemplate: str(inq.email_template),
-  };
-}
-
 export default async function BuyerDiscoverPage({
   searchParams,
 }: {
@@ -156,8 +111,12 @@ export default async function BuyerDiscoverPage({
   const askOn = askEnabled();
 
   // Every pane's Close is this same search: `discoverHref` serializes the
-  // state and none of the pane parameters is part of it.
-  const closeHref = discoverHref(state);
+  // state and none of the pane parameters is part of it. The row density is
+  // the buyer's view, not the search, so it rides on every pane link and Close
+  // rather than resetting when a record opens.
+  const searchHref = discoverHref(state);
+  const withDensity = (d: ResultsDensity) => (d === "default" ? searchHref : `${searchHref}${searchHref.includes("?") ? "&" : "?"}d=${d}`);
+  const closeHref = withDensity(density);
   const withParams = (extra: string) => (extra ? `${closeHref}${closeHref.includes("?") ? "&" : "?"}${extra}` : closeHref);
   const recordHref = (slug: string) => withParams(`record=${encodeURIComponent(slug)}`);
   const recordParams = recordSlug ? `record=${encodeURIComponent(recordSlug)}${allLines ? "&lines=all" : ""}` : "";
@@ -201,12 +160,12 @@ export default async function BuyerDiscoverPage({
     ? (async () => {
         const r = await supabase
           .from("suppliers")
-          .select("id, slug, company_name, entity_type, city, district, source_tags, is_published, is_sanctioned")
+          .select(TARGET_COLUMNS)
           .in("id", rfqIds);
         const rows = (Array.isArray(r.data) ? r.data : []) as SupplierRow[];
         // In the order they were ticked, published only: an unpublished id is
         // dropped rather than drawn as a target the server would refuse.
-        return rfqIds.map((id) => rows.find((x) => x.id === id)).filter((x): x is SupplierRow => Boolean(x && x.is_published)).map(composerTarget);
+        return rfqIds.map((id) => rows.find((x) => x.id === id)).filter((x): x is SupplierRow => Boolean(x && x.is_published)).map(targetFromRow);
       })()
     : Promise.resolve([]);
   const workspacePromise: Promise<ComposerWorkspace | null> = composerOpen
@@ -268,7 +227,6 @@ export default async function BuyerDiscoverPage({
 
   const paneOpen = composerOpen || filtersOpen || saveOpen || recordSlug !== null;
   const exportHref = `/api/v1/discover/export?${serializeDiscoverState(state).toString()}`;
-  const densityHref = (d: ResultsDensity) => (d === "default" ? closeHref : withParams(`d=${d}`));
 
   return (
     // The workbench: the results column scrolls on its own, and a pane sits
@@ -356,7 +314,7 @@ export default async function BuyerDiscoverPage({
                   densityOptions: (["compact", "default", "comfortable"] as const).map((d) => ({
                     value: d,
                     label: d === "default" ? "Default" : d === "compact" ? "Compact" : "Comfortable",
-                    href: densityHref(d),
+                    href: withDensity(d),
                     active: d === density,
                   })),
                 }}

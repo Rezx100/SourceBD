@@ -5,7 +5,7 @@
 // certificate card, the RSC block and the sticky frosted action bar. `Stage`
 // and `Scrim` remain for the gallery's RFQ composer, which is still a dialog.
 
-import type { ReactNode } from "react";
+import { Fragment, type ReactNode } from "react";
 import { certStateLabel, rscStatusNeedsLook, type CertModel } from "@/lib/dashboard/facts";
 import type { FacilityRowModel, FactRow, LocationRow, RecordRfqRow, SanctionRow, SourceRow } from "@/lib/dashboard/models";
 import { recordPage, sourceMark } from "@/lib/dashboard/source-tiers";
@@ -111,7 +111,11 @@ export function RecordPane({
       )}
     >
       {closeHref ? <DialogFocus closeHref={closeHref} openKey={openKey} /> : null}
-      {children}
+      {/* Keyed by what it shows: opening another order, RFQ or record beside the
+          list is a client navigation into the same tree, and without the key a
+          form inside (the order editor, the composer) kept the previous item's
+          state while its id prop changed underneath it. */}
+      <Fragment key={openKey}>{children}</Fragment>
     </div>
   );
 }

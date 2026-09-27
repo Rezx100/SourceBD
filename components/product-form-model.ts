@@ -188,6 +188,17 @@ export function toPayload(v: ProductValues, status: ProductStatus) {
 }
 export type ProductPayload = ReturnType<typeof toPayload>;
 
+/**
+ * The stored files a save lets go of: on the product when the form opened, or
+ * uploaded since, and not on it now. The bucket is public by URL, so a removed
+ * tech pack must leave storage, not only the product.
+ */
+export function releasedFiles(initial: Pick<ProductValues, "media" | "tech_pack_url">, uploaded: readonly string[], saved: Pick<ProductValues, "media" | "tech_pack_url">): string[] {
+  const kept = new Set([...saved.media.map((m) => m.url), saved.tech_pack_url.trim()]);
+  const had = [...initial.media.map((m) => m.url), initial.tech_pack_url.trim(), ...uploaded];
+  return [...new Set(had)].filter((url) => url && !kept.has(url));
+}
+
 const str = (v: unknown): string => (typeof v === "string" ? v : typeof v === "number" && Number.isFinite(v) ? String(v) : "");
 const list = (v: unknown): unknown[] => (Array.isArray(v) ? v : []);
 const rec = (v: unknown): Record<string, unknown> => (v && typeof v === "object" ? (v as Record<string, unknown>) : {});

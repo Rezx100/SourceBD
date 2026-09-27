@@ -16,8 +16,9 @@
 // sanctioned cannot be ticked (the server refuses it an RFQ anyway).
 
 import { useEffect, useId, useState, type KeyboardEvent } from "react";
-import { displayName, entityLabel, formatCount, initials, placeLabel } from "@/lib/dashboard/facts";
-import { marksFromTags, topTier } from "@/lib/dashboard/source-tiers";
+import { targetFromRow, type SupplierRow } from "@/lib/dashboard/composer-target";
+import { displayName, entityLabel, formatCount, initials } from "@/lib/dashboard/facts";
+import { topTier } from "@/lib/dashboard/source-tiers";
 import { cn } from "@/lib/utils";
 import { Button, Checkbox } from "./controls";
 import { TextInput } from "./fields";
@@ -27,40 +28,15 @@ import { ErrorNote } from "./page";
 import type { ComposerTarget } from "./rfq-composer";
 import { SheetBar } from "./sheet";
 
+// The composer and the tests import these from here.
+export { targetFromRow, type SupplierRow };
+
 export const PICKER_TABS = [
   { key: "saved", label: "Saved suppliers" },
   { key: "search", label: "Search" },
   { key: "recent", label: "Recent RFQs" },
 ] as const;
 type Tab = (typeof PICKER_TABS)[number]["key"];
-
-/** A supplier as the saved list and `rfq_get`'s targets carry it. Never a contact value. */
-export type SupplierRow = {
-  id: string;
-  slug: string;
-  company_name: string;
-  entity_type?: string | null;
-  city?: string | null;
-  district?: string | null;
-  source_tags?: string[] | null;
-  is_sanctioned?: boolean | null;
-};
-
-export function targetFromRow(r: SupplierRow): ComposerTarget {
-  const name = displayName(r.company_name);
-  const tags = r.source_tags ?? [];
-  return {
-    id: r.id,
-    slug: r.slug,
-    name,
-    initials: initials(name),
-    tier: topTier(tags),
-    marks: marksFromTags(tags),
-    place: placeLabel(r.city, r.district),
-    type: entityLabel(r.entity_type),
-    sanctioned: Boolean(r.is_sanctioned),
-  };
-}
 
 /** A typeahead company: a slug and a place, no id and no source tags — so no marks are drawn for it. */
 export function targetFromSuggestion(s: { label: string; sublabel: string | null; slug: string }): ComposerTarget {

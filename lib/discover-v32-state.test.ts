@@ -371,6 +371,14 @@ describe("the filter pane's fields are the URL's own filters", () => {
     assert.deepEqual(parseDiscoverState(new URLSearchParams("cert_kind=nope&cert_state=valid")).cert, []);
   });
 
+  it("a pick the URL already carries is one filter, not two chips", () => {
+    assert.deepEqual(parseDiscoverState(new URLSearchParams("cert=wrap,gots:valid&cert_kind=wrap")).cert, [
+      { kind: "wrap", state: "any" },
+      { kind: "gots", state: "valid" },
+    ]);
+    assert.deepEqual(parseDiscoverState(new URLSearchParams("cert=gots:valid&cert=gots:valid")).cert, [{ kind: "gots", state: "valid" }]);
+  });
+
   it("the pane's pick joins a cert already on the URL rather than replacing it", () => {
     const s = parseDiscoverState(new URLSearchParams("cert=wrap&cert_kind=gots&cert_state=expiring"));
     assert.deepEqual(s.cert, [

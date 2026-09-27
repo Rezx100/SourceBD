@@ -34,7 +34,7 @@ import { Button, Checkbox, INERT_CHECKBOX_TITLE, Meter, Seg } from "./controls";
 import { Icon } from "./icons";
 import { Panel, PanelFooter, PanelHeader } from "./results-panel";
 import { ProductSheet } from "./product-sheet";
-import { ResultsTable } from "./results-table";
+import { ResultsTable, onRowKey } from "./results-table";
 import { DEFAULT_QUESTIONS, DEFAULT_TEMPLATE, RfqComposer, fillTemplate, missingFields, type ComposerPrefill, type ComposerTarget } from "./rfq-composer";
 import { AppShell } from "./app-shell";
 import { Topbar } from "./app-shell";
@@ -417,6 +417,24 @@ describe("ResultsTable (rendered) — the ledger grid", () => {
       assert.match(html, /<a\b[^>]*data-action="open"/);
     },
   );
+
+  it("a modified key is the browser's: ⌘R reloads and ⌘K searches, never a row action", () => {
+    let clicked = 0;
+    const row = { tagName: "TR", querySelector: () => ({ click: () => (clicked += 1) }) };
+    const press = (key: string, mods: { metaKey?: boolean; ctrlKey?: boolean; altKey?: boolean } = {}) => {
+      let prevented = false;
+      onRowKey({ key, target: row as unknown as EventTarget, metaKey: false, ctrlKey: false, altKey: false, ...mods, preventDefault: () => (prevented = true) });
+      return prevented;
+    };
+    for (const key of ["r", "s", "k", "j"]) {
+      assert.equal(press(key, { metaKey: true }), false, `⌘${key} was taken by the row`);
+      assert.equal(press(key, { ctrlKey: true }), false, `Ctrl+${key} was taken by the row`);
+    }
+    assert.equal(clicked, 0, "a modified key clicked a row action");
+    // Unmodified, the row keys still work.
+    assert.equal(press("r"), true);
+    assert.equal(clicked, 1);
+  });
 });
 
 // The record is not a dialog (27 Sep 2026): it sits beside the results in a

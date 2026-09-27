@@ -484,9 +484,12 @@ create policy pol_buyer_products_owner
   with check (owner_id = auth.uid());
 
 -- Supabase's default privileges hand anon and authenticated everything on a
--- new table; anon gets nothing, authenticated the four verbs RLS scopes.
+-- new table. anon gets nothing; authenticated may READ its own rows (RLS) and
+-- WRITES only through the buyer_product_* functions below, which validate every
+-- field. A direct PostgREST insert would skip those checks (URL schemes, the
+-- variant shape), so the table grants no write at all.
 revoke all on public.buyer_products from anon, authenticated;
-grant select, insert, update, delete on public.buyer_products to authenticated;
+grant select on public.buyer_products to authenticated;
 
 -- buyer_product_upsert(p_input) → uuid
 --   Without `id`: inserts a product for the caller. With `id`: updates the
@@ -1248,7 +1251,8 @@ create policy pol_rfq_drafts_owner
   with check (owner_id = auth.uid());
 
 revoke all on public.rfq_drafts from anon, authenticated;
-grant select, insert, update, delete on public.rfq_drafts to authenticated;
+-- Read-only for the owner; every write goes through rfq_draft_save / rfq_draft_delete.
+grant select on public.rfq_drafts to authenticated;
 
 -- rfq_draft_save(p_id, p_payload) → uuid. A null id inserts; an id updates
 -- the caller's own draft ('draft not found' otherwise).

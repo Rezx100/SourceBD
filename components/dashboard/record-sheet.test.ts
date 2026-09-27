@@ -583,6 +583,18 @@ describe("SupplierSheet — it is a page now, so a phone is a real width", () =>
     assert.match(pane, /lg:w-\[clamp\(480px,55%,760px\)\]/, "the pane's width is not a share of the region between two stops");
     assert.doesNotMatch(pane, /(?:^|[\s"])w-\[/, "a fixed width below lg would crush a phone");
   });
+
+  // The review of 27 Sep 2026: opening order B beside the list while order A's
+  // editor was open kept A's typed values under B's id, and the composer kept
+  // A's targets under rfq=B. What the pane shows is keyed by what it is.
+  it("the pane remounts its content when it shows something else", () => {
+    const el = RecordPane({ openKey: "order:b", children: "x" }) as unknown as { props: { children: unknown[] } };
+    const keyed = el.props.children.filter((c) => c && typeof c === "object" && "key" in (c as object)) as { key: string | null }[];
+    assert.ok(
+      keyed.some((c) => c.key === "order:b"),
+      "RecordPane draws its children without a key: a client component inside keeps the last item's state",
+    );
+  });
 });
 
 describe("ProductSheet — the line's own controls (REZ-C §3.4)", () => {

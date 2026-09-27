@@ -92,6 +92,7 @@
     "app/(app)/app/products/[id]/page.tsx",
     "app/api/v1/suppliers/route.test.ts",
     "app/(app)/app/rfqs/new/page.tsx",
+    "app/(app)/supplier/rfqs/[id]/page.tsx",
     "app/(app)/app/products/new/page.tsx",
     "app/(app)/app/messages/page.tsx",
     "app/(app)/app/compliance/page.tsx",

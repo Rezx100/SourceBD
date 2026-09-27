@@ -48,6 +48,8 @@ type Answers = {
   facilityPanel?: Rpc;
   /** What `.from(table)` answers, for tables other than `rfqs`. */
   tables?: Record<string, unknown[]>;
+  /** Any other function by name. */
+  rpcs?: Record<string, Rpc>;
 };
 
 /** Every `.from(...)` call the routes make, so a test can assert the filters. */
@@ -78,7 +80,7 @@ function fakeClient() {
     if (fn === "supplier_epb_hscodes_batch") return { data: [], error: null };
     if (fn === "facility_parent_slug") return answers.facilityParent ?? { data: null, error: null };
     if (fn === "buyer_supplier_facility_panel") return answers.facilityPanel ?? { data: null, error: null };
-    return { data: null, error: null };
+    return answers.rpcs?.[fn] ?? { data: null, error: null };
   };
   return {
     rpc: async (fn: string, args?: Record<string, unknown>) => (rpcCalls.push({ fn, args }), rpc(fn)),
@@ -659,6 +661,17 @@ describe("/app/discover — the panes beside the results", () => {
     assert.match(compact, /<th scope="row"[^>]*class="[^"]*\bh-8\b/);
     assert.match(compact, /<a (?=[^>]*role="menuitem")(?=[^>]*href="[^"]*d=compact")(?=[^>]*aria-current="true")/, "the density menu does not mark the stop that is on");
   });
+
+  it("the row density survives opening and closing a record: every pane link and Close carry ?d=", async () => {
+    const out = html(await search({ q: "knit", d: "compact", record: "aboni-knitwear" }));
+    assert.match(out, /<th scope="row"[^>]*class="[^"]*\bh-8\b/, "the open record reset the density");
+    assert.match(hrefOf(out, /Close/), /[?&]d=compact(&|$)/, "Close drops the density");
+    const opens = [...out.matchAll(/href="([^"]*record=[^"]*)"/g)].map((m) => m[1]!.replace(/&amp;/g, "&"));
+    assert.ok(opens.length > 0, "guard: the rows link to their records");
+    for (const href of opens) assert.match(href, /[?&]d=compact(&|$)/, `a record link drops the density: ${href}`);
+    // Default density adds nothing to the URL.
+    assert.doesNotMatch(hrefOf(html(await search({ q: "knit", record: "aboni-knitwear" })), /Close/), /[?&]d=/);
+  });
 });
 
 describe("/app/rfqs/new — the composer as a page", () => {
@@ -690,6 +703,24 @@ describe("/app/rfqs/new — the composer as a page", () => {
     assert.match(line, /value="HS 6105 · [^"]+"/);
   });
 
+  it("a saved draft whose suppliers have all left still opens, with its own words and no targets", async () => {
+    const DRAFT_ID = "5a5a5a5a-0000-4000-8000-00000000d001";
+    given({
+      tables: { suppliers: SUPPLIERS.filter((x) => x.id === UNPUBLISHED_ID) },
+      rpcs: {
+        rfq_draft_get: {
+          data: { id: DRAFT_ID, payload: { product_title: "Denim jackets, 12 oz", quantity: 800, quantity_unit: "pcs" }, target_supplier_ids: [UNPUBLISHED_ID], product_id: null },
+          error: null,
+        },
+      },
+    });
+    const Page = route("app/(app)/app/rfqs/new/page.js").default;
+    const out = await outcome(() => Page({ searchParams: Promise.resolve({ draft: DRAFT_ID }) }));
+    assert.ok("html" in out, `the buyer's own draft did not open: ${JSON.stringify(out)}`);
+    assert.match(out.html, /value="Denim jackets, 12 oz"/);
+    assert.doesNotMatch(out.html, /HIDDEN KNIT/i, "an unpublished supplier was drawn as a target");
+  });
+
   it("a sanctioned supplier is drawn with the banner and no live Send", async () => {
     const out = html(await newRfq({ supplier: SANCTIONED_ID }));
     assert.match(out, /role="alert"/);
@@ -704,6 +735,33 @@ describe("/app/rfqs/new — the composer as a page", () => {
     assert.ok("threw" in junk && /NEXT_REDIRECT/.test(junk.threw), "a malformed id is no supplier");
     const hidden = await newRfq({ supplier: UNPUBLISHED_ID }, SUPPLIERS.filter((s) => s.id === UNPUBLISHED_ID));
     assert.ok("threw" in hidden && /404|NOT_FOUND/.test(hidden.threw), `an unpublished supplier is drawn: ${JSON.stringify(hidden)}`);
+  });
+});
+
+describe("/supplier/rfqs/[id] — what the buyer wrote reaches the supplier", () => {
+  it("the supplier's RFQ page shows the buyer's message and every question", async () => {
+    const RFQ_ID = "6b6b6b6b-0000-4000-8000-00000000f001";
+    given({
+      rpcs: {
+        rfq_get: {
+          data: {
+            id: RFQ_ID, product_title: "Men's cotton trousers", product_description: "Twill, 260 gsm", quantity: 4500, quantity_unit: "pcs",
+            target_unit_price: null, currency: "USD", ship_to_country: null, ship_by: null, status: "open", accepted_quote_id: null,
+            message: "Hello, we would like a quotation for the trousers below.",
+            questions: ["Unit price at this quantity, FOB Chattogram", "Minimum order quantity per colour"],
+            created_at: "2026-09-10T10:00:00Z", updated_at: "2026-09-10T10:00:00Z", viewer_role: "supplier",
+            targets: [], quotes: [], thread_id: null,
+          },
+          error: null,
+        },
+        rfq_list: { data: [], error: null },
+      },
+    });
+    const Page = route("app/(app)/supplier/rfqs/[id]/page.js").default;
+    const out = html(await outcome(() => Page({ params: Promise.resolve({ id: RFQ_ID }) })));
+    assert.match(out, /Hello, we would like a quotation for the trousers below\./, "the supplier never sees the buyer's message");
+    assert.match(out, /<li>Unit price at this quantity, FOB Chattogram<\/li>/);
+    assert.match(out, /<li>Minimum order quantity per colour<\/li>/);
   });
 });
 

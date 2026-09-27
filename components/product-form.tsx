@@ -30,6 +30,7 @@ import {
   emptyBomRow,
   emptySizeRow,
   fileNameOf,
+  releasedFiles,
   routeSentence,
   toPayload,
   validateProduct,
@@ -69,6 +70,8 @@ export function ProductForm({ initial }: { initial: ProductValues }) {
   const [error, setError] = useState<string | null>(null);
   const imageInput = useRef<HTMLInputElement>(null);
   const techInput = useRef<HTMLInputElement>(null);
+  // Every file this form uploaded, so a save can remove the ones it did not keep.
+  const uploaded = useRef<string[]>([]);
 
   const set = <K extends keyof ProductValues>(k: K, value: ProductValues[K]) => {
     setV((p) => ({ ...p, [k]: value }));
@@ -118,6 +121,16 @@ export function ProductForm({ initial }: { initial: ProductValues }) {
       setError(refusal(res.status, json, "save"));
       return;
     }
+    // The files the saved product no longer holds leave storage too; best
+    // effort, and `keepalive` so the navigation below does not cancel them.
+    for (const url of releasedFiles(initial, uploaded.current, v)) {
+      void fetch("/api/v1/products/media", {
+        method: "DELETE",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ url }),
+        keepalive: true,
+      }).catch(() => undefined);
+    }
     // Busy stays on through the navigation, so a second press cannot save twice.
     const next = `/app/products?saved=${encodeURIComponent(id)}`;
     if (router) {
@@ -151,6 +164,7 @@ export function ProductForm({ initial }: { initial: ProductValues }) {
           setError(refusal(res.status, json, "upload"));
           return;
         }
+        uploaded.current.push(url);
         // One tech pack (its own column): a new one replaces the old.
         setV((p) => (kind === "tech_pack" ? { ...p, tech_pack_url: url } : { ...p, media: [...p.media, { url, kind }] }));
       }

@@ -12,6 +12,7 @@ import {
   emptyProduct,
   fileNameOf,
   fromProduct,
+  releasedFiles,
   routeSentence,
   toPayload,
   validateProduct,
@@ -168,5 +169,23 @@ describe("small helpers", () => {
   });
   it("fileNameOf reads the file's own name from its URL", () => {
     assert.equal(fileNameOf("https://x.test/o/tech%20pack%20v2.pdf?t=1"), "tech pack v2.pdf");
+  });
+});
+
+describe("releasedFiles — what a save lets go of in the public bucket", () => {
+  const B = "https://x.supabase.co/storage/v1/object/public/product-media/u1";
+  const img = (n: number) => ({ url: `${B}/${n}.png`, kind: "image" as const });
+
+  it("a removed image, a replaced tech pack, and an upload the buyer took back all leave storage", () => {
+    const initial = { media: [img(1), img(2)], tech_pack_url: `${B}/old.pdf` };
+    const saved = { media: [img(2), img(3)], tech_pack_url: `${B}/new.pdf` };
+    const uploaded = [`${B}/3.png`, `${B}/4.png`, `${B}/new.pdf`];
+    assert.deepEqual(releasedFiles(initial, uploaded, saved).sort(), [`${B}/1.png`, `${B}/4.png`, `${B}/old.pdf`].sort());
+  });
+
+  it("a file still on the product is never released, and nothing blank is", () => {
+    const same = { media: [img(1)], tech_pack_url: "" };
+    assert.deepEqual(releasedFiles(same, [], same), []);
+    assert.deepEqual(releasedFiles(same, [`${B}/1.png`], same), []);
   });
 });

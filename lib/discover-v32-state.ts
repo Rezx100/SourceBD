@@ -201,9 +201,11 @@ export function parseDiscoverState(
   const kindPick = one(sp, "cert_kind").toLowerCase();
   const statePick = one(sp, "cert_state").toLowerCase();
   const picked = kindPick ? [statePick && statePick !== "any" ? `${kindPick}:${statePick}` : kindPick] : [];
+  // Once each: the pane's pick can name a certificate the URL already carries.
   const cert = [...csv(sp, "cert"), ...picked]
     .map(parseCert)
-    .filter((x): x is CertFilter => x !== null);
+    .filter((x): x is CertFilter => x !== null)
+    .filter((c, i, all) => all.findIndex((o) => o.kind === c.kind && o.state === c.state) === i);
   // Upper-cased first: the filter form is a free-text box, and typing
   // "bgmea" used to yield no chip, no error and an unfiltered result set the
   // buyer read as filtered. Same for `type` and `rsc` below.

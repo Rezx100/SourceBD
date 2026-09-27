@@ -256,7 +256,10 @@ export function ResultsTable({
  * (not inside its checkbox or a link), and drives the row's own controls so
  * the mouse and the keyboard cannot diverge.
  */
-function onRowKey(e: KeyboardEvent<HTMLTableSectionElement>) {
+/** The ledger's row keys. Exported for its test. */
+export function onRowKey(e: Pick<KeyboardEvent<HTMLTableSectionElement>, "key" | "target" | "metaKey" | "ctrlKey" | "altKey" | "preventDefault">) {
+  // A modified key is the browser's or the app's (⌘R reloads, ⌘K searches), never a row action.
+  if (e.metaKey || e.ctrlKey || e.altKey) return;
   const target = e.target as HTMLElement;
   if (target.tagName !== "TR") return;
   const row = target as HTMLTableRowElement;

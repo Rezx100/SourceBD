@@ -13,58 +13,14 @@
 
 import { notFound, redirect } from "next/navigation";
 
-import { RfqComposer, type ComposerPrefill, type ComposerTarget, type ComposerWorkspace } from "@/components/dashboard/rfq-composer";
-import { displayName, entityLabel, initials, placeLabel } from "@/lib/dashboard/facts";
-import { marksFromTags, topTier } from "@/lib/dashboard/source-tiers";
+import { RfqComposer, type ComposerPrefill } from "@/components/dashboard/rfq-composer";
+import { TARGET_COLUMNS, targetFromRow, workspaceFrom, type SupplierRow } from "@/lib/dashboard/composer-target";
 import { hsBuyerLabel } from "@/lib/epb-hscode-labels";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-
-type SupplierRow = {
-  id: string;
-  slug: string;
-  company_name: string;
-  entity_type: string | null;
-  city: string | null;
-  district: string | null;
-  source_tags: string[] | null;
-  is_published: boolean;
-  is_sanctioned: boolean;
-};
-
-function target(r: SupplierRow): ComposerTarget {
-  const name = displayName(r.company_name);
-  const tags = r.source_tags ?? [];
-  return {
-    id: r.id,
-    slug: r.slug,
-    name,
-    initials: initials(name),
-    tier: topTier(tags),
-    marks: marksFromTags(tags),
-    place: placeLabel(r.city, r.district),
-    type: entityLabel(r.entity_type),
-    sanctioned: Boolean(r.is_sanctioned),
-  };
-}
-
-function workspaceFrom(raw: unknown): ComposerWorkspace | null {
-  if (!raw || typeof raw !== "object") return null;
-  const s = raw as Record<string, unknown>;
-  const w = (s.workspace && typeof s.workspace === "object" ? s.workspace : {}) as Record<string, unknown>;
-  const inq = (s.inquiry && typeof s.inquiry === "object" ? s.inquiry : {}) as Record<string, unknown>;
-  const str = (v: unknown) => (typeof v === "string" && v.trim() ? v.trim() : null);
-  return {
-    companyName: str(w.company_name),
-    userName: str(s.display_name),
-    website: str(w.website),
-    questions: Array.isArray(inq.questions) ? inq.questions.filter((q): q is string => typeof q === "string" && q.trim().length > 0) : [],
-    emailTemplate: str(inq.email_template),
-  };
-}
 
 /** One of the buyer's own products, when the composer starts from it. Read through its RPC; absent until the product base ships. */
 async function productPrefill(supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>, id: string): Promise<ComposerPrefill> {
@@ -134,7 +90,7 @@ export default async function NewRfqPage({
     ids.length > 0
       ? supabase
           .from("suppliers")
-          .select("id, slug, company_name, entity_type, city, district, source_tags, is_published, is_sanctioned")
+          .select(TARGET_COLUMNS)
           .in("id", ids)
       : Promise.resolve({ data: [], error: null }),
     (async () => {
@@ -147,10 +103,13 @@ export default async function NewRfqPage({
     productId ? productPrefill(supabase, productId) : Promise.resolve<ComposerPrefill>({}),
   ]);
   const rows = ((Array.isArray(data) ? data : []) as SupplierRow[]).filter((r) => r.is_published);
-  if (error || (ids.length > 0 && rows.length === 0)) {
+  // A link to suppliers none of whom is listed is a bad link. A saved draft
+  // whose suppliers have since left is still the buyer's draft: it opens with
+  // no targets, and they add new ones.
+  if (error || (!draft && ids.length > 0 && rows.length === 0)) {
     notFound();
   }
-  const targets = ids.map((id) => rows.find((r) => r.id === id)).filter((r): r is SupplierRow => Boolean(r)).map(target);
+  const targets = ids.map((id) => rows.find((r) => r.id === id)).filter((r): r is SupplierRow => Boolean(r)).map(targetFromRow);
   const prefill: ComposerPrefill = draft ? draft.prefill : hs ? { hs, title: `HS ${hs} · ${hsBuyerLabel(hs, null)}` } : product;
   // One supplier: Close returns to its record. Several, or a product: the RFQ list.
   const closeHref = targets.length === 1 ? `/app/suppliers/${targets[0]!.slug}` : "/app/rfqs";
