@@ -41,9 +41,7 @@ same PR. Read once per session.
   Hand-off: `handoff-rez-c-deploy.md`, then `handoff-rez-c-start.md`.
   Then D → H → G → E → F → I per §7.
 
-- **Buyer dashboard redesign (founder's review, 27 Sep)** — front end only;
-  PRs #176–#181 to `development`. Detail in `current-state.md`. Not live until
-  promoted to `main` and the founder approves the deploy.
+- **Buyer dashboard redesign** — LIVE 27 Sep (`383a31c`); follow-ups in `current-state.md`.
 
 ## Queued
 - **Entity resolution core** — `spec-resolution-core.md` (4 Aug). Batch
