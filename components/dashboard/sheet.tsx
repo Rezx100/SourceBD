@@ -378,7 +378,7 @@ export function CertCard({ cert }: { cert: CertModel }) {
   return (
     <div className="flex flex-col gap-1 rounded-md border border-line-subtle bg-surface px-4 py-3.5">
       <div className="flex items-center gap-2">
-        <SourceMark mark={mark} />
+        <SourceMark mark={mark} lg />
         <Label className="flex-1 text-ink-strong">{cert.scheme}</Label>
         <Badge tone={CERT_BADGE_TONE[cert.state]} icon={CERT_BADGE_ICON[cert.state]}>
           {certStateLabel(cert)}
@@ -498,7 +498,7 @@ export function SourcesList({ rows }: { rows: readonly SourceRow[] }) {
     <ul className="flex flex-col">
       {rows.map((r) => (
         <li key={r.mark.code} className="flex items-start gap-3 border-t border-line-subtle py-2 first:border-t-0">
-          <SourceMark mark={r.mark} />
+          <SourceMark mark={r.mark} lg />
           <span className="flex min-w-0 flex-1 flex-col gap-0.5">
             <Label className="text-ink-strong">{r.name}</Label>
             <Caption>

@@ -600,12 +600,24 @@ describe("SupplierSheet (rendered)", () => {
   // Cycle 5, test-adequacy critic: flattening TIER_FILL to one colour left the
   // suite green — the rank ramp never reached an assertion on the DOM.
   it("the source-rank ramp reaches the DOM: a tier-1 mark and a tier-4 mark do not share a class", () => {
+    // A register with an approved logo carries its rank in the frame's ring;
+    // one without carries it in the square's fill. Either way each tier is
+    // drawn in its own token.
     const html = renderToStaticMarkup(createElement(SupplierSheet, { model: buildSheet(aboniInput()) }));
-    assert.match(html, /aria-label="Source: Export Promotion Bureau[^"]*"[^>]*class="[^"]*bg-tier-1 text-tier-1-on/);
-    assert.match(html, /aria-label="Source: Bangladesh Garment Manufacturers[^"]*"[^>]*class="[^"]*bg-tier-2 text-tier-2-on/);
-    assert.match(html, /aria-label="Source: Global Organic Textile Standard[^"]*"[^>]*class="[^"]*bg-tier-3 text-tier-3-on/);
+    assert.match(html, /aria-label="Source: Export Promotion Bureau[^"]*"[^>]*class="[^"]*ring-tier-1/);
+    assert.match(html, /aria-label="Source: Bangladesh Garment Manufacturers[^"]*"[^>]*class="[^"]*ring-tier-2/);
+    assert.match(html, /aria-label="Source: Global Organic Textile Standard[^"]*"[^>]*class="[^"]*ring-tier-3/);
     assert.match(html, /aria-label="Source: ASOS[^"]*"[^>]*class="[^"]*bg-tier-4 text-tier-4-on/);
-    for (const n of [1, 2, 3, 4]) assert.ok(html.includes(`bg-tier-${n} text-tier-${n}-on`), `tier ${n} has its own fill`);
+    for (const n of [1, 2, 3]) assert.ok(html.includes(`ring-tier-${n}`), `tier ${n} has its own ring`);
+  });
+
+  it("an approved register logo is drawn in one colour from its file, never in the file's own colours", () => {
+    // logos.lock.md: mono everywhere, the mark masked in the kit's ink. A
+    // source with no approved file keeps its two-letter square.
+    const html = renderToStaticMarkup(createElement(SupplierSheet, { model: buildSheet(aboniInput()) }));
+    assert.match(html, /bg-ink-strong[^"]*"[^>]*style="mask-image:url\(\/icons\/sources\/regulatory\/epb\.png\)/);
+    assert.doesNotMatch(html, /<img[^>]*icons\/sources/, "a logo drawn as an image keeps the file's colours");
+    assert.match(html, />AS</, "ASOS has no approved logo and keeps its letters");
   });
 
   // Cycle 5, test-adequacy critic: `hscodesError` was asserted on the model only.
