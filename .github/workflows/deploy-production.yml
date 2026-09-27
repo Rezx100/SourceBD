@@ -1,6 +1,8 @@
 name: Deploy Production
 
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
     inputs:
       ref:
@@ -9,7 +11,14 @@ on:
         default: main
         type: string
 
-# Production deploys require the GitHub "production" environment (manual approval).
+# One deploy at a time, never cancelled mid-way: a second push to main queues
+# behind the first instead of racing it on the VPS.
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+# Every run, push or manual, waits in the GitHub "production" environment for
+# the founder's approval. That click is the single human gate in the workflow.
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -38,7 +47,8 @@ jobs:
       - name: Resolve expected production commit
         id: pin
         env:
-          DEPLOY_REF: ${{ github.event.inputs.ref }}
+          # A push to main deploys that push; a manual run deploys the ref typed in.
+          DEPLOY_REF: ${{ github.event.inputs.ref || github.sha }}
         run: |
           git fetch --tags origin "${DEPLOY_REF}"
           EXPECT="$(git rev-parse "FETCH_HEAD^{commit}")"

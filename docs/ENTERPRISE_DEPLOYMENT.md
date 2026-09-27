@@ -29,13 +29,14 @@
 Workflow:
 
 ```
-feature/* → PR → development (CI must pass)
-development → PR → main (review + CI)
-Tag main → vYYYY.MM.DD-N
-Deploy production from tag or main SHA via GitHub Actions or VPS git checkout
+feature/* → PR → development   (auto-merge; the required checks land it)
+development → PR → main        (auto-merge; the required checks land it)
+push to main → Deploy Production, waits for the founder's approval in GitHub
 ```
 
-**Do not push directly to `main`.** Enable GitHub branch protection on `main` (require PR, require CI checks).
+**Do not push directly to `main` or `development`.** Branch protection on both requires the
+five CI checks (`verify`, `unit-tests`, `http-boundary`, `migrations`, `python-tests`); the
+`production` environment requires the founder as reviewer. Tags `vYYYY.MM.DD-N` stay optional pins.
 
 ---
 
@@ -78,11 +79,12 @@ Deploy scope must match **intended** production change — not "everything dirty
 
 ### Primary: GitHub Actions (recommended)
 
-1. Merge to `main` (or create tag `vX.Y.Z`).
-2. GitHub → Actions → **Deploy Production** → Run workflow.
-3. Input: git ref (tag, `main`, or SHA).
-4. Workflow SSHs to VPS, checks out ref, runs `ops/deploy_vps.sh --ref=<ref> --require-git`.
-5. Confirm smoke checks (workflow hits `/api/health`; operator runs extended checklist below).
+1. The `development` → `main` PR auto-merges when its checks are green.
+2. The push to `main` starts **Deploy Production** automatically. It waits in the `production`
+   environment until the founder approves the run (GitHub → Actions → the waiting run → Review
+   deployments → Approve). A manual run (Run workflow with a tag, `main`, or SHA) waits the same way.
+3. Workflow SSHs to VPS, checks out the pinned SHA, runs `ops/deploy_vps.sh --ref=<sha> --require-git`.
+4. Confirm smoke checks (workflow hits `/api/health`; operator runs extended checklist below).
 
 ### Secondary: Manual VPS deploy (after git push)
 
@@ -265,7 +267,7 @@ Configure in repo → Settings → Secrets and variables → Actions:
 
 **Do not** store runtime `.env` in GitHub Secrets for the web container — VPS `.env` stays on server.
 
-Create GitHub Environment **`production`** with required reviewers for manual approval.
+The GitHub Environment **`production`** has the founder as required reviewer; every deploy run waits for that approval.
 
 ---
 

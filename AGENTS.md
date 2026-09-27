@@ -32,17 +32,16 @@ You are a senior engineer working on **SourceBD**, a B2B intelligence SaaS for t
 6. **No Tier 6 record enters the database alone.** It must be corroborated by ≥1 Tier 1–3 source.
 7. **Server enforces auth and ownership.** Hiding UI is never a security control.
 8. **Never commit secrets or `context/current-issues.md`.**
-9. **Never push to `main` directly.** Work on `development`, open a PR.
-9a. **Every promotion step needs the founder's explicit go-ahead, asked for
-    one step at a time.** The three gates are: (1) landing work on
-    `development`, whether by merging a PR or pushing to it directly;
-    (2) promoting `development` to `main`, or cutting a `v*` tag;
-    (3) deploying to the VPS. Committing locally and pushing a feature
-    branch are free — landing it is not. Approval of one gate is never
-    approval of the next: "merge it" means land that work on `development`
-    and stop, then ask again before `main`, and again before deploy. Never
-    chain the three in a single action, and never infer approval from an
-    earlier "yes", from a green CI run, or from the work being finished.
+9. **Never push to `main` or `development` directly.** Work on a branch, open a PR, let the required checks merge it.
+9a. **GitHub is the gate; the founder approves only the deploy.** A PR into
+    `development`, and a PR from `development` into `main`, lands by
+    `gh pr merge --auto --squash` once every required check is green. No chat
+    approval is asked for or needed. A push to `main` starts Deploy Production,
+    which waits in the GitHub `production` environment for the founder's click.
+    That click is the one human gate: never trigger the workflow yourself and
+    never work around the wait. `--apply` and live-database migrations are a
+    separate matter (rule 15) and always wait. (Changed 27 Sep 2026; the three
+    chat gates it replaces are in git history at `96512c3`.)
 10. **Do not touch the pixelsport-backend VPS** (37.49.227.151 / nbawebcast). It hosts unrelated apps.
 11. **Working tree must be clean at the start of every spec/session.** Either committed or stashed (with an accurate label). Cross-session half-work left uncommitted in the tree contaminates the next spec's build + verification. (Added 8 Jun 2026 — R1 root cause.)
 12. **Never state or imply an order of work without reading the issues first.**
@@ -77,37 +76,16 @@ You are a senior engineer working on **SourceBD**, a B2B intelligence SaaS for t
     and waits for an explicit go-ahead, with the full dry-run output
     posted first. Do not ask twice for the safe half, and never assume the
     risky half.
-16. **You never decide that your own work is done.** Every issue runs the
-    closed-loop protocol in `.cursor/rules/sourcebd-closed-loop.mdc` — load
-    that file when implementation ends and verification begins (it is no
-    longer injected on every turn):
-    implement, verify, fan out independent auditors, repair, re-verify,
-    re-audit, with no iteration cap. Auditors run independently against one
-    frozen candidate and receive full evidence — the issue text, the diff
-    against its real merge base, the tests, the raw command output and the raw
-    query results — but never your summary, your reasoning, or your claim that
-    something is fixed. Hide conclusions, not evidence. An auditor may not
-    repair what it found, or it ends up grading its own repair. The loop ends
-    only when a separate Acceptance Judge returns the literal token
-    `ACCEPTED_FOR_HUMAN_REVIEW`; a green CI run is evidence, not completion.
-    Every claim about current state — a Linear status, a count, a migration
-    that "was applied" — is a hypothesis until you verify it. Where the
-    deliverable is something an outside
-    caller observes — a status code, a redirect, a rendered value, a row
-    count — at least one test must assert it at that boundary, because
-    helper-level unit tests cannot. Every defect a critic finds must leave
-    behind a durable guard that would catch its class again — a test, a data
-    invariant, a reconciliation query, a detector rule or a constraint,
-    whichever actually fits. Acceptance is never permission: for any
-    `--apply` or production migration the token means only that the plan is
-    evidenced well enough for the founder to decide, and approval attaches to
-    the exact audited mutation set, so re-run the dry-run and compare it
-    before applying — if the set moved, the approval is void. Subtask
-    acceptance never closes the parent epic: that needs the buyer-visible
-    symptom verified gone in production. (Added 8 Aug 2026 — REZ-72 shipped and
-    deployed with 361 green tests and a redirect that may never emit a 308,
-    because every test asserted a pure helper and none asserted an HTTP
-    status.)
+16. **Done means merged by CI after one critic pass.** Run `/code-review` on
+    the diff against the real merge base and fix the real findings. Each defect
+    leaves a durable guard behind (a test, a data invariant, a constraint or a
+    detector rule). Anything an outside caller observes (a status code, a
+    redirect, a rendered value, a row count) gets a test at that boundary,
+    because helper-level unit tests cannot see it. Then open the PR with
+    auto-merge; `.cursor/rules/sourcebd-closed-loop.mdc` has the steps.
+    A merge is never permission for `--apply` (rule 15), and a subtask landing
+    never closes the parent epic: that needs the buyer-visible symptom verified
+    gone in production. (Replaced the six-auditor loop on 27 Sep 2026.)
 
 ## How to reply
 
@@ -159,7 +137,7 @@ Rules of thumb:
    `current-state.md` exceeds 16 KB or `active.md` exceeds 6 KB
    (`lib/context-size.test.ts`); that failure is the signal to archive, never to
    raise the cap.
-5. Commit on `development` branch. Open PR.
+5. Commit on a branch. Open the PR to `development` and run `gh pr merge --auto --squash`.
 
 ## Debugging mode (when reading current-issues.md)
 
