@@ -443,7 +443,7 @@ export function MenuItem({
       {children}
     </a>
   ) : (
-    <button type="button" role="menuitem" aria-pressed={active} onClick={onClick} className={cls}>
+    <button type="button" role="menuitem" onClick={onClick} className={cls}>
       {mark}
       {children}
     </button>

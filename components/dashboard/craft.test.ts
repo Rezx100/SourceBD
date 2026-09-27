@@ -251,16 +251,12 @@ describe("the button tiers", () => {
 describe("the menu", () => {
   it("is a native disclosure whose items mark the active one, and opens upward when asked", () => {
     const html = renderToStaticMarkup(
-      createElement(Menu, {
-        label: "Rows per page",
-        summary: "25 per page",
-        up: true,
-        align: "left",
-        children: [
-          createElement(MenuItem, { key: "25", href: "?per=25", active: true, children: "25 per page" }),
-          createElement(MenuItem, { key: "50", href: "?per=50", children: "50 per page" }),
-        ],
-      }),
+      createElement(
+        Menu,
+        { label: "Rows per page", summary: "25 per page", up: true, align: "left" },
+        createElement(MenuItem, { key: "25", href: "?per=25", active: true }, "25 per page"),
+        createElement(MenuItem, { key: "50", href: "?per=50" }, "50 per page"),
+      ),
     );
     assert.match(html, /^<details\b/);
     assert.match(html, /<summary aria-label="Rows per page"/);
