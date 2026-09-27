@@ -37,8 +37,14 @@ async function SettingsProfilePageBody() {
             <SettingsChangePasswordForm />
           </>
         ) : (
-          // Blank forms over a failed read would let a save clear the name.
-          <ErrorNote>Could not load your profile. Reload the page to try again; nothing has changed.</ErrorNote>
+          <>
+            {/* Blank name and avatar forms over a failed read would let a save
+                clear them. Email and password need nothing from that read, so
+                a buyer can still change them. */}
+            <ErrorNote>Could not load your profile. Reload the page to try again; nothing has changed.</ErrorNote>
+            <SettingsChangeEmailForm currentEmail="" />
+            <SettingsChangePasswordForm />
+          </>
         )}
       </SettingsFrame>
     </>

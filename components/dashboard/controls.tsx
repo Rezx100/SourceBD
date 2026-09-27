@@ -73,6 +73,7 @@ export function Button({
       "aria-label": rest["aria-label"],
       "aria-busy": rest["aria-busy"],
       "aria-describedby": rest["aria-describedby"],
+      tabIndex: rest.tabIndex,
       onClick: rest.onClick as unknown as MouseEventHandler<HTMLAnchorElement> | undefined,
     };
     // `next/link` only where the caller asked for it: a client navigation keeps

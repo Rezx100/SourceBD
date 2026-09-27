@@ -140,7 +140,7 @@ export function RfqListBody({ rows, tab, today }: { rows: RfqRow[] | null; tab: 
                           >
                             {m.name}
                           </Link>
-                          {r.viewer_role === "supplier" ? <Badge tone="type">As supplier</Badge> : null}
+                          {r.viewer_role !== "buyer" ? <Badge tone="type">As supplier</Badge> : null}
                         </span>
                       </Cell>
                       <Cell className="text-right tabular-nums">{m.supplierCount}</Cell>
@@ -152,8 +152,12 @@ export function RfqListBody({ rows, tab, today }: { rows: RfqRow[] | null; tab: 
                       </Cell>
                       <Cell className="whitespace-nowrap text-ink-muted">{formatDay(r.updated_at) ?? "—"}</Cell>
                       <Cell className="text-right">
-                        <span className="relative">
-                          <Button href={href} clientNav className="h-7 px-2.5 text-xs">
+                        {/* For the pointer only: the title link already opens the
+                            row, and a second "Open" per row doubled the tab
+                            stops and gave screen readers a list of identical
+                            link names. */}
+                        <span className="relative" aria-hidden>
+                          <Button href={href} clientNav tabIndex={-1} className="h-7 px-2.5 text-xs">
                             Open
                           </Button>
                         </span>

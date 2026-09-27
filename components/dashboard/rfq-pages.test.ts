@@ -178,3 +178,14 @@ describe("RFQ composer", () => {
     assert.equal(missingRequired({ title: "Tees", quantity: "500", unit: "pcs" }), 0);
   });
 });
+
+describe("the As supplier label", () => {
+  it("shows on every row the viewer did not send only as a buyer", () => {
+    // `viewer_role` "both" (a buyer whose own claimed supplier is a target)
+    // lost the label when the check became `=== "supplier"`.
+    for (const role of ["supplier", "both"] as const) {
+      assert.match(list([row("x", { viewer_role: role })]), /As supplier/, role);
+    }
+    assert.doesNotMatch(list([row("y", {})]), /As supplier/);
+  });
+});

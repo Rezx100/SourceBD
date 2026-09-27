@@ -62,13 +62,13 @@ describe("Home", () => {
   });
 
   it("a saved row links to its record and a failed read says so", () => {
-    const html = home(
-      { ...EMPTY_HOME, saved_count: 1, recent_saved: [{ ...ROW, source_tags: ["BGMEA"] }] },
-      true,
-    );
+    const html = home({ ...EMPTY_HOME, saved_count: 1, recent_saved: [{ ...ROW, source_tags: ["BGMEA"] }] });
     assert.match(html, /href="\/app\/suppliers\/aboni-knitwear-ltd"/);
     assert.match(html, /Factory · Savar, Dhaka/);
-    assert.match(html, /role="alert"[^>]*>.*Could not load your home page/);
+    // The unsave control the old Home had on each saved row.
+    assert.match(html, /aria-pressed="true"/);
+    // A failed read renders the alert and nothing that claims to know.
+    assert.match(home(EMPTY_HOME, true), /role="alert"[^>]*>.*Could not load your home page/);
   });
 });
 
@@ -104,5 +104,15 @@ describe("Saved", () => {
     assert.match(html, /25–25 of 50/);
     assert.match(html, /href="\/app\/saved\?sort=name"/);
     assert.match(html, /href="\/app\/saved\?sort=name&amp;page=3"/);
+  });
+});
+
+describe("Home after a failed read", () => {
+  it("says it could not read, and claims no all-clear", () => {
+    // "No certificates expiring" and "0 saved" under the error were a false
+    // all-clear (review of the rebuild, 27 Sep).
+    const html = home(EMPTY_HOME, true);
+    assert.match(html, /Could not load your home page/);
+    assert.doesNotMatch(html, /No certificates expiring|No saved suppliers yet|0 saved/);
   });
 });

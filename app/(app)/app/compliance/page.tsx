@@ -114,8 +114,10 @@ async function ComplianceHubPageBody() {
             {uflpa === null
               ? "The UFLPA tracker did not load."
               : uflpa.total === 0
-                ? "No saved suppliers to check yet."
-                : `Of your ${plural(uflpa.total, "saved supplier")}, ${uflpa.hits.toLocaleString()} ${uflpa.hits === 1 ? "matches" : "match"} the U.S. UFLPA Entity List, ${uflpa.flags.toLocaleString()} ${uflpa.flags === 1 ? "has" : "have"} Xinjiang-linked text in the record and ${uflpa.clear.toLocaleString()} ${uflpa.clear === 1 ? "is" : "are"} clear.`}
+                ? "None of your saved suppliers is published yet, so there is nothing to check."
+                : // The tracker reads published suppliers only, so this can be
+                  // fewer than the saved count in the caption.
+                  `Of your ${plural(uflpa.total, "saved supplier")} that ${uflpa.total === 1 ? "is" : "are"} published, ${uflpa.hits.toLocaleString()} ${uflpa.hits === 1 ? "matches" : "match"} the U.S. UFLPA Entity List, ${uflpa.flags.toLocaleString()} ${uflpa.flags === 1 ? "has" : "have"} Xinjiang-linked text in the record and ${uflpa.clear.toLocaleString()} ${uflpa.clear === 1 ? "is" : "are"} clear.`}
           </p>
           {uflpa && uflpa.hits > 0 ? (
             <Badge tone="sanction" className="self-start sm:self-auto">

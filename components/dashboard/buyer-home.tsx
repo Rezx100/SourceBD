@@ -12,6 +12,7 @@ import { Badge } from "./chips";
 import { Button } from "./controls";
 import { LogoTile, SourceMarks } from "./marks";
 import { Cell, DataTable, EmptyState, ErrorNote, HeadCell, PageHeader, PageSection } from "./page";
+import { SaveRecordButton } from "./save-record-button";
 import { Caption } from "./type";
 
 export type HomeSaved = {
@@ -99,7 +100,7 @@ export function BuyerHome({
     <div className="mx-auto flex max-w-5xl flex-col gap-8">
       <PageHeader
         title="Home"
-        caption={homeCaption(doc.saved_count, openRfqs, activeOrders)}
+        caption={failed ? "Your counts could not be read just now" : homeCaption(doc.saved_count, openRfqs, activeOrders)}
         actions={
           <>
             <Button href="/app/rfqs" clientNav>
@@ -112,10 +113,13 @@ export function BuyerHome({
         }
       />
 
+      {/* A failed read says so and claims nothing else: "No certificates
+          expiring" and "0 saved" over an unread dashboard were a false
+          all-clear. */}
       {failed ? (
         <ErrorNote>Could not load your home page. Nothing you saved is lost; reload the page to try again.</ErrorNote>
-      ) : null}
-
+      ) : (
+      <>
       <PageSection
         title="Alerts"
         caption="Certificates on your saved suppliers that expire in the next 30 days"
@@ -205,9 +209,13 @@ export function BuyerHome({
                     </Cell>
                     <Cell className="whitespace-nowrap tabular-nums text-ink-muted">{formatDay(c.saved_at) ?? "—"}</Cell>
                     <Cell className="text-right">
-                      <Button href={recordHref(c.slug)} clientNav className="h-7 px-2.5 text-xs" aria-label={`Open ${name}`}>
-                        Open
-                      </Button>
+                      {/* Unsave stays one click away, as it was on the old Home. */}
+                      <span className="inline-flex items-center gap-1.5">
+                        <SaveRecordButton supplierId={c.id} saved icon />
+                        <Button href={recordHref(c.slug)} clientNav className="h-7 px-2.5 text-xs" aria-label={`Open ${name}`}>
+                          Open
+                        </Button>
+                      </span>
                     </Cell>
                   </tr>
                 );
@@ -241,6 +249,8 @@ export function BuyerHome({
           </ul>
         )}
       </PageSection>
+      </>
+      )}
     </div>
   );
 }

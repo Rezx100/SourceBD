@@ -69,6 +69,9 @@ export function SaveRecordButton({
         icon={icon}
         aria-busy={pending || undefined}
         aria-label={label}
+        // A toggle: "Saved, pressed" tells a screen reader that pressing it
+        // again unsaves the supplier.
+        aria-pressed={on}
         aria-describedby={status ? statusId : undefined}
         className={icon ? "h-7 w-7" : undefined}
         onClick={async () => {
