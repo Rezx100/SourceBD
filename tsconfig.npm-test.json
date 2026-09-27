@@ -99,6 +99,7 @@
     "lib/dashboard/gallery-data.test.ts",
     "components/dashboard/index.ts",
     "components/dashboard/render.test.ts",
+    "components/dashboard/messages-orders.test.ts",
     "components/dashboard/record-sheet.test.ts",
     "components/dashboard/links.test.ts",
     "components/dashboard/dialog-focus.test.ts",

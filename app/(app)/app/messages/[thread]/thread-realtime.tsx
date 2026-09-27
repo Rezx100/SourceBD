@@ -20,7 +20,13 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { Button } from "@/components/dashboard/controls";
+import { TextArea } from "@/components/dashboard/fields";
+import { Icon } from "@/components/dashboard/icons";
+import { Toast } from "@/components/dashboard/toast";
+import { Caption } from "@/components/dashboard/type";
 import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
+import { cn } from "@/lib/utils";
 
 export type ThreadMessage = {
   id: string;
@@ -36,14 +42,18 @@ const MAX_BODY = 8000;
 export function ThreadRealtime({
   threadId,
   initialMessages,
+  supplierName,
 }: {
   threadId: string;
   initialMessages: ThreadMessage[];
+  /** Who the other side is, for the author line. */
+  supplierName?: string;
 }) {
   const [messages, setMessages] = useState<ThreadMessage[]>(initialMessages);
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [sent, setSent] = useState(false);
   const listEndRef = useRef<HTMLDivElement | null>(null);
 
   const refetch = useCallback(async () => {
@@ -85,6 +95,13 @@ export function ThreadRealtime({
     };
   }, [threadId, refetch]);
 
+  // The "Message sent" toast clears itself.
+  useEffect(() => {
+    if (!sent) return;
+    const t = setTimeout(() => setSent(false), 2500);
+    return () => clearTimeout(t);
+  }, [sent]);
+
   // Auto-scroll on new messages
   useEffect(() => {
     listEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -117,6 +134,7 @@ export function ThreadRealtime({
           return;
         }
         setDraft("");
+        setSent(true);
         await refetch();
       } catch {
         setError("Network error.");
@@ -129,51 +147,44 @@ export function ThreadRealtime({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <div className="min-h-[322px] flex-1 overflow-y-auto bg-bg-l0 px-4 py-4">
+      <div className="min-h-[240px] flex-1 px-2 py-3 sm:px-3 lg:min-h-0 lg:overflow-y-auto">
         {messages.length === 0 ? (
-          <p className="py-8 text-center text-[13px] text-ink-tertiary">
+          <p className="m-0 px-3 py-8 text-sm text-ink-muted">
             No messages yet. Send the first one below.
           </p>
         ) : (
-          <ul className="m-0 flex list-none flex-col gap-2 p-0">
+          <ul className="m-0 flex list-none flex-col gap-1 p-0">
             {messages.map((m) => (
               <li
                 key={m.id}
-                className={
-                  m.is_self
-                    ? "flex flex-col items-end"
-                    : "flex flex-col items-start"
-                }
+                className={cn("flex flex-col gap-1 rounded-md px-3 py-2.5", m.is_self && "bg-surface-sunken")}
               >
-                <div
-                  className={
-                    m.is_self
-                      ? "max-w-[80%] rounded-2xl rounded-br-sm bg-brand-forest px-3.5 py-2 text-[14px] text-white shadow-sm"
-                      : "max-w-[80%] rounded-2xl rounded-bl-sm border border-hairline bg-surface-l1 px-3.5 py-2 text-[14px] text-ink-primary shadow-sm"
-                  }
-                >
-                  <p className="m-0 whitespace-pre-wrap break-words">
-                    {m.body}
-                  </p>
-                </div>
-                <span className="mt-1 font-mono text-[12px] text-ink-tertiary">
-                  {fmtTime(m.created_at)}
+                <span className="flex flex-wrap items-baseline gap-x-2">
+                  <span className="text-sm font-medium text-ink-strong [overflow-wrap:anywhere]">
+                    {m.is_self ? "You" : supplierName ?? "Supplier"}
+                  </span>
+                  <Caption className="tabular-nums">
+                    <time dateTime={m.created_at}>{fmtTime(m.created_at)}</time>
+                  </Caption>
                 </span>
+                <p className="m-0 whitespace-pre-wrap text-base text-ink [overflow-wrap:anywhere]">
+                  {m.body}
+                </p>
               </li>
             ))}
-            <div ref={listEndRef} />
           </ul>
         )}
+        <div ref={listEndRef} />
       </div>
 
       <form
         onSubmit={onSend}
-        className="border-t border-hairline bg-surface-l1 p-3"
+        className="sticky bottom-0 flex flex-col gap-2 border-t border-line-subtle bg-surface px-4 py-3 sm:px-5 lg:static"
       >
         <label htmlFor="thread-composer" className="sr-only">
           Message
         </label>
-        <textarea
+        <TextArea
           id="thread-composer"
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
@@ -181,24 +192,29 @@ export function ThreadRealtime({
           rows={3}
           maxLength={MAX_BODY}
           disabled={sending}
-          className="block w-full resize-y rounded-md border border-hairline-strong bg-bg-l0 px-3 py-2 font-sans text-[14px] text-ink-primary placeholder:text-ink-tertiary focus:border-brand-forest focus:bg-surface-l1 focus:outline-none focus:ring-2 focus:ring-brand-forest/15 disabled:opacity-50"
+          aria-invalid={error ? true : undefined}
+          aria-describedby={error ? "thread-composer-error" : undefined}
+          className="resize-y"
         />
-        <div className="mt-2 flex items-center justify-between gap-3">
-          <span className="font-mono text-[12px] text-ink-tertiary">
+        <div className="flex items-center justify-between gap-3">
+          <Caption className="tabular-nums">
             {draft.trim().length}/{MAX_BODY}
             {error ? (
-              <span className="ml-2 text-sem-red">· {error}</span>
+              <span id="thread-composer-error" role="alert" className="ml-2 text-danger-ink">
+                {error}
+              </span>
             ) : null}
-          </span>
-          <button
+          </Caption>
+          <Button
             type="submit"
+            variant="primary"
             disabled={sending || draft.trim().length === 0}
-            className="inline-flex items-center rounded-pill bg-brand-forest px-5 py-2 text-sm font-semibold text-white transition-colors hover:bg-brand-forest-mid disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {sending ? "Sending…" : "Send"}
-          </button>
+            <Icon name="send" /> {sending ? "Sending…" : "Send"}
+          </Button>
         </div>
       </form>
+      {sent ? <Toast text="Message sent" href={null} className="fixed z-[60]" /> : null}
     </div>
   );
 }
