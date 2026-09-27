@@ -12,6 +12,7 @@ import { describe, it } from "node:test";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
+import { light, resolve } from "@/lib/design/tokens";
 import { Topbar } from "./app-shell";
 import { revealCurrentNavItem } from "./nav-current";
 import { EMPTY_ART, EmptyState } from "./page";
@@ -81,9 +82,11 @@ describe("empty states: the illustrations", () => {
       const svg = readFileSync(file, "utf8");
       assert.doesNotMatch(svg, /<metadata/, `${art}.svg still carries generator metadata`);
       assert.doesNotMatch(svg, /<text/, `${art}.svg carries text, which cannot be translated`);
-      // Only token colours: ink, brand, surface and quiet.line.
+      // Only token colours: ink, brand, surface and quiet.line — read from
+      // the token file, so the illustrations follow it if a value changes.
+      const allowed = ["ink", "brand", "surface", "quiet.line"].map((ref) => resolve(light, ref).toUpperCase());
       for (const fill of svg.matchAll(/fill="([^"]+)"/g)) {
-        assert.ok(["#262B26", "#1B5E20", "#FFFFFF", "#C1C7B9"].includes(fill[1]!), `${art}.svg paints ${fill[1]}`);
+        assert.ok(allowed.includes(fill[1]!.toUpperCase()), `${art}.svg paints ${fill[1]}, which is not a token colour`);
       }
     }
     const provenance = readFileSync(path.join(repoRoot, "public", "illustrations", "PROVENANCE.md"), "utf8");
@@ -106,10 +109,11 @@ describe("empty states: the illustrations", () => {
 
 describe("the record tray's entrance", () => {
   it("the dialog slides in and holds still under reduced motion; the full page does not animate", () => {
-    const dialog = renderToStaticMarkup(createElement(Sheet, { label: "Supplier record", children: "x" }));
+    type SheetProps = Parameters<typeof Sheet>[0];
+    const dialog = renderToStaticMarkup(createElement(Sheet, { label: "Supplier record" } as SheetProps, "x"));
     assert.match(dialog, /role="dialog"[^>]*animate-sheet-in/);
     assert.match(dialog, /motion-reduce:animate-none/);
-    const page = renderToStaticMarkup(createElement(Sheet, { label: "Supplier record", dialog: false, children: "x" }));
+    const page = renderToStaticMarkup(createElement(Sheet, { label: "Supplier record", dialog: false } as SheetProps, "x"));
     assert.doesNotMatch(page, /animate-sheet-in/);
   });
 
