@@ -10,6 +10,8 @@ import { ChatCircleText } from "@phosphor-icons/react/dist/ssr";
 
 import { DataList, EmptyState, PageHeader, Pill } from "@/components/ui/page-kit";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { AppShell } from "@/components/dashboard/app-shell";
+import { loadBuyerShell } from "@/lib/dashboard/load-buyer-shell";
 
 export const dynamic = "force-dynamic";
 
@@ -28,7 +30,7 @@ type Thread = {
   message_count: number;
 };
 
-export default async function MessagesPage() {
+async function MessagesPageBody() {
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase.rpc("thread_list");
   const threads: Thread[] = error || data == null ? [] : (data as Thread[]);
@@ -122,4 +124,16 @@ function fmtRelative(iso: string) {
   if (delta < day) return `${Math.floor(delta / 3_600_000)}h ago`;
   if (delta < 30 * day) return `${Math.floor(delta / day)}d ago`;
   return new Date(iso).toLocaleDateString();
+}
+
+// The kit's shell on every buyer page (one sidebar, one topbar), read in the
+// same wave as the page's own data.
+export default async function MessagesPage() {
+  const supabase = await createSupabaseServerClient();
+  const [shell, body] = await Promise.all([loadBuyerShell(supabase, "/app/messages"), MessagesPageBody()]);
+  return (
+    <AppShell sidebar={shell.sidebar} topbar={shell.topbar} mainId="main-content" screenLabel="Messages">
+      {body}
+    </AppShell>
+  );
 }

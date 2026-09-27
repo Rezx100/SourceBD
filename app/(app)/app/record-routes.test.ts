@@ -1198,7 +1198,9 @@ describe("cycle 6: what the routes send, and the branches cycle 6 found untested
       return html(await outcome(() => Layout({ children: createElement("p", null, "PAGE-BODY") })));
     };
     try {
-      const old = await render("/app/rfqs");
+      // Every /app page draws the kit's shell since 27 Sep; the supplier
+      // portal is the old shell's remaining user.
+      const old = await render("/supplier/rfqs");
       assert.match(old, /href="#main-content"/, "the old shell lost its skip link");
       assert.equal((old.match(/<div[^>]*role="main"[^>]*>/g) ?? []).filter((m) => m.includes('id="main-content"')).length, 1, "the old shell has no main landmark");
       assert.match(old, /PAGE-BODY/);
@@ -1227,11 +1229,14 @@ describe("cycle 6: what the routes send, and the branches cycle 6 found untested
       .filter((f) => path.basename(f) === "loading.tsx")
       .map((f) => path.relative(process.cwd(), f).split(path.sep).join("/"))
       .filter((f) => drawsKitShell("/" + f.replace(/^app\/\(app\)\//, "").replace(/\/loading\.tsx$/, "")));
-    assert.deepEqual(kitLoading.sort(), [
-      "app/(app)/app/discover/loading.tsx",
-      "app/(app)/app/products/loading.tsx",
-      "app/(app)/app/searches/loading.tsx",
-    ], "a kit route's loading state is not covered here — add it");
+    // Every /app route draws the kit's shell, so every /app loading state
+    // must draw its frame: one that did not showed a bare skeleton with no
+    // sidebar for as long as the page took.
+    const allLoading = walk(path.join(process.cwd(), "app", "(app)", "app"))
+      .filter((f) => path.basename(f) === "loading.tsx")
+      .map((f) => path.relative(process.cwd(), f).split(path.sep).join("/"));
+    assert.deepEqual(kitLoading.sort(), allLoading.sort(), "an /app loading state is outside the kit's routes");
+    assert.ok(kitLoading.length >= 20, "the /app loading states were not found");
     for (const file of kitLoading) {
       const out = renderToStaticMarkup(createElement(route(file.replace(/\.tsx$/, ".js")).default));
       assert.match(out, /href="#main-content"/, `${file}: no skip link`);
